@@ -57,7 +57,7 @@ public:
                        const ShaderDebug::GlobalState &globalState);
 
   void SetCurrentInstruction(uint32_t instruction) { m_instruction = instruction; }
-  void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
+  void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
 
   bool CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode, const ShaderVariable &input,
                               ShaderVariable &output1, ShaderVariable &output2);
@@ -91,7 +91,7 @@ D3D11DebugAPIWrapper::D3D11DebugAPIWrapper(WrappedID3D11Device *device, DXBC::DX
 }
 
 void D3D11DebugAPIWrapper::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
-                                           std::string d)
+                                           rdcstr d)
 {
   m_pDevice->AddDebugMessage(c, sv, src, d);
 }
@@ -2164,10 +2164,10 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
     prevdxbc = vs->GetDXBC();
   RDCASSERT(prevdxbc);
 
-  std::vector<PSInputElement> initialValues;
-  std::vector<std::string> floatInputs;
-  std::vector<std::string> inputVarNames;
-  std::string extractHlsl;
+  rdcarray<PSInputElement> initialValues;
+  rdcarray<rdcstr> floatInputs;
+  rdcarray<rdcstr> inputVarNames;
+  rdcstr extractHlsl;
   int structureStride = 0;
 
   ShaderDebug::GatherPSInputDataForInitialValues(*dxbc->GetReflection(), *prevdxbc->GetReflection(),

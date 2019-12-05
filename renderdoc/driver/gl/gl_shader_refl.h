@@ -56,7 +56,6 @@ struct FixedFunctionVertexOutputs
 int ParseVersionStatement(const char *version);
 void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &refl,
                           const FixedFunctionVertexOutputs &outputUsage);
-GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, std::vector<std::string> sources,
+GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcstr> sources,
                                   std::vector<std::string> *includepaths);
-void CheckVertexOutputUses(const std::vector<std::string> &sources,
-                           FixedFunctionVertexOutputs &outputUsage);
+void CheckVertexOutputUses(const rdcarray<rdcstr> &sources, FixedFunctionVertexOutputs &outputUsage);

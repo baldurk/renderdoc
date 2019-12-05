@@ -122,7 +122,7 @@ rdcarray<Type> MultiParam(const ConstIter &it, uint32_t &word)
   return ret;
 }
 
-inline void EncodeParam(std::vector<uint32_t> &words, const rdcstr &str)
+inline void EncodeParam(rdcarray<uint32_t> &words, const rdcstr &str)
 {
   size_t i=0, remainingChars = str.size() + 1;
   while(remainingChars > 0)
@@ -237,7 +237,7 @@ inline ImageOperandsAndParamDatas DecodeParam(const ConstIter &it, uint32_t &wor
   return ret;
 }
 
-inline void EncodeParam(std::vector<uint32_t> &words, const ImageOperandsAndParamDatas &param)
+inline void EncodeParam(rdcarray<uint32_t> &words, const ImageOperandsAndParamDatas &param)
 {
   words.push_back((uint32_t)param.flags);
   if(param.flags & ImageOperands::Bias)
@@ -342,7 +342,7 @@ inline LoopControlAndParamDatas DecodeParam(const ConstIter &it, uint32_t &word)
   return ret;
 }
 
-inline void EncodeParam(std::vector<uint32_t> &words, const LoopControlAndParamDatas &param)
+inline void EncodeParam(rdcarray<uint32_t> &words, const LoopControlAndParamDatas &param)
 {
   words.push_back((uint32_t)param.flags);
   if(param.flags & LoopControl::DependencyLength)
@@ -411,7 +411,7 @@ inline MemoryAccessAndParamDatas DecodeParam(const ConstIter &it, uint32_t &word
   return ret;
 }
 
-inline void EncodeParam(std::vector<uint32_t> &words, const MemoryAccessAndParamDatas &param)
+inline void EncodeParam(rdcarray<uint32_t> &words, const MemoryAccessAndParamDatas &param)
 {
   words.push_back((uint32_t)param.flags);
   if(param.flags & MemoryAccess::Aligned)
@@ -750,7 +750,7 @@ inline ExecutionModeAndParamData DecodeParam(const ConstIter &it, uint32_t &word
   return ret;
 }
 
-inline void EncodeParam(std::vector<uint32_t> &words, const ExecutionModeAndParamData &param)
+inline void EncodeParam(rdcarray<uint32_t> &words, const ExecutionModeAndParamData &param)
 {
   words.push_back((uint32_t)param.value);
   switch(param.value)
@@ -1286,7 +1286,7 @@ inline DecorationAndParamData DecodeParam(const ConstIter &it, uint32_t &word)
   return ret;
 }
 
-inline void EncodeParam(std::vector<uint32_t> &words, const DecorationAndParamData &param)
+inline void EncodeParam(rdcarray<uint32_t> &words, const DecorationAndParamData &param)
 {
   words.push_back((uint32_t)param.value);
   switch(param.value)
@@ -1510,7 +1510,7 @@ struct OpSourceContinued
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     EncodeParam(words, continuedSource);
     return Operation(OpCode, words);
   }
@@ -1545,7 +1545,7 @@ struct OpSource
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back((uint32_t)sourceLanguage);
     words.push_back((uint32_t)version);
     if(file != Id()) words.push_back(file.value());
@@ -1583,7 +1583,7 @@ struct OpSourceExtension
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     EncodeParam(words, extension);
     return Operation(OpCode, words);
   }
@@ -1614,7 +1614,7 @@ struct OpName
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(target.value());
     EncodeParam(words, name);
     return Operation(OpCode, words);
@@ -1649,7 +1649,7 @@ struct OpMemberName
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(type.value());
     words.push_back((uint32_t)member);
     EncodeParam(words, name);
@@ -1684,7 +1684,7 @@ struct OpString
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(result.value());
     EncodeParam(words, string);
     return Operation(OpCode, words);
@@ -1739,7 +1739,7 @@ struct OpExtension
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     EncodeParam(words, name);
     return Operation(OpCode, words);
   }
@@ -1770,7 +1770,7 @@ struct OpExtInstImport
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(result.value());
     EncodeParam(words, name);
     return Operation(OpCode, words);
@@ -1831,7 +1831,7 @@ struct OpEntryPoint
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back((uint32_t)executionModel);
     words.push_back(entryPoint.value());
     EncodeParam(words, name);
@@ -1871,7 +1871,7 @@ struct OpExecutionMode
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(entryPoint.value());
     EncodeParam(words, mode);
     return Operation(OpCode, words);
@@ -2071,7 +2071,7 @@ struct OpTypeImage
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(result.value());
     words.push_back(sampledType.value());
     words.push_back((uint32_t)dim);
@@ -2208,7 +2208,7 @@ struct OpTypeStruct
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(result.value());
     for(size_t i=0; i < members.size(); i++)
     {
@@ -2244,7 +2244,7 @@ struct OpTypeOpaque
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(result.value());
     EncodeParam(words, thenameoftheopaquetype);
     return Operation(OpCode, words);
@@ -2303,7 +2303,7 @@ struct OpTypeFunction
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(result.value());
     words.push_back(returnType.value());
     for(size_t i=0; i < parameters.size(); i++)
@@ -2513,7 +2513,7 @@ struct OpConstantComposite
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     for(size_t i=0; i < constituents.size(); i++)
@@ -2649,7 +2649,7 @@ struct OpSpecConstantComposite
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     for(size_t i=0; i < constituents.size(); i++)
@@ -2761,7 +2761,7 @@ struct OpFunctionCall
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(function.value());
@@ -2804,7 +2804,7 @@ struct OpVariable
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back((uint32_t)storageClass);
@@ -2875,7 +2875,7 @@ struct OpLoad
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(pointer.value());
@@ -2914,7 +2914,7 @@ struct OpStore
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(pointer.value());
     words.push_back(object.value());
     EncodeParam(words, memoryAccess);
@@ -2953,7 +2953,7 @@ struct OpCopyMemory
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(target.value());
     words.push_back(source.value());
     EncodeParam(words, memoryAccess0);
@@ -2996,7 +2996,7 @@ struct OpCopyMemorySized
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(target.value());
     words.push_back(source.value());
     words.push_back(size.value());
@@ -3039,7 +3039,7 @@ struct OpAccessChain
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(base.value());
@@ -3083,7 +3083,7 @@ struct OpInBoundsAccessChain
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(base.value());
@@ -3129,7 +3129,7 @@ struct OpPtrAccessChain
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(base.value());
@@ -3227,7 +3227,7 @@ struct OpInBoundsPtrAccessChain
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(base.value());
@@ -3269,7 +3269,7 @@ struct OpDecorate
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(target.value());
     EncodeParam(words, decoration);
     return Operation(OpCode, words);
@@ -3304,7 +3304,7 @@ struct OpMemberDecorate
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(structureType.value());
     words.push_back((uint32_t)member);
     EncodeParam(words, decoration);
@@ -3359,7 +3359,7 @@ struct OpGroupDecorate
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(decorationGroup.value());
     for(size_t i=0; i < targets.size(); i++)
     {
@@ -3395,7 +3395,7 @@ struct OpGroupMemberDecorate
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(decorationGroup.value());
     for(size_t i=0; i < targets.size(); i++)
     {
@@ -3491,7 +3491,7 @@ struct OpVectorShuffle
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(vector1.value());
@@ -3535,7 +3535,7 @@ struct OpCompositeConstruct
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     for(size_t i=0; i < constituents.size(); i++)
@@ -3577,7 +3577,7 @@ struct OpCompositeExtract
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(composite.value());
@@ -3623,7 +3623,7 @@ struct OpCompositeInsert
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(object.value());
@@ -3745,7 +3745,7 @@ struct OpImageSampleImplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -3790,7 +3790,7 @@ struct OpImageSampleExplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -3837,7 +3837,7 @@ struct OpImageSampleDrefImplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -3886,7 +3886,7 @@ struct OpImageSampleDrefExplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -3933,7 +3933,7 @@ struct OpImageSampleProjImplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -3978,7 +3978,7 @@ struct OpImageSampleProjExplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -4025,7 +4025,7 @@ struct OpImageSampleProjDrefImplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -4074,7 +4074,7 @@ struct OpImageSampleProjDrefExplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -4121,7 +4121,7 @@ struct OpImageFetch
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(image.value());
@@ -4168,7 +4168,7 @@ struct OpImageGather
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -4217,7 +4217,7 @@ struct OpImageDrefGather
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -4264,7 +4264,7 @@ struct OpImageRead
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(image.value());
@@ -4307,7 +4307,7 @@ struct OpImageWrite
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(image.value());
     words.push_back(coordinate.value());
     words.push_back(texel.value());
@@ -7734,7 +7734,7 @@ struct OpPhi
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     for(size_t i=0; i < parents.size(); i++)
@@ -7774,7 +7774,7 @@ struct OpLoopMerge
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(mergeBlock.value());
     words.push_back(continueTarget.value());
     EncodeParam(words, loopControl);
@@ -7875,7 +7875,7 @@ struct OpBranchConditional
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(condition.value());
     words.push_back(trueLabel.value());
     words.push_back(falseLabel.value());
@@ -7917,7 +7917,7 @@ struct OpSwitch
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(selector.value());
     words.push_back(def.value());
     for(size_t i=0; i < target.size(); i++)
@@ -8933,7 +8933,7 @@ struct OpEnqueueKernel
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(queue.value());
@@ -9303,7 +9303,7 @@ struct OpImageSparseSampleImplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -9348,7 +9348,7 @@ struct OpImageSparseSampleExplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -9395,7 +9395,7 @@ struct OpImageSparseSampleDrefImplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -9444,7 +9444,7 @@ struct OpImageSparseSampleDrefExplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -9491,7 +9491,7 @@ struct OpImageSparseSampleProjImplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -9536,7 +9536,7 @@ struct OpImageSparseSampleProjExplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -9583,7 +9583,7 @@ struct OpImageSparseSampleProjDrefImplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -9632,7 +9632,7 @@ struct OpImageSparseSampleProjDrefExplicitLod
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -9679,7 +9679,7 @@ struct OpImageSparseFetch
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(image.value());
@@ -9726,7 +9726,7 @@ struct OpImageSparseGather
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -9775,7 +9775,7 @@ struct OpImageSparseDrefGather
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -9918,7 +9918,7 @@ struct OpImageSparseRead
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(image.value());
@@ -10181,7 +10181,7 @@ struct OpModuleProcessed
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     EncodeParam(words, process);
     return Operation(OpCode, words);
   }
@@ -10212,7 +10212,7 @@ struct OpExecutionModeId
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(entryPoint.value());
     EncodeParam(words, mode);
     return Operation(OpCode, words);
@@ -10245,7 +10245,7 @@ struct OpDecorateId
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(target.value());
     EncodeParam(words, decoration);
     return Operation(OpCode, words);
@@ -10713,7 +10713,7 @@ struct OpGroupNonUniformIAdd
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -10763,7 +10763,7 @@ struct OpGroupNonUniformFAdd
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -10813,7 +10813,7 @@ struct OpGroupNonUniformIMul
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -10863,7 +10863,7 @@ struct OpGroupNonUniformFMul
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -10913,7 +10913,7 @@ struct OpGroupNonUniformSMin
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -10963,7 +10963,7 @@ struct OpGroupNonUniformUMin
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -11013,7 +11013,7 @@ struct OpGroupNonUniformFMin
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -11063,7 +11063,7 @@ struct OpGroupNonUniformSMax
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -11113,7 +11113,7 @@ struct OpGroupNonUniformUMax
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -11163,7 +11163,7 @@ struct OpGroupNonUniformFMax
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -11213,7 +11213,7 @@ struct OpGroupNonUniformBitwiseAnd
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -11263,7 +11263,7 @@ struct OpGroupNonUniformBitwiseOr
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -11313,7 +11313,7 @@ struct OpGroupNonUniformBitwiseXor
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -11363,7 +11363,7 @@ struct OpGroupNonUniformLogicalAnd
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -11413,7 +11413,7 @@ struct OpGroupNonUniformLogicalOr
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -11463,7 +11463,7 @@ struct OpGroupNonUniformLogicalXor
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(execution.value());
@@ -12122,7 +12122,7 @@ struct OpImageSampleFootprintNV
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(sampledImage.value());
@@ -12395,7 +12395,7 @@ struct OpCooperativeMatrixLoadNV
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(resultType.value());
     words.push_back(result.value());
     words.push_back(pointer.value());
@@ -12442,7 +12442,7 @@ struct OpCooperativeMatrixStoreNV
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(pointer.value());
     words.push_back(object.value());
     words.push_back(stride.value());
@@ -13237,7 +13237,7 @@ struct OpDecorateString
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(target.value());
     EncodeParam(words, decoration);
     return Operation(OpCode, words);
@@ -13272,7 +13272,7 @@ struct OpMemberDecorateString
   }
   operator Operation() const
   {
-    std::vector<uint32_t> words;
+    rdcarray<uint32_t> words;
     words.push_back(structType.value());
     words.push_back((uint32_t)member);
     EncodeParam(words, decoration);

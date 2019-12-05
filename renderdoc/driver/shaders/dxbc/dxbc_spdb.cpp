@@ -85,7 +85,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
   PageMapping directoryMapping(pages, header->PageSize, (uint32_t *)rootdirIndices, rootdirCount);
   const uint32_t *dirContents = (const uint32_t *)directoryMapping.Data();
 
-  std::vector<PDBStream> streams;
+  rdcarray<PDBStream> streams;
 
   streams.resize(*dirContents);
   dirContents++;
@@ -131,7 +131,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
   RDCASSERT(hashtable[0] == 0);
   hashtable++;
 
-  std::map<std::string, uint32_t> StreamNames;
+  std::map<rdcstr, uint32_t> StreamNames;
 
   uint32_t numset = 0;
   for(uint32_t i = 0; i < maxBit; i++)
@@ -176,20 +176,20 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
 
   struct TypeMember
   {
-    std::string name;
+    rdcstr name;
     uint16_t byteOffset;
     uint32_t typeIndex;
   };
 
   struct TypeDesc
   {
-    std::string name;
+    rdcstr name;
     VarType baseType;
     uint32_t byteSize;
     uint16_t vecSize;
     uint16_t matArrayStride;
     LEAF_ENUM_e leafType;
-    std::vector<TypeMember> members;
+    rdcarray<TypeMember> members;
   };
 
   std::map<uint32_t, TypeDesc> typeInfo;
@@ -417,7 +417,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
 
           uint32_t idx = 0;
 
-          std::vector<TypeMember> &members = typeInfo[id].members;
+          rdcarray<TypeMember> &members = typeInfo[id].members;
 
           byte *iter = (byte *)fieldList->data;
           while(iter < bytes)
@@ -674,7 +674,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
     m_Functions[0] = mainFunc;
   }
 
-  std::map<uint32_t, std::string> Names;
+  std::map<uint32_t, rdcstr> Names;
 
   if(StreamNames.find("/names") != StreamNames.end())
   {
@@ -712,7 +712,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
     }
   }
 
-  std::vector<DBIModule> modules;
+  rdcarray<DBIModule> modules;
 
   {
     PageMapping dbiMapping(pages, header->PageSize, &streams[3].pageIndices[0],
@@ -727,7 +727,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
     while(cur < end)
     {
       DBIModule *mod = (DBIModule *)cur;
-      cur += sizeof(DBIModule) - sizeof(std::string) * 2;
+      cur += sizeof(DBIModule) - sizeof(rdcstr) * 2;
 
       char *moduleName = (char *)cur;
       cur += strlen(moduleName) + 1;
@@ -740,7 +740,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
         cur++;
 
       DBIModule m;
-      memcpy(&m, mod, sizeof(DBIModule) - sizeof(std::string) * 2);
+      memcpy(&m, mod, sizeof(DBIModule) - sizeof(rdcstr) * 2);
       m.moduleName = moduleName;
       m.objectName = objectName;
 
@@ -751,7 +751,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
     RDCASSERT(cur == end);
   }
 
-  std::vector<Inlinee> inlines;
+  rdcarray<Inlinee> inlines;
 
   PROCSYM32 main = {};
 
@@ -771,7 +771,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
 
     RDCASSERT(moduledata[0] == CV_SIGNATURE_C13);
 
-    std::string localName;
+    rdcstr localName;
     CV_typ_t localType = 0;
 
     byte *basePtr = (byte *)&moduledata[1];
@@ -864,7 +864,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
           }
           else if(!strcmp(key, "hlslDefines"))
           {
-            std::string cmdlineDefines = "// Command line defines:\n\n";
+            rdcstr cmdlineDefines = "// Command line defines:\n\n";
 
             char *c = value;
 
@@ -911,14 +911,14 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
                   char *valend = c;
 
                   cmdlineDefines += "#define ";
-                  cmdlineDefines +=
-                      std::string(defstart, defend) + " " + std::string(valstart, valend);
+                  cmdlineDefines += rdcstr(defstart, defend - defstart) + " " +
+                                    rdcstr(valstart, valend - valstart);
                   cmdlineDefines += "\n";
                 }
                 else
                 {
                   cmdlineDefines += "#define ";
-                  cmdlineDefines += std::string(defstart, defend);
+                  cmdlineDefines += rdcstr(defstart, defend - defstart);
                   cmdlineDefines += "\n";
                 }
               }
@@ -1327,7 +1327,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
                      memberOffset + memberLen, varOffset, varOffset + varLen);
             }
 
-            mapping.var.localName = std::string(mapping.var.localName) + "." + mem.name;
+            mapping.var.localName = rdcstr(mapping.var.localName) + "." + mem.name;
 
             // subtract off the offset of this member so we're now relative to it - since it might
             // be a struct itself and we need to recurse.
@@ -1344,7 +1344,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
           {
             RDCERR("No member of %s corresponds to variable range [%u,%u]", vartype->name.c_str(),
                    varOffset, varOffset + varLen);
-            mapping.var.localName = std::string(mapping.var.localName) + ".__unknown__";
+            mapping.var.localName = rdcstr(mapping.var.localName) + ".__unknown__";
             break;
           }
         }
@@ -1439,7 +1439,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
 
           iter += offsetof(FileChecksum, hashData);
 
-          std::string name;
+          rdcstr name;
 
           if(Names.find(checksum->nameIndex) != Names.end())
           {
@@ -1491,7 +1491,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
 
               for(size_t i = 0; i < Files.size(); i++)
               {
-                std::string normalised = Files[i].first;
+                rdcstr normalised = Files[i].first;
                 for(char &c : normalised)
                   if(c == '\\')
                     c = '/';

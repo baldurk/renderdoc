@@ -69,7 +69,7 @@ void ExecutionModes::Register(const OpExecutionMode &mode)
   }
   else
   {
-    others.push_back({mode.mode.value, mode.mode.invocations});
+    others.push_back(mode.mode);
   }
 }
 
@@ -83,7 +83,7 @@ void ExecutionModes::Register(const OpExecutionModeId &mode)
   }
   else
   {
-    others.push_back({mode.mode.value, mode.mode.invocations});
+    others.push_back(mode.mode);
   }
 }
 
@@ -127,14 +127,8 @@ void ExecutionModes::Unregister(const OpExecutionMode &mode)
   }
   else
   {
-    for(size_t i = 0; i < others.size(); i++)
-    {
-      if(others[i].first == mode.mode.value)
-      {
-        others.erase(i);
-        break;
-      }
-    }
+    ExecutionMode val = mode.mode.value;
+    others.removeOneIf([val](const ExecutionModeAndParamData &m) { return m.value == val; });
   }
 }
 
@@ -146,14 +140,8 @@ void ExecutionModes::Unregister(const OpExecutionModeId &mode)
   }
   else
   {
-    for(size_t i = 0; i < others.size(); i++)
-    {
-      if(others[i].first == mode.mode.value)
-      {
-        others.erase(i);
-        break;
-      }
-    }
+    ExecutionMode val = mode.mode.value;
+    others.removeOneIf([val](const ExecutionModeAndParamData &m) { return m.value == val; });
   }
 }
 
@@ -297,14 +285,8 @@ void Decorations::Unregister(const DecorationAndParamData &decoration)
   }
   else
   {
-    for(size_t i = 0; i < others.size(); i++)
-    {
-      if(others[i].value == decoration.value)
-      {
-        others.erase(i);
-        break;
-      }
-    }
+    Decoration val = decoration.value;
+    others.removeIf([val](const DecorationAndParamData &m) { return m.value == val; });
   }
 }
 
@@ -316,7 +298,7 @@ Processor::~Processor()
 {
 }
 
-void Processor::Parse(const std::vector<uint32_t> &spirvWords)
+void Processor::Parse(const rdcarray<uint32_t> &spirvWords)
 {
   m_SPIRV = spirvWords;
 
@@ -778,14 +760,9 @@ void Processor::UnregisterOp(Iter it)
   {
     OpEntryPoint decoded(it);
 
-    for(auto entryIt = entries.begin(); entryIt != entries.end(); ++entryIt)
-    {
-      if(entryIt->id == decoded.entryPoint)
-      {
-        entries.erase(entryIt);
-        break;
-      }
-    }
+    Id entry = decoded.entryPoint;
+
+    entries.removeOneIf([entry](const EntryPoint &e) { return e.id == entry; });
   }
   else if(opdata.op == Op::ExecutionMode)
   {
@@ -802,14 +779,9 @@ void Processor::UnregisterOp(Iter it)
   }
   else if(opdata.op == Op::Variable)
   {
-    for(auto varIt = globals.begin(); varIt != globals.end(); ++varIt)
-    {
-      if(varIt->id == opdata.result)
-      {
-        globals.erase(varIt);
-        break;
-      }
-    }
+    Id result = opdata.result;
+
+    globals.removeOneIf([result](const Variable &e) { return e.id == result; });
   }
   else if(opdata.op == Op::ConstantNull || opdata.op == Op::ConstantTrue ||
           opdata.op == Op::ConstantFalse || opdata.op == Op::ConstantComposite ||

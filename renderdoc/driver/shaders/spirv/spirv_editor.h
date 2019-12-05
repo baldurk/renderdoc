@@ -26,7 +26,7 @@
 
 #include <stdint.h>
 #include <map>
-#include <vector>
+#include "api/replay/rdcarray.h"
 #include "spirv_common.h"
 #include "spirv_processor.h"
 
@@ -56,12 +56,12 @@ template <typename SPIRVType>
 using TypeToId = std::pair<SPIRVType, Id>;
 
 template <typename SPIRVType>
-using TypeToIds = std::vector<TypeToId<SPIRVType>>;
+using TypeToIds = rdcarray<TypeToId<SPIRVType>>;
 
 class Editor : public Processor
 {
 public:
-  Editor(std::vector<uint32_t> &spirvWords);
+  Editor(rdcarray<uint32_t> &spirvWords);
   ~Editor();
 
   void Prepare();
@@ -161,16 +161,16 @@ public:
     return it->second;
   }
 
-  Id DeclareStructType(const std::vector<Id> &members);
+  Id DeclareStructType(const rdcarray<Id> &members);
 
   // helper for AddConstant
   template <typename T>
   Id AddConstantImmediate(T t)
   {
     Id typeId = DeclareType(scalar<T>());
-    std::vector<uint32_t> words = {typeId.value(), MakeId().value()};
+    rdcarray<uint32_t> words = {typeId.value(), MakeId().value()};
 
-    words.insert(words.end(), sizeof(T) / 4, 0U);
+    words.resize(words.size() + sizeof(T) / 4);
 
     memcpy(&words[2], &t, sizeof(T));
 
@@ -211,7 +211,7 @@ private:
   template <typename SPIRVType>
   const std::map<SPIRVType, Id> &GetTable() const;
 
-  std::vector<uint32_t> &m_ExternalSPIRV;
+  rdcarray<uint32_t> &m_ExternalSPIRV;
 };
 
 /*

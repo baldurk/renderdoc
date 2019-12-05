@@ -250,7 +250,7 @@ static MaskedElement<bool, 0x00020000> NonUniform;
 };
 
 size_t NumOperands(OpcodeType op);
-std::string toString(const uint32_t values[], uint32_t numComps);
+rdcstr toString(const uint32_t values[], uint32_t numComps);
 char *toString(OpcodeType op);
 char *toString(ResourceDimension dim);
 char *toString(DXBC::ResourceRetType type);
@@ -544,7 +544,7 @@ void Program::MakeDisassemblyString()
          (lineInfo.fileIndex != prevLineInfo.fileIndex ||
           lineInfo.lineStart != prevLineInfo.lineStart))
       {
-        std::string line = "";
+        rdcstr line = "";
         if(lineInfo.fileIndex >= (int32_t)fileLines.size())
         {
           line = "Unknown file";
@@ -565,9 +565,9 @@ void Program::MakeDisassemblyString()
           line = lines[lineIdx];
         }
 
-        size_t startLine = line.find_first_not_of(" \t");
+        int startLine = line.find_first_not_of(" \t");
 
-        if(startLine != std::string::npos)
+        if(startLine >= 0)
           line = line.substr(startLine);
 
         m_Disassembly += "\n";
@@ -581,7 +581,7 @@ void Program::MakeDisassemblyString()
           for(int in = 0; in < indent; in++)
             m_Disassembly += "  ";
 
-          std::string func = lineInfo.callstack.back();
+          rdcstr func = lineInfo.callstack.back();
 
           if(!func.empty())
           {
@@ -791,8 +791,8 @@ bool Program::ExtractOperand(uint32_t *&tokenStream, ToString flags, Operand &re
 }
 
 const DXBC::CBufferVariable *FindCBufferVar(const uint32_t minOffset, const uint32_t maxOffset,
-                                            const std::vector<DXBC::CBufferVariable> &variables,
-                                            uint32_t &byteOffset, std::string &prefix)
+                                            const rdcarray<DXBC::CBufferVariable> &variables,
+                                            uint32_t &byteOffset, rdcstr &prefix)
 {
   for(const DXBC::CBufferVariable &v : variables)
   {
@@ -820,9 +820,9 @@ const DXBC::CBufferVariable *FindCBufferVar(const uint32_t minOffset, const uint
   return NULL;
 }
 
-std::string Operand::toString(const DXBC::Reflection *reflection, ToString flags) const
+rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) const
 {
-  std::string str, regstr;
+  rdcstr str, regstr;
 
   const bool decl = flags & ToString::IsDecl;
   const bool swizzle = flags & ToString::ShowSwizzle;
@@ -876,7 +876,7 @@ std::string Operand::toString(const DXBC::Reflection *reflection, ToString flags
       {
         uint32_t idx = (uint32_t)indices[0].index;
 
-        const std::vector<DXBC::ShaderInputBind> *list = NULL;
+        const rdcarray<DXBC::ShaderInputBind> *list = NULL;
 
         if(type == TYPE_RESOURCE)
           list = &reflection->SRVs;
@@ -1072,7 +1072,7 @@ std::string Operand::toString(const DXBC::Reflection *reflection, ToString flags
 
             uint32_t baseOffset = 0;
 
-            std::string prefix;
+            rdcstr prefix;
             const DXBC::CBufferVariable *var =
                 FindCBufferVar(minOffset, maxOffset, cbuffer->variables, baseOffset, prefix);
 
@@ -2181,7 +2181,7 @@ bool Program::ExtractOperation(uint32_t *&tokenStream, Operation &retOp, bool fr
           RDCASSERT(ret);
         }
 
-        std::string formatString = (char *)&tokenStream[0];
+        rdcstr formatString = (char *)&tokenStream[0];
 
         retOp.str = (messageFormat ? "errorf" : "error");
         retOp.str += " \"" + formatString + "\"";
@@ -2609,9 +2609,9 @@ size_t NumOperands(OpcodeType op)
   return 0xffffffff;
 }
 
-std::string toString(const uint32_t values[], uint32_t numComps)
+rdcstr toString(const uint32_t values[], uint32_t numComps)
 {
-  std::string str = "";
+  rdcstr str = "";
 
   // fxc actually guesses these types it seems.
   // try setting an int value to 1085276160, it will be displayed in disasm as 5.500000.

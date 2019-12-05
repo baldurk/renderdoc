@@ -102,7 +102,7 @@ struct VulkanBlobShaderCallbacks
   {
     RDCASSERT(ret);
 
-    SPIRVBlob blob = new std::vector<uint32_t>();
+    SPIRVBlob blob = new rdcarray<uint32_t>();
 
     blob->resize(size / sizeof(uint32_t));
 
@@ -243,7 +243,7 @@ VulkanShaderCache::~VulkanShaderCache()
 }
 
 std::string VulkanShaderCache::GetSPIRVBlob(const rdcspv::CompilationSettings &settings,
-                                            const std::string &src, SPIRVBlob &outBlob)
+                                            const rdcstr &src, SPIRVBlob &outBlob)
 {
   RDCASSERT(!src.empty());
 
@@ -260,12 +260,12 @@ std::string VulkanShaderCache::GetSPIRVBlob(const rdcspv::CompilationSettings &s
     return "";
   }
 
-  SPIRVBlob spirv = new std::vector<uint32_t>();
-  std::string errors = rdcspv::Compile(settings, {src}, *spirv);
+  SPIRVBlob spirv = new rdcarray<uint32_t>();
+  rdcstr errors = rdcspv::Compile(settings, {src}, *spirv);
 
   if(!errors.empty())
   {
-    std::string logerror = errors;
+    rdcstr logerror = errors;
     if(logerror.length() > 1024)
       logerror = logerror.substr(0, 1024) + "...";
 

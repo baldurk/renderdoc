@@ -238,7 +238,7 @@ rdcarray<Type> MultiParam(const ConstIter &it, uint32_t &word)
   return ret;
 }}
 
-inline void EncodeParam(std::vector<uint32_t> &words, const rdcstr &str)
+inline void EncodeParam(rdcarray<uint32_t> &words, const rdcstr &str)
 {{
   size_t i=0, remainingChars = str.size() + 1;
   while(remainingChars > 0)
@@ -710,7 +710,7 @@ inline {name}AndParamData DecodeParam(const ConstIter &it, uint32_t &word)
   return ret;
 }}
 
-inline void EncodeParam(std::vector<uint32_t> &words, const {name}AndParamData &param)
+inline void EncodeParam(rdcarray<uint32_t> &words, const {name}AndParamData &param)
 {{
   words.push_back((uint32_t)param.value);
   switch(param.value)
@@ -768,7 +768,7 @@ inline {name}AndParamDatas DecodeParam(const ConstIter &it, uint32_t &word)
   return ret;
 }}
 
-inline void EncodeParam(std::vector<uint32_t> &words, const {name}AndParamDatas &param)
+inline void EncodeParam(rdcarray<uint32_t> &words, const {name}AndParamDatas &param)
 {{
   words.push_back((uint32_t)param.flags);
 {encode_cases}
@@ -928,7 +928,7 @@ for inst in spirv['instructions']:
         complex_type = False
         manual_init = '    this->op = OpCode;\n'
         manual_init += '    this->wordCount = (uint16_t)it.size();\n'
-        oper_cast = '  operator Operation() const\n  {\n    std::vector<uint32_t> words;\n'
+        oper_cast = '  operator Operation() const\n  {\n    rdcarray<uint32_t> words;\n'
         has_funcs = ''
 
         disassemble += '      Op{} decoded(it);\n'.format(inst['opname'][2:])

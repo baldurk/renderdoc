@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <vector>
+#include "api/replay/rdcarray.h"
 #include "spirv_common.h"
 #include "spirv_processor.h"
 
@@ -50,7 +50,7 @@ struct SPIRVPatchData
     uint32_t structMemberIndex = 0;
 
     // the access chain of indices
-    std::vector<uint32_t> accessChain;
+    rdcarray<uint32_t> accessChain;
 
     // this is an element of an array that's been exploded after [0].
     // i.e. this is false for non-arrays, and false for element [0] in an array, then true for
@@ -60,8 +60,8 @@ struct SPIRVPatchData
 
   // matches the input/output signature array, with details of where to fetch the output from in the
   // SPIR-V.
-  std::vector<InterfaceAccess> inputs;
-  std::vector<InterfaceAccess> outputs;
+  rdcarray<InterfaceAccess> inputs;
+  rdcarray<InterfaceAccess> outputs;
 
   // the output topology for tessellation and geometry shaders
   Topology outTopo = Topology::Unknown;
@@ -89,17 +89,16 @@ class Reflector : public Processor
 {
 public:
   Reflector();
-  virtual void Parse(const std::vector<uint32_t> &spirvWords);
+  virtual void Parse(const rdcarray<uint32_t> &spirvWords);
 
-  std::string Disassemble(const std::string &entryPoint) const;
+  rdcstr Disassemble(const rdcstr &entryPoint) const;
 
-  std::vector<std::string> EntryPoints() const;
-  ShaderStage StageForEntry(const std::string &entryPoint) const;
+  rdcarray<rdcstr> EntryPoints() const;
+  ShaderStage StageForEntry(const rdcstr &entryPoint) const;
 
-  void MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage stage,
-                      const std::string &entryPoint, const std::vector<SpecConstant> &specInfo,
-                      ShaderReflection &reflection, ShaderBindpointMapping &mapping,
-                      SPIRVPatchData &patchData) const;
+  void MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage stage, const rdcstr &entryPoint,
+                      const rdcarray<SpecConstant> &specInfo, ShaderReflection &reflection,
+                      ShaderBindpointMapping &mapping, SPIRVPatchData &patchData) const;
 
 private:
   virtual void PreParse(uint32_t maxId);
@@ -107,24 +106,23 @@ private:
   virtual void RegisterOp(Iter iter);
   virtual void UnregisterOp(Iter iter);
 
-  ShaderVariable EvaluateConstant(Id constID, const std::vector<SpecConstant> &specInfo) const;
+  ShaderVariable EvaluateConstant(Id constID, const rdcarray<SpecConstant> &specInfo) const;
   rdcstr StringiseConstant(rdcspv::Id id) const;
 
   void MakeConstantBlockVariables(const DataType &structType, uint32_t arraySize,
                                   uint32_t arrayByteStride, rdcarray<ShaderConstant> &cblock,
                                   SparseIdMap<uint16_t> &pointerTypes,
-                                  const std::vector<SpecConstant> &specInfo) const;
+                                  const rdcarray<SpecConstant> &specInfo) const;
   void MakeConstantBlockVariable(ShaderConstant &outConst, SparseIdMap<uint16_t> &pointerTypes,
                                  const DataType &type, const rdcstr &name,
                                  const Decorations &varDecorations,
-                                 const std::vector<SpecConstant> &specInfo) const;
+                                 const rdcarray<SpecConstant> &specInfo) const;
   void AddSignatureParameter(const bool isInput, const ShaderStage stage, const Id id,
                              const Id structID, uint32_t &regIndex,
                              const SPIRVPatchData::InterfaceAccess &parentPatch,
                              const rdcstr &varName, const DataType &type,
                              const Decorations &decorations, rdcarray<SigParameter> &sigarray,
-                             SPIRVPatchData &patchData,
-                             const std::vector<SpecConstant> &specInfo) const;
+                             SPIRVPatchData &patchData, const rdcarray<SpecConstant> &specInfo) const;
 
   rdcstr cmdline;
   DenseIdMap<rdcstr> strings;
@@ -146,8 +144,8 @@ static const uint32_t PushConstantBindSet = 1234568;
 
 void FillSpecConstantVariables(ResourceId shader, const rdcarray<ShaderConstant> &invars,
                                rdcarray<ShaderVariable> &outvars,
-                               const std::vector<SpecConstant> &specInfo);
+                               const rdcarray<SpecConstant> &specInfo);
 
 // common function used by any API that utilises SPIR-V
 void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patchData,
-                       const char *entryName, std::vector<uint32_t> &modSpirv, uint32_t &xfbStride);
+                       const char *entryName, rdcarray<uint32_t> &modSpirv, uint32_t &xfbStride);

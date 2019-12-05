@@ -27,8 +27,6 @@
 #include <stdint.h>
 #include <map>
 #include <set>
-#include <string>
-#include <vector>
 #include "api/replay/rdcarray.h"
 #include "api/replay/rdcpair.h"
 #include "api/replay/rdcstr.h"
@@ -401,7 +399,7 @@ struct ExecutionModes
   } localSizeId;
 
   // others in an array
-  rdcarray<rdcpair<rdcspv::ExecutionMode, uint32_t>> others;
+  rdcarray<ExecutionModeAndParamData> others;
 
   void Register(const OpExecutionMode &mode);
   void Register(const OpExecutionModeId &mode);
@@ -502,14 +500,14 @@ public:
   Processor &operator=(const Processor &o) = default;
 
   // accessors to structs/vectors of data
-  const std::vector<EntryPoint> &GetEntries() { return entries; }
-  const std::vector<Variable> &GetGlobals() { return globals; }
+  const rdcarray<EntryPoint> &GetEntries() { return entries; }
+  const rdcarray<Variable> &GetGlobals() { return globals; }
   Id GetIDType(Id id) { return idTypes[id]; }
-  std::vector<uint32_t> GetSPIRV() const { return m_SPIRV; }
+  rdcarray<uint32_t> GetSPIRV() const { return m_SPIRV; }
 protected:
-  virtual void Parse(const std::vector<uint32_t> &spirvWords);
+  virtual void Parse(const rdcarray<uint32_t> &spirvWords);
 
-  std::vector<uint32_t> m_SPIRV;
+  rdcarray<uint32_t> m_SPIRV;
 
   // before parsing - e.g. to prepare any arrays that are max-id sized
   virtual void PreParse(uint32_t maxId);
@@ -529,8 +527,8 @@ protected:
   DenseIdMap<size_t> idOffsets;
   DenseIdMap<Id> idTypes;
 
-  std::vector<EntryPoint> entries;
-  std::vector<Variable> globals;
+  rdcarray<EntryPoint> entries;
+  rdcarray<Variable> globals;
 
   std::set<rdcstr> extensions;
   std::set<Capability> capabilities;

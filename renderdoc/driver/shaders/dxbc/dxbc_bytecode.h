@@ -24,8 +24,8 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
+#include "api/replay/rdcarray.h"
+#include "api/replay/rdcstr.h"
 #include "common/common.h"
 #include "driver/dx/official/d3dcommon.h"
 #include "dxbc_common.h"
@@ -656,7 +656,7 @@ struct Operand
 
   bool operator==(const Operand &o) const;
 
-  std::string toString(const DXBC::Reflection *reflection, ToString flags) const;
+  rdcstr toString(const DXBC::Reflection *reflection, ToString flags) const;
 
   ///////////////////////////////////////
 
@@ -672,8 +672,8 @@ struct Operand
                        //		.xyzw = {  0,  1,  2,  3 }
                        //		.wzyx = {  3,  2,  1,  0 }
 
-  std::vector<RegIndex> indices;    // indices for this register.
-                                    // 0 means this is a special register, specified by type alone.
+  rdcarray<RegIndex> indices;    // indices for this register.
+                                 // 0 means this is a special register, specified by type alone.
   // 1 is probably most common. Indicates RegIndex specifies the register
   // 2 is for constant buffers, array inputs etc. [0] indicates the cbuffer, [1] indicates the
   // cbuffer member
@@ -716,7 +716,7 @@ struct RegIndex
     return false;
   }
 
-  std::string str;
+  rdcstr str;
 
   ///////////////////////////////////////
 
@@ -775,7 +775,7 @@ struct Declaration
     numTypes = 0;
   }
 
-  std::string str;
+  rdcstr str;
 
   ///////////////////////////////////////
 
@@ -788,8 +788,8 @@ struct Declaration
 
   Operand operand;    // many decls use an operand to declare things
 
-  std::vector<uint32_t> immediateData;    // raw data (like default value of operand) for immediate
-                                          // constant buffer decl
+  rdcarray<uint32_t> immediateData;    // raw data (like default value of operand) for immediate
+                                       // constant buffer decl
 
   // opcode specific data
 
@@ -902,7 +902,7 @@ struct Operation
     resType[0] = resType[1] = resType[2] = resType[3] = DXBC::RETURN_TYPE_UNUSED;
   }
 
-  std::string str;
+  rdcstr str;
 
   ///////////////////////////////////////
 
@@ -921,7 +921,7 @@ struct Operation
   DXBC::ResourceRetType resType[4];    // return type (e.g. for a sample operation)
   uint32_t stride;
 
-  std::vector<Operand> operands;
+  rdcarray<Operand> operands;
 };
 
 class Program
@@ -938,7 +938,7 @@ public:
   uint32_t GetMajorVersion() { return m_Major; }
   uint32_t GetMinorVersion() { return m_Minor; }
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
-  const std::string &GetDisassembly()
+  const rdcstr &GetDisassembly()
   {
     if(m_Disassembly.empty())
       MakeDisassemblyString();
@@ -948,7 +948,7 @@ public:
   const Declaration &GetDeclaration(size_t i) const { return m_Declarations[i]; }
   size_t GetNumInstructions() const { return m_Instructions.size(); }
   const Operation &GetInstruction(size_t i) const { return m_Instructions[i]; }
-  const std::vector<uint32_t> &GetImmediateConstantBuffer() const { return m_Immediate; }
+  const rdcarray<uint32_t> &GetImmediateConstantBuffer() const { return m_Immediate; }
 private:
   void FetchTypeVersion();
   void DisassembleHexDump();
@@ -962,17 +962,17 @@ private:
 
   rdcarray<uint32_t> m_HexDump;
 
-  std::vector<uint32_t> m_Immediate;
+  rdcarray<uint32_t> m_Immediate;
 
   uint32_t threadDimension[3];
 
   bool m_Disassembled = false;
 
-  std::string m_Disassembly;
+  rdcstr m_Disassembly;
 
   // declarations of inputs, outputs, constant buffers, temp registers etc.
-  std::vector<Declaration> m_Declarations;
-  std::vector<Operation> m_Instructions;
+  rdcarray<Declaration> m_Declarations;
+  rdcarray<Operation> m_Instructions;
 
   // these functions modify tokenStream pointer to point after the item
   // ExtractOperation/ExtractDecl returns false if not an operation (ie. it's a declaration)

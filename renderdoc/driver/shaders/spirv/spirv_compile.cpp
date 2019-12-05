@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "spirv_compile.h"
+#include <vector>
 #include "common/common.h"
 #include "common/formatting.h"
 #include "glslang_compile.h"
@@ -33,17 +34,17 @@
 #include "3rdparty/glslang/SPIRV/GlslangToSpv.h"
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 
-std::string rdcspv::Compile(const rdcspv::CompilationSettings &settings,
-                            const std::vector<std::string> &sources, std::vector<uint32_t> &spirv)
+rdcstr rdcspv::Compile(const rdcspv::CompilationSettings &settings, const rdcarray<rdcstr> &sources,
+                       rdcarray<uint32_t> &spirv)
 {
   if(settings.stage == rdcspv::ShaderStage::Invalid)
     return "Invalid shader stage specified";
 
-  std::string errors = "";
+  rdcstr errors = "";
 
   const char **strs = new const char *[sources.size()];
   const char **names = new const char *[sources.size()];
-  std::vector<std::string> names_str;
+  rdcarray<rdcstr> names_str;
   names_str.resize(sources.size());
 
   for(size_t i = 0; i < sources.size(); i++)
@@ -116,7 +117,10 @@ std::string rdcspv::Compile(const rdcspv::CompilationSettings &settings,
         if(settings.debugInfo)
           opts.generateDebugInfo = true;
 
-        glslang::GlslangToSpv(*intermediate, spirv, &opts);
+        std::vector<uint32_t> spirvVec;
+        glslang::GlslangToSpv(*intermediate, spirvVec, &opts);
+
+        spirv = spirvVec;
       }
 
       delete program;

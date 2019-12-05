@@ -215,7 +215,7 @@ enum class TypeRecord : uint32_t
   TOKEN = 22,
 };
 
-static std::string getName(uint32_t parentBlock, const LLVMBC::BlockOrRecord &block)
+static rdcstr getName(uint32_t parentBlock, const LLVMBC::BlockOrRecord &block)
 {
   const char *name = NULL;
 
@@ -482,7 +482,8 @@ static rdcstr escapeString(rdcstr str)
 
 static void dumpRecord(uint32_t parentBlock, const LLVMBC::BlockOrRecord &record, int indent)
 {
-  std::string line(indent, ' ');
+  rdcstr line;
+  line.fill(indent, ' ');
 
   line += "<" + getName(parentBlock, record);
 
@@ -509,7 +510,8 @@ static void dumpRecord(uint32_t parentBlock, const LLVMBC::BlockOrRecord &record
 
 static void dumpBlock(const LLVMBC::BlockOrRecord &block, int indent)
 {
-  std::string line(indent, ' ');
+  rdcstr line;
+  line.fill(indent, ' ');
 
   if(block.children.empty() || KnownBlocks(block.id) == KnownBlocks::BLOCKINFO)
   {
@@ -529,7 +531,7 @@ static void dumpBlock(const LLVMBC::BlockOrRecord &block, int indent)
       dumpRecord(block.id, child, indent + 2);
   }
 
-  line = std::string(indent, ' ');
+  line.fill(indent, ' ');
   line += StringFormat::Fmt("</%s>", getName(0, block).c_str());
   RDCLOG("%s", line.c_str());
 }
@@ -593,7 +595,7 @@ Program::Program(const byte *bytes, size_t length)
           const LLVMBC::BlockOrRecord &namedNode = rootblock.children[i];
           RDCASSERT(IS_KNOWN(namedNode.id, MetaDataRecord::NAMED_NODE));
 
-          std::string namedMeta = StringFormat::Fmt("!%s = !{", metaName.c_str());
+          rdcstr namedMeta = StringFormat::Fmt("!%s = !{", metaName.c_str());
 
           bool first = true;
           for(uint64_t op : namedNode.ops)
@@ -615,7 +617,7 @@ Program::Program(const byte *bytes, size_t length)
             continue;
           }
 
-          std::string metastr = StringFormat::Fmt("!%u = ", (uint32_t)i);
+          rdcstr metastr = StringFormat::Fmt("!%u = ", (uint32_t)i);
 
           auto getMetaString = [&rootblock](uint64_t id) -> rdcstr {
             return id ? rootblock.children[size_t(id - 1)].getString() : "NULL";

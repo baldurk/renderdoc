@@ -28,7 +28,7 @@
 #include "driver/shaders/spirv/spirv_compile.h"
 #include "vk_core.h"
 
-typedef std::vector<uint32_t> *SPIRVBlob;
+typedef rdcarray<uint32_t> *SPIRVBlob;
 
 enum class BuiltinShader
 {
@@ -65,7 +65,7 @@ public:
   VulkanShaderCache(WrappedVulkan *driver);
   ~VulkanShaderCache();
 
-  std::string GetSPIRVBlob(const rdcspv::CompilationSettings &settings, const std::string &src,
+  std::string GetSPIRVBlob(const rdcspv::CompilationSettings &settings, const rdcstr &src,
                            SPIRVBlob &outBlob);
 
   SPIRVBlob GetBuiltinBlob(BuiltinShader builtin) { return m_BuiltinShaderBlobs[(size_t)builtin]; }

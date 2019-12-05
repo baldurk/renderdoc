@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 
+#include "api/replay/rdcstr.h"
 #include "driver/dx/official/d3dcommon.h"
 #include "driver/shaders/dxbc/dxbc_common.h"
 
@@ -43,7 +44,7 @@ public:
   uint32_t GetMajorVersion() { return m_Major; }
   uint32_t GetMinorVersion() { return m_Minor; }
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
-  const std::string &GetDisassembly()
+  const rdcstr &GetDisassembly()
   {
     if(m_Disassembly.empty())
       MakeDisassemblyString();
@@ -58,7 +59,7 @@ private:
 
   rdcstr m_Triple, m_Datalayout;
 
-  std::string m_Disassembly;
+  rdcstr m_Disassembly;
 };
 
 };    // namespace DXIL

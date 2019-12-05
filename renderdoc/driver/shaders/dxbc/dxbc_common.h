@@ -25,8 +25,8 @@
 #pragma once
 
 #include <map>
-#include <string>
-#include <vector>
+#include "api/replay/rdcarray.h"
+#include "api/replay/rdcstr.h"
 #include "api/replay/shader_types.h"
 
 namespace DXBC
@@ -203,7 +203,7 @@ enum VariableType
 
 struct ShaderInputBind
 {
-  std::string name;
+  rdcstr name;
 
   enum InputType
   {
@@ -286,25 +286,25 @@ struct CBufferVariableType
     uint32_t elements;
     uint32_t members;
     uint32_t bytesize;
-    std::string name;
+    rdcstr name;
   } descriptor;
 
   // if a struct, these are variables for each member (this can obviously nest). Not all
   // elements of the nested member descriptor are valid, as this might not be in a cbuffer,
   // but might be a loose structure
-  std::vector<CBufferVariable> members;
+  rdcarray<CBufferVariable> members;
 };
 
 struct CBufferVariable
 {
-  std::string name;
+  rdcstr name;
 
   struct
   {
-    std::string name;
+    rdcstr name;
     uint32_t offset;    // offset in parent (cbuffer or nested struct)
     uint32_t flags;
-    std::vector<uint8_t> defaultValue;
+    rdcarray<uint8_t> defaultValue;
     uint32_t startTexture;    // first texture
     uint32_t numTextures;
     uint32_t startSampler;    // first sampler
@@ -317,7 +317,7 @@ struct CBufferVariable
 
 struct CBuffer
 {
-  std::string name;
+  rdcstr name;
 
   uint32_t space;
   uint32_t reg;
@@ -325,7 +325,7 @@ struct CBuffer
 
   struct Descriptor
   {
-    std::string name;
+    rdcstr name;
 
     enum Type
     {
@@ -340,25 +340,25 @@ struct CBuffer
     uint32_t flags;
   } descriptor;
 
-  std::vector<CBufferVariable> variables;
+  rdcarray<CBufferVariable> variables;
 };
 
 struct Reflection
 {
-  std::vector<ShaderInputBind> SRVs;
-  std::vector<ShaderInputBind> UAVs;
+  rdcarray<ShaderInputBind> SRVs;
+  rdcarray<ShaderInputBind> UAVs;
 
-  std::vector<ShaderInputBind> Samplers;
+  rdcarray<ShaderInputBind> Samplers;
 
-  std::vector<CBuffer> CBuffers;
+  rdcarray<CBuffer> CBuffers;
 
   CBuffer Interfaces;
 
-  std::map<std::string, CBufferVariableType> ResourceBinds;
+  std::map<rdcstr, CBufferVariableType> ResourceBinds;
 
-  std::vector<SigParameter> InputSig;
-  std::vector<SigParameter> OutputSig;
-  std::vector<SigParameter> PatchConstantSig;
+  rdcarray<SigParameter> InputSig;
+  rdcarray<SigParameter> OutputSig;
+  rdcarray<SigParameter> PatchConstantSig;
 
   uint32_t DispatchThreadsDimension[3];
 };

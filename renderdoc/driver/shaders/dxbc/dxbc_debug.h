@@ -109,7 +109,7 @@ public:
     bytebuf data;
   };
 
-  std::vector<groupsharedMem> groupshared;
+  rdcarray<groupsharedMem> groupshared;
 
   struct SampleEvalCacheKey
   {
@@ -177,13 +177,13 @@ void ApplyDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace traces[
                       int32_t quadIdxB);
 
 void ApplyAllDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace traces[4], int destIdx,
-                         const std::vector<PSInputElement> &initialValues, float *data);
+                         const rdcarray<PSInputElement> &initialValues, float *data);
 
-void FlattenSingleVariable(uint32_t byteOffset, const std::string &basename,
-                           const ShaderVariable &v, rdcarray<ShaderVariable> &outvars);
+void FlattenSingleVariable(uint32_t byteOffset, const rdcstr &basename, const ShaderVariable &v,
+                           rdcarray<ShaderVariable> &outvars);
 void FlattenVariables(const rdcarray<ShaderConstant> &constants,
                       const rdcarray<ShaderVariable> &invars, rdcarray<ShaderVariable> &outvars,
-                      const std::string &prefix, uint32_t baseOffset);
+                      const rdcstr &prefix, uint32_t baseOffset);
 void FlattenVariables(const rdcarray<ShaderConstant> &constants,
                       const rdcarray<ShaderVariable> &invars, rdcarray<ShaderVariable> &outvars);
 
@@ -194,10 +194,9 @@ void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
 
 void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
                                        const DXBC::Reflection &prevStageDxbc,
-                                       std::vector<PSInputElement> &initialValues,
-                                       std::vector<std::string> &floatInputs,
-                                       std::vector<std::string> &inputVarNames,
-                                       std::string &psInputDefinition, int &structureStride);
+                                       rdcarray<PSInputElement> &initialValues,
+                                       rdcarray<rdcstr> &floatInputs, rdcarray<rdcstr> &inputVarNames,
+                                       rdcstr &psInputDefinition, int &structureStride);
 
 struct SampleGatherResourceData
 {
@@ -226,8 +225,7 @@ class DebugAPIWrapper
 {
 public:
   virtual void SetCurrentInstruction(uint32_t instruction) = 0;
-  virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
-                               std::string d) = 0;
+  virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d) = 0;
 
   virtual bool CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode, const ShaderVariable &input,
                                       ShaderVariable &output1, ShaderVariable &output2) = 0;

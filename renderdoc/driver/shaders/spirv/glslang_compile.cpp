@@ -33,8 +33,8 @@
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 
 static bool glslang_inited = false;
-std::vector<glslang::TShader *> *allocatedShaders = NULL;
-std::vector<glslang::TProgram *> *allocatedPrograms = NULL;
+rdcarray<glslang::TShader *> *allocatedShaders = NULL;
+rdcarray<glslang::TProgram *> *allocatedPrograms = NULL;
 
 static TBuiltInResource DefaultResources = {
     /*.maxLights =*/32,
@@ -156,8 +156,8 @@ void rdcspv::Init()
     glslang::InitializeProcess();
     glslang_inited = true;
 
-    allocatedPrograms = new std::vector<glslang::TProgram *>;
-    allocatedShaders = new std::vector<glslang::TShader *>;
+    allocatedPrograms = new rdcarray<glslang::TProgram *>;
+    allocatedShaders = new rdcarray<glslang::TShader *>;
   }
 }
 
@@ -183,7 +183,7 @@ void rdcspv::Shutdown()
 }
 
 glslang::TShader *CompileShaderForReflection(rdcspv::ShaderStage stage,
-                                             const std::vector<std::string> &sources)
+                                             const rdcarray<rdcstr> &sources)
 {
   EShLanguage lang = EShLanguage(stage);
 
@@ -216,7 +216,7 @@ glslang::TShader *CompileShaderForReflection(rdcspv::ShaderStage stage,
   }
 }
 
-glslang::TProgram *LinkProgramForReflection(const std::vector<glslang::TShader *> &shaders)
+glslang::TProgram *LinkProgramForReflection(const rdcarray<glslang::TShader *> &shaders)
 {
   glslang::TProgram *program = new glslang::TProgram();
 
@@ -269,7 +269,7 @@ void glslangGetProgramInterfaceiv(glslang::TProgram *program, ReflectionInterfac
 }
 
 void glslangGetProgramResourceiv(glslang::TProgram *program, ReflectionInterface programInterface,
-                                 uint32_t index, const std::vector<ReflectionProperty> &props,
+                                 uint32_t index, const rdcarray<ReflectionProperty> &props,
                                  int32_t bufSize, int32_t *length, int32_t *params)
 {
   // all of our properties are single-element values, so we just loop up to buffer size or number of
@@ -619,7 +619,7 @@ uint32_t glslangGetProgramResourceIndex(glslang::TProgram *program, const char *
   // resource is returned.
   if(idx == ~0U)
   {
-    std::string arraysuffixed = name;
+    rdcstr arraysuffixed = name;
     arraysuffixed += "[0]";
     idx = program->getReflectionIndex(arraysuffixed.c_str());
   }

@@ -26,10 +26,9 @@
 #pragma once
 
 #include <map>
-#include <string>
-#include <vector>
 #include "api/replay/rdcarray.h"
 #include "api/replay/rdcpair.h"
+#include "api/replay/rdcstr.h"
 #include "api/replay/rdcstr.h"
 #include "common/common.h"
 #include "driver/dx/official/d3dcommon.h"
@@ -108,7 +107,7 @@ struct ShaderStatistics
   } version;
 };
 
-std::string TypeName(CBufferVariableType::Descriptor desc);
+rdcstr TypeName(CBufferVariableType::Descriptor desc);
 
 struct RDEFHeader;
 
@@ -116,9 +115,9 @@ class IDebugInfo
 {
 public:
   virtual ~IDebugInfo() {}
-  virtual std::string GetCompilerSig() const = 0;
-  virtual std::string GetEntryFunction() const = 0;
-  virtual std::string GetShaderProfile() const = 0;
+  virtual rdcstr GetCompilerSig() const = 0;
+  virtual rdcstr GetEntryFunction() const = 0;
+  virtual rdcstr GetShaderProfile() const = 0;
 
   virtual uint32_t GetShaderCompileFlags() const = 0;
 
@@ -148,13 +147,13 @@ public:
     uint32_t Major = 0, Minor = 0;
   } m_Version;
 
-  std::vector<byte> m_ShaderBlob;
+  bytebuf m_ShaderBlob;
 
   const IDebugInfo *GetDebugInfo() const { return m_DebugInfo; }
   const Reflection *GetReflection() const { return m_Reflection; }
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
 
-  const std::string &GetDisassembly();
+  const rdcstr &GetDisassembly();
 
   const DXBCBytecode::Program *GetDXBCByteCode() { return m_DXBCByteCode; }
   const DXIL::Program *GetDXILByteCode() { return m_DXILByteCode; }
@@ -162,13 +161,13 @@ public:
 
   static bool CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength);
   static bool CheckForShaderCode(const void *ByteCode, size_t ByteCodeLength);
-  static std::string GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength);
+  static rdcstr GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength);
 
 private:
   DXBCContainer(const DXBCContainer &o);
   DXBCContainer &operator=(const DXBCContainer &o);
 
-  std::string m_Disassembly;
+  rdcstr m_Disassembly;
 
   D3D_PRIMITIVE_TOPOLOGY m_OutputTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 

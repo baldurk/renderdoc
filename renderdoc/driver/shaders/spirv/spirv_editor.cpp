@@ -54,7 +54,7 @@ Scalar::Scalar(Iter it)
   }
 }
 
-Editor::Editor(std::vector<uint32_t> &spirvWords) : m_ExternalSPIRV(spirvWords)
+Editor::Editor(rdcarray<uint32_t> &spirvWords) : m_ExternalSPIRV(spirvWords)
 {
 }
 
@@ -73,7 +73,7 @@ void Editor::Prepare()
   {
     if(m_Sections[s].startOffset == m_Sections[s].endOffset)
     {
-      m_SPIRV.insert(m_SPIRV.begin() + m_Sections[s].startOffset, OpNopWord);
+      m_SPIRV.insert(m_Sections[s].startOffset, OpNopWord);
       m_Sections[s].endOffset++;
 
       for(uint32_t t = s + 1; t < Section::Count; t++)
@@ -112,7 +112,7 @@ Editor::~Editor()
   {
     while(m_SPIRV[i] == OpNopWord)
     {
-      m_SPIRV.erase(m_SPIRV.begin() + i);
+      m_SPIRV.erase(i);
       addWords(i, -1);
     }
 
@@ -141,10 +141,10 @@ Id Editor::MakeId()
 void Editor::SetName(Id id, const char *name)
 {
   size_t sz = strlen(name);
-  std::vector<uint32_t> uintName((sz / 4) + 1);
+  rdcarray<uint32_t> uintName((sz / 4) + 1);
   memcpy(&uintName[0], name, sz);
 
-  uintName.insert(uintName.begin(), id.value());
+  uintName.insert(0, id.value());
 
   Operation op(Op::Name, uintName);
 
@@ -198,7 +198,7 @@ void Editor::AddExtension(const rdcstr &extension)
 
   // insert the extension instruction
   size_t sz = extension.size();
-  std::vector<uint32_t> uintName((sz / 4) + 1);
+  rdcarray<uint32_t> uintName((sz / 4) + 1);
   memcpy(&uintName[0], extension.c_str(), sz);
 
   Operation op(Op::Extension, uintName);
@@ -235,10 +235,10 @@ Id Editor::ImportExtInst(const char *setname)
   Id ret = MakeId();
 
   size_t sz = strlen(setname);
-  std::vector<uint32_t> uintName((sz / 4) + 1);
+  rdcarray<uint32_t> uintName((sz / 4) + 1);
   memcpy(&uintName[0], setname, sz);
 
-  uintName.insert(uintName.begin(), ret.value());
+  uintName.insert(0, ret.value());
 
   Operation op(Op::ExtInstImport, uintName);
   op.insertInto(m_SPIRV, it.offs());
@@ -320,7 +320,7 @@ Iter Editor::GetEntry(Id id)
   return Iter();
 }
 
-Id Editor::DeclareStructType(const std::vector<Id> &members)
+Id Editor::DeclareStructType(const rdcarray<Id> &members)
 {
   Id typeId = MakeId();
   AddType(OpTypeStruct(typeId, members));
@@ -580,7 +580,7 @@ TYPETABLE(FunctionType, functionTypeToId);
 #include "spirv_common.h"
 #include "spirv_compile.h"
 
-static void RemoveSection(std::vector<uint32_t> &spirv, size_t offsets[rdcspv::Section::Count][2],
+static void RemoveSection(rdcarray<uint32_t> &spirv, size_t offsets[rdcspv::Section::Count][2],
                           rdcspv::Section::Type section)
 {
   rdcspv::Editor ed(spirv);
@@ -635,7 +635,7 @@ TEST_CASE("Test SPIR-V editor section handling", "[spirv]")
   settings.stage = rdcspv::ShaderStage::Fragment;
 
   // simple shader that has at least something in every section
-  std::vector<std::string> sources = {
+  rdcarray<rdcstr> sources = {
       R"(#version 450 core
 
 #extension GL_EXT_shader_16bit_storage : require
@@ -652,8 +652,8 @@ void main() {
 )",
   };
 
-  std::vector<uint32_t> spirv;
-  std::string errors = rdcspv::Compile(settings, sources, spirv);
+  rdcarray<uint32_t> spirv;
+  rdcstr errors = rdcspv::Compile(settings, sources, spirv);
 
   INFO("SPIR-V compilation - " << errors);
 

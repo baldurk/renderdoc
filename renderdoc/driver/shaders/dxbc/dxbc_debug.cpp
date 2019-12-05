@@ -1081,7 +1081,7 @@ ShaderVariable sub(const ShaderVariable &a, const ShaderVariable &b, const VarTy
 
 void State::Init()
 {
-  std::vector<uint32_t> indexTempSizes;
+  rdcarray<uint32_t> indexTempSizes;
 
   for(size_t i = 0; i < program->GetNumDeclarations(); i++)
   {
@@ -1275,7 +1275,7 @@ void State::SetDst(const Operand &dstoper, const Operation &op, const ShaderVari
         RDCERR("Couldn't find type %d by semantic matching, falling back to string match",
                dstoper.type);
 
-        std::string name = dstoper.toString(reflection, ToString::ShowSwizzle);
+        rdcstr name = dstoper.toString(reflection, ToString::ShowSwizzle);
         for(size_t i = 0; i < outputs.size(); i++)
         {
           if(outputs[i].name == name)
@@ -1295,7 +1295,7 @@ void State::SetDst(const Operand &dstoper, const Operation &op, const ShaderVari
     {
       RDCERR("Currently unsupported destination operand type %d!", dstoper.type);
 
-      std::string name = dstoper.toString(reflection, ToString::ShowSwizzle);
+      rdcstr name = dstoper.toString(reflection, ToString::ShowSwizzle);
       for(size_t i = 0; i < outputs.size(); i++)
       {
         if(outputs[i].name == name)
@@ -1605,7 +1605,7 @@ ShaderVariable State::GetSrc(const Operand &oper, const Operation &op, bool allo
     {
       v = s = ShaderVariable("", 0, 0, 0, 0);
 
-      const std::vector<uint32_t> &icb = program->GetImmediateConstantBuffer();
+      const rdcarray<uint32_t> &icb = program->GetImmediateConstantBuffer();
 
       // if this Vec4f is entirely in the ICB
       if(indices[0] <= icb.size() / 4 - 1)
@@ -1778,7 +1778,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
   s.nextInstruction++;
   s.flags = ShaderEvents::NoEvent;
 
-  std::vector<ShaderVariable> srcOpers;
+  rdcarray<ShaderVariable> srcOpers;
 
   VarType optype = OperationType(op.operation);
 
@@ -4204,7 +4204,7 @@ void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebu
 
 bool PromptDebugTimeout(uint32_t cycleCounter)
 {
-  std::string msg = StringFormat::Fmt(
+  rdcstr msg = StringFormat::Fmt(
       "RenderDoc's shader debugging has been running for over %u cycles, which indicates either a "
       "very long-running loop, or possibly an infinite loop. Continuing could lead to extreme "
       "memory allocations, slow UI or even crashes. Would you like to abort debugging to see what "
@@ -4249,7 +4249,7 @@ void ApplyDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace traces[
 }
 
 void ApplyAllDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace traces[4], int destIdx,
-                         const std::vector<PSInputElement> &initialValues, float *data)
+                         const rdcarray<PSInputElement> &initialValues, float *data)
 {
   // We make the assumption that the coarse derivatives are generated from (0,0) in the quad, and
   // fine derivatives are generated from the destination index and its neighbours in X and Y.
@@ -4390,8 +4390,8 @@ void ApplyAllDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace trac
   }
 }
 
-void FlattenSingleVariable(uint32_t byteOffset, const std::string &basename,
-                           const ShaderVariable &v, rdcarray<ShaderVariable> &outvars)
+void FlattenSingleVariable(uint32_t byteOffset, const rdcstr &basename, const ShaderVariable &v,
+                           rdcarray<ShaderVariable> &outvars)
 {
   size_t outIdx = byteOffset / 16;
   size_t outComp = (byteOffset % 16) / 4;
@@ -4405,7 +4405,7 @@ void FlattenSingleVariable(uint32_t byteOffset, const std::string &basename,
   {
     // if we already have a variable in this slot, just append this variable to it. We should not
     // overlap into the next register as that's not allowed.
-    outvars[outIdx].name = std::string(outvars[outIdx].name) + ", " + basename;
+    outvars[outIdx].name = rdcstr(outvars[outIdx].name) + ", " + basename;
     outvars[outIdx].rows = 1;
     outvars[outIdx].isStruct = false;
     outvars[outIdx].columns += v.columns;
@@ -4450,7 +4450,7 @@ void FlattenSingleVariable(uint32_t byteOffset, const std::string &basename,
 
 void FlattenVariables(const rdcarray<ShaderConstant> &constants,
                       const rdcarray<ShaderVariable> &invars, rdcarray<ShaderVariable> &outvars,
-                      const std::string &prefix, uint32_t baseOffset)
+                      const rdcstr &prefix, uint32_t baseOffset)
 {
   RDCASSERTEQUAL(constants.size(), invars.size());
 
@@ -4461,7 +4461,7 @@ void FlattenVariables(const rdcarray<ShaderConstant> &constants,
 
     uint32_t byteOffset = baseOffset + c.byteOffset;
 
-    std::string basename = prefix + std::string(v.name);
+    rdcstr basename = prefix + rdcstr(v.name);
 
     if(!v.members.empty())
     {
@@ -4554,10 +4554,9 @@ void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
 
 void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
                                        const DXBC::Reflection &prevStageDxbc,
-                                       std::vector<PSInputElement> &initialValues,
-                                       std::vector<std::string> &floatInputs,
-                                       std::vector<std::string> &inputVarNames,
-                                       std::string &psInputDefinition, int &structureStride)
+                                       rdcarray<PSInputElement> &initialValues,
+                                       rdcarray<rdcstr> &floatInputs, rdcarray<rdcstr> &inputVarNames,
+                                       rdcstr &psInputDefinition, int &structureStride)
 {
   // When debugging a pixel shader, we need to get the initial values of each pixel shader
   // input for the pixel that we are debugging, from whichever the previous shader stage was
@@ -4585,7 +4584,7 @@ void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
   }
 
   // name, pair<start semantic index, end semantic index>
-  std::vector<rdcpair<rdcstr, rdcpair<uint32_t, uint32_t>>> arrays;
+  rdcarray<rdcpair<rdcstr, rdcpair<uint32_t, uint32_t>>> arrays;
 
   uint32_t nextreg = 0;
 
@@ -4656,7 +4655,7 @@ void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
 
           initialValues.push_back(PSInputElement(-1, 0, numCols, ShaderBuiltin::Undefined, true));
 
-          std::string name = prevStageDxbc.OutputSig[os].semanticIdxName;
+          rdcstr name = prevStageDxbc.OutputSig[os].semanticIdxName;
 
           psInputDefinition += ToStr((uint32_t)numCols) + " input_" + name + " : " + name + ";\n";
         }
@@ -4664,7 +4663,7 @@ void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
 
       if(!filled)
       {
-        std::string dummy_reg = "dummy_register";
+        rdcstr dummy_reg = "dummy_register";
         dummy_reg += ToStr((uint32_t)nextreg + dummy);
         psInputDefinition += "float4 var_" + dummy_reg + " : semantic_" + dummy_reg + ";\n";
 
@@ -4705,7 +4704,7 @@ void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
     int numCols = (sig.regChannelMask & 0x1 ? 1 : 0) + (sig.regChannelMask & 0x2 ? 1 : 0) +
                   (sig.regChannelMask & 0x4 ? 1 : 0) + (sig.regChannelMask & 0x8 ? 1 : 0);
 
-    std::string name = sig.semanticIdxName;
+    rdcstr name = sig.semanticIdxName;
 
     // arrays of interpolators are handled really weirdly. They use cbuffer
     // packing rules where each new value is in a new register (rather than

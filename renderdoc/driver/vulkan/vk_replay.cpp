@@ -411,11 +411,11 @@ rdcarray<ShaderEntryPoint> VulkanReplay::GetShaderEntryPoints(ResourceId shader)
   if(shad == m_pDriver->m_CreationInfo.m_ShaderModule.end())
     return {};
 
-  std::vector<std::string> entries = shad->second.spirv.EntryPoints();
+  rdcarray<rdcstr> entries = shad->second.spirv.EntryPoints();
 
   rdcarray<ShaderEntryPoint> ret;
 
-  for(const std::string &e : entries)
+  for(const rdcstr &e : entries)
     ret.push_back({e, shad->second.spirv.StageForEntry(e)});
 
   return ret;
@@ -3921,7 +3921,7 @@ void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebu
                                      const rdcstr &entry, const ShaderCompileFlags &compileFlags,
                                      ShaderStage type, ResourceId &id, rdcstr &errors)
 {
-  std::vector<uint32_t> spirv;
+  rdcarray<uint32_t> spirv;
 
   if(sourceEncoding == ShaderEncoding::GLSL)
   {
@@ -3941,12 +3941,12 @@ void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebu
         return;
     }
 
-    std::vector<std::string> sources;
-    sources.push_back(std::string((char *)source.begin(), (char *)source.end()));
+    rdcarray<rdcstr> sources;
+    sources.push_back(rdcstr((char *)source.begin(), source.size()));
 
     rdcspv::CompilationSettings settings(rdcspv::InputLanguage::VulkanGLSL, stage);
 
-    std::string output = rdcspv::Compile(settings, sources, spirv);
+    rdcstr output = rdcspv::Compile(settings, sources, spirv);
 
     if(spirv.empty())
     {

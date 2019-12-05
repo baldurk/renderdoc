@@ -52,7 +52,7 @@ public:
                        const ShaderDebug::GlobalState &globalState);
 
   void SetCurrentInstruction(uint32_t instruction) { m_instruction = instruction; }
-  void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
+  void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
 
   bool CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode, const ShaderVariable &input,
                               ShaderVariable &output1, ShaderVariable &output2);
@@ -87,7 +87,7 @@ D3D12DebugAPIWrapper::D3D12DebugAPIWrapper(WrappedID3D12Device *device, DXBC::DX
 }
 
 void D3D12DebugAPIWrapper::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
-                                           std::string d)
+                                           rdcstr d)
 {
   m_pDevice->AddDebugMessage(c, sv, src, d);
 }

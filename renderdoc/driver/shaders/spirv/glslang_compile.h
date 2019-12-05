@@ -24,8 +24,8 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
+#include "api/replay/rdcarray.h"
+#include "api/replay/rdcstr.h"
 #include "spirv_compile.h"
 
 namespace glslang
@@ -35,8 +35,8 @@ class TProgram;
 };
 
 glslang::TShader *CompileShaderForReflection(rdcspv::ShaderStage stage,
-                                             const std::vector<std::string> &sources);
-glslang::TProgram *LinkProgramForReflection(const std::vector<glslang::TShader *> &shaders);
+                                             const rdcarray<rdcstr> &sources);
+glslang::TProgram *LinkProgramForReflection(const rdcarray<glslang::TShader *> &shaders);
 
 struct TBuiltInResource;
 extern TBuiltInResource *GetDefaultResources();
@@ -83,7 +83,7 @@ void glslangGetProgramInterfaceiv(glslang::TProgram *program, ReflectionInterfac
                                   ReflectionProperty pname, int32_t *params);
 
 void glslangGetProgramResourceiv(glslang::TProgram *program, ReflectionInterface programInterface,
-                                 uint32_t index, const std::vector<ReflectionProperty> &props,
+                                 uint32_t index, const rdcarray<ReflectionProperty> &props,
                                  int32_t bufSize, int32_t *length, int32_t *params);
 uint32_t glslangGetProgramResourceIndex(glslang::TProgram *program, const char *name);
 

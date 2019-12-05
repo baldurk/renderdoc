@@ -118,7 +118,7 @@ static rdcstr StringiseBinaryOperation(const std::function<rdcstr(rdcspv::Id)> &
 
 namespace rdcspv
 {
-std::string Reflector::Disassemble(const std::string &entryPoint) const
+rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
 {
   std::set<rdcstr> usedNames;
   std::map<Id, rdcstr> dynamicNames;
@@ -249,11 +249,11 @@ std::string Reflector::Disassemble(const std::string &entryPoint) const
     return StringFormat::Fmt("._child%u", idx);
   };
 
-  std::string ret;
-  std::string indent;
+  rdcstr ret;
+  rdcstr indent;
 
   // stack of structured CFG constructs
-  std::vector<StructuredCFG> cfgStack;
+  rdcarray<StructuredCFG> cfgStack;
 
   // set of labels that must be printed because we have gotos for them
   std::set<Id> printLabels;

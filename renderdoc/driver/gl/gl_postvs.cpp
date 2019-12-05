@@ -403,7 +403,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
     stageShaders[0] = tmpShaders[0] = drv.glCreateShader(eGL_VERTEX_SHADER);
 
-    std::vector<uint32_t> spirv;
+    rdcarray<uint32_t> spirv;
     spirv.resize(vsRefl->rawBytes.size() / sizeof(uint32_t));
     memcpy(spirv.data(), vsRefl->rawBytes.data(), vsRefl->rawBytes.size());
 
@@ -1111,7 +1111,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       // SPIR-V path
       stageShaders[lastIndex] = tmpShaders[lastIndex] = drv.glCreateShader(ShaderEnum(lastIndex));
 
-      std::vector<uint32_t> spirv;
+      rdcarray<uint32_t> spirv;
       spirv.resize(lastRefl->rawBytes.size() / sizeof(uint32_t));
       memcpy(spirv.data(), lastRefl->rawBytes.data(), lastRefl->rawBytes.size());
 

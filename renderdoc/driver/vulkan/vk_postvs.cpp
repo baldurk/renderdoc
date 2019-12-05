@@ -54,7 +54,7 @@ static const uint32_t MeshOutputReservedBindings = 5;
 static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRVPatchData &patchData,
                                        const char *entryName, std::vector<uint32_t> instDivisor,
                                        const DrawcallDescription *draw, uint32_t numVerts,
-                                       uint32_t numViews, std::vector<uint32_t> &modSpirv,
+                                       uint32_t numViews, rdcarray<uint32_t> &modSpirv,
                                        uint32_t &bufStride)
 {
   rdcspv::Editor editor(modSpirv);
@@ -1903,7 +1903,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
   }
 
   uint32_t bufStride = 0;
-  std::vector<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
+  rdcarray<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
   struct CompactedAttrBuffer
   {
@@ -2734,7 +2734,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
   const VulkanCreationInfo::ShaderModule &moduleInfo =
       creationInfo.m_ShaderModule[pipeInfo.shaders[stageIndex].module];
 
-  std::vector<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
+  rdcarray<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
   uint32_t xfbStride = 0;
 

@@ -38,7 +38,7 @@ struct feedbackData
 
 void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
                     const std::map<rdcspv::Binding, feedbackData> &offsetMap, VkDeviceAddress addr,
-                    bool bufferAddressKHR, std::vector<uint32_t> &modSpirv)
+                    bool bufferAddressKHR, rdcarray<uint32_t> &modSpirv)
 {
   rdcspv::Editor editor(modSpirv);
 
@@ -713,7 +713,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     const VulkanCreationInfo::ShaderModule &moduleInfo =
         creationInfo.m_ShaderModule[pipeInfo.shaders[5].module];
 
-    std::vector<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
+    rdcarray<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
     AnnotateShader(*pipeInfo.shaders[5].patchData, stage.pName, offsetMap, bufferAddress,
                    useBufferAddressKHR, modSpirv);
@@ -738,7 +738,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       const VulkanCreationInfo::ShaderModule &moduleInfo =
           creationInfo.m_ShaderModule[pipeInfo.shaders[idx].module];
 
-      std::vector<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
+      rdcarray<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
       AnnotateShader(*pipeInfo.shaders[idx].patchData, stage.pName, offsetMap, bufferAddress,
                      useBufferAddressKHR, modSpirv);

@@ -78,8 +78,7 @@ void sort(rdcarray<ShaderConstant> &vars)
     sort(vars[i].type.members);
 }
 
-void CheckVertexOutputUses(const std::vector<std::string> &sources,
-                           FixedFunctionVertexOutputs &outputUsage)
+void CheckVertexOutputUses(const rdcarray<rdcstr> &sources, FixedFunctionVertexOutputs &outputUsage)
 {
   outputUsage = FixedFunctionVertexOutputs();
 
@@ -181,7 +180,7 @@ static bool iswhitespace(char c)
   return isspacetab(c) || isnewline(c);
 }
 
-GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, std::vector<std::string> sources,
+GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcstr> sources,
                                   std::vector<std::string> *includepaths)
 {
   // in and out blocks are added separately, in case one is there already

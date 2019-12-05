@@ -139,7 +139,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
           (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
       rs->rasterizerDiscardEnable = false;
 
-      std::vector<uint32_t> spirv =
+      rdcarray<uint32_t> spirv =
           *m_pDriver->GetShaderCache()->GetBuiltinBlob(BuiltinShader::QuadWriteFS);
 
       // patch spirv, change descriptor set to descSet value
@@ -282,7 +282,7 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
     float *data;
   } alias;
 
-  std::vector<uint32_t> spv = *m_pDriver->GetShaderCache()->GetBuiltinBlob(BuiltinShader::FixedColFS);
+  rdcarray<uint32_t> spv = *m_pDriver->GetShaderCache()->GetBuiltinBlob(BuiltinShader::FixedColFS);
 
   alias.spirv = &spv[0];
   size_t spirvLength = spv.size();

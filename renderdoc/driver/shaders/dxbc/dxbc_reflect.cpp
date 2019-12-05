@@ -102,7 +102,7 @@ static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &va
 }
 
 static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
-                             const std::vector<DXBC::ShaderInputBind> &in,
+                             const rdcarray<DXBC::ShaderInputBind> &in,
                              rdcarray<Bindpoint> &mapping, rdcarray<ShaderResource> &refl)
 {
   for(size_t i = 0; i < in.size(); i++)
@@ -151,7 +151,7 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
       res.variableType.descriptor.columns = (uint8_t)r.numSamples;
       res.variableType.descriptor.elements = 1;
 
-      std::string name;
+      rdcstr name;
 
       switch(r.retType)
       {
@@ -235,7 +235,7 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
       refl->debugInfo.files[i].contents = dxbc->GetDebugInfo()->Files[i].second;
     }
 
-    std::string entry = dxbc->GetDebugInfo()->GetEntryFunction();
+    rdcstr entry = dxbc->GetDebugInfo()->GetEntryFunction();
     if(entry.empty())
       entry = "main";
 

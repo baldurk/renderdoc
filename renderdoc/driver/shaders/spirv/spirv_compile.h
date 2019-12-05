@@ -24,8 +24,8 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
+#include "api/replay/rdcarray.h"
+#include "api/replay/rdcstr.h"
 
 namespace rdcspv
 {
@@ -56,13 +56,13 @@ struct CompilationSettings
   ShaderStage stage = ShaderStage::Invalid;
   InputLanguage lang = InputLanguage::Unknown;
   bool debugInfo = false;
-  std::string entryPoint;
+  rdcstr entryPoint;
 };
 
 void Init();
 void Shutdown();
 
-std::string Compile(const CompilationSettings &settings, const std::vector<std::string> &sources,
-                    std::vector<uint32_t> &spirv);
+rdcstr Compile(const CompilationSettings &settings, const rdcarray<rdcstr> &sources,
+               rdcarray<uint32_t> &spirv);
 
 };    // namespace rdcspv

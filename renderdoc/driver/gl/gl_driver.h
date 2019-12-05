@@ -649,7 +649,7 @@ public:
   {
     ShaderData() : type(eGL_NONE), version(0) {}
     GLenum type;
-    std::vector<std::string> sources;
+    rdcarray<rdcstr> sources;
     std::vector<std::string> includepaths;
     rdcspv::Reflector spirv;
     rdcstr disassembly;

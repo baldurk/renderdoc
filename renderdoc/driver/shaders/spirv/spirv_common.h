@@ -26,7 +26,7 @@
 
 #include <stdint.h>
 #include <map>
-#include <vector>
+#include "api/replay/rdcarray.h"
 #include "api/replay/stringise.h"
 #include "common/common.h"
 #include "spirv_gen.h"
@@ -80,14 +80,12 @@ protected:
   ConstOrNotVector *words = NULL;
 };
 
-class ConstIter : public IterBase<const std::vector<uint32_t>>
+class ConstIter : public IterBase<const rdcarray<uint32_t>>
 {
 public:
   // constructors
   ConstIter() = default;
-  ConstIter(const std::vector<uint32_t> &w, size_t o) : IterBase<const std::vector<uint32_t>>(w, o)
-  {
-  }
+  ConstIter(const rdcarray<uint32_t> &w, size_t o) : IterBase<const rdcarray<uint32_t>>(w, o) {}
 };
 
 class Iter : public ConstIter
@@ -95,7 +93,7 @@ class Iter : public ConstIter
 public:
   // constructors
   Iter() = default;
-  Iter(std::vector<uint32_t> &w, size_t o) : ConstIter(w, o) {}
+  Iter(rdcarray<uint32_t> &w, size_t o) : ConstIter(w, o) {}
   // mutable utility functions
   using ConstIter::operator*;
   uint32_t &operator*() { return cur(); }
@@ -111,9 +109,7 @@ public:
 private:
   friend class Operation;
   inline uint32_t &cur() { return mutable_words()->at(offset); }
-  std::vector<uint32_t>::iterator it() { return mutable_words()->begin() + offset; }
-  std::vector<uint32_t>::const_iterator it() const { return words->cbegin() + offset; }
-  std::vector<uint32_t> *mutable_words() { return (std::vector<uint32_t> *)words; }
+  rdcarray<uint32_t> *mutable_words() { return (rdcarray<uint32_t> *)words; }
 };
 
 class Operation
@@ -121,10 +117,10 @@ class Operation
 public:
   // constructor of a synthetic operation, from an operation & subsequent words, calculates the
   // length then constructs the first word with opcode + length.
-  Operation(rdcspv::Op op, const std::vector<uint32_t> &data)
+  Operation(rdcspv::Op op, const rdcarray<uint32_t> &data)
   {
     words.push_back(MakeHeader(op, data.size() + 1));
-    words.insert(words.begin() + 1, data.begin(), data.end());
+    words.insert(1, data);
 
     iter = Iter(words, 0);
   }
@@ -140,7 +136,7 @@ public:
   {
     Operation ret(it);
 
-    ret.words.insert(ret.words.begin(), it.it(), it.it() + it.size());
+    ret.words.insert(0, &it.word(0), it.size());
     ret.iter = Iter(ret.words, 0);
 
     return ret;
@@ -165,10 +161,10 @@ public:
   const uint32_t &operator[](size_t idx) const { return iter.word(idx); }
   size_t size() const { return iter.size(); }
   // insert the words for this op into the destination vector
-  void appendTo(std::vector<uint32_t> &dest) const { dest.insert(dest.end(), begin(), end()); }
-  void insertInto(std::vector<uint32_t> &dest, size_t offset) const
+  void appendTo(rdcarray<uint32_t> &dest) const { dest.append(&iter.word(0), size()); }
+  void insertInto(rdcarray<uint32_t> &dest, size_t offset) const
   {
-    dest.insert(dest.begin() + offset, begin(), end());
+    dest.insert(offset, &iter.word(0), size());
   }
   inline static uint32_t MakeHeader(rdcspv::Op op, size_t WordCount)
   {
@@ -176,14 +172,12 @@ public:
   }
 
 private:
-  std::vector<uint32_t>::const_iterator begin() const { return iter.it(); }
-  std::vector<uint32_t>::const_iterator end() const { return iter.it() + size(); }
   // everything is based around this iterator, which may point into our local storage or to external
   // storage.
   Iter iter;
 
   // may not be used, if we refer to an external iterator
-  std::vector<uint32_t> words;
+  rdcarray<uint32_t> words;
 };
 
 template <typename T>
@@ -207,10 +201,10 @@ private:
 };
 
 template <typename T>
-class DenseIdMap : public std::vector<T>
+class DenseIdMap : public rdcarray<T>
 {
 public:
-  using std::vector<T>::operator[];
+  using rdcarray<T>::operator[];
   T &operator[](Id id) { return (*this)[id.value()]; }
   const T &operator[](Id id) const { return (*this)[id.value()]; }
 };

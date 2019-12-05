@@ -308,9 +308,9 @@ ShaderBuiltin GetSystemValue(SVSemantic systemValue)
   return ShaderBuiltin::Undefined;
 }
 
-std::string TypeName(CBufferVariableType::Descriptor desc)
+rdcstr TypeName(CBufferVariableType::Descriptor desc)
 {
-  std::string ret;
+  rdcstr ret;
 
   char *type = "";
   switch(desc.type)
@@ -396,18 +396,18 @@ CBufferVariableType DXBCContainer::ParseRDEFType(RDEFHeader *h, char *chunkConte
   {
     if(h->targetVersion >= 0x500 && type->nameOffset > 0)
     {
-      ret.descriptor.name += " " + std::string(chunkContents + type->nameOffset);
+      ret.descriptor.name += " " + rdcstr(chunkContents + type->nameOffset);
     }
     else
     {
       char buf[64] = {0};
       StringFormat::snprintf(buf, 63, "unnamed_iface_0x%08x", typeOffset);
-      ret.descriptor.name += " " + std::string(buf);
+      ret.descriptor.name += " " + rdcstr(buf);
     }
   }
 
   // rename unnamed structs to have valid identifiers as type name
-  if(ret.descriptor.name.find("<unnamed>") != std::string::npos)
+  if(ret.descriptor.name.contains("<unnamed>"))
   {
     if(h->targetVersion >= 0x500 && type->nameOffset > 0)
     {
@@ -497,7 +497,7 @@ D3D_PRIMITIVE_TOPOLOGY DXBCContainer::GetOutputTopology()
   return m_OutputTopology;
 }
 
-const std::string &DXBCContainer::GetDisassembly()
+const rdcstr &DXBCContainer::GetDisassembly()
 {
   if(m_Disassembly.empty())
   {
@@ -585,9 +585,9 @@ bool DXBCContainer::CheckForShaderCode(const void *ByteCode, size_t ByteCodeLeng
   return false;
 }
 
-std::string DXBCContainer::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength)
+rdcstr DXBCContainer::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength)
 {
-  std::string debugPath;
+  rdcstr debugPath;
   FileHeader *header = (FileHeader *)ByteCode;
 
   char *data = (char *)ByteCode;    // just for convenience
@@ -614,7 +614,7 @@ std::string DXBCContainer::GetDebugBinaryPath(const void *ByteCode, size_t ByteC
 
         if(privHeader->chunkLength == (sizeof(GUID) + pathLength + 1))
         {
-          debugPath.append(pathData, pathData + pathLength);
+          debugPath.append(pathData, pathLength);
           return debugPath;
         }
       }
@@ -689,7 +689,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
         uint32_t reg, space, bindCount;
       };
 
-      std::map<std::string, CBufferBind> cbufferbinds;
+      std::map<rdcstr, CBufferBind> cbufferbinds;
 
       uint32_t resourceStride = sizeof(RDEFResource);
 
@@ -728,7 +728,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
         // and append _s onto each subsequent buffer name
         if(desc.IsCBuffer())
         {
-          std::string cname = desc.name;
+          rdcstr cname = desc.name;
 
           while(cbufferbinds.find(cname) != cbufferbinds.end())
             cname += "_";
@@ -767,25 +767,18 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
       // Note we preserve the arrays in SM5.1
       if(h->targetVersion < 0x501)
       {
-        for(std::vector<ShaderInputBind> *arr :
+        for(rdcarray<ShaderInputBind> *arr :
             {&m_Reflection->SRVs, &m_Reflection->UAVs, &m_Reflection->Samplers})
         {
-          std::vector<ShaderInputBind> &resArray = *arr;
-          for(auto it = resArray.begin(); it != resArray.end();)
+          rdcarray<ShaderInputBind> &resArray = *arr;
+          for(size_t i = 0; i < resArray.size();)
           {
-            if(it->bindCount > 1)
+            if(resArray[i].bindCount > 1)
             {
-              // copy off the array item description
-              ShaderInputBind desc = *it;
+              // remove the item from the array at this location
+              ShaderInputBind desc = resArray.takeAt(i);
 
-              // remove the array item, and get the iterator to the next item to process
-              it = resArray.erase(it);
-
-              // store the iterator index, as it may be invalidated by vector resizing below, or if
-              // it's pointing at end().
-              size_t itIdx = it - resArray.begin();
-
-              std::string rname = desc.name;
+              rdcstr rname = desc.name;
               uint32_t arraySize = desc.bindCount;
 
               desc.bindCount = 1;
@@ -797,18 +790,16 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
                 desc.reg++;
               }
 
-              it = resArray.begin() + itIdx;
-
               continue;
             }
 
             // just move on if this item wasn't arrayed
-            it++;
+            i++;
           }
         }
       }
 
-      std::set<std::string> cbuffernames;
+      std::set<rdcstr> cbuffernames;
 
       for(int32_t i = 0; i < h->cbuffers.count; i++)
       {
@@ -889,7 +880,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
           cb.variables.push_back(v);
         }
 
-        std::string cname = cb.name;
+        rdcstr cname = cb.name;
 
         while(cbuffernames.find(cname) != cbuffernames.end())
           cname += "_";
@@ -1026,7 +1017,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
     {
       SIGNHeader *sign = (SIGNHeader *)chunkContents;
 
-      std::vector<SigParameter> *sig = NULL;
+      rdcarray<SigParameter> *sig = NULL;
 
       bool input = false;
       bool output = false;
@@ -1178,7 +1169,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
           }
         }
 
-        std::string semanticIdxName = a.semanticName;
+        rdcstr semanticIdxName = a.semanticName;
         if(a.needSemanticIndex)
           semanticIdxName += ToStr(a.semanticIndex);
 
@@ -1471,7 +1462,7 @@ uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags)
   {
     if(flag.name == "@cmdline")
     {
-      std::string cmdline = flag.value;
+      rdcstr cmdline = flag.value;
 
       // ensure cmdline is surrounded by spaces and all whitespace is spaces. This means we can
       // search for our flags surrounded by space and ensure we get exact matches.
@@ -1510,7 +1501,7 @@ ShaderCompileFlags EncodeFlags(const uint32_t flags)
 {
   ShaderCompileFlags ret;
 
-  std::string cmdline;
+  rdcstr cmdline;
 
   for(const FxcArg &arg : fxc_flags)
   {
@@ -1562,14 +1553,14 @@ TEST_CASE("DO NOT COMMIT - convenience test", "[dxbc]")
 {
   // this test loads a file from disk and passes it through DXBC::DXBCContainer. Useful for when you
   // are iterating on a shader and don't want to have to load a whole capture.
-  std::vector<byte> buf;
-  FileIO::slurp("/path/to/container_file.dxbc", buf);
+  bytebuf buf;
+  FileIO::ReadAll("/path/to/container_file.dxbc", buf);
 
   DXBC::DXBCContainer container(buf.data(), buf.size());
 
   // the only thing fetched lazily is the disassembly, so grab that here
 
-  std::string disasm = container.GetDisassembly();
+  rdcstr disasm = container.GetDisassembly();
 
   RDCLOG("%s", disasm.c_str());
 }

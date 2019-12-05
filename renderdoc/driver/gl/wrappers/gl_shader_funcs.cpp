@@ -262,7 +262,7 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
 
       if(reflected)
       {
-        std::vector<uint32_t> spirvwords;
+        rdcarray<uint32_t> spirvwords;
 
         rdcspv::CompilationSettings settings(rdcspv::InputLanguage::OpenGLGLSL,
                                              rdcspv::ShaderStage(ShaderIdx(type)));
@@ -359,7 +359,7 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
 
   // serialisation can't handle the length parameter neatly, so we compromise by serialising via a
   // vector
-  std::vector<std::string> sources;
+  rdcarray<rdcstr> sources;
 
   if(ser.IsWriting())
   {
@@ -667,7 +667,7 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(SerialiserType &ser, GLenum
 
   if(IsReplayingAndReading())
   {
-    std::vector<std::string> src;
+    rdcarray<rdcstr> src;
     for(GLsizei i = 0; i < count; i++)
       src.push_back(strings[i]);
 

@@ -33,7 +33,7 @@
 
 void FillSpecConstantVariables(ResourceId shader, const rdcarray<ShaderConstant> &invars,
                                rdcarray<ShaderVariable> &outvars,
-                               const std::vector<SpecConstant> &specInfo)
+                               const rdcarray<SpecConstant> &specInfo)
 {
   StandardFillCBufferVariables(shader, invars, outvars, bytebuf());
 
@@ -56,14 +56,14 @@ void FillSpecConstantVariables(ResourceId shader, const rdcarray<ShaderConstant>
 }
 
 void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patchData,
-                       const char *entryName, std::vector<uint32_t> &modSpirv, uint32_t &xfbStride)
+                       const char *entryName, rdcarray<uint32_t> &modSpirv, uint32_t &xfbStride)
 {
   rdcspv::Editor editor(modSpirv);
 
   editor.Prepare();
 
   rdcarray<SigParameter> outsig = refl.outputSignature;
-  std::vector<SPIRVPatchData::InterfaceAccess> outpatch = patchData.outputs;
+  rdcarray<SPIRVPatchData::InterfaceAccess> outpatch = patchData.outputs;
 
   rdcspv::Id entryid;
   for(const rdcspv::EntryPoint &entry : editor.GetEntries())
@@ -152,8 +152,8 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
       outsig.insert(0, outsig[i]);
       outsig.erase(i + 1);
 
-      outpatch.insert(outpatch.begin(), outpatch[i]);
-      outpatch.erase(outpatch.begin() + i + 1);
+      outpatch.insert(0, outpatch[i]);
+      outpatch.erase(i + 1);
       break;
     }
   }
@@ -398,7 +398,7 @@ Reflector::Reflector()
 {
 }
 
-void Reflector::Parse(const std::vector<uint32_t> &spirvWords)
+void Reflector::Parse(const rdcarray<uint32_t> &spirvWords)
 {
   Processor::Parse(spirvWords);
 }
@@ -476,7 +476,7 @@ void Reflector::RegisterOp(Iter it)
           else
           {
             RDCERR("Unexpected preamble line with OpModuleProcessed: %s",
-                   std::string(src.begin(), src.begin() + nextLine).c_str());
+                   src.substr(0, nextLine).c_str());
             break;
           }
 
@@ -640,15 +640,15 @@ void Reflector::PostParse()
   memberNames.clear();
 }
 
-std::vector<std::string> Reflector::EntryPoints() const
+rdcarray<rdcstr> Reflector::EntryPoints() const
 {
-  std::vector<std::string> ret(entries.size());
+  rdcarray<rdcstr> ret(entries.size());
   for(const EntryPoint &e : entries)
     ret.push_back(e.name);
   return ret;
 }
 
-ShaderStage Reflector::StageForEntry(const std::string &entryPoint) const
+ShaderStage Reflector::StageForEntry(const rdcstr &entryPoint) const
 {
   for(const EntryPoint &e : entries)
     if(entryPoint == e.name)
@@ -657,8 +657,7 @@ ShaderStage Reflector::StageForEntry(const std::string &entryPoint) const
 }
 
 void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage stage,
-                               const std::string &entryPoint,
-                               const std::vector<SpecConstant> &specInfo,
+                               const rdcstr &entryPoint, const rdcarray<SpecConstant> &specInfo,
                                ShaderReflection &reflection, ShaderBindpointMapping &mapping,
                                SPIRVPatchData &patchData) const
 {
@@ -753,7 +752,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   // build the static call tree from the entry point, and build a list of all IDs referenced
   {
     std::set<Id> processed;
-    std::vector<Id> pending;
+    rdcarray<Id> pending;
 
     pending.push_back(entry->id);
 
@@ -1242,7 +1241,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     }
   };
 
-  std::vector<size_t> indices;
+  rdcarray<size_t> indices;
   {
     indices.resize(inputs.size());
     for(size_t i = 0; i < inputs.size(); i++)
@@ -1254,7 +1253,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     for(size_t i = 0; i < inputs.size(); i++)
       reflection.inputSignature.push_back(inputs[indices[i]]);
 
-    std::vector<SPIRVPatchData::InterfaceAccess> inPatch = patchData.inputs;
+    rdcarray<SPIRVPatchData::InterfaceAccess> inPatch = patchData.inputs;
     for(size_t i = 0; i < inputs.size(); i++)
       patchData.inputs[i] = inPatch[indices[i]];
   }
@@ -1270,7 +1269,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     for(size_t i = 0; i < outputs.size(); i++)
       reflection.outputSignature.push_back(outputs[indices[i]]);
 
-    std::vector<SPIRVPatchData::InterfaceAccess> outPatch = patchData.outputs;
+    rdcarray<SPIRVPatchData::InterfaceAccess> outPatch = patchData.outputs;
     for(size_t i = 0; i < outputs.size(); i++)
       patchData.outputs[i] = outPatch[indices[i]];
   }
@@ -1377,7 +1376,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   }
 }
 
-ShaderVariable Reflector::EvaluateConstant(Id constID, const std::vector<SpecConstant> &specInfo) const
+ShaderVariable Reflector::EvaluateConstant(Id constID, const rdcarray<SpecConstant> &specInfo) const
 {
   auto it = constants.find(constID);
 
@@ -1895,7 +1894,7 @@ ShaderVariable Reflector::EvaluateConstant(Id constID, const std::vector<SpecCon
 void Reflector::MakeConstantBlockVariables(const DataType &structType, uint32_t arraySize,
                                            uint32_t arrayByteStride, rdcarray<ShaderConstant> &cblock,
                                            SparseIdMap<uint16_t> &pointerTypes,
-                                           const std::vector<SpecConstant> &specInfo) const
+                                           const rdcarray<SpecConstant> &specInfo) const
 {
   // we get here for multi-dimensional arrays
   if(structType.type == DataType::ArrayType)
@@ -1932,7 +1931,7 @@ void Reflector::MakeConstantBlockVariables(const DataType &structType, uint32_t 
 void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst,
                                           SparseIdMap<uint16_t> &pointerTypes, const DataType &type,
                                           const rdcstr &name, const Decorations &varDecorations,
-                                          const std::vector<SpecConstant> &specInfo) const
+                                          const rdcarray<SpecConstant> &specInfo) const
 {
   outConst.name = name;
   outConst.defaultValue = 0;
@@ -2045,7 +2044,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
                                       const rdcstr &varName, const DataType &type,
                                       const Decorations &varDecorations,
                                       rdcarray<SigParameter> &sigarray, SPIRVPatchData &patchData,
-                                      const std::vector<SpecConstant> &specInfo) const
+                                      const rdcarray<SpecConstant> &specInfo) const
 {
   SigParameter sig;
 
@@ -2245,19 +2244,19 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
 TEST_CASE("Validate SPIR-V reflection", "[spirv][reflection]")
 {
   ShaderType type = ShaderType::Vulkan;
-  auto compiler = [&type](ShaderStage stage, const std::string &source, const std::string &entryPoint,
+  auto compiler = [&type](ShaderStage stage, const rdcstr &source, const rdcstr &entryPoint,
                           ShaderReflection &refl, ShaderBindpointMapping &mapping) {
 
     rdcspv::Init();
     RenderDoc::Inst().RegisterShutdownFunction(&rdcspv::Shutdown);
 
-    std::vector<uint32_t> spirv;
+    rdcarray<uint32_t> spirv;
     rdcspv::CompilationSettings settings(type == ShaderType::Vulkan
                                              ? rdcspv::InputLanguage::VulkanGLSL
                                              : rdcspv::InputLanguage::OpenGLGLSL,
                                          rdcspv::ShaderStage(stage));
     settings.debugInfo = true;
-    std::string errors = rdcspv::Compile(settings, {source}, spirv);
+    rdcstr errors = rdcspv::Compile(settings, {source}, spirv);
 
     INFO("SPIR-V compile output: " << errors);
 

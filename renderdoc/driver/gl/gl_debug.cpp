@@ -90,8 +90,8 @@ GLuint CreateSPIRVShader(GLenum shaderType, const std::string &src)
   rdcspv::CompilationSettings settings(rdcspv::InputLanguage::OpenGLGLSL,
                                        rdcspv::ShaderStage(ShaderIdx(shaderType)));
 
-  std::vector<uint32_t> spirv;
-  std::string s = rdcspv::Compile(settings, {src}, spirv);
+  rdcarray<uint32_t> spirv;
+  rdcstr s = rdcspv::Compile(settings, {src}, spirv);
 
   if(spirv.empty())
   {
