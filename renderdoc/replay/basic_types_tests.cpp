@@ -32,6 +32,7 @@
 #include "3rdparty/catch/catch.hpp"
 
 static volatile int32_t constructor = 0;
+static volatile int32_t moveConstructor = 0;
 static volatile int32_t valueConstructor = 0;
 static volatile int32_t copyConstructor = 0;
 static volatile int32_t destructor = 0;
@@ -55,11 +56,27 @@ struct ConstructorCounter
     value = other.value;
     Atomic::Inc32(&copyConstructor);
   }
+  ConstructorCounter(ConstructorCounter &&other)
+  {
+    value = other.value;
+    other.value = -9999;
+    Atomic::Inc32(&moveConstructor);
+  }
+  ConstructorCounter &operator=(const ConstructorCounter &other) = delete;
+  ConstructorCounter &operator=(ConstructorCounter &&other) = delete;
   ~ConstructorCounter() { Atomic::Inc32(&destructor); }
+  bool operator==(const ConstructorCounter &other) { return value == other.value; }
 };
 
 TEST_CASE("Test array type", "[basictypes]")
 {
+  // reset globals
+  constructor = 0;
+  moveConstructor = 0;
+  valueConstructor = 0;
+  copyConstructor = 0;
+  destructor = 0;
+
   SECTION("Basic test")
   {
     rdcarray<int> test;
@@ -240,7 +257,7 @@ TEST_CASE("Test array type", "[basictypes]")
     };
   };
 
-  SECTION("Verify insert()")
+  SECTION("insert")
   {
     rdcarray<int> vec;
     vec.insert(0, {});
@@ -304,7 +321,7 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(vec[8] == 4);
 
     // insert a large amount of data to ensure this doesn't read off start/end of vector
-    std::vector<int> largedata;
+    rdcarray<int> largedata;
     largedata.resize(100000);
 
     vec.insert(4, largedata);
@@ -353,7 +370,7 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(vec[14] == 16);
   };
 
-  SECTION("Verify erase()")
+  SECTION("erase")
   {
     rdcarray<int> vec = {6, 3, 13, 5};
 
@@ -408,6 +425,69 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(vec[0] == 5);
     CHECK(vec[1] == 6);
     CHECK(vec[2] == 3);
+
+    vec = {5, 6, 3, 9, 1, 0};
+
+    vec.erase(3, 100);
+    REQUIRE(vec.size() == 3);
+    CHECK(vec[0] == 5);
+    CHECK(vec[1] == 6);
+    CHECK(vec[2] == 3);
+  };
+
+  SECTION("removeOne / removeOneIf / removeIf")
+  {
+    rdcarray<int> vec = {6, 3, 9, 6, 6, 3, 5, 15, 5};
+
+    vec.removeOne(3);
+
+    REQUIRE(vec.size() == 8);
+    CHECK(vec[0] == 6);
+    CHECK(vec[1] == 9);
+    CHECK(vec[2] == 6);
+    CHECK(vec[3] == 6);
+    CHECK(vec[4] == 3);
+    CHECK(vec[5] == 5);
+    CHECK(vec[6] == 15);
+    CHECK(vec[7] == 5);
+
+    vec.removeOne(3);
+
+    REQUIRE(vec.size() == 7);
+    CHECK(vec[0] == 6);
+    CHECK(vec[1] == 9);
+    CHECK(vec[2] == 6);
+    CHECK(vec[3] == 6);
+    CHECK(vec[4] == 5);
+    CHECK(vec[5] == 15);
+    CHECK(vec[6] == 5);
+
+    vec.removeOne(3);
+
+    REQUIRE(vec.size() == 7);
+    CHECK(vec[0] == 6);
+    CHECK(vec[1] == 9);
+    CHECK(vec[2] == 6);
+    CHECK(vec[3] == 6);
+    CHECK(vec[4] == 5);
+    CHECK(vec[5] == 15);
+    CHECK(vec[6] == 5);
+
+    vec.removeOneIf([](const int &el) { return (el % 3) == 0; });
+
+    REQUIRE(vec.size() == 6);
+    CHECK(vec[0] == 9);
+    CHECK(vec[1] == 6);
+    CHECK(vec[2] == 6);
+    CHECK(vec[3] == 5);
+    CHECK(vec[4] == 15);
+    CHECK(vec[5] == 5);
+
+    vec.removeIf([](const int &el) { return (el % 3) == 0; });
+
+    REQUIRE(vec.size() == 2);
+    CHECK(vec[0] == 5);
+    CHECK(vec[1] == 5);
   };
 
   SECTION("Check construction")
@@ -415,6 +495,7 @@ TEST_CASE("Test array type", "[basictypes]")
     rdcarray<ConstructorCounter> test;
 
     CHECK(constructor == 0);
+    CHECK(moveConstructor == 0);
     CHECK(valueConstructor == 0);
     CHECK(copyConstructor == 0);
     CHECK(destructor == 0);
@@ -489,6 +570,89 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(constructor == 50);
     CHECK(valueConstructor == 1);
     CHECK(copyConstructor == 3);
+
+    // still should have had no moves
+    CHECK(moveConstructor == 0);
+
+    // reset counters
+    constructor = 0;
+    valueConstructor = 0;
+    copyConstructor = 0;
+    destructor = 0;
+
+    CHECK(constructor == 0);
+    CHECK(moveConstructor == 0);
+    CHECK(valueConstructor == 0);
+    CHECK(copyConstructor == 0);
+    CHECK(destructor == 0);
+
+    auto lambda = []() -> rdcarray<ConstructorCounter> {
+      rdcarray<ConstructorCounter> ret;
+      ConstructorCounter tmp(9);
+      ret.push_back(tmp);
+      return ret;
+    };
+
+    test = lambda();
+
+    // ensure that the value constructor was called only once within the lambda
+    CHECK(valueConstructor == 1);
+
+    // the copy constructor was called in push_back
+    CHECK(copyConstructor == 1);
+
+    // the destructor was called once for tmp
+    CHECK(destructor == 1);
+
+    // and no default construction or moves
+    CHECK(constructor == 0);
+    CHECK(moveConstructor == 0);
+
+    // check that the new value arrived
+    CHECK(test.back().value == 9);
+  };
+
+  SECTION("operations with empty array")
+  {
+    rdcarray<ConstructorCounter> test;
+
+    ConstructorCounter val;
+
+    test.append(test);
+
+    CHECK(test.empty());
+
+    test.insert(0, test);
+
+    CHECK(test.empty());
+
+    test.removeOne(val);
+
+    CHECK(test.empty());
+
+    test.assign(test.data(), test.size());
+
+    CHECK(test.empty());
+
+    CHECK(test.indexOf(val) == -1);
+
+    rdcarray<ConstructorCounter> test2(test);
+
+    CHECK(test.empty());
+    CHECK(test2.empty());
+
+    rdcarray<ConstructorCounter> test3;
+
+    test3 = test;
+
+    CHECK(test.empty());
+    CHECK(test3.empty());
+
+    CHECK(constructor == 1);
+    CHECK(moveConstructor == 0);
+    CHECK(valueConstructor == 0);
+    CHECK(copyConstructor == 0);
+    CHECK(destructor == 0);
   };
 
   SECTION("Inserting from array into itself")
@@ -775,6 +939,36 @@ TEST_CASE("Test string type", "[basictypes][string]")
     lambda(STRING_LITERAL(LARGE_STRING), LARGE_STRING);
   };
 
+  SECTION("Inserting from string into itself")
+  {
+    auto lambda = [](rdcstr test) {
+
+      // create a version without doing self-insertion
+      rdcstr test2 = test;
+
+      test2.insert(4, test);
+
+      test.insert(4, test);
+
+      CHECK(test.size() == test2.size());
+      CHECK(test.empty() == test2.empty());
+
+      for(size_t i = 0; i < test.size(); i++)
+      {
+        CHECK(test[i] == test2[i]);
+      }
+
+      CHECK(test.c_str() != test2.c_str());
+    };
+
+    // need a small string small enough that even doubling it is still small
+    lambda("foo");
+    lambda(SMALL_STRING);
+    lambda(LARGE_STRING);
+    lambda(VERY_LARGE_STRING);
+    lambda(STRING_LITERAL(LARGE_STRING));
+  };
+
   SECTION("Shrinking and expanding strings")
   {
     rdcstr test = "A longer string that would have been heap allocated";
@@ -851,7 +1045,11 @@ TEST_CASE("Test string type", "[basictypes][string]")
   {
     rdcstr test = "Hello, World! This is a test string";
 
-    test.erase(0);
+    test.erase(0, 0);
+
+    CHECK(test == "Hello, World! This is a test string");
+
+    test.erase(0, 1);
 
     CHECK(test == "ello, World! This is a test string");
 
@@ -867,7 +1065,7 @@ TEST_CASE("Test string type", "[basictypes][string]")
 
     CHECK(test == ", World! is a ");
 
-    test.erase(100);
+    test.erase(100, 1);
 
     CHECK(test == ", World! is a ");
 
@@ -899,6 +1097,13 @@ TEST_CASE("Test string type", "[basictypes][string]")
     test2 += ", " + test + "?";
 
     CHECK(test2 == "Hello World! And enough characters to force an allocation, Hello World?");
+
+    test += '?';
+    CHECK(test == "Hello World?");
+
+    test2 = test + '!';
+
+    CHECK(test2 == "Hello World?!");
   };
 
   SECTION("insert")
@@ -918,6 +1123,77 @@ TEST_CASE("Test string type", "[basictypes][string]")
     test2.insert(100, "foo");
 
     CHECK(test2 == "Hello, World!Hello, World!");
+
+    test2.insert(4, '_');
+
+    CHECK(test2 == "Hell_o, World!Hello, World!");
+  };
+
+  SECTION("replace")
+  {
+    rdcstr test = "Hello, World!";
+
+    test.replace(5, 1, ".");
+
+    CHECK(test == "Hello. World!");
+
+    test.replace(7, 3, "Fau");
+
+    CHECK(test == "Hello. Fauld!");
+
+    test.replace(0, 0, "Hi! ");
+
+    CHECK(test == "Hi! Hello. Fauld!");
+
+    test.replace(0, 99, "Test");
+
+    CHECK(test == "Test");
+
+    test.replace(2, 99, "sting!");
+
+    CHECK(test == "Testing!");
+
+    test.replace(20, 99, "Invalid?");
+
+    CHECK(test == "Testing!");
+  };
+
+  SECTION("beginsWith / endsWith")
+  {
+    rdcstr test = "foobar";
+
+    CHECK_FALSE(test.beginsWith("bar"));
+    CHECK(test.beginsWith("foo"));
+    CHECK(test.beginsWith(""));
+
+    CHECK(test.endsWith("bar"));
+    CHECK_FALSE(test.endsWith("foo"));
+    CHECK(test.endsWith(""));
+
+    test = "";
+
+    CHECK(test.endsWith(""));
+    CHECK_FALSE(test.endsWith("foo"));
+
+    CHECK(test.beginsWith(""));
+    CHECK_FALSE(test.beginsWith("foo"));
+
+    test = "bar";
+
+    CHECK_FALSE(test.beginsWith("foobar"));
+    CHECK_FALSE(test.endsWith("foobar"));
+  };
+
+  SECTION("trim / trimmed")
+  {
+    CHECK(rdcstr("  foo bar  ").trimmed() == "foo bar");
+    CHECK(rdcstr("  Foo bar").trimmed() == "Foo bar");
+    CHECK(rdcstr("  Foo\nbar").trimmed() == "Foo\nbar");
+    CHECK(rdcstr("FOO BAR  ").trimmed() == "FOO BAR");
+    CHECK(rdcstr("FOO BAR  \t\n").trimmed() == "FOO BAR");
+    CHECK(rdcstr("").trimmed() == "");
+    CHECK(rdcstr("  ").trimmed() == "");
+    CHECK(rdcstr("  \t  \n ").trimmed() == "");
   };
 
   SECTION("push_back and pop_back")
@@ -1025,6 +1301,7 @@ TEST_CASE("Test string type", "[basictypes][string]")
     CHECK(test.find("Hello, World!!") == -1);
     CHECK(test.find("Hello, World?") == -1);
     CHECK(test.find("") == 0);
+    CHECK(test.find(',') == 5);
 
     CHECK(test.indexOf('H') == 0);
     CHECK(test.indexOf('l') == 2);
@@ -1047,7 +1324,175 @@ TEST_CASE("Test string type", "[basictypes][string]")
     CHECK_FALSE(test.contains('!'));
 
     CHECK(test == "ello, World");
+
+    CHECK(test.find_first_of("lo") == 1);
+    CHECK(test.find_first_of("ol") == 1);
+    CHECK(test.find_first_of("foobarl") == 1);
+    CHECK(test.find_first_of("foobar") == 3);
+    CHECK(test.find_first_of("oforab") == 3);
+    CHECK(test.find_first_of("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!o") == 3);
+    CHECK(test.find_first_of("!?$") == -1);
+    CHECK(test.find_first_of("") == -1);
+
+    CHECK(test.find_last_of("or") == 8);
+    CHECK(test.find_last_of("ro") == 8);
+    CHECK(test.find_last_of("foobard") == 10);
+    CHECK(test.find_last_of("foobar") == 8);
+    CHECK(test.find_last_of("oforab") == 8);
+    CHECK(test.find_last_of("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!r") == 8);
+    CHECK(test.find_last_of("!?$") == -1);
+    CHECK(test.find_last_of("") == -1);
+
+    CHECK(test.find_first_not_of("oel") == 4);
+    CHECK(test.find_first_not_of("le") == 3);
+    CHECK(test.find_first_not_of("oelWr") == 4);
+    CHECK(test.find_first_not_of("ooollele") == 4);
+    CHECK(test.find_first_not_of("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!e") == 1);
+    CHECK(test.find_first_not_of("!?$") == 0);
+    CHECK(test.find_first_not_of("") == 0);
+    CHECK(test.find_first_not_of("W, rdleo") == -1);
+
+    CHECK(test.find_last_not_of("dl") == 8);
+    CHECK(test.find_last_not_of("ld") == 8);
+    CHECK(test.find_last_not_of("ldWr") == 7);
+    CHECK(test.find_last_not_of("WWrldlRw") == 7);
+    CHECK(test.find_last_not_of("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!d") == 9);
+    CHECK(test.find_last_not_of("!?$") == 10);
+    CHECK(test.find_last_not_of("") == 10);
+    CHECK(test.find_last_not_of("W, rdleo") == -1);
+
+    //      0         1         2         3
+    //      012345678901234567890123456789012345678
+    test = "Test of substring matches and sub-find!";
+
+    // test with first before of the first 'sub'
+    CHECK(test.find("sub") == 8);
+    CHECK(test.find("sub", 4) == 8);
+    CHECK(test.find("sub", 8) == 8);
+
+    // first after first and before second
+    CHECK(test.find("sub", 9) == 30);
+    CHECK(test.find("sub", 10) == 30);
+    CHECK(test.find("sub", 11) == 30);
+    CHECK(test.find("sub", 29) == 30);
+    CHECK(test.find("sub", 30) == 30);
+
+    // first past the second
+    CHECK(test.find("sub", 31) == -1);
+
+    // first past the end of the string
+    CHECK(test.find("sub", 40) == -1);
+
+    // first and last around first sub
+    CHECK(test.find("sub", 4, 12) == 8);
+    CHECK(test.find("sub", 4, 11) == 8);
+    CHECK(test.find("sub", 7, 11) == 8);
+    CHECK(test.find("sub", 8, 11) == 8);
+
+    // first before but last not including first sub
+    CHECK(test.find("sub", 4, 9) == -1);
+    CHECK(test.find("sub", 8, 10) == -1);
+    CHECK(test.find("sub", 8, 9) == -1);
+
+    // first after and last after
+    CHECK(test.find("sub", 9, 11) == -1);
+
+    // empty range
+    CHECK(test.find("sub", 9, 9) == -1);
+    CHECK(test.find("sub", 8, 8) == -1);
+
+    // invalid range
+    CHECK(test.find("sub", 10, 9) == -1);
+
+    CHECK(test.find("find!") == 34);
+    CHECK(test.find("find!", 30, 39) == 34);
+    CHECK(test.find("find!", 30, 38) == -1);
+
+    CHECK(test.find('s') == 2);
+    CHECK(test.find('s', 2) == 2);
+    CHECK(test.find('s', 5) == 8);
+    CHECK(test.find('s', 2, 3) == 2);
+    CHECK(test.find('s', 2, 2) == -1);
+    CHECK(test.find('s', 3, 2) == -1);
+
+    CHECK(test.find('!') == 38);
+    CHECK(test.find('!', 38) == 38);
+    CHECK(test.find('!', 38) == 38);
+    CHECK(test.find('!', 38, 39) == 38);
+    CHECK(test.find('!', 38, 38) == -1);
+    CHECK(test.find('!', 39, 38) == -1);
+
+    CHECK(test.find_first_of("sx!") == 2);
+    CHECK(test.find_first_of("sx!", 2) == 2);
+    CHECK(test.find_first_of("sx!", 5) == 8);
+    CHECK(test.find_first_of("sx!", 2, 3) == 2);
+    CHECK(test.find_first_of("sx!", 2, 2) == -1);
+    CHECK(test.find_first_of("sx!", 3, 2) == -1);
+
+    CHECK(test.find_first_not_of("Teot") == 2);
+    CHECK(test.find_first_not_of("Teot", 2) == 2);
+    CHECK(test.find_first_not_of("Teot", 5) == 6);
+    CHECK(test.find_first_not_of("Teot", 2, 3) == 2);
+    CHECK(test.find_first_not_of("Teot", 2, 2) == -1);
+    CHECK(test.find_first_not_of("Teot", 3, 2) == -1);
+
+    CHECK(test.find_last_of("pur") == 31);
+    CHECK(test.find_last_of("pur", 30) == 31);
+    CHECK(test.find_last_of("pur", 0, 30) == 13);
+    CHECK(test.find_last_of("pur", 0, 31) == 13);
+    CHECK(test.find_last_of("pur", 0, 32) == 31);
+    CHECK(test.find_last_of("pur", 5) == 31);
+    CHECK(test.find_last_of("pur", 0, 5) == -1);
+    CHECK(test.find_last_of("pur", 10, 15) == 13);
+    CHECK(test.find_last_of("pur", 13, 15) == 13);
+    CHECK(test.find_last_of("pur", 14, 15) == -1);
+    CHECK(test.find_last_of("pur", 10, 13) == -1);
+    CHECK(test.find_last_of("pur", 13, 13) == -1);
+    CHECK(test.find_last_of("pur", 15, 13) == -1);
+
+    CHECK(test.find_last_not_of("ibe!fonudsc") == 33);
+    CHECK(test.find_last_not_of("ibe!fonudsc", 20) == 33);
+    CHECK(test.find_last_not_of("ibe!fonudsc", 20, 35) == 33);
+    CHECK(test.find_last_not_of("ibe!fonudsc", 20, 33) == 29);
+    CHECK(test.find_last_not_of("ibe!fonudsc", 29, 33) == 29);
+    CHECK(test.find_last_not_of("ibe!fonudsc", 29, 30) == 29);
+    CHECK(test.find_last_not_of("ibe!fonudsc", 29, 29) == -1);
+    CHECK(test.find_last_not_of("ibe!fonudsc", 30, 29) == -1);
   };
+
+  SECTION("Comparisons")
+  {
+    rdcstr a = "Hello, World!";
+    rdcstr b = "Hello, World!";
+
+    CHECK_FALSE(a < b);
+    CHECK(a == b);
+    CHECK_FALSE(a > b);
+
+    b.back() = '?';
+
+    CHECK(a < b);
+    CHECK_FALSE(a == b);
+    CHECK_FALSE(a > b);
+
+    CHECK_FALSE(b < a);
+    CHECK_FALSE(b == a);
+    CHECK(b > a);
+
+    b[1] = 'a';
+
+    a.pop_back();
+
+    CHECK_FALSE(a < b);
+    CHECK_FALSE(a == b);
+    CHECK(a > b);
+
+    b[1] = 'e';
+
+    CHECK(a < b);
+    CHECK_FALSE(a == b);
+    CHECK_FALSE(a > b);
+  }
 
   SECTION("String literal tests")
   {

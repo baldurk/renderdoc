@@ -27,6 +27,7 @@
 
 #include <stdint.h>    // for standard types
 #include <string.h>    // for memcpy, etc
+#include <functional>
 #include <initializer_list>
 #include <type_traits>
 #include <vector>
@@ -150,6 +151,12 @@ public:
   typedef T value_type;
 
   rdcarray() : elems(NULL), allocatedCount(0), usedCount(0) {}
+  rdcarray(size_t count)
+  {
+    elems = NULL;
+    allocatedCount = usedCount = 0;
+    resize(count);
+  }
   ~rdcarray()
   {
     // clear will destruct the actual elements still existing
@@ -192,7 +199,22 @@ public:
   size_t capacity() const { return allocatedCount; }
   bool empty() const { return usedCount == 0; }
   bool isEmpty() const { return usedCount == 0; }
-  void clear() { resize(0); }
+  void clear()
+  {
+    // we specialise clear() so that it doesn't implicitly require a default constructor of T()
+    // resize(0);
+
+    size_t sz = size();
+
+    if(sz == 0)
+      return;
+
+    setUsedCount(0);
+
+    // destroy the old items
+    ItemDestroyHelper<T>::destroyRange(elems, sz);
+  }
+
   /////////////////////////////////////////////////////////////////
   // managing elements and memory
 
@@ -267,8 +289,24 @@ public:
     setUsedCount(usedCount + 1);
   }
 
+  // fill the string with 'count' copies of 'el'
+  void fill(size_t count, const T &el)
+  {
+    // destruct any old elements
+    clear();
+    // ensure we have enough space for the count
+    reserve(count);
+    // copy-construct all elements in place and update space
+    for(size_t i = 0; i < count; i++)
+      new(elems + i) T(el);
+    setUsedCount(count);
+  }
+
   void insert(size_t offs, const T *el, size_t count)
   {
+    if(count == 0)
+      return;
+
     if(elems < el + count && el < elems + allocatedCount)
     {
       // we're inserting from ourselves, so if we did this blindly we'd potentially change the
@@ -403,11 +441,20 @@ public:
   }
   // helpful shortcut for 'append at end', basically a multi-element push_back
   inline void append(const T *el, size_t count) { insert(size(), el, count); }
+  inline void append(const rdcarray<T> &in) { insert(size(), in.data(), in.size()); }
   void erase(size_t offs, size_t count = 1)
   {
-    // invalid count
-    if(offs + count > size())
+    if(count == 0)
       return;
+
+    const size_t sz = size();
+
+    // invalid offset
+    if(offs >= sz)
+      return;
+
+    if(count > sz - offs)
+      count = sz - offs;
 
     // this is simpler to implement than insert(). We do two simpler passes:
     //
@@ -420,7 +467,7 @@ public:
       elems[offs + i].~T();
 
     // move remaining elements into place
-    for(size_t i = offs + count; i < size(); i++)
+    for(size_t i = offs + count; i < sz; i++)
     {
       new(elems + i - count) T(elems[i]);
       elems[i].~T();
@@ -428,6 +475,12 @@ public:
 
     // update new size
     setUsedCount(usedCount - count);
+  }
+
+  void pop_back()
+  {
+    if(!empty())
+      erase(size() - 1);
   }
 
   /////////////////////////////////////////////////////////////////
@@ -463,6 +516,35 @@ public:
       erase((size_t)idx);
   }
 
+  void removeIf(std::function<bool(const T &)> predicate)
+  {
+    for(size_t i = 0; i < size();)
+    {
+      if(predicate(at(i)))
+      {
+        erase(i);
+        // continue with same i
+      }
+      else
+      {
+        // move to next i
+        i++;
+      }
+    }
+  }
+
+  void removeOneIf(std::function<bool(const T &)> predicate)
+  {
+    for(size_t i = 0; i < size(); i++)
+    {
+      if(predicate(at(i)))
+      {
+        erase(i);
+        break;
+      }
+    }
+  }
+
   /////////////////////////////////////////////////////////////////
   // constructors that just forward to assign
   rdcarray(const T *in, size_t count)
@@ -495,6 +577,39 @@ public:
     std::swap(elems, other.elems);
     std::swap(allocatedCount, other.allocatedCount);
     std::swap(usedCount, other.usedCount);
+  }
+
+  // move operator/constructor using swap
+
+  rdcarray &operator=(rdcarray &&in)
+  {
+    // if we have old elems, clear (to destruct) and deallocate
+    if(elems)
+    {
+      clear();
+      deallocate(elems);
+    }
+
+    // set ourselves to a pristine state
+    elems = NULL;
+    allocatedCount = 0;
+    usedCount = 0;
+
+    // now swap with the incoming array, so it becomes empty
+    swap(in);
+
+    return *this;
+  }
+
+  rdcarray(rdcarray &&in)
+  {
+    // set ourselves to a pristine state
+    elems = NULL;
+    allocatedCount = 0;
+    usedCount = 0;
+
+    // now swap with the incoming array, so it becomes empty
+    swap(in);
   }
 
   // assign forwards to operator =
@@ -632,6 +747,8 @@ struct bytebuf : public rdcarray<byte>
 {
   bytebuf() : rdcarray<byte>() {}
   bytebuf(const std::vector<byte> &in) : rdcarray<byte>(in) {}
+  bytebuf(const std::initializer_list<byte> &in) : rdcarray<byte>(in) {}
+  bytebuf(const byte *in, size_t size) : rdcarray<byte>(in, size) {}
 #if defined(RENDERDOC_QT_COMPAT)
   bytebuf(const QByteArray &in)
   {

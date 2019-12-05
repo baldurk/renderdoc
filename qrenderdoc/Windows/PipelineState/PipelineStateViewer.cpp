@@ -1018,19 +1018,9 @@ QString PipelineStateViewer::GetVBufferFormatString(uint32_t slot)
   uint32_t stride = vbs[slot].byteStride;
 
   // filter attributes to only the ones enabled and using this slot
-  for(size_t i = 0; i < attrs.size();)
-  {
-    if(!attrs[i].used || attrs[i].vertexBuffer != (int)slot)
-    {
-      attrs.erase(i);
-      // continue with same i
-    }
-    else
-    {
-      // move to next i
-      i++;
-    }
-  }
+  attrs.removeIf([slot](const VertexInputAttribute &attr) {
+    return (!attr.used || attr.vertexBuffer != (int)slot);
+  });
 
   // we now have all attributes in this buffer. Sort by offset
   std::sort(attrs.begin(), attrs.end(),

@@ -594,7 +594,7 @@ struct AndroidRemoteServer : public RemoteServer
       rdcstr package = path;
 
       if(!package.empty() && package[0] == '/')
-        package.erase(0);
+        package.erase(0, 1);
 
       std::vector<PathEntry> activities;
 

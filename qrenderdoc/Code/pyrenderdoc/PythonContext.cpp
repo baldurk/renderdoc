@@ -1138,7 +1138,7 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
       _frame *frame = PyEval_GetFrame();
 
       while(message.back() == '\n' || message.back() == '\r')
-        message.erase(message.size() - 1);
+        message.pop_back();
 
       QString filename = lit("unknown");
       int line = 0;

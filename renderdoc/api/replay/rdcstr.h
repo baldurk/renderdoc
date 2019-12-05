@@ -270,9 +270,19 @@ public:
     return *this;
   }
 
+  inline void swap(rdcstr &other)
+  {
+    // just need to swap the d element
+    std::swap(d, other.d);
+  }
+
   // assign from an rdcstr, copy the d element and allocate if needed
   void assign(const rdcstr &in)
   {
+    // do nothing if we're self-assigning
+    if(this == &in)
+      return;
+
     // if the input d is allocated, we need to make our own allocation. Go through the standard
     // string assignment function which will allocate & copy
     if(in.is_alloc())
@@ -314,7 +324,7 @@ public:
   void append(const std::string &str) { append(str.c_str(), str.size()); }
   void append(const rdcstr &str) { append(str.c_str(), str.size()); }
   void append(const char *const str, size_t length) { insert(size(), str, length); }
-  void erase(size_t offs, size_t count = 1)
+  void erase(size_t offs, size_t count)
   {
     const size_t sz = size();
 
@@ -335,8 +345,24 @@ public:
   void insert(size_t offset, const char *const str) { insert(offset, str, strlen(str)); }
   void insert(size_t offset, const std::string &str) { insert(offset, str.c_str(), str.size()); }
   void insert(size_t offset, const rdcstr &str) { insert(offset, str.c_str(), str.size()); }
+  void insert(size_t offset, char c) { insert(offset, &c, 1); }
   void insert(size_t offset, const char *const instr, size_t length)
   {
+    if(!is_fixed() && instr + length >= begin() && end() >= instr)
+    {
+      // we're inserting from ourselves and we're not allocated, so if we did this blindly
+      // we'd potentially change the contents of the inserted range while doing the insertion.
+      // To fix that, we store our original data in a temp and copy into ourselves again. Then we
+      // insert from the temp copy and let it be destroyed.
+      // This could be more efficient as an append and then a rotate, but this is simpler for now.
+      rdcstr copy;
+      copy.swap(*this);
+      this->reserve(copy.capacity() + length);
+      *this = copy;
+      insert(offset, copy.c_str(), copy.size());
+      return;
+    }
+
     const size_t sz = size();
 
     // invalid offset
@@ -361,6 +387,19 @@ public:
       d.arr.set_size(sz + length);
   }
 
+  void replace(size_t offset, size_t length, const rdcstr &str)
+  {
+    erase(offset, length);
+    insert(offset, str);
+  }
+
+  // fill the string with 'count' copies of 'c'
+  void fill(size_t count, char c)
+  {
+    resize(count);
+    memset(data(), c, count);
+  }
+
   // cast operators
   operator std::string() const
   {
@@ -369,7 +408,7 @@ public:
   }
 
   // read-only by-value accessor can look up directly in c_str() since it can't be modified
-  char operator[](size_t i) const { return c_str()[i]; }
+  const char &operator[](size_t i) const { return c_str()[i]; }
   // assignment operator must make the string mutable first
   char &operator[](size_t i)
   {
@@ -540,6 +579,8 @@ public:
   }
   const char *begin() const { return c_str(); }
   const char *end() const { return c_str() + size(); }
+  char *begin() { return data(); }
+  char *end() { return data() + size(); }
   char front() const { return *c_str(); }
   char &front()
   {
@@ -553,7 +594,7 @@ public:
     return data()[size() - 1];
   }
 
-  rdcstr substr(size_t offs, size_t length = ~0U)
+  rdcstr substr(size_t offs, size_t length = ~0U) const
   {
     const size_t sz = size();
     if(offs >= sz)
@@ -580,6 +621,11 @@ public:
     append(str.c_str(), str.size());
     return *this;
   }
+  rdcstr &operator+=(char c)
+  {
+    push_back(c);
+    return *this;
+  }
   rdcstr operator+(const char *const str) const
   {
     rdcstr ret = *this;
@@ -598,24 +644,36 @@ public:
     ret += str;
     return ret;
   }
+  rdcstr operator+(const char c) const
+  {
+    rdcstr ret = *this;
+    ret += c;
+    return ret;
+  }
 
   // Qt-type interface
   bool isEmpty() const { return size() == 0; }
   int32_t count() const { return (int32_t)size(); }
-  char takeAt(size_t offs)
+  char takeAt(int32_t offs)
   {
     char ret = c_str()[offs];
-    erase(offs);
+    erase(offs, 1);
     return ret;
   }
 
   // Python interface
-  int32_t indexOf(char el, size_t first = 0, size_t last = ~0U) const
+  int32_t indexOf(char el, int32_t first = 0, int32_t last = -1) const
   {
-    const char *str = c_str();
-    const size_t sz = size();
+    if(first < 0)
+      return -1;
 
-    for(size_t i = first; i < sz && i < last; i++)
+    const char *str = c_str();
+    size_t sz = size();
+
+    if(last >= 0 && (size_t)last < sz)
+      sz = last;
+
+    for(size_t i = first; i < sz; i++)
     {
       if(str[i] == el)
         return (int32_t)i;
@@ -624,18 +682,32 @@ public:
     return -1;
   }
 
-  int32_t find(const char *needle_str, size_t needle_len, size_t first = 0, size_t last = ~0U) const
+  // find a substring. Optionally starting at a given 'first' character and not including an
+  // optional 'last' character. If last is -1 (the default), the whole string is searched
+  int32_t find(const char *needle_str, size_t needle_len, int32_t first, int32_t last) const
   {
+    // no default parameters for first/last here because otherwise it'd be dangerous with casting
+    // and
+    // misusing this instead of just specifying a 'first' below.
     const char *haystack = c_str();
-    const size_t haystack_len = size();
+    size_t haystack_len = size();
 
-    if(needle_len > haystack_len)
+    if(first < 0)
       return -1;
 
     if(needle_len == 0)
       return 0;
 
-    for(size_t i = first; i <= haystack_len - needle_len && i < last; i++)
+    if(last >= 0 && (size_t)last < haystack_len)
+      haystack_len = last;
+
+    if((size_t)first >= haystack_len)
+      return -1;
+
+    if(needle_len > haystack_len - first)
+      return -1;
+
+    for(size_t i = first; i <= haystack_len - needle_len; i++)
     {
       if(strncmp(haystack + i, needle_str, needle_len) == 0)
         return (int32_t)i;
@@ -644,28 +716,165 @@ public:
     return -1;
   }
 
-  int32_t find(const rdcstr &needle, size_t first = 0, size_t last = ~0U) const
+  int32_t find(const char needle, int32_t first = 0, int32_t last = -1) const
+  {
+    if(first < 0)
+      return -1;
+
+    const char *haystack = c_str();
+    size_t haystack_len = size();
+
+    if(last >= 0 && (size_t)last < haystack_len)
+      haystack_len = last;
+
+    for(size_t i = first; i < haystack_len; i++)
+    {
+      if(haystack[i] == needle)
+        return (int32_t)i;
+    }
+
+    return -1;
+  }
+
+  int32_t find(const rdcstr &needle, int32_t first = 0, int32_t last = -1) const
   {
     return find(needle.c_str(), needle.size(), first, last);
   }
-  int32_t find(const std::string &needle, size_t first = 0, size_t last = ~0U) const
+  int32_t find(const std::string &needle, int32_t first = 0, int32_t last = -1) const
   {
     return find(needle.c_str(), needle.size(), first, last);
   }
-  int32_t find(const char *needle, size_t first = 0, size_t last = ~0U) const
+  int32_t find(const char *needle, int32_t first = 0, int32_t last = -1) const
   {
     return find(needle, strlen(needle), first, last);
   }
 
+  // find the first character that is in a given set of characters, from the start of the string
+  // Optionally starting at a given 'first' character and not including an optional 'last'
+  // character. If last is -1 (the default), the whole string is searched
+  int32_t find_first_of(const rdcstr &needle_set, int32_t first = 0, int32_t last = -1) const
+  {
+    return find_first_last(needle_set, true, true, first, last);
+  }
+  // find the first character that is not in a given set of characters, from the start of the string
+  int32_t find_first_not_of(const rdcstr &needle_set, int32_t first = 0, int32_t last = -1) const
+  {
+    return find_first_last(needle_set, true, false, first, last);
+  }
+  // find the first character that is in a given set of characters, from the end of the string
+  int32_t find_last_of(const rdcstr &needle_set, int32_t first = 0, int32_t last = -1) const
+  {
+    return find_first_last(needle_set, false, true, first, last);
+  }
+  // find the first character that is not in a given set of characters, from the end of the string
+  int32_t find_last_not_of(const rdcstr &needle_set, int32_t first = 0, int32_t last = -1) const
+  {
+    return find_first_last(needle_set, false, false, first, last);
+  }
+
+private:
+  int32_t find_first_last(const rdcstr &needle_set, bool forward_search, bool search_in_set,
+                          int32_t first, int32_t last) const
+  {
+    if(first < 0)
+      return -1;
+
+    const char *haystack = c_str();
+    size_t haystack_len = size();
+
+    if(last >= 0 && (size_t)last < haystack_len)
+      haystack_len = last;
+
+    if(forward_search)
+    {
+      for(size_t i = first; i < haystack_len; i++)
+      {
+        bool in_set = needle_set.contains(haystack[i]);
+        if(in_set == search_in_set)
+          return (int32_t)i;
+      }
+    }
+    else
+    {
+      for(size_t i = 0; i < haystack_len; i++)
+      {
+        size_t idx = haystack_len - 1 - i;
+
+        if(idx < (size_t)first)
+          break;
+
+        bool in_set = needle_set.contains(haystack[idx]);
+        if(in_set == search_in_set)
+          return (int32_t)idx;
+      }
+    }
+
+    return -1;
+  }
+
+public:
   bool contains(char needle) const { return indexOf(needle) != -1; }
   bool contains(const rdcstr &needle) const { return find(needle) != -1; }
   bool contains(const std::string &needle) const { return find(needle) != -1; }
   bool contains(const char *needle) const { return find(needle) != -1; }
+  bool beginsWith(const rdcstr &beginning) const
+  {
+    if(beginning.length() > length())
+      return false;
+
+    return !strncmp(c_str(), beginning.c_str(), beginning.length());
+  }
+  bool endsWith(const rdcstr &ending) const
+  {
+    if(ending.length() > length())
+      return false;
+
+    return !strcmp(c_str() + length() - ending.length(), ending.c_str());
+  }
+
   void removeOne(char el)
   {
     int idx = indexOf(el);
     if(idx >= 0)
-      erase((size_t)idx);
+      erase((size_t)idx, 1);
+  }
+
+  // remove any preceeding or trailing whitespace from the string, in-place
+  void trim()
+  {
+    if(empty())
+      return;
+
+#define IS_WHITESPACE(c) ((c) == ' ' || (c) == '\t' || (c) == '\r' || (c) == '\n')
+
+    const char *str = c_str();
+    size_t sz = size();
+
+    size_t start = 0;
+    while(start < sz && IS_WHITESPACE(str[start]))
+      start++;
+
+    size_t end = sz - 1;
+    while(end > start && IS_WHITESPACE(str[end]))
+      end--;
+
+    // no non-whitespace characters, become the empty string
+    if(start >= end)
+    {
+      clear();
+      return;
+    }
+
+    erase(end + 1, ~0U);
+    erase(0, start);
+  }
+
+  // return a copy of the string with preceeding and trailing whitespace removed
+  rdcstr trimmed() const
+  {
+    rdcstr ret = *this;
+    ret.trim();
+    return ret;
   }
 
   // for equality check with rdcstr, check quickly for empty string comparisons
