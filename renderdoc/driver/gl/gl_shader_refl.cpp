@@ -2667,6 +2667,19 @@ void EvaluateSPIRVBindpointMapping(GLuint curProg, int shadIdx, const ShaderRefl
     if(mapping.inputAttributes[i] < 0)
       mapping.inputAttributes[i] = -1;
 
+  // ensure the mapping contains a value for all valid vertex attribs, even if it doesn't use them.
+  GLint numVAttribBindings = 16;
+  GL.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &numVAttribBindings);
+
+  // if more vertex attribs exist, resize and set them all to -1
+  if(numVAttribBindings > mapping.inputAttributes.count())
+  {
+    size_t prevSize = mapping.inputAttributes.size();
+    mapping.inputAttributes.resize(numVAttribBindings);
+    for(size_t i = prevSize; i < mapping.inputAttributes.size(); i++)
+      mapping.inputAttributes[i] = -1;
+  }
+
 #if ENABLED(RDOC_DEVEL)
   for(size_t i = 1; i < ARRAY_COUNT(dummyReadback); i++)
     if(dummyReadback[i] != 0x6c7b8a9d)
