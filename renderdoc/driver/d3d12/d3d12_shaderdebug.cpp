@@ -324,6 +324,91 @@ void D3D12DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
   global.PopulateGroupshared(dxbc->GetDXBCByteCode());
 }
 
+void GatherConstantBuffers(WrappedID3D12Device *pDevice, DXBC::ShaderType shaderType,
+                           const D3D12RenderState::RootSignature &rootsig,
+                           bytebuf cbufData[D3D12_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT])
+{
+  WrappedID3D12RootSignature *pD3D12RootSig =
+      pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootsig.rootsig);
+
+  size_t numParams = RDCMIN(pD3D12RootSig->sig.Parameters.size(), rootsig.sigelems.size());
+  for(size_t i = 0; i < numParams; i++)
+  {
+    const D3D12RootSignatureParameter &rootSigParam = pD3D12RootSig->sig.Parameters[i];
+    const D3D12RenderState::SignatureElement &element = rootsig.sigelems[i];
+    if(IsShaderParameterVisible(shaderType, rootSigParam.ShaderVisibility))
+    {
+      if(rootSigParam.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS &&
+         element.type == eRootConst)
+      {
+        UINT cbufIndex = rootSigParam.Constants.ShaderRegister;
+        UINT sizeBytes = sizeof(uint32_t) * RDCMIN(rootSigParam.Constants.Num32BitValues,
+                                                   (UINT)element.constants.size());
+        cbufData[cbufIndex].assign((const byte *)element.constants.data(), sizeBytes);
+      }
+      else if(rootSigParam.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV && element.type == eRootCBV)
+      {
+        UINT cbufIndex = rootSigParam.Descriptor.ShaderRegister;
+        ID3D12Resource *cbv = pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(element.id);
+        pDevice->GetDebugManager()->GetBufferData(cbv, element.offset, 0, cbufData[cbufIndex]);
+      }
+      else if(rootSigParam.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE &&
+              element.type == eRootTable)
+      {
+        UINT prevTableOffset = 0;
+        WrappedID3D12DescriptorHeap *heap =
+            pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(element.id);
+
+        size_t numRanges = rootSigParam.ranges.size();
+        for(size_t r = 0; r < numRanges; r++)
+        {
+          // For this traversal we only care about CBV descriptor ranges
+          const D3D12_DESCRIPTOR_RANGE1 &range = rootSigParam.ranges[r];
+          if(range.RangeType != D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
+            continue;
+
+          UINT offset = range.OffsetInDescriptorsFromTableStart;
+          if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
+            offset = prevTableOffset;
+
+          D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
+          desc += element.offset;
+          desc += offset;
+
+          UINT numDescriptors = range.NumDescriptors;
+          if(numDescriptors == UINT_MAX)
+          {
+            // Find out how many descriptors are left after
+            numDescriptors = heap->GetNumDescriptors() - offset - (UINT)element.offset;
+
+            // TODO: Look up the bind point in the D3D12 state to try to get
+            // a better guess at the number of descriptors
+          }
+
+          prevTableOffset = offset + numDescriptors;
+
+          UINT cbufIndex = range.BaseShaderRegister;
+
+          for(UINT n = 0; n < numDescriptors; ++n, ++cbufIndex)
+          {
+            if(desc)
+            {
+              const D3D12_CONSTANT_BUFFER_VIEW_DESC &cbv = desc->GetCBV();
+              ResourceId resId;
+              uint64_t byteOffset = 0;
+              WrappedID3D12Resource1::GetResIDFromAddr(cbv.BufferLocation, resId, byteOffset);
+              ID3D12Resource *pCbvResource =
+                  pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(resId);
+              pDevice->GetDebugManager()->GetBufferData(pCbvResource, element.offset, 0,
+                                                        cbufData[cbufIndex]);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 ShaderDebugTrace D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                           uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
