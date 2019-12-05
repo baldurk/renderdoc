@@ -807,10 +807,20 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
   else if(descriptor.filter.filter != FilterFunction::Normal)
     filter += QFormatStr(" (%1)").arg(ToQStr(descriptor.filter.filter));
 
-  QString lod =
-      lit("LODs: %1 - %2")
-          .arg((descriptor.minLOD == -FLT_MAX ? lit("0") : QString::number(descriptor.minLOD)))
-          .arg((descriptor.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(descriptor.maxLOD)));
+  QString minLOD = QString::number(descriptor.minLOD);
+  QString maxLOD = QString::number(descriptor.maxLOD);
+
+  if(descriptor.minLOD == -FLT_MAX)
+    minLOD = lit("0");
+  if(descriptor.minLOD == -1000.0)
+    minLOD = lit("VK_LOD_CLAMP_NONE");
+
+  if(descriptor.maxLOD == FLT_MAX)
+    minLOD = lit("FLT_MAX");
+  if(descriptor.maxLOD == 1000.0)
+    minLOD = lit("VK_LOD_CLAMP_NONE");
+
+  QString lod = lit("LODs: %1 - %2").arg(minLOD).arg(maxLOD);
 
   // omit lod clamp if this is an immutable sampler and the attached resource is entirely within the
   // range
