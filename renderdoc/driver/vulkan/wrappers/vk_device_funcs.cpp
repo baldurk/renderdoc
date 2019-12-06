@@ -93,90 +93,78 @@ void InitInstanceTable(VkInstance inst, PFN_vkGetInstanceProcAddr gpa);
 // and
 // instance are destroyed. We only clean up after our own objects.
 
-static void StripUnwantedLayers(std::vector<std::string> &Layers)
+static void StripUnwantedLayers(rdcarray<rdcstr> &Layers)
 {
-  for(auto it = Layers.begin(); it != Layers.end();)
-  {
+  Layers.removeIf([](const rdcstr &layer) {
     // don't try and create our own layer on replay!
-    if(*it == RENDERDOC_VULKAN_LAYER_NAME)
+    if(layer == RENDERDOC_VULKAN_LAYER_NAME)
     {
-      it = Layers.erase(it);
-      continue;
+      return true;
     }
 
     // don't enable tracing or dumping layers just in case they
     // came along with the application
-    if(*it == "VK_LAYER_LUNARG_api_dump" || *it == "VK_LAYER_LUNARG_vktrace")
+    if(layer == "VK_LAYER_LUNARG_api_dump" || layer == "VK_LAYER_LUNARG_vktrace")
     {
-      it = Layers.erase(it);
-      continue;
+      return true;
     }
 
     // also remove the framerate monitor layer as it's buggy and doesn't do anything
     // in our case
-    if(*it == "VK_LAYER_LUNARG_monitor")
+    if(layer == "VK_LAYER_LUNARG_monitor")
     {
-      it = Layers.erase(it);
-      continue;
+      return true;
     }
 
     // remove the optimus layer just in case it was explicitly enabled.
-    if(*it == "VK_LAYER_NV_optimus")
+    if(layer == "VK_LAYER_NV_optimus")
     {
-      it = Layers.erase(it);
-      continue;
+      return true;
     }
 
     // filter out validation layers
-    if(*it == "VK_LAYER_LUNARG_standard_validation" || *it == "VK_LAYER_KHRONOS_validation" ||
-       *it == "VK_LAYER_LUNARG_core_validation" || *it == "VK_LAYER_LUNARG_device_limits" ||
-       *it == "VK_LAYER_LUNARG_image" || *it == "VK_LAYER_LUNARG_object_tracker" ||
-       *it == "VK_LAYER_LUNARG_parameter_validation" || *it == "VK_LAYER_LUNARG_swapchain" ||
-       *it == "VK_LAYER_GOOGLE_threading" || *it == "VK_LAYER_GOOGLE_unique_objects" ||
-       *it == "VK_LAYER_LUNARG_assistant_layer")
+    if(layer == "VK_LAYER_LUNARG_standard_validation" || layer == "VK_LAYER_KHRONOS_validation" ||
+       layer == "VK_LAYER_LUNARG_core_validation" || layer == "VK_LAYER_LUNARG_device_limits" ||
+       layer == "VK_LAYER_LUNARG_image" || layer == "VK_LAYER_LUNARG_object_tracker" ||
+       layer == "VK_LAYER_LUNARG_parameter_validation" || layer == "VK_LAYER_LUNARG_swapchain" ||
+       layer == "VK_LAYER_GOOGLE_threading" || layer == "VK_LAYER_GOOGLE_unique_objects" ||
+       layer == "VK_LAYER_LUNARG_assistant_layer")
     {
-      it = Layers.erase(it);
-      continue;
+      return true;
     }
 
-    ++it;
-  }
+    return false;
+  });
 }
 
-static void StripUnwantedExtensions(std::vector<std::string> &Extensions)
+static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
 {
   // strip out any WSI/direct display extensions. We'll add the ones we want for creating windows
   // on the current platforms below, and we don't replay any of the WSI functionality
   // directly so these extensions aren't needed
-  for(auto it = Extensions.begin(); it != Extensions.end();)
-  {
+  Extensions.removeIf([](const rdcstr &ext) {
     // remove surface extensions
-    if(*it == "VK_KHR_xlib_surface" || *it == "VK_KHR_xcb_surface" ||
-       *it == "VK_KHR_wayland_surface" || *it == "VK_KHR_mir_surface" ||
-       *it == "VK_MVK_macos_surface" || *it == "VK_KHR_android_surface" ||
-       *it == "VK_KHR_win32_surface" || *it == "VK_GGP_stream_descriptor_surface")
+    if(ext == "VK_KHR_xlib_surface" || ext == "VK_KHR_xcb_surface" ||
+       ext == "VK_KHR_wayland_surface" || ext == "VK_KHR_mir_surface" ||
+       ext == "VK_MVK_macos_surface" || ext == "VK_KHR_android_surface" ||
+       ext == "VK_KHR_win32_surface" || ext == "VK_GGP_stream_descriptor_surface")
     {
-      it = Extensions.erase(it);
-      continue;
+      return true;
     }
 
     // remove direct display extensions
-    if(*it == "VK_KHR_display" || *it == "VK_EXT_direct_mode_display" ||
-       *it == "VK_EXT_acquire_xlib_display" || *it == "VK_EXT_display_surface_counter")
+    if(ext == "VK_KHR_display" || ext == "VK_EXT_direct_mode_display" ||
+       ext == "VK_EXT_acquire_xlib_display" || ext == "VK_EXT_display_surface_counter")
     {
-      it = Extensions.erase(it);
-      continue;
+      return true;
     }
 
     // remove fullscreen exclusive extension
-    if(*it == "VK_EXT_full_screen_exclusive")
-    {
-      it = Extensions.erase(it);
-      continue;
-    }
+    if(ext == "VK_EXT_full_screen_exclusive")
+      return true;
 
-    ++it;
-  }
+    return false;
+  });
 }
 
 ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion,
@@ -191,7 +179,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   StripUnwantedLayers(params.Layers);
   StripUnwantedExtensions(params.Extensions);
 
-  std::set<std::string> supportedLayers;
+  std::set<rdcstr> supportedLayers;
 
   {
     uint32_t count = 0;
@@ -230,19 +218,17 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   }
 
   // complain about any missing layers, but remove them from the list and continue
-  for(auto it = params.Layers.begin(); it != params.Layers.end();)
-  {
-    if(supportedLayers.find(*it) == supportedLayers.end())
+  params.Layers.removeIf([&supportedLayers](const rdcstr &layer) {
+    if(supportedLayers.find(layer) == supportedLayers.end())
     {
-      RDCERR("Capture used layer '%s' which is not available, continuing without it", it->c_str());
-      it = params.Layers.erase(it);
-      continue;
+      RDCERR("Capture used layer '%s' which is not available, continuing without it", layer.c_str());
+      return true;
     }
 
-    ++it;
-  }
+    return false;
+  });
 
-  std::set<std::string> supportedExtensions;
+  std::set<rdcstr> supportedExtensions;
 
   for(size_t i = 0; i <= params.Layers.size(); i++)
   {
@@ -263,7 +249,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   if(!m_Replay->IsRemoteProxy())
   {
     size_t i = 0;
-    for(const std::string &ext : supportedExtensions)
+    for(const rdcstr &ext : supportedExtensions)
     {
       RDCLOG("Inst Ext %u: %s", i, ext.c_str());
       i++;
@@ -279,8 +265,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     if(supportedExtensions.find(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) !=
        supportedExtensions.end())
     {
-      if(std::find(params.Extensions.begin(), params.Extensions.end(),
-                   VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == params.Extensions.end())
+      if(!params.Extensions.contains(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
         params.Extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
     }
   }
@@ -294,8 +279,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
     }
     else
     {
-      if(std::find(params.Extensions.begin(), params.Extensions.end(),
-                   VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME) == params.Extensions.end())
+      if(!params.Extensions.contains(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
         params.Extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
     }
   }
@@ -312,16 +296,14 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
 
   // we always want debug extensions if it available, and not already enabled
   if(supportedExtensions.find(VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != supportedExtensions.end() &&
-     std::find(params.Extensions.begin(), params.Extensions.end(),
-               VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == params.Extensions.end())
+     !params.Extensions.contains(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
   {
     if(!m_Replay->IsRemoteProxy())
       RDCLOG("Enabling VK_EXT_debug_utils");
     params.Extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
   else if(supportedExtensions.find(VK_EXT_DEBUG_REPORT_EXTENSION_NAME) != supportedExtensions.end() &&
-          std::find(params.Extensions.begin(), params.Extensions.end(),
-                    VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == params.Extensions.end())
+          !params.Extensions.contains(VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
   {
     if(!m_Replay->IsRemoteProxy())
       RDCLOG("Enabling VK_EXT_debug_report");
@@ -341,8 +323,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   void *instNext = NULL;
 
   if(supportedExtensions.find(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME) != supportedExtensions.end() &&
-     std::find(params.Extensions.begin(), params.Extensions.end(),
-               VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME) == params.Extensions.end())
+     !params.Extensions.contains(VK_EXT_VALIDATION_FEATURES_EXTENSION_NAME))
   {
     if(!m_Replay->IsRemoteProxy())
       RDCLOG("Enabling VK_EXT_validation_features");
@@ -352,8 +333,7 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   }
   else if(supportedExtensions.find(VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME) !=
               supportedExtensions.end() &&
-          std::find(params.Extensions.begin(), params.Extensions.end(),
-                    VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME) == params.Extensions.end())
+          !params.Extensions.contains(VK_EXT_VALIDATION_FLAGS_EXTENSION_NAME))
   {
     if(!m_Replay->IsRemoteProxy())
       RDCLOG("Enabling VK_EXT_validation_flags");
@@ -581,7 +561,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
       hasDebugUtils = true;
   }
 
-  std::vector<VkExtensionProperties> supportedExts;
+  rdcarray<VkExtensionProperties> supportedExts;
 
   // enumerate what instance extensions are available
   void *module = LoadVulkanLibrary();
@@ -685,16 +665,16 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   if(renderdocAppInfo.apiVersion > VK_API_VERSION_1_0)
     record->instDevInfo->vulkanVersion = renderdocAppInfo.apiVersion;
 
-  std::set<std::string> availablePhysDeviceFunctions;
+  std::set<rdcstr> availablePhysDeviceFunctions;
 
   {
     uint32_t count = 0;
     ObjDisp(m_Instance)->EnumeratePhysicalDevices(Unwrap(m_Instance), &count, NULL);
 
-    std::vector<VkPhysicalDevice> physDevs(count);
+    rdcarray<VkPhysicalDevice> physDevs(count);
     ObjDisp(m_Instance)->EnumeratePhysicalDevices(Unwrap(m_Instance), &count, physDevs.data());
 
-    std::vector<VkExtensionProperties> exts;
+    rdcarray<VkExtensionProperties> exts;
     for(VkPhysicalDevice p : physDevs)
     {
       ObjDisp(m_Instance)->EnumerateDeviceExtensionProperties(p, NULL, &count, NULL);
@@ -1435,7 +1415,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     // in the serialised VkDeviceCreateInfo don't double-free
     VkDeviceCreateInfo createInfo = CreateInfo;
 
-    std::vector<std::string> Extensions;
+    rdcarray<rdcstr> Extensions;
     for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
     {
       // don't include the debug marker extension
@@ -1454,13 +1434,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       Extensions.push_back(createInfo.ppEnabledExtensionNames[i]);
     }
 
-    std::vector<std::string> Layers;
+    rdcarray<rdcstr> Layers;
     for(uint32_t i = 0; i < createInfo.enabledLayerCount; i++)
       Layers.push_back(createInfo.ppEnabledLayerNames[i]);
 
     StripUnwantedLayers(Layers);
 
-    std::set<std::string> supportedExtensions;
+    std::set<rdcstr> supportedExtensions;
 
     for(size_t i = 0; i <= Layers.size(); i++)
     {
@@ -1811,7 +1791,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     }
 
     // remove any duplicates that have been created
-    std::vector<VkDeviceQueueCreateInfo> queueInfos;
+    rdcarray<VkDeviceQueueCreateInfo> queueInfos;
 
     for(uint32_t i = 0; i < createInfo.queueCreateInfoCount; i++)
     {
@@ -2510,10 +2490,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
             "VK_KHR_pipeline_executable_properties is available, but the physical device feature "
             "is not. Disabling");
 
-        auto it = std::find(Extensions.begin(), Extensions.end(),
-                            VK_KHR_PIPELINE_EXECUTABLE_PROPERTIES_EXTENSION_NAME);
-        RDCASSERT(it != Extensions.end());
-        Extensions.erase(it);
+        Extensions.removeOne(VK_KHR_PIPELINE_EXECUTABLE_PROPERTIES_EXTENSION_NAME);
       }
     }
 
@@ -2556,10 +2533,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
             "VK_EXT_transform_feedback is available, but the physical device feature is not. "
             "Disabling");
 
-        auto it = std::find(Extensions.begin(), Extensions.end(),
-                            VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
-        RDCASSERT(it != Extensions.end());
-        Extensions.erase(it);
+        Extensions.removeOne(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
       }
     }
 
@@ -2598,21 +2572,18 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       else
       {
-        auto it =
-            std::find(Extensions.begin(), Extensions.end(), VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME);
-        RDCASSERT(it != Extensions.end());
-        Extensions.erase(it);
+        Extensions.removeOne(VK_KHR_PERFORMANCE_QUERY_EXTENSION_NAME);
       }
     }
 
-    std::vector<const char *> layerArray(Layers.size());
+    rdcarray<const char *> layerArray(Layers.size());
     for(size_t i = 0; i < Layers.size(); i++)
       layerArray[i] = Layers[i].c_str();
 
     createInfo.enabledLayerCount = (uint32_t)layerArray.size();
     createInfo.ppEnabledLayerNames = layerArray.data();
 
-    std::vector<const char *> extArray(Extensions.size());
+    rdcarray<const char *> extArray(Extensions.size());
     for(size_t i = 0; i < Extensions.size(); i++)
       extArray[i] = Extensions[i].c_str();
 
@@ -2780,9 +2751,8 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     }
   }
 
-  std::vector<const char *> Extensions(
-      createInfo.ppEnabledExtensionNames,
-      createInfo.ppEnabledExtensionNames + createInfo.enabledExtensionCount);
+  rdcarray<const char *> Extensions(createInfo.ppEnabledExtensionNames,
+                                    createInfo.enabledExtensionCount);
 
   // enable VK_KHR_driver_properties if it's available
   {
@@ -2897,8 +2867,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     for(uint32_t q = 0; q < count; q++)
       m_QueueFamilies[family][q] = VK_NULL_HANDLE;
 
-    if(std::find(m_QueueFamilyIndices.begin(), m_QueueFamilyIndices.end(), family) ==
-       m_QueueFamilyIndices.end())
+    if(!m_QueueFamilyIndices.contains(family))
       m_QueueFamilyIndices.push_back(family);
   }
 

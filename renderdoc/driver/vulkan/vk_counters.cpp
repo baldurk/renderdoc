@@ -496,11 +496,11 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersAMD(const rdcarray<GPUCounter
       search.eventId = m_pAMDDrawCallback->m_AliasEvents[i].first;
 
       // find the result we're aliasing
-      auto it = std::find(ret.begin(), ret.end(), search);
-      if(it != ret.end())
+      int32_t idx = ret.indexOf(search);
+      if(idx >= 0)
       {
         // duplicate the result and append
-        CounterResult aliased = *it;
+        CounterResult aliased = ret[idx];
         aliased.eventId = m_pAMDDrawCallback->m_AliasEvents[i].second;
         ret.push_back(aliased);
       }
@@ -677,11 +677,11 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersKHR(const rdcarray<GPUCounter
       search.eventId = cb.m_AliasEvents[i].first;
 
       // find the result we're aliasing
-      auto it = std::find(ret.begin(), ret.end(), search);
-      if(it != ret.end())
+      int32_t idx = ret.indexOf(search);
+      if(idx >= 0)
       {
         // duplicate the result and append
-        CounterResult aliased = *it;
+        CounterResult aliased = ret[idx];
         aliased.eventId = cb.m_AliasEvents[i].second;
         ret.push_back(aliased);
       }
@@ -981,11 +981,11 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
       search.eventId = cb.m_AliasEvents[i].first;
 
       // find the result we're aliasing
-      auto it = std::find(ret.begin(), ret.end(), search);
-      if(it != ret.end())
+      int32_t idx = ret.indexOf(search);
+      if(idx >= 0)
       {
         // duplicate the result and append
-        CounterResult aliased = *it;
+        CounterResult aliased = ret[idx];
         aliased.eventId = cb.m_AliasEvents[i].second;
         ret.push_back(aliased);
       }

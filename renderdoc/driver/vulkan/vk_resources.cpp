@@ -3255,7 +3255,7 @@ InitReqType ImgRefs::SubresourceRangeMaxInitReq(VkImageSubresourceRange range, I
                                                 bool initialized) const
 {
   InitReqType initReq = eInitReq_None;
-  std::vector<int> splitAspectIndices;
+  rdcarray<int> splitAspectIndices;
   if(areAspectsSplit)
   {
     int aspectIndex = 0;
@@ -3296,12 +3296,12 @@ InitReqType ImgRefs::SubresourceRangeMaxInitReq(VkImageSubresourceRange range, I
   return initReq;
 }
 
-std::vector<rdcpair<VkImageSubresourceRange, InitReqType> > ImgRefs::SubresourceRangeInitReqs(
+rdcarray<rdcpair<VkImageSubresourceRange, InitReqType> > ImgRefs::SubresourceRangeInitReqs(
     VkImageSubresourceRange range, InitPolicy policy, bool initialized) const
 {
   VkImageSubresourceRange out(range);
-  std::vector<rdcpair<VkImageSubresourceRange, InitReqType> > res;
-  std::vector<rdcpair<int, VkImageAspectFlags> > splitAspects;
+  rdcarray<rdcpair<VkImageSubresourceRange, InitReqType> > res;
+  rdcarray<rdcpair<int, VkImageAspectFlags> > splitAspects;
   if(areAspectsSplit)
   {
     int aspectIndex = 0;
@@ -3671,14 +3671,15 @@ void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindi
 
   for(uint32_t b = 0; b < numBindings; b++)
   {
-    const VkSparseMemoryBind &curRange = pBindings[b];
+    const VkSparseMemoryBind &newRange = pBindings[b];
 
     bool found = false;
 
     // this could be improved to do a binary search since the vector is sorted.
-    for(auto it = opaquemappings.begin(); it != opaquemappings.end(); ++it)
+    // for(auto it = opaquemappings.begin(); it != opaquemappings.end(); ++it)
+    for(size_t i = 0; i < opaquemappings.size(); i++)
     {
-      VkSparseMemoryBind &newRange = *it;
+      VkSparseMemoryBind &curRange = opaquemappings[i];
 
       // the binding we're applying is after this item in the list,
       // keep searching
@@ -3689,49 +3690,50 @@ void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindi
       // overlap. Insert before us in the list
       if(curRange.resourceOffset >= newRange.resourceOffset + newRange.size)
       {
-        opaquemappings.insert(it, newRange);
+        opaquemappings.insert(i, newRange);
         found = true;
         break;
       }
 
       // with sparse mappings it will be reasonably common to update an exact
       // existing range, so check that first
-      if(curRange.resourceOffset == newRange.resourceOffset && curRange.size == newRange.size)
+      if(newRange.resourceOffset == curRange.resourceOffset && newRange.size == curRange.size)
       {
-        *it = curRange;
+        curRange = newRange;
         found = true;
         break;
       }
 
       // handle subranges within the current range
-      if(curRange.resourceOffset <= newRange.resourceOffset &&
-         curRange.resourceOffset + curRange.size >= newRange.resourceOffset + newRange.size)
+      if(newRange.resourceOffset >= curRange.resourceOffset &&
+         newRange.resourceOffset + newRange.size <= curRange.resourceOffset + curRange.size)
       {
         // they start in the same place
-        if(curRange.resourceOffset == newRange.resourceOffset)
+        if(newRange.resourceOffset == curRange.resourceOffset)
         {
           // change the current range to be the leftover second half
-          it->resourceOffset += curRange.size;
+          curRange.resourceOffset += newRange.size;
+          curRange.size -= newRange.size;
 
           // insert the new mapping before our current one
-          opaquemappings.insert(it, newRange);
+          opaquemappings.insert(i, newRange);
           found = true;
           break;
         }
         // they end in the same place
-        else if(curRange.resourceOffset + curRange.size == newRange.resourceOffset + newRange.size)
+        else if(newRange.resourceOffset + newRange.size == curRange.resourceOffset + curRange.size)
         {
           // save a copy
-          VkSparseMemoryBind cur = curRange;
+          VkSparseMemoryBind first = curRange;
 
           // set the new size of the first half
-          cur.size = newRange.resourceOffset - curRange.resourceOffset;
+          first.size = newRange.resourceOffset - newRange.resourceOffset;
 
           // add the new range where the current iterator was
-          *it = newRange;
+          curRange = newRange;
 
           // insert the old truncated mapping before our current position
-          opaquemappings.insert(it, cur);
+          opaquemappings.insert(i, first);
           found = true;
           break;
         }
@@ -3742,16 +3744,18 @@ void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindi
           VkSparseMemoryBind first = curRange;
 
           // set the new size of the first part
-          first.size = newRange.resourceOffset - curRange.resourceOffset;
+          first.size = newRange.resourceOffset - first.resourceOffset;
 
           // set the current range (third part) to start after the new range ends
-          it->resourceOffset = newRange.resourceOffset + newRange.size;
+          curRange.size =
+              (curRange.resourceOffset + curRange.size) - (newRange.resourceOffset + newRange.size);
+          curRange.resourceOffset = newRange.resourceOffset + newRange.size;
 
           // first insert the new range before our current range
-          it = opaquemappings.insert(it, newRange);
+          opaquemappings.insert(i, newRange);
 
           // now insert the remaining first part before that
-          opaquemappings.insert(it, first);
+          opaquemappings.insert(i, first);
 
           found = true;
           break;
@@ -3761,28 +3765,29 @@ void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindi
       // this new range overlaps the current one and some subsequent ranges. Merge together
 
       // find where this new range stops overlapping
-      auto endit = it;
-      for(; endit != opaquemappings.end(); ++endit)
+      size_t endi = i;
+      for(; endi < opaquemappings.size(); endi++)
       {
-        if(newRange.resourceOffset + newRange.size <= endit->resourceOffset + endit->size)
+        if(newRange.resourceOffset + newRange.size <=
+           opaquemappings[endi].resourceOffset + opaquemappings[endi].size)
           break;
       }
 
+      VkSparseMemoryBind &endRange = opaquemappings[endi];
+
       // see if there are any leftovers of the overlapped ranges at the start or end
-      bool leftoverstart = (curRange.resourceOffset < newRange.resourceOffset);
-      bool leftoverend =
-          (endit != opaquemappings.end() &&
-           (endit->resourceOffset + endit->size > newRange.resourceOffset + newRange.size));
+      bool leftoverstart = (newRange.resourceOffset < curRange.resourceOffset);
+      bool leftoverend = (endi < opaquemappings.size() && (endRange.resourceOffset + endRange.size >
+                                                           curRange.resourceOffset + curRange.size));
 
       // no leftovers, the new range entirely covers the current and last (if there is one)
       if(!leftoverstart && !leftoverend)
       {
-        // erase all of the ranges. If endit points to a valid range,
-        // it won't be erased, so we overwrite it. Otherwise it pointed
-        // to end() so we just push_back()
-        auto last = opaquemappings.erase(it, endit);
-        if(last != opaquemappings.end())
-          *last = newRange;
+        // erase all of the ranges. If endi is a valid index, it won't be erased, so we overwrite
+        // it. Otherwise there was no subsequent range so we just push_back()
+        opaquemappings.erase(i, endi - i);
+        if(endi < opaquemappings.size())
+          endRange = newRange;
         else
           opaquemappings.push_back(newRange);
       }
@@ -3790,21 +3795,21 @@ void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindi
       else if(leftoverstart && !leftoverend)
       {
         // save the current range
-        VkSparseMemoryBind cur = curRange;
+        VkSparseMemoryBind first = curRange;
 
         // modify the size to reflect what's left over
-        cur.size = newRange.resourceOffset - cur.resourceOffset;
+        first.size = newRange.resourceOffset - first.resourceOffset;
 
         // as above, erase and either re-insert or push_back()
-        auto last = opaquemappings.erase(it, endit);
-        if(last != opaquemappings.end())
+        opaquemappings.erase(i, endi - i);
+        if(endi < opaquemappings.size())
         {
-          *last = newRange;
-          opaquemappings.insert(last, cur);
+          endRange = newRange;
+          opaquemappings.insert(endi, first);
         }
         else
         {
-          opaquemappings.push_back(cur);
+          opaquemappings.push_back(first);
           opaquemappings.push_back(newRange);
         }
       }
@@ -3812,29 +3817,31 @@ void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindi
       else if(!leftoverstart && leftoverend)
       {
         // erase up to but not including endit
-        auto last = opaquemappings.erase(it, endit);
+        opaquemappings.erase(i, endi - i);
         // modify the leftovers at the end
-        last->resourceOffset = newRange.resourceOffset + newRange.size;
+        endRange.resourceOffset = newRange.resourceOffset + newRange.size;
         // insert the new range before
-        opaquemappings.insert(last, newRange);
+        opaquemappings.insert(i, newRange);
       }
       // leftovers at both ends
       else
       {
         // save the current range
-        VkSparseMemoryBind cur = curRange;
+        VkSparseMemoryBind first = curRange;
 
         // modify the size to reflect what's left over
-        cur.size = newRange.resourceOffset - cur.resourceOffset;
+        first.size = newRange.resourceOffset - first.resourceOffset;
 
         // erase up to but not including endit
-        auto last = opaquemappings.erase(it, endit);
+        opaquemappings.erase(i, endi - i);
         // modify the leftovers at the end
-        last->resourceOffset = newRange.resourceOffset + newRange.size;
+        endRange.size =
+            (endRange.resourceOffset + endRange.size) - (newRange.resourceOffset + newRange.size);
+        endRange.resourceOffset = newRange.resourceOffset + newRange.size;
         // insert the new range before
-        auto newit = opaquemappings.insert(last, newRange);
+        opaquemappings.insert(i, newRange);
         // insert the modified leftovers before that
-        opaquemappings.insert(newit, cur);
+        opaquemappings.insert(i, first);
       }
 
       found = true;
@@ -3843,7 +3850,7 @@ void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindi
 
     // if it wasn't found, this binding is after all mappings in our list
     if(!found)
-      opaquemappings.push_back(curRange);
+      opaquemappings.push_back(newRange);
   }
 }
 
@@ -4372,7 +4379,7 @@ TEST_CASE("Vulkan formats", "[format][vulkan]")
   {
     const uint32_t width = 24, height = 24;
 
-    std::vector<rdcpair<VkFormat, std::vector<uint32_t> > > tests = {
+    rdcarray<rdcpair<VkFormat, rdcarray<uint32_t> > > tests = {
         {VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM, {576, 144, 144}},
         {VK_FORMAT_G8_B8R8_2PLANE_420_UNORM, {576, 288}},
         {VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM, {576, 288, 288}},
@@ -4395,7 +4402,7 @@ TEST_CASE("Vulkan formats", "[format][vulkan]")
         {VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM, {1152, 1152, 1152}},
     };
 
-    for(rdcpair<VkFormat, std::vector<uint32_t> > e : tests)
+    for(rdcpair<VkFormat, rdcarray<uint32_t> > e : tests)
     {
       INFO("Format is " << ToStr(e.first));
       for(uint32_t p = 0; p < e.second.size(); p++)

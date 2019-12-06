@@ -148,7 +148,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkBuffer *buf)
                                      readbackmem.offs);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  std::vector<VkBuffer> bufdeletes;
+  rdcarray<VkBuffer> bufdeletes;
   bufdeletes.push_back(dstBuf);
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
@@ -310,7 +310,7 @@ bool WrappedVulkan::Prepare_SparseInitialState(WrappedVkImage *im)
                                      readbackmem.offs);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  std::vector<VkBuffer> bufdeletes;
+  rdcarray<VkBuffer> bufdeletes;
   bufdeletes.push_back(dstBuf);
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,

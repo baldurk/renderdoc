@@ -876,7 +876,7 @@ struct SwapchainInfo
     VkImageView view;
     VkFramebuffer fb;
   };
-  std::vector<SwapImage> images;
+  rdcarray<SwapImage> images;
   uint32_t lastPresent;
 };
 
@@ -938,7 +938,7 @@ struct ResourceInfo
   }
 
   // for buffers or non-sparse-resident images (bound with opaque mappings)
-  std::vector<VkSparseMemoryBind> opaquemappings;
+  rdcarray<VkSparseMemoryBind> opaquemappings;
 
   VkMemoryRequirements memreqs;
 
@@ -969,7 +969,7 @@ struct CmdBufferRecordingInfo
   VkResourceRecord *framebuffer = NULL;
   VkResourceRecord *allocRecord = NULL;
 
-  std::vector<rdcpair<ResourceId, ImageRegionState> > imgbarriers;
+  rdcarray<rdcpair<ResourceId, ImageRegionState> > imgbarriers;
 
   // sparse resources referenced by this command buffer (at submit time
   // need to go through the sparse mapping and reference all memory)
@@ -986,9 +986,9 @@ struct CmdBufferRecordingInfo
   // barriers to apply when the current render pass ends. Calculated at begin time in case the
   // framebuffer is imageless and we need to use the image views passed in at begin time to
   // construct the proper barriers.
-  std::vector<VkImageMemoryBarrier> rpbarriers;
+  rdcarray<VkImageMemoryBarrier> rpbarriers;
 
-  std::vector<VkResourceRecord *> subcmds;
+  rdcarray<VkResourceRecord *> subcmds;
 
   std::map<ResourceId, ImgRefs> imgFrameRefs;
   std::map<ResourceId, MemRefs> memFrameRefs;
@@ -1013,7 +1013,7 @@ struct DescriptorSetData
 
   // descriptor set bindings for this descriptor set. Filled out on
   // create from the layout.
-  std::vector<DescriptorSetSlot *> descBindings;
+  rdcarray<DescriptorSetSlot *> descBindings;
 
   // lock protecting bindFrameRefs and bindMemRefs
   Threading::CriticalSection refLock;
@@ -1031,7 +1031,7 @@ struct DescriptorSetData
 
 struct PipelineLayoutData
 {
-  std::vector<DescSetLayout> layouts;
+  rdcarray<DescSetLayout> layouts;
 };
 
 struct MemMapState
@@ -1114,7 +1114,7 @@ VkImageAspectFlags FormatImageAspects(VkFormat fmt);
 
 struct ImgRefs
 {
-  std::vector<FrameRefType> rangeRefs;
+  rdcarray<FrameRefType> rangeRefs;
   WrappedVkRes *initializedLiveRes = NULL;
   ImageInfo imageInfo;
   VkImageAspectFlags aspectMask;
@@ -1127,10 +1127,9 @@ struct ImgRefs
 
   ImgRefs() : initializedLiveRes(NULL) {}
   inline ImgRefs(const ImageInfo &imageInfo)
-      : rangeRefs(1, eFrameRef_None),
-        imageInfo(imageInfo),
-        aspectMask(FormatImageAspects(imageInfo.format))
+      : imageInfo(imageInfo), aspectMask(FormatImageAspects(imageInfo.format))
   {
+    rangeRefs.fill(1, eFrameRef_None);
     if(imageInfo.extent.depth > 1)
       // Depth slices of 3D views are treated as array layers
       this->imageInfo.layerCount = imageInfo.extent.depth;
@@ -1148,7 +1147,7 @@ struct ImgRefs
   }
   InitReqType SubresourceRangeMaxInitReq(VkImageSubresourceRange range, InitPolicy policy,
                                          bool initialized) const;
-  std::vector<rdcpair<VkImageSubresourceRange, InitReqType> > SubresourceRangeInitReqs(
+  rdcarray<rdcpair<VkImageSubresourceRange, InitReqType> > SubresourceRangeInitReqs(
       VkImageSubresourceRange range, InitPolicy policy, bool initialized) const;
   void Split(bool splitAspects, bool splitLevels, bool splitLayers);
   template <typename Compose>
@@ -1243,7 +1242,7 @@ FrameRefType ImgRefs::Update(ImageRange range, FrameRefType refType, Compose com
         range.baseMipLevel != 0 || (int)range.levelCount != imageInfo.levelCount,
         range.baseArrayLayer != 0 || (int)range.layerCount != imageInfo.layerCount);
 
-  std::vector<VkImageAspectFlags> splitAspects;
+  rdcarray<VkImageAspectFlags> splitAspects;
   if(areAspectsSplit)
   {
     for(auto aspectIt = ImageAspectFlagIter::begin(aspectMask);
@@ -1592,7 +1591,7 @@ public:
   // pointer to either the pool this item is allocated from, or the children allocated
   // from this pool. Protected by the chunk lock
   VkResourceRecord *pool;
-  std::vector<VkResourceRecord *> pooledChildren;
+  rdcarray<VkResourceRecord *> pooledChildren;
 
   // we only need a couple of bytes to store the view's range,
   // so just pack/unpack into bitfields
@@ -1714,7 +1713,7 @@ public:
 struct ImageLayouts
 {
   uint32_t queueFamilyIndex = 0;
-  std::vector<ImageRegionState> subresourceStates;
+  rdcarray<ImageRegionState> subresourceStates;
   bool isMemoryBound = false;
   ResourceId boundMemory = ResourceId();
   VkDeviceSize boundMemoryOffset = 0ull;

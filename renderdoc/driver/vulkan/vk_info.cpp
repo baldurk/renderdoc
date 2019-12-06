@@ -127,7 +127,7 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
   }
 }
 
-void DescSetLayout::CreateBindingsArray(std::vector<DescriptorSetSlot *> &descBindings) const
+void DescSetLayout::CreateBindingsArray(rdcarray<DescriptorSetSlot *> &descBindings) const
 {
   descBindings.resize(bindings.size());
   for(size_t i = 0; i < bindings.size(); i++)
@@ -138,7 +138,7 @@ void DescSetLayout::CreateBindingsArray(std::vector<DescriptorSetSlot *> &descBi
 }
 
 void DescSetLayout::UpdateBindingsArray(const DescSetLayout &prevLayout,
-                                        std::vector<DescriptorSetSlot *> &descBindings) const
+                                        rdcarray<DescriptorSetSlot *> &descBindings) const
 {
   // if we have fewer bindings now, delete the orphaned bindings arrays
   for(size_t i = bindings.size(); i < prevLayout.bindings.size(); i++)
@@ -457,10 +457,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
       if(!dynamicStates[VkDynamicSampleLocationsEXT])
       {
         sampleLocations.gridSize = sampleLoc->sampleLocationsInfo.sampleLocationGridSize;
-        sampleLocations.locations.insert(sampleLocations.locations.begin(),
-                                         sampleLoc->sampleLocationsInfo.pSampleLocations,
-                                         sampleLoc->sampleLocationsInfo.pSampleLocations +
-                                             sampleLoc->sampleLocationsInfo.sampleLocationsCount);
+        sampleLocations.locations.assign(sampleLoc->sampleLocationsInfo.pSampleLocations,
+                                         sampleLoc->sampleLocationsInfo.sampleLocationsCount);
 
         RDCASSERTEQUAL(sampleLoc->sampleLocationsInfo.sampleLocationsPerPixel, rasterizationSamples);
       }
@@ -1049,17 +1047,16 @@ void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan,
   else
   {
     RDCASSERT(pCreateInfo->codeSize % sizeof(uint32_t) == 0);
-    spirv.Parse(std::vector<uint32_t>(
-        (uint32_t *)(pCreateInfo->pCode),
-        (uint32_t *)(pCreateInfo->pCode + pCreateInfo->codeSize / sizeof(uint32_t))));
+    spirv.Parse(rdcarray<uint32_t>((uint32_t *)(pCreateInfo->pCode),
+                                   pCreateInfo->codeSize / sizeof(uint32_t)));
   }
 }
 
 void VulkanCreationInfo::ShaderModuleReflection::Init(VulkanResourceManager *resourceMan,
                                                       ResourceId id, const rdcspv::Reflector &spv,
-                                                      const std::string &entry,
+                                                      const rdcstr &entry,
                                                       VkShaderStageFlagBits stage,
-                                                      const std::vector<SpecConstant> &specInfo)
+                                                      const rdcarray<SpecConstant> &specInfo)
 {
   if(entryPoint.empty())
   {
@@ -1078,7 +1075,7 @@ void VulkanCreationInfo::DescSetPool::Init(VulkanResourceManager *resourceMan,
                                            const VkDescriptorPoolCreateInfo *pCreateInfo)
 {
   maxSets = pCreateInfo->maxSets;
-  poolSizes.assign(pCreateInfo->pPoolSizes, pCreateInfo->pPoolSizes + pCreateInfo->poolSizeCount);
+  poolSizes.assign(pCreateInfo->pPoolSizes, pCreateInfo->poolSizeCount);
 }
 
 void VulkanCreationInfo::DescSetPool::CreateOverflow(VkDevice device,
@@ -1109,8 +1106,7 @@ void VulkanCreationInfo::DescSetPool::CreateOverflow(VkDevice device,
 void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
                               const VkDescriptorUpdateTemplateCreateInfo *pCreateInfo)
 {
-  updates.insert(updates.begin(), pCreateInfo->pDescriptorUpdateEntries,
-                 pCreateInfo->pDescriptorUpdateEntries + pCreateInfo->descriptorUpdateEntryCount);
+  updates.assign(pCreateInfo->pDescriptorUpdateEntries, pCreateInfo->descriptorUpdateEntryCount);
 
   bindPoint = pCreateInfo->pipelineBindPoint;
 
@@ -1171,7 +1167,7 @@ void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreation
     }
     else
     {
-      const std::vector<ResourceId> &descSetLayouts =
+      const rdcarray<ResourceId> &descSetLayouts =
           info.m_PipelineLayout[GetResID(pCreateInfo->pipelineLayout)].descSetLayouts;
 
       layout = info.m_DescSetLayout[descSetLayouts[pCreateInfo->set]];

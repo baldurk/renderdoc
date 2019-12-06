@@ -653,7 +653,7 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
     ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), 1, &unwrapped, 0, NULL);
 
     // update our local tracking
-    std::vector<DescriptorSetSlot *> &bindings =
+    rdcarray<DescriptorSetSlot *> &bindings =
         m_DescriptorSetState[GetResID(writeDesc.dstSet)].currentBindings;
 
     {
@@ -744,8 +744,8 @@ void WrappedVulkan::ReplayDescriptorSetCopy(VkDevice device, const VkCopyDescrip
   ResourceId srcSetId = GetResID(copyDesc.srcSet);
 
   // update our local tracking
-  std::vector<DescriptorSetSlot *> &dstbindings = m_DescriptorSetState[dstSetId].currentBindings;
-  std::vector<DescriptorSetSlot *> &srcbindings = m_DescriptorSetState[srcSetId].currentBindings;
+  rdcarray<DescriptorSetSlot *> &dstbindings = m_DescriptorSetState[dstSetId].currentBindings;
+  rdcarray<DescriptorSetSlot *> &srcbindings = m_DescriptorSetState[srcSetId].currentBindings;
 
   {
     RDCASSERT(copyDesc.dstBinding < dstbindings.size());

@@ -250,29 +250,29 @@ public:
 
   // handling memory & image layouts
   template <typename SrcBarrierType>
-  void RecordSingleBarrier(std::vector<rdcpair<ResourceId, ImageRegionState> > &states, ResourceId id,
+  void RecordSingleBarrier(rdcarray<rdcpair<ResourceId, ImageRegionState> > &states, ResourceId id,
                            const SrcBarrierType &t, uint32_t nummips, uint32_t numslices);
 
-  void RecordBarriers(std::vector<rdcpair<ResourceId, ImageRegionState> > &states,
+  void RecordBarriers(rdcarray<rdcpair<ResourceId, ImageRegionState> > &states,
                       const std::map<ResourceId, ImageLayouts> &layouts, uint32_t numBarriers,
                       const VkImageMemoryBarrier *barriers);
 
-  void MergeBarriers(std::vector<rdcpair<ResourceId, ImageRegionState> > &dststates,
-                     std::vector<rdcpair<ResourceId, ImageRegionState> > &srcstates);
+  void MergeBarriers(rdcarray<rdcpair<ResourceId, ImageRegionState> > &dststates,
+                     rdcarray<rdcpair<ResourceId, ImageRegionState> > &srcstates);
 
   void ApplyBarriers(uint32_t queueFamilyIndex,
-                     std::vector<rdcpair<ResourceId, ImageRegionState> > &states,
+                     rdcarray<rdcpair<ResourceId, ImageRegionState> > &states,
                      std::map<ResourceId, ImageLayouts> &layouts);
 
   template <typename SerialiserType>
   void SerialiseImageStates(SerialiserType &ser, std::map<ResourceId, ImageLayouts> &states,
-                            std::vector<VkImageMemoryBarrier> &barriers);
+                            rdcarray<VkImageMemoryBarrier> &barriers);
 
   template <typename SerialiserType>
-  bool Serialise_DeviceMemoryRefs(SerialiserType &ser, std::vector<MemRefInterval> &data);
+  bool Serialise_DeviceMemoryRefs(SerialiserType &ser, rdcarray<MemRefInterval> &data);
 
   template <typename SerialiserType>
-  bool Serialise_ImageRefs(SerialiserType &ser, std::vector<ImgRefsPair> &data);
+  bool Serialise_ImageRefs(SerialiserType &ser, rdcarray<ImgRefsPair> &data);
 
   void InsertDeviceMemoryRefs(WriteSerialiser &ser);
   void InsertImageRefs(WriteSerialiser &ser);
@@ -358,18 +358,10 @@ public:
 
       if(record->pool)
       {
-        // here we lock against concurrent alloc/delete
+        // here we lock against concurrent alloc/delete and remove it from our pool so we don't try
+        // and destroy it
         record->pool->LockChunks();
-        for(auto it = record->pool->pooledChildren.begin();
-            it != record->pool->pooledChildren.end(); ++it)
-        {
-          if(*it == record)
-          {
-            // remove it from our pool so we don't try and destroy it
-            record->pool->pooledChildren.erase(it);
-            break;
-          }
-        }
+        record->pool->pooledChildren.removeOne(record);
         record->pool->UnlockChunks();
       }
       else if(record->pooledChildren.size())

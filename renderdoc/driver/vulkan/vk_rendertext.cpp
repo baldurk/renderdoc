@@ -317,7 +317,7 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
         VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
     };
 
-    std::string font = GetEmbeddedResource(sourcecodepro_ttf);
+    rdcstr font = GetEmbeddedResource(sourcecodepro_ttf);
     byte *ttfdata = (byte *)font.c_str();
 
     const int firstChar = FONT_FIRST_CHAR;

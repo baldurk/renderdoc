@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "vk_core.h"
+#include <ctype.h>
 #include <algorithm>
 #include "driver/ihv/amd/amd_rgp.h"
 #include "driver/shaders/spirv/spirv_compile.h"
@@ -42,10 +43,10 @@ uint64_t VkInitParams::GetSerialiseSize()
 
   ret += AppName.size() + EngineName.size();
 
-  for(const std::string &s : Layers)
+  for(const rdcstr &s : Layers)
     ret += 8 + s.size();
 
-  for(const std::string &s : Extensions)
+  for(const rdcstr &s : Extensions)
     ret += 8 + s.size();
 
   return (uint64_t)ret;
@@ -237,14 +238,7 @@ VkCommandBuffer WrappedVulkan::GetNextCmd()
 
 void WrappedVulkan::RemovePendingCommandBuffer(VkCommandBuffer cmd)
 {
-  for(auto it = m_InternalCmds.pendingcmds.begin(); it != m_InternalCmds.pendingcmds.end(); ++it)
-  {
-    if(*it == cmd)
-    {
-      m_InternalCmds.pendingcmds.erase(it);
-      break;
-    }
-  }
+  m_InternalCmds.pendingcmds.removeOne(cmd);
 }
 
 void WrappedVulkan::AddPendingCommandBuffer(VkCommandBuffer cmd)
@@ -259,7 +253,7 @@ void WrappedVulkan::SubmitCmds(VkSemaphore *unwrappedWaitSemaphores,
   if(m_InternalCmds.pendingcmds.empty())
     return;
 
-  std::vector<VkCommandBuffer> cmds = m_InternalCmds.pendingcmds;
+  rdcarray<VkCommandBuffer> cmds = m_InternalCmds.pendingcmds;
   for(size_t i = 0; i < cmds.size(); i++)
     cmds[i] = Unwrap(cmds[i]);
 
@@ -288,9 +282,7 @@ void WrappedVulkan::SubmitCmds(VkSemaphore *unwrappedWaitSemaphores,
   FlushQ();
 #endif
 
-  m_InternalCmds.submittedcmds.insert(m_InternalCmds.submittedcmds.end(),
-                                      m_InternalCmds.pendingcmds.begin(),
-                                      m_InternalCmds.pendingcmds.end());
+  m_InternalCmds.submittedcmds.append(m_InternalCmds.pendingcmds);
   m_InternalCmds.pendingcmds.clear();
 }
 
@@ -327,9 +319,7 @@ void WrappedVulkan::SubmitSemaphores()
 
   // no actual submission, just mark them as 'done with' so they will be
   // recycled on next flush
-  m_InternalCmds.submittedsems.insert(m_InternalCmds.submittedsems.end(),
-                                      m_InternalCmds.pendingsems.begin(),
-                                      m_InternalCmds.pendingsems.end());
+  m_InternalCmds.submittedsems.append(m_InternalCmds.pendingsems);
   m_InternalCmds.pendingsems.clear();
 }
 
@@ -359,10 +349,14 @@ void WrappedVulkan::FlushQ()
 
   if(!m_InternalCmds.submittedcmds.empty())
   {
-    m_InternalCmds.freecmds.insert(m_InternalCmds.freecmds.end(),
-                                   m_InternalCmds.submittedcmds.begin(),
-                                   m_InternalCmds.submittedcmds.end());
+    m_InternalCmds.freecmds.append(m_InternalCmds.submittedcmds);
     m_InternalCmds.submittedcmds.clear();
+  }
+
+  if(!m_InternalCmds.submittedsems.empty())
+  {
+    m_InternalCmds.freesems.append(m_InternalCmds.submittedsems);
+    m_InternalCmds.submittedsems.clear();
   }
 }
 
@@ -1133,8 +1127,8 @@ bool WrappedVulkan::IsSupportedExtension(const char *extName)
   return false;
 }
 
-void WrappedVulkan::FilterToSupportedExtensions(std::vector<VkExtensionProperties> &exts,
-                                                std::vector<VkExtensionProperties> &filtered)
+void WrappedVulkan::FilterToSupportedExtensions(rdcarray<VkExtensionProperties> &exts,
+                                                rdcarray<VkExtensionProperties> &filtered)
 {
   // now we can step through both lists with two pointers,
   // instead of doing an O(N*M) lookup searching through each
@@ -1184,7 +1178,7 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
   if(vkr != VK_SUCCESS)
     return vkr;
 
-  std::vector<VkExtensionProperties> exts(numExts);
+  rdcarray<VkExtensionProperties> exts(numExts);
   vkr = ObjDisp(physDev)->EnumerateDeviceExtensionProperties(Unwrap(physDev), pLayerName, &numExts,
                                                              &exts[0]);
 
@@ -1196,7 +1190,7 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
   // sort the reported extensions
   std::sort(exts.begin(), exts.end());
 
-  std::vector<VkExtensionProperties> filtered;
+  rdcarray<VkExtensionProperties> filtered;
   filtered.reserve(exts.size());
   FilterToSupportedExtensions(exts, filtered);
 
@@ -1205,9 +1199,8 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
     InstanceDeviceInfo *instDevInfo = GetRecord(m_Instance)->instDevInfo;
 
     // extensions with conditional support
-    for(auto it = filtered.begin(); it != filtered.end();)
-    {
-      if(!strcmp(it->extensionName, VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME))
+    filtered.removeIf([instDevInfo, physDev](const VkExtensionProperties &ext) {
+      if(!strcmp(ext.extensionName, VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME))
       {
         // require GPDP2
         if(instDevInfo->ext_KHR_get_physical_device_properties2)
@@ -1220,9 +1213,8 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
 
           if(fragmentDensityFeatures.fragmentDensityMapNonSubsampledImages)
           {
-            // supported
-            ++it;
-            continue;
+            // supported, don't remove
+            return false;
           }
           else
           {
@@ -1234,11 +1226,10 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
         }
 
         // if it wasn't supported, remove the extension
-        it = filtered.erase(it);
-        continue;
+        return true;
       }
 
-      if(!strcmp(it->extensionName, VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME))
+      if(!strcmp(ext.extensionName, VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME))
       {
         // require GPDP2
         if(instDevInfo->ext_KHR_get_physical_device_properties2)
@@ -1251,9 +1242,8 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
 
           if(bufaddr.bufferDeviceAddressCaptureReplay)
           {
-            // supported
-            ++it;
-            continue;
+            // supported, don't remove
+            return false;
           }
           else
           {
@@ -1264,11 +1254,10 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
         }
 
         // if it wasn't supported, remove the extension
-        it = filtered.erase(it);
-        continue;
+        return true;
       }
 
-      if(!strcmp(it->extensionName, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME))
+      if(!strcmp(ext.extensionName, VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME))
       {
         // require GPDP2
         if(instDevInfo->ext_KHR_get_physical_device_properties2)
@@ -1281,9 +1270,8 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
 
           if(bufaddr.bufferDeviceAddressCaptureReplay)
           {
-            // supported
-            ++it;
-            continue;
+            // supported, don't remove
+            return false;
           }
           else
           {
@@ -1294,18 +1282,17 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
         }
 
         // if it wasn't supported, remove the extension
-        it = filtered.erase(it);
-        continue;
+        return true;
       }
 
-      ++it;
-    }
+      // not an extension with conditional support, don't remove
+      return false;
+    });
 
     // now we can add extensions that we provide ourselves (note this isn't sorted, but we
     // don't have to sort the results, the sorting was just so we could filter optimally).
-    filtered.insert(
-        filtered.end(), &renderdocProvidedDeviceExtensions[0],
-        &renderdocProvidedDeviceExtensions[0] + ARRAY_COUNT(renderdocProvidedDeviceExtensions));
+    filtered.append(&renderdocProvidedDeviceExtensions[0],
+                    ARRAY_COUNT(renderdocProvidedDeviceExtensions));
   }
 
   return FillPropertyCountAndList(&filtered[0], (uint32_t)filtered.size(), pPropertyCount,
@@ -1325,7 +1312,7 @@ VkResult WrappedVulkan::FilterInstanceExtensionProperties(
   if(vkr != VK_SUCCESS)
     return vkr;
 
-  std::vector<VkExtensionProperties> exts(numExts);
+  rdcarray<VkExtensionProperties> exts(numExts);
   vkr = pChain->CallDown(pLayerName, &numExts, &exts[0]);
 
   if(vkr != VK_SUCCESS)
@@ -1336,7 +1323,7 @@ VkResult WrappedVulkan::FilterInstanceExtensionProperties(
   // sort the reported extensions
   std::sort(exts.begin(), exts.end());
 
-  std::vector<VkExtensionProperties> filtered;
+  rdcarray<VkExtensionProperties> filtered;
   filtered.reserve(exts.size());
 
   FilterToSupportedExtensions(exts, filtered);
@@ -1345,9 +1332,8 @@ VkResult WrappedVulkan::FilterInstanceExtensionProperties(
   {
     // now we can add extensions that we provide ourselves (note this isn't sorted, but we
     // don't have to sort the results, the sorting was just so we could filter optimally).
-    filtered.insert(
-        filtered.end(), &renderdocProvidedInstanceExtensions[0],
-        &renderdocProvidedInstanceExtensions[0] + ARRAY_COUNT(renderdocProvidedInstanceExtensions));
+    filtered.append(&renderdocProvidedInstanceExtensions[0],
+                    ARRAY_COUNT(renderdocProvidedInstanceExtensions));
   }
 
   return FillPropertyCountAndList(&filtered[0], (uint32_t)filtered.size(), pPropertyCount,
@@ -1410,7 +1396,7 @@ void WrappedVulkan::FirstFrame()
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_BeginCaptureFrame(SerialiserType &ser)
 {
-  std::vector<VkImageMemoryBarrier> imgBarriers;
+  rdcarray<VkImageMemoryBarrier> imgBarriers;
 
   {
     SCOPED_LOCK(m_ImageLayoutsLock);    // not needed on replay, but harmless also
@@ -2909,7 +2895,7 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdSetDiscardRectangleEXT(ser, VK_NULL_HANDLE, 0, 0, NULL);
     case VulkanChunk::DeviceMemoryRefs:
     {
-      std::vector<MemRefInterval> data;
+      rdcarray<MemRefInterval> data;
       return GetResourceManager()->Serialise_DeviceMemoryRefs(ser, data);
     }
     case VulkanChunk::vkResetQueryPoolEXT:
@@ -2918,7 +2904,7 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdSetLineStippleEXT(ser, VK_NULL_HANDLE, 0, 0);
     case VulkanChunk::ImageRefs:
     {
-      std::vector<ImgRefsPair> data;
+      rdcarray<ImgRefsPair> data;
       return GetResourceManager()->Serialise_ImageRefs(ser, data);
     }
     case VulkanChunk::vkQueuePresentKHR:
@@ -3064,7 +3050,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     // something). We do a 'safe' transition from current layout to what's expected in the
     // attachment, which should always be a nop or overriding an UNDEFINED transition. Then we put
     // it back again afterwards.
-    std::vector<VkImageMemoryBarrier> loadRPImgBarriers;
+    rdcarray<VkImageMemoryBarrier> loadRPImgBarriers;
 
     // we'll need our own command buffer if we're replaying just a subsection
     // of events within a single command buffer record - always if it's only
@@ -3174,7 +3160,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 template <typename SerialiserType>
 void WrappedVulkan::Serialise_DebugMessages(SerialiserType &ser)
 {
-  std::vector<DebugMessage> DebugMessages;
+  rdcarray<DebugMessage> DebugMessages;
 
   if(ser.IsWriting())
   {
@@ -3214,10 +3200,10 @@ void WrappedVulkan::ProcessDebugMessage(DebugMessage &msg)
   {
     if(strstr(msg.description.c_str(), "0x"))
     {
-      std::string desc = msg.description;
+      rdcstr desc = msg.description;
 
-      size_t offs = desc.find("0x");
-      while(offs != std::string::npos)
+      int32_t offs = desc.find("0x");
+      while(offs >= 0)
       {
         // if we're on a word boundary
         if(offs == 0 || !isalnum(desc[offs - 1]))
@@ -3275,13 +3261,13 @@ void WrappedVulkan::ProcessDebugMessage(DebugMessage &msg)
 
             if(id != ResourceId())
             {
-              std::string idstr = ToStr(id);
+              rdcstr idstr = ToStr(id);
 
               desc.erase(offs, end - offs);
 
               desc.insert(offs, idstr.c_str());
 
-              offs = desc.find("0x", offs + idstr.length());
+              offs = desc.find("0x", offs + idstr.count());
               continue;
             }
           }
@@ -3295,15 +3281,14 @@ void WrappedVulkan::ProcessDebugMessage(DebugMessage &msg)
   }
 }
 
-std::vector<DebugMessage> WrappedVulkan::GetDebugMessages()
+rdcarray<DebugMessage> WrappedVulkan::GetDebugMessages()
 {
-  std::vector<DebugMessage> ret;
+  rdcarray<DebugMessage> ret;
   ret.swap(m_DebugMessages);
   return ret;
 }
 
-void WrappedVulkan::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
-                                    std::string d)
+void WrappedVulkan::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d)
 {
   DebugMessage msg;
   msg.eventId = 0;
@@ -3448,7 +3433,7 @@ VkBool32 VKAPI_PTR WrappedVulkan::DebugUtilsCallbackStatic(
   if(messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
     category = MessageCategory::Performance;
 
-  std::string msgid;
+  rdcstr msgid;
 
   const char *pMessageId = pCallbackData->pMessageIdName;
   int messageCode = pCallbackData->messageIdNumber;
@@ -3593,11 +3578,11 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
 
     if(fb != ResourceId() && rp != ResourceId())
     {
-      std::vector<ResourceId> &atts = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments;
+      rdcarray<ResourceId> &atts = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments;
 
       RDCASSERT(sp < m_CreationInfo.m_RenderPass[rp].subpasses.size());
 
-      std::vector<uint32_t> &colAtt = m_CreationInfo.m_RenderPass[rp].subpasses[sp].colorAttachments;
+      rdcarray<uint32_t> &colAtt = m_CreationInfo.m_RenderPass[rp].subpasses[sp].colorAttachments;
       int32_t dsAtt = m_CreationInfo.m_RenderPass[rp].subpasses[sp].depthstencilAttachment;
 
       RDCASSERT(colAtt.size() <= ARRAY_COUNT(draw.outputs));
@@ -3633,9 +3618,9 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
 
   if(hasEvents)
   {
-    std::vector<APIEvent> &srcEvents = m_LastCmdBufferID != ResourceId()
-                                           ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents
-                                           : m_RootEvents;
+    rdcarray<APIEvent> &srcEvents = m_LastCmdBufferID != ResourceId()
+                                        ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents
+                                        : m_RootEvents;
 
     draw.events = srcEvents;
     srcEvents.clear();
@@ -3652,15 +3637,16 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
     if(m_LastCmdBufferID != ResourceId())
       AddUsage(node, m_BakedCmdBufferInfo[m_LastCmdBufferID].debugMessages);
 
-    node.children.insert(node.children.begin(), draw.children.begin(), draw.children.end());
+    node.children.reserve(draw.children.size());
+    for(const DrawcallDescription &child : draw.children)
+      node.children.push_back(VulkanDrawcallTreeNode(child));
     GetDrawcallStack().back()->children.push_back(node);
   }
   else
     RDCERR("Somehow lost drawcall stack!");
 }
 
-void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode,
-                             std::vector<DebugMessage> &debugMessages)
+void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMessage> &debugMessages)
 {
   DrawcallDescription &d = drawNode.draw;
 
@@ -3711,7 +3697,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode,
     ResourceId origShad = GetResourceManager()->GetOriginalID(sh.module);
 
     // 5 is the compute shader's index (VS, TCS, TES, GS, FS, CS)
-    const std::vector<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descSets =
+    const rdcarray<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descSets =
         (shad == 5 ? state.computeDescSets : state.graphicsDescSets);
 
     RDCASSERT(sh.mapping);
@@ -3846,7 +3832,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode,
 
 void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, ResourceId renderPass,
                                         ResourceId framebuffer, uint32_t subpass,
-                                        const std::vector<ResourceId> &fbattachments)
+                                        const rdcarray<ResourceId> &fbattachments)
 {
   VulkanCreationInfo &c = m_CreationInfo;
   uint32_t e = drawNode.draw.eventId;
@@ -3898,7 +3884,7 @@ void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, Resour
 void WrappedVulkan::AddFramebufferUsageAllChildren(VulkanDrawcallTreeNode &drawNode,
                                                    ResourceId renderPass, ResourceId framebuffer,
                                                    uint32_t subpass,
-                                                   const std::vector<ResourceId> &fbattachments)
+                                                   const rdcarray<ResourceId> &fbattachments)
 {
   for(VulkanDrawcallTreeNode &c : drawNode.children)
     AddFramebufferUsageAllChildren(c, renderPass, framebuffer, subpass, fbattachments);
@@ -3925,10 +3911,7 @@ void WrappedVulkan::AddEvent()
   if(m_LastCmdBufferID != ResourceId())
   {
     m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents.push_back(apievent);
-
-    std::vector<DebugMessage> &msgs = m_BakedCmdBufferInfo[m_LastCmdBufferID].debugMessages;
-
-    msgs.insert(msgs.end(), m_EventMessages.begin(), m_EventMessages.end());
+    m_BakedCmdBufferInfo[m_LastCmdBufferID].debugMessages.append(m_EventMessages);
   }
   else
   {
@@ -3936,7 +3919,7 @@ void WrappedVulkan::AddEvent()
     m_Events.resize(apievent.eventId + 1);
     m_Events[apievent.eventId] = apievent;
 
-    m_DebugMessages.insert(m_DebugMessages.end(), m_EventMessages.begin(), m_EventMessages.end());
+    m_DebugMessages.append(m_EventMessages);
   }
 
   m_EventMessages.clear();
@@ -3970,17 +3953,14 @@ const DrawcallDescription *WrappedVulkan::GetDrawcall(uint32_t eventId)
 
 TEST_CASE("Validate supported extensions list", "[vulkan]")
 {
-  std::vector<VkExtensionProperties> unsorted;
-  unsorted.insert(unsorted.begin(), &supportedExtensions[0],
-                  &supportedExtensions[ARRAY_COUNT(supportedExtensions)]);
-
-  std::vector<VkExtensionProperties> sorted = unsorted;
+  rdcarray<VkExtensionProperties> unsorted(&supportedExtensions[0], ARRAY_COUNT(supportedExtensions));
+  rdcarray<VkExtensionProperties> sorted = unsorted;
 
   std::sort(sorted.begin(), sorted.end());
 
   for(size_t i = 0; i < unsorted.size(); i++)
   {
-    CHECK(std::string(unsorted[i].extensionName) == std::string(sorted[i].extensionName));
+    CHECK(rdcstr(unsorted[i].extensionName) == rdcstr(sorted[i].extensionName));
   }
 }
 

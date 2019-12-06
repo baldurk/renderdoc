@@ -775,8 +775,8 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  std::vector<VkImageMemoryBarrier> imgBarriers;
-  std::vector<VkBufferMemoryBarrier> bufBarriers;
+  rdcarray<VkImageMemoryBarrier> imgBarriers;
+  rdcarray<VkBufferMemoryBarrier> bufBarriers;
 
   // it's possible for buffer or image to be NULL if it refers to a resource that is otherwise
   // not in the log (barriers do not mark resources referenced). If the resource in question does

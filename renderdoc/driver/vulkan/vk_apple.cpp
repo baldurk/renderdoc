@@ -177,7 +177,7 @@ void *LoadVulkanLibrary()
   }
 
   // if not, we fall back to our embedded libvulkan and also force use of our embedded ICD.
-  std::string libpath;
+  rdcstr libpath;
   FileIO::GetLibraryFilename(libpath);
   libpath = get_dirname(libpath) + "/../plugins/MoltenVK/";
 

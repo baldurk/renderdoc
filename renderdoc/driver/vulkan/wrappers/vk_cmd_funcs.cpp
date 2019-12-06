@@ -24,7 +24,7 @@
 
 #include "../vk_core.h"
 
-static std::string ToHumanStr(const VkAttachmentLoadOp &el)
+static rdcstr ToHumanStr(const VkAttachmentLoadOp &el)
 {
   BEGIN_ENUM_STRINGISE(VkAttachmentLoadOp);
   {
@@ -35,7 +35,7 @@ static std::string ToHumanStr(const VkAttachmentLoadOp &el)
   END_ENUM_STRINGISE();
 }
 
-static std::string ToHumanStr(const VkAttachmentStoreOp &el)
+static rdcstr ToHumanStr(const VkAttachmentStoreOp &el)
 {
   BEGIN_ENUM_STRINGISE(VkAttachmentStoreOp);
   {
@@ -57,7 +57,7 @@ void WrappedVulkan::AddImplicitResolveResourceUsage(uint32_t subpass)
   else
     subpass = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;
 
-  const std::vector<ResourceId> &fbattachments =
+  const rdcarray<ResourceId> &fbattachments =
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments;
   for(size_t i = 0; i < rpinfo.subpasses[subpass].resolveAttachments.size(); i++)
   {
@@ -71,10 +71,10 @@ void WrappedVulkan::AddImplicitResolveResourceUsage(uint32_t subpass)
   }
 }
 
-std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint32_t subpass)
+rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint32_t subpass)
 {
   ResourceId rp, fb;
-  std::vector<ResourceId> fbattachments;
+  rdcarray<ResourceId> fbattachments;
 
   if(m_LastCmdBufferID == ResourceId())
   {
@@ -89,12 +89,12 @@ std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(u
     fbattachments = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments;
   }
 
-  std::vector<VkImageMemoryBarrier> ret;
+  rdcarray<VkImageMemoryBarrier> ret;
 
   VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
   VulkanCreationInfo::RenderPass rpinfo = m_CreationInfo.m_RenderPass[rp];
 
-  std::vector<VkAttachmentReference> atts;
+  rdcarray<VkAttachmentReference> atts;
 
   // a bit of dancing to get a subpass index. Because we don't increment
   // the subpass counter on EndRenderPass the value is the same for the last
@@ -246,27 +246,22 @@ std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(u
   }
 
   // erase any do-nothing barriers
-  for(auto it = ret.begin(); it != ret.end();)
-  {
-    if(it->oldLayout == it->newLayout)
-      it = ret.erase(it);
-    else
-      ++it;
-  }
+  ret.removeIf(
+      [](const VkImageMemoryBarrier &barrier) { return barrier.oldLayout == barrier.newLayout; });
 
   return ret;
 }
 
-std::string WrappedVulkan::MakeRenderPassOpString(bool store)
+rdcstr WrappedVulkan::MakeRenderPassOpString(bool store)
 {
-  std::string opDesc = "";
+  rdcstr opDesc = "";
 
   const VulkanCreationInfo::RenderPass &info =
       m_CreationInfo.m_RenderPass[m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass];
   const VulkanCreationInfo::Framebuffer &fbinfo =
       m_CreationInfo.m_Framebuffer[m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer];
 
-  const std::vector<VulkanCreationInfo::RenderPass::Attachment> &atts = info.attachments;
+  const rdcarray<VulkanCreationInfo::RenderPass::Attachment> &atts = info.attachments;
 
   if(atts.empty())
   {
@@ -291,7 +286,7 @@ std::string WrappedVulkan::MakeRenderPassOpString(bool store)
       depthonly = info.subpasses[subpass].colorAttachments.size() == 0;
     }
 
-    const std::vector<uint32_t> &cols = info.subpasses[subpass].colorAttachments;
+    const rdcarray<uint32_t> &cols = info.subpasses[subpass].colorAttachments;
 
     // we check all non-UNUSED attachments to see if they're all the same.
     // To begin with we point to an invalid attachment index
@@ -707,8 +702,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
       // check for partial execution of this command buffer
       for(int p = 0; p < ePartialNum; p++)
       {
-        const std::vector<Submission> &submissions =
-            m_Partial[p].cmdBufferSubmits[BakedCommandBuffer];
+        const rdcarray<Submission> &submissions = m_Partial[p].cmdBufferSubmits[BakedCommandBuffer];
 
         for(auto it = submissions.begin(); it != submissions.end(); ++it)
         {
@@ -997,19 +991,19 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
           // subpass
           uint32_t &sub = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;
 
-          std::vector<rdcpair<ResourceId, ImageRegionState> > imgbarriers;
+          rdcarray<rdcpair<ResourceId, ImageRegionState> > imgbarriers;
 
           for(sub = m_RenderState.subpass; sub < numSubpasses - 1; sub++)
           {
             ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), VK_SUBPASS_CONTENTS_INLINE);
 
-            std::vector<VkImageMemoryBarrier> subpassBarriers = GetImplicitRenderPassBarriers();
+            rdcarray<VkImageMemoryBarrier> subpassBarriers = GetImplicitRenderPassBarriers();
 
             GetResourceManager()->RecordBarriers(
                 imgbarriers, m_ImageLayouts, (uint32_t)subpassBarriers.size(), &subpassBarriers[0]);
           }
 
-          std::vector<VkImageMemoryBarrier> finalBarriers = GetImplicitRenderPassBarriers(~0U);
+          rdcarray<VkImageMemoryBarrier> finalBarriers = GetImplicitRenderPassBarriers(~0U);
 
           GetResourceManager()->RecordBarriers(imgbarriers, m_ImageLayouts,
                                                (uint32_t)finalBarriers.size(), &finalBarriers[0]);
@@ -1018,7 +1012,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
 
           // undo any implicit transitions we just went through, so that we can pretend that the
           // image stayed in the same layout as it was when we stopped partially replaying.
-          std::vector<VkImageMemoryBarrier> revertBarriers;
+          rdcarray<VkImageMemoryBarrier> revertBarriers;
 
           for(auto it = imgbarriers.begin(); it != imgbarriers.end(); ++it)
           {
@@ -1241,7 +1235,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
 
         ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &unwrappedInfo, contents);
 
-        std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
         ResourceId cmd = GetResID(commandBuffer);
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -1283,7 +1277,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
         }
       }
 
-      std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+      rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
       ResourceId cmd = GetResID(commandBuffer);
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -1335,7 +1329,7 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
 
     record->MarkResourceFrameReferenced(fb->GetResourceID(), eFrameRef_Read);
 
-    std::vector<VkImageMemoryBarrier> &barriers = record->cmdInfo->rpbarriers;
+    rdcarray<VkImageMemoryBarrier> &barriers = record->cmdInfo->rpbarriers;
 
     barriers.clear();
 
@@ -1414,7 +1408,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
 
         ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), contents);
 
-        std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
         ResourceId cmd = GetResID(commandBuffer);
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -1430,7 +1424,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
       // track while reading, for fetching the right set of outputs in AddDrawcall
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass++;
 
-      std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+      rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
       ResourceId cmd = GetResID(commandBuffer);
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -1487,7 +1481,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
+        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
         // always track this, for WrappedVulkan::IsDrawInRenderPass()
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
@@ -1517,7 +1511,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies.clear();
 
-      std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
+      rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
       ResourceId cmd = GetResID(commandBuffer);
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -1560,7 +1554,7 @@ void WrappedVulkan::vkCmdEndRenderPass(VkCommandBuffer commandBuffer)
 
     record->AddChunk(scope.Get());
 
-    const std::vector<VkImageMemoryBarrier> &barriers = record->cmdInfo->rpbarriers;
+    const rdcarray<VkImageMemoryBarrier> &barriers = record->cmdInfo->rpbarriers;
 
     // apply the implicit layout transitions here
     {
@@ -1657,7 +1651,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2KHR(SerialiserType &ser,
         ObjDisp(commandBuffer)
             ->CmdBeginRenderPass2KHR(Unwrap(commandBuffer), &unwrappedInfo, &unwrappedBeginInfo);
 
-        std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
         ResourceId cmd = GetResID(commandBuffer);
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -1700,7 +1694,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2KHR(SerialiserType &ser,
         }
       }
 
-      std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+      rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
       ResourceId cmd = GetResID(commandBuffer);
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -1758,7 +1752,7 @@ void WrappedVulkan::vkCmdBeginRenderPass2KHR(VkCommandBuffer commandBuffer,
 
     record->MarkResourceFrameReferenced(fb->GetResourceID(), eFrameRef_Read);
 
-    std::vector<VkImageMemoryBarrier> &barriers = record->cmdInfo->rpbarriers;
+    rdcarray<VkImageMemoryBarrier> &barriers = record->cmdInfo->rpbarriers;
 
     barriers.clear();
 
@@ -1850,7 +1844,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2KHR(SerialiserType &ser, VkComman
         ObjDisp(commandBuffer)
             ->CmdNextSubpass2KHR(Unwrap(commandBuffer), &unwrappedBeginInfo, &unwrappedEndInfo);
 
-        std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
         ResourceId cmd = GetResID(commandBuffer);
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -1867,7 +1861,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2KHR(SerialiserType &ser, VkComman
       // track while reading, for fetching the right set of outputs in AddDrawcall
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass++;
 
-      std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+      rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
       ResourceId cmd = GetResID(commandBuffer);
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -1947,7 +1941,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2KHR(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
+        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
         // always track this, for WrappedVulkan::IsDrawInRenderPass()
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
@@ -1969,7 +1963,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2KHR(SerialiserType &ser,
     {
       ObjDisp(commandBuffer)->CmdEndRenderPass2KHR(Unwrap(commandBuffer), &unwrappedEndInfo);
 
-      std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
+      rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
       ResourceId cmd = GetResID(commandBuffer);
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -2018,7 +2012,7 @@ void WrappedVulkan::vkCmdEndRenderPass2KHR(VkCommandBuffer commandBuffer,
 
     record->AddChunk(scope.Get());
 
-    const std::vector<VkImageMemoryBarrier> &barriers = record->cmdInfo->rpbarriers;
+    const rdcarray<VkImageMemoryBarrier> &barriers = record->cmdInfo->rpbarriers;
 
     // apply the implicit layout transitions here
     {
@@ -2207,7 +2201,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 
         if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          std::vector<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
+          rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
               (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
                   ? m_RenderState.graphics.descSets
                   : m_RenderState.compute.descSets;
@@ -2216,7 +2210,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
           if(descsets.size() < firstSet + setCount)
             descsets.resize(firstSet + setCount);
 
-          const std::vector<ResourceId> &descSetLayouts =
+          const rdcarray<ResourceId> &descSetLayouts =
               m_CreationInfo.m_PipelineLayout[GetResID(layout)].descSetLayouts;
 
           const uint32_t *offsIter = pDynamicOffsets;
@@ -2229,7 +2223,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
             descsets[firstSet + i].descSet = GetResID(pDescriptorSets[i]);
             uint32_t dynCount =
                 m_CreationInfo.m_DescSetLayout[descSetLayouts[firstSet + i]].dynamicCount;
-            descsets[firstSet + i].offsets.assign(offsIter, offsIter + dynCount);
+            descsets[firstSet + i].offsets.assign(offsIter, dynCount);
             offsIter += dynCount;
             dynConsumed += dynCount;
             RDCASSERT(dynConsumed <= dynamicOffsetCount);
@@ -2277,7 +2271,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
     else
     {
       // track while reading, as we need to track resource usage
-      std::vector<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descsets =
+      rdcarray<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descsets =
           (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
               ? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphicsDescSets
               : m_BakedCmdBufferInfo[m_LastCmdBufferID].state.computeDescSets;
@@ -2732,8 +2726,8 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 
   SERIALISE_CHECK_READ_ERRORS();
 
-  std::vector<VkImageMemoryBarrier> imgBarriers;
-  std::vector<VkBufferMemoryBarrier> bufBarriers;
+  rdcarray<VkImageMemoryBarrier> imgBarriers;
+  rdcarray<VkBufferMemoryBarrier> bufBarriers;
 
   // it's possible for buffer or image to be NULL if it refers to a resource that is otherwise
   // not in the log (barriers do not mark resources referenced). If the resource in question does
@@ -3211,7 +3205,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
       // append deferred indirect copies
       {
-        std::vector<VkIndirectRecordData> &dstIndirect =
+        rdcarray<VkIndirectRecordData> &dstIndirect =
             m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies;
 
         for(uint32_t i = 0; i < commandBufferCount; i++)
@@ -3219,10 +3213,8 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           // indirectCopies are stored in m_BakedCmdBufferInfo[m_LastCmdBufferID] which is an
           // original ID
           ResourceId origId = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[i]));
-          const std::vector<VkIndirectRecordData> &srcIndirect =
-              m_BakedCmdBufferInfo[origId].indirectCopies;
 
-          dstIndirect.insert(dstIndirect.end(), srcIndirect.begin(), srcIndirect.end());
+          dstIndirect.append(m_BakedCmdBufferInfo[origId].indirectCopies);
         }
       }
 
@@ -3398,7 +3390,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
           uint32_t eid = startEID;
 
-          std::vector<VkCommandBuffer> rerecordedCmds;
+          rdcarray<VkCommandBuffer> rerecordedCmds;
 
           for(uint32_t c = 0; c < commandBufferCount; c++)
           {
@@ -3724,11 +3716,11 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
 
   ResourceId setId = m_BakedCmdBufferInfo[m_LastCmdBufferID].pushDescriptorID[pipelineBindPoint][set];
 
-  const std::vector<ResourceId> &descSetLayouts = pipeLayoutInfo.descSetLayouts;
+  const rdcarray<ResourceId> &descSetLayouts = pipeLayoutInfo.descSetLayouts;
 
   const DescSetLayout &desclayout = m_CreationInfo.m_DescSetLayout[descSetLayouts[set]];
 
-  std::vector<DescriptorSetSlot *> &bindings = m_DescriptorSetState[setId].currentBindings;
+  rdcarray<DescriptorSetSlot *> &bindings = m_DescriptorSetState[setId].currentBindings;
   ResourceId prevLayout = m_DescriptorSetState[setId].layout;
 
   if(prevLayout == ResourceId())
@@ -3854,7 +3846,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
 
         if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          std::vector<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
+          rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
               (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
                   ? m_RenderState.graphics.descSets
                   : m_RenderState.compute.descSets;
@@ -3877,7 +3869,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
     else
     {
       // track while reading, as we need to track resource usage
-      std::vector<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descsets =
+      rdcarray<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descsets =
           (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
               ? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphicsDescSets
               : m_BakedCmdBufferInfo[m_LastCmdBufferID].state.computeDescSets;
@@ -4123,7 +4115,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
 
         if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          std::vector<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
+          rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
               (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) ? m_RenderState.graphics.descSets
                                                              : m_RenderState.compute.descSets;
 
@@ -4145,7 +4137,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
     else
     {
       // track while reading, as we need to track resource usage
-      std::vector<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descsets =
+      rdcarray<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descsets =
           (m_CreationInfo.m_DescUpdateTemplate[GetResID(descriptorUpdateTemplate)].bindPoint ==
            VK_PIPELINE_BIND_POINT_GRAPHICS)
               ? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphicsDescSets
@@ -4211,10 +4203,10 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
 
   // since it's relatively expensive to walk the memory, we gather frame references at the same time
   // as unwrapping
-  std::vector<rdcpair<ResourceId, FrameRefType> > frameRefs;
-  std::vector<rdcpair<VkImageView, FrameRefType> > imgViewFrameRefs;
-  std::vector<rdcpair<VkBufferView, FrameRefType> > bufViewFrameRefs;
-  std::vector<rdcpair<VkDescriptorBufferInfo, FrameRefType> > bufFrameRefs;
+  rdcarray<rdcpair<ResourceId, FrameRefType> > frameRefs;
+  rdcarray<rdcpair<VkImageView, FrameRefType> > imgViewFrameRefs;
+  rdcarray<rdcpair<VkBufferView, FrameRefType> > bufViewFrameRefs;
+  rdcarray<rdcpair<VkDescriptorBufferInfo, FrameRefType> > bufFrameRefs;
 
   {
     DescUpdateTemplate *tempInfo = GetRecord(descriptorUpdateTemplate)->descTemplateInfo;

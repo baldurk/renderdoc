@@ -101,7 +101,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
            ret.size, mrq.size, mrq.alignment, mrq.memoryTypeBits, buffer ? "buffer" : "image",
            ToStr(type).c_str(), ToStr(scope).c_str());
 
-  std::vector<MemoryAllocation> &blockList = m_MemoryBlocks[(size_t)scope];
+  rdcarray<MemoryAllocation> &blockList = m_MemoryBlocks[(size_t)scope];
 
   // first try to find a match
   int i = 0;
@@ -271,7 +271,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(VkBuffer buf, MemorySc
 
 void WrappedVulkan::FreeAllMemory(MemoryScope scope)
 {
-  std::vector<MemoryAllocation> &allocList = m_MemoryBlocks[(size_t)scope];
+  rdcarray<MemoryAllocation> &allocList = m_MemoryBlocks[(size_t)scope];
 
   if(allocList.empty())
     return;

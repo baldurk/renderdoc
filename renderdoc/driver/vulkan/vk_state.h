@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <vector>
 #include "vk_common.h"
 
 struct VulkanCreationInfo;
@@ -40,9 +39,9 @@ struct VulkanStatePipeline
   {
     ResourceId pipeLayout;
     ResourceId descSet;
-    std::vector<uint32_t> offsets;
+    rdcarray<uint32_t> offsets;
   };
-  std::vector<DescriptorAndOffsets> descSets;
+  rdcarray<DescriptorAndOffsets> descSets;
 };
 
 struct VulkanRenderState
@@ -69,8 +68,8 @@ struct VulkanRenderState
   bool IsConditionalRenderingEnabled();
 
   // dynamic state
-  std::vector<VkViewport> views;
-  std::vector<VkRect2D> scissors;
+  rdcarray<VkViewport> views;
+  rdcarray<VkRect2D> scissors;
   float lineWidth = 1.0f;
   struct
   {
@@ -92,10 +91,10 @@ struct VulkanRenderState
   {
     VkSampleCountFlagBits sampleCount;
     VkExtent2D gridSize;
-    std::vector<VkSampleLocationEXT> locations;
+    rdcarray<VkSampleLocationEXT> locations;
   } sampleLocations;
 
-  std::vector<VkRect2D> discardRectangles;
+  rdcarray<VkRect2D> discardRectangles;
 
   uint32_t stippleFactor = 0;
   uint16_t stipplePattern = 0;
@@ -112,13 +111,13 @@ struct VulkanRenderState
   // only the framebuffer without updating the attachments
   void SetFramebuffer(ResourceId fb,
                       const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo = NULL);
-  void SetFramebuffer(ResourceId fb, const std::vector<ResourceId> &dynamicAttachments)
+  void SetFramebuffer(ResourceId fb, const rdcarray<ResourceId> &dynamicAttachments)
   {
     framebuffer = fb;
     fbattachments = dynamicAttachments;
   }
   ResourceId GetFramebuffer() const { return framebuffer; }
-  const std::vector<ResourceId> &GetFramebufferAttachments() const { return fbattachments; }
+  const rdcarray<ResourceId> &GetFramebufferAttachments() const { return fbattachments; }
   //
 
   VkRect2D renderArea = {};
@@ -137,7 +136,7 @@ struct VulkanRenderState
     ResourceId buf;
     VkDeviceSize offs = 0;
   };
-  std::vector<VertBuffer> vbuffers;
+  rdcarray<VertBuffer> vbuffers;
 
   struct XFBBuffer
   {
@@ -145,7 +144,7 @@ struct VulkanRenderState
     VkDeviceSize offs = 0;
     VkDeviceSize size = 0;
   };
-  std::vector<XFBBuffer> xfbbuffers;
+  rdcarray<XFBBuffer> xfbbuffers;
 
   struct XFBCounter
   {
@@ -153,7 +152,7 @@ struct VulkanRenderState
     VkDeviceSize offs = 0;
   };
   uint32_t firstxfbcounter = 0;
-  std::vector<XFBCounter> xfbcounters;
+  rdcarray<XFBCounter> xfbcounters;
 
   struct ConditionalRendering
   {
@@ -170,5 +169,5 @@ struct VulkanRenderState
 
 private:
   ResourceId framebuffer;
-  std::vector<ResourceId> fbattachments;
+  rdcarray<ResourceId> fbattachments;
 };

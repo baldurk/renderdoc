@@ -198,7 +198,7 @@ bool WrappedVulkan::CheckMemoryRequirements(const char *resourceName, ResourceId
   // verify type
   if((mrq.memoryTypeBits & bit) == 0)
   {
-    std::string bitsString;
+    rdcstr bitsString;
 
     for(uint32_t i = 0; i < 32; i++)
     {
@@ -537,10 +537,7 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
 
     {
       SCOPED_LOCK(m_CoherentMapsLock);
-
-      auto it = std::find(m_CoherentMaps.begin(), m_CoherentMaps.end(), wrapped->record);
-      if(it != m_CoherentMaps.end())
-        m_CoherentMaps.erase(it);
+      m_CoherentMaps.removeOne(wrapped->record);
     }
   }
 
@@ -714,11 +711,11 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
     {
       SCOPED_LOCK(m_CoherentMapsLock);
 
-      auto it = std::find(m_CoherentMaps.begin(), m_CoherentMaps.end(), memrecord);
-      if(it == m_CoherentMaps.end())
+      int32_t idx = m_CoherentMaps.indexOf(memrecord);
+      if(idx < 0)
         RDCERR("vkUnmapMemory for memory handle that's not currently mapped");
       else
-        m_CoherentMaps.erase(it);
+        m_CoherentMaps.erase(idx);
     }
   }
 

@@ -447,7 +447,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, NULL, &heatubodesc, NULL},
   };
 
-  std::vector<VkWriteDescriptorSet> writeSets;
+  rdcarray<VkWriteDescriptorSet> writeSets;
   for(size_t i = 0; i < ARRAY_COUNT(writeSet); i++)
   {
     if(writeSet[i].descriptorCount > 0)

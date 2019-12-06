@@ -153,17 +153,17 @@ DECLARE_REFLECTION_STRUCT(VkPackedVersion);
 // If VK_EXT_debug_marker isn't supported, will silently do nothing
 struct VkMarkerRegion
 {
-  VkMarkerRegion(VkCommandBuffer cmd, const std::string &marker);
-  VkMarkerRegion(VkQueue q, const std::string &marker);
-  VkMarkerRegion(const std::string &marker) : VkMarkerRegion(VkQueue(VK_NULL_HANDLE), marker) {}
+  VkMarkerRegion(VkCommandBuffer cmd, const rdcstr &marker);
+  VkMarkerRegion(VkQueue q, const rdcstr &marker);
+  VkMarkerRegion(const rdcstr &marker) : VkMarkerRegion(VkQueue(VK_NULL_HANDLE), marker) {}
   ~VkMarkerRegion();
 
-  static void Begin(const std::string &marker, VkCommandBuffer cmd);
-  static void Set(const std::string &marker, VkCommandBuffer cmd);
+  static void Begin(const rdcstr &marker, VkCommandBuffer cmd);
+  static void Set(const rdcstr &marker, VkCommandBuffer cmd);
   static void End(VkCommandBuffer cmd);
 
-  static void Begin(const std::string &marker, VkQueue q = VK_NULL_HANDLE);
-  static void Set(const std::string &marker, VkQueue q = VK_NULL_HANDLE);
+  static void Begin(const rdcstr &marker, VkQueue q = VK_NULL_HANDLE);
+  static void Set(const rdcstr &marker, VkQueue q = VK_NULL_HANDLE);
   static void End(VkQueue q = VK_NULL_HANDLE);
 
   VkCommandBuffer cmdbuf = VK_NULL_HANDLE;

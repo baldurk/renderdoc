@@ -60,9 +60,9 @@ struct DescSetLayout
   void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
             const VkDescriptorSetLayoutCreateInfo *pCreateInfo);
 
-  void CreateBindingsArray(std::vector<DescriptorSetSlot *> &descBindings) const;
+  void CreateBindingsArray(rdcarray<DescriptorSetSlot *> &descBindings) const;
   void UpdateBindingsArray(const DescSetLayout &prevLayout,
-                           std::vector<DescriptorSetSlot *> &descBindings) const;
+                           rdcarray<DescriptorSetSlot *> &descBindings) const;
 
   struct Binding
   {
@@ -108,7 +108,7 @@ struct DescSetLayout
     VkShaderStageFlags stageFlags;
     ResourceId *immutableSampler;
   };
-  std::vector<Binding> bindings;
+  rdcarray<Binding> bindings;
 
   uint32_t dynamicCount;
   VkDescriptorSetLayoutCreateFlags flags;
@@ -119,11 +119,11 @@ struct DescSetLayout
 
 struct DescUpdateTemplateApplication
 {
-  std::vector<VkDescriptorBufferInfo> bufInfo;
-  std::vector<VkDescriptorImageInfo> imgInfo;
-  std::vector<VkBufferView> bufView;
+  rdcarray<VkDescriptorBufferInfo> bufInfo;
+  rdcarray<VkDescriptorImageInfo> imgInfo;
+  rdcarray<VkBufferView> bufView;
 
-  std::vector<VkWriteDescriptorSet> writes;
+  rdcarray<VkWriteDescriptorSet> writes;
 };
 
 struct DescUpdateTemplate
@@ -143,7 +143,7 @@ struct DescUpdateTemplate
   uint32_t bufferInfoCount;
   uint32_t imageInfoCount;
 
-  std::vector<VkDescriptorUpdateTemplateEntry> updates;
+  rdcarray<VkDescriptorUpdateTemplateEntry> updates;
 };
 
 struct VulkanCreationInfo
@@ -168,15 +168,15 @@ struct VulkanCreationInfo
   struct ShaderModuleReflection
   {
     uint32_t stageIndex;
-    std::string entryPoint;
-    std::string disassembly;
+    rdcstr entryPoint;
+    rdcstr disassembly;
     ShaderReflection refl;
     ShaderBindpointMapping mapping;
     SPIRVPatchData patchData;
 
     void Init(VulkanResourceManager *resourceMan, ResourceId id, const rdcspv::Reflector &spv,
-              const std::string &entry, VkShaderStageFlagBits stage,
-              const std::vector<SpecConstant> &specInfo);
+              const rdcstr &entry, VkShaderStageFlagBits stage,
+              const rdcarray<SpecConstant> &specInfo);
   };
 
   struct Pipeline
@@ -202,12 +202,12 @@ struct VulkanCreationInfo
     {
       Shader() : refl(NULL), mapping(NULL), patchData(NULL) {}
       ResourceId module;
-      std::string entryPoint;
+      rdcstr entryPoint;
       ShaderReflection *refl;
       ShaderBindpointMapping *mapping;
       SPIRVPatchData *patchData;
 
-      std::vector<SpecConstant> specialization;
+      rdcarray<SpecConstant> specialization;
     };
     Shader shaders[6];
 
@@ -221,7 +221,7 @@ struct VulkanCreationInfo
       // VkVertexInputBindingDivisorDescriptionEXT
       uint32_t instanceDivisor;
     };
-    std::vector<Binding> vertexBindings;
+    rdcarray<Binding> vertexBindings;
 
     struct Attribute
     {
@@ -230,7 +230,7 @@ struct VulkanCreationInfo
       VkFormat format;
       uint32_t byteoffset;
     };
-    std::vector<Attribute> vertexAttrs;
+    rdcarray<Attribute> vertexAttrs;
 
     // VkPipelineInputAssemblyStateCreateInfo
     VkPrimitiveTopology topology;
@@ -244,8 +244,8 @@ struct VulkanCreationInfo
 
     // VkPipelineViewportStateCreateInfo
     uint32_t viewportCount;
-    std::vector<VkViewport> viewports;
-    std::vector<VkRect2D> scissors;
+    rdcarray<VkViewport> viewports;
+    rdcarray<VkRect2D> scissors;
 
     // VkPipelineRasterizationStateCreateInfo
     bool depthClampEnable;
@@ -288,7 +288,7 @@ struct VulkanCreationInfo
     {
       bool enabled;
       VkExtent2D gridSize;
-      std::vector<VkSampleLocationEXT> locations;
+      rdcarray<VkSampleLocationEXT> locations;
     } sampleLocations;
 
     // VkPipelineDepthStencilStateCreateInfo
@@ -320,13 +320,13 @@ struct VulkanCreationInfo
 
       uint8_t channelWriteMask;
     };
-    std::vector<Attachment> attachments;
+    rdcarray<Attachment> attachments;
 
     // VkPipelineDynamicStateCreateInfo
     bool dynamicStates[VkDynamicCount];
 
     // VkPipelineDiscardRectangleStateCreateInfoEXT
-    std::vector<VkRect2D> discardRectangles;
+    rdcarray<VkRect2D> discardRectangles;
     VkDiscardRectangleModeEXT discardMode;
   };
   std::map<ResourceId, Pipeline> m_Pipeline;
@@ -336,8 +336,8 @@ struct VulkanCreationInfo
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkPipelineLayoutCreateInfo *pCreateInfo);
 
-    std::vector<VkPushConstantRange> pushRanges;
-    std::vector<ResourceId> descSetLayouts;
+    rdcarray<VkPushConstantRange> pushRanges;
+    rdcarray<ResourceId> descSetLayouts;
   };
   std::map<ResourceId, PipelineLayout> m_PipelineLayout;
 
@@ -361,30 +361,30 @@ struct VulkanCreationInfo
       VkImageLayout finalLayout;
     };
 
-    std::vector<Attachment> attachments;
+    rdcarray<Attachment> attachments;
 
     struct Subpass
     {
       // these are split apart since they layout is
       // rarely used but the indices are often used
-      std::vector<uint32_t> inputAttachments;
-      std::vector<uint32_t> colorAttachments;
-      std::vector<uint32_t> resolveAttachments;
+      rdcarray<uint32_t> inputAttachments;
+      rdcarray<uint32_t> colorAttachments;
+      rdcarray<uint32_t> resolveAttachments;
       int32_t depthstencilAttachment;
       int32_t fragmentDensityAttachment;
 
-      std::vector<VkImageLayout> inputLayouts;
-      std::vector<VkImageLayout> colorLayouts;
+      rdcarray<VkImageLayout> inputLayouts;
+      rdcarray<VkImageLayout> colorLayouts;
       VkImageLayout depthstencilLayout;
       VkImageLayout fragmentDensityLayout;
 
-      std::vector<uint32_t> multiviews;
+      rdcarray<uint32_t> multiviews;
     };
-    std::vector<Subpass> subpasses;
+    rdcarray<Subpass> subpasses;
 
     // one for each subpass, as we preserve attachments
     // in the layout that the subpass uses
-    std::vector<VkRenderPass> loadRPs;
+    rdcarray<VkRenderPass> loadRPs;
   };
   std::map<ResourceId, RenderPass> m_RenderPass;
 
@@ -398,13 +398,13 @@ struct VulkanCreationInfo
       ResourceId createdView;
       bool hasStencil;
     };
-    std::vector<Attachment> attachments;
+    rdcarray<Attachment> attachments;
     bool imageless;
 
     uint32_t width, height, layers;
 
     // See above in loadRPs - we need to duplicate and make framebuffer equivalents for each
-    std::vector<VkFramebuffer> loadFBs;
+    rdcarray<VkFramebuffer> loadFBs;
   };
   std::map<ResourceId, Framebuffer> m_Framebuffer;
 
@@ -527,7 +527,7 @@ struct VulkanCreationInfo
 
     rdcspv::Reflector spirv;
 
-    std::string unstrippedPath;
+    rdcstr unstrippedPath;
 
     std::map<ShaderModuleReflectionKey, ShaderModuleReflection> m_Reflections;
   };
@@ -539,15 +539,15 @@ struct VulkanCreationInfo
               const VkDescriptorPoolCreateInfo *pCreateInfo);
 
     uint32_t maxSets;
-    std::vector<VkDescriptorPoolSize> poolSizes;
+    rdcarray<VkDescriptorPoolSize> poolSizes;
 
     void CreateOverflow(VkDevice device, VulkanResourceManager *resourceMan);
 
-    std::vector<VkDescriptorPool> overflow;
+    rdcarray<VkDescriptorPool> overflow;
   };
   std::map<ResourceId, DescSetPool> m_DescSetPool;
 
-  std::map<ResourceId, std::string> m_Names;
+  std::map<ResourceId, rdcstr> m_Names;
   std::map<ResourceId, SwapchainInfo> m_SwapChain;
   std::map<ResourceId, DescSetLayout> m_DescSetLayout;
   std::map<ResourceId, DescUpdateTemplate> m_DescUpdateTemplate;

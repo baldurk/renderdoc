@@ -722,8 +722,8 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
     RDCWARN("Presenting multiple swapchains at once - only first will be processed");
   }
 
-  std::vector<VkSwapchainKHR> unwrappedSwaps;
-  std::vector<VkSemaphore> unwrappedSems;
+  rdcarray<VkSwapchainKHR> unwrappedSwaps;
+  rdcarray<VkSemaphore> unwrappedSems;
 
   VkPresentInfoKHR unwrappedInfo = *pPresentInfo;
 
@@ -835,8 +835,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       m_TextRenderer->BeginText(textstate);
 
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
-      std::string overlayText =
-          RenderDoc::Inst().GetOverlayText(RDCDriver::Vulkan, m_FrameCounter, flags);
+      rdcstr overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::Vulkan, m_FrameCounter, flags);
 
       if(!overlayText.empty())
         m_TextRenderer->RenderText(textstate, 0.0f, 0.0f, overlayText.c_str());
@@ -852,8 +851,8 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
       ObjDisp(textstate.cmd)->EndCommandBuffer(Unwrap(textstate.cmd));
 
-      std::vector<VkPipelineStageFlags> waitStage(unwrappedSems.size(),
-                                                  VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+      rdcarray<VkPipelineStageFlags> waitStage;
+      waitStage.fill(unwrappedSems.size(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
       SubmitCmds(unwrappedSems.data(), waitStage.data(), (uint32_t)unwrappedSems.size());
 
       if(swapQueueIndex != m_QueueFamilyIdx)

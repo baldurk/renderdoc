@@ -45,8 +45,8 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
   return true;
 }
 
-void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string> &extensionList,
-                                          const std::set<std::string> &supportedExtensions)
+void WrappedVulkan::AddRequiredExtensions(bool instance, rdcarray<rdcstr> &extensionList,
+                                          const std::set<rdcstr> &supportedExtensions)
 {
   bool device = !instance;
 
@@ -66,8 +66,7 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
   if(instance)
   {
     // don't add duplicates
-    if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_SURFACE_EXTENSION_NAME) ==
-       extensionList.end())
+    if(!extensionList.contains(VK_KHR_SURFACE_EXTENSION_NAME))
       extensionList.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
@@ -77,11 +76,8 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
       m_SupportedWindowSystems.push_back(WindowingSystem::Wayland);
 
       // don't add duplicates
-      if(std::find(extensionList.begin(), extensionList.end(),
-                   VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME) == extensionList.end())
-      {
+      if(!extensionList.contains(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME))
         extensionList.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
-      }
     }
 #endif
 
@@ -92,11 +88,8 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
       m_SupportedWindowSystems.push_back(WindowingSystem::XCB);
 
       // don't add duplicates
-      if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_XCB_SURFACE_EXTENSION_NAME) ==
-         extensionList.end())
-      {
+      if(!extensionList.contains(VK_KHR_XCB_SURFACE_EXTENSION_NAME))
         extensionList.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
-      }
     }
 #endif
 
@@ -107,11 +100,8 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
       m_SupportedWindowSystems.push_back(WindowingSystem::Xlib);
 
       // don't add duplicates
-      if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_XLIB_SURFACE_EXTENSION_NAME) ==
-         extensionList.end())
-      {
+      if(!extensionList.contains(VK_KHR_XLIB_SURFACE_EXTENSION_NAME))
         extensionList.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
-      }
     }
 #endif
 
@@ -124,11 +114,8 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
       RDCLOG("Will create surfaces using " VK_EXT_METAL_SURFACE_EXTENSION_NAME);
 
       // don't add duplicates, application will have added this but just be sure
-      if(std::find(extensionList.begin(), extensionList.end(),
-                   VK_EXT_METAL_SURFACE_EXTENSION_NAME) == extensionList.end())
-      {
+      if(!extensionList.contains(VK_EXT_METAL_SURFACE_EXTENSION_NAME))
         extensionList.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
-      }
     }
 #endif
 
@@ -141,11 +128,8 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
       RDCLOG("Will create surfaces using " VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 
       // don't add duplicates, application will have added this but just be sure
-      if(std::find(extensionList.begin(), extensionList.end(),
-                   VK_MVK_MACOS_SURFACE_EXTENSION_NAME) == extensionList.end())
-      {
+      if(!extensionList.contains(VK_MVK_MACOS_SURFACE_EXTENSION_NAME))
         extensionList.push_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
-      }
     }
 #endif
 
@@ -157,11 +141,8 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
     m_SupportedWindowSystems.push_back(WindowingSystem::Android);
 
     // don't add duplicates, application will have added this but just be sure
-    if(std::find(extensionList.begin(), extensionList.end(),
-                 VK_KHR_ANDROID_SURFACE_EXTENSION_NAME) == extensionList.end())
-    {
+    if(!extensionList.contains(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME))
       extensionList.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
-    }
 #endif
 
 #if defined(VK_USE_PLATFORM_GGP)
@@ -172,11 +153,8 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
     m_SupportedWindowSystems.push_back(WindowingSystem::GGP);
 
     // don't add duplicates, application will have added this but just be sure
-    if(std::find(extensionList.begin(), extensionList.end(),
-                 VK_GGP_STREAM_DESCRIPTOR_SURFACE_EXTENSION_NAME) == extensionList.end())
-    {
+    if(!extensionList.contains(VK_GGP_STREAM_DESCRIPTOR_SURFACE_EXTENSION_NAME))
       extensionList.push_back(VK_GGP_STREAM_DESCRIPTOR_SURFACE_EXTENSION_NAME);
-    }
 #endif
 
 #if EXPECT_WSI
@@ -270,23 +248,23 @@ void VulkanReplay::InstallVulkanLayer(bool systemLevel)
 {
 }
 #else
-static std::string GenerateJSON(const std::string &sopath)
+static rdcstr GenerateJSON(const rdcstr &sopath)
 {
   char *txt = (char *)driver_vulkan_renderdoc_json;
   int len = driver_vulkan_renderdoc_json_len;
 
-  std::string json = std::string(txt, txt + len);
+  rdcstr json = rdcstr(txt, len);
 
   const char modulePathString[] = "@VULKAN_LAYER_MODULE_PATH@";
 
-  size_t idx = json.find(modulePathString);
+  int32_t idx = json.find(modulePathString);
 
   json = json.substr(0, idx) + sopath + json.substr(idx + sizeof(modulePathString) - 1);
 
   const char majorString[] = "@RENDERDOC_VERSION_MAJOR@";
 
   idx = json.find(majorString);
-  while(idx != std::string::npos)
+  while(idx >= 0)
   {
     json = json.substr(0, idx) + STRINGIZE(RENDERDOC_VERSION_MAJOR) +
            json.substr(idx + sizeof(majorString) - 1);
@@ -297,7 +275,7 @@ static std::string GenerateJSON(const std::string &sopath)
   const char minorString[] = "@RENDERDOC_VERSION_MINOR@";
 
   idx = json.find(minorString);
-  while(idx != std::string::npos)
+  while(idx >= 0)
   {
     json = json.substr(0, idx) + STRINGIZE(RENDERDOC_VERSION_MINOR) +
            json.substr(idx + sizeof(minorString) - 1);
@@ -308,12 +286,12 @@ static std::string GenerateJSON(const std::string &sopath)
   return json;
 }
 
-static bool FileExists(const std::string &path)
+static bool FileExists(const rdcstr &path)
 {
   return access(path.c_str(), F_OK) == 0;
 }
 
-static std::string GetSOFromJSON(const std::string &json)
+static rdcstr GetSOFromJSON(const rdcstr &json)
 {
   char *json_string = new char[1024];
   memset(json_string, 0, 1024);
@@ -327,7 +305,7 @@ static std::string GetSOFromJSON(const std::string &json)
     fclose(f);
   }
 
-  std::string ret = "";
+  rdcstr ret = "";
 
   // The line is:
   // "library_path": "/foo/bar/librenderdoc.so",
@@ -362,7 +340,7 @@ enum class LayerPath : int
 
 ITERABLE_OPERATORS(LayerPath);
 
-std::string LayerRegistrationPath(LayerPath path)
+rdcstr LayerRegistrationPath(LayerPath path)
 {
   switch(path)
   {
@@ -372,10 +350,10 @@ std::string LayerRegistrationPath(LayerPath path)
     {
       const char *xdg = getenv("XDG_DATA_HOME");
       if(xdg && FileIO::exists(xdg))
-        return std::string(xdg) + "/vulkan/implicit_layer.d/renderdoc_capture.json";
+        return rdcstr(xdg) + "/vulkan/implicit_layer.d/renderdoc_capture.json";
 
       const char *home_path = getenv("HOME");
-      return std::string(home_path != NULL ? home_path : "") +
+      return rdcstr(home_path != NULL ? home_path : "") +
              "/.local/share/vulkan/implicit_layer.d/renderdoc_capture.json";
     }
     default: break;
@@ -384,9 +362,9 @@ std::string LayerRegistrationPath(LayerPath path)
   return "";
 }
 
-void MakeParentDirs(std::string file)
+void MakeParentDirs(rdcstr file)
 {
-  std::string dir = get_dirname(file);
+  rdcstr dir = get_dirname(file);
 
   if(dir == "/" || dir.empty())
     return;
@@ -407,7 +385,7 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, rdcarray<rdcstr> &m
   const char *home_path = getenv("HOME");
   if(home_path == NULL)
     home_path = "";
-  if(FileExists(std::string(home_path) + "/.renderdoc/ignore_vulkan_layer_issues"))
+  if(FileExists(rdcstr(home_path) + "/.renderdoc/ignore_vulkan_layer_issues"))
   {
     flags = VulkanLayerFlags::ThisInstallRegistered;
     return false;
@@ -541,9 +519,9 @@ bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, rdcarray<rdcstr> &m
 
 void VulkanReplay::InstallVulkanLayer(bool systemLevel)
 {
-  std::string usrPath = LayerRegistrationPath(LayerPath::usr);
-  std::string homePath = LayerRegistrationPath(LayerPath::home);
-  std::string etcPath = LayerRegistrationPath(LayerPath::etc);
+  rdcstr usrPath = LayerRegistrationPath(LayerPath::usr);
+  rdcstr homePath = LayerRegistrationPath(LayerPath::home);
+  rdcstr etcPath = LayerRegistrationPath(LayerPath::etc);
 
   if(FileExists(usrPath))
   {
@@ -597,8 +575,8 @@ void VulkanReplay::InstallVulkanLayer(bool systemLevel)
 
   LayerPath idx = systemLevel ? LayerPath::etc : LayerPath::home;
 
-  std::string jsonPath = LayerRegistrationPath(idx);
-  std::string path = GetSOFromJSON(jsonPath);
+  rdcstr jsonPath = LayerRegistrationPath(idx);
+  rdcstr path = GetSOFromJSON(jsonPath);
   rdcstr libPath;
   FileIO::GetLibraryFilename(libPath);
 

@@ -220,7 +220,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
       // insert in sorted location
       auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
-      m_DrawcallUses.insert(drawit, use);
+      m_DrawcallUses.insert(drawit - m_DrawcallUses.begin(), use);
     }
 
     for(uint32_t sub = 0; sub < submitCount; sub++)
@@ -259,7 +259,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
         // we're adding multiple events, need to increment ourselves
         m_RootEventID++;
 
-        std::string basename = StringFormat::Fmt("vkQueueSubmit(%u)", submitInfo.commandBufferCount);
+        rdcstr basename = StringFormat::Fmt("vkQueueSubmit(%u)", submitInfo.commandBufferCount);
 
         for(uint32_t c = 0; c < submitInfo.commandBufferCount; c++)
         {
@@ -272,8 +272,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
                                               m_BakedCmdBufferInfo[liveCmd].imgbarriers,
                                               m_ImageLayouts);
 
-          std::string name = StringFormat::Fmt("=> %s[%u]: vkBeginCommandBuffer(%s)",
-                                               basename.c_str(), c, ToStr(cmd).c_str());
+          rdcstr name = StringFormat::Fmt("=> %s[%u]: vkBeginCommandBuffer(%s)", basename.c_str(),
+                                          c, ToStr(cmd).c_str());
 
           // add a fake marker
           DrawcallDescription draw;
@@ -293,7 +293,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
           for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
           {
-            std::vector<Submission> &submits =
+            rdcarray<Submission> &submits =
                 m_Partial[Secondary].cmdBufferSubmits[cmdBufInfo.draw->executedCmds[e]];
 
             for(size_t s = 0; s < submits.size(); s++)
@@ -374,7 +374,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
           uint32_t eid = startEID;
 
-          std::vector<VkCommandBuffer> rerecordedCmds;
+          rdcarray<VkCommandBuffer> rerecordedCmds;
 
           for(uint32_t c = 0; c < submitInfo.commandBufferCount; c++)
           {
@@ -538,7 +538,7 @@ bool WrappedVulkan::PatchIndirectDraw(VkIndirectPatchType type, DrawcallDescript
 
 void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
 {
-  std::vector<VulkanDrawcallTreeNode> &cmdBufNodes = cmdBufInfo.draw->children;
+  rdcarray<VulkanDrawcallTreeNode> &cmdBufNodes = cmdBufInfo.draw->children;
 
   // assign new drawcall IDs
   for(size_t i = 0; i < cmdBufNodes.size(); i++)
@@ -616,10 +616,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
         uint32_t shiftCount = n.indirectPatch.count - indirectCount;
 
         // i is the pushmarker, so i + 1 is the first of the sub draws.
-        // i + 1 + n.indirectPatch.count is the last of the draws, we don't want to erase the next
-        // one (the popmarker)
-        cmdBufNodes.erase(cmdBufNodes.begin() + i + 1 + indirectCount,
-                          cmdBufNodes.begin() + i + 1 + n.indirectPatch.count);
+        cmdBufNodes.erase(i + 1 + indirectCount, shiftCount);
         for(size_t j = i + 1 + indirectCount; j < cmdBufNodes.size(); j++)
         {
           cmdBufNodes[j].draw.eventId -= shiftCount;
@@ -640,7 +637,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
 
         for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
         {
-          std::vector<Submission> &submits =
+          rdcarray<Submission> &submits =
               m_Partial[Secondary].cmdBufferSubmits[cmdBufInfo.draw->executedCmds[e]];
 
           for(size_t s = 0; s < submits.size(); s++)
@@ -718,7 +715,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
 
       // insert in sorted location
       auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
-      m_DrawcallUses.insert(drawit, use);
+      m_DrawcallUses.insert(drawit - m_DrawcallUses.begin(), use);
     }
 
     RDCASSERT(n.children.empty());
@@ -955,7 +952,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
       if(fence != VK_NULL_HANDLE)
         GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
 
-      std::vector<VkResourceRecord *> maps;
+      rdcarray<VkResourceRecord *> maps;
       {
         SCOPED_LOCK(m_CoherentMapsLock);
         maps = m_CoherentMaps;

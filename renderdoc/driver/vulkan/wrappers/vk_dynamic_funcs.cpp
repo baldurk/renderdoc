@@ -625,10 +625,8 @@ bool WrappedVulkan::Serialise_vkCmdSetSampleLocationsEXT(
 
         if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          m_RenderState.sampleLocations.locations.clear();
-          m_RenderState.sampleLocations.locations.insert(
-              m_RenderState.sampleLocations.locations.begin(), sampleInfo.pSampleLocations,
-              sampleInfo.pSampleLocations + sampleInfo.sampleLocationsCount);
+          m_RenderState.sampleLocations.locations.assign(sampleInfo.pSampleLocations,
+                                                         sampleInfo.sampleLocationsCount);
           m_RenderState.sampleLocations.gridSize = sampleInfo.sampleLocationGridSize;
           m_RenderState.sampleLocations.sampleCount = sampleInfo.sampleLocationsPerPixel;
         }

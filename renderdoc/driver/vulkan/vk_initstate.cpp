@@ -1181,7 +1181,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
           if(IsBlockFormat(fmt))
             bufAlignment = (VkDeviceSize)GetByteSize(1, 1, 1, fmt, 0);
 
-          std::vector<VkBufferImageCopy> mainCopies, stencilCopies;
+          rdcarray<VkBufferImageCopy> mainCopies, stencilCopies;
 
           // copy each slice/mip individually
           for(int a = 0; a < numLayers; a++)
@@ -1340,8 +1340,8 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 
 void WrappedVulkan::ImageInitializationBarriers(ResourceId id, WrappedVkRes *live, InitPolicy policy,
                                                 bool initialized, const ImgRefs *imgRefs,
-                                                std::vector<VkImageMemoryBarrier> &setupBarriers,
-                                                std::vector<VkImageMemoryBarrier> &cleanupBarriers) const
+                                                rdcarray<VkImageMemoryBarrier> &setupBarriers,
+                                                rdcarray<VkImageMemoryBarrier> &cleanupBarriers) const
 {
   // For each subresource that will be initialized (either copy or fill), create barriers that will
   // transition the subresource from UNDEFINED to TRANSFER_DST_OPTIMAL before the write (in
@@ -1429,10 +1429,10 @@ void WrappedVulkan::ImageInitializationBarriers(ResourceId id, WrappedVkRes *liv
   }
 }
 
-std::map<uint32_t, std::vector<VkImageMemoryBarrier> > GetExtQBarriers(
-    const std::vector<VkImageMemoryBarrier> &barriers)
+std::map<uint32_t, rdcarray<VkImageMemoryBarrier> > GetExtQBarriers(
+    const rdcarray<VkImageMemoryBarrier> &barriers)
 {
-  std::map<uint32_t, std::vector<VkImageMemoryBarrier> > extQBarriers;
+  std::map<uint32_t, rdcarray<VkImageMemoryBarrier> > extQBarriers;
 
   for(auto barrierIt = barriers.begin(); barrierIt != barriers.end(); ++barrierIt)
   {
@@ -1445,14 +1445,14 @@ std::map<uint32_t, std::vector<VkImageMemoryBarrier> > GetExtQBarriers(
 }
 
 void WrappedVulkan::SubmitExtQBarriers(
-    const std::map<uint32_t, std::vector<VkImageMemoryBarrier> > &extQBarriers)
+    const std::map<uint32_t, rdcarray<VkImageMemoryBarrier> > &extQBarriers)
 {
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
   for(auto extQBarrierIt = extQBarriers.begin(); extQBarrierIt != extQBarriers.end(); ++extQBarrierIt)
   {
     uint32_t queueFamilyIndex = extQBarrierIt->first;
-    const std::vector<VkImageMemoryBarrier> &queueFamilyBarriers = extQBarrierIt->second;
+    const rdcarray<VkImageMemoryBarrier> &queueFamilyBarriers = extQBarrierIt->second;
 
     VkCommandBuffer extQCmd = GetExtQueueCmd(queueFamilyIndex);
 
@@ -1487,7 +1487,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
     // need to blat over the current descriptor set contents, so these are available
     // when we want to fetch pipeline state
-    std::vector<DescriptorSetSlot *> &bindings = m_DescriptorSetState[id].currentBindings;
+    rdcarray<DescriptorSetSlot *> &bindings = m_DescriptorSetState[id].currentBindings;
 
     for(uint32_t i = 0; i < initial.numDescriptors; i++)
     {
@@ -2022,7 +2022,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       }
     }
 
-    std::vector<VkImageMemoryBarrier> setupBarriers, cleanupBarriers;
+    rdcarray<VkImageMemoryBarrier> setupBarriers, cleanupBarriers;
     ImageInitializationBarriers(id, live, policy, initialized, imgRefs, setupBarriers,
                                 cleanupBarriers);
     DoPipelineBarrier(cmd, (uint32_t)setupBarriers.size(), setupBarriers.data());
@@ -2036,8 +2036,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     if(IsBlockFormat(fmt))
       bufAlignment = (VkDeviceSize)GetByteSize(1, 1, 1, fmt, 0);
 
-    std::vector<VkBufferImageCopy> copyRegions;
-    std::vector<VkImageSubresourceRange> clearRegions;
+    rdcarray<VkBufferImageCopy> copyRegions;
+    rdcarray<VkImageSubresourceRange> clearRegions;
 
     // copy each slice/mip individually
     for(int a = 0; a < m_CreationInfo.m_Image[id].arrayLayers; a++)
@@ -2181,7 +2181,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    std::map<uint32_t, std::vector<VkImageMemoryBarrier> > extQBarriers =
+    std::map<uint32_t, rdcarray<VkImageMemoryBarrier> > extQBarriers =
         GetExtQBarriers(cleanupBarriers);
     if(extQBarriers.size() > 0)
     {
@@ -2251,7 +2251,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    std::vector<VkBufferCopy> regions;
+    rdcarray<VkBufferCopy> regions;
     uint32_t fillCount = 0;
     for(auto it = resetReq.begin(); it != resetReq.end(); it++)
     {

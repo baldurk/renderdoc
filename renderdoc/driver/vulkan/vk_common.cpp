@@ -29,7 +29,7 @@
 
 WrappedVulkan *VkMarkerRegion::vk = NULL;
 
-VkMarkerRegion::VkMarkerRegion(VkCommandBuffer cmd, const std::string &marker)
+VkMarkerRegion::VkMarkerRegion(VkCommandBuffer cmd, const rdcstr &marker)
 {
   if(cmd == VK_NULL_HANDLE)
     return;
@@ -38,7 +38,7 @@ VkMarkerRegion::VkMarkerRegion(VkCommandBuffer cmd, const std::string &marker)
   Begin(marker, cmd);
 }
 
-VkMarkerRegion::VkMarkerRegion(VkQueue q, const std::string &marker)
+VkMarkerRegion::VkMarkerRegion(VkQueue q, const rdcstr &marker)
 {
   if(q == VK_NULL_HANDLE)
   {
@@ -60,7 +60,7 @@ VkMarkerRegion::~VkMarkerRegion()
     End(cmdbuf);
 }
 
-void VkMarkerRegion::Begin(const std::string &marker, VkCommandBuffer cmd)
+void VkMarkerRegion::Begin(const rdcstr &marker, VkCommandBuffer cmd)
 {
   if(cmd == VK_NULL_HANDLE)
     return;
@@ -75,7 +75,7 @@ void VkMarkerRegion::Begin(const std::string &marker, VkCommandBuffer cmd)
   ObjDisp(cmd)->CmdBeginDebugUtilsLabelEXT(Unwrap(cmd), &label);
 }
 
-void VkMarkerRegion::Set(const std::string &marker, VkCommandBuffer cmd)
+void VkMarkerRegion::Set(const rdcstr &marker, VkCommandBuffer cmd)
 {
   if(cmd == VK_NULL_HANDLE)
     return;
@@ -102,7 +102,7 @@ void VkMarkerRegion::End(VkCommandBuffer cmd)
   ObjDisp(cmd)->CmdEndDebugUtilsLabelEXT(Unwrap(cmd));
 }
 
-void VkMarkerRegion::Begin(const std::string &marker, VkQueue q)
+void VkMarkerRegion::Begin(const rdcstr &marker, VkQueue q)
 {
   if(q == VK_NULL_HANDLE)
   {
@@ -122,7 +122,7 @@ void VkMarkerRegion::Begin(const std::string &marker, VkQueue q)
   ObjDisp(q)->QueueBeginDebugUtilsLabelEXT(Unwrap(q), &label);
 }
 
-void VkMarkerRegion::Set(const std::string &marker, VkQueue q)
+void VkMarkerRegion::Set(const rdcstr &marker, VkQueue q)
 {
   if(q == VK_NULL_HANDLE)
   {

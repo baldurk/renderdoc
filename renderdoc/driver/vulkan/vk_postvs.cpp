@@ -52,7 +52,7 @@ static const uint32_t MeshOutputTBufferArraySize = 16;
 static const uint32_t MeshOutputReservedBindings = 5;
 
 static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRVPatchData &patchData,
-                                       const char *entryName, std::vector<uint32_t> instDivisor,
+                                       const char *entryName, rdcarray<uint32_t> instDivisor,
                                        const DrawcallDescription *draw, uint32_t numVerts,
                                        uint32_t numViews, rdcarray<uint32_t> &modSpirv,
                                        uint32_t &bufStride)
@@ -119,9 +119,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     // For outputs, used to 'read' from the global at the end.
     rdcspv::Id privatePtrID;
   };
-  std::vector<inputOutputIDs> ins;
+  rdcarray<inputOutputIDs> ins;
   ins.resize(numInputs);
-  std::vector<inputOutputIDs> outs;
+  rdcarray<inputOutputIDs> outs;
   outs.resize(numOutputs);
 
   std::set<rdcspv::Id> inputs;
@@ -581,7 +581,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
   // declare the output buffer and its type
   {
-    std::vector<rdcspv::Id> members;
+    rdcarray<rdcspv::Id> members;
     for(uint32_t o = 0; o < numOutputs; o++)
       members.push_back(outs[o].basetypeID);
 
@@ -742,7 +742,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
   // add the wrapper function
   {
-    std::vector<rdcspv::Operation> ops;
+    rdcarray<rdcspv::Operation> ops;
 
     rdcspv::Id voidType = editor.DeclareType(rdcspv::scalar<void>());
     rdcspv::Id funcType = editor.DeclareType(rdcspv::FunctionType(voidType, {}));
@@ -1027,7 +1027,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             {
               result = editor.MakeId();
 
-              std::vector<rdcspv::Id> ids;
+              rdcarray<rdcspv::Id> ids;
 
               for(uint32_t c = 0; c < refl.inputSignature[i].compCount; c++)
                 ids.push_back(comps[c]);
@@ -1052,7 +1052,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             rdcspv::Id swizzleIn = result;
             result = editor.MakeId();
 
-            std::vector<uint32_t> swizzle;
+            rdcarray<uint32_t> swizzle;
 
             for(uint32_t c = 0; c < refl.inputSignature[i].compCount; c++)
               swizzle.push_back(c);
@@ -1074,7 +1074,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           {
             // for composite types we need to access chain first
             rdcspv::Id subElement = editor.MakeId();
-            std::vector<rdcspv::Id> chain;
+            rdcarray<rdcspv::Id> chain;
 
             for(uint32_t accessIdx : patchData.inputs[i].accessChain)
             {
@@ -1114,7 +1114,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           loaded = editor.MakeId();
 
           // structure member, need to access chain first
-          std::vector<rdcspv::Id> chain;
+          rdcarray<rdcspv::Id> chain;
 
           for(uint32_t idx : patchData.outputs[o].accessChain)
           {
@@ -1195,10 +1195,10 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
   VkResult vkr = VK_SUCCESS;
 
   {
-    std::vector<VkWriteDescriptorSet> descWrites;
-    std::vector<VkDescriptorImageInfo *> allocImgWrites;
-    std::vector<VkDescriptorBufferInfo *> allocBufWrites;
-    std::vector<VkBufferView *> allocBufViewWrites;
+    rdcarray<VkWriteDescriptorSet> descWrites;
+    rdcarray<VkDescriptorImageInfo *> allocImgWrites;
+    rdcarray<VkDescriptorBufferInfo *> allocBufWrites;
+    rdcarray<VkBufferView *> allocBufViewWrites;
 
     // one for each descriptor type. 1 of each to start with, we then increment for each descriptor
     // we need to allocate
@@ -1220,11 +1220,11 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
     for(size_t i = 0; i < newBindingsCount; i++)
       poolSizes[newBindings[i].descriptorType].descriptorCount += newBindings[i].descriptorCount;
 
-    const std::vector<ResourceId> &pipeDescSetLayouts =
+    const rdcarray<ResourceId> &pipeDescSetLayouts =
         creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts;
 
     // need to add our added bindings to the first descriptor set
-    std::vector<VkDescriptorSetLayoutBinding> bindings(newBindings, newBindings + newBindingsCount);
+    rdcarray<VkDescriptorSetLayoutBinding> bindings(newBindings, newBindingsCount);
 
     // if there are fewer sets bound than were declared in the pipeline layout, only process the
     // bound sets (as otherwise we'd fail to copy from them). Assume the application knew what it
@@ -1586,7 +1586,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
 
   // create pipeline layout with new descriptor set layouts
   {
-    std::vector<VkPushConstantRange> push = creationInfo.m_PipelineLayout[pipeInfo.layout].pushRanges;
+    rdcarray<VkPushConstantRange> push = creationInfo.m_PipelineLayout[pipeInfo.layout].pushRanges;
 
     // ensure the push range is visible to the compute shader
     for(VkPushConstantRange &range : push)
@@ -1645,7 +1645,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     const bool restart = pipeCreateInfo.pInputAssemblyState->primitiveRestartEnable &&
                          SupportsRestart(drawcall->topology);
     bytebuf idxdata;
-    std::vector<uint32_t> indices;
+    rdcarray<uint32_t> indices;
     uint8_t *idx8 = NULL;
     uint16_t *idx16 = NULL;
     uint32_t *idx32 = NULL;
@@ -1737,13 +1737,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
       if(it != indices.end() && *it == i32)
         continue;
 
-      indices.insert(it, i32);
+      indices.insert(it - indices.begin(), i32);
     }
 
     // if we read out of bounds, we'll also have a 0 index being referenced
     // (as 0 is read). Don't insert 0 if we already have 0 though
     if(numIndices < drawcall->numIndices && (indices.empty() || indices[0] != 0))
-      indices.insert(indices.begin(), 0);
+      indices.insert(0, 0);
 
     maxIndex = indices.back();
 
@@ -1912,7 +1912,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     VkBufferView view;
   };
 
-  std::vector<uint32_t> attrInstDivisor;
+  rdcarray<uint32_t> attrInstDivisor;
   CompactedAttrBuffer vbuffers[64];
   RDCEraseEl(vbuffers);
 
@@ -1929,7 +1929,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     // we fetch the vertex buffer data up front here since there's a very high chance of either
     // overlap due to interleaved attributes, or no overlap and no wastage due to separate compact
     // attributes.
-    std::vector<bytebuf> origVBs;
+    rdcarray<bytebuf> origVBs;
     origVBs.reserve(16);
 
     for(uint32_t vb = 0; vb < vi->vertexBindingDescriptionCount; vb++)
@@ -2978,7 +2978,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
       dataSize = generatedSize;
   }
 
-  std::vector<VulkanPostVSData::InstData> instData;
+  rdcarray<VulkanPostVSData::InstData> instData;
 
   // instanced draws must be replayed one at a time so we can record the number of primitives from
   // each drawcall, as due to expansion this can vary per-instance.
@@ -3035,7 +3035,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();
 
-    std::vector<VkXfbQueryResult> queryResults;
+    rdcarray<VkXfbQueryResult> queryResults;
     queryResults.resize(drawcall->numInstances);
     vkr = ObjDisp(dev)->GetQueryPoolResults(
         Unwrap(dev), Unwrap(m_PostVS.XFBQueryPool), 0, drawcall->numInstances,

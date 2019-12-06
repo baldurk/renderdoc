@@ -23,7 +23,6 @@
 ******************************************************************************/
 
 #include <float.h>
-#include <vector>
 #include "driver/shaders/spirv/spirv_editor.h"
 #include "driver/shaders/spirv/spirv_op_helpers.h"
 #include "vk_debug.h"
@@ -113,7 +112,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
                                                        const Subresource &sub, CompType typeCast)
 {
   VULKANNOTIMP("PixelHistory");
-  return std::vector<PixelModification>();
+  return rdcarray<PixelModification>();
 }
 
 #else
@@ -131,7 +130,7 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
                              VkFormat format, VkExtent3D extent, uint32_t sampleMask,
                              VkQueryPool occlusionPool, VkImageView colorImageView,
                              VkImageView stencilImageView, VkImage colorImage, VkImage stencilImage,
-                             VkBuffer dstBuffer, const std::vector<EventUsage> &events)
+                             VkBuffer dstBuffer, const rdcarray<EventUsage> &events)
       : m_pDriver(vk),
         m_X(x),
         m_Y(y),
@@ -326,7 +325,7 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
 
   // Returns true if the shader was modified.
   bool StripSideEffects(const SPIRVPatchData &patchData, const char *entryName,
-                        std::vector<uint32_t> &modSpirv)
+                        rdcarray<uint32_t> &modSpirv)
   {
     rdcspv::Editor editor(modSpirv);
 
@@ -455,12 +454,12 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
     const VulkanCreationInfo::Pipeline &p =
         m_pDriver->GetRenderState().m_CreationInfo->m_Pipeline[pipeline];
 
-    std::vector<VkPipelineShaderStageCreateInfo> prevStages;
+    rdcarray<VkPipelineShaderStageCreateInfo> prevStages;
     prevStages.resize(pipeCreateInfo.stageCount);
     memcpy(prevStages.data(), pipeCreateInfo.pStages,
            sizeof(VkPipelineShaderStageCreateInfo) * pipeCreateInfo.stageCount);
 
-    std::vector<VkPipelineShaderStageCreateInfo> stages;
+    rdcarray<VkPipelineShaderStageCreateInfo> stages;
     stages.resize(pipeCreateInfo.stageCount);
     memcpy(stages.data(), pipeCreateInfo.pStages,
            sizeof(VkPipelineShaderStageCreateInfo) * pipeCreateInfo.stageCount);
@@ -533,7 +532,7 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
     // Check if we processed this shader before.
     if(it != m_ShaderCache.end())
       return it->second;
-    std::vector<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
+    rdcarray<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
     bool modified = StripSideEffects(*shader.patchData, shader.entryPoint.c_str(), modSpirv);
     // In some cases a shader might just be binding a RW resource but not writing to it.
     // If there are no writes (shader was not modified), no need to replace the shader,
@@ -712,7 +711,7 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
     ResourceId prevState = pipestate.graphics.pipeline;
     ResourceId prevRenderpass = pipestate.renderPass;
     ResourceId prevFramebuffer = pipestate.GetFramebuffer();
-    std::vector<ResourceId> prevFBattachments = pipestate.GetFramebufferAttachments();
+    rdcarray<ResourceId> prevFBattachments = pipestate.GetFramebufferAttachments();
     const VulkanCreationInfo::Pipeline &p =
         m_pDriver->GetRenderState().m_CreationInfo->m_Pipeline[pipestate.graphics.pipeline];
     uint32_t prevSubpass = pipestate.subpass;
@@ -1055,7 +1054,7 @@ bool VulkanDebugManager::PixelHistoryDestroyResources(const PixelHistoryResource
 
 void VulkanDebugManager::PixelHistoryCopyPixel(VkCommandBuffer cmd, CopyPixelParams &p, size_t offset)
 {
-  std::vector<VkBufferImageCopy> regions;
+  rdcarray<VkBufferImageCopy> regions;
   // Check if depth image includes depth and stencil
   VkImageAspectFlags aspectFlags = 0;
   VkBufferImageCopy region = {};
@@ -1157,7 +1156,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
                                                        const Subresource &sub, CompType typeCast)
 {
   RDCDEBUG("PixelHistory: pixel: (%u, %u) with %u events", x, y, events.size());
-  std::vector<PixelModification> history;
+  rdcarray<PixelModification> history;
   VkResult vkr;
   VkDevice dev = m_pDriver->GetDev();
 
@@ -1209,7 +1208,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   m_pDriver->FlushQ();
   cb.DestroyResources();
 
-  std::vector<uint64_t> occlusionResults;
+  rdcarray<uint64_t> occlusionResults;
   if(cb.m_OcclusionQueries.size() > 0)
   {
     occlusionResults.resize(cb.m_OcclusionQueries.size());

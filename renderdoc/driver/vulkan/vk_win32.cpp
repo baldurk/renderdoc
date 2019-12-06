@@ -84,8 +84,8 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
   return (IsWindowVisible(m_OutputWindows[id].wnd) == TRUE);
 }
 
-void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string> &extensionList,
-                                          const std::set<std::string> &supportedExtensions)
+void WrappedVulkan::AddRequiredExtensions(bool instance, rdcarray<rdcstr> &extensionList,
+                                          const std::set<rdcstr> &supportedExtensions)
 {
   bool device = !instance;
 
@@ -99,8 +99,7 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
     else
     {
       // don't add duplicates
-      if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_SURFACE_EXTENSION_NAME) ==
-         extensionList.end())
+      if(!extensionList.contains(VK_KHR_SURFACE_EXTENSION_NAME))
         extensionList.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
     }
 
@@ -110,8 +109,7 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
     }
     else
     {
-      if(std::find(extensionList.begin(), extensionList.end(),
-                   VK_KHR_WIN32_SURFACE_EXTENSION_NAME) == extensionList.end())
+      if(!extensionList.contains(VK_KHR_WIN32_SURFACE_EXTENSION_NAME))
         extensionList.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
     }
   }
@@ -124,8 +122,7 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, std::vector<std::string
     else
     {
       // don't add duplicates
-      if(std::find(extensionList.begin(), extensionList.end(), VK_KHR_SWAPCHAIN_EXTENSION_NAME) ==
-         extensionList.end())
+      if(!extensionList.contains(VK_KHR_SWAPCHAIN_EXTENSION_NAME))
         extensionList.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     }
   }
@@ -225,7 +222,7 @@ rdcstr GetJSONPath(bool wow6432)
 
 static HKEY GetImplicitLayersKey(bool writeable, bool wow6432)
 {
-  std::string basepath = "SOFTWARE\\";
+  rdcstr basepath = "SOFTWARE\\";
 
   if(wow6432)
     basepath += "Wow6432Node\\";
@@ -274,7 +271,7 @@ bool ProcessImplicitLayersKey(HKEY key, const rdcstr &path, rdcarray<rdcstr> *ot
   while(ret == ERROR_SUCCESS)
   {
     // convert the name here so we preserve casing
-    std::string utf8name = StringFormat::Wide2UTF8(name);
+    rdcstr utf8name = StringFormat::Wide2UTF8(name);
 
     for(DWORD i = 0; i <= nameSize && name[i]; i++)
       name[i] = towlower(name[i]);

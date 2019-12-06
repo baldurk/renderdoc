@@ -60,7 +60,7 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, Pipeli
   VkRenderPassAttachmentBeginInfoKHR imagelessAttachments = {
       VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR,
   };
-  std::vector<VkImageView> imagelessViews;
+  rdcarray<VkImageView> imagelessViews;
 
   if(fbinfo.imageless)
   {
@@ -101,8 +101,8 @@ void VulkanRenderState::EndTransformFeedback(VkCommandBuffer cmd)
 {
   if(!xfbcounters.empty())
   {
-    std::vector<VkBuffer> buffers;
-    std::vector<VkDeviceSize> offsets;
+    rdcarray<VkBuffer> buffers;
+    rdcarray<VkDeviceSize> offsets;
 
     for(size_t i = 0; i < xfbcounters.size(); i++)
     {
@@ -140,7 +140,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
     ResourceId pipeLayoutId = m_CreationInfo->m_Pipeline[graphics.pipeline].layout;
     VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
 
-    const std::vector<VkPushConstantRange> &pushRanges =
+    const rdcarray<VkPushConstantRange> &pushRanges =
         m_CreationInfo->m_PipelineLayout[pipeLayoutId].pushRanges;
 
     bool dynamicStates[VkDynamicCount] = {0};
@@ -209,7 +209,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
                                      pushRanges[i].offset, pushRanges[i].size,
                                      pushconsts + pushRanges[i].offset);
 
-    const std::vector<ResourceId> &descSetLayouts =
+    const rdcarray<ResourceId> &descSetLayouts =
         m_CreationInfo->m_PipelineLayout[pipeLayoutId].descSetLayouts;
 
     // only iterate over the desc sets that this layout actually uses, not all that were bound
@@ -318,8 +318,8 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
 
     if(!xfbcounters.empty())
     {
-      std::vector<VkBuffer> buffers;
-      std::vector<VkDeviceSize> offsets;
+      rdcarray<VkBuffer> buffers;
+      rdcarray<VkDeviceSize> offsets;
 
       for(size_t i = 0; i < xfbcounters.size(); i++)
       {
@@ -342,7 +342,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
     ResourceId pipeLayoutId = m_CreationInfo->m_Pipeline[compute.pipeline].layout;
     VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
 
-    const std::vector<VkPushConstantRange> &pushRanges =
+    const rdcarray<VkPushConstantRange> &pushRanges =
         m_CreationInfo->m_PipelineLayout[pipeLayoutId].pushRanges;
 
     // only set push constant ranges that the layout uses
@@ -351,7 +351,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
                                      pushRanges[i].offset, pushRanges[i].size,
                                      pushconsts + pushRanges[i].offset);
 
-    const std::vector<ResourceId> &descSetLayouts =
+    const rdcarray<ResourceId> &descSetLayouts =
         m_CreationInfo->m_PipelineLayout[pipeLayoutId].descSetLayouts;
 
     for(size_t i = 0; i < descSetLayouts.size(); i++)
@@ -419,12 +419,12 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
   {
     // this isn't a real descriptor set, it's a push descriptor, so we need to push the
     // current state.
-    std::vector<VkWriteDescriptorSet> writes;
+    rdcarray<VkWriteDescriptorSet> writes;
 
     // any allocated arrays
-    std::vector<VkDescriptorImageInfo *> allocImgWrites;
-    std::vector<VkDescriptorBufferInfo *> allocBufWrites;
-    std::vector<VkBufferView *> allocBufViewWrites;
+    rdcarray<VkDescriptorImageInfo *> allocImgWrites;
+    rdcarray<VkDescriptorBufferInfo *> allocBufWrites;
+    rdcarray<VkBufferView *> allocBufViewWrites;
 
     WrappedVulkan::DescriptorSetInfo &setInfo = m_pDriver->m_DescriptorSetState[descSet];
 

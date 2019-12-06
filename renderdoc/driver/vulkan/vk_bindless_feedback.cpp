@@ -227,7 +227,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
   // functions we need to patch, with the indices of which parameters have bindings coming along
   // with
-  std::map<rdcspv::Id, std::vector<size_t>> functionPatchQueue;
+  std::map<rdcspv::Id, rdcarray<size_t>> functionPatchQueue;
 
   // start with the entry point, with no parameters to patch
   functionPatchQueue[entryID] = {};
@@ -236,7 +236,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
   while(!functionPatchQueue.empty())
   {
     rdcspv::Id funcId;
-    std::vector<size_t> patchArgIndices;
+    rdcarray<size_t> patchArgIndices;
 
     {
       auto it = functionPatchQueue.begin();
@@ -286,7 +286,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
     ++it;
 
     // onto the OpFunctionParameters. First allocate IDs for all our new function parameters
-    std::vector<rdcspv::Id> patchedParamIDs;
+    rdcarray<rdcspv::Id> patchedParamIDs;
     for(size_t i = 0; i < patchArgIndices.size(); i++)
       patchedParamIDs.push_back(editor.MakeId());
 
@@ -342,8 +342,8 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
         // check if any of the variables being passed are ones we care about. Accumulate the added
         // parameters
-        std::vector<uint32_t> funccall;
-        std::vector<size_t> patchArgs;
+        rdcarray<uint32_t> funccall;
+        rdcarray<size_t> patchArgs;
 
         // examine each argument to see if it's one we care about
         for(size_t i = 0; i < call.arguments.size(); i++)
@@ -364,7 +364,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
         {
           // prepend all the existing words
           for(size_t i = 1; i < it.size(); i++)
-            funccall.insert(funccall.begin() + i - 1, it.word(i));
+            funccall.insert(i - 1, it.word(i));
 
           rdcspv::Iter oldCall = it;
 
@@ -556,7 +556,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   std::map<rdcspv::Binding, feedbackData> offsetMap;
 
   {
-    const std::vector<ResourceId> &descSetLayoutIds =
+    const rdcarray<ResourceId> &descSetLayoutIds =
         creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts;
 
     rdcspv::Binding key;
@@ -659,7 +659,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
     // create pipeline layout with new descriptor set layouts
     {
-      const std::vector<VkPushConstantRange> &push =
+      const rdcarray<VkPushConstantRange> &push =
           creationInfo.m_PipelineLayout[pipeInfo.layout].pushRanges;
 
       VkPipelineLayoutCreateInfo pipeLayoutInfo = {

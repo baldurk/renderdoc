@@ -1786,7 +1786,7 @@ static ObjData GetObjData(VkDebugReportObjectTypeEXT objType, uint64_t object)
 
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_SetShaderDebugPath(SerialiserType &ser, VkShaderModule ShaderObject,
-                                                 std::string DebugPath)
+                                                 rdcstr DebugPath)
 {
   SERIALISE_ELEMENT(ShaderObject);
   SERIALISE_ELEMENT(DebugPath);
@@ -1815,8 +1815,7 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectTagEXT(VkDevice device,
     {
       CACHE_THREAD_SERIALISER();
 
-      char *tag = (char *)pTagInfo->pTag;
-      std::string DebugPath = std::string(tag, tag + pTagInfo->tagSize);
+      rdcstr DebugPath = rdcstr((char *)pTagInfo->pTag, pTagInfo->tagSize);
 
       SCOPED_SERIALISE_CHUNK(VulkanChunk::SetShaderDebugPath);
       Serialise_SetShaderDebugPath(ser, (VkShaderModule)(uint64_t)data.record->Resource, DebugPath);
@@ -2014,8 +2013,7 @@ VkResult WrappedVulkan::vkSetDebugUtilsObjectTagEXT(VkDevice device,
     {
       CACHE_THREAD_SERIALISER();
 
-      char *tag = (char *)pTagInfo->pTag;
-      std::string DebugPath = std::string(tag, tag + pTagInfo->tagSize);
+      rdcstr DebugPath = rdcstr((char *)pTagInfo->pTag, pTagInfo->tagSize);
 
       SCOPED_SERIALISE_CHUNK(VulkanChunk::SetShaderDebugPath);
       Serialise_SetShaderDebugPath(ser, (VkShaderModule)(uint64_t)data.record->Resource, DebugPath);
@@ -2055,7 +2053,7 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateQueryPool, VkDevice device,
                                 const VkAllocationCallbacks *pAllocator, VkQueryPool *pQueryPool);
 
 INSTANTIATE_FUNCTION_SERIALISED(void, SetShaderDebugPath, VkShaderModule ShaderObject,
-                                std::string DebugPath);
+                                rdcstr DebugPath);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkDebugMarkerSetObjectNameEXT, VkDevice device,
                                 const VkDebugMarkerObjectNameInfoEXT *pNameInfo);

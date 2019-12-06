@@ -31,7 +31,6 @@
 #include "vk_resources.h"
 
 #include <stdint.h>
-#include <vector>
 
 TEST_CASE("Test ImgRefs type", "[imgrefs]")
 {
@@ -89,7 +88,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
     ImgRefs imgRefs(ImageInfo(VK_FORMAT_D16_UNORM_S8_UINT, {100, 100, 1}, 11, 17, 1));
     ImageRange range;
     imgRefs.Update(range, eFrameRef_Read);
-    std::vector<FrameRefType> expected = {eFrameRef_Read};
+    rdcarray<FrameRefType> expected = {eFrameRef_Read};
     CHECK(imgRefs.rangeRefs == expected);
   };
   SECTION("update split aspect")
@@ -98,7 +97,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
     ImageRange range;
     range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
     imgRefs.Update(range, eFrameRef_Read);
-    std::vector<FrameRefType> expected = {eFrameRef_None, eFrameRef_Read};
+    rdcarray<FrameRefType> expected = {eFrameRef_None, eFrameRef_Read};
     CHECK(imgRefs.rangeRefs == expected);
   };
   SECTION("update split levels")
@@ -108,10 +107,10 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
     range.baseMipLevel = 1;
     range.levelCount = 3;
     imgRefs.Update(range, eFrameRef_Read);
-    std::vector<FrameRefType> expected = {eFrameRef_None, eFrameRef_Read, eFrameRef_Read,
-                                          eFrameRef_Read, eFrameRef_None, eFrameRef_None,
-                                          eFrameRef_None, eFrameRef_None, eFrameRef_None,
-                                          eFrameRef_None, eFrameRef_None};
+    rdcarray<FrameRefType> expected = {eFrameRef_None, eFrameRef_Read, eFrameRef_Read,
+                                       eFrameRef_Read, eFrameRef_None, eFrameRef_None,
+                                       eFrameRef_None, eFrameRef_None, eFrameRef_None,
+                                       eFrameRef_None, eFrameRef_None};
     CHECK(imgRefs.rangeRefs == expected);
   };
   SECTION("update split layers")
@@ -120,7 +119,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
     ImageRange range;
     range.baseArrayLayer = 7;
     imgRefs.Update(range, eFrameRef_Read);
-    std::vector<FrameRefType> expected = {
+    rdcarray<FrameRefType> expected = {
         eFrameRef_None, eFrameRef_None, eFrameRef_None, eFrameRef_None, eFrameRef_None,
         eFrameRef_None, eFrameRef_None, eFrameRef_Read, eFrameRef_Read, eFrameRef_Read,
         eFrameRef_Read, eFrameRef_Read, eFrameRef_Read, eFrameRef_Read, eFrameRef_Read,
@@ -137,7 +136,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
     range1.baseMipLevel = 5;
     range1.levelCount = 2;
     imgRefs.Update(range1, eFrameRef_PartialWrite);
-    std::vector<FrameRefType> expected = {
+    rdcarray<FrameRefType> expected = {
         // VK_IMAGE_ASPECT_DEPTH_BIT
         eFrameRef_None, eFrameRef_None, eFrameRef_None, eFrameRef_None, eFrameRef_None,
         eFrameRef_PartialWrite, eFrameRef_PartialWrite, eFrameRef_None, eFrameRef_None,
@@ -161,7 +160,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
     range1.baseMipLevel = 2;
     range1.levelCount = 3;
     imgRefs.Update(range1, eFrameRef_PartialWrite);
-    std::vector<FrameRefType> expected = {
+    rdcarray<FrameRefType> expected = {
         // (Depth, level 0)
         eFrameRef_None, eFrameRef_Read, eFrameRef_Read, eFrameRef_None, eFrameRef_None,
         // (Depth, level 1)
@@ -203,7 +202,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
     ImageRange range;
     range.layerCount = 1;
     imgRefs.Update(range, eFrameRef_Read);
-    std::vector<FrameRefType> expected = {eFrameRef_Read};
+    rdcarray<FrameRefType> expected = {eFrameRef_Read};
     CHECK(imgRefs.rangeRefs == expected);
   }
   SECTION("update 3D image 3D view")
@@ -213,7 +212,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
     range.layerCount = 1;
     range.viewType = VK_IMAGE_VIEW_TYPE_3D;
     imgRefs.Update(range, eFrameRef_Read);
-    std::vector<FrameRefType> expected = {eFrameRef_Read};
+    rdcarray<FrameRefType> expected = {eFrameRef_Read};
     CHECK(imgRefs.rangeRefs == expected);
   }
   SECTION("update 3D image 2D view")
@@ -223,8 +222,8 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
     range.layerCount = 1;
     range.viewType = VK_IMAGE_VIEW_TYPE_2D;
     imgRefs.Update(range, eFrameRef_Read);
-    std::vector<FrameRefType> expected = {eFrameRef_Read, eFrameRef_None, eFrameRef_None,
-                                          eFrameRef_None, eFrameRef_None};
+    rdcarray<FrameRefType> expected = {eFrameRef_Read, eFrameRef_None, eFrameRef_None,
+                                       eFrameRef_None, eFrameRef_None};
     CHECK(imgRefs.rangeRefs == expected);
   }
   SECTION("update 3D image 2D array view")
@@ -235,8 +234,8 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
     range.layerCount = 2;
     range.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
     imgRefs.Update(range, eFrameRef_Read);
-    std::vector<FrameRefType> expected = {eFrameRef_None, eFrameRef_Read, eFrameRef_Read,
-                                          eFrameRef_None, eFrameRef_None};
+    rdcarray<FrameRefType> expected = {eFrameRef_None, eFrameRef_Read, eFrameRef_Read,
+                                       eFrameRef_None, eFrameRef_None};
     CHECK(imgRefs.rangeRefs == expected);
   }
   SECTION("update 3D image 2D array view full")
@@ -245,7 +244,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
     ImageRange range;
     range.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
     imgRefs.Update(range, eFrameRef_Read);
-    std::vector<FrameRefType> expected = {eFrameRef_Read};
+    rdcarray<FrameRefType> expected = {eFrameRef_Read};
     CHECK(imgRefs.rangeRefs == expected);
   }
   SECTION("update 3D image 3D view full")
@@ -254,7 +253,7 @@ TEST_CASE("Test ImgRefs type", "[imgrefs]")
     ImageRange range;
     range.viewType = VK_IMAGE_VIEW_TYPE_3D;
     imgRefs.Update(range, eFrameRef_Read);
-    std::vector<FrameRefType> expected = {eFrameRef_Read};
+    rdcarray<FrameRefType> expected = {eFrameRef_Read};
     CHECK(imgRefs.rangeRefs == expected);
   }
 };

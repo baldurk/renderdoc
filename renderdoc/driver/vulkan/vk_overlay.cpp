@@ -54,7 +54,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
   ~VulkanQuadOverdrawCallback() { m_pDriver->SetDrawcallCB(NULL); }
   void PreDraw(uint32_t eid, VkCommandBuffer cmd)
   {
-    if(std::find(m_Events.begin(), m_Events.end(), eid) == m_Events.end())
+    if(!m_Events.contains(eid))
       return;
 
     // we customise the pipeline to disable framebuffer writes, but perform normal testing
@@ -90,7 +90,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
       // this layout has storage image and
       descSetLayouts[descSet] = m_DescSetLayout;
 
-      const std::vector<VkPushConstantRange> &push = c.m_PipelineLayout[p.layout].pushRanges;
+      const rdcarray<VkPushConstantRange> &push = c.m_PipelineLayout[p.layout].pushRanges;
 
       VkPipelineLayoutCreateInfo pipeLayoutInfo = {
           VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -227,7 +227,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
 
   bool PostDraw(uint32_t eid, VkCommandBuffer cmd)
   {
-    if(std::find(m_Events.begin(), m_Events.end(), eid) == m_Events.end())
+    if(!m_Events.contains(eid))
       return false;
 
     // restore the render state and go ahead with the real draw
@@ -1290,8 +1290,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
       attDescs[1].format = depthImageInfo.format;
       attDescs[0].samples = attDescs[1].samples = iminfo.samples;
 
-      std::vector<ImageRegionState> &depthStates =
-          m_pDriver->m_ImageLayouts[depthIm].subresourceStates;
+      rdcarray<ImageRegionState> &depthStates = m_pDriver->m_ImageLayouts[depthIm].subresourceStates;
 
       for(ImageRegionState &ds : depthStates)
       {
@@ -1622,7 +1621,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
       VkClearAttachment clearatt = {VK_IMAGE_ASPECT_COLOR_BIT, 0, {}};
       memcpy(clearatt.clearValue.color.float32, &clearCol.x,
              sizeof(clearatt.clearValue.color.float32));
-      std::vector<VkClearAttachment> atts;
+      rdcarray<VkClearAttachment> atts;
 
       VulkanCreationInfo::Framebuffer &fb =
           m_pDriver->m_CreationInfo.m_Framebuffer[m_pDriver->m_RenderState.GetFramebuffer()];
@@ -2049,7 +2048,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
         attDescs[1].format = depthImageInfo.format;
         attDescs[0].samples = attDescs[1].samples = iminfo.samples;
 
-        std::vector<ImageRegionState> &depthStates =
+        rdcarray<ImageRegionState> &depthStates =
             m_pDriver->m_ImageLayouts[depthIm].subresourceStates;
 
         for(ImageRegionState &ds : depthStates)

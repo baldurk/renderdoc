@@ -35,44 +35,46 @@
 
 template <typename SrcBarrierType>
 void VulkanResourceManager::RecordSingleBarrier(
-    std::vector<rdcpair<ResourceId, ImageRegionState> > &dststates, ResourceId id,
+    rdcarray<rdcpair<ResourceId, ImageRegionState>> &dststates, ResourceId id,
     const SrcBarrierType &t, uint32_t nummips, uint32_t numslices)
 {
   bool done = false;
 
-  auto it = dststates.begin();
-  for(; it != dststates.end(); ++it)
+  size_t i = 0;
+  for(; i < dststates.size(); i++)
   {
+    rdcpair<ResourceId, ImageRegionState> &state = dststates[i];
+
     // image barriers are handled by initially inserting one subresource range for each aspect,
     // and whenever we need more fine-grained detail we split it immediately for one range for
     // each subresource in that aspect. Thereafter if a barrier comes in that covers multiple
     // subresources, we update all matching ranges.
 
     // find the states matching this id
-    if(it->first < id)
+    if(state.first < id)
       continue;
-    if(it->first != id)
+    if(state.first != id)
       break;
 
-    it->second.dstQueueFamilyIndex = t.dstQueueFamilyIndex;
+    state.second.dstQueueFamilyIndex = t.dstQueueFamilyIndex;
 
     {
       // we've found a range that completely matches our region, doesn't matter if that's
       // a whole image and the barrier is the whole image, or it's one subresource.
       // note that for images with only one array/mip slice (e.g. render targets) we'll never
       // really have to worry about the else{} branch
-      if(it->second.subresourceRange.baseMipLevel == t.subresourceRange.baseMipLevel &&
-         it->second.subresourceRange.levelCount == nummips &&
-         it->second.subresourceRange.baseArrayLayer == t.subresourceRange.baseArrayLayer &&
-         it->second.subresourceRange.layerCount == numslices)
+      if(state.second.subresourceRange.baseMipLevel == t.subresourceRange.baseMipLevel &&
+         state.second.subresourceRange.levelCount == nummips &&
+         state.second.subresourceRange.baseArrayLayer == t.subresourceRange.baseArrayLayer &&
+         state.second.subresourceRange.layerCount == numslices)
       {
         // verify
         // RDCASSERT(it->second.newLayout == t.oldLayout);
 
         // apply it (prevstate is from the start of all barriers accumulated, so only set once)
-        if(it->second.oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
-          it->second.oldLayout = t.oldLayout;
-        it->second.newLayout = t.newLayout;
+        if(state.second.oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
+          state.second.oldLayout = t.oldLayout;
+        state.second.newLayout = t.newLayout;
 
         done = true;
         break;
@@ -86,23 +88,21 @@ void VulkanResourceManager::RecordSingleBarrier(
         // satisfied.
         //
         // note that regardless of how we lay out our subresources (slice-major or mip-major) the
-        // new
-        // range could be sparse, but that's OK as we only break out of the loop once we go past the
-        // whole
-        // aspect. Any subresources that don't match the range, after the split, will fail to meet
-        // any
-        // of the handled cases, so we'll just continue processing.
-        if(it->second.subresourceRange.levelCount == 1 &&
-           it->second.subresourceRange.layerCount == 1 &&
-           it->second.subresourceRange.baseMipLevel >= t.subresourceRange.baseMipLevel &&
-           it->second.subresourceRange.baseMipLevel < t.subresourceRange.baseMipLevel + nummips &&
-           it->second.subresourceRange.baseArrayLayer >= t.subresourceRange.baseArrayLayer &&
-           it->second.subresourceRange.baseArrayLayer < t.subresourceRange.baseArrayLayer + numslices)
+        // new range could be sparse, but that's OK as we only break out of the loop once we go past
+        // the whole aspect. Any subresources that don't match the range, after the split, will fail
+        // to meet any of the handled cases, so we'll just continue processing.
+        if(state.second.subresourceRange.levelCount == 1 &&
+           state.second.subresourceRange.layerCount == 1 &&
+           state.second.subresourceRange.baseMipLevel >= t.subresourceRange.baseMipLevel &&
+           state.second.subresourceRange.baseMipLevel < t.subresourceRange.baseMipLevel + nummips &&
+           state.second.subresourceRange.baseArrayLayer >= t.subresourceRange.baseArrayLayer &&
+           state.second.subresourceRange.baseArrayLayer <
+               t.subresourceRange.baseArrayLayer + numslices)
         {
           // apply it (prevstate is from the start of all barriers accumulated, so only set once)
-          if(it->second.oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
-            it->second.oldLayout = t.oldLayout;
-          it->second.newLayout = t.newLayout;
+          if(state.second.oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
+            state.second.oldLayout = t.oldLayout;
+          state.second.newLayout = t.newLayout;
 
           // continue as there might be more, but we're done
           done = true;
@@ -113,52 +113,50 @@ void VulkanResourceManager::RecordSingleBarrier(
         // case, so we know that the barrier doesn't cover the whole range.
         // Also, if we've already done the split this case won't be hit and we'll either fall into
         // the case above, or we'll finish as we've covered the whole barrier.
-        else if(it->second.subresourceRange.levelCount > 1 ||
-                it->second.subresourceRange.layerCount > 1)
+        else if(state.second.subresourceRange.levelCount > 1 ||
+                state.second.subresourceRange.layerCount > 1)
         {
-          rdcpair<ResourceId, ImageRegionState> existing = *it;
+          const uint32_t levelCount = state.second.subresourceRange.levelCount;
+          const uint32_t layerCount = state.second.subresourceRange.layerCount;
 
-          // remember where we were in the array, as after this iterators will be
-          // invalidated.
-          size_t offs = it - dststates.begin();
-          size_t count =
-              it->second.subresourceRange.levelCount * it->second.subresourceRange.layerCount;
+          size_t count = levelCount * layerCount;
 
-          // only insert count-1 as we want count entries total - one per subresource
-          dststates.insert(it, count - 1, existing);
+          // reset layer/level count
+          state.second.subresourceRange.levelCount = 1;
+          state.second.subresourceRange.layerCount = 1;
 
-          // it now points at the first subresource, but we need to modify the ranges
-          // to be valid
-          it = dststates.begin() + offs;
+          // insert new copies of the current state to expand out the subresources. Only insert
+          // count-1 as we want count entries total - one per subresource
+          for(size_t sub = 0; sub < count - 1; sub++)
+            dststates.insert(i, state);
 
-          for(size_t i = 0; i < count; i++)
+          for(size_t sub = 0; sub < count; sub++)
           {
-            it->second.subresourceRange.levelCount = 1;
-            it->second.subresourceRange.layerCount = 1;
+            rdcpair<ResourceId, ImageRegionState> &subState = dststates[i + sub];
 
-            // slice-major
-            it->second.subresourceRange.baseArrayLayer =
-                uint32_t(i / existing.second.subresourceRange.levelCount);
-            it->second.subresourceRange.baseMipLevel =
-                uint32_t(i % existing.second.subresourceRange.levelCount);
-            it++;
+            // slice-major, update base of each subresource
+            subState.second.subresourceRange.baseArrayLayer = uint32_t(sub / levelCount);
+            subState.second.subresourceRange.baseMipLevel = uint32_t(sub % levelCount);
           }
 
-          // reset the iterator to point to the first subresource
-          it = dststates.begin() + offs;
+          // can't use state here, as it may no longer be valid if the inserts above resized the
+          // array
+          rdcpair<ResourceId, ImageRegionState> &firstState = dststates[i];
 
           // the loop will continue after this point and look at the next subresources
           // so we need to check to see if the first subresource lies in the range here
-          if(it->second.subresourceRange.baseMipLevel >= t.subresourceRange.baseMipLevel &&
-             it->second.subresourceRange.baseMipLevel < t.subresourceRange.baseMipLevel + nummips &&
-             it->second.subresourceRange.baseArrayLayer >= t.subresourceRange.baseArrayLayer &&
-             it->second.subresourceRange.baseArrayLayer <
+          if(firstState.second.subresourceRange.baseMipLevel >= t.subresourceRange.baseMipLevel &&
+             firstState.second.subresourceRange.baseMipLevel <
+                 t.subresourceRange.baseMipLevel + nummips &&
+             firstState.second.subresourceRange.baseArrayLayer >= t.subresourceRange.baseArrayLayer &&
+             firstState.second.subresourceRange.baseArrayLayer <
                  t.subresourceRange.baseArrayLayer + numslices)
           {
-            // apply it (prevstate is from the start of all barriers accumulated, so only set once)
-            if(it->second.oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
-              it->second.oldLayout = t.oldLayout;
-            it->second.newLayout = t.newLayout;
+            // apply it (prevstate is from the start of all barriers accumulated, so only set
+            // once)
+            if(firstState.second.oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
+              firstState.second.oldLayout = t.oldLayout;
+            firstState.second.newLayout = t.newLayout;
 
             // continue as there might be more, but we're done
             done = true;
@@ -181,11 +179,11 @@ void VulkanResourceManager::RecordSingleBarrier(
   VkImageSubresourceRange subRange = t.subresourceRange;
   subRange.levelCount = nummips;
   subRange.layerCount = numslices;
-  dststates.insert(it, make_rdcpair(id, ImageRegionState(VK_QUEUE_FAMILY_IGNORED, subRange,
-                                                         t.oldLayout, t.newLayout)));
+  dststates.insert(i, make_rdcpair(id, ImageRegionState(VK_QUEUE_FAMILY_IGNORED, subRange,
+                                                        t.oldLayout, t.newLayout)));
 }
 
-void VulkanResourceManager::RecordBarriers(std::vector<rdcpair<ResourceId, ImageRegionState> > &states,
+void VulkanResourceManager::RecordBarriers(rdcarray<rdcpair<ResourceId, ImageRegionState>> &states,
                                            const std::map<ResourceId, ImageLayouts> &layouts,
                                            uint32_t numBarriers, const VkImageMemoryBarrier *barriers)
 {
@@ -230,9 +228,8 @@ void VulkanResourceManager::RecordBarriers(std::vector<rdcpair<ResourceId, Image
   TRDBG("Post-record, there are %u states", (uint32_t)states.size());
 }
 
-void VulkanResourceManager::MergeBarriers(
-    std::vector<rdcpair<ResourceId, ImageRegionState> > &dststates,
-    std::vector<rdcpair<ResourceId, ImageRegionState> > &srcstates)
+void VulkanResourceManager::MergeBarriers(rdcarray<rdcpair<ResourceId, ImageRegionState>> &dststates,
+                                          rdcarray<rdcpair<ResourceId, ImageRegionState>> &srcstates)
 {
   TRDBG("Merging %u states", (uint32_t)srcstates.size());
 
@@ -249,13 +246,13 @@ void VulkanResourceManager::MergeBarriers(
 template <typename SerialiserType>
 void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
                                                  std::map<ResourceId, ImageLayouts> &states,
-                                                 std::vector<VkImageMemoryBarrier> &barriers)
+                                                 rdcarray<VkImageMemoryBarrier> &barriers)
 {
   SERIALISE_ELEMENT_LOCAL(NumImages, (uint32_t)states.size());
 
   auto srcit = states.begin();
 
-  std::vector<rdcpair<ResourceId, ImageRegionState> > vec;
+  rdcarray<rdcpair<ResourceId, ImageRegionState>> vec;
 
   std::set<ResourceId> updatedState;
 
@@ -360,15 +357,17 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
   }
 
   // erase any do-nothing barriers
-  for(auto it = barriers.begin(); it != barriers.end();)
+  for(size_t i = 0; i < barriers.size();)
   {
-    if(it->oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
-      it->oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    VkImageMemoryBarrier &b = barriers[i];
 
-    if(it->oldLayout == it->newLayout)
-      it = barriers.erase(it);
+    if(b.oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
+      b.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    if(b.oldLayout == b.newLayout)
+      barriers.erase(i);
     else
-      ++it;
+      i++;
   }
 
   // try to merge images that have been split up by subresource but are now all in the same state
@@ -396,8 +395,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
 
       if(allIdentical)
       {
-        layouts.subresourceStates.erase(layouts.subresourceStates.begin() + 1,
-                                        layouts.subresourceStates.end());
+        layouts.subresourceStates.erase(1, ~0U);
         layouts.subresourceStates[0].subresourceRange.baseArrayLayer = 0;
         layouts.subresourceStates[0].subresourceRange.baseMipLevel = 0;
         layouts.subresourceStates[0].subresourceRange.layerCount = imageInfo.layerCount;
@@ -409,10 +407,10 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
 
 template void VulkanResourceManager::SerialiseImageStates(ReadSerialiser &ser,
                                                           std::map<ResourceId, ImageLayouts> &states,
-                                                          std::vector<VkImageMemoryBarrier> &barriers);
+                                                          rdcarray<VkImageMemoryBarrier> &barriers);
 template void VulkanResourceManager::SerialiseImageStates(WriteSerialiser &ser,
                                                           std::map<ResourceId, ImageLayouts> &states,
-                                                          std::vector<VkImageMemoryBarrier> &barriers);
+                                                          rdcarray<VkImageMemoryBarrier> &barriers);
 
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, MemRefInterval &el)
@@ -424,7 +422,7 @@ void DoSerialise(SerialiserType &ser, MemRefInterval &el)
 
 template <typename SerialiserType>
 bool VulkanResourceManager::Serialise_DeviceMemoryRefs(SerialiserType &ser,
-                                                       std::vector<MemRefInterval> &data)
+                                                       rdcarray<MemRefInterval> &data)
 {
   SERIALISE_ELEMENT(data);
 
@@ -506,12 +504,12 @@ bool VulkanResourceManager::Serialise_DeviceMemoryRefs(SerialiserType &ser,
 }
 
 template bool VulkanResourceManager::Serialise_DeviceMemoryRefs(ReadSerialiser &ser,
-                                                                std::vector<MemRefInterval> &data);
+                                                                rdcarray<MemRefInterval> &data);
 template bool VulkanResourceManager::Serialise_DeviceMemoryRefs(WriteSerialiser &ser,
-                                                                std::vector<MemRefInterval> &data);
+                                                                rdcarray<MemRefInterval> &data);
 
 template <typename SerialiserType>
-bool VulkanResourceManager::Serialise_ImageRefs(SerialiserType &ser, std::vector<ImgRefsPair> &data)
+bool VulkanResourceManager::Serialise_ImageRefs(SerialiserType &ser, rdcarray<ImgRefsPair> &data)
 {
   SERIALISE_ELEMENT(data);
 
@@ -528,13 +526,13 @@ bool VulkanResourceManager::Serialise_ImageRefs(SerialiserType &ser, std::vector
 }
 
 template bool VulkanResourceManager::Serialise_ImageRefs(ReadSerialiser &ser,
-                                                         std::vector<ImgRefsPair> &imageRefs);
+                                                         rdcarray<ImgRefsPair> &imageRefs);
 template bool VulkanResourceManager::Serialise_ImageRefs(WriteSerialiser &ser,
-                                                         std::vector<ImgRefsPair> &imageRefs);
+                                                         rdcarray<ImgRefsPair> &imageRefs);
 
 void VulkanResourceManager::InsertDeviceMemoryRefs(WriteSerialiser &ser)
 {
-  std::vector<MemRefInterval> data;
+  rdcarray<MemRefInterval> data;
 
   for(auto it = m_MemFrameRefs.begin(); it != m_MemFrameRefs.end(); it++)
   {
@@ -554,7 +552,7 @@ void VulkanResourceManager::InsertDeviceMemoryRefs(WriteSerialiser &ser)
 
 void VulkanResourceManager::InsertImageRefs(WriteSerialiser &ser)
 {
-  std::vector<ImgRefsPair> data;
+  rdcarray<ImgRefsPair> data;
   data.reserve(m_ImgFrameRefs.size());
   size_t sizeEstimate = 32;
 
@@ -604,7 +602,7 @@ void VulkanResourceManager::SetInternalResource(ResourceId id)
 }
 
 void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
-                                          std::vector<rdcpair<ResourceId, ImageRegionState> > &states,
+                                          rdcarray<rdcpair<ResourceId, ImageRegionState>> &states,
                                           std::map<ResourceId, ImageLayouts> &layouts)
 {
   TRDBG("Applying %u barriers", (uint32_t)states.size());
@@ -657,12 +655,13 @@ void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
 
     TRDBG("Matching image has %u subresource states", stit->second.subresourceStates.size());
 
-    auto it = stit->second.subresourceStates.begin();
-    for(; it != stit->second.subresourceStates.end(); ++it)
+    for(size_t i = 0; i < stit->second.subresourceStates.size(); i++)
     {
-      TRDBG(".. state %s (%u->%u, %u->%u) from %s to %s", ToStr(it->subresourceRange.aspect).c_str(),
-            it->range.baseMipLevel, it->range.levelCount, it->range.baseArrayLayer,
-            it->range.layerCount, ToStr(it->oldLayout).c_str(), ToStr(it->newLayout).c_str());
+      ImageRegionState &state = stit->second.subresourceStates[i];
+      TRDBG(".. state %s (%u->%u, %u->%u) from %s to %s",
+            ToStr(state.subresourceRange.aspect).c_str(), state.range.baseMipLevel,
+            state.range.levelCount, state.range.baseArrayLayer, state.range.layerCount,
+            ToStr(state.oldLayout).c_str(), ToStr(state.newLayout).c_str());
 
       // image barriers are handled by initially inserting one subresource range for the whole
       // object,
@@ -680,22 +679,15 @@ void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
         // a whole image and the barrier is the whole image, or it's one subresource.
         // note that for images with only one array/mip slice (e.g. render targets) we'll never
         // really have to worry about the else{} branch
-        if(it->subresourceRange.baseMipLevel == t.subresourceRange.baseMipLevel &&
-           it->subresourceRange.levelCount == nummips &&
-           it->subresourceRange.baseArrayLayer == t.subresourceRange.baseArrayLayer &&
-           it->subresourceRange.layerCount == numslices)
+        if(state.subresourceRange.baseMipLevel == t.subresourceRange.baseMipLevel &&
+           state.subresourceRange.levelCount == nummips &&
+           state.subresourceRange.baseArrayLayer == t.subresourceRange.baseArrayLayer &&
+           state.subresourceRange.layerCount == numslices)
         {
-          /*
-          RDCASSERT(t.oldLayout == UNKNOWN_PREV_IMG_LAYOUT || it->newLayout ==
-          UNKNOWN_PREV_IMG_LAYOUT || // renderdoc untracked/ignored
-                    it->newLayout == t.oldLayout || // valid barrier
-                    t.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED); // can barrier from UNDEFINED to any
-          state
-          */
-          if(it->oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
-            it->oldLayout = t.oldLayout;
-          t.oldLayout = it->newLayout;
-          it->newLayout = t.newLayout;
+          if(state.oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
+            state.oldLayout = t.oldLayout;
+          t.oldLayout = state.newLayout;
+          state.newLayout = t.newLayout;
 
           done = true;
           break;
@@ -709,23 +701,20 @@ void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
           // satisfied.
           //
           // note that regardless of how we lay out our subresources (slice-major or mip-major) the
-          // new
-          // range could be sparse, but that's OK as we only break out of the loop once we go past
-          // the whole
-          // aspect. Any subresources that don't match the range, after the split, will fail to meet
-          // any
-          // of the handled cases, so we'll just continue processing.
-          if(it->subresourceRange.levelCount == 1 && it->subresourceRange.layerCount == 1 &&
-             it->subresourceRange.baseMipLevel >= t.subresourceRange.baseMipLevel &&
-             it->subresourceRange.baseMipLevel < t.subresourceRange.baseMipLevel + nummips &&
-             it->subresourceRange.baseArrayLayer >= t.subresourceRange.baseArrayLayer &&
-             it->subresourceRange.baseArrayLayer < t.subresourceRange.baseArrayLayer + numslices)
+          // new range could be sparse, but that's OK as we only break out of the loop once we go
+          // past the whole aspect. Any subresources that don't match the range, after the split,
+          // will fail to meet any of the handled cases, so we'll just continue processing.
+          if(state.subresourceRange.levelCount == 1 && state.subresourceRange.layerCount == 1 &&
+             state.subresourceRange.baseMipLevel >= t.subresourceRange.baseMipLevel &&
+             state.subresourceRange.baseMipLevel < t.subresourceRange.baseMipLevel + nummips &&
+             state.subresourceRange.baseArrayLayer >= t.subresourceRange.baseArrayLayer &&
+             state.subresourceRange.baseArrayLayer < t.subresourceRange.baseArrayLayer + numslices)
           {
             // apply it (prevstate is from the start of all barriers accumulated, so only set once)
-            if(it->oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
-              it->oldLayout = t.oldLayout;
-            t.oldLayout = it->newLayout;
-            it->newLayout = t.newLayout;
+            if(state.oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
+              state.oldLayout = t.oldLayout;
+            t.oldLayout = state.newLayout;
+            state.newLayout = t.newLayout;
 
             // continue as there might be more, but we're done
             done = true;
@@ -736,50 +725,49 @@ void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
           // case, so we know that the barrier doesn't cover the whole range.
           // Also, if we've already done the split this case won't be hit and we'll either fall into
           // the case above, or we'll finish as we've covered the whole barrier.
-          else if(it->subresourceRange.levelCount > 1 || it->subresourceRange.layerCount > 1)
+          else if(state.subresourceRange.levelCount > 1 || state.subresourceRange.layerCount > 1)
           {
-            ImageRegionState existing = *it;
+            const uint32_t levelCount = state.subresourceRange.levelCount;
+            const uint32_t layerCount = state.subresourceRange.layerCount;
 
-            // remember where we were in the array, as after this iterators will be
-            // invalidated.
-            size_t offs = it - stit->second.subresourceStates.begin();
-            size_t count = it->subresourceRange.levelCount * it->subresourceRange.layerCount;
+            size_t count = levelCount * layerCount;
 
-            // only insert count-1 as we want count entries total - one per subresource
-            stit->second.subresourceStates.insert(it, count - 1, existing);
+            // reset layer/level count
+            state.subresourceRange.levelCount = 1;
+            state.subresourceRange.layerCount = 1;
 
-            // it now points at the first subresource, but we need to modify the ranges
-            // to be valid
-            it = stit->second.subresourceStates.begin() + offs;
+            // insert new copies of the current state to expand out the subresources. Only insert
+            // count-1 as we want count entries total - one per subresource
+            for(size_t sub = 0; sub < count - 1; sub++)
+              stit->second.subresourceStates.insert(i, state);
 
-            for(size_t i = 0; i < count; i++)
+            for(size_t sub = 0; sub < count; sub++)
             {
-              it->subresourceRange.levelCount = 1;
-              it->subresourceRange.layerCount = 1;
+              ImageRegionState &subState = stit->second.subresourceStates[i + sub];
 
-              // slice-major
-              it->subresourceRange.baseArrayLayer =
-                  uint32_t(i / existing.subresourceRange.levelCount);
-              it->subresourceRange.baseMipLevel = uint32_t(i % existing.subresourceRange.levelCount);
-              it++;
+              // slice-major, update base of each subresource
+              subState.subresourceRange.baseArrayLayer = uint32_t(sub / levelCount);
+              subState.subresourceRange.baseMipLevel = uint32_t(sub % levelCount);
             }
 
-            // reset the iterator to point to the first subresource
-            it = stit->second.subresourceStates.begin() + offs;
+            // can't use state here, as it may no longer be valid if the inserts above resized the
+            // array
+            ImageRegionState &firstState = stit->second.subresourceStates[i];
 
             // the loop will continue after this point and look at the next subresources
             // so we need to check to see if the first subresource lies in the range here
-            if(it->subresourceRange.baseMipLevel >= t.subresourceRange.baseMipLevel &&
-               it->subresourceRange.baseMipLevel < t.subresourceRange.baseMipLevel + nummips &&
-               it->subresourceRange.baseArrayLayer >= t.subresourceRange.baseArrayLayer &&
-               it->subresourceRange.baseArrayLayer < t.subresourceRange.baseArrayLayer + numslices)
+            if(firstState.subresourceRange.baseMipLevel >= t.subresourceRange.baseMipLevel &&
+               firstState.subresourceRange.baseMipLevel < t.subresourceRange.baseMipLevel + nummips &&
+               firstState.subresourceRange.baseArrayLayer >= t.subresourceRange.baseArrayLayer &&
+               firstState.subresourceRange.baseArrayLayer <
+                   t.subresourceRange.baseArrayLayer + numslices)
             {
               // apply it (prevstate is from the start of all barriers accumulated, so only set
               // once)
-              if(it->oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
-                it->oldLayout = t.oldLayout;
-              t.oldLayout = it->newLayout;
-              it->newLayout = t.newLayout;
+              if(firstState.oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
+                firstState.oldLayout = t.oldLayout;
+              t.oldLayout = firstState.newLayout;
+              firstState.newLayout = t.newLayout;
 
               // continue as there might be more, but we're done
               done = true;

@@ -2549,7 +2549,7 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
 
   shaderCache->SetCaching(true);
 
-  std::string glsl;
+  rdcstr glsl;
 
   CREATE_OBJECT(m_HistogramDescSetLayout,
                 {
@@ -2591,13 +2591,13 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
       SPIRVBlob minmaxtile = NULL;
       SPIRVBlob minmaxresult = NULL;
       SPIRVBlob histogram = NULL;
-      std::string err;
+      rdcstr err;
 
-      std::string defines = shaderCache->GetGlobalDefines();
+      rdcstr defines = shaderCache->GetGlobalDefines();
 
-      defines += std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-      defines += std::string("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
-      defines += std::string("#define SINT_TEX ") + (f == 2 ? "1" : "0") + "\n";
+      defines += rdcstr("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+      defines += rdcstr("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
+      defines += rdcstr("#define SINT_TEX ") + (f == 2 ? "1" : "0") + "\n";
 
       glsl = GenerateGLSLShader(GetEmbeddedResource(glsl_histogram_comp), ShaderType::Vulkan, 430,
                                 defines);

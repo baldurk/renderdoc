@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "vk_replay.h"
+#include <ctype.h>
 #include <float.h>
 #include <math.h>
 #include <algorithm>
@@ -544,7 +545,7 @@ rdcstr VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
 
   if(target == SPIRVDisassemblyTarget || target.empty())
   {
-    std::string &disasm = it->second.GetReflection(refl->entryPoint, pipeline).disassembly;
+    rdcstr &disasm = it->second.GetReflection(refl->entryPoint, pipeline).disassembly;
 
     if(disasm.empty())
       disasm = it->second.spirv.Disassemble(refl->entryPoint.c_str());
@@ -572,7 +573,7 @@ rdcstr VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
     vt->GetShaderInfoAMD(Unwrap(dev), Unwrap(pipe), stageBit, VK_SHADER_INFO_TYPE_DISASSEMBLY_AMD,
                          &size, NULL);
 
-    std::string disasm;
+    rdcstr disasm;
     disasm.resize(size);
     vt->GetShaderInfoAMD(Unwrap(dev), Unwrap(pipe), stageBit, VK_SHADER_INFO_TYPE_DISASSEMBLY_AMD,
                          &size, (void *)disasm.data());
@@ -596,7 +597,7 @@ rdcstr VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
 
     const rdcarray<PipelineExecutables> &executables = m_PipelineExecutables[pipeline];
 
-    std::string disasm;
+    rdcstr disasm;
 
     for(const PipelineExecutables &exec : executables)
     {
@@ -617,7 +618,7 @@ rdcstr VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
 
         for(const VkPipelineExecutableStatisticKHR &stat : exec.statistics)
         {
-          std::string value;
+          rdcstr value;
 
           switch(stat.format)
           {
@@ -648,8 +649,8 @@ rdcstr VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
 
         for(const VkPipelineExecutableInternalRepresentationKHR &ir : exec.representations)
         {
-          disasm += "---- " + std::string(ir.name) + " ----\n\n";
-          disasm += "; " + std::string(ir.description) + "\n\n";
+          disasm += "---- " + rdcstr(ir.name) + " ----\n\n";
+          disasm += "; " + rdcstr(ir.description) + "\n\n";
           if(ir.isText)
           {
             char *str = (char *)ir.pData;
@@ -809,7 +810,7 @@ void VulkanReplay::RenderCheckerboard()
 
     vt->CmdClearAttachments(Unwrap(cmd), 1, &light, 1, &fullRect);
 
-    std::vector<VkClearRect> squares;
+    rdcarray<VkClearRect> squares;
 
     for(int32_t y = 0; y < (int32_t)outw.height; y += 128)
     {
@@ -1004,7 +1005,7 @@ void VulkanReplay::SetDriverInformation(const VkPhysicalDeviceProperties &props)
 {
   VkDriverInfo info(props);
   m_DriverInfo.vendor = info.Vendor();
-  std::string versionString =
+  rdcstr versionString =
       StringFormat::Fmt("%s %u.%u.%u", props.deviceName, info.Major(), info.Minor(), info.Patch());
   versionString.resize(RDCMIN(versionString.size(), ARRAY_COUNT(m_DriverInfo.version) - 1));
   memcpy(m_DriverInfo.version, versionString.c_str(), versionString.size());
@@ -1529,7 +1530,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         &m_VulkanPipelineState.graphics.descriptorSets, &m_VulkanPipelineState.compute.descriptorSets,
     };
 
-    const std::vector<VulkanStatePipeline::DescriptorAndOffsets> *srcs[] = {
+    const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> *srcs[] = {
         &state.graphics.descSets, &state.compute.descSets,
     };
 
@@ -2282,7 +2283,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType 
        0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufdescs[2], NULL},
   };
 
-  std::vector<VkWriteDescriptorSet> writeSets;
+  rdcarray<VkWriteDescriptorSet> writeSets;
   for(size_t i = 0; i < ARRAY_COUNT(writeSet); i++)
   {
     if(writeSet[i].descriptorCount > 0)
@@ -2603,7 +2604,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompTy
        altimdesc, NULL, NULL},
   };
 
-  std::vector<VkWriteDescriptorSet> writeSets;
+  rdcarray<VkWriteDescriptorSet> writeSets;
   for(size_t i = 0; i < ARRAY_COUNT(writeSet); i++)
   {
     if(writeSet[i].descriptorCount > 0)
@@ -3746,7 +3747,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
     // for some reason reading direct from mapped memory here is *super* slow on android (1.5s to
     // iterate over the image), so we memcpy to a temporary buffer.
-    std::vector<byte> tmp;
+    rdcarray<byte> tmp;
     tmp.resize((size_t)copyregion[1].bufferOffset + pixelCount * sizeof(uint8_t));
     memcpy(tmp.data(), pData, tmp.size());
 
@@ -4017,7 +4018,7 @@ void VulkanReplay::RefreshDerivedReplacements()
 
   // we defer deletes of old replaced resources since it will invalidate elements in the vector
   // we're iterating
-  std::vector<VkPipeline> deletequeue;
+  rdcarray<VkPipeline> deletequeue;
 
   // remake and replace any pipelines that reference a replaced shader
   for(auto it = m_pDriver->m_CreationInfo.m_Pipeline.begin();

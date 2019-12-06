@@ -141,7 +141,7 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
   if(driverVersion.RunningOnMetal())
     m_GlobalDefines += "#define METAL_BACKEND\n";
 
-  std::string src;
+  rdcstr src;
   rdcspv::CompilationSettings compileSettings;
   compileSettings.lang = rdcspv::InputLanguage::VulkanGLSL;
 
@@ -185,20 +185,20 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
     if(config.stage == rdcspv::ShaderStage::Geometry && !features.geometryShader)
       continue;
 
-    std::string defines = m_GlobalDefines;
+    rdcstr defines = m_GlobalDefines;
 
     if(config.builtin == BuiltinShader::TexRemapFloat)
-      defines += std::string("#define UINT_TEX 0\n#define SINT_TEX 0\n");
+      defines += rdcstr("#define UINT_TEX 0\n#define SINT_TEX 0\n");
     else if(config.builtin == BuiltinShader::TexRemapUInt)
-      defines += std::string("#define UINT_TEX 1\n#define SINT_TEX 0\n");
+      defines += rdcstr("#define UINT_TEX 1\n#define SINT_TEX 0\n");
     else if(config.builtin == BuiltinShader::TexRemapSInt)
-      defines += std::string("#define UINT_TEX 0\n#define SINT_TEX 1\n");
+      defines += rdcstr("#define UINT_TEX 0\n#define SINT_TEX 1\n");
 
     src = GenerateGLSLShader(GetDynamicEmbeddedResource(config.resource), ShaderType::Vulkan, 430,
                              defines);
 
     compileSettings.stage = config.stage;
-    std::string err = GetSPIRVBlob(compileSettings, src, m_BuiltinShaderBlobs[i]);
+    rdcstr err = GetSPIRVBlob(compileSettings, src, m_BuiltinShaderBlobs[i]);
 
     if(!err.empty() || m_BuiltinShaderBlobs[i] == VK_NULL_HANDLE)
     {
@@ -242,8 +242,8 @@ VulkanShaderCache::~VulkanShaderCache()
     m_pDriver->vkDestroyShaderModule(m_Device, m_BuiltinShaderModules[i], NULL);
 }
 
-std::string VulkanShaderCache::GetSPIRVBlob(const rdcspv::CompilationSettings &settings,
-                                            const rdcstr &src, SPIRVBlob &outBlob)
+rdcstr VulkanShaderCache::GetSPIRVBlob(const rdcspv::CompilationSettings &settings,
+                                       const rdcstr &src, SPIRVBlob &outBlob)
 {
   RDCASSERT(!src.empty());
 
@@ -296,10 +296,10 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
 
   static VkPipelineShaderStageCreateInfo stages[6];
   static VkSpecializationInfo specInfo[6];
-  static std::vector<VkSpecializationMapEntry> specMapEntries;
+  static rdcarray<VkSpecializationMapEntry> specMapEntries;
 
   // the specialization constants can't use more than a uint64_t, so we just over-allocate
-  static std::vector<uint64_t> specdata;
+  static rdcarray<uint64_t> specdata;
 
   size_t specEntries = 0;
 
@@ -654,10 +654,10 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
 
   VkPipelineShaderStageCreateInfo stage;    // Returned by value
   static VkSpecializationInfo specInfo;
-  static std::vector<VkSpecializationMapEntry> specMapEntries;
+  static rdcarray<VkSpecializationMapEntry> specMapEntries;
 
   // the specialization constants can't use more than a uint64_t, so we just over-allocate
-  static std::vector<uint64_t> specdata;
+  static rdcarray<uint64_t> specdata;
 
   const uint32_t i = 5;    // Compute stage
   RDCASSERT(pipeInfo.shaders[i].module != ResourceId());
