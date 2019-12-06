@@ -1084,7 +1084,7 @@ bool WrappedOpenGL::Serialise_glWaitSemaphoreEXT(SerialiserType &ser, GLuint sem
                                                  const GLenum *srcLayouts)
 {
   // can't serialise arrays of GL handles since they're not wrapped or typed :(.
-  std::vector<GLResource> buffers, textures;
+  rdcarray<GLResource> buffers, textures;
 
   if(ser.IsWriting())
   {
@@ -1153,7 +1153,7 @@ bool WrappedOpenGL::Serialise_glSignalSemaphoreEXT(SerialiserType &ser, GLuint s
                                                    const GLenum *dstLayouts)
 {
   // can't serialise arrays of GL handles since they're not wrapped or typed :(.
-  std::vector<GLResource> buffers, textures;
+  rdcarray<GLResource> buffers, textures;
 
   if(ser.IsWriting())
   {

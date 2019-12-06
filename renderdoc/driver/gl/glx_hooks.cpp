@@ -173,7 +173,7 @@ HOOK_EXPORT GLXContext glXCreateContextAttribsARB_renderdoc_hooked(Display *dpy,
   int defaultAttribList[] = {0};
 
   const int *attribs = attribList ? attribList : defaultAttribList;
-  std::vector<int> attribVec;
+  rdcarray<int> attribVec;
 
   // modify attribs to our liking
   {

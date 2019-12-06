@@ -275,7 +275,7 @@ struct GLPlatform
                                            GLWindowingData share_context) = 0;
 
   // for 'backwards compatible' overlay rendering
-  virtual void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) = 0;
+  virtual void DrawQuads(float width, float height, const rdcarray<Vec4f> &vertices) = 0;
 
   // for initialisation at replay time
   virtual bool CanCreateGLContext() = 0;
@@ -300,7 +300,7 @@ class GLDummyPlatform : public GLPlatform
   {
     return GLWindowingData();
   }
-  virtual void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) {}
+  virtual void DrawQuads(float width, float height, const rdcarray<Vec4f> &vertices) {}
   virtual void *GetReplayFunction(const char *funcname) { return NULL; }
   // for initialisation at replay time
   virtual bool CanCreateGLContext() { return true; }
@@ -444,14 +444,13 @@ extern Threading::CriticalSection glLock;
 // replay only class for handling marker regions
 struct GLMarkerRegion
 {
-  GLMarkerRegion(const std::string &marker, GLenum source = eGL_DEBUG_SOURCE_APPLICATION,
-                 GLuint id = 0);
+  GLMarkerRegion(const rdcstr &marker, GLenum source = eGL_DEBUG_SOURCE_APPLICATION, GLuint id = 0);
   ~GLMarkerRegion();
 
-  static void Begin(const std::string &marker, GLenum source = eGL_DEBUG_SOURCE_APPLICATION,
+  static void Begin(const rdcstr &marker, GLenum source = eGL_DEBUG_SOURCE_APPLICATION,
                     GLuint id = 0);
-  static void Set(const std::string &marker, GLenum source = eGL_DEBUG_SOURCE_APPLICATION,
-                  GLuint id = 0, GLenum severity = eGL_DEBUG_SEVERITY_NOTIFICATION);
+  static void Set(const rdcstr &marker, GLenum source = eGL_DEBUG_SOURCE_APPLICATION, GLuint id = 0,
+                  GLenum severity = eGL_DEBUG_SEVERITY_NOTIFICATION);
   static void End();
 };
 
@@ -498,7 +497,7 @@ struct GLPushPopState
 };
 
 template <class DispatchTable>
-void DrawQuads(DispatchTable &GL, float width, float height, const std::vector<Vec4f> &vertices)
+void DrawQuads(DispatchTable &GL, float width, float height, const rdcarray<Vec4f> &vertices)
 {
   const GLenum GL_MATRIX_MODE = (GLenum)0x0BA0;
   const GLenum GL_MODELVIEW = (GLenum)0x1700;
@@ -833,11 +832,11 @@ void GetContextVersion(bool &ctxGLES, int &ctxVersion);
 void FetchEnabledExtensions();
 void GetGLSLVersions(ShaderType &shaderType, int &glslVersion, int &glslBaseVer, int &glslCSVer);
 
-GLuint CreateShader(GLenum shaderType, const std::string &src);
-GLuint CreateSPIRVShader(GLenum shaderType, const std::string &src);
-GLuint CreateShaderProgram(const std::string &vs, const std::string &fs, const std::string &gs = "");
+GLuint CreateShader(GLenum shaderType, const rdcstr &src);
+GLuint CreateSPIRVShader(GLenum shaderType, const rdcstr &src);
+GLuint CreateShaderProgram(const rdcstr &vs, const rdcstr &fs, const rdcstr &gs = "");
 GLuint CreateShaderProgram(GLuint vs, GLuint fs, GLuint gs = 0);
-GLuint CreateCShaderProgram(const std::string &cs);
+GLuint CreateCShaderProgram(const rdcstr &cs);
 
 // verify that we got a replay context that we can work with
 bool CheckReplayContext();

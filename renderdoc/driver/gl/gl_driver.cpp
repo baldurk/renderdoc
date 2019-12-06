@@ -726,7 +726,7 @@ void WrappedOpenGL::MarkReferencedWhileCapturing(GLResourceRecord *record, Frame
 }
 
 void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceId fboOrigId,
-                                           GLuint &fbo, std::string bbname)
+                                           GLuint &fbo, rdcstr bbname)
 {
   GLuint col = 0, depth = 0;
 
@@ -869,7 +869,7 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   GetReplay()->GetResourceDesc(fboOrigId).SetCustomName(bbname + " FBO");
 
   ResourceId colorId = GetResourceManager()->GetID(TextureRes(GetCtx(), col));
-  std::string name = bbname + " Color";
+  rdcstr name = bbname + " Color";
 
   GetResourceManager()->SetName(colorId, name);
 
@@ -1054,14 +1054,8 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
     ctxdata.m_ContextDataRecord = NULL;
   }
 
-  for(auto it = m_LastContexts.begin(); it != m_LastContexts.end(); ++it)
-  {
-    if(it->ctx == contextHandle)
-    {
-      m_LastContexts.erase(it);
-      break;
-    }
-  }
+  m_LastContexts.removeOneIf(
+      [contextHandle](const GLWindowingData &ctx) { return ctx.ctx == contextHandle; });
 
   for(auto it = ctxdata.windows.begin(); it != ctxdata.windows.end();)
   {
@@ -1214,7 +1208,7 @@ bool WrappedOpenGL::Serialise_ContextConfiguration(SerialiserType &ser, void *ct
     // one
     if(!GetResourceManager()->HasLiveResource(FBO))
     {
-      std::string name;
+      rdcstr name;
 
       // also add a simple resource descriptor for the context
       AddResource(Context, ResourceType::Device, "Context");
@@ -1246,19 +1240,14 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
   m_ActiveContexts[Threading::GetCurrentID()] = winData;
   if(winData.ctx)
   {
-    for(auto it = m_LastContexts.begin(); it != m_LastContexts.end(); ++it)
-    {
-      if(it->ctx == winData.ctx)
-      {
-        m_LastContexts.erase(it);
-        break;
-      }
-    }
+    void *contextHandle = winData.ctx;
+    m_LastContexts.removeOneIf(
+        [contextHandle](const GLWindowingData &ctx) { return ctx.ctx == contextHandle; });
 
     m_LastContexts.push_back(winData);
 
     if(m_LastContexts.size() > 10)
-      m_LastContexts.erase(m_LastContexts.begin());
+      m_LastContexts.erase(0);
   }
 
   if(winData.ctx)
@@ -1278,10 +1267,11 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         size_t before = m_QueuedInitialFetches.size();
         auto it =
             std::lower_bound(m_QueuedInitialFetches.begin(), m_QueuedInitialFetches.end(), fetch);
-        for(; it != m_QueuedInitialFetches.end() && it->res.ContextShareGroup == ctx;)
+        size_t i = it - m_QueuedInitialFetches.begin();
+        while(i < m_QueuedInitialFetches.size() && it->res.ContextShareGroup == ctx)
         {
           GetResourceManager()->ContextPrepare_InitialState(it->res);
-          it = m_QueuedInitialFetches.erase(it);
+          m_QueuedInitialFetches.erase(i);
         }
         size_t after = m_QueuedInitialFetches.size();
 
@@ -1301,10 +1291,11 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         fetch.res.ContextShareGroup = ctx;
         size_t before = m_QueuedReleases.size();
         auto it = std::lower_bound(m_QueuedReleases.begin(), m_QueuedReleases.end(), fetch);
-        for(; it != m_QueuedReleases.end() && it->res.ContextShareGroup == ctx;)
+        size_t i = it - m_QueuedReleases.begin();
+        while(it != m_QueuedReleases.end() && it->res.ContextShareGroup == ctx)
         {
           ReleaseResource(it->res);
-          it = m_QueuedReleases.erase(it);
+          m_QueuedReleases.erase(i);
         }
         size_t after = m_QueuedReleases.size();
 
@@ -1346,7 +1337,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         RDCLOG("Activating new GL context: %s / %s / %s", GL.glGetString(eGL_VENDOR),
                GL.glGetString(eGL_RENDERER), GL.glGetString(eGL_VERSION));
 
-      const std::vector<std::string> &globalExts = IsGLES ? m_GLESExtensions : m_GLExtensions;
+      const rdcarray<rdcstr> &globalExts = IsGLES ? m_GLESExtensions : m_GLExtensions;
 
       if(HasExt[KHR_debug] && GL.glDebugMessageCallback &&
          RenderDoc::Inst().GetCaptureOptions().apiValidation)
@@ -1731,7 +1722,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
 {
   // we defer deletes of old replaced resources since it will invalidate elements in the vector
   // we're iterating
-  std::vector<GLuint> deletequeue;
+  rdcarray<GLuint> deletequeue;
 
   // first go through programs and replace any that need to be updated based on whether they have
   // any replaced shaders
@@ -2014,8 +2005,7 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
       if(ctxdata.Legacy())
         flags |= RenderDoc::eOverlay_CaptureDisabled;
-      std::string overlayText =
-          RenderDoc::Inst().GetOverlayText(GetDriverType(), m_FrameCounter, flags);
+      rdcstr overlayText = RenderDoc::Inst().GetOverlayText(GetDriverType(), m_FrameCounter, flags);
 
       if(ctxdata.Legacy())
       {
@@ -2698,7 +2688,7 @@ void WrappedOpenGL::QueuePrepareInitialState(GLResource res)
   q.res = res;
 
   auto insertPos = std::lower_bound(m_QueuedInitialFetches.begin(), m_QueuedInitialFetches.end(), q);
-  m_QueuedInitialFetches.insert(insertPos, q);
+  m_QueuedInitialFetches.insert(insertPos - m_QueuedInitialFetches.begin(), q);
 }
 
 void WrappedOpenGL::QueueResourceRelease(GLResource res)
@@ -2719,7 +2709,7 @@ void WrappedOpenGL::QueueResourceRelease(GLResource res)
     q.res = res;
 
     auto insertPos = std::lower_bound(m_QueuedReleases.begin(), m_QueuedReleases.end(), q);
-    m_QueuedReleases.insert(insertPos, q);
+    m_QueuedReleases.insert(insertPos - m_QueuedReleases.begin(), q);
   }
 }
 
@@ -2802,7 +2792,7 @@ void WrappedOpenGL::CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum
         {
           GLsizei compSize = (GLsizei)GetCompressedByteSize(w, h, d, internalFormat);
 
-          std::vector<byte> dummy;
+          bytebuf dummy;
           dummy.resize(compSize);
 
           if(dim == 1)
@@ -2937,7 +2927,7 @@ bool WrappedOpenGL::Serialise_BeginCaptureFrame(SerialiserType &ser)
 
   if(IsReplayingAndReading())
   {
-    std::vector<DebugMessage> savedDebugMessages;
+    rdcarray<DebugMessage> savedDebugMessages;
 
     // save any debug messages we built up
     savedDebugMessages.swap(m_DebugMessages);
@@ -2983,8 +2973,7 @@ void WrappedOpenGL::FinishCapture()
   // m_SuccessfulCapture = false;
 }
 
-void WrappedOpenGL::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
-                                    std::string d)
+void WrappedOpenGL::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d)
 {
   if(IsLoading(m_State) || src == MessageSource::RuntimeWarning)
   {
@@ -2999,9 +2988,9 @@ void WrappedOpenGL::AddDebugMessage(MessageCategory c, MessageSeverity sv, Messa
   }
 }
 
-std::vector<DebugMessage> WrappedOpenGL::GetDebugMessages()
+rdcarray<DebugMessage> WrappedOpenGL::GetDebugMessages()
 {
-  std::vector<DebugMessage> ret;
+  rdcarray<DebugMessage> ret;
   ret.swap(m_DebugMessages);
   return ret;
 }
@@ -3009,7 +2998,7 @@ std::vector<DebugMessage> WrappedOpenGL::GetDebugMessages()
 template <typename SerialiserType>
 void WrappedOpenGL::Serialise_DebugMessages(SerialiserType &ser)
 {
-  std::vector<DebugMessage> DebugMessages;
+  rdcarray<DebugMessage> DebugMessages;
 
   if(ser.IsWriting())
   {
@@ -3097,7 +3086,7 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
 
       msg.eventId = 0;
       msg.messageID = id;
-      msg.description = std::string(message, message + length);
+      msg.description = rdcstr(message, length);
       msg.source = MessageSource::API;
 
       switch(severity)
@@ -3279,7 +3268,7 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
       m_FrameReader = new StreamReader(reader, frameDataSize);
 
-      std::vector<DebugMessage> savedDebugMessages;
+      rdcarray<DebugMessage> savedDebugMessages;
 
       // save any debug messages we built up
       savedDebugMessages.swap(m_DebugMessages);
@@ -5085,9 +5074,9 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
     // we don't have duplicate uses
     for(auto it = m_ResourceUses.begin(); it != m_ResourceUses.end(); ++it)
     {
-      std::vector<EventUsage> &v = it->second;
+      rdcarray<EventUsage> &v = it->second;
       std::sort(v.begin(), v.end());
-      v.erase(std::unique(v.begin(), v.end()), v.end());
+      v.erase(std::unique(v.begin(), v.end()) - v.begin(), ~0U);
     }
   }
 

@@ -222,7 +222,7 @@ class CGLPlatform : public GLPlatform
     return ReplayStatus::Succeeded;
   }
 
-  void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices)
+  void DrawQuads(float width, float height, const rdcarray<Vec4f> &vertices)
   {
     static QuadGL quadGL = {};
 

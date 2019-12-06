@@ -2430,7 +2430,7 @@ void APIENTRY _glGetProgramResourceiv(GLuint program, GLenum programInterface, G
     return;
   }
 
-  std::vector<ReflectionProperty> properties(propCount);
+  rdcarray<ReflectionProperty> properties(propCount);
 
   for(GLsizei i = 0; i < propCount; i++)
     properties[i] = ConvertProperty(props[i]);
@@ -3494,9 +3494,8 @@ GLint APIENTRY _testStub_AttribLocation(GLuint program, const GLchar *name)
   return value;
 }
 
-void MakeOfflineShaderReflection(ShaderStage stage, const std::string &source,
-                                 const std::string &entryPoint, ShaderReflection &refl,
-                                 ShaderBindpointMapping &mapping)
+void MakeOfflineShaderReflection(ShaderStage stage, const rdcstr &source, const rdcstr &entryPoint,
+                                 ShaderReflection &refl, ShaderBindpointMapping &mapping)
 {
   rdcspv::Init();
   RenderDoc::Inst().RegisterShutdownFunction(&rdcspv::Shutdown);
@@ -3556,9 +3555,8 @@ void MakeOfflineShaderReflection(ShaderStage stage, const std::string &source,
 // helper function that uses the replay proxy system to compile and reflect the shader using the
 // current driver. Unused by default but you can change the unit test below to call this function
 // instead of MakeOfflineShaderReflection.
-void MakeOnlineShaderReflection(ShaderStage stage, const std::string &source,
-                                const std::string &entryPoint, ShaderReflection &refl,
-                                ShaderBindpointMapping &mapping)
+void MakeOnlineShaderReflection(ShaderStage stage, const rdcstr &source, const rdcstr &entryPoint,
+                                ShaderReflection &refl, ShaderBindpointMapping &mapping)
 {
   ReplayStatus status = ReplayStatus::UnknownError;
   IReplayDriver *driver = NULL;
@@ -3607,7 +3605,7 @@ TEST_CASE("Validate ARB_program_interface_query emulation", "[opengl][glslang][r
 
   SECTION("shader stage references")
   {
-    std::string vssource = R"(
+    rdcstr vssource = R"(
 #version 450 core
 
 uniform float unused_uniform; // declared in both, used in neither
@@ -3624,7 +3622,7 @@ void main() {
 
 )";
 
-    std::string fssource = R"(
+    rdcstr fssource = R"(
 #version 450 core
 
 uniform float unused_uniform; // declared in both, used in neither

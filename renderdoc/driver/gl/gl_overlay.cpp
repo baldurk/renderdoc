@@ -99,10 +99,10 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
 
             if(progDetails.shaderProgramUnlinkable)
             {
-              std::vector<const char *> sources;
+              rdcarray<const char *> sources;
               sources.reserve(shadDetails.sources.size());
 
-              for(const std::string &s : shadDetails.sources)
+              for(const rdcstr &s : shadDetails.sources)
                 sources.push_back(s.c_str());
 
               shaders[i] = tmpShaders[i] = drv.glCreateShader(ShaderEnum(i));
@@ -293,15 +293,14 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
 
   // this is always compatible.
   {
-    std::string source =
-        GenerateGLSLShader(GetEmbeddedResource(glsl_fixedcol_frag), shaderType, glslVer);
+    rdcstr source = GenerateGLSLShader(GetEmbeddedResource(glsl_fixedcol_frag), shaderType, glslVer);
     DebugData.fixedcolFragShader = CreateShader(eGL_FRAGMENT_SHADER, source);
   }
 
   // this is not supported on GLES
   if(shaderType == ShaderType::GLSL)
   {
-    std::string defines = "";
+    rdcstr defines = "";
 
     if(!HasExt[ARB_derivative_control])
     {
@@ -318,7 +317,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
     // needs these extensions
     if(HasExt[ARB_gpu_shader5] && HasExt[ARB_shader_image_load_store])
     {
-      std::string source =
+      rdcstr source =
           GenerateGLSLShader(GetEmbeddedResource(glsl_quadwrite_frag), shaderType, glslVer, defines);
       DebugData.quadoverdrawFragShader = CreateShader(eGL_FRAGMENT_SHADER, source);
 
@@ -482,7 +481,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
       // readback the index buffer data
       if(idxbuf)
       {
-        std::vector<byte> idxs;
+        rdcarray<byte> idxs;
         uint32_t offset = draw->indexOffset * draw->indexByteWidth;
         uint32_t length = 1;
         drv.glGetNamedBufferParameterivEXT(idxbuf, eGL_BUFFER_SIZE, (GLint *)&length);

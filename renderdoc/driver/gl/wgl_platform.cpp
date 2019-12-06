@@ -521,7 +521,7 @@ class WGLPlatform : public GLPlatform
     return true;
   }
 
-  void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices)
+  void DrawQuads(float width, float height, const rdcarray<Vec4f> &vertices)
   {
     ::DrawQuads(WGL, width, height, vertices);
   }

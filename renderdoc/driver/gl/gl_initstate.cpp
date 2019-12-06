@@ -170,7 +170,7 @@ void DoSerialise(SerialiserType &ser, TextureStateInitialData &el)
 void WrappedOpenGL::TextureData::GetCompressedImageDataGLES(int mip, GLenum target, size_t size,
                                                             byte *buf)
 {
-  const std::vector<byte> &data = compressedData[mip];
+  const rdcarray<byte> &data = compressedData[mip];
 
   memset(buf, 0, size);
 
@@ -1134,7 +1134,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
 
       uint32_t numShaders = 0;
 
-      std::vector<std::string> vertexOutputs;
+      rdcarray<rdcstr> vertexOutputs;
       for(size_t i = 0; i < ARRAY_COUNT(details.stageShaders); i++)
       {
         if(details.stageShaders[i] == ResourceId())
@@ -1152,17 +1152,17 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
         {
           for(const SigParameter &sig : shadDetails.reflection.outputSignature)
           {
-            std::string name = sig.varName;
+            rdcstr name = sig.varName;
 
             // look for :row added to split up matrix variables
-            size_t colon = name.find(":row");
+            int32_t colon = name.find(":row");
 
             // remove it, if present
-            if(colon != std::string::npos)
+            if(colon >= 0)
               name.resize(colon);
 
             // only push matrix variables once
-            if(std::find(vertexOutputs.begin(), vertexOutputs.end(), name) == vertexOutputs.end())
+            if(!vertexOutputs.contains(name))
               vertexOutputs.push_back(name);
           }
         }
@@ -1206,7 +1206,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
       // eventually get one to work that's fine.
       m_Driver->SuppressDebugMessages(true);
 
-      std::vector<const char *> vertexOutputsPtr;
+      rdcarray<const char *> vertexOutputsPtr;
       vertexOutputsPtr.resize(vertexOutputs.size());
       for(size_t i = 0; i < vertexOutputs.size(); i++)
         vertexOutputsPtr[i] = vertexOutputs[i].c_str();
@@ -1388,7 +1388,7 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
             // see how many mips we actually have available
             int liveMips = GetNumMips(TextureState.type, liveRes.name, w, h, d);
 
-            std::vector<byte> scratchBuf;
+            rdcarray<byte> scratchBuf;
 
             // loop over the number of mips we should have
             for(int m = 1; m < TextureState.mips; m++)

@@ -31,7 +31,7 @@
 
 void WrappedOpenGL::ArrayMSPrograms::Create()
 {
-  std::string cs, vs, fs;
+  rdcstr cs, vs, fs;
 
   ShaderType shaderType;
   int glslVersion;

@@ -2298,7 +2298,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
                                                   const void *const *indicesPtr, GLsizei drawcount)
 {
   // need to serialise the array by hand since the pointers are really offsets :(.
-  std::vector<uint64_t> indices;
+  rdcarray<uint64_t> indices;
   if(ser.IsWriting())
   {
     indices.reserve(drawcount);
@@ -2318,7 +2318,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
 
   if(IsReplayingAndReading())
   {
-    std::vector<const void *> inds;
+    rdcarray<const void *> inds;
     inds.reserve(drawcount);
     for(GLsizei i = 0; i < drawcount; i++)
       inds.push_back((const void *)indices[i]);
@@ -2467,7 +2467,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
                                                             const GLint *basevertex)
 {
   // need to serialise the array by hand since the pointers are really offsets :(.
-  std::vector<uint64_t> indices;
+  rdcarray<uint64_t> indices;
   if(ser.IsWriting())
   {
     indices.reserve(drawcount);
@@ -2488,7 +2488,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    std::vector<const void *> inds;
+    rdcarray<const void *> inds;
     inds.reserve(drawcount);
     for(GLsizei i = 0; i < drawcount; i++)
       inds.push_back((const void *)indices[i]);
@@ -3567,7 +3567,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(SerialiserType &ser,
     {
       AddEvent();
 
-      std::string name;
+      rdcstr name;
 
       if(buffer == eGL_DEPTH)
         name = StringFormat::Fmt("%s(%s, %i, %f)", ToStr(gl_CurChunk).c_str(),
@@ -3712,7 +3712,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(SerialiserType &ser,
     {
       AddEvent();
 
-      std::string name;
+      rdcstr name;
 
       if(buffer == eGL_STENCIL)
         name = StringFormat::Fmt("%s(%s, %i, %i)", ToStr(gl_CurChunk).c_str(),
@@ -4391,7 +4391,7 @@ bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
     if(IsLoading(m_State))
     {
       AddEvent();
-      std::string name = ToStr(gl_CurChunk) + "(";
+      rdcstr name = ToStr(gl_CurChunk) + "(";
       if(mask & GL_COLOR_BUFFER_BIT)
       {
         float col[4] = {0};

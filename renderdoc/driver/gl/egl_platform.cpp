@@ -30,7 +30,7 @@
 static void *GetEGLHandle()
 {
 #if ENABLED(RDOC_WIN32)
-  std::string libEGL = LocatePluginFile("gles", "libEGL.dll");
+  rdcstr libEGL = LocatePluginFile("gles", "libEGL.dll");
 
   // refuse to load libEGL.dll globally, as this is too likely to pick up ANGLE from some program
   // with poor PATH control. Instead try to explicitly load it from next to the DLL in case someone
@@ -430,7 +430,7 @@ class EGLPlatform : public GLPlatform
 
     return NULL;
   }
-  void DrawQuads(float width, float height, const std::vector<Vec4f> &vertices)
+  void DrawQuads(float width, float height, const rdcarray<Vec4f> &vertices)
   {
     // legacy quad rendering is not supported on GLES
   }

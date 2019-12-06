@@ -51,10 +51,10 @@ DECLARE_REFLECTION_STRUCT(ProgramUniformValue);
 
 struct ProgramUniform
 {
-  std::string Basename;
+  rdcstr Basename;
   bool IsArray = false;
 
-  std::vector<ProgramUniformValue> Values;
+  rdcarray<ProgramUniformValue> Values;
 };
 
 DECLARE_REFLECTION_STRUCT(ProgramUniform);
@@ -63,7 +63,7 @@ struct ProgramBinding
 {
   ProgramBinding() = default;
   ProgramBinding(const char *n, int32_t b) : Name(n), Binding(b) {}
-  std::string Name;
+  rdcstr Name;
   int32_t Binding = -1;
 };
 
@@ -71,9 +71,9 @@ DECLARE_REFLECTION_STRUCT(ProgramBinding);
 
 struct ProgramUniforms
 {
-  std::vector<ProgramUniform> ValueUniforms;
-  std::vector<ProgramBinding> UBOBindings;
-  std::vector<ProgramBinding> SSBOBindings;
+  rdcarray<ProgramUniform> ValueUniforms;
+  rdcarray<ProgramBinding> UBOBindings;
+  rdcarray<ProgramBinding> SSBOBindings;
 };
 
 DECLARE_REFLECTION_STRUCT(ProgramUniforms);
@@ -712,7 +712,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state,
       GLenum type = eGL_NONE;
       int32_t arraySize = 0;
       int32_t srcLocation = 0;
-      std::string basename;
+      rdcstr basename;
       bool isArray = false;
 
       if(IsSrcProgramSPIRV)
@@ -789,7 +789,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state,
         uniformVal.Type = type;
         uniformVal.Location = srcLocation;
 
-        std::string name = basename;
+        rdcstr name = basename;
 
         // atomic counters cannot be changed, don't fetch their value
         if(type == eGL_UNSIGNED_INT_ATOMIC_COUNTER)
@@ -1012,7 +1012,7 @@ static void ForAllProgramUniforms(SerialiserType *ser, CaptureState state,
       {
         const ProgramUniformValue &val = uniform.Values[arr];
 
-        std::string name = uniform.Basename;
+        rdcstr name = uniform.Basename;
 
         if(uniform.IsArray)
           name += StringFormat::Fmt("[%u]", (uint32_t)arr);
@@ -1359,8 +1359,8 @@ template <typename SerialiserType>
 bool SerialiseProgramBindings(SerialiserType &ser, CaptureState state,
                               const PerStageReflections &stages, GLuint prog)
 {
-  std::vector<ProgramBinding> InputBindings;
-  std::vector<ProgramBinding> OutputBindings;
+  rdcarray<ProgramBinding> InputBindings;
+  rdcarray<ProgramBinding> OutputBindings;
 
   // technically we can completely skip this if the shaders are SPIR-V, but for compatibility we
   // instead just skip the fetch & apply steps, so that we can still serialise in a backwards
@@ -1376,7 +1376,7 @@ bool SerialiseProgramBindings(SerialiserType &ser, CaptureState state,
     for(int sigType = 0; sigType < 2; sigType++)
     {
       GLenum sigEnum = (sigType == 0 ? eGL_PROGRAM_INPUT : eGL_PROGRAM_OUTPUT);
-      std::vector<ProgramBinding> &bindings = (sigType == 0 ? InputBindings : OutputBindings);
+      rdcarray<ProgramBinding> &bindings = (sigType == 0 ? InputBindings : OutputBindings);
 
       int32_t NumAttributes = 0;
       GL.glGetProgramInterfaceiv(prog, sigEnum, eGL_ACTIVE_RESOURCES, (GLint *)&NumAttributes);
@@ -1406,7 +1406,7 @@ bool SerialiseProgramBindings(SerialiserType &ser, CaptureState state,
   {
     for(int sigType = 0; sigType < 2; sigType++)
     {
-      const std::vector<ProgramBinding> &bindings = (sigType == 0 ? InputBindings : OutputBindings);
+      const rdcarray<ProgramBinding> &bindings = (sigType == 0 ? InputBindings : OutputBindings);
 
       uint64_t used = 0;
 

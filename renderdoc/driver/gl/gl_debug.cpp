@@ -57,7 +57,7 @@ void GetGLSLVersions(ShaderType &shaderType, int &glslVersion, int &glslBaseVer,
   }
 }
 
-GLuint CreateShader(GLenum shaderType, const std::string &src)
+GLuint CreateShader(GLenum shaderType, const rdcstr &src)
 {
   GLuint ret = GL.glCreateShader(shaderType);
 
@@ -79,7 +79,7 @@ GLuint CreateShader(GLenum shaderType, const std::string &src)
   return ret;
 }
 
-GLuint CreateSPIRVShader(GLenum shaderType, const std::string &src)
+GLuint CreateSPIRVShader(GLenum shaderType, const rdcstr &src)
 {
   if(!HasExt[ARB_gl_spirv])
   {
@@ -119,7 +119,7 @@ GLuint CreateSPIRVShader(GLenum shaderType, const std::string &src)
   return ret;
 }
 
-GLuint CreateCShaderProgram(const std::string &src)
+GLuint CreateCShaderProgram(const rdcstr &src)
 {
   GLuint cs = CreateShader(eGL_COMPUTE_SHADER, src);
   if(cs == 0)
@@ -170,8 +170,7 @@ GLuint CreateShaderProgram(GLuint vs, GLuint fs, GLuint gs)
   return ret;
 }
 
-GLuint CreateShaderProgram(const std::string &vsSrc, const std::string &fsSrc,
-                           const std::string &gsSrc)
+GLuint CreateShaderProgram(const rdcstr &vsSrc, const rdcstr &fsSrc, const rdcstr &gsSrc)
 {
   GLuint vs = 0;
   GLuint fs = 0;
@@ -369,10 +368,10 @@ void GLReplay::InitDebugData()
   DebugData.outWidth = 0.0f;
   DebugData.outHeight = 0.0f;
 
-  std::string vs;
-  std::string fs;
-  std::string gs;
-  std::string cs;
+  rdcstr vs;
+  rdcstr fs;
+  rdcstr gs;
+  rdcstr cs;
 
   ShaderType shaderType;
   int glslVersion;
@@ -381,7 +380,7 @@ void GLReplay::InitDebugData()
 
   GetGLSLVersions(shaderType, glslVersion, glslBaseVer, glslCSVer);
 
-  std::string texSampleDefines;
+  rdcstr texSampleDefines;
 
   if(IsGLES)
   {
@@ -431,13 +430,13 @@ void GLReplay::InitDebugData()
   if(HasExt[ARB_gl_spirv])
   {
     // SPIR-V shaders are always generated as desktop GL 430, for ease
-    std::string source =
+    rdcstr source =
         GenerateGLSLShader(GetEmbeddedResource(glsl_fixedcol_frag), ShaderType::GLSPIRV, 430);
     DebugData.fixedcolFragShaderSPIRV = CreateSPIRVShader(eGL_FRAGMENT_SHADER, source);
 
     if(HasExt[ARB_gpu_shader5] && HasExt[ARB_shader_image_load_store])
     {
-      std::string defines = "";
+      rdcstr defines = "";
 
       if(!HasExt[ARB_derivative_control])
       {
@@ -456,8 +455,8 @@ void GLReplay::InitDebugData()
 
   for(int i = 0; i < 3; i++)
   {
-    std::string defines = std::string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-    defines += std::string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+    rdcstr defines = rdcstr("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+    defines += rdcstr("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
     fs = GenerateGLSLShader(GetEmbeddedResource(glsl_texdisplay_frag), shaderType, glslBaseVer,
                             defines + texSampleDefines);
@@ -565,14 +564,12 @@ void GLReplay::InitDebugData()
 
     // we have two fragment shaders, one that reads from the vs outputs and one that reads from the
     // gs outputs
-    std::string vsfs =
-        GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_frag), shaderType, glslBaseVer,
-                           "#define SECONDARY_NAME vsout_secondary\n"
-                           "#define NORM_NAME vsout_norm\n");
-    std::string gsfs =
-        GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_frag), shaderType, glslBaseVer,
-                           "#define SECONDARY_NAME gsout_secondary\n"
-                           "#define NORM_NAME gsout_norm\n");
+    rdcstr vsfs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_frag), shaderType, glslBaseVer,
+                                     "#define SECONDARY_NAME vsout_secondary\n"
+                                     "#define NORM_NAME vsout_norm\n");
+    rdcstr gsfs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_frag), shaderType, glslBaseVer,
+                                     "#define SECONDARY_NAME gsout_secondary\n"
+                                     "#define NORM_NAME gsout_norm\n");
     gs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_geom), shaderType, glslBaseVer);
 
     // recreate the shaders
@@ -585,7 +582,7 @@ void GLReplay::InitDebugData()
 
     if(HasExt[ARB_gpu_shader_fp64] && HasExt[ARB_vertex_attrib_64bit])
     {
-      std::string extensions =
+      rdcstr extensions =
           "#extension GL_ARB_gpu_shader_fp64 : require\n"
           "#extension GL_ARB_vertex_attrib_64bit : require\n";
 
@@ -663,7 +660,7 @@ void GLReplay::InitDebugData()
 
     if(HasExt[ARB_gpu_shader_fp64] && HasExt[ARB_vertex_attrib_64bit])
     {
-      std::string extensions =
+      rdcstr extensions =
           "#extension GL_ARB_gpu_shader_fp64 : require\n"
           "#extension GL_ARB_vertex_attrib_64bit : require\n";
 
@@ -794,10 +791,10 @@ void GLReplay::InitDebugData()
             idx |= TEXDISPLAY_SINT_TEX;
 
           {
-            std::string defines;
-            defines += std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-            defines += std::string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-            defines += std::string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+            rdcstr defines;
+            defines += rdcstr("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+            defines += rdcstr("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+            defines += rdcstr("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
             defines += texSampleDefines;
 
             cs = GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxtile_comp), shaderType,
@@ -810,10 +807,10 @@ void GLReplay::InitDebugData()
           }
 
           {
-            std::string defines;
-            defines += std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-            defines += std::string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-            defines += std::string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+            rdcstr defines;
+            defines += rdcstr("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+            defines += rdcstr("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+            defines += rdcstr("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
             defines += texSampleDefines;
 
             cs = GenerateGLSLShader(GetEmbeddedResource(glsl_histogram_comp), shaderType, glslCSVer,
@@ -827,10 +824,10 @@ void GLReplay::InitDebugData()
 
           if(t == 1)
           {
-            std::string defines;
-            defines += std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-            defines += std::string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-            defines += std::string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+            rdcstr defines;
+            defines += rdcstr("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+            defines += rdcstr("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+            defines += rdcstr("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
             cs = GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxresult_comp), shaderType,
                                     glslCSVer, defines);
@@ -969,7 +966,7 @@ void GLReplay::InitDebugData()
     const char *version = (const char *)drv.glGetString(eGL_VERSION);
 
     // we're just doing substring searches, so combine both for ease.
-    std::string combined = (vendor ? vendor : "");
+    rdcstr combined = (vendor ? vendor : "");
     combined += " ";
     combined += (renderer ? renderer : "");
 
@@ -1009,7 +1006,7 @@ void GLReplay::InitDebugData()
 
     for(const pattern &p : patterns)
     {
-      if(combined.find(p.search) != std::string::npos)
+      if(combined.contains(p.search))
       {
         if(m_DriverInfo.vendor == GPUVendor::Unknown)
         {
@@ -1030,7 +1027,7 @@ void GLReplay::InitDebugData()
 
     RDCDEBUG("Identified GPU vendor '%s'", ToStr(m_DriverInfo.vendor).c_str());
 
-    std::string versionString = version;
+    rdcstr versionString = version;
 
     versionString += " / ";
     versionString += renderer;
@@ -2019,7 +2016,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
 
   if(ib)
   {
-    std::vector<uint32_t> idxtmp;
+    rdcarray<uint32_t> idxtmp;
 
     // if it's a triangle fan that allows restart, we'll have to unpack it.
     // Allocate enough space for the list on the GPU, and enough temporary space to upcast into
@@ -2190,7 +2187,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
       DebugData.pickVBSize = (maxIndex + 1) * sizeof(Vec4f);
     }
 
-    std::vector<FloatVector> vbData;
+    rdcarray<FloatVector> vbData;
     vbData.resize(maxIndex + 1);
 
     byte *data = &oldData[0];

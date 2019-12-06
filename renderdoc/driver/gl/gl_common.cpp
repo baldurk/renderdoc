@@ -65,7 +65,7 @@ bool CheckReplayContext()
   RDCLOG("Running GL replay on: %s / %s / %s", GL.glGetString(eGL_VENDOR),
          GL.glGetString(eGL_RENDERER), GL.glGetString(eGL_VERSION));
 
-  std::string extensionString = "";
+  rdcstr extensionString = "";
 
   GLint numExts = 0;
   GL.glGetIntegerv(eGL_NUM_EXTENSIONS, &numExts);
@@ -811,7 +811,7 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
   }
 }
 
-GLMarkerRegion::GLMarkerRegion(const std::string &marker, GLenum source, GLuint id)
+GLMarkerRegion::GLMarkerRegion(const rdcstr &marker, GLenum source, GLuint id)
 {
   Begin(marker, source, id);
 }
@@ -821,7 +821,7 @@ GLMarkerRegion::~GLMarkerRegion()
   End();
 }
 
-void GLMarkerRegion::Begin(const std::string &marker, GLenum source, GLuint id)
+void GLMarkerRegion::Begin(const rdcstr &marker, GLenum source, GLuint id)
 {
   if(!HasExt[KHR_debug] || !GL.glPushDebugGroup)
     return;
@@ -829,7 +829,7 @@ void GLMarkerRegion::Begin(const std::string &marker, GLenum source, GLuint id)
   GL.glPushDebugGroup(source, id, -1, marker.c_str());
 }
 
-void GLMarkerRegion::Set(const std::string &marker, GLenum source, GLuint id, GLenum severity)
+void GLMarkerRegion::Set(const rdcstr &marker, GLenum source, GLuint id, GLenum severity)
 {
   if(!HasExt[KHR_debug] || !GL.glDebugMessageInsert)
     return;

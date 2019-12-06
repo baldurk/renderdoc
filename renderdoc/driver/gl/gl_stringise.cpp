@@ -66,7 +66,7 @@ rdcstr DoStringise(const GLChunk &el)
 template <>
 rdcstr DoStringise(const AttribType &el)
 {
-  std::string suffix;
+  rdcstr suffix;
 
   switch(el & Attrib_typemask)
   {

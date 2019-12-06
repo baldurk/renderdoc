@@ -28,7 +28,7 @@
 #include "common/common.h"
 #include "strings/string_utils.h"
 
-static std::string DecodeObjectLabel(GLsizei length, const GLchar *label)
+static rdcstr DecodeObjectLabel(GLsizei length, const GLchar *label)
 {
   // we share implementations between KHR_debug and EXT_debug_label, however KHR_debug follows the
   // pattern elsewhere (e.g. in glShaderSource) of a length of -1 meaning indeterminate
@@ -45,10 +45,10 @@ static std::string DecodeObjectLabel(GLsizei length, const GLchar *label)
   if(realLength == 0 || label == NULL)
     return "";
 
-  return std::string(label, label + realLength);
+  return rdcstr(label, realLength);
 }
 
-static void ReturnObjectlabel(std::string name, GLsizei bufSize, GLsizei *length, GLchar *label)
+static void ReturnObjectlabel(rdcstr name, GLsizei bufSize, GLsizei *length, GLchar *label)
 {
   // If <label> is NULL and <length> is non-NULL then no string will be returned and the length
   // of the label will be returned in <length>.
@@ -115,7 +115,7 @@ bool WrappedOpenGL::Serialise_glObjectLabel(SerialiserType &ser, GLenum identifi
                                             GLsizei length, const GLchar *label)
 {
   GLResource Resource;
-  std::string Label;
+  rdcstr Label;
 
   if(ser.IsWriting())
   {
@@ -259,7 +259,7 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(SerialiserType &ser, GLenum s
                                                    GLuint id, GLenum severity, GLsizei length,
                                                    const GLchar *buf)
 {
-  std::string name = buf ? std::string(buf, buf + (length > 0 ? length : strlen(buf))) : "";
+  rdcstr name = buf ? rdcstr(buf, length >= 0 ? length : strlen(buf)) : "";
 
   // unused, just for the user's benefit
   SERIALISE_ELEMENT(source);
@@ -366,8 +366,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glInsertEventMarkerEXT(SerialiserType &ser, GLsizei length,
                                                      const GLchar *marker_)
 {
-  std::string marker =
-      marker_ ? std::string(marker_, marker_ + (length > 0 ? length : strlen(marker_))) : "";
+  rdcstr marker = marker_ ? rdcstr(marker_, length >= 0 ? length : strlen(marker_)) : "";
 
   SERIALISE_ELEMENT(length);
   SERIALISE_ELEMENT(marker);
@@ -427,8 +426,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glPushDebugGroup(SerialiserType &ser, GLenum source, GLuint id,
                                                GLsizei length, const GLchar *message_)
 {
-  std::string message =
-      message_ ? std::string(message_, message_ + (length > 0 ? length : strlen(message_))) : "";
+  rdcstr message = message_ ? rdcstr(message_, length >= 0 ? length : strlen(message_)) : "";
 
   // unused, just for the user's benefit
   SERIALISE_ELEMENT(source);

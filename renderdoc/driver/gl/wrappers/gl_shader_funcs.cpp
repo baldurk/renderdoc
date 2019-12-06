@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <ctype.h>
 #include "../gl_driver.h"
 #include "../gl_shader_refl.h"
 #include "common/common.h"
@@ -63,7 +64,7 @@ void WrappedOpenGL::ShaderData::ProcessSPIRVCompilation(WrappedOpenGL &drv, Reso
 {
   reflection.resourceId = id;
 
-  std::vector<SpecConstant> specInfo;
+  rdcarray<SpecConstant> specInfo;
   for(size_t i = 0; i < specInfo.size(); i++)
   {
     specInfo.push_back(SpecConstant(pConstantIndex[i], pConstantValue[i], 4));
@@ -77,8 +78,8 @@ void WrappedOpenGL::ShaderData::ProcessSPIRVCompilation(WrappedOpenGL &drv, Reso
   entryPoint = pEntryPoint;
   if(numSpecializationConstants > 0)
   {
-    specIDs.assign(pConstantIndex, pConstantIndex + numSpecializationConstants);
-    specValues.assign(pConstantValue, pConstantValue + numSpecializationConstants);
+    specIDs.assign(pConstantIndex, numSpecializationConstants);
+    specValues.assign(pConstantValue, numSpecializationConstants);
   }
 }
 
@@ -91,7 +92,7 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
 
   entryPoint = "main";
 
-  std::string concatenated;
+  rdcstr concatenated;
 
   for(size_t i = 0; i < sources.size(); i++)
   {
@@ -108,9 +109,9 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
     concatenated += sources[i];
   }
 
-  size_t offs = concatenated.find("#version");
+  int32_t offs = concatenated.find("#version");
 
-  if(offs == std::string::npos)
+  if(offs < 0)
   {
     // if there's no #version it's assumed to be 100 which we set below
     version = 0;
@@ -118,9 +119,9 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
   else
   {
     // see if we find a second result after the first
-    size_t offs2 = concatenated.find("#version", offs + 1);
+    int32_t offs2 = concatenated.find("#version", offs + 1);
 
-    if(offs2 == std::string::npos)
+    if(offs2 < 0)
     {
       version = ParseVersionStatement(concatenated.c_str() + offs);
     }
@@ -172,7 +173,7 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
           break;
         }
 
-        std::string versionText(search, search + sizeof("#version") - 1);
+        rdcstr versionText(search, sizeof("#version") - 1);
 
         // if we found the version, parse it
         if(versionText == "#version")
@@ -267,7 +268,7 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
         rdcspv::CompilationSettings settings(rdcspv::InputLanguage::OpenGLGLSL,
                                              rdcspv::ShaderStage(ShaderIdx(type)));
 
-        std::string s = rdcspv::Compile(settings, sources, spirvwords);
+        rdcstr s = rdcspv::Compile(settings, sources, spirvwords);
         if(!spirvwords.empty())
           spirv.Parse(spirvwords);
         else
@@ -366,8 +367,8 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
     sources.reserve(count);
     for(GLsizei c = 0; c < count; c++)
     {
-      sources.push_back((length && length[c] >= 0) ? std::string(source[c], source[c] + length[c])
-                                                   : std::string(source[c]));
+      sources.push_back((length && length[c] >= 0) ? rdcstr(source[c], length[c])
+                                                   : rdcstr(source[c]));
     }
   }
 
@@ -379,7 +380,7 @@ bool WrappedOpenGL::Serialise_glShaderSource(SerialiserType &ser, GLuint shaderH
 
   if(IsReplayingAndReading())
   {
-    std::vector<const char *> strs;
+    rdcarray<const char *> strs;
     for(size_t i = 0; i < sources.size(); i++)
       strs.push_back(sources[i].c_str());
 
@@ -437,9 +438,8 @@ void WrappedOpenGL::glShaderSource(GLuint shader, GLsizei count, const GLchar *c
     m_Shaders[id].sources.reserve(count);
 
     for(GLsizei i = 0; i < count; i++)
-      m_Shaders[id].sources.push_back((length && length[i] >= 0)
-                                          ? std::string(string[i], string[i] + length[i])
-                                          : std::string(string[i]));
+      m_Shaders[id].sources.push_back((length && length[i] >= 0) ? rdcstr(string[i], length[i])
+                                                                 : rdcstr(string[i]));
   }
 }
 
@@ -636,14 +636,7 @@ void WrappedOpenGL::glDetachShader(GLuint program, GLuint shader)
 
       if(!m_Programs[progid].linked)
       {
-        for(auto it = m_Programs[progid].shaders.begin(); it != m_Programs[progid].shaders.end(); ++it)
-        {
-          if(*it == shadid)
-          {
-            m_Programs[progid].shaders.erase(it);
-            break;
-          }
-        }
+        m_Programs[progid].shaders.removeOne(shadid);
       }
     }
   }
@@ -839,7 +832,7 @@ bool WrappedOpenGL::Serialise_glLinkProgram(SerialiserType &ser, GLuint programH
 
     if(!HasExt[ARB_program_interface_query])
     {
-      std::vector<glslang::TShader *> glslangShaders;
+      rdcarray<glslang::TShader *> glslangShaders;
 
       for(ResourceId id : progDetails.stageShaders)
       {
@@ -913,7 +906,7 @@ void WrappedOpenGL::glLinkProgram(GLuint program)
 
     if(!HasExt[ARB_program_interface_query])
     {
-      std::vector<glslang::TShader *> glslangShaders;
+      rdcarray<glslang::TShader *> glslangShaders;
 
       for(ResourceId id : progDetails.stageShaders)
       {
@@ -1332,7 +1325,7 @@ bool WrappedOpenGL::Serialise_glShaderBinary(SerialiserType &ser, GLsizei count,
 
     GL.glShaderBinary(1, &shader.name, binaryformat, binary, length);
 
-    m_Shaders[liveId].spirvWords.assign((uint32_t *)binary, (uint32_t *)((byte *)binary + length));
+    m_Shaders[liveId].spirvWords.assign((uint32_t *)binary, length / sizeof(uint32_t));
 
     AddResourceInitChunk(shader);
   }
@@ -1354,8 +1347,7 @@ void WrappedOpenGL::glShaderBinary(GLsizei count, const GLuint *shaders, GLenum 
       for(GLsizei i = 0; i < count; i++)
       {
         ResourceId liveId = GetResourceManager()->GetID(ShaderRes(GetCtx(), shaders[i]));
-        m_Shaders[liveId].spirvWords.assign((uint32_t *)binary,
-                                            (uint32_t *)((byte *)binary + length));
+        m_Shaders[liveId].spirvWords.assign((uint32_t *)binary, length / sizeof(uint32_t));
       }
     }
   }
@@ -1378,7 +1370,7 @@ void WrappedOpenGL::glShaderBinary(GLsizei count, const GLuint *shaders, GLenum 
         record->AddChunk(scope.Get());
 
         m_Shaders[record->GetResourceID()].spirvWords.assign((uint32_t *)binary,
-                                                             (uint32_t *)((byte *)binary + length));
+                                                             length / sizeof(uint32_t));
       }
     }
   }
@@ -1849,12 +1841,11 @@ bool WrappedOpenGL::Serialise_glNamedStringARB(SerialiserType &ser, GLenum type,
 {
   SERIALISE_ELEMENT(type);
   SERIALISE_ELEMENT(namelen);
-  SERIALISE_ELEMENT_LOCAL(
-      name, nameStr ? std::string(nameStr, nameStr + (namelen > 0 ? namelen : strlen(nameStr))) : "");
+  SERIALISE_ELEMENT_LOCAL(name,
+                          nameStr ? rdcstr(nameStr, namelen >= 0 ? namelen : strlen(nameStr)) : "");
   SERIALISE_ELEMENT(stringlen);
   SERIALISE_ELEMENT_LOCAL(
-      value,
-      valStr ? std::string(valStr, valStr + (stringlen > 0 ? stringlen : strlen(valStr))) : "");
+      value, valStr ? rdcstr(valStr, stringlen >= 0 ? stringlen : strlen(valStr)) : "");
 
   SERIALISE_CHECK_READ_ERRORS();
 
@@ -1892,8 +1883,8 @@ bool WrappedOpenGL::Serialise_glDeleteNamedStringARB(SerialiserType &ser, GLint 
                                                      const GLchar *nameStr)
 {
   SERIALISE_ELEMENT(namelen);
-  SERIALISE_ELEMENT_LOCAL(
-      name, nameStr ? std::string(nameStr, nameStr + (namelen > 0 ? namelen : strlen(nameStr))) : "");
+  SERIALISE_ELEMENT_LOCAL(name,
+                          nameStr ? rdcstr(nameStr, namelen >= 0 ? namelen : strlen(nameStr)) : "");
 
   SERIALISE_CHECK_READ_ERRORS();
 

@@ -230,7 +230,7 @@ HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext_renderdoc_hooked(EGLDisplay 
 
   LibraryHooks::Refresh();
 
-  std::vector<EGLint> attribs;
+  rdcarray<EGLint> attribs;
 
   // modify attribList to our liking
   {

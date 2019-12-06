@@ -336,7 +336,7 @@ bool WrappedOpenGL::Serialise_glBindTextures(SerialiserType &ser, GLuint first, 
   SERIALISE_ELEMENT(count);
 
   // can't serialise arrays of GL handles since they're not wrapped or typed :(.
-  std::vector<GLResource> textures;
+  rdcarray<GLResource> textures;
 
   if(ser.IsWriting())
   {
@@ -351,7 +351,7 @@ bool WrappedOpenGL::Serialise_glBindTextures(SerialiserType &ser, GLuint first, 
 
   if(IsReplayingAndReading())
   {
-    std::vector<GLuint> texs;
+    rdcarray<GLuint> texs;
     texs.reserve(count);
     for(GLsizei i = 0; i < count; i++)
       texs.push_back(textures[i].name);
@@ -616,7 +616,7 @@ bool WrappedOpenGL::Serialise_glBindImageTextures(SerialiserType &ser, GLuint fi
   SERIALISE_ELEMENT(count);
 
   // can't serialise arrays of GL handles since they're not wrapped or typed :(.
-  std::vector<GLResource> textures;
+  rdcarray<GLResource> textures;
 
   if(ser.IsWriting())
   {
@@ -631,7 +631,7 @@ bool WrappedOpenGL::Serialise_glBindImageTextures(SerialiserType &ser, GLuint fi
 
   if(IsReplayingAndReading())
   {
-    std::vector<GLuint> texs;
+    rdcarray<GLuint> texs;
     texs.reserve(count);
     for(GLsizei i = 0; i < count; i++)
       texs.push_back(textures[i].name);
@@ -2983,7 +2983,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage1DEXT(SerialiserType &ser,
     {
       if(m_ScratchBuf.size() < (size_t)imageSize)
         m_ScratchBuf.resize(imageSize);
-      databuf = &m_ScratchBuf[0];
+      databuf = m_ScratchBuf.data();
     }
 
     ResourceId liveId = GetResourceManager()->GetID(texture);
@@ -3187,7 +3187,7 @@ void WrappedOpenGL::StoreCompressedTexData(ResourceId texId, GLenum target, GLin
 
   if(srcPixels)
   {
-    std::string error;
+    rdcstr error;
 
     // Only the trivial case is handled yet.
     if(xoffset == 0 && yoffset == 0)
@@ -3203,7 +3203,7 @@ void WrappedOpenGL::StoreCompressedTexData(ResourceId texId, GLenum target, GLin
           size_t compressedImageSize = GetCompressedByteSize(width, height, 1, format);
           RDCASSERT(compressedImageSize == (size_t)imageSize);
           CompressedDataStore &cd = m_Textures[texId].compressedData;
-          std::vector<byte> &cdData = cd[level];
+          rdcarray<byte> &cdData = cd[level];
           GLint zoff = IsCubeFace(target) ? CubeTargetIndex(target) : zoffset;
           size_t startOffset = imageSize * zoff;
           if(cdData.size() < startOffset + imageSize)
@@ -3221,7 +3221,7 @@ void WrappedOpenGL::StoreCompressedTexData(ResourceId texId, GLenum target, GLin
         {
           RDCASSERT(GetCompressedByteSize(width, height, depth, format) == (size_t)imageSize);
           CompressedDataStore &cd = m_Textures[texId].compressedData;
-          std::vector<byte> &cdData = cd[level];
+          rdcarray<byte> &cdData = cd[level];
           cdData.resize(imageSize);
           memcpy(cdData.data(), srcPixels, imageSize);
         }
@@ -3304,7 +3304,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(SerialiserType &ser,
     {
       if(m_ScratchBuf.size() < (size_t)imageSize)
         m_ScratchBuf.resize(imageSize);
-      databuf = &m_ScratchBuf[0];
+      databuf = m_ScratchBuf.data();
     }
 
     ResourceId liveId = GetResourceManager()->GetID(texture);
@@ -3561,7 +3561,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(SerialiserType &ser,
     {
       if(m_ScratchBuf.size() < (size_t)imageSize)
         m_ScratchBuf.resize(imageSize);
-      databuf = &m_ScratchBuf[0];
+      databuf = m_ScratchBuf.data();
     }
 
     ResourceId liveId = GetResourceManager()->GetID(texture);

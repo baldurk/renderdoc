@@ -2218,7 +2218,7 @@ void GLReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, rdcs
   {
     if(shaderDetails.mapping.constantBlocks[cbufSlot].bindset == SpecializationConstantBindSet)
     {
-      std::vector<SpecConstant> specconsts;
+      rdcarray<SpecConstant> specconsts;
 
       for(size_t i = 0; i < shaderDetails.specIDs.size(); i++)
       {

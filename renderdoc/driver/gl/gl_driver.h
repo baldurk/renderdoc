@@ -25,7 +25,6 @@
 
 #pragma once
 
-#include <list>
 #include "common/common.h"
 #include "common/timing.h"
 #include "core/core.h"
@@ -87,12 +86,12 @@ private:
 
   GLPlatform &m_Platform;
 
-  std::vector<DebugMessage> m_DebugMessages;
+  rdcarray<DebugMessage> m_DebugMessages;
   template <typename SerialiserType>
   void Serialise_DebugMessages(SerialiserType &ser);
-  std::vector<DebugMessage> GetDebugMessages();
+  rdcarray<DebugMessage> GetDebugMessages();
 
-  std::string m_DebugMsgContext;
+  rdcstr m_DebugMsgContext;
 
   bool m_SuppressDebugMessages;
 
@@ -156,13 +155,13 @@ private:
 
   GLContextTLSData m_EmptyTLSData;
   uint64_t m_CurCtxDataTLS;
-  std::vector<GLContextTLSData *> m_CtxDataVector;
+  rdcarray<GLContextTLSData *> m_CtxDataVector;
 
   uintptr_t m_ShareGroupID;
 
   uint32_t m_InternalShader = 0;
 
-  std::vector<GLWindowingData> m_LastContexts;
+  rdcarray<GLWindowingData> m_LastContexts;
 
   std::set<void *> m_AcceptedCtx;
 
@@ -237,12 +236,12 @@ private:
     }
   }
 
-  std::vector<FrameDescription> m_CapturedFrames;
+  rdcarray<FrameDescription> m_CapturedFrames;
   rdcarray<DrawcallDescription *> m_Drawcalls;
 
   // replay
 
-  std::vector<APIEvent> m_CurEvents, m_Events;
+  rdcarray<APIEvent> m_CurEvents, m_Events;
   bool m_AddedDrawcall;
 
   ArrayMSPrograms m_ArrayMS;
@@ -267,14 +266,13 @@ private:
 
   DrawcallDescription m_ParentDrawcall;
 
-  std::list<DrawcallDescription *> m_DrawcallStack;
+  rdcarray<DrawcallDescription *> m_DrawcallStack;
 
-  std::map<ResourceId, std::vector<EventUsage>> m_ResourceUses;
+  std::map<ResourceId, rdcarray<EventUsage>> m_ResourceUses;
 
   bool m_FetchCounters;
 
-  // buffer used
-  std::vector<byte> m_ScratchBuf;
+  bytebuf m_ScratchBuf;
 
   struct BufferData
   {
@@ -492,7 +490,7 @@ private:
       GLsizei stride;
       void *pointer;
     };
-    std::vector<VertexAttrib> attribs;
+    rdcarray<VertexAttrib> attribs;
     GLuint prevArrayBufferBinding;
   };
   ClientMemoryData *CopyClientMemoryArrays(GLint first, GLsizei count, GLenum indexType,
@@ -521,8 +519,8 @@ private:
     }
   };
 
-  std::vector<QueuedResource> m_QueuedInitialFetches;
-  std::vector<QueuedResource> m_QueuedReleases;
+  rdcarray<QueuedResource> m_QueuedInitialFetches;
+  rdcarray<QueuedResource> m_QueuedReleases;
 
   void QueuePrepareInitialState(GLResource res);
   void QueueResourceRelease(GLResource res);
@@ -537,7 +535,7 @@ private:
   void RenderOverlayStr(float x, float y, const char *str);
 
   void CreateReplayBackbuffer(const GLInitParams &params, ResourceId fboOrigId, GLuint &fbo,
-                              std::string bbname);
+                              rdcstr bbname);
 
   RenderDoc::FramePixels *SaveBackbufferImage();
   std::map<void *, RenderDoc::FramePixels *> m_BackbufferImages;
@@ -545,8 +543,8 @@ private:
   void BuildGLExtensions();
   void BuildGLESExtensions();
 
-  std::vector<std::string> m_GLExtensions;
-  std::vector<std::string> m_GLESExtensions;
+  rdcarray<rdcstr> m_GLExtensions;
+  rdcarray<rdcstr> m_GLESExtensions;
 
   std::set<uint32_t> m_UnsafeDraws;
 
@@ -601,7 +599,7 @@ public:
     if(IsReplayMode(m_State))
       m_DebugMessages.push_back(msg);
   }
-  void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
+  void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
 
   void RegisterDebugCallback();
 
@@ -619,7 +617,7 @@ public:
   const DrawcallDescription *GetDrawcall(uint32_t eventId);
 
   void SuppressDebugMessages(bool suppress) { m_SuppressDebugMessages = suppress; }
-  std::vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
+  rdcarray<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
   void CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams,
                      bool core, bool attribsCreate);
   void RegisterReplayContext(GLWindowingData winData, void *shareContext, bool core,
@@ -643,14 +641,14 @@ public:
   bool DiscardFrameCapture(void *dev, void *wnd);
 
   // map with key being mip level, value being stored data
-  typedef std::map<int, std::vector<byte>> CompressedDataStore;
+  typedef std::map<int, bytebuf> CompressedDataStore;
 
   struct ShaderData
   {
     ShaderData() : type(eGL_NONE), version(0) {}
     GLenum type;
     rdcarray<rdcstr> sources;
-    std::vector<std::string> includepaths;
+    rdcarray<rdcstr> includepaths;
     rdcspv::Reflector spirv;
     rdcstr disassembly;
     ShaderReflection reflection;
@@ -660,13 +658,13 @@ public:
     glslang::TShader *glslangShader = NULL;
 
     // used for if the application actually uploaded SPIR-V
-    std::vector<uint32_t> spirvWords;
+    rdcarray<uint32_t> spirvWords;
     SPIRVPatchData patchData;
 
     // the parameters passed to glSpecializeShader
-    std::string entryPoint;
-    std::vector<uint32_t> specIDs;
-    std::vector<uint32_t> specValues;
+    rdcstr entryPoint;
+    rdcarray<uint32_t> specIDs;
+    rdcarray<uint32_t> specValues;
 
     // pre-calculated bindpoint mapping for SPIR-V shaders. NOT valid for normal GLSL shaders
     ShaderBindpointMapping mapping;
@@ -680,7 +678,7 @@ public:
   struct ProgramData
   {
     ProgramData() : linked(false) { RDCEraseEl(stageShaders); }
-    std::vector<ResourceId> shaders;
+    rdcarray<ResourceId> shaders;
 
     std::map<GLint, GLint> locationTranslate;
 

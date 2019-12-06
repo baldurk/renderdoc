@@ -49,7 +49,7 @@ void WrappedOpenGL::ContextData::CreateDebugData()
   // otherwise we fall back to immediate mode rendering by hand
   if(GL.glGetIntegerv && GL.glGenTextures && GL.glBindTexture && GL.glTexImage2D && GL.glTexParameteri)
   {
-    std::string ttfstring = GetEmbeddedResource(sourcecodepro_ttf);
+    rdcstr ttfstring = GetEmbeddedResource(sourcecodepro_ttf);
     byte *ttfdata = (byte *)ttfstring.c_str();
 
     byte *buf = new byte[FONT_TEX_WIDTH * FONT_TEX_HEIGHT];
@@ -164,12 +164,12 @@ void WrappedOpenGL::ContextData::CreateDebugData()
          GL.glGetShaderInfoLog && GL.glDeleteShader && GL.glCreateProgram && GL.glAttachShader &&
          GL.glLinkProgram && GL.glGetProgramiv && GL.glGetProgramInfoLog)
       {
-        std::string vs;
-        std::string fs;
+        rdcstr vs;
+        rdcstr fs;
 
         ShaderType shaderType;
         int glslVersion;
-        std::string vertDefines, fragDefines;
+        rdcstr vertDefines, fragDefines;
 
         if(IsGLES)
         {
@@ -503,7 +503,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
       GL.glBindProgramPipeline(0);
 
     // draw string (based on sample code from stb_truetype.h)
-    std::vector<Vec4f> vertices;
+    rdcarray<Vec4f> vertices;
     {
       y += 1.0f;
       y *= charPixelHeight;

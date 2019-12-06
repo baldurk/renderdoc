@@ -1454,7 +1454,7 @@ bool WrappedOpenGL::Serialise_glBindBuffersBase(SerialiserType &ser, GLenum targ
   SERIALISE_ELEMENT(count);
 
   // can't serialise arrays of GL handles since they're not wrapped or typed :(.
-  std::vector<GLResource> buffers;
+  rdcarray<GLResource> buffers;
 
   if(ser.IsWriting())
   {
@@ -1469,7 +1469,7 @@ bool WrappedOpenGL::Serialise_glBindBuffersBase(SerialiserType &ser, GLenum targ
 
   if(IsReplayingAndReading())
   {
-    std::vector<GLuint> bufs;
+    rdcarray<GLuint> bufs;
     bufs.reserve(count);
     for(GLsizei i = 0; i < count; i++)
     {
@@ -1617,9 +1617,9 @@ bool WrappedOpenGL::Serialise_glBindBuffersRange(SerialiserType &ser, GLenum tar
 {
   // can't serialise arrays of GL handles since they're not wrapped or typed :(.
   // Likewise need to upcast the offsets and sizes to 64-bit instead of serialising as-is.
-  std::vector<GLResource> buffers;
-  std::vector<uint64_t> offsets;
-  std::vector<uint64_t> sizes;
+  rdcarray<GLResource> buffers;
+  rdcarray<uint64_t> offsets;
+  rdcarray<uint64_t> sizes;
 
   if(ser.IsWriting() && bufferHandles)
   {
@@ -1653,9 +1653,9 @@ bool WrappedOpenGL::Serialise_glBindBuffersRange(SerialiserType &ser, GLenum tar
 
   if(IsReplayingAndReading())
   {
-    std::vector<GLuint> bufs;
-    std::vector<GLintptr> offs;
-    std::vector<GLsizeiptr> sz;
+    rdcarray<GLuint> bufs;
+    rdcarray<GLintptr> offs;
+    rdcarray<GLsizeiptr> sz;
     if(!buffers.empty())
     {
       bufs.reserve(count);
@@ -2429,7 +2429,7 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
         {
           if(!record->VerifyShadowStorage())
           {
-            std::string msg = StringFormat::Fmt(
+            rdcstr msg = StringFormat::Fmt(
                 "Overwrite of %llu byte Map()'d buffer detected\n"
                 "Breakpoint now to see callstack,\nor click 'Yes' to debugbreak.",
                 record->Length);
@@ -4553,8 +4553,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBuffers(SerialiserType &ser, GL
 {
   // can't serialise arrays of GL handles since they're not wrapped or typed :(.
   // Likewise need to upcast the offsets to 64-bit instead of serialising as-is.
-  std::vector<GLResource> buffers;
-  std::vector<uint64_t> offsets;
+  rdcarray<GLResource> buffers;
+  rdcarray<uint64_t> offsets;
 
   if(ser.IsWriting() && bufferHandles)
   {
@@ -4581,8 +4581,8 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBuffers(SerialiserType &ser, GL
 
   if(IsReplayingAndReading())
   {
-    std::vector<GLuint> bufs;
-    std::vector<GLintptr> offs;
+    rdcarray<GLuint> bufs;
+    rdcarray<GLintptr> offs;
     if(!buffers.empty())
     {
       bufs.reserve(count);

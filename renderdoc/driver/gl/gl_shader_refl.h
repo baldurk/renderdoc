@@ -57,5 +57,5 @@ int ParseVersionStatement(const char *version);
 void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &refl,
                           const FixedFunctionVertexOutputs &outputUsage);
 GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcstr> sources,
-                                  std::vector<std::string> *includepaths);
+                                  rdcarray<rdcstr> *includepaths);
 void CheckVertexOutputUses(const rdcarray<rdcstr> &sources, FixedFunctionVertexOutputs &outputUsage);

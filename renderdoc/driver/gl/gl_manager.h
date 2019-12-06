@@ -253,10 +253,10 @@ public:
   GLsync GetSync(GLuint name) { return m_CurrentSyncs[name]; }
   ResourceId GetSyncID(GLsync sync) { return m_SyncIDs[sync]; }
   // KHR_debug storage
-  const std::string &GetName(ResourceId id) { return m_Names[id]; }
-  void SetName(ResourceId id, const std::string &name) { m_Names[id] = name; }
-  void SetName(GLResource res, const std::string &name) { SetName(GetID(res), name); }
-  std::string GetName(GLResource res) { return GetName(GetID(res)); }
+  const rdcstr &GetName(ResourceId id) { return m_Names[id]; }
+  void SetName(ResourceId id, const rdcstr &name) { m_Names[id] = name; }
+  void SetName(GLResource res, const rdcstr &name) { SetName(GetID(res), name); }
+  rdcstr GetName(GLResource res) { return GetName(GetID(res)); }
   // we need to find all the children bound to VAOs/FBOs and mark them referenced. The reason for
   // this is that say a VAO became high traffic and we stopped serialising buffer binds, but then it
   // is never modified in a frame and none of the buffers are ever referenced. They would be
@@ -298,7 +298,7 @@ private:
   // We manually give them GLuint names so they're otherwise namespaced as (eResSync, GLuint)
   std::map<GLsync, ResourceId> m_SyncIDs;
   std::map<GLuint, GLsync> m_CurrentSyncs;
-  std::map<ResourceId, std::string> m_Names;
+  std::map<ResourceId, rdcstr> m_Names;
   volatile int64_t m_SyncName;
 
   WrappedOpenGL *m_Driver;

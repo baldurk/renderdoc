@@ -32,11 +32,10 @@
 #include "gl_resources.h"
 #include "gl_shader_refl.h"
 
-static void MakeVaryingsFromShaderReflection(ShaderReflection &refl,
-                                             std::vector<const char *> &varyings, uint32_t &stride,
-                                             ShaderReflection *trimRefl = NULL)
+static void MakeVaryingsFromShaderReflection(ShaderReflection &refl, rdcarray<const char *> &varyings,
+                                             uint32_t &stride, ShaderReflection *trimRefl = NULL)
 {
-  static std::vector<std::string> tmpStrings;
+  static rdcarray<rdcstr> tmpStrings;
   tmpStrings.reserve(refl.outputSignature.size());
   tmpStrings.clear();
 
@@ -83,7 +82,7 @@ static void MakeVaryingsFromShaderReflection(ShaderReflection &refl,
       }
       else
       {
-        tmpStrings.push_back(std::string(name, colon));
+        tmpStrings.push_back(rdcstr(name, colon - name));
         name = tmpStrings.back().c_str();
       }
     }
@@ -119,8 +118,8 @@ static void MakeVaryingsFromShaderReflection(ShaderReflection &refl,
   if(posidx > 0)
   {
     const char *pos = varyings[posidx];
-    varyings.erase(varyings.begin() + posidx);
-    varyings.insert(varyings.begin(), pos);
+    varyings.erase(posidx);
+    varyings.insert(0, pos);
   }
 }
 
@@ -256,10 +255,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
               if(!shadDetails.sources.empty())
               {
-                std::vector<const char *> sources;
+                rdcarray<const char *> sources;
                 sources.reserve(shadDetails.sources.size());
 
-                for(const std::string &s : shadDetails.sources)
+                for(const rdcstr &s : shadDetails.sources)
                   sources.push_back(s.c_str());
 
                 drv.glShaderSource(tmpShaders[i], (GLsizei)sources.size(), sources.data(), NULL);
@@ -350,7 +349,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     if(glslVer == 0)
       glslVer = 100;
 
-    std::string src =
+    rdcstr src =
         StringFormat::Fmt("#version %d %s\nvoid main() {}\n", glslVer, glslVer == 100 ? "" : "es");
 
     const char *csrc = src.c_str();
@@ -454,7 +453,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
     CopyProgramAttribBindings(stageSrcPrograms[0], feedbackProg, vsRefl);
 
-    std::vector<const char *> varyings;
+    rdcarray<const char *> varyings;
     MakeVaryingsFromShaderReflection(*vsRefl, varyings, stride);
 
     // this is REALLY ugly, but I've seen problems with varying specification, so we try and
@@ -722,7 +721,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     GetBufferData(idxId, drawcall->indexOffset * drawcall->indexByteWidth,
                   drawcall->numIndices * drawcall->indexByteWidth, idxdata);
 
-    std::vector<uint32_t> indices;
+    rdcarray<uint32_t> indices;
 
     uint8_t *idx8 = (uint8_t *)&idxdata[0];
     uint16_t *idx16 = (uint16_t *)&idxdata[0];
@@ -748,13 +747,13 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       if(it != indices.end() && *it == i32)
         continue;
 
-      indices.insert(it, i32);
+      indices.insert(it - indices.begin(), i32);
     }
 
     // if we read out of bounds, we'll also have a 0 index being referenced
     // (as 0 is read). Don't insert 0 if we already have 0 though
     if(numIndices < drawcall->numIndices && (indices.empty() || indices[0] != 0))
-      indices.insert(indices.begin(), 0);
+      indices.insert(0, 0);
 
     // An index buffer could be something like: 500, 501, 502, 501, 503, 502
     // in which case we can't use the existing index buffer without filling 499 slots of vertex
@@ -1147,7 +1146,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     }
     else
     {
-      std::vector<const char *> varyings;
+      rdcarray<const char *> varyings;
 
       MakeVaryingsFromShaderReflection(*lastRefl, varyings, stride);
 
@@ -1595,7 +1594,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         drv.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
       }
 
-      std::vector<GLPostVSData::InstData> instData;
+      rdcarray<GLPostVSData::InstData> instData;
 
       if((drawcall->flags & DrawFlags::Instanced) && drawcall->numInstances > 1)
       {

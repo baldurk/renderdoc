@@ -85,22 +85,22 @@ void CheckVertexOutputUses(const rdcarray<rdcstr> &sources, FixedFunctionVertexO
   for(FFVertexOutput output : values<FFVertexOutput>())
   {
     // we consider an output used if we encounter a '=' before either a ';' or the end of the string
-    std::string name = ToStr(output);
+    rdcstr name = ToStr(output);
 
     for(size_t i = 0; i < sources.size(); i++)
     {
-      const std::string &s = sources[i];
+      const rdcstr &s = sources[i];
 
-      size_t offs = 0;
+      int32_t offs = 0;
 
       for(;;)
       {
         offs = s.find(name, offs);
 
-        if(offs == std::string::npos)
+        if(offs < 0)
           break;
 
-        while(offs < s.length())
+        while(offs < s.count())
         {
           if(s[offs] == '=')
           {
@@ -181,11 +181,11 @@ static bool iswhitespace(char c)
 }
 
 GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcstr> sources,
-                                  std::vector<std::string> *includepaths)
+                                  rdcarray<rdcstr> *includepaths)
 {
   // in and out blocks are added separately, in case one is there already
   const char *blockIdentifiers[2] = {"in gl_PerVertex", "out gl_PerVertex"};
-  std::string blocks[2] = {"", ""};
+  rdcstr blocks[2] = {"", ""};
 
   if(type == eGL_VERTEX_SHADER)
   {
@@ -243,14 +243,14 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcs
     // (this is probably most likely for clipdistance if it's redeclared with a size)
 
     // we start by concatenating the source strings to make parsing easier.
-    std::string combined;
+    rdcstr combined;
 
     for(size_t i = 0; i < sources.size(); i++)
       combined += sources[i];
 
     for(int attempt = 0; attempt < 2; attempt++)
     {
-      std::string src = combined;
+      rdcstr src = combined;
 
       if(attempt == 1)
       {
@@ -270,8 +270,10 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcs
 
         glslang::TShader::ForbidIncluder incl;
 
+        std::string outStr;
         bool success = sh.preprocess(GetDefaultResources(), 100, ENoProfile, false, false,
-                                     EShMsgOnlyPreprocessor, &src, incl);
+                                     EShMsgOnlyPreprocessor, &outStr, incl);
+        src = outStr;
 
         if(!success)
         {
@@ -286,28 +288,28 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcs
         if(type == eGL_VERTEX_SHADER && blocktype == 0)
           continue;
 
-        std::string block = blocks[blocktype];
+        rdcstr block = blocks[blocktype];
         const char *identifier = blockIdentifiers[blocktype];
 
         // if we find the 'identifier' (ie. the block name),
         // assume this block is already present and stop.
         // only try and insert this block if the shader doesn't already have it
-        if(src.find(identifier) != std::string::npos)
+        if(src.contains(identifier))
         {
           continue;
         }
 
         {
-          size_t len = src.length();
+          int32_t len = src.count();
 
           // find if this source contains a #version, accounting for whitespace
-          size_t it = 0;
+          int32_t it = 0;
 
-          while(it != std::string::npos)
+          while(it >= 0)
           {
             it = src.find("#", it);
 
-            if(it == std::string::npos)
+            if(it < 0)
               break;
 
             // advance past the #
@@ -325,7 +327,7 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcs
           }
 
           // no #version found
-          if(it == std::string::npos)
+          if(it < 0)
           {
             // insert at the start
             it = 0;
@@ -356,7 +358,7 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcs
             it++;
 
             // next line after #version, insert the extension declaration
-            if(it < src.length())
+            if(it < src.count())
               src.insert(it, "#extension GL_ARB_separate_shader_objects : enable\n");
 
             // how deep are we in an #if. We want to place our definition
@@ -441,11 +443,12 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcs
 
               // see if we have a precision statement, if so skip that
               const char precision[] = "precision";
-              if(it + sizeof(precision) < len && !strncmp(&src[it], precision, sizeof(precision) - 1))
+              if(int32_t(it + sizeof(precision)) < len &&
+                 !strncmp(&src[it], precision, sizeof(precision) - 1))
               {
                 // since we're speculating here (although what else could it be?) we don't modify
                 // it until we're sure.
-                size_t pit = it + sizeof(precision);
+                int32_t pit = it + sizeof(precision);
 
                 // skip whitespace
                 while(pit < len && isspacetab(src[pit]))
@@ -456,15 +459,15 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcs
                 const char mediump[] = "mediump";
                 const char highp[] = "highp";
 
-                bool precisionMatch =
-                    (pit + sizeof(lowp) < len && !strncmp(&src[pit], lowp, sizeof(lowp) - 1) &&
-                     isspacetab(src[pit + sizeof(lowp) - 1]));
-                precisionMatch |= (pit + sizeof(mediump) < len &&
+                bool precisionMatch = (int32_t(pit + sizeof(lowp)) < len &&
+                                       !strncmp(&src[pit], lowp, sizeof(lowp) - 1) &&
+                                       isspacetab(src[pit + sizeof(lowp) - 1]));
+                precisionMatch |= (int32_t(pit + sizeof(mediump)) < len &&
                                    !strncmp(&src[pit], mediump, sizeof(mediump) - 1) &&
                                    isspacetab(src[pit + sizeof(mediump) - 1]));
-                precisionMatch |=
-                    (pit + sizeof(highp) < len && !strncmp(&src[pit], highp, sizeof(highp) - 1) &&
-                     isspacetab(src[pit + sizeof(highp) - 1]));
+                precisionMatch |= (int32_t(pit + sizeof(highp)) < len &&
+                                   !strncmp(&src[pit], highp, sizeof(highp) - 1) &&
+                                   isspacetab(src[pit + sizeof(highp) - 1]));
 
                 if(precisionMatch)
                 {
@@ -492,7 +495,7 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcs
             }
           }
 
-          if(it < src.length())
+          if(it < src.count())
             src.insert(it, block);
         }
       }
@@ -780,7 +783,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
   var.name.resize(values[1] - 1);
   GL.glGetProgramResourceName(sepProg, query, varIdx, values[1], NULL, &var.name[0]);
 
-  std::string fullname = var.name;
+  rdcstr fullname = var.name;
 
   int32_t c = values[1] - 1;
 
@@ -994,7 +997,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
     bool duplicate = false;
 
     // nm points into var.name's storage, so copy out to a temporary
-    std::string n = nm;
+    rdcstr n = nm;
     var.name = n;
 
     if(bareUniform && !multiDimArray)
@@ -1059,7 +1062,7 @@ int ParseVersionStatement(const char *version)
   return ret;
 }
 
-static void AddSigParameter(std::vector<SigParameter> &sigs, uint32_t &regIndex,
+static void AddSigParameter(rdcarray<SigParameter> &sigs, uint32_t &regIndex,
                             const SigParameter &sig, const char *nm, int rows, int arrayIdx)
 {
   if(rows == 1)
@@ -1643,7 +1646,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     GL.glGetProgramResourceName(sepProg, eGL_UNIFORM, u, values[1], NULL, namebuf);
     namebuf[values[1]] = 0;
 
-    std::string name = namebuf;
+    rdcstr name = namebuf;
 
     delete[] namebuf;
 
@@ -1660,7 +1663,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       name = name.substr(0, name.length() - 3);    // trim off [0] on the end
       for(int i = 1; i < values[4]; i++)
       {
-        std::string arrname = StringFormat::Fmt("%s[%d]", name.c_str(), i);
+        rdcstr arrname = StringFormat::Fmt("%s[%d]", name.c_str(), i);
 
         res.bindPoint = (int32_t)reslist.size();
         res.name = arrname;
@@ -1670,7 +1673,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     }
   }
 
-  std::vector<int32_t> ssbos;
+  rdcarray<int32_t> ssbos;
   uint32_t ssboMembers = 0;
 
   GLint numSSBOs = 0;
@@ -1818,7 +1821,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
   rdcarray<ShaderConstant> globalUniforms;
 
   GLint numUBOs = 0;
-  std::vector<std::string> uboNames;
+  rdcarray<rdcstr> uboNames;
   rdcarray<ShaderConstant> *ubos = NULL;
 
   {
@@ -1901,7 +1904,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
 
     if(numInputs > 0)
     {
-      std::vector<SigParameter> sigs;
+      rdcarray<SigParameter> sigs;
       sigs.reserve(numInputs);
 
       uint32_t regIndex = 0;
@@ -2090,7 +2093,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
         {
           // we consider an output used if we encounter a '=' before either a ';' or the end of the
           // string
-          std::string outName = ToStr(ffoutput);
+          rdcstr outName = ToStr(ffoutput);
 
           // we do a substring search so that gl_ClipDistance matches gl_ClipDistance[0]
           if(strstr(varname, outName.c_str()))
@@ -2214,11 +2217,11 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
         }
         else
         {
-          std::string basename = nm;
+          rdcstr basename = nm;
           if(basename[basename.size() - 3] == '[' && basename[basename.size() - 2] == '0' &&
              basename[basename.size() - 1] == ']')
           {
-            basename.erase(basename.size() - 3);
+            basename.resize(basename.size() - 3);
             for(int a = 0; a < values[3]; a++)
               AddSigParameter(sigs, regIndex, sig, basename.c_str(), rows, a);
           }
@@ -2301,7 +2304,7 @@ void GetBindpointMapping(GLuint curProg, int shadIdx, const ShaderReflection *re
       }
 
       // handle sampler arrays, use the base name
-      std::string name = refl->readOnlyResources[i].name.c_str();
+      rdcstr name = refl->readOnlyResources[i].name.c_str();
       if(name.back() == ']')
       {
         do
@@ -2351,7 +2354,7 @@ void GetBindpointMapping(GLuint curProg, int shadIdx, const ShaderReflection *re
       }
 
       // handle sampler arrays, use the base name
-      std::string name = refl->readWriteResources[i].name.c_str();
+      rdcstr name = refl->readWriteResources[i].name.c_str();
       if(name.back() == ']')
       {
         do
@@ -2539,13 +2542,13 @@ void GetBindpointMapping(GLuint curProg, int shadIdx, const ShaderReflection *re
         continue;
 
       int32_t matrixRow = 0;
-      std::string varName = refl->inputSignature[i].varName;
+      rdcstr varName = refl->inputSignature[i].varName;
 
-      size_t offs = varName.find(":row");
-      if(offs != std::string::npos)
+      int32_t offs = varName.find(":row");
+      if(offs >= 0)
       {
         matrixRow = varName[offs + 4] - '0';
-        varName.erase(offs);
+        varName.resize(offs);
       }
 
       GLint loc = GL.glGetAttribLocation(curProg, varName.c_str());
@@ -2687,7 +2690,7 @@ void EvaluateSPIRVBindpointMapping(GLuint curProg, int shadIdx, const ShaderRefl
 }
 
 // first int - the mapping index, second int - the binding
-typedef std::vector<rdcpair<size_t, int> > Permutation;
+typedef rdcarray<rdcpair<size_t, int> > Permutation;
 
 // copy permutation by value since we mutate it to track the algorithm
 static void ApplyPermutation(Permutation permutation, std::function<void(size_t, size_t)> DoSwap)

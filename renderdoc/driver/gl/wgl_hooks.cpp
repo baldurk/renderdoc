@@ -290,7 +290,7 @@ static HGLRC WINAPI wglCreateContextAttribsARB_hooked(HDC dc, HGLRC hShareContex
   int defaultAttribList[] = {0};
 
   const int *attribs = attribList ? attribList : defaultAttribList;
-  std::vector<int> attribVec;
+  rdcarray<int> attribVec;
 
   // modify attribs to our liking
   {
