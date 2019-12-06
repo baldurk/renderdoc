@@ -569,7 +569,7 @@ class WrappedIDXGISwapChain4 : public IDXGISwapChain4, public RefCountDXGIObject
   IDXGISwapChain4 *m_pReal4;
   ID3DDevice *m_pDevice;
 
-  static std::vector<D3DDeviceCallback> m_D3DCallbacks;
+  static rdcarray<D3DDeviceCallback> m_D3DCallbacks;
 
   HWND m_Wnd;
 
@@ -607,7 +607,7 @@ public:
 
   static void RegisterD3DDeviceCallback(D3DDeviceCallback callback)
   {
-    if(std::find(m_D3DCallbacks.begin(), m_D3DCallbacks.end(), callback) == m_D3DCallbacks.end())
+    if(!m_D3DCallbacks.contains(callback))
       m_D3DCallbacks.push_back(callback);
   }
 

@@ -279,8 +279,7 @@ HRESULT __stdcall WrappedD3DDevice8::Present(CONST RECT *pSourceRect, CONST RECT
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
       flags |= RenderDoc::eOverlay_CaptureDisabled;
 
-      std::string overlayText =
-          RenderDoc::Inst().GetOverlayText(RDCDriver::D3D8, m_FrameCounter, flags);
+      rdcstr overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::D3D8, m_FrameCounter, flags);
 
       overlayText += "Captures not supported with D3D8\n";
 

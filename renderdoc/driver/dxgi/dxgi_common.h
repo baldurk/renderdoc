@@ -72,7 +72,7 @@ void WarnUnknownGUID(const char *name, REFIID riid);
 
 struct ReplayOptions;
 
-std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc);
+rdcstr GetDriverVersion(DXGI_ADAPTER_DESC &desc);
 void ChooseBestMatchingAdapter(GraphicsAPI api, IDXGIFactory *factory,
                                const DXGI_ADAPTER_DESC &AdapterDesc, const ReplayOptions &opts,
                                bool *useWarp, IDXGIAdapter **adapter);

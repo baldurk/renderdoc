@@ -1610,7 +1610,7 @@ void WarnUnknownGUID(const char *name, REFIID riid)
   static Threading::CriticalSection lock;
   // we use a vector here, because the number of *distinct* unknown GUIDs encountered is likely to
   // be low (e.g. less than 10).
-  static std::vector<rdcpair<IID, int> > warned;
+  static rdcarray<rdcpair<IID, int> > warned;
 
   {
     SCOPED_LOCK(lock);
@@ -1633,7 +1633,7 @@ void WarnUnknownGUID(const char *name, REFIID riid)
   }
 }
 
-static std::string GetDeviceProperty(HDEVINFO devs, PSP_DEVINFO_DATA data, const DEVPROPKEY *key)
+static rdcstr GetDeviceProperty(HDEVINFO devs, PSP_DEVINFO_DATA data, const DEVPROPKEY *key)
 {
   DEVPROPTYPE type = {};
   DWORD bufSize = 0;
@@ -1668,9 +1668,9 @@ static uint32_t HexToInt(char hex)
   return 0;
 }
 
-std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc)
+rdcstr GetDriverVersion(DXGI_ADAPTER_DESC &desc)
 {
-  std::string device = StringFormat::Wide2UTF8(rdcwstr(desc.Description));
+  rdcstr device = StringFormat::Wide2UTF8(rdcwstr(desc.Description));
 
   // fixed GUID for graphics drivers, from
   // https://msdn.microsoft.com/en-us/library/windows/hardware/ff553426%28v=vs.85%29.aspx
@@ -1684,14 +1684,14 @@ std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc)
     return device;
   }
 
-  std::string driverVersion = "";
+  rdcstr driverVersion = "";
 
   DWORD idx = 0;
   SP_DEVINFO_DATA data = {};
   data.cbSize = sizeof(data);
   while(SetupDiEnumDeviceInfo(devs, idx, &data))
   {
-    std::string version = GetDeviceProperty(devs, &data, &DEVPKEY_Device_DriverVersion);
+    rdcstr version = GetDeviceProperty(devs, &data, &DEVPKEY_Device_DriverVersion);
 
     if(version.empty())
     {
@@ -1703,7 +1703,7 @@ std::string GetDriverVersion(DXGI_ADAPTER_DESC &desc)
     if(driverVersion.empty())
       driverVersion = version;
 
-    std::string pciid = GetDeviceProperty(devs, &data, &DEVPKEY_Device_MatchingDeviceId);
+    rdcstr pciid = GetDeviceProperty(devs, &data, &DEVPKEY_Device_MatchingDeviceId);
 
     if(pciid.empty())
     {
