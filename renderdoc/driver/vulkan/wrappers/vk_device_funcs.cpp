@@ -167,6 +167,13 @@ static void StripUnwantedExtensions(std::vector<std::string> &Extensions)
       continue;
     }
 
+    // remove fullscreen exclusive extension
+    if(*it == "VK_EXT_full_screen_exclusive")
+    {
+      it = Extensions.erase(it);
+      continue;
+    }
+
     ++it;
   }
 }
