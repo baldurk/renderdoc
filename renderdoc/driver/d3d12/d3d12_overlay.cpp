@@ -214,7 +214,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
 
   D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
 
-  std::vector<D3D12_RESOURCE_BARRIER> barriers;
+  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
   int resType = 0;
   GetDebugManager()->PrepareTextureSampling(resource, typeCast, resType, barriers);
 
@@ -305,10 +305,10 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
 
     ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
 
-    const std::vector<D3D12_RESOURCE_STATES> &states =
+    const rdcarray<D3D12_RESOURCE_STATES> &states =
         m_pDevice->GetSubresourceStates(GetResID(realDepth));
 
-    std::vector<D3D12_RESOURCE_BARRIER> depthBarriers;
+    rdcarray<D3D12_RESOURCE_BARRIER> depthBarriers;
     depthBarriers.reserve(states.size());
     for(size_t i = 0; i < states.size(); i++)
     {
@@ -659,7 +659,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
       list->Close();
       list = NULL;
 
-      std::vector<D3D12Descriptor> rts = rs.rts;
+      rdcarray<D3D12Descriptor> rts = rs.rts;
 
       if(overlay == DebugOverlay::ClearBeforePass)
         m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);

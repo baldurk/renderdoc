@@ -796,7 +796,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
 
       if(!inactiveVertices.empty())
       {
-        std::vector<FloatVector> inactiveVB;
+        rdcarray<FloatVector> inactiveVB;
         inactiveVB.reserve(inactiveVertices.size() * 4);
 
         for(size_t i = 0; i < inactiveVertices.size(); i++)

@@ -83,7 +83,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
   SERIALISE_ELEMENT_ARRAY(ppCommandLists, NumCommandLists);
 
   {
-    std::vector<DebugMessage> DebugMessages;
+    rdcarray<DebugMessage> DebugMessages;
 
     if(ser.IsWriting())
       DebugMessages = m_pDevice->GetDebugMessages();
@@ -170,7 +170,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         m_pDevice->ApplyBarriers(m_Cmd.m_BakedCmdListInfo[cmd].barriers);
       }
 
-      std::string basename = StringFormat::Fmt("ExecuteCommandLists(%u)", NumCommandLists);
+      rdcstr basename = StringFormat::Fmt("ExecuteCommandLists(%u)", NumCommandLists);
 
       for(uint32_t c = 0; c < NumCommandLists; c++)
       {
@@ -197,8 +197,8 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
         for(size_t e = 0; e < cmdListInfo.draw->executedCmds.size(); e++)
         {
-          std::vector<uint32_t> &submits = m_Cmd.m_Partial[D3D12CommandData::Secondary]
-                                               .cmdListExecs[cmdListInfo.draw->executedCmds[e]];
+          rdcarray<uint32_t> &submits = m_Cmd.m_Partial[D3D12CommandData::Secondary]
+                                            .cmdListExecs[cmdListInfo.draw->executedCmds[e]];
 
           for(size_t s = 0; s < submits.size(); s++)
             submits[s] += m_Cmd.m_RootEventID;
@@ -271,7 +271,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
         uint32_t eid = startEID;
 
-        std::vector<ID3D12CommandList *> rerecordedCmds;
+        rdcarray<ID3D12CommandList *> rerecordedCmds;
 
         for(uint32_t c = 0; c < NumCommandLists; c++)
         {
@@ -393,7 +393,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
         // any descriptor copies or writes could reference new resources not in the
         // bound descs list yet. So we take all of those referenced descriptors and
         // include them to see if we need to flush
-        std::vector<D3D12Descriptor> dynDescRefs;
+        rdcarray<D3D12Descriptor> dynDescRefs;
         m_pDevice->GetDynamicDescriptorReferences(dynDescRefs);
 
         for(size_t d = 0; d < dynDescRefs.size(); d++)
@@ -475,7 +475,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
 
     if(capframe)
     {
-      std::vector<MapState> maps = m_pDevice->GetMaps();
+      rdcarray<MapState> maps = m_pDevice->GetMaps();
 
       for(auto it = maps.begin(); it != maps.end(); ++it)
       {
@@ -548,7 +548,7 @@ template <typename SerialiserType>
 bool WrappedID3D12CommandQueue::Serialise_SetMarker(SerialiserType &ser, UINT Metadata,
                                                     const void *pData, UINT Size)
 {
-  std::string MarkerText = "";
+  rdcstr MarkerText = "";
 
   if(ser.IsWriting() && pData && Size)
     MarkerText = DecodeMarkerString(Metadata, pData, Size);
@@ -597,7 +597,7 @@ template <typename SerialiserType>
 bool WrappedID3D12CommandQueue::Serialise_BeginEvent(SerialiserType &ser, UINT Metadata,
                                                      const void *pData, UINT Size)
 {
-  std::string MarkerText = "";
+  rdcstr MarkerText = "";
 
   if(ser.IsWriting() && pData && Size)
     MarkerText = DecodeMarkerString(Metadata, pData, Size);

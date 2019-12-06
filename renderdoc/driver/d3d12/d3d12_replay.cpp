@@ -128,7 +128,7 @@ void D3D12Replay::Initialise(IDXGIFactory1 *factory)
 
       m_DriverInfo.vendor = GPUVendorFromPCIVendor(desc.VendorId);
 
-      std::string descString = GetDriverVersion(desc);
+      rdcstr descString = GetDriverVersion(desc);
       descString.resize(RDCMIN(descString.size(), ARRAY_COUNT(m_DriverInfo.version) - 1));
       memcpy(m_DriverInfo.version, descString.c_str(), descString.size());
 
@@ -347,7 +347,7 @@ BufferDescription D3D12Replay::GetBuffer(ResourceId id)
 
   ret.creationFlags = BufferCategory::NoFlags;
 
-  const std::vector<EventUsage> &usage = m_pDevice->GetQueue()->GetUsage(id);
+  const rdcarray<EventUsage> &usage = m_pDevice->GetQueue()->GetUsage(id);
 
   for(size_t i = 0; i < usage.size(); i++)
   {
@@ -560,13 +560,13 @@ rdcstr D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflectio
     }
     else
       return "; Unknown error fetching disassembly, invalid string returned\n\n\n" +
-             std::string(data, data + size);
+             rdcstr((char *)data, size);
 
-    std::string contents;
+    rdcstr contents;
 
     // decode the <shader><comment> tags
     if(!strncmp((char *)iter, "<shader", 7))
-      contents = std::string((char *)iter, (char *)iter + strlen((char *)iter));
+      contents = (char *)iter;
     else if(!wcsncmp((wchar_t *)iter, L"<shader", 7))
       contents = StringFormat::Wide2UTF8((wchar_t *)iter);
 
@@ -585,9 +585,9 @@ rdcstr D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflectio
       default: return "; Unknown shader stage in shader reflection\n";
     }
 
-    size_t idx = contents.find(search);
+    int32_t idx = contents.find(search);
 
-    if(idx == std::string::npos)
+    if(idx < 0)
       return "; Couldn't find disassembly for given shader stage in returned string\n\n\n" + contents;
 
     idx += 11;    // stage=".S">
@@ -602,9 +602,9 @@ rdcstr D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflectio
 
     idx += 10;    // <![CDATA[\n
 
-    size_t end = contents.find("]]></comment>", idx);
+    int32_t end = contents.find("]]></comment>", idx);
 
-    if(end == std::string::npos)
+    if(end < 0)
       return "; Unknown error fetching disassembly, invalid string returned\n\n\n" + contents;
 
     return contents.substr(idx, end - idx);
@@ -1895,7 +1895,7 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
       bytebuf idxs;
       GetBufferData(cfg.position.indexResourceId, cfg.position.indexByteOffset, 0, idxs);
 
-      std::vector<uint32_t> outidxs;
+      rdcarray<uint32_t> outidxs;
       outidxs.resize(cfg.position.numIndices);
 
       uint16_t *idxs16 = (uint16_t *)&idxs[0];
@@ -2033,7 +2033,7 @@ uint32_t D3D12Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
       m_pDevice->CreateShaderResourceView(NULL, &sdesc, GetDebugManager()->GetCPUHandle(PICK_VB_SRV));
     }
 
-    std::vector<FloatVector> vbData;
+    rdcarray<FloatVector> vbData;
     vbData.resize(maxIndex + 1);
 
     byte *data = &oldData[0];
@@ -2300,7 +2300,7 @@ bool D3D12Replay::GetMinMax(ResourceId texid, const Subresource &sub, CompType t
   int blocksY = (int)ceil(cdata.HistogramTextureResolution.y /
                           float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
 
-  std::vector<D3D12_RESOURCE_BARRIER> barriers;
+  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
   int resType = 0;
   GetDebugManager()->PrepareTextureSampling(resource, typeCast, resType, barriers);
 
@@ -2496,7 +2496,7 @@ bool D3D12Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompTyp
   int tilesY = (int)ceil(cdata.HistogramTextureResolution.y /
                          float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
 
-  std::vector<D3D12_RESOURCE_BARRIER> barriers;
+  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
   int resType = 0;
   GetDebugManager()->PrepareTextureSampling(resource, typeCast, resType, barriers);
 
@@ -2724,7 +2724,7 @@ void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, r
   const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
   WrappedID3D12RootSignature *sig = NULL;
-  const std::vector<D3D12RenderState::SignatureElement> *sigElems = NULL;
+  const rdcarray<D3D12RenderState::SignatureElement> *sigElems = NULL;
 
   if(refl.stage == ShaderStage::Compute && rs.compute.rootsig != ResourceId())
   {
@@ -2806,7 +2806,7 @@ void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &sour
         return;
     }
 
-    std::string hlsl;
+    rdcstr hlsl;
     hlsl.assign((const char *)source.data(), source.size());
 
     ID3DBlob *blob = NULL;
@@ -2875,7 +2875,7 @@ void D3D12Replay::RefreshDerivedReplacements()
 
   // we defer deletes of old replaced resources since it will invalidate elements in the vector
   // we're iterating
-  std::vector<ID3D12PipelineState *> deletequeue;
+  rdcarray<ID3D12PipelineState *> deletequeue;
 
   for(WrappedID3D12PipelineState *pipe : m_pDevice->GetPipelineList())
   {
@@ -3196,9 +3196,9 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     list = m_pDevice->GetNewList();
 
     // put source texture into resolve source state
-    const std::vector<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
+    const rdcarray<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
 
-    std::vector<D3D12_RESOURCE_BARRIER> barriers;
+    rdcarray<D3D12_RESOURCE_BARRIER> barriers;
     barriers.reserve(states.size());
     for(size_t i = 0; i < states.size(); i++)
     {
@@ -3264,9 +3264,9 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     list = m_pDevice->GetNewList();
 
     // put source texture into shader read state
-    const std::vector<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
+    const rdcarray<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
 
-    std::vector<D3D12_RESOURCE_BARRIER> barriers;
+    rdcarray<D3D12_RESOURCE_BARRIER> barriers;
     barriers.reserve(states.size());
     for(size_t i = 0; i < states.size(); i++)
     {
@@ -3324,12 +3324,12 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   if(list == NULL)
     list = m_pDevice->GetNewList();
 
-  std::vector<D3D12_RESOURCE_BARRIER> barriers;
+  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
 
   // if we have no tmpImage, we're copying directly from the real image
   if(tmpTexture == NULL)
   {
-    const std::vector<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
+    const rdcarray<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(tex);
     barriers.reserve(states.size());
     for(size_t i = 0; i < states.size(); i++)
     {

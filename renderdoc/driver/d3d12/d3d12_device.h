@@ -358,8 +358,8 @@ private:
   ID3D12DeviceDownlevel *m_pDownlevel;
 
   // list of all queues being captured
-  std::vector<WrappedID3D12CommandQueue *> m_Queues;
-  std::vector<ID3D12Fence *> m_QueueFences;
+  rdcarray<WrappedID3D12CommandQueue *> m_Queues;
+  rdcarray<ID3D12Fence *> m_QueueFences;
 
   // the queue we use for all internal work, the first DIRECT queue
   WrappedID3D12CommandQueue *m_Queue;
@@ -375,13 +375,13 @@ private:
   WrappedDRED m_DRED;
   WrappedDREDSettings m_DREDSettings;
 
-  std::vector<ID3D12CommandAllocator *> m_CommandAllocators;
+  rdcarray<ID3D12CommandAllocator *> m_CommandAllocators;
 
   D3D12_CPU_DESCRIPTOR_HANDLE AllocRTV();
   void FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle);
 
-  std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_FreeRTVs;
-  std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_UsedRTVs;
+  rdcarray<D3D12_CPU_DESCRIPTOR_HANDLE> m_FreeRTVs;
+  rdcarray<D3D12_CPU_DESCRIPTOR_HANDLE> m_UsedRTVs;
 
   void CreateInternalResources();
   void DestroyInternalResources();
@@ -401,7 +401,7 @@ private:
   std::map<uint64_t, ID3D12Resource *> m_UploadBuffers;
 
   Threading::CriticalSection m_MapsLock;
-  std::vector<MapState> m_Maps;
+  rdcarray<MapState> m_Maps;
 
   bool ProcessChunk(ReadSerialiser &ser, D3D12Chunk context);
 
@@ -413,7 +413,7 @@ private:
   uint64_t threadSerialiserTLSSlot;
 
   Threading::CriticalSection m_ThreadSerialisersLock;
-  std::vector<WriteSerialiser *> m_ThreadSerialisers;
+  rdcarray<WriteSerialiser *> m_ThreadSerialisers;
 
   uint64_t tempMemoryTLSSlot;
   struct TempMem
@@ -423,15 +423,15 @@ private:
     size_t size;
   };
   Threading::CriticalSection m_ThreadTempMemLock;
-  std::vector<TempMem *> m_ThreadTempMem;
+  rdcarray<TempMem *> m_ThreadTempMem;
 
-  std::vector<DebugMessage> m_DebugMessages;
+  rdcarray<DebugMessage> m_DebugMessages;
 
   SDFile *m_StructuredFile = NULL;
   SDFile m_StoredStructuredData;
 
   uint32_t m_FrameCounter = 0;
-  std::vector<FrameDescription> m_CapturedFrames;
+  rdcarray<FrameDescription> m_CapturedFrames;
   rdcarray<DrawcallDescription *> m_Drawcalls;
 
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
@@ -459,9 +459,9 @@ private:
   D3D12ResourceRecord *m_DeviceRecord;
 
   Threading::CriticalSection m_DynDescLock;
-  std::vector<DynamicDescriptorCopy> m_DynamicDescriptorCopies;
-  std::vector<DynamicDescriptorWrite> m_DynamicDescriptorWrites;
-  std::vector<D3D12Descriptor> m_DynamicDescriptorRefs;
+  rdcarray<DynamicDescriptorCopy> m_DynamicDescriptorCopies;
+  rdcarray<DynamicDescriptorWrite> m_DynamicDescriptorWrites;
+  rdcarray<D3D12Descriptor> m_DynamicDescriptorRefs;
 
   GPUAddressRangeTracker m_GPUAddresses;
 
@@ -474,11 +474,11 @@ private:
 
   std::set<ResourceId> m_Cubemaps;
 
-  std::map<ResourceId, std::string> m_ResourceNames;
+  std::map<ResourceId, rdcstr> m_ResourceNames;
 
   // only valid on replay
   std::map<ResourceId, WrappedID3D12Resource1 *> *m_ResourceList = NULL;
-  std::vector<WrappedID3D12PipelineState *> *m_PipelineList = NULL;
+  rdcarray<WrappedID3D12PipelineState *> *m_PipelineList = NULL;
 
   struct SwapPresentInfo
   {
@@ -531,7 +531,7 @@ public:
 
   // only valid on replay
   std::map<ResourceId, WrappedID3D12Resource1 *> &GetResourceList() { return *m_ResourceList; }
-  std::vector<WrappedID3D12PipelineState *> &GetPipelineList() { return *m_PipelineList; }
+  rdcarray<WrappedID3D12PipelineState *> &GetPipelineList() { return *m_PipelineList; }
   ////////////////////////////////////////////////////////////////
   // non wrapping interface
 
@@ -551,9 +551,9 @@ public:
   const DrawcallDescription *GetDrawcall(uint32_t eventId);
 
   ResourceId GetFrameCaptureResourceId() { return m_FrameCaptureRecord->GetResourceID(); }
-  void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
+  void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
   void AddDebugMessage(const DebugMessage &msg);
-  std::vector<DebugMessage> GetDebugMessages();
+  rdcarray<DebugMessage> GetDebugMessages();
 
   ResourceDescription &GetResourceDesc(ResourceId id);
   void AddResource(ResourceId id, ResourceType type, const char *defaultNamePrefix);
@@ -562,8 +562,8 @@ public:
   void AddResourceCurChunk(ResourceDescription &descr);
   void AddResourceCurChunk(ResourceId id);
 
-  const std::string &GetResourceName(ResourceId id) { return m_ResourceNames[id]; }
-  std::vector<D3D12_RESOURCE_STATES> &GetSubresourceStates(ResourceId id)
+  const rdcstr &GetResourceName(ResourceId id) { return m_ResourceNames[id]; }
+  rdcarray<D3D12_RESOURCE_STATES> &GetSubresourceStates(ResourceId id)
   {
     return m_ResourceStates[id];
   }
@@ -585,9 +585,9 @@ public:
   D3D12Replay *GetReplay() { return m_Replay; }
   WrappedID3D12CommandQueue *GetQueue() { return m_Queue; }
   ID3D12CommandAllocator *GetAlloc() { return m_Alloc; }
-  void ApplyBarriers(std::vector<D3D12_RESOURCE_BARRIER> &barriers);
+  void ApplyBarriers(rdcarray<D3D12_RESOURCE_BARRIER> &barriers);
 
-  void GetDynamicDescriptorReferences(std::vector<D3D12Descriptor> &refs)
+  void GetDynamicDescriptorReferences(rdcarray<D3D12Descriptor> &refs)
   {
     SCOPED_LOCK(m_DynDescLock);
     m_DynamicDescriptorRefs.swap(refs);
@@ -616,11 +616,11 @@ public:
       submittedcmds.clear();
     }
 
-    std::vector<ID3D12GraphicsCommandListX *> freecmds;
+    rdcarray<ID3D12GraphicsCommandListX *> freecmds;
     // -> GetNextCmd() ->
-    std::vector<ID3D12GraphicsCommandListX *> pendingcmds;
+    rdcarray<ID3D12GraphicsCommandListX *> pendingcmds;
     // -> ExecuteLists() ->
-    std::vector<ID3D12GraphicsCommandListX *> submittedcmds;
+    rdcarray<ID3D12GraphicsCommandListX *> submittedcmds;
     // -> FlushLists()--------back to freecmds--------^
   } m_InternalCmds;
 
@@ -663,7 +663,7 @@ public:
   bool Serialise_DynamicDescriptorWrite(SerialiserType &ser, const DynamicDescriptorWrite *write);
   template <typename SerialiserType>
   bool Serialise_DynamicDescriptorCopies(SerialiserType &ser,
-                                         const std::vector<DynamicDescriptorCopy> &DescriptorCopies);
+                                         const rdcarray<DynamicDescriptorCopy> &DescriptorCopies);
 
   ReplayStatus ReadLogInitialisation(RDCFile *rdc, bool storeStructuredBuffers);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
@@ -786,9 +786,9 @@ public:
                                        UINT Subresource, const D3D12_BOX *pDstBox,
                                        const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch);
 
-  std::vector<MapState> GetMaps()
+  rdcarray<MapState> GetMaps()
   {
-    std::vector<MapState> ret;
+    rdcarray<MapState> ret;
     {
       SCOPED_LOCK(m_MapsLock);
       ret = m_Maps;

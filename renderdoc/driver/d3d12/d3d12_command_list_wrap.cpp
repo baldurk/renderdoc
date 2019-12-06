@@ -222,7 +222,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
       // check for partial execution of this command list
       for(int p = 0; p < D3D12CommandData::ePartialNum; p++)
       {
-        const std::vector<uint32_t> &baseEvents = m_Cmd->m_Partial[p].cmdListExecs[BakedCommandList];
+        const rdcarray<uint32_t> &baseEvents = m_Cmd->m_Partial[p].cmdListExecs[BakedCommandList];
 
         for(auto it = baseEvents.begin(); it != baseEvents.end(); ++it)
         {
@@ -462,7 +462,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
-    std::vector<D3D12_RESOURCE_BARRIER> filtered;
+    rdcarray<D3D12_RESOURCE_BARRIER> filtered;
     {
       filtered.reserve(NumBarriers);
 
@@ -593,8 +593,7 @@ void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
 
     m_ListRecord->AddChunk(scope.Get());
 
-    m_ListRecord->cmdInfo->barriers.insert(m_ListRecord->cmdInfo->barriers.end(), pBarriers,
-                                           pBarriers + NumBarriers);
+    m_ListRecord->cmdInfo->barriers.append(pBarriers, NumBarriers);
   }
 }
 
@@ -958,7 +957,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetDescriptorHeaps(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        std::vector<ID3D12DescriptorHeap *> heaps;
+        rdcarray<ID3D12DescriptorHeap *> heaps;
         heaps.resize(NumDescriptorHeaps);
         for(size_t i = 0; i < heaps.size(); i++)
           heaps[i] = Unwrap(ppDescriptorHeaps[i]);
@@ -976,7 +975,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetDescriptorHeaps(
     }
     else
     {
-      std::vector<ID3D12DescriptorHeap *> heaps;
+      rdcarray<ID3D12DescriptorHeap *> heaps;
       heaps.resize(NumDescriptorHeaps);
       for(size_t i = 0; i < heaps.size(); i++)
         heaps[i] = Unwrap(ppDescriptorHeaps[i]);
@@ -1336,7 +1335,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
   SERIALISE_ELEMENT(pCommandList);
   SERIALISE_ELEMENT(NumRenderTargetDescriptors);
 
-  std::vector<D3D12Descriptor> RTVs;
+  rdcarray<D3D12Descriptor> RTVs;
 
   if(ser.VersionAtLeast(0x5))
   {
@@ -1348,7 +1347,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
         {
           const D3D12Descriptor *descs = GetWrapped(pRenderTargetDescriptors[0]);
 
-          RTVs.insert(RTVs.begin(), descs, descs + NumRenderTargetDescriptors);
+          RTVs.assign(descs, NumRenderTargetDescriptors);
         }
       }
       else
@@ -1383,7 +1382,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
         {
           const D3D12Descriptor *descs = GetWrapped(pRenderTargetDescriptors[0]);
 
-          RTVs.insert(RTVs.begin(), descs, descs + NumRenderTargetDescriptors);
+          RTVs.assign(descs, NumRenderTargetDescriptors);
         }
       }
       else
@@ -1429,7 +1428,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
-    std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> unwrappedRTs;
+    rdcarray<D3D12_CPU_DESCRIPTOR_HANDLE> unwrappedRTs;
     unwrappedRTs.resize(RTVs.size());
     for(size_t i = 0; i < RTVs.size(); i++)
     {
@@ -1659,7 +1658,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
     m_ListRecord->MarkResourceFrameReferenced(GetWrapped(BaseDescriptor)->GetHeapResourceId(),
                                               eFrameRef_Read);
 
-    std::vector<D3D12_DESCRIPTOR_RANGE1> &ranges =
+    rdcarray<D3D12_DESCRIPTOR_RANGE1> &ranges =
         GetWrapped(m_CurCompRootSig)->sig.Parameters[RootParameterIndex].ranges;
 
     D3D12Descriptor *base = GetWrapped(BaseDescriptor);
@@ -1688,7 +1687,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
 
       if(!RenderDoc::Inst().GetCaptureOptions().refAllResources)
       {
-        std::vector<D3D12Descriptor *> &descs = m_ListRecord->cmdInfo->boundDescs;
+        rdcarray<D3D12Descriptor *> &descs = m_ListRecord->cmdInfo->boundDescs;
 
         descs.reserve(descs.size() + num);
         for(UINT d = 0; d < num; d++)
@@ -2223,7 +2222,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
     m_ListRecord->MarkResourceFrameReferenced(GetWrapped(BaseDescriptor)->GetHeapResourceId(),
                                               eFrameRef_Read);
 
-    std::vector<D3D12_DESCRIPTOR_RANGE1> &ranges =
+    rdcarray<D3D12_DESCRIPTOR_RANGE1> &ranges =
         GetWrapped(m_CurGfxRootSig)->sig.Parameters[RootParameterIndex].ranges;
 
     D3D12Descriptor *base = GetWrapped(BaseDescriptor);
@@ -2252,7 +2251,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
 
       if(!RenderDoc::Inst().GetCaptureOptions().refAllResources)
       {
-        std::vector<D3D12Descriptor *> &descs = m_ListRecord->cmdInfo->boundDescs;
+        rdcarray<D3D12Descriptor *> &descs = m_ListRecord->cmdInfo->boundDescs;
 
         descs.reserve(descs.size() + num);
         for(UINT d = 0; d < num; d++)
@@ -2848,7 +2847,7 @@ template <typename SerialiserType>
 bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(SerialiserType &ser, UINT Metadata,
                                                            const void *pData, UINT Size)
 {
-  std::string MarkerText = "";
+  rdcstr MarkerText = "";
 
   if(ser.IsWriting() && pData && Size)
     MarkerText = DecodeMarkerString(Metadata, pData, Size);
@@ -2911,7 +2910,7 @@ template <typename SerialiserType>
 bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(SerialiserType &ser, UINT Metadata,
                                                             const void *pData, UINT Size)
 {
-  std::string MarkerText = "";
+  rdcstr MarkerText = "";
 
   if(ser.IsWriting() && pData && Size)
     MarkerText = DecodeMarkerString(Metadata, pData, Size);
@@ -3362,7 +3361,7 @@ void WrappedID3D12GraphicsCommandList::ExecuteBundle(ID3D12GraphicsCommandList *
 
     CmdListRecordingInfo *dst = m_ListRecord->cmdInfo;
     CmdListRecordingInfo *src = record->bakedCommands->cmdInfo;
-    dst->boundDescs.insert(dst->boundDescs.end(), src->boundDescs.begin(), src->boundDescs.end());
+    dst->boundDescs.append(src->boundDescs);
     dst->dirtied.insert(src->dirtied.begin(), src->dirtied.end());
 
     dst->bundles.push_back(record);
@@ -3473,7 +3472,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
   byte *mapPtr = NULL;
   exec.argBuf->Map(0, &range, (void **)&mapPtr);
 
-  std::vector<D3D12DrawcallTreeNode> &draws = info.draw->children;
+  rdcarray<D3D12DrawcallTreeNode> &draws = info.draw->children;
 
   size_t idx = 0;
   uint32_t eid = exec.baseEvent;
@@ -3654,11 +3653,11 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
             if(arg.Constant.RootParameterIndex < state.graphics.sigelems.size())
               state.graphics.sigelems[arg.Constant.RootParameterIndex].constants.assign(
-                  data32, data32 + arg.Constant.Num32BitValuesToSet);
+                  data32, arg.Constant.Num32BitValuesToSet);
 
             if(arg.Constant.RootParameterIndex < state.compute.sigelems.size())
               state.compute.sigelems[arg.Constant.RootParameterIndex].constants.assign(
-                  data32, data32 + arg.Constant.Num32BitValuesToSet);
+                  data32, arg.Constant.Num32BitValuesToSet);
 
             // advance only the EID, since we're still in the same draw
             eid++;
@@ -3796,7 +3795,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
     while(idx < draws.size() && draws[idx].draw.eventId < lastEID)
     {
-      draws.erase(draws.begin() + idx);
+      draws.erase(idx);
       shiftDrawID++;
     }
 
@@ -3807,7 +3806,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
   if(!multidraw && exec.maxCount > 1)
   {
     // remove pop event
-    draws.erase(draws.begin() + idx);
+    draws.erase(idx);
 
     info.ShiftForRemoved(1, 1, idx);
   }
@@ -3869,7 +3868,7 @@ void WrappedID3D12GraphicsCommandList::ReplayExecuteIndirect(ID3D12GraphicsComma
 
   byte *dataPtr = &data[0];
 
-  std::vector<D3D12RenderState::SignatureElement> &sigelems =
+  rdcarray<D3D12RenderState::SignatureElement> &sigelems =
       gfx ? m_Cmd->m_RenderState.graphics.sigelems : m_Cmd->m_RenderState.compute.sigelems;
 
   // while executing, decide where to start and stop. We do this by modifying the max count and

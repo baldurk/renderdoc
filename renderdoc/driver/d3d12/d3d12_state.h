@@ -51,20 +51,20 @@ struct D3D12RenderState
   void ApplyComputeRootElements(ID3D12GraphicsCommandListX *cmd) const;
   void ApplyGraphicsRootElements(ID3D12GraphicsCommandListX *cmd) const;
 
-  std::vector<D3D12_VIEWPORT> views;
-  std::vector<D3D12_RECT> scissors;
+  rdcarray<D3D12_VIEWPORT> views;
+  rdcarray<D3D12_RECT> scissors;
 
   // these are D3D12Descriptor copies since the values of the descriptors are read during
   // OMSetRenderTargets and may not exist anywhere after that if they are immediately overwritten.
-  std::vector<D3D12Descriptor> rts;
+  rdcarray<D3D12Descriptor> rts;
   D3D12Descriptor dsv;
 
   bool renderpass = false;
-  std::vector<D3D12_RENDER_PASS_RENDER_TARGET_DESC> rpRTs;
+  rdcarray<D3D12_RENDER_PASS_RENDER_TARGET_DESC> rpRTs;
   D3D12_RENDER_PASS_DEPTH_STENCIL_DESC rpDSV;
   D3D12_RENDER_PASS_FLAGS rpFlags;
 
-  std::vector<ResourceId> GetRTVIDs() const;
+  rdcarray<ResourceId> GetRTVIDs() const;
   ResourceId GetDSVID() const;
 
   ResourceId shadingRateImage;
@@ -150,10 +150,10 @@ struct D3D12RenderState
 
     ResourceId id;
     UINT64 offset;
-    std::vector<UINT> constants;
+    rdcarray<UINT> constants;
   };
 
-  std::vector<ResourceId> heaps;
+  rdcarray<ResourceId> heaps;
 
   struct StreamOut
   {
@@ -164,13 +164,13 @@ struct D3D12RenderState
     ResourceId countbuf;
     UINT64 countoffs;
   };
-  std::vector<StreamOut> streamouts;
+  rdcarray<StreamOut> streamouts;
 
   struct RootSignature
   {
     ResourceId rootsig;
 
-    std::vector<SignatureElement> sigelems;
+    rdcarray<SignatureElement> sigelems;
   } compute, graphics;
 
   ResourceId pipe;
@@ -180,7 +180,7 @@ struct D3D12RenderState
   struct SamplePositions
   {
     UINT NumSamplesPerPixel, NumPixels;
-    std::vector<D3D12_SAMPLE_POSITION> Positions;
+    rdcarray<D3D12_SAMPLE_POSITION> Positions;
   } samplePos;
 
   D3D12_PRIMITIVE_TOPOLOGY topo = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
@@ -204,7 +204,7 @@ struct D3D12RenderState
     UINT stride;
     UINT size;
   };
-  std::vector<VertBuffer> vbuffers;
+  rdcarray<VertBuffer> vbuffers;
 
   D3D12ResourceManager *GetResourceManager() const { return m_ResourceManager; }
   D3D12ResourceManager *m_ResourceManager = NULL;

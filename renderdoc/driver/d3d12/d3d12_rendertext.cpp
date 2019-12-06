@@ -116,7 +116,7 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
 
   rm->SetInternalResource(Tex);
 
-  std::string font = GetEmbeddedResource(sourcecodepro_ttf);
+  rdcstr font = GetEmbeddedResource(sourcecodepro_ttf);
   byte *ttfdata = (byte *)font.c_str();
 
   const int firstChar = int(' ') + 1;
@@ -288,7 +288,7 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
 
   ConstRingIdx = 0;
 
-  std::vector<D3D12_ROOT_PARAMETER1> rootSig;
+  rdcarray<D3D12_ROOT_PARAMETER1> rootSig;
   D3D12_ROOT_PARAMETER1 param = {};
 
   // Constants
@@ -356,7 +356,7 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
 
   SAFE_RELEASE(root);
 
-  std::string hlsl = GetEmbeddedResource(text_hlsl);
+  rdcstr hlsl = GetEmbeddedResource(text_hlsl);
 
   ID3DBlob *TextVS = NULL;
   ID3DBlob *TextPS = NULL;

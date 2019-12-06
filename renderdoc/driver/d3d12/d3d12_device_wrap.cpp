@@ -1346,7 +1346,7 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
       GetResourceManager()->AddLiveResource(pResource, ret);
 
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
-      states.resize(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
+      states.fill(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
 
       ResourceType type = ResourceType::Texture;
       const char *prefix = "Texture";
@@ -1461,7 +1461,7 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
       SCOPED_LOCK(m_ResourceStatesLock);
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
-      states.resize(GetNumSubresources(m_pDevice, pDesc), InitialResourceState);
+      states.fill(GetNumSubresources(m_pDevice, pDesc), InitialResourceState);
     }
 
     *ppvResource = (ID3D12Resource *)wrapped;
@@ -1624,7 +1624,7 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
       GetResourceManager()->AddLiveResource(pResource, ret);
 
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
-      states.resize(GetNumSubresources(m_pDevice, &Descriptor), InitialState);
+      states.fill(GetNumSubresources(m_pDevice, &Descriptor), InitialState);
     }
 
     ResourceType type = ResourceType::Texture;
@@ -1736,7 +1736,7 @@ HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 Heap
       SCOPED_LOCK(m_ResourceStatesLock);
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
-      states.resize(GetNumSubresources(m_pDevice, pDesc), InitialState);
+      states.fill(GetNumSubresources(m_pDevice, pDesc), InitialState);
     }
 
     *ppvResource = (ID3D12Resource *)wrapped;
@@ -1962,8 +1962,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(SerialiserType &ser,
       WrappedID3D12CommandSignature *wrapped = new WrappedID3D12CommandSignature(ret, this);
 
       wrapped->sig.ByteStride = Descriptor.ByteStride;
-      wrapped->sig.arguments.insert(wrapped->sig.arguments.begin(), Descriptor.pArgumentDescs,
-                                    Descriptor.pArgumentDescs + Descriptor.NumArgumentDescs);
+      wrapped->sig.arguments.assign(Descriptor.pArgumentDescs, Descriptor.NumArgumentDescs);
 
       wrapped->sig.graphics = true;
       wrapped->sig.numDraws = 0;
@@ -2063,7 +2062,7 @@ HRESULT WrappedID3D12Device::CreateSharedHandle(ID3D12DeviceChild *pObject,
 
 template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_DynamicDescriptorCopies(
-    SerialiserType &ser, const std::vector<DynamicDescriptorCopy> &DescriptorCopies)
+    SerialiserType &ser, const rdcarray<DynamicDescriptorCopy> &DescriptorCopies)
 {
   SERIALISE_ELEMENT(DescriptorCopies);
 
@@ -2107,7 +2106,7 @@ void WrappedID3D12Device::CopyDescriptors(
   D3D12Descriptor *src = GetWrapped(pSrcDescriptorRangeStarts[0]);
   D3D12Descriptor *dst = GetWrapped(pDestDescriptorRangeStarts[0]);
 
-  std::vector<DynamicDescriptorCopy> copies;
+  rdcarray<DynamicDescriptorCopy> copies;
 
   bool capframe = false;
 
@@ -2188,7 +2187,7 @@ void WrappedID3D12Device::CopyDescriptors(
 
     {
       SCOPED_LOCK(m_DynDescLock);
-      m_DynamicDescriptorCopies.insert(m_DynamicDescriptorCopies.end(), copies.begin(), copies.end());
+      m_DynamicDescriptorCopies.append(copies);
       for(size_t i = 0; i < copies.size(); i++)
       {
         copies[i].src->GetHeap()->AddRef();
@@ -2255,14 +2254,14 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
       GetResourceManager()->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
     }
 
-    std::vector<DynamicDescriptorCopy> copies;
+    rdcarray<DynamicDescriptorCopy> copies;
     copies.reserve(NumDescriptors);
     for(UINT i = 0; i < NumDescriptors; i++)
       copies.push_back(DynamicDescriptorCopy(&dst[i], &src[i], DescriptorHeapsType));
 
     {
       SCOPED_LOCK(m_DynDescLock);
-      m_DynamicDescriptorCopies.insert(m_DynamicDescriptorCopies.end(), copies.begin(), copies.end());
+      m_DynamicDescriptorCopies.append(copies);
       for(size_t i = 0; i < copies.size(); i++)
       {
         copies[i].src->GetHeap()->AddRef();
@@ -2385,7 +2384,7 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
         GetResourceManager()->AddLiveResource(resourceId, ret);
 
         SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
-        states.resize(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
+        states.fill(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
 
         ResourceType type = ResourceType::Texture;
         const char *prefix = "Texture";
@@ -2557,7 +2556,7 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
         SCOPED_LOCK(m_ResourceStatesLock);
         SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
-        states.resize(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
+        states.fill(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
       }
     }
 
@@ -2821,6 +2820,6 @@ INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, CreateCommandSignatur
                                 ID3D12RootSignature *pRootSignature, REFIID riid,
                                 void **ppvCommandSignature);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, DynamicDescriptorCopies,
-                                const std::vector<DynamicDescriptorCopy> &DescriptorCopies);
+                                const rdcarray<DynamicDescriptorCopy> &DescriptorCopies);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, OpenSharedHandle, HANDLE NTHandle,
                                 REFIID riid, void **ppvObj);

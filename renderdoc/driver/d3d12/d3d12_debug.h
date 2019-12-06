@@ -160,7 +160,7 @@ public:
   D3D12_CPU_DESCRIPTOR_HANDLE GetUAVClearHandle(CBVUAVSRVSlot slot);
 
   void PrepareTextureSampling(ID3D12Resource *resource, CompType typeCast, int &resType,
-                              std::vector<D3D12_RESOURCE_BARRIER> &barriers);
+                              rdcarray<D3D12_RESOURCE_BARRIER> &barriers);
 
   MeshDisplayPipelines CacheMeshDisplayPipelines(const MeshFormat &primary,
                                                  const MeshFormat &secondary);

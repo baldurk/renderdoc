@@ -55,9 +55,9 @@ D3D12RenderState &D3D12RenderState::operator=(const D3D12RenderState &o)
   return *this;
 }
 
-std::vector<ResourceId> D3D12RenderState::GetRTVIDs() const
+rdcarray<ResourceId> D3D12RenderState::GetRTVIDs() const
 {
-  std::vector<ResourceId> ret;
+  rdcarray<ResourceId> ret;
 
   for(UINT i = 0; i < rts.size(); i++)
   {
@@ -178,7 +178,7 @@ void D3D12RenderState::ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsComman
 
 void D3D12RenderState::ApplyDescriptorHeaps(ID3D12GraphicsCommandListX *cmd) const
 {
-  std::vector<ID3D12DescriptorHeap *> descHeaps;
+  rdcarray<ID3D12DescriptorHeap *> descHeaps;
   descHeaps.resize(heaps.size());
 
   for(size_t i = 0; i < heaps.size(); i++)
@@ -194,8 +194,7 @@ void D3D12RenderState::ApplyComputeRootElements(ID3D12GraphicsCommandListX *cmd)
   {
     // just don't set tables that aren't in the descriptor heaps, since it's invalid and can crash
     // and is probably just from stale bindings that aren't going to be used
-    if(compute.sigelems[i].type != eRootTable ||
-       std::find(heaps.begin(), heaps.end(), compute.sigelems[i].id) != heaps.end())
+    if(compute.sigelems[i].type != eRootTable || heaps.contains(compute.sigelems[i].id))
     {
       compute.sigelems[i].SetToCompute(GetResourceManager(), cmd, (UINT)i);
     }
@@ -213,8 +212,7 @@ void D3D12RenderState::ApplyGraphicsRootElements(ID3D12GraphicsCommandListX *cmd
   {
     // just don't set tables that aren't in the descriptor heaps, since it's invalid and can crash
     // and is probably just from stale bindings that aren't going to be used
-    if(graphics.sigelems[i].type != eRootTable ||
-       std::find(heaps.begin(), heaps.end(), graphics.sigelems[i].id) != heaps.end())
+    if(graphics.sigelems[i].type != eRootTable || heaps.contains(graphics.sigelems[i].id))
     {
       graphics.sigelems[i].SetToGraphics(GetResourceManager(), cmd, (UINT)i);
     }

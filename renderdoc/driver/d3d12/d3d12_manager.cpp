@@ -649,7 +649,7 @@ D3D12Descriptor *DescriptorFromPortableHandle(D3D12ResourceManager *manager, Por
 #define BARRIER_ASSERT(...)
 #endif
 
-void D3D12ResourceManager::ApplyBarriers(std::vector<D3D12_RESOURCE_BARRIER> &barriers,
+void D3D12ResourceManager::ApplyBarriers(rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
                                          std::map<ResourceId, SubresourceStateVector> &states)
 {
   for(size_t b = 0; b < barriers.size(); b++)
@@ -683,7 +683,7 @@ void D3D12ResourceManager::ApplyBarriers(std::vector<D3D12_RESOURCE_BARRIER> &ba
 
 template <typename SerialiserType>
 void D3D12ResourceManager::SerialiseResourceStates(SerialiserType &ser,
-                                                   std::vector<D3D12_RESOURCE_BARRIER> &barriers,
+                                                   rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
                                                    std::map<ResourceId, SubresourceStateVector> &states)
 {
   SERIALISE_ELEMENT_LOCAL(NumMems, (uint32_t)states.size());
@@ -720,22 +720,18 @@ void D3D12ResourceManager::SerialiseResourceStates(SerialiserType &ser,
   }
 
   // erase any do-nothing barriers
-  for(auto it = barriers.begin(); it != barriers.end();)
-  {
-    if(it->Transition.StateBefore == it->Transition.StateAfter)
-      it = barriers.erase(it);
-    else
-      ++it;
-  }
+  barriers.removeIf([](const D3D12_RESOURCE_BARRIER &barrier) {
+    return barrier.Transition.StateBefore == barrier.Transition.StateAfter;
+  });
 
   ApplyBarriers(barriers, states);
 }
 
 template void D3D12ResourceManager::SerialiseResourceStates(
-    ReadSerialiser &ser, std::vector<D3D12_RESOURCE_BARRIER> &barriers,
+    ReadSerialiser &ser, rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
     std::map<ResourceId, SubresourceStateVector> &states);
 template void D3D12ResourceManager::SerialiseResourceStates(
-    WriteSerialiser &ser, std::vector<D3D12_RESOURCE_BARRIER> &barriers,
+    WriteSerialiser &ser, rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
     std::map<ResourceId, SubresourceStateVector> &states);
 
 void D3D12ResourceManager::SetInternalResource(ID3D12DeviceChild *res)
@@ -766,26 +762,26 @@ void GPUAddressRangeTracker::AddTo(const GPUAddressRange &range)
   SCOPED_WRITELOCK(addressLock);
   auto it = std::lower_bound(addresses.begin(), addresses.end(), range.start);
 
-  addresses.insert(it, range);
+  addresses.insert(it - addresses.begin(), range);
 }
 
 void GPUAddressRangeTracker::RemoveFrom(const GPUAddressRange &range)
 {
   {
     SCOPED_WRITELOCK(addressLock);
-    auto it = std::lower_bound(addresses.begin(), addresses.end(), range.start);
+    size_t i = std::lower_bound(addresses.begin(), addresses.end(), range.start) - addresses.begin();
 
     // there might be multiple buffers with the same range start, find the exact range for this
     // buffer
-    while(it != addresses.end() && it->start == range.start)
+    while(i < addresses.size() && addresses[i].start == range.start)
     {
-      if(it->id == range.id)
+      if(addresses[i].id == range.id)
       {
-        addresses.erase(it);
+        addresses.erase(i);
         return;
       }
 
-      ++it;
+      ++i;
     }
   }
 

@@ -38,7 +38,7 @@ void WrappedID3D12Shader::TryReplaceOriginalByteCode()
 {
   if(!DXBC::DXBCContainer::CheckForDebugInfo((const void *)&m_Bytecode[0], m_Bytecode.size()))
   {
-    std::string originalPath = m_DebugInfoPath;
+    rdcstr originalPath = m_DebugInfoPath;
 
     if(originalPath.empty())
       originalPath =
@@ -59,7 +59,7 @@ void WrappedID3D12Shader::TryReplaceOriginalByteCode()
 
       size_t numSearchPaths = m_DebugInfoSearchPaths ? m_DebugInfoSearchPaths->size() : 0;
 
-      std::string foundPath;
+      rdcstr foundPath;
 
       // while we haven't found a file, keep trying through the search paths. For i==0
       // check the path on its own, in case it's an absolute path.
@@ -73,7 +73,7 @@ void WrappedID3D12Shader::TryReplaceOriginalByteCode()
         }
         else
         {
-          const std::string &searchPath = (*m_DebugInfoSearchPaths)[i - 1];
+          const rdcstr &searchPath = (*m_DebugInfoSearchPaths)[i - 1];
           foundPath = searchPath + "/" + originalPath;
           originalShaderFile = FileIO::fopen(foundPath.c_str(), "rb");
         }
@@ -88,7 +88,7 @@ void WrappedID3D12Shader::TryReplaceOriginalByteCode()
 
       if(lz4 || originalShaderSize >= m_Bytecode.size())
       {
-        std::vector<byte> originalBytecode;
+        rdcarray<byte> originalBytecode;
 
         originalBytecode.resize((size_t)originalShaderSize);
         FileIO::fread(&originalBytecode[0], sizeof(byte), (size_t)originalShaderSize,
@@ -96,7 +96,7 @@ void WrappedID3D12Shader::TryReplaceOriginalByteCode()
 
         if(lz4)
         {
-          std::vector<byte> decompressed;
+          rdcarray<byte> decompressed;
 
           // first try decompressing to 1MB flat
           decompressed.resize(100 * 1024);

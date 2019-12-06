@@ -47,13 +47,7 @@ std::map<ID3D12Device *, WrappedID3D12Device *> WrappedID3D12Device::m_DeviceWra
 
 void WrappedID3D12Device::RemoveQueue(WrappedID3D12CommandQueue *queue)
 {
-  auto it = std::remove_if(m_Queues.begin(), m_Queues.end(),
-                           [queue](const WrappedID3D12CommandQueue *q) { return q == queue; });
-
-  if(it != m_Queues.end())
-    m_Queues.erase(it);
-  else
-    RDCERR("Unknown wrapped queue %p being remvoed", queue);
+  m_Queues.removeOne(queue);
 }
 
 rdcstr WrappedID3D12Device::GetChunkName(uint32_t idx)
@@ -294,7 +288,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     if(realDevice)
     {
       m_ResourceList = new std::map<ResourceId, WrappedID3D12Resource1 *>();
-      m_PipelineList = new std::vector<WrappedID3D12PipelineState *>();
+      m_PipelineList = new rdcarray<WrappedID3D12PipelineState *>();
     }
 
     m_FrameCaptureRecord = NULL;
@@ -337,7 +331,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
           m_InitParams.AdapterDesc = desc;
 
           GPUVendor vendor = GPUVendorFromPCIVendor(desc.VendorId);
-          std::string descString = GetDriverVersion(desc);
+          rdcstr descString = GetDriverVersion(desc);
 
           RDCLOG("New D3D12 device created: %s / %s", ToStr(vendor).c_str(), descString.c_str());
 
@@ -955,7 +949,7 @@ void WrappedID3D12Device::FirstFrame(IDXGISwapper *swapper)
   }
 }
 
-void WrappedID3D12Device::ApplyBarriers(std::vector<D3D12_RESOURCE_BARRIER> &barriers)
+void WrappedID3D12Device::ApplyBarriers(rdcarray<D3D12_RESOURCE_BARRIER> &barriers)
 {
   SCOPED_LOCK(m_ResourceStatesLock);
   GetResourceManager()->ApplyBarriers(barriers, m_ResourceStates);
@@ -1076,7 +1070,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
 
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
-      states.resize(1, D3D12_RESOURCE_STATE_PRESENT);
+      states = {D3D12_RESOURCE_STATE_PRESENT};
     }
   }
 
@@ -1138,7 +1132,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
         SCOPED_LOCK(m_ResourceStatesLock);
         SubresourceStateVector &states = m_ResourceStates[id];
 
-        states.resize(1, D3D12_RESOURCE_STATE_PRESENT);
+        states = {D3D12_RESOURCE_STATE_PRESENT};
       }
     }
   }
@@ -1215,21 +1209,19 @@ void WrappedID3D12Device::Unmap(ID3D12Resource *Resource, UINT Subresource, byte
                                 const D3D12_RANGE *pWrittenRange)
 {
   MapState map = {};
+
   {
     SCOPED_LOCK(m_MapsLock);
-    for(auto it = m_Maps.begin(); it != m_Maps.end(); ++it)
-    {
-      if(it->res == Resource && it->subres == Subresource)
-      {
-        map = *it;
-        m_Maps.erase(it);
-        break;
-      }
-    }
-  }
+    map.res = Resource;
+    map.subres = Subresource;
 
-  if(map.res == NULL)
-    return;
+    int32_t idx = m_Maps.indexOf(map);
+
+    if(idx < 0)
+      return;
+
+    map = m_Maps.takeAt(idx);
+  }
 
   bool capframe = false;
   {
@@ -1592,7 +1584,7 @@ HRESULT WrappedID3D12Device::Present(ID3D12GraphicsCommandList *pOverlayCommandL
         list->OMSetRenderTargets(1, &rtv, FALSE, NULL);
 
         int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
-        std::string overlayText =
+        rdcstr overlayText =
             RenderDoc::Inst().GetOverlayText(RDCDriver::D3D12, m_FrameCounter, flags);
 
         if(m_InvalidPSO)
@@ -1717,7 +1709,7 @@ bool WrappedID3D12Device::Serialise_CaptureScope(SerialiserType &ser)
 template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser)
 {
-  std::vector<D3D12_RESOURCE_BARRIER> barriers;
+  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
 
   {
     SCOPED_LOCK(m_ResourceStatesLock);    // not needed on replay, but harmless also
@@ -1870,7 +1862,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   if(swapper != NULL)
     backbuffer = (ID3D12Resource *)swapper->GetBackbuffers()[swapper->GetLastPresentedBuffer()];
 
-  std::vector<WrappedID3D12CommandQueue *> queues;
+  rdcarray<WrappedID3D12CommandQueue *> queues;
 
   // transition back to IDLE and readback initial states atomically
   {
@@ -2080,7 +2072,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
     {
       WrappedID3D12CommandQueue *q = *it;
 
-      const std::vector<D3D12ResourceRecord *> &cmdListRecords = q->GetCmdLists();
+      const rdcarray<D3D12ResourceRecord *> &cmdListRecords = q->GetCmdLists();
 
       RDCDEBUG("Flushing %u command list records from queue %llu", (uint32_t)cmdListRecords.size(),
                q->GetResourceID());
@@ -2150,7 +2142,7 @@ bool WrappedID3D12Device::DiscardFrameCapture(void *dev, void *wnd)
 
   m_CapturedFrames.pop_back();
 
-  std::vector<WrappedID3D12CommandQueue *> queues;
+  rdcarray<WrappedID3D12CommandQueue *> queues;
 
   // transition back to IDLE and readback initial states atomically
   {
@@ -2269,7 +2261,7 @@ HRESULT WrappedID3D12Device::CreatePipeState(D3D12_EXPANDED_PIPELINE_STATE_STREA
 }
 
 void WrappedID3D12Device::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
-                                          std::string d)
+                                          rdcstr d)
 {
   D3D12CommandData &cmd = *m_Queue->GetCommandData();
 
@@ -2305,9 +2297,9 @@ void WrappedID3D12Device::AddDebugMessage(const DebugMessage &msg)
   m_DebugMessages.push_back(msg);
 }
 
-std::vector<DebugMessage> WrappedID3D12Device::GetDebugMessages()
+rdcarray<DebugMessage> WrappedID3D12Device::GetDebugMessages()
 {
-  std::vector<DebugMessage> ret;
+  rdcarray<DebugMessage> ret;
 
   if(IsActiveReplaying(m_State))
   {
@@ -2392,7 +2384,7 @@ std::vector<DebugMessage> WrappedID3D12Device::GetDebugMessages()
     }
 
     msg.messageID = (uint32_t)message->ID;
-    msg.description = std::string(message->pDescription);
+    msg.description = rdcstr(message->pDescription);
 
     // during capture add all messages. Otherwise only add this message if it's different to the
     // last one - due to our replay with real and cracked lists we get many duplicated messages
@@ -2418,8 +2410,8 @@ std::vector<DebugMessage> WrappedID3D12Device::GetDebugMessages()
 
 void WrappedID3D12Device::FlushPendingDescriptorWrites()
 {
-  std::vector<DynamicDescriptorWrite> writes;
-  std::vector<DynamicDescriptorCopy> copies;
+  rdcarray<DynamicDescriptorWrite> writes;
+  rdcarray<DynamicDescriptorCopy> copies;
 
   {
     SCOPED_LOCK(m_DynDescLock);
@@ -2653,13 +2645,11 @@ void WrappedID3D12Device::FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle)
   if(handle.ptr == 0)
     return;
 
-  auto it =
-      std::find_if(m_UsedRTVs.begin(), m_UsedRTVs.end(),
-                   [handle](const D3D12_CPU_DESCRIPTOR_HANDLE a) { return a.ptr == handle.ptr; });
+  int32_t idx = m_UsedRTVs.indexOf(handle);
 
-  if(it != m_UsedRTVs.end())
+  if(idx >= 0)
   {
-    m_UsedRTVs.erase(it);
+    m_UsedRTVs.erase(idx);
     m_FreeRTVs.push_back(handle);
   }
   else
@@ -2888,15 +2878,7 @@ void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandListX *list,
 
 void WrappedID3D12Device::MarkListExecuted(ID3D12GraphicsCommandListX *list)
 {
-  for(auto it = m_InternalCmds.pendingcmds.begin(); it != m_InternalCmds.pendingcmds.end(); ++it)
-  {
-    if(list == *it)
-    {
-      m_InternalCmds.pendingcmds.erase(it);
-      break;
-    }
-  }
-
+  m_InternalCmds.pendingcmds.removeOne(list);
   m_InternalCmds.submittedcmds.push_back(list);
 }
 
@@ -2906,7 +2888,7 @@ void WrappedID3D12Device::ExecuteLists(WrappedID3D12CommandQueue *queue, bool In
   if(m_InternalCmds.pendingcmds.empty())
     return;
 
-  std::vector<ID3D12CommandList *> cmds;
+  rdcarray<ID3D12CommandList *> cmds;
   cmds.resize(m_InternalCmds.pendingcmds.size());
   for(size_t i = 0; i < cmds.size(); i++)
     cmds[i] = m_InternalCmds.pendingcmds[i];
@@ -2916,9 +2898,7 @@ void WrappedID3D12Device::ExecuteLists(WrappedID3D12CommandQueue *queue, bool In
 
   queue->ExecuteCommandListsInternal((UINT)cmds.size(), &cmds[0], InFrameCaptureBoundary, false);
 
-  m_InternalCmds.submittedcmds.insert(m_InternalCmds.submittedcmds.end(),
-                                      m_InternalCmds.pendingcmds.begin(),
-                                      m_InternalCmds.pendingcmds.end());
+  m_InternalCmds.submittedcmds.append(m_InternalCmds.pendingcmds);
   m_InternalCmds.pendingcmds.clear();
 }
 
@@ -2929,9 +2909,7 @@ void WrappedID3D12Device::FlushLists(bool forceSync, ID3D12CommandQueue *queue)
     GPUSync(queue);
 
     if(!m_InternalCmds.submittedcmds.empty())
-      m_InternalCmds.freecmds.insert(m_InternalCmds.freecmds.end(),
-                                     m_InternalCmds.submittedcmds.begin(),
-                                     m_InternalCmds.submittedcmds.end());
+      m_InternalCmds.freecmds.append(m_InternalCmds.submittedcmds);
     m_InternalCmds.submittedcmds.clear();
 
     if(m_InternalCmds.pendingcmds.empty())
@@ -3199,7 +3177,7 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
       if(!IsStructuredExporting(m_State))
       {
-        std::vector<DebugMessage> savedDebugMessages;
+        rdcarray<DebugMessage> savedDebugMessages;
 
         // save any debug messages we built up
         savedDebugMessages.swap(m_DebugMessages);

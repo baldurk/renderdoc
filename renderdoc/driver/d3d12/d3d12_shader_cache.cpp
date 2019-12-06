@@ -80,13 +80,13 @@ struct D3D12BlobShaderCallbacks
 
 struct EmbeddedD3D12Includer : public ID3DInclude
 {
-  std::string texsample = GetEmbeddedResource(hlsl_texsample_h);
-  std::string cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
+  rdcstr texsample = GetEmbeddedResource(hlsl_texsample_h);
+  rdcstr cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
 
   virtual HRESULT STDMETHODCALLTYPE Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName,
                                          LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes) override
   {
-    std::string *str;
+    rdcstr *str;
 
     if(!strcmp(pFileName, "hlsl_texsample.h"))
       str = &texsample;
@@ -128,9 +128,9 @@ D3D12ShaderCache::~D3D12ShaderCache()
   }
 }
 
-std::string D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
-                                            const uint32_t compileFlags, const char *profile,
-                                            ID3DBlob **srcblob)
+rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
+                                       const uint32_t compileFlags, const char *profile,
+                                       ID3DBlob **srcblob)
 {
   EmbeddedD3D12Includer includer;
 
@@ -172,13 +172,13 @@ std::string D3D12ShaderCache::GetShaderBlob(const char *source, const char *entr
   hr = compileFunc(source, strlen(source), entry, NULL, &includer, entry, profile, flags, 0,
                    &byteBlob, &errBlob);
 
-  std::string errors = "";
+  rdcstr errors = "";
 
   if(errBlob)
   {
     errors = (char *)errBlob->GetBufferPointer();
 
-    std::string logerror = errors;
+    rdcstr logerror = errors;
     if(logerror.length() > 1024)
       logerror = logerror.substr(0, 1024) + "...";
 
@@ -270,8 +270,7 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
 
     if(desc->NumStaticSamplers > 0)
     {
-      ret.StaticSamplers.assign(desc->pStaticSamplers,
-                                desc->pStaticSamplers + desc->NumStaticSamplers);
+      ret.StaticSamplers.assign(desc->pStaticSamplers, desc->NumStaticSamplers);
 
       for(size_t i = 0; i < ret.StaticSamplers.size(); i++)
         ret.maxSpaceIndex = RDCMAX(ret.maxSpaceIndex, ret.StaticSamplers[i].RegisterSpace + 1);
@@ -329,7 +328,7 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
 
   if(desc->NumStaticSamplers > 0)
   {
-    ret.StaticSamplers.assign(desc->pStaticSamplers, desc->pStaticSamplers + desc->NumStaticSamplers);
+    ret.StaticSamplers.assign(desc->pStaticSamplers, desc->NumStaticSamplers);
 
     for(size_t i = 0; i < ret.StaticSamplers.size(); i++)
       ret.maxSpaceIndex = RDCMAX(ret.maxSpaceIndex, ret.StaticSamplers[i].RegisterSpace + 1);
@@ -340,7 +339,7 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
   return ret;
 }
 
-ID3DBlob *D3D12ShaderCache::MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1> &params,
+ID3DBlob *D3D12ShaderCache::MakeRootSig(const rdcarray<D3D12_ROOT_PARAMETER1> &params,
                                         D3D12_ROOT_SIGNATURE_FLAGS Flags, UINT NumStaticSamplers,
                                         const D3D12_STATIC_SAMPLER_DESC *StaticSamplers)
 {
@@ -368,7 +367,7 @@ ID3DBlob *D3D12ShaderCache::MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1>
     desc.pStaticSamplers = StaticSamplers;
     desc.NumParameters = (UINT)params.size();
 
-    std::vector<D3D12_ROOT_PARAMETER> params_1_0;
+    rdcarray<D3D12_ROOT_PARAMETER> params_1_0;
     params_1_0.resize(params.size());
     for(size_t i = 0; i < params.size(); i++)
     {
@@ -426,9 +425,9 @@ ID3DBlob *D3D12ShaderCache::MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1>
 
     if(FAILED(hr))
     {
-      std::string errors = (char *)errBlob->GetBufferPointer();
+      rdcstr errors = (char *)errBlob->GetBufferPointer();
 
-      std::string logerror = errors;
+      rdcstr logerror = errors;
       if(logerror.length() > 1024)
         logerror = logerror.substr(0, 1024) + "...";
 
@@ -460,9 +459,9 @@ ID3DBlob *D3D12ShaderCache::MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1>
 
   if(FAILED(hr))
   {
-    std::string errors = (char *)errBlob->GetBufferPointer();
+    rdcstr errors = (char *)errBlob->GetBufferPointer();
 
-    std::string logerror = errors;
+    rdcstr logerror = errors;
     if(logerror.length() > 1024)
       logerror = logerror.substr(0, 1024) + "...";
 
@@ -480,7 +479,7 @@ ID3DBlob *D3D12ShaderCache::MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1>
 
 ID3DBlob *D3D12ShaderCache::MakeRootSig(const D3D12RootSignature &rootsig)
 {
-  std::vector<D3D12_ROOT_PARAMETER1> params;
+  rdcarray<D3D12_ROOT_PARAMETER1> params;
   params.resize(rootsig.Parameters.size());
   for(size_t i = 0; i < params.size(); i++)
     params[i] = rootsig.Parameters[i];
@@ -492,7 +491,7 @@ ID3DBlob *D3D12ShaderCache::MakeRootSig(const D3D12RootSignature &rootsig)
 ID3DBlob *D3D12ShaderCache::MakeFixedColShader(float overlayConsts[4])
 {
   ID3DBlob *ret = NULL;
-  std::string hlsl =
+  rdcstr hlsl =
       StringFormat::Fmt("float4 main() : SV_Target0 { return float4(%f, %f, %f, %f); }\n",
                         overlayConsts[0], overlayConsts[1], overlayConsts[2], overlayConsts[3]);
   GetShaderBlob(hlsl.c_str(), "main", D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &ret);

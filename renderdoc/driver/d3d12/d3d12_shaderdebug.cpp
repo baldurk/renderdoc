@@ -136,7 +136,7 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
 
   D3D12MarkerRegion region(m_pDevice->GetQueue()->GetReal(), "CalculateSampleGather");
 
-  std::string funcRet = "";
+  rdcstr funcRet = "";
   DXGI_FORMAT retFmt = DXGI_FORMAT_UNKNOWN;
 
   if(opcode == OPCODE_SAMPLE_C || opcode == OPCODE_SAMPLE_C_LZ || opcode == OPCODE_GATHER4_C ||
@@ -146,13 +146,13 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     funcRet = "float4";
   }
 
-  std::string samplerDecl = "";
+  rdcstr samplerDecl = "";
   if(samplerData.mode == SAMPLER_MODE_DEFAULT)
     samplerDecl = "SamplerState s";
   else if(samplerData.mode == SAMPLER_MODE_COMPARISON)
     samplerDecl = "SamplerComparisonState s";
 
-  std::string textureDecl = "";
+  rdcstr textureDecl = "";
   int texdim = 2;
   int offsetDim = 2;
   bool useOffsets = true;
@@ -385,17 +385,17 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     StringFormat::snprintf(buf3, 255, formats[offsetDim + texdimOffs - 1][ddyType], ddyCalc.value.i.x,
                            ddyCalc.value.i.y, ddyCalc.value.i.z, ddyCalc.value.i.w);
 
-  std::string texcoords = buf;
-  std::string ddx = buf2;
-  std::string ddy = buf3;
+  rdcstr texcoords = buf;
+  rdcstr ddx = buf2;
+  rdcstr ddy = buf3;
 
   if(opcode == OPCODE_LD_MS)
   {
     StringFormat::snprintf(buf, 255, formats[0][1], multisampleIndex);
   }
 
-  std::string sampleIdx = buf;
-  std::string offsets = "";
+  rdcstr sampleIdx = buf;
+  rdcstr offsets = "";
 
   if(useOffsets)
   {
@@ -412,13 +412,13 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   }
 
   char elems[] = "xyzw";
-  std::string strSwizzle = ".";
+  rdcstr strSwizzle = ".";
   for(int i = 0; i < 4; ++i)
   {
     strSwizzle += elems[swizzle[i]];
   }
 
-  std::string strGatherChannel;
+  rdcstr strGatherChannel;
   switch(gatherChannel)
   {
     case ShaderDebug::GatherChannel::Red: strGatherChannel = "Red"; break;
@@ -427,11 +427,11 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     case ShaderDebug::GatherChannel::Alpha: strGatherChannel = "Alpha"; break;
   }
 
-  std::string vsProgram = "float4 main(uint id : SV_VertexID) : SV_Position {\n";
+  rdcstr vsProgram = "float4 main(uint id : SV_VertexID) : SV_Position {\n";
   vsProgram += "return float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
   vsProgram += "}";
 
-  std::string sampleProgram;
+  rdcstr sampleProgram;
 
   UINT texSlot = resourceData.slot;
   UINT sampSlot = samplerData.slot;
@@ -460,7 +460,7 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     // these operations need derivatives but have no hlsl function to call to provide them, so
     // we fake it in the vertex shader
 
-    std::string uvDim = "1";
+    rdcstr uvDim = "1";
     uvDim[0] += char(texdim + texdimOffs - 1);
 
     vsProgram = "void main(uint id : SV_VertexID, out float4 pos : SV_Position, out float" + uvDim +
@@ -471,19 +471,19 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
         uv.value.f.x + ddyCalc.value.f.x * 2.0f, uv.value.f.y + ddyCalc.value.f.y * 2.0f,
         uv.value.f.z + ddyCalc.value.f.z * 2.0f, uv.value.f.w + ddyCalc.value.f.w * 2.0f);
 
-    vsProgram += "if(id == 0) uv = " + std::string(buf) + ";\n";
+    vsProgram += "if(id == 0) uv = " + rdcstr(buf) + ";\n";
 
     StringFormat::snprintf(buf, 255, formats[texdim + texdimOffs - 1][texcoordType], uv.value.f.x,
                            uv.value.f.y, uv.value.f.z, uv.value.f.w);
 
-    vsProgram += "if(id == 1) uv = " + std::string(buf) + ";\n";
+    vsProgram += "if(id == 1) uv = " + rdcstr(buf) + ";\n";
 
     StringFormat::snprintf(
         buf, 255, formats[texdim + texdimOffs - 1][texcoordType],
         uv.value.f.x + ddxCalc.value.f.x * 2.0f, uv.value.f.y + ddxCalc.value.f.y * 2.0f,
         uv.value.f.z + ddxCalc.value.f.z * 2.0f, uv.value.f.w + ddxCalc.value.f.w * 2.0f);
 
-    vsProgram += "if(id == 2) uv = " + std::string(buf) + ";\n";
+    vsProgram += "if(id == 2) uv = " + rdcstr(buf) + ";\n";
 
     vsProgram += "pos = float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
     vsProgram += "}";
@@ -1052,10 +1052,10 @@ ShaderDebugTrace D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
       prevDxbc = vs->GetDXBC();
   }
 
-  std::vector<PSInputElement> initialValues;
-  std::vector<std::string> floatInputs;
-  std::vector<std::string> inputVarNames;
-  std::string extractHlsl;
+  rdcarray<PSInputElement> initialValues;
+  rdcarray<rdcstr> floatInputs;
+  rdcarray<rdcstr> inputVarNames;
+  rdcstr extractHlsl;
   int structureStride = 0;
 
   ShaderDebug::GatherPSInputDataForInitialValues(*dxbc->GetReflection(), *prevDxbc->GetReflection(),
@@ -1125,7 +1125,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
   for(size_t i = 0; i < floatInputs.size(); i++)
   {
-    const std::string &name = floatInputs[i];
+    const rdcstr &name = floatInputs[i];
     extractHlsl += "  PSInitialBuffer[idx].INddx." + name + " = ddx(IN." + name + ");\n";
     extractHlsl += "  PSInitialBuffer[idx].INddy." + name + " = ddy(IN." + name + ");\n";
     extractHlsl += "  PSInitialBuffer[idx].INddxfine." + name + " = ddx_fine(IN." + name + ");\n";
@@ -1501,7 +1501,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     ApplyAllDerivatives(global, traces, destIdx, initialValues, (float *)data);
   }
 
-  std::vector<ShaderDebugState> states;
+  rdcarray<ShaderDebugState> states;
 
   if(dxbc->GetDebugInfo())
     dxbc->GetDebugInfo()->GetLocals(0, dxbc->GetDXBCByteCode()->GetInstruction(0).offset,

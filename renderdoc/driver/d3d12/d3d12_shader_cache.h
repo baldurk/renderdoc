@@ -38,11 +38,11 @@ public:
   D3D12ShaderCache();
   ~D3D12ShaderCache();
 
-  std::string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
-                            const char *profile, ID3DBlob **srcblob);
+  rdcstr GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
+                       const char *profile, ID3DBlob **srcblob);
 
   D3D12RootSignature GetRootSig(const void *data, size_t dataSize);
-  ID3DBlob *MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1> &params,
+  ID3DBlob *MakeRootSig(const rdcarray<D3D12_ROOT_PARAMETER1> &params,
                         D3D12_ROOT_SIGNATURE_FLAGS Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE,
                         UINT NumStaticSamplers = 0,
                         const D3D12_STATIC_SAMPLER_DESC *StaticSamplers = NULL);

@@ -35,7 +35,7 @@
 
 void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompType typeCast,
                                                int &resType,
-                                               std::vector<D3D12_RESOURCE_BARRIER> &barriers)
+                                               rdcarray<D3D12_RESOURCE_BARRIER> &barriers)
 {
   int srvOffset = 0;
 
@@ -169,8 +169,7 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
   }
 
   // transition resource to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
-  const std::vector<D3D12_RESOURCE_STATES> &states =
-      m_pDevice->GetSubresourceStates(GetResID(resource));
+  const rdcarray<D3D12_RESOURCE_STATES> &states = m_pDevice->GetSubresourceStates(GetResID(resource));
 
   barriers.reserve(states.size());
   for(size_t i = 0; i < states.size(); i++)
@@ -459,7 +458,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
     pixelData.Slice = float(
         RDCCLAMP(cfg.subresource.slice, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)) + 0.001f);
 
-  std::vector<D3D12_RESOURCE_BARRIER> barriers;
+  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
   int resType = 0;
   GetDebugManager()->PrepareTextureSampling(resource, cfg.typeCast, resType, barriers);
 

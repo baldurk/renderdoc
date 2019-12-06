@@ -28,7 +28,7 @@
 #include "d3d12_manager.h"
 #include "d3d12_resources.h"
 
-D3D12MarkerRegion::D3D12MarkerRegion(ID3D12GraphicsCommandList *l, const std::string &marker)
+D3D12MarkerRegion::D3D12MarkerRegion(ID3D12GraphicsCommandList *l, const rdcstr &marker)
 {
   list = l;
   queue = NULL;
@@ -36,7 +36,7 @@ D3D12MarkerRegion::D3D12MarkerRegion(ID3D12GraphicsCommandList *l, const std::st
   D3D12MarkerRegion::Begin(list, marker);
 }
 
-D3D12MarkerRegion::D3D12MarkerRegion(ID3D12CommandQueue *q, const std::string &marker)
+D3D12MarkerRegion::D3D12MarkerRegion(ID3D12CommandQueue *q, const rdcstr &marker)
 {
   list = NULL;
   queue = q;
@@ -52,7 +52,7 @@ D3D12MarkerRegion::~D3D12MarkerRegion()
     D3D12MarkerRegion::End(queue);
 }
 
-void D3D12MarkerRegion::Begin(ID3D12GraphicsCommandList *list, const std::string &marker)
+void D3D12MarkerRegion::Begin(ID3D12GraphicsCommandList *list, const rdcstr &marker)
 {
   if(list)
   {
@@ -65,7 +65,7 @@ void D3D12MarkerRegion::Begin(ID3D12GraphicsCommandList *list, const std::string
   }
 }
 
-void D3D12MarkerRegion::Begin(ID3D12CommandQueue *queue, const std::string &marker)
+void D3D12MarkerRegion::Begin(ID3D12CommandQueue *queue, const rdcstr &marker)
 {
   if(queue)
   {
@@ -75,7 +75,7 @@ void D3D12MarkerRegion::Begin(ID3D12CommandQueue *queue, const std::string &mark
   }
 }
 
-void D3D12MarkerRegion::Set(ID3D12GraphicsCommandList *list, const std::string &marker)
+void D3D12MarkerRegion::Set(ID3D12GraphicsCommandList *list, const rdcstr &marker)
 {
   if(list)
   {
@@ -85,7 +85,7 @@ void D3D12MarkerRegion::Set(ID3D12GraphicsCommandList *list, const std::string &
   }
 }
 
-void D3D12MarkerRegion::Set(ID3D12CommandQueue *queue, const std::string &marker)
+void D3D12MarkerRegion::Set(ID3D12CommandQueue *queue, const rdcstr &marker)
 {
   if(queue)
   {
@@ -676,7 +676,7 @@ inline void PIX3DecodeStringInfo(const UINT64 BlobData, UINT64 &Alignment, UINT6
   IsShortcut = (BlobData >> PIXEventsStringIsShortcutBitShift) & PIXEventsStringIsShortcutWriteMask;
 }
 
-const UINT64 *PIX3DecodeStringParam(const UINT64 *pData, std::string &DecodedString)
+const UINT64 *PIX3DecodeStringParam(const UINT64 *pData, rdcstr &DecodedString)
 {
   UINT64 alignment;
   UINT64 copyChunkSize;
@@ -690,7 +690,7 @@ const UINT64 *PIX3DecodeStringParam(const UINT64 *pData, std::string &DecodedStr
   {
     const char *c = (const char *)pData;
     UINT formatStringCharCount = UINT(strlen((const char *)pData));
-    DecodedString = std::string(c, c + formatStringCharCount);
+    DecodedString = rdcstr(c, formatStringCharCount);
     totalStringBytes = formatStringCharCount + 1;
   }
   else
@@ -708,18 +708,18 @@ const UINT64 *PIX3DecodeStringParam(const UINT64 *pData, std::string &DecodedStr
   return pData;
 }
 
-std::string PIX3SprintfParams(const std::string &Format, const UINT64 *pData)
+rdcstr PIX3SprintfParams(const rdcstr &Format, const UINT64 *pData)
 {
-  std::string finalString;
-  std::string formatPart;
-  size_t lastFind = 0;
+  rdcstr finalString;
+  rdcstr formatPart;
+  int32_t lastFind = 0;
 
-  for(size_t found = Format.find_first_of("%"); found != std::string::npos;)
+  for(int32_t found = Format.indexOf('%'); found >= 0;)
   {
     finalString += Format.substr(lastFind, found - lastFind);
 
-    size_t endOfFormat = Format.find_first_of("%diufFeEgGxXoscpaAn", found + 1);
-    if(endOfFormat == std::string::npos)
+    int32_t endOfFormat = Format.find_first_of("%diufFeEgGxXoscpaAn", found + 1);
+    if(endOfFormat < 0)
     {
       finalString += "<FORMAT_ERROR>";
       break;
@@ -730,7 +730,7 @@ std::string PIX3SprintfParams(const std::string &Format, const UINT64 *pData)
     // strings
     if(formatPart.back() == 's')
     {
-      std::string stringParam;
+      rdcstr stringParam;
       pData = PIX3DecodeStringParam(pData, stringParam);
       finalString += stringParam;
     }
@@ -745,7 +745,7 @@ std::string PIX3SprintfParams(const std::string &Format, const UINT64 *pData)
     }
 
     lastFind = endOfFormat + 1;
-    found = Format.find_first_of("%", lastFind);
+    found = Format.indexOf('%', lastFind);
   }
 
   finalString += Format.substr(lastFind);
@@ -753,7 +753,7 @@ std::string PIX3SprintfParams(const std::string &Format, const UINT64 *pData)
   return finalString;
 }
 
-std::string PIX3DecodeEventString(const UINT64 *pData)
+rdcstr PIX3DecodeEventString(const UINT64 *pData)
 {
   // event header
   UINT64 timestamp;
@@ -780,7 +780,7 @@ std::string PIX3DecodeEventString(const UINT64 *pData)
   ++pData;
 
   // format string
-  std::string formatString;
+  rdcstr formatString;
   pData = PIX3DecodeStringParam(pData, formatString);
 
   if(eventType == ePIXEvent_BeginEvent_NoArgs)

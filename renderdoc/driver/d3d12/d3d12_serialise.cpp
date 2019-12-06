@@ -58,7 +58,7 @@ rdcstr DoStringise(const D3D12ComponentMapping &el)
 {
   RDCCOMPILE_ASSERT(sizeof(D3D12ComponentMapping) == sizeof(uint32_t), "Enum isn't uint sized");
 
-  std::string ret;
+  rdcstr ret;
 
   // value should always be <= 5, see D3D12_SHADER_COMPONENT_MAPPING
   const char mapping[] = {'R', 'G', 'B', 'A', '0', '1', '?', '!'};

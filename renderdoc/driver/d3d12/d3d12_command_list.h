@@ -218,7 +218,7 @@ public:
     else if(guid == WKPDID_D3DDebugObjectNameW)
     {
       rdcwstr wName((const wchar_t *)pData, DataSize / 2);
-      std::string sName = StringFormat::Wide2UTF8(wName);
+      rdcstr sName = StringFormat::Wide2UTF8(wName);
       m_pDevice->SetName(this, sName.c_str());
     }
 
@@ -232,7 +232,7 @@ public:
 
   HRESULT STDMETHODCALLTYPE SetName(LPCWSTR Name)
   {
-    std::string utf8 = StringFormat::Wide2UTF8(Name);
+    rdcstr utf8 = StringFormat::Wide2UTF8(Name);
     m_pDevice->SetName(this, utf8.c_str());
 
     return m_pList->SetName(Name);

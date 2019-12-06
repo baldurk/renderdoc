@@ -249,7 +249,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     }
   }
 
-  std::vector<D3D12_SO_DECLARATION_ENTRY> sodecls;
+  rdcarray<D3D12_SO_DECLARATION_ENTRY> sodecls;
 
   UINT stride = 0;
   int posidx = -1;
@@ -290,8 +290,8 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     if(posidx > 0)
     {
       D3D12_SO_DECLARATION_ENTRY pos = sodecls[posidx];
-      sodecls.erase(sodecls.begin() + posidx);
-      sodecls.insert(sodecls.begin(), pos);
+      sodecls.erase(posidx);
+      sodecls.insert(0, pos);
     }
 
     // set up stream output entries and buffers
@@ -399,7 +399,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
         GetBufferData(rs.ibuffer.buf, rs.ibuffer.offs + drawcall->indexOffset * rs.ibuffer.bytewidth,
                       RDCMIN(drawcall->numIndices * rs.ibuffer.bytewidth, rs.ibuffer.size), idxdata);
 
-      std::vector<uint32_t> indices;
+      rdcarray<uint32_t> indices;
 
       uint16_t *idx16 = (uint16_t *)&idxdata[0];
       uint32_t *idx32 = (uint32_t *)&idxdata[0];
@@ -430,13 +430,13 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
         if(it != indices.end() && *it == i32)
           continue;
 
-        indices.insert(it, i32);
+        indices.insert(it - indices.begin(), i32);
       }
 
       // if we read out of bounds, we'll also have a 0 index being referenced
       // (as 0 is read). Don't insert 0 if we already have 0 though
       if(numIndices < drawcall->numIndices && (indices.empty() || indices[0] != 0))
-        indices.insert(indices.begin(), 0);
+        indices.insert(0, 0);
 
       // An index buffer could be something like: 500, 501, 502, 501, 503, 502
       // in which case we can't use the existing index buffer without filling 499 slots of vertex
@@ -817,8 +817,8 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     if(posidx > 0)
     {
       D3D12_SO_DECLARATION_ENTRY pos = sodecls[posidx];
-      sodecls.erase(sodecls.begin() + posidx);
-      sodecls.insert(sodecls.begin(), pos);
+      sodecls.erase(posidx);
+      sodecls.insert(0, pos);
     }
 
     // enable the other shader stages again
@@ -1137,7 +1137,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     uint64_t *counters = (uint64_t *)byteData;
 
     uint64_t numBytesWritten = 0;
-    std::vector<D3D12PostVSData::InstData> instData;
+    rdcarray<D3D12PostVSData::InstData> instData;
     if(drawcall->numInstances > 1)
     {
       uint64_t prevByteCount = 0;

@@ -40,7 +40,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
 
   // since CPU handles are consumed in the call, we need to read out and serialise the contents
   // here.
-  std::vector<D3D12Descriptor> RTVs;
+  rdcarray<D3D12Descriptor> RTVs;
   D3D12Descriptor DSV;
 
   {

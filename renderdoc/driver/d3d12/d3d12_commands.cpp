@@ -490,7 +490,7 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
       break;
     case D3D12Chunk::Device_CopyDescriptors:
     case D3D12Chunk::Device_CopyDescriptorsSimple:
-      ret = m_pDevice->Serialise_DynamicDescriptorCopies(ser, std::vector<DynamicDescriptorCopy>());
+      ret = m_pDevice->Serialise_DynamicDescriptorCopies(ser, rdcarray<DynamicDescriptorCopy>());
       break;
 
     case D3D12Chunk::Queue_ExecuteCommandLists:
@@ -1234,7 +1234,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFII
 
 void BakedCmdListInfo::ShiftForRemoved(uint32_t shiftDrawID, uint32_t shiftEID, size_t idx)
 {
-  std::vector<D3D12DrawcallTreeNode> &draws = draw->children;
+  rdcarray<D3D12DrawcallTreeNode> &draws = draw->children;
 
   drawCount -= shiftDrawID;
   eventCount -= shiftEID;
@@ -1486,9 +1486,9 @@ void D3D12CommandData::AddEvent()
   {
     m_BakedCmdListInfo[m_LastCmdListID].curEvents.push_back(apievent);
 
-    std::vector<DebugMessage> &msgs = m_BakedCmdListInfo[m_LastCmdListID].debugMessages;
+    rdcarray<DebugMessage> &msgs = m_BakedCmdListInfo[m_LastCmdListID].debugMessages;
 
-    msgs.insert(msgs.end(), m_EventMessages.begin(), m_EventMessages.end());
+    msgs.append(m_EventMessages);
   }
   else
   {
@@ -1555,7 +1555,7 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTree
             make_rdcpair(state.streamouts[i].countbuf, EventUsage(e, ResourceUsage::StreamOut)));
     }
 
-    std::vector<ResourceId> rts = state.GetRTVIDs();
+    rdcarray<ResourceId> rts = state.GetRTVIDs();
 
     for(size_t i = 0; i < rts.size(); i++)
     {
@@ -1721,7 +1721,7 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
     draw.topology = MakePrimitiveTopology(m_BakedCmdListInfo[m_LastCmdListID].state.topo);
     draw.indexByteWidth = m_BakedCmdListInfo[m_LastCmdListID].state.ibuffer.bytewidth;
 
-    std::vector<ResourceId> rts = m_BakedCmdListInfo[m_LastCmdListID].state.GetRTVIDs();
+    rdcarray<ResourceId> rts = m_BakedCmdListInfo[m_LastCmdListID].state.GetRTVIDs();
 
     for(size_t i = 0; i < ARRAY_COUNT(draw.outputs); i++)
     {
@@ -1747,9 +1747,9 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
 
   if(hasEvents)
   {
-    std::vector<APIEvent> &srcEvents = m_LastCmdListID != ResourceId()
-                                           ? m_BakedCmdListInfo[m_LastCmdListID].curEvents
-                                           : m_RootEvents;
+    rdcarray<APIEvent> &srcEvents = m_LastCmdListID != ResourceId()
+                                        ? m_BakedCmdListInfo[m_LastCmdListID].curEvents
+                                        : m_RootEvents;
 
     draw.events = srcEvents;
     srcEvents.clear();
@@ -1766,7 +1766,8 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
     if(m_LastCmdListID != ResourceId() && addUsage)
       AddUsage(m_BakedCmdListInfo[m_LastCmdListID].state, node);
 
-    node.children.insert(node.children.begin(), draw.children.begin(), draw.children.end());
+    for(const DrawcallDescription &child : draw.children)
+      node.children.push_back(D3D12DrawcallTreeNode(child));
     GetDrawcallStack().back()->children.push_back(node);
   }
   else
@@ -1774,7 +1775,7 @@ void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents,
 }
 
 void D3D12CommandData::InsertDrawsAndRefreshIDs(ResourceId cmd,
-                                                std::vector<D3D12DrawcallTreeNode> &cmdBufNodes)
+                                                rdcarray<D3D12DrawcallTreeNode> &cmdBufNodes)
 {
   // assign new drawcall IDs
   for(size_t i = 0; i < cmdBufNodes.size(); i++)
@@ -1804,7 +1805,7 @@ void D3D12CommandData::InsertDrawsAndRefreshIDs(ResourceId cmd,
 
     // insert in sorted location
     auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
-    m_DrawcallUses.insert(drawit, use);
+    m_DrawcallUses.insert(drawit - m_DrawcallUses.begin(), use);
 
     RDCASSERT(n.children.empty());
 

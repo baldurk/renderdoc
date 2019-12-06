@@ -418,7 +418,7 @@ struct D3D12ResourceRecord;
 
 struct CmdListRecordingInfo
 {
-  std::vector<D3D12_RESOURCE_BARRIER> barriers;
+  rdcarray<D3D12_RESOURCE_BARRIER> barriers;
 
   // a list of all resources dirtied by this command list
   std::set<ResourceId> dirtied;
@@ -430,10 +430,10 @@ struct CmdListRecordingInfo
   // expand a bit more to contain duplicates and then deal with it during frame
   // capture, than to constantly be deduplicating during record (e.g. with a
   // set or sorted vector).
-  std::vector<D3D12Descriptor *> boundDescs;
+  rdcarray<D3D12Descriptor *> boundDescs;
 
   // bundles executed
-  std::vector<D3D12ResourceRecord *> bundles;
+  rdcarray<D3D12ResourceRecord *> bundles;
 };
 
 class WrappedID3D12Resource1;
@@ -459,7 +459,7 @@ struct GPUAddressRangeTracker
   GPUAddressRangeTracker(const GPUAddressRangeTracker &);
   GPUAddressRangeTracker &operator=(const GPUAddressRangeTracker &);
 
-  std::vector<GPUAddressRange> addresses;
+  rdcarray<GPUAddressRange> addresses;
   Threading::RWLock addressLock;
 
   void AddTo(const GPUAddressRange &range);
@@ -472,6 +472,8 @@ struct MapState
   ID3D12Resource *res;
   UINT subres;
   UINT64 totalSize;
+
+  bool operator==(const MapState &o) { return res == o.res && subres == o.subres; }
 };
 
 struct D3D12ResourceRecord : public ResourceRecord
@@ -524,7 +526,7 @@ struct D3D12ResourceRecord : public ResourceRecord
   Threading::CriticalSection m_MapLock;
 };
 
-typedef std::vector<D3D12_RESOURCE_STATES> SubresourceStateVector;
+typedef rdcarray<D3D12_RESOURCE_STATES> SubresourceStateVector;
 
 struct D3D12InitialContents
 {
@@ -638,11 +640,11 @@ public:
     return (T *)GetCurrentResource(id);
   }
 
-  void ApplyBarriers(std::vector<D3D12_RESOURCE_BARRIER> &barriers,
+  void ApplyBarriers(rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
                      std::map<ResourceId, SubresourceStateVector> &states);
 
   template <typename SerialiserType>
-  void SerialiseResourceStates(SerialiserType &ser, std::vector<D3D12_RESOURCE_BARRIER> &barriers,
+  void SerialiseResourceStates(SerialiserType &ser, rdcarray<D3D12_RESOURCE_BARRIER> &barriers,
                                std::map<ResourceId, SubresourceStateVector> &states);
 
   template <typename SerialiserType>

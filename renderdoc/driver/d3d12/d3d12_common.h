@@ -40,16 +40,16 @@ using ID3D12GraphicsCommandListX = ID3D12GraphicsCommandList5;
 // replay only class for handling marker regions
 struct D3D12MarkerRegion
 {
-  D3D12MarkerRegion(ID3D12GraphicsCommandList *list, const std::string &marker);
-  D3D12MarkerRegion(ID3D12CommandQueue *queue, const std::string &marker);
+  D3D12MarkerRegion(ID3D12GraphicsCommandList *list, const rdcstr &marker);
+  D3D12MarkerRegion(ID3D12CommandQueue *queue, const rdcstr &marker);
   ~D3D12MarkerRegion();
 
-  static void Set(ID3D12GraphicsCommandList *list, const std::string &marker);
-  static void Set(ID3D12CommandQueue *queue, const std::string &marker);
+  static void Set(ID3D12GraphicsCommandList *list, const rdcstr &marker);
+  static void Set(ID3D12CommandQueue *queue, const rdcstr &marker);
 
-  static void Begin(ID3D12GraphicsCommandList *list, const std::string &marker);
+  static void Begin(ID3D12GraphicsCommandList *list, const rdcstr &marker);
   static void End(ID3D12GraphicsCommandList *list);
-  static void Begin(ID3D12CommandQueue *queue, const std::string &marker);
+  static void Begin(ID3D12CommandQueue *queue, const rdcstr &marker);
   static void End(ID3D12CommandQueue *queue);
 
   ID3D12GraphicsCommandList *list = NULL;
@@ -59,7 +59,7 @@ struct D3D12MarkerRegion
 bool EnableD3D12DebugLayer(PFN_D3D12_GET_DEBUG_INTERFACE getDebugInterface = NULL);
 HRESULT EnumAdapterByLuid(IDXGIFactory1 *factory, LUID luid, IDXGIAdapter **pAdapter);
 
-inline void SetObjName(ID3D12Object *obj, const std::string &utf8name)
+inline void SetObjName(ID3D12Object *obj, const rdcstr &utf8name)
 {
   obj->SetName(StringFormat::UTF82Wide(utf8name).c_str());
 }
@@ -68,11 +68,11 @@ inline void SetObjName(ID3D12Object *obj, const std::string &utf8name)
 #define PIX_EVENT_ANSI_VERSION 1
 #define PIX_EVENT_PIX3BLOB_VERSION 2
 
-std::string PIX3DecodeEventString(const UINT64 *pData);
+rdcstr PIX3DecodeEventString(const UINT64 *pData);
 
-inline std::string DecodeMarkerString(UINT Metadata, const void *pData, UINT Size)
+inline rdcstr DecodeMarkerString(UINT Metadata, const void *pData, UINT Size)
 {
-  std::string MarkerText = "";
+  rdcstr MarkerText = "";
 
   // There may be a space appended to the marker string - see D3D12MarkerRegion::Begin
   // If we encounter this extra space (or a null terminator), remove it.
@@ -86,7 +86,7 @@ inline std::string DecodeMarkerString(UINT Metadata, const void *pData, UINT Siz
   else if(Metadata == PIX_EVENT_ANSI_VERSION)
   {
     const char *c = (const char *)pData;
-    MarkerText = std::string(c, c + Size);
+    MarkerText = rdcstr(c, Size);
     if(!MarkerText.empty() && (MarkerText.back() == ' ' || MarkerText.back() == 0))
       MarkerText.pop_back();
   }
@@ -315,7 +315,7 @@ struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER1
     }
   }
 
-  std::vector<D3D12_DESCRIPTOR_RANGE1> ranges;
+  rdcarray<D3D12_DESCRIPTOR_RANGE1> ranges;
 };
 
 DECLARE_REFLECTION_STRUCT(D3D12RootSignatureParameter);
@@ -326,8 +326,8 @@ struct D3D12RootSignature
   uint32_t dwordLength = 0;
 
   D3D12_ROOT_SIGNATURE_FLAGS Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-  std::vector<D3D12RootSignatureParameter> Parameters;
-  std::vector<D3D12_STATIC_SAMPLER_DESC> StaticSamplers;
+  rdcarray<D3D12RootSignatureParameter> Parameters;
+  rdcarray<D3D12_STATIC_SAMPLER_DESC> StaticSamplers;
 };
 
 DECLARE_REFLECTION_STRUCT(D3D12RootSignature);
@@ -337,7 +337,7 @@ struct D3D12CommandSignature
   bool graphics = true;
   UINT numDraws = 0;
   UINT ByteStride = 0;
-  std::vector<D3D12_INDIRECT_ARGUMENT_DESC> arguments;
+  rdcarray<D3D12_INDIRECT_ARGUMENT_DESC> arguments;
 };
 
 #define IMPLEMENT_IUNKNOWN_WITH_REFCOUNTER_CUSTOMQUERY                \
@@ -412,6 +412,11 @@ DECLARE_REFLECTION_STRUCT(D3D12BufferLocation);
 
 DECLARE_REFLECTION_STRUCT(D3D12_CPU_DESCRIPTOR_HANDLE);
 DECLARE_REFLECTION_STRUCT(D3D12_GPU_DESCRIPTOR_HANDLE);
+
+inline bool operator==(const D3D12_CPU_DESCRIPTOR_HANDLE &l, const D3D12_CPU_DESCRIPTOR_HANDLE &r)
+{
+  return l.ptr == r.ptr;
+}
 
 // expanded version of D3D12_GRAPHICS_PIPELINE_STATE_DESC / D3D12_COMPUTE_PIPELINE_STATE_DESC with
 // all subobjects. No enums suitable to make this a stream though.

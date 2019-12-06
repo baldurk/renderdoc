@@ -301,7 +301,7 @@ public:
     else if(guid == WKPDID_D3DDebugObjectNameW)
     {
       rdcwstr wName((const wchar_t *)pData, DataSize / 2);
-      std::string sName = StringFormat::Wide2UTF8(wName);
+      rdcstr sName = StringFormat::Wide2UTF8(wName);
       m_pDevice->SetName(this, sName.c_str());
     }
 
@@ -321,7 +321,7 @@ public:
 
   HRESULT STDMETHODCALLTYPE SetName(LPCWSTR Name)
   {
-    std::string utf8 = Name ? StringFormat::Wide2UTF8(Name) : "";
+    rdcstr utf8 = Name ? StringFormat::Wide2UTF8(Name) : "";
     m_pDevice->SetName(this, utf8.c_str());
 
     if(!m_pReal)
@@ -682,8 +682,7 @@ public:
     ShaderEntry(const D3D12_SHADER_BYTECODE &byteCode, WrappedID3D12Device *device)
         : WrappedDeviceChild12(NULL, device), m_Key(byteCode)
     {
-      const byte *code = (const byte *)byteCode.pShaderBytecode;
-      m_Bytecode.assign(code, code + byteCode.BytecodeLength);
+      m_Bytecode.assign((const byte *)byteCode.pShaderBytecode, byteCode.BytecodeLength);
       m_DebugInfoSearchPaths = NULL;
       m_DXBCFile = NULL;
 
@@ -736,7 +735,7 @@ public:
     }
 
     DXBCKey GetKey() { return m_Key; }
-    void SetDebugInfoPath(std::vector<std::string> *searchPaths, const std::string &path)
+    void SetDebugInfoPath(rdcarray<rdcstr> *searchPaths, const rdcstr &path)
     {
       m_DebugInfoSearchPaths = searchPaths;
       m_DebugInfoPath = path;
@@ -784,10 +783,10 @@ public:
 
     DXBCKey m_Key;
 
-    std::string m_DebugInfoPath;
-    std::vector<std::string> *m_DebugInfoSearchPaths;
+    rdcstr m_DebugInfoPath;
+    rdcarray<rdcstr> *m_DebugInfoSearchPaths;
 
-    std::vector<byte> m_Bytecode;
+    rdcarray<byte> m_Bytecode;
 
     bool m_Built;
     DXBC::DXBCContainer *m_DXBCFile;
@@ -817,8 +816,7 @@ public:
   virtual ~WrappedID3D12PipelineState()
   {
     if(IsReplayMode(m_pDevice->GetState()))
-      m_pDevice->GetPipelineList().erase(std::find(m_pDevice->GetPipelineList().begin(),
-                                                   m_pDevice->GetPipelineList().end(), this));
+      m_pDevice->GetPipelineList().removeOne(this);
 
     Shutdown();
 

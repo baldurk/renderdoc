@@ -270,7 +270,7 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource1(
       GetResourceManager()->AddLiveResource(pResource, ret);
 
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
-      states.resize(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
+      states.fill(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
 
       ResourceType type = ResourceType::Texture;
       const char *prefix = "Texture";
@@ -375,7 +375,7 @@ HRESULT WrappedID3D12Device::CreateCommittedResource1(
       SCOPED_LOCK(m_ResourceStatesLock);
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
-      states.resize(GetNumSubresources(m_pDevice, pDesc), InitialResourceState);
+      states.fill(GetNumSubresources(m_pDevice, pDesc), InitialResourceState);
     }
 
     *ppvResource = (ID3D12Resource *)wrapped;

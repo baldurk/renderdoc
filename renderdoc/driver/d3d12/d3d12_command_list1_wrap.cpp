@@ -57,7 +57,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        std::vector<ID3D12Resource *> deps;
+        rdcarray<ID3D12Resource *> deps;
         deps.resize(Dependencies);
         for(size_t i = 0; i < deps.size(); i++)
           deps[i] = Unwrap(ppDependentResources[i]);
@@ -70,7 +70,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
     }
     else
     {
-      std::vector<ID3D12Resource *> deps;
+      rdcarray<ID3D12Resource *> deps;
       deps.resize(Dependencies);
       for(size_t i = 0; i < deps.size(); i++)
         deps[i] = Unwrap(ppDependentResources[i]);
@@ -175,7 +175,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT64(
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        std::vector<ID3D12Resource *> deps;
+        rdcarray<ID3D12Resource *> deps;
         deps.resize(Dependencies);
         for(size_t i = 0; i < deps.size(); i++)
           deps[i] = Unwrap(ppDependentResources[i]);
@@ -188,7 +188,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT64(
     }
     else
     {
-      std::vector<ID3D12Resource *> deps;
+      rdcarray<ID3D12Resource *> deps;
       deps.resize(Dependencies);
       for(size_t i = 0; i < deps.size(); i++)
         deps[i] = Unwrap(ppDependentResources[i]);
@@ -362,12 +362,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetSamplePositions(
         {
           D3D12RenderState &state = m_Cmd->m_RenderState;
 
-          std::vector<D3D12_SAMPLE_POSITION> pos(
-              pSamplePositions, pSamplePositions + (NumSamplesPerPixel * NumPixels));
-
           state.samplePos.NumSamplesPerPixel = NumSamplesPerPixel;
           state.samplePos.NumPixels = NumPixels;
-          state.samplePos.Positions.swap(pos);
+          state.samplePos.Positions.assign(pSamplePositions, NumSamplesPerPixel * NumPixels);
         }
       }
     }
@@ -379,12 +376,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetSamplePositions(
       {
         D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
-        std::vector<D3D12_SAMPLE_POSITION> pos(pSamplePositions,
-                                               pSamplePositions + (NumSamplesPerPixel * NumPixels));
-
         state.samplePos.NumSamplesPerPixel = NumSamplesPerPixel;
         state.samplePos.NumPixels = NumPixels;
-        state.samplePos.Positions.swap(pos);
+        state.samplePos.Positions.assign(pSamplePositions, NumSamplesPerPixel * NumPixels);
       }
     }
   }

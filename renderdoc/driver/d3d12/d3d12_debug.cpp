@@ -256,7 +256,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   }
 
   {
-    std::string meshhlsl = GetEmbeddedResource(mesh_hlsl);
+    rdcstr meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshVS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                                "vs_5_0", &m_MeshVS);
@@ -267,14 +267,14 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   }
 
   {
-    std::string hlsl = GetEmbeddedResource(misc_hlsl);
+    rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
 
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_FullscreenVS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0", &m_FullscreenVS);
   }
 
   {
-    std::string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
+    rdcstr multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
 
     shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &m_IntMS2Array);
@@ -828,7 +828,7 @@ void D3D12Replay::GeneralMisc::Init(WrappedID3D12Device *device, D3D12DebugManag
   }
 
   {
-    std::string hlsl = GetEmbeddedResource(misc_hlsl);
+    rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
 
     ID3DBlob *FullscreenVS = NULL;
     ID3DBlob *CheckerboardPS = NULL;
@@ -961,7 +961,7 @@ void D3D12Replay::TextureRendering::Init(WrappedID3D12Device *device, D3D12Debug
   }
 
   {
-    std::string hlsl = GetEmbeddedResource(texdisplay_hlsl);
+    rdcstr hlsl = GetEmbeddedResource(texdisplay_hlsl);
 
     ID3DBlob *TexDisplayPS = NULL;
 
@@ -1124,7 +1124,7 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
   shaderCache->SetCaching(true);
 
   {
-    std::string meshhlsl = GetEmbeddedResource(mesh_hlsl);
+    rdcstr meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_TriangleSizeGS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "gs_5_0", &TriangleSizeGS);
@@ -1134,7 +1134,7 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
     shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshVS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                                "vs_5_0", &MeshVS);
 
-    std::string hlsl = GetEmbeddedResource(quadoverdraw_hlsl);
+    rdcstr hlsl = GetEmbeddedResource(quadoverdraw_hlsl);
 
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &QuadOverdrawWritePS);
@@ -1155,7 +1155,7 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
   }
 
   {
-    std::string hlsl = GetEmbeddedResource(misc_hlsl);
+    rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
 
     ID3DBlob *FullscreenVS = NULL;
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_FullscreenVS",
@@ -1247,7 +1247,7 @@ void D3D12Replay::VertexPicking::Init(WrappedID3D12Device *device, D3D12DebugMan
   }
 
   {
-    std::string meshhlsl = GetEmbeddedResource(mesh_hlsl);
+    rdcstr meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
     ID3DBlob *meshPickCS;
 
@@ -1420,7 +1420,7 @@ void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugM
   }
 
   {
-    std::string histogramhlsl = GetEmbeddedResource(histogram_hlsl);
+    rdcstr histogramhlsl = GetEmbeddedResource(histogram_hlsl);
 
     D3D12_COMPUTE_PIPELINE_STATE_DESC compPipeDesc = {};
 
@@ -1439,9 +1439,9 @@ void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugM
         ID3DBlob *result = NULL;
         ID3DBlob *histogram = NULL;
 
-        std::string hlsl = std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-        hlsl += std::string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-        hlsl += std::string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+        rdcstr hlsl = rdcstr("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+        hlsl += rdcstr("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+        hlsl += rdcstr("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
         hlsl += histogramhlsl;
 
         shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TileMinMaxCS",

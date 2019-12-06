@@ -107,8 +107,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       if(nonresident)
         m_Device->MakeResident(1, &pageable);
 
-      const std::vector<D3D12_RESOURCE_STATES> &states =
-          m_Device->GetSubresourceStates(GetResID(res));
+      const rdcarray<D3D12_RESOURCE_STATES> &states = m_Device->GetSubresourceStates(GetResID(res));
       RDCASSERT(states.size() == 1);
 
       D3D12_RESOURCE_BARRIER barrier;
@@ -212,11 +211,10 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
       ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetInitialStateList());
 
-      std::vector<D3D12_RESOURCE_BARRIER> barriers;
+      rdcarray<D3D12_RESOURCE_BARRIER> barriers;
 
       {
-        const std::vector<D3D12_RESOURCE_STATES> &states =
-            m_Device->GetSubresourceStates(GetResID(r));
+        const rdcarray<D3D12_RESOURCE_STATES> &states = m_Device->GetSubresourceStates(GetResID(r));
 
         barriers.reserve(states.size());
 
@@ -927,9 +925,9 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
 
         ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetInitialStateList());
 
-        std::vector<D3D12_RESOURCE_BARRIER> barriers;
+        rdcarray<D3D12_RESOURCE_BARRIER> barriers;
 
-        const std::vector<D3D12_RESOURCE_STATES> &states =
+        const rdcarray<D3D12_RESOURCE_STATES> &states =
             m_Device->GetSubresourceStates(GetResID(live));
 
         barriers.reserve(states.size());
