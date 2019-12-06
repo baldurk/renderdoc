@@ -637,6 +637,18 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
           if(cmdBufInfo.debugMessages[j].eventId >= cmdBufNodes[i].draw.eventId + indirectCount + 2)
             cmdBufInfo.debugMessages[j].eventId -= shiftCount;
         }
+
+        for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
+        {
+          std::vector<Submission> &submits =
+              m_Partial[Secondary].cmdBufferSubmits[cmdBufInfo.draw->executedCmds[e]];
+
+          for(size_t s = 0; s < submits.size(); s++)
+          {
+            if(submits[s].baseEvent >= cmdBufNodes[i].draw.eventId + indirectCount + 2)
+              submits[s].baseEvent -= shiftCount;
+          }
+        }
       }
 
       // indirect count versions always have a multidraw marker regions, but static count of 1 would
