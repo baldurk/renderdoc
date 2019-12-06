@@ -24,9 +24,9 @@
 
 #pragma once
 
-#include <stdint.h>    // for standard types
-#include <string.h>    // for memcpy, etc
-#include <string>
+#include <stdint.h>     // for standard types
+#include <string.h>     // for memcpy, etc
+#include <algorithm>    // for std::swap
 
 #ifdef RENDERDOC_EXPORTS
 #include <stdlib.h>    // for malloc/free
@@ -238,11 +238,6 @@ public:
     memset(&d, 0, sizeof(d));
     assign(in);
   }
-  rdcstr(const std::string &in)
-  {
-    memset(&d, 0, sizeof(d));
-    assign(in.c_str(), in.size());
-  }
   rdcstr(const char *const in)
   {
     memset(&d, 0, sizeof(d));
@@ -257,11 +252,6 @@ public:
   rdcstr &operator=(const rdcstr &in)
   {
     assign(in);
-    return *this;
-  }
-  rdcstr &operator=(const std::string &in)
-  {
-    assign(in.c_str(), in.size());
     return *this;
   }
   rdcstr &operator=(const char *const in)
@@ -321,7 +311,6 @@ public:
   void assign(const char *const str) { assign(str, strlen(str)); }
   // in-place modification functions
   void append(const char *const str) { append(str, strlen(str)); }
-  void append(const std::string &str) { append(str.c_str(), str.size()); }
   void append(const rdcstr &str) { append(str.c_str(), str.size()); }
   void append(const char *const str, size_t length) { insert(size(), str, length); }
   void erase(size_t offs, size_t count)
@@ -343,7 +332,6 @@ public:
   }
 
   void insert(size_t offset, const char *const str) { insert(offset, str, strlen(str)); }
-  void insert(size_t offset, const std::string &str) { insert(offset, str.c_str(), str.size()); }
   void insert(size_t offset, const rdcstr &str) { insert(offset, str.c_str(), str.size()); }
   void insert(size_t offset, char c) { insert(offset, &c, 1); }
   void insert(size_t offset, const char *const instr, size_t length)
@@ -398,13 +386,6 @@ public:
   {
     resize(count);
     memset(data(), c, count);
-  }
-
-  // cast operators
-  operator std::string() const
-  {
-    const char *s = c_str();
-    return std::string(s, s + size());
   }
 
   // read-only by-value accessor can look up directly in c_str() since it can't be modified
@@ -611,11 +592,6 @@ public:
     append(str, strlen(str));
     return *this;
   }
-  rdcstr &operator+=(const std::string &str)
-  {
-    append(str.c_str(), str.size());
-    return *this;
-  }
   rdcstr &operator+=(const rdcstr &str)
   {
     append(str.c_str(), str.size());
@@ -627,12 +603,6 @@ public:
     return *this;
   }
   rdcstr operator+(const char *const str) const
-  {
-    rdcstr ret = *this;
-    ret += str;
-    return ret;
-  }
-  rdcstr operator+(const std::string &str) const
   {
     rdcstr ret = *this;
     ret += str;
@@ -740,10 +710,6 @@ public:
   {
     return find(needle.c_str(), needle.size(), first, last);
   }
-  int32_t find(const std::string &needle, int32_t first = 0, int32_t last = -1) const
-  {
-    return find(needle.c_str(), needle.size(), first, last);
-  }
   int32_t find(const char *needle, int32_t first = 0, int32_t last = -1) const
   {
     return find(needle, strlen(needle), first, last);
@@ -815,7 +781,6 @@ private:
 public:
   bool contains(char needle) const { return indexOf(needle) != -1; }
   bool contains(const rdcstr &needle) const { return find(needle) != -1; }
-  bool contains(const std::string &needle) const { return find(needle) != -1; }
   bool contains(const char *needle) const { return find(needle) != -1; }
   bool beginsWith(const rdcstr &beginning) const
   {
@@ -892,10 +857,8 @@ public:
       return size() == 0;
     return !strcmp(o, c_str());
   }
-  bool operator==(const std::string &o) const { return o == c_str(); }
   // for inverse check just reverse results of above
   bool operator!=(const char *const o) const { return !(*this == o); }
-  bool operator!=(const std::string &o) const { return !(*this == o); }
   bool operator!=(const rdcstr &o) const { return !(*this == o); }
   // define ordering operators
   bool operator<(const rdcstr &o) const { return strcmp(c_str(), o.c_str()) < 0; }
@@ -952,27 +915,12 @@ inline rdcstr operator+(const char *const left, const rdcstr &right)
   return rdcstr(left) += right;
 }
 
-inline rdcstr operator+(const std::string &left, const rdcstr &right)
-{
-  return rdcstr(left) += right;
-}
-
 inline bool operator==(const char *const left, const rdcstr &right)
 {
   return right == left;
 }
 
-inline bool operator==(const std::string &left, const rdcstr &right)
-{
-  return right == left;
-}
-
 inline bool operator!=(const char *const left, const rdcstr &right)
-{
-  return right != left;
-}
-
-inline bool operator!=(const std::string &left, const rdcstr &right)
 {
   return right != left;
 }

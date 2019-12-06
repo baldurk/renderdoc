@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "replay_proxy.h"
+#include <list>
 #include "3rdparty/lz4/lz4.h"
 #include "serialise/lz4io.h"
 
@@ -1790,6 +1791,12 @@ struct DeltaSection
 {
   uint64_t offs = 0;
   bytebuf contents;
+
+  void swap(DeltaSection &o)
+  {
+    std::swap(offs, o.offs);
+    contents.swap(o.contents);
+  }
 };
 
 DECLARE_REFLECTION_STRUCT(DeltaSection);
@@ -1804,10 +1811,6 @@ void DoSerialise(SerialiserType &ser, DeltaSection &el)
 template <typename SerialiserType>
 void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &referenceData, bytebuf &newData)
 {
-  // we use a list so that we don't have to reserve and pushing new sections will never cause
-  // previous ones to be reallocated and move around lots of data.
-  std::list<DeltaSection> deltas;
-
   // lz4 compress
   if(xferser.IsReading())
   {
@@ -1822,6 +1825,8 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
     }
     else
     {
+      rdcarray<DeltaSection> deltas;
+
       {
         ReadSerialiser ser(
             new StreamReader(new LZ4Decompressor(xferser.GetReader(), Ownership::Nothing),
@@ -1888,11 +1893,15 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
   {
     uint64_t uncompSize = 0;
 
+    // we use a list so that we don't have to reserve and pushing new sections will never cause
+    // previous ones to be reallocated and move around lots of data.
+    std::list<DeltaSection> deltasList;
+
     if(referenceData.empty())
     {
       // no previous reference data, need to transfer the whole object.
-      deltas.resize(1);
-      deltas.back().contents = newData;
+      deltasList.resize(1);
+      deltasList.back().contents = newData;
     }
     else
     {
@@ -1902,8 +1911,8 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
                referenceData.size(), newData.size());
 
         // re-transfer the whole block, something went seriously wrong if the resource changed size.
-        deltas.resize(1);
-        deltas.back().contents = newData;
+        deltasList.resize(1);
+        deltasList.back().contents = newData;
       }
       else
       {
@@ -1956,9 +1965,9 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
             // contents and move to state 2
             if(chunkDiff)
             {
-              deltas.push_back(DeltaSection());
-              deltas.back().offs = src - srcBegin;
-              deltas.back().contents.append(src, chunkSize);
+              deltasList.push_back(DeltaSection());
+              deltasList.back().offs = src - srcBegin;
+              deltasList.back().contents.append(src, chunkSize);
 
               state = DeltaState::Active;
             }
@@ -1969,7 +1978,7 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
             // continue to append to the delta if there's another difference in this chunk.
             if(chunkDiff)
             {
-              deltas.back().contents.append(src, chunkSize);
+              deltasList.back().contents.append(src, chunkSize);
             }
             else
             {
@@ -1988,10 +1997,23 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
         // we ended in the active state.
         if(bytesRemain > 0 && memcmp(src, dst, bytesRemain))
         {
-          deltas.push_back(DeltaSection());
-          deltas.back().offs = src - srcBegin;
-          deltas.back().contents.append(src, bytesRemain);
+          deltasList.push_back(DeltaSection());
+          deltasList.back().offs = src - srcBegin;
+          deltasList.back().contents.append(src, bytesRemain);
         }
+      }
+    }
+
+    // serialise as an array, move the storage from the list into here
+    rdcarray<DeltaSection> deltas(deltasList.size());
+
+    {
+      // swap between the list and array, so all the buffers just move storage
+      size_t i = 0;
+      for(auto it = deltasList.begin(); it != deltasList.end(); it++)
+      {
+        deltas[i].swap(*it);
+        i++;
       }
     }
 

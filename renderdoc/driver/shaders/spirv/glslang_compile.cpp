@@ -284,7 +284,7 @@ void glslangGetProgramResourceiv(glslang::TProgram *program, ReflectionInterface
         break;
       case ReflectionProperty::BufferBinding:
       {
-        rdcstr name;
+        std::string name;
         if(programInterface == ReflectionInterface::UniformBlock)
         {
           params[i] = program->getUniformBlock(index).getBinding();
@@ -302,8 +302,8 @@ void glslangGetProgramResourceiv(glslang::TProgram *program, ReflectionInterface
 
         // add on the array index, if it exists, to the retrieved binding which is only for the base
         // variable
-        int offs = name.indexOf('[');
-        if(offs > 0)
+        size_t offs = name.find('[');
+        if(offs != std::string::npos)
         {
           char *nm = &name[offs + 1];
 

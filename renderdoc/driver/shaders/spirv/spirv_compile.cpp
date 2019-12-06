@@ -120,7 +120,7 @@ rdcstr rdcspv::Compile(const rdcspv::CompilationSettings &settings, const rdcarr
         std::vector<uint32_t> spirvVec;
         glslang::GlslangToSpv(*intermediate, spirvVec, &opts);
 
-        spirv = spirvVec;
+        spirv.assign(spirvVec.data(), spirvVec.size());
       }
 
       delete program;

@@ -734,7 +734,6 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
 
       rdcarray<int> v;
       rdcpair<float, rdcstr> p;
-      std::list<uint16_t> l;
 
       v.push_back(1);
       v.push_back(1);
@@ -745,16 +744,8 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
 
       p = {3.14159f, "M_PI"};
 
-      l.push_back(2U);
-      l.push_back(3U);
-      l.push_back(5U);
-      l.push_back(7U);
-      l.push_back(11U);
-      l.push_back(13U);
-
       SERIALISE_ELEMENT(v);
       SERIALISE_ELEMENT(p);
-      SERIALISE_ELEMENT(l);
     }
 
     CHECK(buf->GetOffset() <= 128);
@@ -771,11 +762,9 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
 
     rdcarray<int> v;
     rdcpair<float, rdcstr> p;
-    std::list<uint16_t> l;
 
     SERIALISE_ELEMENT(v);
     SERIALISE_ELEMENT(p);
-    SERIALISE_ELEMENT(l);
 
     ser.EndChunk();
 
@@ -784,7 +773,6 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
     CHECK(ser.GetReader()->AtEnd());
 
     REQUIRE(v.size() == 6);
-    REQUIRE(l.size() == 6);
 
     CHECK(v[0] == 1);
     CHECK(v[1] == 1);
@@ -795,20 +783,6 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
 
     CHECK(p.first == 3.14159f);
     CHECK(p.second == "M_PI");
-
-    auto it = l.begin();
-
-    CHECK(*it == 2U);
-    ++it;
-    CHECK(*it == 3U);
-    ++it;
-    CHECK(*it == 5U);
-    ++it;
-    CHECK(*it == 7U);
-    ++it;
-    CHECK(*it == 11U);
-    ++it;
-    CHECK(*it == 13U);
   }
 
   {
@@ -820,11 +794,9 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
     {
       rdcarray<int32_t> v;
       rdcpair<float, rdcstr> p;
-      std::list<uint16_t> l;
 
       SERIALISE_ELEMENT(v);
       SERIALISE_ELEMENT(p);
-      SERIALISE_ELEMENT(l);
     }
     ser.EndChunk();
 
@@ -841,7 +813,7 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
 
     const SDChunk &chunk = *structData.chunks[0];
 
-    CHECK(chunk.data.children.size() == 3);
+    CHECK(chunk.data.children.size() == 2);
 
     for(SDObject *o : chunk.data.children)
       REQUIRE(o);
@@ -904,29 +876,6 @@ TEST_CASE("Read/write container types", "[serialiser][structured]")
 
         CHECK(second.data.str == "M_PI");
       }
-    }
-
-    {
-      SDObject &o = *chunk.data.children[childIdx++];
-
-      CHECK(o.name == "l");
-      CHECK(o.type.basetype == SDBasic::Array);
-      CHECK(o.type.byteSize == 6);
-      CHECK(o.type.flags == SDTypeFlags::NoFlags);
-      CHECK(o.data.children.size() == 6);
-
-      for(SDObject *child : o.data.children)
-      {
-        CHECK(child->type.basetype == SDBasic::UnsignedInteger);
-        CHECK(child->type.byteSize == 2);
-      }
-
-      CHECK(o.data.children[0]->data.basic.u == 2U);
-      CHECK(o.data.children[1]->data.basic.u == 3U);
-      CHECK(o.data.children[2]->data.basic.u == 5U);
-      CHECK(o.data.children[3]->data.basic.u == 7U);
-      CHECK(o.data.children[4]->data.basic.u == 11U);
-      CHECK(o.data.children[5]->data.basic.u == 13U);
     }
 
     StreamWriter *rewriteBuf = new StreamWriter(StreamWriter::DefaultScratchSize);

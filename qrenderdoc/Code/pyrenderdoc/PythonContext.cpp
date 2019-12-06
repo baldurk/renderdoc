@@ -1222,16 +1222,23 @@ extern "C" void HandleException(PyObject *global_handle)
   else if(redirector && !redirector->context)
   {
     // if still NULL we're running in the extension context
-    std::string exString;
+    rdcstr exString;
 
     if(!frames.isEmpty())
     {
       exString += "Traceback (most recent call last):\n";
       for(const QString &f : frames)
-        exString += "  " + f.toUtf8().toStdString() + "\n";
+      {
+        exString += "  ";
+        exString += f;
+        exString += "\n";
+      }
     }
 
-    exString += typeStr.toUtf8().toStdString() + ": " + valueStr.toUtf8().toStdString() + "\n";
+    exString += typeStr;
+    exString += ": ";
+    exString += valueStr;
+    exString += "\n";
 
     _frame *frame = PyEval_GetFrame();
 

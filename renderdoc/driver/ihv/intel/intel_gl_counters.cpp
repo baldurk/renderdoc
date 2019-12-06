@@ -150,7 +150,7 @@ bool IntelGlCounters::Init()
   contents.trim();
   if(!contents.empty())
   {
-    int paranoid = std::stoi(contents);
+    int paranoid = atoi(contents.c_str());
     if(paranoid)
     {
       RDCWARN(

@@ -109,7 +109,9 @@ struct AppVeyorListener : Catch::TestEventListenerBase
             << "\n";
       }
 
-      errorList += msg.str();
+      std::string formatted = msg.str();
+
+      errorList += rdcstr(formatted.c_str(), formatted.size());
     }
 
     return true;
@@ -126,7 +128,8 @@ struct AppVeyorListener : Catch::TestEventListenerBase
   {
     m_testcases.push_back({
         durationInSeconds, testCaseStats.totals.assertions.allOk(), errorList,
-        testCaseStats.testInfo.name, testCaseStats.testInfo.lineInfo.file,
+        rdcstr(testCaseStats.testInfo.name.c_str(), testCaseStats.testInfo.name.size()),
+        testCaseStats.testInfo.lineInfo.file,
     });
 
     errorList.clear();

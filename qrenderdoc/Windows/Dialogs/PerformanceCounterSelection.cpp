@@ -278,7 +278,7 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
   RDTreeWidgetItem *currentRoot = NULL;
   CounterFamily currentFamily = CounterFamily::Unknown;
 
-  std::unordered_map<std::string, RDTreeWidgetItem *> categories;
+  QMap<rdcstr, RDTreeWidgetItem *> categories;
 
   for(const CounterDescription &desc : descriptions)
   {
@@ -301,7 +301,7 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
 
     RDTreeWidgetItem *categoryItem = NULL;
 
-    const std::string category = desc.category;
+    const rdcstr category = desc.category;
     auto categoryIterator = categories.find(category);
 
     if(categoryIterator == categories.end())
@@ -317,7 +317,7 @@ void PerformanceCounterSelection::SetCounters(const QVector<CounterDescription> 
     }
     else
     {
-      categoryItem = categoryIterator->second;
+      categoryItem = categoryIterator.value();
     }
 
     RDTreeWidgetItem *counterItem = new RDTreeWidgetItem();

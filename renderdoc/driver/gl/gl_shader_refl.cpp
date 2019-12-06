@@ -270,10 +270,14 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcs
 
         glslang::TShader::ForbidIncluder incl;
 
-        std::string outStr;
-        bool success = sh.preprocess(GetDefaultResources(), 100, ENoProfile, false, false,
-                                     EShMsgOnlyPreprocessor, &outStr, incl);
-        src = outStr;
+        bool success;
+
+        {
+          std::string outstr;
+          success = sh.preprocess(GetDefaultResources(), 100, ENoProfile, false, false,
+                                  EShMsgOnlyPreprocessor, &outstr, incl);
+          src.assign(outstr.c_str(), outstr.size());
+        }
 
         if(!success)
         {

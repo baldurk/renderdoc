@@ -560,7 +560,7 @@ struct CrashHandlerCommand : public Command
       milliseconds *= 1000;
       milliseconds += systime.wMilliseconds;
 
-      rdcstr dumpId;
+      std::string dumpId;
 
       char base62[63] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
       while(milliseconds > 0)
@@ -570,15 +570,18 @@ struct CrashHandlerCommand : public Command
         milliseconds /= 62;
       }
 
-      rdcstr reportPath = conv(dumpFolder) + "\\" + dumpId + ".zip";
+      std::string reportPath = conv(dumpFolder) + "\\" + dumpId + ".zip";
 
-      RENDERDOC_CreateBugReport(conv(wlogpath).c_str(), conv(wdump).c_str(), reportPath);
+      {
+        rdcstr tmp = rdcstr(reportPath.c_str(), reportPath.size());
+        RENDERDOC_CreateBugReport(conv(wlogpath).c_str(), conv(wdump).c_str(), tmp);
+      }
 
       for(size_t i = 0; i < reportPath.size(); i++)
         if(reportPath[i] == '\\')
           reportPath[i] = '/';
 
-      report += "  \n\"report\": \"" + std::string(reportPath) + "\"\n";
+      report += "  \n\"report\": \"" + reportPath + "\"\n";
       report += "}\n";
 
       {
@@ -668,9 +671,10 @@ struct GlobalHookCommand : public Command
     std::wstring wpathmatch = conv(parser.get<std::string>("match"));
     std::string capfile = parser.get<std::string>("capfile");
     std::string debuglog = parser.get<std::string>("debuglog");
+    std::string opts = parser.get<std::string>("capopts");
 
     CaptureOptions cmdopts;
-    cmdopts.DecodeFromString(parser.get<std::string>("capopts"));
+    cmdopts.DecodeFromString(rdcstr(opts.c_str(), opts.size()));
 
     // make sure the user doesn't accidentally run this with 'a' as a parameter or something.
     // "a.exe" is over 4 characters so this limit should not be a problem.

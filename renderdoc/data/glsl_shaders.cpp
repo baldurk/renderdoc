@@ -136,7 +136,7 @@ rdcstr GenerateGLSLShader(const rdcstr &shader, ShaderType type, int version, co
     std::string outstr;
     success =
         sh.preprocess(GetDefaultResources(), 100, ENoProfile, false, false, flags, &outstr, incl);
-    ret = outstr;
+    ret.assign(outstr.c_str(), outstr.size());
   }
 
   int offs = ret.find(include_ext);

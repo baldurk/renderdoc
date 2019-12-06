@@ -84,6 +84,7 @@
 %ignore rdcstr;
 %ignore rdcliteral;
 %ignore rdcpair;
+%ignore bytebuf;
 
 // special handling for RENDERDOC_GetDefaultCaptureOptions to transform output parameter to a return value
 %typemap(in, numinputs=0) CaptureOptions *defaultOpts { $1 = new CaptureOptions; }

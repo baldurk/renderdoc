@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <list>
 #include <set>
 #include "api/replay/structured_data.h"
 #include "common/formatting.h"
@@ -426,80 +425,6 @@ public:
     return *this;
   }
 
-  Serialiser &Serialise(const rdcliteral &name, std::vector<byte> &el,
-                        SerialiserFlags flags = SerialiserFlags::NoFlags)
-  {
-    uint64_t count = (uint64_t)el.size();
-
-    {
-      m_InternalElement = true;
-      DoSerialise(*this, count);
-      m_InternalElement = false;
-    }
-
-    if(IsReading())
-    {
-      VerifyArraySize(count);
-    }
-
-    if(ExportStructure())
-    {
-      if(m_StructureStack.empty())
-      {
-        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
-        return *this;
-      }
-
-      SDObject &current = *m_StructureStack.back();
-
-      current.data.basic.numChildren++;
-      current.data.children.push_back(new SDObject(name, "Byte Buffer"_lit));
-      m_StructureStack.push_back(current.data.children.back());
-
-      SDObject &obj = *m_StructureStack.back();
-      obj.type.basetype = SDBasic::Buffer;
-      obj.type.byteSize = count;
-    }
-
-    {
-      if(IsWriting())
-      {
-        // ensure byte alignment
-        m_Write->AlignTo<ChunkAlignment>();
-        m_Write->Write(el.data(), count);
-      }
-      else if(IsReading())
-      {
-        // ensure byte alignment
-        m_Read->AlignTo<ChunkAlignment>();
-
-        el.resize((size_t)count);
-
-        m_Read->Read(el.data(), count);
-      }
-    }
-
-    if(ExportStructure())
-    {
-      if(m_ExportBuffers)
-      {
-        SDObject &obj = *m_StructureStack.back();
-
-        obj.data.basic.u = m_StructuredFile->buffers.size();
-
-        bytebuf *alloc = new bytebuf;
-        alloc->resize((size_t)count);
-        memcpy(alloc->data(), el.data(), alloc->size());
-
-        m_StructuredFile->buffers.push_back(alloc);
-      }
-
-      m_StructureStack.pop_back();
-    }
-
-    return *this;
-  }
-
   Serialiser &Serialise(const rdcliteral &name, void *&el, uint64_t byteSize,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
   {
@@ -755,149 +680,6 @@ public:
   }
 
   // specialisations for container types
-  template <class U>
-  Serialiser &Serialise(const rdcliteral &name, std::vector<U> &el,
-                        SerialiserFlags flags = SerialiserFlags::NoFlags)
-  {
-    uint64_t size = (uint64_t)el.size();
-
-    {
-      m_InternalElement = true;
-      DoSerialise(*this, size);
-      m_InternalElement = false;
-    }
-
-    if(IsReading())
-    {
-      VerifyArraySize(size);
-    }
-
-    if(ExportStructure())
-    {
-      if(m_StructureStack.empty())
-      {
-        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
-        return *this;
-      }
-
-      SDObject &parent = *m_StructureStack.back();
-      parent.data.basic.numChildren++;
-      parent.data.children.push_back(new SDObject(name, TypeName<U>()));
-      m_StructureStack.push_back(parent.data.children.back());
-
-      SDObject &arr = *m_StructureStack.back();
-      arr.type.basetype = SDBasic::Array;
-      arr.type.byteSize = size;
-
-      arr.data.basic.numChildren = size;
-      arr.data.children.resize((size_t)size);
-
-      if(IsReading())
-        el.resize((size_t)size);
-
-      for(size_t i = 0; i < (size_t)size; i++)
-      {
-        arr.data.children[i] = new SDObject("$el"_lit, TypeName<U>());
-        m_StructureStack.push_back(arr.data.children[i]);
-
-        SDObject &obj = *m_StructureStack.back();
-
-        // default to struct. This will be overwritten if appropriate
-        obj.type.basetype = SDBasic::Struct;
-        obj.type.byteSize = sizeof(U);
-
-        SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
-
-        m_StructureStack.pop_back();
-      }
-
-      m_StructureStack.pop_back();
-    }
-    else
-    {
-      if(IsReading())
-        el.resize((size_t)size);
-
-      for(size_t i = 0; i < (size_t)size; i++)
-        SerialiseDispatch<Serialiser, U>::Do(*this, el[i]);
-    }
-
-    return *this;
-  }
-
-  template <class U>
-  Serialiser &Serialise(const rdcliteral &name, std::list<U> &el,
-                        SerialiserFlags flags = SerialiserFlags::NoFlags)
-  {
-    uint64_t size = (uint64_t)el.size();
-
-    {
-      m_InternalElement = true;
-      DoSerialise(*this, size);
-      m_InternalElement = false;
-    }
-
-    if(IsReading())
-    {
-      VerifyArraySize(size);
-    }
-
-    if(ExportStructure())
-    {
-      if(m_StructureStack.empty())
-      {
-        RDCERR("Serialising object outside of chunk context! Start Chunk before any Serialise!");
-        return *this;
-      }
-
-      SDObject &parent = *m_StructureStack.back();
-      parent.data.basic.numChildren++;
-      parent.data.children.push_back(new SDObject(name, TypeName<U>()));
-      m_StructureStack.push_back(parent.data.children.back());
-
-      SDObject &arr = *m_StructureStack.back();
-      arr.type.basetype = SDBasic::Array;
-      arr.type.byteSize = size;
-
-      arr.data.basic.numChildren = size;
-      arr.data.children.resize((size_t)size);
-
-      if(IsReading())
-        el.resize((size_t)size);
-
-      auto it = el.begin();
-
-      for(size_t i = 0; i < (size_t)size; i++)
-      {
-        arr.data.children[i] = new SDObject("$el"_lit, TypeName<U>());
-        m_StructureStack.push_back(arr.data.children[i]);
-
-        SDObject &obj = *m_StructureStack.back();
-
-        // default to struct. This will be overwritten if appropriate
-        obj.type.basetype = SDBasic::Struct;
-        obj.type.byteSize = sizeof(U);
-
-        SerialiseDispatch<Serialiser, U>::Do(*this, *it);
-        it++;
-
-        m_StructureStack.pop_back();
-      }
-
-      m_StructureStack.pop_back();
-    }
-    else
-    {
-      if(IsReading())
-        el.resize((size_t)size);
-
-      for(auto it = el.begin(); it != el.end(); ++it)
-        SerialiseDispatch<Serialiser, U>::Do(*this, *it);
-    }
-
-    return *this;
-  }
-
   template <class U>
   Serialiser &Serialise(const rdcliteral &name, rdcarray<U> &el,
                         SerialiserFlags flags = SerialiserFlags::NoFlags)
@@ -1381,35 +1163,6 @@ public:
     }
   }
 
-  // the only non POD basic type
-  void SerialiseValue(SDBasic type, size_t byteSize, std::string &el)
-  {
-    uint32_t len = 0;
-
-    if(IsReading())
-    {
-      m_Read->Read(len);
-      el.resize(len);
-      if(len > 0)
-        m_Read->Read(&el[0], len);
-    }
-    else
-    {
-      len = (uint32_t)el.length();
-      m_Write->Write(len);
-      m_Write->Write(el.c_str(), len);
-    }
-
-    if(ExportStructure())
-    {
-      SDObject &current = *m_StructureStack.back();
-
-      current.type.basetype = type;
-      current.type.byteSize = len;
-      current.data.str = el;
-    }
-  }
-
   void SerialiseValue(SDBasic type, size_t byteSize, rdcstr &el)
   {
     uint32_t len = 0;
@@ -1679,16 +1432,6 @@ void DoSerialise(SerialiserType &ser, const char *&el)
   ser.SerialiseValue(SDBasic::String, 0, el);
 }
 
-template <>
-inline rdcliteral TypeName<std::string>()
-{
-  return "string"_lit;
-}
-template <class SerialiserType>
-void DoSerialise(SerialiserType &ser, std::string &el)
-{
-  ser.SerialiseValue(SDBasic::String, 0, el);
-}
 template <>
 inline rdcliteral TypeName<rdcstr>()
 {

@@ -169,37 +169,6 @@ TEST_CASE("Test array type", "[basictypes]")
   {
     rdcarray<int> test;
 
-    SECTION("std::vector")
-    {
-      std::vector<int> vec = {2, 3, 4, 5};
-
-      test = vec;
-
-      REQUIRE(test.size() == 4);
-      CHECK(test[0] == 2);
-      CHECK(test[1] == 3);
-      CHECK(test[2] == 4);
-      CHECK(test[3] == 5);
-
-      rdcarray<int> cc(vec);
-
-      REQUIRE(cc.size() == 4);
-      CHECK(cc[0] == 2);
-      CHECK(cc[1] == 3);
-      CHECK(cc[2] == 4);
-      CHECK(cc[3] == 5);
-
-      rdcarray<int> ass;
-
-      ass.assign(vec);
-
-      REQUIRE(ass.size() == 4);
-      CHECK(ass[0] == 2);
-      CHECK(ass[1] == 3);
-      CHECK(ass[2] == 4);
-      CHECK(ass[3] == 5);
-    };
-
     SECTION("std::initializer_list")
     {
       test = {2, 3, 4, 5};
@@ -828,7 +797,6 @@ TEST_CASE("Test string type", "[basictypes][string]")
     CHECK(test == "");
     CHECK(test == ((const char *)NULL));
     CHECK(test == rdcstr());
-    CHECK(test == std::string());
   };
 
   SECTION("Empty string after containing data")
@@ -867,7 +835,6 @@ TEST_CASE("Test string type", "[basictypes][string]")
       CHECK(strcmp(test.c_str(), str) == 0);
       CHECK(test != ((const char *)NULL));
       CHECK(test == str);
-      CHECK(test == std::string(str));
       CHECK(test == rdcstr(str));
       CHECK_NULL_TERM(test);
 
@@ -898,7 +865,6 @@ TEST_CASE("Test string type", "[basictypes][string]")
       CHECK(test.c_str() != NULL);
       CHECK(strcmp(test.c_str(), str) < 0);
       CHECK(test != str);
-      CHECK(test != std::string(str));
       CHECK(test != rdcstr(str));
       CHECK_NULL_TERM(test);
 

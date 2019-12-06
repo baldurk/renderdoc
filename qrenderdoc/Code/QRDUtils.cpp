@@ -57,7 +57,7 @@
 template <>
 rdcstr DoStringise(const uint32_t &el)
 {
-  return QString::number(el).toStdString();
+  return QString::number(el);
 }
 
 // these ones we do by hand as it requires formatting
@@ -2167,7 +2167,7 @@ QStringList ParseArgsList(const QString &args)
 
   LocalFree(argv);
 #else
-  std::string argString = args.toStdString();
+  rdcstr argString = args;
 
   // perform some kind of sane parsing
   bool dquot = false, squot = false;    // are we inside ''s or ""s
@@ -2176,14 +2176,14 @@ QStringList ParseArgsList(const QString &args)
   char *c = &argString[0];
 
   // current argument we're building
-  std::string a;
+  rdcstr a;
 
   while(*c)
   {
     if(!dquot && !squot && (*c == ' ' || *c == '\t'))
     {
       if(!a.empty())
-        ret << QString::fromStdString(a);
+        ret << QString(a);
 
       a = "";
     }
@@ -2239,7 +2239,7 @@ QStringList ParseArgsList(const QString &args)
 
   // if we were building an argument when we hit the end of the string
   if(!a.empty())
-    ret << QString::fromStdString(a);
+    ret << QString(a);
 #endif
 
   return ret;

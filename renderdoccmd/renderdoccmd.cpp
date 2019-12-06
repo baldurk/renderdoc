@@ -28,6 +28,16 @@
 #include <replay/version.h>
 #include <string>
 
+rdcstr conv(const std::string &s)
+{
+  return rdcstr(s.c_str(), s.size());
+}
+
+std::string conv(const rdcstr &s)
+{
+  return std::string(s.begin(), s.end());
+}
+
 // normally this is in the renderdoc core library, but it's needed for the 'unknown enum' path,
 // so we implement it here using ostringstream. It's not great, but this is a very uncommon path -
 // either for invalid values or for when a new enum is added and the code isn't updated
@@ -36,7 +46,7 @@ rdcstr DoStringise(const uint32_t &el)
 {
   std::ostringstream oss;
   oss << el;
-  return oss.str();
+  return conv(oss.str());
 }
 
 inline std::ostream &operator<<(std::ostream &os, rdcstr const &str)
@@ -54,7 +64,7 @@ rdcarray<rdcstr> convertArgs(const std::vector<std::string> &args)
   rdcarray<rdcstr> ret;
   ret.reserve(args.size());
   for(size_t i = 0; i < args.size(); i++)
-    ret.push_back(args[i]);
+    ret.push_back(conv(args[i]));
   return ret;
 }
 
@@ -641,8 +651,8 @@ struct formats_reader
       if(!f.openSupported && input)
         continue;
 
-      exts.push_back(f.extension);
-      names.push_back(f.name);
+      exts.push_back(conv(f.extension));
+      names.push_back(conv(f.name));
     }
 
     tmp->Shutdown();
@@ -699,8 +709,8 @@ struct ConvertCommand : public Command
     {
       std::cout << "Available formats:" << std::endl;
       for(CaptureFileFormat f : m_Formats)
-        std::cout << "'" << (std::string)f.extension << "': " << (std::string)f.name << std::endl
-                  << " * " << (std::string)f.description << std::endl
+        std::cout << "'" << f.extension << "': " << f.name << std::endl
+                  << " * " << f.description << std::endl
                   << std::endl;
       return 0;
     }
@@ -737,12 +747,9 @@ struct ConvertCommand : public Command
       // try to guess the format by looking for the extension in the filename
       for(CaptureFileFormat f : m_Formats)
       {
-        std::string extension = ".";
-        extension += f.extension;
-
-        if(infile.find(extension.c_str()) != std::string::npos)
+        if(infile.find(conv("." + f.extension)) != std::string::npos)
         {
-          infmt = f.extension;
+          infmt = conv(f.extension);
           break;
         }
       }
@@ -760,12 +767,9 @@ struct ConvertCommand : public Command
       // try to guess the format by looking for the extension in the filename
       for(CaptureFileFormat f : m_Formats)
       {
-        std::string extension = ".";
-        extension += f.extension;
-
-        if(outfile.find(extension.c_str()) != std::string::npos)
+        if(outfile.find(conv("." + f.extension)) != std::string::npos)
         {
-          outfmt = f.extension;
+          outfmt = conv(f.extension);
           break;
         }
       }
@@ -870,7 +874,7 @@ struct CapAltBitCommand : public Command
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
     CaptureOptions cmdopts;
-    cmdopts.DecodeFromString(parser.get<std::string>("capopts"));
+    cmdopts.DecodeFromString(conv(parser.get<std::string>("capopts")));
 
     RENDERDOC_InitGlobalEnv(m_Env, rdcarray<rdcstr>());
 
@@ -1153,11 +1157,11 @@ struct EmbeddedSectionCommand : public Command
       fclose(f);
 
       SectionProperties props;
-      props.name = section;
+      props.name = conv(section);
 
       for(SectionType s : values<SectionType>())
       {
-        if(ToStr(s) == section)
+        if(ToStr(s) == props.name)
         {
           props.type = s;
           break;

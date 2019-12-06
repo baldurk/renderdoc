@@ -46,13 +46,13 @@ inline T AlignUp(T x, T a)
 #define ARRAY_COUNT(arr) (sizeof(arr) / sizeof(arr[0]))
 #endif
 
-// this will be here to lighten the burden of converting from std::string to
+// this will be here to lighten the burden of converting from rdcstr to
 // QString everywhere.
 
 template <typename T>
 inline QString ToQStr(const T &el)
 {
-  return QString::fromStdString(ToStr(el));
+  return QString(ToStr(el));
 }
 
 // overload for a couple of things that need to know the pipeline type when converting

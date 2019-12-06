@@ -43,42 +43,40 @@ enum class NameType
   Member,
 };
 
-inline bool checkname(const char *baseType, std::string name, NameType nameType)
+inline bool checkname(const char *baseType, rdcstr name, NameType nameType)
 {
   // skip __ prefixed names
-  if(name.length() > 2 && name[0] == '_' && name[1] == '_')
+  if(name.beginsWith("__"))
     return false;
 
   // skip any rdctype based types that are converted into equivalent python types
-  if((baseType && strstr(baseType, "rdcarray")) || name.find("rdcarray") != std::string::npos)
+  if((baseType && strstr(baseType, "rdcarray")) || name.contains("rdcarray"))
     return false;
-  if((baseType && strstr(baseType, "bytebuf")) || name.find("bytebuf") != std::string::npos)
+  if((baseType && strstr(baseType, "bytebuf")) || name.contains("bytebuf"))
     return false;
-  if((baseType && strstr(baseType, "rdcstr")) || name.find("rdcstr") != std::string::npos)
+  if((baseType && strstr(baseType, "rdcstr")) || name.contains("rdcstr"))
     return false;
   if((baseType && strstr(baseType, "StructuredBufferList")) ||
-     name.find("StructuredBufferList") != std::string::npos)
+     name.contains("StructuredBufferList"))
     return false;
-  if((baseType && strstr(baseType, "StructuredChunkList")) ||
-     name.find("StructuredChunkList") != std::string::npos)
+  if((baseType && strstr(baseType, "StructuredChunkList")) || name.contains("StructuredChunkList"))
     return false;
   if((baseType && strstr(baseType, "StructuredObjectList")) ||
-     name.find("StructuredObjectList") != std::string::npos)
+     name.contains("StructuredObjectList"))
     return false;
 
   // allow the config to have different names
-  if((baseType && strstr(baseType, "PersistantConfig")) ||
-     name.find("PersistantConfig") != std::string::npos)
+  if((baseType && strstr(baseType, "PersistantConfig")) || name.contains("PersistantConfig"))
     return false;
 
   // skip swig internal type
-  if((baseType && strstr(baseType, "SwigPyObject")) || name.find("SwigPyObject") != std::string::npos)
+  if((baseType && strstr(baseType, "SwigPyObject")) || name.contains("SwigPyObject"))
     return false;
 
   // remove the module prefix, if this is a type name we're checking
-  if(!strncmp(name.c_str(), "renderdoc.", 10))
+  if(name.beginsWith("renderdoc."))
     name.erase(0, 10);
-  if(!strncmp(name.c_str(), "qrenderdoc.", 11))
+  if(name.beginsWith("qrenderdoc."))
     name.erase(0, 11);
 
   // skip a few well-known members
@@ -94,7 +92,7 @@ inline bool checkname(const char *baseType, std::string name, NameType nameType)
   else
     badfirstChar = name[0] < 'A' || name[0] > 'Z';
 
-  if(badfirstChar || name.find('_') != std::string::npos)
+  if(badfirstChar || name.contains('_'))
   {
     const char *nameTypeStr = "";
 
@@ -126,7 +124,7 @@ inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
   // the end of the world.
   bool errors_found = false;
 
-  std::set<std::string> docstrings;
+  std::set<rdcstr> docstrings;
   for(size_t i = 0; i < numTypes; i++)
   {
     SwigPyClientData *typeinfo = (SwigPyClientData *)swig_types[i]->clientdata;
@@ -137,7 +135,7 @@ inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
 
     PyTypeObject *typeobj = typeinfo->pytype;
 
-    std::string typedoc = typeobj->tp_doc;
+    rdcstr typedoc = typeobj->tp_doc;
 
     auto result = docstrings.insert(typedoc);
 
@@ -162,7 +160,7 @@ inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
 
       if(keys)
       {
-        std::set<std::string> constants;
+        std::set<rdcstr> constants;
 
         Py_ssize_t len = PyList_Size(keys);
         for(Py_ssize_t i = 0; i < len; i++)
@@ -187,7 +185,7 @@ inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
             }
             else
             {
-              std::string name(str, str + len);
+              rdcstr name(str, len);
 
               NameType nameType = NameType::Member;
 
@@ -211,29 +209,27 @@ inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
 
         if(!constants.empty())
         {
-          std::set<std::string> documented;
-
-          const char *docstring = typedoc.data();
+          std::set<rdcstr> documented;
 
           const char identifier[] = ".. data::";
 
-          const char *datadoc = strstr(docstring, identifier);
+          int32_t offs = typedoc.find(identifier);
 
-          while(datadoc)
+          while(offs >= 0)
           {
-            datadoc += sizeof(identifier) - 1;
+            offs += sizeof(identifier) - 1;
 
-            while(isspace(*datadoc))
-              datadoc++;
+            while(isspace(typedoc[offs]))
+              offs++;
 
-            const char *eol = strchr(datadoc, '\n');
+            int32_t eol = typedoc.indexOf('\n', offs);
 
-            if(!eol)
+            if(eol < 0)
               break;
 
-            documented.insert(std::string(datadoc, eol));
+            documented.insert(typedoc.substr(offs, eol - offs));
 
-            datadoc = strstr(datadoc, identifier);
+            offs = typedoc.find(identifier, offs);
           }
 
           for(auto it = constants.begin(); it != constants.end(); ++it)
@@ -259,17 +255,17 @@ inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
 
     while(method->ml_doc)
     {
-      std::string method_doc = method->ml_doc;
+      rdcstr method_doc = method->ml_doc;
 
       errors_found |= checkname(typeobj->tp_name, method->ml_name, NameType::Method);
 
-      size_t i = 0;
+      int32_t i = 0;
       while(method_doc[i] == '\n')
         i++;
 
       // skip the first line as it's autodoc generated
       i = method_doc.find('\n', i);
-      if(i != std::string::npos)
+      if(i >= 0)
       {
         while(method_doc[i] == '\n')
           i++;

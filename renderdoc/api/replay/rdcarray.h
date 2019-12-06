@@ -30,7 +30,6 @@
 #include <functional>
 #include <initializer_list>
 #include <type_traits>
-#include <vector>
 
 #ifdef RENDERDOC_EXPORTS
 #include <stdlib.h>    // for malloc/free
@@ -421,7 +420,6 @@ public:
   }
 
   // a couple of helpers
-  inline void insert(size_t offs, const std::vector<T> &in) { insert(offs, in.data(), in.size()); }
   inline void insert(size_t offs, const std::initializer_list<T> &in)
   {
     insert(offs, in.begin(), in.size());
@@ -553,12 +551,6 @@ public:
     allocatedCount = usedCount = 0;
     assign(in, count);
   }
-  rdcarray(const std::vector<T> &in)
-  {
-    elems = NULL;
-    allocatedCount = usedCount = 0;
-    assign(in);
-  }
   rdcarray(const std::initializer_list<T> &in)
   {
     elems = NULL;
@@ -613,27 +605,10 @@ public:
   }
 
   // assign forwards to operator =
-  inline void assign(const std::vector<T> &in) { *this = in; }
   inline void assign(const std::initializer_list<T> &in) { *this = in; }
   inline void assign(const rdcarray<T> &in) { *this = in; }
   /////////////////////////////////////////////////////////////////
   // assignment operators
-  rdcarray &operator=(const std::vector<T> &in)
-  {
-    // make sure we have enough space, allocating more if needed
-    reserve(in.size());
-    // destruct the old objects
-    clear();
-
-    // update new size
-    setUsedCount(in.size());
-
-    // copy construct the new elems
-    ItemCopyHelper<T>::copyRange(elems, in.data(), usedCount);
-
-    return *this;
-  }
-
   rdcarray &operator=(const std::initializer_list<T> &in)
   {
     // make sure we have enough space, allocating more if needed
@@ -746,7 +721,6 @@ typedef uint8_t byte;
 struct bytebuf : public rdcarray<byte>
 {
   bytebuf() : rdcarray<byte>() {}
-  bytebuf(const std::vector<byte> &in) : rdcarray<byte>(in) {}
   bytebuf(const std::initializer_list<byte> &in) : rdcarray<byte>(in) {}
   bytebuf(const byte *in, size_t size) : rdcarray<byte>(in, size) {}
 #if defined(RENDERDOC_QT_COMPAT)
