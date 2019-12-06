@@ -293,7 +293,7 @@ public:
       const char *pStrData = (const char *)pData;
       if(DataSize != 0 && pStrData[DataSize - 1] != '\0')
       {
-        std::string sName(pStrData, DataSize);
+        rdcstr sName(pStrData, DataSize);
         m_pDevice->SetResourceName(this, sName.c_str());
       }
       else
@@ -305,7 +305,7 @@ public:
     {
       const wchar_t *pStrData = (const wchar_t *)pData;
       rdcwstr wName(pStrData, DataSize / 2);
-      std::string sName = StringFormat::Wide2UTF8(wName);
+      rdcstr sName = StringFormat::Wide2UTF8(wName);
       m_pDevice->SetResourceName(this, sName.c_str());
     }
 
@@ -909,7 +909,7 @@ public:
     ShaderEntry(WrappedID3D11Device *device, ResourceId id, const byte *code, size_t codeLen)
     {
       m_ID = id;
-      m_Bytecode.assign(code, code + codeLen);
+      m_Bytecode.assign(code, codeLen);
       m_DebugInfoSearchPaths = device->GetShaderDebugInfoSearchPaths();
       m_DXBCFile = NULL;
     }
@@ -919,7 +919,7 @@ public:
       SAFE_DELETE(m_DXBCFile);
     }
 
-    void SetDebugInfoPath(const std::string &path) { m_DebugInfoPath = path; }
+    void SetDebugInfoPath(const rdcstr &path) { m_DebugInfoPath = path; }
     DXBC::DXBCContainer *GetDXBC()
     {
       if(m_DXBCFile == NULL && !m_Bytecode.empty())
@@ -955,10 +955,10 @@ public:
 
     ResourceId m_ID;
 
-    std::string m_DebugInfoPath;
+    rdcstr m_DebugInfoPath;
     rdcarray<rdcstr> *m_DebugInfoSearchPaths;
 
-    std::vector<byte> m_Bytecode;
+    rdcarray<byte> m_Bytecode;
 
     bool m_Built = false;
     DXBC::DXBCContainer *m_DXBCFile;
@@ -1336,7 +1336,7 @@ class WrappedID3DDeviceContextState : public WrappedDeviceChild11<ID3DDeviceCont
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3DDeviceContextState);
 
-  static std::vector<WrappedID3DDeviceContextState *> m_List;
+  static rdcarray<WrappedID3DDeviceContextState *> m_List;
   static Threading::CriticalSection m_Lock;
   D3D11RenderState *state;
 

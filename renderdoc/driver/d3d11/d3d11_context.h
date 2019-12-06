@@ -25,7 +25,6 @@
 
 #pragma once
 
-#include <list>
 #include <map>
 #include "core/core.h"
 #include "d3d11_common.h"
@@ -133,7 +132,7 @@ private:
 
   std::map<ResourceId, StreamOutData> m_StreamOutCounters;
 
-  std::map<ResourceId, std::vector<EventUsage> > m_ResourceUses;
+  std::map<ResourceId, rdcarray<EventUsage> > m_ResourceUses;
 
   WrappedID3D11Device *m_pDevice;
   ID3D11DeviceContext *m_pRealContext;
@@ -182,7 +181,7 @@ private:
 
   D3D11RenderState *m_DeferredSavedState;
 
-  std::vector<APIEvent> m_CurEvents, m_Events;
+  rdcarray<APIEvent> m_CurEvents, m_Events;
   bool m_AddedDrawcall;
 
   bool HasNonMarkerEvents();
@@ -201,7 +200,7 @@ private:
     uint32_t m_Col;
     rdcstr m_Name;
   };
-  std::vector<Annotation> m_AnnotationQueue;
+  rdcarray<Annotation> m_AnnotationQueue;
   Threading::CriticalSection m_AnnotLock;
 
   SDFile *m_StructuredFile = NULL;
@@ -216,7 +215,7 @@ private:
   DrawcallDescription m_ParentDrawcall;
   std::map<ResourceId, DrawcallDescription> m_CmdLists;
 
-  std::list<DrawcallDescription *> m_DrawcallStack;
+  rdcarray<DrawcallDescription *> m_DrawcallStack;
 
   D3D11ResourceManager *GetResourceManager();
   static rdcstr GetChunkName(uint32_t idx);
@@ -314,7 +313,7 @@ public:
   void SetFrameReader(StreamReader *reader) { m_FrameReader = reader; }
   void MarkResourceReferenced(ResourceId id, FrameRefType refType);
 
-  std::vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
+  rdcarray<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
   void ClearMaps();
 
   uint32_t GetEventID() { return m_CurEventID; }

@@ -67,7 +67,7 @@ std::map<ResourceId, WrappedID3D11Texture3D1::TextureEntry>
 std::map<ResourceId, WrappedID3D11Buffer::BufferEntry> WrappedID3D11Buffer::m_BufferList;
 std::map<ResourceId, WrappedShader::ShaderEntry *> WrappedShader::m_ShaderList;
 Threading::CriticalSection WrappedShader::m_ShaderListLock;
-std::vector<WrappedID3DDeviceContextState *> WrappedID3DDeviceContextState::m_List;
+rdcarray<WrappedID3DDeviceContextState *> WrappedID3DDeviceContextState::m_List;
 Threading::CriticalSection WrappedID3DDeviceContextState::m_Lock;
 
 const GUID RENDERDOC_ID3D11ShaderGUID_ShaderDebugMagicValue = RENDERDOC_ShaderDebugMagicValue_struct;
@@ -76,7 +76,7 @@ void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
 {
   if(!DXBC::DXBCContainer::CheckForDebugInfo((const void *)&m_Bytecode[0], m_Bytecode.size()))
   {
-    std::string originalPath = m_DebugInfoPath;
+    rdcstr originalPath = m_DebugInfoPath;
 
     if(originalPath.empty())
       originalPath =
@@ -97,7 +97,7 @@ void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
 
       size_t numSearchPaths = m_DebugInfoSearchPaths ? m_DebugInfoSearchPaths->size() : 0;
 
-      std::string foundPath;
+      rdcstr foundPath;
 
       // while we haven't found a file, keep trying through the search paths. For i==0
       // check the path on its own, in case it's an absolute path.
@@ -111,7 +111,7 @@ void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
         }
         else
         {
-          const std::string &searchPath = (*m_DebugInfoSearchPaths)[i - 1];
+          const rdcstr &searchPath = (*m_DebugInfoSearchPaths)[i - 1];
           foundPath = searchPath + "/" + originalPath;
           originalShaderFile = FileIO::fopen(foundPath.c_str(), "rb");
         }
@@ -126,7 +126,7 @@ void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
 
       if(lz4 || originalShaderSize >= m_Bytecode.size())
       {
-        std::vector<byte> originalBytecode;
+        rdcarray<byte> originalBytecode;
 
         originalBytecode.resize((size_t)originalShaderSize);
         FileIO::fread(&originalBytecode[0], sizeof(byte), (size_t)originalShaderSize,
@@ -134,7 +134,7 @@ void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
 
         if(lz4)
         {
-          std::vector<byte> decompressed;
+          rdcarray<byte> decompressed;
 
           // first try decompressing to 1MB flat
           decompressed.resize(100 * 1024);
@@ -648,8 +648,6 @@ WrappedID3DDeviceContextState::~WrappedID3DDeviceContextState()
 
   {
     SCOPED_LOCK(WrappedID3DDeviceContextState::m_Lock);
-    auto it = std::find(WrappedID3DDeviceContextState::m_List.begin(),
-                        WrappedID3DDeviceContextState::m_List.end(), this);
-    WrappedID3DDeviceContextState::m_List.erase(it);
+    WrappedID3DDeviceContextState::m_List.removeOne(this);
   }
 }

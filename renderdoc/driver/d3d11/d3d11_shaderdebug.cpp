@@ -649,7 +649,7 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
 {
   using namespace DXBCBytecode;
 
-  std::string funcRet = "";
+  rdcstr funcRet = "";
   DXGI_FORMAT retFmt = DXGI_FORMAT_UNKNOWN;
 
   if(opcode == OPCODE_SAMPLE_C || opcode == OPCODE_SAMPLE_C_LZ || opcode == OPCODE_GATHER4_C ||
@@ -659,13 +659,13 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
     funcRet = "float4";
   }
 
-  std::string samplerDecl = "";
+  rdcstr samplerDecl = "";
   if(samplerData.mode == SAMPLER_MODE_DEFAULT)
     samplerDecl = "SamplerState s";
   else if(samplerData.mode == SAMPLER_MODE_COMPARISON)
     samplerDecl = "SamplerComparisonState s";
 
-  std::string textureDecl = "";
+  rdcstr textureDecl = "";
   int texdim = 2;
   int offsetDim = 2;
   bool useOffsets = true;
@@ -897,18 +897,18 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
     StringFormat::snprintf(buf3, 255, formats[offsetDim + texdimOffs - 1][ddyType], ddyCalc.value.i.x,
                            ddyCalc.value.i.y, ddyCalc.value.i.z, ddyCalc.value.i.w);
 
-  std::string texcoords = buf;
-  std::string ddx = buf2;
-  std::string ddy = buf3;
+  rdcstr texcoords = buf;
+  rdcstr ddx = buf2;
+  rdcstr ddy = buf3;
 
   if(opcode == OPCODE_LD_MS)
   {
     StringFormat::snprintf(buf, 255, formats[0][1], multisampleIndex);
   }
 
-  std::string sampleIdx = buf;
+  rdcstr sampleIdx = buf;
 
-  std::string offsets = "";
+  rdcstr offsets = "";
 
   if(useOffsets)
   {
@@ -925,13 +925,13 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
   }
 
   char elems[] = "xyzw";
-  std::string strSwizzle = ".";
+  rdcstr strSwizzle = ".";
   for(int i = 0; i < 4; ++i)
   {
     strSwizzle += elems[swizzle[i]];
   }
 
-  std::string strGatherChannel;
+  rdcstr strGatherChannel;
   switch(gatherChannel)
   {
     case ShaderDebug::GatherChannel::Red: strGatherChannel = "Red"; break;
@@ -940,11 +940,11 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
     case ShaderDebug::GatherChannel::Alpha: strGatherChannel = "Alpha"; break;
   }
 
-  std::string vsProgram = "float4 main(uint id : SV_VertexID) : SV_Position {\n";
+  rdcstr vsProgram = "float4 main(uint id : SV_VertexID) : SV_Position {\n";
   vsProgram += "return float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
   vsProgram += "}";
 
-  std::string sampleProgram;
+  rdcstr sampleProgram;
 
   if(opcode == OPCODE_SAMPLE || opcode == OPCODE_SAMPLE_B || opcode == OPCODE_SAMPLE_D)
   {
@@ -969,7 +969,7 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
     // these operations need derivatives but have no hlsl function to call to provide them, so
     // we fake it in the vertex shader
 
-    std::string uvDim = "1";
+    rdcstr uvDim = "1";
     uvDim[0] += char(texdim + texdimOffs - 1);
 
     vsProgram = "void main(uint id : SV_VertexID, out float4 pos : SV_Position, out float" + uvDim +
@@ -980,19 +980,19 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
         uv.value.f.x + ddyCalc.value.f.x * 2.0f, uv.value.f.y + ddyCalc.value.f.y * 2.0f,
         uv.value.f.z + ddyCalc.value.f.z * 2.0f, uv.value.f.w + ddyCalc.value.f.w * 2.0f);
 
-    vsProgram += "if(id == 0) uv = " + std::string(buf) + ";\n";
+    vsProgram += "if(id == 0) uv = " + rdcstr(buf) + ";\n";
 
     StringFormat::snprintf(buf, 255, formats[texdim + texdimOffs - 1][texcoordType], uv.value.f.x,
                            uv.value.f.y, uv.value.f.z, uv.value.f.w);
 
-    vsProgram += "if(id == 1) uv = " + std::string(buf) + ";\n";
+    vsProgram += "if(id == 1) uv = " + rdcstr(buf) + ";\n";
 
     StringFormat::snprintf(
         buf, 255, formats[texdim + texdimOffs - 1][texcoordType],
         uv.value.f.x + ddxCalc.value.f.x * 2.0f, uv.value.f.y + ddxCalc.value.f.y * 2.0f,
         uv.value.f.z + ddxCalc.value.f.z * 2.0f, uv.value.f.w + ddxCalc.value.f.w * 2.0f);
 
-    vsProgram += "if(id == 2) uv = " + std::string(buf) + ";\n";
+    vsProgram += "if(id == 2) uv = " + rdcstr(buf) + ";\n";
 
     vsProgram += "pos = float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
     vsProgram += "}";
@@ -1005,8 +1005,7 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
       sampleProgram = textureDecl + " : register(t0);\n" + samplerDecl + " : register(s0);\n\n";
       sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim +
                        " uv : uvs) : SV_Target0\n{\n";
-      sampleProgram +=
-          "return t.SampleCmpLevelZero(s, uv, " + std::string(buf) + offsets + ").xxxx;";
+      sampleProgram += "return t.SampleCmpLevelZero(s, uv, " + rdcstr(buf) + offsets + ").xxxx;";
       sampleProgram += "\n}\n";
     }
     else if(opcode == OPCODE_LOD)
@@ -1266,7 +1265,7 @@ bool D3D11DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
                                                   const ShaderVariable &input,
                                                   ShaderVariable &output1, ShaderVariable &output2)
 {
-  std::string csProgram =
+  rdcstr csProgram =
       "RWBuffer<float4> outval : register(u0);\n"
       "cbuffer srcOper : register(b0) { float4 inval; };\n"
       "[numthreads(1, 1, 1)]\n"
@@ -1729,7 +1728,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   D3D11RenderState *rs = m_pImmediateContext->GetCurrentPipelineState();
 
-  std::vector<D3D11_INPUT_ELEMENT_DESC> inputlayout = m_pDevice->GetLayoutDesc(rs->IA.Layout);
+  rdcarray<D3D11_INPUT_ELEMENT_DESC> inputlayout = m_pDevice->GetLayoutDesc(rs->IA.Layout);
 
   std::set<UINT> vertexbuffers;
   uint32_t trackingOffs[32] = {0};
@@ -1812,11 +1811,11 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
     {
       const D3D11_INPUT_ELEMENT_DESC *el = NULL;
 
-      std::string signame = strlower(dxbc->GetReflection()->InputSig[i].semanticName);
+      rdcstr signame = strlower(dxbc->GetReflection()->InputSig[i].semanticName);
 
       for(size_t l = 0; l < inputlayout.size(); l++)
       {
-        std::string layoutname = strlower(inputlayout[l].SemanticName);
+        rdcstr layoutname = strlower(inputlayout[l].SemanticName);
 
         if(signame == layoutname &&
            dxbc->GetReflection()->InputSig[i].semanticIndex == inputlayout[l].SemanticIndex)
@@ -2050,7 +2049,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   State last;
 
-  std::vector<ShaderDebugState> states;
+  rdcarray<ShaderDebugState> states;
 
   if(dxbc->GetDebugInfo())
     dxbc->GetDebugInfo()->GetLocals(0, dxbc->GetDXBCByteCode()->GetInstruction(0).offset,
@@ -2368,7 +2367,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
         keyMask |= (1 << (key.firstComponent + i));
 
       // find the name of the variable matching the operand, in the case of merged input variables.
-      std::string name, swizzle = "xyzw";
+      rdcstr name, swizzle = "xyzw";
       for(size_t i = 0; i < dxbc->GetReflection()->InputSig.size(); i++)
       {
         if(dxbc->GetReflection()->InputSig[i].regIndex == (uint32_t)key.inputRegisterIndex &&
@@ -2396,7 +2395,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
       name = StringFormat::Fmt("IN.%s.%s", name.c_str(), swizzle.c_str());
 
       // we must write all components, so just swizzle the values - they'll be ignored later.
-      std::string expandSwizzle = swizzle;
+      rdcstr expandSwizzle = swizzle;
       while(expandSwizzle.size() < 4)
         expandSwizzle.push_back('x');
 
@@ -2420,7 +2419,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
   for(size_t i = 0; i < floatInputs.size(); i++)
   {
-    const std::string &name = floatInputs[i];
+    const rdcstr &name = floatInputs[i];
     extractHlsl += "  PSInitialBuffer[idx].INddx." + name + " = ddx(IN." + name + ");\n";
     extractHlsl += "  PSInitialBuffer[idx].INddy." + name + " = ddy(IN." + name + ");\n";
     extractHlsl += "  PSInitialBuffer[idx].INddxfine." + name + " = ddx_fine(IN." + name + ");\n";
@@ -2819,7 +2818,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   SAFE_DELETE_ARRAY(initialData);
   SAFE_DELETE_ARRAY(evalData);
 
-  std::vector<ShaderDebugState> states;
+  rdcarray<ShaderDebugState> states;
 
   if(dxbc->GetDebugInfo())
     dxbc->GetDebugInfo()->GetLocals(0, dxbc->GetDXBCByteCode()->GetInstruction(0).offset,
@@ -3030,7 +3029,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
     initialState.semantics.ThreadID[i] = threadid[i];
   }
 
-  std::vector<ShaderDebugState> states;
+  rdcarray<ShaderDebugState> states;
 
   if(dxbc->GetDebugInfo())
     dxbc->GetDebugInfo()->GetLocals(0, dxbc->GetDXBCByteCode()->GetInstruction(0).offset,

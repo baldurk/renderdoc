@@ -37,11 +37,11 @@ public:
   D3D11ShaderCache(WrappedID3D11Device *wrapper);
   ~D3D11ShaderCache();
 
-  std::string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
-                            const char *profile, ID3DBlob **srcblob);
+  rdcstr GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
+                       const char *profile, ID3DBlob **srcblob);
   ID3D11VertexShader *MakeVShader(const char *source, const char *entry, const char *profile,
                                   int numInputDescs = 0, D3D11_INPUT_ELEMENT_DESC *inputs = NULL,
-                                  ID3D11InputLayout **ret = NULL, std::vector<byte> *blob = NULL);
+                                  ID3D11InputLayout **ret = NULL, rdcarray<byte> *blob = NULL);
   ID3D11GeometryShader *MakeGShader(const char *source, const char *entry, const char *profile);
   ID3D11PixelShader *MakePShader(const char *source, const char *entry, const char *profile);
   ID3D11ComputeShader *MakeCShader(const char *source, const char *entry, const char *profile);

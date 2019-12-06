@@ -25,7 +25,6 @@
 
 #pragma once
 
-#include <list>
 #include <map>
 #include "driver/dx/official/d3d11_4.h"
 #include "replay/replay_driver.h"
@@ -176,7 +175,7 @@ private:
   static const int NUM_CACHED_SRVS = 64;
   static const uint32_t STAGE_BUFFER_BYTE_SIZE = 4 * 1024 * 1024;
 
-  std::list<CacheElem> m_ShaderItemCache;
+  rdcarray<CacheElem> m_ShaderItemCache;
 
   std::map<ResourceId, ID3D11UnorderedAccessView *> m_CounterBufferToUAV;
   std::map<ID3D11UnorderedAccessView *, ResourceId> m_UAVToCounterBuffer;

@@ -107,7 +107,7 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
   desc.SampleDesc.Count = 1;
   desc.Usage = D3D11_USAGE_DEFAULT;
 
-  std::string font = GetEmbeddedResource(sourcecodepro_ttf);
+  rdcstr font = GetEmbeddedResource(sourcecodepro_ttf);
   byte *ttfdata = (byte *)font.c_str();
 
   const int firstChar = int(' ') + 1;
@@ -228,7 +228,7 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
     m_pDevice->InternalRef();
   rm->SetInternalResource(CharBuffer);
 
-  std::string hlsl = GetEmbeddedResource(text_hlsl);
+  rdcstr hlsl = GetEmbeddedResource(text_hlsl);
 
   D3D11ShaderCache *shaderCache = wrapper->GetShaderCache();
 

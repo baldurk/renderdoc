@@ -135,8 +135,8 @@ void D3D11DebugManager::InitCommonResources()
   D3D11ShaderCache *shaderCache = m_pDevice->GetShaderCache();
   D3D11ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  std::string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
-  std::string hlsl = GetEmbeddedResource(misc_hlsl);
+  rdcstr multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
+  rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
 
   if(m_pDevice->GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0)
   {
@@ -205,7 +205,7 @@ void D3D11DebugManager::InitReplayResources()
   HRESULT hr = S_OK;
 
   {
-    std::string hlsl = GetEmbeddedResource(pixelhistory_hlsl);
+    rdcstr hlsl = GetEmbeddedResource(pixelhistory_hlsl);
 
     PixelHistoryUnusedCS =
         shaderCache->MakeCShader(hlsl.c_str(), "RENDERDOC_PixelHistoryUnused", "cs_5_0");
@@ -456,7 +456,7 @@ void D3D11Replay::GeneralMisc::Init(WrappedID3D11Device *device)
     RDCERR("Failed to create scissoring rasterizer state HRESULT: %s", ToStr(hr).c_str());
 
   {
-    std::string hlsl = GetEmbeddedResource(misc_hlsl);
+    rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
 
     FullscreenVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
 
@@ -482,14 +482,14 @@ void D3D11Replay::TextureRendering::Init(WrappedID3D11Device *device)
   HRESULT hr = S_OK;
 
   {
-    std::string hlsl = GetEmbeddedResource(texdisplay_hlsl);
+    rdcstr hlsl = GetEmbeddedResource(texdisplay_hlsl);
 
     TexDisplayVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_TexDisplayVS", "vs_4_0");
     TexDisplayPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_TexDisplayPS", "ps_5_0");
   }
 
   {
-    std::string hlsl = GetEmbeddedResource(texremap_hlsl);
+    rdcstr hlsl = GetEmbeddedResource(texremap_hlsl);
 
     TexRemapPS[0] = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_TexRemapFloat", "ps_5_0");
     TexRemapPS[1] = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_TexRemapUInt", "ps_5_0");
@@ -564,7 +564,7 @@ void D3D11Replay::OverlayRendering::Init(WrappedID3D11Device *device)
   D3D11ShaderCache *shaderCache = device->GetShaderCache();
 
   {
-    std::string hlsl = GetEmbeddedResource(misc_hlsl);
+    rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
 
     FullscreenVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
 
@@ -575,7 +575,7 @@ void D3D11Replay::OverlayRendering::Init(WrappedID3D11Device *device)
   }
 
   {
-    std::string meshhlsl = GetEmbeddedResource(mesh_hlsl);
+    rdcstr meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
     TriangleSizeGS =
         shaderCache->MakeGShader(meshhlsl.c_str(), "RENDERDOC_TriangleSizeGS", "gs_4_0");
@@ -682,9 +682,9 @@ void D3D11Replay::MeshRendering::Init(WrappedID3D11Device *device)
         {"pos", 0, DXGI_FORMAT_R32G32B32A32_FLOAT}, {"sec", 0, DXGI_FORMAT_R8G8B8A8_UNORM},
     };
 
-    std::string meshhlsl = GetEmbeddedResource(mesh_hlsl);
+    rdcstr meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
-    std::vector<byte> bytecode;
+    rdcarray<byte> bytecode;
 
     MeshVS = shaderCache->MakeVShader(meshhlsl.c_str(), "RENDERDOC_MeshVS", "vs_4_0", 2,
                                       inputDescSecondary, &GenericLayout, &bytecode);
@@ -799,7 +799,7 @@ void D3D11Replay::VertexPicking::Init(WrappedID3D11Device *device)
 
   HRESULT hr = S_OK;
 
-  std::string meshhlsl = GetEmbeddedResource(mesh_hlsl);
+  rdcstr meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
   MeshPickCS = shaderCache->MakeCShader(meshhlsl.c_str(), "RENDERDOC_MeshPickCS", "cs_5_0");
 
@@ -1031,7 +1031,7 @@ void D3D11Replay::HistogramMinMax::Init(WrappedID3D11Device *device)
   if(FAILED(hr))
     RDCERR("Failed to create result UAV 2 HRESULT: %s", ToStr(hr).c_str());
 
-  std::string histogramhlsl = GetEmbeddedResource(histogram_hlsl);
+  rdcstr histogramhlsl = GetEmbeddedResource(histogram_hlsl);
 
   for(int t = eTexType_1D; t < eTexType_Max; t++)
   {
@@ -1041,9 +1041,9 @@ void D3D11Replay::HistogramMinMax::Init(WrappedID3D11Device *device)
     // float, uint, sint
     for(int i = 0; i < 3; i++)
     {
-      std::string hlsl = std::string("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-      hlsl += std::string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-      hlsl += std::string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+      rdcstr hlsl = rdcstr("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
+      hlsl += rdcstr("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+      hlsl += rdcstr("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
       hlsl += histogramhlsl;
 
       TileMinMaxCS[t][i] =
@@ -1174,7 +1174,7 @@ void D3D11Replay::PixelHistory::Init(WrappedID3D11Device *device)
   }
 
   {
-    std::string hlsl = GetEmbeddedResource(pixelhistory_hlsl);
+    rdcstr hlsl = GetEmbeddedResource(pixelhistory_hlsl);
 
     PrimitiveIDPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_PrimitiveIDPS", "ps_5_0");
   }

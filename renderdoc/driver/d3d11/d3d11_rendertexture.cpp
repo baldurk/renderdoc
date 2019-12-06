@@ -48,7 +48,7 @@ D3D11DebugManager::CacheElem &D3D11DebugManager::GetCachedElem(ResourceId id, Co
     m_ShaderItemCache.pop_back();
   }
 
-  m_ShaderItemCache.push_front(CacheElem(id, typeCast, raw));
+  m_ShaderItemCache.insert(0, CacheElem(id, typeCast, raw));
   return m_ShaderItemCache.front();
 }
 

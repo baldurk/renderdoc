@@ -111,7 +111,7 @@ void D3D11Replay::CreateResources(IDXGIFactory *factory)
 
       m_DriverInfo.vendor = GPUVendorFromPCIVendor(desc.VendorId);
 
-      std::string descString = GetDriverVersion(desc);
+      rdcstr descString = GetDriverVersion(desc);
       descString.resize(RDCMIN(descString.size(), ARRAY_COUNT(m_DriverInfo.version) - 1));
       memcpy(m_DriverInfo.version, descString.c_str(), descString.size());
 
@@ -265,7 +265,7 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
   {
     WrappedID3D11Texture1D *d3dtex = (WrappedID3D11Texture1D *)it1D->second.m_Texture;
 
-    std::string str = GetDebugName(d3dtex);
+    rdcstr str = GetDebugName(d3dtex);
 
     D3D11_TEXTURE1D_DESC desc;
     d3dtex->GetDesc(&desc);
@@ -312,7 +312,7 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
   {
     WrappedID3D11Texture2D1 *d3dtex = (WrappedID3D11Texture2D1 *)it2D->second.m_Texture;
 
-    std::string str = GetDebugName(d3dtex);
+    rdcstr str = GetDebugName(d3dtex);
 
     D3D11_TEXTURE2D_DESC desc;
     d3dtex->GetDesc(&desc);
@@ -371,7 +371,7 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
   {
     WrappedID3D11Texture3D1 *d3dtex = (WrappedID3D11Texture3D1 *)it3D->second.m_Texture;
 
-    std::string str = GetDebugName(d3dtex);
+    rdcstr str = GetDebugName(d3dtex);
 
     D3D11_TEXTURE3D_DESC desc;
     d3dtex->GetDesc(&desc);
@@ -626,7 +626,7 @@ BufferDescription D3D11Replay::GetBuffer(ResourceId id)
 
   WrappedID3D11Buffer *d3dbuf = it->second.m_Buffer;
 
-  std::string str = GetDebugName(d3dbuf);
+  rdcstr str = GetDebugName(d3dbuf);
 
   ret.resourceId = m_pDevice->GetResourceManager()->GetOriginalID(it->first);
 
@@ -705,7 +705,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
 
   if(rs->IA.Layout)
   {
-    const std::vector<D3D11_INPUT_ELEMENT_DESC> &vec = m_pDevice->GetLayoutDesc(rs->IA.Layout);
+    const rdcarray<D3D11_INPUT_ELEMENT_DESC> &vec = m_pDevice->GetLayoutDesc(rs->IA.Layout);
 
     ResourceId layoutId = GetIDForResource(rs->IA.Layout);
 
@@ -2532,7 +2532,7 @@ void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &sour
         return;
     }
 
-    std::string hlsl;
+    rdcstr hlsl;
     hlsl.assign((const char *)source.data(), source.size());
 
     ID3DBlob *blob = NULL;
@@ -3023,7 +3023,7 @@ uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
       bytebuf idxs;
       GetBufferData(cfg.position.indexResourceId, cfg.position.indexByteOffset, 0, idxs);
 
-      std::vector<uint32_t> outidxs;
+      rdcarray<uint32_t> outidxs;
       outidxs.resize(cfg.position.numIndices);
 
       uint16_t *idxs16 = (uint16_t *)&idxs[0];
@@ -3137,7 +3137,7 @@ uint32_t D3D11Replay::PickVertex(uint32_t eventId, int32_t width, int32_t height
       }
     }
 
-    std::vector<FloatVector> vbData;
+    rdcarray<FloatVector> vbData;
     vbData.resize(maxIndex + 1);
 
     byte *data = &oldData[0];

@@ -335,7 +335,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
            (uint32_t)events.size());
 
   // these occlusion queries are run with every test possible disabled
-  std::vector<ID3D11Query *> occl;
+  rdcarray<ID3D11Query *> occl;
   occl.reserve(events.size());
 
   ID3D11Query *testQueries[6] = {0};    // one query for each test we do per-drawcall
@@ -656,7 +656,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
   // while issuing the above queries we can check to see which tests are enabled so we don't
   // bother checking if depth testing failed if the depth test was disabled
-  std::vector<uint32_t> flags(events.size());
+  rdcarray<uint32_t> flags(events.size());
   enum
   {
     TestEnabled_BackfaceCulling = 1 << 0,

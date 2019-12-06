@@ -245,7 +245,7 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
     RDCASSERT(dxbcDS);
   }
 
-  std::vector<D3D11_SO_DECLARATION_ENTRY> sodecls;
+  rdcarray<D3D11_SO_DECLARATION_ENTRY> sodecls;
 
   UINT stride = 0;
   int posidx = -1;
@@ -284,8 +284,8 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
     if(posidx > 0)
     {
       D3D11_SO_DECLARATION_ENTRY pos = sodecls[posidx];
-      sodecls.erase(sodecls.begin() + posidx);
-      sodecls.insert(sodecls.begin(), pos);
+      sodecls.erase(posidx);
+      sodecls.insert(0, pos);
     }
 
     HRESULT hr = m_pDevice->CreateGeometryShaderWithStreamOutput(
@@ -357,7 +357,7 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
 
       SAFE_RELEASE(idxBuf);
 
-      std::vector<uint32_t> indices;
+      rdcarray<uint32_t> indices;
 
       uint16_t *idx16 = (uint16_t *)&idxdata[0];
       uint32_t *idx32 = (uint32_t *)&idxdata[0];
@@ -388,13 +388,13 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
         if(it != indices.end() && *it == i32)
           continue;
 
-        indices.insert(it, i32);
+        indices.insert(it - indices.begin(), i32);
       }
 
       // if we read out of bounds, we'll also have a 0 index being referenced
       // (as 0 is read). Don't insert 0 if we already have 0 though
       if(numIndices < drawcall->numIndices && (indices.empty() || indices[0] != 0))
-        indices.insert(indices.begin(), 0);
+        indices.insert(0, 0);
 
       // An index buffer could be something like: 500, 501, 502, 501, 503, 502
       // in which case we can't use the existing index buffer without filling 499 slots of vertex
@@ -700,8 +700,8 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
     if(posidx > 0)
     {
       D3D11_SO_DECLARATION_ENTRY pos = sodecls[posidx];
-      sodecls.erase(sodecls.begin() + posidx);
-      sodecls.insert(sodecls.begin(), pos);
+      sodecls.erase(posidx);
+      sodecls.insert(0, pos);
     }
 
     streamoutGS = NULL;
@@ -845,7 +845,7 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
 
     m_pImmediateContext->CopyResource(m_SOStagingBuffer, m_SOBuffer);
 
-    std::vector<D3D11PostVSData::InstData> instData;
+    rdcarray<D3D11PostVSData::InstData> instData;
 
     if((drawcall->flags & DrawFlags::Instanced) && drawcall->numInstances > 1)
     {

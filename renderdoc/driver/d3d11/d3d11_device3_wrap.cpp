@@ -51,7 +51,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D1(SerialiserType &ser,
   SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture2D))
       .TypedAs("ID3D11Texture2D *"_lit);
 
-  std::vector<D3D11_SUBRESOURCE_DATA> descs =
+  rdcarray<D3D11_SUBRESOURCE_DATA> descs =
       Serialise_CreateTextureData(ser, ppTexture2D ? *ppTexture2D : NULL, pTexture, pInitialData,
                                   Descriptor.Width, Descriptor.Height, 1, Descriptor.Format,
                                   Descriptor.MipLevels, Descriptor.ArraySize, pInitialData != NULL);
@@ -191,7 +191,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D1(SerialiserType &ser,
   SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture3D))
       .TypedAs("ID3D11Texture3D *"_lit);
 
-  std::vector<D3D11_SUBRESOURCE_DATA> descs =
+  rdcarray<D3D11_SUBRESOURCE_DATA> descs =
       Serialise_CreateTextureData(ser, ppTexture3D ? *ppTexture3D : NULL, pTexture, pInitialData,
                                   Descriptor.Width, Descriptor.Height, Descriptor.Depth,
                                   Descriptor.Format, Descriptor.MipLevels, 1, pInitialData != NULL);

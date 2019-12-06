@@ -243,7 +243,7 @@ HRESULT WrappedID3D11Device::CreateBuffer(const D3D11_BUFFER_DESC *pDesc,
 }
 
 template <typename SerialiserType>
-std::vector<D3D11_SUBRESOURCE_DATA> WrappedID3D11Device::Serialise_CreateTextureData(
+rdcarray<D3D11_SUBRESOURCE_DATA> WrappedID3D11Device::Serialise_CreateTextureData(
     SerialiserType &ser, ID3D11Resource *tex, ResourceId id, const D3D11_SUBRESOURCE_DATA *data,
     UINT w, UINT h, UINT d, DXGI_FORMAT fmt, UINT mips, UINT arr, bool HasData)
 {
@@ -255,7 +255,7 @@ std::vector<D3D11_SUBRESOURCE_DATA> WrappedID3D11Device::Serialise_CreateTexture
 
   numSubresources *= arr;
 
-  std::vector<D3D11_SUBRESOURCE_DATA> descs;
+  rdcarray<D3D11_SUBRESOURCE_DATA> descs;
   if(IsReplayingAndReading() && HasData)
     descs.resize(numSubresources);
 
@@ -384,7 +384,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture1D(SerialiserType &ser,
   SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture1D))
       .TypedAs("ID3D11Texture1D *"_lit);
 
-  std::vector<D3D11_SUBRESOURCE_DATA> descs = Serialise_CreateTextureData(
+  rdcarray<D3D11_SUBRESOURCE_DATA> descs = Serialise_CreateTextureData(
       ser, ppTexture1D ? *ppTexture1D : NULL, pTexture, pInitialData, Descriptor.Width, 1, 1,
       Descriptor.Format, Descriptor.MipLevels, Descriptor.ArraySize, pInitialData != NULL);
 
@@ -518,7 +518,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D(SerialiserType &ser,
   SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture2D))
       .TypedAs("ID3D11Texture2D *"_lit);
 
-  std::vector<D3D11_SUBRESOURCE_DATA> descs =
+  rdcarray<D3D11_SUBRESOURCE_DATA> descs =
       Serialise_CreateTextureData(ser, ppTexture2D ? *ppTexture2D : NULL, pTexture, pInitialData,
                                   Descriptor.Width, Descriptor.Height, 1, Descriptor.Format,
                                   Descriptor.MipLevels, Descriptor.ArraySize, pInitialData != NULL);
@@ -652,7 +652,7 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D(SerialiserType &ser,
   SERIALISE_ELEMENT_LOCAL(pTexture, GetIDForResource(*ppTexture3D))
       .TypedAs("ID3D11Texture3D *"_lit);
 
-  std::vector<D3D11_SUBRESOURCE_DATA> descs =
+  rdcarray<D3D11_SUBRESOURCE_DATA> descs =
       Serialise_CreateTextureData(ser, ppTexture3D ? *ppTexture3D : NULL, pTexture, pInitialData,
                                   Descriptor.Width, Descriptor.Height, Descriptor.Depth,
                                   Descriptor.Format, Descriptor.MipLevels, 1, pInitialData != NULL);
@@ -1340,8 +1340,7 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
     AddResource(pInputLayout, ResourceType::StateObject, "Input Layout");
 
     if(NumElements > 0)
-      m_LayoutDescs[ret] = std::vector<D3D11_INPUT_ELEMENT_DESC>(pInputElementDescs,
-                                                                 pInputElementDescs + NumElements);
+      m_LayoutDescs[ret] = rdcarray<D3D11_INPUT_ELEMENT_DESC>(pInputElementDescs, NumElements);
 
     if(BytecodeLength > 0 && pShaderBytecodeWithInputSignature)
       m_LayoutShaders[ret] = new WrappedShader(this, pInputLayout, GetIDForResource(ret),

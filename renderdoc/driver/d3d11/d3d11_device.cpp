@@ -168,7 +168,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
           m_InitParams.AdapterDesc = desc;
 
           GPUVendor vendor = GPUVendorFromPCIVendor(desc.VendorId);
-          std::string descString = GetDriverVersion(desc);
+          rdcstr descString = GetDriverVersion(desc);
 
           RDCLOG("New D3D11 device created: %s / %s", ToStr(vendor).c_str(), descString.c_str());
 
@@ -790,7 +790,7 @@ rdcstr WrappedID3D11Device::GetChunkName(uint32_t idx)
 }
 
 void WrappedID3D11Device::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
-                                          std::string d)
+                                          rdcstr d)
 {
   // Only add runtime warnings while executing.
   // While reading, add the messages from the log, and while writing add messages
@@ -815,9 +815,9 @@ void WrappedID3D11Device::AddDebugMessage(DebugMessage msg)
     m_DebugMessages.push_back(msg);
 }
 
-std::vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
+rdcarray<DebugMessage> WrappedID3D11Device::GetDebugMessages()
 {
-  std::vector<DebugMessage> ret;
+  rdcarray<DebugMessage> ret;
 
   if(IsActiveReplaying(m_State))
   {
@@ -902,7 +902,7 @@ std::vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
     }
 
     msg.messageID = (uint32_t)message->ID;
-    msg.description = std::string(message->pDescription);
+    msg.description = rdcstr(message->pDescription);
 
     ret.push_back(msg);
 
@@ -1208,7 +1208,7 @@ ReplayStatus WrappedID3D11Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
       if(!IsStructuredExporting(m_State))
       {
-        std::vector<DebugMessage> savedDebugMessages;
+        rdcarray<DebugMessage> savedDebugMessages;
 
         // save any debug messages we built up
         savedDebugMessages.swap(m_DebugMessages);
@@ -2247,8 +2247,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapper *swapper, UINT SyncInterval, U
       m_TextRenderer->SetOutputWindow(swapper->GetHWND());
 
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
-      std::string overlayText =
-          RenderDoc::Inst().GetOverlayText(RDCDriver::D3D11, m_FrameCounter, flags);
+      rdcstr overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::D3D11, m_FrameCounter, flags);
 
       if(activeWindow && m_FailedFrame > 0)
       {

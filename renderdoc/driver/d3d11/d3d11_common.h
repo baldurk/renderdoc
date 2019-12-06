@@ -39,10 +39,10 @@ struct D3D11RenderState;
 // replay only class for handling marker regions
 struct D3D11MarkerRegion
 {
-  D3D11MarkerRegion(const std::string &marker);
+  D3D11MarkerRegion(const rdcstr &marker);
   ~D3D11MarkerRegion();
-  static void Set(const std::string &marker);
-  static void Begin(const std::string &marker);
+  static void Set(const rdcstr &marker);
+  static void Begin(const rdcstr &marker);
   static void End();
 
   static WrappedID3D11Device *device;
@@ -186,7 +186,7 @@ inline void SetDebugName(T *pObj, const char *name)
 }
 
 template <class T>
-inline std::string GetDebugName(T *pObj)
+inline rdcstr GetDebugName(T *pObj)
 {
   static const UINT DEBUG_NAME_SIZE = 1024;
   static wchar_t tmpBuf[DEBUG_NAME_SIZE] = {0};    // Used for both char and wchar_t
@@ -197,7 +197,7 @@ inline std::string GetDebugName(T *pObj)
     HRESULT hr = pObj->GetPrivateData(WKPDID_D3DDebugObjectName, &size, (char *)tmpBuf);
     if(SUCCEEDED(hr))
     {
-      return std::string((char *)tmpBuf, size);
+      return rdcstr((char *)tmpBuf, size);
     }
 
     // Try wchar_t
@@ -211,7 +211,7 @@ inline std::string GetDebugName(T *pObj)
     }
   }
 
-  return std::string();
+  return rdcstr();
 }
 
 class RefCounter

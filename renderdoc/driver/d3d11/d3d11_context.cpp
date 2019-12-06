@@ -297,7 +297,7 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
   // used for a DrawAuto(). If the stream-out happens in frame we don't need to worry,
   // but if it references a buffer from before we need to have that counter available
   // on replay to 'fake' the DrawAuto() just as a Draw() with known values
-  std::vector<HiddenCounter> HiddenStreamOutCounters;
+  rdcarray<HiddenCounter> HiddenStreamOutCounters;
 
   if(ser.IsWriting())
   {
@@ -1250,9 +1250,9 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
     // we don't have duplicate uses
     for(auto it = m_ResourceUses.begin(); it != m_ResourceUses.end(); ++it)
     {
-      std::vector<EventUsage> &v = it->second;
+      rdcarray<EventUsage> &v = it->second;
       std::sort(v.begin(), v.end());
-      v.erase(std::unique(v.begin(), v.end()), v.end());
+      v.erase(std::unique(v.begin(), v.end()) - v.begin(), ~0U);
 
 #if CHECK_UNUSED_INITIAL_STATES
       ResourceId resid = m_pDevice->GetResourceManager()->GetOriginalID(it->first);

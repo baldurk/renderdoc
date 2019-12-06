@@ -367,7 +367,7 @@ private:
   void CachedObjectsGarbageCollect();
 
   std::set<WrappedID3D11DeviceContext *> m_DeferredContexts;
-  std::map<ID3D11InputLayout *, std::vector<D3D11_INPUT_ELEMENT_DESC> > m_LayoutDescs;
+  std::map<ID3D11InputLayout *, rdcarray<D3D11_INPUT_ELEMENT_DESC> > m_LayoutDescs;
   std::map<ID3D11InputLayout *, WrappedShader *> m_LayoutShaders;
 
   static WrappedID3D11Device *m_pCurrentWrappedDevice;
@@ -384,9 +384,9 @@ private:
   SDFile *m_StructuredFile = NULL;
   SDFile m_StoredStructuredData;
 
-  std::vector<DebugMessage> m_DebugMessages;
+  rdcarray<DebugMessage> m_DebugMessages;
 
-  std::vector<FrameDescription> m_CapturedFrames;
+  rdcarray<FrameDescription> m_CapturedFrames;
   rdcarray<DrawcallDescription *> m_Drawcalls;
 
 public:
@@ -446,10 +446,10 @@ public:
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
   void FirstFrame(IDXGISwapper *swapper);
 
-  std::vector<DebugMessage> GetDebugMessages();
+  rdcarray<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
-  void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, std::string d);
-  const std::vector<D3D11_INPUT_ELEMENT_DESC> &GetLayoutDesc(ID3D11InputLayout *layout)
+  void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
+  const rdcarray<D3D11_INPUT_ELEMENT_DESC> &GetLayoutDesc(ID3D11InputLayout *layout)
   {
     return m_LayoutDescs[layout];
   }
@@ -607,7 +607,7 @@ public:
   }
 
   template <typename SerialiserType>
-  std::vector<D3D11_SUBRESOURCE_DATA> Serialise_CreateTextureData(
+  rdcarray<D3D11_SUBRESOURCE_DATA> Serialise_CreateTextureData(
       SerialiserType &ser, ID3D11Resource *tex, ResourceId id, const D3D11_SUBRESOURCE_DATA *data,
       UINT w, UINT h, UINT d, DXGI_FORMAT fmt, UINT mips, UINT arr, bool HasData);
 

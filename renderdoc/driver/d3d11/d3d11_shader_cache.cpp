@@ -82,13 +82,13 @@ struct D3DBlobShaderCallbacks
 
 struct EmbeddedD3D11Includer : public ID3DInclude
 {
-  std::string texsample = GetEmbeddedResource(hlsl_texsample_h);
-  std::string cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
+  rdcstr texsample = GetEmbeddedResource(hlsl_texsample_h);
+  rdcstr cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
 
   virtual HRESULT STDMETHODCALLTYPE Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName,
                                          LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes) override
   {
-    std::string *str;
+    rdcstr *str;
 
     if(!strcmp(pFileName, "hlsl_texsample.h"))
       str = &texsample;
@@ -132,9 +132,9 @@ D3D11ShaderCache::~D3D11ShaderCache()
   }
 }
 
-std::string D3D11ShaderCache::GetShaderBlob(const char *source, const char *entry,
-                                            const uint32_t compileFlags, const char *profile,
-                                            ID3DBlob **srcblob)
+rdcstr D3D11ShaderCache::GetShaderBlob(const char *source, const char *entry,
+                                       const uint32_t compileFlags, const char *profile,
+                                       ID3DBlob **srcblob)
 {
   EmbeddedD3D11Includer includer;
 
@@ -176,13 +176,13 @@ std::string D3D11ShaderCache::GetShaderBlob(const char *source, const char *entr
   hr = compileFunc(source, strlen(source), entry, NULL, &includer, entry, profile, flags, 0,
                    &byteBlob, &errBlob);
 
-  std::string errors = "";
+  rdcstr errors = "";
 
   if(errBlob)
   {
     errors = (char *)errBlob->GetBufferPointer();
 
-    std::string logerror = errors;
+    rdcstr logerror = errors;
     if(logerror.length() > 1024)
       logerror = logerror.substr(0, 1024) + "...";
 
@@ -213,7 +213,7 @@ std::string D3D11ShaderCache::GetShaderBlob(const char *source, const char *entr
 ID3D11VertexShader *D3D11ShaderCache::MakeVShader(const char *source, const char *entry,
                                                   const char *profile, int numInputDescs,
                                                   D3D11_INPUT_ELEMENT_DESC *inputs,
-                                                  ID3D11InputLayout **ret, std::vector<byte> *blob)
+                                                  ID3D11InputLayout **ret, rdcarray<byte> *blob)
 {
   ID3DBlob *byteBlob = NULL;
 

@@ -555,7 +555,7 @@ APP_DEPRECATED_HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::DecoderExte
 
   D3D11_VIDEO_DECODER_EXTENSION unwrappedExt = *pExtensionData;
 
-  std::vector<ID3D11Resource *> unwrappedRes;
+  rdcarray<ID3D11Resource *> unwrappedRes;
 
   unwrappedRes.resize(unwrappedExt.ResourceCount);
   for(UINT i = 0; i < unwrappedExt.ResourceCount; i++)
@@ -943,8 +943,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorBlt(
     /* [annotation] */ _In_ UINT OutputFrame, /* [annotation] */ _In_ UINT StreamCount,
     /* [annotation] */ _In_reads_(StreamCount) const D3D11_VIDEO_PROCESSOR_STREAM *pStreams)
 {
-  std::vector<D3D11_VIDEO_PROCESSOR_STREAM> unwrappedStreams;
-  unwrappedStreams.insert(unwrappedStreams.begin(), pStreams, pStreams + StreamCount);
+  rdcarray<D3D11_VIDEO_PROCESSOR_STREAM> unwrappedStreams(pStreams, StreamCount);
 
   size_t numFrames = 0;
 
@@ -961,7 +960,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11VideoContext2::VideoProcessorBlt(
       numFrames += stream.FutureFrames;
   }
 
-  std::vector<ID3D11VideoProcessorInputView *> inputViews;
+  rdcarray<ID3D11VideoProcessorInputView *> inputViews;
 
   inputViews.resize(numFrames);
 

@@ -248,7 +248,7 @@ void WrappedID3D11DeviceContext::DrainAnnotationQueue()
     return;
   }
 
-  std::vector<Annotation> annotations;
+  rdcarray<Annotation> annotations;
   annotations.swap(m_AnnotationQueue);
 
   m_AnnotLock.Unlock();
@@ -3755,7 +3755,7 @@ void WrappedID3D11DeviceContext::OMSetDepthStencilState(ID3D11DepthStencilState 
 template <typename SerialiserType>
 void WrappedID3D11DeviceContext::Serialise_DebugMessages(SerialiserType &ser)
 {
-  std::vector<DebugMessage> DebugMessages;
+  rdcarray<DebugMessage> DebugMessages;
 
   m_EmptyCommandList = false;
 
@@ -4203,7 +4203,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(Serialis
 
       DrawcallDescription draw;
 
-      std::string name = "DrawIndexedInstancedIndirect(-, -)";
+      rdcstr name = "DrawIndexedInstancedIndirect(-, -)";
 
       if(pBufferForArgs)
       {
@@ -4334,7 +4334,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(SerialiserType 
 
       DrawcallDescription draw;
 
-      std::string name = "DrawInstancedIndirect(-, -)";
+      rdcstr name = "DrawInstancedIndirect(-, -)";
 
       if(pBufferForArgs)
       {
@@ -5046,7 +5046,7 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(SerialiserType &ser,
 
       DrawcallDescription draw;
 
-      std::string name = "DispatchIndirect(-, -, -)";
+      rdcstr name = "DispatchIndirect(-, -, -)";
       if(pBufferForArgs)
       {
         struct DispatchArgs
@@ -7724,7 +7724,7 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(SerialiserType &ser, ID3D11Reso
     {
       if(!record->VerifyShadowStorage(ctxMapID))
       {
-        std::string msg = StringFormat::Fmt(
+        rdcstr msg = StringFormat::Fmt(
             "Overwrite of %llu byte Map()'d buffer detected\n"
             "Breakpoint now to see callstack,\nor click 'Yes' to debugbreak.",
             record->Length);

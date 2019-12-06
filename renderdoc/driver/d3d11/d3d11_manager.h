@@ -234,7 +234,7 @@ private:
   ShadowPointerData ImmediateShadow;
 
   Threading::CriticalSection DeferredShadowLock;
-  std::vector<ShadowPointerData> DeferredShadow;
+  rdcarray<ShadowPointerData> DeferredShadow;
 };
 
 struct D3D11InitialContents
