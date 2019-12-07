@@ -157,14 +157,7 @@ void D3D12RenderState::ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsComman
     }
   }
 
-  std::vector<ID3D12DescriptorHeap *> descHeaps;
-  descHeaps.resize(heaps.size());
-
-  for(size_t i = 0; i < heaps.size(); i++)
-    descHeaps[i] = GetResourceManager()->GetCurrentAs<ID3D12DescriptorHeap>(heaps[i]);
-
-  if(!descHeaps.empty())
-    cmd->SetDescriptorHeaps((UINT)descHeaps.size(), &descHeaps[0]);
+  ApplyDescriptorHeaps(cmd);
 
   if(graphics.rootsig != ResourceId())
   {
@@ -181,6 +174,18 @@ void D3D12RenderState::ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsComman
 
     ApplyComputeRootElements(cmd);
   }
+}
+
+void D3D12RenderState::ApplyDescriptorHeaps(ID3D12GraphicsCommandListX *cmd) const
+{
+  std::vector<ID3D12DescriptorHeap *> descHeaps;
+  descHeaps.resize(heaps.size());
+
+  for(size_t i = 0; i < heaps.size(); i++)
+    descHeaps[i] = GetResourceManager()->GetCurrentAs<ID3D12DescriptorHeap>(heaps[i]);
+
+  if(!descHeaps.empty())
+    cmd->SetDescriptorHeaps((UINT)descHeaps.size(), &descHeaps[0]);
 }
 
 void D3D12RenderState::ApplyComputeRootElements(ID3D12GraphicsCommandListX *cmd) const
