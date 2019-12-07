@@ -47,6 +47,7 @@ struct D3D12RenderState
   D3D12RenderState &operator=(const D3D12RenderState &o);
 
   void ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsCommandListX *list) const;
+  void ApplyDescriptorHeaps(ID3D12GraphicsCommandListX *list) const;
   void ApplyComputeRootElements(ID3D12GraphicsCommandListX *cmd) const;
   void ApplyGraphicsRootElements(ID3D12GraphicsCommandListX *cmd) const;
 
