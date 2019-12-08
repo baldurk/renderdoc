@@ -1506,6 +1506,14 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
         int reqTypes[4] = {TINYEXR_PIXELTYPE_HALF, TINYEXR_PIXELTYPE_HALF, TINYEXR_PIXELTYPE_HALF,
                            TINYEXR_PIXELTYPE_HALF};
 
+        if(saveFmt.compByteWidth == 4)
+        {
+          for(size_t channel = 0; channel < 4; channel++)
+          {
+            reqTypes[channel] = TINYEXR_PIXELTYPE_FLOAT;
+          }
+        }
+
         // must be in this order as many viewers don't pay attention to channels and just assume
         // they are in this order
         EXRChannelInfo bgraChannels[4] = {
