@@ -875,8 +875,11 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
   if(downcast)
   {
     // if the source and destination are more than 1 byte per component, remap to RGBA32
-    if(td.format.compByteWidth > 1 && (sd.destType == FileType::DDS ||
-                                       sd.destType == FileType::HDR || sd.destType == FileType::EXR))
+    // since D24S8 format has zero compByteWidth, we check by it's type directly
+    if((td.format.compByteWidth > 1 || td.format.type == ResourceFormatType::D24S8) &&
+       (sd.destType == FileType::DDS ||
+        sd.destType == FileType::HDR ||
+        sd.destType == FileType::EXR))
     {
       remap = RemapTexture::RGBA32;
       td.format.compByteWidth = 4;
