@@ -37,6 +37,10 @@
   HookInitExtension(VK_KHR_win32_surface, GetPhysicalDeviceWin32PresentationSupportKHR); \
   HookInitExtension(VK_EXT_full_screen_exclusive, GetPhysicalDeviceSurfacePresentModes2EXT);
 
+#define HookInitInstance_PlatformSpecific_PhysDev()                                      \
+  HookInitExtension(VK_KHR_win32_surface, GetPhysicalDeviceWin32PresentationSupportKHR); \
+  HookInitExtension(VK_EXT_full_screen_exclusive, GetPhysicalDeviceSurfacePresentModes2EXT);
+
 #define HookInitDevice_PlatformSpecific()                                             \
   HookInitExtension(VK_NV_win32_keyed_mutex, GetMemoryWin32HandleNV);                 \
   HookInitExtension(VK_KHR_external_memory_win32, GetMemoryWin32HandleKHR);           \
@@ -120,6 +124,7 @@
 #define HookInitInstance_PlatformSpecific() \
   HookInitInstance_PlatformSpecific_MVK();  \
   HookInitInstance_PlatformSpecific_EXT();
+#define HookInitInstance_PlatformSpecific_PhysDev()
 
 #define HookDefine_PlatformSpecific() \
   HookDefine_PlatformSpecific_MVK();  \
@@ -131,6 +136,7 @@
 
 #define HookInitInstance_PlatformSpecific() \
   HookInitExtension(VK_KHR_android_surface, CreateAndroidSurfaceKHR);
+#define HookInitInstance_PlatformSpecific_PhysDev()
 
 #define HookInitDevice_PlatformSpecific()
 
@@ -143,6 +149,7 @@
 
 #define HookInitInstance_PlatformSpecific() \
   HookInitExtension(VK_GGP_stream_descriptor_surface, CreateStreamDescriptorSurfaceGGP);
+#define HookInitInstance_PlatformSpecific_PhysDev()
 
 #define HookInitDevice_PlatformSpecific()
 
@@ -158,6 +165,8 @@
 #define HookInitInstance_PlatformSpecific_Xcb()               \
   HookInitExtension(VK_KHR_xcb_surface, CreateXcbSurfaceKHR); \
   HookInitExtension(VK_KHR_xcb_surface, GetPhysicalDeviceXcbPresentationSupportKHR);
+#define HookInitInstance_PlatformSpecific_Xcb_PhysDev() \
+  HookInitExtension(VK_KHR_xcb_surface, GetPhysicalDeviceXcbPresentationSupportKHR);
 
 #define HookDefine_PlatformSpecific_Xcb()                                                    \
   HookDefine4(VkResult, vkCreateXcbSurfaceKHR, VkInstance, instance,                         \
@@ -170,6 +179,7 @@
 #else
 
 #define HookInitInstance_PlatformSpecific_Xcb()
+#define HookInitInstance_PlatformSpecific_Xcb_PhysDev()
 #define HookDefine_PlatformSpecific_Xcb()
 
 #endif
@@ -178,6 +188,8 @@
 
 #define HookInitInstance_PlatformSpecific_Wayland()                   \
   HookInitExtension(VK_KHR_wayland_surface, CreateWaylandSurfaceKHR); \
+  HookInitExtension(VK_KHR_wayland_surface, GetPhysicalDeviceWaylandPresentationSupportKHR);
+#define HookInitInstance_PlatformSpecific_Wayland_PhysDev() \
   HookInitExtension(VK_KHR_wayland_surface, GetPhysicalDeviceWaylandPresentationSupportKHR);
 
 #define HookDefine_PlatformSpecific_Wayland()                                                    \
@@ -190,6 +202,7 @@
 #else
 
 #define HookInitInstance_PlatformSpecific_Wayland()
+#define HookInitInstance_PlatformSpecific_Wayland_PhysDev()
 #define HookDefine_PlatformSpecific_Wayland()
 
 #endif
@@ -198,6 +211,10 @@
 
 #define HookInitInstance_PlatformSpecific_Xlib()                                       \
   HookInitExtension(VK_KHR_xlib_surface, CreateXlibSurfaceKHR);                        \
+  HookInitExtension(VK_KHR_xlib_surface, GetPhysicalDeviceXlibPresentationSupportKHR); \
+  HookInitExtension(VK_EXT_acquire_xlib_display, AcquireXlibDisplayEXT);               \
+  HookInitExtension(VK_EXT_acquire_xlib_display, GetRandROutputDisplayEXT);
+#define HookInitInstance_PlatformSpecific_XLib_PhysDev()                               \
   HookInitExtension(VK_KHR_xlib_surface, GetPhysicalDeviceXlibPresentationSupportKHR); \
   HookInitExtension(VK_EXT_acquire_xlib_display, AcquireXlibDisplayEXT);               \
   HookInitExtension(VK_EXT_acquire_xlib_display, GetRandROutputDisplayEXT);
@@ -217,12 +234,16 @@
 
 #define HookInitInstance_PlatformSpecific_Xlib()
 #define HookDefine_PlatformSpecific_Xlib()
+#define HookInitInstance_PlatformSpecific_XLib_PhysDev()
 
 #endif
 
 #define HookInitInstance_PlatformSpecific()                                        \
   HookInitInstance_PlatformSpecific_Xcb() HookInitInstance_PlatformSpecific_Xlib() \
       HookInitInstance_PlatformSpecific_Wayland()
+#define HookInitInstance_PlatformSpecific_PhysDev()                                                \
+  HookInitInstance_PlatformSpecific_Xcb_PhysDev() HookInitInstance_PlatformSpecific_Xlib_PhysDev() \
+      HookInitInstance_PlatformSpecific_Wayland_PhysDev()
 #define HookInitDevice_PlatformSpecific()
 
 #define HookDefine_PlatformSpecific()                                  \
@@ -235,6 +256,15 @@
   HookInit(CreateInstance);                               \
   HookInit(DestroyInstance);                              \
   HookInit(EnumeratePhysicalDevices);                     \
+  HookInit(GetPhysicalDeviceFeatures);                    \
+  HookInit(GetPhysicalDeviceImageFormatProperties);       \
+  HookInit(GetPhysicalDeviceFormatProperties);            \
+  HookInit(GetPhysicalDeviceSparseImageFormatProperties); \
+  HookInit(GetPhysicalDeviceProperties);                  \
+  HookInit(GetPhysicalDeviceQueueFamilyProperties);       \
+  HookInit(GetPhysicalDeviceMemoryProperties);
+
+#define HookInitVulkanInstance_PhysDev()                  \
   HookInit(GetPhysicalDeviceFeatures);                    \
   HookInit(GetPhysicalDeviceImageFormatProperties);       \
   HookInit(GetPhysicalDeviceFormatProperties);            \
@@ -544,6 +574,51 @@
   CheckExt(KHR_timeline_semaphore, VKXX);             \
   CheckExt(KHR_performance_query, VKXX);              \
   CheckExt(KHR_buffer_device_address, VKXX);
+
+#define HookInitVulkanInstanceExts_PhysDev()                                                         \
+  HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
+  HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceCapabilitiesKHR);                           \
+  HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceFormatsKHR);                                \
+  HookInitExtension(KHR_surface, GetPhysicalDeviceSurfacePresentModesKHR);                           \
+  HookInitExtension(KHR_display, GetPhysicalDeviceDisplayPropertiesKHR);                             \
+  HookInitExtension(KHR_display, GetPhysicalDeviceDisplayPlanePropertiesKHR);                        \
+  HookInitExtension(KHR_display, GetDisplayPlaneSupportedDisplaysKHR);                               \
+  HookInitExtension(KHR_display, GetDisplayModePropertiesKHR);                                       \
+  HookInitExtension(KHR_display, CreateDisplayModeKHR);                                              \
+  HookInitExtension(KHR_display, GetDisplayPlaneCapabilitiesKHR);                                    \
+  HookInitExtension(NV_external_memory_capabilities,                                                 \
+                    GetPhysicalDeviceExternalImageFormatPropertiesNV);                               \
+  HookInitPromotedExtension(KHR_get_physical_device_properties2, GetPhysicalDeviceFeatures2, KHR);   \
+  HookInitPromotedExtension(KHR_get_physical_device_properties2, GetPhysicalDeviceProperties2, KHR); \
+  HookInitPromotedExtension(KHR_get_physical_device_properties2,                                     \
+                            GetPhysicalDeviceFormatProperties2, KHR);                                \
+  HookInitPromotedExtension(KHR_get_physical_device_properties2,                                     \
+                            GetPhysicalDeviceImageFormatProperties2, KHR);                           \
+  HookInitPromotedExtension(KHR_get_physical_device_properties2,                                     \
+                            GetPhysicalDeviceQueueFamilyProperties2, KHR);                           \
+  HookInitPromotedExtension(KHR_get_physical_device_properties2,                                     \
+                            GetPhysicalDeviceMemoryProperties2, KHR);                                \
+  HookInitPromotedExtension(KHR_get_physical_device_properties2,                                     \
+                            GetPhysicalDeviceSparseImageFormatProperties2, KHR);                     \
+  HookInitExtension(EXT_direct_mode_display, ReleaseDisplayEXT);                                     \
+  HookInitExtension(EXT_display_surface_counter, GetPhysicalDeviceSurfaceCapabilities2EXT);          \
+  HookInitPromotedExtension(KHR_external_memory_capabilities,                                        \
+                            GetPhysicalDeviceExternalBufferProperties, KHR);                         \
+  HookInitPromotedExtension(KHR_external_semaphore_capabilities,                                     \
+                            GetPhysicalDeviceExternalSemaphoreProperties, KHR);                      \
+  HookInitPromotedExtension(KHR_external_fence_capabilities,                                         \
+                            GetPhysicalDeviceExternalFenceProperties, KHR);                          \
+  HookInitExtension(KHR_device_group_creation &&KHR_surface, GetPhysicalDevicePresentRectanglesKHR); \
+  HookInitExtension(KHR_get_surface_capabilities2, GetPhysicalDeviceSurfaceFormats2KHR);             \
+  HookInitExtension(KHR_get_surface_capabilities2, GetPhysicalDeviceSurfaceCapabilities2KHR);        \
+  HookInitExtension(KHR_get_display_properties2, GetPhysicalDeviceDisplayProperties2KHR);            \
+  HookInitExtension(KHR_get_display_properties2, GetPhysicalDeviceDisplayPlaneProperties2KHR);       \
+  HookInitExtension(EXT_sample_locations, GetPhysicalDeviceMultisamplePropertiesEXT);                \
+  HookInitExtension(EXT_calibrated_timestamps, GetPhysicalDeviceCalibrateableTimeDomainsEXT);        \
+  HookInitExtension(KHR_performance_query,                                                           \
+                    EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR);                  \
+  HookInitExtension(KHR_performance_query, GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);   \
+  HookInitInstance_PlatformSpecific_PhysDev()
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \

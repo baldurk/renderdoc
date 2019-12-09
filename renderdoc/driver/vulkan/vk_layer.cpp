@@ -337,24 +337,8 @@ VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
   return GetDeviceDispatchTable(device)->GetDeviceProcAddr(Unwrap(device), pName);
 }
 
-VKAPI_ATTR VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
-VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, const char *pName)
-{
-  if(instance == VK_NULL_HANDLE)
-    return NULL;
-
-  if(GetInstanceDispatchTable(instance)->GetInstanceProcAddr == NULL)
-    return NULL;
-
-  PFN_vkGetInstanceProcAddr GPDA =
-      (PFN_vkGetInstanceProcAddr)GetInstanceDispatchTable(instance)->GetInstanceProcAddr(
-          Unwrap(instance), "vk_layerGetPhysicalDeviceProcAddr");
-
-  if(GPDA == NULL)
-    return NULL;
-
-  return GPDA(Unwrap(instance), pName);
-}
+VK_LAYER_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
+VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, const char *pName);
 
 VK_LAYER_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *pName)
@@ -418,6 +402,91 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
   if(GetInstanceDispatchTable(instance)->GetInstanceProcAddr == NULL)
     return NULL;
   return GetInstanceDispatchTable(instance)->GetInstanceProcAddr(Unwrap(instance), pName);
+}
+
+VK_LAYER_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
+VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, const char *pName)
+{
+  // GetPhysicalDeviceProcAddr acts like GetInstanceProcAddr but it returns NULL for any functions
+  // which aren't physical device functions
+  if(!strcmp("vkGetInstanceProcAddr", pName))
+    return NULL;
+  if(!strcmp("vk_layerGetPhysicalDeviceProcAddr", pName))
+    return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr;
+  if(!strcmp("vkEnumerateDeviceLayerProperties", pName))
+    return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLayerProperties;
+  if(!strcmp("vkEnumerateDeviceExtensionProperties", pName))
+    return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties;
+  if(!strcmp("vkEnumerateInstanceExtensionProperties", pName))
+    return NULL;
+  if(!strcmp("vkGetDeviceProcAddr", pName))
+    return NULL;
+  if(!strcmp("vkCreateDevice", pName))
+    return (PFN_vkVoidFunction)&hooked_vkCreateDevice;
+  if(!strcmp("vkDestroyDevice", pName))
+    return NULL;
+
+  HookInitVulkanInstance_PhysDev();
+
+// any remaining functions that are known, we must return NULL for
+#undef HookInit
+#define HookInit(function)                            \
+  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function)))) \
+    return NULL;
+
+  HookInitVulkanInstance();
+  HookInitVulkanDevice();
+
+  if(instance == VK_NULL_HANDLE)
+    return NULL;
+
+  InstanceDeviceInfo *instDevInfo = NULL;
+
+  if(WrappedVkInstance::IsAlloc(instance))
+    instDevInfo = GetRecord(instance)->instDevInfo;
+  else
+    RDCERR(
+        "GetPhysicalDeviceProcAddr passed invalid instance for %s! Possibly broken loader. "
+        "Working around by assuming all extensions are enabled - WILL CAUSE SPEC-BROKEN BEHAVIOUR",
+        pName);
+
+  DeclExts();
+
+  CheckInstanceExts();
+  CheckDeviceExts();
+
+  // any extensions that are known to be physical device functions, return here
+  HookInitVulkanInstanceExts_PhysDev();
+
+// any remaining functions that are known, we must return NULL for
+#undef HookInitExtension
+#define HookInitExtension(cond, function)             \
+  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function)))) \
+    return NULL;
+
+#undef HookInitPromotedExtension
+#define HookInitPromotedExtension(cond, function, suffix)             \
+  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||               \
+     !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
+    return NULL;
+
+  HookInitVulkanInstanceExts();
+  HookInitVulkanDeviceExts();
+
+  // if we got here we don't recognise the function at all. Shouldn't be possible as we whitelist
+  // extensions, but follow the spec and pass along
+
+  if(GetInstanceDispatchTable(instance)->GetInstanceProcAddr == NULL)
+    return NULL;
+
+  PFN_vkGetInstanceProcAddr GPDA =
+      (PFN_vkGetInstanceProcAddr)GetInstanceDispatchTable(instance)->GetInstanceProcAddr(
+          Unwrap(instance), "vk_layerGetPhysicalDeviceProcAddr");
+
+  if(GPDA == NULL)
+    return NULL;
+
+  return GPDA(Unwrap(instance), pName);
 }
 
 // layer interface negotation (new interface)
