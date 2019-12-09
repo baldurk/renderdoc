@@ -369,9 +369,6 @@ private:
     uint32_t uploadMemIndex = 0;
     uint32_t GPULocalMemIndex = 0;
 
-    VkPhysicalDeviceMemoryProperties *fakeMemProps = NULL;
-    uint32_t *memIdxMap = NULL;
-
     VkPhysicalDeviceFeatures features = {};
     VkPhysicalDeviceProperties props = {};
     VkPhysicalDeviceMemoryProperties memProps = {};
@@ -452,9 +449,6 @@ private:
   // Each element in the vector is an available queue in that family, and the uint64 is packed as
   // (targetQueueFamily << 32) | (targetQueueIndex)
   std::vector<QueueRemap> m_QueueRemapping[16];
-
-  std::vector<uint32_t *> m_MemIdxMaps;
-  void RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProps, uint32_t **memIdxMap);
 
   void WrapAndProcessCreatedSwapchain(VkDevice device, const VkSwapchainCreateInfoKHR *pCreateInfo,
                                       VkSwapchainKHR *pSwapChain);

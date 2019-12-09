@@ -1422,12 +1422,7 @@ public:
   static byte markerValue[32];
 
   VkResourceRecord(ResourceId id)
-      : ResourceRecord(id, true),
-        Resource(NULL),
-        bakedCommands(NULL),
-        pool(NULL),
-        memIdxMap(NULL),
-        ptrunion(NULL)
+      : ResourceRecord(id, true), Resource(NULL), bakedCommands(NULL), pool(NULL), ptrunion(NULL)
   {
   }
 
@@ -1551,11 +1546,6 @@ public:
 
   WrappedVkRes *Resource;
 
-  // externally allocated/freed, a mapping from memory idx
-  // in our modified properties that were passed to the app
-  // to the memory indices that actually exist
-  uint32_t *memIdxMap;
-
   // this points to the base resource, either memory or an image -
   // ie. the resource that can be modified or changes (or can become dirty)
   // since typical memory bindings are immutable and must happen before
@@ -1582,15 +1572,14 @@ public:
   // allocation type of the Resource
   union
   {
-    void *ptrunion;                                // for initialisation to NULL
-    VkPhysicalDeviceMemoryProperties *memProps;    // only for physical devices
-    InstanceDeviceInfo *instDevInfo;               // only for logical devices or instances
-    ResourceInfo *resInfo;                         // only for buffers, images, and views of them
-    SwapchainInfo *swapInfo;                       // only for swapchains
-    MemMapState *memMapState;                      // only for device memory
-    CmdBufferRecordingInfo *cmdInfo;               // only for command buffers
-    AttachmentInfo *imageAttachments;              // only for framebuffers and render passes
-    PipelineLayoutData *pipeLayoutInfo;            // only for pipeline layouts
+    void *ptrunion;                          // for initialisation to NULL
+    InstanceDeviceInfo *instDevInfo;         // only for instances or physical/logical devices
+    ResourceInfo *resInfo;                   // only for buffers, images, and views of them
+    SwapchainInfo *swapInfo;                 // only for swapchains
+    MemMapState *memMapState;                // only for device memory
+    CmdBufferRecordingInfo *cmdInfo;         // only for command buffers
+    AttachmentInfo *imageAttachments;        // only for framebuffers and render passes
+    PipelineLayoutData *pipeLayoutInfo;      // only for pipeline layouts
     DescriptorSetData *descInfo;             // only for descriptor sets and descriptor set layouts
     DescUpdateTemplate *descTemplateInfo;    // only for descriptor update templates
     uint32_t queueFamilyIndex;               // only for queues

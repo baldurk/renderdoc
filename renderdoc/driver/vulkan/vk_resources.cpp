@@ -3391,14 +3391,11 @@ VkResourceRecord::~VkResourceRecord()
 {
   VkResourceType resType = Resource != NULL ? IdentifyTypeByPtr(Resource) : eResUnknown;
 
-  if(resType == eResPhysicalDevice)
-    SAFE_DELETE(memProps);
-
   // bufferviews and imageviews have non-owning pointers to the sparseinfo struct
   if(resType == eResBuffer || resType == eResImage)
     SAFE_DELETE(resInfo);
 
-  if(resType == eResInstance || resType == eResDevice)
+  if(resType == eResInstance || resType == eResDevice || resType == eResPhysicalDevice)
     SAFE_DELETE(instDevInfo);
 
   if(resType == eResSwapchain)

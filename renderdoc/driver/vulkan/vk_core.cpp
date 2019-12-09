@@ -185,9 +185,6 @@ WrappedVulkan::~WrappedVulkan()
 
   SAFE_DELETE(m_FrameReader);
 
-  for(size_t i = 0; i < m_MemIdxMaps.size(); i++)
-    delete[] m_MemIdxMaps[i];
-
   for(size_t i = 0; i < m_ThreadSerialisers.size(); i++)
     delete m_ThreadSerialisers[i];
 

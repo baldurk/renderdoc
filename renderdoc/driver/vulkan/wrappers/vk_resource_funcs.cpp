@@ -263,11 +263,6 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
   {
     VkDeviceMemory mem = VK_NULL_HANDLE;
 
-    // serialised memory type index is non-remapped, so we remap now.
-    // PORTABILITY may need to re-write info to change memory type index to the
-    // appropriate index on replay
-    AllocateInfo.memoryTypeIndex = m_PhysicalDeviceData.memIdxMap[AllocateInfo.memoryTypeIndex];
-
     VkMemoryAllocateInfo patched = AllocateInfo;
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(patched.pNext));
@@ -345,8 +340,6 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
                                          VkDeviceMemory *pMemory)
 {
   VkMemoryAllocateInfo info = *pAllocateInfo;
-  if(IsCaptureMode(m_State))
-    info.memoryTypeIndex = GetRecord(device)->memIdxMap[info.memoryTypeIndex];
 
   {
     // we need to be able to allocate a buffer that covers the whole memory range. However
@@ -469,7 +462,7 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
       record->Length = info.allocationSize;
 
       uint32_t memProps =
-          m_PhysicalDeviceData.fakeMemProps->memoryTypes[info.memoryTypeIndex].propertyFlags;
+          m_PhysicalDeviceData.memProps.memoryTypes[info.memoryTypeIndex].propertyFlags;
 
       // if memory is not host visible, so not mappable, don't create map state at all
       if((memProps & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)

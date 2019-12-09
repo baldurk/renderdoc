@@ -472,7 +472,6 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   m_ReplayPhysicalDevices.resize(count);
   m_ReplayPhysicalDevicesUsed.resize(count);
   m_OriginalPhysicalDevices.resize(count);
-  m_MemIdxMaps.resize(count);
 
   vkr = ObjDisp(m_Instance)
             ->EnumeratePhysicalDevices(Unwrap(m_Instance), &count, &m_ReplayPhysicalDevices[0]);
@@ -914,7 +913,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
   SERIALISE_ELEMENT_LOCAL(PhysicalDevice, GetResID(*pPhysicalDevices))
       .TypedAs("VkPhysicalDevice"_lit);
 
-  uint32_t memIdxMap[VK_MAX_MEMORY_TYPES] = {0};
+  uint32_t legacyUnused_memIdxMap[VK_MAX_MEMORY_TYPES] = {0};
   // not used at the moment but useful for reference and might be used
   // in the future
   VkPhysicalDeviceProperties physProps = {};
@@ -929,8 +928,6 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
 
   if(ser.IsWriting())
   {
-    memcpy(memIdxMap, GetRecord(*pPhysicalDevices)->memIdxMap, sizeof(memIdxMap));
-
     ObjDisp(instance)->GetPhysicalDeviceProperties(Unwrap(*pPhysicalDevices), &physProps);
     ObjDisp(instance)->GetPhysicalDeviceMemoryProperties(Unwrap(*pPhysicalDevices), &memProps);
     ObjDisp(instance)->GetPhysicalDeviceFeatures(Unwrap(*pPhysicalDevices), &physFeatures);
@@ -975,7 +972,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
     }
   }
 
-  SERIALISE_ELEMENT(memIdxMap);
+  SERIALISE_ELEMENT(legacyUnused_memIdxMap).Hidden();    // was never used
   SERIALISE_ELEMENT(physProps);
   SERIALISE_ELEMENT(memProps);
   SERIALISE_ELEMENT(physFeatures);
@@ -1019,7 +1016,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
     // hopefully the most common case is when there's a precise match, and maybe the order changed.
     //
     // If more GPUs were present on replay than during capture, we map many-to-one which might have
-    // bad side-effects as e.g. we have to pick one memidxmap, but this is as good as we can do.
+    // bad side-effects, but this is as good as we can do.
 
     uint32_t bestIdx = 0;
     VkPhysicalDeviceProperties bestPhysProps = {};
@@ -1309,17 +1306,6 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
           "Mapping multiple capture-time physical devices to a single replay-time physical device."
           "This means the HW has changed between capture and replay and may cause bugs.");
     }
-    else if(m_MemIdxMaps[bestIdx] == NULL)
-    {
-      // the first physical device 'wins' for the memory index map
-      uint32_t *storedMap = new uint32_t[32];
-      memcpy(storedMap, memIdxMap, sizeof(memIdxMap));
-
-      for(uint32_t i = 0; i < 32; i++)
-        storedMap[i] = i;
-
-      m_MemIdxMaps[bestIdx] = storedMap;
-    }
 
     m_ReplayPhysicalDevicesUsed[bestIdx] = true;
   }
@@ -1367,10 +1353,6 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
         VkResourceRecord *record = GetResourceManager()->AddResourceRecord(devices[i]);
         RDCASSERT(record);
 
-        record->memProps = new VkPhysicalDeviceMemoryProperties();
-
-        ObjDisp(devices[i])->GetPhysicalDeviceMemoryProperties(Unwrap(devices[i]), record->memProps);
-
         VkPhysicalDeviceProperties physProps;
 
         ObjDisp(devices[i])->GetPhysicalDeviceProperties(Unwrap(devices[i]), &physProps);
@@ -1382,9 +1364,6 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
                physProps.vendorID, physProps.deviceID);
 
         m_PhysicalDevices[i] = devices[i];
-
-        // we remap memory indices to discourage coherent maps as much as possible
-        RemapMemoryIndices(record->memProps, &record->memIdxMap);
 
         {
           CACHE_THREAD_SERIALISER();
@@ -1398,6 +1377,9 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
         VkResourceRecord *instrecord = GetRecord(instance);
 
         instrecord->AddParent(record);
+
+        // copy the instance's setup directly
+        record->instDevInfo = new InstanceDeviceInfo(*instrecord->instDevInfo);
 
         // treat physical devices as pool members of the instance (ie. freed when the instance dies)
         {
@@ -2758,15 +2740,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     m_PhysicalDeviceData.GPULocalMemIndex = m_PhysicalDeviceData.GetMemoryIndex(
         ~0U, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
-    for(size_t i = 0; i < m_ReplayPhysicalDevices.size(); i++)
-    {
-      if(physicalDevice == m_ReplayPhysicalDevices[i])
-      {
-        m_PhysicalDeviceData.memIdxMap = m_MemIdxMaps[i];
-        break;
-      }
-    }
-
     APIProps.vendor = GetDriverInfo().Vendor();
 
     // temporarily disable the debug message sink, to ignore any false positive messages from our
@@ -3086,8 +3059,6 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
       record->AddChunk(chunk);
 
-      record->memIdxMap = GetRecord(physicalDevice)->memIdxMap;
-
       record->instDevInfo = new InstanceDeviceInfo();
 
       record->instDevInfo->brokenGetDeviceProcAddr =
@@ -3216,8 +3187,6 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
     m_PhysicalDeviceData.queueCount = qCount;
     memcpy(m_PhysicalDeviceData.queueProps, props, qCount * sizeof(VkQueueFamilyProperties));
-
-    m_PhysicalDeviceData.fakeMemProps = GetRecord(physicalDevice)->memProps;
 
     m_ShaderCache = new VulkanShaderCache(this);
 

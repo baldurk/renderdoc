@@ -211,12 +211,6 @@ void WrappedVulkan::vkGetPhysicalDeviceQueueFamilyProperties(
 void WrappedVulkan::vkGetPhysicalDeviceMemoryProperties(
     VkPhysicalDevice physicalDevice, VkPhysicalDeviceMemoryProperties *pMemoryProperties)
 {
-  if(pMemoryProperties)
-  {
-    *pMemoryProperties = *GetRecord(physicalDevice)->memProps;
-    return;
-  }
-
   ObjDisp(physicalDevice)->GetPhysicalDeviceMemoryProperties(Unwrap(physicalDevice), pMemoryProperties);
 }
 
@@ -237,21 +231,6 @@ void WrappedVulkan::vkGetBufferMemoryRequirements(VkDevice device, VkBuffer buff
     *pMemoryRequirements = GetRecord(buffer)->resInfo->memreqs;
   else
     ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(buffer), pMemoryRequirements);
-
-  // don't do remapping here on replay.
-  if(IsReplayMode(m_State))
-    return;
-
-  uint32_t bits = pMemoryRequirements->memoryTypeBits;
-  uint32_t *memIdxMap = GetRecord(device)->memIdxMap;
-
-  pMemoryRequirements->memoryTypeBits = 0;
-
-  // for each of our fake memory indices, check if the real
-  // memory type it points to is set - if so, set our fake bit
-  for(uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++)
-    if(memIdxMap[i] < 32U && (bits & (1U << memIdxMap[i])))
-      pMemoryRequirements->memoryTypeBits |= (1U << i);
 }
 
 void WrappedVulkan::vkGetImageMemoryRequirements(VkDevice device, VkImage image,
@@ -264,21 +243,6 @@ void WrappedVulkan::vkGetImageMemoryRequirements(VkDevice device, VkImage image,
     *pMemoryRequirements = GetRecord(image)->resInfo->memreqs;
   else
     ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(image), pMemoryRequirements);
-
-  // don't do remapping here on replay.
-  if(IsReplayMode(m_State))
-    return;
-
-  uint32_t bits = pMemoryRequirements->memoryTypeBits;
-  uint32_t *memIdxMap = GetRecord(device)->memIdxMap;
-
-  pMemoryRequirements->memoryTypeBits = 0;
-
-  // for each of our fake memory indices, check if the real
-  // memory type it points to is set - if so, set our fake bit
-  for(uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++)
-    if(memIdxMap[i] < 32U && (bits & (1U << memIdxMap[i])))
-      pMemoryRequirements->memoryTypeBits |= (1U << i);
 
   // AMD can have some variability in the returned size, so we need to pad the reported size to
   // allow for this. The variability isn't quite clear, but for now we assume aligning size to
@@ -326,21 +290,6 @@ void WrappedVulkan::vkGetBufferMemoryRequirements2(VkDevice device,
   // pessimistic for the case of external memory bound resources. See vkCreateBuffer/vkCreateImage
   if(IsCaptureMode(m_State) && GetRecord(pInfo->buffer)->resInfo)
     pMemoryRequirements->memoryRequirements = GetRecord(pInfo->buffer)->resInfo->memreqs;
-
-  // don't do remapping here on replay.
-  if(IsReplayMode(m_State))
-    return;
-
-  uint32_t bits = pMemoryRequirements->memoryRequirements.memoryTypeBits;
-  uint32_t *memIdxMap = GetRecord(device)->memIdxMap;
-
-  pMemoryRequirements->memoryRequirements.memoryTypeBits = 0;
-
-  // for each of our fake memory indices, check if the real
-  // memory type it points to is set - if so, set our fake bit
-  for(uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++)
-    if(memIdxMap[i] < 32U && (bits & (1U << memIdxMap[i])))
-      pMemoryRequirements->memoryRequirements.memoryTypeBits |= (1U << i);
 }
 
 void WrappedVulkan::vkGetImageMemoryRequirements2(VkDevice device,
@@ -360,17 +309,6 @@ void WrappedVulkan::vkGetImageMemoryRequirements2(VkDevice device,
   // don't do remapping here on replay.
   if(IsReplayMode(m_State))
     return;
-
-  uint32_t bits = pMemoryRequirements->memoryRequirements.memoryTypeBits;
-  uint32_t *memIdxMap = GetRecord(device)->memIdxMap;
-
-  pMemoryRequirements->memoryRequirements.memoryTypeBits = 0;
-
-  // for each of our fake memory indices, check if the real
-  // memory type it points to is set - if so, set our fake bit
-  for(uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++)
-    if(memIdxMap[i] < 32U && (bits & (1U << memIdxMap[i])))
-      pMemoryRequirements->memoryRequirements.memoryTypeBits |= (1U << i);
 
   // AMD can have some variability in the returned size, so we need to pad the reported size to
   // allow for this. The variability isn't quite clear, but for now we assume aligning size to
