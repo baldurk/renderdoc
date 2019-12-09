@@ -155,6 +155,7 @@ DECL_VKFLAG_EMPTY_EXT(VkValidationCacheCreate, EXT);
 DECL_VKFLAG_EMPTY_EXT(VkPipelineRasterizationDepthClipStateCreate, EXT);
 DECL_VKFLAG_EXT(VkDescriptorBinding, EXT);
 DECL_VKFLAG_EXT(VkSemaphoreWait, KHR);
+DECL_VKFLAG_EXT(VkToolPurpose, EXT);
 
 // serialise a member as flags - cast to the Bits enum for serialisation so the stringification
 // picks up the bitfield and doesn't treat it as uint32_t. Then we rename the type back to the base
@@ -626,6 +627,10 @@ SERIALISE_VK_HANDLES();
                VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT)                                        \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_PROPERTIES_EXT,                \
                VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT)                                      \
+                                                                                                       \
+  /* VK_EXT_tooling_info */                                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TOOL_PROPERTIES_EXT,                                  \
+               VkPhysicalDeviceToolPropertiesEXT)                                                      \
                                                                                                        \
   /* VK_EXT_transform_feedback */                                                                      \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT,                      \
@@ -5335,6 +5340,25 @@ void Deserialise(const VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceToolPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TOOL_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(version);
+  SERIALISE_MEMBER_VKFLAGS(VkToolPurposeFlagsEXT, purposes);
+  SERIALISE_MEMBER(description);
+  SERIALISE_MEMBER(layer);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceToolPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPipelineSampleLocationsStateCreateInfoEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -7796,6 +7820,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTimelineSemaphoreFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTimelineSemaphorePropertiesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceToolPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTransformFeedbackFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceTransformFeedbackPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceUniformBufferStandardLayoutFeaturesKHR);

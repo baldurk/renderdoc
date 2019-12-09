@@ -44,7 +44,7 @@ extern "C" {
 #define VK_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3ff)
 #define VK_VERSION_PATCH(version) ((uint32_t)(version) & 0xfff)
 // Version of this file
-#define VK_HEADER_VERSION 129
+#define VK_HEADER_VERSION 130
 
 
 #define VK_NULL_HANDLE 0
@@ -518,6 +518,7 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR = 1000241002,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT = 1000244000,
     VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_CREATE_INFO_EXT = 1000244002,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TOOL_PROPERTIES_EXT = 1000245000,
     VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO_EXT = 1000246000,
     VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT = 1000247000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COOPERATIVE_MATRIX_FEATURES_NV = 1000249000,
@@ -9902,6 +9903,41 @@ typedef VkDeviceAddress (VKAPI_PTR *PFN_vkGetBufferDeviceAddressEXT)(VkDevice de
 VKAPI_ATTR VkDeviceAddress VKAPI_CALL vkGetBufferDeviceAddressEXT(
     VkDevice                                    device,
     const VkBufferDeviceAddressInfoKHR*         pInfo);
+#endif
+
+
+#define VK_EXT_tooling_info 1
+#define VK_EXT_TOOLING_INFO_SPEC_VERSION  1
+#define VK_EXT_TOOLING_INFO_EXTENSION_NAME "VK_EXT_tooling_info"
+
+typedef enum VkToolPurposeFlagBitsEXT {
+    VK_TOOL_PURPOSE_VALIDATION_BIT_EXT = 0x00000001,
+    VK_TOOL_PURPOSE_PROFILING_BIT_EXT = 0x00000002,
+    VK_TOOL_PURPOSE_TRACING_BIT_EXT = 0x00000004,
+    VK_TOOL_PURPOSE_ADDITIONAL_FEATURES_BIT_EXT = 0x00000008,
+    VK_TOOL_PURPOSE_MODIFYING_FEATURES_BIT_EXT = 0x00000010,
+    VK_TOOL_PURPOSE_DEBUG_REPORTING_BIT_EXT = 0x00000020,
+    VK_TOOL_PURPOSE_DEBUG_MARKERS_BIT_EXT = 0x00000040,
+    VK_TOOL_PURPOSE_FLAG_BITS_MAX_ENUM_EXT = 0x7FFFFFFF
+} VkToolPurposeFlagBitsEXT;
+typedef VkFlags VkToolPurposeFlagsEXT;
+typedef struct VkPhysicalDeviceToolPropertiesEXT {
+    VkStructureType          sType;
+    void*                    pNext;
+    char                     name[VK_MAX_EXTENSION_NAME_SIZE];
+    char                     version[VK_MAX_EXTENSION_NAME_SIZE];
+    VkToolPurposeFlagsEXT    purposes;
+    char                     description[VK_MAX_DESCRIPTION_SIZE];
+    char                     layer[VK_MAX_EXTENSION_NAME_SIZE];
+} VkPhysicalDeviceToolPropertiesEXT;
+
+typedef VkResult (VKAPI_PTR *PFN_vkGetPhysicalDeviceToolPropertiesEXT)(VkPhysicalDevice physicalDevice, uint32_t* pToolCount, VkPhysicalDeviceToolPropertiesEXT* pToolProperties);
+
+#ifndef VK_NO_PROTOTYPES
+VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceToolPropertiesEXT(
+    VkPhysicalDevice                            physicalDevice,
+    uint32_t*                                   pToolCount,
+    VkPhysicalDeviceToolPropertiesEXT*          pToolProperties);
 #endif
 
 

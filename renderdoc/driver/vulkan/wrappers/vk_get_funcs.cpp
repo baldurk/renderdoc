@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "../vk_core.h"
+#include "api/replay/version.h"
 
 static char fakeRenderDocUUID[VK_UUID_SIZE + 1] = {};
 
@@ -721,4 +722,79 @@ uint64_t WrappedVulkan::vkGetDeviceMemoryOpaqueCaptureAddressKHR(
   VkDeviceMemoryOpaqueCaptureAddressInfoKHR unwrappedInfo = *pInfo;
   unwrappedInfo.memory = Unwrap(unwrappedInfo.memory);
   return ObjDisp(device)->GetDeviceMemoryOpaqueCaptureAddressKHR(Unwrap(device), &unwrappedInfo);
+}
+
+VkResult WrappedVulkan::vkGetPhysicalDeviceToolPropertiesEXT(
+    VkPhysicalDevice physicalDevice, uint32_t *pToolCount,
+    VkPhysicalDeviceToolPropertiesEXT *pToolProperties)
+{
+  // check how many tools are downstream. The function pointer will be NULL if no-one else supports
+  // this extension except us.
+  uint32_t downstreamCount = 0;
+  if(ObjDisp(physicalDevice)->GetPhysicalDeviceToolPropertiesEXT != NULL)
+    ObjDisp(physicalDevice)
+        ->GetPhysicalDeviceToolPropertiesEXT(Unwrap(physicalDevice), &downstreamCount, NULL);
+
+  // if we're just enumerating, pToolProperties is NULL, so set the tool count and return
+  if(pToolCount && pToolProperties == NULL)
+  {
+    *pToolCount = downstreamCount + 1;
+    return VK_SUCCESS;
+  }
+
+  // otherwise we expect both to be non-NULL
+  if(pToolCount == NULL || pToolProperties == NULL)
+    return VK_INCOMPLETE;
+
+  // this is how much space is in the array, don't forget it
+  uint32_t availableCount = *pToolCount;
+
+  VkResult vkr = VK_SUCCESS;
+
+  if(ObjDisp(physicalDevice)->GetPhysicalDeviceToolPropertiesEXT != NULL)
+  {
+    // call downstream to populate the array (up to what's available)
+    // this writes up to availableCount properties into pToolProperties, and sets the number written
+    // in pToolCount
+    vkr = ObjDisp(physicalDevice)
+              ->GetPhysicalDeviceToolPropertiesEXT(Unwrap(physicalDevice), pToolCount,
+                                                   pToolProperties);
+  }
+  else
+  {
+    // nothing written downstream
+    *pToolCount = 0;
+  }
+
+  // if available isn't enough, return VK_INCOMPLETE now
+  if(vkr == VK_INCOMPLETE || availableCount < downstreamCount + 1)
+    return VK_INCOMPLETE;
+
+  // otherwise we write our own properties in after any downstream properties, then increment
+  // pToolCount
+
+  VkPhysicalDeviceToolPropertiesEXT &props = *(pToolProperties + *pToolCount);
+
+  const rdcstr name = "RenderDoc"_lit;
+  const rdcstr version = StringFormat::Fmt(
+      "%s (%s)", FULL_VERSION_STRING, GitVersionHash[0] == 'N' ? "Unknown revision" : GitVersionHash);
+  const rdcstr description = "Debugging capture layer for RenderDoc"_lit;
+
+  RDCASSERTMSG("Name is too long for VkPhysicalDeviceToolPropertiesEXT",
+               name.length() < sizeof(props.name));
+  RDCASSERTMSG("Version is too long for VkPhysicalDeviceToolPropertiesEXT",
+               version.length() < sizeof(props.version));
+  RDCASSERTMSG("Description is too long for VkPhysicalDeviceToolPropertiesEXT",
+               description.length() < sizeof(props.description));
+
+  memcpy(props.name, name.c_str(), name.length() + 1);
+  memcpy(props.version, version.c_str(), version.length() + 1);
+  props.purposes = VK_TOOL_PURPOSE_TRACING_BIT_EXT | VK_TOOL_PURPOSE_DEBUG_MARKERS_BIT_EXT |
+                   VK_TOOL_PURPOSE_MODIFYING_FEATURES_BIT_EXT;
+  memcpy(props.description, description.c_str(), description.length() + 1);
+  // do not tell people about the layer
+  RDCEraseEl(props.layer);
+
+  (*pToolCount)++;
+  return VK_SUCCESS;
 }

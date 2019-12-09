@@ -779,6 +779,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_TEXEL_BUFFER_ALIGNMENT_EXTENSION_NAME, VK_EXT_TEXEL_BUFFER_ALIGNMENT_SPEC_VERSION,
     },
     {
+        VK_EXT_TOOLING_INFO_EXTENSION_NAME, VK_EXT_TOOLING_INFO_SPEC_VERSION,
+    },
+    {
         VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME, VK_EXT_TRANSFORM_FEEDBACK_SPEC_VERSION,
     },
     {
@@ -1111,6 +1114,7 @@ static const VkExtensionProperties supportedExtensions[] = {
 // this is the list of extensions we provide - regardless of whether the ICD supports them
 static const VkExtensionProperties renderdocProvidedDeviceExtensions[] = {
     {VK_EXT_DEBUG_MARKER_EXTENSION_NAME, VK_EXT_DEBUG_MARKER_SPEC_VERSION},
+    {VK_EXT_TOOLING_INFO_EXTENSION_NAME, VK_EXT_TOOLING_INFO_SPEC_VERSION},
 };
 
 static const VkExtensionProperties renderdocProvidedInstanceExtensions[] = {

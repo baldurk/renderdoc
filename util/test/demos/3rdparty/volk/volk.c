@@ -197,6 +197,9 @@ static void volkGenLoadInstance(void* context, PFN_vkVoidFunction (*load)(void*,
 #if defined(VK_EXT_sample_locations)
 	vkGetPhysicalDeviceMultisamplePropertiesEXT = (PFN_vkGetPhysicalDeviceMultisamplePropertiesEXT)load(context, "vkGetPhysicalDeviceMultisamplePropertiesEXT");
 #endif /* defined(VK_EXT_sample_locations) */
+#if defined(VK_EXT_tooling_info)
+	vkGetPhysicalDeviceToolPropertiesEXT = (PFN_vkGetPhysicalDeviceToolPropertiesEXT)load(context, "vkGetPhysicalDeviceToolPropertiesEXT");
+#endif /* defined(VK_EXT_tooling_info) */
 #if defined(VK_FUCHSIA_imagepipe_surface)
 	vkCreateImagePipeSurfaceFUCHSIA = (PFN_vkCreateImagePipeSurfaceFUCHSIA)load(context, "vkCreateImagePipeSurfaceFUCHSIA");
 #endif /* defined(VK_FUCHSIA_imagepipe_surface) */
@@ -1378,6 +1381,9 @@ PFN_vkCreateMetalSurfaceEXT vkCreateMetalSurfaceEXT;
 PFN_vkCmdSetSampleLocationsEXT vkCmdSetSampleLocationsEXT;
 PFN_vkGetPhysicalDeviceMultisamplePropertiesEXT vkGetPhysicalDeviceMultisamplePropertiesEXT;
 #endif /* defined(VK_EXT_sample_locations) */
+#if defined(VK_EXT_tooling_info)
+PFN_vkGetPhysicalDeviceToolPropertiesEXT vkGetPhysicalDeviceToolPropertiesEXT;
+#endif /* defined(VK_EXT_tooling_info) */
 #if defined(VK_EXT_transform_feedback)
 PFN_vkCmdBeginQueryIndexedEXT vkCmdBeginQueryIndexedEXT;
 PFN_vkCmdBeginTransformFeedbackEXT vkCmdBeginTransformFeedbackEXT;

@@ -154,7 +154,7 @@ server.
         <type category="define">// Vulkan 1.1 version number
 #define <name>VK_API_VERSION_1_1</name> <type>VK_MAKE_VERSION</type>(1, 1, 0)// Patch version should always be set to 0</type>
         <type category="define">// Version of this file
-#define <name>VK_HEADER_VERSION</name> 129</type>
+#define <name>VK_HEADER_VERSION</name> 130</type>
 
         <type category="define">
 #define <name>VK_DEFINE_HANDLE</name>(object) typedef struct object##_T* object;</type>
@@ -339,6 +339,7 @@ typedef void <name>CAMetalLayer</name>;
         <type                                             category="bitmask">typedef <type>VkFlags</type> <name>VkPipelineRasterizationStateStreamCreateFlagsEXT</name>;</type>
         <type                                             category="bitmask">typedef <type>VkFlags</type> <name>VkPipelineRasterizationDepthClipStateCreateFlagsEXT</name>;</type>
         <type requires="VkSwapchainImageUsageFlagBitsANDROID" category="bitmask">typedef <type>VkFlags</type> <name>VkSwapchainImageUsageFlagsANDROID</name>;</type>
+        <type requires="VkToolPurposeFlagBitsEXT"         category="bitmask">typedef <type>VkFlags</type> <name>VkToolPurposeFlagsEXT</name>;</type>
 
             <comment>Types which can be void pointers or class pointers, selected at compile time</comment>
         <type category="handle"><type>VK_DEFINE_HANDLE</type>(<name>VkInstance</name>)</type>
@@ -524,6 +525,7 @@ typedef void <name>CAMetalLayer</name>;
         <type name="VkShaderModuleCreateFlagBits" category="enum"/>
         <type name="VkPipelineCompilerControlFlagBitsAMD" category="enum"/>
         <type name="VkShaderCorePropertiesFlagBitsAMD" category="enum"/>
+        <type name="VkToolPurposeFlagBitsEXT" category="enum"/>
 
             <comment>WSI extensions</comment>
         <type name="VkColorSpaceKHR" category="enum"/>
@@ -2851,7 +2853,7 @@ typedef void <name>CAMetalLayer</name>;
         <type category="struct" name="VkDeviceQueueInfo2">
             <member values="VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2"><type>VkStructureType</type> <name>sType</name></member>
             <member>const <type>void</type>*                         <name>pNext</name></member>
-            <member><type>VkDeviceQueueCreateFlags</type>            <name>flags</name></member>
+            <member optional="true"><type>VkDeviceQueueCreateFlags</type>            <name>flags</name></member>
             <member><type>uint32_t</type>                            <name>queueFamilyIndex</name></member>
             <member><type>uint32_t</type>                            <name>queueIndex</name></member>
         </type>
@@ -4213,7 +4215,7 @@ typedef void <name>CAMetalLayer</name>;
             <member><type>VkPipelineExecutableStatisticFormatKHR</type> <name>format</name></member>
             <member><type>VkPipelineExecutableStatisticValueKHR</type>  <name>value</name></member>
         </type>
-        <type category="struct" name="VkPipelineExecutableInternalRepresentationKHR">
+        <type category="struct" name="VkPipelineExecutableInternalRepresentationKHR" returnedonly="true">
             <member values="VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INTERNAL_REPRESENTATION_KHR"><type>VkStructureType</type> <name>sType</name></member>
             <member><type>void</type>*              <name>pNext</name></member>
             <member><type>char</type>               <name>name</name>[<enum>VK_MAX_DESCRIPTION_SIZE</enum>]</member>
@@ -4301,6 +4303,15 @@ typedef void <name>CAMetalLayer</name>;
             <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COHERENT_MEMORY_FEATURES_AMD"><type>VkStructureType</type> <name>sType</name></member>
             <member noautovalidity="true"><type>void</type>*        <name>pNext</name></member>
             <member><type>VkBool32</type>                           <name>deviceCoherentMemory</name></member>
+        </type>
+        <type category="struct" name="VkPhysicalDeviceToolPropertiesEXT" returnedonly="true">
+            <member values="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TOOL_PROPERTIES_EXT"><type>VkStructureType</type> <name>sType</name></member>
+            <member><type>void</type>* <name>pNext</name></member>
+            <member><type>char</type>            <name>name</name>[<enum>VK_MAX_EXTENSION_NAME_SIZE</enum>]</member>
+            <member><type>char</type>            <name>version</name>[<enum>VK_MAX_EXTENSION_NAME_SIZE</enum>]</member>
+            <member><type>VkToolPurposeFlagsEXT</type> <name>purposes</name></member>
+            <member><type>char</type>            <name>description</name>[<enum>VK_MAX_DESCRIPTION_SIZE</enum>]</member>
+            <member><type>char</type>            <name>layer</name>[<enum>VK_MAX_EXTENSION_NAME_SIZE</enum>]</member>
         </type>
     </types>
 
@@ -5631,6 +5642,13 @@ typedef void <name>CAMetalLayer</name>;
     <enums name="VkShaderModuleCreateFlagBits" type="bitmask">
     </enums>
     <enums name="VkPipelineCompilerControlFlagBitsAMD" type="bitmask">
+    </enums>
+    <enums name="VkToolPurposeFlagBitsEXT" type="bitmask">
+        <enum bitpos="0"     name="VK_TOOL_PURPOSE_VALIDATION_BIT_EXT"/>
+        <enum bitpos="1"     name="VK_TOOL_PURPOSE_PROFILING_BIT_EXT"/>
+        <enum bitpos="2"     name="VK_TOOL_PURPOSE_TRACING_BIT_EXT"/>
+        <enum bitpos="3"     name="VK_TOOL_PURPOSE_ADDITIONAL_FEATURES_BIT_EXT"/>
+        <enum bitpos="4"     name="VK_TOOL_PURPOSE_MODIFYING_FEATURES_BIT_EXT"/>
     </enums>
 
     <commands comment="Vulkan command definitions">
@@ -8009,6 +8027,12 @@ typedef void <name>CAMetalLayer</name>;
             <param externsync="true"><type>VkCommandBuffer</type> <name>commandBuffer</name></param>
             <param><type>uint32_t</type> <name>lineStippleFactor</name></param>
             <param><type>uint16_t</type> <name>lineStipplePattern</name></param>
+        </command>
+        <command successcodes="VK_SUCCESS,VK_INCOMPLETE">
+            <proto><type>VkResult</type> <name>vkGetPhysicalDeviceToolPropertiesEXT</name></proto>
+            <param><type>VkPhysicalDevice</type> <name>physicalDevice</name></param>
+            <param><type>uint32_t</type>* <name>pToolCount</name></param>
+            <param optional="true" len="pToolCount"><type>VkPhysicalDeviceToolPropertiesEXT</type>* <name>pToolProperties</name></param>
         </command>
     </commands>
 
@@ -10400,8 +10424,12 @@ typedef void <name>CAMetalLayer</name>;
             <require>
                 <enum value="0"                                             name="VK_NV_EXTENSION_151_SPEC_VERSION"/>
                 <enum value="&quot;VK_NV_extension_151&quot;"               name="VK_NV_EXTENSION_151_EXTENSION_NAME"/>
-                <enum bitpos="11" extends="VkPipelineCreateFlagBits"        name="VK_PIPELINE_CREATE_EXTENSION_151_BIT_NV"/>
+                <enum bitpos="11" extends="VkPipelineCreateFlagBits"        name="VK_PIPELINE_CREATE_EXTENSION_151_BIT0_NV"/>
                 <enum bitpos="29" extends="VkFormatFeatureFlagBits"         name="VK_FORMAT_FEATURE_RESERVED_29_BIT_NV"/>
+                <enum bitpos="14" extends="VkPipelineCreateFlagBits"        name="VK_PIPELINE_CREATE_EXTENSION_151_BIT1_NV"/>
+                <enum bitpos="15" extends="VkPipelineCreateFlagBits"        name="VK_PIPELINE_CREATE_EXTENSION_151_BIT2_NV"/>
+                <enum bitpos="16" extends="VkPipelineCreateFlagBits"        name="VK_PIPELINE_CREATE_EXTENSION_151_BIT3_NV"/>
+                <enum bitpos="17" extends="VkPipelineCreateFlagBits"        name="VK_PIPELINE_CREATE_EXTENSION_151_BIT4_NV"/>
             </require>
         </extension>
         <extension name="VK_NV_extension_152" number="152" author="NV" contact="Jeff Bolz @jeffbolznv" supported="disabled">
@@ -11452,10 +11480,25 @@ typedef void <name>CAMetalLayer</name>;
                 <command name="vkGetBufferDeviceAddressEXT"/>
             </require>
         </extension>
-        <extension name="VK_EXT_extension_246" number="246" author="EXT" contact="Tobias Hector @tobski" supported="disabled">
+        <extension name="VK_EXT_tooling_info" number="246" type="device" author="EXT" contact="Tobias Hector @tobski" supported="vulkan">
             <require>
-                <enum value="0"                                             name="VK_EXT_EXTENSION_246_SPEC_VERSION"/>
-                <enum value="&quot;VK_EXT_extension_246&quot;"              name="VK_EXT_EXTENSION_246_EXTENSION_NAME"/>
+                <enum value="1"                                             name="VK_EXT_TOOLING_INFO_SPEC_VERSION"/>
+                <enum value="&quot;VK_EXT_tooling_info&quot;"               name="VK_EXT_TOOLING_INFO_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TOOL_PROPERTIES_EXT"/>
+                <type                                                       name="VkToolPurposeFlagBitsEXT"/>
+                <type                                                       name="VkToolPurposeFlagsEXT"/>
+                <type                                                       name="VkPhysicalDeviceToolPropertiesEXT"/>
+                <command                                                    name="vkGetPhysicalDeviceToolPropertiesEXT"/>
+            </require>
+            <require extension="VK_EXT_debug_report">
+                <enum bitpos="5" extends="VkToolPurposeFlagBitsEXT"         name="VK_TOOL_PURPOSE_DEBUG_REPORTING_BIT_EXT"/>
+            </require>
+            <require extension="VK_EXT_debug_marker">
+                <enum bitpos="6" extends="VkToolPurposeFlagBitsEXT"         name="VK_TOOL_PURPOSE_DEBUG_MARKERS_BIT_EXT"/>
+            </require>
+            <require extension="VK_EXT_debug_utils">
+                <enum bitpos="5" extends="VkToolPurposeFlagBitsEXT"         name="VK_TOOL_PURPOSE_DEBUG_REPORTING_BIT_EXT"/>
+                <enum bitpos="6" extends="VkToolPurposeFlagBitsEXT"         name="VK_TOOL_PURPOSE_DEBUG_MARKERS_BIT_EXT"/>
             </require>
         </extension>
         <extension name="VK_EXT_separate_stencil_usage" number="247" type="device" author="EXT" contact="Daniel Rakos @drakos-amd" supported="vulkan">

@@ -14,7 +14,7 @@
 #endif
 
 /* VOLK_GENERATE_VERSION_DEFINE */
-#define VOLK_HEADER_VERSION 129
+#define VOLK_HEADER_VERSION 130
 /* VOLK_GENERATE_VERSION_DEFINE */
 
 #ifndef VK_NO_PROTOTYPES
@@ -769,6 +769,9 @@ extern PFN_vkCreateMetalSurfaceEXT vkCreateMetalSurfaceEXT;
 extern PFN_vkCmdSetSampleLocationsEXT vkCmdSetSampleLocationsEXT;
 extern PFN_vkGetPhysicalDeviceMultisamplePropertiesEXT vkGetPhysicalDeviceMultisamplePropertiesEXT;
 #endif /* defined(VK_EXT_sample_locations) */
+#if defined(VK_EXT_tooling_info)
+extern PFN_vkGetPhysicalDeviceToolPropertiesEXT vkGetPhysicalDeviceToolPropertiesEXT;
+#endif /* defined(VK_EXT_tooling_info) */
 #if defined(VK_EXT_transform_feedback)
 extern PFN_vkCmdBeginQueryIndexedEXT vkCmdBeginQueryIndexedEXT;
 extern PFN_vkCmdBeginTransformFeedbackEXT vkCmdBeginTransformFeedbackEXT;

@@ -214,7 +214,7 @@
   HookInitExtension(VK_KHR_xlib_surface, GetPhysicalDeviceXlibPresentationSupportKHR); \
   HookInitExtension(VK_EXT_acquire_xlib_display, AcquireXlibDisplayEXT);               \
   HookInitExtension(VK_EXT_acquire_xlib_display, GetRandROutputDisplayEXT);
-#define HookInitInstance_PlatformSpecific_XLib_PhysDev()                               \
+#define HookInitInstance_PlatformSpecific_Xlib_PhysDev()                               \
   HookInitExtension(VK_KHR_xlib_surface, GetPhysicalDeviceXlibPresentationSupportKHR); \
   HookInitExtension(VK_EXT_acquire_xlib_display, AcquireXlibDisplayEXT);               \
   HookInitExtension(VK_EXT_acquire_xlib_display, GetRandROutputDisplayEXT);
@@ -233,8 +233,8 @@
 #else
 
 #define HookInitInstance_PlatformSpecific_Xlib()
+#define HookInitInstance_PlatformSpecific_Xlib_PhysDev()
 #define HookDefine_PlatformSpecific_Xlib()
-#define HookInitInstance_PlatformSpecific_XLib_PhysDev()
 
 #endif
 
@@ -484,7 +484,8 @@
   DeclExt(GOOGLE_display_timing);               \
   DeclExt(KHR_timeline_semaphore);              \
   DeclExt(KHR_performance_query);               \
-  DeclExt(KHR_buffer_device_address);
+  DeclExt(KHR_buffer_device_address);           \
+  DeclExt(EXT_tooling_info);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -573,7 +574,8 @@
   CheckExt(GOOGLE_display_timing, VKXX);              \
   CheckExt(KHR_timeline_semaphore, VKXX);             \
   CheckExt(KHR_performance_query, VKXX);              \
-  CheckExt(KHR_buffer_device_address, VKXX);
+  CheckExt(KHR_buffer_device_address, VKXX);          \
+  CheckExt(EXT_tooling_info, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -618,6 +620,7 @@
   HookInitExtension(KHR_performance_query,                                                           \
                     EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR);                  \
   HookInitExtension(KHR_performance_query, GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);   \
+  HookInitExtension(EXT_tooling_info, GetPhysicalDeviceToolPropertiesEXT);                           \
   HookInitInstance_PlatformSpecific_PhysDev()
 
 #define HookInitVulkanInstanceExts()                                                                 \
@@ -678,6 +681,7 @@
   HookInitExtension(KHR_performance_query,                                                           \
                     EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR);                  \
   HookInitExtension(KHR_performance_query, GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);   \
+  HookInitExtension(EXT_tooling_info, GetPhysicalDeviceToolPropertiesEXT);                           \
   HookInitInstance_PlatformSpecific()
 
 #define HookInitVulkanDeviceExts()                                                                 \
@@ -1393,4 +1397,6 @@
               VkBufferDeviceAddressInfoKHR *, pInfo);                                                \
   HookDefine2(uint64_t, vkGetDeviceMemoryOpaqueCaptureAddressKHR, VkDevice, device,                  \
               VkDeviceMemoryOpaqueCaptureAddressInfoKHR *, pInfo);                                   \
+  HookDefine3(VkResult, vkGetPhysicalDeviceToolPropertiesEXT, VkPhysicalDevice, physicalDevice,      \
+              uint32_t *, pToolCount, VkPhysicalDeviceToolPropertiesEXT *, pToolProperties);         \
   HookDefine_PlatformSpecific()

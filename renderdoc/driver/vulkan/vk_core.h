@@ -2211,4 +2211,9 @@ public:
   uint64_t vkGetBufferOpaqueCaptureAddressKHR(VkDevice device, VkBufferDeviceAddressInfoKHR *pInfo);
   uint64_t vkGetDeviceMemoryOpaqueCaptureAddressKHR(VkDevice device,
                                                     VkDeviceMemoryOpaqueCaptureAddressInfoKHR *pInfo);
+
+  // VK_EXT_tooling_info
+
+  VkResult vkGetPhysicalDeviceToolPropertiesEXT(VkPhysicalDevice physicalDevice, uint32_t *pToolCount,
+                                                VkPhysicalDeviceToolPropertiesEXT *pToolProperties);
 };
