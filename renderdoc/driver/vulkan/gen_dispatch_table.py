@@ -196,4 +196,5 @@ struct VkDevDispatchTable
   // for consistency with macros, we declare the CreateDevice pointer here
   // even though it won't actually ever get used and is on the instance dispatch chain
   PFN_vkCreateDevice CreateDevice;
-}};'''.format(**locals()))
+}};
+'''.format(**locals()))
