@@ -496,7 +496,10 @@ void main()
       format = isInt ? GL_RED_INTEGER : GL_RED;
 
     if(test.fmt.cfg.type == TextureType::R9G9B9E5)
+    {
       format = GL_RGB;
+      type = GL_UNSIGNED_INT_5_9_9_9_REV;
+    }
 
     GLint slices = test.isArray ? texSlices : 1;
     GLint mips = test.isMSAA || test.isRect ? 1 : texMips;
