@@ -840,7 +840,9 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
                 dstImage[d].imageLayout = src[d].imageInfo.imageLayout;
               }
 
-              if(immutableSamplers)
+              // if we're not updating a SAMPLER descriptor fill in immutable samplers so that our
+              // validity checking doesn't have to look them up.
+              if(immutableSamplers && writes[bind].descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER)
               {
                 for(uint32_t d = 0; d < descriptorCount; d++)
                   dstImage[d].sampler =
