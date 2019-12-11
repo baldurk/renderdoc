@@ -45,6 +45,20 @@ void WrappedVulkan::vkGetPhysicalDeviceFeatures(VkPhysicalDevice physicalDevice,
                                                 VkPhysicalDeviceFeatures *pFeatures)
 {
   ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), pFeatures);
+
+  if(pFeatures)
+  {
+    // sparse features not supported
+    pFeatures->sparseBinding = VK_FALSE;
+    pFeatures->sparseResidencyBuffer = VK_FALSE;
+    pFeatures->sparseResidencyImage2D = VK_FALSE;
+    pFeatures->sparseResidencyImage3D = VK_FALSE;
+    pFeatures->sparseResidency2Samples = VK_FALSE;
+    pFeatures->sparseResidency4Samples = VK_FALSE;
+    pFeatures->sparseResidency8Samples = VK_FALSE;
+    pFeatures->sparseResidency16Samples = VK_FALSE;
+    pFeatures->sparseResidencyAliased = VK_FALSE;
+  }
 }
 
 void WrappedVulkan::vkGetPhysicalDeviceFormatProperties(VkPhysicalDevice physicalDevice,
@@ -508,6 +522,20 @@ void WrappedVulkan::vkGetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice
   {
     RDCWARN("Forcibly disabling support for protected memory");
     protectedMem->protectedMemory = VK_FALSE;
+  }
+
+  if(pFeatures)
+  {
+    // sparse features not supported
+    pFeatures->features.sparseBinding = VK_FALSE;
+    pFeatures->features.sparseResidencyBuffer = VK_FALSE;
+    pFeatures->features.sparseResidencyImage2D = VK_FALSE;
+    pFeatures->features.sparseResidencyImage3D = VK_FALSE;
+    pFeatures->features.sparseResidency2Samples = VK_FALSE;
+    pFeatures->features.sparseResidency4Samples = VK_FALSE;
+    pFeatures->features.sparseResidency8Samples = VK_FALSE;
+    pFeatures->features.sparseResidency16Samples = VK_FALSE;
+    pFeatures->features.sparseResidencyAliased = VK_FALSE;
   }
 }
 
