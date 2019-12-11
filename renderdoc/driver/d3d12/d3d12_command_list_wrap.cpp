@@ -447,11 +447,6 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
   return ret;
 }
 
-void WrappedID3D12GraphicsCommandList::ClearState(ID3D12PipelineState *pPipelineState)
-{
-  m_pList->ClearState(Unwrap(pPipelineState));
-}
-
 template <typename SerialiserType>
 bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(
     SerialiserType &ser, UINT NumBarriers, const D3D12_RESOURCE_BARRIER *pBarriers)
@@ -604,6 +599,67 @@ void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
 }
 
 #pragma region State Setting
+
+template <typename SerialiserType>
+bool WrappedID3D12GraphicsCommandList::Serialise_ClearState(SerialiserType &ser,
+                                                            ID3D12PipelineState *pPipelineState)
+{
+  ID3D12GraphicsCommandList *pCommandList = this;
+  SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT(pPipelineState);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      {
+        Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->ClearState(Unwrap(pPipelineState));
+
+        if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+        {
+          m_Cmd->m_RenderState = D3D12RenderState();
+          m_Cmd->m_RenderState.m_DebugManager = m_pDevice->GetDebugManager();
+          m_Cmd->m_RenderState.m_ResourceManager = m_pDevice->GetResourceManager();
+          m_Cmd->m_RenderState.pipe = GetResID(pPipelineState);
+        }
+      }
+    }
+    else
+    {
+      Unwrap(pCommandList)->ClearState(Unwrap(pPipelineState));
+      GetCrackedList()->ClearState(Unwrap(pPipelineState));
+
+      D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
+
+      state = D3D12RenderState();
+      state.m_DebugManager = m_pDevice->GetDebugManager();
+      state.m_ResourceManager = m_pDevice->GetResourceManager();
+      state.pipe = GetResID(pPipelineState);
+    }
+  }
+
+  return true;
+}
+
+void WrappedID3D12GraphicsCommandList::ClearState(ID3D12PipelineState *pPipelineState)
+{
+  SERIALISE_TIME_CALL(m_pList->ClearState(Unwrap(pPipelineState)));
+
+  if(IsCaptureMode(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_ClearState);
+    Serialise_ClearState(ser, pPipelineState);
+
+    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pPipelineState), eFrameRef_Read);
+  }
+}
 
 template <typename SerialiserType>
 bool WrappedID3D12GraphicsCommandList::Serialise_IASetPrimitiveTopology(
@@ -5162,6 +5218,8 @@ INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, Reset,
                                 ID3D12PipelineState *pInitialState);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, ResourceBarrier,
                                 UINT NumBarriers, const D3D12_RESOURCE_BARRIER *pBarriers);
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, ClearState,
+                                ID3D12PipelineState *pPipelineState);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, IASetPrimitiveTopology,
                                 D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology);
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, RSSetViewports,
