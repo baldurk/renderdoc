@@ -322,6 +322,16 @@ void main()
       return tex;
     };
 
+    GLuint packbuf = MakeBuffer();
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, packbuf);
+    glBufferData(GL_PIXEL_PACK_BUFFER, 4, NULL, GL_STATIC_DRAW);
+    GLuint unpackbuf = MakeBuffer();
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, unpackbuf);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, 4, NULL, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
     auto TrashTex = [](GLuint tex) {
       const uint32_t empty[4 * 4] = {};
       glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 4, 4, GL_RGBA, GL_UNSIGNED_BYTE, empty);
@@ -365,6 +375,9 @@ void main()
     GLuint buf = SetupBuf();
     while(Running())
     {
+      glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+      glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
       float col[] = {0.4f, 0.5f, 0.6f, 1.0f};
       glClearNamedFramebufferfv(0, GL_COLOR, 0, col);
 
@@ -418,6 +431,9 @@ void main()
       pipe = SetupPipe(vsprog, fsprog);
       tex = SetupTex();
       buf = SetupBuf();
+
+      glBindBuffer(GL_PIXEL_PACK_BUFFER, packbuf);
+      glBindBuffer(GL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
       Present();
     }
