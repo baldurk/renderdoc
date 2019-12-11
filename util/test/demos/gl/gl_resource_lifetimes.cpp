@@ -56,12 +56,29 @@ out gl_PerVertex {
 
 out v2f vertOut;
 
+layout(std140) uniform constsbuf
+{
+  vec4 flags;
+};
+
+uniform vec4 flags2;
+
 void main()
 {
 	vertOut.pos = vec4(Position.xyz, 1);
 	gl_Position = vertOut.pos;
 	vertOut.col = Color;
 	vertOut.uv = vec4(UV.xy, 0, 1);
+
+  if(flags.x != 1.0f || flags.y != 2.0f || flags.z != 4.0f || flags.w != 8.0f)
+  {
+    vertOut.uv.x *= 3.0f;
+  }
+
+  if(flags != flags2)
+  {
+    vertOut.uv.y *= 3.0f;
+  }
 }
 
 )EOSHADER";
@@ -102,18 +119,6 @@ void main()
 
 )EOSHADER";
 
-  std::string dummy = R"EOSHADER(
-#version 420 core
-
-layout(location = 0, index = 0) out vec4 Color;
-
-void main()
-{
-	Color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
-}
-
-)EOSHADER";
-
   int main()
   {
     // initialise, create window, create context, etc
@@ -148,12 +153,11 @@ void main()
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    GLuint vsprog = MakeProgram(common + vertex, "");
+    std::string vssrc = common + vertex;
+    const char *vssrc_c = vssrc.c_str();
 
     std::string fssrc = common + pixel;
     const char *fssrc_c = fssrc.c_str();
-
-    const char *dummysrc_c = dummy.c_str();
 
     // function to set up a VAO
     auto SetupVAO = [ib]() {
@@ -206,6 +210,18 @@ void main()
       glDeleteSamplers(1, &sampler);
     };
 
+    auto SetupSingleCallProgram = [vssrc_c]() {
+      GLuint prog = glCreateShaderProgramv(GL_VERTEX_SHADER, 1, &vssrc_c);
+
+      glUniformBlockBinding(prog, glGetUniformBlockIndex(prog, "constsbuf"), 5);
+
+      const Vec4f flags = {1.0f, 2.0f, 4.0f, 8.0f};
+
+      glProgramUniform4fv(prog, glGetUniformLocation(prog, "flags2"), 1, &flags.x);
+
+      return prog;
+    };
+
     auto SetupProgram = [fssrc_c]() {
       GLuint prog = glCreateProgram();
       glProgramParameteri(prog, GL_PROGRAM_SEPARABLE, GL_TRUE);
@@ -231,7 +247,7 @@ void main()
       return prog;
     };
 
-    auto TrashProgram = [dummysrc_c](GLuint prog) {
+    auto TrashProgram = [](GLuint prog) {
       glUniformBlockBinding(prog, glGetUniformBlockIndex(prog, "constsbuf"), 4);
 
       const Vec4f empty = {};
@@ -241,13 +257,13 @@ void main()
     };
 
     // Program pipeline setup and trashing
-    auto SetupPipe = [vsprog](GLuint prog) {
+    auto SetupPipe = [](GLuint vsprog, GLuint fsprog) {
       GLuint pipe = 0;
       glGenProgramPipelines(1, &pipe);
       glBindProgramPipeline(pipe);
 
       glUseProgramStages(pipe, GL_VERTEX_SHADER_BIT, vsprog);
-      glUseProgramStages(pipe, GL_FRAGMENT_SHADER_BIT, prog);
+      glUseProgramStages(pipe, GL_FRAGMENT_SHADER_BIT, fsprog);
 
       return pipe;
     };
@@ -342,8 +358,9 @@ void main()
     GLuint fbo = SetupFBO();
     GLuint vao = SetupVAO();
     GLuint sampler = SetupSampler();
+    GLuint vsprog = SetupSingleCallProgram();
     GLuint fsprog = SetupProgram();
-    GLuint pipe = SetupPipe(fsprog);
+    GLuint pipe = SetupPipe(vsprog, fsprog);
     GLuint tex = SetupTex();
     GLuint buf = SetupBuf();
     while(Running())
@@ -362,6 +379,7 @@ void main()
       TrashFBO(fbo);
       TrashVAO(vao);
       TrashSampler(sampler);
+      TrashProgram(vsprog);
       TrashProgram(fsprog);
       TrashPipe(pipe);
       TrashTex(tex);
@@ -371,8 +389,9 @@ void main()
       fbo = SetupFBO();
       vao = SetupVAO();
       sampler = SetupSampler();
+      vsprog = SetupSingleCallProgram();
       fsprog = SetupProgram();
-      pipe = SetupPipe(fsprog);
+      pipe = SetupPipe(vsprog, fsprog);
       tex = SetupTex();
       buf = SetupBuf();
       float col2[] = {0.1f, 0.1f, 0.5f, 1.0f};
@@ -384,6 +403,7 @@ void main()
       TrashFBO(fbo);
       TrashVAO(vao);
       TrashSampler(sampler);
+      TrashProgram(vsprog);
       TrashProgram(fsprog);
       TrashPipe(pipe);
       TrashTex(tex);
@@ -393,8 +413,9 @@ void main()
       fbo = SetupFBO();
       vao = SetupVAO();
       sampler = SetupSampler();
+      vsprog = SetupSingleCallProgram();
       fsprog = SetupProgram();
-      pipe = SetupPipe(fsprog);
+      pipe = SetupPipe(vsprog, fsprog);
       tex = SetupTex();
       buf = SetupBuf();
 
@@ -405,6 +426,7 @@ void main()
     TrashFBO(fbo);
     TrashVAO(vao);
     TrashSampler(sampler);
+    TrashProgram(vsprog);
     TrashProgram(fsprog);
     TrashPipe(pipe);
     TrashBuf(buf);
