@@ -67,6 +67,9 @@ void WrappedOpenGL::ArrayMSPrograms::Create()
 
   if(HasExt[ARB_texture_multisample])
   {
+    GLuint prevProg = 0;
+    GL.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prevProg);
+
     vs = GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer);
 
     fs = GenerateGLSLShader(GetEmbeddedResource(glsl_depthms2arr_frag), shaderType, glslBaseVer);
@@ -84,6 +87,8 @@ void WrappedOpenGL::ArrayMSPrograms::Create()
 
     GL.glUniform1i(GL.glGetUniformLocation(DepthArray2MS, "srcDepthArray"), 0);
     GL.glUniform1i(GL.glGetUniformLocation(DepthArray2MS, "srcStencilArray"), 1);
+
+    GL.glUseProgram(prevProg);
   }
   else
   {
