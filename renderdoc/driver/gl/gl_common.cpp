@@ -944,7 +944,7 @@ void GLPushPopState::Push(bool modern)
   GL.glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&arraybuf);
 
   // we get the current program but only try to restore it if it's non-0
-  prog = 0;
+  prog = 0xDEADBEEF;
   if(modern)
     GL.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
 
@@ -953,7 +953,7 @@ void GLPushPopState::Push(bool modern)
 
   // since we will use the fixed function pipeline, also need to check for program pipeline
   // bindings (if we weren't, our program would override)
-  pipe = 0;
+  pipe = 0xDEADBEEF;
   if(modern && HasExt[ARB_separate_shader_objects])
     GL.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
 
@@ -1116,15 +1116,16 @@ void GLPushPopState::Pop(bool modern)
     GL.glBindBuffer(eGL_UNIFORM_BUFFER, ubo);
 
     GL.glUseProgram(prog);
+    GL.glBindProgramPipeline(pipe);
 
     GL.glBindVertexArray(VAO);
   }
   else
   {
     // only restore these if there was a setting and the function pointer exists
-    if(GL.glUseProgram && prog != 0)
+    if(GL.glUseProgram && prog != 0xDEADBEEF)
       GL.glUseProgram(prog);
-    if(GL.glBindProgramPipeline && pipe != 0)
+    if(GL.glBindProgramPipeline && pipe != 0xDEADBEEF)
       GL.glBindProgramPipeline(pipe);
   }
 }
