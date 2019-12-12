@@ -1458,6 +1458,8 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(SerialiserType &ser)
 
     if(!imgBarriers.empty())
     {
+      VkMarkerRegion region("Frame-start barriers");
+
       for(size_t i = 0; i < imgBarriers.size(); i++)
       {
         // sanitise the layouts before passing to Vulkan
@@ -2484,6 +2486,8 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
 
 void WrappedVulkan::ApplyInitialContents()
 {
+  VkMarkerRegion region("ApplyInitialContents");
+
   // check that we have all external queues necessary
   for(size_t i = 0; i < m_ExternalQueues.size(); i++)
   {

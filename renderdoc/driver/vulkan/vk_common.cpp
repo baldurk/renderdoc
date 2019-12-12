@@ -32,10 +32,7 @@ WrappedVulkan *VkMarkerRegion::vk = NULL;
 VkMarkerRegion::VkMarkerRegion(VkCommandBuffer cmd, const std::string &marker)
 {
   if(cmd == VK_NULL_HANDLE)
-  {
-    RDCERR("Cannot auto-allocate a command buffer for a scoped VkMarkerRegion");
     return;
-  }
 
   cmdbuf = cmd;
   Begin(marker, cmd);
@@ -44,7 +41,12 @@ VkMarkerRegion::VkMarkerRegion(VkCommandBuffer cmd, const std::string &marker)
 VkMarkerRegion::VkMarkerRegion(VkQueue q, const std::string &marker)
 {
   if(q == VK_NULL_HANDLE)
-    q = vk->GetQ();
+  {
+    if(vk)
+      q = vk->GetQ();
+    else
+      return;
+  }
 
   queue = q;
   Begin(marker, q);
@@ -60,11 +62,11 @@ VkMarkerRegion::~VkMarkerRegion()
 
 void VkMarkerRegion::Begin(const std::string &marker, VkCommandBuffer cmd)
 {
-  if(!vk)
+  if(cmd == VK_NULL_HANDLE)
     return;
 
   // check for presence of the marker extension
-  if(!ObjDisp(vk->GetDev())->CmdBeginDebugUtilsLabelEXT)
+  if(!ObjDisp(cmd)->CmdBeginDebugUtilsLabelEXT)
     return;
 
   VkDebugUtilsLabelEXT label = {};
@@ -75,8 +77,11 @@ void VkMarkerRegion::Begin(const std::string &marker, VkCommandBuffer cmd)
 
 void VkMarkerRegion::Set(const std::string &marker, VkCommandBuffer cmd)
 {
+  if(cmd == VK_NULL_HANDLE)
+    return;
+
   // check for presence of the marker extension
-  if(!ObjDisp(vk->GetDev())->CmdInsertDebugUtilsLabelEXT)
+  if(!ObjDisp(cmd)->CmdInsertDebugUtilsLabelEXT)
     return;
 
   VkDebugUtilsLabelEXT label = {};
@@ -87,8 +92,11 @@ void VkMarkerRegion::Set(const std::string &marker, VkCommandBuffer cmd)
 
 void VkMarkerRegion::End(VkCommandBuffer cmd)
 {
+  if(cmd == VK_NULL_HANDLE)
+    return;
+
   // check for presence of the marker extension
-  if(!ObjDisp(vk->GetDev())->CmdEndDebugUtilsLabelEXT)
+  if(!ObjDisp(cmd)->CmdEndDebugUtilsLabelEXT)
     return;
 
   ObjDisp(cmd)->CmdEndDebugUtilsLabelEXT(Unwrap(cmd));
@@ -96,15 +104,17 @@ void VkMarkerRegion::End(VkCommandBuffer cmd)
 
 void VkMarkerRegion::Begin(const std::string &marker, VkQueue q)
 {
-  if(!vk)
-    return;
+  if(q == VK_NULL_HANDLE)
+  {
+    if(vk)
+      q = vk->GetQ();
+    else
+      return;
+  }
 
   // check for presence of the marker extension
-  if(!ObjDisp(vk->GetDev())->QueueBeginDebugUtilsLabelEXT)
+  if(!ObjDisp(q)->QueueBeginDebugUtilsLabelEXT)
     return;
-
-  if(q == VK_NULL_HANDLE)
-    q = vk->GetQ();
 
   VkDebugUtilsLabelEXT label = {};
   label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
@@ -114,12 +124,17 @@ void VkMarkerRegion::Begin(const std::string &marker, VkQueue q)
 
 void VkMarkerRegion::Set(const std::string &marker, VkQueue q)
 {
-  // check for presence of the marker extension
-  if(!ObjDisp(vk->GetDev())->QueueInsertDebugUtilsLabelEXT)
-    return;
-
   if(q == VK_NULL_HANDLE)
-    q = vk->GetQ();
+  {
+    if(vk)
+      q = vk->GetQ();
+    else
+      return;
+  }
+
+  // check for presence of the marker extension
+  if(!ObjDisp(q)->QueueInsertDebugUtilsLabelEXT)
+    return;
 
   VkDebugUtilsLabelEXT label = {};
   label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
@@ -129,12 +144,17 @@ void VkMarkerRegion::Set(const std::string &marker, VkQueue q)
 
 void VkMarkerRegion::End(VkQueue q)
 {
-  // check for presence of the marker extension
-  if(!ObjDisp(vk->GetDev())->QueueEndDebugUtilsLabelEXT)
-    return;
-
   if(q == VK_NULL_HANDLE)
-    q = vk->GetQ();
+  {
+    if(vk)
+      q = vk->GetQ();
+    else
+      return;
+  }
+
+  // check for presence of the marker extension
+  if(!ObjDisp(q)->QueueEndDebugUtilsLabelEXT)
+    return;
 
   ObjDisp(q)->QueueEndDebugUtilsLabelEXT(Unwrap(q));
 }

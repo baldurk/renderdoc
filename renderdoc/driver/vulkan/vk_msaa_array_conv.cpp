@@ -83,6 +83,8 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
     return;
   }
 
+  VkMarkerRegion region("CopyTex2DMSToArray");
+
   if(IsStencilOnlyFormat(fmt))
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
   else if(IsDepthOrStencilFormat(fmt))
@@ -174,6 +176,8 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
 
   if(pipe == VK_NULL_HANDLE)
     return;
+
+  VkMarkerRegion region("CopyDepthTex2DMSToArray");
 
   VkDevice dev = m_Device;
 
@@ -437,6 +441,8 @@ void VulkanDebugManager::CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, Vk
     return;
   }
 
+  VkMarkerRegion region("CopyArrayToTex2DMS");
+
   if(IsStencilOnlyFormat(fmt))
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
   else if(IsDepthOrStencilFormat(fmt))
@@ -537,6 +543,8 @@ void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArra
 
   if(pipe == VK_NULL_HANDLE)
     return;
+
+  VkMarkerRegion region("CopyDepthArrayToTex2DMS");
 
   VkDevice dev = m_Device;
 
