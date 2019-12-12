@@ -486,6 +486,9 @@ RENDERDOC_BecomeRemoteServer(const char *listenhost, RENDERDOC_KillCallback kill
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartSelfHostCapture(const char *dllname)
 {
+  if(!Process::IsModuleLoaded(dllname))
+    return;
+
   void *module = Process::LoadModule(dllname);
 
   if(module == NULL)
@@ -509,6 +512,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartSelfHostCapture(const 
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const char *dllname)
 {
+  if(!Process::IsModuleLoaded(dllname))
+    return;
+
   void *module = Process::LoadModule(dllname);
 
   if(module == NULL)

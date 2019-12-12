@@ -1656,6 +1656,11 @@ void Process::StopGlobalHook()
   globalHook = NULL;
 }
 
+bool Process::IsModuleLoaded(const char *module)
+{
+  return GetModuleHandleA(module) != NULL;
+}
+
 void *Process::LoadModule(const char *module)
 {
   HMODULE mod = GetModuleHandleA(module);

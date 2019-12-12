@@ -74,6 +74,7 @@ ExecuteResult LaunchAndInjectIntoProcess(const char *app, const char *workingDir
                                          const rdcarray<EnvironmentModification> &env,
                                          const char *capturefile, const CaptureOptions &opts,
                                          bool waitForExit);
+bool IsModuleLoaded(const char *module);
 void *LoadModule(const char *module);
 void *GetFunctionAddress(void *module, const char *function);
 uint32_t GetCurrentPID();

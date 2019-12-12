@@ -855,6 +855,11 @@ void Process::StopGlobalHook()
 {
 }
 
+bool Process::IsModuleLoaded(const char *module)
+{
+  return dlopen(module, RTLD_NOW | RTLD_NOLOAD) != NULL;
+}
+
 void *Process::LoadModule(const char *module)
 {
   return dlopen(module, RTLD_NOW);
