@@ -71,6 +71,18 @@ void main()
 }
 
 )EOSHADER";
+  void Prepare(int argc, char **argv)
+  {
+    OpenGLGraphicsTest::Prepare(argc, argv);
+
+    if(!Avail.empty())
+      return;
+
+    if(!SpvCompilationSupported())
+      Avail = InternalSpvCompiler() ? "Internal SPIR-V compiler did not initialise"
+                                    : "Couldn't find 'glslc' or 'glslangValidator' in PATH - "
+                                      "required for SPIR-V compilation";
+  }
 
   int main()
   {
@@ -79,12 +91,6 @@ void main()
     // initialise, create window, create context, etc
     if(!Init())
       return 3;
-
-    if(!SpvCompilationSupported())
-    {
-      TEST_ERROR("Can't run SPIR-V test without glslc in PATH");
-      return 2;
-    }
 
     GLuint vao = MakeVAO();
     glBindVertexArray(vao);

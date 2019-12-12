@@ -241,9 +241,9 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
   if(!volk)
     Avail = "volk did not initialise - vulkan library is not available";
   else if(!spv)
-    Avail = InternalSpvCompiler()
-                ? "Internal SPIR-V compiler did not initialise"
-                : "Couldn't find 'glslc' in PATH - required for SPIR-V compilation";
+    Avail = InternalSpvCompiler() ? "Internal SPIR-V compiler did not initialise"
+                                  : "Couldn't find 'glslc' or 'glslangValidator' in PATH - "
+                                    "required for SPIR-V compilation";
   else if(instance == VK_NULL_HANDLE)
     Avail = "Vulkan instance did not initialise";
   else if(phys == VK_NULL_HANDLE)

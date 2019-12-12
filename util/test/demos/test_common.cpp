@@ -202,6 +202,7 @@ extern "C" __declspec(noalias) void __cdecl __std_reverse_trivially_swappable_8(
 #define USE_LINKED_SHADERC (1 && HAVE_SHADERC)
 
 static shaderc_compiler_t shaderc = NULL;
+static std::string externalCompiler;
 
 bool InternalSpvCompiler()
 {
@@ -220,16 +221,25 @@ bool SpvCompilationSupported()
   if(shaderc)
     return true;
 
-  FILE *pipe = popen("glslc" EXECUTABLE_SUFFIX " --help 2>&1", "r");
+  for(std::string compiler : {"glslc", "glslangValidator"})
+  {
+    FILE *pipe = popen((compiler + EXECUTABLE_SUFFIX " --version 2>&1").c_str(), "r");
 
-  if(!pipe)
-    return false;
+    if(!pipe)
+      continue;
 
-  msleep(500);
+    msleep(500);
 
-  int code = pclose(pipe);
+    int code = pclose(pipe);
 
-  return WEXITSTATUS(code) == 0;
+    if(WEXITSTATUS(code) == 0)
+    {
+      externalCompiler = compiler;
+      return true;
+    }
+  }
+
+  return false;
 }
 
 std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTarget target,
@@ -305,43 +315,81 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
 #endif
   }
 
-  std::string command_line = "glslc" EXECUTABLE_SUFFIX " -g -O0";
-
-  command_line += " -fentry-point=";
-  command_line += entry_point;
-
-  if(lang == ShaderLang::glsl)
-    command_line += " -x glsl";
-  else if(lang == ShaderLang::hlsl)
-    command_line += " -x hlsl";
-
-  for(auto it : macros)
-    command_line += " -D" + it.first + "=" + it.second;
-
-  switch(stage)
-  {
-    case ShaderStage::vert: command_line += " -fshader-stage=vert"; break;
-    case ShaderStage::frag: command_line += " -fshader-stage=frag"; break;
-    case ShaderStage::tesscontrol: command_line += " -fshader-stage=tesscontrol"; break;
-    case ShaderStage::tesseval: command_line += " -fshader-stage=tesseval"; break;
-    case ShaderStage::geom: command_line += " -fshader-stage=geom"; break;
-    case ShaderStage::comp: command_line += " -fshader-stage=comp"; break;
-  }
-
-  if(target == SPIRVTarget::opengl)
-    command_line += " --target-env=opengl";
-  else if(target == SPIRVTarget::vulkan11)
-    command_line += " --target-env=vulkan1.1";
+  std::string command_line;
 
   char infile[MAX_PATH] = {};
   char outfile[MAX_PATH] = {};
   get_tmpnam(infile);
   get_tmpnam(outfile);
 
-  command_line += " -o ";
-  command_line += outfile;
-  command_line += " ";
-  command_line += infile;
+  if(externalCompiler == "glslc")
+  {
+    command_line = "glslc" EXECUTABLE_SUFFIX " -g -O0";
+    command_line += " -fentry-point=";
+    command_line += entry_point;
+
+    if(lang == ShaderLang::glsl)
+      command_line += " -x glsl";
+    else if(lang == ShaderLang::hlsl)
+      command_line += " -x hlsl";
+
+    for(auto it : macros)
+      command_line += " -D" + it.first + "=" + it.second;
+
+    switch(stage)
+    {
+      case ShaderStage::vert: command_line += " -fshader-stage=vert"; break;
+      case ShaderStage::frag: command_line += " -fshader-stage=frag"; break;
+      case ShaderStage::tesscontrol: command_line += " -fshader-stage=tesscontrol"; break;
+      case ShaderStage::tesseval: command_line += " -fshader-stage=tesseval"; break;
+      case ShaderStage::geom: command_line += " -fshader-stage=geom"; break;
+      case ShaderStage::comp: command_line += " -fshader-stage=comp"; break;
+    }
+
+    if(target == SPIRVTarget::opengl)
+      command_line += " --target-env=opengl";
+    else if(target == SPIRVTarget::vulkan11)
+      command_line += " --target-env=vulkan1.1";
+
+    command_line += " -o ";
+    command_line += outfile;
+    command_line += " ";
+    command_line += infile;
+  }
+  else if(externalCompiler == "glslangValidator")
+  {
+    command_line = "glslangValidator" EXECUTABLE_SUFFIX " -g ";
+    command_line += " --entry-point ";
+    command_line += entry_point;
+
+    if(lang == ShaderLang::hlsl)
+      command_line += " -D";
+
+    for(auto it : macros)
+      command_line += " -D" + it.first + "=" + it.second;
+
+    switch(stage)
+    {
+      case ShaderStage::vert: command_line += " -S vert"; break;
+      case ShaderStage::frag: command_line += " -S frag"; break;
+      case ShaderStage::tesscontrol: command_line += " -S tesscontrol"; break;
+      case ShaderStage::tesseval: command_line += " -S tesseval"; break;
+      case ShaderStage::geom: command_line += " -S geom"; break;
+      case ShaderStage::comp: command_line += " -S comp"; break;
+    }
+
+    if(target == SPIRVTarget::opengl)
+      command_line += " -G --target-env opengl";
+    else if(target == SPIRVTarget::vulkan11)
+      command_line += " -V --target-env vulkan1.1";
+    else if(target == SPIRVTarget::vulkan)
+      command_line += " -V --target-env vulkan1.0";
+
+    command_line += " -o ";
+    command_line += outfile;
+    command_line += " ";
+    command_line += infile;
+  }
 
   FILE *f = fopen(infile, "wb");
   if(f)
@@ -354,7 +402,7 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
 
   if(!pipe)
   {
-    TEST_ERROR("Couldn't run shaderc to compile shaders.");
+    TEST_ERROR("Couldn't run %s to compile shaders.", externalCompiler.c_str());
     return ret;
   }
 
@@ -364,7 +412,7 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
 
   if(code != 0)
   {
-    TEST_ERROR("Invoking shaderc failed: %s.", command_line.c_str());
+    TEST_ERROR("Invoking %s failed: %s.", externalCompiler.c_str(), command_line.c_str());
     return ret;
   }
 
