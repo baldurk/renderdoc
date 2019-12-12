@@ -694,6 +694,18 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
           record->imageAttachments[i].barrier.image =
               GetResourceManager()->GetCurrentHandle<VkImage>(attRecord->baseResource);
           record->imageAttachments[i].barrier.subresourceRange = attRecord->viewRange;
+
+          ImageLayouts *layout = NULL;
+          {
+            SCOPED_LOCK(m_ImageLayoutsLock);
+            layout = &m_ImageLayouts[attRecord->GetResourceID()];
+          }
+
+          if(layout->imageInfo.extent.depth > 1)
+          {
+            record->imageAttachments[i].barrier.subresourceRange.baseArrayLayer = 0;
+            record->imageAttachments[i].barrier.subresourceRange.layerCount = 1;
+          }
         }
       }
     }

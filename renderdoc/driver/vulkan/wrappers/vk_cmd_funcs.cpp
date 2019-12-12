@@ -179,6 +179,12 @@ std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(u
     if(IsDepthAndStencilFormat(c.format))
       barrier.subresourceRange.aspectMask = (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
 
+    if(c.type == VK_IMAGE_TYPE_3D)
+    {
+      barrier.subresourceRange.baseArrayLayer = 0;
+      barrier.subresourceRange.layerCount = 1;
+    }
+
     barrier.newLayout = atts[i].layout;
 
     // search back from this subpass to see which layout it was in before. If it's

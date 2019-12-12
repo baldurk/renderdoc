@@ -1077,6 +1077,7 @@ void main()
     pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
     pipeCreateInfo.depthStencilState.front.compareOp = VK_COMPARE_OP_ALWAYS;
 
+    renderPassCreateInfo.attachments[0].initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     renderPassCreateInfo.attachments[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     VkPipelineShaderStageCreateInfo msps[(size_t)DataType::Count];
@@ -1103,17 +1104,31 @@ void main()
 
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
 
+      VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+      if(t.isDepth)
+      {
+        aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        if(t.fmt.viewFmt == VK_FORMAT_S8_UINT || t.fmt.viewFmt == VK_FORMAT_D16_UNORM_S8_UINT ||
+           t.fmt.viewFmt == VK_FORMAT_D24_UNORM_S8_UINT ||
+           t.fmt.viewFmt == VK_FORMAT_D32_SFLOAT_S8_UINT)
+          aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+      }
+
+      vkh::cmdPipelineBarrier(
+          cmd, {
+                   vkh::ImageMemoryBarrier(
+                       0, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                              VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                       t.res.image, vkh::ImageSubresourceRange(aspectMask)),
+               });
+
       if(!t.canRender && !t.isDepth)
       {
         TEST_WARN("Need data for test %s %s, but it's not a renderable/depthable format",
                   t.fmt.name.c_str(), MakeName(t).c_str());
-
-        vkh::cmdPipelineBarrier(
-            cmd, {
-                     vkh::ImageMemoryBarrier(0, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, t.res.image,
-                                             vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT)),
-                 });
 
         vkEndCommandBuffer(cmd);
 
@@ -1275,18 +1290,6 @@ void main()
           VkImageViewType viewType = t.viewType;
           if(viewType == VK_IMAGE_VIEW_TYPE_3D)
             viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-
-          VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-
-          if(t.isDepth)
-          {
-            aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-            if(t.fmt.viewFmt == VK_FORMAT_S8_UINT || t.fmt.viewFmt == VK_FORMAT_D16_UNORM_S8_UINT ||
-               t.fmt.viewFmt == VK_FORMAT_D24_UNORM_S8_UINT ||
-               t.fmt.viewFmt == VK_FORMAT_D32_SFLOAT_S8_UINT)
-              aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-          }
 
           vkCreateImageView(
               device, vkh::ImageViewCreateInfo(t.res.image, viewType, t.fmt.viewFmt, {},
