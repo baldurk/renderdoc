@@ -3794,7 +3794,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode,
 
         for(uint32_t a = 0; a < layout.bindings[bind].descriptorCount; a++)
         {
-          DescriptorSetBindingElement &slot = descset.currentBindings[bind][a];
+          DescriptorSetSlot &slot = descset.currentBindings[bind][a];
 
           ResourceId id;
 
@@ -3803,20 +3803,20 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode,
             case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
             case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
             case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-              if(slot.imageInfo.imageView != VK_NULL_HANDLE)
-                id = c.m_ImageView[GetResID(slot.imageInfo.imageView)].image;
+              if(slot.imageInfo.imageView != ResourceId())
+                id = c.m_ImageView[slot.imageInfo.imageView].image;
               break;
             case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
             case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-              if(slot.texelBufferView != VK_NULL_HANDLE)
-                id = c.m_BufferView[GetResID(slot.texelBufferView)].buffer;
+              if(slot.texelBufferView != ResourceId())
+                id = c.m_BufferView[slot.texelBufferView].buffer;
               break;
             case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
             case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
             case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
             case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-              if(slot.bufferInfo.buffer != VK_NULL_HANDLE)
-                id = GetResID(slot.bufferInfo.buffer);
+              if(slot.bufferInfo.buffer != ResourceId())
+                id = slot.bufferInfo.buffer;
               break;
             default: RDCERR("Unexpected type %d", layout.bindings[bind].descriptorType); break;
           }

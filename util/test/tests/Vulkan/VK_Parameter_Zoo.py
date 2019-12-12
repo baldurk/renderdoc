@@ -6,37 +6,14 @@ class VK_Parameter_Zoo(rdtest.TestCase):
     demos_test_name = 'VK_Parameter_Zoo'
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        draw = self.get_last_draw()
+
+        self.check(draw is not None)
+
+        draw = draw.previous
 
         self.controller.SetFrameEvent(draw.eventId, False)
 
-        postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        postvs_ref = {
-            0: {
-                'vtx': 0,
-                'idx': 0,
-                'gl_PerVertex.gl_Position': [-0.5, 0.5, 0.0, 1.0],
-                'vertOut.pos': [-0.5, 0.5, 0.0, 1.0],
-                'vertOut.col': [1.0, 0.0, 0.0, 1.0],
-                'vertOut.uv': [0.0, 0.0, 0.0, 1.0],
-            },
-            1: {
-                'vtx': 1,
-                'idx': 1,
-                'gl_PerVertex.gl_Position': [0.0, -0.5, 0.0, 1.0],
-                'vertOut.pos': [0.0, -0.5, 0.0, 1.0],
-                'vertOut.col': [0.0, 1.0, 0.0, 1.0],
-                'vertOut.uv': [0.0, 1.0, 0.0, 1.0],
-            },
-            2: {
-                'vtx': 2,
-                'idx': 2,
-                'gl_PerVertex.gl_Position': [0.5, 0.5, 0.0, 1.0],
-                'vertOut.pos': [0.5, 0.5, 0.0, 1.0],
-                'vertOut.col': [0.0, 0.0, 1.0, 1.0],
-                'vertOut.uv': [1.0, 0.0, 0.0, 1.0],
-            },
-        }
-
-        self.check_mesh_data(postvs_ref, postvs_data)
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])

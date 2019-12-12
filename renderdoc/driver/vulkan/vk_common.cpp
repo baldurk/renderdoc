@@ -921,23 +921,40 @@ bool IsValid(const VkWriteDescriptorSet &write, uint32_t arrayElement)
   return false;
 }
 
-void DescriptorSetBindingElement::RemoveBindRefs(VkResourceRecord *record)
+void DescriptorSetSlotBufferInfo::SetFrom(const VkDescriptorBufferInfo &bufInfo)
+{
+  buffer = GetResID(bufInfo.buffer);
+  offset = bufInfo.offset;
+  range = bufInfo.range;
+}
+
+void DescriptorSetSlotImageInfo::SetFrom(const VkDescriptorImageInfo &imInfo, bool setSampler,
+                                         bool setImageView)
+{
+  if(setSampler)
+    sampler = GetResID(imInfo.sampler);
+  if(setImageView)
+    imageView = GetResID(imInfo.imageView);
+  imageLayout = imInfo.imageLayout;
+}
+
+void DescriptorSetSlot::RemoveBindRefs(VulkanResourceManager *rm, VkResourceRecord *record)
 {
   SCOPED_LOCK(record->descInfo->refLock);
 
-  if(texelBufferView != VK_NULL_HANDLE)
+  if(texelBufferView != ResourceId())
   {
-    record->RemoveBindFrameRef(GetResID(texelBufferView));
+    record->RemoveBindFrameRef(texelBufferView);
 
-    VkResourceRecord *viewRecord = GetRecord(texelBufferView);
+    VkResourceRecord *viewRecord = rm->GetResourceRecord(texelBufferView);
     if(viewRecord && viewRecord->baseResource != ResourceId())
       record->RemoveBindFrameRef(viewRecord->baseResource);
   }
-  if(imageInfo.imageView != VK_NULL_HANDLE)
+  if(imageInfo.imageView != ResourceId())
   {
-    record->RemoveBindFrameRef(GetResID(imageInfo.imageView));
+    record->RemoveBindFrameRef(imageInfo.imageView);
 
-    VkResourceRecord *viewRecord = GetRecord(imageInfo.imageView);
+    VkResourceRecord *viewRecord = rm->GetResourceRecord(imageInfo.imageView);
     if(viewRecord)
     {
       record->RemoveBindFrameRef(viewRecord->baseResource);
@@ -945,34 +962,35 @@ void DescriptorSetBindingElement::RemoveBindRefs(VkResourceRecord *record)
         record->RemoveBindFrameRef(viewRecord->baseResourceMem);
     }
   }
-  if(imageInfo.sampler != VK_NULL_HANDLE)
+  if(imageInfo.sampler != ResourceId())
   {
-    record->RemoveBindFrameRef(GetResID(imageInfo.sampler));
+    record->RemoveBindFrameRef(imageInfo.sampler);
   }
-  if(bufferInfo.buffer != VK_NULL_HANDLE)
+  if(bufferInfo.buffer != ResourceId())
   {
-    record->RemoveBindFrameRef(GetResID(bufferInfo.buffer));
+    record->RemoveBindFrameRef(bufferInfo.buffer);
 
-    VkResourceRecord *bufRecord = GetRecord(bufferInfo.buffer);
+    VkResourceRecord *bufRecord = rm->GetResourceRecord(bufferInfo.buffer);
     if(bufRecord && bufRecord->baseResource != ResourceId())
       record->RemoveBindFrameRef(bufRecord->baseResource);
   }
 
   // NULL everything out now so that we don't accidentally reference an object
   // that was removed already
-  texelBufferView = VK_NULL_HANDLE;
-  bufferInfo.buffer = VK_NULL_HANDLE;
-  imageInfo.imageView = VK_NULL_HANDLE;
-  imageInfo.sampler = VK_NULL_HANDLE;
+  texelBufferView = ResourceId();
+  bufferInfo.buffer = ResourceId();
+  imageInfo.imageView = ResourceId();
+  imageInfo.sampler = ResourceId();
 }
 
-void DescriptorSetBindingElement::AddBindRefs(VkResourceRecord *record, FrameRefType ref)
+void DescriptorSetSlot::AddBindRefs(VulkanResourceManager *rm, VkResourceRecord *record,
+                                    FrameRefType ref)
 {
   SCOPED_LOCK(record->descInfo->refLock);
 
-  if(texelBufferView != VK_NULL_HANDLE)
+  if(texelBufferView != ResourceId())
   {
-    VkResourceRecord *bufView = GetRecord(texelBufferView);
+    VkResourceRecord *bufView = rm->GetResourceRecord(texelBufferView);
     record->AddBindFrameRef(bufView->GetResourceID(), eFrameRef_Read,
                             bufView->resInfo && bufView->resInfo->IsSparse());
     if(bufView->baseResource != ResourceId())
@@ -980,34 +998,21 @@ void DescriptorSetBindingElement::AddBindRefs(VkResourceRecord *record, FrameRef
     if(bufView->baseResourceMem != ResourceId())
       record->AddMemFrameRef(bufView->baseResourceMem, bufView->memOffset, bufView->memSize, ref);
   }
-  if(imageInfo.imageView != VK_NULL_HANDLE)
+  if(imageInfo.imageView != ResourceId())
   {
-    VkResourceRecord *view = GetRecord(imageInfo.imageView);
+    VkResourceRecord *view = rm->GetResourceRecord(imageInfo.imageView);
     record->AddImgFrameRef(view, ref);
   }
-  if(imageInfo.sampler != VK_NULL_HANDLE)
+  if(imageInfo.sampler != ResourceId())
   {
-    record->AddBindFrameRef(GetResID(imageInfo.sampler), eFrameRef_Read);
+    record->AddBindFrameRef(imageInfo.sampler, eFrameRef_Read);
   }
-  if(bufferInfo.buffer != VK_NULL_HANDLE)
+  if(bufferInfo.buffer != ResourceId())
   {
-    VkResourceRecord *buf = GetRecord(bufferInfo.buffer);
-    record->AddBindFrameRef(GetResID(bufferInfo.buffer), eFrameRef_Read,
+    VkResourceRecord *buf = rm->GetResourceRecord(bufferInfo.buffer);
+    record->AddBindFrameRef(bufferInfo.buffer, eFrameRef_Read,
                             buf->resInfo && buf->resInfo->IsSparse());
     if(buf->baseResource != ResourceId())
       record->AddMemFrameRef(buf->baseResource, buf->memOffset, buf->memSize, ref);
   }
-}
-
-void DescriptorSetSlot::CreateFrom(const DescriptorSetBindingElement &slot)
-{
-  bufferInfo.buffer = GetResID(slot.bufferInfo.buffer);
-  bufferInfo.offset = slot.bufferInfo.offset;
-  bufferInfo.range = slot.bufferInfo.range;
-
-  imageInfo.sampler = GetResID(slot.imageInfo.sampler);
-  imageInfo.imageView = GetResID(slot.imageInfo.imageView);
-  imageInfo.imageLayout = slot.imageInfo.imageLayout;
-
-  texelBufferView = GetResID(slot.texelBufferView);
 }

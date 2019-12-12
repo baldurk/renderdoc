@@ -392,27 +392,17 @@ struct MemoryAllocation
 #define IsReplayingAndReading() (ser.IsReading() && IsReplayMode(m_State))
 
 struct VkResourceRecord;
+class VulkanResourceManager;
 
 FrameRefType GetRefType(VkDescriptorType descType);
 
-// the possible contents of a descriptor set slot,
-// taken from the VkWriteDescriptorSet
-struct DescriptorSetBindingElement
-{
-  VkDescriptorBufferInfo bufferInfo;
-  VkDescriptorImageInfo imageInfo;
-  VkBufferView texelBufferView;
-
-  void RemoveBindRefs(VkResourceRecord *record);
-  void AddBindRefs(VkResourceRecord *record, FrameRefType ref);
-};
-
-// serialisable snapshot of descriptor set slots. Needed because if we snapshot
-// DescriptorSetBindingElement
-// the VkBuffer or VkImageView handles may have been deleted and recreated by the time we fetch
-// their ResourceId
+// tracking for descriptor set slots. Needed because if we use something without IDs for tracking
+// binding elements the handles may be deleted and recreated, and stale bindings could interfere
+// with new bindings
 struct DescriptorSetSlotBufferInfo
 {
+  void SetFrom(const VkDescriptorBufferInfo &bufInfo);
+
   ResourceId buffer;
   VkDeviceSize offset;
   VkDeviceSize range;
@@ -420,6 +410,8 @@ struct DescriptorSetSlotBufferInfo
 
 struct DescriptorSetSlotImageInfo
 {
+  void SetFrom(const VkDescriptorImageInfo &imInfo, bool setSampler, bool setImageView);
+
   ResourceId sampler;
   ResourceId imageView;
   VkImageLayout imageLayout;
@@ -427,7 +419,8 @@ struct DescriptorSetSlotImageInfo
 
 struct DescriptorSetSlot
 {
-  void CreateFrom(const DescriptorSetBindingElement &slot);
+  void RemoveBindRefs(VulkanResourceManager *rm, VkResourceRecord *record);
+  void AddBindRefs(VulkanResourceManager *rm, VkResourceRecord *record, FrameRefType ref);
 
   // VkDescriptorBufferInfo
   DescriptorSetSlotBufferInfo bufferInfo;

@@ -1382,7 +1382,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
           if(bind.descriptorCount == 0 || bind.stageFlags == 0)
             continue;
 
-          DescriptorSetBindingElement *slot = setInfo.currentBindings[b];
+          DescriptorSetSlot *slot = setInfo.currentBindings[b];
 
           write.dstBinding = uint32_t(b + newBindingsCount);
           write.dstArrayElement = 0;
@@ -1399,7 +1399,14 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
             {
               VkDescriptorImageInfo *out = new VkDescriptorImageInfo[write.descriptorCount];
               for(uint32_t w = 0; w < write.descriptorCount; w++)
-                out[w] = slot[w].imageInfo;
+              {
+                const DescriptorSetSlotImageInfo &src = slot[w].imageInfo;
+
+                out[w].imageLayout = src.imageLayout;
+                out[w].sampler = GetResourceManager()->GetCurrentHandle<VkSampler>(src.sampler);
+                out[w].imageView = GetResourceManager()->GetCurrentHandle<VkImageView>(src.imageView);
+              }
+
               write.pImageInfo = out;
               allocImgWrites.push_back(out);
               break;
@@ -1409,7 +1416,8 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
             {
               VkBufferView *out = new VkBufferView[write.descriptorCount];
               for(uint32_t w = 0; w < write.descriptorCount; w++)
-                out[w] = slot[w].texelBufferView;
+                out[w] =
+                    GetResourceManager()->GetCurrentHandle<VkBufferView>(slot[w].texelBufferView);
               write.pTexelBufferView = out;
               allocBufViewWrites.push_back(out);
               break;
@@ -1421,7 +1429,13 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
             {
               VkDescriptorBufferInfo *out = new VkDescriptorBufferInfo[write.descriptorCount];
               for(uint32_t w = 0; w < write.descriptorCount; w++)
-                out[w] = slot[w].bufferInfo;
+              {
+                const DescriptorSetSlotBufferInfo &src = slot[w].bufferInfo;
+
+                out[w].offset = src.offset;
+                out[w].range = src.range;
+                out[w].buffer = GetResourceManager()->GetCurrentHandle<VkBuffer>(src.buffer);
+              }
               write.pBufferInfo = out;
               allocBufWrites.push_back(out);
               break;

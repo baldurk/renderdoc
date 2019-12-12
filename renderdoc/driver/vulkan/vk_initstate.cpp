@@ -63,7 +63,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       {
         for(uint32_t b = 0; b < layout.bindings[i].descriptorCount; b++)
         {
-          initialContents.descriptorSlots[e++].CreateFrom(record->descInfo->descBindings[i][b]);
+          initialContents.descriptorSlots[e++] = record->descInfo->descBindings[i][b];
         }
       }
     }
@@ -651,7 +651,7 @@ uint64_t WrappedVulkan::GetSize_InitialState(ResourceId id, const VkInitialConte
     for(size_t i = 0; i < layout.bindings.size(); i++)
       NumBindings += layout.bindings[i].descriptorCount;
 
-    return 32 + NumBindings * sizeof(DescriptorSetBindingElement);
+    return 32 + NumBindings * sizeof(DescriptorSetSlot);
   }
   else if(initial.type == eResBuffer)
   {
@@ -1487,13 +1487,13 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
     // need to blat over the current descriptor set contents, so these are available
     // when we want to fetch pipeline state
-    std::vector<DescriptorSetBindingElement *> &bindings = m_DescriptorSetState[id].currentBindings;
+    std::vector<DescriptorSetSlot *> &bindings = m_DescriptorSetState[id].currentBindings;
 
     for(uint32_t i = 0; i < initial.numDescriptors; i++)
     {
       RDCASSERT(writes[i].dstBinding < bindings.size());
 
-      DescriptorSetBindingElement *bind = bindings[writes[i].dstBinding];
+      DescriptorSetSlot *bind = bindings[writes[i].dstBinding];
 
       for(uint32_t d = 0; d < writes[i].descriptorCount; d++)
       {
@@ -1502,18 +1502,20 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
         if(writes[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
            writes[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
         {
-          bind[idx].texelBufferView = writes[i].pTexelBufferView[d];
+          bind[idx].texelBufferView = GetResID(writes[i].pTexelBufferView[d]);
         }
         else if(writes[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
                 writes[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
                 writes[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
                 writes[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
         {
-          bind[idx].bufferInfo = writes[i].pBufferInfo[d];
+          bind[idx].bufferInfo.SetFrom(writes[i].pBufferInfo[d]);
         }
         else
         {
-          bind[idx].imageInfo = writes[i].pImageInfo[d];
+          // we don't ever pass invalid parameters so we can unconditionally set both. Invalid
+          // elements are set to VK_NULL_HANDLE which is safe
+          bind[idx].imageInfo.SetFrom(writes[i].pImageInfo[d], true, true);
         }
       }
     }

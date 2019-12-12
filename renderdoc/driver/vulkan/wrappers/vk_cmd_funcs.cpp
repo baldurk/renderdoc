@@ -3728,7 +3728,7 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
 
   const DescSetLayout &desclayout = m_CreationInfo.m_DescSetLayout[descSetLayouts[set]];
 
-  std::vector<DescriptorSetBindingElement *> &bindings = m_DescriptorSetState[setId].currentBindings;
+  std::vector<DescriptorSetSlot *> &bindings = m_DescriptorSetState[setId].currentBindings;
   ResourceId prevLayout = m_DescriptorSetState[setId].layout;
 
   if(prevLayout == ResourceId())
@@ -3749,7 +3749,7 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
 
     RDCASSERT(writeDesc.dstBinding < bindings.size());
 
-    DescriptorSetBindingElement **bind = &bindings[writeDesc.dstBinding];
+    DescriptorSetSlot **bind = &bindings[writeDesc.dstBinding];
     const DescSetLayout::Binding *layoutBinding = &desclayout.bindings[writeDesc.dstBinding];
     uint32_t curIdx = writeDesc.dstArrayElement;
 
@@ -3767,7 +3767,7 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
           curIdx = 0;
         }
 
-        (*bind)[curIdx].texelBufferView = writeDesc.pTexelBufferView[d];
+        (*bind)[curIdx].texelBufferView = GetResID(writeDesc.pTexelBufferView[d]);
       }
     }
     else if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
@@ -3787,7 +3787,18 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
           curIdx = 0;
         }
 
-        (*bind)[curIdx].imageInfo = writeDesc.pImageInfo[d];
+        bool sampler = true;
+        bool imageView = true;
+
+        // ignore descriptors not part of the write, as they might not even point to a valid
+        // object so trying to get their ID could crash
+        if(layoutBinding->immutableSampler ||
+           writeDesc.descriptorType != VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+          sampler = false;
+        if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
+          imageView = false;
+
+        (*bind)[curIdx].imageInfo.SetFrom(writeDesc.pImageInfo[d], sampler, imageView);
       }
     }
     else
@@ -3803,7 +3814,7 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
           curIdx = 0;
         }
 
-        (*bind)[curIdx].bufferInfo = writeDesc.pBufferInfo[d];
+        (*bind)[curIdx].bufferInfo.SetFrom(writeDesc.pBufferInfo[d]);
       }
     }
   }

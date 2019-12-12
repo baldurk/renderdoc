@@ -444,7 +444,7 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
       push.descriptorType = bind.descriptorType;
       push.descriptorCount = bind.descriptorCount;
 
-      DescriptorSetBindingElement *slots = setInfo.currentBindings[b];
+      DescriptorSetSlot *slots = setInfo.currentBindings[b];
 
       if(push.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
          push.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
@@ -452,7 +452,8 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
         VkBufferView *dst = new VkBufferView[push.descriptorCount];
 
         for(uint32_t a = 0; a < push.descriptorCount; a++)
-          dst[a] = Unwrap(slots[a].texelBufferView);
+          dst[a] =
+              Unwrap(GetResourceManager()->GetCurrentHandle<VkBufferView>(slots[a].texelBufferView));
 
         push.pTexelBufferView = dst;
         allocBufViewWrites.push_back(dst);
@@ -467,9 +468,12 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
 
         for(uint32_t a = 0; a < push.descriptorCount; a++)
         {
-          dst[a] = slots[a].imageInfo;
-          dst[a].sampler = Unwrap(dst[a].sampler);
-          dst[a].imageView = Unwrap(dst[a].imageView);
+          const DescriptorSetSlotImageInfo &src = slots[a].imageInfo;
+
+          dst[a].imageLayout = src.imageLayout;
+          dst[a].sampler = Unwrap(GetResourceManager()->GetCurrentHandle<VkSampler>(src.sampler));
+          dst[a].imageView =
+              Unwrap(GetResourceManager()->GetCurrentHandle<VkImageView>(src.imageView));
         }
 
         push.pImageInfo = dst;
@@ -481,8 +485,11 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
 
         for(uint32_t a = 0; a < push.descriptorCount; a++)
         {
-          dst[a] = slots[a].bufferInfo;
-          dst[a].buffer = Unwrap(dst[a].buffer);
+          const DescriptorSetSlotBufferInfo &src = slots[a].bufferInfo;
+
+          dst[a].offset = src.offset;
+          dst[a].range = src.range;
+          dst[a].buffer = Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(src.buffer));
         }
 
         push.pBufferInfo = dst;

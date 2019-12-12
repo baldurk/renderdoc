@@ -697,7 +697,7 @@ private:
     DescriptorSetInfo &operator=(const DescriptorSetInfo &) = default;
     ~DescriptorSetInfo() { clear(); }
     ResourceId layout;
-    std::vector<DescriptorSetBindingElement *> currentBindings;
+    std::vector<DescriptorSetSlot *> currentBindings;
     bool push;
 
     void clear()

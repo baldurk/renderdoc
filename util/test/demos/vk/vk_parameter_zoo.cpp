@@ -74,6 +74,21 @@ void main()
 
 )EOSHADER";
 
+  const std::string pixel2 = R"EOSHADER(
+#version 450 core
+#extension GL_EXT_samplerless_texture_functions : enable
+
+layout(location = 0, index = 0) out vec4 Color;
+
+layout(binding = 0) uniform texture2D tex;
+
+void main()
+{
+	Color = vec4(0, 1, 0, 1) * texelFetch(tex, ivec2(0), 0);
+}
+
+)EOSHADER";
+
   int main()
   {
     optDevExts.push_back(VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME);
@@ -138,6 +153,15 @@ void main()
     VkPipelineLayout immutlayout =
         createPipelineLayout(vkh::PipelineLayoutCreateInfo({immutsetlayout}));
 
+    VkDescriptorSetLayout setlayout2 = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+        {0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+    }));
+
+    VkDescriptorSet descset2 = allocateDescriptorSet(setlayout2);
+
+    VkPipelineLayout layout2 = createPipelineLayout(vkh::PipelineLayoutCreateInfo({setlayout2}));
+
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
     pipeCreateInfo.layout = layout;
@@ -159,6 +183,15 @@ void main()
     pipeCreateInfo.layout = immutlayout;
 
     VkPipeline immutpipe = createGraphicsPipeline(pipeCreateInfo);
+
+    pipeCreateInfo.stages = {
+        CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(pixel2, ShaderLang::glsl, ShaderStage::frag, "main"),
+    };
+
+    pipeCreateInfo.layout = layout2;
+
+    VkPipeline pipe2 = createGraphicsPipeline(pipeCreateInfo);
 
     {
       // invalid handle - should not be used because the flag for derived pipelines is not used
@@ -236,7 +269,8 @@ void main()
 
     AllocatedImage img(this,
                        vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+                                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+                                                VK_IMAGE_USAGE_TRANSFER_DST_BIT),
                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImage validImage = img.image;
@@ -252,6 +286,15 @@ void main()
                                        vkh::ImageMemoryBarrier(0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
                                                                VK_IMAGE_LAYOUT_GENERAL, img.image),
                                    });
+      vkCmdClearColorImage(cmd, img.image, VK_IMAGE_LAYOUT_GENERAL,
+                           vkh::ClearColorValue(1.0f, 1.0f, 1.0f, 1.0f), 1,
+                           vkh::ImageSubresourceRange());
+      vkh::cmdPipelineBarrier(
+          cmd, {
+                   vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                                           VK_IMAGE_LAYOUT_GENERAL,
+                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, img.image),
+               });
       vkEndCommandBuffer(cmd);
       Submit(99, 99, {cmd});
     }
@@ -462,6 +505,53 @@ void main()
       vkCreateDescriptorUpdateTemplateKHR(device, &createInfo, NULL, &pushtempl);
     }
 
+    // check that stale views in descriptors don't cause problems if the handle is re-used
+
+    VkImageView view1, view2;
+    CHECK_VKR(vkCreateImageView(device, vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D,
+                                                                 VK_FORMAT_R32G32B32A32_SFLOAT),
+                                NULL, &view1));
+    CHECK_VKR(vkCreateImageView(device, vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D,
+                                                                 VK_FORMAT_R32G32B32A32_SFLOAT),
+                                NULL, &view2));
+
+    vkh::updateDescriptorSets(
+        device, {
+                    // bind view1 to binding 0, we will override this
+                    vkh::WriteDescriptorSet(descset2, 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                            {vkh::DescriptorImageInfo(view1)}),
+                    // we bind view2 to binding 1. This will become stale
+                    vkh::WriteDescriptorSet(descset2, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                            {vkh::DescriptorImageInfo(view2)}),
+                });
+
+    vkDestroyImageView(device, view2, NULL);
+
+    // create view3. Under RD, this is expected to get the same handle as view2 (but a new ID)
+    VkImageView view3;
+    CHECK_VKR(vkCreateImageView(device, vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D,
+                                                                 VK_FORMAT_R32G32B32A32_SFLOAT),
+                                NULL, &view3));
+
+    if(rdoc)
+    {
+      TEST_ASSERT(view2 == view3,
+                  "Expected view3 to be a re-used handle. Test isn't going to be valid");
+    }
+
+    vkh::updateDescriptorSets(
+        device,
+        {
+            // bind view3 to 0. This means the same handle is now in both binding but only binding 0
+            // is valid, binding 1 refers to the 'old' version of this handle.
+            vkh::WriteDescriptorSet(descset2, 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                    {vkh::DescriptorImageInfo(view3)}),
+            // this unbinds the stale view2. Nothing should happen, but if we're comparing by handle
+            // this may remove a reference to view3 since it will have the same handle
+            vkh::WriteDescriptorSet(descset2, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                    {vkh::DescriptorImageInfo(view1)}),
+        });
+
     while(Running())
     {
       VkCommandBuffer cmd = GetCommandBuffer();
@@ -498,6 +588,11 @@ void main()
 
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe2);
+      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout2, 0, {descset2}, {});
+
+      vkCmdDraw(cmd, 3, 1, 0, 0);
+
       vkCmdEndRenderPass(cmd);
 
       FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
@@ -508,6 +603,13 @@ void main()
 
       Present();
     }
+
+    vkDeviceWaitIdle(device);
+
+    vkDestroySampler(device, validSampler, NULL);
+
+    vkDestroyImageView(device, view1, NULL);
+    vkDestroyImageView(device, view3, NULL);
 
     if(KHR_descriptor_update_template && KHR_push_descriptor)
       vkDestroyDescriptorUpdateTemplateKHR(device, pushtempl, NULL);

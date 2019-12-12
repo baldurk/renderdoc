@@ -1013,7 +1013,7 @@ struct DescriptorSetData
 
   // descriptor set bindings for this descriptor set. Filled out on
   // create from the layout.
-  std::vector<DescriptorSetBindingElement *> descBindings;
+  std::vector<DescriptorSetSlot *> descBindings;
 
   // lock protecting bindFrameRefs and bindMemRefs
   Threading::CriticalSection refLock;
