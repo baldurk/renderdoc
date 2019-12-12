@@ -980,7 +980,7 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
             // need to do each sample separately to let us vary the stencil value
             for(UINT sm = 0; sm < SampleCount; sm++)
             {
-              Vec4i params(sl, mp);
+              Vec4i params(tex3 ? 0 : sl, mp, 0, tex3 ? sl : 0);
               ctx->UpdateSubresource(mscb, 0, NULL, &params, sizeof(params), sizeof(params));
 
               ctx->OMSetBlendState(NULL, NULL, 1 << sm);

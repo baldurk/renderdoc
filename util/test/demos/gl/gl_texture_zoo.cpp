@@ -870,7 +870,7 @@ void main()
 
             glUniform1ui(glGetUniformLocation(p, "texWidth"), texWidth);
 
-            glUniform1ui(glGetUniformLocation(p, "slice"), sl);
+            glUniform1ui(glGetUniformLocation(p, "slice"), t.dim == 3 ? 0 : sl);
             glUniform1ui(glGetUniformLocation(p, "mip"), mp);
             glUniform1ui(glGetUniformLocation(p, "flags"), flags);
             glUniform1ui(glGetUniformLocation(p, "zlayer"), t.dim == 3 ? sl : 0);

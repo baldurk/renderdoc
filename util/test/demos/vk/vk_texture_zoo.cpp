@@ -1318,7 +1318,7 @@ void main()
 
               vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
 
-              Vec4i params(sl, mp);
+              Vec4i params(tex3d ? 0 : sl, mp, 0, tex3d ? sl : 0);
               vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 0, sizeof(params), &params);
 
               vkCmdSetStencilReference(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, 100 + (mp + sm) * 10);

@@ -1053,7 +1053,7 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
 
               cmd->SetPipelineState(pso);
 
-              Vec4i params(sl, mp);
+              Vec4i params(tex3d ? 0 : sl, mp, 0, tex3d ? sl : 0);
               cmd->SetGraphicsRoot32BitConstants(0, 4, &params, 0);
 
               cmd->OMSetStencilRef(100 + (mp + sm) * 10);
