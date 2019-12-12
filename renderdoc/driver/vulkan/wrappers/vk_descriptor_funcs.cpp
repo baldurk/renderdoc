@@ -83,8 +83,10 @@ VkDescriptorUpdateTemplateCreateInfo WrappedVulkan::UnwrapInfo(
 {
   VkDescriptorUpdateTemplateCreateInfo ret = *info;
 
-  ret.pipelineLayout = Unwrap(ret.pipelineLayout);
-  ret.descriptorSetLayout = Unwrap(ret.descriptorSetLayout);
+  if(ret.templateType == VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR)
+    ret.pipelineLayout = Unwrap(ret.pipelineLayout);
+  if(ret.templateType == VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET)
+    ret.descriptorSetLayout = Unwrap(ret.descriptorSetLayout);
 
   return ret;
 }

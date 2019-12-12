@@ -468,8 +468,8 @@ void main()
       createInfo.templateType = VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET_KHR;
       createInfo.descriptorSetLayout = setlayout;
       createInfo.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-      createInfo.pipelineLayout = layout;
-      createInfo.set = 0;
+      createInfo.pipelineLayout = (VkPipelineLayout)0x1234;
+      createInfo.set = 123456789;
       VkDescriptorUpdateTemplateKHR templ;
       vkCreateDescriptorUpdateTemplateKHR(device, &createInfo, NULL, &templ);
 
@@ -498,7 +498,7 @@ void main()
       createInfo.descriptorUpdateEntryCount = (uint32_t)entries.size();
       createInfo.pDescriptorUpdateEntries = entries.data();
       createInfo.templateType = VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR;
-      createInfo.descriptorSetLayout = pushlayout;
+      createInfo.descriptorSetLayout = (VkDescriptorSetLayout)0x1234;
       createInfo.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
       createInfo.pipelineLayout = layout;
       createInfo.set = 1;
