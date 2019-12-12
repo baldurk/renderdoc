@@ -131,8 +131,554 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     float lodOrCompareValue, const uint8_t swizzle[4], ShaderDebug::GatherChannel gatherChannel,
     const char *opString, ShaderVariable &output)
 {
-  RDCUNIMPLEMENTED("CalculateSampleGather not yet implemented for D3D12");
-  return false;
+  using namespace DXBCBytecode;
+
+  D3D12MarkerRegion region(m_pDevice->GetQueue()->GetReal(), "CalculateSampleGather");
+
+  std::string funcRet = "";
+  DXGI_FORMAT retFmt = DXGI_FORMAT_UNKNOWN;
+
+  if(opcode == OPCODE_SAMPLE_C || opcode == OPCODE_SAMPLE_C_LZ || opcode == OPCODE_GATHER4_C ||
+     opcode == OPCODE_GATHER4_PO_C || opcode == OPCODE_LOD)
+  {
+    retFmt = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    funcRet = "float4";
+  }
+
+  std::string samplerDecl = "";
+  if(samplerData.mode == SAMPLER_MODE_DEFAULT)
+    samplerDecl = "SamplerState s";
+  else if(samplerData.mode == SAMPLER_MODE_COMPARISON)
+    samplerDecl = "SamplerComparisonState s";
+
+  std::string textureDecl = "";
+  int texdim = 2;
+  int offsetDim = 2;
+  bool useOffsets = true;
+
+  if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE1D)
+  {
+    textureDecl = "Texture1D";
+    texdim = 1;
+    offsetDim = 1;
+  }
+  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE2D)
+  {
+    textureDecl = "Texture2D";
+    texdim = 2;
+    offsetDim = 2;
+  }
+  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DMS)
+  {
+    textureDecl = "Texture2DMS";
+    texdim = 2;
+    offsetDim = 2;
+  }
+  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE3D)
+  {
+    textureDecl = "Texture3D";
+    texdim = 3;
+    offsetDim = 3;
+  }
+  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURECUBE)
+  {
+    textureDecl = "TextureCube";
+    texdim = 3;
+    offsetDim = 3;
+    useOffsets = false;
+  }
+  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE1DARRAY)
+  {
+    textureDecl = "Texture1DArray";
+    texdim = 2;
+    offsetDim = 1;
+  }
+  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DARRAY)
+  {
+    textureDecl = "Texture2DArray";
+    texdim = 3;
+    offsetDim = 2;
+  }
+  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
+  {
+    textureDecl = "Texture2DMSArray";
+    texdim = 3;
+    offsetDim = 2;
+  }
+  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURECUBEARRAY)
+  {
+    textureDecl = "TextureCubeArray";
+    texdim = 4;
+    offsetDim = 3;
+    useOffsets = false;
+  }
+  else
+  {
+    RDCERR("Unsupported resource type %d in sample operation", resourceData.dim);
+  }
+
+  {
+    char *typeStr[DXBC::NUM_RETURN_TYPES] = {
+        "",    // enum starts at ==1
+        "unorm float",
+        "snorm float",
+        "int",
+        "uint",
+        "float",
+        "__",    // RETURN_TYPE_MIXED
+        "double",
+        "__",    // RETURN_TYPE_CONTINUED
+        "__",    // RETURN_TYPE_UNUSED
+    };
+
+    // obviously these may be overly optimistic in some cases
+    // but since we don't know at debug time what the source texture format is
+    // we just use the fattest one necessary. There's no harm in retrieving at
+    // higher precision
+    DXGI_FORMAT fmts[DXBC::NUM_RETURN_TYPES] = {
+        DXGI_FORMAT_UNKNOWN,               // enum starts at ==1
+        DXGI_FORMAT_R32G32B32A32_FLOAT,    // unorm float
+        DXGI_FORMAT_R32G32B32A32_FLOAT,    // snorm float
+        DXGI_FORMAT_R32G32B32A32_SINT,     // int
+        DXGI_FORMAT_R32G32B32A32_UINT,     // uint
+        DXGI_FORMAT_R32G32B32A32_FLOAT,    // float
+        DXGI_FORMAT_UNKNOWN,               // RETURN_TYPE_MIXED
+
+        // should maybe be double, but there is no double texture format anyway!
+        // spec is unclear but I presume reads are done at most at float
+        // precision anyway since that's the source, and converted to doubles.
+        DXGI_FORMAT_R32G32B32A32_FLOAT,    // double
+
+        DXGI_FORMAT_UNKNOWN,    // RETURN_TYPE_CONTINUED
+        DXGI_FORMAT_UNKNOWN,    // RETURN_TYPE_UNUSED
+    };
+
+    char buf[64] = {0};
+    StringFormat::snprintf(buf, 63, "%s4", typeStr[resourceData.retType]);
+
+    if(retFmt == DXGI_FORMAT_UNKNOWN)
+    {
+      funcRet = buf;
+      retFmt = fmts[resourceData.retType];
+    }
+
+    if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DMS ||
+       resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
+    {
+      if(resourceData.sampleCount > 0)
+        StringFormat::snprintf(buf, 63, "%s4, %d", typeStr[resourceData.retType],
+                               resourceData.sampleCount);
+    }
+
+    textureDecl += "<";
+    textureDecl += buf;
+    textureDecl += "> t";
+  }
+
+  char *formats[4][2] = {
+      {"float(%.10f)", "int(%d)"},
+      {"float2(%.10f, %.10f)", "int2(%d, %d)"},
+      {"float3(%.10f, %.10f, %.10f)", "int3(%d, %d, %d)"},
+      {"float4(%.10f, %.10f, %.10f, %.10f)", "int4(%d, %d, %d, %d)"},
+  };
+
+  int texcoordType = 0;
+  int ddxType = 0;
+  int ddyType = 0;
+  int texdimOffs = 0;
+
+  if(opcode == OPCODE_SAMPLE || opcode == OPCODE_SAMPLE_L || opcode == OPCODE_SAMPLE_B ||
+     opcode == OPCODE_SAMPLE_D || opcode == OPCODE_SAMPLE_C || opcode == OPCODE_SAMPLE_C_LZ ||
+     opcode == OPCODE_GATHER4 || opcode == OPCODE_GATHER4_C || opcode == OPCODE_GATHER4_PO ||
+     opcode == OPCODE_GATHER4_PO_C || opcode == OPCODE_LOD)
+  {
+    // all floats
+    texcoordType = ddxType = ddyType = 0;
+  }
+  else if(opcode == OPCODE_LD)
+  {
+    // int address, one larger than texdim (to account for mip/slice parameter)
+    texdimOffs = 1;
+    texcoordType = 1;
+
+    if(texdim == 4)
+    {
+      RDCERR("Unexpectedly large texture in load operation");
+    }
+  }
+  else if(opcode == OPCODE_LD_MS)
+  {
+    texcoordType = 1;
+
+    if(texdim == 4)
+    {
+      RDCERR("Unexpectedly large texture in load operation");
+    }
+  }
+
+  for(uint32_t i = 0; i < ddxCalc.columns; i++)
+  {
+    if(ddxType == 0 && (_isnan(ddxCalc.value.fv[i]) || !_finite(ddxCalc.value.fv[i])))
+    {
+      RDCWARN("NaN or Inf in texlookup");
+      ddxCalc.value.fv[i] = 0.0f;
+
+      m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
+                                 MessageSource::RuntimeWarning,
+                                 StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
+                                                   "texture lookup ddx - using 0.0 instead",
+                                                   m_instruction, opString));
+    }
+    if(ddyType == 0 && (_isnan(ddyCalc.value.fv[i]) || !_finite(ddyCalc.value.fv[i])))
+    {
+      RDCWARN("NaN or Inf in texlookup");
+      ddyCalc.value.fv[i] = 0.0f;
+
+      m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
+                                 MessageSource::RuntimeWarning,
+                                 StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
+                                                   "texture lookup ddy - using 0.0 instead",
+                                                   m_instruction, opString));
+    }
+  }
+
+  for(uint32_t i = 0; i < uv.columns; i++)
+  {
+    if(texcoordType == 0 && (_isnan(uv.value.fv[i]) || !_finite(uv.value.fv[i])))
+    {
+      RDCWARN("NaN or Inf in texlookup");
+      uv.value.fv[i] = 0.0f;
+
+      m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
+                                 MessageSource::RuntimeWarning,
+                                 StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
+                                                   "texture lookup uv - using 0.0 instead",
+                                                   m_instruction, opString));
+    }
+  }
+
+  char buf[256] = {0};
+  char buf2[256] = {0};
+  char buf3[256] = {0};
+
+  // because of unions in .value we can pass the float versions and printf will interpret it as
+  // the right type according to formats
+  if(texcoordType == 0)
+    StringFormat::snprintf(buf, 255, formats[texdim + texdimOffs - 1][texcoordType], uv.value.f.x,
+                           uv.value.f.y, uv.value.f.z, uv.value.f.w);
+  else
+    StringFormat::snprintf(buf, 255, formats[texdim + texdimOffs - 1][texcoordType], uv.value.i.x,
+                           uv.value.i.y, uv.value.i.z, uv.value.i.w);
+
+  if(ddxType == 0)
+    StringFormat::snprintf(buf2, 255, formats[offsetDim + texdimOffs - 1][ddxType], ddxCalc.value.f.x,
+                           ddxCalc.value.f.y, ddxCalc.value.f.z, ddxCalc.value.f.w);
+  else
+    StringFormat::snprintf(buf2, 255, formats[offsetDim + texdimOffs - 1][ddxType], ddxCalc.value.i.x,
+                           ddxCalc.value.i.y, ddxCalc.value.i.z, ddxCalc.value.i.w);
+
+  if(ddyType == 0)
+    StringFormat::snprintf(buf3, 255, formats[offsetDim + texdimOffs - 1][ddyType], ddyCalc.value.f.x,
+                           ddyCalc.value.f.y, ddyCalc.value.f.z, ddyCalc.value.f.w);
+  else
+    StringFormat::snprintf(buf3, 255, formats[offsetDim + texdimOffs - 1][ddyType], ddyCalc.value.i.x,
+                           ddyCalc.value.i.y, ddyCalc.value.i.z, ddyCalc.value.i.w);
+
+  std::string texcoords = buf;
+  std::string ddx = buf2;
+  std::string ddy = buf3;
+
+  if(opcode == OPCODE_LD_MS)
+  {
+    StringFormat::snprintf(buf, 255, formats[0][1], multisampleIndex);
+  }
+
+  std::string sampleIdx = buf;
+  std::string offsets = "";
+
+  if(useOffsets)
+  {
+    if(offsetDim == 1)
+      StringFormat::snprintf(buf, 255, ", int(%d)", texelOffsets[0]);
+    else if(offsetDim == 2)
+      StringFormat::snprintf(buf, 255, ", int2(%d, %d)", texelOffsets[0], texelOffsets[1]);
+    else if(offsetDim == 3)
+      StringFormat::snprintf(buf, 255, ", int3(%d, %d, %d)", texelOffsets[0], texelOffsets[1],
+                             texelOffsets[2]);
+    // texdim == 4 is cube arrays, no offset supported
+
+    offsets = buf;
+  }
+
+  char elems[] = "xyzw";
+  std::string strSwizzle = ".";
+  for(int i = 0; i < 4; ++i)
+  {
+    strSwizzle += elems[swizzle[i]];
+  }
+
+  std::string strGatherChannel;
+  switch(gatherChannel)
+  {
+    case ShaderDebug::GatherChannel::Red: strGatherChannel = "Red"; break;
+    case ShaderDebug::GatherChannel::Green: strGatherChannel = "Green"; break;
+    case ShaderDebug::GatherChannel::Blue: strGatherChannel = "Blue"; break;
+    case ShaderDebug::GatherChannel::Alpha: strGatherChannel = "Alpha"; break;
+  }
+
+  std::string vsProgram = "float4 main(uint id : SV_VertexID) : SV_Position {\n";
+  vsProgram += "return float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
+  vsProgram += "}";
+
+  std::string sampleProgram;
+
+  UINT texSlot = resourceData.slot;
+  UINT sampSlot = samplerData.slot;
+
+  if(opcode == OPCODE_SAMPLE || opcode == OPCODE_SAMPLE_B || opcode == OPCODE_SAMPLE_D)
+  {
+    sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
+                                      textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
+    sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
+    sampleProgram += StringFormat::Fmt("t.SampleGrad(s, %s, %s, %s%s)%s;", texcoords.c_str(),
+                                       ddx.c_str(), ddy.c_str(), offsets.c_str(), strSwizzle.c_str());
+    sampleProgram += "\n}\n";
+  }
+  else if(opcode == OPCODE_SAMPLE_L)
+  {
+    // lod selection
+    sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
+                                      textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
+    sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
+    sampleProgram += StringFormat::Fmt("t.SampleLevel(s, %s, %.10f%s)%s;", texcoords.c_str(),
+                                       lodOrCompareValue, offsets.c_str(), strSwizzle.c_str());
+    sampleProgram += "\n}\n";
+  }
+  else if(opcode == OPCODE_SAMPLE_C || opcode == OPCODE_LOD)
+  {
+    // these operations need derivatives but have no hlsl function to call to provide them, so
+    // we fake it in the vertex shader
+
+    std::string uvDim = "1";
+    uvDim[0] += char(texdim + texdimOffs - 1);
+
+    vsProgram = "void main(uint id : SV_VertexID, out float4 pos : SV_Position, out float" + uvDim +
+                " uv : uvs) {\n";
+
+    StringFormat::snprintf(
+        buf, 255, formats[texdim + texdimOffs - 1][texcoordType],
+        uv.value.f.x + ddyCalc.value.f.x * 2.0f, uv.value.f.y + ddyCalc.value.f.y * 2.0f,
+        uv.value.f.z + ddyCalc.value.f.z * 2.0f, uv.value.f.w + ddyCalc.value.f.w * 2.0f);
+
+    vsProgram += "if(id == 0) uv = " + std::string(buf) + ";\n";
+
+    StringFormat::snprintf(buf, 255, formats[texdim + texdimOffs - 1][texcoordType], uv.value.f.x,
+                           uv.value.f.y, uv.value.f.z, uv.value.f.w);
+
+    vsProgram += "if(id == 1) uv = " + std::string(buf) + ";\n";
+
+    StringFormat::snprintf(
+        buf, 255, formats[texdim + texdimOffs - 1][texcoordType],
+        uv.value.f.x + ddxCalc.value.f.x * 2.0f, uv.value.f.y + ddxCalc.value.f.y * 2.0f,
+        uv.value.f.z + ddxCalc.value.f.z * 2.0f, uv.value.f.w + ddxCalc.value.f.w * 2.0f);
+
+    vsProgram += "if(id == 2) uv = " + std::string(buf) + ";\n";
+
+    vsProgram += "pos = float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
+    vsProgram += "}";
+
+    if(opcode == OPCODE_SAMPLE_C)
+    {
+      // comparison value
+      sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
+                                        textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
+      sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim +
+                       " uv : uvs) : SV_Target0\n{\n";
+      sampleProgram += StringFormat::Fmt("return t.SampleCmpLevelZero(s, uv, %.10f%s).xxxx;",
+                                         lodOrCompareValue, offsets.c_str());
+      sampleProgram += "\n}\n";
+    }
+    else if(opcode == OPCODE_LOD)
+    {
+      sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
+                                        textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
+      sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim +
+                       " uv : uvs) : SV_Target0\n{\n";
+      sampleProgram +=
+          "return float4(t.CalculateLevelOfDetail(s, uv), t.CalculateLevelOfDetailUnclamped(s, "
+          "uv), 0.0f, 0.0f);";
+      sampleProgram += "\n}\n";
+    }
+  }
+  else if(opcode == OPCODE_SAMPLE_C_LZ)
+  {
+    // comparison value
+    sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
+                                      textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
+    sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
+    sampleProgram += StringFormat::Fmt("t.SampleCmpLevelZero(s, %s, %.10f%s)%s;", texcoords.c_str(),
+                                       lodOrCompareValue, offsets.c_str(), strSwizzle.c_str());
+    sampleProgram += "\n}\n";
+  }
+  else if(opcode == OPCODE_LD)
+  {
+    sampleProgram = StringFormat::Fmt("%s : register(t%u);\n\n", textureDecl.c_str(), texSlot);
+    sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
+    sampleProgram += "t.Load(" + texcoords + offsets + ")" + strSwizzle + ";";
+    sampleProgram += "\n}\n";
+  }
+  else if(opcode == OPCODE_LD_MS)
+  {
+    sampleProgram = StringFormat::Fmt("%s : register(t%u);\n\n", textureDecl.c_str(), texSlot);
+    sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
+    sampleProgram += "t.Load(" + texcoords + ", " + sampleIdx + offsets + ")" + strSwizzle + ";";
+    sampleProgram += "\n}\n";
+  }
+  else if(opcode == OPCODE_GATHER4 || opcode == OPCODE_GATHER4_PO)
+  {
+    sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
+                                      textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
+    sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
+    sampleProgram +=
+        "t.Gather" + strGatherChannel + "(s, " + texcoords + offsets + ")" + strSwizzle + ";";
+    sampleProgram += "\n}\n";
+  }
+  else if(opcode == OPCODE_GATHER4_C || opcode == OPCODE_GATHER4_PO_C)
+  {
+    // comparison value
+    sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
+                                      textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
+    sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
+    sampleProgram += StringFormat::Fmt("t.GatherCmp%s(s, %s, %.10f%s)%s;", strGatherChannel.c_str(),
+                                       texcoords.c_str(), lodOrCompareValue, offsets.c_str(),
+                                       strSwizzle.c_str());
+    sampleProgram += "\n}\n";
+  }
+
+  // Create VS/PS to fetch the sample
+  ID3DBlob *vsBlob = NULL;
+  ID3DBlob *psBlob = NULL;
+  UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG_NAME_FOR_SOURCE;
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(vsProgram.c_str(), "main", flags, "vs_5_0",
+                                                &vsBlob) != "")
+  {
+    RDCERR("Failed to create shader to extract inputs");
+    return false;
+  }
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(sampleProgram.c_str(), "main", flags, "ps_5_0",
+                                                &psBlob) != "")
+  {
+    RDCERR("Failed to create shader to extract inputs");
+    SAFE_RELEASE(vsBlob);
+    return false;
+  }
+
+  // Create a PSO with our VS/PS and all other state from the original event
+  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+  D3D12RenderState prevState = rs;
+  WrappedID3D12RootSignature *pRootSig =
+      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rs.graphics.rootsig);
+
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc;
+  ZeroMemory(&pipeDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+
+  pipeDesc.pRootSignature = pRootSig;
+
+  pipeDesc.VS.BytecodeLength = vsBlob->GetBufferSize();
+  pipeDesc.VS.pShaderBytecode = vsBlob->GetBufferPointer();
+  pipeDesc.PS.BytecodeLength = psBlob->GetBufferSize();
+  pipeDesc.PS.pShaderBytecode = psBlob->GetBufferPointer();
+
+  pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+  pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+  pipeDesc.RasterizerState.FrontCounterClockwise = TRUE;
+  pipeDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+  pipeDesc.SampleMask = UINT_MAX;
+  pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+  pipeDesc.NumRenderTargets = 1;
+  pipeDesc.RTVFormats[0] = retFmt;
+  pipeDesc.SampleDesc.Count = 1;
+
+  ID3D12PipelineState *samplePso = NULL;
+  HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                      (void **)&samplePso);
+  SAFE_RELEASE(vsBlob);
+  SAFE_RELEASE(psBlob);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create PSO for shader debugging HRESULT: %s", ToStr(hr).c_str());
+    return false;
+  }
+
+  ID3D12GraphicsCommandListX *cmdList = m_pDevice->GetDebugManager()->ResetDebugList();
+  rs.pipe = GetResID(samplePso);
+  rs.ApplyState(m_pDevice, cmdList);
+
+  // Create a 1x1 texture to store the sample result
+  D3D12_RESOURCE_DESC rdesc;
+  ZeroMemory(&rdesc, sizeof(D3D12_RESOURCE_DESC));
+  rdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+  rdesc.Width = 1;
+  rdesc.Height = 1;
+  rdesc.DepthOrArraySize = 1;
+  rdesc.MipLevels = 0;
+  rdesc.Format = retFmt;
+  rdesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+  rdesc.SampleDesc.Count = 1;
+  rdesc.SampleDesc.Quality = 0;
+
+  D3D12_HEAP_PROPERTIES heapProps;
+  heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+  heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+  heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+  heapProps.CreationNodeMask = 1;
+  heapProps.VisibleNodeMask = 1;
+
+  ID3D12Resource *pSampleResult = NULL;
+  D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+  hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &rdesc, resourceState,
+                                          NULL, __uuidof(ID3D12Resource), (void **)&pSampleResult);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create texture for shader debugging HRESULT: %s", ToStr(hr).c_str());
+    SAFE_RELEASE(samplePso);
+    return false;
+  }
+
+  D3D12_CPU_DESCRIPTOR_HANDLE rtv = m_pDevice->GetDebugManager()->GetCPUHandle(SHADER_DEBUG_RTV);
+  m_pDevice->CreateRenderTargetView(pSampleResult, NULL, rtv);
+  cmdList->OMSetRenderTargets(1, &rtv, FALSE, NULL);
+  cmdList->DrawInstanced(3, 1, 0, 0);
+
+  hr = cmdList->Close();
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to close command list HRESULT: %s", ToStr(hr).c_str());
+    SAFE_RELEASE(samplePso);
+    SAFE_RELEASE(pSampleResult);
+    return false;
+  }
+
+  {
+    ID3D12CommandList *l = cmdList;
+    m_pDevice->GetQueue()->ExecuteCommandLists(1, &l);
+    m_pDevice->GPUSync();
+  }
+
+  bytebuf sampleResult;
+  m_pDevice->GetReplay()->GetTextureData(GetResID(pSampleResult), Subresource(),
+                                         GetTextureDataParams(), sampleResult);
+
+  ShaderVariable lookupResult("tex", 0.0f, 0.0f, 0.0f, 0.0f);
+  memcpy(lookupResult.value.iv, sampleResult.data(),
+         RDCMIN(sampleResult.size(), sizeof(uint32_t) * 4));
+  output = lookupResult;
+
+  SAFE_RELEASE(samplePso);
+  SAFE_RELEASE(pSampleResult);
+
+  return true;
 }
 
 bool IsShaderParameterVisible(DXBC::ShaderType shaderType, D3D12_SHADER_VISIBILITY shaderVisibility)
