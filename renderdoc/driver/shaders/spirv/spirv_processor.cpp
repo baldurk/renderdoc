@@ -555,15 +555,15 @@ void Processor::RegisterOp(Iter it)
       v.rows = 1;
       v.columns = type.vector().count & 0xf;
 
-      if(type.scalar().width == 32)
+      if(type.scalar().width == 64)
       {
         for(uint32_t i = 0; i < v.columns; i++)
-          v.value.u64v[i] = constants[decoded.constituents[i]].value.value.u64v[i];
+          v.value.u64v[i] = constants[decoded.constituents[i]].value.value.u64v[0];
       }
       else
       {
         for(uint32_t i = 0; i < v.columns; i++)
-          v.value.uv[i] = constants[decoded.constituents[i]].value.value.uv[i];
+          v.value.uv[i] = constants[decoded.constituents[i]].value.value.uv[0];
       }
     }
     else if(type.type == DataType::MatrixType)
