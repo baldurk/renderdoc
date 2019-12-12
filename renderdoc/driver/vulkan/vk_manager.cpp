@@ -724,6 +724,7 @@ void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
             // apply it (prevstate is from the start of all barriers accumulated, so only set once)
             if(it->oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
               it->oldLayout = t.oldLayout;
+            t.oldLayout = it->newLayout;
             it->newLayout = t.newLayout;
 
             // continue as there might be more, but we're done
@@ -777,6 +778,7 @@ void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
               // once)
               if(it->oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
                 it->oldLayout = t.oldLayout;
+              t.oldLayout = it->newLayout;
               it->newLayout = t.newLayout;
 
               // continue as there might be more, but we're done
