@@ -3348,6 +3348,12 @@ bool GLReplay::IsTextureSupported(const TextureDescription &tex)
       tex.format.type == ResourceFormatType::ETC2 || tex.format.type == ResourceFormatType::EAC))
     return false;
 
+  // don't support 3D depth textures
+  if(tex.dimension == 3 &&
+     (tex.format.compType == CompType::Depth || tex.format.type == ResourceFormatType::D16S8 ||
+      tex.format.type == ResourceFormatType::D24S8 || tex.format.type == ResourceFormatType::D32S8))
+    return false;
+
   GLenum fmt = MakeGLFormat(tex.format);
 
   if(fmt == eGL_NONE)
