@@ -440,6 +440,11 @@ class Texture_Zoo():
             ret: Tuple[rd.ReplayStatus, rd.ReplayController] = cap.OpenCapture(rd.ReplayOptions(), None)
             status, self.controller = ret
 
+            # Some packed formats can't be opened, allow that
+            if status == rd.ReplayStatus.ImageUnsupported:
+                rdtest.log.comment("Couldn't open {} - unsupported".format(file.name))
+                continue
+
             if status != rd.ReplayStatus.Succeeded:
                 rdtest.log.error("Couldn't open {}".format(file.name))
                 failed = True
