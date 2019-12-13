@@ -920,7 +920,7 @@ dds_data load_dds_from_file(FILE *f)
   bool dx10Header = false;
   DDS_HEADER_DXT10 headerDXT10 = {};
 
-  if(header.ddspf.dwFlags == DDPF_FOURCC && header.ddspf.dwFourCC == MAKE_FOURCC('D', 'X', '1', '0'))
+  if(header.ddspf.dwFlags & DDPF_FOURCC && header.ddspf.dwFourCC == MAKE_FOURCC('D', 'X', '1', '0'))
   {
     FileIO::fread(&headerDXT10, sizeof(headerDXT10), 1, f);
     dx10Header = true;
