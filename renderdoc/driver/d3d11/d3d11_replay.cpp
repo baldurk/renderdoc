@@ -3409,15 +3409,15 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
     desc.ArraySize = templateTex.arraysize;
     desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
-    if(templateTex.creationFlags & TextureCategory::DepthTarget)
-      desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
-
     desc.CPUAccessFlags = 0;
     desc.Format = GetTypelessFormat(MakeDXGIFormat(templateTex.format));
     desc.MipLevels = templateTex.mips;
     desc.MiscFlags = 0;
     desc.Usage = D3D11_USAGE_DEFAULT;
     desc.Width = RDCMAX(1U, templateTex.width);
+
+    if(IsDepthFormat(desc.Format))
+      desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
 
     HRESULT hr = m_pDevice->CreateTexture1D(&desc, NULL, &throwaway);
     if(FAILED(hr))
@@ -3476,9 +3476,6 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
     D3D11_TEXTURE3D_DESC desc;
 
     desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-
-    if(templateTex.creationFlags & TextureCategory::DepthTarget)
-      desc.BindFlags |= D3D11_BIND_DEPTH_STENCIL;
 
     desc.CPUAccessFlags = 0;
     desc.Format = GetTypelessFormat(MakeDXGIFormat(templateTex.format));
