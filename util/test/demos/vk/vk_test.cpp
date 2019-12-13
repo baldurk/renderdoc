@@ -108,12 +108,28 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
 
       if(debugDevice)
       {
+        bool found = false;
+
         for(const VkLayerProperties &layer : supportedLayers)
         {
-          if(!strcmp(layer.layerName, "VK_LAYER_LUNARG_standard_validation"))
+          if(!strcmp(layer.layerName, "VK_LAYER_KHRONOS_validation"))
           {
-            enabledLayers.push_back("VK_LAYER_LUNARG_standard_validation");
+            enabledLayers.push_back("VK_LAYER_KHRONOS_validation");
+            found = true;
             break;
+          }
+        }
+
+        if(!found)
+        {
+          for(const VkLayerProperties &layer : supportedLayers)
+          {
+            if(!strcmp(layer.layerName, "VK_LAYER_LUNARG_standard_validation"))
+            {
+              enabledLayers.push_back("VK_LAYER_LUNARG_standard_validation");
+              found = true;
+              break;
+            }
           }
         }
       }
