@@ -103,21 +103,12 @@ private:
 class ScopedTimer
 {
 public:
-  ScopedTimer(const char *file, unsigned int line, const char *fmt, ...)
+  ScopedTimer(const char *file, unsigned int line, const rdcstr &msg)
   {
     m_File = file;
     m_Line = line;
 
-    va_list args;
-    va_start(args, fmt);
-
-    char buf[1024];
-    buf[1023] = 0;
-    StringFormat::vsnprintf(buf, 1023, fmt, args);
-
-    m_Message = buf;
-
-    va_end(args);
+    m_Message = msg;
   }
 
   ~ScopedTimer()
@@ -133,4 +124,5 @@ private:
   PerformanceTimer m_Timer;
 };
 
-#define SCOPED_TIMER(...) ScopedTimer CONCAT(timer, __LINE__)(__FILE__, __LINE__, __VA_ARGS__);
+#define SCOPED_TIMER(...) \
+  ScopedTimer CONCAT(timer, __LINE__)(__FILE__, __LINE__, StringFormat::Fmt(__VA_ARGS__));

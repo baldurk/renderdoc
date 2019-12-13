@@ -44,11 +44,11 @@ public:
   ~VulkanTextRenderer();
 
   void BeginText(const TextPrintState &textstate);
-  void RenderText(const TextPrintState &textstate, float x, float y, const char *fmt, ...);
+  void RenderText(const TextPrintState &textstate, float x, float y, const rdcstr &text);
   void EndText(const TextPrintState &textstate);
 
 private:
-  void RenderTextInternal(const TextPrintState &textstate, float x, float y, const char *text);
+  void RenderTextInternal(const TextPrintState &textstate, float x, float y, const rdcstr &text);
 
   static const uint32_t FONT_TEX_WIDTH = 256;
   static const uint32_t FONT_TEX_HEIGHT = 128;

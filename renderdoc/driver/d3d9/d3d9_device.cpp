@@ -251,8 +251,7 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
 
       overlayText += "Captures not supported with D3D9\n";
 
-      if(!overlayText.empty())
-        GetDebugManager()->RenderText(0.0f, 0.0f, overlayText.c_str());
+      GetDebugManager()->RenderText(0.0f, 0.0f, overlayText);
 
       stateBlockRes = stateBlock->Apply();
       res |= m_device->EndScene();

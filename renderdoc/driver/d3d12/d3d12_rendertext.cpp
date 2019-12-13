@@ -27,6 +27,7 @@
 #include "maths/matrix.h"
 #include "maths/vec.h"
 #include "stb/stb_truetype.h"
+#include "strings/string_utils.h"
 #include "d3d12_device.h"
 #include "d3d12_shader_cache.h"
 
@@ -444,35 +445,22 @@ D3D12TextRenderer::~D3D12TextRenderer()
 }
 
 void D3D12TextRenderer::RenderText(ID3D12GraphicsCommandList *list, float x, float y,
-                                   const char *textfmt, ...)
+                                   const rdcstr &text)
 {
-  static char tmpBuf[4096];
+  rdcarray<rdcstr> lines;
+  split(text, lines, '\n');
 
-  va_list args;
-  va_start(args, textfmt);
-  StringFormat::vsnprintf(tmpBuf, 4095, textfmt, args);
-  tmpBuf[4095] = '\0';
-  va_end(args);
-
-  RenderTextInternal(list, x, y, tmpBuf);
+  for(const rdcstr &line : lines)
+    RenderTextInternal(list, x, y, line);
 }
 
 void D3D12TextRenderer::RenderTextInternal(ID3D12GraphicsCommandList *list, float x, float y,
-                                           const char *text)
+                                           const rdcstr &text)
 {
-  if(char *t = strchr((char *)text, '\n'))
-  {
-    *t = 0;
-    RenderTextInternal(list, x, y, text);
-    RenderTextInternal(list, x, y + 1.0f, t + 1);
-    *t = '\n';
-    return;
-  }
-
-  if(strlen(text) == 0)
+  if(text.empty())
     return;
 
-  RDCASSERT(strlen(text) < FONT_MAX_CHARS);
+  RDCASSERT(text.size() < FONT_MAX_CHARS);
 
   FontCBuffer data = {};
 
@@ -508,7 +496,7 @@ void D3D12TextRenderer::RenderTextInternal(ID3D12GraphicsCommandList *list, floa
     Constants->Unmap(0, &range);
   }
 
-  size_t chars = strlen(text);
+  size_t chars = text.size();
 
   size_t charOffset = CharOffset;
 
@@ -530,7 +518,7 @@ void D3D12TextRenderer::RenderTextInternal(ID3D12GraphicsCommandList *list, floa
 
   texs += charOffset * 4;
 
-  for(size_t i = 0; i < strlen(text); i++)
+  for(size_t i = 0; i < chars; i++)
     texs[i * 4] = (text[i] - ' ');
 
   CharBuffer->Unmap(0, NULL);
@@ -563,7 +551,7 @@ void D3D12TextRenderer::RenderTextInternal(ID3D12GraphicsCommandList *list, floa
         2, CharBuffer->GetGPUVirtualAddress() + charOffset * sizeof(Vec4f));
     list->SetGraphicsRootDescriptorTable(3, descHeap->GetGPUDescriptorHandleForHeapStart());
 
-    list->DrawInstanced(4, (uint32_t)strlen(text), 0, 0);
+    list->DrawInstanced(4, (uint32_t)chars, 0, 0);
   }
 
   ConstRingIdx++;

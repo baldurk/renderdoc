@@ -388,9 +388,6 @@ Socket *CreateTCPServerSocket(const char *bindaddr, uint16_t port, int queuesize
 
 Socket *CreateAbstractServerSocket(uint16_t port, int queuesize)
 {
-  char socketName[17] = {0};
-  StringFormat::snprintf(socketName, 16, "renderdoc_%d", port);
-  int socketNameLength = strlen(socketName);
   int s = socket(AF_UNIX, SOCK_STREAM, 0);
 
   if(s == -1)
@@ -399,18 +396,20 @@ Socket *CreateAbstractServerSocket(uint16_t port, int queuesize)
     return NULL;
   }
 
+  rdcstr socketName = StringFormat::Fmt("renderdoc_%d", port);
+
   sockaddr_un addr;
   RDCEraseEl(addr);
 
   addr.sun_family = AF_UNIX;
   // first char is '\0'
   addr.sun_path[0] = '\0';
-  strncpy(addr.sun_path + 1, socketName, socketNameLength + 1);
+  strncpy(addr.sun_path + 1, socketName.c_str(), socketName.size() + 1);
 
-  int result = bind(s, (sockaddr *)&addr, offsetof(sockaddr_un, sun_path) + 1 + socketNameLength);
+  int result = bind(s, (sockaddr *)&addr, socketName.size());
   if(result == -1)
   {
-    RDCWARN("Failed to create abstract socket: %s", socketName);
+    RDCWARN("Failed to create abstract socket: %s", socketName.c_str());
     close(s);
     return NULL;
   }
@@ -419,7 +418,7 @@ Socket *CreateAbstractServerSocket(uint16_t port, int queuesize)
   result = listen(s, queuesize);
   if(result == -1)
   {
-    RDCWARN("Failed to listen on %s", socketName);
+    RDCWARN("Failed to listen on %s", socketName.c_str());
     close(s);
     return NULL;
   }
@@ -432,9 +431,6 @@ Socket *CreateAbstractServerSocket(uint16_t port, int queuesize)
 
 Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
 {
-  char portstr[7] = {0};
-  StringFormat::snprintf(portstr, 6, "%d", port);
-
   addrinfo hints;
   RDCEraseEl(hints);
   hints.ai_family = AF_INET;
@@ -442,7 +438,7 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
   hints.ai_protocol = IPPROTO_TCP;
 
   addrinfo *addrResult = NULL;
-  int res = getaddrinfo(host, portstr, &hints, &addrResult);
+  int res = getaddrinfo(host, ToStr(port).c_str(), &hints, &addrResult);
   if(res != 0)
   {
     RDCDEBUG("%s", gai_strerror(res));

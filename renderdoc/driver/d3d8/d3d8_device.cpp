@@ -283,8 +283,7 @@ HRESULT __stdcall WrappedD3DDevice8::Present(CONST RECT *pSourceRect, CONST RECT
 
       overlayText += "Captures not supported with D3D8\n";
 
-      if(!overlayText.empty())
-        GetDebugManager()->RenderText(0.0f, 0.0f, overlayText.c_str());
+      GetDebugManager()->RenderText(0.0f, 0.0f, overlayText);
 
       stateBlockRes = m_device->ApplyStateBlock(stateBlock);
       res |= m_device->EndScene();

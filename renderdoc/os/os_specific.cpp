@@ -27,32 +27,10 @@
 #include "api/replay/control_types.h"
 #include "strings/string_utils.h"
 
-int utf8printf(char *buf, size_t bufsize, const char *fmt, va_list args);
+int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args);
 
 namespace StringFormat
 {
-int snprintf(char *str, size_t bufSize, const char *fmt, ...)
-{
-  va_list args;
-  va_start(args, fmt);
-
-  int ret = StringFormat::vsnprintf(str, bufSize, fmt, args);
-
-  va_end(args);
-
-  return ret;
-}
-
-void sntimef(char *str, size_t bufSize, const char *format)
-{
-  StringFormat::sntimef(Timing::GetUTCTime(), str, bufSize, format);
-}
-
-int vsnprintf(char *str, size_t bufSize, const char *format, va_list args)
-{
-  return ::utf8printf(str, bufSize, format, args);
-}
-
 rdcstr Fmt(const char *format, ...)
 {
   va_list args;
@@ -61,11 +39,11 @@ rdcstr Fmt(const char *format, ...)
   va_list args2;
   va_copy(args2, args);
 
-  int size = StringFormat::vsnprintf(NULL, 0, format, args2);
+  int size = ::utf8printv(NULL, 0, format, args2);
 
   rdcstr ret;
   ret.resize(size);
-  StringFormat::vsnprintf(ret.data(), size + 1, format, args);
+  ::utf8printv(ret.data(), size + 1, format, args);
 
   va_end(args);
   va_end(args2);
@@ -93,11 +71,9 @@ rdcstr Callstack::AddressDetails::formattedString(const char *commonPath)
   }
 
   if(line > 0)
-    StringFormat::snprintf(fmt, 511, "%s line %d", function.c_str(), line);
+    return StringFormat::Fmt("%s line %d", function.c_str(), line);
   else
-    StringFormat::snprintf(fmt, 511, "%s", function.c_str());
-
-  return fmt;
+    return function;
 }
 
 rdcstr OSUtility::MakeMachineIdentString(uint64_t ident)

@@ -1368,6 +1368,11 @@ rdcstr DoStringise(const TestBitfield &el)
   END_BITFIELD_STRINGISE();
 }
 
+void test(const char *aasd)
+{
+  RDCLOG("got a test of %s", aasd);
+}
+
 TEST_CASE("Test stringification works as expected", "[tostr]")
 {
   SECTION("Enum classes")
@@ -1389,6 +1394,17 @@ TEST_CASE("Test stringification works as expected", "[tostr]")
     foo = (TestEnumClass)0;
 
     CHECK(ToStr(foo) == "TestEnumClass(0)");
+  };
+
+  SECTION("integers")
+  {
+    uint16_t a = 54;
+    uint32_t b = 22;
+    uint8_t c = 99;
+
+    test(ToStr(a).c_str());
+    test(ToStr(b).c_str());
+    test(ToStr(c).c_str());
   };
 
   SECTION("plain enums")

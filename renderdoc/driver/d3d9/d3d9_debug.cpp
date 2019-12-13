@@ -25,6 +25,7 @@
 #include "d3d9_debug.h"
 #include "os/os_specific.h"
 #include "stb/stb_truetype.h"
+#include "strings/string_utils.h"
 
 D3D9DebugManager::D3D9DebugManager(WrappedD3DDevice9 *wrapper)
     : m_WrappedDevice(wrapper), m_fvf(D3DFVF_XYZ | D3DFVF_TEX1)
@@ -127,34 +128,21 @@ void D3D9DebugManager::SetOutputWindow(HWND w)
   // m_supersamplingY = float(m_height) / float(rect.bottom - rect.top);
 }
 
-void D3D9DebugManager::RenderText(float x, float y, const char *textfmt, ...)
+void D3D9DebugManager::RenderText(float x, float y, const rdcstr &text)
 {
-  static char tmpBuf[4096];
+  rdcarray<rdcstr> lines;
+  split(text, lines, '\n');
 
-  va_list args;
-  va_start(args, textfmt);
-  StringFormat::vsnprintf(tmpBuf, 4095, textfmt, args);
-  tmpBuf[4095] = '\0';
-  va_end(args);
-
-  RenderTextInternal(x, y, tmpBuf);
+  for(const rdcstr &line : lines)
+    RenderTextInternal(x, y, line);
 }
 
-void D3D9DebugManager::RenderTextInternal(float x, float y, const char *text)
+void D3D9DebugManager::RenderTextInternal(float x, float y, const rdcstr &text)
 {
-  if(char *t = strchr((char *)text, '\n'))
-  {
-    *t = 0;
-    RenderTextInternal(x, y, text);
-    RenderTextInternal(x, y + 1.0f, t + 1);
-    *t = '\n';
-    return;
-  }
-
-  if(strlen(text) == 0)
+  if(text.empty())
     return;
 
-  RDCASSERT(strlen(text) < FONT_MAX_CHARS);
+  RDCASSERT(text.size() < FONT_MAX_CHARS);
 
   // transforms
   float width = (float)m_width;
@@ -272,7 +260,7 @@ void D3D9DebugManager::RenderTextInternal(float x, float y, const char *text)
   Quad background;
   UINT triangleCount = 0;
   {
-    UINT quadCount = (UINT)strlen(text);    // calculate string length
+    UINT quadCount = (UINT)text.size();    // calculate string length
 
     triangleCount = quadCount * 2;
     // create text VB

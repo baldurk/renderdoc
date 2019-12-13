@@ -38,6 +38,7 @@
 #include <unistd.h>
 #include "api/app/renderdoc_app.h"
 #include "api/replay/data_types.h"
+#include "common/formatting.h"
 #include "common/threading.h"
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
@@ -221,24 +222,18 @@ void GetDefaultFiles(const char *logBaseName, rdcstr &capture_filename, rdcstr &
       temp_folder[--len] = 0;
   }
 
-  char temp_filename[2048 + 128] = {0};
-
-  snprintf(temp_filename, sizeof(temp_filename) - 1, "%s/RenderDoc/%s_%04d.%02d.%02d_%02d.%02d.rdc",
-           temp_folder, mod, 1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour,
-           now.tm_min);
-
-  capture_filename = rdcstr(temp_filename);
-
-  snprintf(temp_filename, sizeof(temp_filename) - 1,
-           "%s/RenderDoc/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", temp_folder, logBaseName,
-           1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+  capture_filename =
+      StringFormat::Fmt("%s/RenderDoc/%s_%04d.%02d.%02d_%02d.%02d.rdc", temp_folder, mod,
+                        1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min);
 
   // set by UI when launching programs so all logging goes to the same file
   char *logfile_override = getenv("RENDERDOC_DEBUG_LOG_FILE");
   if(logfile_override)
     logging_filename = rdcstr(logfile_override);
   else
-    logging_filename = rdcstr(temp_filename);
+    logging_filename = StringFormat::Fmt(
+        "%s/RenderDoc/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", temp_folder, logBaseName,
+        1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
 }
 
 uint64_t GetModifiedTimestamp(const rdcstr &filename)
@@ -568,10 +563,39 @@ void logfile_close(LogFileHandle *logHandle, const char *deleteFilename)
 
 namespace StringFormat
 {
-void sntimef(time_t utcTime, char *str, size_t bufSize, const char *format)
+rdcstr sntimef(time_t utcTime, const char *format)
 {
   tm *tmv = localtime(&utcTime);
 
-  strftime(str, bufSize, format, tmv);
+  // conservatively assume that most formatters will replace like-for-like (e.g. %H with 12) and
+  // a few will increase (%Y to 2019) but generally the string will stay the same size.
+  size_t len = strlen(format) + 16;
+
+  size_t ret = 0;
+  char *buf = NULL;
+
+  // loop until we have successfully formatted
+  while(ret == 0)
+  {
+    // delete any previous buffer
+    delete[] buf;
+
+    // alloate new one of the new size
+    buf = new char[len + 1];
+    buf[len] = 0;
+
+    // try formatting
+    ret = strftime(buf, len, format, tmv);
+
+    // double the length for next time, if this failed
+    len *= 2;
+  }
+
+  rdcstr str = buf;
+
+  // delete successful buffer
+  delete[] buf;
+
+  return str;
 }
 };

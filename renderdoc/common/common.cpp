@@ -30,6 +30,9 @@
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 
+int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args);
+int utf8printf(char *str, size_t bufSize, const char *fmt, ...);
+
 void rdcassert(const char *msg, const char *file, unsigned int line, const char *func)
 {
   rdclog_direct(FILL_AUTO_VALUE, FILL_AUTO_VALUE, LogType::Error, RDCLOG_PROJECT, file, line,
@@ -357,16 +360,16 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
   va_list args2;
   va_copy(args2, args);
 
-  char timestamp[64] = {0};
+  rdcstr timestamp;
 #if ENABLED(INCLUDE_TIMESTAMP_IN_LOG)
-  StringFormat::sntimef(utcTime, timestamp, 63, "[%H:%M:%S] ");
+  timestamp = StringFormat::sntimef(utcTime, "[%H:%M:%S] ");
 #endif
 
   char location[64] = {0};
 #if ENABLED(INCLUDE_LOCATION_IN_LOG)
   rdcstr loc;
   loc = get_basename(file);
-  StringFormat::snprintf(location, 63, "% 20s(%4d) - ", loc.c_str(), line);
+  utf8printf(location, 63, "% 20s(%4d) - ", loc.c_str(), line);
 #endif
 
   const char *typestr[(uint32_t)LogType::Count] = {
@@ -384,8 +387,8 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
 
   char *base = output;
 
-  int numWritten = StringFormat::snprintf(output, available, "% 4s %06u: %s%s%s - ", project, pid,
-                                          timestamp, location, typestr[(uint32_t)type]);
+  int numWritten = utf8printf(output, available, "% 4s %06u: %s%s%s - ", project, pid,
+                              timestamp.c_str(), location, typestr[(uint32_t)type]);
 
   if(numWritten < 0)
   {
@@ -403,7 +406,7 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
 
   int totalWritten = numWritten;
 
-  numWritten = StringFormat::vsnprintf(output, available, fmt, args);
+  numWritten = utf8printv(output, available, fmt, args);
 
   totalWritten += numWritten;
 
@@ -426,9 +429,9 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
     oversizedBuffer = output = new char[available + 3];
     base = output;
 
-    numWritten = StringFormat::snprintf(output, available, "% 4s %06u: %s%s%s - ", project,
-                                        Process::GetCurrentPID(), timestamp, location,
-                                        typestr[(uint32_t)type]);
+    numWritten =
+        utf8printf(output, available, "% 4s %06u: %s%s%s - ", project, Process::GetCurrentPID(),
+                   timestamp.c_str(), location, typestr[(uint32_t)type]);
 
     output += numWritten;
     available -= numWritten;
@@ -437,7 +440,7 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
 
     noPrefixOutput = (output - 3 - (sizeof(typestr[(uint32_t)type]) - 1));
 
-    numWritten = StringFormat::vsnprintf(output, available, fmt, args2);
+    numWritten = utf8printv(output, available, fmt, args2);
 
     output += numWritten;
 

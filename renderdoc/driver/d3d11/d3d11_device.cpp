@@ -1948,8 +1948,9 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
         m_TextRenderer->SetOutputDimensions(swapper->GetWidth(), swapper->GetHeight());
         m_TextRenderer->SetOutputWindow(swapper->GetHWND());
 
-        m_TextRenderer->RenderText(0.0f, 0.0f, "Failed to capture frame %u: %s",
-                                   m_CapturedFrames.back().frameNumber, reasonString);
+        m_TextRenderer->RenderText(
+            0.0f, 0.0f, StringFormat::Fmt("Failed to capture frame %u: %s",
+                                          m_CapturedFrames.back().frameNumber, reasonString));
       }
 
       old.ApplyState(m_pImmediateContext);
@@ -2263,8 +2264,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapper *swapper, UINT SyncInterval, U
         overlayText += StringFormat::Fmt("    %s\n", reasonString);
       }
 
-      if(!overlayText.empty())
-        m_TextRenderer->RenderText(0.0f, 0.0f, overlayText.c_str());
+      m_TextRenderer->RenderText(0.0f, 0.0f, overlayText);
 
       old.ApplyState(m_pImmediateContext);
     }

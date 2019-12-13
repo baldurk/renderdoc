@@ -277,42 +277,29 @@ void WrappedOpenGL::ContextData::CreateDebugData()
   }
 }
 
-void WrappedOpenGL::RenderOverlayText(float x, float y, const char *fmt, ...)
+void WrappedOpenGL::RenderText(float x, float y, const rdcstr &text)
 {
-  static char tmpBuf[4096];
-
-  va_list args;
-  va_start(args, fmt);
-  StringFormat::vsnprintf(tmpBuf, 4095, fmt, args);
-  tmpBuf[4095] = '\0';
-  va_end(args);
-
   ContextData &ctxdata = GetCtxData();
 
   GLPushPopState textState;
 
   textState.Push(ctxdata.Modern());
 
-  RenderOverlayStr(x, y, tmpBuf);
+  rdcarray<rdcstr> lines;
+  split(text, lines, '\n');
+
+  for(const rdcstr &line : lines)
+    RenderTextInternal(x, y, line);
 
   textState.Pop(ctxdata.Modern());
 }
 
-void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
+void WrappedOpenGL::RenderTextInternal(float x, float y, const rdcstr &text)
 {
-  if(char *t = strchr((char *)text, '\n'))
-  {
-    *t = 0;
-    RenderOverlayStr(x, y, text);
-    RenderOverlayStr(x, y + 1.0f, t + 1);
-    *t = '\n';
-    return;
-  }
-
-  if(strlen(text) == 0)
+  if(text.empty())
     return;
 
-  RDCASSERT(strlen(text) < (size_t)FONT_MAX_CHARS);
+  RDCASSERT(text.size() < FONT_MAX_CHARS);
 
   ContextData &ctxdata = GetCtxData();
 
@@ -324,7 +311,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
   {
     GL.glBindBuffer(eGL_ARRAY_BUFFER, ctxdata.ArrayBuffer);
 
-    size_t len = strlen(text);
+    size_t len = text.size();
 
     if((int)len > FONT_MAX_CHARS)
     {
@@ -334,7 +321,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
       if(!printedWarning)
       {
         printedWarning = true;
-        RDCWARN("log string '%s' is too long", text, (int)len);
+        RDCWARN("log string '%s' is too long", text.c_str(), (int)len);
       }
 
       len = FONT_MAX_CHARS;
@@ -520,7 +507,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 
       stbtt_aligned_quad q;
 
-      const char *prepass = text;
+      const char *prepass = text.c_str();
       while(*prepass)
       {
         char c = *prepass;
@@ -554,9 +541,10 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 
       float mul = ctxdata.initParams.isYFlipped ? -1.0f : 1.0f;
 
-      while(*text)
+      const char *str = text.c_str();
+      while(*str)
       {
-        char c = *text;
+        char c = *str;
         if(c > FONT_FIRST_CHAR && c < FONT_LAST_CHAR)
         {
           stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c - FONT_FIRST_CHAR - 1, &x,
@@ -574,7 +562,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
         {
           x += chardata[0].xadvance;
         }
-        ++text;
+        ++str;
       }
     }
     m_Platform.DrawQuads((float)ctxdata.initParams.width, (float)ctxdata.initParams.height, vertices);

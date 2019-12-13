@@ -737,10 +737,7 @@ rdcstr PIX3SprintfParams(const rdcstr &Format, const UINT64 *pData)
     // numerical values
     else
     {
-      static const UINT MAX_CHARACTERS_FOR_VALUE = 32;
-      char formattedValue[MAX_CHARACTERS_FOR_VALUE];
-      StringFormat::snprintf(formattedValue, MAX_CHARACTERS_FOR_VALUE, formatPart.c_str(), *pData);
-      finalString += formattedValue;
+      finalString += StringFormat::Fmt(formatPart.c_str(), *pData);
       ++pData;
     }
 

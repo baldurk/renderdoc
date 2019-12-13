@@ -144,10 +144,7 @@ rdcstr DoStringise(const UniformType &el)
     default: break;
   }
 
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "WrappedOpenGL::UniformType<%d>", el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("UniformType(%d)", el);
 }
 
 template <>
@@ -4118,10 +4115,7 @@ rdcstr DoStringise(const RDCGLenum &el)
     default: break;
   }
 
-  char tostrBuf[256] = {0};
-  StringFormat::snprintf(tostrBuf, 255, "GLenum<%x>", (uint32_t)el);
-
-  return tostrBuf;
+  return StringFormat::Fmt("GLenum(%x)", el);
 
 #define GLenum RDCGLenum
 }

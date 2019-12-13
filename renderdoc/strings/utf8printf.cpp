@@ -1180,7 +1180,7 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
   }
 }
 
-int utf8printf(char *buf, size_t bufsize, const char *fmt, va_list args)
+int utf8printv(char *buf, size_t bufsize, const char *fmt, va_list args)
 {
   // format, buffer and string arguments are assumed to be UTF-8 (except wide strings).
   // note that since the format specifiers are entirely ascii, we can byte-copy safely and handle
@@ -1452,22 +1452,22 @@ int utf8printf(char *buf, size_t bufsize, const char *fmt, va_list args)
   return int(actualsize);
 }
 
-#if ENABLED(ENABLE_UNIT_TESTS)
-
-#include "3rdparty/catch/catch.hpp"
-#include "common/formatting.h"
-
-int utf8printf_wrapper(char *buf, size_t bufsize, const char *fmt, ...)
+int utf8printf(char *str, size_t bufSize, const char *fmt, ...)
 {
   va_list args;
   va_start(args, fmt);
 
-  int ret = utf8printf(buf, bufsize, fmt, args);
+  int ret = utf8printv(str, bufSize, fmt, args);
 
   va_end(args);
 
   return ret;
 }
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#include "3rdparty/catch/catch.hpp"
+#include "common/formatting.h"
 
 TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
 {
@@ -1477,7 +1477,7 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
 
   SECTION("NULL input buffer")
   {
-    int a = utf8printf_wrapper(NULL, 0, "%d %c", fourtytwo, x);
+    int a = utf8printf(NULL, 0, "%d %c", fourtytwo, x);
     int b = snprintf(NULL, 0, "%d %c", fourtytwo, x);
 
     CHECK(a == 4);
@@ -1490,7 +1490,7 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     char bufa[] = {0, 0, 0, 0, 0, 0};
     char bufb[] = {0, 0, 0, 0, 0, 0};
 
-    int a = utf8printf_wrapper(bufa, sizeof(bufa), "%d foo", largenum);
+    int a = utf8printf(bufa, sizeof(bufa), "%d foo", largenum);
     int b = snprintf(bufb, sizeof(bufb), "%d foo", largenum);
 
     RDCCOMPILE_ASSERT(sizeof(bufa) == 6, "bufa is mis-sized for test");
@@ -1513,7 +1513,7 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     SECTION("contains NULL terminator")
     {
       memset(bufa, 'a', sizeof(bufa));
-      a = utf8printf_wrapper(bufa, sizeof(bufa), "%d foo", largenum);
+      a = utf8printf(bufa, sizeof(bufa), "%d foo", largenum);
       INFO("bufa is '" << rdcstr(bufa) << "'");
       CHECK(memcmp(bufa, ref, sizeof(ref)) == 0);
     }
@@ -1527,7 +1527,7 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     memset(bufa, 'a', sizeof(bufa));
     memset(bufb, 'b', sizeof(bufb));
 
-    int a = utf8printf_wrapper(bufa, sizeof(bufa), "foobar %c %d", x, fourtytwo);
+    int a = utf8printf(bufa, sizeof(bufa), "foobar %c %d", x, fourtytwo);
     int b = snprintf(bufb, sizeof(bufb), "foobar %c %d", x, fourtytwo);
 
     CHECK(a == sizeof(bufa) - 1);
@@ -1556,7 +1556,7 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     memset(bufa, 'a', sizeof(bufa));
     memset(bufb, 'b', sizeof(bufb));
 
-    int a = utf8printf_wrapper(bufa, sizeof(bufa), "foobar %c %d", x, fourtytwo);
+    int a = utf8printf(bufa, sizeof(bufa), "foobar %c %d", x, fourtytwo);
     int b = snprintf(bufb, sizeof(bufb), "foobar %c %d", x, fourtytwo);
 
     CHECK(a == sizeof(bufa));
@@ -1585,7 +1585,7 @@ TEST_CASE("utf8printf buffer sizing", "[utf8printf]")
     memset(bufa, 'a', sizeof(bufa));
     memset(bufb, 'b', sizeof(bufb));
 
-    int a = utf8printf_wrapper(bufa, sizeof(bufa), "foobar %c %d", x, fourtytwo);
+    int a = utf8printf(bufa, sizeof(bufa), "foobar %c %d", x, fourtytwo);
     int b = snprintf(bufb, sizeof(bufb), "foobar %c %d", x, fourtytwo);
 
     CHECK(a == 11);

@@ -25,6 +25,7 @@
 #include "d3d11_rendertext.h"
 #include "maths/matrix.h"
 #include "stb/stb_truetype.h"
+#include "strings/string_utils.h"
 #include "d3d11_context.h"
 #include "d3d11_device.h"
 #include "d3d11_resources.h"
@@ -341,37 +342,24 @@ void D3D11TextRenderer::SetOutputWindow(HWND w)
   }
 }
 
-void D3D11TextRenderer::RenderText(float x, float y, const char *textfmt, ...)
+void D3D11TextRenderer::RenderText(float x, float y, const rdcstr &text)
 {
-  static char tmpBuf[4096];
+  rdcarray<rdcstr> lines;
+  split(text, lines, '\n');
 
-  va_list args;
-  va_start(args, textfmt);
-  StringFormat::vsnprintf(tmpBuf, 4095, textfmt, args);
-  tmpBuf[4095] = '\0';
-  va_end(args);
-
-  RenderTextInternal(x, y, tmpBuf);
+  for(const rdcstr &line : lines)
+    RenderTextInternal(x, y, line);
 }
 
-void D3D11TextRenderer::RenderTextInternal(float x, float y, const char *text)
+void D3D11TextRenderer::RenderTextInternal(float x, float y, const rdcstr &text)
 {
-  if(char *t = strchr((char *)text, '\n'))
-  {
-    *t = 0;
-    RenderTextInternal(x, y, text);
-    RenderTextInternal(x, y + 1.0f, t + 1);
-    *t = '\n';
+  if(text.empty())
     return;
-  }
 
-  if(strlen(text) == 0)
-    return;
+  RDCASSERT(text.size() < FONT_MAX_CHARS);
 
   if(!VS || !PS)
     return;
-
-  RDCASSERT(strlen(text) < FONT_MAX_CHARS);
 
   FontCBuffer data = {};
 
@@ -421,14 +409,14 @@ void D3D11TextRenderer::RenderTextInternal(float x, float y, const char *text)
   {
     unsigned long *texs = (unsigned long *)mapped.pData;
 
-    for(size_t i = 0; i < strlen(text); i++)
+    for(size_t i = 0; i < text.size(); i++)
       texs[i * 4] = (text[i] - ' ');
   }
   else
   {
     Vec4f *texs = (Vec4f *)mapped.pData;
 
-    for(size_t i = 0; i < strlen(text); i++)
+    for(size_t i = 0; i < text.size(); i++)
     {
       texs[i * 6 + 0] = Vec4f(quadPos[0].x, quadPos[0].y, float(i), float(text[i] - ' '));
       texs[i * 6 + 1] = Vec4f(quadPos[1].x, quadPos[1].y, float(i), float(text[i] - ' '));
@@ -487,8 +475,8 @@ void D3D11TextRenderer::RenderTextInternal(float x, float y, const char *text)
     m_pImmediateContext->OMSetBlendState(BlendState, factor, 0xffffffff);
 
     if(modern)
-      m_pImmediateContext->DrawInstanced(4, (uint32_t)strlen(text), 0, 0);
+      m_pImmediateContext->DrawInstanced(4, (uint32_t)text.size(), 0, 0);
     else
-      m_pImmediateContext->Draw(6 * (uint32_t)strlen(text), 0);
+      m_pImmediateContext->Draw(6 * (uint32_t)text.size(), 0);
   }
 }

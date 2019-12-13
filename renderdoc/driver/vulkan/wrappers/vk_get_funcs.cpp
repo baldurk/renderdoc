@@ -25,7 +25,7 @@
 #include "../vk_core.h"
 #include "api/replay/version.h"
 
-static char fakeRenderDocUUID[VK_UUID_SIZE + 1] = {};
+static char fakeRenderDocUUID[VK_UUID_SIZE] = {};
 
 void MakeFakeUUID()
 {
@@ -37,7 +37,9 @@ void MakeFakeUUID()
     // rdocyymmddHHMMSS
     // we pass size+1 so that there's room for a null terminator (the UUID doesn't
     // need a null terminator as it's a fixed size non-string array)
-    StringFormat::sntimef(fakeRenderDocUUID, VK_UUID_SIZE + 1, "rdoc%y%m%d%H%M%S");
+    rdcstr uuid = StringFormat::sntimef(Timing::GetUTCTime(), "rdoc%y%m%d%H%M%S");
+    RDCASSERT(uuid.size() == sizeof(fakeRenderDocUUID));
+    memcpy(fakeRenderDocUUID, uuid.c_str(), RDCMIN(VK_UUID_SIZE, uuid.count()));
   }
 }
 

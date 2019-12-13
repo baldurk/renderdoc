@@ -342,27 +342,18 @@ rdcstr TypeName(CBufferVariableType::Descriptor desc)
     ret = "<unnamed>";
   else
   {
-    char buf[64] = {0};
-
     if(desc.rows > 1)
     {
-      StringFormat::snprintf(buf, 63, "%s%dx%d", type, desc.rows, desc.cols);
+      ret = StringFormat::Fmt("%s%dx%d", type, desc.rows, desc.cols);
 
       if(desc.varClass == CLASS_MATRIX_ROWS)
       {
-        ret = "row_major ";
-        ret += buf;
-      }
-      else
-      {
-        ret = buf;
+        ret = "row_major " + ret;
       }
     }
     else if(desc.cols > 1)
     {
-      StringFormat::snprintf(buf, 63, "%s%d", type, desc.cols);
-
-      ret = buf;
+      ret = StringFormat::Fmt("%s%d", type, desc.cols);
     }
     else
     {
@@ -400,9 +391,7 @@ CBufferVariableType DXBCContainer::ParseRDEFType(RDEFHeader *h, char *chunkConte
     }
     else
     {
-      char buf[64] = {0};
-      StringFormat::snprintf(buf, 63, "unnamed_iface_0x%08x", typeOffset);
-      ret.descriptor.name += " " + rdcstr(buf);
+      ret.descriptor.name += StringFormat::Fmt(" unnamed_iface_0x%08x", typeOffset);
     }
   }
 
@@ -415,9 +404,7 @@ CBufferVariableType DXBCContainer::ParseRDEFType(RDEFHeader *h, char *chunkConte
     }
     else
     {
-      char buf[64] = {0};
-      StringFormat::snprintf(buf, 63, "unnamed_struct_0x%08x", typeOffset);
-      ret.descriptor.name = buf;
+      ret.descriptor.name = StringFormat::Fmt("unnamed_struct_0x%08x", typeOffset);
     }
   }
 

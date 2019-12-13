@@ -176,7 +176,7 @@ struct ShaderVariable
   }
   ShaderVariable(const ShaderVariable &) = default;
   ShaderVariable &operator=(const ShaderVariable &) = default;
-  ShaderVariable(const char *n, float x, float y, float z, float w)
+  ShaderVariable(const rdcstr &n, float x, float y, float z, float w)
   {
     name = n;
     rows = 1;
@@ -190,7 +190,7 @@ struct ShaderVariable
     value.f.z = z;
     value.f.w = w;
   }
-  ShaderVariable(const char *n, int x, int y, int z, int w)
+  ShaderVariable(const rdcstr &n, int x, int y, int z, int w)
   {
     name = n;
     rows = 1;
@@ -204,7 +204,7 @@ struct ShaderVariable
     value.i.z = z;
     value.i.w = w;
   }
-  ShaderVariable(const char *n, uint32_t x, uint32_t y, uint32_t z, uint32_t w)
+  ShaderVariable(const rdcstr &n, uint32_t x, uint32_t y, uint32_t z, uint32_t w)
   {
     name = n;
     rows = 1;

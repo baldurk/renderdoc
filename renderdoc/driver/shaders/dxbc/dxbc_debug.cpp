@@ -1093,11 +1093,7 @@ void State::Init()
 
       for(uint32_t t = 0; t < decl.numTemps; t++)
       {
-        char buf[64] = {0};
-
-        StringFormat::snprintf(buf, 63, "r%d", t);
-
-        registers.push_back(ShaderVariable(buf, 0l, 0l, 0l, 0l));
+        registers.push_back(ShaderVariable(StringFormat::Fmt("r%u", t), 0l, 0l, 0l, 0l));
       }
     }
     if(decl.declaration == OPCODE_DCL_INDEXABLE_TEMP)
@@ -1115,18 +1111,15 @@ void State::Init()
   {
     indexableTemps.resize(indexTempSizes.size());
 
-    for(int32_t i = 0; i < (int32_t)indexTempSizes.size(); i++)
+    for(size_t i = 0; i < indexTempSizes.size(); i++)
     {
       if(indexTempSizes[i] > 0)
       {
         indexableTemps[i].members.resize(indexTempSizes[i]);
         for(uint32_t t = 0; t < indexTempSizes[i]; t++)
         {
-          char buf[64] = {0};
-
-          StringFormat::snprintf(buf, 63, "x%u[%u]", i, t);
-
-          indexableTemps[i].members[t] = ShaderVariable(buf, 0l, 0l, 0l, 0l);
+          indexableTemps[i].members[t] =
+              ShaderVariable(StringFormat::Fmt("x%zu[%u]", i, t), 0l, 0l, 0l, 0l);
         }
       }
     }

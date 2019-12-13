@@ -745,26 +745,45 @@ void logfile_close(LogFileHandle *logHandle, const char *deleteFilename)
 
 namespace StringFormat
 {
-void sntimef(time_t utcTime, char *str, size_t bufSize, const char *format)
+rdcstr sntimef(time_t utcTime, const char *format)
 {
   tm tmv;
   localtime_s(&tmv, &utcTime);
 
-  wchar_t *buf = new wchar_t[bufSize + 1];
-  buf[bufSize] = 0;
+  rdcstr result;
+
   rdcwstr wfmt = StringFormat::UTF82Wide(format);
 
-  wcsftime(buf, bufSize, wfmt.c_str(), &tmv);
+  // conservatively assume that most formatters will replace like-for-like (e.g. %H with 12) and
+  // a few will increase (%Y to 2019) but generally the string will stay the same size.
+  size_t len = strlen(format) + 16;
 
-  rdcstr result = StringFormat::Wide2UTF8(buf);
+  size_t ret = 0;
+  wchar_t *buf = NULL;
 
+  // loop until we have successfully formatted
+  while(ret == 0)
+  {
+    // delete any previous buffer
+    delete[] buf;
+
+    // alloate new one of the new size
+    buf = new wchar_t[len + 1];
+    buf[len] = 0;
+
+    // try formatting
+    ret = wcsftime(buf, len, wfmt.c_str(), &tmv);
+
+    // double the length for next time, if this failed
+    len *= 2;
+  }
+
+  rdcstr str = StringFormat::Wide2UTF8(buf);
+
+  // delete successful buffer
   delete[] buf;
 
-  if(result.length() + 1 <= bufSize)
-  {
-    memcpy(str, result.c_str(), result.length());
-    str[result.length()] = 0;
-  }
+  return str;
 }
 
 void Shutdown()

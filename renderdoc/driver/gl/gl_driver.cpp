@@ -2033,8 +2033,7 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
         overlayText += StringFormat::Fmt("    %s\n", reasonString);
       }
 
-      if(!overlayText.empty())
-        RenderOverlayText(0.0f, 0.0f, overlayText.c_str());
+      RenderText(0.0f, 0.0f, overlayText);
 
       // swallow all errors we might have inadvertantly caused. This is
       // better than letting an error propagate and maybe screw up the
@@ -2380,8 +2379,8 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
     {
       ContextData &ctxdata = GetCtxData();
 
-      RenderOverlayText(0.0f, 0.0f, "Failed to capture frame %u: %s",
-                        m_CapturedFrames.back().frameNumber, reasonString);
+      RenderText(0.0f, 0.0f, StringFormat::Fmt("Failed to capture frame %u: %s",
+                                               m_CapturedFrames.back().frameNumber, reasonString));
 
       // swallow all errors we might have inadvertantly caused. This is
       // better than letting an error propagate and maybe screw up the

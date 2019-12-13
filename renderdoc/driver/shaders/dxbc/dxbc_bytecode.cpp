@@ -46,8 +46,6 @@ DXBC::Reflection *Program::GuessReflection()
   // useful reflection is present
   DXBC::Reflection *ret = new DXBC::Reflection;
 
-  char buf[64] = {0};
-
   for(size_t i = 0; i < m_Declarations.size(); i++)
   {
     Declaration &dcl = m_Declarations[i];
@@ -64,9 +62,7 @@ DXBC::Reflection *Program::GuessReflection()
 
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
 
-        StringFormat::snprintf(buf, 63, "sampler%u", idx);
-
-        desc.name = buf;
+        desc.name = StringFormat::Fmt("sampler%u", idx);
         desc.type = DXBC::ShaderInputBind::TYPE_SAMPLER;
         desc.space = dcl.space;
         desc.reg = idx;
@@ -97,9 +93,7 @@ DXBC::Reflection *Program::GuessReflection()
 
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
 
-        StringFormat::snprintf(buf, 63, "texture%u", idx);
-
-        desc.name = buf;
+        desc.name = StringFormat::Fmt("texture%u", idx);
         desc.type = DXBC::ShaderInputBind::TYPE_TEXTURE;
         desc.space = dcl.space;
         desc.reg = idx;
@@ -170,10 +164,8 @@ DXBC::Reflection *Program::GuessReflection()
 
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
 
-        StringFormat::snprintf(buf, 63, "%sbytebuffer%u",
-                               dcl.operand.type != TYPE_RESOURCE ? "rw" : "", idx);
-
-        desc.name = buf;
+        desc.name =
+            StringFormat::Fmt("%sbytebuffer%u", dcl.operand.type != TYPE_RESOURCE ? "rw" : "", idx);
         desc.type = dcl.operand.type == TYPE_RESOURCE
                         ? DXBC::ShaderInputBind::TYPE_BYTEADDRESS
                         : DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS;
@@ -209,9 +201,7 @@ DXBC::Reflection *Program::GuessReflection()
 
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
 
-        StringFormat::snprintf(buf, 63, "structuredbuffer%u", idx);
-
-        desc.name = buf;
+        desc.name = StringFormat::Fmt("structuredbuffer%u", idx);
         desc.type = DXBC::ShaderInputBind::TYPE_STRUCTURED;
         desc.space = dcl.space;
         desc.reg = idx;
@@ -242,9 +232,7 @@ DXBC::Reflection *Program::GuessReflection()
 
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
 
-        StringFormat::snprintf(buf, 63, "uav%u", idx);
-
-        desc.name = buf;
+        desc.name = StringFormat::Fmt("uav%u", idx);
         desc.type =
             DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED;    // doesn't seem to be anything that
                                                              // determines append vs consume vs
@@ -280,9 +268,7 @@ DXBC::Reflection *Program::GuessReflection()
 
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
 
-        StringFormat::snprintf(buf, 63, "uav%u", idx);
-
-        desc.name = buf;
+        desc.name = StringFormat::Fmt("uav%u", idx);
         desc.type = DXBC::ShaderInputBind::TYPE_UAV_RWTYPED;
         desc.space = dcl.space;
         desc.reg = idx;
@@ -346,9 +332,7 @@ DXBC::Reflection *Program::GuessReflection()
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
         uint32_t numVecs = (uint32_t)dcl.operand.indices[1].index;
 
-        StringFormat::snprintf(buf, 63, "cbuffer%u", idx);
-
-        desc.name = buf;
+        desc.name = StringFormat::Fmt("cbuffer%u", idx);
         desc.type = DXBC::ShaderInputBind::TYPE_CBUFFER;
         desc.space = dcl.space;
         desc.reg = idx;
@@ -386,11 +370,9 @@ DXBC::Reflection *Program::GuessReflection()
           DXBC::CBufferVariable var;
 
           if(desc.space > 0)
-            StringFormat::snprintf(buf, 63, "cb%u_%u_v%u", desc.space, desc.reg, v);
+            var.name = StringFormat::Fmt("cb%u_%u_v%u", desc.space, desc.reg, v);
           else
-            StringFormat::snprintf(buf, 63, "cb%u_v%u", desc.reg, v);
-
-          var.name = buf;
+            var.name = StringFormat::Fmt("cb%u_v%u", desc.reg, v);
 
           var.descriptor.defaultValue.resize(4 * sizeof(float));
 

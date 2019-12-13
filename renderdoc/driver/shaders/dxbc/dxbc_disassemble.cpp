@@ -608,13 +608,15 @@ void Program::MakeDisassemblyString()
       prevLineInfo = lineInfo;
     }
 
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "% 4u", i);
-    m_Disassembly += buf;
-    m_Disassembly += ": ";
-    for(int in = 0; in < indent - (m_Instructions[i].operation == OPCODE_ELSE ? 1 : 0); in++)
-      m_Disassembly += "  ";
-    m_Disassembly += m_Instructions[i].str + "\n";
+    int curIndent = indent;
+    if(m_Instructions[i].operation == OPCODE_ELSE)
+      curIndent--;
+
+    rdcstr whitespace;
+    whitespace.fill(curIndent * 2, ' ');
+
+    m_Disassembly +=
+        StringFormat::Fmt("% 4u: %s%s\n", i, whitespace.c_str(), m_Instructions[i].str.c_str());
 
     if(m_Instructions[i].operation == OPCODE_IF || m_Instructions[i].operation == OPCODE_LOOP)
     {
@@ -750,24 +752,18 @@ bool Program::ExtractOperand(uint32_t *&tokenStream, ToString flags, Operand &re
       RDCASSERT(ret);
     }
 
-    if(retOper.indices[idx].relative)
-      retOper.indices[idx].str =
-          "[" + retOper.indices[idx].operand.toString(m_Reflection, flags | ToString::ShowSwizzle) +
-          " + ";
-
-    if(retOper.indices[idx].absolute)
-    {
-      char buf[64] = {0};
-      StringFormat::snprintf(buf, 63, "%llu", retOper.indices[idx].index);
-      retOper.indices[idx].str += buf;
-    }
-    else if(retOper.indices[idx].relative)
-      retOper.indices[idx].str += "0";
-
-    if(retOper.indices[idx].relative)
-      retOper.indices[idx].str += "]";
-
     RDCASSERT(retOper.indices[idx].relative || retOper.indices[idx].absolute);
+
+    if(retOper.indices[idx].relative)
+    {
+      retOper.indices[idx].str = StringFormat::Fmt(
+          "[%s + 0]",
+          retOper.indices[idx].operand.toString(m_Reflection, flags | ToString::ShowSwizzle).c_str());
+    }
+    else
+    {
+      retOper.indices[idx].str = ToStr(retOper.indices[idx].index);
+    }
   }
 
   if(retOper.type == TYPE_RESOURCE || retOper.type == TYPE_SAMPLER ||
@@ -847,16 +843,9 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
   }
   else if(type == TYPE_INTERFACE)
   {
-    str = "fp";
-
     RDCASSERT(indices.size() == 2);
 
-    str += indices[0].str;
-    str += "[" + indices[1].str + "]";
-
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "[%u]", funcNum);
-    str += buf;
+    str = StringFormat::Fmt("fp%s[%s][%u]", indices[0].str.c_str(), indices[1].str.c_str(), funcNum);
   }
   else if(type == TYPE_RESOURCE || type == TYPE_SAMPLER || type == TYPE_UNORDERED_ACCESS_VIEW)
   {
@@ -1195,9 +1184,7 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
   else if(type == TYPE_IMMEDIATE64)
   {
     double *dv = (double *)values;
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "d(%lfl, %lfl)", dv[0], dv[1]);
-    str += buf;
+    str += StringFormat::Fmt("d(%lfl, %lfl)", dv[0], dv[1]);
   }
   else if(type == TYPE_RASTERIZER)
     str = "rasterizer";
@@ -1503,20 +1490,14 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
   }
   else if(op == OPCODE_DCL_TEMPS)
   {
-    retDecl.str += " ";
-
     retDecl.numTemps = tokenStream[0];
 
     tokenStream++;
 
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "%u", retDecl.numTemps);
-    retDecl.str += buf;
+    retDecl.str += StringFormat::Fmt(" %u", retDecl.numTemps);
   }
   else if(op == OPCODE_DCL_INDEXABLE_TEMP)
   {
-    retDecl.str += " ";
-
     retDecl.tempReg = tokenStream[0];
     tokenStream++;
 
@@ -1526,10 +1507,8 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
     retDecl.tempComponentCount = tokenStream[0];
     tokenStream++;
 
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "x%u[%u], %u", retDecl.tempReg, retDecl.numTemps,
-                           retDecl.tempComponentCount);
-    retDecl.str += buf;
+    retDecl.str += StringFormat::Fmt(" x%u[%u], %u", retDecl.tempReg, retDecl.numTemps,
+                                     retDecl.tempComponentCount);
   }
   else if(op == OPCODE_DCL_OUTPUT)
   {
@@ -1548,9 +1527,7 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
 
     tokenStream++;
 
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "%u", retDecl.maxOut);
-    retDecl.str += buf;
+    retDecl.str += StringFormat::Fmt(" %u", retDecl.maxOut);
   }
   else if(op == OPCODE_DCL_INPUT_SIV || op == OPCODE_DCL_INPUT_SGV ||
           op == OPCODE_DCL_INPUT_PS_SIV || op == OPCODE_DCL_INPUT_PS_SGV ||
@@ -1686,15 +1663,10 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
     retDecl.indexRange = tokenStream[0];
     tokenStream++;
 
-    retDecl.str += " ";
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "%u", retDecl.indexRange);
-    retDecl.str += buf;
+    retDecl.str += StringFormat::Fmt(" %u", retDecl.indexRange);
   }
   else if(op == OPCODE_DCL_THREAD_GROUP)
   {
-    retDecl.str += " ";
-
     retDecl.groupSize[0] = tokenStream[0];
     tokenStream++;
 
@@ -1703,17 +1675,9 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
 
     retDecl.groupSize[2] = tokenStream[0];
     tokenStream++;
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "%u", retDecl.groupSize[0]);
-    retDecl.str += buf;
-    retDecl.str += ", ";
 
-    StringFormat::snprintf(buf, 63, "%u", retDecl.groupSize[1]);
-    retDecl.str += buf;
-    retDecl.str += ", ";
-
-    StringFormat::snprintf(buf, 63, "%u", retDecl.groupSize[2]);
-    retDecl.str += buf;
+    retDecl.str += StringFormat::Fmt(" %u, %u, %u", retDecl.groupSize[0], retDecl.groupSize[1],
+                                     retDecl.groupSize[2]);
   }
   else if(op == OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW)
   {
@@ -1726,11 +1690,7 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
     tokenStream++;
 
     retDecl.str += retDecl.operand.toString(m_Reflection, flags);
-    retDecl.str += ", ";
-
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "%u", retDecl.count);
-    retDecl.str += buf;
+    retDecl.str += StringFormat::Fmt(", %u", retDecl.count);
   }
   else if(op == OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED)
   {
@@ -1746,25 +1706,13 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
     tokenStream++;
 
     retDecl.str += retDecl.operand.toString(m_Reflection, flags);
-    retDecl.str += ", ";
-
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "%u", retDecl.stride);
-    retDecl.str += buf;
-    retDecl.str += ", ";
-
-    StringFormat::snprintf(buf, 63, "%u", retDecl.count);
-    retDecl.str += buf;
+    retDecl.str += StringFormat::Fmt(", %u, %u", retDecl.stride, retDecl.count);
   }
   else if(op == OPCODE_DCL_INPUT_CONTROL_POINT_COUNT || op == OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT)
   {
-    retDecl.str += " ";
-
     retDecl.controlPointCount = Decl::ControlPointCount.Get(OpcodeToken0);
 
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "%u", retDecl.controlPointCount);
-    retDecl.str += buf;
+    retDecl.str += StringFormat::Fmt(" %u", retDecl.controlPointCount);
   }
   else if(op == OPCODE_DCL_TESS_DOMAIN)
   {
@@ -1814,11 +1762,8 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
     else if(retDecl.inPrim >= PRIMITIVE_1_CONTROL_POINT_PATCH &&
             retDecl.inPrim <= PRIMITIVE_32_CONTROL_POINT_PATCH)
     {
-      retDecl.str += "control_point_patch_";
-      char buf[64] = {0};
-      StringFormat::snprintf(buf, 63, "%u",
-                             1 + int(retDecl.inPrim - PRIMITIVE_1_CONTROL_POINT_PATCH));
-      retDecl.str += buf;
+      retDecl.str += StringFormat::Fmt("control_point_patch_%u",
+                                       1 + int(retDecl.inPrim - PRIMITIVE_1_CONTROL_POINT_PATCH));
     }
     else
       RDCERR("Unexpected primitive type");
@@ -1921,11 +1866,7 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
     tokenStream++;
 
     retDecl.str += retDecl.operand.toString(m_Reflection, flags);
-    retDecl.str += ", ";
-
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "%u", retDecl.stride);
-    retDecl.str += buf;
+    retDecl.str += StringFormat::Fmt(", %u", retDecl.stride);
 
     if(retDecl.hasCounter)
       retDecl.str += ", hasOrderPreservingCounter";
@@ -2016,11 +1957,7 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
     retDecl.instanceCount = tokenStream[0];
     tokenStream++;
 
-    retDecl.str += " ";
-
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "%u", retDecl.instanceCount);
-    retDecl.str += buf;
+    retDecl.str += StringFormat::Fmt(" %u", retDecl.instanceCount);
   }
   else if(op == OPCODE_DCL_HS_MAX_TESSFACTOR)
   {
@@ -2028,33 +1965,21 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
     retDecl.maxTessFactor = *f;
     tokenStream++;
 
-    retDecl.str += " ";
-
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "l(%f)", retDecl.maxTessFactor);
-    retDecl.str += buf;
+    retDecl.str += StringFormat::Fmt(" l(%f)", retDecl.maxTessFactor);
   }
   else if(op == OPCODE_DCL_FUNCTION_BODY)
   {
     retDecl.functionBody = tokenStream[0];
     tokenStream++;
 
-    retDecl.str += " ";
-
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "fb%u", retDecl.functionBody);
-    retDecl.str += buf;
+    retDecl.str += StringFormat::Fmt(" fb%u", retDecl.functionBody);
   }
   else if(op == OPCODE_DCL_FUNCTION_TABLE)
   {
     retDecl.functionTable = tokenStream[0];
     tokenStream++;
 
-    retDecl.str += " ";
-
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "ft%u", retDecl.functionTable);
-    retDecl.str += buf;
+    retDecl.str += StringFormat::Fmt(" ft%u", retDecl.functionTable);
 
     uint32_t TableLength = tokenStream[0];
     tokenStream++;
@@ -2063,8 +1988,7 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
 
     for(uint32_t i = 0; i < TableLength; i++)
     {
-      StringFormat::snprintf(buf, 63, "fb%u", tokenStream[0]);
-      retDecl.str += buf;
+      retDecl.str += StringFormat::Fmt("fb%u", tokenStream[0]);
 
       if(i + 1 < TableLength)
         retDecl.str += ", ";
@@ -2089,19 +2013,14 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
     retDecl.numInterfaces = Decl::NumInterfaces.Get(CountToken);
     uint32_t TableLength = Decl::TableLength.Get(CountToken);
 
-    retDecl.str += " ";
-
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "fp%u[%u][%u]", retDecl.interfaceID, retDecl.numInterfaces,
-                           retDecl.numTypes);
-    retDecl.str += buf;
+    retDecl.str += StringFormat::Fmt(" fp%u[%u][%u]", retDecl.interfaceID, retDecl.numInterfaces,
+                                     retDecl.numTypes);
 
     retDecl.str += " = {";
 
     for(uint32_t i = 0; i < TableLength; i++)
     {
-      StringFormat::snprintf(buf, 63, "ft%u", tokenStream[0]);
-      retDecl.str += buf;
+      retDecl.str += StringFormat::Fmt("ft%u", tokenStream[0]);
 
       if(i + 1 < TableLength)
         retDecl.str += ", ";
@@ -2113,7 +2032,8 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
     retDecl.str += "}";
   }
   else if(op == OPCODE_HS_DECLS)
-    ;
+  {
+  }
   else
   {
     RDCERR("Unexpected opcode decl %d", op);
@@ -2232,10 +2152,8 @@ bool Program::ExtractOperation(uint32_t *&tokenStream, Operation &retOp, bool fr
       if(retOp.texelOffset[2] > 7)
         retOp.texelOffset[2] -= 16;
 
-      char buf[64] = {0};
-      StringFormat::snprintf(buf, 63, "(%d,%d,%d)", retOp.texelOffset[0], retOp.texelOffset[1],
-                             retOp.texelOffset[2]);
-      retOp.str += buf;
+      retOp.str += StringFormat::Fmt("(%d,%d,%d)", retOp.texelOffset[0], retOp.texelOffset[1],
+                                     retOp.texelOffset[2]);
     }
     else if(type == EXTENDED_OPCODE_RESOURCE_DIM)
     {
@@ -2243,16 +2161,10 @@ bool Program::ExtractOperation(uint32_t *&tokenStream, Operation &retOp, bool fr
 
       if(op == OPCODE_LD_STRUCTURED)
       {
-        retOp.str += "_indexable(";
-        retOp.str += toString(retOp.resDim);
-
         retOp.stride = ExtendedOpcode::BufferStride.Get(OpcodeTokenN);
 
-        char buf[64] = {0};
-        StringFormat::snprintf(buf, 63, ", stride=%u", retOp.stride);
-        retOp.str += buf;
-
-        retOp.str += ")";
+        retOp.str +=
+            StringFormat::Fmt("_indexable(%s, stride=%u)", toString(retOp.resDim), retOp.stride);
       }
       else
       {
@@ -2646,20 +2558,18 @@ rdcstr toString(const uint32_t values[], uint32_t numComps)
     float *vf = (float *)&values[i];
     int32_t *vi = (int32_t *)&values[i];
 
-    char buf[64] = {0};
-
-    if(!floatOutput)
+    if(floatOutput)
+    {
+      str += ToStr(vf[0]);
+    }
+    else
     {
       // print small ints straight up, otherwise as hex
       if(vi[0] <= 10000 && vi[0] >= -10000)
-        StringFormat::snprintf(buf, 63, "%d", vi[0]);
+        str += ToStr(vi[0]);
       else
-        StringFormat::snprintf(buf, 63, "0x%08x", vi[0]);
+        str += StringFormat::Fmt("0x%08x", vi[0]);
     }
-    else
-      StringFormat::snprintf(buf, 63, "%f", vf[0]);
-
-    str += buf;
 
     if(i + 1 < numComps)
       str += ", ";

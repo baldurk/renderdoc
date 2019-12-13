@@ -36,7 +36,7 @@ public:
   D3D8DebugManager(WrappedD3DDevice8 *wrapper);
   ~D3D8DebugManager();
 
-  void RenderText(float x, float y, const char *textfmt, ...);
+  void RenderText(float x, float y, const rdcstr &text);
 
   void SetOutputDimensions(int w, int h)
   {
@@ -49,7 +49,7 @@ public:
   bool InitFontRendering();
   void ShutdownFontRendering();
 
-  void RenderTextInternal(float x, float y, const char *text);
+  void RenderTextInternal(float x, float y, const rdcstr &text);
 
   static const int FONT_TEX_WIDTH = 256;
   static const int FONT_TEX_HEIGHT = 128;

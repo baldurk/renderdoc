@@ -531,8 +531,8 @@ private:
   static const int FONT_TEX_HEIGHT = 128;
   static const int FONT_MAX_CHARS = 256;
 
-  void RenderOverlayText(float x, float y, const char *fmt, ...);
-  void RenderOverlayStr(float x, float y, const char *str);
+  void RenderText(float x, float y, const rdcstr &text);
+  void RenderTextInternal(float x, float y, const rdcstr &text);
 
   void CreateReplayBackbuffer(const GLInitParams &params, ResourceId fboOrigId, GLuint &fbo,
                               rdcstr bbname);
@@ -593,7 +593,7 @@ public:
   }
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
   void SetFetchCounters(bool in) { m_FetchCounters = in; };
-  void SetDebugMsgContext(const char *context) { m_DebugMsgContext = context; }
+  void SetDebugMsgContext(const rdcstr &context) { m_DebugMsgContext = context; }
   void AddDebugMessage(DebugMessage msg)
   {
     if(IsReplayMode(m_State))
@@ -2496,17 +2496,10 @@ public:
 class ScopedDebugContext
 {
 public:
-  ScopedDebugContext(WrappedOpenGL *driver, const char *fmt, ...)
+  ScopedDebugContext(WrappedOpenGL *driver, const rdcstr &msg)
   {
-    va_list args;
-    va_start(args, fmt);
-    char buf[1024];
-    buf[1023] = 0;
-    StringFormat::vsnprintf(buf, 1023, fmt, args);
-    va_end(args);
-
     m_Driver = driver;
-    m_Driver->SetDebugMsgContext(buf);
+    m_Driver->SetDebugMsgContext(msg);
   }
 
   ~ScopedDebugContext() { m_Driver->SetDebugMsgContext(""); }

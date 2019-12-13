@@ -397,9 +397,8 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
   wchar_t portwstr[7] = {0};
 
   {
-    char buf[7] = {0};
-    int n = StringFormat::snprintf(buf, 6, "%d", port);
-    for(int i = 0; i < n && i < 6; i++)
+    rdcstr buf = ToStr(port);
+    for(size_t i = 0; i < buf.size(); i++)
       portwstr[i] = (wchar_t)buf[i];
   }
 

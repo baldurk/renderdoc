@@ -832,15 +832,17 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
         SubmitAndFlushExtQueue(swapQueueIndex);
       }
 
-      m_TextRenderer->BeginText(textstate);
-
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
       rdcstr overlayText = RenderDoc::Inst().GetOverlayText(RDCDriver::Vulkan, m_FrameCounter, flags);
 
       if(!overlayText.empty())
-        m_TextRenderer->RenderText(textstate, 0.0f, 0.0f, overlayText.c_str());
+      {
+        m_TextRenderer->BeginText(textstate);
 
-      m_TextRenderer->EndText(textstate);
+        m_TextRenderer->RenderText(textstate, 0.0f, 0.0f, overlayText);
+
+        m_TextRenderer->EndText(textstate);
+      }
 
       std::swap(bbBarrier.srcQueueFamilyIndex, bbBarrier.dstQueueFamilyIndex);
       std::swap(bbBarrier.oldLayout, bbBarrier.newLayout);

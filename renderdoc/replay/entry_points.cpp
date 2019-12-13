@@ -304,9 +304,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const char 
 
   if(report.empty())
   {
-    char filename[128] = {};
-    StringFormat::sntimef(filename, 127, "/renderdoc_report_%H%M%S.zip");
-    report = FileIO::GetTempFolderFilename() + filename;
+    report = FileIO::GetTempFolderFilename() +
+             StringFormat::sntimef(Timing::GetUTCTime(), "/renderdoc_report_%H%M%S.zip");
   }
 
   FileIO::Delete(report.c_str());

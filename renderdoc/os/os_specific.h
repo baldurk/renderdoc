@@ -434,22 +434,12 @@ struct rdcwstr : private rdcarray<wchar_t>
 // implemented per-platform
 namespace StringFormat
 {
-void sntimef(time_t utcTime, char *str, size_t bufSize, const char *format);
+rdcstr sntimef(time_t utcTime, const char *format);
 
 rdcstr Wide2UTF8(const rdcwstr &str);
 rdcwstr UTF82Wide(const rdcstr &s);
 
 void Shutdown();
-};
-
-// utility functions, implemented in os_specific.cpp, not per-platform (assuming standard stdarg.h)
-// forwarded to custom printf implementation in utf8printf.cpp
-namespace StringFormat
-{
-int vsnprintf(char *str, size_t bufSize, const char *format, va_list v);
-int snprintf(char *str, size_t bufSize, const char *format, ...);
-
-void sntimef(char *str, size_t bufSize, const char *format);
 };
 
 namespace OSUtility

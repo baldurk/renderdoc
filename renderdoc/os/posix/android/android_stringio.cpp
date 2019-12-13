@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "common/common.h"
+#include "common/formatting.h"
 #include "os/os_specific.h"
 
 #define LOGCAT_TAG "renderdoc"
@@ -77,13 +78,11 @@ rdcstr GetAppFolderFilename(const rdcstr &filename)
 // For other APKs, we use it to get the writable temp directory.
 void GetExecutableFilename(rdcstr &selfName)
 {
-  char buf[4096];
-  snprintf(buf, sizeof(buf), "/proc/%u/cmdline", getpid());
-  int fd = open(buf, O_RDONLY);
+  int fd = open(StringFormat::Fmt("/proc/%u/cmdline", getpid()).c_str(), O_RDONLY);
   if(fd < 0)
-  {
     return;
-  }
+
+  char buf[4096];
   ssize_t len = read(fd, buf, sizeof(buf));
   close(fd);
   if(len < 0 || len == sizeof(buf))

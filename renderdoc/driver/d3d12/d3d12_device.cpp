@@ -1590,8 +1590,7 @@ HRESULT WrappedID3D12Device::Present(ID3D12GraphicsCommandList *pOverlayCommandL
         if(m_InvalidPSO)
           overlayText += "ERROR: Invalid PSO created, likely using DXIL which is not supported.\n";
 
-        if(!overlayText.empty())
-          m_TextRenderer->RenderText(list, 0.0f, 0.0f, overlayText.c_str());
+        m_TextRenderer->RenderText(list, 0.0f, 0.0f, overlayText);
 
         // transition backbuffer back again
         std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);

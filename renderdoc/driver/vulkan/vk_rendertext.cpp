@@ -25,6 +25,7 @@
 #include "vk_rendertext.h"
 #include "3rdparty/stb/stb_truetype.h"
 #include "maths/matrix.h"
+#include "strings/string_utils.h"
 #include "vk_shader_cache.h"
 
 #define VULKAN 1
@@ -597,32 +598,19 @@ void VulkanTextRenderer::BeginText(const TextPrintState &textstate)
 }
 
 void VulkanTextRenderer::RenderText(const TextPrintState &textstate, float x, float y,
-                                    const char *textfmt, ...)
+                                    const rdcstr &text)
 {
-  static char tmpBuf[4096];
+  rdcarray<rdcstr> lines;
+  split(text, lines, '\n');
 
-  va_list args;
-  va_start(args, textfmt);
-  StringFormat::vsnprintf(tmpBuf, 4095, textfmt, args);
-  tmpBuf[4095] = '\0';
-  va_end(args);
-
-  RenderTextInternal(textstate, x, y, tmpBuf);
+  for(const rdcstr &line : lines)
+    RenderTextInternal(textstate, x, y, line);
 }
 
 void VulkanTextRenderer::RenderTextInternal(const TextPrintState &textstate, float x, float y,
-                                            const char *text)
+                                            const rdcstr &text)
 {
-  if(char *t = strchr((char *)text, '\n'))
-  {
-    *t = 0;
-    RenderTextInternal(textstate, x, y, text);
-    RenderTextInternal(textstate, x, y + 1.0f, t + 1);
-    *t = '\n';
-    return;
-  }
-
-  if(strlen(text) == 0)
+  if(text.empty())
     return;
 
   uint32_t offsets[2] = {0};
@@ -643,14 +631,14 @@ void VulkanTextRenderer::RenderTextInternal(const TextPrintState &textstate, flo
 
   m_TextGeneralUBO.Unmap();
 
-  size_t len = strlen(text);
+  size_t len = text.size();
 
   RDCASSERT(len <= MAX_SINGLE_LINE_LENGTH);
 
   // only map enough for our string
   StringUBOData *stringData = (StringUBOData *)m_TextStringUBO.Map(&offsets[1], len * sizeof(Vec4u));
 
-  for(size_t i = 0; i < strlen(text); i++)
+  for(size_t i = 0; i < len; i++)
     stringData->chars[i].x = uint32_t(text[i] - ' ');
 
   m_TextStringUBO.Unmap();
@@ -659,7 +647,7 @@ void VulkanTextRenderer::RenderTextInternal(const TextPrintState &textstate, flo
       ->CmdBindDescriptorSets(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                               Unwrap(m_TextPipeLayout), 0, 1, UnwrapPtr(m_TextDescSet), 2, offsets);
 
-  ObjDisp(textstate.cmd)->CmdDraw(Unwrap(textstate.cmd), 6 * (uint32_t)strlen(text), 1, 0, 0);
+  ObjDisp(textstate.cmd)->CmdDraw(Unwrap(textstate.cmd), 6 * (uint32_t)len, 1, 0, 0);
 }
 
 void VulkanTextRenderer::EndText(const TextPrintState &textstate)

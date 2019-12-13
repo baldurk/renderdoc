@@ -254,12 +254,11 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
         DXGI_FORMAT_UNKNOWN,    // RETURN_TYPE_UNUSED
     };
 
-    char buf[64] = {0};
-    StringFormat::snprintf(buf, 63, "%s4", typeStr[resourceData.retType]);
+    rdcstr type = StringFormat::Fmt("%s4", typeStr[resourceData.retType]);
 
     if(retFmt == DXGI_FORMAT_UNKNOWN)
     {
-      funcRet = buf;
+      funcRet = type;
       retFmt = fmts[resourceData.retType];
     }
 
@@ -267,13 +266,10 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
        resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
     {
       if(resourceData.sampleCount > 0)
-        StringFormat::snprintf(buf, 63, "%s4, %d", typeStr[resourceData.retType],
-                               resourceData.sampleCount);
+        type += StringFormat::Fmt(", %d", resourceData.sampleCount);
     }
 
-    textureDecl += "<";
-    textureDecl += buf;
-    textureDecl += "> t";
+    textureDecl += "<" + type + "> t";
   }
 
   char *formats[4][2] = {
@@ -358,65 +354,35 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     }
   }
 
-  char buf[256] = {0};
-  char buf2[256] = {0};
-  char buf3[256] = {0};
+  rdcstr texcoords;
 
   // because of unions in .value we can pass the float versions and printf will interpret it as
   // the right type according to formats
   if(texcoordType == 0)
-    StringFormat::snprintf(buf, 255, formats[texdim + texdimOffs - 1][texcoordType], uv.value.f.x,
-                           uv.value.f.y, uv.value.f.z, uv.value.f.w);
+    texcoords = StringFormat::Fmt(formats[texdim + texdimOffs - 1][texcoordType], uv.value.f.x,
+                                  uv.value.f.y, uv.value.f.z, uv.value.f.w);
   else
-    StringFormat::snprintf(buf, 255, formats[texdim + texdimOffs - 1][texcoordType], uv.value.i.x,
-                           uv.value.i.y, uv.value.i.z, uv.value.i.w);
+    texcoords = StringFormat::Fmt(formats[texdim + texdimOffs - 1][texcoordType], uv.value.i.x,
+                                  uv.value.i.y, uv.value.i.z, uv.value.i.w);
 
-  if(ddxType == 0)
-    StringFormat::snprintf(buf2, 255, formats[offsetDim + texdimOffs - 1][ddxType], ddxCalc.value.f.x,
-                           ddxCalc.value.f.y, ddxCalc.value.f.z, ddxCalc.value.f.w);
-  else
-    StringFormat::snprintf(buf2, 255, formats[offsetDim + texdimOffs - 1][ddxType], ddxCalc.value.i.x,
-                           ddxCalc.value.i.y, ddxCalc.value.i.z, ddxCalc.value.i.w);
-
-  if(ddyType == 0)
-    StringFormat::snprintf(buf3, 255, formats[offsetDim + texdimOffs - 1][ddyType], ddyCalc.value.f.x,
-                           ddyCalc.value.f.y, ddyCalc.value.f.z, ddyCalc.value.f.w);
-  else
-    StringFormat::snprintf(buf3, 255, formats[offsetDim + texdimOffs - 1][ddyType], ddyCalc.value.i.x,
-                           ddyCalc.value.i.y, ddyCalc.value.i.z, ddyCalc.value.i.w);
-
-  rdcstr texcoords = buf;
-  rdcstr ddx = buf2;
-  rdcstr ddy = buf3;
-
-  if(opcode == OPCODE_LD_MS)
-  {
-    StringFormat::snprintf(buf, 255, formats[0][1], multisampleIndex);
-  }
-
-  rdcstr sampleIdx = buf;
   rdcstr offsets = "";
 
   if(useOffsets)
   {
     if(offsetDim == 1)
-      StringFormat::snprintf(buf, 255, ", int(%d)", texelOffsets[0]);
+      offsets = StringFormat::Fmt(", int(%d)", texelOffsets[0]);
     else if(offsetDim == 2)
-      StringFormat::snprintf(buf, 255, ", int2(%d, %d)", texelOffsets[0], texelOffsets[1]);
+      offsets = StringFormat::Fmt(", int2(%d, %d)", texelOffsets[0], texelOffsets[1]);
     else if(offsetDim == 3)
-      StringFormat::snprintf(buf, 255, ", int3(%d, %d, %d)", texelOffsets[0], texelOffsets[1],
-                             texelOffsets[2]);
+      offsets =
+          StringFormat::Fmt(", int3(%d, %d, %d)", texelOffsets[0], texelOffsets[1], texelOffsets[2]);
     // texdim == 4 is cube arrays, no offset supported
-
-    offsets = buf;
   }
 
   char elems[] = "xyzw";
   rdcstr strSwizzle = ".";
   for(int i = 0; i < 4; ++i)
-  {
     strSwizzle += elems[swizzle[i]];
-  }
 
   rdcstr strGatherChannel;
   switch(gatherChannel)
@@ -438,12 +404,30 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
 
   if(opcode == OPCODE_SAMPLE || opcode == OPCODE_SAMPLE_B || opcode == OPCODE_SAMPLE_D)
   {
+    rdcstr ddx;
+
+    if(ddxType == 0)
+      ddx = StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][ddxType], ddxCalc.value.f.x,
+                              ddxCalc.value.f.y, ddxCalc.value.f.z, ddxCalc.value.f.w);
+    else
+      ddx = StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][ddxType], ddxCalc.value.i.x,
+                              ddxCalc.value.i.y, ddxCalc.value.i.z, ddxCalc.value.i.w);
+
+    rdcstr ddy;
+
+    if(ddyType == 0)
+      ddy = StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][ddyType], ddyCalc.value.f.x,
+                              ddyCalc.value.f.y, ddyCalc.value.f.z, ddyCalc.value.f.w);
+    else
+      ddy = StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][ddyType], ddyCalc.value.i.x,
+                              ddyCalc.value.i.y, ddyCalc.value.i.z, ddyCalc.value.i.w);
+
     sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
                                       textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
     sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-    sampleProgram += StringFormat::Fmt("t.SampleGrad(s, %s, %s, %s%s)%s;", texcoords.c_str(),
+    sampleProgram += StringFormat::Fmt("t.SampleGrad(s, %s, %s, %s %s)%s;\n", texcoords.c_str(),
                                        ddx.c_str(), ddy.c_str(), offsets.c_str(), strSwizzle.c_str());
-    sampleProgram += "\n}\n";
+    sampleProgram += "}\n";
   }
   else if(opcode == OPCODE_SAMPLE_L)
   {
@@ -451,40 +435,33 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
                                       textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
     sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-    sampleProgram += StringFormat::Fmt("t.SampleLevel(s, %s, %.10f%s)%s;", texcoords.c_str(),
+    sampleProgram += StringFormat::Fmt("t.SampleLevel(s, %s, %.10f %s)%s;\n", texcoords.c_str(),
                                        lodOrCompareValue, offsets.c_str(), strSwizzle.c_str());
-    sampleProgram += "\n}\n";
+    sampleProgram += "}\n";
   }
   else if(opcode == OPCODE_SAMPLE_C || opcode == OPCODE_LOD)
   {
     // these operations need derivatives but have no hlsl function to call to provide them, so
     // we fake it in the vertex shader
 
-    rdcstr uvDim = "1";
-    uvDim[0] += char(texdim + texdimOffs - 1);
+    rdcstr uvdecl = StringFormat::Fmt("float%d uv : uvs", texdim + texdimOffs);
 
-    vsProgram = "void main(uint id : SV_VertexID, out float4 pos : SV_Position, out float" + uvDim +
-                " uv : uvs) {\n";
+    vsProgram =
+        "void main(uint id : SV_VertexID, out float4 pos : SV_Position, out " + uvdecl + ") {\n";
 
-    StringFormat::snprintf(
-        buf, 255, formats[texdim + texdimOffs - 1][texcoordType],
-        uv.value.f.x + ddyCalc.value.f.x * 2.0f, uv.value.f.y + ddyCalc.value.f.y * 2.0f,
-        uv.value.f.z + ddyCalc.value.f.z * 2.0f, uv.value.f.w + ddyCalc.value.f.w * 2.0f);
+    rdcstr uvPlusDDX = StringFormat::Fmt(
+        formats[texdim + texdimOffs - 1][texcoordType], uv.value.f.x + ddyCalc.value.f.x * 2.0f,
+        uv.value.f.y + ddyCalc.value.f.y * 2.0f, uv.value.f.z + ddyCalc.value.f.z * 2.0f,
+        uv.value.f.w + ddyCalc.value.f.w * 2.0f);
 
-    vsProgram += "if(id == 0) uv = " + rdcstr(buf) + ";\n";
+    rdcstr uvPlusDDY = StringFormat::Fmt(
+        formats[texdim + texdimOffs - 1][texcoordType], uv.value.f.x + ddxCalc.value.f.x * 2.0f,
+        uv.value.f.y + ddxCalc.value.f.y * 2.0f, uv.value.f.z + ddxCalc.value.f.z * 2.0f,
+        uv.value.f.w + ddxCalc.value.f.w * 2.0f);
 
-    StringFormat::snprintf(buf, 255, formats[texdim + texdimOffs - 1][texcoordType], uv.value.f.x,
-                           uv.value.f.y, uv.value.f.z, uv.value.f.w);
-
-    vsProgram += "if(id == 1) uv = " + rdcstr(buf) + ";\n";
-
-    StringFormat::snprintf(
-        buf, 255, formats[texdim + texdimOffs - 1][texcoordType],
-        uv.value.f.x + ddxCalc.value.f.x * 2.0f, uv.value.f.y + ddxCalc.value.f.y * 2.0f,
-        uv.value.f.z + ddxCalc.value.f.z * 2.0f, uv.value.f.w + ddxCalc.value.f.w * 2.0f);
-
-    vsProgram += "if(id == 2) uv = " + rdcstr(buf) + ";\n";
-
+    vsProgram += "if(id == 0) uv = " + uvPlusDDX + ";\n";
+    vsProgram += "if(id == 1) uv = " + texcoords + ";\n";
+    vsProgram += "if(id == 2) uv = " + uvPlusDDY + ";\n";
     vsProgram += "pos = float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
     vsProgram += "}";
 
@@ -493,22 +470,23 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
       // comparison value
       sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
                                         textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
-      sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim +
-                       " uv : uvs) : SV_Target0\n{\n";
-      sampleProgram += StringFormat::Fmt("return t.SampleCmpLevelZero(s, uv, %.10f%s).xxxx;",
+      sampleProgram +=
+          funcRet + " main(float4 pos : SV_Position, " + uvdecl + ") : SV_Target0\n{\n";
+      sampleProgram += StringFormat::Fmt("t.SampleCmpLevelZero(s, uv, %.10f %s).xxxx;\n",
                                          lodOrCompareValue, offsets.c_str());
-      sampleProgram += "\n}\n";
+      sampleProgram += "}\n";
     }
     else if(opcode == OPCODE_LOD)
     {
       sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
                                         textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
-      sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim +
-                       " uv : uvs) : SV_Target0\n{\n";
       sampleProgram +=
-          "return float4(t.CalculateLevelOfDetail(s, uv), t.CalculateLevelOfDetailUnclamped(s, "
-          "uv), 0.0f, 0.0f);";
-      sampleProgram += "\n}\n";
+          funcRet + " main(float4 pos : SV_Position, " + uvdecl + ") : SV_Target0\n{\n";
+      sampleProgram +=
+          "return float4(t.CalculateLevelOfDetail(s, uv),\n"
+          "              t.CalculateLevelOfDetailUnclamped(s, uv),\n"
+          "              0.0f, 0.0f);\n";
+      sampleProgram += "}\n";
     }
   }
   else if(opcode == OPCODE_SAMPLE_C_LZ)
@@ -516,44 +494,46 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     // comparison value
     sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
                                       textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
-    sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-    sampleProgram += StringFormat::Fmt("t.SampleCmpLevelZero(s, %s, %.10f%s)%s;", texcoords.c_str(),
-                                       lodOrCompareValue, offsets.c_str(), strSwizzle.c_str());
-    sampleProgram += "\n}\n";
+    sampleProgram += funcRet + " main() : SV_Target0\n{\n";
+    sampleProgram +=
+        StringFormat::Fmt("return t.SampleCmpLevelZero(s, %s, %.10f %s)%s;\n", texcoords.c_str(),
+                          lodOrCompareValue, offsets.c_str(), strSwizzle.c_str());
+    sampleProgram += "}\n";
   }
   else if(opcode == OPCODE_LD)
   {
     sampleProgram = StringFormat::Fmt("%s : register(t%u);\n\n", textureDecl.c_str(), texSlot);
-    sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-    sampleProgram += "t.Load(" + texcoords + offsets + ")" + strSwizzle + ";";
+    sampleProgram += funcRet + " main() : SV_Target0\n{\n";
+    sampleProgram += "return t.Load(" + texcoords + offsets + ")" + strSwizzle + ";";
     sampleProgram += "\n}\n";
   }
   else if(opcode == OPCODE_LD_MS)
   {
     sampleProgram = StringFormat::Fmt("%s : register(t%u);\n\n", textureDecl.c_str(), texSlot);
-    sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-    sampleProgram += "t.Load(" + texcoords + ", " + sampleIdx + offsets + ")" + strSwizzle + ";";
+    sampleProgram += funcRet + " main() : SV_Target0\n{\n";
+    sampleProgram += StringFormat::Fmt("t.Load(%s, int(%d) %s)%s;\n", texcoords.c_str(),
+                                       multisampleIndex, offsets.c_str(), strSwizzle.c_str());
     sampleProgram += "\n}\n";
   }
   else if(opcode == OPCODE_GATHER4 || opcode == OPCODE_GATHER4_PO)
   {
     sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
                                       textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
-    sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-    sampleProgram +=
-        "t.Gather" + strGatherChannel + "(s, " + texcoords + offsets + ")" + strSwizzle + ";";
-    sampleProgram += "\n}\n";
+    sampleProgram += funcRet + " main() : SV_Target0\n{\n";
+    sampleProgram += StringFormat::Fmt("return t.Gather%s(s, %s %s)%s;\n", strGatherChannel.c_str(),
+                                       texcoords.c_str(), offsets.c_str(), strSwizzle.c_str());
+    sampleProgram += "}\n";
   }
   else if(opcode == OPCODE_GATHER4_C || opcode == OPCODE_GATHER4_PO_C)
   {
     // comparison value
     sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
                                       textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
-    sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
-    sampleProgram += StringFormat::Fmt("t.GatherCmp%s(s, %s, %.10f%s)%s;", strGatherChannel.c_str(),
-                                       texcoords.c_str(), lodOrCompareValue, offsets.c_str(),
-                                       strSwizzle.c_str());
-    sampleProgram += "\n}\n";
+    sampleProgram += funcRet + " main() : SV_Target0\n{\n";
+    sampleProgram += StringFormat::Fmt("return t.GatherCmp%s(s, %s, %.10f %s)%s;\n",
+                                       strGatherChannel.c_str(), texcoords.c_str(),
+                                       lodOrCompareValue, offsets.c_str(), strSwizzle.c_str());
+    sampleProgram += "}\n";
   }
 
   // Create VS/PS to fetch the sample
