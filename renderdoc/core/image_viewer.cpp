@@ -745,7 +745,10 @@ void ImageViewer::RefreshFile()
   }
 
   if(m_TextureID == ResourceId())
-    m_TextureID = m_Proxy->CreateProxyTexture(texDetails);
+  {
+    if(m_Proxy->IsTextureSupported(texDetails))
+      m_TextureID = m_Proxy->CreateProxyTexture(texDetails);
+  }
 
   if(m_TextureID == ResourceId())
     RDCERR("Couldn't create proxy texture for image file");
