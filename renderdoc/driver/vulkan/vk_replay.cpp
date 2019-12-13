@@ -3030,10 +3030,12 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     m_DebugWidth = imCreateInfo.extent.width;
     m_DebugHeight = imCreateInfo.extent.height;
 
+    int renderCount = 0;
+
     // if 3d texture, render each slice separately, otherwise render once
     for(uint32_t i = 0; i < numFBs; i++)
     {
-      if(numFBs > 1 && (i % m_TexRender.UBO.GetRingCount()) == 0)
+      if(numFBs > 1 && (renderCount % m_TexRender.UBO.GetRingCount()) == 0)
       {
         m_pDriver->SubmitCmds();
         m_pDriver->FlushQ();
@@ -3107,6 +3109,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       };
 
       RenderTextureInternal(texDisplay, rpbegin, renderFlags);
+      renderCount++;
 
       // for textures with stencil, do another draw to copy the stencil
       if(isStencil)
@@ -3123,6 +3126,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
         texDisplay.red = texDisplay.blue = texDisplay.alpha = false;
         RenderTextureInternal(texDisplay, rpbegin, (renderFlags & ~eTexDisplay_RemapFloat) |
                                                        eTexDisplay_RemapUInt | eTexDisplay_GreenOnly);
+        renderCount++;
       }
     }
 
