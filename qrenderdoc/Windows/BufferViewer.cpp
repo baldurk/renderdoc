@@ -2239,8 +2239,6 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     ClearModels();
   }
 
-  EnableCameraGuessControls();
-
   bufdata->vsinConfig.curInstance = bufdata->vsoutConfig.curInstance =
       bufdata->gsoutConfig.curInstance = m_Config.curInstance;
   bufdata->vsinConfig.curView = bufdata->vsoutConfig.curView = bufdata->gsoutConfig.curView =
@@ -2360,6 +2358,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
          bufdata->highlightNames[5] !=
              bufdata->gsoutConfig.columnName(m_ModelGSOut->secondaryColumn()))
         m_ModelGSOut->setSecondaryColumn(-1, m_Config.solidShadeMode == SolidShade::Secondary, false);
+
+      EnableCameraGuessControls();
 
       populateBBox(bufdata);
 
@@ -3438,6 +3438,8 @@ void BufferViewer::camGuess_changed(double value)
   if(ui->farGuess->value() > 0.0)
     m_Config.position.nearPlane = ui->farGuess->value();
 
+  EnableCameraGuessControls();
+
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
@@ -3800,9 +3802,13 @@ void BufferViewer::UpdateHighlightVerts()
 
 void BufferViewer::EnableCameraGuessControls()
 {
+  ui->matrixType->setEnabled(isCurrentRasterOut());
   ui->aspectGuess->setEnabled(isCurrentRasterOut());
   ui->nearGuess->setEnabled(isCurrentRasterOut());
   ui->farGuess->setEnabled(isCurrentRasterOut());
+
+  // FOV is only available in perspective mode
+  ui->fovGuess->setEnabled(isCurrentRasterOut() && ui->matrixType->currentIndex() == 0);
 }
 
 void BufferViewer::on_outputTabs_currentChanged(int index)
