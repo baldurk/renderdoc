@@ -279,6 +279,23 @@ void main()
 
     if(physProperties.limits.maxVertexOutputComponents < 128)
       Avail = "Not enough vertex output components to run test";
+
+    VkFormatProperties props = {};
+    vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_R64G64_SFLOAT, &props);
+
+    if((props.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT) == 0)
+    {
+      Avail = "VK_FORMAT_R64G64_SFLOAT not supported in vertex buffers";
+      return;
+    }
+
+    vkGetPhysicalDeviceFormatProperties(phys, VK_FORMAT_R16G16B16A16_USCALED, &props);
+
+    if((props.bufferFeatures & VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT) == 0)
+    {
+      Avail = "VK_FORMAT_R16G16B16A16_USCALED not supported in vertex buffers";
+      return;
+    }
   }
 
   int main()
