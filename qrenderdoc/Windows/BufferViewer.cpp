@@ -37,6 +37,69 @@
 #include "Code/Resources.h"
 #include "ui_BufferViewer.h"
 
+namespace NativeScanCode
+{
+enum
+{
+#if defined(Q_OS_WIN32)
+  Key_A = 30,
+  Key_S = 31,
+  Key_D = 32,
+  Key_F = 33,
+  Key_W = 17,
+  Key_R = 19,
+#elif defined(Q_OS_LINUX)
+  Key_A = 30 + 8,
+  Key_S = 31 + 8,
+  Key_D = 32 + 8,
+  Key_F = 33 + 8,
+  Key_W = 17 + 8,
+  Key_R = 19 + 8,
+#elif defined(Q_OS_MACOS)
+  // scan codes not supported on OS X
+  Key_A = 0xDEADBEF1,
+  Key_S = 0xDEADBEF2,
+  Key_D = 0xDEADBEF3,
+  Key_F = 0xDEADBEF4,
+  Key_W = 0xDEADBEF5,
+  Key_R = 0xDEADBEF6,
+#else
+#error "Unknown platform! Define NativeScanCode"
+#endif
+};
+};
+
+namespace NativeVirtualKey
+{
+enum
+{
+#if defined(Q_OS_WIN32)
+  Key_A = quint32('A'),
+  Key_S = quint32('S'),
+  Key_D = quint32('D'),
+  Key_F = quint32('F'),
+  Key_W = quint32('W'),
+  Key_R = quint32('R'),
+#elif defined(Q_OS_LINUX)
+  Key_A = quint32('a'),
+  Key_S = quint32('s'),
+  Key_D = quint32('d'),
+  Key_F = quint32('f'),
+  Key_W = quint32('w'),
+  Key_R = quint32('r'),
+#elif defined(Q_OS_MACOS)
+  Key_A = 0x00,
+  Key_S = 0x01,
+  Key_D = 0x02,
+  Key_F = 0x03,
+  Key_W = 0x0D,
+  Key_R = 0x0F,
+#else
+#error "Unknown platform! Define NativeVirtualKey"
+#endif
+};
+};
+
 class CameraWrapper
 {
 public:
@@ -64,14 +127,73 @@ public:
     }
   }
 
+  enum class KeyPressDirection
+  {
+    None,
+    Left,
+    Right,
+    Forward,
+    Back,
+    Up,
+    Down,
+  };
+
+  KeyPressDirection GetDirection(QKeyEvent *e)
+  {
+    // if we have a native scancode, we expect to be able to match it. If we don't then don't get
+    // any false positives by checking the virtual key
+    if(e->nativeScanCode() > 1)
+    {
+      switch(e->nativeScanCode())
+      {
+        case NativeScanCode::Key_A: return KeyPressDirection::Left;
+        case NativeScanCode::Key_D: return KeyPressDirection::Right;
+        case NativeScanCode::Key_W: return KeyPressDirection::Forward;
+        case NativeScanCode::Key_S: return KeyPressDirection::Back;
+        case NativeScanCode::Key_R: return KeyPressDirection::Up;
+        case NativeScanCode::Key_F: return KeyPressDirection::Down;
+        default: break;
+      }
+    }
+    else
+    {
+      switch(e->nativeVirtualKey())
+      {
+        case NativeVirtualKey::Key_A: return KeyPressDirection::Left;
+        case NativeVirtualKey::Key_D: return KeyPressDirection::Right;
+        case NativeVirtualKey::Key_W: return KeyPressDirection::Forward;
+        case NativeVirtualKey::Key_S: return KeyPressDirection::Back;
+        case NativeVirtualKey::Key_R: return KeyPressDirection::Up;
+        case NativeVirtualKey::Key_F: return KeyPressDirection::Down;
+        default: break;
+      }
+    }
+
+    // handle arrow keys, we can do this safely with Qt::Key
+    switch(e->key())
+    {
+      case Qt::Key_Left: return KeyPressDirection::Left;
+      case Qt::Key_Right: return KeyPressDirection::Right;
+      case Qt::Key_Up: return KeyPressDirection::Forward;
+      case Qt::Key_Down: return KeyPressDirection::Back;
+      case Qt::Key_PageUp: return KeyPressDirection::Up;
+      case Qt::Key_PageDown: return KeyPressDirection::Down;
+      default: break;
+    }
+
+    return KeyPressDirection::None;
+  }
+
   virtual void KeyUp(QKeyEvent *e)
   {
-    if(e->key() == Qt::Key_A || e->key() == Qt::Key_D)
+    KeyPressDirection dir = GetDirection(e);
+
+    if(dir == KeyPressDirection::Left || dir == KeyPressDirection::Right)
       setMove(Direction::Horiz, 0);
-    if(e->key() == Qt::Key_Q || e->key() == Qt::Key_E)
-      setMove(Direction::Vert, 0);
-    if(e->key() == Qt::Key_W || e->key() == Qt::Key_S)
+    if(dir == KeyPressDirection::Forward || dir == KeyPressDirection::Back)
       setMove(Direction::Fwd, 0);
+    if(dir == KeyPressDirection::Up || dir == KeyPressDirection::Down)
+      setMove(Direction::Vert, 0);
 
     if(e->modifiers() & Qt::ShiftModifier)
       m_CurrentSpeed = 3.0f;
@@ -81,18 +203,21 @@ public:
 
   virtual void KeyDown(QKeyEvent *e)
   {
-    if(e->key() == Qt::Key_W)
-      setMove(Direction::Fwd, 1);
-    if(e->key() == Qt::Key_S)
-      setMove(Direction::Fwd, -1);
-    if(e->key() == Qt::Key_Q)
-      setMove(Direction::Vert, 1);
-    if(e->key() == Qt::Key_E)
-      setMove(Direction::Vert, -1);
-    if(e->key() == Qt::Key_D)
-      setMove(Direction::Horiz, 1);
-    if(e->key() == Qt::Key_A)
-      setMove(Direction::Horiz, -1);
+    KeyPressDirection dir = GetDirection(e);
+
+    qInfo() << "keydown" << Qt::Key(e->key()) << "has scancode" << e->nativeScanCode()
+            << "and virtualkey" << e->nativeVirtualKey() << char(e->nativeVirtualKey());
+
+    switch(dir)
+    {
+      case KeyPressDirection::None: break;
+      case KeyPressDirection::Left: setMove(Direction::Horiz, -1); break;
+      case KeyPressDirection::Right: setMove(Direction::Horiz, 1); break;
+      case KeyPressDirection::Forward: setMove(Direction::Fwd, 1); break;
+      case KeyPressDirection::Back: setMove(Direction::Fwd, -1); break;
+      case KeyPressDirection::Up: setMove(Direction::Vert, 1); break;
+      case KeyPressDirection::Down: setMove(Direction::Vert, -1); break;
+    }
 
     if(e->modifiers() & Qt::ShiftModifier)
       m_CurrentSpeed = 3.0f;
@@ -1817,7 +1942,7 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
 
   ui->dockarea->setAllowFloatingWindow(false);
 
-  ui->controlType->addItems({tr("Arcball"), tr("WASD")});
+  ui->controlType->addItems({tr("Arcball"), tr("Flycam")});
   ui->controlType->adjustSize();
 
   configureDrawRange();

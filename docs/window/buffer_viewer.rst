@@ -12,7 +12,7 @@ The Mesh Viewer shows both the mesh data as well as a visual representation of t
 
 Each vertex has a display that shows the mesh data, the format of which is pulled from the relevant stage of the pipeline - shader input or output, or vertex input attributes. You can choose to sync these views |arrow_join| as well as specify an offset which will stay consistent, so that you can see the same row as you move between different events.
 
-Below this is a 3D view which will show one stage at any given time, and can be switched with the tabs above it. There are two control schemes for viewing the 3D mesh - Arcball which is the default for pre-transform (VS input), and WASD controls which is the default for post-transform (VS output). You can switch between these at any time with the dropdown on the toolbar above the mesh view.
+Below this is a 3D view which will show one stage at any given time, and can be switched with the tabs above it. There are two control schemes for viewing the 3D mesh - Arcball which is the default for pre-transform (VS input), and Flycam controls which is the default for post-transform (VS output). You can switch between these at any time with the dropdown on the toolbar above the mesh view.
 
 .. note::
 
@@ -38,7 +38,16 @@ Opening the options |cog| you can specify the FOV used in the projection matrix.
 
 	Options: The options pop-out of the buffer viewer.
 
-Also available in the options is a simple speed multiplier for the WASD controls, to fine-tune how fast it moves to the dimensions of the mesh.
+Also available in the options is a simple speed multiplier for the Flycam controls, to fine-tune how fast it moves to the dimensions of the mesh.
+
+Flycam controls
+---------------
+
+The flycam controls available use the mouse to navigate and 'look', and the keyboard to 'move'. Holding down the left mouse button will rotate the camera's direction around the camera's current position.
+
+The arrow keys will move forward, back, left and right, according to the current direction of the camera. The traditional FPS 'WASD' controls will also function, relative to an english keyboard. E.g. on an AZERTY keyboard this will be 'ZQSD' instead.
+
+Page up and Page down will move vertically 'up' and 'down' relative to the camera. This is also available on the main keyboard with 'R' and 'F' (again relative to an english keyboard).
 
 Mesh Preview
 ------------
