@@ -632,6 +632,28 @@ inline SDObject *makeSDObject(const char *name, QVariant val)
       ret->data.str = val.toString().toUtf8().data();
       ret->type.byteSize = ret->data.str.size();
       break;
+    case QMetaType::QVariantList:
+    {
+      QVariantList list = val.toList();
+      ret->type.name = "array"_lit;
+      ret->type.basetype = SDBasic::Array;
+      ret->data.children.reserve(list.size());
+      for(int i = 0; i < list.size(); i++)
+        ret->data.children.push_back(makeSDObject("[]", list.at(i)));
+      ret->type.byteSize = list.size();
+      break;
+    }
+    case QMetaType::QVariantMap:
+    {
+      QVariantMap map = val.toMap();
+      ret->type.name = "struct"_lit;
+      ret->type.basetype = SDBasic::Struct;
+      ret->data.children.reserve(map.size());
+      for(const QString &str : map.keys())
+        ret->data.children.push_back(makeSDObject(str.toUtf8().data(), map[str]));
+      ret->type.byteSize = map.size();
+      break;
+    }
     default: break;
   }
 
