@@ -55,8 +55,6 @@ rdcstr Fmt(const char *format, ...)
 
 rdcstr Callstack::AddressDetails::formattedString(const char *commonPath)
 {
-  char fmt[512] = {0};
-
   const char *f = filename.c_str();
 
   if(commonPath)
