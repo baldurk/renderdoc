@@ -955,12 +955,11 @@ ReplayStatus importXMLZ(const char *filename, StreamReader &reader, RDCFile *rdc
     }
   }
 
-  uint64_t len = reader.GetSize();
-  char *buf = new char[(size_t)len + 1];
-  reader.Read(buf, (size_t)len);
-  buf[len] = 0;
+  rdcstr buf;
+  buf.resize((size_t)reader.GetSize());
+  reader.Read(buf.data(), buf.size());
 
-  return XML2Structured(buf, thumb, extThumb, structData.buffers, rdc, structData.version,
+  return XML2Structured(buf.c_str(), thumb, extThumb, structData.buffers, rdc, structData.version,
                         structData.chunks, progress);
 }
 
