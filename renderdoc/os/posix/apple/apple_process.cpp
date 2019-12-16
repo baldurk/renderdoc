@@ -103,7 +103,7 @@ int GetIdentPort(pid_t childPid)
     if(isNewline(parseResult[i]))
       i++;
 
-    const int pid = std::stoi(&result[tokenStart]);
+    const int pid = atoi(&result[tokenStart]);
     if(pid == (int)childPid)
     {
       const char *netString("n*:");
@@ -124,7 +124,7 @@ int GetIdentPort(pid_t childPid)
           if(isNewline(parseResult[i]))
             i++;
 
-          const int port = std::stoi(&result[tokenStart]);
+          const int port = atoi(&result[tokenStart]);
           if(port >= RenderDoc_FirstTargetControlPort && port <= RenderDoc_LastTargetControlPort)
           {
             return port;
