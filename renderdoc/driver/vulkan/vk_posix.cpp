@@ -283,6 +283,17 @@ static rdcstr GenerateJSON(const rdcstr &sopath)
     idx = json.find(minorString);
   }
 
+  const char enableVarString[] = "@VULKAN_ENABLE_VAR@";
+
+  idx = json.find(enableVarString);
+  while(idx >= 0)
+  {
+    json = json.substr(0, idx) + STRINGIZE(ENABLE_VULKAN_RENDERDOC_CAPTURE) +
+           json.substr(idx + sizeof(enableVarString) - 1);
+
+    idx = json.find(enableVarString);
+  }
+
   return json;
 }
 
