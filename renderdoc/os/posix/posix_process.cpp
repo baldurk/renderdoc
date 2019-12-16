@@ -423,10 +423,10 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
 
 // handle funky apple .app folders that aren't actually executables
 #if ENABLED(RDOC_APPLE)
-  if(appName.size() > 5 && appName.rfind(".app") == appName.size() - 4)
+  if(appName.size() > 5 && appName.endsWith(".app"))
   {
     rdcstr realAppName = appName + "/Contents/MacOS/" + get_basename(appName);
-    realAppName.erase(realAppName.size() - 4);
+    realAppName.erase(realAppName.size() - 4, ~0U);
 
     if(FileIO::exists(realAppName.c_str()))
     {

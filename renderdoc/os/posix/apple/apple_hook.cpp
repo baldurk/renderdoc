@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <map>
 #include <set>
+#include "api/replay/stringise.h"
 #include "common/common.h"
 #include "common/threading.h"
 #include "hooks/hooks.h"
