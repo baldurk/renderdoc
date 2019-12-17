@@ -299,7 +299,7 @@ VkResult WrappedVulkan::vkGetSwapchainImagesKHR(VkDevice device, VkSwapchainKHR 
         record->AddParent(swaprecord);
 
         record->resInfo = new ResourceInfo();
-        record->resInfo->imageInfo = ImageInfo(*swaprecord->swapInfo);
+        record->resInfo->imageInfo = swaprecord->swapInfo->imageInfo;
 
         // note we add the chunk to the swap record, that way when the swapchain is created it will
         // always create all of its images on replay. The image's record is kept around for
@@ -356,9 +356,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
     AddResource(SwapChain, ResourceType::SwapchainImage, "Swapchain");
     DerivedResource(device, SwapChain);
 
-    swapinfo.format = CreateInfo.imageFormat;
-    swapinfo.extent = CreateInfo.imageExtent;
-    swapinfo.arraySize = CreateInfo.imageArrayLayers;
+    swapinfo.imageInfo = ImageInfo(CreateInfo);
 
     swapinfo.shared = (CreateInfo.presentMode == VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR ||
                        CreateInfo.presentMode == VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR);
@@ -451,7 +449,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
 
       ImageLayouts &layouts = m_ImageLayouts[liveId];
 
-      layouts.imageInfo = ImageInfo(swapinfo);
+      layouts.imageInfo = swapinfo.imageInfo;
 
       layouts.isMemoryBound = true;
       layouts.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -500,9 +498,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
 
     RenderDoc::Inst().AddFrameCapturer(LayerDisp(m_Instance), swapInfo.wndHandle, this);
 
-    swapInfo.format = pCreateInfo->imageFormat;
-    swapInfo.extent = pCreateInfo->imageExtent;
-    swapInfo.arraySize = pCreateInfo->imageArrayLayers;
+    swapInfo.imageInfo = ImageInfo(*pCreateInfo);
 
     VkResult vkr = VK_SUCCESS;
 
@@ -786,9 +782,9 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
           GetNextCmd(),
           rp,
           fb,
-          RDCMAX(1U, swapInfo.extent.width),
-          RDCMAX(1U, swapInfo.extent.height),
-          swapInfo.format,
+          RDCMAX(1U, swapInfo.imageInfo.extent.width),
+          RDCMAX(1U, swapInfo.imageInfo.extent.height),
+          swapInfo.imageInfo.format,
       };
 
       VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
