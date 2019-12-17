@@ -3207,6 +3207,18 @@ VkImageAspectFlags FormatImageAspects(VkFormat fmt)
     return VK_IMAGE_ASPECT_COLOR_BIT;
 }
 
+ImageSubresourceRange ImageInfo::FullRange() const
+{
+  return ImageSubresourceRange(
+      /* aspectMask = */ Aspects(),
+      /* baseMipLevel = */ 0u,
+      /* levelCount = */ (uint32_t)levelCount,
+      /* baseArrayLayer = */ 0u,
+      /* layerCount = */ (uint32_t)layerCount,
+      /* baseDepthSlice = */ 0u,
+      /* sliceCount = */ extent.depth);
+}
+
 int ImgRefs::GetAspectCount() const
 {
   int aspectCount = 0;
