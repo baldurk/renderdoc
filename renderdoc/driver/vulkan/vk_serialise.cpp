@@ -3948,6 +3948,61 @@ void DoSerialise(SerialiserType &ser, ImageLayouts &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ImageSubresourceRange &el)
+{
+  SERIALISE_MEMBER_VKFLAGS(VkImageAspectFlags, aspectMask);
+  SERIALISE_MEMBER(baseMipLevel);
+  SERIALISE_MEMBER(levelCount);
+  SERIALISE_MEMBER(baseArrayLayer);
+  SERIALISE_MEMBER(layerCount);
+  SERIALISE_MEMBER(baseDepthSlice);
+  SERIALISE_MEMBER(sliceCount);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ImageSubresourceState &el)
+{
+  SERIALISE_MEMBER(oldQueueFamilyIndex);
+  SERIALISE_MEMBER(newQueueFamilyIndex);
+  SERIALISE_MEMBER(oldLayout);
+  SERIALISE_MEMBER(newLayout);
+  SERIALISE_MEMBER(refType);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, ImageSubresourceStateForRange &el)
+{
+  SERIALISE_MEMBER(range);
+  SERIALISE_MEMBER(state);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ImageState &el)
+{
+  SERIALISE_ELEMENT_LOCAL(imageInfo, el.GetImageInfo());
+
+  rdcarray<ImageSubresourceStateForRange> subresourceStates;
+  if(ser.IsWriting())
+  {
+    el.subresourceStates.ToArray(subresourceStates);
+  }
+  SERIALISE_ELEMENT(subresourceStates);
+
+  if(ser.IsReading())
+  {
+    FrameRefType maxRefType = eFrameRef_None;
+    for(auto it = subresourceStates.begin(); it != subresourceStates.end(); ++it)
+    {
+      maxRefType = ComposeFrameRefsDisjoint(maxRefType, it->state.refType);
+    }
+    el = ImageState(VK_NULL_HANDLE, imageInfo, maxRefType);
+    el.subresourceStates.FromArray(subresourceStates);
+  }
+  SERIALISE_MEMBER(oldQueueFamilyTransfers);
+  SERIALISE_MEMBER(newQueueFamilyTransfers);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ImageInfo &el)
 {
   SERIALISE_MEMBER(layerCount);
@@ -3955,6 +4010,12 @@ void DoSerialise(SerialiserType &ser, ImageInfo &el)
   SERIALISE_MEMBER(sampleCount);
   SERIALISE_MEMBER(extent);
   SERIALISE_MEMBER(format);
+  if(ser.VersionAtLeast(0x11))
+  {
+    SERIALISE_MEMBER(imageType);
+    SERIALISE_MEMBER(initialLayout);
+    SERIALISE_MEMBER(sharingMode);
+  }
 }
 
 template <typename SerialiserType>
@@ -8229,6 +8290,9 @@ INSTANTIATE_SERIALISE_TYPE(DescriptorSetSlot);
 INSTANTIATE_SERIALISE_TYPE(ImageRegionState);
 INSTANTIATE_SERIALISE_TYPE(ImageLayouts);
 INSTANTIATE_SERIALISE_TYPE(ImageInfo);
+INSTANTIATE_SERIALISE_TYPE(ImageSubresourceRange);
+INSTANTIATE_SERIALISE_TYPE(ImageSubresourceStateForRange);
+INSTANTIATE_SERIALISE_TYPE(ImageState);
 
 #if ENABLED(RDOC_WIN32)
 template <typename SerialiserType>

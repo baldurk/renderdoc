@@ -321,6 +321,10 @@ bool VkInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
+  // 0x10 -> 0x11 - non-breaking changes to image state serialization
+  if(ver == 0x10)
+    return true;
+
   // 0xF -> 0x10 - added serialisation of VkPhysicalDeviceDriverPropertiesKHR into enumerated
   // physical devices
   if(ver == 0xF)
