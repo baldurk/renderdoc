@@ -292,9 +292,15 @@ ShaderBuiltin GetSystemValue(SVSemantic systemValue)
     case SVNAME_INSTANCE_ID: return ShaderBuiltin::InstanceIndex;
     case SVNAME_IS_FRONT_FACE: return ShaderBuiltin::IsFrontFace;
     case SVNAME_SAMPLE_INDEX: return ShaderBuiltin::MSAASampleIndex;
-    case SVNAME_FINAL_QUAD_EDGE_TESSFACTOR: return ShaderBuiltin::OuterTessFactor;
-    case SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR: return ShaderBuiltin::InsideTessFactor;
-    case SVNAME_FINAL_TRI_EDGE_TESSFACTOR: return ShaderBuiltin::OuterTessFactor;
+    case SVNAME_FINAL_QUAD_EDGE_TESSFACTOR0:
+    case SVNAME_FINAL_QUAD_EDGE_TESSFACTOR1:
+    case SVNAME_FINAL_QUAD_EDGE_TESSFACTOR2:
+    case SVNAME_FINAL_QUAD_EDGE_TESSFACTOR3: return ShaderBuiltin::OuterTessFactor;
+    case SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR0:
+    case SVNAME_FINAL_QUAD_INSIDE_TESSFACTOR1: return ShaderBuiltin::InsideTessFactor;
+    case SVNAME_FINAL_TRI_EDGE_TESSFACTOR0:
+    case SVNAME_FINAL_TRI_EDGE_TESSFACTOR1:
+    case SVNAME_FINAL_TRI_EDGE_TESSFACTOR2: return ShaderBuiltin::OuterTessFactor;
     case SVNAME_FINAL_TRI_INSIDE_TESSFACTOR: return ShaderBuiltin::InsideTessFactor;
     case SVNAME_FINAL_LINE_DETAIL_TESSFACTOR: return ShaderBuiltin::OuterTessFactor;
     case SVNAME_FINAL_LINE_DENSITY_TESSFACTOR: return ShaderBuiltin::InsideTessFactor;

@@ -452,6 +452,7 @@ bool IsDepthFormat(DXGI_FORMAT f)
 
     case DXGI_FORMAT_D32_FLOAT:
     case DXGI_FORMAT_D16_UNORM: return true;
+    default: break;
   }
 
   return false;
@@ -470,6 +471,7 @@ bool IsDepthAndStencilFormat(DXGI_FORMAT f)
     case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
     case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
     case DXGI_FORMAT_R24G8_TYPELESS: return true;
+    default: break;
   }
 
   return false;
@@ -505,6 +507,7 @@ bool IsTypelessFormat(DXGI_FORMAT f)
     case DXGI_FORMAT_B8G8R8X8_TYPELESS:
     case DXGI_FORMAT_BC6H_TYPELESS:
     case DXGI_FORMAT_BC7_TYPELESS: return true;
+    default: break;
   }
 
   return false;
@@ -525,6 +528,7 @@ bool IsUIntFormat(DXGI_FORMAT f)
     case DXGI_FORMAT_R8G8_UINT:
     case DXGI_FORMAT_R16_UINT:
     case DXGI_FORMAT_R8_UINT: return true;
+    default: break;
   }
 
   return false;
@@ -544,6 +548,7 @@ bool IsIntFormat(DXGI_FORMAT f)
     case DXGI_FORMAT_R8G8_SINT:
     case DXGI_FORMAT_R16_SINT:
     case DXGI_FORMAT_R8_SINT: return true;
+    default: break;
   }
 
   return false;
@@ -1024,6 +1029,8 @@ DXGI_FORMAT GetFloatTypedFormat(DXGI_FORMAT f)
     case DXGI_FORMAT_R8_UNORM:
     case DXGI_FORMAT_R8_UINT:
     case DXGI_FORMAT_R8_SNORM: return DXGI_FORMAT_R8_UNORM;
+
+    default: break;
   }
 
   return GetTypedFormat(f);
@@ -2720,6 +2727,7 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
         case DXGI_FORMAT_P010:
         case DXGI_FORMAT_P016:
         case DXGI_FORMAT_P208: ret.SetYUVPlaneCount(2);
+        default: break;
       }
 
       break;

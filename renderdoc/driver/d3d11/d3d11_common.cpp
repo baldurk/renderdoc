@@ -622,47 +622,44 @@ TextureFilter MakeFilter(D3D11_FILTER filter)
     filter = D3D11_FILTER(filter & 0x7f);
   }
 
-  if(filter == D3D11_FILTER_ANISOTROPIC)
+  switch(filter)
   {
-    ret.minify = ret.magnify = ret.mip = FilterMode::Anisotropic;
-  }
-  else
-  {
-    switch(filter)
-    {
-      case D3D11_FILTER_MIN_MAG_MIP_POINT:
-        ret.minify = ret.magnify = ret.mip = FilterMode::Point;
-        break;
-      case D3D11_FILTER_MIN_MAG_POINT_MIP_LINEAR:
-        ret.minify = ret.magnify = FilterMode::Point;
-        ret.mip = FilterMode::Linear;
-        break;
-      case D3D11_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT:
-        ret.minify = FilterMode::Point;
-        ret.magnify = FilterMode::Linear;
-        ret.mip = FilterMode::Point;
-        break;
-      case D3D11_FILTER_MIN_POINT_MAG_MIP_LINEAR:
-        ret.minify = FilterMode::Point;
-        ret.magnify = ret.mip = FilterMode::Linear;
-        break;
-      case D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT:
-        ret.minify = FilterMode::Linear;
-        ret.magnify = ret.mip = FilterMode::Point;
-        break;
-      case D3D11_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR:
-        ret.minify = FilterMode::Linear;
-        ret.magnify = FilterMode::Point;
-        ret.mip = FilterMode::Linear;
-        break;
-      case D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT:
-        ret.minify = ret.magnify = FilterMode::Linear;
-        ret.mip = FilterMode::Point;
-        break;
-      case D3D11_FILTER_MIN_MAG_MIP_LINEAR:
-        ret.minify = ret.magnify = ret.mip = FilterMode::Linear;
-        break;
-    }
+    case D3D11_FILTER_ANISOTROPIC:
+      ret.minify = ret.magnify = ret.mip = FilterMode::Anisotropic;
+      break;
+    case D3D11_FILTER_MIN_MAG_MIP_POINT:
+      ret.minify = ret.magnify = ret.mip = FilterMode::Point;
+      break;
+    case D3D11_FILTER_MIN_MAG_POINT_MIP_LINEAR:
+      ret.minify = ret.magnify = FilterMode::Point;
+      ret.mip = FilterMode::Linear;
+      break;
+    case D3D11_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT:
+      ret.minify = FilterMode::Point;
+      ret.magnify = FilterMode::Linear;
+      ret.mip = FilterMode::Point;
+      break;
+    case D3D11_FILTER_MIN_POINT_MAG_MIP_LINEAR:
+      ret.minify = FilterMode::Point;
+      ret.magnify = ret.mip = FilterMode::Linear;
+      break;
+    case D3D11_FILTER_MIN_LINEAR_MAG_MIP_POINT:
+      ret.minify = FilterMode::Linear;
+      ret.magnify = ret.mip = FilterMode::Point;
+      break;
+    case D3D11_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR:
+      ret.minify = FilterMode::Linear;
+      ret.magnify = FilterMode::Point;
+      ret.mip = FilterMode::Linear;
+      break;
+    case D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT:
+      ret.minify = ret.magnify = FilterMode::Linear;
+      ret.mip = FilterMode::Point;
+      break;
+    case D3D11_FILTER_MIN_MAG_MIP_LINEAR:
+      ret.minify = ret.magnify = ret.mip = FilterMode::Linear;
+      break;
+    default: break;
   }
 
   return ret;

@@ -756,6 +756,8 @@ rdcarray<CounterResult> D3D11Replay::FetchCounters(const rdcarray<GPUCounter> &c
                 ret.push_back(
                     CounterResult(ctx.timers[i].eventId, GPUCounter::SamplesPassed, occlusion));
                 break;
+
+              default: break;
             }
           }
         }
@@ -784,6 +786,8 @@ rdcarray<CounterResult> D3D11Replay::FetchCounters(const rdcarray<GPUCounter> &c
                 ret.push_back(
                     CounterResult(ctx.timers[i].eventId, d3dCounters[c], 0xFFFFFFFFFFFFFFFF));
                 break;
+
+              default: break;
             }
           }
         }

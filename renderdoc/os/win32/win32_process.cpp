@@ -855,6 +855,7 @@ rdcpair<ReplayStatus, uint32_t> Process::InjectIntoProcess(
             case EnvSep::Platform: cmdWithEnv += L"-platform"; break;
             case EnvSep::SemiColon: cmdWithEnv += L"-semicolon"; break;
             case EnvSep::Colon: cmdWithEnv += L"-colon"; break;
+            case EnvSep::NoSep: break;
           }
         }
 

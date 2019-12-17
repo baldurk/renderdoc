@@ -401,6 +401,7 @@ DXBC::Reflection *Program::GuessReflection()
 
         break;
       }
+      default: break;
     }
   }
 

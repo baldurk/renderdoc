@@ -2601,6 +2601,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           cmp1 = (src0[0] < src1[0] ? ~0l : 0l);
           cmp2 = (src0[1] < src1[1] ? ~0l : 0l);
           break;
+        default: break;
       }
 
       // special behaviour for dest mask. if it's .xz then first comparison goes into .x, second
@@ -2880,6 +2881,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           case OPCODE_ATOMIC_UMAX: *udst = RDCMAX(*udst, *usrc0); break;
           case OPCODE_IMM_ATOMIC_UMIN:
           case OPCODE_ATOMIC_UMIN: *udst = RDCMIN(*udst, *usrc0); break;
+          default: break;
         }
       }
 
@@ -3450,6 +3452,8 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
             {
               switch(decl.dim)
               {
+                case RESOURCE_DIMENSION_UNKNOWN:
+                case NUM_DIMENSIONS:
                 case RESOURCE_DIMENSION_BUFFER:
                 case RESOURCE_DIMENSION_RAW_BUFFER:
                 case RESOURCE_DIMENSION_STRUCTURED_BUFFER:

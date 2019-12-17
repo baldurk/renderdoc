@@ -250,6 +250,7 @@ TextureType MakeTextureDim(D3D12_SRV_DIMENSION dim)
     case D3D12_SRV_DIMENSION_TEXTURE3D: return TextureType::Texture3D;
     case D3D12_SRV_DIMENSION_TEXTURECUBE: return TextureType::TextureCube;
     case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY: return TextureType::TextureCubeArray;
+    default: break;
   }
 
   return TextureType::Unknown;
@@ -268,6 +269,7 @@ TextureType MakeTextureDim(D3D12_RTV_DIMENSION dim)
     case D3D12_RTV_DIMENSION_TEXTURE2DMS: return TextureType::Texture2DMS;
     case D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY: return TextureType::Texture2DMSArray;
     case D3D12_RTV_DIMENSION_TEXTURE3D: return TextureType::Texture3D;
+    default: break;
   }
 
   return TextureType::Unknown;
@@ -284,6 +286,7 @@ TextureType MakeTextureDim(D3D12_DSV_DIMENSION dim)
     case D3D12_DSV_DIMENSION_TEXTURE2DARRAY: return TextureType::Texture2DArray;
     case D3D12_DSV_DIMENSION_TEXTURE2DMS: return TextureType::Texture2DMS;
     case D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY: return TextureType::Texture2DMSArray;
+    default: break;
   }
 
   return TextureType::Unknown;
@@ -300,6 +303,7 @@ TextureType MakeTextureDim(D3D12_UAV_DIMENSION dim)
     case D3D12_UAV_DIMENSION_TEXTURE2D: return TextureType::Texture2D;
     case D3D12_UAV_DIMENSION_TEXTURE2DARRAY: return TextureType::Texture2DArray;
     case D3D12_UAV_DIMENSION_TEXTURE3D: return TextureType::Texture3D;
+    default: break;
   }
 
   return TextureType::Unknown;
@@ -366,47 +370,44 @@ TextureFilter MakeFilter(D3D12_FILTER filter)
     filter = D3D12_FILTER(filter & 0x7f);
   }
 
-  if(filter == D3D12_FILTER_ANISOTROPIC)
+  switch(filter)
   {
-    ret.minify = ret.magnify = ret.mip = FilterMode::Anisotropic;
-  }
-  else
-  {
-    switch(filter)
-    {
-      case D3D12_FILTER_MIN_MAG_MIP_POINT:
-        ret.minify = ret.magnify = ret.mip = FilterMode::Point;
-        break;
-      case D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR:
-        ret.minify = ret.magnify = FilterMode::Point;
-        ret.mip = FilterMode::Linear;
-        break;
-      case D3D12_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT:
-        ret.minify = FilterMode::Point;
-        ret.magnify = FilterMode::Linear;
-        ret.mip = FilterMode::Point;
-        break;
-      case D3D12_FILTER_MIN_POINT_MAG_MIP_LINEAR:
-        ret.minify = FilterMode::Point;
-        ret.magnify = ret.mip = FilterMode::Linear;
-        break;
-      case D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT:
-        ret.minify = FilterMode::Linear;
-        ret.magnify = ret.mip = FilterMode::Point;
-        break;
-      case D3D12_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR:
-        ret.minify = FilterMode::Linear;
-        ret.magnify = FilterMode::Point;
-        ret.mip = FilterMode::Linear;
-        break;
-      case D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT:
-        ret.minify = ret.magnify = FilterMode::Linear;
-        ret.mip = FilterMode::Point;
-        break;
-      case D3D12_FILTER_MIN_MAG_MIP_LINEAR:
-        ret.minify = ret.magnify = ret.mip = FilterMode::Linear;
-        break;
-    }
+    case D3D12_FILTER_ANISOTROPIC:
+      ret.minify = ret.magnify = ret.mip = FilterMode::Anisotropic;
+      break;
+    case D3D12_FILTER_MIN_MAG_MIP_POINT:
+      ret.minify = ret.magnify = ret.mip = FilterMode::Point;
+      break;
+    case D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR:
+      ret.minify = ret.magnify = FilterMode::Point;
+      ret.mip = FilterMode::Linear;
+      break;
+    case D3D12_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT:
+      ret.minify = FilterMode::Point;
+      ret.magnify = FilterMode::Linear;
+      ret.mip = FilterMode::Point;
+      break;
+    case D3D12_FILTER_MIN_POINT_MAG_MIP_LINEAR:
+      ret.minify = FilterMode::Point;
+      ret.magnify = ret.mip = FilterMode::Linear;
+      break;
+    case D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT:
+      ret.minify = FilterMode::Linear;
+      ret.magnify = ret.mip = FilterMode::Point;
+      break;
+    case D3D12_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR:
+      ret.minify = FilterMode::Linear;
+      ret.magnify = FilterMode::Point;
+      ret.mip = FilterMode::Linear;
+      break;
+    case D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT:
+      ret.minify = ret.magnify = FilterMode::Linear;
+      ret.mip = FilterMode::Point;
+      break;
+    case D3D12_FILTER_MIN_MAG_MIP_LINEAR:
+      ret.minify = ret.magnify = ret.mip = FilterMode::Linear;
+      break;
+    default: break;
   }
 
   return ret;

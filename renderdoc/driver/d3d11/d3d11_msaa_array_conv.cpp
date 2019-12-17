@@ -366,6 +366,8 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
 
       case DXGI_FORMAT_D16_UNORM:
       case DXGI_FORMAT_R16_TYPELESS: srvDesc.Format = DXGI_FORMAT_R16_UNORM; break;
+
+      default: break;
     }
   }
 
@@ -695,6 +697,8 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 
       case DXGI_FORMAT_D16_UNORM:
       case DXGI_FORMAT_R16_TYPELESS: srvDesc.Format = DXGI_FORMAT_R16_UNORM; break;
+
+      default: break;
     }
   }
 

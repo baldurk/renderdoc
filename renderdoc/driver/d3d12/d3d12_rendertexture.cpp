@@ -155,6 +155,7 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
         altSRVDesc = srvDesc;
         altSRVDesc.Format = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
         break;
+      default: break;
     }
   }
 

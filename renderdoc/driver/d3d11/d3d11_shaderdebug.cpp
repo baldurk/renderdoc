@@ -157,6 +157,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType typ
       case DXBC::ShaderType::Geometry: context->GSGetShaderResources(slot, 1, &srv); break;
       case DXBC::ShaderType::Pixel: context->PSGetShaderResources(slot, 1, &srv); break;
       case DXBC::ShaderType::Compute: context->CSGetShaderResources(slot, 1, &srv); break;
+      default: RDCERR("Unhandled shader type %d", GetShaderType()); break;
     }
 
     if(srv)
@@ -278,6 +279,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType typ
       case DXBC::ShaderType::Geometry: context->GSGetShaderResources(slot, 1, &srv); break;
       case DXBC::ShaderType::Pixel: context->PSGetShaderResources(slot, 1, &srv); break;
       case DXBC::ShaderType::Compute: context->CSGetShaderResources(slot, 1, &srv); break;
+      default: RDCERR("Unhandled shader type %d", GetShaderType()); break;
     }
 
     if(srv)
@@ -342,6 +344,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
       case DXBC::ShaderType::Geometry: context->GSGetShaderResources(slot, 1, &srv); break;
       case DXBC::ShaderType::Pixel: context->PSGetShaderResources(slot, 1, &srv); break;
       case DXBC::ShaderType::Compute: context->CSGetShaderResources(slot, 1, &srv); break;
+      default: RDCERR("Unhandled shader type %d", GetShaderType()); break;
     }
 
     if(srv)
@@ -351,6 +354,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
 
       switch(srvDesc.ViewDimension)
       {
+        case D3D11_SRV_DIMENSION_UNKNOWN:
         case D3D11_SRV_DIMENSION_BUFFER:
         {
           dim = 1;
@@ -527,6 +531,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
 
       switch(uavDesc.ViewDimension)
       {
+        case D3D11_UAV_DIMENSION_UNKNOWN:
         case D3D11_UAV_DIMENSION_BUFFER:
         {
           ID3D11Buffer *buf = NULL;
@@ -1090,6 +1095,7 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
       context->CSGetShaderResources(resourceData.slot, 1, &usedSRV);
       context->CSGetSamplers(samplerData.slot, 1, &usedSamp);
       break;
+    default: RDCERR("Unhandled shader type %d", GetShaderType()); break;
   }
 
   // set onto PS while we perform the sample

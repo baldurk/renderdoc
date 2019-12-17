@@ -363,6 +363,7 @@ void Program::FetchComputeProperties(DXBC::Reflection *reflection)
           param.semanticIdxName = param.semanticName = "vThreadIDInGroupFlattened";
           reflection->InputSig.push_back(param);
           break;
+        default: RDCERR("Unexpected input parameter %d", type); break;
       }
     }
 

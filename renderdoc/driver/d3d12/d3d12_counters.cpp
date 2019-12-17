@@ -655,6 +655,8 @@ rdcarray<CounterResult> D3D12Replay::FetchCounters(const rdcarray<GPUCounter> &c
         case GPUCounter::GSInvocations: result.value.u64 = pipeStats.GSInvocations; break;
         case GPUCounter::PSInvocations: result.value.u64 = pipeStats.PSInvocations; break;
         case GPUCounter::CSInvocations: result.value.u64 = pipeStats.CSInvocations; break;
+
+        default: break;
       }
       ret.push_back(result);
     }

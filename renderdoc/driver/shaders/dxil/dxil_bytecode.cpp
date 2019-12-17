@@ -246,6 +246,9 @@ static rdcstr getName(uint32_t parentBlock, const LLVMBC::BlockOrRecord &block)
     // GetCodeName in BitcodeAnalyzer.cpp
     switch(KnownBlocks(parentBlock))
     {
+      case KnownBlocks::BLOCKINFO:
+      case KnownBlocks::TYPE_SYMTAB_BLOCK:
+      case KnownBlocks::METADATA_ATTACHMENT: break;
       case KnownBlocks::MODULE_BLOCK:
       {
         ModuleRecord code = ModuleRecord(block.id);
