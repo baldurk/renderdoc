@@ -117,6 +117,26 @@
 
 // ignore some operators SWIG doesn't have to worry about
 %ignore *::operator=;
+%ignore *::operator new;
+%ignore *::operator delete;
+%ignore *::operator new[];
+%ignore *::operator delete[];
+
+// ignore constructors/destructors for objects with disabled new/delete
+%ignore SDType::SDType;
+%ignore SDType::~SDType;
+%ignore SDChunkMetaData::SDChunkMetaData;
+%ignore SDChunkMetaData::~SDChunkMetaData;
+%ignore SDObjectPODData::SDObjectPODData;
+%ignore SDObjectPODData::~SDObjectPODData;
+%ignore SDObjectData::SDObjectData;
+%ignore SDObjectData::~SDObjectData;
+%ignore StructuredObjectList::StructuredObjectList;
+%ignore StructuredObjectList::~StructuredObjectList;
+%ignore StructuredBufferList::StructuredBufferList;
+%ignore StructuredBufferList::~StructuredBufferList;
+%ignore StructuredChunkList::StructuredChunkList;
+%ignore StructuredChunkList::~StructuredChunkList;
 
 // these objects return a new copy which the python caller should own.
 %newobject SDObject::Duplicate;

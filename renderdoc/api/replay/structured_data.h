@@ -196,6 +196,10 @@ protected:
   SDType() = default;
   SDType(const SDType &) = default;
   SDType &operator=(const SDType &) = default;
+  void *operator new(size_t count) = delete;
+  void *operator new[](size_t count) = delete;
+  void operator delete(void *p) = delete;
+  void operator delete[](void *p) = delete;
 };
 
 DECLARE_REFLECTION_STRUCT(SDType);
@@ -259,6 +263,12 @@ Since 0 is a possible value for this (for extremely fast calls), -1 is the inval
 
   DOCUMENT("The frames of the CPU-side callstack leading up to the chunk.");
   rdcarray<uint64_t> callstack;
+
+private:
+  void *operator new(size_t count) = delete;
+  void *operator new[](size_t count) = delete;
+  void operator delete(void *p) = delete;
+  void operator delete[](void *p) = delete;
 };
 
 DECLARE_REFLECTION_STRUCT(SDChunkMetaData);
@@ -292,6 +302,11 @@ union SDObjectPODData
   uint64_t numChildren;
 
   SDObjectPODData() : u(0) {}
+private:
+  void *operator new(size_t count) = delete;
+  void *operator new[](size_t count) = delete;
+  void operator delete(void *p) = delete;
+  void operator delete[](void *p) = delete;
 };
 
 DECLARE_REFLECTION_STRUCT(SDObjectPODData);
@@ -316,6 +331,14 @@ struct StructuredObjectList : public rdcarray<SDObject *>
 #else
   StructuredObjectList &operator=(const StructuredObjectList &other) = delete;
 #endif
+  // allow placement new for swig
+  void *operator new(size_t, void *ptr) { return ptr; }
+  void operator delete(void *p, void *) {}
+  void operator delete(void *p) {}
+private:
+  void *operator new(size_t count) = delete;
+  void *operator new[](size_t count) = delete;
+  void operator delete[](void *p) = delete;
 };
 
 DECLARE_REFLECTION_STRUCT(StructuredObjectList);
@@ -337,6 +360,12 @@ struct SDObjectData
 
   SDObjectData(const SDObjectData &) = delete;
   SDObjectData &operator=(const SDObjectData &other) = delete;
+
+private:
+  void *operator new(size_t count) = delete;
+  void *operator new[](size_t count) = delete;
+  void operator delete(void *p) = delete;
+  void operator delete[](void *p) = delete;
 };
 
 DECLARE_REFLECTION_STRUCT(SDObjectData);
@@ -344,6 +373,31 @@ DECLARE_REFLECTION_STRUCT(SDObjectData);
 DOCUMENT("Defines a single structured object.");
 struct SDObject
 {
+  /////////////////////////////////////////////////////////////////
+  // memory management, in a dll safe way
+  void *operator new(size_t sz)
+  {
+    void *ret = NULL;
+#ifdef RENDERDOC_EXPORTS
+    ret = malloc(sz);
+    if(ret == NULL)
+      RENDERDOC_OutOfMemory(sz);
+#else
+    ret = RENDERDOC_AllocArrayMem(sz);
+#endif
+    return ret;
+  }
+  void operator delete(void *p)
+  {
+#ifdef RENDERDOC_EXPORTS
+    free(p);
+#else
+    RENDERDOC_FreeArrayMem(p);
+#endif
+  }
+  void *operator new[](size_t count) = delete;
+  void operator delete[](void *p) = delete;
+
   SDObject(const rdcstr &n, const rdcstr &t) : type(t)
   {
     name = n;
@@ -803,6 +857,31 @@ SDOBJECT_MAKER(ResourceId, makeSDResourceId);
 DOCUMENT("Defines a single structured chunk, which is a :class:`SDObject`.");
 struct SDChunk : public SDObject
 {
+  /////////////////////////////////////////////////////////////////
+  // memory management, in a dll safe way
+  void *operator new(size_t sz)
+  {
+    void *ret = NULL;
+#ifdef RENDERDOC_EXPORTS
+    ret = malloc(sz);
+    if(ret == NULL)
+      RENDERDOC_OutOfMemory(sz);
+#else
+    ret = RENDERDOC_AllocArrayMem(sz);
+#endif
+    return ret;
+  }
+  void operator delete(void *p)
+  {
+#ifdef RENDERDOC_EXPORTS
+    free(p);
+#else
+    RENDERDOC_FreeArrayMem(p);
+#endif
+  }
+  void *operator new[](size_t count) = delete;
+  void operator delete[](void *p) = delete;
+
   SDChunk(const char *name) : SDObject(name, "Chunk"_lit) { type.basetype = SDBasic::Chunk; }
   DOCUMENT("The :class:`SDChunkMetaData` with the metadata for this chunk.");
   SDChunkMetaData metadata;
@@ -854,6 +933,15 @@ struct StructuredChunkList : public rdcarray<SDChunk *>
 #else
   StructuredChunkList &operator=(const StructuredChunkList &other) = delete;
 #endif
+
+  // allow placement new for swig
+  void *operator new(size_t, void *ptr) { return ptr; }
+  void operator delete(void *p, void *) {}
+  void operator delete(void *p) {}
+private:
+  void *operator new(size_t count) = delete;
+  void *operator new[](size_t count) = delete;
+  void operator delete[](void *p) = delete;
 };
 
 DECLARE_REFLECTION_STRUCT(StructuredChunkList);
@@ -882,6 +970,15 @@ struct StructuredBufferList : public rdcarray<bytebuf *>
 #else
   StructuredBufferList &operator=(const StructuredBufferList &other) = delete;
 #endif
+
+  // allow placement new for swig
+  void *operator new(size_t, void *ptr) { return ptr; }
+  void operator delete(void *p, void *) {}
+  void operator delete(void *p) {}
+private:
+  void *operator new(size_t count) = delete;
+  void *operator new[](size_t count) = delete;
+  void operator delete[](void *p) = delete;
 };
 
 DECLARE_REFLECTION_STRUCT(StructuredBufferList);
@@ -889,6 +986,37 @@ DECLARE_REFLECTION_STRUCT(StructuredBufferList);
 DOCUMENT("Contains the structured information in a file. Owns the buffers and chunks.");
 struct SDFile
 {
+private:
+  /////////////////////////////////////////////////////////////////
+  // memory management, in a dll safe way
+  static void *allocate(size_t count)
+  {
+    const size_t sz = count * sizeof(SDFile);
+    void *ret = NULL;
+#ifdef RENDERDOC_EXPORTS
+    ret = malloc(sz);
+    if(ret == NULL)
+      RENDERDOC_OutOfMemory(sz);
+#else
+    ret = RENDERDOC_AllocArrayMem(sz);
+#endif
+    return ret;
+  }
+  static void deallocate(void *p)
+  {
+#ifdef RENDERDOC_EXPORTS
+    free(p);
+#else
+    RENDERDOC_FreeArrayMem(p);
+#endif
+  }
+
+  void *operator new[](size_t count) = delete;
+  void operator delete[](void *p) = delete;
+
+public:
+  void *operator new(size_t count) { return allocate(count); }
+  void operator delete(void *p) { return deallocate(p); };
   SDFile() {}
   ~SDFile()
   {
