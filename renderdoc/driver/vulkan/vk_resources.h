@@ -863,11 +863,75 @@ struct ImageRegionState
 
 DECLARE_REFLECTION_STRUCT(ImageRegionState);
 
+VkImageAspectFlags FormatImageAspects(VkFormat f);
+
+struct ImageSubresourceRange;
+
+struct ImageInfo
+{
+  int layerCount = 0;
+  int levelCount = 0;
+  int sampleCount = 0;
+  VkExtent3D extent = {0, 0, 0};
+  VkImageType imageType = VK_IMAGE_TYPE_2D;
+  VkFormat format = VK_FORMAT_UNDEFINED;
+  VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  VkSharingMode sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  ImageInfo() {}
+  ImageInfo(VkFormat format, VkExtent3D extent, int levelCount, int layerCount, int sampleCount,
+            VkImageLayout initialLayout, VkSharingMode sharingMode)
+      : format(format),
+        extent(extent),
+        levelCount(levelCount),
+        layerCount(layerCount),
+        sampleCount(sampleCount),
+        initialLayout(initialLayout),
+        sharingMode(sharingMode)
+  {
+  }
+  ImageInfo(const VkImageCreateInfo &ci)
+      : layerCount(ci.arrayLayers),
+        levelCount(ci.mipLevels),
+        sampleCount((int)ci.samples),
+        extent(ci.extent),
+        imageType(ci.imageType),
+        format(ci.format),
+        initialLayout(ci.initialLayout),
+        sharingMode(ci.sharingMode)
+  {
+    // The Vulkan spec Valid Usage for `VkImageCreateInfo` specifies that the height and depth of 1D
+    // images, and the depth of 2D images must equal 1. We need to ensure this holds, even if the
+    // application is invalid, since we rely on `depth>1` to detect 3D images and correctly handle
+    // 2D views of 3D images.
+    if(ci.imageType == VK_IMAGE_TYPE_1D)
+    {
+      extent.height = extent.depth = 1;
+    }
+    else if(ci.imageType == VK_IMAGE_TYPE_2D)
+    {
+      extent.depth = 1;
+    }
+  }
+  ImageInfo(const VkSwapchainCreateInfoKHR &ci)
+      : layerCount(ci.imageArrayLayers),
+        levelCount(1),
+        sampleCount(1),
+        format(ci.imageFormat),
+        sharingMode(ci.imageSharingMode)
+  {
+    extent.width = ci.imageExtent.width;
+    extent.height = ci.imageExtent.height;
+    extent.depth = 1;
+  }
+  VkImageAspectFlags Aspects() const { return FormatImageAspects(format); }
+  ImageSubresourceRange FullRange() const;
+};
+
+DECLARE_REFLECTION_STRUCT(ImageInfo);
+
 struct SwapchainInfo
 {
-  VkFormat format;
-  VkExtent2D extent;
-  int arraySize;
+  ImageInfo imageInfo;
 
   bool shared;
 
@@ -885,59 +949,6 @@ struct SwapchainInfo
   rdcarray<SwapImage> images;
   uint32_t lastPresent;
 };
-
-VkImageAspectFlags FormatImageAspects(VkFormat f);
-
-struct ImageSubresourceRange;
-
-struct ImageInfo
-{
-  int layerCount = 0;
-  int levelCount = 0;
-  int sampleCount = 0;
-  VkExtent3D extent = {0, 0, 0};
-  VkFormat format = VK_FORMAT_UNDEFINED;
-  ImageInfo() {}
-  ImageInfo(VkFormat format, VkExtent3D extent, int levelCount, int layerCount, int sampleCount)
-      : format(format),
-        extent(extent),
-        levelCount(levelCount),
-        layerCount(layerCount),
-        sampleCount(sampleCount)
-  {
-  }
-  ImageInfo(const VkImageCreateInfo &ci)
-      : layerCount(ci.arrayLayers),
-        levelCount(ci.mipLevels),
-        sampleCount((int)ci.samples),
-        extent(ci.extent),
-        format(ci.format)
-  {
-    // The Vulkan spec Valid Usage for `VkImageCreateInfo` specifies that the height and depth of 1D
-    // images, and the depth of 2D images must equal 1. We need to ensure this holds, even if the
-    // application is invalid, since we rely on `depth>1` to detect 3D images and correctly handle
-    // 2D views of 3D images.
-    if(ci.imageType == VK_IMAGE_TYPE_1D)
-    {
-      extent.height = extent.depth = 1;
-    }
-    else if(ci.imageType == VK_IMAGE_TYPE_2D)
-    {
-      extent.depth = 1;
-    }
-  }
-  ImageInfo(const SwapchainInfo &swapInfo)
-      : layerCount(swapInfo.arraySize), levelCount(1), sampleCount(1), format(swapInfo.format)
-  {
-    extent.width = swapInfo.extent.width;
-    extent.height = swapInfo.extent.height;
-    extent.depth = 1;
-  }
-  VkImageAspectFlags Aspects() const { return FormatImageAspects(format); }
-  ImageSubresourceRange FullRange() const;
-};
-
-DECLARE_REFLECTION_STRUCT(ImageInfo);
 
 // these structs are allocated for images and buffers, then pointed to (non-owning) by views
 struct ResourceInfo

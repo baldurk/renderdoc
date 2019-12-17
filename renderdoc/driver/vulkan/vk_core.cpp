@@ -1795,10 +1795,9 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
     // create readback buffer
     VkBufferCreateInfo bufInfo = {
-        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        NULL,
-        0,
-        GetByteSize(swapInfo.extent.width, swapInfo.extent.height, 1, swapInfo.format, 0),
+        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0,
+        GetByteSize(swapInfo.imageInfo.extent.width, swapInfo.imageInfo.extent.height, 1,
+                    swapInfo.imageInfo.format, 0),
         VK_BUFFER_USAGE_TRANSFER_DST_BIT,
     };
     vt->CreateBuffer(Unwrap(device), &bufInfo, NULL, &readbackBuf);
@@ -1820,7 +1819,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    uint32_t rowPitch = GetByteSize(swapInfo.extent.width, 1, 1, swapInfo.format, 0);
+    uint32_t rowPitch =
+        GetByteSize(swapInfo.imageInfo.extent.width, 1, 1, swapInfo.imageInfo.format, 0);
 
     VkBufferImageCopy cpy = {
         0,
@@ -1830,7 +1830,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
         {
             0, 0, 0,
         },
-        {swapInfo.extent.width, swapInfo.extent.height, 1},
+        {swapInfo.imageInfo.extent.width, swapInfo.imageInfo.extent.height, 1},
     };
 
     uint32_t swapQueueIndex = m_ImageLayouts[GetResID(backbuffer)].queueFamilyIndex;
@@ -1938,9 +1938,9 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     vt->DestroyBuffer(Unwrap(device), Unwrap(readbackBuf), NULL);
     GetResourceManager()->ReleaseWrappedResource(readbackBuf);
 
-    ResourceFormat fmt = MakeResourceFormat(swapInfo.format);
-    fp.width = swapInfo.extent.width;
-    fp.height = swapInfo.extent.height;
+    ResourceFormat fmt = MakeResourceFormat(swapInfo.imageInfo.format);
+    fp.width = swapInfo.imageInfo.extent.width;
+    fp.height = swapInfo.imageInfo.extent.height;
     fp.pitch = rowPitch;
     fp.stride = fmt.compByteWidth * fmt.compCount;
     fp.bpc = fmt.compByteWidth;
