@@ -447,6 +447,63 @@ size_t ImageSubresourceMap::SubresourceIndex(uint32_t aspectIndex, uint32_t leve
          slice;
 }
 
+void ImageSubresourceMap::ToArray(rdcarray<ImageSubresourceStateForRange> &arr)
+{
+  arr.reserve(arr.size() + m_values.size());
+  for(auto src = begin(); src != end(); ++src)
+  {
+    arr.push_back(*src);
+  }
+}
+
+void ImageSubresourceMap::FromArray(const rdcarray<ImageSubresourceStateForRange> &arr)
+{
+  if(arr.empty())
+  {
+    RDCERR("No values for ImageSubresourceMap");
+    return;
+  }
+  Split(arr.front().range);
+  if(m_values.size() != arr.size())
+  {
+    RDCERR("Incorrect number of values for ImageSubresourceMap");
+    return;
+  }
+  auto src = arr.begin();
+  auto dst = begin();
+  while(src != arr.end())
+  {
+    if(src->range != dst->range())
+      RDCERR("Subresource range mismatch in ImageSubresourceMap");
+    else
+      dst->SetState(src->state);
+    ++src;
+    ++dst;
+  }
+}
+
+void ImageSubresourceMap::FromImgRefs(const ImgRefs &imgRefs)
+{
+  bool splitLayers = imgRefs.areLayersSplit;
+  bool splitDepth = false;
+  if(GetImageInfo().extent.depth > 1)
+  {
+    RDCASSERT(GetImageInfo().layerCount == 1);
+    splitDepth = splitLayers;
+    splitLayers = false;
+  }
+  Split(imgRefs.areAspectsSplit, imgRefs.areLevelsSplit, splitLayers, splitDepth);
+  RDCASSERT(!(AreLayersSplit() && IsDepthSplit()));
+
+  for(auto dstIt = begin(); dstIt != end(); ++dstIt)
+  {
+    int aspectIndex = imgRefs.AspectIndex((VkImageAspectFlagBits)dstIt->range().aspectMask);
+    int level = (int)dstIt->range().baseMipLevel;
+    int layer = (int)(dstIt->range().baseArrayLayer + dstIt->range().baseDepthSlice);
+    dstIt->state().refType = imgRefs.SubresourceRef(aspectIndex, level, layer);
+  }
+}
+
 bool IntervalsOverlap(uint32_t base1, uint32_t count1, uint32_t base2, uint32_t count2)
 {
   if((base1 + count1) < base1)
