@@ -22,6 +22,7 @@ set(sources
     vk_dispatchtables.h
     vk_dispatch_defs.h
     vk_hookset_defs.h
+    vk_image_states.cpp
     vk_info.cpp
     vk_info.h
     vk_initstate.cpp
