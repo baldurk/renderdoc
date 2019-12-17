@@ -886,6 +886,10 @@ struct SwapchainInfo
   uint32_t lastPresent;
 };
 
+VkImageAspectFlags FormatImageAspects(VkFormat f);
+
+struct ImageSubresourceRange;
+
 struct ImageInfo
 {
   int layerCount = 0;
@@ -929,6 +933,8 @@ struct ImageInfo
     extent.height = swapInfo.extent.height;
     extent.depth = 1;
   }
+  VkImageAspectFlags Aspects() const { return FormatImageAspects(format); }
+  ImageSubresourceRange FullRange() const;
 };
 
 DECLARE_REFLECTION_STRUCT(ImageInfo);
@@ -1117,6 +1123,124 @@ struct ImageRange
 typedef BitFlagIterator<VkImageAspectFlagBits, VkImageAspectFlags, int32_t> ImageAspectFlagIter;
 
 VkImageAspectFlags FormatImageAspects(VkFormat fmt);
+
+bool IntervalsOverlap(uint32_t base1, uint32_t count1, uint32_t base2, uint32_t count2);
+
+bool IntervalContainedIn(uint32_t base1, uint32_t count1, uint32_t base2, uint32_t count2);
+
+bool ValidateLevelRange(uint32_t &baseMipLevel, uint32_t &levelCount, uint32_t imageLevelCount);
+bool ValidateLayerRange(uint32_t &baseArrayLayer, uint32_t &layerCount, uint32_t imageLayerCount);
+bool ValidateSliceRange(uint32_t &baseSlice, uint32_t &sliceCount, uint32_t imageSliceCount);
+
+struct ImageSubresourceRange
+{
+  VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM >> 1;
+  uint32_t baseMipLevel = 0;
+  uint32_t levelCount = VK_REMAINING_MIP_LEVELS;
+  uint32_t baseArrayLayer = 0;
+  uint32_t layerCount = VK_REMAINING_ARRAY_LAYERS;
+  uint32_t baseDepthSlice = 0;
+  uint32_t sliceCount = VK_REMAINING_ARRAY_LAYERS;
+
+  inline ImageSubresourceRange() {}
+  inline ImageSubresourceRange(const VkImageSubresourceRange &range)
+      : aspectMask(range.aspectMask),
+        baseMipLevel(range.baseMipLevel),
+        levelCount(range.levelCount),
+        baseArrayLayer(range.baseArrayLayer),
+        layerCount(range.layerCount)
+  {
+  }
+  inline ImageSubresourceRange(const VkImageSubresourceLayers &range)
+      : aspectMask(range.aspectMask),
+        baseMipLevel(range.mipLevel),
+        levelCount(1),
+        baseArrayLayer(range.baseArrayLayer),
+        layerCount(range.layerCount)
+  {
+  }
+  inline ImageSubresourceRange(const VkBufferImageCopy &range)
+      : aspectMask(range.imageSubresource.aspectMask),
+        baseMipLevel(range.imageSubresource.mipLevel),
+        levelCount(1),
+        baseArrayLayer(range.imageSubresource.baseArrayLayer),
+        layerCount(range.imageSubresource.layerCount),
+        baseDepthSlice(range.imageOffset.z),
+        sliceCount(range.imageExtent.depth)
+  {
+  }
+  inline ImageSubresourceRange(VkImageAspectFlags aspectMask, uint32_t baseMipLevel,
+                               uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount,
+                               uint32_t baseDepthSlice, uint32_t sliceCount)
+      : aspectMask(aspectMask),
+        baseMipLevel(baseMipLevel),
+        levelCount(levelCount),
+        baseArrayLayer(baseArrayLayer),
+        layerCount(layerCount),
+        baseDepthSlice(baseDepthSlice),
+        sliceCount(sliceCount)
+  {
+  }
+  inline ImageSubresourceRange(const ImageRange &other)
+      : aspectMask(other.aspectMask),
+        baseMipLevel(other.baseMipLevel),
+        levelCount(other.levelCount),
+        baseArrayLayer(other.baseArrayLayer),
+        layerCount(other.layerCount),
+        baseDepthSlice(other.offset.z),
+        sliceCount(other.extent.depth)
+  {
+  }
+  inline operator VkImageSubresourceRange() const
+  {
+    return {
+        aspectMask, baseMipLevel, levelCount, baseArrayLayer, layerCount,
+    };
+  }
+  inline bool operator==(const ImageSubresourceRange &other) const
+  {
+    return aspectMask == other.aspectMask && baseMipLevel == other.baseMipLevel &&
+           levelCount == other.levelCount && baseArrayLayer == other.baseArrayLayer &&
+           layerCount == other.layerCount && baseDepthSlice == other.baseDepthSlice &&
+           sliceCount == other.sliceCount;
+  }
+
+  inline bool operator!=(const ImageSubresourceRange &other) const { return !(*this == other); }
+  inline bool Overlaps(const ImageSubresourceRange &other) const
+  {
+    return ((aspectMask & other.aspectMask) != 0) &&
+           IntervalsOverlap(baseMipLevel, levelCount, other.baseMipLevel, other.levelCount) &&
+           IntervalsOverlap(baseArrayLayer, layerCount, other.baseArrayLayer, other.layerCount) &&
+           IntervalsOverlap(baseDepthSlice, sliceCount, other.baseDepthSlice, other.sliceCount);
+  }
+  inline bool ContainedIn(const ImageSubresourceRange &other) const
+  {
+    return ((aspectMask & ~other.aspectMask) == 0) &&
+           IntervalContainedIn(baseMipLevel, levelCount, other.baseMipLevel, other.levelCount) &&
+           IntervalContainedIn(baseArrayLayer, layerCount, other.baseArrayLayer, other.layerCount) &&
+           IntervalContainedIn(baseDepthSlice, sliceCount, other.baseDepthSlice, other.sliceCount);
+  }
+  inline bool Contains(const ImageSubresourceRange &other) const
+  {
+    return other.ContainedIn(*this);
+  }
+  void Validate(const ImageInfo &info)
+  {
+    if(aspectMask & ~info.Aspects())
+    {
+      if(aspectMask != VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM)
+      {
+        RDCERR("Invalid aspect mask (%s) in image with aspects (%s)", ToStr(aspectMask).c_str(),
+               ToStr(info.Aspects()).c_str());
+        RDCDUMP();
+      }
+      aspectMask &= ~info.Aspects();
+    }
+    ValidateLevelRange(baseMipLevel, levelCount, info.levelCount);
+    ValidateLayerRange(baseArrayLayer, layerCount, info.layerCount);
+    ValidateSliceRange(baseDepthSlice, sliceCount, info.extent.depth);
+  }
+};
 
 struct ImgRefs
 {
