@@ -145,6 +145,9 @@
     <ClCompile Include="vk_pixelhistory.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="imagestate_tests.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
     <ClCompile Include="vk_image_states.cpp">
       <Filter>Util</Filter>
     </ClCompile>

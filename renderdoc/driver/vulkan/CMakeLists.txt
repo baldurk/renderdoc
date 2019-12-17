@@ -40,6 +40,7 @@ set(sources
     vk_serialise.cpp
     vk_stringise.cpp
     vk_layer.cpp
+    imagestate_tests.cpp
     imgrefs_tests.cpp
     official/vk_layer.h
     official/vk_platform.h

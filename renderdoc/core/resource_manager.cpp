@@ -133,6 +133,11 @@ FrameRefType ComposeFrameRefsFirstKnown(FrameRefType first, FrameRefType second)
     return second;
 }
 
+FrameRefType KeepOldFrameRef(FrameRefType first, FrameRefType second)
+{
+  return first;
+}
+
 bool IncludesRead(FrameRefType refType)
 {
   switch(refType)
