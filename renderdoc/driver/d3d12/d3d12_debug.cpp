@@ -27,6 +27,7 @@
 #include "data/resource.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
+#include "driver/shaders/dxbc/dxbc_bytecode.h"
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "maths/vec.h"
@@ -255,6 +256,14 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     rm->SetInternalResource(m_MeshRootSig);
   }
 
+  if(!CreateMathIntrinsicsResources())
+  {
+    RDCERR("Failed to create resources for shader debugging math intrinsics");
+    SAFE_RELEASE(m_MathIntrinsicsRootSig);
+    SAFE_RELEASE(m_MathIntrinsicsPso);
+    SAFE_RELEASE(m_MathIntrinsicsResultBuffer);
+  }
+
   {
     rdcstr meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
@@ -372,6 +381,10 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_MeshPS);
   SAFE_RELEASE(m_MeshRootSig);
 
+  SAFE_RELEASE(m_MathIntrinsicsRootSig);
+  SAFE_RELEASE(m_MathIntrinsicsPso);
+  SAFE_RELEASE(m_MathIntrinsicsResultBuffer);
+
   SAFE_RELEASE(m_ArrayMSAARootSig);
   SAFE_RELEASE(m_FullscreenVS);
 
@@ -394,6 +407,145 @@ D3D12DebugManager::~D3D12DebugManager()
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+}
+
+bool D3D12DebugManager::CreateMathIntrinsicsResources()
+{
+  rdcstr csProgram =
+      "RWStructuredBuffer<float4> outval : register(u0);\n"
+      "cbuffer srcOper : register(b0) { float4 inval; };\n"
+      "cbuffer srcInstr : register(b1) { uint operation; };\n";
+
+  // Assign constants to each supported instruction
+  csProgram += StringFormat::Fmt("static const uint OPCODE_RCP = %u;\n", DXBCBytecode::OPCODE_RCP);
+  csProgram += StringFormat::Fmt("static const uint OPCODE_RSQ = %u;\n", DXBCBytecode::OPCODE_RSQ);
+  csProgram += StringFormat::Fmt("static const uint OPCODE_EXP = %u;\n", DXBCBytecode::OPCODE_EXP);
+  csProgram += StringFormat::Fmt("static const uint OPCODE_LOG = %u;\n", DXBCBytecode::OPCODE_LOG);
+  csProgram +=
+      StringFormat::Fmt("static const uint OPCODE_SINCOS = %u;\n", DXBCBytecode::OPCODE_SINCOS);
+
+  csProgram +=
+      "[numthreads(1, 1, 1)]\n"
+      "void main(){\n"
+      "  switch(operation){\n"
+      "    case OPCODE_RCP: outval[0] = rcp(inval); break;\n"
+      "    case OPCODE_RSQ: outval[0] = rsqrt(inval); break;\n"
+      "    case OPCODE_EXP: outval[0] = exp2(inval); break;\n"
+      "    case OPCODE_LOG: outval[0] = log2(inval); break;\n"
+      "    case OPCODE_SINCOS: sincos(inval, outval[0], outval[1]); break;\n"
+      "  }\n}\n";
+
+  ID3DBlob *csBlob = NULL;
+  UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG_NAME_FOR_SOURCE;
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(csProgram.c_str(), "main", flags, "cs_5_0",
+                                                &csBlob) != "")
+  {
+    RDCERR("Failed to create shader to calculate math intrinsic");
+    return false;
+  }
+
+  D3D12RootSignature rootSig;
+
+  // Constants param for the operation inputs
+  D3D12RootSignatureParameter constantParam;
+  constantParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+  constantParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+  constantParam.Constants.Num32BitValues = 4;    // Input is 4 floats
+  constantParam.Constants.ShaderRegister = 0;
+  constantParam.Constants.RegisterSpace = 0;
+  rootSig.Parameters.push_back(constantParam);
+
+  // Constants param for the opcode
+  constantParam.Constants.Num32BitValues = 1;
+  constantParam.Constants.ShaderRegister = 1;
+  constantParam.Constants.RegisterSpace = 0;
+  rootSig.Parameters.push_back(constantParam);
+
+  // UAV param for the output
+  D3D12RootSignatureParameter uavParam;
+  uavParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+  uavParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+  uavParam.Descriptor.ShaderRegister = 0;
+  uavParam.Descriptor.RegisterSpace = 0;
+  uavParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+  rootSig.Parameters.push_back(uavParam);
+
+  ID3DBlob *root = m_pDevice->GetShaderCache()->MakeRootSig(rootSig);
+  if(root == NULL)
+  {
+    RDCERR("Failed to create root signature for shader debugging");
+    SAFE_RELEASE(csBlob);
+    return false;
+  }
+  HRESULT hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+                                              __uuidof(ID3D12RootSignature),
+                                              (void **)&m_MathIntrinsicsRootSig);
+  m_pDevice->InternalRef();
+  SAFE_RELEASE(root);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create root signature for shader debugging HRESULT: %s", ToStr(hr).c_str());
+    SAFE_RELEASE(csBlob);
+    return false;
+  }
+  m_pDevice->GetResourceManager()->SetInternalResource(m_MathIntrinsicsRootSig);
+
+  D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc;
+  psoDesc.pRootSignature = m_MathIntrinsicsRootSig;
+  psoDesc.CS.BytecodeLength = csBlob->GetBufferSize();
+  psoDesc.CS.pShaderBytecode = csBlob->GetBufferPointer();
+  psoDesc.NodeMask = 0;
+  psoDesc.CachedPSO.pCachedBlob = NULL;
+  psoDesc.CachedPSO.CachedBlobSizeInBytes = 0;
+  psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+
+  hr = m_pDevice->CreateComputePipelineState(&psoDesc, __uuidof(ID3D12PipelineState),
+                                             (void **)&m_MathIntrinsicsPso);
+  m_pDevice->InternalRef();
+  SAFE_RELEASE(csBlob);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create PSO for shader debugging HRESULT: %s", ToStr(hr).c_str());
+    SAFE_RELEASE(m_MathIntrinsicsRootSig);
+    return false;
+  }
+  m_pDevice->GetResourceManager()->SetInternalResource(m_MathIntrinsicsPso);
+
+  // Create buffer to store computed result
+  D3D12_RESOURCE_DESC rdesc;
+  ZeroMemory(&rdesc, sizeof(D3D12_RESOURCE_DESC));
+  rdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  rdesc.Width = sizeof(float) * 8;    // Output buffer is 2x float4
+  rdesc.Height = 1;
+  rdesc.DepthOrArraySize = 1;
+  rdesc.MipLevels = 1;
+  rdesc.Format = DXGI_FORMAT_UNKNOWN;
+  rdesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+  rdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  rdesc.SampleDesc.Count = 1;
+  rdesc.SampleDesc.Quality = 0;
+
+  D3D12_HEAP_PROPERTIES heapProps;
+  heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+  heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+  heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+  heapProps.CreationNodeMask = 1;
+  heapProps.VisibleNodeMask = 1;
+
+  hr = m_pDevice->CreateCommittedResource(
+      &heapProps, D3D12_HEAP_FLAG_NONE, &rdesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, NULL,
+      __uuidof(ID3D12Resource), (void **)&m_MathIntrinsicsResultBuffer);
+  m_pDevice->InternalRef();
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create buffer for pixel shader debugging HRESULT: %s", ToStr(hr).c_str());
+    SAFE_RELEASE(m_MathIntrinsicsRootSig);
+    SAFE_RELEASE(m_MathIntrinsicsPso);
+    return false;
+  }
+  m_pDevice->GetResourceManager()->SetInternalResource(m_MathIntrinsicsResultBuffer);
+
+  return true;
 }
 
 ID3D12Resource *D3D12DebugManager::MakeCBuffer(UINT64 size)

@@ -96,8 +96,61 @@ bool D3D12DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
                                                   const ShaderVariable &input,
                                                   ShaderVariable &output1, ShaderVariable &output2)
 {
-  RDCUNIMPLEMENTED("CalculateMathIntrinsic not yet implemented for D3D12");
-  return false;
+  D3D12MarkerRegion region(m_pDevice->GetQueue()->GetReal(), "CalculateMathIntrinsic");
+
+  if(opcode != DXBCBytecode::OPCODE_RCP && opcode != DXBCBytecode::OPCODE_RSQ &&
+     opcode != DXBCBytecode::OPCODE_EXP && opcode != DXBCBytecode::OPCODE_LOG &&
+     opcode != DXBCBytecode::OPCODE_SINCOS)
+  {
+    // To support a new instruction, the shader created in
+    // D3D12DebugManager::CreateMathIntrinsicsResources will need updated
+    RDCERR("Unsupported instruction for CalculateMathIntrinsic: %u", opcode);
+    return false;
+  }
+
+  // Create UAV to store the computed results
+  D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc;
+  ZeroMemory(&uavDesc, sizeof(D3D12_UNORDERED_ACCESS_VIEW_DESC));
+  uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+  uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+  uavDesc.Buffer.NumElements = 2;
+  uavDesc.Buffer.StructureByteStride = sizeof(float) * 4;
+
+  ID3D12Resource *pResultBuffer = m_pDevice->GetDebugManager()->GetMathIntrinsicsResultBuffer();
+  D3D12_CPU_DESCRIPTOR_HANDLE uav = m_pDevice->GetDebugManager()->GetCPUHandle(SHADER_DEBUG_UAV);
+  m_pDevice->CreateUnorderedAccessView(pResultBuffer, NULL, &uavDesc, uav);
+
+  // Set root signature & sig params on command list, then execute the shader
+  ID3D12GraphicsCommandListX *cmdList = m_pDevice->GetDebugManager()->ResetDebugList();
+  m_pDevice->GetDebugManager()->SetDescriptorHeaps(cmdList, true, false);
+  cmdList->SetPipelineState(m_pDevice->GetDebugManager()->GetMathIntrinsicsPso());
+  cmdList->SetComputeRootSignature(m_pDevice->GetDebugManager()->GetMathIntrinsicsRootSig());
+  cmdList->SetComputeRoot32BitConstants(0, 4, &input.value.uv[0], 0);
+  cmdList->SetComputeRoot32BitConstants(1, 1, &opcode, 0);
+  cmdList->SetComputeRootUnorderedAccessView(2, pResultBuffer->GetGPUVirtualAddress());
+  cmdList->Dispatch(1, 1, 1);
+
+  HRESULT hr = cmdList->Close();
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to close command list HRESULT: %s", ToStr(hr).c_str());
+    return false;
+  }
+
+  {
+    ID3D12CommandList *l = cmdList;
+    m_pDevice->GetQueue()->ExecuteCommandLists(1, &l);
+    m_pDevice->GPUSync();
+  }
+
+  bytebuf results;
+  m_pDevice->GetDebugManager()->GetBufferData(pResultBuffer, 0, 0, results);
+  RDCASSERT(results.size() >= sizeof(uint32_t) * 8);
+
+  memcpy(output1.value.uv, results.data(), sizeof(uint32_t) * 4);
+  memcpy(output2.value.uv, results.data() + 4, sizeof(uint32_t) * 4);
+
+  return true;
 }
 
 ShaderVariable D3D12DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType type,
@@ -646,6 +699,8 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     m_pDevice->GetQueue()->ExecuteCommandLists(1, &l);
     m_pDevice->GPUSync();
   }
+
+  rs = prevState;
 
   bytebuf sampleResult;
   m_pDevice->GetReplay()->GetTextureData(GetResID(pSampleResult), Subresource(),

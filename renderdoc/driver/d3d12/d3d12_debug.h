@@ -141,6 +141,9 @@ public:
   D3D12_GPU_VIRTUAL_ADDRESS UploadConstants(const void *data, size_t size);
 
   ID3D12RootSignature *GetMeshRootSig() { return m_MeshRootSig; }
+  ID3D12RootSignature *GetMathIntrinsicsRootSig() { return m_MathIntrinsicsRootSig; }
+  ID3D12PipelineState *GetMathIntrinsicsPso() { return m_MathIntrinsicsPso; }
+  ID3D12Resource *GetMathIntrinsicsResultBuffer() { return m_MathIntrinsicsResultBuffer; }
   ID3D12GraphicsCommandListX *ResetDebugList();
   void ResetDebugAlloc();
 
@@ -171,6 +174,8 @@ public:
   void CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCContainer *dxbc);
 
 private:
+  bool CreateMathIntrinsicsResources();
+
   WrappedID3D12Device *m_pDevice = NULL;
 
   // heaps
@@ -193,6 +198,11 @@ private:
   ID3DBlob *m_MeshPS = NULL;
   ID3D12RootSignature *m_MeshRootSig = NULL;
   std::map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
+
+  // Shader debugging resources
+  ID3D12RootSignature *m_MathIntrinsicsRootSig = NULL;
+  ID3D12PipelineState *m_MathIntrinsicsPso = NULL;
+  ID3D12Resource *m_MathIntrinsicsResultBuffer = NULL;
 
   // GetBufferData
   static const uint64_t m_ReadbackSize = 16 * 1024 * 1024;
