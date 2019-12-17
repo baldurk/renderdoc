@@ -406,7 +406,7 @@ Socket *CreateAbstractServerSocket(uint16_t port, int queuesize)
   addr.sun_path[0] = '\0';
   strncpy(addr.sun_path + 1, socketName.c_str(), socketName.size() + 1);
 
-  int result = bind(s, (sockaddr *)&addr, socketName.size());
+  int result = bind(s, (sockaddr *)&addr, offsetof(sockaddr_un, sun_path) + 1 + socketName.size());
   if(result == -1)
   {
     RDCWARN("Failed to create abstract socket: %s", socketName.c_str());
