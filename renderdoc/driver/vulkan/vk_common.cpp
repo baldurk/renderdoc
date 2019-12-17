@@ -370,6 +370,13 @@ VkAccessFlags MakeAccessMask(VkImageLayout layout)
 
   return VkAccessFlags(0);
 }
+void SanitiseReplayImageLayout(VkImageLayout &layout)
+{
+  // we don't replay with present layouts since we don't create actual swapchains. So change any
+  // present layouts to general layouts
+  if(layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR || layout == VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR)
+    layout = VK_IMAGE_LAYOUT_GENERAL;
+}
 
 void SanitiseOldImageLayout(VkImageLayout &layout)
 {

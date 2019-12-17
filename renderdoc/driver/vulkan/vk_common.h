@@ -91,6 +91,7 @@ VkAccessFlags MakeAccessMask(VkImageLayout layout);
 
 void SanitiseOldImageLayout(VkImageLayout &layout);
 void SanitiseNewImageLayout(VkImageLayout &layout);
+void SanitiseReplayImageLayout(VkImageLayout &layout);
 
 void CombineDepthStencilLayouts(rdcarray<VkImageMemoryBarrier> &barriers);
 

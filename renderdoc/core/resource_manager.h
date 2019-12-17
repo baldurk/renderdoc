@@ -123,6 +123,8 @@ const double PERSISTENT_RESOURCE_AGE = 3000;
 
 DECLARE_REFLECTION_ENUM(FrameRefType);
 
+typedef FrameRefType (*FrameRefCompFunc)(FrameRefType, FrameRefType);
+
 // Compose frame refs that occur in a known order.
 // This can be thought of as a state (`first`) and a transition from that state
 // (`second`), returning the new state (see the state diagram for
@@ -142,6 +144,9 @@ FrameRefType ComposeFrameRefsDisjoint(FrameRefType x, FrameRefType y);
 
 // Returns whichever of `first` or `second` is valid.
 FrameRefType ComposeFrameRefsFirstKnown(FrameRefType first, FrameRefType second);
+
+// Dummy frame ref composition that always keeps the old ref.
+FrameRefType KeepOldFrameRef(FrameRefType first, FrameRefType second);
 
 bool IsDirtyFrameRef(FrameRefType refType);
 
