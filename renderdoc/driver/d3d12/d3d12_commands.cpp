@@ -708,41 +708,76 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
 
     case D3D12Chunk::Swapchain_Present: ret = m_pDevice->Serialise_Present(ser, NULL, 0, 0); break;
 
-    case D3D12Chunk::List_ClearState: ret = m_ReplayList->Serialise_ClearState(ser, NULL); break;
-
-    default:
-    {
-      SystemChunk system = (SystemChunk)chunk;
-
-      if(system == SystemChunk::CaptureEnd)
-      {
-        SERIALISE_ELEMENT_LOCAL(PresentedImage, ResourceId()).TypedAs("ID3D12Resource *"_lit);
-
-        SERIALISE_CHECK_READ_ERRORS();
-
-        if(PresentedImage != ResourceId())
-          m_Cmd.m_LastPresentedImage = PresentedImage;
-
-        if(IsLoading(m_State) && m_Cmd.m_LastChunk != D3D12Chunk::Swapchain_Present)
-        {
-          m_Cmd.AddEvent();
-
-          DrawcallDescription draw;
-          draw.name = "End of Capture";
-          draw.flags |= DrawFlags::Present;
-
-          draw.copyDestination = m_Cmd.m_LastPresentedImage;
-
-          m_Cmd.AddDrawcall(draw, true);
-        }
-
-        ret = true;
-      }
-      else
-      {
-        RDCERR("Unrecognised Chunk type %s", ToStr(chunk).c_str());
-      }
+    case D3D12Chunk::List_ClearState:
+      ret = m_ReplayList->Serialise_ClearState(ser, NULL);
       break;
+
+    // in order to get a warning if we miss a case, we explicitly handle the device creation chunks
+    // here. If we actually encounter one it's an error (we shouldn't see these inside the captured
+    // frame itself)
+    case D3D12Chunk::Device_CreateCommandQueue:
+    case D3D12Chunk::Device_CreateCommandAllocator:
+    case D3D12Chunk::Device_CreateCommandList:
+    case D3D12Chunk::Device_CreateGraphicsPipeline:
+    case D3D12Chunk::Device_CreateComputePipeline:
+    case D3D12Chunk::Device_CreateDescriptorHeap:
+    case D3D12Chunk::Device_CreateRootSignature:
+    case D3D12Chunk::Device_CreateCommandSignature:
+    case D3D12Chunk::Device_CreateHeap:
+    case D3D12Chunk::Device_CreateCommittedResource:
+    case D3D12Chunk::Device_CreatePlacedResource:
+    case D3D12Chunk::Device_CreateReservedResource:
+    case D3D12Chunk::Device_CreateQueryHeap:
+    case D3D12Chunk::Device_CreateFence:
+    case D3D12Chunk::SetName:
+    case D3D12Chunk::SetShaderDebugPath:
+    case D3D12Chunk::CreateSwapBuffer:
+    case D3D12Chunk::Device_CreatePipelineState:
+    case D3D12Chunk::Device_CreateHeapFromAddress:
+    case D3D12Chunk::Device_CreateHeapFromFileMapping:
+    case D3D12Chunk::Device_OpenSharedHandle:
+    case D3D12Chunk::Device_CreateCommandList1:
+    case D3D12Chunk::Device_CreateCommittedResource1:
+    case D3D12Chunk::Device_CreateHeap1:
+    case D3D12Chunk::Device_ExternalDXGIResource:
+      RDCERR("Unexpected chunk while processing frame: %s", ToStr(chunk).c_str());
+      return false;
+
+    // no explicit default so that we have compiler warnings if a chunk isn't explicitly handled.
+    case D3D12Chunk::Max: break;
+  }
+
+  {
+    SystemChunk system = (SystemChunk)chunk;
+
+    if(system == SystemChunk::CaptureEnd)
+    {
+      SERIALISE_ELEMENT_LOCAL(PresentedImage, ResourceId()).TypedAs("ID3D12Resource *"_lit);
+
+      SERIALISE_CHECK_READ_ERRORS();
+
+      if(PresentedImage != ResourceId())
+        m_Cmd.m_LastPresentedImage = PresentedImage;
+
+      if(IsLoading(m_State) && m_Cmd.m_LastChunk != D3D12Chunk::Swapchain_Present)
+      {
+        m_Cmd.AddEvent();
+
+        DrawcallDescription draw;
+        draw.name = "End of Capture";
+        draw.flags |= DrawFlags::Present;
+
+        draw.copyDestination = m_Cmd.m_LastPresentedImage;
+
+        m_Cmd.AddDrawcall(draw, true);
+      }
+
+      ret = true;
+    }
+    else
+    {
+      RDCERR("Unrecognised Chunk type %s", ToStr(chunk).c_str());
+      return false;
     }
   }
 

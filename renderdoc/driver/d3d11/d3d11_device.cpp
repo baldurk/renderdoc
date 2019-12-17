@@ -1034,44 +1034,137 @@ bool WrappedID3D11Device::ProcessChunk(ReadSerialiser &ser, D3D11Chunk context)
       IID nul;
       return Serialise_OpenSharedResource(ser, 0, nul, NULL);
     }
-    case D3D11Chunk::SetShaderDebugPath: return Serialise_SetShaderDebugPath(ser, NULL, NULL);
-    default:
+    case D3D11Chunk::SetShaderDebugPath:
+      return Serialise_SetShaderDebugPath(ser, NULL, NULL);
+
+    // In order to get a warning if we miss a case, we explicitly handle the context chunks here.
+    // for legacy reasons we forward to the immediate context's chunk processing here, since some
+    // chunks like CopyResource can be serialised in the initialisation phase.
+    case D3D11Chunk::IASetInputLayout:
+    case D3D11Chunk::IASetVertexBuffers:
+    case D3D11Chunk::IASetIndexBuffer:
+    case D3D11Chunk::IASetPrimitiveTopology:
+    case D3D11Chunk::VSSetConstantBuffers:
+    case D3D11Chunk::VSSetShaderResources:
+    case D3D11Chunk::VSSetSamplers:
+    case D3D11Chunk::VSSetShader:
+    case D3D11Chunk::HSSetConstantBuffers:
+    case D3D11Chunk::HSSetShaderResources:
+    case D3D11Chunk::HSSetSamplers:
+    case D3D11Chunk::HSSetShader:
+    case D3D11Chunk::DSSetConstantBuffers:
+    case D3D11Chunk::DSSetShaderResources:
+    case D3D11Chunk::DSSetSamplers:
+    case D3D11Chunk::DSSetShader:
+    case D3D11Chunk::GSSetConstantBuffers:
+    case D3D11Chunk::GSSetShaderResources:
+    case D3D11Chunk::GSSetSamplers:
+    case D3D11Chunk::GSSetShader:
+    case D3D11Chunk::SOSetTargets:
+    case D3D11Chunk::PSSetConstantBuffers:
+    case D3D11Chunk::PSSetShaderResources:
+    case D3D11Chunk::PSSetSamplers:
+    case D3D11Chunk::PSSetShader:
+    case D3D11Chunk::CSSetConstantBuffers:
+    case D3D11Chunk::CSSetShaderResources:
+    case D3D11Chunk::CSSetUnorderedAccessViews:
+    case D3D11Chunk::CSSetSamplers:
+    case D3D11Chunk::CSSetShader:
+    case D3D11Chunk::RSSetViewports:
+    case D3D11Chunk::RSSetScissorRects:
+    case D3D11Chunk::RSSetState:
+    case D3D11Chunk::OMSetRenderTargets:
+    case D3D11Chunk::OMSetRenderTargetsAndUnorderedAccessViews:
+    case D3D11Chunk::OMSetBlendState:
+    case D3D11Chunk::OMSetDepthStencilState:
+    case D3D11Chunk::DrawIndexedInstanced:
+    case D3D11Chunk::DrawInstanced:
+    case D3D11Chunk::DrawIndexed:
+    case D3D11Chunk::Draw:
+    case D3D11Chunk::DrawAuto:
+    case D3D11Chunk::DrawIndexedInstancedIndirect:
+    case D3D11Chunk::DrawInstancedIndirect:
+    case D3D11Chunk::Map:
+    case D3D11Chunk::Unmap:
+    case D3D11Chunk::CopySubresourceRegion:
+    case D3D11Chunk::CopyResource:
+    case D3D11Chunk::UpdateSubresource:
+    case D3D11Chunk::CopyStructureCount:
+    case D3D11Chunk::ResolveSubresource:
+    case D3D11Chunk::GenerateMips:
+    case D3D11Chunk::ClearDepthStencilView:
+    case D3D11Chunk::ClearRenderTargetView:
+    case D3D11Chunk::ClearUnorderedAccessViewUint:
+    case D3D11Chunk::ClearUnorderedAccessViewFloat:
+    case D3D11Chunk::ClearState:
+    case D3D11Chunk::ExecuteCommandList:
+    case D3D11Chunk::Dispatch:
+    case D3D11Chunk::DispatchIndirect:
+    case D3D11Chunk::FinishCommandList:
+    case D3D11Chunk::Flush:
+    case D3D11Chunk::SetPredication:
+    case D3D11Chunk::SetResourceMinLOD:
+    case D3D11Chunk::Begin:
+    case D3D11Chunk::End:
+    case D3D11Chunk::CopySubresourceRegion1:
+    case D3D11Chunk::UpdateSubresource1:
+    case D3D11Chunk::ClearView:
+    case D3D11Chunk::VSSetConstantBuffers1:
+    case D3D11Chunk::HSSetConstantBuffers1:
+    case D3D11Chunk::DSSetConstantBuffers1:
+    case D3D11Chunk::GSSetConstantBuffers1:
+    case D3D11Chunk::PSSetConstantBuffers1:
+    case D3D11Chunk::CSSetConstantBuffers1:
+    case D3D11Chunk::PushMarker:
+    case D3D11Chunk::SetMarker:
+    case D3D11Chunk::PopMarker:
+    case D3D11Chunk::DiscardResource:
+    case D3D11Chunk::DiscardView:
+    case D3D11Chunk::DiscardView1:
+    case D3D11Chunk::PostExecuteCommandList:
+    case D3D11Chunk::PostFinishCommandListSet:
+    case D3D11Chunk::SwapDeviceContextState:
+    case D3D11Chunk::SwapchainPresent:
+      return m_pImmediateContext->ProcessChunk(ser, context);
+
+    // no explicit default so that we have compiler warnings if a chunk isn't explicitly handled.
+    case D3D11Chunk::Max: break;
+  }
+
+  {
+    SystemChunk system = (SystemChunk)context;
+    if(system == SystemChunk::DriverInit)
     {
-      SystemChunk system = (SystemChunk)context;
-      if(system == SystemChunk::DriverInit)
-      {
-        D3D11InitParams InitParams;
-        SERIALISE_ELEMENT(InitParams);
+      D3D11InitParams InitParams;
+      SERIALISE_ELEMENT(InitParams);
 
-        SERIALISE_CHECK_READ_ERRORS();
-      }
-      else if(system == SystemChunk::InitialContentsList)
-      {
-        GetResourceManager()->CreateInitialContents(ser);
+      SERIALISE_CHECK_READ_ERRORS();
+    }
+    else if(system == SystemChunk::InitialContentsList)
+    {
+      GetResourceManager()->CreateInitialContents(ser);
 
-        SERIALISE_CHECK_READ_ERRORS();
-      }
-      else if(system == SystemChunk::InitialContents)
-      {
-        return Serialise_InitialState(ser, ResourceId(), NULL, NULL);
-      }
-      else if(system == SystemChunk::CaptureScope)
-      {
-        return Serialise_CaptureScope(ser);
-      }
-      else if(system < SystemChunk::FirstDriverChunk)
-      {
-        RDCERR("Unexpected system chunk in capture data: %u", system);
-        ser.SkipCurrentChunk();
+      SERIALISE_CHECK_READ_ERRORS();
+    }
+    else if(system == SystemChunk::InitialContents)
+    {
+      return Serialise_InitialState(ser, ResourceId(), NULL, NULL);
+    }
+    else if(system == SystemChunk::CaptureScope)
+    {
+      return Serialise_CaptureScope(ser);
+    }
+    else if(system < SystemChunk::FirstDriverChunk)
+    {
+      RDCERR("Unexpected system chunk in capture data: %u", system);
+      ser.SkipCurrentChunk();
 
-        SERIALISE_CHECK_READ_ERRORS();
-      }
-      else
-      {
-        return m_pImmediateContext->ProcessChunk(ser, context);
-      }
-
-      break;
+      SERIALISE_CHECK_READ_ERRORS();
+    }
+    else
+    {
+      RDCERR("Unrecognised Chunk type %d", context);
+      return false;
     }
   }
 

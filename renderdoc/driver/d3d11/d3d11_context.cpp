@@ -859,31 +859,86 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
       ret = Serialise_SwapDeviceContextState(ser, NULL, NULL);
       break;
 
-    case D3D11Chunk::SwapchainPresent: ret = Serialise_Present(ser, 0, 0); break;
-    default:
-    {
-      SystemChunk system = (SystemChunk)chunk;
-
-      if(system == SystemChunk::CaptureEnd)
-      {
-        if(IsLoading(m_State) && m_LastChunk != D3D11Chunk::SwapchainPresent)
-        {
-          DrawcallDescription draw;
-          draw.name = "End of Capture";
-          draw.flags |= DrawFlags::Present;
-
-          draw.copyDestination = m_pDevice->GetBackbufferResourceID();
-
-          AddDrawcall(draw, true);
-        }
-
-        ret = true;
-      }
-      else
-      {
-        RDCERR("Unrecognised Chunk type %d", chunk);
-      }
+    case D3D11Chunk::SwapchainPresent:
+      ret = Serialise_Present(ser, 0, 0);
       break;
+
+    // in order to get a warning if we miss a case, we explicitly handle the device creation chunks
+    // here. If we actually encounter one it's an error (we shouldn't see these inside the captured
+    // frame itself)
+    case D3D11Chunk::DeviceInitialisation:
+    case D3D11Chunk::SetResourceName:
+    case D3D11Chunk::CreateSwapBuffer:
+    case D3D11Chunk::CreateTexture1D:
+    case D3D11Chunk::CreateTexture2D:
+    case D3D11Chunk::CreateTexture2D1:
+    case D3D11Chunk::CreateTexture3D:
+    case D3D11Chunk::CreateTexture3D1:
+    case D3D11Chunk::CreateBuffer:
+    case D3D11Chunk::CreateVertexShader:
+    case D3D11Chunk::CreateHullShader:
+    case D3D11Chunk::CreateDomainShader:
+    case D3D11Chunk::CreateGeometryShader:
+    case D3D11Chunk::CreateGeometryShaderWithStreamOutput:
+    case D3D11Chunk::CreatePixelShader:
+    case D3D11Chunk::CreateComputeShader:
+    case D3D11Chunk::GetClassInstance:
+    case D3D11Chunk::CreateClassInstance:
+    case D3D11Chunk::CreateClassLinkage:
+    case D3D11Chunk::CreateShaderResourceView:
+    case D3D11Chunk::CreateShaderResourceView1:
+    case D3D11Chunk::CreateRenderTargetView:
+    case D3D11Chunk::CreateRenderTargetView1:
+    case D3D11Chunk::CreateDepthStencilView:
+    case D3D11Chunk::CreateUnorderedAccessView:
+    case D3D11Chunk::CreateUnorderedAccessView1:
+    case D3D11Chunk::CreateInputLayout:
+    case D3D11Chunk::CreateBlendState:
+    case D3D11Chunk::CreateBlendState1:
+    case D3D11Chunk::CreateDepthStencilState:
+    case D3D11Chunk::CreateRasterizerState:
+    case D3D11Chunk::CreateRasterizerState1:
+    case D3D11Chunk::CreateRasterizerState2:
+    case D3D11Chunk::CreateSamplerState:
+    case D3D11Chunk::CreateQuery:
+    case D3D11Chunk::CreateQuery1:
+    case D3D11Chunk::CreatePredicate:
+    case D3D11Chunk::CreateCounter:
+    case D3D11Chunk::CreateDeferredContext:
+    case D3D11Chunk::SetExceptionMode:
+    case D3D11Chunk::ExternalDXGIResource:
+    case D3D11Chunk::OpenSharedResource:
+    case D3D11Chunk::OpenSharedResource1:
+    case D3D11Chunk::OpenSharedResourceByName:
+    case D3D11Chunk::SetShaderDebugPath:
+      RDCERR("Unexpected chunk while processing frame: %s", ToStr(chunk).c_str());
+      return false;
+
+    // no explicit default so that we have compiler warnings if a chunk isn't explicitly handled.
+    case D3D11Chunk::Max: break;
+  }
+
+  {
+    SystemChunk system = (SystemChunk)chunk;
+
+    if(system == SystemChunk::CaptureEnd)
+    {
+      if(IsLoading(m_State) && m_LastChunk != D3D11Chunk::SwapchainPresent)
+      {
+        DrawcallDescription draw;
+        draw.name = "End of Capture";
+        draw.flags |= DrawFlags::Present;
+
+        draw.copyDestination = m_pDevice->GetBackbufferResourceID();
+
+        AddDrawcall(draw, true);
+      }
+
+      ret = true;
+    }
+    else
+    {
+      RDCERR("Unrecognised Chunk type %d", chunk);
     }
   }
 

@@ -2930,68 +2930,49 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
   {
     case D3D12Chunk::Device_CreateCommandQueue:
       return Serialise_CreateCommandQueue(ser, NULL, IID(), NULL);
-      break;
     case D3D12Chunk::Device_CreateCommandAllocator:
       return Serialise_CreateCommandAllocator(ser, D3D12_COMMAND_LIST_TYPE_DIRECT, IID(), NULL);
-      break;
     case D3D12Chunk::Device_CreateCommandList:
       return Serialise_CreateCommandList(ser, 0, D3D12_COMMAND_LIST_TYPE_DIRECT, NULL, NULL, IID(),
                                          NULL);
-      break;
 
     case D3D12Chunk::Device_CreateGraphicsPipeline:
       return Serialise_CreateGraphicsPipelineState(ser, NULL, IID(), NULL);
-      break;
     case D3D12Chunk::Device_CreateComputePipeline:
       return Serialise_CreateComputePipelineState(ser, NULL, IID(), NULL);
-      break;
     case D3D12Chunk::Device_CreateDescriptorHeap:
       return Serialise_CreateDescriptorHeap(ser, NULL, IID(), NULL);
-      break;
     case D3D12Chunk::Device_CreateRootSignature:
       return Serialise_CreateRootSignature(ser, 0, NULL, 0, IID(), NULL);
-      break;
     case D3D12Chunk::Device_CreateCommandSignature:
       return Serialise_CreateCommandSignature(ser, NULL, NULL, IID(), NULL);
-      break;
     case D3D12Chunk::Device_CreateHeap: return Serialise_CreateHeap(ser, NULL, IID(), NULL); break;
     case D3D12Chunk::Device_CreateCommittedResource:
       return Serialise_CreateCommittedResource(ser, NULL, D3D12_HEAP_FLAG_NONE, NULL,
                                                D3D12_RESOURCE_STATE_COMMON, NULL, IID(), NULL);
-      break;
     case D3D12Chunk::Device_CreatePlacedResource:
       return Serialise_CreatePlacedResource(ser, NULL, 0, NULL, D3D12_RESOURCE_STATE_COMMON, NULL,
                                             IID(), NULL);
-      break;
     case D3D12Chunk::Device_CreateReservedResource:
       return Serialise_CreateReservedResource(ser, NULL, D3D12_RESOURCE_STATE_COMMON, NULL, IID(),
                                               NULL);
-      break;
 
     case D3D12Chunk::Device_CreateQueryHeap:
       return Serialise_CreateQueryHeap(ser, NULL, IID(), NULL);
-      break;
     case D3D12Chunk::Device_CreateFence:
       return Serialise_CreateFence(ser, 0, D3D12_FENCE_FLAG_NONE, IID(), NULL);
-      break;
-    case D3D12Chunk::SetName: return Serialise_SetName(ser, 0x0, ""); break;
-    case D3D12Chunk::SetShaderDebugPath:
-      return Serialise_SetShaderDebugPath(ser, NULL, NULL);
-      break;
+    case D3D12Chunk::SetName: return Serialise_SetName(ser, 0x0, "");
+    case D3D12Chunk::SetShaderDebugPath: return Serialise_SetShaderDebugPath(ser, NULL, NULL);
     case D3D12Chunk::CreateSwapBuffer:
       return Serialise_WrapSwapchainBuffer(ser, NULL, DXGI_FORMAT_UNKNOWN, 0, NULL);
-      break;
     case D3D12Chunk::Device_CreatePipelineState:
       return Serialise_CreatePipelineState(ser, NULL, IID(), NULL);
-      break;
     // these functions are serialised as-if they are a real heap.
     case D3D12Chunk::Device_CreateHeapFromAddress:
     case D3D12Chunk::Device_CreateHeapFromFileMapping:
       return Serialise_CreateHeap(ser, NULL, IID(), NULL);
-      break;
     case D3D12Chunk::Device_OpenSharedHandle:
       return Serialise_OpenSharedHandle(ser, NULL, IID(), NULL);
-      break;
     case D3D12Chunk::Device_CreateCommandList1:
       return Serialise_CreateCommandList1(ser, 0, D3D12_COMMAND_LIST_TYPE_DIRECT,
                                           D3D12_COMMAND_LIST_FLAG_NONE, IID(), NULL);
@@ -3001,44 +2982,133 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::Device_CreateHeap1: return Serialise_CreateHeap1(ser, NULL, NULL, IID(), NULL);
     case D3D12Chunk::Device_ExternalDXGIResource:
       return Serialise_OpenSharedHandle(ser, NULL, IID(), NULL);
-      break;
-    default:
+
+    // in order to get a warning if we miss a case, we explicitly handle the list/queue chunks here.
+    // If we actually encounter one it's an error (we should hit CaptureBegin first and switch to
+    // D3D12CommandData::ProcessChunk)
+    case D3D12Chunk::Device_CreateConstantBufferView:
+    case D3D12Chunk::Device_CreateShaderResourceView:
+    case D3D12Chunk::Device_CreateUnorderedAccessView:
+    case D3D12Chunk::Device_CreateRenderTargetView:
+    case D3D12Chunk::Device_CreateDepthStencilView:
+    case D3D12Chunk::Device_CreateSampler:
+    case D3D12Chunk::Device_CopyDescriptors:
+    case D3D12Chunk::Device_CopyDescriptorsSimple:
+    case D3D12Chunk::Queue_ExecuteCommandLists:
+    case D3D12Chunk::Queue_Signal:
+    case D3D12Chunk::Queue_Wait:
+    case D3D12Chunk::Queue_UpdateTileMappings:
+    case D3D12Chunk::Queue_CopyTileMappings:
+    case D3D12Chunk::Queue_BeginEvent:
+    case D3D12Chunk::Queue_SetMarker:
+    case D3D12Chunk::Queue_EndEvent:
+    case D3D12Chunk::List_Close:
+    case D3D12Chunk::List_Reset:
+    case D3D12Chunk::List_ResourceBarrier:
+    case D3D12Chunk::List_BeginQuery:
+    case D3D12Chunk::List_EndQuery:
+    case D3D12Chunk::List_ResolveQueryData:
+    case D3D12Chunk::List_SetPredication:
+    case D3D12Chunk::List_DrawIndexedInstanced:
+    case D3D12Chunk::List_DrawInstanced:
+    case D3D12Chunk::List_Dispatch:
+    case D3D12Chunk::List_ExecuteIndirect:
+    case D3D12Chunk::List_ExecuteBundle:
+    case D3D12Chunk::List_CopyBufferRegion:
+    case D3D12Chunk::List_CopyTextureRegion:
+    case D3D12Chunk::List_CopyResource:
+    case D3D12Chunk::List_ResolveSubresource:
+    case D3D12Chunk::List_ClearRenderTargetView:
+    case D3D12Chunk::List_ClearDepthStencilView:
+    case D3D12Chunk::List_ClearUnorderedAccessViewUint:
+    case D3D12Chunk::List_ClearUnorderedAccessViewFloat:
+    case D3D12Chunk::List_DiscardResource:
+    case D3D12Chunk::List_IASetPrimitiveTopology:
+    case D3D12Chunk::List_IASetIndexBuffer:
+    case D3D12Chunk::List_IASetVertexBuffers:
+    case D3D12Chunk::List_SOSetTargets:
+    case D3D12Chunk::List_RSSetViewports:
+    case D3D12Chunk::List_RSSetScissorRects:
+    case D3D12Chunk::List_SetPipelineState:
+    case D3D12Chunk::List_SetDescriptorHeaps:
+    case D3D12Chunk::List_OMSetRenderTargets:
+    case D3D12Chunk::List_OMSetStencilRef:
+    case D3D12Chunk::List_OMSetBlendFactor:
+    case D3D12Chunk::List_SetGraphicsRootDescriptorTable:
+    case D3D12Chunk::List_SetGraphicsRootSignature:
+    case D3D12Chunk::List_SetGraphicsRoot32BitConstant:
+    case D3D12Chunk::List_SetGraphicsRoot32BitConstants:
+    case D3D12Chunk::List_SetGraphicsRootConstantBufferView:
+    case D3D12Chunk::List_SetGraphicsRootShaderResourceView:
+    case D3D12Chunk::List_SetGraphicsRootUnorderedAccessView:
+    case D3D12Chunk::List_SetComputeRootDescriptorTable:
+    case D3D12Chunk::List_SetComputeRootSignature:
+    case D3D12Chunk::List_SetComputeRoot32BitConstant:
+    case D3D12Chunk::List_SetComputeRoot32BitConstants:
+    case D3D12Chunk::List_SetComputeRootConstantBufferView:
+    case D3D12Chunk::List_SetComputeRootShaderResourceView:
+    case D3D12Chunk::List_SetComputeRootUnorderedAccessView:
+    case D3D12Chunk::List_CopyTiles:
+    case D3D12Chunk::List_AtomicCopyBufferUINT:
+    case D3D12Chunk::List_AtomicCopyBufferUINT64:
+    case D3D12Chunk::List_OMSetDepthBounds:
+    case D3D12Chunk::List_ResolveSubresourceRegion:
+    case D3D12Chunk::List_SetSamplePositions:
+    case D3D12Chunk::List_SetViewInstanceMask:
+    case D3D12Chunk::List_WriteBufferImmediate:
+    case D3D12Chunk::List_BeginRenderPass:
+    case D3D12Chunk::List_EndRenderPass:
+    case D3D12Chunk::List_RSSetShadingRate:
+    case D3D12Chunk::List_RSSetShadingRateImage:
+    case D3D12Chunk::PushMarker:
+    case D3D12Chunk::PopMarker:
+    case D3D12Chunk::SetMarker:
+    case D3D12Chunk::Resource_Unmap:
+    case D3D12Chunk::Resource_WriteToSubresource:
+    case D3D12Chunk::List_IndirectSubCommand:
+    case D3D12Chunk::Swapchain_Present:
+    case D3D12Chunk::List_ClearState:
+      RDCERR("Unexpected chunk while processing initialisation: %s", ToStr(context).c_str());
+      return false;
+
+    // no explicit default so that we have compiler warnings if a chunk isn't explicitly handled.
+    case D3D12Chunk::Max: break;
+  }
+
+  {
+    SystemChunk system = (SystemChunk)context;
+    if(system == SystemChunk::DriverInit)
     {
-      SystemChunk system = (SystemChunk)context;
-      if(system == SystemChunk::DriverInit)
-      {
-        D3D12InitParams InitParams;
-        SERIALISE_ELEMENT(InitParams);
+      D3D12InitParams InitParams;
+      SERIALISE_ELEMENT(InitParams);
 
-        SERIALISE_CHECK_READ_ERRORS();
-      }
-      else if(system == SystemChunk::InitialContentsList)
-      {
-        GetResourceManager()->CreateInitialContents(ser);
+      SERIALISE_CHECK_READ_ERRORS();
+    }
+    else if(system == SystemChunk::InitialContentsList)
+    {
+      GetResourceManager()->CreateInitialContents(ser);
 
-        SERIALISE_CHECK_READ_ERRORS();
-      }
-      else if(system == SystemChunk::InitialContents)
-      {
-        return GetResourceManager()->Serialise_InitialState(ser, ResourceId(), NULL, NULL);
-      }
-      else if(system == SystemChunk::CaptureScope)
-      {
-        return Serialise_CaptureScope(ser);
-      }
-      else if(system < SystemChunk::FirstDriverChunk)
-      {
-        RDCERR("Unexpected system chunk in capture data: %u", system);
-        ser.SkipCurrentChunk();
+      SERIALISE_CHECK_READ_ERRORS();
+    }
+    else if(system == SystemChunk::InitialContents)
+    {
+      return GetResourceManager()->Serialise_InitialState(ser, ResourceId(), NULL, NULL);
+    }
+    else if(system == SystemChunk::CaptureScope)
+    {
+      return Serialise_CaptureScope(ser);
+    }
+    else if(system < SystemChunk::FirstDriverChunk)
+    {
+      RDCERR("Unexpected system chunk in capture data: %u", system);
+      ser.SkipCurrentChunk();
 
-        SERIALISE_CHECK_READ_ERRORS();
-      }
-      else
-      {
-        RDCERR("Unexpected chunk %s", ToStr(context).c_str());
-        return false;
-      }
-      break;
+      SERIALISE_CHECK_READ_ERRORS();
+    }
+    else
+    {
+      RDCERR("Unexpected chunk %s", ToStr(context).c_str());
+      return false;
     }
   }
 

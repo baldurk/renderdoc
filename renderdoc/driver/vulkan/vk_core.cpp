@@ -2917,68 +2917,75 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkQueuePresentKHR:
       return Serialise_vkQueuePresentKHR(ser, VK_NULL_HANDLE, NULL);
 
-    default:
+    // chunks that are reserved but not yet serialised
+    case VulkanChunk::vkResetCommandPool:
+    case VulkanChunk::vkCreateDepthTargetView:
+      RDCERR("Unexpected Chunk type %s", ToStr(chunk).c_str());
+
+    // no explicit default so that we have compiler warnings if a chunk isn't explicitly handled.
+    case VulkanChunk::Max: break;
+  }
+
+  {
+    SystemChunk system = (SystemChunk)chunk;
+    if(system == SystemChunk::DriverInit)
     {
-      SystemChunk system = (SystemChunk)chunk;
-      if(system == SystemChunk::DriverInit)
+      VkInitParams InitParams;
+      SERIALISE_ELEMENT(InitParams);
+
+      SERIALISE_CHECK_READ_ERRORS();
+
+      AddResourceCurChunk(InitParams.InstanceID);
+    }
+    else if(system == SystemChunk::InitialContentsList)
+    {
+      GetResourceManager()->CreateInitialContents(ser);
+
+      SERIALISE_CHECK_READ_ERRORS();
+    }
+    else if(system == SystemChunk::InitialContents)
+    {
+      return Serialise_InitialState(ser, ResourceId(), NULL, NULL);
+    }
+    else if(system == SystemChunk::CaptureScope)
+    {
+      return Serialise_CaptureScope(ser);
+    }
+    else if(system == SystemChunk::CaptureEnd)
+    {
+      SERIALISE_ELEMENT_LOCAL(PresentedImage, ResourceId()).TypedAs("VkImage"_lit);
+
+      SERIALISE_CHECK_READ_ERRORS();
+
+      if(PresentedImage != ResourceId())
+        m_LastPresentedImage = PresentedImage;
+
+      if(IsLoading(m_State) && m_LastChunk != VulkanChunk::vkQueuePresentKHR)
       {
-        VkInitParams InitParams;
-        SERIALISE_ELEMENT(InitParams);
+        AddEvent();
 
-        SERIALISE_CHECK_READ_ERRORS();
+        DrawcallDescription draw;
+        draw.name = "End of Capture";
+        draw.flags |= DrawFlags::Present;
 
-        AddResourceCurChunk(InitParams.InstanceID);
+        draw.copyDestination = m_LastPresentedImage;
+
+        AddDrawcall(draw, true);
       }
-      else if(system == SystemChunk::InitialContentsList)
-      {
-        GetResourceManager()->CreateInitialContents(ser);
 
-        SERIALISE_CHECK_READ_ERRORS();
-      }
-      else if(system == SystemChunk::InitialContents)
-      {
-        return Serialise_InitialState(ser, ResourceId(), NULL, NULL);
-      }
-      else if(system == SystemChunk::CaptureScope)
-      {
-        return Serialise_CaptureScope(ser);
-      }
-      else if(system == SystemChunk::CaptureEnd)
-      {
-        SERIALISE_ELEMENT_LOCAL(PresentedImage, ResourceId()).TypedAs("VkImage"_lit);
+      return true;
+    }
+    else if(system < SystemChunk::FirstDriverChunk)
+    {
+      RDCERR("Unexpected system chunk in capture data: %u", system);
+      ser.SkipCurrentChunk();
 
-        SERIALISE_CHECK_READ_ERRORS();
-
-        if(PresentedImage != ResourceId())
-          m_LastPresentedImage = PresentedImage;
-
-        if(IsLoading(m_State) && m_LastChunk != VulkanChunk::vkQueuePresentKHR)
-        {
-          AddEvent();
-
-          DrawcallDescription draw;
-          draw.name = "End of Capture";
-          draw.flags |= DrawFlags::Present;
-
-          draw.copyDestination = m_LastPresentedImage;
-
-          AddDrawcall(draw, true);
-        }
-
-        return true;
-      }
-      else if(system < SystemChunk::FirstDriverChunk)
-      {
-        RDCERR("Unexpected system chunk in capture data: %u", system);
-        ser.SkipCurrentChunk();
-
-        SERIALISE_CHECK_READ_ERRORS();
-      }
-      else
-      {
-        RDCERR("Unrecognised Chunk type %d", chunk);
-        return false;
-      }
+      SERIALISE_CHECK_READ_ERRORS();
+    }
+    else
+    {
+      RDCERR("Unrecognised Chunk type %d", chunk);
+      return false;
     }
   }
 
