@@ -134,7 +134,10 @@ void D3D8DebugManager::RenderText(float x, float y, const rdcstr &text)
   split(text, lines, '\n');
 
   for(const rdcstr &line : lines)
+  {
     RenderTextInternal(x, y, line);
+    y += 1.0f;
+  }
 }
 
 void D3D8DebugManager::RenderTextInternal(float x, float y, const rdcstr &text)

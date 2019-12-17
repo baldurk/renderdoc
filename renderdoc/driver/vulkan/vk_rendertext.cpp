@@ -604,7 +604,10 @@ void VulkanTextRenderer::RenderText(const TextPrintState &textstate, float x, fl
   split(text, lines, '\n');
 
   for(const rdcstr &line : lines)
+  {
     RenderTextInternal(textstate, x, y, line);
+    y += 1.0f;
+  }
 }
 
 void VulkanTextRenderer::RenderTextInternal(const TextPrintState &textstate, float x, float y,

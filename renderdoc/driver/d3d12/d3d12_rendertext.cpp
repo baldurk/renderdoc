@@ -451,7 +451,10 @@ void D3D12TextRenderer::RenderText(ID3D12GraphicsCommandList *list, float x, flo
   split(text, lines, '\n');
 
   for(const rdcstr &line : lines)
+  {
     RenderTextInternal(list, x, y, line);
+    y += 1.0f;
+  }
 }
 
 void D3D12TextRenderer::RenderTextInternal(ID3D12GraphicsCommandList *list, float x, float y,
