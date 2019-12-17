@@ -3305,7 +3305,11 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
   if(!partial)
   {
     ID3D12GraphicsCommandList *beginList = GetNewList();
-    D3D12MarkerRegion::Set(beginList, AMDRGPControl::GetBeginMarker());
+    {
+      rdcwstr text = StringFormat::UTF82Wide(AMDRGPControl::GetBeginMarker());
+      UINT size = (UINT)text.length() * sizeof(wchar_t);
+      beginList->SetMarker(0, text.c_str(), size);
+    }
     beginList->Close();
     ExecuteLists();
   }
@@ -3366,7 +3370,11 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
   // ensure all UAV writes have finished before subsequent work
   ID3D12GraphicsCommandList *list = GetNewList();
-  D3D12MarkerRegion::Set(list, AMDRGPControl::GetEndMarker());
+  {
+    rdcwstr text = StringFormat::UTF82Wide(AMDRGPControl::GetBeginMarker());
+    UINT size = (UINT)text.length() * sizeof(wchar_t);
+    list->SetMarker(0, text.c_str(), size);
+  }
 
   D3D12_RESOURCE_BARRIER uavBarrier = {};
   uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
