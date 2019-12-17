@@ -2907,6 +2907,13 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       rdcarray<ImgRefsPair> data;
       return GetResourceManager()->Serialise_ImageRefs(ser, data);
     }
+    case VulkanChunk::vkGetSemaphoreCounterValueKHR:
+      return Serialise_vkGetSemaphoreCounterValueKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkWaitSemaphoresKHR:
+      return Serialise_vkWaitSemaphoresKHR(ser, VK_NULL_HANDLE, NULL, 0);
+    case VulkanChunk::vkSignalSemaphoreKHR:
+      return Serialise_vkSignalSemaphoreKHR(ser, VK_NULL_HANDLE, NULL);
+
     case VulkanChunk::vkQueuePresentKHR:
       return Serialise_vkQueuePresentKHR(ser, VK_NULL_HANDLE, NULL);
 
