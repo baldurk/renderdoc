@@ -435,6 +435,10 @@ private:
   VkCommandBuffer GetExtQueueCmd(uint32_t queueFamilyIdx) const;
   void SubmitAndFlushExtQueue(uint32_t queueFamilyIdx) const;
 
+  void SubmitAndFlushImageStateBarriers(ImageBarrierSequence &barriers);
+  void InlineSetupImageBarriers(VkCommandBuffer cmd, ImageBarrierSequence &batches);
+  void InlineCleanupImageBarriers(VkCommandBuffer cmd, ImageBarrierSequence &batches);
+
   struct QueueRemap
   {
     uint32_t family;

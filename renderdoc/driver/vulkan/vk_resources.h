@@ -1260,6 +1260,30 @@ struct ImageSubresourceRange
   }
 };
 
+template <typename Barrier>
+struct BarrierSequence
+{
+  static const uint32_t MAX_BATCH_COUNT = 4;
+  static const uint32_t MAX_QUEUE_FAMILY_COUNT = 3;
+
+  // batches[batchIndex][queueFamilyIndex] = array of barriers to submit to queueFamilyIndex as part
+  // of batchIndex
+  rdcarray<Barrier> batches[MAX_BATCH_COUNT][MAX_QUEUE_FAMILY_COUNT];
+  size_t barrierCount = 0;
+  void AddWrapped(uint32_t batchIndex, uint32_t queueFamilyIndex, const Barrier &barrier);
+  void Merge(const BarrierSequence<Barrier> &other);
+  bool IsBatchEmpty(uint32_t batchIndex) const;
+  void ExtractUnwrappedBatch(uint32_t batchIndex, uint32_t queueFamilyIndex,
+                             rdcarray<Barrier> &result);
+  void ExtractFirstUnwrappedBatchForQueue(uint32_t queueFamilyIndex, rdcarray<Barrier> &result);
+  void ExtractLastUnwrappedBatchForQueue(uint32_t queueFamilyIndex, rdcarray<Barrier> &result);
+  inline bool empty() const { return barrierCount == 0; }
+  inline size_t size() const { return barrierCount; }
+  static void UnwrapBarriers(rdcarray<Barrier> &barriers);
+};
+
+using ImageBarrierSequence = BarrierSequence<VkImageMemoryBarrier>;
+
 struct ImgRefs
 {
   rdcarray<FrameRefType> rangeRefs;
