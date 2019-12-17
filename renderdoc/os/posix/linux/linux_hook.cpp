@@ -258,7 +258,7 @@ void LibraryHooks::RegisterLibraryHook(char const *name, FunctionLoadCallback cb
 {
   SCOPED_LOCK(libLock);
 
-  if(libraryHooks.contains(name))
+  if(!libraryHooks.contains(name))
     libraryHooks.push_back(name);
 
   if(cb)

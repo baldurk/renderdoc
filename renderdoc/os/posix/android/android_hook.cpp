@@ -89,7 +89,7 @@ public:
   void AddLibHook(const rdcstr &name)
   {
     SCOPED_LOCK(lock);
-    if(libhooks.contains(name))
+    if(!libhooks.contains(name))
       libhooks.push_back(name);
   }
 
