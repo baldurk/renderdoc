@@ -252,6 +252,8 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
     {
       int sampleCount = -sampleIdx;
 
+      col = vec4(0, 0, 0, 0);
+
       // worst resolve you've seen in your life
       // it's manually unrolled because doing it as a dynamic loop on
       // sampleCount seems to produce crazy artifacts on nvidia - probably a compiler bug
@@ -312,6 +314,8 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
     if(sampleIdx < 0)
     {
       int sampleCount = -sampleIdx;
+
+      col = vec4(0, 0, 0, 0);
 
       // worst resolve you've seen in your life
       // it's manually unrolled because doing it as a dynamic loop on
