@@ -892,8 +892,10 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
                                    (GLint *)&state.magFilter);
       }
 
-      // if this is an MSAA texture we now need to unpack to an array, ready to serialise
-      if(ms)
+      // if this is an MSAA texture then during capture we now need to unpack to an array, ready to
+      // serialise. When replaying, we come in here for 'creating' initial states so we want to keep
+      // it as MSAA
+      if(ms && IsCaptureMode(m_State))
       {
         GLuint oldtex = 0;
         GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D_ARRAY, (GLint *)&oldtex);
