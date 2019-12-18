@@ -1389,10 +1389,19 @@ bool SerialiseProgramBindings(SerialiserType &ser, CaptureState state,
         ProgramBinding bind;
         bind.Name = buf;
 
-        if(sigType == 0)
-          bind.Binding = GL.glGetAttribLocation(prog, buf);
+        // don't query for gl_ bindings. Serialise it anyway to preserve legacy compatibility, but
+        // on replay below we won't try to set this binding either
+        if(bind.Name.beginsWith("gl_"))
+        {
+          bind.Binding = -1;
+        }
         else
-          bind.Binding = GL.glGetFragDataLocation(prog, buf);
+        {
+          if(sigType == 0)
+            bind.Binding = GL.glGetAttribLocation(prog, buf);
+          else
+            bind.Binding = GL.glGetFragDataLocation(prog, buf);
+        }
 
         bindings.push_back(bind);
       }
@@ -1425,9 +1434,10 @@ bool SerialiseProgramBindings(SerialiserType &ser, CaptureState state,
 
           used |= mask;
 
-          if(!strncmp("gl_", bind.Name.c_str(), 3))
-            continue;    // GL_INVALID_OPERATION if name starts with reserved gl_ prefix (for both
-                         // glBindAttribLocation and glBindFragDataLocation)
+          // GL_INVALID_OPERATION if name starts with reserved gl_ prefix (for both
+          // glBindAttribLocation and glBindFragDataLocation)
+          if(bind.Name.beginsWith("gl_"))
+            continue;
 
           if(sigType == 0)
           {
