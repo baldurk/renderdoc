@@ -193,6 +193,58 @@ GLuint OpenGLGraphicsTest::MakeProgram(std::string vertSrc, std::string fragSrc,
   return program;
 }
 
+GLuint OpenGLGraphicsTest::MakeProgram(std::string compSrc)
+{
+  GLuint cs = glCreateShader(GL_COMPUTE_SHADER);
+
+  const char *cstr = NULL;
+
+  if(cs)
+  {
+    cstr = compSrc.c_str();
+    glShaderSource(cs, 1, &cstr, NULL);
+    glCompileShader(cs);
+  }
+
+  char buffer[1024];
+  GLint status = 0;
+
+  if(cs)
+    glGetShaderiv(cs, GL_COMPILE_STATUS, &status);
+  else
+    status = 1;
+
+  if(status == 0)
+  {
+    glGetShaderInfoLog(cs, 1024, NULL, buffer);
+    TEST_ERROR("Shader error: %s", buffer);
+    glDeleteShader(cs);
+    return 0;
+  }
+
+  GLuint program = glCreateProgram();
+  glAttachShader(program, cs);
+  glLinkProgram(program);
+
+  glGetProgramiv(program, GL_LINK_STATUS, &status);
+  if(status == 0)
+  {
+    glGetProgramInfoLog(program, 1024, NULL, buffer);
+    TEST_ERROR("Link error: %s", buffer);
+
+    glDeleteProgram(program);
+    program = 0;
+  }
+
+  glDetachShader(program, cs);
+  glDeleteShader(cs);
+
+  if(program)
+    managedResources.progs.push_back(program);
+
+  return program;
+}
+
 GLuint OpenGLGraphicsTest::MakeProgram()
 {
   GLuint program = glCreateProgram();

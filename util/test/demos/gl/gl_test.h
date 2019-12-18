@@ -45,6 +45,7 @@ struct OpenGLGraphicsTest : public GraphicsTest
   void PostInit();
 
   GLuint MakeProgram(std::string vertSrc, std::string fragSrc, std::string geomSrc = "");
+  GLuint MakeProgram(std::string compSrc);
   GLuint MakeProgram();
   GLuint MakePipeline();
   GLuint MakeBuffer();
