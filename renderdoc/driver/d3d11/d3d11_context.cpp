@@ -936,9 +936,10 @@ bool WrappedID3D11DeviceContext::ProcessChunk(ReadSerialiser &ser, D3D11Chunk ch
 
       ret = true;
     }
-    else
+    else if(!ret)
     {
       RDCERR("Unrecognised Chunk type %d", chunk);
+      return false;
     }
   }
 
