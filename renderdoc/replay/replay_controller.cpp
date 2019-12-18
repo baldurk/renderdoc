@@ -1828,6 +1828,7 @@ void ReplayController::ShutdownOutput(IReplayOutput *output)
 {
   CHECK_REPLAY_THREAD();
 
+  size_t sz = m_Outputs.size();
   m_Outputs.removeOneIf([output](const ReplayOutput *o) {
     if((IReplayOutput *)o == output)
     {
@@ -1838,7 +1839,8 @@ void ReplayController::ShutdownOutput(IReplayOutput *output)
     return false;
   });
 
-  RDCERR("Unrecognised output");
+  if(m_Outputs.size() == sz)
+    RDCERR("Unrecognised output");
 }
 
 void ReplayController::Shutdown()
