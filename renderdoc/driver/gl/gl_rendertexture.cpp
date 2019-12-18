@@ -475,8 +475,10 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
 
   TextureSamplerMode mode = TextureSamplerMode::Point;
 
+  bool intTexture = intIdx > 0 || (flags & eTexDisplay_RemapUInt) || (flags & eTexDisplay_RemapSInt);
+
   if(cfg.subresource.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE &&
-     resType != RESTYPE_TEXBUFFER && resType != RESTYPE_TEXRECT)
+     resType != RESTYPE_TEXBUFFER && resType != RESTYPE_TEXRECT && !intTexture)
   {
     mode = TextureSamplerMode::Linear;
   }
