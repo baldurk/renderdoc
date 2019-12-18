@@ -131,13 +131,7 @@
     msgprinted = true;                                   \
   } while((void)0, 0)
 
-#define MSAA_MESH_VIEW OPTION_ON
-
-#if ENABLED(MSAA_MESH_VIEW)
 #define VULKAN_MESH_VIEW_SAMPLES VK_SAMPLE_COUNT_4_BIT
-#else
-#define VULKAN_MESH_VIEW_SAMPLES VK_SAMPLE_COUNT_1_BIT
-#endif
 
 class AMDCounters;
 class WrappedVulkan;

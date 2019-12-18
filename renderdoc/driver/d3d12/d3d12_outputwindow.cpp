@@ -37,10 +37,6 @@ void D3D12Replay::OutputWindow::MakeRTV(bool msaa)
   if(bbDesc.Width)
   {
     texDesc = bbDesc;
-
-    texDesc.SampleDesc.Count = msaa ? D3D12_MSAA_SAMPLECOUNT : 1;
-
-    multisampled = msaa;
   }
   else
   {
@@ -51,9 +47,9 @@ void D3D12Replay::OutputWindow::MakeRTV(bool msaa)
     texDesc.MipLevels = 1;
     texDesc.SampleDesc.Count = 1;
     texDesc.SampleDesc.Quality = 0;
-
-    multisampled = false;
   }
+
+  texDesc.SampleDesc.Count = msaa ? D3D12_MSAA_SAMPLECOUNT : 1;
 
   texDesc.Height = height;
   texDesc.Width = width;
@@ -90,7 +86,7 @@ void D3D12Replay::OutputWindow::MakeRTV(bool msaa)
     texDesc.SampleDesc.Count = 1;
 
     hr = dev->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-                                      D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
+                                      D3D12_RESOURCE_STATE_COPY_SOURCE, NULL,
                                       __uuidof(ID3D12Resource), (void **)&colResolve);
 
     col->SetName(L"Output Window Resolve");
@@ -448,6 +444,28 @@ void D3D12Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
     dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
     dst.pResource = readback;
     dst.PlacedFootprint = layout;
+
+    // resolve or copy from colour to backbuffer
+    if(outw.multisampled)
+    {
+      D3D12_RESOURCE_BARRIER resolvebarrier = {};
+
+      resolvebarrier.Transition.pResource = outw.colResolve;
+      resolvebarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
+      resolvebarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_DEST;
+
+      list->ResourceBarrier(1, &resolvebarrier);
+
+      // resolve then copy, as the resolve can't go from SRGB to non-SRGB target
+      list->ResolveSubresource(outw.colResolve, 0, outw.col, 0, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+
+      std::swap(resolvebarrier.Transition.StateBefore, resolvebarrier.Transition.StateAfter);
+
+      // now move the resolve target into copy source
+      list->ResourceBarrier(1, &resolvebarrier);
+
+      src.pResource = outw.colResolve;
+    }
 
     list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
 

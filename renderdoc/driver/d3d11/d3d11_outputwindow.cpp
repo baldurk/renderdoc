@@ -53,7 +53,7 @@ void D3D11Replay::OutputWindow::MakeRTV()
     texDesc.CPUAccessFlags = 0;
     texDesc.MipLevels = 1;
     texDesc.MiscFlags = 0;
-    texDesc.SampleDesc.Count = 1;
+    texDesc.SampleDesc.Count = multisampled ? 4 : 1;
     texDesc.SampleDesc.Quality = 0;
     texDesc.Usage = D3D11_USAGE_DEFAULT;
     texDesc.Width = width;
@@ -132,6 +132,7 @@ uint64_t D3D11Replay::MakeOutputWindow(WindowingData window, bool depth)
   DXGI_SWAP_CHAIN_DESC swapDesc = {};
   OutputWindow outw = {};
   outw.dev = m_pDevice;
+  outw.multisampled = depth;
 
   if(window.system == WindowingSystem::Win32)
   {
@@ -301,6 +302,8 @@ void D3D11Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
     return;
   }
 
+  texture->Release();
+
   ID3D11Texture2D *readback = NULL;
 
   D3D11_TEXTURE2D_DESC texDesc;
@@ -309,21 +312,47 @@ void D3D11Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
   texDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
   texDesc.BindFlags = 0;
   texDesc.Usage = D3D11_USAGE_STAGING;
+  texDesc.SampleDesc.Count = 1;
 
   HRESULT hr = m_pDevice->CreateTexture2D(&texDesc, NULL, &readback);
 
   if(FAILED(hr))
   {
     RDCERR("Couldn't create staging texture for readback, HRESULT: %s", ToStr(hr).c_str());
-    SAFE_RELEASE(texture);
+    SAFE_RELEASE(readback);
     return;
+  }
+
+  ID3D11Texture2D *resolve = NULL;
+
+  if(outw.multisampled)
+  {
+    texDesc.CPUAccessFlags = 0;
+    texDesc.Usage = D3D11_USAGE_DEFAULT;
+
+    hr = m_pDevice->CreateTexture2D(&texDesc, NULL, &resolve);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create staging texture for readback, HRESULT: %s", ToStr(hr).c_str());
+      SAFE_RELEASE(readback);
+      SAFE_RELEASE(resolve);
+      return;
+    }
   }
 
   ID3D11DeviceContext *ctx = m_pDevice->GetImmediateContext();
 
-  ctx->CopyResource(readback, texture);
-
-  SAFE_RELEASE(texture);
+  if(outw.multisampled)
+  {
+    ctx->ResolveSubresource(resolve, 0, texture, 0, texDesc.Format);
+    ctx->CopyResource(readback, resolve);
+    SAFE_RELEASE(resolve);
+  }
+  else
+  {
+    ctx->CopyResource(readback, texture);
+  }
 
   D3D11_MAPPED_SUBRESOURCE mapped = {};
   ctx->Map(readback, 0, D3D11_MAP_READ, 0, &mapped);

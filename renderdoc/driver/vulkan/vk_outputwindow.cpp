@@ -699,7 +699,45 @@ void VulkanReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
 
   DoPipelineBarrier(cmd, 1, &outw.bbBarrier);
 
-  vt->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+  VkImage copySource = outw.bb;
+
+  if(outw.resolveimg != VK_NULL_HANDLE)
+  {
+    VkImageResolve resolve = {
+        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0},
+        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0},
+        {outw.width, outw.height, 1},
+    };
+
+    VkImageMemoryBarrier resolveBarrier = {
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        NULL,
+        VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
+        Unwrap(outw.resolveimg),
+        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
+    };
+
+    // discard previous contents of resolve buffer and finish any work with it.
+    DoPipelineBarrier(cmd, 1, &resolveBarrier);
+
+    // resolve from the backbuffer to resolve buffer (identical format)
+    vt->CmdResolveImage(Unwrap(cmd), Unwrap(outw.bb), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                        Unwrap(outw.resolveimg), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &resolve);
+
+    // wait for resolve to finish before we blit
+    copySource = outw.resolveimg;
+
+    resolveBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    resolveBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    DoPipelineBarrier(cmd, 1, &resolveBarrier);
+  }
+
+  vt->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(copySource), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                            readbackBuf, 1, &cpy);
 
   outw.bbBarrier.oldLayout = outw.bbBarrier.newLayout;
@@ -1088,7 +1126,6 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 
   VkImage blitSource = outw.bb;
 
-#if ENABLED(MSAA_MESH_VIEW)
   if(outw.dsimg != VK_NULL_HANDLE)
   {
     VkImageResolve resolve = {
@@ -1123,7 +1160,6 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
     resolveBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     DoPipelineBarrier(cmd, 1, &resolveBarrier);
   }
-#endif
 
   vt->CmdBlitImage(Unwrap(cmd), Unwrap(blitSource), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                    Unwrap(outw.colimg[outw.curidx]), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
