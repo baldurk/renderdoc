@@ -328,7 +328,7 @@ void main()
   bool QueryFormatBool(GLenum target, GLenum format, GLenum pname)
   {
     GLint param = 0;
-    glGetInternalformativ(target, format, pname, 4, &param);
+    glGetInternalformativ(target, format, pname, sizeof(param), &param);
     return param != 0;
   }
 
@@ -337,6 +337,13 @@ void main()
     test.canRender = QueryFormatBool(test.target, test.fmt.internalFormat, GL_COLOR_RENDERABLE);
     test.canDepth = QueryFormatBool(test.target, test.fmt.internalFormat, GL_DEPTH_RENDERABLE);
     test.canStencil = QueryFormatBool(test.target, test.fmt.internalFormat, GL_STENCIL_RENDERABLE);
+
+    GLint numSamples = 0;
+    glGetInternalformativ(test.target, test.fmt.internalFormat, GL_NUM_SAMPLE_COUNTS,
+                          sizeof(numSamples), &numSamples);
+
+    GLint samples[8];
+    glGetInternalformativ(test.target, test.fmt.internalFormat, GL_SAMPLES, sizeof(samples), samples);
 
     Vec4i dimensions(texWidth, texHeight, texDepth);
 
@@ -348,6 +355,17 @@ void main()
     // doesn't work properly
     if(isCompressed && (test.dim == 1 || test.dim == 3 || test.isRect || test.isMSAA))
       return;
+
+    // if the format is MSAA check we have our sample count
+    if(test.isMSAA)
+    {
+      bool found = false;
+      for(GLint i = 0; i < numSamples; i++)
+        found |= (samples[i] == texSamples);
+
+      if(!found)
+        return;
+    }
 
     // any format that supports MSAA but can't be rendered to is unsupported
     if(!test.canRender && !test.canDepth && !test.canStencil && test.isMSAA)
