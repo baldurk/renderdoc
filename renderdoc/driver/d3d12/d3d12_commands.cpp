@@ -774,7 +774,7 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
 
       ret = true;
     }
-    else
+    else if(!ret)
     {
       RDCERR("Unrecognised Chunk type %s", ToStr(chunk).c_str());
       return false;
