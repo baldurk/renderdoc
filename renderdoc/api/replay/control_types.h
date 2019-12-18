@@ -36,41 +36,25 @@ co-ordinates) within a mesh.
 )");
 struct MeshFormat
 {
-  MeshFormat()
-  {
-    indexByteOffset = 0;
-    indexByteStride = 0;
-    baseVertex = 0;
-    vertexByteOffset = 0;
-    vertexByteStride = 0;
-    instStepRate = 1;
-    showAlpha = false;
-    topology = Topology::Unknown;
-    numIndices = 0;
-    unproject = false;
-    instanced = false;
-    nearPlane = farPlane = 0.0f;
-    allowRestart = true;
-    restartIndex = 0xffffffff;
-  }
+  MeshFormat() = default;
   MeshFormat(const MeshFormat &o) = default;
   MeshFormat &operator=(const MeshFormat &) = default;
 
   DOCUMENT("The :class:`ResourceId` of the index buffer that goes with this mesh element.");
   ResourceId indexResourceId;
   DOCUMENT("The offset in bytes where the indices start in idxbuf.");
-  uint64_t indexByteOffset;
+  uint64_t indexByteOffset = 0;
   DOCUMENT("The width in bytes of each index. Valid values are 1 (depending on API), 2 or 4.");
-  uint32_t indexByteStride;
+  uint32_t indexByteStride = 0;
   DOCUMENT("For indexed meshes, a value added to each index before using it to read the vertex.");
-  int32_t baseVertex;
+  int32_t baseVertex = 0;
 
   DOCUMENT("The :class:`ResourceId` of the vertex buffer containing this mesh element.");
   ResourceId vertexResourceId;
   DOCUMENT("The offset in bytes to the start of the vertex data.");
-  uint64_t vertexByteOffset;
+  uint64_t vertexByteOffset = 0;
   DOCUMENT("The stride in bytes between the start of one vertex and the start of another.");
-  uint32_t vertexByteStride;
+  uint32_t vertexByteStride = 0;
 
   DOCUMENT("The :class:`ResourceFormat` describing this mesh component.");
   ResourceFormat format;
@@ -81,29 +65,29 @@ struct MeshFormat
   FloatVector meshColor;
 
   DOCUMENT("The :class:`Topology` that describes the primitives in this mesh.");
-  Topology topology;
+  Topology topology = Topology::Unknown;
   DOCUMENT("The number of vertices in the mesh.");
-  uint32_t numIndices;
+  uint32_t numIndices = 0;
   DOCUMENT("The number of instances to render with the same value. See :data:`instanced`.");
-  uint32_t instStepRate;
+  uint32_t instStepRate = 1;
   DOCUMENT("The primitive restart index to use, if possible. See :data:`allowRestart`.");
-  uint32_t restartIndex;
+  uint32_t restartIndex = 0xffffffff;
 
   DOCUMENT("The near plane for the projection matrix.");
-  float nearPlane;
+  float nearPlane = 0.1f;
   DOCUMENT("The far plane for the projection matrix.");
-  float farPlane;
+  float farPlane = 100.0f;
   DOCUMENT("``True`` if this mesh element contains post-projection positional data.");
-  bool unproject;
+  bool unproject = false;
 
   DOCUMENT("``True`` if this mesh element comes from instanced data. See :data:`instStepRate`.");
-  bool instanced;
+  bool instanced = false;
 
   DOCUMENT("``True`` if the alpha component of this element should be used.");
-  bool showAlpha;
+  bool showAlpha = false;
 
   DOCUMENT("``True`` if the primitive restart index feature should be used.");
-  bool allowRestart;
+  bool allowRestart = true;
 };
 
 DECLARE_REFLECTION_STRUCT(MeshFormat);
@@ -126,36 +110,36 @@ struct MeshDisplay
   MeshDisplay &operator=(const MeshDisplay &) = default;
 
   DOCUMENT("The :class:`MeshDataStage` where this mesh data comes from.");
-  MeshDataStage type;
+  MeshDataStage type = MeshDataStage::Unknown;
 
   DOCUMENT("The :class:`Camera` to use when rendering all of the meshes.");
-  ICamera *cam;
+  ICamera *cam = NULL;
 
   DOCUMENT(
       "``True`` if the projection matrix to use when unprojecting vertex positions is "
       "orthographic.");
-  bool ortho;
+  bool ortho = false;
   DOCUMENT("The field of view to use when calculating a perspective projection matrix.");
-  float fov;
+  float fov = 90.0f;
   DOCUMENT("The aspect ratio to use when calculating a perspective projection matrix.");
-  float aspect;
+  float aspect = 1.0f;
 
   DOCUMENT(
       "``True`` if all previous instances in the drawcall should be drawn as secondary meshes.");
-  bool showPrevInstances;
+  bool showPrevInstances = false;
   DOCUMENT("``True`` if all instances in the drawcall should be drawn as secondary meshes.");
-  bool showAllInstances;
+  bool showAllInstances = false;
   DOCUMENT(
       "``True`` if all draws in the current pass up to the current draw should be drawn as "
       "secondary meshes.");
-  bool showWholePass;
+  bool showWholePass = false;
   DOCUMENT("The index of the currently selected instance in the drawcall.");
-  uint32_t curInstance;
+  uint32_t curInstance = 0;
   DOCUMENT("The index of the currently selected multiview view in the drawcall.");
-  uint32_t curView;
+  uint32_t curView = 0;
 
   DOCUMENT("The index of the vertex to highlight, or :data:`NoHighlight` to select no vertex.");
-  uint32_t highlightVert;
+  uint32_t highlightVert = ~0U;
   DOCUMENT("The :class:`MeshFormat` of the position data for the mesh.");
   MeshFormat position;
   DOCUMENT(
@@ -167,12 +151,12 @@ struct MeshDisplay
   DOCUMENT("The maximum co-ordinates in each axis of the mesh bounding box.");
   FloatVector maxBounds;
   DOCUMENT("``True`` if the bounding box around the mesh should be rendered.");
-  bool showBBox;
+  bool showBBox = false;
 
   DOCUMENT("The :class:`solid shading mode <SolidShade>` to use when rendering the current mesh.");
-  SolidShade solidShadeMode;
+  SolidShade solidShadeMode = SolidShade::NoSolid;
   DOCUMENT("``True`` if the wireframe of the mesh should be rendered as well as solid shading.");
-  bool wireframeDraw;
+  bool wireframeDraw = true;
 
   static const uint32_t NoHighlight = ~0U;
 };
