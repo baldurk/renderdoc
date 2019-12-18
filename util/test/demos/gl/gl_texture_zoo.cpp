@@ -374,6 +374,15 @@ void main()
     test.tex = MakeTexture();
     glBindTexture(test.target, test.tex);
 
+    // MSAA textures don't have sampler state at all
+    if(!test.isMSAA)
+    {
+      // rectangle textures can't have mipmap minification
+      glTexParameteri(test.target, GL_TEXTURE_MIN_FILTER,
+                      test.isRect ? GL_NEAREST : GL_NEAREST_MIPMAP_NEAREST);
+      glTexParameteri(test.target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    }
+
     if(test.dim == 1)
     {
       if(test.isArray)
