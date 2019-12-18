@@ -472,11 +472,15 @@ void GLPipelineStateViewer::setEmptyRow(RDTreeWidgetItem *node)
 }
 
 void GLPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, TextureDescription *tex,
-                                           uint32_t firstMip, uint32_t numMips)
+                                           uint32_t firstMip, uint32_t numMips,
+                                           const rdcstr &completeStatus)
 {
-  if((tex->mips > 1 && firstMip > 0) || numMips < tex->mips)
+  if((tex->mips > 1 && firstMip > 0) || numMips < tex->mips || !completeStatus.isEmpty())
   {
     QString text;
+
+    if(!completeStatus.isEmpty())
+      text += tr("The texture is incomplete:\n%1\n\n").arg(completeStatus);
 
     if(numMips == 1)
       text += tr("The texture has %1 mips, the view covers mip %2.").arg(tex->mips).arg(firstMip);
@@ -767,9 +771,12 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
         node->setTag(QVariant::fromValue(r.resourceId));
 
         if(tex)
-          setViewDetails(node, tex, r.firstMip, r.numMips);
+          setViewDetails(node, tex, r.firstMip, r.numMips, r.completeStatus);
 
         if(!filledSlot)
+          setEmptyRow(node);
+
+        if(!r.completeStatus.isEmpty())
           setEmptyRow(node);
 
         if(!usedSlot)

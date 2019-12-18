@@ -80,6 +80,19 @@ struct GLPostVSData
   }
 };
 
+struct CompleteCacheKey
+{
+  GLuint tex;
+  GLuint samp;
+
+  bool operator<(const CompleteCacheKey &o) const
+  {
+    if(tex != o.tex)
+      return tex < o.tex;
+    return samp < o.samp;
+  }
+};
+
 enum TexDisplayFlags
 {
   eTexDisplay_None = 0x0,
@@ -433,6 +446,8 @@ private:
   FrameRecord m_FrameRecord;
 
   DriverInformation m_DriverInfo;
+
+  std::map<CompleteCacheKey, rdcstr> m_CompleteCache;
 
   // AMD counter instance
   AMDCounters *m_pAMDCounters = NULL;

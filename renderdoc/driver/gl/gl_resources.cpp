@@ -640,6 +640,387 @@ void SetTextureSwizzle(GLuint tex, GLenum target, const GLenum *swizzleRGBA)
   GL.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_A, (GLint *)&swizzleRGBA[3]);
 }
 
+static rdcstr DimensionString(int dimensions, GLint width, GLint height, GLint depth)
+{
+  if(dimensions == 1)
+    return StringFormat::Fmt("%d", width);
+  else if(dimensions == 2)
+    return StringFormat::Fmt("%dx%d", width, height);
+  else
+    return StringFormat::Fmt("%dx%dx%d", width, depth);
+}
+
+rdcstr GetTextureCompleteStatus(GLenum target, GLuint tex, GLuint sampler)
+{
+  // unbound and texture buffers don't need to be checked
+  if(tex == 0 || target == eGL_TEXTURE_BUFFER)
+    return rdcstr();
+
+  SCOPED_TIMER("GetTextureCompleteStatus");
+
+  // the completeness rules are fairly complex. The relevant spec is copied here and each rule is
+  // annotated with a number for easier reference.
+  /*
+    For one-, two-, and three-dimensional and one- and two-dimensional array textures, a texture is
+    mipmap complete if all of the following conditions hold true:
+
+    * The set of mipmap images levelBase through q (where q is defined in section 8.14.3) were each
+      specified with the same internal format. [RULE_1]
+    * The dimensions of the images follow the sequence described in section 8.14.3. [RULE_2]
+    * level base <= level max [RULE_3]
+
+    [q is the usual definition - natural mip numbering, clamped by either immutable number of mips
+    or MAX_LEVEL]
+
+    Image levels k where k < level base or k > q are insignificant to the definition of
+    completeness.
+
+    A cube map texture is mipmap complete if each of the six texture images, considered
+    individually, is mipmap complete. [RULE_4]
+
+    Additionally, a cube map texture is cube complete if the following conditions all hold true:
+
+    * The level base texture images of each of the six cubemap faces have identical, positive, and
+      square dimensions. [RULE_5]
+    * The level base images were each specified with the same internal format. [RULE_6]
+
+    A cube map array texture is cube array complete if it is complete when treated as a
+    two-dimensional array [RULE_7] and cube complete for every cube map slice within the array
+    texture. [RULE_8]
+
+    Using the preceding definitions, a texture is complete unless any of the following conditions
+    hold true:
+
+    * Any dimension of the level base image is not positive. For a rectangle or multisample texture,
+      level base is always zero. [RULE_9]
+    * The texture is a cube map texture, and is not cube complete. [RULE_10]
+    * The texture is a cube map array texture, and is not cube array complete. [RULE_11]
+    * The minification filter requires a mipmap (is neither NEAREST nor LINEAR), and the texture is
+      not mipmap complete. [RULE_12]
+    * Any of
+        – The internal format of the texture is integer (see table 8.12). [RULE_13]
+        – The internal format is STENCIL_INDEX. [RULE_14]
+        – The internal format is DEPTH_STENCIL, and the value of DEPTH_STENCIL_TEXTURE_MODE for the
+          texture is STENCIL_INDEX. [RULE_15]
+      and either the magnification filter is not NEAREST, or the minification filter is neither
+      NEAREST nor NEAREST_MIPMAP_NEAREST
+  */
+
+  GLint isImmutable = 0, levelBase = 0, levelMax = 1000;
+  GL.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_IMMUTABLE_FORMAT, &isImmutable);
+  GL.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_BASE_LEVEL, &levelBase);
+  GL.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MAX_LEVEL, &levelMax);
+
+  bool noMips = false;
+
+  // For a rectangle or multisample texture, level base is always zero.
+  if(target == eGL_TEXTURE_RECTANGLE || target == eGL_TEXTURE_2D_MULTISAMPLE ||
+     target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+  {
+    levelBase = 0;
+    noMips = true;
+  }
+
+  GLenum targets[] = {
+      eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+      eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+      eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+  };
+
+  int faceCount = ARRAY_COUNT(targets);
+
+  if(target != eGL_TEXTURE_CUBE_MAP)
+  {
+    targets[0] = target;
+    faceCount = 1;
+  }
+
+  // get the properties of levelBase (on POSITIVE_X for cubes)
+  GLint levelBaseWidth = 1, levelBaseHeight = 1, levelBaseDepth = 1;
+
+  int dimensions = 2;
+
+  if(target == eGL_TEXTURE_1D || target == eGL_TEXTURE_1D_ARRAY)
+  {
+    dimensions = 1;
+  }
+  else if(target == eGL_TEXTURE_3D)
+  {
+    dimensions = 3;
+  }
+
+  GL.glGetTextureLevelParameterivEXT(tex, targets[0], levelBase, eGL_TEXTURE_WIDTH, &levelBaseWidth);
+  if(dimensions >= 2)
+    GL.glGetTextureLevelParameterivEXT(tex, targets[0], levelBase, eGL_TEXTURE_HEIGHT,
+                                       &levelBaseHeight);
+  if(dimensions >= 3)
+    GL.glGetTextureLevelParameterivEXT(tex, targets[0], levelBase, eGL_TEXTURE_DEPTH,
+                                       &levelBaseDepth);
+
+  bool mipmapComplete = true;
+  rdcstr mipmapIncompleteness;
+
+  bool cube = (target == eGL_TEXTURE_CUBE_MAP || target == eGL_TEXTURE_CUBE_MAP_ARRAY);
+
+  GLenum levelBaseFormat = eGL_NONE;
+
+  // immutable textures are always mipmap complete
+  if(isImmutable)
+  {
+    mipmapComplete = true;
+
+    // get the format so we can check for integer-ness etc
+    GL.glGetTextureLevelParameterivEXT(tex, targets[0], levelBase, eGL_TEXTURE_INTERNAL_FORMAT,
+                                       (GLint *)&levelBaseFormat);
+  }
+  else
+  {
+    GLint p = 0, q = 0;
+
+    // Otherwise p = floor(log2(maxsize)) + levelBase, and all arrays from levelBase through
+    // q = min(p, levelMax) must be defined, as discussed in section 8.17.
+    p = CalcNumMips(levelBaseWidth, levelBaseHeight, levelBaseDepth) - 1 + levelBase;
+    q = RDCMIN(p, levelMax);
+
+    // this isn't part of the spec, but ensure we process at least levelBase, even if levelMax is
+    // less. That's because levelBase <= levelMax is only a mipmap completeness requirement
+    // (otherwise if mips aren't used, levelMax is effectively ignored), but we want to check
+    // [RULE_9] that levelBase has valid dimensions in this loop since we need to check it per-face
+    // for cubemaps
+    q = RDCMAX(levelBase, q);
+
+    // [RULE_4] - this just requires the loop over faces, completely independently
+    // [RULE_7] [RULE_8] - this mostly is implicit because a single level of a cubemap array can't
+    // vary format or dimension, so as long as we enforce cubemap square rules for arrays it works.
+    for(int face = 0; face < faceCount; face++)
+    {
+      GLint expectedWidth = levelBaseWidth;
+      GLint expectedHeight = levelBaseHeight;
+      GLint expectedDepth = levelBaseDepth;
+
+      GLenum curFaceLevelBaseFormat = eGL_NONE;
+
+      for(GLint level = levelBase; level <= q; level++)
+      {
+        GLint levelWidth = 1, levelHeight = 1, levelDepth = 1;
+        GL.glGetTextureLevelParameterivEXT(tex, targets[face], level, eGL_TEXTURE_WIDTH, &levelWidth);
+        if(dimensions >= 2)
+          GL.glGetTextureLevelParameterivEXT(tex, targets[face], level, eGL_TEXTURE_HEIGHT,
+                                             &levelHeight);
+        if(dimensions >= 3)
+          GL.glGetTextureLevelParameterivEXT(tex, targets[face], level, eGL_TEXTURE_DEPTH,
+                                             &levelDepth);
+
+        GLenum fmt = eGL_NONE;
+        GL.glGetTextureLevelParameterivEXT(tex, targets[face], level, eGL_TEXTURE_INTERNAL_FORMAT,
+                                           (GLint *)&fmt);
+
+        if(level == levelBase)
+        {
+          curFaceLevelBaseFormat = fmt;
+
+          if(face == 0)
+            levelBaseFormat = fmt;
+        }
+
+        rdcstr faceStr;
+        rdcstr face0Str;
+        if(faceCount > 0)
+        {
+          face0Str = StringFormat::Fmt(" of %s", ToStr(targets[0]).c_str());
+          faceStr = StringFormat::Fmt(" of %s", ToStr(targets[face]).c_str());
+        }
+
+        // [RULE_10] [RULE_11] - cubemap completeness issues are fatal, return immediately.
+
+        // [RULE_9]
+        // [RULE_5] - by the loop, this also checks that all faces have positive dimensions
+        if(level == levelBase && (levelWidth <= 0 || levelHeight <= 0 || levelDepth <= 0))
+        {
+          return StringFormat::Fmt(
+              "BASE_LEVEL %d%s has invalid dimensions: %s", levelBase, faceStr.c_str(),
+              DimensionString(dimensions, levelWidth, levelHeight, levelDepth).c_str());
+        }
+
+        // [RULE_5] - check the square property here
+        // [RULE_8] - checking this applies for cubemap arrays too
+        if(cube && level == levelBase && levelWidth != levelHeight)
+        {
+          return StringFormat::Fmt(
+              "BASE_LEVEL %d%s has non-square dimensions: %s "
+              "(BASE_LEVEL %d)\n",
+              level, faceStr.c_str(),
+              DimensionString(dimensions, levelWidth, levelHeight, levelDepth).c_str());
+        }
+
+        // [RULE_5] - check that all faces are identical dimensions here
+        if(cube && level == levelBase &&
+           (levelWidth != levelBaseWidth || levelHeight != levelBaseHeight))
+        {
+          return StringFormat::Fmt(
+              "BASE_LEVEL %d%s has different dimensions: %s to BASE_LEVEL %d%s: %s", levelBase,
+              faceStr.c_str(),
+              DimensionString(dimensions, levelWidth, levelHeight, levelDepth).c_str(), levelBase,
+              face0Str.c_str(),
+              DimensionString(dimensions, levelBaseWidth, levelBaseHeight, levelBaseDepth).c_str());
+        }
+
+        // [RULE_6]
+        if(face > 0 && levelBaseFormat != curFaceLevelBaseFormat)
+        {
+          return StringFormat::Fmt(
+              "BASE_LEVEL %d%s has different format: %s to BASE_LEVEL %d%s: %s", levelBase,
+              faceStr.c_str(), ToStr(curFaceLevelBaseFormat).c_str(), levelBase, face0Str.c_str(),
+              ToStr(levelBaseFormat).c_str());
+        }
+
+        // below here are only mipmap completeness checks, break out if we're already mipmap
+        // incomplete
+        if(!mipmapComplete)
+          break;
+
+        // [RULE_1]
+        if(level == levelBase)
+        {
+          curFaceLevelBaseFormat = fmt;
+
+          // accept any valid format, but if mip 0 isn't defined that's an error. It shouldn't be
+          // possible to have a texture with no format but valid dimensions (see above [RULE_9]
+          // check), but be safe because GL is GL.
+          if(fmt == eGL_NONE)
+            return StringFormat::Fmt("BASE_LEVEL %d%s has no format.\n", levelBase, faceStr.c_str());
+        }
+        else
+        {
+          if(curFaceLevelBaseFormat != fmt)
+          {
+            mipmapComplete = false;
+
+            // common case - mip isn't defined at all
+            if(fmt == eGL_NONE)
+            {
+              mipmapIncompleteness +=
+                  StringFormat::Fmt("Level %d%s is not defined. (BASE_LEVEL %d, MAX_LEVEL %d)\n",
+                                    level, faceStr.c_str(), levelBase, levelMax);
+            }
+            else
+            {
+              // uncommon case, mip is defined but with the wrong format
+              mipmapIncompleteness += StringFormat::Fmt(
+                  "Mip level %d%s has format %s which doesn't match format %s at BASE_LEVEL %d%s "
+                  "(MAX_LEVEL is %d)\n",
+                  level, faceStr.c_str(), ToStr(fmt).c_str(), ToStr(curFaceLevelBaseFormat).c_str(),
+                  levelBase, face0Str.c_str(), levelMax);
+            }
+
+            // stop processing, other problems may be the same
+            break;
+          }
+        }
+
+        // [RULE_2]
+        // if the level was completely undefined, it would have failed the format check, so this
+        // must be badly sized mips.
+        // note that for e.g. 2D textures, depth is always 1 so will be trivially as expected.
+        if(levelWidth != expectedWidth || levelHeight != expectedHeight || levelDepth != expectedDepth)
+        {
+          mipmapComplete = false;
+          mipmapIncompleteness += StringFormat::Fmt(
+              "Mip level %d%s has invalid dimensions: %s, expected: %s "
+              "(BASE_LEVEL %d, MAX_LEVEL %d)\n",
+              level, faceStr.c_str(),
+              DimensionString(dimensions, levelWidth, levelHeight, levelDepth).c_str(),
+              DimensionString(dimensions, expectedWidth, expectedHeight, expectedDepth).c_str(),
+              levelBase, levelMax);
+
+          break;
+        }
+
+        expectedWidth = RDCMAX(1, expectedWidth >> 1);
+        expectedHeight = RDCMAX(1, expectedHeight >> 1);
+        expectedDepth = RDCMAX(1, expectedDepth >> 1);
+      }
+    }
+  }
+
+  // [RULE_3]
+  if(mipmapComplete && !(levelBase <= levelMax))
+  {
+    mipmapComplete = false;
+    mipmapIncompleteness +=
+        StringFormat::Fmt("BASE_LEVEL %d must be <= MAX_LEVEL %d\n", levelBase, levelMax);
+  }
+
+  // MSAA textures don't have sampler state, so they count as if they are NEAREST. This means they
+  // can't fail due to filtering modes, so we can return
+  if(target == eGL_TEXTURE_2D_MULTISAMPLE || target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+    return rdcstr();
+
+  GLenum minf = eGL_NEAREST;
+  GLenum magf = eGL_NEAREST;
+
+  if(sampler != 0)
+    GL.glGetSamplerParameteriv(sampler, eGL_TEXTURE_MIN_FILTER, (GLint *)&minf);
+  else
+    GL.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MIN_FILTER, (GLint *)&minf);
+
+  if(sampler != 0)
+    GL.glGetSamplerParameteriv(sampler, eGL_TEXTURE_MAG_FILTER, (GLint *)&magf);
+  else
+    GL.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MAG_FILTER, (GLint *)&magf);
+
+  // [RULE_12]
+  if(minf != eGL_NEAREST && minf != eGL_LINEAR && !mipmapComplete)
+    return StringFormat::Fmt(
+        "TEXTURE_MIN_FILTER is %s which requires mipmaps, "
+        "but texture is mipmap incomplete:\n%s",
+        ToStr(minf).c_str(), mipmapIncompleteness.c_str());
+
+  rdcstr ret;
+
+  // [RULE_13] [RULE_14] [RULE_15] - detect linear filters in either direction
+  if(magf != eGL_NEAREST)
+    ret = StringFormat::Fmt("TEXTURE_MAG_FILTER is %s", ToStr(magf).c_str());
+  else if(minf != eGL_NEAREST && minf != eGL_NEAREST_MIPMAP_NEAREST)
+    ret = StringFormat::Fmt("TEXTURE_MIN_FILTER is %s", ToStr(minf).c_str());
+
+  // if we have a linear filter, check for non-filterable formats
+  if(!ret.isEmpty())
+  {
+    // [RULE_13]
+    if(IsUIntFormat(levelBaseFormat) || IsSIntFormat(levelBaseFormat))
+    {
+      return ret + StringFormat::Fmt(" and texture is integer format (%s)",
+                                     ToStr(levelBaseFormat).c_str());
+    }
+    // [RULE_14]
+    else if(GetBaseFormat(levelBaseFormat) == eGL_STENCIL_INDEX)
+    {
+      return ret + StringFormat::Fmt(" and texture is stencil format (%s)",
+                                     ToStr(levelBaseFormat).c_str());
+    }
+    // [RULE_15]
+    else if(GetBaseFormat(levelBaseFormat) == eGL_DEPTH_STENCIL)
+    {
+      GLint depthMode = eGL_DEPTH_COMPONENT;
+
+      if(HasExt[ARB_stencil_texturing])
+        GL.glGetTextureParameterivEXT(tex, target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &depthMode);
+
+      if(depthMode == eGL_STENCIL_INDEX)
+      {
+        return ret + StringFormat::Fmt(
+                         " and texture is depth/stencil format (%s) "
+                         "with DEPTH_STENCIL_TEXTURE_MODE == STENCIL_INDEX",
+                         ToStr(levelBaseFormat).c_str());
+      }
+    }
+  }
+
+  // no completeness problems!
+  return rdcstr();
+}
+
 bool EmulateLuminanceFormat(GLuint tex, GLenum target, GLenum &internalFormat, GLenum &dataFormat)
 {
   GLenum swizzle[] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};

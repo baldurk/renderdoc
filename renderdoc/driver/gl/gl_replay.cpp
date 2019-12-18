@@ -1333,6 +1333,22 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
         pipe.samplers[unit].resourceId = rm->GetOriginalID(rm->GetID(SamplerRes(ctx, samp)));
 
+        // checking texture completeness is a pretty expensive operation since it requires a lot of
+        // queries against the driver's texture properties.
+        // We assume that if a texture and sampler are complete at any point, even if their
+        // properties change mid-frame they will stay complete. Similarly if they are _incomplete_
+        // they will stay incomplete. Thus we can cache the results for a given pair, which if
+        // samplers don't change (or are only ever used consistently with the same texture) amounts
+        // to one entry per texture.
+        // Note that textures can't change target, so we don't need to icnlude the target in the key
+        CompleteCacheKey complete = {tex, samp};
+
+        auto it = m_CompleteCache.find(complete);
+        if(it == m_CompleteCache.end())
+          it = m_CompleteCache.insert(
+              it, std::make_pair(complete, GetTextureCompleteStatus(target, tex, samp)));
+        pipe.textures[unit].completeStatus = it->second;
+
         if(target != eGL_TEXTURE_BUFFER && target != eGL_TEXTURE_2D_MULTISAMPLE &&
            target != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
         {

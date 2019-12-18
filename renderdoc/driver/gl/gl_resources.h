@@ -36,6 +36,8 @@ void GetFramebufferMipAndLayer(GLenum framebuffer, GLenum attachment, GLint *mip
 void GetTextureSwizzle(GLuint tex, GLenum target, GLenum *swizzleRGBA);
 void SetTextureSwizzle(GLuint tex, GLenum target, const GLenum *swizzleRGBA);
 
+rdcstr GetTextureCompleteStatus(GLenum target, GLuint tex, GLuint sampler);
+
 bool EmulateLuminanceFormat(GLuint tex, GLenum target, GLenum &internalFormat, GLenum &dataFormat);
 GLenum GetSizedFormat(GLenum internalFormat);
 

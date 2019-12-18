@@ -265,6 +265,11 @@ struct Texture
 ``1`` if stencil should be read.
 )");
   int32_t depthReadChannel = -1;
+
+  DOCUMENT(R"(The details of the texture's (in)completeness. If this string is empty, the texture is
+complete. Otherwise it contains an explanation of why the texture is believed to be incomplete.
+)");
+  rdcstr completeStatus;
 };
 
 DOCUMENT("Describes the sampler properties of a texture.");
