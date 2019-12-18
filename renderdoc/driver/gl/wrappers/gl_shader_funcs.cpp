@@ -941,7 +941,8 @@ bool WrappedOpenGL::Serialise_glUniformBlockBinding(SerialiserType &ser, GLuint 
 
   if(IsReplayingAndReading())
   {
-    GL.glUniformBlockBinding(program.name, uniformBlockIndex, uniformBlockBinding);
+    if(program.name)
+      GL.glUniformBlockBinding(program.name, uniformBlockIndex, uniformBlockBinding);
 
     AddResourceInitChunk(program);
   }
