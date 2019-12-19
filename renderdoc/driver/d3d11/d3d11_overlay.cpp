@@ -609,6 +609,38 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
         if(state.OM.RenderTargets[i])
           m_pImmediateContext->ClearRenderTargetView(state.OM.RenderTargets[i], &clearCol.x);
 
+      // Try to clear depth as well, to help debug shadow rendering
+      if(state.OM.DepthView && IsDepthFormat(details.srvFormat))
+      {
+        if(state.OM.DepthStencilState)
+        {
+          D3D11_DEPTH_STENCIL_DESC desc;
+          state.OM.DepthStencilState->GetDesc(&desc);
+
+          // If the depth func is equal or not equal, don't clear at all since the output would be
+          // altered in an way that would cause replay to produce mostly incorrect results.
+          // Similarly, skip if the depth func is always, as we'd have a 50% chance of guessing the
+          // wrong clear value.
+          if(desc.DepthFunc != D3D11_COMPARISON_EQUAL &&
+             desc.DepthFunc != D3D11_COMPARISON_NOT_EQUAL &&
+             desc.DepthFunc != D3D11_COMPARISON_ALWAYS)
+          {
+            // If the depth func is less or less equal, clear to 1 instead of 0
+            bool depthFuncLess = desc.DepthFunc == D3D11_COMPARISON_LESS ||
+                                 desc.DepthFunc == D3D11_COMPARISON_LESS_EQUAL;
+            float depthClear = depthFuncLess ? 1.0f : 0.0f;
+
+            m_pImmediateContext->ClearDepthStencilView(state.OM.DepthView, D3D11_CLEAR_DEPTH,
+                                                       depthClear, 0);
+          }
+        }
+        else
+        {
+          // Without a depth stencil state set, the comparison func is D3D11_COMPARISON_LESS
+          m_pImmediateContext->ClearDepthStencilView(state.OM.DepthView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+        }
+      }
+
       for(size_t i = 0; i < events.size(); i++)
       {
         m_pDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);

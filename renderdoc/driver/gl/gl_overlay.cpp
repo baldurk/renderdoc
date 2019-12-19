@@ -935,6 +935,24 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
       for(int i = 0; i < 8; i++)
         drv.glClearBufferfv(eGL_COLOR, i, &clearCol.x);
 
+      // Try to clear depth as well, to help debug shadow rendering
+      if(IsDepthStencilFormat(texDetails.internalFormat))
+      {
+        // If the depth func is equal or not equal, don't clear at all since the output would be
+        // altered in an way that would cause replay to produce mostly incorrect results.
+        // Similarly, skip if the depth func is always, as we'd have a 50% chance of guessing the
+        // wrong clear value.
+        if(rs.DepthFunc != eGL_EQUAL && rs.DepthFunc != eGL_NOTEQUAL && rs.DepthFunc != eGL_ALWAYS)
+        {
+          // Don't use the render state's depth clear value, as this overlay should show as much
+          // information as possible. Instead, clear to the value that would cause the most depth
+          // writes to happen.
+          bool depthFuncLess = rs.DepthFunc == eGL_LESS || rs.DepthFunc == eGL_LEQUAL;
+          float depthClear = depthFuncLess ? 1.0f : 0.0f;
+          drv.glClearBufferfv(eGL_DEPTH, 0, &depthClear);
+        }
+      }
+
       for(size_t i = 0; i < events.size(); i++)
       {
         m_pDriver->ReplayLog(events[i], events[i], eReplay_OnlyDraw);

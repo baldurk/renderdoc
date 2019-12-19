@@ -1635,6 +1635,32 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
         atts.push_back(clearatt);
       }
 
+      // Try to clear depth as well, to help debug shadow rendering
+      if(m_pDriver->m_RenderState.graphics.pipeline != ResourceId() &&
+         IsDepthOrStencilFormat(iminfo.format))
+      {
+        const VulkanCreationInfo::Pipeline &p =
+            m_pDriver->m_CreationInfo.m_Pipeline[m_pDriver->m_RenderState.graphics.pipeline];
+
+        // If the depth func is equal or not equal, don't clear at all since the output would be
+        // altered in an way that would cause replay to produce mostly incorrect results.
+        // Similarly, skip if the depth func is always, as we'd have a 50% chance of guessing the
+        // wrong clear value.
+        if(p.depthCompareOp != VK_COMPARE_OP_EQUAL && p.depthCompareOp != VK_COMPARE_OP_NOT_EQUAL &&
+           p.depthCompareOp != VK_COMPARE_OP_ALWAYS)
+        {
+          // If the depth func is less or less equal, clear to 1 instead of 0
+          bool depthFuncLess = p.depthCompareOp == VK_COMPARE_OP_LESS ||
+                               p.depthCompareOp == VK_COMPARE_OP_LESS_OR_EQUAL;
+          float depthClear = depthFuncLess ? 1.0f : 0.0f;
+
+          VkClearAttachment clearDepthAtt = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, {}};
+          clearDepthAtt.clearValue.depthStencil.depth = depthClear;
+
+          atts.push_back(clearDepthAtt);
+        }
+      }
+
       VkClearRect rect = {
           {{0, 0}, {fb.width, fb.height}}, 0, 1,
       };
