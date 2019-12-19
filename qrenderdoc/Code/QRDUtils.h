@@ -318,10 +318,15 @@ private:
   QThread *m_Thread;
   QSemaphore completed;
   bool m_SelfDelete = false;
+  QString m_Name;
+
+  void windowsSetName();
 
 public slots:
   void process()
   {
+    if(!m_Name.isEmpty())
+      windowsSetName();
     m_func();
     m_Thread->quit();
     m_Thread = NULL;
@@ -342,6 +347,11 @@ public:
     QObject::connect(m_Thread, &QThread::finished, m_Thread, &QThread::deleteLater);
   }
 
+  void setName(QString name)
+  {
+    m_Name = name;
+    m_Thread->setObjectName(name);
+  }
   void start(QThread::Priority prio = QThread::InheritPriority) { m_Thread->start(prio); }
   bool isRunning() { return completed.available(); }
   bool wait(unsigned long time = ULONG_MAX)

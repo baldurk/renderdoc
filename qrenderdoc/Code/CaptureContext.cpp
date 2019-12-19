@@ -702,6 +702,7 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const ReplayOptions 
       new LambdaThread([this, captureFile, opts, origFilename, temporary, local]() {
         LoadCaptureThreaded(captureFile, opts, origFilename, temporary, local);
       });
+  thread->setName(lit("LoadCapture"));
   thread->selfDelete(true);
   thread->start();
 
@@ -1095,6 +1096,7 @@ void CaptureContext::RecompressCapture()
   LambdaThread *th = new LambdaThread([cap, destFilename, &progress]() {
     cap->Convert(destFilename.toUtf8().data(), "rdc", NULL, [&progress](float p) { progress = p; });
   });
+  th->setName(lit("RecompressCapture"));
   th->start();
   // wait a few ms before popping up a progress bar
   th->wait(500);
@@ -1319,6 +1321,7 @@ bool CaptureContext::ImportCapture(const CaptureFileFormat &fmt, const rdcstr &i
                            [&progress](float p) { progress = 0.5f + p * 0.5f; });
     file->Shutdown();
   });
+  th->setName(lit("ImportCapture"));
   th->start();
   // wait a few ms before popping up a progress bar
   th->wait(500);
@@ -1394,6 +1397,7 @@ void CaptureContext::ExportCapture(const CaptureFileFormat &fmt, const rdcstr &e
     status = file->Convert(exportfile.c_str(), ext.toUtf8().data(), sdfile,
                            [&progress](float p) { progress = p; });
   });
+  th->setName(lit("ExportCapture"));
   th->start();
   // wait a few ms before popping up a progress bar
   th->wait(500);

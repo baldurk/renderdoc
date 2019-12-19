@@ -145,6 +145,8 @@ void SetTLSValue(uint64_t slot, void *value);
 
 // must typedef CriticalSectionTemplate<X> CriticalSection
 
+void SetCurrentThreadName(const rdcstr &name);
+
 typedef uint64_t ThreadHandle;
 ThreadHandle CreateThread(std::function<void()> entryFunc);
 uint64_t GetCurrentID();

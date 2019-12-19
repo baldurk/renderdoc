@@ -1346,6 +1346,8 @@ static GlobalHookData *globalHook = NULL;
 // the global hook.
 static void GlobalHookThread()
 {
+  Threading::SetCurrentThreadName("GlobalHookThread");
+
   // keep looping doing an atomic compare-exchange to check that finished is still 0
   while(Atomic::CmpExch32(&globalHook->finished, 0, 0) == 0)
   {

@@ -181,6 +181,7 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
       }
     }
   });
+  m_RemoteProbe->setName(lit("Remote Probe"));
   m_RemoteProbe->start();
 
   SetTitle();
@@ -607,6 +608,7 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
       callback(live);
     });
   });
+  th->setName(lit("ExecuteAndInject"));
   th->start();
   // wait a few ms before popping up a progress bar
   th->wait(500);
@@ -1943,6 +1945,7 @@ void MainWindow::setRemoteHost(int hostIdx)
               // update status
               host.CheckStatus();
             });
+            launchthread->setName(lit("Remote host launch"));
             launchthread->start();
 
             ShowProgressDialog(this, tr("Attempting to update remote server, please wait..."),
@@ -2017,6 +2020,7 @@ void MainWindow::setRemoteHost(int hostIdx)
           m_Ctx.GetCaptureDialog()->UpdateRemoteHost();
       });
     });
+    th->setName(lit("Remote host check"));
     th->selfDelete(true);
     th->start();
   }

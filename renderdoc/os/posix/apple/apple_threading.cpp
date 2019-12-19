@@ -40,3 +40,7 @@ uint64_t Timing::GetTick()
 {
   return mach_absolute_time();
 }
+
+void Threading::SetCurrentThreadName(const rdcstr &name)
+{
+}

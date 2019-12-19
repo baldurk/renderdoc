@@ -54,6 +54,7 @@ void ReplayManager::OpenCapture(const QString &capturefile, const ReplayOptions 
   m_Thread = new LambdaThread([this, proxyRenderer, capturefile, opts, progress]() {
     run(proxyRenderer, capturefile, opts, progress);
   });
+  m_Thread->setName(lit("ReplayManager"));
   m_Thread->start(QThread::HighestPriority);
 
   while(m_Thread->isRunning() && !m_Running)
@@ -185,6 +186,7 @@ rdcstr ReplayManager::CopyCaptureToRemote(const rdcstr &localpath, QWidget *wind
   {
     LambdaThread *thread = new LambdaThread([&lambda]() { lambda(NULL); });
     thread->selfDelete(true);
+    thread->setName(lit("CopyCaptureToRemote"));
     thread->start();
   }
 
@@ -219,6 +221,7 @@ void ReplayManager::CopyCaptureFromRemote(const rdcstr &remotepath, const rdcstr
   {
     LambdaThread *thread = new LambdaThread([&lambda]() { lambda(NULL); });
     thread->selfDelete(true);
+    thread->setName(lit("CopyCaptureFromRemote"));
     thread->start();
   }
 

@@ -38,3 +38,7 @@ uint64_t Timing::GetTick()
   clock_gettime(CLOCK_MONOTONIC, &ts);
   return uint64_t(ts.tv_sec) * 1000000000ULL + uint32_t(ts.tv_nsec & 0xffffffff);
 }
+
+void Threading::SetCurrentThreadName(const rdcstr &name)
+{
+}

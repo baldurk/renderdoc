@@ -154,6 +154,8 @@ struct ClientThread
 
 static void InactiveRemoteClientThread(ClientThread *threadData)
 {
+  Threading::SetCurrentThreadName("InactiveRemoteClientThread");
+
   uint32_t ip = threadData->socket->GetRemoteIP();
 
   {
@@ -209,6 +211,8 @@ static void InactiveRemoteClientThread(ClientThread *threadData)
 static void ActiveRemoteClientThread(ClientThread *threadData,
                                      RENDERDOC_PreviewWindowCallback previewWindow)
 {
+  Threading::SetCurrentThreadName("ActiveRemoteClientThread");
+
   Network::Socket *&client = threadData->socket;
 
 #if ENABLED(RDOC_DEVEL)

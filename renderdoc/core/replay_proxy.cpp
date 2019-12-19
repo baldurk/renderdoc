@@ -2570,6 +2570,8 @@ void ReplayProxy::EndRemoteExecution()
 
 void ReplayProxy::RemoteExecutionThreadEntry()
 {
+  Threading::SetCurrentThreadName("RemoteExecutionThreadEntry");
+
   // while we're alive
   while(Atomic::CmpExch32(&m_RemoteExecutionKill, 0, 0) == 0)
   {

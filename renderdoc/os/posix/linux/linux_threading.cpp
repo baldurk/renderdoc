@@ -24,6 +24,7 @@
 
 #include "os/os_specific.h"
 
+#include <sys/prctl.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -37,4 +38,9 @@ uint64_t Timing::GetTick()
   timespec ts;
   clock_gettime(CLOCK_MONOTONIC, &ts);
   return uint64_t(ts.tv_sec) * 1000000000ULL + uint32_t(ts.tv_nsec & 0xffffffff);
+}
+
+void Threading::SetCurrentThreadName(const rdcstr &name)
+{
+  prctl(PR_SET_NAME, (unsigned long)name.c_str(), 0, 0, 0);
 }

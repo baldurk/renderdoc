@@ -696,6 +696,8 @@ struct AndroidController : public IDeviceProtocolHandler
 
   void ThreadEntry()
   {
+    Threading::SetCurrentThreadName("AndroidController");
+
     while(Atomic::CmpExch32(&running, 1, 1) == 1)
     {
       Threading::Sleep(5);
@@ -956,6 +958,8 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
   // we spin up a thread to Ping() every second, since starting a package can block for a long time.
   volatile int32_t done = 0;
   Threading::ThreadHandle pingThread = Threading::CreateThread([&done, this]() {
+    Threading::SetCurrentThreadName("Android Ping");
+
     bool ok = true;
     while(ok && Atomic::CmpExch32(&done, 0, 0) == 0)
       ok = Ping();

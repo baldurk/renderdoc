@@ -2560,6 +2560,7 @@ void BufferViewer::populateBBox(PopulateBufferData *bufdata)
 
       GUIInvoke::call(this, [this, bbox]() { UI_UpdateBoundingBox(*bbox); });
     });
+    thread->setName(lit("BBox calc"));
     thread->selfDelete(true);
     thread->start();
 

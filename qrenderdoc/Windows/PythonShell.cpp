@@ -713,6 +713,7 @@ void PythonShell::on_runScript_clicked()
     });
   });
 
+  thread->setName(lit("Python script"));
   thread->selfDelete(true);
   thread->start();
 }

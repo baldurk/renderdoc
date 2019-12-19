@@ -100,6 +100,8 @@ rdcstr DoStringise(const PacketType &el)
 
 void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *client)
 {
+  Threading::SetCurrentThreadName("TargetControlClientThread");
+
   Threading::KeepModuleAlive();
 
   WriteSerialiser writer(new StreamWriter(client, Ownership::Nothing), Ownership::Stream);
@@ -375,6 +377,8 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
 
 void RenderDoc::TargetControlServerThread(Network::Socket *sock)
 {
+  Threading::SetCurrentThreadName("TargetControlServerThread");
+
   Threading::KeepModuleAlive();
 
   RenderDoc::Inst().m_SingleClientName = "";

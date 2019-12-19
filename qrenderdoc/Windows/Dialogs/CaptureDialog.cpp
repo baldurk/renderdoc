@@ -585,6 +585,7 @@ void CaptureDialog::CheckAndroidSetup(QString &filename)
     }
   });
 
+  scan->setName(lit("CheckAndroidSetup"));
   scan->start();
   scan->deleteLater();
 }
@@ -663,6 +664,7 @@ Would you like RenderDoc to try patching your package?
       }
     });
 
+    patch->setName(lit("Android patch"));
     patch->start();
     // wait a few ms before popping up a progress bar
     patch->wait(500);

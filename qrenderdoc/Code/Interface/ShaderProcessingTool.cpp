@@ -158,6 +158,7 @@ static ShaderToolOutput RunTool(const ShaderProcessingTool &tool, QWidget *windo
     process.moveToThread(mainThread);
   });
 
+  thread->setName(lit("ShaderProcessingTool %s").arg(tool.name));
   thread->moveObjectToThread(&process);
 
   thread->start();
