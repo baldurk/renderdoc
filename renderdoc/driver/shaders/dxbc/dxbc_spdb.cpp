@@ -1256,7 +1256,6 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
               if(reflection->OutputSig[i].systemValue == mapping.var.builtin)
               {
                 regindex = (uint32_t)i;
-                regfirstcomp = 0;
                 found = true;
                 break;
               }
@@ -1269,7 +1268,6 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
               if(reflection->InputSig[i].systemValue == mapping.var.builtin)
               {
                 regindex = (uint32_t)i;
-                regfirstcomp = 0;
                 found = true;
                 break;
               }
