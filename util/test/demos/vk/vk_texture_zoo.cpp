@@ -1280,6 +1280,8 @@ void main()
 
       for(uint32_t mp = 0; mp < mipLevels; mp++)
       {
+        pushMarker(cmd, "Mip " + std::to_string(mp));
+
         uint32_t numSlices = 1;
         if(tex3d)
           numSlices = std::max(1U, texDepth >> mp);
@@ -1294,6 +1296,8 @@ void main()
 
         for(uint32_t sl = 0; sl < numSlices; sl++)
         {
+          pushMarker(cmd, "Slice " + std::to_string(sl));
+
           VkImageView tempView;
           VkFramebuffer tempFB;
 
@@ -1323,6 +1327,9 @@ void main()
             // need to do each sample separately to let us vary the stencil value
             for(uint32_t sm = 0; sm < sampleCount; sm++)
             {
+              if(sampleCount > 1)
+                pushMarker(cmd, "Sample " + std::to_string(sm));
+
               sampleMask = 1 << sm;
 
               VkPipeline pipe;
@@ -1336,6 +1343,8 @@ void main()
 
               vkCmdSetStencilReference(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, 100 + (mp + sm) * 10);
 
+              setMarker(cmd, "Render depth, and first stencil");
+
               vkCmdDraw(cmd, 4, 1, 0, 0);
 
               // clip off the diagonal
@@ -1344,7 +1353,12 @@ void main()
 
               vkCmdSetStencilReference(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, 10 + (mp + sm) * 10);
 
+              setMarker(cmd, "Second stencil pass (with discard)");
+
               vkCmdDraw(cmd, 4, 1, 0, 0);
+
+              if(sampleCount > 1)
+                popMarker(cmd);
             }
 
             vkCmdEndRenderPass(cmd);
@@ -1364,11 +1378,17 @@ void main()
             Vec4i params(tex3d ? 0 : sl, mp, flags, tex3d ? sl : 0);
             vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 0, sizeof(params), &params);
 
+            setMarker(cmd, "Colour render");
+
             vkCmdDraw(cmd, 4, 1, 0, 0);
 
             vkCmdEndRenderPass(cmd);
           }
+
+          popMarker(cmd);
         }
+
+        popMarker(cmd);
       }
 
       popMarker(cmd);
