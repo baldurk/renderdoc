@@ -675,6 +675,34 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
                                               &clearCol.x, 0, NULL);
       }
 
+      // Try to clear depth as well, to help debug shadow rendering
+      if(rs.dsv.GetResResourceId() != ResourceId() && IsDepthFormat(resourceDesc.Format))
+      {
+        WrappedID3D12PipelineState *origPSO =
+            m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+        if(origPSO && origPSO->IsGraphics())
+        {
+          D3D12_COMPARISON_FUNC depthFunc = origPSO->graphics->DepthStencilState.DepthFunc;
+
+          // If the depth func is equal or not equal, don't clear at all since the output would be
+          // altered in an way that would cause replay to produce mostly incorrect results.
+          // Similarly, skip if the depth func is always, as we'd have a 50% chance of guessing the
+          // wrong clear value.
+          if(depthFunc != D3D12_COMPARISON_FUNC_EQUAL &&
+             depthFunc != D3D12_COMPARISON_FUNC_NOT_EQUAL &&
+             depthFunc != D3D12_COMPARISON_FUNC_ALWAYS)
+          {
+            // If the depth func is less or less equal, clear to 1 instead of 0
+            bool depthFuncLess = depthFunc == D3D12_COMPARISON_FUNC_LESS ||
+                                 depthFunc == D3D12_COMPARISON_FUNC_LESS_EQUAL;
+            float depthClear = depthFuncLess ? 1.0f : 0.0f;
+
+            Unwrap(list)->ClearDepthStencilView(Unwrap(GetDebugManager()->GetTempDescriptor(rs.dsv)),
+                                                D3D12_CLEAR_FLAG_DEPTH, depthClear, 0, 0, NULL);
+          }
+        }
+      }
+
       list->Close();
       list = NULL;
 
