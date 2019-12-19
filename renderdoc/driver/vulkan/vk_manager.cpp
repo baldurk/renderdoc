@@ -125,10 +125,12 @@ void VulkanResourceManager::RecordSingleBarrier(
           state.second.subresourceRange.levelCount = 1;
           state.second.subresourceRange.layerCount = 1;
 
+          rdcpair<ResourceId, ImageRegionState> existing = state;
+
           // insert new copies of the current state to expand out the subresources. Only insert
           // count-1 as we want count entries total - one per subresource
           for(size_t sub = 0; sub < count - 1; sub++)
-            dststates.insert(i, state);
+            dststates.insert(i, existing);
 
           for(size_t sub = 0; sub < count; sub++)
           {
@@ -736,10 +738,13 @@ void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
             state.subresourceRange.levelCount = 1;
             state.subresourceRange.layerCount = 1;
 
+            // copy now, state will no longer be valid after inserting below
+            ImageRegionState existing = state;
+
             // insert new copies of the current state to expand out the subresources. Only insert
             // count-1 as we want count entries total - one per subresource
             for(size_t sub = 0; sub < count - 1; sub++)
-              stit->second.subresourceStates.insert(i, state);
+              stit->second.subresourceStates.insert(i, existing);
 
             for(size_t sub = 0; sub < count; sub++)
             {
