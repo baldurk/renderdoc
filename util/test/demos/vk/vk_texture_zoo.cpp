@@ -195,6 +195,11 @@ void main()
   if(push.slice > 0 && (((x / 2) % 2) != ((y / 2) % 2)))
     ret = ret.wzyx;
 
+  // BGR flip - to match the textures we just blat values into
+  // without conversion (which are then interpreted as bgra implicitly)
+  if((push.flags & 4) != 0)
+    ret.rgb = ret.bgr;
+
   // second sample/mip is shifted up a bit. MSAA textures have no mips,
   // textures with mips have no samples.
   ret += uvec4(10, 10, 10, 10) * (gl_SampleID + push.mip);
@@ -233,6 +238,11 @@ void main()
   // second slice adds a coarse checkerboard pattern of inversion
   if(push.slice > 0 && (((x / 2) % 2) != ((y / 2) % 2)))
     ret = ret.wzyx;
+
+  // BGR flip - to match the textures we just blat values into
+  // without conversion (which are then interpreted as bgra implicitly)
+  if((push.flags & 4) != 0)
+    ret.rgb = ret.bgr;
 
   // second sample/mip is shifted up a bit. MSAA textures have no mips,
   // textures with mips have no samples.
