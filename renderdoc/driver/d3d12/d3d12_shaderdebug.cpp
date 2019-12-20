@@ -31,6 +31,7 @@
 #include "d3d12_shader_cache.h"
 
 #define D3D12SHADERDEBUG_PIXEL 0
+#define D3D12SHADERDEBUG_THREAD 0
 
 struct DebugHit
 {
@@ -1695,6 +1696,8 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
 #endif    // D3D12SHADERDEBUG_PIXEL
 
+#if D3D12SHADERDEBUG_THREAD == 0
+
 ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                           const uint32_t threadid[3])
 {
@@ -1702,3 +1705,153 @@ ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t group
   ShaderDebugTrace ret;
   return ret;
 }
+
+#else
+
+ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
+                                          const uint32_t threadid[3])
+{
+  using namespace DXBCBytecode;
+  using namespace ShaderDebug;
+
+  D3D12MarkerRegion simloop(
+      m_pDevice->GetQueue()->GetReal(),
+      StringFormat::Fmt("DebugThread @ %u: [%u, %u, %u] (%u, %u, %u)", eventId, groupid[0],
+                        groupid[1], groupid[2], threadid[0], threadid[1], threadid[2]));
+
+  ShaderDebugTrace empty;
+
+  const D3D12Pipe::State *pipelineState = GetD3D12PipelineState();
+  const D3D12Pipe::Shader &computeShader = pipelineState->computeShader;
+  WrappedID3D12Shader *cs =
+      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(computeShader.resourceId);
+  if(!cs)
+    return empty;
+
+  DXBC::DXBCContainer *dxbc = cs->GetDXBC();
+  const ShaderReflection &refl = cs->GetDetails();
+
+  if(!dxbc)
+    return empty;
+
+  dxbc->GetDisassembly();
+
+  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+
+  bytebuf cbufData[D3D12_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
+  GatherConstantBuffers(m_pDevice, dxbc->m_Type, rs.compute, cbufData);
+
+  ShaderDebugTrace ret;
+
+  GlobalState global;
+  GetDebugManager()->CreateShaderGlobalState(global, dxbc);
+  State initialState;
+  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl, cbufData);
+
+  for(int i = 0; i < 3; i++)
+  {
+    initialState.semantics.GroupID[i] = groupid[i];
+    initialState.semantics.ThreadID[i] = threadid[i];
+  }
+
+  rdcarray<ShaderDebugState> states;
+
+  if(dxbc->GetDebugInfo())
+    dxbc->GetDebugInfo()->GetLocals(0, dxbc->GetDXBCByteCode()->GetInstruction(0).offset,
+                                    initialState.locals);
+
+  states.push_back((State)initialState);
+
+  D3D12DebugAPIWrapper apiWrapper(m_pDevice, dxbc, global);
+
+  for(int cycleCounter = 0;; cycleCounter++)
+  {
+    if(initialState.Finished())
+      break;
+
+    initialState = initialState.GetNext(global, &apiWrapper, NULL);
+
+    if(dxbc->GetDebugInfo())
+    {
+      const DXBCBytecode::Operation &op =
+          dxbc->GetDXBCByteCode()->GetInstruction((size_t)initialState.nextInstruction);
+      dxbc->GetDebugInfo()->GetLocals(initialState.nextInstruction, op.offset, initialState.locals);
+    }
+
+    states.push_back((State)initialState);
+
+    if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
+    {
+      if(PromptDebugTimeout(cycleCounter))
+        break;
+    }
+  }
+
+  ret.states = states;
+
+  ret.hasLocals = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
+
+  ret.lineInfo.resize(dxbc->GetDXBCByteCode()->GetNumInstructions());
+  for(size_t i = 0; dxbc->GetDebugInfo() && i < dxbc->GetDXBCByteCode()->GetNumInstructions(); i++)
+  {
+    const Operation &op = dxbc->GetDXBCByteCode()->GetInstruction(i);
+    dxbc->GetDebugInfo()->GetLineInfo(i, op.offset, ret.lineInfo[i]);
+  }
+
+  for(size_t i = 0; i < dxbc->GetDXBCByteCode()->GetNumDeclarations(); i++)
+  {
+    const DXBCBytecode::Declaration &decl = dxbc->GetDXBCByteCode()->GetDeclaration(i);
+
+    if(decl.declaration == OPCODE_DCL_INPUT &&
+       (decl.operand.type == TYPE_INPUT_THREAD_ID || decl.operand.type == TYPE_INPUT_THREAD_GROUP_ID ||
+        decl.operand.type == TYPE_INPUT_THREAD_ID_IN_GROUP ||
+        decl.operand.type == TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED))
+    {
+      ShaderVariable v;
+
+      v.name = decl.operand.toString(dxbc->GetReflection(), ToString::IsDecl);
+      v.rows = 1;
+      v.type = VarType::UInt;
+
+      switch(decl.operand.type)
+      {
+        case TYPE_INPUT_THREAD_GROUP_ID:
+          memcpy(v.value.uv, initialState.semantics.GroupID, sizeof(uint32_t) * 3);
+          v.columns = 3;
+          break;
+        case TYPE_INPUT_THREAD_ID_IN_GROUP:
+          memcpy(v.value.uv, initialState.semantics.ThreadID, sizeof(uint32_t) * 3);
+          v.columns = 3;
+          break;
+        case TYPE_INPUT_THREAD_ID:
+          v.value.u.x = initialState.semantics.GroupID[0] *
+                            dxbc->GetReflection()->DispatchThreadsDimension[0] +
+                        initialState.semantics.ThreadID[0];
+          v.value.u.y = initialState.semantics.GroupID[1] *
+                            dxbc->GetReflection()->DispatchThreadsDimension[1] +
+                        initialState.semantics.ThreadID[1];
+          v.value.u.z = initialState.semantics.GroupID[2] *
+                            dxbc->GetReflection()->DispatchThreadsDimension[2] +
+                        initialState.semantics.ThreadID[2];
+          v.columns = 3;
+          break;
+        case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
+          v.value.u.x = initialState.semantics.ThreadID[2] *
+                            dxbc->GetReflection()->DispatchThreadsDimension[0] *
+                            dxbc->GetReflection()->DispatchThreadsDimension[1] +
+                        initialState.semantics.ThreadID[1] *
+                            dxbc->GetReflection()->DispatchThreadsDimension[0] +
+                        initialState.semantics.ThreadID[0];
+          v.columns = 1;
+          break;
+        default: v.columns = 4; break;
+      }
+
+      ret.inputs.push_back(v);
+    }
+  }
+
+  return ret;
+}
+
+#endif    // D3D12SHADERDEBUG_THREAD
