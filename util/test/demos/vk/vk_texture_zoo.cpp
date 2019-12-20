@@ -683,9 +683,9 @@ void main()
 
     CurBuf = uploadBuf.map();
 
-#define TEST_CASE_NAME(texFmt, viewFmt)           \
-  (texFmt == viewFmt) ? std::string(#texFmt + 10) \
-                      : (std::string(#texFmt + 10) + "->" + (strchr(#viewFmt + 10, '_') + 1))
+#define TEST_CASE_NAME(texFmt, viewFmt)             \
+  (texFmt == viewFmt) ? std::string(&(#texFmt)[10]) \
+                      : (std::string(&(#texFmt)[10]) + "->" + (strchr(&(#viewFmt)[10], '_') + 1))
 
 #define TEST_CASE(texType, texFmt, viewFmt, compCount, byteWidth, dataType)                      \
   {                                                                                              \
