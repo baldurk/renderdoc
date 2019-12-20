@@ -699,7 +699,7 @@ void ImageViewer::RefreshFile()
           texDetails.arraysize > 1 ? TextureType::TextureCubeArray : TextureType::TextureCube;
       texDetails.dimension = 2;
     }
-    else if(texDetails.width > 1)
+    else if(texDetails.height > 1)
     {
       texDetails.type =
           texDetails.arraysize > 1 ? TextureType::Texture2DArray : TextureType::Texture2D;
