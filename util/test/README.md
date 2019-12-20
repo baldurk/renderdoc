@@ -45,6 +45,8 @@ The demos project contains helper libraries, so the best way to get started is t
 
 Similarly for tests, which often come 1:1 with demos, you can copy-paste an existing test and add your own checks.
 
+When adding a test that needs to compare against a reference image, first run the first without a reference image. It will output the image that it would compare against. Run this image through pngcrush (ensuring that RGBA output is preserved) to reduce repository bloat.
+
 License
 --------------
 
