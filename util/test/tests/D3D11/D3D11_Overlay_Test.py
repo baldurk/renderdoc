@@ -5,6 +5,35 @@ import renderdoc as rd
 class D3D11_Overlay_Test(rdtest.TestCase):
     demos_test_name = 'D3D11_Overlay_Test'
 
+    def check_clearbeforedraw_depth(self, out, depthId):
+        # Test ClearBeforeDraw with a depth target
+        tex = rd.TextureDisplay()
+        tex.overlay = rd.DebugOverlay.ClearBeforeDraw
+        tex.resourceId = depthId
+
+        out.SetTextureDisplay(tex)
+        out.GetDebugOverlayTexID() # Called to refresh the overlay
+        
+        overlay = rd.DebugOverlay.ClearBeforeDraw
+        test_name = str(overlay) + '.Depth'
+
+        overlay_path = rdtest.get_tmp_path(test_name + '.png')
+        ref_path = self.get_ref_path(test_name + '.png')
+
+        save_data = rd.TextureSave()
+        save_data.resourceId = depthId
+        save_data.destType = rd.FileType.PNG
+        save_data.channelExtract = 0
+
+        tolerance = 2
+
+        self.controller.SaveTexture(save_data, overlay_path)
+
+        if not rdtest.png_compare(overlay_path, ref_path, tolerance):
+            raise rdtest.TestFailureException("Reference and output image differ for overlay {}".format(test_name), overlay_path, ref_path)
+
+        rdtest.log.success("Reference and output image are identical for {}".format(test_name))
+
     def check_capture(self):
         self.check_final_backbuffer()
 
@@ -90,5 +119,7 @@ class D3D11_Overlay_Test(rdtest.TestCase):
             raise rdtest.TestFailureException("Reference and output image differ for stencil {}", tmp_path, ref_path)
 
         rdtest.log.success("Reference and output image are identical for stencil")
+
+        self.check_clearbeforedraw_depth(out, pipe.GetDepthTarget().resourceId)
 
         out.Shutdown()

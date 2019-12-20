@@ -181,6 +181,8 @@ Gamma display of Linear Data
 
 A proper explanation of this is available in the :ref:`FAQ <gamma-linear-display>`. In short, linear data is 'over-corrected' to look as expected, but this behaviour can be overridden by toggling off this option.
 
+.. _Alpha background:
+
 Alpha background
 ~~~~~~~~~~~~~~~~
 .. |color_wheel| image:: ../imgs/icons/color_wheel.png
@@ -330,8 +332,12 @@ This is a powerful tool for quickly diagnosing issues and can be very useful for
 
 * ``Clipping`` will simply highlight in red any values that are below the current black point (as defined by the range control - see above), and in green any values above the white point. This can be useful in identifying invalid ranges if the range control is adjusted correctly, or in combination with a custom shader visualiser.
 
-* ``Clear before Pass`` will act as if the current target had been cleared to black right before the current pass. This can sometimes make it easier to see the results of a draw, especially if it is blending and only makes a subtle change. If the current API does not have the concept of a pass, it is defined as all the drawcalls with the same set of render targets.
+* ``Clear before Pass`` will act as if the current target had been cleared right before the current pass. This can sometimes make it easier to see the results of a draw, especially if it is blending and only makes a subtle change. If the current API does not have the concept of a pass, it is defined as all the drawcalls with the same set of render targets.
 
+   * If the current target is a render target, it is cleared to the :ref:`Alpha background` color.
+
+   * If the current target is a depth/stencil target, the behavior depends on the depth function for the current draw. If it is ``EQUAL``, ``NOT EQUAL``, or ``ALWAYS``, the target is not cleared. If it is ``LESS`` or ``LESS EQUAL``, it is cleared to 1. If it is ``GREATER`` or ``GREATER EQUAL``, it is cleared to 0. Stencil is never cleared.
+   
 * ``Clear before Draw`` works similarly to the above overlay, but clearing immediately before the selected draw.
 
 * ``Quad Overdraw (Pass)`` will show a visualisation of the level of 2x2 quad overdraw in the 'pass' up to the selected draw. If the current API does not have the concept of a pass, it is defined as all the drawcalls with the same set of render targets.
