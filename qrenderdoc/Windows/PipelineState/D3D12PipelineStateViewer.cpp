@@ -35,6 +35,8 @@
 #include "PipelineStateViewer.h"
 #include "ui_D3D12PipelineStateViewer.h"
 
+#define D3D12SHADERDEBUG_THREAD 0
+
 struct D3D12VBIBTag
 {
   D3D12VBIBTag() { offset = 0; }
@@ -939,6 +941,18 @@ void D3D12PipelineStateViewer::clearState()
   ui->stencilRef->setText(lit("FF"));
 
   ui->stencils->clear();
+
+  {
+    ui->groupX->setEnabled(false);
+    ui->groupY->setEnabled(false);
+    ui->groupZ->setEnabled(false);
+
+    ui->threadX->setEnabled(false);
+    ui->threadY->setEnabled(false);
+    ui->threadZ->setEnabled(false);
+
+    ui->debugThread->setEnabled(false);
+  }
 }
 
 void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RDLabel *shader,
@@ -1775,6 +1789,52 @@ void D3D12PipelineStateViewer::setState()
        ToQStr(state.outputMerger.depthStencilState.backFace.passOperation)}));
   ui->stencils->clearSelection();
   ui->stencils->endUpdate();
+
+#if D3D12SHADERDEBUG_THREAD != 0
+  // set up thread debugging inputs
+  if(state.computeShader.reflection && draw && (draw->flags & DrawFlags::Dispatch))
+  {
+    ui->groupX->setEnabled(true);
+    ui->groupY->setEnabled(true);
+    ui->groupZ->setEnabled(true);
+
+    ui->threadX->setEnabled(true);
+    ui->threadY->setEnabled(true);
+    ui->threadZ->setEnabled(true);
+
+    ui->debugThread->setEnabled(true);
+
+    // set maximums for CS debugging
+    ui->groupX->setMaximum((int)draw->dispatchDimension[0] - 1);
+    ui->groupY->setMaximum((int)draw->dispatchDimension[1] - 1);
+    ui->groupZ->setMaximum((int)draw->dispatchDimension[2] - 1);
+
+    if(draw->dispatchThreadsDimension[0] == 0)
+    {
+      ui->threadX->setMaximum((int)state.computeShader.reflection->dispatchThreadsDimension[0] - 1);
+      ui->threadY->setMaximum((int)state.computeShader.reflection->dispatchThreadsDimension[1] - 1);
+      ui->threadZ->setMaximum((int)state.computeShader.reflection->dispatchThreadsDimension[2] - 1);
+    }
+    else
+    {
+      ui->threadX->setMaximum((int)draw->dispatchThreadsDimension[0] - 1);
+      ui->threadY->setMaximum((int)draw->dispatchThreadsDimension[1] - 1);
+      ui->threadZ->setMaximum((int)draw->dispatchThreadsDimension[2] - 1);
+    }
+  }
+  else
+#endif
+  {
+    ui->groupX->setEnabled(false);
+    ui->groupY->setEnabled(false);
+    ui->groupZ->setEnabled(false);
+
+    ui->threadX->setEnabled(false);
+    ui->threadY->setEnabled(false);
+    ui->threadZ->setEnabled(false);
+
+    ui->debugThread->setEnabled(false);
+  }
 
   // highlight the appropriate stages in the flowchart
   if(draw == NULL)
@@ -3058,3 +3118,101 @@ void D3D12PipelineStateViewer::on_meshView_clicked()
     m_Ctx.ShowMeshPreview();
   ToolWindowManager::raiseToolWindow(m_Ctx.GetMeshPreview()->Widget());
 }
+
+#if D3D12SHADERDEBUG_THREAD == 0
+
+void D3D12PipelineStateViewer::on_debugThread_clicked()
+{
+}
+
+#else
+
+void D3D12PipelineStateViewer::on_debugThread_clicked()
+{
+  if(!m_Ctx.IsCaptureLoaded())
+    return;
+
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+
+  if(!draw)
+    return;
+
+  ShaderReflection *shaderDetails = m_Ctx.CurD3D12PipelineState()->computeShader.reflection;
+  const ShaderBindpointMapping &bindMapping =
+      m_Ctx.CurD3D12PipelineState()->computeShader.bindpointMapping;
+
+  if(!shaderDetails)
+    return;
+
+  uint32_t groupdim[3] = {};
+
+  for(int i = 0; i < 3; i++)
+    groupdim[i] = draw->dispatchDimension[i];
+
+  uint32_t threadsdim[3] = {};
+  for(int i = 0; i < 3; i++)
+    threadsdim[i] = draw->dispatchThreadsDimension[i];
+
+  if(threadsdim[0] == 0)
+  {
+    for(int i = 0; i < 3; i++)
+      threadsdim[i] = shaderDetails->dispatchThreadsDimension[i];
+  }
+
+  struct threadSelect
+  {
+    uint32_t g[3];
+    uint32_t t[3];
+  } thread = {
+      // g[]
+      {(uint32_t)ui->groupX->value(), (uint32_t)ui->groupY->value(), (uint32_t)ui->groupZ->value()},
+      // t[]
+      {(uint32_t)ui->threadX->value(), (uint32_t)ui->threadY->value(), (uint32_t)ui->threadZ->value()},
+  };
+
+  bool done = false;
+  ShaderDebugTrace *trace = NULL;
+
+  m_Ctx.Replay().AsyncInvoke([&trace, &done, thread](IReplayController *r) {
+    trace = r->DebugThread(thread.g, thread.t);
+
+    if(trace->states.isEmpty())
+    {
+      r->FreeTrace(trace);
+      trace = NULL;
+    }
+
+    done = true;
+  });
+
+  QString debugContext = lit("Group [%1,%2,%3] Thread [%4,%5,%6]")
+                             .arg(thread.g[0])
+                             .arg(thread.g[1])
+                             .arg(thread.g[2])
+                             .arg(thread.t[0])
+                             .arg(thread.t[1])
+                             .arg(thread.t[2]);
+
+  // wait a short while before displaying the progress dialog (which won't show if we're already
+  // done by the time we reach it)
+  for(int i = 0; !done && i < 100; i++)
+    QThread::msleep(5);
+
+  ShowProgressDialog(this, tr("Debugging %1").arg(debugContext), [&done]() { return done; });
+
+  if(!trace)
+  {
+    RDDialog::critical(
+        this, tr("Error debugging"),
+        tr("Error debugging thread - make sure a valid group and thread is selected"));
+    return;
+  }
+
+  // viewer takes ownership of the trace
+  IShaderViewer *s =
+      m_Ctx.DebugShader(&bindMapping, shaderDetails, ResourceId(), trace, debugContext);
+
+  m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
+}
+
+#endif    // D3D12SHADERDEBUG_THREAD

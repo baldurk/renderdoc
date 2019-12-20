@@ -74,6 +74,8 @@ private slots:
   void cbuffer_itemActivated(RDTreeWidgetItem *item, int column);
   void vertex_leave(QEvent *e);
 
+  void on_debugThread_clicked();
+
 private:
   Ui::D3D12PipelineStateViewer *ui;
   ICaptureContext &m_Ctx;
@@ -95,7 +97,6 @@ private:
   void setEmptyRow(RDTreeWidgetItem *node);
   void highlightIABind(int slot);
 
-  QString formatMembers(int indent, const QString &nameprefix, const rdcarray<ShaderConstant> &vars);
   const D3D12Pipe::Shader *stageForSender(QWidget *widget);
 
   void setViewDetails(RDTreeWidgetItem *node, const D3D12ViewTag &view, TextureDescription *tex);
