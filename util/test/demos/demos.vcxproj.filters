@@ -364,6 +364,9 @@
     <ClCompile Include="vk\vk_khr_buffer_address.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
+    <ClCompile Include="vk\vk_separate_depth_stencil_layouts.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

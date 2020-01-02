@@ -25,6 +25,7 @@ set(VULKAN_SRC
         vk/vk_resource_lifetimes.cpp
         vk/vk_sample_locations.cpp
         vk/vk_secondary_cmdbuf.cpp
+        vk/vk_separate_depth_stencil_layouts.cpp
         vk/vk_shader_editing.cpp
         vk/vk_simple_triangle.cpp
         vk/vk_spec_constants.cpp

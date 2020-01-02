@@ -661,6 +661,60 @@ struct AttachmentDescription : public VkAttachmentDescription
   }
 };
 
+struct AttachmentDescription2KHR : public VkAttachmentDescription2KHR
+{
+  AttachmentDescription2KHR(VkFormat format, VkImageLayout initialLayout, VkImageLayout finalLayout,
+                            VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_MAX_ENUM,
+                            VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_MAX_ENUM,
+                            VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT,
+                            VkAttachmentLoadOp stencilLoadOp = VK_ATTACHMENT_LOAD_OP_MAX_ENUM,
+                            VkAttachmentStoreOp stencilStoreOp = VK_ATTACHMENT_STORE_OP_MAX_ENUM,
+                            VkAttachmentDescriptionFlags flags = 0)
+  {
+    this->sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2_KHR;
+    this->pNext = NULL;
+    this->format = format;
+    this->initialLayout = initialLayout;
+    this->finalLayout = finalLayout;
+    this->samples = samples;
+    this->flags = flags;
+
+    // if un-set, default loadOp/storeOp to load/store
+    this->loadOp = loadOp != VK_ATTACHMENT_LOAD_OP_MAX_ENUM ? loadOp : VK_ATTACHMENT_LOAD_OP_LOAD;
+    this->storeOp =
+        storeOp != VK_ATTACHMENT_STORE_OP_MAX_ENUM ? storeOp : VK_ATTACHMENT_STORE_OP_STORE;
+
+    // if un-set, default stencilLoadOp/StoreOp to the same as loadOp/storeOp
+    this->stencilLoadOp =
+        stencilLoadOp != VK_ATTACHMENT_LOAD_OP_MAX_ENUM ? stencilLoadOp : this->loadOp;
+    this->stencilStoreOp =
+        stencilStoreOp != VK_ATTACHMENT_STORE_OP_MAX_ENUM ? stencilStoreOp : this->storeOp;
+  }
+
+  AttachmentDescription2KHR &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+};
+
+struct AttachmentDescriptionStencilLayoutKHR : public VkAttachmentDescriptionStencilLayoutKHR
+{
+  AttachmentDescriptionStencilLayoutKHR(VkImageLayout stencilInitialLayout,
+                                        VkImageLayout stencilFinalLayout)
+  {
+    this->sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR;
+    this->pNext = NULL;
+    this->stencilInitialLayout = stencilInitialLayout;
+    this->stencilFinalLayout = stencilFinalLayout;
+  }
+  AttachmentDescriptionStencilLayoutKHR &next(void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+};
+
 struct FramebufferCreateInfo : public VkFramebufferCreateInfo
 {
   FramebufferCreateInfo(VkRenderPass renderPass, const std::vector<VkImageView> &attachments,
@@ -926,6 +980,34 @@ struct SubpassDependency : public VkSubpassDependency
   }
 
   operator const VkSubpassDependency *() const { return this; }
+};
+
+struct SubpassDependency2KHR : public VkSubpassDependency2KHR
+{
+  SubpassDependency2KHR(uint32_t srcSubpass, uint32_t dstSubpass, VkPipelineStageFlags srcStageMask,
+                        VkPipelineStageFlags dstStageMask, VkAccessFlags srcAccessMask,
+                        VkAccessFlags dstAccessMask, VkDependencyFlags dependencyFlags = 0,
+                        uint32_t viewOffset = 0)
+  {
+    this->sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2_KHR;
+    this->pNext = NULL;
+    this->srcSubpass = srcSubpass;
+    this->dstSubpass = dstSubpass;
+    this->srcStageMask = srcStageMask;
+    this->dstStageMask = dstStageMask;
+    this->srcAccessMask = srcAccessMask;
+    this->dstAccessMask = dstAccessMask;
+    this->dependencyFlags = dependencyFlags;
+    this->viewOffset = viewOffset;
+  }
+
+  SubpassDependency2KHR &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+
+  operator const VkSubpassDependency2KHR *() const { return this; }
 };
 
 struct ClearColorValue
@@ -1256,4 +1338,159 @@ private:
 
   std::vector<VkAttachmentReference> attrefs;
 };
+
+struct AttachmentReference2KHR : public VkAttachmentReference2KHR
+{
+  AttachmentReference2KHR()
+  {
+    this->sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2_KHR;
+    this->pNext = NULL;
+    this->attachment = VK_ATTACHMENT_UNUSED;
+    this->layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    this->aspectMask = 0;
+  }
+  AttachmentReference2KHR(uint32_t attachment, VkImageLayout layout, VkImageAspectFlags aspectMask = 0)
+  {
+    this->sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2_KHR;
+    this->pNext = NULL;
+    this->attachment = attachment;
+    this->layout = layout;
+    this->aspectMask = aspectMask;
+  }
+
+  AttachmentReference2KHR &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
 };
+
+struct AttachmentReferenceStencilLayoutKHR : public VkAttachmentReferenceStencilLayoutKHR
+{
+  AttachmentReferenceStencilLayoutKHR(VkImageLayout stencilLayout)
+  {
+    this->sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_STENCIL_LAYOUT_KHR;
+    this->pNext = NULL;
+    this->stencilLayout = stencilLayout;
+  }
+
+  AttachmentReferenceStencilLayoutKHR &next(void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+};
+
+struct RenderPassCreator2 : private VkRenderPassCreateInfo2KHR
+{
+  RenderPassCreator2()
+  {
+    sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2_KHR;
+    pNext = NULL;
+    flags = 0;
+  }
+
+  using VkRenderPassCreateInfo2KHR::flags;
+  using VkRenderPassCreateInfo2KHR::pNext;
+
+  std::vector<VkAttachmentDescription2KHR> attachments;
+  std::vector<VkSubpassDescription2KHR> subpasses;
+  std::vector<VkSubpassDependency2KHR> dependencies;
+  std::vector<uint32_t> correlatedViewMasks;
+
+  void addSubpass(const std::vector<VkAttachmentReference2KHR> &colorAttachments,
+                  const VkAttachmentReference2KHR &depthStencilAttachment,
+                  const std::vector<VkAttachmentReference2KHR> &resolveAttachments = {},
+                  const std::vector<VkAttachmentReference2KHR> &inputAttachments = {})
+  {
+    const VkAttachmentReference2KHR *color = NULL;
+    if(!colorAttachments.empty())
+    {
+      color = MakeTempPtr();
+      attrefs.insert(attrefs.end(), colorAttachments.begin(), colorAttachments.end());
+    }
+
+    const VkAttachmentReference2KHR *depth = NULL;
+    depth = MakeTempPtr();
+    attrefs.push_back(depthStencilAttachment);
+
+    const VkAttachmentReference2KHR *resolve = NULL;
+    if(!resolveAttachments.empty())
+    {
+      resolve = MakeTempPtr();
+      attrefs.insert(attrefs.end(), resolveAttachments.begin(), resolveAttachments.end());
+    }
+
+    const VkAttachmentReference2KHR *input = NULL;
+    if(!inputAttachments.empty())
+    {
+      input = MakeTempPtr();
+      attrefs.insert(attrefs.end(), inputAttachments.begin(), inputAttachments.end());
+    }
+
+    subpasses.push_back({
+        VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2_KHR, NULL,
+        // flags
+        0,
+        // pipelineBindPoint
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        // viewMask
+        0,
+        // input attachments
+        (uint32_t)inputAttachments.size(), input,
+        // color attachments
+        (uint32_t)colorAttachments.size(), color,
+        // resolve attachments
+        resolve,
+        // depth stencil attachment
+        depth,
+        // preserve attachments
+        0, NULL,
+    });
+  }
+
+  operator const VkRenderPassCreateInfo2KHR *()
+  {
+    bake();
+    return (const VkRenderPassCreateInfo2KHR *)this;
+  }
+
+private:
+  void bake()
+  {
+    const VkAttachmentReference2KHR *invalid = MakeTempPtr();
+    for(VkSubpassDescription2KHR &sub : subpasses)
+    {
+      if(sub.pInputAttachments && sub.pInputAttachments <= invalid)
+        sub.pInputAttachments = MakeRealPtr(sub.pInputAttachments);
+      if(sub.pColorAttachments && sub.pColorAttachments <= invalid)
+        sub.pColorAttachments = MakeRealPtr(sub.pColorAttachments);
+      if(sub.pResolveAttachments && sub.pResolveAttachments <= invalid)
+        sub.pResolveAttachments = MakeRealPtr(sub.pResolveAttachments);
+      if(sub.pDepthStencilAttachment && sub.pDepthStencilAttachment <= invalid)
+        sub.pDepthStencilAttachment = MakeRealPtr(sub.pDepthStencilAttachment);
+    }
+
+    attachmentCount = (uint32_t)attachments.size();
+    pAttachments = attachments.data();
+    subpassCount = (uint32_t)subpasses.size();
+    pSubpasses = subpasses.data();
+    dependencyCount = (uint32_t)dependencies.size();
+    pDependencies = dependencies.data();
+    correlatedViewMaskCount = (uint32_t)correlatedViewMasks.size();
+    pCorrelatedViewMasks = correlatedViewMasks.data();
+  }
+
+  const VkAttachmentReference2KHR *MakeTempPtr()
+  {
+    return (const VkAttachmentReference2KHR *)((attrefs.size() + 1) *
+                                               sizeof(VkAttachmentReference2KHR));
+  }
+  const VkAttachmentReference2KHR *MakeRealPtr(const VkAttachmentReference2KHR *ptr)
+  {
+    return attrefs.data() + ptrdiff_t(ptr) / sizeof(VkAttachmentReference2KHR) - 1;
+  }
+
+  std::vector<VkAttachmentReference2KHR> attrefs;
+};
+};    // namespace vkh
