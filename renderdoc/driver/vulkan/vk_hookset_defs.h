@@ -485,7 +485,8 @@
   DeclExt(KHR_timeline_semaphore);              \
   DeclExt(KHR_performance_query);               \
   DeclExt(KHR_buffer_device_address);           \
-  DeclExt(EXT_tooling_info);
+  DeclExt(EXT_tooling_info);                    \
+  DeclExt(KHR_separate_depth_stencil_layouts);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -575,7 +576,8 @@
   CheckExt(KHR_timeline_semaphore, VKXX);             \
   CheckExt(KHR_performance_query, VKXX);              \
   CheckExt(KHR_buffer_device_address, VKXX);          \
-  CheckExt(EXT_tooling_info, VKXX);
+  CheckExt(EXT_tooling_info, VKXX);                   \
+  CheckExt(KHR_separate_depth_stencil_layouts, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \

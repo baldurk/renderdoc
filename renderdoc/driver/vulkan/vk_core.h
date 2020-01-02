@@ -384,7 +384,7 @@ private:
 
   InstanceDeviceInfo m_EnabledExtensions;
 
-  const InstanceDeviceInfo &GetExtensions(VkResourceRecord *record)
+  const InstanceDeviceInfo &GetExtensions(VkResourceRecord *record) const
   {
     return record ? *record->instDevInfo : m_EnabledExtensions;
   }
