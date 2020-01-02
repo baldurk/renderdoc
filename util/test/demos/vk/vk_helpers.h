@@ -1251,7 +1251,7 @@ private:
   }
   const VkAttachmentReference *MakeRealPtr(const VkAttachmentReference *ptr)
   {
-    return ptr + ptrdiff_t(attrefs.data()) / sizeof(VkAttachmentReference) - 1;
+    return attrefs.data() + ptrdiff_t(ptr) / sizeof(VkAttachmentReference) - 1;
   }
 
   std::vector<VkAttachmentReference> attrefs;
