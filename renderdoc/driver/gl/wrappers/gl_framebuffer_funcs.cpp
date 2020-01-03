@@ -27,6 +27,30 @@
 #include "common/common.h"
 #include "strings/string_utils.h"
 
+ResourceId WrappedOpenGL::ExtractFBOAttachment(GLenum target, GLenum attachment)
+{
+  GLint name = 0;
+  GLint type = eGL_TEXTURE;
+
+  GL.glGetFramebufferAttachmentParameteriv(target, attachment,
+                                           eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &name);
+  GL.glGetFramebufferAttachmentParameteriv(target, attachment,
+                                           eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &type);
+
+  GLResource res;
+
+  if(type == eGL_TEXTURE)
+  {
+    res = TextureRes(GetCtx(), name);
+  }
+  else if(type == eGL_RENDERBUFFER)
+  {
+    res = RenderbufferRes(GetCtx(), name);
+  }
+
+  return GetResourceManager()->GetID(res);
+}
+
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glGenFramebuffers(SerialiserType &ser, GLsizei n, GLuint *framebuffers)
 {

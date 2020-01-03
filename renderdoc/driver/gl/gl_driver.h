@@ -738,6 +738,8 @@ public:
     FillReflectionArray(GetResourceManager()->GetID(program), stages);
   }
 
+  ResourceId ExtractFBOAttachment(GLenum target, GLenum attachment);
+
   struct TextureData
   {
     TextureData()
