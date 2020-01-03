@@ -4445,51 +4445,29 @@ bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
       if(mask & (eGL_DEPTH_BUFFER_BIT | eGL_STENCIL_BUFFER_BIT))
         draw.flags |= DrawFlags::ClearDepthStencil;
 
-      AddDrawcall(draw, true);
-
-      GLuint attachment = 0;
-      GLenum type = eGL_TEXTURE;
+      ResourceId dstId;
 
       if(mask & GL_DEPTH_BUFFER_BIT)
       {
-        GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                                 (GLint *)&attachment);
-        GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
-                                                 (GLint *)&type);
+        ResourceId res_id = ExtractFBOAttachment(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT);
 
-        if(attachment)
+        if(res_id != ResourceId())
         {
-          if(type == eGL_TEXTURE)
-            m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-                EventUsage(m_CurEventID, ResourceUsage::Clear));
-          else
-            m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-                EventUsage(m_CurEventID, ResourceUsage::Clear));
+          m_ResourceUses[res_id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
+
+          dstId = res_id;
         }
       }
 
-      attachment = 0;
-      type = eGL_TEXTURE;
-
       if(mask & GL_STENCIL_BUFFER_BIT)
       {
-        GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                                 (GLint *)&attachment);
-        GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
-                                                 (GLint *)&type);
+        ResourceId res_id = ExtractFBOAttachment(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT);
 
-        if(attachment)
+        if(res_id != ResourceId())
         {
-          if(type == eGL_TEXTURE)
-            m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-                EventUsage(m_CurEventID, ResourceUsage::Clear));
-          else
-            m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-                EventUsage(m_CurEventID, ResourceUsage::Clear));
+          m_ResourceUses[res_id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
+
+          dstId = res_id;
         }
       }
 
@@ -4498,32 +4476,25 @@ bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
         GLint numCols = 8;
         GL.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
 
-        for(int i = 0; i < numCols; i++)
+        for(int i = numCols - 1; i >= 0; --i)
         {
-          attachment = 0;
-          type = eGL_TEXTURE;
+          ResourceId res_id =
+              ExtractFBOAttachment(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i));
 
-          GL.glGetFramebufferAttachmentParameteriv(
-              eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
-              eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&attachment);
-          GL.glGetFramebufferAttachmentParameteriv(
-              eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
-              eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
-
-          if(attachment)
+          if(res_id != ResourceId())
           {
-            if(type == eGL_TEXTURE)
-              m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-                  EventUsage(m_CurEventID, ResourceUsage::Clear));
-            else
-              m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))]
-                  .push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
+            m_ResourceUses[res_id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
+
+            dstId = res_id;
           }
         }
+
+        draw.copyDestination = GetResourceManager()->GetOriginalID(dstId);
+
+        AddDrawcall(draw, true);
       }
     }
   }
-
   return true;
 }
 
@@ -4542,6 +4513,10 @@ void WrappedOpenGL::glClear(GLbitfield mask)
     Serialise_glClear(ser, mask);
 
     GetContextRecord()->AddChunk(scope.Get());
+
+    GLint fbo;
+    GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &fbo);
+    GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), fbo), eFrameRef_CompleteWrite);
   }
 }
 
