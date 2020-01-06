@@ -113,6 +113,6 @@ There are also some non-hlsl types for displaying other formats which don't have
 * ``uintten`` - 4 component unsigned integer format, packed as 10:10:10:2
 * ``unormten`` - 4 component unsigned normalised format, packed as 10:10:10:2
 * ``floateleven`` - 3 component floating point format, packed as 11:11:10
-* ``xuint`` - hex-formatted 32bit integer
+* ``xint`` - hex-formatted 32bit integer
 * ``xshort`` - hex-formatted 16bit integer
 * ``xbyte`` - hex-formatted 8bit integer
