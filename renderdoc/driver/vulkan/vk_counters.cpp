@@ -399,13 +399,22 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
   void PreDispatch(uint32_t eid, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) override { return PostDraw(eid, cmd); }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) override { PostRedraw(eid, cmd); }
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
+  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  {
+    if(flags & DrawFlags::PassBoundary)
+      return;
+    PreDraw(eid, cmd);
+  }
   bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
   {
+    if(flags & DrawFlags::PassBoundary)
+      return false;
     return PostDraw(eid, cmd);
   }
   void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
   {
+    if(flags & DrawFlags::PassBoundary)
+      return;
     PostRedraw(eid, cmd);
   }
 
@@ -547,13 +556,22 @@ struct VulkanKHRCallback : public VulkanDrawcallCallback
   void PreDispatch(uint32_t eid, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) override { return PostDraw(eid, cmd); }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) override { PostRedraw(eid, cmd); }
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
+  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  {
+    if(flags & DrawFlags::PassBoundary)
+      return;
+    PreDraw(eid, cmd);
+  }
   bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
   {
+    if(flags & DrawFlags::PassBoundary)
+      return false;
     return PostDraw(eid, cmd);
   }
   void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
   {
+    if(flags & DrawFlags::PassBoundary)
+      return;
     PostRedraw(eid, cmd);
   }
   void AliasEvent(uint32_t primary, uint32_t alias) override
@@ -740,13 +758,22 @@ struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
   void PreDispatch(uint32_t eid, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
   bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) override { return PostDraw(eid, cmd); }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) override { PostRedraw(eid, cmd); }
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override { PreDraw(eid, cmd); }
+  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
+  {
+    if(flags & DrawFlags::PassBoundary)
+      return;
+    PreDraw(eid, cmd);
+  }
   bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
   {
+    if(flags & DrawFlags::PassBoundary)
+      return false;
     return PostDraw(eid, cmd);
   }
   void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) override
   {
+    if(flags & DrawFlags::PassBoundary)
+      return;
     PostRedraw(eid, cmd);
   }
   void AliasEvent(uint32_t primary, uint32_t alias) override

@@ -1303,7 +1303,16 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
           DoPipelineBarrier(commandBuffer, imgBarriers.size(), imgBarriers.data());
         }
 
+        DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::BeginPass;
+        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
+
         ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &unwrappedInfo, contents);
+
+        if(eventId && m_DrawcallCallback->PostMisc(eventId, drawFlags, commandBuffer))
+        {
+          // Do not call vkCmdBeginRenderPass again.
+          m_DrawcallCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+        }
 
         ResourceId cmd = GetResID(commandBuffer);
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -1346,6 +1355,22 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
           for(size_t i = 0; i < fbinfo.attachments.size(); i++)
             m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
                 GetResID(attachmentsInfo->pAttachments[i]);
+        }
+      }
+
+      // Record image usage for images cleared in the beginning of the render pass.
+      const VulkanCreationInfo::RenderPass &rpinfo =
+          m_CreationInfo.m_RenderPass[GetResID(RenderPassBegin.renderPass)];
+      const rdcarray<ResourceId> &fbattachments =
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments;
+      for(size_t i = 0; i < rpinfo.attachments.size(); i++)
+      {
+        if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+        {
+          ResourceId image = m_CreationInfo.m_ImageView[fbattachments[i]].image;
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
+              image,
+              EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Clear)));
         }
       }
 
@@ -1478,7 +1503,16 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
         if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
           m_RenderState.subpass++;
 
+        DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::BeginPass | DrawFlags::EndPass;
+        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
+
         ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), contents);
+
+        if(eventId && m_DrawcallCallback->PostMisc(eventId, drawFlags, commandBuffer))
+        {
+          // Do not call vkCmdNextSubpass again.
+          m_DrawcallCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+        }
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
@@ -1565,7 +1599,16 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
           m_Partial[Primary].renderPassActive = false;
         }
 
+        DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::EndPass;
+        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
+
         ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
+
+        if(eventId && m_DrawcallCallback->PostMisc(eventId, drawFlags, commandBuffer))
+        {
+          // Do not call vkCmdEndRenderPass again.
+          m_DrawcallCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+        }
 
         ResourceId cmd = GetResID(commandBuffer);
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -1737,8 +1780,17 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
           DoPipelineBarrier(commandBuffer, imgBarriers.size(), imgBarriers.data());
         }
 
+        DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::BeginPass;
+        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
+
         ObjDisp(commandBuffer)
             ->CmdBeginRenderPass2(Unwrap(commandBuffer), &unwrappedInfo, &unwrappedBeginInfo);
+
+        if(eventId && m_DrawcallCallback->PostMisc(eventId, drawFlags, commandBuffer))
+        {
+          // Do not call vkCmdBeginRenderPass2 again.
+          m_DrawcallCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+        }
 
         ResourceId cmd = GetResID(commandBuffer);
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -1782,6 +1834,22 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
           for(size_t i = 0; i < fbinfo.attachments.size(); i++)
             m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
                 GetResID(attachmentsInfo->pAttachments[i]);
+        }
+      }
+
+      // Record image usage for images cleared in the beginning of the render pass.
+      const VulkanCreationInfo::RenderPass &rpinfo =
+          m_CreationInfo.m_RenderPass[GetResID(RenderPassBegin.renderPass)];
+      const rdcarray<ResourceId> &fbattachments =
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments;
+      for(size_t i = 0; i < rpinfo.attachments.size(); i++)
+      {
+        if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+        {
+          ResourceId image = m_CreationInfo.m_ImageView[fbattachments[i]].image;
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
+              image,
+              EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Clear)));
         }
       }
 
@@ -1930,8 +1998,17 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2(SerialiserType &ser, VkCommandBu
         if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
           m_RenderState.subpass++;
 
+        DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::BeginPass | DrawFlags::EndPass;
+        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
+
         ObjDisp(commandBuffer)
             ->CmdNextSubpass2(Unwrap(commandBuffer), &unwrappedBeginInfo, &unwrappedEndInfo);
+
+        if(eventId && m_DrawcallCallback->PostMisc(eventId, drawFlags, commandBuffer))
+        {
+          // Do not call vkCmdNextSubpass2 again.
+          m_DrawcallCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+        }
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
@@ -2039,7 +2116,15 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
           m_Partial[Primary].renderPassActive = false;
         }
 
+        DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::EndPass;
+        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
         ObjDisp(commandBuffer)->CmdEndRenderPass2(Unwrap(commandBuffer), &unwrappedEndInfo);
+
+        if(eventId && m_DrawcallCallback->PostMisc(eventId, drawFlags, commandBuffer))
+        {
+          // Do not call vkCmdEndRenderPass2 again.
+          m_DrawcallCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+        }
 
         ResourceId cmd = GetResID(commandBuffer);
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
