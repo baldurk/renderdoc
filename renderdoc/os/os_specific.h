@@ -343,7 +343,7 @@ inline bool WriteAll(const char *filename, const void *buffer, size_t size)
 template <typename T>
 bool WriteAll(const char *filename, const rdcarray<T> &buffer)
 {
-  return WriteAll(filename, buffer.data(), buffer.size());
+  return WriteAll(filename, buffer.data(), buffer.size() * sizeof(T));
 }
 
 template <typename T>
