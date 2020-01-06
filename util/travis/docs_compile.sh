@@ -1,11 +1,8 @@
 #!/bin/sh
 
-# ignore "error" codes in the env script below
-set +e
-
-. /opt/qt56/bin/qt56-env.sh
-
 set -ev
+
+export QT_SELECT=qt5
 
 mkdir build
 pushd build

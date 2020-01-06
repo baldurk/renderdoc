@@ -1,12 +1,10 @@
 #!/bin/sh
 set -ev
 
-sudo add-apt-repository -y 'ppa:ubuntu-toolchain-r/test'
-sudo add-apt-repository -y 'ppa:beineri/opt-qt562-trusty'
-sudo add-apt-repository -y 'deb http://apt.llvm.org/precise/ llvm-toolchain-precise-3.8 main'
 wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+sudo add-apt-repository -y 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-3.8 main'
 sudo apt-get update -qq 
-sudo apt-get install --allow-unauthenticated -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qt56base qt56svg qt56x11extras libxcb-keysyms1-dev gdb clang-format-3.8 g++-6
+sudo apt-get install --allow-unauthenticated -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qtbase5-dev libqt5svg5-dev libqt5x11extras5-dev libxcb-keysyms1-dev gdb clang-format-3.8 clang++-3.8 g++-5
 
 # check last 100 commits are all correctly sized. First line must be no
 # longer than 72 characters, so it fits in git log and github history

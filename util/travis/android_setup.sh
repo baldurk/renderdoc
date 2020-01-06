@@ -2,7 +2,7 @@
 set -ev
 
 sudo apt-get -qq update
-sudo apt-get install -y cmake
+sudo apt-get install -y cmake openjdk-8-jdk
 
 export ARCH=`uname -m`
 
@@ -12,7 +12,7 @@ wget http://dl.google.com/android/repository/android-ndk-r14b-linux-${ARCH}.zip
 unzip -u -q android-ndk-r14b-linux-${ARCH}.zip
 unzip -u -q sdk-tools-linux-3859397.zip
 
-export JAVA_HOME="/usr/lib/jvm/java-8-oracle"
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 export ANDROID_NDK=$TRAVIS_BUILD_DIR/android-ndk-r14b
 export ANDROID_SDK=$TRAVIS_BUILD_DIR
 
