@@ -5,7 +5,7 @@ branches:
   - v1.x
   - ci-test
 
-image: Visual Studio 2017
+image: Visual Studio 2019
 
 environment:
   coverity_token:
@@ -33,6 +33,11 @@ environment:
     - platform: x64
       configuration: Development
       TOOLSET: v141
+
+    # VS2019 x64 Development
+    - platform: x64
+      configuration: Development
+      TOOLSET: v142
 
 clone_depth: 50
 
