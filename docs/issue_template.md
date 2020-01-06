@@ -1,6 +1,6 @@
-<!-- IF YOU DO NOT FOLLOW THE GUIDELINES, OR DO NOT USE THE TEMPLATE BELOW, YOUR ISSUE WILL BE CLOSED!
+<!-- IF YOU DO NOT FOLLOW THE GUIDELINES, OR DO NOT USE THE TEMPLATE BELOW, YOUR ISSUE WILL BE CLOSED! THIS APPLIES FOR BUG REPORTS AND FEATURE REQUESTS, NO EXCEPTIONS!
 
-The template below shows what you need to include in a good bug report, and you must use it. More information is available in the documentation: https://github.com/baldurk/renderdoc/blob/v1.x/docs/CONTRIBUTING/Filing-Issues.md
+The template below shows what you need to include in a good bug report, and you must use it. Feature requests don't need to include 'steps to reproduce' but the description and environment provide good context. More information is available in the documentation: https://github.com/baldurk/renderdoc/blob/v1.x/docs/CONTRIBUTING/Filing-Issues.md
 
 I'm happy to help, but you have to ensure I fully understand what you want and have the information I need. If you're unsure, please read the guide above for full information on what is expected for filing issues. -->
 
@@ -30,6 +30,6 @@ If you are able to share a capture, or your application, PLEASE DO THAT NOW beca
 
 * RenderDoc version: XXX
 * Operating System: XXX
-* API: XXX
+* Graphics API: XXX
 
 <!-- More details here never hurt! For example your GPU, driver version, etc. -->
