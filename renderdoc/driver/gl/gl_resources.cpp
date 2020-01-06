@@ -987,6 +987,10 @@ rdcstr GetTextureCompleteStatus(GLenum target, GLuint tex, GLuint sampler)
   // if we have a linear filter, check for non-filterable formats
   if(!ret.isEmpty())
   {
+    // all compressed formats are filterable
+    if(IsCompressedFormat(levelBaseFormat))
+      return rdcstr();
+
     // [RULE_13]
     if(IsUIntFormat(levelBaseFormat) || IsSIntFormat(levelBaseFormat))
     {
