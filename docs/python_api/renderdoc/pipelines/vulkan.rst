@@ -8,6 +8,7 @@ Vulkan Pipeline State
   :undoc-members:
 
 .. automodule:: renderdoc
+  :noindex:
   :members:
   :undoc-members:
   :imported-members:

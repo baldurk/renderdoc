@@ -1,7 +1,10 @@
 Enums and Data Structures
 =========================
 
+.. currentmodule:: renderdoc
+
 .. automodule:: renderdoc
+  :noindex:
   :members:
   :undoc-members:
   :imported-members:

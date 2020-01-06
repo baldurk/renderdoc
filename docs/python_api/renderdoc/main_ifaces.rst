@@ -3,7 +3,7 @@ Primary Interfaces
 
 .. contents::
 
-.. module:: renderdoc
+.. currentmodule:: renderdoc
 
 ReplayController
 ----------------
