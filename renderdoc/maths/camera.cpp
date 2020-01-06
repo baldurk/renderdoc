@@ -53,7 +53,7 @@ void Camera::RotateArcball(float ax, float ay, float bx, float by)
 
   if(az < 1.0f)
   {
-    a = Vec3f(from.x, from.y, sqrt(1.0f - az));
+    a = Vec3f(from.x, from.y, sqrtf(1.0f - az));
   }
   else
   {
@@ -63,7 +63,7 @@ void Camera::RotateArcball(float ax, float ay, float bx, float by)
 
   if(bz < 1.0f)
   {
-    b = Vec3f(to.x, to.y, sqrt(1.0f - bz));
+    b = Vec3f(to.x, to.y, sqrtf(1.0f - bz));
   }
   else
   {

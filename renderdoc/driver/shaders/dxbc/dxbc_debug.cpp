@@ -2036,33 +2036,34 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
     }
     case OPCODE_FRC:
       s.SetDst(op.operands[0], op,
-               ShaderVariable("", srcOpers[0].value.f.x - floor(srcOpers[0].value.f.x),
-                              srcOpers[0].value.f.y - floor(srcOpers[0].value.f.y),
-                              srcOpers[0].value.f.z - floor(srcOpers[0].value.f.z),
-                              srcOpers[0].value.f.w - floor(srcOpers[0].value.f.w)));
+               ShaderVariable("", srcOpers[0].value.f.x - floorf(srcOpers[0].value.f.x),
+                              srcOpers[0].value.f.y - floorf(srcOpers[0].value.f.y),
+                              srcOpers[0].value.f.z - floorf(srcOpers[0].value.f.z),
+                              srcOpers[0].value.f.w - floorf(srcOpers[0].value.f.w)));
       break;
     // positive infinity
     case OPCODE_ROUND_PI:
       s.SetDst(op.operands[0], op,
-               ShaderVariable("", ceil(srcOpers[0].value.f.x), ceil(srcOpers[0].value.f.y),
-                              ceil(srcOpers[0].value.f.z), ceil(srcOpers[0].value.f.w)));
+               ShaderVariable("", ceilf(srcOpers[0].value.f.x), ceilf(srcOpers[0].value.f.y),
+                              ceilf(srcOpers[0].value.f.z), ceilf(srcOpers[0].value.f.w)));
       break;
     // negative infinity
     case OPCODE_ROUND_NI:
       s.SetDst(op.operands[0], op,
-               ShaderVariable("", floor(srcOpers[0].value.f.x), floor(srcOpers[0].value.f.y),
-                              floor(srcOpers[0].value.f.z), floor(srcOpers[0].value.f.w)));
+               ShaderVariable("", floorf(srcOpers[0].value.f.x), floorf(srcOpers[0].value.f.y),
+                              floorf(srcOpers[0].value.f.z), floorf(srcOpers[0].value.f.w)));
       break;
     // towards zero
     case OPCODE_ROUND_Z:
-      s.SetDst(
-          op.operands[0], op,
-          ShaderVariable(
-              "",
-              srcOpers[0].value.f.x < 0 ? ceil(srcOpers[0].value.f.x) : floor(srcOpers[0].value.f.x),
-              srcOpers[0].value.f.y < 0 ? ceil(srcOpers[0].value.f.y) : floor(srcOpers[0].value.f.y),
-              srcOpers[0].value.f.z < 0 ? ceil(srcOpers[0].value.f.z) : floor(srcOpers[0].value.f.z),
-              srcOpers[0].value.f.w < 0 ? ceil(srcOpers[0].value.f.w) : floor(srcOpers[0].value.f.w)));
+      s.SetDst(op.operands[0], op,
+               ShaderVariable("", srcOpers[0].value.f.x < 0 ? ceilf(srcOpers[0].value.f.x)
+                                                            : floorf(srcOpers[0].value.f.x),
+                              srcOpers[0].value.f.y < 0 ? ceilf(srcOpers[0].value.f.y)
+                                                        : floorf(srcOpers[0].value.f.y),
+                              srcOpers[0].value.f.z < 0 ? ceilf(srcOpers[0].value.f.z)
+                                                        : floorf(srcOpers[0].value.f.z),
+                              srcOpers[0].value.f.w < 0 ? ceilf(srcOpers[0].value.f.w)
+                                                        : floorf(srcOpers[0].value.f.w)));
       break;
     // to nearest even int (banker's rounding)
     case OPCODE_ROUND_NE:

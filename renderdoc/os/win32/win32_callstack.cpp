@@ -41,6 +41,8 @@
 
 #include "dia2_stubs.h"
 
+#include <string>
+
 struct AddrInfo
 {
   rdcstr funcName;
@@ -780,7 +782,10 @@ Win32CallstackResolver::Win32CallstackResolver(byte *moduleDB, size_t DBSize,
       const wchar_t *DIApaths[] = {
           // try to see if it's just in the PATH somewhere
           L"msdia140.dll",
-          // otherwise try each VS2017 SKU
+          // otherwise try each VS2017/2019 SKU
+          L"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\DIA SDK\\" DIA140,
+          L"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\DIA SDK\\" DIA140,
+          L"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\DIA SDK\\" DIA140,
           L"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\DIA SDK\\" DIA140,
           L"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Enterprise\\DIA SDK\\" DIA140,
           L"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Professional\\DIA SDK\\" DIA140,

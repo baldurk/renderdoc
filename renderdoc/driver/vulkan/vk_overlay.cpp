@@ -991,7 +991,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
       if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_AMD_negative_viewport_height ||
          m_pDriver->GetExtensions(GetRecord(m_Device)).ext_KHR_maintenance1)
       {
-        ubo->RectSize.y = fabs(viewport.height);
+        ubo->RectSize.y = fabsf(viewport.height);
 
         // VK_KHR_maintenance1 requires the position to be adjusted as well
         if(m_pDriver->GetExtensions(GetRecord(m_Device)).ext_KHR_maintenance1 &&

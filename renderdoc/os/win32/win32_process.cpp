@@ -34,6 +34,8 @@
 #include "os/os_specific.h"
 #include "strings/string_utils.h"
 
+#include <string>
+
 static rdcarray<EnvironmentModification> &GetEnvModifications()
 {
   static rdcarray<EnvironmentModification> envCallbacks;
