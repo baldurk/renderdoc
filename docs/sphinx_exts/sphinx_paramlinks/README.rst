@@ -102,7 +102,3 @@ Python role, but could also be expanded to support other Python role
 elements such as ``:returns:``, ``:raises:``, etc., and perhaps also
 could be made to support similar features in other roles.
 
-Another area that's not addressed at all is search.   While the params here
-are linked, these objects are currently not part of the search index Sphinx
-creates in any usable way.   I don't know what would be involved to make that
-work.

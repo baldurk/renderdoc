@@ -12,8 +12,11 @@ from sphinx import __version__
 # the searchindex.js system relies upon the object types
 # in the PythonDomain to create search entries
 from sphinx.domains import ObjType
+from sphinx.util import logging
 
 PythonDomain.object_types['parameter'] = ObjType('parameter', 'param')
+
+LOG = logging.getLogger(__name__)
 
 
 def _is_html(app):
@@ -57,7 +60,15 @@ def autodoc_process_docstring(app, what, name, obj, options, lines):
             doc_idx.append(item)
             return ":param %s_sphinx_paramlinks_%s.%s:" % (
                 modifier, objname, paramname)
-        return re.sub(r'^:param ([^:]+? )?([^:]+?):', cvt, line)
+        
+        def secondary_cvt(m):
+            modifier, objname, paramname = m.group(1) or '', name, m.group(2)
+            return ":type %s_sphinx_paramlinks_%s.%s:" % (
+                modifier, objname, paramname)
+        
+        line = re.sub(r'^:param ([^:]+? )?([^:]+?):', cvt, line)
+        line = re.sub(r'^:type ([^:]+? )?([^:]+?):', secondary_cvt, line)
+        return line
 
     if what in ('function', 'method', 'class'):
         lines[:] = [_cvt_param(name, line) for line in lines]
@@ -200,12 +211,12 @@ def add_stylesheet(app):
 
 
 def copy_stylesheet(app, exception):
-    app.info(
+    LOG.info(
         bold('The name of the builder is: %s' % app.builder.name), nonl=True)
 
     if not _is_html(app) or exception:
         return
-    app.info(bold('Copying sphinx_paramlinks stylesheet... '), nonl=True)
+    LOG.info(bold('Copying sphinx_paramlinks stylesheet... '), nonl=True)
 
     source = os.path.abspath(os.path.dirname(__file__))
 
@@ -215,7 +226,7 @@ def copy_stylesheet(app, exception):
     # give it the path to a .css file and it does the right thing.
     dest = os.path.join(app.builder.outdir, '_static', 'sphinx_paramlinks.css')
     copyfile(os.path.join(source, "sphinx_paramlinks.css"), dest)
-    app.info('done')
+    LOG.info('done')
 
 
 def build_index(app, doctree):
