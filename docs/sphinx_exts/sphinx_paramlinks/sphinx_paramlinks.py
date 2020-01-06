@@ -16,7 +16,10 @@ from sphinx.util import logging
 
 PythonDomain.object_types['parameter'] = ObjType('parameter', 'param')
 
-LOG = logging.getLogger(__name__)
+if 'getLogger' in logging.__dir__():
+    LOG = logging.getLogger(__name__)
+else:
+    LOG = None
 
 
 def _is_html(app):
@@ -211,12 +214,16 @@ def add_stylesheet(app):
 
 
 def copy_stylesheet(app, exception):
-    LOG.info(
-        bold('The name of the builder is: %s' % app.builder.name), nonl=True)
+    logger = LOG
+    if logger is None:
+        logger = app
+    logger.info(
+            bold('The name of the builder is: %s' % app.builder.name), nonl=True)
 
     if not _is_html(app) or exception:
         return
-    LOG.info(bold('Copying sphinx_paramlinks stylesheet... '), nonl=True)
+
+    logger.info(bold('Copying sphinx_paramlinks stylesheet... '), nonl=True)
 
     source = os.path.abspath(os.path.dirname(__file__))
 
@@ -226,7 +233,8 @@ def copy_stylesheet(app, exception):
     # give it the path to a .css file and it does the right thing.
     dest = os.path.join(app.builder.outdir, '_static', 'sphinx_paramlinks.css')
     copyfile(os.path.join(source, "sphinx_paramlinks.css"), dest)
-    LOG.info('done')
+
+    logger.info('done')
 
 
 def build_index(app, doctree):
