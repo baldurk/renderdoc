@@ -8360,6 +8360,10 @@ void DoSerialise(SerialiserType &ser, VkWin32KeyedMutexAcquireReleaseInfoNV &el)
             el.sType == VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV);
   SerialiseNext(ser, el.sType, el.pNext);
 
+  // resources here are optional because we don't take references on the memory as we don't replay
+  // the win32 mutexes
+  OPTIONAL_RESOURCES();
+
   SERIALISE_MEMBER(acquireCount);
   SERIALISE_MEMBER_ARRAY(pAcquireSyncs, acquireCount);
   SERIALISE_MEMBER_ARRAY(pAcquireKeys, acquireCount);
