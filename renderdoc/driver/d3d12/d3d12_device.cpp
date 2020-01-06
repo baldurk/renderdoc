@@ -3441,7 +3441,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
   // ensure all UAV writes have finished before subsequent work
   ID3D12GraphicsCommandList *list = GetNewList();
   {
-    rdcwstr text = StringFormat::UTF82Wide(AMDRGPControl::GetBeginMarker());
+    rdcwstr text = StringFormat::UTF82Wide(AMDRGPControl::GetEndMarker());
     UINT size = (UINT)text.length() * sizeof(wchar_t);
     list->SetMarker(0, text.c_str(), size);
   }
