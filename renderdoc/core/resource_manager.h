@@ -103,6 +103,11 @@ enum FrameRefType
   // read could, incorrectly, be observed. This is because read-only resources
   // are not reset, so the write from the previous replay may still be present.
   eFrameRef_WriteBeforeRead = 5,
+
+  // No reference info is available;
+  // This should only appear durring replay, and any (sub)resource with `Unknown`
+  // reference type should be conservatively reset before each replay.
+  eFrameRef_Unknown = 1000000000,
 };
 
 bool IncludesRead(FrameRefType refType);
@@ -134,6 +139,9 @@ FrameRefType ComposeFrameRefsUnordered(FrameRefType first, FrameRefType second);
 // This is used to compute the overall frame ref for images/memory from the
 // frame refs of their subresources.
 FrameRefType ComposeFrameRefsDisjoint(FrameRefType x, FrameRefType y);
+
+// Returns whichever of `first` or `second` is valid.
+FrameRefType ComposeFrameRefsFirstKnown(FrameRefType first, FrameRefType second);
 
 bool IsDirtyFrameRef(FrameRefType refType);
 
@@ -200,6 +208,8 @@ enum InitPolicy
 // Return the initialization/reset requirements for a FrameRefType
 inline InitReqType InitReq(FrameRefType refType, InitPolicy policy, bool initialized)
 {
+  if(eFrameRef_Minimum > refType || refType > eFrameRef_Maximum)
+    return eInitReq_Copy;
 #define COPY_ONCE (initialized ? eInitReq_None : eInitReq_Copy)
 #define CLEAR_ONCE (initialized ? eInitReq_None : eInitReq_Clear)
   switch(policy)

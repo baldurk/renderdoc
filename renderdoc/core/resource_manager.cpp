@@ -125,6 +125,14 @@ FrameRefType ComposeFrameRefsDisjoint(FrameRefType x, FrameRefType y)
     return RDCMAX(x, y);
 }
 
+FrameRefType ComposeFrameRefsFirstKnown(FrameRefType first, FrameRefType second)
+{
+  if(eFrameRef_Minimum <= first && first <= eFrameRef_Maximum)
+    return first;
+  else
+    return second;
+}
+
 bool IncludesRead(FrameRefType refType)
 {
   switch(refType)
