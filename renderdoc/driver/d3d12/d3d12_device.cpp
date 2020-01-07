@@ -1868,6 +1868,16 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
     SCOPED_WRITELOCK(m_CapTransitionLock);
     EndCaptureFrame();
 
+    queues = m_Queues;
+
+    bool ContainsExecuteIndirect = false;
+
+    for(auto it = queues.begin(); it != queues.end(); ++it)
+      ContainsExecuteIndirect |= (*it)->GetResourceRecord()->ContainsExecuteIndirect;
+
+    if(ContainsExecuteIndirect)
+      WrappedID3D12Resource1::RefBuffers(GetResourceManager());
+
     m_State = CaptureState::BackgroundCapturing;
 
     GPUSync();
@@ -1877,12 +1887,6 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
       for(auto it = m_Maps.begin(); it != m_Maps.end(); ++it)
         GetWrapped(it->res)->FreeShadow();
     }
-
-    queues = m_Queues;
-
-    for(auto it = queues.begin(); it != queues.end(); ++it)
-      if((*it)->GetResourceRecord()->ContainsExecuteIndirect)
-        WrappedID3D12Resource1::RefBuffers(GetResourceManager());
   }
 
   const uint32_t maxSize = 2048;
