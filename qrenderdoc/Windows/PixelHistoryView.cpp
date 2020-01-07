@@ -42,8 +42,8 @@ class PixelHistoryItemModel : public QAbstractItemModel
 {
 public:
   PixelHistoryItemModel(ICaptureContext &ctx, ResourceId tex, const TextureDisplay &display,
-                        QObject *parent)
-      : QAbstractItemModel(parent), m_Ctx(ctx)
+                        const QPalette &palette, QObject *parent)
+      : QAbstractItemModel(parent), m_Ctx(ctx), m_Palette(palette)
   {
     m_Tex = m_Ctx.GetTexture(tex);
     m_Display = display;
@@ -367,6 +367,23 @@ public:
         }
       }
 
+      // Since we change the background color for some cells, also change the foreground color to
+      // ensure contrast with all UI themes
+      if(role == Qt::ForegroundRole && (col == 0 || col == 1 || col == 3))
+      {
+        QColor textColor =
+            contrastingColor(QColor::fromRgb(235, 235, 235), m_Palette.color(QPalette::Text));
+        if(isEvent(index))
+        {
+          return QBrush(textColor);
+        }
+        else
+        {
+          if(getMod(index).shaderDiscarded)
+            return QBrush(textColor);
+        }
+      }
+
       if(role == Qt::UserRole)
       {
         EventTag tag;
@@ -403,6 +420,8 @@ private:
   bool m_Loading = true;
   QVector<QList<PixelModification>> m_History;
   QVector<PixelModification> m_ModList;
+
+  const QPalette &m_Palette;
 
   // mask for top bit of quintptr
   static const quintptr eventTagMask = 1ULL << (Q_PROCESSOR_WORDSIZE * 8 - 1);
@@ -610,7 +629,7 @@ PixelHistoryView::PixelHistoryView(ICaptureContext &ctx, ResourceId id, QPoint p
 
   ui->eventsHidden->setVisible(false);
 
-  m_Model = new PixelHistoryItemModel(ctx, id, display, this);
+  m_Model = new PixelHistoryItemModel(ctx, id, display, palette(), this);
   ui->events->setModel(m_Model);
 
   ui->events->hideBranches();
