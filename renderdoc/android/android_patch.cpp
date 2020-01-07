@@ -223,7 +223,10 @@ rdcstr GetAndroidDebugKey()
   Process::ProcessResult result = execCommand(keytool, create);
 
   if(!result.strStderror.empty())
+  {
     RDCERR("Failed to create debug key");
+    return "";
+  }
 
   return key;
 }
@@ -236,6 +239,9 @@ bool DebugSignAPK(const rdcstr &apk, const rdcstr &workDir)
   rdcstr apksigner = getToolPath(ToolDir::BuildToolsLib, "apksigner.jar", false);
 
   rdcstr debugKey = GetAndroidDebugKey();
+
+  if(debugKey.empty())
+    return false;
 
   rdcstr args;
   args += " sign ";
