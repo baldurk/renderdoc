@@ -784,6 +784,7 @@ int RESearch::Execute(CharacterIndexer &ci, int lp, int endp) {
 			lp++;
 		if (lp >= endp)	/* if EOS, fail, else fall through. */
 			return 0;
+		// Falls through.
 	default:			/* regular matching all the way. */
 		while (lp < endp) {
 			ep = PMatch(ci, lp, endp, ap);
