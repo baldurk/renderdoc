@@ -3002,7 +3002,7 @@ void MainWindow::showLaunchError(ReplayStatus status)
     case ReplayStatus::AndroidAPKInstallFailed:
       message =
           tr("Couldn't install APK, please check that your device is connected and accessible to "
-             "adb.");
+             "adb, and that installing APKs over USB is allowed.");
       break;
     case ReplayStatus::AndroidAPKVerifyFailed:
       message =
