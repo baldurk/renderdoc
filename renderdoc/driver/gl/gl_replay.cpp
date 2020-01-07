@@ -479,7 +479,8 @@ void GLReplay::CacheTexture(ResourceId id)
         tex.creationFlags |= TextureCategory::DepthTarget;
     }
 
-    tex.byteSize = (tex.width * tex.height) * (tex.format.compByteWidth * tex.format.compCount);
+    tex.byteSize =
+        (tex.width * tex.height) * (tex.format.compByteWidth * tex.format.compCount) * tex.msSamp;
 
     m_CachedTextures[id] = tex;
     return;
@@ -644,31 +645,31 @@ void GLReplay::CacheTexture(ResourceId id)
   drv.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_COMPRESSED,
                                       &compressed);
   tex.byteSize = 0;
-  for(uint32_t a = 0; a < tex.arraysize; a++)
+  for(uint32_t m = 0; m < tex.mips; m++)
   {
-    for(uint32_t m = 0; m < tex.mips; m++)
+    if(fmt == eGL_NONE)
     {
-      if(fmt == eGL_NONE)
-      {
-      }
-      else if(compressed)
-      {
-        tex.byteSize += (uint64_t)GetCompressedByteSize(
-            RDCMAX(1U, tex.width >> m), RDCMAX(1U, tex.height >> m), 1, (GLenum)fmt);
-      }
-      else if(tex.format.Special())
-      {
-        tex.byteSize += GetByteSize(RDCMAX(1U, tex.width >> m), RDCMAX(1U, tex.height >> m),
-                                    RDCMAX(1U, tex.depth >> m), GetBaseFormat((GLenum)fmt),
-                                    GetDataType((GLenum)fmt));
-      }
-      else
-      {
-        tex.byteSize += RDCMAX(1U, tex.width >> m) * RDCMAX(1U, tex.height >> m) *
-                        RDCMAX(1U, tex.depth >> m) * tex.format.compByteWidth * tex.format.compCount;
-      }
+    }
+    else if(compressed)
+    {
+      tex.byteSize += (uint64_t)GetCompressedByteSize(RDCMAX(1U, tex.width >> m),
+                                                      RDCMAX(1U, tex.height >> m), 1, (GLenum)fmt);
+    }
+    else if(tex.format.Special())
+    {
+      tex.byteSize += GetByteSize(RDCMAX(1U, tex.width >> m), RDCMAX(1U, tex.height >> m),
+                                  RDCMAX(1U, tex.depth >> m), GetBaseFormat((GLenum)fmt),
+                                  GetDataType((GLenum)fmt));
+    }
+    else
+    {
+      tex.byteSize += RDCMAX(1U, tex.width >> m) * RDCMAX(1U, tex.height >> m) *
+                      RDCMAX(1U, tex.depth >> m) * tex.format.compByteWidth * tex.format.compCount;
     }
   }
+
+  tex.byteSize *= tex.arraysize;
+  tex.byteSize *= tex.msSamp;
 
   m_CachedTextures[id] = tex;
 }

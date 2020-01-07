@@ -398,6 +398,7 @@ TextureDescription D3D12Replay::GetTexture(ResourceId id)
   for(uint32_t i = 0; i < ret.mips; i++)
     ret.byteSize += GetByteSize(ret.width, ret.height, ret.depth, desc.Format, i);
   ret.byteSize *= ret.arraysize;
+  ret.byteSize *= ret.msSamp;
 
   switch(ret.dimension)
   {

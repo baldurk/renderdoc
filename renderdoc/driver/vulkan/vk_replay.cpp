@@ -351,6 +351,8 @@ TextureDescription VulkanReplay::GetTexture(ResourceId id)
   ret.msQual = 0;
   ret.msSamp = RDCMAX(1U, (uint32_t)iminfo.samples);
 
+  ret.byteSize *= ret.msSamp;
+
   ret.format = MakeResourceFormat(iminfo.format);
 
   switch(iminfo.type)

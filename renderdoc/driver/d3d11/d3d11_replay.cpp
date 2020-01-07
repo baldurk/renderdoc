@@ -362,6 +362,7 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
     tex.byteSize = 0;
     for(uint32_t s = 0; s < tex.arraysize * tex.mips; s++)
       tex.byteSize += GetByteSize(d3dtex, s);
+    tex.byteSize *= tex.msSamp;
 
     return tex;
   }
