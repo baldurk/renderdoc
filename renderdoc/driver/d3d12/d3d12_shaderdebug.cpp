@@ -593,7 +593,7 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   // Create VS/PS to fetch the sample
   ID3DBlob *vsBlob = NULL;
   ID3DBlob *psBlob = NULL;
-  UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG_NAME_FOR_SOURCE;
+  UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS;
   if(m_pDevice->GetShaderCache()->GetShaderBlob(vsProgram.c_str(), "main", flags, "vs_5_0",
                                                 &vsBlob) != "")
   {
@@ -1171,7 +1171,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
   // Create pixel shader to get initial values from previous stage output
   ID3DBlob *psBlob = NULL;
-  UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG_NAME_FOR_SOURCE;
+  UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS;
   if(m_pDevice->GetShaderCache()->GetShaderBlob(extractHlsl.c_str(), "ExtractInputsPS", flags,
                                                 "ps_5_0", &psBlob) != "")
   {

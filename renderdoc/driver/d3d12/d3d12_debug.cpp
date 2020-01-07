@@ -436,7 +436,7 @@ bool D3D12DebugManager::CreateMathIntrinsicsResources()
       "  }\n}\n";
 
   ID3DBlob *csBlob = NULL;
-  UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG_NAME_FOR_SOURCE;
+  UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS;
   if(m_pDevice->GetShaderCache()->GetShaderBlob(csProgram.c_str(), "main", flags, "cs_5_0",
                                                 &csBlob) != "")
   {
