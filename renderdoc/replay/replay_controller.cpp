@@ -1696,6 +1696,8 @@ rdcstr ReplayController::CreateRGPProfile(WindowingData window)
 
   rdcstr path = FileIO::GetTempFolderFilename() + "/renderdoc_rgp_capture.rgp";
 
+  FileIO::Delete(path.c_str());
+
   ReplayOutput *output = CreateOutput(window, ReplayOutputType::Texture);
 
   TextureDisplay d = {};
