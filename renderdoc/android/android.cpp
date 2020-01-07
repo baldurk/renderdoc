@@ -258,17 +258,23 @@ ReplayStatus InstallRenderDocServer(const rdcstr &deviceID)
   rdcarray<rdcstr> paths;
 
 #if defined(RENDERDOC_APK_PATH)
-  string customPath(RENDERDOC_APK_PATH);
-  RDCLOG("Custom APK path: %s", customPath.c_str());
-
-  if(FileIO::IsRelativePath(customPath))
-    customPath = libDir + "/" + customPath;
-
-  if(customPath.back() != '/'))
-    customPath += '/';
-
-  paths.push_back(customPath);
+  rdcstr customPath(RENDERDOC_APK_PATH);
+#else
+  rdcstr customPath;
 #endif
+
+  if(!customPath.empty())
+  {
+    RDCLOG("Custom APK path: %s", customPath.c_str());
+
+    if(FileIO::IsRelativePath(customPath))
+      customPath = libDir + "/" + customPath;
+
+    if(customPath.back() != '/')
+      customPath += '/';
+
+    paths.push_back(customPath);
+  }
 
   rdcstr suff = GetPlainABIName(abis[0]);
 
