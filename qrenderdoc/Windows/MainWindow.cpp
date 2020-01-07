@@ -3003,6 +3003,7 @@ void MainWindow::showLaunchError(ReplayStatus status)
       message =
           tr("Couldn't install APK, please check that your device is connected and accessible to "
              "adb.");
+      break;
     case ReplayStatus::AndroidAPKVerifyFailed:
       message =
           tr("Couldn't correctly verify installed APK version.\n\n"
