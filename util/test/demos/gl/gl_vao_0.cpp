@@ -107,6 +107,13 @@ void main()
       float col[] = {0.4f, 0.5f, 0.6f, 1.0f};
       glClearBufferfv(GL_COLOR, 0, col);
 
+      // try to delete VAO 0. Should do nothing
+      GLuint zero = 0;
+      glDeleteVertexArrays(1, &zero);
+
+      // same with FBO 0
+      glDeleteFramebuffers(1, &zero);
+
       glUseProgram(program);
 
       // use both buffers
