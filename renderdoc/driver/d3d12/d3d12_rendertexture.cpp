@@ -476,7 +476,9 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
   else if(IsIntFormat(resourceDesc.Format))
     pixelData.OutputDisplayFormat |= TEXDISPLAY_SINT_TEX;
 
-  if(!IsSRGBFormat(resourceDesc.Format) && cfg.linearDisplayAsGamma)
+  // Check both the resource format and view format for sRGB
+  if(!IsSRGBFormat(resourceDesc.Format) && cfg.typeCast != CompType::UNormSRGB &&
+     cfg.linearDisplayAsGamma)
     pixelData.OutputDisplayFormat |= TEXDISPLAY_GAMMA_CURVE;
 
   Vec4u YUVDownsampleRate = {}, YUVAChannels = {};
