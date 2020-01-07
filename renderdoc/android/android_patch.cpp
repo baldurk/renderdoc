@@ -211,7 +211,7 @@ rdcstr GetAndroidDebugKey()
   create += " -genkey";
   create += " -keystore \"" + key + "\"";
   create += " -storepass android";
-  create += " -alias androiddebugkey";
+  create += " -alias rdocandroidkey";
   create += " -keypass android";
   create += " -keyalg RSA";
   create += " -keysize 2048";
@@ -242,7 +242,7 @@ bool DebugSignAPK(const rdcstr &apk, const rdcstr &workDir)
   args += " --ks \"" + debugKey + "\" ";
   args += " --ks-pass pass:android ";
   args += " --key-pass pass:android ";
-  args += " --ks-key-alias androiddebugkey ";
+  args += " --ks-key-alias rdocandroidkey ";
   args += "\"" + apk + "\"";
 
   if(!apksigner.contains(".jar"))
