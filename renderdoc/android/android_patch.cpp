@@ -200,11 +200,10 @@ rdcstr GetAndroidDebugKey()
   if(FileIO::exists(keystore.c_str()))
     return keystore;
 
-  // otherwise, see if we generated a temporary one
+  // otherwise, generate a temporary one
   rdcstr key = FileIO::GetTempFolderFilename() + keystoreName;
 
-  if(FileIO::exists(key.c_str()))
-    return key;
+  FileIO::Delete(key.c_str());
 
   // locate keytool and use it to generate a keystore
   rdcstr create;
@@ -220,15 +219,28 @@ rdcstr GetAndroidDebugKey()
 
   rdcstr keytool = getToolPath(ToolDir::Java, "keytool", false);
 
-  Process::ProcessResult result = execCommand(keytool, create);
+  Process::ProcessResult createResult = execCommand(keytool, create);
 
-  if(!result.strStderror.empty())
+  Process::ProcessResult verifyResult;
+
+  // if the keystore was created, check that the key we expect to be in it is there
+  if(FileIO::exists(key.c_str()))
   {
-    RDCERR("Failed to create debug key");
-    return "";
+    rdcstr verify;
+    verify += " -list";
+    verify += " -keystore \"" + key + "\"";
+    verify += " -storepass android";
+
+    verifyResult = execCommand(keytool, verify);
+
+    if(verifyResult.strStdout.contains("rdocandroidkey"))
+      return key;
   }
 
-  return key;
+  RDCERR("Failed to create debug key: %s\n%s\n%s\n%s", createResult.strStdout.c_str(),
+         createResult.strStderror.c_str(), verifyResult.strStdout.c_str(),
+         verifyResult.strStderror.c_str());
+  return "";
 }
 
 bool DebugSignAPK(const rdcstr &apk, const rdcstr &workDir)
