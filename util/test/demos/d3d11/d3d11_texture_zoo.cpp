@@ -300,7 +300,7 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
         src.replace(src.find("&params"), 7, "0");
 
       if(isStencilOut)
-        src.replace(src.find("&swizzle"), 8, "zyzz");
+        src.replace(src.find("&swizzle"), 8, "zyzz*float4(0,1,0,0)");
       else
         src.replace(src.find("&swizzle"), 8, "xyzw");
 

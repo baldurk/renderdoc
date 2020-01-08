@@ -35,7 +35,7 @@ RD_TEST(D3D12_Texture_Zoo, D3D12GraphicsTest)
 
 float4 main() : SV_Target0
 {
-	return intex.Load(&params);
+	return intex.Load(&params).&swizzle;
 }
 )EOSHADER";
 
@@ -270,9 +270,13 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
   {
     static std::map<uint32_t, ID3D12PipelineStatePtr> PSOs;
 
+    bool isStencilOut = (test.fmt.viewFmt == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT ||
+                         test.fmt.viewFmt == DXGI_FORMAT_X24_TYPELESS_G8_UINT);
+
     uint32_t key = uint32_t(test.fmt.cfg.data);
     key |= test.dim << 6;
     key |= test.isMSAA ? 0x80000 : 0;
+    key |= isStencilOut ? 0x100000 : 0;
 
     ID3D12PipelineStatePtr ret = PSOs[key];
     if(!ret)
@@ -297,6 +301,11 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
         src.replace(src.find("&params"), 7, "0, 0");
       else
         src.replace(src.find("&params"), 7, "0");
+
+      if(isStencilOut)
+        src.replace(src.find("&swizzle"), 8, "zyzz*float4(0,1,0,0)");
+      else
+        src.replace(src.find("&swizzle"), 8, "xyzw");
 
       ID3DBlobPtr psblob = Compile(src, "main", "ps_5_0");
       ret = PSOs[key] =
