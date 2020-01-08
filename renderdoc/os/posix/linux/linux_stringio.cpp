@@ -57,6 +57,7 @@ struct xcb_connection_t;
 #if ENABLED(RDOC_WAYLAND)
 #include <linux/input.h>
 #include <wayland-client.h>
+#include <map>
 #else
 struct wl_display;
 struct wl_surface;
