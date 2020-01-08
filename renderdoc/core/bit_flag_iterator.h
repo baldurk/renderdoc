@@ -45,5 +45,9 @@ public:
   }
   inline bool operator==(const BitFlagIterator &rhs) const { return flags == rhs.flags; }
   inline bool operator!=(const BitFlagIterator &rhs) const { return flags != rhs.flags; }
-  inline BitFlagIterator &operator=(const BitFlagIterator &rhs) { flags = rhs.flags; }
+  inline BitFlagIterator &operator=(const BitFlagIterator &rhs)
+  {
+    flags = rhs.flags;
+    return *this;
+  }
 };
