@@ -1,7 +1,6 @@
 import renderdoc as rd
 import rdtest
 import os
-import tkinter
 
 
 class D3D12_RGP_Capture(rdtest.TestCase):
@@ -18,6 +17,8 @@ class D3D12_RGP_Capture(rdtest.TestCase):
         if not apiprops.rgpCapture:
             rdtest.log.print("RGP capture not tested")
             return
+
+        import tkinter
 
         # On D3D12 we need to create a real window
         window = tkinter.Tk()
