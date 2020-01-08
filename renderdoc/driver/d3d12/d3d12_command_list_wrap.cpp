@@ -4243,8 +4243,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
 
       if(MaxCommandCount > 1 || comSig->sig.numDraws > 1)
         draw.flags |= DrawFlags::PushMarker;
-      else
-        draw.flags |= DrawFlags::SetMarker;
 
       m_Cmd->AddDrawcall(draw, true);
 

@@ -4763,7 +4763,7 @@ bool WrappedOpenGL::Serialise_glFlush(SerialiserType &ser)
 
       DrawcallDescription draw;
       draw.name = ToStr(gl_CurChunk) + "()";
-      draw.flags |= DrawFlags::SetMarker;
+      draw.flags |= DrawFlags::PassBoundary | DrawFlags::EndPass;
 
       AddDrawcall(draw, true);
     }
@@ -4803,7 +4803,7 @@ bool WrappedOpenGL::Serialise_glFinish(SerialiserType &ser)
 
       DrawcallDescription draw;
       draw.name = ToStr(gl_CurChunk) + "()";
-      draw.flags |= DrawFlags::SetMarker;
+      draw.flags |= DrawFlags::PassBoundary | DrawFlags::EndPass;
 
       AddDrawcall(draw, true);
     }

@@ -278,7 +278,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
           // add a fake marker
           DrawcallDescription draw;
           draw.name = name;
-          draw.flags |= DrawFlags::SetMarker;
+          draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass;
           AddEvent();
 
           m_RootEvents.back().chunkIndex = cmdBufInfo.beginChunk;
@@ -321,6 +321,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
           name = StringFormat::Fmt("=> %s[%u]: vkEndCommandBuffer(%s)", basename.c_str(), c,
                                    ToStr(cmd).c_str());
           draw.name = name;
+          draw.flags = DrawFlags::PassBoundary | DrawFlags::EndPass;
           AddEvent();
 
           m_RootEvents.back().chunkIndex = cmdBufInfo.endChunk;
