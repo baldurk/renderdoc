@@ -272,7 +272,8 @@ APIProperties D3D12Replay::GetAPIProperties()
   ret.vendor = m_DriverInfo.vendor;
   ret.degraded = false;
   ret.shadersMutable = false;
-  ret.rgpCapture = m_RGP != NULL && m_RGP->DriverSupportsInterop();
+  ret.rgpCapture =
+      m_DriverInfo.vendor == GPUVendor::AMD && m_RGP != NULL && m_RGP->DriverSupportsInterop();
 
   return ret;
 }
