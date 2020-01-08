@@ -225,9 +225,13 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
         SERIALISE_ELEMENT(path);
         SERIALISE_ELEMENT(buf);
         if(version >= 3)
+        {
           SERIALISE_ELEMENT(captures.back().driver);
+        }
         if(version >= 5)
+        {
           SERIALISE_ELEMENT(captures.back().frameNumber);
+        }
       }
     }
     else if(childprocs.size() != children.size())
@@ -740,7 +744,9 @@ public:
         SERIALISE_ELEMENT(msg.newCapture.path).Named("path"_lit);
         SERIALISE_ELEMENT(thumbnail);
         if(m_Version >= 3)
+        {
           SERIALISE_ELEMENT(driver);
+        }
         if(m_Version >= 5)
         {
           SERIALISE_ELEMENT(msg.newCapture.frameNumber);
