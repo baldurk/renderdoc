@@ -245,6 +245,24 @@ bool WrappedOpenGL::Check_SafeDraw(bool indexed)
 
           ret = false;
         }
+
+        GLint size = 0;
+        GL.glGetNamedBufferParameterivEXT(vb, eGL_BUFFER_SIZE, &size);
+
+        if(size == 0)
+        {
+          ResourceId id = GetResourceManager()->GetID(BufferRes(GetCtx(), vb));
+          AddDebugMessage(
+              MessageCategory::Undefined, MessageSeverity::High, MessageSource::IncorrectAPIUse,
+              StringFormat::Fmt("Vertex buffer %s bound to attribute %d: %s (buffer slot %d) at "
+                                "draw is 0-sized!\n"
+                                "Has this buffer been initialised?",
+                                ToStr(GetResourceManager()->GetOriginalID(id)).c_str(), attrib,
+                                shaderDetails.reflection.inputSignature[reflIndex].varName.c_str(),
+                                bufIdx));
+
+          ret = false;
+        }
       }
     }
   }
