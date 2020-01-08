@@ -76,7 +76,8 @@ static void EnsureRealLibraryLoaded()
     if(!handle)
       handle = Process::LoadModule("libGLX.so.0");
 
-    glxhook.handle = handle;
+    if(RenderDoc::Inst().IsReplayApp())
+      glxhook.handle = handle;
   }
 }
 

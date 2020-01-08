@@ -143,7 +143,8 @@ static void EnsureRealLibraryLoaded()
     if(!handle)
       handle = Process::LoadModule("libEGL.so.1");
 
-    eglhook.handle = handle;
+    if(RenderDoc::Inst().IsReplayApp())
+      eglhook.handle = handle;
   }
 #endif
 }
