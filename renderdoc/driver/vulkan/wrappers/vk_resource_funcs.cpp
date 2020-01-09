@@ -1565,10 +1565,22 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
       else if(IsStencilOnlyFormat(CreateInfo.format))
         range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
       else if(IsDepthOrStencilFormat(CreateInfo.format))
+        range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+      // if we don't support separate depth/stencil, track both aspects together
+      if(!SeparateDepthStencil() && IsDepthAndStencilFormat(CreateInfo.format))
         range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 
       layouts.subresourceStates.push_back(ImageRegionState(
           VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, CreateInfo.initialLayout));
+
+      // if we do support separate depth stencil, add a separate stencil aspect tracker
+      if(SeparateDepthStencil() && IsDepthAndStencilFormat(CreateInfo.format))
+      {
+        range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+        layouts.subresourceStates.push_back(ImageRegionState(
+            VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, CreateInfo.initialLayout));
+      }
     }
 
     const char *prefix = "Image";
@@ -1863,10 +1875,22 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
     else if(IsStencilOnlyFormat(pCreateInfo->format))
       range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
     else if(IsDepthOrStencilFormat(pCreateInfo->format))
+      range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+    // if we don't support separate depth/stencil, track both aspects together
+    if(!SeparateDepthStencil() && IsDepthAndStencilFormat(pCreateInfo->format))
       range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 
     layout->subresourceStates.push_back(ImageRegionState(
         VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, pCreateInfo->initialLayout));
+
+    // if we do support separate depth stencil, add a separate stencil aspect tracker
+    if(SeparateDepthStencil() && IsDepthAndStencilFormat(pCreateInfo->format))
+    {
+      range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+      layout->subresourceStates.push_back(ImageRegionState(
+          VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, pCreateInfo->initialLayout));
+    }
   }
 
   return ret;

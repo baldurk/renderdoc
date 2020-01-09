@@ -38,6 +38,19 @@ void VulkanResourceManager::RecordSingleBarrier(
     rdcarray<rdcpair<ResourceId, ImageRegionState>> &dststates, ResourceId id,
     const SrcBarrierType &t, uint32_t nummips, uint32_t numslices)
 {
+  // if this is a single barrier for depth and stencil, and we are handling separate depth/stencil,
+  // split it to ease processing
+  if(m_Core->SeparateDepthStencil() &&
+     t.subresourceRange.aspectMask == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
+  {
+    SrcBarrierType tmp = t;
+    tmp.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    RecordSingleBarrier(dststates, id, tmp, nummips, numslices);
+    tmp.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+    RecordSingleBarrier(dststates, id, tmp, nummips, numslices);
+    return;
+  }
+
   bool done = false;
 
   size_t i = 0;
@@ -55,6 +68,11 @@ void VulkanResourceManager::RecordSingleBarrier(
       continue;
     if(state.first != id)
       break;
+
+    // skip states that don't match aspect mask when handling separate aspects for depth/stencil
+    if(m_Core->SeparateDepthStencil() &&
+       state.second.subresourceRange.aspectMask != t.subresourceRange.aspectMask)
+      continue;
 
     state.second.dstQueueFamilyIndex = t.dstQueueFamilyIndex;
 
@@ -373,13 +391,14 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
   }
 
   // try to merge images that have been split up by subresource but are now all in the same state
-  // again.
+  // again. Don't do this for depth/stencil resources in case the aspects are split
   for(auto it = states.begin(); it != states.end(); ++it)
   {
     ImageLayouts &layouts = it->second;
     const ImageInfo &imageInfo = layouts.imageInfo;
 
     if(layouts.subresourceStates.size() > 1 &&
+       layouts.subresourceStates[0].subresourceRange.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT &&
        layouts.subresourceStates.size() == size_t(imageInfo.layerCount * imageInfo.levelCount))
     {
       VkImageLayout layout = layouts.subresourceStates[0].newLayout;
@@ -670,11 +689,11 @@ void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
       // and whenever we need more fine-grained detail we split it immediately.
       // Thereafter if a barrier comes in that covers multiple subresources, we update all matching
       // ranges.
-      // NOTE: Depth-stencil images must always be trasnsitioned together for both aspects, so we
-      // don't
-      // have to worry about different aspects being in different states and can in fact ignore the
-      // aspect
-      // for the purpose of this case.
+
+      // ignore states of different aspects when depth/stencil aspects are split
+      if(m_Core->SeparateDepthStencil() &&
+         state.subresourceRange.aspectMask != t.subresourceRange.aspectMask)
+        continue;
 
       {
         // we've found a range that completely matches our region, doesn't matter if that's

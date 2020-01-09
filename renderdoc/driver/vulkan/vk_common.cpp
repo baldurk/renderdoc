@@ -391,6 +391,56 @@ void SanitiseNewImageLayout(VkImageLayout &layout)
     layout = VK_IMAGE_LAYOUT_GENERAL;
 }
 
+void CombineDepthStencilLayouts(rdcarray<VkImageMemoryBarrier> &barriers)
+{
+  for(size_t i = 0; i < barriers.size(); i++)
+  {
+    // only consider barriers on depth
+    // barriers not on D/S at all can be ignored
+    // barriers on both D/S already can be ignored
+    // barriers on stencil only can be ignored, because we expect to always find depth before
+    // stencil
+    if(barriers[i].subresourceRange.aspectMask != VK_IMAGE_ASPECT_DEPTH_BIT)
+      continue;
+
+    // search forward to see if we have an identical barrier on stencil for the same image. We
+    // expect a loose sort so all barriers for the same image are together.
+    // This means when we don't have separate depth-stencil layout support, the aspects should
+    // always be in the same layout so can be combined.
+    for(size_t j = i + 1; j < barriers.size(); j++)
+    {
+      // stop when we reach another image, no more possible matches expected after this
+      if(barriers[i].image != barriers[j].image)
+        break;
+
+      // only consider stencil aspect barriers
+      if(barriers[j].subresourceRange.aspectMask != VK_IMAGE_ASPECT_STENCIL_BIT)
+        continue;
+
+      // if the barriers are equal apart from the aspect mask, we can promote [i] to depth and
+      // stencil, and erase j
+      if(barriers[i].oldLayout == barriers[j].oldLayout &&
+         barriers[i].newLayout == barriers[j].newLayout &&
+         barriers[i].srcAccessMask == barriers[j].srcAccessMask &&
+         barriers[i].dstAccessMask == barriers[j].dstAccessMask &&
+         barriers[i].srcQueueFamilyIndex == barriers[j].srcQueueFamilyIndex &&
+         barriers[i].dstQueueFamilyIndex == barriers[j].dstQueueFamilyIndex &&
+         barriers[i].subresourceRange.baseArrayLayer == barriers[j].subresourceRange.baseArrayLayer &&
+         barriers[i].subresourceRange.baseMipLevel == barriers[j].subresourceRange.baseMipLevel &&
+         barriers[i].subresourceRange.layerCount == barriers[j].subresourceRange.layerCount &&
+         barriers[i].subresourceRange.levelCount == barriers[j].subresourceRange.levelCount)
+      {
+        barriers[i].subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        barriers.erase(j);
+        break;
+      }
+    }
+
+    // either we merged the i'th element and we can skip it, or it's not mergeable and we can skip
+    // it. Either way we can continue the loop at i+1
+  }
+}
+
 int SampleCount(VkSampleCountFlagBits countFlag)
 {
   switch(countFlag)
@@ -1016,3 +1066,246 @@ void DescriptorSetSlot::AddBindRefs(VulkanResourceManager *rm, VkResourceRecord 
       record->AddMemFrameRef(buf->baseResource, buf->memOffset, buf->memSize, ref);
   }
 }
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#undef None
+
+#include "3rdparty/catch/catch.hpp"
+
+TEST_CASE("Validate CombineDepthStencilLayouts works", "[vulkan]")
+{
+  VkImage imga, imgb;
+
+  // give the fake handles values
+  {
+    uint64_t a = 1;
+    uint64_t b = 2;
+    memcpy(&imga, &a, sizeof(a));
+    memcpy(&imgb, &b, sizeof(b));
+  }
+
+  rdcarray<VkImageMemoryBarrier> barriers, ref;
+
+  VkImageMemoryBarrier b = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+  b.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+  b.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+  SECTION("Ignored cases")
+  {
+    VkImageAspectFlags aspects[] = {VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
+                                    VK_IMAGE_ASPECT_STENCIL_BIT,
+                                    VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT};
+    // only care about split depth and stencil for the same image
+    for(VkImageAspectFlags aspect : aspects)
+    {
+      barriers.clear();
+
+      // whole image
+      b.image = imga;
+      b.subresourceRange = {aspect, 0, 4, 0, 6};
+      barriers.push_back(b);
+
+      b.image = imgb;
+      b.subresourceRange = {aspect, 0, 4, 0, 6};
+      barriers.push_back(b);
+
+      ref = barriers;
+      CombineDepthStencilLayouts(barriers);
+
+      CHECK((ref == barriers));
+
+      barriers.clear();
+
+      // images split into different mips/arrays
+      b.image = imga;
+      b.subresourceRange = {aspect, 0, 1, 0, 3};
+      barriers.push_back(b);
+      b.subresourceRange = {aspect, 1, 2, 0, 3};
+      barriers.push_back(b);
+      b.subresourceRange = {aspect, 3, 1, 0, 3};
+      barriers.push_back(b);
+      b.subresourceRange = {aspect, 0, 4, 3, 3};
+      barriers.push_back(b);
+
+      b.image = imgb;
+      b.subresourceRange = {aspect, 0, 1, 0, 3};
+      barriers.push_back(b);
+      b.subresourceRange = {aspect, 1, 3, 0, 3};
+      barriers.push_back(b);
+      b.subresourceRange = {aspect, 0, 4, 3, 3};
+      barriers.push_back(b);
+
+      ref = barriers;
+      CombineDepthStencilLayouts(barriers);
+
+      CHECK((ref == barriers));
+    }
+  };
+
+  SECTION("Possible but unmergeable cases")
+  {
+    barriers.clear();
+
+    // could merge, but different images
+    b.image = imga;
+    b.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
+    barriers.push_back(b);
+
+    b.image = imgb;
+    b.subresourceRange = {VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1};
+    barriers.push_back(b);
+
+    ref = barriers;
+    CombineDepthStencilLayouts(barriers);
+
+    CHECK((ref == barriers));
+
+    barriers.clear();
+
+    // could merge, but different subresource ranges
+    b.image = imga;
+    b.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
+    barriers.push_back(b);
+
+    b.image = imgb;
+    b.subresourceRange = {VK_IMAGE_ASPECT_STENCIL_BIT, 0, 2, 0, 1};
+    barriers.push_back(b);
+
+    ref = barriers;
+    CombineDepthStencilLayouts(barriers);
+
+    CHECK((ref == barriers));
+
+    barriers.clear();
+
+    b.image = imga;
+    b.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
+    barriers.push_back(b);
+
+    b.image = imgb;
+    b.subresourceRange = {VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 1, 1};
+    barriers.push_back(b);
+
+    ref = barriers;
+    CombineDepthStencilLayouts(barriers);
+
+    CHECK((ref == barriers));
+
+    barriers.clear();
+
+    // could merge, but different layouts
+    b.image = imga;
+    b.oldLayout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL_KHR;
+    b.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 2, 0, 1};
+    barriers.push_back(b);
+
+    b.image = imgb;
+    b.oldLayout = VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL_KHR;
+    b.subresourceRange = {VK_IMAGE_ASPECT_STENCIL_BIT, 0, 2, 0, 1};
+    barriers.push_back(b);
+
+    ref = barriers;
+    CombineDepthStencilLayouts(barriers);
+
+    CHECK((ref == barriers));
+
+    barriers.clear();
+
+    b.image = imga;
+    b.newLayout = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL_KHR;
+    b.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 2, 0, 1};
+    barriers.push_back(b);
+
+    b.image = imgb;
+    b.newLayout = VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL_KHR;
+    b.subresourceRange = {VK_IMAGE_ASPECT_STENCIL_BIT, 0, 2, 0, 1};
+    barriers.push_back(b);
+
+    ref = barriers;
+    CombineDepthStencilLayouts(barriers);
+
+    CHECK((ref == barriers));
+  };
+
+  SECTION("Whole-image depth and separate stencil barriers are merged when possible")
+  {
+    barriers.clear();
+
+    CHECK((ref == barriers));
+    b.image = imga;
+    b.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
+    barriers.push_back(b);
+
+    b.image = imga;
+    b.subresourceRange = {VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1};
+    barriers.push_back(b);
+
+    b.image = imgb;
+    b.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
+    barriers.push_back(b);
+
+    ref = barriers;
+    CombineDepthStencilLayouts(barriers);
+
+    REQUIRE(barriers.size() == 2);
+    // aspect mask is combined now
+    CHECK(barriers[0].subresourceRange.aspectMask ==
+          (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT));
+    // otherwise the barrier should be the same
+    CHECK(barriers[0].subresourceRange.baseMipLevel == 0);
+    CHECK(barriers[0].subresourceRange.levelCount == 1);
+    CHECK(barriers[0].subresourceRange.baseArrayLayer == 0);
+    CHECK(barriers[0].subresourceRange.layerCount == 1);
+    CHECK(barriers[0].oldLayout == ref[0].oldLayout);
+    CHECK(barriers[0].newLayout == ref[0].newLayout);
+    // the last barrier should be the same
+    CHECK(memcmp(&barriers[1], &ref[2], sizeof(VkImageMemoryBarrier)) == 0);
+  };
+
+  SECTION("Split depth and separate stencil barriers are merged when possible")
+  {
+    barriers.clear();
+
+    CHECK((ref == barriers));
+    b.image = imga;
+    b.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
+    barriers.push_back(b);
+
+    b.image = imga;
+    b.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 1, 1, 0, 1};
+    barriers.push_back(b);
+
+    b.image = imga;
+    b.subresourceRange = {VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1};
+    barriers.push_back(b);
+
+    b.image = imga;
+    b.subresourceRange = {VK_IMAGE_ASPECT_STENCIL_BIT, 1, 1, 0, 1};
+    barriers.push_back(b);
+
+    CombineDepthStencilLayouts(barriers);
+
+    REQUIRE(barriers.size() == 2);
+
+    // aspect mask is combined now
+    CHECK(barriers[0].subresourceRange.aspectMask ==
+          (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT));
+    // otherwise the barrier should be the same
+    CHECK(barriers[0].subresourceRange.baseMipLevel == 0);
+    CHECK(barriers[0].subresourceRange.levelCount == 1);
+    CHECK(barriers[0].subresourceRange.baseArrayLayer == 0);
+    CHECK(barriers[0].subresourceRange.layerCount == 1);
+
+    // aspect mask is combined now
+    CHECK(barriers[1].subresourceRange.aspectMask ==
+          (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT));
+    // otherwise the barrier should be the same
+    CHECK(barriers[1].subresourceRange.baseMipLevel == 1);
+    CHECK(barriers[1].subresourceRange.levelCount == 1);
+    CHECK(barriers[1].subresourceRange.baseArrayLayer == 0);
+    CHECK(barriers[1].subresourceRange.layerCount == 1);
+  };
+}
+
+#endif

@@ -104,8 +104,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       return Prepare_SparseInitialState((WrappedVkImage *)res);
     }
 
-    VkCommandBuffer extQCmd = VK_NULL_HANDLE;
-
     ImageLayouts *layout = NULL;
     {
       SCOPED_LOCK(m_ImageLayoutsLock);
@@ -127,12 +125,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     VkDevice d = GetDev();
     // INITSTATEBATCH
     VkCommandBuffer cmd = GetNextCmd();
-
-    if(layout->queueFamilyIndex != m_QueueFamilyIdx)
-    {
-      // get a command buffer for giving up ownership before the copy and acquiring it afterwards.
-      extQCmd = GetExtQueueCmd(layout->queueFamilyIndex);
-    }
 
     // must ensure offset remains valid. Must be multiple of block size, or 4, depending on format
     VkDeviceSize bufAlignment = 4;
@@ -280,76 +272,19 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    if(extQCmd != VK_NULL_HANDLE)
-    {
-      vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
-    }
+    VkImageAspectFlags aspectFlags = FormatImageAspects(imageInfo.format);
 
-    VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-    if(IsStencilOnlyFormat(imageInfo.format))
-    {
-      aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
-    }
-    else if(IsDepthOrStencilFormat(imageInfo.format))
-    {
-      aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-    }
-    else if(planeCount > 1)
-    {
-      aspectFlags = VK_IMAGE_ASPECT_PLANE_0_BIT;
-      if(planeCount >= 2)
-        aspectFlags |= VK_IMAGE_ASPECT_PLANE_1_BIT;
-      if(planeCount >= 3)
-        aspectFlags |= VK_IMAGE_ASPECT_PLANE_2_BIT;
-    }
+    rdcarray<VkImageMemoryBarrier> setupBarriers, cleanupBarriers;
+    bool extQCleanup = false;
 
-    VkImageMemoryBarrier srcimBarrier = {
-        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-        NULL,
-        0,
-        0,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        layout->queueFamilyIndex,
-        m_QueueFamilyIdx,
-        realim,
-        {aspectFlags, 0, (uint32_t)imageInfo.levelCount, 0, (uint32_t)numLayers},
-    };
-
-    if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT && !IsDepthOnlyFormat(imageInfo.format))
-      srcimBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-
-    // update the real image layout into transfer-source
-    srcimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    VkImageLayout readingLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     if(arrayIm != VK_NULL_HANDLE)
-      srcimBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      readingLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    // ensure all previous writes have completed
-    srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
-    // before we go reading
-    srcimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
-
-    for(size_t si = 0; si < layout->subresourceStates.size(); si++)
-    {
-      srcimBarrier.subresourceRange = layout->subresourceStates[si].subresourceRange;
-      srcimBarrier.oldLayout = layout->subresourceStates[si].newLayout;
-
-      SanitiseOldImageLayout(srcimBarrier.oldLayout);
-
-      DoPipelineBarrier(cmd, 1, &srcimBarrier);
-
-      if(srcimBarrier.srcQueueFamilyIndex != srcimBarrier.dstQueueFamilyIndex)
-        DoPipelineBarrier(extQCmd, 1, &srcimBarrier);
-    }
-
-    if(extQCmd != VK_NULL_HANDLE)
-    {
-      vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(extQCmd));
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-      SubmitAndFlushExtQueue(layout->queueFamilyIndex);
-    }
+    TempTransition(ToWrappedHandle<VkImage>(res), readingLayout,
+                   VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_SHADER_READ_BIT, setupBarriers,
+                   cleanupBarriers, extQCleanup);
+    DoPipelineBarrier(cmd, setupBarriers.size(), setupBarriers.data());
 
     if(arrayIm != VK_NULL_HANDLE)
     {
@@ -363,8 +298,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
           VK_QUEUE_FAMILY_IGNORED,
           VK_QUEUE_FAMILY_IGNORED,
           Unwrap(arrayIm),
-          {srcimBarrier.subresourceRange.aspectMask, 0, VK_REMAINING_MIP_LEVELS, 0,
-           VK_REMAINING_ARRAY_LAYERS},
+          {aspectFlags, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
       };
 
       DoPipelineBarrier(cmd, 1, &arrayimBarrier);
@@ -443,15 +377,19 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
           region.bufferOffset = bufOffset;
 
+          // for depth/stencil copies, copy depth first
+          if(aspectFlags == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
+            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
           bufOffset += GetByteSize(imageInfo.extent.width, imageInfo.extent.height,
                                    imageInfo.extent.depth, sizeFormat, m);
 
           ObjDisp(d)->CmdCopyImageToBuffer(
               Unwrap(cmd), realim, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, Unwrap(dstBuf), 1, &region);
 
-          if(sizeFormat != imageInfo.format)
+          if(aspectFlags == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
           {
-            // if we removed stencil from the format, copy that separately now.
+            // if we have combined stencil to process, copy that separately now.
             bufOffset = AlignUp(bufOffset, bufAlignment);
 
             region.bufferOffset = bufOffset;
@@ -477,42 +415,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
                  readbackmem.size, imageInfo.extent, imageInfo.format, numLayers,
                  imageInfo.levelCount);
 
-    // transfer back to whatever it was
-    srcimBarrier.oldLayout = srcimBarrier.newLayout;
-
-    // on whatever queue
-    std::swap(srcimBarrier.srcQueueFamilyIndex, srcimBarrier.dstQueueFamilyIndex);
-
-    srcimBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-    srcimBarrier.dstAccessMask = 0;
-
-    if(extQCmd != VK_NULL_HANDLE)
-    {
-      vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
-    }
-
-    for(size_t si = 0; si < layout->subresourceStates.size(); si++)
-    {
-      srcimBarrier.subresourceRange = layout->subresourceStates[si].subresourceRange;
-      srcimBarrier.newLayout = layout->subresourceStates[si].newLayout;
-      srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
-
-      SanitiseNewImageLayout(srcimBarrier.newLayout);
-
-      DoPipelineBarrier(cmd, 1, &srcimBarrier);
-
-      if(srcimBarrier.srcQueueFamilyIndex != srcimBarrier.dstQueueFamilyIndex)
-        DoPipelineBarrier(extQCmd, 1, &srcimBarrier);
-    }
-
-    if(extQCmd != VK_NULL_HANDLE)
-    {
-      vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(extQCmd));
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-      SubmitAndFlushExtQueue(layout->queueFamilyIndex);
-    }
+    DoPipelineBarrier(cmd, cleanupBarriers.size(), cleanupBarriers.data());
 
     vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -520,6 +423,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     // INITSTATEBATCH
     SubmitCmds();
     FlushQ();
+
+    if(extQCleanup)
+      SubmitExtQBarriers(~0U, cleanupBarriers);
 
     ObjDisp(d)->DestroyBuffer(Unwrap(d), Unwrap(dstBuf), NULL);
     GetResourceManager()->ReleaseWrappedResource(dstBuf);
@@ -543,7 +449,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     VkCommandBuffer cmd = GetNextCmd();
 
     VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-    VkDeviceMemory datamem = ToHandle<VkDeviceMemory>(res);
+    VkDeviceMemory datamem = ToUnwrappedHandle<VkDeviceMemory>(res);
     VkDeviceSize datasize = record->Length;
 
     if(!GetResourceManager()->FindMemRefs(id))
@@ -1148,13 +1054,8 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
 
           VkExtent3D extent = c.extent;
 
-          VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
           VkFormat fmt = c.format;
-
-          if(IsStencilOnlyFormat(fmt))
-            aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
-          else if(IsDepthOrStencilFormat(fmt))
-            aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+          VkImageAspectFlags aspectFlags = FormatImageAspects(fmt);
 
           VkImageMemoryBarrier dstimBarrier = {
               VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -1167,9 +1068,6 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
               VK_QUEUE_FAMILY_IGNORED,
               Unwrap(arrayIm),
               {aspectFlags, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
-
-          if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT && !IsDepthOnlyFormat(fmt))
-            dstimBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 
           DoPipelineBarrier(cmd, 1, &dstimBarrier);
 
@@ -1205,6 +1103,10 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
 
               region.bufferOffset = bufOffset;
 
+              // for depth/stencil copies, copy depth first
+              if(aspectFlags == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
+                region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
               VkFormat sizeFormat = GetDepthOnlyFormat(fmt);
 
               // pass 0 for mip since we've already pre-downscaled extent
@@ -1212,9 +1114,9 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
 
               mainCopies.push_back(region);
 
-              if(sizeFormat != fmt)
+              if(aspectFlags == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
               {
-                // if we removed stencil from the format, copy that separately now.
+                // if it's a depth/stencil format, copy stencil now
                 bufOffset = AlignUp(bufOffset, bufAlignment);
 
                 region.bufferOffset = bufOffset;
@@ -1321,7 +1223,7 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 
     ImageLayouts &layouts = m_ImageLayouts[liveid];
 
-    if(layouts.subresourceStates[0].subresourceRange.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT)
+    if(!IsDepthOrStencilFormat(layouts.imageInfo.format))
       GetResourceManager()->SetInitialContents(
           id, VkInitialContents(type, VkInitialContents::ClearColorImage));
     else
@@ -1361,10 +1263,11 @@ void WrappedVulkan::ImageInitializationBarriers(ResourceId id, WrappedVkRes *liv
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_QUEUE_FAMILY_IGNORED,
         VK_QUEUE_FAMILY_IGNORED,
-        ToHandle<VkImage>(live),
+        ToUnwrappedHandle<VkImage>(live),
         imageLayouts.subresourceStates[si].subresourceRange,
     };
-    if(IsDepthAndStencilFormat(imageLayouts.imageInfo.format))
+
+    if(IsDepthAndStencilFormat(imageLayouts.imageInfo.format) && !SeparateDepthStencil())
     {
       if(barrier.subresourceRange.aspectMask == VK_IMAGE_ASPECT_STENCIL_BIT)
       {
@@ -1377,6 +1280,7 @@ void WrappedVulkan::ImageInitializationBarriers(ResourceId id, WrappedVkRes *liv
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
       }
     }
+
     VkImageMemoryBarrier revBarrier = barrier;
     revBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     revBarrier.newLayout = imageLayouts.subresourceStates[si].newLayout;
@@ -1397,6 +1301,13 @@ void WrappedVulkan::ImageInitializationBarriers(ResourceId id, WrappedVkRes *liv
     }
     else
     {
+      if(IsDepthAndStencilFormat(imageLayouts.imageInfo.format) && SeparateDepthStencil())
+      {
+        // process as if we're looking at both aspects in a depth/stencil format whenever we see
+        // either. If both are already separate, we need to transition them separately
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+      }
+
       auto initReqs =
           imgRefs->SubresourceRangeInitReqs(barrier.subresourceRange, policy, initialized);
       for(auto initIt = initReqs.begin(); initIt != initReqs.end(); ++initIt)
@@ -1405,20 +1316,35 @@ void WrappedVulkan::ImageInitializationBarriers(ResourceId id, WrappedVkRes *liv
         InitReqType initReq = initIt->second;
         if(IsDepthAndStencilFormat(imageLayouts.imageInfo.format))
         {
-          if(barrier.subresourceRange.aspectMask == VK_IMAGE_ASPECT_STENCIL_BIT)
+          if(SeparateDepthStencil())
           {
-            // There will be a different subresourceState with DEPTH aspect, which is when we will
-            // handle both the depth and stencil aspects.
-            continue;
-          }
-          else if(barrier.subresourceRange.aspectMask == VK_IMAGE_ASPECT_DEPTH_BIT)
-          {
+            // conservatively set init requirements for both aspects whenever we see either aspect.
             barrier.subresourceRange.aspectMask = revBarrier.subresourceRange.aspectMask =
                 VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
             initReq =
                 imgRefs->SubresourceRangeMaxInitReq(barrier.subresourceRange, policy, initialized);
+            // but transition the original aspect. These barriers will be combined if identical
+            barrier.subresourceRange.aspectMask = revBarrier.subresourceRange.aspectMask =
+                imageLayouts.subresourceStates[si].subresourceRange.aspectMask;
+          }
+          else
+          {
+            if(barrier.subresourceRange.aspectMask == VK_IMAGE_ASPECT_STENCIL_BIT)
+            {
+              // There will be a different subresourceState with DEPTH aspect, which is when we will
+              // handle both the depth and stencil aspects.
+              continue;
+            }
+            else if(barrier.subresourceRange.aspectMask == VK_IMAGE_ASPECT_DEPTH_BIT)
+            {
+              barrier.subresourceRange.aspectMask = revBarrier.subresourceRange.aspectMask =
+                  VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+              initReq =
+                  imgRefs->SubresourceRangeMaxInitReq(barrier.subresourceRange, policy, initialized);
+            }
           }
         }
+
         if(initReq != eInitReq_None)
         {
           setupBarriers.push_back(barrier);
@@ -1444,26 +1370,39 @@ std::map<uint32_t, rdcarray<VkImageMemoryBarrier> > GetExtQBarriers(
   return extQBarriers;
 }
 
+void WrappedVulkan::SubmitExtQBarriers(uint32_t queueFamilyIndex,
+                                       const rdcarray<VkImageMemoryBarrier> &queueFamilyBarriers)
+{
+  if(queueFamilyBarriers.empty())
+    return;
+
+  if(queueFamilyIndex == ~0U)
+    queueFamilyIndex = queueFamilyBarriers[0].dstQueueFamilyIndex;
+
+  VkCommandBuffer extQCmd = GetExtQueueCmd(queueFamilyIndex);
+
+  VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+  VkResult vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  DoPipelineBarrier(extQCmd, (uint32_t)queueFamilyBarriers.size(), queueFamilyBarriers.data());
+  vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  SubmitAndFlushExtQueue(queueFamilyIndex);
+}
+
 void WrappedVulkan::SubmitExtQBarriers(
     const std::map<uint32_t, rdcarray<VkImageMemoryBarrier> > &extQBarriers)
 {
-  VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
-                                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
   for(auto extQBarrierIt = extQBarriers.begin(); extQBarrierIt != extQBarriers.end(); ++extQBarrierIt)
   {
     uint32_t queueFamilyIndex = extQBarrierIt->first;
     const rdcarray<VkImageMemoryBarrier> &queueFamilyBarriers = extQBarrierIt->second;
 
-    VkCommandBuffer extQCmd = GetExtQueueCmd(queueFamilyIndex);
-
-    VkResult vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    DoPipelineBarrier(extQCmd, (uint32_t)queueFamilyBarriers.size(), queueFamilyBarriers.data());
-    vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    SubmitAndFlushExtQueue(queueFamilyIndex);
+    SubmitExtQBarriers(queueFamilyIndex, queueFamilyBarriers);
   }
 }
 
@@ -1603,103 +1542,31 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
         vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-        VkImageMemoryBarrier barrier = {
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            NULL,
-            0,
-            0,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            layout.queueFamilyIndex,
-            m_QueueFamilyIdx,
-            ToHandle<VkImage>(live),
-            {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
-        };
-
-        // finish any pending work before clear
-        barrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
-        // clear completes before subsequent operations
-        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-        VkCommandBuffer extQCmd = VK_NULL_HANDLE;
-
-        if(barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex)
-        {
-          extQCmd = GetExtQueueCmd(barrier.srcQueueFamilyIndex);
-
-          vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
-        }
-
-        for(size_t si = 0; si < layout.subresourceStates.size(); si++)
-        {
-          barrier.subresourceRange = layout.subresourceStates[si].subresourceRange;
-          barrier.oldLayout = layout.subresourceStates[si].newLayout;
-
-          SanitiseOldImageLayout(barrier.oldLayout);
-
-          DoPipelineBarrier(cmd, 1, &barrier);
-
-          if(extQCmd != VK_NULL_HANDLE)
-            DoPipelineBarrier(extQCmd, 1, &barrier);
-        }
-
-        if(extQCmd != VK_NULL_HANDLE)
-        {
-          vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-          SubmitAndFlushExtQueue(barrier.srcQueueFamilyIndex);
-        }
+        rdcarray<VkImageMemoryBarrier> setupBarriers, cleanupBarriers;
+        bool extQCleanup = false;
+        TempTransition(ToWrappedHandle<VkImage>(live), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                       VK_ACCESS_TRANSFER_WRITE_BIT, setupBarriers, cleanupBarriers, extQCleanup);
+        DoPipelineBarrier(cmd, setupBarriers.size(), setupBarriers.data());
 
         VkClearColorValue clearval = {};
         VkImageSubresourceRange range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0,
                                          VK_REMAINING_ARRAY_LAYERS};
 
-        ObjDisp(cmd)->CmdClearColorImage(Unwrap(cmd), ToHandle<VkImage>(live),
+        ObjDisp(cmd)->CmdClearColorImage(Unwrap(cmd), ToUnwrappedHandle<VkImage>(live),
                                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearval, 1, &range);
 
-        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-
-        // complete clear before any other work
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
-
-        std::swap(barrier.srcQueueFamilyIndex, barrier.dstQueueFamilyIndex);
-
-        if(extQCmd != VK_NULL_HANDLE)
-        {
-          vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
-        }
-
-        for(size_t si = 0; si < layout.subresourceStates.size(); si++)
-        {
-          barrier.subresourceRange = layout.subresourceStates[si].subresourceRange;
-          barrier.newLayout = layout.subresourceStates[si].newLayout;
-          barrier.dstAccessMask |= MakeAccessMask(barrier.newLayout);
-
-          SanitiseNewImageLayout(barrier.newLayout);
-
-          DoPipelineBarrier(cmd, 1, &barrier);
-
-          if(extQCmd != VK_NULL_HANDLE)
-            DoPipelineBarrier(extQCmd, 1, &barrier);
-        }
+        DoPipelineBarrier(cmd, cleanupBarriers.size(), cleanupBarriers.data());
 
         vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-        if(extQCmd != VK_NULL_HANDLE)
+        if(extQCleanup)
         {
           // ensure work is completed before we pass ownership back to original queue
           SubmitCmds();
           FlushQ();
 
-          vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-          SubmitAndFlushExtQueue(barrier.dstQueueFamilyIndex);
+          SubmitExtQBarriers(~0U, cleanupBarriers);
         }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
@@ -1708,108 +1575,39 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       }
       else if(initial.tag == VkInitialContents::ClearDepthStencilImage)
       {
+        VkFormat format = layout.imageInfo.format;
+
         VkCommandBuffer cmd = GetNextCmd();
 
         vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-        VkImageMemoryBarrier barrier = {
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            NULL,
-            0,
-            0,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            layout.queueFamilyIndex,
-            m_QueueFamilyIdx,
-            ToHandle<VkImage>(live),
-            {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
-        };
-
-        // finish any pending work before clear
-        barrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
-        // clear completes before subsequent operations
-        barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-        VkCommandBuffer extQCmd = VK_NULL_HANDLE;
-
-        if(barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex)
-        {
-          extQCmd = GetExtQueueCmd(barrier.srcQueueFamilyIndex);
-
-          vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
-        }
-
-        for(size_t si = 0; si < layout.subresourceStates.size(); si++)
-        {
-          barrier.subresourceRange = layout.subresourceStates[si].subresourceRange;
-          barrier.oldLayout = layout.subresourceStates[si].newLayout;
-
-          SanitiseOldImageLayout(barrier.oldLayout);
-
-          DoPipelineBarrier(cmd, 1, &barrier);
-
-          if(extQCmd != VK_NULL_HANDLE)
-            DoPipelineBarrier(extQCmd, 1, &barrier);
-        }
-
-        if(extQCmd != VK_NULL_HANDLE)
-        {
-          vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-          SubmitAndFlushExtQueue(barrier.srcQueueFamilyIndex);
-        }
+        rdcarray<VkImageMemoryBarrier> setupBarriers, cleanupBarriers;
+        bool extQCleanup = false;
+        TempTransition(ToWrappedHandle<VkImage>(live), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                       VK_ACCESS_TRANSFER_WRITE_BIT, setupBarriers, cleanupBarriers, extQCleanup);
+        DoPipelineBarrier(cmd, setupBarriers.size(), setupBarriers.data());
 
         VkClearDepthStencilValue clearval = {1.0f, 0};
-        VkImageSubresourceRange range = {barrier.subresourceRange.aspectMask, 0,
-                                         VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS};
+        VkImageSubresourceRange range = {FormatImageAspects(format), 0, VK_REMAINING_MIP_LEVELS, 0,
+                                         VK_REMAINING_ARRAY_LAYERS};
 
-        ObjDisp(cmd)->CmdClearDepthStencilImage(Unwrap(cmd), ToHandle<VkImage>(live),
+        ObjDisp(cmd)->CmdClearDepthStencilImage(Unwrap(cmd), ToUnwrappedHandle<VkImage>(live),
                                                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearval, 1,
                                                 &range);
 
-        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-
-        // complete clear before any other work
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
-
-        std::swap(barrier.srcQueueFamilyIndex, barrier.dstQueueFamilyIndex);
-
-        if(extQCmd != VK_NULL_HANDLE)
-        {
-          vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
-        }
-
-        for(size_t si = 0; si < layout.subresourceStates.size(); si++)
-        {
-          barrier.subresourceRange = layout.subresourceStates[si].subresourceRange;
-          barrier.newLayout = layout.subresourceStates[si].newLayout;
-
-          SanitiseNewImageLayout(barrier.newLayout);
-
-          DoPipelineBarrier(cmd, 1, &barrier);
-
-          if(extQCmd != VK_NULL_HANDLE)
-            DoPipelineBarrier(extQCmd, 1, &barrier);
-        }
+        DoPipelineBarrier(cmd, cleanupBarriers.size(), cleanupBarriers.data());
 
         vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-        if(extQCmd != VK_NULL_HANDLE)
+        if(extQCleanup)
         {
           // ensure work is completed before we pass ownership back to original queue
           SubmitCmds();
           FlushQ();
 
-          vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
-          RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-          SubmitAndFlushExtQueue(barrier.dstQueueFamilyIndex);
+          SubmitExtQBarriers(~0U, cleanupBarriers);
         }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
@@ -1831,123 +1629,43 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-
       VulkanCreationInfo::Image &c = m_CreationInfo.m_Image[id];
 
       VkFormat fmt = c.format;
-      if(IsStencilOnlyFormat(fmt))
-        aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
-      else if(IsDepthOrStencilFormat(fmt))
-        aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-      if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT && !IsDepthOnlyFormat(fmt))
-        aspectFlags |= VK_IMAGE_ASPECT_STENCIL_BIT;
-
-      VkImageMemoryBarrier barrier = {
-          VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-          NULL,
-          0,
-          0,
-          VK_IMAGE_LAYOUT_UNDEFINED,
-          VK_IMAGE_LAYOUT_GENERAL,
-          layout.queueFamilyIndex,
-          m_QueueFamilyIdx,
-          ToHandle<VkImage>(live),
-          {aspectFlags, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
-      };
-
-      barrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
-      barrier.dstAccessMask =
-          VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-      VkCommandBuffer extQCmd = VK_NULL_HANDLE;
-
-      if(barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex)
-      {
-        extQCmd = GetExtQueueCmd(barrier.srcQueueFamilyIndex);
-
-        vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
-      }
-
-      for(size_t si = 0; si < layout.subresourceStates.size(); si++)
-      {
-        barrier.subresourceRange = layout.subresourceStates[si].subresourceRange;
-        barrier.oldLayout = layout.subresourceStates[si].newLayout;
-
-        SanitiseOldImageLayout(barrier.oldLayout);
-
-        DoPipelineBarrier(cmd, 1, &barrier);
-
-        if(extQCmd != VK_NULL_HANDLE)
-          DoPipelineBarrier(extQCmd, 1, &barrier);
-      }
-
-      if(extQCmd != VK_NULL_HANDLE)
-      {
-        vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-        SubmitAndFlushExtQueue(barrier.srcQueueFamilyIndex);
-      }
+      rdcarray<VkImageMemoryBarrier> setupBarriers, cleanupBarriers;
+      bool extQCleanup = false;
+      TempTransition(ToWrappedHandle<VkImage>(live), VK_IMAGE_LAYOUT_GENERAL,
+                     VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                     setupBarriers, cleanupBarriers, extQCleanup);
+      DoPipelineBarrier(cmd, setupBarriers.size(), setupBarriers.data());
 
       VkImage arrayIm = initial.img;
 
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      GetDebugManager()->CopyArrayToTex2DMS(ToHandle<VkImage>(live), Unwrap(arrayIm), c.extent,
-                                            (uint32_t)c.arrayLayers, (uint32_t)c.samples, fmt);
+      GetDebugManager()->CopyArrayToTex2DMS(ToUnwrappedHandle<VkImage>(live), Unwrap(arrayIm),
+                                            c.extent, (uint32_t)c.arrayLayers, (uint32_t)c.samples,
+                                            fmt);
 
       cmd = GetNextCmd();
 
       vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-      // complete copy before any other work
-      barrier.srcAccessMask =
-          VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-      barrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
-
-      std::swap(barrier.srcQueueFamilyIndex, barrier.dstQueueFamilyIndex);
-
-      if(extQCmd != VK_NULL_HANDLE)
-      {
-        vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
-      }
-
-      for(size_t si = 0; si < layout.subresourceStates.size(); si++)
-      {
-        barrier.subresourceRange = layout.subresourceStates[si].subresourceRange;
-        barrier.newLayout = layout.subresourceStates[si].newLayout;
-
-        SanitiseNewImageLayout(barrier.newLayout);
-
-        barrier.dstAccessMask |= MakeAccessMask(barrier.newLayout);
-
-        DoPipelineBarrier(cmd, 1, &barrier);
-
-        if(extQCmd != VK_NULL_HANDLE)
-          DoPipelineBarrier(extQCmd, 1, &barrier);
-      }
+      DoPipelineBarrier(cmd, cleanupBarriers.size(), cleanupBarriers.data());
 
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      if(extQCmd != VK_NULL_HANDLE)
+      if(extQCleanup)
       {
         // ensure work is completed before we pass ownership back to original queue
         SubmitCmds();
         FlushQ();
 
-        vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-        SubmitAndFlushExtQueue(barrier.dstQueueFamilyIndex);
+        SubmitExtQBarriers(~0U, cleanupBarriers);
       }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
@@ -1965,28 +1683,12 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
     VkExtent3D extent = m_CreationInfo.m_Image[id].extent;
 
-    VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-
     VkFormat fmt = m_CreationInfo.m_Image[id].format;
     uint32_t planeCount = GetYUVPlaneCount(fmt);
     uint32_t horizontalPlaneShift = 0;
     uint32_t verticalPlaneShift = 0;
-    if(IsStencilOnlyFormat(fmt))
-    {
-      aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
-    }
-    else if(IsDepthOrStencilFormat(fmt))
-    {
-      aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-    }
-    else if(planeCount > 1)
-    {
-      aspectFlags = VK_IMAGE_ASPECT_PLANE_0_BIT;
-      if(planeCount >= 2)
-        aspectFlags |= VK_IMAGE_ASPECT_PLANE_1_BIT;
-      if(planeCount >= 3)
-        aspectFlags |= VK_IMAGE_ASPECT_PLANE_2_BIT;
-    }
+
+    VkImageAspectFlags aspectFlags = FormatImageAspects(fmt);
 
     if(planeCount > 1)
     {
@@ -2025,6 +1727,11 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     rdcarray<VkImageMemoryBarrier> setupBarriers, cleanupBarriers;
     ImageInitializationBarriers(id, live, policy, initialized, imgRefs, setupBarriers,
                                 cleanupBarriers);
+    if(SeparateDepthStencil())
+    {
+      CombineDepthStencilLayouts(setupBarriers);
+      CombineDepthStencilLayouts(cleanupBarriers);
+    }
     DoPipelineBarrier(cmd, setupBarriers.size(), setupBarriers.data());
 
     SubmitExtQBarriers(GetExtQBarriers(setupBarriers));
@@ -2153,7 +1860,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     }
 
     if(copyRegions.size() > 0)
-      ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), ToHandle<VkImage>(live),
+      ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), ToUnwrappedHandle<VkImage>(live),
                                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                          (uint32_t)copyRegions.size(), copyRegions.data());
 
@@ -2162,7 +1869,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       if(IsDepthOrStencilFormat(fmt))
       {
         VkClearDepthStencilValue val = {0, 0};
-        ObjDisp(cmd)->CmdClearDepthStencilImage(Unwrap(cmd), ToHandle<VkImage>(live),
+        ObjDisp(cmd)->CmdClearDepthStencilImage(Unwrap(cmd), ToUnwrappedHandle<VkImage>(live),
                                                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &val,
                                                 (uint32_t)clearRegions.size(), clearRegions.data());
       }
@@ -2170,7 +1877,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       {
         VkClearColorValue val;
         memset(&val, 0, sizeof(val));
-        ObjDisp(cmd)->CmdClearColorImage(Unwrap(cmd), ToHandle<VkImage>(live),
+        ObjDisp(cmd)->CmdClearColorImage(Unwrap(cmd), ToUnwrappedHandle<VkImage>(live),
                                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &val,
                                          (uint32_t)clearRegions.size(), clearRegions.data());
       }

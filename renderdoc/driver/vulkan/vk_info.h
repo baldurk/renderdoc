@@ -359,6 +359,8 @@ struct VulkanCreationInfo
       VkAttachmentStoreOp stencilStoreOp;
       VkImageLayout initialLayout;
       VkImageLayout finalLayout;
+      VkImageLayout stencilInitialLayout;
+      VkImageLayout stencilFinalLayout;
     };
 
     rdcarray<Attachment> attachments;
@@ -375,7 +377,8 @@ struct VulkanCreationInfo
 
       rdcarray<VkImageLayout> inputLayouts;
       rdcarray<VkImageLayout> colorLayouts;
-      VkImageLayout depthstencilLayout;
+      VkImageLayout depthLayout;
+      VkImageLayout stencilLayout;
       VkImageLayout fragmentDensityLayout;
 
       rdcarray<uint32_t> multiviews;

@@ -2342,6 +2342,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES_KHR);
       {
         CHECK_PHYS_EXT_FEATURE(separateDepthStencilLayouts);
+
+        m_SeparateDepthStencil |= (ext->separateDepthStencilLayouts != VK_FALSE);
       }
       END_PHYS_EXT_CHECK();
     }
@@ -2991,6 +2993,13 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   {
     fragmentDensityMapFeatures->fragmentDensityMapNonSubsampledImages = true;
   }
+
+  VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR *separateDepthStencilFeatures =
+      (VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR *)FindNextStruct(
+          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES_KHR);
+
+  if(separateDepthStencilFeatures)
+    m_SeparateDepthStencil |= (separateDepthStencilFeatures->separateDepthStencilLayouts != VK_FALSE);
 
   VkPhysicalDeviceBufferDeviceAddressFeaturesEXT *bufferAddressFeaturesEXT =
       (VkPhysicalDeviceBufferDeviceAddressFeaturesEXT *)FindNextStruct(

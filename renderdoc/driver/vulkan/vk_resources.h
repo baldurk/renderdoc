@@ -777,11 +777,17 @@ VkResourceRecord *GetRecord(RealType obj)
 }
 
 template <typename RealType>
-RealType ToHandle(WrappedVkRes *ptr)
+RealType ToUnwrappedHandle(WrappedVkRes *ptr)
 {
   RealVkRes &res = ((typename UnwrapHelper<RealType>::Outer *)ptr)->real;
 
   return res.As<RealType>();
+}
+
+template <typename RealType>
+RealType ToWrappedHandle(WrappedVkRes *ptr)
+{
+  return RealType(uint64_t(ptr));
 }
 
 template <typename RealType>

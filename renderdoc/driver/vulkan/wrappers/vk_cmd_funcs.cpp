@@ -94,7 +94,12 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
   VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
   VulkanCreationInfo::RenderPass rpinfo = m_CreationInfo.m_RenderPass[rp];
 
-  rdcarray<VkAttachmentReference> atts;
+  struct AttachmentRefSeparateStencil : VkAttachmentReference
+  {
+    VkImageLayout stencilLayout;
+  };
+
+  rdcarray<AttachmentRefSeparateStencil> atts;
 
   // a bit of dancing to get a subpass index. Because we don't increment
   // the subpass counter on EndRenderPass the value is the same for the last
@@ -108,6 +113,7 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
     {
       atts[i].attachment = (uint32_t)i;
       atts[i].layout = rpinfo.attachments[i].finalLayout;
+      atts[i].stencilLayout = rpinfo.attachments[i].stencilFinalLayout;
     }
   }
   else
@@ -125,7 +131,7 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
       if(attIdx == VK_ATTACHMENT_UNUSED)
         continue;
 
-      atts.push_back(VkAttachmentReference());
+      atts.push_back({});
       atts.back().attachment = attIdx;
       atts.back().layout = rpinfo.subpasses[subpass].colorLayouts[i];
     }
@@ -137,7 +143,7 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
       if(attIdx == VK_ATTACHMENT_UNUSED)
         continue;
 
-      atts.push_back(VkAttachmentReference());
+      atts.push_back({});
       atts.back().attachment = attIdx;
       atts.back().layout = rpinfo.subpasses[subpass].inputLayouts[i];
     }
@@ -146,16 +152,17 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
 
     if(ds != -1)
     {
-      atts.push_back(VkAttachmentReference());
+      atts.push_back({});
       atts.back().attachment = (uint32_t)rpinfo.subpasses[subpass].depthstencilAttachment;
-      atts.back().layout = rpinfo.subpasses[subpass].depthstencilLayout;
+      atts.back().layout = rpinfo.subpasses[subpass].depthLayout;
+      atts.back().stencilLayout = rpinfo.subpasses[subpass].stencilLayout;
     }
 
     int32_t fd = rpinfo.subpasses[subpass].fragmentDensityAttachment;
 
     if(fd != -1)
     {
-      atts.push_back(VkAttachmentReference());
+      atts.push_back({});
       atts.back().attachment = (uint32_t)rpinfo.subpasses[subpass].fragmentDensityAttachment;
       atts.back().layout = rpinfo.subpasses[subpass].fragmentDensityLayout;
     }
@@ -165,31 +172,55 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
   {
     uint32_t idx = atts[i].attachment;
 
+    // we keep two barriers, one for most aspects, one for stencil separately, to allow for separate
+    // layout transitions on stencil if that's in use
     VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+    VkImageMemoryBarrier barrierStencil = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
 
     ResourceId view = fbattachments[idx];
 
-    barrier.subresourceRange = m_CreationInfo.m_ImageView[view].range;
-    barrier.image = Unwrap(
+    barrierStencil.subresourceRange = barrier.subresourceRange =
+        m_CreationInfo.m_ImageView[view].range;
+
+    barrierStencil.image = barrier.image = Unwrap(
         GetResourceManager()->GetCurrentHandle<VkImage>(m_CreationInfo.m_ImageView[view].image));
 
     // When an imageView of a depth/stencil image is used as a depth/stencil framebuffer attachment,
     // the aspectMask is ignored and both depth and stencil image subresources are used.
     VulkanCreationInfo::Image &c = m_CreationInfo.m_Image[m_CreationInfo.m_ImageView[view].image];
-    if(IsDepthAndStencilFormat(c.format))
-      barrier.subresourceRange.aspectMask = (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+
+    // if we don't support separate depth stencil, barrier on a combined depth/stencil image will
+    // transition both aspects together
+    if(!SeparateDepthStencil())
+    {
+      if(IsDepthAndStencilFormat(c.format))
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+    }
+    else
+    {
+      // otherwise they will be separate
+      if(IsDepthOrStencilFormat(c.format))
+      {
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        barrierStencil.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+      }
+    }
 
     if(c.type == VK_IMAGE_TYPE_3D)
     {
       barrier.subresourceRange.baseArrayLayer = 0;
       barrier.subresourceRange.layerCount = 1;
+      barrierStencil.subresourceRange.baseArrayLayer = 0;
+      barrierStencil.subresourceRange.layerCount = 1;
     }
 
     barrier.newLayout = atts[i].layout;
+    barrierStencil.newLayout = atts[i].stencilLayout;
 
     // search back from this subpass to see which layout it was in before. If it's
     // not been used in a previous subpass, then default to initialLayout
     barrier.oldLayout = rpinfo.attachments[idx].initialLayout;
+    barrierStencil.oldLayout = rpinfo.attachments[idx].stencilInitialLayout;
 
     if(subpass == ~0U)
       subpass = (uint32_t)rpinfo.subpasses.size();
@@ -231,7 +262,8 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
 
       if((uint32_t)rpinfo.subpasses[s - 1].depthstencilAttachment == idx)
       {
-        barrier.oldLayout = rpinfo.subpasses[s - 1].depthstencilLayout;
+        barrier.oldLayout = rpinfo.subpasses[s - 1].depthLayout;
+        barrierStencil.oldLayout = rpinfo.subpasses[s - 1].stencilLayout;
         break;
       }
 
@@ -242,7 +274,20 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
       }
     }
 
-    ret.push_back(barrier);
+    // if we support separate depth stencil and the format contains stencil, add barriers
+    // separately
+    if(SeparateDepthStencil())
+    {
+      if(!IsStencilOnlyFormat(c.format))
+        ret.push_back(barrier);
+
+      if(IsStencilFormat(c.format))
+        ret.push_back(barrierStencil);
+    }
+    else
+    {
+      ret.push_back(barrier);
+    }
   }
 
   // erase any do-nothing barriers

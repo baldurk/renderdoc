@@ -477,64 +477,16 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
   vt->UpdateDescriptorSets(Unwrap(dev), (uint32_t)writeSets.size(), &writeSets[0], 0, NULL);
 
-  VkImageMemoryBarrier srcimBarrier = {
-      VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-      NULL,
-      0,
-      0,
-      VK_IMAGE_LAYOUT_UNDEFINED,
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-      layouts.queueFamilyIndex,
-      m_pDriver->GetQueueFamilyIndex(),
-      Unwrap(liveIm),
-      {0, 0, 1, 0, 1}    // will be overwritten by subresourceRange
-  };
-
-  // ensure all previous writes have completed
-  srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
-  // before we go reading
-  srcimBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
-  VkCommandBuffer extQCmd = VK_NULL_HANDLE;
-  VkResult vkr = VK_SUCCESS;
-
-  if(srcimBarrier.srcQueueFamilyIndex != srcimBarrier.dstQueueFamilyIndex)
-  {
-    extQCmd = m_pDriver->GetExtQueueCmd(srcimBarrier.srcQueueFamilyIndex);
-
-    vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-  }
-
-  for(size_t si = 0; si < layouts.subresourceStates.size(); si++)
-  {
-    srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
-    srcimBarrier.oldLayout = layouts.subresourceStates[si].newLayout;
-    srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS | MakeAccessMask(srcimBarrier.oldLayout);
-
-    SanitiseOldImageLayout(srcimBarrier.oldLayout);
-
-    DoPipelineBarrier(cmd, 1, &srcimBarrier);
-
-    if(extQCmd != VK_NULL_HANDLE)
-      DoPipelineBarrier(extQCmd, 1, &srcimBarrier);
-  }
-
-  if(extQCmd != VK_NULL_HANDLE)
-  {
-    vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    m_pDriver->SubmitAndFlushExtQueue(layouts.queueFamilyIndex);
-  }
-
-  srcimBarrier.oldLayout = srcimBarrier.newLayout;
-  srcimBarrier.srcAccessMask = srcimBarrier.dstAccessMask;
+  rdcarray<VkImageMemoryBarrier> setupBarriers, cleanupBarriers;
+  bool extQCleanup = false;
+  m_pDriver->TempTransition(liveIm, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                            VK_ACCESS_SHADER_READ_BIT, setupBarriers, cleanupBarriers, extQCleanup);
+  DoPipelineBarrier(cmd, setupBarriers.size(), setupBarriers.data());
 
   {
     vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
@@ -605,40 +557,17 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     vt->CmdEndRenderPass(Unwrap(cmd));
   }
 
-  std::swap(srcimBarrier.srcQueueFamilyIndex, srcimBarrier.dstQueueFamilyIndex);
-
-  if(extQCmd != VK_NULL_HANDLE)
-  {
-    vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-  }
-
-  for(size_t si = 0; si < layouts.subresourceStates.size(); si++)
-  {
-    srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
-    srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
-    srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
-
-    SanitiseNewImageLayout(srcimBarrier.newLayout);
-
-    DoPipelineBarrier(cmd, 1, &srcimBarrier);
-
-    if(extQCmd != VK_NULL_HANDLE)
-      DoPipelineBarrier(extQCmd, 1, &srcimBarrier);
-  }
+  DoPipelineBarrier(cmd, cleanupBarriers.size(), cleanupBarriers.data());
 
   vt->EndCommandBuffer(Unwrap(cmd));
 
-  if(extQCmd != VK_NULL_HANDLE)
+  if(extQCleanup)
   {
     // ensure work is completed before we pass ownership back to original queue
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();
 
-    vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    m_pDriver->SubmitAndFlushExtQueue(layouts.queueFamilyIndex);
+    m_pDriver->SubmitExtQBarriers(~0U, cleanupBarriers);
   }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)

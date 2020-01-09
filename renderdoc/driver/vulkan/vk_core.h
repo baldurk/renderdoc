@@ -380,6 +380,8 @@ private:
     VkQueueFamilyProperties queueProps[16] = {};
   };
 
+  bool m_SeparateDepthStencil = false;
+
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
   InstanceDeviceInfo m_EnabledExtensions;
@@ -435,8 +437,8 @@ private:
   };
   rdcarray<ExternalQueue> m_ExternalQueues;
 
-  VkCommandBuffer GetExtQueueCmd(uint32_t queueFamilyIdx);
-  void SubmitAndFlushExtQueue(uint32_t queueFamilyIdx);
+  VkCommandBuffer GetExtQueueCmd(uint32_t queueFamilyIdx) const;
+  void SubmitAndFlushExtQueue(uint32_t queueFamilyIdx) const;
 
   struct QueueRemap
   {
@@ -925,6 +927,8 @@ private:
                                    rdcarray<VkImageMemoryBarrier> &setupBarriers,
                                    rdcarray<VkImageMemoryBarrier> &cleanupBarriers) const;
   void SubmitExtQBarriers(const std::map<uint32_t, rdcarray<VkImageMemoryBarrier>> &extQBarriers);
+  void SubmitExtQBarriers(uint32_t queueFamilyIndex,
+                          const rdcarray<VkImageMemoryBarrier> &queueFamilyBarriers);
 
 public:
   WrappedVulkan();
@@ -949,7 +953,7 @@ public:
   void Apply_InitialState(WrappedVkRes *live, const VkInitialContents &initial);
 
   void RemapQueueFamilyIndices(uint32_t &srcQueueFamily, uint32_t &dstQueueFamily);
-  uint32_t GetQueueFamilyIndex() { return m_QueueFamilyIdx; }
+  uint32_t GetQueueFamilyIndex() const { return m_QueueFamilyIdx; }
   bool ReleaseResource(WrappedVkRes *res);
 
   ReplayStatus Initialise(VkInitParams &params, uint64_t sectionVersion, const ReplayOptions &opts);
@@ -1010,6 +1014,11 @@ public:
   void SubmitSemaphores();
   void FlushQ();
 
+  void TempTransition(VkImage image, VkImageLayout layout, VkAccessFlags access,
+                      rdcarray<VkImageMemoryBarrier> &setupBarriers,
+                      rdcarray<VkImageMemoryBarrier> &cleanupBarriers, bool &extQCleanup) const;
+
+  bool SeparateDepthStencil() const { return m_SeparateDepthStencil; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetDrawcallCB(VulkanDrawcallCallback *cb) { m_DrawcallCallback = cb; }
   void SetSubmitChain(void *submitChain) { m_SubmitChain = submitChain; }

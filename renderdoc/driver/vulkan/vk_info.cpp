@@ -668,8 +668,8 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
     dst.storeOp = pCreateInfo->pAttachments[i].storeOp;
     dst.stencilLoadOp = pCreateInfo->pAttachments[i].stencilLoadOp;
     dst.stencilStoreOp = pCreateInfo->pAttachments[i].stencilStoreOp;
-    dst.initialLayout = pCreateInfo->pAttachments[i].initialLayout;
-    dst.finalLayout = pCreateInfo->pAttachments[i].finalLayout;
+    dst.stencilInitialLayout = dst.initialLayout = pCreateInfo->pAttachments[i].initialLayout;
+    dst.stencilFinalLayout = dst.finalLayout = pCreateInfo->pAttachments[i].finalLayout;
   }
 
   // VK_KHR_multiview
@@ -712,10 +712,11 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
                  src.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
              ? (int32_t)src.pDepthStencilAttachment->attachment
              : -1);
-    dst.depthstencilLayout = (src.pDepthStencilAttachment != NULL &&
-                                      src.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
-                                  ? src.pDepthStencilAttachment->layout
-                                  : VK_IMAGE_LAYOUT_UNDEFINED);
+    dst.stencilLayout = dst.depthLayout =
+        (src.pDepthStencilAttachment != NULL &&
+                 src.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
+             ? src.pDepthStencilAttachment->layout
+             : VK_IMAGE_LAYOUT_UNDEFINED);
 
     dst.fragmentDensityAttachment =
         (fragmentDensity &&
@@ -756,8 +757,20 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
     dst.storeOp = pCreateInfo->pAttachments[i].storeOp;
     dst.stencilLoadOp = pCreateInfo->pAttachments[i].stencilLoadOp;
     dst.stencilStoreOp = pCreateInfo->pAttachments[i].stencilStoreOp;
-    dst.initialLayout = pCreateInfo->pAttachments[i].initialLayout;
-    dst.finalLayout = pCreateInfo->pAttachments[i].finalLayout;
+    dst.stencilInitialLayout = dst.initialLayout = pCreateInfo->pAttachments[i].initialLayout;
+    dst.stencilFinalLayout = dst.finalLayout = pCreateInfo->pAttachments[i].finalLayout;
+
+    // VK_KHR_separate_depth_stencil_layouts
+    const VkAttachmentDescriptionStencilLayoutKHR *separateStencil =
+        (const VkAttachmentDescriptionStencilLayoutKHR *)FindNextStruct(
+            &pCreateInfo->pAttachments[i],
+            VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR);
+
+    if(separateStencil)
+    {
+      dst.stencilInitialLayout = separateStencil->stencilInitialLayout;
+      dst.stencilFinalLayout = separateStencil->stencilFinalLayout;
+    }
   }
 
   // VK_EXT_fragment_density_map
@@ -795,10 +808,19 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
                  src.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
              ? (int32_t)src.pDepthStencilAttachment->attachment
              : -1);
-    dst.depthstencilLayout = (src.pDepthStencilAttachment != NULL &&
-                                      src.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
-                                  ? src.pDepthStencilAttachment->layout
-                                  : VK_IMAGE_LAYOUT_UNDEFINED);
+    dst.stencilLayout = dst.depthLayout =
+        (src.pDepthStencilAttachment != NULL &&
+                 src.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
+             ? src.pDepthStencilAttachment->layout
+             : VK_IMAGE_LAYOUT_UNDEFINED);
+
+    // VK_KHR_separate_depth_stencil_layouts
+    const VkAttachmentReferenceStencilLayoutKHR *separateStencil =
+        (const VkAttachmentReferenceStencilLayoutKHR *)FindNextStruct(
+            src.pDepthStencilAttachment, VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_STENCIL_LAYOUT_KHR);
+
+    if(separateStencil)
+      dst.stencilLayout = separateStencil->stencilLayout;
 
     dst.fragmentDensityAttachment =
         (fragmentDensity &&

@@ -24,6 +24,29 @@
 
 #include "../vk_core.h"
 
+static void PatchSeparateStencil(VkAttachmentDescription &att, const VkAttachmentReference *ref)
+{
+}
+
+static void PatchSeparateStencil(VkAttachmentDescription2KHR &att,
+                                 const VkAttachmentReference2KHR *ref)
+{
+  // VK_KHR_separate_depth_stencil_layouts
+  const VkAttachmentReferenceStencilLayoutKHR *separateStencilRef =
+      (const VkAttachmentReferenceStencilLayoutKHR *)FindNextStruct(
+          ref, VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_STENCIL_LAYOUT_KHR);
+
+  VkAttachmentDescriptionStencilLayoutKHR *separateStencilAtt =
+      (VkAttachmentDescriptionStencilLayoutKHR *)FindNextStruct(
+          &att, VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR);
+
+  if(separateStencilRef && separateStencilAtt)
+  {
+    separateStencilAtt->stencilInitialLayout = separateStencilAtt->stencilFinalLayout =
+        separateStencilRef->stencilLayout;
+  }
+}
+
 template <typename RPCreateInfo>
 static void MakeSubpassLoadRP(RPCreateInfo &info, const RPCreateInfo *origInfo, uint32_t s)
 {
@@ -67,6 +90,10 @@ static void MakeSubpassLoadRP(RPCreateInfo &info, const RPCreateInfo *origInfo, 
     att[sub->pDepthStencilAttachment->attachment].initialLayout =
         att[sub->pDepthStencilAttachment->attachment].finalLayout =
             sub->pDepthStencilAttachment->layout;
+
+    // need to do this via an external overloaded function because FindNextStruct will fail to
+    // compile on VkAttachmentReference
+    PatchSeparateStencil(att[sub->pDepthStencilAttachment->attachment], sub->pDepthStencilAttachment);
   }
 }
 
@@ -676,24 +703,26 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
       VkResourceRecord *rpRecord = GetRecord(pCreateInfo->renderPass);
       record->AddParent(rpRecord);
 
-      uint32_t arrayCount = pCreateInfo->attachmentCount + 1;
+      // +1 for the terminating null attachment info, +1 again in case we need two barriers for
+      // separate depth and stencil
+      uint32_t arrayCount = pCreateInfo->attachmentCount + 2;
 
       record->imageAttachments = new AttachmentInfo[arrayCount];
       RDCEraseMem(record->imageAttachments, sizeof(AttachmentInfo) * arrayCount);
 
-      for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
+      for(uint32_t i = 0, a = 0; i < pCreateInfo->attachmentCount; i++, a++)
       {
-        record->imageAttachments[i].barrier = rpRecord->imageAttachments[i].barrier;
+        record->imageAttachments[a].barrier = rpRecord->imageAttachments[a].barrier;
 
         if((pCreateInfo->flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR) == 0)
         {
           VkResourceRecord *attRecord = GetRecord(pCreateInfo->pAttachments[i]);
           record->AddParent(attRecord);
 
-          record->imageAttachments[i].record = attRecord;
-          record->imageAttachments[i].barrier.image =
+          record->imageAttachments[a].record = attRecord;
+          record->imageAttachments[a].barrier.image =
               GetResourceManager()->GetCurrentHandle<VkImage>(attRecord->baseResource);
-          record->imageAttachments[i].barrier.subresourceRange = attRecord->viewRange;
+          record->imageAttachments[a].barrier.subresourceRange = attRecord->viewRange;
 
           ImageLayouts *layout = NULL;
           {
@@ -703,8 +732,29 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
 
           if(layout->imageInfo.extent.depth > 1)
           {
-            record->imageAttachments[i].barrier.subresourceRange.baseArrayLayer = 0;
-            record->imageAttachments[i].barrier.subresourceRange.layerCount = 1;
+            record->imageAttachments[a].barrier.subresourceRange.baseArrayLayer = 0;
+            record->imageAttachments[a].barrier.subresourceRange.layerCount = 1;
+          }
+
+          // if the renderpass specifies an aspect mask that mean split depth/stencil handling, so
+          // respect the aspect mask and the next one will be stencil
+          if(rpRecord->imageAttachments[a].barrier.subresourceRange.aspectMask != 0)
+          {
+            record->imageAttachments[a].barrier.subresourceRange.aspectMask =
+                rpRecord->imageAttachments[a].barrier.subresourceRange.aspectMask;
+
+            a++;
+
+            // copy most properties from previous barrier
+            record->imageAttachments[a].record = record->imageAttachments[a - 1].record;
+            record->imageAttachments[a].barrier = record->imageAttachments[a - 1].barrier;
+            // copy aspect mask and layouts from the next barrier in the RP
+            record->imageAttachments[a].barrier.subresourceRange.aspectMask =
+                rpRecord->imageAttachments[a].barrier.subresourceRange.aspectMask;
+            record->imageAttachments[a].barrier.oldLayout =
+                rpRecord->imageAttachments[a].barrier.oldLayout;
+            record->imageAttachments[a].barrier.newLayout =
+                rpRecord->imageAttachments[a].barrier.newLayout;
           }
         }
       }
@@ -911,8 +961,9 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pRenderPass);
       record->AddChunk(chunk);
 
-      // +1 for the terminal value
-      uint32_t arrayCount = pCreateInfo->attachmentCount + 1;
+      // +1 for the terminating null attachment info, +1 again in case we need two barriers for
+      // separate depth and stencil (though that isn't needed here, we keep the array size the same)
+      uint32_t arrayCount = pCreateInfo->attachmentCount + 2;
 
       record->imageAttachments = new AttachmentInfo[arrayCount];
 
@@ -1012,6 +1063,19 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass2KHR(SerialiserType &ser, VkDevi
       // renderpass can't start or end in presentable layout on replay
       SanitiseOldImageLayout(att[i].initialLayout);
       SanitiseNewImageLayout(att[i].finalLayout);
+
+      // VK_KHR_separate_depth_stencil_layouts
+      VkAttachmentDescriptionStencilLayoutKHR *separateStencil =
+          (VkAttachmentDescriptionStencilLayoutKHR *)FindNextStruct(
+              &att[i], VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR);
+
+      if(separateStencil)
+      {
+        // there's not much to sanitise here but since we're loading, we sanitise undefined to
+        // general.
+        SanitiseOldImageLayout(separateStencil->stencilInitialLayout);
+        SanitiseNewImageLayout(separateStencil->stencilFinalLayout);
+      }
     }
 
     VkResult ret = ObjDisp(device)->CreateRenderPass2KHR(Unwrap(device), &CreateInfo, NULL, &rp);
@@ -1126,19 +1190,41 @@ VkResult WrappedVulkan::vkCreateRenderPass2KHR(VkDevice device,
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pRenderPass);
       record->AddChunk(chunk);
 
-      // +1 for the terminal value
-      uint32_t arrayCount = pCreateInfo->attachmentCount + 1;
+      // +1 for the terminating null attachment info, +1 again in case we need two barriers for
+      // separate depth and stencil
+      uint32_t arrayCount = pCreateInfo->attachmentCount + 2;
 
       record->imageAttachments = new AttachmentInfo[arrayCount];
 
       RDCEraseMem(record->imageAttachments, sizeof(AttachmentInfo) * arrayCount);
 
-      for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
+      for(uint32_t i = 0, a = 0; i < pCreateInfo->attachmentCount; i++, a++)
       {
-        record->imageAttachments[i].record = NULL;
-        record->imageAttachments[i].barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        record->imageAttachments[i].barrier.oldLayout = pCreateInfo->pAttachments[i].initialLayout;
-        record->imageAttachments[i].barrier.newLayout = pCreateInfo->pAttachments[i].finalLayout;
+        record->imageAttachments[a].record = NULL;
+        record->imageAttachments[a].barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        record->imageAttachments[a].barrier.oldLayout = pCreateInfo->pAttachments[i].initialLayout;
+        record->imageAttachments[a].barrier.newLayout = pCreateInfo->pAttachments[i].finalLayout;
+
+        // VK_KHR_separate_depth_stencil_layouts
+        VkAttachmentDescriptionStencilLayoutKHR *separateStencil =
+            (VkAttachmentDescriptionStencilLayoutKHR *)FindNextStruct(
+                &pCreateInfo->pAttachments[i],
+                VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR);
+
+        if(separateStencil)
+        {
+          record->imageAttachments[a].barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+          // add a separate barrier for stencil
+          a++;
+
+          record->imageAttachments[a].record = NULL;
+          record->imageAttachments[a].barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+          record->imageAttachments[a].barrier.oldLayout = separateStencil->stencilInitialLayout;
+          record->imageAttachments[a].barrier.newLayout = separateStencil->stencilFinalLayout;
+          record->imageAttachments[a].barrier.subresourceRange.aspectMask =
+              VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
       }
     }
     else
