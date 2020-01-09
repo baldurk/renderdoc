@@ -62,7 +62,7 @@ struct WrappedID3D12DebugCommandQueue : public ID3D12DebugCommandQueue
                                                      UINT State)
   {
     if(m_pReal)
-      m_pReal->AssertResourceState(pResource, Subresource, State);
+      return m_pReal->AssertResourceState(Unwrap(pResource), Subresource, State);
     return TRUE;
   }
 };

@@ -42,7 +42,7 @@ struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList2, public ID
   ID3D12DebugCommandList1 *m_pReal1;
   ID3D12DebugCommandList2 *m_pReal2;
 
-  WrappedID3D12DebugCommandList() : m_pList(NULL), m_pReal(NULL) {}
+  WrappedID3D12DebugCommandList() : m_pList(NULL), m_pReal(NULL), m_pReal1(NULL), m_pReal2(NULL) {}
   //////////////////////////////
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
@@ -50,6 +50,18 @@ struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList2, public ID
     if(riid == __uuidof(ID3D12DebugCommandList))
     {
       *ppvObject = (ID3D12DebugCommandList *)this;
+      AddRef();
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12DebugCommandList1))
+    {
+      *ppvObject = (ID3D12DebugCommandList1 *)this;
+      AddRef();
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12DebugCommandList2))
+    {
+      *ppvObject = (ID3D12DebugCommandList2 *)this;
       AddRef();
       return S_OK;
     }
@@ -67,14 +79,14 @@ struct WrappedID3D12DebugCommandList : public ID3D12DebugCommandList2, public ID
                                                      UINT State)
   {
     if(m_pReal)
-      m_pReal->AssertResourceState(pResource, Subresource, State);
+      return m_pReal->AssertResourceState(Unwrap(pResource), Subresource, State);
     return TRUE;
   }
 
   virtual HRESULT STDMETHODCALLTYPE SetFeatureMask(D3D12_DEBUG_FEATURE Mask)
   {
     if(m_pReal)
-      m_pReal->SetFeatureMask(Mask);
+      return m_pReal->SetFeatureMask(Mask);
     return S_OK;
   }
 

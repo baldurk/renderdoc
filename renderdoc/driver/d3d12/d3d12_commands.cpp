@@ -264,25 +264,29 @@ WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList5 *obj)
 
 ULONG STDMETHODCALLTYPE WrappedID3D12DebugCommandQueue::AddRef()
 {
-  m_pQueue->AddRef();
+  if(m_pQueue)
+    m_pQueue->AddRef();
   return 1;
 }
 
 ULONG STDMETHODCALLTYPE WrappedID3D12DebugCommandQueue::Release()
 {
-  m_pQueue->Release();
+  if(m_pQueue)
+    m_pQueue->Release();
   return 1;
 }
 
 ULONG STDMETHODCALLTYPE WrappedID3D12DebugCommandList::AddRef()
 {
-  m_pList->AddRef();
+  if(m_pList)
+    m_pList->AddRef();
   return 1;
 }
 
 ULONG STDMETHODCALLTYPE WrappedID3D12DebugCommandList::Release()
 {
-  m_pList->Release();
+  if(m_pList)
+    m_pList->Release();
   return 1;
 }
 
@@ -316,7 +320,7 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this,
                                                               sizeof(WrappedID3D12CommandQueue));
 
-  m_WrappedDebug.m_pReal = NULL;
+  m_WrappedDebug.m_pQueue = this;
   m_pDownlevel = NULL;
   if(m_pReal)
   {
@@ -985,10 +989,7 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
   m_pList4 = NULL;
   m_pList5 = NULL;
 
-  m_WrappedDebug.m_pReal = NULL;
-  m_WrappedDebug.m_pReal1 = NULL;
-  m_WrappedDebug.m_pReal2 = NULL;
-
+  m_WrappedDebug.m_pList = this;
   if(m_pList)
   {
     m_pList->QueryInterface(__uuidof(ID3D12DebugCommandList), (void **)&m_WrappedDebug.m_pReal);
