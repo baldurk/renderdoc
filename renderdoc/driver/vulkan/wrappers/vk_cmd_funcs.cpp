@@ -993,7 +993,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
 
           rdcarray<rdcpair<ResourceId, ImageRegionState> > imgbarriers;
 
-          for(sub = m_RenderState.subpass; sub < numSubpasses - 1; sub++)
+          for(sub = m_RenderState.subpass + 1; sub < numSubpasses; sub++)
           {
             ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), VK_SUBPASS_CONTENTS_INLINE);
 
