@@ -1233,13 +1233,33 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
           m_RenderState.renderArea = RenderPassBegin.renderArea;
         }
 
-        ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &unwrappedInfo, contents);
-
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+
+        // if we're just replaying the vkCmdBeginRenderPass on its own, we use the first loadRP
+        // instead of the real thing. This still does the clears that we want but then doesn't
+        // require us to finish off any subpasses etc.
+        // we need to manually do the subpass 0 barriers, since loadRP expects the image to already
+        // be in subpass 0's layout
+        if(m_FirstEventID == m_LastEventID)
+        {
+          VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
+          VulkanCreationInfo::RenderPass rpinfo =
+              m_CreationInfo.m_RenderPass[m_RenderState.renderPass];
+          unwrappedInfo.renderPass = Unwrap(rpinfo.loadRPs[0]);
+          unwrappedInfo.framebuffer = Unwrap(fbinfo.loadFBs[0]);
+
+          DoPipelineBarrier(commandBuffer, imgBarriers.size(), imgBarriers.data());
+        }
+
+        ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &unwrappedInfo, contents);
 
         ResourceId cmd = GetResID(commandBuffer);
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
                                              (uint32_t)imgBarriers.size(), imgBarriers.data());
+
+        if(m_FirstEventID == m_LastEventID)
+          GetResourceManager()->ApplyBarriers(
+              m_QueueFamilyIdx, m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
       }
     }
     else
@@ -1648,14 +1668,34 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2KHR(SerialiserType &ser,
           m_RenderState.renderArea = RenderPassBegin.renderArea;
         }
 
+        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+
+        // if we're just replaying the vkCmdBeginRenderPass on its own, we use the first loadRP
+        // instead of the real thing. This still does the clears that we want but then doesn't
+        // require us to finish off any subpasses etc.
+        // we need to manually do the subpass 0 barriers, since loadRP expects the image to already
+        // be in subpass 0's layout
+        if(m_FirstEventID == m_LastEventID)
+        {
+          VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
+          VulkanCreationInfo::RenderPass rpinfo =
+              m_CreationInfo.m_RenderPass[m_RenderState.renderPass];
+          unwrappedInfo.renderPass = Unwrap(rpinfo.loadRPs[0]);
+          unwrappedInfo.framebuffer = Unwrap(fbinfo.loadFBs[0]);
+
+          DoPipelineBarrier(commandBuffer, imgBarriers.size(), imgBarriers.data());
+        }
+
         ObjDisp(commandBuffer)
             ->CmdBeginRenderPass2KHR(Unwrap(commandBuffer), &unwrappedInfo, &unwrappedBeginInfo);
-
-        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
         ResourceId cmd = GetResID(commandBuffer);
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
                                              (uint32_t)imgBarriers.size(), imgBarriers.data());
+
+        if(m_FirstEventID == m_LastEventID)
+          GetResourceManager()->ApplyBarriers(
+              m_QueueFamilyIdx, m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
       }
     }
     else
