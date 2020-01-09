@@ -1073,6 +1073,11 @@ void DescriptorSetSlot::AddBindRefs(VulkanResourceManager *rm, VkResourceRecord 
 
 #include "3rdparty/catch/catch.hpp"
 
+bool operator==(const VkImageMemoryBarrier &a, const VkImageMemoryBarrier &b)
+{
+  return memcmp(&a, &b, sizeof(VkImageMemoryBarrier)) == 0;
+}
+
 TEST_CASE("Validate CombineDepthStencilLayouts works", "[vulkan]")
 {
   VkImage imga, imgb;
@@ -1260,7 +1265,7 @@ TEST_CASE("Validate CombineDepthStencilLayouts works", "[vulkan]")
     CHECK(barriers[0].oldLayout == ref[0].oldLayout);
     CHECK(barriers[0].newLayout == ref[0].newLayout);
     // the last barrier should be the same
-    CHECK(memcmp(&barriers[1], &ref[2], sizeof(VkImageMemoryBarrier)) == 0);
+    CHECK((barriers[1] == ref[2]));
   };
 
   SECTION("Split depth and separate stencil barriers are merged when possible")
