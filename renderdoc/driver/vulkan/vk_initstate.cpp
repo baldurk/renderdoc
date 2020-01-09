@@ -2025,7 +2025,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     rdcarray<VkImageMemoryBarrier> setupBarriers, cleanupBarriers;
     ImageInitializationBarriers(id, live, policy, initialized, imgRefs, setupBarriers,
                                 cleanupBarriers);
-    DoPipelineBarrier(cmd, (uint32_t)setupBarriers.size(), setupBarriers.data());
+    DoPipelineBarrier(cmd, setupBarriers.size(), setupBarriers.data());
 
     SubmitExtQBarriers(GetExtQBarriers(setupBarriers));
 
@@ -2176,7 +2176,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       }
     }
 
-    DoPipelineBarrier(cmd, (uint32_t)cleanupBarriers.size(), cleanupBarriers.data());
+    DoPipelineBarrier(cmd, cleanupBarriers.size(), cleanupBarriers.data());
 
     vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);

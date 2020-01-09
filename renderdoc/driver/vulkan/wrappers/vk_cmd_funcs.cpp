@@ -1040,7 +1040,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
           }
 
           if(!revertBarriers.empty())
-            DoPipelineBarrier(commandBuffer, (uint32_t)revertBarriers.size(), revertBarriers.data());
+            DoPipelineBarrier(commandBuffer, revertBarriers.size(), revertBarriers.data());
         }
 
         // also finish any nested markers we truncated and didn't finish
