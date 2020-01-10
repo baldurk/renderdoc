@@ -621,6 +621,21 @@ rdcstr DoStringise(const ShaderBuiltin &el)
     STRINGISE_ENUM_CLASS_NAMED(DepthOutputGreaterEqual, "Depth Output (GEqual)");
     STRINGISE_ENUM_CLASS_NAMED(DepthOutputLessEqual, "Depth Output (LEqual)");
     STRINGISE_ENUM_CLASS_NAMED(StencilReference, "Stencil Ref Value");
+    STRINGISE_ENUM_CLASS_NAMED(PointCoord, "Point Co-ord");
+    STRINGISE_ENUM_CLASS_NAMED(IsHelper, "Is Helper");
+    STRINGISE_ENUM_CLASS_NAMED(SubgroupSize, "Subgroup Size");
+    STRINGISE_ENUM_CLASS_NAMED(NumSubgroups, "Num Subgroups");
+    STRINGISE_ENUM_CLASS_NAMED(SubgroupIndexInWorkgroup, "Subgroup Index in Workgroup");
+    STRINGISE_ENUM_CLASS_NAMED(IndexInSubgroup, "Index in Subgroup");
+    STRINGISE_ENUM_CLASS_NAMED(SubgroupEqualMask, "Subgroup Equal Mask");
+    STRINGISE_ENUM_CLASS_NAMED(SubgroupGreaterEqualMask, "Subgroup Greater-Equal Mask");
+    STRINGISE_ENUM_CLASS_NAMED(SubgroupGreaterMask, "Subgroup Greater Mask");
+    STRINGISE_ENUM_CLASS_NAMED(SubgroupLessEqualMask, "Subgroup Less-Equal Mask");
+    STRINGISE_ENUM_CLASS_NAMED(SubgroupLessMask, "Subgroup Less Mask");
+    STRINGISE_ENUM_CLASS_NAMED(DeviceIndex, "Device Index");
+    STRINGISE_ENUM_CLASS_NAMED(IsFullyCovered, "Is Fully Covered");
+    STRINGISE_ENUM_CLASS_NAMED(FragAreaSize, "Fragment Area Size");
+    STRINGISE_ENUM_CLASS_NAMED(FragInvocationCount, "Fragment Invocation Count");
   }
   END_ENUM_STRINGISE();
 }

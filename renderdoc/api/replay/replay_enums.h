@@ -865,7 +865,69 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
 .. data:: StencilReference
 
   The stencil reference to be used for stenciling operations on this fragment.
+  
+.. data:: PointCoord
 
+  The fragments co-ordinates within a point primitive being rasterized.
+
+.. data:: IsHelper
+
+  Indicates if the current invocation is a helper invocation.
+
+.. data:: SubgroupSize
+
+  The number of invocations in a subgroup.
+
+.. data:: NumSubgroups
+
+  The number of subgroups in the local workgroup.
+
+.. data:: SubgroupIndexInWorkgroup
+
+  The index of the current subgroup within all subgroups in the workgroup, up to
+  :data:`NumSubgroups` - 1.
+
+.. data:: IndexInSubgroup
+
+  The index of the current thread in the current subgroup, up to :data:`SubgroupSize` - 1.
+
+.. data:: SubgroupEqualMask
+
+  A bitmask where the bit corresponding to :data:`IndexInSubgroup` is set.
+
+.. data:: SubgroupGreaterEqualMask
+
+  A bitmask where all bits greater or equal to the one corresponding to :data:`IndexInSubgroup` are
+  set.
+
+.. data:: SubgroupGreaterMask
+
+  A bitmask where all bits greater than the one corresponding to :data:`IndexInSubgroup` are set.
+
+.. data:: SubgroupLessEqualMask
+
+  A bitmask where all bits less or equal to the one corresponding to :data:`IndexInSubgroup` are
+  set.
+
+.. data:: SubgroupLessMask
+
+  A bitmask where all bits less than the one corresponding to :data:`IndexInSubgroup` are set.
+
+.. data:: DeviceIndex
+
+  The device index executing the shader, relative to the current device group.
+
+.. data:: IsFullyCovered
+
+  Indicates if the current fragment area is fully covered by the generating primitive.
+
+.. data:: FragAreaSize
+
+  Gives the dimensions of the area that the fragment covers.
+
+.. data:: FragInvocationCount
+
+  Gives the maximum number of invocations for the fragment being covered.
 )");
 enum class ShaderBuiltin : uint32_t
 {
@@ -903,6 +965,21 @@ enum class ShaderBuiltin : uint32_t
   BaseInstance,
   DrawIndex,
   StencilReference,
+  PointCoord,
+  IsHelper,
+  SubgroupSize,
+  NumSubgroups,
+  SubgroupIndexInWorkgroup,
+  IndexInSubgroup,
+  SubgroupEqualMask,
+  SubgroupGreaterEqualMask,
+  SubgroupGreaterMask,
+  SubgroupLessEqualMask,
+  SubgroupLessMask,
+  DeviceIndex,
+  IsFullyCovered,
+  FragAreaSize,
+  FragInvocationCount,
   Count,
 };
 

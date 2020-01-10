@@ -272,6 +272,21 @@ ShaderBuiltin MakeShaderBuiltin(ShaderStage stage, const rdcspv::BuiltIn el)
     case rdcspv::BuiltIn::LocalInvocationIndex: return ShaderBuiltin::GroupFlatIndex;
     case rdcspv::BuiltIn::LocalInvocationId: return ShaderBuiltin::GroupThreadIndex;
     case rdcspv::BuiltIn::TessCoord: return ShaderBuiltin::DomainLocation;
+    case rdcspv::BuiltIn::PointCoord: return ShaderBuiltin::PointCoord;
+    case rdcspv::BuiltIn::HelperInvocation: return ShaderBuiltin::IsHelper;
+    case rdcspv::BuiltIn::SubgroupSize: return ShaderBuiltin::SubgroupSize;
+    case rdcspv::BuiltIn::NumSubgroups: return ShaderBuiltin::NumSubgroups;
+    case rdcspv::BuiltIn::SubgroupId: return ShaderBuiltin::SubgroupIndexInWorkgroup;
+    case rdcspv::BuiltIn::SubgroupLocalInvocationId: return ShaderBuiltin::IndexInSubgroup;
+    case rdcspv::BuiltIn::SubgroupEqMask: return ShaderBuiltin::SubgroupEqualMask;
+    case rdcspv::BuiltIn::SubgroupGeMask: return ShaderBuiltin::SubgroupGreaterEqualMask;
+    case rdcspv::BuiltIn::SubgroupGtMask: return ShaderBuiltin::SubgroupGreaterMask;
+    case rdcspv::BuiltIn::SubgroupLeMask: return ShaderBuiltin::SubgroupLessEqualMask;
+    case rdcspv::BuiltIn::SubgroupLtMask: return ShaderBuiltin::SubgroupLessMask;
+    case rdcspv::BuiltIn::DeviceIndex: return ShaderBuiltin::DeviceIndex;
+    case rdcspv::BuiltIn::FullyCoveredEXT: return ShaderBuiltin::IsFullyCovered;
+    case rdcspv::BuiltIn::FragSizeEXT: return ShaderBuiltin::FragAreaSize;
+    case rdcspv::BuiltIn::FragInvocationCountEXT: return ShaderBuiltin::FragInvocationCount;
     default: break;
   }
 
