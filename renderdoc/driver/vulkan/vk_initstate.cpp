@@ -904,6 +904,8 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
     // Serialise this separately so that it can be used on reading to prepare the upload memory
     SERIALISE_ELEMENT(ContentsSize);
 
+    const VkDeviceSize nonCoherentAtomSize = GetDeviceProps().limits.nonCoherentAtomSize;
+
     // the memory/buffer that we allocated on read, to upload the initial contents.
     MemoryAllocation uploadMemory;
     VkBuffer uploadBuf = VK_NULL_HANDLE;
@@ -953,8 +955,8 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
 
       mappedMem = uploadMemory;
 
-      ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), mappedMem.offs, mappedMem.size, 0,
-                            (void **)&Contents);
+      ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), mappedMem.offs,
+                            AlignUp(mappedMem.size, nonCoherentAtomSize), 0, (void **)&Contents);
     }
 
     // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
@@ -972,7 +974,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
             NULL,
             Unwrap(mappedMem.mem),
             mappedMem.offs,
-            mappedMem.size,
+            AlignUp(mappedMem.size, nonCoherentAtomSize),
         };
 
         vkr = ObjDisp(d)->FlushMappedMemoryRanges(Unwrap(d), 1, &range);
