@@ -209,77 +209,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
                                      pushRanges[i].offset, pushRanges[i].size,
                                      pushconsts + pushRanges[i].offset);
 
-    const rdcarray<ResourceId> &descSetLayouts =
-        m_CreationInfo->m_PipelineLayout[pipeLayoutId].descSetLayouts;
-
-    // only iterate over the desc sets that this layout actually uses, not all that were bound
-    for(size_t i = 0; i < descSetLayouts.size(); i++)
-    {
-      const DescSetLayout &descLayout = m_CreationInfo->m_DescSetLayout[descSetLayouts[i]];
-
-      if(i < graphics.descSets.size() && graphics.descSets[i].descSet != ResourceId())
-      {
-        // if we come to a descriptor set that isn't compatible, stop setting descriptor sets from
-        // here on.
-        // We can get into this situation if for example we have many sets bound at some point, then
-        // there's a pipeline change that causes most or all of them to be invalidated as
-        // incompatible, then the program only re-binds some subset that it knows is statically used
-        // by the next drawcall. The remaining sets are invalid, but also unused and this is
-        // explicitly allowed by the spec. We just have to make sure we don't try to actively bind
-        // an incompatible descriptor set.
-        ResourceId createdDescSetLayoutId =
-            m_pDriver->GetDescLayoutForDescSet(graphics.descSets[i].descSet);
-
-        if(descSetLayouts[i] != createdDescSetLayoutId)
-        {
-          const DescSetLayout &createdDescLayout =
-              m_CreationInfo->m_DescSetLayout[createdDescSetLayoutId];
-
-          if(descLayout != createdDescLayout)
-          {
-            // this set is incompatible, don't rebind it. Assume the application knows the shader
-            // doesn't need this set, and the binding is just stale
-            continue;
-          }
-        }
-
-        // if there are dynamic buffers, pass along the offsets
-
-        uint32_t *dynamicOffsets = NULL;
-
-        if(descLayout.dynamicCount > 0)
-        {
-          dynamicOffsets = &graphics.descSets[i].offsets[0];
-
-          if(graphics.descSets[i].offsets.size() < descLayout.dynamicCount)
-          {
-            dynamicOffsets = new uint32_t[descLayout.dynamicCount];
-            for(uint32_t o = 0; o < descLayout.dynamicCount; o++)
-            {
-              if(o < graphics.descSets[i].offsets.size())
-              {
-                dynamicOffsets[o] = graphics.descSets[i].offsets[o];
-              }
-              else
-              {
-                dynamicOffsets[o] = 0;
-                RDCWARN("Missing dynamic offset for set %u!", (uint32_t)i);
-              }
-            }
-          }
-        }
-
-        BindDescriptorSet(descLayout, cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, (uint32_t)i,
-                          dynamicOffsets);
-
-        if(graphics.descSets[i].offsets.size() < descLayout.dynamicCount)
-          SAFE_DELETE_ARRAY(dynamicOffsets);
-      }
-      else
-      {
-        RDCWARN("Descriptor set is not bound but pipeline layout expects one");
-      }
-    }
+    BindDescriptorSets(cmd, graphics, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
     if(ibuffer.buf != ResourceId())
     {
@@ -351,47 +281,77 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
                                      pushRanges[i].offset, pushRanges[i].size,
                                      pushconsts + pushRanges[i].offset);
 
-    const rdcarray<ResourceId> &descSetLayouts =
-        m_CreationInfo->m_PipelineLayout[pipeLayoutId].descSetLayouts;
+    BindDescriptorSets(cmd, compute, VK_PIPELINE_BIND_POINT_COMPUTE);
+  }
+}
 
-    for(size_t i = 0; i < descSetLayouts.size(); i++)
+void VulkanRenderState::BindDescriptorSets(VkCommandBuffer cmd, VulkanStatePipeline &pipe,
+                                           VkPipelineBindPoint bindPoint)
+{
+  ResourceId pipeLayoutId = m_CreationInfo->m_Pipeline[pipe.pipeline].layout;
+  const rdcarray<ResourceId> &descSetLayouts =
+      m_CreationInfo->m_PipelineLayout[pipeLayoutId].descSetLayouts;
+
+  for(size_t i = 0; i < descSetLayouts.size(); i++)
+  {
+    const DescSetLayout &descLayout = m_CreationInfo->m_DescSetLayout[descSetLayouts[i]];
+
+    if(i < pipe.descSets.size() && pipe.descSets[i].descSet != ResourceId())
     {
-      const DescSetLayout &descLayout = m_CreationInfo->m_DescSetLayout[descSetLayouts[i]];
+      // if we come to a descriptor set that isn't compatible, stop setting descriptor sets from
+      // here on.
+      // We can get into this situation if for example we have many sets bound at some point, then
+      // there's a pipeline change that causes most or all of them to be invalidated as
+      // incompatible, then the program only re-binds some subset that it knows is statically used
+      // by the next drawcall. The remaining sets are invalid, but also unused and this is
+      // explicitly allowed by the spec. We just have to make sure we don't try to actively bind
+      // an incompatible descriptor set.
+      ResourceId createdDescSetLayoutId =
+          m_pDriver->GetDescLayoutForDescSet(pipe.descSets[i].descSet);
 
-      if(i < compute.descSets.size() && compute.descSets[i].descSet != ResourceId())
+      if(descSetLayouts[i] != createdDescSetLayoutId)
       {
-        // if there are dynamic buffers, pass along the offsets
+        const DescSetLayout &createdDescLayout =
+            m_CreationInfo->m_DescSetLayout[createdDescSetLayoutId];
 
-        uint32_t *dynamicOffsets = NULL;
-
-        if(descLayout.dynamicCount > 0)
+        if(descLayout != createdDescLayout)
         {
-          dynamicOffsets = &compute.descSets[i].offsets[0];
+          // this set is incompatible, don't rebind it. Assume the application knows the shader
+          // doesn't need this set, and the binding is just stale
+          continue;
+        }
+      }
 
-          if(compute.descSets[i].offsets.size() < descLayout.dynamicCount)
+      // if there are dynamic buffers, pass along the offsets
+
+      uint32_t *dynamicOffsets = NULL;
+
+      if(descLayout.dynamicCount > 0)
+      {
+        dynamicOffsets = &pipe.descSets[i].offsets[0];
+
+        if(pipe.descSets[i].offsets.size() < descLayout.dynamicCount)
+        {
+          dynamicOffsets = new uint32_t[descLayout.dynamicCount];
+          for(uint32_t o = 0; o < descLayout.dynamicCount; o++)
           {
-            dynamicOffsets = new uint32_t[descLayout.dynamicCount];
-            for(uint32_t o = 0; o < descLayout.dynamicCount; o++)
+            if(o < pipe.descSets[i].offsets.size())
             {
-              if(o < compute.descSets[i].offsets.size())
-              {
-                dynamicOffsets[o] = compute.descSets[i].offsets[o];
-              }
-              else
-              {
-                dynamicOffsets[o] = 0;
-                RDCWARN("Missing dynamic offset for set %u!", (uint32_t)i);
-              }
+              dynamicOffsets[o] = pipe.descSets[i].offsets[o];
+            }
+            else
+            {
+              dynamicOffsets[o] = 0;
+              RDCWARN("Missing dynamic offset for set %u!", (uint32_t)i);
             }
           }
         }
-
-        BindDescriptorSet(descLayout, cmd, VK_PIPELINE_BIND_POINT_COMPUTE, (uint32_t)i,
-                          dynamicOffsets);
-
-        if(compute.descSets[i].offsets.size() < descLayout.dynamicCount)
-          SAFE_DELETE_ARRAY(dynamicOffsets);
       }
+
+      BindDescriptorSet(descLayout, cmd, bindPoint, (uint32_t)i, dynamicOffsets);
+
+      if(pipe.descSets[i].offsets.size() < descLayout.dynamicCount)
+        SAFE_DELETE_ARRAY(dynamicOffsets);
     }
   }
 }

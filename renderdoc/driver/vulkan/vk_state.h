@@ -62,6 +62,10 @@ struct VulkanRenderState
   void EndConditionalRendering(VkCommandBuffer cmd);
 
   void BindPipeline(VkCommandBuffer cmd, PipelineBinding binding, bool subpass0);
+
+  void BindDescriptorSets(VkCommandBuffer cmd, VulkanStatePipeline &pipe,
+                          VkPipelineBindPoint bindPoint);
+
   void BindDescriptorSet(const DescSetLayout &descLayout, VkCommandBuffer cmd,
                          VkPipelineBindPoint bindPoint, uint32_t setIndex, uint32_t *dynamicOffsets);
 
