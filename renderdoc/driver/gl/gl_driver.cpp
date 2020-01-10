@@ -644,8 +644,6 @@ WrappedOpenGL::WrappedOpenGL(GLPlatform &platform)
 
   m_DrawcallStack.push_back(&m_ParentDrawcall);
 
-  m_ShareGroupID = UINTPTR_MAX - 2000;
-
   m_CurEventID = 0;
   m_CurDrawcallID = 0;
   m_FirstEventID = 0;
@@ -1028,7 +1026,9 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
 
   // if this is the last context in the share group, delete the group.
   if(lastInGroup)
-    GetResourceManager()->DeleteContext(ctxdata.shareGroup);
+  {
+    delete ctxdata.shareGroup;
+  }
 
   if(ctxdata.built && ctxdata.ready)
   {
@@ -1125,16 +1125,13 @@ void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext,
 
   if(shareContext == NULL)
   {
-    // no sharing, allocate a new group ID
-    ctxdata.shareGroup = (void *)m_ShareGroupID;
-
-    // we're counting down from UINTPTR_MAX when allocating IDs
-    m_ShareGroupID--;
+    // no sharing, allocate a new group
+    ctxdata.shareGroup = new ContextShareGroup(m_Platform, winData);
   }
   else
   {
     // use the same shareGroup ID as the share context.
-    ctxdata.shareGroup = ShareCtx(shareContext);
+    ctxdata.shareGroup = GetShareGroup(shareContext);
   }
 
   RenderDoc::Inst().AddDeviceFrameCapturer(ctxdata.ctx, this);
@@ -1178,16 +1175,13 @@ void WrappedOpenGL::RegisterReplayContext(GLWindowingData winData, void *shareCo
 
   if(shareContext == NULL)
   {
-    // no sharing, allocate a new group ID
-    ctxdata.shareGroup = (void *)m_ShareGroupID;
-
-    // we're counting down from UINTPTR_MAX when allocating IDs
-    m_ShareGroupID--;
+    // create the sharegroup
+    ctxdata.shareGroup = new ContextShareGroup(m_Platform, winData);
   }
   else
   {
     // use the same shareGroup ID as the share context.
-    ctxdata.shareGroup = ShareCtx(shareContext);
+    ctxdata.shareGroup = GetShareGroup(shareContext);
   }
 
   ActivateContext(winData);
@@ -1260,7 +1254,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       //
       // First we process any queued fetches from the context itself (i.e. non-shared resources),
       // then from the context's share group.
-      for(void *ctx : {(void *)winData.ctx, ShareCtx(winData.ctx)})
+      for(void *ctx : {(void *)winData.ctx, (void *)GetShareGroup(winData.ctx)})
       {
         QueuedResource fetch;
         fetch.res.ContextShareGroup = ctx;
@@ -1285,7 +1279,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
     // also if there are any queued releases, process them now
     if(!m_QueuedReleases.empty())
     {
-      for(void *ctx : {(void *)winData.ctx, ShareCtx(winData.ctx)})
+      for(void *ctx : {(void *)winData.ctx, (void *)GetShareGroup(winData.ctx)})
       {
         QueuedResource fetch;
         fetch.res.ContextShareGroup = ctx;
@@ -1316,12 +1310,12 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
       if(tlsData)
       {
-        tlsData->ctxPair = {winData.ctx, ShareCtx(winData.ctx)};
+        tlsData->ctxPair = {winData.ctx, GetShareGroup(winData.ctx)};
         tlsData->ctxRecord = ctxdata.m_ContextDataRecord;
       }
       else
       {
-        tlsData = new GLContextTLSData(ContextPair({winData.ctx, ShareCtx(winData.ctx)}),
+        tlsData = new GLContextTLSData(ContextPair({winData.ctx, GetShareGroup(winData.ctx)}),
                                        ctxdata.m_ContextDataRecord);
         m_CtxDataVector.push_back(tlsData);
 
@@ -2692,24 +2686,11 @@ void WrappedOpenGL::QueuePrepareInitialState(GLResource res)
 
 void WrappedOpenGL::QueueResourceRelease(GLResource res)
 {
-  if(res.name == 0)
-    return;
+  QueuedResource q;
+  q.res = res;
 
-  ContextPair &ctx = GetCtx();
-  if(res.ContextShareGroup == ctx.ctx || res.ContextShareGroup == ctx.shareGroup)
-  {
-    // if we're already on a context, delete immediately
-    ReleaseResource(res);
-  }
-  else
-  {
-    // otherwise, queue for next time this becomes active
-    QueuedResource q;
-    q.res = res;
-
-    auto insertPos = std::lower_bound(m_QueuedReleases.begin(), m_QueuedReleases.end(), q);
-    m_QueuedReleases.insert(insertPos - m_QueuedReleases.begin(), q);
-  }
+  auto insertPos = std::lower_bound(m_QueuedReleases.begin(), m_QueuedReleases.end(), q);
+  m_QueuedReleases.insert(insertPos - m_QueuedReleases.begin(), q);
 }
 
 void WrappedOpenGL::CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum internalFormatHint,
