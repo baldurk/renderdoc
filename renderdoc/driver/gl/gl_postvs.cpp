@@ -662,396 +662,404 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
   GLuint idxBuf = 0;
 
-  if(!(drawcall->flags & DrawFlags::Indexed))
+  if(vsRefl->outputSignature.empty())
   {
-    uint64_t outputSize = uint64_t(drawcall->numIndices) * stride;
-
-    if(drawcall->flags & DrawFlags::Instanced)
-      outputSize *= drawcall->numInstances;
-
-    // resize up the buffer if needed for the vertex output data
-    if(DebugData.feedbackBufferSize < outputSize)
-    {
-      uint64_t oldSize = DebugData.feedbackBufferSize;
-      DebugData.feedbackBufferSize = CalcMeshOutputSize(DebugData.feedbackBufferSize, outputSize);
-      RDCWARN("Resizing xfb buffer from %llu to %llu for output", oldSize,
-              DebugData.feedbackBufferSize);
-      if(DebugData.feedbackBufferSize > INTPTR_MAX)
-      {
-        RDCERR("Too much data generated");
-        DebugData.feedbackBufferSize = INTPTR_MAX;
-      }
-      drv.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize,
-                               NULL, eGL_DYNAMIC_READ);
-    }
-
-    // need to rebind this here because of an AMD bug that seems to ignore the buffer
-    // bindings in the feedback object - or at least it errors if the default feedback
-    // object has no buffers bound. Fortunately the state is still object-local so
-    // we don't have to restore the buffer binding on the default feedback object.
-    drv.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
-
-    drv.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
-    drv.glBeginTransformFeedback(eGL_POINTS);
-
-    if(drawcall->flags & DrawFlags::Instanced)
-    {
-      if(HasExt[ARB_base_instance])
-      {
-        drv.glDrawArraysInstancedBaseInstance(eGL_POINTS, drawcall->vertexOffset,
-                                              drawcall->numIndices, drawcall->numInstances,
-                                              drawcall->instanceOffset);
-      }
-      else
-      {
-        drv.glDrawArraysInstanced(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices,
-                                  drawcall->numInstances);
-      }
-    }
-    else
-    {
-      drv.glDrawArrays(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices);
-    }
-  }
-  else    // drawcall is indexed
-  {
-    ResourceId idxId = rm->GetID(BufferRes(drv.GetCtx(), elArrayBuffer));
-
-    bytebuf idxdata;
-    GetBufferData(idxId, drawcall->indexOffset * drawcall->indexByteWidth,
-                  drawcall->numIndices * drawcall->indexByteWidth, idxdata);
-
-    rdcarray<uint32_t> indices;
-
-    uint8_t *idx8 = (uint8_t *)&idxdata[0];
-    uint16_t *idx16 = (uint16_t *)&idxdata[0];
-    uint32_t *idx32 = (uint32_t *)&idxdata[0];
-
-    // only read as many indices as were available in the buffer
-    uint32_t numIndices =
-        RDCMIN(uint32_t(idxdata.size() / drawcall->indexByteWidth), drawcall->numIndices);
-
-    // grab all unique vertex indices referenced
-    for(uint32_t i = 0; i < numIndices; i++)
-    {
-      uint32_t i32 = 0;
-      if(drawcall->indexByteWidth == 1)
-        i32 = uint32_t(idx8[i]);
-      else if(drawcall->indexByteWidth == 2)
-        i32 = uint32_t(idx16[i]);
-      else if(drawcall->indexByteWidth == 4)
-        i32 = idx32[i];
-
-      auto it = std::lower_bound(indices.begin(), indices.end(), i32);
-
-      if(it != indices.end() && *it == i32)
-        continue;
-
-      indices.insert(it - indices.begin(), i32);
-    }
-
-    // if we read out of bounds, we'll also have a 0 index being referenced
-    // (as 0 is read). Don't insert 0 if we already have 0 though
-    if(numIndices < drawcall->numIndices && (indices.empty() || indices[0] != 0))
-      indices.insert(0, 0);
-
-    // An index buffer could be something like: 500, 501, 502, 501, 503, 502
-    // in which case we can't use the existing index buffer without filling 499 slots of vertex
-    // data with padding. Instead we rebase the indices based on the smallest vertex so it becomes
-    // 0, 1, 2, 1, 3, 2 and then that matches our stream-out'd buffer.
-    //
-    // Note that there could also be gaps, like: 500, 501, 502, 510, 511, 512
-    // which would become 0, 1, 2, 3, 4, 5 and so the old index buffer would no longer be valid.
-    // We just stream-out a tightly packed list of unique indices, and then remap the index buffer
-    // so that what did point to 500 points to 0 (accounting for rebasing), and what did point
-    // to 510 now points to 3 (accounting for the unique sort).
-
-    // we use a map here since the indices may be sparse. Especially considering if an index
-    // is 'invalid' like 0xcccccccc then we don't want an array of 3.4 billion entries.
-    std::map<uint32_t, size_t> indexRemap;
-    for(size_t i = 0; i < indices.size(); i++)
-    {
-      // by definition, this index will only appear once in indices[]
-      indexRemap[indices[i]] = i;
-    }
-
-    // generate a temporary index buffer with our 'unique index set' indices,
-    // so we can transform feedback each referenced vertex once
-    GLuint indexSetBuffer = 0;
-    drv.glGenBuffers(1, &indexSetBuffer);
-    drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, indexSetBuffer);
-    drv.glNamedBufferDataEXT(indexSetBuffer, sizeof(uint32_t) * indices.size(), &indices[0],
-                             eGL_STATIC_DRAW);
-
-    uint32_t outputSize = (uint32_t)indices.size() * stride;
-
-    if(drawcall->flags & DrawFlags::Instanced)
-      outputSize *= drawcall->numInstances;
-
-    // resize up the buffer if needed for the vertex output data
-    if(DebugData.feedbackBufferSize < outputSize)
-    {
-      uint64_t oldSize = DebugData.feedbackBufferSize;
-      DebugData.feedbackBufferSize = CalcMeshOutputSize(DebugData.feedbackBufferSize, outputSize);
-      RDCWARN("Resizing xfb buffer from %llu to %llu for output", oldSize,
-              DebugData.feedbackBufferSize);
-      if(DebugData.feedbackBufferSize > INTPTR_MAX)
-      {
-        RDCERR("Too much data generated");
-        DebugData.feedbackBufferSize = INTPTR_MAX;
-      }
-      drv.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize,
-                               NULL, eGL_DYNAMIC_READ);
-    }
-
-    // need to rebind this here because of an AMD bug that seems to ignore the buffer
-    // bindings in the feedback object - or at least it errors if the default feedback
-    // object has no buffers bound. Fortunately the state is still object-local so
-    // we don't have to restore the buffer binding on the default feedback object.
-    drv.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
-
-    drv.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
-    drv.glBeginTransformFeedback(eGL_POINTS);
-
-    if(drawcall->flags & DrawFlags::Instanced)
-    {
-      if(HasExt[ARB_base_instance])
-      {
-        drv.glDrawElementsInstancedBaseVertexBaseInstance(
-            eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL, drawcall->numInstances,
-            drawcall->baseVertex, drawcall->instanceOffset);
-      }
-      else
-      {
-        drv.glDrawElementsInstancedBaseVertex(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT,
-                                              NULL, drawcall->numInstances, drawcall->baseVertex);
-      }
-    }
-    else
-    {
-      drv.glDrawElementsBaseVertex(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL,
-                                   drawcall->baseVertex);
-    }
-
-    // delete the buffer, we don't need it anymore
-    drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
-    drv.glDeleteBuffers(1, &indexSetBuffer);
-
-    uint32_t stripRestartValue32 = 0;
-
-    if(SupportsRestart(drawcall->topology) && rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart])
-    {
-      stripRestartValue32 = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex]
-                                ? ~0U
-                                : rs.PrimitiveRestartIndex;
-    }
-
-    // rebase existing index buffer to point from 0 onwards (which will index into our
-    // stream-out'd vertex buffer)
-    if(drawcall->indexByteWidth == 1)
-    {
-      uint8_t stripRestartValue = stripRestartValue32 & 0xff;
-
-      for(uint32_t i = 0; i < numIndices; i++)
-      {
-        // preserve primitive restart indices
-        if(stripRestartValue && idx8[i] == stripRestartValue)
-          continue;
-
-        idx8[i] = uint8_t(indexRemap[idx8[i]]);
-      }
-    }
-    else if(drawcall->indexByteWidth == 2)
-    {
-      uint16_t stripRestartValue = stripRestartValue32 & 0xffff;
-
-      for(uint32_t i = 0; i < numIndices; i++)
-      {
-        // preserve primitive restart indices
-        if(stripRestartValue && idx16[i] == stripRestartValue)
-          continue;
-
-        idx16[i] = uint16_t(indexRemap[idx16[i]]);
-      }
-    }
-    else
-    {
-      uint32_t stripRestartValue = stripRestartValue32;
-
-      for(uint32_t i = 0; i < numIndices; i++)
-      {
-        // preserve primitive restart indices
-        if(stripRestartValue && idx32[i] == stripRestartValue)
-          continue;
-
-        idx32[i] = uint32_t(indexRemap[idx32[i]]);
-      }
-    }
-
-    // make the index buffer that can be used to render this postvs data - the original
-    // indices, repointed (since we transform feedback to the start of our feedback
-    // buffer and only tightly packed unique indices).
-    if(!idxdata.empty())
-    {
-      drv.glGenBuffers(1, &idxBuf);
-      drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, idxBuf);
-      drv.glNamedBufferDataEXT(idxBuf, (GLsizeiptr)idxdata.size(), &idxdata[0], eGL_STATIC_DRAW);
-    }
-
-    // restore previous element array buffer binding
-    drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
-  }
-
-  drv.glEndTransformFeedback();
-  drv.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
-
-  bool error = false;
-
-  // this should be the same as the draw size
-  GLuint primsWritten = 0;
-  drv.glGetQueryObjectuiv(DebugData.feedbackQueries[0], eGL_QUERY_RESULT, &primsWritten);
-
-  if(primsWritten == 0)
-  {
-    // we bailed out much earlier if this was a draw of 0 verts
-    RDCERR("No primitives written - but we must have had some number of vertices in the draw");
-    error = true;
-  }
-
-  // get buffer data from buffer attached to feedback object
-  float *data = (float *)drv.glMapNamedBufferEXT(DebugData.feedbackBuffer, eGL_READ_ONLY);
-
-  if(data == NULL)
-  {
-    drv.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
-    RDCERR("Couldn't map feedback buffer!");
-    error = true;
-  }
-
-  if(error)
-  {
-    // restore replay state we trashed
-    drv.glUseProgram(rs.Program.name);
-    drv.glBindProgramPipeline(rs.Pipeline.name);
-
-    drv.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array].name);
-    drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
-
-    drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
-
-    if(!rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard])
-      drv.glDisable(eGL_RASTERIZER_DISCARD);
-    else
-      drv.glEnable(eGL_RASTERIZER_DISCARD);
-
+    // nothing to do, store an empty cache
     m_PostVSData[eventId] = GLPostVSData();
-
-    // delete any temporaries
-    for(size_t i = 0; i < 4; i++)
-      if(tmpShaders[i])
-        drv.glDeleteShader(tmpShaders[i]);
-
-    drv.glDeleteShader(dummyFrag);
-
-    drv.glDeleteProgram(feedbackProg);
-
-    return;
   }
-
-  // create a buffer with this data, for future use (typed to ARRAY_BUFFER so we
-  // can render from it to display previews).
-  GLuint vsoutBuffer = 0;
-  drv.glGenBuffers(1, &vsoutBuffer);
-  drv.glBindBuffer(eGL_ARRAY_BUFFER, vsoutBuffer);
-  drv.glNamedBufferDataEXT(vsoutBuffer, stride * primsWritten, data, eGL_STATIC_DRAW);
-
-  byte *byteData = (byte *)data;
-
-  float nearp = 0.1f;
-  float farp = 100.0f;
-
-  Vec4f *pos0 = (Vec4f *)byteData;
-
-  bool found = false;
-
-  for(GLuint i = 1; hasPosition && i < primsWritten; i++)
+  else
   {
-    //////////////////////////////////////////////////////////////////////////////////
-    // derive near/far, assuming a standard perspective matrix
-    //
-    // the transformation from from pre-projection {Z,W} to post-projection {Z,W}
-    // is linear. So we can say Zpost = Zpre*m + c . Here we assume Wpre = 1
-    // and we know Wpost = Zpre from the perspective matrix.
-    // we can then see from the perspective matrix that
-    // m = F/(F-N)
-    // c = -(F*N)/(F-N)
-    //
-    // with re-arranging and substitution, we then get:
-    // N = -c/m
-    // F = c/(1-m)
-    //
-    // so if we can derive m and c then we can determine N and F. We can do this with
-    // two points, and we pick them reasonably distinct on z to reduce floating-point
-    // error
-
-    Vec4f *pos = (Vec4f *)(byteData + i * stride);
-
-    if(fabs(pos->w - pos0->w) > 0.01f && fabs(pos->z - pos0->z) > 0.01f)
+    if(!(drawcall->flags & DrawFlags::Indexed))
     {
-      Vec2f A(pos0->w, pos0->z);
-      Vec2f B(pos->w, pos->z);
+      uint64_t outputSize = uint64_t(drawcall->numIndices) * stride;
 
-      float m = (B.y - A.y) / (B.x - A.x);
-      float c = B.y - B.x * m;
+      if(drawcall->flags & DrawFlags::Instanced)
+        outputSize *= drawcall->numInstances;
 
-      if(m == 1.0f)
-        continue;
+      // resize up the buffer if needed for the vertex output data
+      if(DebugData.feedbackBufferSize < outputSize)
+      {
+        uint64_t oldSize = DebugData.feedbackBufferSize;
+        DebugData.feedbackBufferSize = CalcMeshOutputSize(DebugData.feedbackBufferSize, outputSize);
+        RDCWARN("Resizing xfb buffer from %llu to %llu for output", oldSize,
+                DebugData.feedbackBufferSize);
+        if(DebugData.feedbackBufferSize > INTPTR_MAX)
+        {
+          RDCERR("Too much data generated");
+          DebugData.feedbackBufferSize = INTPTR_MAX;
+        }
+        drv.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize,
+                                 NULL, eGL_DYNAMIC_READ);
+      }
 
-      nearp = -c / m;
-      farp = c / (1 - m);
+      // need to rebind this here because of an AMD bug that seems to ignore the buffer
+      // bindings in the feedback object - or at least it errors if the default feedback
+      // object has no buffers bound. Fortunately the state is still object-local so
+      // we don't have to restore the buffer binding on the default feedback object.
+      drv.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
 
-      found = true;
+      drv.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
+      drv.glBeginTransformFeedback(eGL_POINTS);
 
-      break;
+      if(drawcall->flags & DrawFlags::Instanced)
+      {
+        if(HasExt[ARB_base_instance])
+        {
+          drv.glDrawArraysInstancedBaseInstance(eGL_POINTS, drawcall->vertexOffset,
+                                                drawcall->numIndices, drawcall->numInstances,
+                                                drawcall->instanceOffset);
+        }
+        else
+        {
+          drv.glDrawArraysInstanced(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices,
+                                    drawcall->numInstances);
+        }
+      }
+      else
+      {
+        drv.glDrawArrays(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices);
+      }
     }
+    else    // drawcall is indexed
+    {
+      ResourceId idxId = rm->GetID(BufferRes(drv.GetCtx(), elArrayBuffer));
+
+      bytebuf idxdata;
+      GetBufferData(idxId, drawcall->indexOffset * drawcall->indexByteWidth,
+                    drawcall->numIndices * drawcall->indexByteWidth, idxdata);
+
+      rdcarray<uint32_t> indices;
+
+      uint8_t *idx8 = (uint8_t *)&idxdata[0];
+      uint16_t *idx16 = (uint16_t *)&idxdata[0];
+      uint32_t *idx32 = (uint32_t *)&idxdata[0];
+
+      // only read as many indices as were available in the buffer
+      uint32_t numIndices =
+          RDCMIN(uint32_t(idxdata.size() / drawcall->indexByteWidth), drawcall->numIndices);
+
+      // grab all unique vertex indices referenced
+      for(uint32_t i = 0; i < numIndices; i++)
+      {
+        uint32_t i32 = 0;
+        if(drawcall->indexByteWidth == 1)
+          i32 = uint32_t(idx8[i]);
+        else if(drawcall->indexByteWidth == 2)
+          i32 = uint32_t(idx16[i]);
+        else if(drawcall->indexByteWidth == 4)
+          i32 = idx32[i];
+
+        auto it = std::lower_bound(indices.begin(), indices.end(), i32);
+
+        if(it != indices.end() && *it == i32)
+          continue;
+
+        indices.insert(it - indices.begin(), i32);
+      }
+
+      // if we read out of bounds, we'll also have a 0 index being referenced
+      // (as 0 is read). Don't insert 0 if we already have 0 though
+      if(numIndices < drawcall->numIndices && (indices.empty() || indices[0] != 0))
+        indices.insert(0, 0);
+
+      // An index buffer could be something like: 500, 501, 502, 501, 503, 502
+      // in which case we can't use the existing index buffer without filling 499 slots of vertex
+      // data with padding. Instead we rebase the indices based on the smallest vertex so it becomes
+      // 0, 1, 2, 1, 3, 2 and then that matches our stream-out'd buffer.
+      //
+      // Note that there could also be gaps, like: 500, 501, 502, 510, 511, 512
+      // which would become 0, 1, 2, 3, 4, 5 and so the old index buffer would no longer be valid.
+      // We just stream-out a tightly packed list of unique indices, and then remap the index buffer
+      // so that what did point to 500 points to 0 (accounting for rebasing), and what did point
+      // to 510 now points to 3 (accounting for the unique sort).
+
+      // we use a map here since the indices may be sparse. Especially considering if an index
+      // is 'invalid' like 0xcccccccc then we don't want an array of 3.4 billion entries.
+      std::map<uint32_t, size_t> indexRemap;
+      for(size_t i = 0; i < indices.size(); i++)
+      {
+        // by definition, this index will only appear once in indices[]
+        indexRemap[indices[i]] = i;
+      }
+
+      // generate a temporary index buffer with our 'unique index set' indices,
+      // so we can transform feedback each referenced vertex once
+      GLuint indexSetBuffer = 0;
+      drv.glGenBuffers(1, &indexSetBuffer);
+      drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, indexSetBuffer);
+      drv.glNamedBufferDataEXT(indexSetBuffer, sizeof(uint32_t) * indices.size(), &indices[0],
+                               eGL_STATIC_DRAW);
+
+      uint32_t outputSize = (uint32_t)indices.size() * stride;
+
+      if(drawcall->flags & DrawFlags::Instanced)
+        outputSize *= drawcall->numInstances;
+
+      // resize up the buffer if needed for the vertex output data
+      if(DebugData.feedbackBufferSize < outputSize)
+      {
+        uint64_t oldSize = DebugData.feedbackBufferSize;
+        DebugData.feedbackBufferSize = CalcMeshOutputSize(DebugData.feedbackBufferSize, outputSize);
+        RDCWARN("Resizing xfb buffer from %llu to %llu for output", oldSize,
+                DebugData.feedbackBufferSize);
+        if(DebugData.feedbackBufferSize > INTPTR_MAX)
+        {
+          RDCERR("Too much data generated");
+          DebugData.feedbackBufferSize = INTPTR_MAX;
+        }
+        drv.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize,
+                                 NULL, eGL_DYNAMIC_READ);
+      }
+
+      // need to rebind this here because of an AMD bug that seems to ignore the buffer
+      // bindings in the feedback object - or at least it errors if the default feedback
+      // object has no buffers bound. Fortunately the state is still object-local so
+      // we don't have to restore the buffer binding on the default feedback object.
+      drv.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
+
+      drv.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
+      drv.glBeginTransformFeedback(eGL_POINTS);
+
+      if(drawcall->flags & DrawFlags::Instanced)
+      {
+        if(HasExt[ARB_base_instance])
+        {
+          drv.glDrawElementsInstancedBaseVertexBaseInstance(
+              eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL, drawcall->numInstances,
+              drawcall->baseVertex, drawcall->instanceOffset);
+        }
+        else
+        {
+          drv.glDrawElementsInstancedBaseVertex(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT,
+                                                NULL, drawcall->numInstances, drawcall->baseVertex);
+        }
+      }
+      else
+      {
+        drv.glDrawElementsBaseVertex(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL,
+                                     drawcall->baseVertex);
+      }
+
+      // delete the buffer, we don't need it anymore
+      drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
+      drv.glDeleteBuffers(1, &indexSetBuffer);
+
+      uint32_t stripRestartValue32 = 0;
+
+      if(SupportsRestart(drawcall->topology) && rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart])
+      {
+        stripRestartValue32 = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex]
+                                  ? ~0U
+                                  : rs.PrimitiveRestartIndex;
+      }
+
+      // rebase existing index buffer to point from 0 onwards (which will index into our
+      // stream-out'd vertex buffer)
+      if(drawcall->indexByteWidth == 1)
+      {
+        uint8_t stripRestartValue = stripRestartValue32 & 0xff;
+
+        for(uint32_t i = 0; i < numIndices; i++)
+        {
+          // preserve primitive restart indices
+          if(stripRestartValue && idx8[i] == stripRestartValue)
+            continue;
+
+          idx8[i] = uint8_t(indexRemap[idx8[i]]);
+        }
+      }
+      else if(drawcall->indexByteWidth == 2)
+      {
+        uint16_t stripRestartValue = stripRestartValue32 & 0xffff;
+
+        for(uint32_t i = 0; i < numIndices; i++)
+        {
+          // preserve primitive restart indices
+          if(stripRestartValue && idx16[i] == stripRestartValue)
+            continue;
+
+          idx16[i] = uint16_t(indexRemap[idx16[i]]);
+        }
+      }
+      else
+      {
+        uint32_t stripRestartValue = stripRestartValue32;
+
+        for(uint32_t i = 0; i < numIndices; i++)
+        {
+          // preserve primitive restart indices
+          if(stripRestartValue && idx32[i] == stripRestartValue)
+            continue;
+
+          idx32[i] = uint32_t(indexRemap[idx32[i]]);
+        }
+      }
+
+      // make the index buffer that can be used to render this postvs data - the original
+      // indices, repointed (since we transform feedback to the start of our feedback
+      // buffer and only tightly packed unique indices).
+      if(!idxdata.empty())
+      {
+        drv.glGenBuffers(1, &idxBuf);
+        drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, idxBuf);
+        drv.glNamedBufferDataEXT(idxBuf, (GLsizeiptr)idxdata.size(), &idxdata[0], eGL_STATIC_DRAW);
+      }
+
+      // restore previous element array buffer binding
+      drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
+    }
+
+    drv.glEndTransformFeedback();
+    drv.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+
+    bool error = false;
+
+    // this should be the same as the draw size
+    GLuint primsWritten = 0;
+    drv.glGetQueryObjectuiv(DebugData.feedbackQueries[0], eGL_QUERY_RESULT, &primsWritten);
+
+    if(primsWritten == 0)
+    {
+      // we bailed out much earlier if this was a draw of 0 verts
+      RDCERR("No primitives written - but we must have had some number of vertices in the draw");
+      error = true;
+    }
+
+    // get buffer data from buffer attached to feedback object
+    float *data = (float *)drv.glMapNamedBufferEXT(DebugData.feedbackBuffer, eGL_READ_ONLY);
+
+    if(data == NULL)
+    {
+      drv.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
+      RDCERR("Couldn't map feedback buffer!");
+      error = true;
+    }
+
+    if(error)
+    {
+      // restore replay state we trashed
+      drv.glUseProgram(rs.Program.name);
+      drv.glBindProgramPipeline(rs.Pipeline.name);
+
+      drv.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array].name);
+      drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
+
+      drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
+
+      if(!rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard])
+        drv.glDisable(eGL_RASTERIZER_DISCARD);
+      else
+        drv.glEnable(eGL_RASTERIZER_DISCARD);
+
+      m_PostVSData[eventId] = GLPostVSData();
+
+      // delete any temporaries
+      for(size_t i = 0; i < 4; i++)
+        if(tmpShaders[i])
+          drv.glDeleteShader(tmpShaders[i]);
+
+      drv.glDeleteShader(dummyFrag);
+
+      drv.glDeleteProgram(feedbackProg);
+
+      return;
+    }
+
+    // create a buffer with this data, for future use (typed to ARRAY_BUFFER so we
+    // can render from it to display previews).
+    GLuint vsoutBuffer = 0;
+    drv.glGenBuffers(1, &vsoutBuffer);
+    drv.glBindBuffer(eGL_ARRAY_BUFFER, vsoutBuffer);
+    drv.glNamedBufferDataEXT(vsoutBuffer, stride * primsWritten, data, eGL_STATIC_DRAW);
+
+    byte *byteData = (byte *)data;
+
+    float nearp = 0.1f;
+    float farp = 100.0f;
+
+    Vec4f *pos0 = (Vec4f *)byteData;
+
+    bool found = false;
+
+    for(GLuint i = 1; hasPosition && i < primsWritten; i++)
+    {
+      //////////////////////////////////////////////////////////////////////////////////
+      // derive near/far, assuming a standard perspective matrix
+      //
+      // the transformation from from pre-projection {Z,W} to post-projection {Z,W}
+      // is linear. So we can say Zpost = Zpre*m + c . Here we assume Wpre = 1
+      // and we know Wpost = Zpre from the perspective matrix.
+      // we can then see from the perspective matrix that
+      // m = F/(F-N)
+      // c = -(F*N)/(F-N)
+      //
+      // with re-arranging and substitution, we then get:
+      // N = -c/m
+      // F = c/(1-m)
+      //
+      // so if we can derive m and c then we can determine N and F. We can do this with
+      // two points, and we pick them reasonably distinct on z to reduce floating-point
+      // error
+
+      Vec4f *pos = (Vec4f *)(byteData + i * stride);
+
+      if(fabs(pos->w - pos0->w) > 0.01f && fabs(pos->z - pos0->z) > 0.01f)
+      {
+        Vec2f A(pos0->w, pos0->z);
+        Vec2f B(pos->w, pos->z);
+
+        float m = (B.y - A.y) / (B.x - A.x);
+        float c = B.y - B.x * m;
+
+        if(m == 1.0f)
+          continue;
+
+        nearp = -c / m;
+        farp = c / (1 - m);
+
+        found = true;
+
+        break;
+      }
+    }
+
+    // if we didn't find anything, all z's and w's were identical.
+    // If the z is positive and w greater for the first element then
+    // we detect this projection as reversed z with infinite far plane
+    if(!found && pos0->z > 0.0f && pos0->w > pos0->z)
+    {
+      nearp = pos0->z;
+      farp = FLT_MAX;
+    }
+
+    drv.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
+
+    // store everything out to the PostVS data cache
+    m_PostVSData[eventId].vsin.topo = drawcall->topology;
+    m_PostVSData[eventId].vsout.buf = vsoutBuffer;
+    m_PostVSData[eventId].vsout.vertStride = stride;
+    m_PostVSData[eventId].vsout.nearPlane = nearp;
+    m_PostVSData[eventId].vsout.farPlane = farp;
+
+    m_PostVSData[eventId].vsout.useIndices = bool(drawcall->flags & DrawFlags::Indexed);
+    m_PostVSData[eventId].vsout.numVerts = drawcall->numIndices;
+
+    m_PostVSData[eventId].vsout.instStride = 0;
+    if(drawcall->flags & DrawFlags::Instanced)
+      m_PostVSData[eventId].vsout.instStride =
+          (stride * primsWritten) / RDCMAX(1U, drawcall->numInstances);
+
+    m_PostVSData[eventId].vsout.idxBuf = 0;
+    m_PostVSData[eventId].vsout.idxByteWidth = drawcall->indexByteWidth;
+    if(m_PostVSData[eventId].vsout.useIndices && idxBuf)
+    {
+      m_PostVSData[eventId].vsout.idxBuf = idxBuf;
+    }
+
+    m_PostVSData[eventId].vsout.hasPosOut = hasPosition;
+
+    m_PostVSData[eventId].vsout.topo = drawcall->topology;
   }
-
-  // if we didn't find anything, all z's and w's were identical.
-  // If the z is positive and w greater for the first element then
-  // we detect this projection as reversed z with infinite far plane
-  if(!found && pos0->z > 0.0f && pos0->w > pos0->z)
-  {
-    nearp = pos0->z;
-    farp = FLT_MAX;
-  }
-
-  drv.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
-
-  // store everything out to the PostVS data cache
-  m_PostVSData[eventId].vsin.topo = drawcall->topology;
-  m_PostVSData[eventId].vsout.buf = vsoutBuffer;
-  m_PostVSData[eventId].vsout.vertStride = stride;
-  m_PostVSData[eventId].vsout.nearPlane = nearp;
-  m_PostVSData[eventId].vsout.farPlane = farp;
-
-  m_PostVSData[eventId].vsout.useIndices = bool(drawcall->flags & DrawFlags::Indexed);
-  m_PostVSData[eventId].vsout.numVerts = drawcall->numIndices;
-
-  m_PostVSData[eventId].vsout.instStride = 0;
-  if(drawcall->flags & DrawFlags::Instanced)
-    m_PostVSData[eventId].vsout.instStride =
-        (stride * primsWritten) / RDCMAX(1U, drawcall->numInstances);
-
-  m_PostVSData[eventId].vsout.idxBuf = 0;
-  m_PostVSData[eventId].vsout.idxByteWidth = drawcall->indexByteWidth;
-  if(m_PostVSData[eventId].vsout.useIndices && idxBuf)
-  {
-    m_PostVSData[eventId].vsout.idxBuf = idxBuf;
-  }
-
-  m_PostVSData[eventId].vsout.hasPosOut = hasPosition;
-
-  m_PostVSData[eventId].vsout.topo = drawcall->topology;
 
   if(tesRefl || gsRefl)
   {
@@ -1596,6 +1604,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
       rdcarray<GLPostVSData::InstData> instData;
 
+      GLuint primsWritten = 0;
+
       if((drawcall->flags & DrawFlags::Instanced) && drawcall->numInstances > 1)
       {
         uint64_t prevVertCount = 0;
@@ -1620,7 +1630,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         drv.glGetQueryObjectuiv(DebugData.feedbackQueries[0], eGL_QUERY_RESULT, &primsWritten);
       }
 
-      error = false;
+      bool error = false;
 
       if(primsWritten == 0)
       {
@@ -1629,7 +1639,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       }
 
       // get buffer data from buffer attached to feedback object
-      data = (float *)drv.glMapNamedBufferEXT(DebugData.feedbackBuffer, eGL_READ_ONLY);
+      float *data = (float *)drv.glMapNamedBufferEXT(DebugData.feedbackBuffer, eGL_READ_ONLY);
 
       if(data == NULL)
       {
@@ -1695,14 +1705,14 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       drv.glNamedBufferDataEXT(lastoutBuffer, stride * m_PostVSData[eventId].gsout.numVerts, data,
                                eGL_STATIC_DRAW);
 
-      byteData = (byte *)data;
+      byte *byteData = (byte *)data;
 
-      nearp = 0.1f;
-      farp = 100.0f;
+      float nearp = 0.1f;
+      float farp = 100.0f;
 
-      pos0 = (Vec4f *)byteData;
+      Vec4f *pos0 = (Vec4f *)byteData;
 
-      found = false;
+      bool found = false;
 
       for(uint32_t i = 1; hasPosition && i < m_PostVSData[eventId].gsout.numVerts; i++)
       {
