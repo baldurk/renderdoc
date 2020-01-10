@@ -333,8 +333,10 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcs
           // no #version found
           if(it < 0)
           {
-            // insert at the start
-            it = 0;
+            // ensure we're using at least #version 130
+            src.insert(0, "#version 130\n");
+            // insert after that
+            it = 13;
           }
           else
           {
@@ -343,6 +345,11 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, rdcarray<rdcs
             // skip whitespace
             while(it < len && isspacetab(src[it]))
               ++it;
+
+            // if the version is less than 130 we need to upgrade it to even be able to use out
+            // blocks
+            if(src[it] == '1' && src[it + 1] < '3')
+              src[it + 1] = '3';
 
             // skip number
             while(it < len && src[it] >= '0' && src[it] <= '9')
