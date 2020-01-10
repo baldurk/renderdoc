@@ -33,6 +33,60 @@
 #define TRDBG(...)
 #endif
 
+static void AddAndMerge(rdcarray<VkImageMemoryBarrier> &barriers,
+                        rdcarray<rdcpair<ResourceId, ImageRegionState>> &states,
+                        const VkImageMemoryBarrier &newBarrier,
+                        const rdcpair<ResourceId, ImageRegionState> &newState)
+{
+  bool add_new = true;
+
+  // see if we can combine our incoming barrier into the last one by expanding the
+  // subresource range. Note we iterate over array layers first, then mips.
+  if(!barriers.empty() && barriers.back().oldLayout == newBarrier.oldLayout &&
+     barriers.back().newLayout == newBarrier.newLayout)
+  {
+    // if it's the same array layer and we're the next mip on, combine
+    if(barriers.back().subresourceRange.aspectMask == newBarrier.subresourceRange.aspectMask &&
+       barriers.back().subresourceRange.baseArrayLayer == newBarrier.subresourceRange.baseArrayLayer &&
+       barriers.back().subresourceRange.layerCount == newBarrier.subresourceRange.layerCount &&
+       barriers.back().subresourceRange.baseMipLevel + barriers.back().subresourceRange.levelCount ==
+           newBarrier.subresourceRange.baseMipLevel)
+    {
+      barriers.back().subresourceRange.levelCount += newBarrier.subresourceRange.levelCount;
+      states.back().second.subresourceRange.levelCount += newBarrier.subresourceRange.levelCount;
+      add_new = false;
+    }
+  }
+
+  if(add_new)
+  {
+    barriers.push_back(newBarrier);
+    states.push_back(newState);
+  }
+
+  // we might have added the last mip(s) in an array layer, allowing us to combine with
+  // the previous array layer. Check for that
+  if(barriers.size() >= 2)
+  {
+    VkImageMemoryBarrier &a = barriers[barriers.size() - 2];
+    VkImageMemoryBarrier &b = barriers[barriers.size() - 1];
+
+    // if the mips are identical and we're the next array layer on, combine
+    if(a.oldLayout == b.oldLayout && a.newLayout == b.newLayout &&
+       a.subresourceRange.aspectMask == b.subresourceRange.aspectMask &&
+       a.subresourceRange.baseMipLevel == b.subresourceRange.baseMipLevel &&
+       a.subresourceRange.levelCount == b.subresourceRange.levelCount &&
+       a.subresourceRange.baseArrayLayer + a.subresourceRange.layerCount ==
+           b.subresourceRange.baseArrayLayer)
+    {
+      a.subresourceRange.layerCount += b.subresourceRange.layerCount;
+      states[states.size() - 2].second.subresourceRange.layerCount += b.subresourceRange.layerCount;
+      barriers.pop_back();
+      states.pop_back();
+    }
+  }
+}
+
 template <typename SrcBarrierType>
 void VulkanResourceManager::RecordSingleBarrier(
     rdcarray<rdcpair<ResourceId, ImageRegionState>> &dststates, ResourceId id,
@@ -289,35 +343,28 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
     {
       updatedState.insert(liveid);
 
+      VkImageMemoryBarrier t = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+
+      t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+      t.image = Unwrap(GetCurrentHandle<VkImage>(liveid));
+      t.srcQueueFamilyIndex = ImageState.queueFamilyIndex;
+      t.dstQueueFamilyIndex = ImageState.queueFamilyIndex;
+      m_Core->RemapQueueFamilyIndices(t.srcQueueFamilyIndex, t.dstQueueFamilyIndex);
+      if(t.dstQueueFamilyIndex == VK_QUEUE_FAMILY_IGNORED)
+        t.dstQueueFamilyIndex = t.srcQueueFamilyIndex = m_Core->GetQueueFamilyIndex();
+
       for(ImageRegionState &state : ImageState.subresourceStates)
       {
-        VkImageMemoryBarrier t;
-        t.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        t.pNext = NULL;
-        // these access masks aren't used, we need to apply a global memory barrier
-        // to memory each time we restart log replaying. These barriers are just
-        // to get images into the right layout
-        t.srcAccessMask = 0;
-        t.dstAccessMask = 0;
-        t.srcQueueFamilyIndex = ImageState.queueFamilyIndex;
-        t.dstQueueFamilyIndex = ImageState.queueFamilyIndex;
-        m_Core->RemapQueueFamilyIndices(t.srcQueueFamilyIndex, t.dstQueueFamilyIndex);
-        if(t.dstQueueFamilyIndex == VK_QUEUE_FAMILY_IGNORED)
-          t.dstQueueFamilyIndex = t.srcQueueFamilyIndex = m_Core->GetQueueFamilyIndex();
         state.dstQueueFamilyIndex = t.dstQueueFamilyIndex;
-        t.image = Unwrap(GetCurrentHandle<VkImage>(liveid));
 
-        t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         t.newLayout = state.newLayout;
-
         t.subresourceRange = state.subresourceRange;
 
         auto stit = states.find(liveid);
 
         if(stit == states.end() || stit->second.isMemoryBound)
         {
-          barriers.push_back(t);
-          vec.push_back(make_rdcpair(liveid, state));
+          AddAndMerge(barriers, vec, t, make_rdcpair(liveid, state));
         }
       }
     }
@@ -336,17 +383,17 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
 
       if(GetOriginalID(liveid) != liveid && updatedState.find(liveid) == updatedState.end())
       {
+        VkImageMemoryBarrier t = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+        t.image = Unwrap(GetCurrentHandle<VkImage>(liveid));
+        t.srcQueueFamilyIndex = it->second.queueFamilyIndex;
+        t.dstQueueFamilyIndex = it->second.queueFamilyIndex;
+        m_Core->RemapQueueFamilyIndices(t.srcQueueFamilyIndex, t.dstQueueFamilyIndex);
+        if(t.dstQueueFamilyIndex == VK_QUEUE_FAMILY_IGNORED)
+          t.dstQueueFamilyIndex = t.srcQueueFamilyIndex = m_Core->GetQueueFamilyIndex();
+
         for(ImageRegionState &state : it->second.subresourceStates)
         {
-          VkImageMemoryBarrier t = {};
-          t.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-          t.srcQueueFamilyIndex = it->second.queueFamilyIndex;
-          t.dstQueueFamilyIndex = it->second.queueFamilyIndex;
-          m_Core->RemapQueueFamilyIndices(t.srcQueueFamilyIndex, t.dstQueueFamilyIndex);
-          if(t.dstQueueFamilyIndex == VK_QUEUE_FAMILY_IGNORED)
-            t.dstQueueFamilyIndex = t.srcQueueFamilyIndex = m_Core->GetQueueFamilyIndex();
           state.dstQueueFamilyIndex = t.dstQueueFamilyIndex;
-          t.image = Unwrap(GetCurrentHandle<VkImage>(liveid));
 
           t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
           if(it->second.initialLayout == VK_IMAGE_LAYOUT_PREINITIALIZED)
@@ -359,8 +406,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
 
           if(stit == states.end() || stit->second.isMemoryBound)
           {
-            barriers.push_back(t);
-            vec.push_back(make_rdcpair(liveid, state));
+            AddAndMerge(barriers, vec, t, make_rdcpair(liveid, state));
           }
         }
       }
