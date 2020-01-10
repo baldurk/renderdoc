@@ -739,22 +739,27 @@ void TextureViewer::RT_FetchCurrentPixel(IReplayController *r, uint32_t x, uint3
   x = qMax(0U, x >> m_TexDisplay.subresource.mip);
   y = qMax(0U, y >> m_TexDisplay.subresource.mip);
 
-  ResourceId overlayResId = m_Output->GetDebugOverlayTexID();
+  ResourceId id = m_TexDisplay.resourceId;
+  Subresource sub = m_TexDisplay.subresource;
+  CompType typeCast = m_TexDisplay.typeCast;
 
-  if((m_TexDisplay.overlay == DebugOverlay::QuadOverdrawDraw ||
-      m_TexDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
-      m_TexDisplay.overlay == DebugOverlay::TriangleSizeDraw ||
-      m_TexDisplay.overlay == DebugOverlay::TriangleSizePass) &&
-     overlayResId != ResourceId())
+  if(m_TexDisplay.overlay == DebugOverlay::QuadOverdrawDraw ||
+     m_TexDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
+     m_TexDisplay.overlay == DebugOverlay::TriangleSizeDraw ||
+     m_TexDisplay.overlay == DebugOverlay::TriangleSizePass)
   {
-    realValue =
-        r->PickPixel(overlayResId, x, y, {m_TexDisplay.subresource.mip, 0, 0}, CompType::Typeless);
+    ResourceId overlayResId = m_Output->GetDebugOverlayTexID();
+
+    if(overlayResId != ResourceId())
+    {
+      id = overlayResId;
+      sub.sample = 0;
+      sub.slice = 0;
+      typeCast = CompType::Typeless;
+    }
   }
-  else
-  {
-    realValue =
-        r->PickPixel(m_TexDisplay.resourceId, x, y, m_TexDisplay.subresource, m_TexDisplay.typeCast);
-  }
+
+  realValue = r->PickPixel(id, x, y, sub, CompType::Typeless);
 
   if(m_TexDisplay.customShaderId != ResourceId())
   {

@@ -92,7 +92,7 @@ ReplayOutput::ReplayOutput(ReplayController *parent, WindowingData window, Repla
 
   m_MainOutput.dirty = true;
 
-  m_OverlayDirty = true;
+  m_OverlayDirty = false;
   m_ForceOverlayRefresh = false;
 
   m_pDevice = parent->GetDevice();
@@ -177,8 +177,9 @@ void ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
   bool wasClearBeforeDraw = (m_RenderData.texDisplay.overlay == DebugOverlay::ClearBeforeDraw ||
                              m_RenderData.texDisplay.overlay == DebugOverlay::ClearBeforePass);
 
-  if(o.overlay != m_RenderData.texDisplay.overlay || o.typeCast != m_RenderData.texDisplay.typeCast ||
-     o.resourceId != m_RenderData.texDisplay.resourceId)
+  if(o.overlay != m_RenderData.texDisplay.overlay ||
+     (o.overlay != DebugOverlay::NoOverlay && (o.typeCast != m_RenderData.texDisplay.typeCast ||
+                                               o.resourceId != m_RenderData.texDisplay.resourceId)))
   {
     if(wasClearBeforeDraw)
     {
@@ -211,7 +212,7 @@ void ReplayOutput::SetFrameEvent(int eventId)
 
   m_EventID = eventId;
 
-  m_OverlayDirty = true;
+  m_OverlayDirty = (m_RenderData.texDisplay.overlay != DebugOverlay::NoOverlay);
   m_MainOutput.dirty = true;
 
   for(size_t i = 0; i < m_Thumbnails.size(); i++)
