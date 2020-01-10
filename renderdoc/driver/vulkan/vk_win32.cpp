@@ -109,6 +109,8 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, rdcarray<rdcstr> &exten
     }
     else
     {
+      m_SupportedWindowSystems.push_back(WindowingSystem::Win32);
+
       if(!extensionList.contains(VK_KHR_WIN32_SURFACE_EXTENSION_NAME))
         extensionList.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
     }

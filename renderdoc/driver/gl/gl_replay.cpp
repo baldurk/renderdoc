@@ -163,6 +163,8 @@ rdcarray<WindowingSystem> GLReplay::GetSupportedWindowSystems()
   ret.push_back(WindowingSystem::Android);
 #elif ENABLED(RDOC_APPLE)
   ret.push_back(WindowingSystem::MacOS);
+#elif ENABLED(RDOC_WIN32)
+  ret.push_back(WindowingSystem::Win32);
 #endif
 
   return ret;
