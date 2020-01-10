@@ -394,7 +394,9 @@ void ResourceInspector::on_renameResource_clicked()
 {
   if(!ui->resourceNameEdit->isVisible())
   {
-    ui->resourceNameEdit->setText(ui->resourceName->text());
+    ui->resourceNameEdit->setText(ui->resourceName->text()
+                                      .replace(QFormatStr(" (%1)").arg(ToQStr(m_Resource)), QString())
+                                      .trimmed());
     ui->resourceName->hide();
     ui->resourceNameEdit->show();
     ui->resourceNameEdit->setFocus();
