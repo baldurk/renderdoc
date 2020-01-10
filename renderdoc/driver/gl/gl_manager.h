@@ -270,13 +270,10 @@ public:
   template <typename SerialiserType>
   bool Serialise_InitialState(SerialiserType &ser, ResourceId id, GLResourceRecord *record,
                               const GLInitialContents *initial);
+  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id, GLResourceRecord *record,
+                              const GLInitialContents *initial);
 
   void ContextPrepare_InitialState(GLResource res);
-  bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id, GLResourceRecord *record,
-                              const GLInitialContents *initial)
-  {
-    return Serialise_InitialState<WriteSerialiser>(ser, id, record, initial);
-  }
 
   void SetInternalResource(GLResource res);
 

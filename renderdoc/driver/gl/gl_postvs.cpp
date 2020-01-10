@@ -1852,7 +1852,7 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_
   // no multiview support
   (void)viewID;
 
-  ContextPair ctx = {m_ReplayCtx.ctx, m_pDriver->ShareCtx(m_ReplayCtx.ctx)};
+  ContextPair ctx = {m_ReplayCtx.ctx, m_pDriver->GetShareGroup(m_ReplayCtx.ctx)};
 
   if(m_PostVSData.find(eventId) != m_PostVSData.end())
     postvs = m_PostVSData[eventId];

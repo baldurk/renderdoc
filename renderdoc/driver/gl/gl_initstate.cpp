@@ -553,14 +553,32 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
   // and we just start getting commands there, but that case already isn't supported as we don't
   // detect it and insert state-change chunks, we assume all commands will come from a single
   // thread.
+  RDCASSERT(res.ContextShareGroup);
+
   ContextPair &ctx = m_Driver->GetCtx();
   if(res.ContextShareGroup == ctx.ctx || res.ContextShareGroup == ctx.shareGroup)
   {
     // call immediately, we are on the right context or share group
     ContextPrepare_InitialState(res);
   }
+  else if(IsResourceTrackedForPersistency(res))
+  {
+    GLWindowingData oldContextData = m_Driver->m_ActiveContexts[Threading::GetCurrentID()];
+
+    ContextShareGroup *shareGroup = (ContextShareGroup *)res.ContextShareGroup;
+
+    m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = shareGroup->m_BackDoor;
+    m_Driver->m_Platform.MakeContextCurrent(shareGroup->m_BackDoor);
+
+    ContextPrepare_InitialState(res);
+
+    // restore the context
+    m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = oldContextData;
+    m_Driver->m_Platform.MakeContextCurrent(oldContextData);
+  }
   else
   {
+    // queue if we can't use the backdoor
     m_Driver->QueuePrepareInitialState(res);
   }
 
@@ -1782,6 +1800,35 @@ template bool GLResourceManager::Serialise_InitialState<>(ReadSerialiser &ser, R
 template bool GLResourceManager::Serialise_InitialState<>(WriteSerialiser &ser, ResourceId id,
                                                           GLResourceRecord *record,
                                                           const GLInitialContents *initial);
+
+bool GLResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId id,
+                                               GLResourceRecord *record,
+                                               const GLInitialContents *initial)
+{
+  GLResource res = GetCurrentResource(id);
+
+  if(IsResourceTrackedForPersistency(res))
+  {
+    GLWindowingData oldContextData = m_Driver->m_ActiveContexts[Threading::GetCurrentID()];
+
+    GLWindowingData backdoor = ((ContextShareGroup *)res.ContextShareGroup)->m_BackDoor;
+
+    m_Driver->m_Platform.MakeContextCurrent(backdoor);
+
+    m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = backdoor;
+
+    bool success = Serialise_InitialState<WriteSerialiser>(ser, id, record, initial);
+
+    // restore the context
+    m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = oldContextData;
+
+    m_Driver->m_Platform.MakeContextCurrent(oldContextData);
+
+    return success;
+  }
+
+  return Serialise_InitialState<WriteSerialiser>(ser, id, record, initial);
+}
 
 void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool hasData)
 {

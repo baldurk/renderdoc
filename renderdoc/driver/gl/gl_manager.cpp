@@ -134,6 +134,29 @@ bool GLResourceManager::ResourceTypeRelease(GLResource res)
   if(HasCurrentResource(res))
     UnregisterResource(res);
 
-  m_Driver->QueueResourceRelease(res);
+  if(res.name)
+  {
+    ContextPair &ctx = m_Driver->GetCtx();
+    if(res.ContextShareGroup == ctx.ctx || res.ContextShareGroup == ctx.shareGroup)
+    {
+      m_Driver->ReleaseResource(res);
+    }
+    else if(IsResourceTrackedForPersistency(res))
+    {
+      ContextShareGroup *contextShareGroup = (ContextShareGroup *)res.ContextShareGroup;
+
+      m_Driver->m_Platform.MakeContextCurrent(contextShareGroup->m_BackDoor);
+
+      m_Driver->ReleaseResource(res);
+
+      // restore the context
+      m_Driver->m_Platform.MakeContextCurrent(m_Driver->m_ActiveContexts[Threading::GetCurrentID()]);
+    }
+    else
+    {
+      // queue if we can't use the backdoor
+      m_Driver->QueueResourceRelease(res);
+    }
+  }
   return true;
 }

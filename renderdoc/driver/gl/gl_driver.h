@@ -78,6 +78,24 @@ struct Replacement
   GLResource res;
 };
 
+struct ContextShareGroup
+{
+  GLPlatform &m_Platform;
+  GLWindowingData m_BackDoor;    // holds the backdoor context for the share group
+
+  explicit ContextShareGroup(GLPlatform &platform, const GLWindowingData &windata)
+      : m_Platform(platform)
+  {
+    // create a backdoor context for the purpose of retrieving resources
+    m_BackDoor = m_Platform.CloneTemporaryContext(windata);
+  }
+  ~ContextShareGroup()
+  {
+    // destroy the backdoor context
+    m_Platform.DeleteClonedContext(m_BackDoor);
+  }
+};
+
 class WrappedOpenGL : public IFrameCapturer
 {
 private:
@@ -156,8 +174,6 @@ private:
   GLContextTLSData m_EmptyTLSData;
   uint64_t m_CurCtxDataTLS;
   rdcarray<GLContextTLSData *> m_CtxDataVector;
-
-  uintptr_t m_ShareGroupID;
 
   uint32_t m_InternalShader = 0;
 
@@ -371,7 +387,7 @@ private:
 
     void *ctx;
 
-    void *shareGroup;
+    ContextShareGroup *shareGroup;
 
     GLDEBUGPROC m_RealDebugFunc;
     const void *m_RealDebugFuncParam;
@@ -585,7 +601,7 @@ public:
   void PushInternalShader() { m_InternalShader++; }
   void PopInternalShader() { m_InternalShader--; }
   bool IsInternalShader() { return m_InternalShader > 0; }
-  void *ShareCtx(void *ctx) { return ctx ? m_ContextData[ctx].shareGroup : NULL; }
+  ContextShareGroup *GetShareGroup(void *ctx) { return ctx ? m_ContextData[ctx].shareGroup : NULL; }
   void SetStructuredExport(uint64_t sectionVersion)
   {
     m_SectionVersion = sectionVersion;
