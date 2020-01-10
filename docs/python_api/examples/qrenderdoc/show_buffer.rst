@@ -10,7 +10,7 @@ First the code opens a specified file, although this step could be omitted if th
 
     filename = "test.rdc"
 
-    pyrenderdoc.LoadCapture(filename, filename, False, True)
+    pyrenderdoc.LoadCapture(filename, renderdoc.ReplayOptions(), filename, False, True)
 
 Next we iterate through the list of buffers to find the one we want. The selection criteria are up to you, in this case we look at the name provided and identify the buffer by that, however it could also be a particular size, or the buffer bound at a given event.
 
