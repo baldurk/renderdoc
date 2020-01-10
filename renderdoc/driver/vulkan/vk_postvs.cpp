@@ -129,6 +129,65 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
   std::map<rdcspv::Id, rdcspv::Id> typeReplacements;
 
+  // keep track of any builtins we're preserving
+  std::set<rdcspv::Id> builtinKeeps;
+
+  // detect builtin inputs or outputs, and remove builtin decorations
+  for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Annotations),
+                   end = editor.End(rdcspv::Section::Annotations);
+      it < end; ++it)
+  {
+    if(it.opcode() == rdcspv::Op::Decorate)
+    {
+      rdcspv::OpDecorate decorate(it);
+      // remove any builtin decorations
+      if(decorate.decoration == rdcspv::Decoration::BuiltIn)
+      {
+        // subgroup builtins can be allowed to stay
+        if(decorate.decoration.builtIn == rdcspv::BuiltIn::SubgroupEqMask ||
+           decorate.decoration.builtIn == rdcspv::BuiltIn::SubgroupGtMask ||
+           decorate.decoration.builtIn == rdcspv::BuiltIn::SubgroupGeMask ||
+           decorate.decoration.builtIn == rdcspv::BuiltIn::SubgroupLtMask ||
+           decorate.decoration.builtIn == rdcspv::BuiltIn::SubgroupLeMask ||
+           decorate.decoration.builtIn == rdcspv::BuiltIn::SubgroupLocalInvocationId ||
+           decorate.decoration.builtIn == rdcspv::BuiltIn::SubgroupSize)
+        {
+          builtinKeeps.insert(decorate.target);
+          continue;
+        }
+
+        // we don't have to do anything, the ID mapping is in the rdcspv::PatchData, so just discard
+        // the location information
+        editor.Remove(it);
+      }
+      // remove all invariant decorations
+      else if(decorate.decoration == rdcspv::Decoration::Invariant)
+      {
+        editor.Remove(it);
+      }
+      else if(decorate.decoration == rdcspv::Decoration::Location)
+      {
+        // we don't have to do anything, the ID mapping is in the rdcspv::PatchData, so just discard
+        // the location information
+        editor.Remove(it);
+      }
+      // remove block decoration from input or output structs
+      else if(decorate.decoration == rdcspv::Decoration::Block)
+      {
+        if(outputs.find(decorate.target) != outputs.end() ||
+           inputs.find(decorate.target) != inputs.end())
+          editor.Remove(it);
+      }
+    }
+
+    if(it.opcode() == rdcspv::Op::MemberDecorate)
+    {
+      rdcspv::OpMemberDecorate memberDecorate(it);
+      if(memberDecorate.decoration == rdcspv::Decoration::BuiltIn)
+        editor.Remove(it);
+    }
+  }
+
   // rewrite any inputs and outputs to be private storage class
   for(rdcspv::Iter it = editor.Begin(rdcspv::Section::TypesVariablesConstants),
                    end = editor.End(rdcspv::Section::TypesVariablesConstants);
@@ -189,7 +248,38 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
       bool mod = false;
 
-      if(var.storageClass == rdcspv::StorageClass::Input)
+      if(builtinKeeps.find(var.result) != builtinKeeps.end())
+      {
+        // if this variable is one we're keeping as a builtin, we need to do something different.
+        // We don't change its storage class, but we might need to redeclare the pointer as the
+        // right matching storage class (because it's been patched to private). This might be
+        editor.PreModify(it);
+
+        rdcspv::Id ptrId = var.resultType;
+        // if this is in typeReplacements the id is no longer valid and was removed
+        auto replIt = typeReplacements.find(ptrId);
+        if(replIt != typeReplacements.end())
+          ptrId = replIt->second;
+
+        rdcspv::OpTypePointer ptr(editor.GetID(ptrId));
+
+        // declare if necessary the right pointer again, and use that as our type
+        var.resultType = editor.DeclareType(rdcspv::Pointer(ptr.type, var.storageClass));
+
+        it = var;
+        editor.PostModify(it);
+
+        // copy this variable declaration to the end of the section, after our potentially 'new'
+        // recreated pointer type
+
+        rdcspv::Operation op = rdcspv::Operation::copy(it);
+        editor.Remove(it);
+        editor.AddVariable(op);
+
+        // don't do any of the rest of the processing
+        continue;
+      }
+      else if(var.storageClass == rdcspv::StorageClass::Input)
       {
         mod = true;
         editor.PreModify(it);
@@ -214,7 +304,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         if(!mod)
           editor.PreModify(it);
         mod = true;
-        var.resultType = typeReplacements[var.resultType];
+        var.resultType = replIt->second;
       }
 
       if(mod)
@@ -248,7 +338,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
       {
         editor.PreModify(it);
         mod = true;
-        func.result = typeReplacements[func.result];
+        func.result = replIt->second;
       }
 
       for(size_t i = 0; i < func.parameters.size(); i++)
@@ -259,7 +349,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           if(!mod)
             editor.PreModify(it);
           mod = true;
-          func.parameters[i] = typeReplacements[func.parameters[i]];
+          func.parameters[i] = replIt->second;
         }
       }
 
@@ -277,7 +367,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
       if(replIt != typeReplacements.end())
       {
         editor.PreModify(it);
-        nullconst.resultType = typeReplacements[nullconst.resultType];
+        nullconst.resultType = replIt->second;
         it = nullconst;
         editor.PostModify(it);
       }
@@ -298,54 +388,10 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
       rdcspv::Id id = rdcspv::Id::fromWord(it.word(1));
       auto replIt = typeReplacements.find(id);
       if(replIt != typeReplacements.end())
-        id = typeReplacements[id];
+        id = replIt->second;
       it.word(1) = id.value();
 
       editor.PostModify(it);
-    }
-  }
-
-  // detect builtin inputs or outputs, and remove builtin decorations
-  for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Annotations),
-                   end = editor.End(rdcspv::Section::Annotations);
-      it < end; ++it)
-  {
-    if(it.opcode() == rdcspv::Op::Decorate)
-    {
-      rdcspv::OpDecorate decorate(it);
-      // remove any builtin decorations
-      if(decorate.decoration == rdcspv::Decoration::BuiltIn)
-      {
-        // we don't have to do anything, the ID mapping is in the rdcspv::PatchData, so just discard
-        // the
-        // location information
-        editor.Remove(it);
-      }
-      // remove all invariant decorations
-      else if(decorate.decoration == rdcspv::Decoration::Invariant)
-      {
-        editor.Remove(it);
-      }
-      else if(decorate.decoration == rdcspv::Decoration::Location)
-      {
-        // we don't have to do anything, the ID mapping is in the rdcspv::PatchData, so just discard
-        // the location information
-        editor.Remove(it);
-      }
-      // remove block decoration from input or output structs
-      else if(decorate.decoration == rdcspv::Decoration::Block)
-      {
-        if(outputs.find(decorate.target) != outputs.end() ||
-           inputs.find(decorate.target) != inputs.end())
-          editor.Remove(it);
-      }
-    }
-
-    if(it.opcode() == rdcspv::Op::MemberDecorate)
-    {
-      rdcspv::OpMemberDecorate memberDecorate(it);
-      if(memberDecorate.decoration == rdcspv::Decoration::BuiltIn)
-        editor.Remove(it);
     }
   }
 
@@ -887,6 +933,16 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           else if(builtin == ShaderBuiltin::DrawIndex)
           {
             valueID = editor.AddConstantImmediate<uint32_t>(draw->drawIndex);
+          }
+          else if(builtin == ShaderBuiltin::SubgroupEqualMask ||
+                  builtin == ShaderBuiltin::SubgroupGreaterMask ||
+                  builtin == ShaderBuiltin::SubgroupGreaterEqualMask ||
+                  builtin == ShaderBuiltin::SubgroupLessMask ||
+                  builtin == ShaderBuiltin::SubgroupLessEqualMask ||
+                  builtin == ShaderBuiltin::IndexInSubgroup || builtin == ShaderBuiltin::SubgroupSize)
+          {
+            // subgroup builtins we left alone, these are still builtins
+            continue;
           }
 
           if(valueID)
