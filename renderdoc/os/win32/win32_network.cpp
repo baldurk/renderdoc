@@ -25,6 +25,7 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include "api/replay/stringise.h"
 #include "common/common.h"
 #include "common/formatting.h"
 #include "os/os_specific.h"

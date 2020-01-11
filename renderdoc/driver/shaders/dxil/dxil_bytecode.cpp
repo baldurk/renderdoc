@@ -28,6 +28,7 @@
 #include <string>
 #include "common/common.h"
 #include "common/formatting.h"
+#include "os/os_specific.h"
 #include "llvm_decoder.h"
 
 // undef some annoying defines that might come from OS headers
