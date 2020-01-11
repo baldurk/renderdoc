@@ -28,6 +28,7 @@
 #include "api/replay/data_types.h"
 #include "api/replay/rdcpair.h"
 #include "common/common.h"
+#include "os/os_specific.h"
 
 //	for(int i=0; i < 256; i++)
 //	{

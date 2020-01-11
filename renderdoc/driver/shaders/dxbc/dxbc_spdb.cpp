@@ -28,6 +28,7 @@
 #include "dxbc_container.h"
 
 #include "official/cvinfo.h"
+#include "os/os_specific.h"
 #include "dxbc_spdb.h"
 
 // uncomment the following to print (very verbose) debugging prints for SPDB processing

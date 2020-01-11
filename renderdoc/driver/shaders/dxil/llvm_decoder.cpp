@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "llvm_decoder.h"
+#include "os/os_specific.h"
 
 namespace LLVMBC
 {

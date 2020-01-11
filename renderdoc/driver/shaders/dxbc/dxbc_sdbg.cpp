@@ -25,6 +25,7 @@
 
 #include "dxbc_container.h"
 
+#include "os/os_specific.h"
 #include "dxbc_sdbg.h"
 
 namespace DXBC
