@@ -482,7 +482,7 @@ static void StandardFillCBufferVariables(ResourceId shader, const rdcarray<Shade
     }
 
     size_t outIdx = outvars.size();
-    outvars.resize(outvars.size() + 1);
+    outvars.push_back({});
 
     {
       const VarType type = invars[v].type.descriptor.type;
