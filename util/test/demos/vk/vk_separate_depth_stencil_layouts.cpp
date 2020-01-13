@@ -73,6 +73,23 @@ void main()
 
 )EOSHADER";
 
+  const std::string inputAttPixel = R"EOSHADER(
+
+
+layout(location = 0) in v2f vertIn;
+
+layout(location = 0, index = 0) out vec4 Color;
+
+layout(input_attachment_index = 0, set = 0, binding = 0) uniform subpassInput inputDepth;
+
+void main()
+{
+	float depth = subpassLoad(inputDepth).r;
+	Color.rgb = vec3(depth);
+	Color.a = 1.0;
+}
+)EOSHADER";
+
   void Prepare(int argc, char **argv)
   {
     devExts.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
@@ -110,7 +127,13 @@ void main()
     const DefaultA2V depthTri[3] = {
         {Vec3f(-0.5f, -0.5f, 0.0f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(0.0f, 0.5f, 0.0f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(0.5f, -0.5f, 0.0f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(0.5f, -0.5f, 1.0f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+    };
+
+    const DefaultA2V inputAttTri[3] = {
+        {Vec3f(0.0f, -1.0f, 0.0f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-1.0f, 0.0f, 0.0f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(1.0f, 0.0f, 0.0f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
     const DefaultA2V colorTri[3] = {
@@ -120,22 +143,33 @@ void main()
     };
 
     AllocatedBuffer stencilVB(
-        this, vkh::BufferCreateInfo(sizeof(stencilTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(stencilTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     stencilVB.upload(stencilTri);
 
     AllocatedBuffer depthVB(
-        this, vkh::BufferCreateInfo(sizeof(depthTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(depthTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     depthVB.upload(depthTri);
 
+    AllocatedBuffer inputAttVB(
+        this,
+        vkh::BufferCreateInfo(sizeof(inputAttTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    inputAttVB.upload(inputAttTri);
+
     AllocatedBuffer colorVB(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this,
+        vkh::BufferCreateInfo(sizeof(DefaultTri),
+                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     colorVB.upload(colorTri);
@@ -158,9 +192,9 @@ void main()
                   "Couldn't find depth/stencil attachment image format");
     }
 
-    vkh::ImageCreateInfo depthStencilInfo(mainWindow->scissor.extent.width,
-                                          mainWindow->scissor.extent.height, 0, depthStencilFormat,
-                                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    vkh::ImageCreateInfo depthStencilInfo(
+        mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0, depthStencilFormat,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT);
     AllocatedImage depthStencilImg(this, depthStencilInfo,
                                    VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
     setName(depthStencilImg.image, "Image:DepthStencil");
@@ -180,6 +214,10 @@ void main()
     //   stencil: READONLY
     //     draw foreground triangle, writing only to depth, reading from stencil
     // subpass 2 (color):
+    //   depth: READONLY
+    //   stencil: NONE
+    //     draw foreground triangle, reading from depth as an input attachment,
+    // subpass 3 (color):
     //   depth: READONLY
     //   stencil: READONLY
     //     draw triangle, testing for depth but not stencil
@@ -211,18 +249,32 @@ void main()
           VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL_KHR);
 
       renderPassCreateInfo.addSubpass(
-          {vkh::AttachmentReference2KHR(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)},
-          vkh::AttachmentReference2KHR(1, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL_KHR)
+          {vkh::AttachmentReference2KHR(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                        VK_IMAGE_ASPECT_COLOR_BIT)},
+          vkh::AttachmentReference2KHR(1, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL_KHR,
+                                       VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)
               .next(&stencilAttachmentLayout));
 
       renderPassCreateInfo.addSubpass(
-          {vkh::AttachmentReference2KHR(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)},
-          vkh::AttachmentReference2KHR(1, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL_KHR)
+          {vkh::AttachmentReference2KHR(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                        VK_IMAGE_ASPECT_COLOR_BIT)},
+          vkh::AttachmentReference2KHR(1, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL_KHR,
+                                       VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)
               .next(&stencilReadOnlyLayout));
 
       renderPassCreateInfo.addSubpass(
-          {vkh::AttachmentReference2KHR(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)},
-          vkh::AttachmentReference2KHR(1, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL_KHR)
+          {vkh::AttachmentReference2KHR(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                        VK_IMAGE_ASPECT_COLOR_BIT)},
+          vkh::AttachmentReference2KHR(),
+          {},
+          {vkh::AttachmentReference2KHR(1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                        VK_IMAGE_ASPECT_DEPTH_BIT)});
+
+      renderPassCreateInfo.addSubpass(
+          {vkh::AttachmentReference2KHR(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                        VK_IMAGE_ASPECT_COLOR_BIT)},
+          vkh::AttachmentReference2KHR(1, VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL_KHR,
+                                       VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)
               .next(&stencilReadOnlyLayout));
 
       renderPassCreateInfo.dependencies.push_back(vkh::SubpassDependency2KHR(
@@ -235,12 +287,18 @@ void main()
           VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
           VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
           VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT));
+      renderPassCreateInfo.dependencies.push_back(vkh::SubpassDependency2KHR(
+          2, 3,
+          VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+          VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT));
 
       CHECK_VKR(vkCreateRenderPass2KHR(device, renderPassCreateInfo, NULL, &renderPass));
     }
 
     VkImageView colorView = VK_NULL_HANDLE;
     VkImageView depthStencilView = VK_NULL_HANDLE;
+    VkImageView depthOnlyView = VK_NULL_HANDLE;
     VkFramebuffer frameBuffer = VK_NULL_HANDLE;
     {
       vkh::ImageViewCreateInfo depthStencilViewInfo(depthStencilImg.image, VK_IMAGE_VIEW_TYPE_2D,
@@ -248,21 +306,32 @@ void main()
       depthStencilViewInfo.subresourceRange.aspectMask =
           VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
       CHECK_VKR(vkCreateImageView(device, depthStencilViewInfo, NULL, &depthStencilView));
+      depthStencilViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+      CHECK_VKR(vkCreateImageView(device, depthStencilViewInfo, NULL, &depthOnlyView));
       CHECK_VKR(vkCreateImageView(
           device, vkh::ImageViewCreateInfo(colorImg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format),
           NULL, &colorView));
-      CHECK_VKR(vkCreateFramebuffer(
-          device, vkh::FramebufferCreateInfo(renderPass, {colorView, depthStencilView},
-                                             mainWindow->scissor.extent),
-          NULL, &frameBuffer));
+      CHECK_VKR(
+          vkCreateFramebuffer(device,
+                              vkh::FramebufferCreateInfo(renderPass, {colorView, depthStencilView},
+                                                         mainWindow->scissor.extent),
+                              NULL, &frameBuffer));
     }
 
     VkPipeline stencilPipe = VK_NULL_HANDLE;
     VkPipeline depthPipe = VK_NULL_HANDLE;
+    VkPipeline inputAttPipe = VK_NULL_HANDLE;
     VkPipeline colorPipe = VK_NULL_HANDLE;
+    VkPipelineLayout inputAttPipeLayout = VK_NULL_HANDLE;
+    VkDescriptorSet inputAttDescSet = VK_NULL_HANDLE;
 
     {
+      VkDescriptorSetLayout setLayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+          {0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+      }));
+      inputAttDescSet = allocateDescriptorSet(setLayout);
       VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
+      inputAttPipeLayout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({setLayout}));
 
       vkh::GraphicsPipelineCreateInfo stencilPipeCreateInfo;
       stencilPipeCreateInfo.layout = layout;
@@ -271,7 +340,8 @@ void main()
       stencilPipeCreateInfo.vertexInputState.vertexBindingDescriptions = {
           vkh::vertexBind(0, DefaultA2V)};
       stencilPipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-          vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+          vkh::vertexAttr(0, 0, DefaultA2V, pos),
+          vkh::vertexAttr(1, 0, DefaultA2V, col),
           vkh::vertexAttr(2, 0, DefaultA2V, uv),
       };
       stencilPipeCreateInfo.stages = {
@@ -298,7 +368,8 @@ void main()
       depthPipeCreateInfo.vertexInputState.vertexBindingDescriptions = {
           vkh::vertexBind(0, DefaultA2V)};
       depthPipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-          vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+          vkh::vertexAttr(0, 0, DefaultA2V, pos),
+          vkh::vertexAttr(1, 0, DefaultA2V, col),
           vkh::vertexAttr(2, 0, DefaultA2V, uv),
       };
       depthPipeCreateInfo.stages = {
@@ -318,14 +389,43 @@ void main()
       depthPipeCreateInfo.depthStencilState.front = depthPipeCreateInfo.depthStencilState.back;
       depthPipe = createGraphicsPipeline(depthPipeCreateInfo);
 
+      vkh::GraphicsPipelineCreateInfo inputAttPipeCreateInfo;
+      inputAttPipeCreateInfo.layout = inputAttPipeLayout;
+      inputAttPipeCreateInfo.renderPass = renderPass;
+      inputAttPipeCreateInfo.subpass = 2;
+      inputAttPipeCreateInfo.vertexInputState.vertexBindingDescriptions = {
+          vkh::vertexBind(0, DefaultA2V)};
+      inputAttPipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
+          vkh::vertexAttr(0, 0, DefaultA2V, pos),
+          vkh::vertexAttr(1, 0, DefaultA2V, col),
+          vkh::vertexAttr(2, 0, DefaultA2V, uv),
+      };
+      inputAttPipeCreateInfo.stages = {
+          CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+          CompileShaderModule(common + inputAttPixel, ShaderLang::glsl, ShaderStage::frag, "main"),
+      };
+      inputAttPipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
+      inputAttPipeCreateInfo.depthStencilState.depthTestEnable = VK_FALSE;
+      inputAttPipeCreateInfo.depthStencilState.depthWriteEnable = VK_FALSE;
+      inputAttPipeCreateInfo.depthStencilState.back.failOp = VK_STENCIL_OP_KEEP;
+      inputAttPipeCreateInfo.depthStencilState.back.passOp = VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+      inputAttPipeCreateInfo.depthStencilState.back.depthFailOp = VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+      inputAttPipeCreateInfo.depthStencilState.back.compareOp = VK_COMPARE_OP_EQUAL;
+      inputAttPipeCreateInfo.depthStencilState.back.compareMask = 0xff;
+      inputAttPipeCreateInfo.depthStencilState.back.writeMask = 0xff;
+      inputAttPipeCreateInfo.depthStencilState.back.reference = 1;
+      inputAttPipeCreateInfo.depthStencilState.front = inputAttPipeCreateInfo.depthStencilState.back;
+      inputAttPipe = createGraphicsPipeline(inputAttPipeCreateInfo);
+
       vkh::GraphicsPipelineCreateInfo colorPipeCreateInfo;
       colorPipeCreateInfo.layout = layout;
       colorPipeCreateInfo.renderPass = renderPass;
-      colorPipeCreateInfo.subpass = 2;
+      colorPipeCreateInfo.subpass = 3;
       colorPipeCreateInfo.vertexInputState.vertexBindingDescriptions = {
           vkh::vertexBind(0, DefaultA2V)};
       colorPipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
-          vkh::vertexAttr(0, 0, DefaultA2V, pos), vkh::vertexAttr(1, 0, DefaultA2V, col),
+          vkh::vertexAttr(0, 0, DefaultA2V, pos),
+          vkh::vertexAttr(1, 0, DefaultA2V, col),
           vkh::vertexAttr(2, 0, DefaultA2V, uv),
       };
       colorPipeCreateInfo.stages = {
@@ -365,25 +465,44 @@ void main()
           });
 
       vkCmdBeginRenderPass(
-          cmd, vkh::RenderPassBeginInfo(renderPass, frameBuffer, mainWindow->scissor,
-                                        {vkh::ClearValue(1, 0, 1, 1), vkh::ClearValue(1.0f, 0)}),
+          cmd,
+          vkh::RenderPassBeginInfo(renderPass, frameBuffer, mainWindow->scissor,
+                                   {vkh::ClearValue(1, 0, 1, 1), vkh::ClearValue(1.0f, 0)}),
           VK_SUBPASS_CONTENTS_INLINE);
       vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
       vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
 
+      pushMarker(cmd, "Stencil only");
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, stencilPipe);
       vkh::cmdBindVertexBuffers(cmd, 0, {stencilVB.buffer}, {0});
       vkCmdDraw(cmd, 3, 1, 0, 0);
+      popMarker(cmd);
 
+      pushMarker(cmd, "Depth write, stencil read");
       vkCmdNextSubpass(cmd, VK_SUBPASS_CONTENTS_INLINE);
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPipe);
       vkh::cmdBindVertexBuffers(cmd, 0, {depthVB.buffer}, {0});
       vkCmdDraw(cmd, 3, 1, 0, 0);
+      popMarker(cmd);
 
+      pushMarker(cmd, "Depth input attachment");
+      vkCmdNextSubpass(cmd, VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, inputAttPipe);
+      vkh::updateDescriptorSets(
+          device, {vkh::WriteDescriptorSet(inputAttDescSet, 0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+                                           {vkh::DescriptorImageInfo(depthOnlyView)})});
+      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, inputAttPipeLayout, 0,
+                                 {inputAttDescSet}, {});
+      vkh::cmdBindVertexBuffers(cmd, 0, {inputAttVB.buffer}, {0});
+      vkCmdDraw(cmd, 3, 1, 0, 0);
+      popMarker(cmd);
+
+      pushMarker(cmd, "Depth/stencil read");
       vkCmdNextSubpass(cmd, VK_SUBPASS_CONTENTS_INLINE);
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, colorPipe);
       vkh::cmdBindVertexBuffers(cmd, 0, {colorVB.buffer}, {0});
       vkCmdDraw(cmd, 3, 1, 0, 0);
+      popMarker(cmd);
 
       vkCmdEndRenderPass(cmd);
 
