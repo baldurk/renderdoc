@@ -2792,7 +2792,7 @@ void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &sour
   {
     uint32_t flags = DXBC::DecodeFlags(compileFlags);
 
-    char *profile = NULL;
+    rdcstr profile;
 
     switch(type)
     {
@@ -2812,8 +2812,15 @@ void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &sour
     hlsl.assign((const char *)source.data(), source.size());
 
     ID3DBlob *blob = NULL;
-    errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), flags, profile,
-                                                        &blob);
+    errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), flags,
+                                                        profile.c_str(), &blob);
+
+    if(m_D3D12On7 && blob == NULL && errors.contains("unrecognized compiler target"))
+    {
+      profile.back() = '0';
+      errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), flags,
+                                                          profile.c_str(), &blob);
+    }
 
     if(blob == NULL)
     {
@@ -2973,6 +2980,8 @@ void D3D12Replay::RefreshDerivedReplacements()
       rm->ReplaceResource(origsrcid, GetResID(newpipe));
     }
   }
+
+  m_pDevice->GPUSync();
 
   for(ID3D12PipelineState *pipe : deletequeue)
   {
