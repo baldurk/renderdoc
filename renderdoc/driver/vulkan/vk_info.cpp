@@ -690,10 +690,11 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
 
     dst.inputAttachments.resize(src.inputAttachmentCount);
     dst.inputLayouts.resize(src.inputAttachmentCount);
+    dst.inputStencilLayouts.resize(src.inputAttachmentCount);
     for(uint32_t i = 0; i < src.inputAttachmentCount; i++)
     {
       dst.inputAttachments[i] = src.pInputAttachments[i].attachment;
-      dst.inputLayouts[i] = src.pInputAttachments[i].layout;
+      dst.inputStencilLayouts[i] = dst.inputLayouts[i] = src.pInputAttachments[i].layout;
     }
 
     dst.colorAttachments.resize(src.colorAttachmentCount);
@@ -786,10 +787,16 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
 
     dst.inputAttachments.resize(src.inputAttachmentCount);
     dst.inputLayouts.resize(src.inputAttachmentCount);
+    dst.inputStencilLayouts.resize(src.inputAttachmentCount);
     for(uint32_t i = 0; i < src.inputAttachmentCount; i++)
     {
       dst.inputAttachments[i] = src.pInputAttachments[i].attachment;
-      dst.inputLayouts[i] = src.pInputAttachments[i].layout;
+      dst.inputStencilLayouts[i] = dst.inputLayouts[i] = src.pInputAttachments[i].layout;
+      const VkAttachmentReferenceStencilLayoutKHR *stencilLayout =
+          (const VkAttachmentReferenceStencilLayoutKHR *)FindNextStruct(
+              &src.pInputAttachments[i], VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_STENCIL_LAYOUT_KHR);
+      if(stencilLayout != NULL)
+        dst.inputStencilLayouts[i] = stencilLayout->stencilLayout;
     }
 
     dst.colorAttachments.resize(src.colorAttachmentCount);

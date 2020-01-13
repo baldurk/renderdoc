@@ -376,6 +376,7 @@ struct VulkanCreationInfo
       int32_t fragmentDensityAttachment;
 
       rdcarray<VkImageLayout> inputLayouts;
+      rdcarray<VkImageLayout> inputStencilLayouts;
       rdcarray<VkImageLayout> colorLayouts;
       VkImageLayout depthLayout;
       VkImageLayout stencilLayout;

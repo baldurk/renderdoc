@@ -146,6 +146,7 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
       atts.push_back({});
       atts.back().attachment = attIdx;
       atts.back().layout = rpinfo.subpasses[subpass].inputLayouts[i];
+      atts.back().stencilLayout = rpinfo.subpasses[subpass].inputStencilLayouts[i];
     }
 
     int32_t ds = rpinfo.subpasses[subpass].depthstencilAttachment;
@@ -252,6 +253,7 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
         if(rpinfo.subpasses[s - 1].inputAttachments[a] == idx)
         {
           barrier.oldLayout = rpinfo.subpasses[s - 1].inputLayouts[a];
+          barrierStencil.oldLayout = rpinfo.subpasses[s - 1].inputStencilLayouts[a];
           found = true;
           break;
         }

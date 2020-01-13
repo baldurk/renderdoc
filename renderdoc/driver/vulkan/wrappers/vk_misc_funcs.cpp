@@ -703,9 +703,9 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
       VkResourceRecord *rpRecord = GetRecord(pCreateInfo->renderPass);
       record->AddParent(rpRecord);
 
-      // +1 for the terminating null attachment info, +1 again in case we need two barriers for
-      // separate depth and stencil
-      uint32_t arrayCount = pCreateInfo->attachmentCount + 2;
+      // *2 in case we need separate barriers for depth and stencil, +1 for the terminating null
+      // attachment info
+      uint32_t arrayCount = pCreateInfo->attachmentCount * 2 + 1;
 
       record->imageAttachments = new AttachmentInfo[arrayCount];
       RDCEraseMem(record->imageAttachments, sizeof(AttachmentInfo) * arrayCount);
@@ -961,9 +961,10 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pRenderPass);
       record->AddChunk(chunk);
 
-      // +1 for the terminating null attachment info, +1 again in case we need two barriers for
-      // separate depth and stencil (though that isn't needed here, we keep the array size the same)
-      uint32_t arrayCount = pCreateInfo->attachmentCount + 2;
+      // *2 in case we need separate barriers for depth and stencil, +1 for the terminating null
+      // attachment info (though separate depth/stencil buffers aren't needed here, we keep the
+      // array size the same)
+      uint32_t arrayCount = pCreateInfo->attachmentCount * 2 + 1;
 
       record->imageAttachments = new AttachmentInfo[arrayCount];
 
@@ -1190,9 +1191,9 @@ VkResult WrappedVulkan::vkCreateRenderPass2KHR(VkDevice device,
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pRenderPass);
       record->AddChunk(chunk);
 
-      // +1 for the terminating null attachment info, +1 again in case we need two barriers for
-      // separate depth and stencil
-      uint32_t arrayCount = pCreateInfo->attachmentCount + 2;
+      // *2 in case we need separate barriers for depth and stencil, +1 for the terminating null
+      // attachment info
+      uint32_t arrayCount = pCreateInfo->attachmentCount * 2 + 1;
 
       record->imageAttachments = new AttachmentInfo[arrayCount];
 
