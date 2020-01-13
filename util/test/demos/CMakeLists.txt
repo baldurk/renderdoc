@@ -44,6 +44,7 @@ set(OPENGL_SRC
         gl/gl_test_linux.cpp
         gl/gl_buffer_spam.cpp
         gl/gl_buffer_updates.cpp
+        gl/gl_callstacks.cpp
         gl/gl_cbuffer_zoo.cpp
         gl/gl_depthstencil_fbo.cpp
         gl/gl_entry_points.cpp
