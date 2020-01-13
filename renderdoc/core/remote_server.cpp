@@ -614,7 +614,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
             }
           });
 
-          resolver = Callstack::MakeResolver(buf.data(), buf.size(),
+          resolver = Callstack::MakeResolver(false, buf.data(), buf.size(),
                                              [&progress](float p) { progress = p; });
 
           Threading::JoinThread(ticker);
@@ -1943,7 +1943,7 @@ bool RemoteServer::HasCallstacks()
   return hasCallstacks;
 }
 
-bool RemoteServer::InitResolver(RENDERDOC_ProgressCallback progress)
+bool RemoteServer::InitResolver(bool interactive, RENDERDOC_ProgressCallback progress)
 {
   {
     WRITE_DATA_SCOPE();

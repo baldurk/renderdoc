@@ -95,7 +95,7 @@ public:
 
   virtual bool HasCallstacks();
 
-  virtual bool InitResolver(RENDERDOC_ProgressCallback progress);
+  virtual bool InitResolver(bool interactive, RENDERDOC_ProgressCallback progress);
 
   virtual rdcarray<rdcstr> GetResolve(const rdcarray<uint64_t> &callstack);
 

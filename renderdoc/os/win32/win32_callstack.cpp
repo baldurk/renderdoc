@@ -413,7 +413,8 @@ private:
 class Win32CallstackResolver : public Callstack::StackResolver
 {
 public:
-  Win32CallstackResolver(byte *moduleDB, size_t DBSize, RENDERDOC_ProgressCallback progress);
+  Win32CallstackResolver(bool interactive, byte *moduleDB, size_t DBSize,
+                         RENDERDOC_ProgressCallback progress);
   ~Win32CallstackResolver();
 
   Callstack::AddressDetails GetAddr(uint64_t addr);
@@ -719,7 +720,7 @@ rdcstr Win32CallstackResolver::pdbBrowse(rdcstr startingPoint)
   return StringFormat::Wide2UTF8(outBuf);
 }
 
-Win32CallstackResolver::Win32CallstackResolver(byte *moduleDB, size_t DBSize,
+Win32CallstackResolver::Win32CallstackResolver(bool interactive, byte *moduleDB, size_t DBSize,
                                                RENDERDOC_ProgressCallback progress)
 {
   rdcwstr configPath = StringFormat::UTF82Wide(FileIO::GetAppFolderFilename("config.ini"));
@@ -806,6 +807,10 @@ Win32CallstackResolver::Win32CallstackResolver(byte *moduleDB, size_t DBSize,
       while(FAILED(hr) || source == NULL)
       {
         SAFE_RELEASE(source);
+
+        // can't manually locate msdia if we're non-interactive
+        if(!interactive)
+          return;
 
         int ret = MessageBoxW(NULL,
                               L"Couldn't initialise DIA - it may not be registered. "
@@ -931,9 +936,9 @@ Win32CallstackResolver::Win32CallstackResolver(byte *moduleDB, size_t DBSize,
         {
           pdbName = get_dirname(defaultPdb) + "\\" + get_basename(defaultPdb);
 
-          // prompt for new pdbName, unless it's renderdoc or dbghelp
+          // prompt for new pdbName, unless it's renderdoc or dbghelp, or we're non-interactive
           if(pdbName.contains("renderdoc.") || pdbName.contains("dbghelp.") ||
-             pdbName.contains("symsrv."))
+             pdbName.contains("symsrv.") || !interactive)
             pdbName = "";
           else
             pdbName = pdbBrowse(pdbName);
@@ -973,6 +978,10 @@ Win32CallstackResolver::Win32CallstackResolver(byte *moduleDB, size_t DBSize,
       // silently ignore renderdoc.dll, dbghelp.dll, and symsrv.dll without asking to permanently
       // ignore
       if(m.name.contains("renderdoc.") || m.name.contains("dbghelp.") || m.name.contains("symsrv."))
+        continue;
+
+      // if we're not interactive, just continue
+      if(!interactive)
         continue;
 
       rdcstr text = StringFormat::Fmt("Do you want to permanently ignore this file?\nPath: %s",
@@ -1085,7 +1094,8 @@ Stackwalk *Create()
   return new Win32Callstack(NULL, 0);
 }
 
-StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, RENDERDOC_ProgressCallback progress)
+StackResolver *MakeResolver(bool interactive, byte *moduleDB, size_t DBSize,
+                            RENDERDOC_ProgressCallback progress)
 {
   if(DBSize < 8 || memcmp(moduleDB, "WN32CALL", 8))
   {
@@ -1096,7 +1106,7 @@ StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, RENDERDOC_ProgressCal
   // initialise dbghelp if we haven't already
   ::InitDbgHelp();
 
-  return new Win32CallstackResolver(moduleDB, DBSize, progress);
+  return new Win32CallstackResolver(interactive, moduleDB, DBSize, progress);
 }
 
 bool GetLoadedModules(byte *buf, size_t &size)

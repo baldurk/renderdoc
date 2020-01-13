@@ -265,7 +265,8 @@ void Init();
 Stackwalk *Collect();
 Stackwalk *Create();
 
-StackResolver *MakeResolver(byte *moduleDB, size_t DBSize, RENDERDOC_ProgressCallback);
+StackResolver *MakeResolver(bool interactive, byte *moduleDB, size_t DBSize,
+                            RENDERDOC_ProgressCallback);
 
 bool GetLoadedModules(byte *buf, size_t &size);
 };    // namespace Callstack

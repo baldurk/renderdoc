@@ -169,7 +169,7 @@ public:
   bool WriteSection(const SectionProperties &props, const bytebuf &contents);
 
   bool HasCallstacks();
-  bool InitResolver(RENDERDOC_ProgressCallback progress);
+  bool InitResolver(bool interactive, RENDERDOC_ProgressCallback progress);
   rdcarray<rdcstr> GetResolve(const rdcarray<uint64_t> &callstack);
 
 private:
@@ -756,7 +756,7 @@ bool CaptureFile::HasCallstacks()
   return m_RDC && m_RDC->SectionIndex(SectionType::ResolveDatabase) >= 0;
 }
 
-bool CaptureFile::InitResolver(RENDERDOC_ProgressCallback progress)
+bool CaptureFile::InitResolver(bool interactive, RENDERDOC_ProgressCallback progress)
 {
   if(!HasCallstacks())
   {
@@ -789,7 +789,7 @@ bool CaptureFile::InitResolver(RENDERDOC_ProgressCallback progress)
   if(progress)
     progress(0.002f);
 
-  m_Resolver = Callstack::MakeResolver(buf.data(), buf.size(), progress);
+  m_Resolver = Callstack::MakeResolver(interactive, buf.data(), buf.size(), progress);
 
   if(!m_Resolver)
   {

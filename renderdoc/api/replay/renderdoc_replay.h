@@ -1141,12 +1141,16 @@ necessary.
 This function blocks while trying to initialise callstack resolving, so it should be called on a
 separate thread.
 
+:param bool interactive: ``True`` if missing symbols or other prompts should be resolved interactively.
+  If this is ``False``, the function will not interact or block forever on user interaction and will
+  always assume the input is effectively 'cancel' or empty. This may cause the symbol resolution to
+  fail.
 :param ProgressCallback progress: A callback that will be repeatedly called with an updated progress
   value for the resolver process. Can be ``None`` if no progress is desired.
 :return: ``True`` if the resolver successfully initialised, ``False`` if something went wrong.
 :rtype: ``bool``
 )");
-  virtual bool InitResolver(RENDERDOC_ProgressCallback progress) = 0;
+  virtual bool InitResolver(bool interactive, RENDERDOC_ProgressCallback progress) = 0;
 
   DOCUMENT(R"(Retrieve the details of each stackframe in the provided callstack.
 
