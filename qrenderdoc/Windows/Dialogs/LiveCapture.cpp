@@ -1316,7 +1316,10 @@ void LiveCapture::connectionThreadEntry()
   }
 
   if(m_Connection)
+  {
     m_Connection->Shutdown();
+    m_Connection = NULL;
+  }
 
   GUIInvoke::call(this, [this]() {
     ui->connectionStatus->setText(tr("Closed"));
