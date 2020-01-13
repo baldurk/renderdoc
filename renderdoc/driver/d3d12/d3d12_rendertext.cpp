@@ -28,6 +28,7 @@
 #include "maths/vec.h"
 #include "stb/stb_truetype.h"
 #include "strings/string_utils.h"
+#include "d3d12_command_list.h"
 #include "d3d12_device.h"
 #include "d3d12_shader_cache.h"
 
@@ -526,8 +527,10 @@ void D3D12TextRenderer::RenderTextInternal(ID3D12GraphicsCommandList *list, floa
 
   CharBuffer->Unmap(0, NULL);
 
+  // the list is used unwrapped to avoid weird ordering bugs and potentially 'poisoning' the
+  // resource record on 12On7 with our own rendering
   {
-    list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    Unwrap(list)->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
     D3D12_VIEWPORT view;
     view.TopLeftX = 0;
@@ -536,25 +539,27 @@ void D3D12TextRenderer::RenderTextInternal(ID3D12GraphicsCommandList *list, floa
     view.Height = (float)GetHeight();
     view.MinDepth = 0.0f;
     view.MaxDepth = 1.0f;
-    list->RSSetViewports(1, &view);
+    Unwrap(list)->RSSetViewports(1, &view);
 
     D3D12_RECT scissor = {0, 0, GetWidth(), GetHeight()};
-    list->RSSetScissorRects(1, &scissor);
+    Unwrap(list)->RSSetScissorRects(1, &scissor);
 
-    list->SetPipelineState(Pipe[m_BBFmtIdx]);
-    list->SetGraphicsRootSignature(RootSig);
+    Unwrap(list)->SetPipelineState(Unwrap(Pipe[m_BBFmtIdx]));
+    Unwrap(list)->SetGraphicsRootSignature(Unwrap(RootSig));
 
     // Set the descriptor heap containing the texture srv
-    list->SetDescriptorHeaps(1, &descHeap);
+    ID3D12DescriptorHeap *unwrappedHeap = Unwrap(descHeap);
+    Unwrap(list)->SetDescriptorHeaps(1, &unwrappedHeap);
 
-    list->SetGraphicsRootConstantBufferView(
+    Unwrap(list)->SetGraphicsRootConstantBufferView(
         0, Constants->GetGPUVirtualAddress() + ConstRingIdx * constantAlignment);
-    list->SetGraphicsRootConstantBufferView(1, GlyphData->GetGPUVirtualAddress());
-    list->SetGraphicsRootConstantBufferView(
+    Unwrap(list)->SetGraphicsRootConstantBufferView(1, GlyphData->GetGPUVirtualAddress());
+    Unwrap(list)->SetGraphicsRootConstantBufferView(
         2, CharBuffer->GetGPUVirtualAddress() + charOffset * sizeof(Vec4f));
-    list->SetGraphicsRootDescriptorTable(3, descHeap->GetGPUDescriptorHandleForHeapStart());
+    Unwrap(list)->SetGraphicsRootDescriptorTable(
+        3, Unwrap(descHeap->GetGPUDescriptorHandleForHeapStart()));
 
-    list->DrawInstanced(4, (uint32_t)chars, 0, 0);
+    Unwrap(list)->DrawInstanced(4, (uint32_t)chars, 0, 0);
   }
 
   ConstRingIdx++;
