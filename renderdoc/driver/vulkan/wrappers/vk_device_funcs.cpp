@@ -254,6 +254,13 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
       RDCLOG("Inst Ext %u: %s", i, ext.c_str());
       i++;
     }
+
+    i = 0;
+    for(const rdcstr &layer : supportedLayers)
+    {
+      RDCLOG("Inst Layer %u: %s", i, layer.c_str());
+      i++;
+    }
   }
 
   AddRequiredExtensions(true, params.Extensions, supportedExtensions);
