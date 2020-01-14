@@ -48,7 +48,7 @@ public:
       CrashHandler *crash = ((CrashHandler *)existing);
       m_PipeName = crash->m_PipeName;
       mem = crash->m_ExHandler->QueryRegisteredAppMemory();
-      RDCLOG("Re-using crash-handling server %ls", m_PipeName.c_str());
+      RDCLOG("Re-using crash-handling server %s", m_PipeName.c_str());
       SAFE_DELETE(existing);
     }
     else
@@ -59,16 +59,10 @@ public:
 
     ///////////////////
 
-    wchar_t tempPath[MAX_PATH] = {0};
-    GetTempPathW(MAX_PATH - 1, tempPath);
-
-    std::wstring dumpFolder = tempPath;
-
-    dumpFolder += L"RenderDoc";
-    CreateDirectoryW(dumpFolder.c_str(), NULL);
-
-    dumpFolder += L"\\dumps";
-    CreateDirectoryW(dumpFolder.c_str(), NULL);
+    rdcstr dumpFolder = FileIO::GetTempFolderFilename() + "RenderDoc\\dumps\\a";
+    FileIO::CreateParentDirectory(dumpFolder);
+    dumpFolder.pop_back();
+    dumpFolder.pop_back();
 
     MINIDUMP_TYPE dumpType = MINIDUMP_TYPE(MiniDumpNormal | MiniDumpWithIndirectlyReferencedMemory);
 
@@ -80,7 +74,7 @@ public:
                                          RenderDoc::Inst().IsReplayApp() ? L"1" : L"0"),
     };
 
-    std::wstring wideStr = StringFormat::UTF82Wide(rdcstr(FULL_VERSION_STRING));
+    rdcwstr wideStr = StringFormat::UTF82Wide(rdcstr(FULL_VERSION_STRING));
     breakpadCustomInfo[0].set_value(wideStr.c_str());
     wideStr = StringFormat::UTF82Wide(rdcstr(RDCGETLOGFILE()));
     breakpadCustomInfo[1].set_value(wideStr.c_str());
@@ -90,11 +84,12 @@ public:
     google_breakpad::CustomClientInfo custom = {&breakpadCustomInfo[0],
                                                 ARRAY_COUNT(breakpadCustomInfo)};
 
-    RDCLOG("Connecting to server %ls", m_PipeName.c_str());
+    RDCLOG("Connecting to server %s", m_PipeName.c_str());
 
     m_ExHandler = new google_breakpad::ExceptionHandler(
-        dumpFolder.c_str(), NULL, NULL, NULL, google_breakpad::ExceptionHandler::HANDLER_ALL,
-        dumpType, m_PipeName.c_str(), &custom);
+        StringFormat::UTF82Wide(dumpFolder).c_str(), NULL, NULL, NULL,
+        google_breakpad::ExceptionHandler::HANDLER_ALL, dumpType,
+        StringFormat::UTF82Wide(m_PipeName).c_str(), &custom);
 
     if(!m_ExHandler->IsOutOfProcess())
     {
@@ -107,8 +102,9 @@ public:
       CreateCrashHandlingServer();
 
       m_ExHandler = new google_breakpad::ExceptionHandler(
-          dumpFolder.c_str(), NULL, NULL, NULL, google_breakpad::ExceptionHandler::HANDLER_ALL,
-          dumpType, m_PipeName.c_str(), &custom);
+          StringFormat::UTF82Wide(dumpFolder).c_str(), NULL, NULL, NULL,
+          google_breakpad::ExceptionHandler::HANDLER_ALL, dumpType,
+          StringFormat::UTF82Wide(m_PipeName).c_str(), &custom);
 
       if(!m_ExHandler->IsOutOfProcess())
         RDCERR("Couldn't launch and connect to new breakpad server");
@@ -134,39 +130,18 @@ public:
 
     HANDLE waitEvent = CreateEventA(NULL, TRUE, FALSE, "RENDERDOC_CRASHHANDLE");
 
-    wchar_t radpath[MAX_PATH] = {0};
-    GetModuleFileNameW(GetModuleHandleA("renderdoc.dll"), radpath, MAX_PATH - 1);
+    rdcstr dllpath;
+    FileIO::GetLibraryFilename(dllpath);
 
-    wchar_t *slash = wcsrchr(radpath, L'\\');
-
-    if(slash)
-    {
-      *slash = 0;
-    }
-    else
-    {
-      slash = wcsrchr(radpath, L'/');
-
-      if(slash)
-        *slash = 0;
-      else
-      {
-        radpath[0] = L'.';
-        radpath[1] = 0;
-      }
-    }
-
-    std::wstring cmdline = L"\"";
-    cmdline += radpath;
-    cmdline += L"/renderdoccmd.exe\" crashhandle --pipe ";
+    rdcstr cmdline = "\"";
+    cmdline += get_dirname(dllpath);
+    cmdline += "/renderdoccmd.exe\" crashhandle --pipe ";
     cmdline += m_PipeName;
 
-    wchar_t *paramsAlloc = new wchar_t[512];
+    rdcwstr params = StringFormat::UTF82Wide(cmdline);
 
-    wcscpy_s(paramsAlloc, 511, cmdline.c_str());
-
-    BOOL ret = CreateProcessW(NULL, paramsAlloc, NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL, NULL,
-                              &si, &pi);
+    BOOL ret = CreateProcessW(NULL, params.data(), NULL, NULL, FALSE, CREATE_NEW_CONSOLE, NULL,
+                              NULL, &si, &pi);
 
     if(!ret)
       RDCERR("Failed to create crashhandle server: %d", GetLastError());
@@ -178,20 +153,19 @@ public:
 
     CloseHandle(waitEvent);
 
-    RDCLOG("Created crash-handling server %ls", m_PipeName.c_str());
+    RDCLOG("Created crash-handling server %s", m_PipeName.c_str());
   }
 
   virtual ~CrashHandler() { SAFE_DELETE(m_ExHandler); }
   void RegisterMemoryRegion(void *mem, size_t size) { m_ExHandler->RegisterAppMemory(mem, size); }
   void UnregisterMemoryRegion(void *mem) { m_ExHandler->UnregisterAppMemory(mem); }
 private:
-  std::wstring m_PipeName;
+  rdcstr m_PipeName;
   google_breakpad::ExceptionHandler *m_ExHandler;
 
-  std::wstring NewPipeName()
+  rdcstr NewPipeName()
   {
-    return StringFormat::UTF82Wide(
-        StringFormat::Fmt("\\\\.\\pipe\\RenderDocBreakpadServer%llu", Timing::GetTick()));
+    return StringFormat::Fmt("\\\\.\\pipe\\RenderDocBreakpadServer%llu", Timing::GetTick());
   }
 };
 
