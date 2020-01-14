@@ -157,7 +157,6 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   const bool f32render = (flags & eTexDisplay_32Render) != 0;
 
   VkDevice dev = m_pDriver->GetDev();
-  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   const VkDevDispatchTable *vt = ObjDisp(dev);
 
   ImageLayouts &layouts = m_pDriver->m_ImageLayouts[cfg.resourceId];
@@ -476,6 +475,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   }
 
   vt->UpdateDescriptorSets(Unwrap(dev), (uint32_t)writeSets.size(), &writeSets[0], 0, NULL);
+
+  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};

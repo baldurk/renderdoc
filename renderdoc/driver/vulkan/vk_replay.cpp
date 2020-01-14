@@ -2157,7 +2157,6 @@ bool VulkanReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType 
                              bool stencil, float *minval, float *maxval)
 {
   VkDevice dev = m_pDriver->GetDev();
-  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   const VkDevDispatchTable *vt = ObjDisp(dev);
 
   ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
@@ -2353,6 +2352,8 @@ bool VulkanReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
+  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
   vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
   DoPipelineBarrier(cmd, setupBarriers.size(), setupBarriers.data());
@@ -2451,7 +2452,6 @@ bool VulkanReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompTy
     return false;
 
   VkDevice dev = m_pDriver->GetDev();
-  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   const VkDevDispatchTable *vt = ObjDisp(dev);
 
   ImageLayouts &layouts = m_pDriver->m_ImageLayouts[texid];
@@ -2655,6 +2655,8 @@ bool VulkanReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompTy
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
   vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
