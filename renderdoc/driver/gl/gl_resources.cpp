@@ -656,8 +656,6 @@ rdcstr GetTextureCompleteStatus(GLenum target, GLuint tex, GLuint sampler)
   if(tex == 0 || target == eGL_TEXTURE_BUFFER)
     return rdcstr();
 
-  SCOPED_TIMER("GetTextureCompleteStatus");
-
   // the completeness rules are fairly complex. The relevant spec is copied here and each rule is
   // annotated with a number for easier reference.
   /*
