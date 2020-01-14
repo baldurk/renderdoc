@@ -46,6 +46,10 @@ When a binding is empty, it will be displayed with a red background. By default 
 
 If a binding is listed with a blue/green background this indicates that the binding has special parameters over and above the underlying resource. This could be for example an image with many mips or slices where not all of them are bound to the pipeline in the image view, or the view casts the image to a different compatible format.
 
+.. note::
+
+  On OpenGL, incomplete textures will also be displayed with a red background. An explanation of why they are incomplete will be included in the tooltip when hovering over the entry.
+
 .. figure:: ../imgs/Screenshots/PipelineCollapsed.png
 
 	Pipeline: The above pipeline section, collapsed to save space.
