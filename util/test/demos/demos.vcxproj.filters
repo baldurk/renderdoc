@@ -379,6 +379,9 @@
     <ClCompile Include="d3d11\d3d11_deferred_map.cpp">
       <Filter>D3D11\demos</Filter>
     </ClCompile>
+    <ClCompile Include="gl\gl_unshared_context.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

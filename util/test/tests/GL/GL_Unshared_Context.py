@@ -1,0 +1,32 @@
+import renderdoc as rd
+import rdtest
+
+
+class GL_Unshared_Context(rdtest.TestCase):
+    demos_test_name = 'GL_Unshared_Context'
+
+    def check_capture(self):
+        
+        draw = self.find_draw("Draw")
+
+        self.controller.SetFrameEvent(draw.eventId, False)
+
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        texs: List[rd.BoundResourceArray] = pipe.GetReadOnlyResources(rd.ShaderStage.Fragment)
+        
+        id = texs[0].resources[0].resourceId
+
+        #sample 4 corners and middle
+        magic_value: rd.PixelValue = [1.0, 0.5, 0.25, 1.0]
+        epsilon = .005
+        
+        self.check_pixel_value(id, 0.0, 0.0, magic_value, epsilon)
+        self.check_pixel_value(id, 1.0, 0.0, magic_value, epsilon)
+        self.check_pixel_value(id, 0.0, 1.0, magic_value, epsilon)
+        self.check_pixel_value(id, 1.0, 1.0, magic_value, epsilon)
+        self.check_pixel_value(id, 0.5, 0.5, magic_value, epsilon)
+        
+        rdtest.log.success("Texture captured properly from unshared context")
+
+        

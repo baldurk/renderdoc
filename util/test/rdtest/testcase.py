@@ -304,9 +304,9 @@ class TestCase:
         res_details = self.get_resource(tex)
 
         if type(x) is float:
-            x = int(tex_details.width * x)
+            x = int((tex_details.width-1) * x)
         if type(y) is float:
-            y = int(tex_details.height * y)
+            y = int((tex_details.height-1) * y)
 
         picked: rd.PixelValue = self.controller.PickPixel(tex, x, y, rd.Subresource(0, 0, 0), rd.CompType.Typeless)
 

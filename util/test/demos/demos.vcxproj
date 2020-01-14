@@ -207,6 +207,7 @@
     </ClCompile>
     <ClCompile Include="gl\gl_test_win32.cpp" />
     <ClCompile Include="gl\gl_texture_zoo.cpp" />
+    <ClCompile Include="gl\gl_unshared_context.cpp" />
     <ClCompile Include="gl\gl_unsized_ms_fbo_attachment.cpp" />
     <ClCompile Include="gl\gl_vao_0.cpp" />
     <ClCompile Include="gl\gl_vertex_attr_zoo.cpp" />

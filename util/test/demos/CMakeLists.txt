@@ -63,6 +63,7 @@ set(OPENGL_SRC
         gl/gl_simple_triangle.cpp
         gl/gl_spirv_shader.cpp
         gl/gl_texture_zoo.cpp
+        gl/gl_unshared_context.cpp
         gl/gl_unsized_ms_fbo_attachment.cpp
         gl/gl_vao_0.cpp
         gl/gl_vertex_attr_zoo.cpp)

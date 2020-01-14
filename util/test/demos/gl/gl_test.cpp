@@ -52,6 +52,8 @@ void OpenGLGraphicsTest::PostInit()
 
 void OpenGLGraphicsTest::Shutdown()
 {
+  ActivateContext(mainWindow, mainContext);
+
   if(!managedResources.bufs.empty())
     glDeleteBuffers((GLsizei)managedResources.bufs.size(), &managedResources.bufs[0]);
   if(!managedResources.texs.empty())
