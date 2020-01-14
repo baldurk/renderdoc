@@ -264,3 +264,8 @@ class Iter_Test(rdtest.TestCase):
         self.controller = controller
 
         self.iter_test()
+
+
+def run_locally(r):
+    test = Iter_Test()
+    test.run_external(r)
