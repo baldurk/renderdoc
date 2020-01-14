@@ -1355,13 +1355,13 @@ void MainWindow::CheckUpdates(bool forceCheck, UpdateResultMethod callback)
                    });
 
   QObject::connect(req, &QNetworkReply::finished, [this, req, callback]() {
+    statusText->setText(QString());
+    statusProgress->setVisible(false);
+
     if(req->error() != QNetworkReply::NoError)
       return;
 
     QString response = QString::fromUtf8(req->readAll());
-
-    statusText->setText(QString());
-    statusProgress->setVisible(false);
 
     if(response.isEmpty())
     {
