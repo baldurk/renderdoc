@@ -1087,7 +1087,12 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
           }
 
           if(!revertBarriers.empty())
+          {
+            if(SeparateDepthStencil())
+              CombineDepthStencilLayouts(revertBarriers);
+
             DoPipelineBarrier(commandBuffer, revertBarriers.size(), revertBarriers.data());
+          }
         }
 
         // also finish any nested markers we truncated and didn't finish
