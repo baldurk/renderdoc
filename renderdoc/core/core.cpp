@@ -281,6 +281,13 @@ void RenderDoc::RecreateCrashHandler()
     RDCWARN("Disabling crash handling server due to detected chrome.");
     return;
   }
+
+  // ditto opera
+  if(exename.find("opera.exe") && GetModuleHandleA("opera_browser.dll"))
+  {
+    RDCWARN("Disabling crash handling server due to detected chrome.");
+    return;
+  }
 #endif
 
   m_ExHandler = new CrashHandler(m_ExHandler);
