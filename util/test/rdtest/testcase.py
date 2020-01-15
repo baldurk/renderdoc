@@ -2,6 +2,7 @@ import os
 import traceback
 import copy
 import re
+import time
 import renderdoc as rd
 from . import util
 from . import analyse
@@ -332,7 +333,12 @@ class TestCase:
             self.controller.Shutdown()
 
     def invoketest(self, debugMode):
+        start_time = time.time()
         self.run()
+        duration = time.time() - start_time
+        minutes = int(duration / 60) % 60
+        seconds = round(duration % 60)
+        log.print("Test ran in {:02}:{:02}".format(minutes, seconds))
         self.debugMode = debugMode
 
     def get_first_draw(self):
