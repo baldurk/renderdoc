@@ -457,7 +457,7 @@ VkResult WrappedVulkan::vkGetMemoryWin32HandleKHR(
 }
 
 VkResult WrappedVulkan::vkGetMemoryWin32HandlePropertiesKHR(
-    VkDevice device, VkExternalMemoryHandleTypeFlagBitsKHR handleType, HANDLE handle,
+    VkDevice device, VkExternalMemoryHandleTypeFlagBits handleType, HANDLE handle,
     VkMemoryWin32HandlePropertiesKHR *pMemoryWin32HandleProperties)
 {
   return ObjDisp(device)->GetMemoryWin32HandlePropertiesKHR(Unwrap(device), handleType, handle,
@@ -474,7 +474,7 @@ VkResult WrappedVulkan::vkGetMemoryFdKHR(VkDevice device, const VkMemoryGetFdInf
 }
 
 VkResult WrappedVulkan::vkGetMemoryFdPropertiesKHR(VkDevice device,
-                                                   VkExternalMemoryHandleTypeFlagBitsKHR handleType,
+                                                   VkExternalMemoryHandleTypeFlagBits handleType,
                                                    int fd,
                                                    VkMemoryFdPropertiesKHR *pMemoryFdProperties)
 {
@@ -524,6 +524,22 @@ void WrappedVulkan::vkGetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice
   {
     RDCWARN("Forcibly disabling support for protected memory");
     protectedMem->protectedMemory = VK_FALSE;
+  }
+
+  // in Vulkan 1.2 buffer_device_address can be used without an extension, so we can't hide the
+  // extension when capture/replay is not supported. Instead we hide the feature bit here.
+  VkPhysicalDeviceVulkan12Features *vulkan12 = (VkPhysicalDeviceVulkan12Features *)FindNextStruct(
+      pFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES);
+
+  if(vulkan12)
+  {
+    if(vulkan12->bufferDeviceAddressCaptureReplay == VK_FALSE)
+    {
+      RDCWARN(
+          "VkPhysicalDeviceVulkan12Features::bufferDeviceAddressCaptureReplay is false, "
+          "can't support capture of bufferDeviceAddress");
+      vulkan12->bufferDeviceAddress = vulkan12->bufferDeviceAddressMultiDevice = VK_FALSE;
+    }
   }
 
   if(pFeatures)
@@ -730,28 +746,28 @@ VkResult WrappedVulkan::vkGetPipelineExecutableInternalRepresentationsKHR(
       Unwrap(device), &unwrappedInfo, pInternalRepresentationCount, pInternalRepresentations);
 }
 
-VkDeviceAddress WrappedVulkan::vkGetBufferDeviceAddressKHR(VkDevice device,
-                                                           VkBufferDeviceAddressInfoKHR *pInfo)
+VkDeviceAddress WrappedVulkan::vkGetBufferDeviceAddress(VkDevice device,
+                                                        VkBufferDeviceAddressInfo *pInfo)
 {
-  VkBufferDeviceAddressInfoKHR unwrappedInfo = *pInfo;
+  VkBufferDeviceAddressInfo unwrappedInfo = *pInfo;
   unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
-  return ObjDisp(device)->GetBufferDeviceAddressKHR(Unwrap(device), &unwrappedInfo);
+  return ObjDisp(device)->GetBufferDeviceAddress(Unwrap(device), &unwrappedInfo);
 }
 
-uint64_t WrappedVulkan::vkGetBufferOpaqueCaptureAddressKHR(VkDevice device,
-                                                           VkBufferDeviceAddressInfoKHR *pInfo)
+uint64_t WrappedVulkan::vkGetBufferOpaqueCaptureAddress(VkDevice device,
+                                                        VkBufferDeviceAddressInfo *pInfo)
 {
-  VkBufferDeviceAddressInfoKHR unwrappedInfo = *pInfo;
+  VkBufferDeviceAddressInfo unwrappedInfo = *pInfo;
   unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
-  return ObjDisp(device)->GetBufferOpaqueCaptureAddressKHR(Unwrap(device), &unwrappedInfo);
+  return ObjDisp(device)->GetBufferOpaqueCaptureAddress(Unwrap(device), &unwrappedInfo);
 }
 
-uint64_t WrappedVulkan::vkGetDeviceMemoryOpaqueCaptureAddressKHR(
-    VkDevice device, VkDeviceMemoryOpaqueCaptureAddressInfoKHR *pInfo)
+uint64_t WrappedVulkan::vkGetDeviceMemoryOpaqueCaptureAddress(
+    VkDevice device, VkDeviceMemoryOpaqueCaptureAddressInfo *pInfo)
 {
-  VkDeviceMemoryOpaqueCaptureAddressInfoKHR unwrappedInfo = *pInfo;
+  VkDeviceMemoryOpaqueCaptureAddressInfo unwrappedInfo = *pInfo;
   unwrappedInfo.memory = Unwrap(unwrappedInfo.memory);
-  return ObjDisp(device)->GetDeviceMemoryOpaqueCaptureAddressKHR(Unwrap(device), &unwrappedInfo);
+  return ObjDisp(device)->GetDeviceMemoryOpaqueCaptureAddress(Unwrap(device), &unwrappedInfo);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceToolPropertiesEXT(

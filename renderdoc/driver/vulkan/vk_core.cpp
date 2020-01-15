@@ -1349,8 +1349,8 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
         // require GPDP2
         if(instDevInfo->ext_KHR_get_physical_device_properties2)
         {
-          VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufaddr = {
-              VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR};
+          VkPhysicalDeviceBufferDeviceAddressFeatures bufaddr = {
+              VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES};
           VkPhysicalDeviceFeatures2 base = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
           base.pNext = &bufaddr;
           ObjDisp(physDev)->GetPhysicalDeviceFeatures2(Unwrap(physDev), &base);
@@ -2945,21 +2945,21 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkGetDeviceQueue2:
       return Serialise_vkGetDeviceQueue2(ser, VK_NULL_HANDLE, NULL, NULL);
 
-    case VulkanChunk::vkCmdDrawIndirectCountKHR:
-      return Serialise_vkCmdDrawIndirectCountKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0,
-                                                 VK_NULL_HANDLE, 0, 0, 0);
-    case VulkanChunk::vkCmdDrawIndexedIndirectCountKHR:
-      return Serialise_vkCmdDrawIndexedIndirectCountKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0,
-                                                        VK_NULL_HANDLE, 0, 0, 0);
+    case VulkanChunk::vkCmdDrawIndirectCount:
+      return Serialise_vkCmdDrawIndirectCount(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0,
+                                              VK_NULL_HANDLE, 0, 0, 0);
+    case VulkanChunk::vkCmdDrawIndexedIndirectCount:
+      return Serialise_vkCmdDrawIndexedIndirectCount(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0,
+                                                     VK_NULL_HANDLE, 0, 0, 0);
 
-    case VulkanChunk::vkCreateRenderPass2KHR:
-      return Serialise_vkCreateRenderPass2KHR(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
-    case VulkanChunk::vkCmdBeginRenderPass2KHR:
-      return Serialise_vkCmdBeginRenderPass2KHR(ser, VK_NULL_HANDLE, NULL, NULL);
-    case VulkanChunk::vkCmdNextSubpass2KHR:
-      return Serialise_vkCmdNextSubpass2KHR(ser, VK_NULL_HANDLE, NULL, NULL);
-    case VulkanChunk::vkCmdEndRenderPass2KHR:
-      return Serialise_vkCmdEndRenderPass2KHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCreateRenderPass2:
+      return Serialise_vkCreateRenderPass2(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
+    case VulkanChunk::vkCmdBeginRenderPass2:
+      return Serialise_vkCmdBeginRenderPass2(ser, VK_NULL_HANDLE, NULL, NULL);
+    case VulkanChunk::vkCmdNextSubpass2:
+      return Serialise_vkCmdNextSubpass2(ser, VK_NULL_HANDLE, NULL, NULL);
+    case VulkanChunk::vkCmdEndRenderPass2:
+      return Serialise_vkCmdEndRenderPass2(ser, VK_NULL_HANDLE, NULL);
 
     case VulkanChunk::vkCmdBindTransformFeedbackBuffersEXT:
       return Serialise_vkCmdBindTransformFeedbackBuffersEXT(ser, VK_NULL_HANDLE, 0, 0, NULL, NULL,
@@ -2988,8 +2988,8 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       rdcarray<MemRefInterval> data;
       return GetResourceManager()->Serialise_DeviceMemoryRefs(ser, data);
     }
-    case VulkanChunk::vkResetQueryPoolEXT:
-      return Serialise_vkResetQueryPoolEXT(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
+    case VulkanChunk::vkResetQueryPool:
+      return Serialise_vkResetQueryPool(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
     case VulkanChunk::vkCmdSetLineStippleEXT:
       return Serialise_vkCmdSetLineStippleEXT(ser, VK_NULL_HANDLE, 0, 0);
     case VulkanChunk::ImageRefs:
@@ -2997,12 +2997,12 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       rdcarray<ImgRefsPair> data;
       return GetResourceManager()->Serialise_ImageRefs(ser, data);
     }
-    case VulkanChunk::vkGetSemaphoreCounterValueKHR:
-      return Serialise_vkGetSemaphoreCounterValueKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, NULL);
-    case VulkanChunk::vkWaitSemaphoresKHR:
-      return Serialise_vkWaitSemaphoresKHR(ser, VK_NULL_HANDLE, NULL, 0);
-    case VulkanChunk::vkSignalSemaphoreKHR:
-      return Serialise_vkSignalSemaphoreKHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkGetSemaphoreCounterValue:
+      return Serialise_vkGetSemaphoreCounterValue(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkWaitSemaphores:
+      return Serialise_vkWaitSemaphores(ser, VK_NULL_HANDLE, NULL, 0);
+    case VulkanChunk::vkSignalSemaphore:
+      return Serialise_vkSignalSemaphore(ser, VK_NULL_HANDLE, NULL);
 
     case VulkanChunk::vkQueuePresentKHR:
       return Serialise_vkQueuePresentKHR(ser, VK_NULL_HANDLE, NULL);

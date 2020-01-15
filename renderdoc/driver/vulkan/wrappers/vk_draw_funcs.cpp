@@ -2499,9 +2499,11 @@ void WrappedVulkan::vkCmdDispatchBase(VkCommandBuffer commandBuffer, uint32_t ba
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdDrawIndirectCountKHR(
-    SerialiserType &ser, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
-    VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
+bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
+                                                     VkCommandBuffer commandBuffer, VkBuffer buffer,
+                                                     VkDeviceSize offset, VkBuffer countBuffer,
+                                                     VkDeviceSize countBufferOffset,
+                                                     uint32_t maxDrawCount, uint32_t stride)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT(buffer);
@@ -2776,17 +2778,17 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCountKHR(
   return true;
 }
 
-void WrappedVulkan::vkCmdDrawIndirectCountKHR(VkCommandBuffer commandBuffer, VkBuffer buffer,
-                                              VkDeviceSize offset, VkBuffer countBuffer,
-                                              VkDeviceSize countBufferOffset, uint32_t maxDrawCount,
-                                              uint32_t stride)
+void WrappedVulkan::vkCmdDrawIndirectCount(VkCommandBuffer commandBuffer, VkBuffer buffer,
+                                           VkDeviceSize offset, VkBuffer countBuffer,
+                                           VkDeviceSize countBufferOffset, uint32_t maxDrawCount,
+                                           uint32_t stride)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
-                          ->CmdDrawIndirectCountKHR(Unwrap(commandBuffer), Unwrap(buffer), offset,
-                                                    Unwrap(countBuffer), countBufferOffset,
-                                                    maxDrawCount, stride));
+                          ->CmdDrawIndirectCount(Unwrap(commandBuffer), Unwrap(buffer), offset,
+                                                 Unwrap(countBuffer), countBufferOffset,
+                                                 maxDrawCount, stride));
 
   if(IsCaptureMode(m_State))
   {
@@ -2795,9 +2797,9 @@ void WrappedVulkan::vkCmdDrawIndirectCountKHR(VkCommandBuffer commandBuffer, VkB
     CACHE_THREAD_SERIALISER();
 
     ser.SetDrawChunk();
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDrawIndirectCountKHR);
-    Serialise_vkCmdDrawIndirectCountKHR(ser, commandBuffer, buffer, offset, countBuffer,
-                                        countBufferOffset, maxDrawCount, stride);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDrawIndirectCount);
+    Serialise_vkCmdDrawIndirectCount(ser, commandBuffer, buffer, offset, countBuffer,
+                                     countBufferOffset, maxDrawCount, stride);
 
     record->AddChunk(scope.Get());
 
@@ -2809,7 +2811,7 @@ void WrappedVulkan::vkCmdDrawIndirectCountKHR(VkCommandBuffer commandBuffer, VkB
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCountKHR(
+bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
     SerialiserType &ser, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
     VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
 {
@@ -3009,9 +3011,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCountKHR(
                             offset, maxDrawCount, stride, countBuffer, countBufferOffset);
 
       ObjDisp(commandBuffer)
-          ->CmdDrawIndexedIndirectCountKHR(Unwrap(commandBuffer), Unwrap(buffer), offset,
-                                           Unwrap(countBuffer), countBufferOffset, maxDrawCount,
-                                           stride);
+          ->CmdDrawIndexedIndirectCount(Unwrap(commandBuffer), Unwrap(buffer), offset,
+                                        Unwrap(countBuffer), countBufferOffset, maxDrawCount, stride);
 
       // add on the size we'll need for an indirect buffer in the worst case.
       // Note that we'll only ever be partially replaying one draw at a time, so we only need the
@@ -3091,17 +3092,17 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCountKHR(
   return true;
 }
 
-void WrappedVulkan::vkCmdDrawIndexedIndirectCountKHR(VkCommandBuffer commandBuffer, VkBuffer buffer,
-                                                     VkDeviceSize offset, VkBuffer countBuffer,
-                                                     VkDeviceSize countBufferOffset,
-                                                     uint32_t maxDrawCount, uint32_t stride)
+void WrappedVulkan::vkCmdDrawIndexedIndirectCount(VkCommandBuffer commandBuffer, VkBuffer buffer,
+                                                  VkDeviceSize offset, VkBuffer countBuffer,
+                                                  VkDeviceSize countBufferOffset,
+                                                  uint32_t maxDrawCount, uint32_t stride)
 {
   SCOPED_DBG_SINK();
 
   SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
-                          ->CmdDrawIndexedIndirectCountKHR(Unwrap(commandBuffer), Unwrap(buffer),
-                                                           offset, Unwrap(countBuffer),
-                                                           countBufferOffset, maxDrawCount, stride));
+                          ->CmdDrawIndexedIndirectCount(Unwrap(commandBuffer), Unwrap(buffer),
+                                                        offset, Unwrap(countBuffer),
+                                                        countBufferOffset, maxDrawCount, stride));
 
   if(IsCaptureMode(m_State))
   {
@@ -3110,9 +3111,9 @@ void WrappedVulkan::vkCmdDrawIndexedIndirectCountKHR(VkCommandBuffer commandBuff
     CACHE_THREAD_SERIALISER();
 
     ser.SetDrawChunk();
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDrawIndexedIndirectCountKHR);
-    Serialise_vkCmdDrawIndexedIndirectCountKHR(ser, commandBuffer, buffer, offset, countBuffer,
-                                               countBufferOffset, maxDrawCount, stride);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDrawIndexedIndirectCount);
+    Serialise_vkCmdDrawIndexedIndirectCount(ser, commandBuffer, buffer, offset, countBuffer,
+                                            countBufferOffset, maxDrawCount, stride);
 
     record->AddChunk(scope.Get());
 
@@ -3315,15 +3316,15 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDispatchBase, VkCommandBuffer command
                                 uint32_t baseGroupX, uint32_t baseGroupY, uint32_t baseGroupZ,
                                 uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawIndirectCountKHR, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawIndirectCount, VkCommandBuffer commandBuffer,
                                 VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer,
                                 VkDeviceSize countBufferOffset, uint32_t maxDrawCount,
                                 uint32_t stride);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawIndexedIndirectCountKHR,
-                                VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
-                                VkBuffer countBuffer, VkDeviceSize countBufferOffset,
-                                uint32_t maxDrawCount, uint32_t stride);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawIndexedIndirectCount, VkCommandBuffer commandBuffer,
+                                VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer,
+                                VkDeviceSize countBufferOffset, uint32_t maxDrawCount,
+                                uint32_t stride);
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawIndirectByteCountEXT, VkCommandBuffer commandBuffer,
                                 uint32_t instanceCount, uint32_t firstInstance,

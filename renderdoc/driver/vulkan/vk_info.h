@@ -346,7 +346,7 @@ struct VulkanCreationInfo
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkRenderPassCreateInfo *pCreateInfo);
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
-              const VkRenderPassCreateInfo2KHR *pCreateInfo);
+              const VkRenderPassCreateInfo2 *pCreateInfo);
 
     struct Attachment
     {
@@ -480,7 +480,7 @@ struct VulkanCreationInfo
     float maxLod;
     VkBorderColor borderColor;
     bool unnormalizedCoordinates;
-    VkSamplerReductionModeEXT reductionMode;
+    VkSamplerReductionMode reductionMode;
 
     ResourceId ycbcr;
   };

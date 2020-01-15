@@ -627,14 +627,14 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   if(useBufferAddress)
   {
-    RDCCOMPILE_ASSERT(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR ==
+    RDCCOMPILE_ASSERT(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO ==
                           VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT,
                       "KHR and EXT buffer_device_address should be interchangeable here.");
-    VkBufferDeviceAddressInfoKHR getAddressInfo = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR};
+    VkBufferDeviceAddressInfo getAddressInfo = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
     getAddressInfo.buffer = m_BindlessFeedback.FeedbackBuffer.buf;
 
     if(useBufferAddressKHR)
-      bufferAddress = m_pDriver->vkGetBufferDeviceAddressKHR(dev, &getAddressInfo);
+      bufferAddress = m_pDriver->vkGetBufferDeviceAddress(dev, &getAddressInfo);
     else
       bufferAddress = m_pDriver->vkGetBufferDeviceAddressEXT(dev, &getAddressInfo);
   }

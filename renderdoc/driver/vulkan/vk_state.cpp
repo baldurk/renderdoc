@@ -57,8 +57,8 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, Pipeli
       empty,
   };
 
-  VkRenderPassAttachmentBeginInfoKHR imagelessAttachments = {
-      VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR,
+  VkRenderPassAttachmentBeginInfo imagelessAttachments = {
+      VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO,
   };
   rdcarray<VkImageView> imagelessViews;
 
@@ -512,7 +512,7 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
 }
 
 void VulkanRenderState::SetFramebuffer(ResourceId fb,
-                                       const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo)
+                                       const VkRenderPassAttachmentBeginInfo *attachmentsInfo)
 {
   framebuffer = fb;
 

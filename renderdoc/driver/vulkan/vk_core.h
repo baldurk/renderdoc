@@ -1660,7 +1660,7 @@ public:
                                      const VkMemoryGetWin32HandleInfoKHR *pGetWin32HandleInfo,
                                      HANDLE *pHandle);
   VkResult vkGetMemoryWin32HandlePropertiesKHR(
-      VkDevice device, VkExternalMemoryHandleTypeFlagBitsKHR handleType, HANDLE handle,
+      VkDevice device, VkExternalMemoryHandleTypeFlagBits handleType, HANDLE handle,
       VkMemoryWin32HandlePropertiesKHR *pMemoryWin32HandleProperties);
 
   // VK_KHR_external_semaphore_win32
@@ -2018,15 +2018,15 @@ public:
                                              VkDisplayPlaneCapabilities2KHR *pCapabilities);
 
   // VK_KHR_draw_indirect_count
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndirectCountKHR, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndirectCount, VkCommandBuffer commandBuffer,
                                 VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer,
                                 VkDeviceSize countBufferOffset, uint32_t maxDrawCount,
                                 uint32_t stride);
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndexedIndirectCountKHR,
-                                VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
-                                VkBuffer countBuffer, VkDeviceSize countBufferOffset,
-                                uint32_t maxDrawCount, uint32_t stride);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndexedIndirectCount, VkCommandBuffer commandBuffer,
+                                VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer,
+                                VkDeviceSize countBufferOffset, uint32_t maxDrawCount,
+                                uint32_t stride);
 
   // VK_EXT_validation_cache
   VkResult vkCreateValidationCacheEXT(VkDevice device,
@@ -2047,17 +2047,17 @@ public:
   VkResult vkGetSwapchainStatusKHR(VkDevice device, VkSwapchainKHR swapchain);
 
   // VK_KHR_create_renderpass2
-  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateRenderPass2KHR, VkDevice device,
-                                const VkRenderPassCreateInfo2KHR *pCreateInfo,
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateRenderPass2, VkDevice device,
+                                const VkRenderPassCreateInfo2 *pCreateInfo,
                                 const VkAllocationCallbacks *pAllocator, VkRenderPass *pRenderPass);
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginRenderPass2KHR, VkCommandBuffer commandBuffer,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginRenderPass2, VkCommandBuffer commandBuffer,
                                 const VkRenderPassBeginInfo *pRenderPassBegin,
-                                const VkSubpassBeginInfoKHR *pSubpassBeginInfo);
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdNextSubpass2KHR, VkCommandBuffer commandBuffer,
-                                const VkSubpassBeginInfoKHR *pSubpassBeginInfo,
-                                const VkSubpassEndInfoKHR *pSubpassEndInfo);
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRenderPass2KHR, VkCommandBuffer commandBuffer,
-                                const VkSubpassEndInfoKHR *pSubpassEndInfo);
+                                const VkSubpassBeginInfo *pSubpassBeginInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdNextSubpass2, VkCommandBuffer commandBuffer,
+                                const VkSubpassBeginInfo *pSubpassBeginInfo,
+                                const VkSubpassEndInfo *pSubpassEndInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRenderPass2, VkCommandBuffer commandBuffer,
+                                const VkSubpassEndInfo *pSubpassEndInfo);
 
   // VK_EXT_transform_feedback
 
@@ -2114,7 +2114,7 @@ public:
 
   // VK_EXT_host_query_reset
 
-  IMPLEMENT_FUNCTION_SERIALISED(void, vkResetQueryPoolEXT, VkDevice device, VkQueryPool queryPool,
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkResetQueryPool, VkDevice device, VkQueryPool queryPool,
                                 uint32_t firstQuery, uint32_t queryCount);
 
   // VK_EXT_buffer_device_address
@@ -2194,14 +2194,14 @@ public:
 
   // VK_KHR_timeline_semaphore
 
-  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetSemaphoreCounterValueKHR, VkDevice device,
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetSemaphoreCounterValue, VkDevice device,
                                 VkSemaphore semaphore, uint64_t *pValue);
 
-  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkWaitSemaphoresKHR, VkDevice device,
-                                const VkSemaphoreWaitInfoKHR *pWaitInfo, uint64_t timeout);
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkWaitSemaphores, VkDevice device,
+                                const VkSemaphoreWaitInfo *pWaitInfo, uint64_t timeout);
 
-  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkSignalSemaphoreKHR, VkDevice device,
-                                const VkSemaphoreSignalInfoKHR *pSignalInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkSignalSemaphore, VkDevice device,
+                                const VkSemaphoreSignalInfo *pSignalInfo);
 
   // VK_KHR_performance_query
 
@@ -2216,10 +2216,10 @@ public:
 
   // VK_KHR_buffer_device_address
 
-  VkDeviceAddress vkGetBufferDeviceAddressKHR(VkDevice device, VkBufferDeviceAddressInfoKHR *pInfo);
-  uint64_t vkGetBufferOpaqueCaptureAddressKHR(VkDevice device, VkBufferDeviceAddressInfoKHR *pInfo);
-  uint64_t vkGetDeviceMemoryOpaqueCaptureAddressKHR(VkDevice device,
-                                                    VkDeviceMemoryOpaqueCaptureAddressInfoKHR *pInfo);
+  VkDeviceAddress vkGetBufferDeviceAddress(VkDevice device, VkBufferDeviceAddressInfo *pInfo);
+  uint64_t vkGetBufferOpaqueCaptureAddress(VkDevice device, VkBufferDeviceAddressInfo *pInfo);
+  uint64_t vkGetDeviceMemoryOpaqueCaptureAddress(VkDevice device,
+                                                 VkDeviceMemoryOpaqueCaptureAddressInfo *pInfo);
 
   // VK_EXT_tooling_info
 

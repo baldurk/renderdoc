@@ -27,6 +27,9 @@
 // extensions made core in 1.1
 #define VK11 VK_MAKE_VERSION(1, 1, 0)
 
+// extensions made core in 1.2
+#define VK12 VK_MAKE_VERSION(1, 2, 0)
+
 // extensions that are not core in any version
 #define VKXX VK_MAKE_VERSION(99, 99, 0)
 
@@ -64,7 +67,7 @@
   HookDefine3(VkResult, vkGetMemoryWin32HandleKHR, VkDevice, device,                             \
               const VkMemoryGetWin32HandleInfoKHR *, pGetWin32HandleInfo, HANDLE *, pHandle);    \
   HookDefine4(VkResult, vkGetMemoryWin32HandlePropertiesKHR, VkDevice, device,                   \
-              VkExternalMemoryHandleTypeFlagBitsKHR, handleType, HANDLE, handle,                 \
+              VkExternalMemoryHandleTypeFlagBits, handleType, HANDLE, handle,                    \
               VkMemoryWin32HandlePropertiesKHR *, pMemoryWin32HandleProperties);                 \
   HookDefine2(VkResult, vkImportSemaphoreWin32HandleKHR, VkDevice, device,                       \
               const VkImportSemaphoreWin32HandleInfoKHR *, pImportSemaphoreWin32HandleInfo);     \
@@ -551,20 +554,20 @@
   CheckExt(EXT_global_priority, VKXX);                \
   CheckExt(AMD_buffer_marker, VKXX);                  \
   CheckExt(EXT_vertex_attribute_divisor, VKXX);       \
-  CheckExt(EXT_sampler_filter_minmax, VKXX);          \
+  CheckExt(EXT_sampler_filter_minmax, VK12);          \
   CheckExt(KHR_sampler_ycbcr_conversion, VK11);       \
   CheckExt(KHR_device_group, VK11);                   \
   CheckExt(MVK_moltenvk, VKXX);                       \
-  CheckExt(KHR_draw_indirect_count, VKXX);            \
+  CheckExt(KHR_draw_indirect_count, VK12);            \
   CheckExt(EXT_validation_cache, VKXX);               \
   CheckExt(KHR_shared_presentable_image, VKXX);       \
-  CheckExt(KHR_create_renderpass2, VKXX);             \
+  CheckExt(KHR_create_renderpass2, VK12);             \
   CheckExt(EXT_transform_feedback, VKXX);             \
   CheckExt(EXT_conditional_rendering, VKXX);          \
   CheckExt(EXT_sample_locations, VKXX);               \
   CheckExt(EXT_discard_rectangles, VKXX);             \
   CheckExt(EXT_calibrated_timestamps, VKXX);          \
-  CheckExt(EXT_host_query_reset, VKXX);               \
+  CheckExt(EXT_host_query_reset, VK12);               \
   CheckExt(EXT_buffer_device_address, VKXX);          \
   CheckExt(EXT_hdr_metadata, VKXX);                   \
   CheckExt(AMD_display_native_hdr, VKXX);             \
@@ -573,11 +576,11 @@
   CheckExt(AMD_negative_viewport_height, VKXX);       \
   CheckExt(EXT_line_rasterization, VKXX);             \
   CheckExt(GOOGLE_display_timing, VKXX);              \
-  CheckExt(KHR_timeline_semaphore, VKXX);             \
+  CheckExt(KHR_timeline_semaphore, VK12);             \
   CheckExt(KHR_performance_query, VKXX);              \
-  CheckExt(KHR_buffer_device_address, VKXX);          \
+  CheckExt(KHR_buffer_device_address, VK12);          \
   CheckExt(EXT_tooling_info, VKXX);                   \
-  CheckExt(KHR_separate_depth_stencil_layouts, VKXX);
+  CheckExt(KHR_separate_depth_stencil_layouts, VK12);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -740,17 +743,17 @@
   HookInitExtension(KHR_device_group &&KHR_surface, GetDeviceGroupSurfacePresentModesKHR);         \
   HookInitExtension(KHR_device_group &&KHR_swapchain, AcquireNextImage2KHR);                       \
   HookInitExtension(protected_memory, GetDeviceQueue2);                                            \
-  HookInitExtension(KHR_draw_indirect_count, CmdDrawIndirectCountKHR);                             \
-  HookInitExtension(KHR_draw_indirect_count, CmdDrawIndexedIndirectCountKHR);                      \
+  HookInitPromotedExtension(KHR_draw_indirect_count, CmdDrawIndirectCount, KHR);                   \
+  HookInitPromotedExtension(KHR_draw_indirect_count, CmdDrawIndexedIndirectCount, KHR);            \
   HookInitExtension(EXT_validation_cache, CreateValidationCacheEXT);                               \
   HookInitExtension(EXT_validation_cache, DestroyValidationCacheEXT);                              \
   HookInitExtension(EXT_validation_cache, MergeValidationCachesEXT);                               \
   HookInitExtension(EXT_validation_cache, GetValidationCacheDataEXT);                              \
   HookInitExtension(KHR_shared_presentable_image, GetSwapchainStatusKHR);                          \
-  HookInitExtension(KHR_create_renderpass2, CreateRenderPass2KHR);                                 \
-  HookInitExtension(KHR_create_renderpass2, CmdBeginRenderPass2KHR);                               \
-  HookInitExtension(KHR_create_renderpass2, CmdNextSubpass2KHR);                                   \
-  HookInitExtension(KHR_create_renderpass2, CmdEndRenderPass2KHR);                                 \
+  HookInitPromotedExtension(KHR_create_renderpass2, CreateRenderPass2, KHR);                       \
+  HookInitPromotedExtension(KHR_create_renderpass2, CmdBeginRenderPass2, KHR);                     \
+  HookInitPromotedExtension(KHR_create_renderpass2, CmdNextSubpass2, KHR);                         \
+  HookInitPromotedExtension(KHR_create_renderpass2, CmdEndRenderPass2, KHR);                       \
   HookInitExtension(EXT_transform_feedback, CmdBindTransformFeedbackBuffersEXT);                   \
   HookInitExtension(EXT_transform_feedback, CmdBeginTransformFeedbackEXT);                         \
   HookInitExtension(EXT_transform_feedback, CmdEndTransformFeedbackEXT);                           \
@@ -762,7 +765,7 @@
   HookInitExtension(EXT_sample_locations, CmdSetSampleLocationsEXT);                               \
   HookInitExtension(EXT_discard_rectangles, CmdSetDiscardRectangleEXT);                            \
   HookInitExtension(EXT_calibrated_timestamps, GetCalibratedTimestampsEXT);                        \
-  HookInitExtension(EXT_host_query_reset, ResetQueryPoolEXT);                                      \
+  HookInitPromotedExtension(EXT_host_query_reset, ResetQueryPool, EXT);                            \
   HookInitExtension(EXT_buffer_device_address, GetBufferDeviceAddressEXT);                         \
   HookInitExtension(EXT_hdr_metadata, SetHdrMetadataEXT);                                          \
   HookInitExtension(AMD_display_native_hdr, SetLocalDimmingAMD);                                   \
@@ -773,14 +776,14 @@
   HookInitExtension(EXT_line_rasterization, CmdSetLineStippleEXT);                                 \
   HookInitExtension(GOOGLE_display_timing, GetRefreshCycleDurationGOOGLE);                         \
   HookInitExtension(GOOGLE_display_timing, GetPastPresentationTimingGOOGLE);                       \
-  HookInitExtension(KHR_timeline_semaphore, GetSemaphoreCounterValueKHR);                          \
-  HookInitExtension(KHR_timeline_semaphore, WaitSemaphoresKHR);                                    \
-  HookInitExtension(KHR_timeline_semaphore, SignalSemaphoreKHR);                                   \
+  HookInitPromotedExtension(KHR_timeline_semaphore, GetSemaphoreCounterValue, KHR);                \
+  HookInitPromotedExtension(KHR_timeline_semaphore, WaitSemaphores, KHR);                          \
+  HookInitPromotedExtension(KHR_timeline_semaphore, SignalSemaphore, KHR);                         \
   HookInitExtension(KHR_performance_query, AcquireProfilingLockKHR);                               \
   HookInitExtension(KHR_performance_query, ReleaseProfilingLockKHR);                               \
-  HookInitExtension(KHR_buffer_device_address, GetBufferDeviceAddressKHR);                         \
-  HookInitExtension(KHR_buffer_device_address, GetBufferOpaqueCaptureAddressKHR);                  \
-  HookInitExtension(KHR_buffer_device_address, GetDeviceMemoryOpaqueCaptureAddressKHR);            \
+  HookInitPromotedExtension(KHR_buffer_device_address, GetBufferDeviceAddress, KHR);               \
+  HookInitPromotedExtension(KHR_buffer_device_address, GetBufferOpaqueCaptureAddress, KHR);        \
+  HookInitPromotedExtension(KHR_buffer_device_address, GetDeviceMemoryOpaqueCaptureAddress, KHR);  \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -1291,10 +1294,10 @@
   HookDefine3(VkResult, vkGetDisplayPlaneCapabilities2KHR, VkPhysicalDevice, physicalDevice,         \
               const VkDisplayPlaneInfo2KHR *, pDisplayPlaneInfo, VkDisplayPlaneCapabilities2KHR *,   \
               pCapabilities);                                                                        \
-  HookDefine7(void, vkCmdDrawIndirectCountKHR, VkCommandBuffer, commandBuffer, VkBuffer, buffer,     \
+  HookDefine7(void, vkCmdDrawIndirectCount, VkCommandBuffer, commandBuffer, VkBuffer, buffer,        \
               VkDeviceSize, offset, VkBuffer, countBuffer, VkDeviceSize, countBufferOffset,          \
               uint32_t, maxDrawCount, uint32_t, stride);                                             \
-  HookDefine7(void, vkCmdDrawIndexedIndirectCountKHR, VkCommandBuffer, commandBuffer, VkBuffer,      \
+  HookDefine7(void, vkCmdDrawIndexedIndirectCount, VkCommandBuffer, commandBuffer, VkBuffer,         \
               buffer, VkDeviceSize, offset, VkBuffer, countBuffer, VkDeviceSize,                     \
               countBufferOffset, uint32_t, maxDrawCount, uint32_t, stride);                          \
   HookDefine4(VkResult, vkCreateValidationCacheEXT, VkDevice, device,                                \
@@ -1307,17 +1310,15 @@
   HookDefine4(VkResult, vkGetValidationCacheDataEXT, VkDevice, device, VkValidationCacheEXT,         \
               validationCache, size_t *, pDataSize, void *, pData);                                  \
   HookDefine2(VkResult, vkGetSwapchainStatusKHR, VkDevice, device, VkSwapchainKHR, swapchain);       \
-  HookDefine4(VkResult, vkCreateRenderPass2KHR, VkDevice, device,                                    \
-              const VkRenderPassCreateInfo2KHR *, pCreateInfo, const VkAllocationCallbacks *,        \
-              pAllocator, VkRenderPass *, pRenderPass);                                              \
-  HookDefine3(void, vkCmdBeginRenderPass2KHR, VkCommandBuffer, commandBuffer,                        \
-              const VkRenderPassBeginInfo *, pRenderPassBegin, const VkSubpassBeginInfoKHR *,        \
+  HookDefine4(VkResult, vkCreateRenderPass2, VkDevice, device, const VkRenderPassCreateInfo2 *,      \
+              pCreateInfo, const VkAllocationCallbacks *, pAllocator, VkRenderPass *, pRenderPass);  \
+  HookDefine3(void, vkCmdBeginRenderPass2, VkCommandBuffer, commandBuffer,                           \
+              const VkRenderPassBeginInfo *, pRenderPassBegin, const VkSubpassBeginInfo *,           \
               pSubpassBeginInfo);                                                                    \
-  HookDefine3(void, vkCmdNextSubpass2KHR, VkCommandBuffer, commandBuffer,                            \
-              const VkSubpassBeginInfoKHR *, pSubpassBeginInfo, const VkSubpassEndInfoKHR *,         \
+  HookDefine3(void, vkCmdNextSubpass2, VkCommandBuffer, commandBuffer, const VkSubpassBeginInfo *,   \
+              pSubpassBeginInfo, const VkSubpassEndInfo *, pSubpassEndInfo);                         \
+  HookDefine2(void, vkCmdEndRenderPass2, VkCommandBuffer, commandBuffer, const VkSubpassEndInfo *,   \
               pSubpassEndInfo);                                                                      \
-  HookDefine2(void, vkCmdEndRenderPass2KHR, VkCommandBuffer, commandBuffer,                          \
-              const VkSubpassEndInfoKHR *, pSubpassEndInfo);                                         \
   HookDefine6(void, vkCmdBindTransformFeedbackBuffersEXT, VkCommandBuffer, commandBuffer,            \
               uint32_t, firstBinding, uint32_t, bindingCount, const VkBuffer *, pBuffers,            \
               const VkDeviceSize *, pOffsets, const VkDeviceSize *, pSizes);                         \
@@ -1349,7 +1350,7 @@
   HookDefine5(VkResult, vkGetCalibratedTimestampsEXT, VkDevice, device, uint32_t, timestampCount,    \
               const VkCalibratedTimestampInfoEXT *, pTimestampInfos, uint64_t *, pTimestamps,        \
               uint64_t *, pMaxDeviation);                                                            \
-  HookDefine4(void, vkResetQueryPoolEXT, VkDevice, device, VkQueryPool, queryPool, uint32_t,         \
+  HookDefine4(void, vkResetQueryPool, VkDevice, device, VkQueryPool, queryPool, uint32_t,            \
               firstQuery, uint32_t, queryCount);                                                     \
   HookDefine2(VkDeviceAddress, vkGetBufferDeviceAddressEXT, VkDevice, device,                        \
               VkBufferDeviceAddressInfoEXT *, pInfo);                                                \
@@ -1377,11 +1378,11 @@
   HookDefine4(VkResult, vkGetPastPresentationTimingGOOGLE, VkDevice, device, VkSwapchainKHR,         \
               swapchain, uint32_t *, pPresentationTimingCount, VkPastPresentationTimingGOOGLE *,     \
               pPresentationTimings);                                                                 \
-  HookDefine3(VkResult, vkGetSemaphoreCounterValueKHR, VkDevice, device, VkSemaphore, semaphore,     \
+  HookDefine3(VkResult, vkGetSemaphoreCounterValue, VkDevice, device, VkSemaphore, semaphore,        \
               uint64_t *, pValue);                                                                   \
-  HookDefine3(VkResult, vkWaitSemaphoresKHR, VkDevice, device, const VkSemaphoreWaitInfoKHR *,       \
+  HookDefine3(VkResult, vkWaitSemaphores, VkDevice, device, const VkSemaphoreWaitInfo *,             \
               pWaitInfo, uint64_t, timeout);                                                         \
-  HookDefine2(VkResult, vkSignalSemaphoreKHR, VkDevice, device, const VkSemaphoreSignalInfoKHR *,    \
+  HookDefine2(VkResult, vkSignalSemaphore, VkDevice, device, const VkSemaphoreSignalInfo *,          \
               pSignalInfo);                                                                          \
   HookDefine5(VkResult, vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR,             \
               VkPhysicalDevice, physicalDevice, uint32_t, queueFamilyIndex, uint32_t *,              \
@@ -1393,12 +1394,12 @@
   HookDefine2(VkResult, vkAcquireProfilingLockKHR, VkDevice, device,                                 \
               const VkAcquireProfilingLockInfoKHR *, pInfo);                                         \
   HookDefine1(void, vkReleaseProfilingLockKHR, VkDevice, device);                                    \
-  HookDefine2(VkDeviceAddress, vkGetBufferDeviceAddressKHR, VkDevice, device,                        \
-              VkBufferDeviceAddressInfoKHR *, pInfo);                                                \
-  HookDefine2(uint64_t, vkGetBufferOpaqueCaptureAddressKHR, VkDevice, device,                        \
-              VkBufferDeviceAddressInfoKHR *, pInfo);                                                \
-  HookDefine2(uint64_t, vkGetDeviceMemoryOpaqueCaptureAddressKHR, VkDevice, device,                  \
-              VkDeviceMemoryOpaqueCaptureAddressInfoKHR *, pInfo);                                   \
+  HookDefine2(VkDeviceAddress, vkGetBufferDeviceAddress, VkDevice, device,                           \
+              VkBufferDeviceAddressInfo *, pInfo);                                                   \
+  HookDefine2(uint64_t, vkGetBufferOpaqueCaptureAddress, VkDevice, device,                           \
+              VkBufferDeviceAddressInfo *, pInfo);                                                   \
+  HookDefine2(uint64_t, vkGetDeviceMemoryOpaqueCaptureAddress, VkDevice, device,                     \
+              VkDeviceMemoryOpaqueCaptureAddressInfo *, pInfo);                                      \
   HookDefine3(VkResult, vkGetPhysicalDeviceToolPropertiesEXT, VkPhysicalDevice, physicalDevice,      \
               uint32_t *, pToolCount, VkPhysicalDeviceToolPropertiesEXT *, pToolProperties);         \
   HookDefine_PlatformSpecific()

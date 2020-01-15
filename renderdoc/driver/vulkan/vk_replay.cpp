@@ -105,8 +105,8 @@ rdcarray<GPUDevice> VulkanReplay::GetAvailableGPUs()
     VkPhysicalDeviceProperties props = {};
     ObjDisp(instance)->GetPhysicalDeviceProperties(devices[p], &props);
 
-    VkPhysicalDeviceDriverPropertiesKHR driverProps = {
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR,
+    VkPhysicalDeviceDriverProperties driverProps = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,
     };
 
     VkPhysicalDeviceProperties2 physProps2 = {

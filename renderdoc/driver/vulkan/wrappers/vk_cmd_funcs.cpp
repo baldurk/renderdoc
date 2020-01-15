@@ -1248,9 +1248,9 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
         ResourceId fb = GetResID(RenderPassBegin.framebuffer);
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = fb;
 
-        const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo =
-            (const VkRenderPassAttachmentBeginInfoKHR *)FindNextStruct(
-                &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR);
+        const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
+            (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
+                &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
 
         // set framebuffer attachments - by default from the ones used to create it, but if it is
         // imageless then look for the attachments in our pNext chain
@@ -1339,9 +1339,9 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
         }
         else
         {
-          const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo =
-              (const VkRenderPassAttachmentBeginInfoKHR *)FindNextStruct(
-                  &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR);
+          const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
+              (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
+                  &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
 
           for(size_t i = 0; i < fbinfo.attachments.size(); i++)
             m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
@@ -1424,9 +1424,9 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
       // if we have attachments but the framebuffer doesn't have images, then it's imageless. Look
       // for the image records now
 
-      const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo =
-          (const VkRenderPassAttachmentBeginInfoKHR *)FindNextStruct(
-              pRenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR);
+      const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
+          (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
+              pRenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
 
       for(uint32_t i = 0; i < attachmentsInfo->attachmentCount; i++)
       {
@@ -1639,10 +1639,10 @@ void WrappedVulkan::vkCmdEndRenderPass(VkCommandBuffer commandBuffer)
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2KHR(SerialiserType &ser,
-                                                       VkCommandBuffer commandBuffer,
-                                                       const VkRenderPassBeginInfo *pRenderPassBegin,
-                                                       const VkSubpassBeginInfoKHR *pSubpassBeginInfo)
+bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
+                                                    VkCommandBuffer commandBuffer,
+                                                    const VkRenderPassBeginInfo *pRenderPassBegin,
+                                                    const VkSubpassBeginInfo *pSubpassBeginInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_LOCAL(RenderPassBegin, *pRenderPassBegin);
@@ -1658,14 +1658,13 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2KHR(SerialiserType &ser,
     unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
     unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
 
-    VkSubpassBeginInfoKHR unwrappedBeginInfo = SubpassBegin;
+    VkSubpassBeginInfo unwrappedBeginInfo = SubpassBegin;
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext) +
                                   GetNextPatchSize(unwrappedBeginInfo.pNext));
 
     UnwrapNextChain(m_State, "VkRenderPassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedInfo);
-    UnwrapNextChain(m_State, "VkSubpassBeginInfoKHR", tempMem,
-                    (VkBaseInStructure *)&unwrappedBeginInfo);
+    UnwrapNextChain(m_State, "VkSubpassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedBeginInfo);
 
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
 
@@ -1683,9 +1682,9 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2KHR(SerialiserType &ser,
         ResourceId fb = GetResID(RenderPassBegin.framebuffer);
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = fb;
 
-        const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo =
-            (const VkRenderPassAttachmentBeginInfoKHR *)FindNextStruct(
-                &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR);
+        const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
+            (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
+                &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
 
         // set framebuffer attachments - by default from the ones used to create it, but if it is
         // imageless then look for the attachments in our pNext chain
@@ -1739,7 +1738,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2KHR(SerialiserType &ser,
         }
 
         ObjDisp(commandBuffer)
-            ->CmdBeginRenderPass2KHR(Unwrap(commandBuffer), &unwrappedInfo, &unwrappedBeginInfo);
+            ->CmdBeginRenderPass2(Unwrap(commandBuffer), &unwrappedInfo, &unwrappedBeginInfo);
 
         ResourceId cmd = GetResID(commandBuffer);
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -1753,7 +1752,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2KHR(SerialiserType &ser,
     else
     {
       ObjDisp(commandBuffer)
-          ->CmdBeginRenderPass2KHR(Unwrap(commandBuffer), &unwrappedInfo, &unwrappedBeginInfo);
+          ->CmdBeginRenderPass2(Unwrap(commandBuffer), &unwrappedInfo, &unwrappedBeginInfo);
 
       // track while reading, for fetching the right set of outputs in AddDrawcall
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass = 0;
@@ -1776,9 +1775,9 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2KHR(SerialiserType &ser,
         }
         else
         {
-          const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo =
-              (const VkRenderPassAttachmentBeginInfoKHR *)FindNextStruct(
-                  &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR);
+          const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
+              (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
+                  &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
 
           for(size_t i = 0; i < fbinfo.attachments.size(); i++)
             m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
@@ -1795,7 +1794,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2KHR(SerialiserType &ser,
       AddEvent();
       DrawcallDescription draw;
       draw.name =
-          StringFormat::Fmt("vkCmdBeginRenderPass2KHR(%s)", MakeRenderPassOpString(false).c_str());
+          StringFormat::Fmt("vkCmdBeginRenderPass2(%s)", MakeRenderPassOpString(false).c_str());
       draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass;
 
       AddDrawcall(draw, true);
@@ -1805,9 +1804,9 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2KHR(SerialiserType &ser,
   return true;
 }
 
-void WrappedVulkan::vkCmdBeginRenderPass2KHR(VkCommandBuffer commandBuffer,
-                                             const VkRenderPassBeginInfo *pRenderPassBegin,
-                                             const VkSubpassBeginInfoKHR *pSubpassBeginInfo)
+void WrappedVulkan::vkCmdBeginRenderPass2(VkCommandBuffer commandBuffer,
+                                          const VkRenderPassBeginInfo *pRenderPassBegin,
+                                          const VkSubpassBeginInfo *pSubpassBeginInfo)
 {
   SCOPED_DBG_SINK();
 
@@ -1815,18 +1814,17 @@ void WrappedVulkan::vkCmdBeginRenderPass2KHR(VkCommandBuffer commandBuffer,
   unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
   unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
 
-  VkSubpassBeginInfoKHR unwrappedBeginInfo = *pSubpassBeginInfo;
+  VkSubpassBeginInfo unwrappedBeginInfo = *pSubpassBeginInfo;
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext) +
                                 GetNextPatchSize(unwrappedBeginInfo.pNext));
 
   UnwrapNextChain(m_State, "VkRenderPassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedInfo);
-  UnwrapNextChain(m_State, "VkSubpassBeginInfoKHR", tempMem,
-                  (VkBaseInStructure *)&unwrappedBeginInfo);
+  UnwrapNextChain(m_State, "VkSubpassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedBeginInfo);
 
   SERIALISE_TIME_CALL(
       ObjDisp(commandBuffer)
-          ->CmdBeginRenderPass2KHR(Unwrap(commandBuffer), &unwrappedInfo, &unwrappedBeginInfo));
+          ->CmdBeginRenderPass2(Unwrap(commandBuffer), &unwrappedInfo, &unwrappedBeginInfo));
 
   if(IsCaptureMode(m_State))
   {
@@ -1834,8 +1832,8 @@ void WrappedVulkan::vkCmdBeginRenderPass2KHR(VkCommandBuffer commandBuffer,
 
     CACHE_THREAD_SERIALISER();
     ser.SetDrawChunk();
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdBeginRenderPass2KHR);
-    Serialise_vkCmdBeginRenderPass2KHR(ser, commandBuffer, pRenderPassBegin, pSubpassBeginInfo);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdBeginRenderPass2);
+    Serialise_vkCmdBeginRenderPass2(ser, commandBuffer, pRenderPassBegin, pSubpassBeginInfo);
 
     record->AddChunk(scope.Get());
     record->MarkResourceFrameReferenced(GetResID(pRenderPassBegin->renderPass), eFrameRef_Read);
@@ -1867,9 +1865,9 @@ void WrappedVulkan::vkCmdBeginRenderPass2KHR(VkCommandBuffer commandBuffer,
       // if we have attachments but the framebuffer doesn't have images, then it's imageless. Look
       // for the image records now
 
-      const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo =
-          (const VkRenderPassAttachmentBeginInfoKHR *)FindNextStruct(
-              pRenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR);
+      const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
+          (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
+              pRenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
 
       for(uint32_t i = 0; i < attachmentsInfo->attachmentCount; i++)
       {
@@ -1893,9 +1891,9 @@ void WrappedVulkan::vkCmdBeginRenderPass2KHR(VkCommandBuffer commandBuffer,
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdNextSubpass2KHR(SerialiserType &ser, VkCommandBuffer commandBuffer,
-                                                   const VkSubpassBeginInfoKHR *pSubpassBeginInfo,
-                                                   const VkSubpassEndInfoKHR *pSubpassEndInfo)
+bool WrappedVulkan::Serialise_vkCmdNextSubpass2(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                                const VkSubpassBeginInfo *pSubpassBeginInfo,
+                                                const VkSubpassEndInfo *pSubpassEndInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_LOCAL(SubpassBegin, *pSubpassBeginInfo);
@@ -1907,15 +1905,14 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2KHR(SerialiserType &ser, VkComman
 
   if(IsReplayingAndReading())
   {
-    VkSubpassBeginInfoKHR unwrappedBeginInfo = SubpassBegin;
-    VkSubpassEndInfoKHR unwrappedEndInfo = SubpassEnd;
+    VkSubpassBeginInfo unwrappedBeginInfo = SubpassBegin;
+    VkSubpassEndInfo unwrappedEndInfo = SubpassEnd;
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedBeginInfo.pNext) +
                                   GetNextPatchSize(unwrappedEndInfo.pNext));
 
-    UnwrapNextChain(m_State, "VkSubpassBeginInfoKHR", tempMem,
-                    (VkBaseInStructure *)&unwrappedBeginInfo);
-    UnwrapNextChain(m_State, "VkSubpassEndInfoKHR", tempMem, (VkBaseInStructure *)&unwrappedEndInfo);
+    UnwrapNextChain(m_State, "VkSubpassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedBeginInfo);
+    UnwrapNextChain(m_State, "VkSubpassEndInfo", tempMem, (VkBaseInStructure *)&unwrappedEndInfo);
 
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
 
@@ -1934,7 +1931,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2KHR(SerialiserType &ser, VkComman
           m_RenderState.subpass++;
 
         ObjDisp(commandBuffer)
-            ->CmdNextSubpass2KHR(Unwrap(commandBuffer), &unwrappedBeginInfo, &unwrappedEndInfo);
+            ->CmdNextSubpass2(Unwrap(commandBuffer), &unwrappedBeginInfo, &unwrappedEndInfo);
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
@@ -1946,7 +1943,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2KHR(SerialiserType &ser, VkComman
     else
     {
       ObjDisp(commandBuffer)
-          ->CmdNextSubpass2KHR(Unwrap(commandBuffer), &unwrappedBeginInfo, &unwrappedEndInfo);
+          ->CmdNextSubpass2(Unwrap(commandBuffer), &unwrappedBeginInfo, &unwrappedEndInfo);
 
       AddImplicitResolveResourceUsage();
 
@@ -1961,7 +1958,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2KHR(SerialiserType &ser, VkComman
 
       AddEvent();
       DrawcallDescription draw;
-      draw.name = StringFormat::Fmt("vkCmdNextSubpass2KHR() => %u",
+      draw.name = StringFormat::Fmt("vkCmdNextSubpass2() => %u",
                                     m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
       draw.flags |= DrawFlags::PassBoundary | DrawFlags::BeginPass | DrawFlags::EndPass;
 
@@ -1972,25 +1969,24 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2KHR(SerialiserType &ser, VkComman
   return true;
 }
 
-void WrappedVulkan::vkCmdNextSubpass2KHR(VkCommandBuffer commandBuffer,
-                                         const VkSubpassBeginInfoKHR *pSubpassBeginInfo,
-                                         const VkSubpassEndInfoKHR *pSubpassEndInfo)
+void WrappedVulkan::vkCmdNextSubpass2(VkCommandBuffer commandBuffer,
+                                      const VkSubpassBeginInfo *pSubpassBeginInfo,
+                                      const VkSubpassEndInfo *pSubpassEndInfo)
 {
   SCOPED_DBG_SINK();
 
-  VkSubpassBeginInfoKHR unwrappedBeginInfo = *pSubpassBeginInfo;
-  VkSubpassEndInfoKHR unwrappedEndInfo = *pSubpassEndInfo;
+  VkSubpassBeginInfo unwrappedBeginInfo = *pSubpassBeginInfo;
+  VkSubpassEndInfo unwrappedEndInfo = *pSubpassEndInfo;
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedBeginInfo.pNext) +
                                 GetNextPatchSize(unwrappedEndInfo.pNext));
 
-  UnwrapNextChain(m_State, "VkSubpassBeginInfoKHR", tempMem,
-                  (VkBaseInStructure *)&unwrappedBeginInfo);
-  UnwrapNextChain(m_State, "VkSubpassEndInfoKHR", tempMem, (VkBaseInStructure *)&unwrappedEndInfo);
+  UnwrapNextChain(m_State, "VkSubpassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedBeginInfo);
+  UnwrapNextChain(m_State, "VkSubpassEndInfo", tempMem, (VkBaseInStructure *)&unwrappedEndInfo);
 
   SERIALISE_TIME_CALL(
       ObjDisp(commandBuffer)
-          ->CmdNextSubpass2KHR(Unwrap(commandBuffer), &unwrappedBeginInfo, &unwrappedEndInfo));
+          ->CmdNextSubpass2(Unwrap(commandBuffer), &unwrappedBeginInfo, &unwrappedEndInfo));
 
   if(IsCaptureMode(m_State))
   {
@@ -1998,17 +1994,16 @@ void WrappedVulkan::vkCmdNextSubpass2KHR(VkCommandBuffer commandBuffer,
 
     CACHE_THREAD_SERIALISER();
     ser.SetDrawChunk();
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdNextSubpass2KHR);
-    Serialise_vkCmdNextSubpass2KHR(ser, commandBuffer, pSubpassBeginInfo, pSubpassEndInfo);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdNextSubpass2);
+    Serialise_vkCmdNextSubpass2(ser, commandBuffer, pSubpassBeginInfo, pSubpassEndInfo);
 
     record->AddChunk(scope.Get());
   }
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdEndRenderPass2KHR(SerialiserType &ser,
-                                                     VkCommandBuffer commandBuffer,
-                                                     const VkSubpassEndInfoKHR *pSubpassEndInfo)
+bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                                  const VkSubpassEndInfo *pSubpassEndInfo)
 {
   SERIALISE_ELEMENT(commandBuffer);
   SERIALISE_ELEMENT_LOCAL(SubpassEnd, *pSubpassEndInfo);
@@ -2019,11 +2014,11 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2KHR(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    VkSubpassEndInfoKHR unwrappedEndInfo = SubpassEnd;
+    VkSubpassEndInfo unwrappedEndInfo = SubpassEnd;
 
     byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedEndInfo.pNext));
 
-    UnwrapNextChain(m_State, "VkSubpassEndInfoKHR", tempMem, (VkBaseInStructure *)&unwrappedEndInfo);
+    UnwrapNextChain(m_State, "VkSubpassEndInfo", tempMem, (VkBaseInStructure *)&unwrappedEndInfo);
 
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
 
@@ -2044,7 +2039,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2KHR(SerialiserType &ser,
           m_Partial[Primary].renderPassActive = false;
         }
 
-        ObjDisp(commandBuffer)->CmdEndRenderPass2KHR(Unwrap(commandBuffer), &unwrappedEndInfo);
+        ObjDisp(commandBuffer)->CmdEndRenderPass2(Unwrap(commandBuffer), &unwrappedEndInfo);
 
         ResourceId cmd = GetResID(commandBuffer);
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts,
@@ -2053,7 +2048,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2KHR(SerialiserType &ser,
     }
     else
     {
-      ObjDisp(commandBuffer)->CmdEndRenderPass2KHR(Unwrap(commandBuffer), &unwrappedEndInfo);
+      ObjDisp(commandBuffer)->CmdEndRenderPass2(Unwrap(commandBuffer), &unwrappedEndInfo);
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
@@ -2063,8 +2058,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2KHR(SerialiserType &ser,
 
       AddEvent();
       DrawcallDescription draw;
-      draw.name =
-          StringFormat::Fmt("vkCmdEndRenderPass2KHR(%s)", MakeRenderPassOpString(true).c_str());
+      draw.name = StringFormat::Fmt("vkCmdEndRenderPass2(%s)", MakeRenderPassOpString(true).c_str());
       draw.flags |= DrawFlags::PassBoundary | DrawFlags::EndPass;
 
       AddDrawcall(draw, true);
@@ -2079,19 +2073,19 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2KHR(SerialiserType &ser,
   return true;
 }
 
-void WrappedVulkan::vkCmdEndRenderPass2KHR(VkCommandBuffer commandBuffer,
-                                           const VkSubpassEndInfoKHR *pSubpassEndInfo)
+void WrappedVulkan::vkCmdEndRenderPass2(VkCommandBuffer commandBuffer,
+                                        const VkSubpassEndInfo *pSubpassEndInfo)
 {
   SCOPED_DBG_SINK();
 
-  VkSubpassEndInfoKHR unwrappedEndInfo = *pSubpassEndInfo;
+  VkSubpassEndInfo unwrappedEndInfo = *pSubpassEndInfo;
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedEndInfo.pNext));
 
-  UnwrapNextChain(m_State, "VkSubpassEndInfoKHR", tempMem, (VkBaseInStructure *)&unwrappedEndInfo);
+  UnwrapNextChain(m_State, "VkSubpassEndInfo", tempMem, (VkBaseInStructure *)&unwrappedEndInfo);
 
   SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)->CmdEndRenderPass2KHR(Unwrap(commandBuffer), &unwrappedEndInfo));
+      ObjDisp(commandBuffer)->CmdEndRenderPass2(Unwrap(commandBuffer), &unwrappedEndInfo));
 
   if(IsCaptureMode(m_State))
   {
@@ -2099,8 +2093,8 @@ void WrappedVulkan::vkCmdEndRenderPass2KHR(VkCommandBuffer commandBuffer,
 
     CACHE_THREAD_SERIALISER();
     ser.SetDrawChunk();
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdEndRenderPass2KHR);
-    Serialise_vkCmdEndRenderPass2KHR(ser, commandBuffer, pSubpassEndInfo);
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdEndRenderPass2);
+    Serialise_vkCmdEndRenderPass2(ser, commandBuffer, pSubpassEndInfo);
 
     record->AddChunk(scope.Get());
 
@@ -4288,7 +4282,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
 }
 
 void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
-    VkCommandBuffer commandBuffer, VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate,
+    VkCommandBuffer commandBuffer, VkDescriptorUpdateTemplate descriptorUpdateTemplate,
     VkPipelineLayout layout, uint32_t set, const void *pData)
 {
   SCOPED_DBG_SINK();
@@ -5295,14 +5289,14 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdNextSubpass, VkCommandBuffer commandB
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdEndRenderPass, VkCommandBuffer commandBuffer);
 
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBeginRenderPass2KHR, VkCommandBuffer commandBuffer,
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBeginRenderPass2, VkCommandBuffer commandBuffer,
                                 const VkRenderPassBeginInfo *pRenderPassBegin,
-                                const VkSubpassBeginInfoKHR *pSubpassBeginInfo);
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdNextSubpass2KHR, VkCommandBuffer commandBuffer,
-                                const VkSubpassBeginInfoKHR *pSubpassBeginInfo,
-                                const VkSubpassEndInfoKHR *pSubpassEndInfo);
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdEndRenderPass2KHR, VkCommandBuffer commandBuffer,
-                                const VkSubpassEndInfoKHR *pSubpassEndInfo);
+                                const VkSubpassBeginInfo *pSubpassBeginInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdNextSubpass2, VkCommandBuffer commandBuffer,
+                                const VkSubpassBeginInfo *pSubpassBeginInfo,
+                                const VkSubpassEndInfo *pSubpassEndInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdEndRenderPass2, VkCommandBuffer commandBuffer,
+                                const VkSubpassEndInfo *pSubpassEndInfo);
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBindPipeline, VkCommandBuffer commandBuffer,
                                 VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline);

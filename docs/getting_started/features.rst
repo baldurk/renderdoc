@@ -85,7 +85,7 @@ D3D12
 Vulkan
 ------
 
-* Support for Vulkan 1.1 on Windows, Linux, Android, and Stadia.
+* Support for Vulkan 1.2 on Windows, Linux, Android, and Stadia.
 * Event markers and object naming both come from ``VK_EXT_debug_utils`` or deprecated ``VK_EXT_debug_marker``.
 
 OpenGL & OpenGL ES

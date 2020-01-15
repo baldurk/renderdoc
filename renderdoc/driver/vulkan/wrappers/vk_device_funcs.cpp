@@ -910,8 +910,8 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
   uint32_t queueCount = 0;
   VkQueueFamilyProperties queueProps[16] = {};
 
-  VkPhysicalDeviceDriverPropertiesKHR driverProps = {
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR,
+  VkPhysicalDeviceDriverProperties driverProps = {
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,
   };
 
   if(ser.IsWriting())
@@ -1008,12 +1008,12 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
 
     uint32_t bestIdx = 0;
     VkPhysicalDeviceProperties bestPhysProps = {};
-    VkPhysicalDeviceDriverPropertiesKHR bestDriverProps = {
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR,
+    VkPhysicalDeviceDriverProperties bestDriverProps = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,
     };
 
     rdcarray<VkPhysicalDeviceProperties> compPhysPropsArray;
-    rdcarray<VkPhysicalDeviceDriverPropertiesKHR> compDriverPropsArray;
+    rdcarray<VkPhysicalDeviceDriverProperties> compDriverPropsArray;
 
     compPhysPropsArray.resize(m_ReplayPhysicalDevices.size());
     compDriverPropsArray.resize(m_ReplayPhysicalDevices.size());
@@ -1023,9 +1023,9 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
     {
       VkPhysicalDeviceProperties &compPhysProps = compPhysPropsArray[i];
       RDCEraseEl(compPhysProps);
-      VkPhysicalDeviceDriverPropertiesKHR &compDriverProps = compDriverPropsArray[i];
+      VkPhysicalDeviceDriverProperties &compDriverProps = compDriverPropsArray[i];
       RDCEraseEl(compDriverProps);
-      compDriverProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR;
+      compDriverProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
 
       pd = m_ReplayPhysicalDevices[i];
 
@@ -1084,7 +1084,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
       for(uint32_t i = 0; i < (uint32_t)m_ReplayPhysicalDevices.size(); i++)
       {
         const VkPhysicalDeviceProperties &compPhysProps = compPhysPropsArray[i];
-        const VkPhysicalDeviceDriverPropertiesKHR &compDriverProps = compDriverPropsArray[i];
+        const VkPhysicalDeviceDriverProperties &compDriverProps = compDriverPropsArray[i];
 
         VkDriverInfo bestInfo(bestPhysProps);
         VkDriverInfo compInfo(compPhysProps);
@@ -1152,7 +1152,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
       for(uint32_t i = 0; i < (uint32_t)m_ReplayPhysicalDevices.size(); i++)
       {
         const VkPhysicalDeviceProperties &compPhysProps = compPhysPropsArray[i];
-        const VkPhysicalDeviceDriverPropertiesKHR &compDriverProps = compDriverPropsArray[i];
+        const VkPhysicalDeviceDriverProperties &compDriverProps = compDriverPropsArray[i];
 
         pd = m_ReplayPhysicalDevices[i];
 
@@ -2000,12 +2000,98 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     return false;                                                \
   }
 
-    VkPhysicalDeviceDescriptorIndexingFeaturesEXT descIndexingFeatures = {};
+    VkPhysicalDeviceDescriptorIndexingFeatures descIndexingFeatures = {};
+    VkPhysicalDeviceVulkan12Features vulkan12Features = {};
 
     if(ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2)
     {
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDevice8BitStorageFeaturesKHR,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceVulkan11Features,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES);
+      {
+        CHECK_PHYS_EXT_FEATURE(storageBuffer16BitAccess);
+        CHECK_PHYS_EXT_FEATURE(uniformAndStorageBuffer16BitAccess);
+        CHECK_PHYS_EXT_FEATURE(storagePushConstant16);
+        CHECK_PHYS_EXT_FEATURE(storageInputOutput16);
+        CHECK_PHYS_EXT_FEATURE(multiview);
+        CHECK_PHYS_EXT_FEATURE(multiviewGeometryShader);
+        CHECK_PHYS_EXT_FEATURE(multiviewTessellationShader);
+        CHECK_PHYS_EXT_FEATURE(variablePointersStorageBuffer);
+        CHECK_PHYS_EXT_FEATURE(variablePointers);
+        CHECK_PHYS_EXT_FEATURE(protectedMemory);
+        CHECK_PHYS_EXT_FEATURE(samplerYcbcrConversion);
+        CHECK_PHYS_EXT_FEATURE(shaderDrawParameters);
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceVulkan12Features,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES);
+      {
+        vulkan12Features = *ext;
+
+        CHECK_PHYS_EXT_FEATURE(samplerMirrorClampToEdge);
+        CHECK_PHYS_EXT_FEATURE(drawIndirectCount);
+        CHECK_PHYS_EXT_FEATURE(storageBuffer8BitAccess);
+        CHECK_PHYS_EXT_FEATURE(uniformAndStorageBuffer8BitAccess);
+        CHECK_PHYS_EXT_FEATURE(storagePushConstant8);
+        CHECK_PHYS_EXT_FEATURE(shaderBufferInt64Atomics);
+        CHECK_PHYS_EXT_FEATURE(shaderSharedInt64Atomics);
+        CHECK_PHYS_EXT_FEATURE(shaderFloat16);
+        CHECK_PHYS_EXT_FEATURE(shaderInt8);
+        CHECK_PHYS_EXT_FEATURE(descriptorIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderInputAttachmentArrayDynamicIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderUniformTexelBufferArrayDynamicIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderStorageTexelBufferArrayDynamicIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderUniformBufferArrayNonUniformIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderSampledImageArrayNonUniformIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderStorageBufferArrayNonUniformIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderStorageImageArrayNonUniformIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderInputAttachmentArrayNonUniformIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderUniformTexelBufferArrayNonUniformIndexing);
+        CHECK_PHYS_EXT_FEATURE(shaderStorageTexelBufferArrayNonUniformIndexing);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingUniformBufferUpdateAfterBind);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingSampledImageUpdateAfterBind);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingStorageImageUpdateAfterBind);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingStorageBufferUpdateAfterBind);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingUniformTexelBufferUpdateAfterBind);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingStorageTexelBufferUpdateAfterBind);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingUpdateUnusedWhilePending);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingPartiallyBound);
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingVariableDescriptorCount);
+        CHECK_PHYS_EXT_FEATURE(runtimeDescriptorArray);
+        CHECK_PHYS_EXT_FEATURE(samplerFilterMinmax);
+        CHECK_PHYS_EXT_FEATURE(scalarBlockLayout);
+        CHECK_PHYS_EXT_FEATURE(imagelessFramebuffer);
+        CHECK_PHYS_EXT_FEATURE(uniformBufferStandardLayout);
+        CHECK_PHYS_EXT_FEATURE(shaderSubgroupExtendedTypes);
+        CHECK_PHYS_EXT_FEATURE(separateDepthStencilLayouts);
+        CHECK_PHYS_EXT_FEATURE(hostQueryReset);
+        CHECK_PHYS_EXT_FEATURE(timelineSemaphore);
+        CHECK_PHYS_EXT_FEATURE(bufferDeviceAddress);
+        CHECK_PHYS_EXT_FEATURE(bufferDeviceAddressCaptureReplay);
+        CHECK_PHYS_EXT_FEATURE(bufferDeviceAddressMultiDevice);
+        CHECK_PHYS_EXT_FEATURE(vulkanMemoryModel);
+        CHECK_PHYS_EXT_FEATURE(vulkanMemoryModelDeviceScope);
+        CHECK_PHYS_EXT_FEATURE(vulkanMemoryModelAvailabilityVisibilityChains);
+        CHECK_PHYS_EXT_FEATURE(shaderOutputViewportIndex);
+        CHECK_PHYS_EXT_FEATURE(shaderOutputLayer);
+        CHECK_PHYS_EXT_FEATURE(subgroupBroadcastDynamicId);
+
+        m_SeparateDepthStencil |= (ext->separateDepthStencilLayouts != VK_FALSE);
+
+        if(ext->bufferDeviceAddress && !avail.bufferDeviceAddressCaptureReplay)
+        {
+          m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported;
+          RDCERR(
+              "Capture requires bufferDeviceAddress support, which is available, but "
+              "bufferDeviceAddressCaptureReplay support is not available which is required to "
+              "replay");
+          return false;
+        }
+      }
+      END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDevice8BitStorageFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES);
       {
         CHECK_PHYS_EXT_FEATURE(storageBuffer8BitAccess);
         CHECK_PHYS_EXT_FEATURE(uniformAndStorageBuffer8BitAccess);
@@ -2069,8 +2155,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceShaderAtomicInt64FeaturesKHR,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES_KHR);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceShaderAtomicInt64Features,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES);
       {
         CHECK_PHYS_EXT_FEATURE(shaderBufferInt64Atomics);
         CHECK_PHYS_EXT_FEATURE(shaderSharedInt64Atomics);
@@ -2115,8 +2201,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceVulkanMemoryModelFeaturesKHR,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES_KHR);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceVulkanMemoryModelFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES);
       {
         CHECK_PHYS_EXT_FEATURE(vulkanMemoryModel);
         CHECK_PHYS_EXT_FEATURE(vulkanMemoryModelDeviceScope);
@@ -2131,8 +2217,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceHostQueryResetFeaturesEXT,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceHostQueryResetFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES);
       {
         CHECK_PHYS_EXT_FEATURE(hostQueryReset);
       }
@@ -2171,8 +2257,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceBufferDeviceAddressFeaturesKHR,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceBufferDeviceAddressFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES);
       {
         CHECK_PHYS_EXT_FEATURE(bufferDeviceAddress);
         CHECK_PHYS_EXT_FEATURE(bufferDeviceAddressCaptureReplay);
@@ -2190,8 +2276,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceDescriptorIndexingFeaturesEXT,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceDescriptorIndexingFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES);
       {
         descIndexingFeatures = *ext;
 
@@ -2218,9 +2304,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(
-          VkPhysicalDeviceUniformBufferStandardLayoutFeaturesKHR,
-          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFORM_BUFFER_STANDARD_LAYOUT_FEATURES_KHR);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceUniformBufferStandardLayoutFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFORM_BUFFER_STANDARD_LAYOUT_FEATURES);
       {
         CHECK_PHYS_EXT_FEATURE(uniformBufferStandardLayout);
       }
@@ -2257,8 +2342,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceImagelessFramebufferFeaturesKHR,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES_KHR);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceImagelessFramebufferFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES);
       {
         CHECK_PHYS_EXT_FEATURE(imagelessFramebuffer);
       }
@@ -2292,9 +2377,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(
-          VkPhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR,
-          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES_KHR);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES);
       {
         CHECK_PHYS_EXT_FEATURE(shaderSubgroupExtendedTypes);
       }
@@ -2322,23 +2406,23 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceScalarBlockLayoutFeaturesEXT,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES_EXT);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceScalarBlockLayoutFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES);
       {
         CHECK_PHYS_EXT_FEATURE(scalarBlockLayout);
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceShaderFloat16Int8FeaturesKHR,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES_KHR);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceShaderFloat16Int8Features,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES);
       {
         CHECK_PHYS_EXT_FEATURE(shaderFloat16);
         CHECK_PHYS_EXT_FEATURE(shaderInt8);
       }
       END_PHYS_EXT_CHECK();
 
-      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceTimelineSemaphoreFeaturesKHR,
-                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR);
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceTimelineSemaphoreFeatures,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES);
       {
         CHECK_PHYS_EXT_FEATURE(timelineSemaphore);
       }
@@ -2375,14 +2459,31 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     bool descIndexingAllowsRBA = true;
 
+    if(vulkan12Features.descriptorBindingUniformBufferUpdateAfterBind ||
+       vulkan12Features.descriptorBindingStorageBufferUpdateAfterBind ||
+       vulkan12Features.descriptorBindingUniformTexelBufferUpdateAfterBind ||
+       vulkan12Features.descriptorBindingStorageTexelBufferUpdateAfterBind)
+    {
+      // if any update after bind feature is enabled, check robustBufferAccessUpdateAfterBind
+      VkPhysicalDeviceVulkan12Properties vulkan12Props = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES,
+      };
+
+      VkPhysicalDeviceProperties2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+      availBase.pNext = &vulkan12Props;
+      ObjDisp(physicalDevice)->GetPhysicalDeviceProperties2(Unwrap(physicalDevice), &availBase);
+
+      descIndexingAllowsRBA = vulkan12Props.robustBufferAccessUpdateAfterBind != VK_FALSE;
+    }
+
     if(descIndexingFeatures.descriptorBindingUniformBufferUpdateAfterBind ||
        descIndexingFeatures.descriptorBindingStorageBufferUpdateAfterBind ||
        descIndexingFeatures.descriptorBindingUniformTexelBufferUpdateAfterBind ||
        descIndexingFeatures.descriptorBindingStorageTexelBufferUpdateAfterBind)
     {
       // if any update after bind feature is enabled, check robustBufferAccessUpdateAfterBind
-      VkPhysicalDeviceDescriptorIndexingPropertiesEXT descIndexingProps = {
-          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES_EXT,
+      VkPhysicalDeviceDescriptorIndexingProperties descIndexingProps = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES,
       };
 
       VkPhysicalDeviceProperties2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
@@ -2949,6 +3050,14 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
   VkPhysicalDeviceFeatures2 *enabledFeatures2 = (VkPhysicalDeviceFeatures2 *)FindNextStruct(
       &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2);
+  /*
+  VkPhysicalDeviceVulkan11Features *enabledFeaturesVK11 =
+      (VkPhysicalDeviceVulkan11Features *)FindNextStruct(
+          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES);
+          */
+  VkPhysicalDeviceVulkan12Features *enabledFeaturesVK12 =
+      (VkPhysicalDeviceVulkan12Features *)FindNextStruct(
+          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES);
 
   // VkPhysicalDeviceFeatures2 takes priority
   if(enabledFeatures2)
@@ -3011,14 +3120,17 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   VkPhysicalDeviceBufferDeviceAddressFeaturesEXT *bufferAddressFeaturesEXT =
       (VkPhysicalDeviceBufferDeviceAddressFeaturesEXT *)FindNextStruct(
           &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT);
-  VkPhysicalDeviceBufferDeviceAddressFeaturesKHR *bufferAddressFeaturesKHR =
-      (VkPhysicalDeviceBufferDeviceAddressFeaturesKHR *)FindNextStruct(
-          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR);
+  VkPhysicalDeviceBufferDeviceAddressFeatures *bufferAddressFeaturesCoreKHR =
+      (VkPhysicalDeviceBufferDeviceAddressFeatures *)FindNextStruct(
+          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES);
 
   // we must turn on bufferDeviceAddressCaptureReplay. We verified that this feature was available
-  // before we whitelisted the extension
-  if(bufferAddressFeaturesKHR)
-    bufferAddressFeaturesKHR->bufferDeviceAddressCaptureReplay = VK_TRUE;
+  // before we whitelisted the extension/feature
+  if(enabledFeaturesVK12)
+    enabledFeaturesVK12->bufferDeviceAddressCaptureReplay = VK_TRUE;
+
+  if(bufferAddressFeaturesCoreKHR)
+    bufferAddressFeaturesCoreKHR->bufferDeviceAddressCaptureReplay = VK_TRUE;
 
   if(bufferAddressFeaturesEXT)
     bufferAddressFeaturesEXT->bufferDeviceAddressCaptureReplay = VK_TRUE;

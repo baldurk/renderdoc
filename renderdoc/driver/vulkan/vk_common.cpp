@@ -200,7 +200,7 @@ void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, u
     bufInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 
   if(flags & eGPUBufferAddressable)
-    bufInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR;
+    bufInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
   VkResult vkr = driver->vkCreateBuffer(dev, &bufInfo, NULL, &buf);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -675,7 +675,7 @@ static FilterMode MakeFilterMode(VkSamplerMipmapMode f)
 }
 
 TextureFilter MakeFilter(VkFilter minFilter, VkFilter magFilter, VkSamplerMipmapMode mipmapMode,
-                         bool anisoEnable, bool compareEnable, VkSamplerReductionModeEXT reduction)
+                         bool anisoEnable, bool compareEnable, VkSamplerReductionMode reduction)
 {
   TextureFilter ret;
 
@@ -700,11 +700,9 @@ TextureFilter MakeFilter(VkFilter minFilter, VkFilter magFilter, VkSamplerMipmap
     switch(reduction)
     {
       default:
-      case VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE_EXT:
-        ret.filter = FilterFunction::Normal;
-        break;
-      case VK_SAMPLER_REDUCTION_MODE_MIN_EXT: ret.filter = FilterFunction::Minimum; break;
-      case VK_SAMPLER_REDUCTION_MODE_MAX_EXT: ret.filter = FilterFunction::Maximum; break;
+      case VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE: ret.filter = FilterFunction::Normal; break;
+      case VK_SAMPLER_REDUCTION_MODE_MIN: ret.filter = FilterFunction::Minimum; break;
+      case VK_SAMPLER_REDUCTION_MODE_MAX: ret.filter = FilterFunction::Maximum; break;
     }
   }
 
@@ -800,15 +798,15 @@ StencilOperation MakeStencilOp(VkStencilOp op)
   return StencilOperation::Keep;
 }
 
-rdcstr HumanDriverName(VkDriverIdKHR driverId)
+rdcstr HumanDriverName(VkDriverId driverId)
 {
   switch(driverId)
   {
-    case VK_DRIVER_ID_AMD_PROPRIETARY_KHR: return "AMD Propriertary";
-    case VK_DRIVER_ID_AMD_OPEN_SOURCE_KHR: return "AMD Open-source";
-    case VK_DRIVER_ID_MESA_RADV_KHR: return "AMD RADV";
-    case VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS_KHR: return "Intel Propriertary";
-    case VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA_KHR: return "Intel Open-source";
+    case VK_DRIVER_ID_AMD_PROPRIETARY: return "AMD Propriertary";
+    case VK_DRIVER_ID_AMD_OPEN_SOURCE: return "AMD Open-source";
+    case VK_DRIVER_ID_MESA_RADV: return "AMD RADV";
+    case VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS: return "Intel Propriertary";
+    case VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA: return "Intel Open-source";
     default: break;
   }
 

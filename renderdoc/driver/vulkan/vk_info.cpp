@@ -745,7 +745,7 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
 
 void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
                                           VulkanCreationInfo &info,
-                                          const VkRenderPassCreateInfo2KHR *pCreateInfo)
+                                          const VkRenderPassCreateInfo2 *pCreateInfo)
 {
   attachments.resize(pCreateInfo->attachmentCount);
   for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
@@ -782,7 +782,7 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
   subpasses.resize(pCreateInfo->subpassCount);
   for(uint32_t subp = 0; subp < pCreateInfo->subpassCount; subp++)
   {
-    const VkSubpassDescription2KHR &src = pCreateInfo->pSubpasses[subp];
+    const VkSubpassDescription2 &src = pCreateInfo->pSubpasses[subp];
     Subpass &dst = subpasses[subp];
 
     dst.inputAttachments.resize(src.inputAttachmentCount);
@@ -860,14 +860,14 @@ void VulkanCreationInfo::Framebuffer::Init(VulkanResourceManager *resourceMan,
   imageless = false;
 
   attachments.resize(pCreateInfo->attachmentCount);
-  if(pCreateInfo->flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR)
+  if(pCreateInfo->flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT)
   {
     imageless = true;
 
     // VK_KHR_imageless_framebuffer
-    const VkFramebufferAttachmentsCreateInfoKHR *attachmentsInfo =
-        (const VkFramebufferAttachmentsCreateInfoKHR *)FindNextStruct(
-            pCreateInfo, VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO_KHR);
+    const VkFramebufferAttachmentsCreateInfo *attachmentsInfo =
+        (const VkFramebufferAttachmentsCreateInfo *)FindNextStruct(
+            pCreateInfo, VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO);
 
     RDCASSERTEQUAL(pCreateInfo->attachmentCount, attachmentsInfo->attachmentImageInfoCount);
 
@@ -960,11 +960,11 @@ void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, Vulka
   borderColor = pCreateInfo->borderColor;
   unnormalizedCoordinates = pCreateInfo->unnormalizedCoordinates != 0;
 
-  reductionMode = VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE_EXT;
+  reductionMode = VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE;
 
-  const VkSamplerReductionModeCreateInfoEXT *reduction =
-      (const VkSamplerReductionModeCreateInfoEXT *)FindNextStruct(
-          pCreateInfo, VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT);
+  const VkSamplerReductionModeCreateInfo *reduction =
+      (const VkSamplerReductionModeCreateInfo *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO);
   if(reduction)
   {
     reductionMode = reduction->reductionMode;

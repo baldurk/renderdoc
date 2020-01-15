@@ -113,8 +113,7 @@ struct VulkanRenderState
 
   // framebuffer accessors - to allow for imageless framebuffers and prevent accidentally changing
   // only the framebuffer without updating the attachments
-  void SetFramebuffer(ResourceId fb,
-                      const VkRenderPassAttachmentBeginInfoKHR *attachmentsInfo = NULL);
+  void SetFramebuffer(ResourceId fb, const VkRenderPassAttachmentBeginInfo *attachmentsInfo = NULL);
   void SetFramebuffer(ResourceId fb, const rdcarray<ResourceId> &dynamicAttachments)
   {
     framebuffer = fb;
