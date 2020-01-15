@@ -84,38 +84,50 @@ def paint():
 	window.after(33, paint)
 
 # Start on the first drawcall
-curdraw = 0
+curdraw = draws[0]
 
-# The advance function will be called every 150ms, to move to the next draw
+loopcount = 0
+
+# The advance function will be called every 50ms, to move to the next draw
 def advance():
-	global out, window, curdraw
+	global out, window, curdraw, draws, loopcount
 
 	# Move to the current drawcall
-	controller.SetFrameEvent(draws[curdraw].eventId, False)
+	controller.SetFrameEvent(curdraw.eventId, False)
 
 	# Initialise a default TextureDisplay object
 	disp = rd.TextureDisplay()
 
 	# Set the first colour output as the texture to display
-	disp.resourceId = draws[curdraw].outputs[0]
+	disp.resourceId = curdraw.outputs[0]
 
-	# Get the details of this texture
-	texDetails = getTexture(disp.resourceId)
+	if disp.resourceId != rd.ResourceId.Null():
+		# Get the details of this texture
+		texDetails = getTexture(disp.resourceId)
 
-	# Calculate the scale required in width and height
-	widthScale = window.winfo_width() / texDetails.width
-	heightScale = window.winfo_height() / texDetails.height
+		# Calculate the scale required in width and height
+		widthScale = window.winfo_width() / texDetails.width
+		heightScale = window.winfo_height() / texDetails.height
 
-	# Use the lower scale to fit the texture on the window
-	disp.scale = min(widthScale, heightScale)
+		# Use the lower scale to fit the texture on the window
+		disp.scale = min(widthScale, heightScale)
 
-	# Update the texture display
-	out.SetTextureDisplay(disp)
+		# Update the texture display
+		out.SetTextureDisplay(disp)
 
 	# Set the next drawcall
-	curdraw = (curdraw + 1) % len(draws)
+	curdraw = curdraw.next
 
-	window.after(150, advance)
+	# If we have no next draw, start again from the first
+	if curdraw is None:
+		loopcount = loopcount + 1
+		curdraw = draws[0]
+
+	# after 3 loops, quit
+	if loopcount == 3:
+		window.quit()
+	else:
+		window.after(50, advance)
 
 # Start the callbacks
 advance()
