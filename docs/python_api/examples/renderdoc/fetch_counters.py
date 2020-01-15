@@ -90,7 +90,11 @@ def loadCapture(filename):
 if 'pyrenderdoc' in globals():
 	pyrenderdoc.Replay().BlockInvoke(sampleCode)
 else:
-	cap,controller = loadCapture('test.rdc')
+	if len(sys.argv) <= 1:
+		print('Usage: python3 {} filename.rdc'.format(sys.argv[0]))
+		sys.exit(0)
+
+	cap,controller = loadCapture(sys.argv[1])
 
 	sampleCode(controller)
 

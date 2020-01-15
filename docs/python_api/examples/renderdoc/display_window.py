@@ -33,7 +33,11 @@ def loadCapture(filename):
 if 'pyrenderdoc' in globals():
 	raise RuntimeError("This sample should not be run within the RenderDoc UI")
 else:
-	cap,controller = loadCapture('test.rdc')
+	if len(sys.argv) <= 1:
+		print('Usage: python3 {} filename.rdc'.format(sys.argv[0]))
+		sys.exit(0)
+
+	cap,controller = loadCapture(sys.argv[1])
 
 # Use tkinter to create windows
 import tkinter
