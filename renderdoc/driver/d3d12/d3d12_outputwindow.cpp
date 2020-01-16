@@ -446,7 +446,7 @@ void D3D12Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
     dst.PlacedFootprint = layout;
 
     // resolve or copy from colour to backbuffer
-    if(outw.multisampled)
+    if(outw.colResolve)
     {
       D3D12_RESOURCE_BARRIER resolvebarrier = {};
 
@@ -585,7 +585,7 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
   colbarrier.Transition.pResource = outw.col;
   colbarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
   colbarrier.Transition.StateAfter =
-      outw.multisampled ? D3D12_RESOURCE_STATE_RESOLVE_SOURCE : D3D12_RESOURCE_STATE_COPY_SOURCE;
+      outw.colResolve ? D3D12_RESOURCE_STATE_RESOLVE_SOURCE : D3D12_RESOURCE_STATE_COPY_SOURCE;
 
   bbbarrier.Transition.pResource = outw.bb[outw.bbIdx];
   bbbarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
@@ -598,7 +598,7 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
 
   // resolve or copy from colour to backbuffer
-  if(outw.multisampled)
+  if(outw.colResolve)
   {
     // transition colour to resolve source, resolve target to resolve dest, backbuffer to copy dest
     list->ResourceBarrier(1, &colbarrier);
@@ -641,13 +641,13 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
 
   if(m_D3D12On7)
   {
-    ID3D12Resource *res = outw.multisampled ? outw.colResolve : outw.col;
+    ID3D12Resource *res = outw.colResolve ? outw.colResolve : outw.col;
 
     D3D12_RESOURCE_BARRIER toPresent = {};
 
     toPresent.Transition.pResource = res;
     toPresent.Transition.StateBefore =
-        outw.multisampled ? D3D12_RESOURCE_STATE_COPY_SOURCE : D3D12_RESOURCE_STATE_RENDER_TARGET;
+        outw.colResolve ? D3D12_RESOURCE_STATE_COPY_SOURCE : D3D12_RESOURCE_STATE_RENDER_TARGET;
     toPresent.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 
     list->ResourceBarrier(1, &toPresent);

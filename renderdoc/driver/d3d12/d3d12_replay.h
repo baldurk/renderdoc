@@ -312,7 +312,6 @@ private:
     void MakeDSV();
 
     int width, height;
-    bool multisampled;
   };
 
   float m_OutputWidth = 1.0f;
