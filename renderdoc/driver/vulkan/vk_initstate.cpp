@@ -94,9 +94,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     const ResourceInfo &resInfo = *im->record->resInfo;
     const ImageInfo &imageInfo = resInfo.imageInfo;
 
-    if(!GetResourceManager()->FindImgRefs(id))
-      GetResourceManager()->AddImageFrameRefs(id, imageInfo);
-
     if(resInfo.IsSparse())
     {
       // if the image is sparse we have to do a different kind of initial state prepare,
@@ -104,23 +101,22 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       return Prepare_SparseInitialState((WrappedVkImage *)res);
     }
 
-    ImageLayouts *layout = NULL;
-    {
-      SCOPED_LOCK(m_ImageLayoutsLock);
-      layout = &m_ImageLayouts[im->id];
-    }
-
-    if(layout->queueFamilyIndex == VK_QUEUE_FAMILY_EXTERNAL ||
-       layout->queueFamilyIndex == VK_QUEUE_FAMILY_FOREIGN_EXT)
-    {
-      RDCWARN("Image %s in external/foreign queue family, initial contents impossible to fetch.",
-              ToStr(im->id).c_str());
-      return true;
-    }
+    LockedImageStateRef state = FindImageState(im->id);
 
     // if the image has no memory bound, nothing is to be fetched
-    if(!layout->isMemoryBound)
+    if(!state || !state->isMemoryBound)
       return true;
+
+    for(auto it = state->subresourceStates.begin(); it != state->subresourceStates.end(); ++it)
+    {
+      if(it->state().newQueueFamilyIndex == VK_QUEUE_FAMILY_FOREIGN_EXT ||
+         it->state().newQueueFamilyIndex == VK_QUEUE_FAMILY_EXTERNAL)
+      {
+        // This image has a subresource owned by an external/foreign queue family, so we can't fetch
+        // the initial contents.
+        return true;
+      }
+    }
 
     VkDevice d = GetDev();
     // INITSTATEBATCH
@@ -274,18 +270,17 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     VkImageAspectFlags aspectFlags = FormatImageAspects(imageInfo.format);
 
-    rdcarray<VkImageMemoryBarrier> setupBarriers, cleanupBarriers;
-    bool extQCleanup = false;
+    ImageBarrierSequence setupBarriers, cleanupBarriers;
 
     VkImageLayout readingLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     if(arrayIm != VK_NULL_HANDLE)
       readingLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    TempTransition(ToWrappedHandle<VkImage>(res), readingLayout,
-                   VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_SHADER_READ_BIT, setupBarriers,
-                   cleanupBarriers, extQCleanup);
-    DoPipelineBarrier(cmd, setupBarriers.size(), setupBarriers.data());
-
+    state->TempTransition(m_QueueFamilyIdx, readingLayout,
+                          VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_SHADER_READ_BIT, setupBarriers,
+                          cleanupBarriers, GetImageTransitionInfo());
+    InlineSetupImageBarriers(cmd, setupBarriers);
+    m_setupImageBarriers.Merge(setupBarriers);
     if(arrayIm != VK_NULL_HANDLE)
     {
       VkImageMemoryBarrier arrayimBarrier = {
@@ -414,18 +409,16 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     RDCASSERTMSG("buffer wasn't sized sufficiently!", bufOffset <= bufInfo.size, bufOffset,
                  readbackmem.size, imageInfo.extent, imageInfo.format, numLayers,
                  imageInfo.levelCount);
-
-    DoPipelineBarrier(cmd, cleanupBarriers.size(), cleanupBarriers.data());
+    InlineCleanupImageBarriers(cmd, cleanupBarriers);
+    m_cleanupImageBarriers.Merge(cleanupBarriers);
 
     vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    // INITSTATEBATCH
+    SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
     SubmitCmds();
     FlushQ();
-
-    if(extQCleanup)
-      SubmitExtQBarriers(~0U, cleanupBarriers);
+    SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
 
     ObjDisp(d)->DestroyBuffer(Unwrap(d), Unwrap(dstBuf), NULL);
     GetResourceManager()->ReleaseWrappedResource(dstBuf);
@@ -1217,7 +1210,7 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 
     if(m_ImageLayouts.find(liveid) == m_ImageLayouts.end())
     {
-      RDCERR("Couldn't find image info for %s", ToStr(id).c_str());
+      RDCERR("Couldn't find image info for %llu", id);
       GetResourceManager()->SetInitialContents(
           id, VkInitialContents(type, VkInitialContents::ClearColorImage));
       return;

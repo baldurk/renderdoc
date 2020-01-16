@@ -196,10 +196,8 @@ void WrappedVulkan::vkDestroyImage(VkDevice device, VkImage obj,
   if(obj == VK_NULL_HANDLE)
     return;
 
-  {
-    SCOPED_LOCK(m_ImageLayoutsLock);
-    m_ImageLayouts.erase(GetResID(obj));
-  }
+  EraseImageState(GetResID(obj));
+
   VkImage unwrappedObj = Unwrap(obj);
   GetResourceManager()->ReleaseWrappedResource(obj, true);
   return ObjDisp(device)->DestroyImage(Unwrap(device), unwrappedObj, pAllocator);
@@ -724,16 +722,13 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
               GetResourceManager()->GetCurrentHandle<VkImage>(attRecord->baseResource);
           record->imageAttachments[a].barrier.subresourceRange = attRecord->viewRange;
 
-          ImageLayouts *layout = NULL;
           {
-            SCOPED_LOCK(m_ImageLayoutsLock);
-            layout = &m_ImageLayouts[attRecord->GetResourceID()];
-          }
-
-          if(layout->imageInfo.extent.depth > 1)
-          {
-            record->imageAttachments[a].barrier.subresourceRange.baseArrayLayer = 0;
-            record->imageAttachments[a].barrier.subresourceRange.layerCount = 1;
+            auto state = FindImageState(attRecord->GetResourceID());
+            if(state && state->GetImageInfo().extent.depth > 1)
+            {
+              record->imageAttachments[a].barrier.subresourceRange.baseArrayLayer = 0;
+              record->imageAttachments[a].barrier.subresourceRange.layerCount = 1;
+            }
           }
 
           // if the renderpass specifies an aspect mask that mean split depth/stencil handling, so

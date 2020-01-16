@@ -917,9 +917,8 @@ void WrappedVulkan::vkCmdWaitEvents(VkCommandBuffer commandBuffer, uint32_t even
 
     if(imageMemoryBarrierCount > 0)
     {
-      SCOPED_LOCK(m_ImageLayoutsLock);
-      GetResourceManager()->RecordBarriers(GetRecord(commandBuffer)->cmdInfo->imgbarriers,
-                                           m_ImageLayouts, imageMemoryBarrierCount,
+      GetResourceManager()->RecordBarriers(record->cmdInfo->imageStates,
+                                           record->pool->queueFamilyIndex, imageMemoryBarrierCount,
                                            pImageMemoryBarriers);
     }
 

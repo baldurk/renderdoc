@@ -1049,13 +1049,13 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
       chunk = scope.Get();
     }
 
-    ImageLayouts *layout = NULL;
     {
-      SCOPED_LOCK(m_ImageLayoutsLock);
-      layout = &m_ImageLayouts[GetResID(image)];
+      LockedImageStateRef state = FindImageState(GetResID(image));
+      if(!state)
+        RDCERR("Binding memory to unknown image %s", ToStr(GetResID(image)).c_str());
+      else
+        state->isMemoryBound = true;
     }
-
-    layout->isMemoryBound = true;
 
     // memory object bindings are immutable and must happen before creation or use,
     // so this can always go into the record, even if a resource is created and bound
@@ -1858,43 +1858,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       m_CreationInfo.m_Image[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
     }
 
-    VkImageSubresourceRange range;
-    range.baseMipLevel = range.baseArrayLayer = 0;
-    range.levelCount = pCreateInfo->mipLevels;
-    range.layerCount = pCreateInfo->arrayLayers;
-
-    ImageLayouts *layout = NULL;
-    {
-      SCOPED_LOCK(m_ImageLayoutsLock);
-      layout = &m_ImageLayouts[id];
-    }
-    layout->imageInfo = ImageInfo(*pCreateInfo);
-
-    layout->initialLayout = pCreateInfo->initialLayout;
-    layout->subresourceStates.clear();
-
-    range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    if(IsDepthOnlyFormat(pCreateInfo->format))
-      range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    else if(IsStencilOnlyFormat(pCreateInfo->format))
-      range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-    else if(IsDepthOrStencilFormat(pCreateInfo->format))
-      range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-    // if we don't support separate depth/stencil, track both aspects together
-    if(!SeparateDepthStencil() && IsDepthAndStencilFormat(pCreateInfo->format))
-      range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-
-    layout->subresourceStates.push_back(ImageRegionState(
-        VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, pCreateInfo->initialLayout));
-
-    // if we do support separate depth stencil, add a separate stencil aspect tracker
-    if(SeparateDepthStencil() && IsDepthAndStencilFormat(pCreateInfo->format))
-    {
-      range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-      layout->subresourceStates.push_back(ImageRegionState(
-          VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, pCreateInfo->initialLayout));
-    }
+    InsertImageState(*pImage, id, ImageInfo(*pCreateInfo), eFrameRef_None);
   }
 
   return ret;
@@ -2204,13 +2168,14 @@ VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCou
         chunk = scope.Get();
       }
 
-      ImageLayouts *layout = NULL;
       {
-        SCOPED_LOCK(m_ImageLayoutsLock);
-        layout = &m_ImageLayouts[imgrecord->GetResourceID()];
+        ResourceId id = imgrecord->GetResourceID();
+        LockedImageStateRef state = FindImageState(id);
+        if(!state)
+          RDCERR("Binding memory for unknown image %s", ToStr(id).c_str());
+        else
+          state->isMemoryBound = true;
       }
-
-      layout->isMemoryBound = true;
 
       // memory object bindings are immutable and must happen before creation or use,
       // so this can always go into the record, even if a resource is created and bound
