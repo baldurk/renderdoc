@@ -146,9 +146,9 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   if(m_pDriver->IsUnsafeDraw(eventId))
     return;
 
-  GLMarkerRegion postvs(StringFormat::Fmt("PostVS for %u", eventId));
-
   MakeCurrentReplayContext(&m_ReplayCtx);
+
+  GLMarkerRegion postvs(StringFormat::Fmt("PostVS for %u", eventId));
 
   WrappedOpenGL &drv = *m_pDriver;
   if(drv.m_ActiveFeedback)
