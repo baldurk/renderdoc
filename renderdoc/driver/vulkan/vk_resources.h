@@ -998,6 +998,7 @@ struct ResourceInfo
 
 struct MemRefs;
 struct ImgRefs;
+struct ImageState;
 
 struct CmdBufferRecordingInfo
 {
@@ -1006,8 +1007,6 @@ struct CmdBufferRecordingInfo
 
   VkResourceRecord *framebuffer = NULL;
   VkResourceRecord *allocRecord = NULL;
-
-  rdcarray<rdcpair<ResourceId, ImageRegionState> > imgbarriers;
 
   // sparse resources referenced by this command buffer (at submit time
   // need to go through the sparse mapping and reference all memory)
@@ -1028,7 +1027,8 @@ struct CmdBufferRecordingInfo
 
   rdcarray<VkResourceRecord *> subcmds;
 
-  std::map<ResourceId, ImgRefs> imgFrameRefs;
+  std::map<ResourceId, ImageState> imageStates;
+
   std::map<ResourceId, MemRefs> memFrameRefs;
 
   // AdvanceFrame/Present should be called after this buffer is submitted
@@ -1064,7 +1064,7 @@ struct DescriptorSetData
   static const uint32_t SPARSE_REF_BIT = 0x80000000;
   std::map<ResourceId, rdcpair<uint32_t, FrameRefType> > bindFrameRefs;
   std::map<ResourceId, MemRefs> bindMemRefs;
-  std::map<ResourceId, ImgRefs> bindImgRefs;
+  std::map<ResourceId, ImageState> bindImageStates;
 };
 
 struct PipelineLayoutData
@@ -1979,6 +1979,10 @@ inline FrameRefType MarkImageReferenced(std::map<ResourceId, ImgRefs> &imgRefs, 
   return MarkImageReferenced(imgRefs, img, imageInfo, range, refType, ComposeFrameRefs);
 }
 
+FrameRefType MarkImageReferenced(std::map<ResourceId, ImageState> &imageStates, ResourceId img,
+                                 const ImageInfo &imageInfo, const ImageSubresourceRange &range,
+                                 uint32_t queueFamilyIndex, FrameRefType refType);
+
 template <typename Compose>
 FrameRefType MarkMemoryReferenced(std::map<ResourceId, MemRefs> &memRefs, ResourceId mem,
                                   VkDeviceSize offset, VkDeviceSize size, FrameRefType refType,
@@ -2030,10 +2034,10 @@ public:
     SwapChunks(bakedCommands);
     cmdInfo->dirtied.swap(bakedCommands->cmdInfo->dirtied);
     cmdInfo->boundDescSets.swap(bakedCommands->cmdInfo->boundDescSets);
-    cmdInfo->imgbarriers.swap(bakedCommands->cmdInfo->imgbarriers);
     cmdInfo->subcmds.swap(bakedCommands->cmdInfo->subcmds);
     cmdInfo->sparse.swap(bakedCommands->cmdInfo->sparse);
-    cmdInfo->imgFrameRefs.swap(bakedCommands->cmdInfo->imgFrameRefs);
+    RDCASSERT(bakedCommands->cmdInfo->imageStates.empty());
+    cmdInfo->imageStates.swap(bakedCommands->cmdInfo->imageStates);
     cmdInfo->memFrameRefs.swap(bakedCommands->cmdInfo->memFrameRefs);
   }
 
@@ -2069,7 +2073,7 @@ public:
     rdcpair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[view->baseResource];
     if((p.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
     {
-      descInfo->bindImgRefs.erase(view->baseResource);
+      descInfo->bindImageStates.erase(view->baseResource);
       p.first = 1;
       p.second = eFrameRef_None;
     }
@@ -2081,8 +2085,9 @@ public:
     ImageRange imgRange = ImageRange((VkImageSubresourceRange)view->viewRange);
     imgRange.viewType = view->viewRange.viewType();
 
-    FrameRefType maxRef = MarkImageReferenced(descInfo->bindImgRefs, view->baseResource,
-                                              view->resInfo->imageInfo, imgRange, refType);
+    FrameRefType maxRef =
+        MarkImageReferenced(descInfo->bindImageStates, view->baseResource, view->resInfo->imageInfo,
+                            ImageSubresourceRange(imgRange), pool->queueFamilyIndex, refType);
 
     p.second = ComposeFrameRefsDisjoint(p.second, maxRef);
   }

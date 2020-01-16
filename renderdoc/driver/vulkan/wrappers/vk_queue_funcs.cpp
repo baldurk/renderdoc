@@ -821,8 +821,6 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
     std::set<ResourceId> refdIDs;
 
-    VkResourceRecord *queueRecord = GetRecord(queue);
-
     for(uint32_t s = 0; s < submitCount; s++)
     {
       for(uint32_t i = 0; i < pSubmits[s].commandBufferCount; i++)
@@ -832,12 +830,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
         VkResourceRecord *record = GetRecord(pSubmits[s].pCommandBuffers[i]);
         present |= record->bakedCommands->cmdInfo->present;
 
-        {
-          SCOPED_LOCK(m_ImageLayoutsLock);
-          GetResourceManager()->ApplyBarriers(queueRecord->queueFamilyIndex,
-                                              record->bakedCommands->cmdInfo->imgbarriers,
-                                              m_ImageLayouts);
-        }
+        UpdateImageStates(record->bakedCommands->cmdInfo->imageStates);
 
         for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
             it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
@@ -896,7 +889,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
                 GetResourceManager()->MarkSparseMapReferenced(sparserecord->resInfo);
               }
             }
-            GetResourceManager()->MergeReferencedImages(setrecord->descInfo->bindImgRefs);
+            UpdateImageStates(setrecord->descInfo->bindImageStates);
             GetResourceManager()->MergeReferencedMemory(setrecord->descInfo->bindMemRefs);
           }
 
@@ -908,35 +901,32 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
           record->bakedCommands->AddResourceReferences(GetResourceManager());
           record->bakedCommands->AddReferencedIDs(refdIDs);
 
-          GetResourceManager()->MergeReferencedImages(record->bakedCommands->cmdInfo->imgFrameRefs);
           GetResourceManager()->MergeReferencedMemory(record->bakedCommands->cmdInfo->memFrameRefs);
 
           // ref the parent command buffer's alloc record, this will pull in the cmd buffer pool
           GetResourceManager()->MarkResourceFrameReferenced(
               record->cmdInfo->allocRecord->GetResourceID(), eFrameRef_Read);
 
-          for(size_t sub = 0; sub < record->bakedCommands->cmdInfo->subcmds.size(); sub++)
-          {
-            record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddResourceReferences(
-                GetResourceManager());
-            record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddReferencedIDs(refdIDs);
-            GetResourceManager()->MergeReferencedImages(
-                record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->cmdInfo->imgFrameRefs);
-            GetResourceManager()->MergeReferencedMemory(
-                record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->cmdInfo->memFrameRefs);
-            GetResourceManager()->MarkResourceFrameReferenced(
-                record->bakedCommands->cmdInfo->subcmds[sub]->cmdInfo->allocRecord->GetResourceID(),
-                eFrameRef_Read);
+          const rdcarray<VkResourceRecord *> &subcmds = record->bakedCommands->cmdInfo->subcmds;
 
-            record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands->AddRef();
+          for(size_t sub = 0; sub < subcmds.size(); sub++)
+          {
+            VkResourceRecord *bakedSubcmds = subcmds[sub]->bakedCommands;
+            bakedSubcmds->AddResourceReferences(GetResourceManager());
+            bakedSubcmds->AddReferencedIDs(refdIDs);
+            UpdateImageStates(bakedSubcmds->cmdInfo->imageStates);
+            GetResourceManager()->MergeReferencedMemory(bakedSubcmds->cmdInfo->memFrameRefs);
+            GetResourceManager()->MarkResourceFrameReferenced(
+                subcmds[sub]->cmdInfo->allocRecord->GetResourceID(), eFrameRef_Read);
+
+            bakedSubcmds->AddRef();
           }
 
           {
             SCOPED_LOCK(m_CmdBufferRecordsLock);
             m_CmdBufferRecords.push_back(record->bakedCommands);
-            for(size_t sub = 0; sub < record->bakedCommands->cmdInfo->subcmds.size(); sub++)
-              m_CmdBufferRecords.push_back(
-                  record->bakedCommands->cmdInfo->subcmds[sub]->bakedCommands);
+            for(size_t sub = 0; sub < subcmds.size(); sub++)
+              m_CmdBufferRecords.push_back(subcmds[sub]->bakedCommands);
           }
 
           record->bakedCommands->AddRef();

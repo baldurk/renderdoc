@@ -264,18 +264,18 @@ public:
                      rdcarray<rdcpair<ResourceId, ImageRegionState> > &states,
                      std::map<ResourceId, ImageLayouts> &layouts);
 
+  void RecordBarriers(std::map<ResourceId, ImageState> &states, uint32_t queueFamilyIndex,
+                      uint32_t numBarriers, const VkImageMemoryBarrier *barriers);
+
   template <typename SerialiserType>
-  void SerialiseImageStates(SerialiserType &ser, std::map<ResourceId, ImageLayouts> &states,
-                            rdcarray<VkImageMemoryBarrier> &barriers);
+  void SerialiseImageStates(SerialiserType &ser, std::map<ResourceId, LockingImageState> &states);
 
   template <typename SerialiserType>
   bool Serialise_DeviceMemoryRefs(SerialiserType &ser, rdcarray<MemRefInterval> &data);
 
-  template <typename SerialiserType>
-  bool Serialise_ImageRefs(SerialiserType &ser, rdcarray<ImgRefsPair> &data);
+  bool Serialise_ImageRefs(ReadSerialiser &ser, std::map<ResourceId, LockingImageState> &states);
 
   void InsertDeviceMemoryRefs(WriteSerialiser &ser);
-  void InsertImageRefs(WriteSerialiser &ser);
 
   ResourceId GetID(WrappedVkRes *res)
   {
@@ -422,18 +422,11 @@ public:
 
   void SetInternalResource(ResourceId id);
 
-  void MarkImageFrameReferenced(const VkResourceRecord *img, const ImageRange &range,
-                                FrameRefType refType);
-  void MarkImageFrameReferenced(ResourceId img, const ImageInfo &imageInfo, const ImageRange &range,
-                                FrameRefType refType);
   void MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize start, VkDeviceSize end,
                                  FrameRefType refType);
   void AddMemoryFrameRefs(ResourceId mem);
-  void AddImageFrameRefs(ResourceId img, const ImageInfo &imageInfo);
 
   void MergeReferencedMemory(std::map<ResourceId, MemRefs> &memRefs);
-  void MergeReferencedImages(std::map<ResourceId, ImgRefs> &imgRefs);
-  void ClearReferencedImages();
   void ClearReferencedMemory();
   MemRefs *FindMemRefs(ResourceId mem);
   ImgRefs *FindImgRefs(ResourceId img);

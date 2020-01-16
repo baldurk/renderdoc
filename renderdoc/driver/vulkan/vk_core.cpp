@@ -1599,109 +1599,9 @@ void WrappedVulkan::FirstFrame()
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_BeginCaptureFrame(SerialiserType &ser)
 {
-  rdcarray<VkImageMemoryBarrier> imgBarriers;
-
-  {
-    SCOPED_LOCK(m_ImageLayoutsLock);    // not needed on replay, but harmless also
-    GetResourceManager()->SerialiseImageStates(ser, m_ImageLayouts, imgBarriers);
-  }
-
+  SCOPED_LOCK(m_ImageStatesLock);
+  GetResourceManager()->SerialiseImageStates(ser, m_ImageStates);
   SERIALISE_CHECK_READ_ERRORS();
-
-  if(IsReplayingAndReading())
-  {
-    VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-    VkPipelineStageFlags dest_stages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-
-    if(IsLoading(m_State))
-    {
-      // for the first load, promote any PREINITIALIZED images to GENERAL here since we treat
-      // PREINIT as if it was GENERAL.
-      for(auto it = m_ImageLayouts.begin(); it != m_ImageLayouts.end(); ++it)
-      {
-        if(!it->second.isMemoryBound)
-          continue;
-
-        for(auto stit = it->second.subresourceStates.begin();
-            stit != it->second.subresourceStates.end(); ++stit)
-        {
-          if(stit->newLayout == VK_IMAGE_LAYOUT_PREINITIALIZED &&
-             GetResourceManager()->HasCurrentResource(it->first))
-          {
-            VkImage img = GetResourceManager()->GetCurrentHandle<VkImage>(it->first);
-
-            {
-              VkImageMemoryBarrier barrier = {};
-
-              barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-              barrier.oldLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
-              barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-              barrier.srcQueueFamilyIndex = m_QueueFamilyIdx;
-              barrier.dstQueueFamilyIndex = m_QueueFamilyIdx;
-              barrier.image = Unwrap(img);
-              barrier.subresourceRange = stit->subresourceRange;
-
-              imgBarriers.push_back(barrier);
-            }
-          }
-        }
-      }
-    }
-
-    if(!imgBarriers.empty())
-    {
-      VkMarkerRegion region("Frame-start barriers");
-
-      for(size_t i = 0; i < imgBarriers.size(); i++)
-      {
-        // sanitise the layouts before passing to Vulkan
-        if(!IsLoading(m_State))
-          SanitiseOldImageLayout(imgBarriers[i].oldLayout);
-        SanitiseNewImageLayout(imgBarriers[i].newLayout);
-
-        imgBarriers[i].srcAccessMask = MakeAccessMask(imgBarriers[i].oldLayout);
-        imgBarriers[i].dstAccessMask = MakeAccessMask(imgBarriers[i].newLayout);
-      }
-
-      if(SeparateDepthStencil())
-        CombineDepthStencilLayouts(imgBarriers);
-
-      VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
-                                            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
-      for(size_t i = 0; i < imgBarriers.size(); i++)
-      {
-        VkCommandBuffer cmd = GetNextCmd();
-
-        VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-        ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), src_stages, dest_stages, false, 0, NULL, 0,
-                                         NULL, 1, &imgBarriers[i]);
-
-        vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-        SubmitCmds();
-      }
-#else
-      VkCommandBuffer cmd = GetNextCmd();
-
-      VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-      ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), src_stages, dest_stages, false, 0, NULL, 0,
-                                       NULL, (uint32_t)imgBarriers.size(), &imgBarriers[0]);
-
-      vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-      SubmitCmds();
-#endif
-    }
-    // don't need to flush here
-  }
 
   return true;
 }
@@ -1762,20 +1662,19 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
     }
 
     GetResourceManager()->PrepareInitialContents();
+    SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
+    SubmitCmds();
+    FlushQ();
+    SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
 
     RDCDEBUG("Attempting capture");
     m_FrameCaptureRecord->DeleteChunks();
-
     {
-      CACHE_THREAD_SERIALISER();
-
-      SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureBegin);
-
-      Serialise_BeginCaptureFrame(ser);
-
-      // need to hold onto this as it must come right after the capture chunk,
-      // before any command buffers
-      m_HeaderChunk = scope.Get();
+      SCOPED_LOCK(m_ImageStatesLock);
+      for(auto it = m_ImageStates.begin(); it != m_ImageStates.end(); ++it)
+      {
+        it->second.LockWrite()->BeginCapture();
+      }
     }
 
     m_State = CaptureState::ActiveCapturing;
@@ -2129,7 +2028,6 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
     GetResourceManager()->Serialise_InitialContentsNeeded(ser);
     GetResourceManager()->InsertDeviceMemoryRefs(ser);
-    GetResourceManager()->InsertImageRefs(ser);
 
     {
       SCOPED_SERIALISE_CHUNK(SystemChunk::CaptureScope, 16);
@@ -2137,6 +2035,14 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
       Serialise_CaptureScope(ser);
     }
 
+    {
+      WriteSerialiser &captureBeginSer = GetThreadSerialiser();
+      ScopedChunk scope(captureBeginSer, SystemChunk::CaptureBegin);
+
+      Serialise_BeginCaptureFrame(captureBeginSer);
+
+      m_HeaderChunk = scope.Get();
+    }
     m_HeaderChunk->Write(ser);
 
     // don't need to lock access to m_CmdBufferRecords as we are no longer
@@ -3128,8 +3034,8 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdSetLineStippleEXT(ser, VK_NULL_HANDLE, 0, 0);
     case VulkanChunk::ImageRefs:
     {
-      rdcarray<ImgRefsPair> data;
-      return GetResourceManager()->Serialise_ImageRefs(ser, data);
+      SCOPED_LOCK(m_ImageStatesLock);
+      return GetResourceManager()->Serialise_ImageRefs(ser, m_ImageStates);
     }
     case VulkanChunk::vkGetSemaphoreCounterValue:
       return Serialise_vkGetSemaphoreCounterValue(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, NULL);
@@ -4190,6 +4096,87 @@ uint32_t WrappedVulkan::FindCommandQueueFamily(ResourceId cmdId)
 void WrappedVulkan::InsertCommandQueueFamily(ResourceId cmdId, uint32_t queueFamilyIndex)
 {
   m_commandQueueFamilies[cmdId] = queueFamilyIndex;
+}
+LockedImageStateRef WrappedVulkan::FindImageState(ResourceId id)
+{
+  SCOPED_LOCK(m_ImageStatesLock);
+  auto it = m_ImageStates.find(id);
+  if(it != m_ImageStates.end())
+    return it->second.LockWrite();
+  else
+    return LockedImageStateRef();
+}
+
+LockedConstImageStateRef WrappedVulkan::FindConstImageState(ResourceId id)
+{
+  SCOPED_LOCK(m_ImageStatesLock);
+  auto it = m_ImageStates.find(id);
+  if(it != m_ImageStates.end())
+    return it->second.LockRead();
+  else
+    return LockedConstImageStateRef();
+}
+
+LockedImageStateRef WrappedVulkan::InsertImageState(VkImage wrappedHandle, ResourceId id,
+                                                    const ImageInfo &info, FrameRefType refType,
+                                                    bool *inserted)
+{
+  SCOPED_LOCK(m_ImageStatesLock);
+  auto it = m_ImageStates.find(id);
+  if(it != m_ImageStates.end())
+  {
+    if(inserted != NULL)
+      *inserted = false;
+    return it->second.LockWrite();
+  }
+  else
+  {
+    if(inserted != NULL)
+      *inserted = true;
+    it = m_ImageStates.insert({id, LockingImageState(wrappedHandle, info, refType)}).first;
+    return it->second.LockWrite();
+  }
+}
+
+bool WrappedVulkan::EraseImageState(ResourceId id)
+{
+  SCOPED_LOCK(m_ImageStatesLock);
+  auto it = m_ImageStates.find(id);
+  if(it != m_ImageStates.end())
+  {
+    m_ImageStates.erase(it);
+    return true;
+  }
+  return false;
+}
+
+void WrappedVulkan::UpdateImageStates(const std::map<ResourceId, ImageState> &dstStates)
+{
+  SCOPED_LOCK(m_ImageStatesLock);
+  auto it = m_ImageStates.begin();
+  auto dstIt = dstStates.begin();
+  ImageTransitionInfo info = GetImageTransitionInfo();
+  while(dstIt != dstStates.end())
+  {
+    if(it == m_ImageStates.end() || dstIt->first < it->first)
+    {
+      it = m_ImageStates
+               .insert({dstIt->first,
+                        LockingImageState(dstIt->second.wrappedHandle, dstIt->second.GetImageInfo(),
+                                          info.GetDefaultRefType())})
+               .first;
+      dstIt->second.InitialState(*it->second.LockWrite());
+    }
+    else if(it->first < dstIt->first)
+    {
+      ++it;
+      continue;
+    }
+
+    it->second.LockWrite()->Merge(dstIt->second, info);
+    ++dstIt;
+    ++it;
+  }
 }
 
 #if ENABLED(ENABLE_UNIT_TESTS)

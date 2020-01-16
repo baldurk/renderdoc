@@ -561,6 +561,7 @@ bool WrappedVulkan::Serialise_vkAllocateCommandBuffers(SerialiserType &ser, VkDe
     {
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), cmd);
       GetResourceManager()->AddLiveResource(CommandBuffer, cmd);
+
       m_commandQueueFamilies[live] = m_commandQueueFamilies[GetResID(AllocateInfo.commandPool)];
     }
 
@@ -1683,12 +1684,8 @@ void WrappedVulkan::vkCmdEndRenderPass(VkCommandBuffer commandBuffer)
     const rdcarray<VkImageMemoryBarrier> &barriers = record->cmdInfo->rpbarriers;
 
     // apply the implicit layout transitions here
-    {
-      SCOPED_LOCK(m_ImageLayoutsLock);
-      GetResourceManager()->RecordBarriers(GetRecord(commandBuffer)->cmdInfo->imgbarriers,
-                                           m_ImageLayouts, (uint32_t)barriers.size(),
-                                           barriers.data());
-    }
+    GetResourceManager()->RecordBarriers(record->cmdInfo->imageStates, record->pool->queueFamilyIndex,
+                                         (uint32_t)barriers.size(), barriers.data());
   }
 }
 
@@ -2197,12 +2194,8 @@ void WrappedVulkan::vkCmdEndRenderPass2(VkCommandBuffer commandBuffer,
     const rdcarray<VkImageMemoryBarrier> &barriers = record->cmdInfo->rpbarriers;
 
     // apply the implicit layout transitions here
-    {
-      SCOPED_LOCK(m_ImageLayoutsLock);
-      GetResourceManager()->RecordBarriers(GetRecord(commandBuffer)->cmdInfo->imgbarriers,
-                                           m_ImageLayouts, (uint32_t)barriers.size(),
-                                           barriers.data());
-    }
+    GetResourceManager()->RecordBarriers(record->cmdInfo->imageStates, record->pool->queueFamilyIndex,
+                                         (uint32_t)barriers.size(), barriers.data());
   }
 }
 
@@ -3040,9 +3033,8 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 
     if(imageMemoryBarrierCount > 0)
     {
-      SCOPED_LOCK(m_ImageLayoutsLock);
-      GetResourceManager()->RecordBarriers(GetRecord(commandBuffer)->cmdInfo->imgbarriers,
-                                           m_ImageLayouts, imageMemoryBarrierCount,
+      GetResourceManager()->RecordBarriers(record->cmdInfo->imageStates,
+                                           record->pool->queueFamilyIndex, imageMemoryBarrierCount,
                                            pImageMemoryBarriers);
     }
   }
@@ -3661,8 +3653,8 @@ void WrappedVulkan::vkCmdExecuteCommands(VkCommandBuffer commandBuffer, uint32_t
             execRecord->bakedCommands->cmdInfo->boundDescSets.end());
         record->cmdInfo->subcmds.push_back(execRecord);
 
-        GetResourceManager()->MergeBarriers(record->cmdInfo->imgbarriers,
-                                            execRecord->bakedCommands->cmdInfo->imgbarriers);
+        ImageState::Merge(record->cmdInfo->imageStates,
+                          execRecord->bakedCommands->cmdInfo->imageStates, GetImageTransitionInfo());
       }
     }
   }

@@ -500,6 +500,9 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
 
     swapInfo.imageInfo = ImageInfo(*pCreateInfo);
 
+    swapInfo.shared = (pCreateInfo->presentMode == VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR ||
+                       pCreateInfo->presentMode == VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR);
+
     VkResult vkr = VK_SUCCESS;
 
     const VkDevDispatchTable *vt = ObjDisp(device);
@@ -587,18 +590,11 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
         range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
         // fill out image info so we track resource state barriers
-        ImageLayouts *layout = NULL;
         {
-          SCOPED_LOCK(m_ImageLayoutsLock);
-          layout = &m_ImageLayouts[imid];
+          LockedImageStateRef state = InsertImageState(
+              images[i], imid, GetRecord(images[i])->resInfo->imageInfo, eFrameRef_None);
+          state->isMemoryBound = true;
         }
-        layout->imageInfo = GetRecord(images[i])->resInfo->imageInfo;
-        layout->isMemoryBound = true;
-        layout->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-        layout->subresourceStates.clear();
-        layout->subresourceStates.push_back(ImageRegionState(
-            VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
 
         {
           VkImageViewCreateInfo info = {
