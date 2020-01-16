@@ -145,12 +145,17 @@ bool GLResourceManager::ResourceTypeRelease(GLResource res)
     {
       ContextShareGroup *contextShareGroup = (ContextShareGroup *)res.ContextShareGroup;
 
-      m_Driver->m_Platform.MakeContextCurrent(contextShareGroup->m_BackDoor);
+      if(m_Driver->m_Platform.MakeContextCurrent(contextShareGroup->m_BackDoor))
+      {
+        m_Driver->ReleaseResource(res);
 
-      m_Driver->ReleaseResource(res);
-
-      // restore the context
-      m_Driver->m_Platform.MakeContextCurrent(m_Driver->m_ActiveContexts[Threading::GetCurrentID()]);
+        // restore the context
+        m_Driver->m_Platform.MakeContextCurrent(m_Driver->m_ActiveContexts[Threading::GetCurrentID()]);
+      }
+      else
+      {
+        m_Driver->QueueResourceRelease(res);
+      }
     }
     else
     {
