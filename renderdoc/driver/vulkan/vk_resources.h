@@ -1315,9 +1315,6 @@ class ImageSubresourceMap
   // `m_values` and the `*Split` flags in `m_flags`.
   rdcarray<ImageSubresourceState> m_values;
 
-  // All aspects of the image. This is computed from `m_imageInfo.format`
-  VkImageAspectFlags m_aspectMask = 0u;
-
   // The bit count of `m_aspectMask`
   uint16_t m_aspectCount = 0;
 
@@ -1359,9 +1356,10 @@ public:
   inline const ImageInfo &GetImageInfo() const { return m_imageInfo; }
   inline ImageSubresourceMap() {}
   inline ImageSubresourceMap(const ImageInfo &imageInfo, FrameRefType refType)
-      : m_imageInfo(imageInfo), m_aspectMask(FormatImageAspects(imageInfo.format))
+      : m_imageInfo(imageInfo)
   {
-    for(auto it = ImageAspectFlagIter::begin(m_aspectMask); it != ImageAspectFlagIter::end(); ++it)
+    for(auto it = ImageAspectFlagIter::begin(GetImageInfo().Aspects());
+        it != ImageAspectFlagIter::end(); ++it)
       ++m_aspectCount;
     m_values.push_back(
         ImageSubresourceState(VK_QUEUE_FAMILY_IGNORED, UNKNOWN_PREV_IMG_LAYOUT, refType));
@@ -1372,6 +1370,17 @@ public:
   {
     return m_values[SubresourceIndex(aspectIndex, level, layer, slice)];
   }
+  inline ImageSubresourceState &SubresourceValue(VkImageAspectFlagBits aspect, uint32_t level,
+                                                 uint32_t layer, uint32_t slice)
+  {
+    uint32_t aspectIndex = 0;
+    for(auto it = ImageAspectFlagIter::begin(GetImageInfo().Aspects());
+        it != ImageAspectFlagIter::end() && *it != aspect; ++it, ++aspectIndex)
+    {
+    }
+    return SubresourceValue(aspectIndex, level, layer, slice);
+  }
+
   inline const ImageSubresourceState &SubresourceValue(uint32_t aspectIndex, uint32_t level,
                                                        uint32_t layer, uint32_t slice) const
   {
@@ -1379,7 +1388,7 @@ public:
   }
   inline void Split(const ImageSubresourceRange &range)
   {
-    Split(range.aspectMask != m_aspectMask,
+    Split(range.aspectMask != GetImageInfo().Aspects(),
           range.baseMipLevel != 0u || range.levelCount < (uint32_t)GetImageInfo().levelCount,
           range.baseArrayLayer != 0u || range.layerCount < (uint32_t)GetImageInfo().layerCount,
           range.baseDepthSlice != 0u || range.sliceCount < GetImageInfo().extent.depth);
@@ -1612,6 +1621,62 @@ struct ImageState
                                uint32_t arrayLayer) const;
 
   void BeginCapture();
+};
+
+DECLARE_REFLECTION_STRUCT(ImageState);
+
+template <typename ImageStateT>
+class LockedImageStateRefTemplate
+{
+public:
+  LockedImageStateRefTemplate() = default;
+  LockedImageStateRefTemplate(ImageStateT *state, Threading::SpinLock &spin)
+      : m_state(state), m_lock(spin)
+  {
+  }
+  inline ImageStateT &operator*() const { return *m_state; }
+  inline ImageStateT *operator->() const { return m_state; }
+  inline operator bool() const { return m_state != NULL; }
+private:
+  ImageStateT *m_state = NULL;
+  Threading::ScopedSpinLock m_lock;
+};
+
+class LockedConstImageStateRef : public LockedImageStateRefTemplate<const ImageState>
+{
+public:
+  LockedConstImageStateRef() = default;
+  LockedConstImageStateRef(const ImageState *state, Threading::SpinLock &spin)
+      : LockedImageStateRefTemplate<const ImageState>(state, spin)
+  {
+  }
+};
+
+class LockedImageStateRef : public LockedImageStateRefTemplate<ImageState>
+{
+public:
+  LockedImageStateRef() = default;
+  LockedImageStateRef(ImageState *state, Threading::SpinLock &spin)
+      : LockedImageStateRefTemplate<ImageState>(state, spin)
+  {
+  }
+};
+
+class LockingImageState
+{
+public:
+  LockingImageState() = default;
+  LockingImageState(VkImage wrappedHandle, const ImageInfo &imageInfo, FrameRefType refType)
+      : m_state(wrappedHandle, imageInfo, refType)
+  {
+  }
+  LockingImageState(const ImageState &state) : m_state(state) {}
+  LockedImageStateRef LockWrite() { return LockedImageStateRef(&m_state, m_lock); }
+  LockedConstImageStateRef LockRead() { return LockedConstImageStateRef(&m_state, m_lock); }
+  inline ImageState *state() { return &m_state; }
+private:
+  ImageState m_state;
+  Threading::SpinLock m_lock;
 };
 
 struct ImgRefs
