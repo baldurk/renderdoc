@@ -57,6 +57,4 @@ if ! valid_clang_format; then
 fi;
 
 # Search through the code that should be formatted, exclude any non-renderdoc code.
-FILES=$(find qrenderdoc/ renderdoc/ renderdoccmd/ renderdocshim/ -type f -regex '.*\(/3rdparty/\|/official/\|resource.h\).*' -prune -o -regex '.*\.\(c\|cpp\|h\|vert\|frag\|geom\|comp\|hlsl\)$' -print)
-
-$CLANG_FORMAT -i -style=file $FILES
+find qrenderdoc/ renderdoc/ renderdoccmd/ renderdocshim/ util/test/demos/ -type f -regex '.*\(/3rdparty/\|/official/\|resource.h\).*' -prune -o -regex '.*\.\(c\|cpp\|h\|vert\|frag\|geom\|comp\|hlsl\)$' -print0 | xargs -0 -n1 $CLANG_FORMAT -i -style=file
