@@ -3956,7 +3956,8 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
         // ignore descriptors not part of the write, as they might not even point to a valid
         // object so trying to get their ID could crash
         if(layoutBinding->immutableSampler ||
-           writeDesc.descriptorType != VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+           (writeDesc.descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER &&
+            writeDesc.descriptorType != VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER))
           sampler = false;
         if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
           imageView = false;
