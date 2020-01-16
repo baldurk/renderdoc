@@ -567,14 +567,16 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
     ContextShareGroup *shareGroup = (ContextShareGroup *)res.ContextShareGroup;
 
-    m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = shareGroup->m_BackDoor;
-    m_Driver->m_Platform.MakeContextCurrent(shareGroup->m_BackDoor);
+    if(m_Driver->m_Platform.MakeContextCurrent(shareGroup->m_BackDoor))
+    {
+      m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = shareGroup->m_BackDoor;
 
-    ContextPrepare_InitialState(res);
+      ContextPrepare_InitialState(res);
 
-    // restore the context
-    m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = oldContextData;
-    m_Driver->m_Platform.MakeContextCurrent(oldContextData);
+      // restore the context
+      m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = oldContextData;
+      m_Driver->m_Platform.MakeContextCurrent(oldContextData);
+    }
   }
   else
   {
@@ -1813,18 +1815,19 @@ bool GLResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId 
 
     GLWindowingData backdoor = ((ContextShareGroup *)res.ContextShareGroup)->m_BackDoor;
 
-    m_Driver->m_Platform.MakeContextCurrent(backdoor);
+    if(m_Driver->m_Platform.MakeContextCurrent(backdoor))
+    {
+      m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = backdoor;
 
-    m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = backdoor;
+      bool success = Serialise_InitialState<WriteSerialiser>(ser, id, record, initial);
 
-    bool success = Serialise_InitialState<WriteSerialiser>(ser, id, record, initial);
+      // restore the context
+      m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = oldContextData;
 
-    // restore the context
-    m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = oldContextData;
+      m_Driver->m_Platform.MakeContextCurrent(oldContextData);
 
-    m_Driver->m_Platform.MakeContextCurrent(oldContextData);
-
-    return success;
+      return success;
+    }
   }
 
   return Serialise_InitialState<WriteSerialiser>(ser, id, record, initial);

@@ -45,6 +45,25 @@ class WGLPlatform : public GLPlatform
     if(!WGL.wglCreateContextAttribsARB)
       return ret;
 
+    // the reason we have to create an entire window and DC is because the share DC (and window)
+    // can be destroyed after we make a clone, which causes the DC (and window) we hold on to,
+    // to become invalid.
+    if(!RegisterClass())
+      return ret;
+
+    HWND wnd =
+        CreateWindowW(WINDOW_CLASS_NAME, L"", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+                      CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, GetModuleHandle(NULL), NULL);
+
+    HDC dc = GetDC(wnd);
+
+    int pf = GetPixelFormat(share.DC);
+
+    PIXELFORMATDESCRIPTOR pfd;
+    DescribePixelFormat(share.DC, pf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+
+    SetPixelFormat(dc, pf, &pfd);
+
     const int attribs[] = {
         WGL_CONTEXT_MAJOR_VERSION_ARB,
         3,
@@ -58,7 +77,13 @@ class WGLPlatform : public GLPlatform
         0,
     };
 
-    ret.ctx = WGL.wglCreateContextAttribsARB(share.DC, share.ctx, attribs);
+    HGLRC rc = WGL.wglCreateContextAttribsARB(dc, share.ctx, attribs);
+
+    ShowWindow(wnd, SW_HIDE);
+
+    ret.wnd = wnd;
+    ret.DC = dc;
+    ret.ctx = rc;
 
     return ret;
   }
@@ -66,7 +91,11 @@ class WGLPlatform : public GLPlatform
   void DeleteClonedContext(GLWindowingData context)
   {
     if(context.ctx && WGL.wglDeleteContext)
+    {
       WGL.wglDeleteContext(context.ctx);
+      ::ReleaseDC(context.wnd, context.DC);
+      ::DestroyWindow(context.wnd);
+    }
   }
 
   void DeleteReplayContext(GLWindowingData context)
