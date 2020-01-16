@@ -307,8 +307,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
                         y, slice, mip, sampleIdx, (uint32_t)events.size()));
 
   // Use the given type hint for typeless textures
-  details.texFmt = GetNonSRGBFormat(details.texFmt);
   details.texFmt = GetTypedFormat(details.texFmt, typeCast);
+  details.texFmt = GetNonSRGBFormat(details.texFmt);
 
   SCOPED_TIMER("D3D11DebugManager::PixelHistory");
 
