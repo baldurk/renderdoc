@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <ctype.h>
 #include <dlfcn.h>
 #include <errno.h>
 #include <iconv.h>

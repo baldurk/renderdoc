@@ -26,6 +26,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdio.h>
 #include <map>
 #include "api/app/renderdoc_app.h"
 #include "api/replay/apidefs.h"
