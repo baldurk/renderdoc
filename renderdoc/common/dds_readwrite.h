@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <stdio.h>
 #include "api/replay/data_types.h"
 
 struct dds_data
