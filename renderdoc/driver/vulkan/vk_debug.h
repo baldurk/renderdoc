@@ -86,7 +86,8 @@ public:
 
   void PixelHistoryCopyPixel(VkCommandBuffer cmd, CopyPixelParams &p, size_t offset);
 
-  VkImageLayout GetImageLayout(ResourceId image, VkImageAspectFlags aspect, uint32_t mip);
+  VkImageLayout GetImageLayout(ResourceId image, VkImageAspectFlagBits aspect, uint32_t mip,
+                               uint32_t slice);
 
   const VulkanCreationInfo::Image &GetImageInfo(ResourceId img);
 

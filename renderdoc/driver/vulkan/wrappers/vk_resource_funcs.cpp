@@ -1011,11 +1011,20 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
 
     ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image), Unwrap(memory), memoryOffset);
 
-    ImageLayouts &layout = m_ImageLayouts[GetResID(image)];
-    layout.isMemoryBound = true;
-    layout.boundMemory = GetResID(memory);
-    layout.boundMemoryOffset = memoryOffset;
-    layout.boundMemorySize = mrq.size;
+    {
+      LockedImageStateRef state = FindImageState(GetResID(image));
+      if(!state)
+      {
+        RDCERR("Binding memory for unknown image %s", ToStr(GetResID(image)).c_str());
+      }
+      else
+      {
+        state->isMemoryBound = true;
+        state->boundMemory = GetResID(memory);
+        state->boundMemoryOffset = memoryOffset;
+        state->boundMemorySize = mrq.size;
+      }
+    }
 
     GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
     GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
@@ -1071,7 +1080,13 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
   }
   else
   {
-    m_ImageLayouts[GetResID(image)].isMemoryBound = true;
+    {
+      LockedImageStateRef state = FindImageState(GetResID(image));
+      if(!state)
+        RDCERR("Binding memory to unknown image %s", ToStr(GetResID(image)).c_str());
+      else
+        state->isMemoryBound = true;
+    }
   }
 
   return ret;
@@ -1551,39 +1566,13 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
 
       m_CreationInfo.m_Image[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
 
-      VkImageSubresourceRange range;
-      range.baseMipLevel = range.baseArrayLayer = 0;
-      range.levelCount = CreateInfo.mipLevels;
-      range.layerCount = CreateInfo.arrayLayers;
-
-      ImageLayouts &layouts = m_ImageLayouts[live];
-      layouts.imageInfo = ImageInfo(CreateInfo);
-
-      layouts.subresourceStates.clear();
-
-      layouts.initialLayout = CreateInfo.initialLayout;
-
-      range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-      if(IsDepthOnlyFormat(CreateInfo.format))
-        range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-      else if(IsStencilOnlyFormat(CreateInfo.format))
-        range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-      else if(IsDepthOrStencilFormat(CreateInfo.format))
-        range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-      // if we don't support separate depth/stencil, track both aspects together
-      if(!SeparateDepthStencil() && IsDepthAndStencilFormat(CreateInfo.format))
-        range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-
-      layouts.subresourceStates.push_back(ImageRegionState(
-          VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, CreateInfo.initialLayout));
-
-      // if we do support separate depth stencil, add a separate stencil aspect tracker
-      if(SeparateDepthStencil() && IsDepthAndStencilFormat(CreateInfo.format))
+      bool inserted = false;
+      auto state = InsertImageState(img, live, CreateInfo, eFrameRef_Unknown, &inserted);
+      if(!inserted)
       {
-        range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-        layouts.subresourceStates.push_back(ImageRegionState(
-            VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, CreateInfo.initialLayout));
+        // Image state already existed.
+        state->wrappedHandle = img;
+        *state = state->InitialState();
       }
     }
 
@@ -2121,11 +2110,21 @@ bool WrappedVulkan::Serialise_vkBindImageMemory2(SerialiserType &ser, VkDevice d
       if(!ok)
         return false;
 
-      ImageLayouts &imageLayouts = m_ImageLayouts[GetResID(bindInfo.image)];
-      imageLayouts.isMemoryBound = true;
-      imageLayouts.boundMemory = GetResID(bindInfo.memory);
-      imageLayouts.boundMemoryOffset = bindInfo.memoryOffset;
-      imageLayouts.boundMemorySize = mrq.size;
+      {
+        ResourceId id = GetResID(bindInfo.image);
+        LockedImageStateRef state = FindImageState(id);
+        if(!state)
+        {
+          RDCERR("Binding memory for unknown image %s", ToStr(id).c_str());
+        }
+        else
+        {
+          state->isMemoryBound = true;
+          state->boundMemory = GetResID(bindInfo.memory);
+          state->boundMemoryOffset = bindInfo.memoryOffset;
+          state->boundMemorySize = mrq.size;
+        }
+      }
 
       GetResourceDesc(memOrigId).derivedResources.push_back(resOrigId);
       GetResourceDesc(resOrigId).parentResources.push_back(memOrigId);
@@ -2193,7 +2192,13 @@ VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCou
   else
   {
     for(uint32_t i = 0; i < bindInfoCount; i++)
-      m_ImageLayouts[GetResID(pBindInfos[i].image)].isMemoryBound = true;
+    {
+      LockedImageStateRef state = FindImageState(GetResID(pBindInfos[i].image));
+      if(!state)
+        state->isMemoryBound = true;
+      else
+        RDCERR("Binding memory to unknown image %s", ToStr(GetResID(pBindInfos[i].image)).c_str());
+    }
   }
 
   return ret;

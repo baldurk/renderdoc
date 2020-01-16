@@ -577,7 +577,6 @@ private:
     } state;
 
     std::map<ResourceId, ImageState> imageStates;
-    rdcarray<rdcpair<ResourceId, ImageRegionState>> imgbarriers;
 
     ResourceId pushDescriptorID[2][64];
 
@@ -763,9 +762,6 @@ private:
   std::map<ResourceId, LockingImageState> m_ImageStates;
   Threading::CriticalSection m_ImageStatesLock;
 
-  std::map<ResourceId, ImageLayouts> m_ImageLayouts;
-  Threading::CriticalSection m_ImageLayoutsLock;
-
   // find swapchain for an image
   std::map<RENDERDOC_WindowHandle, VkSwapchainKHR> m_SwapLookup;
   Threading::CriticalSection m_SwapLookupLock;
@@ -931,10 +927,6 @@ private:
                                                       int32_t messageCode, const char *pLayerPrefix,
                                                       const char *pMessage, void *pUserData);
   void AddFrameTerminator(uint64_t queueMarkerTag);
-  void ImageInitializationBarriers(ResourceId id, WrappedVkRes *live, InitPolicy policy,
-                                   bool initialized, const ImgRefs *imgRefs,
-                                   rdcarray<VkImageMemoryBarrier> &setupBarriers,
-                                   rdcarray<VkImageMemoryBarrier> &cleanupBarriers) const;
   void SubmitExtQBarriers(const std::map<uint32_t, rdcarray<VkImageMemoryBarrier>> &extQBarriers);
   void SubmitExtQBarriers(uint32_t queueFamilyIndex,
                           const rdcarray<VkImageMemoryBarrier> &queueFamilyBarriers);
@@ -1027,10 +1019,6 @@ public:
   VkSemaphore GetNextSemaphore();
   void SubmitSemaphores();
   void FlushQ();
-
-  void TempTransition(VkImage image, VkImageLayout layout, VkAccessFlags access,
-                      rdcarray<VkImageMemoryBarrier> &setupBarriers,
-                      rdcarray<VkImageMemoryBarrier> &cleanupBarriers, bool &extQCleanup) const;
 
   bool SeparateDepthStencil() const { return m_SeparateDepthStencil; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }

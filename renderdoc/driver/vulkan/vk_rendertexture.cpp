@@ -145,10 +145,21 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
       NULL,
   };
 
-  return RenderTextureInternal(cfg, rpbegin, eTexDisplay_MipShift | eTexDisplay_BlendAlpha);
+  LockedConstImageStateRef imageState = m_pDriver->FindConstImageState(cfg.resourceId);
+  if(!imageState)
+  {
+    RDCWARN("Could not find image info for image %s", ToStr(cfg.resourceId).c_str());
+    return false;
+  }
+  if(!imageState->isMemoryBound)
+    return false;
+
+  return RenderTextureInternal(cfg, *imageState, rpbegin,
+                               eTexDisplay_MipShift | eTexDisplay_BlendAlpha);
 }
 
-bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, int flags)
+bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &imageState,
+                                         VkRenderPassBeginInfo rpbegin, int flags)
 {
   const bool blendAlpha = (flags & eTexDisplay_BlendAlpha) != 0;
   const bool mipShift = (flags & eTexDisplay_MipShift) != 0;
@@ -159,14 +170,11 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   VkDevice dev = m_pDriver->GetDev();
   const VkDevDispatchTable *vt = ObjDisp(dev);
 
-  ImageLayouts &layouts = m_pDriver->m_ImageLayouts[cfg.resourceId];
+  const ImageInfo &imageInfo = imageState.GetImageInfo();
+
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[cfg.resourceId];
   TextureDisplayViews &texviews = m_TexRender.TextureViews[cfg.resourceId];
   VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(cfg.resourceId);
-  const ImageInfo &imageInfo = layouts.imageInfo;
-
-  if(!layouts.isMemoryBound)
-    return false;
 
   CreateTexImageView(liveIm, iminfo, cfg.typeCast, texviews);
 
@@ -481,12 +489,12 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
   vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
-  rdcarray<VkImageMemoryBarrier> setupBarriers, cleanupBarriers;
-  bool extQCleanup = false;
-  m_pDriver->TempTransition(liveIm, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                            VK_ACCESS_SHADER_READ_BIT, setupBarriers, cleanupBarriers, extQCleanup);
-  DoPipelineBarrier(cmd, setupBarriers.size(), setupBarriers.data());
-
+  ImageBarrierSequence setupBarriers, cleanupBarriers;
+  imageState.TempTransition(m_pDriver->GetQueueFamilyIndex(),
+                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_READ_BIT,
+                            setupBarriers, cleanupBarriers, m_pDriver->GetImageTransitionInfo());
+  m_pDriver->InlineSetupImageBarriers(cmd, setupBarriers);
+  m_pDriver->SubmitAndFlushImageStateBarriers(setupBarriers);
   {
     vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -556,21 +564,19 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
     vt->CmdEndRenderPass(Unwrap(cmd));
   }
 
-  DoPipelineBarrier(cmd, cleanupBarriers.size(), cleanupBarriers.data());
-
+  m_pDriver->InlineCleanupImageBarriers(cmd, cleanupBarriers);
   vt->EndCommandBuffer(Unwrap(cmd));
-
-  if(extQCleanup)
+  if(!cleanupBarriers.empty())
   {
-    // ensure work is completed before we pass ownership back to original queue
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();
-
-    m_pDriver->SubmitExtQBarriers(~0U, cleanupBarriers);
+    m_pDriver->SubmitAndFlushImageStateBarriers(cleanupBarriers);
   }
-
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
-  m_pDriver->SubmitCmds();
+  else
+  {
+    m_pDriver->SubmitCmds();
+  }
 #endif
 
   return true;
