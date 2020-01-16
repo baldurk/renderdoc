@@ -748,9 +748,21 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
   if(downcast)
   {
-    // if the source and destination are more than 1 byte per component, remap to RGBA32
-    if(td.format.compByteWidth > 1 && (sd.destType == FileType::DDS ||
-                                       sd.destType == FileType::HDR || sd.destType == FileType::EXR))
+    const bool destHDR = (sd.destType == FileType::DDS || sd.destType == FileType::HDR ||
+                          sd.destType == FileType::EXR);
+
+    const bool sourceHDR =
+        td.format.compByteWidth > 1 || td.format.type == ResourceFormatType::D16S8 ||
+        td.format.type == ResourceFormatType::D24S8 || td.format.type == ResourceFormatType::D32S8 ||
+        td.format.type == ResourceFormatType::R11G11B10 ||
+        td.format.type == ResourceFormatType::R10G10B10A2 ||
+        td.format.type == ResourceFormatType::R9G9B9E5 || td.format.type == ResourceFormatType::BC6 ||
+        td.format.type == ResourceFormatType::BC7 || td.format.type == ResourceFormatType::YUV10 ||
+        td.format.type == ResourceFormatType::YUV12 || td.format.type == ResourceFormatType::YUV16;
+
+    // if the source and destination have more than 1 byte per component, remap to RGBA32 to avoid
+    // precision loss
+    if(sourceHDR && destHDR)
     {
       remap = RemapTexture::RGBA32;
       td.format.compByteWidth = 4;
