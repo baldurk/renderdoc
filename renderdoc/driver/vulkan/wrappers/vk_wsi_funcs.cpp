@@ -441,22 +441,11 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
 
       m_CreationInfo.m_Names[liveId] = StringFormat::Fmt("Presentable Image %u", i);
 
-      VkImageSubresourceRange range;
-      range.baseMipLevel = range.baseArrayLayer = 0;
-      range.levelCount = 1;
-      range.layerCount = CreateInfo.imageArrayLayers;
-      range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-
-      ImageLayouts &layouts = m_ImageLayouts[liveId];
-
-      layouts.imageInfo = swapinfo.imageInfo;
-
-      layouts.isMemoryBound = true;
-      layouts.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-      layouts.subresourceStates.clear();
-      layouts.subresourceStates.push_back(ImageRegionState(
-          VK_QUEUE_FAMILY_IGNORED, range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
+      {
+        LockedImageStateRef state =
+            InsertImageState(im, liveId, ImageInfo(swapinfo.imageInfo), eFrameRef_Unknown);
+        state->isMemoryBound = true;
+      }
     }
   }
 

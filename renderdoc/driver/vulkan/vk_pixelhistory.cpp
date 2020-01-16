@@ -1345,6 +1345,10 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   vkr = m_pDriver->vkCreateImage(dev, &imgInfo, NULL, &colorImage);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  VkImage wrappedColorImage = colorImage;
+  m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), wrappedColorImage);
+  ImageState colorImageState = ImageState(wrappedColorImage, ImageInfo(imgInfo), eFrameRef_None);
+
   VkMemoryRequirements colorImageMrq = {0};
   m_pDriver->vkGetImageMemoryRequirements(dev, colorImage, &colorImageMrq);
 
@@ -1354,6 +1358,10 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
 
   vkr = m_pDriver->vkCreateImage(dev, &imgInfo, NULL, &stencilImage);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  VkImage wrappedStencilImage = stencilImage;
+  m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), wrappedStencilImage);
+  ImageState stencilImageState = ImageState(wrappedStencilImage, ImageInfo(imgInfo), eFrameRef_None);
 
   VkMemoryRequirements stencilImageMrq = {0};
   m_pDriver->vkGetImageMemoryRequirements(dev, stencilImage, &stencilImageMrq);
@@ -1413,34 +1421,13 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  VkImageMemoryBarrier barriers[2] = {};
-  barriers[0] = {};
-  barriers[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  barriers[0].srcAccessMask = 0;
-  barriers[0].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  barriers[0].subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-  barriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barriers[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  barriers[0].newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  barriers[0].image = Unwrap(colorImage);
+  colorImageState.InlineTransition(
+      cmd, m_pDriver->m_QueueFamilyIdx, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0,
+      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, m_pDriver->GetImageTransitionInfo());
+  stencilImageState.InlineTransition(
+      cmd, m_pDriver->m_QueueFamilyIdx, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 0,
+      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, m_pDriver->GetImageTransitionInfo());
 
-  barriers[1] = barriers[0];
-  barriers[1].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-  barriers[1].newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-  barriers[1].subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0,
-                                  1};
-  barriers[1].image = Unwrap(stencilImage);
-
-  DoPipelineBarrier(cmd, 2, barriers);
-
-  {
-    SCOPED_LOCK(m_pDriver->m_ImageLayoutsLock);
-    m_pDriver->m_ImageLayouts[GetResID(colorImage)].subresourceStates[0].newLayout =
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    m_pDriver->m_ImageLayouts[GetResID(stencilImage)].subresourceStates[0].newLayout =
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-  }
   vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
   m_pDriver->SubmitCmds();
@@ -1569,23 +1556,19 @@ void CreateOcclusionPool(WrappedVulkan *vk, uint32_t poolSize, VkQueryPool *pQue
   vk->FlushQ();
 }
 
-VkImageLayout VulkanDebugManager::GetImageLayout(ResourceId image, VkImageAspectFlags aspect,
-                                                 uint32_t mip)
+VkImageLayout VulkanDebugManager::GetImageLayout(ResourceId image, VkImageAspectFlagBits aspect,
+                                                 uint32_t mip, uint32_t slice)
 {
-  VkImageLayout imgLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  const ImageLayouts &imgLayouts = m_pDriver->m_ImageLayouts[image];
-  for(const ImageRegionState &resState : imgLayouts.subresourceStates)
+  auto state = m_pDriver->FindConstImageState(image);
+  if(!state)
   {
-    VkImageSubresourceRange range = resState.subresourceRange;
-
-    if((range.aspectMask & aspect) &&
-       (mip >= range.baseMipLevel && mip < range.baseMipLevel + range.levelCount))
-    {
-      // Consider using the layer count
-      imgLayout = resState.newLayout;
-    }
+    RDCERR("Could not find image state for %s", ToStr(image).c_str());
+    return VK_IMAGE_LAYOUT_UNDEFINED;
   }
-  return imgLayout;
+  if(state->GetImageInfo().extent.depth > 1)
+    return state->GetImageLayout(aspect, mip, 0);
+  else
+    return state->GetImageLayout(aspect, mip, slice);
 }
 
 void UpdateTestsFailed(const TestsFailedCallback *tfCb, uint32_t eventId, uint32_t eventFlags,
@@ -1686,10 +1669,12 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     return history;
 
   uint32_t mip = sub.mip;
+  uint32_t slice = sub.slice;
   uint32_t sampleIdx = sub.sample;
 
   // TODO: figure out correct aspect.
-  VkImageLayout imgLayout = GetDebugManager()->GetImageLayout(target, VK_IMAGE_ASPECT_COLOR_BIT, mip);
+  VkImageLayout imgLayout =
+      GetDebugManager()->GetImageLayout(target, VK_IMAGE_ASPECT_COLOR_BIT, mip, slice);
   RDCASSERTNOTEQUAL(imgLayout, VK_IMAGE_LAYOUT_UNDEFINED);
 
   // TODO: use the given type hint for typeless textures

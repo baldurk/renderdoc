@@ -426,7 +426,8 @@ private:
 
   void RefreshDerivedReplacements();
 
-  bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, int flags);
+  bool RenderTextureInternal(TextureDisplay cfg, const ImageState &imageState,
+                             VkRenderPassBeginInfo rpbegin, int flags);
 
   bool GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, bool stencil,
                  float *minval, float *maxval);

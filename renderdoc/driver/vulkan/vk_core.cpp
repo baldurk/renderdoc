@@ -360,89 +360,6 @@ void WrappedVulkan::FlushQ()
   }
 }
 
-void WrappedVulkan::TempTransition(VkImage image, VkImageLayout layout, VkAccessFlags access,
-                                   rdcarray<VkImageMemoryBarrier> &setupBarriers,
-                                   rdcarray<VkImageMemoryBarrier> &cleanupBarriers,
-                                   bool &extQCleanup) const
-{
-  ResourceId id = GetResID(image);
-
-  auto it = m_ImageLayouts.find(id);
-
-  if(it == m_ImageLayouts.end())
-  {
-    RDCERR("Can't find image layouts for image %s in TempTransition", ToStr(id).c_str());
-    return;
-  }
-
-  setupBarriers.clear();
-  cleanupBarriers.clear();
-
-  const ImageLayouts &layouts = it->second;
-
-  VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-
-  barrier.image = Unwrap(image);
-  barrier.newLayout = layout;
-  barrier.srcQueueFamilyIndex = layouts.queueFamilyIndex;
-  barrier.dstQueueFamilyIndex = GetQueueFamilyIndex();
-
-  extQCleanup = true;
-
-  // if we're on the same queue, don't need to bother with queue acquire/release
-  if(barrier.srcQueueFamilyIndex == barrier.dstQueueFamilyIndex)
-  {
-    barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    extQCleanup = false;
-  }
-
-  barrier.dstAccessMask = access;
-
-  for(const ImageRegionState &region : layouts.subresourceStates)
-  {
-    barrier.subresourceRange = region.subresourceRange;
-    barrier.oldLayout = region.newLayout;
-    barrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS | MakeAccessMask(barrier.oldLayout);
-    SanitiseOldImageLayout(barrier.oldLayout);
-
-    setupBarriers.push_back(barrier);
-  }
-
-  if(SeparateDepthStencil())
-    CombineDepthStencilLayouts(setupBarriers);
-
-  cleanupBarriers = setupBarriers;
-  for(VkImageMemoryBarrier &b : cleanupBarriers)
-  {
-    std::swap(b.srcQueueFamilyIndex, b.dstQueueFamilyIndex);
-    std::swap(b.oldLayout, b.newLayout);
-    SanitiseNewImageLayout(b.newLayout);
-    b.srcAccessMask = access;
-    b.dstAccessMask = VK_ACCESS_ALL_READ_BITS | MakeAccessMask(b.newLayout);
-  }
-
-  // if we have some queue transfer to do, submit the release on the ext queue now (which is what we
-  // defined above). The user will have to check the bool themselves and submit cleanupBarriers as
-  // external after they're done and submitted on the main queue
-  if(extQCleanup)
-  {
-    VkCommandBuffer extQCmd = GetExtQueueCmd(barrier.srcQueueFamilyIndex);
-
-    VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
-                                          VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
-    VkResult vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    DoPipelineBarrier(extQCmd, setupBarriers.size(), setupBarriers.data());
-
-    vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    SubmitAndFlushExtQueue(layouts.queueFamilyIndex);
-  }
-}
-
 VkCommandBuffer WrappedVulkan::GetExtQueueCmd(uint32_t queueFamilyIdx) const
 {
   if(queueFamilyIdx >= m_ExternalQueues.size())
@@ -2443,8 +2360,10 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
 
     ApplyInitialContents();
 
+    SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
     SubmitCmds();
     FlushQ();
+    SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
 
     SetDebugMessageSink(sink);
   }
@@ -2661,6 +2580,19 @@ void WrappedVulkan::ApplyInitialContents()
   // actually apply the initial contents here
   GetResourceManager()->ApplyInitialContents();
 
+  for(auto it = m_ImageStates.begin(); it != m_ImageStates.end(); ++it)
+  {
+    if(GetResourceManager()->HasCurrentResource(it->first))
+    {
+      it->second.LockWrite()->ResetToOldState(m_cleanupImageBarriers, GetImageTransitionInfo());
+    }
+    else
+    {
+      it = m_ImageStates.erase(it);
+      --it;
+    }
+  }
+
   // likewise again to make sure the initial states are all applied
   cmd = GetNextCmd();
 
@@ -2673,7 +2605,10 @@ void WrappedVulkan::ApplyInitialContents()
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
+  SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
   SubmitCmds();
+  FlushQ();
+  SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
 #endif
 }
 
@@ -3168,8 +3103,10 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     ApplyInitialContents();
     VkMarkerRegion::End();
 
+    SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
     SubmitCmds();
     FlushQ();
+    SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
   }
 
   m_State = CaptureState::ActiveReplaying;
@@ -3287,7 +3224,10 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
+    SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
     SubmitCmds();
+    FlushQ();
+    SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
 #endif
   }
 

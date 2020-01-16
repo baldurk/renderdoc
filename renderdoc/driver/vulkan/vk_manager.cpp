@@ -285,6 +285,8 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
     }
     else
     {
+      bool hasLiveRes = HasLiveResource(Image);
+
       ImageState imageState;
 
       if(ser.VersionLess(0x11))
@@ -294,7 +296,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
           ImageLayouts &ImageState = imageLayouts;
           SERIALISE_ELEMENT(ImageState);
         }
-        if(IsReplayingAndReading())
+        if(IsReplayingAndReading() && hasLiveRes)
         {
           if(imageLayouts.imageInfo.extent.depth > 1)
             imageLayouts.imageInfo.imageType = VK_IMAGE_TYPE_3D;
@@ -317,7 +319,8 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
             subresourceStates.push_back(p);
           }
 
-          imageState.subresourceStates.FromArray(subresourceStates);
+          if(!subresourceStates.empty())
+            imageState.subresourceStates.FromArray(subresourceStates);
           imageState.maxRefType = eFrameRef_Unknown;
         }
       }
@@ -327,7 +330,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
           ::ImageState &ImageState = imageState;
           SERIALISE_ELEMENT(ImageState);
         }
-        if(IsReplayingAndReading())
+        if(IsReplayingAndReading() && hasLiveRes)
         {
           imageState.newQueueFamilyTransfers.clear();
           for(auto it = imageState.subresourceStates.begin();
@@ -342,7 +345,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
           }
         }
       }
-      if(HasLiveResource(Image))
+      if(hasLiveRes)
       {
         ResourceId liveid = GetLiveID(Image);
 
@@ -873,15 +876,6 @@ MemRefs *VulkanResourceManager::FindMemRefs(ResourceId mem)
 {
   auto it = m_MemFrameRefs.find(mem);
   if(it != m_MemFrameRefs.end())
-    return &it->second;
-  else
-    return NULL;
-}
-
-ImgRefs *VulkanResourceManager::FindImgRefs(ResourceId img)
-{
-  auto it = m_ImgFrameRefs.find(img);
-  if(it != m_ImgFrameRefs.end())
     return &it->second;
   else
     return NULL;

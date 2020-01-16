@@ -460,6 +460,5 @@ private:
 
   WrappedVulkan *m_Core;
   std::map<ResourceId, MemRefs> m_MemFrameRefs;
-  std::map<ResourceId, ImgRefs> m_ImgFrameRefs;
   InitPolicy m_InitPolicy = eInitPolicy_CopyAll;
 };
