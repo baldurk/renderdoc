@@ -426,11 +426,14 @@ struct CmdListRecordingInfo
   // a list of descriptors that are bound at any point in this command list
   // used to look up all the frame refs per-descriptor and apply them on queue
   // submit with latest binding refs.
+  // This stores the start of the range and the number of descriptors, and full
+  // traversal occurs during queue submit, to avoid perf issues during regular
+  // application operation.
   // We allow duplicates in here since it's a better tradeoff to let the vector
   // expand a bit more to contain duplicates and then deal with it during frame
   // capture, than to constantly be deduplicating during record (e.g. with a
   // set or sorted vector).
-  rdcarray<D3D12Descriptor *> boundDescs;
+  rdcarray<rdcpair<D3D12Descriptor *, UINT>> boundDescs;
 
   // bundles executed
   rdcarray<D3D12ResourceRecord *> bundles;
