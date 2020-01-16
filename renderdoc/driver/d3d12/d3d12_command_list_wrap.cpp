@@ -1687,11 +1687,8 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
 
       if(!RenderDoc::Inst().GetCaptureOptions().refAllResources)
       {
-        rdcarray<D3D12Descriptor *> &descs = m_ListRecord->cmdInfo->boundDescs;
-
-        descs.reserve(descs.size() + num);
-        for(UINT d = 0; d < num; d++)
-          descs.push_back(rangeStart + d);
+        rdcarray<rdcpair<D3D12Descriptor *, UINT>> &descs = m_ListRecord->cmdInfo->boundDescs;
+        descs.push_back(make_rdcpair(rangeStart, num));
       }
 
       prevTableOffset = offset + num;
@@ -2251,11 +2248,8 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
 
       if(!RenderDoc::Inst().GetCaptureOptions().refAllResources)
       {
-        rdcarray<D3D12Descriptor *> &descs = m_ListRecord->cmdInfo->boundDescs;
-
-        descs.reserve(descs.size() + num);
-        for(UINT d = 0; d < num; d++)
-          descs.push_back(rangeStart + d);
+        rdcarray<rdcpair<D3D12Descriptor *, UINT>> &descs = m_ListRecord->cmdInfo->boundDescs;
+        descs.push_back(make_rdcpair(rangeStart, num));
       }
 
       prevTableOffset = offset + num;

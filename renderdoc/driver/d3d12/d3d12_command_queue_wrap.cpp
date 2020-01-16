@@ -421,23 +421,27 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
         for(auto it = record->bakedCommands->cmdInfo->boundDescs.begin();
             it != record->bakedCommands->cmdInfo->boundDescs.end(); ++it)
         {
-          D3D12Descriptor *desc = *it;
-
-          ResourceId id, id2;
-          FrameRefType ref = eFrameRef_Read;
-
-          desc->GetRefIDs(id, id2, ref);
-
-          if(id != ResourceId())
+          rdcpair<D3D12Descriptor *, UINT> &descRange = *it;
+          for(UINT d = 0; d < descRange.second; ++d)
           {
-            refdIDs.insert(id);
-            GetResourceManager()->MarkResourceFrameReferenced(id, ref);
-          }
+            D3D12Descriptor *desc = descRange.first + d;
 
-          if(id2 != ResourceId())
-          {
-            refdIDs.insert(id2);
-            GetResourceManager()->MarkResourceFrameReferenced(id2, ref);
+            ResourceId id, id2;
+            FrameRefType ref = eFrameRef_Read;
+
+            desc->GetRefIDs(id, id2, ref);
+
+            if(id != ResourceId())
+            {
+              refdIDs.insert(id);
+              GetResourceManager()->MarkResourceFrameReferenced(id, ref);
+            }
+
+            if(id2 != ResourceId())
+            {
+              refdIDs.insert(id2);
+              GetResourceManager()->MarkResourceFrameReferenced(id2, ref);
+            }
           }
         }
 
