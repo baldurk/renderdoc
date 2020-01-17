@@ -327,6 +327,12 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
                                           __uuidof(ID3D12Resource), (void **)&m_ReadbackBuffer);
   m_pDevice->InternalRef();
 
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create readback buffer, HRESULT: %s", ToStr(hr).c_str());
+    return;
+  }
+
   m_ReadbackBuffer->SetName(L"m_ReadbackBuffer");
 
   rm->SetInternalResource(m_ReadbackBuffer);
@@ -725,7 +731,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetTempDescriptor(const D3D12Desc
     ret = GetCPUHandle(TMP_DSV);
 
     const D3D12_DEPTH_STENCIL_VIEW_DESC *dsvdesc = &desc.GetDSV();
-    if(dsvdesc->ViewDimension == D3D12_RTV_DIMENSION_UNKNOWN)
+    if(dsvdesc->ViewDimension == D3D12_DSV_DIMENSION_UNKNOWN)
       dsvdesc = NULL;
 
     m_pDevice->CreateDepthStencilView(res, dsvdesc, ret);

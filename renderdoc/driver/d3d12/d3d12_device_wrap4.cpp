@@ -404,7 +404,7 @@ bool WrappedID3D12Device::Serialise_CreateHeap1(SerialiserType &ser, const D3D12
     // don't replay with a protected session
     HRESULT hr = E_NOINTERFACE;
     if(m_pDevice4)
-      m_pDevice4->CreateHeap1(&Descriptor, NULL, guid, &realptr);
+      hr = m_pDevice4->CreateHeap1(&Descriptor, NULL, guid, &realptr);
     else
       RDCERR("Replaying a without D3D12.4 available");
 

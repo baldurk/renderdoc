@@ -91,6 +91,9 @@ struct DescSetLayout
     }
     const Binding &operator=(const Binding &b)
     {
+      if(this == &b)
+        return *this;
+
       descriptorType = b.descriptorType;
       descriptorCount = b.descriptorCount;
       stageFlags = b.stageFlags;

@@ -2825,7 +2825,7 @@ void DoSerialise(SerialiserType &ser, DXGI_ADAPTER_DESC &el)
 
   // don't serialise SIZE_T, cast to uint64_t
   {
-    uint64_t DedicatedVideoMemory = el.DedicatedSystemMemory;
+    uint64_t DedicatedVideoMemory = el.DedicatedVideoMemory;
     uint64_t DedicatedSystemMemory = el.DedicatedSystemMemory;
     uint64_t SharedSystemMemory = el.SharedSystemMemory;
 
@@ -2835,7 +2835,7 @@ void DoSerialise(SerialiserType &ser, DXGI_ADAPTER_DESC &el)
 
     if(ser.IsReading())
     {
-      el.DedicatedSystemMemory = (SIZE_T)DedicatedVideoMemory;
+      el.DedicatedVideoMemory = (SIZE_T)DedicatedVideoMemory;
       el.DedicatedSystemMemory = (SIZE_T)DedicatedSystemMemory;
       el.SharedSystemMemory = (SIZE_T)SharedSystemMemory;
     }

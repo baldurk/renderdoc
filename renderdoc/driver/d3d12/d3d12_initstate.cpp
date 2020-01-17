@@ -91,6 +91,8 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
         return true;
       }
 
+      const bool isUploadHeap = (heapProps.Type == D3D12_HEAP_TYPE_UPLOAD);
+
       heapProps.Type = D3D12_HEAP_TYPE_READBACK;
       heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
       heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
@@ -111,7 +113,6 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       RDCASSERT(states.size() == 1);
 
       D3D12_RESOURCE_BARRIER barrier;
-      const bool isUploadHeap = (heapProps.Type == D3D12_HEAP_TYPE_UPLOAD);
       const bool needsTransition =
           !isUploadHeap && ((states[0] & D3D12_RESOURCE_STATE_COPY_SOURCE) == 0);
 
@@ -645,9 +646,9 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
                          (resDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
 
           D3D12_RESOURCE_DESC msaaDesc = resDesc;
-          arrayDesc.Alignment = 0;
-          arrayDesc.Flags = isDepth ? D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
-                                    : D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+          msaaDesc.Alignment = 0;
+          msaaDesc.Flags = isDepth ? D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+                                   : D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
           ID3D12Resource *arrayTex = NULL;
           HRESULT hr = m_Device->CreateCommittedResource(

@@ -422,7 +422,7 @@ struct UpgradeCommand : public Command
 
     ZeroMemory(paramsAlloc, sizeof(wchar_t) * 512);
 
-    wcscpy_s(paramsAlloc, sizeof(wchar_t) * 511, cmdline.c_str());
+    wcscpy_s(paramsAlloc, 511, cmdline.c_str());
 
     PROCESS_INFORMATION pi;
     STARTUPINFOW si;
@@ -743,7 +743,7 @@ struct GlobalHookCommand : public Command
         // wait until a write comes in over the pipe
         char buf[16] = {0};
         DWORD read = 0;
-        ReadFile(pipe, buf, 16, &read, NULL);
+        ReadFile(pipe, buf, sizeof(buf), &read, NULL);
 
         UnmapViewOfFile(shimdata);
       }

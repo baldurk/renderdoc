@@ -610,7 +610,7 @@ void ImageViewer::RefreshFile()
       }
     }
 
-    FreeEXRImage(&exrImage);
+    ret = FreeEXRImage(&exrImage);
 
     // shouldn't get here but let's be safe
     if(ret != 0)

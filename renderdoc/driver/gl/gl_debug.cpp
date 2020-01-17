@@ -1030,9 +1030,9 @@ void GLReplay::InitDebugData()
     rdcstr versionString = version;
 
     versionString += " / ";
-    versionString += renderer;
+    versionString += renderer ? renderer : "";
     versionString += " / ";
-    versionString += vendor;
+    versionString += vendor ? vendor : "";
 
     versionString.resize(RDCMIN(versionString.size(), ARRAY_COUNT(m_DriverInfo.version) - 1));
     memcpy(m_DriverInfo.version, versionString.c_str(), versionString.size());

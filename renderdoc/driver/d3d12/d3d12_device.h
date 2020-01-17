@@ -682,7 +682,7 @@ public:
     if(iid == __uuidof(ID3D12Device) || iid == __uuidof(ID3D12Device1) ||
        iid == __uuidof(ID3D12Device2) || iid == __uuidof(ID3D12Device3) ||
        iid == __uuidof(ID3D12Device4) || iid == __uuidof(ID3D12Device5) ||
-       iid == __uuidof(ID3D12Device5))
+       iid == __uuidof(ID3D12Device6))
       return true;
 
     return false;

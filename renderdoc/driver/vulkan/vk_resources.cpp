@@ -3727,7 +3727,7 @@ void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindi
           VkSparseMemoryBind first = curRange;
 
           // set the new size of the first half
-          first.size = newRange.resourceOffset - newRange.resourceOffset;
+          first.size = newRange.resourceOffset - curRange.resourceOffset;
 
           // add the new range where the current iterator was
           curRange = newRange;

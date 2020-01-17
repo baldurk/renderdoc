@@ -2609,14 +2609,6 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
           mod.postMod.col.floatValue[c] = float(mod.postMod.col.uintValue[c]) / maxVal;
         }
       }
-      else if(fmt.compType == CompType::SNorm && fmt.compByteWidth == 2)
-      {
-        for(uint32_t c = 0; c < fmt.compCount; c++)
-        {
-          mod.preMod.col.floatValue[c] = float(mod.preMod.col.uintValue[c]);
-          mod.postMod.col.floatValue[c] = float(mod.postMod.col.uintValue[c]);
-        }
-      }
       else if(fmt.compType == CompType::SNorm && fmt.compByteWidth == 1)
       {
         for(uint32_t c = 0; c < fmt.compCount; c++)

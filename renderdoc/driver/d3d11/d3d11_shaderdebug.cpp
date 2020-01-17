@@ -2575,6 +2575,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     if(FAILED(hr))
     {
       RDCERR("Failed to map stage buff HRESULT: %s", ToStr(hr).c_str());
+      SAFE_DELETE_ARRAY(initialData);
       return empty;
     }
 

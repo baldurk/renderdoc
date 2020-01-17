@@ -935,7 +935,7 @@ void TextureViewer::UI_UpdateStatusText()
 
   if(m_TexDisplay.overlay == DebugOverlay::QuadOverdrawPass ||
      m_TexDisplay.overlay == DebugOverlay::QuadOverdrawDraw ||
-     m_TexDisplay.overlay == DebugOverlay::TriangleSizeDraw ||
+     m_TexDisplay.overlay == DebugOverlay::TriangleSizePass ||
      m_TexDisplay.overlay == DebugOverlay::TriangleSizeDraw)
   {
     dsv = false;

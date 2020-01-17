@@ -823,7 +823,7 @@ rdcstr GetTextureCompleteStatus(GLenum target, GLuint tex, GLuint sampler)
 
         rdcstr faceStr;
         rdcstr face0Str;
-        if(faceCount > 0)
+        if(faceCount > 1)
         {
           face0Str = StringFormat::Fmt(" of %s", ToStr(targets[0]).c_str());
           faceStr = StringFormat::Fmt(" of %s", ToStr(targets[face]).c_str());

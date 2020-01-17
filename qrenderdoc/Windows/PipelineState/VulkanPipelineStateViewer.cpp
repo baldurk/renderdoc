@@ -1040,7 +1040,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       arrayLength = (bindMap->arraySize == ~0U ? -1 : (int)bindMap->arraySize);
 
     // for arrays, add a parent element that we add the real cbuffers below
-    if(arrayLength > 1)
+    if(arrayLength > 1 || arrayLength < 0)
     {
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({QString(), setname, slotname,
@@ -1438,7 +1438,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       arrayLength = (bindMap->arraySize == ~0U ? -1 : (int)bindMap->arraySize);
 
     // for arrays, add a parent element that we add the real cbuffers below
-    if(arrayLength > 1)
+    if(arrayLength > 1 || arrayLength < 0)
     {
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({QString(), setname, slotname,

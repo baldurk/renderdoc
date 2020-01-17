@@ -713,9 +713,8 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIOutput6::DuplicateOutput1(
   if(wrapDevice)
   {
     IDXGIOutputDuplication *dup = NULL;
-    HRESULT ret =
-        m_pReal5->DuplicateOutput1(wrapDevice->GetRealIUnknown(), Flags, SupportedFormatsCount,
-                                   pSupportedFormats, ppOutputDuplication);
+    HRESULT ret = m_pReal5->DuplicateOutput1(wrapDevice->GetRealIUnknown(), Flags,
+                                             SupportedFormatsCount, pSupportedFormats, &dup);
 
     if(SUCCEEDED(ret) && dup)
       dup = new WrappedIDXGIOutputDuplication(wrapDevice, dup);

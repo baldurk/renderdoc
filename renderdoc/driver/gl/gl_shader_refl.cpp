@@ -2052,7 +2052,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
           case eGL_FLOAT_MAT3x4:
           case eGL_DOUBLE_MAT3x4:
             sig.compCount = 3;
-            rows = 2;
+            rows = 4;
             sig.regChannelMask = 0x7;
             break;
           case eGL_FLOAT_MAT3x2:

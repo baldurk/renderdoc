@@ -2490,6 +2490,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
   // readback mesh data
   byte *byteData = NULL;
   vkr = m_pDriver->vkMapMemory(m_Device, readbackMem, 0, VK_WHOLE_SIZE, 0, (void **)&byteData);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   VkMappedMemoryRange range = {
       VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, readbackMem, 0, VK_WHOLE_SIZE,

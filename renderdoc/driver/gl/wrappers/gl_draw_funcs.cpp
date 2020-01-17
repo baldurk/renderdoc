@@ -307,10 +307,10 @@ bool WrappedOpenGL::Serialise_glDispatchCompute(SerialiserType &ser, GLuint num_
                         MessageSource::IncorrectAPIUse,
                         "Dispatch call has num_groups_x=0. This will do nothing, which is unusual "
                         "for a non-indirect Dispatch. Did you mean X=1?");
-      if(num_groups_x == 0)
+      if(num_groups_y == 0)
         AddDebugMessage(MessageCategory::Execution, MessageSeverity::Medium,
                         MessageSource::IncorrectAPIUse,
-                        "Dispatch call has num_groups_x=0. This will do nothing, which is unusual "
+                        "Dispatch call has num_groups_y=0. This will do nothing, which is unusual "
                         "for a non-indirect Dispatch. Did you mean Y=1?");
       if(num_groups_z == 0)
         AddDebugMessage(MessageCategory::Execution, MessageSeverity::Medium,

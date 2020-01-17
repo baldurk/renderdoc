@@ -2243,8 +2243,8 @@ bool Program::ExtractOperation(uint32_t *&tokenStream, Operation &retOp, bool fr
     retOp.operands[0].funcNum = func;
   }
 
-  if(op == OPCODE_IF || op == OPCODE_BREAKC || op == OPCODE_CALLC || op == OPCODE_RETC ||
-     op == OPCODE_SWAPC || op == OPCODE_DMOVC || op == OPCODE_DISCARD || op == OPCODE_DMOVC)
+  if(op == OPCODE_IF || op == OPCODE_BREAKC || op == OPCODE_CALLC || op == OPCODE_CONTINUEC ||
+     op == OPCODE_RETC || op == OPCODE_DISCARD)
     retOp.str += retOp.nonzero ? "_nz" : "_z";
 
   if(op != OPCODE_SYNC)

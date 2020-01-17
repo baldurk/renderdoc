@@ -3607,6 +3607,7 @@ ReplayStatus CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, const ReplayO
 
   if(!replay->HasDebugContext())
   {
+    delete gldriver;
     platform.DeleteReplayContext(data);
     return ReplayStatus::APIHardwareUnsupported;
   }

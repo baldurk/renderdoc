@@ -1559,6 +1559,7 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(SerialiserType &ser)
         VkCommandBuffer cmd = GetNextCmd();
 
         VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
         ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), src_stages, dest_stages, false, 0, NULL, 0,
                                          NULL, 1, &imgBarriers[i]);
@@ -1572,6 +1573,7 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(SerialiserType &ser)
       VkCommandBuffer cmd = GetNextCmd();
 
       VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
       ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), src_stages, dest_stages, false, 0, NULL, 0,
                                        NULL, (uint32_t)imgBarriers.size(), &imgBarriers[0]);
@@ -2255,19 +2257,28 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
     chunkIdx++;
 
     if(reader->IsErrored())
+    {
+      SAFE_DELETE(sink);
       return ReplayStatus::APIDataCorrupted;
+    }
 
     bool success = ProcessChunk(ser, context);
 
     ser.EndChunk();
 
     if(reader->IsErrored())
+    {
+      SAFE_DELETE(sink);
       return ReplayStatus::APIDataCorrupted;
+    }
 
     // if there wasn't a serialisation error, but the chunk didn't succeed, then it's an API replay
     // failure.
     if(!success)
+    {
+      SAFE_DELETE(sink);
       return m_FailedReplayStatus;
+    }
 
     uint64_t offsetEnd = reader->GetOffset();
 
@@ -2291,7 +2302,10 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
       ReplayStatus status = ContextReplayLog(m_State, 0, 0, false);
 
       if(status != ReplayStatus::Succeeded)
+      {
+        SAFE_DELETE(sink);
         return status;
+      }
     }
 
     chunkInfos[context].total += timer.GetMilliseconds();

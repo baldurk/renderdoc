@@ -128,14 +128,14 @@ struct VkPackedVersion
   bool operator<=(uint32_t v) const { return version <= v; }
   bool operator>=(uint32_t v) const { return version >= v; }
   bool operator==(uint32_t v) const { return version == v; }
-  bool operator!=(uint32_t v) const { return version == v; }
+  bool operator!=(uint32_t v) const { return version != v; }
   // int overloads because VK_MAKE_VERSION is type int...
   bool operator<(int v) const { return version < (uint32_t)v; }
   bool operator>(int v) const { return version > (uint32_t)v; }
   bool operator<=(int v) const { return version <= (uint32_t)v; }
   bool operator>=(int v) const { return version >= (uint32_t)v; }
   bool operator==(int v) const { return version == (uint32_t)v; }
-  bool operator!=(int v) const { return version == (uint32_t)v; }
+  bool operator!=(int v) const { return version != (uint32_t)v; }
   operator uint32_t() const { return version; }
   VkPackedVersion &operator=(uint32_t v)
   {
