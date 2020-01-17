@@ -121,7 +121,7 @@ public:
       y = (mipHeight - 1) - y;
     }
 
-    m_Proxy->PickPixel(m_TextureID, x, y, sub, typeCast, pixel);
+    m_Proxy->PickPixel(texture, x, y, sub, typeCast, pixel);
   }
   bool GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, float *minval,
                  float *maxval)
