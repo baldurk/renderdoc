@@ -541,8 +541,7 @@ struct CrashHandlerCommand : public Command
         }
         else
         {
-          report += "  \"" + std::string(name.begin(), name.end()) + "\": \"" +
-                    std::string(val.begin(), val.end()) + "\",\n";
+          report += "  \"" + conv(name) + "\": \"" + conv(val) + "\",\n";
         }
       }
 
