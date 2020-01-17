@@ -643,7 +643,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
     drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
   }
 
-  if(cfg.rawOutput || !blendAlpha)
+  if(cfg.rawOutput || !blendAlpha || cfg.customShaderId != ResourceId())
   {
     drv.glDisable(eGL_BLEND);
   }
