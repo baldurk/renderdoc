@@ -3629,8 +3629,8 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid,
 
   int oldW = m_DebugWidth, oldH = m_DebugHeight;
 
-  m_DebugWidth = RDCMAX(1U, iminfo.extent.width >> sub.mip);
-  m_DebugHeight = RDCMAX(1U, iminfo.extent.height >> sub.mip);
+  m_DebugWidth = RDCMAX(1U, iminfo.extent.width);
+  m_DebugHeight = RDCMAX(1U, iminfo.extent.height);
 
   TextureDisplay disp;
   disp.red = disp.green = disp.blue = disp.alpha = true;
@@ -3658,7 +3658,7 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid,
       {{
            0, 0,
        },
-       {m_DebugWidth, m_DebugHeight}},
+       {RDCMAX(1U, iminfo.extent.width >> sub.mip), RDCMAX(1U, iminfo.extent.height >> sub.mip)}},
       1,
       &clearval,
   };

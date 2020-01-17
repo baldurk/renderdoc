@@ -540,8 +540,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
     VkViewport viewport = {(float)rpbegin.renderArea.offset.x,
                            (float)rpbegin.renderArea.offset.y,
-                           (float)m_DebugWidth,
-                           (float)m_DebugHeight,
+                           (float)rpbegin.renderArea.extent.width,
+                           (float)rpbegin.renderArea.extent.height,
                            0.0f,
                            1.0f};
     vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);

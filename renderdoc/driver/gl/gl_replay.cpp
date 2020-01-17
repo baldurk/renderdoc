@@ -2825,8 +2825,8 @@ ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, cons
   m_pDriver->glViewport(0, 0, RDCMAX(1, texDetails.width >> sub.mip),
                         RDCMAX(1, texDetails.height >> sub.mip));
 
-  DebugData.outWidth = float(RDCMAX(1, texDetails.width >> sub.mip));
-  DebugData.outHeight = float(RDCMAX(1, texDetails.height >> sub.mip));
+  DebugData.outWidth = float(RDCMAX(1, texDetails.width));
+  DebugData.outHeight = float(RDCMAX(1, texDetails.height));
 
   float clr[] = {0.0f, 0.8f, 0.0f, 0.0f};
   m_pDriver->glClearBufferfv(eGL_COLOR, 0, clr);

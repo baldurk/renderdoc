@@ -2177,6 +2177,7 @@ void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Su
     texDisplay.xOffset = -float(x << sub.mip);
     texDisplay.yOffset = -float(y << sub.mip);
 
+    m_OutputViewport = {0, 0, 1, 1, 0.0f, 1.0f};
     RenderTextureInternal(GetDebugManager()->GetCPUHandle(PICK_PIXEL_RTV), texDisplay,
                           eTexDisplay_32Render);
   }
@@ -3086,6 +3087,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       copyDesc.DepthOrArraySize = 1;
 
     SetOutputDimensions(uint32_t(copyDesc.Width), copyDesc.Height);
+    m_OutputViewport = {0, 0, (float)copyDesc.Width, (float)copyDesc.Height, 0.0f, 1.0f};
 
     copyDesc.Width = RDCMAX(1ULL, copyDesc.Width >> s.mip);
     copyDesc.Height = RDCMAX(1U, copyDesc.Height >> s.mip);
@@ -3669,9 +3671,16 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
   disp.rawOutput = false;
   disp.scale = 1.0f;
 
-  SetOutputDimensions(RDCMAX(1U, (UINT)resDesc.Width >> sub.mip),
-                      RDCMAX(1U, resDesc.Height >> sub.mip));
+  SetOutputDimensions(RDCMAX(1U, (UINT)resDesc.Width), RDCMAX(1U, resDesc.Height));
 
+  m_OutputViewport = {
+      0,
+      0,
+      (float)RDCMAX(1ULL, resDesc.Width >> sub.mip),
+      (float)RDCMAX(1U, resDesc.Height >> sub.mip),
+      0.0f,
+      1.0f,
+  };
   RenderTextureInternal(GetDebugManager()->GetCPUHandle(CUSTOM_SHADER_RTV), disp,
                         eTexDisplay_BlendAlpha);
 

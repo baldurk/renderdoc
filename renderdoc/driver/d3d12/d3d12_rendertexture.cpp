@@ -324,6 +324,7 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource, CompTyp
 
 bool D3D12Replay::RenderTexture(TextureDisplay cfg)
 {
+  m_OutputViewport = {0, 0, (float)m_OutputWidth, (float)m_OutputHeight, 0.0f, 1.0f};
   return RenderTextureInternal(m_OutputWindows[m_CurrentOutputWindow].rtv, cfg,
                                eTexDisplay_BlendAlpha);
 }
@@ -658,10 +659,9 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
 
     list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
 
-    D3D12_VIEWPORT viewport = {0, 0, (float)m_OutputWidth, (float)m_OutputHeight, 0.0f, 1.0f};
-    list->RSSetViewports(1, &viewport);
+    list->RSSetViewports(1, &m_OutputViewport);
 
-    D3D12_RECT scissor = {0, 0, (LONG)viewport.Width, (LONG)viewport.Height};
+    D3D12_RECT scissor = {0, 0, (LONG)m_OutputViewport.Width, (LONG)m_OutputViewport.Height};
     list->RSSetScissorRects(1, &scissor);
 
     list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);

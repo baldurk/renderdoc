@@ -316,6 +316,7 @@ private:
 
   float m_OutputWidth = 1.0f;
   float m_OutputHeight = 1.0f;
+  D3D12_VIEWPORT m_OutputViewport;
 
   uint64_t m_OutputWindowID = 1;
   uint64_t m_DSVID = 0;

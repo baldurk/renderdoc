@@ -3358,8 +3358,7 @@ ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
   disp.rawOutput = false;
   disp.scale = 1.0f;
 
-  SetOutputDimensions(RDCMAX(1U, details.texWidth >> sub.mip),
-                      RDCMAX(1U, details.texHeight >> sub.mip));
+  SetOutputDimensions(RDCMAX(1U, details.texWidth), RDCMAX(1U, details.texHeight));
 
   RenderTextureInternal(disp, eTexDisplay_BlendAlpha);
 
