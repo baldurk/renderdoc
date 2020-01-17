@@ -756,8 +756,9 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
           if(it->baseEvent <= m_LastEventID && m_LastEventID < (it->baseEvent + length))
           {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-            RDCDEBUG("vkBegin - partial detected %u < %u < %u, %llu -> %llu", it->baseEvent,
-                     m_LastEventID, it->baseEvent + length, m_LastCmdBufferID, BakedCommandBuffer);
+            RDCDEBUG("vkBegin - partial detected %u < %u < %u, %s -> %s", it->baseEvent,
+                     m_LastEventID, it->baseEvent + length, ToStr(m_LastCmdBufferID).c_str(),
+                     ToStr(BakedCommandBuffer).c_str());
 #endif
 
             m_Partial[p].partialParent = BakedCommandBuffer;
@@ -773,8 +774,9 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
           else if(it->baseEvent <= m_LastEventID)
           {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-            RDCDEBUG("vkBegin - full re-record detected %u < %u <= %u, %llu -> %llu", it->baseEvent,
-                     it->baseEvent + length, m_LastEventID, m_LastCmdBufferID, BakedCommandBuffer);
+            RDCDEBUG("vkBegin - full re-record detected %u < %u <= %u, %s -> %s", it->baseEvent,
+                     it->baseEvent + length, m_LastEventID, ToStr(m_LastCmdBufferID).c_str(),
+                     ToStr(BakedCommandBuffer).c_str());
 #endif
 
             // this submission is completely within the range, so it should still be re-recorded
@@ -801,8 +803,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         }
 
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-        RDCDEBUG("vkBegin - re-recording %llu -> %llu into %llu", m_LastCmdBufferID,
-                 BakedCommandBuffer, GetResID(cmd));
+        RDCDEBUG("vkBegin - re-recording %s -> %s into %s", ToStr(m_LastCmdBufferID).c_str(),
+                 ToStr(BakedCommandBuffer).c_str(), ToStr(GetResID(cmd)).c_str());
 #endif
 
         // we store under both baked and non baked ID.
@@ -1008,8 +1010,9 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
         commandBuffer = RerecordCmdBuf(BakedCommandBuffer);
 
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-        RDCDEBUG("Ending re-recorded command buffer for %llu baked to %llu as %llu", CommandBuffer,
-                 BakedCommandBuffer, GetResID(commandBuffer));
+        RDCDEBUG("Ending re-recorded command buffer for %s baked to %s as %s",
+                 ToStr(CommandBuffer).c_str(), ToStr(BakedCommandBuffer).c_str(),
+                 ToStr(GetResID(commandBuffer)).c_str());
 #endif
 
         if(m_Partial[Primary].partialParent == BakedCommandBuffer &&
@@ -3514,8 +3517,8 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
         if(m_Partial[Primary].partialParent != m_LastCmdBufferID)
         {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-          RDCDEBUG("Fully re-recording non-partial execute in command buffer %llu for %llu",
-                   GetResID(commandBuffer), m_LastCmdBufferID);
+          RDCDEBUG("Fully re-recording non-partial execute in command buffer %s for %s",
+                   ToStr(GetResID(commandBuffer)).c_str(), ToStr(m_LastCmdBufferID).c_str());
 #endif
           fullRecord = true;
         }
@@ -3580,8 +3583,8 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
               VkCommandBuffer cmd = RerecordCmdBuf(cmdid);
               ResourceId rerecord = GetResID(cmd);
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-              RDCDEBUG("ExecuteCommands re-recorded replay of %llu, using %llu (%u -> %u <= %u)",
-                       cmdid, rerecord, eid, end, m_LastEventID);
+              RDCDEBUG("ExecuteCommands re-recorded replay of %s, using %s (%u -> %u <= %u)",
+                       ToStr(cmdid).c_str(), ToStr(rerecord).c_str(), eid, end, m_LastEventID);
 #endif
               rerecordedCmds.push_back(Unwrap(cmd));
 
@@ -3592,7 +3595,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
             else
             {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-              RDCDEBUG("not executing %llu", cmdid);
+              RDCDEBUG("not executing %s", ToStr(cmdid).c_str());
 #endif
             }
 
@@ -3602,7 +3605,8 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           }
 
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-          RDCDEBUG("executing %zu commands in %llu", rerecordedCmds.size(), GetResID(commandBuffer));
+          RDCDEBUG("executing %zu commands in %s", rerecordedCmds.size(),
+                   ToStr(GetResID(commandBuffer)).c_str());
 #endif
 
           if(!rerecordedCmds.empty())

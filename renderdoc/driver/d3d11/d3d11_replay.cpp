@@ -414,7 +414,7 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
     return tex;
   }
 
-  RDCERR("Unrecognised/unknown texture %llu", id);
+  RDCERR("Unrecognised/unknown texture %s", ToStr(id).c_str());
 
   tex.byteSize = 0;
   tex.dimension = 2;
@@ -1937,7 +1937,7 @@ void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t lengt
 
   if(it == WrappedID3D11Buffer::m_BufferList.end())
   {
-    RDCERR("Getting buffer data for unknown buffer %llu!", buff);
+    RDCERR("Getting buffer data for unknown buffer %s!", ToStr(buff).c_str());
     return;
   }
 
@@ -2447,7 +2447,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   }
   else
   {
-    RDCERR("Trying to get texture data for unknown ID %llu!", tex);
+    RDCERR("Trying to get texture data for unknown ID %s!", ToStr(tex).c_str());
     return;
   }
 

@@ -343,7 +343,8 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
       if(hr != S_OK)
       {
         numPrims.NumPrimitivesWritten = 0;
-        RDCERR("Couldn't retrieve hidden buffer counter for streamout on buffer %llu", it->first);
+        RDCERR("Couldn't retrieve hidden buffer counter for streamout on buffer %s",
+               ToStr(it->first).c_str());
       }
 
       HiddenStreamOutCounters.push_back({it->first, (uint64_t)numPrims.NumPrimitivesWritten});
@@ -485,8 +486,8 @@ void WrappedID3D11DeviceContext::AttemptCapture()
   // successful.
   if(GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
   {
-    RDCDEBUG("Deferred Context %llu Attempting capture - initially %s, %s", GetResourceID(),
-             m_SuccessfulCapture ? "successful" : "unsuccessful",
+    RDCDEBUG("Deferred Context %s Attempting capture - initially %s, %s",
+             ToStr(GetResourceID()).c_str(), m_SuccessfulCapture ? "successful" : "unsuccessful",
              m_EmptyCommandList ? "empty" : "non-empty");
 
     m_SuccessfulCapture |= m_EmptyCommandList;
@@ -496,12 +497,12 @@ void WrappedID3D11DeviceContext::AttemptCapture()
     else
       m_FailureReason = CaptureFailed_UncappedCmdlist;
 
-    RDCDEBUG("Deferred Context %llu Attempting capture - now %s", GetResourceID(),
+    RDCDEBUG("Deferred Context %s Attempting capture - now %s", ToStr(GetResourceID()).c_str(),
              m_SuccessfulCapture ? "successful" : "unsuccessful");
   }
   else
   {
-    RDCDEBUG("Immediate Context %llu Attempting capture", GetResourceID());
+    RDCDEBUG("Immediate Context %s Attempting capture", ToStr(GetResourceID()).c_str());
 
     m_SuccessfulCapture = true;
     m_FailureReason = CaptureSucceeded;

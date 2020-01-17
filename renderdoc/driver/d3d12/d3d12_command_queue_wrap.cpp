@@ -109,8 +109,9 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
 
     if(m_PrevQueueId != GetResID(pQueue))
     {
-      RDCDEBUG("Previous queue execution was on queue %llu, now executing %llu, syncing GPU",
-               m_PrevQueueId, GetResID(pQueue));
+      RDCDEBUG("Previous queue execution was on queue %s, now executing %s, syncing GPU",
+               ToStr(GetResourceManager()->GetOriginalID(m_PrevQueueId)).c_str(),
+               ToStr(GetResourceManager()->GetOriginalID(GetResID(pQueue))).c_str());
       if(m_PrevQueueId != ResourceId())
         m_pDevice->GPUSync(GetResourceManager()->GetCurrentAs<ID3D12CommandQueue>(m_PrevQueueId));
 
@@ -290,8 +291,8 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
             ID3D12CommandList *cmd = m_Cmd.RerecordCmdList(cmdId);
             ResourceId rerecord = GetResID(cmd);
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-            RDCDEBUG("Queue submit re-recorded replay of %llu, using %llu (%u -> %u <= %u)", cmdId,
-                     rerecord, eid, end, m_Cmd.m_LastEventID);
+            RDCDEBUG("Queue submit re-recorded replay of %s, using %s (%u -> %u <= %u)",
+                     ToStr(cmdId).c_str(), ToStr(rerecord).c_str(), eid, end, m_Cmd.m_LastEventID);
 #endif
             rerecordedCmds.push_back(Unwrap(cmd));
 
@@ -300,7 +301,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
           else
           {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-            RDCDEBUG("Queue not submitting %llu", cmdId);
+            RDCDEBUG("Queue not submitting %s", ToStr(cmdId).c_str());
 #endif
           }
 
@@ -490,8 +491,8 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
         // only need to flush memory that could affect this submitted batch of work
         if(refdIDs.find(res->GetResourceID()) == refdIDs.end())
         {
-          RDCDEBUG("Map of memory %llu not referenced in this queue - not flushing",
-                   res->GetResourceID());
+          RDCDEBUG("Map of memory %s not referenced in this queue - not flushing",
+                   ToStr(res->GetResourceID()).c_str());
           continue;
         }
 
@@ -508,8 +509,8 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
 
         if(found)
         {
-          RDCLOG("Persistent map flush forced for %llu (%llu -> %llu)", res->GetResourceID(),
-                 (uint64_t)diffStart, (uint64_t)diffEnd);
+          RDCLOG("Persistent map flush forced for %s (%llu -> %llu)",
+                 ToStr(res->GetResourceID()).c_str(), (uint64_t)diffStart, (uint64_t)diffEnd);
 
           D3D12_RANGE range = {diffStart, diffEnd};
 
@@ -529,7 +530,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
         }
         else
         {
-          RDCDEBUG("Persistent map flush not needed for %llu", res->GetResourceID());
+          RDCDEBUG("Persistent map flush not needed for %s", ToStr(res->GetResourceID()).c_str());
         }
       }
 

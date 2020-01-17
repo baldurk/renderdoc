@@ -1294,8 +1294,9 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
 
       ID3D12Resource *uploadBuf = GetUploadBuffer(cmd.m_CurChunkOffset, rangeSize);
 
-      SetObjName(uploadBuf, StringFormat::Fmt("Map data write, %llu bytes for %llu/%u @ %llu",
-                                              rangeSize, origid, Subresource, cmd.m_CurChunkOffset));
+      SetObjName(uploadBuf,
+                 StringFormat::Fmt("Map data write, %llu bytes for %s/%u @ %llu", rangeSize,
+                                   ToStr(origid).c_str(), Subresource, cmd.m_CurChunkOffset));
 
       // during loading, fill out the buffer itself
       if(IsLoading(m_State))
@@ -2077,8 +2078,8 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
       const rdcarray<D3D12ResourceRecord *> &cmdListRecords = q->GetCmdLists();
 
-      RDCDEBUG("Flushing %u command list records from queue %llu", (uint32_t)cmdListRecords.size(),
-               q->GetResourceID());
+      RDCDEBUG("Flushing %u command list records from queue %s", (uint32_t)cmdListRecords.size(),
+               ToStr(q->GetResourceID()).c_str());
 
       for(size_t i = 0; i < cmdListRecords.size(); i++)
       {
@@ -2088,8 +2089,9 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
         // prevent complaints in release that prevSize is unused
         (void)prevSize;
 
-        RDCDEBUG("Adding %u chunks to file serialiser from command list %llu",
-                 (uint32_t)recordlist.size() - prevSize, cmdListRecords[i]->GetResourceID());
+        RDCDEBUG("Adding %u chunks to file serialiser from command list %s",
+                 (uint32_t)recordlist.size() - prevSize,
+                 ToStr(cmdListRecords[i]->GetResourceID()).c_str());
       }
 
       q->GetResourceRecord()->Insert(recordlist);
@@ -2657,7 +2659,7 @@ void WrappedID3D12Device::FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle)
   }
   else
   {
-    RDCERR("Unknown RTV %llu being freed", handle.ptr);
+    RDCERR("Unknown RTV %zu being freed", handle.ptr);
   }
 }
 

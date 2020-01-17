@@ -35,7 +35,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
   RDCASSERT(IsCaptureMode(m_State));
 
   {
-    RDCDEBUG("Prepare_InitialState(%llu)", Id);
+    RDCDEBUG("Prepare_InitialState(%s)", ToStr(Id).c_str());
 
     if(type == Resource_Buffer)
       RDCDEBUG("    .. buffer");
@@ -397,7 +397,7 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
   }
 
   {
-    RDCDEBUG("Serialise_InitialState(%llu)", id);
+    RDCDEBUG("Serialise_InitialState(%s)", ToStr(id).c_str());
 
     if(type == Resource_Buffer)
       RDCDEBUG("    .. buffer");
@@ -472,9 +472,9 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
         hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
       else
         RDCERR(
-            "Didn't have stage resource for %llu when serialising initial state! "
+            "Didn't have stage resource for %s when serialising initial state! "
             "Dirty tracking is incorrect",
-            id);
+            ToStr(id).c_str());
 
       if(FAILED(hr))
       {
@@ -535,9 +535,9 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
           hr = m_pImmediateContext->GetReal()->Map(prepared, sub, D3D11_MAP_READ, 0, &mapped);
         else
           RDCERR(
-              "Didn't have stage resource for %llu when serialising initial state! "
+              "Didn't have stage resource for %s when serialising initial state! "
               "Dirty tracking is incorrect",
-              id);
+              ToStr(id).c_str());
 
         if(FAILED(hr))
           RDCERR("Failed to map in initial states %s", ToStr(hr).c_str());
@@ -684,9 +684,9 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
             hr = m_pImmediateContext->GetReal()->Map(prepared, sub, D3D11_MAP_READ, 0, &mapped);
           else
             RDCERR(
-                "Didn't have stage resource for %llu when serialising initial state! "
+                "Didn't have stage resource for %s when serialising initial state! "
                 "Dirty tracking is incorrect",
-                id);
+                ToStr(id).c_str());
 
           if(FAILED(hr))
           {
@@ -856,9 +856,9 @@ bool WrappedID3D11Device::Serialise_InitialState(SerialiserType &ser, ResourceId
           hr = m_pImmediateContext->GetReal()->Map(prepared, sub, D3D11_MAP_READ, 0, &mapped);
         else
           RDCERR(
-              "Didn't have stage resource for %llu when serialising initial state! "
+              "Didn't have stage resource for %s when serialising initial state! "
               "Dirty tracking is incorrect",
-              id);
+              ToStr(id).c_str());
 
         if(FAILED(hr))
         {
@@ -953,7 +953,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
   D3D11ResourceType type = IdentifyTypeByPtr(live);
 
   {
-    RDCDEBUG("Create_InitialState(%llu)", id);
+    RDCDEBUG("Create_InitialState(%s)", ToStr(id).c_str());
 
     if(type == Resource_Buffer)
       RDCDEBUG("    .. buffer");

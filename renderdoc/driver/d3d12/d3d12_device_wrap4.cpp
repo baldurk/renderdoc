@@ -225,8 +225,8 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource1(
       // smaller resources it's better to just leave them as upload and map into them
       if(desc.Width >= 1024 * 1024)
       {
-        RDCLOG("Remapping committed resource %llu from upload to default for efficient replay",
-               pResource);
+        RDCLOG("Remapping committed resource %s from upload to default for efficient replay",
+               ToStr(pResource).c_str());
         props.Type = D3D12_HEAP_TYPE_DEFAULT;
         m_UploadResourceIds.insert(pResource);
       }
@@ -262,8 +262,8 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource1(
     }
     else
     {
-      SetObjName(ret, StringFormat::Fmt("Committed Resource %s ID %llu",
-                                        ToStr(desc.Dimension).c_str(), pResource));
+      SetObjName(ret, StringFormat::Fmt("Committed Resource %s ID %s",
+                                        ToStr(desc.Dimension).c_str(), ToStr(pResource).c_str()));
 
       ret = new WrappedID3D12Resource1(ret, this);
 

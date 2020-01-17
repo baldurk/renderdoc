@@ -200,8 +200,8 @@ void D3D12RenderState::ApplyComputeRootElements(ID3D12GraphicsCommandListX *cmd)
     }
     else
     {
-      RDCDEBUG("Skipping setting possibly stale compute root table referring to heap %llu",
-               compute.sigelems[i].id);
+      RDCDEBUG("Skipping setting possibly stale compute root table referring to heap %s",
+               ToStr(compute.sigelems[i].id).c_str());
     }
   }
 }
@@ -218,8 +218,8 @@ void D3D12RenderState::ApplyGraphicsRootElements(ID3D12GraphicsCommandListX *cmd
     }
     else
     {
-      RDCDEBUG("Skipping setting possibly stale graphics root table referring to heap %llu",
-               graphics.sigelems[i].id);
+      RDCDEBUG("Skipping setting possibly stale graphics root table referring to heap %s",
+               ToStr(graphics.sigelems[i].id).c_str());
     }
   }
 }

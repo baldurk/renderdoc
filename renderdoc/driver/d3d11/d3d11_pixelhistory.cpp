@@ -302,9 +302,9 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   uint32_t mip = sub.mip;
   uint32_t sampleIdx = sub.sample;
 
-  D3D11MarkerRegion historyMarker(
-      StringFormat::Fmt("Doing PixelHistory on %llu, (%u,%u) %u, %u, %u over %u events", target, x,
-                        y, slice, mip, sampleIdx, (uint32_t)events.size()));
+  D3D11MarkerRegion historyMarker(StringFormat::Fmt(
+      "Doing PixelHistory on %s, (%u,%u) %u, %u, %u over %u events", ToStr(target).c_str(), x, y,
+      slice, mip, sampleIdx, (uint32_t)events.size()));
 
   // Use the given type hint for typeless textures
   details.texFmt = GetTypedFormat(details.texFmt, typeCast);
@@ -331,8 +331,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   float xf = (float)x;
   float yf = (float)y;
 
-  RDCDEBUG("Checking Pixel History on %llu (%u, %u) with %u possible events", target, x, y,
-           (uint32_t)events.size());
+  RDCDEBUG("Checking Pixel History on %s (%u, %u) with %u possible events", ToStr(target).c_str(),
+           x, y, (uint32_t)events.size());
 
   // these occlusion queries are run with every test possible disabled
   rdcarray<ID3D11Query *> occl;
@@ -1400,7 +1400,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       }
       else
       {
-        RDCWARN("Unexpected view type, ID %llu. Assuming used...", events[i].view);
+        RDCWARN("Unexpected view type, ID %s. Assuming used...", ToStr(events[i].view).c_str());
         used = true;
       }
 

@@ -679,7 +679,7 @@ void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
     ResourceId id = states[ti].first;
     ImageRegionState &t = states[ti].second;
 
-    TRDBG("Applying barrier to %llu", GetOriginalID(id));
+    TRDBG("Applying barrier to %s", ToStr(GetOriginalID(id)).c_str());
 
     auto stit = layouts.find(id);
 

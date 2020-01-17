@@ -5252,14 +5252,14 @@ void WrappedID3D11DeviceContext::ExecuteCommandList(ID3D11CommandList *pCommandL
     if(!wrapped->IsCaptured())
     {
       // we don't have this command list captured. This frame is no longer successful
-      RDCWARN("Don't have command list %llu captured! This frame is unsuccessful.",
-              wrapped->GetResourceID());
+      RDCWARN("Don't have command list %s captured! This frame is unsuccessful.",
+              ToStr(wrapped->GetResourceID()).c_str());
       m_SuccessfulCapture = false;
       m_FailureReason = CaptureFailed_UncappedCmdlist;
     }
     else
     {
-      RDCDEBUG("Executed successful command list %llu", wrapped->GetResourceID());
+      RDCDEBUG("Executed successful command list %s", ToStr(wrapped->GetResourceID()).c_str());
       ResourceId contextId = wrapped->GetResourceID();
 
       D3D11ResourceRecord *cmdListRecord =
@@ -5399,8 +5399,8 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
       // list
       if(m_SuccessfulCapture)
       {
-        RDCDEBUG("Deferred Context %llu Finish()'d successfully! Got successful command list %llu",
-                 GetResourceID(), wrapped->GetResourceID());
+        RDCDEBUG("Deferred Context %s Finish()'d successfully! Got successful command list %s",
+                 ToStr(GetResourceID()).c_str(), ToStr(wrapped->GetResourceID()).c_str());
 
         RDCASSERT(wrapped->IsCaptured());
 
@@ -5428,9 +5428,9 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
       else    // !m_SuccessfulCapture
       {
         RDCDEBUG(
-            "Deferred Context %llu wasn't successful, but now we've Finish()'d so it is! Produced "
-            "unsuccessful command list %llu.",
-            GetResourceID(), wrapped->GetResourceID());
+            "Deferred Context %s wasn't successful, but now we've Finish()'d so it is! Produced "
+            "unsuccessful command list %s.",
+            ToStr(GetResourceID()).c_str(), ToStr(wrapped->GetResourceID()).c_str());
 
         RDCASSERT(!wrapped->IsCaptured());
 
@@ -5494,9 +5494,8 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
       m_DeferredReferences.clear();
 
       RDCDEBUG(
-          "Deferred Context %llu not capturing at the moment, Produced unsuccessful command list "
-          "%llu.",
-          GetResourceID(), wrapped->GetResourceID());
+          "Deferred Context %s not capturing at the moment, Produced unsuccessful command list %s.",
+          ToStr(GetResourceID()).c_str(), ToStr(wrapped->GetResourceID()).c_str());
     }
   }
 
@@ -7705,7 +7704,8 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(SerialiserType &ser, ID3D11Reso
     }
     else
     {
-      RDCERR("Couldn't find map for %llu/%u in open maps list", mapIdx.resource, mapIdx.subresource);
+      RDCERR("Couldn't find map for %s/%u in open maps list", ToStr(mapIdx.resource).c_str(),
+             mapIdx.subresource);
     }
 
     MapWrittenData = (byte *)intercept.app.pData;

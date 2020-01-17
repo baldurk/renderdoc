@@ -2682,7 +2682,7 @@ void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t lengt
 
   if(it == m_pDevice->GetResourceList().end())
   {
-    RDCERR("Getting buffer data for unknown buffer %llu!", buff);
+    RDCERR("Getting buffer data for unknown buffer %s!", ToStr(buff).c_str());
     return;
   }
 
@@ -2704,7 +2704,7 @@ void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, r
 
   if(!WrappedID3D12Shader::IsAlloc(res))
   {
-    RDCERR("Shader ID %llu does not correspond to a known fake shader", shader);
+    RDCERR("Shader ID %s does not correspond to a known fake shader", ToStr(shader).c_str());
     return;
   }
 
@@ -2999,7 +2999,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
   if(resource == NULL)
   {
-    RDCERR("Trying to get texture data for unknown ID %llu!", tex);
+    RDCERR("Trying to get texture data for unknown ID %s!", ToStr(tex).c_str());
     return;
   }
 

@@ -92,8 +92,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close(SerialiserType &ser)
       {
         ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(BakedCommandList);
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-        RDCDEBUG("Ending re-recorded command list for %llu baked to %llu", CommandList,
-                 BakedCommandList);
+        RDCDEBUG("Ending re-recorded command list for %s baked to %s", ToStr(CommandList).c_str(),
+                 ToStr(BakedCommandList).c_str());
 #endif
 
         int &markerCount = m_Cmd->m_BakedCmdListInfo[BakedCommandList].markerCount;
@@ -229,8 +229,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
           if(*it <= m_Cmd->m_LastEventID && m_Cmd->m_LastEventID < (*it + length))
           {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-            RDCDEBUG("Reset - partial detected %u < %u < %u, %llu -> %llu", *it,
-                     m_Cmd->m_LastEventID, *it + length, CommandList, BakedCommandList);
+            RDCDEBUG("Reset - partial detected %u < %u < %u, %s -> %s", *it, m_Cmd->m_LastEventID,
+                     *it + length, ToStr(CommandList).c_str(), ToStr(BakedCommandList).c_str());
 #endif
 
             m_Cmd->m_Partial[p].partialParent = BakedCommandList;
@@ -243,8 +243,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
           else if(*it <= m_Cmd->m_LastEventID)
           {
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
-            RDCDEBUG("Reset() - full re-record detected %u < %u <= %u, %llu -> %llu", *it,
-                     *it + length, m_Cmd->m_LastEventID, m_Cmd->m_LastCmdListID, BakedCommandList);
+            RDCDEBUG("Reset() - full re-record detected %u < %u <= %u, %s -> %s", *it, *it + length,
+                     m_Cmd->m_LastEventID, ToStr(m_Cmd->m_LastCmdListID).c_str(),
+                     ToStr(BakedCommandList).c_str());
 #endif
 
             // this submission is completely within the range, so it should still be re-recorded

@@ -56,7 +56,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue(SerialiserType &ser,
     }
     else
     {
-      SetObjName(ret, StringFormat::Fmt("Command Queue ID %llu", pCommandQueue));
+      SetObjName(ret, StringFormat::Fmt("Command Queue %s", ToStr(pCommandQueue).c_str()));
 
       ret = new WrappedID3D12CommandQueue(ret, this, m_State);
 
@@ -1305,8 +1305,8 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
       // smaller resources it's better to just leave them as upload and map into them
       if(desc.Width >= 1024 * 1024)
       {
-        RDCLOG("Remapping committed resource %llu from upload to default for efficient replay",
-               pResource);
+        RDCLOG("Remapping committed resource %s from upload to default for efficient replay",
+               ToStr(pResource).c_str());
         props.Type = D3D12_HEAP_TYPE_DEFAULT;
         m_UploadResourceIds.insert(pResource);
       }
@@ -1338,8 +1338,8 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
     }
     else
     {
-      SetObjName(ret, StringFormat::Fmt("Committed Resource %s ID %llu",
-                                        ToStr(desc.Dimension).c_str(), pResource));
+      SetObjName(ret, StringFormat::Fmt("Committed Resource %s %s", ToStr(desc.Dimension).c_str(),
+                                        ToStr(pResource).c_str()));
 
       ret = new WrappedID3D12Resource1(ret, this);
 
@@ -1616,8 +1616,8 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
     }
     else
     {
-      SetObjName(ret, StringFormat::Fmt("Placed Resource %s ID %llu",
-                                        ToStr(Descriptor.Dimension).c_str(), pResource));
+      SetObjName(ret, StringFormat::Fmt("Placed Resource %s %s", ToStr(Descriptor.Dimension).c_str(),
+                                        ToStr(pResource).c_str()));
 
       ret = new WrappedID3D12Resource1(ret, this);
 
@@ -2376,8 +2376,8 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
       }
       else
       {
-        SetObjName(ret, StringFormat::Fmt("Shared Resource %s ID %llu",
-                                          ToStr(desc.Dimension).c_str(), resourceId));
+        SetObjName(ret, StringFormat::Fmt("Shared Resource %s %s", ToStr(desc.Dimension).c_str(),
+                                          ToStr(resourceId).c_str()));
 
         ret = new WrappedID3D12Resource1(ret, this);
 

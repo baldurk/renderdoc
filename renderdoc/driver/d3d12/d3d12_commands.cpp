@@ -1479,7 +1479,7 @@ ID3D12GraphicsCommandListX *D3D12CommandData::RerecordCmdList(ResourceId cmdid,
 
   if(it == m_RerecordCmds.end())
   {
-    RDCERR("Didn't generate re-record command for %llu", cmdid);
+    RDCERR("Didn't generate re-record command for %s", ToStr(cmdid).c_str());
     return NULL;
   }
 
