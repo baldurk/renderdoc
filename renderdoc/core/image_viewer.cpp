@@ -495,7 +495,7 @@ void ImageViewer::RefreshFile()
   rgba32_float.compByteWidth = 4;
   rgba32_float.compType = CompType::Float;
 
-  texDetails.creationFlags = TextureCategory::SwapBuffer | TextureCategory::ColorTarget;
+  texDetails.creationFlags = TextureCategory::ShaderRead | TextureCategory::ColorTarget;
   texDetails.cubemap = false;
   texDetails.resourceId = m_TextureID;
   texDetails.byteSize = 0;
