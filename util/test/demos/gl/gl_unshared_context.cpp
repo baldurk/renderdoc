@@ -224,6 +224,8 @@ void main()
     glDeleteFramebuffers(1, &fboB);
 
     glDeleteProgram(program);
+    glDeleteBuffers(1, &vb);
+    glDeleteVertexArrays(1, &vao);
 
     DestroyContext(contextB);
 
