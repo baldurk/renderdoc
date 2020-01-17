@@ -2673,14 +2673,16 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
     case OPCODE_IMM_ATOMIC_ALLOC:
     {
-      uint32_t count = global.uavs[srcOpers[0].value.u.x].hiddenCounter++;
+      ShaderDebug::BindingSlot slot(srcOpers[0].value.u.x, 0);
+      uint32_t count = global.uavs[slot].hiddenCounter++;
       s.SetDst(op.operands[0], op, ShaderVariable("", count, count, count, count));
       break;
     }
 
     case OPCODE_IMM_ATOMIC_CONSUME:
     {
-      uint32_t count = --global.uavs[srcOpers[0].value.u.x].hiddenCounter;
+      ShaderDebug::BindingSlot slot(srcOpers[0].value.u.x, 0);
+      uint32_t count = --global.uavs[slot].hiddenCounter;
       s.SetDst(op.operands[0], op, ShaderVariable("", count, count, count, count));
       break;
     }
@@ -2794,9 +2796,10 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       }
       else
       {
-        offset = global.uavs[resIndex].firstElement;
-        numElems = global.uavs[resIndex].numElements;
-        data = &global.uavs[resIndex].data[0];
+        ShaderDebug::BindingSlot slot(resIndex, 0);
+        offset = global.uavs[slot].firstElement;
+        numElems = global.uavs[slot].numElements;
+        data = &global.uavs[slot].data[0];
 
         for(size_t i = 0; i < s.program->GetNumDeclarations(); i++)
         {
@@ -3019,9 +3022,10 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
       RDCASSERT(stride != 0);
 
-      uint32_t offset = srv ? global.srvs[resIndex].firstElement : global.uavs[resIndex].firstElement;
-      uint32_t numElems = srv ? global.srvs[resIndex].numElements : global.uavs[resIndex].numElements;
-      GlobalState::ViewFmt fmt = srv ? global.srvs[resIndex].format : global.uavs[resIndex].format;
+      ShaderDebug::BindingSlot slot(resIndex, 0);
+      uint32_t offset = srv ? global.srvs[slot].firstElement : global.uavs[slot].firstElement;
+      uint32_t numElems = srv ? global.srvs[slot].numElements : global.uavs[slot].numElements;
+      GlobalState::ViewFmt fmt = srv ? global.srvs[slot].format : global.uavs[slot].format;
 
       // indexing for raw views is in bytes, but firstElement/numElements is in format-sized
       // units. Multiply up by stride
@@ -3031,10 +3035,10 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         numElems *= RDCMIN(4, fmt.byteWidth);
       }
 
-      byte *data = srv ? &global.srvs[resIndex].data[0] : &global.uavs[resIndex].data[0];
-      bool texData = srv ? false : global.uavs[resIndex].tex;
-      uint32_t rowPitch = srv ? 0 : global.uavs[resIndex].rowPitch;
-      uint32_t depthPitch = srv ? 0 : global.uavs[resIndex].depthPitch;
+      byte *data = srv ? &global.srvs[slot].data[0] : &global.uavs[slot].data[0];
+      bool texData = srv ? false : global.uavs[slot].tex;
+      uint32_t rowPitch = srv ? 0 : global.uavs[slot].rowPitch;
+      uint32_t depthPitch = srv ? 0 : global.uavs[slot].depthPitch;
 
       if(gsm)
       {
@@ -3070,7 +3074,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       }
 
       if(!data || (!texData && elemIdx >= numElems) ||
-         (texData && texOffset >= global.uavs[resIndex].data.size()))
+         (texData && texOffset >= global.uavs[slot].data.size()))
       {
         if(load)
           s.SetDst(op.operands[0], op, ShaderVariable("", 0U, 0U, 0U, 0U));
@@ -3560,6 +3564,10 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       DXBC::ResourceRetType resourceRetType = DXBC::RETURN_TYPE_UNKNOWN;
       int sampleCount = 0;
 
+      // Default assumptions for bindings
+      ShaderDebug::BindingSlot resourceBinding((uint32_t)op.operands[2].indices[0].index, 0);
+      ShaderDebug::BindingSlot samplerBinding(0, 0);
+
       for(size_t i = 0; i < program->GetNumDeclarations(); i++)
       {
         const Declaration &decl = program->GetDeclaration(i);
@@ -3568,6 +3576,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
            decl.operand.indices == op.operands[3].indices)
         {
           samplerMode = decl.samplerMode;
+          samplerBinding.shaderRegister = (uint32_t)op.operands[3].indices[0].index;
         }
         if(decl.dim == RESOURCE_DIMENSION_BUFFER && op.operation == OPCODE_LD &&
            decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.type == TYPE_RESOURCE &&
@@ -3575,13 +3584,13 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         {
           resourceDim = decl.dim;
 
-          uint32_t resIndex = (uint32_t)decl.operand.indices[0].index;
+          resourceBinding.shaderRegister = (uint32_t)decl.operand.indices[0].index;
 
-          const byte *data = &global.srvs[resIndex].data[0];
-          uint32_t offset = global.srvs[resIndex].firstElement;
-          uint32_t numElems = global.srvs[resIndex].numElements;
+          const byte *data = &global.srvs[resourceBinding].data[0];
+          uint32_t offset = global.srvs[resourceBinding].firstElement;
+          uint32_t numElems = global.srvs[resourceBinding].numElements;
 
-          GlobalState::ViewFmt fmt = global.srvs[resIndex].format;
+          GlobalState::ViewFmt fmt = global.srvs[resourceBinding].format;
 
           data += fmt.Stride() * offset;
 
@@ -3622,6 +3631,8 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           resourceDim = decl.dim;
           resourceRetType = decl.resType[0];
           sampleCount = decl.sampleCount;
+
+          resourceBinding.shaderRegister = (uint32_t)decl.operand.indices[0].index;
 
           // doesn't seem like these are ever less than four components, even if the texture is
           // declared <float3> for example.
@@ -3675,16 +3686,6 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         ddyCalc = srcOpers[4];
       }
 
-      UINT texSlot = (UINT)op.operands[2].indices[0].index;
-      UINT samplerSlot = 0;
-
-      for(size_t i = 0; i < op.operands.size(); i++)
-      {
-        const Operand &operand = op.operands[i];
-        if(operand.type == OperandType::TYPE_SAMPLER)
-          samplerSlot = (UINT)operand.indices[0].index;
-      }
-
       int multisampleIndex = srcOpers[2].value.i.x;
       float lodOrCompareValue = srcOpers[3].value.f.x;
       if(op.operation == OPCODE_GATHER4_PO_C)
@@ -3709,20 +3710,17 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       // for bias instruction we can't do a SampleGradBias, so add the bias into the sampler state.
       float samplerBias = 0.0f;
       if(op.operation == OPCODE_SAMPLE_B)
-      {
-        samplerSlot = (UINT)srcOpers[2].value.u.x;
         samplerBias = srcOpers[3].value.f.x;
-      }
 
       SampleGatherResourceData resourceData;
       resourceData.dim = resourceDim;
       resourceData.retType = resourceRetType;
       resourceData.sampleCount = sampleCount;
-      resourceData.slot = texSlot;
+      resourceData.binding = resourceBinding;
 
       SampleGatherSamplerData samplerData;
       samplerData.mode = samplerMode;
-      samplerData.slot = samplerSlot;
+      samplerData.binding = samplerBinding;
       samplerData.bias = samplerBias;
 
       ShaderVariable lookupResult("tex", 0.0f, 0.0f, 0.0f, 0.0f);

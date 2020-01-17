@@ -40,22 +40,27 @@ enum DXGI_FORMAT;
 
 namespace ShaderDebug
 {
+struct BindingSlot
+{
+  BindingSlot() : shaderRegister(UINT32_MAX), registerSpace(UINT32_MAX) {}
+  BindingSlot(uint32_t shaderReg, uint32_t regSpace)
+      : shaderRegister(shaderReg), registerSpace(regSpace)
+  {
+  }
+  bool operator<(const BindingSlot &o) const
+  {
+    if(registerSpace != o.registerSpace)
+      return registerSpace < o.registerSpace;
+    return shaderRegister < o.shaderRegister;
+  }
+  uint32_t shaderRegister;
+  uint32_t registerSpace;
+};
+
 struct GlobalState
 {
 public:
-  GlobalState()
-  {
-    for(int i = 0; i < 8; i++)
-    {
-      uavs[i].firstElement = uavs[i].numElements = uavs[i].hiddenCounter = 0;
-      uavs[i].rowPitch = uavs[i].depthPitch = 0;
-      uavs[i].tex = false;
-    }
-
-    for(int i = 0; i < 128; i++)
-      srvs[i].firstElement = srvs[i].numElements = 0;
-  }
-
+  GlobalState() {}
   void PopulateGroupshared(const DXBCBytecode::Program *pBytecode);
 
   struct ViewFmt
@@ -77,8 +82,13 @@ public:
     }
   };
 
-  struct
+  struct UAVData
   {
+    UAVData()
+        : firstElement(0), numElements(0), tex(false), rowPitch(0), depthPitch(0), hiddenCounter(0)
+    {
+    }
+
     bytebuf data;
     uint32_t firstElement;
     uint32_t numElements;
@@ -89,16 +99,19 @@ public:
     ViewFmt format;
 
     uint32_t hiddenCounter;
-  } uavs[64];
+  };
+  std::map<BindingSlot, UAVData> uavs;
 
-  struct
+  struct SRVData
   {
+    SRVData() : firstElement(0), numElements(0) {}
     bytebuf data;
     uint32_t firstElement;
     uint32_t numElements;
 
     ViewFmt format;
-  } srvs[128];
+  };
+  std::map<BindingSlot, SRVData> srvs;
 
   struct groupsharedMem
   {
@@ -203,14 +216,14 @@ struct SampleGatherResourceData
   DXBCBytecode::ResourceDimension dim;
   DXBC::ResourceRetType retType;
   int sampleCount;
-  UINT slot;
+  ShaderDebug::BindingSlot binding;
 };
 
 struct SampleGatherSamplerData
 {
   DXBCBytecode::SamplerMode mode;
-  UINT slot;
   float bias;
+  ShaderDebug::BindingSlot binding;
 };
 
 enum class GatherChannel : uint8_t

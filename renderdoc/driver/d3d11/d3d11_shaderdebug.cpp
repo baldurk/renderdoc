@@ -1069,31 +1069,33 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
   ID3D11SamplerState *usedSamp = NULL;
 
   // fetch SRV and sampler from the shader stage we're debugging that this opcode wants to load from
+  UINT texSlot = resourceData.binding.shaderRegister;
+  UINT samplerSlot = samplerData.binding.shaderRegister;
   switch(GetShaderType())
   {
     case DXBC::ShaderType::Vertex:
-      context->VSGetShaderResources(resourceData.slot, 1, &usedSRV);
-      context->VSGetSamplers(samplerData.slot, 1, &usedSamp);
+      context->VSGetShaderResources(texSlot, 1, &usedSRV);
+      context->VSGetSamplers(samplerSlot, 1, &usedSamp);
       break;
     case DXBC::ShaderType::Hull:
-      context->HSGetShaderResources(resourceData.slot, 1, &usedSRV);
-      context->HSGetSamplers(samplerData.slot, 1, &usedSamp);
+      context->HSGetShaderResources(texSlot, 1, &usedSRV);
+      context->HSGetSamplers(samplerSlot, 1, &usedSamp);
       break;
     case DXBC::ShaderType::Domain:
-      context->DSGetShaderResources(resourceData.slot, 1, &usedSRV);
-      context->DSGetSamplers(samplerData.slot, 1, &usedSamp);
+      context->DSGetShaderResources(texSlot, 1, &usedSRV);
+      context->DSGetSamplers(samplerSlot, 1, &usedSamp);
       break;
     case DXBC::ShaderType::Geometry:
-      context->GSGetShaderResources(resourceData.slot, 1, &usedSRV);
-      context->GSGetSamplers(samplerData.slot, 1, &usedSamp);
+      context->GSGetShaderResources(texSlot, 1, &usedSRV);
+      context->GSGetSamplers(samplerSlot, 1, &usedSamp);
       break;
     case DXBC::ShaderType::Pixel:
-      context->PSGetShaderResources(resourceData.slot, 1, &usedSRV);
-      context->PSGetSamplers(samplerData.slot, 1, &usedSamp);
+      context->PSGetShaderResources(texSlot, 1, &usedSRV);
+      context->PSGetSamplers(samplerSlot, 1, &usedSamp);
       break;
     case DXBC::ShaderType::Compute:
-      context->CSGetShaderResources(resourceData.slot, 1, &usedSRV);
-      context->CSGetSamplers(samplerData.slot, 1, &usedSamp);
+      context->CSGetShaderResources(texSlot, 1, &usedSRV);
+      context->CSGetSamplers(samplerSlot, 1, &usedSamp);
       break;
     default: RDCERR("Unhandled shader type %d", GetShaderType()); break;
   }
@@ -1414,7 +1416,8 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
       ID3D11Resource *res = NULL;
       UAVs[i]->GetResource(&res);
 
-      global.uavs[dsti].hiddenCounter = GetStructCount(UAVs[i]);
+      ShaderDebug::BindingSlot slot(dsti, 0);
+      global.uavs[slot].hiddenCounter = GetStructCount(UAVs[i]);
 
       D3D11_UNORDERED_ACCESS_VIEW_DESC udesc;
       UAVs[i]->GetDesc(&udesc);
@@ -1450,37 +1453,37 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
       {
         ResourceFormat fmt = MakeResourceFormat(GetTypedFormat(udesc.Format));
 
-        global.uavs[dsti].format.byteWidth = fmt.compByteWidth;
-        global.uavs[dsti].format.numComps = fmt.compCount;
-        global.uavs[dsti].format.fmt = fmt.compType;
+        global.uavs[slot].format.byteWidth = fmt.compByteWidth;
+        global.uavs[slot].format.numComps = fmt.compCount;
+        global.uavs[slot].format.fmt = fmt.compType;
 
         if(udesc.Format == DXGI_FORMAT_R11G11B10_FLOAT)
-          global.uavs[dsti].format.byteWidth = 11;
+          global.uavs[slot].format.byteWidth = 11;
         if(udesc.Format == DXGI_FORMAT_R10G10B10A2_UINT ||
            udesc.Format == DXGI_FORMAT_R10G10B10A2_UNORM)
-          global.uavs[dsti].format.byteWidth = 10;
+          global.uavs[slot].format.byteWidth = 10;
       }
 
       if(udesc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER)
       {
-        global.uavs[dsti].firstElement = udesc.Buffer.FirstElement;
-        global.uavs[dsti].numElements = udesc.Buffer.NumElements;
+        global.uavs[slot].firstElement = udesc.Buffer.FirstElement;
+        global.uavs[slot].numElements = udesc.Buffer.NumElements;
       }
 
       if(res)
       {
         if(WrappedID3D11Buffer::IsAlloc(res))
         {
-          GetBufferData((ID3D11Buffer *)res, 0, 0, global.uavs[dsti].data);
+          GetBufferData((ID3D11Buffer *)res, 0, 0, global.uavs[slot].data);
         }
         else
         {
-          global.uavs[dsti].tex = true;
+          global.uavs[slot].tex = true;
 
-          uint32_t &rowPitch = global.uavs[dsti].rowPitch;
-          uint32_t &depthPitch = global.uavs[dsti].depthPitch;
+          uint32_t &rowPitch = global.uavs[slot].rowPitch;
+          uint32_t &depthPitch = global.uavs[slot].depthPitch;
 
-          bytebuf &data = global.uavs[dsti].data;
+          bytebuf &data = global.uavs[slot].data;
 
           if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1D ||
              udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY)
@@ -1627,9 +1630,11 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
       D3D11_SHADER_RESOURCE_VIEW_DESC sdesc;
       SRVs[i]->GetDesc(&sdesc);
 
+      ShaderDebug::BindingSlot slot(i, 0);
+
       if(sdesc.Format != DXGI_FORMAT_UNKNOWN)
       {
-        ShaderDebug::FillViewFmt(sdesc.Format, global.srvs[i].format);
+        ShaderDebug::FillViewFmt(sdesc.Format, global.srvs[slot].format);
       }
       else
       {
@@ -1642,11 +1647,11 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
           D3D11_BUFFER_DESC bufdesc;
           buf->GetDesc(&bufdesc);
 
-          global.srvs[i].format.stride = bufdesc.StructureByteStride;
+          global.srvs[slot].format.stride = bufdesc.StructureByteStride;
 
           // if we didn't get a type from the SRV description, try to pull it from the declaration
           ShaderDebug::LookupSRVFormatFromShaderReflection(*dxbc->GetReflection(), (uint32_t)i,
-                                                           global.srvs[i].format);
+                                                           global.srvs[slot].format);
         }
       }
 
@@ -1654,20 +1659,20 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
       {
         // I know this isn't what the docs say, but as best as I can tell
         // this is how it's used.
-        global.srvs[i].firstElement = sdesc.Buffer.FirstElement;
-        global.srvs[i].numElements = sdesc.Buffer.NumElements;
+        global.srvs[slot].firstElement = sdesc.Buffer.FirstElement;
+        global.srvs[slot].numElements = sdesc.Buffer.NumElements;
       }
       else if(sdesc.ViewDimension == D3D11_SRV_DIMENSION_BUFFEREX)
       {
-        global.srvs[i].firstElement = sdesc.BufferEx.FirstElement;
-        global.srvs[i].numElements = sdesc.BufferEx.NumElements;
+        global.srvs[slot].firstElement = sdesc.BufferEx.FirstElement;
+        global.srvs[slot].numElements = sdesc.BufferEx.NumElements;
       }
 
       if(res)
       {
         if(WrappedID3D11Buffer::IsAlloc(res))
         {
-          GetBufferData((ID3D11Buffer *)res, 0, 0, global.srvs[i].data);
+          GetBufferData((ID3D11Buffer *)res, 0, 0, global.srvs[slot].data);
         }
       }
 
