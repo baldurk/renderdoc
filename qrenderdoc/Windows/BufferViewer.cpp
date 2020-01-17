@@ -1815,6 +1815,7 @@ static void UnrollConstant(rdcstr prefix, const ShaderConstant &constant,
         c.name = QFormatStr("%1[%2]").arg(baseName).arg(a);
         columns.push_back(c);
         props.push_back(prop);
+        c.byteOffset += prop.format.ElementSize() * constant.type.descriptor.rows;
       }
     }
     else
