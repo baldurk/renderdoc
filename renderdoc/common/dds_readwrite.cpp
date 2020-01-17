@@ -248,6 +248,8 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
   fmt8.compType = CompType::UNorm;
   fmt8.type = ResourceFormatType::Regular;
 
+  special.compCount = 4;
+
   switch(format)
   {
     case DXGI_FORMAT_BC1_UNORM:
@@ -272,16 +274,19 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
     case DXGI_FORMAT_BC4_SNORM:
       special.type = ResourceFormatType::BC4;
       special.compType = (format == DXGI_FORMAT_BC4_UNORM ? CompType::UNorm : CompType::SNorm);
+      special.compCount = 1;
       return special;
     case DXGI_FORMAT_BC5_UNORM:
     case DXGI_FORMAT_BC5_SNORM:
       special.type = ResourceFormatType::BC5;
       special.compType = (format == DXGI_FORMAT_BC5_UNORM ? CompType::UNorm : CompType::SNorm);
+      special.compCount = 2;
       return special;
     case DXGI_FORMAT_BC6H_UF16:
     case DXGI_FORMAT_BC6H_SF16:
       special.type = ResourceFormatType::BC6;
       special.compType = (format == DXGI_FORMAT_BC6H_UF16 ? CompType::UNorm : CompType::SNorm);
+      special.compCount = 3;
       return special;
     case DXGI_FORMAT_BC7_UNORM:
     case DXGI_FORMAT_BC7_UNORM_SRGB:
@@ -294,10 +299,14 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
       special.type = ResourceFormatType::R10G10B10A2;
       special.compType = (format == DXGI_FORMAT_R10G10B10A2_UNORM ? CompType::UNorm : CompType::UInt);
       return special;
-    case DXGI_FORMAT_R11G11B10_FLOAT: special.type = ResourceFormatType::R11G11B10; return special;
+    case DXGI_FORMAT_R11G11B10_FLOAT:
+      special.type = ResourceFormatType::R11G11B10;
+      special.compCount = 3;
+      return special;
     case DXGI_FORMAT_B5G6R5_UNORM:
       special.SetBGRAOrder(true);
       special.type = ResourceFormatType::R5G6B5;
+      special.compCount = 3;
       return special;
     case DXGI_FORMAT_B5G5R5A1_UNORM:
       special.SetBGRAOrder(true);
@@ -305,8 +314,12 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
       return special;
     case DXGI_FORMAT_R9G9B9E5_SHAREDEXP:
       special.type = ResourceFormatType::R9G9B9E5;
+      special.compCount = 3;
       return special;
-    case DXGI_FORMAT_A8_UNORM: special.type = ResourceFormatType::A8; return special;
+    case DXGI_FORMAT_A8_UNORM:
+      special.type = ResourceFormatType::A8;
+      special.compCount = 1;
+      return special;
     case DXGI_FORMAT_B4G4R4A4_UNORM:
       special.SetBGRAOrder(true);
       special.type = ResourceFormatType::R4G4B4A4;
@@ -314,10 +327,12 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
     case DXGI_FORMAT_D24_UNORM_S8_UINT:
       special.compType = CompType::Depth;
       special.type = ResourceFormatType::D24S8;
+      special.compCount = 2;
       return special;
     case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
       special.compType = CompType::Depth;
       special.type = ResourceFormatType::D32S8;
+      special.compCount = 2;
       return special;
     case DXGI_FORMAT_YUY2:
       special.type = ResourceFormatType::YUV8;
