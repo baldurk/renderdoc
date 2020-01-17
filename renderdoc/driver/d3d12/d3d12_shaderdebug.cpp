@@ -453,8 +453,10 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
 
   rdcstr sampleProgram;
 
-  UINT texSlot = resourceData.slot;
-  UINT sampSlot = samplerData.slot;
+  rdcstr strResourceBinding = StringFormat::Fmt("t%u, space%u", resourceData.binding.shaderRegister,
+                                                resourceData.binding.registerSpace);
+  rdcstr strSamplerBinding = StringFormat::Fmt("s%u, space%u", samplerData.binding.shaderRegister,
+                                               samplerData.binding.registerSpace);
 
   if(opcode == OPCODE_SAMPLE || opcode == OPCODE_SAMPLE_B || opcode == OPCODE_SAMPLE_D)
   {
@@ -476,8 +478,9 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
       ddy = StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][ddyType], ddyCalc.value.i.x,
                               ddyCalc.value.i.y, ddyCalc.value.i.z, ddyCalc.value.i.w);
 
-    sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
-                                      textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
+    sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
+                                      textureDecl.c_str(), strResourceBinding.c_str(),
+                                      samplerDecl.c_str(), strSamplerBinding.c_str());
     sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
     sampleProgram += StringFormat::Fmt("t.SampleGrad(s, %s, %s, %s %s)%s;\n", texcoords.c_str(),
                                        ddx.c_str(), ddy.c_str(), offsets.c_str(), strSwizzle.c_str());
@@ -486,8 +489,9 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   else if(opcode == OPCODE_SAMPLE_L)
   {
     // lod selection
-    sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
-                                      textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
+    sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
+                                      textureDecl.c_str(), strResourceBinding.c_str(),
+                                      samplerDecl.c_str(), strSamplerBinding.c_str());
     sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
     sampleProgram += StringFormat::Fmt("t.SampleLevel(s, %s, %.10f %s)%s;\n", texcoords.c_str(),
                                        lodOrCompareValue, offsets.c_str(), strSwizzle.c_str());
@@ -522,8 +526,9 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     if(opcode == OPCODE_SAMPLE_C)
     {
       // comparison value
-      sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
-                                        textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
+      sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
+                                        textureDecl.c_str(), strResourceBinding.c_str(),
+                                        samplerDecl.c_str(), strSamplerBinding.c_str());
       sampleProgram +=
           funcRet + " main(float4 pos : SV_Position, " + uvdecl + ") : SV_Target0\n{\n";
       sampleProgram += StringFormat::Fmt("t.SampleCmpLevelZero(s, uv, %.10f %s).xxxx;\n",
@@ -532,8 +537,9 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     }
     else if(opcode == OPCODE_LOD)
     {
-      sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
-                                        textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
+      sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
+                                        textureDecl.c_str(), strResourceBinding.c_str(),
+                                        samplerDecl.c_str(), strSamplerBinding.c_str());
       sampleProgram +=
           funcRet + " main(float4 pos : SV_Position, " + uvdecl + ") : SV_Target0\n{\n";
       sampleProgram +=
@@ -546,8 +552,9 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   else if(opcode == OPCODE_SAMPLE_C_LZ)
   {
     // comparison value
-    sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
-                                      textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
+    sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
+                                      textureDecl.c_str(), strResourceBinding.c_str(),
+                                      samplerDecl.c_str(), strSamplerBinding.c_str());
     sampleProgram += funcRet + " main() : SV_Target0\n{\n";
     sampleProgram +=
         StringFormat::Fmt("return t.SampleCmpLevelZero(s, %s, %.10f %s)%s;\n", texcoords.c_str(),
@@ -556,14 +563,16 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   }
   else if(opcode == OPCODE_LD)
   {
-    sampleProgram = StringFormat::Fmt("%s : register(t%u);\n\n", textureDecl.c_str(), texSlot);
+    sampleProgram =
+        StringFormat::Fmt("%s : register(%s);\n\n", textureDecl.c_str(), strResourceBinding.c_str());
     sampleProgram += funcRet + " main() : SV_Target0\n{\n";
     sampleProgram += "return t.Load(" + texcoords + offsets + ")" + strSwizzle + ";";
     sampleProgram += "\n}\n";
   }
   else if(opcode == OPCODE_LD_MS)
   {
-    sampleProgram = StringFormat::Fmt("%s : register(t%u);\n\n", textureDecl.c_str(), texSlot);
+    sampleProgram =
+        StringFormat::Fmt("%s : register(%s);\n\n", textureDecl.c_str(), strResourceBinding.c_str());
     sampleProgram += funcRet + " main() : SV_Target0\n{\n";
     sampleProgram += StringFormat::Fmt("t.Load(%s, int(%d) %s)%s;\n", texcoords.c_str(),
                                        multisampleIndex, offsets.c_str(), strSwizzle.c_str());
@@ -571,8 +580,9 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   }
   else if(opcode == OPCODE_GATHER4 || opcode == OPCODE_GATHER4_PO)
   {
-    sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
-                                      textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
+    sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
+                                      textureDecl.c_str(), strResourceBinding.c_str(),
+                                      samplerDecl.c_str(), strSamplerBinding.c_str());
     sampleProgram += funcRet + " main() : SV_Target0\n{\n";
     sampleProgram += StringFormat::Fmt("return t.Gather%s(s, %s %s)%s;\n", strGatherChannel.c_str(),
                                        texcoords.c_str(), offsets.c_str(), strSwizzle.c_str());
@@ -581,8 +591,9 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   else if(opcode == OPCODE_GATHER4_C || opcode == OPCODE_GATHER4_PO_C)
   {
     // comparison value
-    sampleProgram = StringFormat::Fmt("%s : register(t%u);\n%s : register(s%u);\n\n",
-                                      textureDecl.c_str(), texSlot, samplerDecl.c_str(), sampSlot);
+    sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
+                                      textureDecl.c_str(), strResourceBinding.c_str(),
+                                      samplerDecl.c_str(), strSamplerBinding.c_str());
     sampleProgram += funcRet + " main() : SV_Target0\n{\n";
     sampleProgram += StringFormat::Fmt("return t.GatherCmp%s(s, %s, %.10f %s)%s;\n",
                                        strGatherChannel.c_str(), texcoords.c_str(),
@@ -590,17 +601,19 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     sampleProgram += "}\n";
   }
 
-  // Create VS/PS to fetch the sample
+  // Create VS/PS to fetch the sample. Because the program being debugged might be using SM 5.1, we
+  // need to do that too, to support reusing the existing root signature that may use a non-zero
+  // register space for the resource or sampler.
   ID3DBlob *vsBlob = NULL;
   ID3DBlob *psBlob = NULL;
   UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS;
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(vsProgram.c_str(), "main", flags, "vs_5_0",
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(vsProgram.c_str(), "main", flags, "vs_5_1",
                                                 &vsBlob) != "")
   {
     RDCERR("Failed to create shader to extract inputs");
     return false;
   }
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(sampleProgram.c_str(), "main", flags, "ps_5_0",
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(sampleProgram.c_str(), "main", flags, "ps_5_1",
                                                 &psBlob) != "")
   {
     RDCERR("Failed to create shader to extract inputs");
@@ -769,34 +782,36 @@ void D3D12DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
         if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV && element.type == eRootSRV)
         {
           UINT shaderReg = param.Descriptor.ShaderRegister;
+          ShaderDebug::BindingSlot slot(shaderReg, param.Descriptor.RegisterSpace);
           ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(element.id);
           D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
 
           // TODO: Root buffers can be 32-bit UINT/SINT/FLOAT. Using UINT for now, but the
           // resource desc format or the DXBC reflection info might be more correct.
-          ShaderDebug::FillViewFmt(DXGI_FORMAT_R32_UINT, global.srvs[shaderReg].format);
-          global.srvs[shaderReg].firstElement = (uint32_t)(element.offset / sizeof(uint32_t));
-          global.srvs[shaderReg].numElements =
+          ShaderDebug::FillViewFmt(DXGI_FORMAT_R32_UINT, global.srvs[slot].format);
+          global.srvs[slot].firstElement = (uint32_t)(element.offset / sizeof(uint32_t));
+          global.srvs[slot].numElements =
               (uint32_t)((resDesc.Width - element.offset) / sizeof(uint32_t));
 
           if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
-            GetBufferData(pResource, 0, 0, global.srvs[shaderReg].data);
+            GetBufferData(pResource, 0, 0, global.srvs[slot].data);
         }
         else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV && element.type == eRootUAV)
         {
           UINT shaderReg = param.Descriptor.ShaderRegister;
+          ShaderDebug::BindingSlot slot(shaderReg, param.Descriptor.RegisterSpace);
           ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(element.id);
           D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
 
           // TODO: Root buffers can be 32-bit UINT/SINT/FLOAT. Using UINT for now, but the
           // resource desc format or the DXBC reflection info might be more correct.
-          ShaderDebug::FillViewFmt(DXGI_FORMAT_R32_UINT, global.uavs[shaderReg].format);
-          global.uavs[shaderReg].firstElement = (uint32_t)(element.offset / sizeof(uint32_t));
-          global.uavs[shaderReg].numElements =
+          ShaderDebug::FillViewFmt(DXGI_FORMAT_R32_UINT, global.uavs[slot].format);
+          global.uavs[slot].firstElement = (uint32_t)(element.offset / sizeof(uint32_t));
+          global.uavs[slot].numElements =
               (uint32_t)((resDesc.Width - element.offset) / sizeof(uint32_t));
 
           if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
-            GetBufferData(pResource, 0, 0, global.uavs[shaderReg].data);
+            GetBufferData(pResource, 0, 0, global.uavs[slot].data);
         }
         else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE &&
                 element.type == eRootTable)
@@ -838,34 +853,36 @@ void D3D12DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
               {
                 if(desc)
                 {
+                  ShaderDebug::BindingSlot slot(shaderReg, range.RegisterSpace);
+
                   ResourceId srvId = desc->GetResResourceId();
                   ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
 
                   D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = desc->GetSRV();
                   if(srvDesc.Format != DXGI_FORMAT_UNKNOWN)
                   {
-                    ShaderDebug::FillViewFmt(srvDesc.Format, global.srvs[shaderReg].format);
+                    ShaderDebug::FillViewFmt(srvDesc.Format, global.srvs[slot].format);
                   }
                   else
                   {
                     D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
                     if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
                     {
-                      global.srvs[shaderReg].format.stride = srvDesc.Buffer.StructureByteStride;
+                      global.srvs[slot].format.stride = srvDesc.Buffer.StructureByteStride;
 
                       // If we didn't get a type from the SRV description, try to pull it from the
                       // shader reflection info
                       ShaderDebug::LookupSRVFormatFromShaderReflection(
-                          *dxbc->GetReflection(), (uint32_t)shaderReg, global.srvs[shaderReg].format);
+                          *dxbc->GetReflection(), (uint32_t)shaderReg, global.srvs[slot].format);
                     }
                   }
 
                   if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_BUFFER)
                   {
-                    global.srvs[shaderReg].firstElement = (uint32_t)srvDesc.Buffer.FirstElement;
-                    global.srvs[shaderReg].numElements = srvDesc.Buffer.NumElements;
+                    global.srvs[slot].firstElement = (uint32_t)srvDesc.Buffer.FirstElement;
+                    global.srvs[slot].numElements = srvDesc.Buffer.NumElements;
 
-                    GetBufferData(pResource, 0, 0, global.srvs[shaderReg].data);
+                    GetBufferData(pResource, 0, 0, global.srvs[slot].data);
                   }
                   // Textures are sampled via a pixel shader, so there's no need to copy their data
 
@@ -879,6 +896,8 @@ void D3D12DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
               {
                 if(desc)
                 {
+                  ShaderDebug::BindingSlot slot(shaderReg, range.RegisterSpace);
+
                   ResourceId uavId = desc->GetResResourceId();
                   ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(uavId);
 
@@ -887,14 +906,14 @@ void D3D12DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
                   D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = desc->GetUAV();
                   if(uavDesc.Format != DXGI_FORMAT_UNKNOWN)
                   {
-                    ShaderDebug::FillViewFmt(uavDesc.Format, global.uavs[shaderReg].format);
+                    ShaderDebug::FillViewFmt(uavDesc.Format, global.uavs[slot].format);
                   }
                   else
                   {
                     D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
                     if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
                     {
-                      global.uavs[shaderReg].format.stride = uavDesc.Buffer.StructureByteStride;
+                      global.uavs[slot].format.stride = uavDesc.Buffer.StructureByteStride;
 
                       // TODO: Try looking up UAV from shader reflection info?
                     }
@@ -902,15 +921,15 @@ void D3D12DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 
                   if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
                   {
-                    global.uavs[shaderReg].firstElement = (uint32_t)uavDesc.Buffer.FirstElement;
-                    global.uavs[shaderReg].numElements = uavDesc.Buffer.NumElements;
+                    global.uavs[slot].firstElement = (uint32_t)uavDesc.Buffer.FirstElement;
+                    global.uavs[slot].numElements = uavDesc.Buffer.NumElements;
 
-                    GetBufferData(pResource, 0, 0, global.uavs[shaderReg].data);
+                    GetBufferData(pResource, 0, 0, global.uavs[slot].data);
                   }
                   else
                   {
                     // TODO: Handle texture resources in UAVs - need to copy/map to fetch the data
-                    global.uavs[shaderReg].tex = true;
+                    global.uavs[slot].tex = true;
                   }
                 }
               }
