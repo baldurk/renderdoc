@@ -12,6 +12,7 @@ import renderdoc as rd
 from . import util
 from . import testcase
 from .logging import log
+from pathlib import Path
 
 
 def get_tests():
@@ -224,6 +225,13 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
                 # On windows, try to elevate. This will mean a UAC prompt
                 args = sys.argv.copy()
                 args.append("--internal_vulkan_register")
+
+                for i in range(len(args)):
+                    if os.path.exists(args[i]):
+                        args[i] = str(Path(args[i]).resolve())
+
+                if 'renderdoccmd' in sys.executable:
+                    args = ['vulkanlayer', '--register', '--system']
 
                 ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, ' '.join(args), None, 1)
 

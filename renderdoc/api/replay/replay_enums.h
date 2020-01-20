@@ -4126,6 +4126,10 @@ DOCUMENT(R"(A set of flags giving details of the current status of vulkan layer 
 .. data:: Unfixable
 
   The current situation is not fixable automatically and requires user intervention/disambiguation.
+
+.. data:: Unsupported
+
+  Vulkan is not supported by this build of RenderDoc and the layer cannot be registered.
 )");
 enum class VulkanLayerFlags : uint32_t
 {
@@ -4137,6 +4141,7 @@ enum class VulkanLayerFlags : uint32_t
   RegisterAll = 0x10,
   UpdateAllowed = 0x20,
   Unfixable = 0x40,
+  Unsupported = 0x80,
 };
 
 BITMASK_OPERATORS(VulkanLayerFlags);

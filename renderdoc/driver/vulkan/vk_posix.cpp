@@ -29,6 +29,8 @@
 #include "vk_replay.h"
 
 #include <errno.h>
+#include <limits.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -337,6 +339,14 @@ static rdcstr GetSOFromJSON(const rdcstr &json)
 
   delete[] json_string;
 
+  // get the realpath, if this is a real filename
+  char *resolved = realpath(ret.c_str(), NULL);
+  if(resolved && resolved[0])
+  {
+    ret = resolved;
+    free(resolved);
+  }
+
   return ret;
 }
 
@@ -391,23 +401,19 @@ void MakeParentDirs(rdcstr file)
 bool VulkanReplay::CheckVulkanLayer(VulkanLayerFlags &flags, rdcarray<rdcstr> &myJSONs,
                                     rdcarray<rdcstr> &otherJSONs)
 {
-  // see if the user has suppressed all this checking as a "I know what I'm doing" measure
-
-  const char *home_path = getenv("HOME");
-  if(home_path == NULL)
-    home_path = "";
-  if(FileExists(rdcstr(home_path) + "/.renderdoc/ignore_vulkan_layer_issues"))
-  {
-    flags = VulkanLayerFlags::ThisInstallRegistered;
-    return false;
-  }
-
   ////////////////////////////////////////////////////////////////////////////////////////
   // check that there's only one layer registered, and it points to the same .so file that
   // we are running with in this instance of renderdoccmd
 
   rdcstr librenderdoc_path;
   FileIO::GetLibraryFilename(librenderdoc_path);
+
+  char *resolved = realpath(librenderdoc_path.c_str(), NULL);
+  if(resolved && resolved[0])
+  {
+    librenderdoc_path = resolved;
+    free(resolved);
+  }
 
   if(librenderdoc_path.empty() || !FileExists(librenderdoc_path))
   {

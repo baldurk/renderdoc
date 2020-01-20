@@ -515,9 +515,11 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
 
         QStringList renderdoccmdParams;
 
-        renderdoccmdParams << lit("vulkanregister");
+        renderdoccmdParams << lit("vulkanlayer");
         if(system)
           renderdoccmdParams << lit("--system");
+        else
+          renderdoccmdParams << lit("--user");
 
         if(!RunProcessAsAdmin(cmd, renderdoccmdParams, this, true, regComplete))
           regComplete();

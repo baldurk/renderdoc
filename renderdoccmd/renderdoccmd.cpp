@@ -38,6 +38,8 @@ std::string conv(const rdcstr &s)
   return std::string(s.begin(), s.end());
 }
 
+static int command_usage(std::string command = "");
+
 // normally this is in the renderdoc core library, but it's needed for the 'unknown enum' path,
 // so we implement it here using ostringstream. It's not great, but this is a very uncommon path -
 // either for invalid values or for when a new enum is added and the code isn't updated
@@ -120,64 +122,6 @@ void DisplayRendererPreview(IReplayController *renderer, uint32_t width, uint32_
   }
 
   DisplayRendererPreview(renderer, d, width, height, numLoops);
-}
-
-std::map<std::string, Command *> commands;
-std::map<std::string, std::string> aliases;
-
-void add_command(const std::string &name, Command *cmd)
-{
-  commands[name] = cmd;
-}
-
-void add_alias(const std::string &alias, const std::string &command)
-{
-  aliases[alias] = command;
-}
-
-static void clean_up()
-{
-  for(auto it = commands.begin(); it != commands.end(); ++it)
-    delete it->second;
-}
-
-static int command_usage(std::string command = "")
-{
-  if(!command.empty())
-    std::cerr << command << " is not a valid command." << std::endl << std::endl;
-
-  std::cerr << "Usage: renderdoccmd <command> [args ...]" << std::endl;
-  std::cerr << "Command line tool for capture & replay with RenderDoc." << std::endl << std::endl;
-
-  std::cerr << "Command can be one of:" << std::endl;
-
-  size_t max_width = 0;
-  for(auto it = commands.begin(); it != commands.end(); ++it)
-  {
-    if(it->second->IsInternalOnly())
-      continue;
-
-    max_width = std::max(max_width, it->first.length());
-  }
-
-  for(auto it = commands.begin(); it != commands.end(); ++it)
-  {
-    if(it->second->IsInternalOnly())
-      continue;
-
-    std::cerr << "  " << it->first;
-    for(size_t n = it->first.length(); n < max_width + 4; n++)
-      std::cerr << ' ';
-    std::cerr << it->second->Description() << std::endl;
-  }
-  std::cerr << std::endl;
-
-  std::cerr << "To see details of any command, see 'renderdoccmd <command> --help'" << std::endl
-            << std::endl;
-
-  std::cerr << "For more information, see <https://renderdoc.org/>." << std::endl;
-
-  return 2;
 }
 
 static std::vector<std::string> version_lines;
@@ -1184,12 +1128,267 @@ struct EmbeddedSectionCommand : public Command
   }
 };
 
+struct VulkanRegisterCommand : public Command
+{
+private:
+  bool m_LayerNeedUpdate = false;
+  VulkanLayerRegistrationInfo m_Info;
+
+public:
+  VulkanRegisterCommand(const GlobalEnvironment &env) : Command(env)
+  {
+    m_LayerNeedUpdate = RENDERDOC_NeedVulkanLayerRegistration(&m_Info);
+  }
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.add("explain", '\0',
+               "Explain what the status of the layer registration is, and how it can be resolved");
+    parser.add("register", '\0', "Register RenderDoc's vulkan layer");
+    parser.add("user", '\0',
+               "Install layer registration at user-local level instead of system-wide");
+    parser.add("system", '\0',
+               "Install layer registration system-wide (requires admin privileges)");
+  }
+  virtual const char *Description() { return "Vulkan layer registration needs attention"; }
+  virtual bool IsInternalOnly()
+  {
+    // if the layer is registered and doesn't need an update, don't report this command in help
+    return !m_LayerNeedUpdate;
+  }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    if(parser.exist("explain") || !parser.exist("register"))
+    {
+      if(m_LayerNeedUpdate)
+      {
+        if(m_Info.flags & VulkanLayerFlags::Unfixable)
+        {
+          std::cerr << "** There is an unfixable problem with your vulkan layer configuration.\n\n"
+                       "This is most commonly caused by having a distribution-provided package of "
+                       "RenderDoc "
+                       "installed, which cannot be modified by another build of RenderDoc.\n\n"
+                       "Please consult the RenderDoc documentation, or package/distribution "
+                       "documentation on "
+                       "linux."
+                    << std::endl;
+
+          if(m_Info.otherJSONs.size() > 1)
+            std::cerr << "Conflicting manifests:\n\n";
+          else
+            std::cerr << "Conflicting manifest:\n\n";
+
+          for(const rdcstr &j : m_Info.otherJSONs)
+            std::cerr << conv(j) << std::endl;
+
+          return 0;
+        }
+
+        std::cerr << "*************************************************************************"
+                  << std::endl;
+        std::cerr << "**          Warning: Vulkan layer not correctly registered.            **"
+                  << std::endl;
+        std::cerr << std::endl;
+
+        if(m_Info.flags & VulkanLayerFlags::OtherInstallsRegistered)
+          std::cerr << " - Non-matching RenderDoc layer(s) are registered." << std::endl;
+
+        if(!(m_Info.flags & VulkanLayerFlags::ThisInstallRegistered))
+          std::cerr << " - This build's RenderDoc layer is not registered." << std::endl;
+
+        std::cerr << std::endl;
+
+        std::cerr << " To fix this, the following actions must take place: " << std::endl
+                  << std::endl;
+
+        const bool registerAll = bool(m_Info.flags & VulkanLayerFlags::RegisterAll);
+        const bool updateAllowed = bool(m_Info.flags & VulkanLayerFlags::UpdateAllowed);
+
+        for(const rdcstr &j : m_Info.otherJSONs)
+          std::cerr << (updateAllowed ? " Unregister/update: " : " Unregister: ") << j.c_str()
+                    << std::endl;
+
+        if(!(m_Info.flags & VulkanLayerFlags::ThisInstallRegistered))
+        {
+          if(registerAll)
+          {
+            for(const rdcstr &j : m_Info.myJSONs)
+              std::cerr << (updateAllowed ? " Register/update: " : " Register: ") << j.c_str()
+                        << std::endl;
+          }
+          else
+          {
+            std::cerr << (updateAllowed ? " Register one of:" : " Register/update one of:")
+                      << std::endl;
+            for(const rdcstr &j : m_Info.myJSONs)
+              std::cerr << "  -- " << j.c_str() << "\n";
+          }
+        }
+
+        std::cerr << std::endl;
+
+        if(m_Info.flags & VulkanLayerFlags::UserRegisterable)
+        {
+          std::cerr << " You must choose whether to register at user or system level." << std::endl
+                    << std::endl;
+          std::cerr
+              << " 'vulkanlayer --register --user' will register the layer local to your user."
+              << std::endl;
+          if(m_Info.flags & VulkanLayerFlags::NeedElevation)
+            std::cerr << "  (This requires admin permissions to unregister other installs)"
+                      << std::endl;
+          else
+            std::cerr << " (This does not require admin permission)" << std::endl;
+          std::cerr << std::endl;
+          std::cerr << " If you want to install system-wide, run 'vulkanlayer --system'."
+                    << std::endl;
+          std::cerr << "  (This requires admin permission)" << std::endl;
+
+          std::cerr << "*************************************************************************"
+                    << std::endl;
+          std::cerr << std::endl;
+        }
+        else
+        {
+          std::cerr << " The layer must be registered at system level, this operation requires\n"
+                    << " admin permissions." << std::endl;
+          std::cerr << std::endl;
+          std::cerr << " Run 'vulkanlayer --register --system' as administrator to register."
+                    << std::endl;
+
+          std::cerr << std::endl;
+          std::cerr << "*************************************************************************"
+                    << std::endl;
+          std::cerr << std::endl;
+        }
+      }
+      else
+      {
+        std::cerr << "The RenderDoc vulkan layer appears to be correctly registered." << std::endl;
+      }
+
+      // don't do anything if we're just explaining the situation
+      return 0;
+    }
+
+    bool user = parser.exist("user"), system = parser.exist("system");
+
+    if(m_Info.flags & VulkanLayerFlags::UserRegisterable)
+    {
+      if(user)
+      {
+        std::cerr << "Vulkan layer cannot be registered at user level." << std::endl;
+        return 1;
+      }
+    }
+
+    if(user && system)
+    {
+      std::cerr << "Vulkan layer cannot be registered at user and system levels." << std::endl;
+      return 1;
+    }
+    else if(user || system)
+    {
+      RENDERDOC_UpdateVulkanLayerRegistration(system);
+
+      if(RENDERDOC_NeedVulkanLayerRegistration(NULL))
+      {
+        std::cerr << "Vulkan layer registration not successful. ";
+        if(system)
+          std::cerr << "Check that you are running as administrator";
+        std::cerr << std::endl;
+      }
+    }
+    else
+    {
+      std::cerr << "You must select either '--user' or '--system' to choose where to register the "
+                   "vulkan layer."
+                << std::endl;
+      return 1;
+    }
+
+    return 0;
+  }
+};
+
 REPLAY_PROGRAM_MARKER()
+
+VulkanRegisterCommand *vulkan = NULL;
+
+std::map<std::string, Command *> commands;
+std::map<std::string, std::string> aliases;
+
+void add_command(const std::string &name, Command *cmd)
+{
+  commands[name] = cmd;
+}
+
+void add_alias(const std::string &alias, const std::string &command)
+{
+  aliases[alias] = command;
+}
+
+static void clean_up()
+{
+  for(auto it = commands.begin(); it != commands.end(); ++it)
+    delete it->second;
+}
+
+static int command_usage(std::string command)
+{
+  if(!command.empty())
+    std::cerr << command << " is not a valid command." << std::endl << std::endl;
+
+  if(vulkan && !vulkan->IsInternalOnly())
+    std::cerr << "** NOTE: Vulkan layer registration problem detected.\n"
+                 "** Run 'vulkanlayer --explain' for more details"
+              << std::endl
+              << std::endl;
+
+  std::cerr << "Usage: renderdoccmd <command> [args ...]" << std::endl;
+  std::cerr << "Command line tool for capture & replay with RenderDoc." << std::endl << std::endl;
+
+  std::cerr << "Command can be one of:" << std::endl;
+
+  size_t max_width = 0;
+  for(auto it = commands.begin(); it != commands.end(); ++it)
+  {
+    if(it->second->IsInternalOnly())
+      continue;
+
+    max_width = std::max(max_width, it->first.length());
+  }
+
+  for(auto it = commands.begin(); it != commands.end(); ++it)
+  {
+    if(it->second->IsInternalOnly())
+      continue;
+
+    std::cerr << "  " << it->first;
+    for(size_t n = it->first.length(); n < max_width + 4; n++)
+      std::cerr << ' ';
+    std::cerr << it->second->Description() << std::endl;
+  }
+  std::cerr << std::endl;
+
+  std::cerr << "To see details of any command, see 'renderdoccmd <command> --help'" << std::endl
+            << std::endl;
+
+  std::cerr << "For more information, see <https://renderdoc.org/>." << std::endl;
+
+  return 2;
+}
 
 int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
 {
   // we don't need this in renderdoccmd.
   env.enumerateGPUs = false;
+
+  vulkan = new VulkanRegisterCommand(env);
+
+  // if vulkan isn't supported, or the layer is fully registered, this command will not be listed
+  // in help so it will be invisible
+  add_command("vulkanlayer", vulkan);
 
   try
   {

@@ -475,6 +475,8 @@ public:
     if(m_VulkanCheck)
       return m_VulkanCheck(flags, myJSONs, otherJSONs);
 
+    flags = VulkanLayerFlags::Unfixable | VulkanLayerFlags::Unsupported;
+
     return false;
   }
 
