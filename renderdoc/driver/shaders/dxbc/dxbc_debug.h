@@ -35,6 +35,13 @@ class DXBCContainer;
 struct CBufferVariable;
 }
 
+namespace DXBCBytecode
+{
+struct Declaration;
+class Program;
+enum OperandType;
+}
+
 class WrappedID3D11Device;
 enum DXGI_FORMAT;
 
@@ -56,6 +63,12 @@ struct BindingSlot
   uint32_t shaderRegister;
   uint32_t registerSpace;
 };
+
+ShaderDebug::BindingSlot GetBindingSlotForDeclaration(const DXBCBytecode::Program &program,
+                                                      const DXBCBytecode::Declaration &decl);
+ShaderDebug::BindingSlot GetBindingSlotForIdentifier(const DXBCBytecode::Program &program,
+                                                     DXBCBytecode::OperandType declType,
+                                                     uint32_t identifier);
 
 struct GlobalState
 {
@@ -101,6 +114,7 @@ public:
     uint32_t hiddenCounter;
   };
   std::map<BindingSlot, UAVData> uavs;
+  typedef std::map<BindingSlot, UAVData>::iterator UAVIterator;
 
   struct SRVData
   {
@@ -112,6 +126,7 @@ public:
     ViewFmt format;
   };
   std::map<BindingSlot, SRVData> srvs;
+  typedef std::map<BindingSlot, SRVData>::iterator SRVIterator;
 
   struct groupsharedMem
   {

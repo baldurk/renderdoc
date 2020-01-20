@@ -2673,16 +2673,34 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
     case OPCODE_IMM_ATOMIC_ALLOC:
     {
-      ShaderDebug::BindingSlot slot(srcOpers[0].value.u.x, 0);
-      uint32_t count = global.uavs[slot].hiddenCounter++;
+      ShaderDebug::BindingSlot slot =
+          GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, srcOpers[0].value.u.x);
+      GlobalState::UAVIterator uav = global.uavs.find(slot);
+      if(uav == global.uavs.end())
+      {
+        // With on-demand buffer fetching, this is where we'd fetch
+        RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
+        return s;
+      }
+
+      uint32_t count = uav->second.hiddenCounter++;
       s.SetDst(op.operands[0], op, ShaderVariable("", count, count, count, count));
       break;
     }
 
     case OPCODE_IMM_ATOMIC_CONSUME:
     {
-      ShaderDebug::BindingSlot slot(srcOpers[0].value.u.x, 0);
-      uint32_t count = --global.uavs[slot].hiddenCounter;
+      ShaderDebug::BindingSlot slot =
+          GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, srcOpers[0].value.u.x);
+      GlobalState::UAVIterator uav = global.uavs.find(slot);
+      if(uav == global.uavs.end())
+      {
+        // With on-demand buffer fetching, this is where we'd fetch
+        RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
+        return s;
+      }
+
+      uint32_t count = --uav->second.hiddenCounter;
       s.SetDst(op.operands[0], op, ShaderVariable("", count, count, count, count));
       break;
     }
@@ -2796,30 +2814,33 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       }
       else
       {
-        ShaderDebug::BindingSlot slot(resIndex, 0);
-        offset = global.uavs[slot].firstElement;
-        numElems = global.uavs[slot].numElements;
-        data = &global.uavs[slot].data[0];
-
-        for(size_t i = 0; i < s.program->GetNumDeclarations(); i++)
+        ShaderDebug::BindingSlot slot =
+            GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, resIndex);
+        GlobalState::UAVIterator uav = global.uavs.find(slot);
+        if(uav == global.uavs.end())
         {
-          const DXBCBytecode::Declaration &decl = program->GetDeclaration(i);
+          // With on-demand buffer fetching, this is where we'd fetch
+          RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
+          return s;
+        }
 
-          if(decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW &&
-             decl.operand.indices[0].index == resIndex)
+        offset = uav->second.firstElement;
+        numElems = uav->second.numElements;
+        data = &uav->second.data[0];
+
+        const DXBCBytecode::Declaration *pDecl =
+            program->FindDeclaration(TYPE_UNORDERED_ACCESS_VIEW, resIndex);
+        if(pDecl)
+        {
+          if(pDecl->declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW)
           {
-            if(decl.declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW)
-            {
-              stride = 4;
-              structured = false;
-              break;
-            }
-            else if(decl.declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED)
-            {
-              stride = decl.stride;
-              structured = true;
-              break;
-            }
+            stride = 4;
+            structured = false;
+          }
+          else if(pDecl->declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED)
+          {
+            stride = pDecl->stride;
+            structured = true;
           }
         }
       }
@@ -2951,25 +2972,12 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           }
           else if(!gsm)
           {
-            for(size_t i = 0; i < s.program->GetNumDeclarations(); i++)
-            {
-              const DXBCBytecode::Declaration &decl = program->GetDeclaration(i);
-
-              if(decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW && !srv &&
-                 decl.operand.indices[0].index == resIndex &&
-                 decl.declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED)
-              {
-                stride = decl.stride;
-                break;
-              }
-              if(decl.operand.type == TYPE_RESOURCE && srv &&
-                 decl.operand.indices[0].index == resIndex &&
-                 decl.declaration == OPCODE_DCL_RESOURCE_STRUCTURED)
-              {
-                stride = decl.stride;
-                break;
-              }
-            }
+            OperandType declType = srv ? TYPE_RESOURCE : TYPE_UNORDERED_ACCESS_VIEW;
+            OpcodeType declOpcode =
+                srv ? OPCODE_DCL_RESOURCE_STRUCTURED : OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED;
+            const DXBCBytecode::Declaration *pDecl = program->FindDeclaration(declType, resIndex);
+            if(pDecl && pDecl->declaration == declOpcode)
+              stride = pDecl->stride;
           }
         }
 
@@ -3022,10 +3030,34 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
       RDCASSERT(stride != 0);
 
-      ShaderDebug::BindingSlot slot(resIndex, 0);
-      uint32_t offset = srv ? global.srvs[slot].firstElement : global.uavs[slot].firstElement;
-      uint32_t numElems = srv ? global.srvs[slot].numElements : global.uavs[slot].numElements;
-      GlobalState::ViewFmt fmt = srv ? global.srvs[slot].format : global.uavs[slot].format;
+      ShaderDebug::BindingSlot slot = GetBindingSlotForIdentifier(
+          *program, srv ? TYPE_RESOURCE : TYPE_UNORDERED_ACCESS_VIEW, resIndex);
+      GlobalState::SRVIterator srvIter;
+      GlobalState::UAVIterator uavIter;
+      if(srv)
+      {
+        srvIter = global.srvs.find(slot);
+        if(srvIter == global.srvs.end())
+        {
+          // With on-demand buffer fetching, this is where we'd fetch
+          RDCERR("Invalid SRV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
+          return s;
+        }
+      }
+      else
+      {
+        uavIter = global.uavs.find(slot);
+        if(uavIter == global.uavs.end())
+        {
+          // With on-demand buffer fetching, this is where we'd fetch
+          RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
+          return s;
+        }
+      }
+
+      uint32_t offset = srv ? srvIter->second.firstElement : uavIter->second.firstElement;
+      uint32_t numElems = srv ? srvIter->second.numElements : uavIter->second.numElements;
+      GlobalState::ViewFmt fmt = srv ? srvIter->second.format : uavIter->second.format;
 
       // indexing for raw views is in bytes, but firstElement/numElements is in format-sized
       // units. Multiply up by stride
@@ -3035,10 +3067,10 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         numElems *= RDCMIN(4, fmt.byteWidth);
       }
 
-      byte *data = srv ? &global.srvs[slot].data[0] : &global.uavs[slot].data[0];
-      bool texData = srv ? false : global.uavs[slot].tex;
-      uint32_t rowPitch = srv ? 0 : global.uavs[slot].rowPitch;
-      uint32_t depthPitch = srv ? 0 : global.uavs[slot].depthPitch;
+      byte *data = srv ? &srvIter->second.data[0] : &uavIter->second.data[0];
+      bool texData = srv ? false : uavIter->second.tex;
+      uint32_t rowPitch = srv ? 0 : uavIter->second.rowPitch;
+      uint32_t depthPitch = srv ? 0 : uavIter->second.depthPitch;
 
       if(gsm)
       {
@@ -3074,7 +3106,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       }
 
       if(!data || (!texData && elemIdx >= numElems) ||
-         (texData && texOffset >= global.uavs[slot].data.size()))
+         (texData && texOffset >= uavIter->second.data.size()))
       {
         if(load)
           s.SetDst(op.operands[0], op, ShaderVariable("", 0U, 0U, 0U, 0U));
@@ -3447,32 +3479,27 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         // search for the declaration
         if(dim == 0)
         {
-          for(size_t i = 0; i < s.program->GetNumDeclarations(); i++)
+          const Declaration *pDecl =
+              program->FindDeclaration(TYPE_RESOURCE, (uint32_t)op.operands[2].indices[0].index);
+          if(pDecl && pDecl->declaration == OPCODE_DCL_RESOURCE)
           {
-            const DXBCBytecode::Declaration &decl = s.program->GetDeclaration(i);
-
-            if(decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.type == TYPE_RESOURCE &&
-               decl.operand.indices.size() == 1 &&
-               decl.operand.indices[0] == op.operands[2].indices[0])
+            switch(pDecl->dim)
             {
-              switch(decl.dim)
-              {
-                case RESOURCE_DIMENSION_UNKNOWN:
-                case NUM_DIMENSIONS:
-                case RESOURCE_DIMENSION_BUFFER:
-                case RESOURCE_DIMENSION_RAW_BUFFER:
-                case RESOURCE_DIMENSION_STRUCTURED_BUFFER:
-                case RESOURCE_DIMENSION_TEXTURE1D:
-                case RESOURCE_DIMENSION_TEXTURE1DARRAY: dim = 1; break;
-                case RESOURCE_DIMENSION_TEXTURE2D:
-                case RESOURCE_DIMENSION_TEXTURE2DMS:
-                case RESOURCE_DIMENSION_TEXTURE2DARRAY:
-                case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
-                case RESOURCE_DIMENSION_TEXTURECUBE:
-                case RESOURCE_DIMENSION_TEXTURECUBEARRAY: dim = 2; break;
-                case RESOURCE_DIMENSION_TEXTURE3D: dim = 3; break;
-              }
-              break;
+              default:
+              case RESOURCE_DIMENSION_UNKNOWN:
+              case NUM_DIMENSIONS:
+              case RESOURCE_DIMENSION_BUFFER:
+              case RESOURCE_DIMENSION_RAW_BUFFER:
+              case RESOURCE_DIMENSION_STRUCTURED_BUFFER:
+              case RESOURCE_DIMENSION_TEXTURE1D:
+              case RESOURCE_DIMENSION_TEXTURE1DARRAY: dim = 1; break;
+              case RESOURCE_DIMENSION_TEXTURE2D:
+              case RESOURCE_DIMENSION_TEXTURE2DMS:
+              case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+              case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
+              case RESOURCE_DIMENSION_TEXTURECUBE:
+              case RESOURCE_DIMENSION_TEXTURECUBEARRAY: dim = 2; break;
+              case RESOURCE_DIMENSION_TEXTURE3D: dim = 3; break;
             }
           }
         }
@@ -3573,24 +3600,32 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         const Declaration &decl = program->GetDeclaration(i);
 
         if(decl.declaration == OPCODE_DCL_SAMPLER && op.operands.size() > 3 &&
-           decl.operand.indices == op.operands[3].indices)
+           op.operands[3].indices[0] == decl.operand.indices[0])
         {
           samplerMode = decl.samplerMode;
-          samplerBinding.shaderRegister = (uint32_t)op.operands[3].indices[0].index;
+          samplerBinding = ShaderDebug::GetBindingSlotForDeclaration(*program, decl);
         }
         if(decl.dim == RESOURCE_DIMENSION_BUFFER && op.operation == OPCODE_LD &&
            decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.type == TYPE_RESOURCE &&
-           decl.operand.indices.size() == 1 && decl.operand.indices[0] == op.operands[2].indices[0])
+           decl.operand.indices.size() > 0 && decl.operand.indices[0] == op.operands[2].indices[0])
         {
           resourceDim = decl.dim;
 
-          resourceBinding.shaderRegister = (uint32_t)decl.operand.indices[0].index;
+          resourceBinding = ShaderDebug::GetBindingSlotForDeclaration(*program, decl);
+          GlobalState::SRVIterator srv = global.srvs.find(resourceBinding);
+          if(srv == global.srvs.end())
+          {
+            // With on-demand buffer fetching, this is where we'd fetch
+            RDCERR("Invalid SRV reg=%u, space=%u", resourceBinding.shaderRegister,
+                   resourceBinding.registerSpace);
+            return s;
+          }
 
-          const byte *data = &global.srvs[resourceBinding].data[0];
-          uint32_t offset = global.srvs[resourceBinding].firstElement;
-          uint32_t numElems = global.srvs[resourceBinding].numElements;
+          const byte *data = &srv->second.data[0];
+          uint32_t offset = srv->second.firstElement;
+          uint32_t numElems = srv->second.numElements;
 
-          GlobalState::ViewFmt fmt = global.srvs[resourceBinding].format;
+          GlobalState::ViewFmt fmt = srv->second.format;
 
           data += fmt.Stride() * offset;
 
@@ -3626,13 +3661,13 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           return s;
         }
         if(decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.type == TYPE_RESOURCE &&
-           decl.operand.indices.size() == 1 && decl.operand.indices[0] == op.operands[2].indices[0])
+           decl.operand.indices.size() > 0 && decl.operand.indices[0] == op.operands[2].indices[0])
         {
           resourceDim = decl.dim;
           resourceRetType = decl.resType[0];
           sampleCount = decl.sampleCount;
 
-          resourceBinding.shaderRegister = (uint32_t)decl.operand.indices[0].index;
+          resourceBinding = ShaderDebug::GetBindingSlotForDeclaration(*program, decl);
 
           // doesn't seem like these are ever less than four components, even if the texture is
           // declared <float3> for example.
@@ -3998,6 +4033,48 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
   }
 
   return s;
+}
+
+ShaderDebug::BindingSlot GetBindingSlotForDeclaration(const Program &program,
+                                                      const DXBCBytecode::Declaration &decl)
+{
+  uint32_t baseRegister = program.IsShaderModel51() ? (uint32_t)decl.operand.indices[1].index
+                                                    : (uint32_t)decl.operand.indices[0].index;
+
+  return ShaderDebug::BindingSlot(baseRegister, decl.space);
+}
+
+ShaderDebug::BindingSlot GetBindingSlotForIdentifier(const Program &program, OperandType declType,
+                                                     uint32_t identifier)
+{
+  // A note on matching declarations: with SM 5.0 or lower, the declaration will have a single
+  // operand index, which corresponds to the bound slot (e.g., t0 for a SRV). With SM 5.1, the
+  // declaration has three operand indices: the logical binding slot, the start register, and
+  // the end register. In addition, the register space is specified.
+
+  // In order to match a declaration, we use the logical binding slot. This is identical for
+  // all cases - with SM 5.1 the compiler translates each binding from shader register(s) &
+  // register space into a unique identifier that is used to reference it in other instructions.
+  // For example, an SRV specified with (t0, space2) could be given T1 as its identifier.
+
+  // When matching declarations, use operand index 0 to match with the instruction operand.
+  // When fetching data for a resource, with SM 5.0 or lower, use operand 0 as the shader
+  // register, and decl.space (which will always be 0) for the register space. With SM 5.1,
+  // use operand index 1 and 2 to get the shader register and use decl.space for the
+  // register space (which can be any value, as specified in HLSL and the root signature).
+
+  // TODO: Need to test resource arrays to ensure correct behavior with SM 5.1 here
+
+  if(program.IsShaderModel51())
+  {
+    const Declaration *pDecl = program.FindDeclaration(declType, identifier);
+    if(pDecl)
+      return GetBindingSlotForDeclaration(program, *pDecl);
+
+    RDCERR("Unable to find matching declaration for identifier %u", identifier);
+  }
+
+  return ShaderDebug::BindingSlot(identifier, 0);
 }
 
 void GlobalState::PopulateGroupshared(const DXBCBytecode::Program *pBytecode)
