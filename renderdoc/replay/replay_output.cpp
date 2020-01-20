@@ -383,11 +383,11 @@ bool ReplayOutput::AddThumbnail(WindowingData window, ResourceId texID, const Su
   return true;
 }
 
-rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t eventId, uint32_t x, uint32_t y)
+rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t x, uint32_t y)
 {
   CHECK_REPLAY_THREAD();
 
-  DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(eventId);
+  DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
 
   const rdcpair<uint32_t, uint32_t> errorReturn = {~0U, ~0U};
 

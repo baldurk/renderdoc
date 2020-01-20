@@ -340,14 +340,13 @@ relative to the current window with the current mesh display configuration.
 
 Should only be called for mesh outputs.
 
-:param int eventId: The event ID to pick at.
 :param int x: The x co-ordinate to pick from.
 :param int y: The y co-ordinate to pick from.
 :return: A tuple with the first value being the vertex index in the mesh, and the second value being
   the instance index. The values are set to :data:`NoResult` if no vertex was found, 
 :rtype: ``tuple`` of ``int`` and ``int``
 )");
-  virtual rdcpair<uint32_t, uint32_t> PickVertex(uint32_t eventId, uint32_t x, uint32_t y) = 0;
+  virtual rdcpair<uint32_t, uint32_t> PickVertex(uint32_t x, uint32_t y) = 0;
 
   static const uint32_t NoResult = ~0U;
 
