@@ -35,7 +35,7 @@ struct v2f
 {
 	float4 pos : SV_POSITION;
 	float4 col : COLOR0;
-	float4 uv : TEXCOORD0;
+	float2 uv : TEXCOORD0;
 };
 
 Texture2D<float4> tex;
@@ -43,7 +43,7 @@ Texture2D<float4> tex;
 float4 main(v2f IN) : SV_Target0
 {
 	clip(float2(0.9999f, 0.9999f) - IN.uv.xy);
-	return tex.Load(int3(IN.uv.xyz*64.0f));
+	return tex.Load(int3(IN.uv.xy*64.0f, 0));
 }
 
 )EOSHADER";
