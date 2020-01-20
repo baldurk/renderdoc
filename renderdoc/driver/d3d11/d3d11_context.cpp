@@ -613,7 +613,11 @@ void WrappedID3D11DeviceContext::CleanupCapture()
     {
       D3D11ResourceRecord *record = m_pDevice->GetResourceManager()->GetResourceRecord(it->first);
       if(record)
+      {
+        if(record->NumSubResources > 0)
+          record = record->SubResources[0];
         record->FreeContextID(it->second);
+      }
     }
 
     if(RenderDoc::Inst().GetCaptureOptions().captureAllCmdLists)

@@ -123,6 +123,7 @@
     <ClCompile Include="d3d11\d3d11_byte_address_buffers.cpp" />
     <ClCompile Include="d3d11\d3d11_cbuffer_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_counter_query_pred.cpp" />
+    <ClCompile Include="d3d11\d3d11_deferred_map.cpp" />
     <ClCompile Include="d3d11\d3d11_deferred_updatesubresource.cpp" />
     <ClCompile Include="d3d11\d3d11_discard_view.cpp" />
     <ClCompile Include="d3d11\d3d11_divergent_shader.cpp" />
