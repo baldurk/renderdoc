@@ -218,7 +218,8 @@ void FlattenVariables(const rdcarray<ShaderConstant> &constants,
 void FillViewFmt(DXGI_FORMAT format, GlobalState::ViewFmt &viewFmt);
 
 void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
-                                         uint32_t shaderRegister, GlobalState::ViewFmt &viewFmt);
+                                         const ShaderDebug::BindingSlot &slot,
+                                         GlobalState::ViewFmt &viewFmt);
 
 void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
                                        const DXBC::Reflection &prevStageDxbc,
@@ -254,6 +255,12 @@ class DebugAPIWrapper
 public:
   virtual void SetCurrentInstruction(uint32_t instruction) = 0;
   virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d) = 0;
+
+  // During shader debugging, when a new resource is encountered, this will be called to fetch the
+  // data on demand. Return true if the ShaderDebug::GlobalState data for the slot is populated,
+  // return false if the resource cannot be found.
+  virtual bool FetchSRV(const ShaderDebug::BindingSlot &slot) = 0;
+  virtual bool FetchUAV(const ShaderDebug::BindingSlot &slot) = 0;
 
   virtual bool CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode, const ShaderVariable &input,
                                       ShaderVariable &output1, ShaderVariable &output2) = 0;
