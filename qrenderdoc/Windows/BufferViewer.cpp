@@ -3559,11 +3559,8 @@ void BufferViewer::camGuess_changed(double value)
   else if(m_CurStage == MeshDataStage::GSOut)
     m_Config.position.farPlane = m_PostGS.farPlane;
 
-  if(ui->nearGuess->value() > 0.0)
-    m_Config.position.farPlane = ui->nearGuess->value();
-
   if(ui->farGuess->value() > 0.0)
-    m_Config.position.nearPlane = ui->farGuess->value();
+    m_Config.position.farPlane = ui->farGuess->value();
 
   EnableCameraGuessControls();
 
