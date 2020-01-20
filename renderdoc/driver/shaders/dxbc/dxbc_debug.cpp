@@ -2678,9 +2678,12 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       GlobalState::UAVIterator uav = global.uavs.find(slot);
       if(uav == global.uavs.end())
       {
-        // With on-demand buffer fetching, this is where we'd fetch
-        RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-        return s;
+        if(!apiWrapper->FetchUAV(slot))
+        {
+          RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
+          return s;
+        }
+        uav = global.uavs.find(slot);
       }
 
       uint32_t count = uav->second.hiddenCounter++;
@@ -2695,9 +2698,12 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       GlobalState::UAVIterator uav = global.uavs.find(slot);
       if(uav == global.uavs.end())
       {
-        // With on-demand buffer fetching, this is where we'd fetch
-        RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-        return s;
+        if(!apiWrapper->FetchUAV(slot))
+        {
+          RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
+          return s;
+        }
+        uav = global.uavs.find(slot);
       }
 
       uint32_t count = --uav->second.hiddenCounter;
@@ -2819,9 +2825,12 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         GlobalState::UAVIterator uav = global.uavs.find(slot);
         if(uav == global.uavs.end())
         {
-          // With on-demand buffer fetching, this is where we'd fetch
-          RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-          return s;
+          if(!apiWrapper->FetchUAV(slot))
+          {
+            RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
+            return s;
+          }
+          uav = global.uavs.find(slot);
         }
 
         offset = uav->second.firstElement;
@@ -3039,9 +3048,12 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         srvIter = global.srvs.find(slot);
         if(srvIter == global.srvs.end())
         {
-          // With on-demand buffer fetching, this is where we'd fetch
-          RDCERR("Invalid SRV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-          return s;
+          if(!apiWrapper->FetchSRV(slot))
+          {
+            RDCERR("Invalid SRV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
+            return s;
+          }
+          srvIter = global.srvs.find(slot);
         }
       }
       else
@@ -3049,9 +3061,12 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         uavIter = global.uavs.find(slot);
         if(uavIter == global.uavs.end())
         {
-          // With on-demand buffer fetching, this is where we'd fetch
-          RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-          return s;
+          if(!apiWrapper->FetchUAV(slot))
+          {
+            RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
+            return s;
+          }
+          uavIter = global.uavs.find(slot);
         }
       }
 
@@ -3615,10 +3630,13 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           GlobalState::SRVIterator srv = global.srvs.find(resourceBinding);
           if(srv == global.srvs.end())
           {
-            // With on-demand buffer fetching, this is where we'd fetch
-            RDCERR("Invalid SRV reg=%u, space=%u", resourceBinding.shaderRegister,
-                   resourceBinding.registerSpace);
-            return s;
+            if(!apiWrapper->FetchSRV(resourceBinding))
+            {
+              RDCERR("Invalid SRV reg=%u, space=%u", resourceBinding.shaderRegister,
+                     resourceBinding.registerSpace);
+              return s;
+            }
+            srv = global.srvs.find(resourceBinding);
           }
 
           const byte *data = &srv->second.data[0];
@@ -4599,11 +4617,13 @@ void FillViewFmt(DXGI_FORMAT format, GlobalState::ViewFmt &viewFmt)
 }
 
 void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
-                                         uint32_t shaderRegister, GlobalState::ViewFmt &viewFmt)
+                                         const ShaderDebug::BindingSlot &slot,
+                                         GlobalState::ViewFmt &viewFmt)
 {
   for(const DXBC::ShaderInputBind &bind : reflection.SRVs)
   {
-    if(bind.reg == shaderRegister && bind.dimension == DXBC::ShaderInputBind::DIM_BUFFER &&
+    if(bind.reg == slot.shaderRegister && bind.space == slot.registerSpace &&
+       bind.dimension == DXBC::ShaderInputBind::DIM_BUFFER &&
        bind.retType < DXBC::RETURN_TYPE_MIXED && bind.retType != DXBC::RETURN_TYPE_UNKNOWN)
     {
       viewFmt.byteWidth = 4;

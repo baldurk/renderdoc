@@ -171,8 +171,6 @@ public:
   void CopyTex2DMSToArray(ID3D12Resource *destArray, ID3D12Resource *srcMS);
   void CopyArrayToTex2DMS(ID3D12Resource *destMS, ID3D12Resource *srcArray, UINT selectedSlice);
 
-  void CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCContainer *dxbc);
-
 private:
   bool CreateMathIntrinsicsResources();
 

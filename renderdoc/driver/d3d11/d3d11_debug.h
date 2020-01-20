@@ -138,10 +138,6 @@ public:
 
   void PixelHistoryCopyPixel(CopyPixelParams &params, uint32_t x, uint32_t y);
 
-  void CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCContainer *dxbc,
-                               uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs,
-                               ID3D11ShaderResourceView **SRVs);
-
   struct CacheElem
   {
     CacheElem(ResourceId id_, CompType typeHint_, bool raw_)
