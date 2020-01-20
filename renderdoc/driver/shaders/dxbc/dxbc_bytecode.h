@@ -934,9 +934,10 @@ public:
 
   void SetReflection(const DXBC::Reflection *refl) { m_Reflection = refl; }
   void SetDebugInfo(const DXBC::IDebugInfo *debug) { m_DebugInfo = debug; }
-  DXBC::ShaderType GetShaderType() { return m_Type; }
-  uint32_t GetMajorVersion() { return m_Major; }
-  uint32_t GetMinorVersion() { return m_Minor; }
+  DXBC::ShaderType GetShaderType() const { return m_Type; }
+  uint32_t GetMajorVersion() const { return m_Major; }
+  uint32_t GetMinorVersion() const { return m_Minor; }
+  bool IsShaderModel51() const { return m_Major == 5 && m_Minor == 1; }
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
   const rdcstr &GetDisassembly()
   {
@@ -946,6 +947,7 @@ public:
   }
   size_t GetNumDeclarations() const { return m_Declarations.size(); }
   const Declaration &GetDeclaration(size_t i) const { return m_Declarations[i]; }
+  const Declaration *FindDeclaration(OperandType declType, uint32_t identifier) const;
   size_t GetNumInstructions() const { return m_Instructions.size(); }
   const Operation &GetInstruction(size_t i) const { return m_Instructions[i]; }
   const rdcarray<uint32_t> &GetImmediateConstantBuffer() const { return m_Immediate; }

@@ -2046,6 +2046,25 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
   return true;
 }
 
+const Declaration *Program::FindDeclaration(OperandType declType, uint32_t identifier) const
+{
+  // Given a declType and identifier (together defining a binding such as t0, s1, etc.),
+  // return the matching declaration if it exists. The logic for this is the same for all
+  // shader model versions.
+  size_t numDeclarations = m_Declarations.size();
+  for(size_t i = 0; i < numDeclarations; ++i)
+  {
+    const Declaration &decl = m_Declarations[i];
+    if(decl.operand.type == declType)
+    {
+      if(decl.operand.indices[0].index == identifier)
+        return &decl;
+    }
+  }
+
+  return NULL;
+}
+
 bool Program::ExtractOperation(uint32_t *&tokenStream, Operation &retOp, bool friendlyName)
 {
   uint32_t *begin = tokenStream;

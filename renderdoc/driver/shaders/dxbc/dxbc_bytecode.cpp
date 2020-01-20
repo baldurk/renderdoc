@@ -88,7 +88,7 @@ DXBC::Reflection *Program::GuessReflection()
         DXBC::ShaderInputBind desc;
 
         RDCASSERT(dcl.operand.type == TYPE_RESOURCE);
-        RDCASSERT(dcl.operand.indices.size() == 1);
+        RDCASSERT(dcl.operand.indices.size() == 1 || dcl.operand.indices.size() == 3);
         RDCASSERT(dcl.operand.indices[0].absolute);
 
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
@@ -159,7 +159,7 @@ DXBC::Reflection *Program::GuessReflection()
 
         RDCASSERT(dcl.operand.type == TYPE_RESOURCE ||
                   dcl.operand.type == TYPE_UNORDERED_ACCESS_VIEW);
-        RDCASSERT(dcl.operand.indices.size() == 1);
+        RDCASSERT(dcl.operand.indices.size() == 1 || dcl.operand.indices.size() == 3);
         RDCASSERT(dcl.operand.indices[0].absolute);
 
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
@@ -196,7 +196,7 @@ DXBC::Reflection *Program::GuessReflection()
         DXBC::ShaderInputBind desc;
 
         RDCASSERT(dcl.operand.type == TYPE_RESOURCE);
-        RDCASSERT(dcl.operand.indices.size() == 1);
+        RDCASSERT(dcl.operand.indices.size() == 1 || dcl.operand.indices.size() == 3);
         RDCASSERT(dcl.operand.indices[0].absolute);
 
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
@@ -227,7 +227,7 @@ DXBC::Reflection *Program::GuessReflection()
         DXBC::ShaderInputBind desc;
 
         RDCASSERT(dcl.operand.type == TYPE_UNORDERED_ACCESS_VIEW);
-        RDCASSERT(dcl.operand.indices.size() == 1);
+        RDCASSERT(dcl.operand.indices.size() == 1 || dcl.operand.indices.size() == 3);
         RDCASSERT(dcl.operand.indices[0].absolute);
 
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
@@ -263,7 +263,7 @@ DXBC::Reflection *Program::GuessReflection()
         DXBC::ShaderInputBind desc;
 
         RDCASSERT(dcl.operand.type == TYPE_UNORDERED_ACCESS_VIEW);
-        RDCASSERT(dcl.operand.indices.size() == 1);
+        RDCASSERT(dcl.operand.indices.size() == 1 || dcl.operand.indices.size() == 3);
         RDCASSERT(dcl.operand.indices[0].absolute);
 
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
@@ -326,7 +326,7 @@ DXBC::Reflection *Program::GuessReflection()
         DXBC::ShaderInputBind desc;
 
         RDCASSERT(dcl.operand.type == TYPE_CONSTANT_BUFFER);
-        RDCASSERT(dcl.operand.indices.size() == 2);
+        RDCASSERT(dcl.operand.indices.size() == 2 || dcl.operand.indices.size() == 3);
         RDCASSERT(dcl.operand.indices[0].absolute && dcl.operand.indices[1].absolute);
 
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
