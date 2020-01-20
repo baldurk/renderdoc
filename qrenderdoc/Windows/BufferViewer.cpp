@@ -3047,6 +3047,8 @@ void BufferViewer::UpdateCurrentMeshConfig()
     default: break;
   }
 
+  camGuess_changed(0.0);
+
   BufferItemModel *model = currentBufferModel();
   int stage = currentStageIndex();
 
