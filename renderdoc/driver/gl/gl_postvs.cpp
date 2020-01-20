@@ -1862,11 +1862,16 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_
   MeshFormat ret;
 
   if(s.useIndices && s.idxBuf)
+  {
     ret.indexResourceId = m_pDriver->GetResourceManager()->GetID(BufferRes(ctx, s.idxBuf));
+    ret.indexByteStride = s.idxByteWidth;
+  }
   else
+  {
     ret.indexResourceId = ResourceId();
+    ret.indexByteStride = 0;
+  }
   ret.indexByteOffset = 0;
-  ret.indexByteStride = s.idxByteWidth;
   ret.baseVertex = 0;
 
   if(s.buf)

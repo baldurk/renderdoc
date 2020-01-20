@@ -114,13 +114,19 @@ MeshFormat D3D11Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint
 
   MeshFormat ret;
 
-  if(s.useIndices && s.idxBuf)
-    ret.indexResourceId = ((WrappedID3D11Buffer *)s.idxBuf)->GetResourceID();
-  else
-    ret.indexResourceId = ResourceId();
   ret.indexByteOffset = 0;
-  ret.indexByteStride = s.idxFmt == DXGI_FORMAT_R16_UINT ? 2 : 4;
   ret.baseVertex = 0;
+
+  if(s.useIndices && s.idxBuf)
+  {
+    ret.indexResourceId = ((WrappedID3D11Buffer *)s.idxBuf)->GetResourceID();
+    ret.indexByteStride = s.idxFmt == DXGI_FORMAT_R16_UINT ? 2 : 4;
+  }
+  else
+  {
+    ret.indexResourceId = ResourceId();
+    ret.indexByteStride = 0;
+  }
 
   if(s.buf)
     ret.vertexResourceId = ((WrappedID3D11Buffer *)s.buf)->GetResourceID();
