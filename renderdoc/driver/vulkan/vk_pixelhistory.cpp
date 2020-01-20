@@ -179,7 +179,7 @@ private:
           VkShaderModuleCreateInfo moduleCreateInfo = {};
           moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
           moduleCreateInfo.pCode = modSpirv.data();
-          moduleCreateInfo.codeSize = modSpirv.size() * sizeof(uint32_t);
+          moduleCreateInfo.codeSize = modSpirv.byteSize();
           VkResult vkr =
               m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &moduleCreateInfo, NULL, &module);
           RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -456,7 +456,10 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
     m_pDriver->vkDestroyRenderPass(m_pDriver->GetDev(), m_RenderPass, NULL);
 
     for(auto it = m_PipelineCache.begin(); it != m_PipelineCache.end(); ++it)
+    {
       m_pDriver->vkDestroyPipeline(m_pDriver->GetDev(), it->second.fixedShaderStencil, NULL);
+      m_pDriver->vkDestroyPipeline(m_pDriver->GetDev(), it->second.originalShaderStencil, NULL);
+    }
   }
 
   void PreDraw(uint32_t eid, VkCommandBuffer cmd)
@@ -624,12 +627,12 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
       return;
 
     m_OcclusionResults.resize(m_OcclusionQueries.size());
-    VkResult vkr =
-        ObjDisp(m_pDriver->GetDev())
-            ->GetQueryPoolResults(
-                Unwrap(m_pDriver->GetDev()), m_OcclusionPool, 0, (uint32_t)m_OcclusionResults.size(),
-                m_OcclusionResults.size() * sizeof(m_OcclusionResults[0]), m_OcclusionResults.data(),
-                sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+    VkResult vkr = ObjDisp(m_pDriver->GetDev())
+                       ->GetQueryPoolResults(Unwrap(m_pDriver->GetDev()), m_OcclusionPool, 0,
+                                             (uint32_t)m_OcclusionResults.size(),
+                                             m_OcclusionResults.byteSize(),
+                                             m_OcclusionResults.data(), sizeof(uint64_t),
+                                             VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
@@ -703,8 +706,7 @@ private:
     }
 
     if(doQuery)
-      ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, (uint32_t)eventIndex,
-                                  VK_QUERY_CONTROL_PRECISE_BIT);
+      ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, (uint32_t)eventIndex, 0);
 
     if(drawcall->flags & DrawFlags::Indexed)
       ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
@@ -799,8 +801,7 @@ private:
 
     rdcarray<VkPipelineShaderStageCreateInfo> stages;
     stages.resize(pipeCreateInfo.stageCount);
-    memcpy(stages.data(), pipeCreateInfo.pStages,
-           sizeof(VkPipelineShaderStageCreateInfo) * pipeCreateInfo.stageCount);
+    memcpy(stages.data(), pipeCreateInfo.pStages, stages.byteSize());
 
     for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
     {
@@ -878,8 +879,21 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
     VulkanRenderState &pipestate = m_pDriver->GetRenderState();
     const VulkanCreationInfo::Pipeline &p =
         m_pDriver->GetRenderState().m_CreationInfo->m_Pipeline[pipestate.graphics.pipeline];
-    m_EventFlags[eid] = CalculateEventFlags(p, pipestate);
-    // TODO: implement, replay the draw with tests to figure out which failed.
+    uint32_t eventFlags = CalculateEventFlags(p, pipestate);
+    m_EventFlags[eid] = eventFlags;
+
+    // TODO: figure out if the shader has early fragments tests turned on,
+    // based on the currently bound fragment shader.
+    bool earlyFragmentTests = false;
+    m_HasEarlyFragments[eid] = earlyFragmentTests;
+
+    ResourceId curPipeline = pipestate.graphics.pipeline;
+    VulkanRenderState m_PrevState = m_pDriver->GetRenderState();
+
+    ReplayDrawWithTests(cmd, eid, eventFlags, curPipeline);
+
+    m_pDriver->GetRenderState() = m_PrevState;
+    m_pDriver->GetRenderState().BindPipeline(cmd, VulkanRenderState::BindGraphics, false);
   }
 
   bool PostDraw(uint32_t eid, VkCommandBuffer cmd) { return false; }
@@ -903,7 +917,40 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
   uint32_t GetEventFlags(uint32_t eventId)
   {
     auto it = m_EventFlags.find(eventId);
-    RDCASSERT(it != m_EventFlags.end());
+    if(it == m_EventFlags.end())
+      RDCERR("Can't find event flags for event %u", eventId);
+    return it->second;
+  }
+
+  void FetchOcclusionResults()
+  {
+    if(m_OcclusionQueries.empty())
+      return;
+    m_OcclusionResults.resize(m_OcclusionQueries.size());
+    VkResult vkr =
+        ObjDisp(m_pDriver->GetDev())
+            ->GetQueryPoolResults(Unwrap(m_pDriver->GetDev()), m_OcclusionPool, 0,
+                                  (uint32_t)m_OcclusionResults.size(), m_OcclusionResults.byteSize(),
+                                  m_OcclusionResults.data(), sizeof(m_OcclusionResults[0]),
+                                  VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
+  uint64_t GetOcclusionResult(uint32_t eventId, uint32_t test) const
+  {
+    auto it = m_OcclusionQueries.find(rdcpair<uint32_t, uint32_t>(eventId, test));
+    if(it == m_OcclusionQueries.end())
+      RDCERR("Can't locate occlusion query for event id %u and test flags %u", eventId, test);
+    if(it->second >= m_OcclusionResults.size())
+      RDCERR("Event %u, occlusion index is %u, and the total # of occlusion query data %zu",
+             eventId, it->second, m_OcclusionResults.size());
+    return m_OcclusionResults[it->second];
+  }
+
+  bool HasEarlyFragments(uint32_t eventId) const
+  {
+    auto it = m_HasEarlyFragments.find(eventId);
+    RDCASSERT(it != m_HasEarlyFragments.end());
     return it->second;
   }
 
@@ -1018,9 +1065,248 @@ private:
     return flags;
   }
 
+  // Flags to create a pipeline for tests, can be combined to control how
+  // a pipeline is created.
+  enum
+  {
+    PipelineCreationFlags_DisableCulling = 1 << 0,
+    PipelineCreationFlags_DisableDepthTest = 1 << 1,
+    PipelineCreationFlags_DisableStencilTest = 1 << 2,
+    PipelineCreationFlags_DisableDepthBoundsTest = 1 << 3,
+    PipelineCreationFlags_FixedColorShader = 1 << 4,
+    PipelineCreationFlags_IntersectOriginalScissor = 1 << 5,
+  };
+
+  void ReplayDrawWithTests(VkCommandBuffer cmd, uint32_t eid, uint32_t eventFlags,
+                           ResourceId basePipeline)
+  {
+    // Backface culling
+    if(eventFlags & TestMustFail_Culling)
+      return;
+
+    const VulkanCreationInfo::Pipeline &p =
+        m_pDriver->GetRenderState().m_CreationInfo->m_Pipeline[basePipeline];
+    EventFlags eventShaderFlags = m_pDriver->GetEventFlags(eid);
+    uint32_t numberOfStages = 5;
+    rdcarray<VkShaderModule> replacementShaders;
+    replacementShaders.resize(numberOfStages);
+    // Replace fragment shader because it might have early fragments
+    for(size_t i = 0; i < numberOfStages; i++)
+    {
+      if(p.shaders[i].module == ResourceId())
+        continue;
+      ShaderStage stage = StageFromIndex(i);
+      bool rwInStage = (eventShaderFlags & PipeStageRWEventFlags(stage)) != EventFlags::NoFlags;
+      if(rwInStage || (stage == ShaderStage::Fragment))
+        replacementShaders[i] =
+            m_ShaderCache->GetShaderWithoutSideEffects(p.shaders[i].module, p.shaders[i].entryPoint);
+    }
+
+    bool dynamicScissor = p.dynamicStates[VkDynamicScissor];
+    VulkanRenderState &pipestate = m_pDriver->GetRenderState();
+    rdcarray<VkRect2D> prevScissors = pipestate.scissors;
+    if(dynamicScissor)
+      for(uint32_t i = 0; i < pipestate.views.size(); i++)
+        ScissorToPixel(pipestate.views[i], pipestate.scissors[i]);
+
+    if(eventFlags & TestEnabled_Culling)
+    {
+      uint32_t pipeFlags =
+          PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_DisableDepthBoundsTest |
+          PipelineCreationFlags_DisableStencilTest | PipelineCreationFlags_FixedColorShader;
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders);
+      ReplayDraw(cmd, pipe, eid, TestEnabled_Culling);
+    }
+
+    // Scissor
+    if(eventFlags & TestMustFail_Scissor)
+      return;
+
+    if((eventFlags & (TestEnabled_Scissor | TestMustPass_Scissor)) == TestEnabled_Scissor)
+    {
+      uint32_t pipeFlags =
+          PipelineCreationFlags_IntersectOriginalScissor | PipelineCreationFlags_DisableDepthTest |
+          PipelineCreationFlags_DisableDepthBoundsTest | PipelineCreationFlags_DisableStencilTest |
+          PipelineCreationFlags_FixedColorShader;
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders);
+      // This will change the dynamic scissor state for the later tests, but since those
+      // tests happen later in the pipeline, it does not matter.
+      if(dynamicScissor)
+        for(uint32_t i = 0; i < pipestate.views.size(); i++)
+          IntersectScissors(prevScissors[i], pipestate.scissors[i]);
+      ReplayDraw(cmd, pipe, eid, TestEnabled_Scissor);
+    }
+
+    // Sample mask
+    if(eventFlags & TestMustFail_SampleMask)
+      return;
+
+    if(eventFlags & TestEnabled_SampleMask)
+    {
+      uint32_t pipeFlags =
+          PipelineCreationFlags_DisableDepthBoundsTest | PipelineCreationFlags_DisableStencilTest |
+          PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_FixedColorShader;
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders);
+      ReplayDraw(cmd, pipe, eid, TestEnabled_SampleMask);
+    }
+
+    // Depth bounds
+    if(eventFlags & TestEnabled_DepthBounds)
+    {
+      uint32_t pipeFlags = PipelineCreationFlags_DisableStencilTest |
+                           PipelineCreationFlags_DisableDepthTest |
+                           PipelineCreationFlags_FixedColorShader;
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders);
+      ReplayDraw(cmd, pipe, eid, TestEnabled_DepthBounds);
+    }
+
+    // Stencil test
+    if(eventFlags & TestMustFail_StencilTesting)
+      return;
+
+    if(eventFlags & TestEnabled_StencilTesting)
+    {
+      uint32_t pipeFlags =
+          PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_FixedColorShader;
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders);
+      ReplayDraw(cmd, pipe, eid, TestEnabled_StencilTesting);
+    }
+
+    // Depth test
+    if(eventFlags & TestMustFail_DepthTesting)
+      return;
+
+    if(eventFlags & TestEnabled_DepthTesting)
+    {
+      uint32_t pipeFlags = PipelineCreationFlags_FixedColorShader;
+
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders);
+      ReplayDraw(cmd, pipe, eid, TestEnabled_DepthTesting);
+    }
+
+    // Shader discard
+    if(eventFlags & TestEnabled_FragmentDiscard)
+    {
+      // With early fragment tests, sample counting (occlusion query) will be done before the shader
+      // executes.
+      // TODO: remove early fragment tests if it is ON.
+      uint32_t pipeFlags = PipelineCreationFlags_DisableDepthBoundsTest |
+                           PipelineCreationFlags_DisableStencilTest |
+                           PipelineCreationFlags_DisableDepthTest;
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders);
+      ReplayDraw(cmd, pipe, eid, TestEnabled_FragmentDiscard);
+    }
+  }
+
+  // Creates a pipeline that is based on the given pipeline and the given
+  // pipeline flags. Modifies the base pipeline according to the flags, and
+  // leaves the original pipeline behavior if a flag is not set.
+  VkPipeline CreatePipeline(ResourceId basePipeline, uint32_t pipeCreateFlags, bool dynamicScissor,
+                            const rdcarray<VkShaderModule> &replacementShaders)
+  {
+    rdcpair<ResourceId, uint32_t> pipeKey(basePipeline, pipeCreateFlags);
+    auto it = m_PipeCache.find(pipeKey);
+    // Check if we processed this pipeline before.
+    if(it != m_PipeCache.end())
+      return it->second;
+
+    VkGraphicsPipelineCreateInfo ci = {};
+    m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(ci, basePipeline);
+    VkPipelineRasterizationStateCreateInfo *rs =
+        (VkPipelineRasterizationStateCreateInfo *)ci.pRasterizationState;
+    VkPipelineDepthStencilStateCreateInfo *ds =
+        (VkPipelineDepthStencilStateCreateInfo *)ci.pDepthStencilState;
+    VkPipelineViewportStateCreateInfo *vs = (VkPipelineViewportStateCreateInfo *)ci.pViewportState;
+    VkPipelineMultisampleStateCreateInfo *ms =
+        (VkPipelineMultisampleStateCreateInfo *)ci.pMultisampleState;
+
+    // Only interested in a single sample.
+    ms->pSampleMask = &m_SampleMask;
+    // We are going to replay a draw multiple times, don't want to modify the
+    // depth value, not to influence later tests.
+    ds->depthWriteEnable = VK_FALSE;
+
+    if(pipeCreateFlags & PipelineCreationFlags_DisableCulling)
+      rs->cullMode = VK_CULL_MODE_NONE;
+    if(pipeCreateFlags & PipelineCreationFlags_DisableDepthTest)
+      ds->depthTestEnable = VK_FALSE;
+    if(pipeCreateFlags & PipelineCreationFlags_DisableStencilTest)
+      ds->stencilTestEnable = VK_FALSE;
+    if(pipeCreateFlags & PipelineCreationFlags_DisableDepthBoundsTest)
+      ds->depthBoundsTestEnable = VK_FALSE;
+
+    rdcarray<VkPipelineShaderStageCreateInfo> stages;
+    stages.resize(ci.stageCount);
+    memcpy(stages.data(), ci.pStages, stages.byteSize());
+
+    for(size_t i = 0; i < ci.stageCount; i++)
+    {
+      if((ci.pStages[i].stage == VK_SHADER_STAGE_FRAGMENT_BIT) &&
+         (pipeCreateFlags & PipelineCreationFlags_FixedColorShader))
+      {
+        stages[i].module = m_ShaderCache->GetFixedColShader();
+        stages[i].pName = "main";
+      }
+      else if(replacementShaders[StageIndex(stages[i].stage)] != VK_NULL_HANDLE)
+      {
+        stages[i].module = replacementShaders[StageIndex(stages[i].stage)];
+      }
+    }
+    ci.pStages = stages.data();
+
+    if(!dynamicScissor)
+    {
+      VkRect2D *pScissors = (VkRect2D *)vs->pScissors;
+      for(uint32_t i = 0; i < vs->viewportCount; i++)
+      {
+        ScissorToPixel(vs->pViewports[i], pScissors[i]);
+        if(pipeCreateFlags & PipelineCreationFlags_IntersectOriginalScissor)
+          IntersectScissors(vs->pScissors[i], pScissors[i]);
+      }
+    }
+
+    VkPipeline pipe;
+    VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1, &ci,
+                                                        NULL, &pipe);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    m_PipeCache.insert(std::make_pair(pipeKey, pipe));
+    return pipe;
+  }
+
+  void ReplayDraw(VkCommandBuffer cmd, VkPipeline pipe, int eventId, uint32_t test)
+  {
+    m_pDriver->GetRenderState().graphics.pipeline = GetResID(pipe);
+    m_pDriver->GetRenderState().BindPipeline(cmd, VulkanRenderState::BindGraphics, false);
+
+    uint32_t index = (uint32_t)m_OcclusionQueries.size();
+    if(m_OcclusionQueries.find(rdcpair<uint32_t, uint32_t>(eventId, test)) != m_OcclusionQueries.end())
+      RDCERR("A query already exist for event id %u and test %u", eventId, test);
+    m_OcclusionQueries.insert(std::make_pair(rdcpair<uint32_t, uint32_t>(eventId, test), index));
+
+    ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, index, 0);
+
+    const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
+    if(drawcall->flags & DrawFlags::Indexed)
+      ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
+                                   drawcall->indexOffset, drawcall->baseVertex,
+                                   drawcall->instanceOffset);
+    else
+      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
+                            drawcall->vertexOffset, drawcall->instanceOffset);
+
+    ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_OcclusionPool, index);
+  }
+
   rdcarray<uint32_t> m_Events;
   // Key is event ID, value is the flags for that event.
   std::map<uint32_t, uint32_t> m_EventFlags;
+  // Key is a pair <Base pipeline, pipeline flags>
+  std::map<rdcpair<ResourceId, uint32_t>, VkPipeline> m_PipeCache;
+  // Key: pair <event ID, test>
+  // value: the index where occlusion query is in m_OcclusionResults
+  std::map<rdcpair<uint32_t, uint32_t>, uint32_t> m_OcclusionQueries;
+  std::map<uint32_t, bool> m_HasEarlyFragments;
+  rdcarray<uint64_t> m_OcclusionResults;
 };
 
 bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resources,
@@ -1261,15 +1547,26 @@ void VulkanDebugManager::PixelHistoryCopyPixel(VkCommandBuffer cmd, CopyPixelPar
   DoPipelineBarrier(cmd, 1, &barrier);
 }
 
-void CreateOcclusionPool(VkDevice dev, uint32_t poolSize, VkQueryPool *pQueryPool)
+void CreateOcclusionPool(WrappedVulkan *vk, uint32_t poolSize, VkQueryPool *pQueryPool)
 {
+  VkDevice dev = vk->GetDev();
   VkQueryPoolCreateInfo occlusionPoolCreateInfo = {VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
   occlusionPoolCreateInfo.queryType = VK_QUERY_TYPE_OCCLUSION;
   occlusionPoolCreateInfo.queryCount = poolSize;
   // TODO: check that occlusion feature is available
   VkResult vkr =
       ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &occlusionPoolCreateInfo, NULL, pQueryPool);
+  VkCommandBuffer cmd = vk->GetNextCmd();
+  VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+  vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), *pQueryPool, 0, poolSize);
+  vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  vk->SubmitCmds();
+  vk->FlushQ();
 }
 
 VkImageLayout VulkanDebugManager::GetImageLayout(ResourceId image, VkImageAspectFlags aspect,
@@ -1289,6 +1586,81 @@ VkImageLayout VulkanDebugManager::GetImageLayout(ResourceId image, VkImageAspect
     }
   }
   return imgLayout;
+}
+
+void UpdateTestsFailed(const TestsFailedCallback *tfCb, uint32_t eventId, uint32_t eventFlags,
+                       PixelModification &mod)
+{
+  bool earlyFragmentTests = tfCb->HasEarlyFragments(eventId);
+
+  if((eventFlags & (TestEnabled_Culling | TestMustFail_Culling)) == TestEnabled_Culling)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_Culling);
+    mod.backfaceCulled = (occlData == 0);
+  }
+
+  if(mod.backfaceCulled)
+    return;
+
+  if((eventFlags & (TestEnabled_Scissor | TestMustPass_Scissor | TestMustFail_Scissor)) ==
+     TestEnabled_Scissor)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_Scissor);
+    mod.scissorClipped = (occlData == 0);
+  }
+  if(mod.scissorClipped)
+    return;
+
+  // TODO: Exclusive Scissor Test if NV extension is turned on.
+
+  if((eventFlags & (TestEnabled_SampleMask | TestMustFail_SampleMask)) == TestEnabled_SampleMask)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_SampleMask);
+    mod.sampleMasked = (occlData == 0);
+  }
+  if(mod.sampleMasked)
+    return;
+
+  // Shader discard with default fragment tests order.
+  if(!earlyFragmentTests)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_FragmentDiscard);
+    mod.shaderDiscarded = (occlData == 0);
+    if(mod.shaderDiscarded)
+      return;
+  }
+
+  if(eventFlags & TestEnabled_DepthBounds)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_DepthBounds);
+    mod.depthClipped = (occlData == 0);
+  }
+  if(mod.depthClipped)
+    return;
+
+  if((eventFlags & (TestEnabled_StencilTesting | TestMustFail_StencilTesting)) ==
+     TestEnabled_StencilTesting)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_StencilTesting);
+    mod.stencilTestFailed = (occlData == 0);
+  }
+  if(mod.stencilTestFailed)
+    return;
+
+  if((eventFlags & (TestEnabled_DepthTesting | TestMustFail_DepthTesting)) == TestEnabled_DepthTesting)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_DepthTesting);
+    mod.depthTestFailed = (occlData == 0);
+  }
+  if(mod.depthTestFailed)
+    return;
+
+  // Shader discard with early fragment tests order.
+  if(earlyFragmentTests)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_FragmentDiscard);
+    mod.shaderDiscarded = (occlData == 0);
+  }
 }
 
 rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> events,
@@ -1335,11 +1707,9 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   if(sampleIdx == ~0U || !multisampled)
     sampleIdx = 0;
 
-  RDCASSERT(m_pDriver->GetDeviceFeatures().occlusionQueryPrecise);
-
   VkDevice dev = m_pDriver->GetDev();
   VkQueryPool occlusionPool;
-  CreateOcclusionPool(dev, (uint32_t)events.size(), &occlusionPool);
+  CreateOcclusionPool(m_pDriver, (uint32_t)events.size(), &occlusionPool);
 
   PixelHistoryResources resources = {};
   GetDebugManager()->PixelHistorySetupResources(resources, imginfo.extent, imginfo.format,
@@ -1364,8 +1734,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   rdcarray<uint32_t> drawEvents;
   for(size_t ev = 0; ev < events.size(); ev++)
   {
-    const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[ev].eventId);
-    bool clear = bool(draw->flags & DrawFlags::Clear);
+    bool clear = (events[ev].usage == ResourceUsage::Clear);
     bool directWrite = isDirectWrite(events[ev].usage);
 
     if(events[ev].view != ResourceId())
@@ -1387,21 +1756,20 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   if(drawEvents.size() > 0)
   {
     VkQueryPool tfOcclusionPool;
-    CreateOcclusionPool(dev, (uint32_t)drawEvents.size() * 6, &tfOcclusionPool);
+    CreateOcclusionPool(m_pDriver, (uint32_t)drawEvents.size() * 6, &tfOcclusionPool);
 
     tfCb = new TestsFailedCallback(m_pDriver, shaderCache, x, y, sampleMask, tfOcclusionPool,
                                    drawEvents);
     m_pDriver->ReplayLog(0, events.back().eventId, eReplay_Full);
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();
-    // TODO: fetch occlusion results.
+    tfCb->FetchOcclusionResults();
   }
 
   for(size_t ev = 0; ev < events.size(); ev++)
   {
     uint32_t eventId = events[ev].eventId;
-    const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[ev].eventId);
-    bool clear = bool(draw->flags & DrawFlags::Clear);
+    bool clear = (events[ev].usage == ResourceUsage::Clear);
     bool directWrite = isDirectWrite(events[ev].usage);
     if(drawEvents.contains(events[ev].eventId) || clear || directWrite)
     {
@@ -1425,7 +1793,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
         if(flags & TestMustFail_SampleMask)
           mod.sampleMasked = true;
 
-        // TODO: fill in flags for the modification.
+        UpdateTestsFailed(tfCb, eventId, flags, mod);
       }
       history.push_back(mod);
     }
