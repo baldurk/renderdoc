@@ -125,6 +125,12 @@ int GetIdentPort(pid_t childPid)
     RDCWARN("Couldn't locate renderdoc target control listening port between %u and %u in %s",
             (uint32_t)RenderDoc_FirstTargetControlPort, (uint32_t)RenderDoc_LastTargetControlPort,
             procfile.c_str());
+
+    if(!FileIO::exists(procfile.c_str()))
+    {
+      RDCWARN("Process %u is no longer running - did it exit during initialisation or fail to run?",
+              childPid);
+    }
   }
 
   return ret;
