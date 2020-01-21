@@ -417,7 +417,7 @@ void LiveCapture::deleteCapture_triggered()
           m_Ctx.Replay().DeleteCapture(cap->path, cap->local);
         }
 
-        if(cap->saved || cap->local)
+        if(cap->local)
         {
           m_Main->RemoveRecentCapture(cap->path);
         }
@@ -910,7 +910,7 @@ void LiveCapture::cleanItems()
           m_Ctx.Replay().DeleteCapture(cap->path, cap->local);
         }
 
-        if(cap->saved || cap->local)
+        if(cap->local)
         {
           m_Main->RemoveRecentCapture(cap->path);
         }

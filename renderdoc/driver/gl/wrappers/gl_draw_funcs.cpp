@@ -2242,7 +2242,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
         // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
         // the first sub-draw in that range.
       }
-      else if(m_FirstEventID <= baseEventID && m_LastEventID >= baseEventID)
+      else if(m_FirstEventID <= baseEventID)
       {
         // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
         // by just reducing the drawcount parameter to however many we want to replay. This only
@@ -2407,7 +2407,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
         // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
         // the first sub-draw in that range.
       }
-      else if(m_FirstEventID <= baseEventID && m_LastEventID >= baseEventID)
+      else if(m_FirstEventID <= baseEventID)
       {
         // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
         // by just reducing the Count parameter to however many we want to replay. This only
@@ -2577,7 +2577,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
         // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
         // the first sub-draw in that range.
       }
-      else if(m_FirstEventID <= baseEventID && m_LastEventID >= baseEventID)
+      else if(m_FirstEventID <= baseEventID)
       {
         // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
         // by just reducing the Count parameter to however many we want to replay. This only
@@ -2765,7 +2765,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
         // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
         // the first sub-draw in that range.
       }
-      else if(m_FirstEventID <= baseEventID && m_LastEventID >= baseEventID)
+      else if(m_FirstEventID <= baseEventID)
       {
         // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
         // by just reducing the Count parameter to however many we want to replay. This only
@@ -2991,7 +2991,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
         // the first sub-draw in that range.
       }
-      else if(m_FirstEventID <= baseEventID && m_LastEventID >= baseEventID)
+      else if(m_FirstEventID <= baseEventID)
       {
         // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
         // by just reducing the Count parameter to however many we want to replay. This only
@@ -3217,7 +3217,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
         // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
         // the first sub-draw in that range.
       }
-      else if(m_FirstEventID <= baseEventID && m_LastEventID >= baseEventID)
+      else if(m_FirstEventID <= baseEventID)
       {
         // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
         // by just reducing the Count parameter to however many we want to replay. This only
@@ -3452,7 +3452,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
         // then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
         // the first sub-draw in that range.
       }
-      else if(m_FirstEventID <= baseEventID && m_LastEventID >= baseEventID)
+      else if(m_FirstEventID <= baseEventID)
       {
         // if we're replaying part-way into a multidraw, we can replay the first part 'easily'
         // by just reducing the Count parameter to however many we want to replay. This only

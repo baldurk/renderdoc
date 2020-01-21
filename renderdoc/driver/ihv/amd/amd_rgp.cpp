@@ -35,7 +35,7 @@ uint64_t MakeTagFromMarker(const char *marker)
 
   uint64_t ret = 0;
 
-  for(int i = 0; i < 7 && marker && marker[i]; i++)
+  for(int i = 0; i < 7 && marker[i]; i++)
     ret |= uint64_t(marker[i]) << (i * 8);
 
   return ret;

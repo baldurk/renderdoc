@@ -1253,8 +1253,7 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
         case VK_STRUCTURE_TYPE_MAX_ENUM: break;
       }
 
-      if(!handled)
-        RDCERR("Invalid pNext structure sType: %u", next->sType);
+      RDCERR("Invalid pNext structure sType: %u", next->sType);
 
       // walk to the next item if we didn't serialise the current one
       next = (VkBaseInStructure *)next->pNext;

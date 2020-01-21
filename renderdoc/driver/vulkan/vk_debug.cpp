@@ -1531,7 +1531,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
     len = bufsize - offset;
   }
 
-  if(len > 0 && VkDeviceSize(offset + len) > bufsize)
+  if(VkDeviceSize(offset + len) > bufsize)
   {
     RDCWARN("Attempting to read off the end of the buffer (%llu %llu). Will be clamped (%llu)",
             offset, len, bufsize);

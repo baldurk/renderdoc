@@ -633,7 +633,7 @@ BOOL CALLBACK EnumModule(PCWSTR ModuleName, DWORD64 BaseOfDll, PVOID UserContext
 
   WCHAR *pdb = ModInfo.CVData;
 
-  if(pdb == NULL || pdb[0] == 0)
+  if(pdb[0] == 0)
     pdb = ModInfo.ImageName;
 
   chunk.imageNameLen = wcslen(pdb) + 1;    // include null terminator

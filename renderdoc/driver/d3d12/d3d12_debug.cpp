@@ -824,7 +824,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     length = desc.Width - offset;
   }
 
-  if(length > 0 && offset + length > desc.Width)
+  if(offset + length > desc.Width)
   {
     RDCWARN("Attempting to read off the end of the buffer (%llu %llu). Will be clamped (%llu)",
             offset, length, desc.Width);

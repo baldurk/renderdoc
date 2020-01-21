@@ -2006,8 +2006,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       ShaderVariable dot = mul(srcOpers[0], srcOpers[1], optype);
 
       float sum = dot.value.f.x;
-      if(op.operation >= OPCODE_DP2)
-        sum += dot.value.f.y;
+      sum += dot.value.f.y;
       if(op.operation >= OPCODE_DP3)
         sum += dot.value.f.z;
       if(op.operation >= OPCODE_DP4)
@@ -2886,10 +2885,10 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         }
 
         // not verified below since by definition the operations that expect usrc1 will have it
-        uint32_t *usrc0 = src0 ? src0->value.uv : NULL;
-        uint32_t *usrc1 = src1 ? src1->value.uv : NULL;
+        uint32_t *usrc0 = src0->value.uv;
+        uint32_t *usrc1 = src1->value.uv;
 
-        int32_t *isrc0 = src0 ? src0->value.iv : NULL;
+        int32_t *isrc0 = src0->value.iv;
 
         switch(op.operation)
         {

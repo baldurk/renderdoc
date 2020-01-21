@@ -124,7 +124,7 @@ void WrappedOpenGL::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint wi
 
   bool failed = false;
 
-  if(!failed && !HasExt[ARB_compute_shader])
+  if(!HasExt[ARB_compute_shader])
   {
     RDCWARN(
         "Can't copy multisampled texture to array for serialisation without ARB_compute_shader.");

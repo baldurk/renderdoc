@@ -1262,334 +1262,331 @@ bool WrappedOpenGL::Serialise_ContextConfiguration(SerialiserType &ser, void *ct
 void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 {
   m_ActiveContexts[Threading::GetCurrentID()] = winData;
-  if(winData.ctx)
+
+  if(!winData.ctx)
+    return;
+
+  void *contextHandle = winData.ctx;
+  m_LastContexts.removeOneIf(
+      [contextHandle](const GLWindowingData &ctx) { return ctx.ctx == contextHandle; });
+
+  m_LastContexts.push_back(winData);
+
+  if(m_LastContexts.size() > 10)
+    m_LastContexts.erase(0);
+
+  if(IsActiveCapturing(m_State))
   {
-    void *contextHandle = winData.ctx;
-    m_LastContexts.removeOneIf(
-        [contextHandle](const GLWindowingData &ctx) { return ctx.ctx == contextHandle; });
+    // fetch any initial states needed. Note this is insufficient, and doesn't handle the case
+    // where we might just suddenly start getting commands on a thread that already has a context
+    // active. For now we assume we'll only get GL commands from a single thread
+    //
+    // First we process any queued fetches from the context itself (i.e. non-shared resources),
+    // then from the context's share group.
+    for(void *ctx : {(void *)winData.ctx, (void *)GetShareGroup(winData.ctx)})
+    {
+      QueuedResource fetch;
+      fetch.res.ContextShareGroup = ctx;
+      size_t before = m_QueuedInitialFetches.size();
+      auto it = std::lower_bound(m_QueuedInitialFetches.begin(), m_QueuedInitialFetches.end(), fetch);
+      size_t i = it - m_QueuedInitialFetches.begin();
+      while(i < m_QueuedInitialFetches.size() && it->res.ContextShareGroup == ctx)
+      {
+        GetResourceManager()->ContextPrepare_InitialState(it->res);
+        m_QueuedInitialFetches.erase(i);
+      }
+      size_t after = m_QueuedInitialFetches.size();
 
-    m_LastContexts.push_back(winData);
-
-    if(m_LastContexts.size() > 10)
-      m_LastContexts.erase(0);
+      (void)before;
+      (void)after;
+      RDCDEBUG("Prepared %zu resources on context/sharegroup %p, %zu left", before - after, ctx,
+               after);
+    }
   }
 
-  if(winData.ctx)
+  // also if there are any queued releases, process them now
+  if(!m_QueuedReleases.empty())
   {
-    if(IsActiveCapturing(m_State))
+    for(void *ctx : {(void *)winData.ctx, (void *)GetShareGroup(winData.ctx)})
     {
-      // fetch any initial states needed. Note this is insufficient, and doesn't handle the case
-      // where we might just suddenly start getting commands on a thread that already has a context
-      // active. For now we assume we'll only get GL commands from a single thread
-      //
-      // First we process any queued fetches from the context itself (i.e. non-shared resources),
-      // then from the context's share group.
-      for(void *ctx : {(void *)winData.ctx, (void *)GetShareGroup(winData.ctx)})
+      QueuedResource fetch;
+      fetch.res.ContextShareGroup = ctx;
+      size_t before = m_QueuedReleases.size();
+      auto it = std::lower_bound(m_QueuedReleases.begin(), m_QueuedReleases.end(), fetch);
+      size_t i = it - m_QueuedReleases.begin();
+      while(it != m_QueuedReleases.end() && it->res.ContextShareGroup == ctx)
       {
-        QueuedResource fetch;
-        fetch.res.ContextShareGroup = ctx;
-        size_t before = m_QueuedInitialFetches.size();
-        auto it =
-            std::lower_bound(m_QueuedInitialFetches.begin(), m_QueuedInitialFetches.end(), fetch);
-        size_t i = it - m_QueuedInitialFetches.begin();
-        while(i < m_QueuedInitialFetches.size() && it->res.ContextShareGroup == ctx)
-        {
-          GetResourceManager()->ContextPrepare_InitialState(it->res);
-          m_QueuedInitialFetches.erase(i);
-        }
-        size_t after = m_QueuedInitialFetches.size();
+        ReleaseResource(it->res);
+        m_QueuedReleases.erase(i);
+      }
+      size_t after = m_QueuedReleases.size();
 
-        (void)before;
-        (void)after;
-        RDCDEBUG("Prepared %zu resources on context/sharegroup %p, %zu left", before - after, ctx,
-                 after);
+      (void)before;
+      (void)after;
+      RDCDEBUG("Released %zu resources on context/sharegroup %p, %zu left", before - after, ctx,
+               after);
+    }
+  }
+
+  ContextData &ctxdata = m_ContextData[winData.ctx];
+
+  ctxdata.CreateResourceRecord(this, winData.ctx);
+
+  // update thread-local context pair
+  {
+    GLContextTLSData *tlsData = (GLContextTLSData *)Threading::GetTLSValue(m_CurCtxDataTLS);
+
+    if(tlsData)
+    {
+      tlsData->ctxPair = {winData.ctx, GetShareGroup(winData.ctx)};
+      tlsData->ctxRecord = ctxdata.m_ContextDataRecord;
+    }
+    else
+    {
+      tlsData = new GLContextTLSData(ContextPair({winData.ctx, GetShareGroup(winData.ctx)}),
+                                     ctxdata.m_ContextDataRecord);
+      m_CtxDataVector.push_back(tlsData);
+
+      Threading::SetTLSValue(m_CurCtxDataTLS, tlsData);
+    }
+  }
+
+  if(!ctxdata.built)
+  {
+    ctxdata.built = true;
+
+    if(IsCaptureMode(m_State))
+      RDCLOG("Activating new GL context: %s / %s / %s", GL.glGetString(eGL_VENDOR),
+             GL.glGetString(eGL_RENDERER), GL.glGetString(eGL_VERSION));
+
+    const rdcarray<rdcstr> &globalExts = IsGLES ? m_GLESExtensions : m_GLExtensions;
+
+    if(HasExt[KHR_debug] && GL.glDebugMessageCallback &&
+       RenderDoc::Inst().GetCaptureOptions().apiValidation)
+    {
+      GL.glDebugMessageCallback(&DebugSnoopStatic, this);
+      GL.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
+    }
+
+    rdcarray<rdcstr> implExts;
+
+    int ctxVersion = 0;
+    bool ctxGLES = false;
+    GetContextVersion(ctxGLES, ctxVersion);
+
+    // only use glGetStringi on 3.0 contexts and above (ES and GL), even if we have the function
+    // pointer
+    if(GL.glGetIntegerv && GL.glGetStringi && ctxVersion >= 30)
+    {
+      GLuint numExts = 0;
+      GL.glGetIntegerv(eGL_NUM_EXTENSIONS, (GLint *)&numExts);
+
+      for(GLuint i = 0; i < numExts; i++)
+        implExts.push_back((const char *)GL.glGetStringi(eGL_EXTENSIONS, i));
+    }
+    else if(GL.glGetString)
+    {
+      rdcstr implExtString = (const char *)GL.glGetString(eGL_EXTENSIONS);
+
+      split(implExtString, implExts, ' ');
+    }
+    else
+    {
+      RDCERR("No functions to fetch implementation's extensions!");
+    }
+
+    std::sort(implExts.begin(), implExts.end());
+
+    // intersection of implExts and globalExts into ctx.glExts
+    {
+      for(size_t i = 0, j = 0; i < implExts.size() && j < globalExts.size();)
+      {
+        const rdcstr &a = implExts[i];
+        const rdcstr &b = globalExts[j];
+
+        if(a == b)
+        {
+          ctxdata.glExts.push_back(a);
+          i++;
+          j++;
+        }
+        else if(a < b)
+        {
+          i++;
+        }
+        else if(b < a)
+        {
+          j++;
+        }
       }
     }
 
-    // also if there are any queued releases, process them now
-    if(!m_QueuedReleases.empty())
-    {
-      for(void *ctx : {(void *)winData.ctx, (void *)GetShareGroup(winData.ctx)})
-      {
-        QueuedResource fetch;
-        fetch.res.ContextShareGroup = ctx;
-        size_t before = m_QueuedReleases.size();
-        auto it = std::lower_bound(m_QueuedReleases.begin(), m_QueuedReleases.end(), fetch);
-        size_t i = it - m_QueuedReleases.begin();
-        while(it != m_QueuedReleases.end() && it->res.ContextShareGroup == ctx)
-        {
-          ReleaseResource(it->res);
-          m_QueuedReleases.erase(i);
-        }
-        size_t after = m_QueuedReleases.size();
+    // this extension is something RenderDoc will support even if the impl
+    // doesn't. https://renderdoc.org/debug_tool.txt
+    ctxdata.glExts.push_back("GL_EXT_debug_tool");
 
-        (void)before;
-        (void)after;
-        RDCDEBUG("Released %zu resources on context/sharegroup %p, %zu left", before - after, ctx,
-                 after);
+    // similarly we report all the debug extensions so that applications can use them freely - we
+    // don't call into the driver so we don't need to care if the driver supports them
+    ctxdata.glExts.push_back("GL_KHR_debug");
+    ctxdata.glExts.push_back("GL_EXT_debug_label");
+    ctxdata.glExts.push_back("GL_EXT_debug_marker");
+
+    if(!IsGLES)
+    {
+      ctxdata.glExts.push_back("GL_GREMEDY_frame_terminator");
+      ctxdata.glExts.push_back("GL_GREMEDY_string_marker");
+    }
+
+    merge(ctxdata.glExts, ctxdata.glExtsString, ' ');
+
+    if(GL.glGetIntegerv)
+    {
+      GLint mj = 0, mn = 0;
+      GL.glGetIntegerv(eGL_MAJOR_VERSION, &mj);
+      GL.glGetIntegerv(eGL_MINOR_VERSION, &mn);
+
+      int ver = mj * 10 + mn;
+
+      ctxdata.version = ver;
+
+      if(ver > GLCoreVersion || (!GLIsCore && ctxdata.isCore))
+      {
+        GLCoreVersion = ver;
+        GLIsCore = ctxdata.isCore;
+        DoVendorChecks(m_Platform, winData);
       }
     }
 
-    ContextData &ctxdata = m_ContextData[winData.ctx];
-
-    ctxdata.CreateResourceRecord(this, winData.ctx);
-
-    // update thread-local context pair
+    if(IsCaptureMode(m_State))
     {
-      GLContextTLSData *tlsData = (GLContextTLSData *)Threading::GetTLSValue(m_CurCtxDataTLS);
+      // check if we already have VAO 0 registered for this context. This could be possible if
+      // VAOs are shared and a previous context in the share group created it.
+      GLResource vao0 = VertexArrayRes(GetCtx(), 0);
 
-      if(tlsData)
+      if(!GetResourceManager()->HasCurrentResource(vao0))
       {
-        tlsData->ctxPair = {winData.ctx, GetShareGroup(winData.ctx)};
-        tlsData->ctxRecord = ctxdata.m_ContextDataRecord;
-      }
-      else
-      {
-        tlsData = new GLContextTLSData(ContextPair({winData.ctx, GetShareGroup(winData.ctx)}),
-                                       ctxdata.m_ContextDataRecord);
-        m_CtxDataVector.push_back(tlsData);
+        ResourceId id = GetResourceManager()->RegisterResource(vao0);
 
-        Threading::SetTLSValue(m_CurCtxDataTLS, tlsData);
+        GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+        RDCASSERT(record);
+
+        {
+          USE_SCRATCH_SERIALISER();
+          SCOPED_SERIALISE_CHUNK(GLChunk::glGenVertexArrays);
+          GLuint zero = 0;
+          Serialise_glGenVertexArrays(ser, 1, &zero);
+
+          record->AddChunk(scope.Get());
+        }
+
+        // give it a name
+        {
+          USE_SCRATCH_SERIALISER();
+          SCOPED_SERIALISE_CHUNK(GLChunk::glObjectLabel);
+          Serialise_glObjectLabel(ser, eGL_VERTEX_ARRAY, 0, -1, "Default VAO");
+
+          record->AddChunk(scope.Get());
+        }
+
+        // we immediately mark it dirty since the vertex array tracking functions expect a proper
+        // VAO
+        GetResourceManager()->MarkDirtyResource(id);
       }
+
+      // we also do the same for FBO 0, but we must force it not to be shared as even if FBOs are
+      // shared the FBO0 may not be :(.
+      GLResource fbo0 = FramebufferRes({GetCtx().ctx, GetCtx().ctx}, 0);
+
+      if(!GetResourceManager()->HasCurrentResource(fbo0))
+        ctxdata.m_ContextFBOID = GetResourceManager()->RegisterResource(fbo0);
+    }
+  }
+
+  // if we're capturing, we need to serialise out the changed state vector
+  if(IsActiveCapturing(m_State))
+  {
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(GLChunk::MakeContextCurrent);
+      Serialise_BeginCaptureFrame(ser);
+      GetContextRecord()->AddChunk(scope.Get());
     }
 
-    if(!ctxdata.built)
+    // also serialise out this context's backbuffer params
     {
-      ctxdata.built = true;
-
-      if(IsCaptureMode(m_State))
-        RDCLOG("Activating new GL context: %s / %s / %s", GL.glGetString(eGL_VENDOR),
-               GL.glGetString(eGL_RENDERER), GL.glGetString(eGL_VERSION));
-
-      const rdcarray<rdcstr> &globalExts = IsGLES ? m_GLESExtensions : m_GLExtensions;
-
-      if(HasExt[KHR_debug] && GL.glDebugMessageCallback &&
-         RenderDoc::Inst().GetCaptureOptions().apiValidation)
-      {
-        GL.glDebugMessageCallback(&DebugSnoopStatic, this);
-        GL.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
-      }
-
-      rdcarray<rdcstr> implExts;
-
-      int ctxVersion = 0;
-      bool ctxGLES = false;
-      GetContextVersion(ctxGLES, ctxVersion);
-
-      // only use glGetStringi on 3.0 contexts and above (ES and GL), even if we have the function
-      // pointer
-      if(GL.glGetIntegerv && GL.glGetStringi && ctxVersion >= 30)
-      {
-        GLuint numExts = 0;
-        GL.glGetIntegerv(eGL_NUM_EXTENSIONS, (GLint *)&numExts);
-
-        for(GLuint i = 0; i < numExts; i++)
-          implExts.push_back((const char *)GL.glGetStringi(eGL_EXTENSIONS, i));
-      }
-      else if(GL.glGetString)
-      {
-        rdcstr implExtString = (const char *)GL.glGetString(eGL_EXTENSIONS);
-
-        split(implExtString, implExts, ' ');
-      }
-      else
-      {
-        RDCERR("No functions to fetch implementation's extensions!");
-      }
-
-      std::sort(implExts.begin(), implExts.end());
-
-      // intersection of implExts and globalExts into ctx.glExts
-      {
-        for(size_t i = 0, j = 0; i < implExts.size() && j < globalExts.size();)
-        {
-          const rdcstr &a = implExts[i];
-          const rdcstr &b = globalExts[j];
-
-          if(a == b)
-          {
-            ctxdata.glExts.push_back(a);
-            i++;
-            j++;
-          }
-          else if(a < b)
-          {
-            i++;
-          }
-          else if(b < a)
-          {
-            j++;
-          }
-        }
-      }
-
-      // this extension is something RenderDoc will support even if the impl
-      // doesn't. https://renderdoc.org/debug_tool.txt
-      ctxdata.glExts.push_back("GL_EXT_debug_tool");
-
-      // similarly we report all the debug extensions so that applications can use them freely - we
-      // don't call into the driver so we don't need to care if the driver supports them
-      ctxdata.glExts.push_back("GL_KHR_debug");
-      ctxdata.glExts.push_back("GL_EXT_debug_label");
-      ctxdata.glExts.push_back("GL_EXT_debug_marker");
-
-      if(!IsGLES)
-      {
-        ctxdata.glExts.push_back("GL_GREMEDY_frame_terminator");
-        ctxdata.glExts.push_back("GL_GREMEDY_string_marker");
-      }
-
-      merge(ctxdata.glExts, ctxdata.glExtsString, ' ');
-
-      if(GL.glGetIntegerv)
-      {
-        GLint mj = 0, mn = 0;
-        GL.glGetIntegerv(eGL_MAJOR_VERSION, &mj);
-        GL.glGetIntegerv(eGL_MINOR_VERSION, &mn);
-
-        int ver = mj * 10 + mn;
-
-        ctxdata.version = ver;
-
-        if(ver > GLCoreVersion || (!GLIsCore && ctxdata.isCore))
-        {
-          GLCoreVersion = ver;
-          GLIsCore = ctxdata.isCore;
-          DoVendorChecks(m_Platform, winData);
-        }
-      }
-
-      if(IsCaptureMode(m_State))
-      {
-        // check if we already have VAO 0 registered for this context. This could be possible if
-        // VAOs are shared and a previous context in the share group created it.
-        GLResource vao0 = VertexArrayRes(GetCtx(), 0);
-
-        if(!GetResourceManager()->HasCurrentResource(vao0))
-        {
-          ResourceId id = GetResourceManager()->RegisterResource(vao0);
-
-          GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-          RDCASSERT(record);
-
-          {
-            USE_SCRATCH_SERIALISER();
-            SCOPED_SERIALISE_CHUNK(GLChunk::glGenVertexArrays);
-            GLuint zero = 0;
-            Serialise_glGenVertexArrays(ser, 1, &zero);
-
-            record->AddChunk(scope.Get());
-          }
-
-          // give it a name
-          {
-            USE_SCRATCH_SERIALISER();
-            SCOPED_SERIALISE_CHUNK(GLChunk::glObjectLabel);
-            Serialise_glObjectLabel(ser, eGL_VERTEX_ARRAY, 0, -1, "Default VAO");
-
-            record->AddChunk(scope.Get());
-          }
-
-          // we immediately mark it dirty since the vertex array tracking functions expect a proper
-          // VAO
-          GetResourceManager()->MarkDirtyResource(id);
-        }
-
-        // we also do the same for FBO 0, but we must force it not to be shared as even if FBOs are
-        // shared the FBO0 may not be :(.
-        GLResource fbo0 = FramebufferRes({GetCtx().ctx, GetCtx().ctx}, 0);
-
-        if(!GetResourceManager()->HasCurrentResource(fbo0))
-          ctxdata.m_ContextFBOID = GetResourceManager()->RegisterResource(fbo0);
-      }
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(GLChunk::ContextConfiguration);
+      Serialise_ContextConfiguration(ser, winData.ctx);
+      GetContextRecord()->AddChunk(scope.Get());
     }
+  }
 
-    // if we're capturing, we need to serialise out the changed state vector
-    if(IsActiveCapturing(m_State))
+  // we create these buffers last after serialising the apply of the new state, so that in the
+  // event that this context is created mid-capture, we don't serialise out buffer binding calls
+  // that trash the state of the previous context while creating these buffers.
+  if(ctxdata.m_ClientMemoryIBO == 0 && IsCaptureMode(m_State))
+  {
+    PUSH_CURRENT_CHUNK;
+    GLuint prevArrayBuffer = 0;
+    glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&prevArrayBuffer);
+
+    GLuint prevElementArrayBuffer = 0;
+    glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&prevElementArrayBuffer);
+
+    // Initialize VBOs used in case we copy from client memory.
+    gl_CurChunk = GLChunk::glGenBuffers;
+    glGenBuffers(ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs), ctxdata.m_ClientMemoryVBOs);
+
+    for(size_t i = 0; i < ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs); i++)
     {
-      {
-        USE_SCRATCH_SERIALISER();
-        SCOPED_SERIALISE_CHUNK(GLChunk::MakeContextCurrent);
-        Serialise_BeginCaptureFrame(ser);
-        GetContextRecord()->AddChunk(scope.Get());
-      }
-
-      // also serialise out this context's backbuffer params
-      {
-        USE_SCRATCH_SERIALISER();
-        SCOPED_SERIALISE_CHUNK(GLChunk::ContextConfiguration);
-        Serialise_ContextConfiguration(ser, winData.ctx);
-        GetContextRecord()->AddChunk(scope.Get());
-      }
-    }
-
-    // we create these buffers last after serialising the apply of the new state, so that in the
-    // event that this context is created mid-capture, we don't serialise out buffer binding calls
-    // that trash the state of the previous context while creating these buffers.
-    if(ctxdata.m_ClientMemoryIBO == 0 && IsCaptureMode(m_State))
-    {
-      PUSH_CURRENT_CHUNK;
-      GLuint prevArrayBuffer = 0;
-      glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&prevArrayBuffer);
-
-      GLuint prevElementArrayBuffer = 0;
-      glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&prevElementArrayBuffer);
-
-      // Initialize VBOs used in case we copy from client memory.
-      gl_CurChunk = GLChunk::glGenBuffers;
-      glGenBuffers(ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs), ctxdata.m_ClientMemoryVBOs);
-
-      for(size_t i = 0; i < ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs); i++)
-      {
-        gl_CurChunk = GLChunk::glBindBuffer;
-        glBindBuffer(eGL_ARRAY_BUFFER, ctxdata.m_ClientMemoryVBOs[i]);
-
-        gl_CurChunk = GLChunk::glBufferData;
-        glBufferData(eGL_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
-
-        // we mark these buffers as internal since initial contents are not needed - they're
-        // entirely handled internally and buffer data is uploaded immediately before draws - and
-        // we don't want them to be pulled in unless explicitly referenced.
-        GetResourceManager()->SetInternalResource(BufferRes(GetCtx(), ctxdata.m_ClientMemoryVBOs[i]));
-
-        if(HasExt[KHR_debug])
-        {
-          gl_CurChunk = GLChunk::glObjectLabel;
-          glObjectLabel(eGL_BUFFER, ctxdata.m_ClientMemoryVBOs[i], -1,
-                        StringFormat::Fmt("Client-memory pointer data (VB %zu)", i).c_str());
-        }
-      }
-
-      gl_CurChunk = GLChunk::glGenBuffers;
-      glGenBuffers(1, &ctxdata.m_ClientMemoryIBO);
-
       gl_CurChunk = GLChunk::glBindBuffer;
-      glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ctxdata.m_ClientMemoryIBO);
-
-      GetResourceManager()->SetInternalResource(BufferRes(GetCtx(), ctxdata.m_ClientMemoryIBO));
+      glBindBuffer(eGL_ARRAY_BUFFER, ctxdata.m_ClientMemoryVBOs[i]);
 
       gl_CurChunk = GLChunk::glBufferData;
-      glBufferData(eGL_ELEMENT_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
+      glBufferData(eGL_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
+
+      // we mark these buffers as internal since initial contents are not needed - they're
+      // entirely handled internally and buffer data is uploaded immediately before draws - and
+      // we don't want them to be pulled in unless explicitly referenced.
+      GetResourceManager()->SetInternalResource(BufferRes(GetCtx(), ctxdata.m_ClientMemoryVBOs[i]));
 
       if(HasExt[KHR_debug])
       {
         gl_CurChunk = GLChunk::glObjectLabel;
-        glObjectLabel(eGL_BUFFER, ctxdata.m_ClientMemoryIBO, -1, "Client-memory pointer data (IB)");
+        glObjectLabel(eGL_BUFFER, ctxdata.m_ClientMemoryVBOs[i], -1,
+                      StringFormat::Fmt("Client-memory pointer data (VB %zu)", i).c_str());
       }
-
-      gl_CurChunk = GLChunk::glBindBuffer;
-      glBindBuffer(eGL_ARRAY_BUFFER, prevArrayBuffer);
-
-      gl_CurChunk = GLChunk::glBindBuffer;
-      glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, prevElementArrayBuffer);
     }
 
-    // this is hack but GL context creation is an *utter mess*. For first-frame captures, only
-    // consider an attribs created context, to avoid starting capturing when the user is creating
-    // dummy contexts to be able to create the real one.
-    if(ctxdata.attribsCreate)
-      FirstFrame(ctxdata.ctx, (void *)winData.wnd);
+    gl_CurChunk = GLChunk::glGenBuffers;
+    glGenBuffers(1, &ctxdata.m_ClientMemoryIBO);
+
+    gl_CurChunk = GLChunk::glBindBuffer;
+    glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ctxdata.m_ClientMemoryIBO);
+
+    GetResourceManager()->SetInternalResource(BufferRes(GetCtx(), ctxdata.m_ClientMemoryIBO));
+
+    gl_CurChunk = GLChunk::glBufferData;
+    glBufferData(eGL_ELEMENT_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
+
+    if(HasExt[KHR_debug])
+    {
+      gl_CurChunk = GLChunk::glObjectLabel;
+      glObjectLabel(eGL_BUFFER, ctxdata.m_ClientMemoryIBO, -1, "Client-memory pointer data (IB)");
+    }
+
+    gl_CurChunk = GLChunk::glBindBuffer;
+    glBindBuffer(eGL_ARRAY_BUFFER, prevArrayBuffer);
+
+    gl_CurChunk = GLChunk::glBindBuffer;
+    glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, prevElementArrayBuffer);
   }
+
+  // this is hack but GL context creation is an *utter mess*. For first-frame captures, only
+  // consider an attribs created context, to avoid starting capturing when the user is creating
+  // dummy contexts to be able to create the real one.
+  if(ctxdata.attribsCreate)
+    FirstFrame(ctxdata.ctx, (void *)winData.wnd);
 }
 
 struct ReplacementSearch
@@ -3049,14 +3046,14 @@ bool WrappedOpenGL::RecordUpdateCheck(GLResourceRecord *record)
     return false;
 
   // if we've already stopped tracking this object, return as such
-  if(record && record->UpdateCount > 64)
+  if(record->UpdateCount > 64)
     return false;
 
   // increase update count
   record->UpdateCount++;
 
   // if update count is high, mark as dirty
-  if(record && record->UpdateCount > 64)
+  if(record->UpdateCount > 64)
   {
     GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 
@@ -3108,7 +3105,7 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
         default: msg.severity = MessageSeverity::Info; break;
       }
 
-      if(source == eGL_DEBUG_SOURCE_APPLICATION || type == eGL_DEBUG_TYPE_MARKER)
+      if(source == eGL_DEBUG_SOURCE_APPLICATION)
       {
         msg.category = MessageCategory::Application_Defined;
       }

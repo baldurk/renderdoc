@@ -151,7 +151,7 @@ void RenderDoc::TargetControlClientThread(uint32_t version, Network::Socket *cli
 
   while(client)
   {
-    if(RenderDoc::Inst().m_ControlClientThreadShutdown || (client && !client->Connected()))
+    if(RenderDoc::Inst().m_ControlClientThreadShutdown || !client->Connected())
     {
       SAFE_DELETE(client);
       break;

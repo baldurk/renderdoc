@@ -2315,7 +2315,7 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
       bool show = used;
 
       // it's bound, but not referenced, and we have "show disabled"
-      show = show || (m_ShowUnused && !used && res.resourceId != ResourceId());
+      show = show || (m_ShowUnused && res.resourceId != ResourceId());
 
       // it's empty, and we have "show empty"
       show = show || (m_ShowEmpty && res.resourceId == ResourceId());

@@ -1504,7 +1504,7 @@ bool WrappedID3D11Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
 
   D3D11_TEXTURE2D_DESC BackbufferDescriptor;
 
-  if(ser.IsWriting() && pTex)
+  if(ser.IsWriting())
     pTex->GetDesc(&BackbufferDescriptor);
 
   SERIALISE_ELEMENT(BackbufferDescriptor);

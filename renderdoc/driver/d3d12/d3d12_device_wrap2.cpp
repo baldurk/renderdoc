@@ -160,8 +160,7 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
   unwrappedDesc.Unwrap();
 
   if(ppPipelineState == NULL)
-    return m_pDevice3->CreatePipelineState(pDesc ? unwrappedDesc.AsDescStream() : NULL, riid,
-                                           ppPipelineState);
+    return m_pDevice3->CreatePipelineState(unwrappedDesc.AsDescStream(), riid, ppPipelineState);
 
   if(riid != __uuidof(ID3D12PipelineState))
     return E_NOINTERFACE;

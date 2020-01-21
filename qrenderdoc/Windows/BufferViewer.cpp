@@ -1707,7 +1707,6 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
   if(data->vsoutConfig.displayIndices)
     data->vsoutConfig.displayIndices->deref();
 
-  if(data->vsinConfig.indices)
   {
     // display the same index values
     data->vsoutConfig.displayIndices = data->vsinConfig.indices;

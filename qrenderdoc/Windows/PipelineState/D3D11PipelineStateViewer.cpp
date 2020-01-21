@@ -764,8 +764,8 @@ bool D3D11PipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
   if(usedSlot)
     return true;
 
-  // it's bound, but not referenced, and we have "show unused"
-  if(showUnused && !usedSlot && filledSlot)
+  // it's not referenced, but if it's bound and we have "show unused" then show it
+  if(showUnused && filledSlot)
     return true;
 
   // it's empty, and we have "show empty"

@@ -291,7 +291,6 @@ void D3D8DebugManager::RenderTextInternal(float x, float y, const rdcstr &text)
                       0.f, textPositionX, textPositionY + 3.f, 0.f, 0.f);
   }
 
-  if(quads != NULL)
   {
     // overlay render states
     res |= m_WrappedDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);

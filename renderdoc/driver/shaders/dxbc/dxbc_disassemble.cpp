@@ -541,9 +541,8 @@ void Program::MakeDisassemblyString()
 
       m_DebugInfo->GetLineInfo(debugInst, m_Instructions[i].offset, lineInfo);
 
-      if(lineInfo.fileIndex >= 0 && lineInfo.lineStart >= 0 &&
-         (lineInfo.fileIndex != prevLineInfo.fileIndex ||
-          lineInfo.lineStart != prevLineInfo.lineStart))
+      if(lineInfo.fileIndex >= 0 && (lineInfo.fileIndex != prevLineInfo.fileIndex ||
+                                     lineInfo.lineStart != prevLineInfo.lineStart))
       {
         rdcstr line = "";
         if(lineInfo.fileIndex >= (int32_t)fileLines.size())
@@ -1163,7 +1162,7 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
     {
       for(size_t i = 0; i < indices.size(); i++)
       {
-        if(i == 0 && (type == TYPE_CONSTANT_BUFFER || type == TYPE_INDEXABLE_TEMP))
+        if(i == 0 && type == TYPE_INDEXABLE_TEMP)
         {
           str += indices[i].str;
           continue;

@@ -666,7 +666,7 @@ private:
         return wnd == NULL || o.wnd == NULL || wnd == o.wnd;
 
       if(wnd == NULL || o.wnd == NULL)
-        return dev == NULL || o.dev == NULL || dev == o.dev;
+        return dev == o.dev;
 
       return *this == o;
     }

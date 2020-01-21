@@ -496,7 +496,7 @@ void PrintFloat0(bool e, bool f, FormatterParams formatter, char prepend, char *
   {
     addchar(output, actualsize, end, '0');
 
-    if(!e && !f && (formatter.Flags & AlwaysDecimal))
+    if(formatter.Flags & AlwaysDecimal)
     {
       addchar(output, actualsize, end, '.');
       addchar(output, actualsize, end, '0');
@@ -812,7 +812,7 @@ void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g,
       else if(expon > ndigits)
       {
         numwidth += (expon + 1 - ndigits);    // 0s between digits and decimal place
-        if((!g || (formatter.Flags & AlternateForm)))
+        if(!g || (formatter.Flags & AlternateForm))
           numwidth++;    // .
 
         if(padtrailing0s > 0 && (!g || (formatter.Flags & AlternateForm)))
@@ -902,7 +902,7 @@ void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g,
             if(padtrailing0s > 0)
               addchars(output, actualsize, end, size_t(padtrailing0s), '0');
           }
-          else if(g && (formatter.Flags & AlwaysDecimal))
+          else if(formatter.Flags & AlwaysDecimal)
           {
             addchar(output, actualsize, end, '.');
             addchar(output, actualsize, end, '0');
@@ -911,7 +911,7 @@ void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g,
         else if(expon > ndigits)
         {
           addchars(output, actualsize, end, size_t(expon + 1 - ndigits), '0');
-          if((!g || (formatter.Flags & AlternateForm)))
+          if(!g || (formatter.Flags & AlternateForm))
             addchar(output, actualsize, end, '.');
 
           if(padtrailing0s > 0 && (!g || (formatter.Flags & AlternateForm)))

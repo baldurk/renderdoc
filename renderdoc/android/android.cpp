@@ -1146,7 +1146,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
       // without ever opening a connection.
       int curpid = Android::GetCurrentPID(m_deviceID, packageName);
 
-      if(pid != 0 && curpid == 0)
+      if(curpid == 0)
       {
         RDCERR("APK has crashed or never opened target control connection before closing.");
         break;

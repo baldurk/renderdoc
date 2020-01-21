@@ -768,7 +768,7 @@ void ReplayOutput::DisplayMesh()
     return;
   }
 
-  if(draw && m_OverlayDirty)
+  if(m_OverlayDirty)
   {
     m_pDevice->ReplayLog(m_EventID, eReplay_WithoutDraw);
     RefreshOverlay();

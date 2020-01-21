@@ -1600,7 +1600,7 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
   m_SubmitCounter = 0;
 
   FrameDescription frame;
-  frame.frameNumber = m_AppControlledCapture ? ~0U : m_FrameCounter;
+  frame.frameNumber = ~0U;
   frame.captureTime = Timing::GetUnixTimestamp();
   RDCEraseEl(frame.stats);
   m_CapturedFrames.push_back(frame);

@@ -6175,23 +6175,19 @@ bool WrappedID3D11DeviceContext::Serialise_CopyStructureCount(SerialiserType &se
       DrawcallDescription draw;
       draw.name = "CopyStructureCount(" + ToStr(dstOrigID) + ", " + ToStr(srcOrigID) + ")";
       draw.flags |= DrawFlags::Copy;
+      draw.copySource = srcOrigID;
+      draw.copyDestination = dstOrigID;
 
-      if(pDstBuffer && pSrcView)
+      if(m_CurEventID)
       {
-        draw.copySource = srcOrigID;
-        draw.copyDestination = dstOrigID;
-
-        if(m_CurEventID)
+        if(dstLiveID == srcLiveID)
         {
-          if(dstLiveID == srcLiveID)
-          {
-            m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
-          }
-          else
-          {
-            m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
-            m_ResourceUses[srcLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
-          }
+          m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
+        }
+        else
+        {
+          m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
+          m_ResourceUses[srcLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
         }
       }
 
@@ -6569,12 +6565,8 @@ void WrappedID3D11DeviceContext::ClearRenderTargetView(ID3D11RenderTargetView *p
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_ClearRenderTargetView(GET_SERIALISER, pRenderTargetView, ColorRGBA);
 
-    if(pRenderTargetView)
-    {
-      MarkResourceReferenced(GetViewResourceResID(pRenderTargetView), eFrameRef_PartialWrite);
-      MarkResourceReferenced(GetIDForResource(pRenderTargetView), eFrameRef_Read);
-    }
-
+    MarkResourceReferenced(GetViewResourceResID(pRenderTargetView), eFrameRef_PartialWrite);
+    MarkResourceReferenced(GetIDForResource(pRenderTargetView), eFrameRef_Read);
     MarkDirtyResource(GetViewResourceResID(pRenderTargetView));
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -6822,12 +6814,8 @@ void WrappedID3D11DeviceContext::ClearDepthStencilView(ID3D11DepthStencilView *p
     SERIALISE_ELEMENT(m_ResourceID).Named("Context"_lit).TypedAs("ID3D11DeviceContext *"_lit);
     Serialise_ClearDepthStencilView(GET_SERIALISER, pDepthStencilView, ClearFlags, Depth, Stencil);
 
-    if(pDepthStencilView)
-    {
-      MarkResourceReferenced(GetViewResourceResID(pDepthStencilView), eFrameRef_PartialWrite);
-      MarkResourceReferenced(GetIDForResource(pDepthStencilView), eFrameRef_Read);
-    }
-
+    MarkResourceReferenced(GetViewResourceResID(pDepthStencilView), eFrameRef_PartialWrite);
+    MarkResourceReferenced(GetIDForResource(pDepthStencilView), eFrameRef_Read);
     MarkDirtyResource(GetViewResourceResID(pDepthStencilView));
 
     m_ContextRecord->AddChunk(scope.Get());

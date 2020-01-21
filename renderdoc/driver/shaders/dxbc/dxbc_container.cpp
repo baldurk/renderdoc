@@ -1083,7 +1083,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
         // pixel shader outputs with registers are always targets
         if(m_Type == DXBC::ShaderType::Pixel && output &&
-           desc.systemValue == ShaderBuiltin::Undefined && desc.regIndex >= 0 && desc.regIndex <= 16)
+           desc.systemValue == ShaderBuiltin::Undefined && desc.regIndex <= 16)
           desc.systemValue = ShaderBuiltin::ColorOutput;
 
         // check system value semantics

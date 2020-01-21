@@ -55,11 +55,11 @@ public:
     byte c = 0;
     ReadBits(6, &c);
 
-    if(c >= 0 && c <= 25)
+    if(c <= 25)
       return char('a' + c);
-    else if(c >= 26 && c <= 51)
+    else if(c <= 51)
       return char('A' + c - 26);
-    else if(c >= 52 && c <= 61)
+    else if(c <= 61)
       return char('0' + c - 52);
     else if(c == 62)
       return '.';

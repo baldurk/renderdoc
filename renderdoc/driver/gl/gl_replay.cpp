@@ -255,8 +255,7 @@ rdcarray<ResourceId> GLReplay::GetTextures()
 void GLReplay::SetReplayData(GLWindowingData data)
 {
   m_ReplayCtx = data;
-  if(m_pDriver != NULL)
-    m_pDriver->RegisterReplayContext(m_ReplayCtx, NULL, true, true);
+  m_pDriver->RegisterReplayContext(m_ReplayCtx, NULL, true, true);
 
   m_pDriver->RegisterDebugCallback();
 
@@ -3340,7 +3339,6 @@ bool GLReplay::IsTextureSupported(const TextureDescription &tex)
   // don't support 1D/3D block compressed textures
   if(tex.dimension != 2 &&
      (tex.format.type == ResourceFormatType::BC1 || tex.format.type == ResourceFormatType::BC2 ||
-      tex.format.type == ResourceFormatType::BC1 || tex.format.type == ResourceFormatType::BC2 ||
       tex.format.type == ResourceFormatType::BC3 || tex.format.type == ResourceFormatType::BC4 ||
       tex.format.type == ResourceFormatType::BC5 || tex.format.type == ResourceFormatType::BC6 ||
       tex.format.type == ResourceFormatType::BC7 || tex.format.type == ResourceFormatType::ASTC ||

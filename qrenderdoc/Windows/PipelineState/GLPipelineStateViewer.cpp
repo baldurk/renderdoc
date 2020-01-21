@@ -506,8 +506,8 @@ bool GLPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
   if(usedSlot)
     return true;
 
-  // it's bound, but not referenced, and we have "show unused"
-  if(showUnused && !usedSlot && filledSlot)
+  // it's not referenced, but if it's bound and we have "show unused" then show it
+  if(showUnused && filledSlot)
     return true;
 
   // it's empty, and we have "show empty"
@@ -2614,7 +2614,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
       {
         QString slotname = QString::number(i);
 
-        if(shaderInput && !shaderInput->name.isEmpty())
+        if(!shaderInput->name.isEmpty())
           slotname += QFormatStr(": %1").arg(shaderInput->name);
 
         uint32_t w = 1, h = 1, d = 1;
@@ -2668,7 +2668,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
       {
         QString slotname = QString::number(i);
 
-        if(shaderInput && !shaderInput->name.isEmpty())
+        if(!shaderInput->name.isEmpty())
           slotname += QFormatStr(": %1").arg(shaderInput->name);
 
         QString borderColor = QFormatStr("%1, %2, %3, %4")

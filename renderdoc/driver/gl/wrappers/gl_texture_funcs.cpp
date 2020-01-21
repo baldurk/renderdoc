@@ -3811,21 +3811,19 @@ void WrappedOpenGL::Common_glCopyTextureImage1DEXT(GLResourceRecord *record, GLe
   {
     // add a fake teximage1D chunk to create the texture properly on live (as we won't replay this
     // copy chunk).
-    if(record)
-    {
-      USE_SCRATCH_SERIALISER();
-      SCOPED_SERIALISE_CHUNK(GLChunk::glTextureImage1DEXT);
-      Serialise_glTextureImage1DEXT(ser, record->Resource.name, target, level, internalformat,
-                                    width, border, GetBaseFormat(internalformat),
-                                    GetDataType(internalformat), NULL);
 
-      record->AddChunk(scope.Get());
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(GLChunk::glTextureImage1DEXT);
+    Serialise_glTextureImage1DEXT(ser, record->Resource.name, target, level, internalformat, width,
+                                  border, GetBaseFormat(internalformat),
+                                  GetDataType(internalformat), NULL);
 
-      // illegal to re-type textures
-      record->VerifyDataType(target);
+    record->AddChunk(scope.Get());
 
-      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-    }
+    // illegal to re-type textures
+    record->VerifyDataType(target);
+
+    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -3973,21 +3971,18 @@ void WrappedOpenGL::Common_glCopyTextureImage2DEXT(GLResourceRecord *record, GLe
   {
     // add a fake teximage1D chunk to create the texture properly on live (as we won't replay this
     // copy chunk).
-    if(record)
-    {
-      USE_SCRATCH_SERIALISER();
-      SCOPED_SERIALISE_CHUNK(GLChunk::glTextureImage2DEXT);
-      Serialise_glTextureImage2DEXT(ser, record->Resource.name, target, level, internalformat,
-                                    width, height, border, GetBaseFormat(internalformat),
-                                    GetDataType(internalformat), NULL);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(GLChunk::glTextureImage2DEXT);
+    Serialise_glTextureImage2DEXT(ser, record->Resource.name, target, level, internalformat, width,
+                                  height, border, GetBaseFormat(internalformat),
+                                  GetDataType(internalformat), NULL);
 
-      record->AddChunk(scope.Get());
+    record->AddChunk(scope.Get());
 
-      // illegal to re-type textures
-      record->VerifyDataType(target);
+    // illegal to re-type textures
+    record->VerifyDataType(target);
 
-      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-    }
+    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
   }
   else if(IsActiveCapturing(m_State))
   {

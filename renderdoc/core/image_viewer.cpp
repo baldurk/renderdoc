@@ -730,7 +730,7 @@ void ImageViewer::RefreshFile()
     if(m_TexDetails.width != texDetails.width || m_TexDetails.height != texDetails.height ||
        m_TexDetails.depth != texDetails.depth || m_TexDetails.cubemap != texDetails.cubemap ||
        m_TexDetails.mips != texDetails.mips || m_TexDetails.arraysize != texDetails.arraysize ||
-       m_TexDetails.width != texDetails.width || m_TexDetails.format != texDetails.format)
+       m_TexDetails.format != texDetails.format)
     {
       m_TextureID = ResourceId();
     }
