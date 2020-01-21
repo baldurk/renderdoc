@@ -254,7 +254,7 @@ void GLReplay::DestroyOutputWindow(uint64_t id)
 
   m_pDriver->glDeleteFramebuffers(1, &outw.BlitData.readFBO);
 
-  m_pDriver->m_Platform.DeleteReplayContext(outw);
+  m_pDriver->UnregisterReplayContext(outw);
 
   m_OutputWindows.erase(it);
 }

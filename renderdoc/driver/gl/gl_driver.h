@@ -638,6 +638,7 @@ public:
                      bool core, bool attribsCreate);
   void RegisterReplayContext(GLWindowingData winData, void *shareContext, bool core,
                              bool attribsCreate);
+  void UnregisterReplayContext(GLWindowingData winData);
   void DeleteContext(void *contextHandle);
   GLInitParams &GetInitParams(GLWindowingData winData)
   {

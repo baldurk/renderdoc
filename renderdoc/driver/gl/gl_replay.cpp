@@ -3500,7 +3500,7 @@ void GLReplay::SwapBuffers(GLWindowingData *ctx)
 
 void GLReplay::CloseReplayContext()
 {
-  m_pDriver->m_Platform.DeleteReplayContext(m_ReplayCtx);
+  m_pDriver->UnregisterReplayContext(m_ReplayCtx);
 }
 
 ReplayStatus CreateReplayDevice(RDCDriver rdcdriver, RDCFile *rdc, const ReplayOptions &opts,

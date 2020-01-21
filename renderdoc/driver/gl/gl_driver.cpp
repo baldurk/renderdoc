@@ -1187,6 +1187,36 @@ void WrappedOpenGL::RegisterReplayContext(GLWindowingData winData, void *shareCo
   ActivateContext(winData);
 }
 
+void WrappedOpenGL::UnregisterReplayContext(GLWindowingData windata)
+{
+  void *contextHandle = windata.ctx;
+
+  ContextData &ctxdata = m_ContextData[contextHandle];
+
+  m_Platform.DeleteReplayContext(windata);
+
+  bool lastInGroup = true;
+  for(auto it = m_ContextData.begin(); it != m_ContextData.end(); ++it)
+  {
+    // if we find another context that's not this one, but is in the same share group, we're note
+    // the last
+    if(it->second.shareGroup == ctxdata.shareGroup && it->second.ctx &&
+       it->second.ctx != contextHandle)
+    {
+      lastInGroup = false;
+      break;
+    }
+  }
+
+  // if this is the last context in the share group, delete the group.
+  if(lastInGroup)
+  {
+    delete ctxdata.shareGroup;
+  }
+
+  m_ContextData.erase(contextHandle);
+}
+
 template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_ContextConfiguration(SerialiserType &ser, void *ctx)
 {
