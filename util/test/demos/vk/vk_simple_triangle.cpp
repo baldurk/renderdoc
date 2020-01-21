@@ -74,11 +74,32 @@ void main()
 
 )EOSHADER";
 
+  void Prepare(int argc, char **argv)
+  {
+    optDevExts.push_back(VK_EXT_TOOLING_INFO_EXTENSION_NAME);
+
+    VulkanGraphicsTest::Prepare(argc, argv);
+  }
+
   int main()
   {
     // initialise, create window, create context, etc
     if(!Init())
       return 3;
+
+    std::vector<VkPhysicalDeviceToolPropertiesEXT> tools;
+
+    if(std::find(devExts.begin(), devExts.end(), VK_EXT_TOOLING_INFO_EXTENSION_NAME) != devExts.end())
+    {
+      uint32_t toolCount = 0;
+      vkGetPhysicalDeviceToolPropertiesEXT(phys, &toolCount, NULL);
+      tools.resize(toolCount);
+      vkGetPhysicalDeviceToolPropertiesEXT(phys, &toolCount, tools.data());
+
+      TEST_LOG("%u tools available:", toolCount);
+      for(VkPhysicalDeviceToolPropertiesEXT &tool : tools)
+        TEST_LOG("  - %s", tool.name);
+    }
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
 
@@ -123,6 +144,14 @@ void main()
       vkCmdBeginRenderPass(
           cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
           VK_SUBPASS_CONTENTS_INLINE);
+
+      if(!tools.empty())
+      {
+        pushMarker(cmd, "Tools available");
+        for(VkPhysicalDeviceToolPropertiesEXT &tool : tools)
+          setMarker(cmd, tool.name);
+        popMarker(cmd);
+      }
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
       vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);

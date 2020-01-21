@@ -44,3 +44,8 @@ class VK_Simple_Triangle(rdtest.TestCase):
         }
 
         self.check_mesh_data(postvs_ref, postvs_data)
+
+        draw = self.find_draw("Tools available")
+
+        self.check(len(draw.children) > 1)
+        self.check(any([d.name == 'RenderDoc' for d in draw.children]))
