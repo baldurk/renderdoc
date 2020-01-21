@@ -339,7 +339,7 @@ VulkanTextRenderer::VulkanTextRenderer(WrappedVulkan *driver)
     m_FontCharSize *= 2.0f;
 #endif
 
-    m_FontCharAspect = chardata->xadvance / pixelHeight;
+    m_FontCharAspect = chardata[0].xadvance / pixelHeight;
 
     stbtt_fontinfo f = {0};
     stbtt_InitFont(&f, ttfdata, 0);

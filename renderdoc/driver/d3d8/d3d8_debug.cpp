@@ -262,7 +262,7 @@ void D3D8DebugManager::RenderTextInternal(float x, float y, const rdcstr &text)
     // create text VB
     quads = new Quad[quadCount];
 
-    float textStartingPositionX = (-width / 2.f) + (x * m_Font.charData->xadvance);
+    float textStartingPositionX = (-width / 2.f) + (x * m_Font.charData[0].xadvance);
     float textStartingPositionY = (-height / 2.f) + ((y + 1.f) * m_Font.maxHeight);
 
     float textPositionX = textStartingPositionX;
@@ -274,7 +274,7 @@ void D3D8DebugManager::RenderTextInternal(float x, float y, const rdcstr &text)
       if(glyphIndex < 0)
       {
         float currentX = textPositionX;
-        textPositionX += m_Font.charData->xadvance;
+        textPositionX += m_Font.charData[0].xadvance;
         quads[i] = Quad(currentX, textPositionY - m_Font.maxHeight, 0.5f, 0.f, 0.f, textPositionX,
                         textPositionY, 0.f, 0.f);
       }

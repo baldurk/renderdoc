@@ -73,7 +73,7 @@ copyright = '''
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2020 Baldur Karlsson
+ * Copyright (c) 2019-2020 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -924,7 +924,7 @@ for inst in spirv['instructions']:
         construct_size = 'FixedWordSize'
         size = 1 # opcode / wordcount packed
         all_size = 1 # size, but with all optionals included
-        iter_init = '    memcpy(this, &(*it), sizeof(*this));'
+        iter_init = '    memcpy(this, it.words(), sizeof(*this));'
         complex_type = False
         manual_init = '    this->op = OpCode;\n'
         manual_init += '    this->wordCount = (uint16_t)it.size();\n'

@@ -61,7 +61,7 @@ void WrappedOpenGL::ContextData::CreateDebugData()
 #if ENABLED(RDOC_ANDROID)
     CharSize *= 2.0f;
 #endif
-    CharAspect = chardata->xadvance / charPixelHeight;
+    CharAspect = chardata[0].xadvance / charPixelHeight;
 
     stbtt_fontinfo f = {0};
     stbtt_InitFont(&f, ttfdata, 0);

@@ -2139,8 +2139,8 @@ bool VulkanReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType 
     depth[0].y = float(stencil[0].x) / 255.0f;
     depth[1].y = float(stencil[1].x) / 255.0f;
 
-    memcpy(minval, &depth[0].x, sizeof(depth[0]));
-    memcpy(maxval, &depth[1].x, sizeof(depth[1]));
+    memcpy(minval, &depth[0], sizeof(depth[0]));
+    memcpy(maxval, &depth[1], sizeof(depth[1]));
 
     return true;
   }

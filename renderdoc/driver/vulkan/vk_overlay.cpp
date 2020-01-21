@@ -1619,8 +1619,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
       m_pDriver->m_RenderState.BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
 
       VkClearAttachment clearatt = {VK_IMAGE_ASPECT_COLOR_BIT, 0, {}};
-      memcpy(clearatt.clearValue.color.float32, &clearCol.x,
-             sizeof(clearatt.clearValue.color.float32));
+      memcpy(clearatt.clearValue.color.float32, &clearCol, sizeof(clearatt.clearValue.color.float32));
       rdcarray<VkClearAttachment> atts;
 
       VulkanCreationInfo::Framebuffer &fb =

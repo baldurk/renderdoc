@@ -1455,7 +1455,7 @@ struct OpNop
 {
   OpNop(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpNop()
       : op(Op::Nop)
@@ -1475,7 +1475,7 @@ struct OpUndef
 {
   OpUndef(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUndef(IdResultType resultType, IdResult result)
       : op(Op::Undef)
@@ -1702,7 +1702,7 @@ struct OpLine
 {
   OpLine(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpLine(Id file, uint32_t line, uint32_t column)
       : op(Op::Line)
@@ -1790,7 +1790,7 @@ struct OpMemoryModel
 {
   OpMemoryModel(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpMemoryModel(AddressingModel addressingModel, MemoryModel memoryModel)
       : op(Op::MemoryModel)
@@ -1889,7 +1889,7 @@ struct OpCapability
 {
   OpCapability(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpCapability(Capability capability)
       : op(Op::Capability)
@@ -1909,7 +1909,7 @@ struct OpTypeVoid
 {
   OpTypeVoid(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeVoid(IdResult result)
       : op(Op::TypeVoid)
@@ -1929,7 +1929,7 @@ struct OpTypeBool
 {
   OpTypeBool(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeBool(IdResult result)
       : op(Op::TypeBool)
@@ -1949,7 +1949,7 @@ struct OpTypeInt
 {
   OpTypeInt(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeInt(IdResult result, uint32_t width, uint32_t signedness)
       : op(Op::TypeInt)
@@ -1973,7 +1973,7 @@ struct OpTypeFloat
 {
   OpTypeFloat(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeFloat(IdResult result, uint32_t width)
       : op(Op::TypeFloat)
@@ -1995,7 +1995,7 @@ struct OpTypeVector
 {
   OpTypeVector(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeVector(IdResult result, Id componentType, uint32_t componentCount)
       : op(Op::TypeVector)
@@ -2019,7 +2019,7 @@ struct OpTypeMatrix
 {
   OpTypeMatrix(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeMatrix(IdResult result, Id columnType, uint32_t columnCount)
       : op(Op::TypeMatrix)
@@ -2105,7 +2105,7 @@ struct OpTypeSampler
 {
   OpTypeSampler(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeSampler(IdResult result)
       : op(Op::TypeSampler)
@@ -2125,7 +2125,7 @@ struct OpTypeSampledImage
 {
   OpTypeSampledImage(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeSampledImage(IdResult result, Id imageType)
       : op(Op::TypeSampledImage)
@@ -2147,7 +2147,7 @@ struct OpTypeArray
 {
   OpTypeArray(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeArray(IdResult result, Id elementType, Id length)
       : op(Op::TypeArray)
@@ -2171,7 +2171,7 @@ struct OpTypeRuntimeArray
 {
   OpTypeRuntimeArray(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeRuntimeArray(IdResult result, Id elementType)
       : op(Op::TypeRuntimeArray)
@@ -2262,7 +2262,7 @@ struct OpTypePointer
 {
   OpTypePointer(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypePointer(IdResult result, StorageClass storageClass, Id type)
       : op(Op::TypePointer)
@@ -2326,7 +2326,7 @@ struct OpTypeEvent
 {
   OpTypeEvent(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeEvent(IdResult result)
       : op(Op::TypeEvent)
@@ -2346,7 +2346,7 @@ struct OpTypeDeviceEvent
 {
   OpTypeDeviceEvent(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeDeviceEvent(IdResult result)
       : op(Op::TypeDeviceEvent)
@@ -2366,7 +2366,7 @@ struct OpTypeReserveId
 {
   OpTypeReserveId(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeReserveId(IdResult result)
       : op(Op::TypeReserveId)
@@ -2386,7 +2386,7 @@ struct OpTypeQueue
 {
   OpTypeQueue(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeQueue(IdResult result)
       : op(Op::TypeQueue)
@@ -2406,7 +2406,7 @@ struct OpTypePipe
 {
   OpTypePipe(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypePipe(IdResult result, AccessQualifier qualifier)
       : op(Op::TypePipe)
@@ -2428,7 +2428,7 @@ struct OpTypeForwardPointer
 {
   OpTypeForwardPointer(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeForwardPointer(Id pointerType, StorageClass storageClass)
       : op(Op::TypeForwardPointer)
@@ -2450,7 +2450,7 @@ struct OpConstantTrue
 {
   OpConstantTrue(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpConstantTrue(IdResultType resultType, IdResult result)
       : op(Op::ConstantTrue)
@@ -2472,7 +2472,7 @@ struct OpConstantFalse
 {
   OpConstantFalse(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpConstantFalse(IdResultType resultType, IdResult result)
       : op(Op::ConstantFalse)
@@ -2536,7 +2536,7 @@ struct OpConstantSampler
 {
   OpConstantSampler(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpConstantSampler(IdResultType resultType, IdResult result, SamplerAddressingMode samplerAddressingMode, uint32_t param, SamplerFilterMode samplerFilterMode)
       : op(Op::ConstantSampler)
@@ -2564,7 +2564,7 @@ struct OpConstantNull
 {
   OpConstantNull(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpConstantNull(IdResultType resultType, IdResult result)
       : op(Op::ConstantNull)
@@ -2586,7 +2586,7 @@ struct OpSpecConstantTrue
 {
   OpSpecConstantTrue(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSpecConstantTrue(IdResultType resultType, IdResult result)
       : op(Op::SpecConstantTrue)
@@ -2608,7 +2608,7 @@ struct OpSpecConstantFalse
 {
   OpSpecConstantFalse(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSpecConstantFalse(IdResultType resultType, IdResult result)
       : op(Op::SpecConstantFalse)
@@ -2674,7 +2674,7 @@ struct OpFunction
 {
   OpFunction(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFunction(IdResultType resultType, IdResult result, FunctionControl functionControl, Id functionType)
       : op(Op::Function)
@@ -2700,7 +2700,7 @@ struct OpFunctionParameter
 {
   OpFunctionParameter(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFunctionParameter(IdResultType resultType, IdResult result)
       : op(Op::FunctionParameter)
@@ -2722,7 +2722,7 @@ struct OpFunctionEnd
 {
   OpFunctionEnd(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFunctionEnd()
       : op(Op::FunctionEnd)
@@ -2828,7 +2828,7 @@ struct OpImageTexelPointer
 {
   OpImageTexelPointer(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpImageTexelPointer(IdResultType resultType, IdResult result, Id image, Id coordinate, Id sample)
       : op(Op::ImageTexelPointer)
@@ -3156,7 +3156,7 @@ struct OpArrayLength
 {
   OpArrayLength(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpArrayLength(IdResultType resultType, IdResult result, Id structure, uint32_t arraymember)
       : op(Op::ArrayLength)
@@ -3182,7 +3182,7 @@ struct OpGenericPtrMemSemantics
 {
   OpGenericPtrMemSemantics(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGenericPtrMemSemantics(IdResultType resultType, IdResult result, Id pointer)
       : op(Op::GenericPtrMemSemantics)
@@ -3324,7 +3324,7 @@ struct OpDecorationGroup
 {
   OpDecorationGroup(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpDecorationGroup(IdResult result)
       : op(Op::DecorationGroup)
@@ -3416,7 +3416,7 @@ struct OpVectorExtractDynamic
 {
   OpVectorExtractDynamic(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpVectorExtractDynamic(IdResultType resultType, IdResult result, Id vector, Id index)
       : op(Op::VectorExtractDynamic)
@@ -3442,7 +3442,7 @@ struct OpVectorInsertDynamic
 {
   OpVectorInsertDynamic(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpVectorInsertDynamic(IdResultType resultType, IdResult result, Id vector, Id component, Id index)
       : op(Op::VectorInsertDynamic)
@@ -3650,7 +3650,7 @@ struct OpCopyObject
 {
   OpCopyObject(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpCopyObject(IdResultType resultType, IdResult result, Id operand)
       : op(Op::CopyObject)
@@ -3674,7 +3674,7 @@ struct OpTranspose
 {
   OpTranspose(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTranspose(IdResultType resultType, IdResult result, Id matrix)
       : op(Op::Transpose)
@@ -3698,7 +3698,7 @@ struct OpSampledImage
 {
   OpSampledImage(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSampledImage(IdResultType resultType, IdResult result, Id image, Id sampler)
       : op(Op::SampledImage)
@@ -4329,7 +4329,7 @@ struct OpImage
 {
   OpImage(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpImage(IdResultType resultType, IdResult result, Id sampledImage)
       : op(Op::Image)
@@ -4353,7 +4353,7 @@ struct OpImageQueryFormat
 {
   OpImageQueryFormat(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpImageQueryFormat(IdResultType resultType, IdResult result, Id image)
       : op(Op::ImageQueryFormat)
@@ -4377,7 +4377,7 @@ struct OpImageQueryOrder
 {
   OpImageQueryOrder(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpImageQueryOrder(IdResultType resultType, IdResult result, Id image)
       : op(Op::ImageQueryOrder)
@@ -4401,7 +4401,7 @@ struct OpImageQuerySizeLod
 {
   OpImageQuerySizeLod(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpImageQuerySizeLod(IdResultType resultType, IdResult result, Id image, Id levelofDetail)
       : op(Op::ImageQuerySizeLod)
@@ -4427,7 +4427,7 @@ struct OpImageQuerySize
 {
   OpImageQuerySize(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpImageQuerySize(IdResultType resultType, IdResult result, Id image)
       : op(Op::ImageQuerySize)
@@ -4451,7 +4451,7 @@ struct OpImageQueryLod
 {
   OpImageQueryLod(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpImageQueryLod(IdResultType resultType, IdResult result, Id sampledImage, Id coordinate)
       : op(Op::ImageQueryLod)
@@ -4477,7 +4477,7 @@ struct OpImageQueryLevels
 {
   OpImageQueryLevels(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpImageQueryLevels(IdResultType resultType, IdResult result, Id image)
       : op(Op::ImageQueryLevels)
@@ -4501,7 +4501,7 @@ struct OpImageQuerySamples
 {
   OpImageQuerySamples(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpImageQuerySamples(IdResultType resultType, IdResult result, Id image)
       : op(Op::ImageQuerySamples)
@@ -4525,7 +4525,7 @@ struct OpConvertFToU
 {
   OpConvertFToU(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpConvertFToU(IdResultType resultType, IdResult result, Id floatValue)
       : op(Op::ConvertFToU)
@@ -4549,7 +4549,7 @@ struct OpConvertFToS
 {
   OpConvertFToS(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpConvertFToS(IdResultType resultType, IdResult result, Id floatValue)
       : op(Op::ConvertFToS)
@@ -4573,7 +4573,7 @@ struct OpConvertSToF
 {
   OpConvertSToF(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpConvertSToF(IdResultType resultType, IdResult result, Id signedValue)
       : op(Op::ConvertSToF)
@@ -4597,7 +4597,7 @@ struct OpConvertUToF
 {
   OpConvertUToF(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpConvertUToF(IdResultType resultType, IdResult result, Id unsignedValue)
       : op(Op::ConvertUToF)
@@ -4621,7 +4621,7 @@ struct OpUConvert
 {
   OpUConvert(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUConvert(IdResultType resultType, IdResult result, Id unsignedValue)
       : op(Op::UConvert)
@@ -4645,7 +4645,7 @@ struct OpSConvert
 {
   OpSConvert(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSConvert(IdResultType resultType, IdResult result, Id signedValue)
       : op(Op::SConvert)
@@ -4669,7 +4669,7 @@ struct OpFConvert
 {
   OpFConvert(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFConvert(IdResultType resultType, IdResult result, Id floatValue)
       : op(Op::FConvert)
@@ -4693,7 +4693,7 @@ struct OpQuantizeToF16
 {
   OpQuantizeToF16(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpQuantizeToF16(IdResultType resultType, IdResult result, Id value)
       : op(Op::QuantizeToF16)
@@ -4717,7 +4717,7 @@ struct OpConvertPtrToU
 {
   OpConvertPtrToU(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpConvertPtrToU(IdResultType resultType, IdResult result, Id pointer)
       : op(Op::ConvertPtrToU)
@@ -4741,7 +4741,7 @@ struct OpSatConvertSToU
 {
   OpSatConvertSToU(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSatConvertSToU(IdResultType resultType, IdResult result, Id signedValue)
       : op(Op::SatConvertSToU)
@@ -4765,7 +4765,7 @@ struct OpSatConvertUToS
 {
   OpSatConvertUToS(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSatConvertUToS(IdResultType resultType, IdResult result, Id unsignedValue)
       : op(Op::SatConvertUToS)
@@ -4789,7 +4789,7 @@ struct OpConvertUToPtr
 {
   OpConvertUToPtr(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpConvertUToPtr(IdResultType resultType, IdResult result, Id integerValue)
       : op(Op::ConvertUToPtr)
@@ -4813,7 +4813,7 @@ struct OpPtrCastToGeneric
 {
   OpPtrCastToGeneric(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpPtrCastToGeneric(IdResultType resultType, IdResult result, Id pointer)
       : op(Op::PtrCastToGeneric)
@@ -4837,7 +4837,7 @@ struct OpGenericCastToPtr
 {
   OpGenericCastToPtr(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGenericCastToPtr(IdResultType resultType, IdResult result, Id pointer)
       : op(Op::GenericCastToPtr)
@@ -4861,7 +4861,7 @@ struct OpGenericCastToPtrExplicit
 {
   OpGenericCastToPtrExplicit(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGenericCastToPtrExplicit(IdResultType resultType, IdResult result, Id pointer, StorageClass storage)
       : op(Op::GenericCastToPtrExplicit)
@@ -4887,7 +4887,7 @@ struct OpBitcast
 {
   OpBitcast(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpBitcast(IdResultType resultType, IdResult result, Id operand)
       : op(Op::Bitcast)
@@ -4911,7 +4911,7 @@ struct OpSNegate
 {
   OpSNegate(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSNegate(IdResultType resultType, IdResult result, Id operand)
       : op(Op::SNegate)
@@ -4935,7 +4935,7 @@ struct OpFNegate
 {
   OpFNegate(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFNegate(IdResultType resultType, IdResult result, Id operand)
       : op(Op::FNegate)
@@ -4959,7 +4959,7 @@ struct OpIAdd
 {
   OpIAdd(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIAdd(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::IAdd)
@@ -4985,7 +4985,7 @@ struct OpFAdd
 {
   OpFAdd(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFAdd(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FAdd)
@@ -5011,7 +5011,7 @@ struct OpISub
 {
   OpISub(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpISub(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::ISub)
@@ -5037,7 +5037,7 @@ struct OpFSub
 {
   OpFSub(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFSub(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FSub)
@@ -5063,7 +5063,7 @@ struct OpIMul
 {
   OpIMul(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIMul(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::IMul)
@@ -5089,7 +5089,7 @@ struct OpFMul
 {
   OpFMul(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFMul(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FMul)
@@ -5115,7 +5115,7 @@ struct OpUDiv
 {
   OpUDiv(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUDiv(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::UDiv)
@@ -5141,7 +5141,7 @@ struct OpSDiv
 {
   OpSDiv(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSDiv(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::SDiv)
@@ -5167,7 +5167,7 @@ struct OpFDiv
 {
   OpFDiv(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFDiv(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FDiv)
@@ -5193,7 +5193,7 @@ struct OpUMod
 {
   OpUMod(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUMod(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::UMod)
@@ -5219,7 +5219,7 @@ struct OpSRem
 {
   OpSRem(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSRem(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::SRem)
@@ -5245,7 +5245,7 @@ struct OpSMod
 {
   OpSMod(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSMod(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::SMod)
@@ -5271,7 +5271,7 @@ struct OpFRem
 {
   OpFRem(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFRem(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FRem)
@@ -5297,7 +5297,7 @@ struct OpFMod
 {
   OpFMod(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFMod(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FMod)
@@ -5323,7 +5323,7 @@ struct OpVectorTimesScalar
 {
   OpVectorTimesScalar(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpVectorTimesScalar(IdResultType resultType, IdResult result, Id vector, Id scalar)
       : op(Op::VectorTimesScalar)
@@ -5349,7 +5349,7 @@ struct OpMatrixTimesScalar
 {
   OpMatrixTimesScalar(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpMatrixTimesScalar(IdResultType resultType, IdResult result, Id matrix, Id scalar)
       : op(Op::MatrixTimesScalar)
@@ -5375,7 +5375,7 @@ struct OpVectorTimesMatrix
 {
   OpVectorTimesMatrix(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpVectorTimesMatrix(IdResultType resultType, IdResult result, Id vector, Id matrix)
       : op(Op::VectorTimesMatrix)
@@ -5401,7 +5401,7 @@ struct OpMatrixTimesVector
 {
   OpMatrixTimesVector(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpMatrixTimesVector(IdResultType resultType, IdResult result, Id matrix, Id vector)
       : op(Op::MatrixTimesVector)
@@ -5427,7 +5427,7 @@ struct OpMatrixTimesMatrix
 {
   OpMatrixTimesMatrix(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpMatrixTimesMatrix(IdResultType resultType, IdResult result, Id leftMatrix, Id rightMatrix)
       : op(Op::MatrixTimesMatrix)
@@ -5453,7 +5453,7 @@ struct OpOuterProduct
 {
   OpOuterProduct(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpOuterProduct(IdResultType resultType, IdResult result, Id vector1, Id vector2)
       : op(Op::OuterProduct)
@@ -5479,7 +5479,7 @@ struct OpDot
 {
   OpDot(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpDot(IdResultType resultType, IdResult result, Id vector1, Id vector2)
       : op(Op::Dot)
@@ -5505,7 +5505,7 @@ struct OpIAddCarry
 {
   OpIAddCarry(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIAddCarry(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::IAddCarry)
@@ -5531,7 +5531,7 @@ struct OpISubBorrow
 {
   OpISubBorrow(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpISubBorrow(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::ISubBorrow)
@@ -5557,7 +5557,7 @@ struct OpUMulExtended
 {
   OpUMulExtended(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUMulExtended(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::UMulExtended)
@@ -5583,7 +5583,7 @@ struct OpSMulExtended
 {
   OpSMulExtended(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSMulExtended(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::SMulExtended)
@@ -5609,7 +5609,7 @@ struct OpAny
 {
   OpAny(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAny(IdResultType resultType, IdResult result, Id vector)
       : op(Op::Any)
@@ -5633,7 +5633,7 @@ struct OpAll
 {
   OpAll(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAll(IdResultType resultType, IdResult result, Id vector)
       : op(Op::All)
@@ -5657,7 +5657,7 @@ struct OpIsNan
 {
   OpIsNan(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIsNan(IdResultType resultType, IdResult result, Id x)
       : op(Op::IsNan)
@@ -5681,7 +5681,7 @@ struct OpIsInf
 {
   OpIsInf(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIsInf(IdResultType resultType, IdResult result, Id x)
       : op(Op::IsInf)
@@ -5705,7 +5705,7 @@ struct OpIsFinite
 {
   OpIsFinite(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIsFinite(IdResultType resultType, IdResult result, Id x)
       : op(Op::IsFinite)
@@ -5729,7 +5729,7 @@ struct OpIsNormal
 {
   OpIsNormal(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIsNormal(IdResultType resultType, IdResult result, Id x)
       : op(Op::IsNormal)
@@ -5753,7 +5753,7 @@ struct OpSignBitSet
 {
   OpSignBitSet(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSignBitSet(IdResultType resultType, IdResult result, Id x)
       : op(Op::SignBitSet)
@@ -5777,7 +5777,7 @@ struct OpLessOrGreater
 {
   OpLessOrGreater(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpLessOrGreater(IdResultType resultType, IdResult result, Id x, Id y)
       : op(Op::LessOrGreater)
@@ -5803,7 +5803,7 @@ struct OpOrdered
 {
   OpOrdered(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpOrdered(IdResultType resultType, IdResult result, Id x, Id y)
       : op(Op::Ordered)
@@ -5829,7 +5829,7 @@ struct OpUnordered
 {
   OpUnordered(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUnordered(IdResultType resultType, IdResult result, Id x, Id y)
       : op(Op::Unordered)
@@ -5855,7 +5855,7 @@ struct OpLogicalEqual
 {
   OpLogicalEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpLogicalEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::LogicalEqual)
@@ -5881,7 +5881,7 @@ struct OpLogicalNotEqual
 {
   OpLogicalNotEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpLogicalNotEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::LogicalNotEqual)
@@ -5907,7 +5907,7 @@ struct OpLogicalOr
 {
   OpLogicalOr(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpLogicalOr(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::LogicalOr)
@@ -5933,7 +5933,7 @@ struct OpLogicalAnd
 {
   OpLogicalAnd(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpLogicalAnd(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::LogicalAnd)
@@ -5959,7 +5959,7 @@ struct OpLogicalNot
 {
   OpLogicalNot(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpLogicalNot(IdResultType resultType, IdResult result, Id operand)
       : op(Op::LogicalNot)
@@ -5983,7 +5983,7 @@ struct OpSelect
 {
   OpSelect(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSelect(IdResultType resultType, IdResult result, Id condition, Id object1, Id object2)
       : op(Op::Select)
@@ -6011,7 +6011,7 @@ struct OpIEqual
 {
   OpIEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::IEqual)
@@ -6037,7 +6037,7 @@ struct OpINotEqual
 {
   OpINotEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpINotEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::INotEqual)
@@ -6063,7 +6063,7 @@ struct OpUGreaterThan
 {
   OpUGreaterThan(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUGreaterThan(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::UGreaterThan)
@@ -6089,7 +6089,7 @@ struct OpSGreaterThan
 {
   OpSGreaterThan(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSGreaterThan(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::SGreaterThan)
@@ -6115,7 +6115,7 @@ struct OpUGreaterThanEqual
 {
   OpUGreaterThanEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUGreaterThanEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::UGreaterThanEqual)
@@ -6141,7 +6141,7 @@ struct OpSGreaterThanEqual
 {
   OpSGreaterThanEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSGreaterThanEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::SGreaterThanEqual)
@@ -6167,7 +6167,7 @@ struct OpULessThan
 {
   OpULessThan(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpULessThan(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::ULessThan)
@@ -6193,7 +6193,7 @@ struct OpSLessThan
 {
   OpSLessThan(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSLessThan(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::SLessThan)
@@ -6219,7 +6219,7 @@ struct OpULessThanEqual
 {
   OpULessThanEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpULessThanEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::ULessThanEqual)
@@ -6245,7 +6245,7 @@ struct OpSLessThanEqual
 {
   OpSLessThanEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSLessThanEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::SLessThanEqual)
@@ -6271,7 +6271,7 @@ struct OpFOrdEqual
 {
   OpFOrdEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFOrdEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FOrdEqual)
@@ -6297,7 +6297,7 @@ struct OpFUnordEqual
 {
   OpFUnordEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFUnordEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FUnordEqual)
@@ -6323,7 +6323,7 @@ struct OpFOrdNotEqual
 {
   OpFOrdNotEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFOrdNotEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FOrdNotEqual)
@@ -6349,7 +6349,7 @@ struct OpFUnordNotEqual
 {
   OpFUnordNotEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFUnordNotEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FUnordNotEqual)
@@ -6375,7 +6375,7 @@ struct OpFOrdLessThan
 {
   OpFOrdLessThan(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFOrdLessThan(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FOrdLessThan)
@@ -6401,7 +6401,7 @@ struct OpFUnordLessThan
 {
   OpFUnordLessThan(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFUnordLessThan(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FUnordLessThan)
@@ -6427,7 +6427,7 @@ struct OpFOrdGreaterThan
 {
   OpFOrdGreaterThan(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFOrdGreaterThan(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FOrdGreaterThan)
@@ -6453,7 +6453,7 @@ struct OpFUnordGreaterThan
 {
   OpFUnordGreaterThan(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFUnordGreaterThan(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FUnordGreaterThan)
@@ -6479,7 +6479,7 @@ struct OpFOrdLessThanEqual
 {
   OpFOrdLessThanEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFOrdLessThanEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FOrdLessThanEqual)
@@ -6505,7 +6505,7 @@ struct OpFUnordLessThanEqual
 {
   OpFUnordLessThanEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFUnordLessThanEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FUnordLessThanEqual)
@@ -6531,7 +6531,7 @@ struct OpFOrdGreaterThanEqual
 {
   OpFOrdGreaterThanEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFOrdGreaterThanEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FOrdGreaterThanEqual)
@@ -6557,7 +6557,7 @@ struct OpFUnordGreaterThanEqual
 {
   OpFUnordGreaterThanEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFUnordGreaterThanEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::FUnordGreaterThanEqual)
@@ -6583,7 +6583,7 @@ struct OpShiftRightLogical
 {
   OpShiftRightLogical(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpShiftRightLogical(IdResultType resultType, IdResult result, Id base, Id shift)
       : op(Op::ShiftRightLogical)
@@ -6609,7 +6609,7 @@ struct OpShiftRightArithmetic
 {
   OpShiftRightArithmetic(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpShiftRightArithmetic(IdResultType resultType, IdResult result, Id base, Id shift)
       : op(Op::ShiftRightArithmetic)
@@ -6635,7 +6635,7 @@ struct OpShiftLeftLogical
 {
   OpShiftLeftLogical(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpShiftLeftLogical(IdResultType resultType, IdResult result, Id base, Id shift)
       : op(Op::ShiftLeftLogical)
@@ -6661,7 +6661,7 @@ struct OpBitwiseOr
 {
   OpBitwiseOr(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpBitwiseOr(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::BitwiseOr)
@@ -6687,7 +6687,7 @@ struct OpBitwiseXor
 {
   OpBitwiseXor(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpBitwiseXor(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::BitwiseXor)
@@ -6713,7 +6713,7 @@ struct OpBitwiseAnd
 {
   OpBitwiseAnd(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpBitwiseAnd(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::BitwiseAnd)
@@ -6739,7 +6739,7 @@ struct OpNot
 {
   OpNot(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpNot(IdResultType resultType, IdResult result, Id operand)
       : op(Op::Not)
@@ -6763,7 +6763,7 @@ struct OpBitFieldInsert
 {
   OpBitFieldInsert(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpBitFieldInsert(IdResultType resultType, IdResult result, Id base, Id insert, Id offset, Id count)
       : op(Op::BitFieldInsert)
@@ -6793,7 +6793,7 @@ struct OpBitFieldSExtract
 {
   OpBitFieldSExtract(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpBitFieldSExtract(IdResultType resultType, IdResult result, Id base, Id offset, Id count)
       : op(Op::BitFieldSExtract)
@@ -6821,7 +6821,7 @@ struct OpBitFieldUExtract
 {
   OpBitFieldUExtract(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpBitFieldUExtract(IdResultType resultType, IdResult result, Id base, Id offset, Id count)
       : op(Op::BitFieldUExtract)
@@ -6849,7 +6849,7 @@ struct OpBitReverse
 {
   OpBitReverse(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpBitReverse(IdResultType resultType, IdResult result, Id base)
       : op(Op::BitReverse)
@@ -6873,7 +6873,7 @@ struct OpBitCount
 {
   OpBitCount(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpBitCount(IdResultType resultType, IdResult result, Id base)
       : op(Op::BitCount)
@@ -6897,7 +6897,7 @@ struct OpDPdx
 {
   OpDPdx(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpDPdx(IdResultType resultType, IdResult result, Id p)
       : op(Op::DPdx)
@@ -6921,7 +6921,7 @@ struct OpDPdy
 {
   OpDPdy(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpDPdy(IdResultType resultType, IdResult result, Id p)
       : op(Op::DPdy)
@@ -6945,7 +6945,7 @@ struct OpFwidth
 {
   OpFwidth(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFwidth(IdResultType resultType, IdResult result, Id p)
       : op(Op::Fwidth)
@@ -6969,7 +6969,7 @@ struct OpDPdxFine
 {
   OpDPdxFine(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpDPdxFine(IdResultType resultType, IdResult result, Id p)
       : op(Op::DPdxFine)
@@ -6993,7 +6993,7 @@ struct OpDPdyFine
 {
   OpDPdyFine(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpDPdyFine(IdResultType resultType, IdResult result, Id p)
       : op(Op::DPdyFine)
@@ -7017,7 +7017,7 @@ struct OpFwidthFine
 {
   OpFwidthFine(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFwidthFine(IdResultType resultType, IdResult result, Id p)
       : op(Op::FwidthFine)
@@ -7041,7 +7041,7 @@ struct OpDPdxCoarse
 {
   OpDPdxCoarse(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpDPdxCoarse(IdResultType resultType, IdResult result, Id p)
       : op(Op::DPdxCoarse)
@@ -7065,7 +7065,7 @@ struct OpDPdyCoarse
 {
   OpDPdyCoarse(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpDPdyCoarse(IdResultType resultType, IdResult result, Id p)
       : op(Op::DPdyCoarse)
@@ -7089,7 +7089,7 @@ struct OpFwidthCoarse
 {
   OpFwidthCoarse(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFwidthCoarse(IdResultType resultType, IdResult result, Id p)
       : op(Op::FwidthCoarse)
@@ -7113,7 +7113,7 @@ struct OpEmitVertex
 {
   OpEmitVertex(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpEmitVertex()
       : op(Op::EmitVertex)
@@ -7133,7 +7133,7 @@ struct OpEndPrimitive
 {
   OpEndPrimitive(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpEndPrimitive()
       : op(Op::EndPrimitive)
@@ -7153,7 +7153,7 @@ struct OpEmitStreamVertex
 {
   OpEmitStreamVertex(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpEmitStreamVertex(Id stream)
       : op(Op::EmitStreamVertex)
@@ -7173,7 +7173,7 @@ struct OpEndStreamPrimitive
 {
   OpEndStreamPrimitive(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpEndStreamPrimitive(Id stream)
       : op(Op::EndStreamPrimitive)
@@ -7193,7 +7193,7 @@ struct OpControlBarrier
 {
   OpControlBarrier(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpControlBarrier(IdScope execution, IdScope memory, IdMemorySemantics semantics)
       : op(Op::ControlBarrier)
@@ -7217,7 +7217,7 @@ struct OpMemoryBarrier
 {
   OpMemoryBarrier(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpMemoryBarrier(IdScope memory, IdMemorySemantics semantics)
       : op(Op::MemoryBarrier)
@@ -7239,7 +7239,7 @@ struct OpAtomicLoad
 {
   OpAtomicLoad(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicLoad(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics)
       : op(Op::AtomicLoad)
@@ -7267,7 +7267,7 @@ struct OpAtomicStore
 {
   OpAtomicStore(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicStore(Id pointer, IdScope memory, IdMemorySemantics semantics, Id value)
       : op(Op::AtomicStore)
@@ -7293,7 +7293,7 @@ struct OpAtomicExchange
 {
   OpAtomicExchange(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicExchange(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics, Id value)
       : op(Op::AtomicExchange)
@@ -7323,7 +7323,7 @@ struct OpAtomicCompareExchange
 {
   OpAtomicCompareExchange(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicCompareExchange(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics equal, IdMemorySemantics unequal, Id value, Id comparator)
       : op(Op::AtomicCompareExchange)
@@ -7357,7 +7357,7 @@ struct OpAtomicCompareExchangeWeak
 {
   OpAtomicCompareExchangeWeak(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicCompareExchangeWeak(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics equal, IdMemorySemantics unequal, Id value, Id comparator)
       : op(Op::AtomicCompareExchangeWeak)
@@ -7391,7 +7391,7 @@ struct OpAtomicIIncrement
 {
   OpAtomicIIncrement(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicIIncrement(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics)
       : op(Op::AtomicIIncrement)
@@ -7419,7 +7419,7 @@ struct OpAtomicIDecrement
 {
   OpAtomicIDecrement(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicIDecrement(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics)
       : op(Op::AtomicIDecrement)
@@ -7447,7 +7447,7 @@ struct OpAtomicIAdd
 {
   OpAtomicIAdd(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicIAdd(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics, Id value)
       : op(Op::AtomicIAdd)
@@ -7477,7 +7477,7 @@ struct OpAtomicISub
 {
   OpAtomicISub(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicISub(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics, Id value)
       : op(Op::AtomicISub)
@@ -7507,7 +7507,7 @@ struct OpAtomicSMin
 {
   OpAtomicSMin(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicSMin(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics, Id value)
       : op(Op::AtomicSMin)
@@ -7537,7 +7537,7 @@ struct OpAtomicUMin
 {
   OpAtomicUMin(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicUMin(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics, Id value)
       : op(Op::AtomicUMin)
@@ -7567,7 +7567,7 @@ struct OpAtomicSMax
 {
   OpAtomicSMax(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicSMax(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics, Id value)
       : op(Op::AtomicSMax)
@@ -7597,7 +7597,7 @@ struct OpAtomicUMax
 {
   OpAtomicUMax(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicUMax(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics, Id value)
       : op(Op::AtomicUMax)
@@ -7627,7 +7627,7 @@ struct OpAtomicAnd
 {
   OpAtomicAnd(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicAnd(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics, Id value)
       : op(Op::AtomicAnd)
@@ -7657,7 +7657,7 @@ struct OpAtomicOr
 {
   OpAtomicOr(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicOr(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics, Id value)
       : op(Op::AtomicOr)
@@ -7687,7 +7687,7 @@ struct OpAtomicXor
 {
   OpAtomicXor(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicXor(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics, Id value)
       : op(Op::AtomicXor)
@@ -7794,7 +7794,7 @@ struct OpSelectionMerge
 {
   OpSelectionMerge(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSelectionMerge(Id mergeBlock, SelectionControl selectionControl)
       : op(Op::SelectionMerge)
@@ -7816,7 +7816,7 @@ struct OpLabel
 {
   OpLabel(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpLabel(IdResult result)
       : op(Op::Label)
@@ -7836,7 +7836,7 @@ struct OpBranch
 {
   OpBranch(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpBranch(Id targetLabel)
       : op(Op::Branch)
@@ -7940,7 +7940,7 @@ struct OpKill
 {
   OpKill(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpKill()
       : op(Op::Kill)
@@ -7960,7 +7960,7 @@ struct OpReturn
 {
   OpReturn(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpReturn()
       : op(Op::Return)
@@ -7980,7 +7980,7 @@ struct OpReturnValue
 {
   OpReturnValue(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpReturnValue(Id value)
       : op(Op::ReturnValue)
@@ -8000,7 +8000,7 @@ struct OpUnreachable
 {
   OpUnreachable(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUnreachable()
       : op(Op::Unreachable)
@@ -8020,7 +8020,7 @@ struct OpLifetimeStart
 {
   OpLifetimeStart(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpLifetimeStart(Id pointer, uint32_t size)
       : op(Op::LifetimeStart)
@@ -8042,7 +8042,7 @@ struct OpLifetimeStop
 {
   OpLifetimeStop(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpLifetimeStop(Id pointer, uint32_t size)
       : op(Op::LifetimeStop)
@@ -8064,7 +8064,7 @@ struct OpGroupAsyncCopy
 {
   OpGroupAsyncCopy(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupAsyncCopy(IdResultType resultType, IdResult result, IdScope execution, Id destination, Id source, Id numElements, Id stride, Id event)
       : op(Op::GroupAsyncCopy)
@@ -8098,7 +8098,7 @@ struct OpGroupWaitEvents
 {
   OpGroupWaitEvents(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupWaitEvents(IdScope execution, Id numEvents, Id eventsList)
       : op(Op::GroupWaitEvents)
@@ -8122,7 +8122,7 @@ struct OpGroupAll
 {
   OpGroupAll(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupAll(IdResultType resultType, IdResult result, IdScope execution, Id predicate)
       : op(Op::GroupAll)
@@ -8148,7 +8148,7 @@ struct OpGroupAny
 {
   OpGroupAny(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupAny(IdResultType resultType, IdResult result, IdScope execution, Id predicate)
       : op(Op::GroupAny)
@@ -8174,7 +8174,7 @@ struct OpGroupBroadcast
 {
   OpGroupBroadcast(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupBroadcast(IdResultType resultType, IdResult result, IdScope execution, Id value, Id localId)
       : op(Op::GroupBroadcast)
@@ -8202,7 +8202,7 @@ struct OpGroupIAdd
 {
   OpGroupIAdd(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupIAdd(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupIAdd)
@@ -8230,7 +8230,7 @@ struct OpGroupFAdd
 {
   OpGroupFAdd(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupFAdd(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupFAdd)
@@ -8258,7 +8258,7 @@ struct OpGroupFMin
 {
   OpGroupFMin(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupFMin(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupFMin)
@@ -8286,7 +8286,7 @@ struct OpGroupUMin
 {
   OpGroupUMin(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupUMin(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupUMin)
@@ -8314,7 +8314,7 @@ struct OpGroupSMin
 {
   OpGroupSMin(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupSMin(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupSMin)
@@ -8342,7 +8342,7 @@ struct OpGroupFMax
 {
   OpGroupFMax(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupFMax(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupFMax)
@@ -8370,7 +8370,7 @@ struct OpGroupUMax
 {
   OpGroupUMax(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupUMax(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupUMax)
@@ -8398,7 +8398,7 @@ struct OpGroupSMax
 {
   OpGroupSMax(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupSMax(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupSMax)
@@ -8426,7 +8426,7 @@ struct OpReadPipe
 {
   OpReadPipe(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpReadPipe(IdResultType resultType, IdResult result, Id pipe, Id pointer, Id packetSize, Id packetAlignment)
       : op(Op::ReadPipe)
@@ -8456,7 +8456,7 @@ struct OpWritePipe
 {
   OpWritePipe(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpWritePipe(IdResultType resultType, IdResult result, Id pipe, Id pointer, Id packetSize, Id packetAlignment)
       : op(Op::WritePipe)
@@ -8486,7 +8486,7 @@ struct OpReservedReadPipe
 {
   OpReservedReadPipe(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpReservedReadPipe(IdResultType resultType, IdResult result, Id pipe, Id reserveId, Id index, Id pointer, Id packetSize, Id packetAlignment)
       : op(Op::ReservedReadPipe)
@@ -8520,7 +8520,7 @@ struct OpReservedWritePipe
 {
   OpReservedWritePipe(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpReservedWritePipe(IdResultType resultType, IdResult result, Id pipe, Id reserveId, Id index, Id pointer, Id packetSize, Id packetAlignment)
       : op(Op::ReservedWritePipe)
@@ -8554,7 +8554,7 @@ struct OpReserveReadPipePackets
 {
   OpReserveReadPipePackets(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpReserveReadPipePackets(IdResultType resultType, IdResult result, Id pipe, Id numPackets, Id packetSize, Id packetAlignment)
       : op(Op::ReserveReadPipePackets)
@@ -8584,7 +8584,7 @@ struct OpReserveWritePipePackets
 {
   OpReserveWritePipePackets(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpReserveWritePipePackets(IdResultType resultType, IdResult result, Id pipe, Id numPackets, Id packetSize, Id packetAlignment)
       : op(Op::ReserveWritePipePackets)
@@ -8614,7 +8614,7 @@ struct OpCommitReadPipe
 {
   OpCommitReadPipe(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpCommitReadPipe(Id pipe, Id reserveId, Id packetSize, Id packetAlignment)
       : op(Op::CommitReadPipe)
@@ -8640,7 +8640,7 @@ struct OpCommitWritePipe
 {
   OpCommitWritePipe(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpCommitWritePipe(Id pipe, Id reserveId, Id packetSize, Id packetAlignment)
       : op(Op::CommitWritePipe)
@@ -8666,7 +8666,7 @@ struct OpIsValidReserveId
 {
   OpIsValidReserveId(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIsValidReserveId(IdResultType resultType, IdResult result, Id reserveId)
       : op(Op::IsValidReserveId)
@@ -8690,7 +8690,7 @@ struct OpGetNumPipePackets
 {
   OpGetNumPipePackets(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGetNumPipePackets(IdResultType resultType, IdResult result, Id pipe, Id packetSize, Id packetAlignment)
       : op(Op::GetNumPipePackets)
@@ -8718,7 +8718,7 @@ struct OpGetMaxPipePackets
 {
   OpGetMaxPipePackets(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGetMaxPipePackets(IdResultType resultType, IdResult result, Id pipe, Id packetSize, Id packetAlignment)
       : op(Op::GetMaxPipePackets)
@@ -8746,7 +8746,7 @@ struct OpGroupReserveReadPipePackets
 {
   OpGroupReserveReadPipePackets(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupReserveReadPipePackets(IdResultType resultType, IdResult result, IdScope execution, Id pipe, Id numPackets, Id packetSize, Id packetAlignment)
       : op(Op::GroupReserveReadPipePackets)
@@ -8778,7 +8778,7 @@ struct OpGroupReserveWritePipePackets
 {
   OpGroupReserveWritePipePackets(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupReserveWritePipePackets(IdResultType resultType, IdResult result, IdScope execution, Id pipe, Id numPackets, Id packetSize, Id packetAlignment)
       : op(Op::GroupReserveWritePipePackets)
@@ -8810,7 +8810,7 @@ struct OpGroupCommitReadPipe
 {
   OpGroupCommitReadPipe(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupCommitReadPipe(IdScope execution, Id pipe, Id reserveId, Id packetSize, Id packetAlignment)
       : op(Op::GroupCommitReadPipe)
@@ -8838,7 +8838,7 @@ struct OpGroupCommitWritePipe
 {
   OpGroupCommitWritePipe(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupCommitWritePipe(IdScope execution, Id pipe, Id reserveId, Id packetSize, Id packetAlignment)
       : op(Op::GroupCommitWritePipe)
@@ -8866,7 +8866,7 @@ struct OpEnqueueMarker
 {
   OpEnqueueMarker(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpEnqueueMarker(IdResultType resultType, IdResult result, Id queue, Id numEvents, Id waitEvents, Id retEvent)
       : op(Op::EnqueueMarker)
@@ -8976,7 +8976,7 @@ struct OpGetKernelNDrangeSubGroupCount
 {
   OpGetKernelNDrangeSubGroupCount(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGetKernelNDrangeSubGroupCount(IdResultType resultType, IdResult result, Id nDRange, Id invoke, Id param, Id paramSize, Id paramAlign)
       : op(Op::GetKernelNDrangeSubGroupCount)
@@ -9008,7 +9008,7 @@ struct OpGetKernelNDrangeMaxSubGroupSize
 {
   OpGetKernelNDrangeMaxSubGroupSize(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGetKernelNDrangeMaxSubGroupSize(IdResultType resultType, IdResult result, Id nDRange, Id invoke, Id param, Id paramSize, Id paramAlign)
       : op(Op::GetKernelNDrangeMaxSubGroupSize)
@@ -9040,7 +9040,7 @@ struct OpGetKernelWorkGroupSize
 {
   OpGetKernelWorkGroupSize(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGetKernelWorkGroupSize(IdResultType resultType, IdResult result, Id invoke, Id param, Id paramSize, Id paramAlign)
       : op(Op::GetKernelWorkGroupSize)
@@ -9070,7 +9070,7 @@ struct OpGetKernelPreferredWorkGroupSizeMultiple
 {
   OpGetKernelPreferredWorkGroupSizeMultiple(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGetKernelPreferredWorkGroupSizeMultiple(IdResultType resultType, IdResult result, Id invoke, Id param, Id paramSize, Id paramAlign)
       : op(Op::GetKernelPreferredWorkGroupSizeMultiple)
@@ -9100,7 +9100,7 @@ struct OpRetainEvent
 {
   OpRetainEvent(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpRetainEvent(Id event)
       : op(Op::RetainEvent)
@@ -9120,7 +9120,7 @@ struct OpReleaseEvent
 {
   OpReleaseEvent(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpReleaseEvent(Id event)
       : op(Op::ReleaseEvent)
@@ -9140,7 +9140,7 @@ struct OpCreateUserEvent
 {
   OpCreateUserEvent(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpCreateUserEvent(IdResultType resultType, IdResult result)
       : op(Op::CreateUserEvent)
@@ -9162,7 +9162,7 @@ struct OpIsValidEvent
 {
   OpIsValidEvent(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIsValidEvent(IdResultType resultType, IdResult result, Id event)
       : op(Op::IsValidEvent)
@@ -9186,7 +9186,7 @@ struct OpSetUserEventStatus
 {
   OpSetUserEventStatus(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSetUserEventStatus(Id event, Id status)
       : op(Op::SetUserEventStatus)
@@ -9208,7 +9208,7 @@ struct OpCaptureEventProfilingInfo
 {
   OpCaptureEventProfilingInfo(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpCaptureEventProfilingInfo(Id event, Id profilingInfo, Id value)
       : op(Op::CaptureEventProfilingInfo)
@@ -9232,7 +9232,7 @@ struct OpGetDefaultQueue
 {
   OpGetDefaultQueue(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGetDefaultQueue(IdResultType resultType, IdResult result)
       : op(Op::GetDefaultQueue)
@@ -9254,7 +9254,7 @@ struct OpBuildNDRange
 {
   OpBuildNDRange(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpBuildNDRange(IdResultType resultType, IdResult result, Id globalWorkSize, Id localWorkSize, Id globalWorkOffset)
       : op(Op::BuildNDRange)
@@ -9801,7 +9801,7 @@ struct OpImageSparseTexelsResident
 {
   OpImageSparseTexelsResident(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpImageSparseTexelsResident(IdResultType resultType, IdResult result, Id residentCode)
       : op(Op::ImageSparseTexelsResident)
@@ -9825,7 +9825,7 @@ struct OpNoLine
 {
   OpNoLine(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpNoLine()
       : op(Op::NoLine)
@@ -9845,7 +9845,7 @@ struct OpAtomicFlagTestAndSet
 {
   OpAtomicFlagTestAndSet(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicFlagTestAndSet(IdResultType resultType, IdResult result, Id pointer, IdScope memory, IdMemorySemantics semantics)
       : op(Op::AtomicFlagTestAndSet)
@@ -9873,7 +9873,7 @@ struct OpAtomicFlagClear
 {
   OpAtomicFlagClear(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAtomicFlagClear(Id pointer, IdScope memory, IdMemorySemantics semantics)
       : op(Op::AtomicFlagClear)
@@ -9942,7 +9942,7 @@ struct OpSizeOf
 {
   OpSizeOf(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSizeOf(IdResultType resultType, IdResult result, Id pointer)
       : op(Op::SizeOf)
@@ -9966,7 +9966,7 @@ struct OpTypePipeStorage
 {
   OpTypePipeStorage(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypePipeStorage(IdResult result)
       : op(Op::TypePipeStorage)
@@ -9986,7 +9986,7 @@ struct OpConstantPipeStorage
 {
   OpConstantPipeStorage(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpConstantPipeStorage(IdResultType resultType, IdResult result, uint32_t packetSize, uint32_t packetAlignment, uint32_t capacity)
       : op(Op::ConstantPipeStorage)
@@ -10014,7 +10014,7 @@ struct OpCreatePipeFromPipeStorage
 {
   OpCreatePipeFromPipeStorage(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpCreatePipeFromPipeStorage(IdResultType resultType, IdResult result, Id pipeStorage)
       : op(Op::CreatePipeFromPipeStorage)
@@ -10038,7 +10038,7 @@ struct OpGetKernelLocalSizeForSubgroupCount
 {
   OpGetKernelLocalSizeForSubgroupCount(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGetKernelLocalSizeForSubgroupCount(IdResultType resultType, IdResult result, Id subgroupCount, Id invoke, Id param, Id paramSize, Id paramAlign)
       : op(Op::GetKernelLocalSizeForSubgroupCount)
@@ -10070,7 +10070,7 @@ struct OpGetKernelMaxNumSubgroups
 {
   OpGetKernelMaxNumSubgroups(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGetKernelMaxNumSubgroups(IdResultType resultType, IdResult result, Id invoke, Id param, Id paramSize, Id paramAlign)
       : op(Op::GetKernelMaxNumSubgroups)
@@ -10100,7 +10100,7 @@ struct OpTypeNamedBarrier
 {
   OpTypeNamedBarrier(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeNamedBarrier(IdResult result)
       : op(Op::TypeNamedBarrier)
@@ -10120,7 +10120,7 @@ struct OpNamedBarrierInitialize
 {
   OpNamedBarrierInitialize(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpNamedBarrierInitialize(IdResultType resultType, IdResult result, Id subgroupCount)
       : op(Op::NamedBarrierInitialize)
@@ -10144,7 +10144,7 @@ struct OpMemoryNamedBarrier
 {
   OpMemoryNamedBarrier(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpMemoryNamedBarrier(Id namedBarrier, IdScope memory, IdMemorySemantics semantics)
       : op(Op::MemoryNamedBarrier)
@@ -10263,7 +10263,7 @@ struct OpGroupNonUniformElect
 {
   OpGroupNonUniformElect(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformElect(IdResultType resultType, IdResult result, IdScope execution)
       : op(Op::GroupNonUniformElect)
@@ -10287,7 +10287,7 @@ struct OpGroupNonUniformAll
 {
   OpGroupNonUniformAll(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformAll(IdResultType resultType, IdResult result, IdScope execution, Id predicate)
       : op(Op::GroupNonUniformAll)
@@ -10313,7 +10313,7 @@ struct OpGroupNonUniformAny
 {
   OpGroupNonUniformAny(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformAny(IdResultType resultType, IdResult result, IdScope execution, Id predicate)
       : op(Op::GroupNonUniformAny)
@@ -10339,7 +10339,7 @@ struct OpGroupNonUniformAllEqual
 {
   OpGroupNonUniformAllEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformAllEqual(IdResultType resultType, IdResult result, IdScope execution, Id value)
       : op(Op::GroupNonUniformAllEqual)
@@ -10365,7 +10365,7 @@ struct OpGroupNonUniformBroadcast
 {
   OpGroupNonUniformBroadcast(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformBroadcast(IdResultType resultType, IdResult result, IdScope execution, Id value, Id id)
       : op(Op::GroupNonUniformBroadcast)
@@ -10393,7 +10393,7 @@ struct OpGroupNonUniformBroadcastFirst
 {
   OpGroupNonUniformBroadcastFirst(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformBroadcastFirst(IdResultType resultType, IdResult result, IdScope execution, Id value)
       : op(Op::GroupNonUniformBroadcastFirst)
@@ -10419,7 +10419,7 @@ struct OpGroupNonUniformBallot
 {
   OpGroupNonUniformBallot(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformBallot(IdResultType resultType, IdResult result, IdScope execution, Id predicate)
       : op(Op::GroupNonUniformBallot)
@@ -10445,7 +10445,7 @@ struct OpGroupNonUniformInverseBallot
 {
   OpGroupNonUniformInverseBallot(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformInverseBallot(IdResultType resultType, IdResult result, IdScope execution, Id value)
       : op(Op::GroupNonUniformInverseBallot)
@@ -10471,7 +10471,7 @@ struct OpGroupNonUniformBallotBitExtract
 {
   OpGroupNonUniformBallotBitExtract(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformBallotBitExtract(IdResultType resultType, IdResult result, IdScope execution, Id value, Id index)
       : op(Op::GroupNonUniformBallotBitExtract)
@@ -10499,7 +10499,7 @@ struct OpGroupNonUniformBallotBitCount
 {
   OpGroupNonUniformBallotBitCount(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformBallotBitCount(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id value)
       : op(Op::GroupNonUniformBallotBitCount)
@@ -10527,7 +10527,7 @@ struct OpGroupNonUniformBallotFindLSB
 {
   OpGroupNonUniformBallotFindLSB(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformBallotFindLSB(IdResultType resultType, IdResult result, IdScope execution, Id value)
       : op(Op::GroupNonUniformBallotFindLSB)
@@ -10553,7 +10553,7 @@ struct OpGroupNonUniformBallotFindMSB
 {
   OpGroupNonUniformBallotFindMSB(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformBallotFindMSB(IdResultType resultType, IdResult result, IdScope execution, Id value)
       : op(Op::GroupNonUniformBallotFindMSB)
@@ -10579,7 +10579,7 @@ struct OpGroupNonUniformShuffle
 {
   OpGroupNonUniformShuffle(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformShuffle(IdResultType resultType, IdResult result, IdScope execution, Id value, Id id)
       : op(Op::GroupNonUniformShuffle)
@@ -10607,7 +10607,7 @@ struct OpGroupNonUniformShuffleXor
 {
   OpGroupNonUniformShuffleXor(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformShuffleXor(IdResultType resultType, IdResult result, IdScope execution, Id value, Id mask)
       : op(Op::GroupNonUniformShuffleXor)
@@ -10635,7 +10635,7 @@ struct OpGroupNonUniformShuffleUp
 {
   OpGroupNonUniformShuffleUp(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformShuffleUp(IdResultType resultType, IdResult result, IdScope execution, Id value, Id delta)
       : op(Op::GroupNonUniformShuffleUp)
@@ -10663,7 +10663,7 @@ struct OpGroupNonUniformShuffleDown
 {
   OpGroupNonUniformShuffleDown(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformShuffleDown(IdResultType resultType, IdResult result, IdScope execution, Id value, Id delta)
       : op(Op::GroupNonUniformShuffleDown)
@@ -11491,7 +11491,7 @@ struct OpGroupNonUniformQuadBroadcast
 {
   OpGroupNonUniformQuadBroadcast(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformQuadBroadcast(IdResultType resultType, IdResult result, IdScope execution, Id value, Id index)
       : op(Op::GroupNonUniformQuadBroadcast)
@@ -11519,7 +11519,7 @@ struct OpGroupNonUniformQuadSwap
 {
   OpGroupNonUniformQuadSwap(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformQuadSwap(IdResultType resultType, IdResult result, IdScope execution, Id value, Id direction)
       : op(Op::GroupNonUniformQuadSwap)
@@ -11547,7 +11547,7 @@ struct OpCopyLogical
 {
   OpCopyLogical(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpCopyLogical(IdResultType resultType, IdResult result, Id operand)
       : op(Op::CopyLogical)
@@ -11571,7 +11571,7 @@ struct OpPtrEqual
 {
   OpPtrEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpPtrEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::PtrEqual)
@@ -11597,7 +11597,7 @@ struct OpPtrNotEqual
 {
   OpPtrNotEqual(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpPtrNotEqual(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::PtrNotEqual)
@@ -11623,7 +11623,7 @@ struct OpPtrDiff
 {
   OpPtrDiff(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpPtrDiff(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::PtrDiff)
@@ -11649,7 +11649,7 @@ struct OpSubgroupBallotKHR
 {
   OpSubgroupBallotKHR(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupBallotKHR(IdResultType resultType, IdResult result, Id predicate)
       : op(Op::SubgroupBallotKHR)
@@ -11673,7 +11673,7 @@ struct OpSubgroupFirstInvocationKHR
 {
   OpSubgroupFirstInvocationKHR(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupFirstInvocationKHR(IdResultType resultType, IdResult result, Id value)
       : op(Op::SubgroupFirstInvocationKHR)
@@ -11697,7 +11697,7 @@ struct OpSubgroupAllKHR
 {
   OpSubgroupAllKHR(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAllKHR(IdResultType resultType, IdResult result, Id predicate)
       : op(Op::SubgroupAllKHR)
@@ -11721,7 +11721,7 @@ struct OpSubgroupAnyKHR
 {
   OpSubgroupAnyKHR(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAnyKHR(IdResultType resultType, IdResult result, Id predicate)
       : op(Op::SubgroupAnyKHR)
@@ -11745,7 +11745,7 @@ struct OpSubgroupAllEqualKHR
 {
   OpSubgroupAllEqualKHR(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAllEqualKHR(IdResultType resultType, IdResult result, Id predicate)
       : op(Op::SubgroupAllEqualKHR)
@@ -11769,7 +11769,7 @@ struct OpSubgroupReadInvocationKHR
 {
   OpSubgroupReadInvocationKHR(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupReadInvocationKHR(IdResultType resultType, IdResult result, Id value, Id index)
       : op(Op::SubgroupReadInvocationKHR)
@@ -11795,7 +11795,7 @@ struct OpGroupIAddNonUniformAMD
 {
   OpGroupIAddNonUniformAMD(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupIAddNonUniformAMD(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupIAddNonUniformAMD)
@@ -11823,7 +11823,7 @@ struct OpGroupFAddNonUniformAMD
 {
   OpGroupFAddNonUniformAMD(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupFAddNonUniformAMD(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupFAddNonUniformAMD)
@@ -11851,7 +11851,7 @@ struct OpGroupFMinNonUniformAMD
 {
   OpGroupFMinNonUniformAMD(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupFMinNonUniformAMD(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupFMinNonUniformAMD)
@@ -11879,7 +11879,7 @@ struct OpGroupUMinNonUniformAMD
 {
   OpGroupUMinNonUniformAMD(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupUMinNonUniformAMD(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupUMinNonUniformAMD)
@@ -11907,7 +11907,7 @@ struct OpGroupSMinNonUniformAMD
 {
   OpGroupSMinNonUniformAMD(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupSMinNonUniformAMD(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupSMinNonUniformAMD)
@@ -11935,7 +11935,7 @@ struct OpGroupFMaxNonUniformAMD
 {
   OpGroupFMaxNonUniformAMD(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupFMaxNonUniformAMD(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupFMaxNonUniformAMD)
@@ -11963,7 +11963,7 @@ struct OpGroupUMaxNonUniformAMD
 {
   OpGroupUMaxNonUniformAMD(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupUMaxNonUniformAMD(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupUMaxNonUniformAMD)
@@ -11991,7 +11991,7 @@ struct OpGroupSMaxNonUniformAMD
 {
   OpGroupSMaxNonUniformAMD(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupSMaxNonUniformAMD(IdResultType resultType, IdResult result, IdScope execution, GroupOperation operation, Id x)
       : op(Op::GroupSMaxNonUniformAMD)
@@ -12019,7 +12019,7 @@ struct OpFragmentMaskFetchAMD
 {
   OpFragmentMaskFetchAMD(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFragmentMaskFetchAMD(IdResultType resultType, IdResult result, Id image, Id coordinate)
       : op(Op::FragmentMaskFetchAMD)
@@ -12045,7 +12045,7 @@ struct OpFragmentFetchAMD
 {
   OpFragmentFetchAMD(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpFragmentFetchAMD(IdResultType resultType, IdResult result, Id image, Id coordinate, Id fragmentIndex)
       : op(Op::FragmentFetchAMD)
@@ -12073,7 +12073,7 @@ struct OpReadClockKHR
 {
   OpReadClockKHR(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpReadClockKHR(IdResultType resultType, IdResult result, IdScope execution)
       : op(Op::ReadClockKHR)
@@ -12150,7 +12150,7 @@ struct OpGroupNonUniformPartitionNV
 {
   OpGroupNonUniformPartitionNV(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpGroupNonUniformPartitionNV(IdResultType resultType, IdResult result, Id value)
       : op(Op::GroupNonUniformPartitionNV)
@@ -12174,7 +12174,7 @@ struct OpWritePackedPrimitiveIndices4x8NV
 {
   OpWritePackedPrimitiveIndices4x8NV(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpWritePackedPrimitiveIndices4x8NV(Id indexOffset, Id packedIndices)
       : op(Op::WritePackedPrimitiveIndices4x8NV)
@@ -12196,7 +12196,7 @@ struct OpReportIntersectionNV
 {
   OpReportIntersectionNV(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpReportIntersectionNV(IdResultType resultType, IdResult result, Id hit, Id hitKind)
       : op(Op::ReportIntersectionNV)
@@ -12222,7 +12222,7 @@ struct OpIgnoreIntersectionNV
 {
   OpIgnoreIntersectionNV(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIgnoreIntersectionNV()
       : op(Op::IgnoreIntersectionNV)
@@ -12242,7 +12242,7 @@ struct OpTerminateRayNV
 {
   OpTerminateRayNV(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTerminateRayNV()
       : op(Op::TerminateRayNV)
@@ -12262,7 +12262,7 @@ struct OpTraceNV
 {
   OpTraceNV(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTraceNV(Id accel, Id rayFlags, Id cullMask, Id sBTOffset, Id sBTStride, Id missIndex, Id rayOrigin, Id rayTmin, Id rayDirection, Id rayTmax, Id payloadId)
       : op(Op::TraceNV)
@@ -12302,7 +12302,7 @@ struct OpTypeAccelerationStructureNV
 {
   OpTypeAccelerationStructureNV(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeAccelerationStructureNV(IdResult result)
       : op(Op::TypeAccelerationStructureNV)
@@ -12322,7 +12322,7 @@ struct OpExecuteCallableNV
 {
   OpExecuteCallableNV(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpExecuteCallableNV(Id sBTIndex, Id callableDataId)
       : op(Op::ExecuteCallableNV)
@@ -12344,7 +12344,7 @@ struct OpTypeCooperativeMatrixNV
 {
   OpTypeCooperativeMatrixNV(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeCooperativeMatrixNV(IdResult result, Id componentType, IdScope execution, Id rows, Id columns)
       : op(Op::TypeCooperativeMatrixNV)
@@ -12466,7 +12466,7 @@ struct OpCooperativeMatrixMulAddNV
 {
   OpCooperativeMatrixMulAddNV(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpCooperativeMatrixMulAddNV(IdResultType resultType, IdResult result, Id a, Id b, Id c)
       : op(Op::CooperativeMatrixMulAddNV)
@@ -12494,7 +12494,7 @@ struct OpCooperativeMatrixLengthNV
 {
   OpCooperativeMatrixLengthNV(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpCooperativeMatrixLengthNV(IdResultType resultType, IdResult result, Id type)
       : op(Op::CooperativeMatrixLengthNV)
@@ -12518,7 +12518,7 @@ struct OpBeginInvocationInterlockEXT
 {
   OpBeginInvocationInterlockEXT(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpBeginInvocationInterlockEXT()
       : op(Op::BeginInvocationInterlockEXT)
@@ -12538,7 +12538,7 @@ struct OpEndInvocationInterlockEXT
 {
   OpEndInvocationInterlockEXT(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpEndInvocationInterlockEXT()
       : op(Op::EndInvocationInterlockEXT)
@@ -12558,7 +12558,7 @@ struct OpDemoteToHelperInvocationEXT
 {
   OpDemoteToHelperInvocationEXT(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpDemoteToHelperInvocationEXT()
       : op(Op::DemoteToHelperInvocationEXT)
@@ -12578,7 +12578,7 @@ struct OpIsHelperInvocationEXT
 {
   OpIsHelperInvocationEXT(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIsHelperInvocationEXT(IdResultType resultType, IdResult result)
       : op(Op::IsHelperInvocationEXT)
@@ -12600,7 +12600,7 @@ struct OpSubgroupShuffleINTEL
 {
   OpSubgroupShuffleINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupShuffleINTEL(IdResultType resultType, IdResult result, Id data, Id invocationId)
       : op(Op::SubgroupShuffleINTEL)
@@ -12626,7 +12626,7 @@ struct OpSubgroupShuffleDownINTEL
 {
   OpSubgroupShuffleDownINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupShuffleDownINTEL(IdResultType resultType, IdResult result, Id current, Id next, Id delta)
       : op(Op::SubgroupShuffleDownINTEL)
@@ -12654,7 +12654,7 @@ struct OpSubgroupShuffleUpINTEL
 {
   OpSubgroupShuffleUpINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupShuffleUpINTEL(IdResultType resultType, IdResult result, Id previous, Id current, Id delta)
       : op(Op::SubgroupShuffleUpINTEL)
@@ -12682,7 +12682,7 @@ struct OpSubgroupShuffleXorINTEL
 {
   OpSubgroupShuffleXorINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupShuffleXorINTEL(IdResultType resultType, IdResult result, Id data, Id value)
       : op(Op::SubgroupShuffleXorINTEL)
@@ -12708,7 +12708,7 @@ struct OpSubgroupBlockReadINTEL
 {
   OpSubgroupBlockReadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupBlockReadINTEL(IdResultType resultType, IdResult result, Id ptr)
       : op(Op::SubgroupBlockReadINTEL)
@@ -12732,7 +12732,7 @@ struct OpSubgroupBlockWriteINTEL
 {
   OpSubgroupBlockWriteINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupBlockWriteINTEL(Id ptr, Id data)
       : op(Op::SubgroupBlockWriteINTEL)
@@ -12754,7 +12754,7 @@ struct OpSubgroupImageBlockReadINTEL
 {
   OpSubgroupImageBlockReadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupImageBlockReadINTEL(IdResultType resultType, IdResult result, Id image, Id coordinate)
       : op(Op::SubgroupImageBlockReadINTEL)
@@ -12780,7 +12780,7 @@ struct OpSubgroupImageBlockWriteINTEL
 {
   OpSubgroupImageBlockWriteINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupImageBlockWriteINTEL(Id image, Id coordinate, Id data)
       : op(Op::SubgroupImageBlockWriteINTEL)
@@ -12804,7 +12804,7 @@ struct OpSubgroupImageMediaBlockReadINTEL
 {
   OpSubgroupImageMediaBlockReadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupImageMediaBlockReadINTEL(IdResultType resultType, IdResult result, Id image, Id coordinate, Id width, Id height)
       : op(Op::SubgroupImageMediaBlockReadINTEL)
@@ -12834,7 +12834,7 @@ struct OpSubgroupImageMediaBlockWriteINTEL
 {
   OpSubgroupImageMediaBlockWriteINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupImageMediaBlockWriteINTEL(Id image, Id coordinate, Id width, Id height, Id data)
       : op(Op::SubgroupImageMediaBlockWriteINTEL)
@@ -12862,7 +12862,7 @@ struct OpUCountLeadingZerosINTEL
 {
   OpUCountLeadingZerosINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUCountLeadingZerosINTEL(IdResultType resultType, IdResult result, Id operand)
       : op(Op::UCountLeadingZerosINTEL)
@@ -12886,7 +12886,7 @@ struct OpUCountTrailingZerosINTEL
 {
   OpUCountTrailingZerosINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUCountTrailingZerosINTEL(IdResultType resultType, IdResult result, Id operand)
       : op(Op::UCountTrailingZerosINTEL)
@@ -12910,7 +12910,7 @@ struct OpAbsISubINTEL
 {
   OpAbsISubINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAbsISubINTEL(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::AbsISubINTEL)
@@ -12936,7 +12936,7 @@ struct OpAbsUSubINTEL
 {
   OpAbsUSubINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpAbsUSubINTEL(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::AbsUSubINTEL)
@@ -12962,7 +12962,7 @@ struct OpIAddSatINTEL
 {
   OpIAddSatINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIAddSatINTEL(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::IAddSatINTEL)
@@ -12988,7 +12988,7 @@ struct OpUAddSatINTEL
 {
   OpUAddSatINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUAddSatINTEL(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::UAddSatINTEL)
@@ -13014,7 +13014,7 @@ struct OpIAverageINTEL
 {
   OpIAverageINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIAverageINTEL(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::IAverageINTEL)
@@ -13040,7 +13040,7 @@ struct OpUAverageINTEL
 {
   OpUAverageINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUAverageINTEL(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::UAverageINTEL)
@@ -13066,7 +13066,7 @@ struct OpIAverageRoundedINTEL
 {
   OpIAverageRoundedINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIAverageRoundedINTEL(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::IAverageRoundedINTEL)
@@ -13092,7 +13092,7 @@ struct OpUAverageRoundedINTEL
 {
   OpUAverageRoundedINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUAverageRoundedINTEL(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::UAverageRoundedINTEL)
@@ -13118,7 +13118,7 @@ struct OpISubSatINTEL
 {
   OpISubSatINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpISubSatINTEL(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::ISubSatINTEL)
@@ -13144,7 +13144,7 @@ struct OpUSubSatINTEL
 {
   OpUSubSatINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUSubSatINTEL(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::USubSatINTEL)
@@ -13170,7 +13170,7 @@ struct OpIMul32x16INTEL
 {
   OpIMul32x16INTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpIMul32x16INTEL(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::IMul32x16INTEL)
@@ -13196,7 +13196,7 @@ struct OpUMul32x16INTEL
 {
   OpUMul32x16INTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpUMul32x16INTEL(IdResultType resultType, IdResult result, Id operand1, Id operand2)
       : op(Op::UMul32x16INTEL)
@@ -13292,7 +13292,7 @@ struct OpVmeImageINTEL
 {
   OpVmeImageINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpVmeImageINTEL(IdResultType resultType, IdResult result, Id imageType, Id sampler)
       : op(Op::VmeImageINTEL)
@@ -13318,7 +13318,7 @@ struct OpTypeVmeImageINTEL
 {
   OpTypeVmeImageINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeVmeImageINTEL(IdResult result, Id imageType)
       : op(Op::TypeVmeImageINTEL)
@@ -13340,7 +13340,7 @@ struct OpTypeAvcImePayloadINTEL
 {
   OpTypeAvcImePayloadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeAvcImePayloadINTEL(IdResult result)
       : op(Op::TypeAvcImePayloadINTEL)
@@ -13360,7 +13360,7 @@ struct OpTypeAvcRefPayloadINTEL
 {
   OpTypeAvcRefPayloadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeAvcRefPayloadINTEL(IdResult result)
       : op(Op::TypeAvcRefPayloadINTEL)
@@ -13380,7 +13380,7 @@ struct OpTypeAvcSicPayloadINTEL
 {
   OpTypeAvcSicPayloadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeAvcSicPayloadINTEL(IdResult result)
       : op(Op::TypeAvcSicPayloadINTEL)
@@ -13400,7 +13400,7 @@ struct OpTypeAvcMcePayloadINTEL
 {
   OpTypeAvcMcePayloadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeAvcMcePayloadINTEL(IdResult result)
       : op(Op::TypeAvcMcePayloadINTEL)
@@ -13420,7 +13420,7 @@ struct OpTypeAvcMceResultINTEL
 {
   OpTypeAvcMceResultINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeAvcMceResultINTEL(IdResult result)
       : op(Op::TypeAvcMceResultINTEL)
@@ -13440,7 +13440,7 @@ struct OpTypeAvcImeResultINTEL
 {
   OpTypeAvcImeResultINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeAvcImeResultINTEL(IdResult result)
       : op(Op::TypeAvcImeResultINTEL)
@@ -13460,7 +13460,7 @@ struct OpTypeAvcImeResultSingleReferenceStreamoutINTEL
 {
   OpTypeAvcImeResultSingleReferenceStreamoutINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeAvcImeResultSingleReferenceStreamoutINTEL(IdResult result)
       : op(Op::TypeAvcImeResultSingleReferenceStreamoutINTEL)
@@ -13480,7 +13480,7 @@ struct OpTypeAvcImeResultDualReferenceStreamoutINTEL
 {
   OpTypeAvcImeResultDualReferenceStreamoutINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeAvcImeResultDualReferenceStreamoutINTEL(IdResult result)
       : op(Op::TypeAvcImeResultDualReferenceStreamoutINTEL)
@@ -13500,7 +13500,7 @@ struct OpTypeAvcImeSingleReferenceStreaminINTEL
 {
   OpTypeAvcImeSingleReferenceStreaminINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeAvcImeSingleReferenceStreaminINTEL(IdResult result)
       : op(Op::TypeAvcImeSingleReferenceStreaminINTEL)
@@ -13520,7 +13520,7 @@ struct OpTypeAvcImeDualReferenceStreaminINTEL
 {
   OpTypeAvcImeDualReferenceStreaminINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeAvcImeDualReferenceStreaminINTEL(IdResult result)
       : op(Op::TypeAvcImeDualReferenceStreaminINTEL)
@@ -13540,7 +13540,7 @@ struct OpTypeAvcRefResultINTEL
 {
   OpTypeAvcRefResultINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeAvcRefResultINTEL(IdResult result)
       : op(Op::TypeAvcRefResultINTEL)
@@ -13560,7 +13560,7 @@ struct OpTypeAvcSicResultINTEL
 {
   OpTypeAvcSicResultINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpTypeAvcSicResultINTEL(IdResult result)
       : op(Op::TypeAvcSicResultINTEL)
@@ -13580,7 +13580,7 @@ struct OpSubgroupAvcMceGetDefaultInterBaseMultiReferencePenaltyINTEL
 {
   OpSubgroupAvcMceGetDefaultInterBaseMultiReferencePenaltyINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetDefaultInterBaseMultiReferencePenaltyINTEL(IdResultType resultType, IdResult result, Id sliceType, Id qp)
       : op(Op::SubgroupAvcMceGetDefaultInterBaseMultiReferencePenaltyINTEL)
@@ -13606,7 +13606,7 @@ struct OpSubgroupAvcMceSetInterBaseMultiReferencePenaltyINTEL
 {
   OpSubgroupAvcMceSetInterBaseMultiReferencePenaltyINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceSetInterBaseMultiReferencePenaltyINTEL(IdResultType resultType, IdResult result, Id referenceBasePenalty, Id payload)
       : op(Op::SubgroupAvcMceSetInterBaseMultiReferencePenaltyINTEL)
@@ -13632,7 +13632,7 @@ struct OpSubgroupAvcMceGetDefaultInterShapePenaltyINTEL
 {
   OpSubgroupAvcMceGetDefaultInterShapePenaltyINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetDefaultInterShapePenaltyINTEL(IdResultType resultType, IdResult result, Id sliceType, Id qp)
       : op(Op::SubgroupAvcMceGetDefaultInterShapePenaltyINTEL)
@@ -13658,7 +13658,7 @@ struct OpSubgroupAvcMceSetInterShapePenaltyINTEL
 {
   OpSubgroupAvcMceSetInterShapePenaltyINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceSetInterShapePenaltyINTEL(IdResultType resultType, IdResult result, Id packedShapePenalty, Id payload)
       : op(Op::SubgroupAvcMceSetInterShapePenaltyINTEL)
@@ -13684,7 +13684,7 @@ struct OpSubgroupAvcMceGetDefaultInterDirectionPenaltyINTEL
 {
   OpSubgroupAvcMceGetDefaultInterDirectionPenaltyINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetDefaultInterDirectionPenaltyINTEL(IdResultType resultType, IdResult result, Id sliceType, Id qp)
       : op(Op::SubgroupAvcMceGetDefaultInterDirectionPenaltyINTEL)
@@ -13710,7 +13710,7 @@ struct OpSubgroupAvcMceSetInterDirectionPenaltyINTEL
 {
   OpSubgroupAvcMceSetInterDirectionPenaltyINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceSetInterDirectionPenaltyINTEL(IdResultType resultType, IdResult result, Id directionCost, Id payload)
       : op(Op::SubgroupAvcMceSetInterDirectionPenaltyINTEL)
@@ -13736,7 +13736,7 @@ struct OpSubgroupAvcMceGetDefaultIntraLumaShapePenaltyINTEL
 {
   OpSubgroupAvcMceGetDefaultIntraLumaShapePenaltyINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetDefaultIntraLumaShapePenaltyINTEL(IdResultType resultType, IdResult result, Id sliceType, Id qp)
       : op(Op::SubgroupAvcMceGetDefaultIntraLumaShapePenaltyINTEL)
@@ -13762,7 +13762,7 @@ struct OpSubgroupAvcMceGetDefaultInterMotionVectorCostTableINTEL
 {
   OpSubgroupAvcMceGetDefaultInterMotionVectorCostTableINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetDefaultInterMotionVectorCostTableINTEL(IdResultType resultType, IdResult result, Id sliceType, Id qp)
       : op(Op::SubgroupAvcMceGetDefaultInterMotionVectorCostTableINTEL)
@@ -13788,7 +13788,7 @@ struct OpSubgroupAvcMceGetDefaultHighPenaltyCostTableINTEL
 {
   OpSubgroupAvcMceGetDefaultHighPenaltyCostTableINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetDefaultHighPenaltyCostTableINTEL(IdResultType resultType, IdResult result)
       : op(Op::SubgroupAvcMceGetDefaultHighPenaltyCostTableINTEL)
@@ -13810,7 +13810,7 @@ struct OpSubgroupAvcMceGetDefaultMediumPenaltyCostTableINTEL
 {
   OpSubgroupAvcMceGetDefaultMediumPenaltyCostTableINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetDefaultMediumPenaltyCostTableINTEL(IdResultType resultType, IdResult result)
       : op(Op::SubgroupAvcMceGetDefaultMediumPenaltyCostTableINTEL)
@@ -13832,7 +13832,7 @@ struct OpSubgroupAvcMceGetDefaultLowPenaltyCostTableINTEL
 {
   OpSubgroupAvcMceGetDefaultLowPenaltyCostTableINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetDefaultLowPenaltyCostTableINTEL(IdResultType resultType, IdResult result)
       : op(Op::SubgroupAvcMceGetDefaultLowPenaltyCostTableINTEL)
@@ -13854,7 +13854,7 @@ struct OpSubgroupAvcMceSetMotionVectorCostFunctionINTEL
 {
   OpSubgroupAvcMceSetMotionVectorCostFunctionINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceSetMotionVectorCostFunctionINTEL(IdResultType resultType, IdResult result, Id packedCostCenterDelta, Id packedCostTable, Id costPrecision, Id payload)
       : op(Op::SubgroupAvcMceSetMotionVectorCostFunctionINTEL)
@@ -13884,7 +13884,7 @@ struct OpSubgroupAvcMceGetDefaultIntraLumaModePenaltyINTEL
 {
   OpSubgroupAvcMceGetDefaultIntraLumaModePenaltyINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetDefaultIntraLumaModePenaltyINTEL(IdResultType resultType, IdResult result, Id sliceType, Id qp)
       : op(Op::SubgroupAvcMceGetDefaultIntraLumaModePenaltyINTEL)
@@ -13910,7 +13910,7 @@ struct OpSubgroupAvcMceGetDefaultNonDcLumaIntraPenaltyINTEL
 {
   OpSubgroupAvcMceGetDefaultNonDcLumaIntraPenaltyINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetDefaultNonDcLumaIntraPenaltyINTEL(IdResultType resultType, IdResult result)
       : op(Op::SubgroupAvcMceGetDefaultNonDcLumaIntraPenaltyINTEL)
@@ -13932,7 +13932,7 @@ struct OpSubgroupAvcMceGetDefaultIntraChromaModeBasePenaltyINTEL
 {
   OpSubgroupAvcMceGetDefaultIntraChromaModeBasePenaltyINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetDefaultIntraChromaModeBasePenaltyINTEL(IdResultType resultType, IdResult result)
       : op(Op::SubgroupAvcMceGetDefaultIntraChromaModeBasePenaltyINTEL)
@@ -13954,7 +13954,7 @@ struct OpSubgroupAvcMceSetAcOnlyHaarINTEL
 {
   OpSubgroupAvcMceSetAcOnlyHaarINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceSetAcOnlyHaarINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceSetAcOnlyHaarINTEL)
@@ -13978,7 +13978,7 @@ struct OpSubgroupAvcMceSetSourceInterlacedFieldPolarityINTEL
 {
   OpSubgroupAvcMceSetSourceInterlacedFieldPolarityINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceSetSourceInterlacedFieldPolarityINTEL(IdResultType resultType, IdResult result, Id sourceFieldPolarity, Id payload)
       : op(Op::SubgroupAvcMceSetSourceInterlacedFieldPolarityINTEL)
@@ -14004,7 +14004,7 @@ struct OpSubgroupAvcMceSetSingleReferenceInterlacedFieldPolarityINTEL
 {
   OpSubgroupAvcMceSetSingleReferenceInterlacedFieldPolarityINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceSetSingleReferenceInterlacedFieldPolarityINTEL(IdResultType resultType, IdResult result, Id referenceFieldPolarity, Id payload)
       : op(Op::SubgroupAvcMceSetSingleReferenceInterlacedFieldPolarityINTEL)
@@ -14030,7 +14030,7 @@ struct OpSubgroupAvcMceSetDualReferenceInterlacedFieldPolaritiesINTEL
 {
   OpSubgroupAvcMceSetDualReferenceInterlacedFieldPolaritiesINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceSetDualReferenceInterlacedFieldPolaritiesINTEL(IdResultType resultType, IdResult result, Id forwardReferenceFieldPolarity, Id backwardReferenceFieldPolarity, Id payload)
       : op(Op::SubgroupAvcMceSetDualReferenceInterlacedFieldPolaritiesINTEL)
@@ -14058,7 +14058,7 @@ struct OpSubgroupAvcMceConvertToImePayloadINTEL
 {
   OpSubgroupAvcMceConvertToImePayloadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceConvertToImePayloadINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceConvertToImePayloadINTEL)
@@ -14082,7 +14082,7 @@ struct OpSubgroupAvcMceConvertToImeResultINTEL
 {
   OpSubgroupAvcMceConvertToImeResultINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceConvertToImeResultINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceConvertToImeResultINTEL)
@@ -14106,7 +14106,7 @@ struct OpSubgroupAvcMceConvertToRefPayloadINTEL
 {
   OpSubgroupAvcMceConvertToRefPayloadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceConvertToRefPayloadINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceConvertToRefPayloadINTEL)
@@ -14130,7 +14130,7 @@ struct OpSubgroupAvcMceConvertToRefResultINTEL
 {
   OpSubgroupAvcMceConvertToRefResultINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceConvertToRefResultINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceConvertToRefResultINTEL)
@@ -14154,7 +14154,7 @@ struct OpSubgroupAvcMceConvertToSicPayloadINTEL
 {
   OpSubgroupAvcMceConvertToSicPayloadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceConvertToSicPayloadINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceConvertToSicPayloadINTEL)
@@ -14178,7 +14178,7 @@ struct OpSubgroupAvcMceConvertToSicResultINTEL
 {
   OpSubgroupAvcMceConvertToSicResultINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceConvertToSicResultINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceConvertToSicResultINTEL)
@@ -14202,7 +14202,7 @@ struct OpSubgroupAvcMceGetMotionVectorsINTEL
 {
   OpSubgroupAvcMceGetMotionVectorsINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetMotionVectorsINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceGetMotionVectorsINTEL)
@@ -14226,7 +14226,7 @@ struct OpSubgroupAvcMceGetInterDistortionsINTEL
 {
   OpSubgroupAvcMceGetInterDistortionsINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetInterDistortionsINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceGetInterDistortionsINTEL)
@@ -14250,7 +14250,7 @@ struct OpSubgroupAvcMceGetBestInterDistortionsINTEL
 {
   OpSubgroupAvcMceGetBestInterDistortionsINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetBestInterDistortionsINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceGetBestInterDistortionsINTEL)
@@ -14274,7 +14274,7 @@ struct OpSubgroupAvcMceGetInterMajorShapeINTEL
 {
   OpSubgroupAvcMceGetInterMajorShapeINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetInterMajorShapeINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceGetInterMajorShapeINTEL)
@@ -14298,7 +14298,7 @@ struct OpSubgroupAvcMceGetInterMinorShapeINTEL
 {
   OpSubgroupAvcMceGetInterMinorShapeINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetInterMinorShapeINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceGetInterMinorShapeINTEL)
@@ -14322,7 +14322,7 @@ struct OpSubgroupAvcMceGetInterDirectionsINTEL
 {
   OpSubgroupAvcMceGetInterDirectionsINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetInterDirectionsINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceGetInterDirectionsINTEL)
@@ -14346,7 +14346,7 @@ struct OpSubgroupAvcMceGetInterMotionVectorCountINTEL
 {
   OpSubgroupAvcMceGetInterMotionVectorCountINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetInterMotionVectorCountINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceGetInterMotionVectorCountINTEL)
@@ -14370,7 +14370,7 @@ struct OpSubgroupAvcMceGetInterReferenceIdsINTEL
 {
   OpSubgroupAvcMceGetInterReferenceIdsINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetInterReferenceIdsINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcMceGetInterReferenceIdsINTEL)
@@ -14394,7 +14394,7 @@ struct OpSubgroupAvcMceGetInterReferenceInterlacedFieldPolaritiesINTEL
 {
   OpSubgroupAvcMceGetInterReferenceInterlacedFieldPolaritiesINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcMceGetInterReferenceInterlacedFieldPolaritiesINTEL(IdResultType resultType, IdResult result, Id packedReferenceIds, Id packedReferenceParameterFieldPolarities, Id payload)
       : op(Op::SubgroupAvcMceGetInterReferenceInterlacedFieldPolaritiesINTEL)
@@ -14422,7 +14422,7 @@ struct OpSubgroupAvcImeInitializeINTEL
 {
   OpSubgroupAvcImeInitializeINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeInitializeINTEL(IdResultType resultType, IdResult result, Id srcCoord, Id partitionMask, Id sADAdjustment)
       : op(Op::SubgroupAvcImeInitializeINTEL)
@@ -14450,7 +14450,7 @@ struct OpSubgroupAvcImeSetSingleReferenceINTEL
 {
   OpSubgroupAvcImeSetSingleReferenceINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeSetSingleReferenceINTEL(IdResultType resultType, IdResult result, Id refOffset, Id searchWindowConfig, Id payload)
       : op(Op::SubgroupAvcImeSetSingleReferenceINTEL)
@@ -14478,7 +14478,7 @@ struct OpSubgroupAvcImeSetDualReferenceINTEL
 {
   OpSubgroupAvcImeSetDualReferenceINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeSetDualReferenceINTEL(IdResultType resultType, IdResult result, Id fwdRefOffset, Id bwdRefOffset, Id idSearchWindowConfig, Id payload)
       : op(Op::SubgroupAvcImeSetDualReferenceINTEL)
@@ -14508,7 +14508,7 @@ struct OpSubgroupAvcImeRefWindowSizeINTEL
 {
   OpSubgroupAvcImeRefWindowSizeINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeRefWindowSizeINTEL(IdResultType resultType, IdResult result, Id searchWindowConfig, Id dualRef)
       : op(Op::SubgroupAvcImeRefWindowSizeINTEL)
@@ -14534,7 +14534,7 @@ struct OpSubgroupAvcImeAdjustRefOffsetINTEL
 {
   OpSubgroupAvcImeAdjustRefOffsetINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeAdjustRefOffsetINTEL(IdResultType resultType, IdResult result, Id refOffset, Id srcCoord, Id refWindowSize, Id imageSize)
       : op(Op::SubgroupAvcImeAdjustRefOffsetINTEL)
@@ -14564,7 +14564,7 @@ struct OpSubgroupAvcImeConvertToMcePayloadINTEL
 {
   OpSubgroupAvcImeConvertToMcePayloadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeConvertToMcePayloadINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcImeConvertToMcePayloadINTEL)
@@ -14588,7 +14588,7 @@ struct OpSubgroupAvcImeSetMaxMotionVectorCountINTEL
 {
   OpSubgroupAvcImeSetMaxMotionVectorCountINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeSetMaxMotionVectorCountINTEL(IdResultType resultType, IdResult result, Id maxMotionVectorCount, Id payload)
       : op(Op::SubgroupAvcImeSetMaxMotionVectorCountINTEL)
@@ -14614,7 +14614,7 @@ struct OpSubgroupAvcImeSetUnidirectionalMixDisableINTEL
 {
   OpSubgroupAvcImeSetUnidirectionalMixDisableINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeSetUnidirectionalMixDisableINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcImeSetUnidirectionalMixDisableINTEL)
@@ -14638,7 +14638,7 @@ struct OpSubgroupAvcImeSetEarlySearchTerminationThresholdINTEL
 {
   OpSubgroupAvcImeSetEarlySearchTerminationThresholdINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeSetEarlySearchTerminationThresholdINTEL(IdResultType resultType, IdResult result, Id threshold, Id payload)
       : op(Op::SubgroupAvcImeSetEarlySearchTerminationThresholdINTEL)
@@ -14664,7 +14664,7 @@ struct OpSubgroupAvcImeSetWeightedSadINTEL
 {
   OpSubgroupAvcImeSetWeightedSadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeSetWeightedSadINTEL(IdResultType resultType, IdResult result, Id packedSadWeights, Id payload)
       : op(Op::SubgroupAvcImeSetWeightedSadINTEL)
@@ -14690,7 +14690,7 @@ struct OpSubgroupAvcImeEvaluateWithSingleReferenceINTEL
 {
   OpSubgroupAvcImeEvaluateWithSingleReferenceINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeEvaluateWithSingleReferenceINTEL(IdResultType resultType, IdResult result, Id srcImage, Id refImage, Id payload)
       : op(Op::SubgroupAvcImeEvaluateWithSingleReferenceINTEL)
@@ -14718,7 +14718,7 @@ struct OpSubgroupAvcImeEvaluateWithDualReferenceINTEL
 {
   OpSubgroupAvcImeEvaluateWithDualReferenceINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeEvaluateWithDualReferenceINTEL(IdResultType resultType, IdResult result, Id srcImage, Id fwdRefImage, Id bwdRefImage, Id payload)
       : op(Op::SubgroupAvcImeEvaluateWithDualReferenceINTEL)
@@ -14748,7 +14748,7 @@ struct OpSubgroupAvcImeEvaluateWithSingleReferenceStreaminINTEL
 {
   OpSubgroupAvcImeEvaluateWithSingleReferenceStreaminINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeEvaluateWithSingleReferenceStreaminINTEL(IdResultType resultType, IdResult result, Id srcImage, Id refImage, Id payload, Id streaminComponents)
       : op(Op::SubgroupAvcImeEvaluateWithSingleReferenceStreaminINTEL)
@@ -14778,7 +14778,7 @@ struct OpSubgroupAvcImeEvaluateWithDualReferenceStreaminINTEL
 {
   OpSubgroupAvcImeEvaluateWithDualReferenceStreaminINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeEvaluateWithDualReferenceStreaminINTEL(IdResultType resultType, IdResult result, Id srcImage, Id fwdRefImage, Id bwdRefImage, Id payload, Id streaminComponents)
       : op(Op::SubgroupAvcImeEvaluateWithDualReferenceStreaminINTEL)
@@ -14810,7 +14810,7 @@ struct OpSubgroupAvcImeEvaluateWithSingleReferenceStreamoutINTEL
 {
   OpSubgroupAvcImeEvaluateWithSingleReferenceStreamoutINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeEvaluateWithSingleReferenceStreamoutINTEL(IdResultType resultType, IdResult result, Id srcImage, Id refImage, Id payload)
       : op(Op::SubgroupAvcImeEvaluateWithSingleReferenceStreamoutINTEL)
@@ -14838,7 +14838,7 @@ struct OpSubgroupAvcImeEvaluateWithDualReferenceStreamoutINTEL
 {
   OpSubgroupAvcImeEvaluateWithDualReferenceStreamoutINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeEvaluateWithDualReferenceStreamoutINTEL(IdResultType resultType, IdResult result, Id srcImage, Id fwdRefImage, Id bwdRefImage, Id payload)
       : op(Op::SubgroupAvcImeEvaluateWithDualReferenceStreamoutINTEL)
@@ -14868,7 +14868,7 @@ struct OpSubgroupAvcImeEvaluateWithSingleReferenceStreaminoutINTEL
 {
   OpSubgroupAvcImeEvaluateWithSingleReferenceStreaminoutINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeEvaluateWithSingleReferenceStreaminoutINTEL(IdResultType resultType, IdResult result, Id srcImage, Id refImage, Id payload, Id streaminComponents)
       : op(Op::SubgroupAvcImeEvaluateWithSingleReferenceStreaminoutINTEL)
@@ -14898,7 +14898,7 @@ struct OpSubgroupAvcImeEvaluateWithDualReferenceStreaminoutINTEL
 {
   OpSubgroupAvcImeEvaluateWithDualReferenceStreaminoutINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeEvaluateWithDualReferenceStreaminoutINTEL(IdResultType resultType, IdResult result, Id srcImage, Id fwdRefImage, Id bwdRefImage, Id payload, Id streaminComponents)
       : op(Op::SubgroupAvcImeEvaluateWithDualReferenceStreaminoutINTEL)
@@ -14930,7 +14930,7 @@ struct OpSubgroupAvcImeConvertToMceResultINTEL
 {
   OpSubgroupAvcImeConvertToMceResultINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeConvertToMceResultINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcImeConvertToMceResultINTEL)
@@ -14954,7 +14954,7 @@ struct OpSubgroupAvcImeGetSingleReferenceStreaminINTEL
 {
   OpSubgroupAvcImeGetSingleReferenceStreaminINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeGetSingleReferenceStreaminINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcImeGetSingleReferenceStreaminINTEL)
@@ -14978,7 +14978,7 @@ struct OpSubgroupAvcImeGetDualReferenceStreaminINTEL
 {
   OpSubgroupAvcImeGetDualReferenceStreaminINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeGetDualReferenceStreaminINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcImeGetDualReferenceStreaminINTEL)
@@ -15002,7 +15002,7 @@ struct OpSubgroupAvcImeStripSingleReferenceStreamoutINTEL
 {
   OpSubgroupAvcImeStripSingleReferenceStreamoutINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeStripSingleReferenceStreamoutINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcImeStripSingleReferenceStreamoutINTEL)
@@ -15026,7 +15026,7 @@ struct OpSubgroupAvcImeStripDualReferenceStreamoutINTEL
 {
   OpSubgroupAvcImeStripDualReferenceStreamoutINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeStripDualReferenceStreamoutINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcImeStripDualReferenceStreamoutINTEL)
@@ -15050,7 +15050,7 @@ struct OpSubgroupAvcImeGetStreamoutSingleReferenceMajorShapeMotionVectorsINTEL
 {
   OpSubgroupAvcImeGetStreamoutSingleReferenceMajorShapeMotionVectorsINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeGetStreamoutSingleReferenceMajorShapeMotionVectorsINTEL(IdResultType resultType, IdResult result, Id payload, Id majorShape)
       : op(Op::SubgroupAvcImeGetStreamoutSingleReferenceMajorShapeMotionVectorsINTEL)
@@ -15076,7 +15076,7 @@ struct OpSubgroupAvcImeGetStreamoutSingleReferenceMajorShapeDistortionsINTEL
 {
   OpSubgroupAvcImeGetStreamoutSingleReferenceMajorShapeDistortionsINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeGetStreamoutSingleReferenceMajorShapeDistortionsINTEL(IdResultType resultType, IdResult result, Id payload, Id majorShape)
       : op(Op::SubgroupAvcImeGetStreamoutSingleReferenceMajorShapeDistortionsINTEL)
@@ -15102,7 +15102,7 @@ struct OpSubgroupAvcImeGetStreamoutSingleReferenceMajorShapeReferenceIdsINTEL
 {
   OpSubgroupAvcImeGetStreamoutSingleReferenceMajorShapeReferenceIdsINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeGetStreamoutSingleReferenceMajorShapeReferenceIdsINTEL(IdResultType resultType, IdResult result, Id payload, Id majorShape)
       : op(Op::SubgroupAvcImeGetStreamoutSingleReferenceMajorShapeReferenceIdsINTEL)
@@ -15128,7 +15128,7 @@ struct OpSubgroupAvcImeGetStreamoutDualReferenceMajorShapeMotionVectorsINTEL
 {
   OpSubgroupAvcImeGetStreamoutDualReferenceMajorShapeMotionVectorsINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeGetStreamoutDualReferenceMajorShapeMotionVectorsINTEL(IdResultType resultType, IdResult result, Id payload, Id majorShape, Id direction)
       : op(Op::SubgroupAvcImeGetStreamoutDualReferenceMajorShapeMotionVectorsINTEL)
@@ -15156,7 +15156,7 @@ struct OpSubgroupAvcImeGetStreamoutDualReferenceMajorShapeDistortionsINTEL
 {
   OpSubgroupAvcImeGetStreamoutDualReferenceMajorShapeDistortionsINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeGetStreamoutDualReferenceMajorShapeDistortionsINTEL(IdResultType resultType, IdResult result, Id payload, Id majorShape, Id direction)
       : op(Op::SubgroupAvcImeGetStreamoutDualReferenceMajorShapeDistortionsINTEL)
@@ -15184,7 +15184,7 @@ struct OpSubgroupAvcImeGetStreamoutDualReferenceMajorShapeReferenceIdsINTEL
 {
   OpSubgroupAvcImeGetStreamoutDualReferenceMajorShapeReferenceIdsINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeGetStreamoutDualReferenceMajorShapeReferenceIdsINTEL(IdResultType resultType, IdResult result, Id payload, Id majorShape, Id direction)
       : op(Op::SubgroupAvcImeGetStreamoutDualReferenceMajorShapeReferenceIdsINTEL)
@@ -15212,7 +15212,7 @@ struct OpSubgroupAvcImeGetBorderReachedINTEL
 {
   OpSubgroupAvcImeGetBorderReachedINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeGetBorderReachedINTEL(IdResultType resultType, IdResult result, Id imageSelect, Id payload)
       : op(Op::SubgroupAvcImeGetBorderReachedINTEL)
@@ -15238,7 +15238,7 @@ struct OpSubgroupAvcImeGetTruncatedSearchIndicationINTEL
 {
   OpSubgroupAvcImeGetTruncatedSearchIndicationINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeGetTruncatedSearchIndicationINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcImeGetTruncatedSearchIndicationINTEL)
@@ -15262,7 +15262,7 @@ struct OpSubgroupAvcImeGetUnidirectionalEarlySearchTerminationINTEL
 {
   OpSubgroupAvcImeGetUnidirectionalEarlySearchTerminationINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeGetUnidirectionalEarlySearchTerminationINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcImeGetUnidirectionalEarlySearchTerminationINTEL)
@@ -15286,7 +15286,7 @@ struct OpSubgroupAvcImeGetWeightingPatternMinimumMotionVectorINTEL
 {
   OpSubgroupAvcImeGetWeightingPatternMinimumMotionVectorINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeGetWeightingPatternMinimumMotionVectorINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcImeGetWeightingPatternMinimumMotionVectorINTEL)
@@ -15310,7 +15310,7 @@ struct OpSubgroupAvcImeGetWeightingPatternMinimumDistortionINTEL
 {
   OpSubgroupAvcImeGetWeightingPatternMinimumDistortionINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcImeGetWeightingPatternMinimumDistortionINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcImeGetWeightingPatternMinimumDistortionINTEL)
@@ -15334,7 +15334,7 @@ struct OpSubgroupAvcFmeInitializeINTEL
 {
   OpSubgroupAvcFmeInitializeINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcFmeInitializeINTEL(IdResultType resultType, IdResult result, Id srcCoord, Id motionVectors, Id majorShapes, Id minorShapes, Id direction, Id pixelResolution, Id sadAdjustment)
       : op(Op::SubgroupAvcFmeInitializeINTEL)
@@ -15370,7 +15370,7 @@ struct OpSubgroupAvcBmeInitializeINTEL
 {
   OpSubgroupAvcBmeInitializeINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcBmeInitializeINTEL(IdResultType resultType, IdResult result, Id srcCoord, Id motionVectors, Id majorShapes, Id minorShapes, Id direction, Id pixelResolution, Id bidirectionalWeight, Id sadAdjustment)
       : op(Op::SubgroupAvcBmeInitializeINTEL)
@@ -15408,7 +15408,7 @@ struct OpSubgroupAvcRefConvertToMcePayloadINTEL
 {
   OpSubgroupAvcRefConvertToMcePayloadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcRefConvertToMcePayloadINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcRefConvertToMcePayloadINTEL)
@@ -15432,7 +15432,7 @@ struct OpSubgroupAvcRefSetBidirectionalMixDisableINTEL
 {
   OpSubgroupAvcRefSetBidirectionalMixDisableINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcRefSetBidirectionalMixDisableINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcRefSetBidirectionalMixDisableINTEL)
@@ -15456,7 +15456,7 @@ struct OpSubgroupAvcRefSetBilinearFilterEnableINTEL
 {
   OpSubgroupAvcRefSetBilinearFilterEnableINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcRefSetBilinearFilterEnableINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcRefSetBilinearFilterEnableINTEL)
@@ -15480,7 +15480,7 @@ struct OpSubgroupAvcRefEvaluateWithSingleReferenceINTEL
 {
   OpSubgroupAvcRefEvaluateWithSingleReferenceINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcRefEvaluateWithSingleReferenceINTEL(IdResultType resultType, IdResult result, Id srcImage, Id refImage, Id payload)
       : op(Op::SubgroupAvcRefEvaluateWithSingleReferenceINTEL)
@@ -15508,7 +15508,7 @@ struct OpSubgroupAvcRefEvaluateWithDualReferenceINTEL
 {
   OpSubgroupAvcRefEvaluateWithDualReferenceINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcRefEvaluateWithDualReferenceINTEL(IdResultType resultType, IdResult result, Id srcImage, Id fwdRefImage, Id bwdRefImage, Id payload)
       : op(Op::SubgroupAvcRefEvaluateWithDualReferenceINTEL)
@@ -15538,7 +15538,7 @@ struct OpSubgroupAvcRefEvaluateWithMultiReferenceINTEL
 {
   OpSubgroupAvcRefEvaluateWithMultiReferenceINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcRefEvaluateWithMultiReferenceINTEL(IdResultType resultType, IdResult result, Id srcImage, Id packedReferenceIds, Id payload)
       : op(Op::SubgroupAvcRefEvaluateWithMultiReferenceINTEL)
@@ -15566,7 +15566,7 @@ struct OpSubgroupAvcRefEvaluateWithMultiReferenceInterlacedINTEL
 {
   OpSubgroupAvcRefEvaluateWithMultiReferenceInterlacedINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcRefEvaluateWithMultiReferenceInterlacedINTEL(IdResultType resultType, IdResult result, Id srcImage, Id packedReferenceIds, Id packedReferenceFieldPolarities, Id payload)
       : op(Op::SubgroupAvcRefEvaluateWithMultiReferenceInterlacedINTEL)
@@ -15596,7 +15596,7 @@ struct OpSubgroupAvcRefConvertToMceResultINTEL
 {
   OpSubgroupAvcRefConvertToMceResultINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcRefConvertToMceResultINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcRefConvertToMceResultINTEL)
@@ -15620,7 +15620,7 @@ struct OpSubgroupAvcSicInitializeINTEL
 {
   OpSubgroupAvcSicInitializeINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicInitializeINTEL(IdResultType resultType, IdResult result, Id srcCoord)
       : op(Op::SubgroupAvcSicInitializeINTEL)
@@ -15644,7 +15644,7 @@ struct OpSubgroupAvcSicConfigureSkcINTEL
 {
   OpSubgroupAvcSicConfigureSkcINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicConfigureSkcINTEL(IdResultType resultType, IdResult result, Id skipBlockPartitionType, Id skipMotionVectorMask, Id motionVectors, Id bidirectionalWeight, Id sadAdjustment, Id payload)
       : op(Op::SubgroupAvcSicConfigureSkcINTEL)
@@ -15678,7 +15678,7 @@ struct OpSubgroupAvcSicConfigureIpeLumaINTEL
 {
   OpSubgroupAvcSicConfigureIpeLumaINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicConfigureIpeLumaINTEL(IdResultType resultType, IdResult result, Id lumaIntraPartitionMask, Id intraNeighbourAvailabilty, Id leftEdgeLumaPixels, Id upperLeftCornerLumaPixel, Id upperEdgeLumaPixels, Id upperRightEdgeLumaPixels, Id sadAdjustment, Id payload)
       : op(Op::SubgroupAvcSicConfigureIpeLumaINTEL)
@@ -15716,7 +15716,7 @@ struct OpSubgroupAvcSicConfigureIpeLumaChromaINTEL
 {
   OpSubgroupAvcSicConfigureIpeLumaChromaINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicConfigureIpeLumaChromaINTEL(IdResultType resultType, IdResult result, Id lumaIntraPartitionMask, Id intraNeighbourAvailabilty, Id leftEdgeLumaPixels, Id upperLeftCornerLumaPixel, Id upperEdgeLumaPixels, Id upperRightEdgeLumaPixels, Id leftEdgeChromaPixels, Id upperLeftCornerChromaPixel, Id upperEdgeChromaPixels, Id sadAdjustment, Id payload)
       : op(Op::SubgroupAvcSicConfigureIpeLumaChromaINTEL)
@@ -15760,7 +15760,7 @@ struct OpSubgroupAvcSicGetMotionVectorMaskINTEL
 {
   OpSubgroupAvcSicGetMotionVectorMaskINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicGetMotionVectorMaskINTEL(IdResultType resultType, IdResult result, Id skipBlockPartitionType, Id direction)
       : op(Op::SubgroupAvcSicGetMotionVectorMaskINTEL)
@@ -15786,7 +15786,7 @@ struct OpSubgroupAvcSicConvertToMcePayloadINTEL
 {
   OpSubgroupAvcSicConvertToMcePayloadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicConvertToMcePayloadINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcSicConvertToMcePayloadINTEL)
@@ -15810,7 +15810,7 @@ struct OpSubgroupAvcSicSetIntraLumaShapePenaltyINTEL
 {
   OpSubgroupAvcSicSetIntraLumaShapePenaltyINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicSetIntraLumaShapePenaltyINTEL(IdResultType resultType, IdResult result, Id packedShapePenalty, Id payload)
       : op(Op::SubgroupAvcSicSetIntraLumaShapePenaltyINTEL)
@@ -15836,7 +15836,7 @@ struct OpSubgroupAvcSicSetIntraLumaModeCostFunctionINTEL
 {
   OpSubgroupAvcSicSetIntraLumaModeCostFunctionINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicSetIntraLumaModeCostFunctionINTEL(IdResultType resultType, IdResult result, Id lumaModePenalty, Id lumaPackedNeighborModes, Id lumaPackedNonDcPenalty, Id payload)
       : op(Op::SubgroupAvcSicSetIntraLumaModeCostFunctionINTEL)
@@ -15866,7 +15866,7 @@ struct OpSubgroupAvcSicSetIntraChromaModeCostFunctionINTEL
 {
   OpSubgroupAvcSicSetIntraChromaModeCostFunctionINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicSetIntraChromaModeCostFunctionINTEL(IdResultType resultType, IdResult result, Id chromaModeBasePenalty, Id payload)
       : op(Op::SubgroupAvcSicSetIntraChromaModeCostFunctionINTEL)
@@ -15892,7 +15892,7 @@ struct OpSubgroupAvcSicSetBilinearFilterEnableINTEL
 {
   OpSubgroupAvcSicSetBilinearFilterEnableINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicSetBilinearFilterEnableINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcSicSetBilinearFilterEnableINTEL)
@@ -15916,7 +15916,7 @@ struct OpSubgroupAvcSicSetSkcForwardTransformEnableINTEL
 {
   OpSubgroupAvcSicSetSkcForwardTransformEnableINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicSetSkcForwardTransformEnableINTEL(IdResultType resultType, IdResult result, Id packedSadCoefficients, Id payload)
       : op(Op::SubgroupAvcSicSetSkcForwardTransformEnableINTEL)
@@ -15942,7 +15942,7 @@ struct OpSubgroupAvcSicSetBlockBasedRawSkipSadINTEL
 {
   OpSubgroupAvcSicSetBlockBasedRawSkipSadINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicSetBlockBasedRawSkipSadINTEL(IdResultType resultType, IdResult result, Id blockBasedSkipType, Id payload)
       : op(Op::SubgroupAvcSicSetBlockBasedRawSkipSadINTEL)
@@ -15968,7 +15968,7 @@ struct OpSubgroupAvcSicEvaluateIpeINTEL
 {
   OpSubgroupAvcSicEvaluateIpeINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicEvaluateIpeINTEL(IdResultType resultType, IdResult result, Id srcImage, Id payload)
       : op(Op::SubgroupAvcSicEvaluateIpeINTEL)
@@ -15994,7 +15994,7 @@ struct OpSubgroupAvcSicEvaluateWithSingleReferenceINTEL
 {
   OpSubgroupAvcSicEvaluateWithSingleReferenceINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicEvaluateWithSingleReferenceINTEL(IdResultType resultType, IdResult result, Id srcImage, Id refImage, Id payload)
       : op(Op::SubgroupAvcSicEvaluateWithSingleReferenceINTEL)
@@ -16022,7 +16022,7 @@ struct OpSubgroupAvcSicEvaluateWithDualReferenceINTEL
 {
   OpSubgroupAvcSicEvaluateWithDualReferenceINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicEvaluateWithDualReferenceINTEL(IdResultType resultType, IdResult result, Id srcImage, Id fwdRefImage, Id bwdRefImage, Id payload)
       : op(Op::SubgroupAvcSicEvaluateWithDualReferenceINTEL)
@@ -16052,7 +16052,7 @@ struct OpSubgroupAvcSicEvaluateWithMultiReferenceINTEL
 {
   OpSubgroupAvcSicEvaluateWithMultiReferenceINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicEvaluateWithMultiReferenceINTEL(IdResultType resultType, IdResult result, Id srcImage, Id packedReferenceIds, Id payload)
       : op(Op::SubgroupAvcSicEvaluateWithMultiReferenceINTEL)
@@ -16080,7 +16080,7 @@ struct OpSubgroupAvcSicEvaluateWithMultiReferenceInterlacedINTEL
 {
   OpSubgroupAvcSicEvaluateWithMultiReferenceInterlacedINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicEvaluateWithMultiReferenceInterlacedINTEL(IdResultType resultType, IdResult result, Id srcImage, Id packedReferenceIds, Id packedReferenceFieldPolarities, Id payload)
       : op(Op::SubgroupAvcSicEvaluateWithMultiReferenceInterlacedINTEL)
@@ -16110,7 +16110,7 @@ struct OpSubgroupAvcSicConvertToMceResultINTEL
 {
   OpSubgroupAvcSicConvertToMceResultINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicConvertToMceResultINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcSicConvertToMceResultINTEL)
@@ -16134,7 +16134,7 @@ struct OpSubgroupAvcSicGetIpeLumaShapeINTEL
 {
   OpSubgroupAvcSicGetIpeLumaShapeINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicGetIpeLumaShapeINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcSicGetIpeLumaShapeINTEL)
@@ -16158,7 +16158,7 @@ struct OpSubgroupAvcSicGetBestIpeLumaDistortionINTEL
 {
   OpSubgroupAvcSicGetBestIpeLumaDistortionINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicGetBestIpeLumaDistortionINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcSicGetBestIpeLumaDistortionINTEL)
@@ -16182,7 +16182,7 @@ struct OpSubgroupAvcSicGetBestIpeChromaDistortionINTEL
 {
   OpSubgroupAvcSicGetBestIpeChromaDistortionINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicGetBestIpeChromaDistortionINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcSicGetBestIpeChromaDistortionINTEL)
@@ -16206,7 +16206,7 @@ struct OpSubgroupAvcSicGetPackedIpeLumaModesINTEL
 {
   OpSubgroupAvcSicGetPackedIpeLumaModesINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicGetPackedIpeLumaModesINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcSicGetPackedIpeLumaModesINTEL)
@@ -16230,7 +16230,7 @@ struct OpSubgroupAvcSicGetIpeChromaModeINTEL
 {
   OpSubgroupAvcSicGetIpeChromaModeINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicGetIpeChromaModeINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcSicGetIpeChromaModeINTEL)
@@ -16254,7 +16254,7 @@ struct OpSubgroupAvcSicGetPackedSkcLumaCountThresholdINTEL
 {
   OpSubgroupAvcSicGetPackedSkcLumaCountThresholdINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicGetPackedSkcLumaCountThresholdINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcSicGetPackedSkcLumaCountThresholdINTEL)
@@ -16278,7 +16278,7 @@ struct OpSubgroupAvcSicGetPackedSkcLumaSumThresholdINTEL
 {
   OpSubgroupAvcSicGetPackedSkcLumaSumThresholdINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicGetPackedSkcLumaSumThresholdINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcSicGetPackedSkcLumaSumThresholdINTEL)
@@ -16302,7 +16302,7 @@ struct OpSubgroupAvcSicGetInterRawSadsINTEL
 {
   OpSubgroupAvcSicGetInterRawSadsINTEL(const ConstIter &it)
   {
-    memcpy(this, &(*it), sizeof(*this));
+    memcpy(this, it.words(), sizeof(*this));
   }
   OpSubgroupAvcSicGetInterRawSadsINTEL(IdResultType resultType, IdResult result, Id payload)
       : op(Op::SubgroupAvcSicGetInterRawSadsINTEL)

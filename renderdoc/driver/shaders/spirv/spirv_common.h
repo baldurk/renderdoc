@@ -63,21 +63,22 @@ public:
   bool operator!=(const IterBase<ConstOrNotVector> &it) const = delete;
   bool operator<(const IterBase<ConstOrNotVector> &it) const
   {
-    return words == it.words && offset < it.offset;
+    return wordsVector == it.wordsVector && offset < it.offset;
   }
   // utility functions
-  explicit operator bool() const { return words != NULL && offset < words->size(); }
+  explicit operator bool() const { return wordsVector != NULL && offset < wordsVector->size(); }
   const uint32_t &operator*() const { return cur(); }
   rdcspv::Op opcode() const { return rdcspv::Op(cur() & rdcspv::OpCodeMask); }
-  const uint32_t &word(size_t idx) const { return words->at(offset + idx); }
+  const uint32_t &word(size_t idx) const { return wordsVector->at(offset + idx); }
+  const uint32_t *words() const { return wordsVector->data() + offset; }
   size_t offs() const { return offset; }
   size_t size() const { return cur() >> rdcspv::WordCountShift; }
 protected:
   IterBase() = default;
-  IterBase(ConstOrNotVector &w, size_t o) : words(&w), offset(o) {}
-  inline const uint32_t &cur() const { return words->at(offset); }
+  IterBase(ConstOrNotVector &w, size_t o) : wordsVector(&w), offset(o) {}
+  inline const uint32_t &cur() const { return wordsVector->at(offset); }
   size_t offset = 0;
-  ConstOrNotVector *words = NULL;
+  ConstOrNotVector *wordsVector = NULL;
 };
 
 class ConstIter : public IterBase<const rdcarray<uint32_t>>
@@ -109,7 +110,7 @@ public:
 private:
   friend class Operation;
   inline uint32_t &cur() { return mutable_words()->at(offset); }
-  rdcarray<uint32_t> *mutable_words() { return (rdcarray<uint32_t> *)words; }
+  rdcarray<uint32_t> *mutable_words() { return (rdcarray<uint32_t> *)wordsVector; }
 };
 
 class Operation
@@ -130,6 +131,13 @@ public:
     words = op.words;
 
     iter = Iter(words, 0);
+  }
+  Operation &operator=(const Operation &op)
+  {
+    words = op.words;
+
+    iter = Iter(words, 0);
+    return *this;
   }
 
   static Operation copy(Iter it)

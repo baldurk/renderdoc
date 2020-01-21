@@ -123,7 +123,7 @@ D3D11TextRenderer::D3D11TextRenderer(WrappedID3D11Device *wrapper)
   stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, width, height, firstChar, numChars, chardata);
 
   CharSize = pixelHeight;
-  CharAspect = chardata->xadvance / pixelHeight;
+  CharAspect = chardata[0].xadvance / pixelHeight;
 
   stbtt_fontinfo f = {0};
   stbtt_InitFont(&f, ttfdata, 0);
