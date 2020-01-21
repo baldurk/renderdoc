@@ -163,6 +163,10 @@ static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
     if(ext == "VK_EXT_full_screen_exclusive")
       return true;
 
+    // this is debug only, nothing to capture, so nothing to replay
+    if(ext == "VK_EXT_tooling_info")
+      return true;
+
     return false;
   });
 }
@@ -1446,6 +1450,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       Layers.push_back(createInfo.ppEnabledLayerNames[i]);
 
     StripUnwantedLayers(Layers);
+    StripUnwantedExtensions(Extensions);
 
     std::set<rdcstr> supportedExtensions;
 
