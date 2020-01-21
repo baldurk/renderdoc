@@ -289,10 +289,10 @@ struct GLResourceRecord : public ResourceRecord
 
   bool VerifyShadowStorage()
   {
-    if(ShadowPtr[0] && memcmp(ShadowPtr[0] + ShadowSize, markerValue, sizeof(markerValue)))
+    if(ShadowPtr[0] && memcmp(ShadowPtr[0] + ShadowSize, markerValue, sizeof(markerValue)) != 0)
       return false;
 
-    if(ShadowPtr[1] && memcmp(ShadowPtr[1] + ShadowSize, markerValue, sizeof(markerValue)))
+    if(ShadowPtr[1] && memcmp(ShadowPtr[1] + ShadowSize, markerValue, sizeof(markerValue)) != 0)
       return false;
 
     return true;

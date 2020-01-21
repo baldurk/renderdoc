@@ -210,10 +210,10 @@ private:
 
     bool Verify()
     {
-      if(ptr[0] && memcmp(ptr[0] + size, markerValue, sizeof(markerValue)))
+      if(ptr[0] && memcmp(ptr[0] + size, markerValue, sizeof(markerValue)) != 0)
         return false;
 
-      if(ptr[1] && memcmp(ptr[1] + size, markerValue, sizeof(markerValue)))
+      if(ptr[1] && memcmp(ptr[1] + size, markerValue, sizeof(markerValue)) != 0)
         return false;
 
       return true;

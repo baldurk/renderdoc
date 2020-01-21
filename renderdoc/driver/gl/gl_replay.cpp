@@ -115,7 +115,7 @@ rdcarray<uint32_t> GLReplay::GetPassEvents(uint32_t eventId)
   {
     const DrawcallDescription *prev = start->previous;
 
-    if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) ||
+    if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) != 0 ||
        start->depthOut != prev->depthOut)
       break;
 

@@ -594,12 +594,12 @@ rdcstr D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflectio
 
     idx += 11;    // stage=".S">
 
-    if(strncmp(contents.c_str() + idx, "<comment>", 9))
+    if(strncmp(contents.c_str() + idx, "<comment>", 9) != 0)
       return "; Unknown error fetching disassembly, invalid string returned\n\n\n" + contents;
 
     idx += 9;    // <comment>
 
-    if(strncmp(contents.c_str() + idx, "<![CDATA[\n", 10))
+    if(strncmp(contents.c_str() + idx, "<![CDATA[\n", 10) != 0)
       return "; Unknown error fetching disassembly, invalid string returned\n\n\n" + contents;
 
     idx += 10;    // <![CDATA[\n
@@ -2629,19 +2629,14 @@ rdcarray<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventId)
 
     // if we've come to the start of the log we were outside of a list
     // to start with
-    if(start->previous == 0)
+    if(start->previous == NULL)
       return passEvents;
 
     // step back
     const DrawcallDescription *prev = start->previous;
 
-    // something went wrong, start->previous was non-zero but we didn't
-    // get a draw. Abort
-    if(!prev)
-      return passEvents;
-
     // if the outputs changed, we're done
-    if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) ||
+    if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) != 0 ||
        start->depthOut != prev->depthOut)
       break;
 

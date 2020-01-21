@@ -251,7 +251,8 @@ VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties(VkPhysicalDevice ph
 {
   // if pLayerName is NULL or not ours we're calling down through the layer chain to the ICD.
   // This is our chance to filter out any reported extensions that we don't support
-  if(physicalDevice != NULL && (pLayerName == NULL || strcmp(pLayerName, RENDERDOC_VULKAN_LAYER_NAME)))
+  if(physicalDevice != NULL &&
+     (pLayerName == NULL || strcmp(pLayerName, RENDERDOC_VULKAN_LAYER_NAME) != 0))
     return CoreDisp(physicalDevice)
         ->FilterDeviceExtensionProperties(physicalDevice, pLayerName, pPropertyCount, pProperties);
 

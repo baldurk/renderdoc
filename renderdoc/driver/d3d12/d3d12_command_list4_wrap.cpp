@@ -123,7 +123,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
              D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
             flags |= D3D12_CLEAR_FLAG_STENCIL;
 
-          if(flags)
+          if(flags != 0)
           {
             // we can safely read from either depth/stencil clear values because if the access
             // type isn't clear the corresponding flag will be unset - so whatever garbage value
@@ -199,7 +199,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
         if(pDepthStencil->StencilBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
           flags |= D3D12_CLEAR_FLAG_STENCIL;
 
-        if(flags)
+        if(flags != 0)
         {
           // we can safely read from either depth/stencil clear values because if the access
           // type isn't clear the corresponding flag will be unset - so whatever garbage value

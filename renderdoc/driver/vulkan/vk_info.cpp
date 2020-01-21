@@ -1069,7 +1069,7 @@ void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan,
                                             const VkShaderModuleCreateInfo *pCreateInfo)
 {
   const uint32_t SPIRVMagic = 0x07230203;
-  if(pCreateInfo->codeSize < 4 || memcmp(pCreateInfo->pCode, &SPIRVMagic, sizeof(SPIRVMagic)))
+  if(pCreateInfo->codeSize < 4 || memcmp(pCreateInfo->pCode, &SPIRVMagic, sizeof(SPIRVMagic)) != 0)
   {
     RDCWARN("Shader not provided with SPIR-V");
   }

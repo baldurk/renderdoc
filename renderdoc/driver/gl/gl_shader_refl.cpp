@@ -1055,7 +1055,7 @@ void MakeChildByteOffsetsRelative(ShaderConstant &member)
 
 int ParseVersionStatement(const char *version)
 {
-  if(strncmp(version, "#version", 8))
+  if(strncmp(version, "#version", 8) != 0)
     return 0;
 
   version += 8;

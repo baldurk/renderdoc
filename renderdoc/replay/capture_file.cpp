@@ -221,7 +221,7 @@ ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype,
   }
   else
   {
-    if(filetype != NULL && strcmp(filetype, "") && strcmp(filetype, "rdc"))
+    if(filetype != NULL && strcmp(filetype, "") != 0 && strcmp(filetype, "rdc") != 0)
       RDCWARN("Opening file with unrecognised filetype '%s' - treating as 'rdc'", filetype);
 
     if(progress)
@@ -262,7 +262,7 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype
   }
   else
   {
-    if(filetype != NULL && strcmp(filetype, "") && strcmp(filetype, "rdc"))
+    if(filetype != NULL && strcmp(filetype, "") != 0 && strcmp(filetype, "rdc") != 0)
       RDCWARN("Opening file with unrecognised filetype '%s' - treating as 'rdc'", filetype);
 
     if(progress)
@@ -438,7 +438,7 @@ ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, co
     }
   }
 
-  if(filetype != NULL && strcmp(filetype, "") && strcmp(filetype, "rdc"))
+  if(filetype != NULL && strcmp(filetype, "") != 0 && strcmp(filetype, "rdc") != 0)
     RDCWARN("Converting file to unrecognised filetype '%s' - treating as 'rdc'", filetype);
 
   RDCFile output;

@@ -1342,7 +1342,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
           // Instead of trying to remap offsets to match, we simply make every binding compute
           // visible so the ordering is still the same. Since compute and graphics are disjoint this
           // is safe.
-          if(patchedBindingStage)
+          if(patchedBindingStage != 0)
             newBind.stageFlags = patchedBindingStage;
           else
             newBind.stageFlags = bind.stageFlags;

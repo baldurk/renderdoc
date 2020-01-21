@@ -63,7 +63,7 @@ Connection::Connection(Network::Socket *sock)
   char response[15] = {};
   reader.Read(response, handshakeLength);
 
-  if(memcmp(handshake, response, 14))
+  if(memcmp(handshake, response, 14) != 0)
   {
     RDCERR("handshake failed - received >%s< - expected >%s<", response, handshake);
     error = true;

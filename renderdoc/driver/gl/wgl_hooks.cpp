@@ -584,7 +584,7 @@ static PROC WINAPI wglGetProcAddress_hooked(const char *func)
 
   // assume wgl functions are safe to just pass straight through, but don't pass through the wgl DX
   // interop functions
-  if(!strncmp(func, "wgl", 3) && strncmp(func, "wglDX", 5))
+  if(strncmp(func, "wgl", 3) == 0 && strncmp(func, "wglDX", 5) != 0)
     return realFunc;
 
   // otherwise, consult our database of hooks

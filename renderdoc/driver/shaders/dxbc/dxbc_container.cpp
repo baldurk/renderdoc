@@ -1254,7 +1254,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
           continue;
         }
 
-        if(c + 5 > end || strncmp(c, "#line", 5))
+        if(c + 5 > end || strncmp(c, "#line", 5) != 0)
         {
           // resize up to account for the current line, if necessary
           dstFile->resize(RDCMAX(dstLine + 1, dstFile->size()));

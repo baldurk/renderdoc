@@ -156,7 +156,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
     byte *readEnd = readPtr + captureHeader.size();
 
     if(captureHeader.size() < sizeof(MAGIC_HEADER) ||
-       memcmp(&MAGIC_HEADER, readPtr, sizeof(MAGIC_HEADER)))
+       memcmp(&MAGIC_HEADER, readPtr, sizeof(MAGIC_HEADER)) != 0)
     {
       RDCDEBUG("Legacy header did not have expected magic number");
       return;

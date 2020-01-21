@@ -1097,7 +1097,7 @@ Stackwalk *Create()
 StackResolver *MakeResolver(bool interactive, byte *moduleDB, size_t DBSize,
                             RENDERDOC_ProgressCallback progress)
 {
-  if(DBSize < 8 || memcmp(moduleDB, "WN32CALL", 8))
+  if(DBSize < 8 || memcmp(moduleDB, "WN32CALL", 8) != 0)
   {
     RDCWARN("Can't load callstack resolve for this log. Possibly from another platform?");
     return NULL;

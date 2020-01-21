@@ -266,7 +266,7 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallDescription &draw
       for(uint32_t c = 0; c < counters.size(); c++)
       {
         m_pDriver->glGenQueries(1, &queries->obj[(uint32_t)counters[c]]);
-        if(m_pDriver->glGetError())
+        if(m_pDriver->glGetError() != eGL_NONE)
           queries->obj[(uint32_t)counters[c]] = 0;
       }
     }
@@ -281,7 +281,7 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallDescription &draw
       if(queries->obj[q])
       {
         m_pDriver->glBeginQuery(glCounters[q], queries->obj[q]);
-        if(m_pDriver->glGetError())
+        if(m_pDriver->glGetError() != eGL_NONE)
         {
           m_pDriver->glDeleteQueries(1, &queries->obj[q]);
           queries->obj[q] = 0;
@@ -540,7 +540,7 @@ rdcarray<CounterResult> GLReplay::FetchCounters(const rdcarray<GPUCounter> &allC
 
         double duration = double(data) * nanosToSecs;
 
-        if(m_pDriver->glGetError())
+        if(m_pDriver->glGetError() != eGL_NONE)
         {
           data = (uint64_t)-1;
           duration = -1;

@@ -1995,7 +1995,7 @@ void ReplayProxy::DeltaTransferBytes(SerialiserType &xferser, bytebuf &reference
         // if there are still some bytes remaining at the end of the image, smaller than the chunk
         // size, just diff directly and send if needed. We could combine this with the last delta if
         // we ended in the active state.
-        if(bytesRemain > 0 && memcmp(src, dst, bytesRemain))
+        if(bytesRemain > 0 && memcmp(src, dst, bytesRemain) != 0)
         {
           deltasList.push_back(DeltaSection());
           deltasList.back().offs = src - srcBegin;
@@ -2378,7 +2378,7 @@ void ReplayProxy::InitPreviewWindow()
     if(data.system != WindowingSystem::Unknown)
     {
       // if the data has changed, destroy the old window so we'll recreate
-      if(m_PreviewWindow == 0 || memcmp(&m_PreviewWindowingData, &data, sizeof(data)))
+      if(m_PreviewWindow == 0 || memcmp(&m_PreviewWindowingData, &data, sizeof(data)) != 0)
       {
         if(m_PreviewWindow)
         {

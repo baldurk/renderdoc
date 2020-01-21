@@ -629,7 +629,7 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
 
       RDCCOMPILE_ASSERT(sizeof(buf) == sizeof(buf), "Buffers are not matching sizes");
 
-      if(memcmp(buf, cmp, sizeof(buf)))
+      if(memcmp(buf, cmp, sizeof(buf)) != 0)
       {
         RDCERR("glGetTexImage from the source texture returns incorrect data!");
         VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps] =
@@ -647,7 +647,7 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
 
       RDCCOMPILE_ASSERT(sizeof(buf) == sizeof(buf), "Buffers are not matching sizes");
 
-      if(memcmp(buf, cmp, sizeof(buf)))
+      if(memcmp(buf, cmp, sizeof(buf)) != 0)
       {
         RDCWARN("Using hack to avoid glCopyImageSubData on cubemap textures");
         VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps] = true;
@@ -1451,7 +1451,7 @@ void ClearGLErrors()
 {
   int i = 0;
   GLenum err = GL.glGetError();
-  while(err)
+  while(err != eGL_NONE)
   {
     err = GL.glGetError();
     i++;

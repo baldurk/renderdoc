@@ -265,7 +265,7 @@ bool Operand::operator==(const Operand &o) const
     return false;
   if(numComponents != o.numComponents)
     return false;
-  if(memcmp(comps, o.comps, 4))
+  if(memcmp(comps, o.comps, 4) != 0)
     return false;
   if(modifier != o.modifier)
     return false;

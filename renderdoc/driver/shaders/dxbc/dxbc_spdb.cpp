@@ -64,7 +64,8 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
 
   FileHeaderPage *header = (FileHeaderPage *)data;
 
-  if(memcmp(header->identifier, "Microsoft C/C++ MSF 7.00\r\n\032DS\0\0", sizeof(header->identifier)))
+  if(memcmp(header->identifier, "Microsoft C/C++ MSF 7.00\r\n\032DS\0\0",
+            sizeof(header->identifier)) != 0)
   {
     RDCWARN("Unexpected SPDB type");
     return;

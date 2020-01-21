@@ -564,7 +564,7 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
 
   pugi::xml_node xHeader = root.first_child();
 
-  if(strcmp(xHeader.name(), "header"))
+  if(strcmp(xHeader.name(), "header") != 0)
   {
     RDCERR("Malformed document, expected header node");
     return ReplayStatus::FileCorrupted;
@@ -574,7 +574,7 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
   {
     pugi::xml_node xDriver = xHeader.first_child();
 
-    if(strcmp(xDriver.name(), "driver"))
+    if(strcmp(xDriver.name(), "driver") != 0)
     {
       RDCERR("Malformed document, expected driver node");
       return ReplayStatus::FileCorrupted;
@@ -589,7 +589,7 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
 
     pugi::xml_node xThumbnail = xIdent.next_sibling();
 
-    if(strcmp(xThumbnail.name(), "thumbnail"))
+    if(strcmp(xThumbnail.name(), "thumbnail") != 0)
     {
       RDCERR("Malformed document, expected driver node");
       return ReplayStatus::FileCorrupted;
@@ -714,7 +714,7 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
 
   pugi::xml_node xChunks = xSection;
 
-  if(strcmp(xSection.name(), "chunks"))
+  if(strcmp(xSection.name(), "chunks") != 0)
   {
     RDCERR("Malformed document, expected chunks node");
     return ReplayStatus::FileCorrupted;
@@ -733,7 +733,7 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
 
   for(pugi::xml_node xChunk = xChunks.first_child(); xChunk; xChunk = xChunk.next_sibling())
   {
-    if(strcmp(xChunk.name(), "chunk"))
+    if(strcmp(xChunk.name(), "chunk") != 0)
       return ReplayStatus::FileCorrupted;
 
     SDChunk *chunk = new SDChunk(xChunk.attribute("name").as_string());

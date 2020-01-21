@@ -413,7 +413,7 @@ struct LogLine
     if(idx + 64 > line.length())
       return false;
 
-    if(strncmp(&line[idx], "RDOC ", 5))
+    if(strncmp(&line[idx], "RDOC ", 5) != 0)
       return false;
 
     idx += 5;
