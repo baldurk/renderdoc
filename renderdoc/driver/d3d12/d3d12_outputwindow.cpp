@@ -639,7 +639,7 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
   if(bbbarrier.Transition.pResource)
     list->ResourceBarrier(1, &bbbarrier);
 
-  if(m_D3D12On7)
+  if(m_D3D12On7 && outw.wnd)
   {
     ID3D12Resource *res = outw.colResolve ? outw.colResolve : outw.col;
 
