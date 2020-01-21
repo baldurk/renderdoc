@@ -447,13 +447,11 @@ bool HasRootAccess(const rdcstr &deviceID)
 {
   RDCLOG("Checking for root access on %s", deviceID.c_str());
 
-  Process::ProcessResult result = {};
-
   // Try switching adb to root and check a few indicators for success
   // Nothing will fall over if we get a false positive here, it just enables
   // additional methods of getting things set up.
 
-  result = adbExecCommand(deviceID, "root");
+  Process::ProcessResult result = adbExecCommand(deviceID, "root");
 
   rdcstr whoami = adbExecCommand(deviceID, "shell whoami").strStdout.trimmed();
   if(whoami == "root")

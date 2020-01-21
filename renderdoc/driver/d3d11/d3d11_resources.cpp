@@ -256,9 +256,8 @@ ResourcePitch GetResourcePitchForSubresource(ID3D11DeviceContext *ctx, ID3D11Res
 {
   ResourcePitch pitch = {};
   D3D11_MAPPED_SUBRESOURCE mapped = {};
-  HRESULT hr = E_INVALIDARG;
 
-  hr = ctx->Map(res, Subresource, D3D11_MAP_READ, 0, &mapped);
+  HRESULT hr = ctx->Map(res, Subresource, D3D11_MAP_READ, 0, &mapped);
 
   if(FAILED(hr))
   {

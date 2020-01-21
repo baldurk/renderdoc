@@ -979,8 +979,6 @@ bool MainWindow::PromptCloseCapture()
   }
   else if(m_Ctx.GetCaptureModifications() != CaptureModifications::NoModifications)
   {
-    QMessageBox::StandardButton res = QMessageBox::No;
-
     QString text = tr("This capture has the following modifications:\n\n");
 
     CaptureModifications mods = m_Ctx.GetCaptureModifications();
@@ -1005,8 +1003,9 @@ bool MainWindow::PromptCloseCapture()
           tr("\nThe capture is on a remote host, would you like to save these changes locally?");
     }
 
-    res = RDDialog::question(this, tr("Save changes to capture?"), text,
-                             QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+    QMessageBox::StandardButton res =
+        RDDialog::question(this, tr("Save changes to capture?"), text,
+                           QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
 
     if(res == QMessageBox::Cancel)
       return false;

@@ -63,9 +63,7 @@ bool ApplyHook(FunctionHook &hook, void **IATentry, bool &already)
       s_InstalledHooks[IATentry] = *IATentry;
   }
 
-  BOOL success = TRUE;
-
-  success = VirtualProtect(IATentry, sizeof(void *), PAGE_READWRITE, &oldProtection);
+  BOOL success = VirtualProtect(IATentry, sizeof(void *), PAGE_READWRITE, &oldProtection);
   if(!success)
   {
     RDCERR("Failed to make IAT entry writeable 0x%p", IATentry);
@@ -918,11 +916,10 @@ void LibraryHooks::RemoveHooks()
   for(auto it = s_InstalledHooks.begin(); it != s_InstalledHooks.end(); ++it)
   {
     DWORD oldProtection = PAGE_EXECUTE;
-    BOOL success = TRUE;
 
     void **IATentry = it->first;
 
-    success = VirtualProtect(IATentry, sizeof(void *), PAGE_READWRITE, &oldProtection);
+    BOOL success = VirtualProtect(IATentry, sizeof(void *), PAGE_READWRITE, &oldProtection);
     if(!success)
     {
       RDCERR("Failed to make IAT entry writeable 0x%p", IATentry);
