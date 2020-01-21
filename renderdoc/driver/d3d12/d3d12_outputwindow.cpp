@@ -246,7 +246,7 @@ uint64_t D3D12Replay::MakeOutputWindow(WindowingData window, bool depth)
 
   outw.col = NULL;
   outw.colResolve = NULL;
-  outw.MakeRTV(depth && window.system == WindowingSystem::Win32);
+  outw.MakeRTV(depth);
 
   outw.depth = NULL;
   if(depth)
