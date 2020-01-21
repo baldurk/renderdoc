@@ -6,6 +6,7 @@
  *
  * This library is distributed under the MIT License. See notice at the end of this file.
  */
+/* clang-format off */
 #ifndef VOLK_H_
 #define VOLK_H_
 
@@ -14,7 +15,7 @@
 #endif
 
 /* VOLK_GENERATE_VERSION_DEFINE */
-#define VOLK_HEADER_VERSION 130
+#define VOLK_HEADER_VERSION 131
 /* VOLK_GENERATE_VERSION_DEFINE */
 
 #ifndef VK_NO_PROTOTYPES
@@ -86,6 +87,18 @@ void volkLoadInstance(VkInstance instance);
  * Note: this is not suitable for applications that want to use multiple VkDevice objects concurrently.
  */
 void volkLoadDevice(VkDevice device);
+
+/**
+ * Return last VkInstance for which global function pointers have been loaded via volkLoadInstance(),
+ * or VK_NULL_HANDLE if volkLoadInstance() has not been called.
+ */
+VkInstance volkGetLoadedInstance();
+
+/**
+ * Return last VkDevice for which global function pointers have been loaded via volkLoadDevice(),
+ * or VK_NULL_HANDLE if volkLoadDevice() has not been called.
+ */
+VkDevice volkGetLoadedDevice();
 
 /**
  * Load function pointers using application-created VkDevice into a table.
@@ -239,6 +252,21 @@ struct VolkDeviceTable
 	PFN_vkTrimCommandPool vkTrimCommandPool;
 	PFN_vkUpdateDescriptorSetWithTemplate vkUpdateDescriptorSetWithTemplate;
 #endif /* defined(VK_VERSION_1_1) */
+#if defined(VK_VERSION_1_2)
+	PFN_vkCmdBeginRenderPass2 vkCmdBeginRenderPass2;
+	PFN_vkCmdDrawIndexedIndirectCount vkCmdDrawIndexedIndirectCount;
+	PFN_vkCmdDrawIndirectCount vkCmdDrawIndirectCount;
+	PFN_vkCmdEndRenderPass2 vkCmdEndRenderPass2;
+	PFN_vkCmdNextSubpass2 vkCmdNextSubpass2;
+	PFN_vkCreateRenderPass2 vkCreateRenderPass2;
+	PFN_vkGetBufferDeviceAddress vkGetBufferDeviceAddress;
+	PFN_vkGetBufferOpaqueCaptureAddress vkGetBufferOpaqueCaptureAddress;
+	PFN_vkGetDeviceMemoryOpaqueCaptureAddress vkGetDeviceMemoryOpaqueCaptureAddress;
+	PFN_vkGetSemaphoreCounterValue vkGetSemaphoreCounterValue;
+	PFN_vkResetQueryPool vkResetQueryPool;
+	PFN_vkSignalSemaphore vkSignalSemaphore;
+	PFN_vkWaitSemaphores vkWaitSemaphores;
+#endif /* defined(VK_VERSION_1_2) */
 #if defined(VK_AMD_buffer_marker)
 	PFN_vkCmdWriteBufferMarkerAMD vkCmdWriteBufferMarkerAMD;
 #endif /* defined(VK_AMD_buffer_marker) */
@@ -667,6 +695,21 @@ extern PFN_vkGetPhysicalDeviceSparseImageFormatProperties2 vkGetPhysicalDeviceSp
 extern PFN_vkTrimCommandPool vkTrimCommandPool;
 extern PFN_vkUpdateDescriptorSetWithTemplate vkUpdateDescriptorSetWithTemplate;
 #endif /* defined(VK_VERSION_1_1) */
+#if defined(VK_VERSION_1_2)
+extern PFN_vkCmdBeginRenderPass2 vkCmdBeginRenderPass2;
+extern PFN_vkCmdDrawIndexedIndirectCount vkCmdDrawIndexedIndirectCount;
+extern PFN_vkCmdDrawIndirectCount vkCmdDrawIndirectCount;
+extern PFN_vkCmdEndRenderPass2 vkCmdEndRenderPass2;
+extern PFN_vkCmdNextSubpass2 vkCmdNextSubpass2;
+extern PFN_vkCreateRenderPass2 vkCreateRenderPass2;
+extern PFN_vkGetBufferDeviceAddress vkGetBufferDeviceAddress;
+extern PFN_vkGetBufferOpaqueCaptureAddress vkGetBufferOpaqueCaptureAddress;
+extern PFN_vkGetDeviceMemoryOpaqueCaptureAddress vkGetDeviceMemoryOpaqueCaptureAddress;
+extern PFN_vkGetSemaphoreCounterValue vkGetSemaphoreCounterValue;
+extern PFN_vkResetQueryPool vkResetQueryPool;
+extern PFN_vkSignalSemaphore vkSignalSemaphore;
+extern PFN_vkWaitSemaphores vkWaitSemaphores;
+#endif /* defined(VK_VERSION_1_2) */
 #if defined(VK_AMD_buffer_marker)
 extern PFN_vkCmdWriteBufferMarkerAMD vkCmdWriteBufferMarkerAMD;
 #endif /* defined(VK_AMD_buffer_marker) */
@@ -1093,3 +1136,4 @@ extern PFN_vkAcquireNextImage2KHR vkAcquireNextImage2KHR;
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
 */
+/* clang-format on */
