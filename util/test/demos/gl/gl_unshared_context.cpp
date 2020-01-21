@@ -180,7 +180,7 @@ void main()
     }
 
     // wait 3 seconds to make sure texB becomes a persistent resource
-    Sleep(3000);
+    msleep(3000);
 
     while(Running())
     {
