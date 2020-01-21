@@ -595,6 +595,13 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
   resolvebarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
   resolvebarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_DEST;
 
+  // because D3D12On7 present is a submit operation, need to submit any pending work here.
+  if(m_D3D12On7)
+  {
+    m_pDevice->ExecuteLists();
+    m_pDevice->FlushLists();
+  }
+
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
 
   // resolve or copy from colour to backbuffer
