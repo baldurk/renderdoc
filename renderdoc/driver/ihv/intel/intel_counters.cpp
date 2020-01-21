@@ -389,7 +389,7 @@ void IntelCounters::EndSample()
   uint32_t calculatedReportCount = 0;
   TCompletionCode res = m_subscribedMetricSets[m_passIndex]->CalculateMetrics(
       (const unsigned char *)counter_data, metricSetParams->QueryReportSize, m_queryResult.data(),
-      (uint32_t)m_queryResult.size() * sizeof(TTypedValue_1_0), &calculatedReportCount, false);
+      uint32_t(m_queryResult.size() * sizeof(TTypedValue_1_0)), &calculatedReportCount, false);
 
   if(res != TCompletionCode::CC_OK)
   {

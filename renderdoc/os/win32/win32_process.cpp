@@ -819,7 +819,7 @@ rdcpair<ReplayStatus, uint32_t> Process::InjectIntoProcess(
 
     _snwprintf_s(
         paramsAlloc, 2047, 2047,
-        L"\"%ls\" capaltbit --pid=%d --capfile=\"%ls\" --debuglog=\"%ls\" --capopts=\"%hs\"",
+        L"\"%ls\" capaltbit --pid=%u --capfile=\"%ls\" --debuglog=\"%ls\" --capopts=\"%hs\"",
         renderdocPath, pid, wcapturefile.c_str(), wdebugLogfile.c_str(), optstr.c_str());
 
     RDCDEBUG("params %ls", paramsAlloc);

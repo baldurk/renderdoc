@@ -414,8 +414,8 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
       HRESULT hr = S_OK;
       UINT strides[] = {sizeof(Vec4f)};
       UINT offsets[] = {0};
-      m_pImmediateContext->IASetVertexBuffers(0, 1, &m_MeshRender.TriHighlightHelper,
-                                              (UINT *)&strides, (UINT *)&offsets);
+      m_pImmediateContext->IASetVertexBuffers(0, 1, &m_MeshRender.TriHighlightHelper, strides,
+                                              offsets);
 
       ////////////////////////////////////////////////////////////////
       // render primitives
@@ -568,8 +568,7 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     // we want this to clip
     m_pImmediateContext->OMSetDepthStencilState(m_MeshRender.LessEqualDepthState, 0);
 
-    m_pImmediateContext->IASetVertexBuffers(0, 1, &m_MeshRender.TriHighlightHelper,
-                                            (UINT *)&strides, (UINT *)&offsets);
+    m_pImmediateContext->IASetVertexBuffers(0, 1, &m_MeshRender.TriHighlightHelper, strides, offsets);
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
     m_pImmediateContext->IASetInputLayout(m_MeshRender.GenericLayout);
 
@@ -591,8 +590,7 @@ void D3D11Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
     GetDebugManager()->FillCBuffer(vsCBuf, &vertexData, sizeof(vertexData));
 
-    m_pImmediateContext->IASetVertexBuffers(0, 1, &m_MeshRender.FrustumHelper, (UINT *)&strides,
-                                            (UINT *)&offsets);
+    m_pImmediateContext->IASetVertexBuffers(0, 1, &m_MeshRender.FrustumHelper, strides, offsets);
     m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
     m_pImmediateContext->IASetInputLayout(m_MeshRender.GenericLayout);
 

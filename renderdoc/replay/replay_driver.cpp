@@ -75,7 +75,7 @@ static DrawcallDescription *SetupDrawcallPointers(rdcarray<DrawcallDescription *
     {
       {
         RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId);
-        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId + 1)));
+        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId) + 1));
         drawcallTable[draw->eventId] = draw;
       }
 
@@ -91,7 +91,7 @@ static DrawcallDescription *SetupDrawcallPointers(rdcarray<DrawcallDescription *
         RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId ||
                   (draw->eventId == drawcallTable.back()->eventId &&
                    (drawcallTable.back()->flags & DrawFlags::PushMarker)));
-        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId + 1)));
+        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId) + 1));
         drawcallTable[draw->eventId] = draw;
       }
     }
@@ -106,7 +106,7 @@ static DrawcallDescription *SetupDrawcallPointers(rdcarray<DrawcallDescription *
         RDCASSERT(drawcallTable.empty() || draw->eventId > drawcallTable.back()->eventId ||
                   (draw->eventId == drawcallTable.back()->eventId &&
                    (drawcallTable.back()->flags & DrawFlags::PushMarker)));
-        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId + 1)));
+        drawcallTable.resize(RDCMAX(drawcallTable.size(), size_t(draw->eventId) + 1));
         drawcallTable[draw->eventId] = draw;
       }
 

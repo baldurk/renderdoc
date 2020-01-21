@@ -125,7 +125,7 @@ GLInitParams WGLHook::GetInitParamsForDC(HDC dc)
   ret.width = (r.right - r.left);
   ret.height = (r.bottom - r.top);
 
-  ret.isSRGB = true;
+  ret.isSRGB = 1;
 
   if(WGL.wglGetPixelFormatAttribivARB)
   {

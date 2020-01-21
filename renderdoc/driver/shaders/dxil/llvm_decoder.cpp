@@ -544,7 +544,7 @@ TEST_CASE("Check LLVM bitreader", "[llvm]")
       b.SeekBit(0);
       uint32_t read;
 
-      INFO("Bit width: " << (i + 1));
+      INFO("Bit width: " << uint32_t(i + 1));
 
       read = b.fixed<uint32_t>(i + 1);
       CHECK(read == expected[i][0]);
@@ -596,7 +596,7 @@ TEST_CASE("Check LLVM bitreader", "[llvm]")
 
       for(size_t i = 2; i <= 8; i++)
       {
-        INFO("VBR group size: " << i);
+        INFO("VBR group size: " << uint32_t(i));
         b.SeekByte(i);
 
         uint64_t val = b.vbr<uint64_t>(i);
@@ -657,7 +657,7 @@ TEST_CASE("Check LLVM bitreader", "[llvm]")
 
       for(size_t i = 2; i <= 8; i++)
       {
-        INFO("VBR group size: " << i);
+        INFO("VBR group size: " << uint32_t(i));
         b.SeekByte(i * 2);
 
         uint64_t val = b.vbr<uint64_t>(i);
@@ -717,7 +717,7 @@ TEST_CASE("Check LLVM bitreader", "[llvm]")
 
       for(size_t i = 2; i <= 8; i++)
       {
-        INFO("VBR group size: " << i);
+        INFO("VBR group size: " << uint32_t(i));
         b.SeekByte(i * 5);
 
         uint64_t val = b.vbr<uint64_t>(i);

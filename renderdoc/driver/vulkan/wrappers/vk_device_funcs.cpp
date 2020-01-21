@@ -2977,8 +2977,8 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   {
     uint32_t family = createInfo.pQueueCreateInfos[i].queueFamilyIndex;
     uint32_t count = createInfo.pQueueCreateInfos[i].queueCount;
-    m_QueueFamilies.resize(RDCMAX(m_QueueFamilies.size(), size_t(family + 1)));
-    m_QueueFamilyCounts.resize(RDCMAX(m_QueueFamilies.size(), size_t(family + 1)));
+    m_QueueFamilies.resize(RDCMAX(m_QueueFamilies.size(), size_t(family) + 1));
+    m_QueueFamilyCounts.resize(RDCMAX(m_QueueFamilies.size(), size_t(family) + 1));
 
     m_QueueFamilies[family] = new VkQueue[count];
     m_QueueFamilyCounts[family] = count;

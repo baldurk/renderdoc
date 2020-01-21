@@ -47,11 +47,11 @@ VkIndirectPatchData WrappedVulkan::FetchIndirectData(VkIndirectPatchType type,
     case VkIndirectPatchType::DispatchIndirect: dataSize = sizeof(VkDispatchIndirectCommand); break;
     case VkIndirectPatchType::DrawIndirect:
     case VkIndirectPatchType::DrawIndirectCount:
-      dataSize = sizeof(VkDrawIndirectCommand) + (count > 0 ? count - 1 : 0) * stride;
+      dataSize = sizeof(VkDrawIndirectCommand) + (count - 1) * stride;
       break;
     case VkIndirectPatchType::DrawIndexedIndirect:
     case VkIndirectPatchType::DrawIndexedIndirectCount:
-      dataSize = sizeof(VkDrawIndexedIndirectCommand) + (count > 0 ? count - 1 : 0) * stride;
+      dataSize = sizeof(VkDrawIndexedIndirectCommand) + (count - 1) * stride;
       break;
     case VkIndirectPatchType::DrawIndirectByteCount: dataSize = 4; break;
   }

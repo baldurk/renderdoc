@@ -260,7 +260,8 @@ void TimelineBar::layout()
 
   qreal virtualSize = m_dataArea.width() * m_zoom;
 
-  while(virtualSize > 0 && (maxEID / m_eidAxisLabelStep) * m_eidAxisLabelWidth > virtualSize)
+  while(virtualSize > 0 &&
+        (qreal(maxEID) / qreal(m_eidAxisLabelStep)) * m_eidAxisLabelWidth > virtualSize)
   {
     // increment 1, 2, 5, 10, 20, 50, 100, ...
     if(stepSize == 1)

@@ -841,7 +841,7 @@ int RDStyle::styleHint(StyleHint stylehint, const QStyleOption *opt, const QWidg
     return QFrame::StyledPanel | QFrame::Plain;
 
   if(stylehint == QStyle::SH_ComboBox_Popup)
-    return false;
+    return 0;
 
   if(stylehint == SH_ToolTipLabel_Opacity)
     return 255;

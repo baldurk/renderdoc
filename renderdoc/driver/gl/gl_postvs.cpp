@@ -268,7 +268,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
               {
                 drv.glShaderBinary(1, &tmpShaders[i], eGL_SHADER_BINARY_FORMAT_SPIR_V,
                                    shadDetails.spirvWords.data(),
-                                   (GLsizei)shadDetails.spirvWords.size() * sizeof(uint32_t));
+                                   GLsizei(shadDetails.spirvWords.size() * sizeof(uint32_t)));
 
                 drv.glSpecializeShader(tmpShaders[i], shadDetails.entryPoint.c_str(),
                                        (GLuint)shadDetails.specIDs.size(),
@@ -1524,15 +1524,17 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
               {
                 drv.glDrawElementsInstancedBaseVertexBaseInstance(
                     drawtopo, drawcall->numIndices, idxType,
-                    (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth), inst,
-                    drawcall->baseVertex, drawcall->instanceOffset);
+                    (const void *)(uintptr_t(drawcall->indexOffset) *
+                                   uintptr_t(drawcall->indexByteWidth)),
+                    inst, drawcall->baseVertex, drawcall->instanceOffset);
               }
               else
               {
                 drv.glDrawElementsInstancedBaseVertex(
                     drawtopo, drawcall->numIndices, idxType,
-                    (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth), inst,
-                    drawcall->baseVertex);
+                    (const void *)(uintptr_t(drawcall->indexOffset) *
+                                   uintptr_t(drawcall->indexByteWidth)),
+                    inst, drawcall->baseVertex);
               }
             }
 
@@ -1565,14 +1567,16 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
             {
               drv.glDrawElementsInstancedBaseVertexBaseInstance(
                   drawtopo, drawcall->numIndices, idxType,
-                  (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth),
+                  (const void *)(uintptr_t(drawcall->indexOffset) *
+                                 uintptr_t(drawcall->indexByteWidth)),
                   drawcall->numInstances, drawcall->baseVertex, drawcall->instanceOffset);
             }
             else
             {
               drv.glDrawElementsInstancedBaseVertex(
                   drawtopo, drawcall->numIndices, idxType,
-                  (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth),
+                  (const void *)(uintptr_t(drawcall->indexOffset) *
+                                 uintptr_t(drawcall->indexByteWidth)),
                   drawcall->numInstances, drawcall->baseVertex);
             }
           }
@@ -1594,7 +1598,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         {
           drv.glDrawElementsBaseVertex(
               drawtopo, drawcall->numIndices, idxType,
-              (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth),
+              (const void *)(uintptr_t(drawcall->indexOffset) * uintptr_t(drawcall->indexByteWidth)),
               drawcall->baseVertex);
         }
 

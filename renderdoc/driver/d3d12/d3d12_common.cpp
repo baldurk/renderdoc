@@ -60,7 +60,7 @@ void D3D12MarkerRegion::Begin(ID3D12GraphicsCommandList *list, const rdcstr &mar
     // display one less character than specified by the size. Append a space to pad the
     // output without visibly changing the event marker for other debuggers.
     rdcwstr text = StringFormat::UTF82Wide(marker + " ");
-    UINT size = (UINT)text.length() * sizeof(wchar_t);
+    UINT size = UINT(text.length() * sizeof(wchar_t));
     list->BeginEvent(0, text.c_str(), size);
   }
 }
@@ -70,7 +70,7 @@ void D3D12MarkerRegion::Begin(ID3D12CommandQueue *queue, const rdcstr &marker)
   if(queue)
   {
     rdcwstr text = StringFormat::UTF82Wide(marker + " ");
-    UINT size = (UINT)text.length() * sizeof(wchar_t);
+    UINT size = UINT(text.length() * sizeof(wchar_t));
     queue->BeginEvent(0, text.c_str(), size);
   }
 }
@@ -80,7 +80,7 @@ void D3D12MarkerRegion::Set(ID3D12GraphicsCommandList *list, const rdcstr &marke
   if(list)
   {
     rdcwstr text = StringFormat::UTF82Wide(marker + " ");
-    UINT size = (UINT)text.length() * sizeof(wchar_t);
+    UINT size = UINT(text.length() * sizeof(wchar_t));
     list->SetMarker(0, text.c_str(), size);
   }
 }
@@ -90,7 +90,7 @@ void D3D12MarkerRegion::Set(ID3D12CommandQueue *queue, const rdcstr &marker)
   if(queue)
   {
     rdcwstr text = StringFormat::UTF82Wide(marker + " ");
-    UINT size = (UINT)text.length() * sizeof(wchar_t);
+    UINT size = UINT(text.length() * sizeof(wchar_t));
     queue->SetMarker(0, text.c_str(), size);
   }
 }

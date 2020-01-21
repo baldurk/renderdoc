@@ -1389,7 +1389,7 @@ void WrappedVulkan::SubmitExtQBarriers(uint32_t queueFamilyIndex,
   VkResult vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  DoPipelineBarrier(extQCmd, (uint32_t)queueFamilyBarriers.size(), queueFamilyBarriers.data());
+  DoPipelineBarrier(extQCmd, queueFamilyBarriers.size(), queueFamilyBarriers.data());
   vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 

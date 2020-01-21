@@ -510,7 +510,7 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
       pipestate.renderPass = GetResID(m_RenderPass);
       pipestate.subpass = 0;
       pipestate.graphics.pipeline = GetResID(replacements.fixedShaderStencil);
-      ReplayDraw(cmd, (uint32_t)m_OcclusionQueries.size(), eid, true, true);
+      ReplayDraw(cmd, m_OcclusionQueries.size(), eid, true, true);
 
       m_OcclusionQueries.insert(
           std::pair<uint32_t, uint32_t>(eid, (uint32_t)m_OcclusionQueries.size()));

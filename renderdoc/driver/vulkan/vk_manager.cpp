@@ -445,7 +445,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
 
     if(layouts.subresourceStates.size() > 1 &&
        layouts.subresourceStates[0].subresourceRange.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT &&
-       layouts.subresourceStates.size() == size_t(imageInfo.layerCount * imageInfo.levelCount))
+       layouts.subresourceStates.size() == size_t(imageInfo.layerCount) * size_t(imageInfo.levelCount))
     {
       VkImageLayout layout = layouts.subresourceStates[0].newLayout;
 
@@ -609,7 +609,7 @@ void VulkanResourceManager::InsertDeviceMemoryRefs(WriteSerialiser &ser)
       data.push_back({mem, jt->start(), jt->value()});
   }
 
-  uint32_t sizeEstimate = (uint32_t)data.size() * sizeof(MemRefInterval) + 32;
+  uint64_t sizeEstimate = data.size() * sizeof(MemRefInterval) + 32;
 
   {
     SCOPED_SERIALISE_CHUNK(VulkanChunk::DeviceMemoryRefs, sizeEstimate);
