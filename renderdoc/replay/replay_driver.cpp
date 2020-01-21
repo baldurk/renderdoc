@@ -169,9 +169,9 @@ void PatchLineStripIndexBuffer(const DrawcallDescription *draw, uint8_t *idx8, u
 {
   const uint32_t restart = 0xffffffff;
 
-#define IDX_VALUE(offs)        \
-  (idx16 ? idx16[index + offs] \
-         : (idx32 ? idx32[index + offs] : (idx8 ? idx8[index + offs] : index + offs)))
+#define IDX_VALUE(offs)          \
+  (idx16 ? idx16[index + (offs)] \
+         : (idx32 ? idx32[index + (offs)] : (idx8 ? idx8[index + (offs)] : index + (offs))))
 
   switch(draw->topology)
   {

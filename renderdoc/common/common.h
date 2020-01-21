@@ -417,8 +417,8 @@ void rdcassert(const char *msg, const char *file, unsigned int line, const char 
 #endif
 
 #define RDCASSERT(...) RDCASSERTMSG("", __VA_ARGS__)
-#define RDCASSERTEQUAL(a, b) RDCASSERTMSG("", a == b, a, b)
-#define RDCASSERTNOTEQUAL(a, b) RDCASSERTMSG("", a != b, a, b)
+#define RDCASSERTEQUAL(a, b) RDCASSERTMSG("", (a) == (b), a, b)
+#define RDCASSERTNOTEQUAL(a, b) RDCASSERTMSG("", (a) != (b), a, b)
 
 //
 // Compile asserts

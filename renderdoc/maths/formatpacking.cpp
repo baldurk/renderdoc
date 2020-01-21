@@ -494,8 +494,8 @@ TEST_CASE("Check format conversion", "[format]")
   SECTION("Spot test ConvertFromR11G11B10")
   {
 #define R11G11B10(re, rm, ge, gm, be, bm)                                                   \
-  ((uint32_t(re & 0x1f) << 6) | (uint32_t(ge & 0x1f) << 17) | (uint32_t(be & 0x1f) << 27) | \
-   uint32_t(rm & 0x3f) << 0 | uint32_t(gm & 0x3f) << 11 | uint32_t(bm & 0x1f) << 22)
+  ((uint32_t((re)&0x1f) << 6) | (uint32_t((ge)&0x1f) << 17) | (uint32_t((be)&0x1f) << 27) | \
+   uint32_t((rm)&0x3f) << 0 | uint32_t((gm)&0x3f) << 11 | uint32_t((bm)&0x1f) << 22)
 
 #define TEST11(e, m, f)                               \
   {                                                   \
