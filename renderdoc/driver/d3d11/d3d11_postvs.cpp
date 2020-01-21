@@ -199,12 +199,6 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
 
   WrappedID3D11Shader<ID3D11VertexShader> *wrappedVS = (WrappedID3D11Shader<ID3D11VertexShader> *)vs;
 
-  if(!wrappedVS)
-  {
-    RDCERR("Couldn't find wrapped vertex shader!");
-    return;
-  }
-
   const DrawcallDescription *drawcall = m_pDevice->GetDrawcall(eventId);
 
   if(drawcall->numIndices == 0 ||
@@ -222,12 +216,6 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
     WrappedID3D11Shader<ID3D11GeometryShader> *wrappedGS =
         (WrappedID3D11Shader<ID3D11GeometryShader> *)gs;
 
-    if(!wrappedGS)
-    {
-      RDCERR("Couldn't find wrapped geometry shader!");
-      return;
-    }
-
     dxbcGS = wrappedGS->GetDXBC();
 
     RDCASSERT(dxbcGS);
@@ -239,12 +227,6 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
   {
     WrappedID3D11Shader<ID3D11DomainShader> *wrappedDS =
         (WrappedID3D11Shader<ID3D11DomainShader> *)ds;
-
-    if(!wrappedDS)
-    {
-      RDCERR("Couldn't find wrapped domain shader!");
-      return;
-    }
 
     dxbcDS = wrappedDS->GetDXBC();
 

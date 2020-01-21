@@ -44,7 +44,8 @@ enum SignatureElementType
 struct D3D12RenderState
 {
   D3D12RenderState() = default;
-  D3D12RenderState &operator=(const D3D12RenderState &o);
+  D3D12RenderState(const D3D12RenderState &o) = default;
+  D3D12RenderState &operator=(const D3D12RenderState &o) = default;
 
   void ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsCommandListX *list) const;
   void ApplyDescriptorHeaps(ID3D12GraphicsCommandListX *list) const;

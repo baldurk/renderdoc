@@ -639,19 +639,13 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateInstalledVersionNumbe
 
       // allow the value to silently not exist
       if(ret != ERROR_SUCCESS)
-      {
         DisplayName[0] = 0;
-        ret = ERROR_SUCCESS;
-      }
 
       len = sizeof(Publisher) - 1;
       ret = RegGetValueA(subkey, NULL, "Publisher", RRF_RT_ANY, NULL, Publisher, &len);
 
       if(ret != ERROR_SUCCESS)
-      {
         Publisher[0] = 0;
-        ret = ERROR_SUCCESS;
-      }
 
       // if this is our key, set the version number
       if(!strcmp(DisplayName, "RenderDoc") && !strcmp(Publisher, "Baldur Karlsson"))

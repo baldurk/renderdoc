@@ -114,11 +114,6 @@ public:
   {
     if(e->buttons() & Qt::LeftButton)
     {
-      if(m_DragStartPos.x() < 0)
-      {
-        m_DragStartPos = e->pos();
-      }
-
       m_DragStartPos = e->pos();
     }
     else
@@ -332,20 +327,15 @@ private:
 
   void RotateArcball(QPoint from, QPoint to)
   {
-    float ax = ((float)from.x() / (float)m_WinSize.width()) * 2.0f - 1.0f;
-    float ay = ((float)from.y() / (float)m_WinSize.height()) * 2.0f - 1.0f;
-    float bx = ((float)to.x() / (float)m_WinSize.width()) * 2.0f - 1.0f;
-    float by = ((float)to.y() / (float)m_WinSize.height()) * 2.0f - 1.0f;
-
     // this isn't a 'true arcball' but it handles extreme aspect ratios
     // better. We basically 'centre' around the from point always being
     // 0,0 (straight out of the screen) as if you're always dragging
     // the arcball from the middle, and just use the relative movement
     int minDimension = qMin(m_WinSize.width(), m_WinSize.height());
 
-    ax = ay = 0;
-    bx = ((float)(to.x() - from.x()) / (float)minDimension) * 2.0f;
-    by = ((float)(to.y() - from.y()) / (float)minDimension) * 2.0f;
+    float ax = 0.0f, ay = 0.0f;
+    float bx = ((float)(to.x() - from.x()) / (float)minDimension) * 2.0f;
+    float by = ((float)(to.y() - from.y()) / (float)minDimension) * 2.0f;
 
     ay = -ay;
     by = -by;

@@ -84,11 +84,7 @@ D3D12Pipe::RegisterSpace &get_space(rdcarray<D3D12Pipe::RegisterSpace> &dstSpace
 D3D12Replay::D3D12Replay(WrappedID3D12Device *d)
 {
   m_pDevice = d;
-  m_Proxy = false;
-
   m_HighlightCache.driver = this;
-
-  RDCEraseEl(m_DriverInfo);
 }
 
 void D3D12Replay::Shutdown()

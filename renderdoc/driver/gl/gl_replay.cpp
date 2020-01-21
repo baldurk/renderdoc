@@ -869,7 +869,6 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     ResourceFormat fmt;
 
     fmt.type = ResourceFormatType::Regular;
-    fmt.compCount = 4;
     GLint compCount;
     drv.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_SIZE, (GLint *)&compCount);
 

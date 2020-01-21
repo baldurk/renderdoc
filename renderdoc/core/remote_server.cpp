@@ -1548,7 +1548,6 @@ rdcpair<ReplayStatus, IReplayController *> RemoteServer::OpenCapture(
   if(proxyid != ~0U && proxyid >= m_Proxies.size())
   {
     RDCERR("Invalid proxy driver id %d specified for remote renderer", proxyid);
-    ret.first = ReplayStatus::InternalError;
     return ret;
   }
 

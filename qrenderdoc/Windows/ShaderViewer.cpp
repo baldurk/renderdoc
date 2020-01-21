@@ -1170,13 +1170,8 @@ void ShaderViewer::disassembly_buttonReleased(QMouseEvent *event)
         m_DisassemblyView->setIndicatorCurrent(INDICATOR_REGHIGHLIGHT);
         m_DisassemblyView->indicatorClearRange(start, end);
 
-        sptr_t flags = SCFIND_MATCHCASE | SCFIND_WHOLEWORD;
-
-        if(tag.cat != VariableCategory::Unknown)
-        {
-          flags |= SCFIND_REGEXP | SCFIND_POSIX;
-          text += lit("\\.[xyzwrgba]+");
-        }
+        sptr_t flags = SCFIND_MATCHCASE | SCFIND_WHOLEWORD | SCFIND_REGEXP | SCFIND_POSIX;
+        text += lit("\\.[xyzwrgba]+");
 
         QByteArray findUtf8 = text.toUtf8();
 

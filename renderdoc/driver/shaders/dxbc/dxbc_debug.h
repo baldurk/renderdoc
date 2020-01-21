@@ -294,7 +294,6 @@ public:
     done = false;
     trace = NULL;
     program = NULL;
-    program = NULL;
     RDCEraseEl(semantics);
   }
   State(int quadIdx, const ShaderDebugTrace *t, const DXBC::Reflection *r,

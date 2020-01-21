@@ -28,33 +28,6 @@
 #include "d3d12_manager.h"
 #include "d3d12_resources.h"
 
-D3D12RenderState &D3D12RenderState::operator=(const D3D12RenderState &o)
-{
-  views = o.views;
-  scissors = o.scissors;
-
-  rts = o.rts;
-  dsv = o.dsv;
-
-  pipe = o.pipe;
-
-  heaps = o.heaps;
-
-  graphics.rootsig = o.graphics.rootsig;
-  graphics.sigelems = o.graphics.sigelems;
-  compute.rootsig = o.compute.rootsig;
-  compute.sigelems = o.compute.sigelems;
-
-  topo = o.topo;
-  stencilRef = o.stencilRef;
-  memcpy(blendFactor, o.blendFactor, sizeof(blendFactor));
-
-  ibuffer = o.ibuffer;
-  vbuffers = o.vbuffers;
-
-  return *this;
-}
-
 rdcarray<ResourceId> D3D12RenderState::GetRTVIDs() const
 {
   rdcarray<ResourceId> ret;

@@ -335,9 +335,6 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
 
       ClearGLErrors();
       drv.glUseProgram(solidProg);
-      GLenum err = drv.glGetError();
-
-      err = eGL_NONE;
     }
 
     MeshUBOData *soliddata = (MeshUBOData *)drv.glMapBufferRange(

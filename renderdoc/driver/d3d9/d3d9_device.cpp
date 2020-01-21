@@ -228,7 +228,7 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
       HRESULT res = S_OK;
       res = m_device->BeginScene();
       IDirect3DStateBlock9 *stateBlock;
-      HRESULT stateBlockRes = m_device->CreateStateBlock(D3DSBT_ALL, &stateBlock);
+      m_device->CreateStateBlock(D3DSBT_ALL, &stateBlock);
 
       IDirect3DSurface9 *backBuffer;
       res |= m_device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backBuffer);
@@ -253,7 +253,7 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
 
       GetDebugManager()->RenderText(0.0f, 0.0f, overlayText);
 
-      stateBlockRes = stateBlock->Apply();
+      stateBlock->Apply();
       res |= m_device->EndScene();
     }
   }

@@ -556,12 +556,10 @@ static void ForAllModules(std::function<void(const MODULEENTRY32 &me32)> callbac
     return;
   }
 
-  uintptr_t ret = 0;
-
   do
   {
     callback(me32);
-  } while(ret == 0 && Module32Next(hModuleSnap, &me32));
+  } while(Module32Next(hModuleSnap, &me32));
 
   CloseHandle(hModuleSnap);
 }

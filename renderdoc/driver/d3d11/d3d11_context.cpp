@@ -1300,12 +1300,6 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
         it != WrappedID3D11Texture3D1::m_TextureList.end(); ++it)
       m_ResourceUses[it->first];
 
-#define CHECK_UNUSED_INITIAL_STATES 0
-
-#if CHECK_UNUSED_INITIAL_STATES
-    int initialSkips = 0;
-#endif
-
     // it's easier to remove duplicate usages here than check it as we go.
     // this means if textures are bound in multiple places in the same draw
     // we don't have duplicate uses
@@ -1314,53 +1308,7 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
       rdcarray<EventUsage> &v = it->second;
       std::sort(v.begin(), v.end());
       v.erase(std::unique(v.begin(), v.end()) - v.begin(), ~0U);
-
-#if CHECK_UNUSED_INITIAL_STATES
-      ResourceId resid = m_pDevice->GetResourceManager()->GetOriginalID(it->first);
-
-      if(m_pDevice->GetResourceManager()->GetInitialContents(resid).resource == NULL)
-        continue;
-
-      // code disabled for now as skipping these initial states
-      // doesn't seem to produce any measurable improvement in any case
-      // I've checked
-      RDCDEBUG("Resource %llu", resid);
-      if(v.empty())
-      {
-        RDCDEBUG("Never used!");
-        initialSkips++;
-      }
-      else
-      {
-        bool written = false;
-
-        for(auto usit = v.begin(); usit != v.end(); ++usit)
-        {
-          ResourceUsage u = usit->usage;
-
-          if(u == ResourceUsage::StreamOut ||
-             (u >= ResourceUsage::VS_RWResource && u <= ResourceUsage::CS_RWResource) ||
-             u == ResourceUsage::DepthStencilTarget || u == ResourceUsage::ColorTarget)
-          {
-            written = true;
-            break;
-          }
-        }
-
-        if(written)
-        {
-          RDCDEBUG("Written in frame - needs initial state");
-        }
-        else
-        {
-          RDCDEBUG("Never written to in the frame");
-          initialSkips++;
-        }
-      }
-#endif
     }
-
-    // RDCDEBUG("Can skip %d initial states.", initialSkips);
   }
 
   // swap the structure back now that we've accumulated the frame as well.

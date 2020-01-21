@@ -302,8 +302,6 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
   int sampleIdx = (int)RDCCLAMP(cfg.subresource.sample, 0U, (uint32_t)SampleCount(iminfo.samples));
 
-  sampleIdx = cfg.subresource.sample;
-
   if(cfg.subresource.sample == ~0U)
     sampleIdx = -SampleCount(iminfo.samples);
 

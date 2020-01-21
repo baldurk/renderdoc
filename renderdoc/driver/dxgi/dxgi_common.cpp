@@ -364,7 +364,6 @@ UINT GetRowPitch(int Width, DXGI_FORMAT Format, int mip)
     case DXGI_FORMAT_NV11:
       // similar to NV12 - planar 4:1:1 4 horizontal downsampling but no vertical downsampling. For
       // row pitch calculation amounts to the same result.
-      ret = ret;
       break;
     case DXGI_FORMAT_AI44:
       // special format, 1 byte per pixel, palletised values in 4 most significant bits, alpha in 4

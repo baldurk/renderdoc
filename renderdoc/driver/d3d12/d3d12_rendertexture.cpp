@@ -449,7 +449,6 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
   vertexData.VertexScale.y = (tex_y / m_OutputHeight) * cfg.scale * 2.0f;
 
   pixelData.MipLevel = (float)cfg.subresource.mip;
-  pixelData.OutputDisplayFormat = RESTYPE_TEX2D;
 
   if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
     pixelData.Slice =

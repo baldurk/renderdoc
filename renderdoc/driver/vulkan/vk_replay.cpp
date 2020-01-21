@@ -240,11 +240,6 @@ rdcarray<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventId)
 
     // step back
     start = start->previous;
-
-    // something went wrong, start->previous was non-zero but we didn't
-    // get a draw. Abort
-    if(!start)
-      return passEvents;
   }
 
   // store all the draw eventIDs up to the one specified at the start

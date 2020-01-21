@@ -386,7 +386,6 @@ struct InjectCommand : public Command
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &opts)
   {
     uint32_t PID = parser.get<uint32_t>("PID");
-    std::string workingDir = parser.get<std::string>("working-dir");
     std::string logFile = parser.get<std::string>("capture-file");
 
     std::cout << "Injecting into PID " << PID << std::endl;
