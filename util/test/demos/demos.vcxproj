@@ -134,6 +134,7 @@
     <ClCompile Include="d3d11\d3d11_helpers.cpp" />
     <ClCompile Include="d3d11\d3d11_many_rtvs.cpp" />
     <ClCompile Include="d3d11\d3d11_map_overrun.cpp" />
+    <ClCompile Include="d3d11\d3d11_mesh_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_midframe_create.cpp" />
     <ClCompile Include="d3d11\d3d11_mip_gen_rt.cpp" />
     <ClCompile Include="d3d11\d3d11_mip_rtv.cpp" />
@@ -160,6 +161,7 @@
     <ClCompile Include="d3d11\d3d11_video_textures.cpp" />
     <ClCompile Include="d3d12\d3d12_cbuffer_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_helpers.cpp" />
+    <ClCompile Include="d3d12\d3d12_mesh_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_overlay_test.cpp" />
     <ClCompile Include="d3d12\d3d12_resource_lifetimes.cpp" />
     <ClCompile Include="d3d12\d3d12_shader_editing.cpp" />
@@ -188,6 +190,7 @@
     <ClCompile Include="gl\gl_entry_points.cpp" />
     <ClCompile Include="gl\gl_large_bcn_arrays.cpp" />
     <ClCompile Include="gl\gl_map_overrun.cpp" />
+    <ClCompile Include="gl\gl_mesh_zoo.cpp" />
     <ClCompile Include="gl\gl_midframe_context_create.cpp" />
     <ClCompile Include="gl\gl_mip_gen_rt.cpp" />
     <ClCompile Include="gl\gl_multi_window.cpp" />
@@ -222,6 +225,7 @@
     <ClCompile Include="test_common.cpp" />
     <ClCompile Include="texture_zoo.cpp" />
     <ClCompile Include="vk\vk_khr_buffer_address.cpp" />
+    <ClCompile Include="vk\vk_mesh_zoo.cpp" />
     <ClCompile Include="vk\vk_parameter_zoo.cpp" />
     <ClCompile Include="vk\vk_imageless_framebuffer.cpp" />
     <ClCompile Include="vk\vk_image_layouts.cpp" />
