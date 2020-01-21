@@ -453,8 +453,12 @@ rdcpair<uint32_t, uint32_t> ReplayOutput::PickVertex(uint32_t x, uint32_t y)
   }
   else
   {
-    return make_rdcpair(m_pDevice->PickVertex(m_EventID, m_Width, m_Height, cfg, x, y),
-                        m_RenderData.meshDisplay.curInstance);
+    uint32_t vert = m_pDevice->PickVertex(m_EventID, m_Width, m_Height, cfg, x, y);
+
+    if(vert != ~0U)
+      return make_rdcpair(vert, m_RenderData.meshDisplay.curInstance);
+
+    return errorReturn;
   }
 }
 
