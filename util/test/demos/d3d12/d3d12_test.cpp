@@ -41,36 +41,6 @@ HMODULE d3dcompiler = NULL;
 IDXGIFactory1Ptr factory;
 IDXGIAdapterPtr adapter;
 bool d3d12on7 = false;
-
-HRESULT EnumAdapterByLuid(LUID luid, IDXGIAdapterPtr &pAdapter)
-{
-  HRESULT hr = S_OK;
-
-  pAdapter = NULL;
-
-  for(UINT i = 0; i < 10; i++)
-  {
-    IDXGIAdapterPtr ad;
-    hr = factory->EnumAdapters(i, &ad);
-    if(hr == S_OK && ad)
-    {
-      DXGI_ADAPTER_DESC desc;
-      ad->GetDesc(&desc);
-
-      if(desc.AdapterLuid.LowPart == luid.LowPart && desc.AdapterLuid.HighPart == luid.HighPart)
-      {
-        pAdapter = ad;
-        return S_OK;
-      }
-    }
-    else
-    {
-      break;
-    }
-  }
-
-  return E_FAIL;
-}
 };
 
 void D3D12GraphicsTest::Prepare(int argc, char **argv)
@@ -141,6 +111,8 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
   else if(!factory)
     Avail = "Couldn't create DXGI factory";
 
+  m_12On7 = d3d12on7;
+
   for(int i = 0; i < argc; i++)
   {
     if(!strcmp(argv[i], "--gpuva") || !strcmp(argv[i], "--debug-gpu"))
@@ -210,18 +182,9 @@ bool D3D12GraphicsTest::Init()
     }
   }
 
-  {
-    HRESULT hr = S_OK;
-
-    hr = dyn_D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device),
-                               (void **)&dev);
-
-    if(FAILED(hr))
-    {
-      TEST_ERROR("D3D12CreateDevice failed: %x", hr);
-      return false;
-    }
-  }
+  dev = CreateDevice(adapter);
+  if(!dev)
+    return false;
 
   {
     LUID luid = dev->GetAdapterLuid();
@@ -309,7 +272,7 @@ bool D3D12GraphicsTest::Init()
     }
   }
 
-  dev->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
+  dev->CreateFence(0, D3D12_FENCE_FLAG_SHARED, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
   m_GPUSyncHandle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
 
   m_GPUSyncFence->SetName(L"GPUSync fence");
@@ -413,7 +376,7 @@ bool D3D12GraphicsTest::Init()
       D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE,
   };
 
-  dev->QueryInterface(__uuidof(ID3D12InfoQueue), (void **)&infoqueue);
+  infoqueue = dev;
 
   if(infoqueue)
   {
@@ -425,6 +388,50 @@ bool D3D12GraphicsTest::Init()
   }
 
   return true;
+}
+
+HRESULT D3D12GraphicsTest::EnumAdapterByLuid(LUID luid, IDXGIAdapterPtr &pAdapter)
+{
+  HRESULT hr = S_OK;
+
+  pAdapter = NULL;
+
+  for(UINT i = 0; i < 10; i++)
+  {
+    IDXGIAdapterPtr ad;
+    hr = factory->EnumAdapters(i, &ad);
+    if(hr == S_OK && ad)
+    {
+      DXGI_ADAPTER_DESC desc;
+      ad->GetDesc(&desc);
+
+      if(desc.AdapterLuid.LowPart == luid.LowPart && desc.AdapterLuid.HighPart == luid.HighPart)
+      {
+        pAdapter = ad;
+        return S_OK;
+      }
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  return E_FAIL;
+}
+
+ID3D12DevicePtr D3D12GraphicsTest::CreateDevice(IDXGIAdapterPtr a)
+{
+  HRESULT hr = S_OK;
+
+  ID3D12DevicePtr ret;
+
+  hr = dyn_D3D12CreateDevice(a, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), (void **)&ret);
+
+  if(FAILED(hr))
+    TEST_ERROR("D3D12CreateDevice failed: %x", hr);
+
+  return ret;
 }
 
 GraphicsWindow *D3D12GraphicsTest::MakeWindow(int width, int height, const char *title)
@@ -475,7 +482,8 @@ ID3D12ResourcePtr D3D12GraphicsTest::StartUsingBackbuffer(ID3D12GraphicsCommandL
 {
   ID3D12ResourcePtr bb = bbTex[texIdx];
 
-  ResourceBarrier(cmd, bbTex[texIdx], D3D12_RESOURCE_STATE_PRESENT, useState);
+  if(useState != D3D12_RESOURCE_STATE_PRESENT)
+    ResourceBarrier(cmd, bbTex[texIdx], D3D12_RESOURCE_STATE_PRESENT, useState);
 
   return bbTex[texIdx];
 }
@@ -485,7 +493,8 @@ void D3D12GraphicsTest::FinishUsingBackbuffer(ID3D12GraphicsCommandListPtr cmd,
 {
   ID3D12ResourcePtr bb = bbTex[texIdx];
 
-  ResourceBarrier(cmd, bbTex[texIdx], usedState, D3D12_RESOURCE_STATE_PRESENT);
+  if(usedState != D3D12_RESOURCE_STATE_PRESENT)
+    ResourceBarrier(cmd, bbTex[texIdx], usedState, D3D12_RESOURCE_STATE_PRESENT);
 
   texIdx = 1 - texIdx;
 }
@@ -498,7 +507,7 @@ void D3D12GraphicsTest::Submit(const std::vector<ID3D12GraphicsCommandListPtr> &
 
   for(const ID3D12GraphicsCommandListPtr &cmd : cmds)
   {
-    pendingCommandBuffers.push_back(std::make_pair(cmd, m_GPUSyncFence));
+    pendingCommandBuffers.push_back(std::make_pair(cmd, m_GPUSyncCounter));
     submits.push_back(cmd);
   }
 

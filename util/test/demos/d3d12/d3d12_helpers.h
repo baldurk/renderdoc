@@ -143,6 +143,8 @@ public:
   D3D12TextureCreator &Readback();
   D3D12TextureCreator &CustomHeap(D3D12_HEAP_PROPERTIES heap);
 
+  D3D12TextureCreator &Shared();
+
   D3D12TextureCreator &InitialState(D3D12_RESOURCE_STATES state);
 
   operator ID3D12ResourcePtr() const;
@@ -153,26 +155,7 @@ protected:
   D3D12_RESOURCE_STATES m_InitialState;
   D3D12_RESOURCE_DESC m_TexDesc;
   D3D12_HEAP_PROPERTIES m_HeapDesc;
-};
-
-enum class ResourceType
-{
-  Buffer,
-  Texture1D,
-  Texture1DArray,
-  Texture2D,
-  Texture2DArray,
-  Texture2DMS,
-  Texture2DMSArray,
-  Texture3D,
-};
-
-enum class ViewType
-{
-  SRV,
-  RTV,
-  DSV,
-  UAV,
+  D3D12_HEAP_FLAGS m_HeapFlags = D3D12_HEAP_FLAG_NONE;
 };
 
 class D3D12ViewCreator

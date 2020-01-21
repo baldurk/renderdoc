@@ -45,10 +45,15 @@ COM_SMARTPTR(IDXGISurface);
 COM_SMARTPTR(ID3D11Device);
 COM_SMARTPTR(ID3D11Device1);
 COM_SMARTPTR(ID3D11Device2);
+COM_SMARTPTR(ID3D11Device3);
+COM_SMARTPTR(ID3D11Device4);
+COM_SMARTPTR(ID3D11Device5);
 
 COM_SMARTPTR(ID3D11DeviceContext);
 COM_SMARTPTR(ID3D11DeviceContext1);
 COM_SMARTPTR(ID3D11DeviceContext2);
+COM_SMARTPTR(ID3D11DeviceContext3);
+COM_SMARTPTR(ID3D11DeviceContext4);
 
 COM_SMARTPTR(ID3D11Multithread);
 
@@ -83,6 +88,8 @@ COM_SMARTPTR(ID3D11RenderTargetView);
 COM_SMARTPTR(ID3D11ShaderResourceView);
 COM_SMARTPTR(ID3D11UnorderedAccessView);
 COM_SMARTPTR(ID3D11DepthStencilView);
+
+COM_SMARTPTR(ID3D11Fence);
 
 COM_SMARTPTR(ID3D11InfoQueue);
 COM_SMARTPTR(ID3DUserDefinedAnnotation);
@@ -228,26 +235,6 @@ protected:
   D3D11GraphicsTest *m_Test;
 
   D3D11_SAMPLER_DESC m_Desc;
-};
-
-enum class ResourceType
-{
-  Buffer,
-  Texture1D,
-  Texture1DArray,
-  Texture2D,
-  Texture2DArray,
-  Texture2DMS,
-  Texture2DMSArray,
-  Texture3D,
-};
-
-enum class ViewType
-{
-  SRV,
-  RTV,
-  DSV,
-  UAV,
 };
 
 class D3D11ViewCreator

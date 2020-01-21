@@ -181,10 +181,15 @@ struct D3D11GraphicsTest : public GraphicsTest
   ID3D11DevicePtr dev;
   ID3D11Device1Ptr dev1;
   ID3D11Device2Ptr dev2;
+  ID3D11Device3Ptr dev3;
+  ID3D11Device4Ptr dev4;
+  ID3D11Device5Ptr dev5;
 
   ID3D11DeviceContextPtr ctx;
   ID3D11DeviceContext1Ptr ctx1;
   ID3D11DeviceContext2Ptr ctx2;
+  ID3D11DeviceContext3Ptr ctx3;
+  ID3D11DeviceContext4Ptr ctx4;
   ID3DUserDefinedAnnotationPtr annot;
 
 private:

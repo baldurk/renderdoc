@@ -41,5 +41,26 @@ COM_SMARTPTR(IDXGIFactory1);
 COM_SMARTPTR(IDXGIFactory4);
 COM_SMARTPTR(IDXGIAdapter);
 COM_SMARTPTR(IDXGISurface);
+COM_SMARTPTR(IDXGIResource);
 
 IDXGIAdapterPtr ChooseD3DAdapter(IDXGIFactoryPtr factory, int argc, char **argv, bool &warp);
+
+enum class ResourceType
+{
+  Buffer,
+  Texture1D,
+  Texture1DArray,
+  Texture2D,
+  Texture2DArray,
+  Texture2DMS,
+  Texture2DMSArray,
+  Texture3D,
+};
+
+enum class ViewType
+{
+  SRV,
+  RTV,
+  DSV,
+  UAV,
+};

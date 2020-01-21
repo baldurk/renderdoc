@@ -51,6 +51,9 @@ struct D3D12GraphicsTest : public GraphicsTest
   void Shutdown();
   GraphicsWindow *MakeWindow(int width, int height, const char *title);
 
+  HRESULT EnumAdapterByLuid(LUID luid, IDXGIAdapterPtr &pAdapter);
+  ID3D12DevicePtr CreateDevice(IDXGIAdapterPtr adapter);
+
   enum BufType
   {
     eCBuffer = 0x0,
@@ -185,7 +188,7 @@ struct D3D12GraphicsTest : public GraphicsTest
   ID3D12ResourcePtr bbTex[2];
   uint32_t texIdx = 0;
 
-  bool gpuva = false;
+  bool gpuva = false, m_12On7 = false;
   IDXGIFactory1Ptr m_Factory;
 
   ID3D12DebugPtr d3d12Debug;

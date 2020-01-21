@@ -354,6 +354,13 @@ D3D12TextureCreator &D3D12TextureCreator::CustomHeap(D3D12_HEAP_PROPERTIES heap)
   return *this;
 }
 
+D3D12TextureCreator &D3D12TextureCreator::Shared()
+{
+  m_HeapFlags = D3D12_HEAP_FLAG_SHARED;
+  m_TexDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
+  return *this;
+}
+
 D3D12TextureCreator &D3D12TextureCreator::InitialState(D3D12_RESOURCE_STATES state)
 {
   m_InitialState = state;
@@ -363,9 +370,8 @@ D3D12TextureCreator &D3D12TextureCreator::InitialState(D3D12_RESOURCE_STATES sta
 D3D12TextureCreator::operator ID3D12ResourcePtr() const
 {
   ID3D12ResourcePtr tex;
-  CHECK_HR(m_Test->dev->CreateCommittedResource(&m_HeapDesc, D3D12_HEAP_FLAG_NONE, &m_TexDesc,
-                                                m_InitialState, NULL, __uuidof(ID3D12Resource),
-                                                (void **)&tex));
+  CHECK_HR(m_Test->dev->CreateCommittedResource(&m_HeapDesc, m_HeapFlags, &m_TexDesc, m_InitialState,
+                                                NULL, __uuidof(ID3D12Resource), (void **)&tex));
   return tex;
 }
 

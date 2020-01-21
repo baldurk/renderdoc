@@ -260,17 +260,16 @@ GraphicsWindow *D3D11GraphicsTest::MakeWindow(int width, int height, const char 
 void D3D11GraphicsTest::PostDeviceCreate()
 {
   {
-    IDXGIDevicePtr pDXGIDevice;
-    HRESULT hr = dev->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice);
+    IDXGIDevicePtr pDXGIDevice = dev;
 
-    if(FAILED(hr) || !pDXGIDevice)
+    if(!pDXGIDevice)
     {
       TEST_ERROR("Couldn't get DXGI Device");
     }
     else
     {
       IDXGIAdapterPtr pDXGIAdapter;
-      hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
+      HRESULT hr = pDXGIDevice->GetParent(__uuidof(IDXGIAdapter), (void **)&pDXGIAdapter);
 
       if(FAILED(hr) || !pDXGIAdapter)
       {
@@ -286,19 +285,18 @@ void D3D11GraphicsTest::PostDeviceCreate()
     }
   }
 
-  // if(d3d11_1)
-  {
-    dev->QueryInterface(__uuidof(ID3D11Device1), (void **)&dev1);
-    ctx->QueryInterface(__uuidof(ID3D11DeviceContext1), (void **)&ctx1);
-  }
+  dev1 = dev;
+  dev2 = dev;
+  dev3 = dev;
+  dev4 = dev;
+  dev5 = dev;
 
-  // if(d3d11_2)
-  {
-    dev->QueryInterface(__uuidof(ID3D11Device2), (void **)&dev2);
-    ctx->QueryInterface(__uuidof(ID3D11DeviceContext2), (void **)&ctx2);
-  }
+  ctx1 = ctx;
+  ctx2 = ctx;
+  ctx3 = ctx;
+  ctx4 = ctx;
 
-  ctx->QueryInterface(__uuidof(ID3DUserDefinedAnnotation), (void **)&annot);
+  annot = ctx;
 }
 
 void D3D11GraphicsTest::Shutdown()
