@@ -759,7 +759,7 @@ void TextureViewer::RT_FetchCurrentPixel(IReplayController *r, uint32_t x, uint3
     }
   }
 
-  realValue = r->PickPixel(id, x, y, sub, CompType::Typeless);
+  realValue = r->PickPixel(id, x, y, sub, typeCast);
 
   if(m_TexDisplay.customShaderId != ResourceId())
   {
