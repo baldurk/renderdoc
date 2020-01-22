@@ -729,7 +729,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
 
       list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-      list->SetPipelineState(m_General.CheckerboardF16Pipe[overlayTexDesc.SampleDesc.Count - 1]);
+      list->SetPipelineState(
+          m_General.CheckerboardF16Pipe[Log2Floor(overlayTexDesc.SampleDesc.Count)]);
 
       list->SetGraphicsRootSignature(m_General.CheckerboardRootSig);
 
