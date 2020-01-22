@@ -567,7 +567,9 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
     ContextShareGroup *shareGroup = (ContextShareGroup *)res.ContextShareGroup;
 
-    if(m_Driver->m_Platform.MakeContextCurrent(shareGroup->m_BackDoor))
+    GLWindowingData savedContext;
+
+    if(m_Driver->m_Platform.PushChildContext(oldContextData, shareGroup->m_BackDoor, &savedContext))
     {
       m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = shareGroup->m_BackDoor;
 
@@ -575,7 +577,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
       // restore the context
       m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = oldContextData;
-      m_Driver->m_Platform.MakeContextCurrent(oldContextData);
+      m_Driver->m_Platform.PopChildContext(oldContextData, shareGroup->m_BackDoor, savedContext);
     }
   }
   else
@@ -1807,7 +1809,7 @@ bool GLResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId 
                                                GLResourceRecord *record,
                                                const GLInitialContents *initial)
 {
-  GLResource res = GetCurrentResource(id);
+  GLResource res = record->Resource;
 
   if(IsResourceTrackedForPersistency(res))
   {
@@ -1815,7 +1817,9 @@ bool GLResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId 
 
     GLWindowingData backdoor = ((ContextShareGroup *)res.ContextShareGroup)->m_BackDoor;
 
-    if(m_Driver->m_Platform.MakeContextCurrent(backdoor))
+    GLWindowingData savedContext;
+
+    if(m_Driver->m_Platform.PushChildContext(oldContextData, backdoor, &savedContext))
     {
       m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = backdoor;
 
@@ -1824,7 +1828,7 @@ bool GLResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId 
       // restore the context
       m_Driver->m_ActiveContexts[Threading::GetCurrentID()] = oldContextData;
 
-      m_Driver->m_Platform.MakeContextCurrent(oldContextData);
+      m_Driver->m_Platform.PopChildContext(oldContextData, backdoor, savedContext);
 
       return success;
     }

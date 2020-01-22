@@ -274,6 +274,20 @@ struct GLPlatform
   virtual GLWindowingData MakeOutputWindow(WindowingData window, bool depth,
                                            GLWindowingData share_context) = 0;
 
+  // for pushing and popping a child context. The default implementation just does
+  // MakeContextCurrent but platforms can override this if they need more complex state handling
+  virtual bool PushChildContext(GLWindowingData existing, GLWindowingData newChild,
+                                GLWindowingData *saved)
+  {
+    bool success = MakeContextCurrent(newChild);
+    *saved = existing;
+    return success;
+  }
+  virtual void PopChildContext(GLWindowingData existing, GLWindowingData newChild,
+                               GLWindowingData saved)
+  {
+    MakeContextCurrent(saved);
+  }
   // for 'backwards compatible' overlay rendering
   virtual void DrawQuads(float width, float height, const rdcarray<Vec4f> &vertices) = 0;
 

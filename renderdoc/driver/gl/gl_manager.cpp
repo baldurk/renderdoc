@@ -145,12 +145,18 @@ bool GLResourceManager::ResourceTypeRelease(GLResource res)
     {
       ContextShareGroup *contextShareGroup = (ContextShareGroup *)res.ContextShareGroup;
 
-      if(m_Driver->m_Platform.MakeContextCurrent(contextShareGroup->m_BackDoor))
+      GLWindowingData oldContextData = m_Driver->m_ActiveContexts[Threading::GetCurrentID()];
+
+      GLWindowingData savedContext;
+
+      if(m_Driver->m_Platform.PushChildContext(oldContextData, contextShareGroup->m_BackDoor,
+                                               &savedContext))
       {
         m_Driver->ReleaseResource(res);
 
         // restore the context
-        m_Driver->m_Platform.MakeContextCurrent(m_Driver->m_ActiveContexts[Threading::GetCurrentID()]);
+        m_Driver->m_Platform.PopChildContext(oldContextData, contextShareGroup->m_BackDoor,
+                                             savedContext);
       }
       else
       {

@@ -37,6 +37,41 @@ class WGLPlatform : public GLPlatform
     return false;
   }
 
+  // pushing/popping contexts is complex on windows due to the really awful rules for DC lifetimes.
+  // Changing to the child context is easy, but getting back to where we started is hard. The
+  // 'current' DC may no longer be valid, as it may have been released in the meantime (while
+  // rendering is still A-OK). We check that the window behind the DC is valid, stored the 'wnd'
+  // member. If that window is valid then we use GetDC() to get a temporary DC and bind that,
+  // assuming all will be well. If the window isn't valid then we can't get a valid DC so we can't
+  // rebind the context exactly as it was, however we assume that rendering to that setup was broken
+  // (because the bound DC wasn't pointing to a valid window) so instead we just bind the old
+  // context but with our DC.
+
+  virtual bool PushChildContext(GLWindowingData existing, GLWindowingData newChild,
+                                GLWindowingData *saved)
+  {
+    bool success = MakeContextCurrent(newChild);
+    *saved = existing;
+    if(::IsWindow(existing.wnd))
+    {
+      saved->DC = GetDC(existing.wnd);
+    }
+    else
+    {
+      saved->wnd = newChild.wnd;
+      saved->DC = newChild.DC;
+    }
+
+    return success;
+  }
+  virtual void PopChildContext(GLWindowingData existing, GLWindowingData newChild,
+                               GLWindowingData saved)
+  {
+    MakeContextCurrent(saved);
+    // release the DC now, if we didn't use our own because theirs was invalid
+    if(saved.DC != newChild.DC)
+      ::ReleaseDC(saved.wnd, saved.DC);
+  }
   GLWindowingData CloneTemporaryContext(GLWindowingData share)
   {
     GLWindowingData ret = share;

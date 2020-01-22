@@ -711,8 +711,10 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
 
     if(child.ctx)
     {
+      GLWindowingData saved;
+
       // switch to child
-      platform.MakeContextCurrent(child);
+      platform.PushChildContext(context, child, &saved);
 
       // these shouldn't be visible
       VendorCheck[VendorCheck_EXT_fbo_shared] = (GL.glIsFramebuffer(fbo) != GL_FALSE);
@@ -724,7 +726,7 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
         RDCWARN("VAOs are shared on this implementation");
 
       // switch back to context
-      platform.MakeContextCurrent(context);
+      platform.PopChildContext(context, child, saved);
 
       platform.DeleteClonedContext(child);
     }
