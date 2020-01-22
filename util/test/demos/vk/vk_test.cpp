@@ -513,7 +513,7 @@ VulkanWindow *VulkanGraphicsTest::MakeWindow(int width, int height, const char *
 #if defined(WIN32)
   GraphicsWindow *platWin = new Win32Window(width, height, title);
 #else
-  GraphicsWindow *platWin = new X11Window(width, height, title);
+  GraphicsWindow *platWin = new X11Window(width, height, 0, title);
 #endif
 
   return new VulkanWindow(this, platWin);

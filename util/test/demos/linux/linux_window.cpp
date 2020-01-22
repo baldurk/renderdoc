@@ -54,7 +54,7 @@ Display *X11Window::GetDisplay()
   return display;
 }
 
-X11Window::X11Window(int width, int height, const char *title)
+X11Window::X11Window(int width, int height, int visualid_override, const char *title)
 {
   uint32_t value_mask, value_list[32];
 
@@ -65,8 +65,19 @@ X11Window::X11Window(int width, int height, const char *title)
   value_list[1] =
       XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY;
 
+  xcb_visualid_t visual = screen->root_visual;
+
+  if(visualid_override)
+  {
+    visual = (xcb_visualid_t)visualid_override;
+
+    value_mask |= XCB_CW_COLORMAP;
+    value_list[2] = xcb_generate_id(connection);
+    xcb_create_colormap(connection, XCB_COLORMAP_ALLOC_NONE, value_list[2], screen->root, visual);
+  }
+
   xcb_create_window(connection, XCB_COPY_FROM_PARENT, window, screen->root, 0, 0, width, height, 0,
-                    XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, value_mask, value_list);
+                    XCB_WINDOW_CLASS_INPUT_OUTPUT, visual, value_mask, value_list);
 
   /* Magic code that will send notification when window is destroyed */
   xcb_intern_atom_cookie_t cookie = xcb_intern_atom(connection, 1, 12, "WM_PROTOCOLS");

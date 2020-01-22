@@ -29,6 +29,63 @@
 
 #include "../linux/linux_window.h"
 
+namespace
+{
+int visual_id = 0;
+};
+
+static GLXFBConfig *GetGLXFBConfigs(Display *dpy)
+{
+  // GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB MUST be the last attrib so that we can remove it to retry
+  // if we find no srgb fbconfigs
+  static int visAttribs[] = {GLX_X_RENDERABLE,
+                             True,
+                             GLX_DRAWABLE_TYPE,
+                             GLX_WINDOW_BIT,
+                             GLX_RENDER_TYPE,
+                             GLX_RGBA_BIT,
+                             GLX_X_VISUAL_TYPE,
+                             GLX_TRUE_COLOR,
+                             GLX_RED_SIZE,
+                             8,
+                             GLX_GREEN_SIZE,
+                             8,
+                             GLX_BLUE_SIZE,
+                             8,
+                             GLX_ALPHA_SIZE,
+                             8,
+                             GLX_DEPTH_SIZE,
+                             0,
+                             GLX_STENCIL_SIZE,
+                             0,
+                             GLX_DOUBLEBUFFER,
+                             True,
+                             GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB,
+                             True,
+                             0};
+
+  int numCfgs = 0;
+  GLXFBConfig *fbcfg = glXChooseFBConfig(dpy, DefaultScreen(dpy), visAttribs, &numCfgs);
+
+  if(fbcfg == NULL)
+  {
+    const size_t len = ARRAY_COUNT(visAttribs);
+    if(visAttribs[len - 3] != GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB)
+    {
+      TEST_ERROR(
+          "GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB isn't the last attribute, and no SRGB fbconfigs were "
+          "found!");
+    }
+    else
+    {
+      visAttribs[len - 3] = 0;
+      fbcfg = glXChooseFBConfig(dpy, DefaultScreen(dpy), visAttribs, &numCfgs);
+    }
+  }
+
+  return fbcfg;
+}
+
 void OpenGLGraphicsTest::Prepare(int argc, char **argv)
 {
   GraphicsTest::Prepare(argc, argv);
@@ -58,7 +115,19 @@ bool OpenGLGraphicsTest::Init()
 
   gladLoadGLX(dpy, DefaultScreen(dpy));
 
-  mainWindow = new X11Window(screenWidth, screenHeight, screenTitle);
+  // on some systems we need to choose a visual in advance that will be compatible if we want an
+  // RGBA backbuffer. Do that now
+  {
+    Display *display = X11Window::GetDisplay();
+
+    GLXFBConfig *fbcfg = GetGLXFBConfigs(display);
+
+    glXGetFBConfigAttrib(display, fbcfg[0], GLX_VISUAL_ID, &visual_id);
+
+    XFree(fbcfg);
+  }
+
+  mainWindow = new X11Window(screenWidth, screenHeight, visual_id, screenTitle);
 
   mainContext = MakeContext(mainWindow, NULL);
 
@@ -85,7 +154,7 @@ bool OpenGLGraphicsTest::Init()
 
 GraphicsWindow *OpenGLGraphicsTest::MakeWindow(int width, int height, const char *title)
 {
-  return new X11Window(width, height, title);
+  return new X11Window(width, height, visual_id, title);
 }
 
 void *OpenGLGraphicsTest::MakeContext(GraphicsWindow *win, void *share)
@@ -118,50 +187,8 @@ void *OpenGLGraphicsTest::MakeContext(GraphicsWindow *win, void *share)
   else
     attribs[i++] = GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
 
-  // GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB MUST be the last attrib so that we can remove it to retry
-  // if we find no srgb fbconfigs
-  static int visAttribs[] = {GLX_X_RENDERABLE,
-                             True,
-                             GLX_DRAWABLE_TYPE,
-                             GLX_WINDOW_BIT,
-                             GLX_RENDER_TYPE,
-                             GLX_RGBA_BIT,
-                             GLX_X_VISUAL_TYPE,
-                             GLX_TRUE_COLOR,
-                             GLX_RED_SIZE,
-                             8,
-                             GLX_GREEN_SIZE,
-                             8,
-                             GLX_BLUE_SIZE,
-                             8,
-                             GLX_ALPHA_SIZE,
-                             8,
-                             GLX_DOUBLEBUFFER,
-                             True,
-                             GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB,
-                             True,
-                             0};
-
-  int numCfgs = 0;
-  GLXFBConfig *fbcfg = glXChooseFBConfig(x11win->xlib.display, DefaultScreen(x11win->xlib.display),
-                                         visAttribs, &numCfgs);
-
-  if(fbcfg == NULL)
-  {
-    const size_t len = ARRAY_COUNT(visAttribs);
-    if(visAttribs[len - 3] != GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB)
-    {
-      TEST_ERROR(
-          "GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB isn't the last attribute, and no SRGB fbconfigs were "
-          "found!");
-    }
-    else
-    {
-      visAttribs[len - 3] = 0;
-      fbcfg = glXChooseFBConfig(x11win->xlib.display, DefaultScreen(x11win->xlib.display),
-                                visAttribs, &numCfgs);
-    }
-  }
+  Display *dpy = x11win->xlib.display;
+  GLXFBConfig *fbcfg = GetGLXFBConfigs(dpy);
 
   if(fbcfg == NULL)
   {
@@ -169,19 +196,8 @@ void *OpenGLGraphicsTest::MakeContext(GraphicsWindow *win, void *share)
     return NULL;
   }
 
-  // Choose FB config with a GLX_VISUAL_ID that matches the X screen.
-  VisualID visualid_correct =
-      DefaultVisual(x11win->xlib.display, DefaultScreen(x11win->xlib.display))->visualid;
-  for(int i = 0; i < numCfgs; i++)
-  {
-    int visualid;
-    glXGetFBConfigAttrib(x11win->xlib.display, fbcfg[i], GLX_VISUAL_ID, &visualid);
-    if((VisualID)visualid == visualid_correct)
-    {
-      fbcfg[0] = fbcfg[i];
-      break;
-    }
-  }
+  // we should have selected a compatible visual with the first fbcfg when creating the window, so
+  // we can use fbcfg[0]
 
   GLXContext ctx =
       glXCreateContextAttribsARB(x11win->xlib.display, fbcfg[0], (GLXContext)share, true, attribs);

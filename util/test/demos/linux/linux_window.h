@@ -33,7 +33,7 @@ struct X11Window : public GraphicsWindow
   static void Init();
   static Display *GetDisplay();
 
-  X11Window(int width, int height, const char *title);
+  X11Window(int width, int height, int visualid_override, const char *title);
   ~X11Window();
   void Resize(int width, int height);
   bool Update();
