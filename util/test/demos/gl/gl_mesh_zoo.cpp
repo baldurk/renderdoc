@@ -77,6 +77,40 @@ void main()
 
 )EOSHADER";
 
+  std::string nopvertex = R"EOSHADER(
+#version 420 core
+
+void main()
+{
+}
+
+)EOSHADER";
+
+  std::string geometry = R"EOSHADER(
+#version 420 core
+
+layout(points) in;
+layout(triangle_strip, max_vertices = 3) out;
+
+out vec4 col;
+
+void main()
+{
+  const vec4 verts[3] = vec4[3](vec4(-0.4, -0.4, 0.5, 1.0), vec4(0.6, -0.6, 0.5, 1.0),
+                                vec4(-0.5, 0.5, 0.5, 1.0));
+
+  for(int i=0; i < 3; i++)
+  {
+    gl_Position = verts[i];
+    col = vec4(1, 0, 0, 1);
+    EmitVertex();
+  }
+
+  EndPrimitive();
+}
+
+)EOSHADER";
+
   int main()
   {
     // initialise, create window, create context, etc
@@ -152,6 +186,8 @@ void main()
 
     GLuint program = MakeProgram(common + vertex, common + pixel);
 
+    GLuint geomprogram = MakeProgram(nopvertex, common + pixel, geometry);
+
     GLuint fbo = MakeFBO();
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
@@ -198,6 +234,12 @@ void main()
       setMarker("Stride 0");
 
       glBindVertexArray(stride0vao);
+
+      glDrawArrays(GL_POINTS, 0, 1);
+
+      setMarker("Geom Only");
+
+      glUseProgram(geomprogram);
 
       glDrawArrays(GL_POINTS, 0, 1);
 
