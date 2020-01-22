@@ -86,6 +86,8 @@ struct D3D12GraphicsTest : public GraphicsTest
       const std::vector<D3D12_ROOT_PARAMETER1> &params,
       D3D12_ROOT_SIGNATURE_FLAGS Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
       UINT NumStaticSamplers = 0, const D3D12_STATIC_SAMPLER_DESC *StaticSamplers = NULL);
+  ID3D12CommandSignaturePtr MakeCommandSig(ID3D12RootSignaturePtr rootSig,
+                                           const std::vector<D3D12_INDIRECT_ARGUMENT_DESC> &params);
   D3D12PSOCreator MakePSO() { return D3D12PSOCreator(this); }
   D3D12BufferCreator MakeBuffer() { return D3D12BufferCreator(this); }
   D3D12TextureCreator MakeTexture(DXGI_FORMAT format, UINT width)

@@ -1117,3 +1117,50 @@ ID3D12RootSignaturePtr D3D12GraphicsTest::MakeSig(const std::vector<D3D12_ROOT_P
                                     __uuidof(ID3D12RootSignature), (void **)&ret));
   return ret;
 }
+
+ID3D12CommandSignaturePtr D3D12GraphicsTest::MakeCommandSig(
+    ID3D12RootSignaturePtr rootSig, const std::vector<D3D12_INDIRECT_ARGUMENT_DESC> &params)
+{
+  D3D12_COMMAND_SIGNATURE_DESC desc = {};
+  desc.pArgumentDescs = params.data();
+  desc.NumArgumentDescs = (UINT)params.size();
+
+  for(const D3D12_INDIRECT_ARGUMENT_DESC &p : params)
+  {
+    switch(p.Type)
+    {
+      case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
+        desc.ByteStride += sizeof(D3D12_DRAW_ARGUMENTS);
+        break;
+      case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
+        desc.ByteStride += sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+        break;
+      case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
+        desc.ByteStride += sizeof(D3D12_DISPATCH_ARGUMENTS);
+        break;
+      case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
+        desc.ByteStride += sizeof(D3D12_VERTEX_BUFFER_VIEW);
+        break;
+      case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW:
+        desc.ByteStride += sizeof(D3D12_INDEX_BUFFER_VIEW);
+        break;
+      case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
+        desc.ByteStride += p.Constant.Num32BitValuesToSet * sizeof(uint32_t);
+        break;
+      case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
+        desc.ByteStride += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
+        break;
+      case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
+        desc.ByteStride += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
+        break;
+      case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
+        desc.ByteStride += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
+        break;
+    }
+  }
+
+  ID3D12CommandSignaturePtr ret;
+  CHECK_HR(
+      dev->CreateCommandSignature(&desc, rootSig, __uuidof(ID3D12CommandSignature), (void **)&ret));
+  return ret;
+}
