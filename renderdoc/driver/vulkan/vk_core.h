@@ -1056,7 +1056,7 @@ public:
 
   inline ImageTransitionInfo GetImageTransitionInfo() const
   {
-    return ImageTransitionInfo(m_State, m_QueueFamilyIdx);
+    return ImageTransitionInfo(m_State, m_QueueFamilyIdx, SeparateDepthStencil());
   }
 
   // Device initialization
