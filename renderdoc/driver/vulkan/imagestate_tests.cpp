@@ -133,7 +133,7 @@ void CheckSubresourceState(const ImageSubresourceState &substate,
 
 TEST_CASE("Test ImageState type", "[imagestate]")
 {
-  ImageTransitionInfo transitionInfo(CaptureState::ActiveCapturing, 0);
+  ImageTransitionInfo transitionInfo(CaptureState::ActiveCapturing, 0, true);
   VkImage image = (VkImage)123;
   VkFormat format = VK_FORMAT_D16_UNORM_S8_UINT;
   VkExtent3D extent = {100, 100, 13};

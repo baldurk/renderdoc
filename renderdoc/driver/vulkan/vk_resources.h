@@ -1540,8 +1540,12 @@ struct ImageTransitionInfo
 {
   CaptureState capState;
   uint32_t defaultQueueFamilyIndex;
-  inline ImageTransitionInfo(CaptureState capState, uint32_t defaultQueueFamilyIndex)
-      : capState(capState), defaultQueueFamilyIndex(defaultQueueFamilyIndex)
+  bool separateDepthStencil;
+  inline ImageTransitionInfo(CaptureState capState, uint32_t defaultQueueFamilyIndex,
+                             bool separateDepthStencil)
+      : capState(capState),
+        defaultQueueFamilyIndex(defaultQueueFamilyIndex),
+        separateDepthStencil(separateDepthStencil)
   {
   }
   inline FrameRefCompFunc GetFrameRefCompFunc()
