@@ -658,18 +658,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
     float highlightCol[] = {0.8f, 0.1f, 0.8f, 1.0f};
     float bgclearCol[] = {0.0f, 0.0f, 0.0f, 0.5f};
 
-    if(overlay == DebugOverlay::Wireframe)
-    {
-      highlightCol[0] = 200 / 255.0f;
-      highlightCol[1] = 1.0f;
-      highlightCol[2] = 0.0f;
-
-      bgclearCol[0] = 200 / 255.0f;
-      bgclearCol[1] = 1.0f;
-      bgclearCol[2] = 0.0f;
-      bgclearCol[3] = 0.0f;
-    }
-
     VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                                     NULL,
                                     VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,

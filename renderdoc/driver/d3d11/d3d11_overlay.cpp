@@ -555,10 +555,10 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
       }
     }
 
-    float overlayConsts[] = {200.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f, 0.0f};
-    m_pImmediateContext->ClearRenderTargetView(rtv, overlayConsts);
+    float clearColour[] = {0.0f, 0.0f, 0.0f, 0.5f};
+    m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
 
-    overlayConsts[3] = 1.0f;
+    float overlayConsts[] = {0.8f, 0.1f, 0.8f, 1.0f};
     ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(overlayConsts, sizeof(overlayConsts));
 
     m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);

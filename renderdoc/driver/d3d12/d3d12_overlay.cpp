@@ -580,7 +580,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
       D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC psoDesc;
       pipe->Fill(psoDesc);
 
-      float overlayConsts[] = {200.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f, 1.0f};
+      float overlayConsts[4] = {0.8f, 0.1f, 0.8f, 1.0f};
       ID3DBlob *ps = m_pDevice->GetShaderCache()->MakeFixedColShader(overlayConsts);
 
       psoDesc.PS.pShaderBytecode = ps->GetBufferPointer();
@@ -612,8 +612,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
       psoDesc.RasterizerState.MultisampleEnable = FALSE;
       psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
 
-      overlayConsts[3] = 0.0f;
-      list->ClearRenderTargetView(rtv, overlayConsts, 0, NULL);
+      float clearColour[] = {0.0f, 0.0f, 0.0f, 0.5f};
+      list->ClearRenderTargetView(rtv, clearColour, 0, NULL);
 
       list->Close();
       list = NULL;

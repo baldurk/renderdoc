@@ -454,11 +454,11 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
   }
   else if(overlay == DebugOverlay::Wireframe)
   {
-    float wireCol[] = {200.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f, 0.0f};
-    drv.glClearBufferfv(eGL_COLOR, 0, wireCol);
+    float black[] = {0.0f, 0.0f, 0.0f, 0.5f};
+    drv.glClearBufferfv(eGL_COLOR, 0, black);
 
-    wireCol[3] = 1.0f;
-    drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, wireCol);
+    float colVal[] = {0.8f, 0.1f, 0.8f, 1.0f};
+    drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, colVal);
 
     if(!IsGLES)
     {
