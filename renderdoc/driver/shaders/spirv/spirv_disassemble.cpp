@@ -564,6 +564,8 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
           // peek ahead and consume any function parameters
           {
             it++;
+            while(it.opcode() == Op::Line || it.opcode() == Op::NoLine)
+              it++;
 
             const bool added_params = (it.opcode() == Op::FunctionParameter);
 
@@ -572,6 +574,8 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
               OpFunctionParameter param(it);
               ret += declName(param.resultType, param.result) + ", ";
               it++;
+              while(it.opcode() == Op::Line || it.opcode() == Op::NoLine)
+                it++;
             }
 
             // remove trailing ", "
@@ -648,6 +652,8 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
 
             ConstIter nextit = it;
             nextit++;
+            while(nextit.opcode() == Op::Line || nextit.opcode() == Op::NoLine)
+              nextit++;
 
             // if we got here we're a simple if() without an else - SelectionMerge/LoopMerge
             // consumes any branch
@@ -716,6 +722,8 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
 
             ConstIter nextit = it;
             nextit++;
+            while(nextit.opcode() == Op::Line || nextit.opcode() == Op::NoLine)
+              nextit++;
 
             // we can now ignore everything between us and the label of this branch, which is almost
             // always going to be the very next label.
@@ -846,6 +854,8 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
 
           ConstIter nextit = it;
           nextit++;
+          while(nextit.opcode() == Op::Line || nextit.opcode() == Op::NoLine)
+            nextit++;
 
           // next opcode *must* be a label because this is the end of a block
           RDCASSERTEQUAL(nextit.opcode(), Op::Label);
