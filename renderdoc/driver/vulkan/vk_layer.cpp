@@ -400,6 +400,8 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
 
   HookInitVulkanDeviceExts();
 
+  HookInitVulkanInstanceExts_PhysDev();
+
   if(GetInstanceDispatchTable(instance)->GetInstanceProcAddr == NULL)
     return NULL;
   return GetInstanceDispatchTable(instance)->GetInstanceProcAddr(Unwrap(instance), pName);
@@ -456,9 +458,6 @@ VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, c
   CheckInstanceExts();
   CheckDeviceExts();
 
-  // any extensions that are known to be physical device functions, return here
-  HookInitVulkanInstanceExts_PhysDev();
-
 // any remaining functions that are known, we must return NULL for
 #undef HookInitExtension
 #define HookInitExtension(cond, function)             \
@@ -470,6 +469,9 @@ VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, c
   if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||               \
      !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
     return NULL;
+
+  // any extensions that are known to be physical device functions, return here
+  HookInitVulkanInstanceExts_PhysDev();
 
   HookInitVulkanInstanceExts();
   HookInitVulkanDeviceExts();
