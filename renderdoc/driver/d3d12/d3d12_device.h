@@ -403,6 +403,8 @@ private:
   Threading::CriticalSection m_MapsLock;
   rdcarray<MapState> m_Maps;
 
+  Threading::CriticalSection m_WrapDeduplicateLock;
+
   bool ProcessChunk(ReadSerialiser &ser, D3D12Chunk context);
 
   unsigned int m_InternalRefcount;

@@ -504,9 +504,21 @@ D3D12_RESOURCE_ALLOCATION_INFO WrappedID3D12Device::GetResourceAllocationInfo1(
 
 ID3D12Fence *WrappedID3D12Device::CreateProtectedSessionFence(ID3D12Fence *real)
 {
-  // we basically treat this kind of like CreateFence and serialise it as such, and guess at the
-  // parameters to CreateFence.
-  WrappedID3D12Fence1 *wrapped = new WrappedID3D12Fence1(real, this);
+  WrappedID3D12Fence1 *wrapped = NULL;
+
+  {
+    SCOPED_LOCK(m_WrapDeduplicateLock);
+
+    // if we already have this fence wrapped, return the existing wrapper
+    if(GetResourceManager()->HasWrapper(real))
+    {
+      return (ID3D12Fence *)GetResourceManager()->GetWrapper((ID3D12DeviceChild *)real);
+    }
+
+    // we basically treat this kind of like CreateFence and serialise it as such, and guess at the
+    // parameters to CreateFence.
+    wrapped = new WrappedID3D12Fence1(real, this);
+  }
 
   if(IsCaptureMode(m_State))
   {

@@ -521,15 +521,6 @@ public:
     else if(riid == __uuidof(ID3D12Fence1))
       fence = (ID3D12Fence *)(ID3D12Fence1 *)iface;
 
-    // if we already have this fence wrapped, return the existing wrapper
-    if(m_pDevice->GetResourceManager()->HasWrapper(fence))
-    {
-      *ppFence =
-          (ID3D12Fence *)m_pDevice->GetResourceManager()->GetWrapper((ID3D12DeviceChild *)fence);
-      return S_OK;
-    }
-
-    // if not, record its creation
     *ppFence = m_pDevice->CreateProtectedSessionFence(fence);
     return S_OK;
   }

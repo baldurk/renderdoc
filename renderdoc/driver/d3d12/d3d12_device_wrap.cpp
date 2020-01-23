@@ -949,17 +949,23 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
 
   if(SUCCEEDED(ret))
   {
-    // duplicate signatures can be returned, if Create is called with a previous equivalent blob
-    if(GetResourceManager()->HasWrapper(real))
-    {
-      real->Release();
-      ID3D12RootSignature *existing = (ID3D12RootSignature *)GetResourceManager()->GetWrapper(real);
-      existing->AddRef();
-      *ppvRootSignature = existing;
-      return ret;
-    }
+    WrappedID3D12RootSignature *wrapped = NULL;
 
-    WrappedID3D12RootSignature *wrapped = new WrappedID3D12RootSignature(real, this);
+    {
+      SCOPED_LOCK(m_WrapDeduplicateLock);
+
+      // duplicate signatures can be returned, if Create is called with a previous equivalent blob
+      if(GetResourceManager()->HasWrapper(real))
+      {
+        real->Release();
+        ID3D12RootSignature *existing = (ID3D12RootSignature *)GetResourceManager()->GetWrapper(real);
+        existing->AddRef();
+        *ppvRootSignature = existing;
+        return ret;
+      }
+
+      wrapped = new WrappedID3D12RootSignature(real, this);
+    }
 
     if(IsCaptureMode(m_State))
     {
@@ -2013,17 +2019,23 @@ HRESULT WrappedID3D12Device::CreateCommandSignature(const D3D12_COMMAND_SIGNATUR
 
   if(SUCCEEDED(ret))
   {
-    if(GetResourceManager()->HasWrapper(real))
-    {
-      real->Release();
-      ID3D12CommandSignature *existing =
-          (ID3D12CommandSignature *)GetResourceManager()->GetWrapper(real);
-      existing->AddRef();
-      *ppvCommandSignature = existing;
-      return ret;
-    }
+    WrappedID3D12CommandSignature *wrapped = NULL;
 
-    WrappedID3D12CommandSignature *wrapped = new WrappedID3D12CommandSignature(real, this);
+    {
+      SCOPED_LOCK(m_WrapDeduplicateLock);
+
+      if(GetResourceManager()->HasWrapper(real))
+      {
+        real->Release();
+        ID3D12CommandSignature *existing =
+            (ID3D12CommandSignature *)GetResourceManager()->GetWrapper(real);
+        existing->AddRef();
+        *ppvCommandSignature = existing;
+        return ret;
+      }
+
+      wrapped = new WrappedID3D12CommandSignature(real, this);
+    }
 
     if(IsCaptureMode(m_State))
     {

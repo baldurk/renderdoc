@@ -1172,6 +1172,8 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
 
 IDXGIResource *WrappedID3D12Device::WrapExternalDXGIResource(IDXGIResource *res)
 {
+  SCOPED_LOCK(m_WrapDeduplicateLock);
+
   ID3D12Resource *d3d12res;
   res->QueryInterface(__uuidof(ID3D12Resource), (void **)&d3d12res);
   if(GetResourceManager()->HasWrapper(d3d12res))
