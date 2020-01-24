@@ -1214,23 +1214,33 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
   {
     m_DXBCByteCode->SetDebugInfo(m_DebugInfo);
 
-    rdcarray<rdcarray<rdcstr>> fileLines;
+    struct SplitFile
+    {
+      rdcstr filename;
+      rdcarray<rdcstr> lines;
+      bool modified = false;
+    };
 
-    rdcarray<rdcstr> fileNames;
+    rdcarray<SplitFile> splitFiles;
 
-    fileLines.resize(m_DebugInfo->Files.size());
-    fileNames.resize(m_DebugInfo->Files.size());
+    splitFiles.resize(m_DebugInfo->Files.size());
 
     for(size_t i = 0; i < m_DebugInfo->Files.size(); i++)
-      fileNames[i] = m_DebugInfo->Files[i].first;
+      splitFiles[i].filename = m_DebugInfo->Files[i].first;
 
     for(size_t i = 0; i < m_DebugInfo->Files.size(); i++)
     {
       rdcarray<rdcstr> srclines;
-      rdcarray<rdcstr> *dstFile =
-          &fileLines[i];    // start off writing to the corresponding output file.
+
+      // start off writing to the corresponding output file.
+      SplitFile *dstFile = &splitFiles[i];
+      bool changedFile = false;
 
       size_t dstLine = 0;
+
+      // skip this file if it doesn't contain #line
+      if(!m_DebugInfo->Files[i].second.contains("#line"))
+        continue;
 
       split(m_DebugInfo->Files[i].second, srclines, '\n');
       srclines.push_back("");
@@ -1261,15 +1271,17 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
         if(c + 5 > end || strncmp(c, "#line", 5) != 0)
         {
           // resize up to account for the current line, if necessary
-          dstFile->resize(RDCMAX(dstLine + 1, dstFile->size()));
+          dstFile->lines.resize(RDCMAX(dstLine + 1, dstFile->lines.size()));
 
           // if non-empty, append this line (to allow multiple lines on the same line
           // number to be concatenated). To avoid screwing up line numbers we have to append with a
           // comment and not a newline.
-          if((*dstFile)[dstLine].empty())
-            (*dstFile)[dstLine] = srclines[srcLine];
+          if(dstFile->lines[dstLine].empty())
+            dstFile->lines[dstLine] = srclines[srcLine];
           else
-            (*dstFile)[dstLine] += " /* multiple #lines overlapping */ " + srclines[srcLine];
+            dstFile->lines[dstLine] += " /* multiple #lines overlapping */ " + srclines[srcLine];
+
+          dstFile->modified = true;
 
           // advance line counter
           dstLine++;
@@ -1319,15 +1331,9 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
         while(*c == '\t' || *c == ' ')
           c++;
 
-        // no filename
-        if(*c == 0)
+        if(*c == '"')
         {
-          // set the next line number, and continue processing
-          dstLine = newLineNum;
-          continue;
-        }
-        else if(*c == '"')
-        {
+          // filename
           c++;
 
           char *filename = c;
@@ -1355,9 +1361,9 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
             bool found = false;
             size_t dstFileIdx = 0;
 
-            for(size_t f = 0; f < fileNames.size(); f++)
+            for(size_t f = 0; f < splitFiles.size(); f++)
             {
-              if(fileNames[f] == filename)
+              if(splitFiles[f].filename == filename)
               {
                 found = true;
                 dstFileIdx = f;
@@ -1367,17 +1373,20 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
             if(found)
             {
-              dstFile = &fileLines[dstFileIdx];
+              changedFile = (dstFile != &splitFiles[dstFileIdx]);
+              dstFile = &splitFiles[dstFileIdx];
             }
             else
             {
               RDCWARN("Couldn't find filename '%s' in #line directive in debug info", filename);
 
               // make a dummy file to write into that won't be used.
-              fileNames.push_back(filename);
-              fileLines.push_back(rdcarray<rdcstr>());
+              splitFiles.push_back(SplitFile());
+              splitFiles.back().filename = filename;
+              splitFiles.back().modified = true;
 
-              dstFile = &fileLines.back();
+              changedFile = true;
+              dstFile = &splitFiles.back();
             }
 
             // set the next line number, and continue processing
@@ -1388,12 +1397,14 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
           else
           {
             // invalid #line, ignore
+            RDCERR("Couldn't parse #line directive: '%s'", srclines[srcLine].c_str());
             continue;
           }
         }
         else
         {
-          // invalid #line, ignore
+          // No filename. Set the next line number, and continue processing
+          dstLine = newLineNum;
           continue;
         }
       }
@@ -1401,9 +1412,9 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
     for(size_t i = 0; i < m_DebugInfo->Files.size(); i++)
     {
-      if(m_DebugInfo->Files[i].second.empty())
+      if(m_DebugInfo->Files[i].second.empty() || splitFiles[i].modified)
       {
-        merge(fileLines[i], m_DebugInfo->Files[i].second, '\n');
+        merge(splitFiles[i].lines, m_DebugInfo->Files[i].second, '\n');
       }
     }
   }
