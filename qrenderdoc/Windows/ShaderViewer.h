@@ -252,6 +252,8 @@ private:
   void addFileList();
 
   ScintillaEdit *MakeEditor(const QString &name, const QString &text, int lang);
+  void SetTextAndUpdateMargin0(ScintillaEdit *ret, const QString &text);
+
   ScintillaEdit *AddFileScintilla(const QString &name, const QString &text, ShaderEncoding encoding);
 
   ScintillaEdit *currentScintilla();

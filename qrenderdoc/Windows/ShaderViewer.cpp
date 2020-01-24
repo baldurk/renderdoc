@@ -384,7 +384,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
         // read-only applies to us too!
         m_DisassemblyView->setReadOnly(false);
-        m_DisassemblyView->setText(disasm.c_str());
+        SetTextAndUpdateMargin0(m_DisassemblyView, disasm);
         m_DisassemblyView->setReadOnly(true);
 
         bool preferSourceDebug = false;
@@ -886,20 +886,9 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
 {
   ScintillaEdit *ret = new ScintillaEdit(this);
 
-  ret->setText(text.toUtf8().data());
-
-  sptr_t numlines = ret->lineCount();
-
-  int margin0width = 30;
-  if(numlines > 1000)
-    margin0width += 6;
-  if(numlines > 10000)
-    margin0width += 6;
-
-  margin0width = int(margin0width * devicePixelRatioF());
+  SetTextAndUpdateMargin0(ret, text);
 
   ret->setMarginLeft(4.0 * devicePixelRatioF());
-  ret->setMarginWidthN(0, margin0width);
   ret->setMarginWidthN(1, 0);
   ret->setMarginWidthN(2, 16.0 * devicePixelRatioF());
   ret->setObjectName(name);
@@ -929,6 +918,23 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
   ret->emptyUndoBuffer();
 
   return ret;
+}
+
+void ShaderViewer::SetTextAndUpdateMargin0(ScintillaEdit *sc, const QString &text)
+{
+  sc->setText(text.toUtf8().data());
+
+  sptr_t numlines = sc->lineCount();
+
+  int margin0width = 30;
+  if(numlines > 1000)
+    margin0width += 6;
+  if(numlines > 10000)
+    margin0width += 6;
+
+  margin0width = int(margin0width * devicePixelRatioF());
+
+  sc->setMarginWidthN(0, margin0width);
 }
 
 void ShaderViewer::readonly_keyPressed(QKeyEvent *event)
@@ -1217,7 +1223,7 @@ void ShaderViewer::disassemble_typeChanged(int index)
         text.assign((const char *)out.result.data(), out.result.size());
 
       m_DisassemblyView->setReadOnly(false);
-      m_DisassemblyView->setText(text.c_str());
+      SetTextAndUpdateMargin0(m_DisassemblyView, text);
       m_DisassemblyView->setReadOnly(true);
       m_DisassemblyView->emptyUndoBuffer();
       return;
@@ -1237,7 +1243,7 @@ void ShaderViewer::disassemble_typeChanged(int index)
 
     GUIInvoke::call(this, [this, disasm]() {
       m_DisassemblyView->setReadOnly(false);
-      m_DisassemblyView->setText(disasm.c_str());
+      SetTextAndUpdateMargin0(m_DisassemblyView, disasm);
       m_DisassemblyView->setReadOnly(true);
       m_DisassemblyView->emptyUndoBuffer();
     });
@@ -2604,7 +2610,7 @@ void ShaderViewer::ShowErrors(const rdcstr &errors)
   if(m_Errors)
   {
     m_Errors->setReadOnly(false);
-    m_Errors->setText(errors.c_str());
+    SetTextAndUpdateMargin0(m_Errors, errors);
     m_Errors->setReadOnly(true);
 
     if(!errors.isEmpty())
