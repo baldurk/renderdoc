@@ -509,6 +509,49 @@ const rdcstr &DXBCContainer::GetDisassembly()
   return m_Disassembly;
 }
 
+void DXBCContainer::FillTraceLineInfo(ShaderDebugTrace &trace) const
+{
+  if(m_DXBCByteCode)
+  {
+    trace.lineInfo.resize(m_DXBCByteCode->GetNumInstructions());
+    for(size_t i = 0; i < m_DXBCByteCode->GetNumInstructions(); i++)
+    {
+      const DXBCBytecode::Operation &op = m_DXBCByteCode->GetInstruction(i);
+
+      if(m_DebugInfo)
+        m_DebugInfo->GetLineInfo(i, op.offset, trace.lineInfo[i]);
+
+      // we add two lines for the shader hash on top of what the bytecode disassembler did
+      if(op.line > 0)
+        trace.lineInfo[i].disassemblyLine = 2 + op.line;
+    }
+  }
+}
+
+void DXBCContainer::FillStateInstructionInfo(ShaderDebugState &state) const
+{
+  uint32_t instruction = state.nextInstruction;
+
+  uintptr_t offset = 0;
+
+  if(m_DXBCByteCode)
+  {
+    if(instruction < m_DXBCByteCode->GetNumInstructions())
+      offset = m_DXBCByteCode->GetInstruction(instruction).offset;
+  }
+
+  if(m_DebugInfo)
+  {
+    m_DebugInfo->GetLocals(instruction, offset, state.locals);
+    m_DebugInfo->GetCallstack(instruction, offset, state.callstack);
+  }
+  else
+  {
+    state.locals.clear();
+    state.callstack.clear();
+  }
+}
+
 void DXBCContainer::GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength)
 {
   if(BytecodeLength < sizeof(FileHeader))

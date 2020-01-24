@@ -124,6 +124,8 @@ public:
   rdcarray<rdcpair<rdcstr, rdcstr>> Files;    // <filename, source>
 
   virtual void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const = 0;
+  virtual void GetCallstack(size_t instruction, uintptr_t offset,
+                            rdcarray<rdcstr> &callstack) const = 0;
 
   virtual bool HasLocals() const = 0;
   virtual void GetLocals(size_t instruction, uintptr_t offset,
@@ -154,6 +156,8 @@ public:
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
 
   const rdcstr &GetDisassembly();
+  void FillTraceLineInfo(ShaderDebugTrace &trace) const;
+  void FillStateInstructionInfo(ShaderDebugState &state) const;
 
   const DXBCBytecode::Program *GetDXBCByteCode() { return m_DXBCByteCode; }
   const DXIL::Program *GetDXILByteCode() { return m_DXILByteCode; }

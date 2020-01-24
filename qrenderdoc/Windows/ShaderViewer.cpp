@@ -560,6 +560,18 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     {
       const LineColumnInfo &line = m_Trace->lineInfo[inst];
 
+      int disasmLine = (int)line.disassemblyLine;
+      if(disasmLine > 0 && disasmLine >= m_AsmLine2Inst.size())
+      {
+        int oldSize = m_AsmLine2Inst.size();
+        m_AsmLine2Inst.resize(disasmLine + 1);
+        for(int i = oldSize; i < disasmLine; i++)
+          m_AsmLine2Inst[i] = -1;
+      }
+
+      if(disasmLine > 0)
+        m_AsmLine2Inst[disasmLine] = (int)inst;
+
       if(line.fileIndex < 0 || line.fileIndex >= m_Line2Insts.count())
         continue;
 
@@ -1329,7 +1341,7 @@ bool ShaderViewer::stepBack()
       if(m_CurrentStep == 0)
         break;
 
-      if(m_Trace->lineInfo[state.nextInstruction] == oldLine)
+      if(m_Trace->lineInfo[state.nextInstruction].sourceEqual(oldLine))
         continue;
 
       break;
@@ -1371,7 +1383,7 @@ bool ShaderViewer::stepNext()
       if(m_CurrentStep + 1 >= m_Trace->states.count())
         break;
 
-      if(m_Trace->lineInfo[state.nextInstruction] == oldLine)
+      if(m_Trace->lineInfo[state.nextInstruction].sourceEqual(oldLine))
         continue;
 
       break;
@@ -1424,7 +1436,7 @@ void ShaderViewer::runToCursor()
 
     for(; i < m_DisassemblyView->lineCount(); i++)
     {
-      int line = instructionForLine(i);
+      int line = instructionForDisassemblyLine(i);
       if(line >= 0)
       {
         runTo({(size_t)line}, true);
@@ -1434,22 +1446,13 @@ void ShaderViewer::runToCursor()
   }
 }
 
-int ShaderViewer::instructionForLine(sptr_t line)
+int ShaderViewer::instructionForDisassemblyLine(sptr_t line)
 {
-  QString trimmed = QString::fromUtf8(m_DisassemblyView->getLine(line).trimmed());
+  // go from scintilla's lines (0-based) to ours (1-based)
+  line++;
 
-  int colon = trimmed.indexOf(QLatin1Char(':'));
-
-  if(colon > 0)
-  {
-    trimmed.truncate(colon);
-
-    bool ok = false;
-    int instruction = trimmed.toInt(&ok);
-
-    if(ok && instruction >= 0)
-      return instruction;
-  }
+  if(line < m_AsmLine2Inst.size())
+    return m_AsmLine2Inst[line];
 
   return -1;
 }
@@ -1776,30 +1779,27 @@ void ShaderViewer::updateDebugging()
     m_CurInstructionScintilla = NULL;
   }
 
-  for(sptr_t i = 0; i < m_DisassemblyView->lineCount(); i++)
-  {
-    if(QString::fromUtf8(m_DisassemblyView->getLine(i).trimmed())
-           .startsWith(QFormatStr("%1:").arg(nextInst)))
-    {
-      m_DisassemblyView->markerAdd(i, done ? FINISHED_MARKER : CURRENT_MARKER);
-      m_DisassemblyView->markerAdd(i, done ? FINISHED_MARKER + 1 : CURRENT_MARKER + 1);
-
-      int pos = m_DisassemblyView->positionFromLine(i);
-      m_DisassemblyView->setSelection(pos, pos);
-
-      ensureLineScrolled(m_DisassemblyView, i);
-      break;
-    }
-  }
-
   ui->callstack->clear();
+
+  for(const rdcstr &s : state.callstack)
+    ui->callstack->insertItem(0, s);
 
   if(state.nextInstruction < m_Trace->lineInfo.size())
   {
     LineColumnInfo &lineInfo = m_Trace->lineInfo[state.nextInstruction];
 
-    for(const rdcstr &s : lineInfo.callstack)
-      ui->callstack->insertItem(0, s);
+    // highlight the current line
+    {
+      m_DisassemblyView->markerAdd(lineInfo.disassemblyLine - 1,
+                                   done ? FINISHED_MARKER : CURRENT_MARKER);
+      m_DisassemblyView->markerAdd(lineInfo.disassemblyLine - 1,
+                                   done ? FINISHED_MARKER + 1 : CURRENT_MARKER + 1);
+
+      int pos = m_DisassemblyView->positionFromLine(lineInfo.disassemblyLine - 1);
+      m_DisassemblyView->setSelection(pos, pos);
+
+      ensureLineScrolled(m_DisassemblyView, lineInfo.disassemblyLine - 1);
+    }
 
     if(lineInfo.fileIndex >= 0 && lineInfo.fileIndex < m_FileScintillas.count())
     {
@@ -2529,7 +2529,7 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
 
       for(; instLine < m_DisassemblyView->lineCount(); instLine++)
       {
-        instruction = instructionForLine(instLine);
+        instruction = instructionForDisassemblyLine(instLine);
 
         if(instruction >= 0)
           break;
@@ -2542,17 +2542,8 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
 
   if(instLine == -1)
   {
-    // find line for this instruction
-    for(instLine = 0; instLine < m_DisassemblyView->lineCount(); instLine++)
-    {
-      int inst = instructionForLine(instLine);
-
-      if(instruction == inst)
-        break;
-    }
-
-    if(instLine >= m_DisassemblyView->lineCount())
-      instLine = -1;
+    if(m_Trace && instruction >= 0 && instruction < m_Trace->lineInfo.count())
+      instLine = m_Trace->lineInfo[instruction].disassemblyLine - 1;
   }
 
   if(m_Breakpoints.contains(instruction))
@@ -2600,8 +2591,8 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
           }
         }
       }
+      m_Breakpoints.push_back(instruction);
     }
-    m_Breakpoints.push_back(instruction);
   }
 }
 

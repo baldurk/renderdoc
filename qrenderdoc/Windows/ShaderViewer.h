@@ -209,6 +209,9 @@ private:
   // a map per file, from line number to instruction indices
   QVector<QMap<int32_t, QVector<size_t>>> m_Line2Insts;
 
+  // a vector for the disassembly
+  QVector<int32_t> m_AsmLine2Inst;
+
   ScintillaEdit *m_CurInstructionScintilla = NULL;
   QList<ScintillaEdit *> m_FileScintillas;
 
@@ -262,7 +265,7 @@ private:
   int snippetPos();
   QString vulkanUBO();
 
-  int instructionForLine(sptr_t line);
+  int instructionForDisassemblyLine(sptr_t line);
 
   void updateDebugging();
 

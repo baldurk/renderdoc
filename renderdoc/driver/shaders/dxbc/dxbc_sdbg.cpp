@@ -110,8 +110,15 @@ void SDBGChunk::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo
       lineInfo.lineEnd = sym.lineNum;
       lineInfo.colStart = 0;
       lineInfo.colEnd = 0;
-      lineInfo.callstack = {m_Entry};
     }
+  }
+}
+
+void SDBGChunk::GetCallstack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &callstack) const
+{
+  if(instruction < m_Instructions.size())
+  {
+    callstack = {m_Entry};
   }
 }
 

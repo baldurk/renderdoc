@@ -439,11 +439,14 @@ struct LineColumnInfo
 
   bool operator==(const LineColumnInfo &o) const
   {
-    return fileIndex == o.fileIndex && lineStart == o.lineStart && lineEnd == o.lineEnd &&
-           colStart == o.colStart && colEnd == o.colEnd && callstack == o.callstack;
+    return disassemblyLine == o.disassemblyLine && fileIndex == o.fileIndex &&
+           lineStart == o.lineStart && lineEnd == o.lineEnd && colStart == o.colStart &&
+           colEnd == o.colEnd;
   }
   bool operator<(const LineColumnInfo &o) const
   {
+    if(!(disassemblyLine == o.disassemblyLine))
+      return disassemblyLine < o.disassemblyLine;
     if(!(fileIndex == o.fileIndex))
       return fileIndex < o.fileIndex;
     if(!(lineStart == o.lineStart))
@@ -454,18 +457,29 @@ struct LineColumnInfo
       return colStart < o.colStart;
     if(!(colEnd == o.colEnd))
       return colEnd < o.colEnd;
-    if(!(callstack == o.callstack))
-      return callstack < o.callstack;
     return false;
   }
 
-  DOCUMENT("The current file, as an index into the list of files for this shader.");
+  bool sourceEqual(const LineColumnInfo &o) const
+  {
+    // comparison without considering the disassembly line
+    return fileIndex == o.fileIndex && lineStart == o.lineStart && lineEnd == o.lineEnd &&
+           colStart == o.colStart && colEnd == o.colEnd;
+  }
+
+  DOCUMENT("The line (starting from 1) in the disassembly where this instruction is located.");
+  uint32_t disassemblyLine;
+
+  DOCUMENT(R"(The current file, as an index into the list of files for this shader.
+
+If this is negative, no source mapping is available and only :data:`disassemblyLine` is valid.
+)");
   int32_t fileIndex = -1;
 
-  DOCUMENT("The line-number (starting from 1) of the start of the current section of code.");
+  DOCUMENT("The starting line-number (starting from 1) of the source code.");
   uint32_t lineStart = 0;
 
-  DOCUMENT("The line-number (starting from 1) of the end of the current section of code.");
+  DOCUMENT("The ending line-number (starting from 1) of the source code.");
   uint32_t lineEnd = 0;
 
   DOCUMENT(R"(The column number (starting from 1) of the start of the code on the line specified by
@@ -479,12 +493,6 @@ treated as covering the code.
 treated as covering the code.
 )");
   uint32_t colEnd = 0;
-
-  DOCUMENT(R"(A ``list`` of ``str`` with each function call in the current callstack at this line.
-
-The oldest/outer function is first in the list, the newest/inner function is last.
-)");
-  rdcarray<rdcstr> callstack;
 };
 DECLARE_REFLECTION_STRUCT(LineColumnInfo);
 
@@ -542,6 +550,12 @@ shader execution happened will have ``nextInstruction == 0``.
 
   DOCUMENT("A set of :class:`ShaderEvents` flags that indicate what events happened on this step.");
   ShaderEvents flags;
+
+  DOCUMENT(R"(A ``list`` of ``str`` with each function call in the current callstack at this line.
+
+The oldest/outer function is first in the list, the newest/inner function is last.
+)");
+  rdcarray<rdcstr> callstack;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderDebugState);

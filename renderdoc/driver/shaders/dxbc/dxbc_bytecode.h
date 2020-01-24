@@ -780,7 +780,7 @@ struct Declaration
 
   ///////////////////////////////////////
 
-  uintptr_t offset;
+  uint64_t offset;
   uint32_t length;
 
   size_t instruction;    // happens before this instruction. Usually 0 as all decls are up front,
@@ -893,6 +893,7 @@ struct Operation
   Operation()
   {
     offset = 0;
+    line = 0;
     length = 0;
     stride = 0;
     operation = NUM_OPCODES;
@@ -911,6 +912,7 @@ struct Operation
   ///////////////////////////////////////
 
   uintptr_t offset;
+  uint32_t line;
   uint32_t length;
 
   OpcodeType operation;
@@ -949,6 +951,7 @@ public:
       MakeDisassemblyString();
     return m_Disassembly;
   }
+  uint32_t GetDisassemblyLine(uint32_t instruction) const;
   size_t GetNumDeclarations() const { return m_Declarations.size(); }
   const Declaration &GetDeclaration(size_t i) const { return m_Declarations[i]; }
   const Declaration *FindDeclaration(OperandType declType, uint32_t identifier) const;

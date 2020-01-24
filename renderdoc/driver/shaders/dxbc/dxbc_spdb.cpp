@@ -1562,19 +1562,17 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
           {
             CV_Line_t &line = lines[l];
 
-            LineColumnInfo lineCol;
-            lineCol.fileIndex = fileIdx;
-            lineCol.lineStart = line.linenumStart;
-            lineCol.lineEnd = line.linenumStart + line.deltaLineEnd;
+            LineColumnInfo &lineInfo = m_InstructionInfo[line.offset].lineInfo;
+            lineInfo.fileIndex = fileIdx;
+            lineInfo.lineStart = line.linenumStart;
+            lineInfo.lineEnd = line.linenumStart + line.deltaLineEnd;
 
             if(hasColumns)
             {
               CV_Column_t &col = columns[l];
-              lineCol.colStart = col.offColumnStart;
-              lineCol.colEnd = col.offColumnEnd;
+              lineInfo.colStart = col.offColumnStart;
+              lineInfo.colEnd = col.offColumnEnd;
             }
-
-            m_Lines[line.offset] = lineCol;
           }
         }
         RDCASSERT(iter == subend);
@@ -1628,7 +1626,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
     }
   }
 
-  for(auto it = m_Lines.begin(); it != m_Lines.end(); ++it)
+  for(auto it = m_InstructionInfo.begin(); it != m_InstructionInfo.end(); ++it)
     it->second.callstack.push_back(m_Functions[0].name);
 
   SPDBLOG("Applying %zu inline sites", inlines.size());
@@ -1661,24 +1659,26 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
 
       int nPatched = 0;
 
-      auto it = m_Lines.lower_bound(loc.offsetStart);
+      auto it = m_InstructionInfo.lower_bound(loc.offsetStart);
 
-      for(; it != m_Lines.end() && it->first <= loc.offsetEnd; ++it)
+      for(; it != m_InstructionInfo.end() && it->first <= loc.offsetEnd; ++it)
       {
         if((it->first >= loc.offsetStart && it->first < loc.offsetEnd) ||
            (it->first == loc.offsetStart && it->first == loc.offsetEnd))
         {
+          LineColumnInfo &lineInfo = it->second.lineInfo;
+
           SPDBLOG("Patching %x between [%x,%x] from (%d %u:%u -> %u:%u) into (%d %u:%u -> %u:%u)",
-                  it->first, loc.offsetStart, loc.offsetEnd, it->second.fileIndex,
-                  it->second.lineStart, it->second.colStart, it->second.lineEnd, it->second.colEnd,
-                  fileIdx, loc.lineStart + inlines[i].baseLineNum, loc.colStart,
+                  it->first, loc.offsetStart, loc.offsetEnd, lineInfo.fileIndex, lineInfo.lineStart,
+                  lineInfo.colStart, lineInfo.lineEnd, lineInfo.colEnd, fileIdx,
+                  loc.lineStart + inlines[i].baseLineNum, loc.colStart,
                   loc.lineEnd + inlines[i].baseLineNum, loc.colEnd);
 
-          it->second.fileIndex = fileIdx;
-          it->second.lineStart = loc.lineStart + inlines[i].baseLineNum;
-          it->second.lineEnd = loc.lineEnd + inlines[i].baseLineNum;
-          it->second.colStart = loc.colStart;
-          it->second.colEnd = loc.colEnd;
+          lineInfo.fileIndex = fileIdx;
+          lineInfo.lineStart = loc.lineStart + inlines[i].baseLineNum;
+          lineInfo.lineEnd = loc.lineEnd + inlines[i].baseLineNum;
+          lineInfo.colStart = loc.colStart;
+          lineInfo.colEnd = loc.colEnd;
           if(loc.statement)
             it->second.callstack.push_back(m_Functions[inlines[i].id].name);
           nPatched++;
@@ -1732,11 +1732,11 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
     remapping[Files[i].first] = (int32_t)i;
 
   // remap the line info by looking up the original intended filename, then looking up the new index
-  for(auto it = m_Lines.begin(); it != m_Lines.end(); ++it)
+  for(auto it = m_InstructionInfo.begin(); it != m_InstructionInfo.end(); ++it)
   {
-    if(it->second.fileIndex == -1)
+    if(it->second.lineInfo.fileIndex == -1)
       continue;
-    it->second.fileIndex = remapping[filenames[it->second.fileIndex]];
+    it->second.lineInfo.fileIndex = remapping[filenames[it->second.lineInfo.fileIndex]];
   }
 
   std::sort(m_Locals.begin(), m_Locals.end());
@@ -1746,10 +1746,18 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
 
 void SPDBChunk::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const
 {
-  auto it = m_Lines.lower_bound((uint32_t)offset);
+  auto it = m_InstructionInfo.lower_bound((uint32_t)offset);
 
-  if(it != m_Lines.end() && (uintptr_t)it->first <= offset)
-    lineInfo = it->second;
+  if(it != m_InstructionInfo.end() && (uintptr_t)it->first <= offset)
+    lineInfo = it->second.lineInfo;
+}
+
+void SPDBChunk::GetCallstack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &callstack) const
+{
+  auto it = m_InstructionInfo.lower_bound((uint32_t)offset);
+
+  if(it != m_InstructionInfo.end() && (uintptr_t)it->first <= offset)
+    callstack = it->second.callstack;
 }
 
 bool SPDBChunk::HasLocals() const

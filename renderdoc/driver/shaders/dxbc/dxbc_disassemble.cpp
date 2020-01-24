@@ -482,24 +482,29 @@ void Program::MakeDisassemblyString()
     return;
   }
 
+  rdcstr shadermodel = "xs_";
+
   switch(m_Type)
   {
-    case DXBC::ShaderType::Pixel: m_Disassembly += "ps_"; break;
-    case DXBC::ShaderType::Vertex: m_Disassembly += "vs_"; break;
-    case DXBC::ShaderType::Geometry: m_Disassembly += "gs_"; break;
-    case DXBC::ShaderType::Hull: m_Disassembly += "hs_"; break;
-    case DXBC::ShaderType::Domain: m_Disassembly += "ds_"; break;
-    case DXBC::ShaderType::Compute: m_Disassembly += "cs_"; break;
+    case DXBC::ShaderType::Pixel: shadermodel = "ps_"; break;
+    case DXBC::ShaderType::Vertex: shadermodel = "vs_"; break;
+    case DXBC::ShaderType::Geometry: shadermodel = "gs_"; break;
+    case DXBC::ShaderType::Hull: shadermodel = "hs_"; break;
+    case DXBC::ShaderType::Domain: shadermodel = "ds_"; break;
+    case DXBC::ShaderType::Compute: shadermodel = "cs_"; break;
     default: RDCERR("Unknown shader type: %u", m_Type); break;
   }
 
-  m_Disassembly += StringFormat::Fmt("%d_%d\n", m_Major, m_Minor);
+  m_Disassembly = StringFormat::Fmt("%s%d_%d\n", shadermodel.c_str(), m_Major, m_Minor);
+
+  uint32_t linenum = 2;
 
   int indent = 0;
 
   size_t d = 0;
 
   LineColumnInfo prevLineInfo;
+  rdcarray<rdcstr> prevCallstack;
 
   size_t debugInst = 0;
 
@@ -521,13 +526,23 @@ void Program::MakeDisassemblyString()
       if(m_Declarations[d].instruction > i)
       {
         if(i == 0)
+        {
           m_Disassembly += "\n";
+          linenum++;
+        }
+
         break;
       }
 
-      m_Disassembly += "      ";
-      m_Disassembly += m_Declarations[d].str;
-      m_Disassembly += "\n";
+      m_Disassembly += StringFormat::Fmt("% 4s  %s\n", "", m_Declarations[d].str.c_str());
+      linenum++;
+
+      int32_t nl = m_Declarations[d].str.indexOf('\n');
+      while(nl >= 0)
+      {
+        linenum++;
+        nl = m_Declarations[d].str.indexOf('\n', nl + 1);
+      }
     }
 
     if(m_Instructions[i].operation == OPCODE_ENDIF || m_Instructions[i].operation == OPCODE_ENDLOOP)
@@ -537,9 +552,11 @@ void Program::MakeDisassemblyString()
 
     if(m_DebugInfo)
     {
-      LineColumnInfo lineInfo = prevLineInfo;
+      LineColumnInfo lineInfo;
+      rdcarray<rdcstr> callstack;
 
       m_DebugInfo->GetLineInfo(debugInst, m_Instructions[i].offset, lineInfo);
+      m_DebugInfo->GetCallstack(debugInst, m_Instructions[i].offset, callstack);
 
       if(lineInfo.fileIndex >= 0 && (lineInfo.fileIndex != prevLineInfo.fileIndex ||
                                      lineInfo.lineStart != prevLineInfo.lineStart))
@@ -571,9 +588,9 @@ void Program::MakeDisassemblyString()
           line = line.substr(startLine);
 
         m_Disassembly += "\n";
+        linenum++;
 
-        if(((lineInfo.fileIndex != prevLineInfo.fileIndex ||
-             lineInfo.callstack.back() != prevLineInfo.callstack.back()) &&
+        if(((lineInfo.fileIndex != prevLineInfo.fileIndex || callstack.back() != prevCallstack.back()) &&
             lineInfo.fileIndex < (int32_t)fileLines.size()) ||
            line == "")
         {
@@ -581,18 +598,20 @@ void Program::MakeDisassemblyString()
           for(int in = 0; in < indent; in++)
             m_Disassembly += "  ";
 
-          rdcstr func = lineInfo.callstack.back();
+          rdcstr func = callstack.back();
 
           if(!func.empty())
           {
             m_Disassembly += StringFormat::Fmt("%s:%d - %s()\n",
                                                m_DebugInfo->Files[lineInfo.fileIndex].first.c_str(),
                                                lineInfo.lineStart, func.c_str());
+            linenum++;
           }
           else
           {
             m_Disassembly += StringFormat::Fmt(
                 "%s:%d\n", m_DebugInfo->Files[lineInfo.fileIndex].first.c_str(), lineInfo.lineStart);
+            linenum++;
           }
         }
 
@@ -602,10 +621,12 @@ void Program::MakeDisassemblyString()
           for(int in = 0; in < indent; in++)
             m_Disassembly += "  ";
           m_Disassembly += line + "\n";
+          linenum++;
         }
       }
 
       prevLineInfo = lineInfo;
+      prevCallstack = callstack;
     }
 
     int curIndent = indent;
@@ -615,8 +636,11 @@ void Program::MakeDisassemblyString()
     rdcstr whitespace;
     whitespace.fill(curIndent * 2, ' ');
 
+    m_Instructions[i].line = linenum;
+
     m_Disassembly +=
         StringFormat::Fmt("% 4u: %s%s\n", i, whitespace.c_str(), m_Instructions[i].str.c_str());
+    linenum++;
 
     if(m_Instructions[i].operation == OPCODE_IF || m_Instructions[i].operation == OPCODE_LOOP)
     {
@@ -2123,6 +2147,15 @@ bool Program::ExtractOperation(uint32_t *&tokenStream, Operation &retOp, bool fr
         }
 
         rdcstr formatString = (char *)&tokenStream[0];
+
+        // escape any newlines
+        int32_t nl = formatString.find("\n");
+        while(nl >= 0)
+        {
+          formatString[nl] = '\\';
+          formatString.insert(nl + 1, 'n');
+          nl = formatString.find("\n", nl);
+        }
 
         retOp.str = (messageFormat ? "errorf" : "error");
         retOp.str += " \"" + formatString + "\"";

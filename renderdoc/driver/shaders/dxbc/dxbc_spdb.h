@@ -267,6 +267,7 @@ public:
   rdcstr GetShaderProfile() const { return m_Profile; }
   uint32_t GetShaderCompileFlags() const { return m_ShaderFlags; }
   void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const;
+  void GetCallstack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &callstack) const;
 
   bool HasLocals() const;
   void GetLocals(size_t instruction, uintptr_t offset, rdcarray<LocalVariableMapping> &locals) const;
@@ -283,7 +284,13 @@ private:
 
   rdcarray<LocalMapping> m_Locals;
 
+  struct InstInfo
+  {
+    LineColumnInfo lineInfo;
+    rdcarray<rdcstr> callstack;
+  };
+
   std::map<uint32_t, Function> m_Functions;
-  std::map<uint32_t, LineColumnInfo> m_Lines;
+  std::map<uint32_t, InstInfo> m_InstructionInfo;
 };
 };

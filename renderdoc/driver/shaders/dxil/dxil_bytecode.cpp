@@ -785,6 +785,11 @@ D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
   return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
+uint32_t Program::GetDisassemblyLine(uint32_t instruction) const
+{
+  return 0;
+}
+
 void Program::MakeDisassemblyString()
 {
   RDCERR("Unimplemented DXIL::Program::MakeDisassemblyString()");

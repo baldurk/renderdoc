@@ -367,14 +367,14 @@ void DoSerialise(SerialiserType &ser, LocalVariableMapping &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, LineColumnInfo &el)
 {
+  SERIALISE_MEMBER(disassemblyLine);
   SERIALISE_MEMBER(fileIndex);
   SERIALISE_MEMBER(lineStart);
   SERIALISE_MEMBER(lineEnd);
   SERIALISE_MEMBER(colStart);
   SERIALISE_MEMBER(colEnd);
-  SERIALISE_MEMBER(callstack);
 
-  SIZE_CHECK(48);
+  SIZE_CHECK(24);
 }
 
 template <typename SerialiserType>
@@ -387,8 +387,9 @@ void DoSerialise(SerialiserType &ser, ShaderDebugState &el)
   SERIALISE_MEMBER(modified);
   SERIALISE_MEMBER(nextInstruction);
   SERIALISE_MEMBER(flags);
+  SERIALISE_MEMBER(callstack);
 
-  SIZE_CHECK(128);
+  SIZE_CHECK(152);
 }
 
 template <typename SerialiserType>

@@ -50,6 +50,7 @@ public:
       MakeDisassemblyString();
     return m_Disassembly;
   }
+  uint32_t GetDisassemblyLine(uint32_t instruction) const;
 
 private:
   void MakeDisassemblyString();

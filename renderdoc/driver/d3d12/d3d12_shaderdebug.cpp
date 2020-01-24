@@ -1662,9 +1662,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
   rdcarray<ShaderDebugState> states;
 
-  if(dxbc->GetDebugInfo())
-    dxbc->GetDebugInfo()->GetLocals(0, dxbc->GetDXBCByteCode()->GetInstruction(0).offset,
-                                    quad[destIdx].locals);
+  dxbc->FillStateInstructionInfo(quad[destIdx]);
 
   states.push_back(quad[destIdx]);
 
@@ -1704,13 +1702,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     {
       State &s = curquad[destIdx];
 
-      if(dxbc->GetDebugInfo())
-      {
-        size_t inst =
-            RDCMIN((size_t)s.nextInstruction, dxbc->GetDXBCByteCode()->GetNumInstructions() - 1);
-        const Operation &op = dxbc->GetDXBCByteCode()->GetInstruction(inst);
-        dxbc->GetDebugInfo()->GetLocals(s.nextInstruction, op.offset, s.locals);
-      }
+      dxbc->FillStateInstructionInfo(s);
 
       states.push_back(s);
     }
@@ -1807,12 +1799,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
   traces[destIdx].hasLocals = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
 
-  traces[destIdx].lineInfo.resize(dxbc->GetDXBCByteCode()->GetNumInstructions());
-  for(size_t i = 0; dxbc->GetDebugInfo() && i < dxbc->GetDXBCByteCode()->GetNumInstructions(); i++)
-  {
-    const Operation &op = dxbc->GetDXBCByteCode()->GetInstruction(i);
-    dxbc->GetDebugInfo()->GetLineInfo(i, op.offset, traces[destIdx].lineInfo[i]);
-  }
+  dxbc->FillTraceLineInfo(traces[destIdx]);
 
   return traces[destIdx];
 }
@@ -1881,9 +1868,7 @@ ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   rdcarray<ShaderDebugState> states;
 
-  if(dxbc->GetDebugInfo())
-    dxbc->GetDebugInfo()->GetLocals(0, dxbc->GetDXBCByteCode()->GetInstruction(0).offset,
-                                    initialState.locals);
+  dxbc->FillStateInstructionInfo(initialState);
 
   states.push_back((State)initialState);
 
@@ -1896,12 +1881,7 @@ ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t group
 
     initialState = initialState.GetNext(global, &apiWrapper, NULL);
 
-    if(dxbc->GetDebugInfo())
-    {
-      const DXBCBytecode::Operation &op =
-          dxbc->GetDXBCByteCode()->GetInstruction((size_t)initialState.nextInstruction);
-      dxbc->GetDebugInfo()->GetLocals(initialState.nextInstruction, op.offset, initialState.locals);
-    }
+    dxbc->FillStateInstructionInfo(initialState);
 
     states.push_back((State)initialState);
 
@@ -1916,12 +1896,7 @@ ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   ret.hasLocals = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
 
-  ret.lineInfo.resize(dxbc->GetDXBCByteCode()->GetNumInstructions());
-  for(size_t i = 0; dxbc->GetDebugInfo() && i < dxbc->GetDXBCByteCode()->GetNumInstructions(); i++)
-  {
-    const Operation &op = dxbc->GetDXBCByteCode()->GetInstruction(i);
-    dxbc->GetDebugInfo()->GetLineInfo(i, op.offset, ret.lineInfo[i]);
-  }
+  dxbc->FillTraceLineInfo(ret);
 
   for(size_t i = 0; i < dxbc->GetDXBCByteCode()->GetNumDeclarations(); i++)
   {

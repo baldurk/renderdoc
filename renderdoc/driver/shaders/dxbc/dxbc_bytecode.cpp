@@ -442,4 +442,9 @@ D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
   return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
+uint32_t Program::GetDisassemblyLine(uint32_t instruction) const
+{
+  return m_Instructions[RDCMIN(m_Instructions.size() - 1, (size_t)instruction)].line;
+}
+
 };    // namespace DXBCBytecode
