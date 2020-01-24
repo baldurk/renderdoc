@@ -386,11 +386,6 @@ private:
 
   InstanceDeviceInfo m_EnabledExtensions;
 
-  const InstanceDeviceInfo &GetExtensions(VkResourceRecord *record) const
-  {
-    return record ? *record->instDevInfo : m_EnabledExtensions;
-  }
-
   // the instance corresponding to this WrappedVulkan
   VkInstance m_Instance;
   // the instance's dbg msg callback handle
@@ -935,6 +930,11 @@ public:
   virtual ~WrappedVulkan();
 
   APIProperties APIProps;
+
+  const InstanceDeviceInfo &GetExtensions(VkResourceRecord *record) const
+  {
+    return record ? *record->instDevInfo : m_EnabledExtensions;
+  }
 
   static rdcstr GetChunkName(uint32_t idx);
   VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }

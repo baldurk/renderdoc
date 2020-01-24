@@ -217,6 +217,15 @@ void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, u
   else
     allocInfo.memoryTypeIndex = driver->GetUploadMemoryIndex(mrq.memoryTypeBits);
 
+  bool useBufferAddressKHR = driver->GetExtensions(NULL).ext_KHR_buffer_device_address;
+
+  VkMemoryAllocateFlagsInfo memFlags = {VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO};
+  if(useBufferAddressKHR && (flags & eGPUBufferAddressable))
+  {
+    allocInfo.pNext = &memFlags;
+    memFlags.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
+  }
+
   vkr = driver->vkAllocateMemory(dev, &allocInfo, NULL, &mem);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
