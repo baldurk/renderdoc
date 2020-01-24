@@ -2471,7 +2471,7 @@ void ShaderViewer::ensureLineScrolled(ScintillaEdit *s, int line)
   int firstLine = s->firstVisibleLine();
   int linesVisible = s->linesOnScreen();
 
-  if(s->isVisible() && (line < firstLine || line > (firstLine + linesVisible)))
+  if(s->isVisible() && (line < firstLine || line > (firstLine + linesVisible - 1)))
     s->setFirstVisibleLine(qMax(0, line - linesVisible / 2));
 }
 
