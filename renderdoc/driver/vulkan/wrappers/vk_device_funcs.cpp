@@ -2728,17 +2728,71 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     AddResource(Device, ResourceType::Device, "Device");
     DerivedResource(origPhysDevice, Device);
 
+    VkPhysicalDeviceProperties physProps;
+    ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), &physProps);
+
+    VkPhysicalDeviceVulkan12Properties phys12Props = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES,
+    };
+
+    if(physProps.apiVersion >= VK_MAKE_VERSION(1, 2, 0))
+    {
+      VkPhysicalDeviceProperties2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+      availBase.pNext = &phys12Props;
+      ObjDisp(physicalDevice)->GetPhysicalDeviceProperties2(Unwrap(physicalDevice), &availBase);
+    }
+
+// we unset the extension because it may be a 'shared' extension that's available at both instance
+// and device. Only set it to enabled if it's really enabled for this device. This can happen with a
+// device extension that is reported by another physical device than the one selected - it becomes
+// available at instance level (e.g. for physical device queries) but is not available at *this*
+// device level.
 #undef CheckExt
-#define CheckExt(name, ver)                                         \
-  if(!strcmp(createInfo.ppEnabledExtensionNames[i], "VK_" #name) || \
-     (int)renderdocAppInfo.apiVersion >= ver)                       \
-  {                                                                 \
-    m_EnabledExtensions.ext_##name = true;                          \
+#define CheckExt(name, ver) m_EnabledExtensions.ext_##name = false;
+
+    CheckDeviceExts();
+
+#undef CheckExt
+#define CheckExt(name, ver)                                                                           \
+  if(!strcmp(createInfo.ppEnabledExtensionNames[i], "VK_" #name) || (int)physProps.apiVersion >= ver) \
+  {                                                                                                   \
+    m_EnabledExtensions.ext_##name = true;                                                            \
   }
 
     for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)
     {
       CheckDeviceExts();
+    }
+
+    // for cases where a promoted extension isn't supported as the extension itself, manually
+    // disable them when the feature bit is false.
+
+    if(physProps.apiVersion >= VK_MAKE_VERSION(1, 2, 0))
+    {
+      if(supportedExtensions.find(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) ==
+             supportedExtensions.end() &&
+         !vulkan12Features.bufferDeviceAddress)
+        m_EnabledExtensions.ext_KHR_buffer_device_address = false;
+
+      if(supportedExtensions.find(VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME) ==
+             supportedExtensions.end() &&
+         !vulkan12Features.drawIndirectCount)
+        m_EnabledExtensions.ext_KHR_draw_indirect_count = false;
+
+      if(supportedExtensions.find(VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME) ==
+             supportedExtensions.end() &&
+         !vulkan12Features.samplerFilterMinmax)
+        m_EnabledExtensions.ext_EXT_sampler_filter_minmax = false;
+
+      // these features are required so this should never happen
+      if(supportedExtensions.find(VK_KHR_SEPARATE_DEPTH_STENCIL_LAYOUTS_EXTENSION_NAME) ==
+             supportedExtensions.end() &&
+         !vulkan12Features.separateDepthStencilLayouts)
+      {
+        RDCWARN(
+            "Required feature 'separateDepthStencilLayouts' not supported by 1.2 physical device.");
+        m_EnabledExtensions.ext_KHR_separate_depth_stencil_layouts = false;
+      }
     }
 
     InitInstanceExtensionTables(m_Instance, &m_EnabledExtensions);
@@ -3044,6 +3098,9 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
   ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &availFeatures);
 
+  VkPhysicalDeviceProperties availProps;
+  ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), &availProps);
+
   // default to all off. This is equivalent to createInfo.pEnabledFeatures == NULL
   VkPhysicalDeviceFeatures enabledFeatures = {0};
 
@@ -3175,7 +3232,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       record->instDevInfo->brokenGetDeviceProcAddr =
           GetRecord(m_Instance)->instDevInfo->brokenGetDeviceProcAddr;
 
-      record->instDevInfo->vulkanVersion = GetRecord(m_Instance)->instDevInfo->vulkanVersion;
+      record->instDevInfo->vulkanVersion = availProps.apiVersion;
 
 #undef CheckExt
 #define CheckExt(name, ver) \
@@ -3198,7 +3255,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 #undef CheckExt
 #define CheckExt(name, ver)                                         \
   if(!strcmp(createInfo.ppEnabledExtensionNames[i], "VK_" #name) || \
-     GetRecord(m_Instance)->instDevInfo->vulkanVersion >= ver)      \
+     record->instDevInfo->vulkanVersion >= ver)                     \
   {                                                                 \
     record->instDevInfo->ext_##name = true;                         \
   }
