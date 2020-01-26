@@ -1447,10 +1447,12 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
     retDecl.str += retDecl.operand.toString(m_Reflection, flags);
     if(sm51)
     {
-      uint32_t float4size = tokenStream[0];
+      // Store the size provided. If there's no reflection data, this will be
+      // necessary to guess the buffer size properly
+      retDecl.float4size = tokenStream[0];
       tokenStream++;
 
-      retDecl.str += StringFormat::Fmt("[%u]", float4size);
+      retDecl.str += StringFormat::Fmt("[%u]", retDecl.float4size);
     }
 
     retDecl.str += ", ";

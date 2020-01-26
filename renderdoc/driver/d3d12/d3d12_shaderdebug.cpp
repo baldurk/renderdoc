@@ -1035,9 +1035,10 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   return true;
 }
 
-void GatherConstantBuffers(WrappedID3D12Device *pDevice, DXBC::ShaderType shaderType,
+void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Program &program,
                            const D3D12RenderState::RootSignature &rootsig,
-                           bytebuf cbufData[D3D12_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT])
+                           const ShaderReflection &refl, const ShaderBindpointMapping &mapping,
+                           ShaderDebugTrace &debugTrace)
 {
   WrappedID3D12RootSignature *pD3D12RootSig =
       pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootsig.rootsig);
@@ -1047,21 +1048,26 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, DXBC::ShaderType shader
   {
     const D3D12RootSignatureParameter &rootSigParam = pD3D12RootSig->sig.Parameters[i];
     const D3D12RenderState::SignatureElement &element = rootsig.sigelems[i];
-    if(IsShaderParameterVisible(shaderType, rootSigParam.ShaderVisibility))
+    if(IsShaderParameterVisible(program.GetShaderType(), rootSigParam.ShaderVisibility))
     {
       if(rootSigParam.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS &&
          element.type == eRootConst)
       {
-        UINT cbufIndex = rootSigParam.Constants.ShaderRegister;
+        ShaderDebug::BindingSlot slot(rootSigParam.Constants.ShaderRegister,
+                                      rootSigParam.Constants.RegisterSpace);
         UINT sizeBytes = sizeof(uint32_t) * RDCMIN(rootSigParam.Constants.Num32BitValues,
                                                    (UINT)element.constants.size());
-        cbufData[cbufIndex].assign((const byte *)element.constants.data(), sizeBytes);
+        bytebuf cbufData((const byte *)element.constants.data(), sizeBytes);
+        AddCBufferToDebugTrace(program, debugTrace, refl, mapping, slot, cbufData);
       }
       else if(rootSigParam.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV && element.type == eRootCBV)
       {
-        UINT cbufIndex = rootSigParam.Descriptor.ShaderRegister;
+        ShaderDebug::BindingSlot slot(rootSigParam.Descriptor.ShaderRegister,
+                                      rootSigParam.Descriptor.RegisterSpace);
         ID3D12Resource *cbv = pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(element.id);
-        pDevice->GetDebugManager()->GetBufferData(cbv, element.offset, 0, cbufData[cbufIndex]);
+        bytebuf cbufData;
+        pDevice->GetDebugManager()->GetBufferData(cbv, element.offset, 0, cbufData);
+        AddCBufferToDebugTrace(program, debugTrace, refl, mapping, slot, cbufData);
       }
       else if(rootSigParam.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE &&
               element.type == eRootTable)
@@ -1073,10 +1079,10 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, DXBC::ShaderType shader
         size_t numRanges = rootSigParam.ranges.size();
         for(size_t r = 0; r < numRanges; r++)
         {
-          // For this traversal we only care about CBV descriptor ranges
+          // For this traversal we only care about CBV descriptor ranges, but we still need to
+          // calculate the table offsets in case a descriptor table has a combination of
+          // different range types
           const D3D12_DESCRIPTOR_RANGE1 &range = rootSigParam.ranges[r];
-          if(range.RangeType != D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
-            continue;
 
           UINT offset = range.OffsetInDescriptorsFromTableStart;
           if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
@@ -1098,9 +1104,13 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, DXBC::ShaderType shader
 
           prevTableOffset = offset + numDescriptors;
 
-          UINT cbufIndex = range.BaseShaderRegister;
+          if(range.RangeType != D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
+            continue;
 
-          for(UINT n = 0; n < numDescriptors; ++n, ++cbufIndex)
+          ShaderDebug::BindingSlot slot(range.BaseShaderRegister, range.RegisterSpace);
+
+          bytebuf cbufData;
+          for(UINT n = 0; n < numDescriptors; ++n, ++slot.shaderRegister)
           {
             if(desc)
             {
@@ -1110,8 +1120,9 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, DXBC::ShaderType shader
               WrappedID3D12Resource1::GetResIDFromAddr(cbv.BufferLocation, resId, byteOffset);
               ID3D12Resource *pCbvResource =
                   pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(resId);
-              pDevice->GetDebugManager()->GetBufferData(pCbvResource, element.offset, 0,
-                                                        cbufData[cbufIndex]);
+              cbufData.clear();
+              pDevice->GetDebugManager()->GetBufferData(pCbvResource, element.offset, 0, cbufData);
+              AddCBufferToDebugTrace(program, debugTrace, refl, mapping, slot, cbufData);
             }
           }
         }
@@ -1509,10 +1520,6 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   // get the index of our desired pixel
   int destIdx = (x - xTL) + 2 * (y - yTL);
 
-  // Fetch constant buffer data from root signature
-  bytebuf cbufData[D3D12_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
-  GatherConstantBuffers(m_pDevice, dxbc->m_Type, rs.graphics, cbufData);
-
   // Get depth func and determine "winner" pixel
   D3D12_COMPARISON_FUNC depthFunc = pipeDesc.DepthStencilState.DepthFunc;
   DebugHit *pWinnerHit = NULL;
@@ -1571,10 +1578,15 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   GlobalState global;
   global.PopulateGroupshared(dxbc->GetDXBCByteCode());
 
+  State initialState;
+  CreateShaderDebugStateAndTrace(initialState, traces[destIdx], destIdx, dxbc, refl);
+
+  // Fetch constant buffer data from root signature
+  GatherConstantBuffers(m_pDevice, *dxbc->GetDXBCByteCode(), rs.graphics, refl,
+                        origPSO->PS()->GetMapping(), traces[destIdx]);
+
   {
     DebugHit *pHit = pWinnerHit;
-    State initialState;
-    CreateShaderDebugStateAndTrace(initialState, traces[destIdx], destIdx, dxbc, refl, cbufData);
 
     rdcarray<ShaderVariable> &ins = traces[destIdx].inputs;
     if(!ins.empty() && ins.back().name == "vCoverage")
@@ -1849,15 +1861,17 @@ ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
-  bytebuf cbufData[D3D12_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
-  GatherConstantBuffers(m_pDevice, dxbc->m_Type, rs.compute, cbufData);
-
   ShaderDebugTrace ret;
 
   GlobalState global;
   global.PopulateGroupshared(dxbc->GetDXBCByteCode());
   State initialState;
-  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl, cbufData);
+  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl);
+
+  WrappedID3D12PipelineState *pso =
+      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+  GatherConstantBuffers(m_pDevice, *dxbc->GetDXBCByteCode(), rs.compute, refl,
+                        pso->CS()->GetMapping(), ret);
 
   for(int i = 0; i < 3; i++)
   {

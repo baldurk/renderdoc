@@ -1699,6 +1699,25 @@ bool D3D11DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
   return true;
 }
 
+void AddCBuffersToDebugTrace(const DXBCBytecode::Program &program, D3D11DebugManager &debugManager,
+                             ShaderDebugTrace &trace, const D3D11RenderState::Shader &shader,
+                             const ShaderReflection &refl, const ShaderBindpointMapping &mapping)
+{
+  bytebuf cbufData;
+  for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
+  {
+    if(shader.ConstantBuffers[i])
+    {
+      ShaderDebug::BindingSlot slot(i, 0);
+      cbufData.clear();
+      debugManager.GetBufferData(shader.ConstantBuffers[i], shader.CBOffsets[i] * sizeof(Vec4f),
+                                 shader.CBCounts[i] * sizeof(Vec4f), cbufData);
+
+      AddCBufferToDebugTrace(program, trace, refl, mapping, slot, cbufData);
+    }
+  }
+}
+
 ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                           uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
@@ -1793,19 +1812,15 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
     }
   }
 
-  bytebuf cbufData[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
-
-  for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
-    if(rs->VS.ConstantBuffers[i])
-      GetDebugManager()->GetBufferData(rs->VS.ConstantBuffers[i],
-                                       rs->VS.CBOffsets[i] * sizeof(Vec4f), 0, cbufData[i]);
-
   ShaderDebugTrace ret;
 
   GlobalState global;
   global.PopulateGroupshared(dxbc->GetDXBCByteCode());
   State initialState;
-  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl, cbufData);
+  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl);
+
+  AddCBuffersToDebugTrace(*dxbc->GetDXBCByteCode(), *GetDebugManager(), ret, rs->VS, refl,
+                          vs->GetMapping());
 
   for(size_t i = 0; i < ret.inputs.size(); i++)
   {
@@ -2640,13 +2655,6 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   // get the index of our desired pixel
   int destIdx = (x - xTL) + 2 * (y - yTL);
 
-  bytebuf cbufData[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
-
-  for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
-    if(rs->PS.ConstantBuffers[i])
-      GetDebugManager()->GetBufferData(rs->PS.ConstantBuffers[i],
-                                       rs->PS.CBOffsets[i] * sizeof(Vec4f), 0, cbufData[i]);
-
   D3D11_COMPARISON_FUNC depthFunc = D3D11_COMPARISON_LESS;
 
   if(rs->OM.DepthStencilState)
@@ -2719,14 +2727,16 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
   GlobalState global;
   global.PopulateGroupshared(dxbc->GetDXBCByteCode());
-
   global.sampleEvalRegisterMask = sampleEvalRegisterMask;
+
+  State initialState;
+  CreateShaderDebugStateAndTrace(initialState, traces[destIdx], destIdx, dxbc, refl);
+
+  AddCBuffersToDebugTrace(*dxbc->GetDXBCByteCode(), *GetDebugManager(), traces[destIdx], rs->PS,
+                          refl, ps->GetMapping());
 
   {
     DebugHit *hit = winner;
-
-    State initialState;
-    CreateShaderDebugStateAndTrace(initialState, traces[destIdx], destIdx, dxbc, refl, cbufData);
 
     rdcarray<ShaderVariable> &ins = traces[destIdx].inputs;
     if(!ins.empty() && ins.back().name == "vCoverage")
@@ -3015,19 +3025,15 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   D3D11RenderState *rs = m_pImmediateContext->GetCurrentPipelineState();
 
-  bytebuf cbufData[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
-
-  for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
-    if(rs->CS.ConstantBuffers[i])
-      GetDebugManager()->GetBufferData(rs->CS.ConstantBuffers[i],
-                                       rs->CS.CBOffsets[i] * sizeof(Vec4f), 0, cbufData[i]);
-
   ShaderDebugTrace ret;
 
   GlobalState global;
   global.PopulateGroupshared(dxbc->GetDXBCByteCode());
   State initialState;
-  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl, cbufData);
+  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl);
+
+  AddCBuffersToDebugTrace(*dxbc->GetDXBCByteCode(), *GetDebugManager(), ret, rs->CS, refl,
+                          cs->GetMapping());
 
   for(int i = 0; i < 3; i++)
   {

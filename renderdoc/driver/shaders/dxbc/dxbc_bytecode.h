@@ -754,6 +754,7 @@ struct Declaration
     resType[0] = resType[1] = resType[2] = resType[3] = DXBC::NUM_RETURN_TYPES;
     dim = RESOURCE_DIMENSION_UNKNOWN;
     sampleCount = 0;
+    float4size = 0;
     interpolation = INTERPOLATION_UNDEFINED;
     systemValue = DXBC::SVNAME_UNDEFINED;
     maxOut = 0;
@@ -827,6 +828,9 @@ struct Declaration
   DXBC::ResourceRetType resType[4];
   ResourceDimension dim;
   uint32_t sampleCount;
+
+  // OPCODE_DCL_CONSTANT_BUFFER
+  uint32_t float4size;
 
   // OPCODE_DCL_INPUT_PS
   InterpolationMode interpolation;
