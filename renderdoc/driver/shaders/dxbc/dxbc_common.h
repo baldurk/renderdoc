@@ -319,6 +319,7 @@ struct CBuffer
 {
   rdcstr name;
 
+  uint32_t identifier;
   uint32_t space;
   uint32_t reg;
   uint32_t bindCount;

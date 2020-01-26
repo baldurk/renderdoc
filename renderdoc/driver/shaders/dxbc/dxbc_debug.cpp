@@ -1564,9 +1564,14 @@ ShaderVariable State::GetSrc(const Operand &oper, const Operation &op, bool allo
     {
       int cb = -1;
 
+      // For this operand, index 0 is always the logical identifier that we can use to
+      // lookup the correct cbuffer. The location of the access entry differs for SM5.1,
+      // as index 1 stores the shader register.
+      uint32_t cbIdentifier = indices[0];
+      uint32_t cbLookup = program->IsShaderModel51() ? indices[2] : indices[1];
       for(size_t i = 0; i < reflection->CBuffers.size(); i++)
       {
-        if(reflection->CBuffers[i].reg == indices[0])
+        if(reflection->CBuffers[i].identifier == cbIdentifier)
         {
           cb = (int)i;
           break;
@@ -1579,11 +1584,11 @@ ShaderVariable State::GetSrc(const Operand &oper, const Operation &op, bool allo
       if(cb >= 0 && cb < trace->constantBlocks.count())
       {
         RDCASSERTMSG("Out of bounds cbuffer lookup",
-                     indices[1] < (uint32_t)trace->constantBlocks[cb].members.count(), indices[1],
+                     cbLookup < (uint32_t)trace->constantBlocks[cb].members.count(), cbLookup,
                      trace->constantBlocks[cb].members.count());
 
-        if(indices[1] < (uint32_t)trace->constantBlocks[cb].members.count())
-          v = s = trace->constantBlocks[cb].members[indices[1]];
+        if(cbLookup < (uint32_t)trace->constantBlocks[cb].members.count())
+          v = s = trace->constantBlocks[cb].members[cbLookup];
         else
           v = s = ShaderVariable("", 0U, 0U, 0U, 0U);
       }
@@ -4128,7 +4133,7 @@ void GlobalState::PopulateGroupshared(const DXBCBytecode::Program *pBytecode)
 
 void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebugTrace &trace,
                                     int quadIdx, DXBC::DXBCContainer *dxbc,
-                                    const ShaderReflection &refl, bytebuf *cbufData)
+                                    const ShaderReflection &refl)
 {
   initialState = ShaderDebug::State(quadIdx, &trace, dxbc->GetReflection(), dxbc->GetDXBCByteCode());
 
@@ -4268,28 +4273,43 @@ void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebu
     }
   }
 
-  // Fill constant buffers and add them to the trace
+  // Set the number of constant buffers in the trace, but assignment happens later
   size_t numCBuffers = dxbc->GetReflection()->CBuffers.size();
   trace.constantBlocks.resize(numCBuffers);
-  for(size_t i = 0; i < numCBuffers; i++)
+
+  initialState.Init();
+}
+
+void AddCBufferToDebugTrace(const DXBCBytecode::Program &program, ShaderDebugTrace &trace,
+                            const ShaderReflection &refl, const ShaderBindpointMapping &mapping,
+                            const ShaderDebug::BindingSlot &slot, bytebuf &cbufData)
+{
+  // Find the identifier
+  size_t numCBs = mapping.constantBlocks.size();
+  for(size_t i = 0; i < numCBs; ++i)
   {
-    rdcarray<ShaderVariable> vars;
-
-    // Fetch cbuffers into vars, which will be 'natural': structs with members, non merged vectors
-    StandardFillCBufferVariables(refl.resourceId, refl.constantBlocks[i].variables, vars,
-                                 cbufData[dxbc->GetReflection()->CBuffers[i].reg]);
-
-    FlattenVariables(refl.constantBlocks[i].variables, vars, trace.constantBlocks[i].members);
-
-    for(size_t c = 0; c < trace.constantBlocks[i].members.size(); c++)
+    if((uint32_t)mapping.constantBlocks[i].bindset == slot.registerSpace &&
+       (uint32_t)mapping.constantBlocks[i].bind == slot.shaderRegister)
     {
-      trace.constantBlocks[i].members[c].name =
-          StringFormat::Fmt("cb%u[%u] (%s)", dxbc->GetReflection()->CBuffers[i].reg, (uint32_t)c,
-                            trace.constantBlocks[i].members[c].name.c_str());
+      RDCASSERTMSG("Reassigning previously filled cbuffer", trace.constantBlocks[i].members.empty());
+
+      rdcarray<ShaderVariable> vars;
+      StandardFillCBufferVariables(refl.resourceId, refl.constantBlocks[i].variables, vars, cbufData);
+      FlattenVariables(refl.constantBlocks[i].variables, vars, trace.constantBlocks[i].members);
+
+      const char *format = program.IsShaderModel51() ? "CB%u[%u] (%s)" : "cb%u[%u] (%s)";
+      uint32_t regSlot = program.IsShaderModel51() ? (uint32_t)i : slot.shaderRegister;
+      for(size_t c = 0; c < trace.constantBlocks[i].members.size(); c++)
+      {
+        trace.constantBlocks[i].members[c].name = StringFormat::Fmt(
+            format, regSlot, (uint32_t)c, trace.constantBlocks[i].members[c].name.c_str());
+      }
+      return;
     }
   }
 
-  initialState.Init();
+  RDCERR("Cannot find cbuffer (b%u, space%u) in shader mapping", slot.shaderRegister,
+         slot.registerSpace);
 }
 
 bool PromptDebugTimeout(uint32_t cycleCounter)

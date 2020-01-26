@@ -880,6 +880,10 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
         cbuffernames.insert(cname);
 
+        // In addition to the register, store the identifier that we'll use to lookup during
+        // debugging. For SM5.1, this is the logical identifier that correlates to the CB order in
+        // the bytecode. For SM5 and earlier, it's the CB register.
+        cb.identifier = (h->targetVersion < 0x501) ? cbufferbinds[cname].reg : i;
         cb.space = cbufferbinds[cname].space;
         cb.reg = cbufferbinds[cname].reg;
         cb.bindCount = cbufferbinds[cname].bindCount;

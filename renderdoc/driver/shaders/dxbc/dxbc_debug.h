@@ -365,6 +365,9 @@ private:
 
 void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebugTrace &trace,
                                     int quadIdx, DXBC::DXBCContainer *dxbc,
-                                    const ShaderReflection &refl, bytebuf *cbufData);
+                                    const ShaderReflection &refl);
+void AddCBufferToDebugTrace(const DXBCBytecode::Program &program, ShaderDebugTrace &trace,
+                            const ShaderReflection &refl, const ShaderBindpointMapping &mapping,
+                            const ShaderDebug::BindingSlot &slot, bytebuf &cbufData);
 
 };    // namespace ShaderDebug

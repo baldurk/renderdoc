@@ -329,13 +329,19 @@ DXBC::Reflection *Program::GuessReflection()
         RDCASSERT(dcl.operand.indices.size() == 2 || dcl.operand.indices.size() == 3);
         RDCASSERT(dcl.operand.indices[0].absolute && dcl.operand.indices[1].absolute);
 
+        // Constant buffer declarations differ between SM5 and SM5.1.  For SM5.1, the indices are
+        // logical identifier, start shader register, and end shader register. Register space and
+        // buffer size are stored elsewhere in the declaration. For SM5 and earlier, the indices
+        // are the shader register and buffer size (measured in float4's)
+        bool isShaderModel51 = IsShaderModel51();
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
-        uint32_t numVecs = (uint32_t)dcl.operand.indices[1].index;
+        uint32_t reg = isShaderModel51 ? (uint32_t)dcl.operand.indices[1].index : idx;
+        uint32_t numVecs = isShaderModel51 ? dcl.float4size : (uint32_t)dcl.operand.indices[1].index;
 
         desc.name = StringFormat::Fmt("cbuffer%u", idx);
         desc.type = DXBC::ShaderInputBind::TYPE_CBUFFER;
         desc.space = dcl.space;
-        desc.reg = idx;
+        desc.reg = reg;
         desc.bindCount = 1;
         desc.flags = 1;
         desc.retType = DXBC::RETURN_TYPE_UNKNOWN;
@@ -353,8 +359,12 @@ DXBC::Reflection *Program::GuessReflection()
 
         cb.name = desc.name;
 
+        // In addition to the register, store the identifier that we'll use to lookup during
+        // debugging. For SM5.1, this is the logical identifier that correlates to the CB order in
+        // the bytecode. For SM5 and earlier, it's the CB register.
+        cb.identifier = idx;
         cb.space = dcl.space;
-        cb.reg = idx;
+        cb.reg = reg;
         cb.bindCount = desc.bindCount;
 
         cb.descriptor.name = cb.name;
