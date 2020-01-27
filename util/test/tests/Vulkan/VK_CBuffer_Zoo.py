@@ -28,7 +28,7 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage),
                                                        pipe.GetShaderEntryPoint(stage), 0,
-                                                       cbuf.resourceId, cbuf.byteOffset))
+                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 
         # For more detailed reference for the below checks, see the commented definition of the cbuffer
         # in the shader source code in the demo itself
@@ -364,7 +364,7 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage),
                                                        pipe.GetShaderEntryPoint(stage), 1,
-                                                       cbuf.resourceId, cbuf.byteOffset))
+                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 
         # int A;
         # Default value 10, untouched
@@ -403,7 +403,7 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage),
                                                        pipe.GetShaderEntryPoint(stage), 0,
-                                                       cbuf.resourceId, cbuf.byteOffset))
+                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 
         # For more detailed reference for the below checks, see the commented definition of the cbuffer
         # in the shader source code in the demo itself

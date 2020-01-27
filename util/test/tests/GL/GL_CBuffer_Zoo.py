@@ -21,7 +21,7 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage),
                                                        pipe.GetShaderEntryPoint(stage), 0,
-                                                       cbuf.resourceId, cbuf.byteOffset))
+                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 
         # For more detailed reference for the below checks, see the commented definition of the cbuffer
         # in the shader source code in the demo itself
@@ -421,7 +421,7 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage),
                                                        pipe.GetShaderEntryPoint(stage), 1,
-                                                       cbuf.resourceId, cbuf.byteOffset))
+                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 
         # For bare uniforms we have partial data - only values used in the shader need to get assigned locations and
         # some drivers are aggressive about stripping any others. Only uniforms with locations get upload values.

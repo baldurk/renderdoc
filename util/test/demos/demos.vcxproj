@@ -241,6 +241,7 @@
     <ClCompile Include="vk\vk_spirv_13_shaders.cpp" />
     <ClCompile Include="vk\vk_texture_zoo.cpp" />
     <ClCompile Include="vk\vk_triangle_fan.cpp" />
+    <ClCompile Include="vk\vk_truncated_cbuffer.cpp" />
     <ClCompile Include="vk\vk_vertex_attr_zoo.cpp" />
     <ClCompile Include="vk\vk_ext_buffer_address.cpp" />
     <ClCompile Include="vk\vk_cbuffer_zoo.cpp" />

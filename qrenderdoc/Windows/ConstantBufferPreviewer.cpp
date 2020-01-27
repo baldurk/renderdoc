@@ -104,7 +104,7 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
 {
   BoundCBuffer cb = m_Ctx.CurPipelineState().GetConstantBuffer(m_stage, m_slot, m_arrayIdx);
   m_cbuffer = cb.resourceId;
-  uint64_t offs = cb.byteOffset;
+  uint64_t offset = cb.byteOffset;
   uint64_t size = cb.byteSize;
 
   ResourceId prevShader = m_shader;
@@ -135,8 +135,8 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
 
   if(!m_formatOverride.type.members.empty())
   {
-    m_Ctx.Replay().AsyncInvoke([this, offs, size, wasEmpty](IReplayController *r) {
-      bytebuf data = r->GetBufferData(m_cbuffer, offs, size);
+    m_Ctx.Replay().AsyncInvoke([this, offset, size, wasEmpty](IReplayController *r) {
+      bytebuf data = r->GetBufferData(m_cbuffer, offset, size);
       rdcarray<ShaderVariable> vars = applyFormatOverride(data);
       GUIInvoke::call(this, [this, vars, wasEmpty] {
         RDTreeViewExpansionState state;
@@ -153,35 +153,36 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
   }
   else
   {
-    m_Ctx.Replay().AsyncInvoke([this, prevShader, entryPoint, offs, wasEmpty](IReplayController *r) {
-      rdcarray<ShaderVariable> vars = r->GetCBufferVariableContents(
-          m_pipe, m_shader, entryPoint.toUtf8().data(), m_slot, m_cbuffer, offs);
-      GUIInvoke::call(this, [this, prevShader, vars, wasEmpty] {
+    m_Ctx.Replay().AsyncInvoke(
+        [this, prevShader, entryPoint, offset, size, wasEmpty](IReplayController *r) {
+          rdcarray<ShaderVariable> vars = r->GetCBufferVariableContents(
+              m_pipe, m_shader, entryPoint.toUtf8().data(), m_slot, m_cbuffer, offset, size);
+          GUIInvoke::call(this, [this, prevShader, vars, wasEmpty] {
 
-        RDTreeViewExpansionState &prevShaderExpansionState =
-            ui->variables->getInternalExpansion(qHash(ToQStr(prevShader)));
+            RDTreeViewExpansionState &prevShaderExpansionState =
+                ui->variables->getInternalExpansion(qHash(ToQStr(prevShader)));
 
-        // stage, slot, and array index are all invariant across a given ConstantBufferPreviewer
-        // instance. We only need to use the actual bound shader as a key.
-        ui->variables->saveExpansion(prevShaderExpansionState, 0);
+            // stage, slot, and array index are all invariant across a given ConstantBufferPreviewer
+            // instance. We only need to use the actual bound shader as a key.
+            ui->variables->saveExpansion(prevShaderExpansionState, 0);
 
-        setVariables(vars);
-        if(wasEmpty)
-        {
-          for(int i = 0; i < 3; i++)
-            ui->variables->resizeColumnToContents(i);
-        }
+            setVariables(vars);
+            if(wasEmpty)
+            {
+              for(int i = 0; i < 3; i++)
+                ui->variables->resizeColumnToContents(i);
+            }
 
-        // if we have saved expansion state for the new shader, apply it, otherwise apply the
-        // previous one to get any overlap (e.g. two different shaders with very similar or
-        // identical constants)
-        if(ui->variables->hasInternalExpansion(qHash(ToQStr(m_shader))))
-          ui->variables->applyExpansion(
-              ui->variables->getInternalExpansion(qHash(ToQStr(m_shader))), 0);
-        else
-          ui->variables->applyExpansion(prevShaderExpansionState, 0);
-      });
-    });
+            // if we have saved expansion state for the new shader, apply it, otherwise apply the
+            // previous one to get any overlap (e.g. two different shaders with very similar or
+            // identical constants)
+            if(ui->variables->hasInternalExpansion(qHash(ToQStr(m_shader))))
+              ui->variables->applyExpansion(
+                  ui->variables->getInternalExpansion(qHash(ToQStr(m_shader))), 0);
+            else
+              ui->variables->applyExpansion(prevShaderExpansionState, 0);
+          });
+        });
   }
 }
 

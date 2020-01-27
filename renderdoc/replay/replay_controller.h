@@ -202,7 +202,8 @@ public:
 
   rdcarray<ShaderVariable> GetCBufferVariableContents(ResourceId pipeline, ResourceId shader,
                                                       const char *entryPoint, uint32_t cbufslot,
-                                                      ResourceId buffer, uint64_t offs);
+                                                      ResourceId buffer, uint64_t offset,
+                                                      uint64_t length);
 
   rdcarray<WindowingSystem> GetSupportedWindowSystems();
 

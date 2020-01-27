@@ -43,7 +43,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage),
                                                        pipe.GetShaderEntryPoint(stage), 0,
-                                                       cbuf.resourceId, cbuf.byteOffset))
+                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 
         # For more detailed reference for the below checks, see the commented definition of the cbuffer
         # in the shader source code in the demo itself
@@ -396,7 +396,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage),
                                                        pipe.GetShaderEntryPoint(stage), 1,
-                                                       cbuf.resourceId, cbuf.byteOffset))
+                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 
         # float4 zero;
         var_check.check('root_zero').rows(1).cols(4).value([0.0, 0.0, 0.0, 0.0])
@@ -426,7 +426,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage),
                                                        pipe.GetShaderEntryPoint(stage), 2,
-                                                       cbuf.resourceId, cbuf.byteOffset))
+                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 
         # float4 huge_val;
         var_check.check('huge_val').rows(1).cols(4).value([64.0, 65.0, 66.0, 67.0])

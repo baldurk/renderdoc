@@ -897,14 +897,16 @@ otherwise.
 :param int cbufslot: The index in the :data:`ShaderReflection.constantBlocks` list to look up.
 :param ResourceId buffer: The id of the buffer to use for data. If
   :data:`ConstantBlock.bufferBacked` is ``False`` this is ignored.
-:param int offs: Retrieve buffer contents starting at this byte offset.
+:param int offset: Retrieve buffer contents starting at this byte offset.
+:param int length: Retrieve this many bytes after :param:`offset`. May be 0 to fetch the rest of the
+  buffer.
 :return: The shader variables with their contents.
 :rtype: ``list`` of :class:`ShaderVariable`
 )");
   virtual rdcarray<ShaderVariable> GetCBufferVariableContents(ResourceId pipeline, ResourceId shader,
                                                               const char *entryPoint,
                                                               uint32_t cbufslot, ResourceId buffer,
-                                                              uint64_t offs) = 0;
+                                                              uint64_t offset, uint64_t length) = 0;
 
   DOCUMENT(R"(Save a texture to a file on disk, with possible transformation to map a complex
 texture to something compatible with the target file format.
