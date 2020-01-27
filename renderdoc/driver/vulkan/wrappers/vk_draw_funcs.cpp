@@ -2421,10 +2421,9 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
         AddDrawcall(draw, true);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
-        const BakedCmdBufferInfo::CmdBufferState &state =
-            m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
+        const VulkanRenderState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
 
-        if(state.renderPass != ResourceId() && state.framebuffer != ResourceId())
+        if(state.renderPass != ResourceId() && state.GetFramebuffer() != ResourceId())
         {
           VulkanCreationInfo::RenderPass &rp = m_CreationInfo.m_RenderPass[state.renderPass];
 
@@ -2439,10 +2438,10 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
               if(att < (uint32_t)rp.subpasses[state.subpass].colorAttachments.size())
               {
                 att = rp.subpasses[state.subpass].colorAttachments[att];
-                drawNode.resourceUsage.push_back(
-                    make_rdcpair(m_CreationInfo.m_ImageView[state.fbattachments[att]].image,
-                                 EventUsage(drawNode.draw.eventId, ResourceUsage::Clear,
-                                            state.fbattachments[att])));
+                drawNode.resourceUsage.push_back(make_rdcpair(
+                    m_CreationInfo.m_ImageView[state.GetFramebufferAttachments()[att]].image,
+                    EventUsage(drawNode.draw.eventId, ResourceUsage::Clear,
+                               state.GetFramebufferAttachments()[att])));
               }
             }
             else if(pAttachments[a].aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT)
@@ -2450,10 +2449,10 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
               if(rp.subpasses[state.subpass].depthstencilAttachment >= 0)
               {
                 att = (uint32_t)rp.subpasses[state.subpass].depthstencilAttachment;
-                drawNode.resourceUsage.push_back(
-                    make_rdcpair(m_CreationInfo.m_ImageView[state.fbattachments[att]].image,
-                                 EventUsage(drawNode.draw.eventId, ResourceUsage::Clear,
-                                            state.fbattachments[att])));
+                drawNode.resourceUsage.push_back(make_rdcpair(
+                    m_CreationInfo.m_ImageView[state.GetFramebufferAttachments()[att]].image,
+                    EventUsage(drawNode.draw.eventId, ResourceUsage::Clear,
+                               state.GetFramebufferAttachments()[att])));
               }
             }
           }

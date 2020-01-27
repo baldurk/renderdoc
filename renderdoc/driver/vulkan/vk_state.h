@@ -53,23 +53,22 @@ struct VulkanRenderState
     BindCompute = 0x2,
   };
 
-  VulkanRenderState(WrappedVulkan *driver, VulkanCreationInfo *createInfo);
-  void BeginRenderPassAndApplyState(VkCommandBuffer cmd, PipelineBinding binding);
-  void EndRenderPass(VkCommandBuffer cmd);
+  VulkanRenderState();
+  bool IsConditionalRenderingEnabled();
+  void BeginRenderPassAndApplyState(WrappedVulkan *vk, VkCommandBuffer cmd, PipelineBinding binding);
+  void BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd, PipelineBinding binding, bool subpass0);
 
-  void EndTransformFeedback(VkCommandBuffer cmd);
-
-  void EndConditionalRendering(VkCommandBuffer cmd);
-
-  void BindPipeline(VkCommandBuffer cmd, PipelineBinding binding, bool subpass0);
-
-  void BindDescriptorSets(VkCommandBuffer cmd, VulkanStatePipeline &pipe,
+  void BindDescriptorSets(WrappedVulkan *vk, VkCommandBuffer cmd, VulkanStatePipeline &pipe,
                           VkPipelineBindPoint bindPoint);
 
-  void BindDescriptorSet(const DescSetLayout &descLayout, VkCommandBuffer cmd,
+  void BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout &descLayout, VkCommandBuffer cmd,
                          VkPipelineBindPoint bindPoint, uint32_t setIndex, uint32_t *dynamicOffsets);
 
-  bool IsConditionalRenderingEnabled();
+  void EndRenderPass(VkCommandBuffer cmd);
+
+  void EndTransformFeedback(WrappedVulkan *vk, VkCommandBuffer cmd);
+
+  void EndConditionalRendering(VkCommandBuffer cmd);
 
   // dynamic state
   rdcarray<VkViewport> views;
@@ -113,7 +112,9 @@ struct VulkanRenderState
 
   // framebuffer accessors - to allow for imageless framebuffers and prevent accidentally changing
   // only the framebuffer without updating the attachments
-  void SetFramebuffer(ResourceId fb, const VkRenderPassAttachmentBeginInfo *attachmentsInfo = NULL);
+  void SetFramebuffer(WrappedVulkan *vk, ResourceId fb,
+                      const VkRenderPassAttachmentBeginInfo *attachmentsInfo = NULL);
+
   void SetFramebuffer(ResourceId fb, const rdcarray<ResourceId> &dynamicAttachments)
   {
     framebuffer = fb;
@@ -165,10 +166,6 @@ struct VulkanRenderState
 
     bool forceDisable = false;
   } conditionalRendering;
-
-  VulkanResourceManager *GetResourceManager();
-  VulkanCreationInfo *m_CreationInfo;
-  WrappedVulkan *m_pDriver;
 
 private:
   ResourceId framebuffer;

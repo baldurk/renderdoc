@@ -89,7 +89,14 @@ public:
   VkImageLayout GetImageLayout(ResourceId image, VkImageAspectFlagBits aspect, uint32_t mip,
                                uint32_t slice);
 
-  const VulkanCreationInfo::Image &GetImageInfo(ResourceId img);
+  const VulkanCreationInfo::Image &GetImageInfo(ResourceId img) const;
+  const VulkanCreationInfo::Pipeline &GetPipelineInfo(ResourceId pipe) const;
+  const VulkanCreationInfo::ShaderModule &GetShaderInfo(ResourceId shader) const;
+  const VulkanCreationInfo::Framebuffer &GetFramebufferInfo(ResourceId fb) const;
+  const VulkanCreationInfo::RenderPass &GetRenderPassInfo(ResourceId rp) const;
+  const VulkanCreationInfo::PipelineLayout &GetPipelineLayoutInfo(ResourceId pp) const;
+  const DescSetLayout &GetDescSetLayout(ResourceId dsl) const;
+  const WrappedVulkan::DescriptorSetInfo &GetDescSetInfo(ResourceId ds) const;
 
 private:
   // GetBufferData

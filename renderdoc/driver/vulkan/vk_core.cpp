@@ -93,7 +93,7 @@ void VkInitParams::Set(const VkInstanceCreateInfo *pCreateInfo, ResourceId inst)
   InstanceID = inst;
 }
 
-WrappedVulkan::WrappedVulkan() : m_RenderState(this, &m_CreationInfo)
+WrappedVulkan::WrappedVulkan()
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedVulkan));
@@ -2492,6 +2492,11 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
   if(!partial && !IsStructuredExporting(m_State))
     AddFrameTerminator(AMDRGPControl::GetEndTag());
 
+  if(m_Partial[Secondary].partialParent != ResourceId())
+    m_RenderState = m_BakedCmdBufferInfo[m_Partial[Primary].partialParent].state;
+  else if(m_Partial[Primary].partialParent != ResourceId())
+    m_RenderState = m_BakedCmdBufferInfo[m_Partial[Primary].partialParent].state;
+
   // swap the structure back now that we've accumulated the frame as well.
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
     ser.GetStructuredFile().Swap(*prevFile);
@@ -3139,7 +3144,16 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     {
       m_Partial[Primary].Reset();
       m_Partial[Secondary].Reset();
-      m_RenderState = VulkanRenderState(this, &m_CreationInfo);
+      m_RenderState = VulkanRenderState();
+      for(auto it = m_BakedCmdBufferInfo.begin(); it != m_BakedCmdBufferInfo.end(); it++)
+        it->second.state = VulkanRenderState();
+    }
+    else
+    {
+      if(m_Partial[Secondary].partialParent != ResourceId())
+        m_BakedCmdBufferInfo[m_Partial[Primary].partialParent].state = m_RenderState;
+      else if(m_Partial[Primary].partialParent != ResourceId())
+        m_BakedCmdBufferInfo[m_Partial[Primary].partialParent].state = m_RenderState;
     }
 
     VkResult vkr = VK_SUCCESS;
@@ -3187,13 +3201,13 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
         // if a render pass was active, begin it and set up the partial replay state
         m_RenderState.BeginRenderPassAndApplyState(
-            cmd, rpUnneeded ? VulkanRenderState::BindNone : VulkanRenderState::BindGraphics);
+            this, cmd, rpUnneeded ? VulkanRenderState::BindNone : VulkanRenderState::BindGraphics);
       }
       else
       {
         // even outside of render passes, we need to restore the state
-        m_RenderState.BindPipeline(cmd, VulkanRenderState::BindCompute, false);
-        m_RenderState.BindPipeline(cmd, VulkanRenderState::BindGraphics, false);
+        m_RenderState.BindPipeline(this, cmd, VulkanRenderState::BindCompute, false);
+        m_RenderState.BindPipeline(this, cmd, VulkanRenderState::BindGraphics, false);
       }
     }
 
@@ -3216,7 +3230,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
       // end any active XFB
       if(!m_RenderState.xfbcounters.empty())
-        m_RenderState.EndTransformFeedback(cmd);
+        m_RenderState.EndTransformFeedback(this, cmd);
 
       // end any active conditional rendering
       if(m_RenderState.IsConditionalRenderingEnabled())
@@ -3662,20 +3676,21 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
 
   if(m_LastCmdBufferID != ResourceId())
   {
-    ResourceId pipe = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.pipeline;
+    ResourceId pipe = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.pipeline;
     if(pipe != ResourceId())
       draw.topology = MakePrimitiveTopology(m_CreationInfo.m_Pipeline[pipe].topology,
                                             m_CreationInfo.m_Pipeline[pipe].patchControlPoints);
 
-    draw.indexByteWidth = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth;
+    draw.indexByteWidth = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth;
 
-    ResourceId fb = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer;
+    ResourceId fb = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebuffer();
     ResourceId rp = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass;
     uint32_t sp = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;
 
     if(fb != ResourceId() && rp != ResourceId())
     {
-      rdcarray<ResourceId> &atts = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments;
+      const rdcarray<ResourceId> &atts =
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
 
       RDCASSERT(sp < m_CreationInfo.m_RenderPass[rp].subpasses.size());
 
@@ -3747,7 +3762,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
 {
   DrawcallDescription &d = drawNode.draw;
 
-  const BakedCmdBufferInfo::CmdBufferState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
+  const VulkanRenderState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
   VulkanCreationInfo &c = m_CreationInfo;
   uint32_t e = d.eventId;
 
@@ -3758,26 +3773,26 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
   //////////////////////////////
   // Vertex input
 
-  if(d.flags & DrawFlags::Indexed && state.ibuffer != ResourceId())
+  if(d.flags & DrawFlags::Indexed && state.ibuffer.buf != ResourceId())
     drawNode.resourceUsage.push_back(
-        make_rdcpair(state.ibuffer, EventUsage(e, ResourceUsage::IndexBuffer)));
+        make_rdcpair(state.ibuffer.buf, EventUsage(e, ResourceUsage::IndexBuffer)));
 
   for(size_t i = 0; i < state.vbuffers.size(); i++)
   {
-    if(state.vbuffers[i] != ResourceId())
+    if(state.vbuffers[i].buf != ResourceId())
     {
       drawNode.resourceUsage.push_back(
-          make_rdcpair(state.vbuffers[i], EventUsage(e, ResourceUsage::VertexBuffer)));
+          make_rdcpair(state.vbuffers[i].buf, EventUsage(e, ResourceUsage::VertexBuffer)));
     }
   }
 
-  for(uint32_t i = state.xfbfirst;
-      i < state.xfbfirst + state.xfbcount && i < state.xfbbuffers.size(); i++)
+  for(uint32_t i = state.firstxfbcounter;
+      i < state.firstxfbcounter + state.xfbcounters.size() && i < state.xfbbuffers.size(); i++)
   {
-    if(state.xfbbuffers[i] != ResourceId())
+    if(state.xfbbuffers[i].buf != ResourceId())
     {
       drawNode.resourceUsage.push_back(
-          make_rdcpair(state.xfbbuffers[i], EventUsage(e, ResourceUsage::StreamOut)));
+          make_rdcpair(state.xfbbuffers[i].buf, EventUsage(e, ResourceUsage::StreamOut)));
     }
   }
 
@@ -3786,16 +3801,18 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
 
   for(int shad = 0; shad < 6; shad++)
   {
-    VulkanCreationInfo::Pipeline::Shader &sh = c.m_Pipeline[state.pipeline].shaders[shad];
+    bool compute = (shad == 5);
+    ResourceId pipe = (compute ? state.compute.pipeline : state.graphics.pipeline);
+    VulkanCreationInfo::Pipeline::Shader &sh = c.m_Pipeline[pipe].shaders[shad];
     if(sh.module == ResourceId())
       continue;
 
-    ResourceId origPipe = GetResourceManager()->GetOriginalID(state.pipeline);
+    ResourceId origPipe = GetResourceManager()->GetOriginalID(pipe);
     ResourceId origShad = GetResourceManager()->GetOriginalID(sh.module);
 
     // 5 is the compute shader's index (VS, TCS, TES, GS, FS, CS)
-    const rdcarray<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descSets =
-        (shad == 5 ? state.computeDescSets : state.graphicsDescSets);
+    const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descSets =
+        (compute ? state.compute.descSets : state.graphics.descSets);
 
     RDCASSERT(sh.mapping);
 
@@ -3923,8 +3940,8 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
   //////////////////////////////
   // Framebuffer/renderpass
 
-  AddFramebufferUsage(drawNode, state.renderPass, state.framebuffer, state.subpass,
-                      state.fbattachments);
+  AddFramebufferUsage(drawNode, state.renderPass, state.GetFramebuffer(), state.subpass,
+                      state.GetFramebufferAttachments());
 }
 
 void WrappedVulkan::AddFramebufferUsage(VulkanDrawcallTreeNode &drawNode, ResourceId renderPass,

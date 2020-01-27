@@ -160,7 +160,7 @@ private:
   VkShaderModule CreateShaderReplacement(ResourceId shaderId, const rdcstr &entryName)
   {
     const VulkanCreationInfo::ShaderModule &moduleInfo =
-        m_pDriver->GetRenderState().m_CreationInfo->m_ShaderModule[shaderId];
+        m_pDriver->GetDebugManager()->GetShaderInfo(shaderId);
     rdcarray<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
     rdcspv::Editor editor(modSpirv);
     editor.Prepare();
@@ -388,8 +388,7 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
         m_DstBuffer(dstBuffer),
         m_ColorImageView(colorImageView),
         m_StencilImageView(stencilImageView),
-        m_StencilImage(stencilImage),
-        m_PrevState(vk, NULL)
+        m_StencilImage(stencilImage)
   {
     for(size_t i = 0; i < events.size(); i++)
       m_Events.insert(std::make_pair(events[i].eventId, events[i]));
@@ -468,11 +467,12 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
     if(it == m_Events.end())
       return;
     EventUsage event = it->second;
-    m_PrevState = m_pDriver->GetRenderState();
+    VulkanRenderState prevState = m_pDriver->GetCmdRenderState();
 
     // TODO: handle secondary command buffers.
     // TODO: can't end renderpass if we are not on the last subpass.
-    m_pDriver->GetRenderState().EndRenderPass(cmd);
+    m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
+
     // Get pre-modification values
     size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
     VkImage depthImage = VK_NULL_HANDLE;
@@ -488,13 +488,12 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
 
     CopyPixel(m_Image, m_Format, depthImage, depthFormat, cmd, storeOffset);
 
-    VulkanRenderState &pipestate = m_pDriver->GetRenderState();
-    ResourceId prevState = pipestate.graphics.pipeline;
+    VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
     ResourceId prevRenderpass = pipestate.renderPass;
     ResourceId prevFramebuffer = pipestate.GetFramebuffer();
     rdcarray<ResourceId> prevFBattachments = pipestate.GetFramebufferAttachments();
     const VulkanCreationInfo::Pipeline &p =
-        m_pDriver->GetRenderState().m_CreationInfo->m_Pipeline[pipestate.graphics.pipeline];
+        m_pDriver->GetDebugManager()->GetPipelineInfo(pipestate.graphics.pipeline);
     uint32_t prevSubpass = pipestate.subpass;
 
     {
@@ -509,7 +508,7 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
       // the draw. We will get occlusion data to figure out if anything wrote to
       // the pixel, as well as number of fragments not accounting for potential
       // shader discard.
-      pipestate.SetFramebuffer(GetResID(m_OffscreenFB));
+      pipestate.SetFramebuffer(m_pDriver, GetResID(m_OffscreenFB));
       pipestate.renderPass = GetResID(m_RenderPass);
       pipestate.subpass = 0;
       pipestate.graphics.pipeline = GetResID(replacements.fixedShaderStencil);
@@ -544,14 +543,15 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
     }
 
     // Restore the state.
-    m_pDriver->GetRenderState() = m_PrevState;
+    m_pDriver->GetCmdRenderState() = prevState;
     pipestate.SetFramebuffer(prevFramebuffer, prevFBattachments);
     pipestate.renderPass = prevRenderpass;
     pipestate.subpass = prevSubpass;
 
     // TODO: Need to re-start on the correct subpass.
-    if(m_PrevState.graphics.pipeline != ResourceId())
-      m_pDriver->GetRenderState().BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
+    if(m_pDriver->GetCmdRenderState().graphics.pipeline != ResourceId())
+      m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
+                                                                  VulkanRenderState::BindGraphics);
   }
 
   bool PostDraw(uint32_t eid, VkCommandBuffer cmd)
@@ -559,7 +559,7 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
     if(m_Events.find(eid) == m_Events.end())
       return false;
 
-    m_pDriver->GetRenderState().EndRenderPass(cmd);
+    m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
 
     size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
     VkImage depthImage = VK_NULL_HANDLE;
@@ -576,7 +576,8 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
     CopyPixel(m_Image, m_Format, depthImage, depthFormat, cmd,
               storeOffset + offsetof(struct EventInfo, postmod));
 
-    m_pDriver->GetRenderState().BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
+    m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
+                                                                VulkanRenderState::BindGraphics);
 
     // Get post-modification values
     m_EventIndices.insert(std::make_pair(eid, m_EventIndices.size()));
@@ -685,9 +686,9 @@ private:
   void ReplayDraw(VkCommandBuffer cmd, size_t eventIndex, int eventId, bool doQuery,
                   bool clear = false)
   {
-    VulkanRenderState &state = m_pDriver->GetRenderState();
     const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
-    state.BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
+    m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
+                                                                VulkanRenderState::BindGraphics);
 
     if(clear)
     {
@@ -719,7 +720,7 @@ private:
     if(doQuery)
       ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_OcclusionPool, (uint32_t)eventIndex);
 
-    state.EndRenderPass(cmd);
+    m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
   }
 
   // GetPipelineReplacements creates pipeline replacements that disable all tests,
@@ -735,8 +736,7 @@ private:
     if(pipeIt != m_PipelineCache.end())
       return pipeIt->second;
 
-    const VulkanCreationInfo::Pipeline &p =
-        m_pDriver->GetRenderState().m_CreationInfo->m_Pipeline[pipeline];
+    const VulkanCreationInfo::Pipeline &p = m_pDriver->GetDebugManager()->GetPipelineInfo(pipeline);
 
     EventFlags eventFlags = m_pDriver->GetEventFlags(eid);
     VkShaderModule replacementShaders[5] = {};
@@ -855,8 +855,6 @@ private:
   // Key is event ID, and value is an index of where the occlusion result.
   std::map<uint32_t, uint32_t> m_OcclusionQueries;
   rdcarray<uint64_t> m_OcclusionResults;
-
-  VulkanRenderState m_PrevState;
 };
 
 // TestsFailedCallback replays draws to figure out which tests failed (for ex., depth,
@@ -876,9 +874,9 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
     if(!m_Events.contains(eid))
       return;
 
-    VulkanRenderState &pipestate = m_pDriver->GetRenderState();
+    VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
     const VulkanCreationInfo::Pipeline &p =
-        m_pDriver->GetRenderState().m_CreationInfo->m_Pipeline[pipestate.graphics.pipeline];
+        m_pDriver->GetDebugManager()->GetPipelineInfo(pipestate.graphics.pipeline);
     uint32_t eventFlags = CalculateEventFlags(p, pipestate);
     m_EventFlags[eid] = eventFlags;
 
@@ -888,12 +886,13 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
     m_HasEarlyFragments[eid] = earlyFragmentTests;
 
     ResourceId curPipeline = pipestate.graphics.pipeline;
-    VulkanRenderState m_PrevState = m_pDriver->GetRenderState();
+    VulkanRenderState m_PrevState = m_pDriver->GetCmdRenderState();
 
     ReplayDrawWithTests(cmd, eid, eventFlags, curPipeline);
 
-    m_pDriver->GetRenderState() = m_PrevState;
-    m_pDriver->GetRenderState().BindPipeline(cmd, VulkanRenderState::BindGraphics, false);
+    m_pDriver->GetCmdRenderState() = m_PrevState;
+    m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
+                                                false);
   }
 
   bool PostDraw(uint32_t eid, VkCommandBuffer cmd) { return false; }
@@ -1085,7 +1084,7 @@ private:
       return;
 
     const VulkanCreationInfo::Pipeline &p =
-        m_pDriver->GetRenderState().m_CreationInfo->m_Pipeline[basePipeline];
+        m_pDriver->GetDebugManager()->GetPipelineInfo(basePipeline);
     EventFlags eventShaderFlags = m_pDriver->GetEventFlags(eid);
     uint32_t numberOfStages = 5;
     rdcarray<VkShaderModule> replacementShaders;
@@ -1103,7 +1102,7 @@ private:
     }
 
     bool dynamicScissor = p.dynamicStates[VkDynamicScissor];
-    VulkanRenderState &pipestate = m_pDriver->GetRenderState();
+    VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
     rdcarray<VkRect2D> prevScissors = pipestate.scissors;
     if(dynamicScissor)
       for(uint32_t i = 0; i < pipestate.views.size(); i++)
@@ -1275,8 +1274,9 @@ private:
 
   void ReplayDraw(VkCommandBuffer cmd, VkPipeline pipe, int eventId, uint32_t test)
   {
-    m_pDriver->GetRenderState().graphics.pipeline = GetResID(pipe);
-    m_pDriver->GetRenderState().BindPipeline(cmd, VulkanRenderState::BindGraphics, false);
+    m_pDriver->GetCmdRenderState().graphics.pipeline = GetResID(pipe);
+    m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
+                                                false);
 
     uint32_t index = (uint32_t)m_OcclusionQueries.size();
     if(m_OcclusionQueries.find(rdcpair<uint32_t, uint32_t>(eventId, test)) != m_OcclusionQueries.end())
@@ -1346,7 +1346,6 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   VkImage wrappedColorImage = colorImage;
-  m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), wrappedColorImage);
   ImageState colorImageState = ImageState(wrappedColorImage, ImageInfo(imgInfo), eFrameRef_None);
 
   VkMemoryRequirements colorImageMrq = {0};
@@ -1360,7 +1359,6 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   VkImage wrappedStencilImage = stencilImage;
-  m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), wrappedStencilImage);
   ImageState stencilImageState = ImageState(wrappedStencilImage, ImageInfo(imgInfo), eFrameRef_None);
 
   VkMemoryRequirements stencilImageMrq = {0};

@@ -551,29 +551,7 @@ private:
 
     rdcarray<rdcpair<ResourceId, EventUsage>> resourceUsage;
 
-    struct CmdBufferState
-    {
-      ResourceId pipeline;
-
-      struct DescriptorAndOffsets
-      {
-        ResourceId descSet;
-        rdcarray<uint32_t> offsets;
-      };
-      rdcarray<DescriptorAndOffsets> graphicsDescSets, computeDescSets;
-
-      uint32_t idxWidth = 0;
-      ResourceId ibuffer;
-      rdcarray<ResourceId> vbuffers;
-      rdcarray<ResourceId> xfbbuffers;
-      uint32_t xfbfirst = 0;
-      uint32_t xfbcount = 0;
-
-      ResourceId renderPass;
-      ResourceId framebuffer;
-      rdcarray<ResourceId> fbattachments;
-      uint32_t subpass = 0;
-    } state;
+    VulkanRenderState state;
 
     std::map<ResourceId, ImageState> imageStates;
 
@@ -939,6 +917,14 @@ public:
   const InstanceDeviceInfo &GetExtensions(VkResourceRecord *record) const
   {
     return record ? *record->instDevInfo : m_EnabledExtensions;
+  }
+
+  VulkanRenderState &GetCmdRenderState()
+  {
+    RDCASSERT(m_LastCmdBufferID != ResourceId());
+    auto it = m_BakedCmdBufferInfo.find(m_LastCmdBufferID);
+    RDCASSERT(it != m_BakedCmdBufferInfo.end());
+    return it->second.state;
   }
 
   static rdcstr GetChunkName(uint32_t idx);
