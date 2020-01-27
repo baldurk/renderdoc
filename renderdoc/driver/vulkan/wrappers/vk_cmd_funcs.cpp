@@ -2760,68 +2760,6 @@ void WrappedVulkan::vkCmdUpdateBuffer(VkCommandBuffer commandBuffer, VkBuffer de
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_vkCmdFillBuffer(SerialiserType &ser, VkCommandBuffer commandBuffer,
-                                              VkBuffer destBuffer, VkDeviceSize destOffset,
-                                              VkDeviceSize fillSize, uint32_t data)
-{
-  SERIALISE_ELEMENT(commandBuffer);
-  SERIALISE_ELEMENT(destBuffer);
-  SERIALISE_ELEMENT(destOffset);
-  SERIALISE_ELEMENT(fillSize);
-  SERIALISE_ELEMENT(data);
-
-  Serialise_DebugMessages(ser);
-
-  SERIALISE_CHECK_READ_ERRORS();
-
-  if(IsReplayingAndReading())
-  {
-    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
-
-    if(IsActiveReplaying(m_State))
-    {
-      if(InRerecordRange(m_LastCmdBufferID))
-        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-      else
-        commandBuffer = VK_NULL_HANDLE;
-    }
-
-    if(commandBuffer != VK_NULL_HANDLE)
-    {
-      ObjDisp(commandBuffer)
-          ->CmdFillBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), destOffset, fillSize, data);
-    }
-  }
-
-  return true;
-}
-
-void WrappedVulkan::vkCmdFillBuffer(VkCommandBuffer commandBuffer, VkBuffer destBuffer,
-                                    VkDeviceSize destOffset, VkDeviceSize fillSize, uint32_t data)
-{
-  SCOPED_DBG_SINK();
-
-  SERIALISE_TIME_CALL(
-      ObjDisp(commandBuffer)
-          ->CmdFillBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), destOffset, fillSize, data));
-
-  if(IsCaptureMode(m_State))
-  {
-    VkResourceRecord *record = GetRecord(commandBuffer);
-
-    CACHE_THREAD_SERIALISER();
-
-    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdFillBuffer);
-    Serialise_vkCmdFillBuffer(ser, commandBuffer, destBuffer, destOffset, fillSize, data);
-
-    record->AddChunk(scope.Get());
-
-    record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, fillSize,
-                                      eFrameRef_CompleteWrite);
-  }
-}
-
-template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdPushConstants(SerialiserType &ser, VkCommandBuffer commandBuffer,
                                                  VkPipelineLayout layout,
                                                  VkShaderStageFlags stageFlags, uint32_t start,
@@ -5437,10 +5375,6 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBindVertexBuffers, VkCommandBuffer co
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdUpdateBuffer, VkCommandBuffer commandBuffer,
                                 VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize dataSize,
                                 const uint32_t *pData);
-
-INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdFillBuffer, VkCommandBuffer commandBuffer,
-                                VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize fillSize,
-                                uint32_t data);
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdPushConstants, VkCommandBuffer commandBuffer,
                                 VkPipelineLayout layout, VkShaderStageFlags stageFlags,

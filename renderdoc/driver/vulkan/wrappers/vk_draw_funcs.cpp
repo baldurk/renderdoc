@@ -2029,6 +2029,98 @@ void WrappedVulkan::vkCmdCopyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcB
 }
 
 template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdFillBuffer(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                              VkBuffer destBuffer, VkDeviceSize destOffset,
+                                              VkDeviceSize fillSize, uint32_t data)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(destBuffer);
+  SERIALISE_ELEMENT(destOffset);
+  SERIALISE_ELEMENT(fillSize);
+  SERIALISE_ELEMENT(data);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        uint32_t eventId = HandlePreCallback(commandBuffer, DrawFlags::Clear);
+
+        ObjDisp(commandBuffer)
+            ->CmdFillBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), destOffset, fillSize, data);
+
+        if(eventId && m_DrawcallCallback->PostMisc(eventId, DrawFlags::Clear, commandBuffer))
+        {
+          ObjDisp(commandBuffer)
+              ->CmdFillBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), destOffset, fillSize, data);
+
+          m_DrawcallCallback->PostRemisc(eventId, DrawFlags::Clear, commandBuffer);
+        }
+      }
+    }
+    else
+    {
+      ObjDisp(commandBuffer)
+          ->CmdFillBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), destOffset, fillSize, data);
+
+      {
+        AddEvent();
+
+        ResourceId id = GetResourceManager()->GetOriginalID(GetResID(destBuffer));
+
+        DrawcallDescription draw;
+        draw.name = StringFormat::Fmt("vkCmdFillBuffer(%s, %u)", ToStr(id).c_str(), data);
+        draw.flags = DrawFlags::Clear;
+        draw.copyDestination = id;
+
+        AddDrawcall(draw, true);
+
+        VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+
+        drawNode.resourceUsage.push_back(make_rdcpair(
+            GetResID(destBuffer), EventUsage(drawNode.draw.eventId, ResourceUsage::Clear)));
+      }
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdFillBuffer(VkCommandBuffer commandBuffer, VkBuffer destBuffer,
+                                    VkDeviceSize destOffset, VkDeviceSize fillSize, uint32_t data)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdFillBuffer(Unwrap(commandBuffer), Unwrap(destBuffer), destOffset, fillSize, data));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdFillBuffer);
+    Serialise_vkCmdFillBuffer(ser, commandBuffer, destBuffer, destOffset, fillSize, data);
+
+    record->AddChunk(scope.Get());
+
+    record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, fillSize,
+                                      eFrameRef_CompleteWrite);
+  }
+}
+
+template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdClearColorImage(SerialiserType &ser, VkCommandBuffer commandBuffer,
                                                    VkImage image, VkImageLayout imageLayout,
                                                    const VkClearColorValue *pColor,
@@ -3292,6 +3384,10 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyBufferToImage, VkCommandBuffer co
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyImageToBuffer, VkCommandBuffer commandBuffer,
                                 VkImage srcImage, VkImageLayout srcImageLayout, VkBuffer dstBuffer,
                                 uint32_t regionCount, const VkBufferImageCopy *pRegions);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdFillBuffer, VkCommandBuffer commandBuffer,
+                                VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize fillSize,
+                                uint32_t data);
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdClearColorImage, VkCommandBuffer commandBuffer,
                                 VkImage image, VkImageLayout imageLayout,
