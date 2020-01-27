@@ -898,7 +898,7 @@ otherwise.
 :param ResourceId buffer: The id of the buffer to use for data. If
   :data:`ConstantBlock.bufferBacked` is ``False`` this is ignored.
 :param int offset: Retrieve buffer contents starting at this byte offset.
-:param int length: Retrieve this many bytes after :param:`offset`. May be 0 to fetch the rest of the
+:param int length: Retrieve this many bytes after :paramref:`offset`. May be 0 to fetch the rest of the
   buffer.
 :return: The shader variables with their contents.
 :rtype: ``list`` of :class:`ShaderVariable`
