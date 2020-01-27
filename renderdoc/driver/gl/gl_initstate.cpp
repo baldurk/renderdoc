@@ -2451,18 +2451,27 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
 
         if(attrib.size != 0)
         {
+          uint32_t offset = attrib.offset;
+
+          if(offset == 0xdeadbeef)
+            offset = 0;
+
           if(attrib.type == eGL_DOUBLE)
-            GL.glVertexAttribLFormat(i, attrib.size, attrib.type, attrib.offset);
+            GL.glVertexAttribLFormat(i, attrib.size, attrib.type, offset);
           else if(attrib.integer == 0)
             GL.glVertexAttribFormat(i, attrib.size, attrib.type, (GLboolean)attrib.normalized,
-                                    attrib.offset);
+                                    offset);
           else
-            GL.glVertexAttribIFormat(i, attrib.size, attrib.type, attrib.offset);
+            GL.glVertexAttribIFormat(i, attrib.size, attrib.type, offset);
         }
 
         const VertexBufferInitialData &buf = data.VertexBuffers[i];
 
-        GL.glBindVertexBuffer(i, buf.Buffer.name, (GLintptr)buf.Offset, (GLsizei)buf.Stride);
+        uint64_t vboffset = buf.Offset;
+        if(vboffset == 0xdeadbeef)
+          vboffset = 0;
+
+        GL.glBindVertexBuffer(i, buf.Buffer.name, (GLintptr)vboffset, (GLsizei)buf.Stride);
         GL.glVertexBindingDivisor(i, buf.Divisor);
       }
 
