@@ -183,7 +183,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
       {
         if(pRenderTargets[i].BeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
         {
-          Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+          Unwrap(pCommandList)
               ->ClearRenderTargetView(pRenderTargets[i].cpuDescriptor,
                                       pRenderTargets[i].BeginningAccess.Clear.ClearValue.Color, 0,
                                       NULL);
@@ -204,7 +204,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
           // we can safely read from either depth/stencil clear values because if the access
           // type isn't clear the corresponding flag will be unset - so whatever garbage value
           // we have isn't used.
-          Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+          Unwrap(pCommandList)
               ->ClearDepthStencilView(
                   pDepthStencil->cpuDescriptor, flags,
                   pDepthStencil->DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth,
