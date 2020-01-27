@@ -164,7 +164,11 @@ void cmdBindVertexBuffers(VkCommandBuffer cmd, uint32_t firstBinding,
 
 void cmdBindDescriptorSets(VkCommandBuffer cmd, VkPipelineBindPoint pipelineBindPoint,
                            VkPipelineLayout layout, uint32_t firstSet,
-                           std::vector<VkDescriptorSet> bufs, std::vector<uint32_t> dynamicOffsets);
+                           std::vector<VkDescriptorSet> sets, std::vector<uint32_t> dynamicOffsets);
+
+void cmdPushDescriptorSets(VkCommandBuffer cmd, VkPipelineBindPoint pipelineBindPoint,
+                           VkPipelineLayout layout, uint32_t set,
+                           std::vector<VkWriteDescriptorSet> writes);
 
 struct ApplicationInfo : public VkApplicationInfo
 {

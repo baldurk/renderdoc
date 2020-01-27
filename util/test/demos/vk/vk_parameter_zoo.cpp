@@ -89,6 +89,88 @@ void main()
 
 )EOSHADER";
 
+  const std::string refpixel = R"EOSHADER(
+#version 450 core
+#extension GL_EXT_samplerless_texture_functions : enable
+
+layout(location = 0, index = 0) out vec4 Color;
+
+layout(binding = 0) uniform texture2D tex;
+
+void main()
+{
+	Color = vec4(0, 1, 0, 1) * texelFetch(tex, ivec2(0), 0);
+}
+
+)EOSHADER";
+
+  struct refdatastruct
+  {
+    VkDescriptorImageInfo sampler;
+    VkDescriptorImageInfo combined;
+    VkDescriptorImageInfo sampled;
+    VkDescriptorImageInfo storage;
+    VkBufferView unitexel;
+    VkBufferView storetexel;
+    VkDescriptorBufferInfo unibuf;
+    VkDescriptorBufferInfo storebuf;
+    VkDescriptorBufferInfo unibufdyn;
+    VkDescriptorBufferInfo storebufdyn;
+  };
+
+  VkSampler refsamp[4];
+
+  VkSampler refcombinedsamp[4];
+  AllocatedImage refcombinedimg[4];
+  VkImageView refcombinedimgview[4];
+
+  AllocatedImage refsampled[4];
+  VkImageView refsampledview[4];
+
+  AllocatedImage refstorage[4];
+  VkImageView refstorageview[4];
+
+  AllocatedBuffer refunitexel[4];
+  VkBufferView refunitexelview[4];
+
+  AllocatedBuffer refstoretexel[4];
+  VkBufferView refstoretexelview[4];
+
+  AllocatedBuffer refunibuf[4];
+
+  AllocatedBuffer refstorebuf[4];
+
+  AllocatedBuffer refunibufdyn[4];
+
+  AllocatedBuffer refstorebufdyn[4];
+
+  refdatastruct GetData(uint32_t idx)
+  {
+    return {
+        // sampler
+        vkh::DescriptorImageInfo(VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, refsamp[idx]),
+        // combined
+        vkh::DescriptorImageInfo(refcombinedimgview[idx], VK_IMAGE_LAYOUT_GENERAL,
+                                 refcombinedsamp[idx]),
+        // sampled
+        vkh::DescriptorImageInfo(refsampledview[idx], VK_IMAGE_LAYOUT_GENERAL, VK_NULL_HANDLE),
+        // storage
+        vkh::DescriptorImageInfo(refstorageview[idx], VK_IMAGE_LAYOUT_GENERAL, VK_NULL_HANDLE),
+        // unitexel
+        refunitexelview[idx],
+        // storetexel
+        refstoretexelview[idx],
+        // unibuf
+        vkh::DescriptorBufferInfo(refunibuf[idx].buffer),
+        // storebuf
+        vkh::DescriptorBufferInfo(refstorebuf[idx].buffer),
+        // unibufdyn
+        vkh::DescriptorBufferInfo(refunibufdyn[idx].buffer),
+        // storebufdyn
+        vkh::DescriptorBufferInfo(refstorebufdyn[idx].buffer),
+    };
+  }
+
   int main()
   {
     optDevExts.push_back(VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME);
@@ -118,6 +200,20 @@ void main()
         {10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, VK_SHADER_STAGE_VERTEX_BIT},
     }));
 
+    VkDescriptorSetLayout refsetlayout =
+        createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+            {0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT},
+            {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT},
+            {2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_VERTEX_BIT},
+            {3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_VERTEX_BIT},
+            {4, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT},
+            {5, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT},
+            {6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT},
+            {7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT},
+            {8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_VERTEX_BIT},
+            {9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_VERTEX_BIT},
+        }));
+
     VkSampler invalidSampler = (VkSampler)0x1234;
     VkSampler validSampler = VK_NULL_HANDLE;
     VkSamplerCreateInfo sampInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
@@ -130,12 +226,11 @@ void main()
         {99, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_VERTEX_BIT, &invalidSampler},
     }));
 
-    VkDescriptorSetLayout pushlayout = VK_NULL_HANDLE;
-    VkPipelineLayout layout;
+    VkPipelineLayout layout, reflayout;
 
     if(KHR_push_descriptor)
     {
-      pushlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo(
+      VkDescriptorSetLayout pushlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo(
           {
               {5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT},
               {10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT},
@@ -144,10 +239,36 @@ void main()
           VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR));
 
       layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({setlayout, pushlayout}));
+
+      VkDescriptorSetLayout refpushlayout =
+          createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo(
+              {
+                  {0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT},
+                  {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT},
+                  {2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_VERTEX_BIT},
+                  {3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_VERTEX_BIT},
+                  {4, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT},
+                  {5, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT},
+                  {6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT},
+                  {7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT},
+              },
+              VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR));
+
+      if(KHR_descriptor_update_template)
+        reflayout = createPipelineLayout(
+            vkh::PipelineLayoutCreateInfo({refsetlayout, refsetlayout, refpushlayout}));
+      else
+        reflayout =
+            createPipelineLayout(vkh::PipelineLayoutCreateInfo({refsetlayout, refpushlayout}));
     }
     else
     {
       layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({setlayout}));
+
+      if(KHR_descriptor_update_template)
+        reflayout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({refsetlayout, refsetlayout}));
+      else
+        reflayout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({refsetlayout}));
     }
 
     VkPipelineLayout immutlayout =
@@ -183,6 +304,10 @@ void main()
     pipeCreateInfo.layout = immutlayout;
 
     VkPipeline immutpipe = createGraphicsPipeline(pipeCreateInfo);
+
+    pipeCreateInfo.layout = reflayout;
+
+    VkPipeline refpipe = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.stages = {
         CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
@@ -254,6 +379,8 @@ void main()
     vb.upload(DefaultTri);
 
     VkDescriptorSet descset = allocateDescriptorSet(setlayout);
+    VkDescriptorSet refdescset = allocateDescriptorSet(refsetlayout);
+    VkDescriptorSet reftempldescset = allocateDescriptorSet(refsetlayout);
 
     VkDescriptorSet immutdescset = allocateDescriptorSet(immutsetlayout);
 
@@ -290,11 +417,11 @@ void main()
                            vkh::ClearColorValue(1.0f, 1.0f, 1.0f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
       vkh::cmdPipelineBarrier(
-          cmd, {
-                   vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-                                           VK_IMAGE_LAYOUT_GENERAL,
-                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, img.image),
-               });
+          cmd,
+          {
+              vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                                      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL, img.image),
+          });
       vkEndCommandBuffer(cmd);
       Submit(99, 99, {cmd});
     }
@@ -423,6 +550,8 @@ void main()
 
     vkh::updateDescriptorSets(device, writes);
 
+    VkDescriptorUpdateTemplateKHR reftempl = VK_NULL_HANDLE;
+
     if(KHR_descriptor_update_template)
     {
       struct datastruct
@@ -476,6 +605,31 @@ void main()
       vkUpdateDescriptorSetWithTemplateKHR(device, descset, templ, &data);
 
       vkDestroyDescriptorUpdateTemplateKHR(device, templ, NULL);
+
+      entries = {
+          {0, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLER, offsetof(refdatastruct, sampler), sizeof(data)},
+          {1, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, offsetof(refdatastruct, combined),
+           sizeof(data)},
+          {2, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, offsetof(refdatastruct, sampled), sizeof(data)},
+          {3, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, offsetof(refdatastruct, storage), sizeof(data)},
+          {4, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, offsetof(refdatastruct, unitexel),
+           sizeof(data)},
+          {5, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, offsetof(refdatastruct, storetexel),
+           sizeof(data)},
+          {6, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, offsetof(refdatastruct, unibuf), sizeof(data)},
+          {7, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, offsetof(refdatastruct, storebuf),
+           sizeof(data)},
+          {8, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, offsetof(refdatastruct, unibufdyn),
+           sizeof(data)},
+          {9, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, offsetof(refdatastruct, storebufdyn),
+           sizeof(data)},
+      };
+
+      createInfo.descriptorSetLayout = refsetlayout;
+      createInfo.descriptorUpdateEntryCount = (uint32_t)entries.size();
+      createInfo.pDescriptorUpdateEntries = entries.data();
+
+      vkCreateDescriptorUpdateTemplateKHR(device, &createInfo, NULL, &reftempl);
     }
 
     struct pushdatastruct
@@ -485,7 +639,7 @@ void main()
 
     pushdata.buf = validBufInfos[0];
 
-    VkDescriptorUpdateTemplateKHR pushtempl = VK_NULL_HANDLE;
+    VkDescriptorUpdateTemplateKHR pushtempl = VK_NULL_HANDLE, refpushtempl = VK_NULL_HANDLE;
     if(KHR_descriptor_update_template && KHR_push_descriptor)
     {
       std::vector<VkDescriptorUpdateTemplateEntryKHR> entries = {
@@ -503,6 +657,35 @@ void main()
       createInfo.pipelineLayout = layout;
       createInfo.set = 1;
       vkCreateDescriptorUpdateTemplateKHR(device, &createInfo, NULL, &pushtempl);
+
+      entries = {
+          {0, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLER, offsetof(refdatastruct, sampler),
+           sizeof(refdatastruct)},
+          {1, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, offsetof(refdatastruct, combined),
+           sizeof(refdatastruct)},
+          {2, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, offsetof(refdatastruct, sampled),
+           sizeof(refdatastruct)},
+          {3, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, offsetof(refdatastruct, storage),
+           sizeof(refdatastruct)},
+          {4, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, offsetof(refdatastruct, unitexel),
+           sizeof(refdatastruct)},
+          {5, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, offsetof(refdatastruct, storetexel),
+           sizeof(refdatastruct)},
+          {6, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, offsetof(refdatastruct, unibuf),
+           sizeof(refdatastruct)},
+          {7, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, offsetof(refdatastruct, storebuf),
+           sizeof(refdatastruct)},
+      };
+
+      createInfo.descriptorUpdateEntryCount = (uint32_t)entries.size();
+      createInfo.pDescriptorUpdateEntries = entries.data();
+      // set 0 = normal
+      // set 1 = template
+      // set 2 = push
+      createInfo.pipelineLayout = reflayout;
+      createInfo.set = 2;
+
+      vkCreateDescriptorUpdateTemplateKHR(device, &createInfo, NULL, &refpushtempl);
     }
 
     // check that stale views in descriptors don't cause problems if the handle is re-used
@@ -516,14 +699,15 @@ void main()
                                 NULL, &view2));
 
     vkh::updateDescriptorSets(
-        device, {
-                    // bind view1 to binding 0, we will override this
-                    vkh::WriteDescriptorSet(descset2, 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                            {vkh::DescriptorImageInfo(view1)}),
-                    // we bind view2 to binding 1. This will become stale
-                    vkh::WriteDescriptorSet(descset2, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                            {vkh::DescriptorImageInfo(view2)}),
-                });
+        device,
+        {
+            // bind view1 to binding 0, we will override this
+            vkh::WriteDescriptorSet(descset2, 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                    {vkh::DescriptorImageInfo(view1, VK_IMAGE_LAYOUT_GENERAL)}),
+            // we bind view2 to binding 1. This will become stale
+            vkh::WriteDescriptorSet(descset2, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                    {vkh::DescriptorImageInfo(view2, VK_IMAGE_LAYOUT_GENERAL)}),
+        });
 
     vkDestroyImageView(device, view2, NULL);
 
@@ -545,61 +729,343 @@ void main()
             // bind view3 to 0. This means the same handle is now in both binding but only binding 0
             // is valid, binding 1 refers to the 'old' version of this handle.
             vkh::WriteDescriptorSet(descset2, 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                    {vkh::DescriptorImageInfo(view3)}),
+                                    {vkh::DescriptorImageInfo(view3, VK_IMAGE_LAYOUT_GENERAL)}),
             // this unbinds the stale view2. Nothing should happen, but if we're comparing by handle
             // this may remove a reference to view3 since it will have the same handle
             vkh::WriteDescriptorSet(descset2, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                    {vkh::DescriptorImageInfo(view1)}),
+                                    {vkh::DescriptorImageInfo(view1, VK_IMAGE_LAYOUT_GENERAL)}),
         });
+
+    refdatastruct resetrefdata = {};
+    resetrefdata.sampler.sampler = resetrefdata.combined.sampler = validSampler;
+    resetrefdata.sampled.imageView = resetrefdata.combined.imageView =
+        resetrefdata.storage.imageView = validImgView;
+    resetrefdata.sampled.imageLayout = resetrefdata.combined.imageLayout =
+        resetrefdata.storage.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    resetrefdata.unitexel = resetrefdata.storetexel = validBufView;
+    resetrefdata.unibuf.buffer = resetrefdata.storebuf.buffer = resetrefdata.unibufdyn.buffer =
+        resetrefdata.storebufdyn.buffer = validBuffer;
+    resetrefdata.unibuf.range = resetrefdata.storebuf.range = resetrefdata.unibufdyn.range =
+        resetrefdata.storebufdyn.range = VK_WHOLE_SIZE;
+
+    {
+      VkCommandBuffer cmd = GetCommandBuffer();
+      vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+      vkh::cmdPipelineBarrier(cmd, {
+                                       vkh::ImageMemoryBarrier(0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
+                                                               VK_IMAGE_LAYOUT_GENERAL, img.image),
+                                   });
+
+      // create the specific resources that will only be referenced through descriptor updates
+      for(int i = 0; i < 4; i++)
+      {
+        vkCreateSampler(device, &sampInfo, NULL, &refsamp[i]);
+        setName(refsamp[i], "refsamp" + std::to_string(i));
+
+        vkCreateSampler(device, &sampInfo, NULL, &refcombinedsamp[i]);
+        setName(refcombinedsamp[i], "refcombinedsamp" + std::to_string(i));
+
+        VkFormat fmt = VK_FORMAT_R32G32B32A32_SFLOAT;
+        VmaAllocationCreateInfo allocInfo = {0, VMA_MEMORY_USAGE_GPU_ONLY};
+
+        refcombinedimg[i] = AllocatedImage(
+            this, vkh::ImageCreateInfo(2, 2, 0, fmt, VK_IMAGE_USAGE_SAMPLED_BIT), allocInfo);
+        refcombinedimgview[i] = createImageView(
+            vkh::ImageViewCreateInfo(refcombinedimg[i].image, VK_IMAGE_VIEW_TYPE_2D, fmt));
+        setName(refcombinedimg[i].image, "refcombinedimg" + std::to_string(i));
+
+        vkh::cmdPipelineBarrier(
+            cmd, {
+                     vkh::ImageMemoryBarrier(0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
+                                             VK_IMAGE_LAYOUT_GENERAL, refcombinedimg[i].image),
+                 });
+
+        refsampled[i] = AllocatedImage(
+            this, vkh::ImageCreateInfo(2, 2, 0, fmt, VK_IMAGE_USAGE_SAMPLED_BIT), allocInfo);
+        refsampledview[i] = createImageView(
+            vkh::ImageViewCreateInfo(refsampled[i].image, VK_IMAGE_VIEW_TYPE_2D, fmt));
+        setName(refsampled[i].image, "refsampled" + std::to_string(i));
+
+        vkh::cmdPipelineBarrier(
+            cmd, {
+                     vkh::ImageMemoryBarrier(0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
+                                             VK_IMAGE_LAYOUT_GENERAL, refsampled[i].image),
+                 });
+
+        refstorage[i] = AllocatedImage(
+            this, vkh::ImageCreateInfo(2, 2, 0, fmt, VK_IMAGE_USAGE_STORAGE_BIT), allocInfo);
+        refstorageview[i] = createImageView(
+            vkh::ImageViewCreateInfo(refstorage[i].image, VK_IMAGE_VIEW_TYPE_2D, fmt));
+        setName(refstorage[i].image, "refstorage" + std::to_string(i));
+
+        vkh::cmdPipelineBarrier(
+            cmd, {
+                     vkh::ImageMemoryBarrier(0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
+                                             VK_IMAGE_LAYOUT_GENERAL, refstorage[i].image),
+                 });
+
+        refunitexel[i] = AllocatedBuffer(
+            this, vkh::BufferCreateInfo(256, VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT), allocInfo);
+        refunitexelview[i] = createBufferView(vkh::BufferViewCreateInfo(refunitexel[i].buffer, fmt));
+        setName(refunitexel[i].buffer, "refunitexel" + std::to_string(i));
+
+        refstoretexel[i] = AllocatedBuffer(
+            this, vkh::BufferCreateInfo(256, VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT), allocInfo);
+        refstoretexelview[i] =
+            createBufferView(vkh::BufferViewCreateInfo(refstoretexel[i].buffer, fmt));
+        setName(refstoretexel[i].buffer, "refstoretexel" + std::to_string(i));
+
+        refunibuf[i] = AllocatedBuffer(
+            this, vkh::BufferCreateInfo(256, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), allocInfo);
+        setName(refunibuf[i].buffer, "refunibuf" + std::to_string(i));
+
+        refstorebuf[i] = AllocatedBuffer(
+            this, vkh::BufferCreateInfo(256, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), allocInfo);
+        setName(refstorebuf[i].buffer, "refstorebuf" + std::to_string(i));
+
+        refunibufdyn[i] = AllocatedBuffer(
+            this, vkh::BufferCreateInfo(256, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), allocInfo);
+        setName(refunibufdyn[i].buffer, "refunibufdyn" + std::to_string(i));
+
+        refstorebufdyn[i] = AllocatedBuffer(
+            this, vkh::BufferCreateInfo(256, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT), allocInfo);
+        setName(refstorebufdyn[i].buffer, "refstorebufdyn" + std::to_string(i));
+      }
+
+      vkEndCommandBuffer(cmd);
+      Submit(99, 99, {cmd});
+    }
 
     while(Running())
     {
-      VkCommandBuffer cmd = GetCommandBuffer();
+      // acquire and clear the backbuffer
+      {
+        VkCommandBuffer cmd = GetCommandBuffer();
 
-      vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+        vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
 
-      VkImage swapimg =
-          StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
+        VkImage swapimg =
+            StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
-      vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
-                           vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
-                           vkh::ImageSubresourceRange());
+        vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
+                             vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
+                             vkh::ImageSubresourceRange());
 
-      vkCmdBeginRenderPass(
-          cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
-          VK_SUBPASS_CONTENTS_INLINE);
+        vkEndCommandBuffer(cmd);
 
-      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
-      vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
-      vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
-      vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
-      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {0, 0});
-      vkCmdPushDescriptorSetKHR(
-          cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 1, 1,
-          vkh::WriteDescriptorSet(VK_NULL_HANDLE, 20, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                  validBufInfos));
-      if(KHR_descriptor_update_template && KHR_push_descriptor)
-        vkCmdPushDescriptorSetWithTemplateKHR(cmd, pushtempl, layout, 1, &pushdata);
-      vkCmdDraw(cmd, 3, 1, 0, 0);
+        Submit(0, 4, {cmd});
+      }
 
-      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, immutpipe);
-      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, immutlayout, 0,
-                                 {immutdescset}, {});
+      // reference some resources through different descriptor types to ensure that they are
+      // properly included
+      {
+        vkDeviceWaitIdle(device);
 
-      vkCmdDraw(cmd, 3, 1, 0, 0);
+        refdatastruct refdata = GetData(0);
+        refdatastruct reftempldata = GetData(1);
+        refdatastruct refpushdata = GetData(2);
+        refdatastruct refpushtempldata = GetData(3);
 
-      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe2);
-      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout2, 0, {descset2}, {});
+        vkh::updateDescriptorSets(
+            device,
+            {
+                vkh::WriteDescriptorSet(refdescset, 0, VK_DESCRIPTOR_TYPE_SAMPLER, {refdata.sampler}),
+                vkh::WriteDescriptorSet(refdescset, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                        {refdata.combined}),
+                vkh::WriteDescriptorSet(refdescset, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                        {refdata.sampled}),
+                vkh::WriteDescriptorSet(refdescset, 3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                        {refdata.storage}),
+                vkh::WriteDescriptorSet(refdescset, 4, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+                                        {refdata.unitexel}),
+                vkh::WriteDescriptorSet(refdescset, 5, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+                                        {refdata.storetexel}),
+                vkh::WriteDescriptorSet(refdescset, 6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                        {refdata.unibuf}),
+                vkh::WriteDescriptorSet(refdescset, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                        {refdata.storebuf}),
+                vkh::WriteDescriptorSet(refdescset, 8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                                        {refdata.unibufdyn}),
+                vkh::WriteDescriptorSet(refdescset, 9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,
+                                        {refdata.storebufdyn}),
+            });
 
-      vkCmdDraw(cmd, 3, 1, 0, 0);
+        if(KHR_descriptor_update_template)
+          vkUpdateDescriptorSetWithTemplateKHR(device, reftempldescset, reftempl, &reftempldata);
 
-      vkCmdEndRenderPass(cmd);
+        VkCommandBuffer cmd = GetCommandBuffer();
 
-      FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
+        vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
 
-      vkEndCommandBuffer(cmd);
+        if(KHR_descriptor_update_template)
+          setMarker(cmd, "KHR_descriptor_update_template");
+        if(KHR_push_descriptor)
+          setMarker(cmd, "KHR_push_descriptor");
 
-      Submit(0, 1, {cmd});
+        vkCmdBeginRenderPass(
+            cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
+            VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, refpipe);
+
+        uint32_t set = 0;
+
+        // set 0 is always the normal one
+        vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, reflayout, set++,
+                                   {refdescset}, {0, 0});
+
+        // if we have update templates, set 1 is always the template one
+        if(KHR_descriptor_update_template)
+          vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, reflayout, set++,
+                                     {reftempldescset}, {0, 0});
+
+        // push set comes after the ones above. Note that because we can't have more than one push
+        // set, we test with the first set of refs here then do a template update (if supported) and
+        // draw again to test the second set of refs.
+        if(KHR_push_descriptor)
+        {
+          vkh::cmdPushDescriptorSets(
+              cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, reflayout, set,
+              {
+                  vkh::WriteDescriptorSet(VK_NULL_HANDLE, 0, VK_DESCRIPTOR_TYPE_SAMPLER,
+                                          {refpushdata.sampler}),
+                  vkh::WriteDescriptorSet(VK_NULL_HANDLE, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                          {refpushdata.combined}),
+                  vkh::WriteDescriptorSet(VK_NULL_HANDLE, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                          {refpushdata.sampled}),
+                  vkh::WriteDescriptorSet(VK_NULL_HANDLE, 3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                          {refpushdata.storage}),
+                  vkh::WriteDescriptorSet(VK_NULL_HANDLE, 4, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+                                          {refpushdata.unitexel}),
+                  vkh::WriteDescriptorSet(VK_NULL_HANDLE, 5, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+                                          {refpushdata.storetexel}),
+                  vkh::WriteDescriptorSet(VK_NULL_HANDLE, 6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                          {refpushdata.unibuf}),
+                  vkh::WriteDescriptorSet(VK_NULL_HANDLE, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                          {refpushdata.storebuf}),
+              });
+        }
+
+        VkViewport view = {128, 0, 128, 128, 0, 1};
+        vkCmdSetViewport(cmd, 0, 1, &view);
+        vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
+        vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
+        setMarker(cmd, "References");
+        vkCmdDraw(cmd, 1, 1, 0, 0);
+
+        if(KHR_descriptor_update_template && KHR_push_descriptor)
+        {
+          setMarker(cmd, "PushTemplReferences");
+          vkCmdPushDescriptorSetWithTemplateKHR(cmd, refpushtempl, reflayout, set, &refpushtempldata);
+          vkCmdDraw(cmd, 1, 1, 0, 0);
+        }
+
+        vkCmdEndRenderPass(cmd);
+
+        vkEndCommandBuffer(cmd);
+
+        Submit(1, 4, {cmd});
+
+        vkDeviceWaitIdle(device);
+
+        // scribble over the descriptor contents so that initial contents fetch never gets these
+        // resources that way
+        vkh::updateDescriptorSets(
+            device,
+            {
+                vkh::WriteDescriptorSet(refdescset, 0, VK_DESCRIPTOR_TYPE_SAMPLER,
+                                        {resetrefdata.sampler}),
+                vkh::WriteDescriptorSet(refdescset, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                        {resetrefdata.combined}),
+                vkh::WriteDescriptorSet(refdescset, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                        {resetrefdata.sampled}),
+                vkh::WriteDescriptorSet(refdescset, 3, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                        {resetrefdata.storage}),
+                vkh::WriteDescriptorSet(refdescset, 4, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+                                        {resetrefdata.unitexel}),
+                vkh::WriteDescriptorSet(refdescset, 5, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+                                        {resetrefdata.storetexel}),
+                vkh::WriteDescriptorSet(refdescset, 6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                        {resetrefdata.unibuf}),
+                vkh::WriteDescriptorSet(refdescset, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                        {resetrefdata.storebuf}),
+                vkh::WriteDescriptorSet(refdescset, 8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                                        {resetrefdata.unibufdyn}),
+                vkh::WriteDescriptorSet(refdescset, 9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,
+                                        {resetrefdata.storebufdyn}),
+            });
+
+        if(KHR_descriptor_update_template)
+          vkUpdateDescriptorSetWithTemplateKHR(device, reftempldescset, reftempl, &resetrefdata);
+      }
+
+      // check the rendering with our parameter tests is OK
+      {
+        vkDeviceWaitIdle(device);
+
+        VkCommandBuffer cmd = GetCommandBuffer();
+
+        vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+
+        VkImage swapimg =
+            StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
+
+        vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
+                             vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
+                             vkh::ImageSubresourceRange());
+
+        vkCmdBeginRenderPass(
+            cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
+            VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
+        vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
+        vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
+        vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
+        vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset},
+                                   {0, 0});
+        if(KHR_push_descriptor)
+          vkCmdPushDescriptorSetKHR(
+              cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 1, 1,
+              vkh::WriteDescriptorSet(VK_NULL_HANDLE, 20, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                      validBufInfos));
+        if(KHR_descriptor_update_template && KHR_push_descriptor)
+          vkCmdPushDescriptorSetWithTemplateKHR(cmd, pushtempl, layout, 1, &pushdata);
+        vkCmdDraw(cmd, 3, 1, 0, 0);
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, immutpipe);
+        vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, immutlayout, 0,
+                                   {immutdescset}, {});
+
+        vkCmdDraw(cmd, 3, 1, 0, 0);
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe2);
+        vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout2, 0, {descset2}, {});
+
+        setMarker(cmd, "Color Draw");
+        vkCmdDraw(cmd, 3, 1, 0, 0);
+
+        vkCmdEndRenderPass(cmd);
+
+        vkEndCommandBuffer(cmd);
+
+        Submit(2, 4, {cmd});
+      }
+
+      // finish with the backbuffer
+      {
+        vkDeviceWaitIdle(device);
+
+        VkCommandBuffer cmd = GetCommandBuffer();
+
+        vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+
+        FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
+
+        vkEndCommandBuffer(cmd);
+
+        Submit(3, 4, {cmd});
+      }
 
       Present();
     }
@@ -613,6 +1079,9 @@ void main()
 
     if(KHR_descriptor_update_template && KHR_push_descriptor)
       vkDestroyDescriptorUpdateTemplateKHR(device, pushtempl, NULL);
+
+    if(KHR_descriptor_update_template)
+      vkDestroyDescriptorUpdateTemplateKHR(device, reftempl, NULL);
 
     return 0;
   }

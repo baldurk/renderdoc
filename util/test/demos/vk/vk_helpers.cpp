@@ -115,10 +115,18 @@ void cmdBindVertexBuffers(VkCommandBuffer cmd, uint32_t firstBinding,
 
 void cmdBindDescriptorSets(VkCommandBuffer cmd, VkPipelineBindPoint pipelineBindPoint,
                            VkPipelineLayout layout, uint32_t firstSet,
-                           std::vector<VkDescriptorSet> bufs, std::vector<uint32_t> dynamicOffsets)
+                           std::vector<VkDescriptorSet> sets, std::vector<uint32_t> dynamicOffsets)
 {
-  vkCmdBindDescriptorSets(cmd, pipelineBindPoint, layout, firstSet, (uint32_t)bufs.size(),
-                          bufs.data(), (uint32_t)dynamicOffsets.size(), dynamicOffsets.data());
+  vkCmdBindDescriptorSets(cmd, pipelineBindPoint, layout, firstSet, (uint32_t)sets.size(),
+                          sets.data(), (uint32_t)dynamicOffsets.size(), dynamicOffsets.data());
+}
+
+void cmdPushDescriptorSets(VkCommandBuffer cmd, VkPipelineBindPoint pipelineBindPoint,
+                           VkPipelineLayout layout, uint32_t set,
+                           std::vector<VkWriteDescriptorSet> writes)
+{
+  vkCmdPushDescriptorSetKHR(cmd, pipelineBindPoint, layout, set, (uint32_t)writes.size(),
+                            writes.data());
 }
 
 GraphicsPipelineCreateInfo::GraphicsPipelineCreateInfo()
