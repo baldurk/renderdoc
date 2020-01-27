@@ -328,6 +328,8 @@ VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
 
   HookInitVulkanDeviceExts();
 
+  HookInitVulkanInstanceExts_PhysDev();
+
   if(instDevInfo->brokenGetDeviceProcAddr)
   {
     HookInitVulkanInstanceExts();
@@ -437,6 +439,9 @@ VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, c
   if(!strcmp(pName, STRINGIZE(CONCAT(vk, function)))) \
     return NULL;
 
+  // any extensions that are known to be physical device functions, return here
+  HookInitVulkanInstanceExts_PhysDev();
+
   HookInitVulkanInstance();
   HookInitVulkanDevice();
 
@@ -469,9 +474,6 @@ VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, c
   if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||               \
      !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
     return NULL;
-
-  // any extensions that are known to be physical device functions, return here
-  HookInitVulkanInstanceExts_PhysDev();
 
   HookInitVulkanInstanceExts();
   HookInitVulkanDeviceExts();
