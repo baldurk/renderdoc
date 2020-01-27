@@ -32,6 +32,18 @@ class VK_Indirect(rdtest.TestCase):
 
         self.overlay_idx = 1
 
+        fill = self.find_draw("vkCmdFillBuffer")
+
+        self.check(fill is not None)
+
+        buffer_usage = {}
+
+        for usage in self.controller.GetUsage(fill.copyDestination):
+            usage: rd.EventUsage
+            if usage.eventId not in buffer_usage:
+                buffer_usage[usage.eventId] = []
+            buffer_usage[usage.eventId].append(usage.usage)
+
         for level in ["Primary", "Secondary"]:
             rdtest.log.print("Checking {} indirect calls".format(level))
 
@@ -125,6 +137,8 @@ class VK_Indirect(rdtest.TestCase):
 
             self.controller.SetFrameEvent(draw.eventId, False)
 
+            self.check(rd.ResourceUsage.Indirect in buffer_usage[draw.eventId])
+
             # Check that we have PostVS as expected
             postvs_data = self.get_postvs(rd.MeshDataStage.VSOut)
 
@@ -140,6 +154,8 @@ class VK_Indirect(rdtest.TestCase):
             self.check_overlay(draw.eventId, out, tex, save_data)
 
             rdtest.log.success("{} {} is as expected".format(level, draw.name))
+
+            self.check(rd.ResourceUsage.Indirect in buffer_usage[indirects.children[1].eventId])
 
             # vkCmdDrawIndexedIndirect[0](...)
             draw = indirects.children[1].children[0]
@@ -218,6 +234,8 @@ class VK_Indirect(rdtest.TestCase):
 
                 # vkCmdDrawIndirectCountKHR
                 draw_indirect = indirect_count_root.children[1].children[0]
+
+                self.check(rd.ResourceUsage.Indirect in buffer_usage[draw_indirect.eventId])
 
                 self.check(draw_indirect and len(draw_indirect.children) == 1)
 
