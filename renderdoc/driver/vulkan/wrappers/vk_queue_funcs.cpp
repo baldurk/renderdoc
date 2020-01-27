@@ -621,6 +621,9 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
 
           for(APIEvent &ev : cmdBufNodes[j].draw.events)
             ev.eventId -= shiftCount;
+
+          for(rdcpair<ResourceId, EventUsage> &use : cmdBufNodes[j].resourceUsage)
+            use.second.eventId -= shiftCount;
         }
 
         cmdBufInfo.eventCount -= shiftCount;
