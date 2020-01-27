@@ -98,6 +98,8 @@ You will also need `autotools`. That is usually available by default but might n
 
 To build for Android, you must download components of the Android SDK, the Android NDK, and Java Development Kit.
 
+RenderDoc is currently known to build with NDK 14b, SDK tools 3859397, SDK build-tools 26.0.1, SDK platform android-23, Java 8 (also known as 1.8). If you use different versions of any of these it is up to you to ensure you have compatible versions of all as otherwise build failures may occur as versions of some components may not be compatible with different (even newer) versions of other components.
+
 If you've already got the tools required, simply set the following three environment variables:
 
 ```
@@ -106,11 +108,11 @@ export ANDROID_NDK=<path_to_ndk_root>
 export JAVA_HOME=<path_to_jdk_root>
 ```
 
-Otherwise, below are steps to acquire the tools for each platform.
+Otherwise, below are steps to acquire the tools for each platform. These steps download specifically the versions listed above, other versions may work but are not guaranteed.
 
 ### Android Dependencies on Windows
 
-JDK can be installed from the following [link](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
+JDK 8 can be installed from the following [link](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
 
 ```
 set JAVA_HOME=<path_to_jdk_root>
@@ -137,16 +139,16 @@ set ANDROID_NDK=%ANDROID_SDK%\android-ndk-r14b
 
 ### Android Dependencies on Linux
 
-The Java Development Kit can be installed with:
+The JDK 8 can be installed with:
 
 ```
 sudo apt-get install openjdk-8-jdk
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 ```
 
-The Android SDK and NDK can be set up with the following steps.  They are also mirrored in our Travis-CI [setup script](util/travis/android_setup.sh) for Android.  We are currently targeting build-tools 26.0.1 and NDK r14b.
+The Android SDK and NDK can be set up with the following steps. They are also mirrored in our Travis-CI [setup script](util/travis/android_setup.sh) for Android.
 
-SDK links are pulled from [here](https://developer.android.com/studio/index.html).
+SDK links are pulled from [here](https://web.archive.org/web/20171026083141/https://developer.android.com/studio/index.html) (older versions are no longer linked from the android site, but the downloads still work).
 
 NDK links are pulled from [here](https://developer.android.com/ndk/downloads/older_releases.html).
 
