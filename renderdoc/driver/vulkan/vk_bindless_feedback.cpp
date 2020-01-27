@@ -820,14 +820,14 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
     if(result.compute)
     {
-      modifiedstate.BindPipeline(cmd, VulkanRenderState::BindCompute, true);
+      modifiedstate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindCompute, true);
 
       ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), drawcall->dispatchDimension[0],
                                 drawcall->dispatchDimension[1], drawcall->dispatchDimension[2]);
     }
     else
     {
-      modifiedstate.BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
+      modifiedstate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
 
       if(drawcall->flags & DrawFlags::Indexed)
       {

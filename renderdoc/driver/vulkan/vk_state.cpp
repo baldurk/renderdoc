@@ -23,17 +23,19 @@
  ******************************************************************************/
 
 #include "vk_state.h"
+#include "vk_common.h"
 #include "vk_core.h"
+#include "vk_debug.h"
 #include "vk_info.h"
 #include "vk_resources.h"
 
-VulkanRenderState::VulkanRenderState(WrappedVulkan *driver, VulkanCreationInfo *createInfo)
-    : m_CreationInfo(createInfo), m_pDriver(driver)
+VulkanRenderState::VulkanRenderState()
 {
   RDCEraseEl(ibuffer);
 }
 
-void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, PipelineBinding binding)
+void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkCommandBuffer cmd,
+                                                     PipelineBinding binding)
 {
   RDCASSERT(renderPass != ResourceId());
 
@@ -43,17 +45,18 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, Pipeli
 
   VkClearValue empty[16] = {};
 
-  RDCASSERT(ARRAY_COUNT(empty) >= m_CreationInfo->m_RenderPass[renderPass].attachments.size());
+  RDCASSERT(ARRAY_COUNT(empty) >=
+            vk->GetDebugManager()->GetRenderPassInfo(renderPass).attachments.size());
 
-  VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo->m_Framebuffer[framebuffer];
+  VulkanCreationInfo::Framebuffer fbinfo = vk->GetDebugManager()->GetFramebufferInfo(framebuffer);
 
   VkRenderPassBeginInfo rpbegin = {
       VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       NULL,
-      Unwrap(m_CreationInfo->m_RenderPass[renderPass].loadRPs[subpass]),
+      Unwrap(vk->GetDebugManager()->GetRenderPassInfo(renderPass).loadRPs[subpass]),
       Unwrap(fbinfo.loadFBs[subpass]),
       renderArea,
-      (uint32_t)m_CreationInfo->m_RenderPass[renderPass].attachments.size(),
+      (uint32_t)vk->GetDebugManager()->GetRenderPassInfo(renderPass).attachments.size(),
       empty,
   };
 
@@ -69,14 +72,14 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, Pipeli
 
     for(size_t i = 0; i < fbattachments.size(); i++)
       imagelessViews.push_back(
-          Unwrap(GetResourceManager()->GetCurrentHandle<VkImageView>(fbattachments[i])));
+          Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkImageView>(fbattachments[i])));
 
     imagelessAttachments.pAttachments = imagelessViews.data();
   }
 
   ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-  BindPipeline(cmd, binding, true);
+  BindPipeline(vk, cmd, binding, true);
 
   if(IsConditionalRenderingEnabled())
   {
@@ -84,7 +87,7 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd, Pipeli
     beginInfo.sType = VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT;
     beginInfo.pNext = VK_NULL_HANDLE;
     beginInfo.buffer =
-        Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(conditionalRendering.buffer));
+        Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkBuffer>(conditionalRendering.buffer));
     beginInfo.offset = conditionalRendering.offset;
     beginInfo.flags = conditionalRendering.flags;
 
@@ -97,7 +100,7 @@ void VulkanRenderState::EndRenderPass(VkCommandBuffer cmd)
   ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
 }
 
-void VulkanRenderState::EndTransformFeedback(VkCommandBuffer cmd)
+void VulkanRenderState::EndTransformFeedback(WrappedVulkan *vk, VkCommandBuffer cmd)
 {
   if(!xfbcounters.empty())
   {
@@ -106,7 +109,8 @@ void VulkanRenderState::EndTransformFeedback(VkCommandBuffer cmd)
 
     for(size_t i = 0; i < xfbcounters.size(); i++)
     {
-      buffers.push_back(Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(xfbcounters[i].buf)));
+      buffers.push_back(
+          Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkBuffer>(xfbcounters[i].buf)));
       offsets.push_back(xfbcounters[i].offs);
     }
 
@@ -126,29 +130,31 @@ bool VulkanRenderState::IsConditionalRenderingEnabled()
   return conditionalRendering.buffer != ResourceId() && !conditionalRendering.forceDisable;
 }
 
-void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding binding, bool subpass0)
+void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
+                                     PipelineBinding binding, bool subpass0)
 {
   if(graphics.pipeline != ResourceId() && binding == BindGraphics)
   {
-    VkPipeline pipe = GetResourceManager()->GetCurrentHandle<VkPipeline>(graphics.pipeline);
+    VkPipeline pipe = vk->GetResourceManager()->GetCurrentHandle<VkPipeline>(graphics.pipeline);
+    const VulkanCreationInfo::Pipeline pipeinfo =
+        vk->GetDebugManager()->GetPipelineInfo(graphics.pipeline);
 
-    if(subpass0 && m_CreationInfo->m_Pipeline[graphics.pipeline].subpass0pipe != VK_NULL_HANDLE)
-      pipe = m_CreationInfo->m_Pipeline[graphics.pipeline].subpass0pipe;
+    if(subpass0 && pipeinfo.subpass0pipe != VK_NULL_HANDLE)
+      pipe = pipeinfo.subpass0pipe;
 
     ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
 
-    ResourceId pipeLayoutId = m_CreationInfo->m_Pipeline[graphics.pipeline].layout;
-    VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
+    ResourceId pipeLayoutId = pipeinfo.layout;
+    VkPipelineLayout layout =
+        vk->GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
 
     const rdcarray<VkPushConstantRange> &pushRanges =
-        m_CreationInfo->m_PipelineLayout[pipeLayoutId].pushRanges;
+        vk->GetDebugManager()->GetPipelineLayoutInfo(pipeLayoutId).pushRanges;
 
     bool dynamicStates[VkDynamicCount] = {0};
-    memcpy(dynamicStates, m_CreationInfo->m_Pipeline[graphics.pipeline].dynamicStates,
-           sizeof(dynamicStates));
+    memcpy(dynamicStates, pipeinfo.dynamicStates, sizeof(dynamicStates));
 
-    RDCCOMPILE_ASSERT(sizeof(dynamicStates) ==
-                          sizeof(m_CreationInfo->m_Pipeline[graphics.pipeline].dynamicStates),
+    RDCCOMPILE_ASSERT(sizeof(dynamicStates) == sizeof(pipeinfo.dynamicStates),
                       "Dynamic states array size is out of sync");
 
     if(!views.empty() && dynamicStates[VkDynamicViewport])
@@ -209,7 +215,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
                                      pushRanges[i].offset, pushRanges[i].size,
                                      pushconsts + pushRanges[i].offset);
 
-    BindDescriptorSets(cmd, graphics, VK_PIPELINE_BIND_POINT_GRAPHICS);
+    BindDescriptorSets(vk, cmd, graphics, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
     if(ibuffer.buf != ResourceId())
     {
@@ -220,7 +226,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
         type = VK_INDEX_TYPE_UINT8_EXT;
 
       ObjDisp(cmd)->CmdBindIndexBuffer(
-          Unwrap(cmd), Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(ibuffer.buf)),
+          Unwrap(cmd), Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkBuffer>(ibuffer.buf)),
           ibuffer.offs, type);
     }
 
@@ -231,7 +237,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
 
       ObjDisp(cmd)->CmdBindVertexBuffers(
           Unwrap(cmd), (uint32_t)i, 1,
-          UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkBuffer>(vbuffers[i].buf)),
+          UnwrapPtr(vk->GetResourceManager()->GetCurrentHandle<VkBuffer>(vbuffers[i].buf)),
           &vbuffers[i].offs);
     }
 
@@ -242,7 +248,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
 
       ObjDisp(cmd)->CmdBindTransformFeedbackBuffersEXT(
           Unwrap(cmd), (uint32_t)i, 1,
-          UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkBuffer>(xfbbuffers[i].buf)),
+          UnwrapPtr(vk->GetResourceManager()->GetCurrentHandle<VkBuffer>(xfbbuffers[i].buf)),
           &xfbbuffers[i].offs, &xfbbuffers[i].size);
     }
 
@@ -254,7 +260,7 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
       for(size_t i = 0; i < xfbcounters.size(); i++)
       {
         buffers.push_back(
-            Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(xfbcounters[i].buf)));
+            Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkBuffer>(xfbcounters[i].buf)));
         offsets.push_back(xfbcounters[i].offs);
       }
 
@@ -267,13 +273,14 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
   {
     ObjDisp(cmd)->CmdBindPipeline(
         Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-        Unwrap(GetResourceManager()->GetCurrentHandle<VkPipeline>(compute.pipeline)));
+        Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkPipeline>(compute.pipeline)));
 
-    ResourceId pipeLayoutId = m_CreationInfo->m_Pipeline[compute.pipeline].layout;
-    VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
+    ResourceId pipeLayoutId = vk->GetDebugManager()->GetPipelineInfo(compute.pipeline).layout;
+    VkPipelineLayout layout =
+        vk->GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
 
     const rdcarray<VkPushConstantRange> &pushRanges =
-        m_CreationInfo->m_PipelineLayout[pipeLayoutId].pushRanges;
+        vk->GetDebugManager()->GetPipelineLayoutInfo(pipeLayoutId).pushRanges;
 
     // only set push constant ranges that the layout uses
     for(size_t i = 0; i < pushRanges.size(); i++)
@@ -281,20 +288,20 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd, PipelineBinding bindin
                                      pushRanges[i].offset, pushRanges[i].size,
                                      pushconsts + pushRanges[i].offset);
 
-    BindDescriptorSets(cmd, compute, VK_PIPELINE_BIND_POINT_COMPUTE);
+    BindDescriptorSets(vk, cmd, compute, VK_PIPELINE_BIND_POINT_COMPUTE);
   }
 }
 
-void VulkanRenderState::BindDescriptorSets(VkCommandBuffer cmd, VulkanStatePipeline &pipe,
-                                           VkPipelineBindPoint bindPoint)
+void VulkanRenderState::BindDescriptorSets(WrappedVulkan *vk, VkCommandBuffer cmd,
+                                           VulkanStatePipeline &pipe, VkPipelineBindPoint bindPoint)
 {
-  ResourceId pipeLayoutId = m_CreationInfo->m_Pipeline[pipe.pipeline].layout;
+  ResourceId pipeLayoutId = vk->GetDebugManager()->GetPipelineInfo(pipe.pipeline).layout;
   const rdcarray<ResourceId> &descSetLayouts =
-      m_CreationInfo->m_PipelineLayout[pipeLayoutId].descSetLayouts;
+      vk->GetDebugManager()->GetPipelineLayoutInfo(pipeLayoutId).descSetLayouts;
 
   for(size_t i = 0; i < descSetLayouts.size(); i++)
   {
-    const DescSetLayout &descLayout = m_CreationInfo->m_DescSetLayout[descSetLayouts[i]];
+    const DescSetLayout &descLayout = vk->GetDebugManager()->GetDescSetLayout(descSetLayouts[i]);
 
     if(i < pipe.descSets.size() && pipe.descSets[i].descSet != ResourceId())
     {
@@ -306,13 +313,12 @@ void VulkanRenderState::BindDescriptorSets(VkCommandBuffer cmd, VulkanStatePipel
       // by the next drawcall. The remaining sets are invalid, but also unused and this is
       // explicitly allowed by the spec. We just have to make sure we don't try to actively bind
       // an incompatible descriptor set.
-      ResourceId createdDescSetLayoutId =
-          m_pDriver->GetDescLayoutForDescSet(pipe.descSets[i].descSet);
+      ResourceId createdDescSetLayoutId = vk->GetDescLayoutForDescSet(pipe.descSets[i].descSet);
 
       if(descSetLayouts[i] != createdDescSetLayoutId)
       {
         const DescSetLayout &createdDescLayout =
-            m_CreationInfo->m_DescSetLayout[createdDescSetLayoutId];
+            vk->GetDebugManager()->GetDescSetLayout(createdDescSetLayoutId);
 
         if(descLayout != createdDescLayout)
         {
@@ -348,7 +354,7 @@ void VulkanRenderState::BindDescriptorSets(VkCommandBuffer cmd, VulkanStatePipel
         }
       }
 
-      BindDescriptorSet(descLayout, cmd, bindPoint, (uint32_t)i, dynamicOffsets);
+      BindDescriptorSet(vk, descLayout, cmd, bindPoint, (uint32_t)i, dynamicOffsets);
 
       if(pipe.descSets[i].offsets.size() < descLayout.dynamicCount)
         SAFE_DELETE_ARRAY(dynamicOffsets);
@@ -356,9 +362,9 @@ void VulkanRenderState::BindDescriptorSets(VkCommandBuffer cmd, VulkanStatePipel
   }
 }
 
-void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCommandBuffer cmd,
-                                          VkPipelineBindPoint bindPoint, uint32_t setIndex,
-                                          uint32_t *dynamicOffsets)
+void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout &descLayout,
+                                          VkCommandBuffer cmd, VkPipelineBindPoint bindPoint,
+                                          uint32_t setIndex, uint32_t *dynamicOffsets)
 {
   ResourceId descSet = (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
                            ? graphics.descSets[setIndex].descSet
@@ -366,13 +372,13 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
   ResourceId pipeLayout = (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
                               ? graphics.descSets[setIndex].pipeLayout
                               : compute.descSets[setIndex].pipeLayout;
-  VkPipelineLayout layout = GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayout);
+  VkPipelineLayout layout = vk->GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayout);
 
   if((descLayout.flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR) == 0)
   {
     ObjDisp(cmd)->CmdBindDescriptorSets(
         Unwrap(cmd), bindPoint, Unwrap(layout), (uint32_t)setIndex, 1,
-        UnwrapPtr(GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(descSet)),
+        UnwrapPtr(vk->GetResourceManager()->GetCurrentHandle<VkDescriptorSet>(descSet)),
         descLayout.dynamicCount, dynamicOffsets);
   }
   else
@@ -386,7 +392,7 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
     rdcarray<VkDescriptorBufferInfo *> allocBufWrites;
     rdcarray<VkBufferView *> allocBufViewWrites;
 
-    WrappedVulkan::DescriptorSetInfo &setInfo = m_pDriver->m_DescriptorSetState[descSet];
+    const WrappedVulkan::DescriptorSetInfo &setInfo = vk->GetDebugManager()->GetDescSetInfo(descSet);
 
     VkWriteDescriptorSet push = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
 
@@ -412,8 +418,8 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
         VkBufferView *dst = new VkBufferView[push.descriptorCount];
 
         for(uint32_t a = 0; a < push.descriptorCount; a++)
-          dst[a] =
-              Unwrap(GetResourceManager()->GetCurrentHandle<VkBufferView>(slots[a].texelBufferView));
+          dst[a] = Unwrap(
+              vk->GetResourceManager()->GetCurrentHandle<VkBufferView>(slots[a].texelBufferView));
 
         push.pTexelBufferView = dst;
         allocBufViewWrites.push_back(dst);
@@ -431,9 +437,9 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
           const DescriptorSetSlotImageInfo &src = slots[a].imageInfo;
 
           dst[a].imageLayout = src.imageLayout;
-          dst[a].sampler = Unwrap(GetResourceManager()->GetCurrentHandle<VkSampler>(src.sampler));
+          dst[a].sampler = Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkSampler>(src.sampler));
           dst[a].imageView =
-              Unwrap(GetResourceManager()->GetCurrentHandle<VkImageView>(src.imageView));
+              Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkImageView>(src.imageView));
         }
 
         push.pImageInfo = dst;
@@ -449,7 +455,7 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
 
           dst[a].offset = src.offset;
           dst[a].range = src.range;
-          dst[a].buffer = Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(src.buffer));
+          dst[a].buffer = Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkBuffer>(src.buffer));
         }
 
         push.pBufferInfo = dst;
@@ -511,12 +517,12 @@ void VulkanRenderState::BindDescriptorSet(const DescSetLayout &descLayout, VkCom
   }
 }
 
-void VulkanRenderState::SetFramebuffer(ResourceId fb,
+void VulkanRenderState::SetFramebuffer(WrappedVulkan *vk, ResourceId fb,
                                        const VkRenderPassAttachmentBeginInfo *attachmentsInfo)
 {
   framebuffer = fb;
 
-  VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo->m_Framebuffer[fb];
+  VulkanCreationInfo::Framebuffer fbinfo = vk->GetDebugManager()->GetFramebufferInfo(fb);
 
   fbattachments.resize(fbinfo.attachments.size());
 
@@ -530,9 +536,4 @@ void VulkanRenderState::SetFramebuffer(ResourceId fb,
     for(size_t i = 0; i < fbinfo.attachments.size(); i++)
       fbattachments[i] = GetResID(attachmentsInfo->pAttachments[i]);
   }
-}
-
-VulkanResourceManager *VulkanRenderState::GetResourceManager()
-{
-  return m_pDriver->GetResourceManager();
 }

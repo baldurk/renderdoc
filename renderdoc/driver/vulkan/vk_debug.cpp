@@ -1473,10 +1473,59 @@ uint32_t VulkanReplay::PickVertex(uint32_t eventId, int32_t w, int32_t h, const 
   return ret;
 }
 
-const VulkanCreationInfo::Image &VulkanDebugManager::GetImageInfo(ResourceId img)
+const VulkanCreationInfo::Image &VulkanDebugManager::GetImageInfo(ResourceId img) const
 {
   auto it = m_pDriver->m_CreationInfo.m_Image.find(img);
   RDCASSERT(it != m_pDriver->m_CreationInfo.m_Image.end());
+  return it->second;
+}
+
+const VulkanCreationInfo::Pipeline &VulkanDebugManager::GetPipelineInfo(ResourceId pipe) const
+{
+  auto it = m_pDriver->m_CreationInfo.m_Pipeline.find(pipe);
+  RDCASSERT(it != m_pDriver->m_CreationInfo.m_Pipeline.end());
+  return it->second;
+}
+
+const VulkanCreationInfo::ShaderModule &VulkanDebugManager::GetShaderInfo(ResourceId shader) const
+{
+  auto it = m_pDriver->m_CreationInfo.m_ShaderModule.find(shader);
+  RDCASSERT(it != m_pDriver->m_CreationInfo.m_ShaderModule.end());
+  return it->second;
+}
+
+const VulkanCreationInfo::Framebuffer &VulkanDebugManager::GetFramebufferInfo(ResourceId fb) const
+{
+  auto it = m_pDriver->m_CreationInfo.m_Framebuffer.find(fb);
+  RDCASSERT(it != m_pDriver->m_CreationInfo.m_Framebuffer.end());
+  return it->second;
+}
+
+const VulkanCreationInfo::RenderPass &VulkanDebugManager::GetRenderPassInfo(ResourceId rp) const
+{
+  auto it = m_pDriver->m_CreationInfo.m_RenderPass.find(rp);
+  RDCASSERT(it != m_pDriver->m_CreationInfo.m_RenderPass.end());
+  return it->second;
+}
+
+const VulkanCreationInfo::PipelineLayout &VulkanDebugManager::GetPipelineLayoutInfo(ResourceId rp) const
+{
+  auto it = m_pDriver->m_CreationInfo.m_PipelineLayout.find(rp);
+  RDCASSERT(it != m_pDriver->m_CreationInfo.m_PipelineLayout.end());
+  return it->second;
+}
+
+const DescSetLayout &VulkanDebugManager::GetDescSetLayout(ResourceId dsl) const
+{
+  auto it = m_pDriver->m_CreationInfo.m_DescSetLayout.find(dsl);
+  RDCASSERT(it != m_pDriver->m_CreationInfo.m_DescSetLayout.end());
+  return it->second;
+}
+
+const WrappedVulkan::DescriptorSetInfo &VulkanDebugManager::GetDescSetInfo(ResourceId ds) const
+{
+  auto it = m_pDriver->m_DescriptorSetState.find(ds);
+  RDCASSERT(it != m_pDriver->m_DescriptorSetState.end());
   return it->second;
 }
 

@@ -58,7 +58,7 @@ void WrappedVulkan::AddImplicitResolveResourceUsage(uint32_t subpass)
     subpass = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;
 
   const rdcarray<ResourceId> &fbattachments =
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments;
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
   for(size_t i = 0; i < rpinfo.subpasses[subpass].resolveAttachments.size(); i++)
   {
     uint32_t attIdx = rpinfo.subpasses[subpass].resolveAttachments[i];
@@ -84,9 +84,10 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
   }
   else
   {
-    rp = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass;
-    fb = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer;
-    fbattachments = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments;
+    const VulkanRenderState &renderstate = GetCmdRenderState();
+    rp = renderstate.renderPass;
+    fb = renderstate.GetFramebuffer();
+    fbattachments = renderstate.GetFramebufferAttachments();
   }
 
   rdcarray<VkImageMemoryBarrier> ret;
@@ -121,7 +122,7 @@ rdcarray<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(uint
     if(m_LastCmdBufferID == ResourceId())
       subpass = m_RenderState.subpass;
     else
-      subpass = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;
+      subpass = GetCmdRenderState().subpass;
 
     // transition the attachments in this subpass
     for(size_t i = 0; i < rpinfo.subpasses[subpass].colorAttachments.size(); i++)
@@ -306,7 +307,7 @@ rdcstr WrappedVulkan::MakeRenderPassOpString(bool store)
   const VulkanCreationInfo::RenderPass &info =
       m_CreationInfo.m_RenderPass[m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass];
   const VulkanCreationInfo::Framebuffer &fbinfo =
-      m_CreationInfo.m_Framebuffer[m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer];
+      m_CreationInfo.m_Framebuffer[m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebuffer()];
 
   const rdcarray<VulkanCreationInfo::RenderPass::Attachment> &atts = info.attachments;
 
@@ -788,8 +789,9 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
             m_Partial[p].partialParent = BakedCommandBuffer;
             m_Partial[p].baseEvent = it->baseEvent;
             m_Partial[p].renderPassActive = false;
-            m_RenderState.xfbcounters.clear();
-            m_RenderState.conditionalRendering.buffer = ResourceId();
+
+            GetCmdRenderState().xfbcounters.clear();
+            GetCmdRenderState().conditionalRendering.buffer = ResourceId();
 
             rerecord = true;
             partial = true;
@@ -1042,16 +1044,16 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
                  ToStr(GetResID(commandBuffer)).c_str());
 #endif
 
-        if(m_Partial[Primary].partialParent == BakedCommandBuffer &&
-           !m_RenderState.xfbcounters.empty())
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        if(m_Partial[Primary].partialParent == BakedCommandBuffer && !renderstate.xfbcounters.empty())
         {
-          m_RenderState.EndTransformFeedback(commandBuffer);
+          renderstate.EndTransformFeedback(this, commandBuffer);
         }
 
         if(m_Partial[Primary].partialParent == BakedCommandBuffer &&
-           m_RenderState.IsConditionalRenderingEnabled())
+           renderstate.IsConditionalRenderingEnabled())
         {
-          m_RenderState.EndConditionalRendering(commandBuffer);
+          renderstate.EndConditionalRendering(commandBuffer);
         }
 
         // finish any render pass that was still active in the primary partial parent
@@ -1059,18 +1061,16 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
            m_Partial[Primary].renderPassActive)
         {
           uint32_t numSubpasses =
-              (uint32_t)m_CreationInfo.m_RenderPass[m_RenderState.renderPass].subpasses.size();
+              (uint32_t)m_CreationInfo.m_RenderPass[renderstate.renderPass].subpasses.size();
 
           // for each subpass we skip, and for the finalLayout transition at the end of the
           // renderpass, record these barriers. These are executed implicitly but because we want to
           // pretend they never happened, we then reverse their effects so that our layout tracking
           // is accurate and the images end up in the layout they were in during the last active
           // subpass
-          uint32_t &sub = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass;
-
           std::map<ResourceId, ImageState> renderPassEndStates;
 
-          for(sub = m_RenderState.subpass + 1; sub < numSubpasses; sub++)
+          for(uint32_t sub = renderstate.subpass + 1; sub < numSubpasses; sub++)
           {
             ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), VK_SUBPASS_CONTENTS_INLINE);
 
@@ -1127,8 +1127,10 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
 
         ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer));
 
-        if(m_Partial[Primary].partialParent == BakedCommandBuffer)
-          m_Partial[Primary].partialParent = ResourceId();
+        // TODO: preserve so that m_RenderState can be updated at the end
+        // of replay.
+        // if(m_Partial[Primary].partialParent == BakedCommandBuffer)
+        //  m_Partial[Primary].partialParent = ResourceId();
       }
 
       m_BakedCmdBufferInfo[CommandBuffer].curEventID = 0;
@@ -1262,49 +1264,40 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        // always track this, for WrappedVulkan::IsDrawInRenderPass()
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass = 0;
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass =
-            GetResID(RenderPassBegin.renderPass);
-
-        ResourceId fb = GetResID(RenderPassBegin.framebuffer);
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = fb;
-
-        const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
-            (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
-                &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
-
-        // set framebuffer attachments - by default from the ones used to create it, but if it is
-        // imageless then look for the attachments in our pNext chain
-        {
-          VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments.resize(
-              fbinfo.attachments.size());
-
-          if(!fbinfo.imageless)
-          {
-            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-              m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
-                  fbinfo.attachments[i].createdView;
-          }
-          else
-          {
-            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-              m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
-                  GetResID(attachmentsInfo->pAttachments[i]);
-          }
-        }
-
         // only if we're partially recording do we update this state
         if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
         {
           m_Partial[Primary].renderPassActive = true;
+        }
 
-          m_RenderState.subpass = 0;
+        ResourceId fb = GetResID(RenderPassBegin.framebuffer);
+        VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
 
-          m_RenderState.renderPass = GetResID(RenderPassBegin.renderPass);
-          m_RenderState.SetFramebuffer(GetResID(RenderPassBegin.framebuffer), attachmentsInfo);
-          m_RenderState.renderArea = RenderPassBegin.renderArea;
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.subpass = 0;
+          renderstate.renderPass = GetResID(RenderPassBegin.renderPass);
+          renderstate.renderArea = RenderPassBegin.renderArea;
+
+          const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
+              (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
+                  &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
+
+          rdcarray<ResourceId> attachments(fbinfo.attachments.size());
+
+          // set framebuffer attachments - by default from the ones used to create it, but if it is
+          // imageless then look for the attachments in our pNext chain
+          if(!fbinfo.imageless)
+          {
+            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+              attachments[i] = fbinfo.attachments[i].createdView;
+          }
+          else
+          {
+            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+              attachments[i] = GetResID(attachmentsInfo->pAttachments[i]);
+          }
+          renderstate.SetFramebuffer(GetResID(RenderPassBegin.framebuffer), attachments);
         }
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
@@ -1316,9 +1309,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
         // be in subpass 0's layout
         if(m_FirstEventID == m_LastEventID)
         {
-          VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
           VulkanCreationInfo::RenderPass rpinfo =
-              m_CreationInfo.m_RenderPass[m_RenderState.renderPass];
+              m_CreationInfo.m_RenderPass[GetCmdRenderState().renderPass];
           unwrappedInfo.renderPass = Unwrap(rpinfo.loadRPs[0]);
           unwrappedInfo.framebuffer = Unwrap(fbinfo.loadFBs[0]);
 
@@ -1354,19 +1346,17 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = GetResID(RenderPassBegin.renderPass);
 
       ResourceId fb = GetResID(RenderPassBegin.framebuffer);
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = fb;
 
       // set framebuffer attachments - by default from the ones used to create it, but if it is
       // imageless then look for the attachments in our pNext chain
       {
         VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments.resize(fbinfo.attachments.size());
+        rdcarray<ResourceId> attachments(fbinfo.attachments.size());
 
         if(!fbinfo.imageless)
         {
           for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
-                fbinfo.attachments[i].createdView;
+            attachments[i] = fbinfo.attachments[i].createdView;
         }
         else
         {
@@ -1375,16 +1365,16 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
                   &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
 
           for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
-                GetResID(attachmentsInfo->pAttachments[i]);
+            attachments[i] = GetResID(attachmentsInfo->pAttachments[i]);
         }
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.SetFramebuffer(fb, attachments);
       }
 
       // Record image usage for images cleared in the beginning of the render pass.
       const VulkanCreationInfo::RenderPass &rpinfo =
           m_CreationInfo.m_RenderPass[GetResID(RenderPassBegin.renderPass)];
       const rdcarray<ResourceId> &fbattachments =
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments;
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
       for(size_t i = 0; i < rpinfo.attachments.size(); i++)
       {
         if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
@@ -1520,11 +1510,9 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        // always track this, for WrappedVulkan::IsDrawInRenderPass()
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass++;
-
-        if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
-          m_RenderState.subpass++;
+        {
+          GetCmdRenderState().subpass++;
+        }
 
         DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::BeginPass | DrawFlags::EndPass;
         uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
@@ -1614,14 +1602,15 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
-        // always track this, for WrappedVulkan::IsDrawInRenderPass()
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = ResourceId();
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments.clear();
-
         if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
         {
           m_Partial[Primary].renderPassActive = false;
+        }
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.renderPass = ResourceId();
+          renderstate.SetFramebuffer(ResourceId(), rdcarray<ResourceId>());
         }
 
         DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::EndPass;
@@ -1671,8 +1660,8 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
       // track while reading, reset this to empty so AddDrawcall sets no outputs,
       // but only AFTER the above AddDrawcall (we want it grouped together)
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = ResourceId();
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments.clear();
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.SetFramebuffer(ResourceId(),
+                                                                   rdcarray<ResourceId>());
     }
   }
 
@@ -1740,49 +1729,39 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        // always track this, for WrappedVulkan::IsDrawInRenderPass()
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass = 0;
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass =
-            GetResID(RenderPassBegin.renderPass);
-
-        ResourceId fb = GetResID(RenderPassBegin.framebuffer);
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = fb;
-
-        const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
-            (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
-                &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
-
-        // set framebuffer attachments - by default from the ones used to create it, but if it is
-        // imageless then look for the attachments in our pNext chain
-        {
-          VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments.resize(
-              fbinfo.attachments.size());
-
-          if(!fbinfo.imageless)
-          {
-            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-              m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
-                  fbinfo.attachments[i].createdView;
-          }
-          else
-          {
-            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-              m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
-                  GetResID(attachmentsInfo->pAttachments[i]);
-          }
-        }
-
         // only if we're partially recording do we update this state
         if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
         {
           m_Partial[Primary].renderPassActive = true;
+        }
 
-          m_RenderState.subpass = 0;
+        ResourceId fb = GetResID(RenderPassBegin.framebuffer);
+        VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.subpass = 0;
+          renderstate.renderPass = GetResID(RenderPassBegin.renderPass);
+          renderstate.renderArea = RenderPassBegin.renderArea;
 
-          m_RenderState.renderPass = GetResID(RenderPassBegin.renderPass);
-          m_RenderState.SetFramebuffer(GetResID(RenderPassBegin.framebuffer), attachmentsInfo);
-          m_RenderState.renderArea = RenderPassBegin.renderArea;
+          const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
+              (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
+                  &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
+
+          rdcarray<ResourceId> attachments(fbinfo.attachments.size());
+
+          // set framebuffer attachments - by default from the ones used to create it, but if it is
+          // imageless then look for the attachments in our pNext chain
+          if(!fbinfo.imageless)
+          {
+            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+              attachments[i] = fbinfo.attachments[i].createdView;
+          }
+          else
+          {
+            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+              attachments[i] = GetResID(attachmentsInfo->pAttachments[i]);
+          }
+          renderstate.SetFramebuffer(GetResID(RenderPassBegin.framebuffer), attachments);
         }
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
@@ -1794,9 +1773,9 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
         // be in subpass 0's layout
         if(m_FirstEventID == m_LastEventID)
         {
-          VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
+          // VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
           VulkanCreationInfo::RenderPass rpinfo =
-              m_CreationInfo.m_RenderPass[m_RenderState.renderPass];
+              m_CreationInfo.m_RenderPass[GetCmdRenderState().renderPass];
           unwrappedInfo.renderPass = Unwrap(rpinfo.loadRPs[0]);
           unwrappedInfo.framebuffer = Unwrap(fbinfo.loadFBs[0]);
 
@@ -1834,19 +1813,17 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = GetResID(RenderPassBegin.renderPass);
 
       ResourceId fb = GetResID(RenderPassBegin.framebuffer);
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = fb;
 
       // set framebuffer attachments - by default from the ones used to create it, but if it is
       // imageless then look for the attachments in our pNext chain
       {
         VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments.resize(fbinfo.attachments.size());
+        rdcarray<ResourceId> attachments(fbinfo.attachments.size());
 
         if(!fbinfo.imageless)
         {
           for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
-                fbinfo.attachments[i].createdView;
+            attachments[i] = fbinfo.attachments[i].createdView;
         }
         else
         {
@@ -1855,16 +1832,16 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
                   &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
 
           for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments[i] =
-                GetResID(attachmentsInfo->pAttachments[i]);
+            attachments[i] = GetResID(attachmentsInfo->pAttachments[i]);
         }
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.SetFramebuffer(fb, attachments);
       }
 
       // Record image usage for images cleared in the beginning of the render pass.
       const VulkanCreationInfo::RenderPass &rpinfo =
           m_CreationInfo.m_RenderPass[GetResID(RenderPassBegin.renderPass)];
       const rdcarray<ResourceId> &fbattachments =
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.fbattachments;
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
       for(size_t i = 0; i < rpinfo.attachments.size(); i++)
       {
         if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
@@ -2016,11 +1993,9 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2(SerialiserType &ser, VkCommandBu
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        // always track this, for WrappedVulkan::IsDrawInRenderPass()
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass++;
-
-        if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
-          m_RenderState.subpass++;
+        {
+          GetCmdRenderState().subpass++;
+        }
 
         DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::BeginPass | DrawFlags::EndPass;
         uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
@@ -2133,13 +2108,15 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
-        // always track this, for WrappedVulkan::IsDrawInRenderPass()
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = ResourceId();
-
         if(ShouldUpdateRenderState(m_LastCmdBufferID, true))
         {
           m_Partial[Primary].renderPassActive = false;
+        }
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.renderPass = ResourceId();
+          renderstate.SetFramebuffer(ResourceId(), rdcarray<ResourceId>());
         }
 
         DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::EndPass;
@@ -2179,7 +2156,8 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
       // track while reading, reset this to empty so AddDrawcall sets no outputs,
       // but only AFTER the above AddDrawcall (we want it grouped together)
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass = ResourceId();
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.framebuffer = ResourceId();
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.SetFramebuffer(ResourceId(),
+                                                                   rdcarray<ResourceId>());
     }
   }
 
@@ -2244,76 +2222,76 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
 
         ResourceId liveid = GetResID(pipeline);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
+          VulkanRenderState &renderstate = GetCmdRenderState();
           if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
           {
-            m_RenderState.compute.pipeline = liveid;
+            renderstate.compute.pipeline = liveid;
           }
           else
           {
-            m_RenderState.graphics.pipeline = liveid;
+            renderstate.graphics.pipeline = liveid;
 
             if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicViewport])
             {
-              m_RenderState.views = m_CreationInfo.m_Pipeline[liveid].viewports;
+              renderstate.views = m_CreationInfo.m_Pipeline[liveid].viewports;
             }
             if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicScissor])
             {
-              m_RenderState.scissors = m_CreationInfo.m_Pipeline[liveid].scissors;
+              renderstate.scissors = m_CreationInfo.m_Pipeline[liveid].scissors;
             }
             if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicLineWidth])
             {
-              m_RenderState.lineWidth = m_CreationInfo.m_Pipeline[liveid].lineWidth;
+              renderstate.lineWidth = m_CreationInfo.m_Pipeline[liveid].lineWidth;
             }
             if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicDepthBias])
             {
-              m_RenderState.bias.depth = m_CreationInfo.m_Pipeline[liveid].depthBiasConstantFactor;
-              m_RenderState.bias.biasclamp = m_CreationInfo.m_Pipeline[liveid].depthBiasClamp;
-              m_RenderState.bias.slope = m_CreationInfo.m_Pipeline[liveid].depthBiasSlopeFactor;
+              renderstate.bias.depth = m_CreationInfo.m_Pipeline[liveid].depthBiasConstantFactor;
+              renderstate.bias.biasclamp = m_CreationInfo.m_Pipeline[liveid].depthBiasClamp;
+              renderstate.bias.slope = m_CreationInfo.m_Pipeline[liveid].depthBiasSlopeFactor;
             }
             if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicBlendConstants])
             {
-              memcpy(m_RenderState.blendConst, m_CreationInfo.m_Pipeline[liveid].blendConst,
+              memcpy(renderstate.blendConst, m_CreationInfo.m_Pipeline[liveid].blendConst,
                      sizeof(float) * 4);
             }
             if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicDepthBounds])
             {
-              m_RenderState.mindepth = m_CreationInfo.m_Pipeline[liveid].minDepthBounds;
-              m_RenderState.maxdepth = m_CreationInfo.m_Pipeline[liveid].maxDepthBounds;
+              renderstate.mindepth = m_CreationInfo.m_Pipeline[liveid].minDepthBounds;
+              renderstate.maxdepth = m_CreationInfo.m_Pipeline[liveid].maxDepthBounds;
             }
             if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicStencilCompareMask])
             {
-              m_RenderState.front.compare = m_CreationInfo.m_Pipeline[liveid].front.compareMask;
-              m_RenderState.back.compare = m_CreationInfo.m_Pipeline[liveid].back.compareMask;
+              renderstate.front.compare = m_CreationInfo.m_Pipeline[liveid].front.compareMask;
+              renderstate.back.compare = m_CreationInfo.m_Pipeline[liveid].back.compareMask;
             }
             if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicStencilWriteMask])
             {
-              m_RenderState.front.write = m_CreationInfo.m_Pipeline[liveid].front.writeMask;
-              m_RenderState.back.write = m_CreationInfo.m_Pipeline[liveid].back.writeMask;
+              renderstate.front.write = m_CreationInfo.m_Pipeline[liveid].front.writeMask;
+              renderstate.back.write = m_CreationInfo.m_Pipeline[liveid].back.writeMask;
             }
             if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicStencilReference])
             {
-              m_RenderState.front.ref = m_CreationInfo.m_Pipeline[liveid].front.reference;
-              m_RenderState.back.ref = m_CreationInfo.m_Pipeline[liveid].back.reference;
+              renderstate.front.ref = m_CreationInfo.m_Pipeline[liveid].front.reference;
+              renderstate.back.ref = m_CreationInfo.m_Pipeline[liveid].back.reference;
             }
             if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicSampleLocationsEXT])
             {
-              m_RenderState.sampleLocations.locations =
+              renderstate.sampleLocations.locations =
                   m_CreationInfo.m_Pipeline[liveid].sampleLocations.locations;
-              m_RenderState.sampleLocations.gridSize =
+              renderstate.sampleLocations.gridSize =
                   m_CreationInfo.m_Pipeline[liveid].sampleLocations.gridSize;
-              m_RenderState.sampleLocations.sampleCount =
+              renderstate.sampleLocations.sampleCount =
                   m_CreationInfo.m_Pipeline[liveid].rasterizationSamples;
             }
             if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicDiscardRectangleEXT])
             {
-              m_RenderState.discardRectangles = m_CreationInfo.m_Pipeline[liveid].discardRectangles;
+              renderstate.discardRectangles = m_CreationInfo.m_Pipeline[liveid].discardRectangles;
             }
             if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicLineStippleEXT])
             {
-              m_RenderState.stippleFactor = m_CreationInfo.m_Pipeline[liveid].stippleFactor;
-              m_RenderState.stipplePattern = m_CreationInfo.m_Pipeline[liveid].stipplePattern;
+              renderstate.stippleFactor = m_CreationInfo.m_Pipeline[liveid].stippleFactor;
+              renderstate.stipplePattern = m_CreationInfo.m_Pipeline[liveid].stipplePattern;
             }
           }
         }
@@ -2326,7 +2304,14 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
     else
     {
       // track while reading, as we need to bind current topology & index byte width in AddDrawcall
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.pipeline = GetResID(pipeline);
+      if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
+      {
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.pipeline = GetResID(pipeline);
+      }
+      else
+      {
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.pipeline = GetResID(pipeline);
+      }
     }
 
     if(commandBuffer != VK_NULL_HANDLE)
@@ -2394,12 +2379,12 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
                                     firstSet, setCount, UnwrapArray(pDescriptorSets, setCount),
                                     dynamicOffsetCount, pDynamicOffsets);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+
           rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
-              (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
-                  ? m_RenderState.graphics.descSets
-                  : m_RenderState.compute.descSets;
+              (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) ? renderstate.graphics.descSets
+                                                                     : renderstate.compute.descSets;
 
           // expand as necessary
           if(descsets.size() < firstSet + setCount)
@@ -2466,10 +2451,10 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
     else
     {
       // track while reading, as we need to track resource usage
-      rdcarray<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descsets =
+      rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
           (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
-              ? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphicsDescSets
-              : m_BakedCmdBufferInfo[m_LastCmdBufferID].state.computeDescSets;
+              ? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.descSets
+              : m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.descSets;
 
       // expand as necessary
       if(descsets.size() < firstSet + setCount)
@@ -2549,15 +2534,15 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(SerialiserType &ser,
             ->CmdBindVertexBuffers(Unwrap(commandBuffer), firstBinding, bindingCount,
                                    UnwrapArray(pBuffers, bindingCount), pOffsets);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          if(m_RenderState.vbuffers.size() < firstBinding + bindingCount)
-            m_RenderState.vbuffers.resize(firstBinding + bindingCount);
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          if(renderstate.vbuffers.size() < firstBinding + bindingCount)
+            renderstate.vbuffers.resize(firstBinding + bindingCount);
 
           for(uint32_t i = 0; i < bindingCount; i++)
           {
-            m_RenderState.vbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
-            m_RenderState.vbuffers[firstBinding + i].offs = pOffsets[i];
+            renderstate.vbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
+            renderstate.vbuffers[firstBinding + i].offs = pOffsets[i];
           }
         }
       }
@@ -2569,7 +2554,7 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(SerialiserType &ser,
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers.resize(firstBinding + bindingCount);
 
       for(uint32_t i = 0; i < bindingCount; i++)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers[firstBinding + i] =
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers[firstBinding + i].buf =
             GetResID(pBuffers[i]);
 
       ObjDisp(commandBuffer)
@@ -2636,17 +2621,17 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(SerialiserType &ser,
         ObjDisp(commandBuffer)
             ->CmdBindIndexBuffer(Unwrap(commandBuffer), Unwrap(buffer), offset, indexType);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          m_RenderState.ibuffer.buf = GetResID(buffer);
-          m_RenderState.ibuffer.offs = offset;
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.ibuffer.buf = GetResID(buffer);
+          renderstate.ibuffer.offs = offset;
 
           if(indexType == VK_INDEX_TYPE_UINT32)
-            m_RenderState.ibuffer.bytewidth = 4;
+            renderstate.ibuffer.bytewidth = 4;
           else if(indexType == VK_INDEX_TYPE_UINT8_EXT)
-            m_RenderState.ibuffer.bytewidth = 1;
+            renderstate.ibuffer.bytewidth = 1;
           else
-            m_RenderState.ibuffer.bytewidth = 2;
+            renderstate.ibuffer.bytewidth = 2;
         }
       }
     }
@@ -2654,14 +2639,14 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(SerialiserType &ser,
     {
       // track while reading, as we need to bind current topology & index byte width in AddDrawcall
       if(indexType == VK_INDEX_TYPE_UINT32)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth = 4;
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 4;
       else if(indexType == VK_INDEX_TYPE_UINT8_EXT)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth = 1;
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 1;
       else
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.idxWidth = 2;
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 2;
 
       // track while reading, as we need to track resource usage
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer = GetResID(buffer);
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.buf = GetResID(buffer);
 
       ObjDisp(commandBuffer)->CmdBindIndexBuffer(Unwrap(commandBuffer), Unwrap(buffer), offset, indexType);
     }
@@ -2789,13 +2774,13 @@ bool WrappedVulkan::Serialise_vkCmdPushConstants(SerialiserType &ser, VkCommandB
             ->CmdPushConstants(Unwrap(commandBuffer), Unwrap(layout), stageFlags, start, length,
                                values);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          RDCASSERT(start + length < (uint32_t)ARRAY_COUNT(m_RenderState.pushconsts));
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          RDCASSERT(start + length < (uint32_t)ARRAY_COUNT(renderstate.pushconsts));
 
-          memcpy(m_RenderState.pushconsts + start, values, length);
+          memcpy(renderstate.pushconsts + start, values, length);
 
-          m_RenderState.pushConstSize = RDCMAX(m_RenderState.pushConstSize, start + length);
+          renderstate.pushConstSize = RDCMAX(renderstate.pushConstSize, start + length);
         }
       }
     }
@@ -3375,7 +3360,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 
       // should we add framebuffer usage to the child draws.
       bool framebufferUsage = parentCmdBufInfo.state.renderPass != ResourceId() &&
-                              parentCmdBufInfo.state.framebuffer != ResourceId();
+                              parentCmdBufInfo.state.GetFramebuffer() != ResourceId();
 
       for(uint32_t c = 0; c < commandBufferCount; c++)
       {
@@ -3419,8 +3404,8 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           {
             AddFramebufferUsageAllChildren(
                 parentCmdBufInfo.draw->children[total - numChildren + i],
-                parentCmdBufInfo.state.renderPass, parentCmdBufInfo.state.framebuffer,
-                parentCmdBufInfo.state.subpass, parentCmdBufInfo.state.fbattachments);
+                parentCmdBufInfo.state.renderPass, parentCmdBufInfo.state.GetFramebuffer(),
+                parentCmdBufInfo.state.subpass, parentCmdBufInfo.state.GetFramebufferAttachments());
           }
         }
 
@@ -3500,8 +3485,9 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           // propagate renderpass state
           m_BakedCmdBufferInfo[cmd].state.renderPass = parentCmdBufInfo.state.renderPass;
           m_BakedCmdBufferInfo[cmd].state.subpass = parentCmdBufInfo.state.subpass;
-          m_BakedCmdBufferInfo[cmd].state.framebuffer = parentCmdBufInfo.state.framebuffer;
-          m_BakedCmdBufferInfo[cmd].state.fbattachments = parentCmdBufInfo.state.fbattachments;
+          m_BakedCmdBufferInfo[cmd].state.SetFramebuffer(
+              parentCmdBufInfo.state.GetFramebuffer(),
+              parentCmdBufInfo.state.GetFramebufferAttachments());
 
           // 2 extra for the virtual labels around the command buffer
           parentCmdBufInfo.curEventID += 2 + m_BakedCmdBufferInfo[cmd].eventCount;
@@ -3988,12 +3974,11 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
+          VulkanRenderState &renderstate = GetCmdRenderState();
           rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
-              (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
-                  ? m_RenderState.graphics.descSets
-                  : m_RenderState.compute.descSets;
+              (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) ? renderstate.graphics.descSets
+                                                                     : renderstate.compute.descSets;
 
           // expand as necessary
           if(descsets.size() < set + 1)
@@ -4013,10 +3998,10 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
     else
     {
       // track while reading, as we need to track resource usage
-      rdcarray<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descsets =
+      rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
           (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
-              ? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphicsDescSets
-              : m_BakedCmdBufferInfo[m_LastCmdBufferID].state.computeDescSets;
+              ? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.descSets
+              : m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.descSets;
 
       // expand as necessary
       if(descsets.size() < set + 1)
@@ -4257,11 +4242,11 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
+          VulkanRenderState &renderstate = GetCmdRenderState();
           rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
-              (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) ? m_RenderState.graphics.descSets
-                                                             : m_RenderState.compute.descSets;
+              (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) ? renderstate.graphics.descSets
+                                                             : renderstate.compute.descSets;
 
           // expand as necessary
           if(descsets.size() < set + 1)
@@ -4281,11 +4266,11 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
     else
     {
       // track while reading, as we need to track resource usage
-      rdcarray<BakedCmdBufferInfo::CmdBufferState::DescriptorAndOffsets> &descsets =
+      rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
           (m_CreationInfo.m_DescUpdateTemplate[GetResID(descriptorUpdateTemplate)].bindPoint ==
            VK_PIPELINE_BIND_POINT_GRAPHICS)
-              ? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphicsDescSets
-              : m_BakedCmdBufferInfo[m_LastCmdBufferID].state.computeDescSets;
+              ? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.descSets
+              : m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.descSets;
 
       // expand as necessary
       if(descsets.size() < set + 1)
@@ -4823,16 +4808,16 @@ bool WrappedVulkan::Serialise_vkCmdBindTransformFeedbackBuffersEXT(
                                                  UnwrapArray(pBuffers, bindingCount), pOffsets,
                                                  pSizes);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          if(m_RenderState.xfbbuffers.size() < firstBinding + bindingCount)
-            m_RenderState.xfbbuffers.resize(firstBinding + bindingCount);
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          if(renderstate.xfbbuffers.size() < firstBinding + bindingCount)
+            renderstate.xfbbuffers.resize(firstBinding + bindingCount);
 
           for(uint32_t i = 0; i < bindingCount; i++)
           {
-            m_RenderState.xfbbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
-            m_RenderState.xfbbuffers[firstBinding + i].offs = pOffsets[i];
-            m_RenderState.xfbbuffers[firstBinding + i].size = pSizes ? pSizes[i] : VK_WHOLE_SIZE;
+            renderstate.xfbbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
+            renderstate.xfbbuffers[firstBinding + i].offs = pOffsets[i];
+            renderstate.xfbbuffers[firstBinding + i].size = pSizes ? pSizes[i] : VK_WHOLE_SIZE;
           }
         }
       }
@@ -4844,7 +4829,7 @@ bool WrappedVulkan::Serialise_vkCmdBindTransformFeedbackBuffersEXT(
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbbuffers.resize(firstBinding + bindingCount);
 
       for(uint32_t i = 0; i < bindingCount; i++)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbbuffers[firstBinding + i] =
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbbuffers[firstBinding + i].buf =
             GetResID(pBuffers[i]);
 
       ObjDisp(commandBuffer)
@@ -4918,17 +4903,16 @@ bool WrappedVulkan::Serialise_vkCmdBeginTransformFeedbackEXT(
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        // only if we're partially recording do we update this state
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          m_RenderState.firstxfbcounter = firstBuffer;
-          m_RenderState.xfbcounters.resize(bufferCount);
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.firstxfbcounter = firstBuffer;
+          renderstate.xfbcounters.resize(bufferCount);
 
           for(uint32_t i = 0; i < bufferCount; i++)
           {
-            m_RenderState.xfbcounters[i].buf =
+            renderstate.xfbcounters[i].buf =
                 pCounterBuffers ? GetResID(pCounterBuffers[i]) : ResourceId();
-            m_RenderState.xfbcounters[i].offs = pCounterBufferOffsets ? pCounterBufferOffsets[i] : 0;
+            renderstate.xfbcounters[i].offs = pCounterBufferOffsets ? pCounterBufferOffsets[i] : 0;
           }
         }
 
@@ -4946,8 +4930,9 @@ bool WrappedVulkan::Serialise_vkCmdBeginTransformFeedbackEXT(
                                          pCounterBufferOffsets);
 
       // track while reading, for fetching the right set of outputs in AddDrawcall
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbfirst = firstBuffer;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbcount = bufferCount;
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.firstxfbcounter = firstBuffer;
+      // TODO: should change the xfbcount, resize?
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbcounters.resize(bufferCount);
     }
   }
 
@@ -5014,11 +4999,10 @@ bool WrappedVulkan::Serialise_vkCmdEndTransformFeedbackEXT(
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        // only if we're partially recording do we update this state
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          m_RenderState.firstxfbcounter = 0;
-          m_RenderState.xfbcounters.clear();
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.firstxfbcounter = 0;
+          renderstate.xfbcounters.clear();
         }
 
         ObjDisp(commandBuffer)
@@ -5035,8 +5019,8 @@ bool WrappedVulkan::Serialise_vkCmdEndTransformFeedbackEXT(
                                        pCounterBufferOffsets);
 
       // track while reading, for fetching the right set of outputs in AddDrawcall
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbfirst = 0;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbcount = 0;
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.firstxfbcounter = 0;
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbcounters.clear();
     }
   }
 
@@ -5219,11 +5203,11 @@ bool WrappedVulkan::Serialise_vkCmdBeginConditionalRenderingEXT(
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          m_RenderState.conditionalRendering.buffer = GetResID(BeginInfo.buffer);
-          m_RenderState.conditionalRendering.offset = BeginInfo.offset;
-          m_RenderState.conditionalRendering.flags = BeginInfo.flags;
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.conditionalRendering.buffer = GetResID(BeginInfo.buffer);
+          renderstate.conditionalRendering.offset = BeginInfo.offset;
+          renderstate.conditionalRendering.flags = BeginInfo.flags;
         }
 
         BeginInfo.buffer = Unwrap(BeginInfo.buffer);
@@ -5291,8 +5275,10 @@ bool WrappedVulkan::Serialise_vkCmdEndConditionalRenderingEXT(SerialiserType &se
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
-          m_RenderState.conditionalRendering.buffer = ResourceId();
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.conditionalRendering.buffer = ResourceId();
+        }
 
         ObjDisp(commandBuffer)->CmdEndConditionalRenderingEXT(Unwrap(commandBuffer));
       }

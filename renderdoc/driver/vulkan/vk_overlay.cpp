@@ -43,11 +43,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
 {
   VulkanQuadOverdrawCallback(WrappedVulkan *vk, VkDescriptorSetLayout descSetLayout,
                              VkDescriptorSet descSet, const rdcarray<uint32_t> &events)
-      : m_pDriver(vk),
-        m_DescSetLayout(descSetLayout),
-        m_DescSet(descSet),
-        m_Events(events),
-        m_PrevState(vk, NULL)
+      : m_pDriver(vk), m_DescSetLayout(descSetLayout), m_DescSet(descSet), m_Events(events)
   {
     m_pDriver->SetDrawcallCB(this);
   }
@@ -63,8 +59,8 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
 
     VkResult vkr = VK_SUCCESS;
 
-    m_PrevState = m_pDriver->GetRenderState();
-    VulkanRenderState &pipestate = m_pDriver->GetRenderState();
+    m_PrevState = m_pDriver->GetCmdRenderState();
+    VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
 
     // check cache first
     CachedPipeline pipe = m_PipelineCache[pipestate.graphics.pipeline];
@@ -72,25 +68,26 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
     // if we don't get a hit, create a modified pipeline
     if(pipe.pipe == VK_NULL_HANDLE)
     {
-      VulkanCreationInfo &c = *pipestate.m_CreationInfo;
-
-      VulkanCreationInfo::Pipeline &p = c.m_Pipeline[pipestate.graphics.pipeline];
+      const VulkanCreationInfo::Pipeline &p =
+          m_pDriver->GetDebugManager()->GetPipelineInfo(pipestate.graphics.pipeline);
 
       VkDescriptorSetLayout *descSetLayouts;
 
       // descSet will be the index of our new descriptor set
-      uint32_t descSet = (uint32_t)c.m_PipelineLayout[p.layout].descSetLayouts.size();
+      uint32_t descSet =
+          (uint32_t)m_pDriver->GetDebugManager()->GetPipelineLayoutInfo(p.layout).descSetLayouts.size();
 
       descSetLayouts = new VkDescriptorSetLayout[descSet + 1];
 
       for(uint32_t i = 0; i < descSet; i++)
         descSetLayouts[i] = m_pDriver->GetResourceManager()->GetCurrentHandle<VkDescriptorSetLayout>(
-            c.m_PipelineLayout[p.layout].descSetLayouts[i]);
+            m_pDriver->GetDebugManager()->GetPipelineLayoutInfo(p.layout).descSetLayouts[i]);
 
       // this layout has storage image and
       descSetLayouts[descSet] = m_DescSetLayout;
 
-      const rdcarray<VkPushConstantRange> &push = c.m_PipelineLayout[p.layout].pushRanges;
+      const rdcarray<VkPushConstantRange> &push =
+          m_pDriver->GetDebugManager()->GetPipelineLayoutInfo(p.layout).pushRanges;
 
       VkPipelineLayoutCreateInfo pipeLayoutInfo = {
           VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -222,7 +219,7 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
     pipestate.graphics.descSets[pipe.descSet].descSet = GetResID(m_DescSet);
 
     if(cmd)
-      pipestate.BindPipeline(cmd, VulkanRenderState::BindGraphics, false);
+      pipestate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
   }
 
   bool PostDraw(uint32_t eid, VkCommandBuffer cmd)
@@ -231,10 +228,11 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
       return false;
 
     // restore the render state and go ahead with the real draw
-    m_pDriver->GetRenderState() = m_PrevState;
+    m_pDriver->GetCmdRenderState() = m_PrevState;
 
     RDCASSERT(cmd);
-    m_pDriver->GetRenderState().BindPipeline(cmd, VulkanRenderState::BindGraphics, false);
+    m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
+                                                false);
 
     return true;
   }
@@ -838,7 +836,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
     // modify state
     m_pDriver->m_RenderState.renderPass = GetResID(m_Overlay.NoDepthRP);
     m_pDriver->m_RenderState.subpass = 0;
-    m_pDriver->m_RenderState.SetFramebuffer(GetResID(m_Overlay.NoDepthFB));
+    m_pDriver->m_RenderState.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe);
 
@@ -871,7 +869,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
       // do single draw
-      m_pDriver->m_RenderState.BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
+      m_pDriver->m_RenderState.BeginRenderPassAndApplyState(m_pDriver, cmd,
+                                                            VulkanRenderState::BindGraphics);
       ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), patchedIndexCount, mainDraw->numInstances, 0, 0,
                                    mainDraw->instanceOffset);
       m_pDriver->m_RenderState.EndRenderPass(cmd);
@@ -1179,7 +1178,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
     // modify state
     m_pDriver->m_RenderState.renderPass = GetResID(m_Overlay.NoDepthRP);
     m_pDriver->m_RenderState.subpass = 0;
-    m_pDriver->m_RenderState.SetFramebuffer(GetResID(m_Overlay.NoDepthFB));
+    m_pDriver->m_RenderState.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[0]);
 
@@ -1472,7 +1471,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
     // modify state
     m_pDriver->m_RenderState.renderPass = GetResID(m_Overlay.NoDepthRP);
     m_pDriver->m_RenderState.subpass = 0;
-    m_pDriver->m_RenderState.SetFramebuffer(GetResID(m_Overlay.NoDepthFB));
+    m_pDriver->m_RenderState.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(failpipe);
 
@@ -1494,7 +1493,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
     if(depthRP != VK_NULL_HANDLE)
     {
       m_pDriver->m_RenderState.renderPass = GetResID(depthRP);
-      m_pDriver->m_RenderState.SetFramebuffer(GetResID(depthFB));
+      m_pDriver->m_RenderState.SetFramebuffer(m_pDriver, GetResID(depthFB));
     }
 
     m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
@@ -1598,7 +1597,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      m_pDriver->m_RenderState.BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
+      m_pDriver->m_RenderState.BeginRenderPassAndApplyState(m_pDriver, cmd,
+                                                            VulkanRenderState::BindGraphics);
 
       VkClearAttachment clearatt = {VK_IMAGE_ASPECT_COLOR_BIT, 0, {}};
       memcpy(clearatt.clearValue.color.float32, &clearCol, sizeof(clearatt.clearValue.color.float32));
@@ -1653,11 +1653,11 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      for(size_t i = startEvent; i < events.size(); i++)
+      for (size_t i = startEvent; i < events.size(); i++)
       {
         m_pDriver->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
-        if(overlay == DebugOverlay::ClearBeforePass && i + 1 < events.size())
+        if (overlay == DebugOverlay::ClearBeforePass && i + 1 < events.size())
           m_pDriver->ReplayLog(events[i] + 1, events[i + 1], eReplay_WithoutDraw);
       }
 

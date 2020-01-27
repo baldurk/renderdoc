@@ -1557,9 +1557,8 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
   }
 }
 
-void VulkanReplay::FetchVSOut(uint32_t eventId)
+void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 {
-  const VulkanRenderState &state = m_pDriver->m_RenderState;
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];
@@ -1637,7 +1636,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
 
   // create a duplicate set of descriptor sets, all visible to compute, with bindings shifted to
   // account for new ones we need. This also copies the existing bindings into the new sets
-  PatchReservedDescriptors(m_pDriver->m_RenderState.graphics, descpool, setLayouts, descSets,
+  PatchReservedDescriptors(state.graphics, descpool, setLayouts, descSets,
                            VK_SHADER_STAGE_COMPUTE_BIT, newBindings, ARRAY_COUNT(newBindings));
 
   // create pipeline layout with new descriptor set layouts
@@ -2510,7 +2509,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
     m_pDriver->vkUpdateDescriptorSets(dev, 1, &write, 0, NULL);
 
     // do single draw
-    modifiedstate.BindPipeline(cmd, VulkanRenderState::BindCompute, true);
+    modifiedstate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindCompute, true);
     uint64_t totalVerts = numVerts * uint64_t(drawcall->numInstances) * uint64_t(numViews);
 
     // the validation layers will probably complain about this dispatch saying some arrays aren't
@@ -2705,9 +2704,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
   m_pDriver->vkDestroyShaderModule(dev, module, NULL);
 }
 
-void VulkanReplay::FetchTessGSOut(uint32_t eventId)
+void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
 {
-  VulkanRenderState state = m_pDriver->m_RenderState;
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];
@@ -2873,7 +2871,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   state.graphics.pipeline = GetResID(pipe);
-  state.SetFramebuffer(GetResID(fb));
+  state.SetFramebuffer(m_pDriver, GetResID(fb));
   state.renderPass = GetResID(rp);
   state.subpass = 0;
   state.renderArea.offset.x = 0;
@@ -3002,7 +3000,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
     // wait for the above fill to finish.
     DoPipelineBarrier(cmd, 1, &meshbufbarrier);
 
-    state.BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
+    state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
 
     ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), Unwrap(m_PostVS.XFBQueryPool), 0, 0);
 
@@ -3064,7 +3062,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
     ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), Unwrap(m_PostVS.XFBQueryPool), 0,
                                     drawcall->numInstances);
 
-    state.BeginRenderPassAndApplyState(cmd, VulkanRenderState::BindGraphics);
+    state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
 
     // do incremental draws to get the output size. We have to do this O(N^2) style because
     // there's no way to replay only a single instance. We have to replay 1, 2, 3, ... N
@@ -3250,7 +3248,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId)
   m_pDriver->vkDestroyShaderModule(dev, module, NULL);
 }
 
-void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
+void VulkanReplay::InitPostVSBuffers(uint32_t eventId, VulkanRenderState &state)
 {
   // go through any aliasing
   if(m_PostVS.Alias.find(eventId) != m_PostVS.Alias.end())
@@ -3259,7 +3257,6 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
   if(m_PostVS.Data.find(eventId) != m_PostVS.Data.end())
     return;
 
-  const VulkanRenderState &state = m_pDriver->m_RenderState;
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
 
   if(state.graphics.pipeline == ResourceId() || state.renderPass == ResourceId())
@@ -3277,7 +3274,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
   VkMarkerRegion::Begin(StringFormat::Fmt("FetchVSOut for %u", eventId));
 
-  FetchVSOut(eventId);
+  FetchVSOut(eventId, state);
 
   VkMarkerRegion::End();
 
@@ -3287,9 +3284,14 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
 
   VkMarkerRegion::Begin(StringFormat::Fmt("FetchTessGSOut for %u", eventId));
 
-  FetchTessGSOut(eventId);
+  FetchTessGSOut(eventId, state);
 
   VkMarkerRegion::End();
+}
+
+void VulkanReplay::InitPostVSBuffers(uint32_t eventId)
+{
+  InitPostVSBuffers(eventId, m_pDriver->GetRenderState());
 }
 
 struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
@@ -3303,7 +3305,7 @@ struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
   void PreDraw(uint32_t eid, VkCommandBuffer cmd)
   {
     if(m_Events.contains(eid))
-      m_pDriver->GetReplay()->InitPostVSBuffers(eid);
+      m_pDriver->GetReplay()->InitPostVSBuffers(eid, m_pDriver->GetCmdRenderState());
   }
 
   bool PostDraw(uint32_t eid, VkCommandBuffer cmd) { return false; }

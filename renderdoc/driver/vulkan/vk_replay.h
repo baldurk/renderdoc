@@ -29,6 +29,7 @@
 #include "replay/replay_driver.h"
 #include "vk_common.h"
 #include "vk_info.h"
+#include "vk_state.h"
 
 #if ENABLED(RDOC_WIN32)
 
@@ -322,6 +323,7 @@ public:
                     float maxval, bool channels[4], rdcarray<uint32_t> &histogram);
 
   void InitPostVSBuffers(uint32_t eventId);
+  void InitPostVSBuffers(uint32_t eventId, VulkanRenderState &state);
   void InitPostVSBuffers(const rdcarray<uint32_t> &passEvents);
 
   // indicates that EID alias is the same as eventId
@@ -421,8 +423,8 @@ private:
                                 const VkDescriptorSetLayoutBinding *newBindings,
                                 size_t newBindingsCount);
 
-  void FetchVSOut(uint32_t eventId);
-  void FetchTessGSOut(uint32_t eventId);
+  void FetchVSOut(uint32_t eventId, VulkanRenderState &state);
+  void FetchTessGSOut(uint32_t eventId, VulkanRenderState &state);
   void ClearPostVSCache();
 
   void RefreshDerivedReplacements();

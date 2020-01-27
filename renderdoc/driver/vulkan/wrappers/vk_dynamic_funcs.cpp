@@ -48,13 +48,13 @@ bool WrappedVulkan::Serialise_vkCmdSetViewport(SerialiserType &ser, VkCommandBuf
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          if(m_RenderState.views.size() < firstViewport + viewportCount)
-            m_RenderState.views.resize(firstViewport + viewportCount);
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          if(renderstate.views.size() < firstViewport + viewportCount)
+            renderstate.views.resize(firstViewport + viewportCount);
 
           for(uint32_t i = 0; i < viewportCount; i++)
-            m_RenderState.views[firstViewport + i] = pViewports[i];
+            renderstate.views[firstViewport + i] = pViewports[i];
         }
       }
       else
@@ -117,13 +117,13 @@ bool WrappedVulkan::Serialise_vkCmdSetScissor(SerialiserType &ser, VkCommandBuff
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          if(m_RenderState.scissors.size() < firstScissor + scissorCount)
-            m_RenderState.scissors.resize(firstScissor + scissorCount);
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          if(renderstate.scissors.size() < firstScissor + scissorCount)
+            renderstate.scissors.resize(firstScissor + scissorCount);
 
           for(uint32_t i = 0; i < scissorCount; i++)
-            m_RenderState.scissors[firstScissor + i] = pScissors[i];
+            renderstate.scissors[firstScissor + i] = pScissors[i];
         }
       }
       else
@@ -182,8 +182,9 @@ bool WrappedVulkan::Serialise_vkCmdSetLineWidth(SerialiserType &ser, VkCommandBu
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
-          m_RenderState.lineWidth = lineWidth;
+        {
+          GetCmdRenderState().lineWidth = lineWidth;
+        }
       }
       else
       {
@@ -241,11 +242,11 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBias(SerialiserType &ser, VkCommandBu
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          m_RenderState.bias.depth = depthBias;
-          m_RenderState.bias.biasclamp = depthBiasClamp;
-          m_RenderState.bias.slope = slopeScaledDepthBias;
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.bias.depth = depthBias;
+          renderstate.bias.biasclamp = depthBiasClamp;
+          renderstate.bias.slope = slopeScaledDepthBias;
         }
       }
       else
@@ -306,8 +307,10 @@ bool WrappedVulkan::Serialise_vkCmdSetBlendConstants(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
-          memcpy(m_RenderState.blendConst, blendConst, sizeof(m_RenderState.blendConst));
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          memcpy(renderstate.blendConst, blendConst, sizeof(renderstate.blendConst));
+        }
       }
       else
       {
@@ -363,10 +366,10 @@ bool WrappedVulkan::Serialise_vkCmdSetDepthBounds(SerialiserType &ser, VkCommand
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          m_RenderState.mindepth = minDepthBounds;
-          m_RenderState.maxdepth = maxDepthBounds;
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.mindepth = minDepthBounds;
+          renderstate.maxdepth = maxDepthBounds;
         }
       }
       else
@@ -427,12 +430,12 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilCompareMask(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
+          VulkanRenderState &renderstate = GetCmdRenderState();
           if(faceMask & VK_STENCIL_FACE_FRONT_BIT)
-            m_RenderState.front.compare = compareMask;
+            renderstate.front.compare = compareMask;
           if(faceMask & VK_STENCIL_FACE_BACK_BIT)
-            m_RenderState.back.compare = compareMask;
+            renderstate.back.compare = compareMask;
         }
       }
       else
@@ -493,12 +496,12 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilWriteMask(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
+          VulkanRenderState &renderstate = GetCmdRenderState();
           if(faceMask & VK_STENCIL_FACE_FRONT_BIT)
-            m_RenderState.front.write = writeMask;
+            renderstate.front.write = writeMask;
           if(faceMask & VK_STENCIL_FACE_BACK_BIT)
-            m_RenderState.back.write = writeMask;
+            renderstate.back.write = writeMask;
         }
       }
       else
@@ -559,12 +562,12 @@ bool WrappedVulkan::Serialise_vkCmdSetStencilReference(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
+          VulkanRenderState &renderstate = GetCmdRenderState();
           if(faceMask & VK_STENCIL_FACE_FRONT_BIT)
-            m_RenderState.front.ref = reference;
+            renderstate.front.ref = reference;
           if(faceMask & VK_STENCIL_FACE_BACK_BIT)
-            m_RenderState.back.ref = reference;
+            renderstate.back.ref = reference;
         }
       }
       else
@@ -623,12 +626,12 @@ bool WrappedVulkan::Serialise_vkCmdSetSampleLocationsEXT(
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          m_RenderState.sampleLocations.locations.assign(sampleInfo.pSampleLocations,
-                                                         sampleInfo.sampleLocationsCount);
-          m_RenderState.sampleLocations.gridSize = sampleInfo.sampleLocationGridSize;
-          m_RenderState.sampleLocations.sampleCount = sampleInfo.sampleLocationsPerPixel;
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.sampleLocations.locations.assign(sampleInfo.pSampleLocations,
+                                                       sampleInfo.sampleLocationsCount);
+          renderstate.sampleLocations.gridSize = sampleInfo.sampleLocationGridSize;
+          renderstate.sampleLocations.sampleCount = sampleInfo.sampleLocationsPerPixel;
         }
       }
       else
@@ -691,13 +694,13 @@ bool WrappedVulkan::Serialise_vkCmdSetDiscardRectangleEXT(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          if(m_RenderState.discardRectangles.size() < firstDiscardRectangle + discardRectangleCount)
-            m_RenderState.discardRectangles.resize(firstDiscardRectangle + discardRectangleCount);
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          if(renderstate.discardRectangles.size() < firstDiscardRectangle + discardRectangleCount)
+            renderstate.discardRectangles.resize(firstDiscardRectangle + discardRectangleCount);
 
           for(uint32_t i = 0; i < discardRectangleCount; i++)
-            m_RenderState.discardRectangles[firstDiscardRectangle + i] = pDiscardRectangles[i];
+            renderstate.discardRectangles[firstDiscardRectangle + i] = pDiscardRectangles[i];
         }
       }
       else
@@ -764,10 +767,10 @@ bool WrappedVulkan::Serialise_vkCmdSetLineStippleEXT(SerialiserType &ser,
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderState(m_LastCmdBufferID))
         {
-          m_RenderState.stippleFactor = lineStippleFactor;
-          m_RenderState.stipplePattern = lineStipplePattern;
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.stippleFactor = lineStippleFactor;
+          renderstate.stipplePattern = lineStipplePattern;
         }
       }
       else
