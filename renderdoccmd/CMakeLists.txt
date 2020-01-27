@@ -73,6 +73,7 @@ if(ANDROID)
     if(${Java_VERSION} VERSION_LESS 1.8)
         message(FATAL_ERROR "Building Android requires the 'java' program in your PATH to be at least Java 8 (1.8)")
     endif()
+    message(STATUS "Using Java of version ${Java_VERSION}")
 
     if(STRIP_ANDROID_LIBRARY AND CMAKE_STRIP AND CMAKE_BUILD_TYPE STREQUAL "Release")
         add_custom_command(TARGET renderdoccmd POST_BUILD

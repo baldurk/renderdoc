@@ -7,6 +7,19 @@ if(BUILD_ANDROID)
     endif()
     message(STATUS "Using JAVA_HOME = $ENV{JAVA_HOME}")
 
+    execute_process(COMMAND $ENV{JAVA_HOME}/bin/java -version
+        RESULT_VARIABLE _result
+        OUTPUT_VARIABLE _output
+        ERROR_VARIABLE _output
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_STRIP_TRAILING_WHITESPACE)
+    
+    if(NOT _result AND _output MATCHES "version \"([0-9]+).([0-9]+)")
+        message(STATUS "Java in JAVA_HOME is ${CMAKE_MATCH_1}.${CMAKE_MATCH_2}")
+    else()
+        message(STATUS "Java in JAVA_HOME is unknown version ${_output} ${_result}")
+    endif()
+
     if(DEFINED ENV{ANDROID_HOME} AND EXISTS "$ENV{ANDROID_HOME}/build-tools")
         set(ANDROID_SDK_ROOT_PATH "$ENV{ANDROID_HOME}")
     elseif(DEFINED ENV{ANDROID_SDK_ROOT} AND EXISTS "$ENV{ANDROID_SDK_ROOT}/build-tools")
