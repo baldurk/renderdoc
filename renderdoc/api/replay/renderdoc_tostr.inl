@@ -811,13 +811,14 @@ rdcstr DoStringise(const VarType &el)
 }
 
 template <>
-rdcstr DoStringise(const RegisterType &el)
+rdcstr DoStringise(const DebugVariableType &el)
 {
-  BEGIN_ENUM_STRINGISE(RegisterType)
+  BEGIN_ENUM_STRINGISE(DebugVariableType)
   {
-    STRINGISE_ENUM_CLASS(Temporary);
-    STRINGISE_ENUM_CLASS(IndexedTemporary);
-    STRINGISE_ENUM_CLASS(Output);
+    STRINGISE_ENUM_CLASS(Undefined);
+    STRINGISE_ENUM_CLASS(Input);
+    STRINGISE_ENUM_CLASS(Constant);
+    STRINGISE_ENUM_CLASS(Variable);
   }
   END_ENUM_STRINGISE();
 }

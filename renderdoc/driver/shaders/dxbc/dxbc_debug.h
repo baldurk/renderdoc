@@ -325,7 +325,6 @@ public:
     uint32_t isFrontFace;
   } semantics;
 
-  void Init();
   bool Finished() const;
 
   State GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State quad[4]) const;

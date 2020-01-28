@@ -247,18 +247,23 @@ struct LocalMapping
 {
   bool operator<(const LocalMapping &o) const { return range.startRange < o.range.startRange; }
   LocalRange range;
-  uint32_t regFirstComp;
+  uint8_t regFirstComp;
   uint32_t varFirstComp;
   uint32_t numComps;
   rdcarray<LocalRange> gaps;
 
-  LocalVariableMapping var;
+  ShaderVariableDescriptor var;
+
+  // stored here so that we don't need to have the register mapping at the time we parse the SPDB
+  // chunk
+  DXBCBytecode::OperandType regType;
+  uint32_t regIndex;
 };
 
 class SPDBChunk : public IDebugInfo
 {
 public:
-  SPDBChunk(Reflection *dxbc, void *data);
+  SPDBChunk(void *data);
   SPDBChunk(const SPDBChunk &) = delete;
   SPDBChunk &operator=(const SPDBChunk &o) = delete;
 
@@ -270,7 +275,8 @@ public:
   void GetCallstack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &callstack) const;
 
   bool HasLocals() const;
-  void GetLocals(size_t instruction, uintptr_t offset, rdcarray<LocalVariableMapping> &locals) const;
+  void GetLocals(DXBCBytecode::Program *program, size_t instruction, uintptr_t offset,
+                 rdcarray<SourceVariableMapping> &locals) const;
 
 private:
   bool m_HasDebugInfo;

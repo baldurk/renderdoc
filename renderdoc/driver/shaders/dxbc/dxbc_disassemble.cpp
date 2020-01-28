@@ -1504,11 +1504,16 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
     bool ret = ExtractOperand(tokenStream, flags, retDecl.operand);
     RDCASSERT(ret);
 
+    if(retDecl.operand.type == TYPE_INPUT_COVERAGE_MASK)
+      m_InputCoverage = true;
+
     retDecl.str += retDecl.operand.toString(m_Reflection, flags | ToString::ShowSwizzle);
   }
   else if(op == OPCODE_DCL_TEMPS)
   {
     retDecl.numTemps = tokenStream[0];
+
+    m_NumTemps = retDecl.numTemps;
 
     tokenStream++;
 
@@ -1524,6 +1529,12 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
 
     retDecl.tempComponentCount = tokenStream[0];
     tokenStream++;
+
+    // I don't think the compiler will ever declare a non-compact list of indexable temps, but just
+    // to be sure our indexing works let's be safe.
+    if(retDecl.tempReg >= m_IndexTempSizes.size())
+      m_IndexTempSizes.resize(retDecl.tempReg + 1);
+    m_IndexTempSizes[retDecl.tempReg] = retDecl.numTemps;
 
     retDecl.str += StringFormat::Fmt(" x%u[%u], %u", retDecl.tempReg, retDecl.numTemps,
                                      retDecl.tempComponentCount);
@@ -2055,6 +2066,20 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
   else
   {
     RDCERR("Unexpected opcode decl %d", op);
+  }
+
+  if(op == OPCODE_DCL_OUTPUT || op == OPCODE_DCL_OUTPUT_SIV || op == OPCODE_DCL_OUTPUT_SGV)
+  {
+    if(retDecl.operand.type == TYPE_OUTPUT_COVERAGE_MASK)
+      m_OutputCoverage = true;
+    else if(retDecl.operand.type == TYPE_OUTPUT_STENCIL_REF)
+      m_OutputStencil = true;
+    else if(retDecl.operand.type == TYPE_OUTPUT_DEPTH ||
+            retDecl.operand.type == TYPE_OUTPUT_DEPTH_GREATER_EQUAL ||
+            retDecl.operand.type == TYPE_OUTPUT_DEPTH_LESS_EQUAL)
+      m_OutputDepth = true;
+    else if(retDecl.operand.indices[0].absolute && retDecl.operand.indices[0].index < 0xffff)
+      m_NumOutputs = RDCMAX(m_NumOutputs, uint32_t(retDecl.operand.indices[0].index) + 1);
   }
 
   // make sure we consumed all uint32s

@@ -127,8 +127,8 @@ bool SDBGChunk::HasLocals() const
   return false;
 }
 
-void SDBGChunk::GetLocals(size_t instruction, uintptr_t offset,
-                          rdcarray<LocalVariableMapping> &locals) const
+void SDBGChunk::GetLocals(DXBCBytecode::Program *program, size_t instruction, uintptr_t offset,
+                          rdcarray<SourceVariableMapping> &locals) const
 {
 }
 

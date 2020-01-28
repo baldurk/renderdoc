@@ -534,20 +534,23 @@ void DXBCContainer::FillStateInstructionInfo(ShaderDebugState &state) const
 
   uintptr_t offset = 0;
 
+  state.sourceVars.clear();
+
   if(m_DXBCByteCode)
   {
     if(instruction < m_DXBCByteCode->GetNumInstructions())
       offset = m_DXBCByteCode->GetInstruction(instruction).offset;
+
+    if(m_DebugInfo)
+      m_DebugInfo->GetLocals(m_DXBCByteCode, instruction, offset, state.sourceVars);
   }
 
   if(m_DebugInfo)
   {
-    m_DebugInfo->GetLocals(instruction, offset, state.locals);
     m_DebugInfo->GetCallstack(instruction, offset, state.callstack);
   }
   else
   {
-    state.locals.clear();
     state.callstack.clear();
   }
 }
@@ -1243,7 +1246,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
     }
     else if(*fourcc == FOURCC_SPDB)
     {
-      m_DebugInfo = MakeSPDBChunk(m_Reflection, fourcc);
+      m_DebugInfo = MakeSPDBChunk(fourcc);
     }
   }
 

@@ -50,9 +50,7 @@ enum class VariableCategory
   Unknown,
   Inputs,
   Constants,
-  IndexTemporaries,
-  Temporaries,
-  Outputs,
+  Variables,
   ByString,
 };
 
@@ -164,8 +162,7 @@ private:
   void PopulateCompileToolParameters();
   bool ProcessIncludeDirectives(QString &source, const rdcstrpairs &files);
 
-  const rdcarray<ShaderVariable> *GetVariableList(VariableCategory varCat, int arrayIdx);
-  void getRegisterFromWord(const QString &text, VariableCategory &varCat, int &varIdx, int &arrayIdx);
+  void getRegisterFromWord(const QString &text, VariableCategory &varCat, int &index, int &member);
 
   void updateWindowTitle();
   void gotoSourceDebugging();
@@ -173,7 +170,7 @@ private:
 
   void insertSnippet(const QString &text);
 
-  void showVariableTooltip(VariableCategory varCat, int varIdx, int arrayIdx);
+  void showVariableTooltip(VariableCategory varCat, int index, int member);
   void showVariableTooltip(QString name);
   void updateVariableTooltip();
   void hideVariableTooltip();
@@ -182,10 +179,10 @@ private:
 
   ShaderEncoding currentEncoding();
 
-  VariableCategory m_TooltipVarCat = VariableCategory::Temporaries;
+  VariableCategory m_TooltipVarCat = VariableCategory::Variables;
   QString m_TooltipName;
-  int m_TooltipVarIdx = -1;
-  int m_TooltipArrayIdx = -1;
+  int m_TooltipVarIndex = -1;
+  int m_TooltipMember = -1;
   QPoint m_TooltipPos;
 
   Ui::ShaderViewer *ui;
@@ -269,7 +266,8 @@ private:
 
   void updateDebugging();
 
-  const ShaderVariable *GetRegisterVariable(const RegisterRange &r);
+  const ShaderVariable *GetRegisterVariable(const DebugVariableReference &r);
+  const ShaderVariable *GetRegisterVariable(VariableCategory category, int index, int member);
 
   void ensureLineScrolled(ScintillaEdit *s, int i);
 

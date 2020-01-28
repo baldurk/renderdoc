@@ -42,7 +42,7 @@ namespace DXBC
 {
 static const uint32_t FOURCC_SPDB = MAKE_FOURCC('S', 'P', 'D', 'B');
 
-SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
+SPDBChunk::SPDBChunk(void *chunk)
 {
   m_HasDebugInfo = false;
 
@@ -1116,74 +1116,21 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
         DEFRANGESYMHLSL *defrange = (DEFRANGESYMHLSL *)sym;
 
         LocalMapping mapping;
-        RegisterRange &range = mapping.var.registers[0];
-
-        bool indexable = false;
-        const char *regtype = "";
-        const char *regprefix = "?";
 
         // CV_HLSLREG_e == OperandType
 
-        switch((DXBCBytecode::OperandType)defrange->regType)
-        {
-          case DXBCBytecode::TYPE_TEMP:
-            range.type = RegisterType::Temporary;
-            regtype = "temp";
-            regprefix = "r";
-            break;
-          case DXBCBytecode::TYPE_INPUT:
-          case DXBCBytecode::TYPE_INPUT_PRIMITIVEID:
-          case DXBCBytecode::TYPE_INPUT_FORK_INSTANCE_ID:
-          case DXBCBytecode::TYPE_INPUT_JOIN_INSTANCE_ID:
-          case DXBCBytecode::TYPE_INPUT_CONTROL_POINT:
-          case DXBCBytecode::TYPE_INPUT_PATCH_CONSTANT:
-          case DXBCBytecode::TYPE_INPUT_DOMAIN_POINT:
-          case DXBCBytecode::TYPE_INPUT_THREAD_ID:
-          case DXBCBytecode::TYPE_INPUT_THREAD_GROUP_ID:
-          case DXBCBytecode::TYPE_INPUT_THREAD_ID_IN_GROUP:
-          case DXBCBytecode::TYPE_INPUT_COVERAGE_MASK:
-          case DXBCBytecode::TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
-          case DXBCBytecode::TYPE_INPUT_GS_INSTANCE_ID:
-            range.type = RegisterType::Input;
-            regtype = "input";
-            regprefix = "v";
-            break;
-          case DXBCBytecode::TYPE_OUTPUT:
-          case DXBCBytecode::TYPE_OUTPUT_DEPTH:
-          case DXBCBytecode::TYPE_OUTPUT_DEPTH_LESS_EQUAL:
-          case DXBCBytecode::TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
-          case DXBCBytecode::TYPE_OUTPUT_STENCIL_REF:
-          case DXBCBytecode::TYPE_OUTPUT_COVERAGE_MASK:
-            range.type = RegisterType::Output;
-            regtype = "output";
-            regprefix = "o";
-            break;
-          case DXBCBytecode::TYPE_INDEXABLE_TEMP:
-            range.type = RegisterType::IndexedTemporary;
-            regtype = "indexable";
-            regprefix = "x";
-            indexable = true;
-            break;
-          default: break;
-        }
+        mapping.regType = (DXBCBytecode::OperandType)defrange->regType;
 
         // this is a virtual register, not stored
         if((DXBCBytecode::OperandType)defrange->regType == DXBCBytecode::TYPE_STREAM)
           continue;
 
-        const char *space = "";
-        switch((CV_HLSLMemorySpace_e)defrange->memorySpace)
-        {
-          case CV_HLSL_MEMSPACE_DATA: space = "data"; break;
-          case CV_HLSL_MEMSPACE_SAMPLER: space = "sampler"; break;
-          case CV_HLSL_MEMSPACE_RESOURCE: space = "resource"; break;
-          case CV_HLSL_MEMSPACE_RWRESOURCE: space = "rwresource"; break;
-          default: break;
-        }
+        const char *spaces[16] = {"data", "sampler", "resource", "rwresource"};
 
         SPDBLOG("S_DEFRANGE_HLSL: %u->%u bytes in parent: %s %s (dim %d) %s",
-                defrange->offsetParent, defrange->offsetParent + defrange->sizeInParent, regtype,
-                space, defrange->regIndices, defrange->spilledUdtMember ? "spilled" : "");
+                defrange->offsetParent, defrange->offsetParent + defrange->sizeInParent,
+                ToStr(mapping.regType).c_str(), spaces[defrange->memorySpace], defrange->regIndices,
+                defrange->spilledUdtMember ? "spilled" : "");
 
         if(defrange->regIndices > 1)
         {
@@ -1195,100 +1142,19 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
 
         char regcomps[] = "xyzw";
 
-        uint32_t regindex = indexable ? regoffset : regoffset / 16;
-        uint32_t regfirstcomp = indexable ? 0 : (regoffset % 16) / 4;
-        uint32_t regnumcomps = indexable ? 4 : defrange->sizeInParent / 4;
+        const bool indexable = (mapping.regType == DXBCBytecode::TYPE_INDEXABLE_TEMP);
 
-        bool builtinoutput = false;
-        mapping.var.builtin = ShaderBuiltin::Undefined;
-        switch((DXBCBytecode::OperandType)defrange->regType)
-        {
-          case DXBCBytecode::TYPE_OUTPUT_DEPTH:
-            builtinoutput = true;
-            mapping.var.builtin = ShaderBuiltin::DepthOutput;
-            break;
-          case DXBCBytecode::TYPE_OUTPUT_DEPTH_LESS_EQUAL:
-            builtinoutput = true;
-            mapping.var.builtin = ShaderBuiltin::DepthOutputLessEqual;
-            break;
-          case DXBCBytecode::TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
-            builtinoutput = true;
-            mapping.var.builtin = ShaderBuiltin::DepthOutputGreaterEqual;
-            break;
-          case DXBCBytecode::TYPE_OUTPUT_STENCIL_REF:
-            builtinoutput = true;
-            mapping.var.builtin = ShaderBuiltin::StencilReference;
-            break;
-          case DXBCBytecode::TYPE_OUTPUT_COVERAGE_MASK:
-            builtinoutput = true;
-            mapping.var.builtin = ShaderBuiltin::MSAACoverage;
-            break;
-          case DXBCBytecode::TYPE_INPUT_PRIMITIVEID:
-            mapping.var.builtin = ShaderBuiltin::PrimitiveIndex;
-            break;
-          case DXBCBytecode::TYPE_INPUT_COVERAGE_MASK:
-            mapping.var.builtin = ShaderBuiltin::MSAACoverage;
-            break;
-          case DXBCBytecode::TYPE_INPUT_THREAD_ID:
-            mapping.var.builtin = ShaderBuiltin::DispatchThreadIndex;
-            break;
-          case DXBCBytecode::TYPE_INPUT_THREAD_GROUP_ID:
-            mapping.var.builtin = ShaderBuiltin::GroupIndex;
-            break;
-          case DXBCBytecode::TYPE_INPUT_THREAD_ID_IN_GROUP:
-            mapping.var.builtin = ShaderBuiltin::GroupThreadIndex;
-            break;
-          case DXBCBytecode::TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
-            mapping.var.builtin = ShaderBuiltin::GroupFlatIndex;
-            break;
-          case DXBCBytecode::TYPE_INPUT_GS_INSTANCE_ID:
-            mapping.var.builtin = ShaderBuiltin::GSInstanceIndex;
-            break;
-          default: break;
-        }
-
-        if(mapping.var.builtin != ShaderBuiltin::Undefined)
-        {
-          bool found = false;
-
-          if(builtinoutput)
-          {
-            for(size_t i = 0; i < reflection->OutputSig.size(); i++)
-            {
-              if(reflection->OutputSig[i].systemValue == mapping.var.builtin)
-              {
-                regindex = (uint32_t)i;
-                found = true;
-                break;
-              }
-            }
-          }
-          else
-          {
-            for(size_t i = 0; i < reflection->InputSig.size(); i++)
-            {
-              if(reflection->InputSig[i].systemValue == mapping.var.builtin)
-              {
-                regindex = (uint32_t)i;
-                found = true;
-                break;
-              }
-            }
-          }
-
-          // if not found in the signatures, then it's a fixed-function input like threadid - it
-          // will be matched by builtin
-          if(!found)
-            regindex = ~0U;
-        }
+        mapping.regIndex = indexable ? regoffset : regoffset / 16;
+        mapping.regFirstComp = indexable ? 0 : (regoffset % 16) / 4;
+        mapping.numComps = indexable ? 4 : defrange->sizeInParent / 4;
 
         char *regswizzle = regcomps;
-        regswizzle += regfirstcomp;
-        regswizzle[regnumcomps] = 0;
+        regswizzle += mapping.regFirstComp;
+        regswizzle[mapping.numComps] = 0;
 
-        SPDBLOG("Stored in %s%u.%s", regprefix, regindex, regswizzle);
+        SPDBLOG("Stored in %s %u.%s", ToStr(mapping.regType).c_str(), mapping.regIndex, regswizzle);
 
-        mapping.var.localName = localName;
+        mapping.var.name = localName;
 
         uint32_t varOffset = defrange->offsetParent;
         uint32_t varLen = defrange->sizeInParent;
@@ -1327,7 +1193,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
                      memberOffset + memberLen, varOffset, varOffset + varLen);
             }
 
-            mapping.var.localName = rdcstr(mapping.var.localName) + "." + mem.name;
+            mapping.var.name += "." + mem.name;
 
             // subtract off the offset of this member so we're now relative to it - since it might
             // be a struct itself and we need to recurse.
@@ -1344,22 +1210,22 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
           {
             RDCERR("No member of %s corresponds to variable range [%u,%u]", vartype->name.c_str(),
                    varOffset, varOffset + varLen);
-            mapping.var.localName = rdcstr(mapping.var.localName) + ".__unknown__";
+            mapping.var.name += ".__unknown__";
             break;
           }
         }
 
         mapping.var.type = vartype->baseType;
         mapping.var.rows = 1;
-        mapping.var.columns = vartype->vecSize;
+        mapping.var.columns = uint8_t(vartype->vecSize);
 
         // if it's an array or matrix, figure out the index
         if(vartype->matArrayStride)
         {
           uint32_t idx = varOffset / vartype->matArrayStride;
 
-          mapping.var.localName = StringFormat::Fmt("%s[%u]", mapping.var.localName.c_str(), idx);
-          mapping.var.rows = RDCMAX(
+          mapping.var.name += StringFormat::Fmt("[%u]", idx);
+          mapping.var.rows = (uint8_t)RDCMAX(
               1U, (vartype->byteSize + (vartype->matArrayStride - 1)) / vartype->matArrayStride);
 
           varOffset -= vartype->matArrayStride * idx;
@@ -1373,10 +1239,7 @@ SPDBChunk::SPDBChunk(Reflection *reflection, void *chunk)
 
         RDCASSERT(mapping.var.rows <= 4 && mapping.var.columns <= 4);
 
-        range.index = uint16_t(regindex & 0xffff);
-        mapping.regFirstComp = regfirstcomp;
         mapping.varFirstComp = (varOffset % 16) / 4;
-        mapping.numComps = regnumcomps;
 
         SPDBLOG("Valid from %x to %x", defrange->range.offStart,
                 defrange->range.offStart + defrange->range.cbRange);
@@ -1765,8 +1628,8 @@ bool SPDBChunk::HasLocals() const
   return true;
 }
 
-void SPDBChunk::GetLocals(size_t instruction, uintptr_t offset,
-                          rdcarray<LocalVariableMapping> &locals) const
+void SPDBChunk::GetLocals(DXBCBytecode::Program *program, size_t instruction, uintptr_t offset,
+                          rdcarray<SourceVariableMapping> &locals) const
 {
   locals.clear();
 
@@ -1794,6 +1657,25 @@ void SPDBChunk::GetLocals(size_t instruction, uintptr_t offset,
 
     bool added = false;
 
+    // set up the register range for this mapping
+    DebugVariableReference range;
+
+    // it's possible to declare coverage input but then not use it. We then get a local that
+    // doesn't map to any register because the register declaration is stripped.
+    // this doesn't happen on output because outputs don't get stripped in the same way.
+    if(it->regType == DXBCBytecode::TYPE_INPUT_COVERAGE_MASK && !program->HasCoverageInput())
+      continue;
+
+    range.name = program->GetRegisterName(it->regType, it->regIndex);
+    range.component = it->regFirstComp;
+
+    if(IsInput(it->regType))
+      range.type = DebugVariableType::Input;
+    else if(it->regType == DXBCBytecode::TYPE_CONSTANT_BUFFER)
+      range.type = DebugVariableType::Constant;
+    else
+      range.type = DebugVariableType::Variable;
+
     // we apply each matching local over the top. Where there is an overlap (e.g. two variables with
     // the same name) we take the last mapping as authoratitive. This is a good solution for the
     // case where one function with a parameter/variable name calls an inner function with the same
@@ -1801,22 +1683,18 @@ void SPDBChunk::GetLocals(size_t instruction, uintptr_t offset,
     // use it in preference.
 
     // check if we already have a mapping for this variable
-    for(LocalVariableMapping &a : locals)
+    for(SourceVariableMapping &a : locals)
     {
-      const LocalVariableMapping &b = it->var;
+      const ShaderVariableDescriptor &b = it->var;
 
-      if(a.localName == b.localName)
+      if(a.name == b.name)
       {
-        RegisterRange range = b.registers[0];
-
+        a.variables.resize(RDCMAX(a.variables.size(), (size_t)it->varFirstComp + it->numComps));
         for(uint32_t i = 0; i < it->numComps; i++)
         {
-          a.registers[it->varFirstComp + i].type = b.registers[0].type;
-          a.registers[it->varFirstComp + i].index = b.registers[0].index;
-          a.registers[it->varFirstComp + i].component = uint16_t(it->regFirstComp + i);
+          a.variables[it->varFirstComp + i] = range;
+          a.variables[it->varFirstComp + i].component += (uint8_t)i;
         }
-
-        a.regCount = RDCMAX(a.regCount, it->varFirstComp + it->numComps);
 
         // we've processed this, no need to add a new entry
         added = true;
@@ -1826,29 +1704,30 @@ void SPDBChunk::GetLocals(size_t instruction, uintptr_t offset,
 
     if(!added)
     {
-      locals.push_back(it->var);
-      LocalVariableMapping &a = locals.back();
+      SourceVariableMapping a;
 
-      // the register range is stored in [0] but we don't want to actually push that, so make it
-      // undefined and grab it locally
-      RegisterRange range;
-      std::swap(a.registers[0], range);
+      a.name = it->var.name;
+      a.type = it->var.type;
+      a.rows = it->var.rows;
+      a.columns = it->var.columns;
+      a.elements = it->var.elements;
+
+      a.variables.resize(it->varFirstComp + it->numComps);
 
       for(uint32_t i = 0; i < it->numComps; i++)
       {
-        a.registers[it->varFirstComp + i].type = range.type;
-        a.registers[it->varFirstComp + i].index = range.index;
-        a.registers[it->varFirstComp + i].component = uint16_t(it->regFirstComp + i);
+        a.variables[it->varFirstComp + i] = range;
+        a.variables[it->varFirstComp + i].component += (uint8_t)i;
       }
 
-      a.regCount = RDCMAX(it->var.columns, it->varFirstComp + it->numComps);
+      locals.push_back(a);
     }
   }
 }
 
-IDebugInfo *MakeSPDBChunk(Reflection *reflection, void *data)
+IDebugInfo *MakeSPDBChunk(void *data)
 {
-  return new SPDBChunk(reflection, data);
+  return new SPDBChunk(data);
 }
 
 };    // namespace DXBC

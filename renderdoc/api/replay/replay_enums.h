@@ -106,38 +106,33 @@ DECLARE_REFLECTION_ENUM(SectionType);
 
 // replay_shader.h
 
-DOCUMENT(R"(Represents the type of register a local variable maps to.
+DOCUMENT(R"(Represents the category of debugging variable that a source variable maps to.
 
 .. data:: Undefined
 
-  No defined register.
+  Undefined type.
 
 .. data:: Input
 
-  An input register.
+  A constant input value, stored globally.
 
-.. data:: Temporary
+.. data:: Constant
 
-  A normal temporary register.
+  A constant buffer value, stored globally.
 
-.. data:: IndexedTemporary
+.. data:: Variable
 
-  An indexed temporary register.
-
-.. data:: Output
-
-  An output register.
+  A mutable variable, stored per state.
 )");
-enum class RegisterType : uint32_t
+enum class DebugVariableType : uint8_t
 {
   Undefined,
   Input,
-  Temporary,
-  IndexedTemporary,
-  Output,
+  Constant,
+  Variable,
 };
 
-DECLARE_REFLECTION_ENUM(RegisterType);
+DECLARE_REFLECTION_ENUM(DebugVariableType);
 
 DOCUMENT(R"(Represents the base type of a shader variable in debugging or constant blocks.
 

@@ -447,6 +447,135 @@ uint32_t Program::GetDisassemblyLine(uint32_t instruction) const
   return m_Instructions[RDCMIN(m_Instructions.size() - 1, (size_t)instruction)].line;
 }
 
+void Program::SetupRegisterFile(rdcarray<ShaderVariable> &registers) const
+{
+  size_t numRegisters = m_NumTemps + m_IndexTempSizes.size() + m_NumOutputs;
+
+  if(m_OutputDepth)
+    numRegisters++;
+  if(m_OutputStencil)
+    numRegisters++;
+  if(m_OutputCoverage)
+    numRegisters++;
+
+  registers.reserve(numRegisters);
+
+  for(uint32_t i = 0; i < m_NumTemps; i++)
+    registers.push_back(ShaderVariable(GetRegisterName(TYPE_TEMP, i), 0l, 0l, 0l, 0l));
+
+  for(size_t i = 0; i < m_IndexTempSizes.size(); i++)
+  {
+    rdcstr name = GetRegisterName(TYPE_INDEXABLE_TEMP, (uint32_t)i);
+    registers.push_back(ShaderVariable(name, 0l, 0l, 0l, 0l));
+    registers.back().members.resize(m_IndexTempSizes[i]);
+    for(uint32_t t = 0; t < m_IndexTempSizes[i]; t++)
+    {
+      registers.back().members[t] =
+          ShaderVariable(StringFormat::Fmt("%s[%u]", name.c_str(), t), 0l, 0l, 0l, 0l);
+    }
+  }
+
+  for(uint32_t i = 0; i < m_NumOutputs; i++)
+    registers.push_back(ShaderVariable("", 0l, 0l, 0l, 0l));
+
+  // this could be oDepthGE or oDepthLE, that will be fixed up when the external code sets up the
+  // names etc of all outputs with reflection info
+  if(m_OutputDepth)
+    registers.push_back(ShaderVariable("", 0l, 0l, 0l, 0l));
+  if(m_OutputStencil)
+    registers.push_back(ShaderVariable("", 0l, 0l, 0l, 0l));
+  if(m_OutputCoverage)
+    registers.push_back(ShaderVariable("", 0l, 0l, 0l, 0l));
+}
+
+uint32_t Program::GetRegisterIndex(OperandType type, uint32_t index) const
+{
+  if(type == TYPE_TEMP)
+  {
+    RDCASSERT(index < m_NumTemps, index, m_NumTemps);
+    return index;
+  }
+  else if(type == TYPE_INDEXABLE_TEMP)
+  {
+    RDCASSERT(index < m_IndexTempSizes.size(), index, m_IndexTempSizes.size());
+    return m_NumTemps + index;
+  }
+  else if(type == TYPE_OUTPUT)
+  {
+    RDCASSERT(index < m_NumOutputs, index, m_NumOutputs);
+    return m_NumTemps + (uint32_t)m_IndexTempSizes.size() + index;
+  }
+  else if(type == TYPE_OUTPUT_DEPTH)
+  {
+    RDCASSERT(m_OutputDepth);
+    return m_NumTemps + (uint32_t)m_IndexTempSizes.size() + m_NumOutputs;
+  }
+  else if(type == TYPE_OUTPUT_STENCIL_REF)
+  {
+    RDCASSERT(m_OutputStencil);
+    return m_NumTemps + (uint32_t)m_IndexTempSizes.size() + m_NumOutputs + (m_OutputDepth ? 1 : 0);
+  }
+  else if(type == TYPE_OUTPUT_COVERAGE_MASK)
+  {
+    RDCASSERT(m_OutputCoverage);
+    return m_NumTemps + (uint32_t)m_IndexTempSizes.size() + m_NumOutputs + (m_OutputDepth ? 1 : 0) +
+           (m_OutputStencil ? 1 : 0);
+  }
+
+  RDCERR("Unexpected type for register index: %s", ToStr(type).c_str());
+
+  return ~0U;
+}
+
+rdcstr Program::GetRegisterName(OperandType oper, uint32_t index) const
+{
+  if(oper == TYPE_TEMP)
+    return StringFormat::Fmt("r%u", index);
+  else if(oper == TYPE_INDEXABLE_TEMP)
+    return StringFormat::Fmt("x%u", index);
+  else if(oper == TYPE_INPUT)
+    return StringFormat::Fmt("v%u", index);
+  else if(oper == TYPE_CONSTANT_BUFFER)
+    return StringFormat::Fmt("%s%u", IsShaderModel51() ? "CB" : "cb", index);
+  else if(oper == TYPE_OUTPUT)
+    return StringFormat::Fmt("o%u", index);
+  else if(oper == TYPE_OUTPUT_DEPTH)
+    return "oDepth";
+  else if(oper == TYPE_OUTPUT_DEPTH_LESS_EQUAL)
+    return "oDepthLessEqual";
+  else if(oper == TYPE_OUTPUT_DEPTH_GREATER_EQUAL)
+    return "oDepthGreaterEqual";
+  else if(oper == TYPE_OUTPUT_COVERAGE_MASK)
+    return "oMask";
+  else if(oper == TYPE_OUTPUT_STENCIL_REF)
+    return "oStencilRef";
+  else if(oper == TYPE_OUTPUT_CONTROL_POINT_ID)
+    return "vOutputControlPointID";
+  else if(oper == TYPE_INPUT_DOMAIN_POINT)
+    return "vDomain";
+  else if(oper == TYPE_INPUT_PRIMITIVEID)
+    return "vPrim";
+  else if(oper == TYPE_INPUT_COVERAGE_MASK)
+    return "vCoverageMask";
+  else if(oper == TYPE_INPUT_GS_INSTANCE_ID)
+    return "vGSInstanceID";
+  else if(oper == TYPE_INPUT_THREAD_ID)
+    return "vThreadID";
+  else if(oper == TYPE_INPUT_THREAD_GROUP_ID)
+    return "vThreadGroupID";
+  else if(oper == TYPE_INPUT_THREAD_ID_IN_GROUP)
+    return "vThreadIDInGroup";
+  else if(oper == TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED)
+    return "vThreadIDInGroupFlattened";
+  else if(oper == TYPE_INPUT_FORK_INSTANCE_ID)
+    return "vForkInstanceID";
+  else if(oper == TYPE_INPUT_JOIN_INSTANCE_ID)
+    return "vJoinInstanceID";
+
+  RDCERR("Unknown register requiring name: %s", ToStr(oper).c_str());
+  return "??";
+}
+
 // see http://msdn.microsoft.com/en-us/library/windows/desktop/bb219840(v=vs.85).aspx
 // for details of these opcodes
 size_t NumOperands(OpcodeType op)

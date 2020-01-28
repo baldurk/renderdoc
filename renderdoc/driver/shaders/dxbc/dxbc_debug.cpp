@@ -1079,53 +1079,6 @@ ShaderVariable sub(const ShaderVariable &a, const ShaderVariable &b, const VarTy
   return add(a, neg(b, type), type);
 }
 
-void State::Init()
-{
-  rdcarray<uint32_t> indexTempSizes;
-
-  for(size_t i = 0; i < program->GetNumDeclarations(); i++)
-  {
-    const DXBCBytecode::Declaration &decl = program->GetDeclaration(i);
-
-    if(decl.declaration == OPCODE_DCL_TEMPS)
-    {
-      registers.reserve(decl.numTemps);
-
-      for(uint32_t t = 0; t < decl.numTemps; t++)
-      {
-        registers.push_back(ShaderVariable(StringFormat::Fmt("r%u", t), 0l, 0l, 0l, 0l));
-      }
-    }
-    if(decl.declaration == OPCODE_DCL_INDEXABLE_TEMP)
-    {
-      uint32_t reg = decl.tempReg;
-      uint32_t size = decl.numTemps;
-      if(reg >= indexTempSizes.size())
-        indexTempSizes.resize(reg + 1);
-
-      indexTempSizes[reg] = size;
-    }
-  }
-
-  if(indexTempSizes.size())
-  {
-    indexableTemps.resize(indexTempSizes.size());
-
-    for(size_t i = 0; i < indexTempSizes.size(); i++)
-    {
-      if(indexTempSizes[i] > 0)
-      {
-        indexableTemps[i].members.resize(indexTempSizes[i]);
-        for(uint32_t t = 0; t < indexTempSizes[i]; t++)
-        {
-          indexableTemps[i].members[t] =
-              ShaderVariable(StringFormat::Fmt("x%zu[%u]", i, t), 0l, 0l, 0l, 0l);
-        }
-      }
-    }
-  }
-}
-
 bool State::Finished() const
 {
   return program && (done || nextInstruction >= (int)program->GetNumInstructions());
@@ -1180,44 +1133,27 @@ void State::SetDst(const Operand &dstoper, const Operation &op, const ShaderVari
     }
   }
 
-  RegisterRange range;
-  range.index = uint16_t(indices[0]);
+  DebugVariableReference range;
+  if(v)
+    range.name = v->name;
 
   switch(dstoper.type)
   {
     case TYPE_TEMP:
-    {
-      range.type = RegisterType::Temporary;
-      RDCASSERT(indices[0] < (uint32_t)registers.size());
-      if(indices[0] < (uint32_t)registers.size())
-        v = &registers[(size_t)indices[0]];
-      break;
-    }
     case TYPE_INDEXABLE_TEMP:
-    {
-      range.type = RegisterType::IndexedTemporary;
-      RDCASSERT(dstoper.indices.size() == 2);
-
-      if(dstoper.indices.size() == 2)
-      {
-        RDCASSERT(indices[0] < (uint32_t)indexableTemps.size());
-        if(indices[0] < (uint32_t)indexableTemps.size())
-        {
-          RDCASSERT(indices[1] < (uint32_t)indexableTemps[indices[0]].members.size());
-          if(indices[1] < (uint32_t)indexableTemps[indices[0]].members.size())
-          {
-            v = &indexableTemps[indices[0]].members[indices[1]];
-          }
-        }
-      }
-      break;
-    }
     case TYPE_OUTPUT:
+    case TYPE_OUTPUT_DEPTH:
+    case TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+    case TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+    case TYPE_OUTPUT_STENCIL_REF:
+    case TYPE_OUTPUT_COVERAGE_MASK:
     {
-      range.type = RegisterType::Output;
-      RDCASSERT(indices[0] < (uint32_t)outputs.size());
-      if(indices[0] < (uint32_t)outputs.size())
-        v = &outputs[(size_t)indices[0]];
+      uint32_t idx = program->GetRegisterIndex(dstoper.type, indices[0]);
+
+      range.type = DebugVariableType::Variable;
+
+      if(idx < variables.size())
+        v = &variables[idx];
       break;
     }
     case TYPE_INPUT:
@@ -1231,143 +1167,92 @@ void State::SetDst(const Operand &dstoper, const Operation &op, const ShaderVari
     }
     case TYPE_NULL:
     {
-      // nothing to do!
+      // nothing to do! silently return here
       return;
-    }
-    case TYPE_OUTPUT_DEPTH:
-    case TYPE_OUTPUT_DEPTH_LESS_EQUAL:
-    case TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
-    case TYPE_OUTPUT_STENCIL_REF:
-    case TYPE_OUTPUT_COVERAGE_MASK:
-    {
-      // handle all semantic outputs together
-      ShaderBuiltin builtin = ShaderBuiltin::Count;
-      switch(dstoper.type)
-      {
-        case TYPE_OUTPUT_DEPTH: builtin = ShaderBuiltin::DepthOutput; break;
-        case TYPE_OUTPUT_DEPTH_LESS_EQUAL: builtin = ShaderBuiltin::DepthOutputLessEqual; break;
-        case TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
-          builtin = ShaderBuiltin::DepthOutputGreaterEqual;
-          break;
-        case TYPE_OUTPUT_STENCIL_REF: builtin = ShaderBuiltin::StencilReference; break;
-        case TYPE_OUTPUT_COVERAGE_MASK: builtin = ShaderBuiltin::MSAACoverage; break;
-        default: RDCERR("Invalid dest operand!"); break;
-      }
-
-      for(size_t i = 0; i < reflection->OutputSig.size(); i++)
-      {
-        if(reflection->OutputSig[i].systemValue == builtin)
-        {
-          v = &outputs[i];
-          break;
-        }
-      }
-
-      if(!v)
-      {
-        RDCERR("Couldn't find type %d by semantic matching, falling back to string match",
-               dstoper.type);
-
-        rdcstr name = dstoper.toString(reflection, ToString::ShowSwizzle);
-        for(size_t i = 0; i < outputs.size(); i++)
-        {
-          if(outputs[i].name == name)
-          {
-            v = &outputs[i];
-            break;
-          }
-        }
-
-        if(v)
-          break;
-      }
-
-      break;
     }
     default:
     {
-      RDCERR("Currently unsupported destination operand type %d!", dstoper.type);
-
-      rdcstr name = dstoper.toString(reflection, ToString::ShowSwizzle);
-      for(size_t i = 0; i < outputs.size(); i++)
-      {
-        if(outputs[i].name == name)
-        {
-          v = &outputs[i];
-          break;
-        }
-      }
-
-      if(v)
-        break;
-
+      RDCERR("Currently unsupported destination operand type!", dstoper.type);
       break;
     }
   }
 
-  RDCASSERT(v);
-
-  if(v)
+  if(dstoper.type == TYPE_INDEXABLE_TEMP)
   {
-    ShaderVariable right = val;
-
-    RDCASSERT(v->rows == 1 && right.rows == 1);
-    RDCASSERT(right.columns <= 4);
-
-    bool flushDenorm = OperationFlushing(op.operation);
-
-    // behaviour for scalar and vector masks are slightly different.
-    // in a scalar operation like r0.z = r4.x + r6.y
-    // then when doing the set to dest we must write into the .z
-    // from the only component - x - since the result is scalar.
-    // in a vector operation like r0.zw = r4.xxxy + r6.yyyz
-    // then we must write from matching component to matching component
-
-    if(op.saturate)
-      right = sat(right, OperationType(op.operation));
-
-    if(dstoper.comps[0] != 0xff && dstoper.comps[1] == 0xff && dstoper.comps[2] == 0xff &&
-       dstoper.comps[3] == 0xff)
+    RDCASSERTEQUAL(dstoper.indices.size(), 2);
+    if(dstoper.indices.size() == 2)
     {
-      RDCASSERT(dstoper.comps[0] != 0xff);
-
-      bool changed = AssignValue(*v, dstoper.comps[0], right, 0, flushDenorm);
-
-      if(changed && range.type != RegisterType::Undefined)
-      {
-        range.component = dstoper.comps[0];
-        modified.push_back(range);
-      }
+      RDCASSERT(indices[1] < (uint32_t)v->members.size(), indices[1], v->members.size());
+      if(indices[1] < (uint32_t)v->members.size())
+        v = &v->members[indices[1]];
     }
-    else
+  }
+
+  if(!v)
+  {
+    RDCERR("Couldn't get output register %s %u, write will be lost", ToStr(dstoper.type).c_str(),
+           indices[0]);
+    return;
+  }
+
+  ShaderVariable right = val;
+
+  RDCASSERT(v->rows == 1 && right.rows == 1);
+  RDCASSERT(right.columns <= 4);
+
+  bool flushDenorm = OperationFlushing(op.operation);
+
+  // behaviour for scalar and vector masks are slightly different.
+  // in a scalar operation like r0.z = r4.x + r6.y
+  // then when doing the set to dest we must write into the .z
+  // from the only component - x - since the result is scalar.
+  // in a vector operation like r0.zw = r4.xxxy + r6.yyyz
+  // then we must write from matching component to matching component
+
+  if(op.saturate)
+    right = sat(right, OperationType(op.operation));
+
+  if(dstoper.comps[0] != 0xff && dstoper.comps[1] == 0xff && dstoper.comps[2] == 0xff &&
+     dstoper.comps[3] == 0xff)
+  {
+    RDCASSERT(dstoper.comps[0] != 0xff);
+
+    bool changed = AssignValue(*v, dstoper.comps[0], right, 0, flushDenorm);
+
+    if(changed && !range.name.empty())
     {
-      int compsWritten = 0;
-      for(size_t i = 0; i < 4; i++)
+      range.component = dstoper.comps[0];
+      modified.push_back(range);
+    }
+  }
+  else
+  {
+    int compsWritten = 0;
+    for(size_t i = 0; i < 4; i++)
+    {
+      // if comps value is 0xff, we should not write to this component
+      if(dstoper.comps[i] != 0xff)
       {
-        // if comps value is 0xff, we should not write to this component
-        if(dstoper.comps[i] != 0xff)
+        RDCASSERT(dstoper.comps[i] < v->columns);
+        bool changed = AssignValue(*v, dstoper.comps[i], right, dstoper.comps[i], flushDenorm);
+        compsWritten++;
+
+        if(changed && !range.name.empty())
         {
-          RDCASSERT(dstoper.comps[i] < v->columns);
-          bool changed = AssignValue(*v, dstoper.comps[i], right, dstoper.comps[i], flushDenorm);
-          compsWritten++;
-
-          if(changed && range.type != RegisterType::Undefined)
-          {
-            range.component = dstoper.comps[i];
-            modified.push_back(range);
-          }
-        }
-      }
-
-      if(compsWritten == 0)
-      {
-        bool changed = AssignValue(*v, 0, right, 0, flushDenorm);
-
-        if(changed && range.type != RegisterType::Undefined)
-        {
-          range.component = 0;
+          range.component = dstoper.comps[i];
           modified.push_back(range);
         }
+      }
+    }
+
+    if(compsWritten == 0)
+    {
+      bool changed = AssignValue(*v, 0, right, 0, flushDenorm);
+
+      if(changed && !range.name.empty())
+      {
+        range.component = 0;
+        modified.push_back(range);
       }
     }
   }
@@ -1452,33 +1337,37 @@ ShaderVariable State::GetSrc(const Operand &oper, const Operation &op, bool allo
   switch(oper.type)
   {
     case TYPE_TEMP:
-    {
-      // we assume we never write to an uninitialised register
-      RDCASSERT(indices[0] < (uint32_t)registers.size());
-
-      if(indices[0] < (uint32_t)registers.size())
-        v = s = registers[indices[0]];
-      else
-        v = s = ShaderVariable("", indices[0], indices[0], indices[0], indices[0]);
-
-      break;
-    }
     case TYPE_INDEXABLE_TEMP:
+    case TYPE_OUTPUT:
     {
-      RDCASSERT(oper.indices.size() == 2);
+      uint32_t idx = program->GetRegisterIndex(oper.type, indices[0]);
 
-      if(oper.indices.size() == 2)
+      if(idx < variables.size())
       {
-        RDCASSERT(indices[0] < (uint32_t)indexableTemps.size());
-        if(indices[0] < (uint32_t)indexableTemps.size())
+        if(oper.type == TYPE_INDEXABLE_TEMP)
         {
-          RDCASSERT(indices[1] < (uint32_t)indexableTemps[indices[0]].members.size());
-          if(indices[1] < (uint32_t)indexableTemps[indices[0]].members.size())
+          RDCASSERTEQUAL(oper.indices.size(), 2);
+          RDCASSERT(indices[1] < variables[idx].members.size(), indices[1],
+                    variables[idx].members.size());
+          if(oper.indices.size() == 2 && indices[1] < variables[idx].members.size())
           {
-            v = s = indexableTemps[indices[0]].members[indices[1]];
+            v = s = variables[idx].members[indices[1]];
+          }
+          else
+          {
+            v = s = ShaderVariable("", indices[0], indices[0], indices[0], indices[0]);
           }
         }
+        else
+        {
+          v = s = variables[idx];
+        }
       }
+      else
+      {
+        v = s = ShaderVariable("", indices[0], indices[0], indices[0], indices[0]);
+      }
+
       break;
     }
     case TYPE_INPUT:
@@ -1487,17 +1376,6 @@ ShaderVariable State::GetSrc(const Operand &oper, const Operation &op, bool allo
 
       if(indices[0] < (uint32_t)trace->inputs.size())
         v = s = trace->inputs[indices[0]];
-      else
-        v = s = ShaderVariable("", indices[0], indices[0], indices[0], indices[0]);
-
-      break;
-    }
-    case TYPE_OUTPUT:
-    {
-      RDCASSERT(indices[0] < (uint32_t)outputs.size());
-
-      if(indices[0] < (uint32_t)outputs.size())
-        v = s = outputs[indices[0]];
       else
         v = s = ShaderVariable("", indices[0], indices[0], indices[0], indices[0]);
 
@@ -4152,38 +4030,26 @@ void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebu
 {
   initialState = ShaderDebug::State(quadIdx, &trace, dxbc->GetReflection(), dxbc->GetDXBCByteCode());
 
-  size_t numInputs = dxbc->GetReflection()->InputSig.size();
-  size_t numOutputs = dxbc->GetReflection()->OutputSig.size();
+  dxbc->GetDXBCByteCode()->SetupRegisterFile(initialState.variables);
 
   int32_t maxReg = -1;
-  for(size_t i = 0; i < numInputs; i++)
-    maxReg = RDCMAX(maxReg, (int32_t)dxbc->GetReflection()->InputSig[i].regIndex);
-
-  bool inputCoverage = false;
-
-  // Check if the shader uses the coverage mask
-  for(size_t i = 0; i < dxbc->GetDXBCByteCode()->GetNumDeclarations(); i++)
+  for(const SigParameter &sig : dxbc->GetReflection()->InputSig)
   {
-    const Declaration &decl = dxbc->GetDXBCByteCode()->GetDeclaration(i);
-
-    if(decl.declaration == OPCODE_DCL_INPUT && decl.operand.type == TYPE_INPUT_COVERAGE_MASK)
-    {
-      inputCoverage = true;
-      break;
-    }
+    if(sig.regIndex != ~0U)
+      maxReg = RDCMAX(maxReg, (int32_t)sig.regIndex);
   }
+
+  const bool inputCoverage = dxbc->GetDXBCByteCode()->HasCoverageInput();
 
   // Add inputs to the shader trace
   if(maxReg >= 0 || inputCoverage)
   {
     trace.inputs.resize(maxReg + 1 + (inputCoverage ? 1 : 0));
-    for(size_t i = 0; i < numInputs; i++)
+    for(const SigParameter &sig : dxbc->GetReflection()->InputSig)
     {
-      const SigParameter &sig = dxbc->GetReflection()->InputSig[i];
-
       ShaderVariable v;
 
-      v.name = StringFormat::Fmt("v%d (%s)", sig.regIndex, sig.semanticIdxName.c_str());
+      v.name = dxbc->GetDXBCByteCode()->GetRegisterName(DXBCBytecode::TYPE_INPUT, sig.regIndex);
       v.rows = 1;
       v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
                                                      ? 3
@@ -4195,104 +4061,90 @@ void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebu
         v.type = VarType::UInt;
       else if(sig.compType == CompType::SInt)
         v.type = VarType::SInt;
-
-      if(trace.inputs[sig.regIndex].columns == 0)
-        trace.inputs[sig.regIndex] = v;
       else
-        trace.inputs[sig.regIndex].columns = RDCMAX(trace.inputs[sig.regIndex].columns, v.columns);
+        v.type = VarType::Float;
+
+      ShaderVariable &dst = trace.inputs[sig.regIndex];
+
+      // if the variable hasn't been initialised, just assign. If it has, we're in a situation where
+      // two input parameters are assigned to the same variable overlapping, so just update the
+      // number of columns to the max of both. The source mapping (either from debug info or our own
+      // below) will handle distinguishing better.
+      if(dst.name.empty())
+        dst = v;
+      else
+        dst.columns = RDCMAX(dst.columns, v.columns);
     }
 
     // Put the coverage mask at the end
     if(inputCoverage)
     {
-      trace.inputs[maxReg + 1] = ShaderVariable("vCoverage", 0U, 0U, 0U, 0U);
+      trace.inputs[maxReg + 1] = ShaderVariable(
+          dxbc->GetDXBCByteCode()->GetRegisterName(DXBCBytecode::TYPE_INPUT_COVERAGE_MASK, 0), 0U,
+          0U, 0U, 0U);
       trace.inputs[maxReg + 1].columns = 1;
     }
   }
 
-  // Add outputs to the shader state
-  uint32_t specialOutputs = 0;
-  maxReg = -1;
-  for(size_t i = 0; i < numOutputs; i++)
+  // Set up outputs in the shader state
+  for(const SigParameter &sig : dxbc->GetReflection()->OutputSig)
   {
-    if(dxbc->GetReflection()->OutputSig[i].regIndex == ~0U)
-      specialOutputs++;
+    DXBCBytecode::OperandType type = DXBCBytecode::TYPE_OUTPUT;
+
+    if(sig.systemValue == ShaderBuiltin::DepthOutput)
+      type = DXBCBytecode::TYPE_OUTPUT_DEPTH;
+    else if(sig.systemValue == ShaderBuiltin::DepthOutputLessEqual)
+      type = DXBCBytecode::TYPE_OUTPUT_DEPTH_LESS_EQUAL;
+    else if(sig.systemValue == ShaderBuiltin::DepthOutputGreaterEqual)
+      type = DXBCBytecode::TYPE_OUTPUT_DEPTH_GREATER_EQUAL;
+    else if(sig.systemValue == ShaderBuiltin::MSAACoverage)
+      type = DXBCBytecode::TYPE_OUTPUT_COVERAGE_MASK;
+    else if(sig.systemValue == ShaderBuiltin::StencilReference)
+      type = DXBCBytecode::TYPE_OUTPUT_STENCIL_REF;
+
+    if(type == DXBCBytecode::TYPE_OUTPUT && sig.regIndex == ~0U)
+    {
+      RDCERR("Unhandled output: %s (%s)", sig.semanticName.c_str(), ToStr(sig.systemValue).c_str());
+      continue;
+    }
+
+    uint32_t idx = dxbc->GetDXBCByteCode()->GetRegisterIndex(type, sig.regIndex);
+
+    if(idx >= initialState.variables.size())
+      continue;
+
+    ShaderVariable v;
+
+    v.name = dxbc->GetDXBCByteCode()->GetRegisterName(type, sig.regIndex);
+    v.rows = 1;
+    v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
+                                                   ? 3
+                                                   : sig.regChannelMask & 0x2
+                                                         ? 2
+                                                         : sig.regChannelMask & 0x1 ? 1 : 0;
+
+    if(sig.compType == CompType::UInt)
+      v.type = VarType::UInt;
+    else if(sig.compType == CompType::SInt)
+      v.type = VarType::SInt;
     else
-      maxReg = RDCMAX(maxReg, (int32_t)dxbc->GetReflection()->OutputSig[i].regIndex);
-  }
+      v.type = VarType::Float;
 
-  if(maxReg >= 0 || specialOutputs > 0)
-  {
-    initialState.outputs.resize(maxReg + 1 + specialOutputs);
-    for(size_t i = 0; i < numOutputs; i++)
-    {
-      const SigParameter &sig = dxbc->GetReflection()->OutputSig[i];
+    ShaderVariable &dst = initialState.variables[idx];
 
-      if(sig.regIndex == ~0U)
-        continue;
-
-      ShaderVariable v;
-
-      v.name = StringFormat::Fmt("o%d (%s)", sig.regIndex, sig.semanticIdxName.c_str());
-      v.rows = 1;
-      v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
-                                                     ? 3
-                                                     : sig.regChannelMask & 0x2
-                                                           ? 2
-                                                           : sig.regChannelMask & 0x1 ? 1 : 0;
-
-      if(initialState.outputs[sig.regIndex].columns == 0)
-        initialState.outputs[sig.regIndex] = v;
-      else
-        initialState.outputs[sig.regIndex].columns =
-            RDCMAX(initialState.outputs[sig.regIndex].columns, v.columns);
-    }
-
-    int32_t outIdx = maxReg + 1;
-
-    for(size_t i = 0; i < numOutputs; i++)
-    {
-      const SigParameter &sig = dxbc->GetReflection()->OutputSig[i];
-
-      if(sig.regIndex != ~0U)
-        continue;
-
-      ShaderVariable v;
-
-      if(sig.systemValue == ShaderBuiltin::OutputControlPointIndex)
-        v.name = "vOutputControlPointID";
-      else if(sig.systemValue == ShaderBuiltin::DepthOutput)
-        v.name = "oDepth";
-      else if(sig.systemValue == ShaderBuiltin::DepthOutputLessEqual)
-        v.name = "oDepthLessEqual";
-      else if(sig.systemValue == ShaderBuiltin::DepthOutputGreaterEqual)
-        v.name = "oDepthGreaterEqual";
-      else if(sig.systemValue == ShaderBuiltin::MSAACoverage)
-        v.name = "oMask";
-      else if(sig.systemValue == ShaderBuiltin::StencilReference)
-        v.name = "oStencilRef";
-      else
-      {
-        RDCERR("Unhandled output: %s (%d)", sig.semanticName.c_str(), sig.systemValue);
-        continue;
-      }
-
-      v.rows = 1;
-      v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
-                                                     ? 3
-                                                     : sig.regChannelMask & 0x2
-                                                           ? 2
-                                                           : sig.regChannelMask & 0x1 ? 1 : 0;
-
-      initialState.outputs[outIdx++] = v;
-    }
+    // if the variable hasn't been initialised, just assign. If it has, we're in a situation where
+    // two input parameters are assigned to the same variable overlapping, so just update the
+    // number of columns to the max of both. The source mapping (either from debug info or our own
+    // below) will handle distinguishing better.
+    if(dst.name.empty())
+      dst = v;
+    else
+      dst.columns = RDCMAX(dst.columns, v.columns);
   }
 
   // Set the number of constant buffers in the trace, but assignment happens later
   size_t numCBuffers = dxbc->GetReflection()->CBuffers.size();
   trace.constantBlocks.resize(numCBuffers);
-
-  initialState.Init();
 }
 
 void AddCBufferToDebugTrace(const DXBCBytecode::Program &program, ShaderDebugTrace &trace,
@@ -4322,9 +4174,6 @@ void AddCBufferToDebugTrace(const DXBCBytecode::Program &program, ShaderDebugTra
       return;
     }
   }
-
-  RDCERR("Cannot find cbuffer (b%u, space%u) in shader mapping", slot.shaderRegister,
-         slot.registerSpace);
 }
 
 bool PromptDebugTimeout(uint32_t cycleCounter)

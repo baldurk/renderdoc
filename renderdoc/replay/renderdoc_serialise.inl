@@ -341,27 +341,25 @@ void DoSerialise(SerialiserType &ser, ShaderVariable &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, RegisterRange &el)
+void DoSerialise(SerialiserType &ser, DebugVariableReference &el)
 {
-  SERIALISE_MEMBER(type);
-  SERIALISE_MEMBER(index);
+  SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(component);
 
-  SIZE_CHECK(8);
+  SIZE_CHECK(32);
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, LocalVariableMapping &el)
+void DoSerialise(SerialiserType &ser, SourceVariableMapping &el)
 {
-  SERIALISE_MEMBER(localName);
+  SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(rows);
   SERIALISE_MEMBER(columns);
   SERIALISE_MEMBER(elements);
-  SERIALISE_MEMBER(regCount);
-  SERIALISE_MEMBER(registers);
+  SERIALISE_MEMBER(variables);
 
-  SIZE_CHECK(176);
+  SIZE_CHECK(64);
 }
 
 template <typename SerialiserType>
@@ -380,16 +378,14 @@ void DoSerialise(SerialiserType &ser, LineColumnInfo &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ShaderDebugState &el)
 {
-  SERIALISE_MEMBER(registers);
-  SERIALISE_MEMBER(outputs);
-  SERIALISE_MEMBER(indexableTemps);
-  SERIALISE_MEMBER(locals);
+  SERIALISE_MEMBER(variables);
+  SERIALISE_MEMBER(sourceVars);
   SERIALISE_MEMBER(modified);
   SERIALISE_MEMBER(nextInstruction);
   SERIALISE_MEMBER(flags);
   SERIALISE_MEMBER(callstack);
 
-  SIZE_CHECK(152);
+  SIZE_CHECK(104);
 }
 
 template <typename SerialiserType>
@@ -398,7 +394,7 @@ void DoSerialise(SerialiserType &ser, ShaderDebugTrace &el)
   SERIALISE_MEMBER(inputs);
   SERIALISE_MEMBER(constantBlocks);
   SERIALISE_MEMBER(states);
-  SERIALISE_MEMBER(hasLocals);
+  SERIALISE_MEMBER(hasSourceMapping);
   SERIALISE_MEMBER(lineInfo);
 
   SIZE_CHECK(104);
@@ -2252,7 +2248,7 @@ INSTANTIATE_SERIALISE_TYPE(ShaderCompileFlags)
 INSTANTIATE_SERIALISE_TYPE(ShaderDebugInfo)
 INSTANTIATE_SERIALISE_TYPE(ShaderReflection)
 INSTANTIATE_SERIALISE_TYPE(ShaderVariable)
-INSTANTIATE_SERIALISE_TYPE(LocalVariableMapping);
+INSTANTIATE_SERIALISE_TYPE(SourceVariableMapping);
 INSTANTIATE_SERIALISE_TYPE(ShaderDebugState)
 INSTANTIATE_SERIALISE_TYPE(ShaderDebugTrace)
 INSTANTIATE_SERIALISE_TYPE(ResourceDescription)

@@ -252,7 +252,8 @@ public:
   void GetCallstack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &callstack) const;
 
   bool HasLocals() const;
-  void GetLocals(size_t instruction, uintptr_t offset, rdcarray<LocalVariableMapping> &locals) const;
+  void GetLocals(DXBCBytecode::Program *program, size_t instruction, uintptr_t offset,
+                 rdcarray<SourceVariableMapping> &locals) const;
 
 private:
   SDBGChunk();

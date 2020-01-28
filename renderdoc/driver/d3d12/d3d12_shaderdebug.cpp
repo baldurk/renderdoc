@@ -1797,7 +1797,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
   traces[destIdx].states = states;
 
-  traces[destIdx].hasLocals = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
+  traces[destIdx].hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
 
   dxbc->FillTraceLineInfo(traces[destIdx]);
 
@@ -1894,7 +1894,7 @@ ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   ret.states = states;
 
-  ret.hasLocals = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
+  ret.hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
 
   dxbc->FillTraceLineInfo(ret);
 

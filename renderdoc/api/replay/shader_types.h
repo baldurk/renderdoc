@@ -325,42 +325,42 @@ private:
 DECLARE_REFLECTION_STRUCT(ShaderVariable);
 
 DOCUMENT(
-    "A particular component of a variable register that a high-level variable component maps to");
-struct RegisterRange
+    "A particular component of a debugging variable that a high-level variable component maps to");
+struct DebugVariableReference
 {
   DOCUMENT("");
-  RegisterRange() = default;
-  RegisterRange(const RegisterRange &) = default;
-  RegisterRange &operator=(const RegisterRange &) = default;
+  DebugVariableReference() = default;
+  DebugVariableReference(const DebugVariableReference &) = default;
+  DebugVariableReference &operator=(const DebugVariableReference &) = default;
 
-  bool operator==(const RegisterRange &o) const
+  bool operator==(const DebugVariableReference &o) const
   {
-    return type == o.type && index == o.index && component == o.component;
+    return name == o.name && type == o.type && component == o.component;
   }
-  bool operator<(const RegisterRange &o) const
+  bool operator<(const DebugVariableReference &o) const
   {
+    if(!(name == o.name))
+      return name < o.name;
     if(!(type == o.type))
       return type < o.type;
-    if(!(index == o.index))
-      return index < o.index;
     if(!(component == o.component))
       return component < o.component;
     return false;
   }
 
-  DOCUMENT("The :class:`RegisterType` of the register being mapped to.");
-  RegisterType type = RegisterType::Undefined;
+  DOCUMENT("The name of the base debug variable.");
+  rdcstr name;
 
-  DOCUMENT("The index of the register within its type.");
-  uint16_t index = 0xFFFF;
+  DOCUMENT("The type of variable this is referring to.");
+  DebugVariableType type = DebugVariableType::Undefined;
 
-  DOCUMENT("The component of the register.");
-  uint16_t component = 0;
+  DOCUMENT("The component within the variable.");
+  uint32_t component = 0;
 };
 
-DECLARE_REFLECTION_STRUCT(RegisterRange);
+DECLARE_REFLECTION_STRUCT(DebugVariableReference);
 
-DOCUMENT(R"(Maps the contents of a high-level local variable to one or more shader variables in a
+DOCUMENT(R"(Maps the contents of a high-level source variable to one or more shader variables in a
 :class:`ShaderDebugState`, with type information.
 
 A single high-level variable may be represented by multiple mappings but only along regular
@@ -368,46 +368,45 @@ boundaries, typically whole vectors. For example an array may have each element 
 mapping, or a matrix may have a mapping per row. The properties such as :data:`rows` and
 :data:`elements` reflect the *parent* object.
 
-Since locals don't always map directly this can change over time.
+.. note::
+
+  There is not necessarily a 1:1 mapping from source variable to debug variable, so this can change
+  over time.
 )");
-struct LocalVariableMapping
+struct SourceVariableMapping
 {
   DOCUMENT("");
-  LocalVariableMapping() = default;
-  LocalVariableMapping(const LocalVariableMapping &) = default;
-  LocalVariableMapping &operator=(const LocalVariableMapping &) = default;
+  SourceVariableMapping() = default;
+  SourceVariableMapping(const SourceVariableMapping &) = default;
+  SourceVariableMapping &operator=(const SourceVariableMapping &) = default;
 
-  bool operator==(const LocalVariableMapping &o) const
+  bool operator==(const SourceVariableMapping &o) const
   {
-    return localName == o.localName && type == o.type && builtin == o.builtin && rows == o.rows &&
-           columns == o.columns && elements == o.elements && registers == o.registers;
+    return name == o.name && type == o.type && rows == o.rows && columns == o.columns &&
+           elements == o.elements && variables == o.variables;
   }
-  bool operator<(const LocalVariableMapping &o) const
+  bool operator<(const SourceVariableMapping &o) const
   {
-    if(!(localName == o.localName))
-      return localName < o.localName;
+    if(!(name == o.name))
+      return name < o.name;
     if(!(type == o.type))
       return type < o.type;
-    if(!(builtin == o.builtin))
-      return builtin < o.builtin;
     if(!(rows == o.rows))
       return rows < o.rows;
     if(!(columns == o.columns))
       return columns < o.columns;
     if(!(elements == o.elements))
       return elements < o.elements;
-    if(!(registers == o.registers))
-      return registers < o.registers;
+    if(!(variables == o.variables))
+      return variables < o.variables;
     return false;
   }
-  DOCUMENT("The name and member of this local variable that's being mapped from.");
-  rdcstr localName;
 
-  DOCUMENT("The variable type of the local being mapped from, if the register is untyped.");
+  DOCUMENT("The name and member of this source variable that's being mapped from.");
+  rdcstr name;
+
+  DOCUMENT("The variable type of the source being mapped from, if the debug variable is untyped.");
   VarType type = VarType::Unknown;
-
-  DOCUMENT("The shader builtin this variable corresponds to.");
-  ShaderBuiltin builtin = ShaderBuiltin::Undefined;
 
   DOCUMENT("The number of rows in this variable - 1 for vectors, >1 for matrices.");
   uint32_t rows;
@@ -418,16 +417,14 @@ struct LocalVariableMapping
   DOCUMENT("The number of array elements in this variable.");
   uint32_t elements;
 
-  DOCUMENT("The number of valid entries in :data:`registers`.");
-  uint32_t regCount;
-
-  DOCUMENT(R"(The registers that the components of this variable map to. Multiple ranges could refer
-to the same register if a contiguous range is mapped to - the mapping is component-by-component to
-greatly simplify algorithms at the expense of a small amount of storage space.
+  DOCUMENT(R"(The debug variables that the components of this high level variable map to. Multiple
+ranges could refer to the same variable if a contiguous range is mapped to - the mapping is
+component-by-component to greatly simplify algorithms at the expense of a small amount of storage
+space.
 )");
-  RegisterRange registers[16];
+  rdcarray<DebugVariableReference> variables;
 };
-DECLARE_REFLECTION_STRUCT(LocalVariableMapping);
+DECLARE_REFLECTION_STRUCT(SourceVariableMapping);
 
 DOCUMENT("Details the current region of code that an instruction maps to");
 struct LineColumnInfo
@@ -508,40 +505,36 @@ struct ShaderDebugState
 
   bool operator==(const ShaderDebugState &o) const
   {
-    return registers == o.registers && outputs == o.outputs && indexableTemps == o.indexableTemps &&
-           locals == o.locals && nextInstruction == o.nextInstruction && flags == o.flags;
+    return variables == o.variables && sourceVars == o.sourceVars &&
+           nextInstruction == o.nextInstruction && flags == o.flags;
   }
   bool operator<(const ShaderDebugState &o) const
   {
-    if(!(registers == o.registers))
-      return registers < o.registers;
-    if(!(outputs == o.outputs))
-      return outputs < o.outputs;
-    if(!(indexableTemps == o.indexableTemps))
-      return indexableTemps < o.indexableTemps;
-    if(!(locals == o.locals))
-      return locals < o.locals;
+    if(!(variables == o.variables))
+      return variables < o.variables;
+    if(!(sourceVars == o.sourceVars))
+      return sourceVars < o.sourceVars;
     if(!(nextInstruction == o.nextInstruction))
       return nextInstruction < o.nextInstruction;
     if(!(flags == o.flags))
       return flags < o.flags;
     return false;
   }
-  DOCUMENT("The temporary variables for this shader as a list of :class:`ShaderVariable`.");
-  rdcarray<ShaderVariable> registers;
-  DOCUMENT("The output variables for this shader as a list of :class:`ShaderVariable`.");
-  rdcarray<ShaderVariable> outputs;
 
-  DOCUMENT("Indexable temporary variables for this shader as a list of :class:`ShaderVariable`.");
-  rdcarray<ShaderVariable> indexableTemps;
+  DOCUMENT("The mutable variables for this shader as a list of :class:`ShaderVariable`.");
+  rdcarray<ShaderVariable> variables;
 
-  DOCUMENT(R"(An optional list of :class:`ShaderVariableRef` indicating which high-level locals map
-to which registers, and their type
+  DOCUMENT(R"(An optional list of :class:`SourceVariableMapping` indicating which high-level source
+variables map to which debug variables and including extra type information.
+
+This list contains source variable mapping that is only valid at this state - it is not valid at any
+other state where the lifetime of the source variable may have run out, or it may now be stored in
+a different debug variable.
 )");
-  rdcarray<LocalVariableMapping> locals;
+  rdcarray<SourceVariableMapping> sourceVars;
 
-  DOCUMENT("A list of registers that were modified.");
-  rdcarray<RegisterRange> modified;
+  DOCUMENT("A list of ranges in :data:`variables` that were modified.");
+  rdcarray<DebugVariableReference> modified;
 
   DOCUMENT(R"(The next instruction to be executed after this state. The initial state before any
 shader execution happened will have ``nextInstruction == 0``.
@@ -571,12 +564,16 @@ struct ShaderDebugTrace
   ShaderDebugTrace(const ShaderDebugTrace &) = default;
   ShaderDebugTrace &operator=(const ShaderDebugTrace &) = default;
 
-  DOCUMENT("The input variables for this shader as a list of :class:`ShaderValue`.");
+  DOCUMENT("The input variables for this shader as a list of :class:`ShaderVariable`.");
   rdcarray<ShaderVariable> inputs;
-  DOCUMENT(R"(Constant variables for this shader as a list of :class:`ShaderValue` lists.
+
+  DOCUMENT(R"(Constant buffer backed variables for this shader as a list of :class:`ShaderVariable`.
 
 Each entry in this list corresponds to a constant block with the same index in the
 :data:`ShaderBindpointMapping.constantBlocks` list, which can be used to look up the metadata.
+
+Depending on the underlying shader representation, the constant block may retain any structure or
+it may have been vectorised and flattened.
 )");
   rdcarray<ShaderVariable> constantBlocks;
 
@@ -585,8 +582,8 @@ instruction was executed
 )");
   rdcarray<ShaderDebugState> states;
 
-  DOCUMENT("A flag indicating whether this trace has locals information");
-  bool hasLocals = false;
+  DOCUMENT("A flag indicating whether this trace has source-variable mapping information");
+  bool hasSourceMapping = false;
 
   DOCUMENT(R"(A ``list`` of :class:`LineColumnInfo` detailing which source lines each instruction
 corresponds to

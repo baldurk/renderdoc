@@ -49,7 +49,7 @@ namespace DXBC
 class IDebugInfo;
 struct Reflection;
 IDebugInfo *MakeSDBGChunk(void *data);
-IDebugInfo *MakeSPDBChunk(Reflection *reflection, void *data);
+IDebugInfo *MakeSPDBChunk(void *data);
 };
 
 // many thanks to winehq for information of format of RDEF, STAT and SIGN chunks:
@@ -128,8 +128,8 @@ public:
                             rdcarray<rdcstr> &callstack) const = 0;
 
   virtual bool HasLocals() const = 0;
-  virtual void GetLocals(size_t instruction, uintptr_t offset,
-                         rdcarray<LocalVariableMapping> &locals) const = 0;
+  virtual void GetLocals(DXBCBytecode::Program *program, size_t instruction, uintptr_t offset,
+                         rdcarray<SourceVariableMapping> &locals) const = 0;
 };
 
 uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags);
@@ -159,7 +159,8 @@ public:
   void FillTraceLineInfo(ShaderDebugTrace &trace) const;
   void FillStateInstructionInfo(ShaderDebugState &state) const;
 
-  const DXBCBytecode::Program *GetDXBCByteCode() { return m_DXBCByteCode; }
+  const DXBCBytecode::Program *GetDXBCByteCode() const { return m_DXBCByteCode; }
+  DXBCBytecode::Program *GetDXBCByteCode() { return m_DXBCByteCode; }
   const DXIL::Program *GetDXILByteCode() { return m_DXILByteCode; }
   static void GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength);
 

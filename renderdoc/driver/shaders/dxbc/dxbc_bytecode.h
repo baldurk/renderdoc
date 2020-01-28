@@ -965,6 +965,11 @@ public:
   size_t GetNumInstructions() const { return m_Instructions.size(); }
   const Operation &GetInstruction(size_t i) const { return m_Instructions[i]; }
   const rdcarray<uint32_t> &GetImmediateConstantBuffer() const { return m_Immediate; }
+  void SetupRegisterFile(rdcarray<ShaderVariable> &registers) const;
+  uint32_t GetRegisterIndex(OperandType type, uint32_t index) const;
+  bool HasCoverageInput() const { return m_InputCoverage; }
+  rdcstr GetRegisterName(OperandType oper, uint32_t index) const;
+
 private:
   void FetchTypeVersion();
   void DisassembleHexDump();
@@ -980,7 +985,16 @@ private:
 
   rdcarray<uint32_t> m_Immediate;
 
-  uint32_t threadDimension[3];
+  uint32_t m_NumTemps = 0;
+  rdcarray<uint32_t> m_IndexTempSizes;
+
+  // most regular outputs, including system value outputs like primitive ID are given a register
+  // number
+  uint32_t m_NumOutputs = 0;
+  // these outputs are different and have no index
+  bool m_OutputCoverage = false, m_OutputDepth = false, m_OutputStencil = false;
+
+  bool m_InputCoverage = false;
 
   bool m_Disassembled = false;
 

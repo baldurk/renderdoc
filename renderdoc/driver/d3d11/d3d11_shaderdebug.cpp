@@ -2100,7 +2100,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   ret.states = states;
 
-  ret.hasLocals = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
+  ret.hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
 
   dxbc->FillTraceLineInfo(ret);
 
@@ -2727,7 +2727,9 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     DebugHit *hit = winner;
 
     rdcarray<ShaderVariable> &ins = traces[destIdx].inputs;
-    if(!ins.empty() && ins.back().name == "vCoverage")
+    if(!ins.empty() &&
+       ins.back().name ==
+           dxbc->GetDXBCByteCode()->GetRegisterName(DXBCBytecode::TYPE_INPUT_COVERAGE_MASK, 0))
       ins.back().value.u.x = hit->coverage;
 
     initialState.semantics.coverage = hit->coverage;
@@ -2959,7 +2961,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
   traces[destIdx].states = states;
 
-  traces[destIdx].hasLocals = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
+  traces[destIdx].hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
 
   dxbc->FillTraceLineInfo(traces[destIdx]);
 
@@ -3044,7 +3046,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   ret.states = states;
 
-  ret.hasLocals = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
+  ret.hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
 
   dxbc->FillTraceLineInfo(ret);
 
