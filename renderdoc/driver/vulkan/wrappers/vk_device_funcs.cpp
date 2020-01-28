@@ -3188,7 +3188,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
   // we must turn on bufferDeviceAddressCaptureReplay. We verified that this feature was available
   // before we whitelisted the extension/feature
-  if(enabledFeaturesVK12)
+  if(enabledFeaturesVK12 && enabledFeaturesVK12->bufferDeviceAddress)
     enabledFeaturesVK12->bufferDeviceAddressCaptureReplay = VK_TRUE;
 
   if(bufferAddressFeaturesCoreKHR)
