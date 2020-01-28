@@ -447,4 +447,264 @@ uint32_t Program::GetDisassemblyLine(uint32_t instruction) const
   return m_Instructions[RDCMIN(m_Instructions.size() - 1, (size_t)instruction)].line;
 }
 
+// see http://msdn.microsoft.com/en-us/library/windows/desktop/bb219840(v=vs.85).aspx
+// for details of these opcodes
+size_t NumOperands(OpcodeType op)
+{
+  switch(op)
+  {
+    case OPCODE_BREAK:
+    case OPCODE_CONTINUE:
+    case OPCODE_CUT:
+    case OPCODE_DEFAULT:
+    case OPCODE_ELSE:
+    case OPCODE_EMIT:
+    case OPCODE_EMITTHENCUT:
+    case OPCODE_ENDIF:
+    case OPCODE_ENDLOOP:
+    case OPCODE_ENDSWITCH:
+    case OPCODE_LOOP:
+    case OPCODE_NOP:
+    case OPCODE_RET:
+    case OPCODE_SYNC:
+    case OPCODE_ABORT:
+    case OPCODE_DEBUGBREAK:
+
+    case OPCODE_HS_CONTROL_POINT_PHASE:
+    case OPCODE_HS_FORK_PHASE:
+    case OPCODE_HS_JOIN_PHASE:
+    case OPCODE_HS_DECLS: return 0;
+    case OPCODE_BREAKC:
+    case OPCODE_CONTINUEC:
+    case OPCODE_CALL:
+    case OPCODE_CASE:
+    case OPCODE_CUT_STREAM:
+    case OPCODE_DISCARD:
+    case OPCODE_EMIT_STREAM:
+    case OPCODE_EMITTHENCUT_STREAM:
+    case OPCODE_IF:
+    case OPCODE_INTERFACE_CALL:
+    case OPCODE_LABEL:
+    case OPCODE_RETC:
+    case OPCODE_SWITCH: return 1;
+    case OPCODE_BFREV:
+    case OPCODE_BUFINFO:
+    case OPCODE_CALLC:
+    case OPCODE_COUNTBITS:
+    case OPCODE_DERIV_RTX:
+    case OPCODE_DERIV_RTY:
+    case OPCODE_DERIV_RTX_COARSE:
+    case OPCODE_DERIV_RTX_FINE:
+    case OPCODE_DERIV_RTY_COARSE:
+    case OPCODE_DERIV_RTY_FINE:
+    case OPCODE_DMOV:
+    case OPCODE_DTOF:
+    case OPCODE_EXP:
+    case OPCODE_F32TOF16:
+    case OPCODE_F16TOF32:
+    case OPCODE_FIRSTBIT_HI:
+    case OPCODE_FIRSTBIT_LO:
+    case OPCODE_FIRSTBIT_SHI:
+    case OPCODE_FRC:
+    case OPCODE_FTOD:
+    case OPCODE_FTOI:
+    case OPCODE_FTOU:
+    case OPCODE_IMM_ATOMIC_ALLOC:
+    case OPCODE_IMM_ATOMIC_CONSUME:
+    case OPCODE_INEG:
+    case OPCODE_ITOF:
+    case OPCODE_LOG:
+    case OPCODE_MOV:
+    case OPCODE_NOT:
+    case OPCODE_RCP:
+    case OPCODE_ROUND_NE:
+    case OPCODE_ROUND_NI:
+    case OPCODE_ROUND_PI:
+    case OPCODE_ROUND_Z:
+    case OPCODE_RSQ:
+    case OPCODE_SAMPLE_INFO:
+    case OPCODE_SQRT:
+    case OPCODE_UTOF:
+    case OPCODE_EVAL_CENTROID:
+    case OPCODE_DRCP:
+    case OPCODE_DTOI:
+    case OPCODE_DTOU:
+    case OPCODE_ITOD:
+    case OPCODE_UTOD:
+    case OPCODE_CHECK_ACCESS_FULLY_MAPPED: return 2;
+    case OPCODE_AND:
+    case OPCODE_ADD:
+    case OPCODE_ATOMIC_AND:
+    case OPCODE_ATOMIC_OR:
+    case OPCODE_ATOMIC_XOR:
+    case OPCODE_ATOMIC_IADD:
+    case OPCODE_ATOMIC_IMAX:
+    case OPCODE_ATOMIC_IMIN:
+    case OPCODE_ATOMIC_UMAX:
+    case OPCODE_ATOMIC_UMIN:
+    case OPCODE_DADD:
+    case OPCODE_DIV:
+    case OPCODE_DP2:
+    case OPCODE_DP3:
+    case OPCODE_DP4:
+    case OPCODE_DEQ:
+    case OPCODE_DGE:
+    case OPCODE_DLT:
+    case OPCODE_DMAX:
+    case OPCODE_DMIN:
+    case OPCODE_DMUL:
+    case OPCODE_DNE:
+    case OPCODE_EQ:
+    case OPCODE_GE:
+    case OPCODE_IADD:
+    case OPCODE_IEQ:
+    case OPCODE_IGE:
+    case OPCODE_ILT:
+    case OPCODE_IMAX:
+    case OPCODE_IMIN:
+    case OPCODE_INE:
+    case OPCODE_ISHL:
+    case OPCODE_ISHR:
+    case OPCODE_LD:
+    case OPCODE_LD_RAW:
+    case OPCODE_LD_UAV_TYPED:
+    case OPCODE_LT:
+    case OPCODE_MAX:
+    case OPCODE_MIN:
+    case OPCODE_MUL:
+    case OPCODE_NE:
+    case OPCODE_OR:
+    case OPCODE_RESINFO:
+    case OPCODE_SAMPLE_POS:
+    case OPCODE_SINCOS:
+    case OPCODE_STORE_RAW:
+    case OPCODE_STORE_UAV_TYPED:
+    case OPCODE_UGE:
+    case OPCODE_ULT:
+    case OPCODE_UMAX:
+    case OPCODE_UMIN:
+    case OPCODE_USHR:
+    case OPCODE_XOR:
+    case OPCODE_EVAL_SNAPPED:
+    case OPCODE_EVAL_SAMPLE_INDEX:
+    case OPCODE_DDIV: return 3;
+    case OPCODE_ATOMIC_CMP_STORE:
+    case OPCODE_DMOVC:
+    case OPCODE_GATHER4:
+    case OPCODE_IBFE:
+    case OPCODE_IMAD:
+    case OPCODE_IMM_ATOMIC_IADD:
+    case OPCODE_IMM_ATOMIC_AND:
+    case OPCODE_IMM_ATOMIC_OR:
+    case OPCODE_IMM_ATOMIC_XOR:
+    case OPCODE_IMM_ATOMIC_EXCH:
+    case OPCODE_IMM_ATOMIC_IMAX:
+    case OPCODE_IMM_ATOMIC_IMIN:
+    case OPCODE_IMM_ATOMIC_UMAX:
+    case OPCODE_IMM_ATOMIC_UMIN:
+    case OPCODE_IMUL:
+    case OPCODE_LD_MS:
+    case OPCODE_LD_STRUCTURED:
+    case OPCODE_LOD:
+    case OPCODE_MAD:
+    case OPCODE_MOVC:
+    case OPCODE_SAMPLE:
+    case OPCODE_STORE_STRUCTURED:
+    case OPCODE_UADDC:
+    case OPCODE_UBFE:
+    case OPCODE_UDIV:
+    case OPCODE_UMAD:
+    case OPCODE_UMUL:
+    case OPCODE_USUBB:
+    case OPCODE_DFMA:
+    case OPCODE_MSAD:
+    case OPCODE_LD_FEEDBACK:
+    case OPCODE_LD_RAW_FEEDBACK:
+    case OPCODE_LD_UAV_TYPED_FEEDBACK: return 4;
+    case OPCODE_BFI:
+    case OPCODE_GATHER4_C:
+    case OPCODE_GATHER4_PO:
+    case OPCODE_IMM_ATOMIC_CMP_EXCH:
+    case OPCODE_SAMPLE_C:
+    case OPCODE_SAMPLE_C_LZ:
+    case OPCODE_SAMPLE_L:
+    case OPCODE_SAMPLE_B:
+    case OPCODE_SWAPC:
+    case OPCODE_GATHER4_FEEDBACK:
+    case OPCODE_LD_MS_FEEDBACK:
+    case OPCODE_LD_STRUCTURED_FEEDBACK: return 5;
+    case OPCODE_GATHER4_PO_C:
+    case OPCODE_SAMPLE_D:
+    case OPCODE_SAMPLE_CLAMP_FEEDBACK:
+    case OPCODE_SAMPLE_C_CLAMP_FEEDBACK:
+    case OPCODE_SAMPLE_C_LZ_FEEDBACK:
+    case OPCODE_SAMPLE_L_FEEDBACK:
+    case OPCODE_SAMPLE_B_CLAMP_FEEDBACK:
+    case OPCODE_GATHER4_C_FEEDBACK:
+    case OPCODE_GATHER4_PO_FEEDBACK: return 6;
+    case OPCODE_SAMPLE_D_CLAMP_FEEDBACK:
+    case OPCODE_GATHER4_PO_C_FEEDBACK:
+      return 7;
+
+    // custom data doesn't have particular operands
+    case OPCODE_CUSTOMDATA:
+    default: break;
+  }
+
+  RDCERR("Unknown opcode: %u", op);
+  return 0xffffffff;
+}
+
+bool IsDeclaration(OpcodeType op)
+{
+  // isDecl means not a real instruction, just a declaration type token
+  bool isDecl = false;
+  isDecl = isDecl || (op >= OPCODE_DCL_RESOURCE && op <= OPCODE_DCL_GLOBAL_FLAGS);
+  isDecl = isDecl || (op >= OPCODE_DCL_STREAM && op <= OPCODE_DCL_RESOURCE_STRUCTURED);
+  isDecl = isDecl || (op == OPCODE_DCL_GS_INSTANCE_COUNT);
+  isDecl = isDecl || (op == OPCODE_HS_DECLS);
+  isDecl = isDecl || (op == OPCODE_CUSTOMDATA);
+
+  return isDecl;
+}
+
+bool IsInput(OperandType oper)
+{
+  switch(oper)
+  {
+    case TYPE_INPUT:
+    case TYPE_INPUT_PRIMITIVEID:
+    case TYPE_INPUT_FORK_INSTANCE_ID:
+    case TYPE_INPUT_JOIN_INSTANCE_ID:
+    case TYPE_INPUT_CONTROL_POINT:
+    // this is an input, yes it's confusing.
+    case TYPE_OUTPUT_CONTROL_POINT_ID:
+    case TYPE_INPUT_PATCH_CONSTANT:
+    case TYPE_INPUT_DOMAIN_POINT:
+    case TYPE_INPUT_THREAD_ID:
+    case TYPE_INPUT_THREAD_GROUP_ID:
+    case TYPE_INPUT_THREAD_ID_IN_GROUP:
+    case TYPE_INPUT_COVERAGE_MASK:
+    case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
+    case TYPE_INPUT_GS_INSTANCE_ID: return true;
+    default: break;
+  }
+  return false;
+}
+
+bool IsOutput(OperandType oper)
+{
+  switch(oper)
+  {
+    case TYPE_OUTPUT:
+    case TYPE_OUTPUT_DEPTH:
+    case TYPE_OUTPUT_COVERAGE_MASK:
+    case TYPE_OUTPUT_DEPTH_GREATER_EQUAL:
+    case TYPE_OUTPUT_DEPTH_LESS_EQUAL:
+    case TYPE_OUTPUT_STENCIL_REF: return true;
+    default: break;
+  }
+  return false;
+}
+
 };    // namespace DXBCBytecode

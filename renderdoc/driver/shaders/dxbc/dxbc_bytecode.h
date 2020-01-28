@@ -39,7 +39,8 @@ struct Reflection;
 };
 
 namespace DXBCBytecode
-{    /////////////////////////////////////////////////////////////////////////
+{
+/////////////////////////////////////////////////////////////////////////
 // Enums for use below. If you're reading this you might want to skip to
 // the main structures after this section.
 /////////////////////////////////////////////////////////////////////////
@@ -318,6 +319,9 @@ enum OpcodeType
   NUM_OPCODES,
 };
 
+size_t NumOperands(OpcodeType op);
+bool IsDeclaration(OpcodeType op);
+
 enum CustomDataClass
 {
   CUSTOMDATA_COMMENT = 0,
@@ -416,6 +420,9 @@ enum OperandType
 
   NUM_OPERAND_TYPES,
 };
+
+bool IsInput(OperandType oper);
+bool IsOutput(OperandType oper);
 
 enum OperandIndexType
 {
