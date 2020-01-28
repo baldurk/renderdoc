@@ -4832,7 +4832,7 @@ bool WrappedVulkan::Serialise_vkCmdBindTransformFeedbackBuffersEXT(
           {
             m_RenderState.xfbbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
             m_RenderState.xfbbuffers[firstBinding + i].offs = pOffsets[i];
-            m_RenderState.xfbbuffers[firstBinding + i].size = pSizes[i];
+            m_RenderState.xfbbuffers[firstBinding + i].size = pSizes ? pSizes[i] : VK_WHOLE_SIZE;
           }
         }
       }
