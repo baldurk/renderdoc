@@ -509,7 +509,7 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
 
     if(mouseOver && textRect.contains(mousePos) && valid)
     {
-      int underline_y = textRect.bottom() + margin;
+      int underline_y = textRect.bottom() - margin;
 
       painter->setPen(QPen(palette.brush(QPalette::WindowText), 1.0));
       painter->drawLine(QPoint(textRect.left(), underline_y), QPoint(textRect.right(), underline_y));
