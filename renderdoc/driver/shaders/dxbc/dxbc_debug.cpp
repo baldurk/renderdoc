@@ -3043,53 +3043,14 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
       RDCASSERT(stride != 0);
 
-      ShaderDebug::BindingSlot slot = GetBindingSlotForIdentifier(
-          *program, srv ? TYPE_RESOURCE : TYPE_UNORDERED_ACCESS_VIEW, resIndex);
-      GlobalState::SRVIterator srvIter;
-      GlobalState::UAVIterator uavIter;
-      if(srv)
-      {
-        srvIter = global.srvs.find(slot);
-        if(srvIter == global.srvs.end())
-        {
-          if(!apiWrapper->FetchSRV(slot))
-          {
-            RDCERR("Invalid SRV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-            return s;
-          }
-          srvIter = global.srvs.find(slot);
-        }
-      }
-      else
-      {
-        uavIter = global.uavs.find(slot);
-        if(uavIter == global.uavs.end())
-        {
-          if(!apiWrapper->FetchUAV(slot))
-          {
-            RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-            return s;
-          }
-          uavIter = global.uavs.find(slot);
-        }
-      }
-
-      uint32_t offset = srv ? srvIter->second.firstElement : uavIter->second.firstElement;
-      uint32_t numElems = srv ? srvIter->second.numElements : uavIter->second.numElements;
-      GlobalState::ViewFmt fmt = srv ? srvIter->second.format : uavIter->second.format;
-
-      // indexing for raw views is in bytes, but firstElement/numElements is in format-sized
-      // units. Multiply up by stride
-      if(op.operation == OPCODE_LD_RAW || op.operation == OPCODE_STORE_RAW)
-      {
-        offset *= RDCMIN(4, fmt.byteWidth);
-        numElems *= RDCMIN(4, fmt.byteWidth);
-      }
-
-      byte *data = srv ? &srvIter->second.data[0] : &uavIter->second.data[0];
-      bool texData = srv ? false : uavIter->second.tex;
-      uint32_t rowPitch = srv ? 0 : uavIter->second.rowPitch;
-      uint32_t depthPitch = srv ? 0 : uavIter->second.depthPitch;
+      byte *data = NULL;
+      size_t dataSize = 0;
+      bool texData = false;
+      uint32_t rowPitch = 0;
+      uint32_t depthPitch = 0;
+      uint32_t offset = 0;
+      uint32_t numElems = 0;
+      GlobalState::ViewFmt fmt;
 
       if(gsm)
       {
@@ -3104,13 +3065,68 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         {
           numElems = global.groupshared[resIndex].count;
           stride = global.groupshared[resIndex].bytestride;
-          data = &global.groupshared[resIndex].data[0];
+          data = global.groupshared[resIndex].data.data();
+          dataSize = global.groupshared[resIndex].data.size();
           fmt.fmt = CompType::UInt;
           fmt.byteWidth = 4;
           fmt.numComps = global.groupshared[resIndex].bytestride / 4;
           fmt.stride = 0;
         }
         texData = false;
+      }
+      else
+      {
+        ShaderDebug::BindingSlot slot = GetBindingSlotForIdentifier(
+            *program, srv ? TYPE_RESOURCE : TYPE_UNORDERED_ACCESS_VIEW, resIndex);
+
+        if(srv)
+        {
+          GlobalState::SRVIterator srvIter = global.srvs.find(slot);
+          if(srvIter == global.srvs.end())
+          {
+            if(!apiWrapper->FetchSRV(slot))
+            {
+              RDCERR("Invalid SRV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
+              return s;
+            }
+            srvIter = global.srvs.find(slot);
+          }
+
+          data = srvIter->second.data.data();
+          offset = srvIter->second.firstElement;
+          numElems = srvIter->second.numElements;
+          fmt = srvIter->second.format;
+        }
+        else
+        {
+          GlobalState::UAVIterator uavIter = global.uavs.find(slot);
+          if(uavIter == global.uavs.end())
+          {
+            if(!apiWrapper->FetchUAV(slot))
+            {
+              RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
+              return s;
+            }
+            uavIter = global.uavs.find(slot);
+          }
+
+          data = uavIter->second.data.data();
+          dataSize = uavIter->second.data.size();
+          texData = uavIter->second.tex;
+          rowPitch = uavIter->second.rowPitch;
+          depthPitch = uavIter->second.depthPitch;
+          offset = uavIter->second.firstElement;
+          numElems = uavIter->second.numElements;
+          fmt = uavIter->second.format;
+        }
+      }
+
+      // indexing for raw views is in bytes, but firstElement/numElements is in format-sized
+      // units. Multiply up by stride
+      if(op.operation == OPCODE_LD_RAW || op.operation == OPCODE_STORE_RAW)
+      {
+        offset *= RDCMIN(4, fmt.byteWidth);
+        numElems *= RDCMIN(4, fmt.byteWidth);
       }
 
       RDCASSERT(data);
@@ -3124,8 +3140,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         texOffset += texCoords[2] * depthPitch;
       }
 
-      if(!data || (!texData && elemIdx >= numElems) ||
-         (texData && texOffset >= uavIter->second.data.size()))
+      if(!data || (!texData && elemIdx >= numElems) || (texData && texOffset >= dataSize))
       {
         if(load)
           s.SetDst(op.operands[0], op, ShaderVariable("", 0U, 0U, 0U, 0U));
