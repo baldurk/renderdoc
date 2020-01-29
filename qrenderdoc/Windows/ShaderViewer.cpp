@@ -55,9 +55,17 @@ struct VariableTag
     return cat == o.cat && index == o.index && member == o.member;
   }
 };
+
+struct SourceVariableTag
+{
+  SourceVariableTag(QString name = QString(), uint32_t offs = 0) : fullname(name), offset(offs) {}
+  QString fullname;
+  uint32_t offset;
+};
 };
 
 Q_DECLARE_METATYPE(VariableTag);
+Q_DECLARE_METATYPE(SourceVariableTag);
 
 ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::ShaderViewer), m_Ctx(ctx)
@@ -65,8 +73,8 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   ui->setupUi(this);
 
   ui->constants->setFont(Formatter::PreferredFont());
-  ui->registers->setFont(Formatter::PreferredFont());
-  ui->locals->setFont(Formatter::PreferredFont());
+  ui->debugVars->setFont(Formatter::PreferredFont());
+  ui->sourceVars->setFont(Formatter::PreferredFont());
   ui->watch->setFont(Formatter::PreferredFont());
   ui->inputSig->setFont(Formatter::PreferredFont());
   ui->outputSig->setFont(Formatter::PreferredFont());
@@ -224,10 +232,10 @@ void ShaderViewer::editShader(bool customShader, ShaderStage stage, const QStrin
 
   // hide debugging windows
   ui->watch->hide();
-  ui->registers->hide();
+  ui->debugVars->hide();
   ui->constants->hide();
   ui->callstack->hide();
-  ui->locals->hide();
+  ui->sourceVars->hide();
 
   ui->snippets->setVisible(customShader);
 
@@ -493,23 +501,25 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       ui->debugToggle->setText(tr("HLSL Unavailable"));
     }
 
-    ui->registers->setColumns({tr("Name"), tr("Type"), tr("Value")});
-    ui->registers->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->registers->header()->setSectionResizeMode(1, QHeaderView::Interactive);
-    ui->registers->header()->setSectionResizeMode(2, QHeaderView::Stretch);
+    ui->debugVars->setColumns({tr("Name"), tr("Value")});
+    ui->debugVars->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    ui->debugVars->header()->setSectionResizeMode(1, QHeaderView::Interactive);
 
-    ui->locals->setColumns({tr("Name"), tr("Register(s)"), tr("Type"), tr("Value")});
-    ui->locals->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->locals->header()->setSectionResizeMode(1, QHeaderView::Interactive);
-    ui->locals->header()->setSectionResizeMode(2, QHeaderView::Interactive);
-    ui->locals->header()->setSectionResizeMode(3, QHeaderView::Stretch);
+    ui->sourceVars->setColumns({tr("Name"), tr("Register(s)"), tr("Type"), tr("Value")});
+    ui->sourceVars->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    ui->sourceVars->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    ui->sourceVars->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    ui->sourceVars->header()->setSectionResizeMode(3, QHeaderView::Interactive);
 
-    ui->constants->setColumns({tr("Name"), tr("Type"), tr("Value")});
-    ui->constants->header()->setSectionResizeMode(0, QHeaderView::Interactive);
-    ui->constants->header()->setSectionResizeMode(1, QHeaderView::Interactive);
-    ui->constants->header()->setSectionResizeMode(2, QHeaderView::Stretch);
+    ui->constants->setColumns({tr("Name"), tr("Register(s)"), tr("Type"), tr("Value")});
+    ui->constants->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    ui->constants->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    ui->constants->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    ui->constants->header()->setSectionResizeMode(3, QHeaderView::Interactive);
 
-    ui->registers->setTooltipElidedItems(false);
+    ui->constants->header()->resizeSection(0, 80);
+
+    ui->debugVars->setTooltipElidedItems(false);
     ui->constants->setTooltipElidedItems(false);
 
     ui->watch->setWindowTitle(tr("Watch"));
@@ -519,39 +529,41 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->docking->setToolWindowProperties(
         ui->watch, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
-    ui->registers->setWindowTitle(tr("Registers"));
+    ui->debugVars->setWindowTitle(tr("Variable Values"));
     ui->docking->addToolWindow(
-        ui->registers,
+        ui->debugVars,
         ToolWindowManager::AreaReference(ToolWindowManager::AddTo, ui->docking->areaOf(ui->watch)));
     ui->docking->setToolWindowProperties(
-        ui->registers, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+        ui->debugVars, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
     ui->constants->setWindowTitle(tr("Constants && Resources"));
     ui->docking->addToolWindow(
         ui->constants, ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
-                                                        ui->docking->areaOf(ui->registers), 0.5f));
+                                                        ui->docking->areaOf(ui->debugVars), 0.5f));
     ui->docking->setToolWindowProperties(
         ui->constants, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
-    ui->callstack->setWindowTitle(tr("Callstack"));
-    ui->docking->addToolWindow(
-        ui->callstack, ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
-                                                        ui->docking->areaOf(ui->registers), 0.2f));
-    ui->docking->setToolWindowProperties(
-        ui->callstack, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
-
     if(m_Trace->hasSourceMapping)
     {
-      ui->locals->setWindowTitle(tr("Local Variables"));
+      ui->callstack->setWindowTitle(tr("Callstack"));
       ui->docking->addToolWindow(
-          ui->locals, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
-                                                       ui->docking->areaOf(ui->registers)));
+          ui->callstack, ToolWindowManager::AreaReference(
+                             ToolWindowManager::RightOf, ui->docking->areaOf(ui->debugVars), 0.2f));
       ui->docking->setToolWindowProperties(
-          ui->locals, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+          ui->callstack, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+
+      ui->sourceVars->setWindowTitle(tr("High-level Variables"));
+      ui->docking->addToolWindow(
+          ui->sourceVars, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                                           ui->docking->areaOf(ui->debugVars)));
+      ui->docking->setToolWindowProperties(
+          ui->sourceVars,
+          ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
     }
     else
     {
-      ui->locals->hide();
+      ui->callstack->hide();
+      ui->sourceVars->hide();
     }
 
     m_Line2Insts.resize(m_ShaderDetails->debugInfo.files.count());
@@ -628,7 +640,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
     // event filter to pick up tooltip events
     ui->constants->installEventFilter(this);
-    ui->registers->installEventFilter(this);
+    ui->debugVars->installEventFilter(this);
     ui->watch->installEventFilter(this);
 
     SetCurrentStep(0);
@@ -638,11 +650,11 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->watch->setContextMenuPolicy(Qt::CustomContextMenu);
     QObject::connect(ui->watch, &RDTableWidget::customContextMenuRequested, this,
                      &ShaderViewer::variables_contextMenu);
-    ui->registers->setContextMenuPolicy(Qt::CustomContextMenu);
-    QObject::connect(ui->registers, &RDTreeWidget::customContextMenuRequested, this,
+    ui->debugVars->setContextMenuPolicy(Qt::CustomContextMenu);
+    QObject::connect(ui->debugVars, &RDTreeWidget::customContextMenuRequested, this,
                      &ShaderViewer::variables_contextMenu);
-    ui->locals->setContextMenuPolicy(Qt::CustomContextMenu);
-    QObject::connect(ui->locals, &RDTreeWidget::customContextMenuRequested, this,
+    ui->sourceVars->setContextMenuPolicy(Qt::CustomContextMenu);
+    QObject::connect(ui->sourceVars, &RDTreeWidget::customContextMenuRequested, this,
                      &ShaderViewer::variables_contextMenu);
 
     ui->watch->insertRow(0);
@@ -663,9 +675,9 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   {
     // hide watch, constants, variables
     ui->watch->hide();
-    ui->registers->hide();
+    ui->debugVars->hide();
     ui->constants->hide();
-    ui->locals->hide();
+    ui->sourceVars->hide();
     ui->callstack->hide();
 
     // hide debugging toolbar buttons
@@ -1118,8 +1130,8 @@ void ShaderViewer::variables_contextMenu(const QPoint &pos)
     addWatch.setEnabled(tree->selectedItem() != NULL);
 
     QObject::connect(&addWatch, &QAction::triggered, [this, tree] {
-      if(tree == ui->locals)
-        AddWatch(tree->selectedItem()->tag().toString());
+      if(tree == ui->sourceVars)
+        AddWatch(tree->selectedItem()->tag().value<SourceVariableTag>().fullname);
       else
         AddWatch(tree->selectedItem()->text(0));
     });
@@ -1168,9 +1180,9 @@ void ShaderViewer::disassembly_buttonReleased(QMouseEvent *event)
         start = 0;
         end = m_DisassemblyView->length();
 
-        for(int i = 0; i < ui->registers->topLevelItemCount(); i++)
+        for(int i = 0; i < ui->debugVars->topLevelItemCount(); i++)
         {
-          RDTreeWidgetItem *item = ui->registers->topLevelItem(i);
+          RDTreeWidgetItem *item = ui->debugVars->topLevelItem(i);
           if(item->tag().value<VariableTag>() == tag)
             item->setBackgroundColor(QColor::fromHslF(
                 0.333f, 1.0f, qBound(0.25, palette().color(QPalette::Base).lightnessF(), 0.85)));
@@ -1522,60 +1534,6 @@ QString ShaderViewer::stringRep(const ShaderVariable &var, bool useType)
   return RowString(var, 0, VarType::Float);
 }
 
-RDTreeWidgetItem *ShaderViewer::makeResourceRegister(const Bindpoint &bind, uint32_t idx,
-                                                     const BoundResource &bound,
-                                                     const ShaderResource &res)
-{
-  QString name = QFormatStr(" (%1)").arg(res.name);
-
-  const TextureDescription *tex = m_Ctx.GetTexture(bound.resourceId);
-  const BufferDescription *buf = m_Ctx.GetBuffer(bound.resourceId);
-
-  QChar regChar(QLatin1Char('u'));
-
-  if(res.isReadOnly)
-    regChar = QLatin1Char('t');
-
-  QString regname;
-
-  if(m_Ctx.APIProps().pipelineType == GraphicsAPI::D3D12)
-  {
-    if(bind.arraySize == 1)
-      regname = QFormatStr("%1%2:%3").arg(regChar).arg(bind.bindset).arg(bind.bind);
-    else
-      regname = QFormatStr("%1%2:%3[%4]").arg(regChar).arg(bind.bindset).arg(bind.bind).arg(idx);
-  }
-  else
-  {
-    regname = QFormatStr("%1%2").arg(regChar).arg(bind.bind);
-  }
-
-  if(tex)
-  {
-    QString type = QFormatStr("%1x%2x%3[%4] @ %5 - %6")
-                       .arg(tex->width)
-                       .arg(tex->height)
-                       .arg(tex->depth > 1 ? tex->depth : tex->arraysize)
-                       .arg(tex->mips)
-                       .arg(tex->format.Name())
-                       .arg(m_Ctx.GetResourceName(bound.resourceId));
-
-    return new RDTreeWidgetItem({regname + name, lit("Texture"), type});
-  }
-  else if(buf)
-  {
-    QString type =
-        QFormatStr("%1 - %2").arg(buf->length).arg(m_Ctx.GetResourceName(bound.resourceId));
-
-    return new RDTreeWidgetItem({regname + name, lit("Buffer"), type});
-  }
-  else
-  {
-    return new RDTreeWidgetItem(
-        {regname + name, lit("Resource"), m_Ctx.GetResourceName(bound.resourceId)});
-  }
-}
-
 QString ShaderViewer::targetName(const ShaderProcessingTool &disasm)
 {
   return lit("%1 (%2)").arg(ToQStr(disasm.output)).arg(disasm.name);
@@ -1609,7 +1567,7 @@ void ShaderViewer::addFileList()
       list, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 }
 
-void ShaderViewer::combineStructures(RDTreeWidgetItem *root)
+void ShaderViewer::combineStructures(RDTreeWidgetItem *root, int skipPrefixLength)
 {
   RDTreeWidgetItem temp;
 
@@ -1630,8 +1588,8 @@ void ShaderViewer::combineStructures(RDTreeWidgetItem *root)
 
     QString name = child->text(0);
 
-    int dotIndex = name.indexOf(QLatin1Char('.'));
-    int arrIndex = name.indexOf(QLatin1Char('['));
+    int dotIndex = name.indexOf(QLatin1Char('.'), skipPrefixLength);
+    int arrIndex = name.indexOf(QLatin1Char('['), skipPrefixLength);
 
     // if this node doesn't have any segments, just move it across.
     if(dotIndex < 0 && arrIndex < 0)
@@ -1642,12 +1600,9 @@ void ShaderViewer::combineStructures(RDTreeWidgetItem *root)
 
     // store the index of the first separator
     int sepIndex = dotIndex;
-    bool isArray = false;
+    bool isLeafArray = (sepIndex == -1);
     if(sepIndex == -1 || (arrIndex > 0 && arrIndex < sepIndex))
-    {
       sepIndex = arrIndex;
-      isArray = true;
-    }
 
     // we have a valid node to match against, record the prefix (including separator character)
     QString prefix = name.mid(0, sepIndex + 1);
@@ -1681,9 +1636,13 @@ void ShaderViewer::combineStructures(RDTreeWidgetItem *root)
       continue;
     }
 
-    // sort the children by name
+    // sort the children by offset, then name (in case all offsets are empty)
     std::sort(matches.begin(), matches.end(),
               [](const RDTreeWidgetItem *a, const RDTreeWidgetItem *b) {
+                SourceVariableTag at = a->tag().value<SourceVariableTag>();
+                SourceVariableTag bt = b->tag().value<SourceVariableTag>();
+                if(at.offset != bt.offset)
+                  return at.offset < bt.offset;
                 return a->text(0) < b->text(0);
               });
 
@@ -1696,7 +1655,7 @@ void ShaderViewer::combineStructures(RDTreeWidgetItem *root)
     // add all the children (stripping the prefix from their name)
     for(RDTreeWidgetItem *item : matches)
     {
-      if(!isArray)
+      if(sepIndex == dotIndex)
         item->setText(0, item->text(0).mid(sepIndex + 1));
       parent->addChild(item);
 
@@ -1707,8 +1666,13 @@ void ShaderViewer::combineStructures(RDTreeWidgetItem *root)
     }
 
     // recurse and combine members of this object if a struct
-    if(!isArray)
-      combineStructures(parent);
+    if(!isLeafArray)
+    {
+      if(sepIndex != dotIndex)
+        combineStructures(parent, sepIndex + 1);
+      else
+        combineStructures(parent);
+    }
 
     // now add to the list
     temp.insertChild(0, parent);
@@ -1724,7 +1688,7 @@ void ShaderViewer::combineStructures(RDTreeWidgetItem *root)
 
 RDTreeWidgetItem *ShaderViewer::findLocal(RDTreeWidgetItem *root, QString name)
 {
-  if(root->tag().toString() == name)
+  if(root->tag().value<SourceVariableTag>().fullname == name)
     return root;
 
   for(int i = 0; i < root->childCount(); i++)
@@ -1858,31 +1822,67 @@ void ShaderViewer::updateDebugging()
 
   if(ui->constants->topLevelItemCount() == 0)
   {
+    // track all debug variables that have been mapped by source vars
+    QSet<QString> varsMapped;
+
+    RDTreeWidgetItem fakeroot;
+
+    for(const SourceVariableMapping &sourceVar : m_Trace->sourceVars)
+    {
+      for(const DebugVariableReference &r : sourceVar.variables)
+        varsMapped.insert(r.name);
+
+      fakeroot.addChild(makeSourceVariableNode(sourceVar));
+    }
+
+    // recursively combine nodes with the same prefix together
+    combineStructures(&fakeroot);
+
+    while(fakeroot.childCount() > 0)
+      ui->constants->addTopLevelItem(fakeroot.takeChild(0));
+
+    // add any raw registers that weren't mapped with something better. We assume for inputs that
+    // everything has a source mapping, even if it's faked from reflection info, but just to be sure
+    // we add any remainders here. Constants might be un-touched by reflection info
     for(int i = 0; i < m_Trace->constantBlocks.count(); i++)
     {
+      rdcstr name = m_Trace->constantBlocks[i].name;
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({name, name, lit("Constant"), QString()});
+
       for(int j = 0; j < m_Trace->constantBlocks[i].members.count(); j++)
       {
         if(m_Trace->constantBlocks[i].members[j].rows > 0 ||
            m_Trace->constantBlocks[i].members[j].columns > 0)
         {
-          RDTreeWidgetItem *node =
-              new RDTreeWidgetItem({m_Trace->constantBlocks[i].members[j].name, lit("cbuffer"),
-                                    stringRep(m_Trace->constantBlocks[i].members[j], false)});
-          node->setTag(QVariant::fromValue(VariableTag(VariableCategory::Constants, j, i)));
-
-          ui->constants->addTopLevelItem(node);
+          name = m_Trace->constantBlocks[i].members[j].name;
+          if(!varsMapped.contains(name))
+            node->addChild(
+                new RDTreeWidgetItem({name, name, lit("Constant"),
+                                      stringRep(m_Trace->constantBlocks[i].members[j], false)}));
         }
       }
+
+      if(node->childCount() == 0)
+      {
+        delete node;
+        continue;
+      }
+
+      node->setTag(QVariant::fromValue(VariableTag(VariableCategory::Constants, i)));
+      ui->constants->addTopLevelItem(node);
     }
 
     for(int i = 0; i < m_Trace->inputs.count(); i++)
     {
       const ShaderVariable &input = m_Trace->inputs[i];
 
+      if(varsMapped.contains(input.name))
+        continue;
+
       if(input.rows > 0 || input.columns > 0)
       {
-        RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {input.name, ToQStr(input.type) + lit(" input"), stringRep(input, true)});
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({input.name, input.name, lit("Input"), stringRep(input, false)});
         node->setTag(QVariant::fromValue(VariableTag(VariableCategory::Inputs, i)));
 
         ui->constants->addTopLevelItem(node);
@@ -1908,22 +1908,26 @@ void ShaderViewer::updateDebugging()
       if(idx < 0 || rw[idx].resources.isEmpty())
         continue;
 
+      QString bindname = makeBindName(bind, false);
+
       if(bind.arraySize == 1)
       {
-        RDTreeWidgetItem *node = makeResourceRegister(bind, 0, rw[idx].resources[0],
-                                                      m_ShaderDetails->readWriteResources[i]);
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({bindname, m_ShaderDetails->readWriteResources[i].name,
+                                  lit("RW Resource"), ToQStr(rw[idx].resources[0].resourceId)});
         if(node)
           ui->constants->addTopLevelItem(node);
       }
       else
       {
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({m_ShaderDetails->readWriteResources[i].name,
+            new RDTreeWidgetItem({bindname, m_ShaderDetails->readWriteResources[i].name,
                                   QFormatStr("[%1]").arg(bind.arraySize), QString()});
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
-          node->addChild(makeResourceRegister(bind, a, rw[idx].resources[a],
-                                              m_ShaderDetails->readWriteResources[i]));
+          node->addChild(new RDTreeWidgetItem(
+              {QFormatStr("%1[%2]").arg(bindname).arg(a), m_ShaderDetails->readWriteResources[i].name,
+               lit("Resource"), ToQStr(rw[idx].resources[a].resourceId)}));
 
         tree = true;
 
@@ -1945,182 +1949,75 @@ void ShaderViewer::updateDebugging()
       if(idx < 0 || ro[idx].resources.isEmpty())
         continue;
 
+      QString bindname = makeBindName(bind, true);
+
       if(bind.arraySize == 1)
       {
-        RDTreeWidgetItem *node = makeResourceRegister(bind, 0, ro[idx].resources[0],
-                                                      m_ShaderDetails->readOnlyResources[i]);
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({bindname, m_ShaderDetails->readOnlyResources[i].name,
+                                  lit("Resource"), ToQStr(ro[idx].resources[0].resourceId)});
         if(node)
           ui->constants->addTopLevelItem(node);
       }
       else
       {
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({m_ShaderDetails->readOnlyResources[i].name,
+            new RDTreeWidgetItem({bindname, m_ShaderDetails->readOnlyResources[i].name,
+                                  m_ShaderDetails->readOnlyResources[i].name,
                                   QFormatStr("[%1]").arg(bind.arraySize), QString()});
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
-          node->addChild(makeResourceRegister(bind, a, ro[idx].resources[a],
-                                              m_ShaderDetails->readOnlyResources[i]));
+          node->addChild(new RDTreeWidgetItem(
+              {QFormatStr("%1[%2]").arg(bindname).arg(a), m_ShaderDetails->readOnlyResources[i].name,
+               lit("Resource"), ToQStr(ro[idx].resources[a].resourceId)}));
 
         tree = true;
 
         ui->constants->addTopLevelItem(node);
       }
     }
-
-    if(tree)
-    {
-      ui->constants->setIndentation(20);
-      ui->constants->setRootIsDecorated(true);
-    }
   }
 
   if(m_Trace->hasSourceMapping)
   {
     RDTreeViewExpansionState expansion;
-    ui->locals->saveExpansion(expansion, 0);
+    ui->sourceVars->saveExpansion(expansion, 0);
 
-    ui->locals->clear();
-
-    const QString xyzw = lit("xyzw");
+    ui->sourceVars->clear();
 
     RDTreeWidgetItem fakeroot;
 
-    for(size_t lidx = 0; lidx < state.sourceVars.size(); lidx++)
+    const rdcarray<SourceVariableMapping> &sourceVars = state.sourceVars;
+
+    for(size_t lidx = 0; lidx < sourceVars.size(); lidx++)
     {
       // iterate in reverse order, so newest locals tend to end up on top
-      const SourceVariableMapping &l = state.sourceVars[state.sourceVars.size() - 1 - lidx];
-
-      QString localName = l.name;
-      QString regNames, typeName;
-      QString value;
+      const SourceVariableMapping &l = sourceVars[sourceVars.size() - 1 - lidx];
 
       bool modified = false;
 
-      if(l.type == VarType::UInt)
-        typeName = lit("uint");
-      else if(l.type == VarType::SInt)
-        typeName = lit("int");
-      else if(l.type == VarType::Float)
-        typeName = lit("float");
-      else if(l.type == VarType::Double)
-        typeName = lit("double");
-
-      const ShaderVariable *variable = NULL;
-
       if(!l.variables.empty() && l.variables[0].type == DebugVariableType::Variable)
       {
-        for(const ShaderVariable &v : state.variables)
+        for(const DebugVariableReference &r : l.variables)
         {
-          if(v.name == l.variables[0].name)
+          for(const DebugVariableReference &mr : state.modified)
           {
-            variable = &v;
+            if(mr.name == r.name)
+            {
+              modified = true;
+              break;
+            }
+          }
+
+          if(modified)
             break;
-          }
         }
       }
 
-      if(variable && !variable->members.empty())
-      {
-        typeName += lit("[]");
-
-        regNames = l.variables[0].name;
-
-        for(const DebugVariableReference &mr : state.modified)
-        {
-          if(mr.name == l.variables[0].name)
-          {
-            modified = true;
-            break;
-          }
-        }
-      }
-      else
-      {
-        if(l.rows > 1)
-          typeName += QFormatStr("%1x%2").arg(l.rows).arg(l.columns);
-        else
-          typeName += QString::number(l.columns);
-
-        for(size_t i = 0; i < l.variables.size(); i++)
-        {
-          const DebugVariableReference &r = l.variables[i];
-
-          if(l.variables[0].type == DebugVariableType::Variable)
-          {
-            for(const DebugVariableReference &mr : state.modified)
-            {
-              if(mr.name == r.name)
-              {
-                modified = true;
-                break;
-              }
-            }
-          }
-
-          if(!value.isEmpty())
-            value += lit(", ");
-          if(!regNames.isEmpty())
-            regNames += lit(", ");
-
-          if(r.name.empty())
-          {
-            regNames += lit("-");
-            value += lit("?");
-            continue;
-          }
-
-          const ShaderVariable *reg = GetRegisterVariable(r);
-
-          if(reg)
-          {
-            // if the previous register was the same, just append our component
-            if(i > 0 && r.name == l.variables[i - 1].name)
-            {
-              // remove the auto-appended ", " - there must be one because this isn't the first
-              // register
-              regNames.chop(2);
-              regNames += xyzw[r.component];
-            }
-            else
-            {
-              regNames += QFormatStr("%1.%2").arg(reg->name).arg(xyzw[r.component]);
-            }
-
-            if(l.type == VarType::UInt)
-              value += Formatter::Format(reg->value.uv[r.component]);
-            else if(l.type == VarType::SInt)
-              value += Formatter::Format(reg->value.iv[r.component]);
-            else if(l.type == VarType::Float)
-              value += Formatter::Format(reg->value.fv[r.component]);
-            else if(l.type == VarType::Double)
-              value += Formatter::Format(reg->value.dv[r.component]);
-          }
-          else
-          {
-            regNames += lit("<error>");
-            value += lit("<error>");
-          }
-        }
-      }
-
-      RDTreeWidgetItem *node = new RDTreeWidgetItem({localName, regNames, typeName, value});
-
-      node->setTag(localName);
+      RDTreeWidgetItem *node = makeSourceVariableNode(l);
 
       if(modified)
         node->setForegroundColor(QColor(Qt::red));
-
-      if(variable)
-      {
-        for(int t = 0; t < variable->members.count(); t++)
-        {
-          node->addChild(new RDTreeWidgetItem({
-              QFormatStr("%1[%2]").arg(localName).arg(t), QFormatStr("%1[%2]").arg(regNames).arg(t),
-              typeName, RowString(variable->members[t], 0, l.type),
-          }));
-        }
-      }
 
       fakeroot.addChild(node);
     }
@@ -2129,29 +2026,27 @@ void ShaderViewer::updateDebugging()
     combineStructures(&fakeroot);
 
     while(fakeroot.childCount() > 0)
-      ui->locals->addTopLevelItem(fakeroot.takeChild(0));
+      ui->sourceVars->addTopLevelItem(fakeroot.takeChild(0));
 
-    ui->locals->applyExpansion(expansion, 0);
+    ui->sourceVars->applyExpansion(expansion, 0);
   }
 
-  if(ui->registers->topLevelItemCount() == 0)
+  if(ui->debugVars->topLevelItemCount() == 0)
   {
     for(int i = 0; i < state.variables.count(); i++)
     {
-      RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({state.variables[i].name, lit("variable"), QString()});
+      RDTreeWidgetItem *node = new RDTreeWidgetItem({state.variables[i].name, QString()});
       for(int t = 0; t < state.variables[i].members.count(); t++)
-        node->addChild(
-            new RDTreeWidgetItem({state.variables[i].members[t].name, lit("variable"), QString()}));
-      ui->registers->addTopLevelItem(node);
+        node->addChild(new RDTreeWidgetItem({state.variables[i].members[t].name, QString()}));
+      ui->debugVars->addTopLevelItem(node);
     }
   }
 
-  ui->registers->beginUpdate();
+  ui->debugVars->beginUpdate();
 
   for(int i = 0; i < state.variables.count(); i++)
   {
-    RDTreeWidgetItem *node = ui->registers->topLevelItem(i);
+    RDTreeWidgetItem *node = ui->debugVars->topLevelItem(i);
 
     bool modified = false;
 
@@ -2166,7 +2061,7 @@ void ShaderViewer::updateDebugging()
 
     if(state.variables[i].members.empty())
     {
-      node->setText(2, stringRep(state.variables[i], false));
+      node->setText(1, stringRep(state.variables[i], false));
       node->setTag(QVariant::fromValue(VariableTag(VariableCategory::Variables, i)));
 
       if(modified)
@@ -2185,13 +2080,13 @@ void ShaderViewer::updateDebugging()
         else
           child->setForeground(QBrush());
 
-        child->setText(2, stringRep(state.variables[i].members[t], false));
+        child->setText(1, stringRep(state.variables[i].members[t], false));
         child->setTag(QVariant::fromValue(VariableTag(VariableCategory::Variables, i, t)));
       }
     }
   }
 
-  ui->registers->endUpdate();
+  ui->debugVars->endUpdate();
 
   ui->watch->setUpdatesEnabled(false);
 
@@ -2361,7 +2256,7 @@ void ShaderViewer::updateDebugging()
       {
         QString variablename = match.captured(1);
 
-        RDTreeWidgetItem *local = findLocal(ui->locals->invisibleRootItem(), match.captured(1));
+        RDTreeWidgetItem *local = findLocal(ui->sourceVars->invisibleRootItem(), match.captured(1));
 
         if(local)
         {
@@ -2405,12 +2300,130 @@ void ShaderViewer::updateDebugging()
 
   ui->watch->setUpdatesEnabled(true);
 
-  ui->constants->resizeColumnToContents(0);
-  ui->registers->resizeColumnToContents(0);
-  ui->constants->resizeColumnToContents(1);
-  ui->registers->resizeColumnToContents(1);
+  ui->debugVars->resizeColumnToContents(0);
+  ui->debugVars->resizeColumnToContents(1);
 
   updateVariableTooltip();
+}
+
+QString ShaderViewer::makeBindName(Bindpoint &bind, bool readOnly)
+{
+  QChar regChar(QLatin1Char('u'));
+
+  if(readOnly)
+    regChar = QLatin1Char('t');
+
+  if(m_Ctx.APIProps().pipelineType == GraphicsAPI::D3D12)
+    return QFormatStr("%1%2:%3").arg(regChar).arg(bind.bindset).arg(bind.bind);
+  else
+    return QFormatStr("%1%2").arg(regChar).arg(bind.bind);
+}
+
+RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMapping &l)
+{
+  const ShaderDebugState &state = m_Trace->states[m_CurrentStep];
+
+  const QString xyzw = lit("xyzw");
+
+  QString localName = l.name;
+  QString regNames, typeName;
+  QString value;
+
+  if(l.type == VarType::UInt)
+    typeName = lit("uint");
+  else if(l.type == VarType::SInt)
+    typeName = lit("int");
+  else if(l.type == VarType::Float)
+    typeName = lit("float");
+  else if(l.type == VarType::Double)
+    typeName = lit("double");
+
+  QList<RDTreeWidgetItem *> children;
+
+  {
+    QString childType = typeName;
+
+    if(l.rows > 1)
+    {
+      childType += QString::number(l.columns);
+      typeName += QFormatStr("%1x%2").arg(l.rows).arg(l.columns);
+    }
+    else
+    {
+      typeName += QString::number(l.columns);
+    }
+
+    for(size_t i = 0; i < l.variables.size(); i++)
+    {
+      const DebugVariableReference &r = l.variables[i];
+
+      if(!value.isEmpty())
+        value += lit(", ");
+      if(!regNames.isEmpty())
+        regNames += lit(", ");
+
+      if(r.name.empty())
+      {
+        regNames += lit("-");
+        value += lit("?");
+      }
+      else
+      {
+        const ShaderVariable *reg = GetRegisterVariable(r);
+
+        if(reg)
+        {
+          // if the previous register was the same, just append our component
+          if(i > 0 && r.name == l.variables[i - 1].name)
+          {
+            // remove the auto-appended ", " - there must be one because this isn't the first
+            // register
+            regNames.chop(2);
+            regNames += xyzw[r.component];
+          }
+          else
+          {
+            regNames += QFormatStr("%1.%2").arg(reg->name).arg(xyzw[r.component]);
+          }
+
+          if(l.type == VarType::UInt)
+            value += Formatter::Format(reg->value.uv[r.component]);
+          else if(l.type == VarType::SInt)
+            value += Formatter::Format(reg->value.iv[r.component]);
+          else if(l.type == VarType::Float)
+            value += Formatter::Format(reg->value.fv[r.component]);
+          else if(l.type == VarType::Double)
+            value += Formatter::Format(reg->value.dv[r.component]);
+        }
+        else
+        {
+          regNames += lit("<error>");
+          value += lit("<error>");
+        }
+      }
+
+      if(l.rows > 1 && l.variables.size() > l.columns)
+      {
+        if(((i + 1) % l.columns) == 0)
+        {
+          uint32_t row = (uint32_t)i / l.columns;
+          children.push_back(new RDTreeWidgetItem(
+              {QFormatStr("%1.row%2").arg(localName).arg(row), regNames, typeName, value}));
+          regNames = QString();
+          value = QString();
+        }
+      }
+    }
+  }
+
+  RDTreeWidgetItem *node = new RDTreeWidgetItem({localName, regNames, typeName, value});
+
+  for(RDTreeWidgetItem *c : children)
+    node->addChild(c);
+
+  node->setTag(QVariant::fromValue(SourceVariableTag(localName, l.offset)));
+
+  return node;
 }
 
 const ShaderVariable *ShaderViewer::GetRegisterVariable(const DebugVariableReference &r)

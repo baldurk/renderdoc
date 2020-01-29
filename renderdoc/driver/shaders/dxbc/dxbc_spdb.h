@@ -249,6 +249,7 @@ struct LocalMapping
   LocalRange range;
   uint8_t regFirstComp;
   uint32_t varFirstComp;
+  uint32_t varOffset;
   uint32_t numComps;
   rdcarray<LocalRange> gaps;
 
@@ -274,7 +275,7 @@ public:
   void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const;
   void GetCallstack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &callstack) const;
 
-  bool HasLocals() const;
+  bool HasSourceMapping() const;
   void GetLocals(DXBCBytecode::Program *program, size_t instruction, uintptr_t offset,
                  rdcarray<SourceVariableMapping> &locals) const;
 

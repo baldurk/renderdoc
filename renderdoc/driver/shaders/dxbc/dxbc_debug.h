@@ -209,11 +209,6 @@ void ApplyAllDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace trac
 
 void FlattenSingleVariable(uint32_t byteOffset, const rdcstr &basename, const ShaderVariable &v,
                            rdcarray<ShaderVariable> &outvars);
-void FlattenVariables(const rdcarray<ShaderConstant> &constants,
-                      const rdcarray<ShaderVariable> &invars, rdcarray<ShaderVariable> &outvars,
-                      const rdcstr &prefix, uint32_t baseOffset);
-void FlattenVariables(const rdcarray<ShaderConstant> &constants,
-                      const rdcarray<ShaderVariable> &invars, rdcarray<ShaderVariable> &outvars);
 
 void FillViewFmt(DXGI_FORMAT format, GlobalState::ViewFmt &viewFmt);
 

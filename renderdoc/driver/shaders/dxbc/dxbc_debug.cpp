@@ -1639,6 +1639,145 @@ static uint32_t PopCount(uint32_t x)
   return (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
 }
 
+void FlattenSingleVariable(const rdcstr &cbname, uint32_t byteOffset, const rdcstr &basename,
+                           const ShaderVariable &v, rdcarray<ShaderVariable> &outvars,
+                           rdcarray<SourceVariableMapping> &sourcevars)
+{
+  size_t outIdx = byteOffset / 16;
+  size_t outComp = (byteOffset % 16) / 4;
+
+  if(v.rowMajor)
+    outvars.resize(RDCMAX(outIdx + v.rows, outvars.size()));
+  else
+    outvars.resize(RDCMAX(outIdx + v.columns, outvars.size()));
+
+  if(outvars[outIdx].columns > 0)
+  {
+    // if we already have a variable in this slot, just copy the data for this variable and add the
+    // source mapping.
+    // We should not overlap into the next register as that's not allowed.
+    memcpy(&outvars[outIdx].value.uv[outComp], &v.value.uv[0], sizeof(uint32_t) * v.columns);
+
+    SourceVariableMapping mapping;
+    mapping.name = basename;
+    mapping.type = v.type;
+    mapping.rows = v.rows;
+    mapping.columns = v.columns;
+    mapping.offset = byteOffset;
+    mapping.variables.resize(v.columns);
+
+    for(int i = 0; i < v.columns; i++)
+    {
+      mapping.variables[i].type = DebugVariableType::Constant;
+      mapping.variables[i].name = StringFormat::Fmt("%s[%u]", cbname.c_str(), outIdx);
+      mapping.variables[i].component = uint16_t(outComp + i);
+    }
+
+    sourcevars.push_back(mapping);
+  }
+  else
+  {
+    const uint32_t numRegisters = v.rowMajor ? v.rows : v.columns;
+    for(uint32_t reg = 0; reg < numRegisters; reg++)
+    {
+      outvars[outIdx + reg].rows = 1;
+      outvars[outIdx + reg].type = v.type;
+      outvars[outIdx + reg].isStruct = false;
+      outvars[outIdx + reg].columns = v.columns;
+      outvars[outIdx + reg].rowMajor = v.rowMajor;
+    }
+
+    if(v.rowMajor)
+    {
+      for(size_t ri = 0; ri < v.rows; ri++)
+        memcpy(&outvars[outIdx + ri].value.uv[0], &v.value.uv[ri * v.columns],
+               sizeof(uint32_t) * v.columns);
+    }
+    else
+    {
+      // if we have a matrix stored in column major order, we need to transpose it back so we can
+      // unroll it into vectors.
+      for(size_t ci = 0; ci < v.columns; ci++)
+        for(size_t ri = 0; ri < v.rows; ri++)
+          outvars[outIdx + ci].value.uv[ri] = v.value.uv[ri * v.columns + ci];
+    }
+
+    SourceVariableMapping mapping;
+    mapping.name = basename;
+    mapping.type = v.type;
+    mapping.rows = v.rows;
+    mapping.columns = v.columns;
+    mapping.offset = byteOffset;
+    mapping.variables.resize(v.rows * v.columns);
+
+    for(size_t i = 0; i < mapping.variables.size(); i++)
+    {
+      mapping.variables[i].type = DebugVariableType::Constant;
+      mapping.variables[i].name =
+          StringFormat::Fmt("%s[%u]", cbname.c_str(), uint32_t(outIdx + (outComp + i) / 4));
+      mapping.variables[i].component = uint16_t((outComp + i) % 4);
+    }
+
+    sourcevars.push_back(mapping);
+  }
+}
+
+void FlattenVariables(const rdcstr &cbname, const rdcarray<ShaderConstant> &constants,
+                      const rdcarray<ShaderVariable> &invars, rdcarray<ShaderVariable> &outvars,
+                      const rdcstr &prefix, uint32_t baseOffset,
+                      rdcarray<SourceVariableMapping> &sourceVars)
+{
+  RDCASSERTEQUAL(constants.size(), invars.size());
+
+  for(size_t i = 0; i < constants.size(); i++)
+  {
+    const ShaderConstant &c = constants[i];
+    const ShaderVariable &v = invars[i];
+
+    uint32_t byteOffset = baseOffset + c.byteOffset;
+
+    rdcstr basename = prefix + rdcstr(v.name);
+
+    if(!v.members.empty())
+    {
+      if(v.isStruct)
+      {
+        FlattenVariables(cbname, c.type.members, v.members, outvars, basename + ".", byteOffset,
+                         sourceVars);
+      }
+      else
+      {
+        if(c.type.members.empty())
+        {
+          // if there are no members in this type, it means it's a basic array - unroll directly
+
+          for(int m = 0; m < v.members.count(); m++)
+          {
+            FlattenSingleVariable(cbname, byteOffset + m * c.type.descriptor.arrayByteStride,
+                                  StringFormat::Fmt("%s[%zu]", basename.c_str(), m), v.members[m],
+                                  outvars, sourceVars);
+          }
+        }
+        else
+        {
+          // otherwise we recurse into each member and flatten
+
+          for(int m = 0; m < v.members.count(); m++)
+          {
+            FlattenVariables(cbname, c.type.members, v.members[m].members, outvars,
+                             StringFormat::Fmt("%s[%zu].", basename.c_str(), m),
+                             byteOffset + m * c.type.descriptor.arrayByteStride, sourceVars);
+          }
+        }
+      }
+
+      continue;
+    }
+
+    FlattenSingleVariable(cbname, byteOffset, basename, v, outvars, sourceVars);
+  }
+}
+
 State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State quad[4]) const
 {
   State s = *this;
@@ -4030,6 +4169,8 @@ void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebu
 {
   initialState = ShaderDebug::State(quadIdx, &trace, dxbc->GetReflection(), dxbc->GetDXBCByteCode());
 
+  bool hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
+
   dxbc->GetDXBCByteCode()->SetupRegisterFile(initialState.variables);
 
   int32_t maxReg = -1;
@@ -4074,15 +4215,54 @@ void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebu
         dst = v;
       else
         dst.columns = RDCMAX(dst.columns, v.columns);
+
+      {
+        SourceVariableMapping mapping;
+        mapping.name = sig.semanticIdxName;
+        if(mapping.name.empty() && sig.systemValue != ShaderBuiltin::Undefined)
+          mapping.name = ToStr(sig.systemValue);
+        mapping.type = v.type;
+        mapping.rows = 1;
+        mapping.columns = sig.compCount;
+        mapping.variables.reserve(sig.compCount);
+
+        for(uint16_t c = 0; c < 4; c++)
+        {
+          if(sig.regChannelMask & (1 << c))
+          {
+            DebugVariableReference ref;
+            ref.name = v.name;
+            ref.type = DebugVariableType::Input;
+            ref.component = c;
+            mapping.variables.push_back(ref);
+          }
+        }
+
+        trace.sourceVars.push_back(mapping);
+      }
     }
 
     // Put the coverage mask at the end
     if(inputCoverage)
     {
-      trace.inputs[maxReg + 1] = ShaderVariable(
+      trace.inputs.back() = ShaderVariable(
           dxbc->GetDXBCByteCode()->GetRegisterName(DXBCBytecode::TYPE_INPUT_COVERAGE_MASK, 0), 0U,
           0U, 0U, 0U);
-      trace.inputs[maxReg + 1].columns = 1;
+      trace.inputs.back().columns = 1;
+
+      {
+        SourceVariableMapping mapping;
+        mapping.name = "SV_Coverage";
+        mapping.type = VarType::UInt;
+        mapping.rows = 1;
+        mapping.columns = 1;
+        DebugVariableReference ref;
+        ref.type = DebugVariableType::Input;
+        ref.name = trace.inputs.back().name;
+        mapping.variables.push_back(ref);
+
+        trace.sourceVars.push_back(mapping);
+      }
     }
   }
 
@@ -4140,6 +4320,77 @@ void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebu
       dst = v;
     else
       dst.columns = RDCMAX(dst.columns, v.columns);
+
+    // if we don't have any debug info we can at least map to the semantic to give a better name
+    // than the raw register from the reflection info, at least for normal outputs
+    if(!hasSourceMapping)
+    {
+      if(type == DXBCBytecode::TYPE_OUTPUT)
+      {
+        SourceVariableMapping mapping;
+        mapping.name = sig.semanticIdxName;
+        if(mapping.name.empty() && sig.systemValue != ShaderBuiltin::Undefined)
+          mapping.name = ToStr(sig.systemValue);
+        mapping.type = v.type;
+        mapping.rows = 1;
+        mapping.columns = sig.compCount;
+        mapping.variables.reserve(sig.compCount);
+
+        for(uint16_t c = 0; c < 4; c++)
+        {
+          if(sig.regChannelMask & (1 << c))
+          {
+            DebugVariableReference ref;
+            ref.type = DebugVariableType::Variable;
+            ref.name = v.name;
+            ref.component = c;
+            mapping.variables.push_back(ref);
+          }
+        }
+
+        trace.sourceVars.push_back(mapping);
+      }
+      else
+      {
+        SourceVariableMapping mapping;
+
+        if(sig.systemValue == ShaderBuiltin::DepthOutput)
+        {
+          mapping.name = "SV_Depth";
+          mapping.type = VarType::Float;
+        }
+        else if(sig.systemValue == ShaderBuiltin::DepthOutputLessEqual)
+        {
+          mapping.name = "SV_DepthLessEqual";
+          mapping.type = VarType::Float;
+        }
+        else if(sig.systemValue == ShaderBuiltin::DepthOutputGreaterEqual)
+        {
+          mapping.name = "SV_DepthGreaterEqual";
+          mapping.type = VarType::Float;
+        }
+        else if(sig.systemValue == ShaderBuiltin::MSAACoverage)
+        {
+          mapping.name = "SV_Coverage";
+          mapping.type = VarType::UInt;
+        }
+        else if(sig.systemValue == ShaderBuiltin::StencilReference)
+        {
+          mapping.name = "SV_StencilRef";
+          mapping.type = VarType::UInt;
+        }
+
+        // all these variables are 1 scalar component
+        mapping.rows = 1;
+        mapping.columns = 1;
+        DebugVariableReference ref;
+        ref.type = DebugVariableType::Variable;
+        ref.name = v.name;
+        mapping.variables.push_back(ref);
+
+        trace.sourceVars.push_back(mapping);
+      }
+    }
   }
 
   // Set the number of constant buffers in the trace, but assignment happens later
@@ -4160,17 +4411,29 @@ void AddCBufferToDebugTrace(const DXBCBytecode::Program &program, ShaderDebugTra
     {
       RDCASSERTMSG("Reassigning previously filled cbuffer", trace.constantBlocks[i].members.empty());
 
+      uint32_t cbufferIndex = program.IsShaderModel51() ? (uint32_t)i : slot.shaderRegister;
+
+      trace.constantBlocks[i].name =
+          program.GetRegisterName(DXBCBytecode::TYPE_CONSTANT_BUFFER, cbufferIndex);
+
+      SourceVariableMapping cbSourceMapping;
+      cbSourceMapping.name = refl.constantBlocks[i].name;
+      cbSourceMapping.variables.push_back(
+          DebugVariableReference(DebugVariableType::Constant, global.constantBlocks[i].name));
+      sourceVars.push_back(cbSourceMapping);
+
       rdcarray<ShaderVariable> vars;
       StandardFillCBufferVariables(refl.resourceId, refl.constantBlocks[i].variables, vars, cbufData);
-      FlattenVariables(refl.constantBlocks[i].variables, vars, trace.constantBlocks[i].members);
+      FlattenVariables(trace.constantBlocks[i].name, refl.constantBlocks[i].variables, vars,
+                       trace.constantBlocks[i].members, refl.constantBlocks[i].name + ".", 0,
+                       trace.sourceVars);
 
-      const char *format = program.IsShaderModel51() ? "CB%u[%u] (%s)" : "cb%u[%u] (%s)";
-      uint32_t regSlot = program.IsShaderModel51() ? (uint32_t)i : slot.shaderRegister;
       for(size_t c = 0; c < trace.constantBlocks[i].members.size(); c++)
       {
-        trace.constantBlocks[i].members[c].name = StringFormat::Fmt(
-            format, regSlot, (uint32_t)c, trace.constantBlocks[i].members[c].name.c_str());
+        trace.constantBlocks[i].members[c].name =
+            StringFormat::Fmt("%s[%u]", trace.constantBlocks[i].name.c_str(), (uint32_t)c);
       }
+
       return;
     }
   }
@@ -4362,124 +4625,6 @@ void ApplyAllDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace trac
 
     ddyfine += initialValues[i].numwords;
   }
-}
-
-void FlattenSingleVariable(uint32_t byteOffset, const rdcstr &basename, const ShaderVariable &v,
-                           rdcarray<ShaderVariable> &outvars)
-{
-  size_t outIdx = byteOffset / 16;
-  size_t outComp = (byteOffset % 16) / 4;
-
-  if(v.rowMajor)
-    outvars.resize(RDCMAX(outIdx + v.rows, outvars.size()));
-  else
-    outvars.resize(RDCMAX(outIdx + v.columns, outvars.size()));
-
-  if(!outvars[outIdx].name.empty())
-  {
-    // if we already have a variable in this slot, just append this variable to it. We should not
-    // overlap into the next register as that's not allowed.
-    outvars[outIdx].name = rdcstr(outvars[outIdx].name) + ", " + basename;
-    outvars[outIdx].rows = 1;
-    outvars[outIdx].isStruct = false;
-    outvars[outIdx].columns += v.columns;
-
-    RDCASSERT(outvars[outIdx].columns <= 4, outvars[outIdx].columns);
-
-    memcpy(&outvars[outIdx].value.uv[outComp], &v.value.uv[0], sizeof(uint32_t) * v.columns);
-  }
-  else
-  {
-    const uint32_t numRegisters = v.rowMajor ? v.rows : v.columns;
-    const char *regName = v.rowMajor ? "row" : "col";
-    for(uint32_t reg = 0; reg < numRegisters; reg++)
-    {
-      if(numRegisters > 1)
-        outvars[outIdx + reg].name = StringFormat::Fmt("%s.%s%u", basename.c_str(), regName, reg);
-      else
-        outvars[outIdx + reg].name = basename;
-      outvars[outIdx + reg].rows = 1;
-      outvars[outIdx + reg].type = v.type;
-      outvars[outIdx + reg].isStruct = false;
-      outvars[outIdx + reg].columns = v.columns;
-      outvars[outIdx + reg].rowMajor = v.rowMajor;
-    }
-
-    if(v.rowMajor)
-    {
-      for(size_t ri = 0; ri < v.rows; ri++)
-        memcpy(&outvars[outIdx + ri].value.uv[0], &v.value.uv[ri * v.columns],
-               sizeof(uint32_t) * v.columns);
-    }
-    else
-    {
-      // if we have a matrix stored in column major order, we need to transpose it back so we can
-      // unroll it into vectors.
-      for(size_t ci = 0; ci < v.columns; ci++)
-        for(size_t ri = 0; ri < v.rows; ri++)
-          outvars[outIdx + ci].value.uv[ri] = v.value.uv[ri * v.columns + ci];
-    }
-  }
-}
-
-void FlattenVariables(const rdcarray<ShaderConstant> &constants,
-                      const rdcarray<ShaderVariable> &invars, rdcarray<ShaderVariable> &outvars,
-                      const rdcstr &prefix, uint32_t baseOffset)
-{
-  RDCASSERTEQUAL(constants.size(), invars.size());
-
-  for(size_t i = 0; i < constants.size(); i++)
-  {
-    const ShaderConstant &c = constants[i];
-    const ShaderVariable &v = invars[i];
-
-    uint32_t byteOffset = baseOffset + c.byteOffset;
-
-    rdcstr basename = prefix + rdcstr(v.name);
-
-    if(!v.members.empty())
-    {
-      if(v.isStruct)
-      {
-        FlattenVariables(c.type.members, v.members, outvars, basename + ".", byteOffset);
-      }
-      else
-      {
-        if(c.type.members.empty())
-        {
-          // if there are no members in this type, it means it's a basic array - unroll directly
-
-          for(int m = 0; m < v.members.count(); m++)
-          {
-            FlattenSingleVariable(byteOffset + m * c.type.descriptor.arrayByteStride,
-                                  StringFormat::Fmt("%s[%zu]", basename.c_str(), m), v.members[m],
-                                  outvars);
-          }
-        }
-        else
-        {
-          // otherwise we recurse into each member and flatten
-
-          for(int m = 0; m < v.members.count(); m++)
-          {
-            FlattenVariables(c.type.members, v.members[m].members, outvars,
-                             StringFormat::Fmt("%s[%zu].", basename.c_str(), m),
-                             byteOffset + m * c.type.descriptor.arrayByteStride);
-          }
-        }
-      }
-
-      continue;
-    }
-
-    FlattenSingleVariable(byteOffset, basename, v, outvars);
-  }
-}
-
-void FlattenVariables(const rdcarray<ShaderConstant> &constants,
-                      const rdcarray<ShaderVariable> &invars, rdcarray<ShaderVariable> &outvars)
-{
-  FlattenVariables(constants, invars, outvars, "", 0);
 }
 
 void FillViewFmt(DXGI_FORMAT format, GlobalState::ViewFmt &viewFmt)

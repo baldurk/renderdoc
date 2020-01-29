@@ -356,7 +356,7 @@ void DoSerialise(SerialiserType &ser, SourceVariableMapping &el)
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(rows);
   SERIALISE_MEMBER(columns);
-  SERIALISE_MEMBER(elements);
+  SERIALISE_MEMBER(offset);
   SERIALISE_MEMBER(variables);
 
   SIZE_CHECK(64);
@@ -393,11 +393,12 @@ void DoSerialise(SerialiserType &ser, ShaderDebugTrace &el)
 {
   SERIALISE_MEMBER(inputs);
   SERIALISE_MEMBER(constantBlocks);
+  SERIALISE_MEMBER(sourceVars);
   SERIALISE_MEMBER(states);
   SERIALISE_MEMBER(hasSourceMapping);
   SERIALISE_MEMBER(lineInfo);
 
-  SIZE_CHECK(104);
+  SIZE_CHECK(128);
 }
 
 template <typename SerialiserType>

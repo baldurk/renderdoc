@@ -112,20 +112,11 @@
    <property name="frameShape">
     <enum>QFrame::NoFrame</enum>
    </property>
-   <property name="indentation">
-    <number>0</number>
-   </property>
-   <property name="rootIsDecorated">
-    <bool>false</bool>
-   </property>
-   <property name="itemsExpandable">
-    <bool>false</bool>
-   </property>
    <property name="allColumnsShowFocus">
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="RDTreeWidget" name="registers">
+  <widget class="RDTreeWidget" name="debugVars">
    <property name="geometry">
     <rect>
      <x>310</x>
@@ -576,7 +567,7 @@
     <enum>QAbstractItemView::NoSelection</enum>
    </property>
   </widget>
-  <widget class="RDTreeWidget" name="locals">
+  <widget class="RDTreeWidget" name="sourceVars">
    <property name="geometry">
     <rect>
      <x>290</x>

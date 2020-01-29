@@ -122,7 +122,7 @@ void SDBGChunk::GetCallstack(size_t instruction, uintptr_t offset, rdcarray<rdcs
   }
 }
 
-bool SDBGChunk::HasLocals() const
+bool SDBGChunk::HasSourceMapping() const
 {
   return false;
 }

@@ -127,7 +127,7 @@ public:
   virtual void GetCallstack(size_t instruction, uintptr_t offset,
                             rdcarray<rdcstr> &callstack) const = 0;
 
-  virtual bool HasLocals() const = 0;
+  virtual bool HasSourceMapping() const = 0;
   virtual void GetLocals(DXBCBytecode::Program *program, size_t instruction, uintptr_t offset,
                          rdcarray<SourceVariableMapping> &locals) const = 0;
 };

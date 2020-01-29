@@ -383,7 +383,7 @@ struct SourceVariableMapping
   bool operator==(const SourceVariableMapping &o) const
   {
     return name == o.name && type == o.type && rows == o.rows && columns == o.columns &&
-           elements == o.elements && variables == o.variables;
+           variables == o.variables;
   }
   bool operator<(const SourceVariableMapping &o) const
   {
@@ -395,8 +395,6 @@ struct SourceVariableMapping
       return rows < o.rows;
     if(!(columns == o.columns))
       return columns < o.columns;
-    if(!(elements == o.elements))
-      return elements < o.elements;
     if(!(variables == o.variables))
       return variables < o.variables;
     return false;
@@ -414,8 +412,8 @@ struct SourceVariableMapping
   DOCUMENT("The number of columns in this variable.");
   uint32_t columns;
 
-  DOCUMENT("The number of array elements in this variable.");
-  uint32_t elements;
+  DOCUMENT("The offset in the parent source variable, for struct members. Useful for sorting.");
+  uint32_t offset;
 
   DOCUMENT(R"(The debug variables that the components of this high level variable map to. Multiple
 ranges could refer to the same variable if a contiguous range is mapped to - the mapping is
@@ -576,6 +574,14 @@ Depending on the underlying shader representation, the constant block may retain
 it may have been vectorised and flattened.
 )");
   rdcarray<ShaderVariable> constantBlocks;
+
+  DOCUMENT(R"(An optional list of :class:`SourceVariableMapping` indicating which high-level source
+variables map to which debug variables and includes extra type information.
+
+This list contains source variable mapping that is valid for the lifetime of a debug trace. It may
+be empty if there is no source variable mapping that extends to the life of the debug trace.
+)");
+  rdcarray<SourceVariableMapping> sourceVars;
 
   DOCUMENT(R"(A list of :class:`ShaderDebugState` states representing the state after each
 instruction was executed

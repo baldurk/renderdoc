@@ -266,6 +266,10 @@ private:
 
   void updateDebugging();
 
+  QString makeBindName(Bindpoint &bind, bool readOnly);
+
+  RDTreeWidgetItem *makeSourceVariableNode(const SourceVariableMapping &l);
+
   const ShaderVariable *GetRegisterVariable(const DebugVariableReference &r);
   const ShaderVariable *GetRegisterVariable(VariableCategory category, int index, int member);
 
@@ -277,8 +281,6 @@ private:
              ShaderEvents condition = ShaderEvents::NoEvent);
 
   QString stringRep(const ShaderVariable &var, bool useType);
-  RDTreeWidgetItem *makeResourceRegister(const Bindpoint &bind, uint32_t idx,
-                                         const BoundResource &ro, const ShaderResource &resources);
-  void combineStructures(RDTreeWidgetItem *root);
+  void combineStructures(RDTreeWidgetItem *root, int skipPrefixLength = 0);
   RDTreeWidgetItem *findLocal(RDTreeWidgetItem *root, QString name);
 };

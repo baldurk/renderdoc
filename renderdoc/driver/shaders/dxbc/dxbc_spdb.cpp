@@ -189,7 +189,8 @@ SPDBChunk::SPDBChunk(void *chunk)
     VarType baseType;
     uint32_t byteSize;
     uint16_t vecSize;
-    uint16_t matArrayStride;
+    uint16_t matArrayStride : 15;
+    uint16_t colMajorMatrix : 1;
     LEAF_ENUM_e leafType;
     rdcarray<TypeMember> members;
   };
@@ -199,24 +200,24 @@ SPDBChunk::SPDBChunk(void *chunk)
   // prepopulate with basic types
   // for now we stick to full-precision 32-bit VarTypes. It's not clear if HLSL even emits the other
   // types
-  typeInfo[T_INT4] = {"int32_t", VarType::SInt, 4, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_INT2] = {"int16_t", VarType::SInt, 2, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_INT1] = {"int8_t", VarType::SInt, 1, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_LONG] = {"int32_t", VarType::SInt, 4, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_SHORT] = {"int16_t", VarType::SInt, 2, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_CHAR] = {"char", VarType::SInt, 1, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_BOOL32FF] = {"bool", VarType::UInt, 4, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_UINT4] = {"uint32_t", VarType::UInt, 4, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_UINT2] = {"uint16_t", VarType::UInt, 2, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_UINT1] = {"uint8_t", VarType::UInt, 1, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_ULONG] = {"uint32_t", VarType::UInt, 4, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_USHORT] = {"uint16_t", VarType::UInt, 2, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_UCHAR] = {"unsigned char", VarType::UInt, 1, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_REAL16] = {"half", VarType::Float, 2, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_REAL32] = {"float", VarType::Float, 4, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_INT4] = {"int32_t", VarType::SInt, 4, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_INT2] = {"int16_t", VarType::SInt, 2, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_INT1] = {"int8_t", VarType::SInt, 1, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_LONG] = {"int32_t", VarType::SInt, 4, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_SHORT] = {"int16_t", VarType::SInt, 2, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_CHAR] = {"char", VarType::SInt, 1, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_BOOL32FF] = {"bool", VarType::UInt, 4, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_UINT4] = {"uint32_t", VarType::UInt, 4, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_UINT2] = {"uint16_t", VarType::UInt, 2, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_UINT1] = {"uint8_t", VarType::UInt, 1, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_ULONG] = {"uint32_t", VarType::UInt, 4, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_USHORT] = {"uint16_t", VarType::UInt, 2, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_UCHAR] = {"unsigned char", VarType::UInt, 1, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_REAL16] = {"half", VarType::Float, 2, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_REAL32] = {"float", VarType::Float, 4, 1, 0, 0, LF_NUMERIC, {}};
   // modern HLSL fake half
-  typeInfo[T_REAL32PP] = {"half", VarType::Float, 4, 1, 0, LF_NUMERIC, {}};
-  typeInfo[T_REAL64] = {"double", VarType::Double, 8, 1, 0, LF_NUMERIC, {}};
+  typeInfo[T_REAL32PP] = {"half", VarType::Float, 4, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_REAL64] = {"double", VarType::Double, 8, 1, 0, 0, LF_NUMERIC, {}};
 
   if(streams.size() >= 3)
   {
@@ -275,8 +276,8 @@ SPDBChunk::SPDBChunk(void *chunk)
           typeInfo[id] = {
               name,        typeInfo[vector->elemtype].baseType,
               *bytelength, (uint16_t)vector->count,
-              0,           type,
-              {},
+              0,           0,
+              type,        {},
           };
 
           break;
@@ -293,14 +294,22 @@ SPDBChunk::SPDBChunk(void *chunk)
               id, name, matrix->elemtype, matrix->rows, matrix->cols, *bytelength,
               matrix->majorStride, matrix->matattr.row_major ? "row" : "column");
 
+          uint16_t vecSize = 0, matStride = 0;
+
+          if(matrix->matattr.row_major)
+          {
+            vecSize = uint16_t(matrix->cols);
+            matStride = uint16_t(*bytelength / matrix->rows);
+          }
+          else
+          {
+            vecSize = uint16_t(matrix->rows);
+            matStride = uint16_t(*bytelength / matrix->cols);
+          }
+
           typeInfo[id] = {
-              name,
-              typeInfo[matrix->elemtype].baseType,
-              *bytelength,
-              uint16_t(matrix->rows),
-              uint16_t(*bytelength / matrix->cols),
-              type,
-              {},
+              name,      typeInfo[matrix->elemtype].baseType, *bytelength, vecSize,
+              matStride, matrix->matattr.row_major == 0,      type,        {},
           };
 
           break;
@@ -547,7 +556,7 @@ SPDBChunk::SPDBChunk(void *chunk)
             structType = "class";
 
           typeInfo[id] = {
-              name, VarType::Float, *bytelength, 1, 0, type, typeInfo[structure->field].members,
+              name, VarType::Float, *bytelength, 1, 0, 0, type, typeInfo[structure->field].members,
           };
 
           SPDBLOG(
@@ -583,6 +592,7 @@ SPDBChunk::SPDBChunk(void *chunk)
               *bytelength,
               1,
               uint16_t(stridedArray->stride),
+              0,
               type,
               {},
           };
@@ -1159,6 +1169,8 @@ SPDBChunk::SPDBChunk(void *chunk)
         uint32_t varOffset = defrange->offsetParent;
         uint32_t varLen = defrange->sizeInParent;
 
+        mapping.varOffset = varOffset;
+
         const TypeDesc *vartype = &typeInfo[localType];
 
         RDCASSERT(varOffset + varLen <= vartype->byteSize);
@@ -1218,23 +1230,59 @@ SPDBChunk::SPDBChunk(void *chunk)
         mapping.var.type = vartype->baseType;
         mapping.var.rows = 1;
         mapping.var.columns = uint8_t(vartype->vecSize);
+        mapping.var.elements = 1;
 
         // if it's an array or matrix, figure out the index
         if(vartype->matArrayStride)
         {
+          // number of rows is the number of vectors in the matrix's total byte size (each vector is
+          // a row)
+          mapping.var.rows = uint8_t(vartype->byteSize / vartype->matArrayStride);
+
+          // unless this is a column major matrix, in which case each vector is a column so swap the
+          // rows/columns (the number of ROWS is the vector size, when each vector is a column)
+          if(vartype->colMajorMatrix)
+            std::swap(mapping.var.rows, mapping.var.columns);
+
+          // calculate which vector we're on, and which component
           uint32_t idx = varOffset / vartype->matArrayStride;
-
-          mapping.var.name += StringFormat::Fmt("[%u]", idx);
-          mapping.var.rows = (uint8_t)RDCMAX(
-              1U, (vartype->byteSize + (vartype->matArrayStride - 1)) / vartype->matArrayStride);
-
           varOffset -= vartype->matArrayStride * idx;
-        }
+          uint32_t comp = (varOffset % 16) / 4;
 
-        if(vartype->leafType != LF_MATRIX)
-        {
-          mapping.var.elements = mapping.var.rows;
-          mapping.var.rows = 1;
+          // should now be down to a vector, so the remaining offset is the component
+          RDCASSERT(varOffset < 16);
+
+          if(vartype->leafType == LF_MATRIX)
+          {
+            // if this is a matrix, start with the index as row, and component as column
+            uint32_t row = idx;
+            uint32_t col = comp;
+
+            // flip them if this is column major
+            if(vartype->colMajorMatrix)
+              std::swap(row, col);
+
+            // add the row to the name since we want our mapping row-major for better display
+            mapping.var.name += StringFormat::Fmt(".row%u", row);
+
+            // and set the component after flipping
+            comp = col;
+          }
+          else
+          {
+            // the number of rows is actually the number of elements (and number of rows is 1)
+            mapping.var.elements = mapping.var.rows;
+            mapping.var.rows = 1;
+
+            // if this is an array, the index is just the array index. However if we're mapping the
+            // whole array, don't add the index as the mapping will do that for us
+            if(varLen < mapping.var.elements * vartype->matArrayStride)
+              mapping.var.name += StringFormat::Fmt("[%u]", idx);
+          }
+
+          // set the offset explicitly to the component within the final vector we chose (whatever
+          // it is)
+          varOffset = comp * 4;
         }
 
         RDCASSERT(mapping.var.rows <= 4 && mapping.var.columns <= 4);
@@ -1623,7 +1671,7 @@ void SPDBChunk::GetCallstack(size_t instruction, uintptr_t offset, rdcarray<rdcs
     callstack = it->second.callstack;
 }
 
-bool SPDBChunk::HasLocals() const
+bool SPDBChunk::HasSourceMapping() const
 {
   return true;
 }
@@ -1676,6 +1724,9 @@ void SPDBChunk::GetLocals(DXBCBytecode::Program *program, size_t instruction, ui
     else
       range.type = DebugVariableType::Variable;
 
+    // we don't handle more than float4 at a time (unless in an array)
+    RDCASSERT(it->numComps <= 4);
+
     // we apply each matching local over the top. Where there is an overlap (e.g. two variables with
     // the same name) we take the last mapping as authoratitive. This is a good solution for the
     // case where one function with a parameter/variable name calls an inner function with the same
@@ -1696,6 +1747,8 @@ void SPDBChunk::GetLocals(DXBCBytecode::Program *program, size_t instruction, ui
           a.variables[it->varFirstComp + i].component += (uint8_t)i;
         }
 
+        RDCASSERT(it->var.elements == 1);
+
         // we've processed this, no need to add a new entry
         added = true;
         break;
@@ -1710,7 +1763,7 @@ void SPDBChunk::GetLocals(DXBCBytecode::Program *program, size_t instruction, ui
       a.type = it->var.type;
       a.rows = it->var.rows;
       a.columns = it->var.columns;
-      a.elements = it->var.elements;
+      a.offset = it->varOffset;
 
       a.variables.resize(it->varFirstComp + it->numComps);
 
@@ -1720,7 +1773,20 @@ void SPDBChunk::GetLocals(DXBCBytecode::Program *program, size_t instruction, ui
         a.variables[it->varFirstComp + i].component += (uint8_t)i;
       }
 
-      locals.push_back(a);
+      for(uint32_t e = 0; e < it->var.elements; e++)
+      {
+        if(it->var.elements > 1)
+        {
+          a.name = StringFormat::Fmt("%s[%u]", it->var.name.c_str(), e);
+          for(uint32_t i = 0; i < it->numComps; i++)
+          {
+            a.variables[it->varFirstComp + i].name =
+                StringFormat::Fmt("%s[%u]", range.name.c_str(), e);
+          }
+        }
+
+        locals.push_back(a);
+      }
     }
   }
 }

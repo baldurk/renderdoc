@@ -2100,7 +2100,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   ret.states = states;
 
-  ret.hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
+  ret.hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
 
   dxbc->FillTraceLineInfo(ret);
 
@@ -2961,7 +2961,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
   traces[destIdx].states = states;
 
-  traces[destIdx].hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
+  traces[destIdx].hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
 
   dxbc->FillTraceLineInfo(traces[destIdx]);
 
@@ -3046,7 +3046,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   ret.states = states;
 
-  ret.hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasLocals();
+  ret.hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
 
   dxbc->FillTraceLineInfo(ret);
 
