@@ -1384,7 +1384,7 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *capturefile,
   rdcstr renderdocPath;
   FileIO::GetLibraryFilename(renderdocPath);
 
-  renderdocPath = get_basename(renderdocPath);
+  renderdocPath = get_dirname(renderdocPath);
 
   // the native renderdoccmd.exe is always next to the dll. Wow32 will be somewhere else
   rdcstr cmdpathNative = renderdocPath + "\\renderdoccmd.exe";
@@ -1400,21 +1400,21 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *capturefile,
 
   // if it looks like we're in the development environment, look for the alternate bitness in the
   // corresponding folder
-  int devLocation = renderdocPath.find("\\x64\\Development\\");
+  int devLocation = renderdocPath.find("\\x64\\Development");
   if(devLocation >= 0)
   {
-    renderdocPath[devLocation] = 0;
+    renderdocPath.erase(devLocation, ~0U);
 
     shimpathWow32 = renderdocPath + "\\Win32\\Development\\renderdocshim32.dll";
     cmdpathWow32 = renderdocPath + "\\Win32\\Development\\renderdoccmd.exe";
   }
   else
   {
-    devLocation = renderdocPath.find("\\x64\\Release\\");
+    devLocation = renderdocPath.find("\\x64\\Release");
 
     if(devLocation >= 0)
     {
-      renderdocPath[devLocation] = 0;
+      renderdocPath.erase(devLocation, ~0U);
 
       shimpathWow32 = renderdocPath + "\\Win32\\Release\\renderdocshim32.dll";
       cmdpathWow32 = renderdocPath + "\\Win32\\Release\\renderdoccmd.exe";
@@ -1511,7 +1511,7 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *capturefile,
 
   if(retValue == FALSE)
   {
-    RDCERR("Can't launch 64-bit renderdoccmd from '%ls'", cmdpathNative.c_str());
+    RDCERR("Can't launch 64-bit renderdoccmd from '%s'", cmdpathNative.c_str());
     CloseHandle(hookdata.dataNative.pipe);
     RestoreRegistry(hookdata);
     return false;
@@ -1567,7 +1567,7 @@ bool Process::StartGlobalHook(const char *pathmatch, const char *capturefile,
 
   if(retValue == FALSE)
   {
-    RDCERR("Can't launch 32-bit renderdoccmd from '%ls'", cmdpathWow32.c_str());
+    RDCERR("Can't launch 32-bit renderdoccmd from '%s'", cmdpathWow32.c_str());
     CloseHandle(hookdata.dataNative.pipe);
     CloseHandle(hookdata.dataWow32.pipe);
     RestoreRegistry(hookdata);
