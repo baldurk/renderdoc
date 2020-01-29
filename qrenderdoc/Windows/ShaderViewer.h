@@ -50,6 +50,8 @@ enum class VariableCategory
   Unknown,
   Inputs,
   Constants,
+  ReadOnlyResource,
+  ReadWriteResource,
   Variables,
   ByString,
 };
@@ -265,8 +267,6 @@ private:
   int instructionForDisassemblyLine(sptr_t line);
 
   void updateDebugging();
-
-  QString makeBindName(Bindpoint &bind, bool readOnly);
 
   RDTreeWidgetItem *makeSourceVariableNode(const SourceVariableMapping &l);
 

@@ -1579,7 +1579,8 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   global.PopulateGroupshared(dxbc->GetDXBCByteCode());
 
   State initialState;
-  CreateShaderDebugStateAndTrace(initialState, traces[destIdx], destIdx, dxbc, refl);
+  CreateShaderDebugStateAndTrace(initialState, traces[destIdx], destIdx, dxbc, refl,
+                                 origPSO->PS()->GetMapping());
 
   // Fetch constant buffer data from root signature
   GatherConstantBuffers(m_pDevice, *dxbc->GetDXBCByteCode(), rs.graphics, refl,
@@ -1850,13 +1851,14 @@ ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   ShaderDebugTrace ret;
 
+  WrappedID3D12PipelineState *pso =
+      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+
   GlobalState global;
   global.PopulateGroupshared(dxbc->GetDXBCByteCode());
   State initialState;
-  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl);
+  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl, pso->CS()->GetMapping());
 
-  WrappedID3D12PipelineState *pso =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
   GatherConstantBuffers(m_pDevice, *dxbc->GetDXBCByteCode(), rs.compute, refl,
                         pso->CS()->GetMapping(), ret);
 

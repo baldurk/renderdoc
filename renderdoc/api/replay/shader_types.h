@@ -575,6 +575,22 @@ it may have been vectorised and flattened.
 )");
   rdcarray<ShaderVariable> constantBlocks;
 
+  DOCUMENT(R"(The read-only resource variables for this shader as a list of :class:`ShaderVariable`.
+
+The 'value' of the variable is always a single unsigned integer, which is the bindpoint - an index
+into the :data:`ShaderBindpointMapping.readOnlyResources` list, which can be used to look up the
+other metadata as well as find the binding from the pipeline state.
+)");
+  rdcarray<ShaderVariable> readOnlyResources;
+
+  DOCUMENT(R"(The read-write resource variables for this shader as a list of :class:`ShaderVariable`.
+
+The 'value' of the variable is always a single unsigned integer, which is the bindpoint - an index
+into the :data:`ShaderBindpointMapping.readWriteResources` list, which can be used to look up the
+other metadata as well as find the binding from the pipeline state.
+)");
+  rdcarray<ShaderVariable> readWriteResources;
+
   DOCUMENT(R"(An optional list of :class:`SourceVariableMapping` indicating which high-level source
 variables map to which debug variables and includes extra type information.
 

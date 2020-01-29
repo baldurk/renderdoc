@@ -1889,89 +1889,103 @@ void ShaderViewer::updateDebugging()
       }
     }
 
-    rdcarray<BoundResourceArray> rw = m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage);
-    rdcarray<BoundResourceArray> ro = m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage);
+    rdcarray<BoundResourceArray> roBinds = m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage);
 
-    bool tree = false;
-
-    for(int i = 0;
-        i < m_Mapping->readWriteResources.count() && i < m_ShaderDetails->readWriteResources.count();
-        i++)
+    for(int i = 0; i < m_Trace->readOnlyResources.count(); i++)
     {
-      Bindpoint bind = m_Mapping->readWriteResources[i];
+      const ShaderVariable &ro = m_Trace->readOnlyResources[i];
+
+      if(varsMapped.contains(ro.name))
+        continue;
+
+      uint32_t idx = ro.value.u.x;
+
+      if(idx >= m_Mapping->readOnlyResources.size())
+        continue;
+
+      Bindpoint bind = m_Mapping->readOnlyResources[idx];
 
       if(!bind.used)
         continue;
 
-      int idx = rw.indexOf(bind);
+      int32_t bindIdx = roBinds.indexOf(bind);
 
-      if(idx < 0 || rw[idx].resources.isEmpty())
+      if(bindIdx < 0)
         continue;
 
-      QString bindname = makeBindName(bind, false);
+      BoundResourceArray roBind = roBinds[bindIdx];
 
       if(bind.arraySize == 1)
       {
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({bindname, m_ShaderDetails->readWriteResources[i].name,
-                                  lit("RW Resource"), ToQStr(rw[idx].resources[0].resourceId)});
+            new RDTreeWidgetItem({m_ShaderDetails->readOnlyResources[i].name, ro.name,
+                                  lit("Resource"), ToQStr(roBind.resources[0].resourceId)});
         if(node)
           ui->constants->addTopLevelItem(node);
       }
       else
       {
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({bindname, m_ShaderDetails->readWriteResources[i].name,
+            new RDTreeWidgetItem({m_ShaderDetails->readOnlyResources[i].name, QString(),
                                   QFormatStr("[%1]").arg(bind.arraySize), QString()});
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
-          node->addChild(new RDTreeWidgetItem(
-              {QFormatStr("%1[%2]").arg(bindname).arg(a), m_ShaderDetails->readWriteResources[i].name,
-               lit("Resource"), ToQStr(rw[idx].resources[a].resourceId)}));
-
-        tree = true;
+          node->addChild(new RDTreeWidgetItem({
+              QFormatStr("%1[%2]").arg(m_ShaderDetails->readOnlyResources[i].name).arg(a),
+              QFormatStr("%1[%2]").arg(ro.name).arg(a), lit("Resource"),
+              ToQStr(roBind.resources[a].resourceId),
+          }));
 
         ui->constants->addTopLevelItem(node);
       }
     }
 
-    for(int i = 0;
-        i < m_Mapping->readOnlyResources.count() && i < m_ShaderDetails->readOnlyResources.count();
-        i++)
+    rdcarray<BoundResourceArray> rwBinds = m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage);
+
+    for(int i = 0; i < m_Trace->readWriteResources.count(); i++)
     {
-      Bindpoint bind = m_Mapping->readOnlyResources[i];
+      const ShaderVariable &rw = m_Trace->readWriteResources[i];
+
+      if(varsMapped.contains(rw.name))
+        continue;
+
+      uint32_t idx = rw.value.u.x;
+
+      if(idx >= m_Mapping->readWriteResources.size())
+        continue;
+
+      Bindpoint bind = m_Mapping->readWriteResources[idx];
 
       if(!bind.used)
         continue;
 
-      int idx = ro.indexOf(bind);
+      int32_t bindIdx = rwBinds.indexOf(bind);
 
-      if(idx < 0 || ro[idx].resources.isEmpty())
+      if(bindIdx < 0)
         continue;
 
-      QString bindname = makeBindName(bind, true);
+      BoundResourceArray rwBind = rwBinds[bindIdx];
 
       if(bind.arraySize == 1)
       {
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({bindname, m_ShaderDetails->readOnlyResources[i].name,
-                                  lit("Resource"), ToQStr(ro[idx].resources[0].resourceId)});
+            new RDTreeWidgetItem({m_ShaderDetails->readWriteResources[i].name, rw.name,
+                                  lit("Resource"), ToQStr(rwBind.resources[0].resourceId)});
         if(node)
           ui->constants->addTopLevelItem(node);
       }
       else
       {
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({bindname, m_ShaderDetails->readOnlyResources[i].name,
-                                  m_ShaderDetails->readOnlyResources[i].name,
+            new RDTreeWidgetItem({m_ShaderDetails->readWriteResources[i].name, QString(),
                                   QFormatStr("[%1]").arg(bind.arraySize), QString()});
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
-          node->addChild(new RDTreeWidgetItem(
-              {QFormatStr("%1[%2]").arg(bindname).arg(a), m_ShaderDetails->readOnlyResources[i].name,
-               lit("Resource"), ToQStr(ro[idx].resources[a].resourceId)}));
-
-        tree = true;
+          node->addChild(new RDTreeWidgetItem({
+              QFormatStr("%1[%2]").arg(m_ShaderDetails->readWriteResources[i].name).arg(a),
+              QFormatStr("%1[%2]").arg(rw.name).arg(a), lit("RW Resource"),
+              ToQStr(rwBind.resources[a].resourceId),
+          }));
 
         ui->constants->addTopLevelItem(node);
       }
@@ -2306,19 +2320,6 @@ void ShaderViewer::updateDebugging()
   updateVariableTooltip();
 }
 
-QString ShaderViewer::makeBindName(Bindpoint &bind, bool readOnly)
-{
-  QChar regChar(QLatin1Char('u'));
-
-  if(readOnly)
-    regChar = QLatin1Char('t');
-
-  if(m_Ctx.APIProps().pipelineType == GraphicsAPI::D3D12)
-    return QFormatStr("%1%2:%3").arg(regChar).arg(bind.bindset).arg(bind.bind);
-  else
-    return QFormatStr("%1%2").arg(regChar).arg(bind.bind);
-}
-
 RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMapping &l)
 {
   const ShaderDebugState &state = m_Trace->states[m_CurrentStep];
@@ -2367,6 +2368,54 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
         regNames += lit("-");
         value += lit("?");
       }
+      else if(r.type == DebugVariableType::ReadOnlyResource ||
+              r.type == DebugVariableType::ReadWriteResource)
+      {
+        const bool isReadOnlyResource = r.type == DebugVariableType::ReadOnlyResource;
+
+        const ShaderVariable *reg = GetRegisterVariable(r);
+
+        regNames = GetRegisterVariable(r)->name;
+        typeName = isReadOnlyResource ? lit("Resource") : lit("RW Resource");
+
+        rdcarray<BoundResourceArray> resList =
+            isReadOnlyResource ? m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage)
+                               : m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage);
+
+        uint32_t idx = reg->value.u.x;
+
+        if(isReadOnlyResource && idx >= m_Mapping->readOnlyResources.size())
+          continue;
+        if(!isReadOnlyResource && idx >= m_Mapping->readWriteResources.size())
+          continue;
+
+        Bindpoint bind = isReadOnlyResource ? m_Mapping->readOnlyResources[idx]
+                                            : m_Mapping->readWriteResources[idx];
+
+        int32_t bindIdx = resList.indexOf(bind);
+
+        if(bindIdx < 0)
+          continue;
+
+        BoundResourceArray res = resList[bindIdx];
+
+        if(bind.arraySize == 1)
+        {
+          value = ToQStr(res.resources[0].resourceId);
+        }
+        else
+        {
+          for(uint32_t a = 0; a < bind.arraySize; a++)
+            children.push_back(new RDTreeWidgetItem({
+                QFormatStr("%1[%2]").arg(localName).arg(a), QFormatStr("%1[%2]").arg(regNames).arg(a),
+                typeName, ToQStr(res.resources[a].resourceId),
+            }));
+
+          regNames = QString();
+          typeName = QFormatStr("[%1]").arg(bind.arraySize);
+          value = QString();
+        }
+      }
       else
       {
         const ShaderVariable *reg = GetRegisterVariable(r);
@@ -2406,9 +2455,14 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
       {
         if(((i + 1) % l.columns) == 0)
         {
+          QString localBaseName = localName;
+          int dot = localBaseName.lastIndexOf(QLatin1Char('.'));
+          if(dot >= 0)
+            localBaseName = localBaseName.mid(dot + 1);
+
           uint32_t row = (uint32_t)i / l.columns;
           children.push_back(new RDTreeWidgetItem(
-              {QFormatStr("%1.row%2").arg(localName).arg(row), regNames, typeName, value}));
+              {QFormatStr("%1.row%2").arg(localBaseName).arg(row), regNames, typeName, value}));
           regNames = QString();
           value = QString();
         }
@@ -2433,6 +2487,22 @@ const ShaderVariable *ShaderViewer::GetRegisterVariable(const DebugVariableRefer
     for(int i = 0; i < m_Trace->inputs.count(); i++)
       if(m_Trace->inputs[i].name == r.name)
         return GetRegisterVariable(VariableCategory::Inputs, i, 0);
+
+    return NULL;
+  }
+  else if(r.type == DebugVariableType::ReadOnlyResource)
+  {
+    for(int i = 0; i < m_Trace->readOnlyResources.count(); i++)
+      if(m_Trace->readOnlyResources[i].name == r.name)
+        return GetRegisterVariable(VariableCategory::ReadOnlyResource, i, 0);
+
+    return NULL;
+  }
+  else if(r.type == DebugVariableType::ReadWriteResource)
+  {
+    for(int i = 0; i < m_Trace->readWriteResources.count(); i++)
+      if(m_Trace->readWriteResources[i].name == r.name)
+        return GetRegisterVariable(VariableCategory::ReadWriteResource, i, 0);
 
     return NULL;
   }
@@ -2490,6 +2560,14 @@ const ShaderVariable *ShaderViewer::GetRegisterVariable(VariableCategory categor
     case VariableCategory::Variables:
       if(index >= 0 && index < state.variables.count())
         var = &state.variables[index];
+      break;
+    case VariableCategory::ReadOnlyResource:
+      if(index >= 0 && index < m_Trace->readOnlyResources.count())
+        var = &m_Trace->readOnlyResources[index];
+      break;
+    case VariableCategory::ReadWriteResource:
+      if(index >= 0 && index < m_Trace->readWriteResources.count())
+        var = &m_Trace->readWriteResources[index];
       break;
     default: break;
   }

@@ -393,12 +393,14 @@ void DoSerialise(SerialiserType &ser, ShaderDebugTrace &el)
 {
   SERIALISE_MEMBER(inputs);
   SERIALISE_MEMBER(constantBlocks);
+  SERIALISE_MEMBER(readOnlyResources);
+  SERIALISE_MEMBER(readWriteResources);
   SERIALISE_MEMBER(sourceVars);
   SERIALISE_MEMBER(states);
   SERIALISE_MEMBER(hasSourceMapping);
   SERIALISE_MEMBER(lineInfo);
 
-  SIZE_CHECK(128);
+  SIZE_CHECK(176);
 }
 
 template <typename SerialiserType>

@@ -4165,7 +4165,8 @@ void GlobalState::PopulateGroupshared(const DXBCBytecode::Program *pBytecode)
 
 void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebugTrace &trace,
                                     int quadIdx, DXBC::DXBCContainer *dxbc,
-                                    const ShaderReflection &refl)
+                                    const ShaderReflection &refl,
+                                    const ShaderBindpointMapping &mapping)
 {
   initialState = ShaderDebug::State(quadIdx, &trace, dxbc->GetReflection(), dxbc->GetDXBCByteCode());
 
@@ -4217,14 +4218,14 @@ void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebu
         dst.columns = RDCMAX(dst.columns, v.columns);
 
       {
-        SourceVariableMapping mapping;
-        mapping.name = sig.semanticIdxName;
-        if(mapping.name.empty() && sig.systemValue != ShaderBuiltin::Undefined)
-          mapping.name = ToStr(sig.systemValue);
-        mapping.type = v.type;
-        mapping.rows = 1;
-        mapping.columns = sig.compCount;
-        mapping.variables.reserve(sig.compCount);
+        SourceVariableMapping sourcemap;
+        sourcemap.name = sig.semanticIdxName;
+        if(sourcemap.name.empty() && sig.systemValue != ShaderBuiltin::Undefined)
+          sourcemap.name = ToStr(sig.systemValue);
+        sourcemap.type = v.type;
+        sourcemap.rows = 1;
+        sourcemap.columns = sig.compCount;
+        sourcemap.variables.reserve(sig.compCount);
 
         for(uint16_t c = 0; c < 4; c++)
         {
@@ -4234,11 +4235,11 @@ void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebu
             ref.name = v.name;
             ref.type = DebugVariableType::Input;
             ref.component = c;
-            mapping.variables.push_back(ref);
+            sourcemap.variables.push_back(ref);
           }
         }
 
-        trace.sourceVars.push_back(mapping);
+        trace.sourceVars.push_back(sourcemap);
       }
     }
 
@@ -4251,17 +4252,17 @@ void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebu
       trace.inputs.back().columns = 1;
 
       {
-        SourceVariableMapping mapping;
-        mapping.name = "SV_Coverage";
-        mapping.type = VarType::UInt;
-        mapping.rows = 1;
-        mapping.columns = 1;
+        SourceVariableMapping sourcemap;
+        sourcemap.name = "SV_Coverage";
+        sourcemap.type = VarType::UInt;
+        sourcemap.rows = 1;
+        sourcemap.columns = 1;
         DebugVariableReference ref;
         ref.type = DebugVariableType::Input;
         ref.name = trace.inputs.back().name;
-        mapping.variables.push_back(ref);
+        sourcemap.variables.push_back(ref);
 
-        trace.sourceVars.push_back(mapping);
+        trace.sourceVars.push_back(sourcemap);
       }
     }
   }
@@ -4327,14 +4328,14 @@ void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebu
     {
       if(type == DXBCBytecode::TYPE_OUTPUT)
       {
-        SourceVariableMapping mapping;
-        mapping.name = sig.semanticIdxName;
-        if(mapping.name.empty() && sig.systemValue != ShaderBuiltin::Undefined)
-          mapping.name = ToStr(sig.systemValue);
-        mapping.type = v.type;
-        mapping.rows = 1;
-        mapping.columns = sig.compCount;
-        mapping.variables.reserve(sig.compCount);
+        SourceVariableMapping sourcemap;
+        sourcemap.name = sig.semanticIdxName;
+        if(sourcemap.name.empty() && sig.systemValue != ShaderBuiltin::Undefined)
+          sourcemap.name = ToStr(sig.systemValue);
+        sourcemap.type = v.type;
+        sourcemap.rows = 1;
+        sourcemap.columns = sig.compCount;
+        sourcemap.variables.reserve(sig.compCount);
 
         for(uint16_t c = 0; c < 4; c++)
         {
@@ -4344,58 +4345,114 @@ void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebu
             ref.type = DebugVariableType::Variable;
             ref.name = v.name;
             ref.component = c;
-            mapping.variables.push_back(ref);
+            sourcemap.variables.push_back(ref);
           }
         }
 
-        trace.sourceVars.push_back(mapping);
+        trace.sourceVars.push_back(sourcemap);
       }
       else
       {
-        SourceVariableMapping mapping;
+        SourceVariableMapping sourcemap;
 
         if(sig.systemValue == ShaderBuiltin::DepthOutput)
         {
-          mapping.name = "SV_Depth";
-          mapping.type = VarType::Float;
+          sourcemap.name = "SV_Depth";
+          sourcemap.type = VarType::Float;
         }
         else if(sig.systemValue == ShaderBuiltin::DepthOutputLessEqual)
         {
-          mapping.name = "SV_DepthLessEqual";
-          mapping.type = VarType::Float;
+          sourcemap.name = "SV_DepthLessEqual";
+          sourcemap.type = VarType::Float;
         }
         else if(sig.systemValue == ShaderBuiltin::DepthOutputGreaterEqual)
         {
-          mapping.name = "SV_DepthGreaterEqual";
-          mapping.type = VarType::Float;
+          sourcemap.name = "SV_DepthGreaterEqual";
+          sourcemap.type = VarType::Float;
         }
         else if(sig.systemValue == ShaderBuiltin::MSAACoverage)
         {
-          mapping.name = "SV_Coverage";
-          mapping.type = VarType::UInt;
+          sourcemap.name = "SV_Coverage";
+          sourcemap.type = VarType::UInt;
         }
         else if(sig.systemValue == ShaderBuiltin::StencilReference)
         {
-          mapping.name = "SV_StencilRef";
-          mapping.type = VarType::UInt;
+          sourcemap.name = "SV_StencilRef";
+          sourcemap.type = VarType::UInt;
         }
 
         // all these variables are 1 scalar component
-        mapping.rows = 1;
-        mapping.columns = 1;
+        sourcemap.rows = 1;
+        sourcemap.columns = 1;
         DebugVariableReference ref;
         ref.type = DebugVariableType::Variable;
         ref.name = v.name;
-        mapping.variables.push_back(ref);
+        sourcemap.variables.push_back(ref);
 
-        trace.sourceVars.push_back(mapping);
+        trace.sourceVars.push_back(sourcemap);
       }
     }
   }
 
   // Set the number of constant buffers in the trace, but assignment happens later
-  size_t numCBuffers = dxbc->GetReflection()->CBuffers.size();
-  trace.constantBlocks.resize(numCBuffers);
+  trace.constantBlocks.resize(refl.constantBlocks.size());
+
+  struct ResList
+  {
+    DebugVariableType varType;
+    const rdcarray<Bindpoint> &binds;
+    const rdcarray<ShaderResource> &resources;
+    const char *regChars;
+    rdcarray<ShaderVariable> &dst;
+  };
+
+  ResList lists[2] = {
+      {
+          DebugVariableType::ReadOnlyResource, mapping.readOnlyResources, refl.readOnlyResources,
+          "tT", trace.readOnlyResources,
+      },
+      {
+          DebugVariableType::ReadWriteResource, mapping.readWriteResources, refl.readWriteResources,
+          "uU", trace.readWriteResources,
+      },
+  };
+
+  for(ResList &list : lists)
+  {
+    // add the registers for the resources that are used
+    list.dst.reserve(list.binds.size());
+    for(size_t i = 0; i < list.binds.size(); i++)
+    {
+      const Bindpoint &b = list.binds[i];
+      const ShaderResource &r = list.resources[i];
+
+      if(!b.used)
+        continue;
+
+      rdcstr identifier;
+
+      if(dxbc->GetDXBCByteCode()->IsShaderModel51())
+        identifier = StringFormat::Fmt("%c%zu", list.regChars[1], i);
+      else
+        identifier = StringFormat::Fmt("%c%u", list.regChars[0], b.bind);
+
+      ShaderVariable reg(identifier, (uint32_t)i, 0U, 0U, 0U);
+      reg.columns = 1;
+
+      SourceVariableMapping sourcemap;
+      sourcemap.name = r.name;
+      sourcemap.type = r.variableType.descriptor.type;
+      sourcemap.rows = r.variableType.descriptor.rows;
+      sourcemap.columns = r.variableType.descriptor.columns;
+      DebugVariableReference ref;
+      ref.type = list.varType;
+      ref.name = reg.name;
+      sourcemap.variables.push_back(ref);
+
+      trace.sourceVars.push_back(sourcemap);
+      list.dst.push_back(reg);
+    }
+  }
 }
 
 void AddCBufferToDebugTrace(const DXBCBytecode::Program &program, ShaderDebugTrace &trace,

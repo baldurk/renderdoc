@@ -1817,7 +1817,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
   GlobalState global;
   global.PopulateGroupshared(dxbc->GetDXBCByteCode());
   State initialState;
-  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl);
+  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl, vs->GetMapping());
 
   AddCBuffersToDebugTrace(*dxbc->GetDXBCByteCode(), *GetDebugManager(), ret, rs->VS, refl,
                           vs->GetMapping());
@@ -2718,7 +2718,8 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   global.sampleEvalRegisterMask = sampleEvalRegisterMask;
 
   State initialState;
-  CreateShaderDebugStateAndTrace(initialState, traces[destIdx], destIdx, dxbc, refl);
+  CreateShaderDebugStateAndTrace(initialState, traces[destIdx], destIdx, dxbc, refl,
+                                 ps->GetMapping());
 
   AddCBuffersToDebugTrace(*dxbc->GetDXBCByteCode(), *GetDebugManager(), traces[destIdx], rs->PS,
                           refl, ps->GetMapping());
@@ -3007,7 +3008,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
   GlobalState global;
   global.PopulateGroupshared(dxbc->GetDXBCByteCode());
   State initialState;
-  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl);
+  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl, cs->GetMapping());
 
   AddCBuffersToDebugTrace(*dxbc->GetDXBCByteCode(), *GetDebugManager(), ret, rs->CS, refl,
                           cs->GetMapping());

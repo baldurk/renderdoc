@@ -120,6 +120,18 @@ DOCUMENT(R"(Represents the category of debugging variable that a source variable
 
   A constant buffer value, stored globally.
 
+.. data:: ReadOnlyResource
+
+  A read-only resource, stored globally.
+
+.. data:: ReadWriteResource
+
+  A read-write resource, stored globally.
+
+.. data:: Constant
+
+  A constant buffer value, stored globally.
+
 .. data:: Variable
 
   A mutable variable, stored per state.
@@ -129,6 +141,8 @@ enum class DebugVariableType : uint8_t
   Undefined,
   Input,
   Constant,
+  ReadOnlyResource,
+  ReadWriteResource,
   Variable,
 };
 
