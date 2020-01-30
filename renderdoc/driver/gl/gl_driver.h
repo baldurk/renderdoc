@@ -518,7 +518,7 @@ private:
   ContextData &GetCtxData();
   GLuint GetUniformProgram();
 
-  void MakeValidContextCurrent(GLWindowingData &prevctx, void *favourWnd);
+  GLWindowingData *MakeValidContextCurrent(GLWindowingData existing, GLWindowingData &newContext);
 
   void ReplaceResource(ResourceId from, ResourceId to);
   void RemoveReplacement(ResourceId id);

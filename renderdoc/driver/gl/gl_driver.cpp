@@ -2105,42 +2105,30 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
   }
 }
 
-void WrappedOpenGL::MakeValidContextCurrent(GLWindowingData &prevctx, void *favourWnd)
+GLWindowingData *WrappedOpenGL::MakeValidContextCurrent(GLWindowingData existing,
+                                                        GLWindowingData &newContext)
 {
-  if(prevctx.ctx == NULL)
+  if(existing.ctx == NULL)
   {
-    for(size_t i = m_LastContexts.size(); i > 0; i--)
+    if(m_LastContexts.empty())
     {
-      // need to find a context for fetching most initial states
-      GLWindowingData ctx = m_LastContexts[i - 1];
-
-      // check this context isn't current elsewhere
-      bool usedElsewhere = false;
-      for(auto it = m_ActiveContexts.begin(); it != m_ActiveContexts.end(); ++it)
-      {
-        if(it->second.ctx == ctx.ctx)
-        {
-          usedElsewhere = true;
-          break;
-        }
-      }
-
-      if(!usedElsewhere)
-      {
-        prevctx = ctx;
-        break;
-      }
+      RDCERR("No GL context exists - can't make current, will likely crash");
+      return NULL;
     }
 
-    if(prevctx.ctx == NULL)
-    {
-      RDCERR("Couldn't find GL context to make current on this thread %llu.",
-             Threading::GetCurrentID());
-    }
+    // take the last context used
+    GLWindowingData ctx = m_LastContexts.back();
 
-    m_ActiveContexts[Threading::GetCurrentID()] = prevctx;
-    m_Platform.MakeContextCurrent(prevctx);
+    // and use the backdoor context on it
+    newContext = m_ContextData[ctx.ctx].shareGroup->m_BackDoor;
+
+    GLWindowingData *saved = new GLWindowingData;
+    m_ActiveContexts[Threading::GetCurrentID()] = newContext;
+    m_Platform.PushChildContext(existing, newContext, saved);
+    return saved;
   }
+
+  return NULL;
 }
 
 void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
@@ -2160,9 +2148,9 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
   m_FailedFrame = 0;
   m_FailedReason = CaptureSucceeded;
 
-  GLWindowingData prevctx = m_ActiveContexts[Threading::GetCurrentID()];
-  GLWindowingData switchctx = prevctx;
-  MakeValidContextCurrent(switchctx, wnd);
+  GLWindowingData existing = m_ActiveContexts[Threading::GetCurrentID()];
+  GLWindowingData newContext = existing;
+  GLWindowingData *pushChildSaved = MakeValidContextCurrent(existing, newContext);
 
   FrameDescription frame;
   frame.frameNumber = m_AppControlledCapture ? ~0U : m_FrameCounter;
@@ -2189,10 +2177,13 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
     GetContextRecord()->AddChunk(scope.Get());
   }
 
-  if(switchctx.ctx != prevctx.ctx)
+  // if we changed contexts above, pop back to where we were
+  if(pushChildSaved)
   {
-    m_Platform.MakeContextCurrent(prevctx);
-    m_ActiveContexts[Threading::GetCurrentID()] = prevctx;
+    m_Platform.PopChildContext(existing, newContext, *pushChildSaved);
+    delete pushChildSaved;
+
+    m_ActiveContexts[Threading::GetCurrentID()] = existing;
   }
 
   RDCLOG("Starting capture, frame %u", m_CapturedFrames.back().frameNumber);
@@ -2207,9 +2198,9 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
   CaptureFailReason reason = CaptureSucceeded;
 
-  GLWindowingData prevctx = m_ActiveContexts[Threading::GetCurrentID()];
-  GLWindowingData switchctx = prevctx;
-  MakeValidContextCurrent(switchctx, wnd);
+  GLWindowingData existing = m_ActiveContexts[Threading::GetCurrentID()];
+  GLWindowingData newContext = existing;
+  GLWindowingData *pushChildSaved = MakeValidContextCurrent(existing, newContext);
 
   if(HasSuccessfulCapture(reason))
   {
@@ -2226,7 +2217,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
     // if the specified context isn't current, try and see if we've saved
     // an appropriate backbuffer image during capture.
-    if((dev != NULL && prevctx.ctx != dev) || (wnd != 0 && (void *)prevctx.wnd != wnd))
+    if((dev != NULL && existing.ctx != dev) || (wnd != 0 && (void *)existing.wnd != wnd))
     {
       auto it = m_BackbufferImages.find(wnd);
       if(it != m_BackbufferImages.end())
@@ -2375,10 +2366,13 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
       record->FreeShadowStorage();
     }
 
-    if(switchctx.ctx != prevctx.ctx)
+    // if we changed contexts above, pop back to where we were
+    if(pushChildSaved)
     {
-      m_Platform.MakeContextCurrent(prevctx);
-      m_ActiveContexts[Threading::GetCurrentID()] = prevctx;
+      m_Platform.PopChildContext(existing, newContext, *pushChildSaved);
+      delete pushChildSaved;
+
+      m_ActiveContexts[Threading::GetCurrentID()] = existing;
     }
 
     return true;
@@ -2463,10 +2457,13 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
       }
     }
 
-    if(switchctx.ctx != prevctx.ctx)
+    // if we changed contexts above, pop back to where we were
+    if(pushChildSaved)
     {
-      m_Platform.MakeContextCurrent(prevctx);
-      m_ActiveContexts[Threading::GetCurrentID()] = prevctx;
+      m_Platform.PopChildContext(existing, newContext, *pushChildSaved);
+      delete pushChildSaved;
+
+      m_ActiveContexts[Threading::GetCurrentID()] = existing;
     }
 
     return false;

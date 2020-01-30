@@ -52,14 +52,17 @@ class WGLPlatform : public GLPlatform
   {
     bool success = MakeContextCurrent(newChild);
     *saved = existing;
-    if(::IsWindow(existing.wnd))
+    if(existing.ctx)
     {
-      saved->DC = GetDC(existing.wnd);
-    }
-    else
-    {
-      saved->wnd = newChild.wnd;
-      saved->DC = newChild.DC;
+      if(::IsWindow(existing.wnd))
+      {
+        saved->DC = GetDC(existing.wnd);
+      }
+      else
+      {
+        saved->wnd = newChild.wnd;
+        saved->DC = newChild.DC;
+      }
     }
 
     return success;
