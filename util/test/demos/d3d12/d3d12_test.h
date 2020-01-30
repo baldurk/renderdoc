@@ -52,7 +52,7 @@ struct D3D12GraphicsTest : public GraphicsTest
   GraphicsWindow *MakeWindow(int width, int height, const char *title);
 
   HRESULT EnumAdapterByLuid(LUID luid, IDXGIAdapterPtr &pAdapter);
-  ID3D12DevicePtr CreateDevice(std::vector<IDXGIAdapterPtr> &adaptersToTry,
+  ID3D12DevicePtr CreateDevice(const std::vector<IDXGIAdapterPtr> &adaptersToTry,
                                D3D_FEATURE_LEVEL features);
 
   enum BufType

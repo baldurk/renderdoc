@@ -52,27 +52,18 @@ RD_TEST(D3D12_Sharing, D3D12GraphicsTest)
     if(!Init())
       return 3;
 
-    if(!d3d11.Init())
+    LUID luid = dev->GetAdapterLuid();
+    IDXGIAdapterPtr pDXGIAdapter;
+    HRESULT hr = EnumAdapterByLuid(dev->GetAdapterLuid(), pDXGIAdapter);
+    if(FAILED(hr))
+      return 2;
+
+    if(!d3d11.Init(pDXGIAdapter))
       return 4;
 
-    ID3D12DevicePtr dev2;
-
-    {
-      LUID luid = dev->GetAdapterLuid();
-
-      IDXGIAdapterPtr pDXGIAdapter;
-      HRESULT hr = EnumAdapterByLuid(dev->GetAdapterLuid(), pDXGIAdapter);
-      std::vector<IDXGIAdapterPtr> adapters;
-      adapters.push_back(pDXGIAdapter);
-
-      if(FAILED(hr))
-        return 2;
-
-      dev2 = CreateDevice(adapters, D3D_FEATURE_LEVEL_11_0);
-
-      if(!dev2)
-        return 2;
-    }
+    ID3D12DevicePtr dev2 = CreateDevice({pDXGIAdapter}, D3D_FEATURE_LEVEL_11_0);
+    if(!dev2)
+      return 2;
 
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_4_0");
     ID3DBlobPtr psblob = Compile(D3DDefaultPixel, "main", "ps_4_0");
@@ -172,6 +163,9 @@ RD_TEST(D3D12_Sharing, D3D12GraphicsTest)
 
       // wait on the fence from d3d11's work then continue
       queue->Wait(m_GPUSyncFence, m_GPUSyncCounter);
+
+      delete[] updateData;
+      updateData = NULL;
 
       cmd = GetCommandBuffer();
 

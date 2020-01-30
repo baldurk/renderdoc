@@ -425,7 +425,7 @@ HRESULT D3D12GraphicsTest::EnumAdapterByLuid(LUID luid, IDXGIAdapterPtr &pAdapte
   return E_FAIL;
 }
 
-ID3D12DevicePtr D3D12GraphicsTest::CreateDevice(std::vector<IDXGIAdapterPtr> &adaptersToTry,
+ID3D12DevicePtr D3D12GraphicsTest::CreateDevice(const std::vector<IDXGIAdapterPtr> &adaptersToTry,
                                                 D3D_FEATURE_LEVEL features)
 {
   HRESULT hr = S_OK;
