@@ -132,7 +132,7 @@ void D3D11GraphicsTest::Prepare(int argc, char **argv)
   }
 }
 
-bool D3D11GraphicsTest::Init()
+bool D3D11GraphicsTest::Init(IDXGIAdapterPtr pAdapter)
 {
   if(!GraphicsTest::Init())
     return false;
@@ -148,7 +148,10 @@ bool D3D11GraphicsTest::Init()
 
   if(headless)
   {
-    hr = CreateDevice(adapters, NULL, features, flags);
+    if(pAdapter != NULL)
+      hr = CreateDevice({pAdapter}, NULL, features, flags);
+    else
+      hr = CreateDevice(adapters, NULL, features, flags);
 
     if(FAILED(hr))
     {
@@ -179,7 +182,10 @@ bool D3D11GraphicsTest::Init()
   swapDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
   swapDesc.Flags = 0;
 
-  hr = CreateDevice(adapters, &swapDesc, features, flags);
+  if(pAdapter != NULL)
+    hr = CreateDevice({pAdapter}, &swapDesc, features, flags);
+  else
+    hr = CreateDevice(adapters, &swapDesc, features, flags);
 
   if(FAILED(hr))
   {
@@ -216,7 +222,7 @@ GraphicsWindow *D3D11GraphicsTest::MakeWindow(int width, int height, const char 
   return new Win32Window(width, height, title);
 }
 
-HRESULT D3D11GraphicsTest::CreateDevice(std::vector<IDXGIAdapterPtr> &adaptersToTry,
+HRESULT D3D11GraphicsTest::CreateDevice(const std::vector<IDXGIAdapterPtr> &adaptersToTry,
                                         DXGI_SWAP_CHAIN_DESC *swapDesc, D3D_FEATURE_LEVEL *features,
                                         UINT flags)
 {
