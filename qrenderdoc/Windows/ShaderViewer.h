@@ -164,15 +164,12 @@ private:
   void PopulateCompileToolParameters();
   bool ProcessIncludeDirectives(QString &source, const rdcstrpairs &files);
 
-  void getRegisterFromWord(const QString &text, VariableCategory &varCat, int &index, int &member);
-
   void updateWindowTitle();
   void gotoSourceDebugging();
   void gotoDisassemblyDebugging();
 
   void insertSnippet(const QString &text);
 
-  void showVariableTooltip(VariableCategory varCat, int index, int member);
   void showVariableTooltip(QString name);
   void updateVariableTooltip();
   void hideVariableTooltip();
@@ -181,7 +178,6 @@ private:
 
   ShaderEncoding currentEncoding();
 
-  VariableCategory m_TooltipVarCat = VariableCategory::Variables;
   QString m_TooltipName;
   int m_TooltipVarIndex = -1;
   int m_TooltipMember = -1;
@@ -267,11 +263,12 @@ private:
   int instructionForDisassemblyLine(sptr_t line);
 
   void updateDebugging();
+  void updateWatchVariables();
 
-  RDTreeWidgetItem *makeSourceVariableNode(const SourceVariableMapping &l);
+  RDTreeWidgetItem *makeSourceVariableNode(const SourceVariableMapping &l, int globalVarIdx,
+                                           int localVarIdx);
 
   const ShaderVariable *GetRegisterVariable(const DebugVariableReference &r);
-  const ShaderVariable *GetRegisterVariable(VariableCategory category, int index, int member);
 
   void ensureLineScrolled(ScintillaEdit *s, int i);
 
@@ -280,7 +277,11 @@ private:
   void runTo(QVector<size_t> runToInstructions, bool forward,
              ShaderEvents condition = ShaderEvents::NoEvent);
 
-  QString stringRep(const ShaderVariable &var, bool useType);
+  QString stringRep(const ShaderVariable &var);
   void combineStructures(RDTreeWidgetItem *root, int skipPrefixLength = 0);
-  RDTreeWidgetItem *findLocal(RDTreeWidgetItem *root, QString name);
+  RDTreeWidgetItem *findVarInTree(RDTreeWidgetItem *root, QString name, bool fullmatch, int maxDepth);
+  void highlightMatchingVars(RDTreeWidgetItem *root, const QString varName,
+                             const QColor highlightColor);
+  bool findVar(QString name, ShaderVariable *var = NULL);
+  bool getVar(RDTreeWidgetItem *item, ShaderVariable *var, QString *regNames);
 };

@@ -1681,7 +1681,7 @@ void FlattenSingleVariable(const rdcstr &cbname, uint32_t byteOffset, const rdcs
     for(uint32_t reg = 0; reg < numRegisters; reg++)
     {
       outvars[outIdx + reg].rows = 1;
-      outvars[outIdx + reg].type = v.type;
+      outvars[outIdx + reg].type = VarType::Unknown;
       outvars[outIdx + reg].isStruct = false;
       outvars[outIdx + reg].columns = v.columns;
       outvars[outIdx + reg].rowMajor = v.rowMajor;

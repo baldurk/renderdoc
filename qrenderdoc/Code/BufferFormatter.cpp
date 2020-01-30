@@ -1511,6 +1511,8 @@ QString TypeString(const ShaderVariable &v)
       typeStr = lit("xbyte");
   }
 
+  if(v.type == VarType::Unknown)
+    return lit("Typeless");
   if(v.rows == 1 && v.columns == 1)
     return typeStr;
   if(v.rows == 1)

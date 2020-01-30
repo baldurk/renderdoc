@@ -27,6 +27,13 @@
 #include "os/os_specific.h"
 #include "dxbc_container.h"
 
+static ShaderVariable makeReg(rdcstr name)
+{
+  ShaderVariable ret(name, 0U, 0U, 0U, 0U);
+  ret.type = VarType::Unknown;
+  return ret;
+}
+
 namespace DXBCBytecode
 {
 Program::Program(const byte *bytes, size_t length)
@@ -461,31 +468,28 @@ void Program::SetupRegisterFile(rdcarray<ShaderVariable> &registers) const
   registers.reserve(numRegisters);
 
   for(uint32_t i = 0; i < m_NumTemps; i++)
-    registers.push_back(ShaderVariable(GetRegisterName(TYPE_TEMP, i), 0l, 0l, 0l, 0l));
+    registers.push_back(makeReg(GetRegisterName(TYPE_TEMP, i)));
 
   for(size_t i = 0; i < m_IndexTempSizes.size(); i++)
   {
     rdcstr name = GetRegisterName(TYPE_INDEXABLE_TEMP, (uint32_t)i);
-    registers.push_back(ShaderVariable(name, 0l, 0l, 0l, 0l));
+    registers.push_back(makeReg(name));
     registers.back().members.resize(m_IndexTempSizes[i]);
     for(uint32_t t = 0; t < m_IndexTempSizes[i]; t++)
-    {
-      registers.back().members[t] =
-          ShaderVariable(StringFormat::Fmt("%s[%u]", name.c_str(), t), 0l, 0l, 0l, 0l);
-    }
+      registers.back().members[t] = makeReg(StringFormat::Fmt("%s[%u]", name.c_str(), t));
   }
 
   for(uint32_t i = 0; i < m_NumOutputs; i++)
-    registers.push_back(ShaderVariable("", 0l, 0l, 0l, 0l));
+    registers.push_back(makeReg(rdcstr()));
 
   // this could be oDepthGE or oDepthLE, that will be fixed up when the external code sets up the
   // names etc of all outputs with reflection info
   if(m_OutputDepth)
-    registers.push_back(ShaderVariable("", 0l, 0l, 0l, 0l));
+    registers.push_back(makeReg(rdcstr()));
   if(m_OutputStencil)
-    registers.push_back(ShaderVariable("", 0l, 0l, 0l, 0l));
+    registers.push_back(makeReg(rdcstr()));
   if(m_OutputCoverage)
-    registers.push_back(ShaderVariable("", 0l, 0l, 0l, 0l));
+    registers.push_back(makeReg(rdcstr()));
 }
 
 uint32_t Program::GetRegisterIndex(OperandType type, uint32_t index) const

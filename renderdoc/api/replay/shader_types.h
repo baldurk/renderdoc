@@ -170,7 +170,7 @@ struct ShaderVariable
     name = "";
     rows = columns = 0;
     displayAsHex = isStruct = rowMajor = isPointer = false;
-    type = VarType::Float;
+    type = VarType::Unknown;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
   }
@@ -332,7 +332,10 @@ struct DebugVariableReference
   DebugVariableReference() = default;
   DebugVariableReference(const DebugVariableReference &) = default;
   DebugVariableReference &operator=(const DebugVariableReference &) = default;
-
+  DebugVariableReference(DebugVariableType type, rdcstr name, uint32_t component = 0)
+      : name(name), type(type), component(component)
+  {
+  }
   bool operator==(const DebugVariableReference &o) const
   {
     return name == o.name && type == o.type && component == o.component;
