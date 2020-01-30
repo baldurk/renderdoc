@@ -328,16 +328,16 @@ public:
       return 0;
     }
 
-    executable = parser.rest()[0];
+    executable = rest[0];
     workingDir = parser.get<std::string>("working-dir");
     logFile = parser.get<std::string>("capture-file");
 
-    for(size_t i = 1; i < parser.rest().size(); i++)
+    for(size_t i = 1; i < rest.size(); i++)
     {
       if(!cmdLine.empty())
         cmdLine += ' ';
 
-      cmdLine += EscapeArgument(parser.rest()[i]);
+      cmdLine += EscapeArgument(rest[i]);
     }
 
     wait_for_exit = parser.exist("wait-for-exit");
@@ -862,7 +862,7 @@ public:
       return false;
     }
 
-    std::string mode = rest[0];
+    mode = rest[0];
     rest.erase(rest.begin());
 
     if(mode != "unit"
