@@ -669,12 +669,14 @@ struct AndroidController : public IDeviceProtocolHandler
 {
   void Start()
   {
-    SCOPED_LOCK(lock);
     if(running == 0)
     {
       Atomic::Inc32(&running);
 
-      Android::initAdb();
+      {
+        SCOPED_LOCK(lock);
+        Android::initAdb();
+      }
 
       thread = Threading::CreateThread([]() { m_Inst.ThreadEntry(); });
       RenderDoc::Inst().RegisterShutdownFunction([]() { m_Inst.Shutdown(); });
@@ -683,13 +685,15 @@ struct AndroidController : public IDeviceProtocolHandler
 
   void Shutdown()
   {
-    SCOPED_LOCK(lock);
     Atomic::Dec32(&running);
     Threading::JoinThread(thread);
     Threading::CloseThread(thread);
     thread = 0;
 
-    Android::shutdownAdb();
+    {
+      SCOPED_LOCK(lock);
+      Android::shutdownAdb();
+    }
   }
 
   struct Command
