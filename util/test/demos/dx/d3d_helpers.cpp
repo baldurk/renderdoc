@@ -23,7 +23,6 @@
 ******************************************************************************/
 
 #include "d3d_helpers.h"
-#include <vector>
 #include "../test_common.h"
 
 std::string D3DFullscreenQuadVertex = R"EOSHADER(
@@ -87,7 +86,8 @@ float4 main(v2f IN) : SV_Target0
 
 )EOSHADER";
 
-IDXGIAdapterPtr ChooseD3DAdapter(IDXGIFactoryPtr factory, int argc, char **argv, bool &warp)
+std::vector<IDXGIAdapterPtr> FindD3DAdapters(IDXGIFactoryPtr factory, int argc, char **argv,
+                                             bool &warp)
 {
   struct AdapterInfo
   {
@@ -98,31 +98,30 @@ IDXGIAdapterPtr ChooseD3DAdapter(IDXGIFactoryPtr factory, int argc, char **argv,
   std::vector<AdapterInfo> adapters;
 
   HRESULT hr = S_OK;
-
-  for(UINT i = 0; i < 10; i++)
   {
-    IDXGIAdapterPtr a;
-    hr = factory->EnumAdapters(i, &a);
-    if(hr == S_OK && a)
+    UINT i = 0;
+    while(true)
     {
+      IDXGIAdapterPtr a;
+      hr = factory->EnumAdapters(i, &a);
+      if(hr != S_OK || !a)
+        break;
+
       DXGI_ADAPTER_DESC desc;
       a->GetDesc(&desc);
       adapters.push_back({a, desc});
-    }
-    else
-    {
-      break;
+      i++;
     }
   }
 
-  IDXGIAdapterPtr adapter = NULL;
+  IDXGIAdapterPtr specifiedAdapter = NULL;
 
   for(int i = 0; i < argc; i++)
   {
     if(!strcmp(argv[i], "--warp"))
     {
       warp = true;
-      adapter = NULL;
+      specifiedAdapter = NULL;
       break;
     }
     if(!strcmp(argv[i], "--gpu") && i + 1 < argc)
@@ -132,7 +131,7 @@ IDXGIAdapterPtr ChooseD3DAdapter(IDXGIFactoryPtr factory, int argc, char **argv,
       if(needle == "warp")
       {
         warp = true;
-        adapter = NULL;
+        specifiedAdapter = NULL;
         break;
       }
 
@@ -149,7 +148,7 @@ IDXGIAdapterPtr ChooseD3DAdapter(IDXGIFactoryPtr factory, int argc, char **argv,
            (amd && adapters[a].desc.VendorId == PCI_VENDOR_AMD) ||
            (intel && adapters[a].desc.VendorId == PCI_VENDOR_INTEL))
         {
-          adapter = adapters[a].adapter;
+          specifiedAdapter = adapters[a].adapter;
           break;
         }
       }
@@ -158,5 +157,19 @@ IDXGIAdapterPtr ChooseD3DAdapter(IDXGIFactoryPtr factory, int argc, char **argv,
     }
   }
 
-  return adapter;
+  // Return the adapters that we want to consider:
+  // With an adapter specified by command line, only return that one
+  // With warp specified, return an empty adapter list - fallback will occur
+  // Otherwise, return all adapters, to be attempted in order
+  if(specifiedAdapter)
+    return {specifiedAdapter};
+
+  if(warp)
+    return {};
+
+  std::vector<IDXGIAdapterPtr> returnedAdapters;
+  for(size_t i = 0; i < adapters.size(); ++i)
+    returnedAdapters.push_back(adapters[i].adapter);
+
+  return returnedAdapters;
 }

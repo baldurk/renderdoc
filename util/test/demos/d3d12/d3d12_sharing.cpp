@@ -62,11 +62,13 @@ RD_TEST(D3D12_Sharing, D3D12GraphicsTest)
 
       IDXGIAdapterPtr pDXGIAdapter;
       HRESULT hr = EnumAdapterByLuid(dev->GetAdapterLuid(), pDXGIAdapter);
+      std::vector<IDXGIAdapterPtr> adapters;
+      adapters.push_back(pDXGIAdapter);
 
       if(FAILED(hr))
         return 2;
 
-      dev2 = CreateDevice(pDXGIAdapter);
+      dev2 = CreateDevice(adapters, D3D_FEATURE_LEVEL_11_0);
 
       if(!dev2)
         return 2;
