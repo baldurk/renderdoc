@@ -26,6 +26,7 @@
 
 #include <comdef.h>
 #include <string>
+#include <vector>
 #include "dx/official/dxgi1_4.h"
 
 extern std::string D3DFullscreenQuadVertex;
@@ -43,7 +44,8 @@ COM_SMARTPTR(IDXGIAdapter);
 COM_SMARTPTR(IDXGISurface);
 COM_SMARTPTR(IDXGIResource);
 
-IDXGIAdapterPtr ChooseD3DAdapter(IDXGIFactoryPtr factory, int argc, char **argv, bool &warp);
+std::vector<IDXGIAdapterPtr> FindD3DAdapters(IDXGIFactoryPtr factory, int argc, char **argv,
+                                             bool &warp);
 
 enum class ResourceType
 {

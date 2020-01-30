@@ -50,6 +50,8 @@ struct D3D11GraphicsTest : public GraphicsTest
   void Shutdown();
   GraphicsWindow *MakeWindow(int width, int height, const char *title);
 
+  HRESULT CreateDevice(std::vector<IDXGIAdapterPtr> &adaptersToTry, DXGI_SWAP_CHAIN_DESC *swapDesc,
+                       D3D_FEATURE_LEVEL *features, UINT flags);
   void PostDeviceCreate();
 
   enum BufType

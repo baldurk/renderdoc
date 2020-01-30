@@ -39,9 +39,9 @@ HMODULE d3d12 = NULL;
 HMODULE dxgi = NULL;
 HMODULE d3dcompiler = NULL;
 IDXGIFactory1Ptr factory;
-IDXGIAdapterPtr adapter;
+std::vector<IDXGIAdapterPtr> adapters;
 bool d3d12on7 = false;
-};
+};    // namespace
 
 void D3D12GraphicsTest::Prepare(int argc, char **argv)
 {
@@ -90,13 +90,18 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
       {
         bool warp = false;
 
-        adapter = ChooseD3DAdapter(factory, argc, argv, warp);
+        adapters = FindD3DAdapters(factory, argc, argv, warp);
 
         if(warp && !d3d12on7)
         {
           IDXGIFactory4Ptr factory4 = factory;
+          IDXGIAdapterPtr warpAdapter;
           if(factory4)
-            factory4->EnumWarpAdapter(__uuidof(IDXGIAdapter), (void **)&adapter);
+          {
+            hr = factory4->EnumWarpAdapter(__uuidof(IDXGIAdapter), (void **)&warpAdapter);
+            if(SUCCEEDED(hr))
+              adapters.push_back(warpAdapter);
+          }
         }
       }
     }
@@ -182,7 +187,7 @@ bool D3D12GraphicsTest::Init()
     }
   }
 
-  dev = CreateDevice(adapter);
+  dev = CreateDevice(adapters, D3D_FEATURE_LEVEL_11_0);
   if(!dev)
     return false;
 
@@ -420,17 +425,20 @@ HRESULT D3D12GraphicsTest::EnumAdapterByLuid(LUID luid, IDXGIAdapterPtr &pAdapte
   return E_FAIL;
 }
 
-ID3D12DevicePtr D3D12GraphicsTest::CreateDevice(IDXGIAdapterPtr a)
+ID3D12DevicePtr D3D12GraphicsTest::CreateDevice(std::vector<IDXGIAdapterPtr> &adaptersToTry,
+                                                D3D_FEATURE_LEVEL features)
 {
   HRESULT hr = S_OK;
-
   ID3D12DevicePtr ret;
+  for(size_t i = 0; i < adaptersToTry.size(); ++i)
+  {
+    hr = dyn_D3D12CreateDevice(adaptersToTry[i], features, __uuidof(ID3D12Device), (void **)&ret);
 
-  hr = dyn_D3D12CreateDevice(a, D3D_FEATURE_LEVEL_11_0, __uuidof(ID3D12Device), (void **)&ret);
+    if(SUCCEEDED(hr))
+      return ret;
+  }
 
-  if(FAILED(hr))
-    TEST_ERROR("D3D12CreateDevice failed: %x", hr);
-
+  TEST_ERROR("D3D12CreateDevice failed: %x", hr);
   return ret;
 }
 
