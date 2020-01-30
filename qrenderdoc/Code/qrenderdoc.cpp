@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
         coreargs.push_back("--crash");
       for(const QString &arg : remaining)
         coreargs.push_back(arg);
-      RENDERDOC_InitGlobalEnv(env, coreargs);
+      RENDERDOC_InitialiseReplay(env, coreargs);
     }
 
     if(!crashReportPath.isEmpty())
@@ -489,6 +489,8 @@ int main(int argc, char *argv[])
 
       config.Save();
     }
+
+    RENDERDOC_ShutdownReplay();
 
     PythonContext::GlobalShutdown();
 

@@ -411,7 +411,8 @@ public:
 
   uint64_t GetMicrosecondTimestamp() { return uint64_t(m_Timer.GetMicroseconds()); }
   const GlobalEnvironment &GetGlobalEnvironment() { return m_GlobalEnv; }
-  void ProcessGlobalEnvironment(GlobalEnvironment env, const rdcarray<rdcstr> &args);
+  void InitialiseReplay(GlobalEnvironment env, const rdcarray<rdcstr> &args);
+  void ShutdownReplay();
 
   int32_t GetForwardedPortSlot() { return Atomic::Inc32(&m_PortSlot); }
   void RegisterShutdownFunction(ShutdownFunction func);

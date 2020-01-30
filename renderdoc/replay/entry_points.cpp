@@ -270,15 +270,15 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetLogFileContents(rdcstr &
   logfile = FileIO::logfile_readall(RDCGETLOGFILE());
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitGlobalEnv(GlobalEnvironment env,
-                                                                   const rdcarray<rdcstr> &args)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitialiseReplay(GlobalEnvironment env,
+                                                                      const rdcarray<rdcstr> &args)
 {
   rdcarray<rdcstr> argsVec;
   argsVec.reserve(args.size());
   for(const rdcstr &a : args)
     argsVec.push_back(a.c_str());
 
-  RenderDoc::Inst().ProcessGlobalEnvironment(env, argsVec);
+  RenderDoc::Inst().InitialiseReplay(env, argsVec);
 
   if(RenderDoc::Inst().GetCrashHandler() == NULL)
     return;
@@ -293,6 +293,11 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitGlobalEnv(GlobalEnviron
   }
 
   RenderDoc::Inst().RecreateCrashHandler();
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ShutdownReplay()
+{
+  RenderDoc::Inst().ShutdownReplay();
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const char *logfile,

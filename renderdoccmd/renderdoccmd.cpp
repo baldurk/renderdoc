@@ -128,12 +128,13 @@ static std::vector<std::string> version_lines;
 
 struct VersionCommand : public Command
 {
-  VersionCommand(const GlobalEnvironment &env) : Command(env) {}
+  VersionCommand() : Command() {}
   virtual void AddOptions(cmdline::parser &parser) {}
   virtual const char *Description() { return "Print version information"; }
   virtual bool IsInternalOnly() { return false; }
   virtual bool IsCaptureCommand() { return false; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  virtual bool Parse(cmdline::parser &, GlobalEnvironment &) { return true; }
+  virtual int Execute(const CaptureOptions &)
   {
     std::cout << "renderdoccmd " << (sizeof(uintptr_t) == sizeof(uint64_t) ? "x64" : "x86")
               << " v" MAJOR_MINOR_VERSION_STRING << " built from " << RENDERDOC_GetCommitHash()
@@ -160,12 +161,13 @@ void add_version_line(const std::string &str)
 
 struct HelpCommand : public Command
 {
-  HelpCommand(const GlobalEnvironment &env) : Command(env) {}
+  HelpCommand() : Command() {}
   virtual void AddOptions(cmdline::parser &parser) {}
   virtual const char *Description() { return "Print this help message"; }
   virtual bool IsInternalOnly() { return false; }
   virtual bool IsCaptureCommand() { return false; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  virtual bool Parse(cmdline::parser &, GlobalEnvironment &) { return true; }
+  virtual int Execute(const CaptureOptions &)
   {
     command_usage();
     return 0;
@@ -174,7 +176,14 @@ struct HelpCommand : public Command
 
 struct ThumbCommand : public Command
 {
-  ThumbCommand(const GlobalEnvironment &env) : Command(env) {}
+private:
+  std::string infile;
+  std::string outfile;
+  std::string format;
+  uint32_t maxsize = 0;
+
+public:
+  ThumbCommand() : Command() {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.set_footer("<filename.rdc>");
@@ -190,7 +199,7 @@ struct ThumbCommand : public Command
   virtual const char *Description() { return "Saves a capture's embedded thumbnail to disk."; }
   virtual bool IsInternalOnly() { return false; }
   virtual bool IsCaptureCommand() { return false; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &)
   {
     std::vector<std::string> rest = parser.rest();
     if(rest.empty())
@@ -198,21 +207,24 @@ struct ThumbCommand : public Command
       std::cerr << "Error: thumb command requires a capture filename." << std::endl
                 << std::endl
                 << parser.usage();
-      return 0;
+      return false;
     }
 
-    std::string filename = rest[0];
+    infile = rest[0];
 
     rest.erase(rest.begin());
 
-    RENDERDOC_InitGlobalEnv(m_Env, convertArgs(rest));
+    parser.set_rest(rest);
 
-    std::string outfile = parser.get<std::string>("out");
+    outfile = parser.get<std::string>("out");
+    format = parser.get<std::string>("format");
+    maxsize = parser.get<uint32_t>("max-size");
 
-    std::string format = parser.get<std::string>("format");
+    return true;
+  }
 
-    uint32_t maxsize = parser.get<uint32_t>("max-size");
-
+  virtual int Execute(const CaptureOptions &)
+  {
     FileType type = FileType::JPG;
 
     if(format == "png")
@@ -247,20 +259,20 @@ struct ThumbCommand : public Command
     bytebuf buf;
 
     ICaptureFile *file = RENDERDOC_OpenCaptureFile();
-    ReplayStatus st = file->OpenFile(filename.c_str(), "rdc", NULL);
+    ReplayStatus st = file->OpenFile(infile.c_str(), "rdc", NULL);
     if(st == ReplayStatus::Succeeded)
     {
       buf = file->GetThumbnail(type, maxsize).data;
     }
     else
     {
-      std::cerr << "Couldn't open '" << filename << "': " << ToStr(st) << std::endl;
+      std::cerr << "Couldn't open '" << infile << "': " << ToStr(st) << std::endl;
     }
     file->Shutdown();
 
     if(buf.empty())
     {
-      std::cerr << "Couldn't fetch the thumbnail in '" << filename << "'" << std::endl;
+      std::cerr << "Couldn't fetch the thumbnail in '" << infile << "'" << std::endl;
     }
     else
     {
@@ -275,7 +287,7 @@ struct ThumbCommand : public Command
         fwrite(buf.data(), 1, buf.size(), f);
         fclose(f);
 
-        std::cout << "Wrote thumbnail from '" << filename << "' to '" << outfile << "'." << std::endl;
+        std::cout << "Wrote thumbnail from '" << infile << "' to '" << outfile << "'." << std::endl;
       }
     }
 
@@ -285,7 +297,15 @@ struct ThumbCommand : public Command
 
 struct CaptureCommand : public Command
 {
-  CaptureCommand(const GlobalEnvironment &env) : Command(env) {}
+private:
+  std::string executable;
+  std::string workingDir;
+  std::string cmdLine;
+  std::string logFile;
+  bool wait_for_exit = false;
+
+public:
+  CaptureCommand() : Command() {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.set_footer("<executable> [program arguments]");
@@ -294,9 +314,13 @@ struct CaptureCommand : public Command
   virtual const char *Description() { return "Launches the given executable to capture."; }
   virtual bool IsInternalOnly() { return false; }
   virtual bool IsCaptureCommand() { return true; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &opts)
+  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &)
   {
-    if(parser.rest().empty())
+    std::vector<std::string> rest = parser.rest();
+
+    parser.set_rest({});
+
+    if(rest.empty())
     {
       std::cerr << "Error: capture command requires an executable to launch." << std::endl
                 << std::endl
@@ -304,10 +328,9 @@ struct CaptureCommand : public Command
       return 0;
     }
 
-    std::string executable = parser.rest()[0];
-    std::string workingDir = parser.get<std::string>("working-dir");
-    std::string cmdLine;
-    std::string logFile = parser.get<std::string>("capture-file");
+    executable = parser.rest()[0];
+    workingDir = parser.get<std::string>("working-dir");
+    logFile = parser.get<std::string>("capture-file");
 
     for(size_t i = 1; i < parser.rest().size(); i++)
     {
@@ -317,8 +340,13 @@ struct CaptureCommand : public Command
       cmdLine += EscapeArgument(parser.rest()[i]);
     }
 
-    RENDERDOC_InitGlobalEnv(m_Env, rdcarray<rdcstr>());
+    wait_for_exit = parser.exist("wait-for-exit");
 
+    return true;
+  }
+
+  virtual int Execute(const CaptureOptions &opts)
+  {
     std::cout << "Launching '" << executable << "'";
 
     if(!cmdLine.empty())
@@ -328,10 +356,10 @@ struct CaptureCommand : public Command
 
     rdcarray<EnvironmentModification> env;
 
-    ExecuteResult res = RENDERDOC_ExecuteAndInject(
-        executable.c_str(), workingDir.empty() ? "" : workingDir.c_str(),
-        cmdLine.empty() ? "" : cmdLine.c_str(), env, logFile.empty() ? "" : logFile.c_str(), opts,
-        parser.exist("wait-for-exit"));
+    ExecuteResult res =
+        RENDERDOC_ExecuteAndInject(executable.c_str(), workingDir.empty() ? "" : workingDir.c_str(),
+                                   cmdLine.empty() ? "" : cmdLine.c_str(), env,
+                                   logFile.empty() ? "" : logFile.c_str(), opts, wait_for_exit);
 
     if(res.status != ReplayStatus::Succeeded)
     {
@@ -339,7 +367,7 @@ struct CaptureCommand : public Command
       return (int)res.status;
     }
 
-    if(parser.exist("wait-for-exit"))
+    if(wait_for_exit)
     {
       std::cerr << "'" << executable << "' finished executing." << std::endl;
       res.ident = 0;
@@ -375,7 +403,13 @@ struct CaptureCommand : public Command
 
 struct InjectCommand : public Command
 {
-  InjectCommand(const GlobalEnvironment &env) : Command(env) {}
+private:
+  uint32_t PID = 0;
+  std::string captureFile;
+  bool wait_for_exit = false;
+
+public:
+  InjectCommand() : Command() {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.add<uint32_t>("PID", 0, "The process ID of the process to inject.", true);
@@ -383,19 +417,21 @@ struct InjectCommand : public Command
   virtual const char *Description() { return "Injects RenderDoc into a given running process."; }
   virtual bool IsInternalOnly() { return false; }
   virtual bool IsCaptureCommand() { return true; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &opts)
+  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &)
   {
-    uint32_t PID = parser.get<uint32_t>("PID");
-    std::string logFile = parser.get<std::string>("capture-file");
-
+    PID = parser.get<uint32_t>("PID");
+    captureFile = parser.get<std::string>("capture-file");
+    wait_for_exit = parser.exist("wait-for-exit");
+    return true;
+  }
+  virtual int Execute(const CaptureOptions &opts)
+  {
     std::cout << "Injecting into PID " << PID << std::endl;
 
     rdcarray<EnvironmentModification> env;
 
-    RENDERDOC_InitGlobalEnv(m_Env, convertArgs(parser.rest()));
-
-    ExecuteResult res = RENDERDOC_InjectIntoProcess(
-        PID, env, logFile.empty() ? "" : logFile.c_str(), opts, parser.exist("wait-for-exit"));
+    ExecuteResult res =
+        RENDERDOC_InjectIntoProcess(PID, env, captureFile.c_str(), opts, wait_for_exit);
 
     if(res.status != ReplayStatus::Succeeded)
     {
@@ -403,7 +439,7 @@ struct InjectCommand : public Command
       return (int)res.status;
     }
 
-    if(parser.exist("wait-for-exit"))
+    if(wait_for_exit)
     {
       std::cerr << PID << " finished executing." << std::endl;
       res.ident = 0;
@@ -419,7 +455,13 @@ struct InjectCommand : public Command
 
 struct RemoteServerCommand : public Command
 {
-  RemoteServerCommand(const GlobalEnvironment &env) : Command(env) {}
+private:
+  std::string host;
+  bool daemon = false;
+  bool preview = false;
+
+public:
+  RemoteServerCommand() : Command() {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.add("daemon", 'd', "Go into the background.");
@@ -433,18 +475,20 @@ struct RemoteServerCommand : public Command
   }
   virtual bool IsInternalOnly() { return false; }
   virtual bool IsCaptureCommand() { return false; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &env)
   {
-    std::string host = parser.get<std::string>("host");
-
-    m_Env.enumerateGPUs = true;
-
-    RENDERDOC_InitGlobalEnv(m_Env, convertArgs(parser.rest()));
-
+    env.enumerateGPUs = true;
+    host = parser.get<std::string>("host");
+    daemon = parser.exist("daemon");
+    preview = parser.exist("preview");
+    return true;
+  }
+  virtual int Execute(const CaptureOptions &)
+  {
     std::cerr << "Spawning a replay host listening on " << (host.empty() ? "*" : host) << "..."
               << std::endl;
 
-    if(parser.exist("daemon"))
+    if(daemon)
     {
       std::cerr << "Detaching." << std::endl;
       Daemonise();
@@ -456,7 +500,7 @@ struct RemoteServerCommand : public Command
     RENDERDOC_PreviewWindowCallback previewWindow;
 
     // if the user asked for a preview, then call to the platform-specific preview function
-    if(parser.exist("preview"))
+    if(preview)
       previewWindow = &DisplayRemoteServerPreview;
 
     // OR if the platform-specific preview function always has a window, then return it anyway.
@@ -474,7 +518,15 @@ struct RemoteServerCommand : public Command
 
 struct ReplayCommand : public Command
 {
-  ReplayCommand(const GlobalEnvironment &env) : Command(env) {}
+private:
+  std::string filename;
+  std::string remote_host;
+  uint32_t width = 0;
+  uint32_t height = 0;
+  uint32_t loops = 0;
+
+public:
+  ReplayCommand() : Command() {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.set_footer("<capture.rdc>");
@@ -492,38 +544,47 @@ struct ReplayCommand : public Command
   }
   virtual bool IsInternalOnly() { return false; }
   virtual bool IsCaptureCommand() { return false; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &)
   {
     std::vector<std::string> rest = parser.rest();
     if(rest.empty())
     {
-      std::cerr << "Error: capture command requires a filename to load." << std::endl
+      std::cerr << "Error: replay command requires a filename to load." << std::endl
                 << std::endl
                 << parser.usage();
-      return 0;
+      return false;
     }
 
-    std::string filename = rest[0];
+    filename = rest[0];
 
     rest.erase(rest.begin());
 
-    RENDERDOC_InitGlobalEnv(m_Env, convertArgs(rest));
+    parser.set_rest(rest);
 
     if(parser.exist("remote-host"))
+      remote_host = parser.get<std::string>("remote-host");
+
+    width = parser.get<uint32_t>("width");
+    height = parser.get<uint32_t>("height");
+    loops = parser.get<uint32_t>("loops");
+
+    return true;
+  }
+  virtual int Execute(const CaptureOptions &)
+  {
+    if(!remote_host.empty())
     {
-      std::cout << "Replaying '" << filename << "' on " << parser.get<std::string>("remote-host")
-                << "." << std::endl;
+      std::cout << "Replaying '" << filename << "' on " << remote_host << "." << std::endl;
 
       IRemoteServer *remote = NULL;
-      ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(
-          parser.get<std::string>("remote-host").c_str(), &remote);
+      ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(remote_host.c_str(), &remote);
 
       if(remote == NULL || status != ReplayStatus::Succeeded)
       {
-        std::cerr << "Error: " << ToStr(status) << " - Couldn't connect to "
-                  << parser.get<std::string>("remote-host") << "." << std::endl;
-        std::cerr << "       Have you run renderdoccmd remoteserver on '"
-                  << parser.get<std::string>("remote-host") << "'?" << std::endl;
+        std::cerr << "Error: " << ToStr(status) << " - Couldn't connect to " << remote_host << "."
+                  << std::endl;
+        std::cerr << "       Have you run renderdoccmd remoteserver on '" << remote_host << "'?"
+                  << std::endl;
         return 1;
       }
 
@@ -536,8 +597,7 @@ struct ReplayCommand : public Command
 
       if(status == ReplayStatus::Succeeded)
       {
-        DisplayRendererPreview(renderer, parser.get<uint32_t>("width"),
-                               parser.get<uint32_t>("height"), parser.get<uint32_t>("loops"));
+        DisplayRendererPreview(renderer, width, height, loops);
 
         remote->CloseCapture(renderer);
       }
@@ -568,8 +628,7 @@ struct ReplayCommand : public Command
 
       if(status == ReplayStatus::Succeeded)
       {
-        DisplayRendererPreview(renderer, parser.get<uint32_t>("width"),
-                               parser.get<uint32_t>("height"), parser.get<uint32_t>("loops"));
+        DisplayRendererPreview(renderer, width, height, loops);
 
         renderer->Shutdown();
       }
@@ -621,17 +680,16 @@ private:
 
 struct ConvertCommand : public Command
 {
+private:
   rdcarray<CaptureFileFormat> m_Formats;
+  bool list_formats = false;
+  std::string infile;
+  std::string outfile;
+  std::string infmt;
+  std::string outfmt;
 
-  ConvertCommand(const GlobalEnvironment &env) : Command(env)
-  {
-    ICaptureFile *tmp = RENDERDOC_OpenCaptureFile();
-
-    m_Formats = tmp->GetCaptureFileFormats();
-
-    tmp->Shutdown();
-  }
-
+public:
+  ConvertCommand() : Command() {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.add<std::string>("filename", 'f', "The file to convert from.", false);
@@ -646,9 +704,45 @@ struct ConvertCommand : public Command
   virtual const char *Description() { return "Convert between capture formats."; }
   virtual bool IsInternalOnly() { return false; }
   virtual bool IsCaptureCommand() { return false; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &)
   {
-    if(parser.exist("list-formats"))
+    list_formats = parser.exist("list-formats");
+
+    if(list_formats)
+      return true;
+
+    infile = parser.get<std::string>("filename");
+    outfile = parser.get<std::string>("output");
+
+    if(infile.empty())
+    {
+      std::cerr << "Need an input filename (-f)." << std::endl << std::endl;
+      std::cerr << parser.usage() << std::endl;
+      return false;
+    }
+
+    if(outfile.empty())
+    {
+      std::cerr << "Need an output filename (-o)." << std::endl << std::endl;
+      std::cerr << parser.usage() << std::endl;
+      return false;
+    }
+
+    infmt = parser.get<std::string>("input-format");
+    outfmt = parser.get<std::string>("convert-format");
+
+    return true;
+  }
+
+  virtual int Execute(const CaptureOptions &)
+  {
+    ICaptureFile *tmp = RENDERDOC_OpenCaptureFile();
+
+    m_Formats = tmp->GetCaptureFileFormats();
+
+    tmp->Shutdown();
+
+    if(list_formats)
     {
       std::cout << "Available formats:" << std::endl;
       for(CaptureFileFormat f : m_Formats)
@@ -657,26 +751,6 @@ struct ConvertCommand : public Command
                   << std::endl;
       return 0;
     }
-
-    std::string infile = parser.get<std::string>("filename");
-    std::string outfile = parser.get<std::string>("output");
-
-    if(infile.empty())
-    {
-      std::cerr << "Need an input filename (-f)." << std::endl << std::endl;
-      std::cerr << parser.usage() << std::endl;
-      return 1;
-    }
-
-    if(outfile.empty())
-    {
-      std::cerr << "Need an output filename (-o)." << std::endl << std::endl;
-      std::cerr << parser.usage() << std::endl;
-      return 1;
-    }
-
-    std::string infmt = parser.get<std::string>("input-format");
-    std::string outfmt = parser.get<std::string>("convert-format");
 
     // sort the formats by the length of the extension, so we check the longest ones first. This
     // means that .zip.xml will get chosen before just .xml
@@ -700,8 +774,8 @@ struct ConvertCommand : public Command
 
     if(infmt.empty())
     {
-      std::cerr << "Couldn't guess input format from filename." << std::endl << std::endl;
-      std::cerr << parser.usage() << std::endl;
+      std::cerr << "Couldn't guess input format from filename '" << infile << "'." << std::endl
+                << std::endl;
       return 1;
     }
 
@@ -720,8 +794,8 @@ struct ConvertCommand : public Command
 
     if(outfmt.empty())
     {
-      std::cerr << "Couldn't guess output format from filename." << std::endl << std::endl;
-      std::cerr << parser.usage() << std::endl;
+      std::cerr << "Couldn't guess output format from filename '" << outfile << "'." << std::endl
+                << std::endl;
       return 1;
     }
 
@@ -753,7 +827,12 @@ struct ConvertCommand : public Command
 
 struct TestCommand : public Command
 {
-  TestCommand(const GlobalEnvironment &env) : Command(env) {}
+private:
+  std::string mode;
+  rdcarray<rdcstr> args;
+
+public:
+  TestCommand() : Command() {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.set_footer(
@@ -770,39 +849,66 @@ struct TestCommand : public Command
   virtual bool HandlesUsageManually() { return true; }
   virtual bool IsInternalOnly() { return false; }
   virtual bool IsCaptureCommand() { return false; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &)
   {
     std::vector<std::string> rest = parser.rest();
+
+    parser.set_rest({});
 
     if(rest.empty())
     {
       std::cerr << "First argument must specify a test framework" << std::endl << std::endl;
       std::cerr << parser.usage() << std::endl;
-      return 1;
+      return false;
     }
 
     std::string mode = rest[0];
     rest.erase(rest.begin());
 
+    if(mode != "unit"
+#if PYTHON_VERSION_MINOR > 0
+       && mode != "functional"
+#endif
+       )
+    {
+      std::cerr << "Unsupported test frame work '" << mode << "'" << std::endl << std::endl;
+      std::cerr << parser.usage() << std::endl;
+      return false;
+    }
+
     if(parser.exist("help"))
       rest.push_back("--help");
 
+    args = convertArgs(rest);
+
+    return true;
+  }
+
+  virtual int Execute(const CaptureOptions &)
+  {
     if(mode == "unit")
-      return RENDERDOC_RunUnitTests("renderdoccmd test unit", convertArgs(rest));
+      return RENDERDOC_RunUnitTests("renderdoccmd test unit", args);
 #if PYTHON_VERSION_MINOR > 0
     else if(mode == "functional")
-      return RENDERDOC_RunFunctionalTests(PYTHON_VERSION_MINOR, convertArgs(rest));
+      return RENDERDOC_RunFunctionalTests(PYTHON_VERSION_MINOR, args);
 #endif
 
     std::cerr << "Unsupported test frame work '" << mode << "'" << std::endl << std::endl;
-    std::cerr << parser.usage() << std::endl;
     return 1;
   }
 };
 
 struct CapAltBitCommand : public Command
 {
-  CapAltBitCommand(const GlobalEnvironment &env) : Command(env) {}
+private:
+  CaptureOptions cmdopts;
+  rdcarray<EnvironmentModification> env;
+  std::string debuglog;
+  uint32_t pid;
+  std::string capfile;
+
+public:
+  CapAltBitCommand() : Command() {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.add<uint32_t>("pid", 0, "");
@@ -814,24 +920,22 @@ struct CapAltBitCommand : public Command
   virtual const char *Description() { return "Internal use only!"; }
   virtual bool IsInternalOnly() { return true; }
   virtual bool IsCaptureCommand() { return false; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &)
   {
-    CaptureOptions cmdopts;
     cmdopts.DecodeFromString(conv(parser.get<std::string>("capopts")));
 
-    RENDERDOC_InitGlobalEnv(m_Env, rdcarray<rdcstr>());
-
     std::vector<std::string> rest = parser.rest();
+
+    parser.set_rest({});
 
     if(rest.size() % 3 != 0)
     {
       std::cerr << "Invalid generated capaltbit command rest.size() == " << rest.size() << std::endl;
-      return 0;
+      return false;
     }
 
     int numEnvs = int(rest.size() / 3);
 
-    rdcarray<EnvironmentModification> env;
     env.reserve(numEnvs);
 
     for(int i = 0; i < numEnvs; i++)
@@ -896,12 +1000,17 @@ struct CapAltBitCommand : public Command
           EnvironmentModification(type, sep, rest[i * 3 + 1].c_str(), rest[i * 3 + 2].c_str()));
     }
 
-    std::string debuglog = parser.get<std::string>("debuglog");
+    debuglog = parser.get<std::string>("debuglog");
+    pid = parser.get<uint32_t>("pid");
+    capfile = parser.get<std::string>("capfile");
 
+    return true;
+  }
+  virtual int Execute(const CaptureOptions &)
+  {
     RENDERDOC_SetDebugLogFile(debuglog.c_str());
 
-    ExecuteResult result = RENDERDOC_InjectIntoProcess(
-        parser.get<uint32_t>("pid"), env, parser.get<std::string>("capfile").c_str(), cmdopts, false);
+    ExecuteResult result = RENDERDOC_InjectIntoProcess(pid, env, capfile.c_str(), cmdopts, false);
 
     if(result.status == ReplayStatus::Succeeded)
       return result.ident;
@@ -912,11 +1021,18 @@ struct CapAltBitCommand : public Command
 
 struct EmbeddedSectionCommand : public Command
 {
+private:
   bool m_Extract = false;
-  EmbeddedSectionCommand(const GlobalEnvironment &env, bool extract) : Command(env)
-  {
-    m_Extract = extract;
-  }
+  bool list_sections = false;
+  std::string rdc;
+  std::string file;
+  std::string section;
+  bool noclobber = false;
+  bool lz4 = false;
+  bool zstd = false;
+
+public:
+  EmbeddedSectionCommand(bool extract) : Command() { m_Extract = extract; }
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.set_footer("<capture.rdc>");
@@ -943,15 +1059,12 @@ struct EmbeddedSectionCommand : public Command
   }
   virtual bool IsInternalOnly() { return false; }
   virtual bool IsCaptureCommand() { return false; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &)
   {
-    if(parser.exist("list-sections"))
-    {
-      std::cout << "Known sections:" << std::endl;
-      for(SectionType s : values<SectionType>())
-        std::cout << ToStr(s) << std::endl;
-      return 0;
-    }
+    list_sections = parser.exist("list-sections");
+
+    if(list_sections)
+      return true;
 
     std::vector<std::string> rest = parser.rest();
     if(rest.empty())
@@ -959,20 +1072,32 @@ struct EmbeddedSectionCommand : public Command
       std::cerr << "Error: this command requires a filename to load." << std::endl
                 << std::endl
                 << parser.usage();
-      return 0;
+      return false;
     }
 
-    std::string rdc = rest[0];
+    rdc = rest[0];
 
     rest.erase(rest.begin());
 
-    RENDERDOC_InitGlobalEnv(m_Env, convertArgs(rest));
+    parser.set_rest(rest);
 
-    std::string file = parser.get<std::string>("file");
-    std::string section = parser.get<std::string>("section");
-    bool noclobber = parser.exist("no-clobber");
-    bool lz4 = !m_Extract && parser.exist("lz4");
-    bool zstd = !m_Extract && parser.exist("zstd");
+    file = parser.get<std::string>("file");
+    section = parser.get<std::string>("section");
+    noclobber = parser.exist("no-clobber");
+    lz4 = !m_Extract && parser.exist("lz4");
+    zstd = !m_Extract && parser.exist("zstd");
+
+    return true;
+  }
+  virtual int Execute(const CaptureOptions &)
+  {
+    if(list_sections)
+    {
+      std::cout << "Known sections:" << std::endl;
+      for(SectionType s : values<SectionType>())
+        std::cout << ToStr(s) << std::endl;
+      return 0;
+    }
 
     if(zstd && lz4)
     {
@@ -1132,9 +1257,13 @@ struct VulkanRegisterCommand : public Command
 private:
   bool m_LayerNeedUpdate = false;
   VulkanLayerRegistrationInfo m_Info;
+  bool explain = false;
+  bool register_layer = false;
+  bool user = false;
+  bool system = false;
 
 public:
-  VulkanRegisterCommand(const GlobalEnvironment &env) : Command(env)
+  VulkanRegisterCommand() : Command()
   {
     m_LayerNeedUpdate = RENDERDOC_NeedVulkanLayerRegistration(&m_Info);
   }
@@ -1155,9 +1284,19 @@ public:
     return !m_LayerNeedUpdate;
   }
   virtual bool IsCaptureCommand() { return false; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  bool Parse(cmdline::parser &parser, GlobalEnvironment &)
   {
-    if(parser.exist("explain") || !parser.exist("register"))
+    explain = parser.exist("explain");
+    register_layer = parser.exist("register");
+    user = parser.exist("user");
+    system = parser.exist("system");
+
+    return true;
+  }
+
+  virtual int Execute(const CaptureOptions &)
+  {
+    if(explain || !register_layer)
     {
       if(m_LayerNeedUpdate)
       {
@@ -1270,8 +1409,6 @@ public:
       return 0;
     }
 
-    bool user = parser.exist("user"), system = parser.exist("system");
-
     if(m_Info.flags & VulkanLayerFlags::UserRegisterable)
     {
       if(user)
@@ -1383,7 +1520,7 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
   // we don't need this in renderdoccmd.
   env.enumerateGPUs = false;
 
-  vulkan = new VulkanRegisterCommand(env);
+  vulkan = new VulkanRegisterCommand();
 
   // if vulkan isn't supported, or the layer is fully registered, this command will not be listed
   // in help so it will be invisible
@@ -1392,7 +1529,7 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
   try
   {
     // add basic commands, and common aliases
-    add_command("version", new VersionCommand(env));
+    add_command("version", new VersionCommand());
 
     add_alias("--version", "version");
     add_alias("-v", "version");
@@ -1400,7 +1537,7 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
     add_alias("/version", "version");
     add_alias("/v", "version");
 
-    add_command("help", new HelpCommand(env));
+    add_command("help", new HelpCommand());
 
     add_alias("--help", "help");
     add_alias("-h", "help");
@@ -1412,16 +1549,16 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
     add_alias("/?", "help");
 
     // add platform agnostic commands
-    add_command("thumb", new ThumbCommand(env));
-    add_command("capture", new CaptureCommand(env));
-    add_command("inject", new InjectCommand(env));
-    add_command("remoteserver", new RemoteServerCommand(env));
-    add_command("replay", new ReplayCommand(env));
-    add_command("capaltbit", new CapAltBitCommand(env));
-    add_command("test", new TestCommand(env));
-    add_command("convert", new ConvertCommand(env));
-    add_command("embed", new EmbeddedSectionCommand(env, false));
-    add_command("extract", new EmbeddedSectionCommand(env, true));
+    add_command("thumb", new ThumbCommand());
+    add_command("capture", new CaptureCommand());
+    add_command("inject", new InjectCommand());
+    add_command("remoteserver", new RemoteServerCommand());
+    add_command("replay", new ReplayCommand());
+    add_command("capaltbit", new CapAltBitCommand());
+    add_command("test", new TestCommand());
+    add_command("convert", new ConvertCommand());
+    add_command("embed", new EmbeddedSectionCommand(false));
+    add_command("extract", new EmbeddedSectionCommand(true));
 
     if(argv.size() <= 1)
     {
@@ -1536,7 +1673,18 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
       return 0;
     }
 
-    int ret = it->second->Execute(cmd, opts);
+    if(!it->second->Parse(cmd, env))
+    {
+      clean_up();
+      return 1;
+    }
+
+    RENDERDOC_InitialiseReplay(env, convertArgs(cmd.rest()));
+
+    int ret = it->second->Execute(opts);
+
+    RENDERDOC_ShutdownReplay();
+
     clean_up();
     return ret;
   }
@@ -1544,7 +1692,9 @@ int renderdoccmd(GlobalEnvironment &env, std::vector<std::string> &argv)
   {
     fprintf(stderr, "Unexpected exception: %s\n", e.what());
 
-    exit(1);
+    clean_up();
+
+    return 1;
   }
 }
 

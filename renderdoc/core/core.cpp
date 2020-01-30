@@ -465,6 +465,7 @@ RenderDoc::~RenderDoc()
 
   for(auto it = m_ShutdownFunctions.begin(); it != m_ShutdownFunctions.end(); ++it)
     (*it)();
+  m_ShutdownFunctions.clear();
 
   for(size_t i = 0; i < m_Captures.size(); i++)
   {
@@ -520,7 +521,7 @@ void RenderDoc::RemoveHooks()
   }
 }
 
-void RenderDoc::ProcessGlobalEnvironment(GlobalEnvironment env, const rdcarray<rdcstr> &args)
+void RenderDoc::InitialiseReplay(GlobalEnvironment env, const rdcarray<rdcstr> &args)
 {
   m_GlobalEnv = env;
 
@@ -644,6 +645,17 @@ void RenderDoc::ProcessGlobalEnvironment(GlobalEnvironment env, const rdcarray<r
       }
     });
   }
+}
+
+void RenderDoc::ShutdownReplay()
+{
+  SyncAvailableGPUThread();
+
+  // call shutdown functions early, as we only want to do these in the RenderDoc destructor if we
+  // have no other choice (i.e. we're capturing).
+  for(auto it = m_ShutdownFunctions.begin(); it != m_ShutdownFunctions.end(); ++it)
+    (*it)();
+  m_ShutdownFunctions.clear();
 }
 
 void RenderDoc::RegisterShutdownFunction(ShutdownFunction func)

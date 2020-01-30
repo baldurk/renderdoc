@@ -29,17 +29,15 @@
 
 struct Command
 {
-  Command(const GlobalEnvironment &env) { m_Env = env; }
   virtual ~Command() {}
   virtual void AddOptions(cmdline::parser &parser) = 0;
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &opts) = 0;
+  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &env) = 0;
+  virtual int Execute(const CaptureOptions &opts) = 0;
   virtual const char *Description() = 0;
 
   virtual bool HandlesUsageManually() { return false; }
   virtual bool IsInternalOnly() = 0;
   virtual bool IsCaptureCommand() = 0;
-
-  GlobalEnvironment m_Env;
 };
 
 extern bool usingKillSignal;

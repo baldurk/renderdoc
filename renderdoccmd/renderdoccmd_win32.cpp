@@ -241,15 +241,23 @@ void DisplayRendererPreview(IReplayController *renderer, TextureDisplay &display
 
 struct UpgradeCommand : public Command
 {
-  UpgradeCommand(const GlobalEnvironment &env) : Command(env) {}
+private:
+  std::wstring wide_path;
+
+public:
+  UpgradeCommand() {}
   virtual void AddOptions(cmdline::parser &parser) { parser.add<std::string>("path", 0, ""); }
   virtual const char *Description() { return "Internal use only!"; }
   virtual bool IsInternalOnly() { return true; }
   virtual bool IsCaptureCommand() { return false; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &)
   {
-    std::wstring wide_path = conv(parser.get<std::string>("path"));
+    wide_path = conv(parser.get<std::string>("path"));
+    return true;
+  }
 
+  virtual int Execute(const CaptureOptions &)
+  {
     if(wide_path.back() != '\\' && wide_path.back() != '/')
       wide_path += L'\\';
 
@@ -446,15 +454,22 @@ struct UpgradeCommand : public Command
 #if CRASH_HANDLER
 struct CrashHandlerCommand : public Command
 {
-  CrashHandlerCommand(const GlobalEnvironment &env) : Command(env) {}
+private:
+  std::wstring pipe;
+
+public:
+  CrashHandlerCommand() {}
   virtual void AddOptions(cmdline::parser &parser) { parser.add<std::string>("pipe", 0, ""); }
   virtual const char *Description() { return "Internal use only!"; }
   virtual bool IsInternalOnly() { return true; }
   virtual bool IsCaptureCommand() { return false; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &)
   {
-    std::wstring pipe = conv(parser.get<std::string>("pipe"));
-
+    pipe = conv(parser.get<std::string>("pipe"));
+    return true;
+  }
+  virtual int Execute(const CaptureOptions &)
+  {
     CrashGenerationServer *crashServer = NULL;
 
     wchar_t tempPath[MAX_PATH] = {0};
@@ -654,7 +669,14 @@ struct CrashHandlerCommand : public Command
 
 struct GlobalHookCommand : public Command
 {
-  GlobalHookCommand(const GlobalEnvironment &env) : Command(env) {}
+private:
+  std::wstring wpathmatch;
+  std::string capfile;
+  std::string debuglog;
+  std::string opts;
+
+public:
+  GlobalHookCommand() {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.add<std::string>("match", 0, "");
@@ -665,13 +687,16 @@ struct GlobalHookCommand : public Command
   virtual const char *Description() { return "Internal use only!"; }
   virtual bool IsInternalOnly() { return true; }
   virtual bool IsCaptureCommand() { return false; }
-  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  virtual bool Parse(cmdline::parser &parser, GlobalEnvironment &)
   {
-    std::wstring wpathmatch = conv(parser.get<std::string>("match"));
-    std::string capfile = parser.get<std::string>("capfile");
-    std::string debuglog = parser.get<std::string>("debuglog");
-    std::string opts = parser.get<std::string>("capopts");
-
+    wpathmatch = conv(parser.get<std::string>("match"));
+    capfile = parser.get<std::string>("capfile");
+    debuglog = parser.get<std::string>("debuglog");
+    opts = parser.get<std::string>("capopts");
+    return true;
+  }
+  virtual int Execute(const CaptureOptions &)
+  {
     CaptureOptions cmdopts;
     cmdopts.DecodeFromString(rdcstr(opts.c_str(), opts.size()));
 
@@ -808,17 +833,17 @@ int main(int, char *)
   GlobalEnvironment env;
 
   // perform an upgrade of the UI
-  add_command("upgrade", new UpgradeCommand(env));
+  add_command("upgrade", new UpgradeCommand());
 
 #if CRASH_HANDLER
   // special WIN32 option for launching the crash handler
-  add_command("crashhandle", new CrashHandlerCommand(env));
+  add_command("crashhandle", new CrashHandlerCommand());
 #endif
 
   // this installs a global windows hook pointing at renderdocshim*.dll that filters all running
   // processes and loads renderdoc.dll in the target one. In any other process it unloads as soon as
   // possible
-  add_command("globalhook", new GlobalHookCommand(env));
+  add_command("globalhook", new GlobalHookCommand());
 
   return renderdoccmd(env, argv);
 }

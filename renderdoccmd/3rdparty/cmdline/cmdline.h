@@ -394,6 +394,10 @@ public:
     return others;
   }
 
+  void set_rest(const std::vector<std::string> &rest) {
+    others = rest;
+  }
+
   bool parse(const std::vector<std::string> &args, bool processed_arg0 = false){
     int argc=static_cast<int>(args.size());
     std::vector<const char*> argv(argc);

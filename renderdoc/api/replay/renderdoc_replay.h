@@ -1889,9 +1889,22 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateVulkanLayerRegistrati
 DOCUMENT("Internal function for updating installed version number in windows registry.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateInstalledVersionNumber();
 
-DOCUMENT("Internal function for initialising global process environment in a replay program.");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitGlobalEnv(GlobalEnvironment env,
-                                                                   const rdcarray<rdcstr> &args);
+DOCUMENT(R"(Initialises RenderDoc for replay. Replay API functions should not be called before this
+has been called. It should be called exactly once, and before shutdown you must call
+:func:`ShutdownReplay`.
+
+:param GlobalEnvironment globalEnv: The path to the new log file.
+:param ``list`` of ``str`` args: Any extra command-line arguments.
+)");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitialiseReplay(GlobalEnvironment env,
+                                                                      const rdcarray<rdcstr> &args);
+
+DOCUMENT(R"(Shutdown RenderDoc for replay. Replay API functions should not be called after this
+has been called. It is not safe to re-initialise replay after this function has been called so it
+should only be called at program shutdown. This function must only be called if
+:func:`InitialiseReplay` was previously called.
+)");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_ShutdownReplay();
 
 DOCUMENT("Internal function for creating a bug report zip.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const char *logfile,

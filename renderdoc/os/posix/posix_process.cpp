@@ -886,6 +886,7 @@ void Process::Shutdown()
     delete del;
   }
 }
+
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #include "3rdparty/catch/catch.hpp"

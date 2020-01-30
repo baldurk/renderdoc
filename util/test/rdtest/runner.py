@@ -157,7 +157,7 @@ def fetch_tests():
 def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests: bool, debugger: bool):
     start_time = time.time()
 
-    rd.InitGlobalEnv(rd.GlobalEnvironment(), [])
+    rd.InitialiseReplay(rd.GlobalEnvironment(), [])
 
     # On windows, disable error reporting
     if 'windll' in dir(ctypes):
@@ -339,6 +339,8 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
     # Print a proper footer if we got here
     log.rawprint('\n\n\n</script>', with_stdout=False)
 
+    rd.ShutdownReplay()
+
     if len(failedcases) > 0:
         sys.exit(1)
 
@@ -369,12 +371,12 @@ def become_remote_server():
 def internal_run_test(test_name):
     testcases = get_tests()
 
-    rd.InitGlobalEnv(rd.GlobalEnvironment(), [])
-
     log.add_output(util.get_artifact_path("output.log.html"))
 
     for testclass in testcases:
         if testclass.__name__ == test_name:
+            rd.InitialiseReplay(rd.GlobalEnvironment(), [])
+
             log.begin_test(test_name, print_header=False)
 
             util.set_current_test(test_name)
@@ -388,6 +390,8 @@ def internal_run_test(test_name):
                 suceeded = False
 
             log.end_test(test_name, print_footer=False)
+
+            rd.ShutdownReplay()
 
             if suceeded:
                 sys.exit(0)
