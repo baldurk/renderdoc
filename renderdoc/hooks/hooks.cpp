@@ -47,6 +47,12 @@ void LibraryHooks::RegisterHooks()
   EndHookRegistration();
 }
 
+void LibraryHooks::RemoveHookCallbacks()
+{
+  for(LibraryHook *lib : LibList())
+    lib->RemoveHooks();
+}
+
 void LibraryHooks::OptionsUpdated()
 {
   for(LibraryHook *lib : LibList())

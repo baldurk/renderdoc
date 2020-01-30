@@ -502,7 +502,7 @@ RenderDoc::~RenderDoc()
   StringFormat::Shutdown();
 }
 
-void RenderDoc::Shutdown()
+void RenderDoc::RemoveHooks()
 {
   if(m_ExHandler)
   {

@@ -75,6 +75,14 @@ class VulkanHook : LibraryHook
     OptionsUpdated();
   }
 
+  void RemoveHooks()
+  {
+    // unset the vulkan layer environment variable
+    Process::RegisterEnvironmentModification(EnvironmentModification(
+        EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "0"));
+    Process::ApplyEnvironmentModification();
+  }
+
   void OptionsUpdated()
   {
     if(RenderDoc::Inst().GetCaptureOptions().apiValidation)

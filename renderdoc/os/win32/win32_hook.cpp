@@ -913,6 +913,8 @@ void LibraryHooks::Refresh()
 
 void LibraryHooks::RemoveHooks()
 {
+  LibraryHooks::RemoveHookCallbacks();
+
   for(auto it = s_InstalledHooks.begin(); it != s_InstalledHooks.end(); ++it)
   {
     DWORD oldProtection = PAGE_EXECUTE;

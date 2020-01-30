@@ -407,7 +407,7 @@ public:
   const char *GetCaptureFileTemplate() const { return m_CaptureFileTemplate.c_str(); }
   const char *GetCurrentTarget() const { return m_Target.c_str(); }
   void Initialise();
-  void Shutdown();
+  void RemoveHooks();
 
   uint64_t GetMicrosecondTimestamp() { return uint64_t(m_Timer.GetMicroseconds()); }
   const GlobalEnvironment &GetGlobalEnvironment() { return m_GlobalEnv; }

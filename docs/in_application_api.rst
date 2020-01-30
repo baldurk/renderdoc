@@ -287,9 +287,17 @@ This is not supported on Linux or Android due to the differing methods of hookin
     :param uint32_t And: is a 32-bit value the mask is binary-AND'd with before processing ``Or``.
     :param uint32_t Or: is a 32-bit value the mask is binary-OR'd with after processing ``And``.
 
-.. cpp:function:: void Shutdown()
+.. cpp:function:: void RemoveHooks()
 
-    This function will attempt to shut down and remove RenderDoc and its hooks from the target process. It must be called as early as possible in the process, and will have undefined results if any graphics API functions have been called.
+    This function will attempt to remove RenderDoc and its hooks from the target process. It must be called as early as possible in the process, and will have undefined results if any graphics API functions have been called.
+
+.. note::
+
+    This process is only possible on Windows, and even then it is not well defined so may not be possible in all circumstances. This function is provided at your own risk.
+
+.. note::
+
+    This function was renamed, in earlier versions of the API it was declared as ``Shutdown``. This rename is backwards compatible as the function signature did not change.
 
 .. cpp:function:: void UnloadCrashHandler()
 

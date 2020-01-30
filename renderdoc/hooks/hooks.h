@@ -147,6 +147,7 @@ public:
   // generic, implemented in hooks.cpp to iterate over all registered libraries
   static void RegisterHooks();
   static void OptionsUpdated();
+  static void RemoveHookCallbacks();
 
   // platform specific implementations
 
@@ -183,6 +184,7 @@ struct LibraryHook
   LibraryHook();
   virtual void RegisterHooks() = 0;
   virtual void OptionsUpdated() {}
+  virtual void RemoveHooks() {}
 private:
   friend class LibraryHooks;
 

@@ -349,13 +349,17 @@ typedef uint32_t(RENDERDOC_CC *pRENDERDOC_GetOverlayBits)();
 // sets the overlay bits with an and & or mask
 typedef void(RENDERDOC_CC *pRENDERDOC_MaskOverlayBits)(uint32_t And, uint32_t Or);
 
-// this function will attempt to shut down RenderDoc.
+// this function will attempt to remove RenderDoc's hooks in the application.
 //
-// Note: that this will only work correctly if done immediately after
-// the dll is loaded, before any API work happens. RenderDoc will remove its
+// Note: that this can only work correctly if done immediately after
+// the module is loaded, before any API work happens. RenderDoc will remove its
 // injected hooks and shut down. Behaviour is undefined if this is called
-// after any API functions have been called.
-typedef void(RENDERDOC_CC *pRENDERDOC_Shutdown)();
+// after any API functions have been called, and there is still no guarantee of
+// success.
+typedef void(RENDERDOC_CC *pRENDERDOC_RemoveHooks)();
+
+// DEPRECATED: compatibility for code compiled against pre-1.4.1 headers.
+typedef pRENDERDOC_RemoveHooks pRENDERDOC_Shutdown;
 
 // This function will unload RenderDoc's crash handler.
 //
@@ -543,6 +547,7 @@ typedef enum RENDERDOC_Version {
   eRENDERDOC_API_Version_1_2_0 = 10200,    // RENDERDOC_API_1_2_0 = 1 02 00
   eRENDERDOC_API_Version_1_3_0 = 10300,    // RENDERDOC_API_1_3_0 = 1 03 00
   eRENDERDOC_API_Version_1_4_0 = 10400,    // RENDERDOC_API_1_4_0 = 1 04 00
+  eRENDERDOC_API_Version_1_4_1 = 10401,    // RENDERDOC_API_1_4_1 = 1 04 01
 } RENDERDOC_Version;
 
 // API version changelog:
@@ -568,8 +573,9 @@ typedef enum RENDERDOC_Version {
 //         0xdddddddd of uninitialised buffer contents.
 // 1.4.0 - Added feature: DiscardFrameCapture() to discard a frame capture in progress and stop
 //         capturing without saving anything to disk.
+// 1.4.1 - Refactor: Renamed Shutdown to RemoveHooks to better clarify what is happening
 
-typedef struct RENDERDOC_API_1_4_0
+typedef struct RENDERDOC_API_1_4_1
 {
   pRENDERDOC_GetAPIVersion GetAPIVersion;
 
@@ -585,7 +591,13 @@ typedef struct RENDERDOC_API_1_4_0
   pRENDERDOC_GetOverlayBits GetOverlayBits;
   pRENDERDOC_MaskOverlayBits MaskOverlayBits;
 
-  pRENDERDOC_Shutdown Shutdown;
+  // Shutdown was renamed to RemoveHooks in 1.4.1.
+  // These unions allow old code to continue compiling without changes
+  union
+  {
+    pRENDERDOC_Shutdown Shutdown;
+    pRENDERDOC_RemoveHooks RemoveHooks;
+  };
   pRENDERDOC_UnloadCrashHandler UnloadCrashHandler;
 
   // Get/SetLogFilePathTemplate was renamed to Get/SetCaptureFilePathTemplate in 1.1.2.
@@ -635,16 +647,17 @@ typedef struct RENDERDOC_API_1_4_0
 
   // new function in 1.4.0
   pRENDERDOC_DiscardFrameCapture DiscardFrameCapture;
-} RENDERDOC_API_1_4_0;
+} RENDERDOC_API_1_4_1;
 
-typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_0_0;
-typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_0_1;
-typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_0_2;
-typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_1_0;
-typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_1_1;
-typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_1_2;
-typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_2_0;
-typedef RENDERDOC_API_1_4_0 RENDERDOC_API_1_3_0;
+typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_0_0;
+typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_0_1;
+typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_0_2;
+typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_1_0;
+typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_1_1;
+typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_1_2;
+typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_2_0;
+typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_3_0;
+typedef RENDERDOC_API_1_4_1 RENDERDOC_API_1_4_0;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // RenderDoc API entry point
