@@ -136,13 +136,43 @@ rdcstr GetDefaultActivityForPackage(const rdcstr &deviceID, const rdcstr &packag
   return "";
 }
 
-int GetCurrentPID(const rdcstr &deviceID, const rdcstr &packageName)
+rdcstr GetProcessNameForActivity(const rdcstr &deviceID, const rdcstr &packageName,
+                                 const rdcstr &activityName)
+{
+  Process::ProcessResult activity =
+      adbExecCommand(deviceID, StringFormat::Fmt("shell cmd package resolve-activity %s/%s",
+                                                 packageName.c_str(), activityName.c_str()));
+
+  if(activity.strStdout.empty())
+  {
+    RDCERR("Failed to resolve activity %s/%s. STDERR: %s", packageName.c_str(),
+           activityName.c_str(), activity.strStderror.c_str());
+    return packageName;
+  }
+
+  rdcarray<rdcstr> lines;
+  split(activity.strStdout, lines, '\n');
+
+  for(rdcstr &line : lines)
+  {
+    line.trim();
+
+    if(line.beginsWith("processName="))
+    {
+      return line.substr(12);
+    }
+  }
+
+  return packageName;
+}
+
+int GetCurrentPID(const rdcstr &deviceID, const rdcstr &processName)
 {
   // try 5 times, 200ms apart to find the pid
   for(int i = 0; i < 5; i++)
   {
     Process::ProcessResult pidOutput =
-        adbExecCommand(deviceID, StringFormat::Fmt("shell ps -A | grep %s", packageName.c_str()));
+        adbExecCommand(deviceID, StringFormat::Fmt("shell ps -A | grep %s", processName.c_str()));
 
     rdcstr &output = pidOutput.strStdout;
 
@@ -151,17 +181,17 @@ int GetCurrentPID(const rdcstr &deviceID, const rdcstr &packageName)
 
     // if we didn't get a response, try without the -A as some android devices don't support that
     // parameter
-    if(output.empty() || output.find(packageName) == -1 || space == -1)
+    if(output.empty() || output.find(processName) == -1 || space == -1)
     {
       pidOutput =
-          adbExecCommand(deviceID, StringFormat::Fmt("shell ps | grep %s", packageName.c_str()));
+          adbExecCommand(deviceID, StringFormat::Fmt("shell ps | grep %s", processName.c_str()));
 
       output.trim();
       space = output.find_first_of("\t ");
     }
 
     // if we still didn't get a response, sleep and try again next time
-    if(output.empty() || output.find(packageName) == -1 || space == -1)
+    if(output.empty() || output.find(processName) == -1 || space == -1)
     {
       Threading::Sleep(200);
       continue;
@@ -991,12 +1021,14 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
     if(activityName.empty() || activityName == "#DefaultActivity")
       activityName = Android::GetDefaultActivityForPackage(m_deviceID, packageName);
 
+    rdcstr processName = Android::GetProcessNameForActivity(m_deviceID, packageName, activityName);
+
     uint16_t jdwpPort = Android::GetJdwpPort();
 
     // remove any previous jdwp port forward on this port
     Android::adbExecCommand(m_deviceID, StringFormat::Fmt("forward --remove tcp:%i", jdwpPort));
     // force stop the package if it was running before
-    Android::adbExecCommand(m_deviceID, "shell am force-stop " + packageName);
+    Android::adbExecCommand(m_deviceID, "shell am force-stop " + processName);
 
     bool hookWithJDWP = true;
 
@@ -1035,7 +1067,13 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
     // if in VR mode, enable frame delimiter markers
     Android::adbExecCommand(m_deviceID, "shell setprop debug.vr.profiler 1");
     // create the data directory we will use for storing, in case the application doesn't
-    Android::adbExecCommand(m_deviceID, "shell mkdir -p /sdcard/Android/data/" + packageName);
+    // NOTE: if processName != packageName, process may not be able to write to this directory
+    // unless
+    // it also has the WRITE_EXTERNAL_STORAGE permission. Under sdcardfs, only
+    // Android/data/<package>
+    // has the permissions set correctly, and we don't have a convenient way to get the package name
+    // from native code.
+    Android::adbExecCommand(m_deviceID, "shell mkdir -p /sdcard/Android/data/" + processName);
     // set our property with the capture options encoded, to be picked up by the library on the
     // device
     Android::adbExecCommand(m_deviceID,
@@ -1097,7 +1135,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
     }
 
     // adb shell ps | grep $PACKAGE | awk '{print $2}')
-    pid = Android::GetCurrentPID(m_deviceID, packageName);
+    pid = Android::GetCurrentPID(m_deviceID, processName);
 
     if(pid == 0)
     {
@@ -1148,7 +1186,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
       // check to see if the PID is still there. If it was before and isn't now, the APK has
       // exited
       // without ever opening a connection.
-      int curpid = Android::GetCurrentPID(m_deviceID, packageName);
+      int curpid = Android::GetCurrentPID(m_deviceID, processName);
 
       if(curpid == 0)
       {
