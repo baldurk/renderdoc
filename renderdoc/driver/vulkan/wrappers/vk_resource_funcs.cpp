@@ -1318,7 +1318,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
               record->resInfo->memreqs.size = RDCMAX(record->resInfo->memreqs.size, mrq.size);
               record->resInfo->memreqs.alignment =
                   RDCMAX(record->resInfo->memreqs.size, mrq.alignment);
-              if((resInfo.memreqs.memoryTypeBits & mrq.memoryTypeBits) == 0)
+              if((record->resInfo->memreqs.memoryTypeBits & mrq.memoryTypeBits) == 0)
               {
                 RDCWARN(
                     "External buffer shares no memory types with non-external buffer. This buffer "
