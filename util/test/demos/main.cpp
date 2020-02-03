@@ -328,14 +328,28 @@ Usage: %s Test_Name [test_options]
     return 1;
   }
 
-  std::string testchoice;
+  // Check if the first arg is a valid test name. If it isn't,
+  // allow the UI to appear, so that flags can be used with the UI
+  bool validTestArg = false;
+  if(argc >= 2)
+  {
+    for(const TestMetadata &test : tests)
+    {
+      if(!strcmp(test.Name, argv[1]))
+      {
+        validTestArg = true;
+        break;
+      }
+    }
+  }
 
+  std::string testchoice;
   if(tests.size() == 1)
   {
     // if there's only one test we've probably hardcoded this for a repro. Launch it
     testchoice = tests[0].Name;
   }
-  else if(argc >= 2)
+  else if(validTestArg)
   {
     testchoice = argv[1];
   }
