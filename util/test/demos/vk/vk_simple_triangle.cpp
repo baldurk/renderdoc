@@ -128,6 +128,10 @@ void main()
 
     vb.upload(DefaultTri);
 
+    AllocatedImage offimg(this, vkh::ImageCreateInfo(4, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                     VK_IMAGE_USAGE_TRANSFER_DST_BIT),
+                          VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
     while(Running())
     {
       VkCommandBuffer cmd = GetCommandBuffer();
@@ -138,6 +142,16 @@ void main()
           StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
       vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
+                           vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
+                           vkh::ImageSubresourceRange());
+
+      vkh::cmdPipelineBarrier(
+          cmd, {
+                   vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                           VK_IMAGE_LAYOUT_GENERAL, offimg.image),
+               });
+
+      vkCmdClearColorImage(cmd, offimg.image, VK_IMAGE_LAYOUT_GENERAL,
                            vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
 

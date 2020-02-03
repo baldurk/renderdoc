@@ -47,6 +47,10 @@ RD_TEST(D3D12_Simple_Triangle, D3D12GraphicsTest)
 
     ResourceBarrier(vb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
+    ID3D12ResourcePtr rtvtex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 4, 4)
+                                   .RTV()
+                                   .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
+
     while(Running())
     {
       ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
@@ -59,6 +63,8 @@ RD_TEST(D3D12_Simple_Triangle, D3D12GraphicsTest)
           MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
 
       ClearRenderTargetView(cmd, rtv, {0.4f, 0.5f, 0.6f, 1.0f});
+
+      ClearRenderTargetView(cmd, MakeRTV(rtvtex).CreateCPU(1), {0.4f, 0.5f, 0.6f, 1.0f});
 
       cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 

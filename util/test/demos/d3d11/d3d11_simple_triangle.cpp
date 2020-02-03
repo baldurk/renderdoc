@@ -46,9 +46,14 @@ RD_TEST(D3D11_Simple_Triangle, D3D11GraphicsTest)
 
     ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(DefaultTri);
 
+    // make a simple texture so that the structured data includes texture initial states
+    ID3D11Texture2DPtr fltTex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 4, 4).RTV();
+    ID3D11RenderTargetViewPtr fltRT = MakeRTV(fltTex);
+
     while(Running())
     {
       ClearRenderTargetView(bbRTV, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(fltRT, {0.4f, 0.5f, 0.6f, 1.0f});
 
       IASetVertexBuffer(vb, sizeof(DefaultA2V), 0);
       ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

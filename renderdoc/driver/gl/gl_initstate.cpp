@@ -1354,10 +1354,11 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
 
     // only continue with serialising the contents if the format is valid (storage allocated).
     // Otherwise this texture has no initial state to apply
-    if(TextureState.internalformat != eGL_NONE && !ser.IsErrored() && !IsStructuredExporting(m_State))
+    if(TextureState.internalformat != eGL_NONE && !ser.IsErrored())
     {
-      WrappedOpenGL::TextureData &details =
-          ser.IsWriting() ? m_Driver->m_Textures[id] : m_Driver->m_Textures[GetLiveID(id)];
+      WrappedOpenGL::TextureData &details = (ser.IsWriting() || IsStructuredExporting(m_State))
+                                                ? m_Driver->m_Textures[id]
+                                                : m_Driver->m_Textures[GetLiveID(id)];
 
       if(TextureState.type == eGL_TEXTURE_BUFFER || TextureState.isView)
       {

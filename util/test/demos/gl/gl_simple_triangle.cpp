@@ -98,10 +98,17 @@ void main()
 
     GLuint program = MakeProgram(common + vertex, common + pixel);
 
+    // make a simple texture so that the structured data includes texture initial states
+    GLuint tex = MakeTexture();
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, 4, 4);
+
     while(Running())
     {
       float col[] = {0.4f, 0.5f, 0.6f, 1.0f};
       glClearBufferfv(GL_COLOR, 0, col);
+
+      glClearTexImage(tex, 0, GL_RGBA, GL_FLOAT, col);
 
       glBindVertexArray(vao);
 
