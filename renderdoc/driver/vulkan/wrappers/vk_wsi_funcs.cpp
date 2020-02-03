@@ -875,6 +875,8 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkQueuePresentKHR);
     Serialise_vkQueuePresentKHR(ser, queue, pPresentInfo);
 
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(queue), eFrameRef_Read);
+
     m_FrameCaptureRecord->AddChunk(scope.Get());
   }
 
