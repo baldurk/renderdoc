@@ -51,6 +51,8 @@ COM_SMARTPTR(ID3D12CommandSignature);
 COM_SMARTPTR(ID3D12RootSignature);
 COM_SMARTPTR(ID3D12PipelineState);
 
+COM_SMARTPTR(ID3D12DebugCommandList);
+
 COM_SMARTPTR(ID3D12Resource);
 
 COM_SMARTPTR(ID3D12DescriptorHeap);
