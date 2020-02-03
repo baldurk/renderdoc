@@ -1318,7 +1318,16 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
               record->resInfo->memreqs.size = RDCMAX(record->resInfo->memreqs.size, mrq.size);
               record->resInfo->memreqs.alignment =
                   RDCMAX(record->resInfo->memreqs.size, mrq.alignment);
-              record->resInfo->memreqs.memoryTypeBits &= mrq.memoryTypeBits;
+              if((resInfo.memreqs.memoryTypeBits & mrq.memoryTypeBits) == 0)
+              {
+                RDCWARN(
+                    "External buffer shares no memory types with non-external buffer. This buffer "
+                    "will not be replayable.");
+              }
+              else
+              {
+                record->resInfo->memreqs.memoryTypeBits &= mrq.memoryTypeBits;
+              }
             }
           }
           else
@@ -1782,7 +1791,17 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
 
               resInfo.memreqs.size = RDCMAX(resInfo.memreqs.size, mrq.size);
               resInfo.memreqs.alignment = RDCMAX(resInfo.memreqs.size, mrq.alignment);
-              resInfo.memreqs.memoryTypeBits &= mrq.memoryTypeBits;
+
+              if((resInfo.memreqs.memoryTypeBits & mrq.memoryTypeBits) == 0)
+              {
+                RDCWARN(
+                    "External image shares no memory types with non-external image. This image "
+                    "will not be replayable.");
+              }
+              else
+              {
+                resInfo.memreqs.memoryTypeBits &= mrq.memoryTypeBits;
+              }
             }
           }
           else
