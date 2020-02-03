@@ -175,6 +175,7 @@ void main()
   {
     optDevExts.push_back(VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+    optDevExts.push_back(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
 
     // initialise, create window, create context, etc
     if(!Init())
@@ -185,6 +186,9 @@ void main()
                   VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME) != devExts.end();
     bool KHR_push_descriptor = std::find(devExts.begin(), devExts.end(),
                                          VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME) != devExts.end();
+    bool EXT_transform_feedback =
+        std::find(devExts.begin(), devExts.end(), VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME) !=
+        devExts.end();
 
     VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
         {0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT},
@@ -836,6 +840,17 @@ void main()
       Submit(99, 99, {cmd});
     }
 
+    VkBufferUsageFlags xfbUsage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+    if(EXT_transform_feedback)
+    {
+      xfbUsage |= VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT;
+      xfbUsage |= VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT;
+    }
+
+    AllocatedBuffer xfbBuf(this, vkh::BufferCreateInfo(256, xfbUsage),
+                           VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
     while(Running())
     {
       // acquire and clear the backbuffer
@@ -1044,6 +1059,17 @@ void main()
 
         setMarker(cmd, "Color Draw");
         vkCmdDraw(cmd, 3, 1, 0, 0);
+
+        if(EXT_transform_feedback)
+        {
+          VkDeviceSize offs = 0;
+          // pSizes is optional and can be NULL to use the whole buffer size
+          vkCmdBindTransformFeedbackBuffersEXT(cmd, 0, 1, &xfbBuf.buffer, &offs, NULL);
+
+          // pCounterBuffers is also optional
+          vkCmdBeginTransformFeedbackEXT(cmd, 0, 0, NULL, NULL);
+          vkCmdEndTransformFeedbackEXT(cmd, 0, 0, NULL, NULL);
+        }
 
         vkCmdEndRenderPass(cmd);
 
