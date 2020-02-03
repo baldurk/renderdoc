@@ -146,6 +146,7 @@
     <ClCompile Include="d3d11\d3d11_resource_lifetimes.cpp" />
     <ClCompile Include="d3d11\d3d11_saturate.cpp" />
     <ClCompile Include="d3d11\d3d11_shader_editing.cpp" />
+    <ClCompile Include="d3d11\d3d11_shader_isa.cpp" />
     <ClCompile Include="d3d11\d3d11_simple_dispatch.cpp" />
     <ClCompile Include="d3d11\d3d11_simple_triangle.cpp" />
     <ClCompile Include="d3d11\d3d11_stream_out.cpp" />
@@ -167,6 +168,7 @@
     <ClCompile Include="d3d12\d3d12_parameter_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_resource_lifetimes.cpp" />
     <ClCompile Include="d3d12\d3d12_shader_editing.cpp" />
+    <ClCompile Include="d3d12\d3d12_shader_isa.cpp" />
     <ClCompile Include="d3d12\d3d12_sharing.cpp" />
     <ClCompile Include="d3d12\d3d12_simple_triangle.cpp" />
     <ClCompile Include="d3d12\d3d12_test.cpp" />
@@ -204,6 +206,7 @@
     <ClCompile Include="gl\gl_runtime_bind_prog_to_pipe.cpp" />
     <ClCompile Include="gl\gl_separable_geometry_shader.cpp" />
     <ClCompile Include="gl\gl_shader_editing.cpp" />
+    <ClCompile Include="gl\gl_shader_isa.cpp" />
     <ClCompile Include="gl\gl_simple_triangle.cpp" />
     <ClCompile Include="gl\gl_spirv_shader.cpp" />
     <ClCompile Include="gl\gl_structured_buffer_nested.cpp" />
@@ -238,6 +241,7 @@
     <ClCompile Include="vk\vk_multi_thread_windows.cpp" />
     <ClCompile Include="vk\vk_separate_depth_stencil_layouts.cpp" />
     <ClCompile Include="vk\vk_shader_editing.cpp" />
+    <ClCompile Include="vk\vk_shader_isa.cpp" />
     <ClCompile Include="vk\vk_spec_constants.cpp" />
     <ClCompile Include="vk\vk_spirv_13_shaders.cpp" />
     <ClCompile Include="vk\vk_texture_zoo.cpp" />

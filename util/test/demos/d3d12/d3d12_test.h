@@ -186,6 +186,8 @@ struct D3D12GraphicsTest : public GraphicsTest
 
   GraphicsWindow *mainWindow = NULL;
 
+  DXGI_ADAPTER_DESC adapterDesc = {};
+
   IDXGISwapChain1Ptr swap;
 
   ID3D12ResourcePtr bbTex[2];

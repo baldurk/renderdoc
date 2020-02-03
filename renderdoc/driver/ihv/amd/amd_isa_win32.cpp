@@ -36,14 +36,6 @@
 #define DLL_NAME "atidxx32.dll"
 #endif
 
-static const char *driverDllErrorMessage = R"(Error loading atidxx64.dll.
-
-Currently atidxx64.dll from AMD's driver package is required for GCN disassembly and it cannot be
-distributed with RenderDoc.
-
-To see instructions on how to download and configure it on your system, go to:
-https://github.com/baldurk/renderdoc/wiki/GCN-ISA)";
-
 namespace GCNISA
 {
 extern rdcstr pluginPath;
@@ -81,7 +73,7 @@ rdcstr DisassembleDXBC(const bytebuf &shaderBytes, const rdcstr &target)
   if(mod == NULL)
     return "; Error loading " DLL_NAME R"(.
 
-; Currently atidxx64.dll from AMD's driver package is required for GCN disassembly and it cannot be
+; Currently )" DLL_NAME R"( from AMD's driver package is required for GCN disassembly and it cannot be
 ; distributed with RenderDoc.
 
 ; To see instructions on how to download and configure it on your system, go to:

@@ -42,7 +42,7 @@
 #include "data/glsl/glsl_ubos_cpp.h"
 
 static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
-static const char *AMDShaderInfoTarget = "AMD_shader_info disassembly";
+static const char *AMDShaderInfoTarget = "AMD_shader_info";
 static const char *KHRExecutablePropertiesTarget = "KHR_pipeline_executable_properties";
 
 VulkanReplay::VulkanReplay(WrappedVulkan *d)

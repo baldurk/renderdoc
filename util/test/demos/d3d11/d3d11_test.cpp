@@ -286,10 +286,9 @@ void D3D11GraphicsTest::PostDeviceCreate()
       }
       else
       {
-        DXGI_ADAPTER_DESC desc = {};
-        pDXGIAdapter->GetDesc(&desc);
+        pDXGIAdapter->GetDesc(&adapterDesc);
 
-        TEST_LOG("Running D3D11 test on %ls", desc.Description);
+        TEST_LOG("Running D3D11 test on %ls", adapterDesc.Description);
       }
     }
   }

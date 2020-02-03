@@ -165,6 +165,8 @@ struct D3D11GraphicsTest : public GraphicsTest
   bool d3d11_2 = false;
   UINT createFlags = 0;
 
+  DXGI_ADAPTER_DESC adapterDesc = {};
+
   D3D11_FEATURE_DATA_D3D11_OPTIONS opts;
   D3D11_FEATURE_DATA_D3D11_OPTIONS1 opts1;
 

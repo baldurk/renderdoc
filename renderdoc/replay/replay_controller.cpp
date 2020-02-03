@@ -165,6 +165,9 @@ rdcstr ReplayController::DisassembleShader(ResourceId pipeline, const ShaderRefl
 {
   CHECK_REPLAY_THREAD();
 
+  if(refl == NULL)
+    return "; Error: No shader specified";
+
   for(const rdcstr &t : m_GCNTargets)
     if(t == target)
       return GCNISA::Disassemble(refl->encoding, refl->stage, refl->rawBytes, target);
