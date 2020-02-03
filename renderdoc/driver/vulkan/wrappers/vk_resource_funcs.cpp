@@ -397,7 +397,7 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
   // assume the struct is present and just add the capture-replay flag to allow us to specify the
   // address on replay. We ensured the physical device can support this feature (and it was enabled)
   // when whitelisting the extension and creating the device.
-  if(memFlags && (memFlags->flags & VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT))
+  if(IsCaptureMode(m_State) && memFlags && (memFlags->flags & VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT))
     memFlags->flags |= VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
 
   VkResult ret;
@@ -1179,7 +1179,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
 
   // If we're using this buffer for device addresses, ensure we force on capture replay bit.
   // We ensured the physical device can support this feature before whitelisting the extension.
-  if(adjusted_info.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+  if(IsCaptureMode(m_State) && (adjusted_info.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT))
     adjusted_info.flags |= VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(adjusted_info.pNext));
