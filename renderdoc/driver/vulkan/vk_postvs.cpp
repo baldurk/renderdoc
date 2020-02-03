@@ -1642,11 +1642,23 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
 
   // create pipeline layout with new descriptor set layouts
   {
-    rdcarray<VkPushConstantRange> push = creationInfo.m_PipelineLayout[pipeInfo.layout].pushRanges;
+    // the spec says only one push constant range may be used per stage, so at most one has
+    // VERTEX_BIT. Find it, and make it COMPUTE_BIT
+    VkPushConstantRange push;
+    uint32_t numPush = 0;
+    rdcarray<VkPushConstantRange> oldPush = creationInfo.m_PipelineLayout[pipeInfo.layout].pushRanges;
 
     // ensure the push range is visible to the compute shader
-    for(VkPushConstantRange &range : push)
-      range.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    for(const VkPushConstantRange &range : oldPush)
+    {
+      if(range.stageFlags == VK_SHADER_STAGE_VERTEX_BIT)
+      {
+        push = range;
+        push.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+        numPush = 1;
+        break;
+      }
+    }
 
     VkPipelineLayoutCreateInfo pipeLayoutInfo = {
         VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -1654,8 +1666,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId)
         0,
         (uint32_t)setLayouts.size(),
         setLayouts.data(),
-        (uint32_t)push.size(),
-        push.data(),
+        numPush,
+        &push,
     };
 
     vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &pipeLayout);
