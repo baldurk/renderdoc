@@ -162,10 +162,10 @@ void main()
         };
 
         CHECK_VKR(vkCreateFramebuffer(
-            device,
-            vkh::FramebufferCreateInfo(mainWindow->rp, {VK_NULL_HANDLE}, mainWindow->scissor.extent,
-                                       1, VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR)
-                .next(&viewsInfo),
+            device, vkh::FramebufferCreateInfo(mainWindow->rp, {(VkImageView)0x1234},
+                                               mainWindow->scissor.extent, 1,
+                                               VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR)
+                        .next(&viewsInfo),
             NULL, &fb));
       }
 
