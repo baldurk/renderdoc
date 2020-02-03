@@ -339,6 +339,7 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
   m_ResourceID = ResourceIDGen::GetNewUniqueID();
 
   m_QueueRecord = NULL;
+  m_CreationRecord = NULL;
 
   m_Cmd.m_pDevice = m_pDevice;
 
@@ -349,6 +350,15 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
     m_QueueRecord->DataInSerialiser = false;
     m_QueueRecord->InternalResource = true;
     m_QueueRecord->Length = 0;
+
+    // a bit of a hack, we make a parallel resource record with the same lifetime as the command
+    // queue. It will hold onto our create chunk and not get thrown away as we clear and re-fill
+    // submissions into the queue record itself. We'll pull it into the capture by marking the
+    // queues as referenced.
+    m_CreationRecord =
+        m_pDevice->GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
+    m_CreationRecord->type = Resource_CommandQueue;
+    m_CreationRecord->InternalResource = true;
   }
 
   m_pDevice->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
@@ -359,6 +369,9 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
 WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
 {
   SAFE_DELETE(m_FrameReader);
+
+  if(m_CreationRecord)
+    m_CreationRecord->Delete(m_pDevice->GetResourceManager());
 
   if(m_QueueRecord)
     m_QueueRecord->Delete(m_pDevice->GetResourceManager());

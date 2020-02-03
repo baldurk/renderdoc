@@ -397,11 +397,17 @@ float4 main(v2f IN) : SV_Target0
       descheap = NULL;
     };
 
+    ID3D12ResourcePtr rtvtex = MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, screenWidth, screenHeight)
+                                   .RTV()
+                                   .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
+
     ID3D12ResourcePtr cb = SetupBuf();
     ID3D12ResourcePtr img = SetupImg();
     ID3D12DescriptorHeapPtr descheap = SetupDescHeap(cb, img);
     while(Running())
     {
+      D3D12_CPU_DESCRIPTOR_HANDLE offrtv = MakeRTV(rtvtex).CreateCPU(1);
+
       D3D12_CPU_DESCRIPTOR_HANDLE rtv;
 
       // acquire and clear the backbuffer
@@ -455,6 +461,45 @@ float4 main(v2f IN) : SV_Target0
         TrashBuf(cb);
         TrashImg(img);
         TrashDescHeap(descheap);
+      }
+
+      // use a temporary queue
+      {
+        GPUSync();
+
+        ID3D12CommandQueuePtr tempQueue;
+
+        {
+          D3D12_COMMAND_QUEUE_DESC desc = {};
+          desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+          dev->CreateCommandQueue(&desc, __uuidof(ID3D12CommandQueue), (void **)&tempQueue);
+        }
+
+        ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
+
+        Reset(cmd);
+
+        ClearRenderTargetView(cmd, offrtv, {0.6f, 0.5f, 0.4f, 1.0f});
+
+        OMSetRenderTargets(cmd, {offrtv}, {});
+
+        cmd->Close();
+
+        ID3D12CommandList *submit = cmd.GetInterfacePtr();
+
+        tempQueue->ExecuteCommandLists(1, &submit);
+
+        // manually insert this into freeCommandBuffers since our normal lifetime management doesn't
+        // handle submissino on other queues.
+        freeCommandBuffers.push_back(cmd);
+
+        m_GPUSyncCounter++;
+
+        CHECK_HR(tempQueue->Signal(m_GPUSyncFence, m_GPUSyncCounter));
+        CHECK_HR(m_GPUSyncFence->SetEventOnCompletion(m_GPUSyncCounter, m_GPUSyncHandle));
+        WaitForSingleObject(m_GPUSyncHandle, 10000);
+
+        tempQueue = NULL;
       }
 
       // create resources mid-frame and use then trash them

@@ -1812,11 +1812,16 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
       m_HeaderChunk = scope.Get();
     }
 
-    // keep all queues alive during the capture, by adding a refcount
-    for(auto it = m_Queues.begin(); it != m_Queues.end(); ++it)
-      (*it)->AddRef();
-
     m_State = CaptureState::ActiveCapturing;
+
+    // keep all queues alive during the capture, by adding a refcount. Also reference the creation
+    // record so that it's pulled in as initialisation chunks.
+    for(auto it = m_Queues.begin(); it != m_Queues.end(); ++it)
+    {
+      (*it)->AddRef();
+      GetResourceManager()->MarkResourceFrameReferenced((*it)->GetCreationRecord()->GetResourceID(),
+                                                        eFrameRef_Read);
+    }
   }
 
   GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Read);

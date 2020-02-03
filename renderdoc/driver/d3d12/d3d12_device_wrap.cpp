@@ -114,7 +114,7 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateCommandQueue);
       Serialise_CreateCommandQueue(ser, pDesc, riid, (void **)&wrapped);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      wrapped->GetCreationRecord()->AddChunk(scope.Get());
     }
     else
     {
@@ -141,7 +141,11 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
     // while capturing don't allow any queues to be freed, by adding another refcount, since we
     // gather any commands submitted to them at the end of the capture.
     if(capframe)
+    {
+      GetResourceManager()->MarkResourceFrameReferenced(
+          wrapped->GetCreationRecord()->GetResourceID(), eFrameRef_Read);
       wrapped->AddRef();
+    }
 
     *ppCommandQueue = (ID3D12CommandQueue *)wrapped;
   }

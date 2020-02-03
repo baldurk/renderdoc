@@ -105,7 +105,7 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   HWND m_pPresentHWND = NULL;
 
   ResourceId m_ResourceID;
-  D3D12ResourceRecord *m_QueueRecord;
+  D3D12ResourceRecord *m_QueueRecord, *m_CreationRecord;
 
   CaptureState &m_State;
 
@@ -148,6 +148,7 @@ public:
   ResourceId GetResourceID() { return m_ResourceID; }
   ID3D12CommandQueue *GetReal() { return m_pReal; }
   D3D12ResourceRecord *GetResourceRecord() { return m_QueueRecord; }
+  D3D12ResourceRecord *GetCreationRecord() { return m_CreationRecord; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   const rdcarray<D3D12ResourceRecord *> &GetCmdLists() { return m_CmdListRecords; }
   D3D12DrawcallTreeNode &GetParentDrawcall() { return m_Cmd.m_ParentDrawcall; }
