@@ -341,19 +341,37 @@ struct SemaphoreCreateInfo : public VkSemaphoreCreateInfo
     flags = 0;
   }
 
+  SemaphoreCreateInfo &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+
   operator const VkSemaphoreCreateInfo *() const { return this; }
 };
 
 struct FenceCreateInfo : public VkFenceCreateInfo
 {
-  FenceCreateInfo() : VkFenceCreateInfo()
+  FenceCreateInfo(VkFenceCreateFlags flags = 0) : VkFenceCreateInfo()
   {
     sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    pNext = NULL;
+    this->flags = flags;
+  }
+
+  operator const VkFenceCreateInfo *() const { return this; }
+};
+
+struct EventCreateInfo : public VkEventCreateInfo
+{
+  EventCreateInfo() : VkEventCreateInfo()
+  {
+    sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
     pNext = NULL;
     flags = 0;
   }
 
-  operator const VkFenceCreateInfo *() const { return this; }
+  operator const VkEventCreateInfo *() const { return this; }
 };
 
 struct CommandPoolCreateInfo : public VkCommandPoolCreateInfo

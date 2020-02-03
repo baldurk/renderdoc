@@ -339,6 +339,23 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
   std::vector<VkExtensionProperties> supportedExts;
   CHECK_VKR(vkh::enumerateDeviceExtensionProperties(supportedExts, phys, NULL));
 
+  // add any optional extensions that are supported
+  for(const char *search : optDevExts)
+  {
+    bool found = false;
+    for(VkExtensionProperties &ext : supportedExts)
+    {
+      if(!strcmp(ext.extensionName, search))
+      {
+        found = true;
+        break;
+      }
+    }
+
+    if(found)
+      devExts.push_back(search);
+  }
+
   vkGetPhysicalDeviceProperties(phys, &physProperties);
 
   instVersion = vulkanVersion;

@@ -122,3 +122,9 @@ class VK_Parameter_Zoo(rdtest.TestCase):
         self.check(any([d.name == 'RenderDoc' for d in draw.children]))
 
         rdtest.log.success("RenderDoc tool was listed as available")
+
+        # Check for resource leaks
+        if len(self.controller.GetStructuredFile().chunks) > 500:
+            raise rdtest.TestFailureException(
+                "Too many chunks found: {}".format(len(self.controller.GetStructuredFile().chunks)))
+

@@ -171,13 +171,30 @@ void main()
     };
   }
 
-  int main()
+  void Prepare(int argc, char **argv)
   {
     optDevExts.push_back(VK_EXT_TOOLING_INFO_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
     optDevExts.push_back(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 
+    VulkanGraphicsTest::Prepare(argc, argv);
+
+    static VkPhysicalDeviceTimelineSemaphoreFeaturesKHR timeline = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR,
+    };
+
+    if(std::find(devExts.begin(), devExts.end(), VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME) !=
+       devExts.end())
+    {
+      timeline.timelineSemaphore = VK_TRUE;
+      devInfoNext = &timeline;
+    }
+  }
+
+  int main()
+  {
     // initialise, create window, create context, etc
     if(!Init())
       return 3;
@@ -203,6 +220,9 @@ void main()
                                          VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME) != devExts.end();
     bool EXT_transform_feedback =
         std::find(devExts.begin(), devExts.end(), VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME) !=
+        devExts.end();
+    bool KHR_timeline_semaphore =
+        std::find(devExts.begin(), devExts.end(), VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME) !=
         devExts.end();
 
     VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
@@ -866,6 +886,23 @@ void main()
     AllocatedBuffer xfbBuf(this, vkh::BufferCreateInfo(256, xfbUsage),
                            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
+    VkFence fence;
+    CHECK_VKR(vkCreateFence(device, vkh::FenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT), NULL, &fence));
+
+    VkEvent ev;
+    CHECK_VKR(vkCreateEvent(device, vkh::EventCreateInfo(), NULL, &ev));
+
+    VkSemaphore sem = VK_NULL_HANDLE;
+
+    if(KHR_timeline_semaphore)
+    {
+      VkSemaphoreTypeCreateInfo semType = {VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO};
+      semType.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+      semType.initialValue = 1234;
+
+      CHECK_VKR(vkCreateSemaphore(device, vkh::SemaphoreCreateInfo().next(&semType), NULL, &sem));
+    }
+
     while(Running())
     {
       // acquire and clear the backbuffer
@@ -885,6 +922,28 @@ void main()
 
         Submit(0, 4, {cmd});
       }
+
+      // do a bunch of spinning on fences/semaphores that should not be serialised exhaustively
+      VkResult status = VK_SUCCESS;
+      for(size_t i = 0; i < 1000; i++)
+        status = vkGetFenceStatus(device, fence);
+
+      if(status != VK_SUCCESS)
+        TEST_WARN("Expected fence to be set (it was created signalled)");
+
+      for(size_t i = 0; i < 1000; i++)
+        status = vkGetEventStatus(device, ev);
+
+      if(status != VK_EVENT_RESET)
+        TEST_WARN("Expected event to be unset");
+
+      uint64_t val = 0;
+      if(KHR_timeline_semaphore)
+        for(size_t i = 0; i < 1000; i++)
+          vkGetSemaphoreCounterValueKHR(device, sem, &val);
+
+      if(val != 1234)
+        TEST_WARN("Expected timeline semaphore value to be 1234");
 
       // reference some resources through different descriptor types to ensure that they are
       // properly included
@@ -1120,6 +1179,10 @@ void main()
     }
 
     vkDeviceWaitIdle(device);
+
+    vkDestroyEvent(device, ev, NULL);
+    vkDestroyFence(device, fence, NULL);
+    vkDestroySemaphore(device, sem, NULL);
 
     vkDestroySampler(device, validSampler, NULL);
 
