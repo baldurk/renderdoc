@@ -48,13 +48,61 @@ float4 main() : SV_Target0
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_4_0");
     ID3DBlobPtr psblob = Compile(pixel, "main", "ps_4_0");
 
+    uint32_t indices[1024 / 4] = {0, 1, 2};
+
     ID3D12ResourcePtr vb = MakeBuffer().Data(DefaultTri);
+    ID3D12ResourcePtr ib = MakeBuffer().Data(indices);
 
     ID3D12RootSignaturePtr sig = MakeSig({});
 
     ID3D12PipelineStatePtr pso = MakePSO().RootSig(sig).InputLayout().VS(vsblob).PS(psblob);
 
     ResourceBarrier(vb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+
+    ID3D12Device4Ptr dev4 = dev;
+
+    // if D3D12.4 (??) is available, use different interfaces
+    if(dev4)
+    {
+      D3D12_RESOURCE_DESC desc;
+      desc.Alignment = 0;
+      desc.DepthOrArraySize = 1;
+      desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+      desc.Format = DXGI_FORMAT_UNKNOWN;
+      desc.Height = 1;
+      desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      desc.Width = sizeof(DefaultTri);
+      desc.MipLevels = 1;
+      desc.SampleDesc.Count = 1;
+      desc.SampleDesc.Quality = 0;
+
+      D3D12_HEAP_DESC heapDesc;
+      heapDesc.SizeInBytes = 4096;
+      heapDesc.Flags = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
+      heapDesc.Alignment = 0;
+      heapDesc.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+      heapDesc.Properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+      heapDesc.Properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+      heapDesc.Properties.CreationNodeMask = 1;
+      heapDesc.Properties.VisibleNodeMask = 1;
+
+      CHECK_HR(dev4->CreateCommittedResource1(&heapDesc.Properties, D3D12_HEAP_FLAG_NONE, &desc,
+                                              D3D12_RESOURCE_STATE_COMMON, NULL, NULL,
+                                              __uuidof(ID3D12Resource), (void **)&vb));
+
+      SetBufferData(vb, D3D12_RESOURCE_STATE_COMMON, (const byte *)DefaultTri, sizeof(DefaultTri));
+
+      ID3D12Heap1Ptr heap;
+      CHECK_HR(dev4->CreateHeap1(&heapDesc, NULL, __uuidof(ID3D12Heap1), (void **)&heap));
+
+      desc.Width = sizeof(indices);
+
+      CHECK_HR(dev4->CreatePlacedResource(heap, 0, &desc, D3D12_RESOURCE_STATE_COMMON, NULL,
+                                          __uuidof(ID3D12Resource), (void **)&ib));
+
+      SetBufferData(ib, D3D12_RESOURCE_STATE_COMMON, (const byte *)indices, sizeof(indices));
+    }
 
     while(Running())
     {
@@ -77,6 +125,11 @@ float4 main() : SV_Target0
       cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
       IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
+      D3D12_INDEX_BUFFER_VIEW view;
+      view.BufferLocation = ib->GetGPUVirtualAddress();
+      view.Format = DXGI_FORMAT_R32_UINT;
+      view.SizeInBytes = 1024;
+      cmd->IASetIndexBuffer(&view);
       cmd->SetPipelineState(pso);
       cmd->SetGraphicsRootSignature(sig);
 
@@ -87,7 +140,7 @@ float4 main() : SV_Target0
 
       setMarker(cmd, "Color Draw");
 
-      cmd->DrawInstanced(3, 1, 0, 0);
+      cmd->DrawIndexedInstanced(3, 1, 0, 0, 0);
 
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
