@@ -1126,9 +1126,9 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
       RDCLOG("Launching APK with no debugger or direct injection.");
 
       // start the activity in this package with debugging enabled and force-stop after starting
-      Android::adbExecCommand(m_deviceID,
-                              StringFormat::Fmt("shell am start -n %s/%s %s", packageName.c_str(),
-                                                activityName.c_str(), intentArgs.c_str()));
+      Android::adbExecCommand(
+          m_deviceID, StringFormat::Fmt("shell am start -S -n %s/%s %s", packageName.c_str(),
+                                        activityName.c_str(), intentArgs.c_str()));
 
       // don't connect JDWP
       jdwpPort = 0;
