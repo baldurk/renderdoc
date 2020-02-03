@@ -115,3 +115,10 @@ class VK_Parameter_Zoo(rdtest.TestCase):
             rdtest.log.success("Resources in push template set were found as expected")
 
         rdtest.log.success("All resources were found as expected")
+
+        draw = self.find_draw("Tools available")
+
+        self.check(len(draw.children) > 1)
+        self.check(any([d.name == 'RenderDoc' for d in draw.children]))
+
+        rdtest.log.success("RenderDoc tool was listed as available")
