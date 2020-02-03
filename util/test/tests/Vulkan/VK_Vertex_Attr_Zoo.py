@@ -103,12 +103,16 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
         ref = {
             0: {
                 'outData.outStruct.a': [1.1],
-                'outData.outStruct.b[0]': [2.2],
-                'outData.outStruct.b[1]': [3.3],
                 'outData.outStruct.c.foo[0]': [4.4],
                 'outData.outStruct.c.foo[1]': [5.5],
                 'outData.outStruct.d[0].foo': [6.6],
                 'outData.outStruct.d[1].foo': [7.7],
+                'outData.outStruct.b[0][0]': [2.2],
+                'outData.outStruct.b[0][1]': [3.3],
+                'outData.outStruct.b[0][2]': [8.8],
+                'outData.outStruct.b[1][0]': [9.9],
+                'outData.outStruct.b[1][1]': [9.1],
+                'outData.outStruct.b[1][2]': [8.2],
             },
         }
 
@@ -116,7 +120,14 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
 
         rdtest.log.success("Nested vertex output data is as expected")
 
-        # The array-of-structs data is a broken in transform feedback
+        # The array-of-structs or array-of-arrays data is a broken in transform feedback
+        del ref[0]['outData.outStruct.b[0][0]']
+        del ref[0]['outData.outStruct.b[0][1]']
+        del ref[0]['outData.outStruct.b[0][2]']
+        del ref[0]['outData.outStruct.b[1][0]']
+        del ref[0]['outData.outStruct.b[1][1]']
+        del ref[0]['outData.outStruct.b[1][2]']
+
         del ref[0]['outData.outStruct.d[0].foo']
         del ref[0]['outData.outStruct.d[1].foo']
 

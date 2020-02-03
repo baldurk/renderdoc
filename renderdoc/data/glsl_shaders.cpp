@@ -1428,7 +1428,7 @@ void main() {
     }
   };
 
-  SECTION("matrix and array outputs")
+  SECTION("matrix and 1D array outputs")
   {
     rdcstr source = R"(
 #version 450 core
@@ -1480,7 +1480,6 @@ void main()
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 0);
-        CHECK(sig.arrayIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
         CHECK(sig.compType == CompType::Float);
         CHECK(sig.compCount == 3);
@@ -1494,7 +1493,6 @@ void main()
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 1);
-        CHECK(sig.arrayIndex == 1);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
         CHECK(sig.compType == CompType::Float);
         CHECK(sig.compCount == 3);
@@ -1508,7 +1506,6 @@ void main()
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 2);
-        CHECK(sig.arrayIndex == 2);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
         CHECK(sig.compType == CompType::Float);
         CHECK(sig.compCount == 3);
@@ -1548,7 +1545,6 @@ void main()
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 9);
-        CHECK(sig.arrayIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
         CHECK(sig.compType == CompType::Float);
         CHECK(sig.compCount == 2);
@@ -1562,7 +1558,6 @@ void main()
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 10);
-        CHECK(sig.arrayIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
         CHECK(sig.compType == CompType::Float);
         CHECK(sig.compCount == 2);
@@ -1576,7 +1571,6 @@ void main()
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 11);
-        CHECK(sig.arrayIndex == 1);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
         CHECK(sig.compType == CompType::Float);
         CHECK(sig.compCount == 2);
@@ -1590,12 +1584,303 @@ void main()
         INFO("signature element: " << sig.varName.c_str());
 
         CHECK(sig.regIndex == 12);
-        CHECK(sig.arrayIndex == 1);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
         CHECK(sig.compType == CompType::Float);
         CHECK(sig.compCount == 2);
         CHECK(sig.regChannelMask == 0x3);
         CHECK(sig.channelUsedMask == 0x3);
+      }
+    }
+  };
+
+  // this is an annoying one. We want to specify a location explicitly to be GL/SPIR-V compatible,
+  // but on GL if we specify a location the location assignment handling breaks. Since we only
+  // need to handle this for tests (real drivers will let us query the locations when needed) AND
+  // it's an extremely obtuse scenario, we just let GL have no location
+  const rdcstr locDefine = (testType == ShaderType::GLSPIRV || testType == ShaderType::Vulkan)
+                               ? "#define LOC(l) layout(location = l)"
+                               : "#define LOC(l)";
+
+  SECTION("nested struct/array inputs/outputs")
+  {
+    rdcstr source = R"(
+#version 450 core
+
+)" + locDefine + R"(
+
+struct leaf
+{
+  float x;
+};
+
+struct nest
+{
+  float a[2];
+  leaf b[2];
+};
+
+struct base
+{
+  float a;
+  vec3 b;
+  nest c[2];
+};
+
+layout(binding = 0, std140) uniform ubo_block {
+	base inB;
+} ubo_root;
+
+LOC(0) out base outB;
+
+void main()
+{
+  gl_Position = vec4(0, 0, 0, 1);
+  outB = ubo_root.inB;
+}
+
+)";
+
+    ShaderReflection refl;
+    ShaderBindpointMapping mapping;
+    compile(ShaderStage::Vertex, source, "main", refl, mapping);
+
+    REQUIRE_ARRAY_SIZE(refl.outputSignature.size(), 11);
+    {
+      CHECK(refl.outputSignature[0].varName.contains("gl_Position"));
+      {
+        const SigParameter &sig = refl.outputSignature[0];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::Position);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 4);
+        CHECK(sig.regChannelMask == 0xf);
+        CHECK(sig.channelUsedMask == 0xf);
+      }
+
+      CHECK(refl.outputSignature[1].varName == "outB.a");
+      {
+        const SigParameter &sig = refl.outputSignature[1];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 0);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 1);
+        CHECK(sig.regChannelMask == 0x1);
+        CHECK(sig.channelUsedMask == 0x1);
+      }
+
+      CHECK(refl.outputSignature[2].varName == "outB.b");
+      {
+        const SigParameter &sig = refl.outputSignature[2];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 1);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 3);
+        CHECK(sig.regChannelMask == 0x7);
+        CHECK(sig.channelUsedMask == 0x7);
+      }
+
+      CHECK(refl.outputSignature[3].varName == "outB.c[0].a[0]");
+      {
+        const SigParameter &sig = refl.outputSignature[3];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 2);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 1);
+        CHECK(sig.regChannelMask == 0x1);
+        CHECK(sig.channelUsedMask == 0x1);
+      }
+
+      CHECK(refl.outputSignature[4].varName == "outB.c[0].a[1]");
+      {
+        const SigParameter &sig = refl.outputSignature[4];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 3);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 1);
+        CHECK(sig.regChannelMask == 0x1);
+        CHECK(sig.channelUsedMask == 0x1);
+      }
+
+      CHECK(refl.outputSignature[5].varName == "outB.c[0].b[0].x");
+      {
+        const SigParameter &sig = refl.outputSignature[5];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 4);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 1);
+        CHECK(sig.regChannelMask == 0x1);
+        CHECK(sig.channelUsedMask == 0x1);
+      }
+
+      CHECK(refl.outputSignature[6].varName == "outB.c[0].b[1].x");
+      {
+        const SigParameter &sig = refl.outputSignature[6];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 5);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 1);
+        CHECK(sig.regChannelMask == 0x1);
+        CHECK(sig.channelUsedMask == 0x1);
+      }
+
+      CHECK(refl.outputSignature[7].varName == "outB.c[1].a[0]");
+      {
+        const SigParameter &sig = refl.outputSignature[7];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 6);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 1);
+        CHECK(sig.regChannelMask == 0x1);
+        CHECK(sig.channelUsedMask == 0x1);
+      }
+
+      CHECK(refl.outputSignature[8].varName == "outB.c[1].a[1]");
+      {
+        const SigParameter &sig = refl.outputSignature[8];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 7);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 1);
+        CHECK(sig.regChannelMask == 0x1);
+        CHECK(sig.channelUsedMask == 0x1);
+      }
+
+      CHECK(refl.outputSignature[9].varName == "outB.c[1].b[0].x");
+      {
+        const SigParameter &sig = refl.outputSignature[9];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 8);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 1);
+        CHECK(sig.regChannelMask == 0x1);
+        CHECK(sig.channelUsedMask == 0x1);
+      }
+
+      CHECK(refl.outputSignature[10].varName == "outB.c[1].b[1].x");
+      {
+        const SigParameter &sig = refl.outputSignature[10];
+        INFO("signature element: " << sig.varName.c_str());
+
+        CHECK(sig.regIndex == 9);
+        CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.compCount == 1);
+        CHECK(sig.regChannelMask == 0x1);
+        CHECK(sig.channelUsedMask == 0x1);
+      }
+    }
+  }
+
+  SECTION("multi-dimensional array inputs/outputs")
+  {
+    rdcstr source = R"(
+#version 450 core
+
+)" + locDefine + R"(
+
+LOC(0) in vec3 inarr[1][3][2];
+
+LOC(0) out vec3 outarr[1][3][2];
+
+void main()
+{
+  gl_Position = vec4(0, 0, 0, 1);
+  for(int i=0; i < 1*3*2; i++)
+    outarr[(i/6)][(i/2)%3][i%2] = inarr[(i/6)][(i/2)%3][i%2];
+}
+
+)";
+
+    ShaderReflection refl;
+    ShaderBindpointMapping mapping;
+    compile(ShaderStage::Vertex, source, "main", refl, mapping);
+
+    REQUIRE_ARRAY_SIZE(refl.samplers.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.constantBlocks.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readOnlyResources.size(), 0);
+    REQUIRE_ARRAY_SIZE(refl.readWriteResources.size(), 0);
+
+    REQUIRE(refl.inputSignature.size() >= 6);
+
+    // glslang will insert gl_VertexID and gl_InstanceID here in SPIR-V compilation
+    CHECK((refl.inputSignature.size() == 6 || refl.inputSignature.size() == 8));
+
+    REQUIRE_ARRAY_SIZE(refl.outputSignature.size(), 7);
+    for(size_t i = 0; i < 2; i++)
+    {
+      const rdcarray<SigParameter> &sigarray = (i == 0) ? refl.inputSignature : refl.outputSignature;
+      size_t idx = 0;
+
+      if(i == 0)
+      {
+        if(sigarray[0].varName.contains("gl_VertexID"))
+        {
+          // skip without checking
+          idx++;
+        }
+        if(sigarray[1].varName.contains("gl_InstanceID"))
+        {
+          // skip without checking
+          idx++;
+        }
+      }
+      else if(i == 1)
+      {
+        CHECK(sigarray[0].varName.contains("gl_Position"));
+        {
+          const SigParameter &sig = sigarray[0];
+          INFO("signature element: " << sig.varName.c_str());
+
+          CHECK(sig.regIndex == 0);
+          CHECK(sig.systemValue == ShaderBuiltin::Position);
+          CHECK(sig.compType == CompType::Float);
+          CHECK(sig.compCount == 4);
+          CHECK(sig.regChannelMask == 0xf);
+          CHECK(sig.channelUsedMask == 0xf);
+        }
+
+        idx++;
+      }
+
+      for(uint32_t a = 0; a < 6; a++)
+      {
+        rdcstr expectedName = StringFormat::Fmt("%sarr[%d][%d][%d]", i == 0 ? "in" : "out", a / 6,
+                                                (a / 2) % 3, (a % 2));
+
+        CHECK(sigarray[idx].varName == expectedName);
+        {
+          const SigParameter &sig = sigarray[idx];
+          INFO("signature element: " << sig.varName.c_str());
+
+          CHECK(sig.regIndex == a);
+          CHECK(sig.systemValue == ShaderBuiltin::Undefined);
+          CHECK(sig.compType == CompType::Float);
+          CHECK(sig.compCount == 3);
+          CHECK(sig.regChannelMask == 0x7);
+          CHECK(sig.channelUsedMask == 0x7);
+        }
+
+        idx++;
       }
     }
   };

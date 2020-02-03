@@ -1086,10 +1086,7 @@ static void AddSigParameter(rdcarray<SigParameter> &sigs, uint32_t &regIndex,
       s.regIndex += arrayIdx;
 
     if(arrayIdx >= 0)
-    {
-      s.arrayIndex = arrayIdx;
       s.varName = StringFormat::Fmt("%s[%d]", nm, arrayIdx);
-    }
 
     sigs.push_back(s);
   }
@@ -1107,14 +1104,9 @@ static void AddSigParameter(rdcarray<SigParameter> &sigs, uint32_t &regIndex,
         s.regIndex += r;
 
       if(arrayIdx >= 0)
-      {
-        s.arrayIndex = arrayIdx;
         s.varName = StringFormat::Fmt("%s[%d]:row%d", nm, arrayIdx, r);
-      }
       else
-      {
         s.varName = StringFormat::Fmt("%s:row%d", nm, r);
-      }
 
       sigs.push_back(s);
     }

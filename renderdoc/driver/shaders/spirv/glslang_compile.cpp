@@ -610,21 +610,59 @@ void glslangGetProgramResourceiv(glslang::TProgram *program, ReflectionInterface
   }
 }
 
-uint32_t glslangGetProgramResourceIndex(glslang::TProgram *program, const char *name)
+uint32_t glslangGetProgramResourceIndex(glslang::TProgram *program,
+                                        ReflectionInterface programInterface, const char *name)
 {
-  uint32_t idx = program->getReflectionIndex(name);
+  rdcstr n = name;
 
-  // Additionally, if <name> would exactly match the name string of an active
-  // resource if "[0]" were appended to <name>, the index of the matched
-  // resource is returned.
-  if(idx == ~0U)
+  for(int pass = 0; pass < 2; pass++)
   {
-    rdcstr arraysuffixed = name;
-    arraysuffixed += "[0]";
-    idx = program->getReflectionIndex(arraysuffixed.c_str());
+    // glslang namespaces aggregates that it blows up with our reflection settings, assuming we
+    // don't get an exact match for the name try with the appropriate prefix for this interface
+    if(pass == 1 && programInterface == ReflectionInterface::Input)
+      n = "in " + n;
+    else if(pass == 1 && programInterface == ReflectionInterface::Output)
+      n = "out " + n;
+    else if(pass == 1)
+      break;
+
+    uint32_t idx = program->getReflectionIndex(n.c_str());
+
+    // Additionally, if <name> would exactly match the name string of an active
+    // resource if "[0]" were appended to <name>, the index of the matched
+    // resource is returned.
+    if(idx == ~0U)
+    {
+      rdcstr arraysuffixed = n;
+      arraysuffixed += "[0]";
+      idx = program->getReflectionIndex(arraysuffixed.c_str());
+    }
+
+    // for I/O inputs, if the name ended in an array index, try and subtract that, query for the
+    // name with [0].
+    if((programInterface == ReflectionInterface::Input ||
+        programInterface == ReflectionInterface::Output) &&
+       idx == ~0U && n.back() == ']')
+    {
+      rdcstr unsuffixed = n;
+      unsuffixed.pop_back();
+
+      while(unsuffixed.back() >= '0' && unsuffixed.back() <= '9')
+        unsuffixed.pop_back();
+
+      if(unsuffixed.back() == '[')
+      {
+        unsuffixed.pop_back();
+        unsuffixed += "[0]";
+        idx = program->getReflectionIndex(unsuffixed.c_str());
+      }
+    }
+
+    if(idx != ~0U)
+      return idx;
   }
 
-  return idx;
+  return ~0U;
 }
 
 const char *glslangGetProgramResourceName(glslang::TProgram *program,

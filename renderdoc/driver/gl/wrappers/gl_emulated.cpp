@@ -2497,7 +2497,7 @@ GLuint APIENTRY _glGetProgramResourceIndex(GLuint program, GLenum programInterfa
     return 0;
   }
 
-  return glslangGetProgramResourceIndex(glslangProgram, name);
+  return glslangGetProgramResourceIndex(glslangProgram, ConvertInterface(programInterface), name);
 }
 
 void APIENTRY _glGetProgramResourceName(GLuint program, GLenum programInterface, GLuint index,
@@ -3483,7 +3483,8 @@ void APIENTRY _testStub_GetActiveUniformBlockiv(GLuint program, GLuint uniformBl
 
 GLint APIENTRY _testStub_AttribLocation(GLuint program, const GLchar *name)
 {
-  GLuint index = GL.glGetProgramResourceIndex(program, eGL_UNIFORM_BLOCK, name);
+  GLuint index = GL.glGetProgramResourceIndex(program, eGL_PROGRAM_INPUT, name);
+
   RDCASSERT(index != GL_INVALID_INDEX);
   GLenum prop = eGL_LOCATION;
   GLint value = -1;

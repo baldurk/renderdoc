@@ -603,7 +603,7 @@ struct SigParameter
            regIndex == o.regIndex && systemValue == o.systemValue && compType == o.compType &&
            regChannelMask == o.regChannelMask && channelUsedMask == o.channelUsedMask &&
            needSemanticIndex == o.needSemanticIndex && compCount == o.compCount &&
-           stream == o.stream && arrayIndex == o.arrayIndex;
+           stream == o.stream;
   }
   bool operator<(const SigParameter &o) const
   {
@@ -631,8 +631,6 @@ struct SigParameter
       return compCount < o.compCount;
     if(!(stream == o.stream))
       return stream < o.stream;
-    if(!(arrayIndex == o.arrayIndex))
-      return arrayIndex < o.arrayIndex;
     return false;
   }
 
@@ -674,9 +672,6 @@ shader itself, for APIs that pack signatures together.
   DOCUMENT(
       "Selects a stream for APIs that provide multiple output streams for the same named output.");
   uint32_t stream = 0;
-
-  DOCUMENT("If this element is part of an array, indicates the index, or :data:`NoIndex` if not.");
-  uint32_t arrayIndex = ~0U;
 
   static const uint32_t NoIndex = ~0U;
 };

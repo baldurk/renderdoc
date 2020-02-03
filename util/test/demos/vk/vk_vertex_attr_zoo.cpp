@@ -182,7 +182,7 @@ struct SimpleWrapper
 struct MyStruct
 {
   float a;
-  float b[2];
+  float b[2][3];
   ArrayWrapper c;
   SimpleWrapper d[2];
 };
@@ -202,12 +202,16 @@ void main()
   OutDummy = vec4(0,0,0,0);
 
   outData.outStruct.a = 1.1f;
-  outData.outStruct.b[0] = 2.2f;
-  outData.outStruct.b[1] = 3.3f;
   outData.outStruct.c.foo[0] = 4.4f;
   outData.outStruct.c.foo[1] = 5.5f;
   outData.outStruct.d[0].foo = 6.6f;
   outData.outStruct.d[1].foo = 7.7f;
+  outData.outStruct.b[0][0] = 2.2f;
+  outData.outStruct.b[0][1] = 3.3f;
+  outData.outStruct.b[0][2] = 8.8f;
+  outData.outStruct.b[1][0] = 9.9f;
+  outData.outStruct.b[1][1] = 9.1f;
+  outData.outStruct.b[1][2] = 8.2f;
 }
 
 )EOSHADER";
@@ -233,7 +237,7 @@ struct SimpleWrapper
 struct MyStruct
 {
   float a;
-  float b[2];
+  float b[2][3];
   ArrayWrapper c;
   SimpleWrapper d[2];
 };

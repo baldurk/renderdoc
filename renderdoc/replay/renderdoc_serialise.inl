@@ -165,9 +165,8 @@ void DoSerialise(SerialiserType &ser, SigParameter &el)
   SERIALISE_MEMBER(needSemanticIndex);
   SERIALISE_MEMBER(compCount);
   SERIALISE_MEMBER(stream);
-  SERIALISE_MEMBER(arrayIndex);
 
-  SIZE_CHECK(104);
+  SIZE_CHECK(96);
 }
 
 template <typename SerialiserType>

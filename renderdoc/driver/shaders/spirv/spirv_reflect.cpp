@@ -2100,32 +2100,29 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
     isArray = true;
     varType = &dataTypes[varType->InnerType()];
 
-    // for geometry/tessellation evaluation shaders, ignore the root level of array-ness for inputs
-    if((stage == ShaderStage::Geometry || stage == ShaderStage::Tess_Eval) && isInput &&
-       parentStructID == 0)
-      arraySize = 1;
-
-    // for tessellation control shaders, ignore the root level of array-ness for both inputs and
-    // outputs
-    if(stage == ShaderStage::Tess_Control && parentStructID == 0)
-      arraySize = 1;
-
-    // step through multi-dimensional arrays
-    while(varType->type == DataType::ArrayType)
-      varType = &dataTypes[varType->InnerType()];
-
-    // if this is a root array in the geometry shader, don't reflect it as an array
-    if(stage == ShaderStage::Geometry && isInput && parentStructID == 0)
+    // if this is the first array level, we sometimes ignore it.
+    if(patch.accessChain.empty())
     {
-      arraySize = 1;
-      isArray = false;
+      // for geometry/tessellation evaluation shaders, ignore the root level of array-ness for
+      // inputs
+      if((stage == ShaderStage::Geometry || stage == ShaderStage::Tess_Eval) && isInput)
+        arraySize = 1;
+
+      // for tessellation control shaders, ignore the root level of array-ness for both inputs and
+      // outputs
+      if(stage == ShaderStage::Tess_Control)
+        arraySize = 1;
+
+      // if this is a root array in the geometry shader, don't reflect it as an array either
+      if(stage == ShaderStage::Geometry && isInput)
+        isArray = false;
     }
+
+    // arrays will need an extra access chain index
+    patch.accessChain.push_back(0U);
   }
 
-  // arrays will need an extra access chain index
-  if(isArray)
-    patch.accessChain.push_back(0U);
-
+  // if the current type is a struct, recurse for each member
   if(varType->type == DataType::StructType)
   {
     for(uint32_t a = 0; a < arraySize; a++)
@@ -2167,6 +2164,23 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
     return;
   }
 
+  // similarly for arrays (this happens for multi-dimensional arrays
+  if(varType->type == DataType::ArrayType)
+  {
+    for(uint32_t a = 0; a < arraySize; a++)
+    {
+      AddSignatureParameter(isInput, stage, globalID, varType->id, regIndex, patch,
+                            varName + StringFormat::Fmt("[%u]", a), *varType, {}, sigarray,
+                            patchData, specInfo);
+
+      // increment the array-index access chain value
+      patch.accessChain.back()++;
+      patch.isArraySubsequentElement = true;
+    }
+
+    return;
+  }
+
   switch(varType->scalar().type)
   {
     case Op::TypeBool:
@@ -2191,10 +2205,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
     rdcstr n = varName;
 
     if(isArray)
-    {
       n += StringFormat::Fmt("[%u]", a);
-      sig.arrayIndex = a;
-    }
 
     sig.varName = n;
 
