@@ -1559,17 +1559,23 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           "geometry/tessellation stages will not be available");
     }
 
+    bool KHRbuffer = false, EXTbuffer = false;
+
     if(supportedExtensions.find(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) !=
        supportedExtensions.end())
     {
       Extensions.push_back(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
       RDCLOG("Enabling VK_KHR_buffer_device_address");
+
+      KHRbuffer = true;
     }
     else if(supportedExtensions.find(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) !=
             supportedExtensions.end())
     {
       Extensions.push_back(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
       RDCLOG("Enabling VK_EXT_buffer_device_address");
+
+      EXTbuffer = true;
     }
     else
     {
@@ -2575,6 +2581,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     SAFE_DELETE_ARRAY(exts);
 
+    VkPhysicalDeviceProperties physProps;
+    ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), &physProps);
+
     VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR pipeExecFeatures = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR,
     };
@@ -2699,6 +2708,108 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
     }
 
+    VkPhysicalDeviceBufferDeviceAddressFeaturesEXT bufAddrEXTFeatures = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT,
+    };
+    VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufAddrKHRFeatures = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR,
+    };
+    VkPhysicalDeviceVulkan12Features vk12Features = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+    };
+
+    if(physProps.apiVersion >= VK_MAKE_VERSION(1, 2, 0))
+    {
+      VkPhysicalDeviceVulkan12Features *existing = (VkPhysicalDeviceVulkan12Features *)FindNextStruct(
+          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES);
+
+      if(existing)
+      {
+        existing->bufferDeviceAddress = VK_TRUE;
+      }
+      else
+      {
+        vk12Features.bufferDeviceAddress = VK_TRUE;
+
+        perfFeatures.pNext = (void *)createInfo.pNext;
+        createInfo.pNext = &perfFeatures;
+      }
+    }
+    else if(KHRbuffer)
+    {
+      VkPhysicalDeviceFeatures2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+      availBase.pNext = &bufAddrKHRFeatures;
+      ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2(Unwrap(physicalDevice), &availBase);
+
+      if(bufAddrKHRFeatures.bufferDeviceAddress)
+      {
+        // see if there's an existing struct
+        VkPhysicalDeviceBufferDeviceAddressFeaturesKHR *existing =
+            (VkPhysicalDeviceBufferDeviceAddressFeaturesKHR *)FindNextStruct(
+                &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR);
+
+        if(existing)
+        {
+          // if so, make sure the feature is enabled
+          existing->bufferDeviceAddress = VK_TRUE;
+        }
+        else
+        {
+          // otherwise, add our own, and push it onto the pNext array
+          bufAddrKHRFeatures.bufferDeviceAddress = VK_TRUE;
+          bufAddrKHRFeatures.bufferDeviceAddressMultiDevice = VK_FALSE;
+
+          pipeExecFeatures.pNext = (void *)createInfo.pNext;
+          createInfo.pNext = &bufAddrKHRFeatures;
+        }
+      }
+      else
+      {
+        RDCWARN(
+            "VK_KHR_buffer_device_address is available, but the physical device feature "
+            "is not. Disabling");
+
+        Extensions.removeOne(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+      }
+    }
+    else if(KHRbuffer)
+    {
+      VkPhysicalDeviceFeatures2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+      availBase.pNext = &bufAddrEXTFeatures;
+      ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2(Unwrap(physicalDevice), &availBase);
+
+      if(bufAddrEXTFeatures.bufferDeviceAddress)
+      {
+        // see if there's an existing struct
+        VkPhysicalDeviceBufferDeviceAddressFeaturesEXT *existing =
+            (VkPhysicalDeviceBufferDeviceAddressFeaturesEXT *)FindNextStruct(
+                &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT);
+
+        if(existing)
+        {
+          // if so, make sure the feature is enabled
+          existing->bufferDeviceAddress = VK_TRUE;
+        }
+        else
+        {
+          // otherwise, add our own, and push it onto the pNext array
+          bufAddrEXTFeatures.bufferDeviceAddress = VK_TRUE;
+          bufAddrEXTFeatures.bufferDeviceAddressMultiDevice = VK_FALSE;
+
+          pipeExecFeatures.pNext = (void *)createInfo.pNext;
+          createInfo.pNext = &bufAddrEXTFeatures;
+        }
+      }
+      else
+      {
+        RDCWARN(
+            "VK_EXT_buffer_device_address is available, but the physical device feature "
+            "is not. Disabling");
+
+        Extensions.removeOne(VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
+      }
+    }
+
     rdcarray<const char *> layerArray(Layers.size());
     for(size_t i = 0; i < Layers.size(); i++)
       layerArray[i] = Layers[i].c_str();
@@ -2727,9 +2838,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     AddResource(Device, ResourceType::Device, "Device");
     DerivedResource(origPhysDevice, Device);
-
-    VkPhysicalDeviceProperties physProps;
-    ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), &physProps);
 
     VkPhysicalDeviceVulkan12Properties phys12Props = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES,
