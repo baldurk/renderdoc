@@ -1822,6 +1822,9 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
       GetResourceManager()->MarkResourceFrameReferenced((*it)->GetCreationRecord()->GetResourceID(),
                                                         eFrameRef_Read);
     }
+
+    // also keep buffers alive
+    WrappedID3D12Resource1::AddRefBuffersBeforeCapture(GetResourceManager());
   }
 
   GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Read);
@@ -2133,6 +2136,8 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
     // remove the reference held during capture, potentially releasing the queue.
     (*it)->Release();
   }
+
+  WrappedID3D12Resource1::ReleaseBuffersAfterCapture(GetResourceManager());
 
   GetResourceManager()->MarkUnwrittenResources();
 

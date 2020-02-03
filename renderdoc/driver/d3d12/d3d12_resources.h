@@ -879,6 +879,9 @@ public:
 
   static void RefBuffers(D3D12ResourceManager *rm);
 
+  static void AddRefBuffersBeforeCapture(D3D12ResourceManager *rm);
+  static void ReleaseBuffersAfterCapture(D3D12ResourceManager *rm);
+
   static void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
   {
     m_Addresses.GetResIDFromAddr(addr, id, offs);
@@ -921,6 +924,12 @@ public:
       range.id = GetResourceID();
 
       m_Addresses.AddTo(range);
+
+      // while actively capturing we keep all buffers around to prevent the address lookup from
+      // losing addresses we might need (or the manageable but annoying problem of an address being
+      // re-used)
+      if(IsActiveCapturing(device->GetState()))
+        AddRef();
     }
   }
   virtual ~WrappedID3D12Resource1();
