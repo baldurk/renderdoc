@@ -335,6 +335,10 @@ bool D3D12GraphicsTest::Init()
     CHECK_HR(dev->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&m_CBVUAVSRV));
 
     m_CBVUAVSRV->SetName(L"CBV/UAV/SRV heap");
+
+    desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    CHECK_HR(dev->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&m_Clear));
+    m_CBVUAVSRV->SetName(L"UAV clear heap");
   }
 
   {

@@ -107,22 +107,22 @@ struct D3D12GraphicsTest : public GraphicsTest
   template <typename T>
   D3D12ViewCreator MakeSRV(T res)
   {
-    return D3D12ViewCreator(this, m_CBVUAVSRV, ViewType::SRV, res);
+    return D3D12ViewCreator(this, m_CBVUAVSRV, NULL, ViewType::SRV, res);
   }
   template <typename T>
   D3D12ViewCreator MakeRTV(T res)
   {
-    return D3D12ViewCreator(this, m_RTV, ViewType::RTV, res);
+    return D3D12ViewCreator(this, m_RTV, NULL, ViewType::RTV, res);
   }
   template <typename T>
   D3D12ViewCreator MakeDSV(T res)
   {
-    return D3D12ViewCreator(this, m_DSV, ViewType::DSV, res);
+    return D3D12ViewCreator(this, m_DSV, NULL, ViewType::DSV, res);
   }
   template <typename T>
   D3D12ViewCreator MakeUAV(T res)
   {
-    return D3D12ViewCreator(this, m_CBVUAVSRV, ViewType::UAV, res);
+    return D3D12ViewCreator(this, m_CBVUAVSRV, m_Clear, ViewType::UAV, res);
   }
 
   std::vector<byte> GetBufferData(ID3D12ResourcePtr buffer, D3D12_RESOURCE_STATES state,
@@ -201,7 +201,7 @@ struct D3D12GraphicsTest : public GraphicsTest
 
   ID3D12DevicePtr dev;
 
-  ID3D12DescriptorHeapPtr m_RTV, m_DSV, m_CBVUAVSRV, m_Sampler;
+  ID3D12DescriptorHeapPtr m_RTV, m_DSV, m_CBVUAVSRV, m_Clear, m_Sampler;
 
   ID3D12CommandAllocatorPtr m_Alloc;
   ID3D12GraphicsCommandListPtr m_DebugList;
