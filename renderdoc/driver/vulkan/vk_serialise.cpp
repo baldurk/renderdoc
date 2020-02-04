@@ -1933,7 +1933,14 @@ void DoSerialise(SerialiserType &ser, VkFramebufferCreateInfo &el)
   SERIALISE_MEMBER_VKFLAGS(VkFramebufferCreateFlags, flags);
   SERIALISE_MEMBER(renderPass);
   SERIALISE_MEMBER(attachmentCount);
-  SERIALISE_MEMBER_ARRAY(pAttachments, attachmentCount);
+  if((el.flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT) == 0)
+  {
+    SERIALISE_MEMBER_ARRAY(pAttachments, attachmentCount);
+  }
+  else
+  {
+    SERIALISE_MEMBER_ARRAY_EMPTY(pAttachments);
+  }
   SERIALISE_MEMBER(width);
   SERIALISE_MEMBER(height);
   SERIALISE_MEMBER(layers);
