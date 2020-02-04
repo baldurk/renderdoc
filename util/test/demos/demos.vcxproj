@@ -167,6 +167,7 @@
     <ClCompile Include="d3d12\d3d12_overlay_test.cpp" />
     <ClCompile Include="d3d12\d3d12_parameter_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_resource_lifetimes.cpp" />
+    <ClCompile Include="d3d12\d3d12_shader_debug_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_shader_editing.cpp" />
     <ClCompile Include="d3d12\d3d12_shader_isa.cpp" />
     <ClCompile Include="d3d12\d3d12_sharing.cpp" />

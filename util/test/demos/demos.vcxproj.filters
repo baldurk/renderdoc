@@ -418,6 +418,9 @@
     <ClCompile Include="gl\gl_shader_isa.cpp">
       <Filter>OpenGL\demos</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12\d3d12_shader_debug_zoo.cpp">
+      <Filter>D3D12\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">
