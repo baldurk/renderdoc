@@ -170,8 +170,8 @@ protected:
 class D3D12ViewCreator
 {
 public:
-  D3D12ViewCreator(D3D12GraphicsTest *test, ID3D12DescriptorHeap *heap, ViewType viewType,
-                   ID3D12Resource *res);
+  D3D12ViewCreator(D3D12GraphicsTest *test, ID3D12DescriptorHeap *heap,
+                   ID3D12DescriptorHeap *clearHeap, ViewType viewType, ID3D12Resource *res);
 
   // common params
   D3D12ViewCreator &Format(DXGI_FORMAT format);
@@ -209,6 +209,10 @@ public:
   {
     return CreateGPU(m_Heap, descriptor);
   }
+  D3D12_CPU_DESCRIPTOR_HANDLE CreateClearCPU(uint32_t descriptor)
+  {
+    return CreateCPU(m_ClearHeap, descriptor);
+  }
 
 private:
   void SetupDescriptors(ViewType viewType, ResourceType resType);
@@ -216,6 +220,7 @@ private:
   D3D12GraphicsTest *m_Test;
   ID3D12Resource *m_Res;
   ID3D12DescriptorHeap *m_Heap;
+  ID3D12DescriptorHeap *m_ClearHeap;
   ViewType m_Type;
 
   // instead of a huge mess trying to auto populate the actual descriptors from saved values, as

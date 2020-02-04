@@ -376,8 +376,9 @@ D3D12TextureCreator::operator ID3D12ResourcePtr() const
 }
 
 D3D12ViewCreator::D3D12ViewCreator(D3D12GraphicsTest *test, ID3D12DescriptorHeap *heap,
-                                   ViewType viewType, ID3D12Resource *res)
-    : m_Test(test), m_Type(viewType), m_Heap(heap), m_Res(res)
+                                   ID3D12DescriptorHeap *clearHeap, ViewType viewType,
+                                   ID3D12Resource *res)
+    : m_Test(test), m_Type(viewType), m_Heap(heap), m_ClearHeap(clearHeap), m_Res(res)
 {
   D3D12_RESOURCE_DESC resdesc = res->GetDesc();
   D3D12_RESOURCE_DIMENSION dim = resdesc.Dimension;
