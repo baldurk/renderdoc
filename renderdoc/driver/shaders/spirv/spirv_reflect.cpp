@@ -2169,7 +2169,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
   {
     for(uint32_t a = 0; a < arraySize; a++)
     {
-      AddSignatureParameter(isInput, stage, globalID, varType->id, regIndex, patch,
+      AddSignatureParameter(isInput, stage, globalID, Id(), regIndex, patch,
                             varName + StringFormat::Fmt("[%u]", a), *varType, {}, sigarray,
                             patchData, specInfo);
 
