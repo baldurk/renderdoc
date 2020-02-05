@@ -174,6 +174,9 @@ public:
   // a bitmask of which registers were fetched into the cache, for quick checking
   uint64_t sampleEvalRegisterMask = 0;
   std::map<SampleEvalCacheKey, ShaderVariable> sampleEvalCache;
+
+  // copied from the parent trace
+  rdcarray<ShaderVariable> constantBlocks;
 };
 
 #define SHADER_DEBUG_WARN_THRESHOLD 100000
@@ -198,12 +201,6 @@ struct PSInputElement
 
   bool included;
 };
-
-void ApplyDerivatives(GlobalState &global, ShaderDebugTrace traces[4], int reg, int element,
-                      int numWords, float *data, float signmul, int32_t quadIdxA, int32_t quadIdxB);
-
-void ApplyAllDerivatives(GlobalState &global, ShaderDebugTrace traces[4], int destIdx,
-                         const rdcarray<PSInputElement> &initialValues, float *data);
 
 void FlattenSingleVariable(uint32_t byteOffset, const rdcstr &basename, const ShaderVariable &v,
                            rdcarray<ShaderVariable> &outvars);
@@ -278,34 +275,7 @@ public:
 class State : public ShaderDebugState
 {
 public:
-  State()
-  {
-    quadIndex = 0;
-    nextInstruction = 0;
-    flags = ShaderEvents::NoEvent;
-    done = false;
-    trace = NULL;
-    program = NULL;
-    RDCEraseEl(semantics);
-  }
-  State(int quadIdx, const ShaderDebugTrace *t, const DXBC::Reflection *r,
-        const DXBCBytecode::Program *p)
-  {
-    quadIndex = quadIdx;
-    nextInstruction = 0;
-    flags = ShaderEvents::NoEvent;
-    done = false;
-    trace = t;
-    reflection = r;
-    program = p;
-    RDCEraseEl(semantics);
-  }
-
-  void SetTrace(int quadIdx, const ShaderDebugTrace *t)
-  {
-    quadIndex = quadIdx;
-    trace = t;
-  }
+  State(int quadIdx, GlobalState *globalState, const DXBC::DXBCContainer *dxbc);
 
   void SetHelper() { done = true; }
   struct
@@ -319,7 +289,10 @@ public:
 
   bool Finished() const;
 
-  State GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State quad[4]) const;
+  State GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const;
+
+  rdcarray<ShaderVariable> inputs;
+  GlobalState *global;
 
 private:
   // index in the pixel quad
@@ -351,10 +324,12 @@ private:
 
   const DXBC::Reflection *reflection;
   const DXBCBytecode::Program *program;
-  const ShaderDebugTrace *trace;
 };
 
-void CreateShaderDebugStateAndTrace(State &initialState, ShaderDebugTrace &trace, int quadIdx,
+void ApplyAllDerivatives(GlobalState &global, State quad[4], int destIdx,
+                         const rdcarray<PSInputElement> &initialValues, float *data);
+
+void CreateShaderDebugStateAndTrace(State &initialState, ShaderDebugTrace &trace,
                                     DXBC::DXBCContainer *dxbc, const ShaderReflection &refl,
                                     const ShaderBindpointMapping &mapping);
 void AddCBufferToDebugTrace(const DXBCBytecode::Program &program, ShaderDebugTrace &trace,

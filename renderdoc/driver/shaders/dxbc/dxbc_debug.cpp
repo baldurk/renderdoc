@@ -1079,6 +1079,18 @@ ShaderVariable sub(const ShaderVariable &a, const ShaderVariable &b, const VarTy
   return add(a, neg(b, type), type);
 }
 
+State::State(int quadIdx, GlobalState *globalState, const DXBC::DXBCContainer *dxbc)
+    : global(globalState)
+{
+  quadIndex = quadIdx;
+  nextInstruction = 0;
+  flags = ShaderEvents::NoEvent;
+  done = false;
+  reflection = dxbc->GetReflection();
+  program = dxbc->GetDXBCByteCode();
+  RDCEraseEl(semantics);
+}
+
 bool State::Finished() const
 {
   return program && (done || nextInstruction >= (int)program->GetNumInstructions());
@@ -1372,10 +1384,10 @@ ShaderVariable State::GetSrc(const Operand &oper, const Operation &op, bool allo
     }
     case TYPE_INPUT:
     {
-      RDCASSERT(indices[0] < (uint32_t)trace->inputs.size());
+      RDCASSERT(indices[0] < (uint32_t)inputs.size());
 
-      if(indices[0] < (uint32_t)trace->inputs.size())
-        v = s = trace->inputs[indices[0]];
+      if(indices[0] < (uint32_t)inputs.size())
+        v = s = inputs[indices[0]];
       else
         v = s = ShaderVariable("", indices[0], indices[0], indices[0], indices[0]);
 
@@ -1456,17 +1468,17 @@ ShaderVariable State::GetSrc(const Operand &oper, const Operation &op, bool allo
         }
       }
 
-      RDCASSERTMSG("Invalid cbuffer lookup", cb != -1 && cb < trace->constantBlocks.count(), cb,
-                   trace->constantBlocks.count());
+      RDCASSERTMSG("Invalid cbuffer lookup", cb != -1 && cb < global->constantBlocks.count(), cb,
+                   global->constantBlocks.count());
 
-      if(cb >= 0 && cb < trace->constantBlocks.count())
+      if(cb >= 0 && cb < global->constantBlocks.count())
       {
         RDCASSERTMSG("Out of bounds cbuffer lookup",
-                     cbLookup < (uint32_t)trace->constantBlocks[cb].members.count(), cbLookup,
-                     trace->constantBlocks[cb].members.count());
+                     cbLookup < (uint32_t)global->constantBlocks[cb].members.count(), cbLookup,
+                     global->constantBlocks[cb].members.count());
 
-        if(cbLookup < (uint32_t)trace->constantBlocks[cb].members.count())
-          v = s = trace->constantBlocks[cb].members[cbLookup];
+        if(cbLookup < (uint32_t)global->constantBlocks[cb].members.count())
+          v = s = global->constantBlocks[cb].members[cbLookup];
         else
           v = s = ShaderVariable("", 0U, 0U, 0U, 0U);
       }
@@ -1778,7 +1790,7 @@ void FlattenVariables(const rdcstr &cbname, const rdcarray<ShaderConstant> &cons
   }
 }
 
-State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State quad[4]) const
+State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
 {
   State s = *this;
 
@@ -2696,15 +2708,15 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
     {
       BindingSlot slot =
           GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, srcOpers[0].value.u.x);
-      GlobalState::UAVIterator uav = global.uavs.find(slot);
-      if(uav == global.uavs.end())
+      GlobalState::UAVIterator uav = global->uavs.find(slot);
+      if(uav == global->uavs.end())
       {
         if(!apiWrapper->FetchUAV(slot))
         {
           RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
           return s;
         }
-        uav = global.uavs.find(slot);
+        uav = global->uavs.find(slot);
       }
 
       uint32_t count = uav->second.hiddenCounter++;
@@ -2716,15 +2728,15 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
     {
       BindingSlot slot =
           GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, srcOpers[0].value.u.x);
-      GlobalState::UAVIterator uav = global.uavs.find(slot);
-      if(uav == global.uavs.end())
+      GlobalState::UAVIterator uav = global->uavs.find(slot);
+      if(uav == global->uavs.end())
       {
         if(!apiWrapper->FetchUAV(slot))
         {
           RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
           return s;
         }
-        uav = global.uavs.find(slot);
+        uav = global->uavs.find(slot);
       }
 
       uint32_t count = --uav->second.hiddenCounter;
@@ -2825,7 +2837,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       if(gsm)
       {
         offset = 0;
-        if(resIndex > global.groupshared.size())
+        if(resIndex > global->groupshared.size())
         {
           numElems = 0;
           stride = 4;
@@ -2833,25 +2845,25 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         }
         else
         {
-          numElems = global.groupshared[resIndex].count;
-          stride = global.groupshared[resIndex].bytestride;
-          data = &global.groupshared[resIndex].data[0];
-          structured = global.groupshared[resIndex].structured;
+          numElems = global->groupshared[resIndex].count;
+          stride = global->groupshared[resIndex].bytestride;
+          data = &global->groupshared[resIndex].data[0];
+          structured = global->groupshared[resIndex].structured;
         }
       }
       else
       {
         BindingSlot slot =
             GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, resIndex);
-        GlobalState::UAVIterator uav = global.uavs.find(slot);
-        if(uav == global.uavs.end())
+        GlobalState::UAVIterator uav = global->uavs.find(slot);
+        if(uav == global->uavs.end())
         {
           if(!apiWrapper->FetchUAV(slot))
           {
             RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
             return s;
           }
-          uav = global.uavs.find(slot);
+          uav = global->uavs.find(slot);
         }
 
         offset = uav->second.firstElement;
@@ -2996,9 +3008,9 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
         if(stride == 0)
         {
-          if(gsm && resIndex < global.groupshared.size())
+          if(gsm && resIndex < global->groupshared.size())
           {
-            stride = global.groupshared[resIndex].bytestride;
+            stride = global->groupshared[resIndex].bytestride;
           }
           else if(!gsm)
           {
@@ -3072,7 +3084,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       if(gsm)
       {
         offset = 0;
-        if(resIndex > global.groupshared.size())
+        if(resIndex > global->groupshared.size())
         {
           numElems = 0;
           stride = 4;
@@ -3080,13 +3092,13 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         }
         else
         {
-          numElems = global.groupshared[resIndex].count;
-          stride = global.groupshared[resIndex].bytestride;
-          data = global.groupshared[resIndex].data.data();
-          dataSize = global.groupshared[resIndex].data.size();
+          numElems = global->groupshared[resIndex].count;
+          stride = global->groupshared[resIndex].bytestride;
+          data = global->groupshared[resIndex].data.data();
+          dataSize = global->groupshared[resIndex].data.size();
           fmt.fmt = CompType::UInt;
           fmt.byteWidth = 4;
-          fmt.numComps = global.groupshared[resIndex].bytestride / 4;
+          fmt.numComps = global->groupshared[resIndex].bytestride / 4;
           fmt.stride = 0;
         }
         texData = false;
@@ -3098,15 +3110,15 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
         if(srv)
         {
-          GlobalState::SRVIterator srvIter = global.srvs.find(slot);
-          if(srvIter == global.srvs.end())
+          GlobalState::SRVIterator srvIter = global->srvs.find(slot);
+          if(srvIter == global->srvs.end())
           {
             if(!apiWrapper->FetchSRV(slot))
             {
               RDCERR("Invalid SRV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
               return s;
             }
-            srvIter = global.srvs.find(slot);
+            srvIter = global->srvs.find(slot);
           }
 
           data = srvIter->second.data.data();
@@ -3116,15 +3128,15 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         }
         else
         {
-          GlobalState::UAVIterator uavIter = global.uavs.find(slot);
-          if(uavIter == global.uavs.end())
+          GlobalState::UAVIterator uavIter = global->uavs.find(slot);
+          if(uavIter == global->uavs.end())
           {
             if(!apiWrapper->FetchUAV(slot))
             {
               RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
               return s;
             }
-            uavIter = global.uavs.find(slot);
+            uavIter = global->uavs.find(slot);
           }
 
           data = uavIter->second.data.data();
@@ -3289,8 +3301,8 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       }
 
       // look up this combination in the cache, if we get a hit then return that value.
-      auto it = global.sampleEvalCache.find(key);
-      if(it != global.sampleEvalCache.end())
+      auto it = global->sampleEvalCache.find(key);
+      if(it != global->sampleEvalCache.end())
       {
         // perform source operand swizzling
         ShaderVariable var = it->second;
@@ -3307,7 +3319,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         // just return the interpolant, or something went wrong and the item we want isn't cached so
         // the best we can do is return the interpolant.
 
-        if(!global.sampleEvalCache.empty())
+        if(!global->sampleEvalCache.empty())
         {
           apiWrapper->AddDebugMessage(
               MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
@@ -3663,8 +3675,8 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           resourceDim = decl.dim;
 
           resourceBinding = GetBindingSlotForDeclaration(*program, decl);
-          GlobalState::SRVIterator srv = global.srvs.find(resourceBinding);
-          if(srv == global.srvs.end())
+          GlobalState::SRVIterator srv = global->srvs.find(resourceBinding);
+          if(srv == global->srvs.end())
           {
             if(!apiWrapper->FetchSRV(resourceBinding))
             {
@@ -3672,7 +3684,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
                      resourceBinding.registerSpace);
               return s;
             }
-            srv = global.srvs.find(resourceBinding);
+            srv = global->srvs.find(resourceBinding);
           }
 
           const byte *data = &srv->second.data[0];
@@ -4162,12 +4174,10 @@ void GlobalState::PopulateGroupshared(const DXBCBytecode::Program *pBytecode)
   }
 }
 
-void CreateShaderDebugStateAndTrace(State &initialState, ShaderDebugTrace &trace, int quadIdx,
+void CreateShaderDebugStateAndTrace(State &initialState, ShaderDebugTrace &trace,
                                     DXBC::DXBCContainer *dxbc, const ShaderReflection &refl,
                                     const ShaderBindpointMapping &mapping)
 {
-  initialState = State(quadIdx, &trace, dxbc->GetReflection(), dxbc->GetDXBCByteCode());
-
   bool hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
 
   dxbc->GetDXBCByteCode()->SetupRegisterFile(initialState.variables);
@@ -4513,14 +4523,14 @@ bool PromptDebugTimeout(uint32_t cycleCounter)
   return false;
 }
 
-void ApplyDerivatives(GlobalState &global, ShaderDebugTrace traces[4], int reg, int element,
-                      int numWords, float *data, float signmul, int32_t quadIdxA, int32_t quadIdxB)
+void ApplyDerivatives(GlobalState &global, State quad[4], int reg, int element, int numWords,
+                      float *data, float signmul, int32_t quadIdxA, int32_t quadIdxB)
 {
   for(int w = 0; w < numWords; w++)
   {
-    traces[quadIdxA].inputs[reg].value.fv[element + w] += signmul * data[w];
+    quad[quadIdxA].inputs[reg].value.fv[element + w] += signmul * data[w];
     if(quadIdxB >= 0)
-      traces[quadIdxB].inputs[reg].value.fv[element + w] += signmul * data[w];
+      quad[quadIdxB].inputs[reg].value.fv[element + w] += signmul * data[w];
   }
 
   // quick check to see if this register was evaluated
@@ -4539,7 +4549,7 @@ void ApplyDerivatives(GlobalState &global, ShaderDebugTrace traces[4], int reg, 
   }
 }
 
-void ApplyAllDerivatives(GlobalState &global, ShaderDebugTrace traces[4], int destIdx,
+void ApplyAllDerivatives(GlobalState &global, State quad[4], int destIdx,
                          const rdcarray<PSInputElement> &initialValues, float *data)
 {
   // We make the assumption that the coarse derivatives are generated from (0,0) in the quad, and
@@ -4600,16 +4610,16 @@ void ApplyAllDerivatives(GlobalState &global, ShaderDebugTrace traces[4], int de
     if(initialValues[i].reg >= 0)
     {
       if(destIdx == 0)
-        ApplyDerivatives(global, traces, initialValues[i].reg, initialValues[i].elem,
+        ApplyDerivatives(global, quad, initialValues[i].reg, initialValues[i].elem,
                          initialValues[i].numwords, ddx_coarse, 1.0f, 1, 3);
       else if(destIdx == 1)
-        ApplyDerivatives(global, traces, initialValues[i].reg, initialValues[i].elem,
+        ApplyDerivatives(global, quad, initialValues[i].reg, initialValues[i].elem,
                          initialValues[i].numwords, ddx_coarse, -1.0f, 0, 2);
       else if(destIdx == 2)
-        ApplyDerivatives(global, traces, initialValues[i].reg, initialValues[i].elem,
+        ApplyDerivatives(global, quad, initialValues[i].reg, initialValues[i].elem,
                          initialValues[i].numwords, ddx_coarse, 1.0f, 1, -1);
       else if(destIdx == 3)
-        ApplyDerivatives(global, traces, initialValues[i].reg, initialValues[i].elem,
+        ApplyDerivatives(global, quad, initialValues[i].reg, initialValues[i].elem,
                          initialValues[i].numwords, ddx_coarse, -1.0f, 0, -1);
     }
 
@@ -4627,13 +4637,13 @@ void ApplyAllDerivatives(GlobalState &global, ShaderDebugTrace traces[4], int de
     if(initialValues[i].reg >= 0)
     {
       if(destIdx == 0)
-        ApplyDerivatives(global, traces, initialValues[i].reg, initialValues[i].elem,
+        ApplyDerivatives(global, quad, initialValues[i].reg, initialValues[i].elem,
                          initialValues[i].numwords, ddy_coarse, 1.0f, 2, 3);
       else if(destIdx == 1)
-        ApplyDerivatives(global, traces, initialValues[i].reg, initialValues[i].elem,
+        ApplyDerivatives(global, quad, initialValues[i].reg, initialValues[i].elem,
                          initialValues[i].numwords, ddy_coarse, 1.0f, 2, -1);
       else if(destIdx == 2)
-        ApplyDerivatives(global, traces, initialValues[i].reg, initialValues[i].elem,
+        ApplyDerivatives(global, quad, initialValues[i].reg, initialValues[i].elem,
                          initialValues[i].numwords, ddy_coarse, -1.0f, 0, 1);
     }
 
@@ -4650,10 +4660,10 @@ void ApplyAllDerivatives(GlobalState &global, ShaderDebugTrace traces[4], int de
     if(initialValues[i].reg >= 0)
     {
       if(destIdx == 2)
-        ApplyDerivatives(global, traces, initialValues[i].reg, initialValues[i].elem,
+        ApplyDerivatives(global, quad, initialValues[i].reg, initialValues[i].elem,
                          initialValues[i].numwords, ddxfine, 1.0f, 3, -1);
       else if(destIdx == 3)
-        ApplyDerivatives(global, traces, initialValues[i].reg, initialValues[i].elem,
+        ApplyDerivatives(global, quad, initialValues[i].reg, initialValues[i].elem,
                          initialValues[i].numwords, ddxfine, -1.0f, 2, -1);
     }
 
@@ -4670,10 +4680,10 @@ void ApplyAllDerivatives(GlobalState &global, ShaderDebugTrace traces[4], int de
     if(initialValues[i].reg >= 0)
     {
       if(destIdx == 1)
-        ApplyDerivatives(global, traces, initialValues[i].reg, initialValues[i].elem,
+        ApplyDerivatives(global, quad, initialValues[i].reg, initialValues[i].elem,
                          initialValues[i].numwords, ddyfine, 1.0f, 3, -1);
       else if(destIdx == 3)
-        ApplyDerivatives(global, traces, initialValues[i].reg, initialValues[i].elem,
+        ApplyDerivatives(global, quad, initialValues[i].reg, initialValues[i].elem,
                          initialValues[i].numwords, ddyfine, -1.0f, 0, 1);
     }
 

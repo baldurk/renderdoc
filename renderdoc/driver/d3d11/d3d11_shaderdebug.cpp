@@ -1815,11 +1815,13 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   GlobalState global;
   global.PopulateGroupshared(dxbc->GetDXBCByteCode());
-  State initialState;
-  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl, vs->GetMapping());
+  State initialState(-1, &global, dxbc);
+  CreateShaderDebugStateAndTrace(initialState, ret, dxbc, refl, vs->GetMapping());
 
   AddCBuffersToDebugTrace(*dxbc->GetDXBCByteCode(), *GetDebugManager(), ret, rs->VS, refl,
                           vs->GetMapping());
+
+  global.constantBlocks = ret.constantBlocks;
 
   for(size_t i = 0; i < ret.inputs.size(); i++)
   {
@@ -2067,8 +2069,6 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
   delete[] instData;
 
-  State last;
-
   rdcarray<ShaderDebugState> states;
 
   dxbc->FillStateInstructionInfo(initialState);
@@ -2084,7 +2084,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
     if(initialState.Finished())
       break;
 
-    initialState = initialState.GetNext(global, &apiWrapper, NULL);
+    initialState = initialState.GetNext(&apiWrapper, NULL);
 
     dxbc->FillStateInstructionInfo(initialState);
 
@@ -2631,9 +2631,6 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   // of which fragment was the last to successfully depth test and debug that, just by
   // checking if the depth test is ordered and picking the final fragment in the series
 
-  // our debugging quad. Order is TL, TR, BL, BR
-  State quad[4];
-
   // figure out the TL pixel's coords. Assume even top left (towards 0,0)
   // this isn't spec'd but is a reasonable assumption.
   int xTL = x & (~1);
@@ -2708,7 +2705,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     return empty;
   }
 
-  ShaderDebugTrace traces[4];
+  ShaderDebugTrace ret;
 
   tracker.State().ApplyState(m_pImmediateContext);
 
@@ -2716,25 +2713,36 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   global.PopulateGroupshared(dxbc->GetDXBCByteCode());
   global.sampleEvalRegisterMask = sampleEvalRegisterMask;
 
-  State initialState;
-  CreateShaderDebugStateAndTrace(initialState, traces[destIdx], destIdx, dxbc, refl,
-                                 ps->GetMapping());
+  State quad[4] = {
+      // top-left
+      State(0, &global, dxbc),
+      // top-right
+      State(1, &global, dxbc),
+      // bottom-left
+      State(2, &global, dxbc),
+      // bottom-right
+      State(3, &global, dxbc),
+  };
 
-  AddCBuffersToDebugTrace(*dxbc->GetDXBCByteCode(), *GetDebugManager(), traces[destIdx], rs->PS,
-                          refl, ps->GetMapping());
+  CreateShaderDebugStateAndTrace(quad[destIdx], ret, dxbc, refl, ps->GetMapping());
+
+  AddCBuffersToDebugTrace(*dxbc->GetDXBCByteCode(), *GetDebugManager(), ret, rs->PS, refl,
+                          ps->GetMapping());
+
+  global.constantBlocks = ret.constantBlocks;
 
   {
     DebugHit *hit = winner;
 
-    rdcarray<ShaderVariable> &ins = traces[destIdx].inputs;
+    rdcarray<ShaderVariable> &ins = quad[destIdx].inputs;
     if(!ins.empty() &&
        ins.back().name ==
            dxbc->GetDXBCByteCode()->GetRegisterName(DXBCBytecode::TYPE_INPUT_COVERAGE_MASK, 0))
       ins.back().value.u.x = hit->coverage;
 
-    initialState.semantics.coverage = hit->coverage;
-    initialState.semantics.primID = hit->primitive;
-    initialState.semantics.isFrontFace = hit->isFrontFace;
+    quad[destIdx].semantics.coverage = hit->coverage;
+    quad[destIdx].semantics.primID = hit->primitive;
+    quad[destIdx].semantics.isFrontFace = hit->isFrontFace;
 
     uint32_t *data = &hit->rawdata;
 
@@ -2757,7 +2765,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
       if(initialValues[i].reg >= 0)
       {
-        ShaderVariable &invar = traces[destIdx].inputs[initialValues[i].reg];
+        ShaderVariable &invar = ins[initialValues[i].reg];
 
         if(initialValues[i].sysattribute == ShaderBuiltin::PrimitiveIndex)
         {
@@ -2790,18 +2798,19 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     for(int i = 0; i < 4; i++)
     {
       if(i != destIdx)
-        traces[i] = traces[destIdx];
-      quad[i] = initialState;
-      quad[i].SetTrace(i, &traces[i]);
-      if(i != destIdx)
+      {
+        quad[i].inputs = quad[destIdx].inputs;
+        quad[i].semantics = quad[destIdx].semantics;
+        quad[i].variables = quad[destIdx].variables;
         quad[i].SetHelper();
+      }
     }
 
     // fetch any inputs that were evaluated at sample granularity
     for(const GlobalState::SampleEvalCacheKey &key : evalSampleCacheData)
     {
       // start with the basic input value
-      ShaderVariable var = traces[destIdx].inputs[key.inputRegisterIndex];
+      ShaderVariable var = ret.inputs[key.inputRegisterIndex];
 
       // copy over the value into the variable
       memcpy(var.value.fv, evalSampleCache, var.columns * sizeof(float));
@@ -2818,8 +2827,10 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
       evalSampleCache += 4;
     }
 
-    ApplyAllDerivatives(global, traces, destIdx, initialValues, (float *)data);
+    ApplyAllDerivatives(global, quad, destIdx, initialValues, (float *)data);
   }
+
+  ret.inputs = quad[destIdx].inputs;
 
   SAFE_DELETE_ARRAY(initialData);
   SAFE_DELETE_ARRAY(evalData);
@@ -2831,7 +2842,10 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   states.push_back((State)quad[destIdx]);
 
   // ping pong between so that we can have 'current' quad to update into new one
-  State quad2[4];
+  State quad2[4] = {
+      State(0, &global, dxbc), State(1, &global, dxbc), State(2, &global, dxbc),
+      State(3, &global, dxbc),
+  };
 
   State *curquad = quad;
   State *newquad = quad2;
@@ -2852,7 +2866,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     for(size_t i = 0; i < 4; i++)
     {
       if(activeMask[i])
-        newquad[i] = curquad[i].GetNext(global, &apiWrapper, curquad);
+        newquad[i] = curquad[i].GetNext(&apiWrapper, curquad);
       else
         newquad[i] = curquad[i];
     }
@@ -2959,13 +2973,13 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     }
   } while(!finished);
 
-  traces[destIdx].states = states;
+  ret.states = states;
 
-  traces[destIdx].hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
+  ret.hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
 
-  dxbc->FillTraceLineInfo(traces[destIdx]);
+  dxbc->FillTraceLineInfo(ret);
 
-  return traces[destIdx];
+  return ret;
 }
 
 ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
@@ -3006,11 +3020,13 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
 
   GlobalState global;
   global.PopulateGroupshared(dxbc->GetDXBCByteCode());
-  State initialState;
-  CreateShaderDebugStateAndTrace(initialState, ret, -1, dxbc, refl, cs->GetMapping());
+  State initialState(-1, &global, dxbc);
+  CreateShaderDebugStateAndTrace(initialState, ret, dxbc, refl, cs->GetMapping());
 
   AddCBuffersToDebugTrace(*dxbc->GetDXBCByteCode(), *GetDebugManager(), ret, rs->CS, refl,
                           cs->GetMapping());
+
+  global.constantBlocks = ret.constantBlocks;
 
   for(int i = 0; i < 3; i++)
   {
@@ -3031,7 +3047,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
     if(initialState.Finished())
       break;
 
-    initialState = initialState.GetNext(global, &apiWrapper, NULL);
+    initialState = initialState.GetNext(&apiWrapper, NULL);
 
     dxbc->FillStateInstructionInfo(initialState);
 
