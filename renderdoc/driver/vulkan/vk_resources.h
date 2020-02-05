@@ -1252,7 +1252,12 @@ struct ImageSubresourceRange
   }
   void Sanitise(const ImageInfo &info)
   {
-    if(aspectMask & ~info.Aspects())
+    // VK_IMAGE_ASPECT_COLOR_BIT is an alias for "all planes" in multi-planar formats
+    if(aspectMask == VK_IMAGE_ASPECT_COLOR_BIT && (info.Aspects() & VK_IMAGE_ASPECT_PLANE_0_BIT))
+    {
+      aspectMask = info.Aspects();
+    }
+    else if(aspectMask & ~info.Aspects())
     {
       if(aspectMask != VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM)
       {
