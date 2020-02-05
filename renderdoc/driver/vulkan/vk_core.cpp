@@ -2240,6 +2240,23 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
       // read the remaining data into memory and pass to immediate context
       frameDataSize = reader->GetSize() - reader->GetOffset();
 
+      if(m_Queue == VK_NULL_HANDLE && m_Device != VK_NULL_HANDLE && m_QueueFamilyIdx > 0)
+      {
+        if(m_ExternalQueues[m_QueueFamilyIdx].queue != VK_NULL_HANDLE)
+        {
+          m_Queue = m_ExternalQueues[m_QueueFamilyIdx].queue;
+        }
+        else
+        {
+          ObjDisp(m_Device)->GetDeviceQueue(Unwrap(m_Device), m_QueueFamilyIdx, 0, &m_Queue);
+
+          GetResourceManager()->WrapResource(Unwrap(m_Device), m_Queue);
+          GetResourceManager()->AddLiveResource(ResourceIDGen::GetNewUniqueID(), m_Queue);
+
+          m_ExternalQueues[m_QueueFamilyIdx].queue = m_Queue;
+        }
+      }
+
       m_FrameReader = new StreamReader(reader, frameDataSize);
 
       ReplayStatus status = ContextReplayLog(m_State, 0, 0, false);
