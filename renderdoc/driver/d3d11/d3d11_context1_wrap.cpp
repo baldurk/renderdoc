@@ -229,6 +229,12 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
               "Replaying a call to UpdateSubresource1() without D3D11.1 available");
         }
       }
+
+      if(IsLoading(m_State))
+      {
+        m_ResourceUses[GetIDForResource(pDstResource)].push_back(
+            EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
+      }
     }
   }
   else
@@ -345,6 +351,12 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(
               "Replaying a call to UpdateSubresource1() without D3D11.1 available");
         }
       }
+
+      if(IsLoading(m_State))
+      {
+        m_ResourceUses[GetIDForResource(pDstResource)].push_back(
+            EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
+      }
     }
   }
 
@@ -430,6 +442,41 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(
           MessageCategory::Portability, MessageSeverity::High,
           MessageSource::UnsupportedConfiguration,
           "Replaying a call to CopySubresourceRegion1() without D3D11.1 available");
+    }
+
+    if(IsLoading(m_State))
+    {
+      ResourceId dstLiveID = GetIDForResource(pDstResource);
+      ResourceId srcLiveID = GetIDForResource(pSrcResource);
+      ResourceId dstOrigID = GetResourceManager()->GetOriginalID(dstLiveID);
+      ResourceId srcOrigID = GetResourceManager()->GetOriginalID(srcLiveID);
+
+      AddEvent();
+
+      DrawcallDescription draw;
+      draw.name = "CopySubresourceRegion1(" + ToStr(dstOrigID) + ", " + ToStr(srcOrigID) + ")";
+      draw.flags |= DrawFlags::Copy;
+
+      if(pDstResource && pSrcResource)
+      {
+        draw.copySource = srcOrigID;
+        draw.copyDestination = dstOrigID;
+
+        if(m_CurEventID)
+        {
+          if(dstLiveID == srcLiveID)
+          {
+            m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
+          }
+          else
+          {
+            m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
+            m_ResourceUses[srcLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
+          }
+        }
+      }
+
+      AddDrawcall(draw, true);
     }
   }
 

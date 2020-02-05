@@ -1561,6 +1561,11 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode, ResourceId id, 
   drawNode.resourceUsage.push_back(make_rdcpair(id, EventUsage(EID, usage)));
 }
 
+void D3D12CommandData::AddUsage(ResourceId id, ResourceUsage usage)
+{
+  m_ResourceUses[id].push_back(EventUsage(m_RootEventID, usage));
+}
+
 void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12DrawcallTreeNode &drawNode)
 {
   DrawcallDescription &d = drawNode.draw;

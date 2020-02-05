@@ -376,4 +376,5 @@ struct D3D12CommandData
   void AddEvent();
   void AddUsage(const D3D12RenderState &state, D3D12DrawcallTreeNode &drawNode);
   void AddUsage(D3D12DrawcallTreeNode &drawNode, ResourceId id, uint32_t EID, ResourceUsage usage);
+  void AddUsage(ResourceId id, ResourceUsage usage);
 };

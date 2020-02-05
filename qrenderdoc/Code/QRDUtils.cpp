@@ -932,6 +932,8 @@ QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
   {
     switch(usage)
     {
+      case ResourceUsage::Unused: return lit("Unused");
+
       case ResourceUsage::VertexBuffer: return lit("Vertex Buffer");
       case ResourceUsage::IndexBuffer: return lit("Index Buffer");
 
@@ -978,7 +980,8 @@ QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
       case ResourceUsage::CopyDst: return lit("Copy - Dest");
 
       case ResourceUsage::Barrier: return lit("Barrier");
-      default: break;
+
+      case ResourceUsage::CPUWrite: return lit("CPU Write");
     }
   }
   else if(apitype == GraphicsAPI::OpenGL || apitype == GraphicsAPI::Vulkan)
@@ -987,6 +990,8 @@ QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
 
     switch(usage)
     {
+      case ResourceUsage::Unused: return lit("Unused");
+
       case ResourceUsage::VertexBuffer: return lit("Vertex Buffer");
       case ResourceUsage::IndexBuffer: return lit("Index Buffer");
 
@@ -1035,7 +1040,8 @@ QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
       case ResourceUsage::CopyDst: return lit("Copy - Dest");
 
       case ResourceUsage::Barrier: return lit("Barrier");
-      default: break;
+
+      case ResourceUsage::CPUWrite: return lit("CPU Write");
     }
   }
 

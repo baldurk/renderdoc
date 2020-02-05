@@ -568,12 +568,13 @@ bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(SerialiserType &ser, GLuint b
 
   if(IsReplayingAndReading())
   {
+    ResourceId id = GetResourceManager()->GetID(buffer);
+
     // never allow resizing down, even if the application did so. If we encounter that, adjust the
     // size and upload any data with a subdata call
-    if(bytesize < m_Buffers[GetResourceManager()->GetID(buffer)].size)
+    if(bytesize < m_Buffers[id].size)
     {
-      GL.glNamedBufferDataEXT(
-          buffer.name, (GLsizeiptr)m_Buffers[GetResourceManager()->GetID(buffer)].size, NULL, usage);
+      GL.glNamedBufferDataEXT(buffer.name, (GLsizeiptr)m_Buffers[id].size, NULL, usage);
 
       GL.glNamedBufferSubDataEXT(buffer.name, 0, (GLsizeiptr)bytesize, data);
     }
@@ -581,8 +582,11 @@ bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(SerialiserType &ser, GLuint b
     {
       GL.glNamedBufferDataEXT(buffer.name, (GLsizeiptr)bytesize, data, usage);
 
-      m_Buffers[GetResourceManager()->GetID(buffer)].size = bytesize;
+      m_Buffers[id].size = bytesize;
     }
+
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
 
     AddResourceInitChunk(buffer);
   }
@@ -909,6 +913,10 @@ bool WrappedOpenGL::Serialise_glNamedBufferSubDataEXT(SerialiserType &ser, GLuin
 
   if(IsReplayingAndReading())
   {
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(buffer)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
+
     GL.glNamedBufferSubDataEXT(buffer.name, (GLintptr)offset, (GLsizeiptr)bytesize, data);
 
     AddResourceInitChunk(buffer);
@@ -1049,6 +1057,35 @@ bool WrappedOpenGL::Serialise_glNamedCopyBufferSubDataEXT(SerialiserType &ser,
   {
     GL.glNamedCopyBufferSubDataEXT(readBuffer.name, writeBuffer.name, (GLintptr)readOffset,
                                    (GLintptr)writeOffset, (GLsizeiptr)size);
+
+    if(IsLoading(m_State))
+    {
+      AddEvent();
+
+      ResourceId srcid = GetResourceManager()->GetID(readBuffer);
+      ResourceId dstid = GetResourceManager()->GetID(writeBuffer);
+
+      DrawcallDescription draw;
+      draw.name = StringFormat::Fmt("%s(%s, %s)", ToStr(gl_CurChunk).c_str(),
+                                    ToStr(GetResourceManager()->GetOriginalID(srcid)).c_str(),
+                                    ToStr(GetResourceManager()->GetOriginalID(dstid)).c_str());
+      draw.flags |= DrawFlags::Copy;
+
+      draw.copySource = GetResourceManager()->GetOriginalID(srcid);
+      draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+
+      AddDrawcall(draw, true);
+
+      if(srcid == dstid)
+      {
+        m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::Copy));
+      }
+      else
+      {
+        m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, ResourceUsage::CopySrc));
+        m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, ResourceUsage::CopyDst));
+      }
+    }
   }
 
   return true;
@@ -2365,6 +2402,10 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(SerialiserType &ser, GLuint 
 
   if(IsReplayingAndReading() && diffEnd > diffStart && MapWrittenData && length > 0)
   {
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(buffer)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
+
     void *ptr = GL.glMapNamedBufferRangeEXT(buffer.name, (GLintptr)(offset + diffStart),
                                             GLsizeiptr(diffEnd - diffStart), GL_MAP_WRITE_BIT);
     if(ptr)
@@ -2553,6 +2594,10 @@ bool WrappedOpenGL::Serialise_glFlushMappedNamedBufferRangeEXT(SerialiserType &s
 
   if(IsReplayingAndReading() && buffer.name && FlushedData && length > 0)
   {
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(buffer)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
+
     // perform a map of the range and copy the data, to emulate the modified region being flushed
     void *ptr = GL.glMapNamedBufferRangeEXT(buffer.name, (GLintptr)(MapOffset + offset),
                                             (GLsizeiptr)length, GL_MAP_WRITE_BIT);

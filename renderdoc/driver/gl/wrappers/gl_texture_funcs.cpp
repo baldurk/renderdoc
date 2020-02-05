@@ -2317,6 +2317,10 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(SerialiserType &ser, GLuint te
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
 
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
+
     AddResourceInitChunk(texture);
   }
 
@@ -2561,6 +2565,10 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(SerialiserType &ser, GLuint te
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
 
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
+
     AddResourceInitChunk(texture);
   }
 
@@ -2786,6 +2794,10 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(SerialiserType &ser, GLuint te
     if(unpackbuf)
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
 
     AddResourceInitChunk(texture);
   }
@@ -3017,6 +3029,10 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage1DEXT(SerialiserType &ser,
     if(unpackbuf)
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
 
     AddResourceInitChunk(texture);
   }
@@ -3363,6 +3379,10 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(SerialiserType &ser,
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
 
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
+
     AddResourceInitChunk(texture);
   }
 
@@ -3596,6 +3616,10 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(SerialiserType &ser,
       GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
     GL.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
 
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
+
     AddResourceInitChunk(texture);
   }
 
@@ -3783,6 +3807,10 @@ bool WrappedOpenGL::Serialise_glCopyTextureImage1DEXT(SerialiserType &ser, GLuin
 
     GL.glCopyTextureImage1DEXT(texture.name, target, level, internalformat, x, y, width, border);
 
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CopyDst));
+
     AddResourceInitChunk(texture);
   }
 
@@ -3942,6 +3970,10 @@ bool WrappedOpenGL::Serialise_glCopyTextureImage2DEXT(SerialiserType &ser, GLuin
 
     GL.glCopyTextureImage2DEXT(texture.name, target, level, internalformat, x, y, width, height,
                                border);
+
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CopyDst));
 
     AddResourceInitChunk(texture);
   }
@@ -4922,6 +4954,10 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(SerialiserType &ser, GLuint
       FreeAlignedBuffer((byte *)pixels);
     }
 
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
+
     AddResourceInitChunk(texture);
   }
 
@@ -5144,6 +5180,10 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(SerialiserType &ser, GLuint
 
       FreeAlignedBuffer((byte *)pixels);
     }
+
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
 
     AddResourceInitChunk(texture);
   }
@@ -5376,6 +5416,10 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(SerialiserType &ser, GLuint
       FreeAlignedBuffer((byte *)pixels);
     }
 
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
+
     AddResourceInitChunk(texture);
   }
 
@@ -5589,6 +5633,10 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(SerialiserType &s
 
       FreeAlignedBuffer((byte *)pixels);
     }
+
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
 
     AddResourceInitChunk(texture);
   }
@@ -5809,6 +5857,10 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(SerialiserType &s
 
       FreeAlignedBuffer((byte *)pixels);
     }
+
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
 
     AddResourceInitChunk(texture);
   }
@@ -6038,6 +6090,10 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(
 
       FreeAlignedBuffer((byte *)pixels);
     }
+
+    if(IsLoading(m_State) && m_CurEventID > 0)
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
 
     AddResourceInitChunk(texture);
   }

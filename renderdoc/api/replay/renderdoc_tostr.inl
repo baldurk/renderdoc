@@ -783,6 +783,8 @@ rdcstr DoStringise(const ResourceUsage &el)
     STRINGISE_ENUM_CLASS_NAMED(CopyDst, "Copy - Destination");
 
     STRINGISE_ENUM_CLASS_NAMED(Barrier, "Barrier");
+
+    STRINGISE_ENUM_CLASS_NAMED(CPUWrite, "CPU Write");
   }
   END_ENUM_STRINGISE();
 }

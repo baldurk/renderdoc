@@ -7835,7 +7835,11 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(SerialiserType &ser, ID3D11Reso
     MapWrittenData = (byte *)intercept.app.pData;
 
     if(IsLoading(m_State) && m_CurEventID > 0 && (diffStart < diffEnd))
+    {
       RecordUpdateStats(pResource, diffEnd - diffStart, false);
+
+      m_ResourceUses[mapIdx.resource].push_back(EventUsage(m_CurEventID, ResourceUsage::CPUWrite));
+    }
 
     if(diffStart >= diffEnd)
     {

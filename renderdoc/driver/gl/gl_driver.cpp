@@ -2641,6 +2641,8 @@ bool WrappedOpenGL::Serialise_ContextInit(ReadSerialiser &ser)
     // global FBO0 to redirect to.
     ResourceId global_fbo0 = GetResourceManager()->GetID(FramebufferRes(GetCtx(), m_Global_FBO0));
 
+    GetReplay()->GetResourceDesc(global_fbo0).SetCustomName("Backbuffer FBO");
+
     GetResourceManager()->ReplaceResource(FBO0_ID, global_fbo0);
 
     AddResource(FBO0_ID, ResourceType::SwapchainImage, "");

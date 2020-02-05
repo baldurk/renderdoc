@@ -2403,6 +2403,8 @@ enum class ResourceUsage : uint32_t
   CopyDst,
 
   Barrier,
+
+  CPUWrite,
 };
 
 DECLARE_REFLECTION_ENUM(ResourceUsage);

@@ -1289,11 +1289,14 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
   // don't do anything if end <= begin because the range is empty.
   if(IsReplayingAndReading() && Resource && range.End > range.Begin)
   {
+    D3D12CommandData &cmd = *m_Queue->GetCommandData();
+
+    if(IsLoading(m_State))
+      cmd.AddUsage(GetResID(Resource), ResourceUsage::CPUWrite);
+
     ResourceId origid = GetResourceManager()->GetOriginalID(GetResID(Resource));
     if(m_UploadResourceIds.find(origid) != m_UploadResourceIds.end())
     {
-      D3D12CommandData &cmd = *m_Queue->GetCommandData();
-
       ID3D12Resource *uploadBuf = GetUploadBuffer(cmd.m_CurChunkOffset, rangeSize);
 
       SetObjName(uploadBuf,
@@ -1444,11 +1447,14 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
 
   if(IsReplayingAndReading() && Resource)
   {
+    D3D12CommandData &cmd = *m_Queue->GetCommandData();
+
+    if(IsLoading(m_State))
+      cmd.AddUsage(GetResID(Resource), ResourceUsage::CPUWrite);
+
     ResourceId origid = GetResourceManager()->GetOriginalID(GetResID(Resource));
     if(m_UploadResourceIds.find(origid) != m_UploadResourceIds.end())
     {
-      D3D12CommandData &cmd = *m_Queue->GetCommandData();
-
       ID3D12Resource *uploadBuf = GetUploadBuffer(cmd.m_CurChunkOffset, dataSize);
 
       // during reading, fill out the buffer itself
