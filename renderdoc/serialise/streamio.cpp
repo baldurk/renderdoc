@@ -504,6 +504,13 @@ void StreamTransfer(StreamWriter *writer, StreamReader *reader, RENDERDOC_Progre
 {
   uint64_t totalSize = reader->GetSize();
 
+  if(totalSize == 0)
+  {
+    if(progress)
+      progress(1.0f);
+    return;
+  }
+
   // copy 1MB at a time
   const uint64_t StreamIOChunkSize = 1024 * 1024;
 

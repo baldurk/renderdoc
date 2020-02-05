@@ -1497,11 +1497,20 @@ void RemoteServer::CopyCaptureFromRemote(const char *remotepath, const char *loc
 
 rdcstr RemoteServer::CopyCaptureToRemote(const char *filename, RENDERDOC_ProgressCallback progress)
 {
+  FILE *fileHandle = FileIO::fopen(filename, "rb");
+
+  if(!fileHandle)
+  {
+    RDCERR("Can't open file '%s'", filename);
+    return "";
+  }
+
   {
     WRITE_DATA_SCOPE();
     SCOPED_SERIALISE_CHUNK(eRemoteServer_CopyCaptureToRemote);
 
-    StreamReader fileStream(FileIO::fopen(filename, "rb"));
+    // this will take ownership of and close the file
+    StreamReader fileStream(fileHandle);
     ser.SerialiseStream(filename, fileStream, progress);
   }
 
