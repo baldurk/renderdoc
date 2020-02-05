@@ -2402,6 +2402,9 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
                                          bufdata->vsinConfig.curView, MeshDataStage::GSOut);
 
       RT_FetchMeshData(r, m_Ctx, bufdata);
+
+      if(!me)
+        return;
     }
     else
     {
@@ -2418,6 +2421,9 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       {
         buf->storage = r->GetTextureData(m_BufferID, m_TexSub);
       }
+
+      if(!me)
+        return;
     }
 
     GUIInvoke::call(this, [this, buf, bufdata]() {
@@ -2547,6 +2553,9 @@ void BufferViewer::populateBBox(PopulateBufferData *bufdata)
         return;
 
       calcBoundingData(*bbox);
+
+      if(!me)
+        return;
 
       GUIInvoke::call(this, [this, bbox]() { UI_UpdateBoundingBox(*bbox); });
     });
@@ -3103,6 +3112,9 @@ void BufferViewer::render_clicked(QMouseEvent *e)
 
       if(vertSelected != ~0U)
       {
+        if(!me)
+          return;
+
         GUIInvoke::call(this, [this, vertSelected, instanceSelected] {
           int row = (int)vertSelected;
 

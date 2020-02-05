@@ -355,6 +355,9 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
       rdcstr disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, "");
 
+      if(!me)
+        return;
+
       GUIInvoke::call(this, [this, targets, disasm]() {
         QStringList targetNames;
         for(int i = 0; i < targets.count(); i++)
@@ -1228,6 +1231,9 @@ void ShaderViewer::disassemble_typeChanged(int index)
       return;
 
     rdcstr disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, target.data());
+
+    if(!me)
+      return;
 
     GUIInvoke::call(this, [this, disasm]() {
       m_DisassemblyView->setReadOnly(false);
