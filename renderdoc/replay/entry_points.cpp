@@ -793,21 +793,21 @@ static rdcstr ResourceFormatName(const ResourceFormat &fmt)
             else if(planeCount == 2)
               return StringFormat::Fmt("P4%02u", yuvbits);
             else
-              return StringFormat::Fmt("YUV_%uPlane_%ubit", planeCount, yuvbits);
+              return StringFormat::Fmt("YUV444_%uPlane_%ubit", planeCount, yuvbits);
           case 422:
             if(planeCount == 1)
               return StringFormat::Fmt("Y2%02u", yuvbits);
             else if(planeCount == 2)
               return StringFormat::Fmt("P2%02u", yuvbits);
             else
-              return StringFormat::Fmt("YUV_%uPlane_%ubit", planeCount, yuvbits);
+              return StringFormat::Fmt("YUV422_%uPlane_%ubit", planeCount, yuvbits);
           case 420:
             if(planeCount == 1)
               return StringFormat::Fmt("Y0%02u", yuvbits);
             else if(planeCount == 2)
               return StringFormat::Fmt("P0%02u", yuvbits);
             else
-              return StringFormat::Fmt("YUV_%uPlane_%ubit", planeCount, yuvbits);
+              return StringFormat::Fmt("YUV420_%uPlane_%ubit", planeCount, yuvbits);
           default: RDCERR("Unexpected YUV Subsampling amount %u", subsampling);
         }
 
