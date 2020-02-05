@@ -2240,7 +2240,7 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
       // read the remaining data into memory and pass to immediate context
       frameDataSize = reader->GetSize() - reader->GetOffset();
 
-      if(m_Queue == VK_NULL_HANDLE && m_Device != VK_NULL_HANDLE && m_QueueFamilyIdx > 0)
+      if(m_Queue == VK_NULL_HANDLE && m_Device != VK_NULL_HANDLE && m_QueueFamilyIdx != ~0U)
       {
         if(m_ExternalQueues[m_QueueFamilyIdx].queue != VK_NULL_HANDLE)
         {
