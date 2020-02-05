@@ -2298,8 +2298,8 @@ public:
     // Stored as uint32_t instead of VkImageViewType to prevent signed extension.
     uint32_t packedViewType : 3;
 
-    // only need 4 bits for the aspects
-    uint32_t aspectMask : 4;
+    // need 7 bits for the aspects including planes
+    uint32_t aspectMask : 7;
 
     // 6 bits = refer to up to 62 mips = bloody huge textures.
     // note we also need to pack in VK_REMAINING_MIPS etc so we can't
