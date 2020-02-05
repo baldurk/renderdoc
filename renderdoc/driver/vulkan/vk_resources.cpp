@@ -591,7 +591,7 @@ void GetYUVShaderParameters(VkFormat f, Vec4u &YUVDownsampleRate, Vec4u &YUVACha
     {
       case VK_FORMAT_G8B8G8R8_422_UNORM: YUVAChannels = {0, 2, 1, 0xff}; break;
       case VK_FORMAT_B8G8R8G8_422_UNORM: YUVAChannels = {0, 2, 1, 0xff}; break;
-      case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM: YUVAChannels = {0, 2, 1, 0xff}; break;
+      case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM: YUVAChannels = {0, 4, 8, 0xff}; break;
       case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM: YUVAChannels = {0, 4, 5, 0xff}; break;
       case VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM: YUVAChannels = {0, 4, 8, 0xff}; break;
       case VK_FORMAT_G8_B8R8_2PLANE_422_UNORM: YUVAChannels = {0, 4, 5, 0xff}; break;
