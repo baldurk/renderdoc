@@ -937,6 +937,12 @@ D3D12PSOCreator &D3D12PSOCreator::InputLayout()
   return InputLayout(m_Test->DefaultInputLayout());
 }
 
+D3D12PSOCreator &D3D12PSOCreator::Topology(D3D12_PRIMITIVE_TOPOLOGY_TYPE topo)
+{
+  GraphicsDesc.PrimitiveTopologyType = topo;
+  return *this;
+}
+
 D3D12PSOCreator &D3D12PSOCreator::RootSig(ID3D12RootSignaturePtr rootSig)
 {
   GraphicsDesc.pRootSignature = rootSig;

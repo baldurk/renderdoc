@@ -909,14 +909,15 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
           {
             D3D_PRIMITIVE_TOPOLOGY topo = MakeD3DPrimitiveTopology(fmt.topology);
 
+            // can't show triangle size for points or lines
             if(topo == D3D_PRIMITIVE_TOPOLOGY_POINTLIST ||
                topo >= D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST)
-              pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+              continue;
             else if(topo == D3D_PRIMITIVE_TOPOLOGY_LINESTRIP ||
                     topo == D3D_PRIMITIVE_TOPOLOGY_LINELIST ||
                     topo == D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ ||
                     topo == D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ)
-              pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+              continue;
             else
               pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
