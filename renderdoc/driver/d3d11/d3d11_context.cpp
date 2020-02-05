@@ -1220,9 +1220,12 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
 
   if(IsActiveReplaying(m_State))
   {
-    APIEvent ev = GetEvent(startEventID);
-    m_CurEventID = ev.eventId;
-    ser.GetReader()->SetOffset(ev.fileOffset);
+    if(!m_Events.empty())
+    {
+      APIEvent ev = GetEvent(startEventID);
+      m_CurEventID = ev.eventId;
+      ser.GetReader()->SetOffset(ev.fileOffset);
+    }
 
     ClearMaps();
     for(size_t i = 0; i < m_pDevice->GetNumDeferredContexts(); i++)
