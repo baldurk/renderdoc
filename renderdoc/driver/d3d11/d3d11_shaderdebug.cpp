@@ -50,17 +50,17 @@ struct DebugHit
   uint32_t rawdata;    // arbitrary, depending on shader
 };
 
-class D3D11DebugAPIWrapper : public ShaderDebug::DebugAPIWrapper
+class D3D11DebugAPIWrapper : public DXBCDebug::DebugAPIWrapper
 {
 public:
   D3D11DebugAPIWrapper(WrappedID3D11Device *device, DXBC::DXBCContainer *dxbc,
-                       ShaderDebug::GlobalState &globalState);
+                       DXBCDebug::GlobalState &globalState);
 
   void SetCurrentInstruction(uint32_t instruction) { m_instruction = instruction; }
   void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d);
 
-  bool FetchSRV(const ShaderDebug::BindingSlot &slot);
-  bool FetchUAV(const ShaderDebug::BindingSlot &slot);
+  bool FetchSRV(const DXBCDebug::BindingSlot &slot);
+  bool FetchUAV(const DXBCDebug::BindingSlot &slot);
 
   bool CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode, const ShaderVariable &input,
                               ShaderVariable &output1, ShaderVariable &output2);
@@ -72,23 +72,23 @@ public:
                                  int &dim);
 
   bool CalculateSampleGather(DXBCBytecode::OpcodeType opcode,
-                             ShaderDebug::SampleGatherResourceData resourceData,
-                             ShaderDebug::SampleGatherSamplerData samplerData, ShaderVariable uv,
+                             DXBCDebug::SampleGatherResourceData resourceData,
+                             DXBCDebug::SampleGatherSamplerData samplerData, ShaderVariable uv,
                              ShaderVariable ddxCalc, ShaderVariable ddyCalc,
                              const int texelOffsets[3], int multisampleIndex, float lodOrCompareValue,
-                             const uint8_t swizzle[4], ShaderDebug::GatherChannel gatherChannel,
+                             const uint8_t swizzle[4], DXBCDebug::GatherChannel gatherChannel,
                              const char *opString, ShaderVariable &output);
 
 private:
   DXBC::ShaderType GetShaderType() { return m_dxbc ? m_dxbc->m_Type : DXBC::ShaderType::Pixel; }
   WrappedID3D11Device *m_pDevice;
   DXBC::DXBCContainer *m_dxbc;
-  ShaderDebug::GlobalState &m_globalState;
+  DXBCDebug::GlobalState &m_globalState;
   uint32_t m_instruction;
 };
 
 D3D11DebugAPIWrapper::D3D11DebugAPIWrapper(WrappedID3D11Device *device, DXBC::DXBCContainer *dxbc,
-                                           ShaderDebug::GlobalState &globalState)
+                                           DXBCDebug::GlobalState &globalState)
     : m_pDevice(device), m_dxbc(dxbc), m_globalState(globalState), m_instruction(0)
 {
 }
@@ -99,7 +99,7 @@ void D3D11DebugAPIWrapper::AddDebugMessage(MessageCategory c, MessageSeverity sv
   m_pDevice->AddDebugMessage(c, sv, src, d);
 }
 
-bool D3D11DebugAPIWrapper::FetchSRV(const ShaderDebug::BindingSlot &slot)
+bool D3D11DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
 {
   RDCASSERT(slot.registerSpace == 0);
   RDCASSERT(slot.shaderRegister < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
@@ -122,11 +122,11 @@ bool D3D11DebugAPIWrapper::FetchSRV(const ShaderDebug::BindingSlot &slot)
   D3D11_SHADER_RESOURCE_VIEW_DESC sdesc;
   pSRV->GetDesc(&sdesc);
 
-  ShaderDebug::GlobalState::SRVData &srvData = m_globalState.srvs[slot];
+  DXBCDebug::GlobalState::SRVData &srvData = m_globalState.srvs[slot];
 
   if(sdesc.Format != DXGI_FORMAT_UNKNOWN)
   {
-    ShaderDebug::FillViewFmt(sdesc.Format, srvData.format);
+    DXBCDebug::FillViewFmt(sdesc.Format, srvData.format);
   }
   else
   {
@@ -142,8 +142,7 @@ bool D3D11DebugAPIWrapper::FetchSRV(const ShaderDebug::BindingSlot &slot)
       srvData.format.stride = bufdesc.StructureByteStride;
 
       // if we didn't get a type from the SRV description, try to pull it from the declaration
-      ShaderDebug::LookupSRVFormatFromShaderReflection(*m_dxbc->GetReflection(), slot,
-                                                       srvData.format);
+      DXBCDebug::LookupSRVFormatFromShaderReflection(*m_dxbc->GetReflection(), slot, srvData.format);
     }
   }
 
@@ -172,7 +171,7 @@ bool D3D11DebugAPIWrapper::FetchSRV(const ShaderDebug::BindingSlot &slot)
   return true;
 }
 
-bool D3D11DebugAPIWrapper::FetchUAV(const ShaderDebug::BindingSlot &slot)
+bool D3D11DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
 {
   RDCASSERT(slot.registerSpace == 0);
   RDCASSERT(slot.shaderRegister < D3D11_1_UAV_SLOT_COUNT);
@@ -191,7 +190,7 @@ bool D3D11DebugAPIWrapper::FetchUAV(const ShaderDebug::BindingSlot &slot)
   ID3D11Resource *res = NULL;
   pUAV->GetResource(&res);
 
-  ShaderDebug::GlobalState::UAVData &uavData = m_globalState.uavs[slot];
+  DXBCDebug::GlobalState::UAVData &uavData = m_globalState.uavs[slot];
   uavData.hiddenCounter = m_pDevice->GetDebugManager()->GetStructCount(pUAV);
 
   D3D11_UNORDERED_ACCESS_VIEW_DESC udesc;
@@ -942,10 +941,10 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
 }
 
 bool D3D11DebugAPIWrapper::CalculateSampleGather(
-    DXBCBytecode::OpcodeType opcode, ShaderDebug::SampleGatherResourceData resourceData,
-    ShaderDebug::SampleGatherSamplerData samplerData, ShaderVariable uv, ShaderVariable ddxCalc,
+    DXBCBytecode::OpcodeType opcode, DXBCDebug::SampleGatherResourceData resourceData,
+    DXBCDebug::SampleGatherSamplerData samplerData, ShaderVariable uv, ShaderVariable ddxCalc,
     ShaderVariable ddyCalc, const int texelOffsets[3], int multisampleIndex,
-    float lodOrCompareValue, const uint8_t swizzle[4], ShaderDebug::GatherChannel gatherChannel,
+    float lodOrCompareValue, const uint8_t swizzle[4], DXBCDebug::GatherChannel gatherChannel,
     const char *opString, ShaderVariable &output)
 {
   using namespace DXBCBytecode;
@@ -1200,10 +1199,10 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
   rdcstr strGatherChannel;
   switch(gatherChannel)
   {
-    case ShaderDebug::GatherChannel::Red: strGatherChannel = "Red"; break;
-    case ShaderDebug::GatherChannel::Green: strGatherChannel = "Green"; break;
-    case ShaderDebug::GatherChannel::Blue: strGatherChannel = "Blue"; break;
-    case ShaderDebug::GatherChannel::Alpha: strGatherChannel = "Alpha"; break;
+    case DXBCDebug::GatherChannel::Red: strGatherChannel = "Red"; break;
+    case DXBCDebug::GatherChannel::Green: strGatherChannel = "Green"; break;
+    case DXBCDebug::GatherChannel::Blue: strGatherChannel = "Blue"; break;
+    case DXBCDebug::GatherChannel::Alpha: strGatherChannel = "Alpha"; break;
   }
 
   rdcstr vsProgram = "float4 main(uint id : SV_VertexID) : SV_Position {\n";
@@ -1708,7 +1707,7 @@ void AddCBuffersToDebugTrace(const DXBCBytecode::Program &program, D3D11DebugMan
   {
     if(shader.ConstantBuffers[i])
     {
-      ShaderDebug::BindingSlot slot(i, 0);
+      DXBCDebug::BindingSlot slot(i, 0);
       cbufData.clear();
       debugManager.GetBufferData(shader.ConstantBuffers[i], shader.CBOffsets[i] * sizeof(Vec4f),
                                  shader.CBCounts[i] * sizeof(Vec4f), cbufData);
@@ -1722,7 +1721,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
                                           uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
   using namespace DXBCBytecode;
-  using namespace ShaderDebug;
+  using namespace DXBCDebug;
 
   D3D11MarkerRegion debugpixRegion(
       StringFormat::Fmt("DebugVertex @ %u of (%u,%u,%u)", eventId, vertid, instid, idx));
@@ -2111,7 +2110,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
                                          uint32_t primitive)
 {
   using namespace DXBCBytecode;
-  using namespace ShaderDebug;
+  using namespace DXBCDebug;
 
   D3D11MarkerRegion debugpixRegion(
       StringFormat::Fmt("DebugPixel @ %u of (%u,%u) %u / %u", eventId, x, y, sample, primitive));
@@ -2178,9 +2177,9 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   rdcstr extractHlsl;
   int structureStride = 0;
 
-  ShaderDebug::GatherPSInputDataForInitialValues(*dxbc->GetReflection(), *prevdxbc->GetReflection(),
-                                                 initialValues, floatInputs, inputVarNames,
-                                                 extractHlsl, structureStride);
+  DXBCDebug::GatherPSInputDataForInitialValues(*dxbc->GetReflection(), *prevdxbc->GetReflection(),
+                                               initialValues, floatInputs, inputVarNames,
+                                               extractHlsl, structureStride);
 
   uint32_t overdrawLevels = 100;    // maximum number of overdraw levels
 
@@ -2973,7 +2972,7 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
                                           const uint32_t threadid[3])
 {
   using namespace DXBCBytecode;
-  using namespace ShaderDebug;
+  using namespace DXBCDebug;
 
   D3D11MarkerRegion simloop(StringFormat::Fmt("DebugThread @ %u: [%u, %u, %u] (%u, %u, %u)",
                                               eventId, groupid[0], groupid[1], groupid[2],

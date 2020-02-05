@@ -45,7 +45,7 @@ enum OperandType;
 class WrappedID3D11Device;
 enum DXGI_FORMAT;
 
-namespace ShaderDebug
+namespace DXBCDebug
 {
 struct BindingSlot
 {
@@ -64,11 +64,10 @@ struct BindingSlot
   uint32_t registerSpace;
 };
 
-ShaderDebug::BindingSlot GetBindingSlotForDeclaration(const DXBCBytecode::Program &program,
-                                                      const DXBCBytecode::Declaration &decl);
-ShaderDebug::BindingSlot GetBindingSlotForIdentifier(const DXBCBytecode::Program &program,
-                                                     DXBCBytecode::OperandType declType,
-                                                     uint32_t identifier);
+BindingSlot GetBindingSlotForDeclaration(const DXBCBytecode::Program &program,
+                                         const DXBCBytecode::Declaration &decl);
+BindingSlot GetBindingSlotForIdentifier(const DXBCBytecode::Program &program,
+                                        DXBCBytecode::OperandType declType, uint32_t identifier);
 
 struct GlobalState
 {
@@ -200,11 +199,10 @@ struct PSInputElement
   bool included;
 };
 
-void ApplyDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace traces[4], int reg,
-                      int element, int numWords, float *data, float signmul, int32_t quadIdxA,
-                      int32_t quadIdxB);
+void ApplyDerivatives(GlobalState &global, ShaderDebugTrace traces[4], int reg, int element,
+                      int numWords, float *data, float signmul, int32_t quadIdxA, int32_t quadIdxB);
 
-void ApplyAllDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace traces[4], int destIdx,
+void ApplyAllDerivatives(GlobalState &global, ShaderDebugTrace traces[4], int destIdx,
                          const rdcarray<PSInputElement> &initialValues, float *data);
 
 void FlattenSingleVariable(uint32_t byteOffset, const rdcstr &basename, const ShaderVariable &v,
@@ -213,8 +211,7 @@ void FlattenSingleVariable(uint32_t byteOffset, const rdcstr &basename, const Sh
 void FillViewFmt(DXGI_FORMAT format, GlobalState::ViewFmt &viewFmt);
 
 void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
-                                         const ShaderDebug::BindingSlot &slot,
-                                         GlobalState::ViewFmt &viewFmt);
+                                         const BindingSlot &slot, GlobalState::ViewFmt &viewFmt);
 
 void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
                                        const DXBC::Reflection &prevStageDxbc,
@@ -227,14 +224,14 @@ struct SampleGatherResourceData
   DXBCBytecode::ResourceDimension dim;
   DXBC::ResourceRetType retType;
   int sampleCount;
-  ShaderDebug::BindingSlot binding;
+  BindingSlot binding;
 };
 
 struct SampleGatherSamplerData
 {
   DXBCBytecode::SamplerMode mode;
   float bias;
-  ShaderDebug::BindingSlot binding;
+  BindingSlot binding;
 };
 
 enum class GatherChannel : uint8_t
@@ -254,8 +251,8 @@ public:
   // During shader debugging, when a new resource is encountered, this will be called to fetch the
   // data on demand. Return true if the ShaderDebug::GlobalState data for the slot is populated,
   // return false if the resource cannot be found.
-  virtual bool FetchSRV(const ShaderDebug::BindingSlot &slot) = 0;
-  virtual bool FetchUAV(const ShaderDebug::BindingSlot &slot) = 0;
+  virtual bool FetchSRV(const BindingSlot &slot) = 0;
+  virtual bool FetchUAV(const BindingSlot &slot) = 0;
 
   virtual bool CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode, const ShaderVariable &input,
                                       ShaderVariable &output1, ShaderVariable &output2) = 0;
@@ -357,12 +354,11 @@ private:
   const ShaderDebugTrace *trace;
 };
 
-void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebugTrace &trace,
-                                    int quadIdx, DXBC::DXBCContainer *dxbc,
-                                    const ShaderReflection &refl,
+void CreateShaderDebugStateAndTrace(State &initialState, ShaderDebugTrace &trace, int quadIdx,
+                                    DXBC::DXBCContainer *dxbc, const ShaderReflection &refl,
                                     const ShaderBindpointMapping &mapping);
 void AddCBufferToDebugTrace(const DXBCBytecode::Program &program, ShaderDebugTrace &trace,
                             const ShaderReflection &refl, const ShaderBindpointMapping &mapping,
-                            const ShaderDebug::BindingSlot &slot, bytebuf &cbufData);
+                            const BindingSlot &slot, bytebuf &cbufData);
 
 };    // namespace ShaderDebug

@@ -40,7 +40,7 @@ class D3D11ResourceManager;
 
 struct CopyPixelParams;
 
-namespace ShaderDebug
+namespace DXBCDebug
 {
 struct GlobalState;
 class State;

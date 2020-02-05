@@ -38,7 +38,7 @@ namespace DXBC
 class DXBCContainer;
 };
 
-namespace ShaderDebug
+namespace DXBCDebug
 {
 struct GlobalState;
 class State;

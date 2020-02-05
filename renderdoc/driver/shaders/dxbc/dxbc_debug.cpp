@@ -34,7 +34,7 @@
 
 using namespace DXBCBytecode;
 
-namespace ShaderDebug
+namespace DXBCDebug
 {
 static float round_ne(float x)
 {
@@ -2694,7 +2694,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
     case OPCODE_IMM_ATOMIC_ALLOC:
     {
-      ShaderDebug::BindingSlot slot =
+      BindingSlot slot =
           GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, srcOpers[0].value.u.x);
       GlobalState::UAVIterator uav = global.uavs.find(slot);
       if(uav == global.uavs.end())
@@ -2714,7 +2714,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
 
     case OPCODE_IMM_ATOMIC_CONSUME:
     {
-      ShaderDebug::BindingSlot slot =
+      BindingSlot slot =
           GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, srcOpers[0].value.u.x);
       GlobalState::UAVIterator uav = global.uavs.find(slot);
       if(uav == global.uavs.end())
@@ -2841,7 +2841,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       }
       else
       {
-        ShaderDebug::BindingSlot slot =
+        BindingSlot slot =
             GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, resIndex);
         GlobalState::UAVIterator uav = global.uavs.find(slot);
         if(uav == global.uavs.end())
@@ -3093,7 +3093,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       }
       else
       {
-        ShaderDebug::BindingSlot slot = GetBindingSlotForIdentifier(
+        BindingSlot slot = GetBindingSlotForIdentifier(
             *program, srv ? TYPE_RESOURCE : TYPE_UNORDERED_ACCESS_VIEW, resIndex);
 
         if(srv)
@@ -3643,8 +3643,8 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
       int sampleCount = 0;
 
       // Default assumptions for bindings
-      ShaderDebug::BindingSlot resourceBinding((uint32_t)op.operands[2].indices[0].index, 0);
-      ShaderDebug::BindingSlot samplerBinding(0, 0);
+      BindingSlot resourceBinding((uint32_t)op.operands[2].indices[0].index, 0);
+      BindingSlot samplerBinding(0, 0);
 
       for(size_t i = 0; i < program->GetNumDeclarations(); i++)
       {
@@ -3654,7 +3654,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
            op.operands[3].indices[0] == decl.operand.indices[0])
         {
           samplerMode = decl.samplerMode;
-          samplerBinding = ShaderDebug::GetBindingSlotForDeclaration(*program, decl);
+          samplerBinding = GetBindingSlotForDeclaration(*program, decl);
         }
         if(decl.dim == RESOURCE_DIMENSION_BUFFER && op.operation == OPCODE_LD &&
            decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.type == TYPE_RESOURCE &&
@@ -3662,7 +3662,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
         {
           resourceDim = decl.dim;
 
-          resourceBinding = ShaderDebug::GetBindingSlotForDeclaration(*program, decl);
+          resourceBinding = GetBindingSlotForDeclaration(*program, decl);
           GlobalState::SRVIterator srv = global.srvs.find(resourceBinding);
           if(srv == global.srvs.end())
           {
@@ -3721,7 +3721,7 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
           resourceRetType = decl.resType[0];
           sampleCount = decl.sampleCount;
 
-          resourceBinding = ShaderDebug::GetBindingSlotForDeclaration(*program, decl);
+          resourceBinding = GetBindingSlotForDeclaration(*program, decl);
 
           // doesn't seem like these are ever less than four components, even if the texture is
           // declared <float3> for example.
@@ -4089,17 +4089,16 @@ State State::GetNext(GlobalState &global, DebugAPIWrapper *apiWrapper, State qua
   return s;
 }
 
-ShaderDebug::BindingSlot GetBindingSlotForDeclaration(const Program &program,
-                                                      const DXBCBytecode::Declaration &decl)
+BindingSlot GetBindingSlotForDeclaration(const Program &program, const DXBCBytecode::Declaration &decl)
 {
   uint32_t baseRegister = program.IsShaderModel51() ? (uint32_t)decl.operand.indices[1].index
                                                     : (uint32_t)decl.operand.indices[0].index;
 
-  return ShaderDebug::BindingSlot(baseRegister, decl.space);
+  return BindingSlot(baseRegister, decl.space);
 }
 
-ShaderDebug::BindingSlot GetBindingSlotForIdentifier(const Program &program, OperandType declType,
-                                                     uint32_t identifier)
+BindingSlot GetBindingSlotForIdentifier(const Program &program, OperandType declType,
+                                        uint32_t identifier)
 {
   // A note on matching declarations: with SM 5.0 or lower, the declaration will have a single
   // operand index, which corresponds to the bound slot (e.g., t0 for a SRV). With SM 5.1, the
@@ -4128,7 +4127,7 @@ ShaderDebug::BindingSlot GetBindingSlotForIdentifier(const Program &program, Ope
     RDCERR("Unable to find matching declaration for identifier %u", identifier);
   }
 
-  return ShaderDebug::BindingSlot(identifier, 0);
+  return BindingSlot(identifier, 0);
 }
 
 void GlobalState::PopulateGroupshared(const DXBCBytecode::Program *pBytecode)
@@ -4163,12 +4162,11 @@ void GlobalState::PopulateGroupshared(const DXBCBytecode::Program *pBytecode)
   }
 }
 
-void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebugTrace &trace,
-                                    int quadIdx, DXBC::DXBCContainer *dxbc,
-                                    const ShaderReflection &refl,
+void CreateShaderDebugStateAndTrace(State &initialState, ShaderDebugTrace &trace, int quadIdx,
+                                    DXBC::DXBCContainer *dxbc, const ShaderReflection &refl,
                                     const ShaderBindpointMapping &mapping)
 {
-  initialState = ShaderDebug::State(quadIdx, &trace, dxbc->GetReflection(), dxbc->GetDXBCByteCode());
+  initialState = State(quadIdx, &trace, dxbc->GetReflection(), dxbc->GetDXBCByteCode());
 
   bool hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
 
@@ -4457,7 +4455,7 @@ void CreateShaderDebugStateAndTrace(ShaderDebug::State &initialState, ShaderDebu
 
 void AddCBufferToDebugTrace(const DXBCBytecode::Program &program, ShaderDebugTrace &trace,
                             const ShaderReflection &refl, const ShaderBindpointMapping &mapping,
-                            const ShaderDebug::BindingSlot &slot, bytebuf &cbufData)
+                            const BindingSlot &slot, bytebuf &cbufData)
 {
   // Find the identifier
   size_t numCBs = mapping.constantBlocks.size();
@@ -4515,9 +4513,8 @@ bool PromptDebugTimeout(uint32_t cycleCounter)
   return false;
 }
 
-void ApplyDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace traces[4], int reg,
-                      int element, int numWords, float *data, float signmul, int32_t quadIdxA,
-                      int32_t quadIdxB)
+void ApplyDerivatives(GlobalState &global, ShaderDebugTrace traces[4], int reg, int element,
+                      int numWords, float *data, float signmul, int32_t quadIdxA, int32_t quadIdxB)
 {
   for(int w = 0; w < numWords; w++)
   {
@@ -4542,7 +4539,7 @@ void ApplyDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace traces[
   }
 }
 
-void ApplyAllDerivatives(ShaderDebug::GlobalState &global, ShaderDebugTrace traces[4], int destIdx,
+void ApplyAllDerivatives(GlobalState &global, ShaderDebugTrace traces[4], int destIdx,
                          const rdcarray<PSInputElement> &initialValues, float *data)
 {
   // We make the assumption that the coarse derivatives are generated from (0,0) in the quad, and
@@ -4702,8 +4699,7 @@ void FillViewFmt(DXGI_FORMAT format, GlobalState::ViewFmt &viewFmt)
 }
 
 void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
-                                         const ShaderDebug::BindingSlot &slot,
-                                         GlobalState::ViewFmt &viewFmt)
+                                         const BindingSlot &slot, GlobalState::ViewFmt &viewFmt)
 {
   for(const DXBC::ShaderInputBind &bind : reflection.SRVs)
   {
@@ -5042,7 +5038,7 @@ void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
 #include <limits>
 #include "3rdparty/catch/catch.hpp"
 
-using namespace ShaderDebug;
+using namespace DXBCDebug;
 
 TEST_CASE("DXBC debugging helpers", "[program]")
 {
