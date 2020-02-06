@@ -879,7 +879,7 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
     sampleProgram =
         StringFormat::Fmt("%s : register(%s);\n\n", textureDecl.c_str(), strResourceBinding.c_str());
     sampleProgram += funcRet + " main() : SV_Target0\n{\n";
-    sampleProgram += StringFormat::Fmt("t.Load(%s, int(%d) %s)%s;\n", texcoords.c_str(),
+    sampleProgram += StringFormat::Fmt("return t.Load(%s, int(%d) %s)%s;\n", texcoords.c_str(),
                                        multisampleIndex, offsets.c_str(), strSwizzle.c_str());
     sampleProgram += "\n}\n";
   }

@@ -1320,7 +1320,7 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
   {
     sampleProgram = StringFormat::Fmt("%s : register(t0);\n\n", textureDecl.c_str());
     sampleProgram += funcRet + " main() : SV_Target0\n{\n";
-    sampleProgram += StringFormat::Fmt("t.Load(%s, int(%d) %s)%s;\n", texcoords.c_str(),
+    sampleProgram += StringFormat::Fmt("return t.Load(%s, int(%d) %s)%s;\n", texcoords.c_str(),
                                        multisampleIndex, offsets.c_str(), strSwizzle.c_str());
     sampleProgram += "\n}\n";
   }
@@ -1348,6 +1348,12 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
       m_pDevice->GetShaderCache()->MakeVShader(vsProgram.c_str(), "main", "vs_5_0");
   ID3D11PixelShader *ps =
       m_pDevice->GetShaderCache()->MakePShader(sampleProgram.c_str(), "main", "ps_5_0");
+
+  if(!vs || !ps)
+  {
+    RDCERR("Sample VS or PS failed to compile");
+    return false;
+  }
 
   ID3D11DeviceContext *context = NULL;
 
