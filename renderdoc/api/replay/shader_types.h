@@ -386,7 +386,7 @@ struct SourceVariableMapping
   bool operator==(const SourceVariableMapping &o) const
   {
     return name == o.name && type == o.type && rows == o.rows && columns == o.columns &&
-           variables == o.variables;
+           offset == o.offset && builtin == o.builtin && variables == o.variables;
   }
   bool operator<(const SourceVariableMapping &o) const
   {
@@ -398,6 +398,10 @@ struct SourceVariableMapping
       return rows < o.rows;
     if(!(columns == o.columns))
       return columns < o.columns;
+    if(!(offset == o.offset))
+      return offset < o.offset;
+    if(!(builtin == o.builtin))
+      return builtin < o.builtin;
     if(!(variables == o.variables))
       return variables < o.variables;
     return false;
@@ -410,13 +414,19 @@ struct SourceVariableMapping
   VarType type = VarType::Unknown;
 
   DOCUMENT("The number of rows in this variable - 1 for vectors, >1 for matrices.");
-  uint32_t rows;
+  uint32_t rows = 0;
 
   DOCUMENT("The number of columns in this variable.");
-  uint32_t columns;
+  uint32_t columns = 0;
 
-  DOCUMENT("The offset in the parent source variable, for struct members. Useful for sorting.");
+  DOCUMENT(R"(The offset in the parent source variable, for struct members. Useful for sorting.
+
+For builtin variables this can also indicate the index of the builtin (e.g. multiple color outputs).
+)");
   uint32_t offset;
+
+  DOCUMENT("The :class:`ShaderBuiltin` that this variable corresponds to.");
+  ShaderBuiltin builtin = ShaderBuiltin::Undefined;
 
   DOCUMENT(R"(The debug variables that the components of this high level variable map to. Multiple
 ranges could refer to the same variable if a contiguous range is mapped to - the mapping is

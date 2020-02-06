@@ -2142,6 +2142,9 @@ void ShaderViewer::updateDebugState()
     {
       const SourceVariableMapping &sourceVar = m_Trace->sourceVars[globalVarIdx];
 
+      if(!sourceVar.variables.empty() && sourceVar.variables[0].type == DebugVariableType::Variable)
+        continue;
+
       for(const DebugVariableReference &r : sourceVar.variables)
         varsMapped.insert(r.name);
 

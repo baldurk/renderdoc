@@ -357,9 +357,10 @@ void DoSerialise(SerialiserType &ser, SourceVariableMapping &el)
   SERIALISE_MEMBER(rows);
   SERIALISE_MEMBER(columns);
   SERIALISE_MEMBER(offset);
+  SERIALISE_MEMBER(builtin);
   SERIALISE_MEMBER(variables);
 
-  SIZE_CHECK(64);
+  SIZE_CHECK(72);
 }
 
 template <typename SerialiserType>

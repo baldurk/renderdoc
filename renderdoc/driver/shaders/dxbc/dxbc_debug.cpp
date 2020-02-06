@@ -4756,8 +4756,6 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
 
   ThreadState &state = activeLane();
 
-  bool hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
-
   int32_t maxReg = -1;
   for(const SigParameter &sig : dxbc->GetReflection()->InputSig)
   {
@@ -4810,6 +4808,9 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
         sourcemap.rows = 1;
         sourcemap.columns = sig.compCount;
         sourcemap.variables.reserve(sig.compCount);
+        sourcemap.builtin = sig.systemValue;
+        if(sig.systemValue != ShaderBuiltin::Undefined)
+          sourcemap.offset = sig.regIndex;
 
         for(uint16_t c = 0; c < 4; c++)
         {
@@ -4841,6 +4842,7 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
         sourcemap.type = VarType::UInt;
         sourcemap.rows = 1;
         sourcemap.columns = 1;
+        sourcemap.builtin = ShaderBuiltin::MSAACoverage;
         DebugVariableReference ref;
         ref.type = DebugVariableType::Input;
         ref.name = state.inputs.back().name;
@@ -4906,75 +4908,74 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
     else
       dst.columns = RDCMAX(dst.columns, v.columns);
 
-    // if we don't have any debug info we can at least map to the semantic to give a better name
-    // than the raw register from the reflection info, at least for normal outputs
-    if(!hasSourceMapping)
+    if(type == DXBCBytecode::TYPE_OUTPUT)
     {
-      if(type == DXBCBytecode::TYPE_OUTPUT)
+      SourceVariableMapping sourcemap;
+      sourcemap.name = sig.semanticIdxName;
+      if(sourcemap.name.empty() && sig.systemValue != ShaderBuiltin::Undefined)
+        sourcemap.name = ToStr(sig.systemValue);
+      sourcemap.type = v.type;
+      sourcemap.rows = 1;
+      sourcemap.columns = sig.compCount;
+      sourcemap.builtin = sig.systemValue;
+      if(sig.systemValue != ShaderBuiltin::Undefined)
+        sourcemap.offset = sig.regIndex;
+      sourcemap.variables.reserve(sig.compCount);
+
+      for(uint16_t c = 0; c < 4; c++)
       {
-        SourceVariableMapping sourcemap;
-        sourcemap.name = sig.semanticIdxName;
-        if(sourcemap.name.empty() && sig.systemValue != ShaderBuiltin::Undefined)
-          sourcemap.name = ToStr(sig.systemValue);
-        sourcemap.type = v.type;
-        sourcemap.rows = 1;
-        sourcemap.columns = sig.compCount;
-        sourcemap.variables.reserve(sig.compCount);
-
-        for(uint16_t c = 0; c < 4; c++)
+        if(sig.regChannelMask & (1 << c))
         {
-          if(sig.regChannelMask & (1 << c))
-          {
-            DebugVariableReference ref;
-            ref.type = DebugVariableType::Variable;
-            ref.name = v.name;
-            ref.component = c;
-            sourcemap.variables.push_back(ref);
-          }
+          DebugVariableReference ref;
+          ref.type = DebugVariableType::Variable;
+          ref.name = v.name;
+          ref.component = c;
+          sourcemap.variables.push_back(ref);
         }
-
-        ret->sourceVars.push_back(sourcemap);
       }
-      else
+
+      ret->sourceVars.push_back(sourcemap);
+    }
+    else
+    {
+      SourceVariableMapping sourcemap;
+
+      if(sig.systemValue == ShaderBuiltin::DepthOutput)
       {
-        SourceVariableMapping sourcemap;
-
-        if(sig.systemValue == ShaderBuiltin::DepthOutput)
-        {
-          sourcemap.name = "SV_Depth";
-          sourcemap.type = VarType::Float;
-        }
-        else if(sig.systemValue == ShaderBuiltin::DepthOutputLessEqual)
-        {
-          sourcemap.name = "SV_DepthLessEqual";
-          sourcemap.type = VarType::Float;
-        }
-        else if(sig.systemValue == ShaderBuiltin::DepthOutputGreaterEqual)
-        {
-          sourcemap.name = "SV_DepthGreaterEqual";
-          sourcemap.type = VarType::Float;
-        }
-        else if(sig.systemValue == ShaderBuiltin::MSAACoverage)
-        {
-          sourcemap.name = "SV_Coverage";
-          sourcemap.type = VarType::UInt;
-        }
-        else if(sig.systemValue == ShaderBuiltin::StencilReference)
-        {
-          sourcemap.name = "SV_StencilRef";
-          sourcemap.type = VarType::UInt;
-        }
-
-        // all these variables are 1 scalar component
-        sourcemap.rows = 1;
-        sourcemap.columns = 1;
-        DebugVariableReference ref;
-        ref.type = DebugVariableType::Variable;
-        ref.name = v.name;
-        sourcemap.variables.push_back(ref);
-
-        ret->sourceVars.push_back(sourcemap);
+        sourcemap.name = "SV_Depth";
+        sourcemap.type = VarType::Float;
       }
+      else if(sig.systemValue == ShaderBuiltin::DepthOutputLessEqual)
+      {
+        sourcemap.name = "SV_DepthLessEqual";
+        sourcemap.type = VarType::Float;
+      }
+      else if(sig.systemValue == ShaderBuiltin::DepthOutputGreaterEqual)
+      {
+        sourcemap.name = "SV_DepthGreaterEqual";
+        sourcemap.type = VarType::Float;
+      }
+      else if(sig.systemValue == ShaderBuiltin::MSAACoverage)
+      {
+        sourcemap.name = "SV_Coverage";
+        sourcemap.type = VarType::UInt;
+      }
+      else if(sig.systemValue == ShaderBuiltin::StencilReference)
+      {
+        sourcemap.name = "SV_StencilRef";
+        sourcemap.type = VarType::UInt;
+      }
+
+      // all these variables are 1 scalar component
+      sourcemap.rows = 1;
+      sourcemap.columns = 1;
+      sourcemap.builtin = sig.systemValue;
+      DebugVariableReference ref;
+      ref.type = DebugVariableType::Variable;
+      ref.name = v.name;
+      sourcemap.variables.push_back(ref);
+
+      ret->sourceVars.push_back(sourcemap);
     }
   }
 
