@@ -4431,12 +4431,15 @@ void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
   }
 }
 
-void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
+void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
                                        const DXBC::Reflection &prevStageDxbc,
                                        rdcarray<PSInputElement> &initialValues,
                                        rdcarray<rdcstr> &floatInputs, rdcarray<rdcstr> &inputVarNames,
                                        rdcstr &psInputDefinition, int &structureStride)
 {
+  const DXBC::Reflection &psDxbc = *dxbc->GetReflection();
+  const DXBCBytecode::Program *program = dxbc->GetDXBCByteCode();
+
   // When debugging a pixel shader, we need to get the initial values of each pixel shader
   // input for the pixel that we are debugging, from whichever the previous shader stage was
   // configured in the pipeline. This function returns the input element definitions, other
@@ -4568,8 +4571,28 @@ void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
         }
       }
 
+      DXBCBytecode::InterpolationMode interpolation = DXBCBytecode::INTERPOLATION_UNDEFINED;
+
+      if(program)
+      {
+        for(size_t d = 0; d < program->GetNumDeclarations(); d++)
+        {
+          const DXBCBytecode::Declaration &decl = program->GetDeclaration(d);
+
+          if(decl.declaration == DXBCBytecode::OPCODE_DCL_INPUT_PS &&
+             decl.operand.indices[0].absolute && decl.operand.indices[0].index == sig.regIndex)
+          {
+            interpolation = decl.interpolation;
+            break;
+          }
+        }
+      }
+
       if(nointerp)
         psInputDefinition += "nointerpolation ";
+      else if(interpolation != DXBCBytecode::INTERPOLATION_UNDEFINED &&
+              interpolation != DXBCBytecode::INTERPOLATION_CONSTANT)
+        psInputDefinition += ToStr(interpolation) + " ";
 
       psInputDefinition += "float";
     }

@@ -2803,14 +2803,17 @@ rdcstr DoStringise(const DXBCBytecode::InterpolationMode &el)
   BEGIN_ENUM_STRINGISE(DXBCBytecode::InterpolationMode)
   {
     STRINGISE_ENUM_CLASS_NAMED(INTERPOLATION_UNDEFINED, "undefined");
-    STRINGISE_ENUM_CLASS_NAMED(INTERPOLATION_CONSTANT, "constant");
+    // differs slightly from fxc but it's very convenient to use the hlsl terms, which are used in
+    // all other cases
+    STRINGISE_ENUM_CLASS_NAMED(INTERPOLATION_CONSTANT, "nointerpolation");
     STRINGISE_ENUM_CLASS_NAMED(INTERPOLATION_LINEAR, "linear");
-    STRINGISE_ENUM_CLASS_NAMED(INTERPOLATION_LINEAR_CENTROID, "linearCentroid");
-    STRINGISE_ENUM_CLASS_NAMED(INTERPOLATION_LINEAR_NOPERSPECTIVE, "linearNopersp");
+    STRINGISE_ENUM_CLASS_NAMED(INTERPOLATION_LINEAR_CENTROID, "linear centroid");
+    STRINGISE_ENUM_CLASS_NAMED(INTERPOLATION_LINEAR_NOPERSPECTIVE, "linear noperspective");
     STRINGISE_ENUM_CLASS_NAMED(INTERPOLATION_LINEAR_NOPERSPECTIVE_CENTROID,
-                               "linearNoperspCentroid");
-    STRINGISE_ENUM_CLASS_NAMED(INTERPOLATION_LINEAR_SAMPLE, "linearSample");
-    STRINGISE_ENUM_CLASS_NAMED(INTERPOLATION_LINEAR_NOPERSPECTIVE_SAMPLE, "linaerNoperspSample");
+                               "linear noperspective centroid");
+    STRINGISE_ENUM_CLASS_NAMED(INTERPOLATION_LINEAR_SAMPLE, "linear sample");
+    STRINGISE_ENUM_CLASS_NAMED(INTERPOLATION_LINEAR_NOPERSPECTIVE_SAMPLE,
+                               "linear noperspective sample");
   }
   END_ENUM_STRINGISE();
 }

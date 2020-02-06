@@ -1214,9 +1214,9 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
   rdcstr extractHlsl;
   int structureStride = 0;
 
-  DXBCDebug::GatherPSInputDataForInitialValues(*dxbc->GetReflection(), *prevDxbc->GetReflection(),
-                                               initialValues, floatInputs, inputVarNames,
-                                               extractHlsl, structureStride);
+  DXBCDebug::GatherPSInputDataForInitialValues(dxbc, *prevDxbc->GetReflection(), initialValues,
+                                               floatInputs, inputVarNames, extractHlsl,
+                                               structureStride);
 
   uint32_t overdrawLevels = 100;    // maximum number of overdraw levels
 

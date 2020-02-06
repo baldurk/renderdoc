@@ -207,7 +207,7 @@ void FillViewFmt(DXGI_FORMAT format, GlobalState::ViewFmt &viewFmt);
 void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
                                          const BindingSlot &slot, GlobalState::ViewFmt &viewFmt);
 
-void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
+void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
                                        const DXBC::Reflection &prevStageDxbc,
                                        rdcarray<PSInputElement> &initialValues,
                                        rdcarray<rdcstr> &floatInputs, rdcarray<rdcstr> &inputVarNames,
