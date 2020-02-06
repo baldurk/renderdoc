@@ -178,6 +178,10 @@ class Iter_Test(rdtest.TestCase):
 
             break
 
+        if target == pipe.GetDepthTarget().resourceId:
+            rdtest.log.print("Not doing pixel debug for depth output")
+            return
+
         if lastmod is not None:
             rdtest.log.print("Debugging pixel {},{} @ {}, primitive {}".format(x, y, lastmod.eventId, lastmod.primitiveID))
             self.controller.SetFrameEvent(lastmod.eventId, True)
@@ -196,7 +200,7 @@ class Iter_Test(rdtest.TestCase):
 
             cycles, variables = self.process_trace(trace)
 
-            output_index = [o.resourceId for o in self.controller.GetPipelineState().GetOutputTargets()].index(target)
+            output_index = [o.resourceId for o in pipe.GetOutputTargets()].index(target)
 
             if draw.outputs[0] == rd.ResourceId.Null():
                 rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to no output'.format(cycles))
