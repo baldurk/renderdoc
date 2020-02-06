@@ -2,6 +2,7 @@ import rdtest
 import os
 import random
 import struct
+from typing import List
 import renderdoc as rd
 
 
@@ -93,9 +94,25 @@ class Iter_Test(rdtest.TestCase):
 
         rdtest.log.print("Debugging vtx %d idx %d (inst %d)" % (vtx, idx, inst))
 
-        trace = self.controller.DebugVertex(vtx, inst, idx, draw.instanceOffset, draw.vertexOffset)
+        trace: rd.ShaderDebugTrace = self.controller.DebugVertex(vtx, inst, idx, draw.instanceOffset, draw.vertexOffset)
 
-        rdtest.log.success('Successfully debugged vertex in {} cycles'.format(len(trace.states)))
+        if trace.debugger is None:
+            self.controller.FreeTrace(trace)
+
+            rdtest.log.print("No debug result")
+            return
+
+        last_state: rd.ShaderDebugState = self.controller.ContinueDebug(trace.debugger)[-1]
+
+        while True:
+            states = self.controller.ContinueDebug(trace.debugger)
+            if len(states) == 0:
+                break
+            last_state = states[-1]
+
+        rdtest.log.success('Successfully debugged vertex in {} cycles'.format(last_state.stepIndex))
+
+        self.controller.FreeTrace(trace)
 
     def pixel_debug(self, draw: rd.DrawcallDescription):
         pipe: rd.PipeState = self.controller.GetPipelineState()
@@ -141,7 +158,7 @@ class Iter_Test(rdtest.TestCase):
 
         lastmod: rd.PixelModification = None
 
-        for i in range(len(history)-1, 0, -1):
+        for i in reversed(range(len(history))):
             mod = history[i]
             draw = self.find_draw('', mod.eventId)
 
@@ -167,24 +184,39 @@ class Iter_Test(rdtest.TestCase):
 
             trace = self.controller.DebugPixel(x, y, 0, lastmod.primitiveID)
 
-            if draw.outputs[0] == rd.ResourceId.Null():
-                rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to no output'.format(len(trace.states)))
-            elif draw.numInstances == 1:
-                lastState: rd.ShaderDebugState = trace.states[-1]
+            if trace.debugger is None:
+                self.controller.FreeTrace(trace)
 
+                rdtest.log.print("No debug result")
+                return
+
+            sourceVars: List[rd.SourceVariableMapping] = list(trace.sourceVars)
+
+            cycles, variables = self.process_trace(trace)
+
+            if draw.outputs[0] == rd.ResourceId.Null():
+                rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to no output'.format(cycles))
+                self.controller.FreeTrace(trace)
+            elif (draw.flags & rd.DrawFlags.Instanced) and draw.numInstances > 1:
+                rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to instancing'.format(cycles))
+                self.controller.FreeTrace(trace)
+            else:
                 output_index = [o.resourceId for o in self.controller.GetPipelineState().GetOutputTargets()].index(target)
                 rdtest.log.print("At event {} the target is index {}".format(lastmod.eventId, output_index))
 
-                debugged: rd.ShaderVariable = lastState.outputs[output_index]
+                output = \
+                    [x for x in sourceVars if x.builtin == rd.ShaderBuiltin.ColorOutput and x.offset == output_index][0]
+
+                debugged = self.evalute_source_var(output, variables)
+
+                self.controller.FreeTrace(trace)
 
                 debuggedValue = [debugged.value.f.x, debugged.value.f.y, debugged.value.f.z, debugged.value.f.w]
 
-                if not rdtest.value_compare(lastmod.shaderOut.col.floatValue, [debugged.value.f.x, debugged.value.f.y, debugged.value.f.z, debugged.value.f.w]):
+                if not rdtest.value_compare(lastmod.shaderOut.col.floatValue, debuggedValue):
                     raise rdtest.TestFailureException("Debugged value {}: {} doesn't match history shader output {}".format(debugged.name, debuggedValue, lastmod.shaderOut.col.floatValue))
 
-                rdtest.log.success('Successfully debugged pixel in {} cycles, result matches'.format(len(trace.states)))
-            else:
-                rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to instancing'.format(len(trace.states)))
+                rdtest.log.success('Successfully debugged pixel in {} cycles, result matches'.format(cycles))
 
             self.controller.SetFrameEvent(draw.eventId, True)
 

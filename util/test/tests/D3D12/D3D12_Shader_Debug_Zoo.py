@@ -1,4 +1,5 @@
 import renderdoc as rd
+from typing import List
 import rdtest
 
 
@@ -30,10 +31,16 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                 trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4 * test, 0, rd.ReplayController.NoPreference,
                                                                         rd.ReplayController.NoPreference)
 
-                last_state: rd.ShaderDebugState = trace.states[-1]
+                sourceVars: List[rd.SourceVariableMapping] = list(trace.sourceVars)
+
+                cycles, variables = self.process_trace(trace)
+
+                output = [x for x in sourceVars if x.builtin == rd.ShaderBuiltin.ColorOutput and x.offset == 0][0]
+
+                debugged = self.evalute_source_var(output, variables)
 
                 try:
-                    self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4 * test, 0, last_state.outputs[0].value.fv[0:4], 0.0)
+                    self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4 * test, 0, debugged.value.fv[0:4], 0.0)
                 except rdtest.TestFailureException as ex:
                     failed = True
                     rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))

@@ -396,6 +396,35 @@ class TestCase:
 
         log.success("Backbuffer is identical to reference")
 
+    def process_trace(self, trace: rd.ShaderDebugTrace):
+        variables = {}
+        cycles = 0
+        while True:
+            states = self.controller.ContinueDebug(trace.debugger)
+            if len(states) == 0:
+                break
+
+            for state in states:
+                for change in state.changes:
+                    variables[change.after.name] = change.after
+
+            cycles = states[-1].stepIndex
+
+        return cycles, variables
+
+    def evalute_source_var(self, sourceVar: rd.SourceVariableMapping, debugVars):
+        debugged = rd.ShaderVariable()
+        debugged.name = sourceVar.name
+        debugged.rowMajor = True
+        debugged.type = sourceVar.type
+        debugged.rows = sourceVar.rows
+        debugged.columns = sourceVar.columns
+        fv = [0.0] * 16
+        for i, debugVar in enumerate(sourceVar.variables):
+            fv[i] = debugVars[debugVar.name].value.fv[debugVar.component]
+        debugged.value.fv = fv
+        return debugged
+
     def check_export(self, capture_filename):
         recomp_path = util.get_tmp_path('recompressed.rdc')
         conv_zipxml_path = util.get_tmp_path('conv.zip.xml')
