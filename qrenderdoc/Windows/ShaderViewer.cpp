@@ -1346,7 +1346,7 @@ bool ShaderViewer::stepBack()
       if(IsFirstState())
         break;
 
-      if(m_Trace->lineInfo[GetCurrentState().nextInstruction].sourceEqual(oldLine))
+      if(m_Trace->lineInfo[GetCurrentState().nextInstruction].SourceEqual(oldLine))
         continue;
 
       break;
@@ -1357,7 +1357,7 @@ bool ShaderViewer::stepBack()
     // now since a line can have multiple instructions, keep stepping (looking forward) until we
     // reach the first instruction with an identical line info
     while(!IsFirstState() &&
-          m_Trace->lineInfo[GetPreviousState().nextInstruction].sourceEqual(oldLine))
+          m_Trace->lineInfo[GetPreviousState().nextInstruction].SourceEqual(oldLine))
     {
       applyBackwardsChange();
 
@@ -1398,7 +1398,7 @@ bool ShaderViewer::stepNext()
       if(IsLastState())
         break;
 
-      if(m_Trace->lineInfo[GetCurrentState().nextInstruction].sourceEqual(oldLine))
+      if(m_Trace->lineInfo[GetCurrentState().nextInstruction].SourceEqual(oldLine))
         continue;
 
       break;

@@ -468,7 +468,11 @@ struct LineColumnInfo
     return false;
   }
 
-  bool sourceEqual(const LineColumnInfo &o) const
+  DOCUMENT(R"(:return: ``True`` if this object is equal to the parameter, disregarding
+  :data:`disassemblyLine`.
+:rtype: ``bool``
+)");
+  bool SourceEqual(const LineColumnInfo &o) const
   {
     // comparison without considering the disassembly line
     return fileIndex == o.fileIndex && lineStart == o.lineStart && lineEnd == o.lineEnd &&
