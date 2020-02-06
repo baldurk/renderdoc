@@ -223,7 +223,7 @@ class Iter_Test(rdtest.TestCase):
 
                 debuggedValue = [debugged.value.f.x, debugged.value.f.y, debugged.value.f.z, debugged.value.f.w]
 
-                if not rdtest.value_compare(lastmod.shaderOut.col.floatValue, debuggedValue):
+                if not rdtest.value_compare(lastmod.shaderOut.col.floatValue, debuggedValue, eps=3.0E-06):
                     raise rdtest.TestFailureException("Debugged value {}: {} doesn't match history shader output {}".format(debugged.name, debuggedValue, lastmod.shaderOut.col.floatValue))
 
                 rdtest.log.success('Successfully debugged pixel in {} cycles, result matches'.format(cycles))
