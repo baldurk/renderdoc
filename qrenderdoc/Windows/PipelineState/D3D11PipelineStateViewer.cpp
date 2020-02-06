@@ -3138,7 +3138,7 @@ void D3D11PipelineStateViewer::on_debugThread_clicked()
   m_Ctx.Replay().AsyncInvoke([&trace, &done, thread](IReplayController *r) {
     trace = r->DebugThread(thread.g, thread.t);
 
-    if(trace->states.isEmpty())
+    if(trace->debugger == NULL)
     {
       r->FreeTrace(trace);
       trace = NULL;

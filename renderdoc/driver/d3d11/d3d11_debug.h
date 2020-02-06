@@ -40,12 +40,6 @@ class D3D11ResourceManager;
 
 struct CopyPixelParams;
 
-namespace DXBCDebug
-{
-struct GlobalState;
-class State;
-}
-
 namespace DXBC
 {
 class DXBCContainer;

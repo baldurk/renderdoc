@@ -179,12 +179,13 @@ public:
   virtual rdcarray<PixelModification> PixelHistory(rdcarray<EventUsage> events, ResourceId target,
                                                    uint32_t x, uint32_t y, const Subresource &sub,
                                                    CompType typeCast) = 0;
-  virtual ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                       uint32_t idx, uint32_t instOffset, uint32_t vertOffset) = 0;
-  virtual ShaderDebugTrace DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                                      uint32_t primitive) = 0;
-  virtual ShaderDebugTrace DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                       const uint32_t threadid[3]) = 0;
+  virtual ShaderDebugTrace *DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
+                                        uint32_t idx, uint32_t instOffset, uint32_t vertOffset) = 0;
+  virtual ShaderDebugTrace *DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
+                                       uint32_t primitive) = 0;
+  virtual ShaderDebugTrace *DebugThread(uint32_t eventId, const uint32_t groupid[3],
+                                        const uint32_t threadid[3]) = 0;
+  virtual rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger) = 0;
 
   virtual ResourceId RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
                                    DebugOverlay overlay, uint32_t eventId,

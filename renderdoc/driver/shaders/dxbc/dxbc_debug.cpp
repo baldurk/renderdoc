@@ -62,7 +62,7 @@ static float flush_denorm(const float f)
   return ret;
 }
 
-VarType State::OperationType(const DXBCBytecode::OpcodeType &op) const
+VarType OperationType(const DXBCBytecode::OpcodeType &op)
 {
   switch(op)
   {
@@ -238,7 +238,7 @@ VarType State::OperationType(const DXBCBytecode::OpcodeType &op) const
   }
 }
 
-bool State::OperationFlushing(const DXBCBytecode::OpcodeType &op) const
+bool OperationFlushing(const DXBCBytecode::OpcodeType &op)
 {
   switch(op)
   {
@@ -1079,26 +1079,29 @@ ShaderVariable sub(const ShaderVariable &a, const ShaderVariable &b, const VarTy
   return add(a, neg(b, type), type);
 }
 
-State::State(int quadIdx, GlobalState *globalState, const DXBC::DXBCContainer *dxbc)
+ThreadState::ThreadState(int workgroupIdx, GlobalState &globalState, const DXBC::DXBCContainer *dxbc)
     : global(globalState)
 {
-  quadIndex = quadIdx;
-  nextInstruction = 0;
-  flags = ShaderEvents::NoEvent;
+  workgroupIndex = workgroupIdx;
   done = false;
+  nextInstruction = 0;
   reflection = dxbc->GetReflection();
   program = dxbc->GetDXBCByteCode();
   RDCEraseEl(semantics);
+
+  program->SetupRegisterFile(variables);
 }
 
-bool State::Finished() const
+bool ThreadState::Finished() const
 {
   return program && (done || nextInstruction >= (int)program->GetNumInstructions());
 }
 
-bool State::AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVariable &src,
-                        uint32_t srcIndex, bool flushDenorm)
+ShaderEvents ThreadState::AssignValue(ShaderVariable &dst, uint32_t dstIndex,
+                                      const ShaderVariable &src, uint32_t srcIndex, bool flushDenorm)
 {
+  ShaderEvents flags = ShaderEvents::NoEvent;
+
   if(src.type == VarType::Float)
   {
     float ft = src.value.fv[srcIndex];
@@ -1112,17 +1115,16 @@ bool State::AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVari
       flags |= ShaderEvents::GeneratedNanOrInf;
   }
 
-  bool ret = (dst.value.uv[dstIndex] != src.value.uv[srcIndex]);
-
   dst.value.uv[dstIndex] = src.value.uv[srcIndex];
 
   if(flushDenorm && src.type == VarType::Float)
     dst.value.fv[dstIndex] = flush_denorm(dst.value.fv[dstIndex]);
 
-  return ret;
+  return flags;
 }
 
-void State::SetDst(const Operand &dstoper, const Operation &op, const ShaderVariable &val)
+void ThreadState::SetDst(ShaderDebugState *state, const Operand &dstoper, const Operation &op,
+                         const ShaderVariable &val)
 {
   ShaderVariable *v = NULL;
 
@@ -1145,10 +1147,6 @@ void State::SetDst(const Operand &dstoper, const Operation &op, const ShaderVari
     }
   }
 
-  DebugVariableReference range;
-  if(v)
-    range.name = v->name;
-
   switch(dstoper.type)
   {
     case TYPE_TEMP:
@@ -1161,8 +1159,6 @@ void State::SetDst(const Operand &dstoper, const Operation &op, const ShaderVari
     case TYPE_OUTPUT_COVERAGE_MASK:
     {
       uint32_t idx = program->GetRegisterIndex(dstoper.type, indices[0]);
-
-      range.type = DebugVariableType::Variable;
 
       if(idx < variables.size())
         v = &variables[idx];
@@ -1188,6 +1184,8 @@ void State::SetDst(const Operand &dstoper, const Operation &op, const ShaderVari
       break;
     }
   }
+
+  ShaderVariable *changeVar = v;
 
   if(dstoper.type == TYPE_INDEXABLE_TEMP)
   {
@@ -1224,18 +1222,16 @@ void State::SetDst(const Operand &dstoper, const Operation &op, const ShaderVari
   if(op.saturate)
     right = sat(right, OperationType(op.operation));
 
+  ShaderVariableChange change = {*changeVar};
+
+  ShaderEvents flags = ShaderEvents::NoEvent;
+
   if(dstoper.comps[0] != 0xff && dstoper.comps[1] == 0xff && dstoper.comps[2] == 0xff &&
      dstoper.comps[3] == 0xff)
   {
     RDCASSERT(dstoper.comps[0] != 0xff);
 
-    bool changed = AssignValue(*v, dstoper.comps[0], right, 0, flushDenorm);
-
-    if(changed && !range.name.empty())
-    {
-      range.component = dstoper.comps[0];
-      modified.push_back(range);
-    }
+    flags |= AssignValue(*v, dstoper.comps[0], right, 0, flushDenorm);
   }
   else
   {
@@ -1246,36 +1242,32 @@ void State::SetDst(const Operand &dstoper, const Operation &op, const ShaderVari
       if(dstoper.comps[i] != 0xff)
       {
         RDCASSERT(dstoper.comps[i] < v->columns);
-        bool changed = AssignValue(*v, dstoper.comps[i], right, dstoper.comps[i], flushDenorm);
+        flags |= AssignValue(*v, dstoper.comps[i], right, dstoper.comps[i], flushDenorm);
         compsWritten++;
-
-        if(changed && !range.name.empty())
-        {
-          range.component = dstoper.comps[i];
-          modified.push_back(range);
-        }
       }
     }
 
     if(compsWritten == 0)
-    {
-      bool changed = AssignValue(*v, 0, right, 0, flushDenorm);
+      flags |= AssignValue(*v, 0, right, 0, flushDenorm);
+  }
 
-      if(changed && !range.name.empty())
-      {
-        range.component = 0;
-        modified.push_back(range);
-      }
-    }
+  if(state)
+  {
+    state->flags |= flags;
+    change.after = *changeVar;
+    state->changes.push_back(change);
   }
 }
 
-ShaderVariable State::DDX(bool fine, State quad[4], const DXBCBytecode::Operand &oper,
-                          const DXBCBytecode::Operation &op) const
+ShaderVariable ThreadState::DDX(bool fine, const rdcarray<ThreadState> &quad,
+                                const DXBCBytecode::Operand &oper,
+                                const DXBCBytecode::Operation &op) const
 {
   ShaderVariable ret;
 
   VarType optype = OperationType(op.operation);
+
+  int quadIndex = workgroupIndex;
 
   if(!fine)
   {
@@ -1295,12 +1287,15 @@ ShaderVariable State::DDX(bool fine, State quad[4], const DXBCBytecode::Operand 
   return ret;
 }
 
-ShaderVariable State::DDY(bool fine, State quad[4], const DXBCBytecode::Operand &oper,
-                          const DXBCBytecode::Operation &op) const
+ShaderVariable ThreadState::DDY(bool fine, const rdcarray<ThreadState> &quad,
+                                const DXBCBytecode::Operand &oper,
+                                const DXBCBytecode::Operation &op) const
 {
   ShaderVariable ret;
 
   VarType optype = OperationType(op.operation);
+
+  int quadIndex = workgroupIndex;
 
   if(!fine)
   {
@@ -1320,7 +1315,7 @@ ShaderVariable State::DDY(bool fine, State quad[4], const DXBCBytecode::Operand 
   return ret;
 }
 
-ShaderVariable State::GetSrc(const Operand &oper, const Operation &op, bool allowFlushing) const
+ShaderVariable ThreadState::GetSrc(const Operand &oper, const Operation &op, bool allowFlushing) const
 {
   ShaderVariable v, s;
 
@@ -1468,17 +1463,17 @@ ShaderVariable State::GetSrc(const Operand &oper, const Operation &op, bool allo
         }
       }
 
-      RDCASSERTMSG("Invalid cbuffer lookup", cb != -1 && cb < global->constantBlocks.count(), cb,
-                   global->constantBlocks.count());
+      RDCASSERTMSG("Invalid cbuffer lookup", cb != -1 && cb < global.constantBlocks.count(), cb,
+                   global.constantBlocks.count());
 
-      if(cb >= 0 && cb < global->constantBlocks.count())
+      if(cb >= 0 && cb < global.constantBlocks.count())
       {
         RDCASSERTMSG("Out of bounds cbuffer lookup",
-                     cbLookup < (uint32_t)global->constantBlocks[cb].members.count(), cbLookup,
-                     global->constantBlocks[cb].members.count());
+                     cbLookup < (uint32_t)global.constantBlocks[cb].members.count(), cbLookup,
+                     global.constantBlocks[cb].members.count());
 
-        if(cbLookup < (uint32_t)global->constantBlocks[cb].members.count())
-          v = s = global->constantBlocks[cb].members[cbLookup];
+        if(cbLookup < (uint32_t)global.constantBlocks[cb].members.count())
+          v = s = global.constantBlocks[cb].members[cbLookup];
         else
           v = s = ShaderVariable("", 0U, 0U, 0U, 0U);
       }
@@ -1790,20 +1785,22 @@ void FlattenVariables(const rdcstr &cbname, const rdcarray<ShaderConstant> &cons
   }
 }
 
-State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
+void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
+                           const rdcarray<ThreadState> &prevWorkgroup)
 {
-  State s = *this;
+  if(nextInstruction >= program->GetNumInstructions())
+    return;
 
-  s.modified.clear();
+  const Operation &op = program->GetInstruction((size_t)nextInstruction);
 
-  if(s.nextInstruction >= s.program->GetNumInstructions())
-    return s;
+  apiWrapper->SetCurrentInstruction(nextInstruction);
+  nextInstruction++;
 
-  const Operation &op = s.program->GetInstruction((size_t)s.nextInstruction);
+  if(nextInstruction >= program->GetNumInstructions())
+    nextInstruction--;
 
-  apiWrapper->SetCurrentInstruction(s.nextInstruction);
-  s.nextInstruction++;
-  s.flags = ShaderEvents::NoEvent;
+  if(state)
+    state->nextInstruction = nextInstruction;
 
   rdcarray<ShaderVariable> srcOpers;
 
@@ -1819,9 +1816,13 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
 
     case OPCODE_DADD:
     case OPCODE_IADD:
-    case OPCODE_ADD: s.SetDst(op.operands[0], op, add(srcOpers[0], srcOpers[1], optype)); break;
+    case OPCODE_ADD:
+      SetDst(state, op.operands[0], op, add(srcOpers[0], srcOpers[1], optype));
+      break;
     case OPCODE_DDIV:
-    case OPCODE_DIV: s.SetDst(op.operands[0], op, div(srcOpers[0], srcOpers[1], optype)); break;
+    case OPCODE_DIV:
+      SetDst(state, op.operands[0], op, div(srcOpers[0], srcOpers[1], optype));
+      break;
     case OPCODE_UDIV:
     {
       ShaderVariable quot("", (uint32_t)0xffffffff, (uint32_t)0xffffffff, (uint32_t)0xffffffff,
@@ -1840,11 +1841,11 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
 
       if(op.operands[0].type != TYPE_NULL)
       {
-        s.SetDst(op.operands[0], op, quot);
+        SetDst(state, op.operands[0], op, quot);
       }
       if(op.operands[1].type != TYPE_NULL)
       {
-        s.SetDst(op.operands[1], op, rem);
+        SetDst(state, op.operands[1], op, rem);
       }
       break;
     }
@@ -1857,7 +1858,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         ret.value.uv[i] = BitwiseReverseLSB16(srcOpers[0].value.uv[i]);
       }
 
-      s.SetDst(op.operands[0], op, ret);
+      SetDst(state, op.operands[0], op, ret);
 
       break;
     }
@@ -1870,7 +1871,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         ret.value.uv[i] = PopCount(srcOpers[0].value.uv[i]);
       }
 
-      s.SetDst(op.operands[0], op, ret);
+      SetDst(state, op.operands[0], op, ret);
       break;
     }
     case OPCODE_FIRSTBIT_HI:
@@ -1892,7 +1893,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         }
       }
 
-      s.SetDst(op.operands[0], op, ret);
+      SetDst(state, op.operands[0], op, ret);
       break;
     }
     case OPCODE_FIRSTBIT_LO:
@@ -1906,7 +1907,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
           ret.value.uv[i] = ~0U;
       }
 
-      s.SetDst(op.operands[0], op, ret);
+      SetDst(state, op.operands[0], op, ret);
       break;
     }
     case OPCODE_FIRSTBIT_SHI:
@@ -1933,7 +1934,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         }
       }
 
-      s.SetDst(op.operands[0], op, ret);
+      SetDst(state, op.operands[0], op, ret);
       break;
     }
     case OPCODE_IMUL:
@@ -1962,16 +1963,18 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
 
       if(op.operands[0].type != TYPE_NULL)
       {
-        s.SetDst(op.operands[0], op, hi);
+        SetDst(state, op.operands[0], op, hi);
       }
       if(op.operands[1].type != TYPE_NULL)
       {
-        s.SetDst(op.operands[1], op, lo);
+        SetDst(state, op.operands[1], op, lo);
       }
       break;
     }
     case OPCODE_DMUL:
-    case OPCODE_MUL: s.SetDst(op.operands[0], op, mul(srcOpers[0], srcOpers[1], optype)); break;
+    case OPCODE_MUL:
+      SetDst(state, op.operands[0], op, mul(srcOpers[0], srcOpers[1], optype));
+      break;
     case OPCODE_UADDC:
     {
       uint64_t src[4];
@@ -1986,13 +1989,13 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       for(int i = 0; i < 4; i++)
         dst[i] = (uint32_t)(src[i] & 0xffffffff);
 
-      s.SetDst(op.operands[0], op, ShaderVariable("", dst[0], dst[1], dst[2], dst[3]));
+      SetDst(state, op.operands[0], op, ShaderVariable("", dst[0], dst[1], dst[2], dst[3]));
 
       // if not null, set the carry bits
       if(op.operands[1].type != TYPE_NULL)
-        s.SetDst(op.operands[1], op,
-                 ShaderVariable("", src[0] > 0xffffffff ? 1U : 0U, src[1] > 0xffffffff ? 1U : 0U,
-                                src[2] > 0xffffffff ? 1U : 0U, src[3] > 0xffffffff ? 1U : 0U));
+        SetDst(state, op.operands[1], op,
+               ShaderVariable("", src[0] > 0xffffffff ? 1U : 0U, src[1] > 0xffffffff ? 1U : 0U,
+                              src[2] > 0xffffffff ? 1U : 0U, src[3] > 0xffffffff ? 1U : 0U));
 
       break;
     }
@@ -2016,12 +2019,12 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       for(int i = 0; i < 4; i++)
         dst[i] = (uint32_t)(result[0] & 0xffffffff);
 
-      s.SetDst(op.operands[0], op, ShaderVariable("", dst[0], dst[1], dst[2], dst[3]));
+      SetDst(state, op.operands[0], op, ShaderVariable("", dst[0], dst[1], dst[2], dst[3]));
 
       // if not null, mark where the borrow bits were used
       if(op.operands[1].type != TYPE_NULL)
-        s.SetDst(
-            op.operands[1], op,
+        SetDst(
+            state, op.operands[1], op,
             ShaderVariable("", result[0] <= 0xffffffff ? 1U : 0U, result[1] <= 0xffffffff ? 1U : 0U,
                            result[2] <= 0xffffffff ? 1U : 0U, result[3] <= 0xffffffff ? 1U : 0U));
 
@@ -2031,7 +2034,8 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
     case OPCODE_UMAD:
     case OPCODE_MAD:
     case OPCODE_DFMA:
-      s.SetDst(op.operands[0], op, add(mul(srcOpers[0], srcOpers[1], optype), srcOpers[2], optype));
+      SetDst(state, op.operands[0], op,
+             add(mul(srcOpers[0], srcOpers[1], optype), srcOpers[2], optype));
       break;
     case OPCODE_DP2:
     case OPCODE_DP3:
@@ -2046,88 +2050,86 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       if(op.operation >= OPCODE_DP4)
         sum += dot.value.f.w;
 
-      s.SetDst(op.operands[0], op, ShaderVariable("", sum, sum, sum, sum));
+      SetDst(state, op.operands[0], op, ShaderVariable("", sum, sum, sum, sum));
       break;
     }
     case OPCODE_F16TOF32:
     {
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", flush_denorm(ConvertFromHalf(srcOpers[0].value.u.x & 0xffff)),
-                              flush_denorm(ConvertFromHalf(srcOpers[0].value.u.y & 0xffff)),
-                              flush_denorm(ConvertFromHalf(srcOpers[0].value.u.z & 0xffff)),
-                              flush_denorm(ConvertFromHalf(srcOpers[0].value.u.w & 0xffff))));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", flush_denorm(ConvertFromHalf(srcOpers[0].value.u.x & 0xffff)),
+                            flush_denorm(ConvertFromHalf(srcOpers[0].value.u.y & 0xffff)),
+                            flush_denorm(ConvertFromHalf(srcOpers[0].value.u.z & 0xffff)),
+                            flush_denorm(ConvertFromHalf(srcOpers[0].value.u.w & 0xffff))));
       break;
     }
     case OPCODE_F32TOF16:
     {
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.x)),
-                              (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.y)),
-                              (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.z)),
-                              (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.w))));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.x)),
+                            (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.y)),
+                            (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.z)),
+                            (uint32_t)ConvertToHalf(flush_denorm(srcOpers[0].value.f.w))));
       break;
     }
     case OPCODE_FRC:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", srcOpers[0].value.f.x - floorf(srcOpers[0].value.f.x),
-                              srcOpers[0].value.f.y - floorf(srcOpers[0].value.f.y),
-                              srcOpers[0].value.f.z - floorf(srcOpers[0].value.f.z),
-                              srcOpers[0].value.f.w - floorf(srcOpers[0].value.f.w)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", srcOpers[0].value.f.x - floorf(srcOpers[0].value.f.x),
+                            srcOpers[0].value.f.y - floorf(srcOpers[0].value.f.y),
+                            srcOpers[0].value.f.z - floorf(srcOpers[0].value.f.z),
+                            srcOpers[0].value.f.w - floorf(srcOpers[0].value.f.w)));
       break;
     // positive infinity
     case OPCODE_ROUND_PI:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", ceilf(srcOpers[0].value.f.x), ceilf(srcOpers[0].value.f.y),
-                              ceilf(srcOpers[0].value.f.z), ceilf(srcOpers[0].value.f.w)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", ceilf(srcOpers[0].value.f.x), ceilf(srcOpers[0].value.f.y),
+                            ceilf(srcOpers[0].value.f.z), ceilf(srcOpers[0].value.f.w)));
       break;
     // negative infinity
     case OPCODE_ROUND_NI:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", floorf(srcOpers[0].value.f.x), floorf(srcOpers[0].value.f.y),
-                              floorf(srcOpers[0].value.f.z), floorf(srcOpers[0].value.f.w)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", floorf(srcOpers[0].value.f.x), floorf(srcOpers[0].value.f.y),
+                            floorf(srcOpers[0].value.f.z), floorf(srcOpers[0].value.f.w)));
       break;
     // towards zero
     case OPCODE_ROUND_Z:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", srcOpers[0].value.f.x < 0 ? ceilf(srcOpers[0].value.f.x)
-                                                            : floorf(srcOpers[0].value.f.x),
-                              srcOpers[0].value.f.y < 0 ? ceilf(srcOpers[0].value.f.y)
-                                                        : floorf(srcOpers[0].value.f.y),
-                              srcOpers[0].value.f.z < 0 ? ceilf(srcOpers[0].value.f.z)
-                                                        : floorf(srcOpers[0].value.f.z),
-                              srcOpers[0].value.f.w < 0 ? ceilf(srcOpers[0].value.f.w)
-                                                        : floorf(srcOpers[0].value.f.w)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", srcOpers[0].value.f.x < 0 ? ceilf(srcOpers[0].value.f.x)
+                                                          : floorf(srcOpers[0].value.f.x),
+                            srcOpers[0].value.f.y < 0 ? ceilf(srcOpers[0].value.f.y)
+                                                      : floorf(srcOpers[0].value.f.y),
+                            srcOpers[0].value.f.z < 0 ? ceilf(srcOpers[0].value.f.z)
+                                                      : floorf(srcOpers[0].value.f.z),
+                            srcOpers[0].value.f.w < 0 ? ceilf(srcOpers[0].value.f.w)
+                                                      : floorf(srcOpers[0].value.f.w)));
       break;
     // to nearest even int (banker's rounding)
     case OPCODE_ROUND_NE:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", round_ne(srcOpers[0].value.f.x), round_ne(srcOpers[0].value.f.y),
-                              round_ne(srcOpers[0].value.f.z), round_ne(srcOpers[0].value.f.w)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", round_ne(srcOpers[0].value.f.x), round_ne(srcOpers[0].value.f.y),
+                            round_ne(srcOpers[0].value.f.z), round_ne(srcOpers[0].value.f.w)));
       break;
-    case OPCODE_INEG: s.SetDst(op.operands[0], op, neg(srcOpers[0], optype)); break;
+    case OPCODE_INEG: SetDst(state, op.operands[0], op, neg(srcOpers[0], optype)); break;
     case OPCODE_IMIN:
-      s.SetDst(
-          op.operands[0], op,
-          ShaderVariable("", srcOpers[0].value.i.x < srcOpers[1].value.i.x ? srcOpers[0].value.i.x
-                                                                           : srcOpers[1].value.i.x,
-                         srcOpers[0].value.i.y < srcOpers[1].value.i.y ? srcOpers[0].value.i.y
-                                                                       : srcOpers[1].value.i.y,
-                         srcOpers[0].value.i.z < srcOpers[1].value.i.z ? srcOpers[0].value.i.z
-                                                                       : srcOpers[1].value.i.z,
-                         srcOpers[0].value.i.w < srcOpers[1].value.i.w ? srcOpers[0].value.i.w
-                                                                       : srcOpers[1].value.i.w));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", srcOpers[0].value.i.x < srcOpers[1].value.i.x ? srcOpers[0].value.i.x
+                                                                              : srcOpers[1].value.i.x,
+                            srcOpers[0].value.i.y < srcOpers[1].value.i.y ? srcOpers[0].value.i.y
+                                                                          : srcOpers[1].value.i.y,
+                            srcOpers[0].value.i.z < srcOpers[1].value.i.z ? srcOpers[0].value.i.z
+                                                                          : srcOpers[1].value.i.z,
+                            srcOpers[0].value.i.w < srcOpers[1].value.i.w ? srcOpers[0].value.i.w
+                                                                          : srcOpers[1].value.i.w));
       break;
     case OPCODE_UMIN:
-      s.SetDst(
-          op.operands[0], op,
-          ShaderVariable("", srcOpers[0].value.u.x < srcOpers[1].value.u.x ? srcOpers[0].value.u.x
-                                                                           : srcOpers[1].value.u.x,
-                         srcOpers[0].value.u.y < srcOpers[1].value.u.y ? srcOpers[0].value.u.y
-                                                                       : srcOpers[1].value.u.y,
-                         srcOpers[0].value.u.z < srcOpers[1].value.u.z ? srcOpers[0].value.u.z
-                                                                       : srcOpers[1].value.u.z,
-                         srcOpers[0].value.u.w < srcOpers[1].value.u.w ? srcOpers[0].value.u.w
-                                                                       : srcOpers[1].value.u.w));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", srcOpers[0].value.u.x < srcOpers[1].value.u.x ? srcOpers[0].value.u.x
+                                                                              : srcOpers[1].value.u.x,
+                            srcOpers[0].value.u.y < srcOpers[1].value.u.y ? srcOpers[0].value.u.y
+                                                                          : srcOpers[1].value.u.y,
+                            srcOpers[0].value.u.z < srcOpers[1].value.u.z ? srcOpers[0].value.u.z
+                                                                          : srcOpers[1].value.u.z,
+                            srcOpers[0].value.u.w < srcOpers[1].value.u.w ? srcOpers[0].value.u.w
+                                                                          : srcOpers[1].value.u.w));
       break;
     case OPCODE_DMIN:
     {
@@ -2142,19 +2144,19 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       ShaderVariable r("", 0U, 0U, 0U, 0U);
       DoubleSet(r, dst);
 
-      s.SetDst(op.operands[0], op, r);
+      SetDst(state, op.operands[0], op, r);
       break;
     }
     case OPCODE_MIN:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", dxbc_min(srcOpers[0].value.f.x, srcOpers[1].value.f.x),
-                              dxbc_min(srcOpers[0].value.f.y, srcOpers[1].value.f.y),
-                              dxbc_min(srcOpers[0].value.f.z, srcOpers[1].value.f.z),
-                              dxbc_min(srcOpers[0].value.f.w, srcOpers[1].value.f.w)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", dxbc_min(srcOpers[0].value.f.x, srcOpers[1].value.f.x),
+                            dxbc_min(srcOpers[0].value.f.y, srcOpers[1].value.f.y),
+                            dxbc_min(srcOpers[0].value.f.z, srcOpers[1].value.f.z),
+                            dxbc_min(srcOpers[0].value.f.w, srcOpers[1].value.f.w)));
       break;
     case OPCODE_UMAX:
-      s.SetDst(
-          op.operands[0], op,
+      SetDst(
+          state, op.operands[0], op,
           ShaderVariable("", srcOpers[0].value.u.x >= srcOpers[1].value.u.x ? srcOpers[0].value.u.x
                                                                             : srcOpers[1].value.u.x,
                          srcOpers[0].value.u.y >= srcOpers[1].value.u.y ? srcOpers[0].value.u.y
@@ -2165,8 +2167,8 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
                                                                         : srcOpers[1].value.u.w));
       break;
     case OPCODE_IMAX:
-      s.SetDst(
-          op.operands[0], op,
+      SetDst(
+          state, op.operands[0], op,
           ShaderVariable("", srcOpers[0].value.i.x >= srcOpers[1].value.i.x ? srcOpers[0].value.i.x
                                                                             : srcOpers[1].value.i.x,
                          srcOpers[0].value.i.y >= srcOpers[1].value.i.y ? srcOpers[0].value.i.y
@@ -2189,20 +2191,20 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       ShaderVariable r("", 0U, 0U, 0U, 0U);
       DoubleSet(r, dst);
 
-      s.SetDst(op.operands[0], op, r);
+      SetDst(state, op.operands[0], op, r);
       break;
     }
     case OPCODE_MAX:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", dxbc_max(srcOpers[0].value.f.x, srcOpers[1].value.f.x),
-                              dxbc_max(srcOpers[0].value.f.y, srcOpers[1].value.f.y),
-                              dxbc_max(srcOpers[0].value.f.z, srcOpers[1].value.f.z),
-                              dxbc_max(srcOpers[0].value.f.w, srcOpers[1].value.f.w)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", dxbc_max(srcOpers[0].value.f.x, srcOpers[1].value.f.x),
+                            dxbc_max(srcOpers[0].value.f.y, srcOpers[1].value.f.y),
+                            dxbc_max(srcOpers[0].value.f.z, srcOpers[1].value.f.z),
+                            dxbc_max(srcOpers[0].value.f.w, srcOpers[1].value.f.w)));
       break;
     case OPCODE_SQRT:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", sqrtf(srcOpers[0].value.f.x), sqrtf(srcOpers[0].value.f.y),
-                              sqrtf(srcOpers[0].value.f.z), sqrtf(srcOpers[0].value.f.w)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", sqrtf(srcOpers[0].value.f.x), sqrtf(srcOpers[0].value.f.y),
+                            sqrtf(srcOpers[0].value.f.z), sqrtf(srcOpers[0].value.f.w)));
       break;
     case OPCODE_DRCP:
     {
@@ -2214,7 +2216,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       ShaderVariable r("", 0U, 0U, 0U, 0U);
       DoubleSet(r, ds);
 
-      s.SetDst(op.operands[0], op, r);
+      SetDst(state, op.operands[0], op, r);
       break;
     }
 
@@ -2248,7 +2250,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         }
       }
 
-      s.SetDst(op.operands[0], op, dest);
+      SetDst(state, op.operands[0], op, dest);
       break;
     }
     case OPCODE_UBFE:
@@ -2281,7 +2283,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         }
       }
 
-      s.SetDst(op.operands[0], op, dest);
+      SetDst(state, op.operands[0], op, dest);
       break;
     }
     case OPCODE_BFI:
@@ -2304,7 +2306,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
                        (srcOpers[3].value.uv[comp] & ~bitmask));
       }
 
-      s.SetDst(op.operands[0], op, dest);
+      SetDst(state, op.operands[0], op, dest);
       break;
     }
     case OPCODE_ISHL:
@@ -2320,8 +2322,8 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
          (op.operands[2].comps[2] < 4 && op.operands[2].comps[2] == 0xff))
         shifts[3] = shifts[2] = shifts[1] = shifts[0];
 
-      s.SetDst(
-          op.operands[0], op,
+      SetDst(
+          state, op.operands[0], op,
           ShaderVariable("", srcOpers[0].value.i.x << shifts[0], srcOpers[0].value.i.y << shifts[1],
                          srcOpers[0].value.i.z << shifts[2], srcOpers[0].value.i.w << shifts[3]));
       break;
@@ -2339,8 +2341,8 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
          (op.operands[2].comps[2] < 4 && op.operands[2].comps[2] == 0xff))
         shifts[3] = shifts[2] = shifts[1] = shifts[0];
 
-      s.SetDst(
-          op.operands[0], op,
+      SetDst(
+          state, op.operands[0], op,
           ShaderVariable("", srcOpers[0].value.u.x >> shifts[0], srcOpers[0].value.u.y >> shifts[1],
                          srcOpers[0].value.u.z >> shifts[2], srcOpers[0].value.u.w >> shifts[3]));
       break;
@@ -2358,33 +2360,37 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
          (op.operands[2].comps[2] < 4 && op.operands[2].comps[2] == 0xff))
         shifts[3] = shifts[2] = shifts[1] = shifts[0];
 
-      s.SetDst(
-          op.operands[0], op,
+      SetDst(
+          state, op.operands[0], op,
           ShaderVariable("", srcOpers[0].value.i.x >> shifts[0], srcOpers[0].value.i.y >> shifts[1],
                          srcOpers[0].value.i.z >> shifts[2], srcOpers[0].value.i.w >> shifts[3]));
       break;
     }
     case OPCODE_AND:
-      s.SetDst(op.operands[0], op, ShaderVariable("", srcOpers[0].value.i.x & srcOpers[1].value.i.x,
-                                                  srcOpers[0].value.i.y & srcOpers[1].value.i.y,
-                                                  srcOpers[0].value.i.z & srcOpers[1].value.i.z,
-                                                  srcOpers[0].value.i.w & srcOpers[1].value.i.w));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", srcOpers[0].value.i.x & srcOpers[1].value.i.x,
+                            srcOpers[0].value.i.y & srcOpers[1].value.i.y,
+                            srcOpers[0].value.i.z & srcOpers[1].value.i.z,
+                            srcOpers[0].value.i.w & srcOpers[1].value.i.w));
       break;
     case OPCODE_OR:
-      s.SetDst(op.operands[0], op, ShaderVariable("", srcOpers[0].value.i.x | srcOpers[1].value.i.x,
-                                                  srcOpers[0].value.i.y | srcOpers[1].value.i.y,
-                                                  srcOpers[0].value.i.z | srcOpers[1].value.i.z,
-                                                  srcOpers[0].value.i.w | srcOpers[1].value.i.w));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", srcOpers[0].value.i.x | srcOpers[1].value.i.x,
+                            srcOpers[0].value.i.y | srcOpers[1].value.i.y,
+                            srcOpers[0].value.i.z | srcOpers[1].value.i.z,
+                            srcOpers[0].value.i.w | srcOpers[1].value.i.w));
       break;
     case OPCODE_XOR:
-      s.SetDst(op.operands[0], op, ShaderVariable("", srcOpers[0].value.u.x ^ srcOpers[1].value.u.x,
-                                                  srcOpers[0].value.u.y ^ srcOpers[1].value.u.y,
-                                                  srcOpers[0].value.u.z ^ srcOpers[1].value.u.z,
-                                                  srcOpers[0].value.u.w ^ srcOpers[1].value.u.w));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", srcOpers[0].value.u.x ^ srcOpers[1].value.u.x,
+                            srcOpers[0].value.u.y ^ srcOpers[1].value.u.y,
+                            srcOpers[0].value.u.z ^ srcOpers[1].value.u.z,
+                            srcOpers[0].value.u.w ^ srcOpers[1].value.u.w));
       break;
     case OPCODE_NOT:
-      s.SetDst(op.operands[0], op, ShaderVariable("", ~srcOpers[0].value.u.x, ~srcOpers[0].value.u.y,
-                                                  ~srcOpers[0].value.u.z, ~srcOpers[0].value.u.w));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", ~srcOpers[0].value.u.x, ~srcOpers[0].value.u.y,
+                            ~srcOpers[0].value.u.z, ~srcOpers[0].value.u.w));
       break;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2400,11 +2406,11 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       ShaderVariable calcResultB("calcB", 0.0f, 0.0f, 0.0f, 0.0f);
       if(apiWrapper->CalculateMathIntrinsic(op.operation, srcOpers[0], calcResultA, calcResultB))
       {
-        s.SetDst(op.operands[0], op, calcResultA);
+        SetDst(state, op.operands[0], op, calcResultA);
       }
       else
       {
-        return s;
+        return;
       }
       break;
     }
@@ -2415,13 +2421,13 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       if(apiWrapper->CalculateMathIntrinsic(OPCODE_SINCOS, srcOpers[1], calcResultA, calcResultB))
       {
         if(op.operands[0].type != TYPE_NULL)
-          s.SetDst(op.operands[0], op, calcResultA);
+          SetDst(state, op.operands[0], op, calcResultA);
         if(op.operands[1].type != TYPE_NULL)
-          s.SetDst(op.operands[1], op, calcResultB);
+          SetDst(state, op.operands[1], op, calcResultB);
       }
       else
       {
-        return s;
+        return;
       }
       break;
     }
@@ -2434,57 +2440,53 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
     case OPCODE_SYNC:    // might never need to implement this. Who knows!
       break;
     case OPCODE_DMOV:
-    case OPCODE_MOV: s.SetDst(op.operands[0], op, srcOpers[0]); break;
+    case OPCODE_MOV: SetDst(state, op.operands[0], op, srcOpers[0]); break;
     case OPCODE_DMOVC:
-      s.SetDst(
-          op.operands[0], op,
-          ShaderVariable("", srcOpers[0].value.u.x ? srcOpers[1].value.u.x : srcOpers[2].value.u.x,
-                         srcOpers[0].value.u.x ? srcOpers[1].value.u.y : srcOpers[2].value.u.y,
-                         srcOpers[0].value.u.y ? srcOpers[1].value.u.z : srcOpers[2].value.u.z,
-                         srcOpers[0].value.u.y ? srcOpers[1].value.u.w : srcOpers[2].value.u.w));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", srcOpers[0].value.u.x ? srcOpers[1].value.u.x : srcOpers[2].value.u.x,
+                            srcOpers[0].value.u.x ? srcOpers[1].value.u.y : srcOpers[2].value.u.y,
+                            srcOpers[0].value.u.y ? srcOpers[1].value.u.z : srcOpers[2].value.u.z,
+                            srcOpers[0].value.u.y ? srcOpers[1].value.u.w : srcOpers[2].value.u.w));
       break;
     case OPCODE_MOVC:
-      s.SetDst(
-          op.operands[0], op,
-          ShaderVariable("", srcOpers[0].value.i.x ? srcOpers[1].value.i.x : srcOpers[2].value.i.x,
-                         srcOpers[0].value.i.y ? srcOpers[1].value.i.y : srcOpers[2].value.i.y,
-                         srcOpers[0].value.i.z ? srcOpers[1].value.i.z : srcOpers[2].value.i.z,
-                         srcOpers[0].value.i.w ? srcOpers[1].value.i.w : srcOpers[2].value.i.w));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", srcOpers[0].value.i.x ? srcOpers[1].value.i.x : srcOpers[2].value.i.x,
+                            srcOpers[0].value.i.y ? srcOpers[1].value.i.y : srcOpers[2].value.i.y,
+                            srcOpers[0].value.i.z ? srcOpers[1].value.i.z : srcOpers[2].value.i.z,
+                            srcOpers[0].value.i.w ? srcOpers[1].value.i.w : srcOpers[2].value.i.w));
       break;
     case OPCODE_SWAPC:
-      s.SetDst(
-          op.operands[0], op,
-          ShaderVariable("", srcOpers[1].value.i.x ? srcOpers[3].value.i.x : srcOpers[2].value.i.x,
-                         srcOpers[1].value.i.y ? srcOpers[3].value.i.y : srcOpers[2].value.i.y,
-                         srcOpers[1].value.i.z ? srcOpers[3].value.i.z : srcOpers[2].value.i.z,
-                         srcOpers[1].value.i.w ? srcOpers[3].value.i.w : srcOpers[2].value.i.w));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", srcOpers[1].value.i.x ? srcOpers[3].value.i.x : srcOpers[2].value.i.x,
+                            srcOpers[1].value.i.y ? srcOpers[3].value.i.y : srcOpers[2].value.i.y,
+                            srcOpers[1].value.i.z ? srcOpers[3].value.i.z : srcOpers[2].value.i.z,
+                            srcOpers[1].value.i.w ? srcOpers[3].value.i.w : srcOpers[2].value.i.w));
 
-      s.SetDst(
-          op.operands[1], op,
-          ShaderVariable("", srcOpers[1].value.i.x ? srcOpers[2].value.i.x : srcOpers[3].value.i.x,
-                         srcOpers[1].value.i.y ? srcOpers[2].value.i.y : srcOpers[3].value.i.y,
-                         srcOpers[1].value.i.z ? srcOpers[2].value.i.z : srcOpers[3].value.i.z,
-                         srcOpers[1].value.i.w ? srcOpers[2].value.i.w : srcOpers[3].value.i.w));
+      SetDst(state, op.operands[1], op,
+             ShaderVariable("", srcOpers[1].value.i.x ? srcOpers[2].value.i.x : srcOpers[3].value.i.x,
+                            srcOpers[1].value.i.y ? srcOpers[2].value.i.y : srcOpers[3].value.i.y,
+                            srcOpers[1].value.i.z ? srcOpers[2].value.i.z : srcOpers[3].value.i.z,
+                            srcOpers[1].value.i.w ? srcOpers[2].value.i.w : srcOpers[3].value.i.w));
       break;
     case OPCODE_ITOF:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (float)srcOpers[0].value.i.x, (float)srcOpers[0].value.i.y,
-                              (float)srcOpers[0].value.i.z, (float)srcOpers[0].value.i.w));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (float)srcOpers[0].value.i.x, (float)srcOpers[0].value.i.y,
+                            (float)srcOpers[0].value.i.z, (float)srcOpers[0].value.i.w));
       break;
     case OPCODE_UTOF:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (float)srcOpers[0].value.u.x, (float)srcOpers[0].value.u.y,
-                              (float)srcOpers[0].value.u.z, (float)srcOpers[0].value.u.w));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (float)srcOpers[0].value.u.x, (float)srcOpers[0].value.u.y,
+                            (float)srcOpers[0].value.u.z, (float)srcOpers[0].value.u.w));
       break;
     case OPCODE_FTOI:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (int)srcOpers[0].value.f.x, (int)srcOpers[0].value.f.y,
-                              (int)srcOpers[0].value.f.z, (int)srcOpers[0].value.f.w));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (int)srcOpers[0].value.f.x, (int)srcOpers[0].value.f.y,
+                            (int)srcOpers[0].value.f.z, (int)srcOpers[0].value.f.w));
       break;
     case OPCODE_FTOU:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (uint32_t)srcOpers[0].value.f.x, (uint32_t)srcOpers[0].value.f.y,
-                              (uint32_t)srcOpers[0].value.f.z, (uint32_t)srcOpers[0].value.f.w));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (uint32_t)srcOpers[0].value.f.x, (uint32_t)srcOpers[0].value.f.y,
+                            (uint32_t)srcOpers[0].value.f.z, (uint32_t)srcOpers[0].value.f.w));
       break;
     case OPCODE_ITOD:
     case OPCODE_UTOD:
@@ -2517,7 +2519,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       ShaderVariable r("", 0U, 0U, 0U, 0U);
       DoubleSet(r, res);
 
-      s.SetDst(op.operands[0], op, r);
+      SetDst(state, op.operands[0], op, r);
       break;
     }
     case OPCODE_DTOI:
@@ -2570,7 +2572,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         }
       }
 
-      s.SetDst(op.operands[0], op, r);
+      SetDst(state, op.operands[0], op, r);
       break;
     }
 
@@ -2578,32 +2580,32 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
     // Comparison
 
     case OPCODE_EQ:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (srcOpers[0].value.f.x == srcOpers[1].value.f.x ? ~0l : 0l),
-                              (srcOpers[0].value.f.y == srcOpers[1].value.f.y ? ~0l : 0l),
-                              (srcOpers[0].value.f.z == srcOpers[1].value.f.z ? ~0l : 0l),
-                              (srcOpers[0].value.f.w == srcOpers[1].value.f.w ? ~0l : 0l)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (srcOpers[0].value.f.x == srcOpers[1].value.f.x ? ~0l : 0l),
+                            (srcOpers[0].value.f.y == srcOpers[1].value.f.y ? ~0l : 0l),
+                            (srcOpers[0].value.f.z == srcOpers[1].value.f.z ? ~0l : 0l),
+                            (srcOpers[0].value.f.w == srcOpers[1].value.f.w ? ~0l : 0l)));
       break;
     case OPCODE_NE:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (srcOpers[0].value.f.x != srcOpers[1].value.f.x ? ~0l : 0l),
-                              (srcOpers[0].value.f.y != srcOpers[1].value.f.y ? ~0l : 0l),
-                              (srcOpers[0].value.f.z != srcOpers[1].value.f.z ? ~0l : 0l),
-                              (srcOpers[0].value.f.w != srcOpers[1].value.f.w ? ~0l : 0l)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (srcOpers[0].value.f.x != srcOpers[1].value.f.x ? ~0l : 0l),
+                            (srcOpers[0].value.f.y != srcOpers[1].value.f.y ? ~0l : 0l),
+                            (srcOpers[0].value.f.z != srcOpers[1].value.f.z ? ~0l : 0l),
+                            (srcOpers[0].value.f.w != srcOpers[1].value.f.w ? ~0l : 0l)));
       break;
     case OPCODE_LT:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (srcOpers[0].value.f.x < srcOpers[1].value.f.x ? ~0l : 0l),
-                              (srcOpers[0].value.f.y < srcOpers[1].value.f.y ? ~0l : 0l),
-                              (srcOpers[0].value.f.z < srcOpers[1].value.f.z ? ~0l : 0l),
-                              (srcOpers[0].value.f.w < srcOpers[1].value.f.w ? ~0l : 0l)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (srcOpers[0].value.f.x < srcOpers[1].value.f.x ? ~0l : 0l),
+                            (srcOpers[0].value.f.y < srcOpers[1].value.f.y ? ~0l : 0l),
+                            (srcOpers[0].value.f.z < srcOpers[1].value.f.z ? ~0l : 0l),
+                            (srcOpers[0].value.f.w < srcOpers[1].value.f.w ? ~0l : 0l)));
       break;
     case OPCODE_GE:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (srcOpers[0].value.f.x >= srcOpers[1].value.f.x ? ~0l : 0l),
-                              (srcOpers[0].value.f.y >= srcOpers[1].value.f.y ? ~0l : 0l),
-                              (srcOpers[0].value.f.z >= srcOpers[1].value.f.z ? ~0l : 0l),
-                              (srcOpers[0].value.f.w >= srcOpers[1].value.f.w ? ~0l : 0l)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (srcOpers[0].value.f.x >= srcOpers[1].value.f.x ? ~0l : 0l),
+                            (srcOpers[0].value.f.y >= srcOpers[1].value.f.y ? ~0l : 0l),
+                            (srcOpers[0].value.f.z >= srcOpers[1].value.f.z ? ~0l : 0l),
+                            (srcOpers[0].value.f.w >= srcOpers[1].value.f.w ? ~0l : 0l)));
       break;
     case OPCODE_DEQ:
     case OPCODE_DNE:
@@ -2655,50 +2657,50 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         r.value.uv[op.operands[0].comps[1]] = cmp2;
       }
 
-      s.SetDst(op.operands[0], op, r);
+      SetDst(state, op.operands[0], op, r);
       break;
     }
     case OPCODE_IEQ:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (srcOpers[0].value.i.x == srcOpers[1].value.i.x ? ~0l : 0l),
-                              (srcOpers[0].value.i.y == srcOpers[1].value.i.y ? ~0l : 0l),
-                              (srcOpers[0].value.i.z == srcOpers[1].value.i.z ? ~0l : 0l),
-                              (srcOpers[0].value.i.w == srcOpers[1].value.i.w ? ~0l : 0l)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (srcOpers[0].value.i.x == srcOpers[1].value.i.x ? ~0l : 0l),
+                            (srcOpers[0].value.i.y == srcOpers[1].value.i.y ? ~0l : 0l),
+                            (srcOpers[0].value.i.z == srcOpers[1].value.i.z ? ~0l : 0l),
+                            (srcOpers[0].value.i.w == srcOpers[1].value.i.w ? ~0l : 0l)));
       break;
     case OPCODE_INE:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (srcOpers[0].value.i.x != srcOpers[1].value.i.x ? ~0l : 0l),
-                              (srcOpers[0].value.i.y != srcOpers[1].value.i.y ? ~0l : 0l),
-                              (srcOpers[0].value.i.z != srcOpers[1].value.i.z ? ~0l : 0l),
-                              (srcOpers[0].value.i.w != srcOpers[1].value.i.w ? ~0l : 0l)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (srcOpers[0].value.i.x != srcOpers[1].value.i.x ? ~0l : 0l),
+                            (srcOpers[0].value.i.y != srcOpers[1].value.i.y ? ~0l : 0l),
+                            (srcOpers[0].value.i.z != srcOpers[1].value.i.z ? ~0l : 0l),
+                            (srcOpers[0].value.i.w != srcOpers[1].value.i.w ? ~0l : 0l)));
       break;
     case OPCODE_IGE:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (srcOpers[0].value.i.x >= srcOpers[1].value.i.x ? ~0l : 0l),
-                              (srcOpers[0].value.i.y >= srcOpers[1].value.i.y ? ~0l : 0l),
-                              (srcOpers[0].value.i.z >= srcOpers[1].value.i.z ? ~0l : 0l),
-                              (srcOpers[0].value.i.w >= srcOpers[1].value.i.w ? ~0l : 0l)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (srcOpers[0].value.i.x >= srcOpers[1].value.i.x ? ~0l : 0l),
+                            (srcOpers[0].value.i.y >= srcOpers[1].value.i.y ? ~0l : 0l),
+                            (srcOpers[0].value.i.z >= srcOpers[1].value.i.z ? ~0l : 0l),
+                            (srcOpers[0].value.i.w >= srcOpers[1].value.i.w ? ~0l : 0l)));
       break;
     case OPCODE_ILT:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (srcOpers[0].value.i.x < srcOpers[1].value.i.x ? ~0l : 0l),
-                              (srcOpers[0].value.i.y < srcOpers[1].value.i.y ? ~0l : 0l),
-                              (srcOpers[0].value.i.z < srcOpers[1].value.i.z ? ~0l : 0l),
-                              (srcOpers[0].value.i.w < srcOpers[1].value.i.w ? ~0l : 0l)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (srcOpers[0].value.i.x < srcOpers[1].value.i.x ? ~0l : 0l),
+                            (srcOpers[0].value.i.y < srcOpers[1].value.i.y ? ~0l : 0l),
+                            (srcOpers[0].value.i.z < srcOpers[1].value.i.z ? ~0l : 0l),
+                            (srcOpers[0].value.i.w < srcOpers[1].value.i.w ? ~0l : 0l)));
       break;
     case OPCODE_ULT:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (srcOpers[0].value.u.x < srcOpers[1].value.u.x ? ~0l : 0l),
-                              (srcOpers[0].value.u.y < srcOpers[1].value.u.y ? ~0l : 0l),
-                              (srcOpers[0].value.u.z < srcOpers[1].value.u.z ? ~0l : 0l),
-                              (srcOpers[0].value.u.w < srcOpers[1].value.u.w ? ~0l : 0l)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (srcOpers[0].value.u.x < srcOpers[1].value.u.x ? ~0l : 0l),
+                            (srcOpers[0].value.u.y < srcOpers[1].value.u.y ? ~0l : 0l),
+                            (srcOpers[0].value.u.z < srcOpers[1].value.u.z ? ~0l : 0l),
+                            (srcOpers[0].value.u.w < srcOpers[1].value.u.w ? ~0l : 0l)));
       break;
     case OPCODE_UGE:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", (srcOpers[0].value.u.x >= srcOpers[1].value.u.x ? ~0l : 0l),
-                              (srcOpers[0].value.u.y >= srcOpers[1].value.u.y ? ~0l : 0l),
-                              (srcOpers[0].value.u.z >= srcOpers[1].value.u.z ? ~0l : 0l),
-                              (srcOpers[0].value.u.w >= srcOpers[1].value.u.w ? ~0l : 0l)));
+      SetDst(state, op.operands[0], op,
+             ShaderVariable("", (srcOpers[0].value.u.x >= srcOpers[1].value.u.x ? ~0l : 0l),
+                            (srcOpers[0].value.u.y >= srcOpers[1].value.u.y ? ~0l : 0l),
+                            (srcOpers[0].value.u.z >= srcOpers[1].value.u.z ? ~0l : 0l),
+                            (srcOpers[0].value.u.w >= srcOpers[1].value.u.w ? ~0l : 0l)));
       break;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2708,19 +2710,19 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
     {
       BindingSlot slot =
           GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, srcOpers[0].value.u.x);
-      GlobalState::UAVIterator uav = global->uavs.find(slot);
-      if(uav == global->uavs.end())
+      GlobalState::UAVIterator uav = global.uavs.find(slot);
+      if(uav == global.uavs.end())
       {
         if(!apiWrapper->FetchUAV(slot))
         {
           RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-          return s;
+          return;
         }
-        uav = global->uavs.find(slot);
+        uav = global.uavs.find(slot);
       }
 
       uint32_t count = uav->second.hiddenCounter++;
-      s.SetDst(op.operands[0], op, ShaderVariable("", count, count, count, count));
+      SetDst(state, op.operands[0], op, ShaderVariable("", count, count, count, count));
       break;
     }
 
@@ -2728,19 +2730,19 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
     {
       BindingSlot slot =
           GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, srcOpers[0].value.u.x);
-      GlobalState::UAVIterator uav = global->uavs.find(slot);
-      if(uav == global->uavs.end())
+      GlobalState::UAVIterator uav = global.uavs.find(slot);
+      if(uav == global.uavs.end())
       {
         if(!apiWrapper->FetchUAV(slot))
         {
           RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-          return s;
+          return;
         }
-        uav = global->uavs.find(slot);
+        uav = global.uavs.find(slot);
       }
 
       uint32_t count = --uav->second.hiddenCounter;
-      s.SetDst(op.operands[0], op, ShaderVariable("", count, count, count, count));
+      SetDst(state, op.operands[0], op, ShaderVariable("", count, count, count, count));
       break;
     }
 
@@ -2751,24 +2753,24 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
     case OPCODE_DERIV_RTX:
     case OPCODE_DERIV_RTX_COARSE:
     case OPCODE_DERIV_RTX_FINE:
-      if(quad == NULL)
+      if(program->GetShaderType() != DXBC::ShaderType::Pixel || prevWorkgroup.size() != 4)
         RDCERR(
             "Attempt to use derivative instruction not in pixel shader. Undefined results will "
             "occur!");
       else
-        s.SetDst(op.operands[0], op,
-                 s.DDX(op.operation == OPCODE_DERIV_RTX_FINE, quad, op.operands[1], op));
+        SetDst(state, op.operands[0], op,
+               DDX(op.operation == OPCODE_DERIV_RTX_FINE, prevWorkgroup, op.operands[1], op));
       break;
     case OPCODE_DERIV_RTY:
     case OPCODE_DERIV_RTY_COARSE:
     case OPCODE_DERIV_RTY_FINE:
-      if(quad == NULL)
+      if(program->GetShaderType() != DXBC::ShaderType::Pixel || prevWorkgroup.size() != 4)
         RDCERR(
             "Attempt to use derivative instruction not in pixel shader. Undefined results will "
             "occur!");
       else
-        s.SetDst(op.operands[0], op,
-                 s.DDY(op.operation == OPCODE_DERIV_RTY_FINE, quad, op.operands[1], op));
+        SetDst(state, op.operands[0], op,
+               DDY(op.operation == OPCODE_DERIV_RTY_FINE, prevWorkgroup, op.operands[1], op));
       break;
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2837,7 +2839,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       if(gsm)
       {
         offset = 0;
-        if(resIndex > global->groupshared.size())
+        if(resIndex > global.groupshared.size())
         {
           numElems = 0;
           stride = 4;
@@ -2845,25 +2847,25 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         }
         else
         {
-          numElems = global->groupshared[resIndex].count;
-          stride = global->groupshared[resIndex].bytestride;
-          data = &global->groupshared[resIndex].data[0];
-          structured = global->groupshared[resIndex].structured;
+          numElems = global.groupshared[resIndex].count;
+          stride = global.groupshared[resIndex].bytestride;
+          data = &global.groupshared[resIndex].data[0];
+          structured = global.groupshared[resIndex].structured;
         }
       }
       else
       {
         BindingSlot slot =
             GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, resIndex);
-        GlobalState::UAVIterator uav = global->uavs.find(slot);
-        if(uav == global->uavs.end())
+        GlobalState::UAVIterator uav = global.uavs.find(slot);
+        if(uav == global.uavs.end())
         {
           if(!apiWrapper->FetchUAV(slot))
           {
             RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-            return s;
+            return;
           }
-          uav = global->uavs.find(slot);
+          uav = global.uavs.find(slot);
         }
 
         offset = uav->second.firstElement;
@@ -2915,7 +2917,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
 
         if(beforeResult.type != TYPE_NULL)
         {
-          s.SetDst(beforeResult, op, ShaderVariable("", *udst, *udst, *udst, *udst));
+          SetDst(state, beforeResult, op, ShaderVariable("", *udst, *udst, *udst, *udst));
         }
 
         // not verified below since by definition the operations that expect usrc1 will have it
@@ -2985,8 +2987,8 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         load = false;
       }
 
-      if(load)
-        s.flags = ShaderEvents::SampleLoadGather;
+      if(load && state)
+        state->flags |= ShaderEvents::SampleLoadGather;
 
       if(op.operation == OPCODE_LD_STRUCTURED || op.operation == OPCODE_STORE_STRUCTURED)
       {
@@ -3008,9 +3010,9 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
 
         if(stride == 0)
         {
-          if(gsm && resIndex < global->groupshared.size())
+          if(gsm && resIndex < global.groupshared.size())
           {
-            stride = global->groupshared[resIndex].bytestride;
+            stride = global.groupshared[resIndex].bytestride;
           }
           else if(!gsm)
           {
@@ -3084,7 +3086,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       if(gsm)
       {
         offset = 0;
-        if(resIndex > global->groupshared.size())
+        if(resIndex > global.groupshared.size())
         {
           numElems = 0;
           stride = 4;
@@ -3092,13 +3094,13 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         }
         else
         {
-          numElems = global->groupshared[resIndex].count;
-          stride = global->groupshared[resIndex].bytestride;
-          data = global->groupshared[resIndex].data.data();
-          dataSize = global->groupshared[resIndex].data.size();
+          numElems = global.groupshared[resIndex].count;
+          stride = global.groupshared[resIndex].bytestride;
+          data = global.groupshared[resIndex].data.data();
+          dataSize = global.groupshared[resIndex].data.size();
           fmt.fmt = CompType::UInt;
           fmt.byteWidth = 4;
-          fmt.numComps = global->groupshared[resIndex].bytestride / 4;
+          fmt.numComps = global.groupshared[resIndex].bytestride / 4;
           fmt.stride = 0;
         }
         texData = false;
@@ -3110,15 +3112,15 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
 
         if(srv)
         {
-          GlobalState::SRVIterator srvIter = global->srvs.find(slot);
-          if(srvIter == global->srvs.end())
+          GlobalState::SRVIterator srvIter = global.srvs.find(slot);
+          if(srvIter == global.srvs.end())
           {
             if(!apiWrapper->FetchSRV(slot))
             {
               RDCERR("Invalid SRV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-              return s;
+              return;
             }
-            srvIter = global->srvs.find(slot);
+            srvIter = global.srvs.find(slot);
           }
 
           data = srvIter->second.data.data();
@@ -3128,15 +3130,15 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         }
         else
         {
-          GlobalState::UAVIterator uavIter = global->uavs.find(slot);
-          if(uavIter == global->uavs.end())
+          GlobalState::UAVIterator uavIter = global.uavs.find(slot);
+          if(uavIter == global.uavs.end())
           {
             if(!apiWrapper->FetchUAV(slot))
             {
               RDCERR("Invalid UAV reg=%u, space=%u", slot.shaderRegister, slot.registerSpace);
-              return s;
+              return;
             }
-            uavIter = global->uavs.find(slot);
+            uavIter = global.uavs.find(slot);
           }
 
           data = uavIter->second.data.data();
@@ -3172,7 +3174,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       if(!data || (!texData && elemIdx >= numElems) || (texData && texOffset >= dataSize))
       {
         if(load)
-          s.SetDst(op.operands[0], op, ShaderVariable("", 0U, 0U, 0U, 0U));
+          SetDst(state, op.operands[0], op, ShaderVariable("", 0U, 0U, 0U, 0U));
       }
       else
       {
@@ -3243,7 +3245,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
               fetch.value.uv[0] = fetch.value.uv[op.operands[0].comps[0]];
           }
 
-          s.SetDst(op.operands[0], op, fetch);
+          SetDst(state, op.operands[0], op, fetch);
         }
         else if(!Finished())    // helper/inactive pixels can't modify UAVs
         {
@@ -3271,7 +3273,9 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
 
       GlobalState::SampleEvalCacheKey key;
 
-      key.quadIndex = quadIndex;
+      RDCASSERT(program->GetShaderType() == DXBC::ShaderType::Pixel);
+
+      key.quadIndex = workgroupIndex;
 
       // if this is TYPE_INPUT we can look up the index directly
       key.inputRegisterIndex = (int32_t)op.operands[1].indices[0].index;
@@ -3301,8 +3305,8 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       }
 
       // look up this combination in the cache, if we get a hit then return that value.
-      auto it = global->sampleEvalCache.find(key);
-      if(it != global->sampleEvalCache.end())
+      auto it = global.sampleEvalCache.find(key);
+      if(it != global.sampleEvalCache.end())
       {
         // perform source operand swizzling
         ShaderVariable var = it->second;
@@ -3311,7 +3315,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
           if(op.operands[1].comps[i] < 4)
             var.value.uv[i] = it->second.value.uv[op.operands[1].comps[i]];
 
-        s.SetDst(op.operands[0], op, var);
+        SetDst(state, op.operands[0], op, var);
       }
       else
       {
@@ -3319,17 +3323,17 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         // just return the interpolant, or something went wrong and the item we want isn't cached so
         // the best we can do is return the interpolant.
 
-        if(!global->sampleEvalCache.empty())
+        if(!global.sampleEvalCache.empty())
         {
           apiWrapper->AddDebugMessage(
               MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
               StringFormat::Fmt(
                   "Shader debugging %d: %s\n"
                   "No sample evaluate found in cache. Possible out-of-bounds sample index",
-                  s.nextInstruction - 1, op.str.c_str()));
+                  nextInstruction - 1, op.str.c_str()));
         }
 
-        s.SetDst(op.operands[0], op, srcOpers[0]);
+        SetDst(state, op.operands[0], op, srcOpers[0]);
       }
 
       break;
@@ -3377,7 +3381,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
                 MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
                 StringFormat::Fmt(
                     "Shader debugging %d: %s\nNon-multisampled texture being passed to sample_pos",
-                    s.nextInstruction - 1, op.str.c_str()));
+                    nextInstruction - 1, op.str.c_str()));
 
             sample_pattern = NULL;
           }
@@ -3481,7 +3485,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
          op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
         result.value.uv[0] = result.value.uv[op.operands[0].comps[0]];
 
-      s.SetDst(op.operands[0], op, result);
+      SetDst(state, op.operands[0], op, result);
 
       break;
     }
@@ -3515,12 +3519,12 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
            op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
           result.value.uv[0] = result.value.uv[op.operands[0].comps[0]];
 
-        s.SetDst(op.operands[0], op, result);
+        SetDst(state, op.operands[0], op, result);
       }
       else
       {
         RDCERR("Unexpected relative addressing");
-        s.SetDst(op.operands[0], op, ShaderVariable("", 0.0f, 0.0f, 0.0f, 0.0f));
+        SetDst(state, op.operands[0], op, ShaderVariable("", 0.0f, 0.0f, 0.0f, 0.0f));
       }
 
       break;
@@ -3622,12 +3626,12 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
            op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
           result.value.uv[0] = result.value.uv[op.operands[0].comps[0]];
 
-        s.SetDst(op.operands[0], op, result);
+        SetDst(state, op.operands[0], op, result);
       }
       else
       {
         RDCERR("Unexpected relative addressing");
-        s.SetDst(op.operands[0], op, ShaderVariable("", 0.0f, 0.0f, 0.0f, 0.0f));
+        SetDst(state, op.operands[0], op, ShaderVariable("", 0.0f, 0.0f, 0.0f, 0.0f));
       }
 
       break;
@@ -3646,8 +3650,8 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
     case OPCODE_GATHER4_PO_C:
     case OPCODE_LOD:
     {
-      if(op.operation != OPCODE_LOD)
-        s.flags = ShaderEvents::SampleLoadGather;
+      if(op.operation != OPCODE_LOD && state)
+        state->flags |= ShaderEvents::SampleLoadGather;
 
       SamplerMode samplerMode = NUM_SAMPLERS;
       ResourceDimension resourceDim = RESOURCE_DIMENSION_UNKNOWN;
@@ -3675,16 +3679,16 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
           resourceDim = decl.dim;
 
           resourceBinding = GetBindingSlotForDeclaration(*program, decl);
-          GlobalState::SRVIterator srv = global->srvs.find(resourceBinding);
-          if(srv == global->srvs.end())
+          GlobalState::SRVIterator srv = global.srvs.find(resourceBinding);
+          if(srv == global.srvs.end())
           {
             if(!apiWrapper->FetchSRV(resourceBinding))
             {
               RDCERR("Invalid SRV reg=%u, space=%u", resourceBinding.shaderRegister,
                      resourceBinding.registerSpace);
-              return s;
+              return;
             }
-            srv = global->srvs.find(resourceBinding);
+            srv = global.srvs.find(resourceBinding);
           }
 
           const byte *data = &srv->second.data[0];
@@ -3722,9 +3726,9 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
              op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
             fetch.value.uv[0] = fetch.value.uv[op.operands[0].comps[0]];
 
-          s.SetDst(op.operands[0], op, fetch);
+          SetDst(state, op.operands[0], op, fetch);
 
-          return s;
+          return;
         }
         if(decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.type == TYPE_RESOURCE &&
            decl.operand.indices.size() > 0 && decl.operand.indices[0] == op.operands[2].indices[0])
@@ -3756,7 +3760,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       {
         ShaderVariable invalidResult("tex", 0.0f, 0.0f, 0.0f, 0.0f);
 
-        s.SetDst(op.operands[0], op, invalidResult);
+        SetDst(state, op.operands[0], op, invalidResult);
         break;
       }
 
@@ -3768,7 +3772,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       if(op.operation == OPCODE_SAMPLE || op.operation == OPCODE_SAMPLE_B ||
          op.operation == OPCODE_SAMPLE_C || op.operation == OPCODE_LOD)
       {
-        if(quad == NULL)
+        if(program->GetShaderType() != DXBC::ShaderType::Pixel || prevWorkgroup.size() != 4)
         {
           RDCERR(
               "Attempt to use derivative instruction not in pixel shader. Undefined results will "
@@ -3777,8 +3781,8 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         else
         {
           // texture samples use coarse derivatives
-          ddxCalc = s.DDX(false, quad, op.operands[1], op);
-          ddyCalc = s.DDY(false, quad, op.operands[1], op);
+          ddxCalc = DDX(false, prevWorkgroup, op.operands[1], op);
+          ddyCalc = DDY(false, prevWorkgroup, op.operands[1], op);
         }
       }
       else if(op.operation == OPCODE_SAMPLE_D)
@@ -3834,11 +3838,11 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         if(op.operands[0].comps[1] == 0xff)
           lookupResult.value.iv[0] = lookupResult.value.iv[op.operands[0].comps[0]];
 
-        s.SetDst(op.operands[0], op, lookupResult);
+        SetDst(state, op.operands[0], op, lookupResult);
       }
       else
       {
-        return s;
+        return;
       }
       break;
     }
@@ -3854,11 +3858,11 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
 
       uint32_t jumpLocation = 0;
 
-      uint32_t search = s.nextInstruction;
+      uint32_t search = nextInstruction;
 
       for(; search < (uint32_t)program->GetNumInstructions(); search++)
       {
-        const Operation &nextOp = s.program->GetInstruction((size_t)search);
+        const Operation &nextOp = program->GetInstruction((size_t)search);
 
         // track nested switch statements to ensure we don't accidentally pick the case from a
         // different switch
@@ -3909,13 +3913,13 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         // at the next excutable instruction (which might be a break if we're doing nothing)
         for(; jumpLocation < (uint32_t)program->GetNumInstructions(); jumpLocation++)
         {
-          const Operation &nextOp = s.program->GetInstruction(jumpLocation);
+          const Operation &nextOp = program->GetInstruction(jumpLocation);
 
           if(nextOp.operation != OPCODE_CASE && nextOp.operation != OPCODE_DEFAULT)
             break;
         }
 
-        s.nextInstruction = jumpLocation;
+        nextInstruction = jumpLocation;
       }
 
       break;
@@ -3943,13 +3947,13 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
          op.operation == OPCODE_CONTINUE || op.operation == OPCODE_ENDLOOP)
       {
         // skip back one to the endloop that we're processing
-        s.nextInstruction--;
+        nextInstruction--;
 
-        for(; s.nextInstruction >= 0; s.nextInstruction--)
+        for(; nextInstruction >= 0; nextInstruction--)
         {
-          if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDLOOP)
+          if(program->GetInstruction(nextInstruction).operation == OPCODE_ENDLOOP)
             depth++;
-          if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_LOOP)
+          if(program->GetInstruction(nextInstruction).operation == OPCODE_LOOP)
             depth--;
 
           if(depth == 0)
@@ -3958,7 +3962,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
           }
         }
 
-        RDCASSERT(s.nextInstruction >= 0);
+        RDCASSERT(nextInstruction >= 0);
       }
 
       break;
@@ -3973,13 +3977,13 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         // break out (jump to next endloop/endswitch)
         int depth = 1;
 
-        for(; s.nextInstruction < (int)program->GetNumInstructions(); s.nextInstruction++)
+        for(; nextInstruction < (int)program->GetNumInstructions(); nextInstruction++)
         {
-          if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_LOOP ||
-             s.program->GetInstruction(s.nextInstruction).operation == OPCODE_SWITCH)
+          if(program->GetInstruction(nextInstruction).operation == OPCODE_LOOP ||
+             program->GetInstruction(nextInstruction).operation == OPCODE_SWITCH)
             depth++;
-          if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDLOOP ||
-             s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDSWITCH)
+          if(program->GetInstruction(nextInstruction).operation == OPCODE_ENDLOOP ||
+             program->GetInstruction(nextInstruction).operation == OPCODE_ENDSWITCH)
             depth--;
 
           if(depth == 0)
@@ -3988,11 +3992,11 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
           }
         }
 
-        RDCASSERT(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDLOOP ||
-                  s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDSWITCH);
+        RDCASSERT(program->GetInstruction(nextInstruction).operation == OPCODE_ENDLOOP ||
+                  program->GetInstruction(nextInstruction).operation == OPCODE_ENDSWITCH);
 
         // don't want to process the endloop and jump again!
-        s.nextInstruction++;
+        nextInstruction++;
       }
 
       break;
@@ -4011,16 +4015,16 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         int depth = 0;
 
         // skip back one to the if that we're processing
-        s.nextInstruction--;
+        nextInstruction--;
 
-        for(; s.nextInstruction < (int)program->GetNumInstructions(); s.nextInstruction++)
+        for(; nextInstruction < (int)program->GetNumInstructions(); nextInstruction++)
         {
-          if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_IF)
+          if(program->GetInstruction(nextInstruction).operation == OPCODE_IF)
             depth++;
           // only step out on an else if it's the matching depth to our starting if (depth == 1)
-          if(depth == 1 && s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ELSE)
+          if(depth == 1 && program->GetInstruction(nextInstruction).operation == OPCODE_ELSE)
             depth--;
-          if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDIF)
+          if(program->GetInstruction(nextInstruction).operation == OPCODE_ENDIF)
             depth--;
 
           if(depth == 0)
@@ -4029,11 +4033,11 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
           }
         }
 
-        RDCASSERT(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ELSE ||
-                  s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDIF);
+        RDCASSERT(program->GetInstruction(nextInstruction).operation == OPCODE_ELSE ||
+                  program->GetInstruction(nextInstruction).operation == OPCODE_ENDIF);
 
         // step to next instruction after the else/endif (processing an else would skip that block)
-        s.nextInstruction++;
+        nextInstruction++;
       }
 
       break;
@@ -4044,11 +4048,11 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       // next endif)
       int depth = 1;
 
-      for(; s.nextInstruction < (int)program->GetNumInstructions(); s.nextInstruction++)
+      for(; nextInstruction < (int)program->GetNumInstructions(); nextInstruction++)
       {
-        if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_IF)
+        if(program->GetInstruction(nextInstruction).operation == OPCODE_IF)
           depth++;
-        if(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDIF)
+        if(program->GetInstruction(nextInstruction).operation == OPCODE_ENDIF)
           depth--;
 
         if(depth == 0)
@@ -4057,11 +4061,11 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
         }
       }
 
-      RDCASSERT(s.program->GetInstruction(s.nextInstruction).operation == OPCODE_ENDIF);
+      RDCASSERT(program->GetInstruction(nextInstruction).operation == OPCODE_ENDIF);
 
       // step to next instruction after the else/endif (for consistency with handling in the if
       // block)
-      s.nextInstruction++;
+      nextInstruction++;
 
       break;
     }
@@ -4076,7 +4080,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       }
 
       // discarding.
-      s.done = true;
+      done = true;
       break;
     }
     case OPCODE_RET:
@@ -4087,7 +4091,7 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       if((test == 0 && !op.nonzero) || (test != 0 && op.nonzero) || op.operation == OPCODE_RET)
       {
         // assumes not in a function call
-        s.done = true;
+        done = true;
       }
       break;
     }
@@ -4097,8 +4101,6 @@ State State::GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const
       break;
     }
   }
-
-  return s;
 }
 
 BindingSlot GetBindingSlotForDeclaration(const Program &program, const DXBCBytecode::Declaration &decl)
@@ -4174,298 +4176,10 @@ void GlobalState::PopulateGroupshared(const DXBCBytecode::Program *pBytecode)
   }
 }
 
-void CreateShaderDebugStateAndTrace(State &initialState, ShaderDebugTrace &trace,
-                                    DXBC::DXBCContainer *dxbc, const ShaderReflection &refl,
-                                    const ShaderBindpointMapping &mapping)
-{
-  bool hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
-
-  dxbc->GetDXBCByteCode()->SetupRegisterFile(initialState.variables);
-
-  int32_t maxReg = -1;
-  for(const SigParameter &sig : dxbc->GetReflection()->InputSig)
-  {
-    if(sig.regIndex != ~0U)
-      maxReg = RDCMAX(maxReg, (int32_t)sig.regIndex);
-  }
-
-  const bool inputCoverage = dxbc->GetDXBCByteCode()->HasCoverageInput();
-
-  // Add inputs to the shader trace
-  if(maxReg >= 0 || inputCoverage)
-  {
-    trace.inputs.resize(maxReg + 1 + (inputCoverage ? 1 : 0));
-    for(const SigParameter &sig : dxbc->GetReflection()->InputSig)
-    {
-      ShaderVariable v;
-
-      v.name = dxbc->GetDXBCByteCode()->GetRegisterName(DXBCBytecode::TYPE_INPUT, sig.regIndex);
-      v.rows = 1;
-      v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
-                                                     ? 3
-                                                     : sig.regChannelMask & 0x2
-                                                           ? 2
-                                                           : sig.regChannelMask & 0x1 ? 1 : 0;
-
-      if(sig.compType == CompType::UInt)
-        v.type = VarType::UInt;
-      else if(sig.compType == CompType::SInt)
-        v.type = VarType::SInt;
-      else
-        v.type = VarType::Float;
-
-      ShaderVariable &dst = trace.inputs[sig.regIndex];
-
-      // if the variable hasn't been initialised, just assign. If it has, we're in a situation where
-      // two input parameters are assigned to the same variable overlapping, so just update the
-      // number of columns to the max of both. The source mapping (either from debug info or our own
-      // below) will handle distinguishing better.
-      if(dst.name.empty())
-        dst = v;
-      else
-        dst.columns = RDCMAX(dst.columns, v.columns);
-
-      {
-        SourceVariableMapping sourcemap;
-        sourcemap.name = sig.semanticIdxName;
-        if(sourcemap.name.empty() && sig.systemValue != ShaderBuiltin::Undefined)
-          sourcemap.name = ToStr(sig.systemValue);
-        sourcemap.type = v.type;
-        sourcemap.rows = 1;
-        sourcemap.columns = sig.compCount;
-        sourcemap.variables.reserve(sig.compCount);
-
-        for(uint16_t c = 0; c < 4; c++)
-        {
-          if(sig.regChannelMask & (1 << c))
-          {
-            DebugVariableReference ref;
-            ref.name = v.name;
-            ref.type = DebugVariableType::Input;
-            ref.component = c;
-            sourcemap.variables.push_back(ref);
-          }
-        }
-
-        trace.sourceVars.push_back(sourcemap);
-      }
-    }
-
-    // Put the coverage mask at the end
-    if(inputCoverage)
-    {
-      trace.inputs.back() = ShaderVariable(
-          dxbc->GetDXBCByteCode()->GetRegisterName(DXBCBytecode::TYPE_INPUT_COVERAGE_MASK, 0), 0U,
-          0U, 0U, 0U);
-      trace.inputs.back().columns = 1;
-
-      {
-        SourceVariableMapping sourcemap;
-        sourcemap.name = "SV_Coverage";
-        sourcemap.type = VarType::UInt;
-        sourcemap.rows = 1;
-        sourcemap.columns = 1;
-        DebugVariableReference ref;
-        ref.type = DebugVariableType::Input;
-        ref.name = trace.inputs.back().name;
-        sourcemap.variables.push_back(ref);
-
-        trace.sourceVars.push_back(sourcemap);
-      }
-    }
-  }
-
-  // Set up outputs in the shader state
-  for(const SigParameter &sig : dxbc->GetReflection()->OutputSig)
-  {
-    DXBCBytecode::OperandType type = DXBCBytecode::TYPE_OUTPUT;
-
-    if(sig.systemValue == ShaderBuiltin::DepthOutput)
-      type = DXBCBytecode::TYPE_OUTPUT_DEPTH;
-    else if(sig.systemValue == ShaderBuiltin::DepthOutputLessEqual)
-      type = DXBCBytecode::TYPE_OUTPUT_DEPTH_LESS_EQUAL;
-    else if(sig.systemValue == ShaderBuiltin::DepthOutputGreaterEqual)
-      type = DXBCBytecode::TYPE_OUTPUT_DEPTH_GREATER_EQUAL;
-    else if(sig.systemValue == ShaderBuiltin::MSAACoverage)
-      type = DXBCBytecode::TYPE_OUTPUT_COVERAGE_MASK;
-    else if(sig.systemValue == ShaderBuiltin::StencilReference)
-      type = DXBCBytecode::TYPE_OUTPUT_STENCIL_REF;
-
-    if(type == DXBCBytecode::TYPE_OUTPUT && sig.regIndex == ~0U)
-    {
-      RDCERR("Unhandled output: %s (%s)", sig.semanticName.c_str(), ToStr(sig.systemValue).c_str());
-      continue;
-    }
-
-    uint32_t idx = dxbc->GetDXBCByteCode()->GetRegisterIndex(type, sig.regIndex);
-
-    if(idx >= initialState.variables.size())
-      continue;
-
-    ShaderVariable v;
-
-    v.name = dxbc->GetDXBCByteCode()->GetRegisterName(type, sig.regIndex);
-    v.rows = 1;
-    v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
-                                                   ? 3
-                                                   : sig.regChannelMask & 0x2
-                                                         ? 2
-                                                         : sig.regChannelMask & 0x1 ? 1 : 0;
-
-    if(sig.compType == CompType::UInt)
-      v.type = VarType::UInt;
-    else if(sig.compType == CompType::SInt)
-      v.type = VarType::SInt;
-    else
-      v.type = VarType::Float;
-
-    ShaderVariable &dst = initialState.variables[idx];
-
-    // if the variable hasn't been initialised, just assign. If it has, we're in a situation where
-    // two input parameters are assigned to the same variable overlapping, so just update the
-    // number of columns to the max of both. The source mapping (either from debug info or our own
-    // below) will handle distinguishing better.
-    if(dst.name.empty())
-      dst = v;
-    else
-      dst.columns = RDCMAX(dst.columns, v.columns);
-
-    // if we don't have any debug info we can at least map to the semantic to give a better name
-    // than the raw register from the reflection info, at least for normal outputs
-    if(!hasSourceMapping)
-    {
-      if(type == DXBCBytecode::TYPE_OUTPUT)
-      {
-        SourceVariableMapping sourcemap;
-        sourcemap.name = sig.semanticIdxName;
-        if(sourcemap.name.empty() && sig.systemValue != ShaderBuiltin::Undefined)
-          sourcemap.name = ToStr(sig.systemValue);
-        sourcemap.type = v.type;
-        sourcemap.rows = 1;
-        sourcemap.columns = sig.compCount;
-        sourcemap.variables.reserve(sig.compCount);
-
-        for(uint16_t c = 0; c < 4; c++)
-        {
-          if(sig.regChannelMask & (1 << c))
-          {
-            DebugVariableReference ref;
-            ref.type = DebugVariableType::Variable;
-            ref.name = v.name;
-            ref.component = c;
-            sourcemap.variables.push_back(ref);
-          }
-        }
-
-        trace.sourceVars.push_back(sourcemap);
-      }
-      else
-      {
-        SourceVariableMapping sourcemap;
-
-        if(sig.systemValue == ShaderBuiltin::DepthOutput)
-        {
-          sourcemap.name = "SV_Depth";
-          sourcemap.type = VarType::Float;
-        }
-        else if(sig.systemValue == ShaderBuiltin::DepthOutputLessEqual)
-        {
-          sourcemap.name = "SV_DepthLessEqual";
-          sourcemap.type = VarType::Float;
-        }
-        else if(sig.systemValue == ShaderBuiltin::DepthOutputGreaterEqual)
-        {
-          sourcemap.name = "SV_DepthGreaterEqual";
-          sourcemap.type = VarType::Float;
-        }
-        else if(sig.systemValue == ShaderBuiltin::MSAACoverage)
-        {
-          sourcemap.name = "SV_Coverage";
-          sourcemap.type = VarType::UInt;
-        }
-        else if(sig.systemValue == ShaderBuiltin::StencilReference)
-        {
-          sourcemap.name = "SV_StencilRef";
-          sourcemap.type = VarType::UInt;
-        }
-
-        // all these variables are 1 scalar component
-        sourcemap.rows = 1;
-        sourcemap.columns = 1;
-        DebugVariableReference ref;
-        ref.type = DebugVariableType::Variable;
-        ref.name = v.name;
-        sourcemap.variables.push_back(ref);
-
-        trace.sourceVars.push_back(sourcemap);
-      }
-    }
-  }
-
-  // Set the number of constant buffers in the trace, but assignment happens later
-  trace.constantBlocks.resize(refl.constantBlocks.size());
-
-  struct ResList
-  {
-    DebugVariableType varType;
-    const rdcarray<Bindpoint> &binds;
-    const rdcarray<ShaderResource> &resources;
-    const char *regChars;
-    rdcarray<ShaderVariable> &dst;
-  };
-
-  ResList lists[2] = {
-      {
-          DebugVariableType::ReadOnlyResource, mapping.readOnlyResources, refl.readOnlyResources,
-          "tT", trace.readOnlyResources,
-      },
-      {
-          DebugVariableType::ReadWriteResource, mapping.readWriteResources, refl.readWriteResources,
-          "uU", trace.readWriteResources,
-      },
-  };
-
-  for(ResList &list : lists)
-  {
-    // add the registers for the resources that are used
-    list.dst.reserve(list.binds.size());
-    for(size_t i = 0; i < list.binds.size(); i++)
-    {
-      const Bindpoint &b = list.binds[i];
-      const ShaderResource &r = list.resources[i];
-
-      if(!b.used)
-        continue;
-
-      rdcstr identifier;
-
-      if(dxbc->GetDXBCByteCode()->IsShaderModel51())
-        identifier = StringFormat::Fmt("%c%zu", list.regChars[1], i);
-      else
-        identifier = StringFormat::Fmt("%c%u", list.regChars[0], b.bind);
-
-      ShaderVariable reg(identifier, (uint32_t)i, 0U, 0U, 0U);
-      reg.columns = 1;
-
-      SourceVariableMapping sourcemap;
-      sourcemap.name = r.name;
-      sourcemap.type = r.variableType.descriptor.type;
-      sourcemap.rows = r.variableType.descriptor.rows;
-      sourcemap.columns = r.variableType.descriptor.columns;
-      DebugVariableReference ref;
-      ref.type = list.varType;
-      ref.name = reg.name;
-      sourcemap.variables.push_back(ref);
-
-      trace.sourceVars.push_back(sourcemap);
-      list.dst.push_back(reg);
-    }
-  }
-}
-
-void AddCBufferToDebugTrace(const DXBCBytecode::Program &program, ShaderDebugTrace &trace,
-                            const ShaderReflection &refl, const ShaderBindpointMapping &mapping,
-                            const BindingSlot &slot, bytebuf &cbufData)
+void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &global,
+                             rdcarray<SourceVariableMapping> &sourceVars,
+                             const ShaderReflection &refl, const ShaderBindpointMapping &mapping,
+                             const BindingSlot &slot, bytebuf &cbufData)
 {
   // Find the identifier
   size_t numCBs = mapping.constantBlocks.size();
@@ -4474,11 +4188,11 @@ void AddCBufferToDebugTrace(const DXBCBytecode::Program &program, ShaderDebugTra
     if((uint32_t)mapping.constantBlocks[i].bindset == slot.registerSpace &&
        (uint32_t)mapping.constantBlocks[i].bind == slot.shaderRegister)
     {
-      RDCASSERTMSG("Reassigning previously filled cbuffer", trace.constantBlocks[i].members.empty());
+      RDCASSERTMSG("Reassigning previously filled cbuffer", global.constantBlocks[i].members.empty());
 
       uint32_t cbufferIndex = program.IsShaderModel51() ? (uint32_t)i : slot.shaderRegister;
 
-      trace.constantBlocks[i].name =
+      global.constantBlocks[i].name =
           program.GetRegisterName(DXBCBytecode::TYPE_CONSTANT_BUFFER, cbufferIndex);
 
       SourceVariableMapping cbSourceMapping;
@@ -4489,14 +4203,14 @@ void AddCBufferToDebugTrace(const DXBCBytecode::Program &program, ShaderDebugTra
 
       rdcarray<ShaderVariable> vars;
       StandardFillCBufferVariables(refl.resourceId, refl.constantBlocks[i].variables, vars, cbufData);
-      FlattenVariables(trace.constantBlocks[i].name, refl.constantBlocks[i].variables, vars,
-                       trace.constantBlocks[i].members, refl.constantBlocks[i].name + ".", 0,
-                       trace.sourceVars);
+      FlattenVariables(global.constantBlocks[i].name, refl.constantBlocks[i].variables, vars,
+                       global.constantBlocks[i].members, refl.constantBlocks[i].name + ".", 0,
+                       sourceVars);
 
-      for(size_t c = 0; c < trace.constantBlocks[i].members.size(); c++)
+      for(size_t c = 0; c < global.constantBlocks[i].members.size(); c++)
       {
-        trace.constantBlocks[i].members[c].name =
-            StringFormat::Fmt("%s[%u]", trace.constantBlocks[i].name.c_str(), (uint32_t)c);
+        global.constantBlocks[i].members[c].name =
+            StringFormat::Fmt("%s[%u]", global.constantBlocks[i].name.c_str(), (uint32_t)c);
       }
 
       return;
@@ -4504,27 +4218,8 @@ void AddCBufferToDebugTrace(const DXBCBytecode::Program &program, ShaderDebugTra
   }
 }
 
-bool PromptDebugTimeout(uint32_t cycleCounter)
-{
-  rdcstr msg = StringFormat::Fmt(
-      "RenderDoc's shader debugging has been running for over %u cycles, which indicates either a "
-      "very long-running loop, or possibly an infinite loop. Continuing could lead to extreme "
-      "memory allocations, slow UI or even crashes. Would you like to abort debugging to see what "
-      "has run so far?\n\n"
-      "Hit yes to abort debugging. Note that loading the resulting trace could take several "
-      "minutes.",
-      cycleCounter);
-
-  int ret = MessageBoxA(NULL, msg.c_str(), "Shader debugging timeout", MB_YESNO | MB_ICONWARNING);
-
-  if(ret == IDYES)
-    return true;
-
-  return false;
-}
-
-void ApplyDerivatives(GlobalState &global, State quad[4], int reg, int element, int numWords,
-                      float *data, float signmul, int32_t quadIdxA, int32_t quadIdxB)
+void ApplyDerivatives(GlobalState &global, rdcarray<ThreadState> &quad, int reg, int element,
+                      int numWords, float *data, float signmul, int32_t quadIdxA, int32_t quadIdxB)
 {
   for(int w = 0; w < numWords; w++)
   {
@@ -4549,7 +4244,7 @@ void ApplyDerivatives(GlobalState &global, State quad[4], int reg, int element, 
   }
 }
 
-void ApplyAllDerivatives(GlobalState &global, State quad[4], int destIdx,
+void ApplyAllDerivatives(GlobalState &global, rdcarray<ThreadState> &quad, int destIdx,
                          const rdcarray<PSInputElement> &initialValues, float *data)
 {
   // We make the assumption that the coarse derivatives are generated from (0,0) in the quad, and
@@ -5039,6 +4734,472 @@ void GatherPSInputDataForInitialValues(const DXBC::Reflection &psDxbc,
   }
 
   psInputDefinition += "};\n\n";
+}
+
+ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcContainer,
+                                                const ShaderReflection &refl,
+                                                const ShaderBindpointMapping &mapping,
+                                                int activeIndex)
+{
+  ShaderDebugTrace *ret = new ShaderDebugTrace;
+  ret->debugger = this;
+
+  this->dxbc = dxbcContainer;
+  this->activeLaneIndex = activeIndex;
+
+  int workgroupSize = dxbc->m_Type == DXBC::ShaderType::Pixel ? 4 : 1;
+  for(int i = 0; i < workgroupSize; i++)
+    workgroup.push_back(ThreadState(i, global, dxbc));
+
+  if(dxbc->m_Type == DXBC::ShaderType::Compute)
+    global.PopulateGroupshared(dxbc->GetDXBCByteCode());
+
+  ThreadState &state = activeLane();
+
+  bool hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
+
+  int32_t maxReg = -1;
+  for(const SigParameter &sig : dxbc->GetReflection()->InputSig)
+  {
+    if(sig.regIndex != ~0U)
+      maxReg = RDCMAX(maxReg, (int32_t)sig.regIndex);
+  }
+
+  const bool inputCoverage = dxbc->GetDXBCByteCode()->HasCoverageInput();
+
+  // Add inputs to the shader trace
+  if(maxReg >= 0 || inputCoverage)
+  {
+    state.inputs.resize(maxReg + 1 + (inputCoverage ? 1 : 0));
+    for(const SigParameter &sig : dxbc->GetReflection()->InputSig)
+    {
+      ShaderVariable v;
+
+      v.name = dxbc->GetDXBCByteCode()->GetRegisterName(DXBCBytecode::TYPE_INPUT, sig.regIndex);
+      v.rows = 1;
+      v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
+                                                     ? 3
+                                                     : sig.regChannelMask & 0x2
+                                                           ? 2
+                                                           : sig.regChannelMask & 0x1 ? 1 : 0;
+
+      if(sig.compType == CompType::UInt)
+        v.type = VarType::UInt;
+      else if(sig.compType == CompType::SInt)
+        v.type = VarType::SInt;
+      else
+        v.type = VarType::Float;
+
+      ShaderVariable &dst = state.inputs[sig.regIndex];
+
+      // if the variable hasn't been initialised, just assign. If it has, we're in a situation where
+      // two input parameters are assigned to the same variable overlapping, so just update the
+      // number of columns to the max of both. The source mapping (either from debug info or our own
+      // below) will handle distinguishing better.
+      if(dst.name.empty())
+        dst = v;
+      else
+        dst.columns = RDCMAX(dst.columns, v.columns);
+
+      {
+        SourceVariableMapping sourcemap;
+        sourcemap.name = sig.semanticIdxName;
+        if(sourcemap.name.empty() && sig.systemValue != ShaderBuiltin::Undefined)
+          sourcemap.name = ToStr(sig.systemValue);
+        sourcemap.type = v.type;
+        sourcemap.rows = 1;
+        sourcemap.columns = sig.compCount;
+        sourcemap.variables.reserve(sig.compCount);
+
+        for(uint16_t c = 0; c < 4; c++)
+        {
+          if(sig.regChannelMask & (1 << c))
+          {
+            DebugVariableReference ref;
+            ref.name = v.name;
+            ref.type = DebugVariableType::Input;
+            ref.component = c;
+            sourcemap.variables.push_back(ref);
+          }
+        }
+
+        ret->sourceVars.push_back(sourcemap);
+      }
+    }
+
+    // Put the coverage mask at the end
+    if(inputCoverage)
+    {
+      state.inputs.back() = ShaderVariable(
+          dxbc->GetDXBCByteCode()->GetRegisterName(DXBCBytecode::TYPE_INPUT_COVERAGE_MASK, 0), 0U,
+          0U, 0U, 0U);
+      state.inputs.back().columns = 1;
+
+      {
+        SourceVariableMapping sourcemap;
+        sourcemap.name = "SV_Coverage";
+        sourcemap.type = VarType::UInt;
+        sourcemap.rows = 1;
+        sourcemap.columns = 1;
+        DebugVariableReference ref;
+        ref.type = DebugVariableType::Input;
+        ref.name = state.inputs.back().name;
+        sourcemap.variables.push_back(ref);
+
+        ret->sourceVars.push_back(sourcemap);
+      }
+    }
+  }
+
+  // Set up outputs in the shader state
+  for(const SigParameter &sig : dxbc->GetReflection()->OutputSig)
+  {
+    DXBCBytecode::OperandType type = DXBCBytecode::TYPE_OUTPUT;
+
+    if(sig.systemValue == ShaderBuiltin::DepthOutput)
+      type = DXBCBytecode::TYPE_OUTPUT_DEPTH;
+    else if(sig.systemValue == ShaderBuiltin::DepthOutputLessEqual)
+      type = DXBCBytecode::TYPE_OUTPUT_DEPTH_LESS_EQUAL;
+    else if(sig.systemValue == ShaderBuiltin::DepthOutputGreaterEqual)
+      type = DXBCBytecode::TYPE_OUTPUT_DEPTH_GREATER_EQUAL;
+    else if(sig.systemValue == ShaderBuiltin::MSAACoverage)
+      type = DXBCBytecode::TYPE_OUTPUT_COVERAGE_MASK;
+    else if(sig.systemValue == ShaderBuiltin::StencilReference)
+      type = DXBCBytecode::TYPE_OUTPUT_STENCIL_REF;
+
+    if(type == DXBCBytecode::TYPE_OUTPUT && sig.regIndex == ~0U)
+    {
+      RDCERR("Unhandled output: %s (%s)", sig.semanticName.c_str(), ToStr(sig.systemValue).c_str());
+      continue;
+    }
+
+    uint32_t idx = dxbc->GetDXBCByteCode()->GetRegisterIndex(type, sig.regIndex);
+
+    if(idx >= state.variables.size())
+      continue;
+
+    ShaderVariable v;
+
+    v.name = dxbc->GetDXBCByteCode()->GetRegisterName(type, sig.regIndex);
+    v.rows = 1;
+    v.columns = sig.regChannelMask & 0x8 ? 4 : sig.regChannelMask & 0x4
+                                                   ? 3
+                                                   : sig.regChannelMask & 0x2
+                                                         ? 2
+                                                         : sig.regChannelMask & 0x1 ? 1 : 0;
+
+    if(sig.compType == CompType::UInt)
+      v.type = VarType::UInt;
+    else if(sig.compType == CompType::SInt)
+      v.type = VarType::SInt;
+    else
+      v.type = VarType::Float;
+
+    ShaderVariable &dst = state.variables[idx];
+
+    // if the variable hasn't been initialised, just assign. If it has, we're in a situation where
+    // two input parameters are assigned to the same variable overlapping, so just update the
+    // number of columns to the max of both. The source mapping (either from debug info or our own
+    // below) will handle distinguishing better.
+    if(dst.name.empty())
+      dst = v;
+    else
+      dst.columns = RDCMAX(dst.columns, v.columns);
+
+    // if we don't have any debug info we can at least map to the semantic to give a better name
+    // than the raw register from the reflection info, at least for normal outputs
+    if(!hasSourceMapping)
+    {
+      if(type == DXBCBytecode::TYPE_OUTPUT)
+      {
+        SourceVariableMapping sourcemap;
+        sourcemap.name = sig.semanticIdxName;
+        if(sourcemap.name.empty() && sig.systemValue != ShaderBuiltin::Undefined)
+          sourcemap.name = ToStr(sig.systemValue);
+        sourcemap.type = v.type;
+        sourcemap.rows = 1;
+        sourcemap.columns = sig.compCount;
+        sourcemap.variables.reserve(sig.compCount);
+
+        for(uint16_t c = 0; c < 4; c++)
+        {
+          if(sig.regChannelMask & (1 << c))
+          {
+            DebugVariableReference ref;
+            ref.type = DebugVariableType::Variable;
+            ref.name = v.name;
+            ref.component = c;
+            sourcemap.variables.push_back(ref);
+          }
+        }
+
+        ret->sourceVars.push_back(sourcemap);
+      }
+      else
+      {
+        SourceVariableMapping sourcemap;
+
+        if(sig.systemValue == ShaderBuiltin::DepthOutput)
+        {
+          sourcemap.name = "SV_Depth";
+          sourcemap.type = VarType::Float;
+        }
+        else if(sig.systemValue == ShaderBuiltin::DepthOutputLessEqual)
+        {
+          sourcemap.name = "SV_DepthLessEqual";
+          sourcemap.type = VarType::Float;
+        }
+        else if(sig.systemValue == ShaderBuiltin::DepthOutputGreaterEqual)
+        {
+          sourcemap.name = "SV_DepthGreaterEqual";
+          sourcemap.type = VarType::Float;
+        }
+        else if(sig.systemValue == ShaderBuiltin::MSAACoverage)
+        {
+          sourcemap.name = "SV_Coverage";
+          sourcemap.type = VarType::UInt;
+        }
+        else if(sig.systemValue == ShaderBuiltin::StencilReference)
+        {
+          sourcemap.name = "SV_StencilRef";
+          sourcemap.type = VarType::UInt;
+        }
+
+        // all these variables are 1 scalar component
+        sourcemap.rows = 1;
+        sourcemap.columns = 1;
+        DebugVariableReference ref;
+        ref.type = DebugVariableType::Variable;
+        ref.name = v.name;
+        sourcemap.variables.push_back(ref);
+
+        ret->sourceVars.push_back(sourcemap);
+      }
+    }
+  }
+
+  // Set the number of constant buffers in the trace, but assignment happens later
+  global.constantBlocks.resize(refl.constantBlocks.size());
+
+  struct ResList
+  {
+    DebugVariableType varType;
+    const rdcarray<Bindpoint> &binds;
+    const rdcarray<ShaderResource> &resources;
+    const char *regChars;
+    rdcarray<ShaderVariable> &dst;
+  };
+
+  ResList lists[2] = {
+      {
+          DebugVariableType::ReadOnlyResource, mapping.readOnlyResources, refl.readOnlyResources,
+          "tT", ret->readOnlyResources,
+      },
+      {
+          DebugVariableType::ReadWriteResource, mapping.readWriteResources, refl.readWriteResources,
+          "uU", ret->readWriteResources,
+      },
+  };
+
+  for(ResList &list : lists)
+  {
+    // add the registers for the resources that are used
+    list.dst.reserve(list.binds.size());
+    for(size_t i = 0; i < list.binds.size(); i++)
+    {
+      const Bindpoint &b = list.binds[i];
+      const ShaderResource &r = list.resources[i];
+
+      if(!b.used)
+        continue;
+
+      rdcstr identifier;
+
+      if(dxbc->GetDXBCByteCode()->IsShaderModel51())
+        identifier = StringFormat::Fmt("%c%zu", list.regChars[1], i);
+      else
+        identifier = StringFormat::Fmt("%c%u", list.regChars[0], b.bind);
+
+      ShaderVariable reg(identifier, (uint32_t)i, 0U, 0U, 0U);
+      reg.columns = 1;
+
+      SourceVariableMapping sourcemap;
+      sourcemap.name = r.name;
+      sourcemap.type = r.variableType.descriptor.type;
+      sourcemap.rows = r.variableType.descriptor.rows;
+      sourcemap.columns = r.variableType.descriptor.columns;
+      DebugVariableReference ref;
+      ref.type = list.varType;
+      ref.name = reg.name;
+      sourcemap.variables.push_back(ref);
+
+      ret->sourceVars.push_back(sourcemap);
+      list.dst.push_back(reg);
+    }
+  }
+
+  return ret;
+}
+
+void InterpretDebugger::CalcActiveMask(rdcarray<bool> &activeMask)
+{
+  // one bool per workgroup thread
+  activeMask.resize(workgroup.size());
+
+  // start as active, then if necessary turn off threads that are running diverged
+  for(bool &active : activeMask)
+    active = true;
+
+  // only pixel shaders automatically converge workgroups, compute shaders need explicit sync
+  if(dxbc->m_Type != DXBC::ShaderType::Pixel)
+    return;
+
+  // otherwise we need to make sure that control flow which converges stays in lockstep so that
+  // derivatives etc are still valid. While diverged, we don't have to keep threads in lockstep
+  // since using derivatives is invalid.
+  //
+  // Threads diverge either in ifs, loops, or switches. Due to the nature of the bytecode, all
+  // threads *must* pass through the same exit instruction for each, there's no jumping around with
+  // gotos. Note also for the same reason, the only time threads are on earlier instructions is if
+  // they are still catching up to a thread that has exited the control flow.
+  //
+  // So the scheme is as follows:
+  // * If all threads have the same nextInstruction, just continue we are still in lockstep.
+  // * If threads are out of lockstep, find any thread which has nextInstruction pointing
+  //   immediately *after* an ENDIF, ENDLOOP or ENDSWITCH. Pointing directly at one is not an
+  //   indication the thread is done, as the next step for an ENDLOOP will jump back to the matching
+  //   LOOP and continue iterating.
+  // * Pause any thread matching the above until all threads are pointing to the same instruction.
+  //   By the assumption above, all threads will eventually pass through this terminating
+  //   instruction so we just pause any other threads and don't do anything until the control flow
+  //   has converged and we can continue stepping in lockstep.
+
+  // all threads as active.
+  // if we've converged, or we were never diverged, this keeps everything ticking
+
+  // see if we've diverged
+  bool differentNext = false;
+  for(size_t i = 1; i < workgroup.size(); i++)
+    differentNext |= (workgroup[0].nextInstruction != workgroup[i].nextInstruction);
+
+  if(differentNext)
+  {
+    // this isn't *perfect* but it will still eventually continue. We look for the most advanced
+    // thread, and check to see if it's just finished a control flow. If it has then we assume it's
+    // at the convergence point and wait for every other thread to catch up, pausing any threads
+    // that reach the convergence point before others.
+
+    // Note this might mean we don't have any threads paused even within divergent flow. This is
+    // fine and all we care about is pausing to make sure threads don't run ahead into code that
+    // should be lockstep. We don't care at all about what they do within the code that is
+    // divergent.
+
+    // The reason this isn't perfect is that the most advanced thread could be on an inner loop or
+    // inner if, not the convergence point, and we could be pausing it fruitlessly. Worse still - it
+    // could be on a branch none of the other threads will take so they will never reach that exact
+    // instruction.
+    // But we know that all threads will eventually go through the convergence point, so even in
+    // that worst case if we didn't pick the right waiting point, another thread will overtake and
+    // become the new most advanced thread and the previous waiting thread will resume. So in this
+    // case we caused a thread to wait more than it should have but that's not a big deal as it's
+    // within divergent flow so they don't have to stay in lockstep. Also if all threads will
+    // eventually pass that point we picked, we just waited to converge even in technically
+    // divergent code which is also harmless.
+
+    // Phew!
+
+    uint32_t convergencePoint = 0;
+
+    // find which thread is most advanced
+    for(size_t i = 0; i < workgroup.size(); i++)
+      if(workgroup[i].nextInstruction > convergencePoint)
+        convergencePoint = workgroup[i].nextInstruction;
+
+    if(convergencePoint > 0)
+    {
+      DXBCBytecode::OpcodeType op =
+          dxbc->GetDXBCByteCode()->GetInstruction(convergencePoint - 1).operation;
+
+      // if the most advnaced thread hasn't just finished control flow, then all
+      // threads are still running, so don't converge
+      if(op != OPCODE_ENDIF && op != OPCODE_ENDLOOP && op != OPCODE_ENDSWITCH)
+        convergencePoint = 0;
+    }
+
+    // pause any threads at that instruction (could be none)
+    for(size_t i = 0; workgroup.size(); i++)
+      if(workgroup[i].nextInstruction == convergencePoint)
+        activeMask[i] = false;
+  }
+}
+
+rdcarray<ShaderDebugState> InterpretDebugger::ContinueDebug(DXBCDebug::DebugAPIWrapper *apiWrapper)
+{
+  DXBCDebug::ThreadState &active = activeLane();
+
+  rdcarray<ShaderDebugState> ret;
+
+  // if we've finished, return an empty set to signify that
+  if(active.Finished())
+    return ret;
+
+  // initialise a blank set of shader variable changes in the first ShaderDebugState
+  if(steps == 0)
+  {
+    ShaderDebugState initial;
+
+    for(const ShaderVariable &v : active.variables)
+      initial.changes.push_back({ShaderVariable(), v});
+    dxbc->FillStateInstructionInfo(initial);
+
+    ret.push_back(initial);
+
+    steps++;
+  }
+
+  rdcarray<DXBCDebug::ThreadState> oldworkgroup = workgroup;
+
+  rdcarray<bool> activeMask;
+
+  // do 100 in a chunk
+  for(int cycleCounter = 0; cycleCounter < 100; cycleCounter++)
+  {
+    if(active.Finished())
+      break;
+
+    // set up the old workgroup so that cross-workgroup/cross-quad operations (e.g. DDX/DDY) get
+    // consistent results even when we step the quad out of order. Otherwise if an operation reads
+    // and writes from the same register we'd trash data needed for other workgroup elements.
+    for(size_t i = 0; i < oldworkgroup.size(); i++)
+      oldworkgroup[i].variables = workgroup[i].variables;
+
+    // calculate the current mask of which threads are active
+    CalcActiveMask(activeMask);
+
+    // step all active members of the workgroup
+    for(int i = 0; i < workgroup.count(); i++)
+    {
+      if(activeMask[i])
+      {
+        if(i == activeLaneIndex)
+        {
+          ShaderDebugState state;
+          workgroup[i].StepNext(&state, apiWrapper, oldworkgroup);
+          dxbc->FillStateInstructionInfo(state);
+          state.stepIndex = steps;
+          ret.push_back(state);
+        }
+        else
+        {
+          workgroup[i].StepNext(NULL, apiWrapper, oldworkgroup);
+        }
+      }
+    }
+
+    steps++;
+  }
+
+  return ret;
 }
 
 };    // namespace ShaderDebug

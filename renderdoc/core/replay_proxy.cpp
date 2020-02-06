@@ -93,6 +93,8 @@ rdcstr DoStringise(const ReplayProxyPacket &el)
     STRINGISE_ENUM_NAMED(eReplayProxy_GetTargetShaderEncodings, "GetTargetShaderEncodings");
 
     STRINGISE_ENUM_NAMED(eReplayProxy_GetDriverInfo, "GetDriverInfo");
+
+    STRINGISE_ENUM_NAMED(eReplayProxy_ContinueDebug, "ContinueDebug");
   }
   END_ENUM_STRINGISE();
 }
@@ -1443,14 +1445,14 @@ rdcarray<PixelModification> ReplayProxy::PixelHistory(rdcarray<EventUsage> event
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
-ShaderDebugTrace ReplayProxy::Proxied_DebugVertex(ParamSerialiser &paramser,
-                                                  ReturnSerialiser &retser, uint32_t eventId,
-                                                  uint32_t vertid, uint32_t instid, uint32_t idx,
-                                                  uint32_t instOffset, uint32_t vertOffset)
+ShaderDebugTrace *ReplayProxy::Proxied_DebugVertex(ParamSerialiser &paramser,
+                                                   ReturnSerialiser &retser, uint32_t eventId,
+                                                   uint32_t vertid, uint32_t instid, uint32_t idx,
+                                                   uint32_t instOffset, uint32_t vertOffset)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_DebugVertex;
   ReplayProxyPacket packet = eReplayProxy_DebugVertex;
-  ShaderDebugTrace ret;
+  ShaderDebugTrace *ret;
 
   {
     BEGIN_PARAMS();
@@ -1467,27 +1469,29 @@ ShaderDebugTrace ReplayProxy::Proxied_DebugVertex(ParamSerialiser &paramser,
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
       ret = m_Remote->DebugVertex(eventId, vertid, instid, idx, instOffset, vertOffset);
+    else
+      ret = new ShaderDebugTrace;
   }
 
-  SERIALISE_RETURN(ret);
+  SERIALISE_RETURN(*ret);
 
   return ret;
 }
 
-ShaderDebugTrace ReplayProxy::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                          uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+ShaderDebugTrace *ReplayProxy::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
+                                           uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
   PROXY_FUNCTION(DebugVertex, eventId, vertid, instid, idx, instOffset, vertOffset);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
-ShaderDebugTrace ReplayProxy::Proxied_DebugPixel(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                                 uint32_t eventId, uint32_t x, uint32_t y,
-                                                 uint32_t sample, uint32_t primitive)
+ShaderDebugTrace *ReplayProxy::Proxied_DebugPixel(ParamSerialiser &paramser, ReturnSerialiser &retser,
+                                                  uint32_t eventId, uint32_t x, uint32_t y,
+                                                  uint32_t sample, uint32_t primitive)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_DebugPixel;
   ReplayProxyPacket packet = eReplayProxy_DebugPixel;
-  ShaderDebugTrace ret;
+  ShaderDebugTrace *ret;
 
   {
     BEGIN_PARAMS();
@@ -1503,27 +1507,30 @@ ShaderDebugTrace ReplayProxy::Proxied_DebugPixel(ParamSerialiser &paramser, Retu
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
       ret = m_Remote->DebugPixel(eventId, x, y, sample, primitive);
+    else
+      ret = new ShaderDebugTrace;
   }
 
-  SERIALISE_RETURN(ret);
+  SERIALISE_RETURN(*ret);
 
   return ret;
 }
 
-ShaderDebugTrace ReplayProxy::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                                         uint32_t primitive)
+ShaderDebugTrace *ReplayProxy::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
+                                          uint32_t primitive)
 {
   PROXY_FUNCTION(DebugPixel, eventId, x, y, sample, primitive);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
-ShaderDebugTrace ReplayProxy::Proxied_DebugThread(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                                  uint32_t eventId, const uint32_t groupid[3],
-                                                  const uint32_t threadid[3])
+ShaderDebugTrace *ReplayProxy::Proxied_DebugThread(ParamSerialiser &paramser,
+                                                   ReturnSerialiser &retser, uint32_t eventId,
+                                                   const uint32_t groupid[3],
+                                                   const uint32_t threadid[3])
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_DebugThread;
   ReplayProxyPacket packet = eReplayProxy_DebugThread;
-  ShaderDebugTrace ret;
+  ShaderDebugTrace *ret;
 
   uint32_t GroupID[3] = {groupid[0], groupid[1], groupid[2]};
   uint32_t ThreadID[3] = {threadid[0], threadid[1], threadid[2]};
@@ -1540,6 +1547,42 @@ ShaderDebugTrace ReplayProxy::Proxied_DebugThread(ParamSerialiser &paramser, Ret
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
       ret = m_Remote->DebugThread(eventId, GroupID, ThreadID);
+    else
+      ret = new ShaderDebugTrace;
+  }
+
+  SERIALISE_RETURN(*ret);
+
+  return ret;
+}
+
+ShaderDebugTrace *ReplayProxy::DebugThread(uint32_t eventId, const uint32_t groupid[3],
+                                           const uint32_t threadid[3])
+{
+  PROXY_FUNCTION(DebugThread, eventId, groupid, threadid);
+}
+
+template <typename ParamSerialiser, typename ReturnSerialiser>
+rdcarray<ShaderDebugState> ReplayProxy::Proxied_ContinueDebug(ParamSerialiser &paramser,
+                                                              ReturnSerialiser &retser,
+                                                              ShaderDebugger *debugger)
+{
+  const ReplayProxyPacket expectedPacket = eReplayProxy_GetDisassemblyTargets;
+  ReplayProxyPacket packet = eReplayProxy_GetDisassemblyTargets;
+  rdcarray<ShaderDebugState> ret;
+
+  {
+    BEGIN_PARAMS();
+    uint64_t debugger_ptr = (uint64_t)(uintptr_t)debugger;
+    SERIALISE_ELEMENT(debugger_ptr);
+    debugger = (ShaderDebugger *)(uintptr_t)debugger_ptr;
+    END_PARAMS();
+  }
+
+  {
+    REMOTE_EXECUTION();
+    if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
+      ret = m_Remote->ContinueDebug(debugger);
   }
 
   SERIALISE_RETURN(ret);
@@ -1547,10 +1590,9 @@ ShaderDebugTrace ReplayProxy::Proxied_DebugThread(ParamSerialiser &paramser, Ret
   return ret;
 }
 
-ShaderDebugTrace ReplayProxy::DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                          const uint32_t threadid[3])
+rdcarray<ShaderDebugState> ReplayProxy::ContinueDebug(ShaderDebugger *debugger)
 {
-  PROXY_FUNCTION(DebugThread, eventId, groupid, threadid);
+  PROXY_FUNCTION(ContinueDebug, debugger);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -2738,6 +2780,7 @@ bool ReplayProxy::Tick(int type)
       DebugThread(0, dummy1, dummy2);
       break;
     }
+    case eReplayProxy_ContinueDebug: ContinueDebug(NULL); break;
     case eReplayProxy_RenderOverlay:
       RenderOverlay(ResourceId(), CompType::Typeless, FloatVector(), DebugOverlay::NoOverlay, 0,
                     rdcarray<uint32_t>());

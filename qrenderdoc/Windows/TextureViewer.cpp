@@ -3758,7 +3758,7 @@ void TextureViewer::on_debugPixelContext_clicked()
   m_Ctx.Replay().AsyncInvoke([this, &trace, &done, x, y](IReplayController *r) {
     trace = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.subresource.sample, ~0U);
 
-    if(trace->states.isEmpty())
+    if(trace->debugger == NULL)
     {
       r->FreeTrace(trace);
       trace = NULL;

@@ -179,9 +179,6 @@ public:
   rdcarray<ShaderVariable> constantBlocks;
 };
 
-#define SHADER_DEBUG_WARN_THRESHOLD 100000
-bool PromptDebugTimeout(uint32_t cycleCounter);
-
 struct PSInputElement
 {
   PSInputElement(int regster, int element, int numWords, ShaderBuiltin attr, bool inc)
@@ -272,10 +269,10 @@ public:
                                      ShaderVariable &output) = 0;
 };
 
-class State : public ShaderDebugState
+class ThreadState
 {
 public:
-  State(int quadIdx, GlobalState *globalState, const DXBC::DXBCContainer *dxbc);
+  ThreadState(int workgroupIdx, GlobalState &globalState, const DXBC::DXBCContainer *dxbc);
 
   void SetHelper() { done = true; }
   struct
@@ -287,26 +284,28 @@ public:
     uint32_t isFrontFace;
   } semantics;
 
+  uint32_t nextInstruction;
+  GlobalState &global;
+  rdcarray<ShaderVariable> inputs;
+  rdcarray<ShaderVariable> variables;
+
   bool Finished() const;
 
-  State GetNext(DebugAPIWrapper *apiWrapper, State quad[4]) const;
-
-  rdcarray<ShaderVariable> inputs;
-  GlobalState *global;
+  void StepNext(ShaderDebugState *prevState, DebugAPIWrapper *apiWrapper,
+                const rdcarray<ThreadState> &prevWorkgroup);
 
 private:
   // index in the pixel quad
-  int quadIndex;
-
+  int workgroupIndex;
   bool done;
 
   // validates assignment for generation of non-normal values
-  bool AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVariable &src,
-                   uint32_t srcIndex, bool flushDenorm);
+  ShaderEvents AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVariable &src,
+                           uint32_t srcIndex, bool flushDenorm);
   // sets the destination operand by looking up in the register
   // file and applying any masking or swizzling
-  void SetDst(const DXBCBytecode::Operand &dstoper, const DXBCBytecode::Operation &op,
-              const ShaderVariable &val);
+  void SetDst(ShaderDebugState *state, const DXBCBytecode::Operand &dstoper,
+              const DXBCBytecode::Operation &op, const ShaderVariable &val);
 
   // retrieves the value of the operand, by looking up
   // in the register file and performing any swizzling and
@@ -314,26 +313,42 @@ private:
   ShaderVariable GetSrc(const DXBCBytecode::Operand &oper, const DXBCBytecode::Operation &op,
                         bool allowFlushing = true) const;
 
-  ShaderVariable DDX(bool fine, State quad[4], const DXBCBytecode::Operand &oper,
-                     const DXBCBytecode::Operation &op) const;
-  ShaderVariable DDY(bool fine, State quad[4], const DXBCBytecode::Operand &oper,
-                     const DXBCBytecode::Operation &op) const;
-
-  VarType OperationType(const DXBCBytecode::OpcodeType &op) const;
-  bool OperationFlushing(const DXBCBytecode::OpcodeType &op) const;
+  ShaderVariable DDX(bool fine, const rdcarray<ThreadState> &quad,
+                     const DXBCBytecode::Operand &oper, const DXBCBytecode::Operation &op) const;
+  ShaderVariable DDY(bool fine, const rdcarray<ThreadState> &quad,
+                     const DXBCBytecode::Operand &oper, const DXBCBytecode::Operation &op) const;
 
   const DXBC::Reflection *reflection;
   const DXBCBytecode::Program *program;
 };
 
-void ApplyAllDerivatives(GlobalState &global, State quad[4], int destIdx,
+struct InterpretDebugger : public ShaderDebugger
+{
+  ShaderDebugTrace *BeginDebug(const DXBC::DXBCContainer *dxbcContainer, const ShaderReflection &refl,
+                               const ShaderBindpointMapping &mapping, int activeIndex);
+
+  GlobalState global;
+
+  rdcarray<ThreadState> workgroup;
+
+  // convenience for access to active lane
+  ThreadState &activeLane() { return workgroup[activeLaneIndex]; }
+  int activeLaneIndex = 0;
+
+  int steps = 0;
+
+  const DXBC::DXBCContainer *dxbc;
+
+  void CalcActiveMask(rdcarray<bool> &activeMask);
+  rdcarray<ShaderDebugState> ContinueDebug(DebugAPIWrapper *apiWrapper);
+};
+
+void ApplyAllDerivatives(GlobalState &global, rdcarray<ThreadState> &quad, int destIdx,
                          const rdcarray<PSInputElement> &initialValues, float *data);
 
-void CreateShaderDebugStateAndTrace(State &initialState, ShaderDebugTrace &trace,
-                                    DXBC::DXBCContainer *dxbc, const ShaderReflection &refl,
-                                    const ShaderBindpointMapping &mapping);
-void AddCBufferToDebugTrace(const DXBCBytecode::Program &program, ShaderDebugTrace &trace,
-                            const ShaderReflection &refl, const ShaderBindpointMapping &mapping,
-                            const BindingSlot &slot, bytebuf &cbufData);
+void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &global,
+                             rdcarray<SourceVariableMapping> &sourceVars,
+                             const ShaderReflection &refl, const ShaderBindpointMapping &mapping,
+                             const BindingSlot &slot, bytebuf &cbufData);
 
 };    // namespace ShaderDebug

@@ -38,12 +38,6 @@ namespace DXBC
 class DXBCContainer;
 };
 
-namespace DXBCDebug
-{
-struct GlobalState;
-class State;
-}
-
 #define D3D12_MSAA_SAMPLECOUNT 4
 
 // baked indices in descriptor heaps

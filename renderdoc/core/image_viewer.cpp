@@ -257,27 +257,22 @@ public:
   {
     return rdcarray<PixelModification>();
   }
-  ShaderDebugTrace DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid, uint32_t idx,
-                               uint32_t instOffset, uint32_t vertOffset)
+  ShaderDebugTrace *DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid, uint32_t idx,
+                                uint32_t instOffset, uint32_t vertOffset)
   {
-    ShaderDebugTrace ret;
-    RDCEraseEl(ret);
-    return ret;
+    return new ShaderDebugTrace();
   }
-  ShaderDebugTrace DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                              uint32_t primitive)
+  ShaderDebugTrace *DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
+                               uint32_t primitive)
   {
-    ShaderDebugTrace ret;
-    RDCEraseEl(ret);
-    return ret;
+    return new ShaderDebugTrace();
   }
-  ShaderDebugTrace DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                               const uint32_t threadid[3])
+  ShaderDebugTrace *DebugThread(uint32_t eventId, const uint32_t groupid[3],
+                                const uint32_t threadid[3])
   {
-    ShaderDebugTrace ret;
-    RDCEraseEl(ret);
-    return ret;
+    return new ShaderDebugTrace();
   }
+  rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger) { return {}; }
   void BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
                          rdcstr &errors)

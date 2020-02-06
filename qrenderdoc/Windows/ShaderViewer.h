@@ -94,8 +94,8 @@ public:
 
   // IShaderViewer
   virtual QWidget *Widget() override { return this; }
-  virtual int CurrentStep() override;
-  virtual void SetCurrentStep(int step) override;
+  virtual uint32_t CurrentStep() override;
+  virtual void SetCurrentStep(uint32_t step) override;
 
   virtual void ToggleBreakpoint(int instruction = -1) override;
 
@@ -232,7 +232,9 @@ private:
   CloseCallback m_CloseCallback;
 
   ShaderDebugTrace *m_Trace = NULL;
-  int m_CurrentStep;
+  rdcarray<ShaderDebugState> m_States;
+  size_t m_CurrentStateIdx = 0;
+  rdcarray<ShaderVariable> m_Variables;
   QList<int> m_Breakpoints;
 
   static const int CURRENT_MARKER = 0;
@@ -262,11 +264,18 @@ private:
 
   int instructionForDisassemblyLine(sptr_t line);
 
-  void updateDebugging();
+  bool IsFirstState() const;
+  bool IsLastState() const;
+  const ShaderDebugState &GetPreviousState() const;
+  const ShaderDebugState &GetCurrentState() const;
+  const ShaderDebugState &GetNextState() const;
+
+  void updateDebugState();
   void updateWatchVariables();
 
   RDTreeWidgetItem *makeSourceVariableNode(const SourceVariableMapping &l, int globalVarIdx,
                                            int localVarIdx);
+  RDTreeWidgetItem *makeDebugVariableNode(const ShaderVariable &v, rdcstr prefix, bool modified);
 
   const ShaderVariable *GetRegisterVariable(const DebugVariableReference &r);
 
@@ -276,6 +285,9 @@ private:
 
   void runTo(QVector<size_t> runToInstructions, bool forward,
              ShaderEvents condition = ShaderEvents::NoEvent);
+
+  void applyBackwardsChange();
+  void applyForwardsChange();
 
   QString stringRep(const ShaderVariable &var);
   void combineStructures(RDTreeWidgetItem *root, int skipPrefixLength = 0);

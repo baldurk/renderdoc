@@ -3810,7 +3810,7 @@ void BufferViewer::debugVertex()
     trace = r->DebugVertex(vertid, m_Config.curInstance, index, m_Ctx.CurDrawcall()->instanceOffset,
                            m_Ctx.CurDrawcall()->vertexOffset);
 
-    if(trace->states.isEmpty())
+    if(trace->debugger == NULL)
     {
       r->FreeTrace(trace);
       trace = NULL;

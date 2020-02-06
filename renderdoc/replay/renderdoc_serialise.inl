@@ -376,16 +376,25 @@ void DoSerialise(SerialiserType &ser, LineColumnInfo &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, ShaderVariableChange &el)
+{
+  SERIALISE_MEMBER(before);
+  SERIALISE_MEMBER(after);
+
+  SIZE_CHECK(384);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ShaderDebugState &el)
 {
-  SERIALISE_MEMBER(variables);
-  SERIALISE_MEMBER(sourceVars);
-  SERIALISE_MEMBER(modified);
   SERIALISE_MEMBER(nextInstruction);
+  SERIALISE_MEMBER(stepIndex);
   SERIALISE_MEMBER(flags);
+  SERIALISE_MEMBER(changes);
+  SERIALISE_MEMBER(sourceVars);
   SERIALISE_MEMBER(callstack);
 
-  SIZE_CHECK(104);
+  SIZE_CHECK(88);
 }
 
 template <typename SerialiserType>
@@ -396,11 +405,18 @@ void DoSerialise(SerialiserType &ser, ShaderDebugTrace &el)
   SERIALISE_MEMBER(readOnlyResources);
   SERIALISE_MEMBER(readWriteResources);
   SERIALISE_MEMBER(sourceVars);
-  SERIALISE_MEMBER(states);
-  SERIALISE_MEMBER(hasSourceMapping);
   SERIALISE_MEMBER(lineInfo);
+  SERIALISE_MEMBER(hasSourceMapping);
 
-  SIZE_CHECK(176);
+  // serialise the debugger pointer entirely opaquely, this is only used for replay proxying
+  uint64_t debugger = 0;
+  if(ser.IsWriting())
+    debugger = (uint64_t)(uintptr_t)el.debugger;
+  SERIALISE_ELEMENT(debugger);
+  if(ser.IsReading())
+    el.debugger = (ShaderDebugger *)debugger;
+
+  SIZE_CHECK(160);
 }
 
 template <typename SerialiserType>

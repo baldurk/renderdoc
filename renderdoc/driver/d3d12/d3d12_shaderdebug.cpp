@@ -64,7 +64,7 @@ static bool IsShaderParameterVisible(DXBC::ShaderType shaderType,
 class D3D12DebugAPIWrapper : public DXBCDebug::DebugAPIWrapper
 {
 public:
-  D3D12DebugAPIWrapper(WrappedID3D12Device *device, DXBC::DXBCContainer *dxbc,
+  D3D12DebugAPIWrapper(WrappedID3D12Device *device, const DXBC::DXBCContainer *dxbc,
                        DXBCDebug::GlobalState &globalState);
 
   void SetCurrentInstruction(uint32_t instruction) { m_instruction = instruction; }
@@ -94,12 +94,13 @@ public:
 private:
   DXBC::ShaderType GetShaderType() { return m_dxbc ? m_dxbc->m_Type : DXBC::ShaderType::Pixel; }
   WrappedID3D12Device *m_pDevice;
-  DXBC::DXBCContainer *m_dxbc;
+  const DXBC::DXBCContainer *m_dxbc;
   DXBCDebug::GlobalState &m_globalState;
   uint32_t m_instruction;
 };
 
-D3D12DebugAPIWrapper::D3D12DebugAPIWrapper(WrappedID3D12Device *device, DXBC::DXBCContainer *dxbc,
+D3D12DebugAPIWrapper::D3D12DebugAPIWrapper(WrappedID3D12Device *device,
+                                           const DXBC::DXBCContainer *dxbc,
                                            DXBCDebug::GlobalState &globalState)
     : m_pDevice(device), m_dxbc(dxbc), m_globalState(globalState), m_instruction(0)
 {
@@ -1038,7 +1039,8 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
 void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Program &program,
                            const D3D12RenderState::RootSignature &rootsig,
                            const ShaderReflection &refl, const ShaderBindpointMapping &mapping,
-                           ShaderDebugTrace &debugTrace)
+                           DXBCDebug::GlobalState &global,
+                           rdcarray<SourceVariableMapping> &sourceVars)
 {
   WrappedID3D12RootSignature *pD3D12RootSig =
       pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootsig.rootsig);
@@ -1058,7 +1060,7 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
         UINT sizeBytes = sizeof(uint32_t) * RDCMIN(rootSigParam.Constants.Num32BitValues,
                                                    (UINT)element.constants.size());
         bytebuf cbufData((const byte *)element.constants.data(), sizeBytes);
-        AddCBufferToDebugTrace(program, debugTrace, refl, mapping, slot, cbufData);
+        AddCBufferToGlobalState(program, global, sourceVars, refl, mapping, slot, cbufData);
       }
       else if(rootSigParam.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV && element.type == eRootCBV)
       {
@@ -1067,7 +1069,7 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
         ID3D12Resource *cbv = pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(element.id);
         bytebuf cbufData;
         pDevice->GetDebugManager()->GetBufferData(cbv, element.offset, 0, cbufData);
-        AddCBufferToDebugTrace(program, debugTrace, refl, mapping, slot, cbufData);
+        AddCBufferToGlobalState(program, global, sourceVars, refl, mapping, slot, cbufData);
       }
       else if(rootSigParam.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE &&
               element.type == eRootTable)
@@ -1122,7 +1124,7 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
                   pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(resId);
               cbufData.clear();
               pDevice->GetDebugManager()->GetBufferData(pCbvResource, element.offset, 0, cbufData);
-              AddCBufferToDebugTrace(program, debugTrace, refl, mapping, slot, cbufData);
+              AddCBufferToGlobalState(program, global, sourceVars, refl, mapping, slot, cbufData);
             }
           }
         }
@@ -1131,28 +1133,26 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
   }
 }
 
-ShaderDebugTrace D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                          uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
+                                           uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
   RDCUNIMPLEMENTED("Vertex debugging not yet implemented for D3D12");
-  ShaderDebugTrace ret;
-  return ret;
+  return new ShaderDebugTrace();
 }
 
 #if D3D12SHADERDEBUG_PIXEL == 0
 
-ShaderDebugTrace D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                                         uint32_t primitive)
+ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
+                                          uint32_t primitive)
 {
   RDCUNIMPLEMENTED("Pixel debugging not yet implemented for D3D12");
-  ShaderDebugTrace ret;
-  return ret;
+  return new ShaderDebugTrace();
 }
 
 #else
 
-ShaderDebugTrace D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                                         uint32_t primitive)
+ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
+                                          uint32_t primitive)
 {
   using namespace DXBC;
   using namespace DXBCBytecode;
@@ -1164,20 +1164,18 @@ ShaderDebugTrace D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
 
   const D3D12Pipe::State *pipelineState = GetD3D12PipelineState();
 
-  ShaderDebugTrace empty;
-
   // Fetch the disassembly info from the pixel shader
   const D3D12Pipe::Shader &pixelShader = pipelineState->pixelShader;
   WrappedID3D12Shader *ps =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(pixelShader.resourceId);
   if(!ps)
-    return empty;
+    return new ShaderDebugTrace;
 
   DXBCContainer *dxbc = ps->GetDXBC();
   const ShaderReflection &refl = ps->GetDetails();
 
   if(!dxbc)
-    return empty;
+    return new ShaderDebugTrace;
 
   dxbc->GetDisassembly();
 
@@ -1230,7 +1228,7 @@ ShaderDebugTrace D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   if(outputSampleCount > 1)
   {
     RDCUNIMPLEMENTED("MSAA debugging not yet implemented for D3D12");
-    return empty;
+    return new ShaderDebugTrace;
   }
 
   extractHlsl += R"(
@@ -1298,7 +1296,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
                                                 "ps_5_0", &psBlob) != "")
   {
     RDCERR("Failed to create shader to extract inputs");
-    return empty;
+    return new ShaderDebugTrace;
   }
 
   uint32_t structStride = sizeof(uint32_t)       // uint hit;
@@ -1343,7 +1341,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   {
     RDCERR("Failed to create buffer for pixel shader debugging HRESULT: %s", ToStr(hr).c_str());
     SAFE_RELEASE(psBlob);
-    return empty;
+    return new ShaderDebugTrace;
   }
 
   // Create UAV of initial values buffer
@@ -1410,7 +1408,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     SAFE_RELEASE(root);
     SAFE_RELEASE(psBlob);
     SAFE_RELEASE(pInitialValuesBuffer);
-    return empty;
+    return new ShaderDebugTrace;
   }
   SAFE_RELEASE(root);
 
@@ -1435,7 +1433,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     SAFE_RELEASE(psBlob);
     SAFE_RELEASE(pInitialValuesBuffer);
     SAFE_RELEASE(pRootSignature);
-    return empty;
+    return new ShaderDebugTrace;
   }
 
   // Add the descriptor for our UAV, then clear it
@@ -1459,7 +1457,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     SAFE_RELEASE(pInitialValuesBuffer);
     SAFE_RELEASE(pRootSignature);
     SAFE_RELEASE(initialPso);
-    return empty;
+    return new ShaderDebugTrace;
   }
 
   {
@@ -1500,7 +1498,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   if(buf[0].numHits == 0)
   {
     RDCLOG("No hit for this event");
-    return empty;
+    return new ShaderDebugTrace;
   }
 
   // if we encounter multiple hits at our destination pixel co-ord (or any other) we
@@ -1567,43 +1565,28 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   if(pWinnerHit == NULL)
   {
     RDCLOG("Couldn't find any pixels that passed depth test at target coordinates");
-    return empty;
+    return new ShaderDebugTrace;
   }
 
-  ShaderDebugTrace ret;
-
-  GlobalState global;
-  global.PopulateGroupshared(dxbc->GetDXBCByteCode());
-
-  State quad[4] = {
-      // top-left
-      State(0, &global, dxbc),
-      // top-right
-      State(1, &global, dxbc),
-      // bottom-left
-      State(2, &global, dxbc),
-      // bottom-right
-      State(3, &global, dxbc),
-  };
-
-  CreateShaderDebugStateAndTrace(quad[destIdx], ret, dxbc, refl, origPSO->PS()->GetMapping());
+  InterpretDebugger *interpreter = new InterpretDebugger;
+  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, origPSO->PS()->GetMapping(), destIdx);
+  GlobalState &global = interpreter->global;
+  ThreadState &state = interpreter->activeLane();
 
   // Fetch constant buffer data from root signature
   GatherConstantBuffers(m_pDevice, *dxbc->GetDXBCByteCode(), rs.graphics, refl,
-                        origPSO->PS()->GetMapping(), ret);
-
-  global.constantBlocks = ret.constantBlocks;
+                        origPSO->PS()->GetMapping(), global, ret->sourceVars);
 
   {
     DebugHit *pHit = pWinnerHit;
 
-    rdcarray<ShaderVariable> &ins = quad[destIdx].inputs;
+    rdcarray<ShaderVariable> &ins = state.inputs;
     if(!ins.empty() && ins.back().name == "vCoverage")
       ins.back().value.u.x = pHit->coverage;
 
-    quad[destIdx].semantics.coverage = pHit->coverage;
-    quad[destIdx].semantics.primID = pHit->primitive;
-    quad[destIdx].semantics.isFrontFace = pHit->isFrontFace;
+    state.semantics.coverage = pHit->coverage;
+    state.semantics.primID = pHit->primitive;
+    state.semantics.isFrontFace = pHit->isFrontFace;
 
     uint32_t *data = &pHit->rawdata;
 
@@ -1613,7 +1596,9 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     if(*pos_ddx != 1.0f)
     {
       RDCERR("Derivatives invalid");
-      return empty;
+      delete interpreter;
+      delete ret;
+      return new ShaderDebugTrace;
     }
 
     data++;
@@ -1656,162 +1641,26 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
     for(int i = 0; i < 4; i++)
     {
-      quad[i].inputs = quad[destIdx].inputs;
-      quad[i].semantics = quad[destIdx].semantics;
-      quad[i].variables = quad[destIdx].variables;
-      quad[i].SetHelper();
+      if(i != destIdx)
+      {
+        interpreter->workgroup[i].inputs = state.inputs;
+        interpreter->workgroup[i].semantics = state.semantics;
+        interpreter->workgroup[i].variables = state.variables;
+        interpreter->workgroup[i].SetHelper();
+      }
     }
 
     // TODO: Handle inputs that were evaluated at sample granularity (MSAA)
 
-    ApplyAllDerivatives(global, quad, destIdx, initialValues, (float *)data);
+    ApplyAllDerivatives(global, interpreter->workgroup, destIdx, initialValues, (float *)data);
   }
 
-  ret.inputs = quad[destIdx].inputs;
+  ret->constantBlocks = global.constantBlocks;
+  ret->inputs = state.inputs;
 
-  rdcarray<ShaderDebugState> states;
+  ret->hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
 
-  dxbc->FillStateInstructionInfo(quad[destIdx]);
-
-  states.push_back(quad[destIdx]);
-
-  // ping pong between so that we can have 'current' quad to update into new one
-  State quad2[4] = {
-      State(0, &global, dxbc), State(1, &global, dxbc), State(2, &global, dxbc),
-      State(3, &global, dxbc),
-  };
-
-  State *curquad = quad;
-  State *newquad = quad2;
-
-  // marks any threads stalled waiting for others to catch up
-  bool activeMask[4] = {true, true, true, true};
-
-  int cycleCounter = 0;
-
-  D3D12MarkerRegion simloop(m_pDevice->GetQueue()->GetReal(), "Simulation Loop");
-
-  D3D12DebugAPIWrapper apiWrapper(m_pDevice, dxbc, global);
-
-  // simulate lockstep until all threads are finished
-  bool finished = true;
-  do
-  {
-    for(size_t i = 0; i < 4; i++)
-    {
-      if(activeMask[i])
-        newquad[i] = curquad[i].GetNext(&apiWrapper, curquad);
-      else
-        newquad[i] = curquad[i];
-    }
-
-    State *a = curquad;
-    curquad = newquad;
-    newquad = a;
-
-    // if our destination quad is paused don't record multiple identical states.
-    if(activeMask[destIdx])
-    {
-      State &s = curquad[destIdx];
-
-      dxbc->FillStateInstructionInfo(s);
-
-      states.push_back(s);
-    }
-
-    // we need to make sure that control flow which converges stays in lockstep so that
-    // derivatives are still valid. While diverged, we don't have to keep threads in lockstep
-    // since using derivatives is invalid.
-
-    // Threads diverge either in ifs, loops, or switches. Due to the nature of the bytecode,
-    // all threads *must* pass through the same exit instruction for each, there's no jumping
-    // around with gotos. Note also for the same reason, the only time threads are on earlier
-    // instructions is if they are still catching up to a thread that has exited the control
-    // flow.
-
-    // So the scheme is as follows:
-    // * If all threads have the same nextInstruction, just continue we are still in lockstep.
-    // * If threads are out of lockstep, find any thread which has nextInstruction pointing
-    //   immediately *after* an ENDIF, ENDLOOP or ENDSWITCH. Pointing directly at one is not
-    //   an indication the thread is done, as the next step for an ENDLOOP will jump back to
-    //   the matching LOOP and continue iterating.
-    // * Pause any thread matching the above until all threads are pointing to the same
-    //   instruction. By the assumption above, all threads will eventually pass through this
-    //   terminating instruction so we just pause any other threads and don't do anything
-    //   until the control flow has converged and we can continue stepping in lockstep.
-
-    // mark all threads as active again.
-    // if we've converged, or we were never diverged, this keeps everything ticking
-    activeMask[0] = activeMask[1] = activeMask[2] = activeMask[3] = true;
-
-    if(curquad[0].nextInstruction != curquad[1].nextInstruction ||
-       curquad[0].nextInstruction != curquad[2].nextInstruction ||
-       curquad[0].nextInstruction != curquad[3].nextInstruction)
-    {
-      // this isn't *perfect* but it will still eventually continue. We look for the most
-      // advanced thread, and check to see if it's just finished a control flow. If it has
-      // then we assume it's at the convergence point and wait for every other thread to
-      // catch up, pausing any threads that reach the convergence point before others.
-
-      // Note this might mean we don't have any threads paused even within divergent flow.
-      // This is fine and all we care about is pausing to make sure threads don't run ahead
-      // into code that should be lockstep. We don't care at all about what they do within
-      // the code that is divergent.
-
-      // The reason this isn't perfect is that the most advanced thread could be on an
-      // inner loop or inner if, not the convergence point, and we could be pausing it
-      // fruitlessly. Worse still - it could be on a branch none of the other threads will
-      // take so they will never reach that exact instruction.
-      // But we know that all threads will eventually go through the convergence point, so
-      // even in that worst case if we didn't pick the right waiting point, another thread
-      // will overtake and become the new most advanced thread and the previous waiting
-      // thread will resume. So in this case we caused a thread to wait more than it should
-      // have but that's not a big deal as it's within divergent flow so they don't have to
-      // stay in lockstep. Also if all threads will eventually pass that point we picked,
-      // we just waited to converge even in technically divergent code which is also
-      // harmless.
-
-      // Phew!
-
-      uint32_t convergencePoint = 0;
-
-      // find which thread is most advanced
-      for(size_t i = 0; i < 4; i++)
-        if(curquad[i].nextInstruction > convergencePoint)
-          convergencePoint = curquad[i].nextInstruction;
-
-      if(convergencePoint > 0)
-      {
-        OpcodeType op = dxbc->GetDXBCByteCode()->GetInstruction(convergencePoint - 1).operation;
-
-        // if the most advnaced thread hasn't just finished control flow, then all
-        // threads are still running, so don't converge
-        if(op != OPCODE_ENDIF && op != OPCODE_ENDLOOP && op != OPCODE_ENDSWITCH)
-          convergencePoint = 0;
-      }
-
-      // pause any threads at that instruction (could be none)
-      for(size_t i = 0; i < 4; i++)
-        if(curquad[i].nextInstruction == convergencePoint)
-          activeMask[i] = false;
-    }
-
-    finished = curquad[destIdx].Finished();
-
-    cycleCounter++;
-
-    if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
-    {
-      if(PromptDebugTimeout(cycleCounter))
-        break;
-    }
-  } while(!finished);
-
-  ret.states = states;
-
-  ret.hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
-
-  dxbc->FillTraceLineInfo(ret);
+  dxbc->FillTraceLineInfo(*ret);
 
   return ret;
 }
@@ -1820,18 +1669,17 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
 
 #if D3D12SHADERDEBUG_THREAD == 0
 
-ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                          const uint32_t threadid[3])
+ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
+                                           const uint32_t threadid[3])
 {
   RDCUNIMPLEMENTED("Compute shader debugging not yet implemented for D3D12");
-  ShaderDebugTrace ret;
-  return ret;
+  return new ShaderDebugTrace();
 }
 
 #else
 
-ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                          const uint32_t threadid[3])
+ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
+                                           const uint32_t threadid[3])
 {
   using namespace DXBCBytecode;
   using namespace DXBCDebug;
@@ -1841,78 +1689,47 @@ ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t group
       StringFormat::Fmt("DebugThread @ %u: [%u, %u, %u] (%u, %u, %u)", eventId, groupid[0],
                         groupid[1], groupid[2], threadid[0], threadid[1], threadid[2]));
 
-  ShaderDebugTrace empty;
-
   const D3D12Pipe::State *pipelineState = GetD3D12PipelineState();
   const D3D12Pipe::Shader &computeShader = pipelineState->computeShader;
   WrappedID3D12Shader *cs =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(computeShader.resourceId);
   if(!cs)
-    return empty;
+    return new ShaderDebugTrace;
 
   DXBC::DXBCContainer *dxbc = cs->GetDXBC();
   const ShaderReflection &refl = cs->GetDetails();
 
   if(!dxbc)
-    return empty;
+    return new ShaderDebugTrace;
 
   dxbc->GetDisassembly();
 
   D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
-  ShaderDebugTrace ret;
-
   WrappedID3D12PipelineState *pso =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
 
-  GlobalState global;
-  global.PopulateGroupshared(dxbc->GetDXBCByteCode());
-  State initialState(-1, &global, dxbc);
-  CreateShaderDebugStateAndTrace(initialState, ret, dxbc, refl, pso->CS()->GetMapping());
+  InterpretDebugger *interpreter = new InterpretDebugger;
+  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, pso->CS()->GetMapping(), 0);
+  GlobalState &global = interpreter->global;
+  ThreadState &state = interpreter->activeLane();
 
   GatherConstantBuffers(m_pDevice, *dxbc->GetDXBCByteCode(), rs.compute, refl,
-                        pso->CS()->GetMapping(), ret);
-
-  global.constantBlocks = ret.constantBlocks;
+                        pso->CS()->GetMapping(), global, ret->sourceVars);
 
   for(int i = 0; i < 3; i++)
   {
-    initialState.semantics.GroupID[i] = groupid[i];
-    initialState.semantics.ThreadID[i] = threadid[i];
+    state.semantics.GroupID[i] = groupid[i];
+    state.semantics.ThreadID[i] = threadid[i];
   }
 
-  rdcarray<ShaderDebugState> states;
+  ret->constantBlocks = global.constantBlocks;
 
-  dxbc->FillStateInstructionInfo(initialState);
+  ret->hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
 
-  states.push_back((State)initialState);
+  dxbc->FillTraceLineInfo(*ret);
 
-  D3D12DebugAPIWrapper apiWrapper(m_pDevice, dxbc, global);
-
-  for(int cycleCounter = 0;; cycleCounter++)
-  {
-    if(initialState.Finished())
-      break;
-
-    initialState = initialState.GetNext(&apiWrapper, NULL);
-
-    dxbc->FillStateInstructionInfo(initialState);
-
-    states.push_back((State)initialState);
-
-    if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
-    {
-      if(PromptDebugTimeout(cycleCounter))
-        break;
-    }
-  }
-
-  ret.states = states;
-
-  ret.hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
-
-  dxbc->FillTraceLineInfo(ret);
-
+  // add fake inputs for semantics
   for(size_t i = 0; i < dxbc->GetDXBCByteCode()->GetNumDeclarations(); i++)
   {
     const DXBCBytecode::Declaration &decl = dxbc->GetDXBCByteCode()->GetDeclaration(i);
@@ -1931,38 +1748,37 @@ ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t group
       switch(decl.operand.type)
       {
         case TYPE_INPUT_THREAD_GROUP_ID:
-          memcpy(v.value.uv, initialState.semantics.GroupID, sizeof(uint32_t) * 3);
+          memcpy(v.value.uv, state.semantics.GroupID, sizeof(uint32_t) * 3);
           v.columns = 3;
           break;
         case TYPE_INPUT_THREAD_ID_IN_GROUP:
-          memcpy(v.value.uv, initialState.semantics.ThreadID, sizeof(uint32_t) * 3);
+          memcpy(v.value.uv, state.semantics.ThreadID, sizeof(uint32_t) * 3);
           v.columns = 3;
           break;
         case TYPE_INPUT_THREAD_ID:
-          v.value.u.x = initialState.semantics.GroupID[0] *
-                            dxbc->GetReflection()->DispatchThreadsDimension[0] +
-                        initialState.semantics.ThreadID[0];
-          v.value.u.y = initialState.semantics.GroupID[1] *
-                            dxbc->GetReflection()->DispatchThreadsDimension[1] +
-                        initialState.semantics.ThreadID[1];
-          v.value.u.z = initialState.semantics.GroupID[2] *
-                            dxbc->GetReflection()->DispatchThreadsDimension[2] +
-                        initialState.semantics.ThreadID[2];
+          v.value.u.x =
+              state.semantics.GroupID[0] * dxbc->GetReflection()->DispatchThreadsDimension[0] +
+              state.semantics.ThreadID[0];
+          v.value.u.y =
+              state.semantics.GroupID[1] * dxbc->GetReflection()->DispatchThreadsDimension[1] +
+              state.semantics.ThreadID[1];
+          v.value.u.z =
+              state.semantics.GroupID[2] * dxbc->GetReflection()->DispatchThreadsDimension[2] +
+              state.semantics.ThreadID[2];
           v.columns = 3;
           break;
         case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
-          v.value.u.x = initialState.semantics.ThreadID[2] *
-                            dxbc->GetReflection()->DispatchThreadsDimension[0] *
-                            dxbc->GetReflection()->DispatchThreadsDimension[1] +
-                        initialState.semantics.ThreadID[1] *
-                            dxbc->GetReflection()->DispatchThreadsDimension[0] +
-                        initialState.semantics.ThreadID[0];
+          v.value.u.x =
+              state.semantics.ThreadID[2] * dxbc->GetReflection()->DispatchThreadsDimension[0] *
+                  dxbc->GetReflection()->DispatchThreadsDimension[1] +
+              state.semantics.ThreadID[1] * dxbc->GetReflection()->DispatchThreadsDimension[0] +
+              state.semantics.ThreadID[0];
           v.columns = 1;
           break;
         default: v.columns = 4; break;
       }
 
-      ret.inputs.push_back(v);
+      ret->inputs.push_back(v);
     }
   }
 
@@ -1970,3 +1786,17 @@ ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventId, const uint32_t group
 }
 
 #endif    // D3D12SHADERDEBUG_THREAD
+
+rdcarray<ShaderDebugState> D3D12Replay::ContinueDebug(ShaderDebugger *debugger)
+{
+  DXBCDebug::InterpretDebugger *interpreter = (DXBCDebug::InterpretDebugger *)debugger;
+
+  if(!interpreter)
+    return NULL;
+
+  D3D12DebugAPIWrapper apiWrapper(m_pDevice, interpreter->dxbc, interpreter->global);
+
+  D3D12MarkerRegion region(m_pDevice->GetQueue()->GetReal(), "ContinueDebug Simulation Loop");
+
+  return interpreter->ContinueDebug(&apiWrapper);
+}

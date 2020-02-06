@@ -1626,9 +1626,8 @@ ShaderDebugTrace *ReplayController::DebugVertex(uint32_t vertid, uint32_t instid
 {
   CHECK_REPLAY_THREAD();
 
-  ShaderDebugTrace *ret = new ShaderDebugTrace;
-
-  *ret = m_pDevice->DebugVertex(m_EventID, vertid, instid, idx, instOffset, vertOffset);
+  ShaderDebugTrace *ret =
+      m_pDevice->DebugVertex(m_EventID, vertid, instid, idx, instOffset, vertOffset);
 
   SetFrameEvent(m_EventID, true);
 
@@ -1640,9 +1639,7 @@ ShaderDebugTrace *ReplayController::DebugPixel(uint32_t x, uint32_t y, uint32_t 
 {
   CHECK_REPLAY_THREAD();
 
-  ShaderDebugTrace *ret = new ShaderDebugTrace;
-
-  *ret = m_pDevice->DebugPixel(m_EventID, x, y, sample, primitive);
+  ShaderDebugTrace *ret = m_pDevice->DebugPixel(m_EventID, x, y, sample, primitive);
 
   SetFrameEvent(m_EventID, true);
 
@@ -1653,9 +1650,18 @@ ShaderDebugTrace *ReplayController::DebugThread(const uint32_t groupid[3], const
 {
   CHECK_REPLAY_THREAD();
 
-  ShaderDebugTrace *ret = new ShaderDebugTrace;
+  ShaderDebugTrace *ret = m_pDevice->DebugThread(m_EventID, groupid, threadid);
 
-  *ret = m_pDevice->DebugThread(m_EventID, groupid, threadid);
+  SetFrameEvent(m_EventID, true);
+
+  return ret;
+}
+
+rdcarray<ShaderDebugState> ReplayController::ContinueDebug(ShaderDebugger *debugger)
+{
+  CHECK_REPLAY_THREAD();
+
+  rdcarray<ShaderDebugState> ret = m_pDevice->ContinueDebug(debugger);
 
   SetFrameEvent(m_EventID, true);
 
@@ -1666,7 +1672,11 @@ void ReplayController::FreeTrace(ShaderDebugTrace *trace)
 {
   CHECK_REPLAY_THREAD();
 
-  delete trace;
+  if(trace)
+  {
+    SAFE_DELETE(trace->debugger);
+    delete trace;
+  }
 }
 
 rdcarray<ShaderVariable> ReplayController::GetCBufferVariableContents(

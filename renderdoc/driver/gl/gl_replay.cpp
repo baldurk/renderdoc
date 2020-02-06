@@ -3453,25 +3453,31 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
   return {};
 }
 
-ShaderDebugTrace GLReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                       uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+ShaderDebugTrace *GLReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
+                                        uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
   GLNOTIMP("DebugVertex");
-  return ShaderDebugTrace();
+  return new ShaderDebugTrace();
 }
 
-ShaderDebugTrace GLReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                                      uint32_t primitive)
+ShaderDebugTrace *GLReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
+                                       uint32_t primitive)
 {
   GLNOTIMP("DebugPixel");
-  return ShaderDebugTrace();
+  return new ShaderDebugTrace();
 }
 
-ShaderDebugTrace GLReplay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                       const uint32_t threadid[3])
+ShaderDebugTrace *GLReplay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
+                                        const uint32_t threadid[3])
 {
   GLNOTIMP("DebugThread");
-  return ShaderDebugTrace();
+  return new ShaderDebugTrace();
+}
+
+rdcarray<ShaderDebugState> GLReplay::ContinueDebug(ShaderDebugger *debugger)
+{
+  GLNOTIMP("ContinueDebug");
+  return {};
 }
 
 void GLReplay::MakeCurrentReplayContext(GLWindowingData *ctx)

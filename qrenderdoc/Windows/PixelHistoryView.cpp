@@ -720,7 +720,7 @@ void PixelHistoryView::startDebug(EventTag tag)
     trace = r->DebugPixel((uint32_t)m_Pixel.x(), (uint32_t)m_Pixel.y(),
                           m_Display.subresource.sample, tag.primitive);
 
-    if(trace->states.isEmpty())
+    if(trace->debugger == NULL)
     {
       r->FreeTrace(trace);
       trace = NULL;

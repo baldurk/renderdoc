@@ -874,6 +874,20 @@ bucket when the pixel values are divided between ``minval`` and ``maxval``.
 )");
   virtual ShaderDebugTrace *DebugThread(const uint32_t groupid[3], const uint32_t threadid[3]) = 0;
 
+  DOCUMENT(R"(Continue a shader's debugging with a given shader debugger instance. This will run an
+implementation defined number of steps and then return those steps in a list. This may be a fixed
+number of steps or it may run for a fixed length of time and return as many steps as can be
+calculated in that time.
+
+This will always perform at least one step. If the list is empty, the debugging process has
+completed, further calls will return an empty list.
+
+:param ShaderDebugger debugger: The shader debugger to continue running.
+:return: A number of subsequent states.
+:rtype: ``list`` of :class:`ShaderDebugTrace`
+)");
+  virtual rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger) = 0;
+
   DOCUMENT(R"(Free a debugging trace from running a shader invocation debug.
 
 :param ShaderDebugTrace trace: The shader debugging trace to free.

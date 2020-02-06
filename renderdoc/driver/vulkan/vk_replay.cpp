@@ -3871,25 +3871,31 @@ void VulkanReplay::RefreshDerivedReplacements()
     m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
 }
 
-ShaderDebugTrace VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                           uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
+                                            uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
   VULKANNOTIMP("DebugVertex");
-  return ShaderDebugTrace();
+  return new ShaderDebugTrace();
 }
 
-ShaderDebugTrace VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                                          uint32_t primitive)
+ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y,
+                                           uint32_t sample, uint32_t primitive)
 {
   VULKANNOTIMP("DebugPixel");
-  return ShaderDebugTrace();
+  return new ShaderDebugTrace();
 }
 
-ShaderDebugTrace VulkanReplay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                           const uint32_t threadid[3])
+ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
+                                            const uint32_t threadid[3])
 {
   VULKANNOTIMP("DebugThread");
-  return ShaderDebugTrace();
+  return new ShaderDebugTrace();
+}
+
+rdcarray<ShaderDebugState> VulkanReplay::ContinueDebug(ShaderDebugger *debugger)
+{
+  VULKANNOTIMP("ContinueDebug");
+  return {};
 }
 
 ResourceId VulkanReplay::CreateProxyTexture(const TextureDescription &templateTex)

@@ -53,7 +53,7 @@ struct DebugHit
 class D3D11DebugAPIWrapper : public DXBCDebug::DebugAPIWrapper
 {
 public:
-  D3D11DebugAPIWrapper(WrappedID3D11Device *device, DXBC::DXBCContainer *dxbc,
+  D3D11DebugAPIWrapper(WrappedID3D11Device *device, const DXBC::DXBCContainer *dxbc,
                        DXBCDebug::GlobalState &globalState);
 
   void SetCurrentInstruction(uint32_t instruction) { m_instruction = instruction; }
@@ -82,12 +82,13 @@ public:
 private:
   DXBC::ShaderType GetShaderType() { return m_dxbc ? m_dxbc->m_Type : DXBC::ShaderType::Pixel; }
   WrappedID3D11Device *m_pDevice;
-  DXBC::DXBCContainer *m_dxbc;
+  const DXBC::DXBCContainer *m_dxbc;
   DXBCDebug::GlobalState &m_globalState;
   uint32_t m_instruction;
 };
 
-D3D11DebugAPIWrapper::D3D11DebugAPIWrapper(WrappedID3D11Device *device, DXBC::DXBCContainer *dxbc,
+D3D11DebugAPIWrapper::D3D11DebugAPIWrapper(WrappedID3D11Device *device,
+                                           const DXBC::DXBCContainer *dxbc,
                                            DXBCDebug::GlobalState &globalState)
     : m_pDevice(device), m_dxbc(dxbc), m_globalState(globalState), m_instruction(0)
 {
@@ -1698,9 +1699,11 @@ bool D3D11DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
   return true;
 }
 
-void AddCBuffersToDebugTrace(const DXBCBytecode::Program &program, D3D11DebugManager &debugManager,
-                             ShaderDebugTrace &trace, const D3D11RenderState::Shader &shader,
-                             const ShaderReflection &refl, const ShaderBindpointMapping &mapping)
+void AddCBuffersToGlobalState(const DXBCBytecode::Program &program, D3D11DebugManager &debugManager,
+                              DXBCDebug::GlobalState &global,
+                              rdcarray<SourceVariableMapping> &sourceVars,
+                              const D3D11RenderState::Shader &shader, const ShaderReflection &refl,
+                              const ShaderBindpointMapping &mapping)
 {
   bytebuf cbufData;
   for(int i = 0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
@@ -1712,21 +1715,19 @@ void AddCBuffersToDebugTrace(const DXBCBytecode::Program &program, D3D11DebugMan
       debugManager.GetBufferData(shader.ConstantBuffers[i], shader.CBOffsets[i] * sizeof(Vec4f),
                                  shader.CBCounts[i] * sizeof(Vec4f), cbufData);
 
-      AddCBufferToDebugTrace(program, trace, refl, mapping, slot, cbufData);
+      AddCBufferToGlobalState(program, global, sourceVars, refl, mapping, slot, cbufData);
     }
   }
 }
 
-ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                          uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
+                                           uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
   using namespace DXBCBytecode;
   using namespace DXBCDebug;
 
-  D3D11MarkerRegion debugpixRegion(
+  D3D11MarkerRegion region(
       StringFormat::Fmt("DebugVertex @ %u of (%u,%u,%u)", eventId, vertid, instid, idx));
-
-  ShaderDebugTrace empty;
 
   const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
 
@@ -1740,13 +1741,13 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
   SAFE_RELEASE(stateVS);
 
   if(!vs)
-    return empty;
+    return new ShaderDebugTrace;
 
   DXBC::DXBCContainer *dxbc = vs->GetDXBC();
   const ShaderReflection &refl = vs->GetDetails();
 
   if(!dxbc)
-    return empty;
+    return new ShaderDebugTrace;
 
   dxbc->GetDisassembly();
 
@@ -1811,19 +1812,15 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
     }
   }
 
-  ShaderDebugTrace ret;
+  InterpretDebugger *interpreter = new InterpretDebugger;
+  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, vs->GetMapping(), 0);
+  GlobalState &global = interpreter->global;
+  ThreadState &state = interpreter->activeLane();
 
-  GlobalState global;
-  global.PopulateGroupshared(dxbc->GetDXBCByteCode());
-  State initialState(-1, &global, dxbc);
-  CreateShaderDebugStateAndTrace(initialState, ret, dxbc, refl, vs->GetMapping());
+  AddCBuffersToGlobalState(*dxbc->GetDXBCByteCode(), *GetDebugManager(), global, ret->sourceVars,
+                           rs->VS, refl, vs->GetMapping());
 
-  AddCBuffersToDebugTrace(*dxbc->GetDXBCByteCode(), *GetDebugManager(), ret, rs->VS, refl,
-                          vs->GetMapping());
-
-  global.constantBlocks = ret.constantBlocks;
-
-  for(size_t i = 0; i < ret.inputs.size(); i++)
+  for(size_t i = 0; i < state.inputs.size(); i++)
   {
     if(dxbc->GetReflection()->InputSig[i].systemValue == ShaderBuiltin::Undefined ||
        dxbc->GetReflection()->InputSig[i].systemValue ==
@@ -1894,17 +1891,17 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
       // more data needed than is provided
       if(dxbc->GetReflection()->InputSig[i].compCount > fmt.compCount)
       {
-        ret.inputs[i].value.u.w = 1;
+        state.inputs[i].value.u.w = 1;
 
         if(fmt.compType == CompType::Float)
-          ret.inputs[i].value.f.w = 1.0f;
+          state.inputs[i].value.f.w = 1.0f;
       }
 
       // interpret resource format types
       if(fmt.Special())
       {
-        Vec3f *v3 = (Vec3f *)ret.inputs[i].value.fv;
-        Vec4f *v4 = (Vec4f *)ret.inputs[i].value.fv;
+        Vec3f *v3 = (Vec3f *)state.inputs[i].value.fv;
+        Vec4f *v4 = (Vec4f *)state.inputs[i].value.fv;
 
         // only pull in all or nothing from these,
         // if there's only e.g. 3 bytes remaining don't read and unpack some of
@@ -1916,8 +1913,8 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
         if(srcData == NULL || packedsize > dataSize)
         {
-          ret.inputs[i].value.u.x = ret.inputs[i].value.u.y = ret.inputs[i].value.u.z =
-              ret.inputs[i].value.u.w = 0;
+          state.inputs[i].value.u.x = state.inputs[i].value.u.y = state.inputs[i].value.u.z =
+              state.inputs[i].value.u.w = 0;
         }
         else if(fmt.type == ResourceFormatType::R5G5B5A1)
         {
@@ -1943,10 +1940,10 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
           if(fmt.compType == CompType::UInt)
           {
-            ret.inputs[i].value.u.z = (packed >> 0) & 0x3ff;
-            ret.inputs[i].value.u.y = (packed >> 10) & 0x3ff;
-            ret.inputs[i].value.u.x = (packed >> 20) & 0x3ff;
-            ret.inputs[i].value.u.w = (packed >> 30) & 0x003;
+            state.inputs[i].value.u.z = (packed >> 0) & 0x3ff;
+            state.inputs[i].value.u.y = (packed >> 10) & 0x3ff;
+            state.inputs[i].value.u.x = (packed >> 20) & 0x3ff;
+            state.inputs[i].value.u.w = (packed >> 30) & 0x003;
           }
           else
           {
@@ -1965,7 +1962,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
         {
           if(srcData == NULL || fmt.compByteWidth > dataSize)
           {
-            ret.inputs[i].value.uv[c] = 0;
+            state.inputs[i].value.uv[c] = 0;
             continue;
           }
 
@@ -1976,20 +1973,20 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
             byte *src = srcData + c * fmt.compByteWidth;
 
             if(fmt.compType == CompType::UInt)
-              ret.inputs[i].value.uv[c] = *src;
+              state.inputs[i].value.uv[c] = *src;
             else if(fmt.compType == CompType::SInt)
-              ret.inputs[i].value.iv[c] = *((int8_t *)src);
+              state.inputs[i].value.iv[c] = *((int8_t *)src);
             else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::UNormSRGB)
-              ret.inputs[i].value.fv[c] = float(*src) / 255.0f;
+              state.inputs[i].value.fv[c] = float(*src) / 255.0f;
             else if(fmt.compType == CompType::SNorm)
             {
               signed char *schar = (signed char *)src;
 
               // -128 is mapped to -1, then -127 to -127 are mapped to -1 to 1
               if(*schar == -128)
-                ret.inputs[i].value.fv[c] = -1.0f;
+                state.inputs[i].value.fv[c] = -1.0f;
               else
-                ret.inputs[i].value.fv[c] = float(*schar) / 127.0f;
+                state.inputs[i].value.fv[c] = float(*schar) / 127.0f;
             }
             else
               RDCERR("Unexpected component type");
@@ -1999,22 +1996,22 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
             uint16_t *src = (uint16_t *)(srcData + c * fmt.compByteWidth);
 
             if(fmt.compType == CompType::Float)
-              ret.inputs[i].value.fv[c] = ConvertFromHalf(*src);
+              state.inputs[i].value.fv[c] = ConvertFromHalf(*src);
             else if(fmt.compType == CompType::UInt)
-              ret.inputs[i].value.uv[c] = *src;
+              state.inputs[i].value.uv[c] = *src;
             else if(fmt.compType == CompType::SInt)
-              ret.inputs[i].value.iv[c] = *((int16_t *)src);
+              state.inputs[i].value.iv[c] = *((int16_t *)src);
             else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::UNormSRGB)
-              ret.inputs[i].value.fv[c] = float(*src) / float(UINT16_MAX);
+              state.inputs[i].value.fv[c] = float(*src) / float(UINT16_MAX);
             else if(fmt.compType == CompType::SNorm)
             {
               int16_t *sint = (int16_t *)src;
 
               // -32768 is mapped to -1, then -32767 to -32767 are mapped to -1 to 1
               if(*sint == -32768)
-                ret.inputs[i].value.fv[c] = -1.0f;
+                state.inputs[i].value.fv[c] = -1.0f;
               else
-                ret.inputs[i].value.fv[c] = float(*sint) / 32767.0f;
+                state.inputs[i].value.fv[c] = float(*sint) / 32767.0f;
             }
             else
               RDCERR("Unexpected component type");
@@ -2025,7 +2022,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
 
             if(fmt.compType == CompType::Float || fmt.compType == CompType::UInt ||
                fmt.compType == CompType::SInt)
-              memcpy(&ret.inputs[i].value.uv[c], src, 4);
+              memcpy(&state.inputs[i].value.uv[c], src, 4);
             else
               RDCERR("Unexpected component type");
           }
@@ -2034,7 +2031,7 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
         if(fmt.BGRAOrder())
         {
           RDCASSERT(fmt.compCount == 4);
-          std::swap(ret.inputs[i].value.fv[2], ret.inputs[i].value.fv[0]);
+          std::swap(state.inputs[i].value.fv[2], state.inputs[i].value.fv[0]);
         }
       }
     }
@@ -2046,20 +2043,20 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
         sv_vertid = idx;
 
       if(dxbc->GetReflection()->InputSig[i].compType == CompType::Float)
-        ret.inputs[i].value.f.x = ret.inputs[i].value.f.y = ret.inputs[i].value.f.z =
-            ret.inputs[i].value.f.w = (float)sv_vertid;
+        state.inputs[i].value.f.x = state.inputs[i].value.f.y = state.inputs[i].value.f.z =
+            state.inputs[i].value.f.w = (float)sv_vertid;
       else
-        ret.inputs[i].value.u.x = ret.inputs[i].value.u.y = ret.inputs[i].value.u.z =
-            ret.inputs[i].value.u.w = sv_vertid;
+        state.inputs[i].value.u.x = state.inputs[i].value.u.y = state.inputs[i].value.u.z =
+            state.inputs[i].value.u.w = sv_vertid;
     }
     else if(dxbc->GetReflection()->InputSig[i].systemValue == ShaderBuiltin::InstanceIndex)
     {
       if(dxbc->GetReflection()->InputSig[i].compType == CompType::Float)
-        ret.inputs[i].value.f.x = ret.inputs[i].value.f.y = ret.inputs[i].value.f.z =
-            ret.inputs[i].value.f.w = (float)instid;
+        state.inputs[i].value.f.x = state.inputs[i].value.f.y = state.inputs[i].value.f.z =
+            state.inputs[i].value.f.w = (float)instid;
       else
-        ret.inputs[i].value.u.x = ret.inputs[i].value.u.y = ret.inputs[i].value.u.z =
-            ret.inputs[i].value.u.w = instid;
+        state.inputs[i].value.u.x = state.inputs[i].value.u.y = state.inputs[i].value.u.z =
+            state.inputs[i].value.u.w = instid;
     }
     else
     {
@@ -2067,55 +2064,25 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uin
     }
   }
 
+  ret->constantBlocks = global.constantBlocks;
+  ret->inputs = state.inputs;
+  ret->hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
+
   delete[] instData;
 
-  rdcarray<ShaderDebugState> states;
-
-  dxbc->FillStateInstructionInfo(initialState);
-
-  states.push_back((State)initialState);
-
-  D3D11MarkerRegion simloop("Simulation Loop");
-
-  D3D11DebugAPIWrapper apiWrapper(m_pDevice, dxbc, global);
-
-  for(int cycleCounter = 0;; cycleCounter++)
-  {
-    if(initialState.Finished())
-      break;
-
-    initialState = initialState.GetNext(&apiWrapper, NULL);
-
-    dxbc->FillStateInstructionInfo(initialState);
-
-    states.push_back((State)initialState);
-
-    if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
-    {
-      if(PromptDebugTimeout(cycleCounter))
-        break;
-    }
-  }
-
-  ret.states = states;
-
-  ret.hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
-
-  dxbc->FillTraceLineInfo(ret);
+  dxbc->FillTraceLineInfo(*ret);
 
   return ret;
 }
 
-ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                                         uint32_t primitive)
+ShaderDebugTrace *D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
+                                          uint32_t primitive)
 {
   using namespace DXBCBytecode;
   using namespace DXBCDebug;
 
-  D3D11MarkerRegion debugpixRegion(
+  D3D11MarkerRegion region(
       StringFormat::Fmt("DebugPixel @ %u of (%u,%u) %u / %u", eventId, x, y, sample, primitive));
-
-  ShaderDebugTrace empty;
 
   D3D11RenderStateTracker tracker(m_pImmediateContext);
 
@@ -2149,7 +2116,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   SAFE_RELEASE(stateVS);
 
   if(!ps)
-    return empty;
+    return new ShaderDebugTrace;
 
   D3D11RenderState *rs = m_pImmediateContext->GetCurrentPipelineState();
 
@@ -2157,7 +2124,7 @@ ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t 
   const ShaderReflection &refl = ps->GetDetails();
 
   if(!dxbc)
-    return empty;
+    return new ShaderDebugTrace;
 
   dxbc->GetDisassembly();
 
@@ -2464,7 +2431,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   if(FAILED(hr))
   {
     RDCERR("Failed to create buffer HRESULT: %s", ToStr(hr).c_str());
-    return empty;
+    return new ShaderDebugTrace;
   }
 
   ID3D11Buffer *evalBuf = NULL;
@@ -2479,7 +2446,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     if(FAILED(hr))
     {
       RDCERR("Failed to create buffer HRESULT: %s", ToStr(hr).c_str());
-      return empty;
+      return new ShaderDebugTrace;
     }
   }
 
@@ -2496,7 +2463,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   if(FAILED(hr))
   {
     RDCERR("Failed to create buffer HRESULT: %s", ToStr(hr).c_str());
-    return empty;
+    return new ShaderDebugTrace;
   }
 
   uint32_t evalStructStride = uint32_t(evalSampleCacheData.size() * sizeof(Vec4f));
@@ -2511,7 +2478,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     if(FAILED(hr))
     {
       RDCERR("Failed to create buffer HRESULT: %s", ToStr(hr).c_str());
-      return empty;
+      return new ShaderDebugTrace;
     }
   }
 
@@ -2528,7 +2495,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   if(FAILED(hr))
   {
     RDCERR("Failed to create buffer HRESULT: %s", ToStr(hr).c_str());
-    return empty;
+    return new ShaderDebugTrace;
   }
 
   ID3D11UnorderedAccessView *evalUAV = NULL;
@@ -2541,7 +2508,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     if(FAILED(hr))
     {
       RDCERR("Failed to create buffer HRESULT: %s", ToStr(hr).c_str());
-      return empty;
+      return new ShaderDebugTrace;
     }
   }
 
@@ -2576,7 +2543,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   if(FAILED(hr))
   {
     RDCERR("Failed to map stage buff HRESULT: %s", ToStr(hr).c_str());
-    return empty;
+    return new ShaderDebugTrace;
   }
 
   byte *initialData = new byte[structStride * (overdrawLevels + 1)];
@@ -2594,7 +2561,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     {
       RDCERR("Failed to map stage buff HRESULT: %s", ToStr(hr).c_str());
       SAFE_DELETE_ARRAY(initialData);
-      return empty;
+      return new ShaderDebugTrace;
     }
 
     evalData = new byte[evalStructStride * (overdrawLevels + 1)];
@@ -2622,7 +2589,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     RDCLOG("No hit for this event");
     SAFE_DELETE_ARRAY(initialData);
     SAFE_DELETE_ARRAY(evalData);
-    return empty;
+    return new ShaderDebugTrace;
   }
 
   // if we encounter multiple hits at our destination pixel co-ord (or any other) we
@@ -2702,47 +2669,33 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     RDCLOG("Couldn't find any pixels that passed depth test at target co-ordinates");
     SAFE_DELETE_ARRAY(initialData);
     SAFE_DELETE_ARRAY(evalData);
-    return empty;
+    return new ShaderDebugTrace;
   }
-
-  ShaderDebugTrace ret;
 
   tracker.State().ApplyState(m_pImmediateContext);
 
-  GlobalState global;
-  global.PopulateGroupshared(dxbc->GetDXBCByteCode());
+  InterpretDebugger *interpreter = new InterpretDebugger;
+  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, ps->GetMapping(), destIdx);
+  GlobalState &global = interpreter->global;
+  ThreadState &state = interpreter->activeLane();
+
+  AddCBuffersToGlobalState(*dxbc->GetDXBCByteCode(), *GetDebugManager(), global, ret->sourceVars,
+                           rs->PS, refl, ps->GetMapping());
+
   global.sampleEvalRegisterMask = sampleEvalRegisterMask;
-
-  State quad[4] = {
-      // top-left
-      State(0, &global, dxbc),
-      // top-right
-      State(1, &global, dxbc),
-      // bottom-left
-      State(2, &global, dxbc),
-      // bottom-right
-      State(3, &global, dxbc),
-  };
-
-  CreateShaderDebugStateAndTrace(quad[destIdx], ret, dxbc, refl, ps->GetMapping());
-
-  AddCBuffersToDebugTrace(*dxbc->GetDXBCByteCode(), *GetDebugManager(), ret, rs->PS, refl,
-                          ps->GetMapping());
-
-  global.constantBlocks = ret.constantBlocks;
 
   {
     DebugHit *hit = winner;
 
-    rdcarray<ShaderVariable> &ins = quad[destIdx].inputs;
+    rdcarray<ShaderVariable> &ins = state.inputs;
     if(!ins.empty() &&
        ins.back().name ==
            dxbc->GetDXBCByteCode()->GetRegisterName(DXBCBytecode::TYPE_INPUT_COVERAGE_MASK, 0))
       ins.back().value.u.x = hit->coverage;
 
-    quad[destIdx].semantics.coverage = hit->coverage;
-    quad[destIdx].semantics.primID = hit->primitive;
-    quad[destIdx].semantics.isFrontFace = hit->isFrontFace;
+    state.semantics.coverage = hit->coverage;
+    state.semantics.primID = hit->primitive;
+    state.semantics.isFrontFace = hit->isFrontFace;
 
     uint32_t *data = &hit->rawdata;
 
@@ -2754,7 +2707,9 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
       RDCERR("Derivatives invalid");
       SAFE_DELETE_ARRAY(initialData);
       SAFE_DELETE_ARRAY(evalData);
-      return empty;
+      delete interpreter;
+      delete ret;
+      return new ShaderDebugTrace;
     }
 
     data++;
@@ -2799,10 +2754,10 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     {
       if(i != destIdx)
       {
-        quad[i].inputs = quad[destIdx].inputs;
-        quad[i].semantics = quad[destIdx].semantics;
-        quad[i].variables = quad[destIdx].variables;
-        quad[i].SetHelper();
+        interpreter->workgroup[i].inputs = state.inputs;
+        interpreter->workgroup[i].semantics = state.semantics;
+        interpreter->workgroup[i].variables = state.variables;
+        interpreter->workgroup[i].SetHelper();
       }
     }
 
@@ -2810,7 +2765,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
     for(const GlobalState::SampleEvalCacheKey &key : evalSampleCacheData)
     {
       // start with the basic input value
-      ShaderVariable var = ret.inputs[key.inputRegisterIndex];
+      ShaderVariable var = state.inputs[key.inputRegisterIndex];
 
       // copy over the value into the variable
       memcpy(var.value.fv, evalSampleCache, var.columns * sizeof(float));
@@ -2827,172 +2782,30 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
       evalSampleCache += 4;
     }
 
-    ApplyAllDerivatives(global, quad, destIdx, initialValues, (float *)data);
+    ApplyAllDerivatives(global, interpreter->workgroup, destIdx, initialValues, (float *)data);
   }
 
-  ret.inputs = quad[destIdx].inputs;
+  ret->inputs = state.inputs;
+  ret->constantBlocks = global.constantBlocks;
+  ret->hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
 
   SAFE_DELETE_ARRAY(initialData);
   SAFE_DELETE_ARRAY(evalData);
 
-  rdcarray<ShaderDebugState> states;
-
-  dxbc->FillStateInstructionInfo(quad[destIdx]);
-
-  states.push_back((State)quad[destIdx]);
-
-  // ping pong between so that we can have 'current' quad to update into new one
-  State quad2[4] = {
-      State(0, &global, dxbc), State(1, &global, dxbc), State(2, &global, dxbc),
-      State(3, &global, dxbc),
-  };
-
-  State *curquad = quad;
-  State *newquad = quad2;
-
-  // marks any threads stalled waiting for others to catch up
-  bool activeMask[4] = {true, true, true, true};
-
-  int cycleCounter = 0;
-
-  D3D11MarkerRegion simloop("Simulation Loop");
-
-  D3D11DebugAPIWrapper apiWrapper(m_pDevice, dxbc, global);
-
-  // simulate lockstep until all threads are finished
-  bool finished = true;
-  do
-  {
-    for(size_t i = 0; i < 4; i++)
-    {
-      if(activeMask[i])
-        newquad[i] = curquad[i].GetNext(&apiWrapper, curquad);
-      else
-        newquad[i] = curquad[i];
-    }
-
-    State *a = curquad;
-    curquad = newquad;
-    newquad = a;
-
-    // if our destination quad is paused don't record multiple identical states.
-    if(activeMask[destIdx])
-    {
-      State &s = curquad[destIdx];
-
-      dxbc->FillStateInstructionInfo(s);
-
-      states.push_back(s);
-    }
-
-    // we need to make sure that control flow which converges stays in lockstep so that
-    // derivatives are still valid. While diverged, we don't have to keep threads in lockstep
-    // since using derivatives is invalid.
-
-    // Threads diverge either in ifs, loops, or switches. Due to the nature of the bytecode,
-    // all threads *must* pass through the same exit instruction for each, there's no jumping
-    // around with gotos. Note also for the same reason, the only time threads are on earlier
-    // instructions is if they are still catching up to a thread that has exited the control
-    // flow.
-
-    // So the scheme is as follows:
-    // * If all threads have the same nextInstruction, just continue we are still in lockstep.
-    // * If threads are out of lockstep, find any thread which has nextInstruction pointing
-    //   immediately *after* an ENDIF, ENDLOOP or ENDSWITCH. Pointing directly at one is not
-    //   an indication the thread is done, as the next step for an ENDLOOP will jump back to
-    //   the matching LOOP and continue iterating.
-    // * Pause any thread matching the above until all threads are pointing to the same
-    //   instruction. By the assumption above, all threads will eventually pass through this
-    //   terminating instruction so we just pause any other threads and don't do anything
-    //   until the control flow has converged and we can continue stepping in lockstep.
-
-    // mark all threads as active again.
-    // if we've converged, or we were never diverged, this keeps everything ticking
-    activeMask[0] = activeMask[1] = activeMask[2] = activeMask[3] = true;
-
-    if(curquad[0].nextInstruction != curquad[1].nextInstruction ||
-       curquad[0].nextInstruction != curquad[2].nextInstruction ||
-       curquad[0].nextInstruction != curquad[3].nextInstruction)
-    {
-      // this isn't *perfect* but it will still eventually continue. We look for the most
-      // advanced thread, and check to see if it's just finished a control flow. If it has
-      // then we assume it's at the convergence point and wait for every other thread to
-      // catch up, pausing any threads that reach the convergence point before others.
-
-      // Note this might mean we don't have any threads paused even within divergent flow.
-      // This is fine and all we care about is pausing to make sure threads don't run ahead
-      // into code that should be lockstep. We don't care at all about what they do within
-      // the code that is divergent.
-
-      // The reason this isn't perfect is that the most advanced thread could be on an
-      // inner loop or inner if, not the convergence point, and we could be pausing it
-      // fruitlessly. Worse still - it could be on a branch none of the other threads will
-      // take so they will never reach that exact instruction.
-      // But we know that all threads will eventually go through the convergence point, so
-      // even in that worst case if we didn't pick the right waiting point, another thread
-      // will overtake and become the new most advanced thread and the previous waiting
-      // thread will resume. So in this case we caused a thread to wait more than it should
-      // have but that's not a big deal as it's within divergent flow so they don't have to
-      // stay in lockstep. Also if all threads will eventually pass that point we picked,
-      // we just waited to converge even in technically divergent code which is also
-      // harmless.
-
-      // Phew!
-
-      uint32_t convergencePoint = 0;
-
-      // find which thread is most advanced
-      for(size_t i = 0; i < 4; i++)
-        if(curquad[i].nextInstruction > convergencePoint)
-          convergencePoint = curquad[i].nextInstruction;
-
-      if(convergencePoint > 0)
-      {
-        OpcodeType op = dxbc->GetDXBCByteCode()->GetInstruction(convergencePoint - 1).operation;
-
-        // if the most advnaced thread hasn't just finished control flow, then all
-        // threads are still running, so don't converge
-        if(op != OPCODE_ENDIF && op != OPCODE_ENDLOOP && op != OPCODE_ENDSWITCH)
-          convergencePoint = 0;
-      }
-
-      // pause any threads at that instruction (could be none)
-      for(size_t i = 0; i < 4; i++)
-        if(curquad[i].nextInstruction == convergencePoint)
-          activeMask[i] = false;
-    }
-
-    finished = curquad[destIdx].Finished();
-
-    cycleCounter++;
-
-    if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
-    {
-      if(PromptDebugTimeout(cycleCounter))
-        break;
-    }
-  } while(!finished);
-
-  ret.states = states;
-
-  ret.hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
-
-  dxbc->FillTraceLineInfo(ret);
+  dxbc->FillTraceLineInfo(*ret);
 
   return ret;
 }
 
-ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                          const uint32_t threadid[3])
+ShaderDebugTrace *D3D11Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
+                                           const uint32_t threadid[3])
 {
   using namespace DXBCBytecode;
   using namespace DXBCDebug;
 
-  D3D11MarkerRegion simloop(StringFormat::Fmt("DebugThread @ %u: [%u, %u, %u] (%u, %u, %u)",
-                                              eventId, groupid[0], groupid[1], groupid[2],
-                                              threadid[0], threadid[1], threadid[2]));
-
-  ShaderDebugTrace empty;
+  D3D11MarkerRegion region(StringFormat::Fmt("DebugThread @ %u: [%u, %u, %u] (%u, %u, %u)", eventId,
+                                             groupid[0], groupid[1], groupid[2], threadid[0],
+                                             threadid[1], threadid[2]));
 
   D3D11RenderStateTracker tracker(m_pImmediateContext);
 
@@ -3004,68 +2817,38 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
   SAFE_RELEASE(stateCS);
 
   if(!cs)
-    return empty;
+    return new ShaderDebugTrace;
 
   DXBC::DXBCContainer *dxbc = cs->GetDXBC();
   const ShaderReflection &refl = cs->GetDetails();
 
   if(!dxbc)
-    return empty;
+    return new ShaderDebugTrace;
 
   dxbc->GetDisassembly();
 
   D3D11RenderState *rs = m_pImmediateContext->GetCurrentPipelineState();
 
-  ShaderDebugTrace ret;
+  InterpretDebugger *interpreter = new InterpretDebugger;
+  ShaderDebugTrace *ret = interpreter->BeginDebug(dxbc, refl, cs->GetMapping(), 0);
+  GlobalState &global = interpreter->global;
+  ThreadState &state = interpreter->activeLane();
 
-  GlobalState global;
-  global.PopulateGroupshared(dxbc->GetDXBCByteCode());
-  State initialState(-1, &global, dxbc);
-  CreateShaderDebugStateAndTrace(initialState, ret, dxbc, refl, cs->GetMapping());
-
-  AddCBuffersToDebugTrace(*dxbc->GetDXBCByteCode(), *GetDebugManager(), ret, rs->CS, refl,
-                          cs->GetMapping());
-
-  global.constantBlocks = ret.constantBlocks;
+  AddCBuffersToGlobalState(*dxbc->GetDXBCByteCode(), *GetDebugManager(), global, ret->sourceVars,
+                           rs->PS, refl, cs->GetMapping());
 
   for(int i = 0; i < 3; i++)
   {
-    initialState.semantics.GroupID[i] = groupid[i];
-    initialState.semantics.ThreadID[i] = threadid[i];
+    state.semantics.GroupID[i] = groupid[i];
+    state.semantics.ThreadID[i] = threadid[i];
   }
 
-  rdcarray<ShaderDebugState> states;
+  ret->constantBlocks = global.constantBlocks;
+  ret->hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
 
-  dxbc->FillStateInstructionInfo(initialState);
+  dxbc->FillTraceLineInfo(*ret);
 
-  states.push_back((State)initialState);
-
-  D3D11DebugAPIWrapper apiWrapper(m_pDevice, dxbc, global);
-
-  for(int cycleCounter = 0;; cycleCounter++)
-  {
-    if(initialState.Finished())
-      break;
-
-    initialState = initialState.GetNext(&apiWrapper, NULL);
-
-    dxbc->FillStateInstructionInfo(initialState);
-
-    states.push_back((State)initialState);
-
-    if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
-    {
-      if(PromptDebugTimeout(cycleCounter))
-        break;
-    }
-  }
-
-  ret.states = states;
-
-  ret.hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
-
-  dxbc->FillTraceLineInfo(ret);
-
+  // add fake inputs for semantics
   for(size_t i = 0; i < dxbc->GetDXBCByteCode()->GetNumDeclarations(); i++)
   {
     const DXBCBytecode::Declaration &decl = dxbc->GetDXBCByteCode()->GetDeclaration(i);
@@ -3084,40 +2867,53 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t eventId, const uint32_t group
       switch(decl.operand.type)
       {
         case TYPE_INPUT_THREAD_GROUP_ID:
-          memcpy(v.value.uv, initialState.semantics.GroupID, sizeof(uint32_t) * 3);
+          memcpy(v.value.uv, state.semantics.GroupID, sizeof(uint32_t) * 3);
           v.columns = 3;
           break;
         case TYPE_INPUT_THREAD_ID_IN_GROUP:
-          memcpy(v.value.uv, initialState.semantics.ThreadID, sizeof(uint32_t) * 3);
+          memcpy(v.value.uv, state.semantics.ThreadID, sizeof(uint32_t) * 3);
           v.columns = 3;
           break;
         case TYPE_INPUT_THREAD_ID:
-          v.value.u.x = initialState.semantics.GroupID[0] *
-                            dxbc->GetReflection()->DispatchThreadsDimension[0] +
-                        initialState.semantics.ThreadID[0];
-          v.value.u.y = initialState.semantics.GroupID[1] *
-                            dxbc->GetReflection()->DispatchThreadsDimension[1] +
-                        initialState.semantics.ThreadID[1];
-          v.value.u.z = initialState.semantics.GroupID[2] *
-                            dxbc->GetReflection()->DispatchThreadsDimension[2] +
-                        initialState.semantics.ThreadID[2];
+          v.value.u.x =
+              state.semantics.GroupID[0] * dxbc->GetReflection()->DispatchThreadsDimension[0] +
+              state.semantics.ThreadID[0];
+          v.value.u.y =
+              state.semantics.GroupID[1] * dxbc->GetReflection()->DispatchThreadsDimension[1] +
+              state.semantics.ThreadID[1];
+          v.value.u.z =
+              state.semantics.GroupID[2] * dxbc->GetReflection()->DispatchThreadsDimension[2] +
+              state.semantics.ThreadID[2];
           v.columns = 3;
           break;
         case TYPE_INPUT_THREAD_ID_IN_GROUP_FLATTENED:
-          v.value.u.x = initialState.semantics.ThreadID[2] *
-                            dxbc->GetReflection()->DispatchThreadsDimension[0] *
-                            dxbc->GetReflection()->DispatchThreadsDimension[1] +
-                        initialState.semantics.ThreadID[1] *
-                            dxbc->GetReflection()->DispatchThreadsDimension[0] +
-                        initialState.semantics.ThreadID[0];
+          v.value.u.x =
+              state.semantics.ThreadID[2] * dxbc->GetReflection()->DispatchThreadsDimension[0] *
+                  dxbc->GetReflection()->DispatchThreadsDimension[1] +
+              state.semantics.ThreadID[1] * dxbc->GetReflection()->DispatchThreadsDimension[0] +
+              state.semantics.ThreadID[0];
           v.columns = 1;
           break;
         default: v.columns = 4; break;
       }
 
-      ret.inputs.push_back(v);
+      ret->inputs.push_back(v);
     }
   }
 
   return ret;
+}
+
+rdcarray<ShaderDebugState> D3D11Replay::ContinueDebug(ShaderDebugger *debugger)
+{
+  DXBCDebug::InterpretDebugger *interpreter = (DXBCDebug::InterpretDebugger *)debugger;
+
+  if(!interpreter)
+    return NULL;
+
+  D3D11DebugAPIWrapper apiWrapper(m_pDevice, interpreter->dxbc, interpreter->global);
+
+  D3D11MarkerRegion region("ContinueDebug Simulation Loop");
+
+  return interpreter->ContinueDebug(&apiWrapper);
 }

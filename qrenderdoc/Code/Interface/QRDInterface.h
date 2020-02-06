@@ -588,13 +588,13 @@ struct IShaderViewer
 :return: The current step.
 :rtype: ``int``
 )");
-  virtual int CurrentStep() = 0;
+  virtual uint32_t CurrentStep() = 0;
 
   DOCUMENT(R"(Sets the current step in the debugging.
 
 :param int step: The current step to jump to.
 )");
-  virtual void SetCurrentStep(int step) = 0;
+  virtual void SetCurrentStep(uint32_t step) = 0;
 
   DOCUMENT(R"(Toggles a breakpoint at a given instruction.
 

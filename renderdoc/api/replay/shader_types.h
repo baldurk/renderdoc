@@ -494,6 +494,39 @@ treated as covering the code.
 };
 DECLARE_REFLECTION_STRUCT(LineColumnInfo);
 
+DOCUMENT("This stores the before and after state of a :class:`ShaderVariable`.");
+struct ShaderVariableChange
+{
+  DOCUMENT("");
+  ShaderVariableChange() = default;
+  ShaderVariableChange(const ShaderVariableChange &) = default;
+  ShaderVariableChange &operator=(const ShaderVariableChange &) = default;
+
+  bool operator==(const ShaderVariableChange &o) const
+  {
+    return before == o.before && after == o.after;
+  }
+  bool operator<(const ShaderVariableChange &o) const
+  {
+    if(!(before == o.before))
+      return before < o.before;
+    if(!(after == o.after))
+      return after < o.after;
+    return false;
+  }
+
+  DOCUMENT(R"(The value of the variable before the change. If this variable is uninitialised that
+means the variable came into existance on this step.
+)");
+  ShaderVariable before;
+
+  DOCUMENT(R"(The value of the variable after the change. If this variable is uninitialised that
+means the variable stopped existing on this step.
+)");
+  ShaderVariable after;
+};
+DECLARE_REFLECTION_STRUCT(ShaderVariableChange);
+
 DOCUMENT(R"(This stores the current state of shader debugging at one particular step in the shader,
 with all mutable variable contents.
 )");
@@ -506,24 +539,42 @@ struct ShaderDebugState
 
   bool operator==(const ShaderDebugState &o) const
   {
-    return variables == o.variables && sourceVars == o.sourceVars &&
-           nextInstruction == o.nextInstruction && flags == o.flags;
+    return nextInstruction == o.nextInstruction && flags == o.flags && changes == o.changes &&
+           sourceVars == o.sourceVars && stepIndex == o.stepIndex;
   }
   bool operator<(const ShaderDebugState &o) const
   {
-    if(!(variables == o.variables))
-      return variables < o.variables;
-    if(!(sourceVars == o.sourceVars))
-      return sourceVars < o.sourceVars;
     if(!(nextInstruction == o.nextInstruction))
       return nextInstruction < o.nextInstruction;
     if(!(flags == o.flags))
       return flags < o.flags;
+    if(!(stepIndex == o.stepIndex))
+      return stepIndex < o.stepIndex;
+    if(!(changes == o.changes))
+      return changes < o.changes;
+    if(!(sourceVars == o.sourceVars))
+      return sourceVars < o.sourceVars;
     return false;
   }
 
-  DOCUMENT("The mutable variables for this shader as a list of :class:`ShaderVariable`.");
-  rdcarray<ShaderVariable> variables;
+  DOCUMENT(R"(The next instruction to be executed after this state. The initial state before any
+shader execution happened will have ``nextInstruction == 0``.
+)");
+  uint32_t nextInstruction = 0;
+
+  DOCUMENT(R"(The program counter within the debug trace. The initial state will be index 0, and it
+will increment linearly after that regardless of loops or branching.
+)");
+  uint32_t stepIndex = 0;
+
+  DOCUMENT("A set of :class:`ShaderEvents` flags that indicate what events happened on this step.");
+  ShaderEvents flags = ShaderEvents::NoEvent;
+
+  DOCUMENT(R"(The changes in mutable variables for this shader as a list of
+:class:`ShaderVariableChange`. The change documents the bidirectional change of variables, so that
+a single state can be updated either forwards or backwards using the information.
+)");
+  rdcarray<ShaderVariableChange> changes;
 
   DOCUMENT(R"(An optional list of :class:`SourceVariableMapping` indicating which high-level source
 variables map to which debug variables and including extra type information.
@@ -534,17 +585,6 @@ a different debug variable.
 )");
   rdcarray<SourceVariableMapping> sourceVars;
 
-  DOCUMENT("A list of ranges in :data:`variables` that were modified.");
-  rdcarray<DebugVariableReference> modified;
-
-  DOCUMENT(R"(The next instruction to be executed after this state. The initial state before any
-shader execution happened will have ``nextInstruction == 0``.
-)");
-  uint32_t nextInstruction;
-
-  DOCUMENT("A set of :class:`ShaderEvents` flags that indicate what events happened on this step.");
-  ShaderEvents flags;
-
   DOCUMENT(R"(A ``list`` of ``str`` with each function call in the current callstack at this line.
 
 The oldest/outer function is first in the list, the newest/inner function is last.
@@ -553,6 +593,21 @@ The oldest/outer function is first in the list, the newest/inner function is las
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderDebugState);
+
+DOCUMENT("An opaque structure that has internal state for shader debugging");
+struct ShaderDebugger
+{
+protected:
+  DOCUMENT("");
+  ShaderDebugger() = default;
+  ShaderDebugger(const ShaderDebugger &) = default;
+  ShaderDebugger &operator=(const ShaderDebugger &) = default;
+
+public:
+  virtual ~ShaderDebugger() = default;
+};
+
+DECLARE_REFLECTION_STRUCT(ShaderDebugger);
 
 DOCUMENT(R"(This stores the whole state of a shader's execution from start to finish, with each
 individual debugging step along the way, as well as the immutable global constant values that do not
@@ -602,10 +657,12 @@ be empty if there is no source variable mapping that extends to the life of the 
 )");
   rdcarray<SourceVariableMapping> sourceVars;
 
-  DOCUMENT(R"(A list of :class:`ShaderDebugState` states representing the state after each
-instruction was executed
+  DOCUMENT(R"(An opaque handle of :class:`ShaderDebugger` identifying by the undelying debugger,
+which is used to simulate the shader and generate new debug states.
+
+If this is ``None`` then the trace is invalid.
 )");
-  rdcarray<ShaderDebugState> states;
+  ShaderDebugger *debugger = NULL;
 
   DOCUMENT("A flag indicating whether this trace has source-variable mapping information");
   bool hasSourceMapping = false;
