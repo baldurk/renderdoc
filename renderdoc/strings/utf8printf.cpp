@@ -25,6 +25,7 @@
 #include <wchar.h>
 #include "common/common.h"
 #include "os/os_specific.h"
+#include <cwchar>
 
 // grisu2 double-to-string function, returns number of digits written to digits array
 int grisu2(uint64_t mantissa, int exponent, char digits[18], int &kout);

@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include "api/replay/data_types.h"
+#include <cstdio>
 
 struct dds_data
 {
