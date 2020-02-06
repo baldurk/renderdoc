@@ -171,7 +171,7 @@ class Iter_Test(rdtest.TestCase):
 
             rdtest.log.print("Got a hit on a drawcall at event %d" % lastmod.eventId)
 
-            if mod.sampleMasked or mod.backfaceCulled or mod.depthClipped or mod.viewClipped or mod.scissorClipped or mod.depthTestFailed or mod.stencilTestFailed:
+            if mod.sampleMasked or mod.backfaceCulled or mod.depthClipped or mod.viewClipped or mod.scissorClipped or mod.shaderDiscarded or mod.depthTestFailed or mod.stencilTestFailed:
                 rdtest.log.print("This hit failed, looking for one that passed....")
                 lastmod = None
                 continue
@@ -181,6 +181,8 @@ class Iter_Test(rdtest.TestCase):
         if lastmod is not None:
             rdtest.log.print("Debugging pixel {},{} @ {}, primitive {}".format(x, y, lastmod.eventId, lastmod.primitiveID))
             self.controller.SetFrameEvent(lastmod.eventId, True)
+
+            pipe: rd.PipeState = self.controller.GetPipelineState()
 
             trace = self.controller.DebugPixel(x, y, 0, lastmod.primitiveID)
 
@@ -194,14 +196,18 @@ class Iter_Test(rdtest.TestCase):
 
             cycles, variables = self.process_trace(trace)
 
+            output_index = [o.resourceId for o in self.controller.GetPipelineState().GetOutputTargets()].index(target)
+
             if draw.outputs[0] == rd.ResourceId.Null():
                 rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to no output'.format(cycles))
                 self.controller.FreeTrace(trace)
             elif (draw.flags & rd.DrawFlags.Instanced) and draw.numInstances > 1:
                 rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to instancing'.format(cycles))
                 self.controller.FreeTrace(trace)
+            elif pipe.GetColorBlends()[output_index].writeMask == 0:
+                rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to write mask'.format(cycles))
+                self.controller.FreeTrace(trace)
             else:
-                output_index = [o.resourceId for o in self.controller.GetPipelineState().GetOutputTargets()].index(target)
                 rdtest.log.print("At event {} the target is index {}".format(lastmod.eventId, output_index))
 
                 output = \

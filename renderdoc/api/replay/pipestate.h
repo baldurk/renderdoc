@@ -329,6 +329,20 @@ For some APIs that don't distinguish by entry point, this may be empty.
 )");
   rdcarray<BoundResource> GetOutputTargets() const;
 
+  DOCUMENT(R"(Retrieves the current color blending states, per target.
+
+:return: The currently color blend states.
+:rtype: ``list`` of :class:`ColorBlend`.
+)");
+  rdcarray<ColorBlend> GetColorBlends() const;
+
+  DOCUMENT(R"(Determines whether or not independent blending is enabled.
+
+:return: A boolean indicating if independent blending is enabled.
+:rtype: ``bool``
+)");
+  bool IsIndependentBlendingEnabled() const;
+
 private:
   const D3D11Pipe::State *m_D3D11 = NULL;
   const D3D12Pipe::State *m_D3D12 = NULL;

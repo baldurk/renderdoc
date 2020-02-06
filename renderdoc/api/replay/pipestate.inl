@@ -1420,3 +1420,57 @@ rdcarray<BoundResource> PipeState::GetOutputTargets() const
 
   return ret;
 }
+
+rdcarray<ColorBlend> PipeState::GetColorBlends() const
+{
+  if(IsCaptureLoaded())
+  {
+    if(IsCaptureD3D11())
+    {
+      return m_D3D11->outputMerger.blendState.blends;
+    }
+    else if(IsCaptureD3D12())
+    {
+      return m_D3D12->outputMerger.blendState.blends;
+    }
+    else if(IsCaptureGL())
+    {
+      return m_GL->framebuffer.blendState.blends;
+    }
+    else if(IsCaptureVK())
+    {
+      return m_Vulkan->colorBlend.blends;
+    }
+  }
+
+  return {};
+}
+
+bool PipeState::IsIndependentBlendingEnabled() const
+{
+  if(IsCaptureLoaded())
+  {
+    if(IsCaptureD3D11())
+    {
+      return m_D3D11->outputMerger.blendState.independentBlend;
+    }
+    else if(IsCaptureD3D12())
+    {
+      return m_D3D12->outputMerger.blendState.independentBlend;
+    }
+    else if(IsCaptureGL())
+    {
+      // GL is always implicitly independent blending, just that if you set it in a non-independent
+      // way it sets all states at once
+      return true;
+    }
+    else if(IsCaptureVK())
+    {
+      // similarly for vulkan, there's a physical device feature but it just requires that all
+      // states must be identical
+      return true;
+    }
+  }
+
+  return {};
+}
