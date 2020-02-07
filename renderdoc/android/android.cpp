@@ -464,6 +464,33 @@ rdcarray<rdcstr> EnumerateDevices()
 
   return ret;
 }
+
+void ForceStopAllRemoteTargets(const rdcstr &protocolName, const rdcstr &deviceID)
+{
+  const rdcstr host = (protocolName + "://" + deviceID);
+  uint32_t nextIdent = 0;
+  for(;;)
+  {
+    // just a sanity check to make sure we don't hit some unexpected case and infinite loop
+    uint32_t prevIdent = nextIdent;
+
+    nextIdent = RENDERDOC_EnumerateRemoteTargets(host.c_str(), nextIdent);
+
+    if(nextIdent == 0 || prevIdent >= nextIdent)
+    {
+      break;
+    }
+
+    ITargetControl *conn = RENDERDOC_CreateTargetControl(host.c_str(), nextIdent, "", false);
+    if(conn)
+    {
+      const rdcstr target = conn->GetTarget();
+      Android::adbExecCommand(deviceID, "shell am force-stop " + target);
+
+      conn->Shutdown();
+    }
+  }
+}
 };    // namespace Android
 
 struct AndroidRemoteServer : public RemoteServer
@@ -1027,6 +1054,8 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
 
     // remove any previous jdwp port forward on this port
     Android::adbExecCommand(m_deviceID, StringFormat::Fmt("forward --remove tcp:%i", jdwpPort));
+    // force stop any running renderdoc targets
+    Android::ForceStopAllRemoteTargets(AndroidController::m_Inst.GetProtocolName(), m_deviceID);
     // force stop the package if it was running before
     Android::adbExecCommand(m_deviceID, "shell am force-stop " + processName);
 
