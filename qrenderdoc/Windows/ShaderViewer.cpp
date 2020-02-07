@@ -1765,13 +1765,17 @@ void ShaderViewer::combineStructures(RDTreeWidgetItem *root, int skipPrefixLengt
       continue;
     }
 
-    // sort the children by offset, then name (in case all offsets are empty)
+    // Sort the children by offset, then global source var index, then by text.
+    // Using the global source var index allows resource arrays to be presented in index order
+    // rather than by name, so for example arr[2] comes before arr[10]
     std::sort(matches.begin(), matches.end(),
               [](const RDTreeWidgetItem *a, const RDTreeWidgetItem *b) {
                 VariableTag at = a->tag().value<VariableTag>();
                 VariableTag bt = b->tag().value<VariableTag>();
                 if(at.offset != bt.offset)
                   return at.offset < bt.offset;
+                if(at.globalSourceVar != bt.globalSourceVar)
+                  return at.globalSourceVar < bt.globalSourceVar;
                 return a->text(0) < b->text(0);
               });
 
@@ -2186,6 +2190,26 @@ void ShaderViewer::updateDebugState()
             child->setTag(QVariant::fromValue(
                 VariableTag(DebugVariableReference(DebugVariableType::Constant, name))));
             node->addChild(child);
+          }
+        }
+        else
+        {
+          // Check if this is a constant buffer array
+          int arrayCount = m_Trace->constantBlocks[i].members[j].members.count();
+          for(int k = 0; k < arrayCount; k++)
+          {
+            if(m_Trace->constantBlocks[i].members[j].members[k].rows > 0 ||
+               m_Trace->constantBlocks[i].members[j].members[k].columns > 0)
+            {
+              name = m_Trace->constantBlocks[i].members[j].members[k].name;
+              RDTreeWidgetItem *child =
+                  new RDTreeWidgetItem({name, name, lit("Constant"),
+                                        stringRep(m_Trace->constantBlocks[i].members[j].members[k])});
+              node->setTag(QVariant::fromValue(
+                  VariableTag(DebugVariableReference(DebugVariableType::Constant, name))));
+
+              node->addChild(child);
+            }
           }
         }
       }
@@ -2871,13 +2895,22 @@ const ShaderVariable *ShaderViewer::GetRegisterVariable(const DebugVariableRefer
   {
     for(int i = 0; i < m_Trace->constantBlocks.count(); i++)
     {
+      // Root constant
       if(m_Trace->constantBlocks[i].name == r.name)
         return &m_Trace->constantBlocks[i];
 
       for(int j = 0; j < m_Trace->constantBlocks[i].members.count(); j++)
       {
+        // Variable in constant buffer
         if(m_Trace->constantBlocks[i].members[j].name == r.name)
           return &m_Trace->constantBlocks[i].members[j];
+
+        for(int k = 0; k < m_Trace->constantBlocks[i].members[j].members.count(); k++)
+        {
+          // Variable in constant buffer array
+          if(m_Trace->constantBlocks[i].members[j].members[k].name == r.name)
+            return &m_Trace->constantBlocks[i].members[j].members[k];
+        }
       }
     }
 

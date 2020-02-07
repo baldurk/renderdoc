@@ -144,8 +144,11 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
         setVariables(vars);
         if(wasEmpty)
         {
+          // Expand before resizing so that collapsed data will already be visible when expanded
+          ui->variables->expandAll();
           for(int i = 0; i < 3; i++)
             ui->variables->resizeColumnToContents(i);
+          ui->variables->collapseAll();
         }
         ui->variables->applyExpansion(state, 0);
       });
@@ -169,8 +172,11 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
             setVariables(vars);
             if(wasEmpty)
             {
+              // Expand before resizing so that collapsed data will already be visible when expanded
+              ui->variables->expandAll();
               for(int i = 0; i < 3; i++)
                 ui->variables->resizeColumnToContents(i);
+              ui->variables->collapseAll();
             }
 
             // if we have saved expansion state for the new shader, apply it, otherwise apply the

@@ -1452,13 +1452,17 @@ ShaderVariable ThreadState::GetSrc(const Operand &oper, const Operation &op, boo
       // For this operand, index 0 is always the logical identifier that we can use to
       // lookup the correct cbuffer. The location of the access entry differs for SM5.1,
       // as index 1 stores the shader register.
+      bool isCBArray = false;
       uint32_t cbIdentifier = indices[0];
+      uint32_t cbArrayIndex = ~0U;
       uint32_t cbLookup = program->IsShaderModel51() ? indices[2] : indices[1];
       for(size_t i = 0; i < reflection->CBuffers.size(); i++)
       {
         if(reflection->CBuffers[i].identifier == cbIdentifier)
         {
           cb = (int)i;
+          cbArrayIndex = indices[1] - reflection->CBuffers[i].reg;
+          isCBArray = reflection->CBuffers[i].bindCount > 1;
           break;
         }
       }
@@ -1468,14 +1472,27 @@ ShaderVariable ThreadState::GetSrc(const Operand &oper, const Operation &op, boo
 
       if(cb >= 0 && cb < global.constantBlocks.count())
       {
-        RDCASSERTMSG("Out of bounds cbuffer lookup",
-                     cbLookup < (uint32_t)global.constantBlocks[cb].members.count(), cbLookup,
-                     global.constantBlocks[cb].members.count());
+        RDCASSERTMSG("Invalid cbuffer array index",
+                     !isCBArray || cbArrayIndex < (uint32_t)global.constantBlocks[cb].members.count(),
+                     isCBArray, cb, global.constantBlocks[cb].members.count());
 
-        if(cbLookup < (uint32_t)global.constantBlocks[cb].members.count())
-          v = s = global.constantBlocks[cb].members[cbLookup];
+        if(!isCBArray || cbArrayIndex < (uint32_t)global.constantBlocks[cb].members.count())
+        {
+          const rdcarray<ShaderVariable> &targetVars =
+              isCBArray ? global.constantBlocks[cb].members[cbArrayIndex].members
+                        : global.constantBlocks[cb].members;
+          RDCASSERTMSG("Out of bounds cbuffer lookup", cbLookup < (uint32_t)targetVars.count(),
+                       cbLookup, targetVars.count());
+
+          if(cbLookup < (uint32_t)targetVars.count())
+            v = s = targetVars[cbLookup];
+          else
+            v = s = ShaderVariable("", 0U, 0U, 0U, 0U);
+        }
         else
+        {
           v = s = ShaderVariable("", 0U, 0U, 0U, 0U);
+        }
       }
       else
       {
@@ -4185,10 +4202,15 @@ void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &
   size_t numCBs = mapping.constantBlocks.size();
   for(size_t i = 0; i < numCBs; ++i)
   {
-    if((uint32_t)mapping.constantBlocks[i].bindset == slot.registerSpace &&
-       (uint32_t)mapping.constantBlocks[i].bind == slot.shaderRegister)
+    const Bindpoint &bp = mapping.constantBlocks[i];
+    if(slot.registerSpace == (uint32_t)bp.bindset && slot.shaderRegister >= (uint32_t)bp.bind &&
+       slot.shaderRegister < (uint32_t)(bp.bind + bp.arraySize))
     {
-      RDCASSERTMSG("Reassigning previously filled cbuffer", global.constantBlocks[i].members.empty());
+      uint32_t arrayIndex = slot.shaderRegister - bp.bind;
+      rdcarray<ShaderVariable> &targetVars =
+          bp.arraySize > 1 ? global.constantBlocks[i].members[arrayIndex].members
+                           : global.constantBlocks[i].members;
+      RDCASSERTMSG("Reassigning previously filled cbuffer", targetVars.empty());
 
       uint32_t cbufferIndex = program.IsShaderModel51() ? (uint32_t)i : slot.shaderRegister;
 
@@ -4201,16 +4223,36 @@ void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &
           DebugVariableReference(DebugVariableType::Constant, global.constantBlocks[i].name));
       sourceVars.push_back(cbSourceMapping);
 
+      rdcstr identifierPrefix = global.constantBlocks[i].name;
+      rdcstr variablePrefix = refl.constantBlocks[i].name;
+      if(bp.arraySize > 1)
+      {
+        identifierPrefix =
+            StringFormat::Fmt("%s[%u]", global.constantBlocks[i].name.c_str(), arrayIndex);
+        variablePrefix = StringFormat::Fmt("%s[%u]", refl.constantBlocks[i].name.c_str(), arrayIndex);
+
+        // The above sourceVar is for the logical identifier, and FlattenVariables adds the
+        // individual elements of the constant buffer. For CB arrays, add an extra source
+        // var for the CB array index
+        SourceVariableMapping cbArrayMapping;
+        global.constantBlocks[i].members[arrayIndex].name = identifierPrefix;
+        cbArrayMapping.name = variablePrefix;
+        cbArrayMapping.variables.push_back(
+            DebugVariableReference(DebugVariableType::Constant, identifierPrefix));
+        sourceVars.push_back(cbArrayMapping);
+      }
+      const rdcarray<ShaderConstant> &constants =
+          (bp.arraySize > 1) ? refl.constantBlocks[i].variables[0].type.members
+                             : refl.constantBlocks[i].variables;
+
       rdcarray<ShaderVariable> vars;
-      StandardFillCBufferVariables(refl.resourceId, refl.constantBlocks[i].variables, vars, cbufData);
-      FlattenVariables(global.constantBlocks[i].name, refl.constantBlocks[i].variables, vars,
-                       global.constantBlocks[i].members, refl.constantBlocks[i].name + ".", 0,
+      StandardFillCBufferVariables(refl.resourceId, constants, vars, cbufData);
+      FlattenVariables(identifierPrefix, constants, vars, targetVars, variablePrefix + ".", 0,
                        sourceVars);
 
-      for(size_t c = 0; c < global.constantBlocks[i].members.size(); c++)
+      for(size_t c = 0; c < targetVars.size(); c++)
       {
-        global.constantBlocks[i].members[c].name =
-            StringFormat::Fmt("%s[%u]", global.constantBlocks[i].name.c_str(), (uint32_t)c);
+        targetVars[c].name = StringFormat::Fmt("%s[%u]", identifierPrefix.c_str(), (uint32_t)c);
       }
 
       return;
@@ -5003,7 +5045,17 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
   }
 
   // Set the number of constant buffers in the trace, but assignment happens later
-  global.constantBlocks.resize(refl.constantBlocks.size());
+  size_t numCBuffers = dxbc->GetReflection()->CBuffers.size();
+  global.constantBlocks.resize(numCBuffers);
+  for(size_t i = 0; i < numCBuffers; ++i)
+  {
+    uint32_t bindCount = dxbc->GetReflection()->CBuffers[i].bindCount;
+    if(bindCount > 1)
+    {
+      // With a CB array, we use a nesting structure for the trace
+      global.constantBlocks[i].members.resize(bindCount);
+    }
+  }
 
   struct ResList
   {

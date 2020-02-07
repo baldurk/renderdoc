@@ -141,7 +141,10 @@ public:
 :return: A boolean indicating if binding arrays of resources is supported.
 :rtype: ``bool``
 )");
-  bool SupportsResourceArrays() const { return IsCaptureLoaded() && IsCaptureVK(); }
+  bool SupportsResourceArrays() const
+  {
+    return IsCaptureLoaded() && (IsCaptureVK() || IsCaptureD3D12());
+  }
   DOCUMENT(R"(Determines whether or not the current capture uses explicit barriers.
 
 :return: A boolean indicating if explicit barriers are used.

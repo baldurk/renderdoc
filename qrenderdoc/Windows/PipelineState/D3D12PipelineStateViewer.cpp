@@ -59,21 +59,22 @@ struct D3D12CBufTag
   D3D12CBufTag()
   {
     idx = ~0U;
-    space = reg = 0;
+    space = reg = arrayIdx = 0;
   }
   D3D12CBufTag(uint32_t s, uint32_t r)
   {
     idx = ~0U;
     space = s;
     reg = r;
+    arrayIdx = 0;
   }
   D3D12CBufTag(uint32_t i)
   {
     idx = i;
-    space = reg = 0;
+    space = reg = arrayIdx = 0;
   }
 
-  uint32_t idx, space, reg;
+  uint32_t idx, space, reg, arrayIdx;
 };
 
 Q_DECLARE_METATYPE(D3D12CBufTag);
@@ -1169,7 +1170,9 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RD
           {
             bind = &bm;
             shaderCBuf = &res;
-            tag = QVariant::fromValue(D3D12CBufTag(i));
+            D3D12CBufTag cbufTag(i);
+            cbufTag.arrayIdx = reg - bm.bind;
+            tag = QVariant::fromValue(cbufTag);
             break;
           }
         }
@@ -1212,6 +1215,9 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RD
 
         if(shaderCBuf && !shaderCBuf->name.empty())
           regname += lit(": ") + shaderCBuf->name;
+
+        if(bind != NULL && bind->arraySize > 1)
+          regname += tr("[%1]").arg(reg - bind->bind);
 
         QString sizestr;
         if(bytesize == (uint32_t)length)
@@ -2018,7 +2024,7 @@ void D3D12PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int
     return;
   }
 
-  IConstantBufferPreviewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb.idx, 0);
+  IConstantBufferPreviewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb.idx, cb.arrayIdx);
 
   m_Ctx.AddDockWindow(prev->Widget(), DockReference::TransientPopupArea, this, 0.3f);
 }
