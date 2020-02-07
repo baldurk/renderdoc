@@ -269,7 +269,7 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
     cb.bindPoint = (int32_t)i;
 
     Bindpoint map;
-    map.arraySize = 1;
+    map.arraySize = dxbc->GetReflection()->CBuffers[i].bindCount;
     map.bindset = dxbc->GetReflection()->CBuffers[i].space;
     map.bind = dxbc->GetReflection()->CBuffers[i].reg;
     map.used = true;

@@ -1123,9 +1123,13 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
               ID3D12Resource *pCbvResource =
                   pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(resId);
               cbufData.clear();
-              pDevice->GetDebugManager()->GetBufferData(pCbvResource, element.offset, 0, cbufData);
+
+              pDevice->GetDebugManager()->GetBufferData(pCbvResource, element.offset + byteOffset,
+                                                        0, cbufData);
               AddCBufferToGlobalState(program, global, sourceVars, refl, mapping, slot, cbufData);
             }
+
+            desc++;
           }
         }
       }

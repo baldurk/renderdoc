@@ -928,10 +928,11 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
         if(space == -1)
           return BoundCBuffer();
 
-        if(space >= s.spaces.count() || bind.bind >= s.spaces[space].constantBuffers.count())
+        int32_t shaderReg = bind.bind + (int32_t)ArrayIdx;
+        if(space >= s.spaces.count() || shaderReg >= s.spaces[space].constantBuffers.count())
           return BoundCBuffer();
 
-        const D3D12Pipe::ConstantBuffer &descriptor = s.spaces[space].constantBuffers[bind.bind];
+        const D3D12Pipe::ConstantBuffer &descriptor = s.spaces[space].constantBuffers[shaderReg];
 
         buf = descriptor.resourceId;
         ByteOffset = descriptor.byteOffset;
