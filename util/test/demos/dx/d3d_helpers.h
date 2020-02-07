@@ -65,4 +65,5 @@ enum class ViewType
   RTV,
   DSV,
   UAV,
+  CBV,
 };
