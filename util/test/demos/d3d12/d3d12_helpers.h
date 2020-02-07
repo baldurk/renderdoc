@@ -178,6 +178,10 @@ public:
   // common params
   D3D12ViewCreator &Format(DXGI_FORMAT format);
 
+  // cbv params
+  D3D12ViewCreator &Offset(UINT offset);
+  D3D12ViewCreator &SizeBytes(UINT size);
+
   // buffer params
   D3D12ViewCreator &FirstElement(UINT el);
   D3D12ViewCreator &NumElements(UINT num);
@@ -232,6 +236,7 @@ private:
   // resource type
   union
   {
+    D3D12_CONSTANT_BUFFER_VIEW_DESC cbv;
     D3D12_SHADER_RESOURCE_VIEW_DESC srv;
     D3D12_RENDER_TARGET_VIEW_DESC rtv;
     D3D12_DEPTH_STENCIL_VIEW_DESC dsv;

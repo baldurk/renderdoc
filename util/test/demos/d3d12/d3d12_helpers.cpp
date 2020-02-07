@@ -385,7 +385,12 @@ D3D12ViewCreator::D3D12ViewCreator(D3D12GraphicsTest *test, ID3D12DescriptorHeap
 
   Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-  if(dim == D3D12_RESOURCE_DIMENSION_BUFFER)
+  if(m_Type == ViewType::CBV)
+  {
+    desc.cbv.BufferLocation = m_Res->GetGPUVirtualAddress();
+    desc.cbv.SizeInBytes = 0;
+  }
+  else if(dim == D3D12_RESOURCE_DIMENSION_BUFFER)
   {
     SetupDescriptors(viewType, ResourceType::Buffer);
   }
@@ -665,6 +670,24 @@ D3D12ViewCreator &D3D12ViewCreator::Format(DXGI_FORMAT f)
   return *this;
 }
 
+D3D12ViewCreator &D3D12ViewCreator::Offset(UINT offset)
+{
+  if(m_Type == ViewType::CBV)
+    desc.cbv.BufferLocation += offset;
+  else
+    TEST_ERROR("This view & resource doesn't support SizeBytes");
+  return *this;
+}
+
+D3D12ViewCreator &D3D12ViewCreator::SizeBytes(UINT size)
+{
+  if(m_Type == ViewType::CBV)
+    desc.cbv.SizeInBytes = size;
+  else
+    TEST_ERROR("This view & resource doesn't support SizeBytes");
+  return *this;
+}
+
 D3D12ViewCreator &D3D12ViewCreator::FirstElement(UINT el)
 {
   if(firstElement)
@@ -779,6 +802,11 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12ViewCreator::CreateCPU(ID3D12DescriptorHeap *he
   {
     cpu.ptr += increment[D3D12_DESCRIPTOR_HEAP_TYPE_RTV] * descriptor;
     m_Test->dev->CreateRenderTargetView(m_Res, &desc.rtv, cpu);
+  }
+  else if(m_Type == ViewType::CBV)
+  {
+    cpu.ptr += increment[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] * descriptor;
+    m_Test->dev->CreateConstantBufferView(&desc.cbv, cpu);
   }
   else if(m_Type == ViewType::SRV)
   {

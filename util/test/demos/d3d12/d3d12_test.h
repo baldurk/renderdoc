@@ -105,6 +105,11 @@ struct D3D12GraphicsTest : public GraphicsTest
   }
 
   template <typename T>
+  D3D12ViewCreator MakeCBV(T res)
+  {
+    return D3D12ViewCreator(this, m_CBVUAVSRV, NULL, ViewType::CBV, res);
+  }
+  template <typename T>
   D3D12ViewCreator MakeSRV(T res)
   {
     return D3D12ViewCreator(this, m_CBVUAVSRV, NULL, ViewType::SRV, res);
