@@ -119,27 +119,13 @@ void VulkanReplay::convertKhrCounterResult(CounterResult &rdcResult,
   // Convert everything to doubles.
   switch(khrStorage)
   {
-    case VK_PERFORMANCE_COUNTER_STORAGE_INT32_KHR:
-        rdcResult.value.u64 = khrResult.int32;
-        break;
-    case VK_PERFORMANCE_COUNTER_STORAGE_UINT32_KHR:
-        rdcResult.value.u64 = khrResult.uint32;
-        break;
-    case VK_PERFORMANCE_COUNTER_STORAGE_INT64_KHR:
-        rdcResult.value.u64 = khrResult.int64;
-        break;
-    case VK_PERFORMANCE_COUNTER_STORAGE_UINT64_KHR:
-        rdcResult.value.u64 = khrResult.uint64;
-        break;
-    case VK_PERFORMANCE_COUNTER_STORAGE_FLOAT32_KHR:
-        rdcResult.value.d = (double)(khrResult.float32);
-        break;
-    case VK_PERFORMANCE_COUNTER_STORAGE_FLOAT64_KHR:
-        rdcResult.value.d = (double)(khrResult.float64);
-        break;
-    default:
-        rdcResult.value.u64 = 0;
-        RDCERR("Wrong counter storage type %d", khrStorage);
+    case VK_PERFORMANCE_COUNTER_STORAGE_INT32_KHR: rdcResult.value.u64 = khrResult.int32; break;
+    case VK_PERFORMANCE_COUNTER_STORAGE_UINT32_KHR: rdcResult.value.u64 = khrResult.uint32; break;
+    case VK_PERFORMANCE_COUNTER_STORAGE_INT64_KHR: rdcResult.value.u64 = khrResult.int64; break;
+    case VK_PERFORMANCE_COUNTER_STORAGE_UINT64_KHR: rdcResult.value.u64 = khrResult.uint64; break;
+    case VK_PERFORMANCE_COUNTER_STORAGE_FLOAT32_KHR: rdcResult.value.d = (double)(khrResult.float32); break;
+    case VK_PERFORMANCE_COUNTER_STORAGE_FLOAT64_KHR: rdcResult.value.d = (double)(khrResult.float64); break;
+    default: RDCERR("Wrong counter storage type %d", khrStorage);
   }
 
   // Special case for time units, renderdoc only has a Seconds type.
