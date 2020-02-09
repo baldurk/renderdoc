@@ -35,8 +35,6 @@
 #include "PipelineStateViewer.h"
 #include "ui_D3D12PipelineStateViewer.h"
 
-#define D3D12SHADERDEBUG_THREAD 0
-
 struct D3D12VBIBTag
 {
   D3D12VBIBTag() { offset = 0; }
@@ -1796,9 +1794,9 @@ void D3D12PipelineStateViewer::setState()
   ui->stencils->clearSelection();
   ui->stencils->endUpdate();
 
-#if D3D12SHADERDEBUG_THREAD != 0
   // set up thread debugging inputs
-  if(state.computeShader.reflection && draw && (draw->flags & DrawFlags::Dispatch))
+  if(m_Ctx.APIProps().shaderDebugging && state.computeShader.reflection && draw &&
+     (draw->flags & DrawFlags::Dispatch))
   {
     ui->groupX->setEnabled(true);
     ui->groupY->setEnabled(true);
@@ -1829,7 +1827,6 @@ void D3D12PipelineStateViewer::setState()
     }
   }
   else
-#endif
   {
     ui->groupX->setEnabled(false);
     ui->groupY->setEnabled(false);
@@ -3125,16 +3122,11 @@ void D3D12PipelineStateViewer::on_meshView_clicked()
   ToolWindowManager::raiseToolWindow(m_Ctx.GetMeshPreview()->Widget());
 }
 
-#if D3D12SHADERDEBUG_THREAD == 0
-
 void D3D12PipelineStateViewer::on_debugThread_clicked()
 {
-}
+  if(!m_Ctx.APIProps().shaderDebugging)
+    return;
 
-#else
-
-void D3D12PipelineStateViewer::on_debugThread_clicked()
-{
   if(!m_Ctx.IsCaptureLoaded())
     return;
 
@@ -3182,7 +3174,7 @@ void D3D12PipelineStateViewer::on_debugThread_clicked()
   m_Ctx.Replay().AsyncInvoke([&trace, &done, thread](IReplayController *r) {
     trace = r->DebugThread(thread.g, thread.t);
 
-    if(trace->states.isEmpty())
+    if(trace->debugger == NULL)
     {
       r->FreeTrace(trace);
       trace = NULL;
@@ -3220,5 +3212,3 @@ void D3D12PipelineStateViewer::on_debugThread_clicked()
 
   m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
 }
-
-#endif    // D3D12SHADERDEBUG_THREAD

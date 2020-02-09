@@ -486,13 +486,16 @@ void DoSerialise(SerialiserType &ser, APIProperties &el)
   SERIALISE_MEMBER(degraded);
   SERIALISE_MEMBER(shadersMutable);
 
+  SERIALISE_MEMBER(shaderDebugging);
+  SERIALISE_MEMBER(pixelHistory);
+
   SERIALISE_MEMBER(ShaderLinkage);
   SERIALISE_MEMBER(YUVTextures);
   SERIALISE_MEMBER(SparseResources);
   SERIALISE_MEMBER(MultiGPU);
   SERIALISE_MEMBER(D3D12Bundle);
 
-  SIZE_CHECK(20);
+  SIZE_CHECK(24);
 }
 
 template <typename SerialiserType>

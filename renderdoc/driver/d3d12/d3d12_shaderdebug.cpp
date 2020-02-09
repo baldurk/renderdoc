@@ -30,9 +30,6 @@
 #include "d3d12_resources.h"
 #include "d3d12_shader_cache.h"
 
-#define D3D12SHADERDEBUG_PIXEL 0
-#define D3D12SHADERDEBUG_THREAD 0
-
 struct DebugHit
 {
   uint32_t numHits;
@@ -1144,20 +1141,15 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   return new ShaderDebugTrace();
 }
 
-#if D3D12SHADERDEBUG_PIXEL == 0
-
 ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
                                           uint32_t primitive)
 {
-  RDCUNIMPLEMENTED("Pixel debugging not yet implemented for D3D12");
-  return new ShaderDebugTrace();
-}
+  if(!GetAPIProperties().shaderDebugging)
+  {
+    RDCUNIMPLEMENTED("Pixel debugging not yet implemented for D3D12");
+    return new ShaderDebugTrace();
+  }
 
-#else
-
-ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
-                                          uint32_t primitive)
-{
   using namespace DXBC;
   using namespace DXBCBytecode;
   using namespace DXBCDebug;
@@ -1669,22 +1661,15 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   return ret;
 }
 
-#endif    // D3D12SHADERDEBUG_PIXEL
-
-#if D3D12SHADERDEBUG_THREAD == 0
-
 ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                            const uint32_t threadid[3])
 {
-  RDCUNIMPLEMENTED("Compute shader debugging not yet implemented for D3D12");
-  return new ShaderDebugTrace();
-}
+  if(!GetAPIProperties().shaderDebugging)
+  {
+    RDCUNIMPLEMENTED("Compute shader debugging not yet implemented for D3D12");
+    return new ShaderDebugTrace();
+  }
 
-#else
-
-ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                           const uint32_t threadid[3])
-{
   using namespace DXBCBytecode;
   using namespace DXBCDebug;
 
@@ -1788,8 +1773,6 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId, const uint32_t grou
 
   return ret;
 }
-
-#endif    // D3D12SHADERDEBUG_THREAD
 
 rdcarray<ShaderDebugState> D3D12Replay::ContinueDebug(ShaderDebugger *debugger)
 {

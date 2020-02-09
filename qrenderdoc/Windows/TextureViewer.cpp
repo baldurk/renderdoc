@@ -486,9 +486,8 @@ void TextureViewer::UI_UpdateCachedTexture()
 
   m_CachedTexture = m_Ctx.GetTexture(id);
 
-  ui->debugPixelContext->setEnabled(m_Ctx.CurPipelineState().IsCaptureD3D11() &&
-                                    m_CachedTexture != NULL);
-  ui->pixelHistory->setEnabled(m_Ctx.CurPipelineState().IsCaptureD3D11() && m_CachedTexture != NULL);
+  ui->debugPixelContext->setEnabled(m_Ctx.APIProps().shaderDebugging && m_CachedTexture != NULL);
+  ui->pixelHistory->setEnabled(m_Ctx.APIProps().pixelHistory && m_CachedTexture != NULL);
 }
 
 TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
@@ -2767,7 +2766,7 @@ void TextureViewer::OnCaptureLoaded()
   ui->locationGoto->setEnabled(true);
   ui->viewTexBuffer->setEnabled(true);
 
-  if(m_Ctx.CurPipelineState().IsCaptureD3D11())
+  if(m_Ctx.APIProps().pixelHistory)
   {
     ui->pixelHistory->setEnabled(true);
     ui->pixelHistory->setToolTip(QString());
@@ -2778,7 +2777,7 @@ void TextureViewer::OnCaptureLoaded()
     ui->pixelHistory->setToolTip(tr("Pixel History not implemented on this API"));
   }
 
-  if(m_Ctx.CurPipelineState().IsCaptureD3D11())
+  if(m_Ctx.APIProps().shaderDebugging)
   {
     ui->debugPixelContext->setEnabled(true);
     ui->debugPixelContext->setToolTip(QString());
