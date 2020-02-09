@@ -357,7 +357,7 @@ DXBC::Reflection *Program::GuessReflection()
 
         if(dcl.operand.indices.size() == 3)
         {
-          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index);
+          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index + 1);
           if(dcl.operand.indices[2].index == 0xffffffff)
             desc.bindCount = 0;
         }
@@ -380,16 +380,36 @@ DXBC::Reflection *Program::GuessReflection()
         cb.descriptor.flags = 0;
         cb.descriptor.numVars = numVecs;
 
-        cb.variables.reserve(numVecs);
+        bool isArray = desc.bindCount > 1;
+        if(isArray)
+        {
+          // If the constant buffer is an array, then we need to add an entry for the struct
+          // itself. This mimics what is loaded for a constant buffer array when reflection
+          // information is not stripped.
+          DXBC::CBufferVariable var;
+          var.name = cb.name;
+          var.descriptor.name = cb.name;
+          var.descriptor.offset = 0;
+          var.descriptor.flags = D3D_SVF_USED;
+          var.type.descriptor.varClass = DXBC::VariableClass::CLASS_STRUCT;
+          var.type.descriptor.type = DXBC::VariableType::VARTYPE_VOID;
+          var.type.descriptor.rows = 1;
+          var.type.descriptor.cols = 4;
+          var.type.descriptor.elements = 1;
+          var.type.descriptor.members = 1;
+          var.type.descriptor.bytesize = 4 * sizeof(float);
+          var.type.descriptor.name = "struct";
+          cb.variables.push_back(var);
+        }
+        rdcarray<DXBC::CBufferVariable> &fillVars =
+            isArray ? cb.variables[0].type.members : cb.variables;
+        fillVars.reserve(numVecs);
 
         for(uint32_t v = 0; v < numVecs; v++)
         {
           DXBC::CBufferVariable var;
 
-          if(desc.space > 0)
-            var.name = StringFormat::Fmt("cb%u_%u_v%u", desc.space, desc.reg, v);
-          else
-            var.name = StringFormat::Fmt("cb%u_v%u", desc.reg, v);
+          var.name = StringFormat::Fmt("cb%u_v%u", cb.identifier, v);
 
           var.descriptor.defaultValue.resize(4 * sizeof(float));
 
@@ -411,7 +431,7 @@ DXBC::Reflection *Program::GuessReflection()
           var.type.descriptor.varClass = DXBC::CLASS_VECTOR;
           var.type.descriptor.name = TypeName(var.type.descriptor);
 
-          cb.variables.push_back(var);
+          fillVars.push_back(var);
         }
 
         ret->CBuffers.push_back(cb);
