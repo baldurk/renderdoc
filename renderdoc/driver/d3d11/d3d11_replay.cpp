@@ -561,6 +561,8 @@ APIProperties D3D11Replay::GetAPIProperties()
   ret.vendor = m_DriverInfo.vendor;
   ret.degraded = m_WARP;
   ret.shadersMutable = false;
+  ret.shaderDebugging = true;
+  ret.pixelHistory = true;
 
   return ret;
 }

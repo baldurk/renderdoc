@@ -32,6 +32,7 @@
 #include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "serialise/rdcfile.h"
+#include "strings/string_utils.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
 #include "d3d12_device.h"
@@ -270,6 +271,11 @@ APIProperties D3D12Replay::GetAPIProperties()
   ret.shadersMutable = false;
   ret.rgpCapture =
       m_DriverInfo.vendor == GPUVendor::AMD && m_RGP != NULL && m_RGP->DriverSupportsInterop();
+
+  // Enable shader debugging if specified in the config
+  rdcstr setting = strlower(RenderDoc::Inst().GetConfigSetting("d3d12ShaderDebugging"));
+  if(!strcmp(setting.c_str(), "true") || setting == "1")
+    ret.shaderDebugging = true;
 
   return ret;
 }

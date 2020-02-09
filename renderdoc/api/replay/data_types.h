@@ -1423,6 +1423,12 @@ worked around by re-sorting bindings.
 )");
   bool shadersMutable = false;
 
+  DOCUMENT("(``True`` if the API supports shader debugging.");
+  bool shaderDebugging = false;
+
+  DOCUMENT("(``True`` if the API supports viewing pixel history.");
+  bool pixelHistory = false;
+
   DOCUMENT("``True`` if the driver and system are configured to allow creating RGP captures.");
   bool rgpCapture = false;
 

@@ -2200,7 +2200,7 @@ void BufferViewer::stageRowMenu(MeshDataStage stage, QMenu *menu, const QPoint &
 
   menu->clear();
 
-  if(m_MeshView && stage != MeshDataStage::GSOut && m_Ctx.CurPipelineState().IsCaptureD3D11())
+  if(m_MeshView && stage != MeshDataStage::GSOut && m_Ctx.APIProps().shaderDebugging)
   {
     menu->addAction(m_DebugVert);
     menu->addSeparator();
