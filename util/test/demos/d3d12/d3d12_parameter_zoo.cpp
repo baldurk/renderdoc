@@ -64,6 +64,8 @@ float4 main() : SV_Target0
     // if D3D12.4 (??) is available, use different interfaces
     if(dev4)
     {
+      GPUSync();
+
       D3D12_RESOURCE_DESC desc;
       desc.Alignment = 0;
       desc.DepthOrArraySize = 1;
