@@ -359,6 +359,7 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
         src.PlacedFootprint.Footprint.Height = std::max(1, dim.y >> m);
         src.PlacedFootprint.Footprint.Depth = std::max(1, dim.z >> m);
 
+        bool block = false;
         switch(src.PlacedFootprint.Footprint.Format)
         {
           case DXGI_FORMAT_BC1_TYPELESS:
@@ -384,10 +385,14 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
           case DXGI_FORMAT_BC7_UNORM_SRGB:
             src.PlacedFootprint.Footprint.Width = AlignUp(src.PlacedFootprint.Footprint.Width, 4U);
             src.PlacedFootprint.Footprint.Height = AlignUp(src.PlacedFootprint.Footprint.Height, 4U);
+            block = true;
             break;
         }
 
         UINT numRows = src.PlacedFootprint.Footprint.Height * src.PlacedFootprint.Footprint.Depth;
+
+        if(block)
+          numRows /= 4U;
 
         for(UINT r = 0; r < numRows; r++)
         {
