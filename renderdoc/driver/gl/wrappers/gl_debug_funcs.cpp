@@ -28,13 +28,16 @@
 #include "common/common.h"
 #include "strings/string_utils.h"
 
-static rdcstr DecodeObjectLabel(GLsizei length, const GLchar *label)
+static rdcstr DecodeLabel(GLsizei length, const GLchar *label)
 {
-  // we share implementations between KHR_debug and EXT_debug_label, however KHR_debug follows the
-  // pattern elsewhere (e.g. in glShaderSource) of a length of -1 meaning indeterminate
-  // NULL-terminated length, but EXT_debug_label takes length of 0 to mean that.
+  // we share implementations between KHR_debug and EXT_debug_label/EXT_debug_marker, however
+  // KHR_debug follows the pattern elsewhere (e.g. in glShaderSource) of a length of -1 meaning
+  // indeterminate NULL-terminated length, but EXT_debug_label/EXT_debug_marker takes length of 0 to
+  // mean that.
   GLsizei realLength = length;
-  if(gl_CurChunk == GLChunk::glLabelObjectEXT && length == 0)
+  if((gl_CurChunk == GLChunk::glLabelObjectEXT || gl_CurChunk == GLChunk::glPushGroupMarkerEXT ||
+      gl_CurChunk == GLChunk::glInsertEventMarkerEXT) &&
+     length == 0)
     realLength = -1;
 
   // if length is negative (after above twiddling), it's taken from strlen and the label must be
@@ -119,7 +122,7 @@ bool WrappedOpenGL::Serialise_glObjectLabel(SerialiserType &ser, GLenum identifi
 
   if(ser.IsWriting())
   {
-    Label = DecodeObjectLabel(length, label);
+    Label = DecodeLabel(length, label);
 
     Resource = GetResource(identifier, name);
   }
@@ -170,7 +173,7 @@ void WrappedOpenGL::glLabelObjectEXT(GLenum identifier, GLuint name, GLsizei len
     if(GetResourceManager()->HasResourceRecord(res))
       record = GetResourceManager()->GetResourceRecord(res);
 
-    GetResourceManager()->SetName(res, DecodeObjectLabel(length, label));
+    GetResourceManager()->SetName(res, DecodeLabel(length, label));
 
     record->AddChunk(scope.Get());
   }
@@ -201,7 +204,7 @@ void WrappedOpenGL::glObjectLabel(GLenum identifier, GLuint name, GLsizei length
     if(GetResourceManager()->HasResourceRecord(res))
       record = GetResourceManager()->GetResourceRecord(res);
 
-    GetResourceManager()->SetName(res, DecodeObjectLabel(length, label));
+    GetResourceManager()->SetName(res, DecodeLabel(length, label));
 
     record->AddChunk(scope.Get());
   }
@@ -227,7 +230,7 @@ void WrappedOpenGL::glObjectPtrLabel(const void *ptr, GLsizei length, const GLch
     Serialise_glObjectLabel(ser, eGL_SYNC_FENCE, GetResourceManager()->GetCurrentResource(id).name,
                             length, label);
 
-    GetResourceManager()->SetName(id, DecodeObjectLabel(length, label));
+    GetResourceManager()->SetName(id, DecodeLabel(length, label));
 
     GetContextRecord()->AddChunk(scope.Get());
   }
@@ -366,7 +369,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glInsertEventMarkerEXT(SerialiserType &ser, GLsizei length,
                                                      const GLchar *marker_)
 {
-  rdcstr marker = marker_ ? rdcstr(marker_, length >= 0 ? length : strlen(marker_)) : "";
+  rdcstr marker = DecodeLabel(length, marker_);
 
   SERIALISE_ELEMENT(length);
   SERIALISE_ELEMENT(marker);
@@ -426,7 +429,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glPushDebugGroup(SerialiserType &ser, GLenum source, GLuint id,
                                                GLsizei length, const GLchar *message_)
 {
-  rdcstr message = message_ ? rdcstr(message_, length >= 0 ? length : strlen(message_)) : "";
+  rdcstr message = DecodeLabel(length, message_);
 
   // unused, just for the user's benefit
   SERIALISE_ELEMENT(source);
