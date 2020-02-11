@@ -195,42 +195,42 @@ void main()
     const DefaultA2V vbdata[24] = {
         // non-indexed indirect draw
         {Vec3f(-0.8f, 0.5f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(-0.7f, 0.8f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(-0.6f, 0.5f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.7f, 0.8f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-0.6f, 0.5f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
 
         // non-indexed KHR_draw_indirect_count draw
-        {Vec3f(-0.8f, -0.5f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-0.8f, -0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(-0.7f, -0.2f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(-0.6f, -0.5f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.6f, -0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
 
         // indexed indirect draw 1
-        {Vec3f(-0.6f, 0.5f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(-0.5f, 0.8f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-0.6f, 0.5f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-0.5f, 0.8f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(-0.4f, 0.5f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
 
         // indexed indirect draw 2
-        {Vec3f(-0.4f, 0.5f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(-0.3f, 0.8f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(-0.2f, 0.8f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
-        {Vec3f(-0.1f, 0.5f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(0.0f, 0.8f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(0.1f, 0.8f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.4f, 0.5f, 0.0f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-0.3f, 0.8f, 0.0f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-0.2f, 0.8f, 0.0f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.1f, 0.5f, 0.0f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, 0.8f, 0.0f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.1f, 0.8f, 0.0f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
 
         // indexed KHR_draw_indirect_count draw 1
-        {Vec3f(-0.6f, -0.5f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(-0.5f, -0.2f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(-0.4f, -0.5f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.6f, -0.5f, 0.0f), Vec4f(1.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-0.5f, -0.2f, 0.0f), Vec4f(1.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-0.4f, -0.5f, 0.0f), Vec4f(1.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
 
         // indexed KHR_draw_indirect_count draw 2
         // empty
 
         // indexed indirect draw 3
-        {Vec3f(-0.4f, -0.5f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(-0.3f, -0.2f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(-0.2f, -0.2f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
-        {Vec3f(-0.1f, -0.5f, 0.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(0.0f, -0.2f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(0.1f, -0.2f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.4f, -0.5f, 0.0f), Vec4f(0.5f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-0.3f, -0.2f, 0.0f), Vec4f(0.5f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-0.2f, -0.2f, 0.0f), Vec4f(0.5f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.1f, -0.5f, 0.0f), Vec4f(0.5f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, -0.2f, 0.0f), Vec4f(0.5f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.1f, -0.2f, 0.0f), Vec4f(0.5f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
     AllocatedBuffer vb(this,
@@ -281,7 +281,7 @@ void main()
       setMarker(primary, "Do Clear");
 
       vkCmdClearColorImage(primary, swapimg, VK_IMAGE_LAYOUT_GENERAL,
-                           vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
+                           vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
 
       {
@@ -379,6 +379,8 @@ void main()
         }
       }
 
+      setMarker(primary, "Primary: Final");
+
       vkCmdEndRenderPass(primary);
 
       vkh::cmdPipelineBarrier(
@@ -402,7 +404,7 @@ void main()
       vkBeginCommandBuffer(primary, vkh::CommandBufferBeginInfo());
 
       vkCmdClearColorImage(primary, swapimg, VK_IMAGE_LAYOUT_GENERAL,
-                           vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
+                           vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
 
       VkCommandBuffer dispatch_secondary = GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY);
@@ -519,6 +521,8 @@ void main()
       vkEndCommandBuffer(draw_secondary);
 
       vkCmdExecuteCommands(primary, 1, &draw_secondary);
+
+      setMarker(primary, "Secondary: Final");
 
       vkCmdEndRenderPass(primary);
 

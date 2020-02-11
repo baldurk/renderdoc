@@ -131,7 +131,7 @@ RD_TEST(D3D11_Overlay_Test, D3D11GraphicsTest)
 
       ctx->OMSetRenderTargets(1, &bbRTV.GetInterfacePtr(), dsv);
 
-      ClearRenderTargetView(bbRTV, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
       ctx->ClearDepthStencilView(dsv, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
       // draw the setup triangles

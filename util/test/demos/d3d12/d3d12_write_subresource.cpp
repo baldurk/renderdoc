@@ -121,7 +121,7 @@ float4 main(v2f IN) : SV_Target0
       D3D12_CPU_DESCRIPTOR_HANDLE rtv =
           MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
 
-      ClearRenderTargetView(cmd, rtv, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(cmd, rtv, {0.2f, 0.2f, 0.2f, 1.0f});
 
       cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 

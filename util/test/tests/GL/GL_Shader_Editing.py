@@ -144,9 +144,9 @@ class GL_Shader_Editing(rdtest.TestCase):
         self.controller.SetFrameEvent(self.get_last_draw().eventId, True)
 
         # Original sample positions are now the clear color
-        self.check_pixel_value(tex, 0.25, 0.25, [0.4, 0.5, 0.6, 1.0])
-        self.check_pixel_value(tex, 0.75, 0.25, [0.4, 0.5, 0.6, 1.0])
-        self.check_pixel_value(tex, 0.25, 0.75, [0.4, 0.5, 0.6, 1.0])
+        self.check_pixel_value(tex, 0.25, 0.25, [0.2, 0.2, 0.2, 1.0])
+        self.check_pixel_value(tex, 0.75, 0.25, [0.2, 0.2, 0.2, 1.0])
+        self.check_pixel_value(tex, 0.25, 0.75, [0.2, 0.2, 0.2, 1.0])
 
         # The triangles are still the same colour but up and to the right
         self.check_pixel_value(tex, 0.45, 0.05, [0.0, 1.0, 1.0, 1.0])
@@ -160,9 +160,9 @@ class GL_Shader_Editing(rdtest.TestCase):
         self.controller.SetFrameEvent(self.get_last_draw().eventId, True)
 
         # Original sample positions are still the clear color
-        self.check_pixel_value(tex, 0.25, 0.25, [0.4, 0.5, 0.6, 1.0])
-        self.check_pixel_value(tex, 0.75, 0.25, [0.4, 0.5, 0.6, 1.0])
-        self.check_pixel_value(tex, 0.25, 0.75, [0.4, 0.5, 0.6, 1.0])
+        self.check_pixel_value(tex, 0.25, 0.25, [0.2, 0.2, 0.2, 1.0])
+        self.check_pixel_value(tex, 0.75, 0.25, [0.2, 0.2, 0.2, 1.0])
+        self.check_pixel_value(tex, 0.25, 0.75, [0.2, 0.2, 0.2, 1.0])
 
         # The lower triangle is the edited colour, the other two have reverted to green channel only
         self.check_pixel_value(tex, 0.45, 0.05, [0.0, 1.0, 0.0, 1.0])
@@ -210,14 +210,14 @@ class GL_Shader_Editing(rdtest.TestCase):
         self.controller.SetFrameEvent(self.get_last_draw().eventId, True)
 
         # Now it should be green-blue and offset
-        self.check_pixel_value(tex, 0.75, 0.75, [0.4, 0.5, 0.6, 1.0])
+        self.check_pixel_value(tex, 0.75, 0.75, [0.2, 0.2, 0.2, 1.0])
         self.check_pixel_value(tex, 0.95, 0.55, [0.0, 1.0, 1.0, 1.0])
 
         self.controller.RemoveReplacement(fsseprefl.resourceId)
         self.controller.SetFrameEvent(self.get_last_draw().eventId, True)
 
         # Now it should be back to green and offset
-        self.check_pixel_value(tex, 0.75, 0.75, [0.4, 0.5, 0.6, 1.0])
+        self.check_pixel_value(tex, 0.75, 0.75, [0.2, 0.2, 0.2, 1.0])
         self.check_pixel_value(tex, 0.95, 0.55, [0.0, 1.0, 0.0, 1.0])
 
         self.controller.RemoveReplacement(vsseprefl.resourceId)

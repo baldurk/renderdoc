@@ -78,8 +78,8 @@ float4 main() : SV_Target0
 
     while(Running())
     {
-      ClearRenderTargetView(bbRTV, {0.4f, 0.5f, 0.6f, 1.0f});
-      ClearRenderTargetView(fltRT, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
+      ClearRenderTargetView(fltRT, {0.2f, 0.2f, 0.2f, 1.0f});
 
       IASetVertexBuffer(vb, sizeof(DefaultA2V), 0);
       ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

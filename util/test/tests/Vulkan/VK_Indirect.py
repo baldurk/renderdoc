@@ -28,8 +28,6 @@ class VK_Indirect(rdtest.TestCase):
         self.overlay_idx = self.overlay_idx + 1
 
     def check_capture(self):
-        self.check_final_backbuffer()
-
         self.overlay_idx = 1
 
         fill = self.find_draw("vkCmdFillBuffer")
@@ -46,6 +44,27 @@ class VK_Indirect(rdtest.TestCase):
 
         for level in ["Primary", "Secondary"]:
             rdtest.log.print("Checking {} indirect calls".format(level))
+
+            final = self.find_draw("{}: Final".format(level))
+
+            indirect_count_root = self.find_draw("{}: KHR_draw_indirect_count".format(level))
+
+            self.controller.SetFrameEvent(final.eventId, False)
+
+            tex = self.controller.GetPipelineState().GetOutputTargets()[0].resourceId
+
+            # Check the top row, non indirect count and always present
+            self.check_pixel_value(tex, 60, 60, [1.0, 0.0, 0.0, 1.0])
+            self.check_pixel_value(tex, 100, 60, [0.0, 0.0, 1.0, 1.0])
+            self.check_pixel_value(tex, 145, 35, [1.0, 1.0, 0.0, 1.0])
+            self.check_pixel_value(tex, 205, 35, [0.0, 1.0, 1.0, 1.0])
+
+            # if present, check bottom row of indirect count
+            if indirect_count_root is not None:
+                self.check_pixel_value(tex, 60, 220, [0.0, 1.0, 0.0, 1.0])
+                self.check_pixel_value(tex, 100, 220, [1.0, 0.0, 1.0, 1.0])
+                self.check_pixel_value(tex, 145, 185, [0.5, 1.0, 0.0, 1.0])
+                self.check_pixel_value(tex, 205, 185, [0.5, 0.0, 1.0, 1.0])
 
             dispatches = self.find_draw("{}: Dispatches".format(level))
 
@@ -208,8 +227,6 @@ class VK_Indirect(rdtest.TestCase):
             self.check_overlay(draw.eventId, out, tex, save_data)
 
             rdtest.log.success("{} {} is as expected".format(level, draw.name))
-
-            indirect_count_root = self.find_draw("{}: KHR_draw_indirect_count".format(level))
 
             if indirect_count_root is not None:
                 self.check(indirect_count_root.children[0].name == '{}: Empty count draws'.format(level))

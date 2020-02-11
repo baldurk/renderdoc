@@ -378,15 +378,16 @@ void main()
       glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
       glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
-      float col[] = {0.4f, 0.5f, 0.6f, 1.0f};
+      float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
       glClearNamedFramebufferfv(0, GL_COLOR, 0, col);
 
       // render with last frame's resources
-      float col1[] = {0.5f, 0.1f, 0.1f, 1.0f};
+      float col1[] = {0.0f, 1.0f, 0.0f, 1.0f};
       glClearBufferfv(GL_COLOR, 0, col1);
 
       glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, NULL);
-      glBlitNamedFramebuffer(fbo, 0, 0, 0, 128, 128, 0, 0, 128, 128, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+      glBlitNamedFramebuffer(fbo, 0, 0, 0, 128, 128, 0, screenHeight - 128, 128, screenHeight,
+                             GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
       // trash last frame's resources
       TrashFBO(fbo);
@@ -407,12 +408,12 @@ void main()
       pipe = SetupPipe(vsprog, fsprog);
       tex = SetupTex();
       buf = SetupBuf();
-      float col2[] = {0.1f, 0.1f, 0.5f, 1.0f};
+      float col2[] = {0.0f, 0.0f, 1.0f, 1.0f};
       glClearBufferfv(GL_COLOR, 0, col2);
 
       glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, NULL);
-      glBlitNamedFramebuffer(fbo, 0, 0, 0, 128, 128, 128, 0, 256, 128, GL_COLOR_BUFFER_BIT,
-                             GL_NEAREST);
+      glBlitNamedFramebuffer(fbo, 0, 0, 0, 128, 128, 128, screenHeight - 128, 256, screenHeight,
+                             GL_COLOR_BUFFER_BIT, GL_NEAREST);
       TrashFBO(fbo);
       TrashVAO(vao);
       TrashSampler(sampler);

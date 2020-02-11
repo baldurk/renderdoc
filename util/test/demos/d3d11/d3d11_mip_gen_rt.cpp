@@ -115,9 +115,9 @@ float4 main(v2f IN) : SV_Target0
 
     while(Running())
     {
-      ClearRenderTargetView(bbRTV, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
       for(int i = 0; i < NumMips; i++)
-        ClearRenderTargetView(rtv[i], {0.4f, 0.5f, 0.6f, 1.0f});
+        ClearRenderTargetView(rtv[i], {0.2f, 0.2f, 0.2f, 1.0f});
 
       ctx->UpdateSubresource(rt, 0, NULL, ramp, 1024 * sizeof(uint32_t),
                              1024 * 1024 * sizeof(uint32_t));

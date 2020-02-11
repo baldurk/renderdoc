@@ -6,8 +6,6 @@ class D3D11_Primitive_Restart(rdtest.TestCase):
     demos_test_name = 'D3D11_Primitive_Restart'
 
     def check_capture(self):
-        self.check_final_backbuffer()
-
         draw = self.find_draw("Draw")
 
         self.check(draw is not None)
@@ -27,7 +25,7 @@ class D3D11_Primitive_Restart(rdtest.TestCase):
                 'vtx': 0,
                 'idx': 0,
                 'SV_POSITION': [-0.8, 0.2, 0.0, 1.0],
-                'COLOR': [1.0, 0.0, 0.0, 1.0],
+                'COLOR': [0.0, 1.0, 0.0, 1.0],
                 'TEXCOORD': [0.0, 0.0],
             },
             4: {
@@ -44,7 +42,7 @@ class D3D11_Primitive_Restart(rdtest.TestCase):
                 'vtx': 9,
                 'idx': 8,
                 'SV_POSITION': [-0.8, -0.7, 0.0, 1.0],
-                'COLOR': [1.0, 0.0, 0.0, 1.0],
+                'COLOR': [0.0, 0.0, 1.0, 1.0],
                 'TEXCOORD': [0.0, 0.0],
             },
         }
@@ -63,3 +61,17 @@ class D3D11_Primitive_Restart(rdtest.TestCase):
         # Data should be identical
 
         self.check_mesh_data(postvs_ref, postvs_data)
+
+        # Check that the rendered mesh is as expected
+        out = pipe.GetOutputTargets()[0].resourceId
+        for x in [x*0.01 for x in range(1, 100)]:
+            self.check_pixel_value(out, x, 0.1, [0.2, 0.2, 0.2, 1.0])
+            self.check_pixel_value(out, x, 0.5, [0.2, 0.2, 0.2, 1.0])
+
+        self.check_pixel_value(out, 0.3, 0.25, [0.0, 1.0, 0.0, 1.0])
+        self.check_pixel_value(out, 0.5, 0.25, [0.0, 1.0, 0.0, 1.0])
+        self.check_pixel_value(out, 0.7, 0.25, [0.0, 1.0, 0.0, 1.0])
+        self.check_pixel_value(out, 0.3, 0.75, [0.0, 0.0, 1.0, 1.0])
+        self.check_pixel_value(out, 0.5, 0.75, [0.0, 0.0, 1.0, 1.0])
+        self.check_pixel_value(out, 0.7, 0.75, [0.0, 0.0, 1.0, 1.0])
+

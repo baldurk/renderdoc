@@ -65,7 +65,7 @@ void main()
 
     while(Running())
     {
-      Vec4f col(0.4f, 0.5f, 0.6f, 1.0f);
+      Vec4f col(0.2f, 0.2f, 0.2f, 1.0f);
       ClearRenderTargetView(bbRTV, col);
 
       ctx->ClearUnorderedAccessViewUint(uav, (uint32_t *)&col.x);

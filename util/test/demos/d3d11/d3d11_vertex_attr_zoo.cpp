@@ -206,7 +206,7 @@ void main(triangle v2f input[3], inout TriangleStream<v2f> TriStream)
 
     while(Running())
     {
-      ClearRenderTargetView(bbRTV, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
 
       IASetVertexBuffer(vb, sizeof(vertin), 0);
       ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

@@ -157,8 +157,8 @@ void main()
     ID3D11ShaderResourceViewPtr srv = d3d.MakeSRV(d3d_tod3d);
     ID3D11RenderTargetViewPtr rtv2 = d3d.MakeRTV(d3d_tod3d);
 
-    float black[4] = {};
-    d3d.ctx->ClearRenderTargetView(rtv2, black);
+    float base[4] = {0.2f, 0.2f, 0.2f, 1.0f};
+    d3d.ctx->ClearRenderTargetView(rtv2, base);
 
     // initialise, create window, create context, etc
     if(!Init())
@@ -244,7 +244,7 @@ void main()
 
       TEST_ASSERT(res, "wglDXLockObjectsNV buffer failed");
 
-      float col2[] = {0.6f, 0.4f, 0.6f, 1.0f};
+      float col2[] = {0.0f, 1.0f, 0.0f, 1.0f};
       ctx->ClearRenderTargetView(rtv, col2);
 
       ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -273,13 +273,11 @@ void main()
 
       glUseProgram(program);
 
-      glUniform2f(glGetUniformLocation(program, "wave"), sinf(delta * 0.9f), -cosf(delta * 2.7f));
-
       delta += 0.1f;
 
       glBindTexture(GL_TEXTURE_2D, gl_fromd3d);
 
-      float col[] = {0.4f, 0.5f, 0.6f, 1.0f};
+      float col[] = {1.0f, 0.0f, 0.0f, 1.0f};
 
       // render back into d3d
       glViewport(0, 0, 1024, 1024);

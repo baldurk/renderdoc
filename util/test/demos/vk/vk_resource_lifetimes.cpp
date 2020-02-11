@@ -85,6 +85,7 @@ void main()
   }
 
 	Color = texture(smiley, vertIn.uv.xy * 2.0f) * texture(checker, vertIn.uv.xy * 5.0f);
+  Color.w = 1.0f;
 }
 
 )EOSHADER";
@@ -202,13 +203,18 @@ void main()
 
     badcb.upload(&flags, sizeof(flags));
 
-    VkSampler sampler = VK_NULL_HANDLE;
+    VkSampler checkersampler = VK_NULL_HANDLE;
+    VkSampler smileysampler = VK_NULL_HANDLE;
 
     VkSamplerCreateInfo sampInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-    sampInfo.magFilter = VK_FILTER_LINEAR;
-    sampInfo.minFilter = VK_FILTER_LINEAR;
+    sampInfo.magFilter = VK_FILTER_NEAREST;
+    sampInfo.minFilter = VK_FILTER_NEAREST;
 
-    vkCreateSampler(device, &sampInfo, NULL, &sampler);
+    vkCreateSampler(device, &sampInfo, NULL, &checkersampler);
+
+    sampInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+    vkCreateSampler(device, &sampInfo, NULL, &smileysampler);
 
     auto SetupBuffer = [this]() {
       VkBuffer cb = VK_NULL_HANDLE;
@@ -378,35 +384,36 @@ void main()
           NULL, &descpool));
     }
 
-    auto SetupDescSet = [this, setlayout, descpool, sampler, smileyview](VkBuffer cb,
-                                                                         VkImageView view) {
+    auto SetupDescSet = [this, setlayout, descpool, smileysampler, checkersampler, smileyview](
+        VkBuffer cb, VkImageView view) {
       VkDescriptorSet descset = VK_NULL_HANDLE;
 
       vkAllocateDescriptorSets(device, vkh::DescriptorSetAllocateInfo(descpool, {setlayout}),
                                &descset);
 
       vkh::updateDescriptorSets(
-          device, {
-                      vkh::WriteDescriptorSet(
-                          descset, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                          {
-                              vkh::DescriptorImageInfo(
-                                  smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler),
-                          }),
-                      vkh::WriteDescriptorSet(
-                          descset, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                          {
-                              vkh::DescriptorImageInfo(
-                                  view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler),
-                          }),
-                      vkh::WriteDescriptorSet(descset, 2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                              {vkh::DescriptorBufferInfo(cb)}),
-                  });
+          device,
+          {
+              vkh::WriteDescriptorSet(
+                  descset, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                  {
+                      vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                               smileysampler),
+                  }),
+              vkh::WriteDescriptorSet(
+                  descset, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                  {
+                      vkh::DescriptorImageInfo(view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                               checkersampler),
+                  }),
+              vkh::WriteDescriptorSet(descset, 2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                      {vkh::DescriptorBufferInfo(cb)}),
+          });
 
       return descset;
     };
 
-    auto TrashDescSet = [this, descpool, sampler, &badcb, badview](VkDescriptorSet descset) {
+    auto TrashDescSet = [this, descpool, checkersampler, &badcb, badview](VkDescriptorSet descset) {
 
       // update with bad data
       vkh::updateDescriptorSets(
@@ -415,13 +422,13 @@ void main()
                           descset, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                           {
                               vkh::DescriptorImageInfo(
-                                  badview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler),
+                                  badview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, checkersampler),
                           }),
                       vkh::WriteDescriptorSet(
                           descset, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                           {
                               vkh::DescriptorImageInfo(
-                                  badview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler),
+                                  badview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, checkersampler),
                           }),
                       vkh::WriteDescriptorSet(descset, 2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                               {vkh::DescriptorBufferInfo(badcb.buffer)}),
@@ -450,7 +457,7 @@ void main()
             StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
         vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
-                             vkh::ClearColorValue(0.4f, 0.5f, 0.6f, 1.0f), 1,
+                             vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                              vkh::ImageSubresourceRange());
 
         vkEndCommandBuffer(cmd);
@@ -467,6 +474,11 @@ void main()
         vkCmdBeginRenderPass(
             cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
             VK_SUBPASS_CONTENTS_INLINE);
+
+        VkClearAttachment att = {VK_IMAGE_ASPECT_COLOR_BIT, 0,
+                                 vkh::ClearValue(0.0f, 1.0f, 0.0f, 1.0f)};
+        VkClearRect rect = {vkh::Rect2D({0, 0}, {128, 128}), 0, 1};
+        vkCmdClearAttachments(cmd, 1, &att, 1, &rect);
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
         vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &descset, 0,
@@ -508,6 +520,11 @@ void main()
         vkCmdBeginRenderPass(
             cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
             VK_SUBPASS_CONTENTS_INLINE);
+
+        VkClearAttachment att = {VK_IMAGE_ASPECT_COLOR_BIT, 0,
+                                 vkh::ClearValue(0.0f, 0.0f, 1.0f, 1.0f)};
+        VkClearRect rect = {vkh::Rect2D({128, 0}, {128, 128}), 0, 1};
+        vkCmdClearAttachments(cmd, 1, &att, 1, &rect);
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
         vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &descset, 0,
@@ -563,7 +580,8 @@ void main()
     TrashDescSet(descset);
 
     vkDestroyDescriptorPool(device, descpool, NULL);
-    vkDestroySampler(device, sampler, NULL);
+    vkDestroySampler(device, checkersampler, NULL);
+    vkDestroySampler(device, smileysampler, NULL);
 
     return 0;
   }

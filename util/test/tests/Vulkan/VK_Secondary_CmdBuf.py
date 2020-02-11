@@ -6,7 +6,17 @@ class VK_Secondary_CmdBuf(rdtest.TestCase):
     demos_test_name = 'VK_Secondary_CmdBuf'
 
     def check_capture(self):
-        self.check_final_backbuffer()
+        last_draw: rd.DrawcallDescription = self.get_last_draw()
+
+        self.controller.SetFrameEvent(last_draw.eventId, True)
+
+        tex = self.get_texture(last_draw.copyDestination)
+
+        # Green triangle on the left, blue on the right
+        self.check_triangle(out=last_draw.copyDestination, fore=[0.0, 1.0, 0.0, 1.0],
+                            vp=(0, 0, tex.width / 2, tex.height))
+        self.check_triangle(out=last_draw.copyDestination, fore=[0.0, 0.0, 1.0, 1.0],
+                            vp=(tex.width / 2, 0, tex.width/2, tex.height))
 
         draw = self.find_draw("Primary")
 

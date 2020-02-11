@@ -716,7 +716,7 @@ float4 main(v2f IN) : SV_Target0
 
       D3D12_CPU_DESCRIPTOR_HANDLE rtv =
           MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(1);
-      ClearRenderTargetView(cmd, rtv, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(cmd, rtv, {0.2f, 0.2f, 0.2f, 1.0f});
 
       ID3D12PipelineStatePtr psos[2] = {pso_5_0, pso_5_1};
       float blitOffsets[2] = {0.0f, 4.0f};
@@ -726,7 +726,7 @@ float4 main(v2f IN) : SV_Target0
       // Clear, draw, and blit to backbuffer twice - once for SM 5.0 and again for SM 5.1
       for(int i = 0; i < 2; ++i)
       {
-        ClearRenderTargetView(cmd, fltRTV, {0.4f, 0.5f, 0.6f, 1.0f});
+        ClearRenderTargetView(cmd, fltRTV, {0.2f, 0.2f, 0.2f, 1.0f});
 
         IASetVertexBuffer(cmd, vb, sizeof(ConstsA2V), 0);
         cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

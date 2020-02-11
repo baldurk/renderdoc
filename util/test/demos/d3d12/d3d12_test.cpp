@@ -260,6 +260,9 @@ bool D3D12GraphicsTest::Init()
       bbDesc.SampleDesc.Quality = 0;
       bbDesc.Width = screenWidth;
 
+      if(bbDesc.Format == DXGI_FORMAT_R8G8B8A8_UNORM)
+        bbDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+
       D3D12_HEAP_PROPERTIES heapProps;
       heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
       heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;

@@ -35,8 +35,6 @@ class D3D12_Overlay_Test(rdtest.TestCase):
         rdtest.log.success("Reference and output image are identical for {}".format(test_name))
 
     def check_capture(self):
-        self.check_final_backbuffer()
-
         out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
         self.check(out is not None)
@@ -49,6 +47,34 @@ class D3D12_Overlay_Test(rdtest.TestCase):
 
         tex = rd.TextureDisplay()
         tex.resourceId = pipe.GetOutputTargets()[0].resourceId
+
+        # Check the actual output is as expected first.
+
+        # Background around the outside
+        self.check_pixel_value(tex.resourceId, 0.1, 0.1, [0.2, 0.2, 0.2, 1.0])
+        self.check_pixel_value(tex.resourceId, 0.8, 0.1, [0.2, 0.2, 0.2, 1.0])
+        self.check_pixel_value(tex.resourceId, 0.5, 0.95, [0.2, 0.2, 0.2, 1.0])
+
+        # Large dark grey triangle
+        self.check_pixel_value(tex.resourceId, 0.5, 0.1, [0.1, 0.1, 0.1, 1.0])
+        self.check_pixel_value(tex.resourceId, 0.5, 0.9, [0.1, 0.1, 0.1, 1.0])
+        self.check_pixel_value(tex.resourceId, 0.2, 0.9, [0.1, 0.1, 0.1, 1.0])
+        self.check_pixel_value(tex.resourceId, 0.8, 0.9, [0.1, 0.1, 0.1, 1.0])
+
+        # Red upper half triangle
+        self.check_pixel_value(tex.resourceId, 0.3, 0.4, [1.0, 0.0, 0.0, 1.0])
+        # Blue lower half triangle
+        self.check_pixel_value(tex.resourceId, 0.3, 0.6, [0.0, 0.0, 1.0, 1.0])
+
+        # Floating clipped triangle
+        self.check_pixel_value(tex.resourceId, 335, 140, [0.0, 0.0, 0.0, 1.0])
+        self.check_pixel_value(tex.resourceId, 340, 140, [0.2, 0.2, 0.2, 1.0])
+
+        # Triangle size triangles
+        self.check_pixel_value(tex.resourceId, 200, 51, [1.0, 0.5, 1.0, 1.0])
+        self.check_pixel_value(tex.resourceId, 200, 65, [1.0, 1.0, 0.0, 1.0])
+        self.check_pixel_value(tex.resourceId, 200, 79, [0.0, 1.0, 1.0, 1.0])
+        self.check_pixel_value(tex.resourceId, 200, 93, [0.0, 1.0, 0.0, 1.0])
 
         for overlay in rd.DebugOverlay:
             if overlay == rd.DebugOverlay.NoOverlay:
@@ -71,6 +97,7 @@ class D3D12_Overlay_Test(rdtest.TestCase):
             save_data = rd.TextureSave()
             save_data.resourceId = out.GetDebugOverlayTexID()
             save_data.destType = rd.FileType.PNG
+            save_data.typeCast = rd.CompType.Typeless
 
             save_data.comp.blackPoint = 0.0
             save_data.comp.whitePoint = 1.0
@@ -85,6 +112,7 @@ class D3D12_Overlay_Test(rdtest.TestCase):
             # These overlays modify the underlying texture, so we need to save it out instead of the overlay
             if overlay == rd.DebugOverlay.ClearBeforeDraw or overlay == rd.DebugOverlay.ClearBeforePass:
                 save_data.resourceId = tex.resourceId
+                save_data.typeCast = rd.CompType.UNormSRGB
 
             self.controller.SaveTexture(save_data, overlay_path)
 

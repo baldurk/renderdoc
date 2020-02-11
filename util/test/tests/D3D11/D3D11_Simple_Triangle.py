@@ -6,7 +6,11 @@ class D3D11_Simple_Triangle(rdtest.TestCase):
     demos_test_name = 'D3D11_Simple_Triangle'
 
     def check_capture(self):
-        self.check_final_backbuffer()
+        last_draw: rd.DrawcallDescription = self.get_last_draw()
+
+        self.controller.SetFrameEvent(last_draw.eventId, True)
+
+        self.check_triangle(out=last_draw.copyDestination)
 
         self.check_export(self.capture_filename)
 
@@ -21,7 +25,7 @@ class D3D11_Simple_Triangle(rdtest.TestCase):
                 'vtx': 0,
                 'idx': 0,
                 'SV_POSITION': [-0.5, -0.5, 0.0, 1.0],
-                'COLOR': [1.0, 0.0, 0.0, 1.0],
+                'COLOR': [0.0, 1.0, 0.0, 1.0],
                 'TEXCOORD': [0.0, 0.0],
             },
             1: {
@@ -35,7 +39,7 @@ class D3D11_Simple_Triangle(rdtest.TestCase):
                 'vtx': 2,
                 'idx': 2,
                 'SV_POSITION': [0.5, -0.5, 0.0, 1.0],
-                'COLOR': [0.0, 0.0, 1.0, 1.0],
+                'COLOR': [0.0, 1.0, 0.0, 1.0],
                 'TEXCOORD': [1.0, 0.0],
             },
         }

@@ -60,7 +60,7 @@ class GL_Parameter_Zoo(rdtest.TestCase):
                 'vtx': 0,
                 'idx': 0,
                 'gl_Position': [-0.5, -0.5, 0.0, 1.0],
-                'v2fcol': [1.0, 0.0, 0.0, 1.0],
+                'v2fcol': [0.0, 1.0, 0.0, 1.0],
             },
             1: {
                 'vtx': 1,
@@ -72,7 +72,7 @@ class GL_Parameter_Zoo(rdtest.TestCase):
                 'vtx': 2,
                 'idx': 2,
                 'gl_Position': [0.5, -0.5, 0.0, 1.0],
-                'v2fcol': [0.0, 0.0, 1.0, 1.0],
+                'v2fcol': [0.0, 1.0, 0.0, 1.0],
             },
         }
 

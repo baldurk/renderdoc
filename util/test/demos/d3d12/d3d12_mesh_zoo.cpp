@@ -155,7 +155,7 @@ float4 main(v2f IN) : SV_Target0
 
       OMSetRenderTargets(cmd, {rtv}, MakeDSV(dsv).CreateCPU(0));
 
-      ClearRenderTargetView(cmd, rtv, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(cmd, rtv, {0.2f, 0.2f, 0.2f, 1.0f});
       ClearDepthStencilView(cmd, dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0);
 
       cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

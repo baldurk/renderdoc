@@ -101,7 +101,7 @@ RD_TEST(D3D11_Stream_Out, D3D11GraphicsTest)
       ctx->UpdateSubresource(so[0], 0, NULL, empty, 2048, 2048);
       ctx->UpdateSubresource(so[1], 0, NULL, empty, 2048, 2048);
 
-      ClearRenderTargetView(bbRTV, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
 
       IASetVertexBuffer(vb, sizeof(DefaultA2V), 0);
       ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -124,14 +124,14 @@ RD_TEST(D3D11_Stream_Out, D3D11GraphicsTest)
       ctx->UpdateSubresource(so[0], 0, NULL, empty, 2048, 2048);
       ctx->UpdateSubresource(so[1], 0, NULL, empty, 2048, 2048);
 
-      ClearRenderTargetView(bbRTV, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
 
       ctx->Draw(3, 0);
 
       ctx->UpdateSubresource(so[0], 0, NULL, empty, 2048, 2048);
       ctx->UpdateSubresource(so[1], 0, NULL, empty, 2048, 2048);
 
-      ClearRenderTargetView(bbRTV, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
 
       // test using offsets of NULL. Should be equivalent to passing -1
       bufs[0] = so[1];

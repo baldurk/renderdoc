@@ -110,8 +110,8 @@ class D3D11_Shader_Editing(rdtest.TestCase):
         self.controller.SetFrameEvent(eid, True)
 
         # Original sample positions are now the clear color
-        self.check_pixel_value(tex, 0.25, 0.5, [0.4, 0.5, 0.6, 1.0])
-        self.check_pixel_value(tex, 0.75, 0.5, [0.4, 0.5, 0.6, 1.0])
+        self.check_pixel_value(tex, 0.25, 0.5, [0.2, 0.2, 0.2, 1.0])
+        self.check_pixel_value(tex, 0.75, 0.5, [0.2, 0.2, 0.2, 1.0])
 
         # Triangles have green and blue channel
         self.check_pixel_value(tex, 0.45, 0.05, [0.0, 1.0, 1.0, 1.0])
@@ -124,8 +124,8 @@ class D3D11_Shader_Editing(rdtest.TestCase):
         self.controller.SetFrameEvent(eid, True)
 
         # Original sample positions are still the clear color
-        self.check_pixel_value(tex, 0.25, 0.5, [0.4, 0.5, 0.6, 1.0])
-        self.check_pixel_value(tex, 0.75, 0.5, [0.4, 0.5, 0.6, 1.0])
+        self.check_pixel_value(tex, 0.25, 0.5, [0.2, 0.2, 0.2, 1.0])
+        self.check_pixel_value(tex, 0.75, 0.5, [0.2, 0.2, 0.2, 1.0])
 
         # The right triangle is the edited colour, the other two have reverted to green channel only
         self.check_pixel_value(tex, 0.45, 0.05, [0.0, 1.0, 0.0, 1.0])

@@ -17,7 +17,7 @@ class GL_Separable_Geometry_Shaders(rdtest.TestCase):
                 'vtx': 0,
                 'idx': 0,
                 'gl_Position': [-0.5, -0.5, 0.0, 1.0],
-                'v2f_block.col': [1.0, 0.0, 0.0, 1.0],
+                'v2f_block.col': [0.0, 1.0, 0.0, 1.0],
                 'v2f_block.uv': [0.0, 0.0, 0.0, 1.0],
             },
             1: {
@@ -31,7 +31,7 @@ class GL_Separable_Geometry_Shaders(rdtest.TestCase):
                 'vtx': 2,
                 'idx': 2,
                 'gl_Position': [0.5, -0.5, 0.0, 1.0],
-                'v2f_block.col': [0.0, 0.0, 1.0, 1.0],
+                'v2f_block.col': [0.0, 1.0, 0.0, 1.0],
                 'v2f_block.uv': [1.0, 0.0, 0.0, 1.0],
             },
         }
@@ -45,7 +45,7 @@ class GL_Separable_Geometry_Shaders(rdtest.TestCase):
                 'vtx': 0,
                 'idx': 0,
                 'gl_Position': [0.2, -0.5, 0.0, 1.0],
-                'v2f_block.col': [1.0, 0.0, 0.0, 1.0],
+                'v2f_block.col': [0.0, 1.0, 0.0, 1.0],
                 'v2f_block.uv': [0.0, 0.0, 0.0, 1.0],
             },
             1: {
@@ -66,16 +66,23 @@ class GL_Separable_Geometry_Shaders(rdtest.TestCase):
                 'vtx': 5,
                 'idx': 5,
                 'gl_Position': [-0.2, -0.5, 0.0, 1.0],
-                'v2f_block.col': [1.0, 1.0, 0.0, 0.0],
+                'v2f_block.col': [1.0, 0.0, 1.0, 0.0],
                 'v2f_block.uv': [1.0, 0.0, 0.0, 1.0],
             },
             8: {
                 'vtx': 8,
                 'idx': 8,
                 'gl_Position': [0.5, 0.2, 0.0, 1.0],
-                'v2f_block.col': [0.0, 1.0, 0.0, 1.0],
+                'v2f_block.col': [1.0, 0.0, 0.0, 1.0],
                 'v2f_block.uv': [1.0, 0.0, 0.0, 1.0],
             },
         }
 
         self.check_mesh_data(postgs_ref, postgs_data)
+
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        out = pipe.GetOutputTargets()[0].resourceId
+        self.check_pixel_value(out, 0.5, 0.1, [1.0, 0.0, 0.0, 1.0])
+        self.check_pixel_value(out, 0.75, 0.5, [0.0, 1.0, 0.0, 1.0])
+        self.check_pixel_value(out, 0.25, 0.5, [1.0, 0.0, 1.0, 0.0])

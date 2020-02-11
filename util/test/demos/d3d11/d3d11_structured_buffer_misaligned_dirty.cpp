@@ -93,7 +93,7 @@ float4 main() : SV_Target0
     {
       ctx->Flush();
 
-      ClearRenderTargetView(bbRTV, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
 
       // map the buffer, but only update a misaligned section - so the update won't be aligned to
       // structured size.

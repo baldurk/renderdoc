@@ -1029,7 +1029,7 @@ int4 main(float4 pos : SV_Position, uint samp : SV_SampleIndex) : SV_Target0
     while(Running())
     {
       ctx->ClearState();
-      ClearRenderTargetView(fltRT, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(fltRT, {0.2f, 0.2f, 0.2f, 1.0f});
 
       ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 

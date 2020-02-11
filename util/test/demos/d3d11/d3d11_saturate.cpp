@@ -79,9 +79,9 @@ void main(float4 pos : SV_Position, out float4 a : SV_Target0, out float4 b : SV
 
     while(Running())
     {
-      ClearRenderTargetView(fltRT[0], {0.4f, 0.5f, 0.6f, 1.0f});
-      ClearRenderTargetView(fltRT[1], {0.4f, 0.5f, 0.6f, 1.0f});
-      ClearRenderTargetView(bbRTV, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(fltRT[0], {0.2f, 0.2f, 0.2f, 1.0f});
+      ClearRenderTargetView(fltRT[1], {0.2f, 0.2f, 0.2f, 1.0f});
+      ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
 
       ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 

@@ -7,7 +7,50 @@ class D3D12_Resource_Lifetimes(rdtest.TestCase):
     demos_frame_cap = 200
 
     def check_capture(self):
-        self.check_final_backbuffer()
+        last_draw: rd.DrawcallDescription = self.get_last_draw()
+
+        self.controller.SetFrameEvent(last_draw.eventId, True)
+
+        tex = last_draw.copyDestination
+
+        # green background around first triangle, blue around second
+        self.check_pixel_value(tex, 10, 10, [0.0, 1.0, 0.0, 1.0])
+        self.check_pixel_value(tex, 118, 10, [0.0, 1.0, 0.0, 1.0])
+        self.check_pixel_value(tex, 118, 118, [0.0, 1.0, 0.0, 1.0])
+        self.check_pixel_value(tex, 10, 118, [0.0, 1.0, 0.0, 1.0])
+
+        self.check_pixel_value(tex, 138, 10, [0.0, 0.0, 1.0, 1.0])
+        self.check_pixel_value(tex, 246, 10, [0.0, 0.0, 1.0, 1.0])
+        self.check_pixel_value(tex, 246, 118, [0.0, 0.0, 1.0, 1.0])
+        self.check_pixel_value(tex, 138, 118, [0.0, 0.0, 1.0, 1.0])
+
+        # Sample across each triangle, we expect things to be identical
+        for xoffs in [0, 128]:
+            # Check black checkerboard squares
+            self.check_pixel_value(tex, xoffs+42, 92, [0.0, 0.0, 0.0, 1.0])
+            self.check_pixel_value(tex, xoffs+40, 85, [0.0, 0.0, 0.0, 1.0])
+            self.check_pixel_value(tex, xoffs+68, 66, [0.0, 0.0, 0.0, 1.0])
+            self.check_pixel_value(tex, xoffs+59, 47, [0.0, 0.0, 0.0, 1.0])
+            self.check_pixel_value(tex, xoffs+81, 92, [0.0, 0.0, 0.0, 1.0])
+
+            # Check the red and green eyes of the smiley
+            self.check_pixel_value(tex, xoffs+49, 83, [1.0, 0.0, 0.09, 1.0])
+            self.check_pixel_value(tex, xoffs+60, 83, [0.0, 1.0, 0.09, 1.0])
+
+            # Check the blue smile
+            self.check_pixel_value(tex, xoffs+64, 72, [0.09, 0.0, 1.0, 1.0])
+
+            # Check the orange face
+            self.check_pixel_value(tex, xoffs+46, 86, [1.0, 0.55, 0.36, 1.0])
+
+            # Check the empty space where we clamped and didn't repeat
+            self.check_pixel_value(tex, xoffs+82, 79, [0.72, 1.0, 1.0, 1.0])
+            self.check_pixel_value(tex, xoffs+84, 86, [0.72, 1.0, 1.0, 1.0])
+            self.check_pixel_value(tex, xoffs+88, 92, [0.72, 1.0, 1.0, 1.0])
+
+            # Check that the repeated smiley above is there
+            self.check_pixel_value(tex, xoffs+67, 53, [0.91, 0.636, 0.36, 1.0])
+            self.check_pixel_value(tex, xoffs+65, 50, [1.0, 0.0, 0.09, 1.0])
 
         # Check for resource leaks
         if len(self.controller.GetResources()) > 75:

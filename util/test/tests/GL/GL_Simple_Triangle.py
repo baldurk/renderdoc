@@ -6,7 +6,11 @@ class GL_Simple_Triangle(rdtest.TestCase):
     demos_test_name = 'GL_Simple_Triangle'
 
     def check_capture(self):
-        self.check_final_backbuffer()
+        last_draw: rd.DrawcallDescription = self.get_last_draw()
+
+        self.controller.SetFrameEvent(last_draw.eventId, True)
+
+        self.check_triangle(out=last_draw.copyDestination)
 
         self.check_export(self.capture_filename)
 
@@ -22,7 +26,7 @@ class GL_Simple_Triangle(rdtest.TestCase):
                 'idx': 0,
                 'gl_Position': [-0.5, -0.5, 0.0, 1.0],
                 'v2f_block.pos': [-0.5, -0.5, 0.0, 1.0],
-                'v2f_block.col': [1.0, 0.0, 0.0, 1.0],
+                'v2f_block.col': [0.0, 1.0, 0.0, 1.0],
                 'v2f_block.uv': [0.0, 0.0, 0.0, 1.0],
             },
             1: {
@@ -38,7 +42,7 @@ class GL_Simple_Triangle(rdtest.TestCase):
                 'idx': 2,
                 'gl_Position': [0.5, -0.5, 0.0, 1.0],
                 'v2f_block.pos': [0.5, -0.5, 0.0, 1.0],
-                'v2f_block.col': [0.0, 0.0, 1.0, 1.0],
+                'v2f_block.col': [0.0, 1.0, 0.0, 1.0],
                 'v2f_block.uv': [1.0, 0.0, 0.0, 1.0],
             },
         }

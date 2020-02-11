@@ -42,7 +42,8 @@ struct v2f
 
 Texture2D smiley : register(t0);
 Texture2D checker : register(t1);
-SamplerState samp : register(s0);
+SamplerState smileysamp : register(s0);
+SamplerState checkersamp : register(s1);
 
 cbuffer consts : register(b0)
 {
@@ -54,7 +55,9 @@ float4 main(v2f IN) : SV_Target0
   if(flags.x != 1.0f || flags.y != 2.0f || flags.z != 4.0f || flags.w != 8.0f)
     return float4(1.0f, 0.0f, 1.0f, 1.0f);
 
-	return smiley.Sample(samp, IN.uv * 2.0f) * checker.Sample(samp, IN.uv * 5.0f);
+	float4 col = smiley.Sample(smileysamp, IN.uv * 2.0f) * checker.Sample(checkersamp, IN.uv * 5.0f);
+  col.w = 1.0f;
+  return col;
 }
 
 )EOSHADER";
@@ -71,8 +74,8 @@ float4 main(v2f IN) : SV_Target0
     ID3D12ResourcePtr vb = MakeBuffer().Data(DefaultTri);
 
     D3D12_STATIC_SAMPLER_DESC samp = {
-        D3D12_FILTER_MIN_MAG_MIP_LINEAR,
-        D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        D3D12_FILTER_MIN_MAG_MIP_POINT,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
         D3D12_TEXTURE_ADDRESS_MODE_WRAP,
         D3D12_TEXTURE_ADDRESS_MODE_WRAP,
         0.0f,
@@ -86,13 +89,18 @@ float4 main(v2f IN) : SV_Target0
         D3D12_SHADER_VISIBILITY_PIXEL,
     };
 
+    D3D12_STATIC_SAMPLER_DESC samps[2];
+    samps[0] = samps[1] = samp;
+    samps[1].ShaderRegister = 1;
+    samps[1].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+
     ID3D12RootSignaturePtr sig = MakeSig(
         {
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 0),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, 1, 1),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 0, 1, 2),
         },
-        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 1, &samp);
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 2, samps);
 
     ID3D12PipelineStatePtr pso = MakePSO().RootSig(sig).InputLayout().VS(vsblob).PS(psblob);
 
@@ -420,7 +428,15 @@ float4 main(v2f IN) : SV_Target0
 
         rtv = MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
 
-        ClearRenderTargetView(cmd, rtv, {0.4f, 0.5f, 0.6f, 1.0f});
+        ClearRenderTargetView(cmd, rtv, {0.2f, 0.2f, 0.2f, 1.0f});
+
+        D3D12_RECT rect = {0, 0, 128, 128};
+        Vec4f col(0.0f, 1.0f, 0.0f, 1.0f);
+        cmd->ClearRenderTargetView(rtv, &col.x, 1, &rect);
+
+        rect = {128, 0, 256, 128};
+        col = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
+        cmd->ClearRenderTargetView(rtv, &col.x, 1, &rect);
 
         cmd->Close();
 

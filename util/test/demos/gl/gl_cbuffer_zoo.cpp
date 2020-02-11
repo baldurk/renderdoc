@@ -383,7 +383,7 @@ void main()
     {
       glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-      float col[] = {0.4f, 0.5f, 0.6f, 1.0f};
+      float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
       glClearBufferfv(GL_COLOR, 0, col);
 
       glBindFramebuffer(GL_FRAMEBUFFER, fbo);

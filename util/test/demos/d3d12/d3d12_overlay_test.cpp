@@ -161,7 +161,7 @@ RD_TEST(D3D12_Overlay_Test, D3D12GraphicsTest)
 
       OMSetRenderTargets(cmd, {rtv}, MakeDSV(dsv).CreateCPU(0));
 
-      ClearRenderTargetView(cmd, rtv, {0.4f, 0.5f, 0.6f, 1.0f});
+      ClearRenderTargetView(cmd, rtv, {0.2f, 0.2f, 0.2f, 1.0f});
       ClearDepthStencilView(cmd, dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0);
 
       cmd->OMSetStencilRef(0x55);

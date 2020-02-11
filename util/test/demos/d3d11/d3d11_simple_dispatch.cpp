@@ -76,7 +76,7 @@ void main()
 
     while(Running())
     {
-      float col[] = {0.4f, 0.5f, 0.6f, 1.0f};
+      float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
       ctx->ClearRenderTargetView(bbRTV, col);
 
       ctx->CSSetShader(cs, NULL, 0);

@@ -308,11 +308,28 @@ class TestCase:
         if type(y) is float:
             y = int((tex_details.height-1) * y)
 
-        picked: rd.PixelValue = self.controller.PickPixel(tex, x, y, rd.Subresource(0, 0, 0), rd.CompType.Typeless)
+        cast = rd.CompType.Typeless
+        if tex_details.creationFlags & rd.TextureCategory.SwapBuffer:
+            cast = rd.CompType.UNormSRGB
+
+        # Reduce epsilon for RGBA8 textures if it's not already reduced
+        if tex_details.format.compByteWidth == 1 and eps == util.FLT_EPSILON:
+            eps = (1.0 / 255.0)
+
+        picked: rd.PixelValue = self.controller.PickPixel(tex, x, y, rd.Subresource(0, 0, 0), cast)
 
         if not util.value_compare(picked.floatValue, value, eps):
+            save_data = rd.TextureSave()
+            save_data.resourceId = tex
+            save_data.destType = rd.FileType.PNG
+
+            img_path = util.get_tmp_path('output.png')
+
+            self.controller.SaveTexture(save_data, img_path)
+
             raise TestFailureException(
-                "Picked value {} at {},{} doesn't match expectation of {}".format(picked.floatValue, x, y, value))
+                "Picked value {} at {},{} doesn't match expectation of {}".format(picked.floatValue, x, y, value),
+                img_path)
 
         log.success("Picked value at {},{} in {} is as expected".format(x, y, res_details.name))
 
@@ -331,17 +348,17 @@ class TestCase:
         if fore is None:
             fore = [0.0, 1.0, 0.0, 1.0]
         if vp is None:
-            vp = (float(tex_details.width), float(tex_details.height), 0.0, 0.0)
+            vp = (0.0, 0.0, float(tex_details.width), float(tex_details.height))
 
-        self.check_pixel_value(out, int(0.5*vp[0]+vp[2]), int(0.5*vp[1]+vp[3]), fore)
-        self.check_pixel_value(out, int(0.5*vp[0]+vp[2]), int(0.3*vp[1]+vp[3]), fore)
-        self.check_pixel_value(out, int(0.3*vp[0]+vp[2]), int(0.7*vp[1]+vp[3]), fore)
-        self.check_pixel_value(out, int(0.7*vp[0]+vp[2]), int(0.7*vp[1]+vp[3]), fore)
+        self.check_pixel_value(out, int(0.5*vp[2]+vp[0]), int(0.5*vp[3]+vp[1]), fore)
+        self.check_pixel_value(out, int(0.5*vp[2]+vp[0]), int(0.3*vp[3]+vp[1]), fore)
+        self.check_pixel_value(out, int(0.3*vp[2]+vp[0]), int(0.7*vp[3]+vp[1]), fore)
+        self.check_pixel_value(out, int(0.7*vp[2]+vp[0]), int(0.7*vp[3]+vp[1]), fore)
 
-        self.check_pixel_value(out, int(0.3*vp[0]+vp[2]), int(0.5*vp[1]+vp[3]), back)
-        self.check_pixel_value(out, int(0.7*vp[0]+vp[2]), int(0.5*vp[1]+vp[3]), back)
-        self.check_pixel_value(out, int(0.5*vp[0]+vp[2]), int(0.8*vp[1]+vp[3]), back)
-        self.check_pixel_value(out, int(0.5*vp[0]+vp[2]), int(0.2*vp[1]+vp[3]), back)
+        self.check_pixel_value(out, int(0.3*vp[2]+vp[0]), int(0.5*vp[3]+vp[1]), back)
+        self.check_pixel_value(out, int(0.7*vp[2]+vp[0]), int(0.5*vp[3]+vp[1]), back)
+        self.check_pixel_value(out, int(0.5*vp[2]+vp[0]), int(0.8*vp[3]+vp[1]), back)
+        self.check_pixel_value(out, int(0.5*vp[2]+vp[0]), int(0.2*vp[3]+vp[1]), back)
 
         log.success("Simple triangle is as expected")
 
