@@ -1641,10 +1641,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
             {
               initReq = state->MaxInitReq(range, policy, initialized);
             }
-            if(initReq == eInitReq_Copy)
+
+            // you can't clear YUV textures, so force them to be copied either way
+            if(initReq == eInitReq_Copy || initReq == eInitReq_Clear)
               copyRegions.push_back(region);
-            else if(initReq == eInitReq_Clear)
-              clearRegions.push_back(range);
           }
         }
         else if(IsDepthAndStencilFormat(fmt))
@@ -1706,7 +1706,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
           {
             initReq = state->MaxInitReq(range, policy, initialized);
           }
-          if(initReq == eInitReq_Copy)
+
+          // you can't clear compressed textures, so fall back to copying them
+          if(initReq == eInitReq_Copy ||
+             (IsBlockFormat(imageInfo.format) && initReq == eInitReq_Clear))
             copyRegions.push_back(region);
           else if(initReq == eInitReq_Clear)
             clearRegions.push_back(range);
