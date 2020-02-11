@@ -47,6 +47,10 @@ COM_SMARTPTR(ID3D12CommandQueue);
 COM_SMARTPTR(ID3D12CommandAllocator);
 COM_SMARTPTR(ID3D12CommandList);
 COM_SMARTPTR(ID3D12GraphicsCommandList);
+COM_SMARTPTR(ID3D12GraphicsCommandList1);
+COM_SMARTPTR(ID3D12GraphicsCommandList2);
+COM_SMARTPTR(ID3D12GraphicsCommandList3);
+COM_SMARTPTR(ID3D12GraphicsCommandList4);
 
 COM_SMARTPTR(ID3D12CommandSignature);
 

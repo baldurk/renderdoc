@@ -316,6 +316,35 @@ class TestCase:
 
         log.success("Picked value at {},{} in {} is as expected".format(x, y, res_details.name))
 
+    def check_triangle(self, out = None, back = None, fore = None, vp = None):
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        # if no output is specified, check the current colour output at this draw
+        if out is None:
+            out = pipe.GetOutputTargets()[0].resourceId
+
+        tex_details = self.get_texture(out)
+
+        # if no colours are specified, default to green on our dark grey
+        if back is None:
+            back = [0.2, 0.2, 0.2, 1.0]
+        if fore is None:
+            fore = [0.0, 1.0, 0.0, 1.0]
+        if vp is None:
+            vp = (float(tex_details.width), float(tex_details.height), 0.0, 0.0)
+
+        self.check_pixel_value(out, int(0.5*vp[0]+vp[2]), int(0.5*vp[1]+vp[3]), fore)
+        self.check_pixel_value(out, int(0.5*vp[0]+vp[2]), int(0.3*vp[1]+vp[3]), fore)
+        self.check_pixel_value(out, int(0.3*vp[0]+vp[2]), int(0.7*vp[1]+vp[3]), fore)
+        self.check_pixel_value(out, int(0.7*vp[0]+vp[2]), int(0.7*vp[1]+vp[3]), fore)
+
+        self.check_pixel_value(out, int(0.3*vp[0]+vp[2]), int(0.5*vp[1]+vp[3]), back)
+        self.check_pixel_value(out, int(0.7*vp[0]+vp[2]), int(0.5*vp[1]+vp[3]), back)
+        self.check_pixel_value(out, int(0.5*vp[0]+vp[2]), int(0.8*vp[1]+vp[3]), back)
+        self.check_pixel_value(out, int(0.5*vp[0]+vp[2]), int(0.2*vp[1]+vp[3]), back)
+
+        log.success("Simple triangle is as expected")
+
     def run(self):
         self.capture_filename = self.get_capture()
 
