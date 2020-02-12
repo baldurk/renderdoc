@@ -668,6 +668,7 @@ public:
     rdcarray<rdcstr> includepaths;
     rdcspv::Reflector spirv;
     rdcstr disassembly;
+    std::map<size_t, uint32_t> spirvInstructionLines;
     ShaderReflection reflection;
     int version;
 

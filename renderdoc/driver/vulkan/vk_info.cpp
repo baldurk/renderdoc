@@ -1099,6 +1099,12 @@ void VulkanCreationInfo::ShaderModuleReflection::Init(VulkanResourceManager *res
   }
 }
 
+void VulkanCreationInfo::ShaderModuleReflection::PopulateDisassembly(const rdcspv::Reflector &spirv)
+{
+  if(disassembly.empty())
+    disassembly = spirv.Disassemble(refl.entryPoint.c_str(), instructionLines);
+}
+
 void VulkanCreationInfo::DescSetPool::Init(VulkanResourceManager *resourceMan,
                                            VulkanCreationInfo &info,
                                            const VkDescriptorPoolCreateInfo *pCreateInfo)

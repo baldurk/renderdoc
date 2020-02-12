@@ -91,7 +91,7 @@ public:
   Reflector();
   virtual void Parse(const rdcarray<uint32_t> &spirvWords);
 
-  rdcstr Disassemble(const rdcstr &entryPoint) const;
+  rdcstr Disassemble(const rdcstr &entryPoint, std::map<size_t, uint32_t> &instructionLines) const;
 
   rdcarray<rdcstr> EntryPoints() const;
   ShaderStage StageForEntry(const rdcstr &entryPoint) const;

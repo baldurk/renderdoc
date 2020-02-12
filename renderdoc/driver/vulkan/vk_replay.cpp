@@ -543,12 +543,11 @@ rdcstr VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
 
   if(target == SPIRVDisassemblyTarget || target.empty())
   {
-    rdcstr &disasm = it->second.GetReflection(refl->entryPoint, pipeline).disassembly;
+    VulkanCreationInfo::ShaderModuleReflection &moduleRefl =
+        it->second.GetReflection(refl->entryPoint, pipeline);
+    moduleRefl.PopulateDisassembly(it->second.spirv);
 
-    if(disasm.empty())
-      disasm = it->second.spirv.Disassemble(refl->entryPoint.c_str());
-
-    return disasm;
+    return moduleRefl.disassembly;
   }
 
   VkDevice dev = m_pDriver->GetDev();

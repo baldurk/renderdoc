@@ -118,7 +118,8 @@ static rdcstr StringiseBinaryOperation(const std::function<rdcstr(rdcspv::Id)> &
 
 namespace rdcspv
 {
-rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
+rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
+                              std::map<size_t, uint32_t> &instructionLines) const
 {
   std::set<rdcstr> usedNames;
   std::map<Id, rdcstr> dynamicNames;
@@ -261,8 +262,14 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
   Id currentBlock;
 
   ret = StringFormat::Fmt(
-      "SPIR-V %u.%u module, <id> bound of %u\n\nGenerator: %s\nGenerator Version: %u\n\n",
+      "SPIR-V %u.%u module, <id> bound of %u\n"
+      "\n"
+      "Generator: %s\n"
+      "Generator Version: %u\n"
+      "\n",
       m_MajorVersion, m_MinorVersion, m_SPIRV[3], ToStr(m_Generator).c_str(), m_GeneratorVersion);
+
+  uint32_t lineNum = 6;
 
   for(size_t sec = 0; sec < Section::Count; sec++)
   {
@@ -271,6 +278,8 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
 
     for(; it < end; it++)
     {
+      instructionLines[it.offs()] = lineNum;
+
       // special case some opcodes for more readable disassembly, but generally pass to the
       // auto-generated disassembler
       switch(it.opcode())
@@ -331,6 +340,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
           OpTypeForwardPointer decoded(it);
 
           ret += ToStr(decoded.storageClass) + " " + declName(decoded.pointerType, Id()) + ";\n";
+          lineNum++;
 
           continue;
         }
@@ -344,6 +354,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
 
           ret += "struct " + idName(decoded.result) +
                  getDecorationString(decorations[decoded.result]) + " {\n";
+          lineNum++;
           for(size_t i = 0; i < type.children.size(); i++)
           {
             ret += "  " + declName(type.children[i].type, Id());
@@ -355,8 +366,10 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
             ret += getDecorationString(type.children[i].decorations);
             ret += getDecorationString(decorations[type.children[i].type]);
             ret += ";\n";
+            lineNum++;
           }
           ret += "}\n";
+          lineNum++;
           continue;
         }
 
@@ -565,7 +578,10 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
           {
             it++;
             while(it.opcode() == Op::Line || it.opcode() == Op::NoLine)
+            {
               it++;
+              instructionLines[it.offs()] = lineNum;
+            }
 
             const bool added_params = (it.opcode() == Op::FunctionParameter);
 
@@ -574,8 +590,12 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
               OpFunctionParameter param(it);
               ret += declName(param.resultType, param.result) + ", ";
               it++;
+              instructionLines[it.offs()] = lineNum;
               while(it.opcode() == Op::Line || it.opcode() == Op::NoLine)
+              {
                 it++;
+                instructionLines[it.offs()] = lineNum;
+              }
             }
 
             // remove trailing ", "
@@ -585,6 +605,8 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
               ret.pop_back();
             }
           }
+
+          instructionLines[it.offs()] = lineNum;
 
           ret += ")";
 
@@ -602,6 +624,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
           // it points to the FunctionEnd (for declarations) or first Label (for definitions).
           // the next it++ will skip that but it's fine, because we have processed them
           ret += "\n";
+          lineNum++;
 
           indent += "  ";
           continue;
@@ -609,6 +632,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
         case Op::FunctionEnd:
         {
           ret += "}\n\n";
+          lineNum += 2;
           indent.resize(indent.size() - 2);
           continue;
         }
@@ -621,12 +645,14 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
             ret += StringFormat::Fmt("[[%s]]", ToStr(decoded.selectionControl).c_str());
 
           ret += "\n";
+          lineNum++;
 
           StructuredCFG cfg;
           cfg.headerBlock = currentBlock;
           cfg.mergeTarget = decoded.mergeBlock;
 
           it++;
+          instructionLines[it.offs()] = lineNum;
 
           // the Switch or BranchConditional operation declares the structured CFG
           if(it.opcode() == Op::Switch)
@@ -640,6 +666,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
 
             ret += indent;
             ret += StringFormat::Fmt("switch(%s) {\n", idName(decodedswitch.selector).c_str());
+            lineNum++;
 
             // add another level - each case label will be un-intended.
             indent += "  ";
@@ -674,6 +701,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
                                          decodedbranch.branchweights[1]);
 
               ret += "\n";
+              lineNum++;
 
               cfg.elseTarget = (decodedbranch.trueLabel == decodedlabel.result)
                                    ? decodedbranch.falseLabel
@@ -690,6 +718,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
               ret += StringFormat::Fmt(
                   "if(%s) { goto %s; } else { goto %s; }\n", idName(decodedbranch.condition).c_str(),
                   idName(decodedbranch.trueLabel).c_str(), idName(decodedbranch.falseLabel).c_str());
+              lineNum++;
 
               // need to print these labels now
               printLabels.insert(decodedbranch.trueLabel);
@@ -712,13 +741,16 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
             ret += StringFormat::Fmt("[[%s]]", ParamToStr(idName, decoded.loopControl).c_str());
 
           ret += "\n";
+          lineNum++;
 
           it++;
+          instructionLines[it.offs()] = lineNum;
           if(it.opcode() == Op::Branch)
           {
             OpBranch decodedbranch(it);
             ret += indent;
             ret += "while(true) {\n";
+            lineNum++;
 
             ConstIter nextit = it;
             nextit++;
@@ -740,6 +772,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
             {
               nextit++;
               it++;
+              instructionLines[it.offs()] = lineNum;
             }
           }
           else
@@ -764,6 +797,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
                                          decodedbranch.branchweights[1]);
 
               ret += "\n";
+              lineNum++;
             }
             else
             {
@@ -772,12 +806,14 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
                   "the loop");
               ret += indent;
               ret += "while(true) {\n";
+              lineNum++;
 
               ret += indent;
               ret += StringFormat::Fmt("  if(%s) { goto %s; } else { goto %s; }\n",
                                        idName(decodedbranch.condition).c_str(),
                                        idName(decodedbranch.trueLabel).c_str(),
                                        idName(decodedbranch.falseLabel).c_str());
+              lineNum++;
 
               // need to print these labels now
               printLabels.insert(decodedbranch.trueLabel);
@@ -811,6 +847,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
 
             ret += indent;
             ret += "}\n\n";
+            lineNum += 2;
 
             cfgStack.pop_back();
           }
@@ -820,6 +857,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
             // if this is the current if's else{} then print it
             ret += indent.substr(0, indent.size() - 2);
             ret += "} else {\n";
+            lineNum++;
           }
           else if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::Switch &&
                   decoded.result == cfgStack.back().defaultTarget)
@@ -827,6 +865,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
             // if this is the current switch's default: then print it
             ret += indent.substr(0, indent.size() - 2);
             ret += "default:\n";
+            lineNum++;
           }
 
           if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::Switch)
@@ -838,6 +877,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
                 // if this is the current switch's default: then print it
                 ret += indent.substr(0, indent.size() - 2);
                 ret += StringFormat::Fmt("case %u:\n", caseTarget.first);
+                lineNum++;
                 break;
               }
             }
@@ -845,7 +885,10 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
 
           // print the label if we decided it was needed
           if(printLabels.find(decoded.result) != printLabels.end())
+          {
             ret += idName(decoded.result) + ":\n";
+            lineNum++;
+          }
           continue;
         }
         case Op::Branch:
@@ -873,6 +916,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
               if(cfgStack.back().mergeTarget == decoded.targetLabel)
               {
                 ret += indent + "break;\n";
+                lineNum++;
                 continue;
               }
 
@@ -884,6 +928,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
                   ret += indent;
                   ret +=
                       StringFormat::Fmt("// deliberate fallthrough to case %u\n", caseTarget.first);
+                  lineNum++;
                   break;
                 }
               }
@@ -909,6 +954,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
              cfgStack.back().mergeTarget == decoded.targetLabel)
           {
             ret += indent + "break;\n";
+            lineNum++;
             continue;
           }
 
@@ -924,6 +970,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
               if(caseTarget.second == decoded.targetLabel)
               {
                 ret += StringFormat::Fmt("goto case %u;\n", caseTarget.first);
+                lineNum++;
                 printed = true;
                 break;
               }
@@ -935,6 +982,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
 
           ret += indent;
           ret += "goto " + idName(decoded.targetLabel) + ";\n";
+          lineNum++;
 
           // we must print this label because we've created a goto for it
           printLabels.insert(decoded.targetLabel);
@@ -993,6 +1041,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
                                          decoded.branchweights[1]);
 
               ret += "\n";
+              lineNum++;
             }
             else
             {
@@ -1006,6 +1055,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
                                          decoded.branchweights[1]);
 
               ret += "\n";
+              lineNum++;
 
               // this isn't technically structured but it's easier to pretend that it is
               // no else, the merge target is where we exit the 'if'
@@ -1029,6 +1079,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
             ret += StringFormat::Fmt(
                 "if(%s) { goto %s; } else { goto %s; }\n", idName(decoded.condition).c_str(),
                 idName(decoded.trueLabel).c_str(), idName(decoded.falseLabel).c_str());
+            lineNum++;
 
             // need to print these labels now
             printLabels.insert(decoded.trueLabel);
@@ -1423,9 +1474,11 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
       }
 
       ret += ";\n";
+      lineNum++;
     }
 
     ret += "\n";
+    lineNum++;
   }
 
   return ret;

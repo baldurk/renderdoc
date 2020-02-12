@@ -176,10 +176,13 @@ struct VulkanCreationInfo
     ShaderReflection refl;
     ShaderBindpointMapping mapping;
     SPIRVPatchData patchData;
+    std::map<size_t, uint32_t> instructionLines;
 
     void Init(VulkanResourceManager *resourceMan, ResourceId id, const rdcspv::Reflector &spv,
               const rdcstr &entry, VkShaderStageFlagBits stage,
               const rdcarray<SpecConstant> &specInfo);
+
+    void PopulateDisassembly(const rdcspv::Reflector &spirv);
   };
 
   struct Pipeline
