@@ -2772,7 +2772,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         Extensions.removeOne(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME);
       }
     }
-    else if(KHRbuffer)
+    else if(EXTbuffer)
     {
       VkPhysicalDeviceFeatures2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
       availBase.pNext = &bufAddrEXTFeatures;
