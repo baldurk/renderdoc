@@ -2423,7 +2423,10 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       }
 
       if(!me)
+      {
+        delete buf;
         return;
+      }
     }
 
     GUIInvoke::call(this, [this, buf, bufdata]() {
