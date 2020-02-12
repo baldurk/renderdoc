@@ -249,6 +249,7 @@ private:
   static int m_minFigures, m_maxFigures, m_expNegCutoff, m_expPosCutoff;
   static double m_expNegValue, m_expPosValue;
   static QFont *m_Font;
+  static float m_FontBaseSize;
   static QColor m_DarkChecker, m_LightChecker;
 };
 

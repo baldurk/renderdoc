@@ -184,7 +184,11 @@ void PipelineFlowChart::paintEvent(QPaintEvent *e)
 
   QPainter p(this);
 
-  p.setFont(Formatter::PreferredFont());
+  QFont f = Formatter::PreferredFont();
+
+  f.setPointSizeF(1.5f * f.pointSizeF());
+
+  p.setFont(f);
 
   p.fillRect(rect(), Qt::transparent);
 

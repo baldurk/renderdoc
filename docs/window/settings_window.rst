@@ -22,6 +22,22 @@ This allows you to choose what theme to use in RenderDoc. By default when first 
 
 ---------------
 
+  | :guilabel:`Global font scale` Default: ``100%``
+
+This option will apply a global font scale to all fonts in the UI. This will only apply to text elements, and other UI elements will take their scale from the system's DPI scaling configuration.
+
+Changing this option will need the UI to be restarted before it fully takes effect on all UI elements.
+
+---------------
+
+  | :guilabel:`Prefer monospaced fonts in UI` Default: ``Disabled``
+
+This option will use a monospaced font for every place in the UI where any data or output is displayed.
+
+Changing this option will need the UI to be restarted before it fully takes effect on all UI elements.
+
+---------------
+
   | :guilabel:`Minimum decimal places on float values` Default: ``2``
 
 Defines the smallest number of decimal places to display on a float, padding with 0s.
@@ -115,14 +131,6 @@ This option **can be dangerous** which is why you have to deliberately enable it
 Every couple of days RenderDoc will send a single web request to a secure server to see if a new version is available and let you know about it. The only information transmitted is the version of RenderDoc that is running.
 
 If you would prefer RenderDoc does not ever contact an external server, disable this checkbox. If you do this it's recommended that you manually check for updates as new versions will be made available regularly with bugfixes.
-
----------------
-
-  | :guilabel:`Prefer monospaced fonts in UI` Default: ``Disabled``
-
-This option will use a monospaced font for every place in the UI where any data or output is displayed.
-
-Changing this option will need the UI to be restarted before it takes effect.
 
 ---------------
 

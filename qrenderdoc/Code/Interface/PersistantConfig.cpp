@@ -193,6 +193,10 @@ void PersistantConfig::applyValues(const QVariantMap &values)
   RENAMED_SETTING(QVariantList, RecentLogFiles, RecentCaptureFiles);
   RENAMED_SETTING(QDateTime, DegradedLog_LastUpdate, DegradedCapture_LastUpdate);
   RENAMED_SETTING(QVariantList, SPIRVDisassemblers, ShaderProcessors);
+
+  // apply reasonable bounds to font scale to avoid invalid values
+  // 25% - 400%
+  Font_GlobalScale = qBound(0.25f, Font_GlobalScale, 4.0f);
 }
 
 static QMutex RemoteHostLock;

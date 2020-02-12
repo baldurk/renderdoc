@@ -39,6 +39,8 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
+  m_Init = true;
+
   m_ReplayOptions = new ReplayOptionsSelector(m_Ctx, false, this);
 
   ui->replayOptionsLayout->insertWidget(0, m_ReplayOptions);
@@ -54,14 +56,27 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   for(int i = 0; i < StyleData::numAvailable; i++)
     ui->UIStyle->addItem(StyleData::availStyles[i].styleName);
 
+  ui->Font_GlobalScale->addItems({lit("50%"), lit("75%"), lit("100%"), lit("125%"), lit("150%"),
+                                  lit("175%"), lit("200%"), lit("250%"), lit("300%"), lit("400%")});
+
+  ui->Font_GlobalScale->setCurrentText(
+      QString::number(ceil(m_Ctx.Config().Font_GlobalScale * 100)) + lit("%"));
+
+  for(int i = 0; i < ui->Font_GlobalScale->count(); i++)
+  {
+    if(ui->Font_GlobalScale->currentText() == ui->Font_GlobalScale->itemText(i))
+    {
+      ui->Font_GlobalScale->setCurrentIndex(i);
+      break;
+    }
+  }
+
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
   ui->tabWidget->tabBar()->setVisible(false);
 
   for(int i = 0; i < ui->tabWidget->count(); i++)
     ui->pages->addItem(ui->tabWidget->tabText(i));
-
-  m_Init = true;
 
   for(int i = 0; i < (int)TimeUnit::Count; i++)
   {
@@ -183,6 +198,8 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
 
   m_Init = false;
 
+  QObject::connect(ui->Font_GlobalScale->lineEdit(), &QLineEdit::returnPressed, this,
+                   &SettingsDialog::Font_GlobalScale_returnPressed);
   QObject::connect(ui->shaderTools->verticalHeader(), &QHeaderView::sectionMoved, this,
                    &SettingsDialog::shaderTools_rowMoved);
   QObject::connect(ui->Formatter_MinFigures, OverloadedSlot<int>::of(&QSpinBox::valueChanged), this,
@@ -238,6 +255,31 @@ void SettingsDialog::on_okButton_accepted()
 {
   setResult(1);
   accept();
+}
+
+void SettingsDialog::on_Font_GlobalScale_currentIndexChanged(int index)
+{
+  Font_GlobalScale_returnPressed();
+}
+
+void SettingsDialog::Font_GlobalScale_returnPressed()
+{
+  if(m_Init)
+    return;
+
+  QString scaleText = ui->Font_GlobalScale->currentText().replace(QLatin1Char('%'), QLatin1Char(' '));
+
+  bool ok = false;
+  int scale = scaleText.toInt(&ok);
+
+  if(!ok)
+    scale = 100;
+
+  m_Ctx.Config().Font_GlobalScale = (float)(scale) / 100.0f;
+
+  m_Ctx.Config().SetupFormatting();
+
+  m_Ctx.Config().Save();
 }
 
 // general

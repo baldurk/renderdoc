@@ -332,6 +332,8 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, int, int, Formatter_PosExp, 7)                                \
                                                                                            \
+  CONFIG_SETTING_VAL(public, float, float, Font_GlobalScale, 1.0f)                         \
+                                                                                           \
   CONFIG_SETTING_VAL(public, bool, bool, Font_PreferMonospaced, false)                     \
                                                                                            \
   CONFIG_SETTING_VAL(public, QString, rdcstr, Android_SDKPath, "")                         \

@@ -101,167 +101,15 @@
           <string>General</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_5">
-          <item row="6" column="0">
-           <widget class="QLabel" name="label_5">
-            <property name="toolTip">
-             <string>Changes the directory where capture files are saved after being created, until saved manually or deleted.
-
-Defaults to %TEMP%.</string>
-            </property>
-            <property name="text">
-             <string>Directory for temporary capture files</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="1">
-           <widget class="QSpinBox" name="Formatter_NegExp">
-            <property name="toolTip">
-             <string>Any numbers smaller than this exponent will be displayed in scientific notation.
-E.g. a value of 3 means 0.005 / 10 = 5E-4</string>
-            </property>
-            <property name="value">
-             <number>5</number>
-            </property>
-           </widget>
-          </item>
-          <item row="14" column="1">
-           <spacer name="verticalSpacer">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="7" column="0">
-           <widget class="QLineEdit" name="tempDirectory">
-            <property name="toolTip">
-             <string>Changes the directory where capture files are saved after being created, until saved manually or deleted.
-
-Defaults to %TEMP%.</string>
-            </property>
-           </widget>
-          </item>
-          <item row="7" column="1">
-           <widget class="QPushButton" name="browseTempCaptureDirectory">
-            <property name="toolTip">
-             <string>Changes the directory where capture files are saved after being created, until saved manually or deleted.
-
-Defaults to %TEMP%.</string>
-            </property>
-            <property name="text">
-             <string>Browse</string>
-            </property>
-           </widget>
-          </item>
-          <item row="9" column="1">
-           <widget class="QPushButton" name="browseSaveCaptureDirectory">
+          <item row="10" column="0">
+           <widget class="QLabel" name="label_6">
             <property name="toolTip">
              <string>Changes the default directory for the save dialog when saving capture files.
 
 Defaults to blank, which follows system default behaviour.</string>
             </property>
             <property name="text">
-             <string>Browse</string>
-            </property>
-           </widget>
-          </item>
-          <item row="10" column="1">
-           <widget class="QCheckBox" name="AllowGlobalHook">
-            <property name="toolTip">
-             <string>Enables functionality on the capture application window that will insert RenderDoc automatically
-into all new processes created - then inject into the target (matching) executable.
-
-Useful for capturing programs indirectly that can't easily be launched directly by RenderDoc
-
-Since this is a global system hook it must be used carefully and only when necessary!</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="11" column="1">
-           <widget class="QCheckBox" name="CheckUpdate_AllowChecks">
-            <property name="toolTip">
-             <string>Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for new versions.</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="12" column="1">
-           <widget class="QCheckBox" name="Font_PreferMonospaced">
-            <property name="toolTip">
-             <string>Wherever possible a monospaced font will be used instead of the default font</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="1">
-           <widget class="QSpinBox" name="Formatter_MaxFigures">
-            <property name="toolTip">
-             <string>No more decimal places than this will be displayed on floats.
-e.g. a value of 5 means 0.123456789 will display as 0.12345 and 123.123456789 will display as 123.12345</string>
-            </property>
-            <property name="value">
-             <number>5</number>
-            </property>
-           </widget>
-          </item>
-          <item row="9" column="0">
-           <widget class="QLineEdit" name="saveDirectory">
-            <property name="toolTip">
-             <string>Changes the default directory for the save dialog when saving capture files.
-
-Defaults to blank, which follows system default behaviour.</string>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="1">
-           <widget class="QSpinBox" name="Formatter_PosExp">
-            <property name="toolTip">
-             <string>Any numbers larger than this exponent will be displayed in scientific notation.
-e.g. 1000 * 10 = 1e4</string>
-            </property>
-            <property name="value">
-             <number>7</number>
-            </property>
-            <property name="displayIntegerBase">
-             <number>10</number>
-            </property>
-           </widget>
-          </item>
-          <item row="13" column="0">
-           <widget class="QLabel" name="label_10">
-            <property name="toolTip">
-             <string>If a capture is marked as being created on a significantly different system (different OS or platform)
-as is currently running, then by default the UI will prompt to ask if you want to replay on a remote context.
-
-This option overrides that and will always replay locally if the local context is selected.</string>
-            </property>
-            <property name="text">
-             <string>Always replay captures locally, never prompt about it</string>
-            </property>
-           </widget>
-          </item>
-          <item row="13" column="1">
-           <widget class="QCheckBox" name="AlwaysReplayLocally">
-            <property name="toolTip">
-             <string>If a capture is marked as being created on a significantly different system (different OS or platform)
-as is currently running, then by default the UI will prompt to ask if you want to replay on a remote context.
-
-This option overrides that and will always replay locally if the local context is selected.</string>
-            </property>
-            <property name="text">
-             <string/>
+             <string>Default save directory for captures</string>
             </property>
            </widget>
           </item>
@@ -278,76 +126,7 @@ This option overrides that and will always replay locally if the local context i
             </property>
            </widget>
           </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="UIStyle_label">
-            <property name="text">
-             <string>Visual theme of the UI</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0" colspan="2">
-           <widget class="Line" name="line">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="0">
-           <widget class="QLabel" name="label_4">
-            <property name="toolTip">
-             <string>Any numbers larger than this exponent will be displayed in scientific notation.
-e.g. 1000 * 10 = 1e4</string>
-            </property>
-            <property name="text">
-             <string>Positive exponential cutoff value</string>
-            </property>
-           </widget>
-          </item>
-          <item row="12" column="0">
-           <widget class="QLabel" name="label_9">
-            <property name="toolTip">
-             <string>Wherever possible a monospaced font will be used instead of the default font</string>
-            </property>
-            <property name="text">
-             <string>Prefer monospaced fonts in UI (restart required)</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QSpinBox" name="Formatter_MinFigures">
-            <property name="toolTip">
-             <string>Decimals will display at least this many digits.
-e.g. a value of 2 means 0 will display as 0.00, 0.5 as 0.50</string>
-            </property>
-            <property name="value">
-             <number>2</number>
-            </property>
-           </widget>
-          </item>
-          <item row="8" column="0">
-           <widget class="QLabel" name="label_6">
-            <property name="toolTip">
-             <string>Changes the default directory for the save dialog when saving capture files.
-
-Defaults to blank, which follows system default behaviour.</string>
-            </property>
-            <property name="text">
-             <string>Default save directory for captures</string>
-            </property>
-           </widget>
-          </item>
           <item row="4" column="0">
-           <widget class="QLabel" name="label_3">
-            <property name="toolTip">
-             <string>Any numbers smaller than this exponent will be displayed in scientific notation.
-E.g. a value of 3 means 0.005 / 10 = 5E-4</string>
-            </property>
-            <property name="text">
-             <string>Negative exponential cutoff value</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
            <widget class="QLabel" name="label">
             <property name="toolTip">
              <string>At least this many decimal places will be displayed on floats.
@@ -358,7 +137,39 @@ e.g. a value of 2 means 0 will display as 0.00, 0.5 as 0.50. A value of 5 would 
             </property>
            </widget>
           </item>
-          <item row="10" column="0">
+          <item row="6" column="0">
+           <widget class="QLabel" name="label_3">
+            <property name="toolTip">
+             <string>Any numbers smaller than this exponent will be displayed in scientific notation.
+E.g. a value of 3 means 0.005 / 10 = 5E-4</string>
+            </property>
+            <property name="text">
+             <string>Negative exponential cutoff value</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="UIStyle_label">
+            <property name="text">
+             <string>Visual theme of the UI</string>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="1">
+           <widget class="QSpinBox" name="Formatter_PosExp">
+            <property name="toolTip">
+             <string>Any numbers larger than this exponent will be displayed in scientific notation.
+e.g. 1000 * 10 = 1e4</string>
+            </property>
+            <property name="value">
+             <number>7</number>
+            </property>
+            <property name="displayIntegerBase">
+             <number>10</number>
+            </property>
+           </widget>
+          </item>
+          <item row="12" column="0">
            <widget class="QLabel" name="globalHookLabel">
             <property name="toolTip">
              <string>Enables functionality on the capture application window that will insert RenderDoc automatically
@@ -373,7 +184,94 @@ Since this is a global system hook it must be used carefully and only when neces
             </property>
            </widget>
           </item>
-          <item row="3" column="0">
+          <item row="14" column="0">
+           <widget class="QLabel" name="label_10">
+            <property name="toolTip">
+             <string>If a capture is marked as being created on a significantly different system (different OS or platform)
+as is currently running, then by default the UI will prompt to ask if you want to replay on a remote context.
+
+This option overrides that and will always replay locally if the local context is selected.</string>
+            </property>
+            <property name="text">
+             <string>Always replay captures locally, never prompt about it</string>
+            </property>
+           </widget>
+          </item>
+          <item row="11" column="1">
+           <widget class="QPushButton" name="browseSaveCaptureDirectory">
+            <property name="toolTip">
+             <string>Changes the default directory for the save dialog when saving capture files.
+
+Defaults to blank, which follows system default behaviour.</string>
+            </property>
+            <property name="text">
+             <string>Browse</string>
+            </property>
+           </widget>
+          </item>
+          <item row="8" column="0">
+           <widget class="QLabel" name="label_5">
+            <property name="toolTip">
+             <string>Changes the directory where capture files are saved after being created, until saved manually or deleted.
+
+Defaults to %TEMP%.</string>
+            </property>
+            <property name="text">
+             <string>Directory for temporary capture files</string>
+            </property>
+           </widget>
+          </item>
+          <item row="9" column="0">
+           <widget class="QLineEdit" name="tempDirectory">
+            <property name="toolTip">
+             <string>Changes the directory where capture files are saved after being created, until saved manually or deleted.
+
+Defaults to %TEMP%.</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <widget class="QSpinBox" name="Formatter_MaxFigures">
+            <property name="toolTip">
+             <string>No more decimal places than this will be displayed on floats.
+e.g. a value of 5 means 0.123456789 will display as 0.12345 and 123.123456789 will display as 123.12345</string>
+            </property>
+            <property name="value">
+             <number>5</number>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QSpinBox" name="Formatter_MinFigures">
+            <property name="toolTip">
+             <string>Decimals will display at least this many digits.
+e.g. a value of 2 means 0 will display as 0.00, 0.5 as 0.50</string>
+            </property>
+            <property name="value">
+             <number>2</number>
+            </property>
+           </widget>
+          </item>
+          <item row="13" column="1">
+           <widget class="QCheckBox" name="CheckUpdate_AllowChecks">
+            <property name="toolTip">
+             <string>Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for new versions.</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="11" column="0">
+           <widget class="QLineEdit" name="saveDirectory">
+            <property name="toolTip">
+             <string>Changes the default directory for the save dialog when saving capture files.
+
+Defaults to blank, which follows system default behaviour.</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
            <widget class="QLabel" name="label_2">
             <property name="toolTip">
              <string>No more decimal places than this will be displayed on floats.
@@ -384,13 +282,135 @@ e.g. a value of 5 means 0.123456789 will display as 0.12345</string>
             </property>
            </widget>
           </item>
-          <item row="11" column="0">
+          <item row="9" column="1">
+           <widget class="QPushButton" name="browseTempCaptureDirectory">
+            <property name="toolTip">
+             <string>Changes the directory where capture files are saved after being created, until saved manually or deleted.
+
+Defaults to %TEMP%.</string>
+            </property>
+            <property name="text">
+             <string>Browse</string>
+            </property>
+           </widget>
+          </item>
+          <item row="14" column="1">
+           <widget class="QCheckBox" name="AlwaysReplayLocally">
+            <property name="toolTip">
+             <string>If a capture is marked as being created on a significantly different system (different OS or platform)
+as is currently running, then by default the UI will prompt to ask if you want to replay on a remote context.
+
+This option overrides that and will always replay locally if the local context is selected.</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="16" column="1">
+           <spacer name="verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="3" column="0" colspan="2">
+           <widget class="Line" name="line">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1">
+           <widget class="QSpinBox" name="Formatter_NegExp">
+            <property name="toolTip">
+             <string>Any numbers smaller than this exponent will be displayed in scientific notation.
+E.g. a value of 3 means 0.005 / 10 = 5E-4</string>
+            </property>
+            <property name="value">
+             <number>5</number>
+            </property>
+           </widget>
+          </item>
+          <item row="13" column="0">
            <widget class="QLabel" name="label_8">
             <property name="toolTip">
              <string>Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for new versions.</string>
             </property>
             <property name="text">
              <string>Allow periodic anonymous update checks</string>
+            </property>
+           </widget>
+          </item>
+          <item row="12" column="1">
+           <widget class="QCheckBox" name="AllowGlobalHook">
+            <property name="toolTip">
+             <string>Enables functionality on the capture application window that will insert RenderDoc automatically
+into all new processes created - then inject into the target (matching) executable.
+
+Useful for capturing programs indirectly that can't easily be launched directly by RenderDoc
+
+Since this is a global system hook it must be used carefully and only when necessary!</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="0">
+           <widget class="QLabel" name="label_4">
+            <property name="toolTip">
+             <string>Any numbers larger than this exponent will be displayed in scientific notation.
+e.g. 1000 * 10 = 1e4</string>
+            </property>
+            <property name="text">
+             <string>Positive exponential cutoff value</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QCheckBox" name="Font_PreferMonospaced">
+            <property name="toolTip">
+             <string>Wherever possible a monospaced font will be used instead of the default font</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_9">
+            <property name="toolTip">
+             <string>Wherever possible a monospaced font will be used instead of the default font</string>
+            </property>
+            <property name="text">
+             <string>Prefer monospaced fonts in UI (restart required)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_27">
+            <property name="toolTip">
+             <string>A global scale for all fonts in the program. This will only scale text, icons and other UI elements will be scaled according to DPI settings as normal.</string>
+            </property>
+            <property name="text">
+             <string>Global font scale (restart required)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="Font_GlobalScale">
+            <property name="toolTip">
+             <string>A global scale for all fonts in the program. This will only scale text, icons and other UI elements will be scaled according to DPI settings as normal.</string>
+            </property>
+            <property name="editable">
+              <bool>true</bool>
             </property>
            </widget>
           </item>
