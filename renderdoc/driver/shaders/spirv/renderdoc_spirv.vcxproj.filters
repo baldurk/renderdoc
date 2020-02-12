@@ -143,6 +143,7 @@
     <ClCompile Include="spirv_reflect.cpp" />
     <ClCompile Include="glslang_compile.cpp" />
     <ClCompile Include="spirv_processor.cpp" />
+    <ClCompile Include="spirv_debug_setup.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.h">
@@ -295,5 +296,6 @@
       <Filter>JSON-Generated helpers</Filter>
     </ClInclude>
     <ClInclude Include="spirv_processor.h" />
+    <ClInclude Include="spirv_debug.h" />
   </ItemGroup>
 </Project>

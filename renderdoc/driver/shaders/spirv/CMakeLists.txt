@@ -98,6 +98,8 @@ set(sources
     spirv_op_helpers.h
     spirv_compile.cpp
     spirv_compile.h
+    spirv_debug_setup.cpp
+    spirv_debug.h
     spirv_reflect.cpp
     spirv_reflect.h
     spirv_processor.cpp

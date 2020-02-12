@@ -166,7 +166,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
     int alias = 2;
     while(usedNames.find(name) != usedNames.end())
     {
-      name = basename + "_" + ToStr(alias);
+      name = basename + "@" + ToStr(alias);
       alias++;
     }
 

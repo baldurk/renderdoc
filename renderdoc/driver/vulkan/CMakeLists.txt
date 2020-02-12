@@ -35,6 +35,7 @@ set(sources
     vk_replay.h
     vk_resources.cpp
     vk_resources.h
+    vk_shaderdebug.cpp
     vk_state.cpp
     vk_state.h
     vk_serialise.cpp

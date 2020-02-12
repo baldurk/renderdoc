@@ -3870,33 +3870,6 @@ void VulkanReplay::RefreshDerivedReplacements()
     m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
 }
 
-ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                            uint32_t idx)
-{
-  VULKANNOTIMP("DebugVertex");
-  return new ShaderDebugTrace();
-}
-
-ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y,
-                                           uint32_t sample, uint32_t primitive)
-{
-  VULKANNOTIMP("DebugPixel");
-  return new ShaderDebugTrace();
-}
-
-ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
-                                            const uint32_t threadid[3])
-{
-  VULKANNOTIMP("DebugThread");
-  return new ShaderDebugTrace();
-}
-
-rdcarray<ShaderDebugState> VulkanReplay::ContinueDebug(ShaderDebugger *debugger)
-{
-  VULKANNOTIMP("ContinueDebug");
-  return {};
-}
-
 ResourceId VulkanReplay::CreateProxyTexture(const TextureDescription &templateTex)
 {
   VULKANNOTIMP("CreateProxyTexture");
