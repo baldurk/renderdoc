@@ -1111,20 +1111,17 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
           bytebuf cbufData;
           for(UINT n = 0; n < numDescriptors; ++n, ++slot.shaderRegister)
           {
-            if(desc)
-            {
-              const D3D12_CONSTANT_BUFFER_VIEW_DESC &cbv = desc->GetCBV();
-              ResourceId resId;
-              uint64_t byteOffset = 0;
-              WrappedID3D12Resource1::GetResIDFromAddr(cbv.BufferLocation, resId, byteOffset);
-              ID3D12Resource *pCbvResource =
-                  pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(resId);
-              cbufData.clear();
+            const D3D12_CONSTANT_BUFFER_VIEW_DESC &cbv = desc->GetCBV();
+            ResourceId resId;
+            uint64_t byteOffset = 0;
+            WrappedID3D12Resource1::GetResIDFromAddr(cbv.BufferLocation, resId, byteOffset);
+            ID3D12Resource *pCbvResource =
+                pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(resId);
+            cbufData.clear();
 
-              pDevice->GetDebugManager()->GetBufferData(pCbvResource, element.offset + byteOffset,
-                                                        0, cbufData);
-              AddCBufferToGlobalState(program, global, sourceVars, refl, mapping, slot, cbufData);
-            }
+            pDevice->GetDebugManager()->GetBufferData(pCbvResource, element.offset + byteOffset, 0,
+                                                      cbufData);
+            AddCBufferToGlobalState(program, global, sourceVars, refl, mapping, slot, cbufData);
 
             desc++;
           }

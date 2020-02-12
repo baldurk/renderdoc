@@ -2274,8 +2274,7 @@ void ShaderViewer::updateDebugState()
                                   lit("Resource"), ToQStr(roBind.resources[0].resourceId)});
         node->setTag(QVariant::fromValue(
             VariableTag(DebugVariableReference(DebugVariableType::ReadOnlyResource, ro.name))));
-        if(node)
-          ui->constants->addTopLevelItem(node);
+        ui->constants->addTopLevelItem(node);
       }
       else
       {
@@ -2334,8 +2333,7 @@ void ShaderViewer::updateDebugState()
                                   lit("Resource"), ToQStr(rwBind.resources[0].resourceId)});
         node->setTag(QVariant::fromValue(
             VariableTag(DebugVariableReference(DebugVariableType::ReadOnlyResource, rw.name))));
-        if(node)
-          ui->constants->addTopLevelItem(node);
+        ui->constants->addTopLevelItem(node);
       }
       else
       {
@@ -3027,7 +3025,7 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
 
   if(instLine == -1)
   {
-    if(m_Trace && instruction >= 0 && instruction < m_Trace->lineInfo.count())
+    if(m_Trace && instruction < m_Trace->lineInfo.count())
       instLine = m_Trace->lineInfo[instruction].disassemblyLine - 1;
   }
 
