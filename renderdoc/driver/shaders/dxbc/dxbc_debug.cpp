@@ -5203,7 +5203,7 @@ void InterpretDebugger::CalcActiveMask(rdcarray<bool> &activeMask)
     }
 
     // pause any threads at that instruction (could be none)
-    for(size_t i = 0; workgroup.size(); i++)
+    for(size_t i = 0; i < workgroup.size(); i++)
       if(workgroup[i].nextInstruction == convergencePoint)
         activeMask[i] = false;
   }
