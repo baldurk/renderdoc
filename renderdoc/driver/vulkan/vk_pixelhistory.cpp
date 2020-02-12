@@ -1543,6 +1543,7 @@ void CreateOcclusionPool(WrappedVulkan *vk, uint32_t poolSize, VkQueryPool *pQue
   // TODO: check that occlusion feature is available
   VkResult vkr =
       ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &occlusionPoolCreateInfo, NULL, pQueryPool);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
   VkCommandBuffer cmd = vk->GetNextCmd();
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};

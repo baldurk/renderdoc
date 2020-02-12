@@ -342,7 +342,7 @@ void ImageSubresourceMap::Unsplit()
 
   RDCASSERT(aspectCount * levelCount * layerCount * sliceCount == m_values.size());
 #define UNSPLIT_INDEX(ASPECT, LEVEL, LAYER, SLICE) \
-  (((ASPECT * levelCount + LEVEL) * layerCount + LAYER) * sliceCount + SLICE)
+  ((((ASPECT)*levelCount + (LEVEL)) * layerCount + (LAYER)) * sliceCount + (SLICE))
   while(index < m_values.size() &&
         (canUnsplitAspects || canUnsplitLevels || canUnsplitLayers || canUnsplitDepth))
   {
@@ -765,7 +765,7 @@ template void BarrierSequence<VkImageMemoryBarrier>::Merge(
 template <typename Barrier>
 bool BarrierSequence<Barrier>::IsBatchEmpty(uint32_t batchIndex) const
 {
-  if(batchIndex > MAX_BATCH_COUNT)
+  if(batchIndex >= MAX_BATCH_COUNT)
     return true;
   for(uint32_t queueFamilyIndex = 0; queueFamilyIndex < MAX_QUEUE_FAMILY_COUNT; ++queueFamilyIndex)
   {

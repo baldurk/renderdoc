@@ -120,6 +120,9 @@ bool D3D11DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
   ID3D11Resource *res = NULL;
   pSRV->GetResource(&res);
 
+  if(!res)
+    return false;
+
   D3D11_SHADER_RESOURCE_VIEW_DESC sdesc;
   pSRV->GetDesc(&sdesc);
 
