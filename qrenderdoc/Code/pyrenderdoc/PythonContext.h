@@ -93,8 +93,6 @@ public:
 
   QStringList completionOptions(QString base);
 
-  void setThreadBlocking(bool block) { m_Block = block; }
-  bool threadBlocking() { return m_Block; }
   void abort() { m_Abort = true; }
   bool shouldAbort() { return m_Abort; }
   QString currentFile() { return location.file; }
@@ -139,8 +137,6 @@ private:
   } location;
 
   bool m_Abort = false;
-
-  bool m_Block = false;
 
   static PyObject *QtObjectToPython(const char *typeName, QObject *object);
 

@@ -118,6 +118,7 @@ struct OutputRedirector
     PythonContext *context;
   };
   int isStdError;
+  bool block;
 };
 
 static PyTypeObject OutputRedirectorType = {PyVarObject_HEAD_INIT(NULL, 0)};
@@ -286,6 +287,7 @@ void PythonContext::GlobalInit()
     OutputRedirector *output = (OutputRedirector *)redirector;
     output->isStdError = 0;
     output->context = NULL;
+    output->block = false;
 
     redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, noparams);
     PyObject_SetAttrString(sysobj, "stderr", redirector);
@@ -293,6 +295,7 @@ void PythonContext::GlobalInit()
     output = (OutputRedirector *)redirector;
     output->isStdError = 1;
     output->context = NULL;
+    output->block = false;
   }
 
 // if we need to append to sys.path to locate PySide2, do that now
@@ -393,6 +396,7 @@ PythonContext::PythonContext(QObject *parent) : QObject(parent)
 
     OutputRedirector *output = (OutputRedirector *)redirector;
     output->context = this;
+    output->block = false;
     Py_DECREF(redirector);
   }
 
@@ -598,7 +602,11 @@ bool PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extension)
   // failed a reimport in which case the original module is still there and valid, so don't
   // overwrite the value.
   if(ext)
+  {
     extensions[extension] = ext;
+
+    PyModule_AddObject(ext, "_renderdoc_internal", current_global_handle);
+  }
 
   QString typeStr;
   QString valueStr;
@@ -1258,16 +1266,16 @@ extern "C" void HandleException(PyObject *global_handle)
 extern "C" bool IsThreadBlocking(PyObject *global_handle)
 {
   OutputRedirector *redirector = (OutputRedirector *)global_handle;
-  if(redirector && redirector->context)
-    return redirector->context->threadBlocking();
+  if(redirector)
+    return redirector->block;
   return false;
 }
 
 extern "C" void SetThreadBlocking(PyObject *global_handle, bool block)
 {
   OutputRedirector *redirector = (OutputRedirector *)global_handle;
-  if(redirector && redirector->context)
-    return redirector->context->setThreadBlocking(block);
+  if(redirector)
+    redirector->block = block;
 }
 
 extern "C" QWidget *QWidgetFromPy(PyObject *widget)
