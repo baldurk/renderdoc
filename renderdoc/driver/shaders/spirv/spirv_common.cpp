@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "spirv_common.h"
+#include "api/replay/replay_enums.h"
 #include "common/common.h"
 #include "common/formatting.h"
 
@@ -87,4 +88,99 @@ rdcspv::Iter &rdcspv::Iter::operator=(const Operation &op)
     word(i) = OpNopWord;
 
   return *this;
+}
+
+ShaderStage MakeShaderStage(rdcspv::ExecutionModel model)
+{
+  switch(model)
+  {
+    case rdcspv::ExecutionModel::Vertex: return ShaderStage::Vertex;
+    case rdcspv::ExecutionModel::TessellationControl: return ShaderStage::Tess_Control;
+    case rdcspv::ExecutionModel::TessellationEvaluation: return ShaderStage::Tess_Eval;
+    case rdcspv::ExecutionModel::Geometry: return ShaderStage::Geometry;
+    case rdcspv::ExecutionModel::Fragment: return ShaderStage::Fragment;
+    case rdcspv::ExecutionModel::GLCompute: return ShaderStage::Compute;
+    case rdcspv::ExecutionModel::Kernel:
+    case rdcspv::ExecutionModel::TaskNV:
+    case rdcspv::ExecutionModel::MeshNV:
+    case rdcspv::ExecutionModel::RayGenerationNV:
+    case rdcspv::ExecutionModel::IntersectionNV:
+    case rdcspv::ExecutionModel::AnyHitNV:
+    case rdcspv::ExecutionModel::ClosestHitNV:
+    case rdcspv::ExecutionModel::MissNV:
+    case rdcspv::ExecutionModel::CallableNV:
+      // all of these are currently unsupported
+      break;
+    case rdcspv::ExecutionModel::Invalid:
+    case rdcspv::ExecutionModel::Max: break;
+  }
+
+  return ShaderStage::Count;
+}
+
+ShaderBuiltin MakeShaderBuiltin(ShaderStage stage, const rdcspv::BuiltIn el)
+{
+  // not complete, might need to expand system attribute list
+
+  switch(el)
+  {
+    case rdcspv::BuiltIn::Position: return ShaderBuiltin::Position;
+    case rdcspv::BuiltIn::PointSize: return ShaderBuiltin::PointSize;
+    case rdcspv::BuiltIn::ClipDistance: return ShaderBuiltin::ClipDistance;
+    case rdcspv::BuiltIn::CullDistance: return ShaderBuiltin::CullDistance;
+    case rdcspv::BuiltIn::VertexId: return ShaderBuiltin::VertexIndex;
+    case rdcspv::BuiltIn::InstanceId: return ShaderBuiltin::InstanceIndex;
+    case rdcspv::BuiltIn::PrimitiveId: return ShaderBuiltin::PrimitiveIndex;
+    case rdcspv::BuiltIn::InvocationId:
+    {
+      if(stage == ShaderStage::Geometry)
+        return ShaderBuiltin::GSInstanceIndex;
+      else
+        return ShaderBuiltin::OutputControlPointIndex;
+    }
+    case rdcspv::BuiltIn::Layer: return ShaderBuiltin::RTIndex;
+    case rdcspv::BuiltIn::ViewportIndex: return ShaderBuiltin::ViewportIndex;
+    case rdcspv::BuiltIn::TessLevelOuter: return ShaderBuiltin::OuterTessFactor;
+    case rdcspv::BuiltIn::TessLevelInner: return ShaderBuiltin::InsideTessFactor;
+    case rdcspv::BuiltIn::PatchVertices: return ShaderBuiltin::PatchNumVertices;
+    case rdcspv::BuiltIn::FragCoord: return ShaderBuiltin::Position;
+    case rdcspv::BuiltIn::FrontFacing: return ShaderBuiltin::IsFrontFace;
+    case rdcspv::BuiltIn::SampleId: return ShaderBuiltin::MSAASampleIndex;
+    case rdcspv::BuiltIn::SamplePosition: return ShaderBuiltin::MSAASamplePosition;
+    case rdcspv::BuiltIn::SampleMask: return ShaderBuiltin::MSAACoverage;
+    case rdcspv::BuiltIn::FragDepth: return ShaderBuiltin::DepthOutput;
+    case rdcspv::BuiltIn::VertexIndex: return ShaderBuiltin::VertexIndex;
+    case rdcspv::BuiltIn::InstanceIndex: return ShaderBuiltin::InstanceIndex;
+    case rdcspv::BuiltIn::BaseVertex: return ShaderBuiltin::BaseVertex;
+    case rdcspv::BuiltIn::BaseInstance: return ShaderBuiltin::BaseInstance;
+    case rdcspv::BuiltIn::DrawIndex: return ShaderBuiltin::DrawIndex;
+    case rdcspv::BuiltIn::ViewIndex: return ShaderBuiltin::ViewportIndex;
+    case rdcspv::BuiltIn::FragStencilRefEXT: return ShaderBuiltin::StencilReference;
+    case rdcspv::BuiltIn::NumWorkgroups: return ShaderBuiltin::DispatchSize;
+    case rdcspv::BuiltIn::GlobalInvocationId: return ShaderBuiltin::DispatchThreadIndex;
+    case rdcspv::BuiltIn::WorkgroupId: return ShaderBuiltin::GroupIndex;
+    case rdcspv::BuiltIn::LocalInvocationIndex: return ShaderBuiltin::GroupFlatIndex;
+    case rdcspv::BuiltIn::LocalInvocationId: return ShaderBuiltin::GroupThreadIndex;
+    case rdcspv::BuiltIn::TessCoord: return ShaderBuiltin::DomainLocation;
+    case rdcspv::BuiltIn::PointCoord: return ShaderBuiltin::PointCoord;
+    case rdcspv::BuiltIn::HelperInvocation: return ShaderBuiltin::IsHelper;
+    case rdcspv::BuiltIn::SubgroupSize: return ShaderBuiltin::SubgroupSize;
+    case rdcspv::BuiltIn::NumSubgroups: return ShaderBuiltin::NumSubgroups;
+    case rdcspv::BuiltIn::SubgroupId: return ShaderBuiltin::SubgroupIndexInWorkgroup;
+    case rdcspv::BuiltIn::SubgroupLocalInvocationId: return ShaderBuiltin::IndexInSubgroup;
+    case rdcspv::BuiltIn::SubgroupEqMask: return ShaderBuiltin::SubgroupEqualMask;
+    case rdcspv::BuiltIn::SubgroupGeMask: return ShaderBuiltin::SubgroupGreaterEqualMask;
+    case rdcspv::BuiltIn::SubgroupGtMask: return ShaderBuiltin::SubgroupGreaterMask;
+    case rdcspv::BuiltIn::SubgroupLeMask: return ShaderBuiltin::SubgroupLessEqualMask;
+    case rdcspv::BuiltIn::SubgroupLtMask: return ShaderBuiltin::SubgroupLessMask;
+    case rdcspv::BuiltIn::DeviceIndex: return ShaderBuiltin::DeviceIndex;
+    case rdcspv::BuiltIn::FullyCoveredEXT: return ShaderBuiltin::IsFullyCovered;
+    case rdcspv::BuiltIn::FragSizeEXT: return ShaderBuiltin::FragAreaSize;
+    case rdcspv::BuiltIn::FragInvocationCountEXT: return ShaderBuiltin::FragInvocationCount;
+    default: break;
+  }
+
+  RDCWARN("Couldn't map SPIR-V built-in %s to known built-in", ToStr(el).c_str());
+
+  return ShaderBuiltin::Undefined;
 }
