@@ -23,6 +23,8 @@
  ******************************************************************************/
 
 #include "SettingsDialog.h"
+#include <float.h>
+#include <math.h>
 #include <QKeyEvent>
 #include <QTextEdit>
 #include <QToolButton>
