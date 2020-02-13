@@ -41,6 +41,7 @@ Debugger::Debugger()
 
 Debugger::~Debugger()
 {
+  SAFE_DELETE(apiWrapper);
 }
 
 void Debugger::Parse(const rdcarray<uint32_t> &spirvWords)
@@ -48,7 +49,8 @@ void Debugger::Parse(const rdcarray<uint32_t> &spirvWords)
   Processor::Parse(spirvWords);
 }
 
-ShaderDebugTrace *Debugger::BeginDebug(const ShaderStage stage, const rdcstr &entryPoint,
+ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const ShaderStage stage,
+                                       const rdcstr &entryPoint,
                                        const rdcarray<SpecConstant> &specInfo,
                                        const std::map<size_t, uint32_t> &instructionLines,
                                        uint32_t activeIndex)
@@ -56,6 +58,8 @@ ShaderDebugTrace *Debugger::BeginDebug(const ShaderStage stage, const rdcstr &en
   ShaderDebugTrace *ret = new ShaderDebugTrace;
   ret->debugger = this;
   this->activeLaneIndex = activeIndex;
+  this->stage = stage;
+  this->apiWrapper = apiWrapper;
 
   int workgroupSize = stage == ShaderStage::Pixel ? 4 : 1;
   for(int i = 0; i < workgroupSize; i++)

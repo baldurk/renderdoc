@@ -26,6 +26,20 @@
 #include "vk_core.h"
 #include "vk_replay.h"
 
+class VulkanAPIWrapper : public rdcspv::DebugAPIWrapper
+{
+public:
+  VulkanAPIWrapper(WrappedVulkan *vk) { m_pDriver = vk; }
+  virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
+                               rdcstr d) override
+  {
+    m_pDriver->AddDebugMessage(c, sv, src, d);
+  }
+
+private:
+  WrappedVulkan *m_pDriver = NULL;
+};
+
 ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                             uint32_t idx)
 {
@@ -49,11 +63,12 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
       shader.GetReflection(entryPoint, state.graphics.pipeline);
 
   shadRefl.PopulateDisassembly(shader.spirv);
+  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver);
 
   rdcspv::Debugger *debugger = new rdcspv::Debugger;
   debugger->Parse(shader.spirv.GetSPIRV());
-  ShaderDebugTrace *ret =
-      debugger->BeginDebug(ShaderStage::Vertex, entryPoint, spec, shadRefl.instructionLines, 0);
+  ShaderDebugTrace *ret = debugger->BeginDebug(apiWrapper, ShaderStage::Vertex, entryPoint, spec,
+                                               shadRefl.instructionLines, 0);
 
   return ret;
 }

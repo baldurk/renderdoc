@@ -187,6 +187,11 @@ APIProperties VulkanReplay::GetAPIProperties()
   ret.rgpCapture =
       m_DriverInfo.vendor == GPUVendor::AMD && m_RGP != NULL && m_RGP->DriverSupportsInterop();
 
+  // Enable shader debugging if specified in the config
+  rdcstr setting = strlower(RenderDoc::Inst().GetConfigSetting("vulkanShaderDebugging"));
+  if(!strcmp(setting.c_str(), "true") || setting == "1")
+    ret.shaderDebugging = true;
+
   return ret;
 }
 

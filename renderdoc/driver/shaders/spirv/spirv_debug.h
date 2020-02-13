@@ -30,6 +30,13 @@
 
 namespace rdcspv
 {
+class DebugAPIWrapper
+{
+public:
+  virtual ~DebugAPIWrapper() {}
+  virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d) = 0;
+};
+
 struct GlobalState
 {
 public:
@@ -69,8 +76,8 @@ public:
   Debugger();
   ~Debugger();
   virtual void Parse(const rdcarray<uint32_t> &spirvWords);
-  ShaderDebugTrace *BeginDebug(const ShaderStage stage, const rdcstr &entryPoint,
-                               const rdcarray<SpecConstant> &specInfo,
+  ShaderDebugTrace *BeginDebug(DebugAPIWrapper *apiWrapper, const ShaderStage stage,
+                               const rdcstr &entryPoint, const rdcarray<SpecConstant> &specInfo,
                                const std::map<size_t, uint32_t> &instructionLines,
                                uint32_t activeIndex);
 
@@ -83,6 +90,8 @@ private:
   virtual void PostParse();
   virtual void RegisterOp(Iter it);
 
+  DebugAPIWrapper *apiWrapper = NULL;
+
   GlobalState global;
   rdcarray<ThreadState> workgroup;
 
@@ -90,6 +99,7 @@ private:
   rdcarray<size_t> instructionOffsets;
 
   uint32_t activeLaneIndex = 0;
+  ShaderStage stage;
 
   int steps = 0;
 
