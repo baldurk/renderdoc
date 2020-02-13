@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "spirv_processor.h"
+#include "maths/half_convert.h"
 #include "spirv_op_helpers.h"
 
 namespace rdcspv
@@ -872,6 +873,521 @@ void Processor::PostParse()
       dataTypes[dec.id].children[dec.member].decorations.Register(dec.dec);
 
   m_MemberDecorations.clear();
+}
+
+ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConstant> &specInfo) const
+{
+  auto it = constants.find(constID);
+
+  if(it == constants.end())
+  {
+    RDCERR("Lookup of unknown constant %u", constID.value());
+    return ShaderVariable("unknown", 0, 0, 0, 0);
+  }
+
+  auto specopit = specOps.find(constID);
+
+  if(specopit != specOps.end())
+  {
+    const SpecOp &specop = specopit->second;
+    ShaderVariable ret = {};
+
+    const DataType &retType = dataTypes[specop.type];
+
+    if(specop.params.empty())
+    {
+      RDCERR("Expected paramaters for SpecConstantOp %s", ToStr(specop.op).c_str());
+      return ret;
+    }
+
+    // these instructions have special rules, so handle them manually
+    if(specop.op == Op::Select)
+    {
+      // evaluate the parameters
+      rdcarray<ShaderVariable> params;
+      for(size_t i = 0; i < specop.params.size(); i++)
+        params.push_back(EvaluateConstant(specop.params[i], specInfo));
+
+      if(params.size() != 3)
+      {
+        RDCERR("Expected 3 paramaters for SpecConstantOp Select, got %zu", params.size());
+        return ret;
+      }
+
+      // "If Condition is a scalar and true, the result is Object 1. If Condition is a scalar and
+      // false, the result is Object 2."
+      if(params[0].columns == 1)
+        return params[0].value.u.x ? params[1] : params[2];
+
+      // "If Condition is a vector, Result Type must be a vector with the same number of components
+      // as Condition and the result is a [component-wise] mix of Object 1 and Object 2."
+      ret = params[1];
+      ret.name = "derived";
+      for(size_t i = 0; i < params[0].columns; i++)
+      {
+        if(retType.scalar().width == 64)
+          ret.value.u64v[i] =
+              params[0].value.uv[i] ? params[1].value.u64v[i] : params[2].value.u64v[i];
+        else
+          ret.value.uv[i] = params[0].value.uv[i] ? params[1].value.uv[i] : params[2].value.uv[i];
+      }
+    }
+    else if(specop.op == Op::CompositeExtract)
+    {
+      ShaderVariable composite = EvaluateConstant(specop.params[0], specInfo);
+      // the remaining parameters are actually indices
+      rdcarray<uint32_t> indices;
+      for(size_t i = 1; i < specop.params.size(); i++)
+        indices.push_back(specop.params[i].value());
+
+      ret = composite;
+      ret.name = "derived";
+
+      RDCEraseEl(ret.value);
+
+      if(composite.rows > 1)
+      {
+        ret.rows = 1;
+
+        if(indices.size() == 1)
+        {
+          // matrix returning a vector
+          uint32_t row = indices[0];
+
+          for(uint32_t c = 0; c < ret.columns; c++)
+          {
+            if(retType.scalar().width == 64)
+              ret.value.u64v[c] = composite.value.u64v[row * composite.columns + c];
+            else
+              ret.value.uv[c] = composite.value.uv[row * composite.columns + c];
+          }
+        }
+        else if(indices.size() == 2)
+        {
+          // matrix returning a scalar
+          uint32_t row = indices[0];
+          uint32_t col = indices[1];
+
+          if(retType.scalar().width == 64)
+            ret.value.u64v[0] = composite.value.u64v[row * composite.columns + col];
+          else
+            ret.value.uv[0] = composite.value.uv[row * composite.columns + col];
+        }
+        else
+        {
+          RDCERR("Unexpected number of indices %zu to SpecConstantOp CompositeInsert",
+                 indices.size());
+        }
+      }
+      else
+      {
+        ret.columns = 1;
+
+        if(indices.size() == 1)
+        {
+          uint32_t col = indices[0];
+
+          // vector returning a scalar
+          if(retType.scalar().width == 64)
+            ret.value.u64v[0] = composite.value.u64v[col];
+          else
+            ret.value.uv[0] = composite.value.uv[col];
+        }
+        else
+        {
+          RDCERR("Unexpected number of indices %zu to SpecConstantOp CompositeInsert",
+                 indices.size());
+        }
+      }
+
+      return ret;
+    }
+    else if(specop.op == Op::CompositeInsert)
+    {
+      if(specop.params.size() < 3)
+      {
+        RDCERR("Expected at least 3 paramaters for SpecConstantOp CompositeInsert, got %zu",
+               specop.params.size());
+        return ret;
+      }
+
+      ShaderVariable object = EvaluateConstant(specop.params[0], specInfo);
+      ShaderVariable composite = EvaluateConstant(specop.params[1], specInfo);
+      // the remaining parameters are actually indices
+      rdcarray<uint32_t> indices;
+      for(size_t i = 2; i < specop.params.size(); i++)
+        indices.push_back(specop.params[i].value());
+
+      composite.name = "derived";
+
+      if(composite.rows > 1)
+      {
+        if(indices.size() == 1)
+        {
+          // matrix inserting a vector
+          uint32_t row = indices[0];
+
+          for(uint32_t c = 0; c < ret.columns; c++)
+          {
+            if(retType.scalar().width == 64)
+              composite.value.u64v[row * composite.columns + c] = object.value.u64v[c];
+            else
+              composite.value.uv[row * composite.columns + c] = object.value.uv[c];
+          }
+        }
+        else if(indices.size() == 2)
+        {
+          // matrix inserting a scalar
+          uint32_t row = indices[0];
+          uint32_t col = indices[1];
+
+          if(retType.scalar().width == 64)
+            composite.value.u64v[row * composite.columns + col] = object.value.u64v[0];
+          else
+            composite.value.uv[row * composite.columns + col] = object.value.uv[0];
+        }
+        else
+        {
+          RDCERR("Unexpected number of indices %zu to SpecConstantOp CompositeInsert",
+                 indices.size());
+        }
+      }
+      else
+      {
+        if(indices.size() == 1)
+        {
+          // vector inserting a scalar
+          if(retType.scalar().width == 64)
+            composite.value.u64v[indices[0]] = object.value.u64v[0];
+          else
+            composite.value.uv[indices[0]] = object.value.uv[0];
+        }
+        else
+        {
+          RDCERR("Unexpected number of indices %zu to SpecConstantOp CompositeInsert",
+                 indices.size());
+        }
+      }
+
+      return composite;
+    }
+    else if(specop.op == Op::VectorShuffle)
+    {
+      if(specop.params.size() < 3)
+      {
+        RDCERR("Expected at least 3 paramaters for SpecConstantOp VectorShuffle, got %zu",
+               specop.params.size());
+        return ret;
+      }
+
+      ShaderVariable vec1 = EvaluateConstant(specop.params[0], specInfo);
+      ShaderVariable vec2 = EvaluateConstant(specop.params[1], specInfo);
+      // the remaining parameters are actually indices
+      rdcarray<uint32_t> indices;
+      for(size_t i = 2; i < specop.params.size(); i++)
+        indices.push_back(specop.params[i].value());
+
+      ret = ShaderVariable("derived", 0, 0, 0, 0);
+      ret.columns = (uint8_t)indices.size();
+
+      for(size_t i = 0; i < indices.size(); i++)
+      {
+        uint32_t idx = indices[i];
+        if(idx < vec1.columns)
+        {
+          if(retType.scalar().width == 64)
+            ret.value.u64v[i] = vec1.value.u64v[idx];
+          else
+            ret.value.uv[i] = vec1.value.uv[idx];
+        }
+        else
+        {
+          idx -= vec1.columns;
+
+          if(retType.scalar().width == 64)
+            ret.value.u64v[i] = vec2.value.u64v[idx];
+          else
+            ret.value.uv[i] = vec2.value.uv[idx];
+        }
+      }
+
+      return ret;
+    }
+    else if(specop.op == Op::UConvert || specop.op == Op::SConvert || specop.op == Op::FConvert)
+    {
+      ShaderVariable param = EvaluateConstant(specop.params[0], specInfo);
+      ret = param;
+
+      const DataType &paramType = dataTypes[idTypes[specop.params[0]]];
+
+      ret.name = "converted";
+      RDCEraseEl(ret.value);
+
+      if(specop.op == Op::UConvert)
+      {
+        if(paramType.scalar().width == 8)
+          ret.value.u64v[0] = param.value.uv[0] & 0xFFU;
+        else if(paramType.scalar().width == 16)
+          ret.value.u64v[0] = param.value.uv[0] & 0xFFFFU;
+        else if(paramType.scalar().width == 32)
+          ret.value.u64v[0] = param.value.uv[0];
+        else
+          ret.value.u64v[0] = param.value.u64v[0];
+      }
+      else if(specop.op == Op::SConvert)
+      {
+        if(paramType.scalar().width == 8)
+          ret.value.s64v[0] = (int8_t)RDCCLAMP(param.value.i.x, (int32_t)INT8_MIN, (int32_t)INT8_MAX);
+        else if(paramType.scalar().width == 16)
+          ret.value.s64v[0] =
+              (int16_t)RDCCLAMP(param.value.i.x, (int32_t)INT16_MIN, (int32_t)INT16_MAX);
+        else if(paramType.scalar().width == 32)
+          ret.value.s64v[0] = param.value.i.x;
+        else
+          ret.value.s64v[0] = param.value.s64v[0];
+      }
+      else if(specop.op == Op::FConvert)
+      {
+        if(paramType.scalar().width == 16)
+        {
+          if(retType.scalar().width == 64)
+            ret.value.dv[0] = ConvertFromHalf(ConvertToHalf(param.value.f.x));
+          else
+            ret.value.f.x = ConvertFromHalf(ConvertToHalf(param.value.f.x));
+        }
+        else if(paramType.scalar().width == 32)
+        {
+          if(retType.scalar().width == 64)
+            ret.value.dv[0] = param.value.f.x;
+          else
+            ret.value.f.x = param.value.f.x;
+        }
+        else
+        {
+          if(retType.scalar().width == 64)
+            ret.value.dv[0] = param.value.dv[0];
+          else
+            ret.value.f.x = (float)param.value.dv[0];
+        }
+      }
+
+      return ret;
+    }
+
+    // evaluate the parameters
+    rdcarray<ShaderVariable> params;
+    for(size_t i = 0; i < specop.params.size(); i++)
+      params.push_back(EvaluateConstant(specop.params[i], specInfo));
+
+    // all other operations are component-wise on vectors or scalars. Check that rows are all 1 and
+    // all cols are identical
+    uint8_t cols = params[0].columns;
+    for(size_t i = 0; i < params.size(); i++)
+    {
+      RDCASSERT(cols == params[i].columns, i, params[i].columns);
+      RDCASSERT(params[i].rows == 1, i, params[i].rows);
+      cols = RDCMIN(cols, params[i].columns);
+    }
+
+    // check number of parameters
+    switch(specop.op)
+    {
+      case Op::SNegate:
+      case Op::Not:
+      case Op::LogicalNot:
+        if(params.size() != 1)
+        {
+          RDCERR("Expected 1 parameter for SpecConstantOp %s, got %zu", ToStr(specop.op).c_str(),
+                 params.size());
+          return ret;
+        }
+        break;
+      case Op::IAdd:
+      case Op::ISub:
+      case Op::IMul:
+      case Op::UDiv:
+      case Op::SDiv:
+      case Op::UMod:
+      case Op::SRem:
+      case Op::SMod:
+      case Op::ShiftRightLogical:
+      case Op::ShiftRightArithmetic:
+      case Op::ShiftLeftLogical:
+      case Op::BitwiseOr:
+      case Op::BitwiseXor:
+      case Op::BitwiseAnd:
+      case Op::LogicalOr:
+      case Op::LogicalAnd:
+      case Op::LogicalEqual:
+      case Op::LogicalNotEqual:
+      case Op::IEqual:
+      case Op::INotEqual:
+      case Op::ULessThan:
+      case Op::SLessThan:
+      case Op::UGreaterThan:
+      case Op::SGreaterThan:
+      case Op::ULessThanEqual:
+      case Op::SLessThanEqual:
+      case Op::UGreaterThanEqual:
+      case Op::SGreaterThanEqual:
+        if(params.size() != 2)
+        {
+          RDCERR("Expected 2 paramaters for SpecConstantOp %s, got %zu", ToStr(specop.op).c_str(),
+                 params.size());
+          return ret;
+        }
+        break;
+      default:
+        RDCERR("Unhandled SpecConstantOp:: operation %s", ToStr(specop.op).c_str());
+        return ret;
+    }
+
+    ret = params[0];
+    ret.name = "derived";
+
+    for(uint32_t col = 0; col < cols; col++)
+    {
+      ShaderValue a, b;
+
+      bool signedness = retType.scalar().signedness;
+
+      // upcast parameters to 64-bit width to simplify applying operations
+      for(size_t p = 0; p < params.size() && p < 2; p++)
+      {
+        const DataType &paramType = dataTypes[idTypes[specop.params[p]]];
+
+        ShaderValue &val = (p == 0) ? a : b;
+
+        if(paramType.scalar().type == Op::TypeFloat)
+        {
+          if(paramType.scalar().width == 64)
+            val.dv[0] = params[p].value.dv[col];
+          else
+            val.dv[0] = params[p].value.fv[col];
+        }
+        else
+        {
+          if(paramType.scalar().signedness)
+          {
+            if(paramType.scalar().width == 64)
+              val.s64v[0] = params[p].value.s64v[col];
+            else
+              val.s64v[0] = params[p].value.iv[col];
+          }
+          else
+          {
+            if(paramType.scalar().width == 64)
+              val.u64v[0] = params[p].value.u64v[col];
+            else
+              val.u64v[0] = params[p].value.uv[col];
+          }
+        }
+      }
+
+      switch(specop.op)
+      {
+        case Op::SNegate: a.s64v[0] = -a.s64v[0]; break;
+        case Op::Not: a.u64v[0] = ~a.u64v[0]; break;
+        case Op::LogicalNot: a.u64v[0] = a.u64v[0] ? 1 : 0; break;
+        case Op::IAdd:
+          if(signedness)
+            a.s64v[0] += b.s64v[0];
+          else
+            a.u64v[0] += b.u64v[0];
+          break;
+        case Op::ISub:
+          if(signedness)
+            a.s64v[0] -= b.s64v[0];
+          else
+            a.u64v[0] -= b.u64v[0];
+          break;
+        case Op::IMul:
+          if(signedness)
+            a.s64v[0] *= b.s64v[0];
+          else
+            a.u64v[0] *= b.u64v[0];
+          break;
+        case Op::UDiv: a.u64v[0] /= b.u64v[0]; break;
+        case Op::SDiv: a.s64v[0] /= b.s64v[0]; break;
+        case Op::UMod: a.u64v[0] %= b.u64v[0]; break;
+        case Op::SRem:
+        case Op::SMod:
+        {
+          int64_t result = a.s64v[0] % b.s64v[0];
+
+          // flip sign to match given input operand
+
+          // "the sign of r is the same as the sign of Operand 1."
+          if(specop.op == Op::SRem && ((result < 0) != (a.s64v[0] < 0)))
+            result = -result;
+          // "the sign of r is the same as the sign of Operand 2."
+          if(specop.op == Op::SMod && ((result < 0) != (b.s64v[0] < 0)))
+            result = -result;
+
+          break;
+        }
+        case Op::ShiftRightLogical: a.u64v[0] >>= b.u64v[0]; break;
+        case Op::ShiftRightArithmetic: a.s64v[0] >>= b.s64v[0]; break;
+        case Op::ShiftLeftLogical: a.u64v[0] <<= b.u64v[0]; break;
+        case Op::BitwiseOr: a.u64v[0] |= b.u64v[0]; break;
+        case Op::BitwiseXor: a.u64v[0] ^= b.u64v[0]; break;
+        case Op::BitwiseAnd: a.u64v[0] &= b.u64v[0]; break;
+        case Op::LogicalOr: a.u64v[0] = (a.u64v[0] || b.u64v[0]) ? 1 : 0; break;
+        case Op::LogicalAnd: a.u64v[0] = (a.u64v[0] && b.u64v[0]) ? 1 : 0; break;
+        case Op::LogicalEqual: a.u64v[0] = (a.u64v[0] == b.u64v[0]) ? 1 : 0; break;
+        case Op::LogicalNotEqual: a.u64v[0] = (a.u64v[0] != b.u64v[0]) ? 1 : 0; break;
+        case Op::IEqual: a.u64v[0] = (a.u64v[0] == b.u64v[0]) ? 1 : 0; break;
+        case Op::INotEqual: a.u64v[0] = (a.u64v[0] != b.u64v[0]) ? 1 : 0; break;
+        case Op::ULessThan: a.u64v[0] = (a.u64v[0] < b.u64v[0]) ? 1 : 0; break;
+        case Op::SLessThan: a.s64v[0] = (a.s64v[0] < b.s64v[0]) ? 1 : 0; break;
+        case Op::UGreaterThan: a.u64v[0] = (a.u64v[0] > b.u64v[0]) ? 1 : 0; break;
+        case Op::SGreaterThan: a.s64v[0] = (a.s64v[0] > b.s64v[0]) ? 1 : 0; break;
+        case Op::ULessThanEqual: a.u64v[0] = (a.u64v[0] <= b.u64v[0]) ? 1 : 0; break;
+        case Op::SLessThanEqual: a.s64v[0] = (a.s64v[0] <= b.s64v[0]) ? 1 : 0; break;
+        case Op::UGreaterThanEqual: a.u64v[0] = (a.u64v[0] >= b.u64v[0]) ? 1 : 0; break;
+        case Op::SGreaterThanEqual: a.s64v[0] = (a.s64v[0] >= b.s64v[0]) ? 1 : 0; break;
+        default: break;
+      }
+
+      // downcast back to the type required
+      if(retType.scalar().type == Op::TypeFloat)
+      {
+        if(retType.scalar().width == 64)
+          ret.value.dv[col] = a.dv[0];
+        else
+          ret.value.fv[col] = (float)a.dv[0];
+      }
+      else
+      {
+        if(retType.scalar().width == 64)
+          ret.value.u64v[col] = a.u64v[0];
+        else
+          ret.value.uv[col] = a.u64v[0] & 0xFFFFFFFF;
+      }
+    }
+
+    return ret;
+  }
+
+  const Constant &c = it->second;
+
+  if(decorations[c.id].specID != ~0U)
+  {
+    for(const SpecConstant &spec : specInfo)
+    {
+      // if this constant is specialised, read its data instead
+      if(spec.specID == decorations[c.id].specID)
+      {
+        ShaderVariable ret = c.value;
+
+        ret.value.u64v[0] = spec.value;
+
+        return ret;
+      }
+    }
+  }
+
+  return c.value;
 }
 
 };    // namespace rdcspv

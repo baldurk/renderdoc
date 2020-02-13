@@ -97,7 +97,6 @@ private:
   virtual void RegisterOp(Iter iter);
   virtual void UnregisterOp(Iter iter);
 
-  ShaderVariable EvaluateConstant(Id constID, const rdcarray<SpecConstant> &specInfo) const;
   rdcstr StringiseConstant(rdcspv::Id id) const;
 
   void MakeConstantBlockVariables(const DataType &structType, uint32_t arraySize,

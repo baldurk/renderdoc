@@ -520,6 +520,8 @@ protected:
   // after parsing - e.g. to do any deferred post-processing
   virtual void PostParse();
 
+  ShaderVariable EvaluateConstant(Id constID, const rdcarray<SpecConstant> &specInfo) const;
+
   uint32_t m_MajorVersion = 0, m_MinorVersion = 0;
   Generator m_Generator;
   uint32_t m_GeneratorVersion = 0;
