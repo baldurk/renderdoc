@@ -516,28 +516,19 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->docking->setToolWindowProperties(
         ui->constants, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
-    if(m_Trace->hasSourceMapping)
-    {
-      ui->callstack->setWindowTitle(tr("Callstack"));
-      ui->docking->addToolWindow(
-          ui->callstack, ToolWindowManager::AreaReference(
-                             ToolWindowManager::RightOf, ui->docking->areaOf(ui->debugVars), 0.2f));
-      ui->docking->setToolWindowProperties(
-          ui->callstack, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+    ui->callstack->setWindowTitle(tr("Callstack"));
+    ui->docking->addToolWindow(
+        ui->callstack, ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
+                                                        ui->docking->areaOf(ui->debugVars), 0.2f));
+    ui->docking->setToolWindowProperties(
+        ui->callstack, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
-      ui->sourceVars->setWindowTitle(tr("High-level Variables"));
-      ui->docking->addToolWindow(
-          ui->sourceVars, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
-                                                           ui->docking->areaOf(ui->debugVars)));
-      ui->docking->setToolWindowProperties(
-          ui->sourceVars,
-          ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
-    }
-    else
-    {
-      ui->callstack->hide();
-      ui->sourceVars->hide();
-    }
+    ui->sourceVars->setWindowTitle(tr("High-level Variables"));
+    ui->docking->addToolWindow(
+        ui->sourceVars, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                                         ui->docking->areaOf(ui->debugVars)));
+    ui->docking->setToolWindowProperties(
+        ui->sourceVars, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
     m_Line2Insts.resize(m_ShaderDetails->debugInfo.files.count());
 
@@ -2367,7 +2358,6 @@ void ShaderViewer::updateDebugState()
     }
   }
 
-  if(m_Trace->hasSourceMapping)
   {
     RDTreeViewExpansionState expansion;
     ui->sourceVars->saveExpansion(expansion, 0);

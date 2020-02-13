@@ -2115,7 +2115,6 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
 
   ret->constantBlocks = global.constantBlocks;
   ret->inputs = state.inputs;
-  ret->hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
 
   delete[] instData;
 
@@ -2867,7 +2866,6 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
 
   ret->inputs = state.inputs;
   ret->constantBlocks = global.constantBlocks;
-  ret->hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
 
   SAFE_DELETE_ARRAY(initialData);
   SAFE_DELETE_ARRAY(evalData);
@@ -2924,7 +2922,6 @@ ShaderDebugTrace *D3D11Replay::DebugThread(uint32_t eventId, const uint32_t grou
   }
 
   ret->constantBlocks = global.constantBlocks;
-  ret->hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
 
   dxbc->FillTraceLineInfo(*ret);
 

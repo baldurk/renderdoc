@@ -1684,8 +1684,6 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
   ret->constantBlocks = global.constantBlocks;
   ret->inputs = state.inputs;
 
-  ret->hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
-
   dxbc->FillTraceLineInfo(*ret);
 
   return ret;
@@ -1743,8 +1741,6 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId, const uint32_t grou
   }
 
   ret->constantBlocks = global.constantBlocks;
-
-  ret->hasSourceMapping = dxbc->GetDebugInfo() && dxbc->GetDebugInfo()->HasSourceMapping();
 
   dxbc->FillTraceLineInfo(*ret);
 

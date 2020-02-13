@@ -678,9 +678,6 @@ If this is ``None`` then the trace is invalid.
 )");
   ShaderDebugger *debugger = NULL;
 
-  DOCUMENT("A flag indicating whether this trace has source-variable mapping information");
-  bool hasSourceMapping = false;
-
   DOCUMENT(R"(A ``list`` of :class:`LineColumnInfo` detailing which source lines each instruction
 corresponds to
 )");

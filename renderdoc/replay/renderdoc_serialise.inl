@@ -407,7 +407,6 @@ void DoSerialise(SerialiserType &ser, ShaderDebugTrace &el)
   SERIALISE_MEMBER(readWriteResources);
   SERIALISE_MEMBER(sourceVars);
   SERIALISE_MEMBER(lineInfo);
-  SERIALISE_MEMBER(hasSourceMapping);
 
   // serialise the debugger pointer entirely opaquely, this is only used for replay proxying
   uint64_t debugger = 0;
@@ -417,7 +416,7 @@ void DoSerialise(SerialiserType &ser, ShaderDebugTrace &el)
   if(ser.IsReading())
     el.debugger = (ShaderDebugger *)debugger;
 
-  SIZE_CHECK(160);
+  SIZE_CHECK(152);
 }
 
 template <typename SerialiserType>
