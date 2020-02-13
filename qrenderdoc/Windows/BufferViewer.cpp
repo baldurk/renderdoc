@@ -3807,8 +3807,7 @@ void BufferViewer::debugVertex()
   ShaderDebugTrace *trace = NULL;
 
   m_Ctx.Replay().AsyncInvoke([this, &done, &trace, vertid, index](IReplayController *r) {
-    trace = r->DebugVertex(vertid, m_Config.curInstance, index, m_Ctx.CurDrawcall()->instanceOffset,
-                           m_Ctx.CurDrawcall()->vertexOffset);
+    trace = r->DebugVertex(vertid, m_Config.curInstance, index);
 
     if(trace->debugger == NULL)
     {

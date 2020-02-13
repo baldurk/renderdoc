@@ -3871,7 +3871,7 @@ void VulkanReplay::RefreshDerivedReplacements()
 }
 
 ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                            uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+                                            uint32_t idx)
 {
   VULKANNOTIMP("DebugVertex");
   return new ShaderDebugTrace();

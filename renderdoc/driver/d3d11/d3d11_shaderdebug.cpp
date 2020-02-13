@@ -1770,7 +1770,7 @@ void AddCBuffersToGlobalState(const DXBCBytecode::Program &program, D3D11DebugMa
 }
 
 ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                           uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+                                           uint32_t idx)
 {
   using namespace DXBCBytecode;
   using namespace DXBCDebug;
@@ -1844,19 +1844,20 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     UINT i = *it;
     if(rs->IA.VBs[i])
     {
-      GetDebugManager()->GetBufferData(rs->IA.VBs[i],
-                                       rs->IA.Offsets[i] + rs->IA.Strides[i] * (vertOffset + idx),
-                                       rs->IA.Strides[i], vertData[i]);
+      GetDebugManager()->GetBufferData(
+          rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i] * (draw->vertexOffset + idx),
+          rs->IA.Strides[i], vertData[i]);
 
       for(UINT isr = 1; isr <= MaxStepRate; isr++)
       {
         GetDebugManager()->GetBufferData(
-            rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i] * (instOffset + (instid / isr)),
+            rs->IA.VBs[i],
+            rs->IA.Offsets[i] + rs->IA.Strides[i] * (draw->instanceOffset + (instid / isr)),
             rs->IA.Strides[i], instData[i * MaxStepRate + isr - 1]);
       }
 
       GetDebugManager()->GetBufferData(rs->IA.VBs[i],
-                                       rs->IA.Offsets[i] + rs->IA.Strides[i] * instOffset,
+                                       rs->IA.Offsets[i] + rs->IA.Strides[i] * draw->instanceOffset,
                                        rs->IA.Strides[i], staticData[i]);
     }
   }

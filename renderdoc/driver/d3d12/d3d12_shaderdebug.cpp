@@ -1135,7 +1135,7 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
 }
 
 ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                           uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+                                           uint32_t idx)
 {
   RDCUNIMPLEMENTED("Vertex debugging not yet implemented for D3D12");
   return new ShaderDebugTrace();

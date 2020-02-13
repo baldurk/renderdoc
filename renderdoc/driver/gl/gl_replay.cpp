@@ -3455,7 +3455,7 @@ rdcarray<PixelModification> GLReplay::PixelHistory(rdcarray<EventUsage> events, 
 }
 
 ShaderDebugTrace *GLReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
-                                        uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+                                        uint32_t idx)
 {
   GLNOTIMP("DebugVertex");
   return new ShaderDebugTrace();
