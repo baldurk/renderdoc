@@ -52,9 +52,8 @@ float4 main() : SV_Target0
 
   std::string pixel_5_1 = R"EOSHADER(
 
-// TODO: Once SRV mappings with 5.1 are fixed, change these registers to test gaps in registers
-Texture2D res1 : register(t0);
-Texture2D res2 : register(t1);
+Texture2D res1 : register(t6);
+Texture2D res2 : register(t7);
 
 // TODO: Add UAV writes and test gaps in those mappings
 
@@ -108,14 +107,14 @@ float4 main() : SV_Target0
         cbufferarray[x][y].col = Vec4f(x / 1.0f, y / 1.0f, 0.5f, 0.5f);
     ID3D12ResourcePtr cbArray = MakeBuffer().Data(cbufferarray).Size(sizeof(AlignedCB) * 12);
     for(uint32_t i = 0; i < 12; ++i)
-      MakeCBV(cbArray).SizeBytes(256).Offset(i * sizeof(AlignedCB)).CreateGPU(3 + i);
+      MakeCBV(cbArray).SizeBytes(256).Offset(i * sizeof(AlignedCB)).CreateGPU(i);
 
     ID3D12ResourcePtr res1 =
         MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 2, 2).Mips(1).InitialState(D3D12_RESOURCE_STATE_COPY_DEST);
-    MakeSRV(res1).CreateGPU(0);
+    MakeSRV(res1).CreateGPU(18);
     ID3D12ResourcePtr res2 =
         MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 2, 2).Mips(1).InitialState(D3D12_RESOURCE_STATE_COPY_DEST);
-    MakeSRV(res2).CreateGPU(2);
+    MakeSRV(res2).CreateGPU(19);
 
     ID3D12ResourcePtr uploadBuf = MakeBuffer().Size(1024 * 1024).Upload();
     {
@@ -209,16 +208,17 @@ float4 main() : SV_Target0
       GPUSync();
     }
 
+    // Test the same resource mappings both with explicitly specified resources,
+    // and a bindless style table param
     ID3D12RootSignaturePtr sig_5_0 = MakeSig({
         cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 3),
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 0),
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2, 1, 2),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 18),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2, 1, 19),
     });
     ID3D12RootSignaturePtr sig_5_1 = MakeSig({
         cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 3),
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 0),
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, 1, 2),
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 4, 12, 3),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 4, 12, 0),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, UINT_MAX, 12),
     });
 
     ID3D12PipelineStatePtr pso_5_0 = MakePSO()
@@ -283,7 +283,6 @@ float4 main() : SV_Target0
       cmd->SetGraphicsRootConstantBufferView(0, cb->GetGPUVirtualAddress());
       cmd->SetGraphicsRootDescriptorTable(1, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
       cmd->SetGraphicsRootDescriptorTable(2, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
-      cmd->SetGraphicsRootDescriptorTable(3, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
       cmd->DrawInstanced(3, 1, 0, 0);
 
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);

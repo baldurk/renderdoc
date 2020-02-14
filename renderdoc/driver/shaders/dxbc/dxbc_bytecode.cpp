@@ -45,6 +45,25 @@ Program::Program(const byte *bytes, size_t length)
   FetchTypeVersion();
 }
 
+void HandleResourceArrayIndices(const rdcarray<DXBCBytecode::RegIndex> &indices,
+                                DXBC::ShaderInputBind &desc)
+{
+  // If there are 3 indices, we're using SM5.1 and this binding may be a resource array
+  if(indices.size() == 3)
+  {
+    // With SM5.1, the first index is the logical identifier,
+    // and the 2nd index is the starting shader register
+    desc.reg = (uint32_t)indices[1].index;
+
+    // Start/end registers are inclusive, so one resource will have the same start/end register
+    desc.bindCount = uint32_t(indices[2].index - indices[1].index + 1);
+
+    // If it's an unbounded resource array, mark the bind count as 0
+    if(indices[2].index == 0xffffffff)
+      desc.bindCount = 0;
+  }
+}
+
 DXBC::Reflection *Program::GuessReflection()
 {
   DisassembleHexDump();
@@ -79,12 +98,7 @@ DXBC::Reflection *Program::GuessReflection()
         desc.dimension = DXBC::ShaderInputBind::DIM_UNKNOWN;
         desc.numSamples = 0;
 
-        if(dcl.operand.indices.size() == 3)
-        {
-          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index);
-          if(dcl.operand.indices[2].index == 0xffffffff)
-            desc.bindCount = 0;
-        }
+        HandleResourceArrayIndices(dcl.operand.indices, desc);
 
         ret->Samplers.push_back(desc);
 
@@ -148,12 +162,7 @@ DXBC::Reflection *Program::GuessReflection()
 
         RDCASSERT(desc.dimension != DXBC::ShaderInputBind::DIM_UNKNOWN);
 
-        if(dcl.operand.indices.size() == 3)
-        {
-          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index);
-          if(dcl.operand.indices[2].index == 0xffffffff)
-            desc.bindCount = 0;
-        }
+        HandleResourceArrayIndices(dcl.operand.indices, desc);
 
         ret->SRVs.push_back(desc);
 
@@ -184,12 +193,7 @@ DXBC::Reflection *Program::GuessReflection()
         desc.dimension = DXBC::ShaderInputBind::DIM_BUFFER;
         desc.numSamples = 0;
 
-        if(dcl.operand.indices.size() == 3)
-        {
-          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index);
-          if(dcl.operand.indices[2].index == 0xffffffff)
-            desc.bindCount = 0;
-        }
+        HandleResourceArrayIndices(dcl.operand.indices, desc);
 
         if(dcl.operand.type == TYPE_RESOURCE)
           ret->SRVs.push_back(desc);
@@ -218,12 +222,7 @@ DXBC::Reflection *Program::GuessReflection()
         desc.dimension = DXBC::ShaderInputBind::DIM_BUFFER;
         desc.numSamples = dcl.stride;
 
-        if(dcl.operand.indices.size() == 3)
-        {
-          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index);
-          if(dcl.operand.indices[2].index == 0xffffffff)
-            desc.bindCount = 0;
-        }
+        HandleResourceArrayIndices(dcl.operand.indices, desc);
 
         ret->SRVs.push_back(desc);
 
@@ -254,12 +253,7 @@ DXBC::Reflection *Program::GuessReflection()
         desc.dimension = DXBC::ShaderInputBind::DIM_BUFFER;
         desc.numSamples = dcl.stride;
 
-        if(dcl.operand.indices.size() == 3)
-        {
-          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index);
-          if(dcl.operand.indices[2].index == 0xffffffff)
-            desc.bindCount = 0;
-        }
+        HandleResourceArrayIndices(dcl.operand.indices, desc);
 
         ret->UAVs.push_back(desc);
 
@@ -317,12 +311,7 @@ DXBC::Reflection *Program::GuessReflection()
         }
         desc.numSamples = (uint32_t)-1;
 
-        if(dcl.operand.indices.size() == 3)
-        {
-          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index);
-          if(dcl.operand.indices[2].index == 0xffffffff)
-            desc.bindCount = 0;
-        }
+        HandleResourceArrayIndices(dcl.operand.indices, desc);
 
         ret->UAVs.push_back(desc);
 
@@ -355,12 +344,7 @@ DXBC::Reflection *Program::GuessReflection()
         desc.dimension = DXBC::ShaderInputBind::DIM_UNKNOWN;
         desc.numSamples = 0;
 
-        if(dcl.operand.indices.size() == 3)
-        {
-          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index + 1);
-          if(dcl.operand.indices[2].index == 0xffffffff)
-            desc.bindCount = 0;
-        }
+        HandleResourceArrayIndices(dcl.operand.indices, desc);
 
         DXBC::CBuffer cb;
 
