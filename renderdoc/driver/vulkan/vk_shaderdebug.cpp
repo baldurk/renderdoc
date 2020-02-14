@@ -38,6 +38,19 @@ public:
     m_pDriver->AddDebugMessage(c, sv, src, d);
   }
 
+  virtual void ReadConstantBufferValue(uint32_t set, uint32_t bind, uint32_t offset,
+                                       uint32_t byteSize, void *dst) override
+  {
+    auto it = cbuffers.find(make_rdcpair(set, bind));
+    if(it == cbuffers.end())
+      return;
+
+    bytebuf &data = it->second;
+
+    if(offset + byteSize <= data.size())
+      memcpy(dst, data.data() + offset, byteSize);
+  }
+
   virtual void FillInputValue(ShaderVariable &var, ShaderBuiltin builtin, uint32_t location,
                               uint32_t offset) override
   {
@@ -65,6 +78,7 @@ public:
     RDCERR("Couldn't get input for location=%u, offset=%u", location, offset);
   }
 
+  std::map<rdcpair<uint32_t, uint32_t>, bytebuf> cbuffers;
   std::map<ShaderBuiltin, ShaderVariable> builtin_inputs;
   rdcarray<ShaderVariable> location_inputs;
 
@@ -96,6 +110,42 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 
   shadRefl.PopulateDisassembly(shader.spirv);
   VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver);
+
+  for(uint32_t set = 0; set < state.graphics.descSets.size(); set++)
+  {
+    const VulkanStatePipeline::DescriptorAndOffsets &src = state.graphics.descSets[set];
+
+    const WrappedVulkan::DescriptorSetInfo &setInfo = m_pDriver->m_DescriptorSetState[src.descSet];
+    ResourceId layoutId = setInfo.layout;
+
+    uint32_t dynOffsetIdx = 0;
+
+    for(uint32_t bind = 0; bind < setInfo.currentBindings.size(); bind++)
+    {
+      DescriptorSetSlot *info = setInfo.currentBindings[bind];
+      const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[bind];
+
+      if(layoutBind.stageFlags == 0)
+        continue;
+
+      uint32_t dynOffset = 0;
+
+      if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
+         layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+        dynOffset = src.offsets[dynOffsetIdx++];
+
+      // TODO handle arrays of bindings
+      const uint32_t arrayIdx = 0;
+
+      if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+         layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+      {
+        const DescriptorSetSlotBufferInfo &bufInfo = info[arrayIdx].bufferInfo;
+        GetDebugManager()->GetBufferData(bufInfo.buffer, bufInfo.offset + dynOffset, bufInfo.range,
+                                         apiWrapper->cbuffers[make_rdcpair(set, bind)]);
+      }
+    }
+  }
 
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
   builtins[ShaderBuiltin::BaseInstance] = ShaderVariable(rdcstr(), draw->instanceOffset, 0U, 0U, 0U);

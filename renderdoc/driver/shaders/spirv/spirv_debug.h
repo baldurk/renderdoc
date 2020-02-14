@@ -36,6 +36,9 @@ public:
   virtual ~DebugAPIWrapper() {}
   virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d) = 0;
 
+  // TODO handle arrays of cbuffers
+  virtual void ReadConstantBufferValue(uint32_t set, uint32_t bind, uint32_t offset,
+                                       uint32_t byteSize, void *dst) = 0;
   virtual void FillInputValue(ShaderVariable &var, ShaderBuiltin builtin, uint32_t location,
                               uint32_t offset) = 0;
 };

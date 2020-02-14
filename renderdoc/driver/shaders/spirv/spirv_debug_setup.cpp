@@ -26,6 +26,12 @@
 #include "common/formatting.h"
 #include "spirv_op_helpers.h"
 
+static uint32_t VarByteSize(const ShaderVariable &var)
+{
+  return VarTypeByteSize(var.type) * RDCMAX(1U, (uint32_t)var.rows) *
+         RDCMAX(1U, (uint32_t)var.columns);
+}
+
 namespace rdcspv
 {
 void AssignValue(ShaderVariable &dst, const ShaderVariable &src)
@@ -83,7 +89,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
   for(auto it = constants.begin(); it != constants.end(); it++)
     active.ids[it->first] = EvaluateConstant(it->first, specInfo);
 
-  rdcarray<Id> inputIDs, outputIDs;
+  rdcarray<Id> inputIDs, outputIDs, cbufferIDs;
 
   // allocate storage for globals with opaque storage classes, and prepare to set up pointers to
   // them for the global variables themselves
@@ -129,6 +135,48 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
         outputIDs.push_back(v.id);
       }
     }
+
+    // pick up uniform globals, which could be cbuffers
+    if(v.storage == StorageClass::Uniform && (decorations[v.id].flags & Decorations::BufferBlock) == 0)
+    {
+      ShaderVariable var;
+      var.name = GetRawName(v.id);
+
+      rdcstr sourceName = strings[v.id];
+      if(sourceName.empty())
+        sourceName = var.name;
+
+      const DataType &type = dataTypes[v.type];
+
+      // global variables should all be pointers into opaque storage
+      RDCASSERT(type.type == DataType::PointerType);
+
+      const DataType &innertype = dataTypes[type.InnerType()];
+
+      if(innertype.type == DataType::ArrayType)
+      {
+        RDCERR("uniform Arrays not supported yet");
+      }
+      else if(innertype.type == DataType::StructType)
+      {
+        uint32_t offset = 0;
+        AllocateVariable(decorations[v.id], decorations[v.id], DebugVariableType::Constant,
+                         sourceName, 0, innertype, var);
+
+        global.constantBlocks.push_back(var);
+        cbufferIDs.push_back(v.id);
+
+        SourceVariableMapping sourceVar;
+        sourceVar.name = sourceName;
+        sourceVar.type = VarType::Unknown;
+        sourceVar.rows = 0;
+        sourceVar.columns = 0;
+        sourceVar.offset = 0;
+        sourceVar.variables.push_back(DebugVariableReference(DebugVariableType::Constant, var.name));
+
+        sourceVars.push_back(sourceVar);
+      }
+    }
   }
 
   // now that the globals are allocated and their storage won't move, we can take pointers to them
@@ -136,6 +184,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     active.ids[inputIDs[i]] = MakePointerVariable(inputIDs[i], &active.inputs[i]);
   for(size_t i = 0; i < active.outputs.size(); i++)
     active.ids[outputIDs[i]] = MakePointerVariable(outputIDs[i], &active.outputs[i]);
+  for(size_t i = 0; i < global.constantBlocks.size(); i++)
+    active.ids[cbufferIDs[i]] = MakePointerVariable(cbufferIDs[i], &global.constantBlocks[i]);
 
   // only outputs are considered mutable
   active.live.append(outputIDs);
@@ -530,6 +580,60 @@ void Debugger::AllocateVariable(const Decorations &varDecorations, const Decorat
         outVar, sourceVar.builtin,
         (curDecorations.flags & Decorations::HasLocation) ? curDecorations.location : 0,
         (curDecorations.flags & Decorations::HasOffset) ? curDecorations.offset : 0);
+  }
+  else if(sourceVarType == DebugVariableType::Constant)
+  {
+    uint32_t set = 0, bind = 0;
+    if(varDecorations.flags & Decorations::HasDescriptorSet)
+      set = varDecorations.set;
+    if(varDecorations.flags & Decorations::HasBinding)
+      bind = varDecorations.binding;
+
+    // non-matrix case is simple, just read the size of the variable
+    if(sourceVar.rows == 1)
+    {
+      apiWrapper->ReadConstantBufferValue(set, bind, offset, VarByteSize(outVar), outVar.value.uv);
+    }
+    else
+    {
+      // matrix case is more complicated. Either read column by column or row by row depending on
+      // majorness
+      uint32_t matrixStride = curDecorations.matrixStride;
+
+      if(!(curDecorations.flags & Decorations::HasMatrixStride))
+      {
+        RDCWARN("Matrix without matrix stride - assuming legacy vec4 packed");
+        matrixStride = 16;
+      }
+
+      if(curDecorations.flags & Decorations::ColMajor)
+      {
+        ShaderValue tmp;
+
+        uint32_t colSize = VarTypeByteSize(sourceVar.type) * sourceVar.rows;
+        for(uint32_t c = 0; c < sourceVar.columns; c++)
+        {
+          // read the column
+          apiWrapper->ReadConstantBufferValue(set, bind, offset + c * matrixStride, colSize,
+                                              &tmp.uv[0]);
+
+          // now write it into the appropiate elements in the destination ShaderValue
+          for(uint32_t r = 0; r < sourceVar.rows; r++)
+            outVar.value.uv[r * sourceVar.columns + c] = tmp.uv[r];
+        }
+      }
+      else
+      {
+        // row major is easier, read row-by-row directly into the output variable
+        uint32_t rowSize = VarTypeByteSize(sourceVar.type) * sourceVar.columns;
+        for(uint32_t r = 0; r < sourceVar.rows; r++)
+        {
+          // read the column into the destination ShaderValue, which is tightly packed with rows
+          apiWrapper->ReadConstantBufferValue(set, bind, offset + r * matrixStride, rowSize,
+                                              &outVar.value.uv[r * sourceVar.columns]);
+        }
+      }
+    }
   }
 }
 
