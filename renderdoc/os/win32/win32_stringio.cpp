@@ -430,6 +430,21 @@ uint64_t GetModifiedTimestamp(const rdcstr &filename)
   return 0;
 }
 
+uint64_t GetFileSize(const rdcstr &filename)
+{
+  rdcwstr wfn = StringFormat::UTF82Wide(filename);
+
+  struct __stat64 st;
+  int res = _wstat64(wfn.c_str(), &st);
+
+  if(res == 0)
+  {
+    return (uint64_t)st.st_size;
+  }
+
+  return 0;
+}
+
 bool Copy(const char *from, const char *to, bool allowOverwrite)
 {
   rdcwstr wfrom = StringFormat::UTF82Wide(from);
@@ -696,7 +711,7 @@ rdcstr logfile_readall(const char *filename)
   }
   else
   {
-    DWORD len = GetFileSize(h, NULL);
+    DWORD len = ::GetFileSize(h, NULL);
 
     if(len == INVALID_FILE_SIZE)
     {

@@ -291,6 +291,7 @@ void GetExecutableFilename(rdcstr &selfName);
 void GetLibraryFilename(rdcstr &selfName);
 
 uint64_t GetModifiedTimestamp(const rdcstr &filename);
+uint64_t GetFileSize(const rdcstr &filename);
 
 bool Copy(const char *from, const char *to, bool allowOverwrite);
 bool Move(const char *from, const char *to, bool allowOverwrite);

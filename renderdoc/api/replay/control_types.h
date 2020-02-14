@@ -468,6 +468,8 @@ struct NewCaptureData
   uint32_t frameNumber = 0;
   DOCUMENT("The time the capture was created, as a unix timestamp in UTC.");
   uint64_t timestamp = 0;
+  DOCUMENT("The size of the capture, in bytes.");
+  uint64_t byteSize = 0;
   DOCUMENT("The raw bytes that contain the capture thumbnail, as RGB8 data.");
   bytebuf thumbnail;
   DOCUMENT("The width of the image contained in :data:`thumbnail`.");

@@ -673,11 +673,14 @@ QString LiveCapture::MakeText(Capture *cap)
 
   text += lit("\n") + cap->api;
   if(cap->frameNumber == ~0U)
-    text += tr("\nUser-defined Capture ");
+    text += tr("\nUser-defined Capture");
   else
-    text += tr("\nFrame #%1 ").arg(cap->frameNumber);
+    text += tr("\nFrame #%1").arg(cap->frameNumber);
 
-  text += cap->timestamp.toString(lit("yyyy-MM-dd HH:mm:ss"));
+  if(cap->byteSize > 0)
+    text += QFormatStr(" (%1 MB)").arg(double(cap->byteSize) / 1000000.0, 0, 'f', 2);
+
+  text += cap->timestamp.toString(lit("\nyyyy-MM-dd HH:mm:ss"));
 
   return text;
 }
@@ -1045,6 +1048,7 @@ void LiveCapture::captureAdded(const NewCaptureData &newCapture)
 
   cap->timestamp =
       QDateTime(QDate(1970, 1, 1), QTime(0, 0, 0), Qt::UTC).addSecs(newCapture.timestamp).toLocalTime();
+  cap->byteSize = newCapture.byteSize;
 
   cap->thumb = QImage(newCapture.thumbnail.data(), newCapture.thumbWidth, newCapture.thumbHeight,
                       newCapture.thumbWidth * 3, QImage::Format_RGB888)

@@ -249,6 +249,19 @@ uint64_t GetModifiedTimestamp(const rdcstr &filename)
   return 0;
 }
 
+uint64_t GetFileSize(const rdcstr &filename)
+{
+  struct ::stat st;
+  int res = stat(filename.c_str(), &st);
+
+  if(res == 0)
+  {
+    return (uint64_t)st.st_size;
+  }
+
+  return 0;
+}
+
 bool Copy(const char *from, const char *to, bool allowOverwrite)
 {
   if(from[0] == 0 || to[0] == 0)

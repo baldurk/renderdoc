@@ -103,6 +103,7 @@ private:
     QString api;
     QDateTime timestamp;
     uint32_t frameNumber;
+    uint64_t byteSize;
 
     QImage thumb;
 
