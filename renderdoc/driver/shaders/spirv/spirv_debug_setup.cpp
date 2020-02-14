@@ -71,6 +71,14 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
                                        const std::map<size_t, uint32_t> &instructionLines,
                                        uint32_t activeIndex)
 {
+  Id entryId = entryLookup[entryPoint];
+
+  if(entryId == Id())
+  {
+    RDCERR("Invalid entry point '%s'", entryPoint.c_str());
+    return new ShaderDebugTrace;
+  }
+
   ShaderDebugTrace *ret = new ShaderDebugTrace;
   ret->debugger = this;
   this->activeLaneIndex = activeIndex;
@@ -82,6 +90,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     workgroup.push_back(ThreadState(i, global));
 
   ThreadState &active = GetActiveLane();
+
+  active.nextInstruction = instructionOffsets.indexOf(functions[entryId].begin);
 
   active.ids.resize(idOffsets.size());
 
@@ -232,7 +242,34 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
   // initialise a blank set of shader variable changes in the first ShaderDebugState
   if(steps == 0)
   {
+    // we should be sitting at the entry point function prologue, step forward into the first block
+    // and past any function-local variable declarations
+    {
+      Iter it(m_SPIRV, instructionOffsets[active.nextInstruction]);
+
+      RDCASSERT(OpDecoder(it).op == Op::Function);
+      it++;
+      // vulkan doesn't allow entry points with parameters, next should be a label
+      RDCASSERT(OpDecoder(it).op == Op::Label);
+      it++;
+
+      // handle any variable declarations
+      while(OpDecoder(it).op == Op::Variable)
+      {
+        OpVariable decl(it);
+
+        // TODO declare variable
+
+        it++;
+      }
+
+      // next instruction is the first actual instruction we'll execute
+      active.nextInstruction = instructionOffsets.indexOf(it.offs());
+    }
+
     ShaderDebugState initial;
+
+    initial.nextInstruction = active.nextInstruction;
 
     for(const Id &v : active.live)
       initial.changes.push_back({ShaderVariable(), EvaluatePointerVariable(active.ids[v])});
@@ -660,6 +697,10 @@ void Debugger::RegisterOp(Iter it)
 
   OpDecoder opdata(it);
 
+  if(opdata.op == Op::Line || opdata.op == Op::NoLine)
+  {
+    // ignore OpLine/OpNoLine
+  }
   if(opdata.op == Op::String)
   {
     OpString string(it);
@@ -679,6 +720,30 @@ void Debugger::RegisterOp(Iter it)
     OpMemberName memberName(it);
 
     memberNames.push_back({memberName.type, memberName.member, memberName.name});
+  }
+  else if(opdata.op == Op::EntryPoint)
+  {
+    OpEntryPoint entryPoint(it);
+
+    entryLookup[entryPoint.name] = entryPoint.entryPoint;
+  }
+  else if(opdata.op == Op::Function)
+  {
+    OpFunction func(it);
+
+    curFunction = &functions[func.result];
+
+    curFunction->begin = it.offs();
+  }
+
+  // everything else inside a function becomes an instruction, including the OpFunction and
+  // OpFunctionEnd. We won't actually execute these instructions
+
+  instructionOffsets.push_back(it.offs());
+
+  if(opdata.op == Op::FunctionEnd)
+  {
+    curFunction = NULL;
   }
 }
 

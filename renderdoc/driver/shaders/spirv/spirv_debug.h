@@ -115,20 +115,23 @@ private:
                         DebugVariableType sourceVarType, const rdcstr &sourceName, uint32_t offset,
                         const DataType &inType, ShaderVariable &outVar);
 
+  /////////////////////////////////////////////////////////
+  // debug data
+
   DebugAPIWrapper *apiWrapper = NULL;
 
   GlobalState global;
   rdcarray<ThreadState> workgroup;
 
   rdcarray<SourceVariableMapping> sourceVars;
-  rdcarray<size_t> instructionOffsets;
 
   uint32_t activeLaneIndex = 0;
   ShaderStage stage;
 
   int steps = 0;
 
-  DenseIdMap<rdcstr> strings;
+  /////////////////////////////////////////////////////////
+  // parsed data
 
   struct MemberName
   {
@@ -137,7 +140,19 @@ private:
     rdcstr name;
   };
 
+  DenseIdMap<rdcstr> strings;
   rdcarray<MemberName> memberNames;
+  std::map<rdcstr, Id> entryLookup;
+
+  struct Function
+  {
+    size_t begin = 0;
+  };
+
+  SparseIdMap<Function> functions;
+  Function *curFunction = NULL;
+
+  rdcarray<size_t> instructionOffsets;
 
   rdcstr GetRawName(Id id) const;
   rdcstr GetHumanName(Id id);
