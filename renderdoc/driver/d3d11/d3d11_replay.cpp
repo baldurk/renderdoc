@@ -255,6 +255,195 @@ void D3D11Replay::DestroyResources()
   SAFE_RELEASE(m_pFactory);
 }
 
+rdcarray<ShaderEntryPoint> D3D11Replay::GetShaderEntryPoints(ResourceId shader)
+{
+  auto it = WrappedShader::m_ShaderList.find(shader);
+
+  if(it == WrappedShader::m_ShaderList.end())
+    return {};
+
+  ShaderReflection &ret = it->second->GetDetails();
+
+  return {{"main", ret.stage}};
+}
+
+ShaderReflection *D3D11Replay::GetShader(ResourceId pipeline, ResourceId shader,
+                                         ShaderEntryPoint entry)
+{
+  auto it = WrappedShader::m_ShaderList.find(shader);
+
+  if(it == WrappedShader::m_ShaderList.end())
+    return NULL;
+
+  ShaderReflection &ret = it->second->GetDetails();
+
+  return &ret;
+}
+
+rdcarray<rdcstr> D3D11Replay::GetDisassemblyTargets()
+{
+  return {DXBCDisassemblyTarget};
+}
+
+rdcstr D3D11Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
+                                      const rdcstr &target)
+{
+  auto it =
+      WrappedShader::m_ShaderList.find(m_pDevice->GetResourceManager()->GetLiveID(refl->resourceId));
+
+  if(it == WrappedShader::m_ShaderList.end())
+    return "; Invalid Shader Specified";
+
+  DXBC::DXBCContainer *dxbc = it->second->GetDXBC();
+
+  if(target == DXBCDisassemblyTarget || target.empty())
+    return dxbc->GetDisassembly();
+
+  return StringFormat::Fmt("; Invalid disassembly target %s", target.c_str());
+}
+
+void D3D11Replay::FreeTargetResource(ResourceId id)
+{
+  if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+  {
+    ID3D11DeviceChild *resource = m_pDevice->GetResourceManager()->GetLiveResource(id);
+
+    SAFE_RELEASE(resource);
+  }
+}
+
+void D3D11Replay::FreeCustomShader(ResourceId id)
+{
+  if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+  {
+    ID3D11DeviceChild *resource = m_pDevice->GetResourceManager()->GetLiveResource(id);
+
+    SAFE_RELEASE(resource);
+  }
+}
+
+rdcarray<EventUsage> D3D11Replay::GetUsage(ResourceId id)
+{
+  return m_pDevice->GetImmediateContext()->GetUsage(id);
+}
+
+rdcarray<DebugMessage> D3D11Replay::GetDebugMessages()
+{
+  return m_pDevice->GetDebugMessages();
+}
+
+rdcarray<GPUDevice> D3D11Replay::GetAvailableGPUs()
+{
+  rdcarray<GPUDevice> ret;
+
+  for(UINT i = 0; i < 10; i++)
+  {
+    IDXGIAdapter *adapter = NULL;
+
+    HRESULT hr = m_pFactory->EnumAdapters(i, &adapter);
+
+    if(SUCCEEDED(hr) && adapter)
+    {
+      DXGI_ADAPTER_DESC desc;
+      adapter->GetDesc(&desc);
+
+      GPUDevice dev;
+      dev.vendor = GPUVendorFromPCIVendor(desc.VendorId);
+      dev.deviceID = desc.DeviceId;
+      dev.driver = "";    // D3D doesn't have multiple drivers per API
+      dev.name = StringFormat::Wide2UTF8(desc.Description);
+      dev.apis = {GraphicsAPI::D3D11};
+
+      // don't add duplicate devices even if they get enumerated. Don't add WARP, we'll do that
+      // manually since it's inconsistently enumerated
+      if(ret.indexOf(dev) == -1 && dev.vendor != GPUVendor::Software)
+        ret.push_back(dev);
+    }
+
+    SAFE_RELEASE(adapter);
+  }
+
+  {
+    GPUDevice dev;
+    dev.vendor = GPUVendor::Software;
+    dev.deviceID = 0;
+    dev.driver = "";    // D3D doesn't have multiple drivers per API
+    dev.name = "WARP Rasterizer";
+    dev.apis = {GraphicsAPI::D3D11};
+    ret.push_back(dev);
+  }
+
+  return ret;
+}
+
+APIProperties D3D11Replay::GetAPIProperties()
+{
+  APIProperties ret = m_pDevice->APIProps;
+
+  ret.pipelineType = GraphicsAPI::D3D11;
+  ret.localRenderer = GraphicsAPI::D3D11;
+  ret.vendor = m_DriverInfo.vendor;
+  ret.degraded = m_WARP;
+  ret.shadersMutable = false;
+  ret.shaderDebugging = true;
+  ret.pixelHistory = true;
+
+  return ret;
+}
+
+ResourceDescription &D3D11Replay::GetResourceDesc(ResourceId id)
+{
+  auto it = m_ResourceIdx.find(id);
+  if(it == m_ResourceIdx.end())
+  {
+    m_ResourceIdx[id] = m_Resources.size();
+    m_Resources.push_back(ResourceDescription());
+    m_Resources.back().resourceId = id;
+    return m_Resources.back();
+  }
+
+  return m_Resources[it->second];
+}
+
+rdcarray<ResourceDescription> D3D11Replay::GetResources()
+{
+  return m_Resources;
+}
+
+BufferDescription D3D11Replay::GetBuffer(ResourceId id)
+{
+  BufferDescription ret = {};
+  ret.resourceId = ResourceId();
+
+  auto it = WrappedID3D11Buffer::m_BufferList.find(id);
+
+  if(it == WrappedID3D11Buffer::m_BufferList.end())
+    return ret;
+
+  WrappedID3D11Buffer *d3dbuf = it->second.m_Buffer;
+
+  rdcstr str = GetDebugName(d3dbuf);
+
+  ret.resourceId = m_pDevice->GetResourceManager()->GetOriginalID(it->first);
+
+  D3D11_BUFFER_DESC desc;
+  it->second.m_Buffer->GetDesc(&desc);
+
+  ret.length = desc.ByteWidth;
+
+  ret.creationFlags = BufferCategory::NoFlags;
+  if(desc.BindFlags & D3D11_BIND_VERTEX_BUFFER)
+    ret.creationFlags |= BufferCategory::Vertex;
+  if(desc.BindFlags & D3D11_BIND_INDEX_BUFFER)
+    ret.creationFlags |= BufferCategory::Index;
+  if(desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
+    ret.creationFlags |= BufferCategory::ReadWrite;
+  if(desc.MiscFlags & D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS)
+    ret.creationFlags |= BufferCategory::Indirect;
+
+  return ret;
+}
+
 TextureDescription D3D11Replay::GetTexture(ResourceId id)
 {
   TextureDescription tex = {};
@@ -431,164 +620,9 @@ TextureDescription D3D11Replay::GetTexture(ResourceId id)
   return tex;
 }
 
-rdcarray<ShaderEntryPoint> D3D11Replay::GetShaderEntryPoints(ResourceId shader)
+rdcarray<BufferDescription> D3D11Replay::GetBuffers()
 {
-  auto it = WrappedShader::m_ShaderList.find(shader);
-
-  if(it == WrappedShader::m_ShaderList.end())
-    return {};
-
-  ShaderReflection &ret = it->second->GetDetails();
-
-  return {{"main", ret.stage}};
-}
-
-ShaderReflection *D3D11Replay::GetShader(ResourceId pipeline, ResourceId shader,
-                                         ShaderEntryPoint entry)
-{
-  auto it = WrappedShader::m_ShaderList.find(shader);
-
-  if(it == WrappedShader::m_ShaderList.end())
-    return NULL;
-
-  ShaderReflection &ret = it->second->GetDetails();
-
-  return &ret;
-}
-
-rdcarray<rdcstr> D3D11Replay::GetDisassemblyTargets()
-{
-  return {DXBCDisassemblyTarget};
-}
-
-rdcstr D3D11Replay::DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
-                                      const rdcstr &target)
-{
-  auto it =
-      WrappedShader::m_ShaderList.find(m_pDevice->GetResourceManager()->GetLiveID(refl->resourceId));
-
-  if(it == WrappedShader::m_ShaderList.end())
-    return "; Invalid Shader Specified";
-
-  DXBC::DXBCContainer *dxbc = it->second->GetDXBC();
-
-  if(target == DXBCDisassemblyTarget || target.empty())
-    return dxbc->GetDisassembly();
-
-  return StringFormat::Fmt("; Invalid disassembly target %s", target.c_str());
-}
-
-void D3D11Replay::FreeTargetResource(ResourceId id)
-{
-  if(m_pDevice->GetResourceManager()->HasLiveResource(id))
-  {
-    ID3D11DeviceChild *resource = m_pDevice->GetResourceManager()->GetLiveResource(id);
-
-    SAFE_RELEASE(resource);
-  }
-}
-
-void D3D11Replay::FreeCustomShader(ResourceId id)
-{
-  if(m_pDevice->GetResourceManager()->HasLiveResource(id))
-  {
-    ID3D11DeviceChild *resource = m_pDevice->GetResourceManager()->GetLiveResource(id);
-
-    SAFE_RELEASE(resource);
-  }
-}
-
-rdcarray<EventUsage> D3D11Replay::GetUsage(ResourceId id)
-{
-  return m_pDevice->GetImmediateContext()->GetUsage(id);
-}
-
-rdcarray<DebugMessage> D3D11Replay::GetDebugMessages()
-{
-  return m_pDevice->GetDebugMessages();
-}
-
-rdcarray<GPUDevice> D3D11Replay::GetAvailableGPUs()
-{
-  rdcarray<GPUDevice> ret;
-
-  for(UINT i = 0; i < 10; i++)
-  {
-    IDXGIAdapter *adapter = NULL;
-
-    HRESULT hr = m_pFactory->EnumAdapters(i, &adapter);
-
-    if(SUCCEEDED(hr) && adapter)
-    {
-      DXGI_ADAPTER_DESC desc;
-      adapter->GetDesc(&desc);
-
-      GPUDevice dev;
-      dev.vendor = GPUVendorFromPCIVendor(desc.VendorId);
-      dev.deviceID = desc.DeviceId;
-      dev.driver = "";    // D3D doesn't have multiple drivers per API
-      dev.name = StringFormat::Wide2UTF8(desc.Description);
-      dev.apis = {GraphicsAPI::D3D11};
-
-      // don't add duplicate devices even if they get enumerated. Don't add WARP, we'll do that
-      // manually since it's inconsistently enumerated
-      if(ret.indexOf(dev) == -1 && dev.vendor != GPUVendor::Software)
-        ret.push_back(dev);
-    }
-
-    SAFE_RELEASE(adapter);
-  }
-
-  {
-    GPUDevice dev;
-    dev.vendor = GPUVendor::Software;
-    dev.deviceID = 0;
-    dev.driver = "";    // D3D doesn't have multiple drivers per API
-    dev.name = "WARP Rasterizer";
-    dev.apis = {GraphicsAPI::D3D11};
-    ret.push_back(dev);
-  }
-
-  return ret;
-}
-
-APIProperties D3D11Replay::GetAPIProperties()
-{
-  APIProperties ret = m_pDevice->APIProps;
-
-  ret.pipelineType = GraphicsAPI::D3D11;
-  ret.localRenderer = GraphicsAPI::D3D11;
-  ret.vendor = m_DriverInfo.vendor;
-  ret.degraded = m_WARP;
-  ret.shadersMutable = false;
-  ret.shaderDebugging = true;
-  ret.pixelHistory = true;
-
-  return ret;
-}
-
-ResourceDescription &D3D11Replay::GetResourceDesc(ResourceId id)
-{
-  auto it = m_ResourceIdx.find(id);
-  if(it == m_ResourceIdx.end())
-  {
-    m_ResourceIdx[id] = m_Resources.size();
-    m_Resources.push_back(ResourceDescription());
-    m_Resources.back().resourceId = id;
-    return m_Resources.back();
-  }
-
-  return m_Resources[it->second];
-}
-
-const rdcarray<ResourceDescription> &D3D11Replay::GetResources()
-{
-  return m_Resources;
-}
-
-rdcarray<ResourceId> D3D11Replay::GetBuffers()
-{
-  rdcarray<ResourceId> ret;
+  rdcarray<BufferDescription> ret;
 
   ret.reserve(WrappedID3D11Buffer::m_BufferList.size());
 
@@ -599,7 +633,7 @@ rdcarray<ResourceId> D3D11Replay::GetBuffers()
     if(m_pDevice->GetResourceManager()->GetOriginalID(it->first) == it->first)
       continue;
 
-    ret.push_back(it->first);
+    ret.push_back(GetBuffer(it->first));
   }
 
   GetDebugManager()->GetCounterBuffers(ret);
@@ -607,53 +641,9 @@ rdcarray<ResourceId> D3D11Replay::GetBuffers()
   return ret;
 }
 
-BufferDescription D3D11Replay::GetBuffer(ResourceId id)
+rdcarray<TextureDescription> D3D11Replay::GetTextures()
 {
-  BufferDescription ret = {};
-  ret.resourceId = ResourceId();
-
-  if(GetDebugManager()->GetCounterBufferUAV(id))
-  {
-    // no original ID for this one
-    ret.resourceId = id;
-    ret.length = 4;
-    ret.gpuAddress = 0;
-    ret.creationFlags = BufferCategory::ReadWrite;
-    return ret;
-  }
-
-  auto it = WrappedID3D11Buffer::m_BufferList.find(id);
-
-  if(it == WrappedID3D11Buffer::m_BufferList.end())
-    return ret;
-
-  WrappedID3D11Buffer *d3dbuf = it->second.m_Buffer;
-
-  rdcstr str = GetDebugName(d3dbuf);
-
-  ret.resourceId = m_pDevice->GetResourceManager()->GetOriginalID(it->first);
-
-  D3D11_BUFFER_DESC desc;
-  it->second.m_Buffer->GetDesc(&desc);
-
-  ret.length = desc.ByteWidth;
-
-  ret.creationFlags = BufferCategory::NoFlags;
-  if(desc.BindFlags & D3D11_BIND_VERTEX_BUFFER)
-    ret.creationFlags |= BufferCategory::Vertex;
-  if(desc.BindFlags & D3D11_BIND_INDEX_BUFFER)
-    ret.creationFlags |= BufferCategory::Index;
-  if(desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
-    ret.creationFlags |= BufferCategory::ReadWrite;
-  if(desc.MiscFlags & D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS)
-    ret.creationFlags |= BufferCategory::Indirect;
-
-  return ret;
-}
-
-rdcarray<ResourceId> D3D11Replay::GetTextures()
-{
-  rdcarray<ResourceId> ret;
+  rdcarray<TextureDescription> ret;
 
   ret.reserve(WrappedID3D11Texture1D::m_TextureList.size() +
               WrappedID3D11Texture2D1::m_TextureList.size() +
@@ -666,7 +656,7 @@ rdcarray<ResourceId> D3D11Replay::GetTextures()
     if(m_pDevice->GetResourceManager()->GetOriginalID(it->first) == it->first)
       continue;
 
-    ret.push_back(it->first);
+    ret.push_back(GetTexture(it->first));
   }
 
   for(auto it = WrappedID3D11Texture2D1::m_TextureList.begin();
@@ -676,7 +666,7 @@ rdcarray<ResourceId> D3D11Replay::GetTextures()
     if(m_pDevice->GetResourceManager()->GetOriginalID(it->first) == it->first)
       continue;
 
-    ret.push_back(it->first);
+    ret.push_back(GetTexture(it->first));
   }
 
   for(auto it = WrappedID3D11Texture3D1::m_TextureList.begin();
@@ -686,7 +676,7 @@ rdcarray<ResourceId> D3D11Replay::GetTextures()
     if(m_pDevice->GetResourceManager()->GetOriginalID(it->first) == it->first)
       continue;
 
-    ret.push_back(it->first);
+    ret.push_back(GetTexture(it->first));
   }
 
   return ret;

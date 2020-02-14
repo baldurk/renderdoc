@@ -111,10 +111,20 @@ public:
       return it->second;
     return NULL;
   }
-  void GetCounterBuffers(rdcarray<ResourceId> &ret)
+  void GetCounterBuffers(rdcarray<BufferDescription> &ret)
   {
     for(auto pair : m_CounterBufferToUAV)
-      ret.push_back(pair.first);
+    {
+      BufferDescription buf;
+
+      // no original ID for this one
+      buf.resourceId = pair.first;
+      buf.length = 4;
+      buf.gpuAddress = 0;
+      buf.creationFlags = BufferCategory::ReadWrite;
+
+      ret.push_back(buf);
+    }
   }
 
   uint32_t GetStructCount(ID3D11UnorderedAccessView *uav);

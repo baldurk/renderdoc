@@ -304,31 +304,31 @@ ResourceDescription &D3D12Replay::GetResourceDesc(ResourceId id)
   return m_Resources[it->second];
 }
 
-const rdcarray<ResourceDescription> &D3D12Replay::GetResources()
+rdcarray<ResourceDescription> D3D12Replay::GetResources()
 {
   return m_Resources;
 }
 
-rdcarray<ResourceId> D3D12Replay::GetBuffers()
+rdcarray<BufferDescription> D3D12Replay::GetBuffers()
 {
-  rdcarray<ResourceId> ret;
+  rdcarray<BufferDescription> ret;
 
   for(auto it = m_pDevice->GetResourceList().begin(); it != m_pDevice->GetResourceList().end(); it++)
     if(it->second->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
-      ret.push_back(it->first);
+      ret.push_back(GetBuffer(it->first));
 
   return ret;
 }
 
-rdcarray<ResourceId> D3D12Replay::GetTextures()
+rdcarray<TextureDescription> D3D12Replay::GetTextures()
 {
-  rdcarray<ResourceId> ret;
+  rdcarray<TextureDescription> ret;
 
   for(auto it = m_pDevice->GetResourceList().begin(); it != m_pDevice->GetResourceList().end(); it++)
   {
     if(it->second->GetDesc().Dimension != D3D12_RESOURCE_DIMENSION_BUFFER &&
        m_pDevice->GetResourceManager()->GetOriginalID(it->first) != it->first)
-      ret.push_back(it->first);
+      ret.push_back(GetTexture(it->first));
   }
 
   return ret;

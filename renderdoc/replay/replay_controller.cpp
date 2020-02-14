@@ -2056,24 +2056,8 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
   // fetch GCN ISA targets
   GCNISA::GetTargets(m_APIProps.pipelineType, m_GCNTargets);
 
-  {
-    rdcarray<ResourceId> ids = m_pDevice->GetBuffers();
-
-    m_Buffers.resize(ids.size());
-
-    for(size_t i = 0; i < ids.size(); i++)
-      m_Buffers[i] = m_pDevice->GetBuffer(ids[i]);
-  }
-
-  {
-    rdcarray<ResourceId> ids = m_pDevice->GetTextures();
-
-    m_Textures.resize(ids.size());
-
-    for(size_t i = 0; i < ids.size(); i++)
-      m_Textures[i] = m_pDevice->GetTexture(ids[i]);
-  }
-
+  m_Buffers = m_pDevice->GetBuffers();
+  m_Textures = m_pDevice->GetTextures();
   m_Resources = m_pDevice->GetResources();
 
   m_FrameRecord = m_pDevice->GetFrameRecord();

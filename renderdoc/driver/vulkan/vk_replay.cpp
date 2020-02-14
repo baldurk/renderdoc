@@ -287,14 +287,14 @@ ResourceDescription &VulkanReplay::GetResourceDesc(ResourceId id)
   return m_Resources[it->second];
 }
 
-const rdcarray<ResourceDescription> &VulkanReplay::GetResources()
+rdcarray<ResourceDescription> VulkanReplay::GetResources()
 {
   return m_Resources;
 }
 
-rdcarray<ResourceId> VulkanReplay::GetTextures()
+rdcarray<TextureDescription> VulkanReplay::GetTextures()
 {
-  rdcarray<ResourceId> texs;
+  rdcarray<TextureDescription> texs;
 
   for(auto it = m_pDriver->m_ImageStates.begin(); it != m_pDriver->m_ImageStates.end(); ++it)
   {
@@ -302,15 +302,15 @@ rdcarray<ResourceId> VulkanReplay::GetTextures()
     if(m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
       continue;
 
-    texs.push_back(it->first);
+    texs.push_back(GetTexture(it->first));
   }
 
   return texs;
 }
 
-rdcarray<ResourceId> VulkanReplay::GetBuffers()
+rdcarray<BufferDescription> VulkanReplay::GetBuffers()
 {
-  rdcarray<ResourceId> bufs;
+  rdcarray<BufferDescription> bufs;
 
   for(auto it = m_pDriver->m_CreationInfo.m_Buffer.begin();
       it != m_pDriver->m_CreationInfo.m_Buffer.end(); ++it)
@@ -319,7 +319,7 @@ rdcarray<ResourceId> VulkanReplay::GetBuffers()
     if(m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
       continue;
 
-    bufs.push_back(it->first);
+    bufs.push_back(GetBuffer(it->first));
   }
 
   return bufs;

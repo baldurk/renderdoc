@@ -260,12 +260,12 @@ public:
   APIProperties GetAPIProperties();
 
   ResourceDescription &GetResourceDesc(ResourceId id);
-  const rdcarray<ResourceDescription> &GetResources();
+  rdcarray<ResourceDescription> GetResources();
 
-  rdcarray<ResourceId> GetBuffers();
+  rdcarray<BufferDescription> GetBuffers();
   BufferDescription GetBuffer(ResourceId id);
 
-  rdcarray<ResourceId> GetTextures();
+  rdcarray<TextureDescription> GetTextures();
   TextureDescription GetTexture(ResourceId id);
 
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader);

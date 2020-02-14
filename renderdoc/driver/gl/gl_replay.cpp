@@ -196,22 +196,6 @@ APIProperties GLReplay::GetAPIProperties()
   return ret;
 }
 
-rdcarray<ResourceId> GLReplay::GetBuffers()
-{
-  rdcarray<ResourceId> ret;
-
-  for(auto it = m_pDriver->m_Buffers.begin(); it != m_pDriver->m_Buffers.end(); ++it)
-  {
-    // skip buffers that aren't from the log
-    if(m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
-      continue;
-
-    ret.push_back(it->first);
-  }
-
-  return ret;
-}
-
 ResourceDescription &GLReplay::GetResourceDesc(ResourceId id)
 {
   auto it = m_ResourceIdx.find(id);
@@ -226,30 +210,9 @@ ResourceDescription &GLReplay::GetResourceDesc(ResourceId id)
   return m_Resources[it->second];
 }
 
-const rdcarray<ResourceDescription> &GLReplay::GetResources()
+rdcarray<ResourceDescription> GLReplay::GetResources()
 {
   return m_Resources;
-}
-
-rdcarray<ResourceId> GLReplay::GetTextures()
-{
-  rdcarray<ResourceId> ret;
-  ret.reserve(m_pDriver->m_Textures.size());
-
-  for(auto it = m_pDriver->m_Textures.begin(); it != m_pDriver->m_Textures.end(); ++it)
-  {
-    auto &res = m_pDriver->m_Textures[it->first];
-
-    // skip textures that aren't from the log (except the 'default backbuffer' textures)
-    if(!(res.creationFlags & TextureCategory::SwapBuffer) &&
-       m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
-      continue;
-
-    ret.push_back(it->first);
-    CacheTexture(it->first);
-  }
-
-  return ret;
 }
 
 void GLReplay::SetReplayData(GLWindowingData data)
@@ -405,18 +368,6 @@ bool GLReplay::IsRenderOutput(ResourceId id)
     return true;
 
   return false;
-}
-
-TextureDescription GLReplay::GetTexture(ResourceId id)
-{
-  auto it = m_CachedTextures.find(id);
-  if(it == m_CachedTextures.end())
-  {
-    CacheTexture(id);
-    return m_CachedTextures[id];
-  }
-
-  return it->second;
 }
 
 void GLReplay::CacheTexture(ResourceId id)
@@ -725,6 +676,55 @@ BufferDescription GLReplay::GetBuffer(ResourceId id)
 
   if(res.curType != eGL_NONE)
     drv.glBindBuffer(res.curType, prevBind);
+
+  return ret;
+}
+
+TextureDescription GLReplay::GetTexture(ResourceId id)
+{
+  auto it = m_CachedTextures.find(id);
+  if(it == m_CachedTextures.end())
+  {
+    CacheTexture(id);
+    return m_CachedTextures[id];
+  }
+
+  return it->second;
+}
+
+rdcarray<BufferDescription> GLReplay::GetBuffers()
+{
+  rdcarray<BufferDescription> ret;
+
+  for(auto it = m_pDriver->m_Buffers.begin(); it != m_pDriver->m_Buffers.end(); ++it)
+  {
+    // skip buffers that aren't from the log
+    if(m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
+      continue;
+
+    ret.push_back(GetBuffer(it->first));
+  }
+
+  return ret;
+}
+
+rdcarray<TextureDescription> GLReplay::GetTextures()
+{
+  rdcarray<TextureDescription> ret;
+  ret.reserve(m_pDriver->m_Textures.size());
+
+  for(auto it = m_pDriver->m_Textures.begin(); it != m_pDriver->m_Textures.end(); ++it)
+  {
+    auto &res = m_pDriver->m_Textures[it->first];
+
+    // skip textures that aren't from the log (except the 'default backbuffer' textures)
+    if(!(res.creationFlags & TextureCategory::SwapBuffer) &&
+       m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
+      continue;
+
+    CacheTexture(it->first);
+    ret.push_back(m_CachedTextures[it->first]);
+  }
 
   return ret;
 }

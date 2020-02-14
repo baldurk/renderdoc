@@ -114,12 +114,12 @@ public:
 
   virtual APIProperties GetAPIProperties() = 0;
 
-  virtual const rdcarray<ResourceDescription> &GetResources() = 0;
+  virtual rdcarray<ResourceDescription> GetResources() = 0;
 
-  virtual rdcarray<ResourceId> GetBuffers() = 0;
+  virtual rdcarray<BufferDescription> GetBuffers() = 0;
   virtual BufferDescription GetBuffer(ResourceId id) = 0;
 
-  virtual rdcarray<ResourceId> GetTextures() = 0;
+  virtual rdcarray<TextureDescription> GetTextures() = 0;
   virtual TextureDescription GetTexture(ResourceId id) = 0;
 
   virtual rdcarray<DebugMessage> GetDebugMessages() = 0;

@@ -386,12 +386,12 @@ rdcarray<DebugMessage> ReplayProxy::GetDebugMessages()
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
-rdcarray<ResourceId> ReplayProxy::Proxied_GetTextures(ParamSerialiser &paramser,
-                                                      ReturnSerialiser &retser)
+rdcarray<TextureDescription> ReplayProxy::Proxied_GetTextures(ParamSerialiser &paramser,
+                                                              ReturnSerialiser &retser)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_GetTextures;
   ReplayProxyPacket packet = eReplayProxy_GetTextures;
-  rdcarray<ResourceId> ret;
+  rdcarray<TextureDescription> ret;
 
   {
     BEGIN_PARAMS();
@@ -406,10 +406,16 @@ rdcarray<ResourceId> ReplayProxy::Proxied_GetTextures(ParamSerialiser &paramser,
 
   SERIALISE_RETURN(ret);
 
+  if(retser.IsReading())
+  {
+    for(const TextureDescription &tex : ret)
+      m_TextureInfo[tex.resourceId] = tex;
+  }
+
   return ret;
 }
 
-rdcarray<ResourceId> ReplayProxy::GetTextures()
+rdcarray<TextureDescription> ReplayProxy::GetTextures()
 {
   PROXY_FUNCTION(GetTextures);
 }
@@ -448,12 +454,12 @@ TextureDescription ReplayProxy::GetTexture(ResourceId id)
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
-rdcarray<ResourceId> ReplayProxy::Proxied_GetBuffers(ParamSerialiser &paramser,
-                                                     ReturnSerialiser &retser)
+rdcarray<BufferDescription> ReplayProxy::Proxied_GetBuffers(ParamSerialiser &paramser,
+                                                            ReturnSerialiser &retser)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_GetBuffers;
   ReplayProxyPacket packet = eReplayProxy_GetBuffers;
-  rdcarray<ResourceId> ret;
+  rdcarray<BufferDescription> ret;
 
   {
     BEGIN_PARAMS();
@@ -471,17 +477,18 @@ rdcarray<ResourceId> ReplayProxy::Proxied_GetBuffers(ParamSerialiser &paramser,
   return ret;
 }
 
-rdcarray<ResourceId> ReplayProxy::GetBuffers()
+rdcarray<BufferDescription> ReplayProxy::GetBuffers()
 {
   PROXY_FUNCTION(GetBuffers);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
-const rdcarray<ResourceDescription> &ReplayProxy::Proxied_GetResources(ParamSerialiser &paramser,
-                                                                       ReturnSerialiser &retser)
+rdcarray<ResourceDescription> ReplayProxy::Proxied_GetResources(ParamSerialiser &paramser,
+                                                                ReturnSerialiser &retser)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_GetResources;
   ReplayProxyPacket packet = eReplayProxy_GetResources;
+  rdcarray<ResourceDescription> ret;
 
   {
     BEGIN_PARAMS();
@@ -491,15 +498,15 @@ const rdcarray<ResourceDescription> &ReplayProxy::Proxied_GetResources(ParamSeri
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      m_Resources = m_Remote->GetResources();
+      ret = m_Remote->GetResources();
   }
 
-  SERIALISE_RETURN(m_Resources);
+  SERIALISE_RETURN(ret);
 
-  return m_Resources;
+  return ret;
 }
 
-const rdcarray<ResourceDescription> &ReplayProxy::GetResources()
+rdcarray<ResourceDescription> ReplayProxy::GetResources()
 {
   PROXY_FUNCTION(GetResources);
 }
@@ -2798,7 +2805,8 @@ bool ReplayProxy::Tick(int type)
 
   PROXY_DEBUG("Processed %s", ToStr(packet).c_str());
 
-  RefreshPreviewWindow();
+  if(packet == eReplayProxy_ReplayLog)
+    RefreshPreviewWindow();
 
   if(CheckError(packet, packet))
     return false;

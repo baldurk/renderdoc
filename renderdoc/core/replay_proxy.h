@@ -460,12 +460,12 @@ public:
   const SDFile &GetStructuredFile() { return m_StructuredFile; }
   IMPLEMENT_FUNCTION_PROXIED(void, FetchStructuredFile);
 
-  IMPLEMENT_FUNCTION_PROXIED(const rdcarray<ResourceDescription> &, GetResources);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<ResourceDescription>, GetResources);
 
-  IMPLEMENT_FUNCTION_PROXIED(rdcarray<ResourceId>, GetBuffers);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<BufferDescription>, GetBuffers);
   IMPLEMENT_FUNCTION_PROXIED(BufferDescription, GetBuffer, ResourceId id);
 
-  IMPLEMENT_FUNCTION_PROXIED(rdcarray<ResourceId>, GetTextures);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<TextureDescription>, GetTextures);
   IMPLEMENT_FUNCTION_PROXIED(TextureDescription, GetTexture, ResourceId id);
 
   IMPLEMENT_FUNCTION_PROXIED(APIProperties, GetAPIProperties);
@@ -714,8 +714,6 @@ private:
   rdcarray<DrawcallDescription *> m_Drawcalls;
 
   SDFile m_StructuredFile;
-
-  rdcarray<ResourceDescription> m_Resources;
 
   D3D11Pipe::State m_D3D11PipelineState;
   D3D12Pipe::State m_D3D12PipelineState;

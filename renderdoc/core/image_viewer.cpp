@@ -169,8 +169,8 @@ public:
     m_CustomTexID = m_Proxy->ApplyCustomShader(shader, m_TextureID, sub, typeCast);
     return m_CustomTexID;
   }
-  const rdcarray<ResourceDescription> &GetResources() { return m_Resources; }
-  rdcarray<ResourceId> GetTextures() { return {m_TextureID}; }
+  rdcarray<ResourceDescription> GetResources() { return m_Resources; }
+  rdcarray<TextureDescription> GetTextures() { return {m_TexDetails}; }
   TextureDescription GetTexture(ResourceId id) { return m_TexDetails; }
   void GetTextureData(ResourceId tex, const Subresource &sub, const GetTextureDataParams &params,
                       bytebuf &data)
@@ -191,7 +191,7 @@ public:
   void RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
   {
   }
-  rdcarray<ResourceId> GetBuffers() { return rdcarray<ResourceId>(); }
+  rdcarray<BufferDescription> GetBuffers() { return {}; }
   rdcarray<DebugMessage> GetDebugMessages() { return rdcarray<DebugMessage>(); }
   BufferDescription GetBuffer(ResourceId id)
   {
