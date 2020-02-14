@@ -44,13 +44,6 @@ void AssignValue(ShaderVariable &dst, const ShaderVariable &src)
     AssignValue(dst.members[i], src.members[i]);
 }
 
-ThreadState::ThreadState(int workgroupIdx, GlobalState &globalState) : global(globalState)
-{
-  workgroupIndex = workgroupIdx;
-  nextInstruction = 0;
-  done = false;
-}
-
 Debugger::Debugger()
 {
 }
@@ -63,6 +56,26 @@ Debugger::~Debugger()
 void Debugger::Parse(const rdcarray<uint32_t> &spirvWords)
 {
   Processor::Parse(spirvWords);
+}
+
+Iter Debugger::GetIterForInstruction(uint32_t inst)
+{
+  return Iter(m_SPIRV, instructionOffsets[inst]);
+}
+
+uint32_t Debugger::GetInstructionForIter(Iter it)
+{
+  return instructionOffsets.indexOf(it.offs());
+}
+
+uint32_t Debugger::GetInstructionForFunction(Id id)
+{
+  return instructionOffsets.indexOf(functions[id].begin);
+}
+
+const rdcspv::DataType &Debugger::GetType(Id typeId)
+{
+  return dataTypes[typeId];
 }
 
 ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const ShaderStage stage,
@@ -87,7 +100,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
   int workgroupSize = stage == ShaderStage::Pixel ? 4 : 1;
   for(int i = 0; i < workgroupSize; i++)
-    workgroup.push_back(ThreadState(i, global));
+    workgroup.push_back(ThreadState(i, *this, global));
 
   ThreadState &active = GetActiveLane();
 
@@ -235,37 +248,12 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
 
   rdcarray<ShaderDebugState> ret;
 
-  // if we've finished, return an empty set to signify that
-  if(active.Finished())
-    return ret;
-
-  // initialise a blank set of shader variable changes in the first ShaderDebugState
+  // initialise the first ShaderDebugState if we haven't stepped yet
   if(steps == 0)
   {
     // we should be sitting at the entry point function prologue, step forward into the first block
     // and past any function-local variable declarations
-    {
-      Iter it(m_SPIRV, instructionOffsets[active.nextInstruction]);
-
-      RDCASSERT(OpDecoder(it).op == Op::Function);
-      it++;
-      // vulkan doesn't allow entry points with parameters, next should be a label
-      RDCASSERT(OpDecoder(it).op == Op::Label);
-      it++;
-
-      // handle any variable declarations
-      while(OpDecoder(it).op == Op::Variable)
-      {
-        OpVariable decl(it);
-
-        // TODO declare variable
-
-        it++;
-      }
-
-      // next instruction is the first actual instruction we'll execute
-      active.nextInstruction = instructionOffsets.indexOf(it.offs());
-    }
+    active.EnterFunction(NULL, {});
 
     ShaderDebugState initial;
 
@@ -276,7 +264,68 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
 
     initial.sourceVars = sourceVars;
 
+    initial.stepIndex = steps;
+
+    active.FillCallstack(initial);
+
     ret.push_back(initial);
+
+    steps++;
+  }
+
+  // if we've finished, return an empty set to signify that
+  if(active.Finished())
+    return ret;
+
+  rdcarray<rdcarray<ShaderVariable>> oldworkgroup;
+
+  oldworkgroup.resize(workgroup.size());
+
+  rdcarray<bool> activeMask;
+
+  // do 100 in a chunk
+  for(int cycleCounter = 0; cycleCounter < 100; cycleCounter++)
+  {
+    if(active.Finished())
+      break;
+
+    // set up the old workgroup so that cross-workgroup/cross-quad operations (e.g. DDX/DDY) get
+    // consistent results even when we step the quad out of order. Otherwise if an operation reads
+    // and writes from the same register we'd trash data needed for other workgroup elements.
+    for(size_t i = 0; i < oldworkgroup.size(); i++)
+      oldworkgroup[i] = workgroup[i].ids;
+
+    // calculate the current mask of which threads are active
+    CalcActiveMask(activeMask);
+
+    // step all active members of the workgroup
+    for(size_t i = 0; i < workgroup.size(); i++)
+    {
+      if(activeMask[i])
+      {
+        if(workgroup[i].nextInstruction >= instructionOffsets.size())
+        {
+          if(i == activeLaneIndex)
+            ret.push_back(ShaderDebugState());
+
+          continue;
+        }
+
+        if(i == activeLaneIndex)
+        {
+          ShaderDebugState state;
+          workgroup[i].StepNext(&state, oldworkgroup);
+          state.stepIndex = steps;
+          state.sourceVars = sourceVars;
+          workgroup[i].FillCallstack(state);
+          ret.push_back(state);
+        }
+        else
+        {
+          workgroup[i].StepNext(NULL, oldworkgroup);
+        }
+      }
+    }
 
     steps++;
   }
@@ -501,6 +550,32 @@ rdcstr Debugger::GetHumanName(Id id)
   dynamicNames[id] = name;
 
   return name;
+}
+
+void Debugger::CalcActiveMask(rdcarray<bool> &activeMask)
+{
+  // one bool per workgroup thread
+  activeMask.resize(workgroup.size());
+
+  // start as active, then if necessary turn off threads that are running diverged
+  for(bool &active : activeMask)
+    active = true;
+
+  // only pixel shaders automatically converge workgroups, compute shaders need explicit sync
+  if(stage != ShaderStage::Pixel)
+    return;
+
+  // TODO handle diverging control flow
+}
+
+void Debugger::AllocateVariable(Id id, Id typeId, DebugVariableType sourceVarType,
+                                const rdcstr &sourceName, ShaderVariable &outVar)
+{
+  // allocs should always be pointers
+  RDCASSERT(dataTypes[typeId].type == DataType::PointerType);
+
+  AllocateVariable(decorations[id], decorations[id], sourceVarType, sourceName, 0,
+                   dataTypes[dataTypes[typeId].InnerType()], outVar);
 }
 
 void Debugger::AllocateVariable(const Decorations &varDecorations, const Decorations &curDecorations,

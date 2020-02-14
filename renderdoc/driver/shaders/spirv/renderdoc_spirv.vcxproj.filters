@@ -144,6 +144,7 @@
     <ClCompile Include="glslang_compile.cpp" />
     <ClCompile Include="spirv_processor.cpp" />
     <ClCompile Include="spirv_debug_setup.cpp" />
+    <ClCompile Include="spirv_debug.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.h">

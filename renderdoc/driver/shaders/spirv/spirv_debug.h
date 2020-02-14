@@ -51,15 +51,36 @@ public:
   rdcarray<ShaderVariable> constantBlocks;
 };
 
-class ThreadState
+struct StackFrame
 {
-public:
-  ThreadState(int workgroupIdx, GlobalState &globalState);
+  StackFrame() = default;
+  Id function;
+  uint32_t funcCallInstruction = ~0U;
 
-  bool Finished() const { return done; }
+private:
+  // disallow copying to ensure the locals we allocate never move around
+  StackFrame(const StackFrame &o) = delete;
+  StackFrame &operator=(const StackFrame &o) = delete;
+};
+
+class Debugger;
+
+struct ThreadState
+{
+  ThreadState(int workgroupIdx, Debugger &debug, const GlobalState &globalState);
+  ~ThreadState();
+
+  void EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arguments);
+  void StepNext(ShaderDebugState *state, const rdcarray<rdcarray<ShaderVariable>> &prevWorkgroup);
+
+  void FillCallstack(ShaderDebugState &state);
+
+  bool Finished() const;
+
   uint32_t nextInstruction;
 
-  GlobalState &global;
+  const GlobalState &global;
+  Debugger &debugger;
 
   // thread-local inputs/outputs. This array does not change over the course of debugging
   rdcarray<ShaderVariable> inputs, outputs;
@@ -75,10 +96,12 @@ public:
   // changes (and vice-versa - a change via any of those pointers must update all other pointers).
   SparseIdMap<rdcarray<Id>> pointersForId;
 
+  ShaderVariable returnValue;
+  rdcarray<StackFrame *> callstack;
+
   // the list of IDs that are currently valid and live
   rdcarray<Id> live;
 
-private:
   // index in the pixel quad
   int workgroupIndex;
   bool done;
@@ -97,12 +120,14 @@ public:
 
   rdcarray<ShaderDebugState> ContinueDebug();
 
-  GlobalState GetGlobal() { return global; }
-  ThreadState &GetActiveLane() { return workgroup[activeLaneIndex]; }
-private:
-  virtual void PreParse(uint32_t maxId);
-  virtual void PostParse();
-  virtual void RegisterOp(Iter it);
+  Iter GetIterForInstruction(uint32_t inst);
+  uint32_t GetInstructionForIter(Iter it);
+  uint32_t GetInstructionForFunction(Id id);
+  const DataType &GetType(Id typeId);
+  rdcstr GetRawName(Id id) const;
+  rdcstr GetHumanName(Id id);
+  void AllocateVariable(Id id, Id typeId, DebugVariableType sourceVarType, const rdcstr &sourceName,
+                        ShaderVariable &outVar);
 
   ShaderVariable EvaluatePointerVariable(const ShaderVariable &v) const;
   ShaderVariable MakePointerVariable(Id id, const ShaderVariable *v, uint32_t scalar0 = ~0U,
@@ -110,6 +135,14 @@ private:
   Id GetPointerBaseId(const ShaderVariable &v) const;
   void WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariable &val);
   ShaderVariable MakeCompositePointer(const ShaderVariable &base, Id id, rdcarray<uint32_t> &indices);
+
+  uint32_t GetNumInstructions() { return (uint32_t)instructionOffsets.size(); }
+  GlobalState GetGlobal() { return global; }
+  ThreadState &GetActiveLane() { return workgroup[activeLaneIndex]; }
+private:
+  virtual void PreParse(uint32_t maxId);
+  virtual void PostParse();
+  virtual void RegisterOp(Iter it);
 
   void AllocateVariable(const Decorations &varDecorations, const Decorations &curDecorations,
                         DebugVariableType sourceVarType, const rdcstr &sourceName, uint32_t offset,
@@ -154,11 +187,9 @@ private:
 
   rdcarray<size_t> instructionOffsets;
 
-  rdcstr GetRawName(Id id) const;
-  rdcstr GetHumanName(Id id);
-
   std::set<rdcstr> usedNames;
   std::map<Id, rdcstr> dynamicNames;
+  void CalcActiveMask(rdcarray<bool> &activeMask);
 };
 
 // this does a 'safe' value assignment, by doing parallel depth-first iteration of both variables
