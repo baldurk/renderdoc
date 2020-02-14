@@ -1976,16 +1976,23 @@ bool ShaderViewer::getVar(RDTreeWidgetItem *item, ShaderVariable *var, QString *
           {
             // if the previous register was the same, just append our component
             if(i > 0 && r.type == mapping.variables[i - 1].type &&
-               r.name == mapping.variables[i - 1].name)
+               r.name == mapping.variables[i - 1].name &&
+               (r.component / reg->columns) == (mapping.variables[i - 1].component / reg->columns))
             {
               // remove the auto-appended ", " - there must be one because this isn't the first
               // register
               regNames->chop(2);
-              *regNames += xyzw[r.component];
+              *regNames += xyzw[r.component % reg->columns];
             }
             else
             {
-              *regNames += QFormatStr("%1.%2").arg(reg->name).arg(xyzw[r.component]);
+              if(reg->rows > 1)
+                *regNames += QFormatStr("%1.row%2.%3")
+                                 .arg(reg->name)
+                                 .arg(r.component / 4)
+                                 .arg(xyzw[r.component % reg->columns]);
+              else
+                *regNames += QFormatStr("%1.%2").arg(reg->name).arg(xyzw[r.component % reg->columns]);
             }
           }
 
@@ -2792,16 +2799,23 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
         if(reg)
         {
           // if the previous register was the same, just append our component
-          if(i > 0 && r.name == l.variables[i - 1].name)
+          if(i > 0 && r.name == l.variables[i - 1].name &&
+             (r.component / reg->columns) == (l.variables[i - 1].component / reg->columns))
           {
             // remove the auto-appended ", " - there must be one because this isn't the first
             // register
             regNames.chop(2);
-            regNames += xyzw[r.component];
+            regNames += xyzw[r.component % reg->columns];
           }
           else
           {
-            regNames += QFormatStr("%1.%2").arg(r.name).arg(xyzw[r.component]);
+            if(reg->rows > 1)
+              regNames += QFormatStr("%1.row%2.%3")
+                              .arg(reg->name)
+                              .arg(r.component / reg->columns)
+                              .arg(xyzw[r.component % reg->columns]);
+            else
+              regNames += QFormatStr("%1.%2").arg(r.name).arg(xyzw[r.component % reg->columns]);
           }
 
           if(l.type == VarType::UInt)
