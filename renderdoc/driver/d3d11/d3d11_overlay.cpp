@@ -877,6 +877,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
             overrideDepthDesc = texdesc;
             overrideDepthDesc.ArraySize = texdesc.SampleDesc.Count;
             overrideDepthDesc.SampleDesc.Count = 1;
+            overrideDepthDesc.SampleDesc.Quality = 0;
             depthTex = ((ID3D11Texture2D *)res);
 
             D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
