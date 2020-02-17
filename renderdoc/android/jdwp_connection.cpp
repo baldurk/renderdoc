@@ -86,16 +86,22 @@ Connection::~Connection()
 
 bool Connection::SendReceive(Command &cmd)
 {
+  CommandSet sentSet = cmd.commandset;
+  byte sentCmd = cmd.command;
+
   // send the command, and recieve the reply back into the same object.
   // save the auto-generated ID for this command so we can compare it to the reply - we expect a
   // synchronous reply, no other commands in the way.
   uint32_t id = cmd.Send(writer);
+  cmd.commandset = CommandSet::Unknown;
+  cmd.command = 0;
   cmd.Recv(reader);
   Threading::Sleep(10);
 
   if(id != cmd.GetID())
   {
-    RDCERR("Didn't get matching reply packet for %d/%d", cmd.commandset, cmd.command);
+    RDCERR("Didn't get matching reply packet for %d/%d (id %u), received %d/%d (id %u)", sentSet,
+           sentCmd, id, cmd.commandset, cmd.command, cmd.GetID());
     error = true;
     return false;
   }
@@ -421,8 +427,19 @@ Event Connection::WaitForEvent(EventKind kind, const rdcarray<EventFilter> &even
     return {};
   }
 
-  // now resume execution
-  Resume();
+  // unfortunately because JDWP is shit, from the point the event request is sent we might get
+  // events at any time. This means we could get event replies before we even get confirmation of
+  // the resume. That means we have to resume manually without calling Resume() which expects a
+  // synchronous reply.
+
+  RDCASSERTEQUAL(suspendRefCount, 1);
+
+  uint32_t resumeID = ~0U;
+  {
+    Command cmd(CommandSet::VirtualMachine, 9);
+    resumeID = cmd.Send(writer);
+    suspendRefCount = 0;
+  }
 
   // wait for method entry on the method we care about
   while(!reader.IsErrored())
@@ -433,6 +450,15 @@ Event Connection::WaitForEvent(EventKind kind, const rdcarray<EventFilter> &even
     Command msg;
     msg.Recv(reader);
 
+    if(resumeID == msg.GetID())
+    {
+      // got the resume reply. This will *probably* happen the first time around, but it might not.
+      // Just skip it whenever we encounter it.
+      resumeID = ~0U;
+      continue;
+    }
+
+    // if this wasn't the resume reply, we only expect event packets
     if(msg.commandset != CommandSet::Event || msg.command != 100)
     {
       RDCERR("Expected event packet, but got %d/%d", msg.commandset, msg.command);
@@ -468,8 +494,14 @@ Event Connection::WaitForEvent(EventKind kind, const rdcarray<EventFilter> &even
       }
     }
 
-    // resume to get the next event
-    Resume();
+    // resume to get the next event. Save the resume ID because we still can't assume we'll get the
+    // reply synchronously.
+    RDCASSERTEQUAL(suspendRefCount, 1);
+    {
+      Command cmd(CommandSet::VirtualMachine, 9);
+      resumeID = cmd.Send(writer);
+      suspendRefCount = 0;
+    }
   }
 
   // something went wrong, we stopped receiving events before the found we wanted.
