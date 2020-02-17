@@ -2,7 +2,7 @@
 #define VULKAN_CORE_H_ 1
 
 /*
-** Copyright (c) 2015-2019 The Khronos Group Inc.
+** Copyright (c) 2015-2020 The Khronos Group Inc.
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ extern "C" {
 #define VK_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3ff)
 #define VK_VERSION_PATCH(version) ((uint32_t)(version) & 0xfff)
 // Version of this file
-#define VK_HEADER_VERSION 131
+#define VK_HEADER_VERSION 133
 
 
 #define VK_NULL_HANDLE 0
@@ -1479,9 +1479,10 @@ typedef enum VkVendorId {
     VK_VENDOR_ID_VIV = 0x10001,
     VK_VENDOR_ID_VSI = 0x10002,
     VK_VENDOR_ID_KAZAN = 0x10003,
+    VK_VENDOR_ID_CODEPLAY = 0x10004,
     VK_VENDOR_ID_BEGIN_RANGE = VK_VENDOR_ID_VIV,
-    VK_VENDOR_ID_END_RANGE = VK_VENDOR_ID_KAZAN,
-    VK_VENDOR_ID_RANGE_SIZE = (VK_VENDOR_ID_KAZAN - VK_VENDOR_ID_VIV + 1),
+    VK_VENDOR_ID_END_RANGE = VK_VENDOR_ID_CODEPLAY,
+    VK_VENDOR_ID_RANGE_SIZE = (VK_VENDOR_ID_CODEPLAY - VK_VENDOR_ID_VIV + 1),
     VK_VENDOR_ID_MAX_ENUM = 0x7FFFFFFF
 } VkVendorId;
 typedef VkFlags VkInstanceCreateFlags;
@@ -7385,6 +7386,11 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPipelineExecutableInternalRepresentationsKHR
     uint32_t*                                   pInternalRepresentationCount,
     VkPipelineExecutableInternalRepresentationKHR* pInternalRepresentations);
 #endif
+
+
+#define VK_KHR_shader_non_semantic_info 1
+#define VK_KHR_SHADER_NON_SEMANTIC_INFO_SPEC_VERSION 1
+#define VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME "VK_KHR_shader_non_semantic_info"
 
 
 #define VK_EXT_debug_report 1

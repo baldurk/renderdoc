@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <registry>
     <comment>
-Copyright (c) 2015-2019 The Khronos Group Inc.
+Copyright (c) 2015-2020 The Khronos Group Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -156,7 +156,7 @@ server.
         <type category="define">// Vulkan 1.2 version number
 #define <name>VK_API_VERSION_1_2</name> <type>VK_MAKE_VERSION</type>(1, 2, 0)// Patch version should always be set to 0</type>
         <type category="define">// Version of this file
-#define <name>VK_HEADER_VERSION</name> 131</type>
+#define <name>VK_HEADER_VERSION</name> 133</type>
 
         <type category="define">
 #define <name>VK_DEFINE_HANDLE</name>(object) typedef struct object##_T* object;</type>
@@ -5646,7 +5646,8 @@ typedef void <name>CAMetalLayer</name>;
         <enum value="0x10001" name="VK_VENDOR_ID_VIV"   comment="Vivante vendor ID"/>
         <enum value="0x10002" name="VK_VENDOR_ID_VSI"   comment="VeriSilicon vendor ID"/>
         <enum value="0x10003" name="VK_VENDOR_ID_KAZAN" comment="Kazan Software Renderer"/>
-            <unused start="0x10004" comment="This is the next unused available Khronos vendor ID"/>
+        <enum value="0x10004" name="VK_VENDOR_ID_CODEPLAY" comment="Codeplay Software Ltd. vendor ID"/>
+            <unused start="0x10005" comment="This is the next unused available Khronos vendor ID"/>
     </enums>
     <enums name="VkDriverId" type="enum">
         <comment>Driver IDs are now represented as enums instead of the old
@@ -7865,7 +7866,7 @@ typedef void <name>CAMetalLayer</name>;
             <param><type>uint32_t</type> <name>stride</name></param>
         </command>
         <command name="vkCmdDrawIndexedIndirectCountKHR"                       alias="vkCmdDrawIndexedIndirectCount"/>
-        <command name="vkCmdDrawIndexedIndirectCountAMD"                       alias="vkCmdDrawIndexedIndirectCountKHR"/>
+        <command name="vkCmdDrawIndexedIndirectCountAMD"                       alias="vkCmdDrawIndexedIndirectCount"/>
         <command queues="graphics,compute,transfer" renderpass="both" cmdbufferlevel="primary,secondary">
             <proto><type>void</type> <name>vkCmdSetCheckpointNV</name></proto>
             <param><type>VkCommandBuffer</type> <name>commandBuffer</name></param>
@@ -9730,13 +9731,13 @@ typedef void <name>CAMetalLayer</name>;
                 <enum value="&quot;VK_KHR_shader_draw_parameters&quot;"         name="VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_EXT_shader_subgroup_ballot" number="65" type="device" author="NV" contact="Daniel Koch @dgkoch" supported="vulkan">
+        <extension name="VK_EXT_shader_subgroup_ballot" number="65" type="device" author="NV" contact="Daniel Koch @dgkoch" supported="vulkan" deprecatedby="VK_VERSION_1_2">
             <require>
                 <enum value="1"                                                 name="VK_EXT_SHADER_SUBGROUP_BALLOT_SPEC_VERSION"/>
                 <enum value="&quot;VK_EXT_shader_subgroup_ballot&quot;"         name="VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_EXT_shader_subgroup_vote" number="66" type="device" author="NV" contact="Daniel Koch @dgkoch" supported="vulkan">
+        <extension name="VK_EXT_shader_subgroup_vote" number="66" type="device" author="NV" contact="Daniel Koch @dgkoch" supported="vulkan" deprecatedby="VK_VERSION_1_1">
             <require>
                 <enum value="1"                                                 name="VK_EXT_SHADER_SUBGROUP_VOTE_SPEC_VERSION"/>
                 <enum value="&quot;VK_EXT_shader_subgroup_vote&quot;"           name="VK_EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME"/>
@@ -11242,6 +11243,9 @@ typedef void <name>CAMetalLayer</name>;
             <require>
                 <enum value="0"                                             name="VK_QCOM_extension_173_SPEC_VERSION"/>
                 <enum value="&quot;VK_QCOM_extension_173&quot;"             name="VK_QCOM_extension_173_EXTENSION_NAME"/>
+                <enum bitpos="18" extends="VkBufferUsageFlagBits"           name="VK_BUFFER_USAGE_RESERVED_18_BIT_QCOM"/>
+                <enum bitpos="16" extends="VkImageUsageFlagBits"            name="VK_IMAGE_USAGE_RESERVED_16_BIT_QCOM"/>
+                <enum bitpos="17" extends="VkImageUsageFlagBits"            name="VK_IMAGE_USAGE_RESERVED_17_BIT_QCOM"/>
             </require>
         </extension>
         <extension name="VK_QCOM_extension_174" number="174" author="QCOM" contact="Bill Licea-Kane @wwlk" supported="disabled">
@@ -12348,10 +12352,10 @@ typedef void <name>CAMetalLayer</name>;
                 <enum value="&quot;VK_NV_extension_293&quot;"               name="VK_NV_EXTENSION_293_EXTENSION_NAME"/>
             </require>
         </extension>
-        <extension name="VK_KHR_extension_294" number="294" author="KHR" contact="Baldur Karlsson @baldurk" supported="disabled">
+        <extension name="VK_KHR_shader_non_semantic_info" number="294" type="device" author="KHR" contact="Baldur Karlsson @baldurk" supported="vulkan">
             <require>
-                <enum value="0"                                             name="VK_KHR_EXTENSION_294_SPEC_VERSION"/>
-                <enum value="&quot;VK_KHR_extension_294&quot;"              name="VK_KHR_EXTENSION_294_EXTENSION_NAME"/>
+                <enum value="1"                                             name="VK_KHR_SHADER_NON_SEMANTIC_INFO_SPEC_VERSION"/>
+                <enum value="&quot;VK_KHR_shader_non_semantic_info&quot;"   name="VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME"/>
             </require>
         </extension>
         <extension name="VK_KHR_extension_295" number="295" author="KHR" contact="Keith Packard @keithp" supported="disabled">
@@ -12435,6 +12439,26 @@ typedef void <name>CAMetalLayer</name>;
             <require>
                 <enum value="0"                                             name="VK_QCOM_extension_307_SPEC_VERSION"/>
                 <enum value="&quot;VK_QCOM_extension_307&quot;"             name="VK_QCOM_extension_307_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_NV_extension_308" number="308" type="device" author="NV" contact="Tristan Lorach @tlorach" supported="disabled">
+            <require>
+                <enum value="0"                       name="VK_NV_EXTENSION_308_SPEC_VERSION"/>
+                <enum value="&quot;VK_NV_extension_308&quot;"        name="VK_NV_EXTENSION_308_EXTENSION_NAME"/>
+            </require>
+        </extension>
+        <extension name="VK_KHR_extension_309" number="309" author="KHR" contact="Aidan Fabius @afabius" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_KHR_EXTENSION_309_SPEC_VERSION"/>
+                <enum value="&quot;VK_KHR_extension_309&quot;"              name="VK_KHR_EXTENSION_309_EXTENSION_NAME"/>
+                <enum bitpos="2"  extends="VkMemoryHeapFlagBits"            name="VK_MEMORY_HEAP_RESERVED_2_BIT_KHR"/>
+            </require>
+        </extension>
+        <extension name="VK_QCOM_extension_310" number="310" author="QCOM" contact="Jeff Leger @jackohound" supported="disabled">
+            <require>
+                <enum value="0"                                             name="VK_QCOM_extension_310_SPEC_VERSION"/>
+                <enum value="&quot;VK_QCOM_extension_310&quot;"             name="VK_QCOM_extension_310_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_RESERVED_QCOM"/>
             </require>
         </extension>
     </extensions>
