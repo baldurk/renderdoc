@@ -1389,15 +1389,18 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint) const
           uint32_t inst = it.word(4);
 
           const bool IsGLSL450 = (setname == "GLSL.std.450");
+          // GLSL.std.450 all parameters are Ids
+          const bool idParams = IsGLSL450 || setname.beginsWith("NonSemantic.");
 
           if(IsGLSL450)
             ret += StringFormat::Fmt("%s::%s(", setname.c_str(), ToStr(GLSLstd450(inst)).c_str());
+          else
+            ret += StringFormat::Fmt("%s::[%u](", setname.c_str(), inst);
 
           for(size_t i = 5; i < it.size(); i++)
           {
-            // GLSL.std.450 all parameters are Ids
             // TODO could generate this from the instruction set grammar.
-            ret += IsGLSL450 ? idName(Id::fromWord(it.word(i))) : ToStr(it.word(i));
+            ret += idParams ? idName(Id::fromWord(it.word(i))) : ToStr(it.word(i));
 
             if(i + 1 < it.size())
               ret += ", ";
