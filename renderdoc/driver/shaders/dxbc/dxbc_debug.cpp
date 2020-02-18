@@ -3359,10 +3359,12 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     case OPCODE_SAMPLE_INFO:
     case OPCODE_SAMPLE_POS:
     {
+      size_t numIndices = program->IsShaderModel51() ? 2 : 1;
       bool isAbsoluteResource =
-          (op.operands[1].indices.size() == 1 && op.operands[1].indices[0].absolute &&
+          (op.operands[1].indices.size() == numIndices && op.operands[1].indices[0].absolute &&
            !op.operands[1].indices[0].relative);
-      UINT slot = (UINT)(op.operands[1].indices[0].index & 0xffffffff);
+      UINT identifier = (UINT)(op.operands[1].indices[0].index & 0xffffffff);
+      BindingSlot slot = GetBindingSlotForIdentifier(*program, op.operands[1].type, identifier);
       ShaderVariable result =
           apiWrapper->GetSampleInfo(op.operands[1].type, isAbsoluteResource, slot, op.str.c_str());
 
@@ -3509,10 +3511,12 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
 
     case OPCODE_BUFINFO:
     {
-      if(op.operands[1].indices.size() == 1 && op.operands[1].indices[0].absolute &&
+      size_t numIndices = program->IsShaderModel51() ? 2 : 1;
+      if(op.operands[1].indices.size() == numIndices && op.operands[1].indices[0].absolute &&
          !op.operands[1].indices[0].relative)
       {
-        UINT slot = (UINT)(op.operands[1].indices[0].index & 0xffffffff);
+        UINT identifier = (UINT)(op.operands[1].indices[0].index & 0xffffffff);
+        BindingSlot slot = GetBindingSlotForIdentifier(*program, op.operands[1].type, identifier);
         ShaderVariable result = apiWrapper->GetBufferInfo(op.operands[1].type, slot, op.str.c_str());
 
         // apply swizzle
@@ -3552,11 +3556,13 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       // spec says "srcMipLevel is read as an unsigned integer scalar"
       uint32_t mipLevel = srcOpers[0].value.u.x;
 
-      if(op.operands[2].indices.size() == 1 && op.operands[2].indices[0].absolute &&
+      size_t numIndices = program->IsShaderModel51() ? 2 : 1;
+      if(op.operands[2].indices.size() == numIndices && op.operands[2].indices[0].absolute &&
          !op.operands[2].indices[0].relative)
       {
         int dim = 0;
-        UINT slot = (UINT)(op.operands[2].indices[0].index & 0xffffffff);
+        UINT identifier = (UINT)(op.operands[2].indices[0].index & 0xffffffff);
+        BindingSlot slot = GetBindingSlotForIdentifier(*program, op.operands[2].type, identifier);
         ShaderVariable result = apiWrapper->GetResourceInfo(op.operands[2].type, slot, mipLevel, dim);
 
         // need a valid dimension even if the resource was unbound, so

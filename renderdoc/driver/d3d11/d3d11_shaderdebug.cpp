@@ -65,11 +65,12 @@ public:
   bool CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode, const ShaderVariable &input,
                               ShaderVariable &output1, ShaderVariable &output2);
 
-  ShaderVariable GetSampleInfo(DXBCBytecode::OperandType type, bool isAbsoluteResource, UINT slot,
+  ShaderVariable GetSampleInfo(DXBCBytecode::OperandType type, bool isAbsoluteResource,
+                               const DXBCDebug::BindingSlot &slot, const char *opString);
+  ShaderVariable GetBufferInfo(DXBCBytecode::OperandType type, const DXBCDebug::BindingSlot &slot,
                                const char *opString);
-  ShaderVariable GetBufferInfo(DXBCBytecode::OperandType type, UINT slot, const char *opString);
-  ShaderVariable GetResourceInfo(DXBCBytecode::OperandType type, UINT slot, uint32_t mipLevel,
-                                 int &dim);
+  ShaderVariable GetResourceInfo(DXBCBytecode::OperandType type, const DXBCDebug::BindingSlot &slot,
+                                 uint32_t mipLevel, int &dim);
 
   bool CalculateSampleGather(DXBCBytecode::OpcodeType opcode,
                              DXBCDebug::SampleGatherResourceData resourceData,
@@ -396,7 +397,8 @@ bool D3D11DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
 }
 
 ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType type,
-                                                   bool isAbsoluteResource, UINT slot,
+                                                   bool isAbsoluteResource,
+                                                   const DXBCDebug::BindingSlot &slot,
                                                    const char *opString)
 {
   ID3D11DeviceContext *context = NULL;
@@ -450,12 +452,24 @@ ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType typ
     ID3D11ShaderResourceView *srv = NULL;
     switch(GetShaderType())
     {
-      case DXBC::ShaderType::Vertex: context->VSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Hull: context->HSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Domain: context->DSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Geometry: context->GSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Pixel: context->PSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Compute: context->CSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Vertex:
+        context->VSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Hull:
+        context->HSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Domain:
+        context->DSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Geometry:
+        context->GSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Pixel:
+        context->PSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Compute:
+        context->CSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
       default: RDCERR("Unhandled shader type %d", GetShaderType()); break;
     }
 
@@ -518,7 +532,8 @@ ShaderVariable D3D11DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType typ
   return result;
 }
 
-ShaderVariable D3D11DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType type, UINT slot,
+ShaderVariable D3D11DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType type,
+                                                   const DXBCDebug::BindingSlot &slot,
                                                    const char *opString)
 {
   ID3D11DeviceContext *context = NULL;
@@ -530,9 +545,9 @@ ShaderVariable D3D11DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType typ
   {
     ID3D11UnorderedAccessView *uav = NULL;
     if(GetShaderType() == DXBC::ShaderType::Compute)
-      context->CSGetUnorderedAccessViews(slot, 1, &uav);
+      context->CSGetUnorderedAccessViews(slot.shaderRegister, 1, &uav);
     else
-      context->OMGetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, slot, 1, &uav);
+      context->OMGetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, slot.shaderRegister, 1, &uav);
 
     if(uav)
     {
@@ -572,12 +587,24 @@ ShaderVariable D3D11DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType typ
     ID3D11ShaderResourceView *srv = NULL;
     switch(GetShaderType())
     {
-      case DXBC::ShaderType::Vertex: context->VSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Hull: context->HSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Domain: context->DSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Geometry: context->GSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Pixel: context->PSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Compute: context->CSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Vertex:
+        context->VSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Hull:
+        context->HSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Domain:
+        context->DSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Geometry:
+        context->GSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Pixel:
+        context->PSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Compute:
+        context->CSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
       default: RDCERR("Unhandled shader type %d", GetShaderType()); break;
     }
 
@@ -624,7 +651,8 @@ ShaderVariable D3D11DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType typ
   return result;
 }
 
-ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType type, UINT slot,
+ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType type,
+                                                     const DXBCDebug::BindingSlot &slot,
                                                      uint32_t mipLevel, int &dim)
 {
   ID3D11DeviceContext *context = NULL;
@@ -637,12 +665,24 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
     ID3D11ShaderResourceView *srv = NULL;
     switch(GetShaderType())
     {
-      case DXBC::ShaderType::Vertex: context->VSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Hull: context->HSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Domain: context->DSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Geometry: context->GSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Pixel: context->PSGetShaderResources(slot, 1, &srv); break;
-      case DXBC::ShaderType::Compute: context->CSGetShaderResources(slot, 1, &srv); break;
+      case DXBC::ShaderType::Vertex:
+        context->VSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Hull:
+        context->HSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Domain:
+        context->DSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Geometry:
+        context->GSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Pixel:
+        context->PSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
+      case DXBC::ShaderType::Compute:
+        context->CSGetShaderResources(slot.shaderRegister, 1, &srv);
+        break;
       default: RDCERR("Unhandled shader type %d", GetShaderType()); break;
     }
 
@@ -810,13 +850,13 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
     ID3D11UnorderedAccessView *uav = NULL;
     if(GetShaderType() == DXBC::ShaderType::Compute)
     {
-      context->CSGetUnorderedAccessViews(slot, 1, &uav);
+      context->CSGetUnorderedAccessViews(slot.shaderRegister, 1, &uav);
     }
     else
     {
       ID3D11RenderTargetView *rtvs[8] = {0};
       ID3D11DepthStencilView *dsv = NULL;
-      context->OMGetRenderTargetsAndUnorderedAccessViews(0, rtvs, &dsv, slot, 1, &uav);
+      context->OMGetRenderTargetsAndUnorderedAccessViews(0, rtvs, &dsv, slot.shaderRegister, 1, &uav);
 
       for(int i = 0; i < 8; i++)
         SAFE_RELEASE(rtvs[i]);

@@ -252,11 +252,11 @@ public:
                                       ShaderVariable &output1, ShaderVariable &output2) = 0;
 
   virtual ShaderVariable GetSampleInfo(DXBCBytecode::OperandType type, bool isAbsoluteResource,
-                                       UINT slot, const char *opString) = 0;
+                                       const BindingSlot &slot, const char *opString) = 0;
 
-  virtual ShaderVariable GetBufferInfo(DXBCBytecode::OperandType type, UINT slot,
+  virtual ShaderVariable GetBufferInfo(DXBCBytecode::OperandType type, const BindingSlot &slot,
                                        const char *opString) = 0;
-  virtual ShaderVariable GetResourceInfo(DXBCBytecode::OperandType type, UINT slot,
+  virtual ShaderVariable GetResourceInfo(DXBCBytecode::OperandType type, const BindingSlot &slot,
                                          uint32_t mipLevel, int &dim) = 0;
 
   virtual bool CalculateSampleGather(DXBCBytecode::OpcodeType opcode,
