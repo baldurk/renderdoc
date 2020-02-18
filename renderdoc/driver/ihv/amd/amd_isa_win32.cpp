@@ -52,18 +52,21 @@ static HMODULE GetAMDModule()
   return module;
 }
 
-void SafelyCompile(PfnAmdDxGsaCompileShader compileShader, AmdDxGsaCompileShaderInput &in,
-                   AmdDxGsaCompileShaderOutput &out)
+HRESULT SafelyCompile(PfnAmdDxGsaCompileShader compileShader, AmdDxGsaCompileShaderInput &in,
+                      AmdDxGsaCompileShaderOutput &out)
 {
+  HRESULT ret = E_FAIL;
   __try
   {
-    compileShader(&in, &out);
+    ret = compileShader(&in, &out);
   }
   __except(EXCEPTION_EXECUTE_HANDLER)
   {
+    RDCLOG("Exception occurred while compiling shader for ISA");
     out.pShaderBinary = NULL;
     out.shaderBinarySize = 0;
   }
+  return ret;
 }
 
 rdcstr DisassembleDXBC(const bytebuf &shaderBytes, const rdcstr &target)
@@ -182,10 +185,14 @@ rdcstr DisassembleDXBC(const bytebuf &shaderBytes, const rdcstr &target)
 
   out.size = sizeof(out);
 
-  SafelyCompile(compileShader, in, out);
+  HRESULT hr = SafelyCompile(compileShader, in, out);
 
   if(out.pShaderBinary == NULL || out.shaderBinarySize < 16)
+  {
+    RDCLOG("Failed to disassemble shader: %p/%zu (%s)", out.pShaderBinary, out.shaderBinarySize,
+           ToStr(hr).c_str());
     return "; Failed to disassemble shader";
+  }
 
   const uint8_t *elf = (const uint8_t *)out.pShaderBinary;
 
