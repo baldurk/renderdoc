@@ -1823,15 +1823,15 @@ void Formatter::setParams(const PersistantConfig &config)
   if(!m_Font)
   {
     m_Font = new QFont();
-    m_FontBaseSize = QApplication::font().pointSizeF();
+    m_FontBaseSize = QApplication::font().pixelSize();
   }
 
   *m_Font =
       config.Font_PreferMonospaced ? QFontDatabase::systemFont(QFontDatabase::FixedFont) : QFont();
 
-  m_Font->setPointSizeF(m_FontBaseSize * config.Font_GlobalScale);
+  m_Font->setPixelSize(m_FontBaseSize * config.Font_GlobalScale);
   QFont f = QApplication::font();
-  f.setPointSizeF(m_FontBaseSize * config.Font_GlobalScale);
+  f.setPixelSize(m_FontBaseSize * config.Font_GlobalScale);
   QApplication::setFont(f);
 
   Formatter::setPalette(QApplication::palette());
