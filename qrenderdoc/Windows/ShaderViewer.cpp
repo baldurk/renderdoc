@@ -1324,7 +1324,7 @@ void ShaderViewer::on_watch_itemChanged(QTableWidgetItem *item)
 
 bool ShaderViewer::stepBack()
 {
-  if(!m_Trace)
+  if(!m_Trace || m_States.empty())
     return false;
 
   if(IsFirstState())
@@ -1378,7 +1378,7 @@ bool ShaderViewer::stepBack()
 
 bool ShaderViewer::stepNext()
 {
-  if(!m_Trace)
+  if(!m_Trace || m_States.empty())
     return false;
 
   if(IsLastState())
@@ -1417,7 +1417,7 @@ bool ShaderViewer::stepNext()
 
 void ShaderViewer::runToCursor()
 {
-  if(!m_Trace)
+  if(!m_Trace || m_States.empty())
     return;
 
   ScintillaEdit *cur = currentScintilla();
@@ -1529,7 +1529,7 @@ void ShaderViewer::run()
 
 void ShaderViewer::runTo(QVector<size_t> runToInstruction, bool forward, ShaderEvents condition)
 {
-  if(!m_Trace)
+  if(!m_Trace || m_States.empty())
     return;
 
   bool firstStep = true;
