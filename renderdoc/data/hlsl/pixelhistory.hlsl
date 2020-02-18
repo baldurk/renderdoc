@@ -34,7 +34,7 @@ cbuffer cb0 : register(b0)
 
 cbuffer cb1 : register(b1)
 {
-  uint2 dst_coord;
+  uint dst_slot;
   bool copy_depth;
   bool copy_stencil;
 };
@@ -54,14 +54,14 @@ Texture2DMSArray<uint4> copyin_uint_ms : register(t7);
 Texture2DArray<int4> copyin_int : register(t8);
 Texture2DMSArray<int4> copyin_int_ms : register(t9);
 
-RWTexture2D<float2> copyout_depth : register(u0);
-RWTexture2D<float4> copyout_float : register(u1);
-RWTexture2D<uint4> copyout_uint : register(u2);
-RWTexture2D<int4> copyout_int : register(u3);
+RWBuffer<float4> copyout_depth : register(u0);
+RWBuffer<float4> copyout_float : register(u1);
+RWBuffer<uint4> copyout_uint : register(u2);
+RWBuffer<int4> copyout_int : register(u3);
 
 [numthreads(1, 1, 1)] void RENDERDOC_PixelHistoryUnused()
 {
-  copyout_depth[dst_coord.xy].rg = float2(-1.0f, -1.0f);
+  copyout_depth[dst_slot] = float4(-1.0f, -1.0f, 0.0f, 0.0f);
 }
 
 [numthreads(1, 1, 1)] void RENDERDOC_PixelHistoryCopyPixel()
@@ -76,24 +76,22 @@ RWTexture2D<int4> copyout_int : register(u3);
       if(copy_stencil)
         val.g = (float)copyin_stencil_ms.sample[src_coord.z][uint3(src_coord.xy, src_coord.w)].g;
 
-      copyout_depth[dst_coord.xy].rg = val;
+      copyout_depth[dst_slot] = float4(val, 0.0f, 0.0f);
     }
     else
     {
       if(is_float)
       {
-        copyout_float[dst_coord.xy] =
+        copyout_float[dst_slot] =
             copyin_float_ms.sample[src_coord.z][uint3(src_coord.xy, src_coord.w)];
       }
       else if(is_uint)
       {
-        copyout_uint[dst_coord.xy] =
-            copyin_uint_ms.sample[src_coord.z][uint3(src_coord.xy, src_coord.w)];
+        copyout_uint[dst_slot] = copyin_uint_ms.sample[src_coord.z][uint3(src_coord.xy, src_coord.w)];
       }
       else if(is_int)
       {
-        copyout_int[dst_coord.xy] =
-            copyin_int_ms.sample[src_coord.z][uint3(src_coord.xy, src_coord.w)];
+        copyout_int[dst_slot] = copyin_int_ms.sample[src_coord.z][uint3(src_coord.xy, src_coord.w)];
       }
     }
   }
@@ -106,22 +104,21 @@ RWTexture2D<int4> copyout_int : register(u3);
       if(copy_stencil)
         val.g = (float)copyin_stencil.mips[src_coord.z][uint3(src_coord.xy, src_coord.w)].g;
 
-      copyout_depth[dst_coord.xy].rg = val;
+      copyout_depth[dst_slot] = float4(val, 0.0f, 0.0f);
     }
     else
     {
       if(is_float)
       {
-        copyout_float[dst_coord.xy] =
-            copyin_float.mips[src_coord.z][uint3(src_coord.xy, src_coord.w)];
+        copyout_float[dst_slot] = copyin_float.mips[src_coord.z][uint3(src_coord.xy, src_coord.w)];
       }
       else if(is_uint)
       {
-        copyout_uint[dst_coord.xy] = copyin_uint.mips[src_coord.z][uint3(src_coord.xy, src_coord.w)];
+        copyout_uint[dst_slot] = copyin_uint.mips[src_coord.z][uint3(src_coord.xy, src_coord.w)];
       }
       else if(is_int)
       {
-        copyout_int[dst_coord.xy] = copyin_int.mips[src_coord.z][uint3(src_coord.xy, src_coord.w)];
+        copyout_int[dst_slot] = copyin_int.mips[src_coord.z][uint3(src_coord.xy, src_coord.w)];
       }
     }
   }

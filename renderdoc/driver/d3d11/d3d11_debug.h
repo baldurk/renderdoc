@@ -140,7 +140,7 @@ public:
 
   TextureShaderDetails GetShaderDetails(ResourceId id, CompType typeCast, bool rawOutput);
 
-  void PixelHistoryCopyPixel(CopyPixelParams &params, uint32_t x, uint32_t y);
+  void PixelHistoryCopyPixel(CopyPixelParams &params, size_t eventSlot, uint32_t storeSlot);
 
   struct CacheElem
   {

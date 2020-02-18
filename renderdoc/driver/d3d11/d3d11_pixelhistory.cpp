@@ -152,14 +152,15 @@ struct CopyPixelParams
   ID3D11UnorderedAccessView *uav;    // uav to copy pixel to
 
   ID3D11Buffer *srcxyCBuf;
-  ID3D11Buffer *storexyCBuf;
+  ID3D11Buffer *storeCBuf;
 };
 
+// reserve 4 slots per event
+static const uint32_t pixstoreStride = 4;
+
 // Helper function to copy a single pixel out of a source texture, which will handle any texture
-// type and binding type, doing any copying as needed. Writes the result to a given 2D texture UAV.
-// In future this could be refactored to just be a plain buffer, there's no particular reason it has
-// to be a texture.
-void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, uint32_t y)
+// type and binding type, doing any copying as needed. Writes the result to a given buffer UAV.
+void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, size_t eventSlot, uint32_t storeSlot)
 {
   // perform a subresource copy if the real source tex couldn't be directly bound as SRV
   if(p.sourceTex != p.srvTex && p.sourceTex && p.srvTex)
@@ -203,17 +204,18 @@ void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, ui
   m_pImmediateContext->CSGetShaderResources(0, ARRAY_COUNT(curCSSRVs), curCSSRVs);
   m_pImmediateContext->CSGetUnorderedAccessViews(0, ARRAY_COUNT(curCSUAV), curCSUAV);
 
-  uint32_t storexyData[4] = {x, y, uint32_t(p.depthcopy), uint32_t(p.srv[1] != NULL)};
+  uint32_t storeData[3] = {uint32_t(eventSlot) * pixstoreStride + storeSlot, uint32_t(p.depthcopy),
+                           uint32_t(p.srv[1] != NULL)};
 
   D3D11_MAPPED_SUBRESOURCE mapped;
-  m_pImmediateContext->Map(p.storexyCBuf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+  m_pImmediateContext->Map(p.storeCBuf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
 
-  memcpy(mapped.pData, storexyData, sizeof(storexyData));
+  memcpy(mapped.pData, storeData, sizeof(storeData));
 
-  m_pImmediateContext->Unmap(p.storexyCBuf, 0);
+  m_pImmediateContext->Unmap(p.storeCBuf, 0);
 
   m_pImmediateContext->CSSetConstantBuffers(0, 1, &p.srcxyCBuf);
-  m_pImmediateContext->CSSetConstantBuffers(1, 1, &p.storexyCBuf);
+  m_pImmediateContext->CSSetConstantBuffers(1, 1, &p.storeCBuf);
 
   UINT offs = 0;
 
@@ -340,12 +342,19 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
   ID3D11Query *testQueries[6] = {0};    // one query for each test we do per-drawcall
 
-  uint32_t pixstoreStride = 4;
-
-  // reserve 3 pixels per draw (worst case all events). This is used for Pre value, Post value and
+  // reserve worst case all events. This is used for Pre value, Post value and
   // # frag overdraw (with & without original shader). It's reused later to retrieve per-fragment
   // post values.
-  uint32_t pixstoreSlots = (uint32_t)(events.size() * pixstoreStride);
+  uint32_t pixstoreSlots = (uint32_t)events.size();
+
+  // We always allocate at least 2048 slots, to allow for pixel history that only touches a couple
+  // of events still being able to overdraw many times. The idea being that if we're taking the
+  // history over many events, then the events which don't take up any slots or only one will mostly
+  // dominate over those that take more than the average. If we only have one or two candidate
+  // events then at least 2048 slots gives a huge amount of potential overdraw.
+  pixstoreSlots = RDCMAX(pixstoreSlots, 2048U);
+
+  pixstoreSlots *= pixstoreStride;
 
   // need UAV compatible format, so switch B8G8R8A8 for R8G8B8A8, everything will
   // render as normal and it will just be swizzled (which we were doing manually anyway).
@@ -380,69 +389,65 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
      details.texFmt == DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
     details.texFmt = DXGI_FORMAT_R32G32B32A32_UINT;
 
-  // define a texture that we can copy before/after results into.
-  // We always allocate at least 2048 slots, to allow for pixel history that only touches a couple
-  // of events still being able to overdraw many times. The idea being that if we're taking the
-  // history over many events, then the events which don't take up any slots or only one will mostly
-  // dominate over those that take more than the average. If we only have one or two candidate
-  // events then at least 2048 slots gives a huge amount of potential overdraw.
-  D3D11_TEXTURE2D_DESC pixstoreDesc = {
-      2048U,
-      RDCMAX(1U, (pixstoreSlots / 2048) + 1),
-      1U,
-      1U,
-      details.texFmt,
-      {1, 0},
+  // define a buffer that we can copy before/after results into with PixelHistoryCopyPixel.
+  // We previously used a texture but that doesn't always work - depth and MSAA textures can't use
+  // CopySubresourceRegion to copy only one pixel, and copying with a UAV fails because some formats
+  // don't support UAV. So instead we expand to float4/uint4/int4 in the UAV and write the full
+  // expanded values here.
+  D3D11_BUFFER_DESC pixstoreDesc = {
+      (pixstoreSlots + 1) * sizeof(Vec4f),
       D3D11_USAGE_DEFAULT,
       D3D11_BIND_UNORDERED_ACCESS,
       0,
       0,
+      0,
   };
 
-  ID3D11Texture2D *pixstore = NULL;
-  m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &pixstore);
+  ID3D11Buffer *pixstore = NULL, *shadoutStore = NULL, *pixstoreDepth = NULL;
+  m_pDevice->CreateBuffer(&pixstoreDesc, NULL, &pixstore);
+  m_pDevice->CreateBuffer(&pixstoreDesc, NULL, &shadoutStore);
+  m_pDevice->CreateBuffer(&pixstoreDesc, NULL, &pixstoreDepth);
 
-  // This is used for shader output values.
-  pixstoreDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-
-  ID3D11Texture2D *shadoutStore = NULL;
-  m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &shadoutStore);
-
-  // we use R32G32 so that we can bind this buffer as UAV and write to both depth and stencil
-  // components.
-  // the shader does the upcasting for us when we read from depth or stencil
-  pixstoreDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
-
-  ID3D11Texture2D *pixstoreDepth = NULL;
-  m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &pixstoreDepth);
+  // we'll only use the first two components of pixstoreDepth but for simplicity we keep it the same
+  // size.
 
   pixstoreDesc.Usage = D3D11_USAGE_STAGING;
   pixstoreDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
   pixstoreDesc.BindFlags = 0;
 
-  pixstoreDesc.Format = details.texFmt;
+  ID3D11Buffer *pixstoreReadback = NULL, *shadoutStoreReadback = NULL, *pixstoreDepthReadback = NULL;
+  m_pDevice->CreateBuffer(&pixstoreDesc, NULL, &pixstoreReadback);
+  m_pDevice->CreateBuffer(&pixstoreDesc, NULL, &shadoutStoreReadback);
+  m_pDevice->CreateBuffer(&pixstoreDesc, NULL, &pixstoreDepthReadback);
 
-  ID3D11Texture2D *pixstoreReadback = NULL;
-  m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &pixstoreReadback);
+  // we create the UAV as typed
 
-  pixstoreDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+  uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+  uavDesc.Buffer.NumElements = pixstoreSlots + 1;
 
-  ID3D11Texture2D *shadoutStoreReadback = NULL;
-  m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &shadoutStoreReadback);
+  bool floatTex = false, uintTex = false, intTex = false;
 
-  pixstoreDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+  if(IsUIntFormat(details.texFmt))
+  {
+    uintTex = true;
+    uavDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
+  }
+  else if(IsIntFormat(details.texFmt))
+  {
+    intTex = true;
+    uavDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
+  }
+  else
+  {
+    floatTex = true;
+    uavDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  }
 
-  ID3D11Texture2D *pixstoreDepthReadback = NULL;
-  m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &pixstoreDepthReadback);
-
-  ID3D11UnorderedAccessView *pixstoreUAV = NULL;
-  m_pDevice->CreateUnorderedAccessView(pixstore, NULL, &pixstoreUAV);
-
-  ID3D11UnorderedAccessView *shadoutStoreUAV = NULL;
-  m_pDevice->CreateUnorderedAccessView(shadoutStore, NULL, &shadoutStoreUAV);
-
-  ID3D11UnorderedAccessView *pixstoreDepthUAV = NULL;
-  m_pDevice->CreateUnorderedAccessView(pixstoreDepth, NULL, &pixstoreDepthUAV);
+  ID3D11UnorderedAccessView *pixstoreUAV = NULL, *shadoutStoreUAV = NULL, *pixstoreDepthUAV = NULL;
+  m_pDevice->CreateUnorderedAccessView(pixstore, &uavDesc, &pixstoreUAV);
+  m_pDevice->CreateUnorderedAccessView(shadoutStore, &uavDesc, &shadoutStoreUAV);
+  m_pDevice->CreateUnorderedAccessView(pixstoreDepth, &uavDesc, &pixstoreDepthUAV);
 
   // very wasteful, but we must leave the viewport as is to get correct rasterisation which means
   // same dimensions of render target.
@@ -509,19 +514,14 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   }
 
   // depth texture to copy to, as CopySubresourceRegion can't copy single pixels out of a depth
-  // buffer,
-  // and we can't guarantee that the original depth texture is SRV-compatible to allow single-pixel
-  // copies
-  // via compute shader.
+  // buffer, and we can't guarantee that the original depth texture is SRV-compatible to allow
+  // single-pixel copies via compute shader.
   //
   // Due to copies having to match formats between source and destination we don't create these
-  // textures up
-  // front but on demand, and resize up as necessary. We do a whole copy from this, then a CS copy
-  // via SRV to UAV
-  // to copy into the pixstore (which we do a final copy to for readback). The extra step is
-  // necessary as
-  // you can Copy to a staging texture but you can't use a CS, which we need for single-pixel depth
-  // (and stencil) copy.
+  // textures up front but on demand, and resize up as necessary. We do a whole copy from this, then
+  // a CS copy via SRV to UAV to copy into the pixstore (which we do a final copy to for readback).
+  // The extra step is necessary as you can Copy to a staging texture but you can't use a CS, which
+  // we need for single-pixel depth (and stencil) copy.
 
   D3D11_TEXTURE2D_DESC depthCopyD24S8Desc = {
       details.texWidth,
@@ -553,21 +553,6 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   ID3D11Texture2D *depthCopyD16 = NULL;
   ID3D11ShaderResourceView *depthCopyD16_DepthSRV = NULL;
 
-  bool floatTex = false, uintTex = false, intTex = false;
-
-  if(IsUIntFormat(details.texFmt) || IsTypelessFormat(details.texFmt))
-  {
-    uintTex = true;
-  }
-  else if(IsIntFormat(details.texFmt))
-  {
-    intTex = true;
-  }
-  else
-  {
-    floatTex = true;
-  }
-
   uint32_t srcxyData[8] = {
       x,
       y,
@@ -589,7 +574,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
   ID3D11Buffer *srcxyCBuf = GetDebugManager()->MakeCBuffer(sizeof(srcxyData));
   ID3D11Buffer *shadoutsrcxyCBuf = GetDebugManager()->MakeCBuffer(sizeof(shadoutsrcxyData));
-  ID3D11Buffer *storexyCBuf = GetDebugManager()->MakeCBuffer(sizeof(srcxyData));
+  ID3D11Buffer *storeCBuf = GetDebugManager()->MakeCBuffer(sizeof(srcxyData));
 
   GetDebugManager()->FillCBuffer(srcxyCBuf, srcxyData, sizeof(srcxyData));
   GetDebugManager()->FillCBuffer(shadoutsrcxyCBuf, shadoutsrcxyData, sizeof(shadoutsrcxyData));
@@ -605,17 +590,15 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   // can't copy a sub-box of a depth copy. It also is required in the MSAA case to read a specific
   // pixel/sample out.
   //
-  // final copy is needed to get data into a readback texture since we can't have CS writing to
-  // staging texture
-  //
+  // final copy is needed to get data into a readback buffer since we can't have CS writing to
+  // staging buffer
   //
   // for colour it's simple, it's just
   // per sample: orig color --copy--> pixstore
   // at end: pixstore --copy--> pixstoreReadback
   //
   // this is slightly redundant but it only adds one extra copy at the end and an extra target, and
-  // allows to handle
-  // MSAA source textures (which can't copy direct to a staging texture)
+  // allows to handle MSAA source textures (which can't copy direct to a staging texture)
 
   ID3D11Resource *targetres = NULL;
 
@@ -636,7 +619,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   colourCopyParams.uintTex = uintTex;
   colourCopyParams.intTex = intTex;
   colourCopyParams.srcxyCBuf = srcxyCBuf;
-  colourCopyParams.storexyCBuf = storexyCBuf;
+  colourCopyParams.storeCBuf = storeCBuf;
   if(details.texType == eTexType_3D)
     colourCopyParams.subres = mip;
   else
@@ -743,7 +726,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
   if(!shadOutput || !shadOutputSRV || !shadOutputRTV)
   {
-    RDCERR("Failed to create shadoutStore (%p %p %p) (%ux%u [%u,%u] @ fmt %u)", shadOutput,
+    RDCERR("Failed to create shadOutput (%p %p %p) (%ux%u [%u,%u] @ fmt %u)", shadOutput,
            shadOutputSRV, shadOutputRTV, details.texWidth, details.texHeight, details.sampleCount,
            details.sampleQuality, details.texFmt);
     allCreated = false;
@@ -751,15 +734,15 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
   if(!shaddepthOutput || !shaddepthOutputDSV || !shaddepthOutputDepthSRV || !shaddepthOutputStencilSRV)
   {
-    RDCERR("Failed to create shadoutStore (%p %p %p %p) (%ux%u [%u,%u] @ fmt %u)", shaddepthOutput,
+    RDCERR("Failed to create shaddepthOutput (%p %p %p %p) (%ux%u [%u,%u] @ fmt %u)", shaddepthOutput,
            shaddepthOutputDSV, shaddepthOutputDepthSRV, shaddepthOutputStencilSRV, details.texWidth,
            details.texHeight, details.sampleCount, details.sampleQuality, details.texFmt);
     allCreated = false;
   }
 
-  if(!srcxyCBuf || !storexyCBuf)
+  if(!srcxyCBuf || !storeCBuf)
   {
-    RDCERR("Failed to create cbuffers (%p %p)", srcxyCBuf, storexyCBuf);
+    RDCERR("Failed to create cbuffers (%p %p)", srcxyCBuf, storeCBuf);
     allCreated = false;
   }
 
@@ -804,12 +787,16 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
     SAFE_RELEASE(srcxyCBuf);
     SAFE_RELEASE(shadoutsrcxyCBuf);
-    SAFE_RELEASE(storexyCBuf);
+    SAFE_RELEASE(storeCBuf);
 
     return history;
   }
 
-  m_pDevice->ReplayLog(0, events[0].eventId, eReplay_WithoutDraw);
+  {
+    D3D11MarkerRegion pristine(
+        StringFormat::Fmt("Replaying up to first event %u for pristine start", events[0].eventId));
+    m_pDevice->ReplayLog(0, events[0].eventId, eReplay_WithoutDraw);
+  }
 
   ID3D11RasterizerState *curRS = NULL;
   ID3D11RasterizerState *newRS = NULL;
@@ -835,6 +822,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   {
     curNumInst = D3D11_SHADER_MAX_INTERFACES;
     curNumScissors = curNumViews = 16;
+
+    D3D11MarkerRegion evmarker(StringFormat::Fmt("Processing output for %u", events[ev].eventId));
 
     bool uavOutput =
         ((events[ev].usage >= ResourceUsage::VS_RWResource &&
@@ -1039,8 +1028,6 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
     m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
 
     // figure out where this event lies in the pixstore texture
-    UINT storex = UINT(ev % (2048 / pixstoreStride));
-    UINT storey = UINT(ev / (2048 / pixstoreStride));
 
     bool depthBound = false;
     ID3D11Texture2D **copyTex = NULL;
@@ -1213,7 +1200,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       }
     }
 
-    GetDebugManager()->PixelHistoryCopyPixel(colourCopyParams, storex * pixstoreStride + 0, storey);
+    D3D11MarkerRegion::Set("Copying pre-mod[0] col");
+    GetDebugManager()->PixelHistoryCopyPixel(colourCopyParams, ev, 0);
 
     depthCopyParams.depthbound = depthBound;
     depthCopyParams.sourceTex = (ID3D11Texture2D *)depthRes;
@@ -1221,7 +1209,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
     depthCopyParams.srv[0] = copyDepthSRV ? *copyDepthSRV : NULL;
     depthCopyParams.srv[1] = copyStencilSRV ? *copyStencilSRV : NULL;
 
-    GetDebugManager()->PixelHistoryCopyPixel(depthCopyParams, storex * pixstoreStride + 0, storey);
+    D3D11MarkerRegion::Set("Copying pre-mod[0] depth");
+    GetDebugManager()->PixelHistoryCopyPixel(depthCopyParams, ev, 0);
 
     m_pImmediateContext->Begin(occl[ev]);
 
@@ -1276,21 +1265,24 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       params.srv[0] = shaddepthOutputDepthSRV;
       params.srv[1] = shaddepthOutputStencilSRV;
 
+      D3D11MarkerRegion::Set("Clearing depth/stencil for frag counting");
       m_pImmediateContext->ClearDepthStencilView(shaddepthOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
 
       m_pImmediateContext->OMSetRenderTargets(0, NULL, shaddepthOutputDSV);
 
       // replay first with overlay shader. This is guaranteed to count all fragments
+      D3D11MarkerRegion::Set("Counting all fragments[2]");
       m_pDevice->ReplayLog(0, events[ev].eventId, eReplay_OnlyDraw);
-      GetDebugManager()->PixelHistoryCopyPixel(params, storex * pixstoreStride + 2, storey);
+      GetDebugManager()->PixelHistoryCopyPixel(params, ev, 2);
 
       m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
 
       m_pImmediateContext->ClearDepthStencilView(shaddepthOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
 
       // now replay with original shader. Some fragments may discard and not be counted
+      D3D11MarkerRegion::Set("Counting discarded fragments[3]");
       m_pDevice->ReplayLog(0, events[ev].eventId, eReplay_OnlyDraw);
-      GetDebugManager()->PixelHistoryCopyPixel(params, storex * pixstoreStride + 3, storey);
+      GetDebugManager()->PixelHistoryCopyPixel(params, ev, 3);
 
       UINT initCounts[D3D11_1_UAV_SLOT_COUNT];
       memset(&initCounts[0], 0xff, sizeof(initCounts));
@@ -1326,14 +1318,20 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
     // replay only draw to get immediately post-modification values
     m_pDevice->ReplayLog(events[ev].eventId, events[ev].eventId, eReplay_OnlyDraw);
 
-    GetDebugManager()->PixelHistoryCopyPixel(colourCopyParams, storex * pixstoreStride + 1, storey);
-    GetDebugManager()->PixelHistoryCopyPixel(depthCopyParams, storex * pixstoreStride + 1, storey);
+    D3D11MarkerRegion::Set("Copying post-mod col/depth[1]");
+    GetDebugManager()->PixelHistoryCopyPixel(colourCopyParams, ev, 1);
+    GetDebugManager()->PixelHistoryCopyPixel(depthCopyParams, ev, 1);
 
     SAFE_RELEASE(releaseDepthSRV);
     SAFE_RELEASE(releaseStencilSRV);
 
     if(ev < events.size() - 1)
+    {
+      D3D11MarkerRegion continuation(
+          StringFormat::Fmt("Replaying partial continuation from %u to %u", events[ev].eventId + 1,
+                            events[ev + 1].eventId));
       m_pDevice->ReplayLog(events[ev].eventId + 1, events[ev + 1].eventId, eReplay_WithoutDraw);
+    }
 
     SAFE_RELEASE(depthRes);
   }
@@ -1438,7 +1436,11 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
         if(flags[i] & Predication_Failed)
           mod.predicationSkipped = true;
 
-        m_pDevice->ReplayLog(0, events[i].eventId, eReplay_WithoutDraw);
+        {
+          D3D11MarkerRegion pristine(
+              StringFormat::Fmt("Replaying up to event %u for pristine start", events[i].eventId));
+          m_pDevice->ReplayLog(0, events[i].eventId, eReplay_WithoutDraw);
+        }
 
         {
           ID3D11RenderTargetView *tmpViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
@@ -1552,6 +1554,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
         // test shader discard
         {
+          D3D11MarkerRegion pristine(
+              StringFormat::Fmt("Test shader discard in event %u", events[i].eventId));
           D3D11_RASTERIZER_DESC rd = rdesc;
 
           rd.ScissorEnable = TRUE;
@@ -1578,6 +1582,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
         if(flags[i] & TestEnabled_BackfaceCulling)
         {
+          D3D11MarkerRegion pristine(
+              StringFormat::Fmt("Test backface culling in event %u", events[i].eventId));
           D3D11_RASTERIZER_DESC rd = rdesc;
 
           rd.ScissorEnable = TRUE;
@@ -1605,6 +1611,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
         if(flags[i] & TestEnabled_DepthClip)
         {
+          D3D11MarkerRegion pristine(
+              StringFormat::Fmt("Test depth clipping in event %u", events[i].eventId));
           D3D11_RASTERIZER_DESC rd = rdesc;
 
           rd.ScissorEnable = TRUE;
@@ -1634,6 +1642,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
         if((flags[i] & (TestEnabled_Scissor | TestMustPass_Scissor | TestMustFail_Scissor)) ==
            TestEnabled_Scissor)
         {
+          D3D11MarkerRegion pristine(StringFormat::Fmt("Test scissor in event %u", events[i].eventId));
           D3D11_RASTERIZER_DESC rd = rdesc;
 
           rd.ScissorEnable = TRUE;
@@ -1641,20 +1650,16 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
           // leave backface culling mode as normal
 
           // newScissors has scissor regions calculated to hit our target pixel on every viewport,
-          // but we must
-          // intersect that with the original scissors regions for correct testing behaviour.
-          // This amounts to making any scissor region that doesn't overlap with the target pixel
-          // empty.
+          // but we must intersect that with the original scissors regions for correct testing
+          // behaviour. This amounts to making any scissor region that doesn't overlap with the
+          // target pixel empty.
           //
           // Note that in the case of only one scissor region we can trivially detect pass/fail of
-          // the test against
-          // our pixel on the CPU so we won't come in here (see check above against
-          // MustFail/MustPass). So we will
-          // only do this in the case where we have multiple scissor regions/viewports, some
-          // intersecting the pixel
-          // and some not. So we make the not intersecting scissor regions empty so our occlusion
-          // query tests to see
-          // if any pixels were written to the "passing" viewports
+          // the test against our pixel on the CPU so we won't come in here (see check above against
+          // MustFail/MustPass). So we will only do this in the case where we have multiple scissor
+          // regions/viewports, some intersecting the pixel and some not. So we make the not
+          // intersecting scissor regions empty so our occlusion query tests to see if any pixels
+          // were written to the "passing" viewports
           D3D11_RECT intersectScissors[16] = {0};
           memcpy(intersectScissors, newScissors, sizeof(intersectScissors));
 
@@ -1692,6 +1697,9 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
         if(flags[i] & TestEnabled_DepthTesting)
         {
+          D3D11MarkerRegion pristine(
+              StringFormat::Fmt("Test depth testing in event %u", events[i].eventId));
+
           D3D11_RASTERIZER_DESC rd = rdesc;
 
           rd.ScissorEnable = TRUE;
@@ -1735,6 +1743,9 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
         if(flags[i] & TestEnabled_StencilTesting)
         {
+          D3D11MarkerRegion pristine(
+              StringFormat::Fmt("Test stencil testing in event %u", events[i].eventId));
+
           D3D11_RASTERIZER_DESC rd = rdesc;
 
           rd.ScissorEnable = TRUE;
@@ -1881,8 +1892,6 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   // Third loop over each modification event to read back the pre-draw colour + depth data
   // as well as the # fragments to use in the next step
 
-  ResourceFormat fmt = MakeResourceFormat(GetTypedFormat(details.texFmt));
-
   for(size_t h = 0; h < history.size(); h++)
   {
     PixelModification &mod = history[h];
@@ -1891,99 +1900,30 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
     mod.preMod.col.uintValue[0] = 0;
 
-    // figure out where this event lies in the pixstore texture
-    uint32_t storex = uint32_t(pre % (2048 / pixstoreStride));
-    uint32_t storey = uint32_t(pre / (2048 / pixstoreStride));
-
-    if(fmt.type == ResourceFormatType::Regular && fmt.compCount > 0 && fmt.compByteWidth > 0)
+    // the UAV copy on the GPU expanded out to full size when writing to the buffer, so we can now
+    // just copy across without needing to interpret according to the format.
     {
-      byte *rowdata = pixstoreData + mapped.RowPitch * storey;
-
-      for(int p = 0; p < 2; p++)
-      {
-        byte *data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * pixstoreStride + p);
-
-        ModificationValue *val = (p == 0 ? &mod.preMod : &mod.postMod);
-
-        if(fmt.compType == CompType::SInt)
-        {
-          // need to get correct sign, but otherwise just copy
-
-          if(fmt.compByteWidth == 1)
-          {
-            int8_t *d = (int8_t *)data;
-            for(uint32_t c = 0; c < fmt.compCount; c++)
-              val->col.intValue[c] = d[c];
-          }
-          else if(fmt.compByteWidth == 2)
-          {
-            int16_t *d = (int16_t *)data;
-            for(uint32_t c = 0; c < fmt.compCount; c++)
-              val->col.intValue[c] = d[c];
-          }
-          else if(fmt.compByteWidth == 4)
-          {
-            int32_t *d = (int32_t *)data;
-            for(uint32_t c = 0; c < fmt.compCount; c++)
-              val->col.intValue[c] = d[c];
-          }
-        }
-        else
-        {
-          for(uint32_t c = 0; c < fmt.compCount; c++)
-            memcpy(&val->col.uintValue[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
-        }
-      }
-    }
-    else
-    {
-      if(fmt.type == ResourceFormatType::R10G10B10A2 || fmt.type == ResourceFormatType::R11G11B10)
-      {
-        byte *rowdata = pixstoreData + mapped.RowPitch * storey;
-
-        for(int p = 0; p < 2; p++)
-        {
-          byte *data = rowdata + sizeof(uint32_t) * (storex * pixstoreStride + p);
-
-          uint32_t *u = (uint32_t *)data;
-
-          ModificationValue *val = (p == 0 ? &mod.preMod : &mod.postMod);
-
-          Vec4f v;
-          if(fmt.type == ResourceFormatType::R10G10B10A2)
-            v = ConvertFromR10G10B10A2(*u);
-          if(fmt.type == ResourceFormatType::R11G11B10)
-          {
-            Vec3f v3 = ConvertFromR11G11B10(*u);
-            v = Vec4f(v3.x, v3.y, v3.z);
-          }
-
-          memcpy(&val->col.floatValue[0], &v, sizeof(float) * 4);
-        }
-      }
-      else
-      {
-        RDCWARN("need to fetch pixel values from packed resource format types");
-      }
+      byte *data = pixstoreData + sizeof(Vec4f) * pixstoreStride * pre;
+      memcpy(&mod.preMod.col.uintValue[0], data, sizeof(Vec4f));
+      memcpy(&mod.postMod.col.uintValue[0], data + sizeof(Vec4f), sizeof(Vec4f));
     }
 
     {
-      byte *rowdata = pixstoreDepthData + mappedDepth.RowPitch * storey;
-      float *data = (float *)(rowdata + 2 * sizeof(float) * (storex * pixstoreStride + 0));
+      Vec4f *data = (Vec4f *)(pixstoreDepthData + sizeof(Vec4f) * pixstoreStride * pre);
 
-      mod.preMod.depth = data[0];
-      mod.preMod.stencil = int32_t(data[1]);
+      mod.preMod.depth = data[0].x;
+      mod.preMod.stencil = int32_t(data[0].y);
 
-      mod.postMod.depth = data[2];
-      mod.postMod.stencil = int32_t(data[3]);
+      mod.postMod.depth = data[1].x;
+      mod.postMod.stencil = int32_t(data[1].y);
 
-      // data[4] unused
-      mod.shaderOut.col.intValue[0] =
-          int32_t(data[5]);    // fragments writing to the pixel in this event with overlay shader
+      // data[2].x (depth) unused
+      // fragments writing to the pixel in this event with overlay shader
+      mod.shaderOut.col.intValue[0] = int32_t(data[2].y);
 
-      // data[6] unused
-      mod.shaderOut.col.intValue[1] =
-          int32_t(data[7]);    // fragments writing to the pixel in this event with original shader
+      // data[3].x (depth) unused
+      // fragments writing to the pixel in this event with original shader
+      mod.shaderOut.col.intValue[1] = int32_t(data[3].y);
     }
   }
 
@@ -1992,7 +1932,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
   /////////////////////////////////////////////////////////////////////////
   // simple loop to expand out the history events by number of fragments,
-  // duplicatinug and setting fragIndex in each
+  // duplicating and setting fragIndex in each
 
   for(size_t h = 0; h < history.size();)
   {
@@ -2194,8 +2134,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
       m_pDevice->ReplayLog(0, history[h].eventId, eReplay_OnlyDraw);
 
-      GetDebugManager()->PixelHistoryCopyPixel(colourCopyParams, postColSlot % 2048,
-                                               postColSlot / 2048);
+      GetDebugManager()->PixelHistoryCopyPixel(colourCopyParams, postColSlot, 0);
       postColSlot++;
     }
 
@@ -2221,14 +2160,11 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
         m_pDevice->ReplayLog(0, history[h].eventId, eReplay_OnlyDraw);
 
-        GetDebugManager()->PixelHistoryCopyPixel(shadoutCopyParams, shadColSlot % 2048,
-                                                 shadColSlot / 2048);
-        shadColSlot++;
+        GetDebugManager()->PixelHistoryCopyPixel(shadoutCopyParams, shadColSlot, 0);
 
         m_pImmediateContext->OMSetRenderTargets(0, NULL, NULL);
 
-        GetDebugManager()->PixelHistoryCopyPixel(depthCopyParams, depthSlot % 2048, depthSlot / 2048);
-        depthSlot++;
+        GetDebugManager()->PixelHistoryCopyPixel(depthCopyParams, depthSlot, 0);
       }
 
       m_pImmediateContext->ClearDepthStencilView(
@@ -2255,10 +2191,11 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
         SAFE_RELEASE(curPS);
 
-        GetDebugManager()->PixelHistoryCopyPixel(shadoutCopyParams, shadColSlot % 2048,
-                                                 shadColSlot / 2048);
-        shadColSlot++;
+        GetDebugManager()->PixelHistoryCopyPixel(shadoutCopyParams, shadColSlot, 1);
       }
+
+      shadColSlot++;
+      depthSlot++;
 
       m_pImmediateContext->OMSetBlendState(curBS, blendFactor, curSample);
       SAFE_RELEASE(curBS);
@@ -2310,75 +2247,14 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
     {
       // colour
       {
-        if(fmt.type == ResourceFormatType::Regular && fmt.compCount > 0 && fmt.compByteWidth > 0)
-        {
-          byte *rowdata = pixstoreData + mapped.RowPitch * (postColSlot / 2048);
-          byte *data = rowdata + fmt.compCount * fmt.compByteWidth * (postColSlot % 2048);
-
-          if(fmt.compType == CompType::SInt)
-          {
-            // need to get correct sign, but otherwise just copy
-
-            if(fmt.compByteWidth == 1)
-            {
-              int8_t *d = (int8_t *)data;
-              for(uint32_t c = 0; c < fmt.compCount; c++)
-                history[h].postMod.col.intValue[c] = d[c];
-            }
-            else if(fmt.compByteWidth == 2)
-            {
-              int16_t *d = (int16_t *)data;
-              for(uint32_t c = 0; c < fmt.compCount; c++)
-                history[h].postMod.col.intValue[c] = d[c];
-            }
-            else if(fmt.compByteWidth == 4)
-            {
-              int32_t *d = (int32_t *)data;
-              for(uint32_t c = 0; c < fmt.compCount; c++)
-                history[h].postMod.col.intValue[c] = d[c];
-            }
-          }
-          else
-          {
-            for(uint32_t c = 0; c < fmt.compCount; c++)
-              memcpy(&history[h].postMod.col.uintValue[c], data + fmt.compByteWidth * c,
-                     fmt.compByteWidth);
-          }
-        }
-        else
-        {
-          if(fmt.type == ResourceFormatType::R10G10B10A2 || fmt.type == ResourceFormatType::R11G11B10)
-          {
-            byte *rowdata = pixstoreData + mapped.RowPitch * (postColSlot / 2048);
-            byte *data = rowdata + sizeof(uint32_t) * (postColSlot % 2048);
-
-            uint32_t *u = (uint32_t *)data;
-
-            Vec4f v;
-            if(fmt.type == ResourceFormatType::R10G10B10A2)
-              v = ConvertFromR10G10B10A2(*u);
-            if(fmt.type == ResourceFormatType::R11G11B10)
-            {
-              Vec3f v3 = ConvertFromR11G11B10(*u);
-              v = Vec4f(v3.x, v3.y, v3.z);
-            }
-
-            memcpy(&history[h].postMod.col.floatValue[0], &v, sizeof(float) * 4);
-          }
-          else
-          {
-            RDCWARN("need to fetch pixel values from packed resource format types");
-          }
-        }
+        byte *data = pixstoreData + sizeof(Vec4f) * pixstoreStride * postColSlot;
+        memcpy(&history[h].postMod.col.uintValue[0], data, sizeof(Vec4f));
       }
 
       // we don't retrieve the correct-precision depth value post-fragment. This is only possible
-      // for
-      // D24 and D32 - D16 doesn't have attached stencil, so we wouldn't be able to get correct
-      // depth
-      // AND identify each fragment. Instead we just mark this as no data, and the shader output
-      // depth
-      // should be sufficient.
+      // for D24 and D32 - D16 doesn't have attached stencil, so we wouldn't be able to get correct
+      // depth AND identify each fragment. Instead we just mark this as no data, and the shader
+      // output depth should be sufficient.
       if(history[h].preMod.depth >= 0.0f)
         history[h].postMod.depth = -2.0f;
       else
@@ -2411,19 +2287,20 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
     // fetch shader output value
     {
+      bool someFragsClipped = history[h].primitiveID != 0;
+
       // colour
       {
         // shader output is always 4 32bit components, so we can copy straight
-        // Note that because shader output values are interleaved with
-        // primitive IDs, the discardedOffset is doubled when looking at
-        // shader output values
-        uint32_t offsettedSlot = (shadColSlot - discardedOffset * 2);
+        uint32_t offsettedSlot = (shadColSlot - discardedOffset);
         RDCASSERT(discardedOffset * 2 <= shadColSlot);
 
-        byte *rowdata = shadoutStoreData + mappedShadout.RowPitch * (offsettedSlot / 2048);
-        byte *data = rowdata + 4 * sizeof(float) * (offsettedSlot % 2048);
+        byte *data = shadoutStoreData + sizeof(Vec4f) * pixstoreStride * offsettedSlot;
 
         memcpy(&history[h].shaderOut.col.uintValue[0], data, 4 * sizeof(float));
+
+        // primitive ID is in the next slot after that
+        memcpy(&history[h].primitiveID, data + sizeof(Vec4f), sizeof(uint32_t));
       }
 
       // depth
@@ -2431,32 +2308,15 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
         uint32_t offsettedSlot = (depthSlot - discardedOffset);
         RDCASSERT(discardedOffset <= depthSlot);
 
-        byte *rowdata = pixstoreDepthData + mappedDepth.RowPitch * (offsettedSlot / 2048);
-        float *data = (float *)(rowdata + 2 * sizeof(float) * (offsettedSlot % 2048));
+        float *data = (float *)(pixstoreDepthData + sizeof(Vec4f) * pixstoreStride * offsettedSlot);
 
         history[h].shaderOut.depth = data[0];
         if(history[h].postMod.stencil == -1)
           history[h].shaderOut.stencil = -1;
         else
-          history[h].shaderOut.stencil =
-              -2;    // can't retrieve this as we use stencil to identify each fragment
+          // can't retrieve this as we use stencil to identify each fragment
+          history[h].shaderOut.stencil = -2;
       }
-
-      shadColSlot++;
-      depthSlot++;
-    }
-
-    // fetch primitive ID
-    {
-      // shader output is always 4 32bit components, so we can copy straight
-      byte *rowdata = shadoutStoreData + mappedShadout.RowPitch * (shadColSlot / 2048);
-      byte *data = rowdata + 4 * sizeof(float) * (shadColSlot % 2048);
-
-      bool someFragsClipped = history[h].primitiveID != 0;
-
-      memcpy(&history[h].primitiveID, data, sizeof(uint32_t));
-
-      shadColSlot++;
 
       // if some fragments clipped in this draw, we need to check to see if this
       // primitive ID was one of the ones that clipped.
@@ -2557,121 +2417,15 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
           history[h].shaderOut.stencil = -1;
         }
       }
+
+      shadColSlot++;
+      depthSlot++;
     }
   }
 
   m_pImmediateContext->Unmap(shadoutStoreReadback, 0);
   m_pImmediateContext->Unmap(pixstoreReadback, 0);
   m_pImmediateContext->Unmap(pixstoreDepthReadback, 0);
-
-  // interpret float/unorm values
-  if(fmt.type == ResourceFormatType::Regular && fmt.compType != CompType::UInt &&
-     fmt.compType != CompType::SInt)
-  {
-    for(size_t h = 0; h < history.size(); h++)
-    {
-      PixelModification &mod = history[h];
-      if(fmt.compType == CompType::Float && fmt.compByteWidth == 2)
-      {
-        for(uint32_t c = 0; c < fmt.compCount; c++)
-        {
-          mod.preMod.col.floatValue[c] = ConvertFromHalf(uint16_t(mod.preMod.col.uintValue[c]));
-          mod.postMod.col.floatValue[c] = ConvertFromHalf(uint16_t(mod.postMod.col.uintValue[c]));
-        }
-      }
-      else if(fmt.compType == CompType::UNormSRGB && fmt.compByteWidth == 1 && fmt.SRGBCorrected())
-      {
-        RDCASSERT(fmt.compByteWidth == 1);
-
-        for(uint32_t c = 0; c < RDCMIN(fmt.compCount, uint8_t(3)); c++)
-        {
-          mod.preMod.col.floatValue[c] = ConvertFromSRGB8(mod.preMod.col.uintValue[c] & 0xff);
-          mod.postMod.col.floatValue[c] = ConvertFromSRGB8(mod.postMod.col.uintValue[c] & 0xff);
-        }
-
-        // alpha is not SRGB'd
-        if(fmt.compCount == 4)
-        {
-          mod.preMod.col.floatValue[3] = float(mod.preMod.col.uintValue[3] & 0xff) / 255.0f;
-          mod.postMod.col.floatValue[3] = float(mod.postMod.col.uintValue[3] & 0xff) / 255.0f;
-        }
-      }
-      else if(fmt.compType == CompType::UNorm)
-      {
-        // only 32bit unorm format is depth, handled separately
-        float maxVal = fmt.compByteWidth == 2 ? 65535.0f : 255.0f;
-
-        RDCASSERT(fmt.compByteWidth < 4);
-
-        for(uint32_t c = 0; c < fmt.compCount; c++)
-        {
-          mod.preMod.col.floatValue[c] = float(mod.preMod.col.uintValue[c]) / maxVal;
-          mod.postMod.col.floatValue[c] = float(mod.postMod.col.uintValue[c]) / maxVal;
-        }
-      }
-      else if(fmt.compType == CompType::SNorm && fmt.compByteWidth == 1)
-      {
-        for(uint32_t c = 0; c < fmt.compCount; c++)
-        {
-          int8_t *d = (int8_t *)&mod.preMod.col.uintValue[c];
-
-          if(*d == -128)
-            mod.preMod.col.floatValue[c] = -1.0f;
-          else
-            mod.preMod.col.floatValue[c] = float(*d) / 127.0f;
-
-          d = (int8_t *)&mod.postMod.col.uintValue[c];
-
-          if(*d == -128)
-            mod.postMod.col.floatValue[c] = -1.0f;
-          else
-            mod.postMod.col.floatValue[c] = float(*d) / 127.0f;
-        }
-      }
-      else if(fmt.compType == CompType::SNorm && fmt.compByteWidth == 2)
-      {
-        for(uint32_t c = 0; c < fmt.compCount; c++)
-        {
-          int16_t *d = (int16_t *)&mod.preMod.col.uintValue[c];
-
-          if(*d == -32768)
-            mod.preMod.col.floatValue[c] = -1.0f;
-          else
-            mod.preMod.col.floatValue[c] = float(*d) / 32767.0f;
-
-          d = (int16_t *)&mod.postMod.col.uintValue[c];
-
-          if(*d == -32768)
-            mod.postMod.col.floatValue[c] = -1.0f;
-          else
-            mod.postMod.col.floatValue[c] = float(*d) / 32767.0f;
-        }
-      }
-    }
-  }
-
-#if ENABLED(RDOC_DEVEL)
-  for(size_t h = 0; h < history.size(); h++)
-  {
-    PixelModification &hs = history[h];
-    RDCDEBUG(
-        "\nHistory %u @ frag %u from prim %u in %u (depth culled %u):\n"
-        "pre {%f,%f,%f,%f} {%f,%d}\n"
-        "+ shad {%f,%f,%f,%f} {%f,%d}\n"
-        "-> post {%f,%f,%f,%f} {%f,%d}",
-        uint32_t(h), hs.fragIndex, hs.primitiveID, hs.eventId, hs.depthTestFailed,
-
-        hs.preMod.col.floatValue[0], hs.preMod.col.floatValue[1], hs.preMod.col.floatValue[2],
-        hs.preMod.col.floatValue[3], hs.preMod.depth, hs.preMod.stencil,
-
-        hs.shaderOut.col.floatValue[0], hs.shaderOut.col.floatValue[1],
-        hs.shaderOut.col.floatValue[2], hs.shaderOut.col.floatValue[3], hs.shaderOut.depth,
-        hs.shaderOut.stencil,
-
-        hs.postMod.col.floatValue[0], hs.postMod.col.floatValue[1], hs.postMod.col.floatValue[2],
-        hs.postMod.col.floatValue[3], hs.postMod.depth, hs.postMod.stencil);
-  }
-#endif
 
   for(size_t i = 0; i < ARRAY_COUNT(testQueries); i++)
     SAFE_RELEASE(testQueries[i]);
@@ -2712,7 +2466,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
   SAFE_RELEASE(srcxyCBuf);
   SAFE_RELEASE(shadoutsrcxyCBuf);
-  SAFE_RELEASE(storexyCBuf);
+  SAFE_RELEASE(storeCBuf);
 
   return history;
 }
