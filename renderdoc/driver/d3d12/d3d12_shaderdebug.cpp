@@ -73,12 +73,12 @@ public:
   bool CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcode, const ShaderVariable &input,
                               ShaderVariable &output1, ShaderVariable &output2);
 
-  ShaderVariable GetSampleInfo(DXBCBytecode::OperandType type, bool isAbsoluteResource, UINT slot,
+  ShaderVariable GetSampleInfo(DXBCBytecode::OperandType type, bool isAbsoluteResource,
+                               const DXBCDebug::BindingSlot &slot, const char *opString);
+  ShaderVariable GetBufferInfo(DXBCBytecode::OperandType type, const DXBCDebug::BindingSlot &slot,
                                const char *opString);
-
-  ShaderVariable GetBufferInfo(DXBCBytecode::OperandType type, UINT slot, const char *opString);
-  ShaderVariable GetResourceInfo(DXBCBytecode::OperandType type, UINT slot, uint32_t mipLevel,
-                                 int &dim);
+  ShaderVariable GetResourceInfo(DXBCBytecode::OperandType type, const DXBCDebug::BindingSlot &slot,
+                                 uint32_t mipLevel, int &dim);
 
   bool CalculateSampleGather(DXBCBytecode::OpcodeType opcode,
                              DXBCDebug::SampleGatherResourceData resourceData,
@@ -457,7 +457,8 @@ bool D3D12DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
 }
 
 ShaderVariable D3D12DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType type,
-                                                   bool isAbsoluteResource, UINT slot,
+                                                   bool isAbsoluteResource,
+                                                   const DXBCDebug::BindingSlot &slot,
                                                    const char *opString)
 {
   RDCUNIMPLEMENTED("GetSampleInfo not yet implemented for D3D12");
@@ -465,7 +466,8 @@ ShaderVariable D3D12DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType typ
   return result;
 }
 
-ShaderVariable D3D12DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType type, UINT slot,
+ShaderVariable D3D12DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType type,
+                                                   const DXBCDebug::BindingSlot &slot,
                                                    const char *opString)
 {
   RDCUNIMPLEMENTED("GetBufferInfo not yet implemented for D3D12");
@@ -473,7 +475,8 @@ ShaderVariable D3D12DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType typ
   return result;
 }
 
-ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType type, UINT slot,
+ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType type,
+                                                     const DXBCDebug::BindingSlot &slot,
                                                      uint32_t mipLevel, int &dim)
 {
   RDCUNIMPLEMENTED("GetResourceInfo not yet implemented for D3D12");
