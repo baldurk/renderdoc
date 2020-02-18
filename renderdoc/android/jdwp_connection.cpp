@@ -472,6 +472,18 @@ Event Connection::WaitForEvent(EventKind kind, const rdcarray<EventFilter> &even
     ReadVector<Event>(data, events, [this](CommandData &d, Event &ev) { ReadEvent(d, ev); });
     data.Done();
 
+    // if we haven't gotten the resume reply yet, wait for that now so that we're up to date.
+    if(resumeID != ~0U)
+    {
+      Command resumeReply;
+      resumeReply.Recv(reader);
+
+      if(resumeReply.GetID() != resumeID)
+        RDCERR("Expected resume reply for %u, but got %u", resumeID, resumeReply.GetID());
+
+      resumeID = ~0U;
+    }
+
     // event arrived, we're now suspended
     if(suspendPolicy != SuspendPolicy::None)
       suspendRefCount++;
