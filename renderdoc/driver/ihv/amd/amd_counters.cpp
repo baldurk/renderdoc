@@ -144,6 +144,7 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
 
     if(AMD_FAILED(gpaStatus))
     {
+      SAFE_DELETE(m_pGPUPerfAPI);
       RDCERR("Failed to load the GPA function entrypoint.");
       return false;
     }
