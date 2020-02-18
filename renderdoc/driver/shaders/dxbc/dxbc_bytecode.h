@@ -663,6 +663,10 @@ struct Operand
 
   bool operator==(const Operand &o) const;
 
+  // helper function that compares operands by their type and first index (for resources the logical
+  // identifier - excluding register range on SM5.1)
+  bool sameResource(const Operand &o) const;
+
   rdcstr toString(const DXBC::Reflection *reflection, ToString flags) const;
 
   ///////////////////////////////////////

@@ -276,6 +276,20 @@ bool Operand::operator==(const Operand &o) const
   return true;
 }
 
+bool Operand::sameResource(const Operand &o) const
+{
+  if(type != o.type)
+    return false;
+
+  if(indices.size() == o.indices.size() && indices.empty())
+    return true;
+
+  if(indices.size() < 1 || o.indices.size() < 1)
+    return false;
+
+  return indices[0] == indices[1];
+}
+
 void Program::FetchTypeVersion()
 {
   if(m_HexDump.empty())

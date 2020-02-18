@@ -3690,14 +3690,13 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         const Declaration &decl = program->GetDeclaration(i);
 
         if(decl.declaration == OPCODE_DCL_SAMPLER && op.operands.size() > 3 &&
-           op.operands[3].indices[0] == decl.operand.indices[0])
+           decl.operand.sameResource(op.operands[3]))
         {
           samplerMode = decl.samplerMode;
           samplerBinding = GetBindingSlotForDeclaration(*program, decl);
         }
-        if(decl.dim == RESOURCE_DIMENSION_BUFFER && op.operation == OPCODE_LD &&
-           decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.type == TYPE_RESOURCE &&
-           decl.operand.indices.size() > 0 && decl.operand.indices[0] == op.operands[2].indices[0])
+        if(op.operation == OPCODE_LD && decl.dim == RESOURCE_DIMENSION_BUFFER &&
+           decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.sameResource(op.operands[2]))
         {
           resourceDim = decl.dim;
 
@@ -3753,8 +3752,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
 
           return;
         }
-        if(decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.type == TYPE_RESOURCE &&
-           decl.operand.indices.size() > 0 && decl.operand.indices[0] == op.operands[2].indices[0])
+        if(decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.sameResource(op.operands[2]))
         {
           resourceDim = decl.dim;
           resourceRetType = decl.resType[0];
