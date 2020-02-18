@@ -169,6 +169,8 @@ document.body.onload = function() {
             last_test = test_name;
           else
             last_test = '';
+        } else if(words[0] == 'Section') {
+          html += start ? '<div class="expandable"><span class="expandtoggle"></span><div class="title">' + words.slice(1).join(' ') + '</div><div class="contents">' : '</div></div>';
         }
       } else if(m[1] == '$$') {
         if(m[2] == 'FAILED') {

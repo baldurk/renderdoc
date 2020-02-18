@@ -82,6 +82,14 @@ class TestLogger:
             self.rawprint("<< Test {}".format(test_name))
         self.test_name = ''
 
+    def begin_section(self, name: str):
+        self.rawprint(">> Section {}".format(name))
+        self.indent()
+
+    def end_section(self, name: str):
+        self.dedent()
+        self.rawprint("<< Section {}".format(name))
+
     def success(self, message):
         self.rawprint("** " + message)
 

@@ -214,19 +214,22 @@ class Iter_Test(rdtest.TestCase):
             else:
                 rdtest.log.print("At event {} the target is index {}".format(lastmod.eventId, output_index))
 
-                output = \
-                    [x for x in sourceVars if x.builtin == rd.ShaderBuiltin.ColorOutput and x.offset == output_index][0]
+                output_list = \
+                    [x for x in sourceVars if x.builtin == rd.ShaderBuiltin.ColorOutput and x.offset == output_index]
 
-                debugged = self.evalute_source_var(output, variables)
+                if len(output_list) > 0:
+                    debugged = self.evalute_source_var(output_list[0], variables)
 
-                self.controller.FreeTrace(trace)
+                    self.controller.FreeTrace(trace)
 
-                debuggedValue = [debugged.value.f.x, debugged.value.f.y, debugged.value.f.z, debugged.value.f.w]
+                    debuggedValue = [debugged.value.f.x, debugged.value.f.y, debugged.value.f.z, debugged.value.f.w]
 
-                if not rdtest.value_compare(lastmod.shaderOut.col.floatValue, debuggedValue, eps=3.0E-06):
-                    raise rdtest.TestFailureException("Debugged value {}: {} doesn't match history shader output {}".format(debugged.name, debuggedValue, lastmod.shaderOut.col.floatValue))
+                    if not rdtest.value_compare(lastmod.shaderOut.col.floatValue, debuggedValue, eps=3.0E-06):
+                        rdtest.log.error("Debugged value {} at EID {} {},{}: {} doesn't match history shader output {}".format(debugged.name, lastmod.eventId, x, y, debuggedValue, lastmod.shaderOut.col.floatValue))
 
-                rdtest.log.success('Successfully debugged pixel in {} cycles, result matches'.format(cycles))
+                    rdtest.log.success('Successfully debugged pixel in {} cycles, result matches'.format(cycles))
+                else:
+                    rdtest.log.error("At EID {} No output variable declared for index {}".format(lastmod.eventId, output_index))
 
             self.controller.SetFrameEvent(draw.eventId, True)
 
@@ -278,26 +281,31 @@ class Iter_Test(rdtest.TestCase):
     def run(self):
         dir_path = self.get_ref_path('', extra=True)
 
-        for file in os.scandir(dir_path):
+        for file in sorted(os.scandir(dir_path), key=lambda e: e.name.lower()):
             if '.rdc' not in file.name:
                 continue
 
             # Ensure we are deterministic at least from run to run by seeding with the path
             random.seed(file.name)
 
-            rdtest.log.print('Iterating {}'.format(file.name))
+            self.filename = file.name
+
+            rdtest.log.print("Opening '{}'.".format(file.name))
 
             try:
                 self.controller = rdtest.open_capture(file.path)
             except RuntimeError as err:
+                rdtest.log.end_section(section_name)
                 rdtest.log.print("Skipping. Can't open {}: {}".format(file.path, err))
                 continue
+                
+            section_name = 'Iterating {}'.format(file.name)
 
+            rdtest.log.begin_section(section_name)
             self.iter_test()
+            rdtest.log.end_section(section_name)
 
             self.controller.Shutdown()
-
-            rdtest.log.success("Iterated {}".format(file.name))
 
         rdtest.log.success("Iterated all files")
 
