@@ -287,7 +287,7 @@ bool Operand::sameResource(const Operand &o) const
   if(indices.size() < 1 || o.indices.size() < 1)
     return false;
 
-  return indices[0] == indices[0];
+  return indices[0] == o.indices[0];
 }
 
 void Program::FetchTypeVersion()
