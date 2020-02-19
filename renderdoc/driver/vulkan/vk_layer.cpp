@@ -58,6 +58,10 @@ class VulkanHook : LibraryHook
     Process::RegisterEnvironmentModification(EnvironmentModification(
         EnvMod::Set, EnvSep::NoSep, "ENABLE_VULKAN_RENDERDOC_CAPTURE", "1"));
 
+    // RTSS layer is buggy, disable it to avoid bug reports that are caused by it
+    Process::RegisterEnvironmentModification(
+        EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_RTSS_LAYER", "1"));
+
 #if ENABLED(RDOC_WIN32)
     // on windows support self-hosted capture by checking our filename and tweaking the env var we
     // set

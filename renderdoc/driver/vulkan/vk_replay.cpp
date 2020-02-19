@@ -3944,6 +3944,10 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, 
   Process::RegisterEnvironmentModification(
       EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_LAYER_NV_OPTIMUS_1", ""));
 
+  // RTSS layer is buggy, disable it to avoid bug reports that are caused by it
+  Process::RegisterEnvironmentModification(
+      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_RTSS_LAYER", "1"));
+
   Process::ApplyEnvironmentModification();
 
   void *module = LoadVulkanLibrary();
