@@ -1058,7 +1058,7 @@ bool WrappedOpenGL::Serialise_glNamedCopyBufferSubDataEXT(SerialiserType &ser,
     GL.glNamedCopyBufferSubDataEXT(readBuffer.name, writeBuffer.name, (GLintptr)readOffset,
                                    (GLintptr)writeOffset, (GLsizeiptr)size);
 
-    if(IsLoading(m_State))
+    if(IsLoading(m_State) && m_CurEventID > 0)
     {
       AddEvent();
 
