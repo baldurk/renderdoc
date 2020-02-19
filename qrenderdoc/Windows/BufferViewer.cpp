@@ -200,9 +200,6 @@ public:
   {
     KeyPressDirection dir = GetDirection(e);
 
-    qInfo() << "keydown" << Qt::Key(e->key()) << "has scancode" << e->nativeScanCode()
-            << "and virtualkey" << e->nativeVirtualKey() << char(e->nativeVirtualKey());
-
     switch(dir)
     {
       case KeyPressDirection::None: break;
