@@ -2117,6 +2117,12 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
           sig.systemValue = ShaderBuiltin::VertexIndex;
         if(IS_BUILTIN("gl_InstanceID"))
           sig.systemValue = ShaderBuiltin::InstanceIndex;
+        if(IS_BUILTIN("gl_BaseVertex"))
+          sig.systemValue = ShaderBuiltin::BaseVertex;
+        if(IS_BUILTIN("gl_BaseInstance"))
+          sig.systemValue = ShaderBuiltin::BaseInstance;
+        if(IS_BUILTIN("gl_DrawID"))
+          sig.systemValue = ShaderBuiltin::DrawIndex;
 
         // VS built-in outputs
         if(IS_BUILTIN("gl_Position"))

@@ -620,6 +620,9 @@ rdcstr DoStringise(const ShaderBuiltin &el)
     STRINGISE_ENUM_CLASS_NAMED(DepthOutput, "Depth Output");
     STRINGISE_ENUM_CLASS_NAMED(DepthOutputGreaterEqual, "Depth Output (GEqual)");
     STRINGISE_ENUM_CLASS_NAMED(DepthOutputLessEqual, "Depth Output (LEqual)");
+    STRINGISE_ENUM_CLASS_NAMED(BaseVertex, "Base Vertex");
+    STRINGISE_ENUM_CLASS_NAMED(BaseInstance, "Base Instance");
+    STRINGISE_ENUM_CLASS_NAMED(DrawIndex, "Draw Index");
     STRINGISE_ENUM_CLASS_NAMED(StencilReference, "Stencil Ref Value");
     STRINGISE_ENUM_CLASS_NAMED(PointCoord, "Point Co-ord");
     STRINGISE_ENUM_CLASS_NAMED(IsHelper, "Is Helper");
