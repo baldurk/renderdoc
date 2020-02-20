@@ -44,7 +44,7 @@ static bool ContainsNaNInf(const ShaderVariable &val)
   {
     for(int i = 0; i < count; i++)
     {
-      ret |= !finite(val.value.fv[i]);
+      ret |= isinf(val.value.fv[i]);
       ret |= isnan(val.value.fv[i]) != 0;
     }
   }
@@ -52,7 +52,7 @@ static bool ContainsNaNInf(const ShaderVariable &val)
   {
     for(int i = 0; i < count; i++)
     {
-      ret |= !finite(val.value.dv[i]);
+      ret |= isinf(val.value.dv[i]);
       ret |= isnan(val.value.dv[i]) != 0;
     }
   }
