@@ -25,6 +25,7 @@
 #include <float.h>
 #include "driver/shaders/spirv/spirv_editor.h"
 #include "driver/shaders/spirv/spirv_op_helpers.h"
+#include "maths/formatpacking.h"
 #include "vk_debug.h"
 #include "vk_replay.h"
 #include "vk_shader_cache.h"
@@ -88,7 +89,8 @@ struct PixelHistoryResources
 
 struct PixelHistoryValue
 {
-  uint8_t color[16];
+  // Max size is 4 component with 8 byte component width
+  uint8_t color[32];
   union
   {
     uint32_t udepth;
@@ -1645,6 +1647,56 @@ void UpdateTestsFailed(const TestsFailedCallback *tfCb, uint32_t eventId, uint32
   }
 }
 
+void FillInColors(const EventInfo &ei, VkFormat format, PixelModification &mod)
+{
+  ResourceFormat fmt = MakeResourceFormat(format);
+
+  if(fmt.type == ResourceFormatType::R10G10B10A2 || fmt.type == ResourceFormatType::R11G11B10)
+  {
+    for(int p = 0; p < 2; p++)
+    {
+      ModificationValue *val = (p == 0 ? &mod.preMod : &mod.postMod);
+      const PixelHistoryValue *source = (p == 0 ? &ei.premod : &ei.postmod);
+      uint32_t data = *((uint32_t *)source->color);
+      Vec4f v;
+      if(fmt.type == ResourceFormatType::R10G10B10A2)
+      {
+        if(fmt.compType == CompType::SNorm)
+          v = ConvertFromR10G10B10A2SNorm(data);
+        else
+          v = ConvertFromR10G10B10A2(data);
+      }
+      else
+      {
+        Vec3f v3 = ConvertFromR11G11B10(data);
+        v = Vec4f(v3.x, v3.y, v3.z);
+      }
+      memcpy(&val->col.floatValue[0], &v, sizeof(float) * 4);
+    }
+    return;
+  }
+
+  for(uint8_t c = 0; c < fmt.compCount; c++)
+  {
+    // Special case for alpha component in SRGB format.
+    if(fmt.SRGBCorrected() && (fmt.compByteWidth == 1) && (c == 3))
+    {
+      mod.preMod.col.floatValue[c] = float(ei.premod.color[3]) / 255.0f;
+      mod.postMod.col.floatValue[c] = float(ei.postmod.color[3]) / 255.0f;
+    }
+    else
+    {
+      mod.preMod.col.floatValue[c] = ConvertComponent(fmt, ei.premod.color + c * fmt.compByteWidth);
+      mod.postMod.col.floatValue[c] = ConvertComponent(fmt, ei.postmod.color + c * fmt.compByteWidth);
+    }
+  }
+  if(fmt.BGRAOrder())
+  {
+    std::swap(mod.preMod.col.floatValue[0], mod.preMod.col.floatValue[2]);
+    std::swap(mod.postMod.col.floatValue[0], mod.postMod.col.floatValue[2]);
+  }
+}
+
 rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> events,
                                                        ResourceId target, uint32_t x, uint32_t y,
                                                        const Subresource &sub, CompType typeCast)
@@ -1796,27 +1848,12 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   {
     PixelModification &mod = history[h];
 
-    ModificationValue preMod, postMod, shadout;
     const EventInfo &ei = eventsInfo[cb.GetEventIndex(mod.eventId)];
-    preMod.col.floatValue[0] = (float)(ei.premod.color[2] / 255.0);
-    preMod.col.floatValue[1] = (float)(ei.premod.color[1] / 255.0);
-    preMod.col.floatValue[2] = (float)(ei.premod.color[0] / 255.0);
-    preMod.col.floatValue[3] = (float)(ei.premod.color[3] / 255.0);
-    postMod.col.floatValue[0] = (float)(ei.postmod.color[2] / 255.0);
-    postMod.col.floatValue[1] = (float)(ei.postmod.color[1] / 255.0);
-    postMod.col.floatValue[2] = (float)(ei.postmod.color[0] / 255.0);
-    postMod.col.floatValue[3] = (float)(ei.shadout.color[3] / 255.0);
-    shadout.col.floatValue[0] = (float)(ei.shadout.color[2] / 255.0);
-    shadout.col.floatValue[1] = (float)(ei.shadout.color[1] / 255.0);
-    shadout.col.floatValue[2] = (float)(ei.shadout.color[0] / 255.0);
-    preMod.depth = ei.premod.depth.fdepth;
-    preMod.stencil = ei.premod.stencil;
-    postMod.depth = ei.postmod.depth.fdepth;
-    postMod.stencil = ei.postmod.stencil;
-
-    mod.preMod = preMod;
-    mod.shaderOut = shadout;
-    mod.postMod = postMod;
+    FillInColors(ei, imginfo.format, mod);
+    mod.preMod.depth = ei.premod.depth.fdepth;
+    mod.preMod.stencil = ei.premod.stencil;
+    mod.postMod.depth = ei.postmod.depth.fdepth;
+    mod.postMod.stencil = ei.postmod.stencil;
 
     RDCDEBUG("PixelHistory event id: %u, stencilValue = %u", mod.eventId,
              ei.dsWithoutShaderDiscard[0]);
