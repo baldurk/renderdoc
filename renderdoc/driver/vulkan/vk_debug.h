@@ -90,6 +90,7 @@ public:
                                uint32_t slice);
 
   const VulkanCreationInfo::Image &GetImageInfo(ResourceId img) const;
+  const VulkanCreationInfo::ImageView &GetImageViewInfo(ResourceId imgView) const;
   const VulkanCreationInfo::Pipeline &GetPipelineInfo(ResourceId pipe) const;
   const VulkanCreationInfo::ShaderModule &GetShaderInfo(ResourceId shader) const;
   const VulkanCreationInfo::Framebuffer &GetFramebufferInfo(ResourceId fb) const;

@@ -1484,6 +1484,13 @@ const VulkanCreationInfo::Image &VulkanDebugManager::GetImageInfo(ResourceId img
   return it->second;
 }
 
+const VulkanCreationInfo::ImageView &VulkanDebugManager::GetImageViewInfo(ResourceId imgView) const
+{
+  auto it = m_pDriver->m_CreationInfo.m_ImageView.find(imgView);
+  RDCASSERT(it != m_pDriver->m_CreationInfo.m_ImageView.end());
+  return it->second;
+}
+
 const VulkanCreationInfo::Pipeline &VulkanDebugManager::GetPipelineInfo(ResourceId pipe) const
 {
   auto it = m_pDriver->m_CreationInfo.m_Pipeline.find(pipe);
