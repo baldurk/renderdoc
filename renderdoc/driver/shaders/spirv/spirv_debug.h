@@ -108,6 +108,10 @@ struct ThreadState
   // index in the pixel quad
   int workgroupIndex;
   bool done;
+
+private:
+  const ShaderVariable &GetSrc(Id id);
+  void SetDst(ShaderDebugState *state, Id id, const ShaderVariable &val);
 };
 
 class Debugger : public Processor, public ShaderDebugger
