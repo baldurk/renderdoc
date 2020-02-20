@@ -35,6 +35,9 @@ class DebugAPIWrapper
 public:
   virtual ~DebugAPIWrapper() {}
   virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d) = 0;
+
+  virtual void FillInputValue(ShaderVariable &var, ShaderBuiltin builtin, uint32_t location,
+                              uint32_t offset) = 0;
 };
 
 struct GlobalState
@@ -104,6 +107,10 @@ private:
   Id GetPointerBaseId(const ShaderVariable &v) const;
   void WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariable &val);
   ShaderVariable MakeCompositePointer(const ShaderVariable &base, Id id, rdcarray<uint32_t> &indices);
+
+  void AllocateVariable(const Decorations &varDecorations, const Decorations &curDecorations,
+                        DebugVariableType sourceVarType, const rdcstr &sourceName, uint32_t offset,
+                        const DataType &inType, ShaderVariable &outVar);
 
   DebugAPIWrapper *apiWrapper = NULL;
 

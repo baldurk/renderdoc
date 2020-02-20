@@ -83,6 +83,76 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
   for(auto it = constants.begin(); it != constants.end(); it++)
     active.ids[it->first] = EvaluateConstant(it->first, specInfo);
 
+  rdcarray<Id> inputIDs, outputIDs;
+
+  // allocate storage for globals with opaque storage classes, and prepare to set up pointers to
+  // them for the global variables themselves
+  for(const Variable &v : globals)
+  {
+    if(v.storage == StorageClass::Input || v.storage == StorageClass::Output)
+    {
+      const bool isInput = (v.storage == StorageClass::Input);
+
+      ShaderVariable var;
+      var.name = GetRawName(v.id);
+
+      rdcstr sourceName = GetHumanName(v.id);
+
+      size_t oldSize = sourceVars.size();
+
+      const DataType &type = dataTypes[v.type];
+
+      // global variables should all be pointers into opaque storage
+      RDCASSERT(type.type == DataType::PointerType);
+
+      // fill the interface variable
+      AllocateVariable(decorations[v.id], decorations[v.id],
+                       isInput ? DebugVariableType::Input : DebugVariableType::Variable, sourceName,
+                       0, dataTypes[type.InnerType()], var);
+
+      // I/O variable structs don't have offsets, so give them fake offsets to ensure they sort as
+      // we want. Since FillVariable is depth-first the source vars are already in order.
+      for(size_t i = oldSize; i < sourceVars.size(); i++)
+        sourceVars[i].offset = uint32_t(i - oldSize);
+
+      if(isInput)
+      {
+        // create the opaque storage
+        active.inputs.push_back(var);
+
+        // then make sure we know which ID to set up for the pointer
+        inputIDs.push_back(v.id);
+      }
+      else
+      {
+        active.outputs.push_back(var);
+        outputIDs.push_back(v.id);
+      }
+    }
+  }
+
+  // now that the globals are allocated and their storage won't move, we can take pointers to them
+  for(size_t i = 0; i < active.inputs.size(); i++)
+    active.ids[inputIDs[i]] = MakePointerVariable(inputIDs[i], &active.inputs[i]);
+  for(size_t i = 0; i < active.outputs.size(); i++)
+    active.ids[outputIDs[i]] = MakePointerVariable(outputIDs[i], &active.outputs[i]);
+
+  // only outputs are considered mutable
+  active.live.append(outputIDs);
+
+  for(size_t i = 0; i < sourceVars.size();)
+  {
+    if(!sourceVars[i].variables.empty() &&
+       (sourceVars[i].variables[0].type == DebugVariableType::Input ||
+        sourceVars[i].variables[0].type == DebugVariableType::Constant))
+    {
+      ret->sourceVars.push_back(sourceVars[i]);
+      sourceVars.erase(i);
+      continue;
+    }
+    i++;
+  }
+
   ret->lineInfo.resize(instructionOffsets.size());
   for(size_t i = 0; i < instructionOffsets.size(); i++)
   {
@@ -344,6 +414,123 @@ rdcstr Debugger::GetHumanName(Id id)
   dynamicNames[id] = name;
 
   return name;
+}
+
+void Debugger::AllocateVariable(const Decorations &varDecorations, const Decorations &curDecorations,
+                                DebugVariableType sourceVarType, const rdcstr &sourceName,
+                                uint32_t offset, const DataType &inType, ShaderVariable &outVar)
+{
+  switch(inType.type)
+  {
+    case DataType::PointerType:
+    {
+      RDCERR("Pointers not supported in interface variables");
+      return;
+    }
+    case DataType::ScalarType:
+    {
+      outVar.type = inType.scalar().Type();
+      outVar.rows = 1;
+      outVar.columns = 1;
+      break;
+    }
+    case DataType::VectorType:
+    {
+      outVar.type = inType.scalar().Type();
+      outVar.rows = 1;
+      outVar.columns = RDCMAX(1U, inType.vector().count);
+      break;
+    }
+    case DataType::MatrixType:
+    {
+      outVar.type = inType.scalar().Type();
+      outVar.columns = RDCMAX(1U, inType.matrix().count);
+      outVar.rows = RDCMAX(1U, inType.vector().count);
+      break;
+    }
+    case DataType::StructType:
+    {
+      for(int32_t i = 0; i < inType.children.count(); i++)
+      {
+        ShaderVariable var;
+        var.name = StringFormat::Fmt("%s._child%d", outVar.name.c_str(), i);
+
+        rdcstr childName;
+        if(inType.children[i].name.empty())
+          childName = StringFormat::Fmt("%s._child%d", sourceName.c_str(), i);
+        else
+          childName = sourceName + "." + inType.children[i].name;
+
+        uint32_t childOffset = offset;
+
+        const Decorations &childDecorations = inType.children[i].decorations;
+
+        if(childDecorations.flags & Decorations::HasOffset)
+          childOffset += childDecorations.offset;
+
+        AllocateVariable(varDecorations, childDecorations, sourceVarType, childName, childOffset,
+                         dataTypes[inType.children[i].type], var);
+
+        var.name = StringFormat::Fmt("_child%d", i);
+
+        outVar.members.push_back(var);
+      }
+      return;
+    }
+    case DataType::ArrayType:
+    {
+      // array stride is decorated on the type, not the member itself
+      const Decorations &typeDecorations = decorations[inType.id];
+
+      ShaderVariable len = GetActiveLane().ids[inType.length];
+      for(uint32_t i = 0; i < len.value.u.x; i++)
+      {
+        rdcstr idx = StringFormat::Fmt("[%u]", i);
+        ShaderVariable var;
+        var.name = outVar.name + idx;
+        AllocateVariable(varDecorations, curDecorations, sourceVarType, sourceName + idx, offset,
+                         dataTypes[inType.InnerType()], var);
+
+        var.name = idx;
+
+        if(typeDecorations.flags & Decorations::HasArrayStride)
+          offset += typeDecorations.arrayStride;
+
+        outVar.members.push_back(var);
+      }
+      return;
+    }
+    case DataType::ImageType:
+    case DataType::SamplerType:
+    case DataType::SampledImageType:
+    case DataType::UnknownType:
+    {
+      RDCERR("Unexpected variable type %d", inType.type);
+      break;
+    }
+  }
+
+  SourceVariableMapping sourceVar;
+  sourceVar.name = sourceName;
+  sourceVar.offset = offset;
+  sourceVar.type = outVar.type;
+  sourceVar.rows = outVar.rows;
+  sourceVar.columns = outVar.columns;
+  for(uint32_t x = 0; x < uint32_t(outVar.rows) * outVar.columns; x++)
+    sourceVar.variables.push_back(DebugVariableReference(sourceVarType, outVar.name, x));
+
+  if(curDecorations.flags & Decorations::HasBuiltIn)
+    sourceVar.builtin = MakeShaderBuiltin(stage, curDecorations.builtIn);
+
+  sourceVars.push_back(sourceVar);
+
+  if(sourceVarType == DebugVariableType::Input)
+  {
+    apiWrapper->FillInputValue(
+        outVar, sourceVar.builtin,
+        (curDecorations.flags & Decorations::HasLocation) ? curDecorations.location : 0,
+        (curDecorations.flags & Decorations::HasOffset) ? curDecorations.offset : 0);
+  }
 }
 
 void Debugger::PreParse(uint32_t maxId)
