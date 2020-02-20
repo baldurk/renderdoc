@@ -61,6 +61,14 @@ public:
   // every ID's variable, if a pointer it may be pointing at a ShaderVariable stored elsewhere
   DenseIdMap<ShaderVariable> ids;
 
+  // for any allocated variables, a list of 'extra' pointers pointing to it. By default the actual
+  // storage of allocated variables is not directly accessible (it's stored in e.g. inputs, outputs,
+  // global constants, stack frame variables, etc). The ID for the allocating OpVariable is replaced
+  // with a pointer pointing to that storage. However more pointers can be generated with
+  // OpAccessChain etc, and these pointers must be listed as changed whenever the underlying Id
+  // changes (and vice-versa - a change via any of those pointers must update all other pointers).
+  SparseIdMap<rdcarray<Id>> pointersForId;
+
   // the list of IDs that are currently valid and live
   rdcarray<Id> live;
 
@@ -90,6 +98,13 @@ private:
   virtual void PostParse();
   virtual void RegisterOp(Iter it);
 
+  ShaderVariable EvaluatePointerVariable(const ShaderVariable &v) const;
+  ShaderVariable MakePointerVariable(Id id, const ShaderVariable *v, uint32_t scalar0 = ~0U,
+                                     uint32_t scalar1 = ~0U) const;
+  Id GetPointerBaseId(const ShaderVariable &v) const;
+  void WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariable &val);
+  ShaderVariable MakeCompositePointer(const ShaderVariable &base, Id id, rdcarray<uint32_t> &indices);
+
   DebugAPIWrapper *apiWrapper = NULL;
 
   GlobalState global;
@@ -114,11 +129,16 @@ private:
 
   rdcarray<MemberName> memberNames;
 
-  rdcstr GetRawName(Id id);
+  rdcstr GetRawName(Id id) const;
   rdcstr GetHumanName(Id id);
 
   std::set<rdcstr> usedNames;
   std::map<Id, rdcstr> dynamicNames;
 };
+
+// this does a 'safe' value assignment, by doing parallel depth-first iteration of both variables
+// and only copying the value itself. This ensures we don't change any locations that might be
+// pointed to. Assignments should only ever be between compatible types so this should be safe.
+void AssignValue(ShaderVariable &dst, const ShaderVariable &src);
 
 };    // namespace rdcspv
