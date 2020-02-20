@@ -133,6 +133,7 @@ public:
   const DataType &GetType(Id typeId);
   rdcstr GetRawName(Id id) const;
   rdcstr GetHumanName(Id id);
+  void AddSourceVars(Id id);
   void AllocateVariable(Id id, Id typeId, DebugVariableType sourceVarType, const rdcstr &sourceName,
                         ShaderVariable &outVar);
 
@@ -154,6 +155,8 @@ private:
   void AllocateVariable(const Decorations &varDecorations, const Decorations &curDecorations,
                         DebugVariableType sourceVarType, const rdcstr &sourceName, uint32_t offset,
                         const DataType &inType, ShaderVariable &outVar);
+  void AddSourceVars(const DataType &inType, const rdcstr &sourceName, const rdcstr &varName,
+                     uint32_t &offset);
 
   /////////////////////////////////////////////////////////
   // debug data

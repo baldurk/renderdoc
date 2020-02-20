@@ -552,6 +552,102 @@ rdcstr Debugger::GetHumanName(Id id)
   return name;
 }
 
+void Debugger::AddSourceVars(Id id)
+{
+  rdcstr name;
+
+  auto it = dynamicNames.find(id);
+  if(it != dynamicNames.end())
+    name = it->second;
+  else
+    name = strings[id];
+
+  if(!name.empty())
+  {
+    Id type = idTypes[id];
+
+    uint32_t offset = 0;
+    AddSourceVars(dataTypes[type], name, GetRawName(id), offset);
+  }
+}
+
+void Debugger::AddSourceVars(const DataType &inType, const rdcstr &sourceName,
+                             const rdcstr &varName, uint32_t &offset)
+{
+  SourceVariableMapping sourceVar;
+
+  switch(inType.type)
+  {
+    case DataType::UnknownType:
+    case DataType::ImageType:
+    case DataType::SamplerType:
+    case DataType::SampledImageType: return;
+    case DataType::PointerType:
+    {
+      // step silently into pointers
+      AddSourceVars(dataTypes[inType.InnerType()], sourceName, varName, offset);
+      return;
+    }
+    case DataType::ScalarType:
+    {
+      sourceVar.type = inType.scalar().Type();
+      sourceVar.rows = 1;
+      sourceVar.columns = 1;
+      break;
+    }
+    case DataType::VectorType:
+    {
+      sourceVar.type = inType.scalar().Type();
+      sourceVar.rows = 1;
+      sourceVar.columns = RDCMAX(1U, inType.vector().count);
+      break;
+    }
+    case DataType::MatrixType:
+    {
+      sourceVar.type = inType.scalar().Type();
+      sourceVar.columns = RDCMAX(1U, inType.matrix().count);
+      sourceVar.rows = RDCMAX(1U, inType.vector().count);
+      break;
+    }
+    case DataType::StructType:
+    {
+      for(int32_t i = 0; i < inType.children.count(); i++)
+      {
+        rdcstr childVarName = StringFormat::Fmt("%s._child%d", varName.c_str(), i);
+
+        rdcstr childSourceName;
+        if(inType.children[i].name.empty())
+          childSourceName = StringFormat::Fmt("%s._child%d", sourceName.c_str(), i);
+        else
+          childSourceName = sourceName + "." + inType.children[i].name;
+
+        AddSourceVars(dataTypes[inType.children[i].type], childSourceName, childVarName, offset);
+      }
+      return;
+    }
+    case DataType::ArrayType:
+    {
+      ShaderVariable len = GetActiveLane().ids[inType.length];
+      for(uint32_t i = 0; i < len.value.u.x; i++)
+      {
+        rdcstr idx = StringFormat::Fmt("[%u]", i);
+
+        AddSourceVars(dataTypes[inType.InnerType()], sourceName + idx, varName + idx, offset);
+      }
+      return;
+    }
+  }
+
+  sourceVar.name = sourceName;
+  sourceVar.offset = offset;
+  for(uint32_t x = 0; x < sourceVar.rows * sourceVar.columns; x++)
+    sourceVar.variables.push_back(DebugVariableReference(DebugVariableType::Variable, varName, x));
+
+  sourceVars.push_back(sourceVar);
+
+  offset++;
+}
+
 void Debugger::CalcActiveMask(rdcarray<bool> &activeMask)
 {
   // one bool per workgroup thread
@@ -671,6 +767,9 @@ void Debugger::AllocateVariable(const Decorations &varDecorations, const Decorat
       break;
     }
   }
+
+  if(sourceVarType == DebugVariableType::Undefined)
+    return;
 
   SourceVariableMapping sourceVar;
   sourceVar.name = sourceName;

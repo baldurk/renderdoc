@@ -149,8 +149,9 @@ void ThreadState::EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arg
 
     rdcstr sourceName = debugger.GetHumanName(decl.result);
 
-    debugger.AllocateVariable(decl.result, decl.resultType, DebugVariableType::Variable, sourceName,
-                              stackvar);
+    // don't add source vars - SetDst below will do that
+    debugger.AllocateVariable(decl.result, decl.resultType, DebugVariableType::Undefined,
+                              sourceName, stackvar);
 
     if(decl.HasInitializer())
       AssignValue(stackvar, ids[decl.initializer]);
@@ -187,6 +188,8 @@ void ThreadState::SetDst(ShaderDebugState *state, Id id, const ShaderVariable &v
       ids[id] = val;
       ids[id].name = debugger.GetRawName(id);
       live.push_back(id);
+
+      debugger.AddSourceVars(id);
     }
     else
     {
@@ -267,6 +270,8 @@ void ThreadState::SetDst(ShaderDebugState *state, Id id, const ShaderVariable &v
     ShaderVariableChange change;
     change.after = debugger.EvaluatePointerVariable(ids[id]);
     state->changes.push_back(change);
+
+    debugger.AddSourceVars(id);
   }
 }
 
