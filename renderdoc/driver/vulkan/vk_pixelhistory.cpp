@@ -379,16 +379,13 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
 {
   VulkanOcclusionAndStencilCallback(WrappedVulkan *vk, PixelHistoryShaderCache *shaderCache,
                                     uint32_t x, uint32_t y, VkImage image, VkFormat format,
-                                    VkExtent3D extent, uint32_t sampleMask,
-                                    VkQueryPool occlusionPool, VkImageView colorImageView,
+                                    uint32_t sampleMask, VkQueryPool occlusionPool,
                                     VkImageView stencilImageView, VkImage stencilImage,
                                     VkBuffer dstBuffer, const rdcarray<EventUsage> &events)
       : VulkanPixelHistoryCallback(vk, shaderCache, x, y, sampleMask, occlusionPool),
         m_Image(image),
         m_Format(format),
-        m_Extent(extent),
         m_DstBuffer(dstBuffer),
-        m_ColorImageView(colorImageView),
         m_StencilImageView(stencilImageView),
         m_StencilImage(stencilImage)
   {
@@ -396,71 +393,156 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
       m_Events.insert(std::make_pair(events[i].eventId, events[i]));
   }
 
-  ~VulkanOcclusionAndStencilCallback() {}
-  // CreateResources creates fixed colour shader, offscreen framebuffer and
-  // a renderpass for occlusion and stencil tests.
-  void CreateResources()
+  ~VulkanOcclusionAndStencilCallback()
   {
-    VkResult vkr;
-
-    VkAttachmentReference colRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-    VkAttachmentReference stencilRef = {1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
-    VkSubpassDescription sub = {};
-    sub.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    sub.colorAttachmentCount = 1;
-    sub.pColorAttachments = &colRef;
-    sub.pDepthStencilAttachment = &stencilRef;
-
-    VkAttachmentDescription attDesc[2] = {};
-    attDesc[0].format = m_Format;
-    attDesc[0].samples = VK_SAMPLE_COUNT_1_BIT;
-    attDesc[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attDesc[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attDesc[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    attDesc[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attDesc[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    attDesc[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    attDesc[1] = attDesc[0];
-    attDesc[1].format = VK_FORMAT_D32_SFLOAT_S8_UINT;
-    attDesc[1].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    attDesc[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attDesc[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attDesc[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attDesc[1].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    attDesc[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkRenderPassCreateInfo rpinfo = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-    rpinfo.attachmentCount = 2;
-    rpinfo.pAttachments = attDesc;
-    rpinfo.subpassCount = 1;
-    rpinfo.pSubpasses = &sub;
-    vkr = m_pDriver->vkCreateRenderPass(m_pDriver->GetDev(), &rpinfo, NULL, &m_RenderPass);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    VkImageView attachments[2] = {m_ColorImageView, m_StencilImageView};
-    VkFramebufferCreateInfo fbinfo = {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
-    fbinfo.renderPass = m_RenderPass;
-    fbinfo.attachmentCount = 2;
-    fbinfo.pAttachments = attachments;
-    fbinfo.width = m_Extent.width;
-    fbinfo.height = m_Extent.height;
-    fbinfo.layers = 1;
-
-    vkr = m_pDriver->vkCreateFramebuffer(m_pDriver->GetDev(), &fbinfo, NULL, &m_OffscreenFB);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    for(const VkRenderPass &rp : m_RpsToDestroy)
+      m_pDriver->vkDestroyRenderPass(m_pDriver->GetDev(), rp, NULL);
+    for(const VkFramebuffer &fb : m_FbsToDestroy)
+      m_pDriver->vkDestroyFramebuffer(m_pDriver->GetDev(), fb, NULL);
   }
 
-  void DestroyResources()
+  // CreateRenderPass creates a new VkRenderPass based on the original that has a separate
+  // depth-stencil attachment, and covers a single subpass. This will be used to replay
+  // a single draw. The new renderpass also replaces the depth stencil attachment, so
+  // it can be used to count the number of fragments.
+  VkRenderPass CreateRenderPass(ResourceId rp, ResourceId fb, uint32_t subpassIndex)
   {
-    m_pDriver->vkDestroyFramebuffer(m_pDriver->GetDev(), m_OffscreenFB, NULL);
-    m_pDriver->vkDestroyRenderPass(m_pDriver->GetDev(), m_RenderPass, NULL);
+    const VulkanCreationInfo::RenderPass &rpInfo =
+        m_pDriver->GetDebugManager()->GetRenderPassInfo(rp);
+    const VulkanCreationInfo::RenderPass::Subpass &sub = rpInfo.subpasses[subpassIndex];
 
-    for(auto it = m_PipelineCache.begin(); it != m_PipelineCache.end(); ++it)
+    // Copy color and input attachments, and ignore resolve attachments.
+    // Since we are only using this renderpass to replay a single draw, we don't
+    // need to do resolve operations.
+    rdcarray<VkAttachmentReference> colorAttachments(sub.colorAttachments.size());
+    rdcarray<VkAttachmentReference> inputAttachments(sub.inputAttachments.size());
+
+    for(size_t i = 0; i < sub.colorAttachments.size(); i++)
     {
-      m_pDriver->vkDestroyPipeline(m_pDriver->GetDev(), it->second.fixedShaderStencil, NULL);
-      m_pDriver->vkDestroyPipeline(m_pDriver->GetDev(), it->second.originalShaderStencil, NULL);
+      colorAttachments[i].attachment = sub.colorAttachments[i];
+      colorAttachments[i].layout = sub.colorLayouts[i];
     }
+    for(size_t i = 0; i < sub.inputAttachments.size(); i++)
+    {
+      inputAttachments[i].attachment = sub.inputAttachments[i];
+      inputAttachments[i].layout = sub.inputLayouts[i];
+    }
+
+    VkSubpassDescription subpassDesc = {};
+    subpassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpassDesc.inputAttachmentCount = (uint32_t)sub.inputAttachments.size();
+    subpassDesc.pInputAttachments = inputAttachments.data();
+    subpassDesc.colorAttachmentCount = (uint32_t)sub.colorAttachments.size();
+    subpassDesc.pColorAttachments = colorAttachments.data();
+
+    rdcarray<VkAttachmentDescription> descs(rpInfo.attachments.size());
+    for(uint32_t i = 0; i < rpInfo.attachments.size(); i++)
+    {
+      descs[i] = {};
+      descs[i].flags = rpInfo.attachments[i].flags;
+      descs[i].format = rpInfo.attachments[i].format;
+      descs[i].samples = rpInfo.attachments[i].samples;
+      descs[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+      descs[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+      descs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+      descs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+      descs[i].initialLayout = rpInfo.attachments[i].initialLayout;
+      descs[i].finalLayout = rpInfo.attachments[i].finalLayout;
+    }
+    for(uint32_t a = 0; a < subpassDesc.colorAttachmentCount; a++)
+    {
+      if(subpassDesc.pColorAttachments[a].attachment != VK_ATTACHMENT_UNUSED)
+      {
+        descs[subpassDesc.pColorAttachments[a].attachment].initialLayout =
+            descs[subpassDesc.pColorAttachments[a].attachment].finalLayout =
+                subpassDesc.pColorAttachments[a].layout;
+      }
+    }
+
+    for(uint32_t a = 0; a < subpassDesc.inputAttachmentCount; a++)
+    {
+      if(subpassDesc.pInputAttachments[a].attachment != VK_ATTACHMENT_UNUSED)
+      {
+        descs[subpassDesc.pInputAttachments[a].attachment].initialLayout =
+            descs[subpassDesc.pInputAttachments[a].attachment].finalLayout =
+                subpassDesc.pInputAttachments[a].layout;
+      }
+    }
+
+    VkAttachmentDescription dsAtt = {};
+    dsAtt.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
+    dsAtt.samples = VK_SAMPLE_COUNT_1_BIT;
+    dsAtt.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    dsAtt.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    dsAtt.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    dsAtt.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+    dsAtt.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    dsAtt.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    // If there is already a depth stencil attachment, substitute it.
+    // Otherwise, add it at the end of all attachments.
+    VkAttachmentReference dsAttachment = {};
+    dsAttachment.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    if(sub.depthstencilAttachment != -1)
+    {
+      descs[sub.depthstencilAttachment] = dsAtt;
+      dsAttachment.attachment = sub.depthstencilAttachment;
+    }
+    else
+    {
+      descs.push_back(dsAtt);
+      dsAttachment.attachment = (uint32_t)rpInfo.attachments.size();
+    }
+    subpassDesc.pDepthStencilAttachment = &dsAttachment;
+
+    VkRenderPassCreateInfo rpCreateInfo = {};
+    rpCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    rpCreateInfo.attachmentCount = (uint32_t)descs.size();
+    rpCreateInfo.subpassCount = 1;
+    rpCreateInfo.pSubpasses = &subpassDesc;
+    rpCreateInfo.pAttachments = descs.data();
+    rpCreateInfo.dependencyCount = 0;
+    rpCreateInfo.pDependencies = NULL;
+
+    VkRenderPass renderpass;
+    VkResult vkr =
+        m_pDriver->vkCreateRenderPass(m_pDriver->GetDev(), &rpCreateInfo, NULL, &renderpass);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    m_RpsToDestroy.push_back(renderpass);
+    return renderpass;
+  }
+
+  VkFramebuffer CreateFramebuffer(ResourceId rp, uint32_t subpassIndex, VkRenderPass newRp,
+                                  ResourceId origFb)
+  {
+    const VulkanCreationInfo::RenderPass &rpInfo =
+        m_pDriver->GetDebugManager()->GetRenderPassInfo(rp);
+    const VulkanCreationInfo::RenderPass::Subpass &sub = rpInfo.subpasses[subpassIndex];
+    const VulkanCreationInfo::Framebuffer &fb =
+        m_pDriver->GetDebugManager()->GetFramebufferInfo(origFb);
+    rdcarray<VkImageView> atts(fb.attachments.size());
+
+    for(uint32_t i = 0; i < fb.attachments.size(); i++)
+      atts[i] = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(
+          fb.attachments[i].createdView);
+
+    if(sub.depthstencilAttachment != -1)
+      atts[sub.depthstencilAttachment] = m_StencilImageView;
+    else
+      atts.push_back(m_StencilImageView);
+    VkFramebufferCreateInfo fbinfo = {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
+    fbinfo.renderPass = newRp;
+    fbinfo.attachmentCount = (uint32_t)atts.size();
+    fbinfo.pAttachments = atts.data();
+    fbinfo.width = fb.width;
+    fbinfo.height = fb.height;
+    fbinfo.layers = fb.layers;
+
+    VkFramebuffer framebuffer;
+    VkResult vkr = m_pDriver->vkCreateFramebuffer(m_pDriver->GetDev(), &fbinfo, NULL, &framebuffer);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    m_FbsToDestroy.push_back(framebuffer);
+    return framebuffer;
   }
 
   void PreDraw(uint32_t eid, VkCommandBuffer cmd)
@@ -499,6 +581,10 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
     uint32_t prevSubpass = pipestate.subpass;
 
     {
+      VkRenderPass newRp =
+          CreateRenderPass(pipestate.renderPass, pipestate.GetFramebuffer(), pipestate.subpass);
+      VkFramebuffer newFb = CreateFramebuffer(pipestate.renderPass, pipestate.subpass, newRp,
+                                              pipestate.GetFramebuffer());
       PipelineReplacements replacements = GetPipelineReplacements(eid, pipestate.graphics.pipeline);
 
       if(p.dynamicStates[VkDynamicViewport])
@@ -510,8 +596,8 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
       // the draw. We will get occlusion data to figure out if anything wrote to
       // the pixel, as well as number of fragments not accounting for potential
       // shader discard.
-      pipestate.SetFramebuffer(m_pDriver, GetResID(m_OffscreenFB));
-      pipestate.renderPass = GetResID(m_RenderPass);
+      pipestate.SetFramebuffer(m_pDriver, GetResID(newFb));
+      pipestate.renderPass = GetResID(newRp);
       pipestate.subpass = 0;
       pipestate.graphics.pipeline = GetResID(replacements.fixedShaderStencil);
       ReplayDraw(cmd, m_OcclusionQueries.size(), eid, true, true);
@@ -551,9 +637,8 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
     pipestate.subpass = prevSubpass;
 
     // TODO: Need to re-start on the correct subpass.
-    if(m_pDriver->GetCmdRenderState().graphics.pipeline != ResourceId())
-      m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
-                                                                  VulkanRenderState::BindGraphics);
+    if(pipestate.graphics.pipeline != ResourceId())
+      pipestate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
   }
 
   bool PostDraw(uint32_t eid, VkCommandBuffer cmd)
@@ -614,7 +699,18 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
   void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { PreDispatch(eid, cmd); }
   bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd)
   {
-    return PostDispatch(eid, cmd);
+    if(m_Events.find(eid) == m_Events.end())
+      return false;
+    if(flags & DrawFlags::BeginPass)
+      m_pDriver->GetCmdRenderState().EndRenderPass(cmd);
+
+    bool ret = PostDispatch(eid, cmd);
+
+    if(flags & DrawFlags::BeginPass)
+      m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
+                                                                  VulkanRenderState::BindGraphics);
+
+    return ret;
   }
 
   void PostRemisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) {}
@@ -694,10 +790,8 @@ private:
 
     if(clear)
     {
-      VkClearAttachment clearAttachments[2] = {};
-      clearAttachments[0].aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-      clearAttachments[0].colorAttachment = 0;
-      clearAttachments[1].aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+      VkClearAttachment att = {};
+      att.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
       VkClearRect rect = {};
       rect.rect.offset.x = m_X;
       rect.rect.offset.y = m_Y;
@@ -705,7 +799,7 @@ private:
       rect.rect.extent.height = 1;
       rect.baseArrayLayer = 0;
       rect.layerCount = 1;
-      ObjDisp(cmd)->CmdClearAttachments(Unwrap(cmd), 2, clearAttachments, 1, &rect);
+      ObjDisp(cmd)->CmdClearAttachments(Unwrap(cmd), 1, &att, 1, &rect);
     }
 
     if(doQuery)
@@ -762,6 +856,8 @@ private:
         (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
     VkPipelineViewportStateCreateInfo *vs =
         (VkPipelineViewportStateCreateInfo *)pipeCreateInfo.pViewportState;
+    VkPipelineColorBlendStateCreateInfo *cbs =
+        (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
 
     VkRect2D newScissors[16];
     memset(newScissors, 0, sizeof(newScissors));
@@ -783,6 +879,11 @@ private:
       ds->back = ds->front;
       ms->pSampleMask = &m_SampleMask;
 
+      VkPipelineColorBlendAttachmentState *atts =
+          (VkPipelineColorBlendAttachmentState *)cbs->pAttachments;
+      for(uint32_t i = 0; i < cbs->attachmentCount; i++)
+        atts[i].colorWriteMask = 0;
+
       if(m_pDriver->GetDeviceFeatures().depthClamp)
         rs->depthClampEnable = true;
 
@@ -798,7 +899,6 @@ private:
     }
     // TODO: Disable discard rectangles from VK_EXT_discard_rectangles.
 
-    pipeCreateInfo.renderPass = m_RenderPass;
     pipeCreateInfo.subpass = 0;
 
     rdcarray<VkPipelineShaderStageCreateInfo> stages;
@@ -841,15 +941,11 @@ private:
 
   VkImage m_Image;
   VkFormat m_Format;
-  VkExtent3D m_Extent;
   VkBuffer m_DstBuffer;
 
-  VkImageView m_ColorImageView;
   VkImageView m_StencilImageView;
   VkImage m_StencilImage;
 
-  VkRenderPass m_RenderPass;
-  VkFramebuffer m_OffscreenFB;
   std::map<ResourceId, PipelineReplacements> m_PipelineCache;
   std::map<uint32_t, EventUsage> m_Events;
   // Key is event ID, and value is an index of where the event data is stored.
@@ -857,6 +953,9 @@ private:
   // Key is event ID, and value is an index of where the occlusion result.
   std::map<uint32_t, uint32_t> m_OcclusionQueries;
   rdcarray<uint64_t> m_OcclusionResults;
+
+  rdcarray<VkRenderPass> m_RpsToDestroy;
+  rdcarray<VkFramebuffer> m_FbsToDestroy;
 };
 
 // TestsFailedCallback replays draws to figure out which tests failed (for ex., depth,
@@ -1756,13 +1855,11 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
 
   VulkanOcclusionAndStencilCallback cb(
       m_pDriver, shaderCache, x, y, GetResourceManager()->GetCurrentHandle<VkImage>(target),
-      imginfo.format, imginfo.extent, sampleMask, occlusionPool, resources.colorImageView,
-      resources.stencilImageView, resources.stencilImage, resources.dstBuffer, events);
-  cb.CreateResources();
+      imginfo.format, sampleMask, occlusionPool, resources.stencilImageView, resources.stencilImage,
+      resources.dstBuffer, events);
   m_pDriver->ReplayLog(0, events.back().eventId, eReplay_Full);
   m_pDriver->SubmitCmds();
   m_pDriver->FlushQ();
-  cb.DestroyResources();
 
   cb.FetchOcclusionResults();
 
@@ -1856,8 +1953,10 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     mod.postMod.depth = ei.postmod.depth.fdepth;
     mod.postMod.stencil = ei.postmod.stencil;
 
-    RDCDEBUG("PixelHistory event id: %u, stencilValue = %u", mod.eventId,
-             ei.dsWithoutShaderDiscard[0]);
+    RDCDEBUG(
+        "PixelHistory event id: %u, fixed shader stencilValue = %u, original shader stencilValue = "
+        "%u",
+        mod.eventId, ei.dsWithoutShaderDiscard[0], ei.dsWithShaderDiscard[0]);
   }
 
   m_pDriver->vkUnmapMemory(dev, resources.bufferMemory);
