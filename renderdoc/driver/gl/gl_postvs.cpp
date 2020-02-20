@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <ctype.h>
 #include <float.h>
 #include <math.h>
 #include <algorithm>
@@ -123,6 +124,77 @@ static void MakeVaryingsFromShaderReflection(ShaderReflection &refl, rdcarray<co
   }
 }
 
+static GLuint RecompileShader(WrappedOpenGL &drv, const WrappedOpenGL::ShaderData &shadDetails,
+                              uint32_t drawIndex)
+{
+  GLuint ret = drv.glCreateShader(shadDetails.type);
+
+  if(!shadDetails.sources.empty())
+  {
+    rdcstr source_string;
+
+    for(const rdcstr &s : shadDetails.sources)
+      source_string += s;
+
+    // substitute out gl_DrawID use
+    int offs = 0;
+    do
+    {
+      offs = source_string.find("gl_DrawID", offs + 1);
+      if(offs < 0)
+        break;
+
+      // check word boundary at the start
+      if(isalnum(source_string[offs - 1]) || source_string[offs - 1] == '_')
+        continue;
+
+      // go to the end of the word
+      int end = offs + 9;
+
+      // if it's gl_DrawIDARB, allow that.
+      if(end + 3 < source_string.count() && source_string[end + 0] == 'A' &&
+         source_string[end + 1] == 'R' && source_string[end + 2] == 'B')
+        end += 3;
+
+      // check word boundary at the end
+      if(isalnum(source_string[end]) || source_string[end] == '_')
+        continue;
+
+      // otherwise we've found a match. Add brackets and add our draw index
+      source_string.insert(end, StringFormat::Fmt("+%u)", drawIndex));
+      source_string.insert(offs, '(');
+
+      // ensure we start searching from after the modified entry
+      offs++;
+    } while(offs > 0);
+
+    const char *cstr = source_string.c_str();
+
+    drv.glShaderSource(ret, 1, &cstr, NULL);
+    drv.glCompileShader(ret);
+  }
+  else if(!shadDetails.spirvWords.empty())
+  {
+    drv.glShaderBinary(1, &ret, eGL_SHADER_BINARY_FORMAT_SPIR_V, shadDetails.spirvWords.data(),
+                       GLsizei(shadDetails.spirvWords.size() * sizeof(uint32_t)));
+
+    drv.glSpecializeShader(ret, shadDetails.entryPoint.c_str(), (GLuint)shadDetails.specIDs.size(),
+                           shadDetails.specIDs.data(), shadDetails.specValues.data());
+  }
+
+  GLint status = 0;
+  drv.glGetShaderiv(ret, eGL_COMPILE_STATUS, &status);
+
+  if(status == 0)
+  {
+    char buffer[1024] = {};
+    drv.glGetShaderInfoLog(ret, 1024, NULL, buffer);
+    RDCERR("Trying to recreate postvs program, couldn't compile shader:\n%s", buffer);
+  }
+
+  return ret;
+}
+
 void GLReplay::ClearPostVSCache()
 {
   WrappedOpenGL &drv = *m_pDriver;
@@ -184,6 +256,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   // glCreateShaderProgramv and we don't have a shader to attach
   GLuint tmpShaders[4] = {};
 
+  // the ID if we need to recompile into tmpShaders. This can also be required if gl_DrawID is used
+  // since we can't get that faithfully.
+  ResourceId recompile[4] = {};
+
   // these are the 'real' programs with uniform values that we need to copy over to our separable
   // programs. They may be duplicated if there's one program bound to multiple ages
   // one program per stage (vs = 0, etc)
@@ -218,9 +294,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       {
         if(pipeDetails.stageShaders[i] != ResourceId())
         {
+          ShaderReflection *refl = NULL;
           if(i == 0)
           {
-            vsRefl = GetShader(ResourceId(), pipeDetails.stageShaders[i], ShaderEntryPoint());
+            refl = vsRefl = GetShader(ResourceId(), pipeDetails.stageShaders[i], ShaderEntryPoint());
             glslVer = m_pDriver->m_Shaders[pipeDetails.stageShaders[0]].version;
             vsPatch = m_pDriver->m_Shaders[pipeDetails.stageShaders[0]].patchData;
 
@@ -229,12 +306,12 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
           }
           else if(i == 2)
           {
-            tesRefl = GetShader(ResourceId(), pipeDetails.stageShaders[2], ShaderEntryPoint());
+            refl = tesRefl = GetShader(ResourceId(), pipeDetails.stageShaders[2], ShaderEntryPoint());
             tesPatch = m_pDriver->m_Shaders[pipeDetails.stageShaders[2]].patchData;
           }
           else if(i == 3)
           {
-            gsRefl = GetShader(ResourceId(), pipeDetails.stageShaders[3], ShaderEntryPoint());
+            refl = gsRefl = GetShader(ResourceId(), pipeDetails.stageShaders[3], ShaderEntryPoint());
             gsPatch = m_pDriver->m_Shaders[pipeDetails.stageShaders[3]].patchData;
           }
 
@@ -248,41 +325,18 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
 
             if(progDetails.shaderProgramUnlinkable)
             {
-              const WrappedOpenGL::ShaderData &shadDetails =
-                  m_pDriver->m_Shaders[pipeDetails.stageShaders[i]];
+              recompile[i] = pipeDetails.stageShaders[i];
+            }
+          }
 
-              stageShaders[i] = tmpShaders[i] = drv.glCreateShader(ShaderEnum(i));
-
-              if(!shadDetails.sources.empty())
+          if(refl)
+          {
+            for(const SigParameter &sig : refl->inputSignature)
+            {
+              if(sig.systemValue == ShaderBuiltin::DrawIndex)
               {
-                rdcarray<const char *> sources;
-                sources.reserve(shadDetails.sources.size());
-
-                for(const rdcstr &s : shadDetails.sources)
-                  sources.push_back(s.c_str());
-
-                drv.glShaderSource(tmpShaders[i], (GLsizei)sources.size(), sources.data(), NULL);
-                drv.glCompileShader(tmpShaders[i]);
-              }
-              else if(!shadDetails.spirvWords.empty())
-              {
-                drv.glShaderBinary(1, &tmpShaders[i], eGL_SHADER_BINARY_FORMAT_SPIR_V,
-                                   shadDetails.spirvWords.data(),
-                                   GLsizei(shadDetails.spirvWords.size() * sizeof(uint32_t)));
-
-                drv.glSpecializeShader(tmpShaders[i], shadDetails.entryPoint.c_str(),
-                                       (GLuint)shadDetails.specIDs.size(),
-                                       shadDetails.specIDs.data(), shadDetails.specValues.data());
-              }
-
-              GLint status = 0;
-              drv.glGetShaderiv(tmpShaders[i], eGL_COMPILE_STATUS, &status);
-
-              if(status == 0)
-              {
-                char buffer[1024] = {};
-                drv.glGetShaderInfoLog(tmpShaders[i], 1024, NULL, buffer);
-                RDCERR("Trying to recreate postvs program, couldn't compile shader:\n%s", buffer);
+                recompile[i] = pipeDetails.stageShaders[i];
+                break;
               }
             }
           }
@@ -298,9 +352,10 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     {
       if(progDetails.stageShaders[0] != ResourceId())
       {
+        ShaderReflection *refl = NULL;
         if(i == 0)
         {
-          vsRefl = GetShader(ResourceId(), progDetails.stageShaders[0], ShaderEntryPoint());
+          refl = vsRefl = GetShader(ResourceId(), progDetails.stageShaders[0], ShaderEntryPoint());
           glslVer = m_pDriver->m_Shaders[progDetails.stageShaders[0]].version;
           vsPatch = m_pDriver->m_Shaders[progDetails.stageShaders[0]].patchData;
 
@@ -309,19 +364,41 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         }
         else if(i == 2 && progDetails.stageShaders[2] != ResourceId())
         {
-          tesRefl = GetShader(ResourceId(), progDetails.stageShaders[2], ShaderEntryPoint());
+          refl = tesRefl = GetShader(ResourceId(), progDetails.stageShaders[2], ShaderEntryPoint());
           tesPatch = m_pDriver->m_Shaders[progDetails.stageShaders[2]].patchData;
         }
         else if(i == 3 && progDetails.stageShaders[3] != ResourceId())
         {
-          gsRefl = GetShader(ResourceId(), progDetails.stageShaders[3], ShaderEntryPoint());
+          refl = gsRefl = GetShader(ResourceId(), progDetails.stageShaders[3], ShaderEntryPoint());
           gsPatch = m_pDriver->m_Shaders[progDetails.stageShaders[3]].patchData;
         }
 
         stageShaders[i] = rm->GetCurrentResource(progDetails.stageShaders[i]).name;
+
+        if(refl)
+        {
+          for(const SigParameter &sig : refl->inputSignature)
+          {
+            if(sig.systemValue == ShaderBuiltin::DrawIndex)
+            {
+              recompile[i] = progDetails.stageShaders[i];
+              break;
+            }
+          }
+        }
       }
 
       stageSrcPrograms[i] = rs.Program.name;
+    }
+  }
+
+  for(int i = 0; i < 4; i++)
+  {
+    if(recompile[i] != ResourceId())
+    {
+      const WrappedOpenGL::ShaderData &shadDetails = m_pDriver->m_Shaders[recompile[i]];
+
+      stageShaders[i] = tmpShaders[i] = RecompileShader(drv, shadDetails, drawcall->drawIndex);
     }
   }
 
