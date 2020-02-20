@@ -476,11 +476,10 @@ void Program::SetupRegisterFile(rdcarray<ShaderVariable> &registers) const
 
   for(size_t i = 0; i < m_IndexTempSizes.size(); i++)
   {
-    rdcstr name = GetRegisterName(TYPE_INDEXABLE_TEMP, (uint32_t)i);
-    registers.push_back(makeReg(name));
+    registers.push_back(makeReg(GetRegisterName(TYPE_INDEXABLE_TEMP, (uint32_t)i)));
     registers.back().members.resize(m_IndexTempSizes[i]);
     for(uint32_t t = 0; t < m_IndexTempSizes[i]; t++)
-      registers.back().members[t] = makeReg(StringFormat::Fmt("%s[%u]", name.c_str(), t));
+      registers.back().members[t] = makeReg(StringFormat::Fmt("[%u]", t));
   }
 
   for(uint32_t i = 0; i < m_NumOutputs; i++)

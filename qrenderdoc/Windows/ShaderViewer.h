@@ -277,7 +277,7 @@ private:
                                            int localVarIdx);
   RDTreeWidgetItem *makeDebugVariableNode(const ShaderVariable &v, rdcstr prefix, bool modified);
 
-  const ShaderVariable *GetRegisterVariable(const DebugVariableReference &r);
+  const ShaderVariable *GetDebugVariable(const DebugVariableReference &r);
 
   void ensureLineScrolled(ScintillaEdit *s, int i);
 

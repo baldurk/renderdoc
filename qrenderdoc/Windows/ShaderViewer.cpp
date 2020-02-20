@@ -1908,7 +1908,7 @@ bool ShaderViewer::getVar(RDTreeWidgetItem *item, ShaderVariable *var, QString *
     if(!var)
       return true;
 
-    const ShaderVariable *reg = GetRegisterVariable(tag.debugVar);
+    const ShaderVariable *reg = GetDebugVariable(tag.debugVar);
 
     if(reg)
     {
@@ -1965,7 +1965,7 @@ bool ShaderViewer::getVar(RDTreeWidgetItem *item, ShaderVariable *var, QString *
       {
         const DebugVariableReference &r = mapping.variables[i];
 
-        const ShaderVariable *reg = GetRegisterVariable(r);
+        const ShaderVariable *reg = GetDebugVariable(r);
 
         if(regNames && !regNames->isEmpty())
           *regNames += lit(", ");
@@ -2382,13 +2382,20 @@ void ShaderViewer::updateDebugState()
 
       bool modified = false;
 
-      if(l.variables[0].type == DebugVariableType::Variable)
+      // don't list any modified variables on the first step when they all come into existance
+      if(l.variables[0].type == DebugVariableType::Variable && !IsFirstState())
       {
         for(const DebugVariableReference &v : l.variables)
         {
+          rdcstr base = v.name;
+          int offs = base.find_first_of("[.");
+          if(offs > 0)
+            base = v.name.substr(0, offs);
+
           for(const ShaderVariableChange &c : GetCurrentState().changes)
           {
-            if(c.before.name == v.name || c.after.name == v.name)
+            if(c.before.name == v.name || c.after.name == v.name || c.before.name == base ||
+               c.after.name == base)
             {
               modified = true;
               break;
@@ -2735,9 +2742,9 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
       {
         const bool isReadOnlyResource = r.type == DebugVariableType::ReadOnlyResource;
 
-        const ShaderVariable *reg = GetRegisterVariable(r);
+        const ShaderVariable *reg = GetDebugVariable(r);
 
-        regNames = GetRegisterVariable(r)->name;
+        regNames = r.name;
         typeName = isReadOnlyResource ? lit("Resource") : lit("RW Resource");
 
         rdcarray<BoundResourceArray> resList =
@@ -2780,7 +2787,7 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
       }
       else
       {
-        const ShaderVariable *reg = GetRegisterVariable(r);
+        const ShaderVariable *reg = GetDebugVariable(r);
 
         if(reg)
         {
@@ -2794,7 +2801,7 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
           }
           else
           {
-            regNames += QFormatStr("%1.%2").arg(reg->name).arg(xyzw[r.component]);
+            regNames += QFormatStr("%1.%2").arg(r.name).arg(xyzw[r.component]);
           }
 
           if(l.type == VarType::UInt)
@@ -2846,14 +2853,14 @@ RDTreeWidgetItem *ShaderViewer::makeDebugVariableNode(const ShaderVariable &v, r
                                                       bool modified)
 {
   rdcstr basename = prefix + v.name;
-  RDTreeWidgetItem *node = new RDTreeWidgetItem({basename, stringRep(v)});
+  RDTreeWidgetItem *node = new RDTreeWidgetItem({v.name, stringRep(v)});
   node->setTag(QVariant::fromValue(
       VariableTag(DebugVariableReference(DebugVariableType::Variable, basename))));
   for(const ShaderVariable &m : v.members)
   {
     rdcstr childprefix = basename + ".";
     if(m.name.beginsWith(basename + "["))
-      childprefix = prefix;
+      childprefix = basename;
     node->addChild(makeDebugVariableNode(m, childprefix, modified));
   }
 
@@ -2863,7 +2870,7 @@ RDTreeWidgetItem *ShaderViewer::makeDebugVariableNode(const ShaderVariable &v, r
   return node;
 }
 
-const ShaderVariable *ShaderViewer::GetRegisterVariable(const DebugVariableReference &r)
+const ShaderVariable *ShaderViewer::GetDebugVariable(const DebugVariableReference &r)
 {
   if(r.type == DebugVariableType::Input)
   {
@@ -2889,43 +2896,74 @@ const ShaderVariable *ShaderViewer::GetRegisterVariable(const DebugVariableRefer
 
     return NULL;
   }
-  else if(r.type == DebugVariableType::Constant)
+  else if(r.type == DebugVariableType::Constant || r.type == DebugVariableType::Variable)
   {
-    for(int i = 0; i < m_Trace->constantBlocks.count(); i++)
+    rdcarray<ShaderVariable> *vars =
+        r.type == DebugVariableType::Constant ? &m_Trace->constantBlocks : &m_Variables;
+
+    rdcstr path = r.name;
+
+    while(!path.empty())
     {
-      // Root constant
-      if(m_Trace->constantBlocks[i].name == r.name)
-        return &m_Trace->constantBlocks[i];
+      rdcstr elem;
 
-      for(int j = 0; j < m_Trace->constantBlocks[i].members.count(); j++)
+      // pick out the next element in the path
+      // if this is an array index, grab that
+      if(path[0] == '[')
       {
-        // Variable in constant buffer
-        if(m_Trace->constantBlocks[i].members[j].name == r.name)
-          return &m_Trace->constantBlocks[i].members[j];
+        int idx = path.indexOf(']');
+        if(idx < 0)
+          break;
+        elem = path.substr(0, idx + 1);
 
-        for(int k = 0; k < m_Trace->constantBlocks[i].members[j].members.count(); k++)
+        // skip past any .s
+        if(path[idx + 1] == '.')
+          idx++;
+
+        path = path.substr(idx + 1);
+      }
+      else
+      {
+        // otherwise look for the next identifier
+        int idx = path.find_first_of("[.");
+        if(idx < 0)
         {
-          // Variable in constant buffer array
-          if(m_Trace->constantBlocks[i].members[j].members[k].name == r.name)
-            return &m_Trace->constantBlocks[i].members[j].members[k];
+          // no results means that all that's left of the path is an identifier
+          elem.swap(path);
+        }
+        else
+        {
+          elem = path.substr(0, idx);
+
+          // skip past any .s
+          if(path[idx] == '.')
+            idx++;
+
+          path = path.substr(idx);
         }
       }
-    }
 
-    return NULL;
-  }
-  else if(r.type == DebugVariableType::Variable)
-  {
-    for(int i = 0; i < m_Variables.count(); i++)
-    {
-      if(m_Variables[i].name == r.name)
-        return &m_Variables[i];
-
-      for(int j = 0; j < m_Variables[i].members.count(); j++)
+      // look in our current set of vars for a matching variable
+      bool found = false;
+      for(size_t i = 0; i < vars->size(); i++)
       {
-        if(m_Variables[i].members[j].name == r.name)
-          return &m_Variables[i].members[j];
+        if(vars->at(i).name == elem)
+        {
+          // found the match.
+          found = true;
+
+          // If there's no more path, we've found the exact match, otherwise continue
+          if(path.empty())
+            return &vars->at(i);
+
+          vars = &vars->at(i).members;
+
+          break;
+        }
       }
+
+      if(!found)
+        break;
     }
 
     return NULL;

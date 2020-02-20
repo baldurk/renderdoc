@@ -1663,8 +1663,8 @@ static uint32_t PopCount(uint32_t x)
   return (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
 }
 
-void FlattenSingleVariable(const rdcstr &cbname, uint32_t byteOffset, const rdcstr &basename,
-                           const ShaderVariable &v, rdcarray<ShaderVariable> &outvars,
+void FlattenSingleVariable(uint32_t byteOffset, const rdcstr &basename, const ShaderVariable &v,
+                           rdcarray<ShaderVariable> &outvars,
                            rdcarray<SourceVariableMapping> &sourcevars)
 {
   size_t outIdx = byteOffset / 16;
@@ -1693,7 +1693,7 @@ void FlattenSingleVariable(const rdcstr &cbname, uint32_t byteOffset, const rdcs
     for(int i = 0; i < v.columns; i++)
     {
       mapping.variables[i].type = DebugVariableType::Constant;
-      mapping.variables[i].name = StringFormat::Fmt("%s[%u]", cbname.c_str(), outIdx);
+      mapping.variables[i].name = StringFormat::Fmt("[%u]", outIdx);
       mapping.variables[i].component = uint16_t(outComp + i);
     }
 
@@ -1737,8 +1737,7 @@ void FlattenSingleVariable(const rdcstr &cbname, uint32_t byteOffset, const rdcs
     for(size_t i = 0; i < mapping.variables.size(); i++)
     {
       mapping.variables[i].type = DebugVariableType::Constant;
-      mapping.variables[i].name =
-          StringFormat::Fmt("%s[%u]", cbname.c_str(), uint32_t(outIdx + (outComp + i) / 4));
+      mapping.variables[i].name = StringFormat::Fmt("[%u]", uint32_t(outIdx + (outComp + i) / 4));
       mapping.variables[i].component = uint16_t((outComp + i) % 4);
     }
 
@@ -1746,7 +1745,7 @@ void FlattenSingleVariable(const rdcstr &cbname, uint32_t byteOffset, const rdcs
   }
 }
 
-void FlattenVariables(const rdcstr &cbname, const rdcarray<ShaderConstant> &constants,
+void FlattenVariables(const rdcarray<ShaderConstant> &constants,
                       const rdcarray<ShaderVariable> &invars, rdcarray<ShaderVariable> &outvars,
                       const rdcstr &prefix, uint32_t baseOffset,
                       rdcarray<SourceVariableMapping> &sourceVars)
@@ -1766,8 +1765,7 @@ void FlattenVariables(const rdcstr &cbname, const rdcarray<ShaderConstant> &cons
     {
       if(v.isStruct)
       {
-        FlattenVariables(cbname, c.type.members, v.members, outvars, basename + ".", byteOffset,
-                         sourceVars);
+        FlattenVariables(c.type.members, v.members, outvars, basename + ".", byteOffset, sourceVars);
       }
       else
       {
@@ -1777,7 +1775,7 @@ void FlattenVariables(const rdcstr &cbname, const rdcarray<ShaderConstant> &cons
 
           for(int m = 0; m < v.members.count(); m++)
           {
-            FlattenSingleVariable(cbname, byteOffset + m * c.type.descriptor.arrayByteStride,
+            FlattenSingleVariable(byteOffset + m * c.type.descriptor.arrayByteStride,
                                   StringFormat::Fmt("%s[%zu]", basename.c_str(), m), v.members[m],
                                   outvars, sourceVars);
           }
@@ -1788,7 +1786,7 @@ void FlattenVariables(const rdcstr &cbname, const rdcarray<ShaderConstant> &cons
 
           for(int m = 0; m < v.members.count(); m++)
           {
-            FlattenVariables(cbname, c.type.members, v.members[m].members, outvars,
+            FlattenVariables(c.type.members, v.members[m].members, outvars,
                              StringFormat::Fmt("%s[%zu].", basename.c_str(), m),
                              byteOffset + m * c.type.descriptor.arrayByteStride, sourceVars);
           }
@@ -1798,7 +1796,7 @@ void FlattenVariables(const rdcstr &cbname, const rdcarray<ShaderConstant> &cons
       continue;
     }
 
-    FlattenSingleVariable(cbname, byteOffset, basename, v, outvars, sourceVars);
+    FlattenSingleVariable(byteOffset, basename, v, outvars, sourceVars);
   }
 }
 
@@ -4251,12 +4249,11 @@ void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &
 
       rdcarray<ShaderVariable> vars;
       StandardFillCBufferVariables(refl.resourceId, constants, vars, cbufData);
-      FlattenVariables(identifierPrefix, constants, vars, targetVars, variablePrefix + ".", 0,
-                       sourceVars);
+      FlattenVariables(constants, vars, targetVars, variablePrefix + ".", 0, sourceVars);
 
       for(size_t c = 0; c < targetVars.size(); c++)
       {
-        targetVars[c].name = StringFormat::Fmt("%s[%u]", identifierPrefix.c_str(), (uint32_t)c);
+        targetVars[c].name = StringFormat::Fmt("[%u]", (uint32_t)c);
       }
 
       return;
