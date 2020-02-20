@@ -1216,6 +1216,19 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
 
   uint32_t overdrawLevels = 100;    // maximum number of overdraw levels
 
+  // If the pipe contains a geometry shader, then SV_PrimitiveID cannot be used in the pixel
+  // shader without being emitted from the geometry shader. For now, check if this semantic
+  // will succeed in a new pixel shader with the rest of the pipe unchanged
+  bool usePrimitiveID = (prevDxbc->m_Type != ShaderType::Geometry);
+  for(const PSInputElement &e : initialValues)
+  {
+    if(e.sysattribute == ShaderBuiltin::PrimitiveIndex)
+    {
+      usePrimitiveID = true;
+      break;
+    }
+  }
+
   // get the multisample count
   uint32_t outputSampleCount = RDCMAX(1U, pipelineState->outputMerger.multiSampleCount);
 
@@ -1251,12 +1264,24 @@ struct PSInitialData
 
   extractHlsl += "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u0);\n\n";
 
-  extractHlsl += R"(
+  if(usePrimitiveID)
+  {
+    extractHlsl += R"(
 void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : SV_PrimitiveID,
                      uint sample : SV_SampleIndex, uint covge : SV_Coverage,
                      bool fface : SV_IsFrontFace)
 {
 )";
+  }
+  else
+  {
+    extractHlsl += R"(
+void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
+                     uint sample : SV_SampleIndex, uint covge : SV_Coverage,
+                     bool fface : SV_IsFrontFace)
+{
+)";
+  }
 
   extractHlsl += "  uint idx = " + ToStr(overdrawLevels) + ";\n";
   extractHlsl += StringFormat::Fmt(
@@ -1264,7 +1289,12 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim 
   extractHlsl += "    InterlockedAdd(PSInitialBuffer[0].hit, 1, idx);\n\n";
   extractHlsl += "  idx = min(idx, " + ToStr(overdrawLevels) + ");\n\n";
   extractHlsl += "  PSInitialBuffer[idx].pos = debug_pixelPos.xyz;\n";
-  extractHlsl += "  PSInitialBuffer[idx].prim = prim;\n";
+
+  if(usePrimitiveID)
+    extractHlsl += "  PSInitialBuffer[idx].prim = prim;\n";
+  else
+    extractHlsl += "  PSInitialBuffer[idx].prim = 0;\n";
+
   extractHlsl += "  PSInitialBuffer[idx].fface = fface;\n";
   extractHlsl += "  PSInitialBuffer[idx].covge = covge;\n";
   extractHlsl += "  PSInitialBuffer[idx].sample = sample;\n";
