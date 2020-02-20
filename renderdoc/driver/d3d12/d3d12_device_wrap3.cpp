@@ -51,6 +51,23 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromAddress(const void *pAddress, R
       // remove SHARED flags that are not allowed on real heaps
       heapDesc.Flags &= ~(D3D12_HEAP_FLAG_SHARED | D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER);
 
+      D3D12_FEATURE_DATA_D3D12_OPTIONS opts = {};
+      if(SUCCEEDED(m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &opts, sizeof(opts))))
+      {
+        if(opts.ResourceHeapTier == D3D12_RESOURCE_HEAP_TIER_1)
+        {
+          // tier 1 devices don't support heaps with no DENY flags, but the heap we get from here
+          // will likely have no DENY flags set. Artifically add one that should be safe for this
+          // kind of heap.
+          if((heapDesc.Flags & (D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES |
+                                D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES)) == 0)
+          {
+            RDCWARN("Adding DENY_RT_DS_TEXTURES to OpenExistingHeap heap for tier 1 compatibility");
+            heapDesc.Flags |= D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES;
+          }
+        }
+      }
+
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateHeapFromAddress);
       Serialise_CreateHeap(ser, &heapDesc, riid, (void **)&wrapped);
 
@@ -98,6 +115,23 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromFileMapping(HANDLE hFileMapping
 
       // remove SHARED flags that are not allowed on real heaps
       heapDesc.Flags &= ~(D3D12_HEAP_FLAG_SHARED | D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER);
+
+      D3D12_FEATURE_DATA_D3D12_OPTIONS opts = {};
+      if(SUCCEEDED(m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &opts, sizeof(opts))))
+      {
+        if(opts.ResourceHeapTier == D3D12_RESOURCE_HEAP_TIER_1)
+        {
+          // tier 1 devices don't support heaps with no DENY flags, but the heap we get from here
+          // will likely have no DENY flags set. Artifically add one that should be safe for this
+          // kind of heap.
+          if((heapDesc.Flags & (D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES |
+                                D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES)) == 0)
+          {
+            RDCWARN("Adding DENY_RT_DS_TEXTURES to OpenExistingHeap heap for tier 1 compatibility");
+            heapDesc.Flags |= D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES;
+          }
+        }
+      }
 
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateHeapFromFileMapping);
       Serialise_CreateHeap(ser, &heapDesc, riid, (void **)&wrapped);
