@@ -91,6 +91,8 @@ static const BuiltinShaderConfig builtinShaders[] = {
      rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
     {BuiltinShader::TexRemapSInt, EmbeddedResource(glsl_texremap_frag),
      rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
+    {BuiltinShader::PixelHistoryFS, EmbeddedResource(glsl_pixelhistory_frag),
+     rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
 };
 
 RDCCOMPILE_ASSERT(ARRAY_COUNT(builtinShaders) == arraydim<BuiltinShader>(),

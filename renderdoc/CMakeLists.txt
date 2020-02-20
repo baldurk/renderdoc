@@ -385,6 +385,7 @@ set(data
     data/glsl/minmaxtile.comp
     data/glsl/quadresolve.frag
     data/glsl/quadwrite.frag
+    data/glsl/pixelhistory.frag
     data/glsl/texdisplay.frag
     data/glsl/texremap.frag
     data/glsl/gl_texsample.h
