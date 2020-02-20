@@ -57,6 +57,9 @@ struct StackFrame
   Id function;
   uint32_t funcCallInstruction = ~0U;
 
+  // allocated storage for locals
+  rdcarray<ShaderVariable> locals;
+
 private:
   // disallow copying to ensure the locals we allocate never move around
   StackFrame(const StackFrame &o) = delete;

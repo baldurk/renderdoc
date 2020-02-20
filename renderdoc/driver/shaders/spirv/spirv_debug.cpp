@@ -74,7 +74,14 @@ void ThreadState::EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arg
 
     if(arg <= arguments.size())
     {
-      // TODO fill in function parameter
+      // function parameters are copied into function calls. Thus a function parameter that is a
+      // pointer does not have allocated storage for itself, it gets the pointer from the call site
+      // copied in and points to whatever storage that is.
+      // That means we don't have to allocate anything here, we just set up the ID and copy the
+      // value from the argument
+      ids[param.result] = ids[arguments[arg]];
+      ids[param.result].name = debugger.GetRawName(param.result);
+      live.push_back(param.result);
     }
     else
     {
@@ -89,14 +96,40 @@ void ThreadState::EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arg
   RDCASSERT(OpDecoder(it).op == Op::Label);
   it++;
 
+  size_t numVars = 0;
+  Iter varCounter = it;
+  while(OpDecoder(varCounter).op == Op::Variable)
+  {
+    varCounter++;
+    numVars++;
+  }
+
+  frame->locals.resize(numVars);
+
+  size_t i = 0;
   // handle any variable declarations
   while(OpDecoder(it).op == Op::Variable)
   {
     OpVariable decl(it);
 
-    // TODO declare variable
+    ShaderVariable &stackvar = frame->locals[i];
+    stackvar.name = debugger.GetRawName(decl.result);
+
+    rdcstr sourceName = debugger.GetHumanName(decl.result);
+
+    debugger.AllocateVariable(decl.result, decl.resultType, DebugVariableType::Variable, sourceName,
+                              stackvar);
+
+    if(decl.HasInitializer())
+      AssignValue(stackvar, ids[decl.initializer]);
+
+    live.removeOne(decl.result);
+
+    ids[decl.result] = debugger.MakePointerVariable(decl.result, &stackvar);
+    live.push_back(decl.result);
 
     it++;
+    i++;
   }
 
   // next instruction is the first actual instruction we'll execute
