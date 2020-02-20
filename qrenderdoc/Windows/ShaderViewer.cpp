@@ -2867,7 +2867,8 @@ RDTreeWidgetItem *ShaderViewer::makeDebugVariableNode(const ShaderVariable &v, r
                                                       bool modified)
 {
   rdcstr basename = prefix + v.name;
-  RDTreeWidgetItem *node = new RDTreeWidgetItem({v.name, stringRep(v)});
+  RDTreeWidgetItem *node =
+      new RDTreeWidgetItem({v.name, v.rows == 1 && v.members.empty() ? stringRep(v) : QString()});
   node->setTag(QVariant::fromValue(
       VariableTag(DebugVariableReference(DebugVariableType::Variable, basename))));
   for(const ShaderVariable &m : v.members)
