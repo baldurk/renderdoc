@@ -2459,7 +2459,7 @@ void ShaderViewer::updateDebugState()
 
     ui->debugVars->endUpdate();
 
-    ui->sourceVars->applyExpansion(expansion, 0);
+    ui->debugVars->applyExpansion(expansion, 0);
   }
 
   updateWatchVariables();
