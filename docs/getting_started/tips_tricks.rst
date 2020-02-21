@@ -26,7 +26,7 @@ This page is a random hodge-podge of different tips and tricks that might not be
    .. highlight:: c++
    .. code:: c++
 
-       // For D3D11:
+       // For D3D11 / D3D12:
        ID3D11Device *devicePointer = ...;
        IUnknown *unk = NULL;
        HRESULT hr = devicePointer->QueryInterface(MAKE_GUID({A7AA6116-9C8D-4BBA-9083-B4D816B71B78}), &unk);
@@ -40,6 +40,9 @@ This page is a random hodge-podge of different tips and tricks that might not be
        #define GL_DEBUG_TOOL_EXT                 0x6789
        #define GL_DEBUG_TOOL_NAME_EXT            0x678A
        #define GL_DEBUG_TOOL_PURPOSE_EXT         0x678B
+
+       // For Vulkan
+       // VK_EXT_tooling_info will be available, see the Vulkan specification
 
 #. RenderDoc can be informed about separated debug shader blobs through API specific ways - see :ref:`unstripped-shader-info` for more details:
 
