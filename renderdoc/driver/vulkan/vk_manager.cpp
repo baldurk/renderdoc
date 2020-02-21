@@ -535,13 +535,18 @@ bool VulkanResourceManager::Serialise_ImageRefs(ReadSerialiser &ser,
 void VulkanResourceManager::InsertDeviceMemoryRefs(WriteSerialiser &ser)
 {
   rdcarray<MemRefInterval> data;
-
-  for(auto it = m_MemFrameRefs.begin(); it != m_MemFrameRefs.end(); it++)
+  MemRefs emptyMemRefs;
+  for(auto memIt = m_DeviceMemories.begin(); memIt != m_DeviceMemories.end(); memIt++)
   {
-    ResourceId mem = it->first;
-    Intervals<FrameRefType> &rangeRefs = it->second.rangeRefs;
+    MemRefs *memRefs = NULL;
+    auto it = m_MemFrameRefs.find(*memIt);
+    if(it == m_MemFrameRefs.end())
+      memRefs = &emptyMemRefs;
+    else
+      memRefs = &it->second;
+    Intervals<FrameRefType> &rangeRefs = memRefs->rangeRefs;
     for(auto jt = rangeRefs.begin(); jt != rangeRefs.end(); jt++)
-      data.push_back({mem, jt->start(), jt->value()});
+      data.push_back({*memIt, jt->start(), jt->value()});
   }
 
   uint64_t sizeEstimate = data.size() * sizeof(MemRefInterval) + 32;
@@ -849,6 +854,20 @@ void VulkanResourceManager::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSi
 void VulkanResourceManager::AddMemoryFrameRefs(ResourceId mem)
 {
   m_MemFrameRefs.insert({mem, MemRefs()});
+}
+
+void VulkanResourceManager::AddDeviceMemory(ResourceId mem)
+{
+  SCOPED_LOCK(m_Lock);
+
+  m_DeviceMemories.insert(mem);
+}
+
+void VulkanResourceManager::RemoveDeviceMemory(ResourceId mem)
+{
+  SCOPED_LOCK(m_Lock);
+
+  m_DeviceMemories.erase(mem);
 }
 
 void VulkanResourceManager::MergeReferencedMemory(std::map<ResourceId, MemRefs> &memRefs)
