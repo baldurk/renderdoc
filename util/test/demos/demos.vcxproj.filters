@@ -433,6 +433,9 @@
     <ClCompile Include="d3d12\d3d12_primitiveid.cpp">
       <Filter>D3D12\demos</Filter>
     </ClCompile>
+    <ClCompile Include="gl\gl_marker_test.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

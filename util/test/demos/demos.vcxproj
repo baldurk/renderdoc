@@ -200,6 +200,7 @@
     <ClCompile Include="gl\gl_entry_points.cpp" />
     <ClCompile Include="gl\gl_large_bcn_arrays.cpp" />
     <ClCompile Include="gl\gl_map_overrun.cpp" />
+    <ClCompile Include="gl\gl_marker_test.cpp" />
     <ClCompile Include="gl\gl_mesh_zoo.cpp" />
     <ClCompile Include="gl\gl_midframe_context_create.cpp" />
     <ClCompile Include="gl\gl_mip_gen_rt.cpp" />

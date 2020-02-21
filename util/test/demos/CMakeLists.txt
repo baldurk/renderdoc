@@ -50,6 +50,7 @@ set(OPENGL_SRC
         gl/gl_depthstencil_fbo.cpp
         gl/gl_entry_points.cpp
         gl/gl_large_bcn_arrays.cpp
+        gl/gl_marker_test.cpp
         gl/gl_map_overrun.cpp
         gl/gl_mesh_zoo.cpp
         gl/gl_midframe_context_create.cpp
