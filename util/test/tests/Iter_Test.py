@@ -94,7 +94,7 @@ class Iter_Test(rdtest.TestCase):
 
         rdtest.log.print("Debugging vtx %d idx %d (inst %d)" % (vtx, idx, inst))
 
-        trace: rd.ShaderDebugTrace = self.controller.DebugVertex(vtx, inst, idx, draw.instanceOffset, draw.vertexOffset)
+        trace: rd.ShaderDebugTrace = self.controller.DebugVertex(vtx, inst, idx)
 
         if trace.debugger is None:
             self.controller.FreeTrace(trace)
