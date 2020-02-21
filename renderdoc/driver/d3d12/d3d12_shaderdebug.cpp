@@ -470,8 +470,150 @@ ShaderVariable D3D12DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType typ
                                                    const DXBCDebug::BindingSlot &slot,
                                                    const char *opString)
 {
-  RDCUNIMPLEMENTED("GetBufferInfo not yet implemented for D3D12");
   ShaderVariable result("", 0U, 0U, 0U, 0U);
+
+  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  // Get the root signature
+  const D3D12RenderState::RootSignature *pRootSignature = NULL;
+  if(GetShaderType() == DXBC::ShaderType::Compute)
+  {
+    if(rs.compute.rootsig != ResourceId())
+    {
+      pRootSignature = &rs.compute;
+    }
+  }
+  else if(rs.graphics.rootsig != ResourceId())
+  {
+    pRootSignature = &rs.graphics;
+  }
+
+  if(pRootSignature)
+  {
+    WrappedID3D12RootSignature *pD3D12RootSig =
+        rm->GetCurrentAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
+
+    size_t numParams = RDCMIN(pD3D12RootSig->sig.Parameters.size(), pRootSignature->sigelems.size());
+    for(size_t i = 0; i < numParams; ++i)
+    {
+      const D3D12RootSignatureParameter &param = pD3D12RootSig->sig.Parameters[i];
+      const D3D12RenderState::SignatureElement &element = pRootSignature->sigelems[i];
+      if(IsShaderParameterVisible(GetShaderType(), param.ShaderVisibility))
+      {
+        if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV && element.type == eRootSRV &&
+           type != DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
+        {
+          if(param.Descriptor.ShaderRegister == slot.shaderRegister &&
+             param.Descriptor.RegisterSpace == slot.registerSpace)
+          {
+            // Found the requested SRV
+            ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(element.id);
+            D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+
+            // Root descriptors are always buffers with each element 32-bit
+            uint32_t numElements = (uint32_t)((resDesc.Width - element.offset) / sizeof(uint32_t));
+            result.value.u.x = result.value.u.y = result.value.u.z = result.value.u.w = numElements;
+            return result;
+          }
+        }
+        else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV && element.type == eRootUAV &&
+                type == DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
+        {
+          if(param.Descriptor.ShaderRegister == slot.shaderRegister &&
+             param.Descriptor.RegisterSpace == slot.registerSpace)
+          {
+            // Found the requested UAV
+            ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(element.id);
+            D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+
+            // Root descriptors are always buffers with each element 32-bit
+            uint32_t numElements = (uint32_t)((resDesc.Width - element.offset) / sizeof(uint32_t));
+            result.value.u.x = result.value.u.y = result.value.u.z = result.value.u.w = numElements;
+            return result;
+          }
+        }
+        else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE &&
+                element.type == eRootTable)
+        {
+          UINT prevTableOffset = 0;
+          WrappedID3D12DescriptorHeap *heap =
+              rm->GetCurrentAs<WrappedID3D12DescriptorHeap>(element.id);
+
+          size_t numRanges = param.ranges.size();
+          for(size_t r = 0; r < numRanges; ++r)
+          {
+            const D3D12_DESCRIPTOR_RANGE1 &range = param.ranges[r];
+
+            // For every range, check the number of descriptors so that we are accessing the
+            // correct data for append descriptor tables, even if the range type doesn't match
+            // what we need to fetch
+            UINT offset = range.OffsetInDescriptorsFromTableStart;
+            if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
+              offset = prevTableOffset;
+
+            D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
+            desc += element.offset;
+            desc += offset;
+
+            UINT numDescriptors = range.NumDescriptors;
+            if(numDescriptors == UINT_MAX)
+            {
+              // Find out how many descriptors are left after
+              numDescriptors = heap->GetNumDescriptors() - offset - (UINT)element.offset;
+
+              // TODO: Should we look up the bind point in the D3D12 state to try to get
+              // a better guess at the number of descriptors?
+            }
+
+            prevTableOffset = offset + numDescriptors;
+
+            // Check if the slot we want is contained
+            if(slot.shaderRegister >= range.BaseShaderRegister &&
+               slot.shaderRegister < range.BaseShaderRegister + numDescriptors &&
+               range.RegisterSpace == slot.registerSpace)
+            {
+              desc += slot.shaderRegister - range.BaseShaderRegister;
+              if(desc)
+              {
+                if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV &&
+                   type == DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
+                {
+                  ResourceId uavId = desc->GetResResourceId();
+                  ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(uavId);
+                  D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+                  D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = desc->GetUAV();
+
+                  if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
+                  {
+                    result.value.u.x = result.value.u.y = result.value.u.z = result.value.u.w =
+                        (uint32_t)uavDesc.Buffer.NumElements;
+                  }
+                  return result;
+                }
+                else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV &&
+                        type != DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
+                {
+                  ResourceId srvId = desc->GetResResourceId();
+                  ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
+                  D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+                  D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = desc->GetSRV();
+
+                  if(srvDesc.ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
+                  {
+                    result.value.u.x = result.value.u.y = result.value.u.z = result.value.u.w =
+                        (uint32_t)srvDesc.Buffer.NumElements;
+                  }
+                  return result;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   return result;
 }
 
@@ -479,8 +621,278 @@ ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
                                                      const DXBCDebug::BindingSlot &slot,
                                                      uint32_t mipLevel, int &dim)
 {
-  RDCUNIMPLEMENTED("GetResourceInfo not yet implemented for D3D12");
   ShaderVariable result("", 0U, 0U, 0U, 0U);
+
+  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  // Get the root signature
+  const D3D12RenderState::RootSignature *pRootSignature = NULL;
+  if(GetShaderType() == DXBC::ShaderType::Compute)
+  {
+    if(rs.compute.rootsig != ResourceId())
+    {
+      pRootSignature = &rs.compute;
+    }
+  }
+  else if(rs.graphics.rootsig != ResourceId())
+  {
+    pRootSignature = &rs.graphics;
+  }
+
+  if(pRootSignature)
+  {
+    WrappedID3D12RootSignature *pD3D12RootSig =
+        rm->GetCurrentAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
+
+    size_t numParams = RDCMIN(pD3D12RootSig->sig.Parameters.size(), pRootSignature->sigelems.size());
+    for(size_t i = 0; i < numParams; ++i)
+    {
+      const D3D12RootSignatureParameter &param = pD3D12RootSig->sig.Parameters[i];
+      const D3D12RenderState::SignatureElement &element = pRootSignature->sigelems[i];
+      if(IsShaderParameterVisible(GetShaderType(), param.ShaderVisibility))
+      {
+        // Root SRV/UAV can only be buffers, so we don't need to check them for GetResourceInfo
+        if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE &&
+           element.type == eRootTable)
+        {
+          UINT prevTableOffset = 0;
+          WrappedID3D12DescriptorHeap *heap =
+              rm->GetCurrentAs<WrappedID3D12DescriptorHeap>(element.id);
+
+          size_t numRanges = param.ranges.size();
+          for(size_t r = 0; r < numRanges; ++r)
+          {
+            const D3D12_DESCRIPTOR_RANGE1 &range = param.ranges[r];
+
+            // For every range, check the number of descriptors so that we are accessing the
+            // correct data for append descriptor tables, even if the range type doesn't match
+            // what we need to fetch
+            UINT offset = range.OffsetInDescriptorsFromTableStart;
+            if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
+              offset = prevTableOffset;
+
+            D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
+            desc += element.offset;
+            desc += offset;
+
+            UINT numDescriptors = range.NumDescriptors;
+            if(numDescriptors == UINT_MAX)
+            {
+              // Find out how many descriptors are left after
+              numDescriptors = heap->GetNumDescriptors() - offset - (UINT)element.offset;
+
+              // TODO: Should we look up the bind point in the D3D12 state to try to get
+              // a better guess at the number of descriptors?
+            }
+
+            prevTableOffset = offset + numDescriptors;
+
+            // Check if the slot we want is contained
+            if(slot.shaderRegister >= range.BaseShaderRegister &&
+               slot.shaderRegister < range.BaseShaderRegister + numDescriptors &&
+               range.RegisterSpace == slot.registerSpace)
+            {
+              desc += slot.shaderRegister - range.BaseShaderRegister;
+              if(desc)
+              {
+                if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV &&
+                   type == DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
+                {
+                  ResourceId uavId = desc->GetResResourceId();
+                  ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(uavId);
+                  D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+                  D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = desc->GetUAV();
+
+                  switch(uavDesc.ViewDimension)
+                  {
+                    case D3D12_UAV_DIMENSION_UNKNOWN:
+                    case D3D12_UAV_DIMENSION_BUFFER:
+                    {
+                      RDCWARN("Invalid view dimension for GetResourceInfo");
+                      break;
+                    }
+                    case D3D12_UAV_DIMENSION_TEXTURE1D:
+                    case D3D12_UAV_DIMENSION_TEXTURE1DARRAY:
+                    {
+                      dim = 1;
+
+                      bool isarray = uavDesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY;
+
+                      result.value.u.x = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+                      result.value.u.y = isarray ? uavDesc.Texture1DArray.ArraySize : 0;
+                      result.value.u.z = 0;
+
+                      // spec says "For UAVs (u#), the number of mip levels is always 1."
+                      result.value.u.w = 1;
+
+                      if(mipLevel >= result.value.u.w)
+                        result.value.u.x = result.value.u.y = 0;
+
+                      break;
+                    }
+                    case D3D12_UAV_DIMENSION_TEXTURE2D:
+                    case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
+                    {
+                      dim = 2;
+
+                      result.value.u.x = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+                      result.value.u.y = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
+
+                      if(uavDesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2D)
+                        result.value.u.z = 0;
+                      else if(uavDesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
+                        result.value.u.z = uavDesc.Texture2DArray.ArraySize;
+
+                      // spec says "For UAVs (u#), the number of mip levels is always 1."
+                      result.value.u.w = 1;
+
+                      if(mipLevel >= result.value.u.w)
+                        result.value.u.x = result.value.u.y = result.value.u.z = 0;
+
+                      break;
+                    }
+                    case D3D11_UAV_DIMENSION_TEXTURE3D:
+                    {
+                      dim = 3;
+
+                      result.value.u.x = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+                      result.value.u.y = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
+                      result.value.u.z = RDCMAX(1U, (uint32_t)(resDesc.DepthOrArraySize >> mipLevel));
+
+                      // spec says "For UAVs (u#), the number of mip levels is always 1."
+                      result.value.u.w = 1;
+
+                      if(mipLevel >= result.value.u.w)
+                        result.value.u.x = result.value.u.y = result.value.u.z = 0;
+
+                      break;
+                    }
+                  }
+
+                  return result;
+                }
+                else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV &&
+                        type != DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
+                {
+                  ResourceId srvId = desc->GetResResourceId();
+                  ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
+                  D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+                  D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = desc->GetSRV();
+                  switch(srvDesc.ViewDimension)
+                  {
+                    case D3D12_SRV_DIMENSION_UNKNOWN:
+                    case D3D12_SRV_DIMENSION_BUFFER:
+                    {
+                      RDCWARN("Invalid view dimension for GetResourceInfo");
+                      break;
+                    }
+                    case D3D12_SRV_DIMENSION_TEXTURE1D:
+                    case D3D12_SRV_DIMENSION_TEXTURE1DARRAY:
+                    {
+                      dim = 1;
+
+                      bool isarray = srvDesc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE1DARRAY;
+
+                      result.value.u.x = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+                      result.value.u.y = isarray ? srvDesc.Texture1DArray.ArraySize : 0;
+                      result.value.u.z = 0;
+                      result.value.u.w =
+                          isarray ? srvDesc.Texture1DArray.MipLevels : srvDesc.Texture1D.MipLevels;
+
+                      if(mipLevel >= result.value.u.w)
+                        result.value.u.x = result.value.u.y = 0;
+
+                      break;
+                    }
+                    case D3D12_SRV_DIMENSION_TEXTURE2D:
+                    case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
+                    case D3D12_SRV_DIMENSION_TEXTURE2DMS:
+                    case D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY:
+                    {
+                      dim = 2;
+                      result.value.u.x = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+                      result.value.u.y = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
+
+                      if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2D)
+                      {
+                        result.value.u.z = 0;
+                        result.value.u.w = srvDesc.Texture2D.MipLevels;
+                      }
+                      else if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
+                      {
+                        result.value.u.z = srvDesc.Texture2DArray.ArraySize;
+                        result.value.u.w = srvDesc.Texture2DArray.MipLevels;
+                      }
+                      else if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMS)
+                      {
+                        result.value.u.z = 0;
+                        result.value.u.w = 1;
+                      }
+                      else if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY)
+                      {
+                        result.value.u.z = srvDesc.Texture2DMSArray.ArraySize;
+                        result.value.u.w = 1;
+                      }
+                      if(mipLevel >= result.value.u.w)
+                        result.value.u.x = result.value.u.y = result.value.u.z = 0;
+
+                      break;
+                    }
+                    case D3D12_SRV_DIMENSION_TEXTURE3D:
+                    {
+                      dim = 3;
+
+                      result.value.u.x = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+                      result.value.u.y = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
+                      result.value.u.z = RDCMAX(1U, (uint32_t)(resDesc.DepthOrArraySize >> mipLevel));
+                      result.value.u.w = srvDesc.Texture3D.MipLevels;
+
+                      if(mipLevel >= result.value.u.w)
+                        result.value.u.x = result.value.u.y = result.value.u.z = 0;
+
+                      break;
+                    }
+                    case D3D12_SRV_DIMENSION_TEXTURECUBE:
+                    case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
+                    {
+                      // Even though it's a texture cube, an individual face's dimensions are
+                      // returned
+                      dim = 2;
+
+                      bool isarray = srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+
+                      result.value.u.x = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+                      result.value.u.y = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
+
+                      // the spec says "If srcResource is a TextureCubeArray, [...]. dest.z is set
+                      // to an undefined value."
+                      // but that's stupid, and implementations seem to return the number of cubes
+                      result.value.u.z = isarray ? srvDesc.TextureCubeArray.NumCubes : 0;
+                      result.value.u.w = isarray ? srvDesc.TextureCubeArray.MipLevels
+                                                 : srvDesc.TextureCube.MipLevels;
+
+                      if(mipLevel >= result.value.u.w)
+                        result.value.u.x = result.value.u.y = result.value.u.z = 0;
+
+                      break;
+                    }
+                    case D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE:
+                    {
+                      RDCERR("Raytracing is unsupported");
+                      break;
+                    }
+                  }
+                  return result;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   return result;
 }
 

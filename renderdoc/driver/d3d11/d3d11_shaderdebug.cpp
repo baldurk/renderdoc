@@ -696,12 +696,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
         case D3D11_SRV_DIMENSION_UNKNOWN:
         case D3D11_SRV_DIMENSION_BUFFER:
         {
-          dim = 1;
-
-          result.value.u.x = srvDesc.Buffer.NumElements;
-          result.value.u.y = 0;
-          result.value.u.z = 0;
-          result.value.u.w = 0;
+          RDCWARN("Invalid view dimension for GetResourceInfo");
           break;
         }
         case D3D11_SRV_DIMENSION_BUFFEREX:
@@ -819,7 +814,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
 
           if(tex)
           {
-            bool isarray = srvDesc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE1DARRAY;
+            bool isarray = srvDesc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURECUBEARRAY;
 
             D3D11_TEXTURE2D_DESC desc;
             tex->GetDesc(&desc);
@@ -873,22 +868,7 @@ ShaderVariable D3D11DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
         case D3D11_UAV_DIMENSION_UNKNOWN:
         case D3D11_UAV_DIMENSION_BUFFER:
         {
-          ID3D11Buffer *buf = NULL;
-          uav->GetResource((ID3D11Resource **)&buf);
-
-          dim = 1;
-
-          if(buf)
-          {
-            D3D11_BUFFER_DESC desc;
-            buf->GetDesc(&desc);
-            result.value.u.x = desc.ByteWidth;
-            result.value.u.y = 0;
-            result.value.u.z = 0;
-            result.value.u.w = 0;
-
-            SAFE_RELEASE(buf);
-          }
+          RDCWARN("Invalid view dimension for GetResourceInfo");
           break;
         }
         case D3D11_UAV_DIMENSION_TEXTURE1D:

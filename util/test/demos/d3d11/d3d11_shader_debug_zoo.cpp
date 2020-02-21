@@ -550,6 +550,12 @@ float4 main(v2f IN) : SV_Target0
     dimtex.GetDimensions(z+10, width, height, numLevels);
     return float4(max(1,width), max(1,height), numLevels, 0.0f);
   }
+  if(IN.tri == 62)
+  {
+    uint width = 0;
+    test.GetDimensions(width);
+    return float4(max(1,width), 0.0f, 0.0f, 0.0f);
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }

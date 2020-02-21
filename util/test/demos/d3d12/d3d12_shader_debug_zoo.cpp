@@ -566,6 +566,12 @@ float4 main(v2f IN) : SV_Target0
     dimtex.GetDimensions(z+10, width, height, numLevels);
     return float4(max(1,width), max(1,height), numLevels, 0.0f);
   }
+  if(IN.tri == 62)
+  {
+    uint width = 0;
+    test.GetDimensions(width);
+    return float4(max(1,width), 0.0f, 0.0f, 0.0f);
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -662,7 +668,7 @@ float4 main(v2f IN) : SV_Target0
     MakeSRV(srvBuf).Format(DXGI_FORMAT_R32_FLOAT).CreateGPU(0);
 
     ID3D12ResourcePtr testTex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 16, 16).Mips(3);
-    MakeSRV(testTex).CreateGPU(3);
+    MakeSRV(testTex).NumMips(3).CreateGPU(3);
 
     ID3D12ResourcePtr rawBuf = MakeBuffer().Data(testdata);
     MakeSRV(rawBuf)
