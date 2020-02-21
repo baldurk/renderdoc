@@ -425,6 +425,8 @@ public:
   void MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize start, VkDeviceSize end,
                                  FrameRefType refType);
   void AddMemoryFrameRefs(ResourceId mem);
+  void AddDeviceMemory(ResourceId mem);
+  void RemoveDeviceMemory(ResourceId mem);
 
   void MergeReferencedMemory(std::map<ResourceId, MemRefs> &memRefs);
   void ClearReferencedMemory();
@@ -460,5 +462,6 @@ private:
 
   WrappedVulkan *m_Core;
   std::map<ResourceId, MemRefs> m_MemFrameRefs;
+  std::set<ResourceId> m_DeviceMemories;
   InitPolicy m_InitPolicy = eInitPolicy_CopyAll;
 };

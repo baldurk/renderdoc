@@ -471,6 +471,8 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
         record->memMapState->mapCoherent = (memProps & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
         record->memMapState->refData = NULL;
       }
+
+      GetResourceManager()->AddDeviceMemory(id);
     }
     else
     {
@@ -539,6 +541,8 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
       SCOPED_LOCK(m_CoherentMapsLock);
       m_CoherentMaps.removeOne(wrapped->record);
     }
+
+    GetResourceManager()->RemoveDeviceMemory(wrapped->id);
   }
 
   m_CreationInfo.erase(GetResID(memory));
