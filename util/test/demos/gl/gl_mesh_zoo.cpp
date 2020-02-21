@@ -30,7 +30,7 @@ RD_TEST(GL_Mesh_Zoo, OpenGLGraphicsTest)
 
   std::string common = R"EOSHADER(
 
-#version 420 core
+#version 450 core
 
 )EOSHADER";
 
@@ -60,6 +60,33 @@ void main()
   }
 
 	gl_Position = pos;
+}
+
+)EOSHADER";
+
+  std::string multivertex = R"EOSHADER(
+#version 460 core
+
+out vec4 col;
+flat out uint basevtx;
+flat out uint baseinst;
+flat out uint draw;
+flat out uint inst;
+flat out uint vert;
+
+void main()
+{
+  const vec4 verts[3] = vec4[3](vec4(-0.5, 0.5, 0.0, 1.0), vec4(0.0, -0.5, 0.0, 1.0),
+                                vec4(0.5, 0.5, 0.0, 1.0));
+
+  gl_Position = verts[gl_VertexID%3];
+  col = vec4(1, 1, 0, 1);
+
+  basevtx = gl_BaseVertex;
+  baseinst = gl_BaseInstance;
+  draw = gl_DrawID;
+  inst = gl_InstanceID;
+  vert = gl_VertexID;
 }
 
 )EOSHADER";
@@ -113,6 +140,8 @@ void main()
 
   int main()
   {
+    glMinor = 6;
+
     // initialise, create window, create context, etc
     if(!Init())
       return 3;
@@ -188,6 +217,8 @@ void main()
 
     GLuint geomprogram = MakeProgram(nopvertex, common + pixel, geometry);
 
+    GLuint multiprogram = MakeProgram(multivertex, common + pixel);
+
     GLuint fbo = MakeFBO();
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
@@ -207,6 +238,29 @@ void main()
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_DEPTH_CLAMP);
     glDisable(GL_STENCIL_TEST);
+
+    struct DrawElementsIndirectCommand
+    {
+      uint32_t count;
+      uint32_t instanceCount;
+      uint32_t firstIndex;
+      int32_t baseVertex;
+      uint32_t baseInstance;
+    };
+
+    GLuint cmdBuf = MakeBuffer();
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, cmdBuf);
+    glBufferStorage(GL_DRAW_INDIRECT_BUFFER, sizeof(DrawElementsIndirectCommand) * 4, NULL,
+                    GL_DYNAMIC_STORAGE_BIT);
+
+    GLuint countBuf = MakeBuffer();
+    glBindBuffer(GL_PARAMETER_BUFFER, countBuf);
+    glBufferStorage(GL_PARAMETER_BUFFER, sizeof(uint32_t), NULL, GL_DYNAMIC_STORAGE_BIT);
+
+    uint32_t indices[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    GLuint idxBuf = MakeBuffer();
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, idxBuf);
+    glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, 0);
 
     while(Running())
     {
@@ -242,6 +296,29 @@ void main()
       glUseProgram(geomprogram);
 
       glDrawArrays(GL_POINTS, 0, 1);
+
+      setMarker("Multi Draw");
+
+      glUseProgram(multiprogram);
+
+      DrawElementsIndirectCommand cmd = {};
+      cmd.count = 3;
+      cmd.instanceCount = 2;
+      cmd.baseVertex = 10;
+      cmd.baseInstance = 20;
+
+      uint32_t count = 2;
+      glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(cmd), &cmd);
+
+      cmd.instanceCount = 4;
+      cmd.baseVertex = 11;
+      cmd.baseInstance = 22;
+
+      glBufferSubData(GL_DRAW_INDIRECT_BUFFER, sizeof(cmd), sizeof(cmd), &cmd);
+      glBufferSubData(GL_PARAMETER_BUFFER, 0, sizeof(count), &count);
+
+      glMultiDrawElementsIndirectCount(GL_TRIANGLES, GL_UNSIGNED_INT, NULL, NULL, 4,
+                                       sizeof(DrawElementsIndirectCommand));
 
       glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
       glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
