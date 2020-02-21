@@ -2195,7 +2195,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
 
       draw.topology = MakePrimitiveTopology(mode);
 
-      AddDrawcall(draw, false);
+      AddEvent();
+      AddDrawcall(draw, true);
 
       m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
@@ -2357,7 +2358,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
 
       draw.topology = MakePrimitiveTopology(mode);
 
-      AddDrawcall(draw, false);
+      AddEvent();
+      AddDrawcall(draw, true);
 
       m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
@@ -2526,7 +2528,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
       draw.topology = MakePrimitiveTopology(mode);
       draw.indexByteWidth = IdxSize;
 
-      AddDrawcall(draw, false);
+      AddEvent();
+      AddDrawcall(draw, true);
 
       m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
@@ -2680,7 +2683,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
 
       draw.topology = MakePrimitiveTopology(mode);
 
-      AddDrawcall(draw, false);
+      AddEvent();
+      AddDrawcall(draw, true);
 
       m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
@@ -2903,7 +2907,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
       draw.topology = MakePrimitiveTopology(mode);
       draw.indexByteWidth = IdxSize;
 
-      AddDrawcall(draw, false);
+      AddEvent();
+      AddDrawcall(draw, true);
 
       m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
@@ -3132,7 +3137,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
 
       draw.topology = MakePrimitiveTopology(mode);
 
-      AddDrawcall(draw, false);
+      AddEvent();
+      AddDrawcall(draw, true);
 
       m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
@@ -3364,7 +3370,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
       draw.topology = MakePrimitiveTopology(mode);
       draw.indexByteWidth = IdxSize;
 
-      AddDrawcall(draw, false);
+      AddEvent();
+      AddDrawcall(draw, true);
 
       m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
