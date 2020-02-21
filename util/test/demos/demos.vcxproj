@@ -128,6 +128,7 @@
     <ClCompile Include="d3d11\d3d11_discard_view.cpp" />
     <ClCompile Include="d3d11\d3d11_divergent_shader.cpp" />
     <ClCompile Include="d3d11\d3d11_draw_zoo.cpp" />
+    <ClCompile Include="d3d11\d3d11_empty_capture.cpp" />
     <ClCompile Include="d3d11\d3d11_empty_compute_dispatch.cpp" />
     <ClCompile Include="d3d11\d3d11_empty_drawcall.cpp" />
     <ClCompile Include="d3d11\d3d11_empty_viewports.cpp" />
@@ -162,6 +163,7 @@
     <ClCompile Include="d3d11\d3d11_vertex_attr_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_video_textures.cpp" />
     <ClCompile Include="d3d12\d3d12_cbuffer_zoo.cpp" />
+    <ClCompile Include="d3d12\d3d12_empty_capture.cpp" />
     <ClCompile Include="d3d12\d3d12_execute_indirect.cpp" />
     <ClCompile Include="d3d12\d3d12_helpers.cpp" />
     <ClCompile Include="d3d12\d3d12_mesh_zoo.cpp" />
@@ -197,6 +199,7 @@
     <ClCompile Include="gl\gl_cbuffer_zoo.cpp" />
     <ClCompile Include="gl\gl_depthstencil_fbo.cpp" />
     <ClCompile Include="gl\gl_dx_interop.cpp" />
+    <ClCompile Include="gl\gl_empty_capture.cpp" />
     <ClCompile Include="gl\gl_entry_points.cpp" />
     <ClCompile Include="gl\gl_large_bcn_arrays.cpp" />
     <ClCompile Include="gl\gl_map_overrun.cpp" />
@@ -236,6 +239,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="test_common.cpp" />
     <ClCompile Include="texture_zoo.cpp" />
+    <ClCompile Include="vk\vk_empty_capture.cpp" />
     <ClCompile Include="vk\vk_khr_buffer_address.cpp" />
     <ClCompile Include="vk\vk_mesh_zoo.cpp" />
     <ClCompile Include="vk\vk_parameter_zoo.cpp" />
