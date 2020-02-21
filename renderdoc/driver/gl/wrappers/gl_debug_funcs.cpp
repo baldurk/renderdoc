@@ -36,7 +36,8 @@ static rdcstr DecodeLabel(GLsizei length, const GLchar *label)
   // mean that.
   GLsizei realLength = length;
   if((gl_CurChunk == GLChunk::glLabelObjectEXT || gl_CurChunk == GLChunk::glPushGroupMarkerEXT ||
-      gl_CurChunk == GLChunk::glInsertEventMarkerEXT) &&
+      gl_CurChunk == GLChunk::glInsertEventMarkerEXT ||
+      gl_CurChunk == GLChunk::glStringMarkerGREMEDY) &&
      length == 0)
     realLength = -1;
 
