@@ -171,7 +171,7 @@ def get_postvs_attrs(controller: rd.ReplayController, mesh: rd.MeshFormat, data_
         if pipe.HasAlignedPostVSData(data_stage) and (accum_offset % alignment) != 0:
             accum_offset += alignment - (accum_offset % alignment)
 
-        attrs[i].mesh.vertexByteOffset = accum_offset
+        attrs[i].mesh.vertexByteOffset += accum_offset
 
         accum_offset += elem_size * fmt.compCount
 
