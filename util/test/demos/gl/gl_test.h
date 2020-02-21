@@ -53,6 +53,8 @@ struct OpenGLGraphicsTest : public GraphicsTest
   GLuint MakeVAO();
   GLuint MakeFBO();
 
+  void ConfigureDefaultVAO();
+
   void pushMarker(const std::string &name);
   void setMarker(const std::string &name);
   void popMarker();
@@ -74,3 +76,6 @@ struct OpenGLGraphicsTest : public GraphicsTest
     std::vector<GLuint> bufs, texs, progs, pipes, vaos, fbos;
   } managedResources;
 };
+
+extern std::string GLDefaultVertex;
+extern std::string GLDefaultPixel;

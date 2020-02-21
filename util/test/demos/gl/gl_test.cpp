@@ -25,6 +25,50 @@
 #include "gl_test.h"
 #include <stdio.h>
 
+std::string common = R"EOSHADER(
+
+#version 420 core
+
+#define v2f v2f_block \
+{                     \
+	vec4 pos;           \
+	vec4 col;           \
+	vec4 uv;            \
+}
+
+)EOSHADER";
+
+std::string GLDefaultVertex = common + R"EOSHADER(
+
+layout(location = 0) in vec3 Position;
+layout(location = 1) in vec4 Color;
+layout(location = 2) in vec2 UV;
+
+out v2f vertOut;
+
+void main()
+{
+	vertOut.pos = vec4(Position.xyz, 1);
+	gl_Position = vertOut.pos;
+	vertOut.col = Color;
+	vertOut.uv = vec4(UV.xy, 0, 1);
+}
+
+)EOSHADER";
+
+std::string GLDefaultPixel = common + R"EOSHADER(
+
+in v2f vertIn;
+
+layout(location = 0, index = 0) out vec4 Color;
+
+void main()
+{
+	Color = vertIn.col;
+}
+
+)EOSHADER";
+
 static void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
                                    GLsizei length, const GLchar *message, const void *userParam)
 {
@@ -297,6 +341,18 @@ GLuint OpenGLGraphicsTest::MakeFBO()
   fbos.push_back(0);
   glGenFramebuffers(1, &fbos[fbos.size() - 1]);
   return fbos[fbos.size() - 1];
+}
+
+void OpenGLGraphicsTest::ConfigureDefaultVAO()
+{
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(DefaultA2V), (void *)(0));
+  glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(DefaultA2V), (void *)(sizeof(Vec3f)));
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(DefaultA2V),
+                        (void *)(sizeof(Vec3f) + sizeof(Vec4f)));
+
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+  glEnableVertexAttribArray(2);
 }
 
 void OpenGLGraphicsTest::pushMarker(const std::string &name)
