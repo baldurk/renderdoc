@@ -177,6 +177,7 @@
     <ClCompile Include="d3d12\d3d12_shader_editing.cpp" />
     <ClCompile Include="d3d12\d3d12_shader_isa.cpp" />
     <ClCompile Include="d3d12\d3d12_sharing.cpp" />
+    <ClCompile Include="d3d12\d3d12_simple_dispatch.cpp" />
     <ClCompile Include="d3d12\d3d12_simple_triangle.cpp" />
     <ClCompile Include="d3d12\d3d12_test.cpp" />
     <ClCompile Include="d3d12\d3d12_texture_zoo.cpp" />

@@ -379,8 +379,9 @@ bool D3D12DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
                 }
                 else
                 {
-                  // TODO: Handle texture resources in UAVs - need to copy/map to fetch the data
                   uavData.tex = true;
+                  m_pDevice->GetReplay()->GetTextureData(uavId, Subresource(),
+                                                         GetTextureDataParams(), uavData.data);
                 }
 
                 return true;
@@ -1341,8 +1342,13 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   // Create a PSO with our VS/PS and all other state from the original event
   D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
   D3D12RenderState prevState = rs;
+
+  // If we're debugging a compute shader, we should be able to reuse the rootsig for a
+  // pixel shader, since the entries will have to use shader visibility all
+  bool isCompute = m_dxbc->m_Type == DXBC::ShaderType::Compute;
+  ResourceId sigId = isCompute ? rs.compute.rootsig : rs.graphics.rootsig;
   WrappedID3D12RootSignature *pRootSig =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rs.graphics.rootsig);
+      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(sigId);
 
   D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc;
   ZeroMemory(&pipeDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -1378,6 +1384,22 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
 
   ID3D12GraphicsCommandListX *cmdList = m_pDevice->GetDebugManager()->ResetDebugList();
   rs.pipe = GetResID(samplePso);
+  rs.rts.clear();
+  // Set viewport/scissor unconditionally - we need to set this all the time for sampling for a
+  // compute shader, but also a graphics draw might exclude pixel (0, 0) from its view or scissor
+  rs.views.clear();
+  rs.views.push_back({0, 0, 1, 1, 0, 1});
+  rs.scissors.clear();
+  rs.scissors.push_back({0, 0, 1, 1});
+  if(isCompute)
+  {
+    // When debugging compute, we need to move the root sig and elems to the graphics portion
+    rs.graphics.rootsig = sigId;
+    rs.graphics.sigelems = rs.compute.sigelems;
+    rs.compute.rootsig = ResourceId();
+    rs.compute.sigelems.clear();
+  }
+  rs.topo = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
   rs.ApplyState(m_pDevice, cmdList);
 
   // Create a 1x1 texture to store the sample result
