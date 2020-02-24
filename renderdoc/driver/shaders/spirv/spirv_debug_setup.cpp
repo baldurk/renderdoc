@@ -245,7 +245,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     }
 
     // pick up uniform globals, which could be cbuffers
-    if(v.storage == StorageClass::Uniform && (decorations[v.id].flags & Decorations::BufferBlock) == 0)
+    else if(v.storage == StorageClass::Uniform &&
+            (decorations[v.id].flags & Decorations::BufferBlock) == 0)
     {
       ShaderVariable var;
       var.name = GetRawName(v.id);
@@ -284,6 +285,14 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
         globalSourceVars.push_back(sourceVar);
       }
+      else
+      {
+        RDCERR("Unhandled type of uniform: %u", innertype.type);
+      }
+    }
+    else
+    {
+      RDCERR("Unhandled type of global variable: %s", ToStr(v.storage).c_str());
     }
   }
 
