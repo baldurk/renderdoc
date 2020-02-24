@@ -99,6 +99,84 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     return new ShaderDebugTrace;
   }
 
+  for(Capability c : capabilities)
+  {
+    bool supported = false;
+    switch(c)
+    {
+      case Capability::Matrix:
+      case Capability::Shader:
+      // we "support" geometry/tessellation in case the module contains other entry points
+      case Capability::Geometry:
+      case Capability::Tessellation:
+      case Capability::GeometryPointSize:
+      case Capability::TessellationPointSize:
+      case Capability::Float16:
+      case Capability::Float64:
+      case Capability::Int64:
+      case Capability::Int64Atomics:
+      case Capability::AtomicStorage:
+      case Capability::Int16:
+      case Capability::ImageGatherExtended:
+      case Capability::StorageImageMultisample:
+      case Capability::ClipDistance:
+      case Capability::CullDistance:
+      case Capability::ImageCubeArray:
+      case Capability::Int8:
+      case Capability::InputAttachment:
+      case Capability::MinLod:
+      case Capability::Sampled1D:
+      case Capability::Image1D:
+      case Capability::SampledCubeArray:
+      case Capability::SampledBuffer:
+      case Capability::ImageBuffer:
+      case Capability::ImageMSArray:
+      case Capability::StorageImageExtendedFormats:
+      case Capability::ImageQuery:
+      case Capability::DerivativeControl:
+      case Capability::InterpolationFunction:
+      case Capability::TransformFeedback:
+      case Capability::GeometryStreams:
+      case Capability::StorageImageReadWithoutFormat:
+      case Capability::StorageImageWriteWithoutFormat:
+      case Capability::MultiViewport:
+      case Capability::ShaderLayer:
+      case Capability::ShaderViewportIndex:
+      case Capability::DrawParameters:
+      case Capability::StorageBuffer16BitAccess:
+      case Capability::UniformAndStorageBuffer16BitAccess:
+      case Capability::StoragePushConstant16:
+      case Capability::StorageInputOutput16:
+      case Capability::StorageBuffer8BitAccess:
+      case Capability::UniformAndStorageBuffer8BitAccess:
+      case Capability::StoragePushConstant8:
+      {
+        supported = true;
+        break;
+      }
+      default: break;
+    }
+
+    if(!supported)
+    {
+      RDCERR("Unsupported capability '%s'", ToStr(c).c_str());
+      return new ShaderDebugTrace;
+    }
+  }
+
+  for(const rdcstr &e : extensions)
+  {
+    if(e == "SPV_GOOGLE_decorate_string" || e == "SPV_GOOGLE_hlsl_functionality1")
+    {
+      // supported extensions
+    }
+    else
+    {
+      RDCERR("Unsupported extension '%s'", e.c_str());
+      return new ShaderDebugTrace;
+    }
+  }
+
   ShaderDebugTrace *ret = new ShaderDebugTrace;
   ret->debugger = this;
   this->activeLaneIndex = activeIndex;
