@@ -1249,8 +1249,9 @@ SPDBChunk::SPDBChunk(void *chunk)
           varOffset -= vartype->matArrayStride * idx;
           uint32_t comp = (varOffset % 16) / 4;
 
-          // should now be down to a vector, so the remaining offset is the component
-          RDCASSERT(varOffset < 16);
+          // should now be down to a vector, so the remaining offset is the component. Unless we had
+          // multiple indices in which case it's a multi-dimensional array
+          RDCASSERT(varOffset < 16 || defrange->regIndices > 1);
 
           if(vartype->leafType == LF_MATRIX)
           {
@@ -1277,7 +1278,12 @@ SPDBChunk::SPDBChunk(void *chunk)
             // if this is an array, the index is just the array index. However if we're mapping the
             // whole array, don't add the index as the mapping will do that for us
             if(varLen < mapping.var.elements * vartype->matArrayStride)
+            {
               mapping.var.name += StringFormat::Fmt("[%u]", idx);
+
+              // we've selected one element in the array, so it's not longer an array
+              mapping.var.elements = 1;
+            }
           }
 
           // set the offset explicitly to the component within the final vector we chose (whatever
