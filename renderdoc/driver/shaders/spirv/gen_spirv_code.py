@@ -954,9 +954,6 @@ for inst in spirv['instructions']:
                     complex_type = True
                     manual_init += '    uint32_t word = {};\n'.format(all_size)
 
-                if kind['is_id']:
-                    used_ids += '      usedids.insert(Id::fromWord(it.word({})));\n'.format(all_size)
-
                 quantifier = ''
 
                 if 'quantifier' in operand:
@@ -967,6 +964,12 @@ for inst in spirv['instructions']:
                         complex_type = True
                         if quantifier == '*':
                             manual_init += '    uint32_t word = {};\n'.format(all_size)
+
+                if kind['is_id']:
+                    if quantifier == '*':
+                        used_ids += '      for(size_t i=0; i < size-{0}; i++) callback(Id::fromWord(it.word({0}+i)), {1});\n'.format(all_size, 'true' if i+1==result else 'false')
+                    else:
+                        used_ids += '      callback(Id::fromWord(it.word({})), {});\n'.format(all_size, 'true' if i+1==result else 'false')
 
                 if kind['size'] < 0:
                     size_name = 'MinWordSize'
@@ -1168,7 +1171,7 @@ struct OpDecoder
 {{
   OpDecoder(const ConstIter &it);
 
-  static void AddUsedIDs(std::set<Id> &usedids, const ConstIter &it);
+  static void ForEachID(const ConstIter &it, const std::function<void(Id,bool)> &callback);
   static rdcstr Disassemble(const ConstIter &it, const std::function<rdcstr(Id,Id)> &declName, const std::function<rdcstr(rdcspv::Id)> &idName, const std::function<uint32_t(Id)> &constIntVal);
   
   Op op;
@@ -1223,8 +1226,9 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const PairIdR
 
 {tostrs}
 
-void OpDecoder::AddUsedIDs(std::set<Id> &usedids, const ConstIter &it)
+void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)> &callback)
 {{
+  size_t size = it.size();
   switch(it.opcode())
   {{
 {used_ids}

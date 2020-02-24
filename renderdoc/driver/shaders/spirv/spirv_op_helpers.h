@@ -16364,7 +16364,7 @@ struct OpDecoder
 {
   OpDecoder(const ConstIter &it);
 
-  static void AddUsedIDs(std::set<Id> &usedids, const ConstIter &it);
+  static void ForEachID(const ConstIter &it, const std::function<void(Id,bool)> &callback);
   static rdcstr Disassemble(const ConstIter &it, const std::function<rdcstr(Id,Id)> &declName, const std::function<rdcstr(rdcspv::Id)> &idName, const std::function<uint32_t(Id)> &constIntVal);
   
   Op op;

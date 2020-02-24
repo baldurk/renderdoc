@@ -686,7 +686,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
 
       while(it.opcode() != Op::FunctionEnd)
       {
-        OpDecoder::AddUsedIDs(usedIds, it);
+        OpDecoder::ForEachID(it, [&usedIds](Id id, bool result) { usedIds.insert(id); });
 
         if(it.opcode() == Op::AccessChain || it.opcode() == Op::InBoundsAccessChain)
         {

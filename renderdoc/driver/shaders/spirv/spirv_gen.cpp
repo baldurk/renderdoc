@@ -1706,2074 +1706,2075 @@ rdcstr ParamToStr(const std::function<rdcstr(rdcspv::Id)> &idName, const rdcspv:
   return ret;
 }
 
-void OpDecoder::AddUsedIDs(std::set<Id> &usedids, const ConstIter &it)
+void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)> &callback)
 {
+  size_t size = it.size();
   switch(it.opcode())
   {
     case rdcspv::Op::Nop:
       break;
     case rdcspv::Op::Undef:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::SourceContinued:
       break;
     case rdcspv::Op::Source:
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SourceExtension:
       break;
     case rdcspv::Op::Name:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::MemberName:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::String:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::Line:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::Extension:
       break;
     case rdcspv::Op::ExtInstImport:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::ExtInst:
       break;
     case rdcspv::Op::MemoryModel:
       break;
     case rdcspv::Op::EntryPoint:
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(2)), false);
+      for(size_t i=0; i < size-4; i++) callback(Id::fromWord(it.word(4+i)), false);
       break;
     case rdcspv::Op::ExecutionMode:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::Capability:
       break;
     case rdcspv::Op::TypeVoid:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeBool:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeInt:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeFloat:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeVector:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), true);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::TypeMatrix:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), true);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::TypeImage:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), true);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::TypeSampler:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeSampledImage:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), true);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::TypeArray:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), true);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::TypeRuntimeArray:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), true);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::TypeStruct:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), true);
+      for(size_t i=0; i < size-2; i++) callback(Id::fromWord(it.word(2+i)), false);
       break;
     case rdcspv::Op::TypeOpaque:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypePointer:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::TypeFunction:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), true);
+      callback(Id::fromWord(it.word(2)), false);
+      for(size_t i=0; i < size-3; i++) callback(Id::fromWord(it.word(3+i)), false);
       break;
     case rdcspv::Op::TypeEvent:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeDeviceEvent:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeReserveId:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeQueue:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypePipe:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeForwardPointer:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::ConstantTrue:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::ConstantFalse:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::Constant:
       break;
     case rdcspv::Op::ConstantComposite:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      for(size_t i=0; i < size-3; i++) callback(Id::fromWord(it.word(3+i)), false);
       break;
     case rdcspv::Op::ConstantSampler:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::ConstantNull:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::SpecConstantTrue:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::SpecConstantFalse:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::SpecConstant:
       break;
     case rdcspv::Op::SpecConstantComposite:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      for(size_t i=0; i < size-3; i++) callback(Id::fromWord(it.word(3+i)), false);
       break;
     case rdcspv::Op::SpecConstantOp:
       break;
     case rdcspv::Op::Function:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FunctionParameter:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::FunctionEnd:
       break;
     case rdcspv::Op::FunctionCall:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      for(size_t i=0; i < size-4; i++) callback(Id::fromWord(it.word(4+i)), false);
       break;
     case rdcspv::Op::Variable:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageTexelPointer:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::Load:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::Store:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::CopyMemory:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::CopyMemorySized:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::AccessChain:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      for(size_t i=0; i < size-4; i++) callback(Id::fromWord(it.word(4+i)), false);
       break;
     case rdcspv::Op::InBoundsAccessChain:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      for(size_t i=0; i < size-4; i++) callback(Id::fromWord(it.word(4+i)), false);
       break;
     case rdcspv::Op::PtrAccessChain:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      for(size_t i=0; i < size-5; i++) callback(Id::fromWord(it.word(5+i)), false);
       break;
     case rdcspv::Op::ArrayLength:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::GenericPtrMemSemantics:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::InBoundsPtrAccessChain:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      for(size_t i=0; i < size-5; i++) callback(Id::fromWord(it.word(5+i)), false);
       break;
     case rdcspv::Op::Decorate:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::MemberDecorate:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::DecorationGroup:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::GroupDecorate:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      for(size_t i=0; i < size-2; i++) callback(Id::fromWord(it.word(2+i)), false);
       break;
     case rdcspv::Op::GroupMemberDecorate:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::VectorExtractDynamic:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::VectorInsertDynamic:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::VectorShuffle:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::CompositeConstruct:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      for(size_t i=0; i < size-3; i++) callback(Id::fromWord(it.word(3+i)), false);
       break;
     case rdcspv::Op::CompositeExtract:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::CompositeInsert:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::CopyObject:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::Transpose:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SampledImage:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageSampleImplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageSampleExplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageSampleDrefImplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ImageSampleDrefExplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ImageSampleProjImplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageSampleProjExplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageSampleProjDrefImplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ImageSampleProjDrefExplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ImageFetch:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageGather:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ImageDrefGather:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ImageRead:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageWrite:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::Image:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ImageQueryFormat:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ImageQueryOrder:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ImageQuerySizeLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageQuerySize:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ImageQueryLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageQueryLevels:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ImageQuerySamples:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ConvertFToU:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ConvertFToS:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ConvertSToF:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ConvertUToF:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::UConvert:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SConvert:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::FConvert:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::QuantizeToF16:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ConvertPtrToU:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SatConvertSToU:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SatConvertUToS:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ConvertUToPtr:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::PtrCastToGeneric:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::GenericCastToPtr:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::GenericCastToPtrExplicit:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::Bitcast:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SNegate:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::FNegate:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::IAdd:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FAdd:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ISub:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FSub:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::IMul:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FMul:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::UDiv:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SDiv:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FDiv:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::UMod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SRem:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SMod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FRem:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FMod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::VectorTimesScalar:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::MatrixTimesScalar:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::VectorTimesMatrix:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::MatrixTimesVector:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::MatrixTimesMatrix:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::OuterProduct:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::Dot:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::IAddCarry:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ISubBorrow:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::UMulExtended:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SMulExtended:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::Any:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::All:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::IsNan:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::IsInf:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::IsFinite:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::IsNormal:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SignBitSet:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::LessOrGreater:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::Ordered:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::Unordered:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::LogicalEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::LogicalNotEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::LogicalOr:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::LogicalAnd:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::LogicalNot:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::Select:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::IEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::INotEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::UGreaterThan:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SGreaterThan:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::UGreaterThanEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SGreaterThanEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ULessThan:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SLessThan:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ULessThanEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SLessThanEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FOrdEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FUnordEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FOrdNotEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FUnordNotEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FOrdLessThan:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FUnordLessThan:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FOrdGreaterThan:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FUnordGreaterThan:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FOrdLessThanEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FUnordLessThanEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FOrdGreaterThanEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FUnordGreaterThanEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ShiftRightLogical:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ShiftRightArithmetic:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ShiftLeftLogical:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::BitwiseOr:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::BitwiseXor:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::BitwiseAnd:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::Not:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::BitFieldInsert:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::BitFieldSExtract:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::BitFieldUExtract:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::BitReverse:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::BitCount:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::DPdx:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::DPdy:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::Fwidth:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::DPdxFine:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::DPdyFine:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::FwidthFine:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::DPdxCoarse:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::DPdyCoarse:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::FwidthCoarse:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::EmitVertex:
       break;
     case rdcspv::Op::EndPrimitive:
       break;
     case rdcspv::Op::EmitStreamVertex:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::EndStreamPrimitive:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::ControlBarrier:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::MemoryBarrier:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::AtomicLoad:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::AtomicStore:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::AtomicExchange:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::AtomicCompareExchange:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
-      usedids.insert(Id::fromWord(it.word(8)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
+      callback(Id::fromWord(it.word(8)), false);
       break;
     case rdcspv::Op::AtomicCompareExchangeWeak:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
-      usedids.insert(Id::fromWord(it.word(8)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
+      callback(Id::fromWord(it.word(8)), false);
       break;
     case rdcspv::Op::AtomicIIncrement:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::AtomicIDecrement:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::AtomicIAdd:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::AtomicISub:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::AtomicSMin:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::AtomicUMin:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::AtomicSMax:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::AtomicUMax:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::AtomicAnd:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::AtomicOr:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::AtomicXor:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::Phi:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::LoopMerge:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::SelectionMerge:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::Label:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::Branch:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::BranchConditional:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::Switch:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::Kill:
       break;
     case rdcspv::Op::Return:
       break;
     case rdcspv::Op::ReturnValue:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::Unreachable:
       break;
     case rdcspv::Op::LifetimeStart:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::LifetimeStop:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::GroupAsyncCopy:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
-      usedids.insert(Id::fromWord(it.word(8)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
+      callback(Id::fromWord(it.word(8)), false);
       break;
     case rdcspv::Op::GroupWaitEvents:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::GroupAll:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::GroupAny:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::GroupBroadcast:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupIAdd:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupFAdd:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupFMin:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupUMin:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupSMin:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupFMax:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupUMax:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupSMax:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ReadPipe:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::WritePipe:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::ReservedReadPipe:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
-      usedids.insert(Id::fromWord(it.word(8)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
+      callback(Id::fromWord(it.word(8)), false);
       break;
     case rdcspv::Op::ReservedWritePipe:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
-      usedids.insert(Id::fromWord(it.word(8)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
+      callback(Id::fromWord(it.word(8)), false);
       break;
     case rdcspv::Op::ReserveReadPipePackets:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::ReserveWritePipePackets:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::CommitReadPipe:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::CommitWritePipe:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::IsValidReserveId:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::GetNumPipePackets:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GetMaxPipePackets:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupReserveReadPipePackets:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
       break;
     case rdcspv::Op::GroupReserveWritePipePackets:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
       break;
     case rdcspv::Op::GroupCommitReadPipe:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupCommitWritePipe:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::EnqueueMarker:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::EnqueueKernel:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
-      usedids.insert(Id::fromWord(it.word(8)));
-      usedids.insert(Id::fromWord(it.word(9)));
-      usedids.insert(Id::fromWord(it.word(10)));
-      usedids.insert(Id::fromWord(it.word(11)));
-      usedids.insert(Id::fromWord(it.word(12)));
-      usedids.insert(Id::fromWord(it.word(13)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
+      callback(Id::fromWord(it.word(8)), false);
+      callback(Id::fromWord(it.word(9)), false);
+      callback(Id::fromWord(it.word(10)), false);
+      callback(Id::fromWord(it.word(11)), false);
+      callback(Id::fromWord(it.word(12)), false);
+      for(size_t i=0; i < size-13; i++) callback(Id::fromWord(it.word(13+i)), false);
       break;
     case rdcspv::Op::GetKernelNDrangeSubGroupCount:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
       break;
     case rdcspv::Op::GetKernelNDrangeMaxSubGroupSize:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
       break;
     case rdcspv::Op::GetKernelWorkGroupSize:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GetKernelPreferredWorkGroupSizeMultiple:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::RetainEvent:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::ReleaseEvent:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::CreateUserEvent:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::IsValidEvent:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SetUserEventStatus:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::CaptureEventProfilingInfo:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::GetDefaultQueue:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::BuildNDRange:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ImageSparseSampleImplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageSparseSampleExplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageSparseSampleDrefImplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ImageSparseSampleDrefExplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ImageSparseSampleProjImplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageSparseSampleProjExplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageSparseSampleProjDrefImplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ImageSparseSampleProjDrefExplicitLod:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ImageSparseFetch:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ImageSparseGather:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ImageSparseDrefGather:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ImageSparseTexelsResident:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::NoLine:
       break;
     case rdcspv::Op::AtomicFlagTestAndSet:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::AtomicFlagClear:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ImageSparseRead:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SizeOf:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::TypePipeStorage:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::ConstantPipeStorage:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::CreatePipeFromPipeStorage:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::GetKernelLocalSizeForSubgroupCount:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
       break;
     case rdcspv::Op::GetKernelMaxNumSubgroups:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::TypeNamedBarrier:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::NamedBarrierInitialize:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::MemoryNamedBarrier:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ModuleProcessed:
       break;
     case rdcspv::Op::ExecutionModeId:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::DecorateId:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::GroupNonUniformElect:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::GroupNonUniformAll:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::GroupNonUniformAny:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::GroupNonUniformAllEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::GroupNonUniformBroadcast:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupNonUniformBroadcastFirst:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::GroupNonUniformBallot:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::GroupNonUniformInverseBallot:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::GroupNonUniformBallotBitExtract:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupNonUniformBallotBitCount:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupNonUniformBallotFindLSB:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::GroupNonUniformBallotFindMSB:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::GroupNonUniformShuffle:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupNonUniformShuffleXor:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupNonUniformShuffleUp:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupNonUniformShuffleDown:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupNonUniformIAdd:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformFAdd:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformIMul:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformFMul:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformSMin:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformUMin:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformFMin:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformSMax:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformUMax:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformFMax:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformBitwiseAnd:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformBitwiseOr:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformBitwiseXor:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformLogicalAnd:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformLogicalOr:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformLogicalXor:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformQuadBroadcast:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupNonUniformQuadSwap:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::CopyLogical:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::PtrEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::PtrNotEqual:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::PtrDiff:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupBallotKHR:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupFirstInvocationKHR:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAllKHR:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAnyKHR:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAllEqualKHR:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupReadInvocationKHR:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::GroupIAddNonUniformAMD:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupFAddNonUniformAMD:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupFMinNonUniformAMD:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupUMinNonUniformAMD:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupSMinNonUniformAMD:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupFMaxNonUniformAMD:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupUMaxNonUniformAMD:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::GroupSMaxNonUniformAMD:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::FragmentMaskFetchAMD:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::FragmentFetchAMD:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::ReadClockKHR:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::ImageSampleFootprintNV:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::GroupNonUniformPartitionNV:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::WritePackedPrimitiveIndices4x8NV:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::ReportIntersectionNV:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::IgnoreIntersectionNV:
       break;
     case rdcspv::Op::TerminateRayNV:
       break;
     case rdcspv::Op::TraceNV:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
-      usedids.insert(Id::fromWord(it.word(8)));
-      usedids.insert(Id::fromWord(it.word(9)));
-      usedids.insert(Id::fromWord(it.word(10)));
-      usedids.insert(Id::fromWord(it.word(11)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
+      callback(Id::fromWord(it.word(8)), false);
+      callback(Id::fromWord(it.word(9)), false);
+      callback(Id::fromWord(it.word(10)), false);
+      callback(Id::fromWord(it.word(11)), false);
       break;
     case rdcspv::Op::TypeAccelerationStructureNV:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::ExecuteCallableNV:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::TypeCooperativeMatrixNV:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), true);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::CooperativeMatrixLoadNV:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::CooperativeMatrixStoreNV:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::CooperativeMatrixMulAddNV:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::CooperativeMatrixLengthNV:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::BeginInvocationInterlockEXT:
       break;
@@ -3782,848 +3783,848 @@ void OpDecoder::AddUsedIDs(std::set<Id> &usedids, const ConstIter &it)
     case rdcspv::Op::DemoteToHelperInvocationEXT:
       break;
     case rdcspv::Op::IsHelperInvocationEXT:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::SubgroupShuffleINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupShuffleDownINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupShuffleUpINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupShuffleXorINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupBlockReadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupBlockWriteINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::SubgroupImageBlockReadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupImageBlockWriteINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupImageMediaBlockReadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupImageMediaBlockWriteINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), false);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::UCountLeadingZerosINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::UCountTrailingZerosINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::AbsISubINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::AbsUSubINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::IAddSatINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::UAddSatINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::IAverageINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::UAverageINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::IAverageRoundedINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::UAverageRoundedINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::ISubSatINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::USubSatINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::IMul32x16INTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::UMul32x16INTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::DecorateString:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::MemberDecorateString:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), false);
       break;
     case rdcspv::Op::VmeImageINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::TypeVmeImageINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), true);
+      callback(Id::fromWord(it.word(2)), false);
       break;
     case rdcspv::Op::TypeAvcImePayloadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeAvcRefPayloadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeAvcSicPayloadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeAvcMcePayloadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeAvcMceResultINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeAvcImeResultINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeAvcImeResultSingleReferenceStreamoutINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeAvcImeResultDualReferenceStreamoutINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeAvcImeSingleReferenceStreaminINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeAvcImeDualReferenceStreaminINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeAvcRefResultINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::TypeAvcSicResultINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
+      callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::SubgroupAvcMceGetDefaultInterBaseMultiReferencePenaltyINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceSetInterBaseMultiReferencePenaltyINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetDefaultInterShapePenaltyINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceSetInterShapePenaltyINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetDefaultInterDirectionPenaltyINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceSetInterDirectionPenaltyINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetDefaultIntraLumaShapePenaltyINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetDefaultInterMotionVectorCostTableINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetDefaultHighPenaltyCostTableINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::SubgroupAvcMceGetDefaultMediumPenaltyCostTableINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::SubgroupAvcMceGetDefaultLowPenaltyCostTableINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::SubgroupAvcMceSetMotionVectorCostFunctionINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetDefaultIntraLumaModePenaltyINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetDefaultNonDcLumaIntraPenaltyINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::SubgroupAvcMceGetDefaultIntraChromaModeBasePenaltyINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
       break;
     case rdcspv::Op::SubgroupAvcMceSetAcOnlyHaarINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceSetSourceInterlacedFieldPolarityINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceSetSingleReferenceInterlacedFieldPolarityINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceSetDualReferenceInterlacedFieldPolaritiesINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceConvertToImePayloadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceConvertToImeResultINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceConvertToRefPayloadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceConvertToRefResultINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceConvertToSicPayloadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceConvertToSicResultINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetMotionVectorsINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetInterDistortionsINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetBestInterDistortionsINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetInterMajorShapeINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetInterMinorShapeINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetInterDirectionsINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetInterMotionVectorCountINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetInterReferenceIdsINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcMceGetInterReferenceInterlacedFieldPolaritiesINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeInitializeINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeSetSingleReferenceINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeSetDualReferenceINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeRefWindowSizeINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeAdjustRefOffsetINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeConvertToMcePayloadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeSetMaxMotionVectorCountINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeSetUnidirectionalMixDisableINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeSetEarlySearchTerminationThresholdINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeSetWeightedSadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeEvaluateWithSingleReferenceINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeEvaluateWithDualReferenceINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeEvaluateWithSingleReferenceStreaminINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeEvaluateWithDualReferenceStreaminINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeEvaluateWithSingleReferenceStreamoutINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeEvaluateWithDualReferenceStreamoutINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeEvaluateWithSingleReferenceStreaminoutINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeEvaluateWithDualReferenceStreaminoutINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeConvertToMceResultINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeGetSingleReferenceStreaminINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeGetDualReferenceStreaminINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeStripSingleReferenceStreamoutINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeStripDualReferenceStreamoutINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeGetStreamoutSingleReferenceMajorShapeMotionVectorsINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeGetStreamoutSingleReferenceMajorShapeDistortionsINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeGetStreamoutSingleReferenceMajorShapeReferenceIdsINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeGetStreamoutDualReferenceMajorShapeMotionVectorsINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeGetStreamoutDualReferenceMajorShapeDistortionsINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeGetStreamoutDualReferenceMajorShapeReferenceIdsINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeGetBorderReachedINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeGetTruncatedSearchIndicationINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeGetUnidirectionalEarlySearchTerminationINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeGetWeightingPatternMinimumMotionVectorINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcImeGetWeightingPatternMinimumDistortionINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcFmeInitializeINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
-      usedids.insert(Id::fromWord(it.word(8)));
-      usedids.insert(Id::fromWord(it.word(9)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
+      callback(Id::fromWord(it.word(8)), false);
+      callback(Id::fromWord(it.word(9)), false);
       break;
     case rdcspv::Op::SubgroupAvcBmeInitializeINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
-      usedids.insert(Id::fromWord(it.word(8)));
-      usedids.insert(Id::fromWord(it.word(9)));
-      usedids.insert(Id::fromWord(it.word(10)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
+      callback(Id::fromWord(it.word(8)), false);
+      callback(Id::fromWord(it.word(9)), false);
+      callback(Id::fromWord(it.word(10)), false);
       break;
     case rdcspv::Op::SubgroupAvcRefConvertToMcePayloadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcRefSetBidirectionalMixDisableINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcRefSetBilinearFilterEnableINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcRefEvaluateWithSingleReferenceINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupAvcRefEvaluateWithDualReferenceINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupAvcRefEvaluateWithMultiReferenceINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupAvcRefEvaluateWithMultiReferenceInterlacedINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupAvcRefConvertToMceResultINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicInitializeINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicConfigureSkcINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
-      usedids.insert(Id::fromWord(it.word(8)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
+      callback(Id::fromWord(it.word(8)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicConfigureIpeLumaINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
-      usedids.insert(Id::fromWord(it.word(8)));
-      usedids.insert(Id::fromWord(it.word(9)));
-      usedids.insert(Id::fromWord(it.word(10)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
+      callback(Id::fromWord(it.word(8)), false);
+      callback(Id::fromWord(it.word(9)), false);
+      callback(Id::fromWord(it.word(10)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicConfigureIpeLumaChromaINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
-      usedids.insert(Id::fromWord(it.word(7)));
-      usedids.insert(Id::fromWord(it.word(8)));
-      usedids.insert(Id::fromWord(it.word(9)));
-      usedids.insert(Id::fromWord(it.word(10)));
-      usedids.insert(Id::fromWord(it.word(11)));
-      usedids.insert(Id::fromWord(it.word(12)));
-      usedids.insert(Id::fromWord(it.word(13)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
+      callback(Id::fromWord(it.word(7)), false);
+      callback(Id::fromWord(it.word(8)), false);
+      callback(Id::fromWord(it.word(9)), false);
+      callback(Id::fromWord(it.word(10)), false);
+      callback(Id::fromWord(it.word(11)), false);
+      callback(Id::fromWord(it.word(12)), false);
+      callback(Id::fromWord(it.word(13)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicGetMotionVectorMaskINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicConvertToMcePayloadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicSetIntraLumaShapePenaltyINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicSetIntraLumaModeCostFunctionINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicSetIntraChromaModeCostFunctionINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicSetBilinearFilterEnableINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicSetSkcForwardTransformEnableINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicSetBlockBasedRawSkipSadINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicEvaluateIpeINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicEvaluateWithSingleReferenceINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicEvaluateWithDualReferenceINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicEvaluateWithMultiReferenceINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicEvaluateWithMultiReferenceInterlacedINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
-      usedids.insert(Id::fromWord(it.word(4)));
-      usedids.insert(Id::fromWord(it.word(5)));
-      usedids.insert(Id::fromWord(it.word(6)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
+      callback(Id::fromWord(it.word(4)), false);
+      callback(Id::fromWord(it.word(5)), false);
+      callback(Id::fromWord(it.word(6)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicConvertToMceResultINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicGetIpeLumaShapeINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicGetBestIpeLumaDistortionINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicGetBestIpeChromaDistortionINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicGetPackedIpeLumaModesINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicGetIpeChromaModeINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicGetPackedSkcLumaCountThresholdINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicGetPackedSkcLumaSumThresholdINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case rdcspv::Op::SubgroupAvcSicGetInterRawSadsINTEL:
-      usedids.insert(Id::fromWord(it.word(1)));
-      usedids.insert(Id::fromWord(it.word(2)));
-      usedids.insert(Id::fromWord(it.word(3)));
+      callback(Id::fromWord(it.word(1)), false);
+      callback(Id::fromWord(it.word(2)), true);
+      callback(Id::fromWord(it.word(3)), false);
       break;
     case Op::Max: break;
   }
