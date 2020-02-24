@@ -618,6 +618,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
         finished = nextStates.empty();
       } while(!finished);
 
+      r->SetFrameEvent(m_Ctx.CurEvent(), true);
+
       m_States = states;
 
       for(const ShaderVariableChange &c : GetCurrentState().changes)

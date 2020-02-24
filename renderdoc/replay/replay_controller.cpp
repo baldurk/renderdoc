@@ -1661,8 +1661,6 @@ rdcarray<ShaderDebugState> ReplayController::ContinueDebug(ShaderDebugger *debug
 
   rdcarray<ShaderDebugState> ret = m_pDevice->ContinueDebug(debugger);
 
-  SetFrameEvent(m_EventID, true);
-
   return ret;
 }
 
