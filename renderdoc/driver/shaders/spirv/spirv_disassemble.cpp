@@ -644,6 +644,19 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           if(decoded.selectionControl != SelectionControl::None)
             ret += StringFormat::Fmt("[[%s]]", ToStr(decoded.selectionControl).c_str());
 
+          // increment any previous instructions that were pointing at this line, to point at the
+          // next one.
+          for(auto lineIt = instructionLines.end(); lineIt != instructionLines.begin();)
+          {
+            --lineIt;
+            if(lineIt->second == lineNum)
+            {
+              lineIt->second++;
+              continue;
+            }
+            break;
+          }
+
           ret += "\n";
           lineNum++;
 
@@ -736,21 +749,18 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
         case Op::LoopMerge:
         {
           OpLoopMerge decoded(it);
-          ret += indent;
           if(decoded.loopControl != LoopControl::None)
-            ret += StringFormat::Fmt("[[%s]]", ParamToStr(idName, decoded.loopControl).c_str());
-
-          ret += "\n";
-          lineNum++;
+          {
+            ret += indent;
+            ret += StringFormat::Fmt("[[%s]]\n", ParamToStr(idName, decoded.loopControl).c_str());
+            lineNum++;
+          }
 
           it++;
           instructionLines[it.offs()] = lineNum;
           if(it.opcode() == Op::Branch)
           {
             OpBranch decodedbranch(it);
-            ret += indent;
-            ret += "while(true) {\n";
-            lineNum++;
 
             ConstIter nextit = it;
             nextit++;
@@ -787,9 +797,9 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
             if(decodedbranch.trueLabel == decoded.mergeBlock ||
                decodedbranch.falseLabel == decoded.mergeBlock)
             {
-              const char *negate = (decodedbranch.trueLabel == decoded.mergeBlock) ? "!" : "";
+              const char *negate = (decodedbranch.trueLabel == decoded.mergeBlock) ? "" : "!";
               ret += indent;
-              ret += StringFormat::Fmt("while(%s%s) {", negate,
+              ret += StringFormat::Fmt("if(%s%s) break;", negate,
                                        idName(decodedbranch.condition).c_str());
 
               if(decodedbranch.branchweights.size() == 2)
@@ -826,7 +836,6 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           cfg.mergeTarget = decoded.mergeBlock;
           cfg.continueTarget = decoded.continueTarget;
           cfgStack.push_back(cfg);
-          indent += "  ";
 
           continue;
         }
@@ -889,6 +898,31 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
             ret += idName(decoded.result) + ":\n";
             lineNum++;
           }
+
+          // if this is a loop header, begin the loop here
+          if(loopBlocks.find(decoded.result) != loopBlocks.end())
+          {
+            // increment any previous instructions that were pointing at this line, to point at the
+            // next one.
+            for(auto lineIt = instructionLines.end(); lineIt != instructionLines.begin();)
+            {
+              --lineIt;
+              if(lineIt->second == lineNum)
+              {
+                lineIt->second++;
+                continue;
+              }
+              break;
+            }
+
+            ret += "\n";
+            lineNum++;
+
+            ret += indent + "while(true) {\n";
+            lineNum++;
+            indent += "  ";
+          }
+
           continue;
         }
         case Op::Branch:

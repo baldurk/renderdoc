@@ -103,6 +103,8 @@ struct ThreadState
   // changes (and vice-versa - a change via any of those pointers must update all other pointers).
   SparseIdMap<rdcarray<Id>> pointersForId;
 
+  // the last block we were in and the current block, for OpPhis
+  Id lastBlock, curBlock;
   ShaderVariable returnValue;
   rdcarray<StackFrame *> callstack;
 
@@ -120,6 +122,7 @@ private:
   void SetDst(ShaderDebugState *state, Id id, const ShaderVariable &val);
   void ProcessScopeChange(ShaderDebugState &state, const rdcarray<Id> &oldLive,
                           const rdcarray<Id> &newLive);
+  void JumpToLabel(Id target);
 };
 
 class Debugger : public Processor, public ShaderDebugger
@@ -138,6 +141,7 @@ public:
   Iter GetIterForInstruction(uint32_t inst);
   uint32_t GetInstructionForIter(Iter it);
   uint32_t GetInstructionForFunction(Id id);
+  uint32_t GetInstructionForLabel(Id id);
   const DataType &GetType(Id typeId);
   rdcstr GetRawName(Id id) const;
   rdcstr GetHumanName(Id id);
@@ -196,6 +200,8 @@ private:
   std::map<rdcstr, Id> entryLookup;
 
   SparseIdMap<size_t> idDeathOffset;
+
+  SparseIdMap<uint32_t> labelInstruction;
 
   // the live mutable global variables, to initialise a stack frame's live list
   rdcarray<Id> liveGlobals;

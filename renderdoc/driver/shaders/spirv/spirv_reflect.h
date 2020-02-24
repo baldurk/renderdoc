@@ -118,6 +118,9 @@ private:
   DenseIdMap<rdcstr> strings;
   rdcarray<SourceFile> sources;
 
+  Id curBlock;
+  std::set<Id> loopBlocks;
+
   struct MemberName
   {
     Id id;

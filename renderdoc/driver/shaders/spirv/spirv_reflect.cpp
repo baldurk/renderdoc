@@ -418,6 +418,14 @@ void Reflector::RegisterOp(Iter it)
 
     sources.back().contents += continued.continuedSource;
   }
+  else if(opdata.op == Op::Label)
+  {
+    curBlock = opdata.result;
+  }
+  else if(opdata.op == Op::LoopMerge)
+  {
+    loopBlocks.insert(curBlock);
+  }
 }
 
 void Reflector::UnregisterOp(Iter it)

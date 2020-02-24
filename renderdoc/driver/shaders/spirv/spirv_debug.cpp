@@ -141,6 +141,7 @@ void ThreadState::EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arg
 
   // next should be the start of the first function block
   RDCASSERT(OpDecoder(it).op == Op::Label);
+  lastBlock = curBlock = OpLabel(it).result;
   it++;
 
   size_t numVars = 0;
@@ -232,6 +233,25 @@ void ThreadState::ProcessScopeChange(ShaderDebugState &state, const rdcarray<Id>
   }
 }
 
+void ThreadState::JumpToLabel(Id target)
+{
+  lastBlock = curBlock;
+  curBlock = target;
+
+  nextInstruction = debugger.GetInstructionForLabel(target) + 1;
+
+  // if jumping to an empty unconditional loop header, continue to the loop block
+  Iter it = debugger.GetIterForInstruction(nextInstruction);
+  if(it.opcode() == Op::LoopMerge)
+  {
+    it++;
+    if(it.opcode() == Op::Branch)
+    {
+      JumpToLabel(OpBranch(it).targetLabel);
+    }
+  }
+}
+
 void ThreadState::StepNext(ShaderDebugState *state,
                            const rdcarray<rdcarray<ShaderVariable>> &prevWorkgroup)
 {
@@ -242,6 +262,15 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
   // skip OpLine/OpNoLine
   while(opdata.op == Op::Line || opdata.op == Op::NoLine)
+  {
+    it++;
+    nextInstruction++;
+    opdata = OpDecoder(it);
+  }
+
+  // for now we don't care about structured control flow so skip past merge statements so we process
+  // the branch. OpLine can't be in between so we can safely advance
+  if(opdata.op == Op::SelectionMerge || opdata.op == Op::LoopMerge)
   {
     it++;
     nextInstruction++;
@@ -454,6 +483,41 @@ void ThreadState::StepNext(ShaderDebugState *state,
       }
 
       SetDst(state, construct.result, var);
+
+      break;
+    }
+    case Op::Select:
+    {
+      OpSelect select(it);
+
+      // we treat this as a composite instruction for the case where the condition is a vector
+
+      ShaderVariable cond = GetSrc(select.condition);
+
+      ShaderVariable var = GetSrc(select.object1);
+      ShaderVariable b = GetSrc(select.object2);
+      if(cond.columns == 1)
+      {
+        if(cond.value.u.x == 0)
+          var = b;
+      }
+      else
+      {
+        ShaderVariable var = GetSrc(select.object1);
+        ShaderVariable b = GetSrc(select.object2);
+        for(uint8_t c = 0; c < cond.columns; c++)
+        {
+          if(cond.value.uv[c] == 0)
+          {
+            if(VarTypeByteSize(var.type))
+              var.value.u64v[c] = b.value.u64v[c];
+            else
+              var.value.uv[c] = b.value.uv[c];
+          }
+        }
+      }
+
+      SetDst(state, select.result, var);
 
       break;
     }
@@ -742,6 +806,80 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
     //////////////////////////////////////////////////////////////////////////////
     //
+    // Block flow control opcodes
+    //
+    //////////////////////////////////////////////////////////////////////////////
+
+    case Op::Label:
+    case Op::SelectionMerge:
+    case Op::LoopMerge:
+    {
+      // we shouldn't process these, we should always jump past them
+      RDCERR("Unexpected %s", ToStr(opdata.op).c_str());
+      break;
+    }
+    case Op::Switch:
+    {
+      OpSwitch switch_(it);
+
+      ShaderVariable selector = GetSrc(switch_.selector);
+
+      Id targetLabel = switch_.def;
+
+      for(const PairLiteralIntegerIdRef &case_ : switch_.target)
+      {
+        if(selector.value.u.x == case_.first)
+        {
+          targetLabel = case_.second;
+          break;
+        }
+      }
+
+      JumpToLabel(targetLabel);
+      break;
+    }
+    case Op::Branch:
+    {
+      OpBranch branch(it);
+      JumpToLabel(branch.targetLabel);
+      break;
+    }
+    case Op::BranchConditional:
+    {
+      OpBranchConditional branch(it);
+
+      Id target = branch.falseLabel;
+      if(GetSrc(branch.condition).value.u.x)
+        target = branch.trueLabel;
+
+      JumpToLabel(target);
+
+      break;
+    }
+    case Op::Phi:
+    {
+      OpPhi phi(it);
+
+      ShaderVariable var;
+
+      for(const PairIdRefIdRef &parent : phi.parents)
+      {
+        if(parent.second == lastBlock)
+        {
+          var = GetSrc(parent.first);
+          break;
+        }
+      }
+
+      // we should have had a matching for the OpPhi of the block we came from
+      RDCASSERT(!var.name.empty());
+
+      SetDst(state, phi.result, var);
+      break;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //
     // Function flow control opcodes
     //
     //////////////////////////////////////////////////////////////////////////////
@@ -816,6 +954,29 @@ void ThreadState::StepNext(ShaderDebugState *state,
     }
 
     default: RDCWARN("Unhandled SPIR-V operation %s", ToStr(opdata.op).c_str()); break;
+  }
+
+  // skip over any degenerate branches
+  while(true)
+  {
+    it = debugger.GetIterForInstruction(nextInstruction);
+    if(it.opcode() == Op::Branch)
+    {
+      Id target = OpBranch(it).targetLabel;
+
+      it++;
+
+      while(it.opcode() == Op::Line || it.opcode() == Op::NoLine)
+        it++;
+
+      if(target == OpLabel(it).result)
+      {
+        JumpToLabel(target);
+        continue;
+      }
+    }
+
+    break;
   }
 
   // set the state's next instruction (if we have one) to ours, bounded by how many

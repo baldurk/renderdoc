@@ -73,6 +73,13 @@ uint32_t Debugger::GetInstructionForFunction(Id id)
   return instructionOffsets.indexOf(functions[id].begin);
 }
 
+uint32_t Debugger::GetInstructionForLabel(Id id)
+{
+  uint32_t ret = labelInstruction[id];
+  RDCASSERT(ret);
+  return ret;
+}
+
 const rdcspv::DataType &Debugger::GetType(Id typeId)
 {
   return dataTypes[typeId];
@@ -962,6 +969,12 @@ void Debugger::RegisterOp(Iter it)
 
     if(var.storageClass == StorageClass::Function && curFunction)
       curFunction->variables.push_back(var.result);
+  }
+  else if(opdata.op == Op::Label)
+  {
+    OpLabel lab(it);
+
+    labelInstruction[lab.result] = instructionOffsets.count();
   }
 
   // everything else inside a function becomes an instruction, including the OpFunction and
