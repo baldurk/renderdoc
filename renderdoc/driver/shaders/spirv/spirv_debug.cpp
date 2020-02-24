@@ -97,6 +97,21 @@ void ThreadState::EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arg
   OpFunction func(it);
   StackFrame *frame = new StackFrame();
   frame->function = func.result;
+
+  // if there's a previous stack frame, save its live list
+  if(!callstack.empty())
+  {
+    callstack.back()->live = live;
+    callstack.back()->sourceVars = sourceVars;
+  }
+
+  // start with just globals
+  live = debugger.GetLiveGlobals();
+  sourceVars = debugger.GetGlobalSourceVars();
+  // process the outgoing scope
+  if(state)
+    ProcessScopeChange(*state, frame->live, live);
+
   callstack.push_back(frame);
 
   it++;
@@ -156,9 +171,6 @@ void ThreadState::EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arg
     if(decl.HasInitializer())
       AssignValue(stackvar, ids[decl.initializer]);
 
-    // TODO we need to handle re-entry into functions (ID lifetime)
-    live.removeOne(decl.result);
-
     SetDst(state, decl.result, debugger.MakePointerVariable(decl.result, &stackvar));
 
     it++;
@@ -176,102 +188,47 @@ const ShaderVariable &ThreadState::GetSrc(Id id)
 
 void ThreadState::SetDst(ShaderDebugState *state, Id id, const ShaderVariable &val)
 {
-  // if we don't have a state to track, we can take a much faster pa We just update the value and
-  // return. We don't have to propagate ID changes between aliased pointers because *internally* we
-  // always look up pointers and don't care about aliasing. That's only needed for *external* facing
-  // things because we have to update the changes for all copied pointer values.
-  if(!state)
-  {
-    if(ids[id].name.empty())
-    {
-      // for uninitialised values, init by copying
-      ids[id] = val;
-      ids[id].name = debugger.GetRawName(id);
-      live.push_back(id);
-
-      debugger.AddSourceVars(id);
-    }
-    else
-    {
-      RDCASSERT(ids[id].isPointer);
-      // otherwise just update the pointed-to value (only pointers should be existing before being
-      // assigned)
-      debugger.WriteThroughPointer(ids[id], val);
-    }
-
-    return;
-  }
-
-  // otherwise when we're tracking changes, take a slower pa
-
-  if(ContainsNaNInf(val))
+  if(state && ContainsNaNInf(val))
     state->flags |= ShaderEvents::GeneratedNanOrInf;
 
-  ShaderVariable &var = ids[id];
+  ids[id] = val;
+  ids[id].name = debugger.GetRawName(id);
 
-  if(!var.name.empty())
+  auto it = std::lower_bound(live.begin(), live.end(), id);
+  live.insert(it - live.begin(), id);
+
+  if(state)
   {
-    // if this ID was already initialised, we must have a change of a pointer. Otherwise we're SSA
-    // form so no other ID should change.
-
-    RDCASSERT(var.isPointer);
-
-    // if var is a pointer we update the underlying storage and generate at least one change, plus
-    // any additional ones for other pointers.
-    Id ptrid = debugger.GetPointerBaseId(var);
-
-    rdcarray<ShaderVariableChange> changes;
-    ShaderVariableChange basechange;
-    basechange.before = debugger.EvaluatePointerVariable(ids[ptrid]);
-
-    rdcarray<Id> &pointers = pointersForId[ptrid];
-
-    changes.resize(pointers.size());
-
-    // for every other pointer, evaluate its value now before
-    for(size_t i = 0; i < pointers.size(); i++)
-      changes[i].before = debugger.EvaluatePointerVariable(ids[pointers[i]]);
-
-    debugger.WriteThroughPointer(var, val);
-
-    // now evaluate the value after
-    for(size_t i = 0; i < pointers.size(); i++)
-      changes[i].after = debugger.EvaluatePointerVariable(ids[pointers[i]]);
-
-    // if the pointer we're writing is one of the aliased pointers, be sure we add it even if it's a
-    // no-op change
-    int ptrIdx = pointers.indexOf(id);
-
-    if(ptrIdx >= 0)
-    {
-      state->changes.push_back(changes[ptrIdx]);
-      changes.erase(ptrIdx);
-    }
-
-    // remove any no-op changes. Some pointers might point to the same ID but a child that wasn't
-    // written to. Note that this might not actually mean nothing was changed (if e.g. we're
-    // assigning the same value) but that false negative is not a concern.
-    changes.removeIf([](const ShaderVariableChange &c) { return c.before == c.after; });
-
-    state->changes.append(changes);
-
-    // always add a change for the base storage variable written itself, even if that's a no-op.
-    // This one is not included in any of the pointers lists above
-    basechange.after = debugger.EvaluatePointerVariable(ids[ptrid]);
-    state->changes.push_back(basechange);
-  }
-  else
-  {
-    // otherwise it's a new SSA variable, record a change-from-nothing
-    ids[id] = val;
-    ids[id].name = debugger.GetRawName(id);
-    live.push_back(id);
-
     ShaderVariableChange change;
     change.after = debugger.EvaluatePointerVariable(ids[id]);
     state->changes.push_back(change);
 
-    debugger.AddSourceVars(id);
+    debugger.AddSourceVars(sourceVars, id);
+  }
+}
+
+void ThreadState::ProcessScopeChange(ShaderDebugState &state, const rdcarray<Id> &oldLive,
+                                     const rdcarray<Id> &newLive)
+{
+  // all oldLive (except globals) are going out of scope. all newLive (except globals) are coming
+  // into scope
+
+  const rdcarray<Id> &liveGlobals = debugger.GetLiveGlobals();
+
+  for(const Id id : oldLive)
+  {
+    if(liveGlobals.contains(id))
+      continue;
+
+    state.changes.push_back({debugger.EvaluatePointerVariable(ids[id])});
+  }
+
+  for(const Id id : newLive)
+  {
+    if(liveGlobals.contains(id))
+      continue;
+
+    state.changes.push_back({ShaderVariable(), debugger.EvaluatePointerVariable(ids[id])});
   }
 }
 
@@ -315,7 +272,67 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
       RDCASSERT(ids[store.pointer].isPointer);
 
-      SetDst(state, store.pointer, GetSrc(store.object));
+      // this is the only place we don't use SetDst because it's the only place that "violates" SSA
+      // i.e. changes an existing value. That way SetDst can always unconditionally assign values,
+      // and only here do we write through pointers
+
+      ShaderVariable val = GetSrc(store.object);
+
+      if(!state)
+      {
+        debugger.WriteThroughPointer(ids[store.pointer], val);
+      }
+      else
+      {
+        ShaderVariable &var = ids[store.pointer];
+
+        if(ContainsNaNInf(val))
+          state->flags |= ShaderEvents::GeneratedNanOrInf;
+
+        // if var is a pointer we update the underlying storage and generate at least one change,
+        // plus any additional ones for other pointers.
+        Id ptrid = debugger.GetPointerBaseId(var);
+
+        rdcarray<ShaderVariableChange> changes;
+        ShaderVariableChange basechange;
+        basechange.before = debugger.EvaluatePointerVariable(ids[ptrid]);
+
+        rdcarray<Id> &pointers = pointersForId[ptrid];
+
+        changes.resize(pointers.size());
+
+        // for every other pointer, evaluate its value now before
+        for(size_t i = 0; i < pointers.size(); i++)
+          changes[i].before = debugger.EvaluatePointerVariable(ids[pointers[i]]);
+
+        debugger.WriteThroughPointer(var, val);
+
+        // now evaluate the value after
+        for(size_t i = 0; i < pointers.size(); i++)
+          changes[i].after = debugger.EvaluatePointerVariable(ids[pointers[i]]);
+
+        // if the pointer we're writing is one of the aliased pointers, be sure we add it even if
+        // it's a no-op change
+        int ptrIdx = pointers.indexOf(store.pointer);
+
+        if(ptrIdx >= 0)
+        {
+          state->changes.push_back(changes[ptrIdx]);
+          changes.erase(ptrIdx);
+        }
+
+        // remove any no-op changes. Some pointers might point to the same ID but a child that
+        // wasn't written to. Note that this might not actually mean nothing was changed (if e.g.
+        // we're assigning the same value) but that false negative is not a concern.
+        changes.removeIf([](const ShaderVariableChange &c) { return c.before == c.after; });
+
+        state->changes.append(changes);
+
+        // always add a change for the base storage variable written itself, even if that's a no-op.
+        // This one is not included in any of the pointers lists above
+        basechange.after = debugger.EvaluatePointerVariable(ids[ptrid]);
+        state->changes.push_back(basechange);
+      }
 
       break;
     }
@@ -483,6 +500,14 @@ void ThreadState::StepNext(ShaderDebugState *state,
         }
 
         nextInstruction = exitingFrame->funcCallInstruction;
+
+        // process the outgoing and incoming scopes
+        if(state)
+          ProcessScopeChange(*state, live, callstack.back()->live);
+
+        // restore the live list from the calling frame
+        live = callstack.back()->live;
+        sourceVars = callstack.back()->sourceVars;
       }
 
       delete exitingFrame;

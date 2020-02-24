@@ -60,6 +60,10 @@ struct StackFrame
   // allocated storage for locals
   rdcarray<ShaderVariable> locals;
 
+  // the thread's live list before the function was entered
+  rdcarray<Id> live;
+  rdcarray<SourceVariableMapping> sourceVars;
+
 private:
   // disallow copying to ensure the locals we allocate never move around
   StackFrame(const StackFrame &o) = delete;
@@ -105,6 +109,8 @@ struct ThreadState
   // the list of IDs that are currently valid and live
   rdcarray<Id> live;
 
+  rdcarray<SourceVariableMapping> sourceVars;
+
   // index in the pixel quad
   int workgroupIndex;
   bool done;
@@ -112,6 +118,8 @@ struct ThreadState
 private:
   const ShaderVariable &GetSrc(Id id);
   void SetDst(ShaderDebugState *state, Id id, const ShaderVariable &val);
+  void ProcessScopeChange(ShaderDebugState &state, const rdcarray<Id> &oldLive,
+                          const rdcarray<Id> &newLive);
 };
 
 class Debugger : public Processor, public ShaderDebugger
@@ -133,7 +141,7 @@ public:
   const DataType &GetType(Id typeId);
   rdcstr GetRawName(Id id) const;
   rdcstr GetHumanName(Id id);
-  void AddSourceVars(Id id);
+  void AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, Id id);
   void AllocateVariable(Id id, Id typeId, DebugVariableType sourceVarType, const rdcstr &sourceName,
                         ShaderVariable &outVar);
 
@@ -146,6 +154,8 @@ public:
 
   uint32_t GetNumInstructions() { return (uint32_t)instructionOffsets.size(); }
   GlobalState GetGlobal() { return global; }
+  const rdcarray<Id> &GetLiveGlobals() { return liveGlobals; }
+  const rdcarray<SourceVariableMapping> &GetGlobalSourceVars() { return globalSourceVars; }
   ThreadState &GetActiveLane() { return workgroup[activeLaneIndex]; }
 private:
   virtual void PreParse(uint32_t maxId);
@@ -155,8 +165,8 @@ private:
   void AllocateVariable(const Decorations &varDecorations, const Decorations &curDecorations,
                         DebugVariableType sourceVarType, const rdcstr &sourceName, uint32_t offset,
                         const DataType &inType, ShaderVariable &outVar);
-  void AddSourceVars(const DataType &inType, const rdcstr &sourceName, const rdcstr &varName,
-                     uint32_t &offset);
+  void AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const DataType &inType,
+                     const rdcstr &sourceName, const rdcstr &varName, uint32_t &offset);
 
   /////////////////////////////////////////////////////////
   // debug data
@@ -165,8 +175,6 @@ private:
 
   GlobalState global;
   rdcarray<ThreadState> workgroup;
-
-  rdcarray<SourceVariableMapping> sourceVars;
 
   uint32_t activeLaneIndex = 0;
   ShaderStage stage;
@@ -187,9 +195,17 @@ private:
   rdcarray<MemberName> memberNames;
   std::map<rdcstr, Id> entryLookup;
 
+  SparseIdMap<size_t> idDeathOffset;
+
+  // the live mutable global variables, to initialise a stack frame's live list
+  rdcarray<Id> liveGlobals;
+  rdcarray<SourceVariableMapping> globalSourceVars;
+
   struct Function
   {
     size_t begin = 0;
+    rdcarray<Id> parameters;
+    rdcarray<Id> variables;
   };
 
   SparseIdMap<Function> functions;

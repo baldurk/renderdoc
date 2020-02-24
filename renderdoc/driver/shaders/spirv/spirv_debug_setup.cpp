@@ -127,7 +127,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
       rdcstr sourceName = GetHumanName(v.id);
 
-      size_t oldSize = sourceVars.size();
+      size_t oldSize = globalSourceVars.size();
 
       const DataType &type = dataTypes[v.type];
 
@@ -141,8 +141,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
       // I/O variable structs don't have offsets, so give them fake offsets to ensure they sort as
       // we want. Since FillVariable is depth-first the source vars are already in order.
-      for(size_t i = oldSize; i < sourceVars.size(); i++)
-        sourceVars[i].offset = uint32_t(i - oldSize);
+      for(size_t i = oldSize; i < globalSourceVars.size(); i++)
+        globalSourceVars[i].offset = uint32_t(i - oldSize);
 
       if(isInput)
       {
@@ -197,7 +197,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
         sourceVar.offset = 0;
         sourceVar.variables.push_back(DebugVariableReference(DebugVariableType::Constant, var.name));
 
-        sourceVars.push_back(sourceVar);
+        globalSourceVars.push_back(sourceVar);
       }
     }
   }
@@ -210,17 +210,19 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
   for(size_t i = 0; i < global.constantBlocks.size(); i++)
     active.ids[cbufferIDs[i]] = MakePointerVariable(cbufferIDs[i], &global.constantBlocks[i]);
 
-  // only outputs are considered mutable
-  active.live.append(outputIDs);
+  std::sort(outputIDs.begin(), outputIDs.end());
 
-  for(size_t i = 0; i < sourceVars.size();)
+  // only outputs are considered mutable
+  liveGlobals.append(outputIDs);
+
+  for(size_t i = 0; i < globalSourceVars.size();)
   {
-    if(!sourceVars[i].variables.empty() &&
-       (sourceVars[i].variables[0].type == DebugVariableType::Input ||
-        sourceVars[i].variables[0].type == DebugVariableType::Constant))
+    if(!globalSourceVars[i].variables.empty() &&
+       (globalSourceVars[i].variables[0].type == DebugVariableType::Input ||
+        globalSourceVars[i].variables[0].type == DebugVariableType::Constant))
     {
-      ret->sourceVars.push_back(sourceVars[i]);
-      sourceVars.erase(i);
+      ret->sourceVars.push_back(globalSourceVars[i]);
+      globalSourceVars.erase(i);
       continue;
     }
     i++;
@@ -262,7 +264,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
     for(const Id &v : active.live)
       initial.changes.push_back({ShaderVariable(), EvaluatePointerVariable(active.ids[v])});
 
-    initial.sourceVars = sourceVars;
+    initial.sourceVars = active.sourceVars;
 
     initial.stepIndex = steps;
 
@@ -299,30 +301,56 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
     CalcActiveMask(activeMask);
 
     // step all active members of the workgroup
-    for(size_t i = 0; i < workgroup.size(); i++)
+    for(size_t lane = 0; lane < workgroup.size(); lane++)
     {
-      if(activeMask[i])
+      ThreadState &thread = workgroup[lane];
+
+      if(activeMask[lane])
       {
-        if(workgroup[i].nextInstruction >= instructionOffsets.size())
+        if(thread.nextInstruction >= instructionOffsets.size())
         {
-          if(i == activeLaneIndex)
+          if(lane == activeLaneIndex)
             ret.push_back(ShaderDebugState());
 
           continue;
         }
 
-        if(i == activeLaneIndex)
+        if(lane == activeLaneIndex)
         {
           ShaderDebugState state;
-          workgroup[i].StepNext(&state, oldworkgroup);
+
+          // see if we're retiring any IDs at this state
+          for(size_t l = 0; l < thread.live.size();)
+          {
+            Id id = thread.live[l];
+            if(idDeathOffset[id] < instructionOffsets[thread.nextInstruction])
+            {
+              thread.live.erase(l);
+              ShaderVariableChange change;
+              change.before = EvaluatePointerVariable(thread.ids[id]);
+              state.changes.push_back(change);
+
+              rdcstr name = GetRawName(id);
+
+              thread.sourceVars.removeIf([name](const SourceVariableMapping &var) {
+                return var.variables[0].name.beginsWith(name);
+              });
+
+              continue;
+            }
+
+            l++;
+          }
+
+          thread.StepNext(&state, oldworkgroup);
           state.stepIndex = steps;
-          state.sourceVars = sourceVars;
-          workgroup[i].FillCallstack(state);
+          state.sourceVars = thread.sourceVars;
+          thread.FillCallstack(state);
           ret.push_back(state);
         }
         else
         {
-          workgroup[i].StepNext(NULL, oldworkgroup);
+          thread.StepNext(NULL, oldworkgroup);
         }
       }
     }
@@ -552,7 +580,7 @@ rdcstr Debugger::GetHumanName(Id id)
   return name;
 }
 
-void Debugger::AddSourceVars(Id id)
+void Debugger::AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, Id id)
 {
   rdcstr name;
 
@@ -567,12 +595,12 @@ void Debugger::AddSourceVars(Id id)
     Id type = idTypes[id];
 
     uint32_t offset = 0;
-    AddSourceVars(dataTypes[type], name, GetRawName(id), offset);
+    AddSourceVars(sourceVars, dataTypes[type], name, GetRawName(id), offset);
   }
 }
 
-void Debugger::AddSourceVars(const DataType &inType, const rdcstr &sourceName,
-                             const rdcstr &varName, uint32_t &offset)
+void Debugger::AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const DataType &inType,
+                             const rdcstr &sourceName, const rdcstr &varName, uint32_t &offset)
 {
   SourceVariableMapping sourceVar;
 
@@ -585,7 +613,7 @@ void Debugger::AddSourceVars(const DataType &inType, const rdcstr &sourceName,
     case DataType::PointerType:
     {
       // step silently into pointers
-      AddSourceVars(dataTypes[inType.InnerType()], sourceName, varName, offset);
+      AddSourceVars(sourceVars, dataTypes[inType.InnerType()], sourceName, varName, offset);
       return;
     }
     case DataType::ScalarType:
@@ -621,7 +649,8 @@ void Debugger::AddSourceVars(const DataType &inType, const rdcstr &sourceName,
         else
           childSourceName = sourceName + "." + inType.children[i].name;
 
-        AddSourceVars(dataTypes[inType.children[i].type], childSourceName, childVarName, offset);
+        AddSourceVars(sourceVars, dataTypes[inType.children[i].type], childSourceName, childVarName,
+                      offset);
       }
       return;
     }
@@ -632,7 +661,8 @@ void Debugger::AddSourceVars(const DataType &inType, const rdcstr &sourceName,
       {
         rdcstr idx = StringFormat::Fmt("[%u]", i);
 
-        AddSourceVars(dataTypes[inType.InnerType()], sourceName + idx, varName + idx, offset);
+        AddSourceVars(sourceVars, dataTypes[inType.InnerType()], sourceName + idx, varName + idx,
+                      offset);
       }
       return;
     }
@@ -783,7 +813,7 @@ void Debugger::AllocateVariable(const Decorations &varDecorations, const Decorat
   if(curDecorations.flags & Decorations::HasBuiltIn)
     sourceVar.builtin = MakeShaderBuiltin(stage, curDecorations.builtIn);
 
-  sourceVars.push_back(sourceVar);
+  globalSourceVars.push_back(sourceVar);
 
   if(sourceVarType == DebugVariableType::Input)
   {
@@ -862,6 +892,10 @@ void Debugger::PostParse()
   for(const MemberName &mem : memberNames)
     dataTypes[mem.id].children[mem.member].name = mem.name;
 
+  // global IDs never hit a death point
+  for(const Variable &v : globals)
+    idDeathOffset[v.id] = ~0U;
+
   memberNames.clear();
 }
 
@@ -870,6 +904,13 @@ void Debugger::RegisterOp(Iter it)
   Processor::RegisterOp(it);
 
   OpDecoder opdata(it);
+
+  // we add +1 so that we don't remove the ID on its last use, but the next subsequent instruction
+  // since blocks always end with a terminator that doesn't consume IDs we're interested in
+  // (variables) we'll always have one extra instruction to step to
+  OpDecoder::ForEachID(it, [this, &it](Id id, bool result) {
+    idDeathOffset[id] = RDCMAX(it.offs() + 1, idDeathOffset[id]);
+  });
 
   if(opdata.op == Op::Line || opdata.op == Op::NoLine)
   {
@@ -909,6 +950,19 @@ void Debugger::RegisterOp(Iter it)
 
     curFunction->begin = it.offs();
   }
+  else if(opdata.op == Op::FunctionParameter)
+  {
+    OpFunctionParameter param(it);
+
+    curFunction->parameters.push_back(param.result);
+  }
+  else if(opdata.op == Op::Variable)
+  {
+    OpVariable var(it);
+
+    if(var.storageClass == StorageClass::Function && curFunction)
+      curFunction->variables.push_back(var.result);
+  }
 
   // everything else inside a function becomes an instruction, including the OpFunction and
   // OpFunctionEnd. We won't actually execute these instructions
@@ -917,6 +971,13 @@ void Debugger::RegisterOp(Iter it)
 
   if(opdata.op == Op::FunctionEnd)
   {
+    // don't automatically kill function parameters and variables. They will be manually killed when
+    // returning from a function's scope
+    for(const Id id : curFunction->parameters)
+      idDeathOffset[id] = ~0U;
+    for(const Id id : curFunction->variables)
+      idDeathOffset[id] = ~0U;
+
     curFunction = NULL;
   }
 }
