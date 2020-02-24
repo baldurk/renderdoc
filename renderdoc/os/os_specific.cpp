@@ -242,7 +242,7 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       CHECK(milliseconds1 < 1.0);
 
       CHECK(milliseconds2 > 1480.0);
-      CHECK(milliseconds2 < 1650.0);
+      CHECK(milliseconds2 < 1675.0);
     }
 
     // timestamp as of the creation of this test
