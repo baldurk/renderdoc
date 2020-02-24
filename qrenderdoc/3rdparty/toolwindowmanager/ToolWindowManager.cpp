@@ -208,6 +208,23 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
     if(oldWrapper && !wrappersToUpdate.contains(oldWrapper))
       wrappersToUpdate.push_back(oldWrapper);
   }
+  // if we don't have a reference area, we can't use any types that need a reference
+  if(area.area() == NULL && (area.type() == AddTo || area.type() == LeftOf || area.type() == RightOf ||
+                             area.type() == TopOf || area.type() == BottomOf ||
+                             area.type() == LeftWindowSide || area.type() == RightWindowSide ||
+                             area.type() == TopWindowSide || area.type() == BottomWindowSide))
+
+  {
+    // if the last area is available, use that.
+    if(m_lastUsedArea)
+      area = AreaReference(AddTo, m_lastUsedArea);
+    // if we have no tool windows at all, add into empty space
+    else if(m_toolWindows.isEmpty() || m_toolWindows == toolWindows)
+      area = AreaReference(EmptySpace);
+    // otherwise we have to make it a new floating area
+    else
+      area = AreaReference(NewFloatingArea);
+  }
   if(area.type() == LastUsedArea && !m_lastUsedArea)
   {
     ToolWindowManagerArea *foundArea = findChild<ToolWindowManagerArea *>();
@@ -227,9 +244,9 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
   }
   else if(area.type() == NewFloatingArea)
   {
-    ToolWindowManagerArea *floatArea = createArea();
-    floatArea->addToolWindows(toolWindows);
     ToolWindowManagerWrapper *wrapper = new ToolWindowManagerWrapper(this, true);
+    ToolWindowManagerArea *floatArea = createArea(wrapper);
+    floatArea->addToolWindows(toolWindows);
     wrapper->layout()->addWidget(floatArea);
     wrapper->move(QCursor::pos());
     wrapper->updateTitle();
@@ -277,7 +294,7 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
 
     delete item;
 
-    ToolWindowManagerArea *newArea = createArea();
+    ToolWindowManagerArea *newArea = createArea(splitter);
     newArea->addToolWindows(toolWindows);
 
     if(area.type() == TopWindowSide || area.type() == LeftWindowSide)
@@ -341,7 +358,7 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
       {
         insertIndex++;
       }
-      ToolWindowManagerArea *newArea = createArea();
+      ToolWindowManagerArea *newArea = createArea(parentSplitter);
       newArea->addToolWindows(toolWindows);
       parentSplitter->insertWidget(insertIndex, newArea);
 
@@ -369,7 +386,7 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
         splitter->setOrientation(Qt::Horizontal);
       }
 
-      ToolWindowManagerArea *newArea = createArea();
+      ToolWindowManagerArea *newArea = createArea(splitter);
 
       // inherit the size policy from the widget we are wrapping
       splitter->setSizePolicy(area.widget()->sizePolicy());
@@ -647,9 +664,14 @@ void ToolWindowManager::restoreState(const QVariantMap &dataMap)
   }
 }
 
-ToolWindowManagerArea *ToolWindowManager::createArea()
+ToolWindowManagerArea *ToolWindowManager::createArea(QWidget *owner)
 {
-  ToolWindowManagerArea *area = new ToolWindowManagerArea(this, 0);
+  if(owner == NULL)
+  {
+    owner = this;
+  }
+
+  ToolWindowManagerArea *area = new ToolWindowManagerArea(this, owner);
   connect(area, SIGNAL(tabCloseRequested(int)), this, SLOT(tabCloseRequested(int)));
   return area;
 }
@@ -664,7 +686,6 @@ void ToolWindowManager::releaseToolWindow(QWidget *toolWindow)
   }
   previousTabWidget->removeTab(previousTabWidget->indexOf(toolWindow));
   toolWindow->hide();
-  toolWindow->setParent(0);
 }
 
 void ToolWindowManager::simplifyLayout()
@@ -860,7 +881,7 @@ QSplitter *ToolWindowManager::restoreSplitterState(const QVariantMap &savedData)
     }
     else if(itemType == QStringLiteral("area"))
     {
-      ToolWindowManagerArea *area = createArea();
+      ToolWindowManagerArea *area = createArea(splitter);
       area->restoreState(itemValue);
       splitter->addWidget(area);
     }
@@ -896,7 +917,9 @@ void ToolWindowManager::updateDragPosition()
     {
       continue;
     }
-    if(area->rect().contains(area->mapFromGlobal(pos)))
+    QRect globalAreaRect(area->mapToGlobal(area->rect().topLeft()),
+                         area->mapToGlobal(area->rect().bottomRight()));
+    if(globalAreaRect.contains(pos))
     {
       m_hoverArea = area;
       break;
