@@ -568,10 +568,12 @@ void Processor::RegisterOp(Iter it)
         }
       }
     }
-
-    v.members.resize(decoded.constituents.size());
-    for(size_t i = 0; i < v.members.size(); i++)
-      v.members[i] = constants[decoded.constituents[i]].value;
+    else
+    {
+      v.members.resize(decoded.constituents.size());
+      for(size_t i = 0; i < v.members.size(); i++)
+        v.members[i] = constants[decoded.constituents[i]].value;
+    }
 
     constants[decoded.result] = {decoded.resultType, decoded.result, v, decoded.constituents};
     if(opdata.op == Op::SpecConstantComposite)
