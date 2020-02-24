@@ -250,6 +250,11 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
   switch(opdata.op)
   {
+    //////////////////////////////////////////////////////////////////////////////
+    //
+    // Pointer manipulation opcodes
+    //
+    //////////////////////////////////////////////////////////////////////////////
     case Op::Load:
     {
       // we currently handle pointers as fixed storage, so a load becomes a copy
@@ -352,6 +357,13 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
       break;
     }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //
+    // Composite/vector opcodes
+    //
+    //////////////////////////////////////////////////////////////////////////////
+
     case Op::CompositeExtract:
     {
       OpCompositeExtract extract(it);
@@ -445,6 +457,294 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
       break;
     }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //
+    // Conversion opcodes
+    //
+    //////////////////////////////////////////////////////////////////////////////
+
+    case Op::ConvertFToS:
+    case Op::ConvertFToU:
+    case Op::ConvertSToF:
+    case Op::ConvertUToF:
+    {
+      OpConvertFToS conv(it);
+
+      ShaderVariable var = GetSrc(conv.floatValue);
+
+      if(opdata.op == Op::ConvertFToS)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.iv[c] = (int)var.value.fv[c];
+        var.type = VarType::SInt;
+      }
+      else if(opdata.op == Op::ConvertFToU)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = var.value.fv[c] > 0.0f ? (uint32_t)var.value.fv[c] : 0U;
+        var.type = VarType::UInt;
+      }
+      else if(opdata.op == Op::ConvertSToF)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.fv[c] = (float)var.value.iv[c];
+        var.type = VarType::Float;
+      }
+      else if(opdata.op == Op::ConvertUToF)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.fv[c] = (float)var.value.uv[c];
+        var.type = VarType::Float;
+      }
+
+      SetDst(state, conv.result, var);
+      break;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //
+    // Comparison opcodes
+    //
+    //////////////////////////////////////////////////////////////////////////////
+
+    case Op::IEqual:
+    case Op::INotEqual:
+    case Op::UGreaterThan:
+    case Op::UGreaterThanEqual:
+    case Op::ULessThan:
+    case Op::ULessThanEqual:
+    case Op::SGreaterThan:
+    case Op::SGreaterThanEqual:
+    case Op::SLessThan:
+    case Op::SLessThanEqual:
+    case Op::FOrdEqual:
+    case Op::FOrdNotEqual:
+    case Op::FOrdGreaterThan:
+    case Op::FOrdGreaterThanEqual:
+    case Op::FOrdLessThan:
+    case Op::FOrdLessThanEqual:
+    case Op::FUnordEqual:
+    case Op::FUnordNotEqual:
+    case Op::FUnordGreaterThan:
+    case Op::FUnordGreaterThanEqual:
+    case Op::FUnordLessThan:
+    case Op::FUnordLessThanEqual:
+    {
+      OpFMul comp(it);
+
+      ShaderVariable var = GetSrc(comp.operand1);
+      ShaderVariable b = GetSrc(comp.operand2);
+
+      if(opdata.op == Op::IEqual)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.uv[c] == b.value.uv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::INotEqual)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.uv[c] != b.value.uv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::UGreaterThan)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.uv[c] > b.value.uv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::UGreaterThanEqual)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.uv[c] >= b.value.uv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::ULessThan)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.uv[c] < b.value.uv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::ULessThanEqual)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.uv[c] <= b.value.uv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::SGreaterThan)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.iv[c] > b.value.iv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::SGreaterThanEqual)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.iv[c] >= b.value.iv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::SLessThan)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.iv[c] < b.value.iv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::SLessThanEqual)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.iv[c] <= b.value.iv[c]) ? 1 : 0;
+      }
+
+      // FOrd are all "Floating-point comparison if operands are ordered and Operand 1 is ... than
+      // Operand 2.".
+      // Since NaN is the only unordered value, and NaN comparisons are always false, we can take
+      // advantage of that by FOrd just being straight comparisons. If the operands are unordered
+      // (i.e. one is NaN) then the FOrd variatns return false as expected.
+      //
+      // FUnord are all "Floating-point comparison if operands are unordered or Operand 1 is ...
+      // than Operand 2."
+      // Again as above, any comparison with unordered comparisons will return false. Since we want
+      // 'or are unordered' then we want to negate the comparison so that unordered comparisons will
+      // always return true. So we negate and invert the actual comparison so that the comparison
+      // will be unchanged effectively.
+
+      if(opdata.op == Op::FOrdEqual)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.fv[c] == b.value.fv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::FOrdNotEqual)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.fv[c] != b.value.fv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::FOrdGreaterThan)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.fv[c] > b.value.fv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::FOrdGreaterThanEqual)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.fv[c] >= b.value.fv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::FOrdLessThan)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.fv[c] < b.value.fv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::FOrdLessThanEqual)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.fv[c] <= b.value.fv[c]) ? 1 : 0;
+      }
+
+      if(opdata.op == Op::FUnordEqual)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.fv[c] != b.value.fv[c]) ? 0 : 1;
+      }
+      else if(opdata.op == Op::FUnordNotEqual)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.fv[c] == b.value.fv[c]) ? 0 : 1;
+      }
+      else if(opdata.op == Op::FUnordGreaterThan)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.fv[c] <= b.value.fv[c]) ? 0 : 1;
+      }
+      else if(opdata.op == Op::FUnordGreaterThanEqual)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.fv[c] < b.value.fv[c]) ? 0 : 1;
+      }
+      else if(opdata.op == Op::FUnordLessThan)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.fv[c] >= b.value.fv[c]) ? 0 : 1;
+      }
+      else if(opdata.op == Op::FUnordLessThanEqual)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = (var.value.fv[c] > b.value.fv[c]) ? 0 : 1;
+      }
+
+      // TODO we should add a bool type
+      var.type = VarType::UInt;
+
+      SetDst(state, comp.result, var);
+      break;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //
+    // Mathematical opcodes (scalar/vector)
+    //
+    //////////////////////////////////////////////////////////////////////////////
+
+    case Op::FMul:
+    case Op::FDiv:
+    case Op::FAdd:
+    case Op::FSub:
+    case Op::IMul:
+    case Op::SDiv:
+    case Op::UDiv:
+    case Op::IAdd:
+    case Op::ISub:
+    {
+      OpFMul math(it);
+
+      ShaderVariable var = GetSrc(math.operand1);
+      ShaderVariable b = GetSrc(math.operand2);
+
+      if(opdata.op == Op::FMul)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.fv[c] *= b.value.fv[c];
+      }
+      else if(opdata.op == Op::FDiv)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.fv[c] /= b.value.fv[c];
+      }
+      else if(opdata.op == Op::FAdd)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.fv[c] += b.value.fv[c];
+      }
+      else if(opdata.op == Op::FSub)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.fv[c] -= b.value.fv[c];
+      }
+      else if(opdata.op == Op::IMul)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] *= b.value.uv[c];
+      }
+      else if(opdata.op == Op::SDiv)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.iv[c] /= b.value.iv[c];
+      }
+      else if(opdata.op == Op::UDiv)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] /= b.value.uv[c];
+      }
+      else if(opdata.op == Op::IAdd)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] += b.value.uv[c];
+      }
+      else if(opdata.op == Op::ISub)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] -= b.value.uv[c];
+      }
+
+      SetDst(state, math.result, var);
+      break;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //
+    // Function flow control opcodes
+    //
+    //////////////////////////////////////////////////////////////////////////////
 
     case Op::FunctionCall:
     {
