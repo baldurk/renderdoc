@@ -4836,7 +4836,7 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
   if(maxReg >= 0 || inputCoverage)
   {
     state.inputs.resize(maxReg + 1 + (inputCoverage ? 1 : 0));
-    for(int32_t sigIdx = 0; sigIdx < dxbc->GetReflection()->InputSig.size(); sigIdx++)
+    for(int32_t sigIdx = 0; sigIdx < dxbc->GetReflection()->InputSig.count(); sigIdx++)
     {
       const SigParameter &sig = dxbc->GetReflection()->InputSig[sigIdx];
 
@@ -4922,7 +4922,7 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
   }
 
   // Set up outputs in the shader state
-  for(int32_t sigIdx = 0; sigIdx < dxbc->GetReflection()->OutputSig.size(); sigIdx++)
+  for(int32_t sigIdx = 0; sigIdx < dxbc->GetReflection()->OutputSig.count(); sigIdx++)
   {
     const SigParameter &sig = dxbc->GetReflection()->OutputSig[sigIdx];
 
