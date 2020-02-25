@@ -2455,7 +2455,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
         unclampedLen = m_IsBuffer ? m_Ctx.GetBuffer(m_BufferID)->length : 0;
 
       uint64_t clampedLen =
-          qMin(unclampedLen - CurrentByteOffset(), buf->stride * (MaxVisibleRows + 2));
+          qMin(unclampedLen - CurrentByteOffset(), uint64_t(buf->stride * (MaxVisibleRows + 2)));
 
       if(m_IsBuffer)
       {
@@ -2487,7 +2487,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       }
     }
 
-    GUIInvoke::call(this, [this, buf, bufdata]() {
+    GUIInvoke::call(this, [this, bufdata]() {
       m_ModelVSIn->endReset(bufdata->vsinConfig);
       m_ModelVSOut->endReset(bufdata->vsoutConfig);
       m_ModelGSOut->endReset(bufdata->gsoutConfig);
