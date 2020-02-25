@@ -255,7 +255,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   rdcspv::Debugger *debugger = new rdcspv::Debugger;
   debugger->Parse(shader.spirv.GetSPIRV());
   ShaderDebugTrace *ret = debugger->BeginDebug(apiWrapper, ShaderStage::Vertex, entryPoint, spec,
-                                               shadRefl.instructionLines, 0);
+                                               shadRefl.instructionLines, shadRefl.patchData, 0);
 
   return ret;
 }

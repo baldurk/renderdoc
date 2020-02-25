@@ -196,8 +196,6 @@ class Iter_Test(rdtest.TestCase):
                 rdtest.log.print("No debug result")
                 return
 
-            sourceVars: List[rd.SourceVariableMapping] = list(trace.sourceVars)
-
             cycles, variables = self.process_trace(trace)
 
             output_index = [o.resourceId for o in pipe.GetOutputTargets()].index(target)
@@ -214,11 +212,10 @@ class Iter_Test(rdtest.TestCase):
             else:
                 rdtest.log.print("At event {} the target is index {}".format(lastmod.eventId, output_index))
 
-                output_list = \
-                    [x for x in sourceVars if x.builtin == rd.ShaderBuiltin.ColorOutput and x.offset == output_index]
+                output_sourcevar = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, output_index)
 
-                if len(output_list) > 0:
-                    debugged = self.evalute_source_var(output_list[0], variables)
+                if output_sourcevar is not None:
+                    debugged = self.evalute_source_var(output_sourcevar, variables)
 
                     self.controller.FreeTrace(trace)
 

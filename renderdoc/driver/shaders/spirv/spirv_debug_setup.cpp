@@ -25,6 +25,7 @@
 #include "spirv_debug.h"
 #include "common/formatting.h"
 #include "spirv_op_helpers.h"
+#include "spirv_reflect.h"
 
 static uint32_t VarByteSize(const ShaderVariable &var)
 {
@@ -85,11 +86,46 @@ const rdcspv::DataType &Debugger::GetType(Id typeId)
   return dataTypes[typeId];
 }
 
+void Debugger::MakeSignatureNames(const rdcarray<SPIRVInterfaceAccess> &sigList,
+                                  rdcarray<rdcstr> &sigNames)
+{
+  for(const SPIRVInterfaceAccess &sig : sigList)
+  {
+    rdcstr name = GetRawName(sig.ID);
+
+    const DataType *type = &dataTypes[idTypes[sig.ID]];
+
+    RDCASSERT(type->type == DataType::PointerType);
+    type = &dataTypes[type->InnerType()];
+
+    for(uint32_t chain : sig.accessChain)
+    {
+      if(type->type == DataType::ArrayType)
+      {
+        name += StringFormat::Fmt("[%u]", chain);
+        type = &dataTypes[type->InnerType()];
+      }
+      else if(type->type == DataType::StructType)
+      {
+        name += StringFormat::Fmt("._child%u", chain);
+        type = &dataTypes[type->children[chain].type];
+      }
+      else
+      {
+        RDCERR("Got access chain with non-aggregate type in interface.");
+        break;
+      }
+    }
+
+    sigNames.push_back(name);
+  }
+}
+
 ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const ShaderStage stage,
                                        const rdcstr &entryPoint,
                                        const rdcarray<SpecConstant> &specInfo,
                                        const std::map<size_t, uint32_t> &instructionLines,
-                                       uint32_t activeIndex)
+                                       const SPIRVPatchData &patchData, uint32_t activeIndex)
 {
   Id entryId = entryLookup[entryPoint];
 
@@ -179,6 +215,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
   ShaderDebugTrace *ret = new ShaderDebugTrace;
   ret->debugger = this;
+  ret->stage = stage;
   this->activeLaneIndex = activeIndex;
   this->stage = stage;
   this->apiWrapper = apiWrapper;
@@ -196,6 +233,11 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
   // evaluate all constants
   for(auto it = constants.begin(); it != constants.end(); it++)
     active.ids[it->first] = EvaluateConstant(it->first, specInfo);
+
+  rdcarray<rdcstr> inputSigNames, outputSigNames;
+
+  MakeSignatureNames(patchData.inputs, inputSigNames);
+  MakeSignatureNames(patchData.outputs, outputSigNames);
 
   rdcarray<Id> inputIDs, outputIDs, cbufferIDs;
 
@@ -226,8 +268,13 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
       // I/O variable structs don't have offsets, so give them fake offsets to ensure they sort as
       // we want. Since FillVariable is depth-first the source vars are already in order.
+      // We also add the signature index
       for(size_t i = oldSize; i < globalSourceVars.size(); i++)
+      {
         globalSourceVars[i].offset = uint32_t(i - oldSize);
+        globalSourceVars[i].signatureIndex =
+            (isInput ? inputSigNames : outputSigNames).indexOf(globalSourceVars[i].variables[0].name);
+      }
 
       if(isInput)
       {
@@ -904,15 +951,16 @@ void Debugger::AllocateVariable(const Decorations &varDecorations, const Decorat
   for(uint32_t x = 0; x < uint32_t(outVar.rows) * outVar.columns; x++)
     sourceVar.variables.push_back(DebugVariableReference(sourceVarType, outVar.name, x));
 
+  ShaderBuiltin builtin = ShaderBuiltin::Undefined;
   if(curDecorations.flags & Decorations::HasBuiltIn)
-    sourceVar.builtin = MakeShaderBuiltin(stage, curDecorations.builtIn);
+    builtin = MakeShaderBuiltin(stage, curDecorations.builtIn);
 
   globalSourceVars.push_back(sourceVar);
 
   if(sourceVarType == DebugVariableType::Input)
   {
     apiWrapper->FillInputValue(
-        outVar, sourceVar.builtin,
+        outVar, builtin,
         (curDecorations.flags & Decorations::HasLocation) ? curDecorations.location : 0,
         (curDecorations.flags & Decorations::HasOffset) ? curDecorations.offset : 0);
   }

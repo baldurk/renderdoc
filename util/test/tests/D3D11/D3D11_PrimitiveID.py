@@ -16,8 +16,8 @@ class D3D11_PrimitiveID(rdtest.TestCase):
         cycles, variables = self.process_trace(trace)
 
         # Find the SV_PrimitiveID variable
-        primInput = [var for var in sourceVars if var.builtin == rd.ShaderBuiltin.PrimitiveIndex]
-        if primInput == []:
+        primInput = self.find_input_source_var(trace, rd.ShaderBuiltin.PrimitiveIndex)
+        if primInput is None:
             # If we didn't find it, then we should be expecting a 0
             if len(expected_prim) > 1 or expected_prim[0] is not 0:
                 rdtest.log.error("Expected prim {} at {},{} did not match actual prim {}.".format(
@@ -26,7 +26,7 @@ class D3D11_PrimitiveID(rdtest.TestCase):
         else:
             # Look up the matching register in the inputs, and see if the expected value matches
             inputs: List[rd.ShaderVariable] = list(trace.inputs)
-            primValue = [var for var in inputs if var.name == primInput[0].variables[0].name][0]
+            primValue = [var for var in inputs if var.name == primInput.variables[0].name][0]
             if primValue.value.uv[0] not in expected_prim:
                 rdtest.log.error("Expected prim {} at {},{} did not match actual prim {}.".format(
                     str(expected_prim), x, y, primValue.value.uv[0]))
@@ -35,7 +35,7 @@ class D3D11_PrimitiveID(rdtest.TestCase):
         # Compare shader debug output against an expected value instead of the RT's output,
         # since we're testing overlapping primitives in a single draw
         if expected_output is not None:
-            output = [var for var in sourceVars if var.builtin == rd.ShaderBuiltin.ColorOutput and var.offset == 0][0]
+            output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
             debugged = self.evalute_source_var(output, variables)
             if debugged.value.fv[0:4] != expected_output:
                 rdtest.log.error("Expected value {} at {},{} did not match actual {}.".format(

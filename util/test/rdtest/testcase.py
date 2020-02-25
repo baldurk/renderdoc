@@ -458,6 +458,40 @@ class TestCase:
 
         return cycles, variables
 
+    def get_sig_index(self, signature, builtin: rd.ShaderBuiltin, reg_index: int = -1):
+        search = (builtin, reg_index)
+        signature_mapped = [(sig.systemValue, sig.regIndex) for sig in signature]
+
+        if reg_index == -1:
+            search = builtin
+            signature_mapped = [x[0] for x in signature_mapped]
+
+        if search in signature_mapped:
+            return signature_mapped.index(search)
+        return -1
+
+    def find_source_var(self, sourceVars, signatureIndex, varType):
+        vars = [x for x in sourceVars if x.signatureIndex == signatureIndex and x.variables[0].type == varType]
+
+        if len(vars) == 0:
+            return None
+
+        return vars[0]
+
+    def find_input_source_var(self, trace: rd.ShaderDebugTrace, builtin: rd.ShaderBuiltin, reg_index: int = -1):
+        refl: rd.ShaderReflection = self.controller.GetPipelineState().GetShaderReflection(trace.stage)
+
+        sig_index = self.get_sig_index(refl.inputSignature, builtin, reg_index)
+
+        return self.find_source_var(trace.sourceVars, sig_index, rd.DebugVariableType.Input)
+
+    def find_output_source_var(self, trace: rd.ShaderDebugTrace, builtin: rd.ShaderBuiltin, reg_index: int = -1):
+        refl: rd.ShaderReflection = self.controller.GetPipelineState().GetShaderReflection(trace.stage)
+
+        sig_index = self.get_sig_index(refl.outputSignature, builtin, reg_index)
+
+        return self.find_source_var(trace.sourceVars, sig_index, rd.DebugVariableType.Variable)
+
     def evalute_source_var(self, sourceVar: rd.SourceVariableMapping, debugVars):
         debugged = rd.ShaderVariable()
         debugged.name = sourceVar.name

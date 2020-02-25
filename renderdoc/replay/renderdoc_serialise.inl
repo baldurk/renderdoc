@@ -357,7 +357,7 @@ void DoSerialise(SerialiserType &ser, SourceVariableMapping &el)
   SERIALISE_MEMBER(rows);
   SERIALISE_MEMBER(columns);
   SERIALISE_MEMBER(offset);
-  SERIALISE_MEMBER(builtin);
+  SERIALISE_MEMBER(signatureIndex);
   SERIALISE_MEMBER(variables);
 
   SIZE_CHECK(72);
@@ -401,6 +401,7 @@ void DoSerialise(SerialiserType &ser, ShaderDebugState &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ShaderDebugTrace &el)
 {
+  SERIALISE_MEMBER(stage);
   SERIALISE_MEMBER(inputs);
   SERIALISE_MEMBER(constantBlocks);
   SERIALISE_MEMBER(readOnlyResources);
@@ -416,7 +417,7 @@ void DoSerialise(SerialiserType &ser, ShaderDebugTrace &el)
   if(ser.IsReading())
     el.debugger = (ShaderDebugger *)debugger;
 
-  SIZE_CHECK(152);
+  SIZE_CHECK(160);
 }
 
 template <typename SerialiserType>

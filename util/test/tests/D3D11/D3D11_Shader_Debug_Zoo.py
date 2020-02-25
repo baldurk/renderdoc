@@ -22,11 +22,9 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
             trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4 * test, 0, rd.ReplayController.NoPreference,
                                                                     rd.ReplayController.NoPreference)
 
-            sourceVars: List[rd.SourceVariableMapping] = list(trace.sourceVars)
-
             cycles, variables = self.process_trace(trace)
 
-            output = [x for x in sourceVars if x.builtin == rd.ShaderBuiltin.ColorOutput and x.offset == 0][0]
+            output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
             debugged = self.evalute_source_var(output, variables)
 

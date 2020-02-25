@@ -34,34 +34,34 @@ enum class ShaderBuiltin : uint32_t;
 struct ShaderReflection;
 struct ShaderBindpointMapping;
 
+struct SPIRVInterfaceAccess
+{
+  // ID of the base variable
+  rdcspv::Id ID;
+
+  // ID of the struct parent of this variable
+  rdcspv::Id structID;
+
+  // member in the parent struct of this variable (for MemberDecorate)
+  uint32_t structMemberIndex = 0;
+
+  // the access chain of indices
+  rdcarray<uint32_t> accessChain;
+
+  // this is an element of an array that's been exploded after [0].
+  // i.e. this is false for non-arrays, and false for element [0] in an array, then true for
+  // elements [1], [2], [3], etc..
+  bool isArraySubsequentElement = false;
+};
+
 // extra information that goes along with a ShaderReflection that has extra information for SPIR-V
 // patching
 struct SPIRVPatchData
 {
-  struct InterfaceAccess
-  {
-    // ID of the base variable
-    rdcspv::Id ID;
-
-    // ID of the struct parent of this variable
-    rdcspv::Id structID;
-
-    // member in the parent struct of this variable (for MemberDecorate)
-    uint32_t structMemberIndex = 0;
-
-    // the access chain of indices
-    rdcarray<uint32_t> accessChain;
-
-    // this is an element of an array that's been exploded after [0].
-    // i.e. this is false for non-arrays, and false for element [0] in an array, then true for
-    // elements [1], [2], [3], etc..
-    bool isArraySubsequentElement = false;
-  };
-
   // matches the input/output signature array, with details of where to fetch the output from in the
   // SPIR-V.
-  rdcarray<InterfaceAccess> inputs;
-  rdcarray<InterfaceAccess> outputs;
+  rdcarray<SPIRVInterfaceAccess> inputs;
+  rdcarray<SPIRVInterfaceAccess> outputs;
 
   // the output topology for tessellation and geometry shaders
   Topology outTopo = Topology::Unknown;
@@ -109,10 +109,10 @@ private:
                                  const rdcarray<SpecConstant> &specInfo) const;
   void AddSignatureParameter(const bool isInput, const ShaderStage stage, const Id id,
                              const Id structID, uint32_t &regIndex,
-                             const SPIRVPatchData::InterfaceAccess &parentPatch,
-                             const rdcstr &varName, const DataType &type,
-                             const Decorations &decorations, rdcarray<SigParameter> &sigarray,
-                             SPIRVPatchData &patchData, const rdcarray<SpecConstant> &specInfo) const;
+                             const SPIRVInterfaceAccess &parentPatch, const rdcstr &varName,
+                             const DataType &type, const Decorations &decorations,
+                             rdcarray<SigParameter> &sigarray, SPIRVPatchData &patchData,
+                             const rdcarray<SpecConstant> &specInfo) const;
 
   rdcstr cmdline;
   DenseIdMap<rdcstr> strings;

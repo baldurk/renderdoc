@@ -62,7 +62,7 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
   editor.Prepare();
 
   rdcarray<SigParameter> outsig = refl.outputSignature;
-  rdcarray<SPIRVPatchData::InterfaceAccess> outpatch = patchData.outputs;
+  rdcarray<SPIRVInterfaceAccess> outpatch = patchData.outputs;
 
   rdcspv::Id entryid;
   for(const rdcspv::EntryPoint &entry : editor.GetEntries())
@@ -815,7 +815,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             else
               childname += StringFormat::Fmt(".child%zu", i);
 
-            SPIRVPatchData::InterfaceAccess patch;
+            SPIRVInterfaceAccess patch;
             patch.accessChain = {i};
 
             uint32_t dummy = 0;
@@ -1180,7 +1180,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     for(size_t i = 0; i < inputs.size(); i++)
       reflection.inputSignature.push_back(inputs[indices[i]]);
 
-    rdcarray<SPIRVPatchData::InterfaceAccess> inPatch = patchData.inputs;
+    rdcarray<SPIRVInterfaceAccess> inPatch = patchData.inputs;
     for(size_t i = 0; i < inputs.size(); i++)
       patchData.inputs[i] = inPatch[indices[i]];
   }
@@ -1196,7 +1196,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     for(size_t i = 0; i < outputs.size(); i++)
       reflection.outputSignature.push_back(outputs[indices[i]]);
 
-    rdcarray<SPIRVPatchData::InterfaceAccess> outPatch = patchData.outputs;
+    rdcarray<SPIRVInterfaceAccess> outPatch = patchData.outputs;
     for(size_t i = 0; i < outputs.size(); i++)
       patchData.outputs[i] = outPatch[indices[i]];
   }
@@ -1452,9 +1452,8 @@ void Reflector::MakeConstantBlockVariable(ShaderConstant &outConst,
 
 void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stage,
                                       const Id globalID, const Id parentStructID, uint32_t &regIndex,
-                                      const SPIRVPatchData::InterfaceAccess &parentPatch,
-                                      const rdcstr &varName, const DataType &type,
-                                      const Decorations &varDecorations,
+                                      const SPIRVInterfaceAccess &parentPatch, const rdcstr &varName,
+                                      const DataType &type, const Decorations &varDecorations,
                                       rdcarray<SigParameter> &sigarray, SPIRVPatchData &patchData,
                                       const rdcarray<SpecConstant> &specInfo) const
 {
@@ -1462,7 +1461,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
 
   sig.needSemanticIndex = false;
 
-  SPIRVPatchData::InterfaceAccess patch;
+  SPIRVInterfaceAccess patch;
   patch.accessChain = parentPatch.accessChain;
   patch.ID = globalID;
   patch.structID = parentStructID;

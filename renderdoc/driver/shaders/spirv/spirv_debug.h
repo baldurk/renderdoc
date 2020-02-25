@@ -28,6 +28,9 @@
 #include "spirv_common.h"
 #include "spirv_processor.h"
 
+struct SPIRVInterfaceAccess;
+struct SPIRVPatchData;
+
 namespace rdcspv
 {
 class DebugAPIWrapper
@@ -134,7 +137,7 @@ public:
   ShaderDebugTrace *BeginDebug(DebugAPIWrapper *apiWrapper, const ShaderStage stage,
                                const rdcstr &entryPoint, const rdcarray<SpecConstant> &specInfo,
                                const std::map<size_t, uint32_t> &instructionLines,
-                               uint32_t activeIndex);
+                               const SPIRVPatchData &patchData, uint32_t activeIndex);
 
   rdcarray<ShaderDebugState> ContinueDebug();
 
@@ -171,6 +174,7 @@ private:
                         const DataType &inType, ShaderVariable &outVar);
   void AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const DataType &inType,
                      const rdcstr &sourceName, const rdcstr &varName, uint32_t &offset);
+  void MakeSignatureNames(const rdcarray<SPIRVInterfaceAccess> &sigList, rdcarray<rdcstr> &sigNames);
 
   /////////////////////////////////////////////////////////
   // debug data

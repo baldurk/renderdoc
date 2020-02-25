@@ -386,7 +386,7 @@ struct SourceVariableMapping
   bool operator==(const SourceVariableMapping &o) const
   {
     return name == o.name && type == o.type && rows == o.rows && columns == o.columns &&
-           offset == o.offset && builtin == o.builtin && variables == o.variables;
+           offset == o.offset && signatureIndex == o.signatureIndex && variables == o.variables;
   }
   bool operator<(const SourceVariableMapping &o) const
   {
@@ -400,8 +400,8 @@ struct SourceVariableMapping
       return columns < o.columns;
     if(!(offset == o.offset))
       return offset < o.offset;
-    if(!(builtin == o.builtin))
-      return builtin < o.builtin;
+    if(!(signatureIndex == o.signatureIndex))
+      return signatureIndex < o.signatureIndex;
     if(!(variables == o.variables))
       return variables < o.variables;
     return false;
@@ -419,14 +419,17 @@ struct SourceVariableMapping
   DOCUMENT("The number of columns in this variable.");
   uint32_t columns = 0;
 
-  DOCUMENT(R"(The offset in the parent source variable, for struct members. Useful for sorting.
-
-For builtin variables this can also indicate the index of the builtin (e.g. multiple color outputs).
-)");
+  DOCUMENT("The offset in the parent source variable, for struct members. Useful for sorting.");
   uint32_t offset;
 
-  DOCUMENT("The :class:`ShaderBuiltin` that this variable corresponds to.");
-  ShaderBuiltin builtin = ShaderBuiltin::Undefined;
+  DOCUMENT(R"(The index in the input or output signature of the shader that this variable represents.
+
+The type of signature can be disambiguated by the debug variables referenced - inputs are stored
+separately.
+
+This will be set to -1 if the variable is not part of either signature.
+)");
+  int32_t signatureIndex = -1;
 
   DOCUMENT(R"(The debug variables that the components of this high level variable map to. Multiple
 ranges could refer to the same variable if a contiguous range is mapped to - the mapping is
@@ -633,6 +636,9 @@ struct ShaderDebugTrace
   ShaderDebugTrace() = default;
   ShaderDebugTrace(const ShaderDebugTrace &) = default;
   ShaderDebugTrace &operator=(const ShaderDebugTrace &) = default;
+
+  DOCUMENT("The shader stage being debugged in this trace");
+  ShaderStage stage;
 
   DOCUMENT("The input variables for this shader as a list of :class:`ShaderVariable`.");
   rdcarray<ShaderVariable> inputs;

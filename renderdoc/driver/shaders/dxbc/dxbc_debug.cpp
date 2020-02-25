@@ -4809,6 +4809,7 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
 {
   ShaderDebugTrace *ret = new ShaderDebugTrace;
   ret->debugger = this;
+  ret->stage = refl.stage;
 
   this->dxbc = dxbcContainer;
   this->activeLaneIndex = activeIndex;
@@ -4835,8 +4836,10 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
   if(maxReg >= 0 || inputCoverage)
   {
     state.inputs.resize(maxReg + 1 + (inputCoverage ? 1 : 0));
-    for(const SigParameter &sig : dxbc->GetReflection()->InputSig)
+    for(int32_t sigIdx = 0; sigIdx < dxbc->GetReflection()->InputSig.size(); sigIdx++)
     {
+      const SigParameter &sig = dxbc->GetReflection()->InputSig[sigIdx];
+
       ShaderVariable v;
 
       v.name = dxbc->GetDXBCByteCode()->GetRegisterName(DXBCBytecode::TYPE_INPUT, sig.regIndex);
@@ -4874,9 +4877,7 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
         sourcemap.rows = 1;
         sourcemap.columns = sig.compCount;
         sourcemap.variables.reserve(sig.compCount);
-        sourcemap.builtin = sig.systemValue;
-        if(sig.systemValue != ShaderBuiltin::Undefined)
-          sourcemap.offset = sig.regIndex;
+        sourcemap.signatureIndex = sigIdx;
 
         for(uint16_t c = 0; c < 4; c++)
         {
@@ -4908,7 +4909,8 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
         sourcemap.type = VarType::UInt;
         sourcemap.rows = 1;
         sourcemap.columns = 1;
-        sourcemap.builtin = ShaderBuiltin::MSAACoverage;
+        // no corresponding signature element for this - maybe we should generate one?
+        sourcemap.signatureIndex = -1;
         DebugVariableReference ref;
         ref.type = DebugVariableType::Input;
         ref.name = state.inputs.back().name;
@@ -4920,8 +4922,10 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
   }
 
   // Set up outputs in the shader state
-  for(const SigParameter &sig : dxbc->GetReflection()->OutputSig)
+  for(int32_t sigIdx = 0; sigIdx < dxbc->GetReflection()->OutputSig.size(); sigIdx++)
   {
+    const SigParameter &sig = dxbc->GetReflection()->OutputSig[sigIdx];
+
     DXBCBytecode::OperandType type = DXBCBytecode::TYPE_OUTPUT;
 
     if(sig.systemValue == ShaderBuiltin::DepthOutput)
@@ -4983,9 +4987,7 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
       sourcemap.type = v.type;
       sourcemap.rows = 1;
       sourcemap.columns = sig.compCount;
-      sourcemap.builtin = sig.systemValue;
-      if(sig.systemValue != ShaderBuiltin::Undefined)
-        sourcemap.offset = sig.regIndex;
+      sourcemap.signatureIndex = sigIdx;
       sourcemap.variables.reserve(sig.compCount);
 
       for(uint16_t c = 0; c < 4; c++)
@@ -5035,7 +5037,7 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
       // all these variables are 1 scalar component
       sourcemap.rows = 1;
       sourcemap.columns = 1;
-      sourcemap.builtin = sig.systemValue;
+      sourcemap.signatureIndex = sigIdx;
       DebugVariableReference ref;
       ref.type = DebugVariableType::Variable;
       ref.name = v.name;
