@@ -244,9 +244,9 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
   }
   else if(area.type() == NewFloatingArea)
   {
-    ToolWindowManagerWrapper *wrapper = new ToolWindowManagerWrapper(this, true);
-    ToolWindowManagerArea *floatArea = createArea(wrapper);
+    ToolWindowManagerArea *floatArea = createArea();
     floatArea->addToolWindows(toolWindows);
+    ToolWindowManagerWrapper *wrapper = new ToolWindowManagerWrapper(this, true);
     wrapper->layout()->addWidget(floatArea);
     wrapper->move(QCursor::pos());
     wrapper->updateTitle();
@@ -294,7 +294,7 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
 
     delete item;
 
-    ToolWindowManagerArea *newArea = createArea(splitter);
+    ToolWindowManagerArea *newArea = createArea();
     newArea->addToolWindows(toolWindows);
 
     if(area.type() == TopWindowSide || area.type() == LeftWindowSide)
@@ -358,7 +358,7 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
       {
         insertIndex++;
       }
-      ToolWindowManagerArea *newArea = createArea(parentSplitter);
+      ToolWindowManagerArea *newArea = createArea();
       newArea->addToolWindows(toolWindows);
       parentSplitter->insertWidget(insertIndex, newArea);
 
@@ -386,7 +386,7 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
         splitter->setOrientation(Qt::Horizontal);
       }
 
-      ToolWindowManagerArea *newArea = createArea(splitter);
+      ToolWindowManagerArea *newArea = createArea();
 
       // inherit the size policy from the widget we are wrapping
       splitter->setSizePolicy(area.widget()->sizePolicy());
@@ -664,14 +664,9 @@ void ToolWindowManager::restoreState(const QVariantMap &dataMap)
   }
 }
 
-ToolWindowManagerArea *ToolWindowManager::createArea(QWidget *owner)
+ToolWindowManagerArea *ToolWindowManager::createArea()
 {
-  if(owner == NULL)
-  {
-    owner = this;
-  }
-
-  ToolWindowManagerArea *area = new ToolWindowManagerArea(this, owner);
+  ToolWindowManagerArea *area = new ToolWindowManagerArea(this, 0);
   connect(area, SIGNAL(tabCloseRequested(int)), this, SLOT(tabCloseRequested(int)));
   return area;
 }
@@ -686,6 +681,7 @@ void ToolWindowManager::releaseToolWindow(QWidget *toolWindow)
   }
   previousTabWidget->removeTab(previousTabWidget->indexOf(toolWindow));
   toolWindow->hide();
+  toolWindow->setParent(0);
 }
 
 void ToolWindowManager::simplifyLayout()
@@ -881,7 +877,7 @@ QSplitter *ToolWindowManager::restoreSplitterState(const QVariantMap &savedData)
     }
     else if(itemType == QStringLiteral("area"))
     {
-      ToolWindowManagerArea *area = createArea(splitter);
+      ToolWindowManagerArea *area = createArea();
       area->restoreState(itemValue);
       splitter->addWidget(area);
     }

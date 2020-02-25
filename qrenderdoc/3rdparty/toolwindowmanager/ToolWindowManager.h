@@ -343,7 +343,7 @@ protected:
    * \brief Creates new area and sets its default properties. You may reimplement
    * this function to change properties of all tab widgets used by this class.
    */
-  virtual ToolWindowManagerArea *createArea(QWidget *owner = NULL);
+  virtual ToolWindowManagerArea *createArea();
 
 private slots:
   void tabCloseRequested(int index);
