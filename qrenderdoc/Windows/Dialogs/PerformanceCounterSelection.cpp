@@ -438,7 +438,7 @@ void PerformanceCounterSelection::Load()
         selectedCounters.insert(m_UuidToCounter[uuid]);
       }
 
-      SetSelectedCounters(selectedCounters.toList());
+      SetSelectedCounters(selectedCounters.values());
     }
     else
     {
