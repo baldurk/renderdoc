@@ -1427,14 +1427,22 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
     // similarly we report all the debug extensions so that applications can use them freely - we
     // don't call into the driver so we don't need to care if the driver supports them
-    ctxdata.glExts.push_back("GL_KHR_debug");
-    ctxdata.glExts.push_back("GL_EXT_debug_label");
-    ctxdata.glExts.push_back("GL_EXT_debug_marker");
+    if(!ctxdata.glExts.contains("GL_KHR_debug"))
+      ctxdata.glExts.push_back("GL_KHR_debug");
+
+    if(!ctxdata.glExts.contains("GL_EXT_debug_label"))
+      ctxdata.glExts.push_back("GL_EXT_debug_label");
+
+    if(!ctxdata.glExts.contains("GL_EXT_debug_marker"))
+      ctxdata.glExts.push_back("GL_EXT_debug_marker");
 
     if(!IsGLES)
     {
-      ctxdata.glExts.push_back("GL_GREMEDY_frame_terminator");
-      ctxdata.glExts.push_back("GL_GREMEDY_string_marker");
+      if(!ctxdata.glExts.contains("GL_GREMEDY_frame_terminator"))
+        ctxdata.glExts.push_back("GL_GREMEDY_frame_terminator");
+
+      if(!ctxdata.glExts.contains("GL_GREMEDY_string_marker"))
+        ctxdata.glExts.push_back("GL_GREMEDY_string_marker");
     }
 
     merge(ctxdata.glExts, ctxdata.glExtsString, ' ');
