@@ -70,7 +70,28 @@ rdcstr GetTempRootPath()
   return "/tmp";
 }
 
-rdcstr GetAppFolderFilename(const rdcstr &filename)
+rdcstr GetConfigFolderFilename(const rdcstr &filename)
+{
+  const char *homedir = NULL;
+  if(getenv("HOME") != NULL)
+  {
+    homedir = getenv("HOME");
+    RDCLOG("$HOME value is %s", homedir);
+  }
+  else
+  {
+    RDCLOG("$HOME value is NULL");
+    homedir = getpwuid(getuid())->pw_dir;
+  }
+
+  rdcstr ret = rdcstr(homedir) + "/.renderdoc/";
+
+  mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+  return ret + filename;
+}
+
+rdcstr GetCacheFolderFilename(const rdcstr &filename)
 {
   const char *homedir = NULL;
   if(getenv("HOME") != NULL)

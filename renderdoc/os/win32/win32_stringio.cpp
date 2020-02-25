@@ -385,7 +385,28 @@ rdcstr GetHomeFolderFilename()
   return ret;
 }
 
-rdcstr GetAppFolderFilename(const rdcstr &filename)
+rdcstr GetConfigFolderFilename(const rdcstr &filename)
+{
+  PWSTR appDataPath = NULL;
+  HRESULT hr = SHGetKnownFolderPath(
+      FOLDERID_RoamingAppData, KF_FLAG_SIMPLE_IDLIST | KF_FLAG_DONT_UNEXPAND, NULL, &appDataPath);
+  if(appDataPath == NULL || FAILED(hr))
+    return "";
+
+  rdcstr ret = StringFormat::Wide2UTF8(appDataPath);
+  CoTaskMemFree(appDataPath);
+
+  while(ret.back() == '/' || ret.back() == '\\')
+    ret.pop_back();
+
+  ret += "\\renderdoc\\" + filename;
+
+  CreateParentDirectory(ret);
+
+  return ret;
+}
+
+rdcstr GetCacheFolderFilename(const rdcstr &filename)
 {
   PWSTR appDataPath = NULL;
   HRESULT hr = SHGetKnownFolderPath(

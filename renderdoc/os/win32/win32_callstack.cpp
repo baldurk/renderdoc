@@ -723,7 +723,7 @@ rdcstr Win32CallstackResolver::pdbBrowse(rdcstr startingPoint)
 Win32CallstackResolver::Win32CallstackResolver(bool interactive, byte *moduleDB, size_t DBSize,
                                                RENDERDOC_ProgressCallback progress)
 {
-  rdcwstr configPath = StringFormat::UTF82Wide(FileIO::GetAppFolderFilename("config.ini"));
+  rdcwstr configPath = StringFormat::UTF82Wide(FileIO::GetConfigFolderFilename("config.ini"));
   {
     FILE *f = NULL;
     _wfopen_s(&f, configPath.c_str(), L"a");

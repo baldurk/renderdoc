@@ -67,12 +67,42 @@ rdcstr GetTempRootPath()
   return "/tmp";
 }
 
-rdcstr GetAppFolderFilename(const rdcstr &filename)
+rdcstr GetConfigFolderFilename(const rdcstr &filename)
 {
+  const char *xdg_config_home = getenv("XDG_CONFIG_HOME");
   passwd *pw = getpwuid(getuid());
   const char *homedir = pw->pw_dir;
 
-  rdcstr ret = rdcstr(homedir) + "/.renderdoc/";
+  rdcstr ret;
+  if(xdg_config_home && xdg_config_home[0] == '/')
+  {
+    ret = rdcstr(xdg_config_home) + "/renderdoc/";
+  }
+  else
+  {
+    ret = rdcstr(homedir) + "/.config/renderdoc/";
+  }
+
+  mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+  return ret + filename;
+}
+
+rdcstr GetCacheFolderFilename(const rdcstr &filename)
+{
+  const char *xdg_cache_home = getenv("XDG_CACHE_HOME");
+  passwd *pw = getpwuid(getuid());
+  const char *homedir = pw->pw_dir;
+
+  rdcstr ret;
+  if(xdg_cache_home && xdg_cache_home[0] == '/')
+  {
+    ret = rdcstr(xdg_cache_home) + "/renderdoc/";
+  }
+  else
+  {
+    ret = rdcstr(homedir) + "/.cache/renderdoc/";
+  }
 
   mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 

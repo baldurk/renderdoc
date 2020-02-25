@@ -277,7 +277,8 @@ namespace FileIO
 void GetDefaultFiles(const char *logBaseName, rdcstr &capture_filename, rdcstr &logging_filename,
                      rdcstr &target);
 rdcstr GetHomeFolderFilename();
-rdcstr GetAppFolderFilename(const rdcstr &filename);
+rdcstr GetConfigFolderFilename(const rdcstr &filename);
+rdcstr GetCacheFolderFilename(const rdcstr &filename);
 rdcstr GetTempFolderFilename();
 rdcstr GetReplayAppFilename();
 

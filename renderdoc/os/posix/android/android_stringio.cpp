@@ -69,7 +69,12 @@ rdcstr GetTempRootPath()
   return "/sdcard/Android/data/" + package + "/files";
 }
 
-rdcstr GetAppFolderFilename(const rdcstr &filename)
+rdcstr GetConfigFolderFilename(const rdcstr &filename)
+{
+  return GetTempRootPath() + rdcstr("/") + filename;
+}
+
+rdcstr GetCacheFolderFilename(const rdcstr &filename)
 {
   return GetTempRootPath() + rdcstr("/") + filename;
 }
