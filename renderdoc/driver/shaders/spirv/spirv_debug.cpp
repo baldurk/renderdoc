@@ -953,6 +953,144 @@ void ThreadState::StepNext(ShaderDebugState *state,
       break;
     }
 
+    //////////////////////////////////////////////////////////////////////////////
+    //
+    // Misc. opcodes
+    //
+    //////////////////////////////////////////////////////////////////////////////
+
+    case Op::Undef:
+    {
+      OpUndef undef(it);
+
+      SetDst(state, undef.result, ShaderVariable());
+
+      break;
+    }
+    case Op::Nop:
+    {
+      // nothing to do
+      break;
+    }
+
+    case Op::SourceContinued:
+    case Op::Source:
+    case Op::SourceExtension:
+    case Op::Name:
+    case Op::MemberName:
+    case Op::String:
+    case Op::Extension:
+    case Op::MemoryModel:
+    case Op::EntryPoint:
+    case Op::ExecutionMode:
+    case Op::Capability:
+    case Op::TypeVoid:
+    case Op::TypeBool:
+    case Op::TypeInt:
+    case Op::TypeFloat:
+    case Op::TypeVector:
+    case Op::TypeMatrix:
+    case Op::TypeImage:
+    case Op::TypeSampler:
+    case Op::TypeSampledImage:
+    case Op::TypeArray:
+    case Op::TypeRuntimeArray:
+    case Op::TypeStruct:
+    case Op::TypeOpaque:
+    case Op::TypePointer:
+    case Op::TypeFunction:
+    case Op::TypeEvent:
+    case Op::TypeDeviceEvent:
+    case Op::TypeReserveId:
+    case Op::TypeQueue:
+    case Op::TypePipe:
+    case Op::TypeForwardPointer:
+    case Op::ConstantTrue:
+    case Op::ConstantFalse:
+    case Op::Constant:
+    case Op::ConstantComposite:
+    case Op::ConstantSampler:
+    case Op::ConstantNull:
+    case Op::SpecConstantTrue:
+    case Op::SpecConstantFalse:
+    case Op::SpecConstant:
+    case Op::SpecConstantComposite:
+    case Op::SpecConstantOp:
+    case Op::Decorate:
+    case Op::MemberDecorate:
+    case Op::DecorationGroup:
+    case Op::GroupDecorate:
+    case Op::GroupMemberDecorate:
+    case Op::Unreachable:
+    case Op::DecorateString:
+    case Op::MemberDecorateString:
+    case Op::DecorateId:
+    case Op::ModuleProcessed:
+    case Op::ExecutionModeId:
+    {
+      RDCERR("Encountered unexpected global SPIR-V operation %s", ToStr(opdata.op).c_str());
+      break;
+    }
+
+    case Op::GenericPtrMemSemantics:
+    case Op::ImageQueryFormat:
+    case Op::ImageQueryOrder:
+    case Op::SatConvertSToU:
+    case Op::SatConvertUToS:
+    case Op::PtrCastToGeneric:
+    case Op::GenericCastToPtr:
+    case Op::GenericCastToPtrExplicit:
+    case Op::IsFinite:
+    case Op::IsNormal:
+    case Op::SignBitSet:
+    case Op::LessOrGreater:
+    case Op::Ordered:
+    case Op::Unordered:
+    case Op::LifetimeStart:
+    case Op::LifetimeStop:
+    case Op::AtomicCompareExchangeWeak:
+    case Op::AtomicFlagTestAndSet:
+    case Op::AtomicFlagClear:
+    case Op::GroupAsyncCopy:
+    case Op::GroupWaitEvents:
+    case Op::GetKernelLocalSizeForSubgroupCount:
+    case Op::GetKernelMaxNumSubgroups:
+    case Op::EnqueueMarker:
+    case Op::EnqueueKernel:
+    case Op::GetKernelNDrangeSubGroupCount:
+    case Op::GetKernelNDrangeMaxSubGroupSize:
+    case Op::GetKernelWorkGroupSize:
+    case Op::GetKernelPreferredWorkGroupSizeMultiple:
+    case Op::RetainEvent:
+    case Op::ReleaseEvent:
+    case Op::CreateUserEvent:
+    case Op::IsValidEvent:
+    case Op::SetUserEventStatus:
+    case Op::CaptureEventProfilingInfo:
+    case Op::GetDefaultQueue:
+    case Op::BuildNDRange:
+    case Op::TypeNamedBarrier:
+    case Op::NamedBarrierInitialize:
+    case Op::MemoryNamedBarrier:
+    {
+      // these are kernel only
+      RDCERR("Encountered unexpected kernel SPIR-V operation %s", ToStr(opdata.op).c_str());
+      break;
+    }
+
+    case Op::Line:
+    case Op::NoLine:
+    case Op::Function:
+    case Op::FunctionParameter:
+    case Op::FunctionEnd:
+    case Op::Variable:
+    {
+      // these should be handled elsewhere specially
+      RDCERR("Encountered SPIR-V operation %s in general dispatch loop", ToStr(opdata.op).c_str());
+      break;
+    }
+
+    case Op::Max:
     default: RDCWARN("Unhandled SPIR-V operation %s", ToStr(opdata.op).c_str()); break;
   }
 
