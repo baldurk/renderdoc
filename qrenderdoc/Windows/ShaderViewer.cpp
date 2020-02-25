@@ -4098,7 +4098,7 @@ void ShaderViewer::find(bool down)
 
   FindReplace::SearchContext context = m_FindReplace->context();
 
-  QString findHash = QFormatStr("%1%2%3").arg(find).arg(flags).arg((int)context);
+  QString findHash = QFormatStr("%1%2%3%4").arg(find).arg(flags).arg((int)context).arg(down);
 
   if(findHash != m_FindState.hash)
   {
@@ -4106,6 +4106,9 @@ void ShaderViewer::find(bool down)
     m_FindState.start = 0;
     m_FindState.end = cur->length();
     m_FindState.offset = cur->currentPos();
+    if(down && cur->selectionStart() == m_FindState.offset &&
+       cur->selectionEnd() - m_FindState.offset == find.length())
+      m_FindState.offset += find.length();
   }
 
   int start = m_FindState.start + m_FindState.offset;

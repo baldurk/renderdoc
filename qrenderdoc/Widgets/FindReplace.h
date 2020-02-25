@@ -78,6 +78,7 @@ signals:
 
 private slots:
   // automatic slots
+  void on_findPrev_clicked();
   void on_find_clicked();
   void on_findAll_clicked();
   void on_replace_clicked();
@@ -89,6 +90,8 @@ private:
   void keyPressEvent(QKeyEvent *event) override;
 
   Ui::FindReplace *ui;
+
+  SearchDirection m_direction;
 
   void addHistory(QComboBox *combo);
 };

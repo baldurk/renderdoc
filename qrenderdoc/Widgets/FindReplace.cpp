@@ -25,6 +25,7 @@
 #include "FindReplace.h"
 #include <QKeyEvent>
 #include <QLineEdit>
+#include "Widgets/Extended/RDLineEdit.h"
 #include "ui_FindReplace.h"
 
 FindReplace::FindReplace(QWidget *parent) : QFrame(parent), ui(new Ui::FindReplace)
@@ -37,8 +38,25 @@ FindReplace::FindReplace(QWidget *parent) : QFrame(parent), ui(new Ui::FindRepla
   setReplaceMode(false);
   setDirection(FindReplace::Down);
 
-  QObject::connect(ui->findText->lineEdit(), &QLineEdit::returnPressed, this,
-                   &FindReplace::on_find_clicked);
+  RDLineEdit *edit = new RDLineEdit(this);
+  ui->findText->setLineEdit(edit);
+
+  QObject::connect(edit, &RDLineEdit::keyPress, [this](QKeyEvent *event) {
+    if(event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
+    {
+      SearchDirection dir = m_direction;
+
+      if(event->modifiers() & Qt::ShiftModifier)
+        m_direction = SearchDirection::Up;
+      else
+        m_direction = SearchDirection::Down;
+
+      addHistory(ui->findText);
+      emit performFind();
+
+      m_direction = dir;
+    }
+  });
   QObject::connect(ui->replaceText->lineEdit(), &QLineEdit::returnPressed, this,
                    &FindReplace::on_replace_clicked);
 }
@@ -60,7 +78,7 @@ FindReplace::SearchContext FindReplace::context()
 
 FindReplace::SearchDirection FindReplace::direction()
 {
-  return ui->searchUp->isChecked() ? FindReplace::Up : FindReplace::Down;
+  return m_direction;
 }
 
 bool FindReplace::matchCase()
@@ -108,10 +126,7 @@ void FindReplace::setReplaceMode(bool replacing)
 
 void FindReplace::setDirection(SearchDirection dir)
 {
-  if(dir == FindReplace::Up)
-    ui->searchUp->setChecked(true);
-  else
-    ui->searchDown->setChecked(true);
+  m_direction = dir;
 }
 
 void FindReplace::takeFocus()
@@ -124,19 +139,16 @@ void FindReplace::keyPressEvent(QKeyEvent *event)
 {
   if(event->key() == Qt::Key_F3)
   {
-    SearchDirection dir = direction();
+    SearchDirection dir = m_direction;
 
     if(event->modifiers() & Qt::ShiftModifier)
-      ui->searchUp->setChecked(true);
+      m_direction = SearchDirection::Up;
     else
-      ui->searchDown->setChecked(true);
+      m_direction = SearchDirection::Down;
 
     emit performFind();
 
-    if(dir == FindReplace::Up)
-      ui->searchUp->setChecked(true);
-    else
-      ui->searchDown->setChecked(true);
+    m_direction = dir;
   }
 }
 
@@ -156,6 +168,12 @@ void FindReplace::addHistory(QComboBox *combo)
 
   combo->insertItem(0, text);
   combo->setCurrentText(text);
+}
+
+void FindReplace::on_findPrev_clicked()
+{
+  addHistory(ui->findText);
+  emit performFind();
 }
 
 void FindReplace::on_find_clicked()
