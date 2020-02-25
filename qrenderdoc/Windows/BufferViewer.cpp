@@ -30,12 +30,15 @@
 #include <QMenu>
 #include <QMouseEvent>
 #include <QMutexLocker>
+#include <QPushButton>
 #include <QScrollBar>
 #include <QTimer>
 #include <QtMath>
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "ui_BufferViewer.h"
+
+static const uint32_t MaxVisibleRows = 10000;
 
 namespace NativeScanCode
 {
@@ -459,6 +462,7 @@ struct BufferConfiguration
 {
   uint32_t curInstance = 0, curView = 0;
   uint32_t numRows = 0, unclampedNumRows = 0;
+  uint32_t pagingOffset = 0;
 
   // we can have two index buffers for VSOut data:
   // the original index buffer is used for the displayed value (in displayIndices), and the actual
@@ -486,6 +490,7 @@ struct BufferConfiguration
     curInstance = o.curInstance;
     numRows = o.numRows;
     unclampedNumRows = o.unclampedNumRows;
+    pagingOffset = o.pagingOffset;
 
     displayIndices = o.displayIndices;
     if(displayIndices)
@@ -714,7 +719,13 @@ public:
   }
 
   QModelIndex parent(const QModelIndex &index) const override { return QModelIndex(); }
-  int rowCount(const QModelIndex &parent = QModelIndex()) const override { return config.numRows; }
+  int rowCount(const QModelIndex &parent = QModelIndex()) const override
+  {
+    int ret = config.numRows;
+    if(config.pagingOffset > 0)
+      ret++;
+    return ret;
+  }
   int columnCount(const QModelIndex &parent = QModelIndex()) const override
   {
     return totalColumnCount;
@@ -784,6 +795,17 @@ public:
 
       uint32_t row = index.row();
       int col = index.column();
+
+      if(config.pagingOffset > 0)
+      {
+        if(row == 0)
+        {
+          if(role == Qt::DisplayRole)
+            return lit("...");
+          return QVariant();
+        }
+        row--;
+      }
 
       if(role == columnGroupRole)
       {
@@ -911,8 +933,16 @@ public:
       {
         if(config.unclampedNumRows > 0 && row >= config.numRows - 2)
         {
-          if(col < 2 && row == config.numRows - 1)
-            return QString::number(config.unclampedNumRows - config.numRows);
+          if(meshView)
+          {
+            if(col < 2 && row == config.numRows - 1)
+              return QString::number(config.unclampedNumRows - 1);
+          }
+          else
+          {
+            if(col == 0 && row == config.numRows - 1)
+              return QString::number(config.pagingOffset + config.unclampedNumRows - 1);
+          }
 
           return lit("...");
         }
@@ -920,7 +950,7 @@ public:
         if(col >= 0 && col < totalColumnCount && row < config.numRows)
         {
           if(col == 0)
-            return row;
+            return row + config.pagingOffset;
 
           uint32_t idx = row;
 
@@ -1526,7 +1556,7 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
     }
 
     // if we have significantly clamped, then set the unclamped number of rows and clamp.
-    if(numRowsUpperBound + 100 < bufdata->vsinConfig.numRows)
+    if(numRowsUpperBound != ~0U && numRowsUpperBound + 100 < bufdata->vsinConfig.numRows)
     {
       bufdata->vsinConfig.unclampedNumRows = bufdata->vsinConfig.numRows;
       bufdata->vsinConfig.numRows = numRowsUpperBound + 100;
@@ -2030,8 +2060,11 @@ void BufferViewer::SetupRawView()
                                                        ui->dockarea->areaOf(ui->vsinData), 0.5f));
   ui->dockarea->setToolWindowProperties(ui->formatSpecifier, ToolWindowManager::HideCloseButton);
 
-  QObject::connect(ui->formatSpecifier, &BufferFormatSpecifier::processFormat, this,
-                   &BufferViewer::processFormat);
+  QObject::connect(ui->formatSpecifier, &BufferFormatSpecifier::processFormat,
+                   [this](const QString &format) {
+                     m_PagingByteOffset = 0;
+                     processFormat(format);
+                   });
 
   QVBoxLayout *vertical = new QVBoxLayout(this);
 
@@ -2406,18 +2439,46 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     else
     {
       buf = new BufferData;
+
+      // calculate tight stride
+      buf->stride = 0;
+      for(int i = 0; i < bufdata->vsinConfig.props.count(); i++)
+        buf->stride += bufdata->vsinConfig.props[i].format.ElementSize() *
+                       bufdata->vsinConfig.columns[i].type.descriptor.rows;
+
+      buf->stride = qMax((size_t)1, buf->stride);
+
+      uint64_t unclampedLen = m_ByteSize;
+      if(unclampedLen == UINT64_MAX)
+        unclampedLen = 0;
+      if(unclampedLen == 0)
+        unclampedLen = m_IsBuffer ? m_Ctx.GetBuffer(m_BufferID)->length : 0;
+
+      uint64_t clampedLen =
+          qMin(unclampedLen - CurrentByteOffset(), buf->stride * (MaxVisibleRows + 2));
+
       if(m_IsBuffer)
       {
-        uint64_t len = m_ByteSize;
-        if(len == UINT64_MAX)
-          len = 0;
-
-        buf->storage = r->GetBufferData(m_BufferID, m_ByteOffset, len);
+        buf->storage = r->GetBufferData(m_BufferID, CurrentByteOffset(), clampedLen);
       }
       else
       {
         buf->storage = r->GetTextureData(m_BufferID, m_TexSub);
       }
+
+      uint32_t bufCount = uint32_t(buf->size());
+
+      bufdata->vsinConfig.pagingOffset = uint32_t(m_PagingByteOffset / buf->stride);
+      bufdata->vsinConfig.numRows = uint32_t((bufCount + buf->stride - 1) / buf->stride);
+      bufdata->vsinConfig.unclampedNumRows = 0;
+      if(unclampedLen > CurrentByteOffset() + clampedLen)
+        bufdata->vsinConfig.unclampedNumRows =
+            bufdata->vsinConfig.numRows +
+            uint32_t((unclampedLen - (CurrentByteOffset() + clampedLen) + buf->stride - 1) /
+                     buf->stride);
+
+      // ownership passes to model
+      bufdata->vsinConfig.buffers.push_back(buf);
 
       if(!me)
       {
@@ -2427,26 +2488,6 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     }
 
     GUIInvoke::call(this, [this, buf, bufdata]() {
-
-      if(buf)
-      {
-        // calculate tight stride
-        buf->stride = 0;
-        for(int i = 0; i < bufdata->vsinConfig.props.count(); i++)
-          buf->stride += bufdata->vsinConfig.props[i].format.ElementSize() *
-                         bufdata->vsinConfig.columns[i].type.descriptor.rows;
-
-        buf->stride = qMax((size_t)1, buf->stride);
-
-        uint32_t bufCount = uint32_t(buf->size());
-
-        bufdata->vsinConfig.numRows = uint32_t((bufCount + buf->stride - 1) / buf->stride);
-        bufdata->vsinConfig.unclampedNumRows = 0;
-
-        // ownership passes to model
-        bufdata->vsinConfig.buffers.push_back(buf);
-      }
-
       m_ModelVSIn->endReset(bufdata->vsinConfig);
       m_ModelVSOut->endReset(bufdata->vsoutConfig);
       m_ModelGSOut->endReset(bufdata->gsoutConfig);
@@ -2503,6 +2544,31 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       ui->vsinData->horizontalScrollBar()->setValue(bufdata->vsinHoriz);
       ui->vsoutData->horizontalScrollBar()->setValue(bufdata->vsoutHoriz);
       ui->gsoutData->horizontalScrollBar()->setValue(bufdata->gsoutHoriz);
+
+      if(!m_MeshView)
+      {
+        const bool prev = (bufdata->vsinConfig.pagingOffset > 0);
+        const bool next = (bufdata->vsinConfig.numRows >= MaxVisibleRows);
+
+        if(prev && next)
+        {
+          ui->vsinData->setIndexWidget(m_ModelVSIn->index(0, 1), MakePreviousPageButton());
+          ui->vsinData->setIndexWidget(m_ModelVSIn->index(0, 2), MakeNextPageButton());
+
+          ui->vsinData->setIndexWidget(m_ModelVSIn->index(MaxVisibleRows + 1, 1),
+                                       MakePreviousPageButton());
+          ui->vsinData->setIndexWidget(m_ModelVSIn->index(MaxVisibleRows + 1, 2),
+                                       MakeNextPageButton());
+        }
+        else if(prev)
+        {
+          ui->vsinData->setIndexWidget(m_ModelVSIn->index(0, 1), MakePreviousPageButton());
+        }
+        else if(next)
+        {
+          ui->vsinData->setIndexWidget(m_ModelVSIn->index(MaxVisibleRows, 1), MakeNextPageButton());
+        }
+      }
 
       // we're done with it, the buffer configurations are individually copied/refcounted
       delete bufdata;
@@ -2779,6 +2845,11 @@ void BufferViewer::UI_ResetArcball()
   }
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
+}
+
+uint64_t BufferViewer::CurrentByteOffset()
+{
+  return m_ByteOffset + m_PagingByteOffset;
 }
 
 void BufferViewer::UI_CalculateMeshFormats()
@@ -3168,6 +3239,8 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
   if(buf)
     m_ObjectByteSize = buf->length;
 
+  m_PagingByteOffset = 0;
+
   processFormat(format);
 }
 
@@ -3185,6 +3258,8 @@ void BufferViewer::ViewTexture(ResourceId id, const Subresource &sub, const rdcs
   TextureDescription *tex = m_Ctx.GetTexture(id);
   if(tex)
     m_ObjectByteSize = tex->byteSize;
+
+  m_PagingByteOffset = 0;
 
   processFormat(format);
 }
@@ -3258,6 +3333,30 @@ void BufferViewer::RT_UpdateAndDisplay(IReplayController *)
   }
 
   GUIInvoke::call(this, [this]() { ui->render->update(); });
+}
+
+QPushButton *BufferViewer::MakePreviousPageButton()
+{
+  QPushButton *b = new QPushButton(tr("Previous Page"), this);
+  QObject::connect(b, &QPushButton::clicked, [this] {
+    uint64_t step = MaxVisibleRows * m_ModelVSIn->getConfig().buffers[0]->stride;
+    if(m_PagingByteOffset > step)
+      m_PagingByteOffset -= step;
+    else
+      m_PagingByteOffset = 0;
+    processFormat(m_Format);
+  });
+  return b;
+}
+
+QPushButton *BufferViewer::MakeNextPageButton()
+{
+  QPushButton *b = new QPushButton(tr("Next Page"), this);
+  QObject::connect(b, &QPushButton::clicked, [this] {
+    m_PagingByteOffset += MaxVisibleRows * m_ModelVSIn->getConfig().buffers[0]->stride;
+    processFormat(m_Format);
+  });
+  return b;
 }
 
 RDTableView *BufferViewer::tableForStage(MeshDataStage stage)
@@ -3612,12 +3711,16 @@ void BufferViewer::on_byteRangeStart_valueChanged(int value)
 {
   m_ByteOffset = value;
 
+  m_PagingByteOffset = 0;
+
   processFormat(m_Format);
 }
 
 void BufferViewer::on_byteRangeLength_valueChanged(int value)
 {
   m_ByteSize = value;
+
+  m_PagingByteOffset = 0;
 
   processFormat(m_Format);
 }

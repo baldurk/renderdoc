@@ -36,6 +36,7 @@ class BufferViewer;
 
 class QItemSelection;
 class QMenu;
+class QPushButton;
 class RDTableView;
 class BufferItemModel;
 class CameraWrapper;
@@ -150,6 +151,9 @@ private:
 
   void RT_UpdateAndDisplay(IReplayController *r);
 
+  QPushButton *MakePreviousPageButton();
+  QPushButton *MakeNextPageButton();
+
   MeshDisplay m_Config;
 
   MeshDataStage m_CurStage;
@@ -172,11 +176,14 @@ private:
 
   void UI_ResetArcball();
 
+  uint64_t CurrentByteOffset();
+
   // data from raw buffer view
   bool m_IsBuffer = true;
   QString m_Format;
   Subresource m_TexSub = {0, 0, 0};
   uint64_t m_ByteOffset = 0;
+  uint64_t m_PagingByteOffset = 0;
   uint64_t m_ObjectByteSize = UINT64_MAX;
   uint64_t m_ByteSize = UINT64_MAX;
   ResourceId m_BufferID;
