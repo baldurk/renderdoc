@@ -1663,8 +1663,8 @@ static uint32_t PopCount(uint32_t x)
   return (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
 }
 
-void FlattenSingleVariable(uint32_t byteOffset, const rdcstr &basename, const ShaderVariable &v,
-                           rdcarray<ShaderVariable> &outvars,
+void FlattenSingleVariable(const rdcstr &cbufferName, uint32_t byteOffset, const rdcstr &basename,
+                           const ShaderVariable &v, rdcarray<ShaderVariable> &outvars,
                            rdcarray<SourceVariableMapping> &sourcevars)
 {
   size_t outIdx = byteOffset / 16;
@@ -1693,7 +1693,7 @@ void FlattenSingleVariable(uint32_t byteOffset, const rdcstr &basename, const Sh
     for(int i = 0; i < v.columns; i++)
     {
       mapping.variables[i].type = DebugVariableType::Constant;
-      mapping.variables[i].name = StringFormat::Fmt("[%u]", outIdx);
+      mapping.variables[i].name = StringFormat::Fmt("%s[%u]", cbufferName.c_str(), outIdx);
       mapping.variables[i].component = uint16_t(outComp + i);
     }
 
@@ -1702,6 +1702,7 @@ void FlattenSingleVariable(uint32_t byteOffset, const rdcstr &basename, const Sh
   else
   {
     const uint32_t numRegisters = v.rowMajor ? v.rows : v.columns;
+    const uint32_t registerSize = v.rowMajor ? v.columns : v.rows;
     for(uint32_t reg = 0; reg < numRegisters; reg++)
     {
       outvars[outIdx + reg].rows = 1;
@@ -1734,18 +1735,28 @@ void FlattenSingleVariable(uint32_t byteOffset, const rdcstr &basename, const Sh
     mapping.offset = byteOffset;
     mapping.variables.resize(v.rows * v.columns);
 
-    for(size_t i = 0; i < mapping.variables.size(); i++)
+    RDCASSERT(outComp == 0 || v.rows == 1, outComp, v.rows);
+
+    size_t i = 0;
+    for(uint8_t r = 0; r < v.rows; r++)
     {
-      mapping.variables[i].type = DebugVariableType::Constant;
-      mapping.variables[i].name = StringFormat::Fmt("[%u]", uint32_t(outIdx + (outComp + i) / 4));
-      mapping.variables[i].component = uint16_t((outComp + i) % 4);
+      for(uint8_t c = 0; c < v.columns; c++)
+      {
+        size_t regIndex = outIdx + (v.rowMajor ? r : c);
+        size_t compIndex = outComp + (v.rowMajor ? c : r);
+
+        mapping.variables[i].type = DebugVariableType::Constant;
+        mapping.variables[i].name = StringFormat::Fmt("%s[%zu]", cbufferName.c_str(), regIndex);
+        mapping.variables[i].component = uint16_t(compIndex);
+        i++;
+      }
     }
 
     sourcevars.push_back(mapping);
   }
 }
 
-void FlattenVariables(const rdcarray<ShaderConstant> &constants,
+void FlattenVariables(const rdcstr &cbufferName, const rdcarray<ShaderConstant> &constants,
                       const rdcarray<ShaderVariable> &invars, rdcarray<ShaderVariable> &outvars,
                       const rdcstr &prefix, uint32_t baseOffset,
                       rdcarray<SourceVariableMapping> &sourceVars)
@@ -1765,7 +1776,8 @@ void FlattenVariables(const rdcarray<ShaderConstant> &constants,
     {
       if(v.isStruct)
       {
-        FlattenVariables(c.type.members, v.members, outvars, basename + ".", byteOffset, sourceVars);
+        FlattenVariables(cbufferName, c.type.members, v.members, outvars, basename + ".",
+                         byteOffset, sourceVars);
       }
       else
       {
@@ -1775,7 +1787,7 @@ void FlattenVariables(const rdcarray<ShaderConstant> &constants,
 
           for(int m = 0; m < v.members.count(); m++)
           {
-            FlattenSingleVariable(byteOffset + m * c.type.descriptor.arrayByteStride,
+            FlattenSingleVariable(cbufferName, byteOffset + m * c.type.descriptor.arrayByteStride,
                                   StringFormat::Fmt("%s[%zu]", basename.c_str(), m), v.members[m],
                                   outvars, sourceVars);
           }
@@ -1786,7 +1798,7 @@ void FlattenVariables(const rdcarray<ShaderConstant> &constants,
 
           for(int m = 0; m < v.members.count(); m++)
           {
-            FlattenVariables(c.type.members, v.members[m].members, outvars,
+            FlattenVariables(cbufferName, c.type.members, v.members[m].members, outvars,
                              StringFormat::Fmt("%s[%zu].", basename.c_str(), m),
                              byteOffset + m * c.type.descriptor.arrayByteStride, sourceVars);
           }
@@ -1796,7 +1808,7 @@ void FlattenVariables(const rdcarray<ShaderConstant> &constants,
       continue;
     }
 
-    FlattenSingleVariable(byteOffset, basename, v, outvars, sourceVars);
+    FlattenSingleVariable(cbufferName, byteOffset, basename, v, outvars, sourceVars);
   }
 }
 
@@ -4249,7 +4261,8 @@ void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &
 
       rdcarray<ShaderVariable> vars;
       StandardFillCBufferVariables(refl.resourceId, constants, vars, cbufData);
-      FlattenVariables(constants, vars, targetVars, variablePrefix + ".", 0, sourceVars);
+      FlattenVariables(identifierPrefix, constants, vars, targetVars, variablePrefix + ".", 0,
+                       sourceVars);
 
       for(size_t c = 0; c < targetVars.size(); c++)
       {
