@@ -1653,11 +1653,11 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      for (size_t i = startEvent; i < events.size(); i++)
+      for(size_t i = startEvent; i < events.size(); i++)
       {
         m_pDriver->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
 
-        if (overlay == DebugOverlay::ClearBeforePass && i + 1 < events.size())
+        if(overlay == DebugOverlay::ClearBeforePass && i + 1 < events.size())
           m_pDriver->ReplayLog(events[i] + 1, events[i + 1], eReplay_WithoutDraw);
       }
 

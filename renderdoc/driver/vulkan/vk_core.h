@@ -668,6 +668,8 @@ private:
   bool ShouldUpdateRenderState(ResourceId cmdid, bool forcePrimary = false);
   VkCommandBuffer RerecordCmdBuf(ResourceId cmdid, PartialReplayIndex partialType = ePartialNum);
 
+  ResourceId GetPartialCommandBuffer();
+
   // this info is stored in the record on capture, but we
   // need it on replay too
   struct DescriptorSetInfo

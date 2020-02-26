@@ -1773,7 +1773,6 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
         // be in subpass 0's layout
         if(m_FirstEventID == m_LastEventID)
         {
-          // VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
           VulkanCreationInfo::RenderPass rpinfo =
               m_CreationInfo.m_RenderPass[GetCmdRenderState().renderPass];
           unwrappedInfo.renderPass = Unwrap(rpinfo.loadRPs[0]);
@@ -3488,6 +3487,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           m_BakedCmdBufferInfo[cmd].state.SetFramebuffer(
               parentCmdBufInfo.state.GetFramebuffer(),
               parentCmdBufInfo.state.GetFramebufferAttachments());
+          m_BakedCmdBufferInfo[cmd].state.renderArea = parentCmdBufInfo.state.renderArea;
 
           // 2 extra for the virtual labels around the command buffer
           parentCmdBufInfo.curEventID += 2 + m_BakedCmdBufferInfo[cmd].eventCount;
@@ -4931,7 +4931,6 @@ bool WrappedVulkan::Serialise_vkCmdBeginTransformFeedbackEXT(
 
       // track while reading, for fetching the right set of outputs in AddDrawcall
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.firstxfbcounter = firstBuffer;
-      // TODO: should change the xfbcount, resize?
       m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbcounters.resize(bufferCount);
     }
   }
