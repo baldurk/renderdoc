@@ -2720,19 +2720,30 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     if(physProps.apiVersion >= VK_MAKE_VERSION(1, 2, 0))
     {
-      VkPhysicalDeviceVulkan12Features *existing = (VkPhysicalDeviceVulkan12Features *)FindNextStruct(
-          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES);
+      VkPhysicalDeviceVulkan12Features avail12Features = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+      };
+      VkPhysicalDeviceFeatures2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+      availBase.pNext = &avail12Features;
+      ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures2(Unwrap(physicalDevice), &availBase);
 
-      if(existing)
+      if(avail12Features.bufferDeviceAddress)
       {
-        existing->bufferDeviceAddress = VK_TRUE;
-      }
-      else
-      {
-        vk12Features.bufferDeviceAddress = VK_TRUE;
+        VkPhysicalDeviceVulkan12Features *existing =
+            (VkPhysicalDeviceVulkan12Features *)FindNextStruct(
+                &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES);
 
-        perfFeatures.pNext = (void *)createInfo.pNext;
-        createInfo.pNext = &perfFeatures;
+        if(existing)
+        {
+          existing->bufferDeviceAddress = VK_TRUE;
+        }
+        else
+        {
+          vk12Features.bufferDeviceAddress = VK_TRUE;
+
+          vk12Features.pNext = (void *)createInfo.pNext;
+          createInfo.pNext = &vk12Features;
+        }
       }
     }
     else if(KHRbuffer)
@@ -2759,7 +2770,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           bufAddrKHRFeatures.bufferDeviceAddress = VK_TRUE;
           bufAddrKHRFeatures.bufferDeviceAddressMultiDevice = VK_FALSE;
 
-          pipeExecFeatures.pNext = (void *)createInfo.pNext;
+          bufAddrKHRFeatures.pNext = (void *)createInfo.pNext;
           createInfo.pNext = &bufAddrKHRFeatures;
         }
       }
@@ -2796,7 +2807,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           bufAddrEXTFeatures.bufferDeviceAddress = VK_TRUE;
           bufAddrEXTFeatures.bufferDeviceAddressMultiDevice = VK_FALSE;
 
-          pipeExecFeatures.pNext = (void *)createInfo.pNext;
+          bufAddrEXTFeatures.pNext = (void *)createInfo.pNext;
           createInfo.pNext = &bufAddrEXTFeatures;
         }
       }
