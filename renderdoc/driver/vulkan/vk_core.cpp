@@ -2492,10 +2492,8 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
   if(!partial && !IsStructuredExporting(m_State))
     AddFrameTerminator(AMDRGPControl::GetEndTag());
 
-  if(m_Partial[Secondary].partialParent != ResourceId())
-    m_RenderState = m_BakedCmdBufferInfo[m_Partial[Primary].partialParent].state;
-  else if(m_Partial[Primary].partialParent != ResourceId())
-    m_RenderState = m_BakedCmdBufferInfo[m_Partial[Primary].partialParent].state;
+  // Save the current render state in the partial command buffer.
+  m_RenderState = m_BakedCmdBufferInfo[GetPartialCommandBuffer()].state;
 
   // swap the structure back now that we've accumulated the frame as well.
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
@@ -3150,10 +3148,8 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     }
     else
     {
-      if(m_Partial[Secondary].partialParent != ResourceId())
-        m_BakedCmdBufferInfo[m_Partial[Primary].partialParent].state = m_RenderState;
-      else if(m_Partial[Primary].partialParent != ResourceId())
-        m_BakedCmdBufferInfo[m_Partial[Primary].partialParent].state = m_RenderState;
+      // Copy the state in case m_RenderState was modified externally for the partial replay.
+      m_BakedCmdBufferInfo[GetPartialCommandBuffer()].state = m_RenderState;
     }
 
     VkResult vkr = VK_SUCCESS;
@@ -3652,6 +3648,13 @@ VkCommandBuffer WrappedVulkan::RerecordCmdBuf(ResourceId cmdid, PartialReplayInd
   }
 
   return it->second;
+}
+
+ResourceId WrappedVulkan::GetPartialCommandBuffer()
+{
+  if(m_Partial[Secondary].partialParent != ResourceId())
+    return m_Partial[Secondary].partialParent;
+  return m_Partial[Primary].partialParent;
 }
 
 void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
