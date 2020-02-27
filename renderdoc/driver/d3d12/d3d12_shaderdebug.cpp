@@ -2025,15 +2025,102 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
     }
   }
 
-  // get the multisample count
-  uint32_t outputSampleCount = RDCMAX(1U, pipelineState->outputMerger.multiSampleCount);
+  // Store a copy of the event's render state to restore later
+  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+  D3D12RenderState prevState = rs;
+
+  // Fetch the multisample count from the PSO
+  WrappedID3D12PipelineState *origPSO =
+      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+
+  D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
+  origPSO->Fill(pipeDesc);
+  uint32_t outputSampleCount = RDCMAX(1U, pipeDesc.SampleDesc.Count);
+
+  std::set<GlobalState::SampleEvalCacheKey> evalSampleCacheData;
+  uint64_t sampleEvalRegisterMask = 0;
 
   // if we're not rendering at MSAA, no need to fill the cache because evaluates will all return the
   // plain input anyway.
   if(outputSampleCount > 1)
   {
-    RDCUNIMPLEMENTED("MSAA debugging not yet implemented for D3D12");
-    return new ShaderDebugTrace;
+    // scan the instructions to see if it contains any evaluates.
+    size_t numInstructions = dxbc->GetDXBCByteCode()->GetNumInstructions();
+    for(size_t i = 0; i < numInstructions; ++i)
+    {
+      const Operation &op = dxbc->GetDXBCByteCode()->GetInstruction(i);
+
+      // skip any non-eval opcodes
+      if(op.operation != OPCODE_EVAL_CENTROID && op.operation != OPCODE_EVAL_SAMPLE_INDEX &&
+         op.operation != OPCODE_EVAL_SNAPPED)
+        continue;
+
+      // the generation of this key must match what we'll generate in the corresponding lookup
+      GlobalState::SampleEvalCacheKey key;
+
+      // all the eval opcodes have rDst, vIn as the first two operands
+      key.inputRegisterIndex = (int32_t)op.operands[1].indices[0].index;
+
+      for(int c = 0; c < 4; c++)
+      {
+        if(op.operands[0].comps[c] == 0xff)
+          break;
+
+        key.numComponents = c + 1;
+      }
+
+      key.firstComponent = op.operands[1].comps[op.operands[0].comps[0]];
+
+      sampleEvalRegisterMask |= 1ULL << key.inputRegisterIndex;
+
+      if(op.operation == OPCODE_EVAL_CENTROID)
+      {
+        // nothing to do - default key is centroid, sample is -1 and offset x/y is 0
+        evalSampleCacheData.insert(key);
+      }
+      else if(op.operation == OPCODE_EVAL_SAMPLE_INDEX)
+      {
+        if(op.operands[2].type == TYPE_IMMEDIATE32 || op.operands[2].type == TYPE_IMMEDIATE64)
+        {
+          // hooray, only sampling a single index, just add this key
+          key.sample = (int32_t)op.operands[2].values[0];
+
+          evalSampleCacheData.insert(key);
+        }
+        else
+        {
+          // parameter is a register and we don't know which sample will be needed, fetch them all.
+          // In most cases this will be a loop over them all, so they'll all be needed anyway
+          for(uint32_t c = 0; c < outputSampleCount; c++)
+          {
+            key.sample = (int32_t)c;
+            evalSampleCacheData.insert(key);
+          }
+        }
+      }
+      else if(op.operation == OPCODE_EVAL_SNAPPED)
+      {
+        if(op.operands[2].type == TYPE_IMMEDIATE32 || op.operands[2].type == TYPE_IMMEDIATE64)
+        {
+          // hooray, only sampling a single offset, just add this key
+          key.offsetx = (int32_t)op.operands[2].values[0];
+          key.offsety = (int32_t)op.operands[2].values[1];
+
+          evalSampleCacheData.insert(key);
+        }
+        else
+        {
+          m_pDevice->AddDebugMessage(
+              MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
+              "EvaluateAttributeSnapped called with dynamic parameter, caching all possible "
+              "evaluations which could have performance impact.");
+
+          for(key.offsetx = -8; key.offsetx <= 7; key.offsetx++)
+            for(key.offsety = -8; key.offsety <= 7; key.offsety++)
+              evalSampleCacheData.insert(key);
+        }
+      }
+    }
   }
 
   extractHlsl += R"(
@@ -2058,7 +2145,15 @@ struct PSInitialData
 
 )";
 
-  extractHlsl += "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u0);\n\n";
+  // If this event uses MSAA, then at least one render target must be preserved to get
+  // multisampling info. leave u0 alone and start with register u1
+  extractHlsl += "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u1);\n\n";
+
+  if(!evalSampleCacheData.empty())
+  {
+    // float4 is wasteful in some cases but it's easier than using byte buffers and manual packing
+    extractHlsl += "RWBuffer<float4> PSEvalBuffer : register(u2);\n\n";
+  }
 
   if(usePrimitiveID)
   {
@@ -2100,6 +2195,69 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
   extractHlsl += "  PSInitialBuffer[idx].INddy = (PSInput)0;\n";
   extractHlsl += "  PSInitialBuffer[idx].INddxfine = (PSInput)0;\n";
   extractHlsl += "  PSInitialBuffer[idx].INddyfine = (PSInput)0;\n";
+
+  if(!evalSampleCacheData.empty())
+  {
+    extractHlsl += StringFormat::Fmt("  uint evalIndex = idx * %zu;\n", evalSampleCacheData.size());
+
+    uint32_t evalIdx = 0;
+    for(const GlobalState::SampleEvalCacheKey &key : evalSampleCacheData)
+    {
+      uint32_t keyMask = 0;
+
+      for(int32_t i = 0; i < key.numComponents; i++)
+        keyMask |= (1 << (key.firstComponent + i));
+
+      // find the name of the variable matching the operand, in the case of merged input variables.
+      rdcstr name, swizzle = "xyzw";
+      for(size_t i = 0; i < dxbc->GetReflection()->InputSig.size(); i++)
+      {
+        if(dxbc->GetReflection()->InputSig[i].regIndex == (uint32_t)key.inputRegisterIndex &&
+           dxbc->GetReflection()->InputSig[i].systemValue == ShaderBuiltin::Undefined &&
+           (dxbc->GetReflection()->InputSig[i].regChannelMask & keyMask) == keyMask)
+        {
+          name = inputVarNames[i];
+
+          if(!name.empty())
+            break;
+        }
+      }
+
+      swizzle.resize(key.numComponents);
+
+      if(name.empty())
+      {
+        RDCERR("Couldn't find matching input variable for v%d [%d:%d]", key.inputRegisterIndex,
+               key.firstComponent, key.numComponents);
+        extractHlsl += StringFormat::Fmt("  PSEvalBuffer[evalIndex+%u] = 0;\n", evalIdx);
+        evalIdx++;
+        continue;
+      }
+
+      name = StringFormat::Fmt("IN.%s.%s", name.c_str(), swizzle.c_str());
+
+      // we must write all components, so just swizzle the values - they'll be ignored later.
+      rdcstr expandSwizzle = swizzle;
+      while(expandSwizzle.size() < 4)
+        expandSwizzle.push_back('x');
+
+      if(key.sample >= 0)
+      {
+        extractHlsl += StringFormat::Fmt(
+            "  PSEvalBuffer[evalIndex+%u] = EvaluateAttributeAtSample(%s, %d).%s;\n", evalIdx,
+            name.c_str(), key.sample, expandSwizzle.c_str());
+      }
+      else
+      {
+        // we don't need to special-case EvaluateAttributeAtCentroid, since it's just a case with
+        // 0,0
+        extractHlsl += StringFormat::Fmt(
+            "  PSEvalBuffer[evalIndex+%u] = EvaluateAttributeSnapped(%s, int2(%d, %d)).%s;\n",
+            evalIdx, name.c_str(), key.offsetx, key.offsety, expandSwizzle.c_str());
+      }
+      evalIdx++;
+    }
+  }
 
   for(size_t i = 0; i < floatInputs.size(); i++)
   {
@@ -2166,6 +2324,24 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
     return new ShaderDebugTrace;
   }
 
+  // Create buffer to store MSAA evaluations captured in pixel shader
+  ID3D12Resource *pMsaaEvalBuffer = NULL;
+  if(!evalSampleCacheData.empty())
+  {
+    rdesc.Width = UINT(evalSampleCacheData.size() * sizeof(Vec4f) * (overdrawLevels + 1));
+    hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &rdesc, resourceState,
+                                            NULL, __uuidof(ID3D12Resource),
+                                            (void **)&pMsaaEvalBuffer);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create MSAA buffer for pixel shader debugging HRESULT: %s",
+             ToStr(hr).c_str());
+      SAFE_RELEASE(pInitialValuesBuffer);
+      SAFE_RELEASE(psBlob);
+      return new ShaderDebugTrace;
+    }
+  }
+
   // Create UAV of initial values buffer
   D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc;
   ZeroMemory(&uavDesc, sizeof(D3D12_UNORDERED_ACCESS_VIEW_DESC));
@@ -2185,9 +2361,22 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
       m_pDevice->GetDebugManager()->GetUAVClearHandle(SHADER_DEBUG_UAV);
   m_pDevice->CreateUnorderedAccessView(pInitialValuesBuffer, NULL, &uavDesc, clearUav);
 
-  // Store a copy of the event's render state to restore later
-  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
-  D3D12RenderState prevState = rs;
+  // Create UAV of MSAA eval buffer
+  D3D12_CPU_DESCRIPTOR_HANDLE msaaClearUav =
+      m_pDevice->GetDebugManager()->GetUAVClearHandle(SHADER_DEBUG_MSAA_UAV);
+  if(pMsaaEvalBuffer)
+  {
+    D3D12_CPU_DESCRIPTOR_HANDLE msaaUav =
+        m_pDevice->GetDebugManager()->GetCPUHandle(SHADER_DEBUG_MSAA_UAV);
+    uavDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    uavDesc.Buffer.NumElements = (overdrawLevels + 1) * (uint32_t)evalSampleCacheData.size();
+    m_pDevice->CreateUnorderedAccessView(pMsaaEvalBuffer, NULL, &uavDesc, msaaUav);
+
+    uavDesc.Format = DXGI_FORMAT_R32_UINT;
+    uavDesc.Buffer.NumElements =
+        (UINT)evalSampleCacheData.size() * (overdrawLevels + 1) / sizeof(uint32_t);
+    m_pDevice->CreateUnorderedAccessView(pMsaaEvalBuffer, NULL, &uavDesc, msaaClearUav);
+  }
 
   WrappedID3D12RootSignature *sig =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rs.graphics.rootsig);
@@ -2203,8 +2392,8 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
   // Create the descriptor table for our UAV
   D3D12_DESCRIPTOR_RANGE1 descRange;
   descRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-  descRange.NumDescriptors = 1;
-  descRange.BaseShaderRegister = 0;
+  descRange.NumDescriptors = pMsaaEvalBuffer ? 2 : 1;
+  descRange.BaseShaderRegister = 1;
   descRange.RegisterSpace = 0;
   descRange.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
   descRange.OffsetInDescriptorsFromTableStart = 0;
@@ -2230,17 +2419,10 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
     SAFE_RELEASE(root);
     SAFE_RELEASE(psBlob);
     SAFE_RELEASE(pInitialValuesBuffer);
+    SAFE_RELEASE(pMsaaEvalBuffer);
     return new ShaderDebugTrace;
   }
   SAFE_RELEASE(root);
-
-  WrappedID3D12PipelineState *origPSO =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
-
-  RDCASSERT(origPSO->IsGraphics());
-
-  D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC pipeDesc;
-  origPSO->Fill(pipeDesc);
 
   // All PSO state is the same as the event's, except for the pixel shader and root signature
   pipeDesc.PS.BytecodeLength = psBlob->GetBufferSize();
@@ -2254,21 +2436,32 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
     RDCERR("Failed to create PSO for pixel shader debugging HRESULT: %s", ToStr(hr).c_str());
     SAFE_RELEASE(psBlob);
     SAFE_RELEASE(pInitialValuesBuffer);
+    SAFE_RELEASE(pMsaaEvalBuffer);
     SAFE_RELEASE(pRootSignature);
     return new ShaderDebugTrace;
   }
 
   // Add the descriptor for our UAV, then clear it
   std::set<ResourceId> copiedHeaps;
-  PortableHandle shaderDebugUav = ToPortableHandle(GetDebugManager()->GetCPUHandle(SHADER_DEBUG_UAV));
-  AddDebugDescriptorToRenderState(m_pDevice, rs, shaderDebugUav,
-                                  D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, sigElem, copiedHeaps);
+  rdcarray<PortableHandle> debugHandles;
+  debugHandles.push_back(ToPortableHandle(GetDebugManager()->GetCPUHandle(SHADER_DEBUG_UAV)));
+  if(pMsaaEvalBuffer)
+    debugHandles.push_back(ToPortableHandle(GetDebugManager()->GetCPUHandle(SHADER_DEBUG_MSAA_UAV)));
+  AddDebugDescriptorsToRenderState(m_pDevice, rs, debugHandles,
+                                   D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, sigElem, copiedHeaps);
 
   ID3D12GraphicsCommandListX *cmdList = m_pDevice->GetDebugManager()->ResetDebugList();
   rs.ApplyDescriptorHeaps(cmdList);
   D3D12_GPU_DESCRIPTOR_HANDLE gpuUav = m_pDevice->GetDebugManager()->GetGPUHandle(SHADER_DEBUG_UAV);
   UINT zero[4] = {0, 0, 0, 0};
   cmdList->ClearUnorderedAccessViewUint(gpuUav, clearUav, pInitialValuesBuffer, zero, 0, NULL);
+
+  if(pMsaaEvalBuffer)
+  {
+    D3D12_GPU_DESCRIPTOR_HANDLE gpuMsaaUav =
+        m_pDevice->GetDebugManager()->GetGPUHandle(SHADER_DEBUG_MSAA_UAV);
+    cmdList->ClearUnorderedAccessViewUint(gpuMsaaUav, msaaClearUav, pMsaaEvalBuffer, zero, 0, NULL);
+  }
 
   // Execute the command to ensure that UAV clear and resource creation occur before replay
   hr = cmdList->Close();
@@ -2277,6 +2470,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
     RDCERR("Failed to close command list HRESULT: %s", ToStr(hr).c_str());
     SAFE_RELEASE(psBlob);
     SAFE_RELEASE(pInitialValuesBuffer);
+    SAFE_RELEASE(pMsaaEvalBuffer);
     SAFE_RELEASE(pRootSignature);
     SAFE_RELEASE(initialPso);
     return new ShaderDebugTrace;
@@ -2306,11 +2500,16 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
   bytebuf initialData;
   m_pDevice->GetDebugManager()->GetBufferData(pInitialValuesBuffer, 0, 0, initialData);
 
+  bytebuf evalData;
+  if(pMsaaEvalBuffer)
+    m_pDevice->GetDebugManager()->GetBufferData(pMsaaEvalBuffer, 0, 0, evalData);
+
   // Replaying the event has finished, and the data has been copied out.
   // Free all the resources that were created.
   SAFE_RELEASE(psBlob);
   SAFE_RELEASE(pRootSignature);
   SAFE_RELEASE(pInitialValuesBuffer);
+  SAFE_RELEASE(pMsaaEvalBuffer);
   SAFE_RELEASE(initialPso);
 
   DebugHit *buf = (DebugHit *)initialData.data();
@@ -2340,6 +2539,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
   // Get depth func and determine "winner" pixel
   D3D12_COMPARISON_FUNC depthFunc = pipeDesc.DepthStencilState.DepthFunc;
   DebugHit *pWinnerHit = NULL;
+  float *evalSampleCache = (float *)evalData.data();
 
   if(sample == ~0U)
     sample = 0;
@@ -2353,6 +2553,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
       if(pHit->primitive == primitive && pHit->sample == sample)
       {
         pWinnerHit = pHit;
+        evalSampleCache = ((float *)evalData.data() + evalSampleCacheData.size() * 4 * i);
       }
     }
   }
@@ -2363,22 +2564,36 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
     {
       DebugHit *pHit = (DebugHit *)(initialData.data() + i * structStride);
 
-      if(pWinnerHit == NULL || (pWinnerHit->sample != sample && pHit->sample == sample) ||
-         depthFunc == D3D12_COMPARISON_FUNC_ALWAYS || depthFunc == D3D12_COMPARISON_FUNC_NEVER ||
-         depthFunc == D3D12_COMPARISON_FUNC_NOT_EQUAL || depthFunc == D3D12_COMPARISON_FUNC_EQUAL)
+      if(pWinnerHit == NULL)
       {
+        // If we haven't picked a winner at all yet, use the first one
         pWinnerHit = pHit;
-        continue;
+        evalSampleCache = ((float *)evalData.data()) + evalSampleCacheData.size() * 4 * i;
       }
-
-      if((depthFunc == D3D12_COMPARISON_FUNC_LESS && pHit->depth < pWinnerHit->depth) ||
-         (depthFunc == D3D12_COMPARISON_FUNC_LESS_EQUAL && pHit->depth <= pWinnerHit->depth) ||
-         (depthFunc == D3D12_COMPARISON_FUNC_GREATER && pHit->depth > pWinnerHit->depth) ||
-         (depthFunc == D3D12_COMPARISON_FUNC_GREATER_EQUAL && pHit->depth >= pWinnerHit->depth))
+      else if(pHit->sample == sample)
       {
-        if(pHit->sample == sample)
+        // If this hit is for the sample we want, check whether it's a better pick
+        if(pWinnerHit->sample != sample)
         {
+          // The previously selected winner was for the wrong sample, use this one
           pWinnerHit = pHit;
+          evalSampleCache = ((float *)evalData.data()) + evalSampleCacheData.size() * 4 * i;
+        }
+        else if((depthFunc == D3D11_COMPARISON_ALWAYS || depthFunc == D3D11_COMPARISON_NEVER ||
+                 depthFunc == D3D11_COMPARISON_NOT_EQUAL || depthFunc == D3D11_COMPARISON_EQUAL))
+        {
+          // For depth functions without an inequality comparison, use the last sample encountered
+          pWinnerHit = pHit;
+          evalSampleCache = ((float *)evalData.data()) + evalSampleCacheData.size() * 4 * i;
+        }
+        else if((depthFunc == D3D11_COMPARISON_LESS && pHit->depth < pWinnerHit->depth) ||
+                (depthFunc == D3D11_COMPARISON_LESS_EQUAL && pHit->depth <= pWinnerHit->depth) ||
+                (depthFunc == D3D11_COMPARISON_GREATER && pHit->depth > pWinnerHit->depth) ||
+                (depthFunc == D3D11_COMPARISON_GREATER_EQUAL && pHit->depth >= pWinnerHit->depth))
+        {
+          // For depth functions with an inequality, find the hit that "wins" the most
+          pWinnerHit = pHit;
+          evalSampleCache = ((float *)evalData.data()) + evalSampleCacheData.size() * 4 * i;
         }
       }
     }
@@ -2398,6 +2613,8 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
   // Fetch constant buffer data from root signature
   GatherConstantBuffers(m_pDevice, *dxbc->GetDXBCByteCode(), rs.graphics, refl,
                         origPSO->PS()->GetMapping(), global, ret->sourceVars);
+
+  global.sampleEvalRegisterMask = sampleEvalRegisterMask;
 
   {
     DebugHit *pHit = pWinnerHit;
@@ -2472,7 +2689,26 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
       }
     }
 
-    // TODO: Handle inputs that were evaluated at sample granularity (MSAA)
+    // Fetch any inputs that were evaluated at sample granularity
+    for(const GlobalState::SampleEvalCacheKey &key : evalSampleCacheData)
+    {
+      // start with the basic input value
+      ShaderVariable var = state.inputs[key.inputRegisterIndex];
+
+      // copy over the value into the variable
+      memcpy(var.value.fv, evalSampleCache, var.columns * sizeof(float));
+
+      // store in the global cache for each quad. We'll apply derivatives below to adjust for each
+      GlobalState::SampleEvalCacheKey k = key;
+      for(int i = 0; i < 4; i++)
+      {
+        k.quadIndex = i;
+        global.sampleEvalCache[k] = var;
+      }
+
+      // advance past this data - always by float4 as that's the buffer stride
+      evalSampleCache += 4;
+    }
 
     ApplyAllDerivatives(global, interpreter->workgroup, destIdx, initialValues, (float *)data);
   }

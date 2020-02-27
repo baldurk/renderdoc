@@ -578,6 +578,31 @@ float4 main(v2f IN) : SV_Target0
 
 )EOSHADER";
 
+  std::string msaaPixel = R"EOSHADER(
+
+struct v2f
+{
+	float4 pos : SV_POSITION;
+	float4 col : COLOR0;
+	float2 uv : TEXCOORD0;
+};
+
+float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0 
+{
+  float2 uvCentroid = EvaluateAttributeCentroid(IN.uv);
+  float2 uvSamp0 = EvaluateAttributeAtSample(IN.uv, 0) - IN.uv;
+  float2 uvSampThis = EvaluateAttributeAtSample(IN.uv, samp) - IN.uv;
+  float2 uvOffset = EvaluateAttributeSnapped(IN.uv, int2(1, 1));
+
+  float x = (uvCentroid.x + uvCentroid.y) * 0.5f;
+  float y = (uvSamp0.x + uvSamp0.y) * 0.5f;
+  float z = (uvSampThis.x + uvSampThis.y) * 0.5f;
+  float w = (uvOffset.x + uvOffset.y) * 0.5f;
+  return float4(x, y, z, w);
+}
+
+)EOSHADER";
+
   int main()
   {
     // initialise, create window, create device, etc
@@ -705,6 +730,22 @@ float4 main(v2f IN) : SV_Target0
     D3D12_CPU_DESCRIPTOR_HANDLE uav2cpu = uavView2.CreateClearCPU(5);
     D3D12_GPU_DESCRIPTOR_HANDLE uav2gpu = uavView2.CreateGPU(5);
 
+    // Create resources for MSAA draw
+    ID3DBlobPtr vsmsaablob = Compile(D3DDefaultVertex, "main", "vs_5_0");
+    ID3DBlobPtr psmsaablob = Compile(msaaPixel, "main", "ps_5_0");
+
+    ID3D12RootSignaturePtr sigmsaa = MakeSig({});
+
+    ID3D12PipelineStatePtr psomsaa =
+        MakePSO().RootSig(sigmsaa).InputLayout().VS(vsmsaablob).PS(psmsaablob).SampleCount(4);
+    ID3D12ResourcePtr vbmsaa = MakeBuffer().Data(DefaultTri);
+
+    ID3D12ResourcePtr msaaTex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 8, 8)
+                                    .RTV()
+                                    .Multisampled(4)
+                                    .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
+    D3D12_CPU_DESCRIPTOR_HANDLE msaaRTV = MakeRTV(msaaTex).CreateCPU(1);
+
     vsblob = Compile(D3DFullscreenQuadVertex, "main", "vs_4_0");
     psblob = Compile(pixelBlit, "main", "ps_5_0");
     ID3D12RootSignaturePtr blitSig = MakeSig({
@@ -721,7 +762,7 @@ float4 main(v2f IN) : SV_Target0
       ID3D12ResourcePtr bb = StartUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
       D3D12_CPU_DESCRIPTOR_HANDLE rtv =
-          MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(1);
+          MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(2);
       ClearRenderTargetView(cmd, rtv, {0.2f, 0.2f, 0.2f, 1.0f});
 
       ID3D12PipelineStatePtr psos[2] = {pso_5_0, pso_5_1};
@@ -732,12 +773,11 @@ float4 main(v2f IN) : SV_Target0
       // Clear, draw, and blit to backbuffer twice - once for SM 5.0 and again for SM 5.1
       for(int i = 0; i < 2; ++i)
       {
+        OMSetRenderTargets(cmd, {fltRTV}, {});
         ClearRenderTargetView(cmd, fltRTV, {0.2f, 0.2f, 0.2f, 1.0f});
 
         IASetVertexBuffer(cmd, vb, sizeof(ConstsA2V), 0);
         cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-        OMSetRenderTargets(cmd, {fltRTV}, {});
 
         cmd->SetGraphicsRootSignature(sig);
         cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
@@ -774,6 +814,21 @@ float4 main(v2f IN) : SV_Target0
         ResourceBarrier(cmd, fltTex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
                         D3D12_RESOURCE_STATE_RENDER_TARGET);
       }
+
+      // Render MSAA test
+      OMSetRenderTargets(cmd, {msaaRTV}, {});
+      ClearRenderTargetView(cmd, msaaRTV, {0.2f, 0.2f, 0.2f, 1.0f});
+      IASetVertexBuffer(cmd, vbmsaa, sizeof(DefaultA2V), 0);
+      cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+      cmd->SetGraphicsRootSignature(sigmsaa);
+      cmd->SetPipelineState(psomsaa);
+      RSSetViewport(cmd, {0.0f, 0.0f, 8.0f, 8.0f, 0.0f, 1.0f});
+      RSSetScissorRect(cmd, {0, 0, 8, 8});
+
+      // Add a marker so we can easily locate this draw
+      cmd->SetMarker(1, "MSAA", 4);
+      cmd->DrawInstanced(3, 1, 0, 0);
 
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 

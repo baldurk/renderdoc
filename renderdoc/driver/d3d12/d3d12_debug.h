@@ -60,6 +60,7 @@ enum CBVUAVSRVSlot
   PICK_RESULT_CLEAR_UAV,
 
   SHADER_DEBUG_UAV,
+  SHADER_DEBUG_MSAA_UAV,
 
   TMP_UAV,
 
@@ -222,7 +223,7 @@ void MoveRootSignatureElementsToRegisterSpace(D3D12RootSignature &sig, uint32_t 
                                               D3D12DescriptorType type,
                                               D3D12_SHADER_VISIBILITY visibility);
 
-void AddDebugDescriptorToRenderState(WrappedID3D12Device *pDevice, D3D12RenderState &rs,
-                                     const PortableHandle &handle,
-                                     D3D12_DESCRIPTOR_HEAP_TYPE heapType, uint32_t sigElem,
-                                     std::set<ResourceId> &copiedHeaps);
+void AddDebugDescriptorsToRenderState(WrappedID3D12Device *pDevice, D3D12RenderState &rs,
+                                      const rdcarray<PortableHandle> &handles,
+                                      D3D12_DESCRIPTOR_HEAP_TYPE heapType, uint32_t sigElem,
+                                      std::set<ResourceId> &copiedHeaps);
