@@ -1843,15 +1843,15 @@ void MoveRootSignatureElementsToRegisterSpace(D3D12RootSignature &sig, uint32_t 
   }
 }
 
-void AddDebugDescriptorToRenderState(WrappedID3D12Device *pDevice, D3D12RenderState &rs,
-                                     const PortableHandle &handle,
-                                     D3D12_DESCRIPTOR_HEAP_TYPE heapType, uint32_t sigElem,
-                                     std::set<ResourceId> &copiedHeaps)
+void AddDebugDescriptorsToRenderState(WrappedID3D12Device *pDevice, D3D12RenderState &rs,
+                                      const rdcarray<PortableHandle> &handles,
+                                      D3D12_DESCRIPTOR_HEAP_TYPE heapType, uint32_t sigElem,
+                                      std::set<ResourceId> &copiedHeaps)
 {
   if(rs.graphics.sigelems.size() <= sigElem)
     rs.graphics.sigelems.resize(sigElem + 1);
 
-  PortableHandle newHandle = handle;
+  PortableHandle newHandle = handles[0];
 
   // If a CBV_SRV_UAV heap is already set and hasn't had a debug descriptor copied in,
   // copy the desired descriptor in and add the heap to the set of heaps that have had
@@ -1866,33 +1866,38 @@ void AddDebugDescriptorToRenderState(WrappedID3D12Device *pDevice, D3D12RenderSt
         pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(rs.heaps[i]);
     if(h->GetDesc().Type == heapType)
     {
-      // use the last descriptor
+      // use the last descriptors
       D3D12_CPU_DESCRIPTOR_HANDLE dst = h->GetCPUDescriptorHandleForHeapStart();
-      dst.ptr += (h->GetDesc().NumDescriptors - 1) * sizeof(D3D12Descriptor);
+      dst.ptr += (h->GetDesc().NumDescriptors - handles.size()) * sizeof(D3D12Descriptor);
+
+      newHandle = ToPortableHandle(dst);
 
       if(copiedHeaps.find(rs.heaps[i]) == copiedHeaps.end())
       {
-        WrappedID3D12DescriptorHeap *h2 =
-            pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(handle.heap);
-        D3D12_CPU_DESCRIPTOR_HANDLE src = h2->GetCPUDescriptorHandleForHeapStart();
-        src.ptr += handle.index * sizeof(D3D12Descriptor);
+        for(size_t j = 0; j < handles.size(); ++j)
+        {
+          WrappedID3D12DescriptorHeap *h2 =
+              pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(
+                  handles[j].heap);
+          D3D12_CPU_DESCRIPTOR_HANDLE src = h2->GetCPUDescriptorHandleForHeapStart();
+          src.ptr += handles[j].index * sizeof(D3D12Descriptor);
 
-        // can't do a copy because the src heap is CPU write-only (shader visible). So instead,
-        // create directly
-        D3D12Descriptor *srcDesc = (D3D12Descriptor *)src.ptr;
-        srcDesc->Create(heapType, pDevice, dst);
+          // can't do a copy because the src heap is CPU write-only (shader visible). So instead,
+          // create directly
+          D3D12Descriptor *srcDesc = (D3D12Descriptor *)src.ptr;
+          srcDesc->Create(heapType, pDevice, dst);
+          dst.ptr += sizeof(D3D12Descriptor);
+        }
 
         copiedHeaps.insert(rs.heaps[i]);
       }
-
-      newHandle = ToPortableHandle(dst);
 
       break;
     }
   }
 
-  if(newHandle.heap == handle.heap)
-    rs.heaps.push_back(handle.heap);
+  if(newHandle.heap == handles[0].heap)
+    rs.heaps.push_back(handles[0].heap);
 
   rs.graphics.sigelems[sigElem] =
       D3D12RenderState::SignatureElement(eRootTable, newHandle.heap, newHandle.index);
