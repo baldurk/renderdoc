@@ -941,7 +941,7 @@ void ImageState::Merge(const ImageState &other, ImageTransitionInfo info)
 void ImageState::MergeCaptureBeginState(const ImageState &initialState)
 {
   oldQueueFamilyTransfers = initialState.oldQueueFamilyTransfers;
-  subresourceStates = initialState.subresourceStates;
+  subresourceStates.Merge(initialState.subresourceStates, ComposeFrameRefsFirstKnown);
   maxRefType = initialState.maxRefType;
 }
 
