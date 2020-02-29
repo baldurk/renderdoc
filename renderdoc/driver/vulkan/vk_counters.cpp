@@ -135,7 +135,7 @@ void VulkanReplay::convertKhrCounterResult(CounterResult &rdcResult,
   {
     RDCASSERT(type == CompType::Double);
 
-    if(khrStorage == VK_PERFORMANCE_COUNTER_STORAGE_FLOAT64_KHR)
+    if((khrStorage == VK_PERFORMANCE_COUNTER_STORAGE_FLOAT64_KHR) || (khrStorage == VK_PERFORMANCE_COUNTER_STORAGE_FLOAT32_KHR))
     {
       rdcResult.value.d = rdcResult.value.d / (1000.0 * 1000.0 * 1000.0);
     }
