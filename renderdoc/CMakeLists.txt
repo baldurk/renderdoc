@@ -502,6 +502,12 @@ if(ENABLE_GL OR ENABLE_GLES)
     list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_intel>)
 endif()
 
+# pull in the ARM folder for perf query
+if(ENABLE_GL OR ENABLE_GLES)
+    add_subdirectory(driver/ihv/arm)
+    list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_arm>)
+endif()
+
 add_library(rdoc OBJECT ${sources})
 target_compile_definitions(rdoc ${RDOC_DEFINITIONS})
 target_include_directories(rdoc ${RDOC_INCLUDES})

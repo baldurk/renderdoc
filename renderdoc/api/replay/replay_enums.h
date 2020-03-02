@@ -3229,7 +3229,10 @@ enum class GPUCounter : uint32_t
   FirstVulkanExtended = 4000000,
   LastNvidia = FirstVulkanExtended - 1,
 
-  LastVulkanExtended = 5000000,
+  FirstARM = 5000000,
+  LastVulkanExtended = FirstARM - 1,
+
+  LastARM = 6000000,
 };
 
 ITERABLE_OPERATORS(GPUCounter);
@@ -3290,6 +3293,17 @@ inline constexpr bool IsVulkanExtendedCounter(GPUCounter c)
   return c >= GPUCounter::FirstVulkanExtended && c <= GPUCounter::LastVulkanExtended;
 }
 
+DOCUMENT(R"(Check whether or not this is an ARM private counter.
+
+:param GPUCounter c: The counter.
+:return: ``True`` if it is an ARM private counter, ``False`` if it's not.
+:rtype: ``bool``
+)");
+inline constexpr bool IsARMCounter(GPUCounter c)
+{
+  return c >= GPUCounter::FirstARM && c <= GPUCounter::LastARM;
+}
+
 DOCUMENT(R"(The unit that GPU counter data is returned in.
 
 .. data:: Absolute
@@ -3324,6 +3338,9 @@ enum class CounterUnit : uint32_t
   Ratio,
   Bytes,
   Cycles,
+  Hertz,
+  Volt,
+  Celsius
 };
 
 DECLARE_REFLECTION_ENUM(CounterUnit);

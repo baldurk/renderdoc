@@ -31,6 +31,7 @@
 #include "gl_common.h"
 
 class AMDCounters;
+class ARMCounters;
 class IntelGlCounters;
 class WrappedOpenGL;
 struct GLCounterContext;
@@ -465,4 +466,12 @@ private:
                        const DrawcallDescription &drawnode);
 
   rdcarray<CounterResult> FetchCountersIntel(const rdcarray<GPUCounter> &counters);
+
+  // ARM counter instance
+  ARMCounters *m_pARMCounters = NULL;
+
+  void FillTimersARM(uint32_t *eventStartID, uint32_t *sampleIndex, rdcarray<uint32_t> *eventIDs,
+                     const DrawcallDescription &drawnode);
+
+  rdcarray<CounterResult> FetchCountersARM(const rdcarray<GPUCounter> &counters);
 };

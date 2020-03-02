@@ -558,9 +558,20 @@ struct AndroidRemoteServer : public RemoteServer
   {
     ResetAndroidSettings();
 
+    // enable profiling to measure hardware counters
+    Android::adbExecCommand(m_deviceID, "shell setprop security.perf_harden 0");
+
     LazilyStartLogcatThread();
 
     return RemoteServer::OpenCapture(proxyid, filename, opts, progress);
+  }
+
+  virtual void CloseCapture(IReplayController *rend) override
+  {
+    // disable profiling
+    Android::adbExecCommand(m_deviceID, "shell setprop security.perf_harden 1");
+
+    RemoteServer::CloseCapture(rend);
   }
 
   virtual rdcstr GetHomeFolder() override { return ""; }
