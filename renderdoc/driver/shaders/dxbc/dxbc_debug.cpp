@@ -5118,8 +5118,13 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
       SourceVariableMapping sourcemap;
       sourcemap.name = r.name;
       sourcemap.type = r.variableType.descriptor.type;
+      if(sourcemap.type == VarType::Unknown)
+        sourcemap.type = VarType::UInt;
       sourcemap.rows = r.variableType.descriptor.rows;
       sourcemap.columns = r.variableType.descriptor.columns;
+      if(sourcemap.rows == 0 && sourcemap.columns == 0)
+        sourcemap.rows = sourcemap.columns = 1;
+      sourcemap.offset = 0;
       DebugVariableReference ref;
       ref.type = list.varType;
       ref.name = reg.name;
