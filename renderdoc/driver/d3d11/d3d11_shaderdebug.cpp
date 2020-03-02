@@ -1991,7 +1991,7 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
       }
       else
       {
-        if(fmt.compByteWidth * fmt.compCount > dataSize)
+        if(size_t(fmt.compByteWidth * fmt.compCount) > dataSize)
         {
           state.inputs[i].value.u.x = state.inputs[i].value.u.y = state.inputs[i].value.u.z = 0;
           if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt)
