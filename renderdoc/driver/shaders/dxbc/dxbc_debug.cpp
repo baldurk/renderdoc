@@ -310,12 +310,18 @@ bool OperationFlushing(const DXBCBytecode::OpcodeType &op)
     case OPCODE_GATHER4_PO_C:
       return true;
 
-    // unclear if these flush and it's unlikely denorms will come up, so conservatively flush
-    case OPCODE_SAMPLE_INFO:
-    case OPCODE_SAMPLE_POS:
+    // don't flush eval ops as some inputs may be uint
     case OPCODE_EVAL_CENTROID:
     case OPCODE_EVAL_SAMPLE_INDEX:
     case OPCODE_EVAL_SNAPPED:
+      return false;
+
+    // don't flush samplepos since an operand is scalar
+    case OPCODE_SAMPLE_POS:
+      return false;
+
+    // unclear if these flush and it's unlikely denorms will come up, so conservatively flush
+    case OPCODE_SAMPLE_INFO:
     case OPCODE_LOD:
     case OPCODE_DERIV_RTX:
     case OPCODE_DERIV_RTX_COARSE:

@@ -333,6 +333,40 @@ class TestCase:
 
         log.success("Picked value at {},{} in {} is as expected".format(x, y, res_details.name))
 
+    def check_pixel_sample_value(self, tex: rd.ResourceId, x, y, sample, value, eps=util.FLT_EPSILON):
+        tex_details = self.get_texture(tex)
+        res_details = self.get_resource(tex)
+
+        if type(x) is float:
+            x = int((tex_details.width-1) * x)
+        if type(y) is float:
+            y = int((tex_details.height-1) * y)
+
+        cast = rd.CompType.Typeless
+        if tex_details.creationFlags & rd.TextureCategory.SwapBuffer:
+            cast = rd.CompType.UNormSRGB
+
+        # Reduce epsilon for RGBA8 textures if it's not already reduced
+        if tex_details.format.compByteWidth == 1 and eps == util.FLT_EPSILON:
+            eps = (1.0 / 255.0)
+
+        picked: rd.PixelValue = self.controller.PickPixel(tex, x, y, rd.Subresource(0, 0, sample), cast)
+
+        if not util.value_compare(picked.floatValue, value, eps):
+            save_data = rd.TextureSave()
+            save_data.resourceId = tex
+            save_data.destType = rd.FileType.PNG
+
+            img_path = util.get_tmp_path('output.png')
+
+            self.controller.SaveTexture(save_data, img_path)
+
+            raise TestFailureException(
+                "Picked value {} at {},{} sample {} doesn't match expectation of {}".
+                format(picked.floatValue, x, y, sample, value), img_path)
+
+        log.success("Picked value at {},{} sample {} in {} is as expected".format(x, y, sample, res_details.name))
+
     def check_triangle(self, out = None, back = None, fore = None, vp = None):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
