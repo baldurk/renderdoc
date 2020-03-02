@@ -53,6 +53,8 @@ class Iter_Test(rdtest.TestCase):
     def vert_debug(self, draw: rd.DrawcallDescription):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
+        refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
+
         if pipe.GetShader(rd.ShaderStage.Vertex) == rd.ResourceId.Null():
             rdtest.log.print("No vertex shader bound at {}: {}".format(draw.eventId, draw.name))
             return
@@ -92,25 +94,60 @@ class Iter_Test(rdtest.TestCase):
 
             idx = indices[0]
 
+            striprestart_index = pipe.GetStripRestartIndex() & ((1 << (draw.indexByteWidth*8)) - 1)
+
+            if pipe.IsStripRestartEnabled() and idx == striprestart_index:
+                return
+
         rdtest.log.print("Debugging vtx %d idx %d (inst %d)" % (vtx, idx, inst))
+
+        postvs = self.get_postvs(rd.MeshDataStage.VSOut, first_index=vtx, num_indices=1, instance=inst)
 
         trace: rd.ShaderDebugTrace = self.controller.DebugVertex(vtx, inst, idx)
 
         if trace.debugger is None:
             self.controller.FreeTrace(trace)
 
-            rdtest.log.print("No debug result")
+            if self.props.shaderDebugging:
+                raise rdtest.TestFailureException("Shader debugging supported but no debug result")
+            else:
+                rdtest.log.print("No debug result")
             return
 
-        last_state: rd.ShaderDebugState = self.controller.ContinueDebug(trace.debugger)[-1]
+        cycles, variables = self.process_trace(trace)
 
-        while True:
-            states = self.controller.ContinueDebug(trace.debugger)
-            if len(states) == 0:
-                break
-            last_state = states[-1]
+        outputs = 0
 
-        rdtest.log.success('Successfully debugged vertex in {} cycles'.format(last_state.stepIndex))
+        for var in trace.sourceVars:
+            var: rd.SourceVariableMapping
+            if var.variables[0].type == rd.DebugVariableType.Variable and var.signatureIndex >= 0:
+                name = var.name
+
+                if name not in postvs[0].keys():
+                    raise rdtest.TestFailureException("Don't have expected output for {}".format(name))
+
+                expect = postvs[0][name]
+                value = self.evaluate_source_var(var, variables)
+
+                if len(expect) != value.columns:
+                    raise rdtest.TestFailureException(
+                        "Output {} at EID {} has different size ({} values) to expectation ({} values)"
+                            .format(name, draw.eventId, value.columns, len(expect)))
+
+                debugged = value.value.fv[0:value.columns]
+                # Unfortunately we can't ever trust that we should get back a matching results, because some shaders
+                # rely on undefined/inaccurate maths that we don't emulate.
+                # So the best we can do is log an error for manual verification
+                is_eq, diff_amt = rdtest.value_compare_diff(expect, debugged, eps=5.0E-06)
+                if not is_eq:
+                    rdtest.log.error(
+                        "Debugged value {} at EID {} vert {} (idx {}) instance {}: {} difference. {} doesn't exactly match postvs output {}".format(
+                            name, draw.eventId, vtx, idx, inst, diff_amt, debugged, expect))
+
+                outputs = outputs + 1
+
+        rdtest.log.success('Successfully debugged vertex in {} cycles, {}/{} outputs match'
+                           .format(cycles, outputs, len(refl.outputSignature)))
 
         self.controller.FreeTrace(trace)
 
@@ -215,17 +252,24 @@ class Iter_Test(rdtest.TestCase):
                 output_sourcevar = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, output_index)
 
                 if output_sourcevar is not None:
-                    debugged = self.evalute_source_var(output_sourcevar, variables)
+                    debugged = self.evaluate_source_var(output_sourcevar, variables)
 
                     self.controller.FreeTrace(trace)
 
                     debuggedValue = [debugged.value.f.x, debugged.value.f.y, debugged.value.f.z, debugged.value.f.w]
 
-                    if not rdtest.value_compare(lastmod.shaderOut.col.floatValue, debuggedValue, eps=3.0E-06):
-                        rdtest.log.error("Debugged value {} at EID {} {},{}: {} doesn't match history shader output {}".format(debugged.name, lastmod.eventId, x, y, debuggedValue, lastmod.shaderOut.col.floatValue))
+                    # Unfortunately we can't ever trust that we should get back a matching results, because some shaders
+                    # rely on undefined/inaccurate maths that we don't emulate.
+                    # So the best we can do is log an error for manual verification
+                    is_eq, diff_amt = rdtest.value_compare_diff(lastmod.shaderOut.col.floatValue, debuggedValue, eps=5.0E-06)
+                    if not is_eq:
+                        rdtest.log.error(
+                            "Debugged value {} at EID {} {},{}: {} difference. {} doesn't exactly match history shader output {}".format(
+                                debugged.name, lastmod.eventId, x, y, diff_amt, debuggedValue, lastmod.shaderOut.col.floatValue))
 
                     rdtest.log.success('Successfully debugged pixel in {} cycles, result matches'.format(cycles))
                 else:
+                    # This could be an application error - undefined but seen in the wild
                     rdtest.log.error("At EID {} No output variable declared for index {}".format(lastmod.eventId, output_index))
 
             self.controller.SetFrameEvent(draw.eventId, True)
@@ -233,10 +277,12 @@ class Iter_Test(rdtest.TestCase):
     def iter_test(self):
         # Handy tweaks when running locally to disable certain things
 
-        action_chance = 0.1     # Chance of doing anything at all
-        do_image_save = 0.25    # Chance of saving images of the outputs
+        action_chance = 1.0     # Chance of doing anything at all
+        do_image_save = 0.0    # Chance of saving images of the outputs
         do_vert_debug = 1.0     # Chance of debugging a vertex (if valid)
         do_pixel_debug = 1.0    # Chance of doing pixel history at the current event and debugging a pixel (if valid)
+
+        self.props: rd.APIProperties = self.controller.GetAPIProperties()
 
         actions = {
             'Image Save': {'chance': do_image_save, 'func': self.image_save},
