@@ -1943,8 +1943,11 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
 
         if(srcData == NULL || packedsize > dataSize)
         {
-          state.inputs[i].value.u.x = state.inputs[i].value.u.y = state.inputs[i].value.u.z =
-              state.inputs[i].value.u.w = 0;
+          state.inputs[i].value.u.x = state.inputs[i].value.u.y = state.inputs[i].value.u.z = 0;
+          if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt)
+            state.inputs[i].value.u.w = 1;
+          else
+            state.inputs[i].value.f.w = 1.0f;
         }
         else if(fmt.type == ResourceFormatType::R5G5B5A1)
         {
@@ -1988,80 +1991,83 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
       }
       else
       {
-        for(uint32_t c = 0; c < fmt.compCount; c++)
+        if(fmt.compByteWidth * fmt.compCount > dataSize)
         {
-          if(srcData == NULL || fmt.compByteWidth > dataSize)
-          {
-            state.inputs[i].value.uv[c] = 0;
-            continue;
-          }
-
-          dataSize -= fmt.compByteWidth;
-
-          if(fmt.compByteWidth == 1)
-          {
-            byte *src = srcData + c * fmt.compByteWidth;
-
-            if(fmt.compType == CompType::UInt)
-              state.inputs[i].value.uv[c] = *src;
-            else if(fmt.compType == CompType::SInt)
-              state.inputs[i].value.iv[c] = *((int8_t *)src);
-            else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::UNormSRGB)
-              state.inputs[i].value.fv[c] = float(*src) / 255.0f;
-            else if(fmt.compType == CompType::SNorm)
-            {
-              signed char *schar = (signed char *)src;
-
-              // -128 is mapped to -1, then -127 to -127 are mapped to -1 to 1
-              if(*schar == -128)
-                state.inputs[i].value.fv[c] = -1.0f;
-              else
-                state.inputs[i].value.fv[c] = float(*schar) / 127.0f;
-            }
-            else
-              RDCERR("Unexpected component type");
-          }
-          else if(fmt.compByteWidth == 2)
-          {
-            uint16_t *src = (uint16_t *)(srcData + c * fmt.compByteWidth);
-
-            if(fmt.compType == CompType::Float)
-              state.inputs[i].value.fv[c] = ConvertFromHalf(*src);
-            else if(fmt.compType == CompType::UInt)
-              state.inputs[i].value.uv[c] = *src;
-            else if(fmt.compType == CompType::SInt)
-              state.inputs[i].value.iv[c] = *((int16_t *)src);
-            else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::UNormSRGB)
-              state.inputs[i].value.fv[c] = float(*src) / float(UINT16_MAX);
-            else if(fmt.compType == CompType::SNorm)
-            {
-              int16_t *sint = (int16_t *)src;
-
-              // -32768 is mapped to -1, then -32767 to -32767 are mapped to -1 to 1
-              if(*sint == -32768)
-                state.inputs[i].value.fv[c] = -1.0f;
-              else
-                state.inputs[i].value.fv[c] = float(*sint) / 32767.0f;
-            }
-            else
-              RDCERR("Unexpected component type");
-          }
-          else if(fmt.compByteWidth == 4)
-          {
-            uint32_t *src = (uint32_t *)(srcData + c * fmt.compByteWidth);
-
-            if(fmt.compType == CompType::Float || fmt.compType == CompType::UInt ||
-               fmt.compType == CompType::SInt)
-              memcpy(&state.inputs[i].value.uv[c], src, 4);
-            else
-              RDCERR("Unexpected component type");
-          }
+          state.inputs[i].value.u.x = state.inputs[i].value.u.y = state.inputs[i].value.u.z = 0;
+          if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt)
+            state.inputs[i].value.u.w = 1;
+          else
+            state.inputs[i].value.f.w = 1.0f;
         }
-
-        if(fmt.BGRAOrder())
+        else
         {
-          RDCASSERT(fmt.compCount == 4);
-          std::swap(state.inputs[i].value.fv[2], state.inputs[i].value.fv[0]);
+          for(uint32_t c = 0; c < fmt.compCount; c++)
+          {
+            if(fmt.compByteWidth == 1)
+            {
+              byte *src = srcData + c * fmt.compByteWidth;
+
+              if(fmt.compType == CompType::UInt)
+                state.inputs[i].value.uv[c] = *src;
+              else if(fmt.compType == CompType::SInt)
+                state.inputs[i].value.iv[c] = *((int8_t *)src);
+              else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::UNormSRGB)
+                state.inputs[i].value.fv[c] = float(*src) / 255.0f;
+              else if(fmt.compType == CompType::SNorm)
+              {
+                signed char *schar = (signed char *)src;
+
+                // -128 is mapped to -1, then -127 to -127 are mapped to -1 to 1
+                if(*schar == -128)
+                  state.inputs[i].value.fv[c] = -1.0f;
+                else
+                  state.inputs[i].value.fv[c] = float(*schar) / 127.0f;
+              }
+              else
+                RDCERR("Unexpected component type");
+            }
+            else if(fmt.compByteWidth == 2)
+            {
+              uint16_t *src = (uint16_t *)(srcData + c * fmt.compByteWidth);
+
+              if(fmt.compType == CompType::Float)
+                state.inputs[i].value.fv[c] = ConvertFromHalf(*src);
+              else if(fmt.compType == CompType::UInt)
+                state.inputs[i].value.uv[c] = *src;
+              else if(fmt.compType == CompType::SInt)
+                state.inputs[i].value.iv[c] = *((int16_t *)src);
+              else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::UNormSRGB)
+                state.inputs[i].value.fv[c] = float(*src) / float(UINT16_MAX);
+              else if(fmt.compType == CompType::SNorm)
+              {
+                int16_t *sint = (int16_t *)src;
+
+                // -32768 is mapped to -1, then -32767 to -32767 are mapped to -1 to 1
+                if(*sint == -32768)
+                  state.inputs[i].value.fv[c] = -1.0f;
+                else
+                  state.inputs[i].value.fv[c] = float(*sint) / 32767.0f;
+              }
+              else
+                RDCERR("Unexpected component type");
+            }
+            else if(fmt.compByteWidth == 4)
+            {
+              uint32_t *src = (uint32_t *)(srcData + c * fmt.compByteWidth);
+
+              if(fmt.compType == CompType::Float || fmt.compType == CompType::UInt ||
+                 fmt.compType == CompType::SInt)
+                memcpy(&state.inputs[i].value.uv[c], src, 4);
+              else
+                RDCERR("Unexpected component type");
+            }
+          }
+
+          if(fmt.BGRAOrder())
+          {
+            RDCASSERT(fmt.compCount == 4);
+            std::swap(state.inputs[i].value.fv[2], state.inputs[i].value.fv[0]);
+          }
         }
       }
     }
