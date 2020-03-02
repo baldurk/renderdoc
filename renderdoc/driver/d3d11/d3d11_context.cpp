@@ -1035,6 +1035,10 @@ void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
     }
   }
 
+  // don't record usage for rasterization pipeline on dispatch calls
+  if(d.flags & DrawFlags::Dispatch)
+    return;
+
   //////////////////////////////
   // SO
 
