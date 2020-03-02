@@ -562,6 +562,31 @@ float4 main(v2f IN) : SV_Target0
 
 )EOSHADER";
 
+  std::string msaaPixel = R"EOSHADER(
+
+struct v2f
+{
+	float4 pos : SV_POSITION;
+	float4 col : COLOR0;
+	float2 uv : TEXCOORD0;
+};
+
+float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0 
+{
+  float2 uvCentroid = EvaluateAttributeCentroid(IN.uv);
+  float2 uvSamp0 = EvaluateAttributeAtSample(IN.uv, 0) - IN.uv;
+  float2 uvSampThis = EvaluateAttributeAtSample(IN.uv, samp) - IN.uv;
+  float2 uvOffset = EvaluateAttributeSnapped(IN.uv, int2(1, 1));
+
+  float x = (uvCentroid.x + uvCentroid.y) * 0.5f;
+  float y = (uvSamp0.x + uvSamp0.y) * 0.5f;
+  float z = (uvSampThis.x + uvSampThis.y) * 0.5f;
+  float w = (uvOffset.x + uvOffset.y) * 0.5f;
+  return float4(x, y, z, w);
+}
+
+)EOSHADER";
+
   int main()
   {
     // initialise, create window, create device, etc
@@ -661,6 +686,21 @@ float4 main(v2f IN) : SV_Target0
 
     ctx->PSSetShaderResources(0, ARRAY_COUNT(srvs), srvs);
 
+    // Create resources for MSAA draw
+    ID3DBlobPtr vsmsaablob = Compile(D3DDefaultVertex, "main", "vs_5_0");
+    ID3DBlobPtr psmsaablob = Compile(msaaPixel, "main", "ps_5_0");
+
+    CreateDefaultInputLayout(vsmsaablob);
+
+    ID3D11VertexShaderPtr vsmsaa = CreateVS(vsmsaablob);
+    ID3D11PixelShaderPtr psmsaa = CreatePS(psmsaablob);
+
+    ID3D11BufferPtr vbmsaa = MakeBuffer().Vertex().Data(DefaultTri);
+
+    ID3D11Texture2DPtr msaaTex =
+        MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 8, 8).Multisampled(4).RTV();
+    ID3D11RenderTargetViewPtr msaaRT = MakeRTV(msaaTex);
+
     while(Running())
     {
       ClearRenderTargetView(fltRT, {0.2f, 0.2f, 0.2f, 1.0f});
@@ -683,6 +723,15 @@ float4 main(v2f IN) : SV_Target0
                                                      NULL);
 
       ctx->DrawInstanced(3, numTests, 0, 0);
+
+      ctx->OMSetRenderTargets(1, &msaaRT.GetInterfacePtr(), NULL);
+
+      RSSetViewport({0.0f, 0.0f, 8.0f, 8.0f, 0.0f, 1.0f});
+      IASetVertexBuffer(vbmsaa, sizeof(DefaultA2V), 0);
+      ctx->IASetInputLayout(defaultLayout);
+      ctx->VSSetShader(vsmsaa, NULL, 0);
+      ctx->PSSetShader(psmsaa, NULL, 0);
+      ctx->Draw(3, 0);
 
       Present();
     }

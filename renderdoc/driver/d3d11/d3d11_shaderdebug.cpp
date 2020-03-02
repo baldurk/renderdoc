@@ -2707,22 +2707,34 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
     {
       DebugHit *hit = (DebugHit *)(initialData + i * structStride);
 
-      if(winner == NULL || (winner->sample != sample && hit->sample == sample) ||
-         depthFunc == D3D11_COMPARISON_ALWAYS || depthFunc == D3D11_COMPARISON_NEVER ||
-         depthFunc == D3D11_COMPARISON_NOT_EQUAL || depthFunc == D3D11_COMPARISON_EQUAL)
+      if(winner == NULL)
       {
+        // If we haven't picked a winner at all yet, use the first one
         winner = hit;
         evalSampleCache = ((float *)evalData) + evalSampleCacheData.size() * 4 * i;
-        continue;
       }
-
-      if((depthFunc == D3D11_COMPARISON_LESS && hit->depth < winner->depth) ||
-         (depthFunc == D3D11_COMPARISON_LESS_EQUAL && hit->depth <= winner->depth) ||
-         (depthFunc == D3D11_COMPARISON_GREATER && hit->depth > winner->depth) ||
-         (depthFunc == D3D11_COMPARISON_GREATER_EQUAL && hit->depth >= winner->depth))
+      else if(hit->sample == sample)
       {
-        if(hit->sample == sample)
+        // If this hit is for the sample we want, check whether it's a better pick
+        if(winner->sample != sample)
         {
+          // The previously selected winner was for the wrong sample, use this one
+          winner = hit;
+          evalSampleCache = ((float *)evalData) + evalSampleCacheData.size() * 4 * i;
+        }
+        else if((depthFunc == D3D11_COMPARISON_ALWAYS || depthFunc == D3D11_COMPARISON_NEVER ||
+                 depthFunc == D3D11_COMPARISON_NOT_EQUAL || depthFunc == D3D11_COMPARISON_EQUAL))
+        {
+          // For depth functions without an inequality comparison, use the last sample encountered
+          winner = hit;
+          evalSampleCache = ((float *)evalData) + evalSampleCacheData.size() * 4 * i;
+        }
+        else if((depthFunc == D3D11_COMPARISON_LESS && hit->depth < winner->depth) ||
+                (depthFunc == D3D11_COMPARISON_LESS_EQUAL && hit->depth <= winner->depth) ||
+                (depthFunc == D3D11_COMPARISON_GREATER && hit->depth > winner->depth) ||
+                (depthFunc == D3D11_COMPARISON_GREATER_EQUAL && hit->depth >= winner->depth))
+        {
+          // For depth functions with an inequality, find the hit that "wins" the most
           winner = hit;
           evalSampleCache = ((float *)evalData) + evalSampleCacheData.size() * 4 * i;
         }
@@ -2844,7 +2856,7 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
         global.sampleEvalCache[k] = var;
       }
 
-      // advance past this data - always by float4 as that's the buffer st ride
+      // advance past this data - always by float4 as that's the buffer stride
       evalSampleCache += 4;
     }
 
