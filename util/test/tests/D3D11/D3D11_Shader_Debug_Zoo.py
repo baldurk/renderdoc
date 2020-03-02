@@ -34,6 +34,8 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
                 failed = True
                 rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))
                 continue
+            finally:
+                self.controller.FreeTrace(trace)
 
             rdtest.log.success("Test {} matched as expected".format(test))
 

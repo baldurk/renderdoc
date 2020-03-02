@@ -42,6 +42,8 @@ class D3D11_PrimitiveID(rdtest.TestCase):
                     expected_output, x, y, debugged.value.fv[0:4]))
                 return False
 
+        self.controller.FreeTrace(trace)
+
         rdtest.log.success("Test at {},{} matched as expected".format(x, y))
         return True
 
