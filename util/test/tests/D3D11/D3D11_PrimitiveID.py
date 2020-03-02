@@ -36,7 +36,7 @@ class D3D11_PrimitiveID(rdtest.TestCase):
         # since we're testing overlapping primitives in a single draw
         if expected_output is not None:
             output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
-            debugged = self.evalute_source_var(output, variables)
+            debugged = self.evaluate_source_var(output, variables)
             if debugged.value.fv[0:4] != expected_output:
                 rdtest.log.error("Expected value {} at {},{} did not match actual {}.".format(
                     expected_output, x, y, debugged.value.fv[0:4]))

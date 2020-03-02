@@ -492,7 +492,7 @@ class TestCase:
 
         return self.find_source_var(trace.sourceVars, sig_index, rd.DebugVariableType.Variable)
 
-    def evalute_source_var(self, sourceVar: rd.SourceVariableMapping, debugVars):
+    def evaluate_source_var(self, sourceVar: rd.SourceVariableMapping, debugVars):
         debugged = rd.ShaderVariable()
         debugged.name = sourceVar.name
         debugged.type = sourceVar.type

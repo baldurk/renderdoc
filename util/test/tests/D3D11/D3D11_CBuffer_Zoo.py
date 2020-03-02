@@ -49,7 +49,7 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
                 if sourceVar.variables[0].name not in debugVars.keys():
                     continue
 
-                eval: rd.ShaderVariable = self.evalute_source_var(sourceVar, debugVars)
+                eval: rd.ShaderVariable = self.evaluate_source_var(sourceVar, debugVars)
                 cbufferVars.append(eval)
 
             cbufferVars = self.combine_source_vars(cbufferVars)

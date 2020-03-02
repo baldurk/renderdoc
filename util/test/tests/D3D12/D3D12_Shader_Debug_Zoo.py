@@ -35,7 +35,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-                debugged = self.evalute_source_var(output, variables)
+                debugged = self.evaluate_source_var(output, variables)
 
                 try:
                     self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4 * test, 0, debugged.value.fv[0:4], 0.0)
