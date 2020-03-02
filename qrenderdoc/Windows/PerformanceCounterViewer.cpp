@@ -177,6 +177,10 @@ QTableWidgetItem *PerformanceCounterViewer::MakeCounterResultItem(const CounterR
 
     case CounterUnit::Absolute:
     case CounterUnit::Ratio: break;
+
+    case CounterUnit::Hertz: returnValue += lit(" Hz"); break;
+    case CounterUnit::Volt: returnValue += lit(" V"); break;
+    case CounterUnit::Celsius: returnValue += lit(" °C"); break;
   }
 
   return new CustomSortedTableItem(returnValue, SortValue(result, description));

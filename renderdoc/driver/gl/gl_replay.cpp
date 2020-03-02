@@ -26,6 +26,7 @@
 #include "gl_replay.h"
 #include "core/settings.h"
 #include "driver/ihv/amd/amd_counters.h"
+#include "driver/ihv/arm/arm_counters.h"
 #include "driver/ihv/intel/intel_gl_counters.h"
 #include "maths/matrix.h"
 #include "serialise/rdcfile.h"
@@ -67,6 +68,7 @@ void GLReplay::Shutdown()
 {
   SAFE_DELETE(m_pAMDCounters);
   SAFE_DELETE(m_pIntelCounters);
+  SAFE_DELETE(m_pARMCounters);
 
   DeleteDebugData();
 
@@ -235,6 +237,7 @@ void GLReplay::SetReplayData(GLWindowingData data)
   {
     AMDCounters *countersAMD = NULL;
     IntelGlCounters *countersIntel = NULL;
+    ARMCounters *countersARM = NULL;
 
     bool isMesa = false;
 
@@ -283,6 +286,11 @@ void GLReplay::SetReplayData(GLWindowingData data)
         RDCLOG("AMD GPU detected - trying to initialise AMD counters");
         countersAMD = new AMDCounters();
       }
+      else if(m_DriverInfo.vendor == GPUVendor::ARM)
+      {
+        RDCLOG("ARM Mali GPU detected - trying to initialise ARM counters");
+        countersARM = new ARMCounters();
+      }
       else
       {
         RDCLOG("%s GPU detected - no counters available", ToStr(m_DriverInfo.vendor).c_str());
@@ -307,6 +315,16 @@ void GLReplay::SetReplayData(GLWindowingData data)
     {
       delete countersIntel;
       m_pIntelCounters = NULL;
+    }
+
+    if(countersARM && countersARM->Init())
+    {
+      m_pARMCounters = countersARM;
+    }
+    else
+    {
+      delete countersARM;
+      m_pARMCounters = NULL;
     }
   }
 }

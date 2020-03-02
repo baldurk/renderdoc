@@ -1,0 +1,150 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Counters">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official\lizard">
+      <UniqueIdentifier>{7e5aff88-5de6-4985-ad92-c69fd47fb6ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official\lizard\thirdparty">
+      <UniqueIdentifier>{b1fd2e34-8140-4eed-a65c-db2c592e00e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official\lizard\thirdparty\hwcpipe">
+      <UniqueIdentifier>{45866afa-f87c-4bfd-8f1b-720bebf4e82e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official\lizard\thirdparty\hwcpipe\mali">
+      <UniqueIdentifier>{d25e3ccb-84a3-4a4a-8bf6-24795ba1bf47}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official\lizard\thirdparty\hwcpipe\pmu">
+      <UniqueIdentifier>{7f040482-c5df-453f-869b-a1d6cf2c537e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="arm_counters.cpp">
+      <Filter>Counters</Filter>
+    </ClCompile>
+    <ClCompile Include="arm_counters_stub.cpp">
+      <Filter>Counters</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\gator_api.cpp">
+      <Filter>official\lizard</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\gator_message.cpp">
+      <Filter>official\lizard</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\gatord_xml_reader.cpp">
+      <Filter>official\lizard</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\hwcpipe_api.cpp">
+      <Filter>official\lizard</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\hwcpipe_communication.cpp">
+      <Filter>official\lizard</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\lizard.cpp">
+      <Filter>official\lizard</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\lizard_api.cpp">
+      <Filter>official\lizard</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\lizard_communication.cpp">
+      <Filter>official\lizard</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\lizard_counter.cpp">
+      <Filter>official\lizard</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\message_util.cpp">
+      <Filter>official\lizard</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\socket.cpp">
+      <Filter>official\lizard</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\thirdparty\hwcpipe\hwcpipe.cpp">
+      <Filter>official\lizard\thirdparty\hwcpipe</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\thirdparty\hwcpipe\vendor\arm\mali\mali_profiler.cpp">
+      <Filter>official\lizard\thirdparty\hwcpipe\mali</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\thirdparty\hwcpipe\vendor\arm\pmu\pmu_counter.cpp">
+      <Filter>official\lizard\thirdparty\hwcpipe\pmu</Filter>
+    </ClCompile>
+    <ClCompile Include="official\lizard\thirdparty\hwcpipe\vendor\arm\pmu\pmu_profiler.cpp">
+      <Filter>official\lizard\thirdparty\hwcpipe\pmu</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="arm_counters.h">
+      <Filter>Counters</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\gator_api.hpp">
+      <Filter>official\lizard</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\gator_constants.hpp">
+      <Filter>official\lizard</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\gator_message.hpp">
+      <Filter>official\lizard</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\gatord_xml_reader.hpp">
+      <Filter>official\lizard</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\hwcpipe_api.hpp">
+      <Filter>official\lizard</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\hwcpipe_communication.hpp">
+      <Filter>official\lizard</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\lizard_communication.hpp">
+      <Filter>official\lizard</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\message_util.hpp">
+      <Filter>official\lizard</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\socket.hpp">
+      <Filter>official\lizard</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\include\lizard\lizard.hpp">
+      <Filter>official\lizard</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\include\lizard\lizard_api.h">
+      <Filter>official\lizard</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\include\lizard\lizard_counter.hpp">
+      <Filter>official\lizard</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\thirdparty\hwcpipe\cpu_profiler.h">
+      <Filter>official\lizard\thirdparty\hwcpipe</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\thirdparty\hwcpipe\gpu_profiler.h">
+      <Filter>official\lizard\thirdparty\hwcpipe</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\thirdparty\hwcpipe\hwcpipe.h">
+      <Filter>official\lizard\thirdparty\hwcpipe</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\thirdparty\hwcpipe\hwcpipe_log.h">
+      <Filter>official\lizard\thirdparty\hwcpipe</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\thirdparty\hwcpipe\value.h">
+      <Filter>official\lizard\thirdparty\hwcpipe</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\thirdparty\hwcpipe\vendor\arm\mali\hwc.hpp">
+      <Filter>official\lizard\thirdparty\hwcpipe\mali</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\thirdparty\hwcpipe\vendor\arm\mali\hwc_names.hpp">
+      <Filter>official\lizard\thirdparty\hwcpipe\mali</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\thirdparty\hwcpipe\vendor\arm\mali\mali_profiler.h">
+      <Filter>official\lizard\thirdparty\hwcpipe\mali</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\thirdparty\hwcpipe\vendor\arm\pmu\pmu_counter.h">
+      <Filter>official\lizard\thirdparty\hwcpipe\pmu</Filter>
+    </ClInclude>
+    <ClInclude Include="official\lizard\thirdparty\hwcpipe\vendor\arm\pmu\pmu_profiler.h">
+      <Filter>official\lizard\thirdparty\hwcpipe\pmu</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
