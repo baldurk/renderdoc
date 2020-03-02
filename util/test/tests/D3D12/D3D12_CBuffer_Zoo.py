@@ -45,6 +45,73 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
                                                        pipe.GetShaderEntryPoint(stage), 0,
                                                        cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 
+        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 1, 0)
+
+        root_check = rdtest.ConstantBufferChecker(
+            self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
+                                                       pipe.GetShader(stage),
+                                                       pipe.GetShaderEntryPoint(stage), 1,
+                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+
+        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 2, 0)
+
+        huge_check = rdtest.ConstantBufferChecker(
+            self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
+                                                       pipe.GetShader(stage),
+                                                       pipe.GetShaderEntryPoint(stage), 2,
+                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+
+        self.check_cbuffers(var_check, root_check, huge_check)
+
+        rdtest.log.success("CBuffer variables are as expected")
+
+        props: rd.APIProperties = self.controller.GetAPIProperties()
+
+        if props.shaderDebugging:
+            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(int(pipe.GetViewport(0).width / 2.0),
+                                                                    int(pipe.GetViewport(0).height / 2.0),
+                                                                    rd.ReplayController.NoPreference,
+                                                                    rd.ReplayController.NoPreference)
+
+            debugVars = dict()
+
+            for base in trace.constantBlocks:
+                for var in base.members:
+                    debugVars[base.name + var.name] = var
+
+            cbufferVars = []
+
+            for sourceVar in trace.sourceVars:
+                sourceVar: rd.SourceVariableMapping
+
+                if sourceVar.variables[0].name not in debugVars.keys():
+                    continue
+
+                eval: rd.ShaderVariable = self.evalute_source_var(sourceVar, debugVars)
+                cbufferVars.append(eval)
+
+            cbufferVars = self.combine_source_vars(cbufferVars)
+
+            self.check(len(cbufferVars) == 3)
+            self.check(cbufferVars[0].name == 'consts')
+            self.check(cbufferVars[1].name == 'rootconsts')
+            self.check(cbufferVars[2].name == 'hugespace')
+
+            var_check = rdtest.ConstantBufferChecker(cbufferVars[0].members)
+            root_check = rdtest.ConstantBufferChecker(cbufferVars[1].members)
+            huge_check = rdtest.ConstantBufferChecker(cbufferVars[2].members)
+
+            self.check_cbuffers(var_check, root_check, huge_check)
+
+            rdtest.log.success("Debugged CBuffer variables are as expected")
+
+            self.controller.FreeTrace(trace)
+
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [512.1, 513.0, 514.0, 515.0])
+
+        rdtest.log.success("Picked value is as expected")
+
+    def check_cbuffers(self, var_check, root_check, huge_check):
         # For more detailed reference for the below checks, see the commented definition of the cbuffer
         # in the shader source code in the demo itself
 
@@ -384,49 +451,31 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         var_check.done()
 
-        rdtest.log.success("CBuffer variables are as expected")
-
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [512.1, 513.0, 514.0, 515.0])
-
-        rdtest.log.success("Picked value is as expected")
-
-        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 1, 0)
-
-        var_check = rdtest.ConstantBufferChecker(
-            self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
-                                                       pipe.GetShader(stage),
-                                                       pipe.GetShaderEntryPoint(stage), 1,
-                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+        rdtest.log.success("Base variables are as expected")
 
         # float4 zero;
-        var_check.check('root_zero').rows(1).cols(4).value([0.0, 0.0, 0.0, 0.0])
+        root_check.check('root_zero').rows(1).cols(4).value([0.0, 0.0, 0.0, 0.0])
 
         # float4 a;
-        var_check.check('root_a').rows(1).cols(4).value([10.0, 20.0, 30.0, 40.0])
+        root_check.check('root_a').rows(1).cols(4).value([10.0, 20.0, 30.0, 40.0])
 
         # float2 b;
-        var_check.check('root_b').rows(1).cols(2).value([50.0, 60.0])
+        root_check.check('root_b').rows(1).cols(2).value([50.0, 60.0])
 
         # float2 c;
-        var_check.check('root_c').rows(1).cols(2).value([70.0, 80.0])
+        root_check.check('root_c').rows(1).cols(2).value([70.0, 80.0])
 
         # float3_1 d;
-        var_check.check('root_d').rows(0).cols(0).structSize(2).members({
+        root_check.check('root_d').rows(0).cols(0).structSize(2).members({
             'a': lambda y: y.rows(1).cols(3).value([90.0, 100.0, 110.0]),
             'b': lambda y: y.rows(1).cols(1).value([120.0]),
         })
 
-        var_check.done()
+        root_check.done()
 
         rdtest.log.success("Root signature variables are as expected")
 
-        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 2, 0)
-
-        var_check = rdtest.ConstantBufferChecker(
-            self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
-                                                       pipe.GetShader(stage),
-                                                       pipe.GetShaderEntryPoint(stage), 2,
-                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
-
         # float4 huge_val;
-        var_check.check('huge_val').rows(1).cols(4).value([64.0, 65.0, 66.0, 67.0])
+        huge_check.check('huge_val').rows(1).cols(4).value([64.0, 65.0, 66.0, 67.0])
+
+        rdtest.log.success("Huge space variables are as expected")

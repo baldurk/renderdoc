@@ -495,15 +495,83 @@ class TestCase:
     def evalute_source_var(self, sourceVar: rd.SourceVariableMapping, debugVars):
         debugged = rd.ShaderVariable()
         debugged.name = sourceVar.name
-        debugged.rowMajor = True
         debugged.type = sourceVar.type
         debugged.rows = sourceVar.rows
         debugged.columns = sourceVar.columns
         fv = [0.0] * 16
         for i, debugVar in enumerate(sourceVar.variables):
+            debugged.rowMajor = debugVars[debugVar.name].rowMajor
             fv[i] = debugVars[debugVar.name].value.fv[debugVar.component]
         debugged.value.fv = fv
         return debugged
+
+    def combine_source_vars(self, vars):
+        NOT_FOUND = 100000
+
+        processed = []
+
+        # Keep looping until we're done
+        while len(vars) > 0:
+            # find the first member that contains a . or [ character in its name
+            base = ''
+            bare_array = False
+            first_var = len(vars)
+            for i,v in enumerate(vars):
+                idx = NOT_FOUND
+                if '.' in v.name:
+                    idx = v.name.index('.')
+                if '[' in v.name:
+                    idx2 = v.name.index('[')
+                    if idx2 < idx:
+                        if idx == NOT_FOUND:
+                            bare_array = True
+                        idx = idx2
+                    if idx2 == 0:
+                        idx = v.name.index(']')+1
+
+                if idx == NOT_FOUND:
+                    processed.append(v)
+                else:
+                    first_var = i
+                    base = v.name[:idx]
+                    break
+
+            del vars[0:first_var]
+
+            # If no vars are found, we're done
+            if base == '':
+                continue
+
+            members = []
+
+            combined = rd.ShaderVariable()
+            combined.name = base
+
+            last_var = -1
+            for i in range(len(vars)):
+                check = vars[i].name[:len(base)+1]
+                if check == base + '.' or check == base + '[':
+                    last_var = i
+                    v = vars[i]
+                    v.name = v.name[len(base):]
+                    if v.name[0] == '.':
+                        v.name = v.name[1:]
+                        combined.isStruct = True
+                    if check == base + '.':
+                        combined.isStruct = True
+                    members.append(vars[i])
+
+            if not bare_array:
+                members = self.combine_source_vars(members)
+            combined.members = members
+
+            del vars[0:last_var+1]
+            processed.append(combined)
+
+            # Continue and combine the next set of vars (there could be multiple structs/arrays on the same level,
+            # and we only combined the first set)
+
+        return processed
 
     def check_export(self, capture_filename):
         recomp_path = util.get_tmp_path('recompressed.rdc')

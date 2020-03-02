@@ -23,6 +23,53 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
                                                        pipe.GetShaderEntryPoint(stage), 0,
                                                        cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 
+        self.check_cbuffer(var_check)
+
+        rdtest.log.success("CBuffer variables are as expected")
+
+        props: rd.APIProperties = self.controller.GetAPIProperties()
+
+        if props.shaderDebugging:
+            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(int(pipe.GetViewport(0).width / 2.0),
+                                                                    int(pipe.GetViewport(0).height / 2.0),
+                                                                    rd.ReplayController.NoPreference,
+                                                                    rd.ReplayController.NoPreference)
+
+            debugVars = dict()
+
+            for base in trace.constantBlocks:
+                for var in base.members:
+                    debugVars[base.name + var.name] = var
+
+            cbufferVars = []
+
+            for sourceVar in trace.sourceVars:
+                sourceVar: rd.SourceVariableMapping
+
+                if sourceVar.variables[0].name not in debugVars.keys():
+                    continue
+
+                eval: rd.ShaderVariable = self.evalute_source_var(sourceVar, debugVars)
+                cbufferVars.append(eval)
+
+            cbufferVars = self.combine_source_vars(cbufferVars)
+
+            self.check(len(cbufferVars) == 1)
+            self.check(cbufferVars[0].name == 'consts')
+
+            var_check = rdtest.ConstantBufferChecker(cbufferVars[0].members)
+
+            self.check_cbuffer(var_check)
+
+            rdtest.log.success("Debugged CBuffer variables are as expected")
+
+            self.controller.FreeTrace(trace)
+
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [512.1, 513.0, 514.0, 515.0])
+
+        rdtest.log.success("Picked value is as expected")
+
+    def check_cbuffer(self, var_check):
         # For more detailed reference for the below checks, see the commented definition of the cbuffer
         # in the shader source code in the demo itself
 
@@ -361,9 +408,3 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
         var_check.check('test').rows(1).cols(4).value([512.0, 513.0, 514.0, 515.0])
 
         var_check.done()
-
-        rdtest.log.success("CBuffer variables are as expected")
-
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [512.1, 513.0, 514.0, 515.0])
-
-        rdtest.log.success("Picked value is as expected")
