@@ -2894,7 +2894,7 @@ ShaderDebugTrace *D3D11Replay::DebugThread(uint32_t eventId, const uint32_t grou
   ThreadState &state = interpreter->activeLane();
 
   AddCBuffersToGlobalState(*dxbc->GetDXBCByteCode(), *GetDebugManager(), global, ret->sourceVars,
-                           rs->PS, refl, cs->GetMapping());
+                           rs->CS, refl, cs->GetMapping());
 
   for(int i = 0; i < 3; i++)
   {
