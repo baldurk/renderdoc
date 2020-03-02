@@ -1751,13 +1751,6 @@ void ShaderViewer::combineStructures(RDTreeWidgetItem *root, int skipPrefixLengt
       c--;
     }
 
-    // no other matches with the same prefix, just move across
-    if(matches.count() == 1)
-    {
-      temp.insertChild(0, child);
-      continue;
-    }
-
     // Sort the children by offset, then global source var index, then by text.
     // Using the global source var index allows resource arrays to be presented in index order
     // rather than by name, so for example arr[2] comes before arr[10]
