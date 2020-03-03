@@ -4,7 +4,7 @@ echo "Building renderdoc-build docker image"
 
 # Ensure the docker image is prepared
 pushd "${BUILD_ROOT}"/scripts/docker
-docker build -t renderdoc-build .
+docker build -t renderdoc-build . || exit 1
 popd
 
 echo "Docker image built. Running build"

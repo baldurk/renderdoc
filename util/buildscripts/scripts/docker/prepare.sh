@@ -64,7 +64,15 @@ cd ..
 apt-get install --force-yes -y libfontconfig1-dev
 
 # build qt for static linking
-wget http://download.qt.io/archive/qt/5.6/5.6.2/single/qt-everywhere-opensource-src-5.6.2.tar.xz
+#
+# Qt deleted the archive from their official mirrors (wtf?)
+# It is rehosted on renderdoc.org and the md5 is verified against the official md5:
+# https://web.archive.org/web/20161212004141/https://download.qt.io/archive/qt/5.6/5.6.2/single/md5sums.txt
+#wget http://download.qt.io/archive/qt/5.6/5.6.2/single/qt-everywhere-opensource-src-5.6.2.tar.xz
+
+wget https://renderdoc.org/qt-everywhere-opensource-src-5.6.2.tar.xz
+echo "5175fba2f221fd4c91e94771a57a5557  qt-everywhere-opensource-src-5.6.2.tar.xz" | md5sum -c -
+
 tar -xf qt-everywhere-opensource-src-5.6.2.tar.xz
 cd qt-everywhere-opensource-src-5.6.2
 
