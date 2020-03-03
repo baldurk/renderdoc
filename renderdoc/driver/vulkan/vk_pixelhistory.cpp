@@ -1657,7 +1657,8 @@ void FillInColors(const EventInfo &ei, VkFormat format, PixelModification &mod)
     {
       ModificationValue *val = (p == 0 ? &mod.preMod : &mod.postMod);
       const PixelHistoryValue *source = (p == 0 ? &ei.premod : &ei.postmod);
-      uint32_t data = *((uint32_t *)source->color);
+      uint32_t data;
+      memcpy(&data, source->color, sizeof(uint32_t));
       Vec4f v;
       if(fmt.type == ResourceFormatType::R10G10B10A2)
       {
