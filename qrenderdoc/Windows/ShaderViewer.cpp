@@ -1968,7 +1968,7 @@ bool ShaderViewer::getVar(RDTreeWidgetItem *item, ShaderVariable *var, QString *
               // remove the auto-appended ", " - there must be one because this isn't the first
               // register
               regNames->chop(2);
-              *regNames += xyzw[r.component % reg->columns];
+              *regNames += xyzw[r.component % 4];
             }
             else
             {
@@ -1976,9 +1976,9 @@ bool ShaderViewer::getVar(RDTreeWidgetItem *item, ShaderVariable *var, QString *
                 *regNames += QFormatStr("%1.row%2.%3")
                                  .arg(reg->name)
                                  .arg(r.component / 4)
-                                 .arg(xyzw[r.component % reg->columns]);
+                                 .arg(xyzw[r.component % 4]);
               else
-                *regNames += QFormatStr("%1.%2").arg(reg->name).arg(xyzw[r.component % reg->columns]);
+                *regNames += QFormatStr("%1.%2").arg(reg->name).arg(xyzw[r.component % 4]);
             }
           }
 
@@ -2790,7 +2790,7 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
             // remove the auto-appended ", " - there must be one because this isn't the first
             // register
             regNames.chop(2);
-            regNames += xyzw[r.component % reg->columns];
+            regNames += xyzw[r.component % 4];
           }
           else
           {
@@ -2798,9 +2798,9 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
               regNames += QFormatStr("%1.row%2.%3")
                               .arg(reg->name)
                               .arg(r.component / reg->columns)
-                              .arg(xyzw[r.component % reg->columns]);
+                              .arg(xyzw[r.component % 4]);
             else
-              regNames += QFormatStr("%1.%2").arg(r.name).arg(xyzw[r.component % reg->columns]);
+              regNames += QFormatStr("%1.%2").arg(r.name).arg(xyzw[r.component % 4]);
           }
 
           if(l.type == VarType::UInt)
