@@ -42,66 +42,32 @@ static GPUCounter ToKHRCounter(uint32_t idx)
   return (GPUCounter)((uint32_t)GPUCounter::FirstVulkanExtended + idx);
 }
 
-static void GetKHRUnitDescription(const VkPerformanceCounterUnitKHR khrUnit, CounterUnit &unit,
-                                  CompType &type, uint32_t &byteWidth)
+static bool isFloatKhrStorage(const VkPerformanceCounterStorageKHR khrStorage)
 {
+  return khrStorage == VK_PERFORMANCE_COUNTER_STORAGE_FLOAT32_KHR ||
+         khrStorage == VK_PERFORMANCE_COUNTER_STORAGE_FLOAT64_KHR;
+}
+
+static void GetKHRUnitDescription(const VkPerformanceCounterUnitKHR khrUnit,
+                                  const VkPerformanceCounterStorageKHR khrStorage,
+                                  CounterUnit &unit, CompType &type, uint32_t &byteWidth)
+{
+  type = isFloatKhrStorage(khrStorage) ? CompType::Double : CompType::UInt;
+  byteWidth = 8;
+
   switch(khrUnit)
   {
-    case VK_PERFORMANCE_COUNTER_UNIT_GENERIC_KHR:
-      unit = CounterUnit::Absolute;
-      type = CompType::UInt;
-      byteWidth = 8;
-      return;
-    case VK_PERFORMANCE_COUNTER_UNIT_PERCENTAGE_KHR:
-      unit = CounterUnit::Percentage;
-      type = CompType::Double;
-      byteWidth = 8;
-      return;
-    case VK_PERFORMANCE_COUNTER_UNIT_NANOSECONDS_KHR:
-      unit = CounterUnit::Seconds;
-      type = CompType::Double;
-      byteWidth = 8;
-      return;
-    case VK_PERFORMANCE_COUNTER_UNIT_BYTES_KHR:
-      unit = CounterUnit::Bytes;
-      type = CompType::UInt;
-      byteWidth = 8;
-      return;
-    case VK_PERFORMANCE_COUNTER_UNIT_BYTES_PER_SECOND_KHR:
-      unit = CounterUnit::Ratio;
-      type = CompType::Double;
-      byteWidth = 8;
-      return;
-    case VK_PERFORMANCE_COUNTER_UNIT_KELVIN_KHR:
-      unit = CounterUnit::Absolute;
-      type = CompType::UInt;
-      byteWidth = 8;
-      return;
-    case VK_PERFORMANCE_COUNTER_UNIT_WATTS_KHR:
-      unit = CounterUnit::Absolute;
-      type = CompType::UInt;
-      byteWidth = 8;
-      return;
-    case VK_PERFORMANCE_COUNTER_UNIT_VOLTS_KHR:
-      unit = CounterUnit::Absolute;
-      type = CompType::UInt;
-      byteWidth = 8;
-      return;
-    case VK_PERFORMANCE_COUNTER_UNIT_AMPS_KHR:
-      unit = CounterUnit::Absolute;
-      type = CompType::UInt;
-      byteWidth = 8;
-      return;
-    case VK_PERFORMANCE_COUNTER_UNIT_HERTZ_KHR:
-      unit = CounterUnit::Absolute;
-      type = CompType::UInt;
-      byteWidth = 8;
-      return;
-    case VK_PERFORMANCE_COUNTER_UNIT_CYCLES_KHR:
-      unit = CounterUnit::Cycles;
-      type = CompType::UInt;
-      byteWidth = 8;
-      return;
+    case VK_PERFORMANCE_COUNTER_UNIT_GENERIC_KHR: unit = CounterUnit::Absolute; return;
+    case VK_PERFORMANCE_COUNTER_UNIT_PERCENTAGE_KHR: unit = CounterUnit::Percentage; return;
+    case VK_PERFORMANCE_COUNTER_UNIT_NANOSECONDS_KHR: unit = CounterUnit::Seconds; return;
+    case VK_PERFORMANCE_COUNTER_UNIT_BYTES_KHR: unit = CounterUnit::Bytes; return;
+    case VK_PERFORMANCE_COUNTER_UNIT_BYTES_PER_SECOND_KHR: unit = CounterUnit::Ratio; return;
+    case VK_PERFORMANCE_COUNTER_UNIT_KELVIN_KHR: unit = CounterUnit::Absolute; return;
+    case VK_PERFORMANCE_COUNTER_UNIT_WATTS_KHR: unit = CounterUnit::Absolute; return;
+    case VK_PERFORMANCE_COUNTER_UNIT_VOLTS_KHR: unit = CounterUnit::Absolute; return;
+    case VK_PERFORMANCE_COUNTER_UNIT_AMPS_KHR: unit = CounterUnit::Absolute; return;
+    case VK_PERFORMANCE_COUNTER_UNIT_HERTZ_KHR: unit = CounterUnit::Absolute; return;
+    case VK_PERFORMANCE_COUNTER_UNIT_CYCLES_KHR: unit = CounterUnit::Cycles; return;
     default: RDCERR("Invalid performance counter unit %d", khrUnit);
   }
 }
@@ -114,7 +80,7 @@ void VulkanReplay::convertKhrCounterResult(CounterResult &rdcResult,
   CounterUnit unit;
   CompType type;
   uint32_t byteWidth;
-  GetKHRUnitDescription(khrUnit, unit, type, byteWidth);
+  GetKHRUnitDescription(khrUnit, khrStorage, unit, type, byteWidth);
 
   double value;
 
@@ -235,7 +201,8 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
     desc.uuid.words[2] = uuid_dwords[2];
     desc.uuid.words[3] = uuid_dwords[3];
 
-    GetKHRUnitDescription(khrCounter.unit, rdcDesc.unit, rdcDesc.resultType, rdcDesc.resultByteWidth);
+    GetKHRUnitDescription(khrCounter.unit, khrCounter.storage, rdcDesc.unit, rdcDesc.resultType,
+                          rdcDesc.resultByteWidth);
 
     return rdcDesc;
   }
