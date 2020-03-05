@@ -309,7 +309,7 @@ bool D3D12GraphicsTest::Init()
     D3D12_DESCRIPTOR_HEAP_DESC desc;
     desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     desc.NodeMask = 1;
-    desc.NumDescriptors = 8;
+    desc.NumDescriptors = 32;
     desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
     CHECK_HR(dev->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&m_RTV));

@@ -1500,11 +1500,24 @@ void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
                                  RTsSingleHandleToDescriptorRange, pDepthStencilDescriptor);
 
     m_ListRecord->AddChunk(scope.Get());
-    for(UINT i = 0; i < numHandles; i++)
+    if(RTsSingleHandleToDescriptorRange)
     {
-      D3D12Descriptor *desc = GetWrapped(pRenderTargetDescriptors[i]);
-      m_ListRecord->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
-      m_ListRecord->MarkResourceFrameReferenced(desc->GetResResourceId(), eFrameRef_PartialWrite);
+      D3D12Descriptor *desc = GetWrapped(pRenderTargetDescriptors[0]);
+      for(UINT i = 0; i < NumRenderTargetDescriptors; i++)
+      {
+        m_ListRecord->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
+        m_ListRecord->MarkResourceFrameReferenced(desc->GetResResourceId(), eFrameRef_PartialWrite);
+        desc++;
+      }
+    }
+    else
+    {
+      for(UINT i = 0; i < NumRenderTargetDescriptors; i++)
+      {
+        D3D12Descriptor *desc = GetWrapped(pRenderTargetDescriptors[i]);
+        m_ListRecord->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);
+        m_ListRecord->MarkResourceFrameReferenced(desc->GetResResourceId(), eFrameRef_PartialWrite);
+      }
     }
 
     if(pDepthStencilDescriptor)
