@@ -191,6 +191,27 @@ void main()
       timeline.timelineSemaphore = VK_TRUE;
       devInfoNext = &timeline;
     }
+
+    static VkPhysicalDeviceVulkan12Features vk12 = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+    };
+
+    if(physProperties.apiVersion >= VK_MAKE_VERSION(1, 2, 0))
+    {
+      // don't enable any features, just link the struct in.
+      // deliberately replace the VkPhysicalDeviceTimelineSemaphoreFeaturesKHR above because it was
+      // rolled into this struct - so we enable that one feature if we're using it
+      devInfoNext = &vk12;
+
+      VkPhysicalDeviceVulkan12Features vk12avail = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+      };
+
+      getPhysFeatures2(&vk12avail);
+
+      if(vk12avail.timelineSemaphore)
+        vk12.timelineSemaphore = VK_TRUE;
+    }
   }
 
   int main()
@@ -224,6 +245,18 @@ void main()
     bool KHR_timeline_semaphore =
         std::find(devExts.begin(), devExts.end(), VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME) !=
         devExts.end();
+
+    if(physProperties.apiVersion >= VK_MAKE_VERSION(1, 2, 0))
+    {
+      VkPhysicalDeviceVulkan12Features vk12avail = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+      };
+
+      getPhysFeatures2(&vk12avail);
+
+      if(vk12avail.timelineSemaphore)
+        KHR_timeline_semaphore = true;
+    }
 
     VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
         {0, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT},
