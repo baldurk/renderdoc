@@ -1174,6 +1174,8 @@ void LiveCapture::connectionThreadEntry()
   }
 
   GUIInvoke::call(this, [this]() {
+    if(!m_Connection)
+      return;
     uint32_t pid = m_Connection->GetPID();
     QString target = QString::fromUtf8(m_Connection->GetTarget());
     if(pid)
