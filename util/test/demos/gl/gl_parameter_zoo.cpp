@@ -76,9 +76,51 @@ void main()
 
   int main()
   {
+    // don't use core profile so that we can check glGetString(GL_EXTENSIONS)
+    coreProfile = false;
+
     // initialise, create window, create context, etc
     if(!Init())
       return 3;
+
+    std::vector<std::string> exts;
+
+    GLint num = 0;
+    glGetIntegerv(GL_NUM_EXTENSIONS, &num);
+    exts.resize(num);
+    for(GLint i = 0; i < num; i++)
+      exts[i] = (const char *)glGetStringi(GL_EXTENSIONS, i);
+
+    std::string ext_string = (const char *)glGetString(GL_EXTENSIONS);
+
+    std::vector<std::string> exts_split;
+    while(!ext_string.empty())
+    {
+      std::string e = ext_string.substr(0, ext_string.find(' '));
+      ext_string.erase(0, e.length() + 1);
+      exts_split.push_back(e);
+    }
+
+    std::sort(exts_split.begin(), exts_split.end());
+    std::sort(exts.begin(), exts.end());
+
+    if(exts != exts_split)
+    {
+      TEST_ERROR("Extension string from glGetString doesn't match glGetStringi extensions");
+      return 4;
+    }
+
+    if(std::unique(exts.begin(), exts.end()) != exts.end())
+    {
+      TEST_ERROR("Extensions from glGetStringi contains duplicates");
+      return 5;
+    }
+
+    if(std::unique(exts_split.begin(), exts_split.end()) != exts_split.end())
+    {
+      TEST_ERROR("Extension string from glGetString contains duplicates");
+      return 5;
+    }
 
     GLuint vao = MakeVAO();
     glBindVertexArray(vao);
