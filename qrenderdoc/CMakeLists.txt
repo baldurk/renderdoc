@@ -244,6 +244,26 @@ file(GLOB QRD_INTERFACE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/Code/Interface/*.h)
 list(SORT RDOC_REPLAY_FILES)
 list(SORT QRD_INTERFACE_FILES)
 
+# If we're cross-compiling, include-bin will get built for the target and we
+# then can't execute it. Instead, we force calling c++ (which we can safely
+# assume is present) directly to build the binary
+
+if(CMAKE_CROSSCOMPILING)
+    set(HOST_NATIVE_CPP_COMPILER c++ CACHE STRING "Command to run to compile a .cpp into an executable. Default is just c++")
+
+    add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/q-include-bin
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+        COMMAND ${HOST_NATIVE_CPP_COMPILER} ../renderdoc/3rdparty/include-bin/main.cpp -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/q-include-bin
+        DEPENDS ../renderdoc/3rdparty/include-bin/main.cpp)
+    set(INCLUDE_BIN_EXE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/q-include-bin")
+    set(INCLUDE_BIN_DEP "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/q-include-bin")
+else()
+    add_executable(q-include-bin ../renderdoc/3rdparty/include-bin/main.cpp)
+    set(INCLUDE_BIN_EXE $<TARGET_FILE:q-include-bin>)
+    set(INCLUDE_BIN_DEP q-include-bin)
+endif()
+
 foreach(in ${swig_interfaces})
     get_filename_component(swig_file ${in} NAME_WE)
 
@@ -256,8 +276,8 @@ foreach(in ${swig_interfaces})
 
     add_custom_command(OUTPUT ${swig_file}.py.c
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-            COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin ${swig_file}.py ${swig_file}.py.c
-            DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
+            COMMAND ${INCLUDE_BIN_EXE} ${swig_file}.py ${swig_file}.py.c
+            DEPENDS ${INCLUDE_BIN_DEP}
             DEPENDS ${swig_file}_python.cxx)
 
     list(APPEND swig_output ${swig_file}_python.cxx)
