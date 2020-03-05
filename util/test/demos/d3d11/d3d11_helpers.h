@@ -161,6 +161,9 @@ public:
   operator ID3D11Texture2DPtr() const;
   operator ID3D11Texture3DPtr() const;
 
+  ID3D11Texture1DPtr Tex1D() const { return (ID3D11Texture1DPtr) * this; };
+  ID3D11Texture2DPtr Tex2D() const { return (ID3D11Texture2DPtr) * this; };
+  ID3D11Texture3DPtr Tex3D() const { return (ID3D11Texture3DPtr) * this; };
 protected:
   D3D11GraphicsTest *m_Test;
 
@@ -271,7 +274,7 @@ private:
   void SetupDescriptors();
 
   D3D11GraphicsTest *m_Test;
-  ID3D11Resource *m_Res;
+  ID3D11ResourcePtr m_Res;
   ViewType m_ViewType;
   ResourceType m_ResType;
 

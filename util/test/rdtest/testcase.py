@@ -214,7 +214,7 @@ class TestCase:
         draw: rd.DrawcallDescription
         for draw in draw_list:
             # If this draw matches, return it
-            if draw.eventId >= start_event and name in draw.name:
+            if draw.eventId >= start_event and (name == '' or name in draw.name):
                 return draw
 
             # Recurse to children - depth-first search
@@ -239,6 +239,16 @@ class TestCase:
         """
 
         return self._find_draw(name, start_event, self.controller.GetDrawcalls())
+
+    def get_draw(self, event: int = 0):
+        """
+        Finds the drawcall for the given event
+
+        :param event: The eventId to search for.
+        :return:
+        """
+
+        return self._find_draw('', event, self.controller.GetDrawcalls())
 
     def get_vsin(self, draw: rd.DrawcallDescription, first_index: int=0, num_indices: int=0, instance: int=0, view: int=0):
         ib: rd.BoundVBuffer = self.controller.GetPipelineState().GetIBuffer()
@@ -299,26 +309,36 @@ class TestCase:
 
         log.success("Mesh data is identical to reference")
 
-    def check_pixel_value(self, tex: rd.ResourceId, x, y, value, eps=util.FLT_EPSILON):
+    def check_pixel_value(self, tex: rd.ResourceId, x, y, value, sub=None, cast=None, eps=util.FLT_EPSILON):
         tex_details = self.get_texture(tex)
         res_details = self.get_resource(tex)
+
+        if sub is None:
+            sub = rd.Subresource(0,0,0)
+        if cast is None:
+            cast = rd.CompType.Typeless
 
         if type(x) is float:
             x = int((tex_details.width-1) * x)
         if type(y) is float:
             y = int((tex_details.height-1) * y)
 
-        cast = rd.CompType.Typeless
-        if tex_details.creationFlags & rd.TextureCategory.SwapBuffer:
+        if cast == rd.CompType.Typeless and tex_details.creationFlags & rd.TextureCategory.SwapBuffer:
             cast = rd.CompType.UNormSRGB
 
         # Reduce epsilon for RGBA8 textures if it's not already reduced
         if tex_details.format.compByteWidth == 1 and eps == util.FLT_EPSILON:
             eps = (1.0 / 255.0)
 
-        picked: rd.PixelValue = self.controller.PickPixel(tex, x, y, rd.Subresource(0, 0, 0), cast)
+        picked: rd.PixelValue = self.controller.PickPixel(tex, x, y, sub, cast)
 
-        if not util.value_compare(picked.floatValue, value, eps):
+        picked_value = picked.floatValue
+        if cast == rd.CompType.UInt:
+            picked_value = picked.uintValue
+        elif cast == rd.CompType.SInt:
+            picked_value = picked.intValue
+
+        if not util.value_compare(picked_value, value, eps):
             save_data = rd.TextureSave()
             save_data.resourceId = tex
             save_data.destType = rd.FileType.PNG
@@ -328,44 +348,10 @@ class TestCase:
             self.controller.SaveTexture(save_data, img_path)
 
             raise TestFailureException(
-                "Picked value {} at {},{} doesn't match expectation of {}".format(picked.floatValue, x, y, value),
+                "Picked value {} at {},{} doesn't match expectation of {}".format(picked_value, x, y, value),
                 img_path)
 
         log.success("Picked value at {},{} in {} is as expected".format(x, y, res_details.name))
-
-    def check_pixel_sample_value(self, tex: rd.ResourceId, x, y, sample, value, eps=util.FLT_EPSILON):
-        tex_details = self.get_texture(tex)
-        res_details = self.get_resource(tex)
-
-        if type(x) is float:
-            x = int((tex_details.width-1) * x)
-        if type(y) is float:
-            y = int((tex_details.height-1) * y)
-
-        cast = rd.CompType.Typeless
-        if tex_details.creationFlags & rd.TextureCategory.SwapBuffer:
-            cast = rd.CompType.UNormSRGB
-
-        # Reduce epsilon for RGBA8 textures if it's not already reduced
-        if tex_details.format.compByteWidth == 1 and eps == util.FLT_EPSILON:
-            eps = (1.0 / 255.0)
-
-        picked: rd.PixelValue = self.controller.PickPixel(tex, x, y, rd.Subresource(0, 0, sample), cast)
-
-        if not util.value_compare(picked.floatValue, value, eps):
-            save_data = rd.TextureSave()
-            save_data.resourceId = tex
-            save_data.destType = rd.FileType.PNG
-
-            img_path = util.get_tmp_path('output.png')
-
-            self.controller.SaveTexture(save_data, img_path)
-
-            raise TestFailureException(
-                "Picked value {} at {},{} sample {} doesn't match expectation of {}".
-                format(picked.floatValue, x, y, sample, value), img_path)
-
-        log.success("Picked value at {},{} sample {} in {} is as expected".format(x, y, sample, res_details.name))
 
     def check_triangle(self, out = None, back = None, fore = None, vp = None):
         pipe: rd.PipeState = self.controller.GetPipelineState()

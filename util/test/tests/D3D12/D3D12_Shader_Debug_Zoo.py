@@ -72,11 +72,11 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
             output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-            debugged = self.evalute_source_var(output, variables)
+            debugged = self.evaluate_source_var(output, variables)
 
             # Validate the debug output result
             try:
-                self.check_pixel_sample_value(pipe.GetOutputTargets()[0].resourceId, 4, 4, test, debugged.value.fv[0:4], 0.0)
+                self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4, 4, debugged.value.fv[0:4], 0.0, sub=rd.Subresource(0, 0, test))
             except rdtest.TestFailureException as ex:
                 failed = True
                 rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))

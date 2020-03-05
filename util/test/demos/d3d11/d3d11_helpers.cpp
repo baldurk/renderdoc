@@ -738,7 +738,7 @@ D3D11ViewCreator::operator ID3D11ShaderResourceViewPtr()
   if(desc.srv.ViewDimension == D3D11_SRV_DIMENSION_BUFFER)
   {
     D3D11_BUFFER_DESC bufdesc;
-    ((ID3D11Buffer *)m_Res)->GetDesc(&bufdesc);
+    ((ID3D11BufferPtr)m_Res)->GetDesc(&bufdesc);
 
     if(bufdesc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS)
     {
@@ -772,7 +772,7 @@ D3D11ViewCreator::operator ID3D11UnorderedAccessViewPtr()
   if(desc.uav.ViewDimension == D3D11_UAV_DIMENSION_BUFFER)
   {
     D3D11_BUFFER_DESC bufdesc;
-    ((ID3D11Buffer *)m_Res)->GetDesc(&bufdesc);
+    ((ID3D11BufferPtr)m_Res)->GetDesc(&bufdesc);
 
     if(bufdesc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS)
       desc.uav.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
