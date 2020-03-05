@@ -2891,6 +2891,8 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
 
 void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::InputAssembly &ia)
 {
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+
   {
     xml.writeStartElement(lit("h3"));
     xml.writeCharacters(tr("Index Buffer"));
@@ -2908,10 +2910,15 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     }
 
     QString ifmt = lit("UNKNOWN");
-    if(m_Ctx.CurDrawcall()->indexByteWidth == 2)
-      ifmt = lit("UINT16");
-    if(m_Ctx.CurDrawcall()->indexByteWidth == 4)
-      ifmt = lit("UINT32");
+    if(draw)
+    {
+      if(draw->indexByteWidth == 1)
+        ifmt = lit("UINT8");
+      else if(draw->indexByteWidth == 2)
+        ifmt = lit("UINT16");
+      else if(draw->indexByteWidth == 4)
+        ifmt = lit("UINT32");
+    }
 
     m_Common.exportHTMLTable(
         xml, {tr("Buffer"), tr("Format"), tr("Offset"), tr("Byte Length"), tr("Primitive Restart")},
@@ -2923,7 +2930,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
   xml.writeEndElement();
 
   m_Common.exportHTMLTable(xml, {tr("Primitive Topology"), tr("Tessellation Control Points")},
-                           {ToQStr(m_Ctx.CurDrawcall()->topology),
+                           {ToQStr(draw ? draw->topology : Topology::Unknown),
                             m_Ctx.CurVulkanPipelineState()->tessellation.numControlPoints});
 }
 

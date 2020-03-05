@@ -350,7 +350,7 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
             const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
             QList<const DrawcallDescription *> drawstack;
-            const DrawcallDescription *parent = draw->parent;
+            const DrawcallDescription *parent = draw ? draw->parent : NULL;
             while(parent)
             {
               drawstack.push_front(parent);
@@ -362,7 +362,10 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
               context += QFormatStr(" > %1").arg(d->name);
             }
 
-            context += QFormatStr(" => %1").arg(draw->name);
+            if(draw)
+              context += QFormatStr(" => %1").arg(draw->name);
+            else
+              context += tr(" => Capture Start");
 
             xml.writeCharacters(context);
           }

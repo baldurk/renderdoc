@@ -2376,6 +2376,8 @@ void GLPipelineStateViewer::shaderSave_clicked()
 
 void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::VertexInput &vtx)
 {
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+
   const GLPipe::State &pipe = *m_Ctx.CurGLPipelineState();
   {
     xml.writeStartElement(tr("h3"));
@@ -2454,10 +2456,15 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Vert
     }
 
     QString ifmt = lit("UNKNOWN");
-    if(m_Ctx.CurDrawcall()->indexByteWidth == 2)
-      ifmt = lit("R16_UINT");
-    if(m_Ctx.CurDrawcall()->indexByteWidth == 4)
-      ifmt = lit("R32_UINT");
+    if(draw)
+    {
+      if(draw->indexByteWidth == 1)
+        ifmt = lit("UNSIGNED_BYTE");
+      else if(draw->indexByteWidth == 2)
+        ifmt = lit("UNSIGNED_SHORT");
+      else if(draw->indexByteWidth == 4)
+        ifmt = lit("UNSIGNED_INT");
+    }
 
     m_Common.exportHTMLTable(xml, {tr("Buffer"), tr("Format"), tr("Byte Length")},
                              {name, ifmt, (qulonglong)length});
@@ -2466,7 +2473,8 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Vert
   xml.writeStartElement(tr("p"));
   xml.writeEndElement();
 
-  m_Common.exportHTMLTable(xml, {tr("Primitive Topology")}, {ToQStr(m_Ctx.CurDrawcall()->topology)});
+  m_Common.exportHTMLTable(xml, {tr("Primitive Topology")},
+                           {ToQStr(draw ? draw->topology : Topology::Unknown)});
 
   {
     xml.writeStartElement(tr("h3"));

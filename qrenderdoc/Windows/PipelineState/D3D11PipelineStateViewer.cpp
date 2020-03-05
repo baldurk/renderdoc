@@ -2435,6 +2435,8 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(const D3D11Pipe::View &vie
 
 void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::InputAssembly &ia)
 {
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
+
   {
     xml.writeStartElement(lit("h3"));
     xml.writeCharacters(tr("Input Layouts"));
@@ -2510,10 +2512,13 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
     }
 
     QString ifmt = lit("UNKNOWN");
-    if(m_Ctx.CurDrawcall()->indexByteWidth == 2)
-      ifmt = lit("R16_UINT");
-    if(m_Ctx.CurDrawcall()->indexByteWidth == 4)
-      ifmt = lit("R32_UINT");
+    if(draw)
+    {
+      if(draw->indexByteWidth == 2)
+        ifmt = lit("R16_UINT");
+      if(draw->indexByteWidth == 4)
+        ifmt = lit("R32_UINT");
+    }
 
     m_Common.exportHTMLTable(xml, {tr("Buffer"), tr("Format"), tr("Offset"), tr("Byte Length")},
                              {name, ifmt, ia.indexBuffer.byteOffset, (qulonglong)length});
@@ -2522,7 +2527,8 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
   xml.writeStartElement(lit("p"));
   xml.writeEndElement();
 
-  m_Common.exportHTMLTable(xml, {tr("Primitive Topology")}, {ToQStr(m_Ctx.CurDrawcall()->topology)});
+  m_Common.exportHTMLTable(xml, {tr("Primitive Topology")},
+                           {ToQStr(draw ? draw->topology : Topology::Unknown)});
 }
 
 void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe::Shader &sh)
