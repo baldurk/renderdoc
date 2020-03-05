@@ -26,7 +26,7 @@ class VK_Line_Raster(rdtest.TestCase):
         return ret
 
     def check_capture(self):
-        draw = self.get_last_draw()
+        draw = self.find_draw("vkCmdEndRenderPass")
 
         self.check(draw is not None)
 
