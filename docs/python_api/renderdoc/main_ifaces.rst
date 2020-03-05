@@ -46,3 +46,10 @@ CaptureFile
 .. autoclass:: renderdoc.CaptureFile
   :members:
   :undoc-members:
+
+GlobalEnvironment
+-----------------
+
+.. autoclass:: renderdoc.GlobalEnvironment
+  :members:
+  :undoc-members:

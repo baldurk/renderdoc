@@ -5,6 +5,12 @@ Functions
 
 .. module:: renderdoc
 
+Initialisation and Shutdown
+---------------------------
+
+.. autofunction:: renderdoc.InitialiseReplay
+.. autofunction:: renderdoc.ShutdownReplay
+
 Capture File Access
 -------------------
 

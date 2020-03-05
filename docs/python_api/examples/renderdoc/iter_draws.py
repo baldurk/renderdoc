@@ -84,6 +84,8 @@ def loadCapture(filename):
 if 'pyrenderdoc' in globals():
 	pyrenderdoc.Replay().BlockInvoke(sampleCode)
 else:
+	rd.InitialiseReplay(rd.GlobalEnvironment(), [])
+
 	if len(sys.argv) <= 1:
 		print('Usage: python3 {} filename.rdc'.format(sys.argv[0]))
 		sys.exit(0)
@@ -94,4 +96,6 @@ else:
 
 	controller.Shutdown()
 	cap.Shutdown()
+
+	rd.ShutdownReplay()
 

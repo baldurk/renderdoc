@@ -37,6 +37,8 @@ else:
 		print('Usage: python3 {} filename.rdc'.format(sys.argv[0]))
 		sys.exit(0)
 
+	rd.InitialiseReplay(rd.GlobalEnvironment(), [])
+
 	cap,controller = loadCapture(sys.argv[1])
 
 # Use tkinter to create windows
@@ -139,3 +141,6 @@ window.mainloop()
 controller.Shutdown()
 
 cap.Shutdown()
+
+if 'pyrenderdoc' not in globals():
+	rd.ShutdownReplay()

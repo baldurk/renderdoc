@@ -47,6 +47,14 @@ Loading a Capture
 
 Given a capture file ``test.rdc`` we want to load it, begin the replay and get ready to perform analysis on it.
 
+Before doing anything, we must initialise the replay API. We do that by calling :py:meth:`~renderdoc.InitialiseReplay`. Generally no special configuration is needed so passing a default :py:class:`~renderdoc.GlobalEnvironment` and an empty list of arguments is fine.
+
+
+.. highlight:: python
+.. code:: python
+
+    rd.InitialiseReplay(rd.GlobalEnvironment(), [])
+
 To begin with, we use :py:meth:`~renderdoc.OpenCaptureFile` to obtain a :py:class:`~renderdoc.CaptureFile` instance. This gives us access to control over a capture file at a meta level. For more information see the :py:class:`CaptureFile` reference - the interface can also be used to create.
 
 To open a file, use :py:meth:`~renderdoc.CaptureFile.OpenFile` on the :py:class:`~renderdoc.CaptureFile` instance. This function allows conversion from other formats via an importer, but here we'll use it just for opening a regular ``rdc`` file. It returns a :py:class:`~renderdoc.ReplayStatus` which can be used to determine what went wrong in the event that there was a problem. We then check that the capture uses an API which can be replayed locally - for example not every platform supports ``D3D11``, so on linux this would return no local replay support.
@@ -89,6 +97,8 @@ This function call will open the capture and begin to replay it, and initialise 
 
 Once we're done with the interfaces, we should call the ``Shutdown`` function on each, this allows the C++ interface to release the resources allocated.
 
+Once all work is done we can shutdown the replay API.
+
 .. highlight:: python
 .. code:: python
 
@@ -96,6 +106,8 @@ Once we're done with the interfaces, we should call the ``Shutdown`` function on
     controller.Shutdown()
 
     cap.Shutdown()
+
+    rd.ShutdownReplay()
 
 Example Source
 --------------

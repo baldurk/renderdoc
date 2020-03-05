@@ -874,7 +874,8 @@ struct GlobalEnvironment
   Display *xlibDisplay = NULL;
 
   DOCUMENT(
-      "The handle to the X display to use internally. If left ``NULL``, wayland cannot be used.");
+      "The handle to the wayland display to use internally. If left ``NULL``, wayland cannot be "
+      "used.");
   wl_display *waylandDisplay = NULL;
 
   DOCUMENT(R"(Whether to enumerate available GPUs. If the replay program is only being used for

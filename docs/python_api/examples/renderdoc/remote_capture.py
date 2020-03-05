@@ -9,6 +9,8 @@ import time
 # the executable and trigger the capture at the desired time
 raise RuntimeError("This sample should not be run directly, read the source")
 
+rd.InitialiseReplay(rd.GlobalEnvironment(), [])
+
 protocols = rd.GetSupportedDeviceProtocols()
 
 print(f"Supported device protocols: {protocols}")
@@ -194,3 +196,5 @@ controller.Shutdown()
 # save the capture, etc
 
 remote.ShutdownServerAndConnection()
+
+rd.ShutdownReplay()

@@ -1,5 +1,7 @@
 import renderdoc as rd
 
+rd.InitialiseReplay(rd.GlobalEnvironment(), [])
+
 # Open a capture file handle
 cap = rd.OpenCaptureFile()
 
@@ -26,3 +28,5 @@ print("%d top-level drawcalls" % len(controller.GetDrawcalls()))
 controller.Shutdown()
 
 cap.Shutdown()
+
+rd.ShutdownReplay()
