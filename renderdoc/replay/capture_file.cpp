@@ -207,7 +207,7 @@ ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype,
 
     {
       StreamReader reader(FileIO::fopen(filename, "rb"));
-      delete m_RDC;
+      SAFE_DELETE(m_RDC);
       m_RDC = new RDCFile;
       ret = importer(filename, reader, m_RDC, m_StructuredData, progress);
     }
@@ -215,7 +215,7 @@ ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype,
     if(ret != ReplayStatus::Succeeded)
     {
       m_ErrorString = StringFormat::Fmt("Importer '%s' failed to import file.", filetype);
-      delete m_RDC;
+      SAFE_DELETE(m_RDC);
       return ret;
     }
   }
@@ -227,7 +227,7 @@ ReplayStatus CaptureFile::OpenFile(const char *filename, const char *filetype,
     if(progress)
       progress(0.0f);
 
-    delete m_RDC;
+    SAFE_DELETE(m_RDC);
     m_RDC = new RDCFile;
     m_RDC->Open(filename);
 
@@ -249,6 +249,7 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype
 
     {
       StreamReader reader(buffer);
+      SAFE_DELETE(m_RDC);
       m_RDC = new RDCFile;
       ret = importer(NULL, reader, m_RDC, m_StructuredData, progress);
     }
@@ -256,7 +257,7 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype
     if(ret != ReplayStatus::Succeeded)
     {
       m_ErrorString = StringFormat::Fmt("Importer '%s' failed to import file.", filetype);
-      delete m_RDC;
+      SAFE_DELETE(m_RDC);
       return ret;
     }
   }
@@ -268,6 +269,7 @@ ReplayStatus CaptureFile::OpenBuffer(const bytebuf &buffer, const char *filetype
     if(progress)
       progress(0.0f);
 
+    SAFE_DELETE(m_RDC);
     m_RDC = new RDCFile;
     m_RDC->Open(buffer);
 
