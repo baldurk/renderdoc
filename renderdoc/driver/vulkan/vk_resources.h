@@ -1317,6 +1317,30 @@ struct ImageSubresourceStateForRange
 {
   ImageSubresourceRange range;
   ImageSubresourceState state;
+  inline static bool CompareRangeBegin(const ImageSubresourceStateForRange &x,
+                                       const ImageSubresourceStateForRange &y)
+  {
+    const ImageSubresourceRange &rx = x.range;
+    const ImageSubresourceRange &ry = y.range;
+
+    // Find the first (least significant) aspcet bit
+    VkImageAspectFlags ax = *ImageAspectFlagIter::begin(rx.aspectMask);
+    VkImageAspectFlags ay = *ImageAspectFlagIter::begin(ry.aspectMask);
+
+    if(ax == ay)
+    {
+      if(rx.baseMipLevel == ry.baseMipLevel)
+      {
+        if(rx.baseArrayLayer == ry.baseArrayLayer)
+        {
+          return rx.baseDepthSlice < ry.baseDepthSlice;
+        }
+        return rx.baseArrayLayer < ry.baseArrayLayer;
+      }
+      return rx.baseMipLevel < ry.baseMipLevel;
+    }
+    return ax < ay;
+  }
 };
 
 DECLARE_REFLECTION_STRUCT(ImageSubresourceStateForRange);

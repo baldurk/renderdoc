@@ -320,7 +320,11 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
           }
 
           if(!subresourceStates.empty())
+          {
+            std::sort(subresourceStates.begin(), subresourceStates.end(),
+                      ImageSubresourceStateForRange::CompareRangeBegin);
             imageState.subresourceStates.FromArray(subresourceStates);
+          }
           imageState.maxRefType = eFrameRef_Unknown;
         }
       }
