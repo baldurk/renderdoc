@@ -151,6 +151,8 @@ class Texture_Zoo():
             eps = (eps_significand / 255.0)
         elif comp_type == rd.CompType.Depth and tex.format.compCount == 2:
             eps = (eps_significand / 255.0)  # stencil is only 8-bit
+        elif tex.format.type == rd.ResourceFormatType.A8:
+            eps = (eps_significand / 255.0)
         elif tex.format.type == rd.ResourceFormatType.R10G10B10A2:
             eps = (eps_significand / 1023.0)
         else:
