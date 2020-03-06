@@ -49,7 +49,7 @@ struct nested_with_padding
                                         // [3]: {24, 25, 26}, <27>
 };
 
-cbuffer consts : register(b0)
+cbuffer consts : register(b7)
 {
   // dummy* entries are just to 'reset' packing to avoid pollution between tests
 
@@ -329,7 +329,7 @@ float4 main() : SV_Target0
     ID3D12ResourcePtr cb = MakeBuffer().Data(cbufferdata);
 
     ID3D12RootSignaturePtr sig = MakeSig({
-        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
+        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 7),
         constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1, sizeof(rootData) / sizeof(uint32_t)),
         cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 999999999, 0),
     });

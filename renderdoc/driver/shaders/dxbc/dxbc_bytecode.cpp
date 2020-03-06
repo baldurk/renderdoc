@@ -350,9 +350,6 @@ DXBC::Reflection *Program::GuessReflection()
 
         cb.name = desc.name;
 
-        // In addition to the register, store the identifier that we'll use to lookup during
-        // debugging. For SM5.1, this is the logical identifier that correlates to the CB order in
-        // the bytecode. For SM5 and earlier, it's the CB register.
         cb.identifier = idx;
         cb.space = dcl.space;
         cb.reg = reg;
