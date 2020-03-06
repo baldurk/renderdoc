@@ -725,7 +725,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
       struct CBufferBind
       {
-        uint32_t reg, space, bindCount;
+        uint32_t reg, space, bindCount, identifier;
       };
 
       std::map<rdcstr, CBufferBind> cbufferbinds;
@@ -776,6 +776,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
           cb.space = desc.space;
           cb.reg = desc.reg;
           cb.bindCount = desc.bindCount;
+          cb.identifier = h->targetVersion >= 0x501 ? res->ID : desc.reg;
           cbufferbinds[cname] = cb;
         }
         else if(desc.IsSampler())
@@ -926,10 +927,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
         cbuffernames.insert(cname);
 
-        // In addition to the register, store the identifier that we'll use to lookup during
-        // debugging. For SM5.1, this is the logical identifier that correlates to the CB order in
-        // the bytecode. For SM5 and earlier, it's the CB register.
-        cb.identifier = (h->targetVersion < 0x501) ? cbufferbinds[cname].reg : i;
+        cb.identifier = cbufferbinds[cname].identifier;
         cb.space = cbufferbinds[cname].space;
         cb.reg = cbufferbinds[cname].reg;
         cb.bindCount = cbufferbinds[cname].bindCount;

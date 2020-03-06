@@ -4232,7 +4232,24 @@ void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &
                            : global.constantBlocks[i].members;
       RDCASSERTMSG("Reassigning previously filled cbuffer", targetVars.empty());
 
-      uint32_t cbufferIndex = program.IsShaderModel51() ? (uint32_t)i : slot.shaderRegister;
+      uint32_t cbufferIndex = slot.shaderRegister;
+      if(program.IsShaderModel51())
+      {
+        // Need to lookup the logical identifier from the declarations
+        size_t numDeclarations = program.GetNumDeclarations();
+        for(size_t d = 0; d < numDeclarations; ++d)
+        {
+          const DXBCBytecode::Declaration &decl = program.GetDeclaration(d);
+          if(decl.operand.type == DXBCBytecode::TYPE_CONSTANT_BUFFER &&
+             decl.space == slot.registerSpace &&
+             decl.operand.indices[1].index <= slot.shaderRegister &&
+             decl.operand.indices[2].index >= slot.shaderRegister)
+          {
+            cbufferIndex = (uint32_t)decl.operand.indices[0].index;
+            break;
+          }
+        }
+      }
 
       global.constantBlocks[i].name =
           program.GetRegisterName(DXBCBytecode::TYPE_CONSTANT_BUFFER, cbufferIndex);

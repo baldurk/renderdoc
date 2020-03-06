@@ -1,7 +1,6 @@
 import rdtest
 import renderdoc as rd
 
-
 class D3D12_CBuffer_Zoo(rdtest.TestCase):
     demos_test_name = 'D3D12_CBuffer_Zoo'
 
@@ -19,9 +18,9 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
         refl: rd.ShaderReflection = pipe.GetShaderReflection(stage)
         mapping: rd.ShaderBindpointMapping = pipe.GetBindpointMapping(stage)
 
-        # Make sure we have three constant buffers - b0 normal, b1 root constants, and space9999999:b0
+        # Make sure we have three constant buffers - b7 normal, b1 root constants, and space9999999:b0
         binds = [
-            (0, 0),
+            (0, 7),
             (0, 1),
             (999999999, 0),
         ]
@@ -104,6 +103,19 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
             self.check_cbuffers(var_check, root_check, huge_check)
 
             rdtest.log.success("Debugged CBuffer variables are as expected")
+
+            cycles, variables = self.process_trace(trace)
+
+            output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+
+            debugged = self.evaluate_source_var(output, variables)
+
+            if not rdtest.util.value_compare(debugged.value.fv[0:4], [512.1, 513.0, 514.0, 515.0]):
+                raise rdtest.TestFailureException(
+                    "Debugged output {} did not match expected {}".format(
+                        debugged.value.fv[0:4], [512.1, 513.0, 514.0, 515.0]))
+
+            rdtest.log.success("Debugged output matched as expected")
 
             self.controller.FreeTrace(trace)
 

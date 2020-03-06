@@ -17,8 +17,7 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
         failed = False
 
         # Loop over every test
-        rdtest.log.print("Performing general tests:")
-        rdtest.log.indent()
+        rdtest.log.begin_section("General tests")
         for test in range(draw.numInstances):
             # Debug the shader
             trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4 * test, 0, rd.ReplayController.NoPreference,
@@ -31,7 +30,7 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
             debugged = self.evaluate_source_var(output, variables)
 
             try:
-                self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4 * test, 0, debugged.value.fv[0:4], 0.0)
+                self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4 * test, 0, debugged.value.fv[0:4])
             except rdtest.TestFailureException as ex:
                 failed = True
                 rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))
@@ -40,10 +39,9 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
                 self.controller.FreeTrace(trace)
 
             rdtest.log.success("Test {} matched as expected".format(test))
-        rdtest.log.dedent()
+        rdtest.log.end_section("General tests")
 
-        rdtest.log.print("Performing MSAA tests:")
-        rdtest.log.indent()
+        rdtest.log.begin_section("MSAA tests")
         draw = draw.next
         self.controller.SetFrameEvent(draw.eventId, False)
         pipe: rd.PipeState = self.controller.GetPipelineState()
@@ -53,9 +51,8 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
                                                                     rd.ReplayController.NoPreference)
 
             # Validate that the correct sample index was debugged
-            inputs: List[rd.ShaderVariable] = list(trace.inputs)
             sampRegister = self.find_input_source_var(trace, rd.ShaderBuiltin.MSAASampleIndex)
-            sampInput = [var for var in inputs if var.name == sampRegister.variables[0].name][0]
+            sampInput = [var for var in trace.inputs if var.name == sampRegister.variables[0].name][0]
             if sampInput.value.uv[0] != test:
                 rdtest.log.error("Test {} did not pick the correct sample.".format(test))
 
@@ -67,13 +64,13 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
 
             # Validate the debug output result
             try:
-                self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4, 4, debugged.value.fv[0:4], 0.0, sub=rd.Subresource(0, 0, test))
+                self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 4, 4, debugged.value.fv[0:4], sub=rd.Subresource(0, 0, test))
             except rdtest.TestFailureException as ex:
                 failed = True
                 rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))
                 continue
 
-        rdtest.log.dedent()
+        rdtest.log.end_section("MSAA tests")
 
         if failed:
             raise rdtest.TestFailureException("Some tests were not as expected")
