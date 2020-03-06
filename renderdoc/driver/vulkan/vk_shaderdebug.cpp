@@ -89,6 +89,12 @@ private:
 ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                             uint32_t idx)
 {
+  if(!GetAPIProperties().shaderDebugging)
+  {
+    RDCUNIMPLEMENTED("Vertex debugging not yet implemented for Vulkan");
+    return new ShaderDebugTrace;
+  }
+
   const VulkanRenderState &state = m_pDriver->m_RenderState;
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
@@ -263,6 +269,12 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y,
                                            uint32_t sample, uint32_t primitive)
 {
+  if(!GetAPIProperties().shaderDebugging)
+  {
+    RDCUNIMPLEMENTED("Pixel debugging not yet implemented for Vulkan");
+    return new ShaderDebugTrace;
+  }
+
   VULKANNOTIMP("DebugPixel");
   return new ShaderDebugTrace();
 }
@@ -270,6 +282,12 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                             const uint32_t threadid[3])
 {
+  if(!GetAPIProperties().shaderDebugging)
+  {
+    RDCUNIMPLEMENTED("Compute debugging not yet implemented for Vulkan");
+    return new ShaderDebugTrace;
+  }
+
   VULKANNOTIMP("DebugThread");
   return new ShaderDebugTrace();
 }
