@@ -165,7 +165,7 @@ void FetchException(QString &typeStr, QString &valueStr, int &finalLine, QList<Q
 
       if(func && PyCallable_Check(func))
       {
-        PyObject *args = Py_BuildValue("(N)", tracebackObj);
+        PyObject *args = Py_BuildValue("(O)", tracebackObj);
         PyObject *formattedTB = PyObject_CallObject(func, args);
 
         PyTracebackObject *tb = (PyTracebackObject *)tracebackObj;
