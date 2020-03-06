@@ -1163,17 +1163,15 @@ bool PipelineStateViewer::SaveShaderFile(const ShaderReflection *shader)
 
   QString filter;
 
-  if(m_Ctx.CurPipelineState().IsCaptureD3D11() || m_Ctx.CurPipelineState().IsCaptureD3D12())
+  switch(shader->encoding)
   {
-    filter = tr("DXBC Shader files (*.dxbc)");
-  }
-  else if(m_Ctx.CurPipelineState().IsCaptureGL())
-  {
-    filter = tr("GLSL files (*.glsl)");
-  }
-  else if(m_Ctx.CurPipelineState().IsCaptureVK())
-  {
-    filter = tr("SPIR-V files (*.spv)");
+    case ShaderEncoding::DXBC: filter = tr("DXBC Shader files (*.dxbc)"); break;
+    case ShaderEncoding::HLSL: filter = tr("HLSL files (*.hlsl)"); break;
+    case ShaderEncoding::GLSL: filter = tr("GLSL files (*.glsl)"); break;
+    case ShaderEncoding::SPIRV: filter = tr("SPIR-V files (*.spv)"); break;
+    case ShaderEncoding::SPIRVAsm: filter = tr("SPIR-V assembly files (*.spvasm)"); break;
+    case ShaderEncoding::Unknown:
+    case ShaderEncoding::Count: filter = tr("All files (*.*)"); break;
   }
 
   QString filename = RDDialog::getSaveFileName(this, tr("Save Shader As"), QString(), filter);
