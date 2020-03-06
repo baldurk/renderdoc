@@ -277,8 +277,8 @@ class Iter_Test(rdtest.TestCase):
     def iter_test(self):
         # Handy tweaks when running locally to disable certain things
 
-        action_chance = 1.0     # Chance of doing anything at all
-        do_image_save = 0.0    # Chance of saving images of the outputs
+        action_chance = 0.1     # Chance of doing anything at all
+        do_image_save = 0.25    # Chance of saving images of the outputs
         do_vert_debug = 1.0     # Chance of debugging a vertex (if valid)
         do_pixel_debug = 1.0    # Chance of doing pixel history at the current event and debugging a pixel (if valid)
 
