@@ -2,7 +2,11 @@ option(STATIC_QRENDERDOC "Compile qrenderdoc as static" OFF)
 option(QRENDERDOC_NO_CXX11_REGEX "Disable C++11 regex in scintilla" OFF)
 
 if( NOT DEFINED QT_QMAKE_EXECUTABLE )
-    set( QT_QMAKE_EXECUTABLE "qmake" )
+    if( DEFINED QMAKE_EXECUTABLE )
+        set( QT_QMAKE_EXECUTABLE "${QMAKE_EXECUTABLE}" )
+    else()
+        set( QT_QMAKE_EXECUTABLE "qmake" )
+    endif()
 endif()
 
 set(QMAKE_QT5_COMMAND ${QT_QMAKE_EXECUTABLE} CACHE STRING "Command to run to invoke Qt5's qmake. Normally this is qmake, possibly with qtchooser, but might be qmake-qt5")
