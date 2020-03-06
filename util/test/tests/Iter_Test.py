@@ -338,10 +338,9 @@ class Iter_Test(rdtest.TestCase):
             try:
                 self.controller = rdtest.open_capture(file.path)
             except RuntimeError as err:
-                rdtest.log.end_section(section_name)
                 rdtest.log.print("Skipping. Can't open {}: {}".format(file.path, err))
                 continue
-                
+
             section_name = 'Iterating {}'.format(file.name)
 
             rdtest.log.begin_section(section_name)
