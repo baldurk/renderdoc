@@ -1502,7 +1502,8 @@ void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
     m_ListRecord->AddChunk(scope.Get());
     if(RTsSingleHandleToDescriptorRange)
     {
-      D3D12Descriptor *desc = GetWrapped(pRenderTargetDescriptors[0]);
+      D3D12Descriptor *desc =
+          (NumRenderTargetDescriptors == 0) ? NULL : GetWrapped(pRenderTargetDescriptors[0]);
       for(UINT i = 0; i < NumRenderTargetDescriptors; i++)
       {
         m_ListRecord->MarkResourceFrameReferenced(desc->GetHeapResourceId(), eFrameRef_Read);

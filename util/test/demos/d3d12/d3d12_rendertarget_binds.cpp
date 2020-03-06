@@ -123,6 +123,10 @@ void main(out float4 out1 : SV_Target0, out float4 out2 : SV_Target1)
 
       Reset(cmd);
 
+      // Set null render targets to ensure that these work properly when attached
+      cmd->OMSetRenderTargets(0, NULL, FALSE, NULL);
+      cmd->OMSetRenderTargets(0, NULL, TRUE, NULL);
+
       ID3D12ResourcePtr bb = StartUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
       D3D12_CPU_DESCRIPTOR_HANDLE bbrtv =
