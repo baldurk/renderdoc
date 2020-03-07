@@ -465,8 +465,129 @@ ShaderVariable D3D12DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType typ
                                                    const DXBCDebug::BindingSlot &slot,
                                                    const char *opString)
 {
-  RDCUNIMPLEMENTED("GetSampleInfo not yet implemented for D3D12");
   ShaderVariable result("", 0U, 0U, 0U, 0U);
+
+  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  if(type == DXBCBytecode::TYPE_RASTERIZER)
+  {
+    if(GetShaderType() != DXBC::ShaderType::Compute)
+    {
+      // try depth first - both should match sample count though to be valid
+      ResourceId res = rs.GetDSVID();
+      if(res == ResourceId() && !rs.rts.empty())
+        res = rs.rts[0].GetResResourceId();
+
+      ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(res);
+      D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+      result.value.u.x = resDesc.SampleDesc.Count;
+      result.value.u.y = 0;
+      result.value.u.z = 0;
+      result.value.u.w = 0;
+    }
+    return result;
+  }
+
+  // Get the root signature
+  const D3D12RenderState::RootSignature *pRootSignature = NULL;
+  if(GetShaderType() == DXBC::ShaderType::Compute)
+  {
+    if(rs.compute.rootsig != ResourceId())
+    {
+      pRootSignature = &rs.compute;
+    }
+  }
+  else if(rs.graphics.rootsig != ResourceId())
+  {
+    pRootSignature = &rs.graphics;
+  }
+
+  if(pRootSignature)
+  {
+    WrappedID3D12RootSignature *pD3D12RootSig =
+        rm->GetCurrentAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
+
+    size_t numParams = RDCMIN(pD3D12RootSig->sig.Parameters.size(), pRootSignature->sigelems.size());
+    for(size_t i = 0; i < numParams; ++i)
+    {
+      const D3D12RootSignatureParameter &param = pD3D12RootSig->sig.Parameters[i];
+      const D3D12RenderState::SignatureElement &element = pRootSignature->sigelems[i];
+      if(IsShaderParameterVisible(GetShaderType(), param.ShaderVisibility))
+      {
+        // Root SRV/UAV can only be buffers, so we don't need to check them for GetSampleInfo
+        if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE &&
+           element.type == eRootTable)
+        {
+          UINT prevTableOffset = 0;
+          WrappedID3D12DescriptorHeap *heap =
+              rm->GetCurrentAs<WrappedID3D12DescriptorHeap>(element.id);
+
+          size_t numRanges = param.ranges.size();
+          for(size_t r = 0; r < numRanges; ++r)
+          {
+            const D3D12_DESCRIPTOR_RANGE1 &range = param.ranges[r];
+
+            // For every range, check the number of descriptors so that we are accessing the
+            // correct data for append descriptor tables, even if the range type doesn't match
+            // what we need to fetch
+            UINT offset = range.OffsetInDescriptorsFromTableStart;
+            if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
+              offset = prevTableOffset;
+
+            D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
+            desc += element.offset;
+            desc += offset;
+
+            UINT numDescriptors = range.NumDescriptors;
+            if(numDescriptors == UINT_MAX)
+            {
+              // Find out how many descriptors are left after
+              numDescriptors = heap->GetNumDescriptors() - offset - (UINT)element.offset;
+
+              // TODO: Should we look up the bind point in the D3D12 state to try to get
+              // a better guess at the number of descriptors?
+            }
+
+            prevTableOffset = offset + numDescriptors;
+
+            // Check if the slot we want is contained
+            if(slot.shaderRegister >= range.BaseShaderRegister &&
+               slot.shaderRegister < range.BaseShaderRegister + numDescriptors &&
+               range.RegisterSpace == slot.registerSpace)
+            {
+              desc += slot.shaderRegister - range.BaseShaderRegister;
+              if(desc)
+              {
+                if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV &&
+                   type != DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
+                {
+                  ResourceId srvId = desc->GetResResourceId();
+                  ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
+                  D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+                  D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = desc->GetSRV();
+                  if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMS ||
+                     srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY)
+                  {
+                    result.value.u.x = resDesc.SampleDesc.Count;
+                    result.value.u.y = 0;
+                    result.value.u.z = 0;
+                    result.value.u.w = 0;
+                  }
+                  else
+                  {
+                    RDCERR("Invalid resource dimension for GetSampleInfo");
+                  }
+                  return result;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   return result;
 }
 

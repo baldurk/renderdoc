@@ -3379,8 +3379,12 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       bool isAbsoluteResource =
           (op.operands[1].indices.size() == numIndices && op.operands[1].indices[0].absolute &&
            !op.operands[1].indices[0].relative);
-      UINT identifier = (UINT)(op.operands[1].indices[0].index & 0xffffffff);
-      BindingSlot slot = GetBindingSlotForIdentifier(*program, op.operands[1].type, identifier);
+      BindingSlot slot;
+      if(op.operands[1].type != TYPE_RASTERIZER)
+      {
+        UINT identifier = (UINT)(op.operands[1].indices[0].index & 0xffffffff);
+        slot = GetBindingSlotForIdentifier(*program, op.operands[1].type, identifier);
+      }
       ShaderVariable result =
           apiWrapper->GetSampleInfo(op.operands[1].type, isAbsoluteResource, slot, op.str.c_str());
 
@@ -3388,18 +3392,23 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
 
       // lookup sample pos if we got a count from above
       if(op.operation == OPCODE_SAMPLE_POS && result.value.u.x > 0 &&
-         op.operands[2].type == TYPE_IMMEDIATE32)
+         (op.operands[2].type == TYPE_IMMEDIATE32 || op.operands[2].type == TYPE_TEMP))
       {
         // assume standard sample pattern - this might not hold in all cases
         // http://msdn.microsoft.com/en-us/library/windows/desktop/ff476218(v=vs.85).aspx
 
-        uint32_t sampleIndex = op.operands[2].values[0];
+        uint32_t sampleIndex = srcOpers[1].value.u.x;
         uint32_t sampleCount = result.value.u.x;
 
         if(sampleIndex >= sampleCount)
         {
+          // Per HLSL docs, if sampleIndex is out of bounds a zero vector is returned
           RDCWARN("sample index %u is out of bounds on resource bound to sample_pos (%u samples)",
                   sampleIndex, sampleCount);
+          result.value.f.x = 0.0f;
+          result.value.f.y = 0.0f;
+          result.value.f.z = 0.0f;
+          result.value.f.w = 0.0f;
         }
         else
         {
