@@ -117,6 +117,7 @@ Buffer<float> test : register(t0);
 ByteAddressBuffer byterotest : register(t1);
 StructuredBuffer<MyStruct> structrotest : register(t2);
 Texture2D<float> dimtex : register(t3);
+Texture2DMS<float> dimtexms : register(t4);
 RWByteAddressBuffer byterwtest : register(u1);
 RWStructuredBuffer<MyStruct> structrwtest : register(u2);
 
@@ -572,6 +573,33 @@ float4 main(v2f IN) : SV_Target0
     test.GetDimensions(width);
     return float4(max(1,width), 0.0f, 0.0f, 0.0f);
   }
+  if(IN.tri == 63)
+  {
+    uint width = 0, height = 0, numSamples = 0;
+    dimtexms.GetDimensions(width, height, numSamples);
+    return float4(width, height, numSamples, 0.0f);
+  }
+  if(IN.tri == 64)
+  {
+    uint width = 0, height = 0, numSamples = 0;
+    dimtexms.GetDimensions(width, height, numSamples);
+    float2 posLast = dimtexms.GetSamplePosition(numSamples - 1);
+    return float4(posLast, 0.0f, 0.0f);
+  }
+  if(IN.tri == 65)
+  {
+    uint width = 0, height = 0, numSamples = 0;
+    dimtexms.GetDimensions(width, height, numSamples);
+    float2 posInvalid = dimtexms.GetSamplePosition(numSamples + 1);
+    return float4(posInvalid, 0.0f, 0.0f);
+  }
+  if(IN.tri == 66)
+  {
+    // Test sampleinfo with a non-MSAA rasterizer
+    uint numSamples = GetRenderTargetSampleCount();
+    float2 pos = GetRenderTargetSamplePosition(0);
+    return float4(pos, numSamples, 0.0f);
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
@@ -598,7 +626,12 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
   float y = (uvSamp0.x + uvSamp0.y) * 0.5f;
   float z = (uvSampThis.x + uvSampThis.y) * 0.5f;
   float w = (uvOffset.x + uvOffset.y) * 0.5f;
-  return float4(x, y, z, w);
+
+  // Test sampleinfo with a MSAA rasterizer
+  uint numSamples = GetRenderTargetSampleCount();
+  float2 pos = GetRenderTargetSamplePosition(samp);
+
+  return float4(x + pos.x, y + pos.y, z + (float)numSamples, w);
 }
 
 )EOSHADER";
@@ -637,8 +670,8 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     });
 
     ID3D12RootSignaturePtr sig = MakeSig({
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 4, 0),
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 2, 4),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 5, 0),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 2, 5),
     });
 
     ID3D12PipelineStatePtr pso_5_0 = MakePSO()
@@ -663,7 +696,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
                                    .RTV()
                                    .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
     D3D12_CPU_DESCRIPTOR_HANDLE fltRTV = MakeRTV(fltTex).CreateCPU(0);
-    D3D12_GPU_DESCRIPTOR_HANDLE fltSRV = MakeSRV(fltTex).CreateGPU(6);
+    D3D12_GPU_DESCRIPTOR_HANDLE fltSRV = MakeSRV(fltTex).CreateGPU(7);
 
     float triWidth = 8.0f / float(texDim);
 
@@ -703,11 +736,14 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
         .NumElements(12)
         .CreateGPU(1);
 
+    ID3D12ResourcePtr msTex = MakeTexture(DXGI_FORMAT_R32_FLOAT, 16, 16).Multisampled(4).RTV();
+    MakeSRV(msTex).CreateGPU(4);
+
     ID3D12ResourcePtr rawBuf2 = MakeBuffer().Size(1024).UAV();
     D3D12ViewCreator uavView1 =
         MakeUAV(rawBuf2).Format(DXGI_FORMAT_R32_TYPELESS).ByteAddressed().FirstElement(4).NumElements(12);
-    D3D12_CPU_DESCRIPTOR_HANDLE uav1cpu = uavView1.CreateClearCPU(4);
-    D3D12_GPU_DESCRIPTOR_HANDLE uav1gpu = uavView1.CreateGPU(4);
+    D3D12_CPU_DESCRIPTOR_HANDLE uav1cpu = uavView1.CreateClearCPU(5);
+    D3D12_GPU_DESCRIPTOR_HANDLE uav1gpu = uavView1.CreateGPU(5);
 
     float structdata[220];
     for(int i = 0; i < 220; i++)
@@ -727,8 +763,8 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
                                     .FirstElement(3)
                                     .NumElements(5)
                                     .StructureStride(11 * sizeof(float));
-    D3D12_CPU_DESCRIPTOR_HANDLE uav2cpu = uavView2.CreateClearCPU(5);
-    D3D12_GPU_DESCRIPTOR_HANDLE uav2gpu = uavView2.CreateGPU(5);
+    D3D12_CPU_DESCRIPTOR_HANDLE uav2cpu = uavView2.CreateClearCPU(6);
+    D3D12_GPU_DESCRIPTOR_HANDLE uav2gpu = uavView2.CreateGPU(6);
 
     // Create resources for MSAA draw
     ID3DBlobPtr vsmsaablob = Compile(D3DDefaultVertex, "main", "vs_5_0");
@@ -736,8 +772,13 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
 
     ID3D12RootSignaturePtr sigmsaa = MakeSig({});
 
-    ID3D12PipelineStatePtr psomsaa =
-        MakePSO().RootSig(sigmsaa).InputLayout().VS(vsmsaablob).PS(psmsaablob).SampleCount(4);
+    ID3D12PipelineStatePtr psomsaa = MakePSO()
+                                         .RootSig(sigmsaa)
+                                         .InputLayout()
+                                         .VS(vsmsaablob)
+                                         .PS(psmsaablob)
+                                         .SampleCount(4)
+                                         .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
     ID3D12ResourcePtr vbmsaa = MakeBuffer().Data(DefaultTri);
 
     ID3D12ResourcePtr msaaTex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 8, 8)
@@ -750,7 +791,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     psblob = Compile(pixelBlit, "main", "ps_5_0");
     ID3D12RootSignaturePtr blitSig = MakeSig({
         constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0, 1),
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 6),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 7),
     });
     ID3D12PipelineStatePtr blitpso = MakePSO().RootSig(blitSig).VS(vsblob).PS(psblob);
 
