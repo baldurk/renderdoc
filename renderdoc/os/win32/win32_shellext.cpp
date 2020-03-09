@@ -30,7 +30,7 @@
 #include <thumbcache.h>
 #include <windows.h>
 #include "3rdparty/lz4/lz4.h"
-#include "3rdparty/stb/stb_image_resize.h"
+#include "stb/stb_image_resize.h"
 #include "common/common.h"
 #include "core/core.h"
 #include "jpeg-compressor/jpgd.h"
