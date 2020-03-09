@@ -463,26 +463,24 @@ void WrappedID3D12Resource1::RefBuffers(D3D12ResourceManager *rm)
     rm->MarkResourceFrameReferenced(m_Addresses.addresses[i].id, eFrameRef_Read);
 }
 
-void WrappedID3D12Resource1::AddRefBuffersBeforeCapture(D3D12ResourceManager *rm)
+rdcarray<ID3D12Resource *> WrappedID3D12Resource1::AddRefBuffersBeforeCapture(D3D12ResourceManager *rm)
 {
-  SCOPED_READLOCK(m_Addresses.addressLock);
-  for(size_t i = 0; i < m_Addresses.addresses.size(); i++)
-    rm->GetCurrentResource(m_Addresses.addresses[i].id)->AddRef();
-}
+  rdcarray<ID3D12Resource *> ret;
 
-void WrappedID3D12Resource1::ReleaseBuffersAfterCapture(D3D12ResourceManager *rm)
-{
-  // make a copy because we might release the last reference on a buffer which will need to modify
-  // the actual m_Addresses
   rdcarray<GPUAddressRange> addresses;
-
   {
     SCOPED_READLOCK(m_Addresses.addressLock);
     addresses = m_Addresses.addresses;
   }
 
   for(size_t i = 0; i < addresses.size(); i++)
-    rm->GetCurrentResource(addresses[i].id)->Release();
+  {
+    ID3D12Resource *resource = (ID3D12Resource *)rm->GetCurrentResource(m_Addresses.addresses[i].id);
+    resource->AddRef();
+    ret.push_back(resource);
+  }
+
+  return ret;
 }
 
 WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *real,

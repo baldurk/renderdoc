@@ -361,6 +361,13 @@ private:
   rdcarray<WrappedID3D12CommandQueue *> m_Queues;
   rdcarray<ID3D12Fence *> m_QueueFences;
 
+  // list of queues and buffers kept alive during capture artificially even if the user destroys
+  // them, so we can use them in the capture. Storing this separately prevents races where a
+  // queue/buffer is added between us transitioning away from active capturing (so we don't addref
+  // it) and us releasing our reference on them.
+  rdcarray<WrappedID3D12CommandQueue *> m_RefQueues;
+  rdcarray<ID3D12Resource *> m_RefBuffers;
+
   // the queue we use for all internal work, the first DIRECT queue
   WrappedID3D12CommandQueue *m_Queue;
 

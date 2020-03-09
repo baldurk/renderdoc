@@ -136,15 +136,20 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
     {
       SCOPED_READLOCK(m_CapTransitionLock);
       capframe = IsActiveCapturing(m_State);
+
+      // while capturing don't allow any queues to be freed, by adding another refcount, since we
+      // gather any commands submitted to them at the end of the capture.
+      if(capframe)
+      {
+        wrapped->AddRef();
+        m_RefQueues.push_back(wrapped);
+      }
     }
 
-    // while capturing don't allow any queues to be freed, by adding another refcount, since we
-    // gather any commands submitted to them at the end of the capture.
     if(capframe)
     {
       GetResourceManager()->MarkResourceFrameReferenced(
           wrapped->GetCreationRecord()->GetResourceID(), eFrameRef_Read);
-      wrapped->AddRef();
     }
 
     *ppCommandQueue = (ID3D12CommandQueue *)wrapped;
@@ -1475,6 +1480,18 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
     }
 
     *ppvResource = (ID3D12Resource *)wrapped;
+
+    // while actively capturing we keep all buffers around to prevent the address lookup from
+    // losing addresses we might need (or the manageable but annoying problem of an address being
+    // re-used)
+    {
+      SCOPED_READLOCK(m_CapTransitionLock);
+      if(IsActiveCapturing(m_State))
+      {
+        wrapped->AddRef();
+        m_RefBuffers.push_back(wrapped);
+      }
+    }
   }
 
   return ret;
@@ -1750,6 +1767,18 @@ HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 Heap
     }
 
     *ppvResource = (ID3D12Resource *)wrapped;
+
+    // while actively capturing we keep all buffers around to prevent the address lookup from
+    // losing addresses we might need (or the manageable but annoying problem of an address being
+    // re-used)
+    {
+      SCOPED_READLOCK(m_CapTransitionLock);
+      if(IsActiveCapturing(m_State))
+      {
+        wrapped->AddRef();
+        m_RefBuffers.push_back(wrapped);
+      }
+    }
   }
 
   return ret;
@@ -2573,6 +2602,18 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
         SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
         states.fill(GetNumSubresources(m_pDevice, &desc), InitialResourceState);
+      }
+
+      // while actively capturing we keep all buffers around to prevent the address lookup from
+      // losing addresses we might need (or the manageable but annoying problem of an address being
+      // re-used)
+      {
+        SCOPED_READLOCK(m_CapTransitionLock);
+        if(IsActiveCapturing(m_State))
+        {
+          wrapped->AddRef();
+          m_RefBuffers.push_back(wrapped);
+        }
       }
     }
 

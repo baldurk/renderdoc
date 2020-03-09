@@ -1829,8 +1829,8 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
                                                         eFrameRef_Read);
     }
 
-    // also keep buffers alive
-    WrappedID3D12Resource1::AddRefBuffersBeforeCapture(GetResourceManager());
+    m_RefQueues = m_Queues;
+    m_RefBuffers = WrappedID3D12Resource1::AddRefBuffersBeforeCapture(GetResourceManager());
   }
 
   GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Read);
@@ -2136,14 +2136,14 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   SAFE_DELETE(m_HeaderChunk);
 
   for(auto it = queues.begin(); it != queues.end(); ++it)
-  {
     (*it)->ClearAfterCapture();
 
-    // remove the reference held during capture, potentially releasing the queue.
-    (*it)->Release();
-  }
+  // remove the references held during capture, potentially releasing the queue/buffer.
+  for(WrappedID3D12CommandQueue *q : m_RefQueues)
+    q->Release();
 
-  WrappedID3D12Resource1::ReleaseBuffersAfterCapture(GetResourceManager());
+  for(ID3D12Resource *r : m_RefBuffers)
+    r->Release();
 
   GetResourceManager()->MarkUnwrittenResources();
 
@@ -2188,6 +2188,13 @@ bool WrappedID3D12Device::DiscardFrameCapture(void *dev, void *wnd)
 
   for(auto it = queues.begin(); it != queues.end(); ++it)
     (*it)->ClearAfterCapture();
+
+  // remove the reference held during capture, potentially releasing the queue.
+  for(WrappedID3D12CommandQueue *q : m_RefQueues)
+    q->Release();
+
+  for(ID3D12Resource *r : m_RefBuffers)
+    r->Release();
 
   GetResourceManager()->MarkUnwrittenResources();
 

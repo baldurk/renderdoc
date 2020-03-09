@@ -379,6 +379,18 @@ HRESULT WrappedID3D12Device::CreateCommittedResource1(
     }
 
     *ppvResource = (ID3D12Resource *)wrapped;
+
+    // while actively capturing we keep all buffers around to prevent the address lookup from
+    // losing addresses we might need (or the manageable but annoying problem of an address being
+    // re-used)
+    {
+      SCOPED_READLOCK(m_CapTransitionLock);
+      if(IsActiveCapturing(m_State))
+      {
+        wrapped->AddRef();
+        m_RefBuffers.push_back(wrapped);
+      }
+    }
   }
 
   return ret;
