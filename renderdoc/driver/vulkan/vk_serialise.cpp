@@ -4045,12 +4045,20 @@ void DoSerialise(SerialiserType &ser, VkDescriptorUpdateTemplateEntry &el)
   if(ser.VersionAtLeast(0xE))
 #endif
   {
-    uint64_t offset = el.offset;
-    uint64_t stride = el.stride;
+    uint64_t offset = 0;
+    uint64_t stride = 0;
+    if(ser.IsWriting())
+    {
+      offset = el.offset;
+      stride = el.stride;
+    }
     ser.Serialise("offset"_lit, offset);
     ser.Serialise("stride"_lit, stride);
-    el.offset = (size_t)offset;
-    el.stride = (size_t)stride;
+    if(ser.IsReading())
+    {
+      el.offset = (size_t)offset;
+      el.stride = (size_t)stride;
+    }
   }
 #if DISABLED(RDOC_APPLE)
   else

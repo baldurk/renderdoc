@@ -24,6 +24,10 @@
 
 #include "vk_test.h"
 
+static const VkDescriptorUpdateTemplateEntryKHR constEntry = {
+    4, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 0, 16,
+};
+
 RD_TEST(VK_Parameter_Zoo, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
@@ -676,6 +680,13 @@ void main()
 
       vkUpdateDescriptorSetWithTemplateKHR(device, descset, templ, &data);
 
+      vkDestroyDescriptorUpdateTemplateKHR(device, templ, NULL);
+
+      // try with constant entry
+      createInfo.descriptorUpdateEntryCount = 1;
+      createInfo.pDescriptorUpdateEntries = &constEntry;
+      vkCreateDescriptorUpdateTemplateKHR(device, &createInfo, NULL, &templ);
+      vkUpdateDescriptorSetWithTemplateKHR(device, descset, templ, &data);
       vkDestroyDescriptorUpdateTemplateKHR(device, templ, NULL);
 
       entries = {
