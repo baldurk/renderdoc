@@ -14,6 +14,9 @@ def remLines(delim, above, below):
     WinReader = codecs.getreader('cp1252')
     sys.stdin = WinReader(sys.stdin.buffer)
 
+    WinWriter = codecs.getwriter('cp1252')
+    sys.stdout = WinWriter(sys.stdout.buffer)
+
     buff = []
     line = sys.stdin.readline()
     while line:

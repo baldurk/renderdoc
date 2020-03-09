@@ -147,6 +147,7 @@ if [ $1 == "htmlhelp" ]; then
 	# Copy introduction page over index.html
 	cp $BUILDDIR/htmlhelp/introduction.html $BUILDDIR/htmlhelp/index.html
 	# Filter out the auto-generated TOC to remove anchor links and root index.html
+	cp $BUILDDIR/htmlhelp/renderdoc.hhc $BUILDDIR/htmlhelp/renderdoc.hhc.bak
 	cat $BUILDDIR/htmlhelp/renderdoc.hhc | "$PYTHON" remove_lines.py ".html#" | "$PYTHON" remove_lines.py "\"index.html\"" > $BUILDDIR/htmlhelp/tmp
 	mv $BUILDDIR/htmlhelp/tmp $BUILDDIR/htmlhelp/renderdoc.hhc
 	if [ -f "${HHCBUILD}" ]; then
