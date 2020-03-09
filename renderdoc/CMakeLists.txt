@@ -255,15 +255,22 @@ set(sources
     3rdparty/zstd/zstd_opt.h
     3rdparty/zstd/zstdmt_compress.c
     3rdparty/zstd/zstdmt_compress.h
-    3rdparty/stb/stb_image.h
-    3rdparty/stb/stb_image_write.h
-    3rdparty/stb/stb_image_resize.h
-    3rdparty/stb/stb_impl.c
-    3rdparty/stb/stb_truetype.h
     3rdparty/tinyexr/tinyexr.cpp
     3rdparty/tinyexr/tinyexr.h
     3rdparty/tinyfiledialogs/tinyfiledialogs.c
     3rdparty/tinyfiledialogs/tinyfiledialogs.h)
+
+find_library(STB_LIBRARY stb)
+if ( NOT STB_LIBRARY )
+    list(APPEND sources
+        3rdparty/stb/stb_image.h
+        3rdparty/stb/stb_image_write.h
+        3rdparty/stb/stb_image_resize.h
+        3rdparty/stb/stb_impl.c
+        3rdparty/stb/stb_truetype.h)
+else()
+    list(APPEND RDOC_LIBRARIES PRIVATE ${STB_LIBRARY})
+endif()
 
 if(ANDROID)
     list(APPEND sources
