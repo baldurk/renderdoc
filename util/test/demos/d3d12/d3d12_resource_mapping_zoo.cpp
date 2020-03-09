@@ -72,10 +72,76 @@ float4 main() : SV_Target0
 {
   float4 color = bar[1][2].col;
   color += test + float4(0.1f, 0.0f, 0.0f, 0.0f);
-	return color + res1[uint2(0, 0)] + res2[uint2(0, 0)];
+  return color + res1[uint2(0, 0)] + res2[uint2(0, 0)];
 }
 
 )EOSHADER";
+
+  std::string pixel_resArray = R"EOSHADER(
+
+Texture2DArray<float> resArray[4] : register(t10, space1);
+
+float4 main(float4 pos : SV_Position) : SV_Target0
+{
+  uint2 indices = ((uint2)pos.xy) % uint2(4, 4);
+  float arrayVal = resArray[NonUniformResourceIndex(indices.x)].Load(uint4(0, 0, indices.y, 0));
+  return float4(arrayVal, arrayVal, arrayVal, 1.0f);
+}
+
+)EOSHADER";
+
+  void UploadTexture(ID3D12ResourcePtr & uploadBuf, ID3D12ResourcePtr & dstTexture, byte * data,
+                     uint32_t dataStride)
+  {
+    // dstTexture is assumed to be in the D3D12_RESOURCE_STATE_COPY_DEST state
+
+    D3D12_RESOURCE_DESC desc = dstTexture->GetDesc();
+
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT *pLayouts =
+        new D3D12_PLACED_SUBRESOURCE_FOOTPRINT[desc.DepthOrArraySize];
+    dev->GetCopyableFootprints(&desc, 0, desc.DepthOrArraySize, 0, pLayouts, NULL, NULL, NULL);
+    ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
+    Reset(cmd);
+
+    D3D12_TEXTURE_COPY_LOCATION dst, src;
+    src.Type = src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    src.pResource = uploadBuf;
+
+    dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    dst.pResource = dstTexture;
+
+    byte *dataptr = data;
+    for(UINT i = 0; i < desc.DepthOrArraySize; ++i)
+    {
+      src.PlacedFootprint = pLayouts[i];
+      uint32_t copyStride =
+          pLayouts[i].Footprint.RowPitch < dataStride ? pLayouts[i].Footprint.RowPitch : dataStride;
+      byte *mapptr = Map(uploadBuf, 0) + pLayouts[i].Offset;
+      for(UINT y = 0; y < pLayouts[i].Footprint.Height; ++y)
+      {
+        memcpy(mapptr, dataptr, copyStride);
+        mapptr += pLayouts[i].Footprint.RowPitch;
+        dataptr += dataStride;
+      }
+
+      dst.SubresourceIndex = i;
+      cmd->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+      uploadBuf->Unmap(0, NULL);
+
+      D3D12_RESOURCE_BARRIER b = {};
+      b.Transition.pResource = dstTexture;
+      b.Transition.Subresource = i;
+      b.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+      b.Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
+      cmd->ResourceBarrier(1, &b);
+    }
+
+    cmd->Close();
+    Submit({cmd});
+    GPUSync();
+
+    delete[] pLayouts;
+  }
 
   // Constant buffer locations must be 256 byte aligned, so that's the smallest size that
   // an entry of a CB array can be.
@@ -95,6 +161,7 @@ float4 main() : SV_Target0
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_5_0");
     ID3DBlobPtr psblob_5_0 = Compile(pixel_5_0, "main", "ps_5_0");
     ID3DBlobPtr psblob_5_1 = Compile(pixel_5_1, "main", "ps_5_1");
+    ID3DBlobPtr psblob_resArray = Compile(pixel_resArray, "main", "ps_5_1");
 
     Vec4f cbufferdata = Vec4f(25.0f, 50.0f, 75.0f, 100.0f);
 
@@ -111,114 +178,50 @@ float4 main() : SV_Target0
 
     ID3D12ResourcePtr res1 =
         MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 2, 2).Mips(1).InitialState(D3D12_RESOURCE_STATE_COPY_DEST);
-    MakeSRV(res1).CreateGPU(18);
+    MakeSRV(res1).CreateGPU(56);
     ID3D12ResourcePtr res2 =
         MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 2, 2).Mips(1).InitialState(D3D12_RESOURCE_STATE_COPY_DEST);
-    MakeSRV(res2).CreateGPU(19);
+    MakeSRV(res2).CreateGPU(57);
 
     ID3D12ResourcePtr uploadBuf = MakeBuffer().Size(1024 * 1024).Upload();
+
+    // Create texture arrays
+    ID3D12ResourcePtr resArray[4] = {NULL};
+    for(int i = 0; i < 4; ++i)
     {
-      D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout = {};
+      resArray[i] =
+          MakeTexture(DXGI_FORMAT_R32_FLOAT, 2, 2).Array(4).InitialState(D3D12_RESOURCE_STATE_COPY_DEST);
+      MakeSRV(resArray[i]).NumSlices(4).CreateGPU(30 + i);
 
-      D3D12_RESOURCE_DESC desc = res1->GetDesc();
-
-      dev->GetCopyableFootprints(&desc, 0, 1, 0, &layout, NULL, NULL, NULL);
-
-      ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
-
-      Reset(cmd);
-
-      byte *mapptr = NULL;
-      uploadBuf->Map(0, NULL, (void **)&mapptr);
-      {
-        D3D12_TEXTURE_COPY_LOCATION dst, src;
-        dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-        dst.pResource = res1;
-        dst.SubresourceIndex = 0;
-
-        byte data[4] = {26, 51, 77, 102};    // In UNORM, 1/10, 2/10, 3/10, 4/10
-        byte *dstptr = mapptr + layout.Offset;
-        memcpy(dstptr, data, sizeof(byte) * 4);
-        memcpy(dstptr + sizeof(byte) * 4, data, sizeof(byte) * 4);
-        dstptr += layout.Footprint.RowPitch;
-        memcpy(dstptr, data, sizeof(byte) * 4);
-        memcpy(dstptr + sizeof(byte) * 4, data, sizeof(byte) * 4);
-
-        src.Type = src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-        src.pResource = uploadBuf;
-        src.PlacedFootprint = layout;
-        cmd->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
-
-        D3D12_RESOURCE_BARRIER b = {};
-        b.Transition.pResource = res1;
-        b.Transition.Subresource = 0;
-        b.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-        b.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-        cmd->ResourceBarrier(1, &b);
-      }
-
-      cmd->Close();
-      uploadBuf->Unmap(0, NULL);
-      Submit({cmd});
-      GPUSync();
+      float arrayData[16];
+      for(int j = 0; j < 16; ++j)
+        arrayData[j] = (float)(i + j);
+      UploadTexture(uploadBuf, resArray[i], (byte *)arrayData, 2 * sizeof(float));
     }
-    {
-      D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout = {};
 
-      D3D12_RESOURCE_DESC desc = res2->GetDesc();
+    // In UNORM, 1/10, 2/10, 3/10, 4/10
+    byte res1Data[16] = {26, 51, 77, 102, 26, 51, 77, 102, 26, 51, 77, 102, 26, 51, 77, 102};
+    UploadTexture(uploadBuf, res1, res1Data, 8);
 
-      dev->GetCopyableFootprints(&desc, 0, 1, 0, &layout, NULL, NULL, NULL);
-
-      ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
-
-      Reset(cmd);
-
-      byte *mapptr = NULL;
-      uploadBuf->Map(0, NULL, (void **)&mapptr);
-      {
-        D3D12_TEXTURE_COPY_LOCATION dst, src;
-        dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-        dst.pResource = res2;
-        dst.SubresourceIndex = 0;
-
-        byte data[4] = {128, 153, 179, 204};    // In UNORM, 5/10, 6/10, 7/10, 8/10
-        byte *dstptr = mapptr + layout.Offset;
-        memcpy(dstptr, data, sizeof(byte) * 4);
-        memcpy(dstptr + sizeof(byte) * 4, data, sizeof(byte) * 4);
-        dstptr += layout.Footprint.RowPitch;
-        memcpy(dstptr, data, sizeof(byte) * 4);
-        memcpy(dstptr + sizeof(byte) * 4, data, sizeof(byte) * 4);
-
-        src.Type = src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-        src.pResource = uploadBuf;
-        src.PlacedFootprint = layout;
-        cmd->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
-
-        D3D12_RESOURCE_BARRIER b = {};
-        b.Transition.pResource = res2;
-        b.Transition.Subresource = 0;
-        b.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-        b.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-        cmd->ResourceBarrier(1, &b);
-      }
-
-      cmd->Close();
-      uploadBuf->Unmap(0, NULL);
-      Submit({cmd});
-      GPUSync();
-    }
+    // In UNORM, 5/10, 6/10, 7/10, 8/10
+    byte res2Data[16] = {128, 153, 179, 204, 128, 153, 179, 204,
+                         128, 153, 179, 204, 128, 153, 179, 204};
+    UploadTexture(uploadBuf, res2, res2Data, 8);
 
     // Test the same resource mappings both with explicitly specified resources,
     // and a bindless style table param
     ID3D12RootSignaturePtr sig_5_0 = MakeSig({
         cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 3),
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 18),
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2, 1, 19),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 56),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2, 1, 57),
     });
     ID3D12RootSignaturePtr sig_5_1 = MakeSig({
         cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 3),
         tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 4, 12, 0),
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, UINT_MAX, 12),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, UINT_MAX, 50),
+    });
+    ID3D12RootSignaturePtr sig_resArray = MakeSig({
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 10, 4, 30),
     });
 
     ID3D12PipelineStatePtr pso_5_0 = MakePSO()
@@ -233,6 +236,12 @@ float4 main() : SV_Target0
                                          .VS(vsblob)
                                          .PS(psblob_5_1)
                                          .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
+    ID3D12PipelineStatePtr pso_resArray = MakePSO()
+                                              .RootSig(sig_resArray)
+                                              .InputLayout()
+                                              .VS(vsblob)
+                                              .PS(psblob_resArray)
+                                              .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
 
     ResourceBarrier(vb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
     ResourceBarrier(cb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
@@ -254,12 +263,13 @@ float4 main() : SV_Target0
       D3D12_CPU_DESCRIPTOR_HANDLE bbrtv =
           MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
 
+      D3D12_CPU_DESCRIPTOR_HANDLE offrtv = MakeRTV(rtvtex).CreateCPU(1);
+
+      OMSetRenderTargets(cmd, {offrtv}, {});
       ClearRenderTargetView(cmd, bbrtv, {0.4f, 0.5f, 0.6f, 1.0f});
-
-      D3D12_CPU_DESCRIPTOR_HANDLE offrtv = MakeRTV(rtvtex).CreateCPU(0);
-
       ClearRenderTargetView(cmd, offrtv, {0.4f, 0.5f, 0.6f, 1.0f});
 
+      setMarker(cmd, "sm_5_0");
       cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
       IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
@@ -273,16 +283,22 @@ float4 main() : SV_Target0
       RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
       RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
 
-      OMSetRenderTargets(cmd, {offrtv}, {});
-
       cmd->DrawInstanced(3, 1, 0, 0);
 
+      setMarker(cmd, "sm_5_1");
       cmd->SetPipelineState(pso_5_1);
       cmd->SetGraphicsRootSignature(sig_5_1);
       cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
       cmd->SetGraphicsRootConstantBufferView(0, cb->GetGPUVirtualAddress());
       cmd->SetGraphicsRootDescriptorTable(1, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
       cmd->SetGraphicsRootDescriptorTable(2, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+      cmd->DrawInstanced(3, 1, 0, 0);
+
+      setMarker(cmd, "ResArray");
+      cmd->SetPipelineState(pso_resArray);
+      cmd->SetGraphicsRootSignature(sig_resArray);
+      cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
+      cmd->SetGraphicsRootDescriptorTable(0, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
       cmd->DrawInstanced(3, 1, 0, 0);
 
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
