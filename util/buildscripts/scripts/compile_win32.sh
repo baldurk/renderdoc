@@ -85,6 +85,7 @@ if [ "$VERSION32" == "$GITTAG" ]; then
 else
 
 	# Build the arm32 variant
+	rm -rf build-android-arm32
 	mkdir -p build-android-arm32
 	pushd build-android-arm32
 
@@ -105,6 +106,7 @@ if [ "$VERSION64" == "$GITTAG" ]; then
 
 else
 
+	rm -rf build-android-arm64
 	mkdir -p build-android-arm64
 	pushd build-android-arm64
 
