@@ -1407,8 +1407,11 @@ ShaderVariable ThreadState::GetSrc(const Operand &oper, const Operation &op, boo
     case TYPE_RASTERIZER:
     {
       // should be handled specially by instructions that expect these types of
-      // argument but let's be sane and include the index
-      v = s = ShaderVariable("", indices[0], indices[0], indices[0], indices[0]);
+      // argument but let's be sane and include the indices. For indexing into
+      // resource arrays, indices[0] will contain the logical identifier, and
+      // indices[1] will contain the shader register correlating to the resource
+      // array index requested (in absolute terms, not relative to the start register)
+      v = s = ShaderVariable("", indices[0], indices[1], indices[2], indices[3]);
       flushable = false;
       break;
     }
@@ -3784,6 +3787,10 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           sampleCount = decl.sampleCount;
 
           resourceBinding = GetBindingSlotForDeclaration(*program, decl);
+
+          // With SM5.1, resource arrays need to offset the shader register by the array index
+          if(program->IsShaderModel51())
+            resourceBinding.shaderRegister = srcOpers[1].value.u.y;
 
           // doesn't seem like these are ever less than four components, even if the texture is
           // declared <float3> for example.
