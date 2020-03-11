@@ -881,7 +881,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
   {
     uint64_t chunkSize = RDCMIN(length, m_ReadbackSize);
 
-    m_DebugList->CopyBufferRegion(m_ReadbackBuffer, 0, buffer, offset, chunkSize);
+    m_DebugList->CopyBufferRegion(m_ReadbackBuffer, 0, buffer, offset + outOffs, chunkSize);
 
     m_DebugList->Close();
 
