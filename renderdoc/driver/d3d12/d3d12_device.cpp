@@ -1199,6 +1199,14 @@ void WrappedID3D12Device::Map(ID3D12Resource *Resource, UINT Subresource)
 
   D3D12_RESOURCE_DESC desc = Resource->GetDesc();
 
+  D3D12_HEAP_PROPERTIES heapProps;
+  Resource->GetHeapProperties(&heapProps, NULL);
+
+  // ignore maps of readback resources, these cannot ever reach the GPU because the resource is
+  // stuck in COPY_DEST state.
+  if(heapProps.Type == D3D12_HEAP_TYPE_READBACK)
+    return;
+
   m_pDevice->GetCopyableFootprints(&desc, Subresource, 1, 0, NULL, NULL, NULL, &map.totalSize);
 
   {
@@ -1211,6 +1219,14 @@ void WrappedID3D12Device::Unmap(ID3D12Resource *Resource, UINT Subresource, byte
                                 const D3D12_RANGE *pWrittenRange)
 {
   MapState map = {};
+
+  D3D12_HEAP_PROPERTIES heapProps;
+  Resource->GetHeapProperties(&heapProps, NULL);
+
+  // ignore maps of readback resources, these cannot ever reach the GPU because the resource is
+  // stuck in COPY_DEST state.
+  if(heapProps.Type == D3D12_HEAP_TYPE_READBACK)
+    return;
 
   {
     SCOPED_LOCK(m_MapsLock);
