@@ -22,7 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#if defined(OPENGL_CORE)
+#if defined(GLES)
+#extension GL_OES_sample_variables : require
+#elif defined(OPENGL_CORE)
 #extension GL_ARB_sample_shading : require
 #endif
 

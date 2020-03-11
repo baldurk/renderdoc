@@ -44,7 +44,10 @@ void GetGLSLVersions(ShaderType &shaderType, int &glslVersion, int &glslBaseVer,
   if(IsGLES)
   {
     shaderType = ShaderType::GLSLES;
-    glslVersion = glslBaseVer = glslCSVer = 310;
+    glslVersion = glslBaseVer = glslCSVer = 300;
+
+    if(GLCoreVersion >= 31)
+      glslVersion = glslBaseVer = glslCSVer = 310;
 
     if(GLCoreVersion >= 32)
       glslVersion = glslBaseVer = glslCSVer = 320;
@@ -777,7 +780,8 @@ void GLReplay::InitDebugData()
         ARRAY_COUNT(DebugData.minmaxTileProgram) >= (TEXDISPLAY_SINT_TEX | TEXDISPLAY_TYPEMASK) + 1,
         "not enough programs");
 
-    if(HasExt[ARB_compute_shader] && HasExt[ARB_shader_storage_buffer_object])
+    if(HasExt[ARB_compute_shader] && HasExt[ARB_shader_storage_buffer_object] &&
+       HasExt[ARB_shading_language_420pack])
     {
       for(int t = 1; t <= RESTYPE_TEXTYPEMAX; t++)
       {
@@ -868,7 +872,7 @@ void GLReplay::InitDebugData()
                              eGL_DYNAMIC_READ);
   }
 
-  if(HasExt[ARB_compute_shader])
+  if(HasExt[ARB_compute_shader] && HasExt[ARB_shading_language_420pack])
   {
     cs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_comp), shaderType, glslCSVer);
     DebugData.meshPickProgram = CreateCShaderProgram(cs);
@@ -1078,7 +1082,8 @@ void GLReplay::InitDebugData()
     m_Degraded = true;
   }
 
-  if(!HasExt[ARB_shader_image_load_store] || !HasExt[ARB_compute_shader])
+  if(!HasExt[ARB_shader_image_load_store] || !HasExt[ARB_compute_shader] ||
+     !HasExt[ARB_shading_language_420pack])
   {
     RDCWARN(
         "Don't have shader image load/store or compute shaders, functionality will be degraded.");
@@ -1432,7 +1437,7 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
   if(texid == ResourceId() || m_pDriver->m_Textures.find(texid) == m_pDriver->m_Textures.end())
     return false;
 
-  if(!HasExt[ARB_compute_shader])
+  if(!HasExt[ARB_compute_shader] || !HasExt[ARB_shading_language_420pack])
     return false;
 
   auto &texDetails = m_pDriver->m_Textures[texid];
@@ -1654,7 +1659,7 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
   if(m_pDriver->m_Textures.find(texid) == m_pDriver->m_Textures.end())
     return false;
 
-  if(!HasExt[ARB_compute_shader])
+  if(!HasExt[ARB_compute_shader] || !HasExt[ARB_shading_language_420pack])
     return false;
 
   auto &texDetails = m_pDriver->m_Textures[texid];
@@ -1918,7 +1923,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
 {
   WrappedOpenGL &drv = *m_pDriver;
 
-  if(!HasExt[ARB_compute_shader])
+  if(!HasExt[ARB_compute_shader] || !HasExt[ARB_shading_language_420pack])
     return ~0U;
 
   MakeCurrentReplayContext(m_DebugCtx);

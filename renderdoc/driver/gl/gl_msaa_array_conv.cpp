@@ -65,7 +65,7 @@ void WrappedOpenGL::ArrayMSPrograms::Create()
 
   DepthArray2MS = DepthMS2Array = 0;
 
-  if(HasExt[ARB_texture_multisample])
+  if(HasExt[ARB_texture_multisample] && HasExt[ARB_sample_shading])
   {
     GLuint prevProg = 0;
     GL.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prevProg);
@@ -94,7 +94,9 @@ void WrappedOpenGL::ArrayMSPrograms::Create()
   {
     MS2Array = 0;
     Array2MS = 0;
-    RDCWARN("GL_ARB_texture_multisample not supported, disabling 2DMS depth-stencil save/load.");
+    RDCWARN(
+        "GL_ARB_texture_multisample or GL_ARB_sample_shading not supported, disabling 2DMS "
+        "depth-stencil save/load.");
   }
 }
 
