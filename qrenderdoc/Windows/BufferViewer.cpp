@@ -2532,10 +2532,13 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       ApplyRowAndColumnDims(m_ModelVSOut->columnCount(), ui->vsoutData);
       ApplyRowAndColumnDims(m_ModelGSOut->columnCount(), ui->gsoutData);
 
-      int numRows = qMax(qMax(bufdata->vsinConfig.numRows, bufdata->vsoutConfig.numRows),
-                         bufdata->gsoutConfig.numRows);
+      uint32_t numRows = qMax(qMax(bufdata->vsinConfig.numRows, bufdata->vsoutConfig.numRows),
+                              bufdata->gsoutConfig.numRows);
 
-      ui->rowOffset->setMaximum(qMax(0, numRows - 1));
+      if(!m_MeshView)
+        numRows = qMax(numRows, bufdata->vsinConfig.unclampedNumRows);
+
+      ui->rowOffset->setMaximum((int)qMax(0U, numRows - 1));
 
       ScrollToRow(ui->vsinData, qMin(int(bufdata->vsinConfig.numRows - 1), bufdata->vsinVert));
       ScrollToRow(ui->vsoutData, qMin(int(bufdata->vsoutConfig.numRows - 1), bufdata->vsoutVert));
@@ -2546,18 +2549,21 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       ui->gsoutData->horizontalScrollBar()->setValue(bufdata->gsoutHoriz);
 
       if(!m_MeshView)
+        on_rowOffset_valueChanged(ui->rowOffset->value());
+
+      if(!m_MeshView)
       {
         const bool prev = (bufdata->vsinConfig.pagingOffset > 0);
         const bool next = (bufdata->vsinConfig.numRows >= MaxVisibleRows);
 
         if(prev && next)
         {
-          ui->vsinData->setIndexWidget(m_ModelVSIn->index(0, 1), MakePreviousPageButton());
-          ui->vsinData->setIndexWidget(m_ModelVSIn->index(0, 2), MakeNextPageButton());
+          ui->vsinData->setIndexWidget(m_ModelVSIn->index(0, 0), MakePreviousPageButton());
+          ui->vsinData->setIndexWidget(m_ModelVSIn->index(0, 1), MakeNextPageButton());
 
-          ui->vsinData->setIndexWidget(m_ModelVSIn->index(MaxVisibleRows + 1, 1),
+          ui->vsinData->setIndexWidget(m_ModelVSIn->index(MaxVisibleRows + 1, 0),
                                        MakePreviousPageButton());
-          ui->vsinData->setIndexWidget(m_ModelVSIn->index(MaxVisibleRows + 1, 2),
+          ui->vsinData->setIndexWidget(m_ModelVSIn->index(MaxVisibleRows + 1, 1),
                                        MakeNextPageButton());
         }
         else if(prev)
@@ -3337,14 +3343,12 @@ void BufferViewer::RT_UpdateAndDisplay(IReplayController *)
 
 QPushButton *BufferViewer::MakePreviousPageButton()
 {
-  QPushButton *b = new QPushButton(tr("Previous Page"), this);
+  QPushButton *b = new QPushButton(tr("Prev Page"), this);
   QObject::connect(b, &QPushButton::clicked, [this] {
-    uint64_t step = MaxVisibleRows * m_ModelVSIn->getConfig().buffers[0]->stride;
-    if(m_PagingByteOffset > step)
-      m_PagingByteOffset -= step;
-    else
-      m_PagingByteOffset = 0;
-    processFormat(m_Format);
+    int page = ui->rowOffset->value() / MaxVisibleRows;
+
+    if(page > 0)
+      ui->rowOffset->setValue((page - 1) * MaxVisibleRows);
   });
   return b;
 }
@@ -3353,8 +3357,9 @@ QPushButton *BufferViewer::MakeNextPageButton()
 {
   QPushButton *b = new QPushButton(tr("Next Page"), this);
   QObject::connect(b, &QPushButton::clicked, [this] {
-    m_PagingByteOffset += MaxVisibleRows * m_ModelVSIn->getConfig().buffers[0]->stride;
-    processFormat(m_Format);
+    int page = ui->rowOffset->value() / MaxVisibleRows;
+
+    ui->rowOffset->setValue((page + 1) * MaxVisibleRows);
   });
   return b;
 }
@@ -4198,9 +4203,35 @@ void BufferViewer::on_viewIndex_valueChanged(int value)
 
 void BufferViewer::on_rowOffset_valueChanged(int value)
 {
+  if(!m_MeshView && m_ModelVSIn->getConfig().unclampedNumRows > 0)
+  {
+    int page = value / MaxVisibleRows;
+    value %= MaxVisibleRows;
+
+    uint64_t pageOffset = page * MaxVisibleRows * m_ModelVSIn->getConfig().buffers[0]->stride;
+
+    // account for the extra row at the top with previous/next buttons
+    if(pageOffset > 0)
+      value++;
+
+    if(pageOffset != m_PagingByteOffset)
+    {
+      m_PagingByteOffset = pageOffset;
+
+      processFormat(m_Format);
+
+      return;
+    }
+  }
+
   ScrollToRow(ui->vsinData, value);
   ScrollToRow(ui->vsoutData, value);
   ScrollToRow(ui->gsoutData, value);
+
+  // when we're paging and we select the first row, actually scroll up to include the previous/next
+  // buttons.
+  if(!m_MeshView && value == 1 && m_PagingByteOffset > 0)
+    ui->vsinData->verticalScrollBar()->setValue(0);
 }
 
 void BufferViewer::on_autofitCamera_clicked()
