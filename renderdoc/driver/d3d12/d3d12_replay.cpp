@@ -3956,7 +3956,7 @@ static StructuredProcessRegistration D3D12ProcessRegistration(RDCDriver::D3D12,
 
 #undef None
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 TEST_CASE("Test get_space ensures sorted nature", "[d3d12]")
 {

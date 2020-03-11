@@ -4163,7 +4163,7 @@ void WrappedVulkan::UpdateImageStates(const std::map<ResourceId, ImageState> &ds
 
 #undef None
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 TEST_CASE("Validate supported extensions list", "[vulkan]")
 {

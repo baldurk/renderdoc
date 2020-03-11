@@ -29,7 +29,7 @@
 #include "api/replay/rdcarray.h"
 #include "bit_flag_iterator.h"
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 #include <stdint.h>
 

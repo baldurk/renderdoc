@@ -575,7 +575,7 @@ TYPETABLE(FunctionType, functionTypeToId);
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 #include "core/core.h"
 #include "spirv_common.h"
 #include "spirv_compile.h"

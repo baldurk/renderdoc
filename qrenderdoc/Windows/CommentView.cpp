@@ -24,9 +24,9 @@
 
 #include "CommentView.h"
 #include <QFontDatabase>
-#include "3rdparty/scintilla/include/SciLexer.h"
-#include "3rdparty/scintilla/include/qt/ScintillaEdit.h"
 #include "Code/ScintillaSyntax.h"
+#include "scintilla/include/SciLexer.h"
+#include "scintilla/include/qt/ScintillaEdit.h"
 #include "ui_CommentView.h"
 
 CommentView::CommentView(ICaptureContext &ctx, QWidget *parent)

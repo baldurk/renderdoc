@@ -28,9 +28,9 @@
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QXmlStreamWriter>
-#include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/Resources.h"
 #include "Widgets/Extended/RDHeaderView.h"
+#include "toolwindowmanager/ToolWindowManager.h"
 #include "PipelineStateViewer.h"
 #include "ui_VulkanPipelineStateViewer.h"
 

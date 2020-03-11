@@ -24,10 +24,10 @@
  ******************************************************************************/
 
 #include "d3d11_resources.h"
-#include "3rdparty/lz4/lz4.h"
 #include "api/app/renderdoc_app.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "driver/shaders/dxbc/dxbc_reflect.h"
+#include "lz4/lz4.h"
 #include "d3d11_context.h"
 #include "d3d11_renderstate.h"
 

@@ -27,7 +27,7 @@
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 TEST_CASE("Test basic stream I/O operations", "[streamio]")
 {

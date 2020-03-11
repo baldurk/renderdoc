@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "3rdparty/glslang/SPIRV/spirv.hpp"
+#include "glslang/SPIRV/spirv.hpp"
 #include "api/replay/stringise.h"
 #include "common/common.h"
 

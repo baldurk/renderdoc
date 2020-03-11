@@ -27,10 +27,10 @@
 #include <QKeyEvent>
 #include <QMenu>
 #include <QScrollBar>
-#include "3rdparty/scintilla/include/SciLexer.h"
-#include "3rdparty/scintilla/include/qt/ScintillaEdit.h"
 #include "Code/ScintillaSyntax.h"
 #include "Code/pyrenderdoc/PythonContext.h"
+#include "scintilla/include/SciLexer.h"
+#include "scintilla/include/qt/ScintillaEdit.h"
 #include "ui_PythonShell.h"
 
 // a forwarder that invokes onto the UI thread wherever necessary.

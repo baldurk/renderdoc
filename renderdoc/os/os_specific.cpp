@@ -117,7 +117,7 @@ rdcstr OSUtility::MakeMachineIdentString(uint64_t ident)
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 TEST_CASE("Test OS-specific functions", "[osspecific]")
 {

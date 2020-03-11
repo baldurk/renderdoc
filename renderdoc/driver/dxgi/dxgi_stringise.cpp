@@ -227,7 +227,7 @@ rdcstr DoStringise(const long &el)
 }
 
 #if ENABLED(ENABLE_UNIT_TESTS)
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 TEST_CASE("DXGI ToStr", "[tostr][d3d]")
 {

@@ -23,8 +23,8 @@
  ******************************************************************************/
 
 #include "vk_rendertext.h"
-#include "3rdparty/stb/stb_truetype.h"
 #include "maths/matrix.h"
+#include "stb/stb_truetype.h"
 #include "strings/string_utils.h"
 #include "vk_shader_cache.h"
 

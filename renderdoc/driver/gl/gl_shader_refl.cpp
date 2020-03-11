@@ -25,8 +25,8 @@
 #include "gl_shader_refl.h"
 #include <algorithm>
 #include <functional>
-#include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 #include "driver/shaders/spirv/glslang_compile.h"
+#include "glslang/glslang/Public/ShaderLang.h"
 #include "gl_driver.h"
 
 template <>

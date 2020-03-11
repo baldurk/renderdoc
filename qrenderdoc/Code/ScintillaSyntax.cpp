@@ -23,9 +23,9 @@
  ******************************************************************************/
 
 #include "ScintillaSyntax.h"
-#include "3rdparty/scintilla/include/SciLexer.h"
-#include "3rdparty/scintilla/include/qt/ScintillaEdit.h"
 #include "Code/QRDUtils.h"
+#include "scintilla/include/SciLexer.h"
+#include "scintilla/include/qt/ScintillaEdit.h"
 
 static const char *python_keywords =
     "False None True and as assert break class continue def del elif else except finally for from "

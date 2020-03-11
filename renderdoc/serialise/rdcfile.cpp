@@ -24,11 +24,11 @@
 
 #include "rdcfile.h"
 #include <errno.h>
-#include "3rdparty/jpeg-compressor/jpge.h"
-#include "3rdparty/stb/stb_image.h"
 #include "api/replay/version.h"
 #include "common/dds_readwrite.h"
 #include "common/formatting.h"
+#include "jpeg-compressor/jpge.h"
+#include "stb/stb_image.h"
 #include "lz4io.h"
 #include "zstdio.h"
 

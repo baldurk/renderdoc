@@ -339,7 +339,7 @@ rdcstr BlockOrRecord::getString(size_t startOffset) const
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 TEST_CASE("Check LLVM bitreader", "[llvm]")
 {

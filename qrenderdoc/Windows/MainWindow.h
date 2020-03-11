@@ -29,8 +29,8 @@
 #include <QMutex>
 #include <QSemaphore>
 #include <QTimer>
-#include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/Interface/QRDInterface.h"
+#include "toolwindowmanager/ToolWindowManager.h"
 
 namespace Ui
 {

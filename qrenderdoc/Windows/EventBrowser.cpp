@@ -32,12 +32,12 @@
 #include <QShortcut>
 #include <QTextEdit>
 #include <QTimer>
-#include "3rdparty/flowlayout/FlowLayout.h"
-#include "3rdparty/scintilla/include/qt/ScintillaEdit.h"
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Widgets/Extended/RDHeaderView.h"
 #include "Widgets/Extended/RDListWidget.h"
+#include "flowlayout/FlowLayout.h"
+#include "scintilla/include/qt/ScintillaEdit.h"
 #include "ui_EventBrowser.h"
 
 struct EventItemTag

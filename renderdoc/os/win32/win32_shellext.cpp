@@ -29,12 +29,12 @@
 
 #include <thumbcache.h>
 #include <windows.h>
-#include "3rdparty/lz4/lz4.h"
-#include "3rdparty/stb/stb_image_resize.h"
 #include "common/common.h"
 #include "core/core.h"
 #include "jpeg-compressor/jpgd.h"
+#include "lz4/lz4.h"
 #include "serialise/rdcfile.h"
+#include "stb/stb_image_resize.h"
 
 // {5D6BF029-A6BA-417A-8523-120492B1DCE3}
 static const GUID CLSID_RDCThumbnailProvider = {0x5d6bf029,

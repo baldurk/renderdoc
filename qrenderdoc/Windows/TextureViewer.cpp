@@ -35,13 +35,13 @@
 #include <QPainter>
 #include <QPointer>
 #include <QStyledItemDelegate>
-#include "3rdparty/flowlayout/FlowLayout.h"
-#include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Dialogs/TextureSaveDialog.h"
 #include "Widgets/ResourcePreview.h"
 #include "Widgets/TextureGoto.h"
+#include "flowlayout/FlowLayout.h"
+#include "toolwindowmanager/ToolWindowManagerArea.h"
 #include "ui_TextureViewer.h"
 
 float area(const QSizeF &s)

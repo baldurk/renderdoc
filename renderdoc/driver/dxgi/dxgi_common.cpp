@@ -2846,7 +2846,7 @@ void DoSerialise(SerialiserType &ser, DXGI_ADAPTER_DESC &el)
 INSTANTIATE_SERIALISE_TYPE(DXGI_ADAPTER_DESC);
 
 #if ENABLED(ENABLE_UNIT_TESTS)
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 TEST_CASE("DXGI formats", "[format][d3d]")
 {

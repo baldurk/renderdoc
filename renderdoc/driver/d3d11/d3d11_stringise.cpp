@@ -775,7 +775,7 @@ rdcstr DoStringise(const D3D11_LOGIC_OP &el)
 }
 
 #if ENABLED(ENABLE_UNIT_TESTS)
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 TEST_CASE("D3D11 ToStr", "[tostr][d3d]")
 {

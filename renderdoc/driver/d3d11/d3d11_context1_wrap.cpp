@@ -2257,7 +2257,7 @@ SERIALISED_ID3D11CONTEXT1_FUNCTIONS();
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 static D3D11_BOX *box(UINT x, UINT w, UINT y = 0, UINT h = 1, UINT z = 0, UINT d = 1)
 {

@@ -29,8 +29,8 @@
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
 
-#include "3rdparty/miniz/miniz.h"
-#include "3rdparty/pugixml/pugixml.hpp"
+#include "miniz/miniz.h"
+#include "pugixml/pugixml.hpp"
 
 struct ThumbTypeAndData
 {

@@ -5343,7 +5343,7 @@ rdcarray<ShaderDebugState> InterpretDebugger::ContinueDebug(DXBCDebug::DebugAPIW
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #include <limits>
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 using namespace DXBCDebug;
 

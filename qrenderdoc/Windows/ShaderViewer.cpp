@@ -32,12 +32,12 @@
 #include <QMouseEvent>
 #include <QShortcut>
 #include <QToolTip>
-#include "3rdparty/scintilla/include/SciLexer.h"
-#include "3rdparty/scintilla/include/qt/ScintillaEdit.h"
-#include "3rdparty/toolwindowmanager/ToolWindowManager.h"
-#include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
 #include "Code/ScintillaSyntax.h"
 #include "Widgets/FindReplace.h"
+#include "scintilla/include/SciLexer.h"
+#include "scintilla/include/qt/ScintillaEdit.h"
+#include "toolwindowmanager/ToolWindowManager.h"
+#include "toolwindowmanager/ToolWindowManagerArea.h"
 #include "ui_ShaderViewer.h"
 
 namespace

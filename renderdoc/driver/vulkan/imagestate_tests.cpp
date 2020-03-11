@@ -26,7 +26,7 @@
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 #include "vk_resources.h"
 

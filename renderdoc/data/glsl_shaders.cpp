@@ -23,10 +23,10 @@
  ******************************************************************************/
 
 #include "glsl_shaders.h"
-#include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 #include "common/common.h"
 #include "common/formatting.h"
 #include "driver/shaders/spirv/glslang_compile.h"
+#include "glslang/glslang/Public/ShaderLang.h"
 #include "os/os_specific.h"
 
 #define GLSL_HEADERS(HEADER) \
@@ -170,7 +170,7 @@ rdcstr GenerateGLSLShader(const rdcstr &shader, ShaderType type, int version, co
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 #include "driver/shaders/spirv/spirv_reflect.h"
 
 // define tests of GLSL reflection that can be re-used by both GL emulated and SPIR-V reflection

@@ -203,7 +203,7 @@ set(sources
     3rdparty/jpeg-compressor/jpgd.h
     3rdparty/jpeg-compressor/jpge.cpp
     3rdparty/jpeg-compressor/jpge.h
-    3rdparty/android/android_manifest.h
+    3rdparty/aosp/android_manifest.h
     3rdparty/catch/catch.cpp
     3rdparty/catch/catch.hpp
     3rdparty/pugixml/pugixml.cpp

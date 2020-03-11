@@ -88,7 +88,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(IntDir)generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\python\include;3rdparty\pyside\include\PySide2;3rdparty\pyside\include\PySide2\QtCore;3rdparty\pyside\include\PySide2\QtGui;3rdparty\pyside\include\PySide2\QtWidgets;3rdparty\pyside\include\shiboken2;3rdparty\qt\include;3rdparty\qt\include\QtWidgets;3rdparty\qt\include\QtGui;3rdparty\qt\include\QtCore;3rdparty\qt\include\QtSvg;3rdparty\qt\include\QtNetwork;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);3rdparty;$(IntDir)generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\python\include;3rdparty\pyside\include\PySide2;3rdparty\pyside\include\PySide2\QtCore;3rdparty\pyside\include\PySide2\QtGui;3rdparty\pyside\include\PySide2\QtWidgets;3rdparty\pyside\include\shiboken2;3rdparty\qt\include;3rdparty\qt\include\QtWidgets;3rdparty\qt\include\QtGui;3rdparty\qt\include\QtCore;3rdparty\qt\include\QtSvg;3rdparty\qt\include\QtNetwork;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:strictStrings /Zc:throwingNew %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;WIN64;RENDERDOC_PLATFORM_WIN32;SCINTILLA_QT=1;MAKING_LIBRARY=1;SCI_LEXER=1;QT_NO_CAST_FROM_ASCII;QT_NO_CAST_TO_ASCII;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;QT_SVG_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level4</WarningLevel>

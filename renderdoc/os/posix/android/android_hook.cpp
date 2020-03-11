@@ -22,10 +22,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "3rdparty/plthook/plthook.h"
 #include "common/common.h"
 #include "common/threading.h"
 #include "hooks/hooks.h"
+#include "plthook/plthook.h"
 
 #include <android/dlext.h>
 #include <dlfcn.h>
@@ -556,7 +556,7 @@ void intercept_error(void *, const char *error_msg)
   RDCERR("intercept_error: %s", error_msg);
 }
 
-#include "3rdparty/interceptor-lib/include/interceptor.h"
+#include "interceptor-lib/include/interceptor.h"
 
 void PatchHookedFunctions()
 {

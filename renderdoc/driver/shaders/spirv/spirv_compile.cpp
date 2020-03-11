@@ -31,8 +31,8 @@
 #undef min
 #undef max
 
-#include "3rdparty/glslang/SPIRV/GlslangToSpv.h"
-#include "3rdparty/glslang/glslang/Public/ShaderLang.h"
+#include "glslang/SPIRV/GlslangToSpv.h"
+#include "glslang/glslang/Public/ShaderLang.h"
 
 rdcstr rdcspv::Compile(const rdcspv::CompilationSettings &settings, const rdcarray<rdcstr> &sources,
                        rdcarray<uint32_t> &spirv)

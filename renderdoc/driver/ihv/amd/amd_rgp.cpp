@@ -228,7 +228,7 @@ bool AMDRGPControl::DriverSupportsInterop()
 
 #undef None
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 TEST_CASE("Check that markers are distinct for begin and end", "[amd]")
 {

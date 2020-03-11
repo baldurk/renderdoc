@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "3rdparty/android/android_manifest.h"
+#include "aosp/android_manifest.h"
 #include "core/core.h"
 #include "strings/string_utils.h"
 #include "android_utils.h"

@@ -1659,7 +1659,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 #include "data/glsl_shaders.h"
 #include "glslang_compile.h"
 

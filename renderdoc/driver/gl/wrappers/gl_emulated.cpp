@@ -3346,7 +3346,7 @@ void GLDispatchTable::DriverForEmulation(WrappedOpenGL *driver)
 #undef None
 
 #include "../gl_shader_refl.h"
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 #include "data/glsl_shaders.h"
 #include "replay/replay_driver.h"
 #include "strings/string_utils.h"

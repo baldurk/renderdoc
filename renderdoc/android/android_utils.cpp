@@ -715,7 +715,7 @@ rdcstr DoStringise(const Android::ABI &el)
 
 #undef None
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 TEST_CASE("Test that log line parsing is robust", "[android]")
 {

@@ -25,7 +25,7 @@
 #pragma once
 
 #include <replay/renderdoc_replay.h>
-#include "3rdparty/cmdline/cmdline.h"
+#include "cmdline/cmdline.h"
 
 struct Command
 {

@@ -21,11 +21,11 @@ INCLUDEPATH += $$_PRO_FILE_PWD_/../renderdoc/api/replay
 # Allow includes relative to the root
 INCLUDEPATH += $$_PRO_FILE_PWD_/
 
-# For ToolWindowManager
-INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/toolwindowmanager
-# For FlowLayout
-INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/flowlayout
-# For Scintilla
+# And relative to 3rdparty
+INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty
+
+# For Scintilla source builds - we unfortunately are not able to scope these to only
+# those source files
 INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/include/qt
 INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/include
 

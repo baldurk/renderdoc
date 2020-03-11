@@ -26,10 +26,10 @@
 #include <string.h>
 #include <algorithm>
 #include <map>
-#include "3rdparty/plthook/plthook.h"
 #include "common/threading.h"
 #include "hooks/hooks.h"
 #include "os/os_specific.h"
+#include "plthook/plthook.h"
 #include "strings/string_utils.h"
 
 Threading::CriticalSection libLock;

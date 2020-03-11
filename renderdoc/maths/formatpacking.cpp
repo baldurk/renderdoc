@@ -356,7 +356,7 @@ float ConvertComponent(const ResourceFormat &fmt, const byte *data)
 
 #undef None
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 TEST_CASE("Check format conversion", "[format]")
 {

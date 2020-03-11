@@ -29,10 +29,10 @@
 #include <QSvgRenderer>
 #include <QToolButton>
 #include <QXmlStreamWriter>
-#include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Widgets/Extended/RDLabel.h"
+#include "toolwindowmanager/ToolWindowManager.h"
 #include "D3D11PipelineStateViewer.h"
 #include "D3D12PipelineStateViewer.h"
 #include "GLPipelineStateViewer.h"

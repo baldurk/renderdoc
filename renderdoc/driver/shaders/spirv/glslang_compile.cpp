@@ -29,8 +29,8 @@
 #undef min
 #undef max
 
-#include "3rdparty/glslang/glslang/Include/Types.h"
-#include "3rdparty/glslang/glslang/Public/ShaderLang.h"
+#include "glslang/glslang/Include/Types.h"
+#include "glslang/glslang/Public/ShaderLang.h"
 
 static bool glslang_inited = false;
 rdcarray<glslang::TShader *> *allocatedShaders = NULL;

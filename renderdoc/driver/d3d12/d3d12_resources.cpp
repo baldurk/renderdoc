@@ -23,8 +23,8 @@
  ******************************************************************************/
 
 #include "d3d12_resources.h"
-#include "3rdparty/lz4/lz4.h"
 #include "driver/shaders/dxbc/dxbc_reflect.h"
+#include "lz4/lz4.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 

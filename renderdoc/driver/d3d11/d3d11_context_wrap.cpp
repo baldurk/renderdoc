@@ -24,9 +24,9 @@
  ******************************************************************************/
 
 #include "d3d11_context.h"
-#include "3rdparty/tinyfiledialogs/tinyfiledialogs.h"
 #include "driver/dx/official/dxgi1_3.h"
 #include "strings/string_utils.h"
+#include "tinyfiledialogs/tinyfiledialogs.h"
 #include "d3d11_debug.h"
 #include "d3d11_renderstate.h"
 #include "d3d11_resources.h"

@@ -27,7 +27,7 @@
 #include <math.h>
 #include <QAction>
 #include <QMenu>
-#include "3rdparty/toolwindowmanager/ToolWindowManager.h"
+#include "toolwindowmanager/ToolWindowManager.h"
 #include "ui_PixelHistoryView.h"
 
 struct EventTag

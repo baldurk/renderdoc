@@ -1801,7 +1801,7 @@ void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
 
 #undef None
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 TEST_CASE("Check ResourceId tostr", "[tostr]")
 {

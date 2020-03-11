@@ -1467,7 +1467,7 @@ int utf8printf(char *str, size_t bufSize, const char *fmt, ...)
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 #include "common/formatting.h"
 
 TEST_CASE("utf8printf buffer sizing", "[utf8printf]")

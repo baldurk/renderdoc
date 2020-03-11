@@ -1089,7 +1089,7 @@ void DescriptorSetSlot::AddBindRefs(VulkanResourceManager *rm, VkResourceRecord 
 
 #undef None
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 bool operator==(const VkImageMemoryBarrier &a, const VkImageMemoryBarrier &b)
 {

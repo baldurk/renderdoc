@@ -2576,7 +2576,7 @@ Topology MakePrimitiveTopology(GLenum Topo)
 
 #undef None
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 TEST_CASE("GL formats", "[format][gl]")
 {

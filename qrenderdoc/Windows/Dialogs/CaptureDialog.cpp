@@ -27,13 +27,13 @@
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
 #include <QStandardPaths>
-#include "3rdparty/flowlayout/FlowLayout.h"
-#include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/QRDUtils.h"
 #include "Code/qprocessinfo.h"
 #include "Windows/Dialogs/EnvironmentEditor.h"
 #include "Windows/Dialogs/VirtualFileDialog.h"
 #include "Windows/MainWindow.h"
+#include "flowlayout/FlowLayout.h"
+#include "toolwindowmanager/ToolWindowManager.h"
 #include "LiveCapture.h"
 #include "ui_CaptureDialog.h"
 

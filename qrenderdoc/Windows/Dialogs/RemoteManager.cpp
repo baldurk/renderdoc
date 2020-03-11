@@ -24,11 +24,11 @@
 
 #include "RemoteManager.h"
 #include <QKeyEvent>
-#include "3rdparty/flowlayout/FlowLayout.h"
 #include "Code/Interface/QRDInterface.h"
 #include "Code/Resources.h"
 #include "Windows/Dialogs/LiveCapture.h"
 #include "Windows/MainWindow.h"
+#include "flowlayout/FlowLayout.h"
 #include "ui_RemoteManager.h"
 
 struct RemoteConnect

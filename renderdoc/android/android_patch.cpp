@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "3rdparty/miniz/miniz.h"
 #include "api/replay/version.h"
 #include "core/core.h"
+#include "miniz/miniz.h"
 #include "replay/replay_driver.h"
 #include "strings/string_utils.h"
 #include "android_utils.h"

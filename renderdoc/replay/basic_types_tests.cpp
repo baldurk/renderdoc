@@ -33,7 +33,7 @@
 #include "common/timing.h"
 #include "os/os_specific.h"
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 static volatile int32_t constructor = 0;
 static volatile int32_t moveConstructor = 0;

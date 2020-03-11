@@ -26,9 +26,9 @@
 #include <QCollator>
 #include <QKeyEvent>
 #include <QMenu>
-#include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
 #include "Code/Resources.h"
 #include "Widgets/Extended/RDHeaderView.h"
+#include "toolwindowmanager/ToolWindowManagerArea.h"
 #include "ui_ResourceInspector.h"
 
 static const int ResourceIdRole = Qt::UserRole;

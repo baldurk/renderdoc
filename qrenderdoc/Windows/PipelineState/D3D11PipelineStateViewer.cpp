@@ -28,10 +28,10 @@
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QXmlStreamWriter>
-#include "3rdparty/flowlayout/FlowLayout.h"
-#include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/Resources.h"
 #include "Widgets/Extended/RDHeaderView.h"
+#include "flowlayout/FlowLayout.h"
+#include "toolwindowmanager/ToolWindowManager.h"
 #include "PipelineStateViewer.h"
 #include "ui_D3D11PipelineStateViewer.h"
 

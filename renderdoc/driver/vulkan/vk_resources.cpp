@@ -3889,7 +3889,7 @@ FrameRefType MarkImageReferenced(std::map<ResourceId, ImageState> &imageStates, 
 
 #undef None
 
-#include "3rdparty/catch/catch.hpp"
+#include "catch/catch.hpp"
 
 TEST_CASE("Vulkan formats", "[format][vulkan]")
 {
