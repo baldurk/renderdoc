@@ -18,6 +18,7 @@ set(VULKAN_SRC
         vk/vk_indirect.cpp
         vk/vk_int8_ibuffer.cpp
         vk/vk_khr_buffer_address.cpp
+        vk/vk_large_buffer.cpp
         vk/vk_line_raster.cpp
         vk/vk_mesh_zoo.cpp
         vk/vk_misaligned_dirty.cpp
@@ -52,6 +53,7 @@ set(OPENGL_SRC
         gl/gl_empty_capture.cpp
         gl/gl_entry_points.cpp
         gl/gl_large_bcn_arrays.cpp
+        gl/gl_large_buffer.cpp
         gl/gl_marker_test.cpp
         gl/gl_map_overrun.cpp
         gl/gl_mesh_zoo.cpp

@@ -838,6 +838,16 @@ void D3D12GraphicsTest::IASetVertexBuffer(ID3D12GraphicsCommandListPtr cmd, ID3D
   cmd->IASetVertexBuffers(0, 1, &view);
 }
 
+void D3D12GraphicsTest::IASetIndexBuffer(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr ib,
+                                         DXGI_FORMAT fmt, UINT offset)
+{
+  D3D12_INDEX_BUFFER_VIEW view;
+  view.BufferLocation = ib->GetGPUVirtualAddress() + offset;
+  view.Format = fmt;
+  view.SizeInBytes = UINT(ib->GetDesc().Width - offset);
+  cmd->IASetIndexBuffer(&view);
+}
+
 void D3D12GraphicsTest::ClearRenderTargetView(ID3D12GraphicsCommandListPtr cmd,
                                               ID3D12ResourcePtr rt, Vec4f col)
 {

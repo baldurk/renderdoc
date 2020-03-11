@@ -279,11 +279,11 @@ def value_compare_diff(ref, data, eps=FLT_EPSILON):
     elif type(ref) == list or type(ref) == tuple:
         # tuples and lists can be treated interchangeably
         if type(data) != list and type(data) != tuple:
-            return False
+            return False, 0.0
 
         # Lists are equal if they have the same length and all members have value_compare(i, j) == True
         if len(ref) != len(data):
-            return False
+            return False, 0.0
 
         ret = (True, 0.0)
 

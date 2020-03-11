@@ -153,6 +153,8 @@ struct D3D12GraphicsTest : public GraphicsTest
 
   void IASetVertexBuffer(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr vb, UINT stride,
                          UINT offset);
+  void IASetIndexBuffer(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr ib, DXGI_FORMAT fmt,
+                        UINT offset);
 
   void ClearRenderTargetView(ID3D12GraphicsCommandListPtr cmd, D3D12_CPU_DESCRIPTOR_HANDLE rt,
                              Vec4f col);
