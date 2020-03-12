@@ -38,8 +38,8 @@
 
 #include "data/hlsl/hlsl_cbuffers.h"
 
-ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
-                                      DebugOverlay overlay, uint32_t eventId,
+ResourceId D3D11Replay::RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
+                                      FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
                                       const rdcarray<uint32_t> &passEvents)
 {
   TextureShaderDetails details = GetDebugManager()->GetShaderDetails(texid, typeCast, false);
@@ -53,7 +53,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
   realTexDesc.Usage = D3D11_USAGE_DEFAULT;
   realTexDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
   realTexDesc.ArraySize = 1;
-  realTexDesc.MipLevels = 1;
+  realTexDesc.MipLevels = details.texMips;
   realTexDesc.CPUAccessFlags = 0;
   realTexDesc.MiscFlags = 0;
   realTexDesc.SampleDesc.Count = 1;
@@ -79,7 +79,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
 
   // need to recreate backing custom render tex
   if(realTexDesc.Width != customTexDesc.Width || realTexDesc.Height != customTexDesc.Height ||
-     realTexDesc.Format != customTexDesc.Format ||
+     realTexDesc.Format != customTexDesc.Format || realTexDesc.MipLevels != customTexDesc.MipLevels ||
      realTexDesc.SampleDesc.Count != customTexDesc.SampleDesc.Count ||
      realTexDesc.SampleDesc.Quality != customTexDesc.SampleDesc.Quality)
   {
@@ -147,7 +147,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
   D3D11_RENDER_TARGET_VIEW_DESC rtDesc;
   rtDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
   rtDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-  rtDesc.Texture2D.MipSlice = 0;
+  rtDesc.Texture2D.MipSlice = sub.mip;
 
   if(realTexDesc.SampleDesc.Count > 1 || realTexDesc.SampleDesc.Quality > 0)
   {
@@ -326,7 +326,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
       }
     }
 
-    float clearColour[] = {0.0f, 0.0f, 0.0f, 0.0f};
+    float clearColour[] = {0.0f, 1.0f, 0.0f, 0.0f};
     m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
 
     float overlayConsts[] = {1.0f, 0.0f, 0.0f, 1.0f};
@@ -545,6 +545,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
       SAFE_RELEASE(rs);
 
       rdesc.FillMode = D3D11_FILL_WIREFRAME;
+      rdesc.DepthClipEnable = FALSE;
       rdesc.CullMode = D3D11_CULL_NONE;
 
       hr = m_pDevice->CreateRasterizerState(&rdesc, &rs);
@@ -630,14 +631,15 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
                                  desc.DepthFunc == D3D11_COMPARISON_LESS_EQUAL;
             float depthClear = depthFuncLess ? 1.0f : 0.0f;
 
-            m_pImmediateContext->ClearDepthStencilView(state.OM.DepthView, D3D11_CLEAR_DEPTH,
-                                                       depthClear, 0);
+            m_pImmediateContext->ClearDepthStencilView(
+                state.OM.DepthView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, depthClear, 0);
           }
         }
         else
         {
           // Without a depth stencil state set, the comparison func is D3D11_COMPARISON_LESS
-          m_pImmediateContext->ClearDepthStencilView(state.OM.DepthView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+          m_pImmediateContext->ClearDepthStencilView(
+              state.OM.DepthView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
         }
       }
 
@@ -1114,6 +1116,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
       if(rs)
       {
         rs->GetDesc(&rdesc);
+        SAFE_RELEASE(rs);
       }
       else
       {
@@ -1179,6 +1182,9 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
 
       m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
 
+      float clearColour[] = {0.0f, 1.0f, 0.0f, 0.0f};
+      m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
+
       float redConsts[] = {255.0f / 255.0f, 0.0f / 255.0f, 0.0f / 255.0f, 255.0f / 255.0f};
 
       ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(redConsts, sizeof(redConsts));
@@ -1221,8 +1227,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
 
       m_pImmediateContext->OMSetDepthStencilState(os, stencilRef);
 
-      float greenConsts[] = {0.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f, 255.0f / 255.0f};
-
+      float greenConsts[] = {0.0f, 1.0f, 0.0f, 1.0f};
       buf = GetDebugManager()->MakeCBuffer(greenConsts, sizeof(greenConsts));
 
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
@@ -1258,20 +1263,33 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
 
       m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
 
+      ID3D11RasterizerState *prevrs = NULL;
+      m_pImmediateContext->RSGetState(&prevrs);
+
       ID3D11RasterizerState *rs = NULL;
       {
         D3D11_RASTERIZER_DESC rdesc;
 
-        rdesc.FillMode = D3D11_FILL_SOLID;
+        if(prevrs)
+        {
+          prevrs->GetDesc(&rdesc);
+        }
+        else
+        {
+          rdesc.FillMode = D3D11_FILL_SOLID;
+          rdesc.CullMode = D3D11_CULL_BACK;
+          rdesc.FrontCounterClockwise = FALSE;
+          rdesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
+          rdesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
+          rdesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+          rdesc.DepthClipEnable = TRUE;
+          rdesc.ScissorEnable = FALSE;
+          rdesc.MultisampleEnable = FALSE;
+          rdesc.AntialiasedLineEnable = FALSE;
+        }
+
         rdesc.CullMode = D3D11_CULL_NONE;
-        rdesc.FrontCounterClockwise = FALSE;
-        rdesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
-        rdesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
-        rdesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
         rdesc.DepthClipEnable = FALSE;
-        rdesc.ScissorEnable = FALSE;
-        rdesc.MultisampleEnable = FALSE;
-        rdesc.AntialiasedLineEnable = FALSE;
 
         hr = m_pDevice->CreateRasterizerState(&rdesc, &rs);
         if(FAILED(hr))
@@ -1284,12 +1302,21 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
       float clearColour[] = {0.0f, 1.0f, 0.0f, 0.0f};
       m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
 
-      float overlayConsts[] = {0.0f, 1.0f, 0.0f, 1.0f};
-      ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(overlayConsts, sizeof(overlayConsts));
+      float redConsts[] = {1.0f, 0.0f, 0.0f, 1.0f};
+      ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(redConsts, sizeof(redConsts));
 
       m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
       m_pImmediateContext->RSSetState(rs);
+
+      m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+
+      float greenConsts[] = {0.0f, 1.0f, 0.0f, 1.0f};
+      buf = GetDebugManager()->MakeCBuffer(greenConsts, sizeof(greenConsts));
+
+      m_pImmediateContext->RSSetState(prevrs);
+
+      m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
       m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 

@@ -200,8 +200,8 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
   D3D12RenderState m_PrevState;
 };
 
-ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
-                                      DebugOverlay overlay, uint32_t eventId,
+ResourceId D3D12Replay::RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
+                                      FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
                                       const rdcarray<uint32_t> &passEvents)
 {
   ID3D12Resource *resource = m_pDevice->GetResourceList()[texid];
@@ -226,7 +226,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
   overlayTexDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
   overlayTexDesc.Height = resourceDesc.Height;
   overlayTexDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-  overlayTexDesc.MipLevels = 1;
+  overlayTexDesc.MipLevels = resourceDesc.MipLevels;
   overlayTexDesc.SampleDesc = resourceDesc.SampleDesc;
   overlayTexDesc.Width = resourceDesc.Width;
 
@@ -248,6 +248,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
   if(overlayTexDesc.Width != currentOverlayDesc.Width ||
      overlayTexDesc.Height != currentOverlayDesc.Height ||
      overlayTexDesc.Format != currentOverlayDesc.Format ||
+     overlayTexDesc.MipLevels != currentOverlayDesc.MipLevels ||
      overlayTexDesc.SampleDesc.Count != currentOverlayDesc.SampleDesc.Count ||
      overlayTexDesc.SampleDesc.Quality != currentOverlayDesc.SampleDesc.Quality)
   {
@@ -355,7 +356,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
   D3D12_RENDER_TARGET_VIEW_DESC rtDesc = {};
   rtDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
   rtDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-  rtDesc.Texture2D.MipSlice = 0;
+  rtDesc.Texture2D.MipSlice = sub.mip;
   rtDesc.Texture2D.PlaneSlice = 0;
 
   if(overlayTexDesc.SampleDesc.Count > 1 || overlayTexDesc.SampleDesc.Quality > 0)
@@ -519,6 +520,9 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
 
       psoDesc.PS.pShaderBytecode = red->GetBufferPointer();
       psoDesc.PS.BytecodeLength = red->GetBufferSize();
+
+      float clearColour[] = {0.0f, 1.0f, 0.0f, 0.0f};
+      list->ClearRenderTargetView(rtv, clearColour, 0, NULL);
 
       list->Close();
       list = NULL;
@@ -698,7 +702,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
             float depthClear = depthFuncLess ? 1.0f : 0.0f;
 
             Unwrap(list)->ClearDepthStencilView(Unwrap(GetDebugManager()->GetTempDescriptor(rs.dsv)),
-                                                D3D12_CLEAR_FLAG_DEPTH, depthClear, 0, 0, NULL);
+                                                D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+                                                depthClear, 0, 0, NULL);
           }
         }
       }
@@ -878,6 +883,10 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
         D3D12_CPU_DESCRIPTOR_HANDLE tmpdsv = GetDebugManager()->GetTempDescriptor(rs.dsv);
         list->OMSetRenderTargets(1, &rtv, TRUE, &tmpdsv);
       }
+      else
+      {
+        list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
+      }
 
       list->RSSetViewports(1, &rs.views[0]);
 
@@ -999,8 +1008,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
         list = m_pDevice->GetNewList();
       }
 
-      uint32_t width = uint32_t(resourceDesc.Width >> 1);
-      uint32_t height = resourceDesc.Height >> 1;
+      uint32_t width = uint32_t(RDCMAX(1ULL, overlayTexDesc.Width >> (sub.mip + 1)));
+      uint32_t height = RDCMAX(1U, overlayTexDesc.Height >> (sub.mip + 1));
 
       width = RDCMAX(1U, width);
       height = RDCMAX(1U, height);
@@ -1173,6 +1182,9 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, CompType typeCast, Float
 
       psoDesc.PS.pShaderBytecode = green->GetBufferPointer();
       psoDesc.PS.BytecodeLength = green->GetBufferSize();
+
+      float clearColour[] = {0.0f, 1.0f, 0.0f, 0.0f};
+      list->ClearRenderTargetView(rtv, clearColour, 0, NULL);
 
       list->Close();
       list = NULL;

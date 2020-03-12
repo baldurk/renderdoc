@@ -396,8 +396,8 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
   indexCount = (uint32_t)patchedIndices.size();
 }
 
-ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
-                                       DebugOverlay overlay, uint32_t eventId,
+ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
+                                       FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
                                        const rdcarray<uint32_t> &passEvents)
 {
   const VkDevDispatchTable *vt = ObjDisp(m_Device);
@@ -413,7 +413,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
     const VulkanCreationInfo::Framebuffer &fb =
         m_pDriver->m_CreationInfo.m_Framebuffer[m_pDriver->m_RenderState.GetFramebuffer()];
 
-    if(fb.width != iminfo.extent.width || fb.height != iminfo.extent.height)
+    if(fb.width != RDCMAX(1U, iminfo.extent.width >> sub.mip) ||
+       fb.height != RDCMAX(1U, iminfo.extent.height >> sub.mip))
       return GetResID(m_Overlay.Image);
   }
 
@@ -428,8 +429,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
   VkMarkerRegion::Begin(StringFormat::Fmt("RenderOverlay %d", overlay), cmd);
 
   // if the overlay image is the wrong size, free it
-  if(m_Overlay.Image != VK_NULL_HANDLE && (iminfo.extent.width != m_Overlay.ImageDim.width ||
-                                           iminfo.extent.height != m_Overlay.ImageDim.height))
+  if(m_Overlay.Image != VK_NULL_HANDLE &&
+     (iminfo.extent.width != m_Overlay.ImageDim.width ||
+      iminfo.extent.height != m_Overlay.ImageDim.height || iminfo.samples != m_Overlay.Samples ||
+      iminfo.mipLevels != m_Overlay.MipLevels))
   {
     m_pDriver->vkDestroyRenderPass(m_Device, m_Overlay.NoDepthRP, NULL);
     m_pDriver->vkDestroyFramebuffer(m_Device, m_Overlay.NoDepthFB, NULL);
@@ -442,6 +445,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
     m_Overlay.NoDepthFB = VK_NULL_HANDLE;
   }
 
+  VkImageSubresourceRange subRange = {VK_IMAGE_ASPECT_COLOR_BIT, sub.mip, 1, 0, 1};
+
   // create the overlay image if we don't have one already
   // we go through the driver's creation functions so creation info
   // is saved and the resources are registered as live resources for
@@ -450,6 +455,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
   {
     m_Overlay.ImageDim.width = iminfo.extent.width;
     m_Overlay.ImageDim.height = iminfo.extent.height;
+    m_Overlay.MipLevels = iminfo.mipLevels;
+    m_Overlay.Samples = iminfo.samples;
 
     VkImageCreateInfo imInfo = {
         VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -458,7 +465,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
         VK_IMAGE_TYPE_2D,
         VK_FORMAT_R16G16B16A16_SFLOAT,
         {m_Overlay.ImageDim.width, m_Overlay.ImageDim.height, 1},
-        1,
+        (uint32_t)iminfo.mipLevels,
         1,
         iminfo.samples,
         VK_IMAGE_TILING_OPTIMAL,
@@ -508,7 +515,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
         imInfo.format,
         {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
          VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
-        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
+        subRange,
     };
 
     vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &m_Overlay.ImageView);
@@ -535,7 +542,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
 
     VkAttachmentReference colRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
-    VkSubpassDescription sub = {
+    VkSubpassDescription subp = {
         0,    VK_PIPELINE_BIND_POINT_GRAPHICS,
         0,    NULL,       // inputs
         1,    &colRef,    // color
@@ -551,7 +558,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
         1,
         &colDesc,
         1,
-        &sub,
+        &subp,
         0,
         NULL,    // dependencies
     };
@@ -567,8 +574,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
         m_Overlay.NoDepthRP,
         1,
         &m_Overlay.ImageView,
-        (uint32_t)m_Overlay.ImageDim.width,
-        (uint32_t)m_Overlay.ImageDim.height,
+        RDCMAX(1U, m_Overlay.ImageDim.width >> sub.mip),
+        RDCMAX(1U, m_Overlay.ImageDim.height >> sub.mip),
         1,
     };
 
@@ -578,8 +585,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
     // can't create a framebuffer or renderpass for overlay image + depth as that
     // needs to match the depth texture type wherever our draw is.
   }
-
-  VkImageSubresourceRange subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
   const DrawcallDescription *mainDraw = m_pDriver->GetDrawcall(eventId);
 
@@ -599,12 +604,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
                                     VK_QUEUE_FAMILY_IGNORED,
                                     VK_QUEUE_FAMILY_IGNORED,
                                     Unwrap(m_Overlay.Image),
-                                    {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+                                    subRange};
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
     vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           (VkClearColorValue *)black, 1, &subresourceRange);
+                           (VkClearColorValue *)black, 1, &subRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
     std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
@@ -625,12 +630,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
                                     VK_QUEUE_FAMILY_IGNORED,
                                     VK_QUEUE_FAMILY_IGNORED,
                                     Unwrap(m_Overlay.Image),
-                                    {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+                                    subRange};
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
     vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           (VkClearColorValue *)black, 1, &subresourceRange);
+                           (VkClearColorValue *)black, 1, &subRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
     std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
@@ -664,12 +669,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
                                     VK_QUEUE_FAMILY_IGNORED,
                                     VK_QUEUE_FAMILY_IGNORED,
                                     Unwrap(m_Overlay.Image),
-                                    {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+                                    subRange};
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
     vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           (VkClearColorValue *)bgclearCol, 1, &subresourceRange);
+                           (VkClearColorValue *)bgclearCol, 1, &subRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
     std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
@@ -911,12 +916,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
                                     VK_QUEUE_FAMILY_IGNORED,
                                     VK_QUEUE_FAMILY_IGNORED,
                                     Unwrap(m_Overlay.Image),
-                                    {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+                                    subRange};
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
     vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           (VkClearColorValue *)black, 1, &subresourceRange);
+                           (VkClearColorValue *)black, 1, &subRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
     std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
@@ -1037,7 +1042,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
   }
   else if(overlay == DebugOverlay::BackfaceCull)
   {
-    float highlightCol[] = {0.0f, 0.0f, 0.0f, 0.0f};
+    float highlightCol[] = {0.0f, 1.0f, 0.0f, 0.0f};
 
     VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                                     NULL,
@@ -1048,12 +1053,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
                                     VK_QUEUE_FAMILY_IGNORED,
                                     VK_QUEUE_FAMILY_IGNORED,
                                     Unwrap(m_Overlay.Image),
-                                    {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+                                    subRange};
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
     vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           (VkClearColorValue *)highlightCol, 1, &subresourceRange);
+                           (VkClearColorValue *)highlightCol, 1, &subRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
     std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
@@ -1062,6 +1067,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
     DoPipelineBarrier(cmd, 1, &barrier);
 
     highlightCol[0] = 1.0f;
+    highlightCol[1] = 0.0f;
     highlightCol[3] = 1.0f;
 
     // backup state
@@ -1217,7 +1223,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
   }
   else if(overlay == DebugOverlay::Depth || overlay == DebugOverlay::Stencil)
   {
-    float highlightCol[] = {0.0f, 0.0f, 0.0f, 0.0f};
+    float highlightCol[] = {0.0f, 1.0f, 0.0f, 0.0f};
 
     VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                                     NULL,
@@ -1228,12 +1234,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
                                     VK_QUEUE_FAMILY_IGNORED,
                                     VK_QUEUE_FAMILY_IGNORED,
                                     Unwrap(m_Overlay.Image),
-                                    {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+                                    subRange};
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
     vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           (VkClearColorValue *)highlightCol, 1, &subresourceRange);
+                           (VkClearColorValue *)highlightCol, 1, &subRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
     std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
@@ -1292,7 +1298,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
       VkAttachmentReference colRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
       VkAttachmentReference dsRef = {1, attDescs[1].initialLayout};
 
-      VkSubpassDescription sub = {
+      VkSubpassDescription subp = {
           0,      VK_PIPELINE_BIND_POINT_GRAPHICS,
           0,      NULL,       // inputs
           1,      &colRef,    // color
@@ -1308,7 +1314,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
           2,
           attDescs,
           1,
-          &sub,
+          &subp,
           0,
           NULL,    // dependencies
       };
@@ -1342,6 +1348,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
     // bound, so we just render green.
 
     highlightCol[0] = 1.0f;
+    highlightCol[1] = 0.0f;
     highlightCol[3] = 1.0f;
 
     // backup state
@@ -1535,12 +1542,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
                                     VK_QUEUE_FAMILY_IGNORED,
                                     VK_QUEUE_FAMILY_IGNORED,
                                     Unwrap(m_Overlay.Image),
-                                    {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+                                    subRange};
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
     vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           (VkClearColorValue *)black, 1, &subresourceRange);
+                           (VkClearColorValue *)black, 1, &subRange);
 
     std::swap(barrier.oldLayout, barrier.newLayout);
     std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
@@ -1635,8 +1642,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
                                p.depthCompareOp == VK_COMPARE_OP_LESS_OR_EQUAL;
           float depthClear = depthFuncLess ? 1.0f : 0.0f;
 
-          VkClearAttachment clearDepthAtt = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, {}};
+          VkClearAttachment clearDepthAtt = {
+              VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, {}};
           clearDepthAtt.clearValue.depthStencil.depth = depthClear;
+          clearDepthAtt.clearValue.depthStencil.stencil = 0;
 
           atts.push_back(clearDepthAtt);
         }
@@ -1686,13 +1695,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
                                       VK_QUEUE_FAMILY_IGNORED,
                                       VK_QUEUE_FAMILY_IGNORED,
                                       Unwrap(m_Overlay.Image),
-                                      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+                                      subRange};
 
       DoPipelineBarrier(cmd, 1, &barrier);
 
       vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image),
                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)black, 1,
-                             &subresourceRange);
+                             &subRange);
 
       std::swap(barrier.oldLayout, barrier.newLayout);
       std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
@@ -1934,13 +1943,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
                                       VK_QUEUE_FAMILY_IGNORED,
                                       VK_QUEUE_FAMILY_IGNORED,
                                       Unwrap(m_Overlay.Image),
-                                      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+                                      subRange};
 
       DoPipelineBarrier(cmd, 1, &barrier);
 
       vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image),
                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)black, 1,
-                             &subresourceRange);
+                             &subRange);
 
       std::swap(barrier.oldLayout, barrier.newLayout);
       std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
@@ -2071,7 +2080,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
         VkAttachmentReference colRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
         VkAttachmentReference dsRef = {1, attDescs[1].initialLayout};
 
-        VkSubpassDescription sub = {
+        VkSubpassDescription subp = {
             0,      VK_PIPELINE_BIND_POINT_GRAPHICS,
             0,      NULL,       // inputs
             1,      &colRef,    // color
@@ -2087,7 +2096,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
             2,
             attDescs,
             1,
-            &sub,
+            &subp,
             0,
             NULL,    // dependencies
         };
@@ -2108,8 +2117,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
             RP,
             2,
             views,
-            (uint32_t)m_Overlay.ImageDim.width,
-            (uint32_t)m_Overlay.ImageDim.height,
+            RDCMAX(1U, m_Overlay.ImageDim.width >> sub.mip),
+            RDCMAX(1U, m_Overlay.ImageDim.height >> sub.mip),
             1,
         };
 
@@ -2215,9 +2224,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, CompType typeCast, Floa
       };
       vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-      VkViewport viewport = {
-          0.0f, 0.0f, (float)m_Overlay.ImageDim.width, (float)m_Overlay.ImageDim.height,
-          0.0f, 1.0f};
+      VkViewport viewport = {0.0f,
+                             0.0f,
+                             (float)RDCMAX(1U, m_Overlay.ImageDim.width >> sub.mip),
+                             (float)RDCMAX(1U, m_Overlay.ImageDim.height >> sub.mip),
+                             0.0f,
+                             1.0f};
       vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 
       for(size_t i = 0; i < events.size(); i++)

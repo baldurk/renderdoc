@@ -227,8 +227,8 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   return HasSPIRVShaders;
 }
 
-ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
-                                   DebugOverlay overlay, uint32_t eventId,
+ResourceId GLReplay::RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
+                                   FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
                                    const rdcarray<uint32_t> &passEvents)
 {
   WrappedOpenGL &drv = *m_pDriver;
@@ -362,10 +362,13 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
     texQueryEnum = eGL_TEXTURE_BINDING_2D_MULTISAMPLE;
   }
 
+  GLint texMips = GetNumMips(texDetails.curType, texDetails.resource.name, texDetails.width,
+                             texDetails.height, texDetails.depth);
+
   // resize (or create) the overlay texture and FBO if necessary
   if(DebugData.overlayTexWidth != texDetails.width ||
      DebugData.overlayTexHeight != texDetails.height ||
-     DebugData.overlayTexSamples != texDetails.samples)
+     DebugData.overlayTexSamples != texDetails.samples || DebugData.overlayTexMips != texMips)
   {
     if(DebugData.overlayFBO)
     {
@@ -385,6 +388,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
     DebugData.overlayTexWidth = texDetails.width;
     DebugData.overlayTexHeight = texDetails.height;
     DebugData.overlayTexSamples = texDetails.samples;
+    DebugData.overlayTexMips = texMips;
 
     if(DebugData.overlayTexSamples > 1)
     {
@@ -405,17 +409,24 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
 
       drv.glTextureImage2DEXT(DebugData.overlayTex, texBindingEnum, 0, internalFormat,
                               texDetails.width, texDetails.height, 0, format, type, NULL);
-      drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
+      for(GLint i = 1; i < texMips; i++)
+        drv.glTextureImage2DEXT(DebugData.overlayTex, texBindingEnum, i, internalFormat,
+                                RDCMAX(1, texDetails.width >> i), RDCMAX(1, texDetails.height >> i),
+                                0, format, type, NULL);
+      drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAX_LEVEL, texMips - 1);
       drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
       drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
       drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
       drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
     }
     drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texBindingEnum,
-                               DebugData.overlayTex, 0);
+                               DebugData.overlayTex, sub.mip);
 
     drv.glBindTexture(texBindingEnum, curTex);
   }
+
+  GLint outWidth = RDCMAX(1, texDetails.width >> sub.mip);
+  GLint outHeight = RDCMAX(1, texDetails.height >> sub.mip);
 
   drv.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.overlayFBO);
 
@@ -647,8 +658,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
   }
   else if(overlay == DebugOverlay::Depth || overlay == DebugOverlay::Stencil)
   {
-    float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
-    drv.glClearBufferfv(eGL_COLOR, 0, black);
+    float backCol[] = {0.0f, 1.0f, 0.0f, 0.0f};
+    drv.glClearBufferfv(eGL_COLOR, 0, backCol);
 
     float red[] = {1.0f, 0.0f, 0.0f, 1.0f};
     drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, red);
@@ -669,9 +680,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
 
     GLuint depthCopy = 0, stencilCopy = 0;
 
-    GLint mip = 0;
-    GLint layer = 0;
-
     // create matching depth for existing FBO
     if(curDepth != 0)
     {
@@ -684,29 +692,12 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
       if(type != eGL_RENDERBUFFER)
       {
         ResourceId id = m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, curDepth));
-        WrappedOpenGL::TextureData &details = m_pDriver->m_Textures[id];
-
-        fmt = details.internalFormat;
-
-        drv.glGetNamedFramebufferAttachmentParameterivEXT(
-            rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &mip);
-
-        if(details.curType == eGL_TEXTURE_CUBE_MAP)
-        {
-          GLenum face;
-          drv.glGetNamedFramebufferAttachmentParameterivEXT(
-              rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
-              eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint *)&face);
-
-          layer = CubeTargetIndex(face);
-        }
+        fmt = m_pDriver->m_Textures[id].internalFormat;
       }
       else
       {
         ResourceId id = m_pDriver->GetResourceManager()->GetID(RenderbufferRes(ctx, curDepth));
-        WrappedOpenGL::TextureData &details = m_pDriver->m_Textures[id];
-
-        fmt = details.internalFormat;
+        fmt = m_pDriver->m_Textures[id].internalFormat;
       }
 
       if(copyBindingEnum == eGL_TEXTURE_CUBE_MAP)
@@ -731,6 +722,11 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
         drv.glTextureImage2DEXT(depthCopy, copyBindingEnum, 0, fmt, DebugData.overlayTexWidth,
                                 DebugData.overlayTexHeight, 0, GetBaseFormat(fmt), GetDataType(fmt),
                                 NULL);
+        for(GLint i = 1; i < texMips; i++)
+          drv.glTextureImage2DEXT(depthCopy, copyBindingEnum, i, fmt,
+                                  RDCMAX(1, DebugData.overlayTexWidth >> i),
+                                  RDCMAX(1, DebugData.overlayTexHeight >> i), 0, GetBaseFormat(fmt),
+                                  GetDataType(fmt), NULL);
         drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
         drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
         drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
@@ -753,26 +749,12 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
       if(type != eGL_RENDERBUFFER)
       {
         ResourceId id = m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, curDepth));
-        WrappedOpenGL::TextureData &details = m_pDriver->m_Textures[id];
-
-        fmt = details.internalFormat;
-
-        if(details.curType == eGL_TEXTURE_CUBE_MAP)
-        {
-          GLenum face;
-          drv.glGetNamedFramebufferAttachmentParameterivEXT(
-              rs.DrawFBO.name, eGL_DEPTH_ATTACHMENT,
-              eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint *)&face);
-
-          layer = CubeTargetIndex(face);
-        }
+        fmt = m_pDriver->m_Textures[id].internalFormat;
       }
       else
       {
         ResourceId id = m_pDriver->GetResourceManager()->GetID(RenderbufferRes(ctx, curDepth));
-        WrappedOpenGL::TextureData &details = m_pDriver->m_Textures[id];
-
-        fmt = details.internalFormat;
+        fmt = m_pDriver->m_Textures[id].internalFormat;
       }
 
       GLuint curTex = 0;
@@ -791,6 +773,11 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
         drv.glTextureImage2DEXT(stencilCopy, copyBindingEnum, 0, fmt, DebugData.overlayTexWidth,
                                 DebugData.overlayTexHeight, 0, GetBaseFormat(fmt), GetDataType(fmt),
                                 NULL);
+        for(GLint i = 1; i < texMips; i++)
+          drv.glTextureImage2DEXT(stencilCopy, copyBindingEnum, i, fmt,
+                                  RDCMAX(1, DebugData.overlayTexWidth >> i),
+                                  RDCMAX(1, DebugData.overlayTexHeight >> i), 0, GetBaseFormat(fmt),
+                                  GetDataType(fmt), NULL);
         drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
         drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
         drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
@@ -804,30 +791,18 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
     // bind depth/stencil to overlay FBO (currently bound to DRAW_FRAMEBUFFER)
     if(curDepth != 0 && curDepth == curStencil)
     {
-      if(layer == 0)
-        drv.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT,
-                                   eGL_TEXTURE_2D, depthCopy, mip);
-      else
-        drv.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, depthCopy,
-                                      mip, layer);
+      drv.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
+                                 depthCopy, sub.mip);
     }
     else if(curDepth != 0)
     {
-      if(layer == 0)
-        drv.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_TEXTURE_2D,
-                                   depthCopy, mip);
-      else
-        drv.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, depthCopy, mip,
-                                      layer);
+      drv.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_TEXTURE_2D,
+                                 depthCopy, sub.mip);
     }
     else if(curStencil != 0)
     {
-      if(layer == 0)
-        drv.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
-                                   stencilCopy, mip);
-      else
-        drv.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, stencilCopy,
-                                      mip, layer);
+      drv.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_TEXTURE_2D,
+                                 stencilCopy, sub.mip);
     }
 
     // bind the 'real' fbo to the read framebuffer, so we can blit from it
@@ -865,8 +840,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
       drv.glDisable(eGL_DEPTH_CLAMP);
 
     // get latest depth/stencil from read FBO (existing FBO) into draw FBO (overlay FBO)
-    SafeBlitFramebuffer(0, 0, DebugData.overlayTexWidth, DebugData.overlayTexHeight, 0, 0,
-                        DebugData.overlayTexWidth, DebugData.overlayTexHeight,
+    SafeBlitFramebuffer(0, 0, outWidth, outHeight, 0, 0, outWidth, outHeight,
                         GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
 
     ReplayLog(eventId, eReplay_OnlyDraw);
@@ -886,10 +860,11 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
   }
   else if(overlay == DebugOverlay::BackfaceCull)
   {
-    float col[] = {0.0f, 0.0f, 0.0f, 0.0f};
+    float col[] = {0.0f, 1.0f, 0.0f, 0.0f};
     drv.glClearBufferfv(eGL_COLOR, 0, col);
 
     col[0] = 1.0f;
+    col[1] = 0.0f;
     col[3] = 1.0f;
 
     drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, col);
@@ -949,7 +924,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
           // writes to happen.
           bool depthFuncLess = rs.DepthFunc == eGL_LESS || rs.DepthFunc == eGL_LEQUAL;
           float depthClear = depthFuncLess ? 1.0f : 0.0f;
-          drv.glClearBufferfv(eGL_DEPTH, 0, &depthClear);
+          drv.glClearBufferfi(eGL_DEPTH_STENCIL, 0, depthClear, 0);
         }
       }
 
@@ -1105,7 +1080,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
         // bind our FBO
         drv.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, overlayFBO);
         drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texBindingEnum,
-                                   DebugData.overlayTex, 0);
+                                   DebugData.overlayTex, sub.mip);
 
         // now apply the depth texture binding
         if(depthObj)
@@ -1376,8 +1351,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
         // image for quad usage
         drv.glBindTexture(eGL_TEXTURE_2D_ARRAY, quadtexs[2]);
         drv.glTextureImage3DEXT(quadtexs[2], eGL_TEXTURE_2D_ARRAY, 0, eGL_R32UI,
-                                RDCMAX(1, texDetails.width >> 1), RDCMAX(1, texDetails.height >> 1),
-                                4, 0, eGL_RED_INTEGER, eGL_UNSIGNED_INT, NULL);
+                                RDCMAX(1, outWidth >> 1), RDCMAX(1, outHeight >> 1), 4, 0,
+                                eGL_RED_INTEGER, eGL_UNSIGNED_INT, NULL);
         drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
         // temporarily attach to FBO to clear it
@@ -1392,8 +1367,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
         drv.glClearBufferiv(eGL_COLOR, 0, zero);
 
         drv.glBindTexture(eGL_TEXTURE_2D, quadtexs[0]);
-        drv.glTextureImage2DEXT(quadtexs[0], eGL_TEXTURE_2D, 0, eGL_RGBA8, texDetails.width,
-                                texDetails.height, 0, eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
+        drv.glTextureImage2DEXT(quadtexs[0], eGL_TEXTURE_2D, 0, eGL_RGBA8, outWidth, outHeight, 0,
+                                eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
         drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
         drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
         drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
@@ -1434,8 +1409,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
         }
 
         drv.glBindTexture(eGL_TEXTURE_2D, quadtexs[1]);
-        drv.glTextureImage2DEXT(quadtexs[1], eGL_TEXTURE_2D, 0, fmt, texDetails.width,
-                                texDetails.height, 0, GetBaseFormat(fmt), GetDataType(fmt), NULL);
+        drv.glTextureImage2DEXT(quadtexs[1], eGL_TEXTURE_2D, 0, fmt, outWidth, outHeight, 0,
+                                GetBaseFormat(fmt), GetDataType(fmt), NULL);
         drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
         drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
         drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
@@ -1518,9 +1493,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
           }
 
           drv.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curdrawfbo);
-          SafeBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,
-                              texDetails.height, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT,
-                              eGL_NEAREST);
+          SafeBlitFramebuffer(0, 0, outWidth, outHeight, 0, 0, outWidth, outHeight,
+                              GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
 
           m_pDriver->ReplayLog(0, events[i], eReplay_OnlyDraw);
 
@@ -1561,7 +1535,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
           // modify our fbo to attach the overlay texture instead
           drv.glBindFramebuffer(eGL_FRAMEBUFFER, replacefbo);
           drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texBindingEnum,
-                                     DebugData.overlayTex, 0);
+                                     DebugData.overlayTex, sub.mip);
           drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, texBindingEnum,
                                      0, 0);
 
@@ -1575,7 +1549,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeCast, FloatVec
           drv.glDisable(eGL_DEPTH_TEST);
           drv.glDisable(eGL_STENCIL_TEST);
           drv.glStencilMask(0);
-          drv.glViewport(0, 0, texDetails.width, texDetails.height);
+          drv.glViewport(0, 0, outWidth, outHeight);
 
           drv.glBindImageTexture(0, quadtexs[2], 0, GL_TRUE, 0, eGL_READ_WRITE, eGL_R32UI);
 

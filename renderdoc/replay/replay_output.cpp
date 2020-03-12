@@ -274,8 +274,9 @@ void ReplayOutput::RefreshOverlay()
       f.z = ConvertLinearToSRGB(f.z);
 
       m_OverlayResourceId = m_pDevice->RenderOverlay(
-          m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId), m_RenderData.texDisplay.typeCast,
-          f, m_RenderData.texDisplay.overlay, m_EventID, passEvents);
+          m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId),
+          m_RenderData.texDisplay.subresource, m_RenderData.texDisplay.typeCast, f,
+          m_RenderData.texDisplay.overlay, m_EventID, passEvents);
       m_OverlayDirty = false;
     }
     else

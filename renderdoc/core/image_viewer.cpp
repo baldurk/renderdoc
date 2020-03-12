@@ -235,8 +235,8 @@ public:
     RDCEraseEl(ret);
     return ret;
   }
-  ResourceId RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
-                           DebugOverlay overlay, uint32_t eventId,
+  ResourceId RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
+                           FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
                            const rdcarray<uint32_t> &passEvents)
   {
     return ResourceId();

@@ -226,8 +226,8 @@ public:
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
                       uint32_t x, uint32_t y);
 
-  ResourceId RenderOverlay(ResourceId id, CompType typeCast, FloatVector clearCol,
-                           DebugOverlay overlay, uint32_t eventId,
+  ResourceId RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
+                           FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
                            const rdcarray<uint32_t> &passEvents);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
                                CompType typeCast);
@@ -384,7 +384,7 @@ private:
     GLuint overlayTex;
     GLuint overlayFBO;
     GLuint overlayProg;
-    GLint overlayTexWidth, overlayTexHeight, overlayTexSamples;
+    GLint overlayTexWidth, overlayTexHeight, overlayTexSamples, overlayTexMips;
 
     GLuint UBOs[3];
 

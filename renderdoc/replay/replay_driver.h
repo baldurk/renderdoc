@@ -187,8 +187,8 @@ public:
                                         const uint32_t threadid[3]) = 0;
   virtual rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger) = 0;
 
-  virtual ResourceId RenderOverlay(ResourceId texid, CompType typeCast, FloatVector clearCol,
-                                   DebugOverlay overlay, uint32_t eventId,
+  virtual ResourceId RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
+                                   FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
                                    const rdcarray<uint32_t> &passEvents) = 0;
 
   virtual bool IsRenderOutput(ResourceId id) = 0;

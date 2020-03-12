@@ -752,8 +752,6 @@ void TextureViewer::RT_FetchCurrentPixel(IReplayController *r, uint32_t x, uint3
     if(overlayResId != ResourceId())
     {
       id = overlayResId;
-      sub.sample = 0;
-      sub.slice = 0;
       typeCast = CompType::Typeless;
     }
   }
