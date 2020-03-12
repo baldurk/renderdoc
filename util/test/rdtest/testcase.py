@@ -128,6 +128,7 @@ class ConstantBufferChecker:
 
 class TestCase:
     slow_test = False
+    internal = False
     demos_test_name = ''
     demos_frame_cap = 5
     _test_list = {}

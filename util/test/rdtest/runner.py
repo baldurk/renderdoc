@@ -21,7 +21,7 @@ def get_tests():
     for m in sys.modules.values():
         for name in m.__dict__:
             obj = m.__dict__[name]
-            if isinstance(obj, type) and issubclass(obj, testcase.TestCase) and obj != testcase.TestCase:
+            if isinstance(obj, type) and issubclass(obj, testcase.TestCase) and obj != testcase.TestCase and not obj.internal:
                 testcases.append(obj)
 
     testcases.sort(key=lambda t: (t.slow_test,t.__name__))
