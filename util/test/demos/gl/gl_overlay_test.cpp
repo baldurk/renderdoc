@@ -73,6 +73,18 @@ void main()
 
 )EOSHADER";
 
+  std::string whitepixel = R"EOSHADER(
+#version 420 core
+
+layout(location = 0, index = 0) out vec4 Color;
+
+void main()
+{
+	Color = vec4(1,1,1,1);
+}
+
+)EOSHADER";
+
   int main()
   {
     // initialise, create window, create context, etc
@@ -157,6 +169,7 @@ void main()
     glEnableVertexAttribArray(2);
 
     GLuint program = MakeProgram(common + vertex, common + pixel);
+    GLuint whiteprogram = MakeProgram(common + vertex, whitepixel);
 
     GLuint fbo = MakeFBO();
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -173,6 +186,14 @@ void main()
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D,
                            attachments[1], 0);
 
+    GLuint subtex = MakeTexture();
+    glBindTexture(GL_TEXTURE_2D_ARRAY, subtex);
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 4, GL_SRGB8_ALPHA8, screenWidth, screenHeight, 5);
+
+    GLuint subfbo = MakeFBO();
+    glBindFramebuffer(GL_FRAMEBUFFER, subfbo);
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, subtex, 2, 2);
+
     while(Running())
     {
       glBindVertexArray(vao);
@@ -184,12 +205,14 @@ void main()
 
       glDepthMask(GL_TRUE);
       glEnable(GL_DEPTH_TEST);
+      glEnable(GL_SCISSOR_TEST);
       glDisable(GL_DEPTH_CLAMP);
       glDisable(GL_STENCIL_TEST);
       glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
       glStencilFunc(GL_ALWAYS, 0x55, 0xff);
 
       glViewport(10, 10, GLsizei(screenWidth) - 20, GLsizei(screenHeight) - 20);
+      glScissor(0, 0, screenWidth, screenHeight);
 
       glBindFramebuffer(GL_FRAMEBUFFER, fbo);
       float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
@@ -210,8 +233,7 @@ void main()
       glDrawArrays(GL_TRIANGLES, 6, 3);
 
       // add a marker so we can easily locate this draw
-      glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_MARKER, 0,
-                           GL_DEBUG_SEVERITY_HIGH, -1, "Test Begin");
+      setMarker("Test Begin");
 
       glEnable(GL_STENCIL_TEST);
       glStencilFunc(GL_GREATER, 0x55, 0xff);
@@ -221,6 +243,21 @@ void main()
       glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
       glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight,
                         GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+      glBindFramebuffer(GL_FRAMEBUFFER, subfbo);
+      float col2[] = {0.0f, 0.0f, 0.0f, 1.0f};
+      glClearBufferfv(GL_COLOR, 0, col2);
+
+      glDepthFunc(GL_ALWAYS);
+      glDisable(GL_STENCIL_TEST);
+
+      glUseProgram(whiteprogram);
+
+      glViewport(5, 5, GLsizei(screenWidth) / 4 - 10, GLsizei(screenHeight) / 4 - 10);
+      glScissor(0, 0, screenWidth / 4, screenHeight / 4);
+
+      setMarker("Subresources");
+      glDrawArrays(GL_TRIANGLES, 9, 24);
 
       Present();
     }

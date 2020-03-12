@@ -73,6 +73,18 @@ void main()
 
 )EOSHADER";
 
+  std::string whitepixel = R"EOSHADER(
+#version 420 core
+
+layout(location = 0, index = 0) out vec4 Color;
+
+void main()
+{
+	Color = vec4(1,1,1,1);
+}
+
+)EOSHADER";
+
   int main()
   {
     optDevExts.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
@@ -176,7 +188,8 @@ void main()
     vkh::RenderPassCreator renderPassCreateInfo;
 
     renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
-        mainWindow->format, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL));
+        mainWindow->format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+        VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE));
     renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
         VK_FORMAT_D32_SFLOAT_S8_UINT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_SAMPLE_COUNT_1_BIT,
@@ -239,14 +252,39 @@ void main()
     pipeCreateInfo.depthStencilState.front.compareOp = VK_COMPARE_OP_GREATER;
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
+    renderPassCreateInfo.attachments.pop_back();
+    renderPassCreateInfo.subpasses[0].pDepthStencilAttachment = NULL;
+
+    VkRenderPass subrp = createRenderPass(renderPassCreateInfo);
+
+    pipeCreateInfo.stages[1] =
+        CompileShaderModule(whitepixel, ShaderLang::glsl, ShaderStage::frag, "main");
+    pipeCreateInfo.renderPass = subrp;
+    pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
+    pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+    VkPipeline whitepipe = createGraphicsPipeline(pipeCreateInfo);
+
+    AllocatedImage subimg(
+        this,
+        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                             mainWindow->format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 4, 5),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    VkImageView subview = createImageView(vkh::ImageViewCreateInfo(
+        subimg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format, {},
+        vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, 2, 1, 2, 1)));
+
+    VkFramebuffer subfb = createFramebuffer(vkh::FramebufferCreateInfo(
+        subrp, {subview},
+        {mainWindow->scissor.extent.width / 4, mainWindow->scissor.extent.height / 4}));
+
     while(Running())
     {
       VkCommandBuffer cmd = GetCommandBuffer();
 
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
 
-      VkImage swapimg =
-          StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
+      StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
       VkViewport v = mainWindow->viewport;
       v.x += 10.0f;
@@ -265,14 +303,11 @@ void main()
       vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
 
-      vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
-                           vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
-                           vkh::ImageSubresourceRange());
-
-      vkCmdBeginRenderPass(
-          cmd, vkh::RenderPassBeginInfo(renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor,
-                                        {vkh::ClearValue(), vkh::ClearValue(1.0f, 0)}),
-          VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBeginRenderPass(cmd,
+                           vkh::RenderPassBeginInfo(
+                               renderPass, fbs[mainWindow->imgIndex], mainWindow->scissor,
+                               {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f), vkh::ClearValue(1.0f, 0)}),
+                           VK_SUBPASS_CONTENTS_INLINE);
 
       // draw the setup triangles
 
@@ -289,6 +324,38 @@ void main()
       setMarker(cmd, "Test Begin");
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
+      vkCmdDraw(cmd, 24, 1, 9, 0);
+
+      vkCmdEndRenderPass(cmd);
+
+      v = mainWindow->viewport;
+      v.width /= 4.0f;
+      v.height /= 4.0f;
+      v.x += 5.0f;
+      v.y += 5.0f;
+      v.width -= 10.0f;
+      v.height -= 10.0f;
+
+      if(KHR_maintenance1)
+      {
+        v.y += v.height;
+        v.height = -v.height;
+      }
+
+      VkRect2D s = mainWindow->scissor;
+      s.extent.width /= 4;
+      s.extent.height /= 4;
+
+      vkCmdSetViewport(cmd, 0, 1, &v);
+      vkCmdSetScissor(cmd, 0, 1, &s);
+
+      vkCmdBeginRenderPass(
+          cmd, vkh::RenderPassBeginInfo(subrp, subfb, s, {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)}),
+          VK_SUBPASS_CONTENTS_INLINE);
+
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, whitepipe);
+
+      setMarker(cmd, "Subresources");
       vkCmdDraw(cmd, 24, 1, 9, 0);
 
       vkCmdEndRenderPass(cmd);

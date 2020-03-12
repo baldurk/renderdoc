@@ -146,6 +146,7 @@ struct D3D11GraphicsTest : public GraphicsTest
   D3D11_RASTERIZER_DESC GetRasterState();
   void SetRasterState(const D3D11_RASTERIZER_DESC &desc);
   void RSSetViewport(D3D11_VIEWPORT view);
+  void RSSetScissor(D3D11_RECT scissor);
 
   D3D11_DEPTH_STENCIL_DESC GetDepthState();
   void SetDepthState(const D3D11_DEPTH_STENCIL_DESC &desc);

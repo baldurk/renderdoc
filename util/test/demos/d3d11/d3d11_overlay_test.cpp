@@ -29,6 +29,15 @@ RD_TEST(D3D11_Overlay_Test, D3D11GraphicsTest)
   static constexpr const char *Description =
       "Makes a couple of draws that show off all the overlays in some way";
 
+  std::string whitePixel = R"EOSHADER(
+
+float4 main() : SV_Target0
+{
+	return float4(1, 1, 1, 1);
+}
+
+)EOSHADER";
+
   int main()
   {
     // initialise, create window, create device, etc
@@ -42,6 +51,7 @@ RD_TEST(D3D11_Overlay_Test, D3D11GraphicsTest)
 
     ID3D11VertexShaderPtr vs = CreateVS(vsblob);
     ID3D11PixelShaderPtr ps = CreatePS(psblob);
+    ID3D11PixelShaderPtr whiteps = CreatePS(Compile(whitePixel, "main", "ps_4_0"));
 
     const DefaultA2V VBData[] = {
         // this triangle occludes in depth
@@ -108,6 +118,11 @@ RD_TEST(D3D11_Overlay_Test, D3D11GraphicsTest)
         MakeTexture(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, screenWidth, screenHeight).DSV();
     ID3D11DepthStencilViewPtr dsv = MakeDSV(depthtex);
 
+    ID3D11Texture2DPtr subtex =
+        MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, screenWidth, screenHeight).RTV().Array(5).Mips(4);
+    ID3D11RenderTargetViewPtr subrtv =
+        MakeRTV(subtex).FirstSlice(2).NumSlices(1).FirstMip(2).NumMips(1);
+
     while(Running())
     {
       IASetVertexBuffer(vb, sizeof(DefaultA2V), 0);
@@ -126,8 +141,15 @@ RD_TEST(D3D11_Overlay_Test, D3D11GraphicsTest)
       SetDepthState(depth);
       SetStencilRef(0x55);
 
+      D3D11_RASTERIZER_DESC raster = GetRasterState();
+
+      raster.ScissorEnable = TRUE;
+
+      SetRasterState(raster);
+
       RSSetViewport(
           {10.0f, 10.0f, (float)screenWidth - 20.0f, (float)screenHeight - 20.0f, 0.0f, 1.0f});
+      RSSetScissor({0, 0, screenWidth, screenHeight});
 
       ctx->OMSetRenderTargets(1, &bbRTV.GetInterfacePtr(), dsv);
 
@@ -153,11 +175,27 @@ RD_TEST(D3D11_Overlay_Test, D3D11GraphicsTest)
       ctx->Draw(3, 6);
 
       // add a marker so we can easily locate this draw
-      annot->SetMarker(L"Test Begin");
+      setMarker("Test Begin");
 
       depth.StencilEnable = TRUE;
       depth.FrontFace.StencilFunc = D3D11_COMPARISON_GREATER;
       SetDepthState(depth);
+      ctx->Draw(24, 9);
+
+      depth.StencilEnable = FALSE;
+      depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
+      SetDepthState(depth);
+
+      ctx->PSSetShader(whiteps, NULL, 0);
+
+      RSSetViewport({5.0f, 5.0f, float(screenWidth) / 4.0f - 10.0f,
+                     float(screenHeight) / 4.0f - 10.0f, 0.0f, 1.0f});
+      RSSetScissor({0, 0, screenWidth / 4, screenHeight / 4});
+
+      ClearRenderTargetView(subrtv, {0.0f, 0.0f, 0.0f, 1.0f});
+
+      ctx->OMSetRenderTargets(1, &subrtv.GetInterfacePtr(), NULL);
+      setMarker("Subresources");
       ctx->Draw(24, 9);
 
       Present();

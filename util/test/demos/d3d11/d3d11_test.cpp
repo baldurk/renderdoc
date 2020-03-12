@@ -418,6 +418,11 @@ void D3D11GraphicsTest::RSSetViewport(D3D11_VIEWPORT view)
   ctx->RSSetViewports(1, &view);
 }
 
+void D3D11GraphicsTest::RSSetScissor(D3D11_RECT scissor)
+{
+  ctx->RSSetScissorRects(1, &scissor);
+}
+
 D3D11_RASTERIZER_DESC D3D11GraphicsTest::GetRasterState()
 {
   ID3D11RasterizerState *state = NULL;

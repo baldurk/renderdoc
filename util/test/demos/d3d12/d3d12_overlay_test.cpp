@@ -29,6 +29,15 @@ RD_TEST(D3D12_Overlay_Test, D3D12GraphicsTest)
   static constexpr const char *Description =
       "Makes a couple of draws that show off all the overlays in some way";
 
+  std::string whitePixel = R"EOSHADER(
+
+float4 main() : SV_Target0
+{
+	return float4(1, 1, 1, 1);
+}
+
+)EOSHADER";
+
   int main()
   {
     // initialise, create window, create device, etc
@@ -37,6 +46,7 @@ RD_TEST(D3D12_Overlay_Test, D3D12GraphicsTest)
 
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_4_0");
     ID3DBlobPtr psblob = Compile(D3DDefaultPixel, "main", "ps_4_0");
+    ID3DBlobPtr whitepsblob = Compile(whitePixel, "main", "ps_4_0");
 
     const DefaultA2V VBData[] = {
         // this triangle occludes in depth
@@ -133,11 +143,22 @@ RD_TEST(D3D12_Overlay_Test, D3D12GraphicsTest)
     creator.GraphicsDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_GREATER;
     ID3D12PipelineStatePtr pipe = creator;
 
+    creator.GraphicsDesc.DepthStencilState.StencilEnable = FALSE;
+    creator.GraphicsDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+    creator.PS(whitepsblob);
+    ID3D12PipelineStatePtr whitepipe = creator;
+
     ResourceBarrier(vb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
     ID3D12ResourcePtr dsv = MakeTexture(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, screenWidth, screenHeight)
                                 .DSV()
                                 .InitialState(D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
+    ID3D12ResourcePtr subtex = MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, screenWidth, screenHeight)
+                                   .RTV()
+                                   .Array(5)
+                                   .Mips(4)
+                                   .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
 
     while(Running())
     {
@@ -177,9 +198,30 @@ RD_TEST(D3D12_Overlay_Test, D3D12GraphicsTest)
       cmd->DrawInstanced(3, 1, 6, 0);
 
       // add a marker so we can easily locate this draw
-      cmd->SetMarker(1, "Test Begin", sizeof("Test Begin") - 1);
+      setMarker(cmd, "Test Begin");
 
       cmd->SetPipelineState(pipe);
+      cmd->DrawInstanced(24, 1, 9, 0);
+
+      D3D12_CPU_DESCRIPTOR_HANDLE subrtv = MakeRTV(subtex)
+                                               .Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)
+                                               .FirstSlice(2)
+                                               .NumSlices(1)
+                                               .FirstMip(2)
+                                               .NumMips(1)
+                                               .CreateCPU(1);
+
+      RSSetViewport(cmd, {5.0f, 5.0f, float(screenWidth) / 4.0f - 10.0f,
+                          float(screenHeight) / 4.0f - 10.0f, 0.0f, 1.0f});
+      RSSetScissorRect(cmd, {0, 0, screenWidth / 4, screenHeight / 4});
+
+      OMSetRenderTargets(cmd, {subrtv}, {});
+
+      ClearRenderTargetView(cmd, subrtv, {0.0f, 0.0f, 0.0f, 1.0f});
+
+      cmd->SetPipelineState(whitepipe);
+
+      setMarker(cmd, "Subresources");
       cmd->DrawInstanced(24, 1, 9, 0);
 
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
