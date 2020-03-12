@@ -319,17 +319,18 @@ class TestCase:
         if cast is None:
             cast = rd.CompType.Typeless
 
-        if type(x) is float:
-            x = int((tex_details.width-1) * x)
-        if type(y) is float:
-            y = int((tex_details.height-1) * y)
+        if tex_details is not None:
+            if type(x) is float:
+                x = int((tex_details.width-1) * x)
+            if type(y) is float:
+                y = int((tex_details.height-1) * y)
 
-        if cast == rd.CompType.Typeless and tex_details.creationFlags & rd.TextureCategory.SwapBuffer:
-            cast = rd.CompType.UNormSRGB
+            if cast == rd.CompType.Typeless and tex_details.creationFlags & rd.TextureCategory.SwapBuffer:
+                cast = rd.CompType.UNormSRGB
 
-        # Reduce epsilon for RGBA8 textures if it's not already reduced
-        if tex_details.format.compByteWidth == 1 and eps == util.FLT_EPSILON:
-            eps = (1.0 / 255.0)
+            # Reduce epsilon for RGBA8 textures if it's not already reduced
+            if tex_details.format.compByteWidth == 1 and eps == util.FLT_EPSILON:
+                eps = (1.0 / 255.0)
 
         picked: rd.PixelValue = self.controller.PickPixel(tex, x, y, sub, cast)
 
@@ -352,7 +353,11 @@ class TestCase:
                 "Picked value {} at {},{} doesn't match expectation of {}".format(picked_value, x, y, value),
                 img_path)
 
-        log.success("Picked value at {},{} in {} is as expected".format(x, y, res_details.name))
+        name = "Texture"
+        if res_details is not None:
+            name = res_details.name
+
+        log.success("Picked value at {},{} in {} is as expected".format(x, y, name))
 
     def check_triangle(self, out = None, back = None, fore = None, vp = None):
         pipe: rd.PipeState = self.controller.GetPipelineState()
