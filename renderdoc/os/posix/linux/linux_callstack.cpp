@@ -22,7 +22,13 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+// for dl_iterate_phdr
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <execinfo.h>
+#include <link.h>
 #include <stdio.h>
 #include <string.h>
 #include <map>
@@ -119,28 +125,60 @@ Stackwalk *Create()
   return new LinuxCallstack(NULL, 0);
 }
 
+static int dl_iterate_callback(struct dl_phdr_info *info, size_t size, void *data)
+{
+  if(info->dlpi_name == NULL)
+  {
+    RDCLOG("Skipping NULL entry!");
+    return 0;
+  }
+
+  rdcstr *out = (rdcstr *)data;
+
+  rdcstr name = info->dlpi_name;
+  if(name.empty())
+    FileIO::GetExecutableFilename(name);
+
+  name = FileIO::GetFullPathname(name);
+
+  for(int j = 0; j < info->dlpi_phnum; j++)
+  {
+    uint32_t rxMask = PF_R | PF_X;
+    if(info->dlpi_phdr[j].p_type == PT_LOAD && (info->dlpi_phdr[j].p_flags & rxMask) == rxMask)
+    {
+      uint64_t baseAddr = info->dlpi_addr + info->dlpi_phdr[j].p_vaddr;
+      *out += StringFormat::Fmt("%llx-%llx r-xp %08x 123:45 12345678    %s\n", baseAddr,
+                                baseAddr + info->dlpi_phdr[j].p_memsz, info->dlpi_phdr[j].p_vaddr,
+                                name.c_str());
+    }
+  }
+
+  return 0;
+}
+
 bool GetLoadedModules(byte *buf, size_t &size)
 {
-  // we just dump the whole file rather than pre-parsing, that way we can improve
-  // parsing without needing to recapture
-  FILE *f = FileIO::fopen("/proc/self/maps", "r");
-
   size = 0;
 
   if(buf)
+  {
     memcpy(buf, "LNUXCALL", 8);
+    buf += 8;
+  }
 
   size += 8;
 
-  byte dummy[512];
+  // generate a fake /proc/self/maps. This is mostly for backwards compatibility, we could generate
+  // a more compact representation. The slight difference is that we change how we calculate the
+  // offset for each segment, so that we handle non-PIE executables properly.
+  rdcstr fake_maps;
 
-  while(!feof(f))
-  {
-    byte *readbuf = buf ? buf + size : dummy;
-    size += FileIO::fread(readbuf, 1, 512, f);
-  }
+  dl_iterate_phdr(dl_iterate_callback, &fake_maps);
 
-  FileIO::fclose(f);
+  size += fake_maps.size();
+
+  if(buf)
+    memcpy(buf, fake_maps.data(), fake_maps.size());
 
   return true;
 }
@@ -182,8 +220,12 @@ private:
     {
       if(addr >= m_Modules[i].base && addr < m_Modules[i].end)
       {
+        RDCLOG("%llx relative to module %llx-%llx, with offset %llx", addr, m_Modules[i].base,
+               m_Modules[i].end, m_Modules[i].offset);
         uint64_t relative = addr - m_Modules[i].base + m_Modules[i].offset;
         rdcstr cmd = StringFormat::Fmt("addr2line -fCe \"%s\" 0x%llx", m_Modules[i].path, relative);
+
+        RDCLOG(": %s", cmd.c_str());
 
         FILE *f = ::popen(cmd.c_str(), "r");
 
