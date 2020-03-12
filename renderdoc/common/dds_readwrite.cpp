@@ -866,33 +866,33 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
       FileIO::fwrite(&headerDXT10, sizeof(headerDXT10), 1, f);
 
     int i = 0;
-    for(int slice = 0; slice < RDCMAX(1, data.slices); slice++)
+    for(uint32_t slice = 0; slice < RDCMAX(1U, data.slices); slice++)
     {
-      for(int mip = 0; mip < RDCMAX(1, data.mips); mip++)
+      for(uint32_t mip = 0; mip < RDCMAX(1U, data.mips); mip++)
       {
-        int numdepths = RDCMAX(1, data.depth >> mip);
-        for(int d = 0; d < numdepths; d++)
+        uint32_t numdepths = RDCMAX(1U, data.depth >> mip);
+        for(uint32_t d = 0; d < numdepths; d++)
         {
           byte *bytedata = data.subdata[i];
 
-          int rowlen = RDCMAX(1, data.width >> mip);
-          int numRows = RDCMAX(1, data.height >> mip);
-          int pitch = RDCMAX(1U, rowlen * bytesPerPixel);
+          uint32_t rowlen = RDCMAX(1U, data.width >> mip);
+          uint32_t numRows = RDCMAX(1U, data.height >> mip);
+          uint32_t pitch = RDCMAX(1U, rowlen * bytesPerPixel);
 
           // pitch/rows are in blocks, not pixels, for block formats.
           if(blockFormat)
           {
-            numRows = RDCMAX(1, numRows / 4);
+            numRows = RDCMAX(1U, numRows / 4);
 
-            int blockSize = (data.format.type == ResourceFormatType::BC1 ||
-                             data.format.type == ResourceFormatType::BC4)
-                                ? 8
-                                : 16;
+            uint32_t blockSize = (data.format.type == ResourceFormatType::BC1 ||
+                                  data.format.type == ResourceFormatType::BC4)
+                                     ? 8
+                                     : 16;
 
             pitch = RDCMAX(blockSize, (((rowlen + 3) / 4)) * blockSize);
           }
 
-          for(int row = 0; row < numRows; row++)
+          for(uint32_t row = 0; row < numRows; row++)
           {
             FileIO::fwrite(bytedata, 1, pitch, f);
 
@@ -925,6 +925,10 @@ dds_data load_dds_from_file(FILE *f)
   dds_data ret = {};
   dds_data error = {};
 
+  FileIO::fseek64(f, 0, SEEK_END);
+
+  uint64_t fileSize = FileIO::ftell64(f);
+
   FileIO::fseek64(f, 0, SEEK_SET);
 
   uint32_t magic = 0;
@@ -947,6 +951,19 @@ dds_data load_dds_from_file(FILE *f)
   ret.depth = RDCMAX(1U, header.dwDepth);
   ret.slices = dx10Header ? RDCMAX(1U, headerDXT10.arraySize) : 1;
   ret.mips = RDCMAX(1U, header.dwMipMapCount);
+
+  // maximum dimension of textures)
+  if(ret.width > 0x20000 || ret.height > 0x20000)
+    RDCWARN("Possibly invalid DDS dimension: %u x %u", ret.width, ret.height);
+
+  if(ret.depth > 2048)
+    RDCWARN("Possibly invalid DDS 3D depth: %u", ret.depth);
+
+  if(ret.slices > 2048)
+    RDCWARN("Possibly invalid DDS array size: %u", ret.slices);
+
+  if(ret.mips > 18)
+    RDCERR("Invalid DDS mip count: %u", ret.mips);
 
   uint32_t cubeFlags = DDSCAPS2_CUBEMAP | DDSCAPS2_CUBEMAP_ALLFACES;
 
@@ -1041,7 +1058,7 @@ dds_data load_dds_from_file(FILE *f)
   }
 
   uint32_t bytesPerPixel = 1;
-  int subsamplePacking = 1;
+  uint32_t subsamplePacking = 1;
   switch(ret.format.type)
   {
     case ResourceFormatType::S8:
@@ -1094,29 +1111,36 @@ dds_data load_dds_from_file(FILE *f)
     }
   }
 
+  if(uint64_t(ret.slices) > fileSize || uint64_t(ret.mips) > fileSize ||
+     uint64_t(ret.slices * ret.mips) > fileSize)
+  {
+    RDCERR("Invalid slice count %u or mip count %u", ret.slices, ret.mips);
+    return ret;
+  }
+
   ret.subsizes = new uint32_t[ret.slices * ret.mips];
   ret.subdata = new byte *[ret.slices * ret.mips];
 
   int i = 0;
-  for(int slice = 0; slice < ret.slices; slice++)
+  for(uint32_t slice = 0; slice < ret.slices; slice++)
   {
-    for(int mip = 0; mip < ret.mips; mip++)
+    for(uint32_t mip = 0; mip < ret.mips; mip++)
     {
-      int rowlen = RDCMAX(1, ret.width >> mip);
+      uint32_t rowlen = RDCMAX(1U, ret.width >> mip);
       rowlen = AlignUp(rowlen, subsamplePacking);
-      int numRows = RDCMAX(1, ret.height >> mip);
-      int numdepths = RDCMAX(1, ret.depth >> mip);
-      int pitch = RDCMAX(1U, rowlen * bytesPerPixel);
+      uint32_t numRows = RDCMAX(1U, ret.height >> mip);
+      uint32_t numdepths = RDCMAX(1U, ret.depth >> mip);
+      uint32_t pitch = RDCMAX(1U, rowlen * bytesPerPixel);
 
       // pitch/rows are in blocks, not pixels, for block formats.
       if(blockFormat)
       {
-        numRows = RDCMAX(1, numRows / 4);
+        numRows = RDCMAX(1U, numRows / 4);
 
-        int blockSize = (ret.format.type == ResourceFormatType::BC1 ||
-                         ret.format.type == ResourceFormatType::BC4)
-                            ? 8
-                            : 16;
+        uint32_t blockSize = (ret.format.type == ResourceFormatType::BC1 ||
+                              ret.format.type == ResourceFormatType::BC4)
+                                 ? 8
+                                 : 16;
 
         pitch = RDCMAX(blockSize, (((rowlen + 3) / 4)) * blockSize);
       }
@@ -1125,9 +1149,9 @@ dds_data load_dds_from_file(FILE *f)
 
       byte *bytedata = ret.subdata[i] = new byte[ret.subsizes[i]];
 
-      for(int d = 0; d < numdepths; d++)
+      for(uint32_t d = 0; d < numdepths; d++)
       {
-        for(int row = 0; row < numRows; row++)
+        for(uint32_t row = 0; row < numRows; row++)
         {
           FileIO::fread(bytedata, 1, pitch, f);
 
@@ -1137,7 +1161,7 @@ dds_data load_dds_from_file(FILE *f)
 
             if(bytesPerPixel >= 3)
             {
-              for(int p = 0; p < rowlen; p++)
+              for(uint32_t p = 0; p < rowlen; p++)
               {
                 std::swap(rgba[0], rgba[2]);
                 rgba += bytesPerPixel;
@@ -1145,7 +1169,7 @@ dds_data load_dds_from_file(FILE *f)
             }
             else
             {
-              for(int p = 0; p < rowlen; p++)
+              for(uint32_t p = 0; p < rowlen; p++)
               {
                 std::swap(rgba[0], rgba[1]);
                 rgba += bytesPerPixel;

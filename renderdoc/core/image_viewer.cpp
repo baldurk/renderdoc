@@ -402,7 +402,7 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
       return ReplayStatus::ImageUnsupported;
     }
 
-    for(int i = 0; i < read_data.slices * read_data.mips; i++)
+    for(uint32_t i = 0; i < read_data.slices * read_data.mips; i++)
       delete[] read_data.subdata[i];
 
     delete[] read_data.subdata;
