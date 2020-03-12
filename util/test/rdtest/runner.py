@@ -262,6 +262,7 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
     failedcases = []
     skippedcases = []
+    runcases = []
 
     ver = 0
 
@@ -278,7 +279,7 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
         instance = testclass()
 
-        supported,unsupported_reason = instance.check_support()
+        supported, unsupported_reason = instance.check_support()
 
         if not supported:
             log.print("Skipping {} as {}".format(name, unsupported_reason))
@@ -300,6 +301,9 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
             skippedcases.append(testclass)
             continue
 
+        runcases.append((testclass, name, instance))
+
+    for testclass, name, instance in runcases:
         # Print header (and footer) outside the exec so we know they will always be printed successfully
         log.begin_test(name)
 
@@ -330,7 +334,7 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
     log.comment("total={} fail={} skip={} time={}".format(len(testcases), len(failedcases), len(skippedcases), duration))
     log.header("Tests complete summary: {} passed out of {} run from {} total in {}:{:02}:{:02}"
-               .format(len(testcases)-len(skippedcases)-len(failedcases), len(testcases)-len(skippedcases), len(testcases), hours, minutes, seconds))
+               .format(len(runcases)-len(failedcases), len(runcases), len(testcases), hours, minutes, seconds))
     if len(failedcases) > 0:
         log.print("Failed tests:")
     for testclass in failedcases:
