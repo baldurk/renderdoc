@@ -287,6 +287,13 @@ struct IBufferViewer
 )");
   virtual void ScrollToRow(int row, MeshDataStage stage = MeshDataStage::VSIn) = 0;
 
+  DOCUMENT(R"(Scroll to the given column in the given stage's data.
+
+:param int column: the column to scroll to.
+:param ~renderdoc.MeshDataStage stage: The stage of the geometry pipeline to scroll within.
+)");
+  virtual void ScrollToColumn(int column, MeshDataStage stage = MeshDataStage::VSIn) = 0;
+
   DOCUMENT(R"(In a raw buffer viewer, load the contents from a particular buffer resource.
 
 :param int byteOffset: The offset in bytes to the start of the data.

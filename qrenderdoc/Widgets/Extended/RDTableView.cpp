@@ -375,23 +375,7 @@ void RDTableView::scrollTo(const QModelIndex &index, ScrollHint hint)
   // assume per-item vertical scrolling and per-pixel horizontal scrolling
 
   // for any hint except position at center, we just ensure it's visible horizontally
-  if(hint != QAbstractItemView::PositionAtCenter)
-  {
-    // scroll into view from the left
-    if(dataRect.left() > cellRect.left())
-    {
-      horizontalScrollBar()->setValue(horizontalScrollBar()->value() -
-                                      (dataRect.left() - cellRect.left()));
-    }
-
-    // scroll into view from the right
-    if(dataRect.right() < cellRect.right())
-    {
-      horizontalScrollBar()->setValue(horizontalScrollBar()->value() +
-                                      (cellRect.right() - dataRect.right()));
-    }
-  }
-  else
+  if(hint == QAbstractItemView::PositionAtCenter)
   {
     // center it horizontally from the left
     QPoint dataCenter = dataRect.center();
@@ -409,6 +393,14 @@ void RDTableView::scrollTo(const QModelIndex &index, ScrollHint hint)
       horizontalScrollBar()->setValue(horizontalScrollBar()->value() +
                                       (cellCenter.x() - dataCenter.x()));
     }
+  }
+  else if(hint == QAbstractItemView::PositionAtTop)
+  {
+    horizontalScrollBar()->setValue(cellRect.left() - dataRect.left());
+  }
+  else if(hint == QAbstractItemView::PositionAtBottom)
+  {
+    horizontalScrollBar()->setValue(cellRect.right() - dataRect.right());
   }
 
   // collapse EnsureVisible to either PositionAtTop or PositionAtBottom depending on which side it's

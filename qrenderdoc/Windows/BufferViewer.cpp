@@ -1331,6 +1331,8 @@ struct CachedElData
 
 struct PopulateBufferData
 {
+  int sequence;
+
   int vsinHoriz;
   int vsoutHoriz;
   int gsoutHoriz;
@@ -2309,10 +2311,8 @@ void BufferViewer::OnCaptureClosed()
     ToolWindowManager::closeToolWindow(this);
 }
 
-void BufferViewer::OnEventChanged(uint32_t eventId)
+void BufferViewer::FillScrolls(PopulateBufferData *bufdata)
 {
-  PopulateBufferData *bufdata = new PopulateBufferData;
-
   bufdata->vsinHoriz = ui->vsinData->horizontalScrollBar()->value();
   bufdata->vsoutHoriz = ui->vsoutData->horizontalScrollBar()->value();
   bufdata->gsoutHoriz = ui->gsoutData->horizontalScrollBar()->value();
@@ -2320,6 +2320,39 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
   bufdata->vsinVert = ui->vsinData->indexAt(QPoint(0, 0)).row();
   bufdata->vsoutVert = ui->vsoutData->indexAt(QPoint(0, 0)).row();
   bufdata->gsoutVert = ui->gsoutData->indexAt(QPoint(0, 0)).row();
+}
+
+void BufferViewer::OnEventChanged(uint32_t eventId)
+{
+  PopulateBufferData *bufdata = new PopulateBufferData;
+
+  m_Sequence++;
+  bufdata->sequence = m_Sequence;
+
+  if(m_Scrolls)
+  {
+    bufdata->vsinHoriz = m_Scrolls->vsinHoriz;
+    bufdata->vsoutHoriz = m_Scrolls->vsoutHoriz;
+    bufdata->gsoutHoriz = m_Scrolls->gsoutHoriz;
+
+    bufdata->vsinVert = m_Scrolls->vsinVert;
+    bufdata->vsoutVert = m_Scrolls->vsoutVert;
+    bufdata->gsoutVert = m_Scrolls->gsoutVert;
+
+    delete m_Scrolls;
+    m_Scrolls = NULL;
+  }
+  else
+  {
+    FillScrolls(bufdata);
+  }
+
+  // remove any pending scrolls, which have been applied. If nothing changes over the data
+  // population the above scroll preserving will work.
+  // however if m_Scroll is set while data is populationg, we'll apply it when it comes to the end
+  m_Scroll[(int)MeshDataStage::VSIn] = QPoint(-1, -1);
+  m_Scroll[(int)MeshDataStage::VSOut] = QPoint(-1, -1);
+  m_Scroll[(int)MeshDataStage::GSOut] = QPoint(-1, -1);
 
   bufdata->highlightNames[0] = m_ModelVSIn->posName();
   bufdata->highlightNames[1] = m_ModelVSIn->secondaryName();
@@ -2488,6 +2521,9 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     }
 
     GUIInvoke::call(this, [this, bufdata]() {
+      if(bufdata->sequence != m_Sequence)
+        return;
+
       m_ModelVSIn->endReset(bufdata->vsinConfig);
       m_ModelVSOut->endReset(bufdata->vsoutConfig);
       m_ModelGSOut->endReset(bufdata->gsoutConfig);
@@ -2548,11 +2584,22 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       ui->vsoutData->horizontalScrollBar()->setValue(bufdata->vsoutHoriz);
       ui->gsoutData->horizontalScrollBar()->setValue(bufdata->gsoutHoriz);
 
-      if(!m_MeshView)
-        on_rowOffset_valueChanged(ui->rowOffset->value());
+      for(MeshDataStage stage : {MeshDataStage::VSIn, MeshDataStage::VSOut, MeshDataStage::GSOut})
+      {
+        int i = (int)stage;
+
+        if(m_Scroll[i].y() >= 0)
+          ScrollToRow(tableForStage(stage), m_Scroll[i].y());
+        if(m_Scroll[i].x() >= 0)
+          ScrollToColumn(tableForStage(stage), m_Scroll[i].x());
+
+        m_Scroll[i] = QPoint(-1, -1);
+      }
 
       if(!m_MeshView)
       {
+        on_rowOffset_valueChanged(ui->rowOffset->value());
+
         const bool prev = (bufdata->vsinConfig.pagingOffset > 0);
         const bool next = (bufdata->vsinConfig.numRows >= MaxVisibleRows);
 
@@ -3228,6 +3275,15 @@ void BufferViewer::ScrollToRow(RDTableView *view, int row)
   view->horizontalScrollBar()->setValue(hs);
 }
 
+void BufferViewer::ScrollToColumn(RDTableView *view, int column)
+{
+  int vs = view->verticalScrollBar()->value();
+
+  view->scrollTo(view->model()->index(0, column), QAbstractItemView::PositionAtTop);
+
+  view->verticalScrollBar()->setValue(vs);
+}
+
 void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                               const rdcstr &format)
 {
@@ -3268,6 +3324,24 @@ void BufferViewer::ViewTexture(ResourceId id, const Subresource &sub, const rdcs
   m_PagingByteOffset = 0;
 
   processFormat(format);
+}
+
+void BufferViewer::ScrollToRow(int row, MeshDataStage stage)
+{
+  ScrollToRow(tableForStage(stage), row);
+
+  if(m_MeshView)
+    m_Scroll[(int)stage].setY(row);
+  else
+    // the row scroll is visible and handles paging in the non-mesh view, so use it
+    ui->rowOffset->setValue(row);
+}
+
+void BufferViewer::ScrollToColumn(int column, MeshDataStage stage)
+{
+  ScrollToColumn(tableForStage(stage), column);
+
+  m_Scroll[(int)stage].setX(column);
 }
 
 bool BufferViewer::eventFilter(QObject *watched, QEvent *event)
@@ -3677,6 +3751,10 @@ void BufferViewer::camGuess_changed(double value)
 void BufferViewer::processFormat(const QString &format)
 {
   QString errors;
+
+  // save scroll values now before we reset all the models
+  m_Scrolls = new PopulateBufferData;
+  FillScrolls(m_Scrolls);
 
   Reset();
 

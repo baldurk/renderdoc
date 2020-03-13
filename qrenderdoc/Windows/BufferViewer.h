@@ -80,10 +80,8 @@ public:
 
   // IBufferViewer
   QWidget *Widget() override { return this; }
-  void ScrollToRow(int row, MeshDataStage stage = MeshDataStage::VSIn) override
-  {
-    ScrollToRow(tableForStage(stage), row);
-  }
+  void ScrollToRow(int row, MeshDataStage stage = MeshDataStage::VSIn) override;
+  void ScrollToColumn(int column, MeshDataStage stage = MeshDataStage::VSIn) override;
   void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                   const rdcstr &format = "") override;
   void ViewTexture(ResourceId id, const Subresource &sub, const rdcstr &format = "") override;
@@ -174,6 +172,8 @@ private:
   void UI_UpdateBoundingBox(const CalcBoundingBoxData &bbox);
   void UI_UpdateBoundingBoxLabels(int compCount = 0);
 
+  void FillScrolls(PopulateBufferData *bufdata);
+
   void UI_ResetArcball();
 
   uint64_t CurrentByteOffset();
@@ -197,6 +197,12 @@ private:
   BufferItemModel *m_ModelVSIn;
   BufferItemModel *m_ModelVSOut;
   BufferItemModel *m_ModelGSOut;
+
+  PopulateBufferData *m_Scrolls = NULL;
+
+  QPoint m_Scroll[4];
+
+  int m_Sequence = 0;
 
   RDTableView *m_CurView = NULL;
   int m_ContextColumn = -1;
@@ -251,4 +257,5 @@ private:
   void SyncViews(RDTableView *primary, bool selection, bool scroll);
   void UpdateHighlightVerts();
   void ScrollToRow(RDTableView *view, int row);
+  void ScrollToColumn(RDTableView *view, int column);
 };

@@ -3626,6 +3626,9 @@ void TextureViewer::on_viewTexBuffer_clicked()
         m_Ctx.ViewTextureAsBuffer(texptr->resourceId, m_TexDisplay.subresource,
                                   BufferFormatter::GetTextureFormatString(*texptr));
 
+    viewer->ScrollToRow(m_PickedPoint.y());
+    viewer->ScrollToColumn(m_PickedPoint.x() * texptr->format.compCount + 1);
+
     m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
   }
 }
