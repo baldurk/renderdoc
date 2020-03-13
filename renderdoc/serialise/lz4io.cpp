@@ -127,7 +127,7 @@ bool LZ4Compressor::FlushPage0()
   // m_PageOffset is the amount written, usually equal to lz4BlockSize except the last block.
   int32_t compSize =
       LZ4_compress_fast_continue(m_LZ4Comp, (const char *)m_Page[0], (char *)m_CompressBuffer,
-                                 (int)m_PageOffset, (int)LZ4_COMPRESSBOUND(lz4BlockSize), 1);
+                                 (int)m_PageOffset, (int)LZ4_COMPRESSBOUND(lz4BlockSize), 20);
 
   if(compSize < 0)
   {
