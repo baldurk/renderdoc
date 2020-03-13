@@ -34,7 +34,7 @@ LZ4Compressor::LZ4Compressor(StreamWriter *write, Ownership own) : Compressor(wr
 
   m_PageOffset = 0;
 
-  LZ4_resetStream(&m_LZ4Comp);
+  m_LZ4Comp = LZ4_createStream();
 }
 
 LZ4Compressor::~LZ4Compressor()
@@ -42,6 +42,7 @@ LZ4Compressor::~LZ4Compressor()
   FreeAlignedBuffer(m_Page[0]);
   FreeAlignedBuffer(m_Page[1]);
   FreeAlignedBuffer(m_CompressBuffer);
+  LZ4_freeStream(m_LZ4Comp);
 }
 
 bool LZ4Compressor::Write(const void *data, uint64_t numBytes)
@@ -125,7 +126,7 @@ bool LZ4Compressor::FlushPage0()
 
   // m_PageOffset is the amount written, usually equal to lz4BlockSize except the last block.
   int32_t compSize =
-      LZ4_compress_fast_continue(&m_LZ4Comp, (const char *)m_Page[0], (char *)m_CompressBuffer,
+      LZ4_compress_fast_continue(m_LZ4Comp, (const char *)m_Page[0], (char *)m_CompressBuffer,
                                  (int)m_PageOffset, (int)LZ4_COMPRESSBOUND(lz4BlockSize), 1);
 
   if(compSize < 0)
@@ -161,7 +162,9 @@ LZ4Decompressor::LZ4Decompressor(StreamReader *read, Ownership own) : Decompress
   m_PageOffset = 0;
   m_PageLength = 0;
 
-  LZ4_setStreamDecode(&m_LZ4Decomp, NULL, 0);
+  m_LZ4Decomp = LZ4_createStreamDecode();
+
+  LZ4_setStreamDecode(m_LZ4Decomp, NULL, 0);
 }
 
 LZ4Decompressor::~LZ4Decompressor()
@@ -169,6 +172,8 @@ LZ4Decompressor::~LZ4Decompressor()
   FreeAlignedBuffer(m_Page[0]);
   FreeAlignedBuffer(m_Page[1]);
   FreeAlignedBuffer(m_CompressBuffer);
+
+  LZ4_freeStreamDecode(m_LZ4Decomp);
 }
 
 bool LZ4Decompressor::Recompress(Compressor *comp)
@@ -277,7 +282,7 @@ bool LZ4Decompressor::FillPage0()
     return false;
   }
 
-  int32_t decompSize = LZ4_decompress_safe_continue(&m_LZ4Decomp, (const char *)m_CompressBuffer,
+  int32_t decompSize = LZ4_decompress_safe_continue(m_LZ4Decomp, (const char *)m_CompressBuffer,
                                                     (char *)m_Page[0], compSize, lz4BlockSize);
 
   if(decompSize < 0)

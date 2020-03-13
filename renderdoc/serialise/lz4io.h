@@ -43,7 +43,7 @@ private:
   byte *m_CompressBuffer;
   uint64_t m_PageOffset;
 
-  LZ4_stream_t m_LZ4Comp;
+  LZ4_stream_t *m_LZ4Comp;
 };
 
 class LZ4Decompressor : public Decompressor
@@ -63,5 +63,5 @@ private:
   uint64_t m_PageOffset;
   uint64_t m_PageLength;
 
-  LZ4_streamDecode_t m_LZ4Decomp;
+  LZ4_streamDecode_t *m_LZ4Decomp;
 };
