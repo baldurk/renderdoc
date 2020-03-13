@@ -138,6 +138,8 @@ private:
   CaptureState m_State;
   bool m_AppControlledCapture = false;
 
+  PerformanceTimer m_CaptureTimer;
+
   bool m_MarkedActive = false;
 
   bool m_UsesVRMarkers;

@@ -1778,6 +1778,8 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
   if(!IsBackgroundCapturing(m_State))
     return;
 
+  m_CaptureTimer.Restart();
+
   m_AppControlledCapture = true;
 
   m_SubmitCounter = 0;
@@ -2146,6 +2148,10 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
     RDCDEBUG("Done");
   }
+
+  RDCLOG("Captured D3D12 frame with %f MB capture section in %f seconds",
+         double(captureWriter->GetOffset()) / (1024.0 * 1024.0),
+         m_CaptureTimer.GetMilliseconds() / 1000.0);
 
   RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
 

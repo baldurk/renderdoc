@@ -347,6 +347,8 @@ private:
   CaptureState m_State;
   bool m_AppControlledCapture = false;
 
+  PerformanceTimer m_CaptureTimer;
+
   ReplayStatus m_FailedReplayStatus = ReplayStatus::APIReplayFailed;
 
   std::set<ID3D11DeviceChild *> m_CachedStateObjects;

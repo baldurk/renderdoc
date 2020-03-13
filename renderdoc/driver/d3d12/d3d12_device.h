@@ -452,6 +452,8 @@ private:
   Threading::RWLock m_CapTransitionLock;
   CaptureState m_State;
 
+  PerformanceTimer m_CaptureTimer;
+
   uint32_t m_SubmitCounter = 0;
 
   D3D12InitParams m_InitParams;

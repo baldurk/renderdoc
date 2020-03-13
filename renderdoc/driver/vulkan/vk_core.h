@@ -279,6 +279,8 @@ private:
   CaptureState m_State;
   bool m_AppControlledCapture = false;
 
+  PerformanceTimer m_CaptureTimer;
+
   bool m_MarkedActive = false;
   uint32_t m_SubmitCounter = 0;
 

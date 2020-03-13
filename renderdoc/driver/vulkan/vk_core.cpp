@@ -1531,6 +1531,8 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
   if(!IsBackgroundCapturing(m_State))
     return;
 
+  m_CaptureTimer.Restart();
+
   m_AppControlledCapture = true;
 
   m_SubmitCounter = 0;
@@ -2003,6 +2005,10 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
       RDCDEBUG("Done");
     }
   }
+
+  RDCLOG("Captured Vulkan frame with %f MB capture section in %f seconds",
+         double(captureWriter->GetOffset()) / (1024.0 * 1024.0),
+         m_CaptureTimer.GetMilliseconds() / 1000.0);
 
   RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
 

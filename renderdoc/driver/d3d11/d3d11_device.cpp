@@ -1673,6 +1673,8 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
   if(!IsBackgroundCapturing(m_State))
     return;
 
+  m_CaptureTimer.Restart();
+
   m_State = CaptureState::ActiveCapturing;
 
   m_AppControlledCapture = true;
@@ -1987,6 +1989,10 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
       UnlockForChunkFlushing();
     }
+
+    RDCLOG("Captured D3D11 frame with %f MB capture section in %f seconds",
+           double(captureWriter->GetOffset()) / (1024.0 * 1024.0),
+           m_CaptureTimer.GetMilliseconds() / 1000.0);
 
     RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
 
