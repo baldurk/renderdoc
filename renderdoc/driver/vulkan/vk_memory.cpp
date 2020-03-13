@@ -24,62 +24,85 @@
 
 #include "vk_core.h"
 
-uint32_t WrappedVulkan::GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask)
+uint32_t WrappedVulkan::GetReadbackMemoryIndex(uint32_t resourceCompatibleBitmask)
 {
-  if(resourceRequiredBitmask & (1 << m_PhysicalDeviceData.readbackMemIndex))
+  if(m_PhysicalDeviceData.readbackMemIndex < 32 &&
+     resourceCompatibleBitmask & (1 << m_PhysicalDeviceData.readbackMemIndex))
     return m_PhysicalDeviceData.readbackMemIndex;
 
-  return m_PhysicalDeviceData.GetMemoryIndex(resourceRequiredBitmask,
-                                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
+  // for readbacks we want cached
+  return m_PhysicalDeviceData.GetMemoryIndex(resourceCompatibleBitmask,
+                                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                                             VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
 }
 
-uint32_t WrappedVulkan::GetUploadMemoryIndex(uint32_t resourceRequiredBitmask)
+uint32_t WrappedVulkan::GetUploadMemoryIndex(uint32_t resourceCompatibleBitmask)
 {
-  if(resourceRequiredBitmask & (1 << m_PhysicalDeviceData.uploadMemIndex))
+  if(m_PhysicalDeviceData.uploadMemIndex < 32 &&
+     resourceCompatibleBitmask & (1 << m_PhysicalDeviceData.uploadMemIndex))
     return m_PhysicalDeviceData.uploadMemIndex;
 
-  return m_PhysicalDeviceData.GetMemoryIndex(resourceRequiredBitmask,
-                                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
+  // for upload, writing directly into device local memory is preferred
+  return m_PhysicalDeviceData.GetMemoryIndex(resourceCompatibleBitmask,
+                                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
 
-uint32_t WrappedVulkan::GetGPULocalMemoryIndex(uint32_t resourceRequiredBitmask)
+uint32_t WrappedVulkan::GetGPULocalMemoryIndex(uint32_t resourceCompatibleBitmask)
 {
-  if(resourceRequiredBitmask & (1 << m_PhysicalDeviceData.GPULocalMemIndex))
+  if(m_PhysicalDeviceData.GPULocalMemIndex < 32 &&
+     resourceCompatibleBitmask & (1 << m_PhysicalDeviceData.GPULocalMemIndex))
     return m_PhysicalDeviceData.GPULocalMemIndex;
 
-  return m_PhysicalDeviceData.GetMemoryIndex(resourceRequiredBitmask,
-                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+  // we don't actually need to require device local, but it is preferred
+  return m_PhysicalDeviceData.GetMemoryIndex(resourceCompatibleBitmask, 0,
+                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
 
-uint32_t WrappedVulkan::PhysicalDeviceData::GetMemoryIndex(uint32_t resourceRequiredBitmask,
+uint32_t WrappedVulkan::PhysicalDeviceData::GetMemoryIndex(uint32_t resourceCompatibleBitmask,
                                                            uint32_t allocRequiredProps,
-                                                           uint32_t allocUndesiredProps)
+                                                           uint32_t allocPreferredProps)
 {
   uint32_t best = memProps.memoryTypeCount;
 
   for(uint32_t memIndex = 0; memIndex < memProps.memoryTypeCount; memIndex++)
   {
-    if(resourceRequiredBitmask & (1 << memIndex))
+    if(resourceCompatibleBitmask & (1 << memIndex))
     {
       uint32_t memTypeFlags = memProps.memoryTypes[memIndex].propertyFlags;
 
       if((memTypeFlags & allocRequiredProps) == allocRequiredProps)
       {
-        if(memTypeFlags & allocUndesiredProps)
-          best = memIndex;
-        else
+        // if this type has all preferred props, it is the best we can do. The driver is required to
+        // order memory types that are otherwise equal in order of ascending performance.
+        if((memTypeFlags & allocPreferredProps) == allocPreferredProps)
           return memIndex;
+
+        // no best yet, this is the best we have
+        if(best == memProps.memoryTypeCount)
+        {
+          best = memIndex;
+        }
+        else
+        {
+          // compare to the previous best. If it has more preferred props set, this is the new best
+          uint32_t prevBestFlags = memProps.memoryTypes[best].propertyFlags;
+          if((prevBestFlags & allocPreferredProps) < (memTypeFlags & allocPreferredProps))
+          {
+            best = memIndex;
+          }
+        }
       }
     }
   }
 
   if(best == memProps.memoryTypeCount)
   {
-    RDCERR("Couldn't find any matching heap! requirements %x / %x too strict",
-           resourceRequiredBitmask, allocRequiredProps);
+    RDCERR("Couldn't find any matching heap! mrq allows %x but required properties %x too strict",
+           resourceCompatibleBitmask, allocRequiredProps);
     return 0;
   }
+
   return best;
 }
 

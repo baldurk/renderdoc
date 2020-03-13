@@ -358,8 +358,8 @@ private:
 
   struct PhysicalDeviceData
   {
-    uint32_t GetMemoryIndex(uint32_t resourceRequiredBitmask, uint32_t allocRequiredProps,
-                            uint32_t allocUndesiredProps);
+    uint32_t GetMemoryIndex(uint32_t resourceCompatibleBitmask, uint32_t allocRequiredProps,
+                            uint32_t allocPreferredProps);
 
     // store the three most common memory indices:
     //  - memory for copying into and reading back from the GPU
@@ -974,9 +974,9 @@ public:
     return m_DescriptorSetState[descSet].layout;
   }
 
-  uint32_t GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask);
-  uint32_t GetUploadMemoryIndex(uint32_t resourceRequiredBitmask);
-  uint32_t GetGPULocalMemoryIndex(uint32_t resourceRequiredBitmask);
+  uint32_t GetReadbackMemoryIndex(uint32_t resourceCompatibleBitmask);
+  uint32_t GetUploadMemoryIndex(uint32_t resourceCompatibleBitmask);
+  uint32_t GetGPULocalMemoryIndex(uint32_t resourceCompatibleBitmask);
 
   EventFlags GetEventFlags(uint32_t eid) { return m_EventFlags[eid]; }
   rdcarray<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }

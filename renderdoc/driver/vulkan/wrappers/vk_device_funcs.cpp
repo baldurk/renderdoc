@@ -3465,12 +3465,37 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
           ->GetPhysicalDeviceFormatProperties(Unwrap(physicalDevice), VkFormat(i),
                                               &m_PhysicalDeviceData.fmtprops[i]);
 
-    m_PhysicalDeviceData.readbackMemIndex =
-        m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
-    m_PhysicalDeviceData.uploadMemIndex =
-        m_PhysicalDeviceData.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
-    m_PhysicalDeviceData.GPULocalMemIndex = m_PhysicalDeviceData.GetMemoryIndex(
-        ~0U, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    // we need to do this little dance because Get*MemoryIndex checks to see if the existing
+    // readback index is valid, and if so just returns it without doing the proper checks.
+    // so first we set the indices to something invalid then call the function
+    m_PhysicalDeviceData.readbackMemIndex = m_PhysicalDeviceData.uploadMemIndex =
+        m_PhysicalDeviceData.GPULocalMemIndex = ~0U;
+
+    m_PhysicalDeviceData.readbackMemIndex = GetReadbackMemoryIndex(~0U);
+    m_PhysicalDeviceData.uploadMemIndex = GetUploadMemoryIndex(~0U);
+    m_PhysicalDeviceData.GPULocalMemIndex = GetGPULocalMemoryIndex(~0U);
+
+    for(uint32_t i = 0; i < m_PhysicalDeviceData.memProps.memoryTypeCount; i++)
+    {
+      rdcstr selected;
+
+      if(m_PhysicalDeviceData.GPULocalMemIndex == i)
+        selected += "GPULocal|";
+      if(m_PhysicalDeviceData.readbackMemIndex == i)
+        selected += "readback|";
+      if(m_PhysicalDeviceData.uploadMemIndex == i)
+        selected += "upload|";
+
+      selected.pop_back();
+
+      const VkMemoryType &type = m_PhysicalDeviceData.memProps.memoryTypes[i];
+      const VkMemoryHeap &heap = m_PhysicalDeviceData.memProps.memoryHeaps[type.heapIndex];
+
+      RDCLOG("  Memory type %u: %s in heap %u (%s) (%.1f GB) [%s]", i,
+             ToStr((VkMemoryPropertyFlagBits)type.propertyFlags).c_str(), type.heapIndex,
+             ToStr((VkMemoryHeapFlagBits)heap.flags).c_str(),
+             float(heap.size) / (1024.0f * 1024.0f * 1024.0f), selected.c_str());
+    }
 
     m_PhysicalDeviceData.queueCount = qCount;
     memcpy(m_PhysicalDeviceData.queueProps, props, qCount * sizeof(VkQueueFamilyProperties));
