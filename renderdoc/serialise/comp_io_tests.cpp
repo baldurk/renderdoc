@@ -58,7 +58,7 @@ TEST_CASE("Test LZ4 compression/decompression", "[streamio][lz4]")
 
     // check that the compression got good wins out of the above data. The random data will be
     // pretty much untouched but the rest should compress massively.
-    CHECK(buf.GetOffset() < 1024 * 1024 + 20 * 1024);
+    CHECK(buf.GetOffset() < 1024 * 1024 + 30 * 1024);
     CHECK(writer.GetOffset() == 4 * 1024 * 1024);
 
     CHECK_FALSE(writer.IsErrored());
