@@ -1159,8 +1159,9 @@ StreamWriter *RDCFile::WriteSection(const SectionProperties &props)
     if(compWriter)
       uncompressedLength = compWriter->GetOffset();
 
-    RDCLOG("Finishing write to section %u (%s). Compressed from %llu bytes to %llu", type,
-           name.c_str(), uncompressedLength, compressedLength);
+    RDCLOG("Finishing write to section %u (%s). Compressed from %llu bytes to %llu (%.2f %%)", type,
+           name.c_str(), uncompressedLength, compressedLength,
+           100.0 * (double(compressedLength) / double(uncompressedLength)));
 
     // finish up the properties and add to list of sections
     m_CurrentWritingProps.compressedSize = compressedLength;
