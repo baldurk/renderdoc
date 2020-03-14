@@ -1034,31 +1034,37 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) 
     {
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
-      size_t size = 0;
-      for(int space = 0; space < s.spaces.count(); space++)
-        size += s.spaces[space].srvs.size();
-
+      size_t size = s.bindpointMapping.readOnlyResources.size();
       ret.reserve(size);
 
-      for(int space = 0; space < s.spaces.count(); space++)
+      for(size_t bp = 0; bp < size; bp++)
       {
-        for(int reg = 0; reg < s.spaces[space].srvs.count(); reg++)
+        const Bindpoint &bind = s.bindpointMapping.readOnlyResources[bp];
+        ret.push_back(BoundResourceArray());
+        ret.back().bindPoint = bind;
+
+        uint32_t count = bind.arraySize == ~0U ? 1 : bind.arraySize;
+        rdcarray<BoundResource> &val = ret.back().resources;
+        val.resize(count);
+
+        int spaceIndex = 0;
+        for(int space = 0; space < s.spaces.count(); space++)
         {
-          const D3D12Pipe::View &bind = s.spaces[space].srvs[reg];
-          Bindpoint key(s.spaces[space].spaceIndex, reg);
-          BoundResource val;
+          if(s.spaces[space].spaceIndex == (uint32_t)bind.bindset)
+          {
+            spaceIndex = space;
+            break;
+          }
+        }
 
-          // consider this register to not exist - it's in a gap defined by sparse root signature
-          // elements
-          if(bind.rootElement == ~0U)
-            continue;
+        for(uint32_t i = 0; i < count; i++)
+        {
+          const D3D12Pipe::View &view = s.spaces[spaceIndex].srvs[bind.bind + i];
 
-          val.resourceId = bind.resourceId;
-          val.firstMip = (int)bind.firstMip;
-          val.firstSlice = (int)bind.firstSlice;
-          val.typeCast = bind.viewFormat.compType;
-
-          ret.push_back(BoundResourceArray(key, {val}));
+          val[i].resourceId = view.resourceId;
+          val[i].firstMip = (int)view.firstMip;
+          val[i].firstSlice = (int)view.firstSlice;
+          val[i].typeCast = view.viewFormat.compType;
         }
       }
 

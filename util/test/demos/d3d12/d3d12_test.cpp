@@ -906,11 +906,11 @@ ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::
   ID3DBlobPtr blob = NULL;
   ID3DBlobPtr error = NULL;
 
-  HRESULT hr =
-      dyn_D3DCompile(src.c_str(), src.length(), "", NULL, NULL, entry.c_str(), profile.c_str(),
-                     D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG |
-                         D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_OPTIMIZATION_LEVEL0,
-                     0, &blob, &error);
+  HRESULT hr = dyn_D3DCompile(
+      src.c_str(), src.length(), "", NULL, NULL, entry.c_str(), profile.c_str(),
+      D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION |
+          D3DCOMPILE_OPTIMIZATION_LEVEL0 | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES,
+      0, &blob, &error);
 
   if(FAILED(hr))
   {

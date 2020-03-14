@@ -2269,6 +2269,14 @@ void ShaderViewer::updateDebugState()
             VariableTag(DebugVariableReference(DebugVariableType::ReadOnlyResource, ro.name))));
         ui->constants->addTopLevelItem(node);
       }
+      else if(bind.arraySize == ~0U)
+      {
+        RDTreeWidgetItem *node = new RDTreeWidgetItem(
+            {m_ShaderDetails->readOnlyResources[i].name, ro.name, lit("[unbounded]"), QString()});
+        node->setTag(QVariant::fromValue(
+            VariableTag(DebugVariableReference(DebugVariableType::ReadOnlyResource, ro.name))));
+        ui->constants->addTopLevelItem(node);
+      }
       else
       {
         RDTreeWidgetItem *node =
@@ -2325,7 +2333,15 @@ void ShaderViewer::updateDebugState()
             new RDTreeWidgetItem({m_ShaderDetails->readWriteResources[i].name, rw.name,
                                   lit("Resource"), ToQStr(rwBind.resources[0].resourceId)});
         node->setTag(QVariant::fromValue(
-            VariableTag(DebugVariableReference(DebugVariableType::ReadOnlyResource, rw.name))));
+            VariableTag(DebugVariableReference(DebugVariableType::ReadWriteResource, rw.name))));
+        ui->constants->addTopLevelItem(node);
+      }
+      else if(bind.arraySize == ~0U)
+      {
+        RDTreeWidgetItem *node = new RDTreeWidgetItem(
+            {m_ShaderDetails->readWriteResources[i].name, rw.name, lit("[unbounded]"), QString()});
+        node->setTag(QVariant::fromValue(
+            VariableTag(DebugVariableReference(DebugVariableType::ReadWriteResource, rw.name))));
         ui->constants->addTopLevelItem(node);
       }
       else
@@ -2334,7 +2350,7 @@ void ShaderViewer::updateDebugState()
             new RDTreeWidgetItem({m_ShaderDetails->readWriteResources[i].name, rw.name,
                                   QFormatStr("[%1]").arg(bind.arraySize), QString()});
         node->setTag(QVariant::fromValue(
-            VariableTag(DebugVariableReference(DebugVariableType::ReadOnlyResource, rw.name))));
+            VariableTag(DebugVariableReference(DebugVariableType::ReadWriteResource, rw.name))));
 
         for(uint32_t a = 0; a < bind.arraySize; a++)
         {
@@ -2763,6 +2779,12 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
         if(bind.arraySize == 1)
         {
           value = ToQStr(res.resources[0].resourceId);
+        }
+        else if(bind.arraySize == ~0U)
+        {
+          regNames = QString();
+          typeName = lit("[unbounded]");
+          value = QString();
         }
         else
         {
