@@ -81,11 +81,40 @@ float4 main() : SV_Target0
 
 Texture2DArray<float> resArray[4] : register(t10, space1);
 
+cbuffer consts : register(b3)
+{
+  float4 test;
+};
+
 float4 main(float4 pos : SV_Position) : SV_Target0
 {
+  // Test resource array access with a constant, uniform, and non-uniform
   uint2 indices = ((uint2)pos.xy) % uint2(4, 4);
-  float arrayVal = resArray[NonUniformResourceIndex(indices.x)].Load(uint4(0, 0, indices.y, 0));
-  return float4(arrayVal, arrayVal, arrayVal, 1.0f);
+  float arrayVal1 = resArray[1].Load(uint4(0, 0, indices.y, 0));
+  float arrayVal2 = resArray[test.x].Load(uint4(0, 0, indices.y, 0));
+  float arrayVal3 = resArray[NonUniformResourceIndex(indices.x)].Load(uint4(0, 0, indices.y, 0));
+  return float4(arrayVal1, arrayVal2, arrayVal3, 1.0f);
+}
+
+)EOSHADER";
+
+  std::string pixel_bindless = R"EOSHADER(
+
+Texture2DArray<float> resArray[] : register(t0);
+
+cbuffer consts : register(b3)
+{
+  float4 test;
+};
+
+float4 main(float4 pos : SV_Position) : SV_Target0
+{
+  // Test resource array access with a constant, uniform, and non-uniform
+  uint2 indices = ((uint2)pos.xy) % uint2(4, 4);
+  float arrayVal1 = resArray[1].Load(uint4(0, 0, indices.y, 0));
+  float arrayVal2 = resArray[test.x].Load(uint4(0, 0, indices.y, 0));
+  float arrayVal3 = resArray[NonUniformResourceIndex(indices.x)].Load(uint4(0, 0, indices.y, 0));
+  return float4(arrayVal1, arrayVal2, arrayVal3, 1.0f);
 }
 
 )EOSHADER";
@@ -162,8 +191,9 @@ float4 main(float4 pos : SV_Position) : SV_Target0
     ID3DBlobPtr psblob_5_0 = Compile(pixel_5_0, "main", "ps_5_0");
     ID3DBlobPtr psblob_5_1 = Compile(pixel_5_1, "main", "ps_5_1");
     ID3DBlobPtr psblob_resArray = Compile(pixel_resArray, "main", "ps_5_1");
+    ID3DBlobPtr psblob_bindless = Compile(pixel_bindless, "main", "ps_5_1");
 
-    Vec4f cbufferdata = Vec4f(25.0f, 50.0f, 75.0f, 100.0f);
+    Vec4f cbufferdata = Vec4f(3.0f, 50.0f, 75.0f, 100.0f);
 
     ID3D12ResourcePtr vb = MakeBuffer().Data(DefaultTri);
     ID3D12ResourcePtr cb = MakeBuffer().Data(&cbufferdata);
@@ -221,7 +251,12 @@ float4 main(float4 pos : SV_Position) : SV_Target0
         tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, UINT_MAX, 50),
     });
     ID3D12RootSignaturePtr sig_resArray = MakeSig({
+        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 3),
         tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 10, 4, 30),
+    });
+    ID3D12RootSignaturePtr sig_bindless = MakeSig({
+        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 3),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, UINT_MAX, 30),
     });
 
     ID3D12PipelineStatePtr pso_5_0 = MakePSO()
@@ -241,6 +276,12 @@ float4 main(float4 pos : SV_Position) : SV_Target0
                                               .InputLayout()
                                               .VS(vsblob)
                                               .PS(psblob_resArray)
+                                              .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
+    ID3D12PipelineStatePtr pso_bindless = MakePSO()
+                                              .RootSig(sig_bindless)
+                                              .InputLayout()
+                                              .VS(vsblob)
+                                              .PS(psblob_bindless)
                                               .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
 
     ResourceBarrier(vb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
@@ -298,7 +339,16 @@ float4 main(float4 pos : SV_Position) : SV_Target0
       cmd->SetPipelineState(pso_resArray);
       cmd->SetGraphicsRootSignature(sig_resArray);
       cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
-      cmd->SetGraphicsRootDescriptorTable(0, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+      cmd->SetGraphicsRootConstantBufferView(0, cb->GetGPUVirtualAddress());
+      cmd->SetGraphicsRootDescriptorTable(1, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+      cmd->DrawInstanced(3, 1, 0, 0);
+
+      setMarker(cmd, "Bindless");
+      cmd->SetPipelineState(pso_bindless);
+      cmd->SetGraphicsRootSignature(sig_bindless);
+      cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
+      cmd->SetGraphicsRootConstantBufferView(0, cb->GetGPUVirtualAddress());
+      cmd->SetGraphicsRootDescriptorTable(1, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
       cmd->DrawInstanced(3, 1, 0, 0);
 
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);

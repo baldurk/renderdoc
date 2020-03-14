@@ -445,6 +445,38 @@ bool OperationFlushing(const DXBCBytecode::OpcodeType &op)
   return false;
 }
 
+bool OperandSwizzle(const Operation &op, const Operand &oper)
+{
+  switch(op.operation)
+  {
+    case OPCODE_SAMPLE:
+    case OPCODE_SAMPLE_L:
+    case OPCODE_SAMPLE_B:
+    case OPCODE_SAMPLE_D:
+    case OPCODE_SAMPLE_C:
+    case OPCODE_SAMPLE_C_LZ:
+    case OPCODE_LD:
+    case OPCODE_LD_MS:
+    case OPCODE_GATHER4:
+    case OPCODE_GATHER4_C:
+    case OPCODE_GATHER4_PO:
+    case OPCODE_GATHER4_PO_C:
+    case OPCODE_LOD:
+    {
+      // Per HLSL docs, "the swizzle on srcResource determines how to swizzle the 4-component result
+      // coming back from the texture sample/filter". That swizzle should not be handled when
+      // fetching the src operand
+      if(oper.type == TYPE_RESOURCE)
+        return false;
+    }
+    break;
+
+    default: break;
+  }
+
+  return true;
+}
+
 void DoubleSet(ShaderVariable &var, const double in[2])
 {
   var.value.d.x = in[0];
@@ -1623,16 +1655,24 @@ ShaderVariable ThreadState::GetSrc(const Operand &oper, const Operation &op, boo
     }
   }
 
-  // perform swizzling
-  v.value.uv[0] = s.value.uv[oper.comps[0] == 0xff ? 0 : oper.comps[0]];
-  v.value.uv[1] = s.value.uv[oper.comps[1] == 0xff ? 1 : oper.comps[1]];
-  v.value.uv[2] = s.value.uv[oper.comps[2] == 0xff ? 2 : oper.comps[2]];
-  v.value.uv[3] = s.value.uv[oper.comps[3] == 0xff ? 3 : oper.comps[3]];
+  if(OperandSwizzle(op, oper))
+  {
+    // perform swizzling
+    v.value.uv[0] = s.value.uv[oper.comps[0] == 0xff ? 0 : oper.comps[0]];
+    v.value.uv[1] = s.value.uv[oper.comps[1] == 0xff ? 1 : oper.comps[1]];
+    v.value.uv[2] = s.value.uv[oper.comps[2] == 0xff ? 2 : oper.comps[2]];
+    v.value.uv[3] = s.value.uv[oper.comps[3] == 0xff ? 3 : oper.comps[3]];
 
-  if(oper.comps[0] != 0xff && oper.comps[1] == 0xff && oper.comps[2] == 0xff && oper.comps[3] == 0xff)
-    v.columns = 1;
+    if(oper.comps[0] != 0xff && oper.comps[1] == 0xff && oper.comps[2] == 0xff &&
+       oper.comps[3] == 0xff)
+      v.columns = 1;
+    else
+      v.columns = 4;
+  }
   else
+  {
     v.columns = 4;
+  }
 
   if(oper.modifier == OPERAND_MODIFIER_ABS || oper.modifier == OPERAND_MODIFIER_ABSNEG)
   {

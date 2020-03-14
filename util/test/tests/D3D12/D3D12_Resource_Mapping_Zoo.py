@@ -58,6 +58,17 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
 
         rdtest.log.end_section("Resource array tests")
 
+        rdtest.log.begin_section("Bindless tests")
+        test_marker: rd.DrawcallDescription = self.find_draw("Bindless")
+        draw = test_marker.next
+        self.controller.SetFrameEvent(draw.eventId, False)
+
+        for y in range(4):
+            for x in range(4):
+                failed = not self.test_debug_pixel(200 + x, 200 + y, "Bindless({},{})".format(x, y)) or failed
+
+        rdtest.log.end_section("Bindless tests")
+
         if failed:
             raise rdtest.TestFailureException("Some tests were not as expected")
 
