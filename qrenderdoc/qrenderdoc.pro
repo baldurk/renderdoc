@@ -128,9 +128,7 @@ win32 {
 
 	# Add the SWIG files that were generated in cmake
 	SOURCES += $$CMAKE_DIR/qrenderdoc/renderdoc_python.cxx
-	SOURCES += $$CMAKE_DIR/qrenderdoc/renderdoc.py.c
 	SOURCES += $$CMAKE_DIR/qrenderdoc/qrenderdoc_python.cxx
-	SOURCES += $$CMAKE_DIR/qrenderdoc/qrenderdoc.py.c
 
 	CONFIG += warn_off
 	CONFIG += c++14

@@ -258,14 +258,7 @@ foreach(in ${swig_interfaces})
             DEPENDS ${RDOC_REPLAY_FILES}
             DEPENDS ${QRD_INTERFACE_FILES})
 
-    add_custom_command(OUTPUT ${swig_file}.py.c
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-            COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin ${swig_file}.py ${swig_file}.py.c
-            DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
-            DEPENDS ${swig_file}_python.cxx)
-
     list(APPEND swig_output ${swig_file}_python.cxx)
-    list(APPEND swig_output ${swig_file}.py.c)
 endforeach()
 
 add_custom_target(swig-bindings ALL DEPENDS ${swig_output})
