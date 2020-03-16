@@ -3808,6 +3808,8 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
   //////////////////////////////
   // Shaders
 
+  static bool hugeRangeWarned = false;
+
   for(int shad = 0; shad < 6; shad++)
   {
     bool compute = (shad == 5);
@@ -3907,6 +3909,14 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
               "descriptor set?",
               bind, bindset);
           debugMessages.push_back(msg);
+          continue;
+        }
+
+        if(layout.bindings[bind].descriptorCount > 1000)
+        {
+          if(!hugeRangeWarned)
+            RDCWARN("Skipping large, most likely 'bindless', descriptor range");
+          hugeRangeWarned = true;
           continue;
         }
 
