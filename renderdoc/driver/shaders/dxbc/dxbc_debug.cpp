@@ -3884,8 +3884,12 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         ddyCalc = srcOpers[4];
       }
 
-      int multisampleIndex = srcOpers[2].value.i.x;
-      float lodOrCompareValue = srcOpers[3].value.f.x;
+      int multisampleIndex = 0;
+      if(srcOpers.size() >= 3)
+        multisampleIndex = srcOpers[2].value.i.x;
+      float lodOrCompareValue = 0.0f;
+      if(srcOpers.size() >= 4)
+        lodOrCompareValue = srcOpers[3].value.f.x;
       if(op.operation == OPCODE_GATHER4_PO_C)
         lodOrCompareValue = srcOpers[4].value.f.x;
 
