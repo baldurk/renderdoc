@@ -1474,6 +1474,17 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     AddRequiredExtensions(false, Extensions, supportedExtensions);
 
+    // Drop VK_KHR_driver_properties if it's not available
+    for(size_t i = 0; i < Extensions.size(); i++)
+    {
+      if(Extensions[i] == VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME &&
+         supportedExtensions.find(Extensions[i]) == supportedExtensions.end())
+      {
+        Extensions.erase(i);
+        break;
+      }
+    }
+
     for(size_t i = 0; i < Extensions.size(); i++)
     {
       if(supportedExtensions.find(Extensions[i]) == supportedExtensions.end())
