@@ -931,7 +931,7 @@ public:
 
       if(role == Qt::DisplayRole)
       {
-        if(config.unclampedNumRows > 0 && row >= config.numRows - 2)
+        if(config.unclampedNumRows > config.pagingOffset + config.numRows && row >= config.numRows - 2)
         {
           if(meshView)
           {
@@ -941,7 +941,7 @@ public:
           else
           {
             if(col == 0 && row == config.numRows - 1)
-              return QString::number(config.pagingOffset + config.unclampedNumRows - 1);
+              return QString::number(config.unclampedNumRows - 1);
           }
 
           return lit("...");
@@ -2503,12 +2503,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       bufdata->vsinConfig.pagingOffset = uint32_t(m_PagingByteOffset / buf->stride);
       bufdata->vsinConfig.numRows = uint32_t((bufCount + buf->stride - 1) / buf->stride);
-      bufdata->vsinConfig.unclampedNumRows = 0;
-      if(unclampedLen > CurrentByteOffset() + clampedLen)
-        bufdata->vsinConfig.unclampedNumRows =
-            bufdata->vsinConfig.numRows +
-            uint32_t((unclampedLen - (CurrentByteOffset() + clampedLen) + buf->stride - 1) /
-                     buf->stride);
+      bufdata->vsinConfig.unclampedNumRows =
+          uint32_t((unclampedLen - m_ByteOffset + buf->stride - 1) / buf->stride);
 
       // ownership passes to model
       bufdata->vsinConfig.buffers.push_back(buf);
