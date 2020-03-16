@@ -158,10 +158,36 @@ public:
       // as well as up to 64 bytes *behind* the head if it exists.
       if(numBytes > Available())
       {
-        bool success = Reserve(numBytes);
+        bool success = false;
+        bool alreadyread = false;
+
+        // if we're reading 10MB or more then read directly into the output memory rather than
+        // resizing up, reading all of that, then memcpy'ing out of our window.
+        // To simplify the implementation of ReadLargeBuffer if we can *almost* satisfy this with
+        // what we have without leaving 128 bytes left over, we go through the normal path.
+        // This does mean that you could do incrementally larger reads and get the window larger
+        // and larger by just skating over the limit each time, but that's fine because the main
+        // case we want to catch is a window that's only a few MB and then suddenly we read 100s of
+        // MB.
+        if(numBytes >= 10 * 1024 * 1024 && Available() + 128 < numBytes)
+        {
+          success = ReadLargeBuffer(data, numBytes);
+          alreadyread = true;
+        }
+        else
+        {
+          success = Reserve(numBytes);
+        }
 
         if(!success)
+        {
+          if(data)
+            memset(data, 0, numBytes);
           return false;
+        }
+
+        if(alreadyread)
+          return true;
       }
     }
 
@@ -211,7 +237,8 @@ private:
     return m_BufferSize - (m_BufferHead - m_BufferBase);
   }
   bool Reserve(uint64_t numBytes);
-  bool ReadFromExternal(uint64_t bufferOffs, uint64_t length);
+  bool ReadLargeBuffer(void *buffer, uint64_t length);
+  bool ReadFromExternal(void *buffer, uint64_t length);
 
   // base of the buffer allocation
   byte *m_BufferBase;

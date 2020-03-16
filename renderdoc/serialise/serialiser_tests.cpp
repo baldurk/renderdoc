@@ -475,6 +475,116 @@ TEST_CASE("Read/write via structured of basic types", "[serialiser]")
   delete buf;
 };
 
+TEST_CASE("Read/writing large buffers", "[serialiser]")
+{
+  rdcstr filename = FileIO::GetTempFolderFilename() + "/scratch.bin";
+
+  bytebuf buffer;
+  buffer.resize(40 * 1024 * 1024);
+  for(size_t i = 0; i < buffer.size(); i++)
+    buffer[i] = byte((rand() & 0xff0) >> 4);
+
+  {
+    WriteSerialiser ser(new StreamWriter(StreamWriter::DefaultScratchSize), Ownership::Stream);
+    WriteSerialiser fileser(
+        new StreamWriter(FileIO::fopen(filename.c_str(), "wb"), Ownership::Stream),
+        Ownership::Stream);
+
+    uint32_t dummy1 = 99;
+    uint32_t dummy2 = 123;
+
+    ser.WriteChunk(1);
+    ser.Serialise("dummy"_lit, dummy1);
+    ser.EndChunk();
+
+    Chunk(ser, 1).Write(fileser);
+
+    ser.WriteChunk(2);
+    ser.Serialise("buffer"_lit, buffer);
+    ser.EndChunk();
+
+    Chunk(ser, 1).Write(fileser);
+
+    ser.WriteChunk(3);
+    ser.Serialise("buffer"_lit, buffer);
+    ser.EndChunk();
+
+    Chunk(ser, 1).Write(fileser);
+
+    ser.WriteChunk(4);
+    ser.Serialise("dummy"_lit, dummy2);
+    ser.EndChunk();
+
+    Chunk(ser, 1).Write(fileser);
+  }
+
+  for(size_t pass = 0; pass < 2; pass++)
+  {
+    StreamReader reader(FileIO::fopen(filename.c_str(), "rb"));
+
+    ReadSerialiser ser(&reader, Ownership::Nothing);
+
+    uint32_t c = 0;
+
+    c = ser.ReadChunk<uint32_t>();
+    CHECK(c == 1);
+    {
+      uint32_t dummy = 0;
+      ser.Serialise("dummy"_lit, dummy);
+
+      CHECK(dummy == 99);
+    }
+    ser.EndChunk();
+
+    CHECK(reader.GetOffset() == 64 * 1);
+
+    c = ser.ReadChunk<uint32_t>();
+    if(pass == 0)
+    {
+      CHECK(c == 2);
+
+      bytebuf readbuf;
+      ser.Serialise("buffer"_lit, readbuf);
+
+      CHECK((readbuf == buffer));
+    }
+    else
+    {
+      ser.SkipCurrentChunk();
+    }
+    ser.EndChunk();
+
+    CHECK(reader.GetOffset() == 40 * 1024 * 1024 + 64 * 2);
+
+    c = ser.ReadChunk<uint32_t>();
+    {
+      CHECK(c == 3);
+
+      bytebuf readbuf;
+      ser.Serialise("buffer"_lit, readbuf);
+
+      CHECK((readbuf == buffer));
+    }
+    ser.EndChunk();
+
+    CHECK(reader.GetOffset() == 80 * 1024 * 1024 + 64 * 3);
+
+    c = ser.ReadChunk<uint32_t>();
+    CHECK(c == 4);
+    {
+      uint32_t dummy = 0;
+      ser.Serialise("dummy"_lit, dummy);
+
+      CHECK(dummy == 123);
+    }
+    ser.EndChunk();
+
+    CHECK(reader.GetOffset() == 80 * 1024 * 1024 + 64 * 4);
+  }
+
+  FileIO::Delete(filename.c_str());
+};
+
 TEST_CASE("Read/write chunk metadata", "[serialiser]")
 {
   StreamWriter *buf = new StreamWriter(StreamWriter::DefaultScratchSize);

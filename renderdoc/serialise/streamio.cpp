@@ -24,6 +24,7 @@
 
 #include "streamio.h"
 #include <errno.h>
+#include "api/replay/stringise.h"
 #include "common/timing.h"
 
 Compressor::~Compressor()
@@ -118,7 +119,7 @@ StreamReader::StreamReader(FILE *file, uint64_t fileSize, Ownership own)
   m_BufferSize = initialBufferSize;
   m_BufferHead = m_BufferBase = AllocAlignedBuffer(m_BufferSize);
 
-  ReadFromExternal(0, RDCMIN(m_InputSize, m_BufferSize));
+  ReadFromExternal(m_BufferBase, RDCMIN(m_InputSize, m_BufferSize));
 
   m_Ownership = own;
 }
@@ -145,7 +146,7 @@ StreamReader::StreamReader(FILE *file)
   m_BufferSize = initialBufferSize;
   m_BufferHead = m_BufferBase = AllocAlignedBuffer(m_BufferSize);
 
-  ReadFromExternal(0, RDCMIN(m_InputSize, m_BufferSize));
+  ReadFromExternal(m_BufferBase, RDCMIN(m_InputSize, m_BufferSize));
 
   m_Ownership = Ownership::Stream;
 }
@@ -170,7 +171,7 @@ StreamReader::StreamReader(Decompressor *decompressor, uint64_t uncompressedSize
 
   m_Ownership = own;
 
-  ReadFromExternal(0, RDCMIN(uncompressedSize, m_BufferSize));
+  ReadFromExternal(m_BufferBase, RDCMIN(uncompressedSize, m_BufferSize));
 }
 
 StreamReader::~StreamReader()
@@ -256,7 +257,7 @@ bool StreamReader::Reserve(uint64_t numBytes)
   if(m_Sock)
     readSize = numBytes - Available();
 
-  ret = ReadFromExternal(currentDataSize, readSize);
+  ret = ReadFromExternal(m_BufferBase + currentDataSize, readSize);
 
   if(oldBuffer != m_BufferBase && m_BufferBase)
     FreeAlignedBuffer(oldBuffer);
@@ -264,17 +265,112 @@ bool StreamReader::Reserve(uint64_t numBytes)
   return ret;
 }
 
-bool StreamReader::ReadFromExternal(uint64_t bufferOffs, uint64_t length)
+bool StreamReader::ReadLargeBuffer(void *buffer, uint64_t length)
+{
+  RDCASSERT(m_Sock || m_File || m_Decompressor);
+
+  byte *dest = (byte *)buffer;
+
+  // first exhaust whatever we have in the current buffer.
+  {
+    const uint64_t avail = Available();
+
+    // if we don't have 128 bytes left over we shouldn't be in here
+    RDCASSERT(avail + 128 <= length, avail, length);
+
+    // don't actually read if the destination buffer is NULL
+    if(dest)
+    {
+      memcpy(dest, m_BufferHead, avail);
+      dest += avail;
+    }
+    length -= avail;
+    m_ReadOffset += m_BufferSize;
+  }
+
+  // now read everything but the last 128 bytes directly from the external source
+  if(length > 128)
+  {
+    uint64_t directReadLength = length - 128;
+
+    length -= directReadLength;
+    m_ReadOffset += directReadLength;
+
+    if(buffer)
+    {
+      bool ret = ReadFromExternal(dest, directReadLength);
+
+      dest += directReadLength;
+
+      // if we failed, return now
+      if(!ret)
+        return ret;
+    }
+    else
+    {
+      // if we have no buffer to read into, just seek the stream in buffer-sized chunks using the
+      // existing buffer. Ensure the buffer is big enough to do this at a reasonable rate.
+      if(m_BufferSize < 1024 * 1024)
+      {
+        m_BufferSize = 1024 * 1024;
+        FreeAlignedBuffer(m_BufferBase);
+        m_BufferBase = AllocAlignedBuffer(m_BufferSize);
+      }
+
+      while(directReadLength > 0)
+      {
+        uint64_t chunkRead = RDCMIN(m_BufferSize, directReadLength);
+
+        bool ret = ReadFromExternal(m_BufferBase, chunkRead);
+
+        // if we failed, return now
+        if(!ret)
+          return ret;
+
+        directReadLength -= chunkRead;
+      }
+    }
+  }
+
+  // we now have exactly 128 bytes to read, guaranteed by how the function is called.
+  // we read that into the end of our buffer deliberately so that we can leave the buffer in the
+  // right state to have a backwards window (though it shouldn't be needed for large serialises like
+  // this).
+  if(m_BufferSize < 128)
+  {
+    m_BufferSize = 128;
+    FreeAlignedBuffer(m_BufferBase);
+    m_BufferBase = AllocAlignedBuffer(m_BufferSize);
+  }
+
+  // set the head to *after* where we're reading, this is where it'll end up after the read.
+  m_BufferHead = m_BufferBase + m_BufferSize;
+
+  // read the 128 bytes
+  m_ReadOffset += 128;
+  bool ret = ReadFromExternal(m_BufferHead - 128, 128);
+
+  // memcpy it where it's needed
+  if(dest && ret)
+    memcpy(dest, m_BufferHead - 128, 128);
+
+  // adjust read offset back for the 'fake' buffer we leave behind
+  m_ReadOffset -= m_BufferSize;
+
+  return ret;
+}
+
+bool StreamReader::ReadFromExternal(void *buffer, uint64_t length)
 {
   bool success = true;
 
   if(m_Decompressor)
   {
-    success = m_Decompressor->Read(m_BufferBase + bufferOffs, length);
+    success = m_Decompressor->Read(buffer, length);
   }
   else if(m_File)
   {
-    uint64_t numRead = FileIO::fread(m_BufferBase + bufferOffs, 1, (size_t)length, m_File);
+    uint64_t numRead = FileIO::fread(buffer, 1, (size_t)length, m_File);
     success = (numRead == length);
   }
   else if(m_Sock)
@@ -286,7 +382,7 @@ bool StreamReader::ReadFromExternal(uint64_t bufferOffs, uint64_t length)
     else
     {
       // first get the required data blocking (this will sleep the thread until it comes in).
-      byte *readDest = m_BufferBase + bufferOffs;
+      byte *readDest = (byte *)buffer;
 
       success = m_Sock->RecvDataBlocking(readDest, (uint32_t)length);
 
