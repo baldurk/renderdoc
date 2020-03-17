@@ -182,7 +182,7 @@ public:
         if(!success)
         {
           if(data)
-            memset(data, 0, numBytes);
+            memset(data, 0, (size_t)numBytes);
           return false;
         }
 

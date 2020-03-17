@@ -281,7 +281,7 @@ bool StreamReader::ReadLargeBuffer(void *buffer, uint64_t length)
     // don't actually read if the destination buffer is NULL
     if(dest)
     {
-      memcpy(dest, m_BufferHead, avail);
+      memcpy(dest, m_BufferHead, (size_t)avail);
       dest += avail;
     }
     length -= avail;
