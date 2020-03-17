@@ -263,7 +263,10 @@ void RDCFile::Open(const char *path)
 
     FileIO::fseek64(m_File, 0, SEEK_SET);
 
-    if(is_dds_file(m_File))
+    byte headerBuffer[4];
+    const size_t headerSize = FileIO::fread(headerBuffer, 1, 4, m_File);
+
+    if(is_dds_file(headerBuffer, headerSize))
       ret = x = y = comp = 1;
 
     if(is_exr_file(m_File))
