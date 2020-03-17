@@ -35,6 +35,9 @@ DEFINES += QT_NO_CAST_FROM_ASCII QT_NO_CAST_TO_ASCII
 # Disable deprecation warnings that are default on in 5.13 and up
 DEFINES += QT_NO_DEPRECATED_WARNINGS
 
+# HA HA good joke, QT_NO_DEPRECATED_WARNINGS only covers SOME warnings, not all
+QMAKE_CXXFLAGS += -Wno-deprecated-declarations
+
 # Different output folders per platform
 win32 {
 
