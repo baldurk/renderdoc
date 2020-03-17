@@ -110,6 +110,17 @@
     <ClInclude Include="3rdparty\android\android_manifest.h" />
     <ClInclude Include="3rdparty\catch\catch.hpp" />
     <ClInclude Include="3rdparty\catch\official\catch.hpp" />
+    <ClInclude Include="3rdparty\compressonator\BC1_Encode_kernel.h" />
+    <ClInclude Include="3rdparty\compressonator\BC2_Encode_kernel.h" />
+    <ClInclude Include="3rdparty\compressonator\BC3_Encode_kernel.h" />
+    <ClInclude Include="3rdparty\compressonator\BC4_Encode_kernel.h" />
+    <ClInclude Include="3rdparty\compressonator\BC5_Encode_kernel.h" />
+    <ClInclude Include="3rdparty\compressonator\BC6_Encode_kernel.h" />
+    <ClInclude Include="3rdparty\compressonator\BC7_Encode_Kernel.h" />
+    <ClInclude Include="3rdparty\compressonator\BCn_Common_Kernel.h" />
+    <ClInclude Include="3rdparty\compressonator\CMP_Core.h" />
+    <ClInclude Include="3rdparty\compressonator\cmp_math_vec4.h" />
+    <ClInclude Include="3rdparty\compressonator\Common_Def.h" />
     <ClInclude Include="3rdparty\interceptor-lib\lib\AArch64\target_aarch64.h" />
     <ClInclude Include="3rdparty\interceptor-lib\lib\ARM\target_arm.h" />
     <ClInclude Include="3rdparty\interceptor-lib\lib\code_generator.h" />
@@ -236,6 +247,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\catch\catch.cpp" />
+    <ClCompile Include="3rdparty\compressonator\BC1_Encode_kernel.cpp" />
+    <ClCompile Include="3rdparty\compressonator\BC2_Encode_kernel.cpp" />
+    <ClCompile Include="3rdparty\compressonator\BC3_Encode_kernel.cpp" />
+    <ClCompile Include="3rdparty\compressonator\BC4_Encode_kernel.cpp" />
+    <ClCompile Include="3rdparty\compressonator\BC5_Encode_kernel.cpp" />
+    <ClCompile Include="3rdparty\compressonator\BC6_Encode_kernel.cpp" />
+    <ClCompile Include="3rdparty\compressonator\BC7_Encode_Kernel.cpp" />
     <ClCompile Include="3rdparty\interceptor-lib\lib\AArch64\target_aarch64.cc">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>

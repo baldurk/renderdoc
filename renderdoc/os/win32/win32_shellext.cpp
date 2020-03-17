@@ -30,6 +30,8 @@
 #include <thumbcache.h>
 #include <windows.h>
 #include "common/common.h"
+#include "common/dds_readwrite.h"
+#include "compressonator/CMP_Core.h"
 #include "core/core.h"
 #include "jpeg-compressor/jpgd.h"
 #include "lz4/lz4.h"
@@ -49,6 +51,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
   unsigned int m_iRefcount;
   bool m_Inited;
   RDCThumb m_Thumb;
+  dds_data m_ddsData;
 
   RDCThumbnailProvider() : m_iRefcount(1), m_Inited(false) { InterlockedIncrement(&numProviders); }
   virtual ~RDCThumbnailProvider()
@@ -121,6 +124,39 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 
     delete[] buf;
 
+    if(is_dds_file(captureHeader.data(), numRead))
+    {
+      // Read File from beginning. Seek requires the struct LARGE_INTEGER.
+      LARGE_INTEGER zero;
+      zero.QuadPart = 0;
+      pstream->Seek(zero, STREAM_SEEK_SET, NULL);
+      STATSTG stats = {};
+      pstream->Stat(&stats, STATFLAG_DEFAULT);
+      ULARGE_INTEGER size = stats.cbSize;
+
+      byte *ddsFile = new byte[size.QuadPart];
+      ULONG ddsNumRead = 0;
+      pstream->Read(ddsFile, static_cast<ULONG>(size.QuadPart), &ddsNumRead);
+      StreamReader reader(ddsFile, ddsNumRead);
+      m_ddsData = load_dds_from_file(&reader);
+
+      if(m_ddsData.subdata == NULL)
+      {
+        delete[] m_ddsData.subdata;
+        delete[] m_ddsData.subsizes;
+        delete[] ddsFile;
+        return E_INVALIDARG;
+      }
+      // Ignore volume slices and mip maps. We want to convert the first slice of the image as
+      // bitmap.
+      m_Thumb.pixels = m_ddsData.subdata[0];    // slice 0
+      m_Thumb.len = m_ddsData.subsizes[0];      // size of slice 0
+      m_Thumb.height = static_cast<uint16_t>(m_ddsData.height);
+      m_Thumb.width = static_cast<uint16_t>(m_ddsData.width);
+      m_Thumb.format = FileType::DDS;
+      delete[] ddsFile;
+    }
+    else
     {
       RDCFile rdc;
       rdc.Open(captureHeader);
@@ -134,6 +170,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
         buf = new byte[m_Thumb.len];
         memcpy(buf, m_Thumb.pixels, m_Thumb.len);
         m_Thumb.pixels = buf;
+        m_Thumb.format = FileType::JPG;
       }
       else
       {
@@ -362,18 +399,219 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       return E_NOTIMPL;
     }
 
-    const byte *jpgbuf = m_Thumb.pixels;
     size_t thumblen = m_Thumb.len;
     uint32_t thumbwidth = m_Thumb.width, thumbheight = m_Thumb.height;
+    byte *thumbpixels = nullptr;
 
-    if(jpgbuf == NULL)
-      return E_NOTIMPL;
+    if(m_Thumb.format == FileType::JPG)
+    {
+      const byte *jpgbuf = m_Thumb.pixels;
+      if(jpgbuf == NULL)
+        return E_NOTIMPL;
 
-    int w = thumbwidth;
-    int h = thumbheight;
-    int comp = 3;
-    byte *thumbpixels =
-        jpgd::decompress_jpeg_image_from_memory(jpgbuf, (int)thumblen, &w, &h, &comp, 3);
+      int w = thumbwidth;
+      int h = thumbheight;
+      int comp = 3;
+      thumbpixels = jpgd::decompress_jpeg_image_from_memory(jpgbuf, (int)thumblen, &w, &h, &comp, 3);
+    }
+    else
+    {
+      const ResourceFormatType compType = m_ddsData.format.type;
+      const uint32_t decompressedStride = thumbwidth * 4;
+      const uint32_t decompressedBlockWidth = 16;    // in bytes (4 byte/pixel)
+      const uint32_t decompressedBlockMaxSize = 64;
+
+      ResourceFormatType ddsFormatType = ResourceFormatType::BC1;
+      int compressedBlockSize = 8;
+      switch(compType)
+      {
+        case ResourceFormatType::BC1:
+          ddsFormatType = ResourceFormatType::BC1;
+          compressedBlockSize = 8;
+          break;
+        case ResourceFormatType::BC2:
+          ddsFormatType = ResourceFormatType::BC2;
+          compressedBlockSize = 16;
+          break;
+        case ResourceFormatType::BC3:
+          ddsFormatType = ResourceFormatType::BC3;
+          compressedBlockSize = 16;
+          break;
+        case ResourceFormatType::BC4:    // red color only, 1 bytes/pixel
+          ddsFormatType = ResourceFormatType::BC4;
+          compressedBlockSize = 8;
+          break;
+        case ResourceFormatType::BC5:    // red, green color only, 2 bytes/pixel
+          ddsFormatType = ResourceFormatType::BC5;
+          compressedBlockSize = 16;
+          break;
+        case ResourceFormatType::BC6:    // other formats
+        case ResourceFormatType::BC7:
+        case ResourceFormatType::A8:
+        case ResourceFormatType::ASTC:
+        case ResourceFormatType::D16S8:
+        case ResourceFormatType::D24S8:
+        case ResourceFormatType::D32S8:
+        case ResourceFormatType::EAC:
+        case ResourceFormatType::ETC2:
+        case ResourceFormatType::PVRTC:
+        case ResourceFormatType::R10G10B10A2:
+        case ResourceFormatType::R11G11B10:
+        case ResourceFormatType::R4G4:
+        case ResourceFormatType::R4G4B4A4:
+        case ResourceFormatType::R5G5B5A1:
+        case ResourceFormatType::R5G6B5:
+        case ResourceFormatType::R9G9B9E5:
+        case ResourceFormatType::Regular:
+        case ResourceFormatType::S8:
+        case ResourceFormatType::Undefined:
+        case ResourceFormatType::YUV10:
+        case ResourceFormatType::YUV12:
+        case ResourceFormatType::YUV16:
+        case ResourceFormatType::YUV8: return E_NOTIMPL;
+      }
+      thumbwidth = m_ddsData.width;
+      thumbheight = m_ddsData.height;
+      // Delete buffers
+      delete[] m_ddsData.subdata;
+      delete[] m_ddsData.subsizes;
+
+      byte *decompressed =
+          new byte[thumbheight * thumbwidth * 4];    // Decompressed DDS, 4 byte/pixel
+
+      unsigned char decompressedBlock[decompressedBlockMaxSize];
+      unsigned char greenBlock[16];
+      auto compBlockStart = m_Thumb.pixels;
+      for(uint32_t blockY = 0; blockY < thumbheight / 4; blockY++)
+      {
+        for(uint32_t blockX = 0; blockX < thumbwidth / 4; blockX++)
+        {
+          uint32_t decompressedBlockStart =
+              blockY * 4 * decompressedStride + blockX * decompressedBlockWidth;
+          switch(ddsFormatType)
+          {
+            case ResourceFormatType::BC1:
+              DecompressBlockBC1(compBlockStart, decompressedBlock, nullptr);
+              break;
+            case ResourceFormatType::BC2:
+              DecompressBlockBC2(compBlockStart, decompressedBlock, nullptr);
+              break;
+            case ResourceFormatType::BC3:
+              DecompressBlockBC3(compBlockStart, decompressedBlock, nullptr);
+              break;
+            case ResourceFormatType::BC4:
+              DecompressBlockBC4(compBlockStart, decompressedBlock, nullptr);
+              break;
+            case ResourceFormatType::BC5:
+              DecompressBlockBC5(compBlockStart, decompressedBlock, greenBlock, nullptr);
+              break;
+            case ResourceFormatType::BC6:    // other formats
+            case ResourceFormatType::BC7:
+            case ResourceFormatType::A8:
+            case ResourceFormatType::ASTC:
+            case ResourceFormatType::D16S8:
+            case ResourceFormatType::D24S8:
+            case ResourceFormatType::D32S8:
+            case ResourceFormatType::EAC:
+            case ResourceFormatType::ETC2:
+            case ResourceFormatType::PVRTC:
+            case ResourceFormatType::R10G10B10A2:
+            case ResourceFormatType::R11G11B10:
+            case ResourceFormatType::R4G4:
+            case ResourceFormatType::R4G4B4A4:
+            case ResourceFormatType::R5G5B5A1:
+            case ResourceFormatType::R5G6B5:
+            case ResourceFormatType::R9G9B9E5:
+            case ResourceFormatType::Regular:
+            case ResourceFormatType::S8:
+            case ResourceFormatType::Undefined:
+            case ResourceFormatType::YUV10:
+            case ResourceFormatType::YUV12:
+            case ResourceFormatType::YUV16:
+            case ResourceFormatType::YUV8: return E_NOTIMPL;
+          }
+
+          auto decompPointer = decompressedBlock;
+          auto decompImagePointer = decompressed + decompressedBlockStart;
+          for(int i = 0; i < 4; i++)
+          {
+            switch(ddsFormatType)
+            {
+              case ResourceFormatType::BC1:
+              case ResourceFormatType::BC2:
+              case ResourceFormatType::BC3:
+                memcpy(decompImagePointer, decompPointer,
+                       16);    // copy one stride of the decompressed Block
+                decompPointer += 16;
+                break;
+              case ResourceFormatType::BC4:    // copy the color of the red channel into rgb
+                                               // channels.
+                for(int pixelInStride = 0; pixelInStride < 4; pixelInStride++)
+                {
+                  unsigned char *value = decompPointer + pixelInStride;
+                  memcpy(decompImagePointer + pixelInStride * 4, value, 1);
+                  memcpy(decompImagePointer + (pixelInStride * 4) + 1, value, 1);
+                  memcpy(decompImagePointer + (pixelInStride * 4) + 2, value, 1);
+                }
+                decompPointer += 4;
+                break;
+              case ResourceFormatType::BC5:    // copy red and green channels.
+                for(int pixelInStride = 0; pixelInStride < 4; pixelInStride++)
+                {
+                  memcpy(decompImagePointer + pixelInStride * 4,
+                         decompressedBlock + i * pixelInStride,
+                         1);    // copy red channel
+                  memcpy(decompImagePointer + (pixelInStride * 4) + 1,
+                         greenBlock + i * pixelInStride, 1);    // copy green channel
+                  memset(decompImagePointer + (pixelInStride * 4) + 2, 0x0,
+                         1);    // set blue channel to 0
+                }
+                break;
+              case ResourceFormatType::BC6:    // other formats
+              case ResourceFormatType::BC7:
+              case ResourceFormatType::A8:
+              case ResourceFormatType::ASTC:
+              case ResourceFormatType::D16S8:
+              case ResourceFormatType::D24S8:
+              case ResourceFormatType::D32S8:
+              case ResourceFormatType::EAC:
+              case ResourceFormatType::ETC2:
+              case ResourceFormatType::PVRTC:
+              case ResourceFormatType::R10G10B10A2:
+              case ResourceFormatType::R11G11B10:
+              case ResourceFormatType::R4G4:
+              case ResourceFormatType::R4G4B4A4:
+              case ResourceFormatType::R5G5B5A1:
+              case ResourceFormatType::R5G6B5:
+              case ResourceFormatType::R9G9B9E5:
+              case ResourceFormatType::Regular:
+              case ResourceFormatType::S8:
+              case ResourceFormatType::Undefined:
+              case ResourceFormatType::YUV10:
+              case ResourceFormatType::YUV12:
+              case ResourceFormatType::YUV16:
+              case ResourceFormatType::YUV8: return E_NOTIMPL;
+            }
+            decompImagePointer += decompressedStride;
+          }
+          compBlockStart += compressedBlockSize;
+        }
+      }
+
+      thumbpixels =
+          new byte[thumbheight * thumbwidth * 3];    // Decompressed DDS, 3 byte/pixel without alpha
+      byte *decompRead = decompressed;
+      byte *imgWrite = thumbpixels;
+      // Iterate over pixels (4byte/pixel in decompressed, 3byte/pixel in thumbpixels)
+      for(uint32_t i = 0; i < thumbwidth * thumbheight; i++)
+      {
+        memcpy(imgWrite, decompRead, 3);
+        decompRead += 4;
+        imgWrite += 3;
+      }
+
+      delete[] decompressed;
+    }
 
     float aspect = float(thumbwidth) / float(thumbheight);
 

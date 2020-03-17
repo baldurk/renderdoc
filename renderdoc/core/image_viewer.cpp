@@ -328,6 +328,10 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   rdcstr filename;
   FILE *f = rdc->StealImageFileHandle(filename);
 
+  byte headerBuffer[4];
+  const size_t headerSize = FileIO::fread(headerBuffer, 1, 4, f);
+  FileIO::fseek64(f, 0, SEEK_SET);
+
   if(!f)
     return ReplayStatus::FileIOFailed;
 
@@ -390,10 +394,11 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
     free(data);
   }
-  else if(is_dds_file(f))
+  else if(is_dds_file(headerBuffer, headerSize))
   {
     FileIO::fseek64(f, 0, SEEK_SET);
-    dds_data read_data = load_dds_from_file(f);
+    StreamReader reader(f);
+    dds_data read_data = load_dds_from_file(&reader);
 
     if(read_data.subdata == NULL)
     {
@@ -510,6 +515,8 @@ void ImageViewer::RefreshFile()
   size_t datasize = 0;
 
   bool dds = false;
+  byte headerBuffer[4];
+  const size_t headerSize = FileIO::fread(headerBuffer, 1, 4, f);
 
   FileIO::fseek64(f, 0, SEEK_END);
   uint64_t fileSize = FileIO::ftell64(f);
@@ -626,7 +633,7 @@ void ImageViewer::RefreshFile()
                                         &ignore, 4);
     datasize = texDetails.width * texDetails.height * 4 * sizeof(float);
   }
-  else if(is_dds_file(f))
+  else if(is_dds_file(headerBuffer, headerSize))
   {
     dds = true;
   }
@@ -667,7 +674,8 @@ void ImageViewer::RefreshFile()
   if(dds)
   {
     FileIO::fseek64(f, 0, SEEK_SET);
-    read_data = load_dds_from_file(f);
+    StreamReader reader(f);
+    read_data = load_dds_from_file(&reader);
 
     if(read_data.subdata == NULL)
     {

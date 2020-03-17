@@ -26,6 +26,7 @@
 #include <stdint.h>
 #include "common/common.h"
 #include "os/os_specific.h"
+#include "serialise/zstdio.h"
 
 static const uint32_t dds_fourcc = MAKE_FOURCC('D', 'D', 'S', ' ');
 
@@ -908,41 +909,34 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
   return true;
 }
 
-bool is_dds_file(FILE *f)
+bool is_dds_file(byte *headerBuffer, size_t size)
 {
-  FileIO::fseek64(f, 0, SEEK_SET);
-
-  uint32_t magic = 0;
-  FileIO::fread(&magic, sizeof(magic), 1, f);
-
-  FileIO::fseek64(f, 0, SEEK_SET);
-
-  return magic == dds_fourcc;
+  if(size < 4)
+  {
+    return false;
+  }
+  return memcmp(headerBuffer, &dds_fourcc, 4) == 0;
 }
 
-dds_data load_dds_from_file(FILE *f)
+dds_data load_dds_from_file(StreamReader *reader)
 {
   dds_data ret = {};
   dds_data error = {};
 
-  FileIO::fseek64(f, 0, SEEK_END);
-
-  uint64_t fileSize = FileIO::ftell64(f);
-
-  FileIO::fseek64(f, 0, SEEK_SET);
+  uint64_t fileSize = reader->GetSize();
 
   uint32_t magic = 0;
-  FileIO::fread(&magic, sizeof(magic), 1, f);
+  reader->Read(magic);
 
   DDS_HEADER header = {};
-  FileIO::fread(&header, sizeof(header), 1, f);
+  reader->Read(header);
 
   bool dx10Header = false;
   DDS_HEADER_DXT10 headerDXT10 = {};
 
   if(header.ddspf.dwFlags & DDPF_FOURCC && header.ddspf.dwFourCC == MAKE_FOURCC('D', 'X', '1', '0'))
   {
-    FileIO::fread(&headerDXT10, sizeof(headerDXT10), 1, f);
+    reader->Read(headerDXT10);
     dx10Header = true;
   }
 
@@ -1153,7 +1147,7 @@ dds_data load_dds_from_file(FILE *f)
       {
         for(uint32_t row = 0; row < numRows; row++)
         {
-          FileIO::fread(bytedata, 1, pitch, f);
+          reader->Read(bytedata, pitch);
 
           if(bgrSwap)
           {

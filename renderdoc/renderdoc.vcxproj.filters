@@ -139,6 +139,9 @@
     <Filter Include="OS\Posix\GGP">
       <UniqueIdentifier>{b76c42f4-d523-4417-a474-56d278d35a36}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\compressonator">
+      <UniqueIdentifier>{3d212b9b-bf42-40db-84a3-b94e064fd281}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -506,6 +509,38 @@
     </ClInclude>
     <ClInclude Include="core\settings.h">
       <Filter>Core</Filter>
+    <ClInclude Include="3rdparty\compressonator\BC1_Encode_kernel.h">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\compressonator\BC2_Encode_kernel.h">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\compressonator\BC3_Encode_kernel.h">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\compressonator\BC4_Encode_kernel.h">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\compressonator\BC5_Encode_kernel.h">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\compressonator\BC6_Encode_kernel.h">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\compressonator\BC7_Encode_Kernel.h">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\compressonator\BCn_Common_Kernel.h">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\compressonator\CMP_Core.h">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\compressonator\cmp_math_vec4.h">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\compressonator\Common_Def.h">
+      <Filter>3rdparty\compressonator</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -892,6 +927,26 @@
     </ClCompile>
     <ClCompile Include="core\settings.cpp">
       <Filter>Core</Filter>
+    <ClCompile Include="3rdparty\compressonator\BC1_Encode_kernel.cpp">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\compressonator\BC2_Encode_kernel.cpp">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\compressonator\BC3_Encode_kernel.cpp">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\compressonator\BC4_Encode_kernel.cpp">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\compressonator\BC5_Encode_kernel.cpp">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\compressonator\BC6_Encode_kernel.cpp">
+      <Filter>3rdparty\compressonator</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\compressonator\BC7_Encode_Kernel.cpp">
+      <Filter>3rdparty\compressonator</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
