@@ -219,42 +219,12 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
     }
     else
     {
-      ResourceFormat fmt = MakeResourceFormat(attr.format);
+      FloatVector decoded = ConvertComponents(MakeResourceFormat(attr.format), data.data());
 
-      if(fmt.Special())
-      {
-        switch(fmt.type)
-        {
-          case ResourceFormatType::R10G10B10A2:
-          {
-            Vec4f decoded;
-            if(fmt.compType == CompType::SNorm)
-              decoded = ConvertFromR10G10B10A2SNorm(*(uint32_t *)data.data());
-            else
-              decoded = ConvertFromR10G10B10A2(*(uint32_t *)data.data());
-            val.f.x = decoded.x;
-            val.f.y = decoded.y;
-            val.f.z = decoded.z;
-            val.f.w = decoded.w;
-            break;
-          }
-          case ResourceFormatType::R11G11B10:
-          {
-            Vec3f decoded = ConvertFromR11G11B10(*(uint32_t *)data.data());
-            val.f.x = decoded.x;
-            val.f.y = decoded.y;
-            val.f.z = decoded.z;
-            break;
-          }
-          default:
-            RDCERR("Unexpected resource format %s as vertex buffer input",
-                   ToStr(attr.format).c_str());
-        }
-      }
-      else
-      {
-        memcpy(&val.u.x, data.data(), size);
-      }
+      val.f.x = decoded.x;
+      val.f.y = decoded.y;
+      val.f.z = decoded.z;
+      val.f.w = decoded.w;
     }
   }
 

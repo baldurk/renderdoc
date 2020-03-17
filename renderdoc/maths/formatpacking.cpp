@@ -228,128 +228,169 @@ float ConvertLinearToSRGB(float linear)
   return 1.055f * powf(linear, 1.0f / 2.4f) - 0.055f;
 }
 
-float ConvertComponent(const ResourceFormat &fmt, const byte *data)
+FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
 {
-  if(fmt.compByteWidth == 8)
-  {
-    // we just downcast
-    const uint64_t *u64 = (const uint64_t *)data;
-    const int64_t *i64 = (const int64_t *)data;
+  FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
 
-    if(fmt.compType == CompType::Double || fmt.compType == CompType::Float)
-    {
-      return float(*(const double *)u64);
-    }
-    else if(fmt.compType == CompType::UInt || fmt.compType == CompType::UScaled)
-    {
-      return float(*u64);
-    }
-    else if(fmt.compType == CompType::SInt || fmt.compType == CompType::SScaled)
-    {
-      return float(*i64);
-    }
+  if(fmt.type == ResourceFormatType::R10G10B10A2)
+  {
+    Vec4f v;
+    if(fmt.compType == CompType::SNorm)
+      v = ConvertFromR10G10B10A2SNorm(*(const uint32_t *)data);
+    else
+      v = ConvertFromR10G10B10A2(*(const uint32_t *)data);
+    ret.x = v.x;
+    ret.y = v.y;
+    ret.z = v.z;
+    ret.w = v.w;
   }
-  else if(fmt.compByteWidth == 4)
+  else if(fmt.type == ResourceFormatType::R11G11B10)
   {
-    const uint32_t *u32 = (const uint32_t *)data;
-    const int32_t *i32 = (const int32_t *)data;
-
-    if(fmt.compType == CompType::Float || fmt.compType == CompType::Depth)
-    {
-      return *(const float *)u32;
-    }
-    else if(fmt.compType == CompType::UInt || fmt.compType == CompType::UScaled)
-    {
-      return float(*u32);
-    }
-    else if(fmt.compType == CompType::SInt || fmt.compType == CompType::SScaled)
-    {
-      return float(*i32);
-    }
+    Vec3f v = ConvertFromR11G11B10(*(const uint32_t *)data);
+    ret.x = v.x;
+    ret.y = v.y;
+    ret.z = v.z;
   }
-  else if(fmt.compByteWidth == 3 && fmt.compType == CompType::Depth)
+  else
   {
-    // 24-bit depth is a weird edge case we need to assemble it by hand
-    const uint8_t *u8 = (const uint8_t *)data;
+    float *comp = &ret.x;
 
-    uint32_t depth = 0;
-    depth |= uint32_t(u8[1]);
-    depth |= uint32_t(u8[2]) << 8;
-    depth |= uint32_t(u8[3]) << 16;
+    CompType compType = fmt.compType;
+    for(size_t c = 0; c < fmt.compCount; c++)
+    {
+      // alpha is never interpreted as sRGB
+      if(compType == CompType::UNormSRGB && c == 3)
+        compType = CompType::UNorm;
 
-    return float(depth) / float(16777215.0f);
-  }
-  else if(fmt.compByteWidth == 2)
-  {
-    const uint16_t *u16 = (const uint16_t *)data;
-    const int16_t *i16 = (const int16_t *)data;
+      if(fmt.compByteWidth == 8)
+      {
+        // we just downcast
+        const uint64_t *u64 = (const uint64_t *)data;
+        const int64_t *i64 = (const int64_t *)data;
 
-    if(fmt.compType == CompType::Float)
-    {
-      return ConvertFromHalf(*u16);
-    }
-    else if(fmt.compType == CompType::UInt || fmt.compType == CompType::UScaled)
-    {
-      return float(*u16);
-    }
-    else if(fmt.compType == CompType::SInt || fmt.compType == CompType::SScaled)
-    {
-      return float(*i16);
-    }
-    // 16-bit depth is UNORM
-    else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::Depth)
-    {
-      return float(*u16) / 65535.0f;
-    }
-    else if(fmt.compType == CompType::SNorm)
-    {
-      float f = -1.0f;
+        if(compType == CompType::Double || compType == CompType::Float)
+        {
+          *comp = float(*(const double *)u64);
+        }
+        else if(compType == CompType::UInt || compType == CompType::UScaled)
+        {
+          *comp = float(*u64);
+        }
+        else if(compType == CompType::SInt || compType == CompType::SScaled)
+        {
+          *comp = float(*i64);
+        }
+      }
+      else if(fmt.compByteWidth == 4)
+      {
+        const uint32_t *u32 = (const uint32_t *)data;
+        const int32_t *i32 = (const int32_t *)data;
 
-      if(*i16 == -32768)
-        f = -1.0f;
+        if(compType == CompType::Float || compType == CompType::Depth)
+        {
+          *comp = *(const float *)u32;
+        }
+        else if(compType == CompType::UInt || compType == CompType::UScaled)
+        {
+          *comp = float(*u32);
+        }
+        else if(compType == CompType::SInt || compType == CompType::SScaled)
+        {
+          *comp = float(*i32);
+        }
+      }
+      else if(fmt.compByteWidth == 3 && compType == CompType::Depth)
+      {
+        // 24-bit depth is a weird edge case we need to assemble it by hand
+        const uint8_t *u8 = (const uint8_t *)data;
+
+        uint32_t depth = 0;
+        depth |= uint32_t(u8[1]);
+        depth |= uint32_t(u8[2]) << 8;
+        depth |= uint32_t(u8[3]) << 16;
+
+        *comp = float(depth) / float(16777215.0f);
+      }
+      else if(fmt.compByteWidth == 2)
+      {
+        const uint16_t *u16 = (const uint16_t *)data;
+        const int16_t *i16 = (const int16_t *)data;
+
+        if(compType == CompType::Float)
+        {
+          *comp = ConvertFromHalf(*u16);
+        }
+        else if(compType == CompType::UInt || compType == CompType::UScaled)
+        {
+          *comp = float(*u16);
+        }
+        else if(compType == CompType::SInt || compType == CompType::SScaled)
+        {
+          *comp = float(*i16);
+        }
+        // 16-bit depth is UNORM
+        else if(compType == CompType::UNorm || compType == CompType::Depth)
+        {
+          *comp = float(*u16) / 65535.0f;
+        }
+        else if(compType == CompType::SNorm)
+        {
+          float f = -1.0f;
+
+          if(*i16 == -32768)
+            f = -1.0f;
+          else
+            f = ((float)*i16) / 32767.0f;
+
+          *comp = f;
+        }
+      }
+      else if(fmt.compByteWidth == 1)
+      {
+        const uint8_t *u8 = (const uint8_t *)data;
+        const int8_t *i8 = (const int8_t *)data;
+
+        if(compType == CompType::UInt || compType == CompType::UScaled)
+        {
+          *comp = float(*u8);
+        }
+        else if(compType == CompType::SInt || compType == CompType::SScaled)
+        {
+          *comp = float(*i8);
+        }
+        else if(compType == CompType::UNormSRGB)
+        {
+          *comp = SRGB8_lookuptable[*u8];
+        }
+        else if(compType == CompType::UNorm)
+        {
+          *comp = float(*u8) / 255.0f;
+        }
+        else if(compType == CompType::SNorm)
+        {
+          float f = -1.0f;
+
+          if(*i8 == -128)
+            f = -1.0f;
+          else
+            f = ((float)*i8) / 127.0f;
+
+          *comp = f;
+        }
+      }
       else
-        f = ((float)*i16) / 32767.0f;
+      {
+        RDCERR("Unexpected format to convert from %u %u", fmt.compByteWidth, compType);
+      }
 
-      return f;
+      comp++;
     }
-  }
-  else if(fmt.compByteWidth == 1)
-  {
-    const uint8_t *u8 = (const uint8_t *)data;
-    const int8_t *i8 = (const int8_t *)data;
 
-    if(fmt.compType == CompType::UInt || fmt.compType == CompType::UScaled)
-    {
-      return float(*u8);
-    }
-    else if(fmt.compType == CompType::SInt || fmt.compType == CompType::SScaled)
-    {
-      return float(*i8);
-    }
-    else if(fmt.compType == CompType::UNormSRGB)
-    {
-      return SRGB8_lookuptable[*u8];
-    }
-    else if(fmt.compType == CompType::UNorm)
-    {
-      return float(*u8) / 255.0f;
-    }
-    else if(fmt.compType == CompType::SNorm)
-    {
-      float f = -1.0f;
-
-      if(*i8 == -128)
-        f = -1.0f;
-      else
-        f = ((float)*i8) / 127.0f;
-
-      return f;
-    }
+    if(fmt.BGRAOrder())
+      std::swap(ret.x, ret.z);
   }
 
-  RDCERR("Unexpected format to convert from %u %u", fmt.compByteWidth, fmt.compType);
-
-  return 0.0f;
+  return ret;
 }
 
 #if ENABLED(ENABLE_UNIT_TESTS)

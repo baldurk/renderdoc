@@ -597,71 +597,15 @@ FloatVector HighlightCache::InterpretVertex(const byte *data, uint32_t vert,
                                             uint32_t vertexByteStride, const ResourceFormat &fmt,
                                             const byte *end, bool &valid)
 {
-  FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
-
   data += vert * vertexByteStride;
 
-  float *out = &ret.x;
-
-  if(fmt.type == ResourceFormatType::R10G10B10A2)
-  {
-    if(data + 4 >= end)
-    {
-      valid = false;
-      return ret;
-    }
-
-    Vec4f v;
-    if(fmt.compType == CompType::SNorm)
-      v = ConvertFromR10G10B10A2SNorm(*(const uint32_t *)data);
-    else
-      v = ConvertFromR10G10B10A2(*(const uint32_t *)data);
-    ret.x = v.x;
-    ret.y = v.y;
-    ret.z = v.z;
-    ret.w = v.w;
-    return ret;
-  }
-  else if(fmt.type == ResourceFormatType::R11G11B10)
-  {
-    if(data + 4 >= end)
-    {
-      valid = false;
-      return ret;
-    }
-
-    Vec3f v = ConvertFromR11G11B10(*(const uint32_t *)data);
-    ret.x = v.x;
-    ret.y = v.y;
-    ret.z = v.z;
-    return ret;
-  }
-
-  if(data + fmt.compCount * fmt.compByteWidth > end)
+  if(data + fmt.ElementSize() > end)
   {
     valid = false;
-    return ret;
+    return FloatVector(0.0f, 0.0f, 0.0f, 1.0f);
   }
 
-  for(uint32_t i = 0; i < fmt.compCount; i++)
-  {
-    *out = ConvertComponent(fmt, data);
-
-    data += fmt.compByteWidth;
-    out++;
-  }
-
-  if(fmt.BGRAOrder())
-  {
-    FloatVector reversed;
-    reversed.x = ret.z;
-    reversed.y = ret.y;
-    reversed.z = ret.x;
-    reversed.w = ret.w;
-    return reversed;
-  }
-
-  return ret;
+  return ConvertComponents(fmt, data);
 }
 
 uint64_t inthash(uint64_t val, uint64_t seed)

@@ -1750,51 +1750,11 @@ void FillInColors(const EventInfo &ei, VkFormat format, PixelModification &mod)
 {
   ResourceFormat fmt = MakeResourceFormat(format);
 
-  if(fmt.type == ResourceFormatType::R10G10B10A2 || fmt.type == ResourceFormatType::R11G11B10)
-  {
-    for(int p = 0; p < 2; p++)
-    {
-      ModificationValue *val = (p == 0 ? &mod.preMod : &mod.postMod);
-      const PixelHistoryValue *source = (p == 0 ? &ei.premod : &ei.postmod);
-      uint32_t data;
-      memcpy(&data, source->color, sizeof(uint32_t));
-      Vec4f v;
-      if(fmt.type == ResourceFormatType::R10G10B10A2)
-      {
-        if(fmt.compType == CompType::SNorm)
-          v = ConvertFromR10G10B10A2SNorm(data);
-        else
-          v = ConvertFromR10G10B10A2(data);
-      }
-      else
-      {
-        Vec3f v3 = ConvertFromR11G11B10(data);
-        v = Vec4f(v3.x, v3.y, v3.z);
-      }
-      memcpy(&val->col.floatValue[0], &v, sizeof(float) * 4);
-    }
-    return;
-  }
+  FloatVector premod = ConvertComponents(fmt, ei.premod.color);
+  FloatVector postmod = ConvertComponents(fmt, ei.postmod.color);
 
-  for(uint8_t c = 0; c < fmt.compCount; c++)
-  {
-    // Special case for alpha component in SRGB format.
-    if(fmt.SRGBCorrected() && (fmt.compByteWidth == 1) && (c == 3))
-    {
-      mod.preMod.col.floatValue[c] = float(ei.premod.color[3]) / 255.0f;
-      mod.postMod.col.floatValue[c] = float(ei.postmod.color[3]) / 255.0f;
-    }
-    else
-    {
-      mod.preMod.col.floatValue[c] = ConvertComponent(fmt, ei.premod.color + c * fmt.compByteWidth);
-      mod.postMod.col.floatValue[c] = ConvertComponent(fmt, ei.postmod.color + c * fmt.compByteWidth);
-    }
-  }
-  if(fmt.BGRAOrder())
-  {
-    std::swap(mod.preMod.col.floatValue[0], mod.preMod.col.floatValue[2]);
-    std::swap(mod.postMod.col.floatValue[0], mod.postMod.col.floatValue[2]);
-  }
+  memcpy(mod.preMod.col.floatValue, &premod.x, sizeof(premod));
+  memcpy(mod.postMod.col.floatValue, &postmod.x, sizeof(postmod));
 }
 
 rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> events,

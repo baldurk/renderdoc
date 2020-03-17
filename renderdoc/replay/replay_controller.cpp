@@ -1267,7 +1267,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       if(saveFmt.compType == CompType::Typeless)
         saveFmt.compType = saveFmt.compByteWidth == 4 ? CompType::Float : CompType::UNorm;
 
-      uint32_t pixStride = saveFmt.compCount * saveFmt.compByteWidth;
+      uint32_t pixStride = saveFmt.ElementSize();
 
       // 24-bit depth still has a stride of 4 bytes.
       if(saveFmt.compType == CompType::Depth && pixStride == 3)
@@ -1277,97 +1277,52 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       {
         for(uint32_t x = 0; x < td.width; x++)
         {
-          float r = 0.0f;
-          float g = 0.0f;
-          float b = 0.0f;
-          float a = 1.0f;
-
-          if(saveFmt.type == ResourceFormatType::R10G10B10A2)
-          {
-            uint32_t *u32 = (uint32_t *)srcData;
-
-            Vec4f vec = ConvertFromR10G10B10A2(*u32);
-
-            r = vec.x;
-            g = vec.y;
-            b = vec.z;
-            a = vec.w;
-
-            srcData += 4;
-          }
-          else if(saveFmt.type == ResourceFormatType::R11G11B10)
-          {
-            uint32_t *u32 = (uint32_t *)srcData;
-
-            Vec3f vec = ConvertFromR11G11B10(*u32);
-
-            r = vec.x;
-            g = vec.y;
-            b = vec.z;
-            a = 1.0f;
-
-            srcData += 4;
-          }
-          else
-          {
-            if(saveFmt.compCount >= 1)
-              r = ConvertComponent(saveFmt, srcData + saveFmt.compByteWidth * 0);
-            if(saveFmt.compCount >= 2)
-              g = ConvertComponent(saveFmt, srcData + saveFmt.compByteWidth * 1);
-            if(saveFmt.compCount >= 3)
-              b = ConvertComponent(saveFmt, srcData + saveFmt.compByteWidth * 2);
-            if(saveFmt.compCount >= 4)
-              a = ConvertComponent(saveFmt, srcData + saveFmt.compByteWidth * 3);
-
-            srcData += pixStride;
-          }
-
-          if(saveFmt.BGRAOrder())
-            std::swap(r, b);
+          FloatVector pixel = ConvertComponents(saveFmt, srcData);
+          srcData += pixStride;
 
           // HDR can't represent negative values
           if(sd.destType == FileType::HDR)
           {
-            r = RDCMAX(r, 0.0f);
-            g = RDCMAX(g, 0.0f);
-            b = RDCMAX(b, 0.0f);
-            a = RDCMAX(a, 0.0f);
+            pixel.x = RDCMAX(pixel.x, 0.0f);
+            pixel.y = RDCMAX(pixel.y, 0.0f);
+            pixel.z = RDCMAX(pixel.z, 0.0f);
+            pixel.w = RDCMAX(pixel.w, 0.0f);
           }
 
           if(sd.channelExtract == 0)
           {
-            g = b = r;
-            a = 1.0f;
+            pixel.y = pixel.z = pixel.x;
+            pixel.w = 1.0f;
           }
-          if(sd.channelExtract == 1)
+          else if(sd.channelExtract == 1)
           {
-            r = b = g;
-            a = 1.0f;
+            pixel.x = pixel.z = pixel.y;
+            pixel.w = 1.0f;
           }
-          if(sd.channelExtract == 2)
+          else if(sd.channelExtract == 2)
           {
-            r = g = b;
-            a = 1.0f;
+            pixel.x = pixel.y = pixel.z;
+            pixel.w = 1.0f;
           }
-          if(sd.channelExtract == 3)
+          else if(sd.channelExtract == 3)
           {
-            r = g = b = a;
-            a = 1.0f;
+            pixel.x = pixel.y = pixel.z = pixel.w;
+            pixel.w = 1.0f;
           }
 
           if(fldata)
           {
-            fldata[(y * td.width + x) * 4 + 0] = r;
-            fldata[(y * td.width + x) * 4 + 1] = g;
-            fldata[(y * td.width + x) * 4 + 2] = b;
-            fldata[(y * td.width + x) * 4 + 3] = a;
+            fldata[(y * td.width + x) * 4 + 0] = pixel.x;
+            fldata[(y * td.width + x) * 4 + 1] = pixel.y;
+            fldata[(y * td.width + x) * 4 + 2] = pixel.z;
+            fldata[(y * td.width + x) * 4 + 3] = pixel.w;
           }
           else
           {
-            abgr[0][(y * td.width + x)] = a;
-            abgr[1][(y * td.width + x)] = b;
-            abgr[2][(y * td.width + x)] = g;
-            abgr[3][(y * td.width + x)] = r;
+            abgr[0][(y * td.width + x)] = pixel.w;
+            abgr[1][(y * td.width + x)] = pixel.z;
+            abgr[2][(y * td.width + x)] = pixel.y;
+            abgr[3][(y * td.width + x)] = pixel.x;
           }
         }
       }
