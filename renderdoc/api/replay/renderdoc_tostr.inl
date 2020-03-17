@@ -604,6 +604,7 @@ rdcstr DoStringise(const ShaderBuiltin &el)
     STRINGISE_ENUM_CLASS_NAMED(DispatchSize, "Dispatch Size");
     STRINGISE_ENUM_CLASS_NAMED(DispatchThreadIndex, "Dispatch Thread Index");
     STRINGISE_ENUM_CLASS_NAMED(GroupIndex, "Group Index");
+    STRINGISE_ENUM_CLASS_NAMED(GroupSize, "Group Size");
     STRINGISE_ENUM_CLASS_NAMED(GroupFlatIndex, "Group Flat Index");
     STRINGISE_ENUM_CLASS_NAMED(GroupThreadIndex, "Group Thread Index");
     STRINGISE_ENUM_CLASS_NAMED(GSInstanceIndex, "GS Instance Index");

@@ -258,8 +258,94 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t gro
     return new ShaderDebugTrace;
   }
 
-  VULKANNOTIMP("DebugThread");
-  return new ShaderDebugTrace();
+  const VulkanRenderState &state = m_pDriver->m_RenderState;
+  VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
+
+  VkMarkerRegion region(StringFormat::Fmt("DebugThread @ %u of (%u,%u,%u) (%u,%u,%u)", eventId,
+                                          groupid[0], groupid[1], groupid[2], threadid[0],
+                                          threadid[1], threadid[2]));
+
+  const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
+
+  if(!(draw->flags & DrawFlags::Dispatch))
+    return new ShaderDebugTrace();
+
+  const VulkanCreationInfo::Pipeline &pipe = c.m_Pipeline[state.compute.pipeline];
+  VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[pipe.shaders[5].module];
+  rdcstr entryPoint = pipe.shaders[5].entryPoint;
+  const rdcarray<SpecConstant> &spec = pipe.shaders[5].specialization;
+
+  VulkanCreationInfo::ShaderModuleReflection &shadRefl =
+      shader.GetReflection(entryPoint, state.compute.pipeline);
+
+  shadRefl.PopulateDisassembly(shader.spirv);
+  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver);
+
+  for(uint32_t set = 0; set < state.compute.descSets.size(); set++)
+  {
+    const VulkanStatePipeline::DescriptorAndOffsets &src = state.compute.descSets[set];
+
+    const WrappedVulkan::DescriptorSetInfo &setInfo = m_pDriver->m_DescriptorSetState[src.descSet];
+    ResourceId layoutId = setInfo.layout;
+
+    uint32_t dynOffsetIdx = 0;
+
+    for(uint32_t bind = 0; bind < setInfo.currentBindings.size(); bind++)
+    {
+      DescriptorSetSlot *info = setInfo.currentBindings[bind];
+      const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[bind];
+
+      if(layoutBind.stageFlags == 0)
+        continue;
+
+      uint32_t dynOffset = 0;
+
+      if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
+         layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+        dynOffset = src.offsets[dynOffsetIdx++];
+
+      // TODO handle arrays of bindings
+      const uint32_t arrayIdx = 0;
+
+      if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+         layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+      {
+        const DescriptorSetSlotBufferInfo &bufInfo = info[arrayIdx].bufferInfo;
+        GetDebugManager()->GetBufferData(bufInfo.buffer, bufInfo.offset + dynOffset, bufInfo.range,
+                                         apiWrapper->cbuffers[make_rdcpair(set, bind)]);
+      }
+    }
+  }
+
+  uint32_t threadDim[3];
+  threadDim[0] = shadRefl.refl.dispatchThreadsDimension[0];
+  threadDim[1] = shadRefl.refl.dispatchThreadsDimension[1];
+  threadDim[2] = shadRefl.refl.dispatchThreadsDimension[2];
+
+  std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
+  builtins[ShaderBuiltin::DispatchSize] =
+      ShaderVariable(rdcstr(), draw->dispatchDimension[0], draw->dispatchDimension[1],
+                     draw->dispatchDimension[2], 0U);
+  builtins[ShaderBuiltin::DispatchThreadIndex] = ShaderVariable(
+      rdcstr(), groupid[0] * threadDim[0] + threadid[0], groupid[1] * threadDim[1] + threadid[1],
+      groupid[2] * threadDim[2] + threadid[2], 0U);
+  builtins[ShaderBuiltin::GroupIndex] =
+      ShaderVariable(rdcstr(), groupid[0], groupid[1], groupid[2], 0U);
+  builtins[ShaderBuiltin::GroupSize] =
+      ShaderVariable(rdcstr(), threadDim[0], threadDim[1], threadDim[2], 0U);
+  builtins[ShaderBuiltin::GroupThreadIndex] =
+      ShaderVariable(rdcstr(), threadid[0], threadid[1], threadid[2], 0U);
+  builtins[ShaderBuiltin::GroupFlatIndex] = ShaderVariable(
+      rdcstr(), threadid[2] * threadDim[0] * threadDim[1] + threadid[1] * threadDim[0] + threadid[0],
+      0U, 0U, 0U);
+  builtins[ShaderBuiltin::DeviceIndex] = ShaderVariable(rdcstr(), 0U, 0U, 0U, 0U);
+
+  rdcspv::Debugger *debugger = new rdcspv::Debugger;
+  debugger->Parse(shader.spirv.GetSPIRV());
+  ShaderDebugTrace *ret = debugger->BeginDebug(apiWrapper, ShaderStage::Vertex, entryPoint, spec,
+                                               shadRefl.instructionLines, shadRefl.patchData, 0);
+
+  return ret;
 }
 
 rdcarray<ShaderDebugState> VulkanReplay::ContinueDebug(ShaderDebugger *debugger)

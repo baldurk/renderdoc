@@ -159,6 +159,7 @@ ShaderBuiltin MakeShaderBuiltin(ShaderStage stage, const rdcspv::BuiltIn el)
     case rdcspv::BuiltIn::NumWorkgroups: return ShaderBuiltin::DispatchSize;
     case rdcspv::BuiltIn::GlobalInvocationId: return ShaderBuiltin::DispatchThreadIndex;
     case rdcspv::BuiltIn::WorkgroupId: return ShaderBuiltin::GroupIndex;
+    case rdcspv::BuiltIn::WorkgroupSize: return ShaderBuiltin::GroupSize;
     case rdcspv::BuiltIn::LocalInvocationIndex: return ShaderBuiltin::GroupFlatIndex;
     case rdcspv::BuiltIn::LocalInvocationId: return ShaderBuiltin::GroupThreadIndex;
     case rdcspv::BuiltIn::TessCoord: return ShaderBuiltin::DomainLocation;

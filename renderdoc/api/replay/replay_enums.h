@@ -762,6 +762,10 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
 
   This is related to :data:`GroupThreadIndex` and :data:`DispatchThreadIndex`.
 
+.. data:: GroupSize
+
+  The size of a workgroup, giving the number of threads in each dimension.
+
 .. data:: GroupFlatIndex
 
   An input in compute shaders giving a flat 1D index of the thread within the current workgroup.
@@ -805,13 +809,13 @@ to apply to multiple related things - see :data:`ClipDistance`, :data:`CullDista
   in a pixel were covered by the rasterizer. As an output, it specifies which samples in the
   destination target should be updated.
 
+)",
+          R"(
 .. data:: MSAASamplePosition
 
   An input to the pixel shader that contains the location of the current sample relative to the
   pixel, when running the pixel shader at sample frequency.
 
-)",
-          R"(
 .. data:: MSAASampleIndex
 
   An input to the pixel shader that indicates which sample in the range ``0 .. N-1`` is currently
@@ -954,6 +958,7 @@ enum class ShaderBuiltin : uint32_t
   DispatchSize,
   DispatchThreadIndex,
   GroupIndex,
+  GroupSize,
   GroupFlatIndex,
   GroupThreadIndex,
   GSInstanceIndex,
