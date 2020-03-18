@@ -241,6 +241,25 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
 
     uint32_t memoryTypeIndex = 0;
 
+    // Upload heaps are sometimes limited in size. To prevent OOM issues, deselect any memory types
+    // corresponding to a small heap (<= 512MB) if there are other memory types available.
+    for(uint32_t m = 0; m < 32; m++)
+    {
+      if(mrq.memoryTypeBits & (1U << m))
+      {
+        uint32_t heap = m_PhysicalDeviceData.memProps.memoryTypes[m].heapIndex;
+        if(m_PhysicalDeviceData.memProps.memoryHeaps[heap].size <= 512 * 1024 * 1024)
+        {
+          if(mrq.memoryTypeBits > (1U << m))
+          {
+            RDCDEBUG("Avoiding memory type %u due to small heap size (%llu)", i,
+                     m_PhysicalDeviceData.memProps.memoryHeaps[heap].size);
+            mrq.memoryTypeBits &= ~(1U << m);
+          }
+        }
+      }
+    }
+
     switch(ret.type)
     {
       case MemoryType::Upload: memoryTypeIndex = GetUploadMemoryIndex(mrq.memoryTypeBits); break;
