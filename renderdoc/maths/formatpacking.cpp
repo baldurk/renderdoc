@@ -384,6 +384,7 @@ FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
       }
 
       comp++;
+      data += fmt.compByteWidth;
     }
 
     if(fmt.BGRAOrder())
@@ -398,6 +399,401 @@ FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
 #undef None
 
 #include "catch/catch.hpp"
+#include "common/formatting.h"
+
+template <>
+rdcstr DoStringise(const FloatVector &el)
+{
+  return StringFormat::Fmt("{%f, %f, %f, %f}", el.x, el.y, el.z, el.w);
+}
+
+TEST_CASE("Check ConvertComponents", "[format]")
+{
+  ResourceFormat fmt;
+  fmt.type = ResourceFormatType::Regular;
+
+  union
+  {
+    uint8_t u8[4];
+    uint16_t u16[4];
+    uint32_t u32[4];
+    uint64_t u64[4];
+    int8_t i8[4];
+    int16_t i16[4];
+    int32_t i32[4];
+    int64_t i64[4];
+    float f[4];
+    double d[4];
+  } data;
+
+  SECTION("8-bit")
+  {
+    fmt.compByteWidth = 1;
+
+    data.u8[0] = 255;
+    data.u8[1] = 50;
+    data.u8[2] = 200;
+    data.u8[3] = 100;
+
+    SECTION("UNorm")
+    {
+      fmt.compType = CompType::UNorm;
+      fmt.compCount = 4;
+
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(1.0f, 50.0f / 255.0f, 200.0f / 255.0f, 100.0f / 255.0f));
+      fmt.compCount = 3;
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(1.0f, 50.0f / 255.0f, 200.0f / 255.0f, 1.0f));
+      fmt.compCount = 2;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 50.0f / 255.0f, 0.0f, 1.0f));
+      fmt.compCount = 1;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 0.0f, 0.0f, 1.0f));
+
+      fmt.compCount = 4;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(200.0f / 255.0f, 50.0f / 255.0f, 1.0f, 100.0f / 255.0f));
+
+      fmt.compCount = 3;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(200.0f / 255.0f, 50.0f / 255.0f, 1.0f, 1.0f));
+    };
+
+    SECTION("UNorm SRGB")
+    {
+      fmt.compType = CompType::UNormSRGB;
+      fmt.compCount = 4;
+
+      // alpha should still be 100.0f / 255.0f because alpha is not sRGB corrected
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(1.0f, 0.031896f, 0.577581f, 100.0f / 255.0f));
+      fmt.compCount = 3;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 0.031896f, 0.577581f, 1.0f));
+      fmt.compCount = 2;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 0.031896f, 0.0f, 1.0f));
+      fmt.compCount = 1;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 0.0f, 0.0f, 1.0f));
+
+      fmt.compCount = 4;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(0.577581f, 0.031896f, 1.0f, 100.0f / 255.0f));
+
+      fmt.compCount = 3;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(0.577581f, 0.031896f, 1.0f, 1.0f));
+    };
+
+    SECTION("UInt")
+    {
+      fmt.compType = CompType::UInt;
+      fmt.compCount = 4;
+
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(255.0f, 50.0f, 200.0f, 100.0f));
+      fmt.compCount = 3;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(255.0f, 50.0f, 200.0f, 1.0f));
+      fmt.compCount = 2;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(255.0f, 50.0f, 0.0f, 1.0f));
+      fmt.compCount = 1;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(255.0f, 0.0f, 0.0f, 1.0f));
+
+      fmt.compCount = 4;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(200.0f, 50.0f, 255.0f, 100.0f));
+
+      fmt.compCount = 3;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(200.0f, 50.0f, 255.0f, 1.0f));
+    };
+
+    data.i8[0] = 127;
+    data.i8[1] = 50;
+    data.i8[2] = -128;
+    data.i8[3] = 100;
+
+    SECTION("SInt")
+    {
+      fmt.compType = CompType::SInt;
+      fmt.compCount = 4;
+
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(127.0f, 50.0f, -128.0f, 100.0f));
+      fmt.compCount = 3;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(127.0f, 50.0f, -128.0f, 1.0f));
+      fmt.compCount = 2;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(127.0f, 50.0f, 0.0f, 1.0f));
+      fmt.compCount = 1;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(127.0f, 0.0f, 0.0f, 1.0f));
+
+      fmt.compCount = 4;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(-128.0f, 50.0f, 127.0f, 100.0f));
+
+      fmt.compCount = 3;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(-128.0f, 50.0f, 127.0f, 1.0f));
+    };
+
+    SECTION("SNorm")
+    {
+      fmt.compType = CompType::SNorm;
+      fmt.compCount = 4;
+
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(1.0f, 50.0f / 127.0f, -1.0f, 100.0f / 127.0f));
+      fmt.compCount = 3;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 50.0f / 127.0f, -1.0f, 1.0f));
+      fmt.compCount = 2;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 50.0f / 127.0f, 0.0f, 1.0f));
+      fmt.compCount = 1;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 0.0f, 0.0f, 1.0f));
+
+      fmt.compCount = 4;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(-1.0f, 50.0f / 127.0f, 1.0f, 100.0f / 127.0f));
+
+      fmt.compCount = 3;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(-1.0f, 50.0f / 127.0f, 1.0f, 1.0f));
+    };
+  };
+
+  SECTION("16-bit")
+  {
+    fmt.compByteWidth = 2;
+
+    data.u16[0] = ConvertToHalf(1.0f);
+    data.u16[1] = ConvertToHalf(1250.0f);
+    data.u16[2] = ConvertToHalf(50.0f);
+    data.u16[3] = ConvertToHalf(3.0f);
+
+    SECTION("Float")
+    {
+      fmt.compType = CompType::Float;
+      fmt.compCount = 4;
+
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 1250.0f, 50.0f, 3.0f));
+      fmt.compCount = 3;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 1250.0f, 50.0f, 1.0f));
+      fmt.compCount = 2;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 1250.0f, 0.0f, 1.0f));
+      fmt.compCount = 1;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 0.0f, 0.0f, 1.0f));
+
+      fmt.compCount = 4;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(50.0f, 1250.0f, 1.0f, 3.0f));
+
+      fmt.compCount = 3;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(50.0f, 1250.0f, 1.0f, 1.0f));
+    };
+
+    data.u16[0] = 65535;
+    data.u16[1] = 1250;
+    data.u16[2] = 5273;
+    data.u16[3] = 101;
+
+    SECTION("UNorm")
+    {
+      fmt.compType = CompType::UNorm;
+      fmt.compCount = 4;
+
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(1.0f, 1250.0f / 65535.0f, 5273.0f / 65535.0f, 101.0f / 65535.0f));
+      fmt.compCount = 3;
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(1.0f, 1250.0f / 65535.0f, 5273.0f / 65535.0f, 1.0f));
+      fmt.compCount = 2;
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(1.0f, 1250.0f / 65535.0f, 0.0f, 1.0f));
+      fmt.compCount = 1;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 0.0f, 0.0f, 1.0f));
+
+      fmt.compCount = 4;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(5273.0f / 65535.0f, 1250.0f / 65535.0f, 1.0f, 101.0f / 65535.0f));
+
+      fmt.compCount = 3;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(5273.0f / 65535.0f, 1250.0f / 65535.0f, 1.0f, 1.0f));
+    };
+
+    SECTION("UInt")
+    {
+      fmt.compType = CompType::UInt;
+      fmt.compCount = 4;
+
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(65535.0f, 1250.0f, 5273.0f, 101.0f));
+      fmt.compCount = 3;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(65535.0f, 1250.0f, 5273.0f, 1.0f));
+      fmt.compCount = 2;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(65535.0f, 1250.0f, 0.0f, 1.0f));
+      fmt.compCount = 1;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(65535.0f, 0.0f, 0.0f, 1.0f));
+
+      fmt.compCount = 4;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(5273.0f, 1250.0f, 65535.0f, 101.0f));
+
+      fmt.compCount = 3;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(5273.0f, 1250.0f, 65535.0f, 1.0f));
+    };
+
+    data.i16[0] = 32767;
+    data.i16[1] = 1250;
+    data.i16[2] = -32768;
+    data.i16[3] = 101;
+
+    SECTION("SInt")
+    {
+      fmt.compType = CompType::SInt;
+      fmt.compCount = 4;
+
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(32767.0f, 1250.0f, -32768.0f, 101.0f));
+      fmt.compCount = 3;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(32767.0f, 1250.0f, -32768.0f, 1.0f));
+      fmt.compCount = 2;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(32767.0f, 1250.0f, 0.0f, 1.0f));
+      fmt.compCount = 1;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(32767.0f, 0.0f, 0.0f, 1.0f));
+
+      fmt.compCount = 4;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(-32768.0f, 1250.0f, 32767.0f, 101.0f));
+
+      fmt.compCount = 3;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(-32768.0f, 1250.0f, 32767.0f, 1.0f));
+    };
+
+    SECTION("SNorm")
+    {
+      fmt.compType = CompType::SNorm;
+      fmt.compCount = 4;
+
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(1.0f, 1250.0f / 32767.0f, -1.0f, 101.0f / 32767.0f));
+      fmt.compCount = 3;
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(1.0f, 1250.0f / 32767.0f, -1.0f, 1.0f));
+      fmt.compCount = 2;
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(1.0f, 1250.0f / 32767.0f, 0.0f, 1.0f));
+      fmt.compCount = 1;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 0.0f, 0.0f, 1.0f));
+
+      fmt.compCount = 4;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(-1.0f, 1250.0f / 32767.0f, 1.0f, 101.0f / 32767.0f));
+
+      fmt.compCount = 3;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(-1.0f, 1250.0f / 32767.0f, 1.0f, 1.0f));
+    };
+  };
+
+  SECTION("32-bit")
+  {
+    fmt.compByteWidth = 4;
+
+    data.f[0] = 1.0f;
+    data.f[1] = 1250.0f;
+    data.f[2] = 50.0f;
+    data.f[3] = 3.0f;
+
+    SECTION("Float")
+    {
+      fmt.compType = CompType::Float;
+      fmt.compCount = 4;
+
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 1250.0f, 50.0f, 3.0f));
+      fmt.compCount = 3;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 1250.0f, 50.0f, 1.0f));
+      fmt.compCount = 2;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 1250.0f, 0.0f, 1.0f));
+      fmt.compCount = 1;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(1.0f, 0.0f, 0.0f, 1.0f));
+
+      fmt.compCount = 4;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(50.0f, 1250.0f, 1.0f, 3.0f));
+
+      fmt.compCount = 3;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(50.0f, 1250.0f, 1.0f, 1.0f));
+    };
+
+    data.u32[0] = 655350;
+    data.u32[1] = 12500;
+    data.u32[2] = 52730;
+    data.u32[3] = 1010;
+
+    SECTION("UInt")
+    {
+      fmt.compType = CompType::UInt;
+      fmt.compCount = 4;
+
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(655350.0f, 12500.0f, 52730.0f, 1010.0f));
+      fmt.compCount = 3;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(655350.0f, 12500.0f, 52730.0f, 1.0f));
+      fmt.compCount = 2;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(655350.0f, 12500.0f, 0.0f, 1.0f));
+      fmt.compCount = 1;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(655350.0f, 0.0f, 0.0f, 1.0f));
+
+      fmt.compCount = 4;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(52730.0f, 12500.0f, 655350.0f, 1010.0f));
+
+      fmt.compCount = 3;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(52730.0f, 12500.0f, 655350.0f, 1.0f));
+    };
+
+    data.i32[0] = 327670;
+    data.i32[1] = 12500;
+    data.i32[2] = -327680;
+    data.i32[3] = 1010;
+
+    SECTION("SInt")
+    {
+      fmt.compType = CompType::SInt;
+      fmt.compCount = 4;
+
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(327670.0f, 12500.0f, -327680.0f, 1010.0f));
+      fmt.compCount = 3;
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(327670.0f, 12500.0f, -327680.0f, 1.0f));
+      fmt.compCount = 2;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(327670.0f, 12500.0f, 00.0f, 1.0f));
+      fmt.compCount = 1;
+      CHECK(ConvertComponents(fmt, (byte *)&data) == FloatVector(327670.0f, 00.0f, 00.0f, 1.0f));
+
+      fmt.compCount = 4;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(-327680.0f, 12500.0f, 327670.0f, 1010.0f));
+
+      fmt.compCount = 3;
+      fmt.SetBGRAOrder(true);
+      CHECK(ConvertComponents(fmt, (byte *)&data) ==
+            FloatVector(-327680.0f, 12500.0f, 327670.0f, 1.0f));
+    };
+  };
+};
 
 TEST_CASE("Check format conversion", "[format]")
 {
