@@ -663,6 +663,17 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
     RDCASSERT(memrecord->memMapState);
     MemMapState &state = *memrecord->memMapState;
 
+    if(state.mapCoherent)
+    {
+      SCOPED_LOCK(m_CoherentMapsLock);
+
+      int32_t idx = m_CoherentMaps.indexOf(memrecord);
+      if(idx < 0)
+        RDCERR("vkUnmapMemory for memory handle that's not currently mapped");
+      else
+        m_CoherentMaps.erase(idx);
+    }
+
     {
       // decide atomically if this chunk should be in-frame or not
       // so that we're not in the else branch but haven't marked
@@ -676,6 +687,8 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
         if(!capframe)
           GetResourceManager()->MarkDirtyResource(id);
       }
+
+      SCOPED_LOCK(state.mrLock);
 
       if(capframe)
       {
@@ -713,17 +726,6 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
 
     FreeAlignedBuffer(state.refData);
     state.refData = NULL;
-
-    if(state.mapCoherent)
-    {
-      SCOPED_LOCK(m_CoherentMapsLock);
-
-      int32_t idx = m_CoherentMaps.indexOf(memrecord);
-      if(idx < 0)
-        RDCERR("vkUnmapMemory for memory handle that's not currently mapped");
-      else
-        m_CoherentMaps.erase(idx);
-    }
   }
 
   ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
