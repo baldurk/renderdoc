@@ -126,25 +126,26 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 
     if(is_dds_file(captureHeader.data(), numRead))
     {
-      // Read File from beginning. Seek requires the struct LARGE_INTEGER.
-      LARGE_INTEGER zero;
-      zero.QuadPart = 0;
-      pstream->Seek(zero, STREAM_SEEK_SET, NULL);
       STATSTG stats = {};
       pstream->Stat(&stats, STATFLAG_DEFAULT);
-      ULARGE_INTEGER size = stats.cbSize;
-
-      byte *ddsFile = new byte[size.QuadPart];
+      const uint32_t size = (uint32_t)stats.cbSize.QuadPart;
+      const uint32_t offset = 2 * 1024 * 1024;
       ULONG ddsNumRead = 0;
-      pstream->Read(ddsFile, static_cast<ULONG>(size.QuadPart), &ddsNumRead);
-      StreamReader reader(ddsFile, ddsNumRead);
+
+      // read rest of file
+      if(size > captureHeader.size())
+      {
+        captureHeader.resize(size);
+        pstream->Read(captureHeader.begin() + offset, (ULONG)(size - offset), &ddsNumRead);
+      }
+
+      StreamReader reader(captureHeader.data(), (ULONG)size);
       m_ddsData = load_dds_from_file(&reader);
 
       if(m_ddsData.subdata == NULL)
       {
         delete[] m_ddsData.subdata;
         delete[] m_ddsData.subsizes;
-        delete[] ddsFile;
         return E_INVALIDARG;
       }
       // Ignore volume slices and mip maps. We want to convert the first slice of the image as
@@ -154,7 +155,6 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       m_Thumb.height = static_cast<uint16_t>(m_ddsData.height);
       m_Thumb.width = static_cast<uint16_t>(m_ddsData.width);
       m_Thumb.format = FileType::DDS;
-      delete[] ddsFile;
     }
     else
     {
@@ -401,7 +401,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 
     size_t thumblen = m_Thumb.len;
     uint32_t thumbwidth = m_Thumb.width, thumbheight = m_Thumb.height;
-    byte *thumbpixels = nullptr;
+    byte *thumbpixels = NULL;
 
     if(m_Thumb.format == FileType::JPG)
     {
@@ -416,60 +416,12 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
     }
     else
     {
-      const ResourceFormatType compType = m_ddsData.format.type;
+      const ResourceFormatType resourceType = m_ddsData.format.type;
       const uint32_t decompressedStride = thumbwidth * 4;
       const uint32_t decompressedBlockWidth = 16;    // in bytes (4 byte/pixel)
       const uint32_t decompressedBlockMaxSize = 64;
+      const uint32_t compressedBlockSize = m_ddsData.format.ElementSize();
 
-      ResourceFormatType ddsFormatType = ResourceFormatType::BC1;
-      int compressedBlockSize = 8;
-      switch(compType)
-      {
-        case ResourceFormatType::BC1:
-          ddsFormatType = ResourceFormatType::BC1;
-          compressedBlockSize = 8;
-          break;
-        case ResourceFormatType::BC2:
-          ddsFormatType = ResourceFormatType::BC2;
-          compressedBlockSize = 16;
-          break;
-        case ResourceFormatType::BC3:
-          ddsFormatType = ResourceFormatType::BC3;
-          compressedBlockSize = 16;
-          break;
-        case ResourceFormatType::BC4:    // red color only, 1 bytes/pixel
-          ddsFormatType = ResourceFormatType::BC4;
-          compressedBlockSize = 8;
-          break;
-        case ResourceFormatType::BC5:    // red, green color only, 2 bytes/pixel
-          ddsFormatType = ResourceFormatType::BC5;
-          compressedBlockSize = 16;
-          break;
-        case ResourceFormatType::BC6:    // other formats
-        case ResourceFormatType::BC7:
-        case ResourceFormatType::A8:
-        case ResourceFormatType::ASTC:
-        case ResourceFormatType::D16S8:
-        case ResourceFormatType::D24S8:
-        case ResourceFormatType::D32S8:
-        case ResourceFormatType::EAC:
-        case ResourceFormatType::ETC2:
-        case ResourceFormatType::PVRTC:
-        case ResourceFormatType::R10G10B10A2:
-        case ResourceFormatType::R11G11B10:
-        case ResourceFormatType::R4G4:
-        case ResourceFormatType::R4G4B4A4:
-        case ResourceFormatType::R5G5B5A1:
-        case ResourceFormatType::R5G6B5:
-        case ResourceFormatType::R9G9B9E5:
-        case ResourceFormatType::Regular:
-        case ResourceFormatType::S8:
-        case ResourceFormatType::Undefined:
-        case ResourceFormatType::YUV10:
-        case ResourceFormatType::YUV12:
-        case ResourceFormatType::YUV16:
-        case ResourceFormatType::YUV8: return E_NOTIMPL;
-      }
       thumbwidth = m_ddsData.width;
       thumbheight = m_ddsData.height;
       // Delete buffers
@@ -481,14 +433,14 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 
       unsigned char decompressedBlock[decompressedBlockMaxSize];
       unsigned char greenBlock[16];
-      auto compBlockStart = m_Thumb.pixels;
+      const byte *compBlockStart = m_Thumb.pixels;
       for(uint32_t blockY = 0; blockY < thumbheight / 4; blockY++)
       {
         for(uint32_t blockX = 0; blockX < thumbwidth / 4; blockX++)
         {
           uint32_t decompressedBlockStart =
               blockY * 4 * decompressedStride + blockX * decompressedBlockWidth;
-          switch(ddsFormatType)
+          switch(resourceType)
           {
             case ResourceFormatType::BC1:
               DecompressBlockBC1(compBlockStart, decompressedBlock, nullptr);
@@ -505,37 +457,15 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
             case ResourceFormatType::BC5:
               DecompressBlockBC5(compBlockStart, decompressedBlock, greenBlock, nullptr);
               break;
-            case ResourceFormatType::BC6:    // other formats
-            case ResourceFormatType::BC7:
-            case ResourceFormatType::A8:
-            case ResourceFormatType::ASTC:
-            case ResourceFormatType::D16S8:
-            case ResourceFormatType::D24S8:
-            case ResourceFormatType::D32S8:
-            case ResourceFormatType::EAC:
-            case ResourceFormatType::ETC2:
-            case ResourceFormatType::PVRTC:
-            case ResourceFormatType::R10G10B10A2:
-            case ResourceFormatType::R11G11B10:
-            case ResourceFormatType::R4G4:
-            case ResourceFormatType::R4G4B4A4:
-            case ResourceFormatType::R5G5B5A1:
-            case ResourceFormatType::R5G6B5:
-            case ResourceFormatType::R9G9B9E5:
-            case ResourceFormatType::Regular:
-            case ResourceFormatType::S8:
-            case ResourceFormatType::Undefined:
-            case ResourceFormatType::YUV10:
-            case ResourceFormatType::YUV12:
-            case ResourceFormatType::YUV16:
-            case ResourceFormatType::YUV8: return E_NOTIMPL;
+            default:
+              return E_NOTIMPL;    // other formats
           }
 
           auto decompPointer = decompressedBlock;
           auto decompImagePointer = decompressed + decompressedBlockStart;
           for(int i = 0; i < 4; i++)
           {
-            switch(ddsFormatType)
+            switch(resourceType)
             {
               case ResourceFormatType::BC1:
               case ResourceFormatType::BC2:
@@ -567,30 +497,8 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
                          1);    // set blue channel to 0
                 }
                 break;
-              case ResourceFormatType::BC6:    // other formats
-              case ResourceFormatType::BC7:
-              case ResourceFormatType::A8:
-              case ResourceFormatType::ASTC:
-              case ResourceFormatType::D16S8:
-              case ResourceFormatType::D24S8:
-              case ResourceFormatType::D32S8:
-              case ResourceFormatType::EAC:
-              case ResourceFormatType::ETC2:
-              case ResourceFormatType::PVRTC:
-              case ResourceFormatType::R10G10B10A2:
-              case ResourceFormatType::R11G11B10:
-              case ResourceFormatType::R4G4:
-              case ResourceFormatType::R4G4B4A4:
-              case ResourceFormatType::R5G5B5A1:
-              case ResourceFormatType::R5G6B5:
-              case ResourceFormatType::R9G9B9E5:
-              case ResourceFormatType::Regular:
-              case ResourceFormatType::S8:
-              case ResourceFormatType::Undefined:
-              case ResourceFormatType::YUV10:
-              case ResourceFormatType::YUV12:
-              case ResourceFormatType::YUV16:
-              case ResourceFormatType::YUV8: return E_NOTIMPL;
+              default:
+                return E_NOTIMPL;    // other formats
             }
             decompImagePointer += decompressedStride;
           }

@@ -399,10 +399,10 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     FileIO::fseek64(f, 0, SEEK_SET);
     StreamReader reader(f);
     dds_data read_data = load_dds_from_file(&reader);
+    f = NULL;
 
     if(read_data.subdata == NULL)
     {
-      FileIO::fclose(f);
       RDCERR("DDS file recognised, but couldn't load");
       return ReplayStatus::ImageUnsupported;
     }
@@ -439,7 +439,8 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
     free(data);
   }
 
-  FileIO::fclose(f);
+  if(f != NULL)
+    FileIO::fclose(f);
 
   IReplayDriver *proxy = NULL;
   ReplayStatus status = RenderDoc::Inst().CreateProxyReplayDriver(RDCDriver::Unknown, &proxy);
@@ -676,10 +677,10 @@ void ImageViewer::RefreshFile()
     FileIO::fseek64(f, 0, SEEK_SET);
     StreamReader reader(f);
     read_data = load_dds_from_file(&reader);
+    f = NULL;
 
     if(read_data.subdata == NULL)
     {
-      FileIO::fclose(f);
       return;
     }
 
@@ -770,5 +771,6 @@ void ImageViewer::RefreshFile()
     delete[] read_data.subsizes;
   }
 
-  FileIO::fclose(f);
+  if(f != NULL)
+    FileIO::fclose(f);
 }

@@ -26,7 +26,7 @@
 
 #include <stdio.h>
 #include "api/replay/data_types.h"
-#include "serialise/zstdio.h"
+#include "serialise/streamio.h"
 
 struct dds_data
 {
