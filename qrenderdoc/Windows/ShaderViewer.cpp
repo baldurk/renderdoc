@@ -2894,15 +2894,7 @@ RDTreeWidgetItem *ShaderViewer::makeDebugVariableNode(const ShaderVariable &v, r
 
 const ShaderVariable *ShaderViewer::GetDebugVariable(const DebugVariableReference &r)
 {
-  if(r.type == DebugVariableType::Input)
-  {
-    for(int i = 0; i < m_Trace->inputs.count(); i++)
-      if(m_Trace->inputs[i].name == r.name)
-        return &m_Trace->inputs[i];
-
-    return NULL;
-  }
-  else if(r.type == DebugVariableType::ReadOnlyResource)
+  if(r.type == DebugVariableType::ReadOnlyResource)
   {
     for(int i = 0; i < m_Trace->readOnlyResources.count(); i++)
       if(m_Trace->readOnlyResources[i].name == r.name)
@@ -2918,10 +2910,13 @@ const ShaderVariable *ShaderViewer::GetDebugVariable(const DebugVariableReferenc
 
     return NULL;
   }
-  else if(r.type == DebugVariableType::Constant || r.type == DebugVariableType::Variable)
+  else if(r.type == DebugVariableType::Input || r.type == DebugVariableType::Constant ||
+          r.type == DebugVariableType::Variable)
   {
     rdcarray<ShaderVariable> *vars =
-        r.type == DebugVariableType::Constant ? &m_Trace->constantBlocks : &m_Variables;
+        r.type == DebugVariableType::Input
+            ? &m_Trace->inputs
+            : (r.type == DebugVariableType::Constant ? &m_Trace->constantBlocks : &m_Variables);
 
     rdcstr path = r.name;
 
