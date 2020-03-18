@@ -23,12 +23,12 @@
  ******************************************************************************/
 
 #include "RDHeaderView.h"
-#include <QDebug>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPixmap>
 #include <QPointer>
+#include <QTreeView>
 #include "Code/QRDUtils.h"
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -50,6 +50,15 @@ RDHeaderView::RDHeaderView(Qt::Orientation orient, QWidget *parent) : QHeaderVie
   m_sectionPreview = new QLabel(this);
 
   setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+
+  QTreeView *treeView = qobject_cast<QTreeView *>(parent);
+  if(treeView)
+  {
+    QObject::connect(treeView, &QTreeView::expanded,
+                     [this](const QModelIndex &) { rowsChanged(QModelIndex(), 0, 0); });
+    QObject::connect(treeView, &QTreeView::collapsed,
+                     [this](const QModelIndex &) { rowsChanged(QModelIndex(), 0, 0); });
+  }
 }
 
 RDHeaderView::~RDHeaderView()
@@ -87,6 +96,9 @@ void RDHeaderView::setModel(QAbstractItemModel *model)
                      &RDHeaderView::columnsInserted);
     QObject::connect(model, &QAbstractItemModel::rowsInserted, this, &RDHeaderView::rowsChanged);
     QObject::connect(model, &QAbstractItemModel::rowsRemoved, this, &RDHeaderView::rowsChanged);
+    QObject::connect(model, &QAbstractItemModel::dataChanged,
+                     [this](const QModelIndex &topLeft, const QModelIndex &bottomRight,
+                            const QVector<int> &roles) { rowsChanged(QModelIndex(), 0, 0); });
   }
 }
 
@@ -510,7 +522,7 @@ void RDHeaderView::columnsInserted(const QModelIndex &parent, int first, int las
     cacheSections();
 }
 
-void RDHeaderView::rowsChanged(const QModelIndex &parent, int first, int last)
+void RDHeaderView::rowsChanged(const QModelIndex &, int, int)
 {
   if(!m_sectionStretchHints.isEmpty())
   {
