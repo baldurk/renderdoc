@@ -427,7 +427,28 @@ class ForwardingDelegate : public QStyledItemDelegate
 public:
   explicit ForwardingDelegate(QObject *parent = NULL) : QStyledItemDelegate(parent) {}
   ~ForwardingDelegate() {}
-  void setForwardDelegate(QAbstractItemDelegate *real) { m_delegate = real; }
+  void setForwardDelegate(QAbstractItemDelegate *real)
+  {
+    if(m_delegate)
+    {
+      QObject::disconnect(m_delegate, &QAbstractItemDelegate::commitData, this,
+                          &QAbstractItemDelegate::commitData);
+      QObject::disconnect(m_delegate, &QAbstractItemDelegate::closeEditor, this,
+                          &QAbstractItemDelegate::closeEditor);
+      QObject::disconnect(m_delegate, &QAbstractItemDelegate::sizeHintChanged, this,
+                          &QAbstractItemDelegate::sizeHintChanged);
+    }
+    m_delegate = real;
+    if(m_delegate)
+    {
+      QObject::connect(m_delegate, &QAbstractItemDelegate::commitData, this,
+                       &QAbstractItemDelegate::commitData);
+      QObject::connect(m_delegate, &QAbstractItemDelegate::closeEditor, this,
+                       &QAbstractItemDelegate::closeEditor);
+      QObject::connect(m_delegate, &QAbstractItemDelegate::sizeHintChanged, this,
+                       &QAbstractItemDelegate::sizeHintChanged);
+    }
+  }
   void paint(QPainter *painter, const QStyleOptionViewItem &option,
              const QModelIndex &index) const override
   {
