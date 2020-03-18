@@ -91,6 +91,8 @@ public:
   void setItemDelegate(QAbstractItemDelegate *delegate);
   QAbstractItemDelegate *itemDelegate() const;
 
+  void setModel(QAbstractItemModel *model) override;
+
   // state is the storage to save the expansion state into
   // keygen is a function that will take the index of a row and a previous hash, and return the hash
   //   for that row.
@@ -124,7 +126,6 @@ signals:
   void keyPress(QKeyEvent *e);
 
 protected:
-  void rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end) override;
   void mouseMoveEvent(QMouseEvent *e) override;
   void wheelEvent(QWheelEvent *e) override;
   void leaveEvent(QEvent *e) override;
@@ -138,6 +139,9 @@ protected:
   void fillBranchesRect(QPainter *painter, const QRect &rect, const QModelIndex &index) const;
   void enableBranchRectFill(bool fill) { m_fillBranchRect = fill; }
   QModelIndex m_currentHoverIndex;
+
+private slots:
+  void modelAboutToBeReset();
 
 private:
   bool m_VisibleBranches = true;

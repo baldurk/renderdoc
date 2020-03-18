@@ -226,7 +226,24 @@ QAbstractItemDelegate *RDTreeView::itemDelegate() const
   return m_userDelegate;
 }
 
-void RDTreeView::rowsAboutToBeRemoved(const QModelIndex &parent, int start, int end)
+void RDTreeView::setModel(QAbstractItemModel *model)
+{
+  QAbstractItemModel *old = this->model();
+
+  if(old)
+    QObject::disconnect(old, &QAbstractItemModel::modelAboutToBeReset, this,
+                        &RDTreeView::modelAboutToBeReset);
+
+  QTreeView::setModel(model);
+
+  if(model)
+  {
+    QObject::connect(model, &QAbstractItemModel::modelAboutToBeReset, this,
+                     &RDTreeView::modelAboutToBeReset);
+  }
+}
+
+void RDTreeView::modelAboutToBeReset()
 {
   m_currentHoverIndex = QModelIndex();
 }
