@@ -2691,12 +2691,14 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
   const size_t byteSize =
       2 * sizeof(Vec4f) * HGRAM_TILES_PER_BLOCK * HGRAM_TILES_PER_BLOCK * maxBlocksNeeded;
 
-  m_MinMaxTileResult.Create(driver, driver->GetDev(), byteSize, 1, GPUBuffer::eGPUBufferSSBO);
-  m_MinMaxResult.Create(driver, driver->GetDev(), sizeof(Vec4f) * 2, 1, GPUBuffer::eGPUBufferSSBO);
+  m_MinMaxTileResult.Create(driver, driver->GetDev(), byteSize, 1,
+                            GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO);
+  m_MinMaxResult.Create(driver, driver->GetDev(), sizeof(Vec4f) * 2, 1,
+                        GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO);
   m_MinMaxReadback.Create(driver, driver->GetDev(), sizeof(Vec4f) * 2, 1,
                           GPUBuffer::eGPUBufferReadback);
   m_HistogramBuf.Create(driver, driver->GetDev(), sizeof(uint32_t) * HGRAM_NUM_BUCKETS, 1,
-                        GPUBuffer::eGPUBufferSSBO);
+                        GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO);
   m_HistogramReadback.Create(driver, driver->GetDev(), sizeof(uint32_t) * HGRAM_NUM_BUCKETS, 1,
                              GPUBuffer::eGPUBufferReadback);
 
