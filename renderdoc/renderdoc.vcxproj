@@ -681,5 +681,9 @@
     </Copy>
     <Copy SourceFiles="$(ProjectDir)3rdparty\dbghelp\$(Platform)\dbghelp.dll" DestinationFolder="$(OutDir)">
     </Copy>
+    <Copy SourceFiles="$(WindowsSdkDir_10)\Redist\D3D\x64\d3dcompiler_47.dll" DestinationFolder="$(OutDir)" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x64\d3dcompiler_47.dll') AND '$(Platform)'=='x64'">
+    </Copy>
+    <Copy SourceFiles="$(WindowsSdkDir_10)\Redist\D3D\x86\d3dcompiler_47.dll" DestinationFolder="$(OutDir)" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x86\d3dcompiler_47.dll') AND '$(Platform)'=='Win32'">
+    </Copy>
   </Target>
 </Project>
