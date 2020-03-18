@@ -953,6 +953,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
         VkResourceRecord *record = *it;
         MemMapState &state = *record->memMapState;
 
+        SCOPED_LOCK(state.mrLock);
+
         // potential persistent map
         if(state.mapCoherent && state.mappedPtr && !state.mapFlushed)
         {

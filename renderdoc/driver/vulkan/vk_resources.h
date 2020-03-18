@@ -1090,6 +1090,7 @@ struct MemMapState
   bool mapCoherent;
   byte *mappedPtr;
   byte *refData;
+  Threading::CriticalSection mrLock;
 };
 
 struct AttachmentInfo
