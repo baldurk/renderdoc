@@ -23,6 +23,27 @@
  ******************************************************************************/
 
 template <>
+rdcstr DoStringise(const SDBasic &el)
+{
+  BEGIN_ENUM_STRINGISE(SDBasic);
+  {
+    STRINGISE_ENUM_CLASS(Chunk);
+    STRINGISE_ENUM_CLASS(Struct);
+    STRINGISE_ENUM_CLASS(Array);
+    STRINGISE_ENUM_CLASS(Null);
+    STRINGISE_ENUM_CLASS(Buffer);
+    STRINGISE_ENUM_CLASS(String);
+    STRINGISE_ENUM_CLASS(Enum);
+    STRINGISE_ENUM_CLASS(UnsignedInteger);
+    STRINGISE_ENUM_CLASS(SignedInteger);
+    STRINGISE_ENUM_CLASS(Float);
+    STRINGISE_ENUM_CLASS(Boolean);
+    STRINGISE_ENUM_CLASS(Character);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const ReplayStatus &el)
 {
   BEGIN_ENUM_STRINGISE(ReplayStatus)

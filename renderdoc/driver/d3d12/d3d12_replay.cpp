@@ -24,6 +24,7 @@
 
 #include "d3d12_replay.h"
 #include "core/plugins.h"
+#include "core/settings.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/ihv/amd/amd_counters.h"
@@ -40,6 +41,12 @@
 #include "d3d12_shader_cache.h"
 
 #include "data/hlsl/hlsl_cbuffers.h"
+
+RDOC_CONFIG(bool, D3D12_ShaderDebugging, false,
+            "BETA: Enable experimental shader debugging support.");
+
+RDOC_CONFIG(bool, D3D12_HardwareCounters, true,
+            "Enable support for IHV-specific hardware counters on D3D12.");
 
 static const char *LiveDriverDisassemblyTarget = "Live driver disassembly";
 
@@ -151,7 +158,7 @@ void D3D12Replay::CreateResources()
     m_PixelPick.Init(m_pDevice, m_DebugManager);
     m_Histogram.Init(m_pDevice, m_DebugManager);
 
-    if(!m_Proxy)
+    if(!m_Proxy && D3D12_HardwareCounters)
     {
       AMDCounters *counters = NULL;
 
@@ -271,11 +278,7 @@ APIProperties D3D12Replay::GetAPIProperties()
   ret.shadersMutable = false;
   ret.rgpCapture =
       m_DriverInfo.vendor == GPUVendor::AMD && m_RGP != NULL && m_RGP->DriverSupportsInterop();
-
-  // Enable shader debugging if specified in the config
-  rdcstr setting = strlower(RenderDoc::Inst().GetConfigSetting("d3d12ShaderDebugging"));
-  if(!strcmp(setting.c_str(), "true") || setting == "1")
-    ret.shaderDebugging = true;
+  ret.shaderDebugging = D3D12_ShaderDebugging;
 
   return ret;
 }

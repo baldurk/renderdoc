@@ -107,6 +107,10 @@ bool PersistantConfig::SetStyle()
   return false;
 }
 
+PersistantConfig::PersistantConfig()
+{
+}
+
 PersistantConfig::~PersistantConfig()
 {
 }
@@ -157,15 +161,6 @@ void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file)
 
 void RemoveRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file)
 {
-}
-
-void PersistantConfig::SetConfigSetting(const rdcstr &name, const rdcstr &value)
-{
-}
-
-rdcstr PersistantConfig::GetConfigSetting(const rdcstr &name)
-{
-  return "";
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -34,6 +34,8 @@
 int64_t Chunk::m_LiveChunks = 0;
 int64_t Chunk::m_TotalMem = 0;
 
+#endif
+
 void DumpObject(FileIO::LogFileHandle *log, const rdcstr &indent, SDObject *obj)
 {
   if(obj->NumChildren() > 0)
@@ -80,8 +82,6 @@ void DumpChunk(bool reading, FileIO::LogFileHandle *log, SDChunk *chunk)
   FileIO::logfile_append(log, msg.c_str(), msg.size());
   DumpObject(log, "  ", chunk);
 }
-
-#endif
 
 /////////////////////////////////////////////////////////////
 // Read Serialiser functions
@@ -265,12 +265,10 @@ void Serialiser<SerialiserMode::Reading>::EndChunk()
       m_StructureStack.pop_back();
     }
 
-#if ENABLED(RDOC_DEVEL)
     if(m_DebugDumpLog && !m_StructuredFile->chunks.empty())
     {
       DumpChunk(true, m_DebugDumpLog, m_StructuredFile->chunks.back());
     }
-#endif
   }
 
   // only skip remaining bytes if we have a valid length - if we have a length of 0 we wrote this
@@ -526,12 +524,10 @@ void Serialiser<SerialiserMode::Writing>::EndChunk()
       m_StructureStack.pop_back();
     }
 
-#if ENABLED(RDOC_DEVEL)
     if(m_DebugDumpLog && !m_StructuredFile->chunks.empty())
     {
       DumpChunk(false, m_DebugDumpLog, m_StructuredFile->chunks.back());
     }
-#endif
   }
 
   // align to the natural chunk alignment
@@ -619,27 +615,6 @@ void Serialiser<SerialiserMode::Writing>::WriteStructuredFile(const SDFile &file
 
   m_StructuredFile = &m_StructData;
   scratchWriter.m_StructuredFile = &scratchWriter.m_StructData;
-}
-
-template <>
-rdcstr DoStringise(const SDBasic &el)
-{
-  BEGIN_ENUM_STRINGISE(SDBasic);
-  {
-    STRINGISE_ENUM_CLASS(Chunk);
-    STRINGISE_ENUM_CLASS(Struct);
-    STRINGISE_ENUM_CLASS(Array);
-    STRINGISE_ENUM_CLASS(Null);
-    STRINGISE_ENUM_CLASS(Buffer);
-    STRINGISE_ENUM_CLASS(String);
-    STRINGISE_ENUM_CLASS(Enum);
-    STRINGISE_ENUM_CLASS(UnsignedInteger);
-    STRINGISE_ENUM_CLASS(SignedInteger);
-    STRINGISE_ENUM_CLASS(Float);
-    STRINGISE_ENUM_CLASS(Boolean);
-    STRINGISE_ENUM_CLASS(Character);
-  }
-  END_ENUM_STRINGISE();
 }
 
 template <>

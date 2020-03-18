@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "gl_replay.h"
+#include "core/settings.h"
 #include "driver/ihv/amd/amd_counters.h"
 #include "driver/ihv/intel/intel_gl_counters.h"
 #include "maths/matrix.h"
@@ -34,6 +35,9 @@
 
 #define OPENGL 1
 #include "data/glsl/glsl_ubos_cpp.h"
+
+RDOC_CONFIG(bool, OpenGL_HardwareCounters, true,
+            "Enable support for IHV-specific hardware counters on OpenGL.");
 
 static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
 
@@ -227,7 +231,7 @@ void GLReplay::SetReplayData(GLWindowingData data)
   if(!HasDebugContext())
     return;
 
-  if(!m_Proxy)
+  if(!m_Proxy && OpenGL_HardwareCounters)
   {
     AMDCounters *countersAMD = NULL;
     IntelGlCounters *countersIntel = NULL;

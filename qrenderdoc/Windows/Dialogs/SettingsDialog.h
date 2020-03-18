@@ -71,6 +71,7 @@ private slots:
   void on_analyticsOptOut_toggled(bool checked);
 
   // core
+  void on_configEditor_clicked();
   void on_chooseSearchPaths_clicked();
   void on_ExternalTool_RGPIntegration_toggled(bool checked);
   void on_ExternalTool_RadeonGPUProfiler_textEdited(const QString &rgp);
@@ -108,8 +109,8 @@ private slots:
   void on_browseAndroidSDKPath_clicked();
   void on_browseJDKPath_clicked();
   void on_Android_MaxConnectTimeout_valueChanged(double timeout);
-  void on_Android_SDKPath_textEdited(const QString &path);
-  void on_Android_JDKPath_textEdited(const QString &path);
+  void on_Android_SDKPath_textEdited(const QString &sdk);
+  void on_Android_JDKPath_textEdited(const QString &jdk);
 
   // manual slots
   void formatter_valueChanged(int value);

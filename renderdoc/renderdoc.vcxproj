@@ -189,6 +189,7 @@
     <ClInclude Include="common\timing.h" />
     <ClInclude Include="common\wrapped_pool.h" />
     <ClInclude Include="core\bit_flag_iterator.h" />
+    <ClInclude Include="core\settings.h" />
     <ClInclude Include="core\core.h" />
     <ClInclude Include="core\crash_handler.h" />
     <ClInclude Include="core\intervals.h" />
@@ -421,6 +422,7 @@
     <ClCompile Include="common\dds_readwrite.cpp" />
     <ClCompile Include="common\threading_tests.cpp" />
     <ClCompile Include="core\bit_flag_iterator_tests.cpp" />
+    <ClCompile Include="core\settings.cpp" />
     <ClCompile Include="core\core.cpp" />
     <ClCompile Include="core\image_viewer.cpp" />
     <ClCompile Include="core\intervals_tests.cpp" />

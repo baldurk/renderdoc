@@ -729,6 +729,12 @@
     <ClCompile Include="Code\BufferFormatter.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ConfigEditor.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\Dialogs\ConfigEditor.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1086,6 +1092,9 @@
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_ReplayOptionsSelector.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_ConfigEditor.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1478,7 +1487,15 @@
     <CustomBuild Include="Widgets\ReplayOptionsSelector.h">
       <Filter>Widgets</Filter>
     </CustomBuild>
-    <CustomBuild Include="Widgets\ReplayOptionsSelector.ui" />
+    <CustomBuild Include="Widgets\ReplayOptionsSelector.ui">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\ConfigEditor.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\ConfigEditor.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\action.png">

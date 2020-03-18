@@ -192,15 +192,19 @@ extern "C" RENDERDOC_API uint64_t RENDERDOC_CC RENDERDOC_GetCurrentProcessMemory
   return Process::GetMemoryUsage();
 }
 
-extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetConfigSetting(const char *name)
+extern "C" RENDERDOC_API const SDObject *RENDERDOC_CC RENDERDOC_GetConfigSetting(const char *name)
 {
-  return RenderDoc::Inst().GetConfigSetting(name).c_str();
+  return RenderDoc::Inst().GetConfigSetting(name);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetConfigSetting(const char *name,
-                                                                      const char *value)
+extern "C" RENDERDOC_API SDObject *RENDERDOC_CC RENDERDOC_SetConfigSetting(const char *name)
 {
-  RenderDoc::Inst().SetConfigSetting(name, value);
+  return RenderDoc::Inst().SetConfigSetting(name);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SaveConfigSettings()
+{
+  return RenderDoc::Inst().SaveConfigSettings();
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetColors(FloatVector darkChecker,

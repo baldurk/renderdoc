@@ -23,12 +23,17 @@
  ******************************************************************************/
 
 #include <float.h>
+#include "core/settings.h"
 #include "driver/shaders/spirv/spirv_editor.h"
 #include "driver/shaders/spirv/spirv_op_helpers.h"
 #include "vk_core.h"
 #include "vk_debug.h"
 #include "vk_replay.h"
 #include "vk_shader_cache.h"
+
+RDOC_CONFIG(
+    bool, Vulkan_BindlessFeedback, true,
+    "Enable fetching from GPU which descriptors were dynamically used in descriptor arrays.");
 
 struct feedbackData
 {
@@ -522,6 +527,9 @@ void VulkanReplay::ClearFeedbackCache()
 void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 {
   if(m_BindlessFeedback.Usage.find(eventId) != m_BindlessFeedback.Usage.end())
+    return;
+
+  if(!Vulkan_BindlessFeedback)
     return;
 
   // create it here so we won't re-run any code if the event is re-selected. We'll mark it as valid

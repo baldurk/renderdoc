@@ -30,9 +30,14 @@
 #include "common/threading.h"
 #include "core/core.h"
 #include "core/remote_server.h"
+#include "core/settings.h"
 #include "replay/replay_driver.h"
 #include "strings/string_utils.h"
 #include "android_utils.h"
+
+RDOC_CONFIG(uint32_t, Android_MaxConnectTimeout, 30,
+            "Maximum time in seconds to try connecting to the target app before giving up. "
+            "Useful primarily for apps that take a very long time to start up.");
 
 namespace Android
 {
@@ -1166,10 +1171,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
 
     ret.status = ReplayStatus::InjectionFailed;
 
-    uint32_t elapsed = 0,
-             timeout =
-                 1000 *
-                 RDCMAX(5, atoi(RenderDoc::Inst().GetConfigSetting("MaxConnectTimeout").c_str()));
+    uint32_t elapsed = 0, timeout = 1000 * RDCMAX(5U, Android_MaxConnectTimeout);
     while(elapsed < timeout)
     {
       // Check if the target app has started yet and we can connect to it.

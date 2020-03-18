@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "d3d11_replay.h"
+#include "core/settings.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/ihv/amd/amd_counters.h"
 #include "driver/ihv/intel/intel_counters.h"
@@ -41,6 +42,9 @@
 #include "d3d11_shader_cache.h"
 
 #include "data/hlsl/hlsl_cbuffers.h"
+
+RDOC_CONFIG(bool, D3D11_HardwareCounters, true,
+            "Enable support for IHV-specific hardware counters on D3D11.");
 
 static const char *DXBCDisassemblyTarget = "DXBC";
 
@@ -170,7 +174,7 @@ void D3D11Replay::CreateResources(IDXGIFactory *factory)
 
   m_pDevice->GetShaderCache()->SetCaching(false);
 
-  if(!m_Proxy)
+  if(!m_Proxy && D3D11_HardwareCounters)
   {
     AMDCounters *countersAMD = NULL;
     NVCounters *countersNV = NULL;

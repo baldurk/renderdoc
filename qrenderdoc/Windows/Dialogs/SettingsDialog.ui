@@ -482,27 +482,7 @@ e.g. 1000 * 10 = 1e4</string>
           <string>Core</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_2">
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_11">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>Shader debug search paths</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QPushButton" name="chooseSearchPaths">
-            <property name="text">
-             <string>Choose paths</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0" colspan="2">
+          <item row="3" column="0" colspan="2">
            <widget class="QLabel" name="label_17">
             <property name="toolTip">
              <string>Locates the RadeonGPUProfiler.exe which will be used to interop with when generating and opening RGP profiles.</string>
@@ -512,24 +492,14 @@ e.g. 1000 * 10 = 1e4</string>
             </property>
            </widget>
           </item>
-          <item row="3" column="0">
+          <item row="4" column="0">
            <widget class="QLineEdit" name="ExternalTool_RadeonGPUProfiler">
             <property name="toolTip">
              <string>Locates the RadeonGPUProfiler.exe which will be used to interop with when generating and opening RGP profiles.</string>
             </property>
            </widget>
           </item>
-          <item row="3" column="1">
-           <widget class="QPushButton" name="browseRGPPath">
-            <property name="toolTip">
-             <string>Locates the RadeonGPUProfiler.exe which will be used to interop with when generating and opening RGP profiles.</string>
-            </property>
-            <property name="text">
-             <string>Browse</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="0" colspan="2">
+          <item row="5" column="0" colspan="2">
            <spacer name="verticalSpacer_2">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
@@ -542,7 +512,49 @@ e.g. 1000 * 10 = 1e4</string>
             </property>
            </spacer>
           </item>
+          <item row="4" column="1">
+           <widget class="QPushButton" name="browseRGPPath">
+            <property name="toolTip">
+             <string>Locates the RadeonGPUProfiler.exe which will be used to interop with when generating and opening RGP profiles.</string>
+            </property>
+            <property name="text">
+             <string>Browse</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_18">
+            <property name="toolTip">
+             <string>RenderDoc can optionally have integration with AMD's Radeon GPU Profiler, to allow capturing RGP from RenderDoc and allowing interop between the two.
+
+After interop is enabled you will need to reload any capture.</string>
+            </property>
+            <property name="text">
+             <string>Enable Radeon GPU Profiler integration (requires capture reload)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_11">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Shader debug search paths</string>
+            </property>
+           </widget>
+          </item>
           <item row="1" column="1">
+           <widget class="QPushButton" name="chooseSearchPaths">
+            <property name="text">
+             <string>Choose paths</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
            <widget class="QCheckBox" name="ExternalTool_RGPIntegration">
             <property name="toolTip">
              <string>RenderDoc can optionally have integration with AMD's Radeon GPU Profiler, to allow capturing RGP from RenderDoc and allowing interop between the two.
@@ -554,15 +566,17 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="label_18">
-            <property name="toolTip">
-             <string>RenderDoc can optionally have integration with AMD's Radeon GPU Profiler, to allow capturing RGP from RenderDoc and allowing interop between the two.
-
-After interop is enabled you will need to reload any capture.</string>
-            </property>
+          <item row="0" column="1">
+           <widget class="QPushButton" name="configEditor">
             <property name="text">
-             <string>Enable Radeon GPU Profiler integration (requires capture reload)</string>
+             <string>Config Editor</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_28">
+            <property name="text">
+             <string>Open Advanced Config Editor</string>
             </property>
            </widget>
           </item>

@@ -153,6 +153,16 @@ bool PersistantConfig::Serialize(const rdcstr &filename)
   return false;
 }
 
+struct LegacyData
+{
+  QString _Android_SDKPath;
+  QString _Android_JDKPath;
+  uint32_t _Android_MaxConnectTimeout = 30;
+  bool _ExternalTool_RGPIntegration = false;
+  bool _ShaderViewer_FriendlyNaming = true;
+  QVariantMap _ConfigSettings;
+};
+
 QVariantMap PersistantConfig::storeValues() const
 {
   QVariantMap ret;
@@ -166,6 +176,15 @@ QVariantMap PersistantConfig::storeValues() const
   ret[lit(#name)] = convertToVariant<variantType>(name);
 
   CONFIG_SETTINGS()
+
+  // store any legacy values even though we don't need them
+
+  ret[lit("Android_SDKPath")] = m_Legacy->_Android_SDKPath;
+  ret[lit("Android_JDKPath")] = m_Legacy->_Android_JDKPath;
+  ret[lit("Android_MaxConnectTimeout")] = m_Legacy->_Android_MaxConnectTimeout;
+  ret[lit("ExternalTool_RGPIntegration")] = m_Legacy->_ExternalTool_RGPIntegration;
+  ret[lit("ShaderViewer_FriendlyNaming")] = m_Legacy->_ShaderViewer_FriendlyNaming;
+  ret[lit("ConfigSettings")] = m_Legacy->_ConfigSettings;
 
   return ret;
 }
@@ -197,6 +216,85 @@ void PersistantConfig::applyValues(const QVariantMap &values)
   // apply reasonable bounds to font scale to avoid invalid values
   // 25% - 400%
   Font_GlobalScale = qBound(0.25f, Font_GlobalScale, 4.0f);
+
+  // port old values that were saved here but are now saved in core.
+  // We only want to do this once, but we want to leave these values in the config to allow for
+  // people running old versions after running a new version - we don't want to remove all of their
+  // settings yet.
+  // So what we do is store an extra setting indicating that it's been ported - if that setting is
+  // present we just store/save them blindly. This does mean they can change but we won't re-port
+  // them.
+  // After the new config ships in a stable release we can remove this as we don't generally support
+  // forwards compatibility, only backwards compatibility, so it will be OK to drop the config
+  // settings.
+  bool processed = false;
+  if(values.contains(lit("ConfigSettings")) &&
+     values[lit("ConfigSettings")].toMap().contains(lit("modern.config.ported")))
+    processed = true;
+
+  bool saveConfig = false;
+
+#define CORE_SETTING(variantType, oldName, newName, data)              \
+  if(values.contains(lit(#oldName)))                                   \
+  {                                                                    \
+    m_Legacy->_##oldName = values[lit(#oldName)].value<variantType>(); \
+    if(!processed)                                                     \
+    {                                                                  \
+      SDObject *setting = RENDERDOC_SetConfigSetting(newName);         \
+      if(setting)                                                      \
+        setting->data = m_Legacy->_##oldName;                          \
+      saveConfig = true;                                               \
+    }                                                                  \
+  }
+
+  CORE_SETTING(QString, Android_SDKPath, "Android.SDKDirPath", data.str);
+  CORE_SETTING(QString, Android_JDKPath, "Android.JDKDirPath", data.str);
+  CORE_SETTING(uint32_t, Android_MaxConnectTimeout, "Android.MaxConnectTimeout", data.basic.u);
+  CORE_SETTING(bool, ExternalTool_RGPIntegration, "AMD.RGP.Enable", data.basic.b);
+  CORE_SETTING(bool, ShaderViewer_FriendlyNaming, "DXBC.Disassembly.FriendlyNaming", data.basic.b);
+
+  if(values.contains(lit("ConfigSettings")))
+  {
+    QVariantMap &settings = m_Legacy->_ConfigSettings;
+    settings = values[lit("ConfigSettings")].toMap();
+
+    if(!processed)
+    {
+      if(settings.contains(lit("shader.debug.searchPaths")))
+      {
+        QStringList searchPaths = settings[lit("shader.debug.searchPaths")].toString().split(
+            QLatin1Char(';'), QString::SkipEmptyParts);
+
+        SDObject *debug = RENDERDOC_SetConfigSetting("DXBC.Debug.SearchDirPaths");
+
+        debug->DeleteChildren();
+        debug->data.children.resize(searchPaths.size());
+
+        for(int i = 0; i < searchPaths.size(); i++)
+          debug->data.children[i] = makeSDString("$el", searchPaths[i]);
+      }
+
+      if(settings.contains(lit("d3d12ShaderDebugging")))
+      {
+        RENDERDOC_SetConfigSetting("D3D12_ShaderDebugging")->data.basic.b =
+            settings[lit("d3d12ShaderDebugging")].toBool();
+      }
+
+      if(settings.contains(lit("vulkanShaderDebugging")))
+      {
+        RENDERDOC_SetConfigSetting("Vulkan_ShaderDebugging")->data.basic.b =
+            settings[lit("vulkanShaderDebugging")].toBool();
+      }
+
+      saveConfig = true;
+    }
+
+    // mark the settings as ported so we don't do it again
+    settings[lit("modern.config.ported")] = true;
+  }
+
+  if(saveConfig)
+    RENDERDOC_SaveConfigSettings();
 }
 
 static QMutex RemoteHostLock;
@@ -265,20 +363,6 @@ void PersistantConfig::RemoveRemoteHost(RemoteHost host)
 
 void PersistantConfig::UpdateEnumeratedProtocolDevices()
 {
-  QString androidSDKPath = (!Android_SDKPath.isEmpty() && QFile::exists(Android_SDKPath))
-                               ? QString(Android_SDKPath)
-                               : QString();
-
-  SetConfigSetting("androidSDKPath", androidSDKPath);
-
-  QString androidJDKPath = (!Android_JDKPath.isEmpty() && QFile::exists(Android_JDKPath))
-                               ? QString(Android_JDKPath)
-                               : QString();
-
-  SetConfigSetting("androidJDKPath", androidJDKPath);
-
-  SetConfigSetting("MaxConnectTimeout", QString::number(Android_MaxConnectTimeout));
-
   rdcarray<RemoteHost> enumeratedDevices;
 
   rdcarray<rdcstr> protocols;
@@ -350,23 +434,19 @@ bool PersistantConfig::SetStyle()
   return false;
 }
 
+PersistantConfig::PersistantConfig()
+{
+  m_Legacy = new LegacyData;
+}
+
 PersistantConfig::~PersistantConfig()
 {
+  delete m_Legacy;
 }
 
 bool PersistantConfig::Load(const rdcstr &filename)
 {
   bool ret = Deserialize(filename);
-
-  // perform some sanitisation to make sure config is always in sensible state
-  for(const rdcstrpair &key : ConfigSettings)
-  {
-    // redundantly set each setting so it is flushed to the core dll
-    SetConfigSetting(key.first, key.second);
-  }
-
-  RENDERDOC_SetConfigSetting("Disassembly_FriendlyNaming", ShaderViewer_FriendlyNaming ? "1" : "0");
-  RENDERDOC_SetConfigSetting("ExternalTool_RGPIntegration", ExternalTool_RGPIntegration ? "1" : "0");
 
   RDDialog::DefaultBrowsePath = LastFileBrowsePath;
 
@@ -501,9 +581,6 @@ bool PersistantConfig::Save()
   if(m_Filename.isEmpty())
     return true;
 
-  RENDERDOC_SetConfigSetting("Disassembly_FriendlyNaming", ShaderViewer_FriendlyNaming ? "1" : "0");
-  RENDERDOC_SetConfigSetting("ExternalTool_RGPIntegration", ExternalTool_RGPIntegration ? "1" : "0");
-
   LastFileBrowsePath = RDDialog::DefaultBrowsePath;
 
   // truncate the lists to a maximum of 9 items, allow more to exist in memory
@@ -555,36 +632,6 @@ void AddRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file)
     recentList.removeOne(path);
 
   recentList.push_back(path);
-}
-
-void PersistantConfig::SetConfigSetting(const rdcstr &name, const rdcstr &value)
-{
-  if(name.isEmpty())
-    return;
-
-  bool found = false;
-  for(rdcstrpair &kv : ConfigSettings)
-  {
-    if(kv.first == name)
-    {
-      kv.second = value;
-      found = true;
-      break;
-    }
-  }
-
-  if(!found)
-    ConfigSettings.push_back(make_rdcpair(name, value));
-  RENDERDOC_SetConfigSetting(name.data(), value.data());
-}
-
-rdcstr PersistantConfig::GetConfigSetting(const rdcstr &name)
-{
-  for(const rdcstrpair &kv : ConfigSettings)
-    if(kv.first == name)
-      return kv.second;
-
-  return "";
 }
 
 ShaderProcessingTool::ShaderProcessingTool(const QVariant &var)

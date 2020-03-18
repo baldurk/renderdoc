@@ -25,6 +25,7 @@
 
 #include "d3d11_device.h"
 #include "core/core.h"
+#include "core/settings.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "jpeg-compressor/jpge.h"
 #include "maths/formatpacking.h"
@@ -37,6 +38,9 @@
 #include "d3d11_replay.h"
 #include "d3d11_resources.h"
 #include "d3d11_shader_cache.h"
+
+RDOC_CONFIG(rdcarray<rdcstr>, DXBC_Debug_SearchDirPaths, {},
+            "Paths to search for separated shader debug PDBs.");
 
 WRAPPED_POOL_INST(WrappedID3D11Device);
 
@@ -111,9 +115,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
     m_State = CaptureState::LoadingReplaying;
 
     D3D11MarkerRegion::device = this;
-
-    rdcstr shaderSearchPathString = RenderDoc::Inst().GetConfigSetting("shader.debug.searchPaths");
-    split(shaderSearchPathString, m_ShaderSearchPaths, ';');
 
     ResourceIDGen::SetReplayResourceIDs();
   }
@@ -787,6 +788,11 @@ rdcstr WrappedID3D11Device::GetChunkName(uint32_t idx)
     return ToStr((SystemChunk)idx);
 
   return ToStr((D3D11Chunk)idx);
+}
+
+const rdcarray<rdcstr> *WrappedID3D11Device::GetShaderDebugInfoSearchPaths()
+{
+  return &DXBC_Debug_SearchDirPaths;
 }
 
 void WrappedID3D11Device::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,

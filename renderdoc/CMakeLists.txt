@@ -132,6 +132,8 @@ set(sources
     core/target_control.cpp
     core/remote_server.cpp
     core/remote_server.h
+    core/settings.cpp
+    core/settings.h
     core/replay_proxy.cpp
     core/replay_proxy.h
     core/intervals.h

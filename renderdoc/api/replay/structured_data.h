@@ -404,16 +404,9 @@ struct SDObject
     data.basic.u = 0;
   }
 
-  ~SDObject()
-  {
-    for(size_t i = 0; i < data.children.size(); i++)
-      delete data.children[i];
-
-    data.children.clear();
-  }
-
+  ~SDObject() { DeleteChildren(); }
   DOCUMENT("Create a deep copy of this object.");
-  SDObject *Duplicate()
+  SDObject *Duplicate() const
   {
     SDObject *ret = new SDObject();
     ret->name = name;
@@ -437,6 +430,32 @@ struct SDObject
   DOCUMENT("The :class:`SDObjectData` with the contents of this object.");
   SDObjectData data;
 
+  DOCUMENT("Checks if the given object has the same value as this one.");
+  bool HasEqualValue(const SDObject *o) const
+  {
+    bool ret = true;
+
+    if(data.str != o->data.str)
+    {
+      ret = false;
+    }
+    else if(data.basic.u != o->data.basic.u)
+    {
+      ret = false;
+    }
+    else if(data.children.size() != o->data.children.size())
+    {
+      ret = false;
+    }
+    else
+    {
+      for(size_t c = 0; c < o->data.children.size(); c++)
+        ret &= data.children[c]->HasEqualValue(o->data.children[c]);
+    }
+
+    return ret;
+  }
+
   DOCUMENT("Add a new child object by duplicating it.");
   inline void AddChild(SDObject *child) { data.children.push_back(child->Duplicate()); }
   DOCUMENT("Find a child object by a given name.");
@@ -454,6 +473,15 @@ struct SDObject
     if(index < data.children.size())
       return data.children[index];
     return NULL;
+  }
+
+  DOCUMENT("Delete all child objects.");
+  inline void DeleteChildren()
+  {
+    for(size_t i = 0; i < data.children.size(); i++)
+      delete data.children[i];
+
+    data.children.clear();
   }
 
   DOCUMENT("Get the number of child objects.");
@@ -479,7 +507,7 @@ struct SDObject
   inline double AsDouble() const { return data.basic.d; }
   inline float AsFloat() const { return (float)data.basic.d; }
   inline char AsChar() const { return data.basic.c; }
-  inline rdcstr AsString() const { return data.str; }
+  inline const rdcstr &AsString() const { return data.str; }
   inline uint64_t AsUInt64() const { return (uint64_t)data.basic.u; }
   inline int64_t AsInt64() const { return (int64_t)data.basic.i; }
   inline uint32_t AsUInt32() const { return (uint32_t)data.basic.u; }
@@ -554,6 +582,7 @@ struct SDObject
     return this;
   }
 
+  void AddAndOwnChild(SDObject *child) { data.children.push_back(child); }
 #endif
 
   // these are common to both python and C++
@@ -780,11 +809,11 @@ inline SDObject *makeSDBool(const char *name, bool val)
 }
 
 DOCUMENT("Make a structured object out of a string");
-inline SDObject *makeSDString(const char *name, const char *val)
+inline SDObject *makeSDString(const char *name, const rdcstr &val)
 {
   SDObject *ret = new SDObject(name, "string"_lit);
   ret->type.basetype = SDBasic::String;
-  ret->type.byteSize = strlen(val);
+  ret->type.byteSize = val.size();
   ret->data.str = val;
   return ret;
 }
@@ -848,6 +877,7 @@ SDOBJECT_MAKER(uint32_t, makeSDUInt32);
 SDOBJECT_MAKER(float, makeSDFloat);
 SDOBJECT_MAKER(bool, makeSDBool);
 SDOBJECT_MAKER(const char *, makeSDString);
+SDOBJECT_MAKER(const rdcstr &, makeSDString);
 SDOBJECT_MAKER(ResourceId, makeSDResourceId);
 
 #undef SDOBJECT_MAKER
@@ -887,7 +917,7 @@ struct SDChunk : public SDObject
   SDChunkMetaData metadata;
 
   DOCUMENT("Create a deep copy of this chunk.");
-  SDChunk *Duplicate()
+  SDChunk *Duplicate() const
   {
     SDChunk *ret = new SDChunk();
     ret->name = name;

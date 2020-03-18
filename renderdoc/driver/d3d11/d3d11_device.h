@@ -314,8 +314,6 @@ private:
   D3D11ShaderCache *m_ShaderCache = NULL;
   D3D11ResourceManager *m_ResourceManager = NULL;
 
-  rdcarray<rdcstr> m_ShaderSearchPaths;
-
   D3D11InitParams m_InitParams;
   uint64_t m_SectionVersion;
   ReplayOptions m_ReplayOptions;
@@ -456,7 +454,7 @@ public:
     return m_LayoutDescs[layout];
   }
 
-  rdcarray<rdcstr> *GetShaderDebugInfoSearchPaths() { return &m_ShaderSearchPaths; }
+  const rdcarray<rdcstr> *GetShaderDebugInfoSearchPaths();
   template <typename SerialiserType>
   bool Serialise_CaptureScope(SerialiserType &ser);
 

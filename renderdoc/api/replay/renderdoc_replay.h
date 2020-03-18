@@ -1987,12 +1987,32 @@ DOCUMENT(R"(Returns the current process's memory usage in bytes
 )");
 extern "C" RENDERDOC_API uint64_t RENDERDOC_CC RENDERDOC_GetCurrentProcessMemoryUsage();
 
-DOCUMENT("Internal function for retrieving a config setting.");
-extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetConfigSetting(const char *name);
+DOCUMENT(R"(Return a read-only handle to the :class:`SDObject` corresponding to a given setting's
+value object.
 
-DOCUMENT("Internal function for setting a config setting.");
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetConfigSetting(const char *name,
-                                                                      const char *value);
+If an empty string is passed, the root object is returned containing all settings and setting
+categories. Categories contain other categories and settings, settings contain children that include
+the setting's value, description, etc.
+
+If no such setting exists, `None` is returned.
+
+:return: The specified setting.
+:rtype: ``SDObject``
+)");
+extern "C" RENDERDOC_API const SDObject *RENDERDOC_CC RENDERDOC_GetConfigSetting(const char *name);
+
+DOCUMENT(R"(Return a mutable handle to the :class:`SDObject` corresponding to a given setting's
+value object.
+
+If no such setting exists, `None` is returned.
+
+:return: The specified setting.
+:rtype: ``SDObject``
+)");
+extern "C" RENDERDOC_API SDObject *RENDERDOC_CC RENDERDOC_SetConfigSetting(const char *name);
+
+DOCUMENT("Internal function for saving config settings.");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SaveConfigSettings();
 
 DOCUMENT("Internal function for setting UI theme colors.");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetColors(FloatVector darkChecker,

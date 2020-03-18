@@ -39,6 +39,7 @@
 class Chunk;
 struct RDCThumb;
 struct ReplayOptions;
+struct SDObject;
 
 // not provided by tinyexr, just do by hand
 bool is_exr_file(FILE *f);
@@ -418,10 +419,14 @@ public:
   void RegisterShutdownFunction(ShutdownFunction func);
   void SetReplayApp(bool replay) { m_Replay = replay; }
   bool IsReplayApp() const { return m_Replay; }
-  const rdcstr &GetConfigSetting(rdcstr name) { return m_ConfigSettings[name]; }
-  void SetConfigSetting(rdcstr name, rdcstr value) { m_ConfigSettings[name] = value; }
   void BecomeRemoteServer(const char *listenhost, uint16_t port, RENDERDOC_KillCallback killReplay,
                           RENDERDOC_PreviewWindowCallback previewWindow);
+
+  const SDObject *GetConfigSetting(const rdcstr &name);
+  SDObject *SetConfigSetting(const rdcstr &name);
+  void SaveConfigSettings();
+
+  void RegisterSetting(const rdcstr &settingPath, SDObject *setting);
 
   DriverInformation GetDriverInformation(GraphicsAPI api);
 
@@ -621,8 +626,6 @@ private:
   Threading::CriticalSection m_ChildLock;
   rdcarray<rdcpair<uint32_t, uint32_t> > m_Children;
 
-  std::map<rdcstr, rdcstr> m_ConfigSettings;
-
   std::map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
   std::map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;
 
@@ -698,6 +701,12 @@ private:
   static void TargetControlClientThread(uint32_t version, Network::Socket *client);
 
   ICrashHandler *m_ExHandler;
+
+  void ProcessConfig();
+
+  SDObject *FindConfigSetting(const rdcstr &name);
+
+  SDObject *m_Config = NULL;
 };
 
 struct DriverRegistration

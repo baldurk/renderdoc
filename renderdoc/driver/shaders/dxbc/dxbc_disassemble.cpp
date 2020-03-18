@@ -26,11 +26,16 @@
 #include <math.h>
 #include "common/common.h"
 #include "core/core.h"
+#include "core/settings.h"
 #include "serialise/serialiser.h"
 #include "strings/string_utils.h"
 #include "dxbc_bytecode.h"
 
 #include "dxbc_container.h"
+
+RDOC_CONFIG(bool, DXBC_Disassembly_FriendlyNaming, true,
+            "Where possible (i.e. it is completely unambiguous) replace register names with "
+            "high-level variable names.");
 
 namespace DXBCBytecode
 {
@@ -437,7 +442,7 @@ void Program::DisassembleHexDump()
 
   m_Declarations.reserve(numDecls);
 
-  const bool friendly = RenderDoc::Inst().GetConfigSetting("Disassembly_FriendlyNaming") != "0";
+  const bool friendly = DXBC_Disassembly_FriendlyNaming;
 
   while(cur < end)
   {

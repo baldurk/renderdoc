@@ -121,11 +121,8 @@ public:
   uint32_t GetChunkMetadataRecording() { return m_ChunkFlags; }
   void SetChunkMetadataRecording(uint32_t flags);
 
-// debug-only option to dump out (roughly) the data going through the serialiser as it happens
-#if ENABLED(RDOC_DEVEL)
+  // debug-only option to dump out (roughly) the data going through the serialiser as it happens
   void EnableDumping(FileIO::LogFileHandle *debugLog) { m_DebugDumpLog = debugLog; }
-#endif
-
   SDChunkMetaData &ChunkMetadata() { return m_ChunkMetadata; }
   //////////////////////////////////////////
   // Utility functions
@@ -1340,9 +1337,7 @@ private:
   }
 
   ChunkLookup m_ChunkLookup = NULL;
-#if ENABLED(RDOC_DEVEL)
   FileIO::LogFileHandle *m_DebugDumpLog = NULL;
-#endif
 };
 
 #ifndef SERIALISER_IMPL

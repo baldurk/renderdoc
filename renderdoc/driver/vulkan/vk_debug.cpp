@@ -24,6 +24,7 @@
 
 #include "vk_debug.h"
 #include <float.h>
+#include "core/settings.h"
 #include "data/glsl_shaders.h"
 #include "driver/ihv/amd/amd_counters.h"
 #include "driver/ihv/amd/official/GPUPerfAPI/Include/GPUPerfAPI-VK.h"
@@ -37,6 +38,9 @@
 
 #define VULKAN 1
 #include "data/glsl/glsl_ubos_cpp.h"
+
+RDOC_CONFIG(bool, Vulkan_HardwareCounters, true,
+            "Enable support for IHV-specific hardware counters on Vulkan.");
 
 const VkDeviceSize STAGE_BUFFER_BYTE_SIZE = 16 * 1024 * 1024ULL;
 
@@ -1712,7 +1716,7 @@ void VulkanReplay::CreateResources()
   GPA_vkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()),
                                    Unwrap(m_pDriver->GetPhysDev()), Unwrap(m_pDriver->GetDev())};
 
-  if(!m_pDriver->GetReplay()->IsRemoteProxy())
+  if(!m_pDriver->GetReplay()->IsRemoteProxy() && Vulkan_HardwareCounters)
   {
     AMDCounters *counters = NULL;
 

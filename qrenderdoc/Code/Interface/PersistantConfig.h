@@ -302,8 +302,6 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_PerTexYFlip, false)                 \
                                                                                            \
-  CONFIG_SETTING_VAL(public, bool, bool, ShaderViewer_FriendlyNaming, true)                \
-                                                                                           \
   CONFIG_SETTING_VAL(public, bool, bool, AlwaysReplayLocally, false)                       \
                                                                                            \
   CONFIG_SETTING_VAL(public, int, int, LocalProxyAPI, -1)                                  \
@@ -336,12 +334,6 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, Font_PreferMonospaced, false)                     \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, Android_SDKPath, "")                         \
-                                                                                           \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, Android_JDKPath, "")                         \
-                                                                                           \
-  CONFIG_SETTING_VAL(public, int, int, Android_MaxConnectTimeout, 30)                      \
-                                                                                           \
   CONFIG_SETTING_VAL(public, QDateTime, rdcdatetime, UnsupportedAndroid_LastUpdate,        \
                      rdcdatetime(2015, 01, 01))                                            \
                                                                                            \
@@ -358,8 +350,6 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, QDateTime, rdcdatetime, DegradedCapture_LastUpdate,           \
                      rdcdatetime(2015, 01, 01))                                            \
-                                                                                           \
-  CONFIG_SETTING_VAL(public, bool, bool, ExternalTool_RGPIntegration, false)               \
                                                                                            \
   CONFIG_SETTING_VAL(public, QString, rdcstr, ExternalTool_RadeonGPUProfiler, "")          \
                                                                                            \
@@ -384,8 +374,6 @@ DECLARE_REFLECTION_STRUCT(BugReport);
   CONFIG_SETTING(public, QVariantList, rdcarray<BugReport>, CrashReport_ReportedBugs)      \
                                                                                            \
   CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, AlwaysLoad_Extensions)            \
-                                                                                           \
-  CONFIG_SETTING(private, QVariantMap, rdcstrpairs, ConfigSettings)                        \
                                                                                            \
   CONFIG_SETTING(private, QVariantList, rdcarray<RemoteHost>, RemoteHostList)
 
@@ -457,6 +445,8 @@ As the name suggests, this is used for tracking a 'recent file' list.
 :param str file: The file to remove from the list.
 )");
 void RemoveRecentFile(rdcarray<rdcstr> &recentList, const rdcstr &file);
+
+struct LegacyData;
 
 DOCUMENT2(R"(A persistant config file that is automatically loaded and saved, which contains any
 settings and information that needs to be preserved from one run to the next.
@@ -532,13 +522,6 @@ For more information about some of these settings that are user-facing see
   Does nothing if per-texture settings are disabled in general.
 
   Defaults to ``False``.
-
-.. data:: ShaderViewer_FriendlyNaming
-
-  ``True`` if the :class:`ShaderViewer` should replace register names with the high-level language
-  variable names where possible.
-
-  Defaults to ``True``.
 
 .. data:: AlwaysReplayLocally
 
@@ -655,24 +638,6 @@ For more information about some of these settings that are user-facing see
 
   Defaults to ``False``.
 
-.. data:: Android_SDKPath
-
-  The path to the root of the android SDK, to locate android tools to use for android remote hosts.
-
-  Defaults to using the tools distributed with RenderDoc.
-
-.. data:: Android_JDKPath
-
-  The path to the root of the Java JDK, to locate java for running android java tools.
-
-  Defaults to using the JAVA_HOME environment variable, if set.
-
-.. data:: Android_MaxConnectTimeout
-
-  The maximum timeout in seconds to wait when launching an Android package.
-
-  Defaults to ``30``.
-
 .. data:: UnsupportedAndroid_LastUpdate
 
   A date containing the last time that the user was warned about an Android device being older than
@@ -712,10 +677,6 @@ For more information about some of these settings that are user-facing see
 
   A date containing the last time that the user was warned about captures being loaded in degraded
   support. This prevents the user being spammed if their hardware is low spec.
-
-.. data:: ExternalTool_RGPIntegration
-
-  Whether to enable integration with the external Radeon GPU Profiler tool.
 
 .. data:: ExternalTool_RadeonGPUProfiler
 
@@ -788,7 +749,6 @@ For more information about some of these settings that are user-facing see
   A list of strings with extension packages to always load on startup, without needing manual
   enabling.
 
-
 )");
 class PersistantConfig
 {
@@ -822,7 +782,7 @@ public:
   DOCUMENT("");
   CONFIG_SETTINGS()
 public:
-  PersistantConfig() {}
+  PersistantConfig();
   ~PersistantConfig();
 
   DOCUMENT(R"(Loads the config from a given filename. This happens automatically on startup, so it's
@@ -854,21 +814,6 @@ loading. It can explicitly save and close before relaunching.
   DOCUMENT("Configures the :class:`Formatter` class with the settings from this config.");
   void SetupFormatting();
 
-  DOCUMENT(R"(Sets an arbitrary dynamic setting similar to a key-value store. This can be used for
-storing custom settings to be persisted without needing to modify code.
-
-:param str name: The name of the setting. Any existing setting will be overwritten.
-:param str value: The contents of the setting.
-)");
-  void SetConfigSetting(const rdcstr &name, const rdcstr &value);
-  DOCUMENT(R"(Retrieves an arbitrary dynamic setting. See :meth:`SetConfigSetting`.
-
-:param str name: The name of the setting.
-:return: The value of the setting, or the empty string if the setting did not exist.
-:rtype: ``str``
-)");
-  rdcstr GetConfigSetting(const rdcstr &name);
-
   DOCUMENT(R"(Sets the UI style to the value in :data:`UIStyle`.
 
 Changing the style after the application has started may not properly update everything, so to be
@@ -891,4 +836,8 @@ private:
 #endif
 
   rdcstr m_Filename;
+
+  // legacy storage for config settings that were ported into the core config. We keep them here
+  // so we can store them out again, to keep the config the same for a while even if it's unused
+  LegacyData *m_Legacy;
 };

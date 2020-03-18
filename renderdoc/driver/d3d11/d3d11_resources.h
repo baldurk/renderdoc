@@ -956,7 +956,7 @@ public:
     ResourceId m_ID;
 
     rdcstr m_DebugInfoPath;
-    rdcarray<rdcstr> *m_DebugInfoSearchPaths;
+    const rdcarray<rdcstr> *m_DebugInfoSearchPaths;
 
     rdcarray<byte> m_Bytecode;
 

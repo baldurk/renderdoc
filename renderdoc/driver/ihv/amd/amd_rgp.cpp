@@ -26,7 +26,10 @@
 #include "common/common.h"
 #include "core/core.h"
 #include "core/plugins.h"
+#include "core/settings.h"
 #include "official/RGP/DevDriverAPI.h"
+
+RDOC_CONFIG(bool, AMD_RGP_Enable, false, "Enable integration with AMD's RGP tool.");
 
 uint64_t MakeTagFromMarker(const char *marker)
 {
@@ -68,9 +71,7 @@ AMDRGPControl::AMDRGPControl()
   m_RGPDispatchTable->minorVersion = DEV_DRIVER_API_MINOR_VERSION;
   m_RGPContext = NULL;
 
-  const bool enabled = RenderDoc::Inst().GetConfigSetting("ExternalTool_RGPIntegration") == "1";
-
-  if(!enabled)
+  if(!AMD_RGP_Enable)
   {
     RDCLOG("AMD RGP Interop is not enabled");
     return;

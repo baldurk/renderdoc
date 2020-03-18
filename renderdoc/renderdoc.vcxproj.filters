@@ -504,6 +504,9 @@
     <ClInclude Include="common\formatting.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="core\settings.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -886,6 +889,9 @@
     </ClCompile>
     <ClCompile Include="maths\vec.cpp">
       <Filter>Common\Maths</Filter>
+    </ClCompile>
+    <ClCompile Include="core\settings.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

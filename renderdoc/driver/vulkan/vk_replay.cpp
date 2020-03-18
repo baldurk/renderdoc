@@ -27,6 +27,7 @@
 #include <float.h>
 #include <math.h>
 #include <algorithm>
+#include "core/settings.h"
 #include "driver/ihv/amd/amd_rgp.h"
 #include "driver/shaders/spirv/spirv_compile.h"
 #include "maths/formatpacking.h"
@@ -40,6 +41,9 @@
 
 #define VULKAN 1
 #include "data/glsl/glsl_ubos_cpp.h"
+
+RDOC_CONFIG(bool, Vulkan_ShaderDebugging, false,
+            "BETA: Enable experimental shader debugging support.");
 
 static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
 static const char *AMDShaderInfoTarget = "AMD_shader_info";
@@ -186,11 +190,7 @@ APIProperties VulkanReplay::GetAPIProperties()
   ret.shadersMutable = false;
   ret.rgpCapture =
       m_DriverInfo.vendor == GPUVendor::AMD && m_RGP != NULL && m_RGP->DriverSupportsInterop();
-
-  // Enable shader debugging if specified in the config
-  rdcstr setting = strlower(RenderDoc::Inst().GetConfigSetting("vulkanShaderDebugging"));
-  if(!strcmp(setting.c_str(), "true") || setting == "1")
-    ret.shaderDebugging = true;
+  ret.shaderDebugging = Vulkan_ShaderDebugging;
 
   return ret;
 }

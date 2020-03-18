@@ -24,8 +24,17 @@
 
 #include "common/formatting.h"
 #include "core/core.h"
+#include "core/settings.h"
 #include "strings/string_utils.h"
 #include "android_utils.h"
+
+RDOC_CONFIG(rdcstr, Android_SDKDirPath, "",
+            "The location of the root of the Android SDK. This path "
+            "should contain folders such as build-tools and platform-tools.");
+
+RDOC_CONFIG(rdcstr, Android_JDKDirPath, "",
+            "The location of the root of the Java JDK. This path "
+            "should contain folders such as bin and lib.");
 
 namespace Android
 {
@@ -178,8 +187,8 @@ rdcstr getToolPath(ToolDir subdir, const rdcstr &toolname, bool checkExist)
   // its client-server setup, so if we run our bundled adb that might be newer than the user's, they
   // will then get fighting back and forth when trying to run their own.
 
-  rdcstr sdk = RenderDoc::Inst().GetConfigSetting("androidSDKPath");
-  rdcstr jdk = RenderDoc::Inst().GetConfigSetting("androidJDKPath");
+  rdcstr sdk = Android_SDKDirPath;
+  rdcstr jdk = Android_JDKDirPath;
 
   ToolPathCache &cache = getCache();
 

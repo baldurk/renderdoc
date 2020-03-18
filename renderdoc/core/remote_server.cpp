@@ -29,6 +29,7 @@
 #include "api/replay/renderdoc_replay.h"
 #include "api/replay/version.h"
 #include "core/core.h"
+#include "core/settings.h"
 #include "os/os_specific.h"
 #include "replay/replay_controller.h"
 #include "serialise/rdcfile.h"
@@ -36,11 +37,12 @@
 #include "strings/string_utils.h"
 #include "replay_proxy.h"
 
-#if ENABLED(RDOC_DEVEL)
-static const uint32_t RemoteServerTimeoutMS = 5000;
-#endif
+RDOC_CONFIG(uint32_t, RemoteServer_TimeoutMS, 5000,
+            "Timeout in milliseconds for remote server operations.");
 
-#define DEBUG_REMOTE_SERVER OPTION_OFF
+RDOC_DEBUG_CONFIG(bool, RemoteServer_DebugLogging, false,
+                  "Where possible (i.e. it is completely unambiguous) replace register names with "
+                  "high-level variable names.");
 
 static const uint32_t RemoteServerProtocolVersion =
     uint32_t(RENDERDOC_VERSION_MAJOR * 1000) | RENDERDOC_VERSION_MINOR;
@@ -215,9 +217,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
   Network::Socket *&client = threadData->socket;
 
-#if ENABLED(RDOC_DEVEL)
-  client->SetTimeout(RemoteServerTimeoutMS);
-#endif
+  client->SetTimeout(RemoteServer_TimeoutMS);
 
   uint32_t ip = client->GetRemoteIP();
 
@@ -1156,9 +1156,7 @@ RENDERDOC_CreateRemoteServerConnection(const char *URL, IRemoteServer **rend)
 
   uint32_t version = RemoteServerProtocolVersion;
 
-#if ENABLED(RDOC_DEVEL)
-  sock->SetTimeout(RemoteServerTimeoutMS);
-#endif
+  sock->SetTimeout(RemoteServer_TimeoutMS);
 
   {
     WriteSerialiser ser(new StreamWriter(sock, Ownership::Nothing), Ownership::Stream);
@@ -1218,22 +1216,25 @@ RemoteServer::RemoteServer(Network::Socket *sock, const rdcstr &deviceID)
   reader = new ReadSerialiser(new StreamReader(sock, Ownership::Nothing), Ownership::Stream);
   writer = new WriteSerialiser(new StreamWriter(sock, Ownership::Nothing), Ownership::Stream);
 
-#if ENABLED(RDOC_DEVEL) && ENABLED(DEBUG_REMOTE_SERVER)
-  reader->ConfigureStructuredExport(&GetRemoteServerChunkName, false);
-  writer->ConfigureStructuredExport(&GetRemoteServerChunkName, false);
+  if(RemoteServer_DebugLogging)
+  {
+    reader->ConfigureStructuredExport(&GetRemoteServerChunkName, false);
+    writer->ConfigureStructuredExport(&GetRemoteServerChunkName, false);
 
-  rdcstr filename = FileIO::GetTempFolderFilename() + "/RenderDoc/RemoteServer.log";
+    rdcstr filename = FileIO::GetTempFolderFilename() + "/RenderDoc/RemoteServer.log";
 
-  // truncate the log
-  debugLog = FileIO::logfile_open(filename.c_str());
-  FileIO::logfile_close(debugLog, filename.c_str());
-  debugLog = FileIO::logfile_open(filename.c_str());
+    // truncate the log
+    debugLog = FileIO::logfile_open(filename.c_str());
+    FileIO::logfile_close(debugLog, filename.c_str());
+    debugLog = FileIO::logfile_open(filename.c_str());
 
-  reader->EnableDumping(debugLog);
-  writer->EnableDumping(debugLog);
-#else
-  debugLog = NULL;
-#endif
+    reader->EnableDumping(debugLog);
+    writer->EnableDumping(debugLog);
+  }
+  else
+  {
+    debugLog = NULL;
+  }
 
   writer->SetStreamingMode(true);
   reader->SetStreamingMode(true);

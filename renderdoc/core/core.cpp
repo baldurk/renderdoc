@@ -454,6 +454,8 @@ void RenderDoc::Initialise()
   // information to stdout/stderr and being piped around and processed!
   if(IsReplayApp())
     RDCLOGOUTPUT();
+
+  ProcessConfig();
 }
 
 RenderDoc::~RenderDoc()
@@ -493,6 +495,8 @@ RenderDoc::~RenderDoc()
     Threading::CloseThread(m_RemoteThread);
     m_RemoteThread = 0;
   }
+
+  delete m_Config;
 
   Process::Shutdown();
 
