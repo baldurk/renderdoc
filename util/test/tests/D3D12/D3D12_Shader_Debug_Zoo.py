@@ -6,10 +6,10 @@ import rdtest
 class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
     demos_test_name = 'D3D12_Shader_Debug_Zoo'
 
-    def check_support(self):
-        return False, 'shader debugging is not yet enabled for D3D12'
-
     def check_capture(self):
+        if not self.controller.GetAPIProperties().shaderDebugging:
+            rdtest.log.success("Shader debugging not enabled, skipping test")
+            return
 
         failed = False
 

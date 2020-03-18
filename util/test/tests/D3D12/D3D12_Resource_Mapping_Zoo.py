@@ -6,9 +6,6 @@ import rdtest
 class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
     demos_test_name = 'D3D12_Resource_Mapping_Zoo'
 
-    def check_support(self):
-        return False, 'shader debugging is not yet enabled for D3D12'
-
     def test_debug_pixel(self, x, y, test_name):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
@@ -34,6 +31,9 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
         return True
 
     def check_capture(self):
+        if not self.controller.GetAPIProperties().shaderDebugging:
+            rdtest.log.success("Shader debugging not enabled, skipping test")
+            return
 
         failed = False
 
