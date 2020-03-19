@@ -129,7 +129,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       STATSTG stats = {};
       pstream->Stat(&stats, STATFLAG_DEFAULT);
       const uint32_t size = (uint32_t)stats.cbSize.QuadPart;
-      const uint32_t offset = 2 * 1024 * 1024;
+      const size_t offset = captureHeader.size();
       ULONG ddsNumRead = 0;
 
       // read rest of file
@@ -144,17 +144,25 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 
       if(m_ddsData.subdata == NULL)
       {
-        delete[] m_ddsData.subdata;
-        delete[] m_ddsData.subsizes;
         return E_INVALIDARG;
       }
       // Ignore volume slices and mip maps. We want to convert the first slice of the image as
       // bitmap.
-      m_Thumb.pixels = m_ddsData.subdata[0];    // slice 0
-      m_Thumb.len = m_ddsData.subsizes[0];      // size of slice 0
-      m_Thumb.height = static_cast<uint16_t>(m_ddsData.height);
-      m_Thumb.width = static_cast<uint16_t>(m_ddsData.width);
+      m_Thumb.height = (uint16_t)m_ddsData.height;
+      m_Thumb.width = (uint16_t)m_ddsData.width;
+      m_Thumb.len = m_ddsData.subsizes[0];    // size of slice 0
+      buf = new byte[m_Thumb.len];
+      m_Thumb.pixels = buf;
+      memcpy(buf, m_ddsData.subdata[0], m_Thumb.len);    // slice 0
       m_Thumb.format = FileType::DDS;
+
+      // We don't need any other data
+      for(uint32_t i = 0; i < m_ddsData.slices * m_ddsData.mips; i++)
+      {
+        delete[] m_ddsData.subdata[i];
+      }
+      delete[] m_ddsData.subsizes;
+      delete[] m_ddsData.subdata;
     }
     else
     {
@@ -416,24 +424,33 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
     }
     else
     {
+      thumbwidth = m_ddsData.width;
+      thumbheight = m_ddsData.height;
       const ResourceFormatType resourceType = m_ddsData.format.type;
       const uint32_t decompressedStride = thumbwidth * 4;
       const uint32_t decompressedBlockWidth = 16;    // in bytes (4 byte/pixel)
       const uint32_t decompressedBlockMaxSize = 64;
       const uint32_t compressedBlockSize = m_ddsData.format.ElementSize();
 
-      thumbwidth = m_ddsData.width;
-      thumbheight = m_ddsData.height;
-      // Delete buffers
-      delete[] m_ddsData.subdata;
-      delete[] m_ddsData.subsizes;
+      // check supported formats
+      switch(resourceType)
+      {
+        case ResourceFormatType::BC1:
+        case ResourceFormatType::BC2:
+        case ResourceFormatType::BC3:
+        case ResourceFormatType::BC4:
+        case ResourceFormatType::BC5:
+          break;    // supported
+        default:
+          return E_NOTIMPL;    // not supported
+      }
 
-      byte *decompressed =
-          new byte[thumbheight * thumbwidth * 4];    // Decompressed DDS, 4 byte/pixel
-
+      bytebuf decompressed;    // Decompressed DDS, 4 byte/pixel
+      decompressed.resize(thumbheight * thumbwidth * 4);
       unsigned char decompressedBlock[decompressedBlockMaxSize];
       unsigned char greenBlock[16];
       const byte *compBlockStart = m_Thumb.pixels;
+
       for(uint32_t blockY = 0; blockY < thumbheight / 4; blockY++)
       {
         for(uint32_t blockX = 0; blockX < thumbwidth / 4; blockX++)
@@ -443,26 +460,26 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
           switch(resourceType)
           {
             case ResourceFormatType::BC1:
-              DecompressBlockBC1(compBlockStart, decompressedBlock, nullptr);
+              DecompressBlockBC1(compBlockStart, decompressedBlock, NULL);
               break;
             case ResourceFormatType::BC2:
-              DecompressBlockBC2(compBlockStart, decompressedBlock, nullptr);
+              DecompressBlockBC2(compBlockStart, decompressedBlock, NULL);
               break;
             case ResourceFormatType::BC3:
-              DecompressBlockBC3(compBlockStart, decompressedBlock, nullptr);
+              DecompressBlockBC3(compBlockStart, decompressedBlock, NULL);
               break;
             case ResourceFormatType::BC4:
-              DecompressBlockBC4(compBlockStart, decompressedBlock, nullptr);
+              DecompressBlockBC4(compBlockStart, decompressedBlock, NULL);
               break;
             case ResourceFormatType::BC5:
-              DecompressBlockBC5(compBlockStart, decompressedBlock, greenBlock, nullptr);
+              DecompressBlockBC5(compBlockStart, decompressedBlock, greenBlock, NULL);
               break;
             default:
               return E_NOTIMPL;    // other formats
           }
 
-          auto decompPointer = decompressedBlock;
-          auto decompImagePointer = decompressed + decompressedBlockStart;
+          unsigned char *decompPointer = decompressedBlock;
+          unsigned char *decompImagePointer = decompressed.data() + decompressedBlockStart;
           for(int i = 0; i < 4; i++)
           {
             switch(resourceType)
@@ -506,9 +523,9 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
         }
       }
 
-      thumbpixels =
-          new byte[thumbheight * thumbwidth * 3];    // Decompressed DDS, 3 byte/pixel without alpha
-      byte *decompRead = decompressed;
+      thumbpixels = (byte *)malloc(thumbheight * thumbwidth *
+                                   3);    // Decompressed DDS, 3 byte/pixel without alpha
+      byte *decompRead = decompressed.data();
       byte *imgWrite = thumbpixels;
       // Iterate over pixels (4byte/pixel in decompressed, 3byte/pixel in thumbpixels)
       for(uint32_t i = 0; i < thumbwidth * thumbheight; i++)
@@ -517,8 +534,6 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
         decompRead += 4;
         imgWrite += 3;
       }
-
-      delete[] decompressed;
     }
 
     float aspect = float(thumbwidth) / float(thumbheight);
