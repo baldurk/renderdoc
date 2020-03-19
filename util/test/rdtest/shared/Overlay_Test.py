@@ -76,12 +76,6 @@ class Overlay_Test(rdtest.TestCase):
 
             overlay_id: rd.ResourceId = out.GetDebugOverlayTexID()
 
-            save_data = rd.TextureSave()
-            save_data.resourceId = overlay_id
-            save_data.destType = rd.FileType.PNG
-
-            self.controller.SaveTexture(save_data, rdtest.get_tmp_path('asdf.png'))
-
             # We test a few key spots:
             #  4 points along the left side of the big triangle, above/in/below its intersection with the tri behind
             #  4 points outside all triangles

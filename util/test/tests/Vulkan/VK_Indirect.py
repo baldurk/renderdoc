@@ -6,30 +6,69 @@ import renderdoc as rd
 class VK_Indirect(rdtest.TestCase):
     demos_test_name = 'VK_Indirect'
 
-    def check_overlay(self, eventId: int, out: rd.ReplayOutput, tex: rd.TextureDisplay, save_data: rd.TextureSave):
+    def check_overlay(self, pass_samples, *, no_overlay = False):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        # Check that the highlight draw overlay is empty
+        tex = rd.TextureDisplay()
+        tex.overlay = rd.DebugOverlay.Drawcall
         tex.resourceId = pipe.GetOutputTargets()[0].resourceId
 
-        out.SetTextureDisplay(tex)
+        self.out.SetTextureDisplay(tex)
 
-        overlay_path = rdtest.get_tmp_path(str(self.overlay_idx) + '_draw.png')
-        ref_path = self.get_ref_path(str(self.overlay_idx) + '_draw.png')
+        self.out.Display()
 
-        save_data.resourceId = out.GetDebugOverlayTexID()
+        overlay_id = self.out.GetDebugOverlayTexID()
 
-        self.controller.SaveTexture(save_data, overlay_path)
+        samples = [
+            (50, 40),
+            (60, 40),
+            (70, 40),
 
-        if not rdtest.png_compare(overlay_path, ref_path):
-            raise rdtest.TestFailureException("Reference and output image differ @ EID {}".format(str(eventId)),
-                                              ref_path, overlay_path)
+            (90, 40),
+            (100, 40),
+            (110, 40),
 
-        self.overlay_idx = self.overlay_idx + 1
+            (130, 40),
+            (140, 40),
+            (160, 40),
+
+            (190, 40),
+            (200, 40),
+            (220, 40),
+
+
+
+            (50, 190),
+            (60, 190),
+            (70, 190),
+
+            (90, 190),
+            (100, 190),
+            (110, 190),
+
+            (130, 190),
+            (140, 190),
+            (160, 190),
+
+            (190, 190),
+            (200, 190),
+            (220, 190),
+        ]
+
+        # Every sample that isn't passing should be off
+        off_alpha = 0.5
+        # If the overlay isn't even for a draw, it will be cleared to black
+        if no_overlay:
+            off_alpha = 0.0
+            self.check(len(pass_samples) == 0)
+        for s in [s for s in samples if s not in pass_samples]:
+            self.check_pixel_value(overlay_id, s[0], s[1], [0.0, 0.0, 0.0, off_alpha], eps=1.0/256.0)
+
+        # And the passing samples should be on
+        for s in pass_samples:
+            self.check_pixel_value(overlay_id, s[0], s[1], [0.8, 0.1, 0.8, 1.0], eps=1.0/256.0)
 
     def check_capture(self):
-        self.overlay_idx = 1
-
         fill = self.find_draw("vkCmdFillBuffer")
 
         self.check(fill is not None)
@@ -69,16 +108,10 @@ class VK_Indirect(rdtest.TestCase):
             dispatches = self.find_draw("{}: Dispatches".format(level))
 
             # Set up a ReplayOutput and TextureSave for quickly testing the drawcall highlight overlay
-            out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
-                                                                rd.ReplayOutputType.Texture)
+            self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
+                                                                     rd.ReplayOutputType.Texture)
 
-            self.check(out is not None)
-
-            tex = rd.TextureDisplay()
-            tex.overlay = rd.DebugOverlay.Drawcall
-
-            save_data = rd.TextureSave()
-            save_data.destType = rd.FileType.PNG
+            self.check(self.out is not None)
 
             # Rewind to the start of the capture
             draw: rd.DrawcallDescription = dispatches.children[0]
@@ -137,7 +170,8 @@ class VK_Indirect(rdtest.TestCase):
                 postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, 1)
                 self.check(len(postvs_data) == 0)
 
-                self.check_overlay(draw.eventId, out, tex, save_data)
+                # No samples should be passing in the empties
+                self.check_overlay([])
 
             rdtest.log.success("{} empty draws are empty".format(level))
 
@@ -170,7 +204,7 @@ class VK_Indirect(rdtest.TestCase):
             self.check_mesh_data(postvs_ref, postvs_data)
             self.check(len(postvs_data) == len(postvs_ref))  # We shouldn't have any extra vertices
 
-            self.check_overlay(draw.eventId, out, tex, save_data)
+            self.check_overlay([(60, 40)])
 
             rdtest.log.success("{} {} is as expected".format(level, draw.name))
 
@@ -197,7 +231,7 @@ class VK_Indirect(rdtest.TestCase):
             self.check_mesh_data(postvs_ref, postvs_data)
             self.check(len(postvs_data) == len(postvs_ref))  # We shouldn't have any extra vertices
 
-            self.check_overlay(draw.eventId, out, tex, save_data)
+            self.check_overlay([(100, 40)])
 
             rdtest.log.success("{} {} is as expected".format(level, draw.name))
 
@@ -224,7 +258,7 @@ class VK_Indirect(rdtest.TestCase):
             self.check_mesh_data(postvs_ref, postvs_data)
             self.check(len(postvs_data) == len(postvs_ref))  # We shouldn't have any extra vertices
 
-            self.check_overlay(draw.eventId, out, tex, save_data)
+            self.check_overlay([(140, 40), (200, 40)])
 
             rdtest.log.success("{} {} is as expected".format(level, draw.name))
 
@@ -247,7 +281,7 @@ class VK_Indirect(rdtest.TestCase):
                     postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, 1)
                     self.check(len(postvs_data) == 0)
 
-                    self.check_overlay(draw.eventId, out, tex, save_data)
+                    self.check_overlay([], no_overlay=True)
 
                 # vkCmdDrawIndirectCountKHR
                 draw_indirect = indirect_count_root.children[1].children[0]
@@ -278,7 +312,7 @@ class VK_Indirect(rdtest.TestCase):
                 self.check_mesh_data(postvs_ref, postvs_data)
                 self.check(len(postvs_data) == len(postvs_ref))  # We shouldn't have any extra vertices
 
-                self.check_overlay(draw.eventId, out, tex, save_data)
+                self.check_overlay([(60, 190)])
 
                 rdtest.log.success("{} {} is as expected".format(level, draw.name))
 
@@ -308,7 +342,7 @@ class VK_Indirect(rdtest.TestCase):
                 self.check_mesh_data(postvs_ref, postvs_data)
                 self.check(len(postvs_data) == len(postvs_ref))  # We shouldn't have any extra vertices
 
-                self.check_overlay(draw.eventId, out, tex, save_data)
+                self.check_overlay([(100, 190)])
 
                 rdtest.log.success("{} {} is as expected".format(level, draw.name))
 
@@ -323,7 +357,7 @@ class VK_Indirect(rdtest.TestCase):
 
                 self.check(len(postvs_data) == 0)
 
-                self.check_overlay(draw.eventId, out, tex, save_data)
+                self.check_overlay([])
 
                 rdtest.log.success("{} {} is as expected".format(level, draw.name))
 
@@ -352,7 +386,7 @@ class VK_Indirect(rdtest.TestCase):
                 self.check_mesh_data(postvs_ref, postvs_data)
                 self.check(len(postvs_data) == len(postvs_ref))  # We shouldn't have any extra vertices
 
-                self.check_overlay(draw.eventId, out, tex, save_data)
+                self.check_overlay([(140, 190), (200, 190)])
 
                 rdtest.log.success("{} {} is as expected".format(level, draw.name))
             else:
