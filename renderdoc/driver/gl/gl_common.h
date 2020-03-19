@@ -437,8 +437,9 @@ T CheckConstParam(T t);
 // functions/extensions on replay could suffice. So we check at the last minute on replay and bail
 // out if it's not present
 #define CheckReplayFunctionPresent(func)                         \
-  if(func == NULL)                                               \
+  if(GL.func == NULL)                                            \
   {                                                              \
+    RDCERR("Function " #func " not available on replay.");       \
     m_FailedReplayStatus = ReplayStatus::APIHardwareUnsupported; \
     return false;                                                \
   }

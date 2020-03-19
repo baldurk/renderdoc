@@ -541,7 +541,7 @@ bool WrappedOpenGL::Serialise_glCreateMemoryObjectsEXT(SerialiserType &ser, GLsi
 
   if(IsReplayingAndReading())
   {
-    CheckReplayFunctionPresent(GL.glCreateMemoryObjectsEXT);
+    CheckReplayFunctionPresent(glCreateMemoryObjectsEXT);
 
     GLuint real = 0;
     GL.glCreateMemoryObjectsEXT(1, &real);
@@ -623,7 +623,7 @@ bool WrappedOpenGL::Serialise_glMemoryObjectParameterivEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    CheckReplayFunctionPresent(GL.glMemoryObjectParameterivEXT);
+    CheckReplayFunctionPresent(glMemoryObjectParameterivEXT);
 
     GL.glMemoryObjectParameterivEXT(memoryObject.name, pname, params);
 
@@ -816,7 +816,7 @@ bool WrappedOpenGL::Serialise_glGenSemaphoresEXT(SerialiserType &ser, GLsizei n,
 
   if(IsReplayingAndReading())
   {
-    CheckReplayFunctionPresent(GL.glGenSemaphoresEXT);
+    CheckReplayFunctionPresent(glGenSemaphoresEXT);
 
     GLuint real = 0;
     GL.glGenSemaphoresEXT(1, &real);
@@ -898,7 +898,7 @@ bool WrappedOpenGL::Serialise_glSemaphoreParameterui64vEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    CheckReplayFunctionPresent(GL.glSemaphoreParameterui64vEXT);
+    CheckReplayFunctionPresent(glSemaphoreParameterui64vEXT);
 
     GL.glSemaphoreParameterui64vEXT(semaphore.name, pname, params);
 
@@ -1643,7 +1643,7 @@ bool WrappedOpenGL::Serialise_glTextureStorageMem2DMultisampleEXT(
   {
     // the DSA function is emulated if not present, but we need to check the underlying function is
     // present
-    CheckReplayFunctionPresent(GL.glTexStorage2DMultisample);
+    CheckReplayFunctionPresent(glTexStorage2DMultisample);
 
     // Replay external texture storage backed by external memory as just a plain texture.
     ResourceId liveId = GetResourceManager()->GetID(texture);

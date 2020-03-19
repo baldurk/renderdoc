@@ -1778,7 +1778,7 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(SerialiserType &ser, GLu
 
   if(IsReplayingAndReading())
   {
-    CheckReplayFunctionPresent(GL.glCompileShaderIncludeARB);
+    CheckReplayFunctionPresent(glCompileShaderIncludeARB);
 
     ResourceId liveId = GetResourceManager()->GetID(shader);
 
@@ -1852,7 +1852,7 @@ bool WrappedOpenGL::Serialise_glNamedStringARB(SerialiserType &ser, GLenum type,
 
   if(IsReplayingAndReading())
   {
-    CheckReplayFunctionPresent(GL.glNamedStringARB);
+    CheckReplayFunctionPresent(glNamedStringARB);
 
     GL.glNamedStringARB(type, (GLint)name.length(), name.c_str(), (GLint)value.length(),
                         value.c_str());
@@ -1891,7 +1891,7 @@ bool WrappedOpenGL::Serialise_glDeleteNamedStringARB(SerialiserType &ser, GLint 
 
   if(IsReplayingAndReading())
   {
-    CheckReplayFunctionPresent(GL.glDeleteNamedStringARB);
+    CheckReplayFunctionPresent(glDeleteNamedStringARB);
 
     GL.glDeleteNamedStringARB((GLint)name.length(), name.c_str());
   }
@@ -1941,7 +1941,7 @@ bool WrappedOpenGL::Serialise_glSpecializeShader(SerialiserType &ser, GLuint sha
 
   if(IsReplayingAndReading())
   {
-    CheckReplayFunctionPresent(GL.glSpecializeShader);
+    CheckReplayFunctionPresent(glSpecializeShader);
 
     ResourceId liveId = GetResourceManager()->GetID(shader);
 
