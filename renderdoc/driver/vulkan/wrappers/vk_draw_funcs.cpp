@@ -2844,7 +2844,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
-      for(uint32_t i = 0; i < maxDrawCount; i++)
+      // only allocate up to one indirect sub-command to avoid pessimistic allocation if
+      // maxDrawCount is very high but the actual draw count is low.
+      for(uint32_t i = 0; i < RDCMIN(1U, maxDrawCount); i++)
       {
         DrawcallDescription multi;
 
@@ -3159,7 +3161,9 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
-      for(uint32_t i = 0; i < maxDrawCount; i++)
+      // only allocate up to one indirect sub-command to avoid pessimistic allocation if
+      // maxDrawCount is very high but the actual draw count is low.
+      for(uint32_t i = 0; i < RDCMIN(1U, maxDrawCount); i++)
       {
         DrawcallDescription multi;
 

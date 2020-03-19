@@ -613,59 +613,109 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
         {
           RDCERR("Couldn't get indirect draw count");
         }
-      }
 
-      if(indirectCount > n.indirectPatch.count)
-      {
-        RDCERR("Indirect count higher than maxCount, clamping");
-      }
-      else if(indirectCount < n.indirectPatch.count)
-      {
-        // need to remove any draws we reserved that didn't actually happen, and shift any
-        // subsequent event and draw Ids
-        uint32_t shiftCount = n.indirectPatch.count - indirectCount;
-
-        // i is the pushmarker, so i + 1 is the first of the sub draws.
-        cmdBufNodes.erase(i + 1 + indirectCount, shiftCount);
-        for(size_t j = i + 1 + indirectCount; j < cmdBufNodes.size(); j++)
+        if(indirectCount > n.indirectPatch.count)
         {
-          cmdBufNodes[j].draw.eventId -= shiftCount;
-          cmdBufNodes[j].draw.drawcallId -= shiftCount;
-
-          for(APIEvent &ev : cmdBufNodes[j].draw.events)
-            ev.eventId -= shiftCount;
-
-          for(rdcpair<ResourceId, EventUsage> &use : cmdBufNodes[j].resourceUsage)
-            use.second.eventId -= shiftCount;
+          RDCERR("Indirect count higher than maxCount, clamping");
+          indirectCount = n.indirectPatch.count;
         }
 
-        cmdBufInfo.eventCount -= shiftCount;
-        cmdBufInfo.drawCount -= shiftCount;
+        // this can be negative if indirectCount is 0
+        int32_t eidShift = indirectCount - 1;
 
-        // we also need to patch the original secondary command buffer here, if the indirect call
-        // was on a secondary, so that vkCmdExecuteCommands knows accurately how many events are in
-        // the command buffer.
-        if(n.indirectPatch.commandBuffer != ResourceId())
+        // we reserved one event and drawcall for the indirect count based draw.
+        // if we ended up with a different number eidShift will be non-zero, so we need to adjust
+        // all subsequent EIDs and draw IDs and either remove the subdraw we allocated (if no draws
+        // happened) or clone the subdraw to create more that we can then patch.
+        if(eidShift != 0)
         {
-          m_BakedCmdBufferInfo[n.indirectPatch.commandBuffer].eventCount -= shiftCount;
-          m_BakedCmdBufferInfo[n.indirectPatch.commandBuffer].drawCount -= shiftCount;
-        }
-
-        for(size_t j = 0; j < cmdBufInfo.debugMessages.size(); j++)
-        {
-          if(cmdBufInfo.debugMessages[j].eventId >= cmdBufNodes[i].draw.eventId + indirectCount + 2)
-            cmdBufInfo.debugMessages[j].eventId -= shiftCount;
-        }
-
-        for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
-        {
-          rdcarray<Submission> &submits =
-              m_Partial[Secondary].cmdBufferSubmits[cmdBufInfo.draw->executedCmds[e]];
-
-          for(size_t s = 0; s < submits.size(); s++)
+          // i is the pushmarker, so i + 1 is the sub draws, and i + 2 is the pop marker.
+          // adjust all EIDs and draw IDs after that point
+          for(size_t j = i + 2; j < cmdBufNodes.size(); j++)
           {
-            if(submits[s].baseEvent >= cmdBufNodes[i].draw.eventId + indirectCount + 2)
-              submits[s].baseEvent -= shiftCount;
+            cmdBufNodes[j].draw.eventId += eidShift;
+            cmdBufNodes[j].draw.drawcallId += eidShift;
+
+            for(APIEvent &ev : cmdBufNodes[j].draw.events)
+            {
+              ev.eventId += eidShift;
+              ev.chunkIndex += eidShift;
+            }
+
+            for(rdcpair<ResourceId, EventUsage> &use : cmdBufNodes[j].resourceUsage)
+              use.second.eventId += eidShift;
+          }
+
+          for(size_t j = 0; j < cmdBufInfo.debugMessages.size(); j++)
+          {
+            if(cmdBufInfo.debugMessages[j].eventId >= cmdBufNodes[i].draw.eventId + 2)
+              cmdBufInfo.debugMessages[j].eventId += eidShift;
+          }
+
+          cmdBufInfo.eventCount += eidShift;
+          cmdBufInfo.drawCount += eidShift;
+
+          // we also need to patch the original secondary command buffer here, if the indirect call
+          // was on a secondary, so that vkCmdExecuteCommands knows accurately how many events are
+          // in the command buffer.
+          if(n.indirectPatch.commandBuffer != ResourceId())
+          {
+            m_BakedCmdBufferInfo[n.indirectPatch.commandBuffer].eventCount += eidShift;
+            m_BakedCmdBufferInfo[n.indirectPatch.commandBuffer].drawCount += eidShift;
+          }
+
+          for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
+          {
+            rdcarray<Submission> &submits =
+                m_Partial[Secondary].cmdBufferSubmits[cmdBufInfo.draw->executedCmds[e]];
+
+            for(size_t s = 0; s < submits.size(); s++)
+            {
+              if(submits[s].baseEvent >= cmdBufNodes[i].draw.eventId + 2)
+                submits[s].baseEvent += eidShift;
+            }
+          }
+
+          RDCASSERT(cmdBufNodes[i + 1].draw.events.size() == 1);
+          uint32_t chunkIndex = cmdBufNodes[i + 1].draw.events[0].chunkIndex;
+
+          // everything afterwards is adjusted. Now see if we need to remove the subdraw or clone it
+          if(indirectCount == 0)
+          {
+            // i is the pushmarker, which we leave. i+1 is the subdraw
+
+            m_StructuredFile->chunks.erase(chunkIndex);
+
+            cmdBufNodes.erase(i + 1);
+          }
+          else
+          {
+            // duplicate the fake structured data chunk N times
+            SDChunk *chunk = m_StructuredFile->chunks[chunkIndex];
+
+            for(int32_t e = 0; e < eidShift; e++)
+              m_StructuredFile->chunks.insert(chunkIndex, chunk->Duplicate());
+
+            // now copy the subdraw so we're not inserting into the array from itself
+            VulkanDrawcallTreeNode node = cmdBufNodes[i + 1];
+
+            // then insert enough duplicates
+            for(int32_t e = 0; e < eidShift; e++)
+            {
+              node.draw.eventId++;
+              node.draw.drawcallId++;
+
+              for(APIEvent &ev : node.draw.events)
+              {
+                ev.eventId++;
+                ev.chunkIndex++;
+              }
+
+              for(rdcpair<ResourceId, EventUsage> &use : node.resourceUsage)
+                use.second.eventId++;
+
+              cmdBufNodes.insert(i + 2 + e, node);
+            }
           }
         }
       }
