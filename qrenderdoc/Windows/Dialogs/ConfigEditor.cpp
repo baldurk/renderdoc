@@ -25,6 +25,7 @@
 #include "ConfigEditor.h"
 #include <float.h>
 #include <QDoubleSpinBox>
+#include <QKeyEvent>
 #include <QSpinBox>
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
