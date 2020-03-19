@@ -666,14 +666,14 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
         record->PopChunk();
       }
 
-      int32_t id2 = record->GetLastChunkID();
+      int64_t id2 = record->GetLastChunkID();
       {
         Chunk *c = record->GetLastChunk();
         SAFE_DELETE(c);
         record->PopChunk();
       }
 
-      int32_t id1 = record->GetLastChunkID();
+      int64_t id1 = record->GetLastChunkID();
       {
         Chunk *c = record->GetLastChunk();
         SAFE_DELETE(c);
@@ -818,14 +818,14 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
         record->PopChunk();
       }
 
-      int32_t id2 = record->GetLastChunkID();
+      int64_t id2 = record->GetLastChunkID();
       {
         Chunk *c = record->GetLastChunk();
         SAFE_DELETE(c);
         record->PopChunk();
       }
 
-      int32_t id1 = record->GetLastChunkID();
+      int64_t id1 = record->GetLastChunkID();
       {
         Chunk *c = record->GetLastChunk();
         SAFE_DELETE(c);

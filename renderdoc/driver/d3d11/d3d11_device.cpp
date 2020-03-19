@@ -1975,7 +1975,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
         RDCDEBUG("Accumulating context resource list");
 
-        std::map<int32_t, Chunk *> recordlist;
+        std::map<int64_t, Chunk *> recordlist;
         record->Insert(recordlist);
 
         RDCDEBUG("Flushing %u records to file serialiser", (uint32_t)recordlist.size());

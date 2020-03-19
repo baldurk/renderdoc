@@ -356,7 +356,7 @@ struct ResourceRecord
   }
 
   void MarkDataUnwritten() { DataWritten = false; }
-  void Insert(std::map<int32_t, Chunk *> &recordlist)
+  void Insert(std::map<int64_t, Chunk *> &recordlist)
   {
     bool dataWritten = DataWritten;
 
@@ -385,11 +385,11 @@ struct ResourceRecord
   void RemoveChunk(Chunk *chunk)
   {
     LockChunks();
-    m_Chunks.removeOneIf([chunk](const rdcpair<int32_t, Chunk *> &c) { return c.second == chunk; });
+    m_Chunks.removeOneIf([chunk](const rdcpair<int64_t, Chunk *> &c) { return c.second == chunk; });
     UnlockChunks();
   }
 
-  void AddChunk(Chunk *chunk, int32_t ID = 0)
+  void AddChunk(Chunk *chunk, int64_t ID = 0)
   {
     if(ID == 0)
       ID = GetID();
@@ -451,7 +451,7 @@ struct ResourceRecord
     return m_Chunks.back().second;
   }
 
-  int32_t GetLastChunkID() const
+  int64_t GetLastChunkID() const
   {
     RDCASSERT(HasChunks());
     return m_Chunks.back().first;
@@ -501,14 +501,14 @@ protected:
 
   std::set<ResourceRecord *> Parents;
 
-  int32_t GetID()
+  int64_t GetID()
   {
-    static volatile int32_t globalIDCounter = 10;
+    static volatile int64_t globalIDCounter = 10;
 
-    return Atomic::Inc32(&globalIDCounter);
+    return Atomic::Inc64(&globalIDCounter);
   }
 
-  rdcarray<rdcpair<int32_t, Chunk *>> m_Chunks;
+  rdcarray<rdcpair<int64_t, Chunk *>> m_Chunks;
   Threading::CriticalSection *m_ChunkLock;
 
   std::map<ResourceId, FrameRefType> m_FrameRefs;
@@ -1138,7 +1138,7 @@ void ResourceManager<Configuration>::MarkUnwrittenResources()
 template <typename Configuration>
 void ResourceManager<Configuration>::InsertReferencedChunks(WriteSerialiser &ser)
 {
-  std::map<int32_t, Chunk *> sortedChunks;
+  std::map<int64_t, Chunk *> sortedChunks;
 
   SCOPED_LOCK(m_Lock);
 

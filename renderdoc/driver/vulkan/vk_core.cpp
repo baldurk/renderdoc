@@ -1975,7 +1975,7 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
       RDCDEBUG("Flushing %u command buffer records to file serialiser",
                (uint32_t)m_CmdBufferRecords.size());
 
-      std::map<int32_t, Chunk *> recordlist;
+      std::map<int64_t, Chunk *> recordlist;
 
       // ensure all command buffer records within the frame evne if recorded before, but
       // otherwise order must be preserved (vs. queue submits and desc set updates)

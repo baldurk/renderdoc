@@ -157,7 +157,7 @@ struct D3D11ResourceRecord : public ResourceRecord
       SubResources[i]->SetDataPtr(ptr);
   }
 
-  void Insert(std::map<int32_t, Chunk *> &recordlist)
+  void Insert(std::map<int64_t, Chunk *> &recordlist)
   {
     bool dataWritten = DataWritten;
 
