@@ -202,6 +202,10 @@ struct VulkanGraphicsTest : public GraphicsTest
   void setMarker(VkCommandBuffer cmd, const std::string &name);
   void popMarker(VkCommandBuffer cmd);
 
+  void pushMarker(VkQueue queue, const std::string &name);
+  void setMarker(VkQueue queue, const std::string &name);
+  void popMarker(VkQueue queue);
+
   template <typename T>
   void setName(T obj, const std::string &name);
 

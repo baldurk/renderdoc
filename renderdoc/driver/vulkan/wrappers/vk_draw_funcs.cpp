@@ -125,6 +125,10 @@ VkIndirectPatchData WrappedVulkan::FetchIndirectData(VkIndirectPatchType type,
   indirectPatch.stride = stride;
   indirectPatch.buf = paramsbuf;
 
+  // secondary command buffers need to know that their event count should be shifted
+  if(m_BakedCmdBufferInfo[m_LastCmdBufferID].level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
+    indirectPatch.commandBuffer = m_LastCmdBufferID;
+
   return indirectPatch;
 }
 
@@ -2789,8 +2793,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
                             maxDrawCount, stride, countBuffer, countBufferOffset);
 
       ObjDisp(commandBuffer)
-          ->CmdDrawIndirectCountKHR(Unwrap(commandBuffer), Unwrap(buffer), offset,
-                                    Unwrap(countBuffer), countBufferOffset, maxDrawCount, stride);
+          ->CmdDrawIndirectCount(Unwrap(commandBuffer), Unwrap(buffer), offset, Unwrap(countBuffer),
+                                 countBufferOffset, maxDrawCount, stride);
 
       // add on the size we'll need for an indirect buffer in the worst case.
       // Note that we'll only ever be partially replaying one draw at a time, so we only need the
@@ -2799,7 +2803,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
           RDCMAX(m_IndirectBufferSize,
                  sizeof(VkDrawIndirectCommand) + (maxDrawCount > 0 ? maxDrawCount - 1 : 0) * stride);
 
-      rdcstr name = "vkCmdDrawIndirectCountKHR";
+      rdcstr name = "vkCmdDrawIndirectCount";
 
       if(!IsDrawInRenderPass())
       {
@@ -3112,7 +3116,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
           RDCMAX(m_IndirectBufferSize, sizeof(VkDrawIndexedIndirectCommand) +
                                            (maxDrawCount > 0 ? maxDrawCount - 1 : 0) * stride);
 
-      rdcstr name = "vkCmdDrawIndexedIndirectCountKHR";
+      rdcstr name = "vkCmdDrawIndexedIndirectCount";
 
       if(!IsDrawInRenderPass())
       {

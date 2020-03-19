@@ -773,9 +773,35 @@ void VulkanGraphicsTest::setMarker(VkCommandBuffer cmd, const std::string &name)
 void VulkanGraphicsTest::popMarker(VkCommandBuffer cmd)
 {
   if(vkCmdEndDebugUtilsLabelEXT)
-  {
     vkCmdEndDebugUtilsLabelEXT(cmd);
+}
+
+void VulkanGraphicsTest::pushMarker(VkQueue q, const std::string &name)
+{
+  if(vkQueueBeginDebugUtilsLabelEXT)
+  {
+    VkDebugUtilsLabelEXT info = {};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+    info.pLabelName = name.c_str();
+    vkQueueBeginDebugUtilsLabelEXT(q, &info);
   }
+}
+
+void VulkanGraphicsTest::setMarker(VkQueue q, const std::string &name)
+{
+  if(vkQueueInsertDebugUtilsLabelEXT)
+  {
+    VkDebugUtilsLabelEXT info = {};
+    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+    info.pLabelName = name.c_str();
+    vkQueueInsertDebugUtilsLabelEXT(q, &info);
+  }
+}
+
+void VulkanGraphicsTest::popMarker(VkQueue q)
+{
+  if(vkQueueEndDebugUtilsLabelEXT)
+    vkQueueEndDebugUtilsLabelEXT(q);
 }
 
 VkDescriptorSet VulkanGraphicsTest::allocateDescriptorSet(VkDescriptorSetLayout setLayout)

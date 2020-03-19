@@ -629,6 +629,15 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
         cmdBufInfo.eventCount -= shiftCount;
         cmdBufInfo.drawCount -= shiftCount;
 
+        // we also need to patch the original secondary command buffer here, if the indirect call
+        // was on a secondary, so that vkCmdExecuteCommands knows accurately how many events are in
+        // the command buffer.
+        if(n.indirectPatch.commandBuffer != ResourceId())
+        {
+          m_BakedCmdBufferInfo[n.indirectPatch.commandBuffer].eventCount -= shiftCount;
+          m_BakedCmdBufferInfo[n.indirectPatch.commandBuffer].drawCount -= shiftCount;
+        }
+
         for(size_t j = 0; j < cmdBufInfo.debugMessages.size(); j++)
         {
           if(cmdBufInfo.debugMessages[j].eventId >= cmdBufNodes[i].draw.eventId + indirectCount + 2)

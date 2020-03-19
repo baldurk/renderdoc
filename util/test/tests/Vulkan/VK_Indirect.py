@@ -53,6 +53,20 @@ class VK_Indirect(rdtest.TestCase):
             (190, 190),
             (200, 190),
             (220, 190),
+
+
+
+            (330, 40),
+            (340, 40),
+            (350, 40),
+
+            (330, 115),
+            (340, 115),
+            (350, 115),
+
+            (330, 190),
+            (340, 190),
+            (350, 190),
         ]
 
         # Every sample that isn't passing should be off
@@ -81,6 +95,9 @@ class VK_Indirect(rdtest.TestCase):
                 buffer_usage[usage.eventId] = []
             buffer_usage[usage.eventId].append(usage.usage)
 
+        # The texture is the backbuffer
+        tex = self.get_last_draw().copyDestination
+
         for level in ["Primary", "Secondary"]:
             rdtest.log.print("Checking {} indirect calls".format(level))
 
@@ -90,20 +107,22 @@ class VK_Indirect(rdtest.TestCase):
 
             self.controller.SetFrameEvent(final.eventId, False)
 
-            tex = self.controller.GetPipelineState().GetOutputTargets()[0].resourceId
-
             # Check the top row, non indirect count and always present
             self.check_pixel_value(tex, 60, 60, [1.0, 0.0, 0.0, 1.0])
             self.check_pixel_value(tex, 100, 60, [0.0, 0.0, 1.0, 1.0])
             self.check_pixel_value(tex, 145, 35, [1.0, 1.0, 0.0, 1.0])
             self.check_pixel_value(tex, 205, 35, [0.0, 1.0, 1.0, 1.0])
 
-            # if present, check bottom row of indirect count
+            # if present, check bottom row of indirect count as well as post-count calls
             if indirect_count_root is not None:
                 self.check_pixel_value(tex, 60, 220, [0.0, 1.0, 0.0, 1.0])
                 self.check_pixel_value(tex, 100, 220, [1.0, 0.0, 1.0, 1.0])
                 self.check_pixel_value(tex, 145, 185, [0.5, 1.0, 0.0, 1.0])
                 self.check_pixel_value(tex, 205, 185, [0.5, 0.0, 1.0, 1.0])
+
+                self.check_pixel_value(tex, 340, 40, [1.0, 0.5, 0.0, 1.0])
+                self.check_pixel_value(tex, 340, 115, [1.0, 0.5, 0.5, 1.0])
+                self.check_pixel_value(tex, 340, 190, [1.0, 0.0, 0.5, 1.0])
 
             dispatches = self.find_draw("{}: Dispatches".format(level))
 
@@ -268,7 +287,7 @@ class VK_Indirect(rdtest.TestCase):
 
                 empties = indirect_count_root.children[0]
 
-                self.check(empties and len(empties.children) == 2)
+                self.check(empties and len(empties.children) == 3)
 
                 draw: rd.DrawcallDescription
                 for draw in empties.children:
@@ -389,5 +408,13 @@ class VK_Indirect(rdtest.TestCase):
                 self.check_overlay([(140, 190), (200, 190)])
 
                 rdtest.log.success("{} {} is as expected".format(level, draw.name))
+
+                # Now check that the draws post-count are correctly highlighted
+                self.controller.SetFrameEvent(self.find_draw("{}: Post-count 1".format(level)).children[0].eventId, False)
+                self.check_overlay([(340, 40)])
+                self.controller.SetFrameEvent(self.find_draw("{}: Post-count 2".format(level)).children[0].eventId, False)
+                self.check_overlay([(340, 190)])
+                self.controller.SetFrameEvent(self.find_draw("{}: Post-count 3".format(level)).children[0].eventId, False)
+                self.check_overlay([(340, 115)])
             else:
                 rdtest.log.print("KHR_draw_indirect_count not tested")

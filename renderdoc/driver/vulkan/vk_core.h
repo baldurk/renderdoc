@@ -113,6 +113,8 @@ struct VkIndirectPatchData
   uint32_t count;
   uint32_t stride;
   uint32_t vertexoffset;
+
+  ResourceId commandBuffer;
 };
 
 struct VulkanDrawcallTreeNode
