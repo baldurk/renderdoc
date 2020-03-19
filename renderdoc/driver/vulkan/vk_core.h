@@ -863,8 +863,8 @@ private:
   void AddRequiredExtensions(bool instance, rdcarray<rdcstr> &extensionList,
                              const std::set<rdcstr> &supportedExtensions);
 
-  bool PatchIndirectDraw(VkIndirectPatchType type, DrawcallDescription &draw, byte *&argptr,
-                         byte *argend);
+  bool PatchIndirectDraw(size_t drawIndex, uint32_t paramStride, VkIndirectPatchType type,
+                         DrawcallDescription &draw, byte *&argptr, byte *argend);
   void InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo);
 
   rdcarray<VulkanDrawcallTreeNode *> m_DrawcallStack;

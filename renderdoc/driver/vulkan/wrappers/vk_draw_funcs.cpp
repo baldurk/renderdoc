@@ -632,7 +632,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
           structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          ResourceId bufid = GetResourceManager()->GetOriginalID(GetResID(buffer));
+          structuriser.Serialise("buffer"_lit, bufid);
           structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("stride"_lit, stride);
           structuriser.Serialise("command"_lit, VkDrawIndirectCommand());
         }
 
@@ -683,7 +686,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       for(uint32_t i = 0; i < count; i++)
       {
         DrawcallDescription multi;
-        multi.drawIndex = i;
 
         multi.name = name;
 
@@ -698,7 +700,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
           structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          ResourceId bufid = GetResourceManager()->GetOriginalID(GetResID(buffer));
+          structuriser.Serialise("buffer"_lit, bufid);
           structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("stride"_lit, stride);
           structuriser.Serialise("command"_lit, VkDrawIndirectCommand());
         }
 
@@ -1010,7 +1015,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
           structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          ResourceId bufid = GetResourceManager()->GetOriginalID(GetResID(buffer));
+          structuriser.Serialise("buffer"_lit, bufid);
           structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("stride"_lit, stride);
           structuriser.Serialise("command"_lit, VkDrawIndexedIndirectCommand());
         }
 
@@ -1063,7 +1071,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       for(uint32_t i = 0; i < count; i++)
       {
         DrawcallDescription multi;
-        multi.drawIndex = i;
 
         multi.name = name;
 
@@ -1079,7 +1086,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
           structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          ResourceId bufid = GetResourceManager()->GetOriginalID(GetResID(buffer));
+          structuriser.Serialise("buffer"_lit, bufid);
           structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("stride"_lit, stride);
           structuriser.Serialise("command"_lit, VkDrawIndexedIndirectCommand());
         }
 
@@ -2837,7 +2847,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
       for(uint32_t i = 0; i < maxDrawCount; i++)
       {
         DrawcallDescription multi;
-        multi.drawIndex = i;
 
         multi.name = name;
 
@@ -2852,7 +2861,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
           structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          ResourceId bufid = GetResourceManager()->GetOriginalID(GetResID(buffer));
+          structuriser.Serialise("buffer"_lit, bufid);
           structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("stride"_lit, stride);
           structuriser.Serialise("command"_lit, VkDrawIndirectCommand());
         }
 
@@ -3150,7 +3162,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
       for(uint32_t i = 0; i < maxDrawCount; i++)
       {
         DrawcallDescription multi;
-        multi.drawIndex = i;
 
         multi.name = name;
 
@@ -3166,7 +3177,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
           StructuredSerialiser structuriser(fakeChunk, ser.GetChunkLookup());
 
           structuriser.Serialise<uint32_t>("drawIndex"_lit, 0U);
+          ResourceId bufid = GetResourceManager()->GetOriginalID(GetResID(buffer));
+          structuriser.Serialise("buffer"_lit, bufid);
           structuriser.Serialise("offset"_lit, offset);
+          structuriser.Serialise("stride"_lit, stride);
           structuriser.Serialise("command"_lit, VkDrawIndexedIndirectCommand());
         }
 

@@ -448,10 +448,13 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
   return true;
 }
 
-bool WrappedVulkan::PatchIndirectDraw(VkIndirectPatchType type, DrawcallDescription &draw,
+bool WrappedVulkan::PatchIndirectDraw(size_t drawIndex, uint32_t paramStride,
+                                      VkIndirectPatchType type, DrawcallDescription &draw,
                                       byte *&argptr, byte *argend)
 {
   bool valid = false;
+
+  draw.drawIndex = (uint32_t)drawIndex;
 
   if(type == VkIndirectPatchType::DrawIndirect || type == VkIndirectPatchType::DrawIndirectCount)
   {
@@ -505,6 +508,16 @@ bool WrappedVulkan::PatchIndirectDraw(VkIndirectPatchType type, DrawcallDescript
 
     if(chunk->metadata.chunkID != (uint32_t)VulkanChunk::vkCmdIndirectSubCommand)
       chunk = m_StructuredFile->chunks[draw.events.back().chunkIndex - 1];
+
+    SDObject *drawIdx = chunk->FindChild("drawIndex");
+
+    if(drawIdx)
+      drawIdx->data.basic.u = drawIndex;
+
+    SDObject *offset = chunk->FindChild("offset");
+
+    if(offset)
+      offset->data.basic.u += drawIndex * paramStride;
 
     SDObject *command = chunk->FindChild("command");
 
@@ -661,7 +674,8 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
       // be in-lined as a single draw, so we patch in-place
       if(!hasCount && indirectCount == 1)
       {
-        bool valid = PatchIndirectDraw(n.indirectPatch.type, n.draw, ptr, end);
+        bool valid =
+            PatchIndirectDraw(0, n.indirectPatch.stride, n.indirectPatch.type, n.draw, ptr, end);
 
         if(n.indirectPatch.type == VkIndirectPatchType::DrawIndirectByteCount)
         {
@@ -697,7 +711,8 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
         {
           VulkanDrawcallTreeNode &n2 = cmdBufNodes[i + j + 1];
 
-          bool valid = PatchIndirectDraw(n.indirectPatch.type, n2.draw, ptr, end);
+          bool valid =
+              PatchIndirectDraw(j, n.indirectPatch.stride, n.indirectPatch.type, n2.draw, ptr, end);
 
           if(valid)
             n2.draw.name = StringFormat::Fmt("%s[%zu](<%u, %u>)", n2.draw.name.c_str(), j,
