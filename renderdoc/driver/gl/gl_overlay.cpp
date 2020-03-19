@@ -419,6 +419,26 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, const Subresource &sub, Com
       drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
       drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
     }
+
+    // clear all mips first
+    drv.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    drv.glDisable(eGL_BLEND);
+    drv.glDisable(eGL_SCISSOR_TEST);
+    drv.glDepthMask(GL_FALSE);
+    drv.glDisable(eGL_CULL_FACE);
+    drv.glDisable(eGL_DEPTH_TEST);
+    drv.glDisable(eGL_STENCIL_TEST);
+    drv.glStencilMask(0);
+
+    GLfloat black[4] = {};
+    for(GLint i = 0; i < texMips; i++)
+    {
+      drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texBindingEnum,
+                                 DebugData.overlayTex, i);
+      drv.glClearBufferfv(eGL_COLOR, 0, black);
+    }
+
+    // bind the desired mip
     drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texBindingEnum,
                                DebugData.overlayTex, sub.mip);
 

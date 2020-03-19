@@ -192,6 +192,18 @@ void main()
 
     GLuint subfbo = MakeFBO();
     glBindFramebuffer(GL_FRAMEBUFFER, subfbo);
+
+    // clear all mips/slices first
+    GLfloat black[4] = {};
+    for(GLint s = 0; s < 5; s++)
+    {
+      for(GLint m = 0; m < 4; m++)
+      {
+        glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, subtex, m, s);
+        glClearBufferfv(GL_COLOR, 0, black);
+      }
+    }
+
     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, subtex, 2, 2);
 
     while(Running())
