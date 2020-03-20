@@ -22,11 +22,17 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "core/settings.h"
 #include "driver/shaders/spirv/spirv_debug.h"
+#include "driver/shaders/spirv/spirv_editor.h"
+#include "driver/shaders/spirv/spirv_op_helpers.h"
 #include "maths/formatpacking.h"
 #include "vk_core.h"
 #include "vk_debug.h"
 #include "vk_replay.h"
+
+RDOC_DEBUG_CONFIG(rdcstr, Vulkan_Debug_PSDebugDumpDirPath, "",
+                  "Path to dump before and after pixel shader input SPIR-V files.");
 
 class VulkanAPIWrapper : public rdcspv::DebugAPIWrapper
 {
@@ -312,6 +318,79 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
   builtins[ShaderBuiltin::DeviceIndex] = ShaderVariable(rdcstr(), 0U, 0U, 0U, 0U);
   builtins[ShaderBuiltin::DrawIndex] = ShaderVariable(rdcstr(), draw->drawIndex, 0U, 0U, 0U);
+
+  rdcarray<uint32_t> fragspv = shader.spirv.GetSPIRV();
+
+  if(!Vulkan_Debug_PSDebugDumpDirPath.empty())
+    FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath + "/debug_psinput_before.spv", fragspv);
+
+  {
+    rdcspv::Editor editor(fragspv);
+
+    editor.Prepare();
+
+    // first delete all functions. We will recreate the entry point
+    {
+      rdcarray<rdcspv::Id> removedIds;
+
+      rdcspv::Iter it = editor.Begin(rdcspv::Section::Functions);
+      rdcspv::Iter end = editor.End(rdcspv::Section::Functions);
+      while(it < end)
+      {
+        removedIds.push_back(rdcspv::OpDecoder(it).result);
+        editor.Remove(it);
+        it++;
+      }
+
+      // remove any OpName that refers to deleted IDs - functions or results
+      it = editor.Begin(rdcspv::Section::Debug);
+      end = editor.End(rdcspv::Section::Debug);
+      while(it < end)
+      {
+        if(it.opcode() == rdcspv::Op::Name)
+        {
+          rdcspv::OpName name(it);
+
+          if(removedIds.contains(name.target))
+            editor.Remove(it);
+        }
+        it++;
+      }
+    }
+
+    // remove all other entry point
+    rdcspv::Id entryID;
+    for(const rdcspv::EntryPoint &e : editor.GetEntries())
+    {
+      if(e.name == shadRefl.entryPoint)
+      {
+        entryID = e.id;
+        break;
+      }
+    }
+
+    {
+      rdcarray<rdcspv::Operation> ops;
+
+      rdcspv::Id voidType = editor.DeclareType(rdcspv::scalar<void>());
+
+      ops.push_back(rdcspv::OpFunction(voidType, entryID, rdcspv::FunctionControl::None,
+                                       editor.DeclareType(rdcspv::FunctionType(voidType, {}))));
+
+      ops.push_back(rdcspv::OpLabel(editor.MakeId()));
+      {
+      }
+      ops.push_back(rdcspv::OpReturn());
+
+      ops.push_back(rdcspv::OpFunctionEnd());
+
+      editor.AddFunction(ops.data(), ops.size());
+    }
+  }
+
+  if(!Vulkan_Debug_PSDebugDumpDirPath.empty())
+    FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath + "/debug_psinput_after.spv", fragspv);
+
   rdcspv::Debugger *debugger = new rdcspv::Debugger;
   debugger->Parse(shader.spirv.GetSPIRV());
   ShaderDebugTrace *ret = debugger->BeginDebug(apiWrapper, ShaderStage::Pixel, entryPoint, spec,
