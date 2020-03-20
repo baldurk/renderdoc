@@ -318,8 +318,11 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
       {
         ResourceId id = GetIDForResource(buf);
 
-        m_pRealContext->End(m_StreamOutCounters[id].query);
-        m_StreamOutCounters[id].running = false;
+        if(m_StreamOutCounters[id].running)
+        {
+          m_pRealContext->End(m_StreamOutCounters[id].query);
+          m_StreamOutCounters[id].running = false;
+        }
 
         restart[b] = true;
       }

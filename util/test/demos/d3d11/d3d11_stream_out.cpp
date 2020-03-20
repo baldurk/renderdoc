@@ -165,9 +165,7 @@ RD_TEST(D3D11_Stream_Out, D3D11GraphicsTest)
       IASetVertexBuffer(vb, sizeof(DefaultA2V), 0);
       ctx->IASetInputLayout(defaultLayout);
 
-      // draw with streamout and clear state
-      ctx->SOSetTargets(2, bufs, offs);
-      ctx->DrawInstanced(3, 2, 0, 0);
+      // check that we can clear state after unbinding
       ctx->ClearState();
 
       ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -181,9 +179,33 @@ RD_TEST(D3D11_Stream_Out, D3D11GraphicsTest)
       RSSetViewport({screenWidth / 4.0f, 0.0f, (float)screenWidth / 4.0f,
                      (float)screenHeight / 4.0f, 0.0f, 1.0f});
 
+      ctx->IASetVertexBuffers(0, 2, emptyBuf, &strides[0], offs);
+      IASetVertexBuffer(vb, sizeof(DefaultA2V), 0);
+      ctx->IASetInputLayout(defaultLayout);
+
+      // draw with streamout and clear state
+      ctx->SOSetTargets(2, bufs, offs);
+      ctx->DrawInstanced(3, 2, 0, 0);
+      ctx->ClearState();
+
+      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+      ctx->VSSetShader(vs, NULL, 0);
+      ctx->GSSetShader(gs, NULL, 0);
+      ctx->PSSetShader(ps, NULL, 0);
+
+      ctx->OMSetRenderTargets(1, &bbRTV.GetInterfacePtr(), NULL);
+
+      RSSetViewport({(screenWidth * 2.0f) / 4.0f, 0.0f, (float)screenWidth / 4.0f,
+                     (float)screenHeight / 4.0f, 0.0f, 1.0f});
+
       ctx->IASetVertexBuffers(0, 2, bufs, &strides[0], offs);
       ctx->IASetInputLayout(streamoutLayout);
       ctx->DrawAuto();
+
+      // leave stream-out buffers bound at the end of the frame
+      ctx->ClearState();
+      ctx->SOSetTargets(2, bufs, offs);
 
       Present();
     }

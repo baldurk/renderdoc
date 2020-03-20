@@ -2212,8 +2212,11 @@ bool WrappedID3D11DeviceContext::Serialise_SOSetTargets(SerialiserType &ser, UIN
       {
         ResourceId id = GetIDForResource(buf);
 
-        m_pRealContext->End(m_StreamOutCounters[id].query);
-        m_StreamOutCounters[id].running = false;
+        if(m_StreamOutCounters[id].running)
+        {
+          m_pRealContext->End(m_StreamOutCounters[id].query);
+          m_StreamOutCounters[id].running = false;
+        }
       }
     }
 
@@ -2318,8 +2321,11 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
     {
       ResourceId id = GetIDForResource(buf);
 
-      m_pRealContext->End(m_StreamOutCounters[id].query);
-      m_StreamOutCounters[id].running = false;
+      if(m_StreamOutCounters[id].running)
+      {
+        m_pRealContext->End(m_StreamOutCounters[id].query);
+        m_StreamOutCounters[id].running = false;
+      }
     }
   }
 
@@ -6447,8 +6453,11 @@ bool WrappedID3D11DeviceContext::Serialise_ClearState(SerialiserType &ser)
       {
         ResourceId id = GetIDForResource(buf);
 
-        m_pRealContext->End(m_StreamOutCounters[id].query);
-        m_StreamOutCounters[id].running = false;
+        if(m_StreamOutCounters[id].running)
+        {
+          m_pRealContext->End(m_StreamOutCounters[id].query);
+          m_StreamOutCounters[id].running = false;
+        }
       }
     }
 
@@ -6488,8 +6497,11 @@ void WrappedID3D11DeviceContext::ClearState()
     {
       ResourceId id = GetIDForResource(buf);
 
-      m_pRealContext->End(m_StreamOutCounters[id].query);
-      m_StreamOutCounters[id].running = false;
+      if(m_StreamOutCounters[id].running)
+      {
+        m_pRealContext->End(m_StreamOutCounters[id].query);
+        m_StreamOutCounters[id].running = false;
+      }
     }
   }
 
