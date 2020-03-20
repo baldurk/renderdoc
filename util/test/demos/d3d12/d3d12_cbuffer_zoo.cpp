@@ -300,10 +300,16 @@ float4 main() : SV_Target0
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_5_0");
     ID3DBlobPtr psblob = Compile(pixel, "main", "ps_5_1");
 
-    Vec4f cbufferdata[512];
+    const size_t bindOffset = 16;
+
+    Vec4f cbufferdata[bindOffset + 512];
+
+    for(int i = 0; i < bindOffset; i++)
+      cbufferdata[i] = Vec4f(-99.9f, -88.8f, -77.7f, -66.6f);
 
     for(int i = 0; i < 512; i++)
-      cbufferdata[i] = Vec4f(float(i * 4 + 0), float(i * 4 + 1), float(i * 4 + 2), float(i * 4 + 3));
+      cbufferdata[bindOffset + i] =
+          Vec4f(float(i * 4 + 0), float(i * 4 + 1), float(i * 4 + 2), float(i * 4 + 3));
 
     RootData rootData = {};
 
@@ -366,9 +372,11 @@ float4 main() : SV_Target0
       IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
       cmd->SetPipelineState(pso);
       cmd->SetGraphicsRootSignature(sig);
-      cmd->SetGraphicsRootConstantBufferView(0, cb->GetGPUVirtualAddress());
+      cmd->SetGraphicsRootConstantBufferView(
+          0, cb->GetGPUVirtualAddress() + bindOffset * sizeof(Vec4f));
       cmd->SetGraphicsRoot32BitConstants(1, sizeof(rootData) / sizeof(uint32_t), &rootData, 0);
-      cmd->SetGraphicsRootConstantBufferView(2, cb->GetGPUVirtualAddress() + 256);
+      cmd->SetGraphicsRootConstantBufferView(
+          2, cb->GetGPUVirtualAddress() + bindOffset * sizeof(Vec4f) + 256);
 
       RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
       RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});

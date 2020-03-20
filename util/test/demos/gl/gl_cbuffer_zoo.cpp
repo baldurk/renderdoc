@@ -360,10 +360,16 @@ void main()
 
     GLuint program = MakeProgram(common + vertex, common + pixel);
 
-    Vec4f cbufferdata[1024];
+    const size_t bindOffset = 16;
+
+    Vec4f cbufferdata[1024 + bindOffset];
+
+    for(int i = 0; i < bindOffset; i++)
+      cbufferdata[i] = Vec4f(-99.9f, -88.8f, -77.7f, -66.6f);
 
     for(int i = 0; i < 1024; i++)
-      cbufferdata[i] = Vec4f(float(i * 4 + 0), float(i * 4 + 1), float(i * 4 + 2), float(i * 4 + 3));
+      cbufferdata[bindOffset + i] =
+          Vec4f(float(i * 4 + 0), float(i * 4 + 1), float(i * 4 + 2), float(i * 4 + 3));
 
     GLuint cb = MakeBuffer();
     glBindBuffer(GL_UNIFORM_BUFFER, cb);
@@ -389,7 +395,7 @@ void main()
       glBindFramebuffer(GL_FRAMEBUFFER, fbo);
       glBindVertexArray(vao);
 
-      glBindBufferBase(GL_UNIFORM_BUFFER, 0, cb);
+      glBindBufferRange(GL_UNIFORM_BUFFER, 0, cb, bindOffset * sizeof(Vec4f), 1024 * sizeof(Vec4f));
 
       glUseProgram(program);
 

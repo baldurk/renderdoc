@@ -622,10 +622,16 @@ float4 main() : SV_Target0
 
     vb.upload(DefaultTri);
 
-    Vec4f cbufferdata[512];
+    const size_t bindOffset = 16;
+
+    Vec4f cbufferdata[512 + bindOffset];
+
+    for(int i = 0; i < bindOffset; i++)
+      cbufferdata[i] = Vec4f(-99.9f, -88.8f, -77.7f, -66.6f);
 
     for(int i = 0; i < 512; i++)
-      cbufferdata[i] = Vec4f(float(i * 4 + 0), float(i * 4 + 1), float(i * 4 + 2), float(i * 4 + 3));
+      cbufferdata[i + bindOffset] =
+          Vec4f(float(i * 4 + 0), float(i * 4 + 1), float(i * 4 + 2), float(i * 4 + 3));
 
     AllocatedBuffer cb(
         this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
@@ -638,8 +644,9 @@ float4 main() : SV_Target0
 
     vkh::updateDescriptorSets(
         device, {
-                    vkh::WriteDescriptorSet(descset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                            {vkh::DescriptorBufferInfo(cb.buffer)}),
+                    vkh::WriteDescriptorSet(
+                        descset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        {vkh::DescriptorBufferInfo(cb.buffer, bindOffset * sizeof(Vec4f))}),
                 });
 
     while(Running())
