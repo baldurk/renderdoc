@@ -1323,16 +1323,10 @@ bool WrappedVulkan::Serialise_vkCreateQueryPool(SerialiserType &ser, VkDevice de
       }
       else
       {
-        // we do batches, to balance too many queries at once
-        const uint32_t batchSize = 64;
-
-        for(uint32_t i = 0; i < CreateInfo.queryCount; i += batchSize)
+        for(uint32_t i = 0; i < CreateInfo.queryCount; i++)
         {
-          for(uint32_t j = i; j < CreateInfo.queryCount && j < i + batchSize; j++)
-            ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), Unwrap(pool), j, 0);
-
-          for(uint32_t j = i; j < CreateInfo.queryCount && j < i + batchSize; j++)
-            ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), Unwrap(pool), j);
+          ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), Unwrap(pool), i, 0);
+          ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), Unwrap(pool), i);
         }
       }
 
