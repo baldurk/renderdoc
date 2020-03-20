@@ -62,7 +62,7 @@ static std::wstring conv(const std::string &str)
 
 HINSTANCE hInstance = NULL;
 
-#if defined(RELEASE)
+#if defined(RELEASE) && RENDERDOC_OFFICIAL_BUILD
 #define CRASH_HANDLER 1
 #else
 #define CRASH_HANDLER 0
