@@ -77,7 +77,7 @@ class Debugger;
 
 struct ThreadState
 {
-  ThreadState(int workgroupIdx, Debugger &debug, const GlobalState &globalState);
+  ThreadState(uint32_t workgroupIdx, Debugger &debug, const GlobalState &globalState);
   ~ThreadState();
 
   void EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arguments);
@@ -117,7 +117,7 @@ struct ThreadState
   rdcarray<SourceVariableMapping> sourceVars;
 
   // index in the pixel quad
-  int workgroupIndex;
+  uint32_t workgroupIndex;
   bool done;
 
 private:

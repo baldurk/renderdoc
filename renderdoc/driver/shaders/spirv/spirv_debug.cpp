@@ -62,7 +62,7 @@ static bool ContainsNaNInf(const ShaderVariable &val)
 
 namespace rdcspv
 {
-ThreadState::ThreadState(int workgroupIdx, Debugger &debug, const GlobalState &globalState)
+ThreadState::ThreadState(uint32_t workgroupIdx, Debugger &debug, const GlobalState &globalState)
     : debugger(debug), global(globalState)
 {
   workgroupIndex = workgroupIdx;

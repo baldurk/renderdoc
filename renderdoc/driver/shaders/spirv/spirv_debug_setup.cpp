@@ -220,8 +220,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
   this->stage = stage;
   this->apiWrapper = apiWrapper;
 
-  int workgroupSize = stage == ShaderStage::Pixel ? 4 : 1;
-  for(int i = 0; i < workgroupSize; i++)
+  uint32_t workgroupSize = stage == ShaderStage::Pixel ? 4 : 1;
+  for(uint32_t i = 0; i < workgroupSize; i++)
     workgroup.push_back(ThreadState(i, *this, global));
 
   ThreadState &active = GetActiveLane();
@@ -382,6 +382,17 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
   ret->constantBlocks = global.constantBlocks;
   ret->inputs = active.inputs;
 
+  for(uint32_t i = 0; i < workgroupSize; i++)
+  {
+    if(i == activeLaneIndex)
+      continue;
+
+    workgroup[i].nextInstruction = active.nextInstruction;
+    workgroup[i].inputs = active.inputs;
+    workgroup[i].outputs = active.outputs;
+    workgroup[i].ids = active.ids;
+  }
+
   return ret;
 }
 
@@ -396,7 +407,8 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
   {
     // we should be sitting at the entry point function prologue, step forward into the first block
     // and past any function-local variable declarations
-    active.EnterFunction(NULL, {});
+    for(ThreadState &thread : workgroup)
+      thread.EnterFunction(NULL, {});
 
     ShaderDebugState initial;
 
