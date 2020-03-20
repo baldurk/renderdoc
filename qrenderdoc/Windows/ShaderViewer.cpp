@@ -622,8 +622,11 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
       m_States = states;
 
-      for(const ShaderVariableChange &c : GetCurrentState().changes)
-        m_Variables.push_back(c.after);
+      if(!m_States.empty())
+      {
+        for(const ShaderVariableChange &c : GetCurrentState().changes)
+          m_Variables.push_back(c.after);
+      }
 
       GUIInvoke::call(this, [this]() {
         bool preferSourceDebug = false;
@@ -1843,6 +1846,9 @@ RDTreeWidgetItem *ShaderViewer::findVarInTree(RDTreeWidgetItem *root, QString na
 
 bool ShaderViewer::findVar(QString name, ShaderVariable *var)
 {
+  if(!m_Trace || m_States.empty())
+    return false;
+
   // try source mapped variables first, as if we have ambiguity (a source variable the same as a
   // debug variable) we'll pick the source variable as 'more desirable'
   RDTreeWidgetItem *item = findVarInTree(ui->sourceVars->invisibleRootItem(), name, true, -1);
@@ -3005,6 +3011,9 @@ uint32_t ShaderViewer::CurrentStep()
 
 void ShaderViewer::SetCurrentStep(uint32_t step)
 {
+  if(!m_Trace || m_States.empty())
+    return;
+
   while(GetCurrentState().stepIndex != step)
   {
     if(GetCurrentState().stepIndex < step)
