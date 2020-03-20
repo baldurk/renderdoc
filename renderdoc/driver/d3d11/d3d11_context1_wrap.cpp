@@ -460,7 +460,13 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(
       if(pDstResource && pSrcResource)
       {
         draw.copySource = srcOrigID;
+        draw.copySourceSubresource =
+            Subresource(GetMipForSubresource(pSrcResource, SrcSubresource),
+                        GetSliceForSubresource(pSrcResource, SrcSubresource));
         draw.copyDestination = dstOrigID;
+        draw.copyDestinationSubresource =
+            Subresource(GetMipForSubresource(pDstResource, DstSubresource),
+                        GetSliceForSubresource(pDstResource, DstSubresource));
 
         if(m_CurEventID)
         {
@@ -588,6 +594,40 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(SerialiserType &ser, ID3D11
       {
         m_ResourceUses[resid].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear, resid));
         draw.copyDestination = GetResourceManager()->GetOriginalID(resid);
+        draw.copyDestinationSubresource = Subresource();
+
+        if(WrappedID3D11RenderTargetView1::IsAlloc(pView))
+        {
+          WrappedID3D11RenderTargetView1 *view = (WrappedID3D11RenderTargetView1 *)pView;
+          D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
+          view->GetDesc(&viewDesc);
+          draw.copyDestinationSubresource =
+              Subresource(GetMipForRtv(viewDesc), GetSliceForRtv(viewDesc));
+        }
+        else if(WrappedID3D11DepthStencilView::IsAlloc(pView))
+        {
+          WrappedID3D11DepthStencilView *view = (WrappedID3D11DepthStencilView *)pView;
+          D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc;
+          view->GetDesc(&viewDesc);
+          draw.copyDestinationSubresource =
+              Subresource(GetMipForDsv(viewDesc), GetSliceForDsv(viewDesc));
+        }
+        else if(WrappedID3D11ShaderResourceView1::IsAlloc(pView))
+        {
+          WrappedID3D11ShaderResourceView1 *view = (WrappedID3D11ShaderResourceView1 *)pView;
+          D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
+          view->GetDesc(&viewDesc);
+          draw.copyDestinationSubresource =
+              Subresource(GetMipForSrv(viewDesc), GetSliceForSrv(viewDesc));
+        }
+        else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pView))
+        {
+          WrappedID3D11UnorderedAccessView1 *view = (WrappedID3D11UnorderedAccessView1 *)pView;
+          D3D11_UNORDERED_ACCESS_VIEW_DESC viewDesc;
+          view->GetDesc(&viewDesc);
+          draw.copyDestinationSubresource =
+              Subresource(GetMipForUav(viewDesc), GetSliceForUav(viewDesc));
+        }
       }
 
       AddDrawcall(draw, true);
@@ -1765,6 +1805,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardResource(SerialiserType &ser,
       draw.name = "DiscardResource()";
       draw.flags |= DrawFlags::Clear;
       draw.copyDestination = dstOrigID;
+      draw.copyDestinationSubresource = Subresource();
 
       AddDrawcall(draw, true);
 
@@ -1856,7 +1897,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
       draw.name = "DiscardView()";
 
       draw.flags |= DrawFlags::Clear;
-
+      draw.copyDestinationSubresource = Subresource();
       if(pResourceView)
       {
         if(WrappedID3D11RenderTargetView1::IsAlloc(pResourceView))
@@ -1866,6 +1907,10 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
               EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+          D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
+          view->GetDesc(&viewDesc);
+          draw.copyDestinationSubresource =
+              Subresource(GetMipForRtv(viewDesc), GetSliceForRtv(viewDesc));
         }
         else if(WrappedID3D11DepthStencilView::IsAlloc(pResourceView))
         {
@@ -1874,6 +1919,10 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
               EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+          D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc;
+          view->GetDesc(&viewDesc);
+          draw.copyDestinationSubresource =
+              Subresource(GetMipForDsv(viewDesc), GetSliceForDsv(viewDesc));
         }
         else if(WrappedID3D11ShaderResourceView1::IsAlloc(pResourceView))
         {
@@ -1882,6 +1931,10 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
               EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+          D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
+          view->GetDesc(&viewDesc);
+          draw.copyDestinationSubresource =
+              Subresource(GetMipForSrv(viewDesc), GetSliceForSrv(viewDesc));
         }
         else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pResourceView))
         {
@@ -1891,6 +1944,10 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
               EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+          D3D11_UNORDERED_ACCESS_VIEW_DESC viewDesc;
+          view->GetDesc(&viewDesc);
+          draw.copyDestinationSubresource =
+              Subresource(GetMipForUav(viewDesc), GetSliceForUav(viewDesc));
         }
       }
 
@@ -2033,6 +2090,10 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
               EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+          D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
+          view->GetDesc(&viewDesc);
+          draw.copyDestinationSubresource =
+              Subresource(GetMipForRtv(viewDesc), GetSliceForRtv(viewDesc));
         }
         else if(WrappedID3D11DepthStencilView::IsAlloc(pResourceView))
         {
@@ -2041,6 +2102,10 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
               EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+          D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc;
+          view->GetDesc(&viewDesc);
+          draw.copyDestinationSubresource =
+              Subresource(GetMipForDsv(viewDesc), GetSliceForDsv(viewDesc));
         }
         else if(WrappedID3D11ShaderResourceView1::IsAlloc(pResourceView))
         {
@@ -2049,6 +2114,10 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
               EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+          D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
+          view->GetDesc(&viewDesc);
+          draw.copyDestinationSubresource =
+              Subresource(GetMipForSrv(viewDesc), GetSliceForSrv(viewDesc));
         }
         else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pResourceView))
         {
@@ -2058,6 +2127,10 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
               EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+          D3D11_UNORDERED_ACCESS_VIEW_DESC viewDesc;
+          view->GetDesc(&viewDesc);
+          draw.copyDestinationSubresource =
+              Subresource(GetMipForUav(viewDesc), GetSliceForUav(viewDesc));
         }
       }
 

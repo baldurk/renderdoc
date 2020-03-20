@@ -28,6 +28,13 @@
 #include "d3d12_device.h"
 #include "d3d12_manager.h"
 
+UINT GetMipForSubresource(ID3D12Resource *res, int Subresource);
+UINT GetSliceForSubresource(ID3D12Resource *res, int Subresource);
+UINT GetMipForDsv(const D3D12_DEPTH_STENCIL_VIEW_DESC &dsv);
+UINT GetSliceForDsv(const D3D12_DEPTH_STENCIL_VIEW_DESC &dsv);
+UINT GetMipForRtv(const D3D12_RENDER_TARGET_VIEW_DESC &rtv);
+UINT GetSliceForRtv(const D3D12_RENDER_TARGET_VIEW_DESC &rtv);
+
 class TrackedResource12
 {
 public:

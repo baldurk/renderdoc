@@ -1376,8 +1376,16 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(SerialiserType &ser, VkCommandBuffe
         draw.flags |= DrawFlags::Resolve;
 
         draw.copySource = srcid;
+        draw.copySourceSubresource = Subresource();
         draw.copyDestination = dstid;
-
+        draw.copyDestinationSubresource = Subresource();
+        if(regionCount > 0)
+        {
+          draw.copySourceSubresource = Subresource(pRegions[0].srcSubresource.mipLevel,
+                                                   pRegions[0].srcSubresource.baseArrayLayer);
+          draw.copyDestinationSubresource = Subresource(pRegions[0].dstSubresource.mipLevel,
+                                                        pRegions[0].dstSubresource.baseArrayLayer);
+        }
         AddDrawcall(draw, true);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
@@ -1517,8 +1525,16 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(SerialiserType &ser, VkCommandBu
         draw.flags |= DrawFlags::Resolve;
 
         draw.copySource = srcid;
+        draw.copySourceSubresource = Subresource();
         draw.copyDestination = dstid;
-
+        draw.copyDestinationSubresource = Subresource();
+        if(regionCount > 0)
+        {
+          draw.copySourceSubresource = Subresource(pRegions[0].srcSubresource.mipLevel,
+                                                   pRegions[0].srcSubresource.baseArrayLayer);
+          draw.copyDestinationSubresource = Subresource(pRegions[0].dstSubresource.mipLevel,
+                                                        pRegions[0].dstSubresource.baseArrayLayer);
+        }
         AddDrawcall(draw, true);
 
         VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
@@ -1647,7 +1663,16 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(SerialiserType &ser, VkCommandBuffe
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = srcid;
+        draw.copySourceSubresource = Subresource();
         draw.copyDestination = dstid;
+        draw.copyDestinationSubresource = Subresource();
+        if(regionCount > 0)
+        {
+          draw.copySourceSubresource = Subresource(pRegions[0].srcSubresource.mipLevel,
+                                                   pRegions[0].srcSubresource.baseArrayLayer);
+          draw.copyDestinationSubresource = Subresource(pRegions[0].dstSubresource.mipLevel,
+                                                        pRegions[0].dstSubresource.baseArrayLayer);
+        }
 
         AddDrawcall(draw, true);
 
@@ -1773,7 +1798,12 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = bufid;
+        draw.copySourceSubresource = Subresource();
         draw.copyDestination = imgid;
+        draw.copyDestinationSubresource = Subresource();
+        if(regionCount > 0)
+          draw.copyDestinationSubresource = Subresource(
+              pRegions[0].imageSubresource.mipLevel, pRegions[0].imageSubresource.baseArrayLayer);
 
         AddDrawcall(draw, true);
 
@@ -1881,7 +1911,12 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(SerialiserType &ser,
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = imgid;
+        draw.copySourceSubresource = Subresource();
         draw.copyDestination = bufid;
+        draw.copyDestinationSubresource = Subresource();
+        if(regionCount > 0)
+          draw.copySourceSubresource = Subresource(pRegions[0].imageSubresource.mipLevel,
+                                                   pRegions[0].imageSubresource.baseArrayLayer);
 
         AddDrawcall(draw, true);
 
@@ -1986,7 +2021,9 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(SerialiserType &ser, VkCommandBuff
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = srcid;
+        draw.copySourceSubresource = Subresource();
         draw.copyDestination = dstid;
+        draw.copyDestinationSubresource = Subresource();
 
         AddDrawcall(draw, true);
 
@@ -2095,6 +2132,7 @@ bool WrappedVulkan::Serialise_vkCmdFillBuffer(SerialiserType &ser, VkCommandBuff
         draw.name = StringFormat::Fmt("vkCmdFillBuffer(%s, %u)", ToStr(id).c_str(), data);
         draw.flags = DrawFlags::Clear;
         draw.copyDestination = id;
+        draw.copyDestinationSubresource = Subresource();
 
         AddDrawcall(draw, true);
 
@@ -2196,6 +2234,10 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(SerialiserType &ser, VkComman
                                       Color.float32[1], Color.float32[2], Color.float32[3]);
         draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(image));
+        draw.copyDestinationSubresource = Subresource();
+        if(rangeCount > 0)
+          draw.copyDestinationSubresource =
+              Subresource(pRanges[0].baseMipLevel, pRanges[0].baseArrayLayer);
 
         AddDrawcall(draw, true);
 
@@ -2306,6 +2348,10 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
                                       DepthStencil.stencil);
         draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(image));
+        draw.copyDestinationSubresource = Subresource();
+        if(rangeCount > 0)
+          draw.copyDestinationSubresource =
+              Subresource(pRanges[0].baseMipLevel, pRanges[0].baseArrayLayer);
 
         AddDrawcall(draw, true);
 

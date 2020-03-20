@@ -5595,7 +5595,14 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion(
       if(pDstResource && pSrcResource)
       {
         draw.copySource = srcOrigID;
+        draw.copySourceSubresource =
+            Subresource(GetMipForSubresource(pSrcResource, SrcSubresource),
+                        GetSliceForSubresource(pSrcResource, SrcSubresource));
+
         draw.copyDestination = dstOrigID;
+        draw.copyDestinationSubresource =
+            Subresource(GetMipForSubresource(pDstResource, DstSubresource),
+                        GetSliceForSubresource(pDstResource, DstSubresource));
 
         if(m_CurEventID)
         {
@@ -5743,7 +5750,9 @@ bool WrappedID3D11DeviceContext::Serialise_CopyResource(SerialiserType &ser,
       if(pDstResource && pSrcResource)
       {
         draw.copySource = srcOrigID;
+        draw.copySourceSubresource = Subresource();
         draw.copyDestination = dstOrigID;
+        draw.copyDestinationSubresource = Subresource();
 
         if(m_CurEventID)
         {
@@ -6182,7 +6191,9 @@ bool WrappedID3D11DeviceContext::Serialise_CopyStructureCount(SerialiserType &se
       draw.name = "CopyStructureCount(" + ToStr(dstOrigID) + ", " + ToStr(srcOrigID) + ")";
       draw.flags |= DrawFlags::Copy;
       draw.copySource = srcOrigID;
+      draw.copySourceSubresource = Subresource();
       draw.copyDestination = dstOrigID;
+      draw.copyDestinationSubresource = Subresource();
 
       if(m_CurEventID)
       {
@@ -6295,7 +6306,13 @@ bool WrappedID3D11DeviceContext::Serialise_ResolveSubresource(SerialiserType &se
       if(pDstResource && pSrcResource)
       {
         draw.copySource = srcOrigID;
+        draw.copySourceSubresource =
+            Subresource(GetMipForSubresource(pSrcResource, SrcSubresource),
+                        GetSliceForSubresource(pSrcResource, SrcSubresource));
         draw.copyDestination = dstOrigID;
+        draw.copyDestinationSubresource =
+            Subresource(GetMipForSubresource(pDstResource, DstSubresource),
+                        GetSliceForSubresource(pDstResource, DstSubresource));
 
         if(m_CurEventID)
         {
@@ -6545,6 +6562,10 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
             EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
         draw.copyDestination =
             m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+        D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
+        view->GetDesc(&viewDesc);
+        draw.copyDestinationSubresource =
+            Subresource(GetMipForRtv(viewDesc), GetSliceForRtv(viewDesc));
       }
 
       AddDrawcall(draw, true);
@@ -6626,6 +6647,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
             EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
         draw.copyDestination =
             m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+        draw.copyDestinationSubresource = Subresource();
       }
 
       AddDrawcall(draw, true);
@@ -6706,6 +6728,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
             EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
         draw.copyDestination =
             m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+        draw.copyDestinationSubresource = Subresource();
       }
 
       AddDrawcall(draw, true);
@@ -6794,6 +6817,10 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(
             EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
         draw.copyDestination =
             m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
+        D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc;
+        view->GetDesc(&viewDesc);
+        draw.copyDestinationSubresource =
+            Subresource(GetMipForDsv(viewDesc), GetSliceForDsv(viewDesc));
       }
 
       AddDrawcall(draw, true);

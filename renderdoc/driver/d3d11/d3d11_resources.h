@@ -41,6 +41,15 @@ UINT GetByteSize(ID3D11Texture2D *tex, int SubResource);
 UINT GetByteSize(ID3D11Texture3D *tex, int SubResource);
 
 UINT GetMipForSubresource(ID3D11Resource *res, int Subresource);
+UINT GetSliceForSubresource(ID3D11Resource *res, int Subresource);
+UINT GetMipForDsv(const D3D11_DEPTH_STENCIL_VIEW_DESC &dsv);
+UINT GetSliceForDsv(const D3D11_DEPTH_STENCIL_VIEW_DESC &dsv);
+UINT GetMipForRtv(const D3D11_RENDER_TARGET_VIEW_DESC &rtv);
+UINT GetSliceForRtv(const D3D11_RENDER_TARGET_VIEW_DESC &rtv);
+UINT GetMipForSrv(const D3D11_SHADER_RESOURCE_VIEW_DESC &srv);
+UINT GetSliceForSrv(const D3D11_SHADER_RESOURCE_VIEW_DESC &srv);
+UINT GetMipForUav(const D3D11_UNORDERED_ACCESS_VIEW_DESC &uav);
+UINT GetSliceForUav(const D3D11_UNORDERED_ACCESS_VIEW_DESC &uav);
 
 struct ResourcePitch
 {

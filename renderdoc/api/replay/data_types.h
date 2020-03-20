@@ -1253,6 +1253,50 @@ struct EventUsage
 
 DECLARE_REFLECTION_STRUCT(EventUsage);
 
+DOCUMENT("Specifies a subresource within a texture.");
+struct Subresource
+{
+  DOCUMENT("");
+  Subresource(uint32_t mip = 0, uint32_t slice = 0, uint32_t sample = 0)
+      : mip(mip), slice(slice), sample(sample)
+  {
+  }
+  Subresource(const Subresource &) = default;
+  Subresource &operator=(const Subresource &) = default;
+
+  bool operator==(const Subresource &o) const
+  {
+    return mip == o.mip && slice == o.slice && sample == o.sample;
+  }
+  bool operator!=(const Subresource &o) const { return !(*this == o); }
+  bool operator<(const Subresource &o) const
+  {
+    if(!(mip == o.mip))
+      return mip < o.mip;
+    if(!(slice == o.slice))
+      return slice < o.slice;
+    if(!(sample == o.sample))
+      return sample < o.sample;
+    return false;
+  }
+
+  DOCUMENT("The mip level in the texture.");
+  uint32_t mip;
+  DOCUMENT(R"(The slice within the texture. For 3D textures this is a depth slice, for arrays it is
+an array slice.
+
+.. note::
+  Cubemaps are simply 2D array textures with a special meaning, so the faces of a cubemap are the 2D
+  array slices in the standard order: X+, X-, Y+, Y-, Z+, Z-. Cubemap arrays are 2D arrays with
+  ``6 * N`` faces, where each cubemap within the array takes up 6 slices in the above order.
+)");
+  uint32_t slice;
+  DOCUMENT("The sample in a multisampled texture.");
+  uint32_t sample;
+};
+
+DECLARE_REFLECTION_STRUCT(Subresource);
+
 DOCUMENT("Describes the properties of a drawcall, dispatch, debug marker, or similar event.");
 struct DrawcallDescription
 {
@@ -1360,10 +1404,15 @@ Valid values are 1 (depending on API), 2 or 4, or 0 if the drawcall is not an in
 operation.
 )");
   ResourceId copySource;
+  DOCUMENT(R"(The :class:`Subresource` specifying which part in :data:`copySource` is used.)");
+  Subresource copySourceSubresource;
+
   DOCUMENT(R"(The :class:`ResourceId` identifying the destination object in a copy, resolve or blit
 operation.
 )");
   ResourceId copyDestination;
+  DOCUMENT(R"(The :class:`Subresource` specifying which part in :data:`copyDestination` is used.)");
+  Subresource copyDestinationSubresource;
 
   DOCUMENT(R"(The parent of this drawcall, or ``None`` if there is no parent for this drawcall.
 )");
@@ -1644,50 +1693,6 @@ union PixelValue
 };
 
 DECLARE_REFLECTION_STRUCT(PixelValue);
-
-DOCUMENT("Specifies a subresource within a texture.");
-struct Subresource
-{
-  DOCUMENT("");
-  Subresource(uint32_t mip = 0, uint32_t slice = 0, uint32_t sample = 0)
-      : mip(mip), slice(slice), sample(sample)
-  {
-  }
-  Subresource(const Subresource &) = default;
-  Subresource &operator=(const Subresource &) = default;
-
-  bool operator==(const Subresource &o) const
-  {
-    return mip == o.mip && slice == o.slice && sample == o.sample;
-  }
-  bool operator!=(const Subresource &o) const { return !(*this == o); }
-  bool operator<(const Subresource &o) const
-  {
-    if(!(mip == o.mip))
-      return mip < o.mip;
-    if(!(slice == o.slice))
-      return slice < o.slice;
-    if(!(sample == o.sample))
-      return sample < o.sample;
-    return false;
-  }
-
-  DOCUMENT("The mip level in the texture.");
-  uint32_t mip;
-  DOCUMENT(R"(The slice within the texture. For 3D textures this is a depth slice, for arrays it is
-an array slice.
-
-.. note::
-  Cubemaps are simply 2D array textures with a special meaning, so the faces of a cubemap are the 2D
-  array slices in the standard order: X+, X-, Y+, Y-, Z+, Z-. Cubemap arrays are 2D arrays with
-  ``6 * N`` faces, where each cubemap within the array takes up 6 slices in the above order.
-)");
-  uint32_t slice;
-  DOCUMENT("The sample in a multisampled texture.");
-  uint32_t sample;
-};
-
-DECLARE_REFLECTION_STRUCT(Subresource);
 
 DOCUMENT("The value of pixel output at a particular event.");
 struct ModificationValue
