@@ -378,6 +378,11 @@ int main(int argc, char *argv[])
         coreargs.push_back("--crash");
       for(const QString &arg : remaining)
         coreargs.push_back(arg);
+
+      // don't enumerate GPUs when reporting a crash, in case enumerating GPUs *causes* the crash.
+      if(!crashReportPath.isEmpty())
+        env.enumerateGPUs = false;
+
       RENDERDOC_InitialiseReplay(env, coreargs);
     }
 
