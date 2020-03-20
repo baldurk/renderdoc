@@ -4431,7 +4431,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
         draw.name = StringFormat::Fmt("ClearDepthStencilView(%f, %hhu)", Depth, Stencil);
         draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
         draw.copyDestination = GetResourceManager()->GetOriginalID(descriptor->GetResResourceId());
-
+        draw.copyDestinationSubresource =
+            Subresource(GetMipForDsv(descriptor->GetDSV()), GetSliceForDsv(descriptor->GetDSV()));
         m_Cmd->AddDrawcall(draw, true);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
@@ -4523,7 +4524,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
                                       ColorRGBA[1], ColorRGBA[2], ColorRGBA[3]);
         draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
         draw.copyDestination = GetResourceManager()->GetOriginalID(descriptor->GetResResourceId());
-
+        draw.copyDestinationSubresource =
+            Subresource(GetMipForRtv(descriptor->GetRTV()), GetSliceForRtv(descriptor->GetRTV()));
         m_Cmd->AddDrawcall(draw, true);
 
         D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
@@ -4620,6 +4622,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
                                       Values[1], Values[2], Values[3]);
         draw.flags |= DrawFlags::Clear;
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pResource));
+        draw.copyDestinationSubresource = Subresource();
 
         m_Cmd->AddDrawcall(draw, true);
 
@@ -4725,6 +4728,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
                                       Values[1], Values[2], Values[3]);
         draw.flags |= DrawFlags::Clear;
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pResource));
+        draw.copyDestinationSubresource = Subresource();
 
         m_Cmd->AddDrawcall(draw, true);
 
@@ -4867,7 +4871,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(SerialiserType
 
         DrawcallDescription draw;
         draw.copySource = GetResourceManager()->GetOriginalID(GetResID(pSrcBuffer));
+        draw.copySourceSubresource = Subresource();
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pDstBuffer));
+        draw.copyDestinationSubresource = Subresource();
 
         draw.name = StringFormat::Fmt("CopyBufferRegion(%s, %s)", ToStr(draw.copyDestination).c_str(),
                                       ToStr(draw.copySource).c_str());
@@ -4969,7 +4975,22 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
         draw.flags |= DrawFlags::Copy;
 
         draw.copySource = origSrc;
+        draw.copySourceSubresource = Subresource();
+        if(unwrappedSrc.Type == D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX)
+        {
+          draw.copySourceSubresource = Subresource(
+              GetMipForSubresource(unwrappedSrc.pResource, unwrappedSrc.SubresourceIndex),
+              GetSliceForSubresource(unwrappedSrc.pResource, unwrappedSrc.SubresourceIndex));
+        }
+
         draw.copyDestination = origDst;
+        draw.copyDestinationSubresource = Subresource();
+        if(unwrappedDst.Type == D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX)
+        {
+          draw.copyDestinationSubresource = Subresource(
+              GetMipForSubresource(unwrappedDst.pResource, unwrappedDst.SubresourceIndex),
+              GetSliceForSubresource(unwrappedDst.pResource, unwrappedDst.SubresourceIndex));
+        }
 
         m_Cmd->AddDrawcall(draw, true);
 
@@ -5054,7 +5075,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(SerialiserType &se
 
         DrawcallDescription draw;
         draw.copySource = GetResourceManager()->GetOriginalID(GetResID(pSrcResource));
+        draw.copySourceSubresource = Subresource();
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pDstResource));
+        draw.copyDestinationSubresource = Subresource();
 
         draw.name = StringFormat::Fmt("CopyResource(%s, %s)", ToStr(draw.copyDestination).c_str(),
                                       ToStr(draw.copySource).c_str());
@@ -5142,7 +5165,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(
 
         DrawcallDescription draw;
         draw.copySource = GetResourceManager()->GetOriginalID(GetResID(pSrcResource));
+        draw.copySourceSubresource =
+            Subresource(GetMipForSubresource(pSrcResource, SrcSubresource),
+                        GetSliceForSubresource(pSrcResource, SrcSubresource));
+
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pDstResource));
+        draw.copyDestinationSubresource =
+            Subresource(GetMipForSubresource(pDstResource, DstSubresource),
+                        GetSliceForSubresource(pDstResource, DstSubresource));
 
         draw.name =
             StringFormat::Fmt("ResolveSubresource(%s, %s)", ToStr(draw.copyDestination).c_str(),

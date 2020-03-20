@@ -518,3 +518,79 @@ void WrappedID3D12PipelineState::ShaderEntry::BuildReflection()
   MakeShaderReflection(m_DXBCFile, &m_Details, &m_Mapping);
   m_Details.resourceId = GetResourceID();
 }
+
+UINT GetMipForSubresource(ID3D12Resource *res, int Subresource)
+{
+  D3D12_RESOURCE_DESC desc = res->GetDesc();
+
+  if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    return Subresource;
+
+  int mipLevels = desc.MipLevels;
+
+  if(mipLevels == 0)
+    mipLevels = CalcNumMips((int)desc.Width, 1, 1);
+
+  return (Subresource % mipLevels);
+}
+
+UINT GetSliceForSubresource(ID3D12Resource *res, int Subresource)
+{
+  D3D12_RESOURCE_DESC desc = res->GetDesc();
+
+  if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    return Subresource;
+
+  int mipLevels = desc.MipLevels;
+
+  if(mipLevels == 0)
+    mipLevels = CalcNumMips((int)desc.Width, 1, 1);
+
+  return (Subresource / mipLevels) % desc.DepthOrArraySize;
+}
+
+UINT GetMipForDsv(const D3D12_DEPTH_STENCIL_VIEW_DESC &view)
+{
+  switch(view.ViewDimension)
+  {
+    case D3D12_DSV_DIMENSION_TEXTURE1D: return view.Texture1D.MipSlice;
+    case D3D12_DSV_DIMENSION_TEXTURE1DARRAY: return view.Texture1DArray.MipSlice;
+    case D3D12_DSV_DIMENSION_TEXTURE2D: return view.Texture2D.MipSlice;
+    case D3D12_DSV_DIMENSION_TEXTURE2DARRAY: return view.Texture2DArray.MipSlice;
+    default: return 0;
+  }
+}
+
+UINT GetSliceForDsv(const D3D12_DEPTH_STENCIL_VIEW_DESC &view)
+{
+  switch(view.ViewDimension)
+  {
+    case D3D12_DSV_DIMENSION_TEXTURE1DARRAY: return view.Texture1DArray.FirstArraySlice;
+    case D3D12_DSV_DIMENSION_TEXTURE2DARRAY: return view.Texture2DArray.FirstArraySlice;
+    case D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY: return view.Texture2DMSArray.FirstArraySlice;
+    default: return 0;
+  }
+}
+
+UINT GetMipForRtv(const D3D12_RENDER_TARGET_VIEW_DESC &view)
+{
+  switch(view.ViewDimension)
+  {
+    case D3D12_RTV_DIMENSION_TEXTURE1D: return view.Texture1D.MipSlice;
+    case D3D12_RTV_DIMENSION_TEXTURE1DARRAY: return view.Texture1DArray.MipSlice;
+    case D3D12_RTV_DIMENSION_TEXTURE2D: return view.Texture2D.MipSlice;
+    case D3D12_RTV_DIMENSION_TEXTURE2DARRAY: return view.Texture2DArray.MipSlice;
+    case D3D12_RTV_DIMENSION_TEXTURE3D: return view.Texture3D.MipSlice;
+    default: return 0;
+  }
+}
+UINT GetSliceForRtv(const D3D12_RENDER_TARGET_VIEW_DESC &view)
+{
+  switch(view.ViewDimension)
+  {
+    case D3D12_RTV_DIMENSION_TEXTURE1DARRAY: return view.Texture1DArray.FirstArraySlice;
+    case D3D12_RTV_DIMENSION_TEXTURE2DARRAY: return view.Texture2DArray.FirstArraySlice;
+    case D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY: return view.Texture2DMSArray.FirstArraySlice;
+    default: return 0;
+  }
+}

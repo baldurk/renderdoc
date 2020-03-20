@@ -178,7 +178,7 @@ rdcarray<BoundResource> Following::GetOutputTargets(ICaptureContext &ctx)
 
   if(copy || clear)
   {
-    return {BoundResource(curDraw->copyDestination)};
+    return {BoundResource(curDraw->copyDestination, curDraw->copyDestinationSubresource)};
   }
   else if(compute)
   {
@@ -191,7 +191,7 @@ rdcarray<BoundResource> Following::GetOutputTargets(ICaptureContext &ctx)
     if(ret.isEmpty() && curDraw != NULL && (curDraw->flags & DrawFlags::Present))
     {
       if(curDraw->copyDestination != ResourceId())
-        return {BoundResource(curDraw->copyDestination)};
+        return {BoundResource(curDraw->copyDestination, curDraw->copyDestinationSubresource)};
 
       for(const TextureDescription &tex : ctx.GetTextures())
       {
@@ -255,7 +255,8 @@ rdcarray<BoundResourceArray> Following::GetReadOnlyResources(ICaptureContext &ct
 
     // only return copy source for one stage
     if(copy && stage == ShaderStage::Pixel)
-      ret.push_back(BoundResourceArray(Bindpoint(0, 0), {BoundResource(curDraw->copySource)}));
+      ret.push_back(BoundResourceArray(
+          Bindpoint(0, 0), {BoundResource(curDraw->copySource, curDraw->copySourceSubresource)}));
 
     return ret;
   }

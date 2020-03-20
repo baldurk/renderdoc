@@ -559,7 +559,9 @@ void DoSerialise(SerialiserType &ser, DrawcallDescription &el)
   SERIALISE_MEMBER(topology);
 
   SERIALISE_MEMBER(copySource);
+  SERIALISE_MEMBER(copySourceSubresource);
   SERIALISE_MEMBER(copyDestination);
+  SERIALISE_MEMBER(copyDestinationSubresource);
 
   if(ser.IsReading())
     el.parent = el.previous = el.next = NULL;
@@ -570,7 +572,7 @@ void DoSerialise(SerialiserType &ser, DrawcallDescription &el)
   SERIALISE_MEMBER(events);
   SERIALISE_MEMBER(children);
 
-  SIZE_CHECK(288);
+  SIZE_CHECK(320);
 }
 
 template <typename SerialiserType>

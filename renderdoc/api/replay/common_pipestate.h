@@ -253,6 +253,15 @@ struct BoundResource
     firstSlice = -1;
     typeCast = CompType::Typeless;
   }
+
+  BoundResource(ResourceId id, Subresource subresource)
+  {
+    resourceId = id;
+    dynamicallyUsed = true;
+    firstMip = subresource.mip;
+    firstSlice = subresource.slice;
+    typeCast = CompType::Typeless;
+  }
   BoundResource(const BoundResource &) = default;
   BoundResource &operator=(const BoundResource &) = default;
 
