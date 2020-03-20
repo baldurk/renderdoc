@@ -245,8 +245,79 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     return new ShaderDebugTrace;
   }
 
-  VULKANNOTIMP("DebugPixel");
-  return new ShaderDebugTrace();
+  if(!m_pDriver->GetDeviceFeatures().fragmentStoresAndAtomics)
+  {
+    RDCWARN("Pixel debugging is not supported without fragment stores");
+    return new ShaderDebugTrace;
+  }
+
+  const VulkanRenderState &state = m_pDriver->m_RenderState;
+  VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
+
+  VkMarkerRegion region(StringFormat::Fmt("DebugPixel @ %u of (%u,%u) sample %u primitive %u",
+                                          eventId, x, y, sample, primitive));
+
+  const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
+
+  if(!(draw->flags & DrawFlags::Drawcall))
+    return new ShaderDebugTrace();
+
+  const VulkanCreationInfo::Pipeline &pipe = c.m_Pipeline[state.graphics.pipeline];
+  VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[pipe.shaders[4].module];
+  rdcstr entryPoint = pipe.shaders[4].entryPoint;
+  const rdcarray<SpecConstant> &spec = pipe.shaders[4].specialization;
+
+  VulkanCreationInfo::ShaderModuleReflection &shadRefl =
+      shader.GetReflection(entryPoint, state.graphics.pipeline);
+
+  shadRefl.PopulateDisassembly(shader.spirv);
+  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver);
+
+  for(uint32_t set = 0; set < state.graphics.descSets.size(); set++)
+  {
+    const VulkanStatePipeline::DescriptorAndOffsets &src = state.graphics.descSets[set];
+
+    const WrappedVulkan::DescriptorSetInfo &setInfo = m_pDriver->m_DescriptorSetState[src.descSet];
+    ResourceId layoutId = setInfo.layout;
+
+    uint32_t dynOffsetIdx = 0;
+
+    for(uint32_t bind = 0; bind < setInfo.currentBindings.size(); bind++)
+    {
+      DescriptorSetSlot *info = setInfo.currentBindings[bind];
+      const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[bind];
+
+      if(layoutBind.stageFlags == 0)
+        continue;
+
+      uint32_t dynOffset = 0;
+
+      if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
+         layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+        dynOffset = src.offsets[dynOffsetIdx++];
+
+      // TODO handle arrays of bindings
+      const uint32_t arrayIdx = 0;
+
+      if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+         layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+      {
+        const DescriptorSetSlotBufferInfo &bufInfo = info[arrayIdx].bufferInfo;
+        GetDebugManager()->GetBufferData(bufInfo.buffer, bufInfo.offset + dynOffset, bufInfo.range,
+                                         apiWrapper->cbuffers[make_rdcpair(set, bind)]);
+      }
+    }
+  }
+
+  std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
+  builtins[ShaderBuiltin::DeviceIndex] = ShaderVariable(rdcstr(), 0U, 0U, 0U, 0U);
+  builtins[ShaderBuiltin::DrawIndex] = ShaderVariable(rdcstr(), draw->drawIndex, 0U, 0U, 0U);
+  rdcspv::Debugger *debugger = new rdcspv::Debugger;
+  debugger->Parse(shader.spirv.GetSPIRV());
+  ShaderDebugTrace *ret = debugger->BeginDebug(apiWrapper, ShaderStage::Pixel, entryPoint, spec,
+                                               shadRefl.instructionLines, shadRefl.patchData, 0);
+
+  return ret;
 }
 
 ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
