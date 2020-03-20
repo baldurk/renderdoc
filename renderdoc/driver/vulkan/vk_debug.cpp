@@ -1573,7 +1573,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
     return;
   }
 
-  if(len == 0)
+  if(len == 0 || len > bufsize)
   {
     len = bufsize - offset;
   }

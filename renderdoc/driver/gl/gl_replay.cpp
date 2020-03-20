@@ -323,27 +323,23 @@ void GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, byt
 
   uint64_t bufsize = buf.size;
 
-  if(len > 0 && offset + len > bufsize)
+  if(offset >= bufsize)
   {
-    RDCWARN("Attempting to read off the end of the buffer (%llu %llu). Will be clamped (%llu)",
-            offset, len, bufsize);
-
-    if(offset < bufsize)
-      len = ~0ULL;    // min below will clamp to max size
-    else
-      return;    // offset past buffer size, return empty array
+    // can't read past the end of the buffer, return empty
+    return;
   }
-  else if(len == 0)
+
+  if(len == 0 || len > bufsize)
   {
     len = bufsize;
   }
 
-  // need to ensure len+offset doesn't overrun buffer or the glGetBufferSubData call
-  // will fail.
-  len = RDCMIN(len, bufsize - offset);
-
-  if(len == 0)
-    return;
+  if(offset + len > bufsize)
+  {
+    RDCWARN("Attempting to read off the end of the buffer (%llu %llu). Will be clamped (%llu)",
+            offset, len, bufsize);
+    len = RDCMIN(len, bufsize - offset);
+  }
 
   ret.resize((size_t)len);
 

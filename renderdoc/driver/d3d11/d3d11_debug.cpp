@@ -351,7 +351,7 @@ void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uin
     return;
   }
 
-  if(len == 0)
+  if(len == 0 || len > desc.ByteWidth)
   {
     len = desc.ByteWidth - offs;
   }

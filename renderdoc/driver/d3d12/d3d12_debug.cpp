@@ -819,7 +819,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     return;
   }
 
-  if(length == 0)
+  if(length == 0 || length > desc.Width)
   {
     length = desc.Width - offset;
   }
