@@ -2614,6 +2614,9 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
   GL.glGetTexLevelParameteriv(target, level, eGL_TEXTURE_HEIGHT, &height);
   GL.glGetTexLevelParameteriv(target, level, eGL_TEXTURE_DEPTH, &depth);
 
+  GLint fmt = 0;
+  GL.glGetTexLevelParameteriv(target, level, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
+
   GLint boundTexture = 0;
   GL.glGetIntegerv(TextureBinding(target), (GLint *)&boundTexture);
 
@@ -2645,8 +2648,13 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
 
   PushPopFramebuffer(eGL_FRAMEBUFFER, fbo);
 
-  // ALPHA can't be bound to an FBO, so we need to blit to R8 by hand.
-  if(format == eGL_LUMINANCE_ALPHA || format == eGL_LUMINANCE || format == eGL_ALPHA)
+  bool remappedRGB = false;
+
+  // ALPHA can't be bound to an FBO, so we need to blit to R8 by hand. Same with luminance formats.
+  // Not all devices support RGB framebuffers, so blit that by hand too.
+  // This should be expanded to handle any format that fails framebuffer compatibility
+  if(format == eGL_LUMINANCE_ALPHA || format == eGL_LUMINANCE || format == eGL_ALPHA ||
+     format == eGL_RGB)
   {
     RDCDEBUG("Doing manual blit from %s to allow readback", ToStr(format).c_str());
 
@@ -2656,6 +2664,16 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     {
       remapformat = eGL_RG;
       internalformat = eGL_RG8;
+    }
+    else if(format == eGL_RGB)
+    {
+      remapformat = eGL_RGBA;
+      internalformat = eGL_RGBA8;
+
+      if(fmt == eGL_SRGB8)
+        internalformat = eGL_SRGB8_ALPHA8;
+
+      remappedRGB = true;
     }
 
     GLint baseLevel = 0;
@@ -2672,13 +2690,18 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     GL.glGenTextures(1, &readtex);
     GL.glBindTexture(target, readtex);
 
-    // allocate the R8 texture
+    // allocate the texture
     GL.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 0);
     GL.glTexImage2D(target, 0, internalformat, width, height, 0, remapformat, eGL_UNSIGNED_BYTE,
                     NULL);
 
     // render to it
     GL.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, readtex, 0);
+
+    GLenum fbostatus = GL.glCheckFramebufferStatus(eGL_FRAMEBUFFER);
+
+    if(fbostatus != eGL_FRAMEBUFFER_COMPLETE)
+      RDCERR("glReadPixels emulation FBO is %s", ToStr(fbostatus).c_str());
 
     // push rendering state
     GLPushPopState textState;
@@ -2709,14 +2732,38 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
           "precision highp float;\n"
           "uniform vec2 res;\n"
           "uniform sampler2D srcTex;\n"
-          "void main() { gl_FragColor = texture2D(srcTex, vec2(gl_FragCoord.xy)/res).?aaa; }";
+          "void main() { gl_FragColor = texture2D(srcTex, vec2(gl_FragCoord.xy)/res).????; }";
 
       char *swizzle = strchr(fs_src, '?');
 
       if(format == eGL_ALPHA)
-        *swizzle = 'a';
-      else
-        *swizzle = 'r';
+      {
+        swizzle[0] = 'a';
+        swizzle[1] = 'a';
+        swizzle[2] = 'a';
+        swizzle[3] = 'a';
+      }
+      else if(format == eGL_LUMINANCE)
+      {
+        swizzle[0] = 'r';
+        swizzle[1] = 'r';
+        swizzle[2] = 'r';
+        swizzle[3] = 'r';
+      }
+      else if(format == eGL_LUMINANCE_ALPHA)
+      {
+        swizzle[0] = 'r';
+        swizzle[1] = 'a';
+        swizzle[2] = 'a';
+        swizzle[3] = 'a';
+      }
+      else if(format == eGL_RGB)
+      {
+        swizzle[0] = 'r';
+        swizzle[1] = 'g';
+        swizzle[2] = 'b';
+        swizzle[3] = 'a';
+      }
 
       const char *fs = fs_src;
 
@@ -2862,8 +2909,17 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     // Normally this will be the 'natural' readback format/type pair that we are trying
     validReadback |= (readFormat == implFormat && type == implType);
 
-    if(validReadback)
+    PixelUnpackState unpack;
+    PixelPackState pack;
+    unpack.Fetch(false);
+    pack.Fetch(false);
+
+    ResetPixelPackState(false, 1);
+    ResetPixelUnpackState(false, 1);
+
+    if(validReadback && !remappedRGB)
     {
+      memset(dst, 0, sliceSize);
       GL.glReadPixels(0, 0, width, height, readFormat, type, (void *)dst);
     }
     else
@@ -2881,7 +2937,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
 
         GL.glReadPixels(0, 0, width, height, readFormat, implType, (void *)dst);
       }
-      else if(readFormat == eGL_RGB && implFormat == eGL_RGBA && type == implType)
+      else if(remappedRGB || (readFormat == eGL_RGB && implFormat == eGL_RGBA && type == implType))
       {
         // if the only difference is that the implementation wants to read RGBA for an RGB format
         // (could be understandable if the native storage is RGBA anyway for RGB textures) then we
@@ -2919,6 +2975,9 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
         memset(dst, 0, sliceSize);
       }
     }
+
+    unpack.Apply(false);
+    pack.Apply(false);
 
     if(fixBGRA)
     {
