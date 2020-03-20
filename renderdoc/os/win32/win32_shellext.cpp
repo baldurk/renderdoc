@@ -495,23 +495,19 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
                                                // channels.
                 for(int pixelInStride = 0; pixelInStride < 4; pixelInStride++)
                 {
-                  unsigned char *value = decompPointer + pixelInStride;
-                  memcpy(decompImagePointer + pixelInStride * 4, value, 1);
-                  memcpy(decompImagePointer + (pixelInStride * 4) + 1, value, 1);
-                  memcpy(decompImagePointer + (pixelInStride * 4) + 2, value, 1);
+                  decompImagePointer[pixelInStride * 4] = decompPointer[pixelInStride];
+                  decompImagePointer[(pixelInStride * 4) + 1] = decompPointer[pixelInStride];
+                  decompImagePointer[(pixelInStride * 4) + 2] = decompPointer[pixelInStride];
                 }
                 decompPointer += 4;
                 break;
               case ResourceFormatType::BC5:    // copy red and green channels.
                 for(int pixelInStride = 0; pixelInStride < 4; pixelInStride++)
                 {
-                  memcpy(decompImagePointer + pixelInStride * 4,
-                         decompressedBlock + i * pixelInStride,
-                         1);    // copy red channel
-                  memcpy(decompImagePointer + (pixelInStride * 4) + 1,
-                         greenBlock + i * pixelInStride, 1);    // copy green channel
-                  memset(decompImagePointer + (pixelInStride * 4) + 2, 0x0,
-                         1);    // set blue channel to 0
+                  decompImagePointer[pixelInStride * 4] =
+                      decompressedBlock[pixelInStride + (i * 4)];    // copy red channel
+                  decompImagePointer[(pixelInStride * 4) + 1] =
+                      greenBlock[pixelInStride + (i * 4)];    // copy green channel
                 }
                 break;
               default:
