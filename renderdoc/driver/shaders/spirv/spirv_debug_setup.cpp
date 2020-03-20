@@ -266,15 +266,9 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
                        isInput ? DebugVariableType::Input : DebugVariableType::Variable, sourceName,
                        0, dataTypes[type.InnerType()], var);
 
-      // I/O variable structs don't have offsets, so give them fake offsets to ensure they sort as
-      // we want. Since FillVariable is depth-first the source vars are already in order.
-      // We also add the signature index
       for(size_t i = oldSize; i < globalSourceVars.size(); i++)
-      {
-        globalSourceVars[i].offset = uint32_t(i - oldSize);
         globalSourceVars[i].signatureIndex =
             (isInput ? inputSigNames : outputSigNames).indexOf(globalSourceVars[i].variables[0].name);
-      }
 
       if(isInput)
       {
@@ -857,16 +851,19 @@ void Debugger::AllocateVariable(Id id, Id typeId, DebugVariableType sourceVarTyp
                    dataTypes[dataTypes[typeId].InnerType()], outVar);
 }
 
-void Debugger::AllocateVariable(const Decorations &varDecorations, const Decorations &curDecorations,
-                                DebugVariableType sourceVarType, const rdcstr &sourceName,
-                                uint32_t offset, const DataType &inType, ShaderVariable &outVar)
+uint32_t Debugger::AllocateVariable(const Decorations &varDecorations,
+                                    const Decorations &curDecorations,
+                                    DebugVariableType sourceVarType, const rdcstr &sourceName,
+                                    uint32_t offset, const DataType &inType, ShaderVariable &outVar)
 {
+  const bool genLocations = (varDecorations.flags & Decorations::HasLocation) != 0;
+
   switch(inType.type)
   {
     case DataType::PointerType:
     {
       RDCERR("Pointers not supported in interface variables");
-      return;
+      return 0;
     }
     case DataType::ScalarType:
     {
@@ -891,6 +888,7 @@ void Debugger::AllocateVariable(const Decorations &varDecorations, const Decorat
     }
     case DataType::StructType:
     {
+      uint32_t location = 0;
       for(int32_t i = 0; i < inType.children.count(); i++)
       {
         ShaderVariable var;
@@ -909,19 +907,25 @@ void Debugger::AllocateVariable(const Decorations &varDecorations, const Decorat
         if(childDecorations.flags & Decorations::HasOffset)
           childOffset += childDecorations.offset;
 
-        AllocateVariable(varDecorations, childDecorations, sourceVarType, childName, childOffset,
-                         dataTypes[inType.children[i].type], var);
+        uint32_t locations =
+            AllocateVariable(varDecorations, childDecorations, sourceVarType, childName,
+                             location + childOffset, dataTypes[inType.children[i].type], var);
+
+        if(genLocations)
+          location += locations;
 
         var.name = StringFormat::Fmt("_child%d", i);
 
         outVar.members.push_back(var);
       }
-      return;
+      return location;
     }
     case DataType::ArrayType:
     {
       // array stride is decorated on the type, not the member itself
       const Decorations &typeDecorations = decorations[inType.id];
+
+      uint32_t location = 0;
 
       ShaderVariable len = GetActiveLane().ids[inType.length];
       for(uint32_t i = 0; i < len.value.u.x; i++)
@@ -929,8 +933,12 @@ void Debugger::AllocateVariable(const Decorations &varDecorations, const Decorat
         rdcstr idx = StringFormat::Fmt("[%u]", i);
         ShaderVariable var;
         var.name = outVar.name + idx;
-        AllocateVariable(varDecorations, curDecorations, sourceVarType, sourceName + idx, offset,
-                         dataTypes[inType.InnerType()], var);
+        uint32_t locations =
+            AllocateVariable(varDecorations, curDecorations, sourceVarType, sourceName + idx,
+                             location + offset, dataTypes[inType.InnerType()], var);
+
+        if(genLocations)
+          location += locations;
 
         var.name = idx;
 
@@ -939,7 +947,7 @@ void Debugger::AllocateVariable(const Decorations &varDecorations, const Decorat
 
         outVar.members.push_back(var);
       }
-      return;
+      return location;
     }
     case DataType::ImageType:
     case DataType::SamplerType:
@@ -952,7 +960,7 @@ void Debugger::AllocateVariable(const Decorations &varDecorations, const Decorat
   }
 
   if(sourceVarType == DebugVariableType::Undefined)
-    return;
+    return 0;
 
   SourceVariableMapping sourceVar;
   sourceVar.name = sourceName;
@@ -971,9 +979,10 @@ void Debugger::AllocateVariable(const Decorations &varDecorations, const Decorat
 
   if(sourceVarType == DebugVariableType::Input)
   {
+    uint32_t location = genLocations ? offset : 0;
     apiWrapper->FillInputValue(
         outVar, builtin,
-        (curDecorations.flags & Decorations::HasLocation) ? curDecorations.location : 0,
+        (curDecorations.flags & Decorations::HasLocation) ? curDecorations.location : location,
         (curDecorations.flags & Decorations::HasOffset) ? curDecorations.offset : 0);
   }
   else if(sourceVarType == DebugVariableType::Constant)
@@ -1030,6 +1039,9 @@ void Debugger::AllocateVariable(const Decorations &varDecorations, const Decorat
       }
     }
   }
+
+  // each row consumes a new location
+  return outVar.rows;
 }
 
 void Debugger::PreParse(uint32_t maxId)

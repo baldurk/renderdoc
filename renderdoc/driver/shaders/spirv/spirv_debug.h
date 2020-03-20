@@ -169,9 +169,9 @@ private:
   virtual void PostParse();
   virtual void RegisterOp(Iter it);
 
-  void AllocateVariable(const Decorations &varDecorations, const Decorations &curDecorations,
-                        DebugVariableType sourceVarType, const rdcstr &sourceName, uint32_t offset,
-                        const DataType &inType, ShaderVariable &outVar);
+  uint32_t AllocateVariable(const Decorations &varDecorations, const Decorations &curDecorations,
+                            DebugVariableType sourceVarType, const rdcstr &sourceName,
+                            uint32_t offset, const DataType &inType, ShaderVariable &outVar);
   void AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const DataType &inType,
                      const rdcstr &sourceName, const rdcstr &varName, uint32_t &offset);
   void MakeSignatureNames(const rdcarray<SPIRVInterfaceAccess> &sigList, rdcarray<rdcstr> &sigNames);
