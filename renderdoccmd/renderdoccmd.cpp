@@ -524,6 +524,7 @@ private:
   uint32_t width = 0;
   uint32_t height = 0;
   uint32_t loops = 0;
+  bool show_preview = true;
 
 public:
   ReplayCommand() : Command() {}
@@ -534,6 +535,8 @@ public:
     parser.add<uint32_t>("height", 'h', "The preview window height.", false, 720);
     parser.add<uint32_t>("loops", 'l', "How many times to loop the replay, or 0 for indefinite.",
                          false, 0);
+    parser.add("no-preview", 'n',
+               "Do not create a local window or show a preview. print debug messages, and exit.");
     parser.add<std::string>("remote-host", 0,
                             "Instead of replaying locally, replay on this host over the network.",
                             false);
@@ -567,6 +570,7 @@ public:
     width = parser.get<uint32_t>("width");
     height = parser.get<uint32_t>("height");
     loops = parser.get<uint32_t>("loops");
+    show_preview = !parser.exist("no-preview");
 
     return true;
   }
@@ -628,9 +632,33 @@ public:
 
       if(status == ReplayStatus::Succeeded)
       {
-        DisplayRendererPreview(renderer, width, height, loops);
+        bool anyErrors = false;
 
+        if(show_preview)
+        {
+          DisplayRendererPreview(renderer, width, height, loops);
+        }
+        else
+        {
+          // if we aren't showing a preview, then print the messages to the TTY and exit.
+          for(auto &&d : renderer->GetDebugMessages())
+          {
+            switch(d.severity)
+            {
+              case MessageSeverity::Info:
+                std::cout << "INFO:'" << d.description.c_str() << std::endl;
+                break;
+              default:
+                std::cerr << "ERROR:'" << d.description.c_str() << std::endl;
+                anyErrors = true;
+                break;
+            }
+          }
+        }
         renderer->Shutdown();
+
+        if(anyErrors)
+          return 1;
       }
       else
       {
