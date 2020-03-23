@@ -108,6 +108,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used to recover debug information from DXBC shaders on D3D11/D3D12.
 
+* `Compressonator <https://github.com/GPUOpen-Tools/compressonator/>`_ - Copyright (c) 2018 Advanced Micro Devices, Inc. Copyright (c) 2004-2006 ATI Technologies Inc. Distributed under the MIT License.
+
+  Used to provide shell thumbnail previews for block compressed DDS files.
+
 Thanks
 ------
 
