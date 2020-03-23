@@ -122,25 +122,72 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   ui->deleteShaderTool->setEnabled(false);
   ui->editShaderTool->setEnabled(false);
 
-  ui->ExternalTool_RGPIntegration->setChecked(RENDERDOC_GetConfigSetting("AMD.RGP.Enable")->AsBool());
   ui->ExternalTool_RadeonGPUProfiler->setText(m_Ctx.Config().ExternalTool_RadeonGPUProfiler);
-
-  ui->Android_SDKPath->setText(RENDERDOC_GetConfigSetting("Android.SDKDirPath")->AsString());
-  ui->Android_JDKPath->setText(RENDERDOC_GetConfigSetting("Android.JDKDirPath")->AsString());
-  ui->Android_MaxConnectTimeout->setValue(
-      RENDERDOC_GetConfigSetting("Android.MaxConnectTimeout")->AsUInt32());
 
   ui->TextureViewer_ResetRange->setChecked(m_Ctx.Config().TextureViewer_ResetRange);
   ui->TextureViewer_PerTexSettings->setChecked(m_Ctx.Config().TextureViewer_PerTexSettings);
   ui->TextureViewer_PerTexYFlip->setChecked(m_Ctx.Config().TextureViewer_PerTexYFlip);
-  ui->ShaderViewer_FriendlyNaming->setChecked(
-      RENDERDOC_GetConfigSetting("DXBC.Disassembly.FriendlyNaming")->AsBool());
   ui->CheckUpdate_AllowChecks->setChecked(m_Ctx.Config().CheckUpdate_AllowChecks);
   ui->Font_PreferMonospaced->setChecked(m_Ctx.Config().Font_PreferMonospaced);
 
   ui->TextureViewer_PerTexYFlip->setEnabled(ui->TextureViewer_PerTexSettings->isChecked());
 
   ui->AlwaysReplayLocally->setChecked(m_Ctx.Config().AlwaysReplayLocally);
+
+  {
+    const SDObject *getPaths = RENDERDOC_GetConfigSetting("DXBC.Debug.SearchDirPaths");
+    if(!getPaths)
+    {
+      ui->chooseSearchPaths->setEnabled(false);
+    }
+  }
+
+  if(const SDObject *setting = RENDERDOC_GetConfigSetting("DXBC.Disassembly.FriendlyNaming"))
+  {
+    ui->ShaderViewer_FriendlyNaming->setChecked(setting->AsBool());
+  }
+  else
+  {
+    ui->ShaderViewer_FriendlyNaming->setEnabled(false);
+  }
+
+  if(const SDObject *setting = RENDERDOC_GetConfigSetting("AMD.RGP.Enable"))
+  {
+    ui->ExternalTool_RGPIntegration->setChecked(setting->AsBool());
+  }
+  else
+  {
+    ui->ExternalTool_RGPIntegration->setEnabled(false);
+  }
+
+  if(const SDObject *setting = RENDERDOC_GetConfigSetting("Android.SDKDirPath"))
+  {
+    ui->Android_SDKPath->setText(setting->AsString());
+  }
+  else
+  {
+    ui->Android_SDKPath->setEnabled(false);
+    ui->browseAndroidSDKPath->setEnabled(false);
+  }
+
+  if(const SDObject *setting = RENDERDOC_GetConfigSetting("Android.JDKDirPath"))
+  {
+    ui->Android_JDKPath->setText(setting->AsString());
+  }
+  else
+  {
+    ui->Android_JDKPath->setEnabled(false);
+    ui->browseJDKPath->setEnabled(false);
+  }
+
+  if(const SDObject *setting = RENDERDOC_GetConfigSetting("Android.MaxConnectTimeout"))
+  {
+    ui->Android_MaxConnectTimeout->setValue(setting->AsUInt32());
+  }
+  else
+  {
+    ui->Android_MaxConnectTimeout->setEnabled(false);
+  }
 
 #if RENDERDOC_ANALYTICS_ENABLE
   if(m_Ctx.Config().Analytics_TotalOptOut)
