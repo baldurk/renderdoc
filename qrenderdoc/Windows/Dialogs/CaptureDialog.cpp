@@ -516,6 +516,7 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
         QStringList renderdoccmdParams;
 
         renderdoccmdParams << lit("vulkanlayer");
+        renderdoccmdParams << lit("--register");
         if(system)
           renderdoccmdParams << lit("--system");
         else
