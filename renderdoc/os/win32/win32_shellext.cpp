@@ -35,6 +35,8 @@
 #include "core/core.h"
 #include "jpeg-compressor/jpgd.h"
 #include "lz4/lz4.h"
+#include "maths/formatpacking.h"
+#include "maths/half_convert.h"
 #include "serialise/rdcfile.h"
 #include "stb/stb_image_resize.h"
 
@@ -431,7 +433,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       const uint32_t decompressedBlockWidth = 16;    // in bytes (4 byte/pixel)
       const uint32_t decompressedBlockMaxSize = 64;
       const uint32_t compressedBlockSize = m_ddsData.format.ElementSize();
-
+      const bool isSRGB = m_ddsData.format.compType == CompType::UNormSRGB;
       // check supported formats
       switch(resourceType)
       {
@@ -440,6 +442,8 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
         case ResourceFormatType::BC3:
         case ResourceFormatType::BC4:
         case ResourceFormatType::BC5:
+        case ResourceFormatType::BC6:
+        case ResourceFormatType::BC7:
           break;    // supported
         default:
           return E_NOTIMPL;    // not supported
@@ -449,6 +453,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       decompressed.resize(thumbheight * thumbwidth * 4);
       unsigned char decompressedBlock[decompressedBlockMaxSize];
       unsigned char greenBlock[16];
+      unsigned short decompressedBC6[48];
       const byte *compBlockStart = m_Thumb.pixels;
 
       for(uint32_t blockY = 0; blockY < thumbheight / 4; blockY++)
@@ -474,6 +479,13 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
             case ResourceFormatType::BC5:
               DecompressBlockBC5(compBlockStart, decompressedBlock, greenBlock, NULL);
               break;
+            case ResourceFormatType::BC6:
+              // Compressonator handles UF16/SF16 signed/unsigned cases. Returns signed half-float
+              DecompressBlockBC6(compBlockStart, decompressedBC6, NULL);
+              break;
+            case ResourceFormatType::BC7:
+              DecompressBlockBC7(compBlockStart, decompressedBlock, NULL);
+              break;
             default:
               return E_NOTIMPL;    // other formats
           }
@@ -487,9 +499,33 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
               case ResourceFormatType::BC1:
               case ResourceFormatType::BC2:
               case ResourceFormatType::BC3:
-                memcpy(decompImagePointer, decompPointer,
-                       16);    // copy one stride of the decompressed Block
-                decompPointer += 16;
+              case ResourceFormatType::BC7:
+                if(resourceType == ResourceFormatType::BC7 && isSRGB)
+                {
+                  for(int pixelInStride = 0; pixelInStride < 4; pixelInStride++)
+                  {
+                    int pixelIndex = pixelInStride * 4 + (i * 16);
+                    // get srgb value as float
+                    Vec4f srgb = Vec4f(decompPointer[pixelIndex] / 255.0f,
+                                       decompPointer[pixelIndex + 1] / 255.0f,
+                                       decompPointer[pixelIndex + 2] / 255.0f, 0.0f);
+                    Vec4f rgb = ConvertSRGBToLinear(srgb);
+                    // clamp to 0..1
+                    float r = RDCMAX(RDCMIN(1.0f, rgb.x), 0.0f);
+                    float g = RDCMAX(RDCMIN(1.0f, rgb.y), 0.0f);
+                    float b = RDCMAX(RDCMIN(1.0f, rgb.z), 0.0f);
+                    // scale to 0..255
+                    decompImagePointer[pixelInStride * 4] = (unsigned char)(r * 255);
+                    decompImagePointer[(pixelInStride * 4) + 1] = (unsigned char)(g * 255);
+                    decompImagePointer[(pixelInStride * 4) + 2] = (unsigned char)(b * 255);
+                  }
+                }
+                else
+                {
+                  memcpy(decompImagePointer, decompPointer,
+                         16);    // copy one stride of the decompressed Block
+                  decompPointer += 16;
+                }
                 break;
               case ResourceFormatType::BC4:    // copy the color of the red channel into rgb
                                                // channels.
@@ -508,6 +544,30 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
                       decompressedBlock[pixelInStride + (i * 4)];    // copy red channel
                   decompImagePointer[(pixelInStride * 4) + 1] =
                       greenBlock[pixelInStride + (i * 4)];    // copy green channel
+                }
+                break;
+              case ResourceFormatType::BC6:
+                for(int pixelInStride = 0; pixelInStride < 4; pixelInStride++)
+                {
+                  // compute Pixel Index for the decompressedBC6 buffer. One block stide = 12
+                  // floats.
+                  int pixelIndex = pixelInStride * 3 + (i * 12);
+                  // decompressed BC6 block uses 16:16:16 color format. Convert to 8:8:8:8
+                  unsigned short r = decompressedBC6[pixelIndex];
+                  unsigned short g = decompressedBC6[pixelIndex + 1];
+                  unsigned short b = decompressedBC6[pixelIndex + 2];
+                  // convert to half float
+                  float redF = ConvertFromHalf(r);
+                  float greenF = ConvertFromHalf(g);
+                  float blueF = ConvertFromHalf(b);
+                  // clamp to 0..1
+                  redF = RDCMAX(RDCMIN(1.0f, redF), 0.0f);
+                  greenF = RDCMAX(RDCMIN(1.0f, greenF), 0.0f);
+                  blueF = RDCMAX(RDCMIN(1.0f, blueF), 0.0f);
+                  // scale to 0..255
+                  decompImagePointer[pixelInStride * 4] = (unsigned char)(redF * 255);
+                  decompImagePointer[(pixelInStride * 4) + 1] = (unsigned char)(greenF * 255);
+                  decompImagePointer[(pixelInStride * 4) + 2] = (unsigned char)(blueF * 255);
                 }
                 break;
               default:
