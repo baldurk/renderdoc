@@ -56,10 +56,10 @@ def unpackData(fmt, data):
 
 	# If the format needs post-processing such as normalisation, do that now
 	if fmt.compType == rd.CompType.UNorm:
-		divisor = float((1 << fmt.compByteWidth) - 1)
+		divisor = float((1 << (fmt.compByteWidth * 8)) - 1)
 		value = tuple(float(i) / divisor for i in value)
 	elif fmt.compType == rd.CompType.SNorm:
-		maxNeg = -(1 << (fmt.compByteWidth - 1))
+		maxNeg = -(1 << (fmt.compByteWidth * 8 - 1))
 		divisor = float(-(maxNeg-1))
 		value = tuple((float(i) if (i == maxNeg) else (float(i) / divisor)) for i in value)
 
