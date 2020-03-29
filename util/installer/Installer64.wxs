@@ -245,7 +245,7 @@
         <Directory Id="ProgramMenuDir" Name="RenderDoc">
           <Component Id="ProgramMenuDir" Guid="D0755B01-F8D5-4DFE-8D21-DA4ED84B555D">
             <RemoveFolder Id='ProgramMenuDir' On='uninstall' />
-            <RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]' Type='string' Value='' KeyPath='yes' />
+            <RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]' Type='string' Value='INSTALLDIR' KeyPath='yes' />
           </Component>
         </Directory>
       </Directory>
