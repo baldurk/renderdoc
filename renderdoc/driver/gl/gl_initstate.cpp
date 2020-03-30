@@ -891,6 +891,9 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
         }
       }
 
+      GL.glFlush();
+      GL.glFinish();
+
       if(avoidCopySubImage)
       {
         pack.Apply(false);
