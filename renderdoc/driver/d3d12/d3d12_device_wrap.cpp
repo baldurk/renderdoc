@@ -2800,7 +2800,8 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
       if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS))
         return E_INVALIDARG;
 
-      // renderdoc doesn't support tiled resources (calls to CreateReservedResource will fail), so don't report it as supported
+      // renderdoc doesn't support tiled resources (calls to CreateReservedResource will fail), so
+      // don't report it as supported
       opts->TiledResourcesTier = D3D12_TILED_RESOURCES_TIER_NOT_SUPPORTED;
 
       return S_OK;
