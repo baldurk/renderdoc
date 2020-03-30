@@ -42,14 +42,20 @@ struct feedbackData
 };
 
 void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
-                    const std::map<rdcspv::Binding, feedbackData> &offsetMap, VkDeviceAddress addr,
-                    bool bufferAddressKHR, rdcarray<uint32_t> &modSpirv)
+                    const std::map<rdcspv::Binding, feedbackData> &offsetMap, uint32_t maxSlot,
+                    VkDeviceAddress addr, bool bufferAddressKHR, rdcarray<uint32_t> &modSpirv)
 {
   rdcspv::Editor editor(modSpirv);
 
   editor.Prepare();
 
   const bool useBufferAddress = (addr != 0);
+
+  const uint32_t targetIndexWidth = useBufferAddress ? 64 : 32;
+
+  // store the maximum slot we can use, for clamping outputs to avoid writing out of bounds
+  rdcspv::Id maxSlotID = useBufferAddress ? editor.AddConstantImmediate<uint64_t>(maxSlot)
+                                          : editor.AddConstantImmediate<uint32_t>(maxSlot);
 
   rdcspv::Id uint32ID = editor.DeclareType(rdcspv::scalar<uint32_t>());
   rdcspv::Id int32ID = editor.DeclareType(rdcspv::scalar<int32_t>());
@@ -409,7 +415,6 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
           it++;
 
           // upcast the index to uint32 or uint64 depending on which path we're taking
-          uint32_t targetIndexWidth = useBufferAddress ? 64 : 32;
           {
             rdcspv::Id indexType = editor.GetIDType(index);
 
@@ -455,6 +460,27 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
               index = extendedindex;
             }
+          }
+
+          // clamp the index to the maximum slot. If the user is reading out of bounds, don't write
+          // out of bounds.
+          {
+            rdcspv::Id glsl450 = editor.ImportExtInst("GLSL.std.450");
+
+            rdcspv::Id clampedtype =
+                editor.DeclareType(rdcspv::Scalar(rdcspv::Op::TypeInt, targetIndexWidth, false));
+            rdcspv::Id clampedindex = editor.MakeId();
+
+            editor.AddOperation(
+                it, rdcspv::Operation(
+                        rdcspv::Op::ExtInst,
+                        {
+                            clampedtype.value(), clampedindex.value(), glsl450.value(),
+                            (uint32_t)rdcspv::GLSLstd450::UMin, index.value(), maxSlotID.value(),
+                        }));
+            it++;
+
+            index = clampedindex;
           }
 
           rdcspv::Id bufptr;
@@ -563,6 +589,10 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   std::map<rdcspv::Binding, feedbackData> offsetMap;
 
+  // reserve some space at the start for a general counter indicating that successful data was
+  // written.
+  feedbackStorageSize += 16;
+
   {
     const rdcarray<ResourceId> &descSetLayoutIds =
         creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts;
@@ -595,6 +625,11 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       }
     }
   }
+
+  uint32_t maxSlot = uint32_t(feedbackStorageSize / sizeof(uint32_t));
+
+  // add some extra padding just in case of out-of-bounds writes
+  feedbackStorageSize += 128;
 
   // if we don't have any array descriptors to feedback then just return now
   if(offsetMap.empty())
@@ -723,7 +758,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
     rdcarray<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
-    AnnotateShader(*pipeInfo.shaders[5].patchData, stage.pName, offsetMap, bufferAddress,
+    AnnotateShader(*pipeInfo.shaders[5].patchData, stage.pName, offsetMap, maxSlot, bufferAddress,
                    useBufferAddressKHR, modSpirv);
 
     moduleCreateInfo.pCode = modSpirv.data();
@@ -748,8 +783,8 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
       rdcarray<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
-      AnnotateShader(*pipeInfo.shaders[idx].patchData, stage.pName, offsetMap, bufferAddress,
-                     useBufferAddressKHR, modSpirv);
+      AnnotateShader(*pipeInfo.shaders[idx].patchData, stage.pName, offsetMap, maxSlot,
+                     bufferAddress, useBufferAddressKHR, modSpirv);
 
       moduleCreateInfo.pCode = modSpirv.data();
       moduleCreateInfo.codeSize = modSpirv.size() * sizeof(uint32_t);
