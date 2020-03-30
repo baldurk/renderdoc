@@ -433,7 +433,6 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       const uint32_t decompressedBlockWidth = 16;    // in bytes (4 byte/pixel)
       const uint32_t decompressedBlockMaxSize = 64;
       const uint32_t compressedBlockSize = m_ddsData.format.ElementSize();
-      const bool isSRGB = m_ddsData.format.compType == CompType::UNormSRGB;
       // check supported formats
       switch(resourceType)
       {
@@ -453,7 +452,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       decompressed.resize(thumbheight * thumbwidth * 4);
       unsigned char decompressedBlock[decompressedBlockMaxSize];
       unsigned char greenBlock[16];
-      unsigned short decompressedBC6[48];
+      uint16_t decompressedBC6[48];
       const byte *compBlockStart = m_Thumb.pixels;
 
       for(uint32_t blockY = 0; blockY < thumbheight / 4; blockY++)
@@ -500,32 +499,9 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
               case ResourceFormatType::BC2:
               case ResourceFormatType::BC3:
               case ResourceFormatType::BC7:
-                if(resourceType == ResourceFormatType::BC7 && isSRGB)
-                {
-                  for(int pixelInStride = 0; pixelInStride < 4; pixelInStride++)
-                  {
-                    int pixelIndex = pixelInStride * 4 + (i * 16);
-                    // get srgb value as float
-                    Vec4f srgb = Vec4f(decompPointer[pixelIndex] / 255.0f,
-                                       decompPointer[pixelIndex + 1] / 255.0f,
-                                       decompPointer[pixelIndex + 2] / 255.0f, 0.0f);
-                    Vec4f rgb = ConvertSRGBToLinear(srgb);
-                    // clamp to 0..1
-                    float r = RDCMAX(RDCMIN(1.0f, rgb.x), 0.0f);
-                    float g = RDCMAX(RDCMIN(1.0f, rgb.y), 0.0f);
-                    float b = RDCMAX(RDCMIN(1.0f, rgb.z), 0.0f);
-                    // scale to 0..255
-                    decompImagePointer[pixelInStride * 4] = (unsigned char)(r * 255);
-                    decompImagePointer[(pixelInStride * 4) + 1] = (unsigned char)(g * 255);
-                    decompImagePointer[(pixelInStride * 4) + 2] = (unsigned char)(b * 255);
-                  }
-                }
-                else
-                {
-                  memcpy(decompImagePointer, decompPointer,
-                         16);    // copy one stride of the decompressed Block
-                  decompPointer += 16;
-                }
+                memcpy(decompImagePointer, decompPointer,
+                       16);    // copy one stride of the decompressed Block
+                decompPointer += 16;
                 break;
               case ResourceFormatType::BC4:    // copy the color of the red channel into rgb
                                                // channels.
@@ -553,17 +529,17 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
                   // floats.
                   int pixelIndex = pixelInStride * 3 + (i * 12);
                   // decompressed BC6 block uses 16:16:16 color format. Convert to 8:8:8:8
-                  unsigned short r = decompressedBC6[pixelIndex];
-                  unsigned short g = decompressedBC6[pixelIndex + 1];
-                  unsigned short b = decompressedBC6[pixelIndex + 2];
+                  uint16_t r = decompressedBC6[pixelIndex];
+                  uint16_t g = decompressedBC6[pixelIndex + 1];
+                  uint16_t b = decompressedBC6[pixelIndex + 2];
                   // convert to half float
                   float redF = ConvertFromHalf(r);
                   float greenF = ConvertFromHalf(g);
                   float blueF = ConvertFromHalf(b);
                   // clamp to 0..1
-                  redF = RDCMAX(RDCMIN(1.0f, redF), 0.0f);
-                  greenF = RDCMAX(RDCMIN(1.0f, greenF), 0.0f);
-                  blueF = RDCMAX(RDCMIN(1.0f, blueF), 0.0f);
+                  redF = RDCCLAMP(redF, 0.0f, 1.0f);
+                  greenF = RDCCLAMP(greenF, 0.0f, 1.0f);
+                  blueF = RDCCLAMP(blueF, 0.0f, 1.0f);
                   // scale to 0..255
                   decompImagePointer[pixelInStride * 4] = (unsigned char)(redF * 255);
                   decompImagePointer[(pixelInStride * 4) + 1] = (unsigned char)(greenF * 255);
