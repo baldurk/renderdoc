@@ -126,7 +126,7 @@ struct PipelineReplacements
 // PixelHistoryShaderCache manages temporary shaders created for pixel history.
 struct PixelHistoryShaderCache
 {
-  PixelHistoryShaderCache(WrappedVulkan *vk) : m_pDriver(vk), m_FixedColFS(VK_NULL_HANDLE) {}
+  PixelHistoryShaderCache(WrappedVulkan *vk) : m_pDriver(vk) {}
   ~PixelHistoryShaderCache()
   {
     for(auto it = m_ShaderReplacements.begin(); it != m_ShaderReplacements.end(); ++it)
@@ -134,20 +134,38 @@ struct PixelHistoryShaderCache
       if(it->second != VK_NULL_HANDLE)
         m_pDriver->vkDestroyShaderModule(m_pDriver->GetDev(), it->second, NULL);
     }
-    if(m_FixedColFS != VK_NULL_HANDLE)
-      m_pDriver->vkDestroyShaderModule(m_pDriver->GetDev(), m_FixedColFS, NULL);
+    for(auto it = m_FixedColFS.begin(); it != m_FixedColFS.end(); it++)
+      m_pDriver->vkDestroyShaderModule(m_pDriver->GetDev(), it->second, NULL);
+    for(auto it = m_PrimIDFS.begin(); it != m_PrimIDFS.end(); it++)
+      m_pDriver->vkDestroyShaderModule(m_pDriver->GetDev(), it->second, NULL);
   }
 
-  // Returns a fragment shader module that outputs a fixed color.
-  VkShaderModule GetFixedColShader()
+  // Returns a fragment shader module that outputs a fixed color to the given
+  // color attachment.
+  VkShaderModule GetFixedColShader(uint32_t framebufferIndex)
   {
-    // Create fixed colour shader if we haven't already.
-    if(m_FixedColFS == VK_NULL_HANDLE)
-    {
-      float col[4] = {1.0, 0.0, 0.0, 1.0};
-      m_pDriver->GetDebugManager()->PatchFixedColShader(m_FixedColFS, col);
-    }
-    return m_FixedColFS;
+    auto it = m_FixedColFS.find(framebufferIndex);
+    if(it != m_FixedColFS.end())
+      return it->second;
+    VkShaderModule sh;
+    m_pDriver->GetDebugManager()->PatchOutputLocation(sh, BuiltinShader::FixedColFS,
+                                                      framebufferIndex);
+    m_FixedColFS.insert(std::make_pair(framebufferIndex, sh));
+    return sh;
+  }
+
+  // Returns a fragment shader module that outputs primitive ID to the given
+  // color attachment.
+  VkShaderModule GetPrimitiveIdShader(uint32_t framebufferIndex)
+  {
+    auto it = m_PrimIDFS.find(framebufferIndex);
+    if(it != m_PrimIDFS.end())
+      return it->second;
+    VkShaderModule sh;
+    m_pDriver->GetDebugManager()->PatchOutputLocation(sh, BuiltinShader::PixelHistoryPrimIDFS,
+                                                      framebufferIndex);
+    m_PrimIDFS.insert(std::make_pair(framebufferIndex, sh));
+    return sh;
   }
 
   // Returns a shader that is equivalent to the given shader, but attempts to remove
@@ -305,7 +323,8 @@ private:
   }
 
   WrappedVulkan *m_pDriver;
-  VkShaderModule m_FixedColFS;
+  std::map<uint32_t, VkShaderModule> m_FixedColFS;
+  std::map<uint32_t, VkShaderModule> m_PrimIDFS;
 
   // ShaderKey consists of original shader module ID and entry point name.
   typedef rdcpair<ResourceId, rdcstr> ShaderKey;
@@ -712,7 +731,19 @@ struct VulkanOcclusionAndStencilCallback : public VulkanPixelHistoryCallback
           CreateRenderPass(pipestate.renderPass, pipestate.GetFramebuffer(), pipestate.subpass);
       VkFramebuffer newFb = CreateFramebuffer(pipestate.renderPass, newRp, pipestate.subpass,
                                               pipestate.GetFramebuffer(), m_StencilImageView);
-      PipelineReplacements replacements = GetPipelineReplacements(eid, pipestate.graphics.pipeline);
+      uint32_t framebufferIndex = 0;
+      const rdcarray<ResourceId> &atts = pipestate.GetFramebufferAttachments();
+      for(uint32_t i = 0; i < atts.size(); i++)
+      {
+        ResourceId img = m_pDriver->GetDebugManager()->GetImageViewInfo(atts[i]).image;
+        if(img == GetResID(m_Image))
+        {
+          framebufferIndex = i;
+          break;
+        }
+      }
+      PipelineReplacements replacements =
+          GetPipelineReplacements(eid, pipestate.graphics.pipeline, newRp, framebufferIndex);
 
       if(p.dynamicStates[VkDynamicViewport])
         for(uint32_t i = 0; i < pipestate.views.size(); i++)
@@ -949,7 +980,8 @@ private:
   // GetPipelineReplacements creates pipeline replacements that disable all tests,
   // and use either fixed or original fragment shader, and shaders that don't
   // have side effects.
-  PipelineReplacements GetPipelineReplacements(uint32_t eid, ResourceId pipeline)
+  PipelineReplacements GetPipelineReplacements(uint32_t eid, ResourceId pipeline, VkRenderPass rp,
+                                               uint32_t framebufferIndex)
   {
     // The map does not keep track of the event ID, event ID is only used to figure out
     // which shaders need to be modified. Those flags are based on the shaders bound,
@@ -964,6 +996,7 @@ private:
     MakeAllPassIncrementStencilPipelineCI(eid, pipeline, pipeCreateInfo, stages);
     // No need to change depth stencil state, it is already
     // set to always pass, and increment.
+    pipeCreateInfo.renderPass = rp;
 
     {
       // We just need to determine if something attempted to write to pixel.
@@ -986,7 +1019,7 @@ private:
     {
       if(stages[i].stage == VK_SHADER_STAGE_FRAGMENT_BIT)
       {
-        stages[i].module = m_ShaderCache->GetFixedColShader();
+        stages[i].module = m_ShaderCache->GetFixedColShader(framebufferIndex);
         stages[i].pName = "main";
         break;
       }
@@ -1022,9 +1055,11 @@ private:
 // stencil test etc).
 struct TestsFailedCallback : public VulkanPixelHistoryCallback
 {
-  TestsFailedCallback(WrappedVulkan *vk, PixelHistoryShaderCache *shaderCache, uint32_t x, uint32_t y,
-                      uint32_t sampleMask, VkQueryPool occlusionPool, rdcarray<uint32_t> events)
+  TestsFailedCallback(WrappedVulkan *vk, PixelHistoryShaderCache *shaderCache, uint32_t x,
+                      uint32_t y, VkImage image, uint32_t sampleMask, VkQueryPool occlusionPool,
+                      rdcarray<uint32_t> events)
       : VulkanPixelHistoryCallback(vk, shaderCache, x, y, sampleMask, occlusionPool),
+        m_Image(image),
         m_Events(events)
   {
   }
@@ -1049,7 +1084,19 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
     ResourceId curPipeline = pipestate.graphics.pipeline;
     VulkanRenderState m_PrevState = m_pDriver->GetCmdRenderState();
 
-    ReplayDrawWithTests(cmd, eid, eventFlags, curPipeline);
+    uint32_t framebufferIndex = 0;
+    const rdcarray<ResourceId> &atts = pipestate.GetFramebufferAttachments();
+    for(uint32_t i = 0; i < atts.size(); i++)
+    {
+      ResourceId img = m_pDriver->GetDebugManager()->GetImageViewInfo(atts[i]).image;
+      if(img == GetResID(m_Image))
+      {
+        framebufferIndex = i;
+        break;
+      }
+    }
+
+    ReplayDrawWithTests(cmd, eid, eventFlags, curPipeline, framebufferIndex);
 
     m_pDriver->GetCmdRenderState() = m_PrevState;
     m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
@@ -1238,7 +1285,7 @@ private:
   };
 
   void ReplayDrawWithTests(VkCommandBuffer cmd, uint32_t eid, uint32_t eventFlags,
-                           ResourceId basePipeline)
+                           ResourceId basePipeline, uint32_t framebufferIndex)
   {
     // Backface culling
     if(eventFlags & TestMustFail_Culling)
@@ -1274,7 +1321,8 @@ private:
       uint32_t pipeFlags =
           PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_DisableDepthBoundsTest |
           PipelineCreationFlags_DisableStencilTest | PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders);
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
+                                       framebufferIndex);
       ReplayDraw(cmd, pipe, eid, TestEnabled_Culling);
     }
 
@@ -1288,7 +1336,8 @@ private:
           PipelineCreationFlags_IntersectOriginalScissor | PipelineCreationFlags_DisableDepthTest |
           PipelineCreationFlags_DisableDepthBoundsTest | PipelineCreationFlags_DisableStencilTest |
           PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders);
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
+                                       framebufferIndex);
       // This will change the dynamic scissor state for the later tests, but since those
       // tests happen later in the pipeline, it does not matter.
       if(dynamicScissor)
@@ -1306,7 +1355,8 @@ private:
       uint32_t pipeFlags =
           PipelineCreationFlags_DisableDepthBoundsTest | PipelineCreationFlags_DisableStencilTest |
           PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders);
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
+                                       framebufferIndex);
       ReplayDraw(cmd, pipe, eid, TestEnabled_SampleMask);
     }
 
@@ -1316,7 +1366,8 @@ private:
       uint32_t pipeFlags = PipelineCreationFlags_DisableStencilTest |
                            PipelineCreationFlags_DisableDepthTest |
                            PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders);
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
+                                       framebufferIndex);
       ReplayDraw(cmd, pipe, eid, TestEnabled_DepthBounds);
     }
 
@@ -1328,7 +1379,8 @@ private:
     {
       uint32_t pipeFlags =
           PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders);
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
+                                       framebufferIndex);
       ReplayDraw(cmd, pipe, eid, TestEnabled_StencilTesting);
     }
 
@@ -1340,7 +1392,8 @@ private:
     {
       uint32_t pipeFlags = PipelineCreationFlags_FixedColorShader;
 
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders);
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
+                                       framebufferIndex);
       ReplayDraw(cmd, pipe, eid, TestEnabled_DepthTesting);
     }
 
@@ -1353,7 +1406,8 @@ private:
       uint32_t pipeFlags = PipelineCreationFlags_DisableDepthBoundsTest |
                            PipelineCreationFlags_DisableStencilTest |
                            PipelineCreationFlags_DisableDepthTest;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders);
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
+                                       framebufferIndex);
       ReplayDraw(cmd, pipe, eid, TestEnabled_FragmentDiscard);
     }
   }
@@ -1362,7 +1416,8 @@ private:
   // pipeline flags. Modifies the base pipeline according to the flags, and
   // leaves the original pipeline behavior if a flag is not set.
   VkPipeline CreatePipeline(ResourceId basePipeline, uint32_t pipeCreateFlags, bool dynamicScissor,
-                            const rdcarray<VkShaderModule> &replacementShaders)
+                            const rdcarray<VkShaderModule> &replacementShaders,
+                            uint32_t framebufferIndex)
   {
     rdcpair<ResourceId, uint32_t> pipeKey(basePipeline, pipeCreateFlags);
     auto it = m_PipeCache.find(pipeKey);
@@ -1404,7 +1459,7 @@ private:
       if((ci.pStages[i].stage == VK_SHADER_STAGE_FRAGMENT_BIT) &&
          (pipeCreateFlags & PipelineCreationFlags_FixedColorShader))
       {
-        stages[i].module = m_ShaderCache->GetFixedColShader();
+        stages[i].module = m_ShaderCache->GetFixedColShader(framebufferIndex);
         stages[i].pName = "main";
       }
       else if(replacementShaders[StageIndex(stages[i].stage)] != VK_NULL_HANDLE)
@@ -1458,6 +1513,7 @@ private:
     ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_OcclusionPool, index);
   }
 
+  VkImage m_Image;
   rdcarray<uint32_t> m_Events;
   // Key is event ID, value is the flags for that event.
   std::map<uint32_t, uint32_t> m_EventFlags;
@@ -1522,10 +1578,24 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
     VkRenderPass newRp = CreateRenderPass(state.renderPass, state.GetFramebuffer(), state.subpass,
                                           m_Image, VK_FORMAT_R32G32B32A32_SFLOAT);
+
     VkFramebuffer newFb =
         CreateFramebuffer(state.renderPass, newRp, state.subpass, state.GetFramebuffer(),
                           m_StencilImageView, GetResID(m_Image), m_PerFragmentImageView);
-    Pipelines pipes = CreatePipelines(curPipeline, newRp, eid, false, 0);
+
+    uint32_t framebufferIndex = 0;
+    const rdcarray<ResourceId> &atts = prevState.GetFramebufferAttachments();
+    for(uint32_t i = 0; i < atts.size(); i++)
+    {
+      ResourceId img = m_pDriver->GetDebugManager()->GetImageViewInfo(atts[i]).image;
+      if(img == GetResID(m_Image))
+      {
+        framebufferIndex = i;
+        break;
+      }
+    }
+
+    Pipelines pipes = CreatePipelines(curPipeline, newRp, eid, false, 0, framebufferIndex);
 
     state.renderPass = GetResID(newRp);
     state.SetFramebuffer(m_pDriver, GetResID(newFb));
@@ -1554,6 +1624,20 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     {
       for(uint32_t i = 0; i < 2; i++)
       {
+        VkImageMemoryBarrier barrier = {
+            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            NULL,
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            VK_ACCESS_TRANSFER_WRITE_BIT,
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_QUEUE_FAMILY_IGNORED,
+            VK_QUEUE_FAMILY_IGNORED,
+            Unwrap(m_StencilImage),
+            {VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1}};
+
+        DoPipelineBarrier(cmd, 1, &barrier);
+
         // If depth is enabled, clear out the depth value so that the test always
         // passes. Depth writes only work if depth test is enabled.
         // Regardless also need to reset the stencil back to 0.
@@ -1567,8 +1651,14 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         range.layerCount = 1;
         range.levelCount = 1;
         ObjDisp(cmd)->CmdClearDepthStencilImage(Unwrap(cmd), Unwrap(m_StencilImage),
-                                                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, &dsValue,
-                                                1, &range);
+                                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &dsValue, 1,
+                                                &range);
+
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        DoPipelineBarrier(cmd, 1, &barrier);
 
         m_pDriver->GetCmdRenderState().graphics.pipeline = GetResID(pipesIter[i]);
 
@@ -1589,7 +1679,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         state.EndRenderPass(cmd);
 
         uint32_t storeOffset = (fragsProcessed + f) * sizeof(PerFragmentInfo);
-        if(i == 1 && depthEnabled)
+        if(i == 1)
         {
           storeOffset += offsetof(struct PerFragmentInfo, shaderOut);
           if(depthEnabled)
@@ -1683,7 +1773,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
   void PostRedraw(uint32_t eid, VkCommandBuffer cmd) {}
   // CreatePipelines for getting per fragment information.
   Pipelines CreatePipelines(ResourceId pipe, VkRenderPass rp, uint32_t eid, bool dynamicScissor,
-                            uint32_t fragmentIndex)
+                            uint32_t fragmentIndex, uint32_t framebufferIndex)
   {
     const VulkanCreationInfo::Pipeline &p = m_pDriver->GetDebugManager()->GetPipelineInfo(pipe);
     VkGraphicsPipelineCreateInfo pipeCreateInfo = {};
@@ -1783,6 +1873,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       rs->cullMode = VK_CULL_MODE_NONE;
       rs->rasterizerDiscardEnable = VK_FALSE;
       ds->depthBoundsTestEnable = VK_FALSE;
+      if(ds->depthTestEnable)
+        ds->depthCompareOp = VK_COMPARE_OP_ALWAYS;
     }
 
     pipeCreateInfo.renderPass = rp;
@@ -1792,7 +1884,18 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     VkPipelineColorBlendAttachmentState *atts =
         (VkPipelineColorBlendAttachmentState *)cbs->pAttachments;
     for(uint32_t i = 0; i < cbs->attachmentCount; i++)
-      atts[i].blendEnable = VK_FALSE;
+    {
+      if(i == framebufferIndex)
+      {
+        atts[i].blendEnable = 0;
+        atts[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                                 VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+      }
+      else
+      {
+        atts[i].colorWriteMask = 0;
+      }
+    }
 
     vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
                                                &pipeCreateInfo, NULL, &pipes.shaderOutPipe);
@@ -1810,8 +1913,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     {
       if(stages[i].stage == VK_SHADER_STAGE_FRAGMENT_BIT)
       {
-        stages[i].module =
-            m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::PixelHistoryPrimIDFS);
+        stages[i].module = m_ShaderCache->GetPrimitiveIdShader(framebufferIndex);
         stages[i].pName = "main";
       }
     }
@@ -2035,7 +2137,8 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
 
   imgInfo.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
   imgInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-  imgInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+  imgInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
   vkr = m_pDriver->vkCreateImage(dev, &imgInfo, NULL, &stencilImage);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -2337,13 +2440,11 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
                                                        ResourceId target, uint32_t x, uint32_t y,
                                                        const Subresource &sub, CompType typeCast)
 {
-#if 1
-  if(!events.empty())
+  if(!GetAPIProperties().pixelHistory)
   {
     VULKANNOTIMP("PixelHistory");
     return rdcarray<PixelModification>();
   }
-#endif
 
   RDCDEBUG("PixelHistory: pixel: (%u, %u) with %u events", x, y, events.size());
   rdcarray<PixelModification> history;
@@ -2428,8 +2529,9 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     VkQueryPool tfOcclusionPool;
     CreateOcclusionPool(m_pDriver, (uint32_t)drawEvents.size() * 6, &tfOcclusionPool);
 
-    tfCb = new TestsFailedCallback(m_pDriver, shaderCache, x, y, sampleMask, tfOcclusionPool,
-                                   drawEvents);
+    tfCb = new TestsFailedCallback(m_pDriver, shaderCache, x, y,
+                                   GetResourceManager()->GetCurrentHandle<VkImage>(target),
+                                   sampleMask, tfOcclusionPool, drawEvents);
     m_pDriver->ReplayLog(0, events.back().eventId, eReplay_Full);
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();
@@ -2524,7 +2626,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
         GetResourceManager()->GetCurrentHandle<VkImage>(target), imginfo.format,
         resources.dstBuffer, resources.colorImage, resources.colorImageView, resources.stencilImage,
         resources.stencilImageView);
-    m_pDriver->ReplayLog(0, events.back().eventId, eReplay_Full);
+    m_pDriver->ReplayLog(0, eventsWithFrags.rbegin()->first, eReplay_Full);
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();
 
@@ -2561,7 +2663,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
       // Replay to see which primitives were discarded.
       VulkanPixelHistoryDiscardedFragmentsCallback discardedCb(
           m_pDriver, shaderCache, x, y, sampleMask, discardedPrimsEvents, occlPool);
-      m_pDriver->ReplayLog(0, events.back().eventId, eReplay_Full);
+      m_pDriver->ReplayLog(0, eventsWithFrags.rbegin()->first, eReplay_Full);
       m_pDriver->SubmitCmds();
       m_pDriver->FlushQ();
       discardedCb.FetchOcclusionResults();
@@ -2593,7 +2695,6 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
           continue;
         }
         uint32_t offset = perFragmentCB.GetEventOffset(eid) + f - discardOffset;
-
         FillInColor(shaderOutFormat, bp[offset].shaderOut, history[h].shaderOut);
         history[h].shaderOut.depth = bp[offset].shaderOut.depth.fdepth;
 
