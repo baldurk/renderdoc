@@ -162,7 +162,17 @@ HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetDisplay_renderdoc_hooked(EGLNativeDispl
   EnsureRealLibraryLoaded();
 
 #if ENABLED(RDOC_LINUX)
-  Keyboard::UseUnknownDisplay((void *)display);
+
+  // display can be EGL_DEFAULT_DISPLAY which is NULL, and unfortunately we don't have anything then
+  if(display)
+    Keyboard::UseUnknownDisplay((void *)display);
+
+// if xlib is compiled we can try to get the default display (which is what this will do)
+#if ENABLED(RDOC_XLIB)
+  else
+    Keyboard::UseUnknownDisplay(XOpenDisplay(NULL));
+#endif
+
 #endif
 
   return EGL.GetDisplay(display);

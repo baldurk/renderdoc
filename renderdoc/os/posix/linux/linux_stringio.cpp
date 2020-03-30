@@ -509,6 +509,9 @@ bool GetWaylandKeyState(int key)
 
 WindowingSystem UseUnknownDisplay(void *disp)
 {
+  if(disp == NULL)
+    return WindowingSystem::Unknown;
+
   // could be wayland or xlib, try to detect.
   // both Display* and wl_display* are valid pointers, so dereference and read the first pointer
   // sized bytes
