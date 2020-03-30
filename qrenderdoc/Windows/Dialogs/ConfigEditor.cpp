@@ -333,7 +333,8 @@ protected:
 
     if(o->FindChild("value"))
     {
-      if(QString(o->FindChild("key")->AsString()).contains(m_KeyText, Qt::CaseInsensitive))
+      if(o->FindChild("key") &&
+         QString(o->FindChild("key")->AsString()).contains(m_KeyText, Qt::CaseInsensitive))
         return true;
 
       return false;
