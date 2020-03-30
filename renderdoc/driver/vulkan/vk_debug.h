@@ -27,6 +27,7 @@
 #include "core/core.h"
 #include "vk_common.h"
 #include "vk_core.h"
+#include "vk_shader_cache.h"
 
 struct MeshDisplayPipelines
 {
@@ -76,6 +77,7 @@ public:
                                                  const MeshFormat &primary,
                                                  const MeshFormat &secondary);
 
+  void PatchOutputLocation(VkShaderModule &mod, BuiltinShader shaderType, uint32_t framebufferIndex);
   void PatchFixedColShader(VkShaderModule &mod, float col[4]);
   void PatchLineStripIndexBuffer(const DrawcallDescription *draw, GPUBuffer &indexBuffer,
                                  uint32_t &indexCount);
