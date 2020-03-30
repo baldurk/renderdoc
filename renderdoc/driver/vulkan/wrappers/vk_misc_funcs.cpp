@@ -1314,19 +1314,33 @@ bool WrappedVulkan::Serialise_vkCreateQueryPool(SerialiserType &ser, VkDevice de
 
       ObjDisp(cmd)->CmdResetQueryPool(Unwrap(cmd), Unwrap(pool), 0, CreateInfo.queryCount);
 
-      // Timestamps are easy - we can do these without needing to render
-      if(CreateInfo.queryType == VK_QUERY_TYPE_TIMESTAMP)
+      for(uint32_t i = 0; i < CreateInfo.queryCount; i++)
       {
-        for(uint32_t i = 0; i < CreateInfo.queryCount; i++)
+        // Timestamps are easy - we can do these without needing to render
+        if(CreateInfo.queryType == VK_QUERY_TYPE_TIMESTAMP)
+        {
           ObjDisp(cmd)->CmdWriteTimestamp(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                                           Unwrap(pool), i);
-      }
-      else
-      {
-        for(uint32_t i = 0; i < CreateInfo.queryCount; i++)
+        }
+        else
         {
           ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), Unwrap(pool), i, 0);
           ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), Unwrap(pool), i);
+        }
+
+        // split the command buffer and flush if the query pool is massive
+        if(i > 0 && (i % (128 * 1024)) == 0)
+        {
+          vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+          SubmitCmds();
+          FlushQ();
+
+          cmd = GetNextCmd();
+
+          vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
         }
       }
 
