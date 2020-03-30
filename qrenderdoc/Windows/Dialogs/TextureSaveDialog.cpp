@@ -662,6 +662,15 @@ void TextureSaveDialog::on_saveCancelButtons_accepted()
 
   QFileInfo fi(filename());
 
+  if(!fi.isAbsolute())
+  {
+    RDDialog::critical(
+        this, tr("Save Texture"),
+        tr("%1\nIs not an absolute path.\nCheck the path and try again.").arg(filename()));
+
+    return;
+  }
+
   QDir dir = fi.dir();
 
   bool valid = dir.makeAbsolute();
