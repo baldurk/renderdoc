@@ -2937,8 +2937,16 @@ bool WrappedOpenGL::Serialise_BeginCaptureFrame(SerialiserType &ser)
 
   if(ser.IsWriting())
   {
+    rdcarray<DebugMessage> savedDebugMessages;
+
+    // save any debug messages we built up
+    savedDebugMessages.swap(m_DebugMessages);
+
     state.FetchState(this);
     state.MarkReferenced(this, true);
+
+    // restore saved messages - which implicitly discards any generated while fetching state
+    savedDebugMessages.swap(m_DebugMessages);
   }
 
   SERIALISE_ELEMENT(state);
