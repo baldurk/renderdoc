@@ -620,15 +620,15 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
       r->SetFrameEvent(m_Ctx.CurEvent(), true);
 
-      m_States = states;
+      GUIInvoke::call(this, [this, states]() {
+        m_States = states;
 
-      if(!m_States.empty())
-      {
-        for(const ShaderVariableChange &c : GetCurrentState().changes)
-          m_Variables.push_back(c.after);
-      }
+        if(!m_States.empty())
+        {
+          for(const ShaderVariableChange &c : GetCurrentState().changes)
+            m_Variables.push_back(c.after);
+        }
 
-      GUIInvoke::call(this, [this]() {
         bool preferSourceDebug = false;
 
         for(const ShaderCompileFlag &flag : m_ShaderDetails->debugInfo.compileFlags.flags)
