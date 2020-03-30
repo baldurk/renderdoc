@@ -1303,10 +1303,10 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
         // if we're just replaying the vkCmdBeginRenderPass on its own, we use the first loadRP
-        // instead of the real thing. This still does the clears that we want but then doesn't
-        // require us to finish off any subpasses etc.
+        // instead of the real thing. This then doesn't require us to finish off any subpasses etc.
         // we need to manually do the subpass 0 barriers, since loadRP expects the image to already
         // be in subpass 0's layout
+        // we also need to manually do any clears, since the loadRP will load all attachments
         if(m_FirstEventID == m_LastEventID)
         {
           VulkanCreationInfo::RenderPass rpinfo =
@@ -1321,6 +1321,51 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
         uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
 
         ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &unwrappedInfo, contents);
+
+        if(m_FirstEventID == m_LastEventID)
+        {
+          VulkanCreationInfo::RenderPass rpinfo =
+              m_CreationInfo.m_RenderPass[GetCmdRenderState().renderPass];
+          const rdcarray<ResourceId> &fbattachments =
+              m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
+
+          rdcarray<VkClearAttachment> clearatts;
+          rdcarray<VkClearRect> clearrects;
+          RDCASSERT(unwrappedInfo.clearValueCount <= (uint32_t)rpinfo.attachments.size(),
+                    unwrappedInfo.clearValueCount, rpinfo.attachments.size());
+          for(int32_t c = 0; c < rpinfo.subpasses[0].colorAttachments.count() + 1; c++)
+          {
+            uint32_t att = ~0U;
+
+            if(c < rpinfo.subpasses[0].colorAttachments.count())
+              att = rpinfo.subpasses[0].colorAttachments[c];
+            else if(rpinfo.subpasses[0].depthstencilAttachment >= 0)
+              att = (uint32_t)rpinfo.subpasses[0].depthstencilAttachment;
+
+            if(att >= rpinfo.attachments.size())
+              continue;
+
+            if(rpinfo.attachments[att].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
+               rpinfo.attachments[att].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+            {
+              VulkanCreationInfo::ImageView viewinfo = m_CreationInfo.m_ImageView[fbattachments[att]];
+
+              VkClearRect rect = {unwrappedInfo.renderArea, viewinfo.range.baseArrayLayer,
+                                  viewinfo.range.layerCount};
+              VkClearAttachment clear = {};
+              clear.aspectMask = FormatImageAspects(rpinfo.attachments[att].format);
+              clear.colorAttachment = c;
+              if(att < unwrappedInfo.clearValueCount)
+                clear.clearValue = unwrappedInfo.pClearValues[att];
+              clearrects.push_back(rect);
+              clearatts.push_back(clear);
+            }
+          }
+
+          ObjDisp(commandBuffer)
+              ->CmdClearAttachments(Unwrap(commandBuffer), (uint32_t)clearatts.size(),
+                                    clearatts.data(), (uint32_t)clearrects.size(), clearrects.data());
+        }
 
         if(eventId && m_DrawcallCallback->PostMisc(eventId, drawFlags, commandBuffer))
         {
