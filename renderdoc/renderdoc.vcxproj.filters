@@ -509,6 +509,7 @@
     </ClInclude>
     <ClInclude Include="core\settings.h">
       <Filter>Core</Filter>
+    </ClInclude>
     <ClInclude Include="3rdparty\compressonator\BC1_Encode_kernel.h">
       <Filter>3rdparty\compressonator</Filter>
     </ClInclude>
@@ -927,6 +928,7 @@
     </ClCompile>
     <ClCompile Include="core\settings.cpp">
       <Filter>Core</Filter>
+    </ClCompile>
     <ClCompile Include="3rdparty\compressonator\BC1_Encode_kernel.cpp">
       <Filter>3rdparty\compressonator</Filter>
     </ClCompile>
