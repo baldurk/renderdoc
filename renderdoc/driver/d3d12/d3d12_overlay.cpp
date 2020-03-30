@@ -876,7 +876,10 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, const Subresource &sub, 
       vertexData.ModelViewProj = Matrix4f::Identity();
       vertexData.SpriteSize = Vec2f();
 
-      Vec4f viewport(rs.views[0].Width, rs.views[0].Height);
+      Vec4f viewport;
+
+      if(!rs.views.empty())
+        viewport = Vec4f(rs.views[0].Width, rs.views[0].Height);
 
       if(rs.dsv.GetResResourceId() != ResourceId())
       {
@@ -888,7 +891,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, const Subresource &sub, 
         list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
       }
 
-      list->RSSetViewports(1, &rs.views[0]);
+      if(!rs.views.empty())
+        list->RSSetViewports(1, &rs.views[0]);
 
       D3D12_RECT scissor = {0, 0, 16384, 16384};
       list->RSSetScissorRects(1, &scissor);
@@ -1089,7 +1093,8 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, const Subresource &sub, 
 
         list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
 
-        list->RSSetViewports(1, &rs.views[0]);
+        if(!rs.views.empty())
+          list->RSSetViewports(1, &rs.views[0]);
 
         D3D12_RECT scissor = {0, 0, 16384, 16384};
         list->RSSetScissorRects(1, &scissor);
