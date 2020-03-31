@@ -99,6 +99,14 @@ enum StorageMode
   KHR_bda,
 };
 
+enum class InputSpecConstant
+{
+  Address = 1,
+  ArrayLength,
+  DestX,
+  DestY,
+};
+
 static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structStride,
                                  VulkanCreationInfo::ShaderModuleReflection &shadRefl,
                                  StorageMode storageMode, bool usePrimitiveID, bool useSampleID)
@@ -267,7 +275,36 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
   rdcspv::Id uint32Type = editor.DeclareType(rdcspv::scalar<uint32_t>());
   rdcspv::Id floatType = editor.DeclareType(rdcspv::scalar<float>());
+  rdcspv::Id boolType = editor.DeclareType(rdcspv::scalar<bool>());
   rdcspv::Id float4Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4));
+  rdcspv::Id float2Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 2));
+
+  rdcspv::Id arrayLength = editor.AddConstant(rdcspv::Operation(
+      rdcspv::Op::SpecConstant, {uint32Type.value(), editor.MakeId().value(), 1U}));
+
+  editor.AddDecoration(rdcspv::OpDecorate(
+      arrayLength,
+      rdcspv::DecorationParam<rdcspv::Decoration::SpecId>((uint32_t)InputSpecConstant::ArrayLength)));
+
+  editor.SetName(arrayLength, "arrayLength");
+
+  rdcspv::Id destX = editor.AddConstant(rdcspv::Operation(
+      rdcspv::Op::SpecConstant, {floatType.value(), editor.MakeId().value(), 0U}));
+  rdcspv::Id destY = editor.AddConstant(rdcspv::Operation(
+      rdcspv::Op::SpecConstant, {floatType.value(), editor.MakeId().value(), 0U}));
+
+  editor.SetName(destX, "destX");
+  editor.SetName(destY, "destY");
+
+  editor.AddDecoration(rdcspv::OpDecorate(destX, rdcspv::DecorationParam<rdcspv::Decoration::SpecId>(
+                                                     (uint32_t)InputSpecConstant::DestX)));
+  editor.AddDecoration(rdcspv::OpDecorate(destY, rdcspv::DecorationParam<rdcspv::Decoration::SpecId>(
+                                                     (uint32_t)InputSpecConstant::DestY)));
+
+  rdcspv::Id destXY = editor.AddConstant(
+      rdcspv::OpSpecConstantComposite(float2Type, editor.MakeId(), {destX, destY}));
+
+  editor.SetName(destXY, "destXY");
 
   rdcspv::Id uintConsts[] = {
       editor.AddConstantImmediate<uint32_t>(0), editor.AddConstantImmediate<uint32_t>(1),
@@ -459,7 +496,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
         {editor.DeclareType(rdcspv::scalar<uint64_t>()).value(), editor.MakeId().value(), 0U, 0U}));
 
     editor.AddDecoration(rdcspv::OpDecorate(
-        addressConstant, rdcspv::DecorationParam<rdcspv::Decoration::SpecId>(1U)));
+        addressConstant,
+        rdcspv::DecorationParam<rdcspv::Decoration::SpecId>((uint32_t)InputSpecConstant::Address)));
 
     editor.SetName(addressConstant, "__rd_bufAddress");
 
@@ -474,6 +512,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
   rdcspv::Id uint32InPtr =
       editor.DeclareType(rdcspv::Pointer(uint32Type, rdcspv::StorageClass::Input));
   rdcspv::Id uint32BufPtr = editor.DeclareType(rdcspv::Pointer(uint32Type, bufferClass));
+
+  rdcspv::Id glsl450 = editor.ImportExtInst("GLSL.std.450");
 
   {
     rdcarray<rdcspv::Operation> ops;
@@ -492,6 +532,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
         // if we don't have the struct as a bind, we need to cast it from the pointer
         structPtr = editor.MakeId();
         ops.push_back(rdcspv::OpConvertUToPtr(bufptrtype, structPtr, addressConstant));
+
+        editor.SetName(structPtr, "HitBuffer");
       }
 
       rdcspv::Id uintPtr = editor.DeclareType(rdcspv::Pointer(uint32Type, bufferClass));
@@ -504,14 +546,74 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       rdcspv::Id semantics =
           editor.AddConstantImmediate<uint32_t>((uint32_t)rdcspv::MemorySemantics::AcquireRelease);
 
-      // TODO check if the frag co-ordinate etc. is in the range we care about
+      // look up the fragcoord
+      rdcspv::Id fragCoordLoaded = editor.MakeId();
+      if(fragCoord.member == ~0U)
+      {
+        ops.push_back(rdcspv::OpLoad(float4Type, fragCoordLoaded, fragCoord.base));
+      }
+      else
+      {
+        rdcspv::Id posptr = editor.MakeId();
+        ops.push_back(rdcspv::OpAccessChain(float4InPtr, posptr, fragCoord.base,
+                                            {editor.AddConstantImmediate(fragCoord.member)}));
+        ops.push_back(rdcspv::OpLoad(float4Type, fragCoordLoaded, posptr));
+      }
+
+      rdcspv::Id bool2Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<bool>(), 2));
+
+      // grab x and y
+      rdcspv::Id fragXY = editor.MakeId();
+      ops.push_back(
+          rdcspv::OpVectorShuffle(float2Type, fragXY, fragCoordLoaded, fragCoordLoaded, {0, 1}));
+
+      // subtract from the destination co-ord
+      rdcspv::Id fragXYRelative = editor.MakeId();
+      ops.push_back(rdcspv::OpFSub(float2Type, fragXYRelative, fragXY, destXY));
+
+      // abs()
+      rdcspv::Id fragXYAbs = editor.MakeId();
+      ops.push_back(rdcspv::Operation(
+          rdcspv::Op::ExtInst, {
+                                   float2Type.value(), fragXYAbs.value(), glsl450.value(),
+                                   (uint32_t)rdcspv::GLSLstd450::FAbs, fragXYRelative.value(),
+                               }));
+
+      rdcspv::Id half = editor.AddConstantImmediate<float>(0.5f);
+      rdcspv::Id threshold =
+          editor.AddConstant(rdcspv::OpConstantComposite(float2Type, editor.MakeId(), {half, half}));
+
+      // less than 0.5
+      rdcspv::Id inPixelXY = editor.MakeId();
+      ops.push_back(rdcspv::OpFOrdLessThan(bool2Type, inPixelXY, fragXYAbs, threshold));
+
+      // both less than 0.5
+      rdcspv::Id inPixel = editor.MakeId();
+      ops.push_back(rdcspv::OpAll(boolType, inPixel, inPixelXY));
+
+      // bool inPixel = all(abs(gl_FragCoord.xy - dest.xy) < 0.5f);
+
+      rdcspv::Id killLabel = editor.MakeId();
+      rdcspv::Id continueLabel = editor.MakeId();
+      ops.push_back(rdcspv::OpSelectionMerge(killLabel, rdcspv::SelectionControl::None));
+      ops.push_back(rdcspv::OpBranchConditional(inPixel, continueLabel, killLabel));
+      ops.push_back(rdcspv::OpLabel(continueLabel));
 
       // allocate a slot with atomic add
       rdcspv::Id slot = editor.MakeId();
       ops.push_back(
           rdcspv::OpAtomicIAdd(uint32Type, slot, hit_count, scope, semantics, uintConsts[1]));
 
-      // TODO check if the slot is in bounds of the array with OpArrayLength
+      editor.SetName(slot, "slot");
+
+      rdcspv::Id inRange = editor.MakeId();
+      ops.push_back(rdcspv::OpULessThan(boolType, inRange, slot, arrayLength));
+
+      rdcspv::Id killLabel2 = editor.MakeId();
+      continueLabel = editor.MakeId();
+      ops.push_back(rdcspv::OpSelectionMerge(killLabel2, rdcspv::SelectionControl::None));
+      ops.push_back(rdcspv::OpBranchConditional(inRange, continueLabel, killLabel2));
+      ops.push_back(rdcspv::OpLabel(continueLabel));
 
       rdcspv::Id hitptr = editor.DeclareType(rdcspv::Pointer(PSHit, bufferClass));
 
@@ -521,26 +623,14 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
       // store fixed properties
 
-      rdcspv::Id loaded = editor.MakeId();
-      if(fragCoord.member == ~0U)
-      {
-        ops.push_back(rdcspv::OpLoad(float4Type, loaded, fragCoord.base));
-      }
-      else
-      {
-        rdcspv::Id posptr = editor.MakeId();
-        ops.push_back(rdcspv::OpAccessChain(float4InPtr, posptr, fragCoord.base,
-                                            {editor.AddConstantImmediate(fragCoord.member)}));
-        ops.push_back(rdcspv::OpLoad(float4Type, loaded, posptr));
-      }
-
       rdcspv::MemoryAccessAndParamDatas alignedAccess;
       alignedAccess.setAligned(sizeof(uint32_t));
 
       rdcspv::Id storePtr = editor.MakeId();
       ops.push_back(rdcspv::OpAccessChain(float4BufPtr, storePtr, hit, {uintConsts[0]}));
-      ops.push_back(rdcspv::OpStore(storePtr, loaded, alignedAccess));
+      ops.push_back(rdcspv::OpStore(storePtr, fragCoordLoaded, alignedAccess));
 
+      rdcspv::Id loaded = editor.MakeId();
       if(primitiveID.base != rdcspv::Id())
       {
         loaded = editor.MakeId();
@@ -590,8 +680,15 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       storePtr = editor.MakeId();
       ops.push_back(rdcspv::OpAccessChain(uint32BufPtr, storePtr, hit, {uintConsts[2]}));
       ops.push_back(rdcspv::OpStore(storePtr, loaded, alignedAccess));
+
+      // join up with the early-outs we did
+      ops.push_back(rdcspv::OpBranch(killLabel2));
+      ops.push_back(rdcspv::OpLabel(killLabel2));
+      ops.push_back(rdcspv::OpBranch(killLabel));
+      ops.push_back(rdcspv::OpLabel(killLabel));
     }
-    ops.push_back(rdcspv::OpReturn());
+    // don't return, kill. This makes it well-defined that we don't write anything to our outputs
+    ops.push_back(rdcspv::OpKill());
 
     ops.push_back(rdcspv::OpFunctionEnd());
 
