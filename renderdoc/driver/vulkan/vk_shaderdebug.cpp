@@ -346,22 +346,26 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     editor.AddDecoration(rdcspv::OpMemberDecorate(
         PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
     editor.SetMemberName(PSHit, member, "pos");
-    offs += sizeof(Vec4f), member++;
+    offs += sizeof(Vec4f);
+    member++;
 
     editor.AddDecoration(rdcspv::OpMemberDecorate(
         PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
     editor.SetMemberName(PSHit, member, "prim");
-    offs += sizeof(uint32_t), member++;
+    offs += sizeof(uint32_t);
+    member++;
 
     editor.AddDecoration(rdcspv::OpMemberDecorate(
         PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
     editor.SetMemberName(PSHit, member, "sample");
-    offs += sizeof(uint32_t), member++;
+    offs += sizeof(uint32_t);
+    member++;
 
     editor.AddDecoration(rdcspv::OpMemberDecorate(
         PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
     editor.SetMemberName(PSHit, member, "derivValid");
-    offs += sizeof(float), member++;
+    offs += sizeof(float);
+    member++;
 
     offs += sizeof(float);    // padding
 
@@ -371,27 +375,32 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     editor.AddDecoration(rdcspv::OpMemberDecorate(
         PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
     editor.SetMemberName(PSHit, member, "IN");
-    offs += structStride, member++;
+    offs += structStride;
+    member++;
 
     editor.AddDecoration(rdcspv::OpMemberDecorate(
         PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
     editor.SetMemberName(PSHit, member, "INddxcoarse");
-    offs += structStride, member++;
+    offs += structStride;
+    member++;
 
     editor.AddDecoration(rdcspv::OpMemberDecorate(
         PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
     editor.SetMemberName(PSHit, member, "INddycoarse");
-    offs += structStride, member++;
+    offs += structStride;
+    member++;
 
     editor.AddDecoration(rdcspv::OpMemberDecorate(
         PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
     editor.SetMemberName(PSHit, member, "INddxfine");
-    offs += structStride, member++;
+    offs += structStride;
+    member++;
 
     editor.AddDecoration(rdcspv::OpMemberDecorate(
         PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
     editor.SetMemberName(PSHit, member, "INddyfine");
-    offs += structStride, member++;
+    offs += structStride;
+    member++;
   }
 
   // we have 5 input structs, and two vectors for our data
