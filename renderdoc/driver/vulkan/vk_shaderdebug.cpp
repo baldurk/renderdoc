@@ -30,6 +30,7 @@
 #include "vk_core.h"
 #include "vk_debug.h"
 #include "vk_replay.h"
+#include "vk_shader_cache.h"
 
 RDOC_DEBUG_CONFIG(rdcstr, Vulkan_Debug_PSDebugDumpDirPath, "",
                   "Path to dump before and after pixel shader input SPIR-V files.");
@@ -101,10 +102,11 @@ enum StorageMode
 
 enum class InputSpecConstant
 {
-  Address = 1,
+  Address = 0,
   ArrayLength,
   DestX,
   DestY,
+  Count,
 };
 
 static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structStride,
@@ -681,6 +683,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       ops.push_back(rdcspv::OpAccessChain(uint32BufPtr, storePtr, hit, {uintConsts[2]}));
       ops.push_back(rdcspv::OpStore(storePtr, loaded, alignedAccess));
 
+      // TODO store custom properties, and derivatives
+
       // join up with the early-outs we did
       ops.push_back(rdcspv::OpBranch(killLabel2));
       ops.push_back(rdcspv::OpLabel(killLabel2));
@@ -861,6 +865,9 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     return new ShaderDebugTrace;
   }
 
+  VkDevice dev = m_pDriver->GetDev();
+  VkResult vkr = VK_SUCCESS;
+
   const VulkanRenderState &state = m_pDriver->m_RenderState;
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
@@ -972,10 +979,295 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   if(!Vulkan_Debug_PSDebugDumpDirPath.empty())
     FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath + "/debug_psinput_after.spv", fragspv);
 
+  uint32_t overdrawLevels = 100;    // maximum number of overdraw levels
+
+  VkGraphicsPipelineCreateInfo graphicsInfo = {};
+
+  m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(graphicsInfo, state.graphics.pipeline);
+
+  VkDeviceSize feedbackStorageSize = overdrawLevels * structStride + sizeof(Vec4f) + 1024;
+
+  if(feedbackStorageSize > m_BindlessFeedback.FeedbackBuffer.sz)
+  {
+    uint32_t flags = GPUBuffer::eGPUBufferGPULocal | GPUBuffer::eGPUBufferSSBO;
+
+    if(storageMode != Binding)
+      flags |= GPUBuffer::eGPUBufferAddressable;
+
+    m_BindlessFeedback.FeedbackBuffer.Destroy();
+    m_BindlessFeedback.FeedbackBuffer.Create(m_pDriver, dev, feedbackStorageSize, 1, flags);
+  }
+
+  struct SpecData
+  {
+    VkDeviceAddress bufferAddress;
+    uint32_t arrayLength;
+    float destX;
+    float destY;
+  } specData;
+
+  specData.arrayLength = overdrawLevels;
+  specData.destX = float(x) + 0.5f;
+  specData.destY = float(y) + 0.5f;
+
+  VkDescriptorPool descpool = VK_NULL_HANDLE;
+  rdcarray<VkDescriptorSetLayout> setLayouts;
+  rdcarray<VkDescriptorSet> descSets;
+
+  VkPipelineLayout pipeLayout = VK_NULL_HANDLE;
+
+  if(storageMode != Binding)
+  {
+    RDCCOMPILE_ASSERT(VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO ==
+                          VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_EXT,
+                      "KHR and EXT buffer_device_address should be interchangeable here.");
+    VkBufferDeviceAddressInfo getAddressInfo = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
+    getAddressInfo.buffer = m_BindlessFeedback.FeedbackBuffer.buf;
+
+    if(storageMode == KHR_bda)
+      specData.bufferAddress = m_pDriver->vkGetBufferDeviceAddress(dev, &getAddressInfo);
+    else
+      specData.bufferAddress = m_pDriver->vkGetBufferDeviceAddressEXT(dev, &getAddressInfo);
+  }
+  else
+  {
+    VkDescriptorSetLayoutBinding newBindings[] = {
+        {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VkShaderStageFlags(VK_SHADER_STAGE_FRAGMENT_BIT),
+         NULL},
+    };
+    RDCCOMPILE_ASSERT(ARRAY_COUNT(newBindings) == 1,
+                      "Should only be one new descriptor for fetching PS inputs");
+
+    // create a duplicate set of descriptor sets, all visible to compute, with bindings shifted to
+    // account for new ones we need. This also copies the existing bindings into the new sets
+    PatchReservedDescriptors(state.graphics, descpool, setLayouts, descSets,
+                             VkShaderStageFlagBits(), newBindings, ARRAY_COUNT(newBindings));
+
+    // create pipeline layout with new descriptor set layouts
+    const rdcarray<VkPushConstantRange> &push = c.m_PipelineLayout[pipe.layout].pushRanges;
+
+    VkPipelineLayoutCreateInfo pipeLayoutInfo = {
+        VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        NULL,
+        0,
+        (uint32_t)setLayouts.size(),
+        setLayouts.data(),
+        (uint32_t)push.size(),
+        push.data(),
+    };
+
+    vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &pipeLayout);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    graphicsInfo.layout = pipeLayout;
+
+    // vkUpdateDescriptorSet desc set to point to buffer
+    VkDescriptorBufferInfo desc = {0};
+
+    m_BindlessFeedback.FeedbackBuffer.FillDescriptor(desc);
+
+    VkWriteDescriptorSet write = {
+        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        NULL,
+        Unwrap(descSets[0]),
+        0,
+        0,
+        1,
+        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        NULL,
+        &desc,
+        NULL,
+    };
+
+    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), 1, &write, 0, NULL);
+  }
+
+  // create fragment shader with modified code
+  VkShaderModuleCreateInfo moduleCreateInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+
+  VkSpecializationMapEntry specMaps[] = {
+      {
+          (uint32_t)InputSpecConstant::Address, offsetof(SpecData, bufferAddress),
+          sizeof(SpecData::bufferAddress),
+      },
+      {
+          (uint32_t)InputSpecConstant::ArrayLength, offsetof(SpecData, arrayLength),
+          sizeof(SpecData::arrayLength),
+      },
+      {
+          (uint32_t)InputSpecConstant::DestX, offsetof(SpecData, destX), sizeof(SpecData::destX),
+      },
+      {
+          (uint32_t)InputSpecConstant::DestY, offsetof(SpecData, destY), sizeof(SpecData::destY),
+      },
+  };
+
+  VkShaderModule module = VK_NULL_HANDLE;
+  VkSpecializationInfo specInfo = {};
+  specInfo.dataSize = sizeof(specData);
+  specInfo.pData = &specData;
+  specInfo.mapEntryCount = ARRAY_COUNT(specMaps);
+  specInfo.pMapEntries = specMaps;
+
+  RDCCOMPILE_ASSERT((size_t)InputSpecConstant::Count == ARRAY_COUNT(specMaps),
+                    "Spec constants changed");
+
+  for(uint32_t i = 0; i < graphicsInfo.stageCount; i++)
+  {
+    VkPipelineShaderStageCreateInfo &stage =
+        (VkPipelineShaderStageCreateInfo &)graphicsInfo.pStages[i];
+
+    if(stage.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+    {
+      moduleCreateInfo.pCode = fragspv.data();
+      moduleCreateInfo.codeSize = fragspv.size() * sizeof(uint32_t);
+
+      vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &module);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      stage.module = module;
+
+      stage.pSpecializationInfo = &specInfo;
+
+      break;
+    }
+  }
+
+  if(module == VK_NULL_HANDLE)
+  {
+    RDCERR("Couldn't find fragment shader in pipeline info!");
+  }
+
+  VkPipeline inputsPipe;
+  vkr =
+      m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &graphicsInfo, NULL, &inputsPipe);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  // make copy of state to draw from
+  VulkanRenderState modifiedstate = state;
+
+  // bind created pipeline to partial replay state
+  modifiedstate.graphics.pipeline = GetResID(inputsPipe);
+
+  if(storageMode == Binding)
+  {
+    // Treplace descriptor set IDs with our temporary sets. The offsets we keep the same. If the
+    // original draw had no sets, we ensure there's room (with no offsets needed)
+    if(modifiedstate.graphics.descSets.empty())
+      modifiedstate.graphics.descSets.resize(1);
+
+    for(size_t i = 0; i < descSets.size(); i++)
+    {
+      modifiedstate.graphics.descSets[i].pipeLayout = GetResID(pipeLayout);
+      modifiedstate.graphics.descSets[i].descSet = GetResID(descSets[i]);
+    }
+  }
+
+  {
+    VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+    VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                          VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+    vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    // fill destination buffer with 0s to ensure a baseline to then feedback against
+    ObjDisp(dev)->CmdFillBuffer(Unwrap(cmd), Unwrap(m_BindlessFeedback.FeedbackBuffer.buf), 0,
+                                feedbackStorageSize, 0);
+
+    VkBufferMemoryBarrier feedbackbufBarrier = {
+        VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+        NULL,
+        VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_ACCESS_SHADER_WRITE_BIT,
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
+        Unwrap(m_BindlessFeedback.FeedbackBuffer.buf),
+        0,
+        feedbackStorageSize,
+    };
+
+    // wait for the above fill to finish.
+    DoPipelineBarrier(cmd, 1, &feedbackbufBarrier);
+
+    modifiedstate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
+
+    if(draw->flags & DrawFlags::Indexed)
+    {
+      ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), draw->numIndices, draw->numInstances,
+                                   draw->indexOffset, draw->baseVertex, draw->instanceOffset);
+    }
+    else
+    {
+      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), draw->numIndices, draw->numInstances, draw->vertexOffset,
+                            draw->instanceOffset);
+    }
+
+    modifiedstate.EndRenderPass(cmd);
+
+    vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    m_pDriver->SubmitCmds();
+    m_pDriver->FlushQ();
+  }
+
+  bytebuf data;
+  GetBufferData(GetResID(m_BindlessFeedback.FeedbackBuffer.buf), 0, 0, data);
+
+  byte *base = data.data();
+  uint32_t numHits = *(uint32_t *)base;
+
+  if(numHits > overdrawLevels)
+  {
+    RDCERR("%u hits, more than max overdraw levels allowed %u. Clamping", numHits, overdrawLevels);
+    numHits = overdrawLevels;
+  }
+
+  base += sizeof(Vec4f);
+
+  struct PSHit
+  {
+    Vec4f pos;
+    uint32_t prim;
+    uint32_t sample;
+    float derivValid;
+    // padding and remaining data
+  };
+
+  for(uint32_t i = 0; i < numHits; i++)
+  {
+    PSHit *hit = (PSHit *)(base + structStride * i);
+
+    RDCLOG("Hit %u at %f, %f, %f, %f", i, hit->pos.x, hit->pos.y, hit->pos.z, hit->pos.w);
+  }
+
   rdcspv::Debugger *debugger = new rdcspv::Debugger;
   debugger->Parse(shader.spirv.GetSPIRV());
   ShaderDebugTrace *ret = debugger->BeginDebug(apiWrapper, ShaderStage::Pixel, entryPoint, spec,
                                                shadRefl.instructionLines, shadRefl.patchData, 0);
+
+  if(descpool != VK_NULL_HANDLE)
+  {
+    // delete descriptors. Technically we don't have to free the descriptor sets, but our tracking
+    // on replay doesn't handle destroying children of pooled objects so we do it explicitly anyway.
+    m_pDriver->vkFreeDescriptorSets(dev, descpool, (uint32_t)descSets.size(), descSets.data());
+
+    m_pDriver->vkDestroyDescriptorPool(dev, descpool, NULL);
+  }
+
+  for(VkDescriptorSetLayout layout : setLayouts)
+    m_pDriver->vkDestroyDescriptorSetLayout(dev, layout, NULL);
+
+  // delete pipeline layout
+  m_pDriver->vkDestroyPipelineLayout(dev, pipeLayout, NULL);
+
+  // delete pipeline
+  m_pDriver->vkDestroyPipeline(dev, inputsPipe, NULL);
+
+  // delete shader module
+  m_pDriver->vkDestroyShaderModule(dev, module, NULL);
 
   return ret;
 }
