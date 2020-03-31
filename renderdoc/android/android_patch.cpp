@@ -146,7 +146,7 @@ bool AddManifestToAPK(const rdcstr &apk, const rdcstr &tmpDir, const bytebuf &ma
   rdcstr aapt = getToolPath(ToolDir::BuildTools, "aapt", false);
 
   // write the manifest to disk
-  FileIO::WriteAll((tmpDir + "AndroidManifest.xml").c_str(), manifest);
+  FileIO::WriteAll(tmpDir + "AndroidManifest.xml", manifest);
 
   // run aapt to add the manifest
   Process::ProcessResult result =

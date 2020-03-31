@@ -275,7 +275,7 @@ void rdclog_filename(const char *filename)
     if(logfileHandle && previous.c_str())
     {
       rdcstr previousContents;
-      FileIO::ReadAll(previous.c_str(), previousContents);
+      FileIO::ReadAll(previous, previousContents);
 
       if(!previousContents.empty())
         FileIO::logfile_append(logfileHandle, previousContents.c_str(), previousContents.size());

@@ -330,9 +330,9 @@ void logfile_close(LogFileHandle *logHandle, const char *deleteFilename);
 rdcstr logfile_readall(const char *filename);
 
 // utility functions
-inline bool WriteAll(const char *filename, const void *buffer, size_t size)
+inline bool WriteAll(const rdcstr &filename, const void *buffer, size_t size)
 {
-  FILE *f = FileIO::fopen(filename, "wb");
+  FILE *f = FileIO::fopen(filename.c_str(), "wb");
   if(f == NULL)
     return false;
 
@@ -344,21 +344,21 @@ inline bool WriteAll(const char *filename, const void *buffer, size_t size)
 }
 
 template <typename T>
-bool WriteAll(const char *filename, const rdcarray<T> &buffer)
+bool WriteAll(const rdcstr &filename, const rdcarray<T> &buffer)
 {
   return WriteAll(filename, buffer.data(), buffer.size() * sizeof(T));
 }
 
 template <typename T>
-bool WriteAll(const char *filename, const rdcstr &buffer)
+bool WriteAll(const rdcstr &filename, const rdcstr &buffer)
 {
   return WriteAll(filename, buffer.c_str(), buffer.length());
 }
 
 template <typename T>
-bool ReadAll(const char *filename, rdcarray<T> &buffer)
+bool ReadAll(const rdcstr &filename, rdcarray<T> &buffer)
 {
-  FILE *f = FileIO::fopen(filename, "rb");
+  FILE *f = FileIO::fopen(filename.c_str(), "rb");
   if(f == NULL)
     return false;
 
@@ -375,9 +375,9 @@ bool ReadAll(const char *filename, rdcarray<T> &buffer)
   return numRead == buffer.size();
 }
 
-inline bool ReadAll(const char *filename, rdcstr &str)
+inline bool ReadAll(const rdcstr &filename, rdcstr &str)
 {
-  FILE *f = FileIO::fopen(filename, "rb");
+  FILE *f = FileIO::fopen(filename.c_str(), "rb");
   if(f == NULL)
     return false;
 

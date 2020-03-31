@@ -188,7 +188,7 @@ rdcstr DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, const rdc
       tempPath.c_str(), stageName, tempPath.c_str(), stageName, tempPath.c_str(), stageName,
       tempPath.c_str(), stageName, tempPath.c_str(), tempPath.c_str());
 
-  FileIO::WriteAll(inPath.c_str(), shaderBytes);
+  FileIO::WriteAll(inPath, shaderBytes);
 
   // try to locate the amdspv relative to our running program
   rdcstr amdspv = LocatePluginFile(pluginPath, amdspv_name);
@@ -210,18 +210,18 @@ rdcstr DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, const rdc
 
   if(amdil)
   {
-    FileIO::ReadAll(StringFormat::Fmt("%sout.il", tempPath.c_str()).c_str(), ret);
+    FileIO::ReadAll(StringFormat::Fmt("%sout.il", tempPath.c_str()), ret);
   }
   else
   {
-    FileIO::ReadAll(StringFormat::Fmt("%sout.txt", tempPath.c_str()).c_str(), ret);
+    FileIO::ReadAll(StringFormat::Fmt("%sout.txt", tempPath.c_str()), ret);
 
     rdcstr statsfile = StringFormat::Fmt("%sstats.txt", tempPath.c_str());
 
     if(FileIO::exists(statsfile.c_str()))
     {
       rdcstr stats;
-      FileIO::ReadAll(statsfile.c_str(), stats);
+      FileIO::ReadAll(statsfile, stats);
 
       ret += "\n\n" + stats;
     }
@@ -359,7 +359,7 @@ rdcstr DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const rdcs
   if(!found)
     return "; Invalid ISA Target specified";
 
-  FileIO::WriteAll(inPath.c_str(), shaderBytes);
+  FileIO::WriteAll(inPath, shaderBytes);
 
   // try to locate the amdspv relative to our running program
   rdcstr vc = LocatePluginFile(pluginPath, virtualcontext_name);
@@ -380,7 +380,7 @@ rdcstr DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const rdcs
   rdcstr ret;
 
   {
-    FileIO::ReadAll(outPath.c_str(), ret);
+    FileIO::ReadAll(outPath, ret);
 
     while(ret.back() == '\0')
       ret.pop_back();
@@ -388,7 +388,7 @@ rdcstr DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const rdcs
     if(FileIO::exists(statsPath.c_str()))
     {
       rdcstr stats;
-      FileIO::ReadAll(statsPath.c_str(), stats);
+      FileIO::ReadAll(statsPath, stats);
       ret += "\n\n" + stats;
     }
   }
