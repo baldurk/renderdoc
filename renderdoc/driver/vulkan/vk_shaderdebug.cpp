@@ -92,9 +92,16 @@ private:
   WrappedVulkan *m_pDriver = NULL;
 };
 
-static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv,
+enum StorageMode
+{
+  Binding,
+  EXT_bda,
+  KHR_bda,
+};
+
+static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structStride,
                                  VulkanCreationInfo::ShaderModuleReflection &shadRefl,
-                                 bool usePrimitiveID, bool useSampleID)
+                                 StorageMode storageMode, bool usePrimitiveID, bool useSampleID)
 {
   rdcspv::Editor editor(fragspv);
 
@@ -242,6 +249,232 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv,
     editor.AddOperation(it, entry);
   }
 
+  rdcspv::Id PSInput;
+
+  // TODO generate actual PSInput for real inputs
+  {
+    PSInput =
+        editor.DeclareStructType({editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4))});
+
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        PSInput, 0, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(0)));
+
+    editor.SetName(PSInput, "__rd_PSInput");
+    editor.SetMemberName(PSInput, 0, "dummy");
+
+    structStride = sizeof(Vec4f);
+  }
+
+  rdcspv::Id uint32Type = editor.DeclareType(rdcspv::scalar<uint32_t>());
+  rdcspv::Id floatType = editor.DeclareType(rdcspv::scalar<float>());
+  rdcspv::Id float4Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4));
+
+  rdcspv::Id uintConsts[] = {
+      editor.AddConstantImmediate<uint32_t>(0), editor.AddConstantImmediate<uint32_t>(1),
+      editor.AddConstantImmediate<uint32_t>(2),
+  };
+
+  rdcspv::Id PSHit = editor.DeclareStructType({
+      // float4 pos;
+      float4Type,
+      // uint prim;
+      uint32Type,
+      // uint sample;
+      uint32Type,
+      // float derivValid;
+      floatType,
+      // <uint padding>
+
+      // IN
+      PSInput,
+      // INddxcoarse
+      PSInput,
+      // INddycoarse
+      PSInput,
+      // INddxfine
+      PSInput,
+      // INddxfine
+      PSInput,
+  });
+
+  {
+    editor.SetName(PSHit, "__rd_PSHit");
+
+    uint32_t offs = 0, member = 0;
+
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
+    editor.SetMemberName(PSHit, member, "pos");
+    offs += sizeof(Vec4f), member++;
+
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
+    editor.SetMemberName(PSHit, member, "prim");
+    offs += sizeof(uint32_t), member++;
+
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
+    editor.SetMemberName(PSHit, member, "sample");
+    offs += sizeof(uint32_t), member++;
+
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
+    editor.SetMemberName(PSHit, member, "derivValid");
+    offs += sizeof(float), member++;
+
+    offs += sizeof(float);    // padding
+
+    RDCASSERT((offs % sizeof(Vec4f)) == 0);
+    RDCASSERT((structStride % sizeof(Vec4f)) == 0);
+
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
+    editor.SetMemberName(PSHit, member, "IN");
+    offs += structStride, member++;
+
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
+    editor.SetMemberName(PSHit, member, "INddxcoarse");
+    offs += structStride, member++;
+
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
+    editor.SetMemberName(PSHit, member, "INddycoarse");
+    offs += structStride, member++;
+
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
+    editor.SetMemberName(PSHit, member, "INddxfine");
+    offs += structStride, member++;
+
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
+    editor.SetMemberName(PSHit, member, "INddyfine");
+    offs += structStride, member++;
+  }
+
+  // we have 5 input structs, and two vectors for our data
+  structStride = sizeof(Vec4f) + sizeof(Vec4f) + structStride * 5;
+
+  rdcspv::Id PSHitRTArray = editor.AddType(rdcspv::OpTypeRuntimeArray(editor.MakeId(), PSHit));
+
+  editor.AddDecoration(rdcspv::OpDecorate(
+      PSHitRTArray, rdcspv::DecorationParam<rdcspv::Decoration::ArrayStride>(structStride)));
+
+  rdcspv::Id bufBase = editor.DeclareStructType({
+      // uint hit_count;
+      uint32Type,
+      // <uint3 padding>
+
+      //  PSHit hits[];
+      PSHitRTArray,
+  });
+
+  {
+    editor.SetName(bufBase, "__rd_HitStorage");
+
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        bufBase, 0, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(0)));
+    editor.SetMemberName(bufBase, 0, "hit_count");
+
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        bufBase, 1, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(sizeof(Vec4f))));
+    editor.SetMemberName(bufBase, 1, "hits");
+  }
+
+  rdcspv::StorageClass bufferClass;
+  rdcspv::Id bufptrtype;
+  rdcspv::Id ssboVar;
+  rdcspv::Id addressConstant;
+
+  if(storageMode == Binding)
+  {
+    bufferClass = editor.StorageBufferClass();
+
+    // the pointers are SSBO pointers
+    bufptrtype = editor.DeclareType(rdcspv::Pointer(bufBase, bufferClass));
+
+    // patch all bindings up by 1
+    for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Annotations),
+                     end = editor.End(rdcspv::Section::Annotations);
+        it < end; ++it)
+    {
+      // we will use descriptor set 0 for our own purposes if we don't have a buffer address.
+      //
+      // Since bindings are arbitrary, we just increase all user bindings to make room, and we'll
+      // redeclare the descriptor set layouts and pipeline layout. This is inevitable in the case
+      // where all descriptor sets are already used. In theory we only have to do this with set 0,
+      // but that requires knowing which variables are in set 0 and it's simpler to increase all
+      // bindings.
+      if(it.opcode() == rdcspv::Op::Decorate)
+      {
+        rdcspv::OpDecorate dec(it);
+        if(dec.decoration == rdcspv::Decoration::Binding)
+        {
+          RDCASSERT(dec.decoration.binding != 0xffffffff);
+          dec.decoration.binding += 1;
+          it = dec;
+        }
+      }
+    }
+
+    // add our SSBO variable, at set 0 binding 0
+    ssboVar = editor.MakeId();
+    editor.AddVariable(rdcspv::OpVariable(bufptrtype, ssboVar, bufferClass));
+    editor.AddDecoration(
+        rdcspv::OpDecorate(ssboVar, rdcspv::DecorationParam<rdcspv::Decoration::DescriptorSet>(0)));
+    editor.AddDecoration(
+        rdcspv::OpDecorate(ssboVar, rdcspv::DecorationParam<rdcspv::Decoration::Binding>(0)));
+
+    editor.SetName(ssboVar, "__rd_HitBuffer");
+
+    editor.DecorateStorageBufferStruct(bufBase);
+  }
+  else
+  {
+    // our pointers are physical storage buffer pointers
+    bufferClass = rdcspv::StorageClass::PhysicalStorageBuffer;
+
+    bufptrtype = editor.DeclareType(rdcspv::Pointer(bufBase, bufferClass));
+
+    // add the extension
+    editor.AddExtension(storageMode == KHR_bda ? "SPV_KHR_physical_storage_buffer"
+                                               : "SPV_EXT_physical_storage_buffer");
+
+    // change the memory model to physical storage buffer 64
+    rdcspv::Iter it = editor.Begin(rdcspv::Section::MemoryModel);
+    rdcspv::OpMemoryModel model(it);
+    model.addressingModel = rdcspv::AddressingModel::PhysicalStorageBuffer64;
+    it = model;
+
+    // add capabilities
+    editor.AddCapability(rdcspv::Capability::PhysicalStorageBufferAddresses);
+    editor.AddCapability(rdcspv::Capability::Int64);
+
+    // declare the address constant which we will specialise later. There is a chicken-and-egg where
+    // this function determines how big the buffer needs to be so instead of hardcoding the address
+    // here we let it be allocated later and specialised in.
+    addressConstant = editor.AddConstant(rdcspv::Operation(
+        rdcspv::Op::SpecConstant,
+        {editor.DeclareType(rdcspv::scalar<uint64_t>()).value(), editor.MakeId().value(), 0U, 0U}));
+
+    editor.AddDecoration(rdcspv::OpDecorate(
+        addressConstant, rdcspv::DecorationParam<rdcspv::Decoration::SpecId>(1U)));
+
+    editor.SetName(addressConstant, "__rd_bufAddress");
+
+    // struct is block decorated
+    editor.AddDecoration(rdcspv::OpDecorate(bufBase, rdcspv::Decoration::Block));
+  }
+
+  rdcspv::Id float4InPtr =
+      editor.DeclareType(rdcspv::Pointer(float4Type, rdcspv::StorageClass::Input));
+  rdcspv::Id float4BufPtr = editor.DeclareType(rdcspv::Pointer(float4Type, bufferClass));
+
+  rdcspv::Id uint32InPtr =
+      editor.DeclareType(rdcspv::Pointer(uint32Type, rdcspv::StorageClass::Input));
+  rdcspv::Id uint32BufPtr = editor.DeclareType(rdcspv::Pointer(uint32Type, bufferClass));
+
   {
     rdcarray<rdcspv::Operation> ops;
 
@@ -252,6 +485,111 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv,
 
     ops.push_back(rdcspv::OpLabel(editor.MakeId()));
     {
+      rdcspv::Id structPtr = ssboVar;
+
+      if(structPtr == rdcspv::Id())
+      {
+        // if we don't have the struct as a bind, we need to cast it from the pointer
+        structPtr = editor.MakeId();
+        ops.push_back(rdcspv::OpConvertUToPtr(bufptrtype, structPtr, addressConstant));
+      }
+
+      rdcspv::Id uintPtr = editor.DeclareType(rdcspv::Pointer(uint32Type, bufferClass));
+      rdcspv::Id hit_count = editor.MakeId();
+
+      // get a pointer to buffer.hit_count
+      ops.push_back(rdcspv::OpAccessChain(uintPtr, hit_count, structPtr, {uintConsts[0]}));
+
+      rdcspv::Id scope = editor.AddConstantImmediate<uint32_t>((uint32_t)rdcspv::Scope::Device);
+      rdcspv::Id semantics =
+          editor.AddConstantImmediate<uint32_t>((uint32_t)rdcspv::MemorySemantics::AcquireRelease);
+
+      // TODO check if the frag co-ordinate etc. is in the range we care about
+
+      // allocate a slot with atomic add
+      rdcspv::Id slot = editor.MakeId();
+      ops.push_back(
+          rdcspv::OpAtomicIAdd(uint32Type, slot, hit_count, scope, semantics, uintConsts[1]));
+
+      // TODO check if the slot is in bounds of the array with OpArrayLength
+
+      rdcspv::Id hitptr = editor.DeclareType(rdcspv::Pointer(PSHit, bufferClass));
+
+      // get a pointer to the hit for our slot
+      rdcspv::Id hit = editor.MakeId();
+      ops.push_back(rdcspv::OpAccessChain(hitptr, hit, structPtr, {uintConsts[1], slot}));
+
+      // store fixed properties
+
+      rdcspv::Id loaded = editor.MakeId();
+      if(fragCoord.member == ~0U)
+      {
+        ops.push_back(rdcspv::OpLoad(float4Type, loaded, fragCoord.base));
+      }
+      else
+      {
+        rdcspv::Id posptr = editor.MakeId();
+        ops.push_back(rdcspv::OpAccessChain(float4InPtr, posptr, fragCoord.base,
+                                            {editor.AddConstantImmediate(fragCoord.member)}));
+        ops.push_back(rdcspv::OpLoad(float4Type, loaded, posptr));
+      }
+
+      rdcspv::MemoryAccessAndParamDatas alignedAccess;
+      alignedAccess.setAligned(sizeof(uint32_t));
+
+      rdcspv::Id storePtr = editor.MakeId();
+      ops.push_back(rdcspv::OpAccessChain(float4BufPtr, storePtr, hit, {uintConsts[0]}));
+      ops.push_back(rdcspv::OpStore(storePtr, loaded, alignedAccess));
+
+      if(primitiveID.base != rdcspv::Id())
+      {
+        loaded = editor.MakeId();
+        if(primitiveID.member == ~0U)
+        {
+          ops.push_back(rdcspv::OpLoad(uint32Type, loaded, primitiveID.base));
+        }
+        else
+        {
+          rdcspv::Id posptr = editor.MakeId();
+          ops.push_back(rdcspv::OpAccessChain(uint32InPtr, posptr, primitiveID.base,
+                                              {editor.AddConstantImmediate(primitiveID.member)}));
+          ops.push_back(rdcspv::OpLoad(uint32Type, loaded, posptr));
+        }
+      }
+      else
+      {
+        // explicitly store 0
+        loaded = uintConsts[0];
+      }
+
+      storePtr = editor.MakeId();
+      ops.push_back(rdcspv::OpAccessChain(uint32BufPtr, storePtr, hit, {uintConsts[1]}));
+      ops.push_back(rdcspv::OpStore(storePtr, loaded, alignedAccess));
+
+      if(sampleIndex.base != rdcspv::Id())
+      {
+        loaded = editor.MakeId();
+        if(sampleIndex.member == ~0U)
+        {
+          ops.push_back(rdcspv::OpLoad(uint32Type, loaded, sampleIndex.base));
+        }
+        else
+        {
+          rdcspv::Id posptr = editor.MakeId();
+          ops.push_back(rdcspv::OpAccessChain(uint32InPtr, posptr, sampleIndex.base,
+                                              {editor.AddConstantImmediate(sampleIndex.member)}));
+          ops.push_back(rdcspv::OpLoad(uint32Type, loaded, posptr));
+        }
+      }
+      else
+      {
+        // explicitly store 0
+        loaded = uintConsts[0];
+      }
+
+      storePtr = editor.MakeId();
+      ops.push_back(rdcspv::OpAccessChain(uint32BufPtr, storePtr, hit, {uintConsts[2]}));
+      ops.push_back(rdcspv::OpStore(storePtr, loaded, alignedAccess));
     }
     ops.push_back(rdcspv::OpReturn());
 
@@ -516,12 +854,23 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   bool useSampleID = m_pDriver->GetDeviceFeatures().sampleRateShading != VK_FALSE;
 
+  StorageMode storageMode = Binding;
+
+  if(m_pDriver->GetDeviceFeatures().shaderInt64)
+  {
+    if(m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address)
+      storageMode = KHR_bda;
+    else if(m_pDriver->GetExtensions(NULL).ext_EXT_buffer_device_address)
+      storageMode = EXT_bda;
+  }
+
   rdcarray<uint32_t> fragspv = shader.spirv.GetSPIRV();
 
   if(!Vulkan_Debug_PSDebugDumpDirPath.empty())
     FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath + "/debug_psinput_before.spv", fragspv);
 
-  CreatePSInputFetcher(fragspv, shadRefl, usePrimitiveID, useSampleID);
+  uint32_t structStride = 0;
+  CreatePSInputFetcher(fragspv, structStride, shadRefl, storageMode, usePrimitiveID, useSampleID);
 
   if(!Vulkan_Debug_PSDebugDumpDirPath.empty())
     FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath + "/debug_psinput_after.spv", fragspv);
