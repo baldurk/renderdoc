@@ -929,12 +929,12 @@ void ThreadState::StepNext(ShaderDebugState *state,
       }
       else
       {
+        returnValue.name = "<return value>";
         if(opdata.op == Op::ReturnValue)
         {
           OpReturnValue ret(it);
 
           returnValue = GetSrc(ret.value);
-          returnValue.name = "<return value>";
         }
 
         nextInstruction = exitingFrame->funcCallInstruction;
