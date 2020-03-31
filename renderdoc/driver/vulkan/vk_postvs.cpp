@@ -427,6 +427,10 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
       // remove any OpName for the old entry points
       if(entries.find(name.target) != entries.end())
         editor.Remove(it);
+
+      // remove any OpName for deleted types
+      if(typeReplacements.find(name.target) != typeReplacements.end())
+        editor.Remove(it);
     }
   }
 
