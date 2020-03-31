@@ -1313,8 +1313,12 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
         {
           OpFunctionCall decoded(it);
           ret += indent;
-          ret += declName(decoded.resultType, decoded.result);
-          ret += " = ";
+
+          if(dataTypes[decoded.resultType].scalar().type != Op::TypeVoid)
+          {
+            ret += declName(decoded.resultType, decoded.result);
+            ret += " = ";
+          }
 
           rdcstr name = idName(decoded.function);
 
