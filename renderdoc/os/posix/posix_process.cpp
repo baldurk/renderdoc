@@ -593,7 +593,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
       fprintf(stderr, "exec failed\n");
       _exit(1);
     }
-    else
+    else if(!stdoutPipe)
     {
       // remember this PID so we can wait on it later
       SCOPED_SPINLOCK(zombieLock);
@@ -676,6 +676,21 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
           result->strStderror += rdcstr(chBuf, stderrRead);
 
       } while(stderrRead > 0);
+
+      result->retCode = 1;
+      pid_t p;
+      int status;
+      while((p = waitpid(ret, &status, WUNTRACED | WCONTINUED)) < 0 && errno == EINTR)
+      {
+        RDCLOG("Waiting on pid %u to exit", ret);
+      }
+
+      if(p < 0)
+        RDCLOG("Failed to wait on pid %u, error: %d", ret, p, errno);
+      else if(WIFEXITED(status))
+        result->retCode = WEXITSTATUS(status);
+      else
+        RDCWARN("Process did not exit normally");
     }
 
     // Close read ends.
