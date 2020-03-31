@@ -32,6 +32,8 @@
 #include "vk_replay.h"
 #include "vk_shader_cache.h"
 
+#undef None
+
 RDOC_DEBUG_CONFIG(rdcstr, Vulkan_Debug_PSDebugDumpDirPath, "",
                   "Path to dump before and after pixel shader input SPIR-V files.");
 
@@ -167,7 +169,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
   } fragCoord, primitiveID, sampleIndex;
 
   // look to see which ones are already provided
-  for(int32_t i = 0; i < shadRefl.refl.inputSignature.size(); i++)
+  for(size_t i = 0; i < shadRefl.refl.inputSignature.size(); i++)
   {
     const SigParameter &param = shadRefl.refl.inputSignature[i];
 
