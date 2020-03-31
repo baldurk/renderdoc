@@ -92,6 +92,175 @@ private:
   WrappedVulkan *m_pDriver = NULL;
 };
 
+static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv,
+                                 VulkanCreationInfo::ShaderModuleReflection &shadRefl,
+                                 bool usePrimitiveID, bool useSampleID)
+{
+  rdcspv::Editor editor(fragspv);
+
+  editor.Prepare();
+
+  // first delete all functions. We will recreate the entry point with just what we need
+  {
+    rdcarray<rdcspv::Id> removedIds;
+
+    rdcspv::Iter it = editor.Begin(rdcspv::Section::Functions);
+    rdcspv::Iter end = editor.End(rdcspv::Section::Functions);
+    while(it < end)
+    {
+      removedIds.push_back(rdcspv::OpDecoder(it).result);
+      editor.Remove(it);
+      it++;
+    }
+
+    // remove any OpName that refers to deleted IDs - functions or results
+    it = editor.Begin(rdcspv::Section::Debug);
+    end = editor.End(rdcspv::Section::Debug);
+    while(it < end)
+    {
+      if(it.opcode() == rdcspv::Op::Name)
+      {
+        rdcspv::OpName name(it);
+
+        if(removedIds.contains(name.target))
+          editor.Remove(it);
+      }
+      it++;
+    }
+  }
+
+  // remove all other entry point
+  rdcspv::Id entryID;
+  for(const rdcspv::EntryPoint &e : editor.GetEntries())
+  {
+    if(e.name == shadRefl.entryPoint)
+    {
+      entryID = e.id;
+      break;
+    }
+  }
+
+  rdcarray<rdcspv::Id> addedInputs;
+
+  // builtin inputs we need
+  struct BuiltinAccess
+  {
+    rdcspv::Id base;
+    uint32_t member = ~0U;
+  } fragCoord, primitiveID, sampleIndex;
+
+  // look to see which ones are already provided
+  for(int32_t i = 0; i < shadRefl.refl.inputSignature.size(); i++)
+  {
+    const SigParameter &param = shadRefl.refl.inputSignature[i];
+
+    BuiltinAccess *access = NULL;
+
+    if(param.systemValue == ShaderBuiltin::Position)
+      access = &fragCoord;
+    else if(param.systemValue == ShaderBuiltin::PrimitiveIndex)
+      access = &primitiveID;
+    else if(param.systemValue == ShaderBuiltin::MSAASampleIndex)
+      access = &sampleIndex;
+
+    if(access)
+    {
+      SPIRVInterfaceAccess &patch = shadRefl.patchData.inputs[i];
+      access->base = patch.ID;
+      // should only be one deep at most, built-in interface block isn't allowed to be nested
+      RDCASSERT(patch.accessChain.size() <= 1);
+      if(!patch.accessChain.empty())
+        access->member = patch.accessChain[0];
+    }
+  }
+
+  // now declare any variables we didn't already have
+  if(fragCoord.base == rdcspv::Id())
+  {
+    rdcspv::Id type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4));
+    rdcspv::Id ptrType = editor.DeclareType(rdcspv::Pointer(type, rdcspv::StorageClass::Input));
+
+    fragCoord.base =
+        editor.AddVariable(rdcspv::OpVariable(ptrType, editor.MakeId(), rdcspv::StorageClass::Input));
+
+    editor.AddDecoration(rdcspv::OpDecorate(
+        fragCoord.base,
+        rdcspv::DecorationParam<rdcspv::Decoration::BuiltIn>(rdcspv::BuiltIn::FragCoord)));
+
+    addedInputs.push_back(fragCoord.base);
+  }
+  if(primitiveID.base == rdcspv::Id() && usePrimitiveID)
+  {
+    rdcspv::Id type = editor.DeclareType(rdcspv::scalar<uint32_t>());
+    rdcspv::Id ptrType = editor.DeclareType(rdcspv::Pointer(type, rdcspv::StorageClass::Input));
+
+    primitiveID.base =
+        editor.AddVariable(rdcspv::OpVariable(ptrType, editor.MakeId(), rdcspv::StorageClass::Input));
+
+    editor.AddDecoration(rdcspv::OpDecorate(
+        primitiveID.base,
+        rdcspv::DecorationParam<rdcspv::Decoration::BuiltIn>(rdcspv::BuiltIn::PrimitiveId)));
+    editor.AddDecoration(rdcspv::OpDecorate(primitiveID.base, rdcspv::Decoration::Flat));
+
+    addedInputs.push_back(primitiveID.base);
+
+    editor.AddCapability(rdcspv::Capability::Geometry);
+  }
+  if(sampleIndex.base == rdcspv::Id() && useSampleID)
+  {
+    rdcspv::Id type = editor.DeclareType(rdcspv::scalar<uint32_t>());
+    rdcspv::Id ptrType = editor.DeclareType(rdcspv::Pointer(type, rdcspv::StorageClass::Input));
+
+    sampleIndex.base =
+        editor.AddVariable(rdcspv::OpVariable(ptrType, editor.MakeId(), rdcspv::StorageClass::Input));
+
+    editor.AddDecoration(rdcspv::OpDecorate(
+        sampleIndex.base,
+        rdcspv::DecorationParam<rdcspv::Decoration::BuiltIn>(rdcspv::BuiltIn::SampleId)));
+    editor.AddDecoration(rdcspv::OpDecorate(sampleIndex.base, rdcspv::Decoration::Flat));
+
+    addedInputs.push_back(sampleIndex.base);
+
+    editor.AddCapability(rdcspv::Capability::SampleRateShading);
+  }
+
+  // add our inputs to the entry point's ID list. Since we're expanding the list we have to copy,
+  // erase, and insert. Modifying in-place doesn't support expanding
+  if(!addedInputs.empty())
+  {
+    rdcspv::Iter it = editor.GetEntry(entryID);
+
+    // this copies into the helper struct
+    rdcspv::OpEntryPoint entry(it);
+
+    // add our IDs
+    entry.iface.append(addedInputs);
+
+    // erase the old one
+    editor.Remove(it);
+
+    editor.AddOperation(it, entry);
+  }
+
+  {
+    rdcarray<rdcspv::Operation> ops;
+
+    rdcspv::Id voidType = editor.DeclareType(rdcspv::scalar<void>());
+
+    ops.push_back(rdcspv::OpFunction(voidType, entryID, rdcspv::FunctionControl::None,
+                                     editor.DeclareType(rdcspv::FunctionType(voidType, {}))));
+
+    ops.push_back(rdcspv::OpLabel(editor.MakeId()));
+    {
+    }
+    ops.push_back(rdcspv::OpReturn());
+
+    ops.push_back(rdcspv::OpFunctionEnd());
+
+    editor.AddFunction(ops.data(), ops.size());
+  }
+}
+
 ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                             uint32_t idx)
 {
@@ -345,176 +514,14 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     usePrimitiveID = m_pDriver->GetDeviceFeatures().geometryShader != VK_FALSE;
   }
 
+  bool useSampleID = m_pDriver->GetDeviceFeatures().sampleRateShading != VK_FALSE;
+
   rdcarray<uint32_t> fragspv = shader.spirv.GetSPIRV();
 
   if(!Vulkan_Debug_PSDebugDumpDirPath.empty())
     FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath + "/debug_psinput_before.spv", fragspv);
 
-  {
-    rdcspv::Editor editor(fragspv);
-
-    editor.Prepare();
-
-    // first delete all functions. We will recreate the entry point
-    {
-      rdcarray<rdcspv::Id> removedIds;
-
-      rdcspv::Iter it = editor.Begin(rdcspv::Section::Functions);
-      rdcspv::Iter end = editor.End(rdcspv::Section::Functions);
-      while(it < end)
-      {
-        removedIds.push_back(rdcspv::OpDecoder(it).result);
-        editor.Remove(it);
-        it++;
-      }
-
-      // remove any OpName that refers to deleted IDs - functions or results
-      it = editor.Begin(rdcspv::Section::Debug);
-      end = editor.End(rdcspv::Section::Debug);
-      while(it < end)
-      {
-        if(it.opcode() == rdcspv::Op::Name)
-        {
-          rdcspv::OpName name(it);
-
-          if(removedIds.contains(name.target))
-            editor.Remove(it);
-        }
-        it++;
-      }
-    }
-
-    // remove all other entry point
-    rdcspv::Id entryID;
-    for(const rdcspv::EntryPoint &e : editor.GetEntries())
-    {
-      if(e.name == shadRefl.entryPoint)
-      {
-        entryID = e.id;
-        break;
-      }
-    }
-
-    rdcarray<rdcspv::Id> addedInputs;
-
-    // builtin inputs we need
-    struct BuiltinAccess
-    {
-      rdcspv::Id base;
-      uint32_t member = ~0U;
-    } fragCoord, primitiveID, sampleIndex;
-
-    // look to see which ones are already provided
-    for(int32_t i = 0; i < shadRefl.refl.inputSignature.size(); i++)
-    {
-      const SigParameter &param = shadRefl.refl.inputSignature[i];
-
-      BuiltinAccess *access = NULL;
-
-      if(param.systemValue == ShaderBuiltin::Position)
-        access = &fragCoord;
-      else if(param.systemValue == ShaderBuiltin::PrimitiveIndex)
-        access = &primitiveID;
-      else if(param.systemValue == ShaderBuiltin::MSAASampleIndex)
-        access = &sampleIndex;
-
-      if(access)
-      {
-        SPIRVInterfaceAccess &patch = shadRefl.patchData.inputs[i];
-        access->base = patch.ID;
-        // should only be one deep at most, built-in interface block isn't allowed to be nested
-        RDCASSERT(patch.accessChain.size() <= 1);
-        if(!patch.accessChain.empty())
-          access->member = patch.accessChain[0];
-      }
-    }
-
-    // now declare any variables we didn't already have
-    if(fragCoord.base == rdcspv::Id())
-    {
-      rdcspv::Id type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4));
-      rdcspv::Id ptrType = editor.DeclareType(rdcspv::Pointer(type, rdcspv::StorageClass::Input));
-
-      fragCoord.base = editor.AddVariable(
-          rdcspv::OpVariable(ptrType, editor.MakeId(), rdcspv::StorageClass::Input));
-
-      editor.AddDecoration(rdcspv::OpDecorate(
-          fragCoord.base,
-          rdcspv::DecorationParam<rdcspv::Decoration::BuiltIn>(rdcspv::BuiltIn::FragCoord)));
-
-      addedInputs.push_back(fragCoord.base);
-    }
-    if(primitiveID.base == rdcspv::Id() && usePrimitiveID)
-    {
-      rdcspv::Id type = editor.DeclareType(rdcspv::scalar<uint32_t>());
-      rdcspv::Id ptrType = editor.DeclareType(rdcspv::Pointer(type, rdcspv::StorageClass::Input));
-
-      primitiveID.base = editor.AddVariable(
-          rdcspv::OpVariable(ptrType, editor.MakeId(), rdcspv::StorageClass::Input));
-
-      editor.AddDecoration(rdcspv::OpDecorate(
-          primitiveID.base,
-          rdcspv::DecorationParam<rdcspv::Decoration::BuiltIn>(rdcspv::BuiltIn::PrimitiveId)));
-      editor.AddDecoration(rdcspv::OpDecorate(primitiveID.base, rdcspv::Decoration::Flat));
-
-      addedInputs.push_back(primitiveID.base);
-
-      editor.AddCapability(rdcspv::Capability::Geometry);
-    }
-    if(sampleIndex.base == rdcspv::Id() && m_pDriver->GetDeviceFeatures().sampleRateShading)
-    {
-      rdcspv::Id type = editor.DeclareType(rdcspv::scalar<uint32_t>());
-      rdcspv::Id ptrType = editor.DeclareType(rdcspv::Pointer(type, rdcspv::StorageClass::Input));
-
-      sampleIndex.base = editor.AddVariable(
-          rdcspv::OpVariable(ptrType, editor.MakeId(), rdcspv::StorageClass::Input));
-
-      editor.AddDecoration(rdcspv::OpDecorate(
-          sampleIndex.base,
-          rdcspv::DecorationParam<rdcspv::Decoration::BuiltIn>(rdcspv::BuiltIn::SampleId)));
-      editor.AddDecoration(rdcspv::OpDecorate(sampleIndex.base, rdcspv::Decoration::Flat));
-
-      addedInputs.push_back(sampleIndex.base);
-
-      editor.AddCapability(rdcspv::Capability::SampleRateShading);
-    }
-
-    // add our inputs to the entry point's ID list. Since we're expanding the list we have to copy,
-    // erase, and insert. Modifying in-place doesn't support expanding
-    if(!addedInputs.empty())
-    {
-      rdcspv::Iter it = editor.GetEntry(entryID);
-
-      // this copies into the helper struct
-      rdcspv::OpEntryPoint entry(it);
-
-      // add our IDs
-      entry.iface.append(addedInputs);
-
-      // erase the old one
-      editor.Remove(it);
-
-      editor.AddOperation(it, entry);
-    }
-
-    {
-      rdcarray<rdcspv::Operation> ops;
-
-      rdcspv::Id voidType = editor.DeclareType(rdcspv::scalar<void>());
-
-      ops.push_back(rdcspv::OpFunction(voidType, entryID, rdcspv::FunctionControl::None,
-                                       editor.DeclareType(rdcspv::FunctionType(voidType, {}))));
-
-      ops.push_back(rdcspv::OpLabel(editor.MakeId()));
-      {
-      }
-      ops.push_back(rdcspv::OpReturn());
-
-      ops.push_back(rdcspv::OpFunctionEnd());
-
-      editor.AddFunction(ops.data(), ops.size());
-    }
-  }
+  CreatePSInputFetcher(fragspv, shadRefl, usePrimitiveID, useSampleID);
 
   if(!Vulkan_Debug_PSDebugDumpDirPath.empty())
     FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath + "/debug_psinput_after.spv", fragspv);
