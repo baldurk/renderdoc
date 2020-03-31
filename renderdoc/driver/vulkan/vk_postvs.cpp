@@ -113,7 +113,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     // gvec4 type for this input, used as result type when fetching from tbuffer
     rdcspv::Id vec4ID;
     // Uniform Pointer ID for this output. Used only for output data, to write to output SSBO
-    rdcspv::Id uniformPtrID;
+    rdcspv::Id ssboPtrID;
     // Output Pointer ID for this attribute.
     // For inputs, used to 'write' to the global at the start.
     // For outputs, used to 'read' from the global at the end.
@@ -421,7 +421,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
       {
         editor.Remove(it);
         if(typeReplacements.find(name.target) == typeReplacements.end())
-          editor.SetName(name.target, ("emulated_" + name.name).c_str());
+          editor.SetName(name.target, "emulated_" + name.name);
       }
 
       // remove any OpName for the old entry points
@@ -433,6 +433,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         editor.Remove(it);
     }
   }
+
+  rdcspv::StorageClass ssboStorageClass = editor.StorageBufferClass();
 
   // declare necessary variables per-output, types and constants. We do this last so that we don't
   // add a private pointer that we later try and deduplicate when collapsing output/input pointers
@@ -470,13 +472,12 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         io.basetypeID = editor.DeclareType(scalarType);
     }
 
-    io.uniformPtrID =
-        editor.DeclareType(rdcspv::Pointer(io.basetypeID, rdcspv::StorageClass::Uniform));
+    io.ssboPtrID = editor.DeclareType(rdcspv::Pointer(io.basetypeID, ssboStorageClass));
     io.privatePtrID =
         editor.DeclareType(rdcspv::Pointer(io.basetypeID, rdcspv::StorageClass::Private));
 
-    RDCASSERT(io.basetypeID && io.vec4ID && io.constID && io.privatePtrID && io.uniformPtrID,
-              io.basetypeID, io.vec4ID, io.constID, io.privatePtrID, io.uniformPtrID);
+    RDCASSERT(io.basetypeID && io.vec4ID && io.constID && io.privatePtrID && io.ssboPtrID,
+              io.basetypeID, io.vec4ID, io.constID, io.privatePtrID, io.ssboPtrID);
   }
 
   // repeat for inputs
@@ -548,7 +549,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
   for(tbufferType tb : {tbuffer_float, tbuffer_sint, tbuffer_uint})
   {
     rdcspv::Scalar scalarType = rdcspv::scalar<float>();
-    const char *name = "float_vbuffers";
+    rdcstr name = "float_vbuffers";
 
     if(tb == tbuffer_sint)
     {
@@ -650,12 +651,12 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
     // meshOutput *
     rdcspv::Id outputStructPtrID =
-        editor.DeclareType(rdcspv::Pointer(outputStructID, rdcspv::StorageClass::Uniform));
+        editor.DeclareType(rdcspv::Pointer(outputStructID, ssboStorageClass));
     editor.SetName(outputStructPtrID, "meshOutput_ptr");
 
     // meshOutput *outputData;
-    outBufferVarID = editor.AddVariable(
-        rdcspv::OpVariable(outputStructPtrID, editor.MakeId(), rdcspv::StorageClass::Uniform));
+    outBufferVarID =
+        editor.AddVariable(rdcspv::OpVariable(outputStructPtrID, editor.MakeId(), ssboStorageClass));
     editor.SetName(outBufferVarID, "outputData");
 
     uint32_t memberOffset = 0;
@@ -701,8 +702,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     editor.AddDecoration(rdcspv::OpDecorate(
         runtimeArrayID, rdcspv::DecorationParam<rdcspv::Decoration::ArrayStride>(bufStride)));
 
-    // set object type
-    editor.AddDecoration(rdcspv::OpDecorate(outputStructID, rdcspv::Decoration::BufferBlock));
+    editor.DecorateStorageBufferStruct(outputStructID);
 
     // set binding
     editor.AddDecoration(rdcspv::OpDecorate(
@@ -1066,7 +1066,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
               char swizzle[] = "xyzw";
 
-              editor.SetName(packed, StringFormat::Fmt("packed_%c", swizzle[c]).c_str());
+              editor.SetName(packed, StringFormat::Fmt("packed_%c", swizzle[c]));
 
               // double comp = PackDouble2x32(packed);
               comps[c] = editor.MakeId();
@@ -1194,7 +1194,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
         // access chain the destination
         // type *writePtr = outBuffer.verts[arraySlot].outputN
         rdcspv::Id writePtr = editor.MakeId();
-        ops.push_back(rdcspv::OpAccessChain(outs[o].uniformPtrID, writePtr, outBufferVarID,
+        ops.push_back(rdcspv::OpAccessChain(outs[o].ssboPtrID, writePtr, outBufferVarID,
                                             {zero, arraySlotID, outs[o].constID}));
 
         // *writePtr = loaded;

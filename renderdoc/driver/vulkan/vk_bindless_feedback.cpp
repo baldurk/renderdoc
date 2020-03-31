@@ -118,9 +118,8 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
       {
         rdcspv::Id id = varLookup[var.id] = editor.AddConstantImmediate<uint64_t>(it->second.offset);
 
-        editor.SetName(
-            id, StringFormat::Fmt("__feedbackOffset_set%u_bind%u", it->first.set, it->first.binding)
-                    .c_str());
+        editor.SetName(id, StringFormat::Fmt("__feedbackOffset_set%u_bind%u", it->first.set,
+                                             it->first.binding));
       }
       else
       {
@@ -130,8 +129,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
         rdcspv::Id id = varLookup[var.id] = editor.AddConstantImmediate<uint32_t>(uint32_t(index));
 
         editor.SetName(
-            id, StringFormat::Fmt("__feedbackIndex_set%u_bind%u", it->first.set, it->first.binding)
-                    .c_str());
+            id, StringFormat::Fmt("__feedbackIndex_set%u_bind%u", it->first.set, it->first.binding));
       }
     }
   }
@@ -166,10 +164,11 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
   }
   else
   {
-    // the pointers are uniform pointers
-    rdcspv::Id bufptrtype =
-        editor.DeclareType(rdcspv::Pointer(uint32StructID, rdcspv::StorageClass::Uniform));
-    uint32ptrtype = editor.DeclareType(rdcspv::Pointer(uint32ID, rdcspv::StorageClass::Uniform));
+    rdcspv::StorageClass ssboClass = editor.StorageBufferClass();
+
+    // the pointers are SSBO pointers
+    rdcspv::Id bufptrtype = editor.DeclareType(rdcspv::Pointer(uint32StructID, ssboClass));
+    uint32ptrtype = editor.DeclareType(rdcspv::Pointer(uint32ID, ssboClass));
 
     // patch all bindings up by 1
     for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Annotations),
@@ -197,7 +196,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
     // add our SSBO variable, at set 0 binding 0
     ssboVar = editor.MakeId();
-    editor.AddVariable(rdcspv::OpVariable(bufptrtype, ssboVar, rdcspv::StorageClass::Uniform));
+    editor.AddVariable(rdcspv::OpVariable(bufptrtype, ssboVar, ssboClass));
     editor.AddDecoration(
         rdcspv::OpDecorate(ssboVar, rdcspv::DecorationParam<rdcspv::Decoration::DescriptorSet>(0)));
     editor.AddDecoration(
@@ -205,8 +204,7 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
     editor.SetName(ssboVar, "__rd_feedbackBuffer");
 
-    // struct is bufferblock decorated
-    editor.AddDecoration(rdcspv::OpDecorate(uint32StructID, rdcspv::Decoration::BufferBlock));
+    editor.DecorateStorageBufferStruct(uint32StructID);
   }
 
   rdcspv::Id rtarrayOffset = editor.AddConstantImmediate<uint32_t>(0U);

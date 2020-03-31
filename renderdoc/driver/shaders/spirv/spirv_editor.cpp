@@ -65,6 +65,11 @@ void Editor::Prepare()
   if(m_SPIRV.empty())
     return;
 
+  // In 1.3 and after we can (and should - it's gone in 1.4+) use the real SSBO storage class
+  // instead of Uniform + BufferBlock
+  if(m_MajorVersion > 1 || m_MinorVersion >= 3)
+    m_StorageBufferClass = rdcspv::StorageClass::StorageBuffer;
+
   // find any empty sections and insert a nop into the stream there. We need to fixup later section
   // offsets by hand as addWords doesn't handle empty sections properly (it thinks we're inserting
   // into the later section by offset since the offsets overlap). That's why we're adding these
@@ -138,19 +143,38 @@ Id Editor::MakeId()
   return Id::fromWord(ret);
 }
 
-void Editor::SetName(Id id, const char *name)
+void Editor::DecorateStorageBufferStruct(Id id)
 {
-  size_t sz = strlen(name);
-  rdcarray<uint32_t> uintName((sz / 4) + 1);
-  memcpy(&uintName[0], name, sz);
+  // set bufferblock if needed
+  if(m_StorageBufferClass == rdcspv::StorageClass::Uniform)
+    AddDecoration(rdcspv::OpDecorate(id, rdcspv::Decoration::BufferBlock));
+}
 
-  uintName.insert(0, id.value());
-
-  Operation op(Op::Name, uintName);
+void Editor::SetName(Id id, const rdcstr &name)
+{
+  Operation op = OpName(id, name);
 
   Iter it;
 
-  // OpName must be before OpModuleProcessed.
+  // OpName/OpMemberName must be before OpModuleProcessed.
+  for(it = Begin(Section::Debug); it < End(Section::Debug); ++it)
+  {
+    if(it.opcode() == Op::ModuleProcessed)
+      break;
+  }
+
+  op.insertInto(m_SPIRV, it.offs());
+  RegisterOp(Iter(m_SPIRV, it.offs()));
+  addWords(it.offs(), op.size());
+}
+
+void Editor::SetMemberName(Id id, uint32_t member, const rdcstr &name)
+{
+  Operation op = OpMemberName(id, member, name);
+
+  Iter it;
+
+  // OpName/OpMemberName must be before OpModuleProcessed.
   for(it = Begin(Section::Debug); it < End(Section::Debug); ++it)
   {
     if(it.opcode() == Op::ModuleProcessed)

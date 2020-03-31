@@ -84,7 +84,10 @@ public:
     iter.nopRemove();
   }
 
-  void SetName(Id id, const char *name);
+  StorageClass StorageBufferClass() { return m_StorageBufferClass; }
+  void DecorateStorageBufferStruct(Id id);
+  void SetName(Id id, const rdcstr &name);
+  void SetMemberName(Id id, uint32_t member, const rdcstr &name);
   void AddDecoration(const Operation &op);
   void AddCapability(Capability cap);
   void AddExtension(const rdcstr &extension);
@@ -204,6 +207,8 @@ private:
   std::map<Sampler, Id> samplerTypeToId;
   std::map<SampledImage, Id> sampledImageTypeToId;
   std::map<FunctionType, Id> functionTypeToId;
+
+  StorageClass m_StorageBufferClass = rdcspv::StorageClass::Uniform;
 
   template <typename SPIRVType>
   std::map<SPIRVType, Id> &GetTable();
