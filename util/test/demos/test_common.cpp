@@ -283,8 +283,13 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
       shaderc_compile_options_add_macro_definition(opts, it.first.c_str(), it.first.length(),
                                                    it.second.c_str(), it.second.length());
 
-    shaderc_compilation_result_t res = shaderc_compile_into_spv(
-        shaderc, source_text.c_str(), source_text.size(), shader_kind, "inshader", entry_point, opts);
+    shaderc_compilation_result_t res;
+
+    if(lang == ShaderLang::spvasm)
+      res = shaderc_assemble_into_spv(shaderc, source_text.c_str(), source_text.size(), opts);
+    else
+      res = shaderc_compile_into_spv(shaderc, source_text.c_str(), source_text.size(), shader_kind,
+                                     "inshader", entry_point, opts);
 
     shaderc_compilation_status status = shaderc_result_get_compilation_status(res);
 
@@ -336,14 +341,18 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
     for(auto it : macros)
       command_line += " -D" + it.first + "=" + it.second;
 
-    switch(stage)
+    // can't compile SPIR-V assembly if we specify a shader stage
+    if(lang != ShaderLang::spvasm)
     {
-      case ShaderStage::vert: command_line += " -fshader-stage=vert"; break;
-      case ShaderStage::frag: command_line += " -fshader-stage=frag"; break;
-      case ShaderStage::tesscontrol: command_line += " -fshader-stage=tesscontrol"; break;
-      case ShaderStage::tesseval: command_line += " -fshader-stage=tesseval"; break;
-      case ShaderStage::geom: command_line += " -fshader-stage=geom"; break;
-      case ShaderStage::comp: command_line += " -fshader-stage=comp"; break;
+      switch(stage)
+      {
+        case ShaderStage::vert: command_line += " -fshader-stage=vert"; break;
+        case ShaderStage::frag: command_line += " -fshader-stage=frag"; break;
+        case ShaderStage::tesscontrol: command_line += " -fshader-stage=tesscontrol"; break;
+        case ShaderStage::tesseval: command_line += " -fshader-stage=tesseval"; break;
+        case ShaderStage::geom: command_line += " -fshader-stage=geom"; break;
+        case ShaderStage::comp: command_line += " -fshader-stage=comp"; break;
+      }
     }
 
     if(target == SPIRVTarget::opengl)
@@ -364,6 +373,12 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
 
     if(lang == ShaderLang::hlsl)
       command_line += " -D";
+
+    if(lang == ShaderLang::spvasm)
+    {
+      TEST_ERROR("Can't compile SPIR-V assembly with glslangValidator");
+      return ret;
+    }
 
     for(auto it : macros)
       command_line += " -D" + it.first + "=" + it.second;

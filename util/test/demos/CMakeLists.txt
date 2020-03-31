@@ -29,6 +29,7 @@ set(VULKAN_SRC
         vk/vk_sample_locations.cpp
         vk/vk_secondary_cmdbuf.cpp
         vk/vk_separate_depth_stencil_layouts.cpp
+        vk/vk_shader_debug_zoo.cpp
         vk/vk_shader_editing.cpp
         vk/vk_simple_triangle.cpp
         vk/vk_spec_constants.cpp

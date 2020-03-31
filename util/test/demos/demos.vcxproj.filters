@@ -472,6 +472,9 @@
     <ClCompile Include="gl\gl_multithread_rendering.cpp">
       <Filter>OpenGL\demos</Filter>
     </ClCompile>
+    <ClCompile Include="vk\vk_shader_debug_zoo.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

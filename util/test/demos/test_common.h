@@ -61,7 +61,8 @@ enum class SPIRVTarget
 enum class ShaderLang
 {
   glsl,
-  hlsl
+  hlsl,
+  spvasm,
 };
 enum class ShaderStage
 {
