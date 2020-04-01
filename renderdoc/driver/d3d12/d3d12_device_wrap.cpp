@@ -2101,7 +2101,6 @@ HRESULT WrappedID3D12Device::CreateSharedHandle(ID3D12DeviceChild *pObject,
                                                 const SECURITY_ATTRIBUTES *pAttributes,
                                                 DWORD Access, LPCWSTR Name, HANDLE *pHandle)
 {
-  D3D12NOTIMP("Shared Handles / API interop");
   return m_pDevice->CreateSharedHandle(Unwrap(pObject), pAttributes, Access, Name, pHandle);
 }
 
@@ -2637,7 +2636,6 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
 
 HRESULT WrappedID3D12Device::OpenSharedHandleByName(LPCWSTR Name, DWORD Access, HANDLE *pNTHandle)
 {
-  D3D12NOTIMP("Shared Handles / API interop");
   return m_pDevice->OpenSharedHandleByName(Name, Access, pNTHandle);
 }
 
