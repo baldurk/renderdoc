@@ -319,6 +319,8 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
       return special;
     case DXGI_FORMAT_A8_UNORM:
       special.type = ResourceFormatType::A8;
+      special.compType = CompType::UNorm;
+      special.compByteWidth = 1;
       special.compCount = 1;
       return special;
     case DXGI_FORMAT_B4G4R4A4_UNORM:

@@ -433,6 +433,9 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       const uint32_t decompressedBlockWidth = 16;    // in bytes (4 byte/pixel)
       const uint32_t decompressedBlockMaxSize = 64;
       const uint32_t compressedBlockSize = m_ddsData.format.ElementSize();
+
+      bool blockCompressed = false;
+
       // check supported formats
       switch(resourceType)
       {
@@ -442,129 +445,185 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
         case ResourceFormatType::BC4:
         case ResourceFormatType::BC5:
         case ResourceFormatType::BC6:
-        case ResourceFormatType::BC7:
-          break;    // supported
+        case ResourceFormatType::BC7: blockCompressed = true; break;
+        case ResourceFormatType::Regular:
+        case ResourceFormatType::D32S8:
+        case ResourceFormatType::D24S8:
+        case ResourceFormatType::D16S8:
+        case ResourceFormatType::A8:
+        case ResourceFormatType::R10G10B10A2:
+        case ResourceFormatType::R11G11B10:
+        case ResourceFormatType::R9G9B9E5:
+        case ResourceFormatType::R4G4B4A4:
+        case ResourceFormatType::R5G6B5:
+        case ResourceFormatType::R5G5B5A1: blockCompressed = false; break;
         default:
-          return E_NOTIMPL;    // not supported
+          // not supported
+          return E_NOTIMPL;
       }
 
-      bytebuf decompressed;    // Decompressed DDS, 4 byte/pixel
-      decompressed.resize(thumbheight * thumbwidth * 4);
-      unsigned char decompressedBlock[decompressedBlockMaxSize];
-      unsigned char greenBlock[16];
-      uint16_t decompressedBC6[48];
-      const byte *compBlockStart = m_Thumb.pixels;
+      // Decompressed DDS, 3 byte/pixel without alpha
+      thumbpixels = (byte *)malloc(thumbheight * thumbwidth * 3);
 
-      for(uint32_t blockY = 0; blockY < thumbheight / 4; blockY++)
+      if(blockCompressed)
       {
-        for(uint32_t blockX = 0; blockX < thumbwidth / 4; blockX++)
-        {
-          uint32_t decompressedBlockStart =
-              blockY * 4 * decompressedStride + blockX * decompressedBlockWidth;
-          switch(resourceType)
-          {
-            case ResourceFormatType::BC1:
-              DecompressBlockBC1(compBlockStart, decompressedBlock, NULL);
-              break;
-            case ResourceFormatType::BC2:
-              DecompressBlockBC2(compBlockStart, decompressedBlock, NULL);
-              break;
-            case ResourceFormatType::BC3:
-              DecompressBlockBC3(compBlockStart, decompressedBlock, NULL);
-              break;
-            case ResourceFormatType::BC4:
-              DecompressBlockBC4(compBlockStart, decompressedBlock, NULL);
-              break;
-            case ResourceFormatType::BC5:
-              DecompressBlockBC5(compBlockStart, decompressedBlock, greenBlock, NULL);
-              break;
-            case ResourceFormatType::BC6:
-              // Compressonator handles UF16/SF16 signed/unsigned cases. Returns signed half-float
-              DecompressBlockBC6(compBlockStart, decompressedBC6, NULL);
-              break;
-            case ResourceFormatType::BC7:
-              DecompressBlockBC7(compBlockStart, decompressedBlock, NULL);
-              break;
-            default:
-              return E_NOTIMPL;    // other formats
-          }
+        bytebuf decompressed;    // Decompressed DDS, 4 byte/pixel
+        decompressed.resize(thumbheight * thumbwidth * 4);
+        unsigned char decompressedBlock[decompressedBlockMaxSize];
+        unsigned char greenBlock[16];
+        uint16_t decompressedBC6[48];
+        const byte *compBlockStart = m_Thumb.pixels;
 
-          unsigned char *decompPointer = decompressedBlock;
-          unsigned char *decompImagePointer = decompressed.data() + decompressedBlockStart;
-          for(int i = 0; i < 4; i++)
+        for(uint32_t blockY = 0; blockY < thumbheight / 4; blockY++)
+        {
+          for(uint32_t blockX = 0; blockX < thumbwidth / 4; blockX++)
           {
+            uint32_t decompressedBlockStart =
+                blockY * 4 * decompressedStride + blockX * decompressedBlockWidth;
             switch(resourceType)
             {
               case ResourceFormatType::BC1:
+                DecompressBlockBC1(compBlockStart, decompressedBlock, NULL);
+                break;
               case ResourceFormatType::BC2:
+                DecompressBlockBC2(compBlockStart, decompressedBlock, NULL);
+                break;
               case ResourceFormatType::BC3:
-              case ResourceFormatType::BC7:
-                memcpy(decompImagePointer, decompPointer,
-                       16);    // copy one stride of the decompressed Block
-                decompPointer += 16;
+                DecompressBlockBC3(compBlockStart, decompressedBlock, NULL);
                 break;
-              case ResourceFormatType::BC4:    // copy the color of the red channel into rgb
-                                               // channels.
-                for(int pixelInStride = 0; pixelInStride < 4; pixelInStride++)
-                {
-                  decompImagePointer[pixelInStride * 4] = decompPointer[pixelInStride];
-                  decompImagePointer[(pixelInStride * 4) + 1] = decompPointer[pixelInStride];
-                  decompImagePointer[(pixelInStride * 4) + 2] = decompPointer[pixelInStride];
-                }
-                decompPointer += 4;
+              case ResourceFormatType::BC4:
+                DecompressBlockBC4(compBlockStart, decompressedBlock, NULL);
                 break;
-              case ResourceFormatType::BC5:    // copy red and green channels.
-                for(int pixelInStride = 0; pixelInStride < 4; pixelInStride++)
-                {
-                  decompImagePointer[pixelInStride * 4] =
-                      decompressedBlock[pixelInStride + (i * 4)];    // copy red channel
-                  decompImagePointer[(pixelInStride * 4) + 1] =
-                      greenBlock[pixelInStride + (i * 4)];    // copy green channel
-                }
+              case ResourceFormatType::BC5:
+                DecompressBlockBC5(compBlockStart, decompressedBlock, greenBlock, NULL);
                 break;
               case ResourceFormatType::BC6:
-                for(int pixelInStride = 0; pixelInStride < 4; pixelInStride++)
-                {
-                  // compute Pixel Index for the decompressedBC6 buffer. One block stide = 12
-                  // floats.
-                  int pixelIndex = pixelInStride * 3 + (i * 12);
-                  // decompressed BC6 block uses 16:16:16 color format. Convert to 8:8:8:8
-                  uint16_t r = decompressedBC6[pixelIndex];
-                  uint16_t g = decompressedBC6[pixelIndex + 1];
-                  uint16_t b = decompressedBC6[pixelIndex + 2];
-                  // convert to half float
-                  float redF = ConvertFromHalf(r);
-                  float greenF = ConvertFromHalf(g);
-                  float blueF = ConvertFromHalf(b);
-                  // clamp to 0..1
-                  redF = RDCCLAMP(redF, 0.0f, 1.0f);
-                  greenF = RDCCLAMP(greenF, 0.0f, 1.0f);
-                  blueF = RDCCLAMP(blueF, 0.0f, 1.0f);
-                  // scale to 0..255
-                  decompImagePointer[pixelInStride * 4] = (unsigned char)(redF * 255);
-                  decompImagePointer[(pixelInStride * 4) + 1] = (unsigned char)(greenF * 255);
-                  decompImagePointer[(pixelInStride * 4) + 2] = (unsigned char)(blueF * 255);
-                }
+                // Compressonator handles UF16/SF16 signed/unsigned cases. Returns signed half-float
+                DecompressBlockBC6(compBlockStart, decompressedBC6, NULL);
+                break;
+              case ResourceFormatType::BC7:
+                DecompressBlockBC7(compBlockStart, decompressedBlock, NULL);
                 break;
               default:
                 return E_NOTIMPL;    // other formats
             }
-            decompImagePointer += decompressedStride;
+
+            unsigned char *decompPointer = decompressedBlock;
+            unsigned char *decompImagePointer = decompressed.data() + decompressedBlockStart;
+            for(int i = 0; i < 4; i++)
+            {
+              switch(resourceType)
+              {
+                case ResourceFormatType::BC1:
+                case ResourceFormatType::BC2:
+                case ResourceFormatType::BC3:
+                case ResourceFormatType::BC7:
+                  memcpy(decompImagePointer, decompPointer,
+                         16);    // copy one stride of the decompressed Block
+                  decompPointer += 16;
+                  break;
+                case ResourceFormatType::BC4:    // copy the color of the red channel into rgb
+                                                 // channels.
+                  for(int pixelInStride = 0; pixelInStride < 4; pixelInStride++)
+                  {
+                    decompImagePointer[pixelInStride * 4] = decompPointer[pixelInStride];
+                    decompImagePointer[(pixelInStride * 4) + 1] = decompPointer[pixelInStride];
+                    decompImagePointer[(pixelInStride * 4) + 2] = decompPointer[pixelInStride];
+                  }
+                  decompPointer += 4;
+                  break;
+                case ResourceFormatType::BC5:    // copy red and green channels.
+                  for(int pixelInStride = 0; pixelInStride < 4; pixelInStride++)
+                  {
+                    decompImagePointer[pixelInStride * 4] =
+                        decompressedBlock[pixelInStride + (i * 4)];    // copy red channel
+                    decompImagePointer[(pixelInStride * 4) + 1] =
+                        greenBlock[pixelInStride + (i * 4)];    // copy green channel
+                  }
+                  break;
+                case ResourceFormatType::BC6:
+                  for(int pixelInStride = 0; pixelInStride < 4; pixelInStride++)
+                  {
+                    // compute Pixel Index for the decompressedBC6 buffer. One block stide = 12
+                    // floats.
+                    int pixelIndex = pixelInStride * 3 + (i * 12);
+                    // decompressed BC6 block uses 16:16:16 color format. Convert to 8:8:8:8
+                    uint16_t r = decompressedBC6[pixelIndex];
+                    uint16_t g = decompressedBC6[pixelIndex + 1];
+                    uint16_t b = decompressedBC6[pixelIndex + 2];
+                    // convert to half float
+                    float redF = ConvertFromHalf(r);
+                    float greenF = ConvertFromHalf(g);
+                    float blueF = ConvertFromHalf(b);
+                    // clamp to 0..1
+                    redF = RDCCLAMP(redF, 0.0f, 1.0f);
+                    greenF = RDCCLAMP(greenF, 0.0f, 1.0f);
+                    blueF = RDCCLAMP(blueF, 0.0f, 1.0f);
+                    // scale to 0..255
+                    decompImagePointer[pixelInStride * 4] = (unsigned char)(redF * 255);
+                    decompImagePointer[(pixelInStride * 4) + 1] = (unsigned char)(greenF * 255);
+                    decompImagePointer[(pixelInStride * 4) + 2] = (unsigned char)(blueF * 255);
+                  }
+                  break;
+                default:
+                  return E_NOTIMPL;    // other formats
+              }
+              decompImagePointer += decompressedStride;
+            }
+            compBlockStart += compressedBlockSize;
           }
-          compBlockStart += compressedBlockSize;
+        }
+
+        byte *decompRead = decompressed.data();
+        byte *imgWrite = thumbpixels;
+        // Iterate over pixels (4byte/pixel in decompressed, 3byte/pixel in thumbpixels)
+        for(uint32_t i = 0; i < thumbwidth * thumbheight; i++)
+        {
+          memcpy(imgWrite, decompRead, 3);
+          decompRead += 4;
+          imgWrite += 3;
         }
       }
-
-      thumbpixels = (byte *)malloc(thumbheight * thumbwidth *
-                                   3);    // Decompressed DDS, 3 byte/pixel without alpha
-      byte *decompRead = decompressed.data();
-      byte *imgWrite = thumbpixels;
-      // Iterate over pixels (4byte/pixel in decompressed, 3byte/pixel in thumbpixels)
-      for(uint32_t i = 0; i < thumbwidth * thumbheight; i++)
+      else
       {
-        memcpy(imgWrite, decompRead, 3);
-        decompRead += 4;
-        imgWrite += 3;
+        // read data as non-compressed
+        const byte *src = m_Thumb.pixels;
+        byte *dst = thumbpixels;
+
+        uint32_t texelSize = m_ddsData.format.ElementSize();
+
+        // account for padding
+        if(resourceType == ResourceFormatType::D32S8)
+          texelSize = 8;
+        else if(resourceType == ResourceFormatType::D16S8)
+          texelSize = 4;
+
+        for(uint32_t y = 0; y < thumbheight; y++)
+        {
+          for(uint32_t x = 0; x < thumbwidth; x++)
+          {
+            FloatVector rgba;
+
+            if(resourceType == ResourceFormatType::D32S8)
+              rgba.x = rgba.y = rgba.z = *(float *)src;
+            else if(resourceType == ResourceFormatType::D24S8)
+              rgba.x = rgba.y = rgba.z = float((*(uint32_t *)src) >> 8) / 16777215.0f;
+            else if(resourceType == ResourceFormatType::D16S8)
+              rgba.x = rgba.y = rgba.z = float(*(uint16_t *)src) / 65535.0f;
+            else
+              rgba = ConvertComponents(m_ddsData.format, src);
+
+            if(resourceType == ResourceFormatType::A8)
+              rgba.y = rgba.z = rgba.x;
+
+            dst[0] = byte(RDCCLAMP(rgba.x, 0.0f, 1.0f) * 255.0f);
+            dst[1] = byte(RDCCLAMP(rgba.y, 0.0f, 1.0f) * 255.0f);
+            dst[2] = byte(RDCCLAMP(rgba.z, 0.0f, 1.0f) * 255.0f);
+
+            src += texelSize;
+            dst += 3;
+          }
+        }
       }
     }
 

@@ -95,6 +95,8 @@ inline Vec4f ConvertFromB4G4R4A4(uint16_t data)
                (float)((data >> 8) & 0xf) / 15.0f, (float)((data >> 12) & 0xf) / 15.0f);
 }
 
+Vec3f ConvertFromR9G9B9E5(uint32_t data);
+
 float ConvertFromSRGB8(uint8_t comp);
 float ConvertSRGBToLinear(float srgbF);
 Vec4f ConvertSRGBToLinear(Vec4f srgbF);

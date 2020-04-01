@@ -76,6 +76,57 @@ float SRGB8_lookuptable[256] = {
     0.938686f, 0.947307f, 0.955974f, 0.964686f, 0.973445f, 0.982251f, 0.991102f, 1.000000f,
 };
 
+Vec3f ConvertFromR9G9B9E5(uint32_t data)
+{
+  // get mantissas
+  uint32_t mantissas[] = {
+      ((data >> 0) & 0x1ff), ((data >> 9) & 0x1ff), ((data >> 18) & 0x1ff),
+  };
+
+  // get shared exponent
+  uint32_t exp = ((data >> 27) & 0x1f);
+
+  // none of the mantissas have a leading implicit 1 like normal floats (otherwise the shared
+  // exponent would be a bit pointless and all floats would have to be within a power of two of each
+  // other).
+  // We could shift each mantissa up until the top bit is set, then overflow that into the implicit
+  // bit and adjust the exponent along with, then plug these into normal floats.
+  // OR we could just manually calculate the effective scale from the exponent and multiply by the
+  // mantissas.
+
+  float scale = powf(2.0f, float(exp) - 15.0f);
+
+  // floats have 23 bit mantissa, 8bit exponent
+  // R11G11B10 has 6/6/5 bit mantissas, 5bit exponents
+  const int mantissaShift = 23 - 9;
+
+  Vec3f ret;
+  uint32_t *retu = (uint32_t *)&ret.x;
+  float *retf = (float *)&ret.x;
+
+  for(int i = 0; i < 3; i++)
+  {
+    if(mantissas[i] == 0 && exp == 0)
+    {
+      retu[i] = 0;
+    }
+    else
+    {
+      if(exp == 0x1f)
+      {
+        // infinity or nan
+        retu[i] = 0x7f800000 | mantissas[i] << mantissaShift;
+      }
+      else
+      {
+        retf[i] = scale * (float(mantissas[i]) / 512.0f);
+      }
+    }
+  }
+
+  return ret;
+}
+
 Vec3f ConvertFromR11G11B10(uint32_t data)
 {
   uint32_t mantissas[3] = {
@@ -239,6 +290,13 @@ FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
       v = ConvertFromR10G10B10A2SNorm(*(const uint32_t *)data);
     else
       v = ConvertFromR10G10B10A2(*(const uint32_t *)data);
+    if(fmt.compType == CompType::UInt)
+    {
+      v.x *= 1023.0f;
+      v.y *= 1023.0f;
+      v.z *= 1023.0f;
+      v.w *= 3.0f;
+    }
     ret.x = v.x;
     ret.y = v.y;
     ret.z = v.z;
@@ -250,6 +308,37 @@ FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
     ret.x = v.x;
     ret.y = v.y;
     ret.z = v.z;
+  }
+  else if(fmt.type == ResourceFormatType::R5G5B5A1)
+  {
+    Vec4f v = ConvertFromB5G5R5A1(*(const uint16_t *)data);
+    ret.x = v.z;
+    ret.y = v.y;
+    ret.z = v.x;
+    ret.w = v.w;
+  }
+  else if(fmt.type == ResourceFormatType::R5G6B5)
+  {
+    Vec3f v = ConvertFromB5G6R5(*(const uint16_t *)data);
+    ret.x = v.z;
+    ret.y = v.y;
+    ret.z = v.x;
+  }
+  else if(fmt.type == ResourceFormatType::R4G4B4A4)
+  {
+    Vec4f v = ConvertFromB4G4R4A4(*(const uint16_t *)data);
+    ret.x = v.z;
+    ret.y = v.y;
+    ret.z = v.x;
+    ret.w = v.w;
+  }
+  else if(fmt.type == ResourceFormatType::R9G9B9E5)
+  {
+    Vec3f v = ConvertFromR9G9B9E5(*(const uint32_t *)data);
+    ret.x = v.x;
+    ret.y = v.y;
+    ret.z = v.z;
+    RDCLOG("%x -> %f,%f,%f", *(const uint32_t *)data, v.x, v.y, v.z);
   }
   else
   {
