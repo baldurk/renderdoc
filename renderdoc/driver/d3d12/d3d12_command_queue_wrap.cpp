@@ -135,7 +135,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
           ID3D12CommandList *list = Unwrap(ppCommandLists[i]);
           real->ExecuteCommandLists(1, &list);
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
-          m_pDevice->GPUSync();
+          m_pDevice->GPUSyncAllQueues();
 #endif
         }
         else
@@ -160,7 +160,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
           }
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
-          m_pDevice->GPUSync();
+          m_pDevice->GPUSyncAllQueues();
 #endif
         }
       }
@@ -314,7 +314,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
         for(size_t i = 0; i < rerecordedCmds.size(); i++)
         {
           real->ExecuteCommandLists(1, &rerecordedCmds[i]);
-          m_pDevice->GPUSync();
+          m_pDevice->GPUSyncAllQueues();
         }
 #else
         real->ExecuteCommandLists((UINT)rerecordedCmds.size(), &rerecordedCmds[0]);
@@ -704,7 +704,7 @@ bool WrappedID3D12CommandQueue::Serialise_Signal(SerialiserType &ser, ID3D12Fenc
   if(IsReplayingAndReading() && pFence)
   {
     m_pReal->Signal(Unwrap(pFence), Value);
-    m_pDevice->GPUSync();
+    m_pDevice->GPUSync(pQueue);
   }
 
   return true;
@@ -742,7 +742,7 @@ bool WrappedID3D12CommandQueue::Serialise_Wait(SerialiserType &ser, ID3D12Fence 
 
   if(IsReplayingAndReading() && pFence)
   {
-    m_pDevice->GPUSync();
+    m_pDevice->GPUSync(pQueue);
   }
 
   return true;
