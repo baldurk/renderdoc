@@ -783,12 +783,22 @@ void ThreadState::StepNext(ShaderDebugState *state,
       else if(opdata.op == Op::SDiv)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.iv[c] /= b.value.iv[c];
+        {
+          if(b.value.uv[c] == 0)
+            var.value.uv[c] = ~0U;
+          else
+            var.value.iv[c] /= b.value.iv[c];
+        }
       }
       else if(opdata.op == Op::UDiv)
       {
         for(uint8_t c = 0; c < var.columns; c++)
-          var.value.uv[c] /= b.value.uv[c];
+        {
+          if(b.value.uv[c] == 0)
+            var.value.uv[c] = ~0U;
+          else
+            var.value.uv[c] /= b.value.uv[c];
+        }
       }
       else if(opdata.op == Op::IAdd)
       {
