@@ -539,6 +539,8 @@ struct D3D12InitialContents
     // this is only valid during capture - it indicates we didn't create a staging texture, we're
     // going to read directly from the resource (only valid for resources that are already READBACK)
     MapDirect,
+    // for created initial states we always have an identical resource
+    ForceCopy,
   };
   D3D12InitialContents(D3D12Descriptor *d, uint32_t n)
       : tag(Copy),

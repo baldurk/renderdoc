@@ -790,7 +790,58 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
   {
     D3D12NOTIMP("Creating init states for resources");
 
-    // not handling any missing states at the moment
+    ID3D12Resource *res = ((ID3D12Resource *)live);
+
+    D3D12_RESOURCE_DESC resDesc = res->GetDesc();
+
+    D3D12_HEAP_PROPERTIES heapProps = {};
+    res->GetHeapProperties(&heapProps, NULL);
+
+    if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD)
+    {
+      // if destination is on the upload heap, it's impossible to copy via the device,
+      // so we have to CPU copy. To save time and make a more optimal copy, we just keep the data
+      // CPU-side
+      D3D12InitialContents initContents(D3D12InitialContents::Copy, Resource_Resource);
+      uint64_t size = RDCMAX(resDesc.Width, 64ULL);
+      initContents.srcData = AllocAlignedBuffer(size);
+      memset(initContents.srcData, 0, (size_t)size);
+      SetInitialContents(id, initContents);
+    }
+    else
+    {
+      // create a GPU-local copy of the resource
+      heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+      heapProps.CreationNodeMask = 1;
+      heapProps.VisibleNodeMask = 1;
+
+      resDesc.Alignment = 0;
+      resDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+      ID3D12Resource *copy = NULL;
+      HRESULT hr = m_Device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &resDesc,
+                                                     D3D12_RESOURCE_STATE_COMMON, NULL,
+                                                     __uuidof(ID3D12Resource), (void **)&copy);
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create initial state copy: %s", ToStr(hr).c_str());
+      }
+      else
+      {
+        ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetInitialStateList());
+
+        copy->SetName(L"Create_InitialState blank");
+
+        list->CopyResource(Unwrap(copy), Unwrap(res));
+
+        D3D12InitialContents initContents(D3D12InitialContents::ForceCopy, type);
+        initContents.resourceType = Resource_Resource;
+        initContents.resource = copy;
+        SetInitialContents(id, initContents);
+      }
+    }
   }
   else
   {
@@ -818,7 +869,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
   }
   else if(type == Resource_Resource)
   {
-    if(data.tag == D3D12InitialContents::Copy)
+    if(data.tag == D3D12InitialContents::Copy || data.tag == D3D12InitialContents::ForceCopy)
     {
       ID3D12Resource *copyDst = Unwrap((ID3D12Resource *)live);
 
@@ -961,9 +1012,10 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
           list->CopyBufferRegion(copyDst, 0, Unwrap(copySrc), 0,
                                  RDCMIN(srcDesc.Width, dstDesc.Width));
         }
-        else if(copyDst->GetDesc().SampleDesc.Count > 1)
+        else if(copyDst->GetDesc().SampleDesc.Count > 1 || data.tag == D3D12InitialContents::ForceCopy)
         {
-          // MSAA texture was pre-uploaded and decoded, just copy the texture
+          // MSAA texture was pre-uploaded and decoded, just copy the texture.
+          // Similarly for created initial states
           list->CopyResource(copyDst, Unwrap(copySrc));
         }
         else

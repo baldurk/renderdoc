@@ -3141,6 +3141,14 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     {
       GetResourceManager()->CreateInitialContents(ser);
 
+      if(initStateCurList)
+      {
+        CloseInitialStateList();
+
+        ExecuteLists(NULL, true);
+        FlushLists();
+      }
+
       SERIALISE_CHECK_READ_ERRORS();
     }
     else if(system == SystemChunk::InitialContents)
