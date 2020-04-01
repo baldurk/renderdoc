@@ -81,6 +81,10 @@ v2f main(consts IN, uint tri : SV_InstanceID)
 
   std::string pixel = R"EOSHADER(
 
+// error X3556: integer divides may be much slower, try using uints if possible.
+// we want to do this on purpose
+#pragma warning( disable : 3556 )
+
 struct InnerStruct
 {
   float a;
@@ -583,6 +587,19 @@ float4 main(v2f IN) : SV_Target0
     uint numSamples = GetRenderTargetSampleCount();
     float2 pos = GetRenderTargetSamplePosition(0);
     return float4(pos, numSamples, 0.0f);
+  }
+  if(IN.tri == 67)
+  {
+    int zero_i = int(zero);
+    int posone_i = int(posone);
+    int negone_i = int(negone);
+    return float4(float(zero_i/zero_i), float(posone_i/zero_i), float(negone_i/zero_i), 1.0f);
+  }
+  if(IN.tri == 68)
+  {
+    uint zero_i = uint(zero);
+    uint posone_i = uint(posone);
+    return float4(float(zero_i/zero_i), float(posone_i/zero_i), 0.0f, 1.0f);
   }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
