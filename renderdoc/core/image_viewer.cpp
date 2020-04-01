@@ -415,6 +415,8 @@ ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
   }
   else
   {
+    FileIO::fseek64(f, 0, SEEK_SET);
+
     int width = 0, height = 0;
     int ignore = 0;
     int ret = stbi_info_from_file(f, &width, &height, &ignore);
@@ -640,6 +642,8 @@ void ImageViewer::RefreshFile()
   }
   else
   {
+    FileIO::fseek64(f, 0, SEEK_SET);
+
     int ignore = 0;
     int ret = stbi_info_from_file(f, (int *)&texDetails.width, (int *)&texDetails.height, &ignore);
 
