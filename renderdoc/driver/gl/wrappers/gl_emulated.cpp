@@ -2654,7 +2654,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
   // Not all devices support RGB framebuffers, so blit that by hand too.
   // This should be expanded to handle any format that fails framebuffer compatibility
   if(format == eGL_LUMINANCE_ALPHA || format == eGL_LUMINANCE || format == eGL_ALPHA ||
-     format == eGL_RGB)
+     (format == eGL_RGB && type != eGL_UNSIGNED_INT_10F_11F_11F_REV))
   {
     RDCDEBUG("Doing manual blit from %s to allow readback", ToStr(format).c_str());
 
@@ -2928,6 +2928,25 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
       RDCDEBUG("Reading as %s/%s but impl supported pair is %s/%s", ToStr(readFormat).c_str(),
                ToStr(type).c_str(), ToStr(implFormat).c_str(), ToStr(implType).c_str());
 
+      bool simpleType = true;
+
+      // we can't handle RGB(A) skipping for mismatched readFormat/implFormat if it's not a regular
+      // component type.
+      switch(type)
+      {
+        case eGL_UNSIGNED_INT_10F_11F_11F_REV:
+        case eGL_UNSIGNED_INT_2_10_10_10_REV:
+        case eGL_UNSIGNED_BYTE_3_3_2:
+        case eGL_UNSIGNED_SHORT_4_4_4_4:
+        case eGL_UNSIGNED_SHORT_5_5_5_1:
+        case eGL_UNSIGNED_SHORT_5_6_5:
+        case eGL_UNSIGNED_INT_10_10_10_2:
+        case eGL_UNSIGNED_INT_5_9_9_9_REV:
+        case eGL_UNSIGNED_INT_24_8:
+        case eGL_FLOAT_32_UNSIGNED_INT_24_8_REV: simpleType = false; break;
+        default: break;
+      }
+
       if(readFormat == implFormat && (type == eGL_HALF_FLOAT_OES || type == eGL_HALF_FLOAT) &&
          (implType == eGL_HALF_FLOAT_OES || implType == eGL_HALF_FLOAT))
       {
@@ -2937,7 +2956,8 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
 
         GL.glReadPixels(0, 0, width, height, readFormat, implType, (void *)dst);
       }
-      else if(remappedRGB || (readFormat == eGL_RGB && implFormat == eGL_RGBA && type == implType))
+      else if(remappedRGB ||
+              (readFormat == eGL_RGB && implFormat == eGL_RGBA && type == implType && simpleType))
       {
         // if the only difference is that the implementation wants to read RGBA for an RGB format
         // (could be understandable if the native storage is RGBA anyway for RGB textures) then we
