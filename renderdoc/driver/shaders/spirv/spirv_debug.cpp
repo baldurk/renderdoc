@@ -467,6 +467,7 @@ void ThreadState::StepNext(ShaderDebugState *state,
         RDCASSERTEQUAL(var.columns, construct.constituents.size());
 
         rdcarray<ShaderVariable> columns;
+        columns.resize(construct.constituents.size());
         for(size_t i = 0; i < construct.constituents.size(); i++)
           columns[i] = GetSrc(construct.constituents[i]);
 
