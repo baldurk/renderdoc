@@ -179,6 +179,7 @@ public:
     return (uint32_t(op) & rdcspv::OpCodeMask) | (uint16_t(WordCount) << rdcspv::WordCountShift);
   }
 
+  ConstIter AsIter() const { return iter; }
 private:
   // everything is based around this iterator, which may point into our local storage or to external
   // storage.

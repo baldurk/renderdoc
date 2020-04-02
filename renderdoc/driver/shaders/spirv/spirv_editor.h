@@ -34,6 +34,12 @@ namespace rdcspv
 {
 class Editor;
 
+struct OperationList : public rdcarray<Operation>
+{
+  // add an operation and return its result id
+  Id add(const rdcspv::Operation &op);
+};
+
 struct Binding
 {
   Binding() = default;
@@ -68,7 +74,7 @@ public:
 
   Id MakeId();
 
-  void AddOperation(Iter iter, const Operation &op);
+  Id AddOperation(Iter iter, const Operation &op);
 
   // callbacks to allow us to update our internal structures over changes
 
@@ -96,7 +102,7 @@ public:
   Id AddType(const Operation &op);
   Id AddVariable(const Operation &op);
   Id AddConstant(const Operation &op);
-  void AddFunction(const Operation *ops, size_t count);
+  void AddFunction(const OperationList &ops);
 
   Iter GetID(Id id);
   // the entry point has 'two' opcodes, the entrypoint declaration and the function.

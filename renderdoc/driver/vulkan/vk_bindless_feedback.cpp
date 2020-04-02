@@ -439,12 +439,9 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
             {
               indexTypeData.signedness = false;
 
-              rdcspv::Id unsignedIndex = editor.MakeId();
-              editor.AddOperation(
-                  it, rdcspv::OpBitcast(editor.DeclareType(indexTypeData), unsignedIndex, index));
+              index = editor.AddOperation(
+                  it, rdcspv::OpBitcast(editor.DeclareType(indexTypeData), editor.MakeId(), index));
               it++;
-
-              index = unsignedIndex;
             }
 
             // if it's not wide enough, uconvert expand it
@@ -452,11 +449,9 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
             {
               rdcspv::Id extendedtype =
                   editor.DeclareType(rdcspv::Scalar(rdcspv::Op::TypeInt, targetIndexWidth, false));
-              rdcspv::Id extendedindex = editor.MakeId();
-              editor.AddOperation(it, rdcspv::OpUConvert(extendedtype, extendedindex, index));
+              index =
+                  editor.AddOperation(it, rdcspv::OpUConvert(extendedtype, editor.MakeId(), index));
               it++;
-
-              index = extendedindex;
             }
           }
 
@@ -467,18 +462,14 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
             rdcspv::Id clampedtype =
                 editor.DeclareType(rdcspv::Scalar(rdcspv::Op::TypeInt, targetIndexWidth, false));
-            rdcspv::Id clampedindex = editor.MakeId();
-
-            editor.AddOperation(
+            index = editor.AddOperation(
                 it, rdcspv::Operation(
                         rdcspv::Op::ExtInst,
                         {
-                            clampedtype.value(), clampedindex.value(), glsl450.value(),
+                            clampedtype.value(), editor.MakeId().value(), glsl450.value(),
                             (uint32_t)rdcspv::GLSLstd450::UMin, index.value(), maxSlotID.value(),
                         }));
             it++;
-
-            index = clampedindex;
           }
 
           rdcspv::Id bufptr;
@@ -489,28 +480,26 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
             // get our output slot address by adding an offset to the base pointer
             // baseaddr = bufferAddressConst + bindingOffset
-            rdcspv::Id baseaddr = editor.MakeId();
-            editor.AddOperation(
-                it, rdcspv::OpIAdd(uint64ID, baseaddr, bufferAddressConst, varIt->second));
+            rdcspv::Id baseaddr = editor.AddOperation(
+                it, rdcspv::OpIAdd(uint64ID, editor.MakeId(), bufferAddressConst, varIt->second));
             it++;
 
             // shift the index since this is a byte offset
             // shiftedindex = index << uint32shift
-            rdcspv::Id shiftedindex = editor.MakeId();
-            editor.AddOperation(
-                it, rdcspv::OpShiftLeftLogical(uint64ID, shiftedindex, index, uint32shift));
+            rdcspv::Id shiftedindex = editor.AddOperation(
+                it, rdcspv::OpShiftLeftLogical(uint64ID, editor.MakeId(), index, uint32shift));
             it++;
 
             // add the index on top of that
             // offsetaddr = baseaddr + shiftedindex
-            rdcspv::Id offsetaddr = editor.MakeId();
-            editor.AddOperation(it, rdcspv::OpIAdd(uint64ID, offsetaddr, baseaddr, shiftedindex));
+            rdcspv::Id offsetaddr = editor.AddOperation(
+                it, rdcspv::OpIAdd(uint64ID, editor.MakeId(), baseaddr, shiftedindex));
             it++;
 
             // make a pointer out of it
             // uint32_t *bufptr = (uint32_t *)offsetaddr
-            bufptr = editor.MakeId();
-            editor.AddOperation(it, rdcspv::OpConvertUToPtr(uint32ptrtype, bufptr, offsetaddr));
+            bufptr = editor.AddOperation(
+                it, rdcspv::OpConvertUToPtr(uint32ptrtype, editor.MakeId(), offsetaddr));
             it++;
           }
           else
@@ -519,16 +508,16 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
 
             // add the index to this binding's base index
             // ssboindex = bindingOffset + index
-            rdcspv::Id ssboindex = editor.MakeId();
-            editor.AddOperation(it, rdcspv::OpIAdd(uint32ID, ssboindex, index, varIt->second));
+            rdcspv::Id ssboindex = editor.AddOperation(
+                it, rdcspv::OpIAdd(uint32ID, editor.MakeId(), index, varIt->second));
             it++;
 
             // accesschain to get the pointer we'll atomic into.
             // accesschain is 0 to access rtarray (first member) then ssboindex for array index
             // uint32_t *bufptr = (uint32_t *)&buf.rtarray[ssboindex];
-            bufptr = editor.MakeId();
-            editor.AddOperation(it, rdcspv::OpAccessChain(uint32ptrtype, bufptr, ssboVar,
-                                                          {rtarrayOffset, ssboindex}));
+            bufptr =
+                editor.AddOperation(it, rdcspv::OpAccessChain(uint32ptrtype, editor.MakeId(),
+                                                              ssboVar, {rtarrayOffset, ssboindex}));
             it++;
           }
 

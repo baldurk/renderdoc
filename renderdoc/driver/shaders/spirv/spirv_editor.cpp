@@ -54,6 +54,12 @@ Scalar::Scalar(Iter it)
   }
 }
 
+Id OperationList::add(const rdcspv::Operation &op)
+{
+  push_back(op);
+  return OpDecoder(op.AsIter()).result;
+}
+
 Editor::Editor(rdcarray<uint32_t> &spirvWords) : m_ExternalSPIRV(spirvWords)
 {
 }
@@ -307,12 +313,12 @@ Id Editor::AddConstant(const Operation &op)
   return id;
 }
 
-void Editor::AddFunction(const Operation *ops, size_t count)
+void Editor::AddFunction(const OperationList &ops)
 {
   size_t offset = m_SPIRV.size();
 
-  for(size_t i = 0; i < count; i++)
-    ops[i].appendTo(m_SPIRV);
+  for(const Operation &op : ops)
+    op.appendTo(m_SPIRV);
 
   RegisterOp(Iter(m_SPIRV, offset));
 }
@@ -351,16 +357,18 @@ Id Editor::DeclareStructType(const rdcarray<Id> &members)
   return typeId;
 }
 
-void Editor::AddOperation(Iter iter, const Operation &op)
+Id Editor::AddOperation(Iter iter, const Operation &op)
 {
   if(!iter)
-    return;
+    return Id();
 
   // add op
   op.insertInto(m_SPIRV, iter.offs());
 
   // update offsets
   addWords(iter.offs(), op.size());
+
+  return OpDecoder(iter).result;
 }
 
 void Editor::RegisterOp(Iter it)
