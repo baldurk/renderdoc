@@ -623,11 +623,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
           ops.add(rdcspv::OpFSub(float2Type, editor.MakeId(), fragXY, destXY));
 
       // abs()
-      rdcspv::Id fragXYAbs = ops.add(rdcspv::Operation(
-          rdcspv::Op::ExtInst, {
-                                   float2Type.value(), editor.MakeId().value(), glsl450.value(),
-                                   (uint32_t)rdcspv::GLSLstd450::FAbs, fragXYRelative.value(),
-                               }));
+      rdcspv::Id fragXYAbs = ops.add(rdcspv::OpGLSL450(float2Type, editor.MakeId(), glsl450,
+                                                       rdcspv::GLSLstd450::FAbs, {fragXYRelative}));
 
       rdcspv::Id half = editor.AddConstantImmediate<float>(0.5f);
       rdcspv::Id threshold =

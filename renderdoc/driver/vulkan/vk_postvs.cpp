@@ -1055,12 +1055,9 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
               editor.SetName(packed, StringFormat::Fmt("packed_%c", swizzle[c]));
 
               // double comp = PackDouble2x32(packed);
-              comps[c] = ops.add(rdcspv::Operation(
-                  rdcspv::Op::ExtInst,
-                  {
-                      editor.DeclareType(rdcspv::scalar<double>()).value(), editor.MakeId().value(),
-                      glsl450.value(), (uint32_t)rdcspv::GLSLstd450::PackDouble2x32, packed.value(),
-                  }));
+              comps[c] = ops.add(rdcspv::OpGLSL450(editor.DeclareType(rdcspv::scalar<double>()),
+                                                   editor.MakeId(), glsl450,
+                                                   rdcspv::GLSLstd450::PackDouble2x32, {packed}));
             }
 
             // if there's only one component it's ready, otherwise construct a vector

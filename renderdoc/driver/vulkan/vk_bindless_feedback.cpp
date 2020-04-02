@@ -463,12 +463,8 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
             rdcspv::Id clampedtype =
                 editor.DeclareType(rdcspv::Scalar(rdcspv::Op::TypeInt, targetIndexWidth, false));
             index = editor.AddOperation(
-                it, rdcspv::Operation(
-                        rdcspv::Op::ExtInst,
-                        {
-                            clampedtype.value(), editor.MakeId().value(), glsl450.value(),
-                            (uint32_t)rdcspv::GLSLstd450::UMin, index.value(), maxSlotID.value(),
-                        }));
+                it, rdcspv::OpGLSL450(clampedtype, editor.MakeId(), glsl450,
+                                      rdcspv::GLSLstd450::UMin, {index, maxSlotID}));
             it++;
           }
 
