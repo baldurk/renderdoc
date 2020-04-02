@@ -148,6 +148,10 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     }
   }
 
+  rdcspv::Id uint32Type = editor.DeclareType(rdcspv::scalar<uint32_t>());
+  rdcspv::Id floatType = editor.DeclareType(rdcspv::scalar<float>());
+  rdcspv::Id boolType = editor.DeclareType(rdcspv::scalar<bool>());
+
   // remove all other entry point
   rdcspv::Id entryID;
   for(const rdcspv::EntryPoint &e : editor.GetEntries())
@@ -263,23 +267,59 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
   rdcspv::Id PSInput;
 
-  // TODO generate actual PSInput for real inputs
   {
-    PSInput =
-        editor.DeclareStructType({editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4))});
+    rdcarray<rdcspv::Id> ids;
+    rdcarray<uint32_t> offsets;
+    rdcarray<uint32_t> indices;
+    for(size_t i = 0; i < shadRefl.refl.inputSignature.size(); i++)
+    {
+      const SigParameter &param = shadRefl.refl.inputSignature[i];
 
-    editor.AddDecoration(rdcspv::OpMemberDecorate(
-        PSInput, 0, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(0)));
+      rdcspv::Scalar base;
+      switch(param.compType)
+      {
+        case CompType::Float: base = rdcspv::scalar<float>(); break;
+        case CompType::UInt: base = rdcspv::scalar<uint32_t>(); break;
+        case CompType::SInt: base = rdcspv::scalar<int32_t>(); break;
+        case CompType::Double: base = rdcspv::scalar<double>(); break;
+        default: RDCERR("Unexpected type %s", ToStr(param.compType).c_str());
+      }
+
+      indices.push_back((uint32_t)offsets.size());
+
+      offsets.push_back(structStride);
+      structStride += param.compCount * (base.width / 8);
+
+      if(param.compCount == 1)
+        ids.push_back(editor.DeclareType(base));
+      else
+        ids.push_back(editor.DeclareType(rdcspv::Vector(base, param.compCount)));
+
+      // align offset conservatively, to 16-byte aligned. We do this with explicit uints so we can
+      // preview with spirv-cross (and because it doesn't cost anything particularly)
+      uint32_t paddingWords = ((16 - (structStride % 16)) / 4) % 4;
+      for(uint32_t p = 0; p < paddingWords; p++)
+      {
+        ids.push_back(uint32Type);
+        offsets.push_back(structStride);
+        structStride += 4;
+      }
+    }
+
+    PSInput = editor.DeclareStructType(ids);
+
+    for(size_t i = 0; i < offsets.size(); i++)
+    {
+      editor.AddDecoration(rdcspv::OpMemberDecorate(
+          PSInput, uint32_t(i), rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offsets[i])));
+    }
+
+    for(size_t i = 0; i < shadRefl.refl.inputSignature.size(); i++)
+      editor.SetMemberName(PSInput, indices[i], shadRefl.refl.inputSignature[i].varName);
 
     editor.SetName(PSInput, "__rd_PSInput");
-    editor.SetMemberName(PSInput, 0, "dummy");
-
-    structStride = sizeof(Vec4f);
   }
 
-  rdcspv::Id uint32Type = editor.DeclareType(rdcspv::scalar<uint32_t>());
-  rdcspv::Id floatType = editor.DeclareType(rdcspv::scalar<float>());
-  rdcspv::Id boolType = editor.DeclareType(rdcspv::scalar<bool>());
   rdcspv::Id float4Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4));
   rdcspv::Id float2Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 2));
 
