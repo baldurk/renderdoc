@@ -1913,6 +1913,11 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           quot.value.uv[i] = srcOpers[1].value.uv[i] / srcOpers[2].value.uv[i];
           rem.value.uv[i] = srcOpers[1].value.uv[i] - (quot.value.uv[i] * srcOpers[2].value.uv[i]);
         }
+        else
+        {
+          if(state)
+            state->flags |= ShaderEvents::GeneratedNanOrInf;
+        }
       }
 
       if(op.operands[0].type != TYPE_NULL)

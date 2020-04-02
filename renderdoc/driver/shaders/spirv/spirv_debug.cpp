@@ -784,20 +784,32 @@ void ThreadState::StepNext(ShaderDebugState *state,
       {
         for(uint8_t c = 0; c < var.columns; c++)
         {
-          if(b.value.uv[c] == 0)
-            var.value.uv[c] = ~0U;
-          else
+          if(b.value.iv[c] != 0)
+          {
             var.value.iv[c] /= b.value.iv[c];
+          }
+          else
+          {
+            var.value.uv[c] = ~0U;
+            if(state)
+              state->flags |= ShaderEvents::GeneratedNanOrInf;
+          }
         }
       }
       else if(opdata.op == Op::UDiv)
       {
         for(uint8_t c = 0; c < var.columns; c++)
         {
-          if(b.value.uv[c] == 0)
-            var.value.uv[c] = ~0U;
-          else
+          if(b.value.uv[c] != 0)
+          {
             var.value.uv[c] /= b.value.uv[c];
+          }
+          else
+          {
+            var.value.uv[c] = ~0U;
+            if(state)
+              state->flags |= ShaderEvents::GeneratedNanOrInf;
+          }
         }
       }
       else if(opdata.op == Op::IAdd)
