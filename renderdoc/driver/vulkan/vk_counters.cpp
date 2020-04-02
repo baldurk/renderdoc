@@ -99,8 +99,6 @@ void VulkanReplay::convertKhrCounterResult(CounterResult &rdcResult,
   // Special case for time units, renderdoc only has a Seconds type.
   if(khrUnit == VK_PERFORMANCE_COUNTER_UNIT_NANOSECONDS_KHR)
   {
-    RDCASSERT(type == CompType::Double);
-
     if((khrStorage == VK_PERFORMANCE_COUNTER_STORAGE_FLOAT64_KHR) ||
        (khrStorage == VK_PERFORMANCE_COUNTER_STORAGE_FLOAT32_KHR))
     {
@@ -203,6 +201,10 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
 
     GetKHRUnitDescription(khrCounter.unit, khrCounter.storage, rdcDesc.unit, rdcDesc.resultType,
                           rdcDesc.resultByteWidth);
+
+    // Special chase for time units.
+    if(khrCounter.unit == VK_PERFORMANCE_COUNTER_UNIT_NANOSECONDS_KHR)
+      rdcDesc.resultType = CompType::Double;
 
     return rdcDesc;
   }
