@@ -257,6 +257,12 @@ void OpenGLGraphicsTest::DestroyContext(void *ctx)
 
 void OpenGLGraphicsTest::ActivateContext(GraphicsWindow *win, void *ctx)
 {
+  if(ctx == NULL)
+  {
+    makeCurrent(NULL, NULL);
+    return;
+  }
+
   Win32Window *win32win = (Win32Window *)win;
 
   HDC dc = GetDC(win32win->wnd);

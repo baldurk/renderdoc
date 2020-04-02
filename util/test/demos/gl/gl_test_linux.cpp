@@ -222,6 +222,12 @@ void OpenGLGraphicsTest::ActivateContext(GraphicsWindow *win, void *ctx)
 {
   X11Window *x11win = (X11Window *)win;
 
+  if(ctx == NULL)
+  {
+    glXMakeContextCurrent(x11win->xlib.display, NULL, NULL, NULL);
+    return;
+  }
+
   glXMakeContextCurrent(x11win->xlib.display, x11win->xlib.window, x11win->xlib.window,
                         (GLXContext)ctx);
 }
