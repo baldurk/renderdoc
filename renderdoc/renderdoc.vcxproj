@@ -688,6 +688,18 @@
       <Project>{257fd75c-4d17-4a23-a754-23bfd85887a0}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(WindowsSdkDir_10)\Redist\D3D\x64\d3dcompiler_47.dll" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x64\d3dcompiler_47.dll') AND '$(Platform)'=='x64'">
+      <Link>d3dcompiler_47.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="$(WindowsSdkDir_10)\Redist\D3D\x86\d3dcompiler_47.dll" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x86\d3dcompiler_47.dll') AND '$(Platform)'=='Win32'">
+      <Link>d3dcompiler_47.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
@@ -699,10 +711,6 @@
     <Copy SourceFiles="$(ProjectDir)3rdparty\dbghelp\$(Platform)\symsrv.yes" DestinationFolder="$(OutDir)">
     </Copy>
     <Copy SourceFiles="$(ProjectDir)3rdparty\dbghelp\$(Platform)\dbghelp.dll" DestinationFolder="$(OutDir)">
-    </Copy>
-    <Copy SourceFiles="$(WindowsSdkDir_10)\Redist\D3D\x64\d3dcompiler_47.dll" DestinationFolder="$(OutDir)" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x64\d3dcompiler_47.dll') AND '$(Platform)'=='x64'">
-    </Copy>
-    <Copy SourceFiles="$(WindowsSdkDir_10)\Redist\D3D\x86\d3dcompiler_47.dll" DestinationFolder="$(OutDir)" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x86\d3dcompiler_47.dll') AND '$(Platform)'=='Win32'">
     </Copy>
   </Target>
 </Project>
