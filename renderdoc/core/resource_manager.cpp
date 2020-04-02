@@ -77,8 +77,12 @@ FrameRefType ComposeFrameRefs(FrameRefType first, FrameRefType second)
         // A `None` reference after any other reference type does not change
         // the first reference type
         return first;
+      else if(first == eFrameRef_PartialWrite && second == eFrameRef_Read)
+        // a `Read` reference after a partial write means we need to store `WriteBeforeRead` instead
+        // of just `Read`.
+        return eFrameRef_WriteBeforeRead;
       else
-        // A `None` or `Write` reference before any non-`None` reference type
+        // Otherwise a `None` or `Write` reference before any non-`None` reference type
         // does not change the reference type.
         return second;
 
