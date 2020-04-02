@@ -993,6 +993,20 @@ GLResourceRecord *WrappedOpenGL::GetContextRecord()
   }
 }
 
+void WrappedOpenGL::CheckImplicitThread()
+{
+  if(IsActiveCapturing(m_State) && m_LastCtx != GetCtx().ctx)
+  {
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(GLChunk::ImplicitThreadSwitch);
+    Serialise_ContextConfiguration(ser, m_LastCtx);
+    Serialise_BeginCaptureFrame(ser);
+    GetContextRecord()->AddChunk(scope.Get());
+
+    m_LastCtx = GetCtx().ctx;
+  }
+}
+
 WrappedOpenGL::ContextData &WrappedOpenGL::GetCtxData()
 {
   return m_ContextData[GetCtx().ctx];
@@ -1527,6 +1541,9 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       Serialise_ContextConfiguration(ser, winData.ctx);
       GetContextRecord()->AddChunk(scope.Get());
     }
+
+    // update the last context so we don't record an implicit switch
+    m_LastCtx = GetCtx().ctx;
   }
 
   // we create these buffers last after serialising the apply of the new state, so that in the
@@ -2178,6 +2195,8 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 
   AttemptCapture();
   BeginCaptureFrame();
+
+  m_LastCtx = GetCtx().ctx;
 
   // serialise out the context configuration for this current context first
   {
@@ -3319,6 +3338,16 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
     if((SystemChunk)context == SystemChunk::CaptureScope || reader->IsErrored() || reader->AtEnd())
       break;
+  }
+
+  if(m_ImplicitThreadSwitches > 2)
+  {
+    AddDebugMessage(
+        MessageCategory::Performance, MessageSeverity::Medium, MessageSource::GeneralPerformance,
+        StringFormat::Fmt(
+            "%d implicit thread switches detected. Multithreaded submission from GL is not "
+            "generally supported and is very inefficient to capture and replay.",
+            m_ImplicitThreadSwitches));
   }
 
 #if ENABLED(RDOC_DEVEL)
@@ -4543,6 +4572,15 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::MakeContextCurrent:
       // re-use the serialisation for beginning of the frame
       return Serialise_BeginCaptureFrame(ser);
+
+    case GLChunk::ImplicitThreadSwitch:
+    {
+      m_ImplicitThreadSwitches++;
+      bool ret = Serialise_ContextConfiguration(ser, NULL);
+      if(!ret)
+        return false;
+      return Serialise_BeginCaptureFrame(ser);
+    }
 
     case GLChunk::ContextConfiguration: return Serialise_ContextConfiguration(ser, NULL);
 

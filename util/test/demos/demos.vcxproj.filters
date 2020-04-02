@@ -469,6 +469,9 @@
     <ClCompile Include="d3d11\d3d11_large_buffer.cpp">
       <Filter>D3D11\demos</Filter>
     </ClCompile>
+    <ClCompile Include="gl\gl_multithread_rendering.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

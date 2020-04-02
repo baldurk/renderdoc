@@ -2196,6 +2196,8 @@ enum class GLChunk : uint32_t
   eglSwapBuffersWithDamageEXT,
   eglSwapBuffersWithDamageKHR,
 
+  ImplicitThreadSwitch,
+
   Max,
 };
 

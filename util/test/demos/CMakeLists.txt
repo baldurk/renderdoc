@@ -60,6 +60,7 @@ set(OPENGL_SRC
         gl/gl_midframe_context_create.cpp
         gl/gl_mip_gen_rt.cpp
         gl/gl_multi_window.cpp
+        gl/gl_multithread_rendering.cpp
         gl/gl_overlay_test.cpp
         gl/gl_parameter_zoo.cpp
         gl/gl_per_type_tex_units.cpp

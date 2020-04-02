@@ -87,16 +87,18 @@ int ScopedPrinter::depth = 0;
 // This checks that we're not infinite looping by calling our own hooks from ourselves. Mostly
 // useful on android where you can only debug by printf and the stack dumps are often corrupted when
 // the callstack overflows.
-#define SCOPED_GLCALL(funcname)    \
-  SCOPED_LOCK(glLock);             \
-  gl_CurChunk = GLChunk::funcname; \
+#define SCOPED_GLCALL(funcname)         \
+  SCOPED_LOCK(glLock);                  \
+  gl_CurChunk = GLChunk::funcname;      \
+  glhook.driver->CheckImplicitThread(); \
   ScopedPrinter CONCAT(scopedprint, __LINE__)(STRINGIZE(funcname));
 
 #else
 
-#define SCOPED_GLCALL(funcname) \
-  SCOPED_LOCK(glLock);          \
-  gl_CurChunk = GLChunk::funcname;
+#define SCOPED_GLCALL(funcname)    \
+  SCOPED_LOCK(glLock);             \
+  gl_CurChunk = GLChunk::funcname; \
+  glhook.driver->CheckImplicitThread();
 
 #endif
 

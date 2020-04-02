@@ -173,6 +173,9 @@ private:
 
   static std::map<uint64_t, GLWindowingData> m_ActiveContexts;
 
+  void *m_LastCtx;
+  int m_ImplicitThreadSwitches = 0;
+
   GLContextTLSData m_EmptyTLSData;
   uint64_t m_CurCtxDataTLS;
   rdcarray<GLContextTLSData *> m_CtxDataVector;
@@ -595,6 +598,8 @@ public:
   RDCDriver GetDriverType() { return m_DriverType; }
   ContextPair &GetCtx();
   GLResourceRecord *GetContextRecord();
+
+  void CheckImplicitThread();
 
   void CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum internalFormatHint,
                           GLenum textype, GLint dim, GLint width, GLint height, GLint depth,
