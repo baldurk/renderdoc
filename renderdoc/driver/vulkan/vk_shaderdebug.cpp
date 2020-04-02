@@ -111,6 +111,8 @@ enum class InputSpecConstant
   Count,
 };
 
+static const uint32_t validMagicNumber = 12345;
+
 static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structStride,
                                  VulkanCreationInfo::ShaderModuleReflection &shadRefl,
                                  StorageMode storageMode, bool usePrimitiveID, bool useSampleID)
@@ -148,9 +150,28 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     }
   }
 
+  rdcspv::MemoryAccessAndParamDatas alignedAccess;
+  alignedAccess.setAligned(sizeof(uint32_t));
+
   rdcspv::Id uint32Type = editor.DeclareType(rdcspv::scalar<uint32_t>());
   rdcspv::Id floatType = editor.DeclareType(rdcspv::scalar<float>());
   rdcspv::Id boolType = editor.DeclareType(rdcspv::scalar<bool>());
+
+  rdcarray<rdcspv::Id> uintConsts;
+
+  auto getUIntConst = [&uintConsts, &editor](uint32_t c) {
+    for(uint32_t i = (uint32_t)uintConsts.size(); i <= c; i++)
+      uintConsts.push_back(editor.AddConstantImmediate<uint32_t>(uint32_t(i)));
+
+    return uintConsts[c];
+  };
+
+  rdcspv::StorageClass bufferClass;
+
+  if(storageMode == Binding)
+    bufferClass = editor.StorageBufferClass();
+  else
+    bufferClass = rdcspv::StorageClass::PhysicalStorageBuffer;
 
   // remove all other entry point
   rdcspv::Id entryID;
@@ -267,6 +288,27 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
   rdcspv::Id PSInput;
 
+  enum Variant
+  {
+    Variant_Base,
+    Variant_ddxcoarse,
+    Variant_ddycoarse,
+    Variant_ddxfine,
+    Variant_ddyfine,
+    Variant_Count,
+  };
+
+  struct valueAndDerivs
+  {
+    rdcspv::Id valueType;
+    rdcspv::Id data[Variant_Count];
+    uint32_t structIndex;
+    rdcspv::OperationList storeOps;
+  };
+
+  rdcarray<valueAndDerivs> values;
+  values.resize(shadRefl.refl.inputSignature.size());
+
   {
     rdcarray<rdcspv::Id> ids;
     rdcarray<uint32_t> offsets;
@@ -285,15 +327,17 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
         default: RDCERR("Unexpected type %s", ToStr(param.compType).c_str());
       }
 
-      indices.push_back((uint32_t)offsets.size());
+      values[i].structIndex = (uint32_t)offsets.size();
 
       offsets.push_back(structStride);
       structStride += param.compCount * (base.width / 8);
 
       if(param.compCount == 1)
-        ids.push_back(editor.DeclareType(base));
+        values[i].valueType = editor.DeclareType(base);
       else
-        ids.push_back(editor.DeclareType(rdcspv::Vector(base, param.compCount)));
+        values[i].valueType = editor.DeclareType(rdcspv::Vector(base, param.compCount));
+
+      ids.push_back(values[i].valueType);
 
       // align offset conservatively, to 16-byte aligned. We do this with explicit uints so we can
       // preview with spirv-cross (and because it doesn't cost anything particularly)
@@ -314,8 +358,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
           PSInput, uint32_t(i), rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offsets[i])));
     }
 
-    for(size_t i = 0; i < shadRefl.refl.inputSignature.size(); i++)
-      editor.SetMemberName(PSInput, indices[i], shadRefl.refl.inputSignature[i].varName);
+    for(size_t i = 0; i < values.size(); i++)
+      editor.SetMemberName(PSInput, values[i].structIndex, shadRefl.refl.inputSignature[i].varName);
 
     editor.SetName(PSInput, "__rd_PSInput");
   }
@@ -350,11 +394,6 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
   editor.SetName(destXY, "destXY");
 
-  rdcspv::Id uintConsts[] = {
-      editor.AddConstantImmediate<uint32_t>(0), editor.AddConstantImmediate<uint32_t>(1),
-      editor.AddConstantImmediate<uint32_t>(2),
-  };
-
   rdcspv::Id PSHit = editor.DeclareStructType({
       // float4 pos;
       float4Type,
@@ -362,9 +401,10 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       uint32Type,
       // uint sample;
       uint32Type,
-      // float derivValid;
-      floatType,
-      // <uint padding>
+      // uint valid;
+      uint32Type,
+      // uint padding;
+      uint32Type,
 
       // IN
       PSInput,
@@ -403,11 +443,15 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
     editor.AddDecoration(rdcspv::OpMemberDecorate(
         PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
-    editor.SetMemberName(PSHit, member, "derivValid");
-    offs += sizeof(float);
+    editor.SetMemberName(PSHit, member, "valid");
+    offs += sizeof(uint32_t);
     member++;
 
-    offs += sizeof(float);    // padding
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
+    editor.SetMemberName(PSHit, member, "padding");
+    offs += sizeof(uint32_t);
+    member++;
 
     RDCASSERT((offs % sizeof(Vec4f)) == 0);
     RDCASSERT((structStride % sizeof(Vec4f)) == 0);
@@ -472,15 +516,12 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     editor.SetMemberName(bufBase, 1, "hits");
   }
 
-  rdcspv::StorageClass bufferClass;
   rdcspv::Id bufptrtype;
   rdcspv::Id ssboVar;
   rdcspv::Id addressConstant;
 
   if(storageMode == Binding)
   {
-    bufferClass = editor.StorageBufferClass();
-
     // the pointers are SSBO pointers
     bufptrtype = editor.DeclareType(rdcspv::Pointer(bufBase, bufferClass));
 
@@ -522,9 +563,6 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
   }
   else
   {
-    // our pointers are physical storage buffer pointers
-    bufferClass = rdcspv::StorageClass::PhysicalStorageBuffer;
-
     bufptrtype = editor.DeclareType(rdcspv::Pointer(bufBase, bufferClass));
 
     // add the extension
@@ -568,6 +606,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
   rdcspv::Id glsl450 = editor.ImportExtInst("GLSL.std.450");
 
+  editor.AddCapability(rdcspv::Capability::DerivativeControl);
+
   {
     rdcspv::OperationList ops;
 
@@ -578,6 +618,58 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
     ops.add(rdcspv::OpLabel(editor.MakeId()));
     {
+      // grab all the values here and get any derivatives we need now before we branch non-uniformly
+      for(size_t i = 0; i < values.size(); i++)
+      {
+        const SPIRVInterfaceAccess &access = shadRefl.patchData.inputs[i];
+        const SigParameter &param = shadRefl.refl.inputSignature[i];
+
+        rdcarray<rdcspv::Id> accessIndices;
+        for(uint32_t idx : access.accessChain)
+          accessIndices.push_back(getUIntConst(idx));
+
+        rdcspv::Id ptrType =
+            editor.DeclareType(rdcspv::Pointer(values[i].valueType, rdcspv::StorageClass::Input));
+        rdcspv::Id ptr =
+            ops.add(rdcspv::OpAccessChain(ptrType, editor.MakeId(), access.ID, accessIndices));
+        rdcspv::Id base = ops.add(rdcspv::OpLoad(values[i].valueType, editor.MakeId(), ptr));
+
+        values[i].data[Variant_Base] = base;
+
+        editor.SetName(base, StringFormat::Fmt("__rd_base_%zu_%s", i, param.varName.c_str()));
+
+        // only float values have derivatives
+        if(param.compType == CompType::Float)
+        {
+          values[i].data[Variant_ddxcoarse] =
+              ops.add(rdcspv::OpDPdxCoarse(values[i].valueType, editor.MakeId(), base));
+          values[i].data[Variant_ddycoarse] =
+              ops.add(rdcspv::OpDPdyCoarse(values[i].valueType, editor.MakeId(), base));
+          values[i].data[Variant_ddxfine] =
+              ops.add(rdcspv::OpDPdxFine(values[i].valueType, editor.MakeId(), base));
+          values[i].data[Variant_ddyfine] =
+              ops.add(rdcspv::OpDPdyFine(values[i].valueType, editor.MakeId(), base));
+
+          editor.SetName(values[i].data[Variant_ddxcoarse],
+                         StringFormat::Fmt("__rd_ddxcoarse_%zu_%s", i, param.varName.c_str()));
+          editor.SetName(values[i].data[Variant_ddycoarse],
+                         StringFormat::Fmt("__rd_ddycoarse_%zu_%s", i, param.varName.c_str()));
+          editor.SetName(values[i].data[Variant_ddxfine],
+                         StringFormat::Fmt("__rd_ddxfine_%zu_%s", i, param.varName.c_str()));
+          editor.SetName(values[i].data[Variant_ddyfine],
+                         StringFormat::Fmt("__rd_ddyfine_%zu_%s", i, param.varName.c_str()));
+        }
+        else
+        {
+          values[i].data[Variant_ddxcoarse] = values[i].data[Variant_ddycoarse] =
+              values[i].data[Variant_ddxfine] = values[i].data[Variant_ddyfine] =
+                  editor.AddConstant(rdcspv::OpConstantNull(values[i].valueType, editor.MakeId()));
+
+          editor.SetName(values[i].data[Variant_ddxcoarse],
+                         StringFormat::Fmt("__rd_noderiv_%zu_%s", i, param.varName.c_str()));
+        }
+      }
+
       rdcspv::Id structPtr = ssboVar;
 
       if(structPtr == rdcspv::Id())
@@ -592,7 +684,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
       // get a pointer to buffer.hit_count
       rdcspv::Id hit_count =
-          ops.add(rdcspv::OpAccessChain(uintPtr, editor.MakeId(), structPtr, {uintConsts[0]}));
+          ops.add(rdcspv::OpAccessChain(uintPtr, editor.MakeId(), structPtr, {getUIntConst(0)}));
 
       rdcspv::Id scope = editor.AddConstantImmediate<uint32_t>((uint32_t)rdcspv::Scope::Device);
       rdcspv::Id semantics =
@@ -647,7 +739,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
       // allocate a slot with atomic add
       rdcspv::Id slot = ops.add(rdcspv::OpAtomicIAdd(uint32Type, editor.MakeId(), hit_count, scope,
-                                                     semantics, uintConsts[1]));
+                                                     semantics, getUIntConst(1)));
 
       editor.SetName(slot, "slot");
 
@@ -663,15 +755,12 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
       // get a pointer to the hit for our slot
       rdcspv::Id hit =
-          ops.add(rdcspv::OpAccessChain(hitptr, editor.MakeId(), structPtr, {uintConsts[1], slot}));
+          ops.add(rdcspv::OpAccessChain(hitptr, editor.MakeId(), structPtr, {getUIntConst(1), slot}));
 
       // store fixed properties
 
-      rdcspv::MemoryAccessAndParamDatas alignedAccess;
-      alignedAccess.setAligned(sizeof(uint32_t));
-
       rdcspv::Id storePtr =
-          ops.add(rdcspv::OpAccessChain(float4BufPtr, editor.MakeId(), hit, {uintConsts[0]}));
+          ops.add(rdcspv::OpAccessChain(float4BufPtr, editor.MakeId(), hit, {getUIntConst(0)}));
       ops.add(rdcspv::OpStore(storePtr, fragCoordLoaded, alignedAccess));
 
       rdcspv::Id loaded;
@@ -692,10 +781,11 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       else
       {
         // explicitly store 0
-        loaded = uintConsts[0];
+        loaded = getUIntConst(0);
       }
 
-      storePtr = ops.add(rdcspv::OpAccessChain(uint32BufPtr, editor.MakeId(), hit, {uintConsts[1]}));
+      storePtr =
+          ops.add(rdcspv::OpAccessChain(uint32BufPtr, editor.MakeId(), hit, {getUIntConst(1)}));
       ops.add(rdcspv::OpStore(storePtr, loaded, alignedAccess));
 
       if(sampleIndex.base != rdcspv::Id())
@@ -715,13 +805,45 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       else
       {
         // explicitly store 0
-        loaded = uintConsts[0];
+        loaded = getUIntConst(0);
       }
 
-      storePtr = ops.add(rdcspv::OpAccessChain(uint32BufPtr, editor.MakeId(), hit, {uintConsts[2]}));
+      storePtr =
+          ops.add(rdcspv::OpAccessChain(uint32BufPtr, editor.MakeId(), hit, {getUIntConst(2)}));
       ops.add(rdcspv::OpStore(storePtr, loaded, alignedAccess));
 
-      // TODO store custom properties, and derivatives
+      storePtr =
+          ops.add(rdcspv::OpAccessChain(uint32BufPtr, editor.MakeId(), hit, {getUIntConst(3)}));
+      ops.add(rdcspv::OpStore(storePtr, editor.AddConstantImmediate(validMagicNumber), alignedAccess));
+
+      // store 0 in the padding
+      storePtr =
+          ops.add(rdcspv::OpAccessChain(uint32BufPtr, editor.MakeId(), hit, {getUIntConst(4)}));
+      ops.add(rdcspv::OpStore(storePtr, getUIntConst(0), alignedAccess));
+
+      {
+        rdcspv::Id inputPtrType = editor.DeclareType(rdcspv::Pointer(PSInput, bufferClass));
+
+        rdcspv::Id outputPtrs[Variant_Count] = {
+            ops.add(rdcspv::OpAccessChain(inputPtrType, editor.MakeId(), hit, {getUIntConst(5)})),
+            ops.add(rdcspv::OpAccessChain(inputPtrType, editor.MakeId(), hit, {getUIntConst(6)})),
+            ops.add(rdcspv::OpAccessChain(inputPtrType, editor.MakeId(), hit, {getUIntConst(7)})),
+            ops.add(rdcspv::OpAccessChain(inputPtrType, editor.MakeId(), hit, {getUIntConst(8)})),
+            ops.add(rdcspv::OpAccessChain(inputPtrType, editor.MakeId(), hit, {getUIntConst(9)})),
+        };
+
+        for(size_t i = 0; i < values.size(); i++)
+        {
+          rdcspv::Id ptrType = editor.DeclareType(rdcspv::Pointer(values[i].valueType, bufferClass));
+
+          for(size_t j = 0; j < Variant_Count; j++)
+          {
+            rdcspv::Id ptr = ops.add(rdcspv::OpAccessChain(ptrType, editor.MakeId(), outputPtrs[j],
+                                                           {getUIntConst(values[i].structIndex)}));
+            ops.add(rdcspv::OpStore(ptr, values[i].data[j], alignedAccess));
+          }
+        }
+      }
 
       // join up with the early-outs we did
       ops.add(rdcspv::OpBranch(killLabel2));
@@ -1270,8 +1392,9 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     Vec4f pos;
     uint32_t prim;
     uint32_t sample;
-    float derivValid;
-    // padding and remaining data
+    uint32_t valid;
+    uint32_t padding;
+    // PSInput base, ddx, ....
   };
 
   for(uint32_t i = 0; i < numHits; i++)
