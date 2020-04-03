@@ -830,12 +830,6 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
       }
       else
       {
-        ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetInitialStateList());
-
-        copy->SetName(L"Create_InitialState blank");
-
-        list->CopyResource(Unwrap(copy), Unwrap(res));
-
         D3D12InitialContents initContents(D3D12InitialContents::ForceCopy, type);
         initContents.resourceType = Resource_Resource;
         initContents.resource = copy;
