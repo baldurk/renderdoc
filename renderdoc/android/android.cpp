@@ -1071,6 +1071,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
 
     // if in VR mode, enable frame delimiter markers
     Android::adbExecCommand(m_deviceID, "shell setprop debug.vr.profiler 1");
+
     // create the data directory we will use for storing, in case the application doesn't
     // NOTE: if processName != packageName, process may not be able to write to this directory
     // unless
@@ -1079,11 +1080,17 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
     // has the permissions set correctly, and we don't have a convenient way to get the package name
     // from native code.
     Android::adbExecCommand(m_deviceID, "shell mkdir -p /sdcard/Android/data/" + processName);
+    Android::adbExecCommand(m_deviceID,
+                            "shell mkdir -p /sdcard/Android/data/" + processName + "/files");
     // set our property with the capture options encoded, to be picked up by the library on the
     // device
     Android::adbExecCommand(m_deviceID,
                             StringFormat::Fmt("shell setprop debug.rdoc.RENDERDOC_CAPOPTS %s",
                                               opts.EncodeAsString().c_str()));
+
+    // try to push our settings file into the appdata folder
+    Android::adbExecCommand(m_deviceID, "push \"" + FileIO::GetAppFolderFilename("renderdoc.conf") +
+                                            "\" /sdcard/Android/data/" + processName + "/files");
 
     rdcstr installedPath = Android::GetPathForPackage(m_deviceID, packageName);
 

@@ -454,6 +454,8 @@ void RenderDoc::ProcessConfig()
 {
   rdcstr confFile = FileIO::GetAppFolderFilename("renderdoc.conf");
 
+  RDCLOG("Loading config from %s", confFile.c_str());
+
   SDObject *loadedConfig = NULL;
   {
     StreamReader reader(FileIO::fopen(confFile.c_str(), "rb"));
