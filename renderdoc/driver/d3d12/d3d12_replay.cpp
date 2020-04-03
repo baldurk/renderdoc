@@ -1276,7 +1276,7 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
 
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
-  state.pipelineResourceId = rm->GetOriginalID(rs.pipe);
+  state.pipelineResourceId = rm->GetUnreplacedOriginalID(rs.pipe);
 
   WrappedID3D12PipelineState *pipe = NULL;
 
@@ -1338,7 +1338,7 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
   {
     WrappedID3D12Shader *sh = (WrappedID3D12Shader *)pipe->compute->CS.pShaderBytecode;
 
-    state.computeShader.resourceId = sh->GetResourceID();
+    state.computeShader.resourceId = rm->GetUnreplacedOriginalID(sh->GetResourceID());
     state.computeShader.stage = ShaderStage::Compute;
     state.computeShader.reflection = &sh->GetDetails();
     state.computeShader.bindpointMapping = sh->GetMapping();
@@ -1372,7 +1372,7 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
 
       if(sh)
       {
-        dst.resourceId = sh->GetResourceID();
+        dst.resourceId = rm->GetUnreplacedOriginalID(sh->GetResourceID());
         dst.bindpointMapping = sh->GetMapping();
         dst.reflection = &sh->GetDetails();
       }

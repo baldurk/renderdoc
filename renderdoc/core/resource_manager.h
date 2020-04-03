@@ -621,6 +621,11 @@ public:
   bool HasReplacement(ResourceId from);
   void RemoveReplacement(ResourceId id);
 
+  // get the original ID for a real ID that may be a replacement. i.e. if ID 123 is ID 10000005
+  // live, and 10000005 live is replaced with 10000839, then calling this function with either ID
+  // 10000005 or ID 10000839 will return ID 123.
+  ResourceId GetUnreplacedOriginalID(ResourceId id);
+
   // fetch original ID for a real ID or vice-versa.
   ResourceId GetOriginalID(ResourceId id);
   ResourceId GetLiveID(ResourceId id);
@@ -728,7 +733,10 @@ protected:
   std::map<ResourceId, RecordType *> m_ResourceRecords;
 
   // used during replay - holds current resource replacements
+  // replaced -> replacement
   std::map<ResourceId, ResourceId> m_Replacements;
+  // replacement -> replaced (for looking up original IDs)
+  std::map<ResourceId, ResourceId> m_Replaced;
 
   // During initial resources preparation, persistent resources are
   // postponed until serializing to RDC file.
@@ -1371,7 +1379,10 @@ void ResourceManager<Configuration>::ReplaceResource(ResourceId from, ResourceId
   SCOPED_LOCK(m_Lock);
 
   if(HasLiveResource(to))
+  {
     m_Replacements[from] = to;
+    m_Replaced[to] = from;
+  }
 }
 
 template <typename Configuration>
@@ -1392,6 +1403,7 @@ void ResourceManager<Configuration>::RemoveReplacement(ResourceId id)
   if(it == m_Replacements.end())
     return;
 
+  m_Replaced.erase(it->second);
   m_Replacements.erase(it);
 }
 
@@ -1636,6 +1648,19 @@ ResourceId ResourceManager<Configuration>::GetOriginalID(ResourceId id)
 {
   if(id == ResourceId())
     return id;
+
+  RDCASSERT(m_OriginalIDs.find(id) != m_OriginalIDs.end(), id);
+  return m_OriginalIDs[id];
+}
+
+template <typename Configuration>
+ResourceId ResourceManager<Configuration>::GetUnreplacedOriginalID(ResourceId id)
+{
+  if(id == ResourceId())
+    return id;
+
+  if(m_Replaced.find(id) != m_Replaced.end())
+    return m_Replaced[id];
 
   RDCASSERT(m_OriginalIDs.find(id) != m_OriginalIDs.end(), id);
   return m_OriginalIDs[id];

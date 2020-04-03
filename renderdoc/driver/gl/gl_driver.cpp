@@ -1638,70 +1638,60 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
     else if(fromresource.Namespace == eResProgram && toresource.Namespace == eResShader)
     {
       // if we want to replace a program with a shader, this is a glCreateShaderProgramv so we need
-      // to handle it specially
+      // to handle it specially. We take the source from the shader, delete the shader, and steal
+      // its ID to create a glCreateShaderProgramv. This avoids the awkward problem where we have
+      // two replacements (program and shader) for one resource.
 
-      ResourceId progsrcid = GetResourceManager()->GetLiveID(from);
-      const ProgramData &progdata = m_Programs[progsrcid];
+      ResourceId targetId = GetResourceManager()->GetID(toresource);
 
-      // if this program has a replacement, remove it and delete the program generated for it
-      if(GetResourceManager()->HasReplacement(from))
-      {
-        glDeleteProgram(GetResourceManager()->GetLiveResource(from).name);
-        GetResourceManager()->RemoveReplacement(from);
-      }
+      // copy the shader data
+      ShaderData shaddata = m_Shaders[targetId];
 
-      GLuint progsrc = GetResourceManager()->GetLiveResource(from).name;
+      // delete the shader completely
+      glDeleteShader(toresource.name);
+      m_Shaders.erase(targetId);
 
-      // make a new program
-      GLuint progdst = glCreateProgram();
+      // create a new unwrapped/unregistered programshader. This must be created unwrapped so we can
+      // assign the existing ID to it.
+      const char *str = shaddata.sources[0].c_str();
+      toresource = ProgramRes(GetCtx(), GL.glCreateShaderProgramv(shaddata.type, 1, &str));
 
-      ResourceId progdstid = GetResourceManager()->GetID(ProgramRes(GetCtx(), progdst));
+      // re-register the programshader in the place of where the shader used to be
+      GetResourceManager()->RegisterResource(toresource, targetId);
 
-      // attach the shader
-      glAttachShader(progdst, GetResourceManager()->GetCurrentResource(to).name);
+      ProgramData &progDetails = m_Programs[targetId];
 
-      // mark separable
-      glProgramParameteri(progdst, eGL_PROGRAM_SEPARABLE, GL_TRUE);
+      progDetails.linked = true;
+      progDetails.shaders.push_back(targetId);
+      progDetails.stageShaders[ShaderIdx(shaddata.type)] = targetId;
+      progDetails.shaderProgramUnlinkable = true;
 
-      // copy VS or FS bindings as necessary
-      ResourceId vs = progdata.stageShaders[0];
-      ResourceId fs = progdata.stageShaders[4];
+      ShaderData &shadDetails = m_Shaders[targetId];
 
-      if(vs != ResourceId())
-        CopyProgramAttribBindings(progsrc, progdst, &m_Shaders[vs].reflection);
+      shadDetails.type = shaddata.type;
+      shadDetails.sources = shaddata.sources;
 
-      if(fs != ResourceId())
-        CopyProgramFragDataBindings(progsrc, progdst, &m_Shaders[fs].reflection);
+      shadDetails.ProcessCompilation(*this, targetId, 0);
 
-      // link new program
-      glLinkProgram(progdst);
+      GetResourceManager()->AddLiveResource(targetId, toresource);
 
-      GLint status = 0;
-      glGetProgramiv(progdst, eGL_LINK_STATUS, &status);
+      // finally since programs have state (sigh) we have to copy that across as well.
+      GLuint progsrc = fromresource.name;
+      GLuint progdst = toresource.name;
 
-      if(status == 0)
-      {
-        GLint len = 1024;
-        glGetProgramiv(progdst, eGL_INFO_LOG_LENGTH, &len);
-        char *buffer = new char[len + 1];
-        glGetProgramInfoLog(progdst, len, NULL, buffer);
-        buffer[len] = 0;
+      if(shaddata.type == eGL_VERTEX_SHADER)
+        CopyProgramAttribBindings(progsrc, progdst, &shadDetails.reflection);
 
-        RDCWARN(
-            "When making program replacement for glCreateShaderProgramv shader, program failed "
-            "to link. Skipping replacement:\n%s",
-            buffer);
+      if(shaddata.type == eGL_FRAGMENT_SHADER)
+        CopyProgramFragDataBindings(progsrc, progdst, &shadDetails.reflection);
 
-        delete[] buffer;
-
-        glDeleteProgram(progdst);
-      }
-      else
       {
         PerStageReflections dstStages;
-        FillReflectionArray(progdstid, dstStages);
+        FillReflectionArray(targetId, dstStages);
 
         std::map<GLint, GLint> translate;
+
+        ResourceId progsrcid = GetResourceManager()->GetID(fromresource);
 
         PerStageReflections stages;
         FillReflectionArray(progsrcid, stages);
@@ -1711,11 +1701,11 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
 
         // start with the original location translation table, to account for any
         // capture-replay translation
-        m_Programs[progdstid].locationTranslate = m_Programs[progsrcid].locationTranslate;
+        m_Programs[targetId].locationTranslate = m_Programs[progsrcid].locationTranslate;
 
         // compose on the one from editing.
-        for(auto lit = m_Programs[progdstid].locationTranslate.begin();
-            lit != m_Programs[progdstid].locationTranslate.end(); lit++)
+        for(auto lit = m_Programs[targetId].locationTranslate.begin();
+            lit != m_Programs[targetId].locationTranslate.end(); lit++)
         {
           auto lit2 = translate.find(lit->second);
           if(lit2 != translate.end())
@@ -1723,10 +1713,11 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
           else
             lit->second = -1;
         }
-
-        // replace the program
-        GetResourceManager()->ReplaceResource(from, progdstid);
       }
+
+      // now finally we can do the replacement as normal
+      GetResourceManager()->RemoveReplacement(from);
+      GetResourceManager()->ReplaceResource(from, to);
     }
     else
     {
@@ -1758,7 +1749,11 @@ void WrappedOpenGL::FreeTargetResource(ResourceId id)
 
     switch(resource.Namespace)
     {
-      case eResShader: glDeleteShader(resource.name); break;
+      case eResShader:
+        glDeleteShader(resource.name);
+        break;
+      // a compiled shader could have been promoted to a program if it were a glCreateShaderProgramv
+      case eResProgram: glDeleteProgram(resource.name); break;
       default: RDCERR("Unexpected resource type to be freed"); break;
     }
   }

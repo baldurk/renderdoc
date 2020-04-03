@@ -138,9 +138,10 @@ public:
     ResourceManager::RemoveResourceRecord(id);
   }
 
-  ResourceId RegisterResource(GLResource res)
+  ResourceId RegisterResource(GLResource res, ResourceId id = ResourceId())
   {
-    ResourceId id = ResourceIDGen::GetNewUniqueID();
+    if(id == ResourceId())
+      id = ResourceIDGen::GetNewUniqueID();
     m_CurrentResourceIds[res] = id;
     AddCurrentResource(id, res);
     return id;
@@ -164,6 +165,8 @@ public:
     {
       m_Names.erase(it->second);
 
+      if(IsReplayMode(m_State) && HasLiveResource(it->second))
+        EraseLiveResource(it->second);
       ReleaseCurrentResource(it->second);
       m_CurrentResourceIds.erase(res);
     }

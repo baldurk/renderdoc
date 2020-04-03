@@ -1034,8 +1034,10 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   memcpy(m_VulkanPipelineState.pushconsts.data(), state.pushconsts, state.pushConstSize);
 
   // General pipeline properties
-  m_VulkanPipelineState.compute.pipelineResourceId = rm->GetOriginalID(state.compute.pipeline);
-  m_VulkanPipelineState.graphics.pipelineResourceId = rm->GetOriginalID(state.graphics.pipeline);
+  m_VulkanPipelineState.compute.pipelineResourceId =
+      rm->GetUnreplacedOriginalID(state.compute.pipeline);
+  m_VulkanPipelineState.graphics.pipelineResourceId =
+      rm->GetUnreplacedOriginalID(state.graphics.pipeline);
 
   if(state.compute.pipeline != ResourceId())
   {
@@ -1049,7 +1051,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
     int i = 5;    // 5 is the CS idx (VS, TCS, TES, GS, FS, CS)
     {
-      stage.resourceId = rm->GetOriginalID(p.shaders[i].module);
+      stage.resourceId = rm->GetUnreplacedOriginalID(p.shaders[i].module);
       stage.entryPoint = p.shaders[i].entryPoint;
 
       stage.stage = ShaderStage::Compute;
@@ -1127,7 +1129,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
     for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
     {
-      stages[i]->resourceId = rm->GetOriginalID(p.shaders[i].module);
+      stages[i]->resourceId = rm->GetUnreplacedOriginalID(p.shaders[i].module);
       stages[i]->entryPoint = p.shaders[i].entryPoint;
 
       stages[i]->stage = StageFromIndex(i);

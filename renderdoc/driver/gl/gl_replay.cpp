@@ -1019,7 +1019,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       ResourceId id = rm->GetID(ProgramPipeRes(ctx, curProg));
       auto &pipeDetails = m_pDriver->m_Pipelines[id];
 
-      pipe.pipelineResourceId = rm->GetOriginalID(id);
+      pipe.pipelineResourceId = rm->GetUnreplacedOriginalID(id);
 
       for(size_t i = 0; i < ARRAY_COUNT(pipeDetails.stageShaders); i++)
       {
@@ -1048,8 +1048,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
           mappings[i] = &stages[i]->bindpointMapping;
 
-          stages[i]->programResourceId = rm->GetOriginalID(pipeDetails.stagePrograms[i]);
-          stages[i]->shaderResourceId = rm->GetOriginalID(pipeDetails.stageShaders[i]);
+          stages[i]->programResourceId = rm->GetUnreplacedOriginalID(pipeDetails.stagePrograms[i]);
+          stages[i]->shaderResourceId = rm->GetUnreplacedOriginalID(pipeDetails.stageShaders[i]);
         }
         else
         {
@@ -1090,8 +1090,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
         mappings[i] = &stages[i]->bindpointMapping;
 
-        stages[i]->programResourceId = rm->GetOriginalID(id);
-        stages[i]->shaderResourceId = rm->GetOriginalID(progDetails.stageShaders[i]);
+        stages[i]->programResourceId = rm->GetUnreplacedOriginalID(id);
+        stages[i]->shaderResourceId = rm->GetUnreplacedOriginalID(progDetails.stageShaders[i]);
       }
       else
       {

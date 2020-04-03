@@ -772,7 +772,7 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
         dst.bindpointMapping = ShaderBindpointMapping();
       }
 
-      dst.resourceId = rm->GetOriginalID(id);
+      dst.resourceId = rm->GetUnreplacedOriginalID(id);
       dst.reflection = refl;
 
       dst.constantBuffers.resize(D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
