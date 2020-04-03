@@ -728,6 +728,27 @@ void LibraryHooks::EndHookRegistration()
     HOOK_DEBUG_PRINT("%s: %p", lib.c_str(), handle);
   }
 
+  // try to prevent the library from being unloaded, increment our dlopen refcount (might not work
+  // on android, but we'll try!)
+  // we use RTLD_NOLOAD to prevent a second copy being loaded if this path doesn't refer to
+  // ourselves or otherwise breaks because of android's terrible library handling.
+  {
+    rdcstr selfLib;
+    FileIO::GetLibraryFilename(selfLib);
+    if(FileIO::exists(selfLib.c_str()))
+    {
+      void *handle = dlopen(selfLib.c_str(), RTLD_NOW | RTLD_NOLOAD | RTLD_LOCAL);
+      if(handle)
+        RDCLOG("Dummy-loaded %s with dlopen to prevent library unload", selfLib.c_str());
+      else
+        RDCLOG("Failed to dummy-loaded %s with dlopen", selfLib.c_str());
+    }
+    else
+    {
+      RDCLOG("Couldn't dummy-load %s because it doesn't exist", selfLib.c_str());
+    }
+  }
+
   if(libs.empty())
   {
     RDCLOG("No library hooks registered, not doing any hooking");

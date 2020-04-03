@@ -23,6 +23,8 @@
  ******************************************************************************/
 
 #include <android/log.h>
+#include <ctype.h>
+#include <dlfcn.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include "common/common.h"
@@ -96,10 +98,105 @@ void GetExecutableFilename(rdcstr &selfName)
   selfName = filename;
 }
 
+int LibraryLocator = 42;
+
 void GetLibraryFilename(rdcstr &selfName)
 {
-  RDCERR("GetLibraryFilename is not defined on Android");
-  GetExecutableFilename(selfName);
+  // this is a hack, but the only reliable way to find the absolute path to the library.
+  // dladdr would be fine but it returns the wrong result for symbols in the library
+
+  rdcstr librenderdoc_path;
+
+  FILE *f = fopen("/proc/self/maps", "r");
+
+  if(f)
+  {
+    // read the whole thing in one go. There's no need to try and be tight with
+    // this allocation, so just make sure we can read everything.
+    char *map_string = new char[1024 * 1024];
+    memset(map_string, 0, 1024 * 1024);
+
+    ::fread(map_string, 1, 1024 * 1024, f);
+
+    ::fclose(f);
+
+    char *c = strstr(map_string, "/" RENDERDOC_ANDROID_LIBRARY);
+
+    if(c)
+    {
+      // walk backwards until we hit the start of the line
+      while(c > map_string)
+      {
+        c--;
+
+        if(c[0] == '\n')
+        {
+          c++;
+          break;
+        }
+      }
+
+      // walk forwards across the address range (00400000-0040c000)
+      while(isalnum(c[0]) || c[0] == '-')
+        c++;
+
+      // whitespace
+      while(c[0] == ' ')
+        c++;
+
+      // permissions (r-xp)
+      while(isalpha(c[0]) || c[0] == '-')
+        c++;
+
+      // whitespace
+      while(c[0] == ' ')
+        c++;
+
+      // offset (0000b000)
+      while(isalnum(c[0]) || c[0] == '-')
+        c++;
+
+      // whitespace
+      while(c[0] == ' ')
+        c++;
+
+      // dev
+      while(isalnum(c[0]) || c[0] == ':')
+        c++;
+
+      // whitespace
+      while(c[0] == ' ')
+        c++;
+
+      // inode
+      while(isdigit(c[0]))
+        c++;
+
+      // whitespace
+      while(c[0] == ' ')
+        c++;
+
+      // FINALLY we are at the start of the actual path
+      char *end = strchr(c, '\n');
+
+      if(end)
+        librenderdoc_path = rdcstr(c, end - c);
+    }
+
+    delete[] map_string;
+  }
+
+  if(librenderdoc_path.empty())
+  {
+    RDCWARN("Couldn't get " RENDERDOC_ANDROID_LIBRARY
+            " path from /proc/self/maps, falling back to dladdr");
+
+    Dl_info info;
+    if(dladdr(&LibraryLocator, &info))
+      librenderdoc_path = info.dli_fname;
+  }
+
+  selfName = librenderdoc_path;
 }
 };
 

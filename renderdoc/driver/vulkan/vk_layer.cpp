@@ -42,6 +42,52 @@
 #define VK_LAYER_EXPORT extern "C" __declspec(dllexport)
 #endif
 
+#if ENABLED(RDOC_ANDROID)
+#include <dlfcn.h>
+
+void KeepLayerAlive()
+{
+  static bool done = false;
+  if(done)
+    return;
+  done = true;
+
+  // on Android 10 the library only gets loaded for layers. If an instance is destroyed the library
+  // would be unloaded. That could cause us to drop target control connections etc.
+  // we create our own instance, which increases the refcount on the layer, then leak it to prevent
+  // the layer being unloaded.
+  RDCLOG("Creating internal instance to bump layer refcount");
+  void *module = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
+  if(!module)
+    module = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
+
+  if(module)
+  {
+    PFN_vkCreateInstance create = (PFN_vkCreateInstance)dlsym(module, "vkCreateInstance");
+    VkApplicationInfo app = {
+        VK_STRUCTURE_TYPE_APPLICATION_INFO, NULL,
+        "RenderDoc forced instance",        VK_MAKE_VERSION(1, 0, 0),
+        "RenderDoc forced instance",        VK_MAKE_VERSION(1, 0, 0),
+        VK_MAKE_VERSION(1, 0, 0),
+    };
+    VkInstanceCreateInfo info = {
+        VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, NULL, 0, &app, 0, NULL, 0, NULL,
+    };
+    VkInstance forceLiveInstance = VK_NULL_HANDLE;
+    VkResult vkr = create(&info, NULL, &forceLiveInstance);
+    RDCLOG("Created own instance %p: %s", forceLiveInstance, ToStr(vkr).c_str());
+  }
+  else
+  {
+    RDCERR("Couldn't load libvulkan - can't force layer to stay alive");
+  }
+}
+#else
+void KeepLayerAlive()
+{
+}
+#endif
+
 // we don't actually hook any modules here. This is just used so that it's called
 // at the right time in initialisation (after capture options are available) to
 // set environment variables
@@ -186,6 +232,8 @@ VKAPI_ATTR VkResult VKAPI_CALL hooked_vkCreateInstance(const VkInstanceCreateInf
                                                        const VkAllocationCallbacks *pAllocator,
                                                        VkInstance *pInstance)
 {
+  KeepLayerAlive();
+
   WrappedVulkan *core = new WrappedVulkan();
   return core->vkCreateInstance(pCreateInfo, pAllocator, pInstance);
 }

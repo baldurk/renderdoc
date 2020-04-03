@@ -723,7 +723,16 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   InitInstanceExtensionTables(m_Instance, record->instDevInfo);
 
-  RenderDoc::Inst().AddDeviceFrameCapturer(LayerDisp(m_Instance), this);
+  // don't register a frame capturer for our internal instance on android
+  if(pCreateInfo->pApplicationInfo && pCreateInfo->pApplicationInfo->pApplicationName &&
+     rdcstr(pCreateInfo->pApplicationInfo->pApplicationName) == "RenderDoc forced instance")
+  {
+    RDCDEBUG("Not registering internal instance as frame capturer");
+  }
+  else
+  {
+    RenderDoc::Inst().AddDeviceFrameCapturer(LayerDisp(m_Instance), this);
+  }
 
   m_DbgReportCallback = VK_NULL_HANDLE;
   m_DbgUtilsCallback = VK_NULL_HANDLE;
