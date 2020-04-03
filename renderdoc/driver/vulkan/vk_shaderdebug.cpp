@@ -61,7 +61,7 @@ public:
   }
 
   virtual void FillInputValue(ShaderVariable &var, ShaderBuiltin builtin, uint32_t location,
-                              uint32_t offset) override
+                              uint32_t component) override
   {
     if(builtin != ShaderBuiltin::Undefined)
     {
@@ -76,7 +76,8 @@ public:
       return;
     }
 
-    RDCASSERT(offset == 0);
+    // TODO handle components
+    RDCASSERT(component == 0);
 
     if(location < location_inputs.size())
     {
@@ -84,12 +85,27 @@ public:
       return;
     }
 
-    RDCERR("Couldn't get input for location=%u, offset=%u", location, offset);
+    RDCERR("Couldn't get input for %s at location=%u, component=%u", var.name.c_str(), location,
+           component);
+  }
+
+  virtual DerivativeDeltas GetDerivative(uint32_t location, uint32_t component) override
+  {
+    // TODO handle components
+    RDCASSERT(component == 0);
+
+    if(location < derivatives.size())
+      return derivatives[location];
+
+    RDCERR("Couldn't get derivative for location=%u, component=%u", location, component);
+    return DerivativeDeltas();
   }
 
   std::map<rdcpair<uint32_t, uint32_t>, bytebuf> cbuffers;
   std::map<ShaderBuiltin, ShaderVariable> builtin_inputs;
   rdcarray<ShaderVariable> location_inputs;
+
+  rdcarray<DerivativeDeltas> derivatives;
 
 private:
   WrappedVulkan *m_pDriver = NULL;
@@ -112,6 +128,16 @@ enum class InputSpecConstant
 };
 
 static const uint32_t validMagicNumber = 12345;
+
+struct PSHit
+{
+  Vec4f pos;
+  uint32_t prim;
+  uint32_t sample;
+  uint32_t valid;
+  uint32_t padding;
+  // PSInput base, ddx, ....
+};
 
 static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structStride,
                                  VulkanCreationInfo::ShaderModuleReflection &shadRefl,
@@ -486,9 +512,6 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     offs += structStride;
     member++;
   }
-
-  // we have 5 input structs, and two vectors for our data
-  structStride = sizeof(Vec4f) + sizeof(Vec4f) + structStride * 5;
 
   rdcspv::Id PSHitRTArray = editor.AddType(rdcspv::OpTypeRuntimeArray(editor.MakeId(), PSHit));
 
@@ -1145,7 +1168,10 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(graphicsInfo, state.graphics.pipeline);
 
-  VkDeviceSize feedbackStorageSize = overdrawLevels * structStride + sizeof(Vec4f) + 1024;
+  // struct size is PSHit header plus 5x structStride = base, ddxcoarse, ddycoarse, ddxfine, ddyfine
+  uint32_t structSize = sizeof(PSHit) + structStride * 5;
+
+  VkDeviceSize feedbackStorageSize = overdrawLevels * structSize + sizeof(Vec4f) + 1024;
 
   if(feedbackStorageSize > m_BindlessFeedback.FeedbackBuffer.sz)
   {
@@ -1387,27 +1413,150 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   base += sizeof(Vec4f);
 
-  struct PSHit
-  {
-    Vec4f pos;
-    uint32_t prim;
-    uint32_t sample;
-    uint32_t valid;
-    uint32_t padding;
-    // PSInput base, ddx, ....
-  };
+  PSHit *winner = NULL;
+
+  RDCLOG("Got %u hits", numHits);
+
+  // if we encounter multiple hits at our destination pixel co-ord (or any other) we
+  // check to see if a specific primitive was requested (via primitive parameter not
+  // being set to ~0U). If it was, debug that pixel, otherwise do a best-estimate
+  // of which fragment was the last to successfully depth test and debug that, just by
+  // checking if the depth test is ordered and picking the final fragment in the series
+
+  // figure out the TL pixel's coords. Assume even top left (towards 0,0)
+  // this isn't spec'd but is a reasonable assumption.
+  int xTL = x & (~1);
+  int yTL = y & (~1);
+
+  // get the index of our desired pixel
+  int destIdx = (x - xTL) + 2 * (y - yTL);
+
+  VkCompareOp depthOp = pipe.depthCompareOp;
+
+  // depth tests disabled acts the same as always compare mode
+  if(!pipe.depthTestEnable)
+    depthOp = VK_COMPARE_OP_ALWAYS;
 
   for(uint32_t i = 0; i < numHits; i++)
   {
     PSHit *hit = (PSHit *)(base + structStride * i);
 
-    RDCLOG("Hit %u at %f, %f, %f, %f", i, hit->pos.x, hit->pos.y, hit->pos.z, hit->pos.w);
+    if(hit->valid != validMagicNumber)
+    {
+      RDCWARN("Hit %u doesn't have valid magic number");
+      continue;
+    }
+
+    // see if this hit is a closer match than the previous winner.
+
+    // if there's no previous winner it's clearly better
+    if(winner == NULL)
+    {
+      winner = hit;
+      continue;
+    }
+
+    // if we're looking for a specific primitive
+    if(primitive != ~0U)
+    {
+      // and this hit is a match and the winner isn't, it's better
+      if(winner->prim != primitive && hit->prim == primitive)
+      {
+        winner = hit;
+        continue;
+      }
+
+      // if the winner is a match and we're not, we can't be better so stop now
+      if(winner->prim == primitive && hit->prim != primitive)
+      {
+        continue;
+      }
+    }
+
+    // if we're looking for a particular sample, check that
+    if(sample != ~0U)
+    {
+      if(winner->sample != sample && hit->sample == sample)
+      {
+        winner = hit;
+        continue;
+      }
+
+      if(winner->sample == sample && hit->sample != sample)
+      {
+        continue;
+      }
+    }
+
+    // otherwise apply depth test
+    switch(depthOp)
+    {
+      case VK_COMPARE_OP_NEVER:
+      case VK_COMPARE_OP_EQUAL:
+      case VK_COMPARE_OP_NOT_EQUAL:
+      case VK_COMPARE_OP_ALWAYS:
+      default:
+        // don't emulate equal or not equal since we don't know the reference value. Take any hit
+        // (thus meaning the last hit)
+        winner = hit;
+        break;
+      case VK_COMPARE_OP_LESS:
+        if(hit->pos.z < winner->pos.z)
+          winner = hit;
+        break;
+      case VK_COMPARE_OP_LESS_OR_EQUAL:
+        if(hit->pos.z <= winner->pos.z)
+          winner = hit;
+        break;
+      case VK_COMPARE_OP_GREATER:
+        if(hit->pos.z > winner->pos.z)
+          winner = hit;
+        break;
+      case VK_COMPARE_OP_GREATER_OR_EQUAL:
+        if(hit->pos.z >= winner->pos.z)
+          winner = hit;
+        break;
+    }
   }
 
-  rdcspv::Debugger *debugger = new rdcspv::Debugger;
-  debugger->Parse(shader.spirv.GetSPIRV());
-  ShaderDebugTrace *ret = debugger->BeginDebug(apiWrapper, ShaderStage::Pixel, entryPoint, spec,
-                                               shadRefl.instructionLines, shadRefl.patchData, 0);
+  ShaderDebugTrace *ret = NULL;
+
+  if(winner)
+  {
+    rdcspv::Debugger *debugger = new rdcspv::Debugger;
+    debugger->Parse(shader.spirv.GetSPIRV());
+
+    // the data immediately follows the PSHit header. Every piece of data is vec4 aligned, and the
+    // output is in input signature order.
+    byte *PSInputs = (byte *)(winner + 1);
+    Vec4f *value = (Vec4f *)(PSInputs + 0 * structStride);
+    Vec4f *ddxcoarse = (Vec4f *)(PSInputs + 1 * structStride);
+    Vec4f *ddycoarse = (Vec4f *)(PSInputs + 2 * structStride);
+    Vec4f *ddxfine = (Vec4f *)(PSInputs + 3 * structStride);
+    Vec4f *ddyfine = (Vec4f *)(PSInputs + 4 * structStride);
+
+    rdcarray<ShaderVariable> &locations = apiWrapper->location_inputs;
+    for(size_t i = 0; i < shadRefl.refl.inputSignature.size(); i++)
+    {
+      const SigParameter &param = shadRefl.refl.inputSignature[i];
+      locations.resize(RDCMAX((uint32_t)locations.size(), param.regIndex + 1));
+      apiWrapper->derivatives.resize(RDCMAX((uint32_t)locations.size(), param.regIndex + 1));
+
+      memcpy(&locations[param.regIndex].value.uv, &value[i], sizeof(Vec4f));
+      memcpy(&apiWrapper->derivatives[param.regIndex].ddxcoarse, &ddxcoarse[i], sizeof(Vec4f));
+      memcpy(&apiWrapper->derivatives[param.regIndex].ddycoarse, &ddycoarse[i], sizeof(Vec4f));
+      memcpy(&apiWrapper->derivatives[param.regIndex].ddxfine, &ddxfine[i], sizeof(Vec4f));
+      memcpy(&apiWrapper->derivatives[param.regIndex].ddyfine, &ddyfine[i], sizeof(Vec4f));
+    }
+
+    ret = debugger->BeginDebug(apiWrapper, ShaderStage::Pixel, entryPoint, spec,
+                               shadRefl.instructionLines, shadRefl.patchData, destIdx);
+  }
+  else
+  {
+    RDCLOG("Didn't get any valid hit to debug");
+    delete apiWrapper;
+  }
 
   if(descpool != VK_NULL_HANDLE)
   {

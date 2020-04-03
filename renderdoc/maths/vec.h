@@ -109,6 +109,38 @@ inline Vec3f operator+=(Vec3f &a, const Vec3f &b)
   return a;
 }
 
+inline Vec4f operator*(const Vec4f &a, const float b)
+{
+  return Vec4f(a.x * b, a.y * b, a.z * b);
+}
+
+inline Vec4f operator+(const Vec4f &a, const Vec4f &b)
+{
+  return Vec4f(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+inline Vec4f operator-(const Vec4f &a)
+{
+  return Vec4f(-a.x, -a.y, -a.z);
+}
+
+inline Vec4f operator-(const Vec4f &a, const Vec4f &b)
+{
+  return a + (-b);
+}
+
+inline Vec4f operator-=(Vec4f &a, const Vec4f &b)
+{
+  a = a - b;
+  return a;
+}
+
+inline Vec4f operator+=(Vec4f &a, const Vec4f &b)
+{
+  a = a + b;
+  return a;
+}
+
 struct Vec4u
 {
   Vec4u(uint32_t X = 0, uint32_t Y = 0, uint32_t Z = 0, uint32_t W = 0)

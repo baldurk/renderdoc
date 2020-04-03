@@ -264,7 +264,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       // fill the interface variable
       AllocateVariable(decorations[v.id], decorations[v.id],
                        isInput ? DebugVariableType::Input : DebugVariableType::Variable, sourceName,
-                       0, dataTypes[type.InnerType()], var);
+                       decorations[v.id].location, dataTypes[type.InnerType()], var);
 
       for(size_t i = oldSize; i < globalSourceVars.size(); i++)
         globalSourceVars[i].signatureIndex =
@@ -385,6 +385,33 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     workgroup[i].inputs = active.inputs;
     workgroup[i].outputs = active.outputs;
     workgroup[i].ids = active.ids;
+    // mark as inactive/helper lane
+    workgroup[i].done = true;
+  }
+
+  if(stage == ShaderStage::Pixel)
+  {
+    // apply derivatives to generate the correct inputs for the quad neighbours
+    for(uint32_t q = 0; q < workgroupSize; q++)
+    {
+      if(q == activeLaneIndex)
+        continue;
+
+      for(size_t i = 0; i < inputIDs.size(); i++)
+      {
+        Id id = inputIDs[i];
+
+        const DataType &type = dataTypes[idTypes[id]];
+
+        // global variables should all be pointers into opaque storage
+        RDCASSERT(type.type == DataType::PointerType);
+
+        const DataType &innertype = dataTypes[type.InnerType()];
+
+        ApplyDerivatives(q, decorations[id], decorations[id].location, innertype,
+                         workgroup[q].inputs[i]);
+      }
+    }
   }
 
   return ret;
@@ -980,10 +1007,21 @@ uint32_t Debugger::AllocateVariable(const Decorations &varDecorations,
   if(sourceVarType == DebugVariableType::Input)
   {
     uint32_t location = genLocations ? offset : 0;
+
+    uint32_t component = 0;
+    for(const DecorationAndParamData &dec : curDecorations.others)
+    {
+      if(dec.value == Decoration::Component)
+      {
+        component = dec.component;
+        break;
+      }
+    }
+
     apiWrapper->FillInputValue(
         outVar, builtin,
         (curDecorations.flags & Decorations::HasLocation) ? curDecorations.location : location,
-        (curDecorations.flags & Decorations::HasOffset) ? curDecorations.offset : 0);
+        component);
   }
   else if(sourceVarType == DebugVariableType::Constant)
   {
@@ -1037,6 +1075,226 @@ uint32_t Debugger::AllocateVariable(const Decorations &varDecorations,
                                               &outVar.value.uv[r * sourceVar.columns]);
         }
       }
+    }
+  }
+
+  // each row consumes a new location
+  return outVar.rows;
+}
+
+uint32_t Debugger::ApplyDerivatives(uint32_t quadIndex, const Decorations &curDecorations,
+                                    uint32_t location, const DataType &inType, ShaderVariable &outVar)
+{
+  switch(inType.type)
+  {
+    case DataType::PointerType:
+    {
+      RDCERR("Pointers not supported in interface variables");
+      return 0;
+    }
+    case DataType::ScalarType:
+    case DataType::VectorType:
+    case DataType::MatrixType: break;
+    case DataType::StructType:
+    {
+      uint32_t childLocation = 0;
+      for(int32_t i = 0; i < inType.children.count(); i++)
+      {
+        const Decorations &childDecorations = inType.children[i].decorations;
+
+        uint32_t locations = ApplyDerivatives(quadIndex, childDecorations, location + childLocation,
+                                              dataTypes[inType.children[i].type], outVar.members[i]);
+
+        childLocation += locations;
+      }
+      return childLocation;
+    }
+    case DataType::ArrayType:
+    {
+      uint32_t childLocation = 0;
+
+      ShaderVariable len = GetActiveLane().ids[inType.length];
+      for(uint32_t i = 0; i < len.value.u.x; i++)
+      {
+        uint32_t locations = ApplyDerivatives(quadIndex, curDecorations, location + childLocation,
+                                              dataTypes[inType.InnerType()], outVar.members[i]);
+
+        childLocation += locations;
+      }
+      return childLocation;
+    }
+    case DataType::ImageType:
+    case DataType::SamplerType:
+    case DataType::SampledImageType:
+    case DataType::UnknownType:
+    {
+      RDCERR("Unexpected variable type %d", inType.type);
+      return 0;
+    }
+  }
+
+  // only floats have derivatives
+  if(outVar.type == VarType::Float)
+  {
+    uint32_t component = 0;
+    for(const DecorationAndParamData &dec : curDecorations.others)
+    {
+      if(dec.value == Decoration::Component)
+      {
+        component = dec.component;
+        break;
+      }
+    }
+
+    // We make the assumption that the coarse derivatives are generated from (0,0) in the quad, and
+    // fine derivatives are generated from the destination index and its neighbours in X and Y.
+    // This isn't spec'd but we must assume something and this will hopefully get us closest to
+    // reproducing actual results.
+    //
+    // For debugging, we need members of the quad to be able to generate coarse and fine
+    // derivatives.
+    //
+    // For (0,0) we only need the coarse derivatives to get our neighbours (1,0) and (0,1) which
+    // will give us coarse and fine derivatives being identical.
+    //
+    // For the others we will need to use a combination of coarse and fine derivatives to get the
+    // diagonal element in the quad. In the examples below, remember that the quad indices are:
+    //
+    // +---+---+
+    // | 0 | 1 |
+    // +---+---+
+    // | 2 | 3 |
+    // +---+---+
+    //
+    // And that we have definitions of the derivatives:
+    //
+    // ddx_coarse = (1,0) - (0,0)
+    // ddy_coarse = (0,1) - (0,0)
+    //
+    // i.e. the same for all members of the quad
+    //
+    // ddx_fine   = (x,y) - (1-x,y)
+    // ddy_fine   = (x,y) - (x,1-y)
+    //
+    // i.e. the difference to the neighbour of our desired invocation (the one we have the actual
+    // inputs for, from gathering above).
+    //
+    // So e.g. if our thread is at (1,1) destIdx = 3
+    //
+    // (1,0) = (1,1) - ddx_fine
+    // (0,1) = (1,1) - ddy_fine
+    // (0,0) = (1,1) - ddy_fine - ddx_coarse
+    //
+    // and ddy_coarse is unused. For (1,0) destIdx = 1:
+    //
+    // (1,1) = (1,0) + ddy_fine
+    // (0,1) = (1,0) - ddx_coarse + ddy_coarse
+    // (0,0) = (1,0) - ddx_coarse
+    //
+    // and ddx_fine is unused (it's identical to ddx_coarse anyway)
+
+    if(curDecorations.flags & Decorations::HasLocation)
+      location = curDecorations.location;
+
+    DebugAPIWrapper::DerivativeDeltas derivs = apiWrapper->GetDerivative(location, component);
+
+    Vec4f &dst = *(Vec4f *)outVar.value.fv;
+
+    // in the diagrams below * marks the active lane index.
+    //
+    //   V and ^ == coarse ddy
+    //   , and ` == fine ddy
+    //   < and > == coarse ddx
+    //   { and } == fine ddx
+    //
+    // We are basically making one or two cardinal direction moves from the starting point
+    // (activeLaneIndex) to the end point (quadIndex).
+    RDCASSERTNOTEQUAL(activeLaneIndex, quadIndex);
+
+    switch(activeLaneIndex)
+    {
+      case 0:
+      {
+        // +---+---+
+        // |*0 > 1 |
+        // +-V-+-V-+
+        // | 2 | 3 |
+        // +---+---+
+        switch(quadIndex)
+        {
+          case 0: break;
+          case 1: dst += derivs.ddxcoarse; break;
+          case 2: dst += derivs.ddycoarse; break;
+          case 3:
+            dst += derivs.ddxcoarse;
+            dst += derivs.ddycoarse;
+            break;
+          default: break;
+        }
+        break;
+      }
+      case 1:
+      {
+        // we need to use fine to get from 1 to 3 as coarse only ever involves 0->1 and 0->2
+        // +---+---+
+        // | 0 < 1*|
+        // +-V-+-,-+
+        // | 2 | 3 |
+        // +---+---+
+        switch(quadIndex)
+        {
+          case 0: dst -= derivs.ddxcoarse; break;
+          case 1: break;
+          case 2:
+            dst -= derivs.ddxcoarse;
+            dst += derivs.ddycoarse;
+            break;
+          case 3: dst += derivs.ddyfine; break;
+          default: break;
+        }
+        break;
+      }
+      case 2:
+      {
+        // +---+---+
+        // | 0 > 1 |
+        // +-^-+---+
+        // |*2 } 3 |
+        // +---+---+
+        switch(quadIndex)
+        {
+          case 0: dst -= derivs.ddycoarse; break;
+          case 1:
+            dst -= derivs.ddycoarse;
+            dst += derivs.ddxcoarse;
+            break;
+          case 2: break;
+          case 3: dst += derivs.ddxfine; break;
+          default: break;
+        }
+        break;
+      }
+      case 3:
+      {
+        // +---+---+
+        // | 0 < 1 |
+        // +---+-`-+
+        // | 2 { 3*|
+        // +---+---+
+        switch(quadIndex)
+        {
+          case 0:
+            dst -= derivs.ddyfine;
+            dst -= derivs.ddxcoarse;
+            break;
+          case 1: dst -= derivs.ddyfine; break;
+          case 2: dst -= derivs.ddxfine; break;
+          case 3: break;
+          default: break;
+        }
+        break;
+      }
+      default: break;
     }
   }
 

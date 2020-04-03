@@ -25,6 +25,7 @@
 #pragma once
 
 #include "api/replay/rdcarray.h"
+#include "maths/vec.h"
 #include "spirv_common.h"
 #include "spirv_processor.h"
 
@@ -43,7 +44,17 @@ public:
   virtual void ReadConstantBufferValue(uint32_t set, uint32_t bind, uint32_t offset,
                                        uint32_t byteSize, void *dst) = 0;
   virtual void FillInputValue(ShaderVariable &var, ShaderBuiltin builtin, uint32_t location,
-                              uint32_t offset) = 0;
+                              uint32_t component) = 0;
+
+  struct DerivativeDeltas
+  {
+    Vec4f ddxcoarse;
+    Vec4f ddycoarse;
+    Vec4f ddxfine;
+    Vec4f ddyfine;
+  };
+
+  virtual DerivativeDeltas GetDerivative(uint32_t location, uint32_t component) = 0;
 };
 
 struct GlobalState
@@ -172,6 +183,9 @@ private:
   uint32_t AllocateVariable(const Decorations &varDecorations, const Decorations &curDecorations,
                             DebugVariableType sourceVarType, const rdcstr &sourceName,
                             uint32_t offset, const DataType &inType, ShaderVariable &outVar);
+  uint32_t ApplyDerivatives(uint32_t quadIndex, const Decorations &curDecorations,
+                            uint32_t location, const DataType &inType, ShaderVariable &outVar);
+
   void AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const DataType &inType,
                      const rdcstr &sourceName, const rdcstr &varName, uint32_t &offset);
   void MakeSignatureNames(const rdcarray<SPIRVInterfaceAccess> &sigList, rdcarray<rdcstr> &sigNames);
