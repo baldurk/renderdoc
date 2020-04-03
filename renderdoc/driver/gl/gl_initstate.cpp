@@ -2418,8 +2418,12 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
           if(data.programs[a].name == data.programs[b].name)
             stages |= ShaderBit(b);
 
+        // go via ID to pick up replacements
+        ResourceId id = GetOriginalID(GetID(data.programs[a]));
+        GLuint prog = GetLiveResource(id).name;
+
         // bind the program on all relevant stages
-        m_Driver->glUseProgramStages(live.name, stages, data.programs[a].name);
+        m_Driver->glUseProgramStages(live.name, stages, prog);
 
         // now we can continue - any of the stages we just bound will discard themselves with the
         // 'previous' check above.
@@ -2428,7 +2432,12 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
       // if we have a compute program, bind that. It's outside of the others since it can't be
       // shared
       if(data.programs[5].name)
-        m_Driver->glUseProgramStages(live.name, eGL_COMPUTE_SHADER_BIT, data.programs[5].name);
+      {
+        ResourceId id = GetOriginalID(GetID(data.programs[5]));
+        GLuint prog = GetLiveResource(id).name;
+
+        m_Driver->glUseProgramStages(live.name, eGL_COMPUTE_SHADER_BIT, prog);
+      }
     }
   }
   else if(live.Namespace == eResVertexArray)
