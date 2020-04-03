@@ -829,14 +829,17 @@ IShaderViewer *PipelineStateViewer::EditShader(ResourceId id, ShaderStage shader
       if(to == ResourceId())
       {
         r->RemoveReplacement(from);
-        if(ptr)
-          GUIInvoke::call(ptr, [ctx]() { ctx->RefreshStatus(); });
+
+        // this GUIInvoke call always needs to go through even if the viewer has been closed.
+        GUIInvoke::call(ctx->GetMainWindow()->Widget(),
+                        [ctx, from]() { ctx->UnregisterReplacement(from); });
       }
       else
       {
         r->ReplaceResource(from, to);
-        if(ptr)
-          GUIInvoke::call(ptr, [ctx]() { ctx->RefreshStatus(); });
+
+        GUIInvoke::call(ctx->GetMainWindow()->Widget(),
+                        [ctx, from]() { ctx->RegisterReplacement(from); });
       }
     });
   };
@@ -846,7 +849,7 @@ IShaderViewer *PipelineStateViewer::EditShader(ResourceId id, ShaderStage shader
     // was a place to control replaced resources/shaders).
     ctx->Replay().AsyncInvoke([ctx, id](IReplayController *r) {
       r->RemoveReplacement(id);
-      GUIInvoke::call(ctx->GetMainWindow()->Widget(), [ctx] { ctx->RefreshStatus(); });
+      GUIInvoke::call(ctx->GetMainWindow()->Widget(), [ctx, id] { ctx->UnregisterReplacement(id); });
     });
   };
 

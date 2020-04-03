@@ -1162,6 +1162,26 @@ been made.
 )");
   virtual void RefreshStatus() = 0;
 
+  DOCUMENT(R"(Register that a resource has replaced, so that the UI can be updated to reflect the
+change.
+
+This should be called at the same time as :meth:`ReplayController.ReplaceResource`.
+
+:param ResourceId id: The id of the resource that has been replaced.
+)");
+  virtual void RegisterReplacement(ResourceId id) = 0;
+
+  DOCUMENT(R"(Register that a replacement has been removed, so that the UI can be updated to reflect
+the change.
+
+This should be called at the same time as :meth:`ReplayController.RemoveReplacement`.
+
+See :meth:`ReplaceResource`.
+
+:param ResourceId id: The id of the original resource that was previously replaced.
+)");
+  virtual void UnregisterReplacement(ResourceId id) = 0;
+
   DOCUMENT(R"(Register a new instance of :class:`CaptureViewer` to receive capture event notifications.
 
 :param CaptureViewer viewer: The viewer to register.
@@ -1343,6 +1363,14 @@ the resource type.
 :rtype: ``str``
 )");
   virtual rdcstr GetResourceName(ResourceId id) = 0;
+
+  DOCUMENT(R"(Returns the same name as :meth:`GetResourceName` but without any added suffix, e.g. to
+indicate the resource's status such as (Edited).
+
+:return: The unsuffixed resource name.
+:rtype: ``str``
+)");
+  virtual rdcstr GetResourceNameUnsuffixed(ResourceId id) = 0;
 
   DOCUMENT(R"(Determines whether the name for the given resource has been customised at all, either
 during capture time or with :meth:`SetResourceCustomName`.

@@ -387,6 +387,7 @@ void ResourceInspector::OnEventChanged(uint32_t eventId)
   {
     m_ResourceCacheID = m_Ctx.ResourceNameCacheID();
     m_ResourceModel->reset();
+    SetResourceNameDisplay(m_Ctx.GetResourceName(m_Resource));
   }
 }
 
@@ -394,9 +395,7 @@ void ResourceInspector::on_renameResource_clicked()
 {
   if(!ui->resourceNameEdit->isVisible())
   {
-    ui->resourceNameEdit->setText(ui->resourceName->text()
-                                      .replace(QFormatStr(" (%1)").arg(ToQStr(m_Resource)), QString())
-                                      .trimmed());
+    ui->resourceNameEdit->setText(m_Ctx.GetResourceNameUnsuffixed(m_Resource).trimmed());
     ui->resourceName->hide();
     ui->resourceNameEdit->show();
     ui->resourceNameEdit->setFocus();
@@ -406,14 +405,14 @@ void ResourceInspector::on_renameResource_clicked()
     QString name = ui->resourceNameEdit->text();
 
     // apply the edit
-    SetResourceNameDisplay(name);
+    m_Ctx.SetResourceCustomName(m_Resource, name);
+
+    SetResourceNameDisplay(m_Ctx.GetResourceName(m_Resource));
 
     ui->resourceNameEdit->hide();
     ui->resourceName->show();
 
     ui->resetName->show();
-
-    m_Ctx.SetResourceCustomName(m_Resource, name);
   }
 }
 
@@ -434,11 +433,11 @@ void ResourceInspector::on_resourceNameEdit_keyPress(QKeyEvent *event)
 
 void ResourceInspector::on_resetName_clicked()
 {
+  m_Ctx.SetResourceCustomName(m_Resource, QString());
+
   SetResourceNameDisplay(m_Ctx.GetResourceName(m_Resource));
 
   ui->resetName->hide();
-
-  m_Ctx.SetResourceCustomName(m_Resource, QString());
 
   // force a refresh to pick up the new name
   ResourceId id = m_Resource;
