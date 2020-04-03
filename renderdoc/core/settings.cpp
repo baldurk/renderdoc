@@ -309,11 +309,13 @@ static bool MergeConfigValues(const rdcstr &prefix, SDObject *dstConfig, const S
           RDCLOG("%s has been customised from %s to %s", (prefix + dstChild->name).c_str(),
                  oldVal.c_str(), newVal.c_str());
 
+#if RENDERDOC_STABLE_BUILD
           if(dstDesc->data.str.contains(debugOnlyString))
           {
             RDCWARN("%s customisation will not apply - read only in this build",
                     (prefix + dstChild->name).c_str());
           }
+#endif
 
           // always set the value. For a debug-only setting this will do nothing but we want to
           // update our config value with the user's in case we're going to write out some new
