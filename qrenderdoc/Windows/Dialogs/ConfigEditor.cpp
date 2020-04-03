@@ -257,7 +257,19 @@ public:
       {
         SDObject *desc = o->FindChild("description");
         if(desc)
-          return desc->AsString();
+        {
+          rdcstr ret = desc->AsString();
+
+          if(o->FindChild("key") == NULL)
+          {
+            ret =
+                "WARNING: Unknown setting, possibly it has been removed or from a different "
+                "build.\n\n" +
+                ret;
+          }
+
+          return ret;
+        }
       }
       else if(role == Qt::FontRole)
       {
@@ -265,6 +277,14 @@ public:
         {
           QFont font;
           font.setBold(true);
+          return font;
+        }
+        // if this is a value but has no key, it's an unrecognised setting (stale/removed, or from
+        // a different or future build).
+        if(o->FindChild("description") && o->FindChild("key") == NULL)
+        {
+          QFont font;
+          font.setItalic(true);
           return font;
         }
       }
@@ -468,6 +488,14 @@ QWidget *SettingDelegate::createEditor(QWidget *parent, const QStyleOptionViewIt
       return ret;
     }
 
+    QString settingName;
+
+    SDObject *key = o->FindChild("key");
+    if(key)
+      settingName = key->AsString();
+    else
+      settingName = tr("Unknown Setting %1").arg(o->name);
+
     // for numbers, provide a spinbox
     if(val->type.basetype == SDBasic::UnsignedInteger || val->type.basetype == SDBasic::SignedInteger)
     {
@@ -491,8 +519,7 @@ QWidget *SettingDelegate::createEditor(QWidget *parent, const QStyleOptionViewIt
     {
       if(QString(o->name).contains(lit("DirPath"), Qt::CaseSensitive))
       {
-        QString dir = RDDialog::getExistingDirectory(
-            m_Editor, tr("Browse for %1").arg(o->FindChild("key")->AsString()));
+        QString dir = RDDialog::getExistingDirectory(m_Editor, tr("Browse for %1").arg(settingName));
 
         if(!dir.isEmpty())
         {
@@ -507,8 +534,7 @@ QWidget *SettingDelegate::createEditor(QWidget *parent, const QStyleOptionViewIt
       }
       else if(QString(o->name).contains(lit("Path"), Qt::CaseSensitive))
       {
-        QString file = RDDialog::getOpenFileName(
-            m_Editor, tr("Browse for %1").arg(o->FindChild("key")->AsString()));
+        QString file = RDDialog::getOpenFileName(m_Editor, tr("Browse for %1").arg(settingName));
 
         if(!file.isEmpty())
         {
@@ -534,7 +560,7 @@ QWidget *SettingDelegate::createEditor(QWidget *parent, const QStyleOptionViewIt
       // only support arrays of strings. Pop up a separate editor to handle this
       QDialog listEditor;
 
-      listEditor.setWindowTitle(tr("Edit values of %1").arg(QString(o->FindChild("key")->AsString())));
+      listEditor.setWindowTitle(tr("Edit values of %1").arg(QString(settingName)));
       listEditor.setWindowFlags(listEditor.windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
       BrowseMode mode = BrowseMode::None;
