@@ -4225,7 +4225,7 @@ void TextureViewer::on_customEdit_clicked()
   QPointer<TextureViewer> thisPointer(this);
 
   IShaderViewer *s = m_Ctx.EditShader(
-      true, ShaderStage::Fragment, lit("main"), files,
+      ResourceId(), ShaderStage::Fragment, lit("main"), files,
       encodingExtensions[QFileInfo(filename).completeSuffix()], ShaderCompileFlags(),
       // Save Callback
       [thisPointer, key, filename, path](ICaptureContext *ctx, IShaderViewer *viewer,

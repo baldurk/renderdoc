@@ -1837,7 +1837,8 @@ place if needed.
 
   DOCUMENT(R"(Show a new :class:`ShaderViewer` window, showing an editable view of a given shader.
 
-:param bool customShader: ``True`` if the shader being edited is a custom display shader.
+:param ~renderdoc.ResourceId id: The shader object, if applicable, that's being edited. If this edit
+  corresponds to no shader object (such as if it's a custom shader) this can be a null ID.
 :param ~renderdoc.ShaderStage stage: The shader stage for this shader.
 :param str entryPoint: The entry point to be used when compiling the edited shader.
 :param list files: The files stored in a ``list`` with 2-tuples of ``str``. The first element being
@@ -1851,7 +1852,7 @@ place if needed.
 :return: The new :class:`ShaderViewer` window opened but not shown for editing.
 :rtype: ShaderViewer
 )");
-  virtual IShaderViewer *EditShader(bool customShader, ShaderStage stage, const rdcstr &entryPoint,
+  virtual IShaderViewer *EditShader(ResourceId id, ShaderStage stage, const rdcstr &entryPoint,
                                     const rdcstrpairs &files, ShaderEncoding shaderEncoding,
                                     ShaderCompileFlags flags,
                                     IShaderViewer::SaveCallback saveCallback,

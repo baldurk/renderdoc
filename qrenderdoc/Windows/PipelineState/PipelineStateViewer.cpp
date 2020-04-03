@@ -853,7 +853,7 @@ IShaderViewer *PipelineStateViewer::EditShader(ResourceId id, ShaderStage shader
     });
   };
 
-  IShaderViewer *sv = m_Ctx.EditShader(false, shaderType, entry, files, encoding, compileFlags,
+  IShaderViewer *sv = m_Ctx.EditShader(id, shaderType, entry, files, encoding, compileFlags,
                                        saveCallback, closeCallback);
 
   m_Ctx.AddDockWindow(sv->Widget(), DockReference::AddTo, this);

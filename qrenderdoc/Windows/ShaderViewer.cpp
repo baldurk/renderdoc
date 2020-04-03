@@ -183,7 +183,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   m_Ctx.AddCaptureViewer(this);
 }
 
-void ShaderViewer::editShader(bool customShader, ShaderStage stage, const QString &entryPoint,
+void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &entryPoint,
                               const rdcstrpairs &files, ShaderEncoding shaderEncoding,
                               ShaderCompileFlags flags)
 {
@@ -195,7 +195,7 @@ void ShaderViewer::editShader(bool customShader, ShaderStage stage, const QStrin
   m_Stage = stage;
   m_Flags = flags;
 
-  m_CustomShader = customShader;
+  m_CustomShader = (id == ResourceId());
 
   // set up compilation parameters
   for(ShaderEncoding i : values<ShaderEncoding>())
@@ -221,7 +221,7 @@ void ShaderViewer::editShader(bool customShader, ShaderStage stage, const QStrin
   // if it's a custom shader, hide the group entirely (don't allow customisation of compile
   // parameters). We can still use it to store the parameters passed in. When visible we collapse it
   // by default.
-  if(customShader)
+  if(m_CustomShader)
     ui->compilationGroup->hide();
 
   // hide debugging windows
@@ -231,7 +231,7 @@ void ShaderViewer::editShader(bool customShader, ShaderStage stage, const QStrin
   ui->callstack->hide();
   ui->sourceVars->hide();
 
-  ui->snippets->setVisible(customShader);
+  ui->snippets->setVisible(m_CustomShader);
 
   // hide debugging toolbar buttons
   ui->debugSep->hide();
@@ -283,11 +283,16 @@ void ShaderViewer::editShader(bool customShader, ShaderStage stage, const QStrin
       sel = scintilla;
 
     if(sel == scintilla || title.isEmpty())
-      title = tr("%1 - Edit (%2)").arg(entryPoint).arg(name);
+      title = tr(" - %1 - %2()").arg(name).arg(entryPoint);
   }
 
   if(sel != NULL)
     ToolWindowManager::raiseToolWindow(sel);
+
+  if(m_CustomShader)
+    title.prepend(tr("Editing %1 Shader").arg(ToQStr(stage, m_Ctx.APIProps().pipelineType)));
+  else
+    title.prepend(tr("Editing %1").arg(m_Ctx.GetResourceNameUnsuffixed(id)));
 
   setWindowTitle(title);
 
@@ -311,7 +316,7 @@ void ShaderViewer::editShader(bool customShader, ShaderStage stage, const QStrin
   ui->docking->setToolWindowProperties(
       m_Errors, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
-  if(!customShader)
+  if(!m_CustomShader)
   {
     ui->compilationGroup->setWindowTitle(tr("Compilation Settings"));
     ui->docking->addToolWindow(ui->compilationGroup,

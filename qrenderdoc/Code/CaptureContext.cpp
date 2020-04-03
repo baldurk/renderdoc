@@ -2163,14 +2163,14 @@ void CaptureContext::ShowResourceInspector()
   m_MainWindow->showResourceInspector();
 }
 
-IShaderViewer *CaptureContext::EditShader(bool customShader, ShaderStage stage,
+IShaderViewer *CaptureContext::EditShader(ResourceId id, ShaderStage stage,
                                           const rdcstr &entryPoint, const rdcstrpairs &files,
                                           ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
                                           IShaderViewer::SaveCallback saveCallback,
                                           IShaderViewer::CloseCallback closeCallback)
 {
-  return ShaderViewer::EditShader(*this, customShader, stage, entryPoint, files, shaderEncoding,
-                                  flags, saveCallback, closeCallback, m_MainWindow->Widget());
+  return ShaderViewer::EditShader(*this, id, stage, entryPoint, files, shaderEncoding, flags,
+                                  saveCallback, closeCallback, m_MainWindow->Widget());
 }
 
 IShaderViewer *CaptureContext::DebugShader(const ShaderBindpointMapping *bind,

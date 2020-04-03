@@ -61,7 +61,7 @@ class ShaderViewer : public QFrame, public IShaderViewer, public ICaptureViewer
   Q_OBJECT
 
 public:
-  static IShaderViewer *EditShader(ICaptureContext &ctx, bool customShader, ShaderStage stage,
+  static IShaderViewer *EditShader(ICaptureContext &ctx, ResourceId id, ShaderStage stage,
                                    const QString &entryPoint, const rdcstrpairs &files,
                                    ShaderEncoding shaderEncoding, ShaderCompileFlags flags,
                                    IShaderViewer::SaveCallback saveCallback,
@@ -70,7 +70,7 @@ public:
     ShaderViewer *ret = new ShaderViewer(ctx, parent);
     ret->m_SaveCallback = saveCallback;
     ret->m_CloseCallback = closeCallback;
-    ret->editShader(customShader, stage, entryPoint, files, shaderEncoding, flags);
+    ret->editShader(id, stage, entryPoint, files, shaderEncoding, flags);
     return ret;
   }
 
@@ -154,7 +154,7 @@ public slots:
 
 private:
   explicit ShaderViewer(ICaptureContext &ctx, QWidget *parent = 0);
-  void editShader(bool customShader, ShaderStage stage, const QString &entryPoint,
+  void editShader(ResourceId id, ShaderStage stage, const QString &entryPoint,
                   const rdcstrpairs &files, ShaderEncoding shaderEncoding, ShaderCompileFlags flags);
   void debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
                    ResourceId pipeline, ShaderDebugTrace *trace, const QString &debugContext);
