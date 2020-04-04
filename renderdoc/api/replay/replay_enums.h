@@ -659,6 +659,14 @@ DOCUMENT(R"(The type of a shader resource bind.
 
   A buffer that can be read from and written to arbitrarily.
 
+.. data:: ReadOnlyResource
+
+  A resource that can only be read from
+
+.. data:: ReadWriteResource
+
+  A resource that can be read from and written to arbitrarily.
+
 .. data:: InputAttachment
 
   An input attachment for reading from the target currently being written.
@@ -675,6 +683,8 @@ enum class BindType : uint32_t
   ReadWriteTBuffer,
   ReadOnlyBuffer,
   ReadWriteBuffer,
+  ReadOnlyResource,
+  ReadWriteResource,
   InputAttachment,
 };
 

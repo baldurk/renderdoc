@@ -923,20 +923,32 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
         const Bindpoint &bind =
             s.bindpointMapping.constantBlocks[s.reflection->constantBlocks[BufIdx].bindPoint];
 
-        int32_t space = s.FindSpace(bind.bindset);
-
-        if(space == -1)
-          return BoundCBuffer();
-
         int32_t shaderReg = bind.bind + (int32_t)ArrayIdx;
-        if(space >= s.spaces.count() || shaderReg >= s.spaces[space].constantBuffers.count())
-          return BoundCBuffer();
 
-        const D3D12Pipe::ConstantBuffer &descriptor = s.spaces[space].constantBuffers[shaderReg];
+        bool found = false;
+        for(size_t i = 0; i < m_D3D12->rootElements.size() && !found; ++i)
+        {
+          const D3D12Pipe::RootSignatureRange &element = m_D3D12->rootElements[i];
+          if((element.visibility & MaskForStage(stage)) == ShaderStageMask::Unknown)
+            continue;
 
-        buf = descriptor.resourceId;
-        ByteOffset = descriptor.byteOffset;
-        ByteSize = descriptor.byteSize;
+          if(element.type == BindType::ConstantBuffer &&
+             element.registerSpace == (uint32_t)bind.bindset)
+          {
+            for(size_t j = 0; j < element.constantBuffers.size(); ++j)
+            {
+              const D3D12Pipe::ConstantBuffer &cb = element.constantBuffers[j];
+              if(cb.bind == (uint32_t)shaderReg)
+              {
+                buf = cb.resourceId;
+                ByteOffset = cb.byteOffset;
+                ByteSize = cb.byteSize;
+                found = true;
+                break;
+              }
+            }
+          }
+        }
       }
     }
     else if(IsCaptureGL())
@@ -1043,28 +1055,34 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) 
         ret.push_back(BoundResourceArray());
         ret.back().bindPoint = bind;
 
-        uint32_t count = bind.arraySize == ~0U ? 1 : bind.arraySize;
+        uint32_t start = bind.bind;
+        uint32_t end = (bind.arraySize == ~0U) ? bind.arraySize : bind.bind + bind.arraySize;
+
         rdcarray<BoundResource> &val = ret.back().resources;
-        val.resize(count);
 
-        int spaceIndex = 0;
-        for(int space = 0; space < s.spaces.count(); space++)
+        for(size_t i = 0; i < m_D3D12->rootElements.size(); ++i)
         {
-          if(s.spaces[space].spaceIndex == (uint32_t)bind.bindset)
+          const D3D12Pipe::RootSignatureRange &element = m_D3D12->rootElements[i];
+          if((element.visibility & MaskForStage(stage)) == ShaderStageMask::Unknown)
+            continue;
+
+          if(element.type == BindType::ReadOnlyResource &&
+             element.registerSpace == (uint32_t)bind.bindset)
           {
-            spaceIndex = space;
-            break;
+            for(size_t j = 0; j < element.views.size(); ++j)
+            {
+              const D3D12Pipe::View &view = element.views[j];
+              if(view.bind >= start && view.bind <= end)
+              {
+                val.push_back(BoundResource());
+                BoundResource &b = val.back();
+                b.resourceId = view.resourceId;
+                b.firstMip = (int)view.firstMip;
+                b.firstSlice = (int)view.firstSlice;
+                b.typeCast = view.viewFormat.compType;
+              }
+            }
           }
-        }
-
-        for(uint32_t i = 0; i < count; i++)
-        {
-          const D3D12Pipe::View &view = s.spaces[spaceIndex].srvs[bind.bind + i];
-
-          val[i].resourceId = view.resourceId;
-          val[i].firstMip = (int)view.firstMip;
-          val[i].firstSlice = (int)view.firstSlice;
-          val[i].typeCast = view.viewFormat.compType;
         }
       }
 
@@ -1198,31 +1216,43 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage)
     {
       const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
-      size_t size = 0;
-      for(int space = 0; space < s.spaces.count(); space++)
-        size += s.spaces[space].uavs.size();
-
+      size_t size = s.bindpointMapping.readWriteResources.size();
       ret.reserve(size);
 
-      for(int space = 0; space < s.spaces.count(); space++)
+      for(size_t bp = 0; bp < size; bp++)
       {
-        for(int reg = 0; reg < s.spaces[space].uavs.count(); reg++)
-        {
-          const D3D12Pipe::View &bind = s.spaces[space].uavs[reg];
-          Bindpoint key(s.spaces[space].spaceIndex, reg);
-          BoundResource val;
+        const Bindpoint &bind = s.bindpointMapping.readWriteResources[bp];
+        ret.push_back(BoundResourceArray());
+        ret.back().bindPoint = bind;
 
-          // consider this register to not exist - it's in a gap defined by sparse root signature
-          // elements
-          if(bind.rootElement == ~0U)
+        uint32_t start = bind.bind;
+        uint32_t end = (bind.arraySize == ~0U) ? bind.arraySize : bind.bind + bind.arraySize;
+
+        rdcarray<BoundResource> &val = ret.back().resources;
+
+        for(size_t i = 0; i < m_D3D12->rootElements.size(); ++i)
+        {
+          const D3D12Pipe::RootSignatureRange &element = m_D3D12->rootElements[i];
+          if((element.visibility & MaskForStage(stage)) == ShaderStageMask::Unknown)
             continue;
 
-          val.resourceId = bind.resourceId;
-          val.firstMip = (int)bind.firstMip;
-          val.firstSlice = (int)bind.firstSlice;
-          val.typeCast = bind.viewFormat.compType;
-
-          ret.push_back(BoundResourceArray(key, {val}));
+          if(element.type == BindType::ReadWriteResource &&
+             element.registerSpace == (uint32_t)bind.bindset)
+          {
+            for(size_t j = 0; j < element.views.size(); ++j)
+            {
+              const D3D12Pipe::View &view = element.views[j];
+              if(view.bind >= start && view.bind <= end)
+              {
+                val.push_back(BoundResource());
+                BoundResource &b = val.back();
+                b.resourceId = view.resourceId;
+                b.firstMip = (int)view.firstMip;
+                b.firstSlice = (int)view.firstSlice;
+                b.typeCast = view.viewFormat.compType;
+              }
+            }
+          }
         }
       }
     }

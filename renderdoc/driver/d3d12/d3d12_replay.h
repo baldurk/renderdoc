@@ -211,10 +211,9 @@ public:
   void FileChanged() {}
   AMDCounters *GetAMDCounters() { return m_pAMDCounters; }
 private:
-  void FillRegisterSpaces(const D3D12RenderState::RootSignature &rootSig,
-                          const ShaderBindpointMapping &mapping,
-                          rdcarray<D3D12Pipe::RegisterSpace> &spaces,
-                          D3D12_SHADER_VISIBILITY visibility);
+  void FillRootElements(const D3D12RenderState::RootSignature &rootSig,
+                        const ShaderBindpointMapping *mappings[(uint32_t)ShaderStage::Count],
+                        rdcarray<D3D12Pipe::RootSignatureRange> &rootElements);
   void FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor *desc);
 
   void ClearPostVSCache();

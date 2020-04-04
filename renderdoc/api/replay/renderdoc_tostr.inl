@@ -679,6 +679,8 @@ rdcstr DoStringise(const BindType &el)
     STRINGISE_ENUM_CLASS_NAMED(ReadWriteTBuffer, "RW TexBuffer");
     STRINGISE_ENUM_CLASS_NAMED(ReadOnlyBuffer, "Buffer");
     STRINGISE_ENUM_CLASS_NAMED(ReadWriteBuffer, "RW Buffer");
+    STRINGISE_ENUM_CLASS_NAMED(ReadOnlyResource, "Resource");
+    STRINGISE_ENUM_CLASS_NAMED(ReadWriteResource, "RW Resource");
     STRINGISE_ENUM_CLASS_NAMED(InputAttachment, "Input");
   }
   END_ENUM_STRINGISE();

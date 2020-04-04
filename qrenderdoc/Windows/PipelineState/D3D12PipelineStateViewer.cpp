@@ -57,22 +57,23 @@ struct D3D12CBufTag
   D3D12CBufTag()
   {
     idx = ~0U;
-    space = reg = arrayIdx = 0;
+    space = reg = rootElement = arrayIdx = 0;
   }
-  D3D12CBufTag(uint32_t s, uint32_t r)
+  D3D12CBufTag(uint32_t s, uint32_t r, uint32_t el)
   {
     idx = ~0U;
     space = s;
     reg = r;
+    rootElement = el;
     arrayIdx = 0;
   }
   D3D12CBufTag(uint32_t i)
   {
     idx = i;
-    space = reg = arrayIdx = 0;
+    space = reg = rootElement = arrayIdx = 0;
   }
 
-  uint32_t idx, space, reg, arrayIdx;
+  uint32_t idx, space, reg, rootElement, arrayIdx;
 };
 
 Q_DECLARE_METATYPE(D3D12CBufTag);
@@ -87,14 +88,15 @@ struct D3D12ViewTag
     OMDepth,
   };
 
-  D3D12ViewTag() : type(SRV), space(0), reg(0) {}
-  D3D12ViewTag(ResType t, int s, int r, const D3D12Pipe::View &rs)
-      : type(t), space(s), reg(r), res(rs)
+  D3D12ViewTag() : type(SRV), space(0), rootElement(0), immediate(false) {}
+  D3D12ViewTag(ResType t, int s, int el, bool imm, const D3D12Pipe::View &rs)
+      : type(t), space(s), rootElement(el), immediate(imm), res(rs)
   {
   }
 
   ResType type;
-  int space, reg;
+  int space, rootElement;
+  bool immediate;
   D3D12Pipe::View res;
 };
 
@@ -637,10 +639,6 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
   const D3D12Pipe::View &r = view.res;
   bool uav = view.type == D3D12ViewTag::UAV;
 
-  // consider this register to not exist - it's in a gap defined by sparse root signature elements
-  if(r.rootElement == ~0U)
-    return;
-
   const Bindpoint *bind = NULL;
   const ShaderResource *shaderInput = NULL;
 
@@ -654,12 +652,12 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
     {
       const Bindpoint &b = binds[i];
 
-      bool regMatch = b.bind == view.reg;
+      bool regMatch = (b.bind == (int)view.res.bind);
 
       // handle unbounded arrays specially. It's illegal to have an unbounded array with
       // anything after it
-      if(b.bind <= view.reg)
-        regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > view.reg);
+      if(b.bind <= (int)view.res.bind)
+        regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > (int)view.res.bind);
 
       if(b.bindset == view.space && regMatch)
       {
@@ -679,7 +677,7 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
 
   if(showNode(usedSlot, filledSlot))
   {
-    QString regname = QString::number(view.reg);
+    QString regname = QString::number(view.res.bind);
 
     if(shaderInput && !shaderInput->name.empty())
       regname += lit(": ") + shaderInput->name;
@@ -762,7 +760,8 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
 
     if(view.type == D3D12ViewTag::OMTarget)
     {
-      node = new RDTreeWidgetItem({view.reg, r.resourceId, typeName, w, h, d, a, format, QString()});
+      node = new RDTreeWidgetItem(
+          {view.res.bind, r.resourceId, typeName, w, h, d, a, format, QString()});
     }
     else if(view.type == D3D12ViewTag::OMDepth)
     {
@@ -771,8 +770,8 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
     }
     else
     {
-      QString rootel = r.immediate ? tr("#%1 Direct").arg(r.rootElement)
-                                   : tr("#%1 Table[%2]").arg(r.rootElement).arg(r.tableIndex);
+      QString rootel = view.immediate ? tr("#%1 Direct").arg(view.rootElement)
+                                      : tr("#%1 Table[%2]").arg(view.rootElement).arg(r.tableIndex);
 
       node = new RDTreeWidgetItem(
           {rootel, view.space, regname, r.resourceId, typeName, w, h, d, a, format, QString()});
@@ -954,10 +953,10 @@ void D3D12PipelineStateViewer::clearState()
   }
 }
 
-void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RDLabel *shader,
-                                              RDLabel *rootSig, RDTreeWidget *resources,
-                                              RDTreeWidget *samplers, RDTreeWidget *cbuffers,
-                                              RDTreeWidget *uavs)
+void D3D12PipelineStateViewer::setShaderState(
+    const rdcarray<D3D12Pipe::RootSignatureRange> &rootElements, const D3D12Pipe::Shader &stage,
+    RDLabel *shader, RDLabel *rootSig, RDTreeWidget *resources, RDTreeWidget *samplers,
+    RDTreeWidget *cbuffers, RDTreeWidget *uavs)
 {
   ShaderReflection *shaderDetails = stage.reflection;
   const D3D12Pipe::State &state = *m_Ctx.CurD3D12PipelineState();
@@ -979,273 +978,282 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RD
   }
   shader->setText(shText);
 
-  int vs = 0;
-
-  vs = resources->verticalScrollBar()->value();
+  int resVs = resources->verticalScrollBar()->value();
   resources->beginUpdate();
   resources->clear();
-  for(int space = 0; space < stage.spaces.count(); space++)
-  {
-    for(int reg = 0; reg < stage.spaces[space].srvs.count(); reg++)
-    {
-      addResourceRow(D3D12ViewTag(D3D12ViewTag::SRV, stage.spaces[space].spaceIndex, reg,
-                                  stage.spaces[space].srvs[reg]),
-                     &stage, resources);
-    }
-  }
-  resources->clearSelection();
-  resources->endUpdate();
-  resources->verticalScrollBar()->setValue(vs);
-
-  vs = uavs->verticalScrollBar()->value();
+  int uavVs = uavs->verticalScrollBar()->value();
   uavs->beginUpdate();
   uavs->clear();
-  for(int space = 0; space < stage.spaces.count(); space++)
-  {
-    for(int reg = 0; reg < stage.spaces[space].uavs.count(); reg++)
-    {
-      addResourceRow(D3D12ViewTag(D3D12ViewTag::UAV, stage.spaces[space].spaceIndex, reg,
-                                  stage.spaces[space].uavs[reg]),
-                     &stage, uavs);
-    }
-  }
-  uavs->clearSelection();
-  uavs->endUpdate();
-  uavs->verticalScrollBar()->setValue(vs);
-
-  vs = samplers->verticalScrollBar()->value();
+  int sampVs = samplers->verticalScrollBar()->value();
   samplers->beginUpdate();
   samplers->clear();
-  for(int space = 0; space < stage.spaces.count(); space++)
+  int cbVs = cbuffers->verticalScrollBar()->value();
+  cbuffers->beginUpdate();
+  cbuffers->clear();
+
+  for(size_t i = 0; i < rootElements.size(); ++i)
   {
-    for(int reg = 0; reg < stage.spaces[space].samplers.count(); reg++)
+    if((rootElements[i].visibility & MaskForStage(stage.stage)) == ShaderStageMask::Unknown)
+      continue;
+
+    switch(rootElements[i].type)
     {
-      const D3D12Pipe::Sampler &s = stage.spaces[space].samplers[reg];
-
-      // consider this register to not exist - it's in a gap defined by sparse root signature
-      // elements
-      if(s.rootElement == ~0U)
-        continue;
-
-      const Bindpoint *bind = NULL;
-      const ShaderSampler *shaderInput = NULL;
-
-      if(stage.reflection)
+      case BindType::ReadOnlyResource:
       {
-        for(int i = 0; i < stage.bindpointMapping.samplers.count(); i++)
+        for(size_t j = 0; j < rootElements[i].views.size(); ++j)
         {
-          const Bindpoint &b = stage.bindpointMapping.samplers[i];
-          const ShaderSampler &res = stage.reflection->samplers[i];
+          addResourceRow(D3D12ViewTag(D3D12ViewTag::SRV, rootElements[i].registerSpace, (int)i,
+                                      rootElements[i].immediate, rootElements[i].views[j]),
+                         &stage, resources);
+        }
+        break;
+      }
+      case BindType::ReadWriteResource:
+      {
+        for(size_t j = 0; j < rootElements[i].views.size(); ++j)
+        {
+          addResourceRow(D3D12ViewTag(D3D12ViewTag::UAV, rootElements[i].registerSpace, (int)i,
+                                      rootElements[i].immediate, rootElements[i].views[j]),
+                         &stage, uavs);
+        }
+        break;
+      }
+      case BindType::Sampler:
+      {
+        for(size_t j = 0; j < rootElements[i].samplers.size(); ++j)
+        {
+          const D3D12Pipe::Sampler &s = rootElements[i].samplers[j];
 
-          bool regMatch = b.bind == reg;
+          const Bindpoint *bind = NULL;
+          const ShaderSampler *shaderInput = NULL;
 
-          // handle unbounded arrays specially. It's illegal to have an unbounded array with
-          // anything after it
-          if(b.bind <= reg)
-            regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
-
-          if(b.bindset == (int32_t)stage.spaces[space].spaceIndex && regMatch)
+          if(stage.reflection)
           {
-            bind = &b;
-            shaderInput = &res;
-            break;
+            for(int k = 0; k < stage.bindpointMapping.samplers.count(); ++k)
+            {
+              const Bindpoint &b = stage.bindpointMapping.samplers[k];
+              const ShaderSampler &res = stage.reflection->samplers[k];
+
+              bool regMatch = (b.bind == (int)s.bind);
+
+              // handle unbounded arrays specially. It's illegal to have an unbounded array with
+              // anything after it
+              if(b.bind <= (int)s.bind)
+                regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > (int)s.bind);
+
+              if(b.bindset == (int)rootElements[i].registerSpace && regMatch)
+              {
+                bind = &b;
+                shaderInput = &res;
+                break;
+              }
+            }
+          }
+
+          QString rootel =
+              rootElements[i].immediate
+                  ? tr("#%1 Static").arg(rootElements[i].rootElement)
+                  : tr("#%1 Table[%2]").arg(rootElements[i].rootElement).arg(s.tableIndex);
+
+          bool filledSlot = s.filter.minify != FilterMode::NoFilter;
+          bool usedSlot = (bind && bind->used);
+
+          if(showNode(usedSlot, filledSlot))
+          {
+            QString regname = QString::number(s.bind);
+
+            if(shaderInput && !shaderInput->name.empty())
+              regname += lit(": ") + shaderInput->name;
+
+            QString borderColor = QFormatStr("%1, %2, %3, %4")
+                                      .arg(s.borderColor[0])
+                                      .arg(s.borderColor[1])
+                                      .arg(s.borderColor[2])
+                                      .arg(s.borderColor[3]);
+
+            QString addressing;
+
+            QString addPrefix;
+            QString addVal;
+
+            QString addr[] = {ToQStr(s.addressU, GraphicsAPI::D3D12),
+                              ToQStr(s.addressV, GraphicsAPI::D3D12),
+                              ToQStr(s.addressW, GraphicsAPI::D3D12)};
+
+            // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
+            for(int a = 0; a < 3; a++)
+            {
+              const QString str[] = {lit("U"), lit("V"), lit("W")};
+              QString prefix = str[a];
+
+              if(a == 0 || addr[a] == addr[a - 1])
+              {
+                addPrefix += prefix;
+              }
+              else
+              {
+                addressing += QFormatStr("%1: %2, ").arg(addPrefix).arg(addVal);
+
+                addPrefix = prefix;
+              }
+              addVal = addr[a];
+            }
+
+            addressing += addPrefix + lit(": ") + addVal;
+
+            if(s.UseBorder())
+              addressing += QFormatStr("<%1>").arg(borderColor);
+
+            QString filter = ToQStr(s.filter);
+
+            if(s.maxAnisotropy > 1)
+              filter += QFormatStr(" %1x").arg(s.maxAnisotropy);
+
+            if(s.filter.filter == FilterFunction::Comparison)
+              filter += QFormatStr(" (%1)").arg(ToQStr(s.compareFunction));
+            else if(s.filter.filter != FilterFunction::Normal)
+              filter += QFormatStr(" (%1)").arg(ToQStr(s.filter.filter));
+
+            RDTreeWidgetItem *node = new RDTreeWidgetItem(
+                {rootel, rootElements[i].registerSpace, regname, addressing, filter,
+                 QFormatStr("%1 - %2")
+                     .arg(s.minLOD == -FLT_MAX ? lit("0") : QString::number(s.minLOD))
+                     .arg(s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD)),
+                 s.mipLODBias});
+
+            if(!filledSlot)
+              setEmptyRow(node);
+
+            if(!usedSlot)
+              setInactiveRow(node);
+
+            samplers->addTopLevelItem(node);
           }
         }
+        break;
       }
-
-      QString rootel = s.immediate ? tr("#%1 Static").arg(s.rootElement)
-                                   : tr("#%1 Table[%2]").arg(s.rootElement).arg(s.tableIndex);
-
-      bool filledSlot = s.filter.minify != FilterMode::NoFilter;
-      bool usedSlot = (bind && bind->used);
-
-      if(showNode(usedSlot, filledSlot))
+      case BindType::ConstantBuffer:
       {
-        QString regname = QString::number(reg);
-
-        if(shaderInput && !shaderInput->name.empty())
-          regname += lit(": ") + shaderInput->name;
-
-        QString borderColor = QFormatStr("%1, %2, %3, %4")
-                                  .arg(s.borderColor[0])
-                                  .arg(s.borderColor[1])
-                                  .arg(s.borderColor[2])
-                                  .arg(s.borderColor[3]);
-
-        QString addressing;
-
-        QString addPrefix;
-        QString addVal;
-
-        QString addr[] = {ToQStr(s.addressU, GraphicsAPI::D3D12),
-                          ToQStr(s.addressV, GraphicsAPI::D3D12),
-                          ToQStr(s.addressW, GraphicsAPI::D3D12)};
-
-        // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
-        for(int a = 0; a < 3; a++)
+        for(size_t j = 0; j < rootElements[i].constantBuffers.size(); ++j)
         {
-          const QString str[] = {lit("U"), lit("V"), lit("W")};
-          QString prefix = str[a];
+          const D3D12Pipe::ConstantBuffer &b = rootElements[i].constantBuffers[j];
 
-          if(a == 0 || addr[a] == addr[a - 1])
+          QVariant tag;
+
+          const Bindpoint *bind = NULL;
+          const ConstantBlock *shaderCBuf = NULL;
+
+          if(stage.reflection)
           {
-            addPrefix += prefix;
+            for(int k = 0; k < stage.bindpointMapping.constantBlocks.count(); ++k)
+            {
+              const Bindpoint &bm = stage.bindpointMapping.constantBlocks[k];
+              const ConstantBlock &res = stage.reflection->constantBlocks[k];
+
+              bool regMatch = bm.bind == (int)b.bind;
+
+              // handle unbounded arrays specially. It's illegal to have an unbounded array with
+              // anything after it
+              if(bm.bind <= (int)b.bind)
+                regMatch = (bm.arraySize == ~0U) || (bm.bind + (int)bm.arraySize > (int)b.bind);
+
+              if(bm.bindset == (int)rootElements[i].registerSpace && regMatch)
+              {
+                bind = &bm;
+                shaderCBuf = &res;
+                D3D12CBufTag cbufTag((uint32_t)i);
+                cbufTag.arrayIdx = b.bind - bm.bind;
+                tag = QVariant::fromValue(cbufTag);
+                break;
+              }
+            }
+          }
+
+          if(!tag.isValid())
+            tag = QVariant::fromValue(
+                D3D12CBufTag(rootElements[i].registerSpace, b.bind, rootElements[i].rootElement));
+
+          QString rootel;
+
+          if(rootElements[i].immediate)
+          {
+            if(!b.rootValues.empty())
+              rootel = tr("#%1 Consts").arg(rootElements[i].rootElement);
+            else
+              rootel = tr("#%1 Direct").arg(rootElements[i].rootElement);
           }
           else
           {
-            addressing += QFormatStr("%1: %2, ").arg(addPrefix).arg(addVal);
-
-            addPrefix = prefix;
+            rootel = tr("#%1 Table[%2]").arg(rootElements[i].rootElement).arg(b.tableIndex);
           }
-          addVal = addr[a];
+
+          bool filledSlot = (b.resourceId != ResourceId());
+          if(rootElements[i].immediate && !b.rootValues.empty())
+            filledSlot = true;
+
+          bool usedSlot = (bind && bind->used);
+
+          if(showNode(usedSlot, filledSlot))
+          {
+            ulong length = b.byteSize;
+            uint64_t offset = b.byteOffset;
+            int numvars = shaderCBuf ? shaderCBuf->variables.count() : 0;
+            uint32_t bytesize = shaderCBuf ? shaderCBuf->byteSize : 0;
+
+            if(rootElements[i].immediate && !b.rootValues.empty())
+              bytesize = uint32_t(b.rootValues.count() * 4);
+
+            QString regname = QString::number(b.bind);
+
+            if(shaderCBuf && !shaderCBuf->name.empty())
+              regname += lit(": ") + shaderCBuf->name;
+
+            if(bind != NULL && bind->arraySize > 1)
+              regname += tr("[%1]").arg(b.bind - bind->bind);
+
+            QString sizestr;
+            if(bytesize == (uint32_t)length)
+              sizestr = tr("%1 Variables, %2 bytes").arg(numvars).arg(length);
+            else
+              sizestr =
+                  tr("%1 Variables, %2 bytes needed, %3 provided").arg(numvars).arg(bytesize).arg(length);
+
+            if(length < bytesize)
+              filledSlot = false;
+
+            RDTreeWidgetItem *node = new RDTreeWidgetItem(
+                {rootel, (qulonglong)rootElements[i].registerSpace, regname, b.resourceId,
+                 QFormatStr("%1 - %2").arg(offset).arg(offset + bytesize), sizestr, QString()});
+
+            node->setTag(tag);
+
+            if(!filledSlot)
+              setEmptyRow(node);
+
+            if(!usedSlot)
+              setInactiveRow(node);
+
+            cbuffers->addTopLevelItem(node);
+          }
         }
-
-        addressing += addPrefix + lit(": ") + addVal;
-
-        if(s.UseBorder())
-          addressing += QFormatStr("<%1>").arg(borderColor);
-
-        QString filter = ToQStr(s.filter);
-
-        if(s.maxAnisotropy > 1)
-          filter += QFormatStr(" %1x").arg(s.maxAnisotropy);
-
-        if(s.filter.filter == FilterFunction::Comparison)
-          filter += QFormatStr(" (%1)").arg(ToQStr(s.compareFunction));
-        else if(s.filter.filter != FilterFunction::Normal)
-          filter += QFormatStr(" (%1)").arg(ToQStr(s.filter.filter));
-
-        RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {rootel, stage.spaces[space].spaceIndex, regname, addressing, filter,
-             QFormatStr("%1 - %2")
-                 .arg(s.minLOD == -FLT_MAX ? lit("0") : QString::number(s.minLOD))
-                 .arg(s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD)),
-             s.mipLODBias});
-
-        if(!filledSlot)
-          setEmptyRow(node);
-
-        if(!usedSlot)
-          setInactiveRow(node);
-
-        samplers->addTopLevelItem(node);
+        break;
       }
+      default: qCritical() << "Unexpected BindType for D3D12 pipeline"; break;
     }
   }
+
+  resources->clearSelection();
+  resources->endUpdate();
+  resources->verticalScrollBar()->setValue(resVs);
+  uavs->clearSelection();
+  uavs->endUpdate();
+  uavs->verticalScrollBar()->setValue(uavVs);
   samplers->clearSelection();
   samplers->endUpdate();
-  samplers->verticalScrollBar()->setValue(vs);
-
-  vs = cbuffers->verticalScrollBar()->value();
-  cbuffers->beginUpdate();
-  cbuffers->clear();
-  for(int space = 0; space < stage.spaces.count(); space++)
-  {
-    for(int reg = 0; reg < stage.spaces[space].constantBuffers.count(); reg++)
-    {
-      const D3D12Pipe::ConstantBuffer &b = stage.spaces[space].constantBuffers[reg];
-
-      QVariant tag;
-
-      const Bindpoint *bind = NULL;
-      const ConstantBlock *shaderCBuf = NULL;
-
-      if(stage.reflection)
-      {
-        for(int i = 0; i < stage.bindpointMapping.constantBlocks.count(); i++)
-        {
-          const Bindpoint &bm = stage.bindpointMapping.constantBlocks[i];
-          const ConstantBlock &res = stage.reflection->constantBlocks[i];
-
-          bool regMatch = bm.bind == reg;
-
-          // handle unbounded arrays specially. It's illegal to have an unbounded array with
-          // anything after it
-          if(bm.bind <= reg)
-            regMatch = (bm.arraySize == ~0U) || (bm.bind + (int)bm.arraySize > reg);
-
-          if(bm.bindset == (int32_t)stage.spaces[space].spaceIndex && regMatch)
-          {
-            bind = &bm;
-            shaderCBuf = &res;
-            D3D12CBufTag cbufTag(i);
-            cbufTag.arrayIdx = reg - bm.bind;
-            tag = QVariant::fromValue(cbufTag);
-            break;
-          }
-        }
-      }
-
-      if(!tag.isValid())
-        tag = QVariant::fromValue(D3D12CBufTag(space, reg));
-
-      QString rootel;
-
-      if(b.immediate)
-      {
-        if(!b.rootValues.empty())
-          rootel = tr("#%1 Consts").arg(b.rootElement);
-        else
-          rootel = tr("#%1 Direct").arg(b.rootElement);
-      }
-      else
-      {
-        rootel = tr("#%1 Table[%2]").arg(b.rootElement).arg(b.tableIndex);
-      }
-
-      bool filledSlot = (b.resourceId != ResourceId());
-      if(b.immediate && !b.rootValues.empty())
-        filledSlot = true;
-
-      bool usedSlot = (bind && bind->used);
-
-      if(showNode(usedSlot, filledSlot))
-      {
-        ulong length = b.byteSize;
-        uint64_t offset = b.byteOffset;
-        int numvars = shaderCBuf ? shaderCBuf->variables.count() : 0;
-        uint32_t bytesize = shaderCBuf ? shaderCBuf->byteSize : 0;
-
-        if(b.immediate && !b.rootValues.empty())
-          bytesize = uint32_t(b.rootValues.count() * 4);
-
-        QString regname = QString::number(reg);
-
-        if(shaderCBuf && !shaderCBuf->name.empty())
-          regname += lit(": ") + shaderCBuf->name;
-
-        if(bind != NULL && bind->arraySize > 1)
-          regname += tr("[%1]").arg(reg - bind->bind);
-
-        QString sizestr;
-        if(bytesize == (uint32_t)length)
-          sizestr = tr("%1 Variables, %2 bytes").arg(numvars).arg(length);
-        else
-          sizestr =
-              tr("%1 Variables, %2 bytes needed, %3 provided").arg(numvars).arg(bytesize).arg(length);
-
-        if(length < bytesize)
-          filledSlot = false;
-
-        RDTreeWidgetItem *node = new RDTreeWidgetItem(
-            {rootel, (qulonglong)stage.spaces[space].spaceIndex, regname, b.resourceId,
-             QFormatStr("%1 - %2").arg(offset).arg(offset + bytesize), sizestr, QString()});
-
-        node->setTag(tag);
-
-        if(!filledSlot)
-          setEmptyRow(node);
-
-        if(!usedSlot)
-          setInactiveRow(node);
-
-        cbuffers->addTopLevelItem(node);
-      }
-    }
-  }
+  samplers->verticalScrollBar()->setValue(sampVs);
   cbuffers->clearSelection();
   cbuffers->endUpdate();
-  cbuffers->verticalScrollBar()->setValue(vs);
+  cbuffers->verticalScrollBar()->setValue(cbVs);
 }
 
 void D3D12PipelineStateViewer::setState()
@@ -1537,18 +1545,18 @@ void D3D12PipelineStateViewer::setState()
   ui->iaBuffers->endUpdate();
   ui->iaBuffers->verticalScrollBar()->setValue(vs);
 
-  setShaderState(state.vertexShader, ui->vsShader, ui->vsRootSig, ui->vsResources, ui->vsSamplers,
-                 ui->vsCBuffers, ui->vsUAVs);
-  setShaderState(state.geometryShader, ui->gsShader, ui->gsRootSig, ui->gsResources, ui->gsSamplers,
-                 ui->gsCBuffers, ui->gsUAVs);
-  setShaderState(state.hullShader, ui->hsShader, ui->hsRootSig, ui->hsResources, ui->hsSamplers,
-                 ui->hsCBuffers, ui->hsUAVs);
-  setShaderState(state.domainShader, ui->dsShader, ui->dsRootSig, ui->dsResources, ui->dsSamplers,
-                 ui->dsCBuffers, ui->dsUAVs);
-  setShaderState(state.pixelShader, ui->psShader, ui->psRootSig, ui->psResources, ui->psSamplers,
-                 ui->psCBuffers, ui->psUAVs);
-  setShaderState(state.computeShader, ui->csShader, ui->csRootSig, ui->csResources, ui->csSamplers,
-                 ui->csCBuffers, ui->csUAVs);
+  setShaderState(state.rootElements, state.vertexShader, ui->vsShader, ui->vsRootSig,
+                 ui->vsResources, ui->vsSamplers, ui->vsCBuffers, ui->vsUAVs);
+  setShaderState(state.rootElements, state.geometryShader, ui->gsShader, ui->gsRootSig,
+                 ui->gsResources, ui->gsSamplers, ui->gsCBuffers, ui->gsUAVs);
+  setShaderState(state.rootElements, state.hullShader, ui->hsShader, ui->hsRootSig, ui->hsResources,
+                 ui->hsSamplers, ui->hsCBuffers, ui->hsUAVs);
+  setShaderState(state.rootElements, state.domainShader, ui->dsShader, ui->dsRootSig,
+                 ui->dsResources, ui->dsSamplers, ui->dsCBuffers, ui->dsUAVs);
+  setShaderState(state.rootElements, state.pixelShader, ui->psShader, ui->psRootSig,
+                 ui->psResources, ui->psSamplers, ui->psCBuffers, ui->psUAVs);
+  setShaderState(state.rootElements, state.computeShader, ui->csShader, ui->csRootSig,
+                 ui->csResources, ui->csSamplers, ui->csCBuffers, ui->csUAVs);
 
   QToolButton *shaderButtons[] = {
       ui->vsShaderViewButton, ui->hsShaderViewButton, ui->dsShaderViewButton,
@@ -1684,15 +1692,16 @@ void D3D12PipelineStateViewer::setState()
   {
     for(int i = 0; i < state.outputMerger.renderTargets.count(); i++)
     {
-      addResourceRow(D3D12ViewTag(D3D12ViewTag::OMTarget, 0, i, state.outputMerger.renderTargets[i]),
-                     NULL, ui->targetOutputs);
+      addResourceRow(
+          D3D12ViewTag(D3D12ViewTag::OMTarget, 0, 0, false, state.outputMerger.renderTargets[i]),
+          NULL, ui->targetOutputs);
 
       if(state.outputMerger.renderTargets[i].resourceId != ResourceId())
         targets[i] = true;
     }
 
-    addResourceRow(D3D12ViewTag(D3D12ViewTag::OMDepth, 0, 0, state.outputMerger.depthTarget), NULL,
-                   ui->targetOutputs);
+    addResourceRow(D3D12ViewTag(D3D12ViewTag::OMDepth, 0, 0, false, state.outputMerger.depthTarget),
+                   NULL, ui->targetOutputs);
   }
   ui->targetOutputs->clearSelection();
   ui->targetOutputs->endUpdate();
@@ -1973,7 +1982,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
 
       for(int i = 0; i < bindArray.count(); i++)
       {
-        if(bindArray[i].bindset == view.space && bindArray[i].bind == view.reg)
+        if(bindArray[i].bindset == view.space && bindArray[i].bind == (int)view.res.bind)
         {
           shaderRes = &resArray[i];
           break;
@@ -2012,7 +2021,8 @@ void D3D12PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int
   if(cb.idx == ~0U)
   {
     // unused cbuffer, open regular buffer viewer
-    const D3D12Pipe::ConstantBuffer &buf = stage->spaces[cb.space].constantBuffers[cb.reg];
+    const D3D12Pipe::ConstantBuffer &buf =
+        m_Ctx.CurD3D12PipelineState()->rootElements[cb.rootElement].constantBuffers[cb.reg];
 
     IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.byteOffset, buf.byteSize, buf.resourceId);
 
@@ -2206,6 +2216,7 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
 {
   QString name = view.resourceId == ResourceId() ? tr("Empty")
                                                  : QString(m_Ctx.GetResourceName(view.resourceId));
+  QString viewType = tr("Unknown");
   QString typeName = tr("Unknown");
   QString format = tr("Unknown");
   uint64_t w = 1;
@@ -2227,6 +2238,7 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
     d = tex->depth;
     a = tex->arraysize;
     format = tex->format.Name();
+    viewType = ToQStr(view.type);
     typeName = ToQStr(tex->type);
 
     if(view.swizzle[0] != TextureSwizzle::Red || view.swizzle[1] != TextureSwizzle::Green ||
@@ -2265,6 +2277,7 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
     d = 0;
     a = 0;
     format = view.viewFormat.Name();
+    viewType = ToQStr(view.type);
     typeName = lit("Buffer");
 
     if(view.bufferFlags & D3DBufferViewFlags::Raw)
@@ -2317,8 +2330,8 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
   else
     viewParams += lit(", ") + extraParams;
 
-  return {name, ToQStr(view.type), typeName, (qulonglong)w, h, d,
-          a,    viewFormat,        format,   viewParams};
+  return {view.bind, name, viewType,   typeName, (qulonglong)w, h,
+          d,         a,    viewFormat, format,   viewParams};
 }
 
 void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::InputAssembly &ia)
@@ -2423,7 +2436,8 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
                            {ToQStr(draw ? draw->topology : Topology::Unknown)});
 }
 
-void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Shader &sh)
+void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Shader &sh,
+                                          const rdcarray<D3D12Pipe::RootSignatureRange> &els)
 {
   ShaderReflection *shaderDetails = sh.reflection;
 
@@ -2458,328 +2472,319 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
       return;
   }
 
+  QList<QVariantList> rowsRO;
+  QList<QVariantList> rowsRW;
+  QList<QVariantList> rowsSampler;
+  QList<QVariantList> rowsCB;
+  for(size_t i = 0; i < els.size(); ++i)
   {
-    xml.writeStartElement(lit("h3"));
-    xml.writeCharacters(tr("Shader Resource Views"));
-    xml.writeEndElement();
+    if((els[i].visibility & MaskForStage(sh.stage)) == ShaderStageMask::Unknown)
+      continue;
 
-    QList<QVariantList> rows;
-
-    for(int space = 0; space < sh.spaces.count(); space++)
+    switch(els[i].type)
     {
-      for(int reg = 0; reg < sh.spaces[space].srvs.count(); reg++)
+      case BindType::ReadOnlyResource:
       {
-        const D3D12Pipe::View &v = sh.spaces[space].srvs[reg];
-
-        // consider this register to not exist - it's in a gap defined by sparse root signature
-        // elements
-        if(v.rootElement == ~0U)
-          continue;
-
-        const ShaderResource *shaderInput = NULL;
-
-        if(sh.reflection)
+        for(size_t j = 0; j < els[i].views.size(); ++j)
         {
-          for(int i = 0; i < sh.bindpointMapping.readOnlyResources.count(); i++)
+          const D3D12Pipe::View &v = els[i].views[j];
+          const ShaderResource *shaderInput = NULL;
+
+          if(sh.reflection)
           {
-            const Bindpoint &b = sh.bindpointMapping.readOnlyResources[i];
-            const ShaderResource &res = sh.reflection->readOnlyResources[i];
-
-            bool regMatch = b.bind == reg;
-
-            // handle unbounded arrays specially. It's illegal to have an unbounded array with
-            // anything after it
-            if(b.bind <= reg)
-              regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
-
-            if(b.bindset == (int32_t)sh.spaces[space].spaceIndex && regMatch)
+            for(int32_t k = 0; k < sh.bindpointMapping.readOnlyResources.count(); ++k)
             {
-              shaderInput = &res;
-              break;
+              const Bindpoint &b = sh.bindpointMapping.readOnlyResources[k];
+              const ShaderResource &res = sh.reflection->readOnlyResources[k];
+
+              bool regMatch = b.bind == (int32_t)v.bind;
+
+              // handle unbounded arrays specially. It's illegal to have an unbounded array with
+              // anything after it
+              if(b.bind <= (int32_t)v.bind)
+              {
+                regMatch = (b.arraySize == ~0U) || (b.bind + (int32_t)b.arraySize > (int32_t)v.bind);
+              }
+
+              if(b.bindset == (int32_t)els[i].registerSpace && regMatch)
+              {
+                shaderInput = &res;
+                break;
+              }
             }
           }
+
+          QString rootel = els[i].immediate
+                               ? tr("#%1 Direct").arg(els[i].rootElement)
+                               : tr("#%1 Table[%2]").arg(els[i].rootElement).arg(v.tableIndex);
+
+          QVariantList row = exportViewHTML(v, false, shaderInput, QString());
+
+          row.push_front(els[i].registerSpace);
+          row.push_front(rootel);
+
+          rowsRO.push_back(row);
         }
-
-        QString rootel = v.immediate ? tr("#%1 Direct").arg(v.rootElement)
-                                     : tr("#%1 Table[%2]").arg(v.rootElement).arg(v.tableIndex);
-
-        QVariantList row = exportViewHTML(v, false, shaderInput, QString());
-
-        row.push_front(reg);
-        row.push_front(sh.spaces[space].spaceIndex);
-        row.push_front(rootel);
-
-        rows.push_back(row);
+        break;
       }
-    }
-
-    m_Common.exportHTMLTable(
-        xml, {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("View Type"),
-              tr("Resource Type"), tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
-              tr("View Format"), tr("Resource Format"), tr("View Parameters")},
-        rows);
-  }
-
-  {
-    xml.writeStartElement(lit("h3"));
-    xml.writeCharacters(tr("Unordered Access Views"));
-    xml.writeEndElement();
-
-    QList<QVariantList> rows;
-
-    for(int space = 0; space < sh.spaces.count(); space++)
-    {
-      for(int reg = 0; reg < sh.spaces[space].uavs.count(); reg++)
+      case BindType::ReadWriteResource:
       {
-        const D3D12Pipe::View &v = sh.spaces[space].uavs[reg];
-
-        // consider this register to not exist - it's in a gap defined by sparse root signature
-        // elements
-        if(v.rootElement == ~0U)
-          continue;
-
-        const ShaderResource *shaderInput = NULL;
-
-        if(sh.reflection)
+        for(size_t j = 0; j < els[i].views.size(); ++j)
         {
-          for(int i = 0; i < sh.bindpointMapping.readWriteResources.count(); i++)
+          const D3D12Pipe::View &v = els[i].views[j];
+          const ShaderResource *shaderInput = NULL;
+
+          if(sh.reflection)
           {
-            const Bindpoint &b = sh.bindpointMapping.readWriteResources[i];
-            const ShaderResource &res = sh.reflection->readWriteResources[i];
-
-            bool regMatch = b.bind == reg;
-
-            // handle unbounded arrays specially. It's illegal to have an unbounded array with
-            // anything after it
-            if(b.bind <= reg)
-              regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
-
-            if(b.bindset == (int32_t)sh.spaces[space].spaceIndex && regMatch)
+            for(int32_t k = 0; k < sh.bindpointMapping.readWriteResources.count(); ++k)
             {
-              shaderInput = &res;
-              break;
+              const Bindpoint &b = sh.bindpointMapping.readWriteResources[k];
+              const ShaderResource &res = sh.reflection->readWriteResources[k];
+
+              bool regMatch = b.bind == (int32_t)v.bind;
+
+              // handle unbounded arrays specially. It's illegal to have an unbounded array with
+              // anything after it
+              if(b.bind <= (int32_t)v.bind)
+              {
+                regMatch = (b.arraySize == ~0U) || (b.bind + (int32_t)b.arraySize > (int32_t)v.bind);
+              }
+
+              if(b.bindset == (int32_t)els[i].registerSpace && regMatch)
+              {
+                shaderInput = &res;
+                break;
+              }
             }
           }
+
+          QString rootel = els[i].immediate
+                               ? tr("#%1 Direct").arg(els[i].rootElement)
+                               : tr("#%1 Table[%2]").arg(els[i].rootElement).arg(v.tableIndex);
+
+          QVariantList row = exportViewHTML(v, true, shaderInput, QString());
+
+          row.push_front(els[i].registerSpace);
+          row.push_front(rootel);
+
+          rowsRW.push_back(row);
         }
-
-        QString rootel = v.immediate ? tr("#%1 Direct").arg(v.rootElement)
-                                     : tr("#%1 Table[%2]").arg(v.rootElement).arg(v.tableIndex);
-
-        QVariantList row = exportViewHTML(v, true, shaderInput, QString());
-
-        row.push_front(reg);
-        row.push_front(sh.spaces[space].spaceIndex);
-        row.push_front(rootel);
-
-        rows.push_back(row);
+        break;
       }
-    }
-
-    m_Common.exportHTMLTable(
-        xml, {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("View Type"),
-              tr("Resource Type"), tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
-              tr("View Format"), tr("Resource Format"), tr("View Parameters")},
-        rows);
-  }
-
-  {
-    xml.writeStartElement(lit("h3"));
-    xml.writeCharacters(tr("Samplers"));
-    xml.writeEndElement();
-
-    QList<QVariantList> rows;
-
-    for(int space = 0; space < sh.spaces.count(); space++)
-    {
-      for(int reg = 0; reg < sh.spaces[space].samplers.count(); reg++)
+      case BindType::Sampler:
       {
-        const D3D12Pipe::Sampler &s = sh.spaces[space].samplers[reg];
-
-        // consider this register to not exist - it's in a gap defined by sparse root signature
-        // elements
-        if(s.rootElement == ~0U)
-          continue;
-
-        const ShaderSampler *shaderInput = NULL;
-
-        if(sh.reflection)
+        for(size_t j = 0; j < els[i].samplers.size(); ++j)
         {
-          for(int i = 0; i < sh.bindpointMapping.samplers.count(); i++)
+          const D3D12Pipe::Sampler &s = els[i].samplers[j];
+          const ShaderSampler *shaderInput = NULL;
+
+          if(sh.reflection)
           {
-            const Bindpoint &b = sh.bindpointMapping.samplers[i];
-            const ShaderSampler &res = sh.reflection->samplers[i];
-
-            bool regMatch = b.bind == reg;
-
-            // handle unbounded arrays specially. It's illegal to have an unbounded array with
-            // anything after it
-            if(b.bind <= reg)
-              regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > reg);
-
-            if(b.bindset == (int32_t)sh.spaces[space].spaceIndex && regMatch)
+            for(int32_t k = 0; k < sh.bindpointMapping.samplers.count(); ++k)
             {
-              shaderInput = &res;
-              break;
+              const Bindpoint &b = sh.bindpointMapping.samplers[k];
+              const ShaderSampler &res = sh.reflection->samplers[k];
+
+              bool regMatch = b.bind == (int32_t)s.bind;
+
+              // handle unbounded arrays specially. It's illegal to have an unbounded array with
+              // anything after it
+              if(b.bind <= (int32_t)s.bind)
+              {
+                regMatch = (b.arraySize == ~0U) || (b.bind + (int32_t)b.arraySize > (int32_t)s.bind);
+              }
+
+              if(b.bindset == (int32_t)els[i].registerSpace && regMatch)
+              {
+                shaderInput = &res;
+                break;
+              }
             }
           }
-        }
 
-        QString rootel = s.immediate ? tr("#%1 Static").arg(s.rootElement)
-                                     : tr("#%1 Table[%2]").arg(s.rootElement).arg(s.tableIndex);
+          QString rootel = els[i].immediate
+                               ? tr("#%1 Static").arg(els[i].rootElement)
+                               : tr("#%1 Table[%2]").arg(els[i].rootElement).arg(s.tableIndex);
 
-        {
-          QString regname = QString::number(reg);
-
-          if(shaderInput && !shaderInput->name.empty())
-            regname += lit(": ") + shaderInput->name;
-
-          QString borderColor = QFormatStr("%1, %2, %3, %4")
-                                    .arg(s.borderColor[0])
-                                    .arg(s.borderColor[1])
-                                    .arg(s.borderColor[2])
-                                    .arg(s.borderColor[3]);
-
-          QString addressing;
-
-          QString addPrefix;
-          QString addVal;
-
-          QString addr[] = {ToQStr(s.addressU, GraphicsAPI::D3D12),
-                            ToQStr(s.addressV, GraphicsAPI::D3D12),
-                            ToQStr(s.addressW, GraphicsAPI::D3D12)};
-
-          // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
-          for(int a = 0; a < 3; a++)
           {
-            const QString str[] = {lit("U"), lit("V"), lit("W")};
-            QString prefix = str[a];
+            QString regname = QString::number(s.bind);
 
-            if(a == 0 || addr[a] == addr[a - 1])
+            if(shaderInput && !shaderInput->name.empty())
+              regname += lit(": ") + shaderInput->name;
+
+            QString borderColor = QFormatStr("%1, %2, %3, %4")
+                                      .arg(s.borderColor[0])
+                                      .arg(s.borderColor[1])
+                                      .arg(s.borderColor[2])
+                                      .arg(s.borderColor[3]);
+
+            QString addressing;
+
+            QString addPrefix;
+            QString addVal;
+
+            QString addr[] = {ToQStr(s.addressU, GraphicsAPI::D3D12),
+                              ToQStr(s.addressV, GraphicsAPI::D3D12),
+                              ToQStr(s.addressW, GraphicsAPI::D3D12)};
+
+            // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
+            for(int a = 0; a < 3; a++)
             {
-              addPrefix += prefix;
+              const QString str[] = {lit("U"), lit("V"), lit("W")};
+              QString prefix = str[a];
+
+              if(a == 0 || addr[a] == addr[a - 1])
+              {
+                addPrefix += prefix;
+              }
+              else
+              {
+                addressing += QFormatStr("%1: %2, ").arg(addPrefix).arg(addVal);
+
+                addPrefix = prefix;
+              }
+              addVal = addr[a];
             }
+
+            addressing += addPrefix + lit(": ") + addVal;
+
+            if(s.UseBorder())
+              addressing += QFormatStr("<%1>").arg(borderColor);
+
+            QString filter = ToQStr(s.filter);
+
+            if(s.maxAnisotropy > 1)
+              filter += QFormatStr(" %1x").arg(s.maxAnisotropy);
+
+            if(s.filter.filter == FilterFunction::Comparison)
+              filter += QFormatStr(" (%1)").arg(ToQStr(s.compareFunction));
+            else if(s.filter.filter != FilterFunction::Normal)
+              filter += QFormatStr(" (%1)").arg(ToQStr(s.filter.filter));
+
+            rowsSampler.push_back(
+                {rootel, els[i].registerSpace, regname, addressing, filter,
+                 QFormatStr("%1 - %2")
+                     .arg(s.minLOD == -FLT_MAX ? lit("0") : QString::number(s.minLOD))
+                     .arg(s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD)),
+                 s.mipLODBias});
+          }
+        }
+        break;
+      }
+      case BindType::ConstantBuffer:
+      {
+        for(size_t j = 0; j < els[i].constantBuffers.size(); ++j)
+        {
+          const D3D12Pipe::ConstantBuffer &b = els[i].constantBuffers[j];
+          const ConstantBlock *shaderCBuf = NULL;
+
+          if(sh.reflection)
+          {
+            for(int32_t k = 0; k < sh.bindpointMapping.constantBlocks.count(); ++k)
+            {
+              const Bindpoint &bm = sh.bindpointMapping.constantBlocks[k];
+              const ConstantBlock &res = sh.reflection->constantBlocks[k];
+
+              bool regMatch = bm.bind == (int32_t)b.bind;
+
+              // handle unbounded arrays specially. It's illegal to have an unbounded array with
+              // anything after it
+              if(bm.bind <= (int32_t)b.bind)
+              {
+                regMatch =
+                    (bm.arraySize == ~0U) || (bm.bind + (int32_t)bm.arraySize > (int32_t)b.bind);
+              }
+
+              if(bm.bindset == (int32_t)els[i].registerSpace && regMatch)
+              {
+                shaderCBuf = &res;
+                break;
+              }
+            }
+          }
+
+          QString rootel;
+
+          if(els[i].immediate)
+          {
+            if(!b.rootValues.empty())
+              rootel = tr("#%1 Consts").arg(els[i].rootElement);
             else
-            {
-              addressing += QFormatStr("%1: %2, ").arg(addPrefix).arg(addVal);
-
-              addPrefix = prefix;
-            }
-            addVal = addr[a];
+              rootel = tr("#%1 Direct").arg(els[i].rootElement);
           }
-
-          addressing += addPrefix + lit(": ") + addVal;
-
-          if(s.UseBorder())
-            addressing += QFormatStr("<%1>").arg(borderColor);
-
-          QString filter = ToQStr(s.filter);
-
-          if(s.maxAnisotropy > 1)
-            filter += QFormatStr(" %1x").arg(s.maxAnisotropy);
-
-          if(s.filter.filter == FilterFunction::Comparison)
-            filter += QFormatStr(" (%1)").arg(ToQStr(s.compareFunction));
-          else if(s.filter.filter != FilterFunction::Normal)
-            filter += QFormatStr(" (%1)").arg(ToQStr(s.filter.filter));
-
-          rows.push_back({rootel, sh.spaces[space].spaceIndex, regname, addressing, filter,
-                          QFormatStr("%1 - %2")
-                              .arg(s.minLOD == -FLT_MAX ? lit("0") : QString::number(s.minLOD))
-                              .arg(s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD)),
-                          s.mipLODBias});
-        }
-      }
-    }
-
-    m_Common.exportHTMLTable(xml, {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Addressing"),
-                                   tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")},
-                             rows);
-  }
-
-  {
-    xml.writeStartElement(lit("h3"));
-    xml.writeCharacters(tr("Constant Buffers"));
-    xml.writeEndElement();
-
-    QList<QVariantList> rows;
-
-    for(int space = 0; space < sh.spaces.count(); space++)
-    {
-      for(int reg = 0; reg < sh.spaces[space].constantBuffers.count(); reg++)
-      {
-        const D3D12Pipe::ConstantBuffer &b = sh.spaces[space].constantBuffers[reg];
-
-        const ConstantBlock *shaderCBuf = NULL;
-
-        if(sh.reflection)
-        {
-          for(int i = 0; i < sh.bindpointMapping.constantBlocks.count(); i++)
+          else
           {
-            const Bindpoint &bm = sh.bindpointMapping.constantBlocks[i];
-            const ConstantBlock &res = sh.reflection->constantBlocks[i];
+            rootel = tr("#%1 Table[%2]").arg(els[i].rootElement).arg(b.tableIndex);
+          }
 
-            bool regMatch = bm.bind == reg;
+          {
+            QString name = tr("Constant Buffer %1").arg(ToQStr(b.resourceId));
+            uint64_t length = b.byteSize;
+            uint64_t offset = b.byteOffset;
+            int numvars = shaderCBuf ? shaderCBuf->variables.count() : 0;
+            uint32_t bytesize = shaderCBuf ? shaderCBuf->byteSize : 0;
 
-            // handle unbounded arrays specially. It's illegal to have an unbounded array with
-            // anything after it
-            if(bm.bind <= reg)
-              regMatch = (bm.arraySize == ~0U) || (bm.bind + (int)bm.arraySize > reg);
+            if(els[i].immediate && !b.rootValues.empty())
+              bytesize = uint32_t(b.rootValues.count() * 4);
 
-            if(bm.bindset == (int32_t)sh.spaces[space].spaceIndex && regMatch)
-            {
-              shaderCBuf = &res;
-              break;
-            }
+            if(b.resourceId != ResourceId())
+              name = m_Ctx.GetResourceName(b.resourceId);
+            else
+              name = tr("Empty");
+
+            QString regname = QString::number(b.bind);
+
+            if(shaderCBuf && !shaderCBuf->name.empty())
+              regname += lit(": ") + shaderCBuf->name;
+
+            length = qMin(length, (uint64_t)bytesize);
+
+            rowsCB.push_back({rootel, els[i].registerSpace, regname, name, (qulonglong)offset,
+                              (qulonglong)length, numvars});
           }
         }
-
-        QString rootel;
-
-        if(b.immediate)
-        {
-          if(!b.rootValues.empty())
-            rootel = tr("#%1 Consts").arg(b.rootElement);
-          else
-            rootel = tr("#%1 Direct").arg(b.rootElement);
-        }
-        else
-        {
-          rootel = tr("#%1 Table[%2]").arg(b.rootElement).arg(b.tableIndex);
-        }
-
-        {
-          QString name = tr("Constant Buffer %1").arg(ToQStr(b.resourceId));
-          uint64_t length = b.byteSize;
-          uint64_t offset = b.byteOffset;
-          int numvars = shaderCBuf ? shaderCBuf->variables.count() : 0;
-          uint32_t bytesize = shaderCBuf ? shaderCBuf->byteSize : 0;
-
-          if(b.immediate && !b.rootValues.empty())
-            bytesize = uint32_t(b.rootValues.count() * 4);
-
-          if(b.resourceId != ResourceId())
-            name = m_Ctx.GetResourceName(b.resourceId);
-          else
-            name = tr("Empty");
-
-          QString regname = QString::number(reg);
-
-          if(shaderCBuf && !shaderCBuf->name.empty())
-            regname += lit(": ") + shaderCBuf->name;
-
-          length = qMin(length, (uint64_t)bytesize);
-
-          rows.push_back({rootel, sh.spaces[space].spaceIndex, regname, name, (qulonglong)offset,
-                          (qulonglong)length, numvars});
-        }
+        break;
       }
+      default: qCritical() << "Unexpected BindType for D3D12 pipeline"; break;
     }
-
-    m_Common.exportHTMLTable(xml,
-                             {tr("Root Signature Index"), tr("Space"), tr("Register"), tr("Buffer"),
-                              tr("Byte Offset"), tr("Byte Size"), tr("Number of Variables")},
-                             rows);
   }
+
+  xml.writeStartElement(lit("h3"));
+  xml.writeCharacters(tr("Shader Resource Views"));
+  xml.writeEndElement();
+
+  m_Common.exportHTMLTable(
+      xml, {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("View Type"),
+            tr("Resource Type"), tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
+            tr("View Format"), tr("Resource Format"), tr("View Parameters")},
+      rowsRO);
+
+  xml.writeStartElement(lit("h3"));
+  xml.writeCharacters(tr("Unordered Access Views"));
+  xml.writeEndElement();
+
+  m_Common.exportHTMLTable(
+      xml, {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("View Type"),
+            tr("Resource Type"), tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
+            tr("View Format"), tr("Resource Format"), tr("View Parameters")},
+      rowsRW);
+
+  xml.writeStartElement(lit("h3"));
+  xml.writeCharacters(tr("Samplers"));
+  xml.writeEndElement();
+
+  m_Common.exportHTMLTable(xml, {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Addressing"),
+                                 tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")},
+                           rowsSampler);
+
+  xml.writeStartElement(lit("h3"));
+  xml.writeCharacters(tr("Constant Buffers"));
+  xml.writeEndElement();
+
+  m_Common.exportHTMLTable(xml,
+                           {tr("Root Signature Index"), tr("Space"), tr("Register"), tr("Buffer"),
+                            tr("Byte Offset"), tr("Byte Size"), tr("Number of Variables")},
+                           rowsCB);
 }
 
 void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::StreamOut &so)
@@ -3099,17 +3104,33 @@ void D3D12PipelineStateViewer::on_exportHTML_clicked()
       switch(stage)
       {
         case 0: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->inputAssembly); break;
-        case 1: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->vertexShader); break;
-        case 2: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->hullShader); break;
-        case 3: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->domainShader); break;
+        case 1:
+          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->vertexShader,
+                     m_Ctx.CurD3D12PipelineState()->rootElements);
+          break;
+        case 2:
+          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->hullShader,
+                     m_Ctx.CurD3D12PipelineState()->rootElements);
+          break;
+        case 3:
+          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->domainShader,
+                     m_Ctx.CurD3D12PipelineState()->rootElements);
+          break;
         case 4:
-          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->geometryShader);
+          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->geometryShader,
+                     m_Ctx.CurD3D12PipelineState()->rootElements);
           exportHTML(xml, m_Ctx.CurD3D12PipelineState()->streamOut);
           break;
         case 5: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->rasterizer); break;
-        case 6: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->pixelShader); break;
+        case 6:
+          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->pixelShader,
+                     m_Ctx.CurD3D12PipelineState()->rootElements);
+          break;
         case 7: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->outputMerger); break;
-        case 8: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->computeShader); break;
+        case 8:
+          exportHTML(xml, m_Ctx.CurD3D12PipelineState()->computeShader,
+                     m_Ctx.CurD3D12PipelineState()->rootElements);
+          break;
       }
 
       xml.writeEndElement();

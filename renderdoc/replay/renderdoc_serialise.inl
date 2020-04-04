@@ -1302,10 +1302,24 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::InputAssembly &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, D3D12Pipe::View &el)
+void DoSerialise(SerialiserType &ser, D3D12Pipe::RootSignatureRange &el)
 {
   SERIALISE_MEMBER(immediate);
   SERIALISE_MEMBER(rootElement);
+  SERIALISE_MEMBER(type);
+  SERIALISE_MEMBER(visibility);
+  SERIALISE_MEMBER(registerSpace);
+  SERIALISE_MEMBER(constantBuffers);
+  SERIALISE_MEMBER(samplers);
+  SERIALISE_MEMBER(views);
+
+  SIZE_CHECK(96);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12Pipe::View &el)
+{
+  SERIALISE_MEMBER(bind);
   SERIALISE_MEMBER(tableIndex);
   SERIALISE_MEMBER(resourceId);
   SERIALISE_MEMBER(type);
@@ -1328,14 +1342,13 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::View &el)
 
   SERIALISE_MEMBER(minLODClamp);
 
-  SIZE_CHECK(120);
+  SIZE_CHECK(112);
 }
 
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12Pipe::Sampler &el)
 {
-  SERIALISE_MEMBER(immediate);
-  SERIALISE_MEMBER(rootElement);
+  SERIALISE_MEMBER(bind);
   SERIALISE_MEMBER(tableIndex);
   SERIALISE_MEMBER(addressU);
   SERIALISE_MEMBER(addressV);
@@ -1348,33 +1361,20 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::Sampler &el)
   SERIALISE_MEMBER(minLOD);
   SERIALISE_MEMBER(mipLODBias);
 
-  SIZE_CHECK(76);
+  SIZE_CHECK(72);
 }
 
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12Pipe::ConstantBuffer &el)
 {
-  SERIALISE_MEMBER(immediate);
-  SERIALISE_MEMBER(rootElement);
+  SERIALISE_MEMBER(bind);
   SERIALISE_MEMBER(tableIndex);
   SERIALISE_MEMBER(resourceId);
   SERIALISE_MEMBER(byteOffset);
   SERIALISE_MEMBER(byteSize);
   SERIALISE_MEMBER(rootValues);
 
-  SIZE_CHECK(64);
-}
-
-template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, D3D12Pipe::RegisterSpace &el)
-{
-  SERIALISE_MEMBER(spaceIndex);
-  SERIALISE_MEMBER(constantBuffers);
-  SERIALISE_MEMBER(samplers);
-  SERIALISE_MEMBER(srvs);
-  SERIALISE_MEMBER(uavs);
-
-  SIZE_CHECK(104);
+  SIZE_CHECK(56);
 }
 
 template <typename SerialiserType>
@@ -1385,9 +1385,8 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::Shader &el)
   SERIALISE_MEMBER_OPT_EMPTY(reflection);
   SERIALISE_MEMBER(bindpointMapping);
   SERIALISE_MEMBER(stage);
-  SERIALISE_MEMBER(spaces);
 
-  SIZE_CHECK(168);
+  SIZE_CHECK(144);
 }
 
 template <typename SerialiserType>
@@ -1480,7 +1479,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::OM &el)
   SERIALISE_MEMBER(multiSampleCount);
   SERIALISE_MEMBER(multiSampleQuality);
 
-  SIZE_CHECK(288);
+  SIZE_CHECK(280);
 }
 
 template <typename SerialiserType>
@@ -1505,6 +1504,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 {
   SERIALISE_MEMBER(pipelineResourceId);
   SERIALISE_MEMBER(rootSignatureResourceId);
+  SERIALISE_MEMBER(rootElements);
 
   SERIALISE_MEMBER(inputAssembly);
 
@@ -1523,7 +1523,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 
   SERIALISE_MEMBER(resourceStates);
 
-  SIZE_CHECK(1536);
+  SIZE_CHECK(1408);
 }
 
 #pragma endregion D3D12 pipeline state
@@ -2323,10 +2323,10 @@ INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::OutputMerger)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::State)
 INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::Layout)
 INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::InputAssembly)
+INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::RootSignatureRange)
 INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::ConstantBuffer)
 INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::Sampler)
 INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::View)
-INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::RegisterSpace)
 INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::Shader)
 INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::Rasterizer)
 INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::OM)

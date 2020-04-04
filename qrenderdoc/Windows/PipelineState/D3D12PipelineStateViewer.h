@@ -81,7 +81,8 @@ private:
   ICaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
 
-  void setShaderState(const D3D12Pipe::Shader &stage, RDLabel *shader, RDLabel *rootSig,
+  void setShaderState(const rdcarray<D3D12Pipe::RootSignatureRange> &rootElements,
+                      const D3D12Pipe::Shader &stage, RDLabel *shader, RDLabel *rootSig,
                       RDTreeWidget *tex, RDTreeWidget *samp, RDTreeWidget *cbuffer,
                       RDTreeWidget *uavs);
 
@@ -107,7 +108,8 @@ private:
   QVariantList exportViewHTML(const D3D12Pipe::View &view, bool rw,
                               const ShaderResource *shaderInput, const QString &extraParams);
   void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::InputAssembly &ia);
-  void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Shader &sh);
+  void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Shader &sh,
+                  const rdcarray<D3D12Pipe::RootSignatureRange> &els);
   void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::StreamOut &so);
   void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Rasterizer &rs);
   void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::OM &om);
