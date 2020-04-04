@@ -187,22 +187,27 @@ struct View
 {
   DOCUMENT("");
   View() = default;
+  View(uint32_t binding) : bind(binding) {}
   View(const View &) = default;
   View &operator=(const View &) = default;
 
   bool operator==(const View &o) const
   {
-    return resourceId == o.resourceId && type == o.type && viewFormat == o.viewFormat &&
-           swizzle[0] == o.swizzle[0] && swizzle[1] == o.swizzle[1] && swizzle[2] == o.swizzle[2] &&
-           swizzle[3] == o.swizzle[3] && bufferFlags == o.bufferFlags &&
-           bufferStructCount == o.bufferStructCount && elementByteSize == o.elementByteSize &&
-           firstElement == o.firstElement && numElements == o.numElements &&
-           counterResourceId == o.counterResourceId && counterByteOffset == o.counterByteOffset &&
-           firstMip == o.firstMip && numMips == o.numMips && numSlices == o.numSlices &&
-           firstSlice == o.firstSlice;
+    return bind == o.bind && tableIndex == o.tableIndex && resourceId == o.resourceId &&
+           type == o.type && viewFormat == o.viewFormat && swizzle[0] == o.swizzle[0] &&
+           swizzle[1] == o.swizzle[1] && swizzle[2] == o.swizzle[2] && swizzle[3] == o.swizzle[3] &&
+           bufferFlags == o.bufferFlags && bufferStructCount == o.bufferStructCount &&
+           elementByteSize == o.elementByteSize && firstElement == o.firstElement &&
+           numElements == o.numElements && counterResourceId == o.counterResourceId &&
+           counterByteOffset == o.counterByteOffset && firstMip == o.firstMip &&
+           numMips == o.numMips && numSlices == o.numSlices && firstSlice == o.firstSlice;
   }
   bool operator<(const View &o) const
   {
+    if(!(bind == o.bind))
+      return bind < o.bind;
+    if(!(tableIndex == o.tableIndex))
+      return tableIndex < o.tableIndex;
     if(!(resourceId == o.resourceId))
       return resourceId < o.resourceId;
     if(!(type == o.type))
@@ -241,10 +246,8 @@ struct View
       return firstSlice < o.firstSlice;
     return false;
   }
-  DOCUMENT("``True`` if this view is a root parameter (i.e. not in a table).");
-  bool immediate = false;
-  DOCUMENT("The index in the original root signature that this descriptor came from.");
-  uint32_t rootElement = ~0U;
+  DOCUMENT("The shader register that this view is bound to.");
+  uint32_t bind = ~0U;
   DOCUMENT("The index in the the parent descriptor table where this descriptor came from.");
   uint32_t tableIndex = ~0U;
 
@@ -295,25 +298,23 @@ struct Sampler
 {
   DOCUMENT("");
   Sampler() = default;
+  Sampler(uint32_t binding) : bind(binding) {}
   Sampler(const Sampler &) = default;
   Sampler &operator=(const Sampler &) = default;
 
   bool operator==(const Sampler &o) const
   {
-    return immediate == o.immediate && rootElement == o.rootElement && tableIndex == o.tableIndex &&
-           addressU == o.addressU && addressV == o.addressV && addressW == o.addressW &&
-           borderColor[0] == o.borderColor[0] && borderColor[1] == o.borderColor[1] &&
-           borderColor[2] == o.borderColor[2] && borderColor[3] == o.borderColor[3] &&
-           compareFunction == o.compareFunction && filter == o.filter &&
-           maxAnisotropy == o.maxAnisotropy && maxLOD == o.maxLOD && minLOD == o.minLOD &&
-           mipLODBias == o.mipLODBias;
+    return bind == o.bind && tableIndex == o.tableIndex && addressU == o.addressU &&
+           addressV == o.addressV && addressW == o.addressW && borderColor[0] == o.borderColor[0] &&
+           borderColor[1] == o.borderColor[1] && borderColor[2] == o.borderColor[2] &&
+           borderColor[3] == o.borderColor[3] && compareFunction == o.compareFunction &&
+           filter == o.filter && maxAnisotropy == o.maxAnisotropy && maxLOD == o.maxLOD &&
+           minLOD == o.minLOD && mipLODBias == o.mipLODBias;
   }
   bool operator<(const Sampler &o) const
   {
-    if(!(immediate == o.immediate))
-      return immediate < o.immediate;
-    if(!(rootElement == o.rootElement))
-      return rootElement < o.rootElement;
+    if(!(bind == o.bind))
+      return bind < o.bind;
     if(!(tableIndex == o.tableIndex))
       return tableIndex < o.tableIndex;
     if(!(addressU == o.addressU))
@@ -344,10 +345,8 @@ struct Sampler
       return mipLODBias < o.mipLODBias;
     return false;
   }
-  DOCUMENT("``True`` if this view is a static sampler (i.e. not in a table).");
-  bool immediate = 0;
-  DOCUMENT("The index in the original root signature that this descriptor came from.");
-  uint32_t rootElement = ~0U;
+  DOCUMENT("The shader register that this sampler is bound to.");
+  uint32_t bind = ~0U;
   DOCUMENT("The index in the the parent descriptor table where this descriptor came from.");
   uint32_t tableIndex = ~0U;
 
@@ -389,21 +388,19 @@ struct ConstantBuffer
 {
   DOCUMENT("");
   ConstantBuffer() = default;
+  ConstantBuffer(uint32_t binding) : bind(binding) {}
   ConstantBuffer(const ConstantBuffer &) = default;
   ConstantBuffer &operator=(const ConstantBuffer &) = default;
 
   bool operator==(const ConstantBuffer &o) const
   {
-    return immediate == o.immediate && rootElement == o.rootElement && tableIndex == o.tableIndex &&
-           resourceId == o.resourceId && byteOffset == o.byteOffset && byteSize == o.byteSize &&
-           rootValues == o.rootValues;
+    return bind == o.bind && tableIndex == o.tableIndex && resourceId == o.resourceId &&
+           byteOffset == o.byteOffset && byteSize == o.byteSize && rootValues == o.rootValues;
   }
   bool operator<(const ConstantBuffer &o) const
   {
-    if(!(immediate == o.immediate))
-      return immediate < o.immediate;
-    if(!(rootElement == o.rootElement))
-      return rootElement < o.rootElement;
+    if(!(bind == o.bind))
+      return bind < o.bind;
     if(!(tableIndex == o.tableIndex))
       return tableIndex < o.tableIndex;
     if(!(resourceId == o.resourceId))
@@ -416,10 +413,8 @@ struct ConstantBuffer
       return rootValues < o.rootValues;
     return false;
   }
-  DOCUMENT("``True`` if this view is a root constant (i.e. not in a table).");
-  bool immediate = false;
-  DOCUMENT("The index in the original root signature that this descriptor came from.");
-  uint32_t rootElement = ~0U;
+  DOCUMENT("The shader register that this constant buffer is bound to.");
+  uint32_t bind = ~0U;
   DOCUMENT("The index in the the parent descriptor table where this descriptor came from.");
   uint32_t tableIndex = ~0U;
 
@@ -436,43 +431,55 @@ struct ConstantBuffer
   rdcarray<uint32_t> rootValues;
 };
 
-DOCUMENT("Contains all of the registers in a single register space mapped to by a root signature.");
-struct RegisterSpace
+DOCUMENT("Contains information for a single root signature element range");
+struct RootSignatureRange
 {
   DOCUMENT("");
-  RegisterSpace() = default;
-  RegisterSpace(const RegisterSpace &) = default;
-  RegisterSpace &operator=(const RegisterSpace &) = default;
+  RootSignatureRange() = default;
+  RootSignatureRange(const RootSignatureRange &) = default;
+  RootSignatureRange &operator=(const RootSignatureRange &) = default;
 
-  bool operator==(const RegisterSpace &o) const
+  bool operator==(const RootSignatureRange &o) const
   {
-    return spaceIndex == o.spaceIndex && constantBuffers == o.constantBuffers &&
-           samplers == o.samplers && srvs == o.srvs && uavs == o.uavs;
+    return immediate == o.immediate && rootElement == o.rootElement && visibility == o.visibility &&
+           registerSpace == o.registerSpace && constantBuffers == o.constantBuffers &&
+           samplers == o.samplers && views == o.views;
   }
-  bool operator<(const RegisterSpace &o) const
+  bool operator<(const RootSignatureRange &o) const
   {
-    if(!(spaceIndex == o.spaceIndex))
-      return spaceIndex < o.spaceIndex;
+    if(!(immediate == o.immediate))
+      return immediate < o.immediate;
+    if(!(rootElement == o.rootElement))
+      return rootElement < o.rootElement;
+    if(!(visibility == o.visibility))
+      return visibility < o.visibility;
+    if(!(registerSpace == o.registerSpace))
+      return registerSpace < o.registerSpace;
     if(!(constantBuffers == o.constantBuffers))
       return constantBuffers < o.constantBuffers;
     if(!(samplers == o.samplers))
       return samplers < o.samplers;
-    if(!(srvs == o.srvs))
-      return srvs < o.srvs;
-    if(!(uavs == o.uavs))
-      return uavs < o.uavs;
+    if(!(views == o.views))
+      return views < o.views;
     return false;
   }
-  DOCUMENT("The index of this space, since space indices can be sparse");
-  uint32_t spaceIndex;
-  DOCUMENT("List of :class:`D3D12ConstantBuffer` containing the constant buffers.");
+
+  DOCUMENT("``True`` if this root element is a root constant (i.e. not in a table).");
+  bool immediate = false;
+  DOCUMENT("The index in the original root signature that this descriptor came from.");
+  uint32_t rootElement = ~0U;
+  DOCUMENT("The :class:`BindType` contained by this element.");
+  BindType type = BindType::Unknown;
+  DOCUMENT("The :class:`ShaderStageMask` of this element.");
+  ShaderStageMask visibility = ShaderStageMask::All;
+  DOCUMENT("The register space of this element.");
+  uint32_t registerSpace;
+  DOCUMENT("List of :class:`ConstantBuffer` containing the constant buffers.");
   rdcarray<ConstantBuffer> constantBuffers;
-  DOCUMENT("List of :class:`D3D12Sampler` containing the samplers.");
+  DOCUMENT("List of :class:`Sampler` containing the samplers.");
   rdcarray<Sampler> samplers;
-  DOCUMENT("List of :class:`D3D12View` containing the SRVs.");
-  rdcarray<View> srvs;
-  DOCUMENT("List of :class:`D3D12View` containing the UAVs.");
-  rdcarray<View> uavs;
+  DOCUMENT("List of :class:`View` containing the SRVs or UAVs.");
+  rdcarray<View> views;
 };
 
 DOCUMENT("Describes a D3D12 shader stage.");
@@ -495,23 +502,6 @@ mapping data.
 
   DOCUMENT("A :class:`ShaderStage` identifying which stage this shader is bound to.");
   ShaderStage stage = ShaderStage::Vertex;
-
-  DOCUMENT("A list of :class:`D3D12RegisterSpace` with the register spaces for this stage.");
-  rdcarray<RegisterSpace> spaces;
-
-  DOCUMENT(R"(Return the index in the :data:`spaces` array of a given register space.
-
-:return: The index if the space exists, or ``-1`` if it doesn't.
-:rtype: ``int``
-)");
-  int32_t FindSpace(uint32_t spaceIndex) const
-  {
-    for(int32_t i = 0; i < spaces.count(); i++)
-      if(spaces[i].spaceIndex == spaceIndex)
-        return i;
-
-    return -1;
-  }
 };
 
 DOCUMENT("Describes a binding on the D3D12 stream-out stage.");
@@ -702,7 +692,7 @@ struct OM
   rdcarray<View> renderTargets;
 
   DOCUMENT("A :class:`D3D12View` with details of the bound depth-stencil target.");
-  View depthTarget;
+  View depthTarget = D3D12Pipe::View(0);
   DOCUMENT("``True`` if depth access to the depth-stencil target is read-only.");
   bool depthReadOnly = false;
   DOCUMENT("``True`` if stenncil access to the depth-stencil target is read-only.");
@@ -775,6 +765,9 @@ struct State
   DOCUMENT("The :class:`ResourceId` of the root signature object.");
   ResourceId rootSignatureResourceId;
 
+  DOCUMENT("A list of :class:`RootSignatureRange` entries comprising the root signature.");
+  rdcarray<RootSignatureRange> rootElements;
+
   DOCUMENT("A :class:`D3D12InputAssembly` describing the input assembly pipeline stage.");
   InputAssembly inputAssembly;
 
@@ -813,7 +806,7 @@ DECLARE_REFLECTION_STRUCT(D3D12Pipe::InputAssembly);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::View);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::Sampler);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::ConstantBuffer);
-DECLARE_REFLECTION_STRUCT(D3D12Pipe::RegisterSpace);
+DECLARE_REFLECTION_STRUCT(D3D12Pipe::RootSignatureRange);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::Shader);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::StreamOutBind);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::StreamOut);

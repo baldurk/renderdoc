@@ -54,41 +54,6 @@ ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev);
 
 static const char *DXBCDisassemblyTarget = "DXBC";
 
-template <class T>
-T &resize_and_add(rdcarray<T> &vec, size_t idx)
-{
-  if(idx >= vec.size())
-    vec.resize(idx + 1);
-
-  return vec[idx];
-}
-
-D3D12Pipe::RegisterSpace &get_space(rdcarray<D3D12Pipe::RegisterSpace> &dstSpaces,
-                                    uint32_t RegisterSpace)
-{
-  // look to see if we've already added this space, if so then return it
-  for(D3D12Pipe::RegisterSpace &space : dstSpaces)
-    if(space.spaceIndex == RegisterSpace)
-      return space;
-
-  // otherwise look for the right place to insert it
-  for(size_t i = 0; i < dstSpaces.size(); i++)
-  {
-    if(RegisterSpace < dstSpaces[i].spaceIndex)
-    {
-      dstSpaces.insert(i, D3D12Pipe::RegisterSpace());
-      dstSpaces[i].spaceIndex = RegisterSpace;
-      return dstSpaces[i];
-    }
-  }
-
-  // if we got here, we didn't find an existing space nor a place to insert a new one, so we append
-  // it
-  dstSpaces.push_back(D3D12Pipe::RegisterSpace());
-  dstSpaces.back().spaceIndex = RegisterSpace;
-  return dstSpaces.back();
-}
-
 D3D12Replay::D3D12Replay(WrappedID3D12Device *d)
 {
   m_pDevice = d;
@@ -900,34 +865,51 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
   }
 }
 
-void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &rootSig,
-                                     const ShaderBindpointMapping &mapping,
-                                     rdcarray<D3D12Pipe::RegisterSpace> &dstSpaces,
-                                     D3D12_SHADER_VISIBILITY visibility)
+ShaderStageMask ToShaderStageMask(D3D12_SHADER_VISIBILITY vis)
 {
+  switch(vis)
+  {
+    case D3D12_SHADER_VISIBILITY_ALL: return ShaderStageMask::All;
+    case D3D12_SHADER_VISIBILITY_VERTEX: return ShaderStageMask::Vertex;
+    case D3D12_SHADER_VISIBILITY_HULL: return ShaderStageMask::Hull;
+    case D3D12_SHADER_VISIBILITY_DOMAIN: return ShaderStageMask::Domain;
+    case D3D12_SHADER_VISIBILITY_GEOMETRY: return ShaderStageMask::Geometry;
+    case D3D12_SHADER_VISIBILITY_PIXEL: return ShaderStageMask::Pixel;
+    default: return ShaderStageMask::Unknown;
+  }
+}
+
+void D3D12Replay::FillRootElements(const D3D12RenderState::RootSignature &rootSig,
+                                   const ShaderBindpointMapping *mappings[(uint32_t)ShaderStage::Count],
+                                   rdcarray<D3D12Pipe::RootSignatureRange> &rootElements)
+{
+  if(rootSig.rootsig == ResourceId())
+    return;
+
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
   WrappedID3D12RootSignature *sig =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootSig.rootsig);
 
-  // clear first to ensure the spaces are default-initialised
-  dstSpaces.clear();
-  dstSpaces.reserve(8);
+  rootElements.clear();
+  rootElements.reserve(sig->sig.Parameters.size() + sig->sig.StaticSamplers.size());
 
   for(size_t rootEl = 0; rootEl < sig->sig.Parameters.size(); rootEl++)
   {
     const D3D12RootSignatureParameter &p = sig->sig.Parameters[rootEl];
 
-    if(p.ShaderVisibility != D3D12_SHADER_VISIBILITY_ALL && p.ShaderVisibility != visibility)
-      continue;
-
     if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
     {
-      D3D12Pipe::ConstantBuffer &cb =
-          resize_and_add(get_space(dstSpaces, p.Constants.RegisterSpace).constantBuffers,
-                         p.Constants.ShaderRegister);
-      cb.immediate = true;
-      cb.rootElement = (uint32_t)rootEl;
+      rootElements.push_back(D3D12Pipe::RootSignatureRange());
+      D3D12Pipe::RootSignatureRange &element = rootElements.back();
+      element.immediate = true;
+      element.rootElement = (uint32_t)rootEl;
+      element.type = BindType::ConstantBuffer;
+      element.registerSpace = p.Constants.RegisterSpace;
+      element.visibility = ToShaderStageMask(p.ShaderVisibility);
+
+      element.constantBuffers.push_back(D3D12Pipe::ConstantBuffer(p.Constants.ShaderRegister));
+      D3D12Pipe::ConstantBuffer &cb = element.constantBuffers.back();
       cb.byteSize = uint32_t(sizeof(uint32_t) * p.Constants.Num32BitValues);
 
       if(rootEl < rootSig.sigelems.size())
@@ -943,11 +925,16 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV)
     {
-      D3D12Pipe::ConstantBuffer &cb =
-          resize_and_add(get_space(dstSpaces, p.Descriptor.RegisterSpace).constantBuffers,
-                         p.Descriptor.ShaderRegister);
-      cb.immediate = true;
-      cb.rootElement = (uint32_t)rootEl;
+      rootElements.push_back(D3D12Pipe::RootSignatureRange());
+      D3D12Pipe::RootSignatureRange &element = rootElements.back();
+      element.immediate = true;
+      element.rootElement = (uint32_t)rootEl;
+      element.type = BindType::ConstantBuffer;
+      element.registerSpace = p.Descriptor.RegisterSpace;
+      element.visibility = ToShaderStageMask(p.ShaderVisibility);
+
+      element.constantBuffers.push_back(D3D12Pipe::ConstantBuffer(p.Descriptor.ShaderRegister));
+      D3D12Pipe::ConstantBuffer &cb = element.constantBuffers.back();
 
       if(rootEl < rootSig.sigelems.size())
       {
@@ -967,10 +954,16 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV)
     {
-      D3D12Pipe::View &view = resize_and_add(get_space(dstSpaces, p.Descriptor.RegisterSpace).srvs,
-                                             p.Descriptor.ShaderRegister);
-      view.immediate = true;
-      view.rootElement = (uint32_t)rootEl;
+      rootElements.push_back(D3D12Pipe::RootSignatureRange());
+      D3D12Pipe::RootSignatureRange &element = rootElements.back();
+      element.immediate = true;
+      element.rootElement = (uint32_t)rootEl;
+      element.type = BindType::ReadOnlyResource;
+      element.registerSpace = p.Descriptor.RegisterSpace;
+      element.visibility = ToShaderStageMask(p.ShaderVisibility);
+
+      element.views.push_back(D3D12Pipe::View(p.Descriptor.ShaderRegister));
+      D3D12Pipe::View &view = element.views.back();
 
       if(rootEl < rootSig.sigelems.size())
       {
@@ -995,10 +988,16 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
     {
-      D3D12Pipe::View &view = resize_and_add(get_space(dstSpaces, p.Descriptor.RegisterSpace).uavs,
-                                             p.Descriptor.ShaderRegister);
-      view.immediate = true;
-      view.rootElement = (uint32_t)rootEl;
+      rootElements.push_back(D3D12Pipe::RootSignatureRange());
+      D3D12Pipe::RootSignatureRange &element = rootElements.back();
+      element.immediate = true;
+      element.rootElement = (uint32_t)rootEl;
+      element.type = BindType::ReadWriteResource;
+      element.registerSpace = p.Descriptor.RegisterSpace;
+      element.visibility = ToShaderStageMask(p.ShaderVisibility);
+
+      element.views.push_back(D3D12Pipe::View(p.Descriptor.ShaderRegister));
+      D3D12Pipe::View &view = element.views.back();
 
       if(rootEl < rootSig.sigelems.size())
       {
@@ -1039,8 +1038,17 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
       {
         const D3D12_DESCRIPTOR_RANGE1 &range = p.ranges[r];
 
+        // Here we diverge slightly from how root signatures store data. A descriptor table can
+        // contain multiple ranges which can each contain different types. D3D12Pipe treats
+        // each range as a separate RootElement
+        rootElements.push_back(D3D12Pipe::RootSignatureRange());
+        D3D12Pipe::RootSignatureRange &element = rootElements.back();
+
+        element.rootElement = (uint32_t)rootEl;
+        element.registerSpace = range.RegisterSpace;
+        element.visibility = ToShaderStageMask(p.ShaderVisibility);
+
         UINT shaderReg = range.BaseShaderRegister;
-        D3D12Pipe::RegisterSpace &regSpace = get_space(dstSpaces, range.RegisterSpace);
 
         D3D12Descriptor *desc = NULL;
 
@@ -1059,38 +1067,38 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
           if(num == UINT_MAX)
           {
-            // find out how many descriptors are left after
             UINT availDescriptors = heap->GetNumDescriptors() - offset - UINT(e->offset);
 
-            // if this is an unbounded size table, find the matching bindpoint to try and
-            // upper-bound its size.
-            // due to D3D12's messed up resource matching, an array of descriptors in the root
-            // signature might match multiple bindings in the HLSL. So we just need to pick the
-            // highest-register item in the space and use its size.
+            const Bindpoint *highestBind = NULL;
+            UINT maxBindReg = shaderReg + availDescriptors;
 
-            const Bindpoint *bind = NULL;
-
-            // find the
-            for(const Bindpoint &b : mapping.readOnlyResources)
+            // Find shader binds that map any or all of this range to see if we can trim it
+            for(ShaderStage stage = ShaderStage::Vertex; stage < ShaderStage::Count; ++stage)
             {
-              if(b.bindset == (int32_t)range.RegisterSpace && (bind == NULL || bind->bind < b.bind))
-                bind = &b;
+              if((element.visibility & MaskForStage(stage)) != ShaderStageMask::Unknown)
+              {
+                // This range is visible to this shader stage, check its mappings
+                const rdcarray<Bindpoint> &bps = mappings[(uint32_t)stage]->readOnlyResources;
+                for(size_t b = 0; b < bps.size(); ++b)
+                {
+                  if(bps[b].bindset == (int32_t)element.registerSpace &&
+                     bps[b].bind >= (int32_t)shaderReg)
+                  {
+                    UINT bindEnd = bps[b].arraySize == ~0U ? ~0U : bps[b].bind + bps[b].arraySize;
+                    if(highestBind == NULL || bindEnd > maxBindReg)
+                    {
+                      highestBind = &bps[b];
+                      maxBindReg = bindEnd;
+                    }
+                  }
+                }
+              }
             }
 
-            // the size is however many registers are between the base of this range and that last
-            // bind, plus the size of the bind (at least 1 if it's not arrayed).
-            // If we didn't find any bind, clamp to 128 instead to prevent massive descriptor heaps
-            // from being passed through.
-            if(bind)
-            {
-              uint32_t arraySize = bind->arraySize == UINT_MAX ? 0U : bind->arraySize;
-              num = RDCMIN(availDescriptors,
-                           bind->bind - range.BaseShaderRegister + RDCMAX(1U, arraySize));
-            }
-            else
-            {
-              num = RDCMIN(availDescriptors, 128U);
-            }
+            // If we didn't find a bindpoint, this will evaluate to simply availDescriptors - the
+            // number of remaining entries in the heap. If we did find a bind in this range, it
+            // will trim to the max register used by bindings in the range.
+            num = RDCMIN(availDescriptors, maxBindReg - shaderReg);
           }
         }
         else if(num == UINT_MAX)
@@ -1105,15 +1113,12 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
         if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
         {
-          UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= regSpace.samplers.size())
-            regSpace.samplers.resize(maxReg + 1);
+          element.type = BindType::Sampler;
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::Sampler &samp = regSpace.samplers[shaderReg];
-            samp.immediate = false;
-            samp.rootElement = (uint32_t)rootEl;
+            element.samplers.push_back(D3D12Pipe::Sampler(shaderReg));
+            D3D12Pipe::Sampler &samp = element.samplers.back();
             samp.tableIndex = offset + i;
 
             if(desc)
@@ -1141,15 +1146,12 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         }
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
         {
-          UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= regSpace.constantBuffers.size())
-            regSpace.constantBuffers.resize(maxReg + 1);
+          element.type = BindType::ConstantBuffer;
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::ConstantBuffer &cb = regSpace.constantBuffers[shaderReg];
-            cb.immediate = false;
-            cb.rootElement = (uint32_t)rootEl;
+            element.constantBuffers.push_back(D3D12Pipe::ConstantBuffer(shaderReg));
+            D3D12Pipe::ConstantBuffer &cb = element.constantBuffers.back();
             cb.tableIndex = offset + i;
 
             if(desc)
@@ -1166,42 +1168,34 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
         }
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
         {
-          UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= regSpace.srvs.size())
-            regSpace.srvs.resize(maxReg + 1);
+          element.type = BindType::ReadOnlyResource;
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::View &view = regSpace.srvs[shaderReg];
-            view.immediate = false;
-            view.rootElement = (uint32_t)rootEl;
+            element.views.push_back(D3D12Pipe::View(shaderReg));
+            D3D12Pipe::View &view = element.views.back();
             view.tableIndex = offset + i;
 
             if(desc)
             {
               FillResourceView(view, desc);
-
               desc++;
             }
           }
         }
         else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
         {
-          UINT maxReg = shaderReg + num - 1;
-          if(maxReg >= regSpace.uavs.size())
-            regSpace.uavs.resize(maxReg + 1);
+          element.type = BindType::ReadWriteResource;
 
           for(UINT i = 0; i < num; i++, shaderReg++)
           {
-            D3D12Pipe::View &view = regSpace.uavs[shaderReg];
-            view.immediate = false;
-            view.rootElement = (uint32_t)rootEl;
+            element.views.push_back(D3D12Pipe::View(shaderReg));
+            D3D12Pipe::View &view = element.views.back();
             view.tableIndex = offset + i;
 
             if(desc)
             {
               FillResourceView(view, desc);
-
               desc++;
             }
           }
@@ -1210,18 +1204,21 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     }
   }
 
+  // Each static sampler gets its own RootElement
   for(size_t i = 0; i < sig->sig.StaticSamplers.size(); i++)
   {
     D3D12_STATIC_SAMPLER_DESC &sampDesc = sig->sig.StaticSamplers[i];
 
-    if(sampDesc.ShaderVisibility != D3D12_SHADER_VISIBILITY_ALL &&
-       sampDesc.ShaderVisibility != visibility)
-      continue;
+    rootElements.push_back(D3D12Pipe::RootSignatureRange());
+    D3D12Pipe::RootSignatureRange &element = rootElements.back();
+    element.immediate = true;
+    element.rootElement = (uint32_t)i;
+    element.type = BindType::Sampler;
+    element.registerSpace = sampDesc.RegisterSpace;
+    element.visibility = ToShaderStageMask(sampDesc.ShaderVisibility);
 
-    D3D12Pipe::Sampler &samp = resize_and_add(get_space(dstSpaces, sampDesc.RegisterSpace).samplers,
-                                              sampDesc.ShaderRegister);
-    samp.immediate = true;
-    samp.rootElement = (uint32_t)i;
+    element.samplers.push_back(D3D12Pipe::Sampler(sampDesc.ShaderRegister));
+    D3D12Pipe::Sampler &samp = element.samplers.back();
 
     samp.addressU = MakeAddressMode(sampDesc.AddressU);
     samp.addressV = MakeAddressMode(sampDesc.AddressV);
@@ -1342,12 +1339,6 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
     state.computeShader.stage = ShaderStage::Compute;
     state.computeShader.reflection = &sh->GetDetails();
     state.computeShader.bindpointMapping = sh->GetMapping();
-
-    state.rootSignatureResourceId = rm->GetOriginalID(rs.compute.rootsig);
-
-    if(rs.compute.rootsig != ResourceId())
-      FillRegisterSpaces(rs.compute, state.computeShader.bindpointMapping,
-                         state.computeShader.spaces, D3D12_SHADER_VISIBILITY_ALL);
   }
   else if(pipe)
   {
@@ -1382,12 +1373,31 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
         dst.bindpointMapping = ShaderBindpointMapping();
         dst.reflection = NULL;
       }
-
-      if(rs.graphics.rootsig != ResourceId())
-        FillRegisterSpaces(rs.graphics, dst.bindpointMapping, dst.spaces, visibility[stage]);
     }
+  }
 
-    state.rootSignatureResourceId = rm->GetOriginalID(rs.graphics.rootsig);
+  /////////////////////////////////////////////////
+  // Root Signature
+  /////////////////////////////////////////////////
+  {
+    const ShaderBindpointMapping *mappings[(uint32_t)ShaderStage::Count];
+    mappings[(uint32_t)ShaderStage::Vertex] = &state.vertexShader.bindpointMapping;
+    mappings[(uint32_t)ShaderStage::Hull] = &state.hullShader.bindpointMapping;
+    mappings[(uint32_t)ShaderStage::Domain] = &state.domainShader.bindpointMapping;
+    mappings[(uint32_t)ShaderStage::Geometry] = &state.geometryShader.bindpointMapping;
+    mappings[(uint32_t)ShaderStage::Pixel] = &state.pixelShader.bindpointMapping;
+    mappings[(uint32_t)ShaderStage::Compute] = &state.computeShader.bindpointMapping;
+
+    if(pipe && pipe->IsCompute())
+    {
+      FillRootElements(rs.compute, mappings, state.rootElements);
+      state.rootSignatureResourceId = rm->GetOriginalID(rs.compute.rootsig);
+    }
+    else if(pipe)
+    {
+      FillRootElements(rs.graphics, mappings, state.rootElements);
+      state.rootSignatureResourceId = rm->GetOriginalID(rs.graphics.rootsig);
+    }
   }
 
   if(pipe && pipe->IsGraphics())
@@ -1462,41 +1472,22 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
     // Output Merger
     /////////////////////////////////////////////////
 
-    state.outputMerger.renderTargets.resize(rs.rts.size());
+    state.outputMerger.renderTargets.reserve(rs.rts.size());
     for(size_t i = 0; i < rs.rts.size(); i++)
     {
-      D3D12Pipe::View &view = state.outputMerger.renderTargets[i];
-
       const D3D12Descriptor &desc = rs.rts[i];
 
       if(desc.GetResResourceId() != ResourceId())
       {
-        view.rootElement = (uint32_t)i;
-        view.immediate = false;
+        state.outputMerger.renderTargets.push_back(D3D12Pipe::View((uint32_t)i));
+        D3D12Pipe::View &view = state.outputMerger.renderTargets.back();
 
         FillResourceView(view, &desc);
       }
-      else
-      {
-        view = D3D12Pipe::View();
-      }
     }
 
-    {
-      D3D12Pipe::View &view = state.outputMerger.depthTarget;
-
-      if(rs.dsv.GetResResourceId() != ResourceId())
-      {
-        view.rootElement = 0;
-        view.immediate = false;
-
-        FillResourceView(view, &rs.dsv);
-      }
-      else
-      {
-        view = D3D12Pipe::View();
-      }
-    }
+    if(rs.dsv.GetResResourceId() != ResourceId())
+      FillResourceView(state.outputMerger.depthTarget, &rs.dsv);
 
     memcpy(state.outputMerger.blendState.blendFactor, rs.blendFactor, sizeof(FLOAT) * 4);
 
@@ -3954,88 +3945,3 @@ void D3D12_ProcessStructured(RDCFile *rdc, SDFile &output)
 
 static StructuredProcessRegistration D3D12ProcessRegistration(RDCDriver::D3D12,
                                                               &D3D12_ProcessStructured);
-
-#if ENABLED(ENABLE_UNIT_TESTS)
-
-#undef None
-
-#include "catch/catch.hpp"
-
-TEST_CASE("Test get_space ensures sorted nature", "[d3d12]")
-{
-  D3D12Pipe::Shader shader;
-  rdcarray<D3D12Pipe::RegisterSpace> &spaces = shader.spaces;
-
-  get_space(spaces, 0).samplers.resize(5);
-
-  CHECK(spaces.size() == 1);
-
-  REQUIRE(shader.FindSpace(0) == 0);
-
-  CHECK(spaces[shader.FindSpace(0)].samplers.size() == 5);
-
-  SECTION("Adding in sorted order")
-  {
-    get_space(spaces, 3).srvs.resize(7);
-    get_space(spaces, 4).uavs.resize(9);
-    get_space(spaces, 1000).constantBuffers.resize(2);
-
-    CHECK(spaces.size() == 4);
-
-    REQUIRE(shader.FindSpace(0) == 0);
-    REQUIRE(shader.FindSpace(3) == 1);
-    REQUIRE(shader.FindSpace(4) == 2);
-    REQUIRE(shader.FindSpace(1000) == 3);
-    REQUIRE(shader.FindSpace(99) == -1);
-
-    CHECK(spaces[shader.FindSpace(0)].samplers.size() == 5);
-    CHECK(spaces[shader.FindSpace(3)].srvs.size() == 7);
-    CHECK(spaces[shader.FindSpace(4)].uavs.size() == 9);
-    CHECK(spaces[shader.FindSpace(1000)].constantBuffers.size() == 2);
-  }
-
-  SECTION("Adding in reverse sorted order")
-  {
-    get_space(spaces, 1000).constantBuffers.resize(2);
-    get_space(spaces, 4).uavs.resize(9);
-    get_space(spaces, 3).srvs.resize(7);
-
-    CHECK(spaces.size() == 4);
-
-    REQUIRE(shader.FindSpace(0) == 0);
-    REQUIRE(shader.FindSpace(3) == 1);
-    REQUIRE(shader.FindSpace(4) == 2);
-    REQUIRE(shader.FindSpace(1000) == 3);
-    REQUIRE(shader.FindSpace(99) == -1);
-
-    CHECK(spaces[shader.FindSpace(0)].samplers.size() == 5);
-    CHECK(spaces[shader.FindSpace(3)].srvs.size() == 7);
-    CHECK(spaces[shader.FindSpace(4)].uavs.size() == 9);
-    CHECK(spaces[shader.FindSpace(1000)].constantBuffers.size() == 2);
-  }
-
-  SECTION("Adding in random order")
-  {
-    get_space(spaces, 4).uavs.resize(9);
-    get_space(spaces, 19).samplers.resize(100);
-    get_space(spaces, 3).srvs.resize(7);
-    get_space(spaces, 1000).constantBuffers.resize(2);
-
-    CHECK(spaces.size() == 5);
-
-    REQUIRE(shader.FindSpace(0) == 0);
-    REQUIRE(shader.FindSpace(3) == 1);
-    REQUIRE(shader.FindSpace(4) == 2);
-    REQUIRE(shader.FindSpace(19) == 3);
-    REQUIRE(shader.FindSpace(1000) == 4);
-    REQUIRE(shader.FindSpace(99) == -1);
-
-    CHECK(spaces[shader.FindSpace(4)].uavs.size() == 9);
-    CHECK(spaces[shader.FindSpace(19)].samplers.size() == 100);
-    CHECK(spaces[shader.FindSpace(0)].samplers.size() == 5);
-    CHECK(spaces[shader.FindSpace(3)].srvs.size() == 7);
-    CHECK(spaces[shader.FindSpace(1000)].constantBuffers.size() == 2);
-  }
-}
-
-#endif
