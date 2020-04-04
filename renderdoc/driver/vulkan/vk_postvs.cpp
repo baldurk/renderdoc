@@ -1626,7 +1626,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     // ensure the push range is visible to the compute shader
     for(const VkPushConstantRange &range : oldPush)
     {
-      if(range.stageFlags == VK_SHADER_STAGE_VERTEX_BIT)
+      if(range.stageFlags & VK_SHADER_STAGE_VERTEX_BIT)
       {
         push = range;
         push.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
