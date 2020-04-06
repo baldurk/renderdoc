@@ -1290,6 +1290,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
       srclines.push_back("");
 
       // handle #line directives by inserting empty lines or erasing as necessary
+      bool seenLine = false;
 
       for(size_t srcLine = 0; srcLine < srclines.size(); srcLine++)
       {
@@ -1314,24 +1315,34 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
         if(c + 5 > end || strncmp(c, "#line", 5) != 0)
         {
-          // resize up to account for the current line, if necessary
-          dstFile->lines.resize(RDCMAX(dstLine + 1, dstFile->lines.size()));
+          // only actually insert the line if we've seen a #line statement. Otherwise we're just
+          // doing an identity copy. This can lead to problems e.g. if there are a few statements in
+          // a file before the #line we then create a truncated list of lines with only those and
+          // then start spitting the #line directives into other files. We still want to have the
+          // original file as-is.
+          if(seenLine)
+          {
+            // resize up to account for the current line, if necessary
+            dstFile->lines.resize(RDCMAX(dstLine + 1, dstFile->lines.size()));
 
-          // if non-empty, append this line (to allow multiple lines on the same line
-          // number to be concatenated). To avoid screwing up line numbers we have to append with a
-          // comment and not a newline.
-          if(dstFile->lines[dstLine].empty())
-            dstFile->lines[dstLine] = srclines[srcLine];
-          else
-            dstFile->lines[dstLine] += " /* multiple #lines overlapping */ " + srclines[srcLine];
+            // if non-empty, append this line (to allow multiple lines on the same line
+            // number to be concatenated). To avoid screwing up line numbers we have to append with
+            // a comment and not a newline.
+            if(dstFile->lines[dstLine].empty())
+              dstFile->lines[dstLine] = srclines[srcLine];
+            else
+              dstFile->lines[dstLine] += " /* multiple #lines overlapping */ " + srclines[srcLine];
 
-          dstFile->modified = true;
+            dstFile->modified = true;
+          }
 
           // advance line counter
           dstLine++;
 
           continue;
         }
+
+        seenLine = true;
 
         // we have a #line directive
         c += 5;
