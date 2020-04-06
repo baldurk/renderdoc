@@ -16,10 +16,18 @@ from sphinx.util import logging
 
 PythonDomain.object_types['parameter'] = ObjType('parameter', 'param')
 
-if 'getLogger' in logging.__dir__():
+if 'getLogger' in dir(logging):
     LOG = logging.getLogger(__name__)
 else:
     LOG = None
+
+
+def get_indexentries(app):
+    try:
+        return app.env.get_domain('index').data['entries']
+    except:
+        pass
+    return app.env.indexentries
 
 
 def _is_html(app):
@@ -27,10 +35,10 @@ def _is_html(app):
 
 
 def _tempdata(app):
-    if '_sphinx_paramlinks_index' in app.env.indexentries:
-        idx = app.env.indexentries['_sphinx_paramlinks_index']
+    if '_sphinx_paramlinks_index' in get_indexentries(app):
+        idx = get_indexentries(app)['_sphinx_paramlinks_index']
     else:
-        app.env.indexentries['_sphinx_paramlinks_index'] = idx = {}
+        get_indexentries(app)['_sphinx_paramlinks_index'] = idx = {}
     return idx
 
 
@@ -210,7 +218,10 @@ def lookup_params(app, env, node, contnode):
 
 
 def add_stylesheet(app):
-    app.add_stylesheet('sphinx_paramlinks.css')
+    if 'add_css_file' in dir(app):
+        app.add_css_file('sphinx_paramlinks.css')
+    else:
+        app.add_stylesheet('sphinx_paramlinks.css')
 
 
 def copy_stylesheet(app, exception):
@@ -242,13 +253,16 @@ def build_index(app, doctree):
 
     for docname in entries:
         doc_entries = entries[docname]
-        app.env.indexentries[docname].extend(doc_entries)
+        get_indexentries(app)[docname].extend(doc_entries)
 
         for entry in doc_entries:
             sing, desc, ref, extra = entry[:4]
-            app.env.domains['py'].data['objects'][ref] = (docname, 'parameter')
+            if LooseVersion(__version__) >= LooseVersion('3.0.0'):
+                app.env.domains['py'].data['objects'][ref] = (docname, ref, 'parameter')
+            else:
+                app.env.domains['py'].data['objects'][ref] = (docname, 'parameter')
 
-    app.env.indexentries.pop('_sphinx_paramlinks_index')
+    get_indexentries(app).pop('_sphinx_paramlinks_index')
 
 
 def setup(app):
