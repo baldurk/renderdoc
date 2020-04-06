@@ -1936,6 +1936,10 @@ bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(
 
   if(IsReplayingAndReading())
   {
+    // silently promote NULL name to empty string
+    if(ObjectName == NULL)
+      ObjectName = "";
+
     // if we don't have a live resource, this is probably a command buffer being named on the
     // virtual non-existant parent, not any of the baked IDs. Just save the name on the original ID
     // and we'll propagate it in Serialise_vkBeginCommandBuffer
@@ -2045,6 +2049,10 @@ bool WrappedVulkan::Serialise_vkSetDebugUtilsObjectNameEXT(
 
   if(IsReplayingAndReading())
   {
+    // silently promote NULL name to empty string
+    if(ObjectName == NULL)
+      ObjectName = "";
+
     // if we don't have a live resource, this is probably a command buffer being named on the
     // virtual non-existant parent, not any of the baked IDs. Just save the name on the original ID
     // and we'll propagate it in Serialise_vkBeginCommandBuffer
