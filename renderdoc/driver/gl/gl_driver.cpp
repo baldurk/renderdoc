@@ -2747,9 +2747,9 @@ void WrappedOpenGL::QueueResourceRelease(GLResource res)
   m_QueuedReleases.insert(insertPos - m_QueuedReleases.begin(), q);
 }
 
-void WrappedOpenGL::CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum internalFormatHint,
-                                       GLenum textype, GLint dim, GLint width, GLint height,
-                                       GLint depth, GLint samples, int mips)
+void WrappedOpenGL::CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum initFormatHint,
+                                       GLenum initTypeHint, GLenum textype, GLint dim, GLint width,
+                                       GLint height, GLint depth, GLint samples, int mips)
 {
   if(textype == eGL_TEXTURE_BUFFER)
   {
@@ -2791,14 +2791,17 @@ void WrappedOpenGL::CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum
     bool isCompressed = IsCompressedFormat(internalFormat);
 
     GLenum baseFormat = eGL_RGBA;
-    GLenum dataType = internalFormatHint != eGL_NONE ? internalFormatHint : eGL_UNSIGNED_BYTE;
+    GLenum dataType = eGL_UNSIGNED_BYTE;
     if(!isCompressed)
     {
       baseFormat = GetBaseFormat(internalFormat);
-
-      if(internalFormatHint == eGL_NONE)
-        dataType = GetDataType(internalFormat);
+      dataType = GetDataType(internalFormat);
     }
+
+    if(initFormatHint != eGL_NONE)
+      baseFormat = initFormatHint;
+    if(initTypeHint != eGL_NONE)
+      dataType = initTypeHint;
 
     GLenum targets[] = {
         eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,

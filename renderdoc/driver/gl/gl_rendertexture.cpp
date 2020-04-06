@@ -133,9 +133,9 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
       // can't use texture views because the underlying image isn't immutable because we don't
       // want to rely on texture storage. We also can't rely on texture views, meaning we need a
       // fallback path ANYWAY, so might as well always use it. Yayyy opengl...
-      drv.CreateTextureImage(castTexture, displayFormat, eGL_NONE, target, texDetails.dimension,
-                             texDetails.width, texDetails.height, texDetails.depth,
-                             texDetails.samples, (int)numMips);
+      drv.CreateTextureImage(castTexture, displayFormat, eGL_NONE, eGL_NONE, target,
+                             texDetails.dimension, texDetails.width, texDetails.height,
+                             texDetails.depth, texDetails.samples, (int)numMips);
 
       bool isCompressed = IsCompressedFormat(displayFormat);
 

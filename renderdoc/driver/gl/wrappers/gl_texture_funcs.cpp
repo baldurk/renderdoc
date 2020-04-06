@@ -2295,7 +2295,8 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(SerialiserType &ser, GLuint te
         m_Textures[liveId].curType = TextureTarget(target);
       m_Textures[liveId].dimension = 1;
       m_Textures[liveId].internalFormat = (GLenum)internalformat;
-      m_Textures[liveId].internalFormatHint = type;
+      m_Textures[liveId].initFormatHint = format;
+      m_Textures[liveId].initTypeHint = type;
       m_Textures[liveId].emulated = emulated;
     }
 
@@ -2395,7 +2396,8 @@ void WrappedOpenGL::Common_glTextureImage1DEXT(ResourceId texId, GLenum target, 
           TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 1;
     m_Textures[texId].internalFormat = (GLenum)internalformat;
-    m_Textures[texId].internalFormatHint = type;
+    m_Textures[texId].initFormatHint = format;
+    m_Textures[texId].initTypeHint = type;
   }
 }
 
@@ -2521,7 +2523,8 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(SerialiserType &ser, GLuint te
         m_Textures[liveId].curType = TextureTarget(target);
       m_Textures[liveId].dimension = 2;
       m_Textures[liveId].internalFormat = (GLenum)internalformat;
-      m_Textures[liveId].internalFormatHint = type;
+      m_Textures[liveId].initFormatHint = format;
+      m_Textures[liveId].initTypeHint = type;
       m_Textures[liveId].emulated = emulated;
     }
 
@@ -2645,7 +2648,8 @@ void WrappedOpenGL::Common_glTextureImage2DEXT(ResourceId texId, GLenum target, 
           TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 2;
     m_Textures[texId].internalFormat = (GLenum)internalformat;
-    m_Textures[texId].internalFormatHint = type;
+    m_Textures[texId].initFormatHint = format;
+    m_Textures[texId].initTypeHint = type;
   }
 }
 
@@ -2773,7 +2777,8 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(SerialiserType &ser, GLuint te
         m_Textures[liveId].curType = TextureTarget(target);
       m_Textures[liveId].dimension = 3;
       m_Textures[liveId].internalFormat = (GLenum)internalformat;
-      m_Textures[liveId].internalFormatHint = type;
+      m_Textures[liveId].initFormatHint = format;
+      m_Textures[liveId].initTypeHint = type;
       m_Textures[liveId].emulated = emulated;
     }
 
@@ -2877,7 +2882,8 @@ void WrappedOpenGL::Common_glTextureImage3DEXT(ResourceId texId, GLenum target, 
           TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
     m_Textures[texId].dimension = 3;
     m_Textures[texId].internalFormat = (GLenum)internalformat;
-    m_Textures[texId].internalFormatHint = type;
+    m_Textures[texId].initFormatHint = format;
+    m_Textures[texId].initTypeHint = type;
   }
 }
 

@@ -730,9 +730,9 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
         mips = 1;
 
       // create texture of identical format/size to store initial contents
-      m_Driver->CreateTextureImage(tex, details.internalFormat, details.internalFormatHint,
-                                   details.curType, details.dimension, details.width,
-                                   details.height, details.depth, details.samples, mips);
+      m_Driver->CreateTextureImage(
+          tex, details.internalFormat, details.initFormatHint, details.initTypeHint, details.curType,
+          details.dimension, details.width, details.height, details.depth, details.samples, mips);
 
       // we need to set maxlevel appropriately for number of mips to force the texture to be
       // complete.
@@ -1413,6 +1413,14 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
             GLsizei h = (GLsizei)TextureState.height;
             GLsizei d = (GLsizei)TextureState.depth;
 
+            GLenum baseFormat = GetBaseFormat(TextureState.internalformat);
+            GLenum dataType = GetDataType(TextureState.internalformat);
+
+            if(details.initFormatHint != eGL_NONE)
+              baseFormat = details.initFormatHint;
+            if(details.initTypeHint != eGL_NONE)
+              dataType = details.initTypeHint;
+
             // see how many mips we actually have available
             int liveMips = GetNumMips(TextureState.type, liveRes.name, w, h, d);
 
@@ -1460,20 +1468,15 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
                   else
                   {
                     if(TextureState.dim == 1)
-                      GL.glTextureImage1DEXT(liveRes.name, targets[t], m,
-                                             TextureState.internalformat, (GLsizei)w, 0,
-                                             GetBaseFormat(TextureState.internalformat),
-                                             GetDataType(TextureState.internalformat), NULL);
+                      GL.glTextureImage1DEXT(liveRes.name, targets[t], m, TextureState.internalformat,
+                                             (GLsizei)w, 0, baseFormat, dataType, NULL);
                     else if(TextureState.dim == 2)
-                      GL.glTextureImage2DEXT(liveRes.name, targets[t], m,
-                                             TextureState.internalformat, (GLsizei)w, (GLsizei)h, 0,
-                                             GetBaseFormat(TextureState.internalformat),
-                                             GetDataType(TextureState.internalformat), NULL);
+                      GL.glTextureImage2DEXT(liveRes.name, targets[t], m, TextureState.internalformat,
+                                             (GLsizei)w, (GLsizei)h, 0, baseFormat, dataType, NULL);
                     else if(TextureState.dim == 3)
-                      GL.glTextureImage3DEXT(
-                          liveRes.name, targets[t], m, TextureState.internalformat, (GLsizei)w,
-                          (GLsizei)h, (GLsizei)d, 0, GetBaseFormat(TextureState.internalformat),
-                          GetDataType(TextureState.internalformat), NULL);
+                      GL.glTextureImage3DEXT(liveRes.name, targets[t], m,
+                                             TextureState.internalformat, (GLsizei)w, (GLsizei)h,
+                                             (GLsizei)d, 0, baseFormat, dataType, NULL);
                   }
                 }
               }
@@ -1518,9 +1521,9 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
           GL.glBindTexture(TextureState.type, tex);
 
           // create MSAA texture we'll use for applying
-          m_Driver->CreateTextureImage(tex, TextureState.internalformat, details.internalFormatHint,
-                                       TextureState.type, TextureState.dim, TextureState.width,
-                                       TextureState.height, TextureState.depth,
+          m_Driver->CreateTextureImage(tex, TextureState.internalformat, details.initFormatHint,
+                                       details.initTypeHint, TextureState.type, TextureState.dim,
+                                       TextureState.width, TextureState.height, TextureState.depth,
                                        TextureState.samples, TextureState.mips);
 
           // create intermediary array for serialising

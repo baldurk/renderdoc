@@ -601,9 +601,9 @@ public:
 
   void CheckImplicitThread();
 
-  void CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum internalFormatHint,
-                          GLenum textype, GLint dim, GLint width, GLint height, GLint depth,
-                          GLint samples, int mips);
+  void CreateTextureImage(GLuint tex, GLenum internalFormat, GLenum initFormatHint,
+                          GLenum initTypeHint, GLenum textype, GLint dim, GLint width, GLint height,
+                          GLint depth, GLint samples, int mips);
 
   void PushInternalShader() { m_InternalShader++; }
   void PopInternalShader() { m_InternalShader--; }
@@ -778,7 +778,8 @@ public:
           samples(0),
           creationFlags(TextureCategory::NoFlags),
           internalFormat(eGL_NONE),
-          internalFormatHint(eGL_NONE),
+          initFormatHint(eGL_NONE),
+          initTypeHint(eGL_NONE),
           mipsValid(0),
           renderbufferReadTex(0)
     {
@@ -790,7 +791,8 @@ public:
     bool emulated, view;
     GLint width, height, depth, samples;
     TextureCategory creationFlags;
-    GLenum internalFormat, internalFormatHint;
+    GLenum internalFormat;
+    GLenum initFormatHint, initTypeHint;
     GLuint mipsValid;
 
     // since renderbuffers cannot be read from, we have to create a texture of identical
