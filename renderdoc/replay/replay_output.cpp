@@ -178,7 +178,8 @@ void ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
                              m_RenderData.texDisplay.overlay == DebugOverlay::ClearBeforePass);
 
   if(o.overlay != m_RenderData.texDisplay.overlay ||
-     (o.overlay != DebugOverlay::NoOverlay && (o.typeCast != m_RenderData.texDisplay.typeCast ||
+     (o.overlay != DebugOverlay::NoOverlay && (o.subresource != m_RenderData.texDisplay.subresource ||
+                                               o.typeCast != m_RenderData.texDisplay.typeCast ||
                                                o.resourceId != m_RenderData.texDisplay.resourceId)))
   {
     if(wasClearBeforeDraw)

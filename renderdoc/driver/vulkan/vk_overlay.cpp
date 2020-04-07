@@ -496,6 +496,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
 
   VkImageSubresourceRange subRange = {VK_IMAGE_ASPECT_COLOR_BIT, sub.mip, 1, 0, 1};
 
+  const VkFormat overlayFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+
   // create the overlay image if we don't have one already
   // we go through the driver's creation functions so creation info
   // is saved and the resources are registered as live resources for
@@ -512,7 +514,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
         NULL,
         0,
         VK_IMAGE_TYPE_2D,
-        VK_FORMAT_R16G16B16A16_SFLOAT,
+        overlayFormat,
         {m_Overlay.ImageDim.width, m_Overlay.ImageDim.height, 1},
         (uint32_t)iminfo.mipLevels,
         1,
@@ -553,21 +555,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
     }
 
     vkr = m_pDriver->vkBindImageMemory(m_Device, m_Overlay.Image, m_Overlay.ImageMem, 0);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    VkImageViewCreateInfo viewInfo = {
-        VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        NULL,
-        0,
-        m_Overlay.Image,
-        VK_IMAGE_VIEW_TYPE_2D,
-        imInfo.format,
-        {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-         VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
-        subRange,
-    };
-
-    vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &m_Overlay.ImageView);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     // need to update image layout into valid state
@@ -613,6 +600,29 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
     };
 
     vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, NULL, &m_Overlay.NoDepthRP);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
+  if(m_Overlay.MipLevel != sub.mip || m_Overlay.ImageView == VK_NULL_HANDLE)
+  {
+    m_pDriver->vkDestroyFramebuffer(m_Device, m_Overlay.NoDepthFB, NULL);
+    m_pDriver->vkDestroyImageView(m_Device, m_Overlay.ImageView, NULL);
+
+    m_Overlay.MipLevel = sub.mip;
+
+    VkImageViewCreateInfo viewInfo = {
+        VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        NULL,
+        0,
+        m_Overlay.Image,
+        VK_IMAGE_VIEW_TYPE_2D,
+        overlayFormat,
+        {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+         VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
+        subRange,
+    };
+
+    vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &m_Overlay.ImageView);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     // Create framebuffer rendering just to overlay image, no depth

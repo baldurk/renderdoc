@@ -2640,6 +2640,10 @@ rdcarray<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventId)
     // step back
     const DrawcallDescription *prev = start->previous;
 
+    // if the previous is a clear, we're done
+    if(prev->flags & DrawFlags::Clear)
+      break;
+
     // if the outputs changed, we're done
     if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) != 0 ||
        start->depthOut != prev->depthOut)

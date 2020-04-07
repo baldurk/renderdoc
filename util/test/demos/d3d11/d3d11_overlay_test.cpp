@@ -122,6 +122,8 @@ float4 main() : SV_Target0
         MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, screenWidth, screenHeight).RTV().Array(5).Mips(4);
     ID3D11RenderTargetViewPtr subrtv =
         MakeRTV(subtex).FirstSlice(2).NumSlices(1).FirstMip(2).NumMips(1);
+    ID3D11RenderTargetViewPtr subrtv2 =
+        MakeRTV(subtex).FirstSlice(2).NumSlices(1).FirstMip(3).NumMips(1);
 
     while(Running())
     {
@@ -195,7 +197,17 @@ float4 main() : SV_Target0
       ClearRenderTargetView(subrtv, {0.0f, 0.0f, 0.0f, 1.0f});
 
       ctx->OMSetRenderTargets(1, &subrtv.GetInterfacePtr(), NULL);
-      setMarker("Subresources");
+      setMarker("Subresources mip 2");
+      ctx->Draw(24, 9);
+
+      RSSetViewport(
+          {2.0f, 2.0f, float(screenWidth / 8) - 4.0f, float(screenHeight / 8) - 4.0f, 0.0f, 1.0f});
+      RSSetScissor({0, 0, screenWidth / 8, screenHeight / 8});
+
+      ClearRenderTargetView(subrtv2, {0.0f, 0.0f, 0.0f, 1.0f});
+
+      ctx->OMSetRenderTargets(1, &subrtv2.GetInterfacePtr(), NULL);
+      setMarker("Subresources mip 3");
       ctx->Draw(24, 9);
 
       Present();

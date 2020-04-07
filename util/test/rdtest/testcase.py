@@ -321,9 +321,9 @@ class TestCase:
 
         if tex_details is not None:
             if type(x) is float:
-                x = int((tex_details.width-1) * x)
+                x = int(((tex_details.width >> sub.mip) - 1) * x)
             if type(y) is float:
-                y = int((tex_details.height-1) * y)
+                y = int(((tex_details.height >> sub.mip) - 1) * y)
 
             if cast == rd.CompType.Typeless and tex_details.creationFlags & rd.TextureCategory.SwapBuffer:
                 cast = rd.CompType.UNormSRGB

@@ -438,10 +438,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, const Subresource &sub, Com
       drv.glClearBufferfv(eGL_COLOR, 0, black);
     }
 
-    // bind the desired mip
-    drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texBindingEnum,
-                               DebugData.overlayTex, sub.mip);
-
     drv.glBindTexture(texBindingEnum, curTex);
   }
 
@@ -449,6 +445,10 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, const Subresource &sub, Com
   GLint outHeight = RDCMAX(1, texDetails.height >> sub.mip);
 
   drv.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.overlayFBO);
+
+  // bind the desired mip
+  drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texBindingEnum,
+                             DebugData.overlayTex, sub.mip);
 
   // disable several tests/allow rendering - some overlays will override
   // these states but commonly we don't want to inherit these states from

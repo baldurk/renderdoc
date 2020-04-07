@@ -221,7 +221,26 @@ float4 main() : SV_Target0
 
       cmd->SetPipelineState(whitepipe);
 
-      setMarker(cmd, "Subresources");
+      subrtv = MakeRTV(subtex)
+                   .Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)
+                   .FirstSlice(2)
+                   .NumSlices(1)
+                   .FirstMip(3)
+                   .NumMips(1)
+                   .CreateCPU(1);
+
+      setMarker(cmd, "Subresources mip 2");
+      cmd->DrawInstanced(24, 1, 9, 0);
+
+      RSSetViewport(cmd, {2.0f, 2.0f, float(screenWidth / 8) - 4.0f, float(screenHeight / 8) - 4.0f,
+                          0.0f, 1.0f});
+      RSSetScissorRect(cmd, {0, 0, screenWidth / 8, screenHeight / 8});
+
+      OMSetRenderTargets(cmd, {subrtv}, {});
+
+      ClearRenderTargetView(cmd, subrtv, {0.0f, 0.0f, 0.0f, 1.0f});
+
+      setMarker(cmd, "Subresources mip 3");
       cmd->DrawInstanced(24, 1, 9, 0);
 
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);

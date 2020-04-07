@@ -270,13 +270,23 @@ void main()
                              mainWindow->format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 4, 5),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
-    VkImageView subview = createImageView(vkh::ImageViewCreateInfo(
-        subimg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format, {},
-        vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, 2, 1, 2, 1)));
+    VkImageView subview[] = {
+        createImageView(vkh::ImageViewCreateInfo(
+            subimg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format, {},
+            vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, 2, 1, 2, 1))),
+        createImageView(vkh::ImageViewCreateInfo(
+            subimg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format, {},
+            vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, 3, 1, 2, 1))),
+    };
 
-    VkFramebuffer subfb = createFramebuffer(vkh::FramebufferCreateInfo(
-        subrp, {subview},
-        {mainWindow->scissor.extent.width / 4, mainWindow->scissor.extent.height / 4}));
+    VkFramebuffer subfb[] = {
+        createFramebuffer(vkh::FramebufferCreateInfo(
+            subrp, {subview[0]},
+            {mainWindow->scissor.extent.width / 4, mainWindow->scissor.extent.height / 4})),
+        createFramebuffer(vkh::FramebufferCreateInfo(
+            subrp, {subview[1]},
+            {mainWindow->scissor.extent.width / 8, mainWindow->scissor.extent.height / 8})),
+    };
 
     while(Running())
     {
@@ -349,13 +359,45 @@ void main()
       vkCmdSetViewport(cmd, 0, 1, &v);
       vkCmdSetScissor(cmd, 0, 1, &s);
 
-      vkCmdBeginRenderPass(
-          cmd, vkh::RenderPassBeginInfo(subrp, subfb, s, {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)}),
-          VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(subrp, subfb[0], s,
+                                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)}),
+                           VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, whitepipe);
 
-      setMarker(cmd, "Subresources");
+      setMarker(cmd, "Subresources mip 2");
+      vkCmdDraw(cmd, 24, 1, 9, 0);
+
+      vkCmdEndRenderPass(cmd);
+
+      v = mainWindow->viewport;
+      v.width /= 8.0f;
+      v.height /= 8.0f;
+      v.width = floor(v.width);
+      v.height = floor(v.height);
+      v.x += 2.0f;
+      v.y += 2.0f;
+      v.width -= 4.0f;
+      v.height -= 4.0f;
+      s.extent.width /= 2;
+      s.extent.height /= 2;
+
+      if(KHR_maintenance1)
+      {
+        v.y += v.height;
+        v.height = -v.height;
+      }
+
+      vkCmdSetViewport(cmd, 0, 1, &v);
+      vkCmdSetScissor(cmd, 0, 1, &s);
+
+      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(subrp, subfb[1], s,
+                                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)}),
+                           VK_SUBPASS_CONTENTS_INLINE);
+
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, whitepipe);
+
+      setMarker(cmd, "Subresources mip 3");
       vkCmdDraw(cmd, 24, 1, 9, 0);
 
       vkCmdEndRenderPass(cmd);

@@ -206,6 +206,11 @@ void main()
 
     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, subtex, 2, 2);
 
+    GLuint subfbo2 = MakeFBO();
+    glBindFramebuffer(GL_FRAMEBUFFER, subfbo2);
+
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, subtex, 3, 2);
+
     while(Running())
     {
       glBindVertexArray(vao);
@@ -268,7 +273,16 @@ void main()
       glViewport(5, 5, GLsizei(screenWidth) / 4 - 10, GLsizei(screenHeight) / 4 - 10);
       glScissor(0, 0, screenWidth / 4, screenHeight / 4);
 
-      setMarker("Subresources");
+      setMarker("Subresources mip 2");
+      glDrawArrays(GL_TRIANGLES, 9, 24);
+
+      glBindFramebuffer(GL_FRAMEBUFFER, subfbo2);
+      glClearBufferfv(GL_COLOR, 0, col2);
+
+      glViewport(2, 2, GLsizei(screenWidth) / 8 - 4, GLsizei(screenHeight) / 8 - 4);
+      glScissor(0, 0, screenWidth / 8, screenHeight / 8);
+
+      setMarker("Subresources mip 3");
       glDrawArrays(GL_TRIANGLES, 9, 24);
 
       Present();

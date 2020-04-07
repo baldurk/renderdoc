@@ -582,9 +582,12 @@ private:
     VkExtent2D ImageDim = {0, 0};
     int32_t MipLevels = 0;
     VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT;
+    VkRenderPass NoDepthRP = VK_NULL_HANDLE;
+
+    // the view and framebuffer must be recreated if the mip changes, even if the image doesn't
+    uint32_t MipLevel = ~0U;
     VkImageView ImageView = VK_NULL_HANDLE;
     VkFramebuffer NoDepthFB = VK_NULL_HANDLE;
-    VkRenderPass NoDepthRP = VK_NULL_HANDLE;
 
     VkDescriptorSetLayout m_CheckerDescSetLayout = VK_NULL_HANDLE;
     VkPipelineLayout m_CheckerPipeLayout = VK_NULL_HANDLE;

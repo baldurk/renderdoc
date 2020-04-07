@@ -460,88 +460,111 @@ class Overlay_Test(rdtest.TestCase):
         rdtest.log.success("All overlays as expected for main draw")
 
         # Now test overlays on a render-to-slice/mip case
+        for mip in [2, 3]:
+            sub_marker: rd.DrawcallDescription = self.find_draw("Subresources mip {}".format(mip))
 
-        sub_marker: rd.DrawcallDescription = self.find_draw("Subresources")
+            self.controller.SetFrameEvent(sub_marker.next.eventId, True)
 
-        self.controller.SetFrameEvent(sub_marker.next.eventId, True)
+            pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+            col_tex = pipe.GetOutputTargets()[0].resourceId
+            sub = rd.Subresource(pipe.GetOutputTargets()[0].firstMip, 0, 0)
 
-        col_tex = pipe.GetOutputTargets()[0].resourceId
-        sub = rd.Subresource(pipe.GetOutputTargets()[0].firstMip, 0, 0)
+            for overlay in rd.DebugOverlay:
+                if overlay == rd.DebugOverlay.NoOverlay:
+                    continue
 
-        for overlay in rd.DebugOverlay:
-            if overlay == rd.DebugOverlay.NoOverlay:
-                continue
+                # These overlays are just displaymodes really, not actually separate overlays
+                if overlay == rd.DebugOverlay.NaN or overlay == rd.DebugOverlay.Clipping:
+                    continue
 
-            # These overlays are just displaymodes really, not actually separate overlays
-            if overlay == rd.DebugOverlay.NaN or overlay == rd.DebugOverlay.Clipping:
-                continue
+                if overlay == rd.DebugOverlay.ClearBeforeDraw or overlay == rd.DebugOverlay.ClearBeforePass:
+                    continue
 
-            if overlay == rd.DebugOverlay.ClearBeforeDraw or overlay == rd.DebugOverlay.ClearBeforePass:
-                continue
+                rdtest.log.success("Checking overlay {} with mip/slice rendering".format(str(overlay)))
 
-            rdtest.log.success("Checking overlay {} with mip/slice rendering".format(str(overlay)))
+                tex.resourceId = col_tex
+                tex.overlay = overlay
+                tex.subresource = sub
+                out.SetTextureDisplay(tex)
 
-            tex.resourceId = col_tex
-            tex.overlay = overlay
-            tex.subresource = sub
-            out.SetTextureDisplay(tex)
+                out.Display()
 
-            out.Display()
+                overlay_id: rd.ResourceId = out.GetDebugOverlayTexID()
 
-            overlay_id: rd.ResourceId = out.GetDebugOverlayTexID()
+                shift = 0
+                if mip == 3:
+                    shift = 1
 
-            # All values in other mips should be 0 for all overlays
-            self.check_pixel_value(overlay_id, 200, 150, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(0, 0, 0))
-            self.check_pixel_value(overlay_id, 197, 147, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(0, 0, 0))
-            self.check_pixel_value(overlay_id, 203, 153, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(0, 0, 0))
+                # All values in mip 0 should be 0 for all overlays
+                self.check_pixel_value(overlay_id, 200, 150, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(0, 0, 0))
+                self.check_pixel_value(overlay_id, 197, 147, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(0, 0, 0))
+                self.check_pixel_value(overlay_id, 203, 153, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(0, 0, 0))
 
-            rdtest.log.success("Mip 0 is empty as expected for overlay {}".format(str(overlay)))
+                rdtest.log.success("Other mips are empty as expected for overlay {}".format(str(overlay)))
 
-            if overlay == rd.DebugOverlay.Drawcall:
-                self.check_pixel_value(overlay_id, 50, 36, [0.8, 0.1, 0.8, 1.0], sub=sub, eps=eps)
-                self.check_pixel_value(overlay_id, 30, 36, [0.0, 0.0, 0.0, 0.5], sub=sub, eps=eps)
-                self.check_pixel_value(overlay_id, 70, 34, [0.8, 0.1, 0.8, 1.0], sub=sub, eps=eps)
-                self.check_pixel_value(overlay_id, 70, 20, [0.0, 0.0, 0.0, 0.5], sub=sub, eps=eps)
-            elif overlay == rd.DebugOverlay.Wireframe:
-                self.check_pixel_value(overlay_id, 36, 36, [200.0/255.0, 1.0, 0.0, 1.0], sub=sub, eps=eps)
-                self.check_pixel_value(overlay_id, 36, 50, [200.0/255.0, 1.0, 0.0, 1.0], sub=sub, eps=eps)
-                self.check_pixel_value(overlay_id, 50, 36, [200.0/255.0, 1.0, 0.0, 0.0], sub=sub, eps=eps)
-            elif overlay == rd.DebugOverlay.Depth or overlay == rd.DebugOverlay.Stencil:
-                self.check_pixel_value(overlay_id, 50, 36, [0.0, 1.0, 0.0, 1.0], sub=sub)
-                self.check_pixel_value(overlay_id, 30, 36, [0.0, 1.0, 0.0, 0.0], sub=sub)
-                self.check_pixel_value(overlay_id, 70, 34, [1.0, 0.0, 0.0, 1.0], sub=sub)
-                self.check_pixel_value(overlay_id, 70, 20, [0.0, 1.0, 0.0, 0.0], sub=sub)
-            elif overlay == rd.DebugOverlay.BackfaceCull:
-                self.check_pixel_value(overlay_id, 50, 36, [0.0, 1.0, 0.0, 1.0], sub=sub)
-                self.check_pixel_value(overlay_id, 30, 36, [0.0, 1.0, 0.0, 0.0], sub=sub)
-                self.check_pixel_value(overlay_id, 70, 34, [1.0, 0.0, 0.0, 1.0], sub=sub)
-                self.check_pixel_value(overlay_id, 70, 20, [0.0, 1.0, 0.0, 0.0], sub=sub)
-            elif overlay == rd.DebugOverlay.ViewportScissor:
-                self.check_pixel_value(overlay_id, 50, 36, [0.2*0.7, 0.2*0.7, 0.9*0.7, 0.7*0.7], sub=sub, eps=eps)
-                self.check_pixel_value(overlay_id, 30, 36, [0.2*0.7, 0.2*0.7, 0.9*0.7, 0.7*0.7], sub=sub, eps=eps)
-                self.check_pixel_value(overlay_id, 70, 34, [0.2*0.7, 0.2*0.7, 0.9*0.7, 0.7*0.7], sub=sub, eps=eps)
-                self.check_pixel_value(overlay_id, 70, 20, [0.2*0.7, 0.2*0.7, 0.9*0.7, 0.7*0.7], sub=sub, eps=eps)
-                self.check_pixel_value(overlay_id, 6, 6, [0.1, 0.1, 0.1, 1.0], sub=sub, eps=eps)
-                self.check_pixel_value(overlay_id, 4, 4, [0.0, 0.0, 0.0, 0.0], sub=sub)
-                self.check_pixel_value(overlay_id, 0, 0, [1.0, 1.0, 1.0, 1.0], sub=sub)
-                self.check_pixel_value(overlay_id, 20, 0, [0.0, 0.0, 0.0, 1.0], sub=sub)
-                self.check_pixel_value(overlay_id, 40, 0, [1.0, 1.0, 1.0, 1.0], sub=sub)
-                self.check_pixel_value(overlay_id, 60, 0, [0.0, 0.0, 0.0, 1.0], sub=sub)
-            elif overlay == rd.DebugOverlay.QuadOverdrawDraw or overlay == rd.DebugOverlay.QuadOverdrawPass:
-                self.check_pixel_value(overlay_id, 50, 36, [1.0, 1.0, 1.0, 1.0], sub=sub)
-                self.check_pixel_value(overlay_id, 30, 36, [0.0, 0.0, 0.0, 0.0], sub=sub)
-                self.check_pixel_value(overlay_id, 70, 34, [0.0, 0.0, 0.0, 0.0], sub=sub)
-                self.check_pixel_value(overlay_id, 70, 20, [0.0, 0.0, 0.0, 0.0], sub=sub)
-                self.check_pixel_value(overlay_id, 50, 45, [2.0, 2.0, 2.0, 2.0], sub=sub)
-            elif overlay == rd.DebugOverlay.TriangleSizeDraw or overlay == rd.DebugOverlay.TriangleSizePass:
-                self.check_pixel_value(overlay_id, 50, 36, [585.0, 585.0, 585.0, 1.0], sub=sub)
-                self.check_pixel_value(overlay_id, 30, 36, [0.0, 0.0, 0.0, 0.0], sub=sub)
-                self.check_pixel_value(overlay_id, 70, 34, [0.0, 0.0, 0.0, 0.0], sub=sub)
-                self.check_pixel_value(overlay_id, 70, 20, [0.0, 0.0, 0.0, 0.0], sub=sub)
-                self.check_pixel_value(overlay_id, 50, 45, [117.0, 117.0, 117.0, 1.0], sub=sub)
+                if overlay == rd.DebugOverlay.Drawcall:
+                    self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [0.8, 0.1, 0.8, 1.0], sub=sub, eps=eps)
+                    self.check_pixel_value(overlay_id, 30 >> shift, 36 >> shift, [0.0, 0.0, 0.0, 0.5], sub=sub, eps=eps)
+                    self.check_pixel_value(overlay_id, 70 >> shift, 34 >> shift, [0.8, 0.1, 0.8, 1.0], sub=sub, eps=eps)
+                    self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift, [0.0, 0.0, 0.0, 0.5], sub=sub, eps=eps)
+                elif overlay == rd.DebugOverlay.Wireframe:
+                    self.check_pixel_value(overlay_id, 36 >> shift, 36 >> shift, [200.0 / 255.0, 1.0, 0.0, 1.0],
+                                           sub=sub, eps=eps)
+                    self.check_pixel_value(overlay_id, 36 >> shift, 50 >> shift, [200.0 / 255.0, 1.0, 0.0, 1.0],
+                                           sub=sub, eps=eps)
+                    self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [200.0 / 255.0, 1.0, 0.0, 0.0],
+                                           sub=sub, eps=eps)
+                elif overlay == rd.DebugOverlay.Depth or overlay == rd.DebugOverlay.Stencil:
+                    self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [0.0, 1.0, 0.0, 1.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 30 >> shift, 36 >> shift, [0.0, 1.0, 0.0, 0.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 70 >> shift, 34 >> shift, [1.0, 0.0, 0.0, 1.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift, [0.0, 1.0, 0.0, 0.0], sub=sub)
+                elif overlay == rd.DebugOverlay.BackfaceCull:
+                    self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [0.0, 1.0, 0.0, 1.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 30 >> shift, 36 >> shift, [0.0, 1.0, 0.0, 0.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 70 >> shift, 34 >> shift, [1.0, 0.0, 0.0, 1.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift, [0.0, 1.0, 0.0, 0.0], sub=sub)
+                elif overlay == rd.DebugOverlay.ViewportScissor:
+                    self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift,
+                                           [0.2 * 0.7, 0.2 * 0.7, 0.9 * 0.7, 0.7 * 0.7], sub=sub, eps=eps)
+                    self.check_pixel_value(overlay_id, 30 >> shift, 36 >> shift,
+                                           [0.2 * 0.7, 0.2 * 0.7, 0.9 * 0.7, 0.7 * 0.7], sub=sub, eps=eps)
+                    self.check_pixel_value(overlay_id, 70 >> shift, 34 >> shift,
+                                           [0.2 * 0.7, 0.2 * 0.7, 0.9 * 0.7, 0.7 * 0.7], sub=sub, eps=eps)
+                    self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift,
+                                           [0.2 * 0.7, 0.2 * 0.7, 0.9 * 0.7, 0.7 * 0.7], sub=sub, eps=eps)
 
-            rdtest.log.success("Picked values are correct for mip {} overlay {}".format(sub.mip, str(overlay)))
+                    if mip == 2:
+                        self.check_pixel_value(overlay_id, 6, 6, [0.1, 0.1, 0.1, 1.0], sub=sub, eps=eps)
+                        self.check_pixel_value(overlay_id, 4, 4, [0.0, 0.0, 0.0, 0.0], sub=sub)
+                        self.check_pixel_value(overlay_id, 0, 0, [1.0, 1.0, 1.0, 1.0], sub=sub)
+                        self.check_pixel_value(overlay_id, 20, 0, [0.0, 0.0, 0.0, 1.0], sub=sub)
+                        self.check_pixel_value(overlay_id, 40, 0, [1.0, 1.0, 1.0, 1.0], sub=sub)
+                        self.check_pixel_value(overlay_id, 60, 0, [0.0, 0.0, 0.0, 1.0], sub=sub)
+                    else:
+                        self.check_pixel_value(overlay_id, 4, 4, [0.1, 0.1, 0.1, 1.0], sub=sub, eps=eps)
+                        self.check_pixel_value(overlay_id, 0, 0, [1.0, 1.0, 1.0, 1.0], sub=sub)
+                        self.check_pixel_value(overlay_id, 20, 0, [0.0, 0.0, 0.0, 1.0], sub=sub)
+                        self.check_pixel_value(overlay_id, 40, 0, [1.0, 1.0, 1.0, 1.0], sub=sub)
+                elif overlay == rd.DebugOverlay.QuadOverdrawDraw or overlay == rd.DebugOverlay.QuadOverdrawPass:
+                    self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [1.0, 1.0, 1.0, 1.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 30 >> shift, 36 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 50 >> shift, 45 >> shift, [2.0, 2.0, 2.0, 2.0], sub=sub)
+                elif overlay == rd.DebugOverlay.TriangleSizeDraw or overlay == rd.DebugOverlay.TriangleSizePass:
+                    if mip == 2:
+                        self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [585.0, 585.0, 585.0, 1.0], sub=sub)
+                    else:
+                        self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [151.75, 151.75, 151.75, 1.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 30 >> shift, 36 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 70 >> shift, 34 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)
+                    self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift, [0.0, 0.0, 0.0, 0.0], sub=sub)
+                    if mip == 2:
+                        self.check_pixel_value(overlay_id, 50 >> shift, 45 >> shift, [117.0, 117.0, 117.0, 1.0], sub=sub)
+                    else:
+                        self.check_pixel_value(overlay_id, 50 >> shift, 45 >> shift, [30.359375, 30.359375, 30.359375, 1.0], sub=sub)
+
+                rdtest.log.success("Picked values are correct for mip {} overlay {}".format(sub.mip, str(overlay)))
 
         out.Shutdown()
