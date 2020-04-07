@@ -128,10 +128,6 @@ DOCUMENT(R"(Represents the category of debugging variable that a source variable
 
   A read-write resource, stored globally.
 
-.. data:: Constant
-
-  A constant buffer value, stored globally.
-
 .. data:: Variable
 
   A mutable variable, stored per state.
