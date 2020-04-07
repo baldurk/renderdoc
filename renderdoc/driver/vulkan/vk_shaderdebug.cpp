@@ -1581,6 +1581,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   {
     RDCLOG("Didn't get any valid hit to debug");
     delete apiWrapper;
+
+    ret = new ShaderDebugTrace;
   }
 
   if(descpool != VK_NULL_HANDLE)
