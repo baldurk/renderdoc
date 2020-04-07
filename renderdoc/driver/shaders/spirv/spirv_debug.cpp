@@ -487,6 +487,34 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
       break;
     }
+    case Op::VectorShuffle:
+    {
+      OpVectorShuffle shuffle(it);
+
+      ShaderVariable var;
+
+      const DataType &type = debugger.GetType(shuffle.resultType);
+
+      var.type = type.scalar().Type();
+      var.rows = 1;
+      var.columns = RDCMAX(1U, (uint32_t)shuffle.components.size());
+
+      ShaderVariable src1 = GetSrc(shuffle.vector1);
+      ShaderVariable src2 = GetSrc(shuffle.vector2);
+
+      for(size_t i = 0; i < shuffle.components.size(); i++)
+      {
+        uint32_t c = shuffle.components[i];
+        if(c <= 3)
+          var.value.uv[i] = src1.value.uv[c];
+        else
+          var.value.uv[i] = src2.value.uv[c - 4];
+      }
+
+      SetDst(state, shuffle.result, var);
+
+      break;
+    }
     case Op::Select:
     {
       OpSelect select(it);
