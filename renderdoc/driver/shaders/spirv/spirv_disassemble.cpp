@@ -66,7 +66,7 @@ static rdcstr StringiseBinaryOperation(const std::function<rdcstr(rdcspv::Id)> &
     case rdcspv::Op::IAdd:
     case rdcspv::Op::FAdd: ret += "+"; break;
     case rdcspv::Op::ISub:
-    case rdcspv::Op::FSub: ret += "+"; break;
+    case rdcspv::Op::FSub: ret += "-"; break;
     case rdcspv::Op::IMul:
     case rdcspv::Op::FMul:
     case rdcspv::Op::VectorTimesMatrix:
