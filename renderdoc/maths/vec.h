@@ -111,17 +111,17 @@ inline Vec3f operator+=(Vec3f &a, const Vec3f &b)
 
 inline Vec4f operator*(const Vec4f &a, const float b)
 {
-  return Vec4f(a.x * b, a.y * b, a.z * b);
+  return Vec4f(a.x * b, a.y * b, a.z * b, a.w * b);
 }
 
 inline Vec4f operator+(const Vec4f &a, const Vec4f &b)
 {
-  return Vec4f(a.x + b.x, a.y + b.y, a.z + b.z);
+  return Vec4f(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
 }
 
 inline Vec4f operator-(const Vec4f &a)
 {
-  return Vec4f(-a.x, -a.y, -a.z);
+  return Vec4f(-a.x, -a.y, -a.z, -a.w);
 }
 
 inline Vec4f operator-(const Vec4f &a, const Vec4f &b)
