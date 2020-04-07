@@ -723,6 +723,63 @@ void ThreadState::StepNext(ShaderDebugState *state,
       SetDst(state, conv.result, var);
       break;
     }
+    case Op::Bitcast:
+    {
+      OpBitcast cast(it);
+
+      const DataType &type = debugger.GetType(cast.resultType);
+      ShaderVariable var = GetSrc(cast.operand);
+
+      if((type.type == DataType::ScalarType && var.columns == 1) || type.vector().count == var.columns)
+      {
+        // if the column count is unchanged, just change the underlying type
+        var.type = type.scalar().Type();
+      }
+      else
+      {
+        uint32_t srcByteCount = 4;
+        if(var.type == VarType::Double || var.type == VarType::ULong || var.type == VarType::SLong)
+          srcByteCount = 8;
+        else if(var.type == VarType::Half || var.type == VarType::UShort ||
+                var.type == VarType::SShort)
+          srcByteCount = 2;
+        else if(var.type == VarType::UByte || var.type == VarType::SByte)
+          srcByteCount = 1;
+
+        uint32_t dstByteCount = type.scalar().width / 8;
+
+        // must be identical bit count
+        RDCASSERT(dstByteCount * type.vector().count == srcByteCount * var.columns);
+
+        uint32_t byteSize = VarTypeByteSize(var.type);
+
+        bytebuf bytes;
+        for(uint32_t c = 0; c < var.columns; c++)
+        {
+          if(byteSize == 8)
+            bytes.append((const byte *)&var.value.u64v[c], byteSize);
+          else
+            bytes.append((const byte *)&var.value.uv[c], byteSize);
+        }
+
+        var.type = type.scalar().Type();
+        var.columns = type.vector().count;
+        var.value = ShaderValue();
+
+        byte *b = bytes.data();
+        for(uint32_t c = 0; c < var.columns; c++)
+        {
+          if(byteSize == 8)
+            memcpy(&var.value.u64v[c], b, byteSize);
+          else
+            memcpy(&var.value.uv[c], b, byteSize);
+          b += byteSize;
+        }
+      }
+
+      SetDst(state, cast.result, var);
+      break;
+    }
 
     //////////////////////////////////////////////////////////////////////////////
     //
