@@ -1875,9 +1875,6 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
   if(nextInstruction >= program->GetNumInstructions())
     nextInstruction--;
 
-  if(state)
-    state->nextInstruction = nextInstruction;
-
   rdcarray<ShaderVariable> srcOpers;
 
   VarType optype = OperationType(op.operation);
@@ -5370,8 +5367,9 @@ rdcarray<ShaderDebugState> InterpretDebugger::ContinueDebug(DXBCDebug::DebugAPIW
         {
           ShaderDebugState state;
           workgroup[i].StepNext(&state, apiWrapper, oldworkgroup);
-          dxbc->FillStateInstructionInfo(state);
           state.stepIndex = steps;
+          state.nextInstruction = workgroup[i].nextInstruction;
+          dxbc->FillStateInstructionInfo(state);
           ret.push_back(state);
         }
         else
