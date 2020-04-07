@@ -112,10 +112,12 @@ void main()
 
   float negone = linearData.negoneVal;
   float posone = linearData.oneVal;
-  float zero = linearData.zeroVal.x;
+  float zerof = linearData.zeroVal.x;
   float tiny = linearData.tinyVal;
 
   int intval = int(flatData.intval);
+  int zerou = int(flatData.intval - flatData.test - 7);
+  int zeroi = int(zerou);
 
   uint test = flatData.test;
 
@@ -227,6 +229,9 @@ void main()
     %_ptr_Input_v2f = OpTypePointer Input %v2f
 %_ptr_Input_flatv2f = OpTypePointer Input %flatv2f
    %_ptr_Input_uint = OpTypePointer Input %uint
+    %_ptr_Input_int = OpTypePointer Input %int
+  %_ptr_Input_float = OpTypePointer Input %float
+ %_ptr_Input_float2 = OpTypePointer Input %float2
  %_ptr_Input_float4 = OpTypePointer Input %float4
 %_ptr_Output_float4 = OpTypePointer Output %float4
 
@@ -235,15 +240,39 @@ void main()
 %gl_FragCoord = OpVariable %_ptr_Input_float4 Input
        %Color = OpVariable %_ptr_Output_float4 Output
 
-%flatv2f_test_idx = OpConstant %int 0
+       %flatv2f_test_idx = OpConstant %int 0
+     %flatv2f_intval_idx = OpConstant %int 1
+
+        %v2f_zeroVal_idx = OpConstant %int 0
+          %v2f_inpos_idx = OpConstant %int 1
+ %v2f_inposIncreased_idx = OpConstant %int 2
+        %v2f_tinyVal_idx = OpConstant %int 3
+         %v2f_oneVal_idx = OpConstant %int 4
+      %v2f_negoneVal_idx = OpConstant %int 5
+
      %uint_0 = OpConstant %uint 0
      %uint_1 = OpConstant %uint 1
+     %uint_2 = OpConstant %uint 2
+     %uint_3 = OpConstant %uint 3
+     %uint_4 = OpConstant %uint 4
+     %uint_15 = OpConstant %uint 15
+
+     %uint_1_234 = OpConstant %uint 0x3f9df3b6
+
+     %int_4 = OpConstant %int 4
+     %int_neg4 = OpConstant %int -4
+     %int_7 = OpConstant %int 7
+     %int_15 = OpConstant %int 15
+     %int_neg15 = OpConstant %int -15
 
     %float_0 = OpConstant %float 0
     %float_1 = OpConstant %float 1
     %float_2 = OpConstant %float 2
     %float_3 = OpConstant %float 3
     %float_4 = OpConstant %float 4
+    %float_neg4 = OpConstant %float -4
+    %float_15 = OpConstant %float 15
+    %float_neg15 = OpConstant %float -15
 
  %float_0000 = OpConstantComposite %float4 %float_0 %float_0 %float_0 %float_0
  %float_1234 = OpConstantComposite %float4 %float_1 %float_2 %float_3 %float_4
@@ -253,26 +282,273 @@ void main()
    %test_ptr = OpAccessChain %_ptr_Input_uint %flatData %flatv2f_test_idx
        %test = OpLoad %uint %test_ptr
 
+%zeroVal_ptr = OpAccessChain %_ptr_Input_float2 %linearData %v2f_zeroVal_idx
+    %zeroVal = OpLoad %float2 %zeroVal_ptr
+  %zeroVal_x = OpCompositeExtract %float %zeroVal 0
+  %zeroVal_y = OpCompositeExtract %float %zeroVal 1
+      %zerof = OpCompositeExtract %float %zeroVal 0
+
+  %inpos_ptr = OpAccessChain %_ptr_Input_float2 %linearData %v2f_inpos_idx
+      %inpos = OpLoad %float2 %inpos_ptr
+
+  %inposIncreased_ptr = OpAccessChain %_ptr_Input_float2 %linearData %v2f_inposIncreased_idx
+      %inposIncreased = OpLoad %float2 %inposIncreased_ptr
+
+  %tinyVal_ptr = OpAccessChain %_ptr_Input_float %linearData %v2f_tinyVal_idx
+      %tinyVal = OpLoad %float %tinyVal_ptr
+
+  %oneVal_ptr = OpAccessChain %_ptr_Input_float %linearData %v2f_oneVal_idx
+      %oneVal = OpLoad %float %oneVal_ptr
+
+  %negoneVal_ptr = OpAccessChain %_ptr_Input_float %linearData %v2f_negoneVal_idx
+      %negoneVal = OpLoad %float %negoneVal_ptr
+
+   %posinf = OpFDiv %float %oneVal %zerof
+   %neginf = OpFDiv %float %negoneVal %zerof
+      %nan = OpFDiv %float %zerof %zerof
+
+  %intval_ptr = OpAccessChain %_ptr_Input_uint %flatData %flatv2f_intval_idx
+   %intval = OpLoad %uint %intval_ptr
+    %_tmp_7 = OpISub %uint %intval %test
+    %zerou = OpISub %uint %_tmp_7 %int_7
+    %zeroi = OpBitcast %int %zerou
+
                OpSelectionMerge %break None
                OpSwitch %test
                         %default
-                        0 %test_0
-                        1 %test_1
-                        2 %test_2
+                         0 %test_0
+                         1 %test_1
+                         2 %test_2
+                         3 %test_3
+                         4 %test_4
+                         5 %test_5
+                         6 %test_6
+                         7 %test_7
+                         8 %test_8
+                         9 %test_9
+                        10 %test_10
+                        11 %test_11
+                        12 %test_12
+                        13 %test_13
+                        14 %test_14
+                        15 %test_15
+                        16 %test_16
+                        17 %test_17
+                        18 %test_18
+                        19 %test_19
+                        20 %test_20
+                        21 %test_21
+                        22 %test_22
+                        23 %test_23
+                        24 %test_24
+                        25 %test_25
+                        26 %test_26
 
+     ; test OpVectorShuffle
      %test_0 = OpLabel
-          %1 = OpVectorShuffle %float4 %float_0000 %float_1234 0 5 0 0
-               OpStore %Color %1
+    %Color_0 = OpVectorShuffle %float4 %float_0000 %float_1234 7 6 0 1
+               OpStore %Color %Color_0
                OpBranch %break
 
+     ; test OpFMod
      %test_1 = OpLabel
-          %2 = OpVectorShuffle %float4 %float_0000 %float_1234 7 6 0 1
-               OpStore %Color %2
+        %a_1 = OpFAdd %float %zerof %float_15
+        %b_1 = OpFAdd %float %zerof %float_4
+         %_1 = OpFMod %float %a_1 %b_1
+    %Color_1 = OpCompositeConstruct %float4 %_1 %_1 %_1 %_1
+               OpStore %Color %Color_1
                OpBranch %break
 
      %test_2 = OpLabel
-          %3 = OpVectorShuffle %float4 %float_0000 %float_1234 3 2 6 4
-               OpStore %Color %3
+        %a_2 = OpFAdd %float %zerof %float_neg15
+        %b_2 = OpFAdd %float %zerof %float_4
+         %_2 = OpFMod %float %a_2 %b_2
+    %Color_2 = OpCompositeConstruct %float4 %_2 %_2 %_2 %_2
+               OpStore %Color %Color_2
+               OpBranch %break
+
+     %test_3 = OpLabel
+        %a_3 = OpFAdd %float %zerof %float_15
+        %b_3 = OpFAdd %float %zerof %float_neg4
+         %_3 = OpFMod %float %a_3 %b_3
+    %Color_3 = OpCompositeConstruct %float4 %_3 %_3 %_3 %_3
+               OpStore %Color %Color_3
+               OpBranch %break
+
+     %test_4 = OpLabel
+        %a_4 = OpFAdd %float %zerof %float_neg15
+        %b_4 = OpFAdd %float %zerof %float_neg4
+         %_4 = OpFMod %float %a_4 %b_4
+    %Color_4 = OpCompositeConstruct %float4 %_4 %_4 %_4 %_4
+               OpStore %Color %Color_4
+               OpBranch %break
+
+     ; test OpFRem
+     %test_5 = OpLabel
+        %a_5 = OpFAdd %float %zerof %float_15
+        %b_5 = OpFAdd %float %zerof %float_4
+         %_5 = OpFRem %float %a_5 %b_5
+    %Color_5 = OpCompositeConstruct %float4 %_5 %_5 %_5 %_5
+               OpStore %Color %Color_5
+               OpBranch %break
+
+     %test_6 = OpLabel
+        %a_6 = OpFAdd %float %zerof %float_neg15
+        %b_6 = OpFAdd %float %zerof %float_4
+         %_6 = OpFRem %float %a_6 %b_6
+    %Color_6 = OpCompositeConstruct %float4 %_6 %_6 %_6 %_6
+               OpStore %Color %Color_6
+               OpBranch %break
+
+     %test_7 = OpLabel
+        %a_7 = OpFAdd %float %zerof %float_15
+        %b_7 = OpFAdd %float %zerof %float_neg4
+         %_7 = OpFRem %float %a_7 %b_7
+    %Color_7 = OpCompositeConstruct %float4 %_7 %_7 %_7 %_7
+               OpStore %Color %Color_7
+               OpBranch %break
+
+     %test_8 = OpLabel
+        %a_8 = OpFAdd %float %zerof %float_neg15
+        %b_8 = OpFAdd %float %zerof %float_neg4
+         %_8 = OpFRem %float %a_8 %b_8
+    %Color_8 = OpCompositeConstruct %float4 %_8 %_8 %_8 %_8
+               OpStore %Color %Color_8
+               OpBranch %break
+
+     ; test OpUMod
+     %test_9 = OpLabel
+        %a_9 = OpIAdd %uint %zerou %uint_15
+        %b_9 = OpIAdd %uint %zerou %uint_4
+      %mod_9 = OpUMod %uint %a_9 %b_9
+         %_9 = OpConvertUToF %float %mod_9
+    %Color_9 = OpCompositeConstruct %float4 %_9 %_9 %_9 %_9
+               OpStore %Color %Color_9
+               OpBranch %break
+
+     ; test OpSRem
+    %test_10 = OpLabel
+       %a_10 = OpIAdd %int %zeroi %int_15
+       %b_10 = OpIAdd %int %zeroi %int_4
+     %mod_10 = OpSRem %int %a_10 %b_10
+        %_10 = OpConvertUToF %float %mod_10
+   %Color_10 = OpCompositeConstruct %float4 %_10 %_10 %_10 %_10
+               OpStore %Color %Color_10
+               OpBranch %break
+
+    %test_11 = OpLabel
+       %a_11 = OpIAdd %int %zeroi %int_neg15
+       %b_11 = OpIAdd %int %zeroi %int_4
+     %mod_11 = OpSRem %int %a_11 %b_11
+        %_11 = OpConvertUToF %float %mod_11
+   %Color_11 = OpCompositeConstruct %float4 %_11 %_11 %_11 %_11
+               OpStore %Color %Color_11
+               OpBranch %break
+
+    %test_12 = OpLabel
+       %a_12 = OpIAdd %int %zeroi %int_15
+       %b_12 = OpIAdd %int %zeroi %int_neg4
+     %mod_12 = OpSRem %int %a_12 %b_12
+        %_12 = OpConvertUToF %float %mod_12
+   %Color_12 = OpCompositeConstruct %float4 %_12 %_12 %_12 %_12
+               OpStore %Color %Color_12
+               OpBranch %break
+
+    %test_13 = OpLabel
+       %a_13 = OpIAdd %int %zeroi %int_neg15
+       %b_13 = OpIAdd %int %zeroi %int_neg4
+     %mod_13 = OpSRem %int %a_13 %b_13
+        %_13 = OpConvertUToF %float %mod_13
+   %Color_13 = OpCompositeConstruct %float4 %_13 %_13 %_13 %_13
+               OpStore %Color %Color_13
+               OpBranch %break
+
+     ; test mod/rem with zeros
+    %test_14 = OpLabel
+       %b_14 = OpFAdd %float %zerof %float_4
+        %_14 = OpFMod %float %zerof %b_14
+   %Color_14 = OpCompositeConstruct %float4 %_14 %_14 %_14 %_14
+               OpStore %Color %Color_14
+               OpBranch %break
+
+    %test_15 = OpLabel
+       %b_15 = OpFAdd %float %zerof %float_4
+        %_15 = OpFMod %float %b_15 %zerof
+   %Color_15 = OpCompositeConstruct %float4 %_15 %_15 %_15 %_15
+               OpStore %Color %Color_15
+               OpBranch %break
+
+    %test_16 = OpLabel
+        %_16 = OpFMod %float %zerof %zerof
+   %Color_16 = OpCompositeConstruct %float4 %_16 %_16 %_16 %_16
+               OpStore %Color %Color_16
+               OpBranch %break
+
+    %test_17 = OpLabel
+       %b_17 = OpFAdd %float %zerof %float_4
+        %_17 = OpFRem %float %zerof %b_17
+   %Color_17 = OpCompositeConstruct %float4 %_17 %_17 %_17 %_17
+               OpStore %Color %Color_17
+               OpBranch %break
+
+    %test_18 = OpLabel
+       %b_18 = OpFAdd %float %zerof %float_4
+        %_18 = OpFRem %float %b_18 %zerof
+   %Color_18 = OpCompositeConstruct %float4 %_18 %_18 %_18 %_18
+               OpStore %Color %Color_18
+               OpBranch %break
+
+    %test_19 = OpLabel
+        %_19 = OpFRem %float %zerof %zerof
+   %Color_19 = OpCompositeConstruct %float4 %_19 %_19 %_19 %_19
+               OpStore %Color %Color_19
+               OpBranch %break
+
+    %test_20 = OpLabel
+       %b_20 = OpIAdd %uint %zerou %uint_4
+        %_20 = OpUMod %uint %b_20 %zerou
+   %Color_20 = OpCompositeConstruct %float4 %_20 %_20 %_20 %_20
+               OpStore %Color %Color_20
+               OpBranch %break
+
+    %test_21 = OpLabel
+       %b_21 = OpIAdd %uint %zerou %uint_4
+        %_21 = OpUMod %uint %zerou %b_21
+   %Color_21 = OpCompositeConstruct %float4 %_21 %_21 %_21 %_21
+               OpStore %Color %Color_21
+               OpBranch %break
+
+    %test_22 = OpLabel
+        %_22 = OpUMod %uint %zerou %zerou
+   %Color_22 = OpCompositeConstruct %float4 %_22 %_22 %_22 %_22
+               OpStore %Color %Color_22
+               OpBranch %break
+
+    %test_23 = OpLabel
+       %b_23 = OpIAdd %int %zeroi %int_4
+        %_23 = OpSRem %int %b_23 %zeroi
+   %Color_23 = OpCompositeConstruct %float4 %_23 %_23 %_23 %_23
+               OpStore %Color %Color_23
+               OpBranch %break
+
+    %test_24 = OpLabel
+       %b_24 = OpIAdd %int %zeroi %int_4
+        %_24 = OpSRem %int %zeroi %b_24
+   %Color_24 = OpCompositeConstruct %float4 %_24 %_24 %_24 %_24
+               OpStore %Color %Color_24
+               OpBranch %break
+
+    %test_25 = OpLabel
+        %_25 = OpSRem %int %zeroi %zeroi
+   %Color_25 = OpCompositeConstruct %float4 %_25 %_25 %_25 %_25
+               OpStore %Color %Color_25
+               OpBranch %break
+
+     ; test bitcast
+    %test_26 = OpLabel
+        %_26 = OpBitcast %float %uint_1_234
+   %Color_26 = OpCompositeConstruct %float4 %_26 %_26 %_26 %_26
+               OpStore %Color %Color_26
                OpBranch %break
 
     %default = OpLabel
