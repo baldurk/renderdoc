@@ -1747,7 +1747,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       pipe.framebuffer.drawFBO.colorAttachments[i].resourceId = rm->GetOriginalID(id);
 
       if(pipe.framebuffer.drawFBO.colorAttachments[i].resourceId != ResourceId() && !rbCol[i])
-        GetFramebufferMipAndLayer(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
+        GetFramebufferMipAndLayer(curDrawFBO, GLenum(eGL_COLOR_ATTACHMENT0 + i),
                                   (GLint *)&pipe.framebuffer.drawFBO.colorAttachments[i].mipLevel,
                                   (GLint *)&pipe.framebuffer.drawFBO.colorAttachments[i].slice);
 
@@ -1792,12 +1792,12 @@ void GLReplay::SavePipelineState(uint32_t eventId)
         rm->GetID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
 
     if(pipe.framebuffer.drawFBO.depthAttachment.resourceId != ResourceId() && !rbDepth)
-      GetFramebufferMipAndLayer(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+      GetFramebufferMipAndLayer(curDrawFBO, eGL_DEPTH_ATTACHMENT,
                                 (GLint *)&pipe.framebuffer.drawFBO.depthAttachment.mipLevel,
                                 (GLint *)&pipe.framebuffer.drawFBO.depthAttachment.slice);
 
     if(pipe.framebuffer.drawFBO.stencilAttachment.resourceId != ResourceId() && !rbStencil)
-      GetFramebufferMipAndLayer(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+      GetFramebufferMipAndLayer(curDrawFBO, eGL_STENCIL_ATTACHMENT,
                                 (GLint *)&pipe.framebuffer.drawFBO.stencilAttachment.mipLevel,
                                 (GLint *)&pipe.framebuffer.drawFBO.stencilAttachment.slice);
 
@@ -1853,7 +1853,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
           rm->GetID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i])));
 
       if(pipe.framebuffer.readFBO.colorAttachments[i].resourceId != ResourceId() && !rbCol[i])
-        GetFramebufferMipAndLayer(eGL_READ_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
+        GetFramebufferMipAndLayer(curReadFBO, GLenum(eGL_COLOR_ATTACHMENT0 + i),
                                   (GLint *)&pipe.framebuffer.readFBO.colorAttachments[i].mipLevel,
                                   (GLint *)&pipe.framebuffer.readFBO.colorAttachments[i].slice);
     }
@@ -1864,12 +1864,12 @@ void GLReplay::SavePipelineState(uint32_t eventId)
         rm->GetID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
 
     if(pipe.framebuffer.readFBO.depthAttachment.resourceId != ResourceId() && !rbDepth)
-      GetFramebufferMipAndLayer(eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+      GetFramebufferMipAndLayer(curReadFBO, eGL_DEPTH_ATTACHMENT,
                                 (GLint *)&pipe.framebuffer.readFBO.depthAttachment.mipLevel,
                                 (GLint *)&pipe.framebuffer.readFBO.depthAttachment.slice);
 
     if(pipe.framebuffer.readFBO.stencilAttachment.resourceId != ResourceId() && !rbStencil)
-      GetFramebufferMipAndLayer(eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+      GetFramebufferMipAndLayer(curReadFBO, eGL_STENCIL_ATTACHMENT,
                                 (GLint *)&pipe.framebuffer.readFBO.stencilAttachment.mipLevel,
                                 (GLint *)&pipe.framebuffer.readFBO.stencilAttachment.slice);
 

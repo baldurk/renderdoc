@@ -974,6 +974,14 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(SerialiserType &ser, GLuint src
       draw.copySource = GetResourceManager()->GetOriginalID(srcid);
       draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
 
+      draw.copyDestinationSubresource.mip = dstLevel;
+      if(dstTarget != eGL_TEXTURE_3D)
+        draw.copyDestinationSubresource.slice = dstZ;
+
+      draw.copySourceSubresource.mip = srcLevel;
+      if(srcTarget != eGL_TEXTURE_3D)
+        draw.copySourceSubresource.slice = srcZ;
+
       AddDrawcall(draw, true);
 
       if(srcid == dstid)

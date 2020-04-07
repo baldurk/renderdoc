@@ -2009,6 +2009,17 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
           {
             draw.copySource = GetResourceManager()->GetOriginalID(srcid);
             draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+
+            GLint mip = 0, slice = 0;
+            GetFramebufferMipAndLayer(drawFramebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+            draw.copyDestinationSubresource.mip = mip;
+            draw.copyDestinationSubresource.slice = slice;
+
+            mip = 0;
+            slice = 0;
+            GetFramebufferMipAndLayer(readFramebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+            draw.copySourceSubresource.mip = mip;
+            draw.copySourceSubresource.slice = slice;
           }
         }
         else
@@ -2017,6 +2028,17 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
           {
             draw.copySource = GetResourceManager()->GetOriginalID(srcid);
             draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+
+            GLint mip = 0, slice = 0;
+            GetFramebufferMipAndLayer(drawFramebuffer.name, eGL_DEPTH_ATTACHMENT, &mip, &slice);
+            draw.copyDestinationSubresource.mip = mip;
+            draw.copyDestinationSubresource.slice = slice;
+
+            mip = 0;
+            slice = 0;
+            GetFramebufferMipAndLayer(readFramebuffer.name, eGL_DEPTH_ATTACHMENT, &mip, &slice);
+            draw.copySourceSubresource.mip = mip;
+            draw.copySourceSubresource.slice = slice;
           }
         }
 

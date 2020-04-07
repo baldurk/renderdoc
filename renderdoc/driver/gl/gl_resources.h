@@ -32,7 +32,7 @@ size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalfor
 size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type);
 GLenum GetBaseFormat(GLenum internalFormat);
 GLenum GetDataType(GLenum internalFormat);
-void GetFramebufferMipAndLayer(GLenum framebuffer, GLenum attachment, GLint *mip, GLint *layer);
+void GetFramebufferMipAndLayer(GLuint framebuffer, GLenum attachment, GLint *mip, GLint *layer);
 void GetTextureSwizzle(GLuint tex, GLenum target, GLenum *swizzleRGBA);
 void SetTextureSwizzle(GLuint tex, GLenum target, const GLenum *swizzleRGBA);
 

@@ -3630,6 +3630,11 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(SerialiserType &ser,
 
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
         draw.copyDestination = GetResourceManager()->GetOriginalID(id);
+
+        GLint mip = 0, slice = 0;
+        GetFramebufferMipAndLayer(framebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+        draw.copyDestinationSubresource.mip = mip;
+        draw.copyDestinationSubresource.slice = slice;
       }
 
       AddDrawcall(draw, true);
@@ -3775,6 +3780,11 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(SerialiserType &ser,
 
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
         draw.copyDestination = GetResourceManager()->GetOriginalID(id);
+
+        GLint mip = 0, slice = 0;
+        GetFramebufferMipAndLayer(framebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+        draw.copyDestinationSubresource.mip = mip;
+        draw.copyDestinationSubresource.slice = slice;
       }
 
       AddDrawcall(draw, true);
@@ -3892,6 +3902,11 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(SerialiserType &ser,
 
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
         draw.copyDestination = GetResourceManager()->GetOriginalID(id);
+
+        GLint mip = 0, slice = 0;
+        GetFramebufferMipAndLayer(framebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+        draw.copyDestinationSubresource.mip = mip;
+        draw.copyDestinationSubresource.slice = slice;
       }
 
       AddDrawcall(draw, true);
@@ -4008,6 +4023,11 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(SerialiserType &ser, GLu
 
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
         draw.copyDestination = GetResourceManager()->GetOriginalID(id);
+
+        GLint mip = 0, slice = 0;
+        GetFramebufferMipAndLayer(framebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+        draw.copyDestinationSubresource.mip = mip;
+        draw.copyDestinationSubresource.slice = slice;
       }
 
       AddDrawcall(draw, true);
@@ -4497,6 +4517,13 @@ bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
         }
 
         draw.copyDestination = GetResourceManager()->GetOriginalID(dstId);
+
+        GLuint curDrawFBO = 0;
+        GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
+        GLint mip = 0, slice = 0;
+        GetFramebufferMipAndLayer(curDrawFBO, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+        draw.copyDestinationSubresource.mip = mip;
+        draw.copyDestinationSubresource.slice = slice;
 
         AddDrawcall(draw, true);
       }

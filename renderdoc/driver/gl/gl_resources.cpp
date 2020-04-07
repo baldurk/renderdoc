@@ -601,19 +601,19 @@ int GetNumMips(GLenum target, GLuint tex, GLuint w, GLuint h, GLuint d)
   return RDCMAX(1, mips);
 }
 
-void GetFramebufferMipAndLayer(GLenum framebuffer, GLenum attachment, GLint *mip, GLint *layer)
+void GetFramebufferMipAndLayer(GLuint framebuffer, GLenum attachment, GLint *mip, GLint *layer)
 {
-  GL.glGetFramebufferAttachmentParameteriv(framebuffer, attachment,
-                                           eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, mip);
+  GL.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, attachment,
+                                                   eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, mip);
 
   GLenum face = eGL_NONE;
-  GL.glGetFramebufferAttachmentParameteriv(
+  GL.glGetNamedFramebufferAttachmentParameterivEXT(
       framebuffer, attachment, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint *)&face);
 
   if(face == 0)
   {
-    GL.glGetFramebufferAttachmentParameteriv(framebuffer, attachment,
-                                             eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, layer);
+    GL.glGetNamedFramebufferAttachmentParameterivEXT(
+        framebuffer, attachment, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, layer);
   }
   else
   {
