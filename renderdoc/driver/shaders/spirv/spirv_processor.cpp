@@ -612,11 +612,12 @@ void Processor::RegisterOp(Iter it)
     else
     {
       // if it's signed, sign extend
-      if(type.scalar().signedness)
+      if(type.scalar().signedness && type.scalar().width < 16)
       {
+        // is the top bit set?
         if(v.value.uv[0] & (1 << (type.scalar().width - 1)))
         {
-          uint32_t mask = (1 << type.scalar().width) - 1;
+          uint32_t mask = 0xFFFFFFFFU >> (32 - type.scalar().width);
 
           v.value.uv[0] |= ~mask & ~0U;
         }
