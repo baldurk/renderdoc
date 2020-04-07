@@ -253,7 +253,7 @@ void ThreadState::JumpToLabel(Id target)
 }
 
 void ThreadState::StepNext(ShaderDebugState *state,
-                           const rdcarray<rdcarray<ShaderVariable>> &prevWorkgroup)
+                           const rdcarray<DenseIdMap<ShaderVariable>> &prevWorkgroup)
 {
   Iter it = debugger.GetIterForInstruction(nextInstruction);
   nextInstruction++;
@@ -383,6 +383,135 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
       SetDst(state, chain.result,
              debugger.MakeCompositePointer(ids[chain.base], chain.base, indices));
+
+      break;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //
+    // Derivative opcodes
+    //
+    //////////////////////////////////////////////////////////////////////////////
+
+    // spec allows the implementation to choose what DPdx means (coarse or fine), so we choose
+    // coarse which seems a reasonable default. In future we could driver-detect the selection in
+    // use (assuming it's not dynamic base on circumstances)
+    case Op::DPdx:
+    case Op::DPdxCoarse:
+    {
+      // these all share a format
+      OpDPdx deriv(it);
+
+      // coarse derivatives are identical across the quad, based on the top-left.
+      ShaderVariable var = prevWorkgroup[0][deriv.p];
+      ShaderVariable other = prevWorkgroup[1][deriv.p];
+
+      for(uint8_t c = 0; c < var.columns; c++)
+        var.value.fv[c] = other.value.fv[c] - var.value.fv[c];
+
+      SetDst(state, deriv.result, var);
+
+      break;
+    }
+    case Op::DPdy:
+    case Op::DPdyCoarse:
+    {
+      // these all share a format
+      OpDPdx deriv(it);
+
+      // coarse derivatives are identical across the quad, based on the top-left.
+      ShaderVariable var = prevWorkgroup[0][deriv.p];
+      ShaderVariable other = prevWorkgroup[2][deriv.p];
+
+      for(uint8_t c = 0; c < var.columns; c++)
+        var.value.fv[c] = other.value.fv[c] - var.value.fv[c];
+
+      SetDst(state, deriv.result, var);
+
+      break;
+    }
+    case Op::DPdxFine:
+    case Op::DPdyFine:
+    {
+      // these all share a format
+      OpDPdxFine deriv(it);
+
+      const bool xdirection = (opdata.op == Op::DPdxFine);
+
+      ShaderVariable a, b;
+
+      // we need to figure out the exact pair to use
+      int x = workgroupIndex & 1;
+      int y = workgroupIndex / 2;
+
+      if(x == 0)
+      {
+        if(y == 0)
+        {
+          // top-left
+          if(xdirection)
+          {
+            a = prevWorkgroup[0][deriv.p];
+            b = prevWorkgroup[1][deriv.p];
+          }
+          else
+          {
+            a = prevWorkgroup[0][deriv.p];
+            b = prevWorkgroup[2][deriv.p];
+          }
+        }
+        else
+        {
+          // bottom-left
+          if(xdirection)
+          {
+            a = prevWorkgroup[2][deriv.p];
+            b = prevWorkgroup[3][deriv.p];
+          }
+          else
+          {
+            a = prevWorkgroup[0][deriv.p];
+            b = prevWorkgroup[2][deriv.p];
+          }
+        }
+      }
+      else
+      {
+        if(y == 0)
+        {
+          // top-right
+          if(xdirection)
+          {
+            a = prevWorkgroup[0][deriv.p];
+            b = prevWorkgroup[1][deriv.p];
+          }
+          else
+          {
+            a = prevWorkgroup[1][deriv.p];
+            b = prevWorkgroup[3][deriv.p];
+          }
+        }
+        else
+        {
+          // bottom-right
+          if(xdirection)
+          {
+            a = prevWorkgroup[2][deriv.p];
+            b = prevWorkgroup[3][deriv.p];
+          }
+          else
+          {
+            a = prevWorkgroup[1][deriv.p];
+            b = prevWorkgroup[3][deriv.p];
+          }
+        }
+      }
+
+      // do the subtract
+      for(uint8_t c = 0; c < a.columns; c++)
+        a.value.fv[c] = b.value.fv[c] - a.value.fv[c];
+
+      SetDst(state, deriv.result, a);
 
       break;
     }

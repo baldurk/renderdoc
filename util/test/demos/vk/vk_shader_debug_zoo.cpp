@@ -115,18 +115,82 @@ void main()
   float zero = linearData.zeroVal.x;
   float tiny = linearData.tinyVal;
 
-  int intval = flatData.intval;
+  int intval = int(flatData.intval);
 
   uint test = flatData.test;
 
+  vec2 inpos = linearData.inpos;
+  vec2 inposIncreased = linearData.inposIncreased;
+
   Color = vec4(0,0,0,0);
-  if(test == 0)
+  switch(test)
   {
-    Color = vec4(1.0f, 2.0f, 3.0f, 4.0f);
-  }
-  else if(test == 1)
-  {
-    Color = gl_FragCoord;
+    case 0:
+    {
+      Color = gl_FragCoord;
+      break;
+    }
+    case 1:
+    {
+      Color = dFdx(gl_FragCoord);
+      break;
+    }
+    case 2:
+    {
+      Color = dFdy(gl_FragCoord);
+      break;
+    }
+    case 3:
+    {
+      Color = dFdxCoarse(gl_FragCoord);
+      break;
+    }
+    case 4:
+    {
+      Color = dFdyCoarse(gl_FragCoord);
+      break;
+    }
+    case 5:
+    {
+      Color = dFdxFine(gl_FragCoord);
+      break;
+    }
+    case 6:
+    {
+      Color = dFdyFine(gl_FragCoord);
+      break;
+    }
+    case 7:
+    {
+      Color = dFdx(vec4(inpos, inposIncreased));
+      break;
+    }
+    case 8:
+    {
+      Color = dFdy(vec4(inpos, inposIncreased));
+      break;
+    }
+    case 9:
+    {
+      Color = dFdxCoarse(vec4(inpos, inposIncreased));
+      break;
+    }
+    case 10:
+    {
+      Color = dFdyCoarse(vec4(inpos, inposIncreased));
+      break;
+    }
+    case 11:
+    {
+      Color = dFdxFine(vec4(inpos, inposIncreased));
+      break;
+    }
+    case 12:
+    {
+      Color = dFdyFine(vec4(inpos, inposIncreased));
+      break;
+    }
+    default: break;
   }
 }
 
@@ -226,8 +290,8 @@ void main()
     if(!Init())
       return 3;
 
-    size_t lastTest = pixel_glsl.rfind("test == ");
-    lastTest += sizeof("test == ") - 1;
+    size_t lastTest = pixel_glsl.rfind("case ");
+    lastTest += sizeof("case ") - 1;
 
     const uint32_t numGLSLTests = atoi(pixel_glsl.c_str() + lastTest) + 1;
 

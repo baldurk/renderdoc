@@ -337,15 +337,29 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     }
   }
 
-  // now that the globals are allocated and their storage won't move, we can take pointers to them
-  for(size_t i = 0; i < active.inputs.size(); i++)
-    active.ids[inputIDs[i]] = MakePointerVariable(inputIDs[i], &active.inputs[i]);
-  for(size_t i = 0; i < active.outputs.size(); i++)
-    active.ids[outputIDs[i]] = MakePointerVariable(outputIDs[i], &active.outputs[i]);
-  for(size_t i = 0; i < global.constantBlocks.size(); i++)
-    active.ids[cbufferIDs[i]] = MakePointerVariable(cbufferIDs[i], &global.constantBlocks[i]);
-
   std::sort(outputIDs.begin(), outputIDs.end());
+
+  for(uint32_t i = 0; i < workgroupSize; i++)
+  {
+    ThreadState &lane = workgroup[i];
+    if(i != activeLaneIndex)
+    {
+      lane.nextInstruction = active.nextInstruction;
+      lane.inputs = active.inputs;
+      lane.outputs = active.outputs;
+      lane.ids = active.ids;
+      // mark as inactive/helper lane
+      lane.done = true;
+    }
+
+    // now that the globals are allocated and their storage won't move, we can take pointers to them
+    for(size_t i = 0; i < lane.inputs.size(); i++)
+      lane.ids[inputIDs[i]] = MakePointerVariable(inputIDs[i], &lane.inputs[i]);
+    for(size_t i = 0; i < lane.outputs.size(); i++)
+      lane.ids[outputIDs[i]] = MakePointerVariable(outputIDs[i], &lane.outputs[i]);
+    for(size_t i = 0; i < global.constantBlocks.size(); i++)
+      lane.ids[cbufferIDs[i]] = MakePointerVariable(cbufferIDs[i], &global.constantBlocks[i]);
+  }
 
   // only outputs are considered mutable
   liveGlobals.append(outputIDs);
@@ -389,19 +403,6 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
   ret->constantBlocks = global.constantBlocks;
   ret->inputs = active.inputs;
-
-  for(uint32_t i = 0; i < workgroupSize; i++)
-  {
-    if(i == activeLaneIndex)
-      continue;
-
-    workgroup[i].nextInstruction = active.nextInstruction;
-    workgroup[i].inputs = active.inputs;
-    workgroup[i].outputs = active.outputs;
-    workgroup[i].ids = active.ids;
-    // mark as inactive/helper lane
-    workgroup[i].done = true;
-  }
 
   if(stage == ShaderStage::Pixel)
   {
@@ -467,7 +468,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
   if(active.Finished())
     return ret;
 
-  rdcarray<rdcarray<ShaderVariable>> oldworkgroup;
+  rdcarray<DenseIdMap<ShaderVariable>> oldworkgroup;
 
   oldworkgroup.resize(workgroup.size());
 

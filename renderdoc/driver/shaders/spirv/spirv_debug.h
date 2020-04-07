@@ -93,7 +93,7 @@ struct ThreadState
   ~ThreadState();
 
   void EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arguments);
-  void StepNext(ShaderDebugState *state, const rdcarray<rdcarray<ShaderVariable>> &prevWorkgroup);
+  void StepNext(ShaderDebugState *state, const rdcarray<DenseIdMap<ShaderVariable>> &prevWorkgroup);
 
   void FillCallstack(ShaderDebugState &state);
 
