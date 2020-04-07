@@ -147,7 +147,8 @@ static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
     if(ext == "VK_KHR_xlib_surface" || ext == "VK_KHR_xcb_surface" ||
        ext == "VK_KHR_wayland_surface" || ext == "VK_KHR_mir_surface" ||
        ext == "VK_MVK_macos_surface" || ext == "VK_KHR_android_surface" ||
-       ext == "VK_KHR_win32_surface" || ext == "VK_GGP_stream_descriptor_surface")
+       ext == "VK_KHR_win32_surface" || ext == "VK_GGP_stream_descriptor_surface" ||
+       ext == "VK_GGP_frame_token")
     {
       return true;
     }
@@ -158,6 +159,10 @@ static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
     {
       return true;
     }
+
+    // remove WSI-only extensions
+    if(ext == "VK_GOOGLE_display_timing")
+      return true;
 
     // remove fullscreen exclusive extension
     if(ext == "VK_EXT_full_screen_exclusive")
