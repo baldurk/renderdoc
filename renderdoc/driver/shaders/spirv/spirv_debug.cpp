@@ -956,11 +956,15 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
     case Op::FMul:
     case Op::FDiv:
+    case Op::FMod:
+    case Op::FRem:
     case Op::FAdd:
     case Op::FSub:
     case Op::IMul:
     case Op::SDiv:
     case Op::UDiv:
+    case Op::UMod:
+    case Op::SRem:
     case Op::IAdd:
     case Op::ISub:
     {
@@ -978,6 +982,30 @@ void ThreadState::StepNext(ShaderDebugState *state,
       {
         for(uint8_t c = 0; c < var.columns; c++)
           var.value.fv[c] /= b.value.fv[c];
+      }
+      else if(opdata.op == Op::FMod)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+        {
+          float af = var.value.fv[c], bf = b.value.fv[c];
+          var.value.fv[c] = fmodf(af, bf);
+          if(var.value.fv[c] < 0.0f && bf >= 0.0f)
+            var.value.fv[c] += fabsf(bf);
+          else if(var.value.fv[c] >= 0.0f && bf < 0.0f)
+            var.value.fv[c] -= fabsf(bf);
+        }
+      }
+      else if(opdata.op == Op::FRem)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+        {
+          float af = var.value.fv[c], bf = b.value.fv[c];
+          var.value.fv[c] = fmodf(af, bf);
+          if(var.value.fv[c] < 0.0f && af >= 0.0f)
+            var.value.fv[c] += fabsf(bf);
+          else if(var.value.fv[c] >= 0.0f && af < 0.0f)
+            var.value.fv[c] -= fabsf(bf);
+        }
       }
       else if(opdata.op == Op::FAdd)
       {
@@ -1017,6 +1045,38 @@ void ThreadState::StepNext(ShaderDebugState *state,
           if(b.value.uv[c] != 0)
           {
             var.value.uv[c] /= b.value.uv[c];
+          }
+          else
+          {
+            var.value.uv[c] = ~0U;
+            if(state)
+              state->flags |= ShaderEvents::GeneratedNanOrInf;
+          }
+        }
+      }
+      else if(opdata.op == Op::UMod)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+        {
+          if(b.value.uv[c] != 0)
+          {
+            var.value.uv[c] %= b.value.uv[c];
+          }
+          else
+          {
+            var.value.uv[c] = ~0U;
+            if(state)
+              state->flags |= ShaderEvents::GeneratedNanOrInf;
+          }
+        }
+      }
+      else if(opdata.op == Op::SRem)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+        {
+          if(b.value.iv[c] != 0)
+          {
+            var.value.iv[c] %= b.value.iv[c];
           }
           else
           {
