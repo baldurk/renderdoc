@@ -89,13 +89,24 @@ public:
            component);
   }
 
-  virtual DerivativeDeltas GetDerivative(uint32_t location, uint32_t component) override
+  virtual DerivativeDeltas GetDerivative(ShaderBuiltin builtin, uint32_t location,
+                                         uint32_t component) override
   {
+    if(builtin != ShaderBuiltin::Undefined)
+    {
+      auto it = builtin_derivatives.find(builtin);
+      if(it != builtin_derivatives.end())
+        return it->second;
+
+      RDCERR("Couldn't get input for %s", ToStr(builtin).c_str());
+      return DerivativeDeltas();
+    }
+
     // TODO handle components
     RDCASSERT(component == 0);
 
-    if(location < derivatives.size())
-      return derivatives[location];
+    if(location < location_derivatives.size())
+      return location_derivatives[location];
 
     RDCERR("Couldn't get derivative for location=%u, component=%u", location, component);
     return DerivativeDeltas();
@@ -105,7 +116,8 @@ public:
   std::map<ShaderBuiltin, ShaderVariable> builtin_inputs;
   rdcarray<ShaderVariable> location_inputs;
 
-  rdcarray<DerivativeDeltas> derivatives;
+  std::map<ShaderBuiltin, DerivativeDeltas> builtin_derivatives;
+  rdcarray<DerivativeDeltas> location_derivatives;
 
 private:
   WrappedVulkan *m_pDriver = NULL;
@@ -1535,18 +1547,31 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     Vec4f *ddxfine = (Vec4f *)(PSInputs + 3 * structStride);
     Vec4f *ddyfine = (Vec4f *)(PSInputs + 4 * structStride);
 
-    rdcarray<ShaderVariable> &locations = apiWrapper->location_inputs;
     for(size_t i = 0; i < shadRefl.refl.inputSignature.size(); i++)
     {
       const SigParameter &param = shadRefl.refl.inputSignature[i];
-      locations.resize(RDCMAX((uint32_t)locations.size(), param.regIndex + 1));
-      apiWrapper->derivatives.resize(RDCMAX((uint32_t)locations.size(), param.regIndex + 1));
 
-      memcpy(&locations[param.regIndex].value.uv, &value[i], sizeof(Vec4f));
-      memcpy(&apiWrapper->derivatives[param.regIndex].ddxcoarse, &ddxcoarse[i], sizeof(Vec4f));
-      memcpy(&apiWrapper->derivatives[param.regIndex].ddycoarse, &ddycoarse[i], sizeof(Vec4f));
-      memcpy(&apiWrapper->derivatives[param.regIndex].ddxfine, &ddxfine[i], sizeof(Vec4f));
-      memcpy(&apiWrapper->derivatives[param.regIndex].ddyfine, &ddyfine[i], sizeof(Vec4f));
+      bool builtin = true;
+      if(param.systemValue == ShaderBuiltin::Undefined)
+      {
+        builtin = false;
+        apiWrapper->location_inputs.resize(
+            RDCMAX((uint32_t)apiWrapper->location_inputs.size(), param.regIndex + 1));
+        apiWrapper->location_derivatives.resize(
+            RDCMAX((uint32_t)apiWrapper->location_derivatives.size(), param.regIndex + 1));
+      }
+
+      ShaderVariable &var = builtin ? apiWrapper->builtin_inputs[param.systemValue]
+                                    : apiWrapper->location_inputs[param.regIndex];
+      rdcspv::DebugAPIWrapper::DerivativeDeltas &deriv =
+          builtin ? apiWrapper->builtin_derivatives[param.systemValue]
+                  : apiWrapper->location_derivatives[param.regIndex];
+
+      memcpy(&var.value.uv, &value[i], sizeof(Vec4f));
+      memcpy(&deriv.ddxcoarse, &ddxcoarse[i], sizeof(Vec4f));
+      memcpy(&deriv.ddycoarse, &ddycoarse[i], sizeof(Vec4f));
+      memcpy(&deriv.ddxfine, &ddxfine[i], sizeof(Vec4f));
+      memcpy(&deriv.ddyfine, &ddyfine[i], sizeof(Vec4f));
     }
 
     ret = debugger->BeginDebug(apiWrapper, ShaderStage::Pixel, entryPoint, spec,

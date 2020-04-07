@@ -1136,6 +1136,10 @@ uint32_t Debugger::ApplyDerivatives(uint32_t quadIndex, const Decorations &curDe
   // only floats have derivatives
   if(outVar.type == VarType::Float)
   {
+    ShaderBuiltin builtin = ShaderBuiltin::Undefined;
+    if(curDecorations.flags & Decorations::HasBuiltIn)
+      builtin = MakeShaderBuiltin(stage, curDecorations.builtIn);
+
     uint32_t component = 0;
     for(const DecorationAndParamData &dec : curDecorations.others)
     {
@@ -1196,7 +1200,8 @@ uint32_t Debugger::ApplyDerivatives(uint32_t quadIndex, const Decorations &curDe
     if(curDecorations.flags & Decorations::HasLocation)
       location = curDecorations.location;
 
-    DebugAPIWrapper::DerivativeDeltas derivs = apiWrapper->GetDerivative(location, component);
+    DebugAPIWrapper::DerivativeDeltas derivs =
+        apiWrapper->GetDerivative(builtin, location, component);
 
     Vec4f &dst = *(Vec4f *)outVar.value.fv;
 

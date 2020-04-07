@@ -54,7 +54,8 @@ public:
     Vec4f ddyfine;
   };
 
-  virtual DerivativeDeltas GetDerivative(uint32_t location, uint32_t component) = 0;
+  virtual DerivativeDeltas GetDerivative(ShaderBuiltin builtin, uint32_t location,
+                                         uint32_t component) = 0;
 };
 
 struct GlobalState
