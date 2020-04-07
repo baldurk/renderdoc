@@ -30,72 +30,101 @@ RD_TEST(VK_Shader_Debug_Zoo, VulkanGraphicsTest)
 
   struct ConstsA2V
   {
-    Vec3f pos;
+    Vec4f pos;
     float zero;
     float one;
     float negone;
   };
 
-  const char *vertex = R"EOSHADER(
-#version 430 core
+  std::string v2f =
+      R"EOSHADER(
 
-layout(location = 0) in vec3 pos;
-layout(location = 1) in float zero;
-layout(location = 2) in float one;
-layout(location = 3) in float negone;
-
-struct v2f
+struct flatv2f
 {
-  vec2 zeroVal;
-  float tinyVal;
-  float oneVal;
-  float negoneVal;
   uint test;
   uint intval;
 };
 
-layout(location = 1) out flat v2f OUT;
+struct v2f
+{
+  vec2 zeroVal;
+  vec2 inpos;
+  vec2 inposIncreased;
+  float tinyVal;
+  float oneVal;
+  float negoneVal;
+};
+
+layout(location = 1) inout_type flat flatv2f flatData;
+layout(location = 3) inout_type v2f linearData;
+
+)EOSHADER";
+
+  std::string vertex = R"EOSHADER(
+#version 430 core
+
+#define inout_type out
+
+)EOSHADER" + v2f + R"EOSHADER(
+
+layout(location = 0) in vec4 pos;
+layout(location = 1) in float zero;
+layout(location = 2) in float one;
+layout(location = 3) in float negone;
 
 void main()
 {
   int test = gl_InstanceIndex;
  
-  gl_Position = vec4(pos.x + pos.z * float(test), pos.y, 0.0, 1.0);
+  gl_Position = vec4(pos.x + pos.z * float(test % 256), pos.y + pos.w * float(test / 256), 0.0, 1.0);
 
-  OUT.zeroVal = zero.xx;
-  OUT.oneVal = one;
-  OUT.negoneVal = negone;
-  OUT.test = test;
-  OUT.tinyVal = one * 1.0e-30;
-  OUT.intval = test + 7;
+  const vec4 verts[4] = vec4[4](vec4(-1.0, -1.0, 0.5, 1.0), vec4(1.0, -1.0, 0.5, 1.0),
+                                vec4(-1.0, 1.0, 0.5, 1.0), vec4(1.0, 1.0, 0.5, 1.0));
+
+  const vec2 data[3] = vec2[3](vec2(10.0f, 10.0f), vec2(20.0f, 10.0f), vec2(10.0f, 20.0f));
+
+  linearData.zeroVal = zero.xx;
+  linearData.oneVal = one;
+  linearData.negoneVal = negone;
+  linearData.tinyVal = one * 1.0e-30;
+  linearData.inpos = data[gl_VertexIndex];
+  linearData.inposIncreased = data[gl_VertexIndex] * 2.75f;
+  flatData.test = test;
+  flatData.intval = test + 7;
 }
 
 )EOSHADER";
 
-  const char *pixel_glsl = R"EOSHADER(
+  std::string pixel_glsl = R"EOSHADER(
 #version 460 core
 
-struct v2f
-{
-  vec2 zeroVal;
-  float tinyVal;
-  float oneVal;
-  float negoneVal;
-  uint test;
-  uint intval;
-};
+#define inout_type in
 
-layout(location = 1) in flat v2f IN;
+)EOSHADER" + v2f + R"EOSHADER(
 
 layout(location = 0, index = 0) out vec4 Color;
 
 void main()
 {
-  if(IN.test == 0)
+  float  posinf = linearData.oneVal/linearData.zeroVal.x;
+  float  neginf = linearData.negoneVal/linearData.zeroVal.x;
+  float  nan = linearData.zeroVal.x/linearData.zeroVal.y;
+
+  float negone = linearData.negoneVal;
+  float posone = linearData.oneVal;
+  float zero = linearData.zeroVal.x;
+  float tiny = linearData.tinyVal;
+
+  int intval = flatData.intval;
+
+  uint test = flatData.test;
+
+  Color = vec4(0,0,0,0);
+  if(test == 0)
   {
     Color = vec4(1.0f, 2.0f, 3.0f, 4.0f);
   }
-  else if(IN.test == 1)
+  else if(test == 1)
   {
     Color = gl_FragCoord;
   }
@@ -103,14 +132,15 @@ void main()
 
 )EOSHADER";
 
-  const char *pixel_asm = R"EOSHADER(
+  std::string pixel_asm = R"EOSHADER(
                OpCapability Shader
     %glsl450 = OpExtInstImport "GLSL.std.450"
                OpMemoryModel Logical GLSL450
-               OpEntryPoint Fragment %main "main" %IN %Color %gl_FragCoord
+               OpEntryPoint Fragment %main "main" %flatData %linearData %Color %gl_FragCoord
                OpExecutionMode %main OriginUpperLeft
-               OpDecorate %IN Flat
-               OpDecorate %IN Location 1
+               OpDecorate %flatData Flat
+               OpDecorate %flatData Location 1
+               OpDecorate %linearData Location 3
                OpDecorate %Color Index 0
                OpDecorate %Color Location 0
                OpDecorate %gl_FragCoord BuiltIn FragCoord
@@ -127,18 +157,21 @@ void main()
 
    %mainfunc = OpTypeFunction %void
 
-        %v2f = OpTypeStruct %float2 %float %float %float %uint %uint
+        %v2f = OpTypeStruct %float2 %float2 %float2 %float %float %float
+    %flatv2f = OpTypeStruct %uint %uint
 
     %_ptr_Input_v2f = OpTypePointer Input %v2f
+%_ptr_Input_flatv2f = OpTypePointer Input %flatv2f
    %_ptr_Input_uint = OpTypePointer Input %uint
  %_ptr_Input_float4 = OpTypePointer Input %float4
 %_ptr_Output_float4 = OpTypePointer Output %float4
 
-          %IN = OpVariable %_ptr_Input_v2f Input
+  %linearData = OpVariable %_ptr_Input_v2f Input
+    %flatData = OpVariable %_ptr_Input_flatv2f Input
 %gl_FragCoord = OpVariable %_ptr_Input_float4 Input
        %Color = OpVariable %_ptr_Output_float4 Output
 
-%v2f_test_idx = OpConstant %int 4
+%flatv2f_test_idx = OpConstant %int 0
      %uint_0 = OpConstant %uint 0
      %uint_1 = OpConstant %uint 1
 
@@ -153,7 +186,7 @@ void main()
 
        %main = OpFunction %void None %mainfunc
  %main_begin = OpLabel
-   %test_ptr = OpAccessChain %_ptr_Input_uint %IN %v2f_test_idx
+   %test_ptr = OpAccessChain %_ptr_Input_uint %flatData %flatv2f_test_idx
        %test = OpLoad %uint %test_ptr
 
                OpSelectionMerge %break None
@@ -174,7 +207,7 @@ void main()
                OpBranch %break
 
      %test_2 = OpLabel
-          %3 = OpVectorShuffle %float4 %float_0000 %float_1234 3 6 2 4
+          %3 = OpVectorShuffle %float4 %float_0000 %float_1234 3 2 6 4
                OpStore %Color %3
                OpBranch %break
 
@@ -193,23 +226,34 @@ void main()
     if(!Init())
       return 3;
 
-    size_t lastTest = std::string(pixel_glsl).rfind("IN.test == ");
-    lastTest += sizeof("IN.test == ") - 1;
+    size_t lastTest = pixel_glsl.rfind("test == ");
+    lastTest += sizeof("test == ") - 1;
 
-    const uint32_t numGLSLTests = atoi(pixel_glsl + lastTest) + 1;
+    const uint32_t numGLSLTests = atoi(pixel_glsl.c_str() + lastTest) + 1;
 
-    const uint32_t numASMTests = 3;
+    lastTest = pixel_asm.rfind("%test_");
+    lastTest += sizeof("%test_") - 1;
 
-    const uint32_t numTests = numGLSLTests + numASMTests;
+    const uint32_t numASMTests = atoi(pixel_asm.c_str() + lastTest) + 1;
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
 
-    static const uint32_t texDim = AlignUp(numTests, 64U) * 4;
+    // calculate number of tests (align to 64)
+    uint32_t texWidth = AlignUp(std::max(numGLSLTests, numASMTests), 64U);
 
-    AllocatedImage img(this, vkh::ImageCreateInfo(texDim, 4, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                  VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                                                      VK_IMAGE_USAGE_TRANSFER_SRC_BIT),
-                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    // wrap around after 256
+    uint32_t texHeight = std::max(1U, texWidth / 256);
+    texWidth /= texHeight;
+
+    // 4x4 for each test
+    texWidth *= 4;
+    texHeight *= 4;
+
+    AllocatedImage img(
+        this,
+        vkh::ImageCreateInfo(texWidth, texHeight, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView imgview = createImageView(
         vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));
@@ -225,7 +269,7 @@ void main()
     VkRenderPass renderPass = createRenderPass(renderPassCreateInfo);
 
     VkFramebuffer framebuffer =
-        createFramebuffer(vkh::FramebufferCreateInfo(renderPass, {imgview}, {texDim, 4}));
+        createFramebuffer(vkh::FramebufferCreateInfo(renderPass, {imgview}, {texWidth, texHeight}));
 
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
@@ -250,12 +294,13 @@ void main()
 
     VkPipeline asmpipe = createGraphicsPipeline(pipeCreateInfo);
 
-    float triWidth = 8.0f / float(texDim);
+    float triWidth = 8.0f / float(texWidth);
+    float triHeight = 8.0f / float(texHeight);
 
     ConstsA2V triangle[] = {
-        {Vec3f(-1.0f, 1.0f, triWidth), 0.0f, 1.0f, -1.0f},
-        {Vec3f(-1.0f, -1.0f, triWidth), 0.0f, 1.0f, -1.0f},
-        {Vec3f(-1.0f + triWidth, -1.0f, triWidth), 0.0f, 1.0f, -1.0f},
+        {Vec4f(-1.0f, -1.0f, triWidth, triHeight), 0.0f, 1.0f, -1.0f},
+        {Vec4f(-1.0f + triWidth, -1.0f, triWidth, triHeight), 0.0f, 1.0f, -1.0f},
+        {Vec4f(-1.0f, -1.0f + triHeight, triWidth, triHeight), 0.0f, 1.0f, -1.0f},
     };
 
     AllocatedBuffer vb(this,
@@ -280,32 +325,56 @@ void main()
 
       VkViewport v = {};
       v.maxDepth = 1.0f;
-      v.width = (float)texDim;
-      v.height = 4;
+      v.width = (float)texWidth;
+      v.height = (float)texHeight;
 
       VkRect2D s = {};
-      s.extent.width = texDim;
-      s.extent.height = 4;
-
-      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
-                                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
-                           VK_SUBPASS_CONTENTS_INLINE);
+      s.extent.width = texWidth;
+      s.extent.height = texHeight;
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, glslpipe);
       vkCmdSetViewport(cmd, 0, 1, &v);
       vkCmdSetScissor(cmd, 0, 1, &s);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
-      setMarker(cmd, "GLSL tests");
-      vkCmdDraw(cmd, 3, numGLSLTests, 0, 0);
 
-      v.x += numGLSLTests * 4;
-      v.width -= v.x;
+      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
+                                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
+                           VK_SUBPASS_CONTENTS_INLINE);
+
+      pushMarker(cmd, "GLSL tests");
+      uint32_t numTests = numGLSLTests;
+      uint32_t offset = 0;
+      // loop drawing 256 tests at a time
+      while(numTests > 0)
+      {
+        uint32_t num = std::min(numTests, 256U);
+        vkCmdDraw(cmd, 3, num, 0, offset);
+        offset += num;
+        numTests -= num;
+      }
+      popMarker(cmd);
+
+      vkCmdEndRenderPass(cmd);
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, asmpipe);
       vkCmdSetViewport(cmd, 0, 1, &v);
 
-      setMarker(cmd, "ASM tests");
-      vkCmdDraw(cmd, 3, numASMTests, 0, 0);
+      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
+                                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
+                           VK_SUBPASS_CONTENTS_INLINE);
+
+      pushMarker(cmd, "ASM tests");
+      numTests = numASMTests;
+      offset = 0;
+      // loop drawing 256 tests at a time
+      while(numTests > 0)
+      {
+        uint32_t num = std::min(numTests, 256U);
+        vkCmdDraw(cmd, 3, num, 0, offset);
+        offset += num;
+        numTests -= num;
+      }
+      popMarker(cmd);
 
       vkCmdEndRenderPass(cmd);
 

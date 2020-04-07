@@ -363,6 +363,20 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     i++;
   }
 
+  for(size_t o = 0; o < outputIDs.size(); o++)
+  {
+    rdcstr varName = GetRawName(outputIDs[o]);
+
+    for(size_t i = 0; i < globalSourceVars.size(); i++)
+    {
+      if(!globalSourceVars[i].variables.empty() && globalSourceVars[i].variables[0].name == varName)
+      {
+        ret->sourceVars.push_back(globalSourceVars[i]);
+        break;
+      }
+    }
+  }
+
   ret->lineInfo.resize(instructionOffsets.size());
   for(size_t i = 0; i < instructionOffsets.size(); i++)
   {

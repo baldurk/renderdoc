@@ -404,6 +404,8 @@ float4 main(v2f IN) : SV_Target0
 
     return float4(read.b.xyz, read.c);
   }
+)EOSHADER"
+                      R"EOSHADER(
   if(IN.tri == 51)
   {
     // use this to ensure the compiler doesn't know we're using fixed locations
