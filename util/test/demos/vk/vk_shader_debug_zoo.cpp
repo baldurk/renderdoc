@@ -341,13 +341,18 @@ void main()
      %uint_4 = OpConstant %uint 4
      %uint_15 = OpConstant %uint 15
 
-     %uint_1_234 = OpConstant %uint 0x3f9df3b6
+     %uint_flt_1_234 = OpConstant %uint 0x3f9df3b6
+     %uint_0x1234 = OpConstant %uint 0x1234
+     %uint_0xb9c5 = OpConstant %uint 0xb9c5
 
      %int_4 = OpConstant %int 4
      %int_neg4 = OpConstant %int -4
      %int_7 = OpConstant %int 7
      %int_15 = OpConstant %int 15
      %int_neg15 = OpConstant %int -15
+
+     %int_0x1234 = OpConstant %int 0x1234
+     %int_neg0x1234 = OpConstant %int -0x1234
 
     %float_0 = OpConstant %float 0
     %float_1 = OpConstant %float 1
@@ -457,6 +462,15 @@ void main()
                         29 %test_29
                         30 %test_30
                         31 %test_31
+                        32 %test_32
+                        33 %test_33
+                        34 %test_34
+                        35 %test_35
+                        36 %test_36
+                        37 %test_37
+                        38 %test_38
+                        39 %test_39
+                        40 %test_40
 
      ; test OpVectorShuffle
      %test_0 = OpLabel
@@ -553,9 +567,14 @@ void main()
                OpBranch %break
 
     %test_11 = OpLabel
-     ; once was a test of mod/rem with negative parameters, which is undefined.
-     ; This test is kept as a no-op to avoid needing to renumber everything below.
-               OpStore %Color %float_0000
+       %a_11 = OpBitwiseOr %uint %uint_0x1234 %uint_0xb9c5
+       %b_11 = OpBitwiseXor %uint %uint_0x1234 %uint_0xb9c5
+       %c_11 = OpBitwiseAnd %uint %uint_0x1234 %uint_0xb9c5
+      %af_11 = OpConvertUToF %float %a_11
+      %bf_11 = OpConvertUToF %float %a_11
+      %cf_11 = OpConvertUToF %float %c_11
+   %Color_11 = OpCompositeConstruct %float4 %af_11 %bf_11 %cf_11 %zerof
+               OpStore %Color %Color_11
                OpBranch %break
 
     %test_12 = OpLabel
@@ -605,7 +624,7 @@ void main()
 
      ; test bitcast
     %test_18 = OpLabel
-        %_18 = OpBitcast %float %uint_1_234
+        %_18 = OpBitcast %float %uint_flt_1_234
    %Color_18 = OpCompositeConstruct %float4 %_18 %_18 %_18 %_18
                OpStore %Color %Color_18
                OpBranch %break
@@ -939,6 +958,105 @@ void main()
    %Color_31 = OpVectorTimesScalar %float4 %vec_31 %scale_31
 
                OpStore %Color %Color_31
+               OpBranch %break
+
+    %test_32 = OpLabel
+       %a_32 = OpShiftLeftLogical %uint %uint_0x1234 %uint_0
+       %b_32 = OpShiftLeftLogical %uint %uint_0x1234 %uint_1
+       %c_32 = OpShiftLeftLogical %uint %uint_0x1234 %uint_2
+      %af_32 = OpConvertUToF %float %a_32
+      %bf_32 = OpConvertUToF %float %a_32
+      %cf_32 = OpConvertUToF %float %c_32
+   %Color_32 = OpCompositeConstruct %float4 %af_32 %bf_32 %cf_32 %zerof
+               OpStore %Color %Color_32
+               OpBranch %break
+
+    %test_33 = OpLabel
+       %a_33 = OpShiftLeftLogical %int %int_0x1234 %uint_0
+       %b_33 = OpShiftLeftLogical %int %int_0x1234 %uint_1
+       %c_33 = OpShiftLeftLogical %int %int_0x1234 %uint_2
+      %af_33 = OpConvertSToF %float %a_33
+      %bf_33 = OpConvertSToF %float %a_33
+      %cf_33 = OpConvertSToF %float %c_33
+   %Color_33 = OpCompositeConstruct %float4 %af_33 %bf_33 %cf_33 %zerof
+               OpStore %Color %Color_33
+               OpBranch %break
+
+    %test_34 = OpLabel
+       %a_34 = OpShiftLeftLogical %int %int_neg0x1234 %uint_0
+       %b_34 = OpShiftLeftLogical %int %int_neg0x1234 %uint_1
+       %c_34 = OpShiftLeftLogical %int %int_neg0x1234 %uint_2
+      %af_34 = OpConvertSToF %float %a_34
+      %bf_34 = OpConvertSToF %float %a_34
+      %cf_34 = OpConvertSToF %float %c_34
+   %Color_34 = OpCompositeConstruct %float4 %af_34 %bf_34 %cf_34 %zerof
+               OpStore %Color %Color_34
+               OpBranch %break
+
+    %test_35 = OpLabel
+       %a_35 = OpShiftRightLogical %uint %uint_0x1234 %uint_0
+       %b_35 = OpShiftRightLogical %uint %uint_0x1234 %uint_1
+       %c_35 = OpShiftRightLogical %uint %uint_0x1234 %uint_2
+      %af_35 = OpConvertUToF %float %a_35
+      %bf_35 = OpConvertUToF %float %a_35
+      %cf_35 = OpConvertUToF %float %c_35
+   %Color_35 = OpCompositeConstruct %float4 %af_35 %bf_35 %cf_35 %zerof
+               OpStore %Color %Color_35
+               OpBranch %break
+
+    %test_36 = OpLabel
+       %a_36 = OpShiftRightLogical %int %int_0x1234 %uint_0
+       %b_36 = OpShiftRightLogical %int %int_0x1234 %uint_1
+       %c_36 = OpShiftRightLogical %int %int_0x1234 %uint_2
+      %af_36 = OpConvertSToF %float %a_36
+      %bf_36 = OpConvertSToF %float %a_36
+      %cf_36 = OpConvertSToF %float %c_36
+   %Color_36 = OpCompositeConstruct %float4 %af_36 %bf_36 %cf_36 %zerof
+               OpStore %Color %Color_36
+               OpBranch %break
+
+    %test_37 = OpLabel
+       %a_37 = OpShiftRightLogical %int %int_neg0x1234 %uint_0
+       %b_37 = OpShiftRightLogical %int %int_neg0x1234 %uint_1
+       %c_37 = OpShiftRightLogical %int %int_neg0x1234 %uint_2
+      %af_37 = OpConvertSToF %float %a_37
+      %bf_37 = OpConvertSToF %float %a_37
+      %cf_37 = OpConvertSToF %float %c_37
+   %Color_37 = OpCompositeConstruct %float4 %af_37 %bf_37 %cf_37 %zerof
+               OpStore %Color %Color_37
+               OpBranch %break
+
+    %test_38 = OpLabel
+       %a_38 = OpShiftRightArithmetic %uint %uint_0x1234 %uint_0
+       %b_38 = OpShiftRightArithmetic %uint %uint_0x1234 %uint_1
+       %c_38 = OpShiftRightArithmetic %uint %uint_0x1234 %uint_2
+      %af_38 = OpConvertUToF %float %a_38
+      %bf_38 = OpConvertUToF %float %a_38
+      %cf_38 = OpConvertUToF %float %c_38
+   %Color_38 = OpCompositeConstruct %float4 %af_38 %bf_38 %cf_38 %zerof
+               OpStore %Color %Color_38
+               OpBranch %break
+
+    %test_39 = OpLabel
+       %a_39 = OpShiftRightArithmetic %int %int_0x1234 %uint_0
+       %b_39 = OpShiftRightArithmetic %int %int_0x1234 %uint_1
+       %c_39 = OpShiftRightArithmetic %int %int_0x1234 %uint_2
+      %af_39 = OpConvertSToF %float %a_39
+      %bf_39 = OpConvertSToF %float %a_39
+      %cf_39 = OpConvertSToF %float %c_39
+   %Color_39 = OpCompositeConstruct %float4 %af_39 %bf_39 %cf_39 %zerof
+               OpStore %Color %Color_39
+               OpBranch %break
+
+    %test_40 = OpLabel
+       %a_40 = OpShiftRightArithmetic %int %int_neg0x1234 %uint_0
+       %b_40 = OpShiftRightArithmetic %int %int_neg0x1234 %uint_1
+       %c_40 = OpShiftRightArithmetic %int %int_neg0x1234 %uint_2
+      %af_40 = OpConvertSToF %float %a_40
+      %bf_40 = OpConvertSToF %float %a_40
+      %cf_40 = OpConvertSToF %float %c_40
+   %Color_40 = OpCompositeConstruct %float4 %af_40 %bf_40 %cf_40 %zerof
+               OpStore %Color %Color_40
                OpBranch %break
 
     %default = OpLabel

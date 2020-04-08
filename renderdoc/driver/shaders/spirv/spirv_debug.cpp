@@ -997,7 +997,72 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
     //////////////////////////////////////////////////////////////////////////////
     //
-    // Mathematical opcodes (scalar/vector)
+    // Bitwise/logical opcodes
+    //
+    //////////////////////////////////////////////////////////////////////////////
+
+    case Op::BitwiseOr:
+    case Op::BitwiseAnd:
+    case Op::BitwiseXor:
+    case Op::ShiftLeftLogical:
+    case Op::ShiftRightArithmetic:
+    case Op::ShiftRightLogical:
+    {
+      OpBitwiseOr bitwise(it);
+
+      ShaderVariable var = GetSrc(bitwise.operand1);
+      ShaderVariable b = GetSrc(bitwise.operand2);
+
+      if(opdata.op == Op::BitwiseOr)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = var.value.uv[c] | b.value.uv[c];
+      }
+      else if(opdata.op == Op::BitwiseAnd)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = var.value.uv[c] & b.value.uv[c];
+      }
+      else if(opdata.op == Op::BitwiseXor)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = var.value.uv[c] ^ b.value.uv[c];
+      }
+      else if(opdata.op == Op::ShiftLeftLogical)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = var.value.uv[c] << b.value.uv[c];
+      }
+      else if(opdata.op == Op::ShiftRightArithmetic)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.iv[c] = var.value.iv[c] >> b.value.uv[c];
+      }
+      else if(opdata.op == Op::ShiftRightLogical)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = var.value.uv[c] >> b.value.uv[c];
+      }
+
+      SetDst(state, bitwise.result, var);
+      break;
+    }
+    case Op::Not:
+    {
+      OpNot bitwise(it);
+
+      ShaderVariable var = GetSrc(bitwise.operand);
+
+      for(uint8_t c = 0; c < var.columns; c++)
+        var.value.uv[c] = ~var.value.uv[c];
+
+      SetDst(state, bitwise.result, var);
+      break;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //
+    // Mathematical opcodes
     //
     //////////////////////////////////////////////////////////////////////////////
 
