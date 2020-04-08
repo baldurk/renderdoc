@@ -48,7 +48,7 @@ ShaderVariable FAbs(ThreadState &state, const rdcarray<Id> &params)
   ShaderVariable var = state.GetSrc(params[0]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = fabs(var.value.fv[c]);
+    var.value.fv[c] = fabsf(var.value.fv[c]);
 
   return var;
 }
@@ -60,7 +60,7 @@ ShaderVariable Floor(ThreadState &state, const rdcarray<Id> &params)
   ShaderVariable var = state.GetSrc(params[0]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = floor(var.value.fv[c]);
+    var.value.fv[c] = floorf(var.value.fv[c]);
 
   return var;
 }
@@ -109,7 +109,7 @@ ShaderVariable Normalize(ThreadState &state, const rdcarray<Id> &params)
   for(uint32_t c = 0; c < var.columns; c++)
     sqrlength += (var.value.fv[c] * var.value.fv[c]);
 
-  float invlength = 1.0f / sqrt(sqrlength);
+  float invlength = 1.0f / sqrtf(sqrlength);
 
   for(uint32_t c = 0; c < var.columns; c++)
     var.value.fv[c] *= invlength;
