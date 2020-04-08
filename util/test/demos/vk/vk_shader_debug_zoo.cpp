@@ -335,14 +335,6 @@ void main()
                         16 %test_16
                         17 %test_17
                         18 %test_18
-                        19 %test_19
-                        20 %test_20
-                        21 %test_21
-                        22 %test_22
-                        23 %test_23
-                        24 %test_24
-                        25 %test_25
-                        26 %test_26
 
      ; test OpVectorShuffle
      %test_0 = OpLabel
@@ -473,88 +465,32 @@ void main()
 
     %test_15 = OpLabel
        %b_15 = OpFAdd %float %zerof %float_4
-        %_15 = OpFMod %float %b_15 %zerof
+        %_15 = OpFRem %float %zerof %b_15
    %Color_15 = OpCompositeConstruct %float4 %_15 %_15 %_15 %_15
                OpStore %Color %Color_15
                OpBranch %break
 
     %test_16 = OpLabel
-        %_16 = OpFMod %float %zerof %zerof
+       %b_16 = OpIAdd %uint %zerou %uint_4
+     %mod_16 = OpUMod %uint %zerou %b_16
+        %_16 = OpConvertUToF %float %mod_16
    %Color_16 = OpCompositeConstruct %float4 %_16 %_16 %_16 %_16
                OpStore %Color %Color_16
                OpBranch %break
 
     %test_17 = OpLabel
-       %b_17 = OpFAdd %float %zerof %float_4
-        %_17 = OpFRem %float %zerof %b_17
+       %b_17 = OpIAdd %int %zeroi %int_4
+     %mod_17 = OpSRem %int %zeroi %b_17
+        %_17 = OpConvertSToF %float %mod_17
    %Color_17 = OpCompositeConstruct %float4 %_17 %_17 %_17 %_17
                OpStore %Color %Color_17
                OpBranch %break
 
+     ; test bitcast
     %test_18 = OpLabel
-       %b_18 = OpFAdd %float %zerof %float_4
-        %_18 = OpFRem %float %b_18 %zerof
+        %_18 = OpBitcast %float %uint_1_234
    %Color_18 = OpCompositeConstruct %float4 %_18 %_18 %_18 %_18
                OpStore %Color %Color_18
-               OpBranch %break
-
-    %test_19 = OpLabel
-        %_19 = OpFRem %float %zerof %zerof
-   %Color_19 = OpCompositeConstruct %float4 %_19 %_19 %_19 %_19
-               OpStore %Color %Color_19
-               OpBranch %break
-
-    %test_20 = OpLabel
-       %b_20 = OpIAdd %uint %zerou %uint_4
-     %mod_20 = OpUMod %uint %b_20 %zerou
-        %_20 = OpConvertUToF %float %mod_20
-   %Color_20 = OpCompositeConstruct %float4 %_20 %_20 %_20 %_20
-               OpStore %Color %Color_20
-               OpBranch %break
-
-    %test_21 = OpLabel
-       %b_21 = OpIAdd %uint %zerou %uint_4
-     %mod_21 = OpUMod %uint %zerou %b_21
-        %_21 = OpConvertUToF %float %mod_21
-   %Color_21 = OpCompositeConstruct %float4 %_21 %_21 %_21 %_21
-               OpStore %Color %Color_21
-               OpBranch %break
-
-    %test_22 = OpLabel
-     %mod_22 = OpUMod %uint %zerou %zerou
-        %_22 = OpConvertUToF %float %mod_22
-   %Color_22 = OpCompositeConstruct %float4 %_22 %_22 %_22 %_22
-               OpStore %Color %Color_22
-               OpBranch %break
-
-    %test_23 = OpLabel
-       %b_23 = OpIAdd %int %zeroi %int_4
-     %mod_23 = OpSRem %int %b_23 %zeroi
-        %_23 = OpConvertSToF %float %mod_23
-   %Color_23 = OpCompositeConstruct %float4 %_23 %_23 %_23 %_23
-               OpStore %Color %Color_23
-               OpBranch %break
-
-    %test_24 = OpLabel
-       %b_24 = OpIAdd %int %zeroi %int_4
-     %mod_24 = OpSRem %int %zeroi %b_24
-        %_24 = OpConvertSToF %float %mod_24
-   %Color_24 = OpCompositeConstruct %float4 %_24 %_24 %_24 %_24
-               OpStore %Color %Color_24
-               OpBranch %break
-
-    %test_25 = OpLabel
-     %mod_25 = OpSRem %int %zeroi %zeroi
-        %_25 = OpConvertSToF %float %mod_25
-   %Color_25 = OpCompositeConstruct %float4 %_25 %_25 %_25 %_25
-               OpStore %Color %Color_25
-               OpBranch %break
-
-     ; test bitcast
-    %test_26 = OpLabel
-        %_26 = OpBitcast %float %uint_1_234
-   %Color_26 = OpCompositeConstruct %float4 %_26 %_26 %_26 %_26
-               OpStore %Color %Color_26
                OpBranch %break
 
     %default = OpLabel
