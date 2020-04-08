@@ -36,6 +36,8 @@
 
 RDOC_DEBUG_CONFIG(rdcstr, Vulkan_Debug_PSDebugDumpDirPath, "",
                   "Path to dump before and after pixel shader input SPIR-V files.");
+RDOC_DEBUG_CONFIG(bool, Vulkan_Debug_DisableBufferDeviceAddress, false,
+                  "Disable use of buffer device address for PS Input fetch.");
 
 class VulkanAPIWrapper : public rdcspv::DebugAPIWrapper
 {
@@ -1162,6 +1164,9 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     else if(m_pDriver->GetExtensions(NULL).ext_EXT_buffer_device_address)
       storageMode = EXT_bda;
   }
+
+  if(Vulkan_Debug_DisableBufferDeviceAddress)
+    storageMode = Binding;
 
   rdcarray<uint32_t> fragspv = shader.spirv.GetSPIRV();
 
