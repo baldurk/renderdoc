@@ -7,6 +7,10 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
     demos_test_name = 'VK_Shader_Debug_Zoo'
 
     def check_capture(self):
+        if not self.controller.GetAPIProperties().shaderDebugging:
+            rdtest.log.success("Shader debugging not enabled, skipping test")
+            return
+
         failed = False
 
         rdtest.log.begin_section("GLSL tests")
