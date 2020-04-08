@@ -1168,6 +1168,25 @@ void ThreadState::StepNext(ShaderDebugState *state,
       SetDst(state, math.result, var);
       break;
     }
+    case Op::Dot:
+    {
+      OpDot dot(it);
+
+      ShaderVariable var = GetSrc(dot.vector1);
+      ShaderVariable b = GetSrc(dot.vector2);
+
+      RDCASSERTEQUAL(var.columns, b.columns);
+
+      float ret = 0;
+      for(uint8_t c = 0; c < var.columns; c++)
+        ret += var.value.fv[c] * b.value.fv[c];
+
+      var.columns = 1;
+      var.value.f.x = ret;
+
+      SetDst(state, dot.result, var);
+      break;
+    }
     case Op::VectorTimesScalar:
     {
       OpVectorTimesScalar mul(it);

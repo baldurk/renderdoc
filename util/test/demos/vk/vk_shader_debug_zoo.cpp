@@ -264,6 +264,13 @@ void main()
       Color = vec4(cross(a, b), 1.0f);
       break;
     }
+    case 25:
+    {
+      vec4 a = vec4(posone*2.5f, negone*1.8f, posone*8.5f, posone*3.9f);
+      vec4 b = vec4(negone*6.3f, posone*3.2f, negone*0.4f, zerof);
+      Color = vec4(dot(a.xyz, b.xyz), dot(a.w, b.w), dot(a, b), dot(a.wz, b.ww));
+      break;
+    }
     default: break;
   }
 }
