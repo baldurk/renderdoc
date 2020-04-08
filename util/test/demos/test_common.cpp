@@ -354,6 +354,10 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
         case ShaderStage::comp: command_line += " -fshader-stage=comp"; break;
       }
     }
+    else
+    {
+      strcat(infile, ".spvasm");
+    }
 
     if(target == SPIRVTarget::opengl)
       command_line += " --target-env=opengl";
