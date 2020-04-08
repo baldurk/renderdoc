@@ -1504,6 +1504,7 @@ void ThreadState::StepNext(ShaderDebugState *state,
     case Op::MemberName:
     case Op::String:
     case Op::Extension:
+    case Op::ExtInstImport:
     case Op::MemoryModel:
     case Op::EntryPoint:
     case Op::ExecutionMode:
