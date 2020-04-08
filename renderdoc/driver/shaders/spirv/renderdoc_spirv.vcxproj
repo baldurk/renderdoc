@@ -157,6 +157,7 @@
       <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="spirv_debug.cpp" />
+    <ClCompile Include="spirv_debug_glsl450.cpp" />
     <ClCompile Include="spirv_debug_setup.cpp" />
     <ClCompile Include="spirv_disassemble.cpp">
       <WarningLevel>Level4</WarningLevel>

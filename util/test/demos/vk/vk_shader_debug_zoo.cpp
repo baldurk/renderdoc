@@ -192,6 +192,78 @@ void main()
       Color = dFdyFine(vec4(inpos, inposIncreased));
       break;
     }
+    case 13:
+    {
+      Color = vec4(abs(posone*2.5f), abs(negone*2.5f), abs(zerof*2.5f), 1.0f);
+      break;
+    }
+    case 14:
+    {
+      Color = vec4(pow(posone*2.5f, posone*1.3f), pow(posone*2.5f, posone*0.45f),
+                   pow(vec2(posone*2.5f, posone*1.3f), vec2(posone*0.9f, posone*8.5f)));
+      break;
+    }
+    case 15:
+    {
+      Color = vec4(normalize(posone*2.5f), normalize(posone), normalize(negone), 1.0f);
+      break;
+    }
+    case 16:
+    {
+      Color = vec4(normalize(vec2(posone*2.5f, negone*1.8f)), normalize(vec2(posone*8.5f, negone*7.1f)));
+      break;
+    }
+    case 17:
+    {
+      Color = vec4(normalize(vec3(posone*2.5f, negone*1.8f, posone*8.5f)), 1.0f);
+      break;
+    }
+    case 18:
+    {
+      Color = normalize(vec4(posone*2.5f, negone*1.8f, posone*8.5f, negone*5.2f));
+      break;
+    }
+    case 19:
+    {
+      Color = vec4(floor(posone*2.5f), floor(posone*2.4f), floor(posone*2.6f), floor(zerof));
+      break;
+    }
+    case 20:
+    {
+      Color = vec4(floor(negone*2.5f), floor(negone*2.4f), floor(negone*2.6f), 1.0f);
+      break;
+    }
+    case 21:
+    {
+      Color = vec4(mix(posone*1.1f, posone*3.3f, 0.5f),
+                   mix(posone*1.1f, posone*3.3f, 0.2f),
+                   mix(posone*1.1f, posone*3.3f, 0.8f),
+                   1.0f);
+      break;
+    }
+    case 22:
+    {
+      Color = vec4(mix(posone*1.1f, posone*3.3f, 1.5f),
+                   mix(posone*1.1f, posone*3.3f, -0.3f),
+                   0.0f,
+                   1.0f);
+      break;
+    }
+    case 23:
+    {
+      Color = vec4(mix(posone*3.3f, posone*1.1f, 0.5f),
+                   mix(posone*3.3f, posone*1.1f, 0.2f),
+                   mix(posone*3.3f, posone*1.1f, 0.8f),
+                   1.0f);
+      break;
+    }
+    case 24:
+    {
+      vec3 a = vec3(posone*2.5f, negone*1.8f, posone*8.5f);
+      vec3 b = vec3(negone*6.3f, posone*3.2f, negone*0.4f);
+      Color = vec4(cross(a, b), 1.0f);
+      break;
+    }
     default: break;
   }
 }

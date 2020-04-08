@@ -58,12 +58,28 @@ public:
                                          uint32_t component) = 0;
 };
 
+struct ThreadState;
+
+typedef ShaderVariable (*ExtInstImpl)(ThreadState &, const rdcarray<Id> &);
+
+struct ExtInstDispatcher
+{
+  rdcstr name;
+  bool nonsemantic = false;
+  rdcarray<rdcstr> names;
+  rdcarray<ExtInstImpl> functions;
+};
+
+void ConfigureGLSLStd450(ExtInstDispatcher &extinst);
+
 struct GlobalState
 {
 public:
   GlobalState() {}
   // allocated storage for opaque uniform blocks, does not change over the course of debugging
   rdcarray<ShaderVariable> constantBlocks;
+
+  SparseIdMap<ExtInstDispatcher> extInsts;
 };
 
 struct StackFrame
@@ -132,8 +148,9 @@ struct ThreadState
   uint32_t workgroupIndex;
   bool done;
 
-private:
   const ShaderVariable &GetSrc(Id id);
+
+private:
   void SetDst(ShaderDebugState *state, Id id, const ShaderVariable &val);
   void ProcessScopeChange(ShaderDebugState &state, const rdcarray<Id> &oldLive,
                           const rdcarray<Id> &newLive);

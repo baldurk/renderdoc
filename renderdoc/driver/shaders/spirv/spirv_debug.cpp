@@ -783,6 +783,53 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
     //////////////////////////////////////////////////////////////////////////////
     //
+    // Extended instruction set handling
+    //
+    //////////////////////////////////////////////////////////////////////////////
+
+    case Op::ExtInst:
+    {
+      Id result = Id::fromWord(it.word(2));
+      Id extinst = Id::fromWord(it.word(3));
+
+      if(global.extInsts.find(extinst) == global.extInsts.end())
+      {
+        RDCERR("Unknown extended instruction set %u", extinst.value());
+        break;
+      }
+
+      const ExtInstDispatcher &dispatch = global.extInsts[extinst];
+
+      // ignore nonsemantic instructions
+      if(dispatch.nonsemantic)
+        break;
+
+      uint32_t instruction = it.word(4);
+
+      if(instruction >= dispatch.functions.size())
+      {
+        RDCERR("Unsupported instruction %u in set %s (only %zu instructions defined)", instruction,
+               dispatch.name.c_str(), dispatch.functions.size());
+        break;
+      }
+
+      if(dispatch.functions[instruction] == NULL)
+      {
+        RDCWARN("Unimplemented extended instruction %s::%s", dispatch.name.c_str(),
+                dispatch.names[instruction].c_str());
+        break;
+      }
+
+      rdcarray<Id> params;
+      for(size_t i = 5; i < it.size(); i++)
+        params.push_back(Id::fromWord(it.word(i)));
+
+      SetDst(state, result, dispatch.functions[instruction](*this, params));
+      break;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //
     // Comparison opcodes
     //
     //////////////////////////////////////////////////////////////////////////////

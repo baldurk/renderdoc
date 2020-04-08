@@ -99,6 +99,7 @@ set(sources
     spirv_compile.cpp
     spirv_compile.h
     spirv_debug_setup.cpp
+    spirv_debug_glsl450.cpp
     spirv_debug.cpp
     spirv_debug.h
     spirv_reflect.cpp

@@ -200,6 +200,38 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     }
   }
 
+  for(auto it = extSets.begin(); it != extSets.end(); it++)
+  {
+    Id id = it->first;
+    const rdcstr &setname = it->second;
+
+    if(setname == "GLSL.std.450")
+    {
+      ExtInstDispatcher extinst;
+
+      extinst.name = setname;
+
+      ConfigureGLSLStd450(extinst);
+
+      global.extInsts[id] = extinst;
+    }
+    else if(setname.beginsWith("NonSemantic."))
+    {
+      ExtInstDispatcher extinst;
+
+      extinst.name = setname;
+
+      extinst.nonsemantic = true;
+
+      global.extInsts[id] = extinst;
+    }
+    else
+    {
+      RDCERR("Unsupported extended instruction set: %s", setname.c_str());
+      return new ShaderDebugTrace;
+    }
+  }
+
   for(const rdcstr &e : extensions)
   {
     if(e == "SPV_GOOGLE_decorate_string" || e == "SPV_GOOGLE_hlsl_functionality1")
