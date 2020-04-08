@@ -1147,6 +1147,27 @@ void ThreadState::StepNext(ShaderDebugState *state,
       SetDst(state, math.result, var);
       break;
     }
+    case Op::FNegate:
+    case Op::SNegate:
+    {
+      OpFNegate math(it);
+
+      ShaderVariable var = GetSrc(math.operand);
+
+      if(opdata.op == Op::FNegate)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.fv[c] = -var.value.fv[c];
+      }
+      else if(opdata.op == Op::SNegate)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.iv[c] = -var.value.iv[c];
+      }
+
+      SetDst(state, math.result, var);
+      break;
+    }
 
     //////////////////////////////////////////////////////////////////////////////
     //

@@ -407,6 +407,8 @@ void main()
                         16 %test_16
                         17 %test_17
                         18 %test_18
+                        19 %test_19
+                        20 %test_20
 
      ; test OpVectorShuffle
      %test_0 = OpLabel
@@ -563,6 +565,38 @@ void main()
         %_18 = OpBitcast %float %uint_1_234
    %Color_18 = OpCompositeConstruct %float4 %_18 %_18 %_18 %_18
                OpStore %Color %Color_18
+               OpBranch %break
+
+     ; test fnegate
+    %test_19 = OpLabel
+       %a_19 = OpFAdd %float %zerof %float_4
+       %b_19 = OpFAdd %float %zerof %float_neg15
+       %c_19 = OpFAdd %float %zerof %zerof
+       %d_19 = OpFAdd %float %zerof %float_3
+       %x_19 = OpFNegate %float %a_19
+       %y_19 = OpFNegate %float %b_19
+       %z_19 = OpFNegate %float %c_19
+       %w_19 = OpFNegate %float %d_19
+   %Color_19 = OpCompositeConstruct %float4 %x_19 %y_19 %z_19 %w_19
+               OpStore %Color %Color_19
+               OpBranch %break
+
+     ; test snegate
+    %test_20 = OpLabel
+       %a_20 = OpIAdd %int %zeroi %int_4
+       %b_20 = OpIAdd %int %zeroi %int_neg15
+       %c_20 = OpIAdd %int %zeroi %zeroi
+       %d_20 = OpIAdd %int %zeroi %int_7
+       %x_20 = OpSNegate %int %a_20
+       %y_20 = OpSNegate %int %b_20
+       %z_20 = OpSNegate %int %c_20
+       %w_20 = OpSNegate %int %d_20
+      %xf_20 = OpConvertSToF %float %x_20
+      %yf_20 = OpConvertSToF %float %y_20
+      %zf_20 = OpConvertSToF %float %z_20
+      %wf_20 = OpConvertSToF %float %w_20
+   %Color_20 = OpCompositeConstruct %float4 %xf_20 %yf_20 %zf_20 %wf_20
+               OpStore %Color %Color_20
                OpBranch %break
 
     %default = OpLabel
