@@ -73,10 +73,13 @@ void main()
     {
       void *ctx;
 
-      std::atomic_bool rendering = true;
+      std::atomic_bool rendering;
 
       GLuint VB, VAO, prog, FBO, tex;
     } A, B;
+
+    A.rendering = true;
+    B.rendering = true;
 
     A.VB = MakeBuffer();
     glBindBuffer(GL_ARRAY_BUFFER, A.VB);
@@ -114,7 +117,8 @@ void main()
     A.ctx = MakeContext(mainWindow, mainContext);
     B.ctx = MakeContext(mainWindow, mainContext);
 
-    std::atomic_bool quit = false;
+    std::atomic_bool quit;
+    quit = false;
 
     auto windowThread = [&](int idx) {
       ctxdata &ctx = (idx == 0 ? A : B);
