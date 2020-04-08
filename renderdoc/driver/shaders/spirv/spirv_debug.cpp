@@ -1597,6 +1597,24 @@ void ThreadState::StepNext(ShaderDebugState *state,
     case Op::TypeNamedBarrier:
     case Op::NamedBarrierInitialize:
     case Op::MemoryNamedBarrier:
+    case Op::ReadPipe:
+    case Op::WritePipe:
+    case Op::ReservedReadPipe:
+    case Op::ReservedWritePipe:
+    case Op::ReserveReadPipePackets:
+    case Op::ReserveWritePipePackets:
+    case Op::CommitReadPipe:
+    case Op::CommitWritePipe:
+    case Op::IsValidReserveId:
+    case Op::GetNumPipePackets:
+    case Op::GetMaxPipePackets:
+    case Op::GroupReserveReadPipePackets:
+    case Op::GroupReserveWritePipePackets:
+    case Op::GroupCommitReadPipe:
+    case Op::GroupCommitWritePipe:
+    case Op::TypePipeStorage:
+    case Op::ConstantPipeStorage:
+    case Op::CreatePipeFromPipeStorage:
     {
       // these are kernel only
       RDCERR("Encountered unexpected kernel SPIR-V operation %s", ToStr(opdata.op).c_str());
