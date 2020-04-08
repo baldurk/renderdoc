@@ -540,41 +540,34 @@ void main()
                OpStore %Color %Color_9
                OpBranch %break
 
-     ; test OpSRem
+     ; test OpSRem/OpSMod
     %test_10 = OpLabel
        %a_10 = OpIAdd %int %zeroi %int_15
        %b_10 = OpIAdd %int %zeroi %int_4
-     %mod_10 = OpSRem %int %a_10 %b_10
-        %_10 = OpConvertSToF %float %mod_10
-   %Color_10 = OpCompositeConstruct %float4 %_10 %_10 %_10 %_10
+     %rem_10 = OpSRem %int %a_10 %b_10
+     %mod_10 = OpSMod %int %a_10 %b_10
+    %remf_10 = OpConvertSToF %float %rem_10
+    %modf_10 = OpConvertSToF %float %mod_10
+   %Color_10 = OpCompositeConstruct %float4 %remf_10 %remf_10 %modf_10 %modf_10
                OpStore %Color %Color_10
                OpBranch %break
 
     %test_11 = OpLabel
-       %a_11 = OpIAdd %int %zeroi %int_neg15
-       %b_11 = OpIAdd %int %zeroi %int_4
-     %mod_11 = OpSRem %int %a_11 %b_11
-        %_11 = OpConvertSToF %float %mod_11
-   %Color_11 = OpCompositeConstruct %float4 %_11 %_11 %_11 %_11
-               OpStore %Color %Color_11
+     ; once was a test of mod/rem with negative parameters, which is undefined.
+     ; This test is kept as a no-op to avoid needing to renumber everything below.
+               OpStore %Color %float_0000
                OpBranch %break
 
     %test_12 = OpLabel
-       %a_12 = OpIAdd %int %zeroi %int_15
-       %b_12 = OpIAdd %int %zeroi %int_neg4
-     %mod_12 = OpSRem %int %a_12 %b_12
-        %_12 = OpConvertSToF %float %mod_12
-   %Color_12 = OpCompositeConstruct %float4 %_12 %_12 %_12 %_12
-               OpStore %Color %Color_12
+     ; once was a test of mod/rem with negative parameters, which is undefined.
+     ; This test is kept as a no-op to avoid needing to renumber everything below.
+               OpStore %Color %float_0000
                OpBranch %break
 
     %test_13 = OpLabel
-       %a_13 = OpIAdd %int %zeroi %int_neg15
-       %b_13 = OpIAdd %int %zeroi %int_neg4
-     %mod_13 = OpSRem %int %a_13 %b_13
-        %_13 = OpConvertSToF %float %mod_13
-   %Color_13 = OpCompositeConstruct %float4 %_13 %_13 %_13 %_13
-               OpStore %Color %Color_13
+     ; once was a test of mod/rem with negative parameters, which is undefined.
+     ; This test is kept as a no-op to avoid needing to renumber everything below.
+               OpStore %Color %float_0000
                OpBranch %break
 
      ; test mod/rem with zeros
@@ -602,9 +595,11 @@ void main()
 
     %test_17 = OpLabel
        %b_17 = OpIAdd %int %zeroi %int_4
-     %mod_17 = OpSRem %int %zeroi %b_17
-        %_17 = OpConvertSToF %float %mod_17
-   %Color_17 = OpCompositeConstruct %float4 %_17 %_17 %_17 %_17
+     %mod_17 = OpSMod %int %zeroi %b_17
+     %rem_17 = OpSRem %int %zeroi %b_17
+    %modf_17 = OpConvertSToF %float %mod_17
+    %remf_17 = OpConvertSToF %float %rem_17
+   %Color_17 = OpCompositeConstruct %float4 %modf_17 %modf_17 %remf_17 %remf_17
                OpStore %Color %Color_17
                OpBranch %break
 

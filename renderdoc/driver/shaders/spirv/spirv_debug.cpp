@@ -1011,6 +1011,7 @@ void ThreadState::StepNext(ShaderDebugState *state,
     case Op::SDiv:
     case Op::UDiv:
     case Op::UMod:
+    case Op::SMod:
     case Op::SRem:
     case Op::IAdd:
     case Op::ISub:
@@ -1117,7 +1118,7 @@ void ThreadState::StepNext(ShaderDebugState *state,
           }
         }
       }
-      else if(opdata.op == Op::SRem)
+      else if(opdata.op == Op::SRem || opdata.op == Op::SMod)
       {
         for(uint8_t c = 0; c < var.columns; c++)
         {
