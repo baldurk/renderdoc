@@ -1168,6 +1168,145 @@ void ThreadState::StepNext(ShaderDebugState *state,
       SetDst(state, math.result, var);
       break;
     }
+    case Op::VectorTimesScalar:
+    {
+      OpVectorTimesScalar mul(it);
+
+      ShaderVariable var = GetSrc(mul.vector);
+      ShaderVariable scalar = GetSrc(mul.scalar);
+
+      for(uint8_t c = 0; c < var.columns; c++)
+        var.value.fv[c] *= scalar.value.f.x;
+
+      SetDst(state, mul.result, var);
+      break;
+    }
+    case Op::MatrixTimesScalar:
+    {
+      OpMatrixTimesScalar mul(it);
+
+      ShaderVariable var = GetSrc(mul.matrix);
+      ShaderVariable scalar = GetSrc(mul.scalar);
+
+      for(uint8_t c = 0; c < var.rows * var.columns; c++)
+        var.value.fv[c] *= scalar.value.f.x;
+
+      SetDst(state, mul.result, var);
+      break;
+    }
+    case Op::VectorTimesMatrix:
+    {
+      OpVectorTimesMatrix mul(it);
+
+      ShaderVariable matrix = GetSrc(mul.matrix);
+      ShaderVariable vector = GetSrc(mul.vector);
+
+      ShaderVariable var = vector;
+      var.columns = matrix.columns;
+
+      float *m = matrix.value.fv;
+      float *v = vector.value.fv;
+
+      const DataType &type = debugger.GetType(mul.resultType);
+      RDCASSERTEQUAL(type.vector().count, var.columns);
+      RDCASSERTEQUAL(matrix.rows, vector.columns);
+
+      for(uint8_t c = 0; c < matrix.columns; c++)
+      {
+        var.value.fv[c] = 0.0f;
+        for(uint8_t r = 0; r < matrix.rows; r++)
+        {
+          var.value.fv[c] += m[r * matrix.columns + c] * v[r];
+        }
+      }
+
+      SetDst(state, mul.result, var);
+      break;
+    }
+    case Op::MatrixTimesVector:
+    {
+      OpMatrixTimesVector mul(it);
+
+      ShaderVariable matrix = GetSrc(mul.matrix);
+      ShaderVariable vector = GetSrc(mul.vector);
+
+      ShaderVariable var = vector;
+      var.columns = matrix.rows;
+
+      float *m = matrix.value.fv;
+      float *v = vector.value.fv;
+
+      const DataType &type = debugger.GetType(mul.resultType);
+      RDCASSERTEQUAL(type.vector().count, var.columns);
+      RDCASSERTEQUAL(matrix.columns, vector.columns);
+
+      for(uint8_t r = 0; r < matrix.rows; r++)
+      {
+        var.value.fv[r] = 0.0f;
+        for(uint8_t c = 0; c < matrix.columns; c++)
+        {
+          var.value.fv[r] += m[r * matrix.columns + c] * v[c];
+        }
+      }
+
+      SetDst(state, mul.result, var);
+      break;
+    }
+    case Op::MatrixTimesMatrix:
+    {
+      OpMatrixTimesMatrix mul(it);
+
+      ShaderVariable left = GetSrc(mul.leftMatrix);
+      ShaderVariable right = GetSrc(mul.rightMatrix);
+
+      ShaderVariable var = left;
+      var.rows = left.rows;
+      var.columns = right.columns;
+
+      float *l = left.value.fv;
+      float *r = right.value.fv;
+
+      RDCASSERTEQUAL(left.columns, right.rows);
+
+      for(uint8_t dstr = 0; dstr < var.rows; dstr++)
+      {
+        for(uint8_t dstc = 0; dstc < var.columns; dstc++)
+        {
+          float &dstval = var.value.fv[dstr * var.columns + dstc];
+          dstval = 0.0f;
+
+          for(uint8_t src = 0; src < right.rows; src++)
+          {
+            dstval += l[dstr * left.columns + src] * r[src * right.columns + dstc];
+          }
+        }
+      }
+
+      SetDst(state, mul.result, var);
+      break;
+    }
+    case Op::OuterProduct:
+    {
+      OpOuterProduct mul(it);
+
+      ShaderVariable left = GetSrc(mul.vector1);
+      ShaderVariable right = GetSrc(mul.vector2);
+
+      ShaderVariable var = left;
+      var.rows = left.columns;
+      var.columns = right.columns;
+
+      for(uint8_t r = 0; r < var.rows; r++)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+        {
+          var.value.fv[r * var.columns + c] = left.value.fv[r] * right.value.fv[c];
+        }
+      }
+
+      SetDst(state, mul.result, var);
+      break;
+    }
 
     //////////////////////////////////////////////////////////////////////////////
     //

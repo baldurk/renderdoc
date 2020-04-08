@@ -289,7 +289,7 @@ private:
   void applyBackwardsChange();
   void applyForwardsChange();
 
-  QString stringRep(const ShaderVariable &var);
+  QString stringRep(const ShaderVariable &var, uint32_t row = 0);
   void combineStructures(RDTreeWidgetItem *root, int skipPrefixLength = 0);
   RDTreeWidgetItem *findVarInTree(RDTreeWidgetItem *root, QString name, bool fullmatch, int maxDepth);
   void highlightMatchingVars(RDTreeWidgetItem *root, const QString varName,

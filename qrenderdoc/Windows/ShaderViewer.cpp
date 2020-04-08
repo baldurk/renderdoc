@@ -1654,14 +1654,14 @@ void ShaderViewer::applyForwardsChange()
   }
 }
 
-QString ShaderViewer::stringRep(const ShaderVariable &var)
+QString ShaderViewer::stringRep(const ShaderVariable &var, uint32_t row)
 {
   VarType type = var.type;
 
   if(type == VarType::Unknown)
     type = ui->intView->isChecked() ? VarType::SInt : VarType::Float;
 
-  return RowString(var, 0, type);
+  return RowString(var, row, type);
 }
 
 QString ShaderViewer::targetName(const ShaderProcessingTool &disasm)
@@ -2895,6 +2895,19 @@ RDTreeWidgetItem *ShaderViewer::makeDebugVariableNode(const ShaderVariable &v, r
     if(m.name.beginsWith(basename + "["))
       childprefix = basename;
     node->addChild(makeDebugVariableNode(m, childprefix, modified));
+  }
+
+  // if this is a matrix, even if it has no explicit row members add the rows as children
+  if(v.members.empty() && v.rows > 1)
+  {
+    for(uint32_t row = 0; row < v.rows; row++)
+    {
+      rdcstr rowsuffix = ".row" + ToStr(row);
+      RDTreeWidgetItem *child = new RDTreeWidgetItem({v.name + rowsuffix, stringRep(v, row)});
+      child->setTag(QVariant::fromValue(
+          VariableTag(DebugVariableReference(DebugVariableType::Variable, basename + rowsuffix))));
+      node->addChild(child);
+    }
   }
 
   if(modified)

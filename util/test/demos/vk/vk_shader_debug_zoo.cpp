@@ -293,6 +293,11 @@ void main()
      %float3 = OpTypeVector %float 3
      %float4 = OpTypeVector %float 4
 
+   %float2x2 = OpTypeMatrix %float2 2
+   %float2x4 = OpTypeMatrix %float2 4
+   %float4x2 = OpTypeMatrix %float4 2
+   %float4x4 = OpTypeMatrix %float4 4
+
    %mainfunc = OpTypeFunction %void
 
         %v2f = OpTypeStruct %float2 %float2 %float2 %float %float %float
@@ -342,9 +347,32 @@ void main()
     %float_2 = OpConstant %float 2
     %float_3 = OpConstant %float 3
     %float_4 = OpConstant %float 4
-    %float_neg4 = OpConstant %float -4
-    %float_15 = OpConstant %float 15
-    %float_neg15 = OpConstant %float -15
+ %float_neg4 = OpConstant %float -4
+   %float_15 = OpConstant %float 15
+%float_neg15 = OpConstant %float -15
+%float_1_234 = OpConstant %float 1.234
+
+ %float_mat0 = OpConstant %float 0.8
+ %float_mat1 = OpConstant %float 0.3
+ %float_mat2 = OpConstant %float 0.9
+ %float_mat3 = OpConstant %float 0.7
+ %float_mat4 = OpConstant %float 1.2
+ %float_mat5 = OpConstant %float 0.2
+ %float_mat6 = OpConstant %float 1.5
+ %float_mat7 = OpConstant %float 0.6
+ %float_mat8 = OpConstant %float 0.123
+ %float_mat9 = OpConstant %float 1.2
+%float_mat10 = OpConstant %float 1.1
+%float_mat11 = OpConstant %float 0.4
+%float_mat12 = OpConstant %float 1.0
+%float_mat13 = OpConstant %float 0.1
+%float_mat14 = OpConstant %float 0.2
+%float_mat15 = OpConstant %float 1.0
+
+ %float_vec0 = OpConstant %float 0.9
+ %float_vec1 = OpConstant %float 0.8
+ %float_vec2 = OpConstant %float 0.7
+ %float_vec3 = OpConstant %float 0.6
 
  %float_0000 = OpConstantComposite %float4 %float_0 %float_0 %float_0 %float_0
  %float_1234 = OpConstantComposite %float4 %float_1 %float_2 %float_3 %float_4
@@ -385,6 +413,8 @@ void main()
     %zerou = OpISub %uint %_tmp_7 %int_7
     %zeroi = OpBitcast %int %zerou
 
+)EOSHADER"
+                          R"EOSHADER(
                OpSelectionMerge %break None
                OpSwitch %test
                         %default
@@ -409,6 +439,17 @@ void main()
                         18 %test_18
                         19 %test_19
                         20 %test_20
+                        21 %test_21
+                        22 %test_22
+                        23 %test_23
+                        24 %test_24
+                        25 %test_25
+                        26 %test_26
+                        27 %test_27
+                        28 %test_28
+                        29 %test_29
+                        30 %test_30
+                        31 %test_31
 
      ; test OpVectorShuffle
      %test_0 = OpLabel
@@ -597,6 +638,305 @@ void main()
       %wf_20 = OpConvertSToF %float %w_20
    %Color_20 = OpCompositeConstruct %float4 %xf_20 %yf_20 %zf_20 %wf_20
                OpStore %Color %Color_20
+               OpBranch %break
+
+)EOSHADER"
+                          R"EOSHADER(
+     ; test 2x2 matrix multiplies
+    %test_21 = OpLabel
+
+   %mata1_21 = OpFAdd %float %zerof %float_mat0
+   %mata2_21 = OpFAdd %float %zerof %float_mat1
+   %matb1_21 = OpFAdd %float %zerof %float_mat2
+   %matb2_21 = OpFAdd %float %zerof %float_mat3
+
+    %vec0_21 = OpFAdd %float %zerof %float_vec0
+    %vec1_21 = OpFAdd %float %zerof %float_vec1
+
+    %cola_21 = OpCompositeConstruct %float2 %mata1_21 %mata2_21
+    %colb_21 = OpCompositeConstruct %float2 %matb1_21 %matb2_21
+     %mat_21 = OpCompositeConstruct %float2x2 %cola_21 %colb_21
+
+     %vec_21 = OpCompositeConstruct %float2 %vec0_21 %vec1_21   
+
+        %_21 = OpMatrixTimesVector %float2 %mat_21 %vec_21
+
+   %Color_21 = OpVectorShuffle %float4 %_21 %_21 0 1 0 1
+
+               OpStore %Color %Color_21
+               OpBranch %break
+
+    %test_22 = OpLabel
+
+   %mata1_22 = OpFAdd %float %zerof %float_mat0
+   %mata2_22 = OpFAdd %float %zerof %float_mat1
+   %matb1_22 = OpFAdd %float %zerof %float_mat2
+   %matb2_22 = OpFAdd %float %zerof %float_mat3
+
+    %vec0_22 = OpFAdd %float %zerof %float_vec0
+    %vec1_22 = OpFAdd %float %zerof %float_vec1
+
+    %cola_22 = OpCompositeConstruct %float2 %mata1_22 %mata2_22
+    %colb_22 = OpCompositeConstruct %float2 %matb1_22 %matb2_22
+     %mat_22 = OpCompositeConstruct %float2x2 %cola_22 %colb_22
+
+     %vec_22 = OpCompositeConstruct %float2 %vec0_22 %vec1_22   
+
+        %_22 = OpVectorTimesMatrix %float2 %vec_22 %mat_22
+
+   %Color_22 = OpVectorShuffle %float4 %_22 %_22 0 1 0 1
+
+               OpStore %Color %Color_22
+               OpBranch %break
+
+    %test_23 = OpLabel
+
+   %mata1_23 = OpFAdd %float %zerof %float_mat0
+   %mata2_23 = OpFAdd %float %zerof %float_mat1
+   %matb1_23 = OpFAdd %float %zerof %float_mat2
+   %matb2_23 = OpFAdd %float %zerof %float_mat3
+
+    %vec0_23 = OpFAdd %float %zerof %float_vec0
+    %vec1_23 = OpFAdd %float %zerof %float_vec1
+
+    %cola_23 = OpCompositeConstruct %float2 %mata1_23 %mata2_23
+    %colb_23 = OpCompositeConstruct %float2 %matb1_23 %matb2_23
+     %mat_23 = OpCompositeConstruct %float2x2 %cola_23 %colb_23
+
+     %vec_23 = OpCompositeConstruct %float2 %vec0_23 %vec1_23
+
+   %scale_23 = OpFAdd %float %zerof %float_1_234
+    %mat2_23 = OpMatrixTimesScalar %float2x2 %mat_23 %scale_23
+
+        %_23 = OpVectorTimesMatrix %float2 %vec_23 %mat2_23
+
+   %Color_23 = OpVectorShuffle %float4 %_23 %_23 0 1 0 1
+
+               OpStore %Color %Color_23
+               OpBranch %break
+
+    %test_24 = OpLabel
+
+   %mata1_24 = OpFAdd %float %zerof %float_mat0
+   %mata2_24 = OpFAdd %float %zerof %float_mat1
+   %matb1_24 = OpFAdd %float %zerof %float_mat2
+   %matb2_24 = OpFAdd %float %zerof %float_mat3
+
+   %matc1_24 = OpFAdd %float %zerof %float_mat4
+   %matc2_24 = OpFAdd %float %zerof %float_mat5
+   %matd1_24 = OpFAdd %float %zerof %float_mat6
+   %matd2_24 = OpFAdd %float %zerof %float_mat7
+
+    %vec0_24 = OpFAdd %float %zerof %float_vec0
+    %vec1_24 = OpFAdd %float %zerof %float_vec1
+
+    %cola_24 = OpCompositeConstruct %float2 %mata1_24 %mata2_24
+    %colb_24 = OpCompositeConstruct %float2 %matb1_24 %matb2_24
+    %mata_24 = OpCompositeConstruct %float2x2 %cola_24 %colb_24
+
+    %colc_24 = OpCompositeConstruct %float2 %matc1_24 %matc2_24
+    %cold_24 = OpCompositeConstruct %float2 %matd1_24 %matd2_24
+    %matb_24 = OpCompositeConstruct %float2x2 %colc_24 %cold_24
+
+     %vec_24 = OpCompositeConstruct %float2 %vec0_24 %vec1_24
+
+     %mat_24 = OpMatrixTimesMatrix %float2x2 %mata_24 %matb_24
+
+        %_24 = OpVectorTimesMatrix %float2 %vec_24 %mat_24
+
+   %Color_24 = OpVectorShuffle %float4 %_24 %_24 0 1 0 1
+
+               OpStore %Color %Color_24
+               OpBranch %break
+
+   ; test rectangular matrix multiplies
+
+    %test_25 = OpLabel
+
+    %mat0_25 = OpFAdd %float %zerof %float_mat0
+    %mat1_25 = OpFAdd %float %zerof %float_mat1
+    %mat2_25 = OpFAdd %float %zerof %float_mat2
+    %mat3_25 = OpFAdd %float %zerof %float_mat3
+    %mat4_25 = OpFAdd %float %zerof %float_mat4
+    %mat5_25 = OpFAdd %float %zerof %float_mat5
+    %mat6_25 = OpFAdd %float %zerof %float_mat6
+    %mat7_25 = OpFAdd %float %zerof %float_mat7
+    %mat8_25 = OpFAdd %float %zerof %float_mat8
+    %mat9_25 = OpFAdd %float %zerof %float_mat9
+   %mat10_25 = OpFAdd %float %zerof %float_mat10
+   %mat11_25 = OpFAdd %float %zerof %float_mat11
+  
+    %vec0_25 = OpCompositeConstruct %float4 %mat0_25 %mat1_25 %mat2_25 %mat3_25
+    %vec1_25 = OpCompositeConstruct %float4 %mat4_25 %mat5_25 %mat6_25 %mat7_25
+     %mat_25 = OpCompositeConstruct %float4x2 %vec0_25 %vec1_25
+  
+     %vec_25 = OpCompositeConstruct %float4 %mat8_25 %mat9_25 %mat10_25 %mat11_25
+
+        %_25 = OpVectorTimesMatrix %float2 %vec_25 %mat_25
+
+   %Color_25 = OpVectorShuffle %float4 %_25 %_25 0 1 0 1
+
+               OpStore %Color %Color_25
+               OpBranch %break
+
+    %test_26 = OpLabel
+
+    %mat0_26 = OpFAdd %float %zerof %float_mat0
+    %mat1_26 = OpFAdd %float %zerof %float_mat1
+    %mat2_26 = OpFAdd %float %zerof %float_mat2
+    %mat3_26 = OpFAdd %float %zerof %float_mat3
+    %mat4_26 = OpFAdd %float %zerof %float_mat4
+    %mat5_26 = OpFAdd %float %zerof %float_mat5
+    %mat6_26 = OpFAdd %float %zerof %float_mat6
+    %mat7_26 = OpFAdd %float %zerof %float_mat7
+    %mat8_26 = OpFAdd %float %zerof %float_mat8
+    %mat9_26 = OpFAdd %float %zerof %float_mat9
+   %mat10_26 = OpFAdd %float %zerof %float_mat10
+   %mat11_26 = OpFAdd %float %zerof %float_mat11
+  
+    %vec0_26 = OpCompositeConstruct %float2 %mat0_26 %mat1_26
+    %vec1_26 = OpCompositeConstruct %float2 %mat2_26 %mat3_26
+    %vec2_26 = OpCompositeConstruct %float2 %mat4_26 %mat5_26
+    %vec3_26 = OpCompositeConstruct %float2 %mat6_26 %mat7_26
+     %mat_26 = OpCompositeConstruct %float2x4 %vec0_26 %vec1_26 %vec2_26 %vec3_26
+  
+     %vec_26 = OpCompositeConstruct %float4 %mat8_26 %mat9_26 %mat10_26 %mat11_26
+  
+        %_26 = OpMatrixTimesVector %float2 %mat_26 %vec_26
+
+   %Color_26 = OpVectorShuffle %float4 %_26 %_26 0 1 0 1
+
+               OpStore %Color %Color_26
+               OpBranch %break
+
+    %test_27 = OpLabel
+
+    %mat0_27 = OpFAdd %float %zerof %float_mat0
+    %mat1_27 = OpFAdd %float %zerof %float_mat1
+    %mat2_27 = OpFAdd %float %zerof %float_mat2
+    %mat3_27 = OpFAdd %float %zerof %float_mat3
+    %mat4_27 = OpFAdd %float %zerof %float_mat4
+    %mat5_27 = OpFAdd %float %zerof %float_mat5
+    %mat6_27 = OpFAdd %float %zerof %float_mat6
+    %mat7_27 = OpFAdd %float %zerof %float_mat7
+    %mat8_27 = OpFAdd %float %zerof %float_mat8
+    %mat9_27 = OpFAdd %float %zerof %float_mat9
+   %mat10_27 = OpFAdd %float %zerof %float_mat10
+   %mat11_27 = OpFAdd %float %zerof %float_mat11
+  
+    %vec0_27 = OpCompositeConstruct %float4 %mat0_27 %mat1_27 %mat2_27 %mat3_27
+    %vec1_27 = OpCompositeConstruct %float4 %mat4_27 %mat5_27 %mat6_27 %mat7_27
+     %mat_27 = OpCompositeConstruct %float4x2 %vec0_27 %vec1_27
+  
+     %vec_27 = OpCompositeConstruct %float2 %mat8_27 %mat9_27
+
+   %Color_27 = OpMatrixTimesVector %float4 %mat_27 %vec_27
+
+               OpStore %Color %Color_27
+               OpBranch %break
+
+    %test_28 = OpLabel
+
+    %mat0_28 = OpFAdd %float %zerof %float_mat0
+    %mat1_28 = OpFAdd %float %zerof %float_mat1
+    %mat2_28 = OpFAdd %float %zerof %float_mat2
+    %mat3_28 = OpFAdd %float %zerof %float_mat3
+    %mat4_28 = OpFAdd %float %zerof %float_mat4
+    %mat5_28 = OpFAdd %float %zerof %float_mat5
+    %mat6_28 = OpFAdd %float %zerof %float_mat6
+    %mat7_28 = OpFAdd %float %zerof %float_mat7
+    %mat8_28 = OpFAdd %float %zerof %float_mat8
+    %mat9_28 = OpFAdd %float %zerof %float_mat9
+   %mat10_28 = OpFAdd %float %zerof %float_mat10
+   %mat11_28 = OpFAdd %float %zerof %float_mat11
+  
+    %vec0_28 = OpCompositeConstruct %float2 %mat0_28 %mat1_28
+    %vec1_28 = OpCompositeConstruct %float2 %mat2_28 %mat3_28
+    %vec2_28 = OpCompositeConstruct %float2 %mat4_28 %mat5_28
+    %vec3_28 = OpCompositeConstruct %float2 %mat6_28 %mat7_28
+     %mat_28 = OpCompositeConstruct %float2x4 %vec0_28 %vec1_28 %vec2_28 %vec3_28
+  
+     %vec_28 = OpCompositeConstruct %float2 %mat8_28 %mat9_28
+  
+   %Color_28 = OpVectorTimesMatrix %float4 %vec_28 %mat_28
+
+               OpStore %Color %Color_28
+               OpBranch %break
+
+    %test_29 = OpLabel
+
+    %mat0_29 = OpFAdd %float %zerof %float_mat0
+    %mat1_29 = OpFAdd %float %zerof %float_mat1
+    %mat2_29 = OpFAdd %float %zerof %float_mat2
+    %mat3_29 = OpFAdd %float %zerof %float_mat3
+    %mat4_29 = OpFAdd %float %zerof %float_mat4
+    %mat5_29 = OpFAdd %float %zerof %float_mat5
+    %mat6_29 = OpFAdd %float %zerof %float_mat6
+    %mat7_29 = OpFAdd %float %zerof %float_mat7
+    %mat8_29 = OpFAdd %float %zerof %float_mat8
+    %mat9_29 = OpFAdd %float %zerof %float_mat9
+   %mat10_29 = OpFAdd %float %zerof %float_mat10
+   %mat11_29 = OpFAdd %float %zerof %float_mat11
+  
+    %vec0_29 = OpCompositeConstruct %float2 %mat0_29 %mat1_29
+    %vec1_29 = OpCompositeConstruct %float2 %mat2_29 %mat3_29
+    %vec2_29 = OpCompositeConstruct %float2 %mat4_29 %mat5_29
+    %vec3_29 = OpCompositeConstruct %float2 %mat6_29 %mat7_29
+    %mata_29 = OpCompositeConstruct %float2x4 %vec0_29 %vec1_29 %vec2_29 %vec3_29
+  
+    %vec4_29 = OpCompositeConstruct %float4 %mat0_29 %mat1_29 %mat2_29 %mat3_29
+    %vec5_29 = OpCompositeConstruct %float4 %mat4_29 %mat5_29 %mat6_29 %mat7_29
+    %matb_29 = OpCompositeConstruct %float4x2 %vec4_29 %vec5_29
+  
+     %vec_29 = OpCompositeConstruct %float4 %mat8_29 %mat9_29 %mat10_29 %mat11_29
+
+        %_29 = OpMatrixTimesMatrix %float4x4 %matb_29 %mata_29
+
+   %Color_29 = OpMatrixTimesVector %float4 %_29 %vec_29
+
+               OpStore %Color %Color_29
+               OpBranch %break
+
+    %test_30 = OpLabel
+
+    %mat0_30 = OpFAdd %float %zerof %float_mat0
+    %mat1_30 = OpFAdd %float %zerof %float_mat1
+    %mat2_30 = OpFAdd %float %zerof %float_mat2
+    %mat3_30 = OpFAdd %float %zerof %float_mat3
+    %mat4_30 = OpFAdd %float %zerof %float_mat4
+    %mat5_30 = OpFAdd %float %zerof %float_mat5
+    %mat6_30 = OpFAdd %float %zerof %float_mat6
+    %mat7_30 = OpFAdd %float %zerof %float_mat7
+    %mat8_30 = OpFAdd %float %zerof %float_mat8
+    %mat9_30 = OpFAdd %float %zerof %float_mat9
+   %mat10_30 = OpFAdd %float %zerof %float_mat10
+   %mat11_30 = OpFAdd %float %zerof %float_mat11
+  
+    %vec0_30 = OpCompositeConstruct %float4 %mat0_30 %mat1_30 %mat2_30 %mat3_30
+    %vec1_30 = OpCompositeConstruct %float4 %mat4_30 %mat5_30 %mat6_30 %mat7_30
+  
+     %mat_30 = OpOuterProduct %float4x4 %vec0_30 %vec1_30
+  
+     %vec_30 = OpCompositeConstruct %float4 %mat8_30 %mat9_30 %mat10_30 %mat11_30
+
+   %Color_30 = OpMatrixTimesVector %float4 %mat_30 %vec_30
+
+               OpStore %Color %Color_30
+               OpBranch %break
+
+    %test_31 = OpLabel
+
+    %mat0_31 = OpFAdd %float %zerof %float_mat0
+    %mat1_31 = OpFAdd %float %zerof %float_mat1
+    %mat2_31 = OpFAdd %float %zerof %float_mat2
+    %mat3_31 = OpFAdd %float %zerof %float_mat3
+  
+     %vec_31 = OpCompositeConstruct %float4 %mat0_31 %mat1_31 %mat2_31 %mat3_31
+
+   %scale_31 = OpFAdd %float %zerof %float_1_234
+   %Color_31 = OpVectorTimesScalar %float4 %vec_31 %scale_31
+
+               OpStore %Color %Color_31
                OpBranch %break
 
     %default = OpLabel
