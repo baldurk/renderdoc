@@ -98,6 +98,43 @@ void main()
   std::string pixel_glsl = R"EOSHADER(
 #version 460 core
 
+#extension GL_EXT_samplerless_texture_functions : require
+
+/*
+layout(set = 0, binding = 0, std140) uniform constsbuf
+{
+  vec4 first;
+  vec4 pad1;
+  vec4 second;
+  vec4 pad2;
+  vec4 third;
+  vec4 pad3;
+  vec4 fourth;
+  vec4 pad4;
+} cbuf;
+*/
+
+//layout(set = 0, binding = 1) uniform sampler pointSampler;
+//layout(set = 0, binding = 2) uniform sampler linearSampler;
+
+//layout(set = 0, binding = 3) uniform texture2D tex;
+
+//layout(set = 0, binding = 4) uniform sampler2D linearSampledImage;
+
+/*
+layout(set = 0, binding = 5, std430) buffer storebuftype
+{
+  vec4 x;
+  uvec4 y;
+  vec4 arr[];
+} storebuf;
+*/
+
+//layout(set = 0, binding = 6, rgba32f) uniform coherent image2D storeImage;
+
+//layout(set = 0, binding = 7, rgba32f) uniform coherent samplerBuffer texBuffer;
+//layout(set = 0, binding = 8, rgba32f) uniform coherent imageBuffer storeTexBuffer;
+
 #define inout_type in
 
 )EOSHADER" + v2f + R"EOSHADER(
@@ -1125,7 +1162,20 @@ void main()
 
     const uint32_t numASMTests = atoi(pixel_asm.c_str() + lastTest) + 1;
 
-    VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
+    VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {2, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {6, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {7, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {8, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+    }));
+
+    VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
+        {setlayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Vec4i))}));
 
     // calculate number of tests (align to 64)
     uint32_t texWidth = AlignUp(std::max(numGLSLTests, numASMTests), 64U);
@@ -1199,6 +1249,151 @@ void main()
 
     vb.upload(triangle);
 
+    Texture rgba8;
+    LoadXPM(SmileyTexture, rgba8);
+
+    AllocatedImage smiley(
+        this, vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, VK_FORMAT_R8G8B8A8_UNORM,
+                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    VkImageView smileyview = createImageView(
+        vkh::ImageViewCreateInfo(smiley.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM));
+    AllocatedBuffer uploadBuf(this, vkh::BufferCreateInfo(rgba8.data.size() * sizeof(uint32_t),
+                                                          VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+                              VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    uploadBuf.upload(rgba8.data.data(), rgba8.data.size() * sizeof(uint32_t));
+
+    {
+      VkCommandBuffer cmd = GetCommandBuffer();
+
+      vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+
+      vkh::cmdPipelineBarrier(
+          cmd, {
+                   vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, smiley.image),
+               });
+
+      VkBufferImageCopy copy = {};
+      copy.imageExtent = {rgba8.width, rgba8.height, 1};
+      copy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      copy.imageSubresource.layerCount = 1;
+
+      vkCmdCopyBufferToImage(cmd, uploadBuf.buffer, smiley.image,
+                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+
+      vkh::cmdPipelineBarrier(
+          cmd, {
+                   vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, smiley.image),
+               });
+
+      vkEndCommandBuffer(cmd);
+
+      Submit(99, 99, {cmd});
+
+      vkDeviceWaitIdle(device);
+    }
+
+    VkSampler pointsampler = VK_NULL_HANDLE;
+    VkSampler linearsampler = VK_NULL_HANDLE;
+
+    VkSamplerCreateInfo sampInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+    sampInfo.magFilter = VK_FILTER_NEAREST;
+    sampInfo.minFilter = VK_FILTER_NEAREST;
+
+    vkCreateSampler(device, &sampInfo, NULL, &pointsampler);
+
+    sampInfo.magFilter = VK_FILTER_LINEAR;
+    sampInfo.minFilter = VK_FILTER_LINEAR;
+
+    vkCreateSampler(device, &sampInfo, NULL, &linearsampler);
+
+    VkDescriptorSet descset = allocateDescriptorSet(setlayout);
+
+    Vec4f cbufferdata[16] = {};
+
+    AllocatedBuffer cb(
+        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    cbufferdata[0] = Vec4f(1.1f, 2.2f, 3.3f, 4.4f);
+    cbufferdata[2] = Vec4f(5.5f, 6.6f, 7.7f, 8.8f);
+    cbufferdata[4] = Vec4f(9.9f, 9.99f, 9.999f, 9.999f);
+    cbufferdata[6] = Vec4f(100.0f, 200.0f, 300.0f, 400.0f);
+
+    cb.upload(cbufferdata);
+
+    AllocatedBuffer texbuffer(
+        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    texbuffer.upload(cbufferdata);
+
+    AllocatedBuffer store_buffer(
+        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    AllocatedBuffer store_texbuffer(
+        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    AllocatedImage store_image(
+        this, vkh::ImageCreateInfo(128, 128, 0, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    VkImageView store_view = createImageView(vkh::ImageViewCreateInfo(
+        store_image.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));
+
+    VkBufferView bufview =
+        createBufferView(vkh::BufferViewCreateInfo(texbuffer.buffer, VK_FORMAT_R32G32B32A32_SFLOAT));
+    VkBufferView store_bufview = createBufferView(
+        vkh::BufferViewCreateInfo(store_texbuffer.buffer, VK_FORMAT_R32G32B32A32_SFLOAT));
+
+    setName(pointsampler, "pointsampler");
+    setName(linearsampler, "linearsampler");
+    setName(smiley.image, "smiley");
+    setName(texbuffer.buffer, "texbuffer");
+    setName(store_buffer.buffer, "store_buffer");
+    setName(store_texbuffer.buffer, "store_texbuffer");
+    setName(store_image.image, "store_image");
+
+    vkh::updateDescriptorSets(
+        device,
+        {
+            vkh::WriteDescriptorSet(descset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                    {vkh::DescriptorBufferInfo(cb.buffer)}),
+            vkh::WriteDescriptorSet(
+                descset, 1, VK_DESCRIPTOR_TYPE_SAMPLER,
+                {vkh::DescriptorImageInfo(VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, pointsampler)}),
+            vkh::WriteDescriptorSet(
+                descset, 2, VK_DESCRIPTOR_TYPE_SAMPLER,
+                {vkh::DescriptorImageInfo(VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, linearsampler)}),
+            vkh::WriteDescriptorSet(
+                descset, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                {vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                          VK_NULL_HANDLE)}),
+            vkh::WriteDescriptorSet(
+                descset, 4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                {vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                          linearsampler)}),
+            vkh::WriteDescriptorSet(descset, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                    {vkh::DescriptorBufferInfo(store_buffer.buffer)}),
+            vkh::WriteDescriptorSet(
+                descset, 6, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                {vkh::DescriptorImageInfo(store_view, VK_IMAGE_LAYOUT_GENERAL, VK_NULL_HANDLE)}),
+            vkh::WriteDescriptorSet(descset, 7, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, {bufview}),
+            vkh::WriteDescriptorSet(descset, 8, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+                                    {store_bufview}),
+        });
+
     while(Running())
     {
       VkCommandBuffer cmd = GetCommandBuffer();
@@ -1211,6 +1406,41 @@ void main()
       vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
                            vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
+
+      vkh::cmdPipelineBarrier(
+          cmd,
+          {
+              vkh::ImageMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
+                                      VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, store_image.image),
+          },
+          {
+              vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                       VK_ACCESS_TRANSFER_WRITE_BIT, store_buffer.buffer),
+              vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                       VK_ACCESS_TRANSFER_WRITE_BIT, store_texbuffer.buffer),
+          });
+
+      vkCmdClearColorImage(cmd, store_image.image, VK_IMAGE_LAYOUT_GENERAL,
+                           vkh::ClearColorValue(6.66f, 6.66f, 6.66f, 6.66f), 1,
+                           vkh::ImageSubresourceRange());
+      vkCmdFillBuffer(cmd, store_buffer.buffer, 0, VK_WHOLE_SIZE, 0xcccccccc);
+      vkCmdFillBuffer(cmd, store_texbuffer.buffer, 0, VK_WHOLE_SIZE, 0);
+
+      vkh::cmdPipelineBarrier(
+          cmd,
+          {
+              vkh::ImageMemoryBarrier(
+                  VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
+                  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL, store_image.image),
+          },
+          {
+              vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                       store_buffer.buffer),
+              vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                       VK_ACCESS_TRANSFER_WRITE_BIT, store_texbuffer.buffer),
+          });
 
       VkViewport v = {};
       v.maxDepth = 1.0f;
@@ -1225,6 +1455,11 @@ void main()
       vkCmdSetViewport(cmd, 0, 1, &v);
       vkCmdSetScissor(cmd, 0, 1, &s);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
+
+      Vec4i push = Vec4i(101, 103, 107, 109);
+
+      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
+      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Vec4i), &push);
 
       vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
                                                          {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
@@ -1247,6 +1482,9 @@ void main()
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, asmpipe);
       vkCmdSetViewport(cmd, 0, 1, &v);
+
+      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
+      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Vec4i), &push);
 
       vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
                                                          {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
@@ -1275,6 +1513,9 @@ void main()
 
       Present();
     }
+
+    vkDestroySampler(device, pointsampler, NULL);
+    vkDestroySampler(device, linearsampler, NULL);
 
     return 0;
   }
