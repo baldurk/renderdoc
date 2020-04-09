@@ -1462,6 +1462,140 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
     //////////////////////////////////////////////////////////////////////////////
     //
+    // Image opcodes
+    //
+    //////////////////////////////////////////////////////////////////////////////
+
+    case Op::SampledImage:
+    {
+      OpSampledImage sampled(it);
+
+      // we make a little struct out of the combination
+
+      ShaderVariable result;
+      result.rows = 1;
+      result.columns = 1;
+      result.isStruct = true;
+      result.members = {GetSrc(sampled.image), GetSrc(sampled.sampler)};
+
+      SetDst(state, opdata.result, result);
+      break;
+    }
+    case Op::Image:
+    {
+      OpImage image(it);
+
+      ShaderVariable var = GetSrc(image.sampledImage);
+
+      // if this is a struct, pull out the image. Otherwise leave it alone because it's just a
+      // reference to a binding which we use as-is.
+      if(!var.members.empty())
+        var = var.members[0];
+
+      SetDst(state, image.result, var);
+      break;
+    }
+    case Op::ImageFetch:
+    case Op::ImageSampleExplicitLod:
+    case Op::ImageSampleImplicitLod:
+    {
+      ShaderVariable img;
+      ShaderVariable sampler;
+      ShaderVariable uv;
+      ShaderVariable ddxCalc;
+      ShaderVariable ddyCalc;
+      ShaderVariable compare;
+      ImageOperandsAndParamDatas operands;
+      GatherChannel gather = GatherChannel::Red;
+
+      Id derivId;
+
+      if(opdata.op == Op::ImageFetch)
+      {
+        OpImageFetch image(it);
+
+        img = GetSrc(image.image);
+        uv = GetSrc(image.coordinate);
+        operands = image.imageOperands;
+      }
+      else if(opdata.op == Op::ImageSampleExplicitLod)
+      {
+        OpImageSampleExplicitLod image(it);
+
+        sampler = img = GetSrc(image.sampledImage);
+        uv = GetSrc(image.coordinate);
+        operands = image.imageOperands;
+      }
+      else if(opdata.op == Op::ImageSampleImplicitLod)
+      {
+        OpImageSampleImplicitLod image(it);
+
+        sampler = img = GetSrc(image.sampledImage);
+        uv = GetSrc(image.coordinate);
+        operands = image.imageOperands;
+
+        derivId = image.coordinate;
+      }
+
+      if(derivId != Id())
+      {
+        // calculate DDX/DDY in coarse fashion
+        ShaderVariable topleft = prevWorkgroup[0][derivId];
+        ShaderVariable topright = prevWorkgroup[1][derivId];
+        ShaderVariable bottomleft = prevWorkgroup[2][derivId];
+
+        ddxCalc = ddyCalc = topleft;
+
+        for(uint8_t c = 0; c < ddxCalc.columns; c++)
+        {
+          ddxCalc.value.fv[c] = topright.value.fv[c] - topleft.value.fv[c];
+          ddyCalc.value.fv[c] = bottomleft.value.fv[c] - topleft.value.fv[c];
+        }
+      }
+
+      // if we have a dynamically combined image sampler, split it up here
+      if(!img.members.empty() && !sampler.members.empty())
+      {
+        img = img.members[0];
+        sampler = sampler.members[1];
+      }
+
+      const DataType &resultType = debugger.GetType(opdata.resultType);
+
+      RDCASSERT(img.type == VarType::ReadOnlyResource || img.type == VarType::ReadWriteResource);
+      RDCASSERT(sampler.type == VarType::Unknown || sampler.type == VarType::ReadOnlyResource ||
+                sampler.type == VarType::Sampler);
+
+      ShaderVariable result;
+
+      result.type = resultType.scalar().Type();
+
+      if(!debugger.GetAPIWrapper()->CalculateSampleGather(opdata.op, img.GetBinding(),
+                                                          sampler.GetBinding(), uv, ddxCalc, ddyCalc,
+                                                          compare, gather, operands, result))
+      {
+        // sample failed. Pretend we got 0 columns back
+
+        result.value.u.x = 0;
+        result.value.u.y = 0;
+        result.value.u.z = 0;
+
+        if(result.type == VarType::Float || result.type == VarType::Half)
+          result.value.f.w = 1.0f;
+        else if(result.type == VarType::Double)
+          result.value.d.w = 1.0;
+        else
+          result.value.u.w = 1;
+      }
+
+      result.columns = RDCMAX(1U, resultType.vector().count);
+
+      SetDst(state, opdata.result, result);
+      break;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //
     // Block flow control opcodes
     //
     //////////////////////////////////////////////////////////////////////////////

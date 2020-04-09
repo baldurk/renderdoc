@@ -34,6 +34,16 @@ struct SPIRVPatchData;
 
 namespace rdcspv
 {
+struct ImageOperandsAndParamDatas;
+
+enum class GatherChannel : uint8_t
+{
+  Red = 0,
+  Green = 1,
+  Blue = 2,
+  Alpha = 3,
+};
+
 class DebugAPIWrapper
 {
 public:
@@ -45,6 +55,13 @@ public:
                                        uint32_t byteSize, void *dst) = 0;
   virtual void FillInputValue(ShaderVariable &var, ShaderBuiltin builtin, uint32_t location,
                               uint32_t component) = 0;
+
+  virtual bool CalculateSampleGather(rdcspv::Op opcode, BindpointIndex imageBind,
+                                     BindpointIndex samplerBind, const ShaderVariable &uv,
+                                     const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
+                                     const ShaderVariable &compare, GatherChannel gatherChannel,
+                                     const ImageOperandsAndParamDatas &operands,
+                                     ShaderVariable &output) = 0;
 
   struct DerivativeDeltas
   {
@@ -78,6 +95,11 @@ public:
   GlobalState() {}
   // allocated storage for opaque uniform blocks, does not change over the course of debugging
   rdcarray<ShaderVariable> constantBlocks;
+
+  // resources may be read-write but the variable itself doesn't change
+  rdcarray<ShaderVariable> readOnlyResources;
+  rdcarray<ShaderVariable> readWriteResources;
+  rdcarray<ShaderVariable> samplers;
 
   SparseIdMap<ExtInstDispatcher> extInsts;
 };
@@ -188,6 +210,7 @@ public:
   void WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariable &val);
   ShaderVariable MakeCompositePointer(const ShaderVariable &base, Id id, rdcarray<uint32_t> &indices);
 
+  DebugAPIWrapper *GetAPIWrapper() { return apiWrapper; }
   uint32_t GetNumInstructions() { return (uint32_t)instructionOffsets.size(); }
   GlobalState GetGlobal() { return global; }
   const rdcarray<Id> &GetLiveGlobals() { return liveGlobals; }

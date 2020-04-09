@@ -271,7 +271,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
   MakeSignatureNames(patchData.inputs, inputSigNames);
   MakeSignatureNames(patchData.outputs, outputSigNames);
 
-  rdcarray<Id> inputIDs, outputIDs, cbufferIDs;
+  rdcarray<Id> inputIDs, outputIDs, cbufferIDs, readOnlyIDs, readWriteIDs, samplerIDs;
 
   // allocate storage for globals with opaque storage classes, and prepare to set up pointers to
   // them for the global variables themselves
@@ -363,6 +363,67 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
         RDCERR("Unhandled type of uniform: %u", innertype.type);
       }
     }
+    else if(v.storage == StorageClass::UniformConstant)
+    {
+      // only images/samplers are allowed to be in UniformConstant
+      ShaderVariable var;
+      var.rows = 1;
+      var.columns = 1;
+      var.name = GetRawName(v.id);
+
+      rdcstr sourceName = strings[v.id];
+      if(sourceName.empty())
+        sourceName = var.name;
+
+      const DataType &type = dataTypes[v.type];
+
+      // global variables should all be pointers into opaque storage
+      RDCASSERT(type.type == DataType::PointerType);
+
+      const DataType &innertype = dataTypes[type.InnerType()];
+
+      DebugVariableType debugType = DebugVariableType::ReadOnlyResource;
+
+      uint32_t set = 0, bind = 0;
+      if(decorations[v.id].flags & Decorations::HasDescriptorSet)
+        set = decorations[v.id].set;
+      if(decorations[v.id].flags & Decorations::HasBinding)
+        bind = decorations[v.id].binding;
+
+      // TODO handle arrays
+      var.SetBinding((int32_t)set, (int32_t)bind, 0U);
+
+      if(innertype.type == DataType::SamplerType)
+      {
+        var.type = VarType::Sampler;
+        debugType = DebugVariableType::Sampler;
+
+        global.samplers.push_back(var);
+        samplerIDs.push_back(v.id);
+      }
+      else if(innertype.type == DataType::SampledImageType || innertype.type == DataType::ImageType)
+      {
+        var.type = VarType::ReadOnlyResource;
+        debugType = DebugVariableType::ReadOnlyResource;
+
+        global.readOnlyResources.push_back(var);
+        readOnlyIDs.push_back(v.id);
+      }
+      else
+      {
+        RDCERR("Unhandled type of uniform: %u", innertype.type);
+      }
+
+      SourceVariableMapping sourceVar;
+      sourceVar.name = sourceName;
+      sourceVar.type = var.type;
+      sourceVar.rows = 1;
+      sourceVar.columns = 1;
+      sourceVar.offset = 0;
+      sourceVar.variables.push_back(DebugVariableReference(debugType, var.name));
+
+      globalSourceVars.push_back(sourceVar);
+    }
     else
     {
       RDCERR("Unhandled type of global variable: %s", ToStr(v.storage).c_str());
@@ -391,6 +452,12 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       lane.ids[outputIDs[i]] = MakePointerVariable(outputIDs[i], &lane.outputs[i]);
     for(size_t i = 0; i < global.constantBlocks.size(); i++)
       lane.ids[cbufferIDs[i]] = MakePointerVariable(cbufferIDs[i], &global.constantBlocks[i]);
+    for(size_t i = 0; i < global.readOnlyResources.size(); i++)
+      lane.ids[readOnlyIDs[i]] = MakePointerVariable(readOnlyIDs[i], &global.readOnlyResources[i]);
+    for(size_t i = 0; i < global.readWriteResources.size(); i++)
+      lane.ids[readWriteIDs[i]] = MakePointerVariable(readWriteIDs[i], &global.readWriteResources[i]);
+    for(size_t i = 0; i < global.samplers.size(); i++)
+      lane.ids[samplerIDs[i]] = MakePointerVariable(samplerIDs[i], &global.samplers[i]);
   }
 
   // only outputs are considered mutable
@@ -400,6 +467,9 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
   {
     if(!globalSourceVars[i].variables.empty() &&
        (globalSourceVars[i].variables[0].type == DebugVariableType::Input ||
+        globalSourceVars[i].variables[0].type == DebugVariableType::ReadOnlyResource ||
+        globalSourceVars[i].variables[0].type == DebugVariableType::ReadWriteResource ||
+        globalSourceVars[i].variables[0].type == DebugVariableType::Sampler ||
         globalSourceVars[i].variables[0].type == DebugVariableType::Constant))
     {
       ret->sourceVars.push_back(globalSourceVars[i]);
@@ -434,6 +504,9 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
   }
 
   ret->constantBlocks = global.constantBlocks;
+  ret->readOnlyResources = global.readOnlyResources;
+  ret->readWriteResources = global.readWriteResources;
+  ret->samplers = global.samplers;
   ret->inputs = active.inputs;
 
   if(stage == ShaderStage::Pixel)

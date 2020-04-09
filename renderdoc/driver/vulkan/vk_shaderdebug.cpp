@@ -114,6 +114,16 @@ public:
     return DerivativeDeltas();
   }
 
+  bool CalculateSampleGather(rdcspv::Op opcode, BindpointIndex imageBind,
+                             BindpointIndex samplerBind, const ShaderVariable &uv,
+                             const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
+                             const ShaderVariable &compare, rdcspv::GatherChannel gatherChannel,
+                             const rdcspv::ImageOperandsAndParamDatas &operands,
+                             ShaderVariable &output)
+  {
+    return true;
+  }
+
   std::map<rdcpair<uint32_t, uint32_t>, bytebuf> cbuffers;
   std::map<ShaderBuiltin, ShaderVariable> builtin_inputs;
   rdcarray<ShaderVariable> location_inputs;
