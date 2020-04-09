@@ -119,7 +119,7 @@ public:
                              const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
                              const ShaderVariable &compare, rdcspv::GatherChannel gatherChannel,
                              const rdcspv::ImageOperandsAndParamDatas &operands,
-                             ShaderVariable &output)
+                             ShaderVariable &output) override
   {
     return true;
   }
