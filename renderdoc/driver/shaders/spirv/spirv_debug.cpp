@@ -536,6 +536,73 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
       break;
     }
+    case Op::CompositeInsert:
+    {
+      OpCompositeInsert insert(it);
+
+      ShaderVariable var = GetSrc(insert.composite);
+      ShaderVariable obj = GetSrc(insert.object);
+
+      // walk any struct member indices
+      ShaderVariable *mod = &var;
+      size_t i = 0;
+      while(i < insert.indexes.size() && !mod->members.empty())
+      {
+        mod = &mod->members[insert.indexes[i]];
+        i++;
+      }
+
+      if(i == insert.indexes.size())
+      {
+        // if there are no more indices, replace the object here
+        mod->value = obj.value;
+      }
+      else if(i + 1 == insert.indexes.size())
+      {
+        // one more index
+        uint32_t idx = insert.indexes[i];
+
+        // if it's a matrix, replace a whole (column) vector
+        if(mod->rows > 1)
+        {
+          uint32_t column = idx;
+
+          RDCASSERTEQUAL(mod->rows, obj.columns);
+
+          for(uint32_t row = 0; row < mod->rows; row++)
+          {
+            if(VarTypeByteSize(mod->type) == 8)
+              mod->value.u64v[row * mod->columns + column] = obj.value.u64v[row];
+            else
+              mod->value.uv[row * mod->columns + column] = obj.value.uv[row];
+          }
+        }
+        else
+        {
+          // if it's a vector, replace one scalar
+          if(VarTypeByteSize(mod->type) == 8)
+            mod->value.u64v[idx] = obj.value.u64v[0];
+          else
+            mod->value.uv[idx] = obj.value.uv[0];
+        }
+      }
+      else if(i + 2 == insert.indexes.size())
+      {
+        // two more indices, selecting column then scalar in a matrix
+        uint32_t column = insert.indexes[i];
+        uint32_t row = insert.indexes[i + 1];
+
+        if(VarTypeByteSize(mod->type) == 8)
+          mod->value.u64v[row * mod->columns + column] = obj.value.u64v[0];
+        else
+          mod->value.uv[row * mod->columns + column] = obj.value.uv[0];
+      }
+
+      // then evaluate it, to get the extracted value
+      SetDst(state, insert.result, var);
+
+      break;
+    }
     case Op::CompositeConstruct:
     {
       OpCompositeConstruct construct(it);

@@ -310,6 +310,9 @@ void main()
         %v2f = OpTypeStruct %float2 %float2 %float2 %float %float %float
     %flatv2f = OpTypeStruct %uint %uint
 
+      %child = OpTypeStruct %float4 %float3 %float
+     %parent = OpTypeStruct %float4 %child %float4x4
+
     %_ptr_Input_v2f = OpTypePointer Input %v2f
 %_ptr_Input_flatv2f = OpTypePointer Input %flatv2f
    %_ptr_Input_uint = OpTypePointer Input %uint
@@ -340,6 +343,8 @@ void main()
      %uint_3 = OpConstant %uint 3
      %uint_4 = OpConstant %uint 4
      %uint_15 = OpConstant %uint 15
+
+%empty_parent = OpConstantNull %parent
 
      %uint_flt_1_234 = OpConstant %uint 0x3f9df3b6
      %uint_0x1234 = OpConstant %uint 0x1234
@@ -578,15 +583,51 @@ void main()
                OpBranch %break
 
     %test_12 = OpLabel
-     ; once was a test of mod/rem with negative parameters, which is undefined.
-     ; This test is kept as a no-op to avoid needing to renumber everything below.
-               OpStore %Color %float_0000
+       %a_12 = OpFAdd %float %zerof %float_15
+       %b_12 = OpFAdd %float %zerof %float_4
+       %c_12 = OpFAdd %float %zerof %float_neg4
+       %d_12 = OpFAdd %float %zerof %float_1_234
+    %vec0_12 = OpCompositeConstruct %float4 %zerof %zerof %zerof %zerof
+    %vec1_12 = OpCompositeInsert %float4 %a_12 %vec0_12 2
+    %vec2_12 = OpCompositeInsert %float4 %b_12 %vec1_12 1
+    %vec3_12 = OpCompositeInsert %float4 %c_12 %vec2_12 3
+    %vec4_12 = OpCompositeInsert %float4 %d_12 %vec3_12 0
+               OpStore %Color %vec4_12
                OpBranch %break
 
     %test_13 = OpLabel
-     ; once was a test of mod/rem with negative parameters, which is undefined.
-     ; This test is kept as a no-op to avoid needing to renumber everything below.
-               OpStore %Color %float_0000
+       %a_13 = OpFAdd %float %zerof %float_15
+       %b_13 = OpFAdd %float %zerof %float_4
+       %c_13 = OpFAdd %float %zerof %float_neg4
+       %d_13 = OpFAdd %float %zerof %float_1_234
+
+   %vec4a_13 = OpCompositeConstruct %float4 %b_13 %d_13 %a_13 %c_13
+   %vec3a_13 = OpCompositeConstruct %float3 %d_13 %c_13 %a_13
+
+   %vec4b_13 = OpVectorShuffle %float4 %vec4a_13 %vec4a_13 3 2 0 1
+   %vec4c_13 = OpVectorShuffle %float4 %vec4a_13 %vec4a_13 0 1 3 2
+   %vec4d_13 = OpVectorShuffle %float4 %vec4a_13 %vec4a_13 2 0 1 3
+   %vec4e_13 = OpVectorShuffle %float4 %vec4a_13 %vec4a_13 3 1 2 0
+   %vec4f_13 = OpVectorShuffle %float4 %vec4a_13 %vec4a_13 1 3 0 2
+
+ %parent1_13 = OpCompositeInsert %parent %vec4a_13 %empty_parent 0
+
+ %parent2_13 = OpCompositeInsert %parent %vec4b_13 %parent1_13 1 0
+ %parent3_13 = OpCompositeInsert %parent %vec3a_13 %parent2_13 1 1
+ %parent4_13 = OpCompositeInsert %parent %d_13 %parent3_13 1 2
+
+ %parent5_13 = OpCompositeInsert %parent %vec4c_13 %parent4_13 2 0
+ %parent6_13 = OpCompositeInsert %parent %vec4d_13 %parent5_13 2 1
+ %parent7_13 = OpCompositeInsert %parent %vec4e_13 %parent6_13 2 2
+ %parent8_13 = OpCompositeInsert %parent %vec4f_13 %parent7_13 2 3
+
+       %x_13 = OpCompositeExtract %float %parent8_13 0 2
+       %y_13 = OpCompositeExtract %float %parent8_13 2 1 3
+       %z_13 = OpCompositeExtract %float %parent8_13 1 1 1
+       %w_13 = OpCompositeExtract %float %parent8_13 1 0 2
+
+   %Color_13 = OpCompositeConstruct %float4 %x_13 %y_13 %z_13 %w_13
+               OpStore %Color %Color_13
                OpBranch %break
 
      ; test mod/rem with zeros
