@@ -125,6 +125,62 @@ struct PointerVal
 
 DECLARE_STRINGISE_TYPE(PointerVal);
 
+DOCUMENT("References a particular element in a :class:`Bindpoint`.");
+struct BindpointIndex
+{
+  DOCUMENT("");
+  BindpointIndex()
+  {
+    bindset = 0;
+    bind = 0;
+    arrayIndex = 0;
+  }
+  BindpointIndex(const BindpointIndex &) = default;
+  BindpointIndex &operator=(const BindpointIndex &) = default;
+
+  BindpointIndex(int32_t s, int32_t b)
+  {
+    bindset = s;
+    bind = b;
+    arrayIndex = 0;
+  }
+  BindpointIndex(int32_t s, int32_t b, uint32_t a)
+  {
+    bindset = s;
+    bind = b;
+    arrayIndex = a;
+  }
+
+  bool operator<(const BindpointIndex &o) const
+  {
+    if(!(bindset == o.bindset))
+      return bindset < o.bindset;
+    if(!(bind == o.bind))
+      return bind < o.bind;
+    return arrayIndex < o.arrayIndex;
+  }
+  bool operator>(const BindpointIndex &o) const
+  {
+    if(!(bindset == o.bindset))
+      return bindset > o.bindset;
+    if(!(bind == o.bind))
+      return bind > o.bind;
+    return arrayIndex > o.arrayIndex;
+  }
+  bool operator==(const BindpointIndex &o) const
+  {
+    return bindset == o.bindset && bind == o.bind && arrayIndex == o.arrayIndex;
+  }
+  DOCUMENT("The binding set.");
+  int32_t bindset;
+  DOCUMENT("The binding index.");
+  int32_t bind;
+  DOCUMENT("If this is an arrayed binding, the element in the array being referenced.");
+  uint32_t arrayIndex;
+};
+
+DECLARE_REFLECTION_STRUCT(BindpointIndex);
+
 DOCUMENT("A C union that holds 16 values, with each different basic variable type.");
 union ShaderValue
 {
@@ -282,6 +338,7 @@ struct ShaderVariable
     type = VarType::GPUPointer;
     value.u64v[0] = pointer;
   }
+
   DOCUMENT(R"(Utility function for setting a pointer value with type information.
 
 :param int pointer: The actual pointer value.
@@ -300,6 +357,10 @@ struct ShaderVariable
 
   DOCUMENT(R"(Utility function for getting a pointer value, with optional type information.
 
+.. note::
+
+  The return value is undefined if this variable is not a pointer.
+
 :return: A :class:`PointerVal` with the pointer value.
 :rtype: PointerVal
 )");
@@ -308,6 +369,37 @@ struct ShaderVariable
     ResourceId pointerShader;
     memcpy(&pointerShader, &value.u64v[2], sizeof(pointerShader));
     return {value.u64v[0], pointerShader, uint32_t(value.u64v[1] & 0xFFFFFFFF)};
+  }
+
+  DOCUMENT(R"(Utility function for setting a bindpoint reference.
+
+See :class:`ShaderBindpointMapping` for the details of how bindpoints are interpreted. The type of
+binding is given by the :data:`type` member.
+
+:param int bindset: The bind set.
+:param int bind: The bind itself.
+:param int arrayIndex: The array index, if the bind is an array. If it isn't an array this should be
+  set to 0.
+)");
+  inline void SetBinding(int32_t bindset, int32_t bind, uint32_t arrayIndex)
+  {
+    value.iv[0] = bindset;
+    value.iv[1] = bind;
+    value.uv[2] = arrayIndex;
+  }
+
+  DOCUMENT(R"(Utility function for getting the bindpoint referenced by this variable.
+
+.. note::
+
+  The return value is undefined if this variable is not a binding reference.
+
+:return: A :class:`BindpointIndex` with the binding referenced.
+:rtype: BindpointIndex
+)");
+  inline BindpointIndex GetBinding() const
+  {
+    return BindpointIndex(value.iv[0], value.iv[1], value.uv[2]);
   }
 };
 
@@ -1285,62 +1377,6 @@ struct Bindpoint
 };
 
 DECLARE_REFLECTION_STRUCT(Bindpoint);
-
-DOCUMENT("References a particular element in a :class:`Bindpoint`.");
-struct BindpointIndex
-{
-  DOCUMENT("");
-  BindpointIndex()
-  {
-    bindset = 0;
-    bind = 0;
-    arrayIndex = 0;
-  }
-  BindpointIndex(const BindpointIndex &) = default;
-  BindpointIndex &operator=(const BindpointIndex &) = default;
-
-  BindpointIndex(int32_t s, int32_t b)
-  {
-    bindset = s;
-    bind = b;
-    arrayIndex = 0;
-  }
-  BindpointIndex(int32_t s, int32_t b, uint32_t a)
-  {
-    bindset = s;
-    bind = b;
-    arrayIndex = a;
-  }
-
-  bool operator<(const BindpointIndex &o) const
-  {
-    if(!(bindset == o.bindset))
-      return bindset < o.bindset;
-    if(!(bind == o.bind))
-      return bind < o.bind;
-    return arrayIndex < o.arrayIndex;
-  }
-  bool operator>(const BindpointIndex &o) const
-  {
-    if(!(bindset == o.bindset))
-      return bindset > o.bindset;
-    if(!(bind == o.bind))
-      return bind > o.bind;
-    return arrayIndex > o.arrayIndex;
-  }
-  bool operator==(const BindpointIndex &o) const
-  {
-    return bindset == o.bindset && bind == o.bind && arrayIndex == o.arrayIndex;
-  }
-  DOCUMENT("The binding set.");
-  int32_t bindset;
-  DOCUMENT("The binding index.");
-  int32_t bind;
-  DOCUMENT("If this is an arrayed binding, the element in the array being referenced.");
-  uint32_t arrayIndex;
-};
-
-DECLARE_REFLECTION_STRUCT(BindpointIndex);
 
 DOCUMENT(R"(This structure goes hand in hand with :class:`ShaderReflection` to determine how to map
 from bindpoint indices in the resource lists there to API-specific binding points. The ``bindPoint``

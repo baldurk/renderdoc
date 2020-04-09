@@ -195,6 +195,26 @@ DOCUMENT(R"(Represents the base type of a shader variable in debugging or consta
   A 64-bit pointer into GPU-addressable memory. Variables with this type are stored with opaque
   contents and should be decoded with :meth:`ShaderVariable.GetPointer`.
 
+.. data:: ConstantBlock
+
+  A reference to a constant block bound to the shader. Variables with this type are stored with
+  opaque contents and should be decoded with :meth:`ShaderVariable.GetBinding`.
+
+.. data:: ReadOnlyResource
+
+  A reference to a read only resource bound to the shader. Variables with this type are stored with
+  opaque contents and should be decoded with :meth:`ShaderVariable.GetBinding`.
+
+.. data:: ReadWriteResource
+
+  A reference to a read/write resource bound to the shader. Variables with this type are stored with
+  opaque contents and should be decoded with :meth:`ShaderVariable.GetBinding`.
+
+.. data:: Sampler
+
+  A reference to a sampler bound to the shader. Variables with this type are stored with opaque
+  contents and should be decoded with :meth:`ShaderVariable.GetBinding`.
+
 .. data:: Unknown
 
   An unknown type.
@@ -213,6 +233,10 @@ enum class VarType : uint8_t
   SByte,
   UByte,
   GPUPointer,
+  ConstantBlock,
+  ReadOnlyResource,
+  ReadWriteResource,
+  Sampler,
   Unknown = 0xFF,
 };
 

@@ -1661,6 +1661,30 @@ QString ShaderViewer::stringRep(const ShaderVariable &var, uint32_t row)
   if(type == VarType::Unknown)
     type = ui->intView->isChecked() ? VarType::SInt : VarType::Float;
 
+  if(type == VarType::ReadOnlyResource || type == VarType::ReadWriteResource)
+  {
+    BindpointIndex varBind = var.GetBinding();
+
+    rdcarray<BoundResourceArray> resList;
+
+    if(type == VarType::ReadOnlyResource)
+      resList = m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage);
+    else if(type == VarType::ReadWriteResource)
+      resList = m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage);
+
+    int32_t bindIdx = resList.indexOf(Bindpoint(varBind));
+
+    if(bindIdx < 0)
+      return QString();
+
+    BoundResourceArray res = resList[bindIdx];
+
+    if(varBind.arrayIndex >= res.resources.size())
+      return QString();
+
+    return ToQStr(res.resources[varBind.arrayIndex].resourceId);
+  }
+
   return RowString(var, row, type);
 }
 

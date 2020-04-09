@@ -2093,6 +2093,10 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
             {
               case VarType::Unknown:
               case VarType::GPUPointer:
+              case VarType::ConstantBlock:
+              case VarType::ReadOnlyResource:
+              case VarType::ReadWriteResource:
+              case VarType::Sampler:
               case VarType::SLong:
               case VarType::ULong:
               case VarType::SShort:
@@ -2139,6 +2143,10 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
               {
                 case VarType::Unknown:
                 case VarType::GPUPointer:
+                case VarType::ConstantBlock:
+                case VarType::ReadOnlyResource:
+                case VarType::ReadWriteResource:
+                case VarType::Sampler:
                 case VarType::SLong:
                 case VarType::ULong:
                 case VarType::SShort:
