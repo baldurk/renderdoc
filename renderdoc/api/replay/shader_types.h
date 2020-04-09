@@ -750,6 +750,14 @@ other metadata as well as find the binding from the pipeline state.
 )");
   rdcarray<ShaderVariable> readWriteResources;
 
+  DOCUMENT(R"(The sampler variables for this shader as a list of :class:`ShaderVariable`.
+
+The 'value' of the variable is always a single unsigned integer, which is the bindpoint - an index
+into the :data:`ShaderBindpointMapping.samplers` list, which can be used to look up the
+other metadata as well as find the binding from the pipeline state.
+)");
+  rdcarray<ShaderVariable> samplers;
+
   DOCUMENT(R"(An optional list of :class:`SourceVariableMapping` indicating which high-level source
 variables map to which debug variables and includes extra type information.
 
@@ -1354,6 +1362,15 @@ struct Bindpoint
   {
     bindset = s;
     bind = b;
+    used = false;
+    arraySize = 1;
+  }
+  // construct out of an index, useful for searching bindpoint lists (since we only compare by
+  // bindset and bind)
+  Bindpoint(const BindpointIndex &idx)
+  {
+    bindset = idx.bindset;
+    bind = idx.bind;
     used = false;
     arraySize = 1;
   }

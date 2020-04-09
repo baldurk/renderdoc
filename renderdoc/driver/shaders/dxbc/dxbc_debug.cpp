@@ -5160,7 +5160,8 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
 
   struct ResList
   {
-    DebugVariableType varType;
+    VarType varType;
+    DebugVariableType debugVarType;
     const rdcarray<Bindpoint> &binds;
     const rdcarray<ShaderResource> &resources;
     const char *regChars;
@@ -5169,12 +5170,12 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
 
   ResList lists[2] = {
       {
-          DebugVariableType::ReadOnlyResource, mapping.readOnlyResources, refl.readOnlyResources,
-          "tT", ret->readOnlyResources,
+          VarType::ReadOnlyResource, DebugVariableType::ReadOnlyResource, mapping.readOnlyResources,
+          refl.readOnlyResources, "tT", ret->readOnlyResources,
       },
       {
-          DebugVariableType::ReadWriteResource, mapping.readWriteResources, refl.readWriteResources,
-          "uU", ret->readWriteResources,
+          VarType::ReadWriteResource, DebugVariableType::ReadWriteResource,
+          mapping.readWriteResources, refl.readWriteResources, "uU", ret->readWriteResources,
       },
   };
 
@@ -5197,27 +5198,63 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
       else
         identifier = StringFormat::Fmt("%c%u", list.regChars[0], b.bind);
 
-      ShaderVariable reg(identifier, (uint32_t)i, 0U, 0U, 0U);
+      ShaderVariable reg(identifier, 0U, 0U, 0U, 0U);
+      reg.rows = 1;
       reg.columns = 1;
+
+      reg.SetBinding(b.bindset, b.bind, 0U);
 
       SourceVariableMapping sourcemap;
       sourcemap.name = r.name;
-      sourcemap.type = r.variableType.descriptor.type;
-      if(sourcemap.type == VarType::Unknown)
-        sourcemap.type = VarType::UInt;
-      sourcemap.rows = r.variableType.descriptor.rows;
-      sourcemap.columns = r.variableType.descriptor.columns;
-      if(sourcemap.rows == 0 && sourcemap.columns == 0)
-        sourcemap.rows = sourcemap.columns = 1;
+      sourcemap.type = VarType::Sampler;
+      sourcemap.rows = 1;
+      sourcemap.columns = 1;
       sourcemap.offset = 0;
       DebugVariableReference ref;
-      ref.type = list.varType;
+      ref.type = list.debugVarType;
       ref.name = reg.name;
       sourcemap.variables.push_back(ref);
 
       ret->sourceVars.push_back(sourcemap);
       list.dst.push_back(reg);
     }
+  }
+
+  ret->samplers.reserve(mapping.samplers.size());
+  for(size_t i = 0; i < mapping.samplers.size(); i++)
+  {
+    const Bindpoint &b = mapping.samplers[i];
+    const ShaderSampler &s = refl.samplers[i];
+
+    if(!b.used)
+      continue;
+
+    rdcstr identifier;
+
+    if(dxbc->GetDXBCByteCode()->IsShaderModel51())
+      identifier = StringFormat::Fmt("S%zu", i);
+    else
+      identifier = StringFormat::Fmt("s%u", b.bind);
+
+    ShaderVariable reg(identifier, 0U, 0U, 0U, 0U);
+    reg.rows = 1;
+    reg.columns = 1;
+
+    reg.SetBinding(b.bindset, b.bind, 0U);
+
+    SourceVariableMapping sourcemap;
+    sourcemap.name = s.name;
+    sourcemap.type = VarType::Sampler;
+    sourcemap.rows = 1;
+    sourcemap.columns = 1;
+    sourcemap.offset = 0;
+    DebugVariableReference ref;
+    ref.type = DebugVariableType::Sampler;
+    ref.name = reg.name;
+    sourcemap.variables.push_back(ref);
+
+    ret->sourceVars.push_back(sourcemap);
+    ret->samplers.push_back(reg);
   }
 
   return ret;

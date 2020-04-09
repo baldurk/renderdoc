@@ -1661,7 +1661,8 @@ QString ShaderViewer::stringRep(const ShaderVariable &var, uint32_t row)
   if(type == VarType::Unknown)
     type = ui->intView->isChecked() ? VarType::SInt : VarType::Float;
 
-  if(type == VarType::ReadOnlyResource || type == VarType::ReadWriteResource)
+  if(type == VarType::ReadOnlyResource || type == VarType::ReadWriteResource ||
+     type == VarType::Sampler)
   {
     BindpointIndex varBind = var.GetBinding();
 
@@ -1671,6 +1672,8 @@ QString ShaderViewer::stringRep(const ShaderVariable &var, uint32_t row)
       resList = m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage);
     else if(type == VarType::ReadWriteResource)
       resList = m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage);
+    else if(type == VarType::Sampler)
+      resList = m_Ctx.CurPipelineState().GetSamplers(m_Stage);
 
     int32_t bindIdx = resList.indexOf(Bindpoint(varBind));
 
@@ -1682,10 +1685,38 @@ QString ShaderViewer::stringRep(const ShaderVariable &var, uint32_t row)
     if(varBind.arrayIndex >= res.resources.size())
       return QString();
 
+    if(type == VarType::Sampler)
+      return samplerRep(varBind, varBind.arrayIndex, res.resources[varBind.arrayIndex].resourceId);
     return ToQStr(res.resources[varBind.arrayIndex].resourceId);
   }
 
   return RowString(var, row, type);
+}
+
+QString ShaderViewer::samplerRep(Bindpoint bind, uint32_t arrayIndex, ResourceId id)
+{
+  if(id == ResourceId())
+  {
+    QString contents;
+    if(bind.bindset > 0)
+    {
+      // a bit ugly to do an API-specific switch here but we don't have a better way to refer
+      // by binding
+      contents = IsD3D(m_Ctx.APIProps().pipelineType) ? tr("space%1, ") : tr("Set %1, ");
+      contents = contents.arg(bind.bindset);
+    }
+
+    if(arrayIndex == ~0U)
+      contents += QString::number(bind.bind);
+    else
+      contents += QFormatStr("%1[%2]").arg(bind.bind).arg(arrayIndex);
+
+    return contents;
+  }
+  else
+  {
+    return ToQStr(id);
+  }
 }
 
 QString ShaderViewer::targetName(const ShaderProcessingTool &disasm)
@@ -1918,7 +1949,8 @@ bool ShaderViewer::getVar(RDTreeWidgetItem *item, ShaderVariable *var, QString *
     return false;
 
   // don't find resource variables
-  if(tag.debugVar.type == DebugVariableType::ReadOnlyResource ||
+  if(tag.debugVar.type == DebugVariableType::Sampler ||
+     tag.debugVar.type == DebugVariableType::ReadOnlyResource ||
      tag.debugVar.type == DebugVariableType::ReadWriteResource)
     return false;
 
@@ -1965,7 +1997,8 @@ bool ShaderViewer::getVar(RDTreeWidgetItem *item, ShaderVariable *var, QString *
 
     {
       // don't find resource variables
-      if(mapping.variables[0].type == DebugVariableType::ReadOnlyResource ||
+      if(mapping.variables[0].type == DebugVariableType::Sampler ||
+         mapping.variables[0].type == DebugVariableType::ReadOnlyResource ||
          mapping.variables[0].type == DebugVariableType::ReadWriteResource)
         return false;
 
@@ -2278,9 +2311,9 @@ void ShaderViewer::updateDebugState()
       if(varsMapped.contains(ro.name))
         continue;
 
-      uint32_t idx = ro.value.u.x;
+      int32_t idx = m_Mapping->readOnlyResources.indexOf(Bindpoint(ro.GetBinding()));
 
-      if(idx >= m_Mapping->readOnlyResources.size())
+      if(idx < 0)
         continue;
 
       Bindpoint bind = m_Mapping->readOnlyResources[idx];
@@ -2345,9 +2378,9 @@ void ShaderViewer::updateDebugState()
       if(varsMapped.contains(rw.name))
         continue;
 
-      uint32_t idx = rw.value.u.x;
+      int32_t idx = m_Mapping->readWriteResources.indexOf(Bindpoint(rw.GetBinding()));
 
-      if(idx >= m_Mapping->readWriteResources.size())
+      if(idx < 0)
         continue;
 
       Bindpoint bind = m_Mapping->readWriteResources[idx];
@@ -2396,6 +2429,73 @@ void ShaderViewer::updateDebugState()
           });
           child->setTag(QVariant::fromValue(
               VariableTag(DebugVariableReference(DebugVariableType::ReadWriteResource, childName))));
+          node->addChild(child);
+        }
+
+        ui->constants->addTopLevelItem(node);
+      }
+    }
+
+    rdcarray<BoundResourceArray> samplers = m_Ctx.CurPipelineState().GetSamplers(m_Stage);
+
+    for(int i = 0; i < m_Trace->samplers.count(); i++)
+    {
+      const ShaderVariable &s = m_Trace->samplers[i];
+
+      if(varsMapped.contains(s.name))
+        continue;
+
+      int32_t idx = m_Mapping->samplers.indexOf(Bindpoint(s.GetBinding()));
+
+      if(idx < 0)
+        continue;
+
+      Bindpoint bind = m_Mapping->samplers[idx];
+
+      if(!bind.used)
+        continue;
+
+      int32_t bindIdx = samplers.indexOf(bind);
+
+      if(bindIdx < 0)
+        continue;
+
+      BoundResourceArray sampBind = samplers[bindIdx];
+
+      if(bind.arraySize == 1)
+      {
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({m_ShaderDetails->samplers[i].name, s.name, lit("Sampler"),
+                                  samplerRep(bind, ~0U, sampBind.resources[0].resourceId)});
+        node->setTag(QVariant::fromValue(
+            VariableTag(DebugVariableReference(DebugVariableType::Sampler, s.name))));
+        ui->constants->addTopLevelItem(node);
+      }
+      else if(bind.arraySize == ~0U)
+      {
+        RDTreeWidgetItem *node = new RDTreeWidgetItem(
+            {m_ShaderDetails->samplers[i].name, s.name, lit("[unbounded]"), QString()});
+        node->setTag(QVariant::fromValue(
+            VariableTag(DebugVariableReference(DebugVariableType::Sampler, s.name))));
+        ui->constants->addTopLevelItem(node);
+      }
+      else
+      {
+        RDTreeWidgetItem *node =
+            new RDTreeWidgetItem({m_ShaderDetails->samplers[i].name, s.name,
+                                  QFormatStr("[%1]").arg(bind.arraySize), QString()});
+        node->setTag(QVariant::fromValue(
+            VariableTag(DebugVariableReference(DebugVariableType::Sampler, s.name))));
+
+        for(uint32_t a = 0; a < bind.arraySize; a++)
+        {
+          QString childName = QFormatStr("%1[%2]").arg(s.name).arg(a);
+          RDTreeWidgetItem *child = new RDTreeWidgetItem({
+              QFormatStr("%1[%2]").arg(m_ShaderDetails->samplers[i].name).arg(a), childName,
+              lit("Sampler"), samplerRep(bind, a, sampBind.resources[a].resourceId),
+          });
+          child->setTag(QVariant::fromValue(
+              VariableTag(DebugVariableReference(DebugVariableType::Sampler, childName))));
           node->addChild(child);
         }
 
@@ -2780,12 +2880,64 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
         regNames += lit("-");
         value += lit("?");
       }
+      else if(r.type == DebugVariableType::Sampler)
+      {
+        const ShaderVariable *reg = GetDebugVariable(r);
+
+        if(reg == NULL)
+          continue;
+
+        regNames = r.name;
+        typeName = lit("Sampler");
+
+        rdcarray<BoundResourceArray> samplers = m_Ctx.CurPipelineState().GetSamplers(m_Stage);
+
+        int32_t idx = m_Mapping->samplers.indexOf(Bindpoint(reg->GetBinding()));
+
+        if(idx < 0)
+          continue;
+
+        Bindpoint bind = m_Mapping->samplers[idx];
+
+        int32_t bindIdx = samplers.indexOf(bind);
+
+        if(bindIdx < 0)
+          continue;
+
+        BoundResourceArray res = samplers[bindIdx];
+
+        if(bind.arraySize == 1)
+        {
+          value = samplerRep(bind, ~0U, res.resources[0].resourceId);
+        }
+        else if(bind.arraySize == ~0U)
+        {
+          regNames = QString();
+          typeName = lit("[unbounded]");
+          value = QString();
+        }
+        else
+        {
+          for(uint32_t a = 0; a < bind.arraySize; a++)
+            children.push_back(new RDTreeWidgetItem({
+                QFormatStr("%1[%2]").arg(localName).arg(a), QFormatStr("%1[%2]").arg(regNames).arg(a),
+                typeName, samplerRep(bind, a, res.resources[a].resourceId),
+            }));
+
+          regNames = QString();
+          typeName = QFormatStr("[%1]").arg(bind.arraySize);
+          value = QString();
+        }
+      }
       else if(r.type == DebugVariableType::ReadOnlyResource ||
               r.type == DebugVariableType::ReadWriteResource)
       {
         const bool isReadOnlyResource = r.type == DebugVariableType::ReadOnlyResource;
 
         const ShaderVariable *reg = GetDebugVariable(r);
+
+        if(reg == NULL)
+          continue;
 
         regNames = r.name;
         typeName = isReadOnlyResource ? lit("Resource") : lit("RW Resource");
@@ -2794,11 +2946,11 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
             isReadOnlyResource ? m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage)
                                : m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage);
 
-        uint32_t idx = reg->value.u.x;
+        int32_t idx =
+            (isReadOnlyResource ? m_Mapping->readOnlyResources : m_Mapping->readWriteResources)
+                .indexOf(Bindpoint(reg->GetBinding()));
 
-        if(isReadOnlyResource && idx >= m_Mapping->readOnlyResources.size())
-          continue;
-        if(!isReadOnlyResource && idx >= m_Mapping->readWriteResources.size())
+        if(idx < 0)
           continue;
 
         Bindpoint bind = isReadOnlyResource ? m_Mapping->readOnlyResources[idx]
@@ -2955,6 +3107,14 @@ const ShaderVariable *ShaderViewer::GetDebugVariable(const DebugVariableReferenc
     for(int i = 0; i < m_Trace->readWriteResources.count(); i++)
       if(m_Trace->readWriteResources[i].name == r.name)
         return &m_Trace->readWriteResources[i];
+
+    return NULL;
+  }
+  else if(r.type == DebugVariableType::Sampler)
+  {
+    for(int i = 0; i < m_Trace->samplers.count(); i++)
+      if(m_Trace->samplers[i].name == r.name)
+        return &m_Trace->samplers[i];
 
     return NULL;
   }

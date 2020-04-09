@@ -401,6 +401,7 @@ void DoSerialise(SerialiserType &ser, ShaderDebugTrace &el)
   SERIALISE_MEMBER(stage);
   SERIALISE_MEMBER(inputs);
   SERIALISE_MEMBER(constantBlocks);
+  SERIALISE_MEMBER(samplers);
   SERIALISE_MEMBER(readOnlyResources);
   SERIALISE_MEMBER(readWriteResources);
   SERIALISE_MEMBER(sourceVars);
@@ -414,7 +415,7 @@ void DoSerialise(SerialiserType &ser, ShaderDebugTrace &el)
   if(ser.IsReading())
     el.debugger = (ShaderDebugger *)debugger;
 
-  SIZE_CHECK(160);
+  SIZE_CHECK(184);
 }
 
 template <typename SerialiserType>

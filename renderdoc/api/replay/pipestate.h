@@ -305,15 +305,23 @@ For some APIs that don't distinguish by entry point, this may be empty.
   DOCUMENT(R"(Retrieves the read-only resources bound to a particular shader stage.
 
 :param ShaderStage stage: The shader stage to fetch from.
-:return: The currently bound read-only resoruces.
+:return: The currently bound read-only resources.
 :rtype: ``list`` of :class:`BoundResourceArray` entries
 )");
   rdcarray<BoundResourceArray> GetReadOnlyResources(ShaderStage stage) const;
 
+  DOCUMENT(R"(Retrieves the samplers bound to a particular shader stage.
+
+:param ShaderStage stage: The shader stage to fetch from.
+:return: The currently bound sampler resources.
+:rtype: ``list`` of :class:`BoundResourceArray` entries
+)");
+  rdcarray<BoundResourceArray> GetSamplers(ShaderStage stage) const;
+
   DOCUMENT(R"(Retrieves the read/write resources bound to a particular shader stage.
 
 :param ShaderStage stage: The shader stage to fetch from.
-:return: The currently bound read/write resoruces.
+:return: The currently bound read/write resources.
 :rtype: ``list`` of :class:`BoundResourceArray` entries
 )");
   rdcarray<BoundResourceArray> GetReadWriteResources(ShaderStage stage) const;

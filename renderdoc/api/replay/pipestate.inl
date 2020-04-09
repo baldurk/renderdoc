@@ -1015,6 +1015,133 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
   return ret;
 }
 
+rdcarray<BoundResourceArray> PipeState::GetSamplers(ShaderStage stage) const
+{
+  rdcarray<BoundResourceArray> ret;
+
+  if(IsCaptureLoaded())
+  {
+    if(IsCaptureD3D11())
+    {
+      const D3D11Pipe::Shader &s = GetD3D11Stage(stage);
+
+      ret.reserve(s.samplers.size());
+
+      for(int i = 0; i < s.samplers.count(); i++)
+      {
+        Bindpoint key(0, i);
+        BoundResource val;
+
+        val.resourceId = s.samplers[i].resourceId;
+
+        ret.push_back(BoundResourceArray(key, {val}));
+      }
+
+      return ret;
+    }
+    else if(IsCaptureD3D12())
+    {
+      const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
+
+      size_t size = s.bindpointMapping.samplers.size();
+      ret.reserve(size);
+
+      for(size_t bp = 0; bp < size; bp++)
+      {
+        const Bindpoint &bind = s.bindpointMapping.samplers[bp];
+        ret.push_back(BoundResourceArray());
+        ret.back().bindPoint = bind;
+
+        uint32_t start = bind.bind;
+        uint32_t end = (bind.arraySize == ~0U) ? bind.arraySize : bind.bind + bind.arraySize;
+
+        rdcarray<BoundResource> &val = ret.back().resources;
+
+        for(size_t i = 0; i < m_D3D12->rootElements.size(); ++i)
+        {
+          const D3D12Pipe::RootSignatureRange &element = m_D3D12->rootElements[i];
+          if((element.visibility & MaskForStage(stage)) == ShaderStageMask::Unknown)
+            continue;
+
+          if(element.type == BindType::Sampler && element.registerSpace == (uint32_t)bind.bindset)
+          {
+            for(size_t j = 0; j < element.samplers.size(); ++j)
+            {
+              const D3D12Pipe::Sampler &samp = element.samplers[j];
+              if(samp.bind >= start && samp.bind <= end)
+              {
+                val.push_back(BoundResource());
+                // no resource ID to add here
+              }
+            }
+          }
+        }
+      }
+
+      return ret;
+    }
+    else if(IsCaptureGL())
+    {
+      ret.reserve(m_GL->samplers.size());
+
+      for(int i = 0; i < m_GL->samplers.count(); i++)
+      {
+        Bindpoint key(0, i);
+        BoundResource val;
+
+        val.resourceId = m_GL->samplers[i].resourceId;
+
+        ret.push_back(BoundResourceArray(key, {val}));
+      }
+
+      return ret;
+    }
+    else if(IsCaptureVK())
+    {
+      const rdcarray<VKPipe::DescriptorSet> &descsets = stage == ShaderStage::Compute
+                                                            ? m_Vulkan->compute.descriptorSets
+                                                            : m_Vulkan->graphics.descriptorSets;
+
+      ShaderStageMask mask = MaskForStage(stage);
+
+      size_t size = 0;
+      for(int set = 0; set < descsets.count(); set++)
+        size += descsets[set].bindings.size();
+
+      ret.reserve(size);
+
+      for(int set = 0; set < descsets.count(); set++)
+      {
+        const VKPipe::DescriptorSet &descset = descsets[set];
+        for(int slot = 0; slot < descset.bindings.count(); slot++)
+        {
+          const VKPipe::DescriptorBinding &bind = descset.bindings[slot];
+          if((bind.type == BindType::Sampler || bind.type == BindType::ImageSampler) &&
+             (bind.stageFlags & mask) == mask)
+          {
+            ret.push_back(BoundResourceArray());
+            ret.back().bindPoint = Bindpoint(set, slot);
+
+            rdcarray<BoundResource> &val = ret.back().resources;
+            val.resize(bind.descriptorCount);
+
+            ret.back().dynamicallyUsedCount = bind.dynamicallyUsedCount;
+
+            for(uint32_t i = 0; i < bind.descriptorCount; i++)
+            {
+              val[i].resourceId = bind.binds[i].samplerResourceId;
+            }
+          }
+        }
+      }
+
+      return ret;
+    }
+  }
+
+  return ret;
+}
+
 rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) const
 {
   rdcarray<BoundResourceArray> ret;
