@@ -496,7 +496,21 @@ void Processor::RegisterOp(Iter it)
 
     DataType &type = dataTypes[decoded.resultType];
 
-    constants[decoded.result] = {decoded.resultType, decoded.result, MakeNULL(type)};
+    ShaderVariable v = MakeNULL(type, 0ULL);
+    v.name = "NULL";
+
+    constants[decoded.result] = {decoded.resultType, decoded.result, v, {}, opdata.op};
+  }
+  else if(opdata.op == Op::Undef)
+  {
+    OpUndef decoded(it);
+
+    DataType &type = dataTypes[decoded.resultType];
+
+    ShaderVariable v = MakeNULL(type, 0xccccccccccccccccULL);
+    v.name = "Undef";
+
+    constants[decoded.result] = {decoded.resultType, decoded.result, v, {}, opdata.op};
   }
   else if(opdata.op == Op::ConstantTrue || opdata.op == Op::SpecConstantTrue)
   {
@@ -505,7 +519,7 @@ void Processor::RegisterOp(Iter it)
     ShaderVariable v("true", 1, 0, 0, 0);
     v.columns = 1;
 
-    constants[decoded.result] = {decoded.resultType, decoded.result, v};
+    constants[decoded.result] = {decoded.resultType, decoded.result, v, {}, opdata.op};
     if(opdata.op == Op::SpecConstantTrue)
       specConstants.insert(decoded.result);
   }
@@ -516,7 +530,7 @@ void Processor::RegisterOp(Iter it)
     ShaderVariable v("true", 0, 0, 0, 0);
     v.columns = 1;
 
-    constants[decoded.result] = {decoded.resultType, decoded.result, v};
+    constants[decoded.result] = {decoded.resultType, decoded.result, v, {}, opdata.op};
     if(opdata.op == Op::SpecConstantFalse)
       specConstants.insert(decoded.result);
   }
@@ -575,7 +589,8 @@ void Processor::RegisterOp(Iter it)
         v.members[i] = constants[decoded.constituents[i]].value;
     }
 
-    constants[decoded.result] = {decoded.resultType, decoded.result, v, decoded.constituents};
+    constants[decoded.result] = {decoded.resultType, decoded.result, v, decoded.constituents,
+                                 opdata.op};
     if(opdata.op == Op::SpecConstantComposite)
       specConstants.insert(decoded.result);
   }
@@ -588,7 +603,7 @@ void Processor::RegisterOp(Iter it)
       specop.params.push_back(Id::fromWord(it.word(w)));
 
     specOps[opdata.result] = specop;
-    constants[opdata.result] = {opdata.resultType, opdata.result};
+    constants[opdata.result] = {opdata.resultType, opdata.result, ShaderVariable(), {}, opdata.op};
     specConstants.insert(opdata.result);
   }
   else if(opdata.op == Op::Constant || opdata.op == Op::SpecConstant)
@@ -624,7 +639,7 @@ void Processor::RegisterOp(Iter it)
       }
     }
 
-    constants[opdata.result] = {opdata.resultType, opdata.result, v};
+    constants[opdata.result] = {opdata.resultType, opdata.result, v, {}, opdata.op};
     if(opdata.op == Op::SpecConstant)
       specConstants.insert(opdata.result);
   }
@@ -787,11 +802,11 @@ void Processor::UnregisterOp(Iter it)
 
     globals.removeOneIf([result](const Variable &e) { return e.id == result; });
   }
-  else if(opdata.op == Op::ConstantNull || opdata.op == Op::ConstantTrue ||
-          opdata.op == Op::ConstantFalse || opdata.op == Op::ConstantComposite ||
-          opdata.op == Op::Constant || opdata.op == Op::SpecConstantTrue ||
-          opdata.op == Op::SpecConstantFalse || opdata.op == Op::SpecConstantComposite ||
-          opdata.op == Op::SpecConstant)
+  else if(opdata.op == Op::ConstantNull || opdata.op == Op::Undef ||
+          opdata.op == Op::ConstantTrue || opdata.op == Op::ConstantFalse ||
+          opdata.op == Op::ConstantComposite || opdata.op == Op::Constant ||
+          opdata.op == Op::SpecConstantTrue || opdata.op == Op::SpecConstantFalse ||
+          opdata.op == Op::SpecConstantComposite || opdata.op == Op::SpecConstant)
   {
     constants.erase(opdata.result);
     specConstants.erase(opdata.result);
@@ -878,11 +893,14 @@ void Processor::PostParse()
   m_MemberDecorations.clear();
 }
 
-ShaderVariable Processor::MakeNULL(const DataType &type)
+ShaderVariable Processor::MakeNULL(const DataType &type, uint64_t value)
 {
-  ShaderVariable v("NULL", 0, 0, 0, 0);
+  ShaderVariable v("", 0, 0, 0, 0);
   v.rows = v.columns = 0;
   v.isStruct = (type.type == DataType::StructType);
+
+  for(uint8_t c = 0; c < 16; c++)
+    v.value.u64v[c] = value;
 
   if(type.type == DataType::VectorType)
   {
@@ -916,7 +934,7 @@ ShaderVariable Processor::MakeNULL(const DataType &type)
     v.members.resize(EvaluateConstant(type.length, {}).value.u.x);
     for(size_t i = 0; i < v.members.size(); i++)
     {
-      v.members[i] = MakeNULL(dataTypes[type.InnerType()]);
+      v.members[i] = MakeNULL(dataTypes[type.InnerType()], value);
       v.members[i].name = StringFormat::Fmt("[%zu]", i);
     }
   }
@@ -925,7 +943,7 @@ ShaderVariable Processor::MakeNULL(const DataType &type)
     v.members.resize(type.children.size());
     for(size_t i = 0; i < v.members.size(); i++)
     {
-      v.members[i] = MakeNULL(dataTypes[type.children[i].type]);
+      v.members[i] = MakeNULL(dataTypes[type.children[i].type], value);
       v.members[i].name = StringFormat::Fmt("_child%zu", i);
     }
   }

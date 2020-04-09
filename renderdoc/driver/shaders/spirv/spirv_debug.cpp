@@ -1617,9 +1617,11 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
     case Op::Undef:
     {
+      // this was processed as a constant, since it can appear in the constants section as well as
+      // in blocks. Just assign the value to itself so that it shows up as a change
       OpUndef undef(it);
 
-      SetDst(state, undef.result, ShaderVariable());
+      SetDst(state, undef.result, GetSrc(undef.result));
 
       break;
     }

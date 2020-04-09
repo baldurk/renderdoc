@@ -457,6 +457,7 @@ struct Constant
   Id id;
   ShaderVariable value;
   rdcarray<Id> children;
+  Op op;
 };
 
 struct SpecOp
@@ -520,7 +521,7 @@ protected:
   // after parsing - e.g. to do any deferred post-processing
   virtual void PostParse();
 
-  ShaderVariable MakeNULL(const DataType &type);
+  ShaderVariable MakeNULL(const DataType &type, uint64_t value);
 
   ShaderVariable EvaluateConstant(Id constID, const rdcarray<SpecConstant> &specInfo) const;
 

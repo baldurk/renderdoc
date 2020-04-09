@@ -376,7 +376,10 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
         // scalar and vector constants are inlined when they're unnamed and not specialised, so only
         // declare others.
         case Op::ConstantTrue:
-        case Op::ConstantFalse: continue;
+        case Op::ConstantFalse:
+        case Op::ConstantNull:
+        case Op::Undef: continue;
+
         case Op::SpecConstant:
         case Op::Constant:
         {
@@ -1532,6 +1535,20 @@ rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
   // don't stringise spec constants either
   if(specConstants.find(id) != specConstants.end())
     return rdcstr();
+
+  // print NULL or Undef values specially
+  if(cit->second.op == Op::ConstantNull || cit->second.op == Op::Undef)
+  {
+    rdcstr ret = dataTypes[cit->second.type].name;
+    if(ret.empty())
+      ret = StringFormat::Fmt("type%u", cit->second.type.value());
+
+    if(cit->second.op == Op::ConstantNull)
+      ret += "(Null)";
+    else if(cit->second.op == Op::Undef)
+      ret += "(Undef)";
+    return ret;
+  }
 
   const DataType &type = dataTypes[cit->second.type];
   const ShaderVariable &value = cit->second.value;
