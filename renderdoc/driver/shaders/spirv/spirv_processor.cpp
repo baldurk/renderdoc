@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "spirv_processor.h"
+#include "common/formatting.h"
 #include "maths/half_convert.h"
 #include "spirv_op_helpers.h"
 
@@ -493,10 +494,9 @@ void Processor::RegisterOp(Iter it)
   {
     OpConstantNull decoded(it);
 
-    ShaderVariable v("NULL", 0, 0, 0, 0);
-    v.columns = 1;
+    DataType &type = dataTypes[decoded.resultType];
 
-    constants[decoded.result] = {decoded.resultType, decoded.result, v};
+    constants[decoded.result] = {decoded.resultType, decoded.result, MakeNULL(type)};
   }
   else if(opdata.op == Op::ConstantTrue || opdata.op == Op::SpecConstantTrue)
   {
@@ -876,6 +876,61 @@ void Processor::PostParse()
       dataTypes[dec.id].children[dec.member].decorations.Register(dec.dec);
 
   m_MemberDecorations.clear();
+}
+
+ShaderVariable Processor::MakeNULL(const DataType &type)
+{
+  ShaderVariable v("NULL", 0, 0, 0, 0);
+  v.rows = v.columns = 0;
+  v.isStruct = (type.type == DataType::StructType);
+
+  if(type.type == DataType::VectorType)
+  {
+    v.type = type.scalar().Type();
+    v.rows = 1;
+    v.columns = type.vector().count & 0xf;
+  }
+  else if(type.type == DataType::MatrixType)
+  {
+    v.type = type.scalar().Type();
+    v.rows = type.vector().count & 0xf;
+    v.columns = type.matrix().count & 0xf;
+    v.rowMajor = true;
+  }
+  else if(type.type == DataType::ScalarType)
+  {
+    v.type = type.scalar().Type();
+    v.rows = 1;
+    v.columns = 1;
+  }
+  else if(type.type == DataType::PointerType)
+  {
+    v.type = VarType::ULong;
+    v.isPointer = true;
+    v.rows = 1;
+    v.columns = 1;
+  }
+  else if(type.type == DataType::ArrayType)
+  {
+    // TODO handle spec constant array length here... somehow
+    v.members.resize(EvaluateConstant(type.length, {}).value.u.x);
+    for(size_t i = 0; i < v.members.size(); i++)
+    {
+      v.members[i] = MakeNULL(dataTypes[type.InnerType()]);
+      v.members[i].name = StringFormat::Fmt("[%zu]", i);
+    }
+  }
+  else
+  {
+    v.members.resize(type.children.size());
+    for(size_t i = 0; i < v.members.size(); i++)
+    {
+      v.members[i] = MakeNULL(dataTypes[type.children[i].type]);
+      v.members[i].name = StringFormat::Fmt("_child%zu", i);
+    }
+  }
+
+  return v;
 }
 
 ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConstant> &specInfo) const
