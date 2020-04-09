@@ -587,9 +587,8 @@ ShaderVariable Debugger::MakePointerVariable(Id id, const ShaderVariable *v, uin
 {
   ShaderVariable var;
   var.rows = var.columns = 1;
-  var.type = VarType::ULong;
+  var.type = VarType::GPUPointer;
   var.name = GetRawName(id);
-  var.isPointer = true;
   // encode the pointer into the first u64v
   var.value.u64v[0] = (uint64_t)(uintptr_t)v;
 
@@ -608,7 +607,7 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
 
   // if the base is a plain value, we just start walking down the chain. If the base is a pointer
   // though, we want to step down the chain in the underlying storage, so dereference first.
-  if(base.isPointer)
+  if(base.type == VarType::GPUPointer)
     leaf = (const ShaderVariable *)(uintptr_t)base.value.u64v[0];
 
   // first walk any struct member/array indices
@@ -638,7 +637,7 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
 
 ShaderVariable Debugger::EvaluatePointerVariable(const ShaderVariable &ptr) const
 {
-  if(!ptr.isPointer)
+  if(ptr.type != VarType::GPUPointer)
     return ptr;
 
   ShaderVariable ret;
@@ -706,7 +705,7 @@ ShaderVariable Debugger::EvaluatePointerVariable(const ShaderVariable &ptr) cons
 
 Id Debugger::GetPointerBaseId(const ShaderVariable &ptr) const
 {
-  RDCASSERT(ptr.isPointer);
+  RDCASSERT(ptr.type == VarType::GPUPointer);
 
   // we stored the base ID in [4] so that it's always available regardless of access chains
   return Id::fromWord(ptr.value.uv[4]);

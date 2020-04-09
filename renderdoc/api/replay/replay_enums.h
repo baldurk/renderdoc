@@ -190,6 +190,11 @@ DOCUMENT(R"(Represents the base type of a shader variable in debugging or consta
 
   An unsigned 8-bit integer value.
 
+.. data:: GPUPointer
+
+  A 64-bit pointer into GPU-addressable memory. Variables with this type are stored with opaque
+  contents and should be decoded with :meth:`ShaderVariable.GetPointer`.
+
 .. data:: Unknown
 
   An unknown type.
@@ -207,6 +212,7 @@ enum class VarType : uint8_t
   ULong,
   SByte,
   UByte,
+  GPUPointer,
   Unknown = 0xFF,
 };
 

@@ -329,7 +329,8 @@ void StandardFillCBufferVariable(ResourceId shader, const ShaderVariableDescript
   const uint32_t cols = outvar.columns;
 
   size_t elemByteSize = 4;
-  if(type == VarType::Double || type == VarType::ULong || type == VarType::SLong)
+  if(type == VarType::Double || type == VarType::ULong || type == VarType::SLong ||
+     type == VarType::GPUPointer)
     elemByteSize = 8;
   else if(type == VarType::Half || type == VarType::UShort || type == VarType::SShort)
     elemByteSize = 2;

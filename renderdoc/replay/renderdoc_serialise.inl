@@ -326,7 +326,6 @@ void DoSerialise(SerialiserType &ser, ShaderVariable &el)
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(type);
 
-  SERIALISE_MEMBER(isPointer);
   SERIALISE_MEMBER(displayAsHex);
   SERIALISE_MEMBER(isStruct);
   SERIALISE_MEMBER(rowMajor);
@@ -335,9 +334,7 @@ void DoSerialise(SerialiserType &ser, ShaderVariable &el)
 
   SERIALISE_MEMBER(members);
 
-  SERIALISE_MEMBER(pointerShader);
-
-  SIZE_CHECK(192);
+  SIZE_CHECK(184);
 }
 
 template <typename SerialiserType>
@@ -382,7 +379,7 @@ void DoSerialise(SerialiserType &ser, ShaderVariableChange &el)
   SERIALISE_MEMBER(before);
   SERIALISE_MEMBER(after);
 
-  SIZE_CHECK(384);
+  SIZE_CHECK(368);
 }
 
 template <typename SerialiserType>

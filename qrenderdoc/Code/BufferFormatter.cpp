@@ -1494,7 +1494,7 @@ QString TypeString(const ShaderVariable &v)
       return QFormatStr("%1[%2]").arg(TypeString(v.members[0])).arg(v.members.count());
   }
 
-  if(v.isPointer)
+  if(v.type == VarType::GPUPointer)
     return PointerTypeRegistry::GetTypeDescriptor(v.GetPointer()).descriptor.name + "*";
 
   QString typeStr = ToQStr(v.type);
@@ -1550,7 +1550,7 @@ QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
   if(type == VarType::Unknown)
     type = v.type;
 
-  if(v.isPointer)
+  if(v.type == VarType::GPUPointer)
     return ToQStr(v.GetPointer());
 
   if(type == VarType::Double)
@@ -1611,7 +1611,7 @@ QString RowTypeString(const ShaderVariable &v)
   if(v.rows == 0 && v.columns == 0)
     return lit("-");
 
-  if(v.isPointer)
+  if(v.type == VarType::GPUPointer)
     return PointerTypeRegistry::GetTypeDescriptor(v.GetPointer()).descriptor.name + "*";
 
   QString typeStr = ToQStr(v.type);

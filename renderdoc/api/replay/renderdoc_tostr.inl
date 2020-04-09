@@ -833,6 +833,7 @@ rdcstr DoStringise(const VarType &el)
     STRINGISE_ENUM_CLASS_NAMED(SByte, "byte");
     STRINGISE_ENUM_CLASS_NAMED(UByte, "ubyte");
     STRINGISE_ENUM_CLASS_NAMED(Unknown, "unknown");
+    STRINGISE_ENUM_CLASS_NAMED(GPUPointer, "pointer");
   }
   END_ENUM_STRINGISE();
 }

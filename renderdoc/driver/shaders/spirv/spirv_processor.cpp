@@ -923,8 +923,7 @@ ShaderVariable Processor::MakeNULL(const DataType &type, uint64_t value)
   }
   else if(type.type == DataType::PointerType)
   {
-    v.type = VarType::ULong;
-    v.isPointer = true;
+    v.type = VarType::GPUPointer;
     v.rows = 1;
     v.columns = 1;
   }

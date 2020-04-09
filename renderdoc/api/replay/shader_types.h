@@ -169,7 +169,7 @@ struct ShaderVariable
   {
     name = "";
     rows = columns = 0;
-    displayAsHex = isStruct = rowMajor = isPointer = false;
+    displayAsHex = isStruct = rowMajor = false;
     type = VarType::Unknown;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
@@ -181,7 +181,7 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    displayAsHex = isStruct = rowMajor = isPointer = false;
+    displayAsHex = isStruct = rowMajor = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
     type = VarType::Float;
@@ -195,7 +195,7 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    displayAsHex = isStruct = rowMajor = isPointer = false;
+    displayAsHex = isStruct = rowMajor = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
     type = VarType::SInt;
@@ -209,7 +209,7 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    displayAsHex = isStruct = rowMajor = isPointer = false;
+    displayAsHex = isStruct = rowMajor = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
     type = VarType::UInt;
@@ -222,8 +222,7 @@ struct ShaderVariable
   {
     return rows == o.rows && columns == o.columns && name == o.name && type == o.type &&
            displayAsHex == o.displayAsHex && !memcmp(&value, &o.value, sizeof(value)) &&
-           isStruct == o.isStruct && rowMajor == o.rowMajor && isPointer == o.isPointer &&
-           members == o.members;
+           isStruct == o.isStruct && rowMajor == o.rowMajor && members == o.members;
   }
   bool operator<(const ShaderVariable &o) const
   {
@@ -241,8 +240,6 @@ struct ShaderVariable
       return isStruct < o.isStruct;
     if(!(rowMajor == o.rowMajor))
       return rowMajor < o.rowMajor;
-    if(!(isPointer == o.isPointer))
-      return isPointer < o.isPointer;
     if(memcmp(&value, &o.value, sizeof(value)) < 0)
       return true;
     if(!(members == o.members))
@@ -257,9 +254,6 @@ struct ShaderVariable
   uint8_t rows;
   DOCUMENT("The number of columns in this matrix.");
   uint8_t columns;
-
-  DOCUMENT("``True`` if this variable is a pointer.");
-  bool isPointer;
 
   DOCUMENT("``True`` if the contents of this variable should be displayed as hex.");
   bool displayAsHex;
@@ -285,7 +279,7 @@ struct ShaderVariable
 )");
   inline void SetTypelessPointer(uint64_t pointer)
   {
-    isPointer = true;
+    type = VarType::GPUPointer;
     value.u64v[0] = pointer;
   }
   DOCUMENT(R"(Utility function for setting a pointer value with type information.
@@ -297,10 +291,11 @@ struct ShaderVariable
 )");
   inline void SetTypedPointer(uint64_t pointer, ResourceId shader, uint32_t pointerTypeID)
   {
-    isPointer = true;
+    type = VarType::GPUPointer;
     value.u64v[0] = pointer;
     value.u64v[1] = pointerTypeID;
-    pointerShader = shader;
+    static_assert(sizeof(shader) == sizeof(value.u64v[2]), "ResourceId can't be packed");
+    memcpy(&value.u64v[2], &shader, sizeof(shader));
   }
 
   DOCUMENT(R"(Utility function for getting a pointer value, with optional type information.
@@ -310,16 +305,10 @@ struct ShaderVariable
 )");
   inline PointerVal GetPointer() const
   {
+    ResourceId pointerShader;
+    memcpy(&pointerShader, &value.u64v[2], sizeof(pointerShader));
     return {value.u64v[0], pointerShader, uint32_t(value.u64v[1] & 0xFFFFFFFF)};
   }
-
-private:
-  DOCUMENT("");
-  ResourceId pointerShader;
-
-  // make DoSerialise a friend so it can serialise pointerShader
-  template <typename SerialiserType>
-  friend void DoSerialise(SerialiserType &ser, ShaderVariable &el);
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderVariable);

@@ -406,7 +406,6 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
 
           switch(type.scalar().Type())
           {
-            case VarType::Unknown:
             case VarType::Float:
             case VarType::Half: ret += ToStr(value.f.x); break;
             case VarType::Double: ret += ToStr(value.d.x); break;
@@ -417,6 +416,8 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
             case VarType::UShort:
             case VarType::UByte: ret += ToStr(value.u.x); break;
             case VarType::SLong: ret += ToStr(value.s64v[0]); break;
+            case VarType::Unknown:
+            case VarType::GPUPointer:
             case VarType::ULong: ret += ToStr(value.u64v[0]); break;
           }
 
@@ -1560,7 +1561,6 @@ rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
 
     switch(value.type)
     {
-      case VarType::Unknown:
       case VarType::Float:
       case VarType::Half: return ToStr(value.value.f.x);
       case VarType::Double: return ToStr(value.value.d.x);
@@ -1571,6 +1571,8 @@ rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
       case VarType::UShort:
       case VarType::UByte: return ToStr(value.value.u.x);
       case VarType::SLong: return ToStr(value.value.s64v[0]);
+      case VarType::Unknown:
+      case VarType::GPUPointer:
       case VarType::ULong: return ToStr(value.value.u64v[0]);
     }
   }
@@ -1581,7 +1583,6 @@ rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
     {
       switch(value.type)
       {
-        case VarType::Unknown:
         case VarType::Float:
         case VarType::Half: ret += ToStr(value.value.fv[i]); break;
         case VarType::Double: ret += ToStr(value.value.dv[i]); break;
@@ -1592,6 +1593,8 @@ rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
         case VarType::UShort:
         case VarType::UByte: ret += ToStr(value.value.uv[i]); break;
         case VarType::SLong: ret += ToStr(value.value.s64v[i]); break;
+        case VarType::Unknown:
+        case VarType::GPUPointer:
         case VarType::ULong: ret += ToStr(value.value.u64v[i]); break;
       }
       if(i + 1 < value.columns)

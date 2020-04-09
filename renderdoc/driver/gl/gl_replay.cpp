@@ -2092,6 +2092,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
             switch(var.type)
             {
               case VarType::Unknown:
+              case VarType::GPUPointer:
               case VarType::SLong:
               case VarType::ULong:
               case VarType::SShort:
@@ -2137,6 +2138,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
               switch(var.type)
               {
                 case VarType::Unknown:
+                case VarType::GPUPointer:
                 case VarType::SLong:
                 case VarType::ULong:
                 case VarType::SShort:

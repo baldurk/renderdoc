@@ -304,7 +304,7 @@ void ThreadState::StepNext(ShaderDebugState *state,
       // ignore
       (void)store.memoryAccess;
 
-      RDCASSERT(ids[store.pointer].isPointer);
+      RDCASSERT(ids[store.pointer].type == VarType::GPUPointer);
 
       // this is the only place we don't use SetDst because it's the only place that "violates" SSA
       // i.e. changes an existing value. That way SetDst can always unconditionally assign values,
