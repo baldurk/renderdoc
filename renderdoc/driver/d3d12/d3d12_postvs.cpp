@@ -47,6 +47,7 @@ bool D3D12Replay::CreateSOBuffers()
         "Stream-out buffer size %llu is close to or over 4GB, out of memory very likely so "
         "skipping",
         m_SOBufferSize);
+    m_SOBufferSize = 0;
     return false;
   }
 
@@ -79,6 +80,7 @@ bool D3D12Replay::CreateSOBuffers()
   if(FAILED(hr))
   {
     RDCERR("Failed to create SO output buffer, HRESULT: %s", ToStr(hr).c_str());
+    m_SOBufferSize = 0;
     return false;
   }
 
@@ -94,6 +96,7 @@ bool D3D12Replay::CreateSOBuffers()
   if(FAILED(hr))
   {
     RDCERR("Failed to create readback buffer, HRESULT: %s", ToStr(hr).c_str());
+    m_SOBufferSize = 0;
     return false;
   }
 
@@ -111,6 +114,7 @@ bool D3D12Replay::CreateSOBuffers()
   if(FAILED(hr))
   {
     RDCERR("Failed to create SO index buffer, HRESULT: %s", ToStr(hr).c_str());
+    m_SOBufferSize = 0;
     return false;
   }
 
@@ -125,6 +129,7 @@ bool D3D12Replay::CreateSOBuffers()
   if(FAILED(hr))
   {
     RDCERR("Failed to create SO query heap, HRESULT: %s", ToStr(hr).c_str());
+    m_SOBufferSize = 0;
     return false;
   }
 

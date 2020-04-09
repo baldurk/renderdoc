@@ -83,6 +83,13 @@ void D3D11Replay::CreateSOBuffers()
   hr = m_pDevice->CreateBuffer(&bufferDesc, NULL, &m_SOStagingBuffer);
   if(FAILED(hr))
     RDCERR("Failed to create m_SOStagingBuffer HRESULT: %s", ToStr(hr).c_str());
+
+  if(!m_SOBuffer || !m_SOStagingBuffer)
+  {
+    SAFE_RELEASE(m_SOBuffer);
+    SAFE_RELEASE(m_SOStagingBuffer);
+    m_SOBufferSize = 0;
+  }
 }
 
 void D3D11Replay::ClearPostVSCache()

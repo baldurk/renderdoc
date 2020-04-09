@@ -550,6 +550,9 @@ void StandardFillCBufferVariables(ResourceId shader, const rdcarray<ShaderConsta
 
 uint64_t CalcMeshOutputSize(uint64_t curSize, uint64_t requiredOutput)
 {
+  if(curSize == 0)
+    curSize = 32 * 1024 * 1024;
+
   // resize exponentially up to 256MB to avoid repeated resizes
   while(curSize < requiredOutput && curSize < 0x10000000ULL)
     curSize *= 2;
