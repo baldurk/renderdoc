@@ -1390,7 +1390,10 @@ private:
 
     if(eventFlags & TestEnabled_DepthTesting)
     {
-      uint32_t pipeFlags = PipelineCreationFlags_FixedColorShader;
+      // Previous test might have modified the stencil state, which could
+      // cause this event to fail.
+      uint32_t pipeFlags =
+          PipelineCreationFlags_DisableStencilTest | PipelineCreationFlags_FixedColorShader;
 
       VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
                                        framebufferIndex);
