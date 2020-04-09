@@ -100,7 +100,6 @@ void main()
 
 #extension GL_EXT_samplerless_texture_functions : require
 
-/*
 layout(set = 0, binding = 0, std140) uniform constsbuf
 {
   vec4 first;
@@ -112,7 +111,6 @@ layout(set = 0, binding = 0, std140) uniform constsbuf
   vec4 fourth;
   vec4 pad4;
 } cbuf;
-*/
 
 //layout(set = 0, binding = 1) uniform sampler pointSampler;
 //layout(set = 0, binding = 2) uniform sampler linearSampler;
@@ -306,6 +304,32 @@ void main()
       vec4 a = vec4(posone*2.5f, negone*1.8f, posone*8.5f, posone*3.9f);
       vec4 b = vec4(negone*6.3f, posone*3.2f, negone*0.4f, zerof);
       Color = vec4(dot(a.xyz, b.xyz), dot(a.w, b.w), dot(a, b), dot(a.wz, b.ww));
+      break;
+    }
+    case 26:
+    {
+      Color = cbuf.first;
+      break;
+    }
+    case 27:
+    {
+      Color = cbuf.second;
+      break;
+    }
+    case 28:
+    {
+      Color = cbuf.third;
+      break;
+    }
+    case 29:
+    {
+      Color = cbuf.fourth;
+      break;
+    }
+    case 30:
+    {
+      Color = cbuf.first + cbuf.second + cbuf.third + cbuf.fourth +
+              cbuf.pad1 + cbuf.pad2 + cbuf.pad3 + cbuf.pad4;
       break;
     }
     default: break;
