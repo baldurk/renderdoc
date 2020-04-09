@@ -884,15 +884,15 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   {
     uint32_t *feedbackData = (uint32_t *)(data.data() + it->second.offset);
 
-    BindIdx used;
-    used.set = it->first.set;
+    BindpointIndex used;
+    used.bindset = it->first.set;
     used.bind = it->first.binding;
 
     for(uint32_t i = 0; i < it->second.numEntries; i++)
     {
       if(feedbackData[i])
       {
-        used.arrayidx = i;
+        used.arrayIndex = i;
 
         result.used.push_back(used);
       }

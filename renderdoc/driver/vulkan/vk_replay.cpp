@@ -1543,7 +1543,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     for(size_t p = 0; p < ARRAY_COUNT(srcs); p++)
     {
       bool hasUsedBinds = false;
-      const BindIdx *usedBindsData = NULL;
+      const BindpointIndex *usedBindsData = NULL;
       size_t usedBindsSize = 0;
 
       {
@@ -1573,14 +1573,14 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         }
       }
 
-      BindIdx curBind;
+      BindpointIndex curBind;
 
       for(size_t i = 0; i < srcs[p]->size(); i++)
       {
         ResourceId src = (*srcs[p])[i].descSet;
         VKPipe::DescriptorSet &dst = (*dsts[p])[i];
 
-        curBind.set = (uint32_t)i;
+        curBind.bindset = (uint32_t)i;
 
         ResourceId layoutId = m_pDriver->m_DescriptorSetState[src].layout;
 
@@ -1652,7 +1652,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
           {
             VKPipe::BindingElement &dstel = dst.bindings[b].binds[a];
 
-            curBind.arrayidx = a;
+            curBind.arrayIndex = a;
 
             // if we have a list of used binds, and this is an array descriptor (so would be
             // expected to be in the list), check it for dynamic usage.

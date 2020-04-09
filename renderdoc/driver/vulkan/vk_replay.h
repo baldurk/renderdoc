@@ -197,38 +197,10 @@ struct VulkanPostVSData
   }
 };
 
-struct BindIdx
-{
-  uint32_t set, bind, arrayidx;
-
-  bool operator<(const BindIdx &o) const
-  {
-    if(set != o.set)
-      return set < o.set;
-    else if(bind != o.bind)
-      return bind < o.bind;
-    return arrayidx < o.arrayidx;
-  }
-
-  bool operator>(const BindIdx &o) const
-  {
-    if(set != o.set)
-      return set > o.set;
-    else if(bind != o.bind)
-      return bind > o.bind;
-    return arrayidx > o.arrayidx;
-  }
-
-  bool operator==(const BindIdx &o) const
-  {
-    return set == o.set && bind == o.bind && arrayidx == o.arrayidx;
-  }
-};
-
 struct DynamicUsedBinds
 {
   bool compute = false, valid = false;
-  rdcarray<BindIdx> used;
+  rdcarray<BindpointIndex> used;
 };
 
 enum TexDisplayFlags
