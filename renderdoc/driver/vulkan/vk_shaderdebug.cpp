@@ -317,7 +317,7 @@ public:
     const bool sintTex = (texType & DebugAPIWrapper::SInt_Texture) != 0;
 
     // fetch the right type of descriptor depending on if we're buffer or not
-    BindpointIndex invalidIndex(~0U, ~0U, ~0U);
+    BindpointIndex invalidIndex(-1, -1, ~0U);
     bool valid = true;
     rdcstr access = StringFormat::Fmt("performing %s operation", ToStr(opcode).c_str());
     const VkDescriptorImageInfo &imageInfo =
@@ -512,13 +512,13 @@ private:
   {
     static T dummy = {};
 
-    if(index.bindset == ~0U)
+    if(index.bindset < 0)
     {
       // invalid index, return a dummy data but don't mark as invalid
       return dummy;
     }
 
-    if(index.bindset >= m_DescSets.size())
+    if(index.bindset >= m_DescSets.count())
     {
       m_pDriver->AddDebugMessage(
           MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
@@ -531,7 +531,7 @@ private:
 
     const DescSetSnapshot &setData = m_DescSets[index.bindset];
 
-    if(index.bind >= setData.bindings.size())
+    if(index.bind >= setData.bindings.count())
     {
       m_pDriver->AddDebugMessage(
           MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
@@ -809,7 +809,7 @@ private:
     rdcspv::ImageFormat unk = rdcspv::ImageFormat::Unknown;
 
     // create the five textures and sampler
-    rdcspv::Id texSampTypes[ShaderDebugBind::Count] = {
+    rdcspv::Id texSampTypes[(uint32_t)ShaderDebugBind::Count] = {
         rdcspv::Id(),
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_1D, 0, 1, 0, 1, unk)),
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_2D, 0, 1, 0, 1, unk)),
@@ -818,8 +818,8 @@ private:
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::Buffer, 0, 1, 0, 1, unk)),
         editor.DeclareType(rdcspv::Sampler()),
     };
-    rdcspv::Id texSampVars[ShaderDebugBind::Count];
-    rdcspv::Id texSampCombinedTypes[ShaderDebugBind::Count] = {
+    rdcspv::Id texSampVars[(uint32_t)ShaderDebugBind::Count];
+    rdcspv::Id texSampCombinedTypes[(uint32_t)ShaderDebugBind::Count] = {
         rdcspv::Id(),
         editor.DeclareType(rdcspv::SampledImage(texSampTypes[1])),
         editor.DeclareType(rdcspv::SampledImage(texSampTypes[2])),

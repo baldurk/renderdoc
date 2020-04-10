@@ -1572,7 +1572,7 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
       result.type = resultType.scalar().Type();
 
-      BindpointIndex samplerIndex = BindpointIndex(~0U, ~0U, ~0U);
+      BindpointIndex samplerIndex = BindpointIndex(-1, -1, ~0U);
       if(sampler.type == VarType::Sampler || sampler.type == VarType::ReadOnlyResource)
         samplerIndex = sampler.GetBinding();
 
