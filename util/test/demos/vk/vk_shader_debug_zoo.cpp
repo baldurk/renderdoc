@@ -112,10 +112,10 @@ layout(set = 0, binding = 0, std140) uniform constsbuf
   vec4 pad4;
 } cbuf;
 
-//layout(set = 0, binding = 1) uniform sampler pointSampler;
-//layout(set = 0, binding = 2) uniform sampler linearSampler;
+layout(set = 0, binding = 1) uniform sampler pointSampler;
+layout(set = 0, binding = 2) uniform sampler linearSampler;
 
-//layout(set = 0, binding = 3) uniform texture2D tex;
+layout(set = 0, binding = 3) uniform texture2D sampledImage;
 
 //layout(set = 0, binding = 4) uniform sampler2D linearSampledImage;
 
@@ -151,7 +151,7 @@ void main()
   float tiny = linearData.tinyVal;
 
   int intval = int(flatData.intval);
-  int zerou = int(flatData.intval - flatData.test - 7);
+  uint zerou = flatData.intval - flatData.test - 7u;
   int zeroi = int(zerou);
 
   uint test = flatData.test;
@@ -330,6 +330,27 @@ void main()
     {
       Color = cbuf.first + cbuf.second + cbuf.third + cbuf.fourth +
               cbuf.pad1 + cbuf.pad2 + cbuf.pad3 + cbuf.pad4;
+      break;
+    }
+    case 31:
+    {
+      ivec2 coord = ivec2(zeroi + 20, zeroi + 20);
+
+      Color = texelFetch(sampledImage, coord, 0);
+      break;
+    }
+    case 32:
+    {
+      vec2 coord = vec2(zerof + 0.5, zerof + 0.145);
+
+      Color = textureLod(sampler2D(sampledImage, pointSampler), coord, 0.0);
+      break;
+    }
+    case 33:
+    {
+      vec2 coord = vec2(zerof + 0.5, zerof + 0.145);
+
+      Color = textureLod(sampler2D(sampledImage, linearSampler), coord, 0.0);
       break;
     }
     default: break;

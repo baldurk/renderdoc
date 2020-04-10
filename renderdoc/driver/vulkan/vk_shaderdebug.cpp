@@ -71,26 +71,33 @@ struct DescSetSnapshot
 };
 
 // should match the descriptor set layout created in ShaderDebugData::Init()
-enum ShaderDebugBind
+enum class ShaderDebugBind
 {
   Tex1D = 1,
+  First = Tex1D,
   Tex2D,
   Tex3D,
   Tex2DMS,
   Buffer,
   Sampler,
+  Count,
+};
+
+struct Vec3i
+{
+  int32_t x, y, z;
 };
 
 struct ShaderDebugParameters
 {
   uint32_t operation;
   ShaderDebugBind dim;
-  int texel_uvw[3];
+  Vec3i texel_uvw;
   int texel_lod;
   Vec3f uvw;
   Vec3f ddx;
   Vec3f ddy;
-  int offset[3];
+  Vec3i offset;
   int sampleIdx;
   float compare;
   float bias;
@@ -335,6 +342,8 @@ public:
     VkImageView view = imageInfo.imageView;
     VkImageLayout layout = imageInfo.imageLayout;
 
+    // promote view to Array view
+
     const VulkanCreationInfo::Image &imageProps =
         m_Creation.m_Image[m_Creation.m_ImageView[GetResID(view)].image];
     VkImageType imageType = imageProps.type;
@@ -365,14 +374,32 @@ public:
     {
       case rdcspv::Op::ImageFetch:
       {
-        params.texel_uvw[0] = uv.value.u.x;
-        params.texel_uvw[1] = uv.value.u.y;
-        params.texel_uvw[2] = uv.value.u.z;
+        // TODO only upload relevant coords
+        params.texel_uvw.x = uv.value.u.x;
+        params.texel_uvw.y = uv.value.u.y;
+        params.texel_uvw.z = uv.value.u.z;
         if(!buffer)
           params.texel_lod = lane.GetSrc(operands.lod).value.i.x;
         break;
       }
-      case rdcspv::Op::ImageSampleExplicitLod: { break;
+      case rdcspv::Op::ImageSampleExplicitLod:
+      {
+        // TODO only upload relevant coords
+        params.uvw.x = uv.value.f.x;
+        params.uvw.y = uv.value.f.y;
+        params.uvw.z = uv.value.f.z;
+        if(operands.flags & rdcspv::ImageOperands::Lod)
+          params.lod = lane.GetSrc(operands.lod).value.f.x;
+        else
+          RDCERR("Grad variant not supported");
+        if(operands.flags & rdcspv::ImageOperands::ConstOffset)
+        {
+          ShaderVariable constOffset = lane.GetSrc(operands.constOffset);
+          params.offset.x = constOffset.value.i.x;
+          params.offset.y = constOffset.value.i.y;
+          params.offset.z = constOffset.value.i.z;
+        }
+        break;
       }
       case rdcspv::Op::ImageSampleImplicitLod: { break;
       }
@@ -549,7 +576,7 @@ private:
     VkSpecializationMapEntry specMaps[sizeof(params) / sizeof(uint32_t)];
     for(size_t i = 0; i < ARRAY_COUNT(specMaps); i++)
     {
-      specMaps[i].constantID = uint32_t(i + i);
+      specMaps[i].constantID = uint32_t(i);
       specMaps[i].offset = uint32_t(sizeof(uint32_t) * i);
       specMaps[i].size = sizeof(uint32_t);
     }
@@ -693,9 +720,10 @@ private:
     editor.CreateEmpty(1, 0);
 
     editor.AddCapability(rdcspv::Capability::Shader);
+    editor.AddCapability(rdcspv::Capability::Sampled1D);
+    editor.AddCapability(rdcspv::Capability::SampledBuffer);
 
     rdcspv::Id entryId = editor.MakeId();
-    rdcarray<rdcspv::Id> globals;
 
     editor.AddOperation(
         editor.Begin(rdcspv::Section::MemoryModel),
@@ -705,28 +733,122 @@ private:
     rdcspv::Id i32 = editor.DeclareType(rdcspv::scalar<int32_t>());
     rdcspv::Id f32 = editor.DeclareType(rdcspv::scalar<float>());
 
+    rdcspv::Id v2i32 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<int32_t>(), 2));
+    rdcspv::Id v3i32 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<int32_t>(), 3));
+    rdcspv::Id v2f32 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 2));
+    rdcspv::Id v3f32 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 3));
+
     rdcspv::Scalar base = rdcspv::scalar<float>();
     if(uintTex)
       base = rdcspv::scalar<uint32_t>();
     else if(sintTex)
       base = rdcspv::scalar<int32_t>();
 
+    rdcspv::Id resultType = editor.DeclareType(rdcspv::Vector(base, 4));
+
+// add specialisation constants for all the parameters
+#define SPEC_ID(name) uint32_t(offsetof(ShaderDebugParameters, name) / sizeof(uint32_t))
+    rdcspv::Id operation = editor.AddSpecConstantImmediate<uint32_t>(0U, SPEC_ID(operation));
+    rdcspv::Id dim = editor.AddSpecConstantImmediate<uint32_t>(0U, SPEC_ID(dim));
+    rdcspv::Id texel_u = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(texel_uvw.x));
+    rdcspv::Id texel_v = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(texel_uvw.y));
+    rdcspv::Id texel_w = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(texel_uvw.z));
+    rdcspv::Id texel_lod = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(texel_lod));
+    rdcspv::Id u = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(uvw.x));
+    rdcspv::Id v = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(uvw.y));
+    rdcspv::Id w = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(uvw.z));
+    rdcspv::Id dudx = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(ddx.x));
+    rdcspv::Id dvdx = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(ddx.y));
+    rdcspv::Id dwdx = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(ddx.z));
+    rdcspv::Id dudy = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(ddy.x));
+    rdcspv::Id dvdy = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(ddy.y));
+    rdcspv::Id dwdy = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(ddy.z));
+    rdcspv::Id offset_x = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(offset.x));
+    rdcspv::Id offset_y = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(offset.y));
+    rdcspv::Id offset_z = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(offset.z));
+    rdcspv::Id sampleIdx = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(sampleIdx));
+    rdcspv::Id compare = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(compare));
+    rdcspv::Id bias = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(bias));
+    rdcspv::Id lod = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(lod));
+    rdcspv::Id gatherChannel = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(gatherChannel));
+
+    rdcspv::Id texel_uv = editor.AddConstant(
+        rdcspv::OpSpecConstantComposite(v2i32, editor.MakeId(), {texel_u, texel_v}));
+    rdcspv::Id texel_uvw = editor.AddConstant(
+        rdcspv::OpSpecConstantComposite(v3i32, editor.MakeId(), {texel_u, texel_v, texel_w}));
+
+    rdcspv::Id uv =
+        editor.AddConstant(rdcspv::OpSpecConstantComposite(v2f32, editor.MakeId(), {u, v}));
+    rdcspv::Id uvw =
+        editor.AddConstant(rdcspv::OpSpecConstantComposite(v3f32, editor.MakeId(), {u, v, w}));
+
+    rdcspv::Id ddx_uv =
+        editor.AddConstant(rdcspv::OpSpecConstantComposite(v2f32, editor.MakeId(), {dudx, dvdx}));
+    rdcspv::Id ddx_uvw = editor.AddConstant(
+        rdcspv::OpSpecConstantComposite(v3f32, editor.MakeId(), {dudx, dvdx, dwdx}));
+
+    rdcspv::Id ddy_uv =
+        editor.AddConstant(rdcspv::OpSpecConstantComposite(v2f32, editor.MakeId(), {dudy, dvdy}));
+    rdcspv::Id ddy_uvw = editor.AddConstant(
+        rdcspv::OpSpecConstantComposite(v3f32, editor.MakeId(), {dudy, dvdy, dwdy}));
+
+    rdcspv::Id offset_xy = editor.AddConstant(
+        rdcspv::OpSpecConstantComposite(v2i32, editor.MakeId(), {offset_x, offset_y}));
+    rdcspv::Id offset_xyz = editor.AddConstant(
+        rdcspv::OpSpecConstantComposite(v3i32, editor.MakeId(), {offset_x, offset_y, offset_z}));
+
     // create the output. It's always a 4-wide vector
-    rdcspv::Id outType = editor.DeclareType(rdcspv::Vector(base, 4));
     rdcspv::Id outPtrType =
-        editor.DeclareType(rdcspv::Pointer(outType, rdcspv::StorageClass::Output));
+        editor.DeclareType(rdcspv::Pointer(resultType, rdcspv::StorageClass::Output));
 
     rdcspv::Id outVar = editor.AddVariable(
         rdcspv::OpVariable(outPtrType, editor.MakeId(), rdcspv::StorageClass::Output));
     editor.AddDecoration(
         rdcspv::OpDecorate(outVar, rdcspv::DecorationParam<rdcspv::Decoration::Location>(0)));
 
-    globals.push_back(outVar);
+    rdcspv::ImageFormat unk = rdcspv::ImageFormat::Unknown;
+
+    // create the five textures and sampler
+    rdcspv::Id texSampTypes[ShaderDebugBind::Count] = {
+        rdcspv::Id(),
+        editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_1D, 0, 1, 0, 1, unk)),
+        editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_2D, 0, 1, 0, 1, unk)),
+        editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_3D, 0, 1, 0, 1, unk)),
+        editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_2D, 0, 1, 1, 1, unk)),
+        editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::Buffer, 0, 1, 0, 1, unk)),
+        editor.DeclareType(rdcspv::Sampler()),
+    };
+    rdcspv::Id texSampVars[ShaderDebugBind::Count];
+    rdcspv::Id texSampCombinedTypes[ShaderDebugBind::Count] = {
+        rdcspv::Id(),
+        editor.DeclareType(rdcspv::SampledImage(texSampTypes[1])),
+        editor.DeclareType(rdcspv::SampledImage(texSampTypes[2])),
+        editor.DeclareType(rdcspv::SampledImage(texSampTypes[3])),
+        editor.DeclareType(rdcspv::SampledImage(texSampTypes[4])),
+        editor.DeclareType(rdcspv::SampledImage(texSampTypes[5])),
+        rdcspv::Id(),
+    };
+
+    for(size_t i = (size_t)ShaderDebugBind::First; i < (size_t)ShaderDebugBind::Count; i++)
+    {
+      rdcspv::Id ptrType =
+          editor.DeclareType(rdcspv::Pointer(texSampTypes[i], rdcspv::StorageClass::UniformConstant));
+
+      texSampVars[i] = editor.AddVariable(
+          rdcspv::OpVariable(ptrType, editor.MakeId(), rdcspv::StorageClass::UniformConstant));
+
+      editor.AddDecoration(rdcspv::OpDecorate(
+          texSampVars[i], rdcspv::DecorationParam<rdcspv::Decoration::DescriptorSet>(0U)));
+      editor.AddDecoration(rdcspv::OpDecorate(
+          texSampVars[i], rdcspv::DecorationParam<rdcspv::Decoration::Binding>((uint32_t)i)));
+    }
+
+    rdcspv::Id sampVar = texSampVars[(size_t)ShaderDebugBind::Sampler];
 
     // register the entry point
     editor.AddOperation(
         editor.Begin(rdcspv::Section::EntryPoints),
-        rdcspv::OpEntryPoint(rdcspv::ExecutionModel::Fragment, entryId, "main", globals));
+        rdcspv::OpEntryPoint(rdcspv::ExecutionModel::Fragment, entryId, "main", {outVar}));
     editor.AddOperation(editor.Begin(rdcspv::Section::ExecutionMode),
                         rdcspv::OpExecutionMode(entryId, rdcspv::ExecutionMode::OriginUpperLeft));
 
@@ -738,18 +860,114 @@ private:
     func.add(rdcspv::OpLabel(editor.MakeId()));
 
     // first store NULL data in, so the output is always initialised
-    func.add(rdcspv::OpStore(outVar,
-                             editor.AddConstant(rdcspv::OpConstantNull(outType, editor.MakeId()))));
 
-    rdcspv::Id dummyOut = editor.AddConstant(rdcspv::OpConstantComposite(
-        outType, editor.MakeId(),
-        {
-            editor.AddConstantImmediate<float>(1.2f), editor.AddConstantImmediate<float>(3.4f),
-            editor.AddConstantImmediate<float>(5.6f), editor.AddConstantImmediate<float>(7.8f),
-        }));
+    rdcspv::Id breakLabel = editor.MakeId();
+    rdcspv::Id defaultLabel = editor.MakeId();
 
-    func.add(rdcspv::OpStore(outVar, dummyOut));
+    // combine the operation with the image type:
+    // operation * 10 + dim
+    RDCCOMPILE_ASSERT(size_t(ShaderDebugBind::Count) < 10, "Combining value ranges will overlap!");
+    rdcspv::Id switchVal = func.add(rdcspv::OpIMul(u32, editor.MakeId(), operation,
+                                                   editor.AddConstantImmediate<uint32_t>(10U)));
+    switchVal = func.add(rdcspv::OpIAdd(u32, editor.MakeId(), switchVal, dim));
 
+    // switch on the combined operation and image type value
+    rdcarray<rdcspv::PairLiteralIntegerIdRef> targets;
+
+    rdcspv::OperationList cases;
+
+    rdcspv::Op op;
+
+    rdcspv::Id texel_coord[(uint32_t)ShaderDebugBind::Count] = {
+        rdcspv::Id(),
+        texel_uv,     // 1D - u and array
+        texel_uvw,    // 2D - u,v and array
+        texel_uvw,    // 3D - u,v,w
+        texel_uvw,    // 2DMS - u,v and array
+        texel_u,      // Buffer - u
+    };
+
+    rdcspv::Id coord[(uint32_t)ShaderDebugBind::Count] = {
+        rdcspv::Id(),
+        uv,     // 1D - u and array
+        uvw,    // 2D - u,v and array
+        uvw,    // 3D - u,v,w
+        uvw,    // 2DMS - u,v and array
+        u,      // Buffer - u
+    };
+
+    rdcspv::Id offsets[(uint32_t)ShaderDebugBind::Count] = {
+        rdcspv::Id(),
+        offset_x,      // 1D - u
+        offset_xy,     // 2D - u,v
+        offset_xyz,    // 3D - u,v,w
+        offset_xy,     // 2DMS - u,v
+        offset_x,      // Buffer - u
+    };
+
+    uint32_t sampIdx = (uint32_t)ShaderDebugBind::Sampler;
+
+    // for(uint32_t i = (uint32_t)ShaderDebugBind::First; i < (uint32_t)ShaderDebugBind::Count; i++)
+    uint32_t i = (uint32_t)ShaderDebugBind::Tex2D;
+    {
+      {
+        op = rdcspv::Op::ImageFetch;
+
+        rdcspv::Id label = editor.MakeId();
+        targets.push_back({(uint32_t)op * 10 + i, label});
+
+        rdcspv::ImageOperandsAndParamDatas imageOperands;
+
+        if(i != (uint32_t)ShaderDebugBind::Buffer)
+          imageOperands.setLod(texel_lod);
+
+        cases.add(rdcspv::OpLabel(label));
+        rdcspv::Id loaded =
+            cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), texSampVars[i]));
+        rdcspv::Id sampleResult = cases.add(rdcspv::OpImageFetch(
+            resultType, editor.MakeId(), loaded, texel_coord[i], imageOperands));
+        cases.add(rdcspv::OpStore(outVar, sampleResult));
+        cases.add(rdcspv::OpBranch(breakLabel));
+      }
+
+      {
+        op = rdcspv::Op::ImageSampleExplicitLod;
+
+        rdcspv::Id label = editor.MakeId();
+        targets.push_back({(uint32_t)op * 10 + i, label});
+
+        rdcspv::ImageOperandsAndParamDatas imageOperands;
+
+        imageOperands.setLod(lod);
+
+        imageOperands.setConstOffset(offsets[i]);
+
+        cases.add(rdcspv::OpLabel(label));
+        rdcspv::Id loadedImage =
+            cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), texSampVars[i]));
+        rdcspv::Id loadedSampler =
+            cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), texSampVars[sampIdx]));
+        rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
+            texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+        rdcspv::Id sampleResult = cases.add(rdcspv::OpImageSampleExplicitLod(
+            resultType, editor.MakeId(), combined, coord[i], imageOperands));
+        cases.add(rdcspv::OpStore(outVar, sampleResult));
+        cases.add(rdcspv::OpBranch(breakLabel));
+      }
+    }
+
+    func.add(rdcspv::OpSelectionMerge(breakLabel, rdcspv::SelectionControl::None));
+    func.add(rdcspv::OpSwitch(switchVal, defaultLabel, targets));
+
+    func.append(cases);
+
+    // default: store NULL data
+    func.add(rdcspv::OpLabel(defaultLabel));
+    func.add(rdcspv::OpStore(
+        outVar, editor.AddConstant(rdcspv::OpConstantNull(resultType, editor.MakeId()))));
+    func.add(rdcspv::OpBranch(breakLabel));
+
+    func.add(rdcspv::OpLabel(breakLabel));
     func.add(rdcspv::OpReturn());
     func.add(rdcspv::OpFunctionEnd());
 
