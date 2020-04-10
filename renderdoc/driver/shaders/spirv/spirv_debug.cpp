@@ -728,13 +728,11 @@ void ThreadState::StepNext(ShaderDebugState *state,
       }
       else
       {
-        ShaderVariable var = GetSrc(select.object1);
-        ShaderVariable b = GetSrc(select.object2);
         for(uint8_t c = 0; c < cond.columns; c++)
         {
           if(cond.value.uv[c] == 0)
           {
-            if(VarTypeByteSize(var.type))
+            if(VarTypeByteSize(var.type) == 8)
               var.value.u64v[c] = b.value.u64v[c];
             else
               var.value.uv[c] = b.value.uv[c];
