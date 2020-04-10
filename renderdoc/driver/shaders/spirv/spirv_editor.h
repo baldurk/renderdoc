@@ -122,6 +122,7 @@ public:
   ~Editor();
 
   void Prepare();
+  void CreateEmpty(uint32_t major, uint32_t minor);
 
   Id MakeId();
 

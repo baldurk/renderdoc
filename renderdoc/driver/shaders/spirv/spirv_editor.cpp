@@ -117,15 +117,37 @@ void Editor::Prepare()
   }
 }
 
+void Editor::CreateEmpty(uint32_t major, uint32_t minor)
+{
+  if(!m_ExternalSPIRV.empty())
+  {
+    RDCERR("Creating empty SPIR-V module with some SPIR-V words already in place!");
+    m_ExternalSPIRV.clear();
+  }
+
+  // create an empty SPIR-V header with an upper ID bound of 1
+
+  m_ExternalSPIRV = {
+      MagicNumber, (major << 16) | (minor << 8),
+      0,    // TODO maybe register a generator ID?
+      1,    // bound
+      0,    // instruction schema
+  };
+
+  // we need at least one opcode to parse properly, and we'll always need shader.
+  Operation shader = Operation(OpCapability(Capability::Shader));
+  m_ExternalSPIRV.append(&shader[0], shader.size());
+
+  Prepare();
+}
+
 Editor::~Editor()
 {
   for(size_t i = FirstRealWord; i < m_SPIRV.size();)
   {
-    while(m_SPIRV[i] == OpNopWord)
-    {
+    // don't need to update anything as we're destructing!
+    while(i < m_SPIRV.size() && m_SPIRV[i] == OpNopWord)
       m_SPIRV.erase(i);
-      addWords(i, -1);
-    }
 
     uint32_t len = m_SPIRV[i] >> WordCountShift;
 

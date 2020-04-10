@@ -422,6 +422,10 @@ void Processor::Parse(const rdcarray<uint32_t> &spirvWords)
   // ensure we got everything right. First section should start at the beginning
   RDCASSERTEQUAL(m_Sections[Section::First].startOffset, FirstRealWord);
 
+  // if the last section is empty, set its start ofset. This will cascade below
+  if(m_Sections[Section::Count - 1].startOffset == 0)
+    m_Sections[Section::Count - 1].startOffset = m_Sections[Section::Count - 1].endOffset;
+
   // we now set the endOffset of each section to the start of the next. Any empty sections
   // temporarily have startOffset set to endOffset, we'll pad them with a nop below.
   for(int s = Section::Count - 1; s > 0; s--)
