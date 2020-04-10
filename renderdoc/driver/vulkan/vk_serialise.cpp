@@ -2487,7 +2487,8 @@ void DoSerialise(SerialiserType &ser, VkSpecializationMapEntry &el)
 {
   SERIALISE_MEMBER(constantID);
   SERIALISE_MEMBER(offset);
-  SERIALISE_MEMBER(constantID);
+  // this was accidentally duplicated - hide it from the UI
+  SERIALISE_MEMBER(constantID).Hidden();
 
   // don't serialise size_t, otherwise capture/replay between different bit-ness won't work
   {
