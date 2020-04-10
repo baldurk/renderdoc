@@ -540,7 +540,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
   rdcspv::Id PSHitRTArray = editor.AddType(rdcspv::OpTypeRuntimeArray(editor.MakeId(), PSHit));
 
   editor.AddDecoration(rdcspv::OpDecorate(
-      PSHitRTArray, rdcspv::DecorationParam<rdcspv::Decoration::ArrayStride>(structStride)));
+      PSHitRTArray, rdcspv::DecorationParam<rdcspv::Decoration::ArrayStride>(structStride * 5 +
+                                                                             sizeof(Vec4f) * 2)));
 
   rdcspv::Id bufBase = editor.DeclareStructType({
       // uint hit_count;
