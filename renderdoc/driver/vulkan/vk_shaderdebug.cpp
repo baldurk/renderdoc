@@ -39,13 +39,152 @@ RDOC_DEBUG_CONFIG(rdcstr, Vulkan_Debug_PSDebugDumpDirPath, "",
 RDOC_DEBUG_CONFIG(bool, Vulkan_Debug_DisableBufferDeviceAddress, false,
                   "Disable use of buffer device address for PS Input fetch.");
 
+struct DescSetBindingSnapshot
+{
+  rdcarray<VkDescriptorImageInfo> imageInfos;
+  rdcarray<VkDescriptorBufferInfo> buffers;
+  rdcarray<VkBufferView> texelBuffers;
+
+  template <typename T>
+  const rdcarray<T> &get() const;
+};
+
+template <>
+const rdcarray<VkDescriptorImageInfo> &DescSetBindingSnapshot::get() const
+{
+  return imageInfos;
+}
+template <>
+const rdcarray<VkDescriptorBufferInfo> &DescSetBindingSnapshot::get() const
+{
+  return buffers;
+}
+template <>
+const rdcarray<VkBufferView> &DescSetBindingSnapshot::get() const
+{
+  return texelBuffers;
+}
+
+struct DescSetSnapshot
+{
+  rdcarray<DescSetBindingSnapshot> bindings;
+};
 class VulkanAPIWrapper : public rdcspv::DebugAPIWrapper
 {
+  rdcarray<DescSetSnapshot> m_DescSets;
+
 public:
-  VulkanAPIWrapper(WrappedVulkan *vk) : m_DebugData(vk->GetReplay()->GetShaderDebugData())
+  VulkanAPIWrapper(WrappedVulkan *vk, VulkanCreationInfo &creation, VkShaderStageFlagBits stage)
+      : m_DebugData(vk->GetReplay()->GetShaderDebugData()), m_Creation(creation)
   {
     m_pDriver = vk;
+
+    const VulkanRenderState &state = m_pDriver->GetRenderState();
+
+    const bool compute = (stage == VK_SHADER_STAGE_COMPUTE_BIT);
+
+    // snapshot descriptor set contents
+    const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descSets =
+        compute ? state.compute.descSets : state.graphics.descSets;
+
+    const VulkanCreationInfo::Pipeline &pipe =
+        m_Creation.m_Pipeline[compute ? state.compute.pipeline : state.graphics.pipeline];
+    const VulkanCreationInfo::PipelineLayout &pipeLayout = m_Creation.m_PipelineLayout[pipe.layout];
+
+    m_DescSets.resize(RDCMIN(descSets.size(), pipeLayout.descSetLayouts.size()));
+    for(size_t set = 0; set < m_DescSets.size(); set++)
+    {
+      uint32_t dynamicOffset = 0;
+
+      DescSetSnapshot &dstSet = m_DescSets[set];
+
+      const rdcarray<DescriptorSetSlot *> &curBinds =
+          m_pDriver->GetCurrentDescSetBindings(descSets[set].descSet);
+      const DescSetLayout &setLayout = m_Creation.m_DescSetLayout[pipeLayout.descSetLayouts[set]];
+
+      for(size_t bind = 0; bind < setLayout.bindings.size(); bind++)
+      {
+        const DescSetLayout::Binding &bindLayout = setLayout.bindings[bind];
+
+        if(bindLayout.stageFlags & stage)
+        {
+          DescriptorSetSlot *curSlots = curBinds[bind];
+
+          dstSet.bindings.resize(bind + 1);
+
+          DescSetBindingSnapshot &dstBind = dstSet.bindings[bind];
+
+          switch(bindLayout.descriptorType)
+          {
+            case VK_DESCRIPTOR_TYPE_SAMPLER:
+            case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+            case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+            case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+            {
+              dstBind.imageInfos.resize(bindLayout.descriptorCount);
+              for(uint32_t i = 0; i < bindLayout.descriptorCount; i++)
+              {
+                dstBind.imageInfos[i].imageLayout = curSlots[i].imageInfo.imageLayout;
+                dstBind.imageInfos[i].imageView =
+                    m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(
+                        curSlots[i].imageInfo.imageView);
+                dstBind.imageInfos[i].sampler =
+                    m_pDriver->GetResourceManager()->GetCurrentHandle<VkSampler>(
+                        bindLayout.immutableSampler ? bindLayout.immutableSampler[i]
+                                                    : curSlots[i].imageInfo.sampler);
+              }
+              break;
+            }
+            case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+            case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+            {
+              dstBind.texelBuffers.resize(bindLayout.descriptorCount);
+              for(uint32_t i = 0; i < bindLayout.descriptorCount; i++)
+              {
+                dstBind.texelBuffers[i] =
+                    m_pDriver->GetResourceManager()->GetCurrentHandle<VkBufferView>(
+                        curSlots[i].texelBufferView);
+              }
+              break;
+            }
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+            {
+              dstBind.buffers.resize(bindLayout.descriptorCount);
+              for(uint32_t i = 0; i < bindLayout.descriptorCount; i++)
+              {
+                dstBind.buffers[i].offset = curSlots[i].bufferInfo.offset;
+                dstBind.buffers[i].range = curSlots[i].bufferInfo.range;
+                dstBind.buffers[i].buffer =
+                    m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(
+                        curSlots[i].bufferInfo.buffer);
+              }
+              break;
+            }
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+            {
+              dstBind.buffers.resize(bindLayout.descriptorCount);
+              for(uint32_t i = 0; i < bindLayout.descriptorCount; i++)
+              {
+                dstBind.buffers[i].offset = curSlots[i].bufferInfo.offset;
+                dstBind.buffers[i].range = curSlots[i].bufferInfo.range;
+                dstBind.buffers[i].buffer =
+                    m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(
+                        curSlots[i].bufferInfo.buffer);
+
+                dstBind.buffers[i].offset += descSets[set].offsets[dynamicOffset++];
+              }
+              break;
+            }
+            default: RDCERR("Unexpected descriptor type");
+          }
+        }
+      }
+    }
   }
+
   virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
                                rdcstr d) override
   {
@@ -55,11 +194,21 @@ public:
   virtual void ReadConstantBufferValue(uint32_t set, uint32_t bind, uint32_t offset,
                                        uint32_t byteSize, void *dst) override
   {
-    auto it = cbuffers.find(make_rdcpair(set, bind));
-    if(it == cbuffers.end())
-      return;
+    rdcpair<uint32_t, uint32_t> key = make_rdcpair(set, bind);
+    auto insertIt = cbufferCache.insert(std::make_pair(key, bytebuf()));
+    bytebuf &data = insertIt.first->second;
+    if(insertIt.second)
+    {
+      // TODO handle arrays here
+      BindpointIndex index(set, bind, 0);
 
-    bytebuf &data = it->second;
+      bool valid = true;
+      const VkDescriptorBufferInfo &bufData =
+          GetDescriptor<VkDescriptorBufferInfo>("reading constant buffer value", index, valid);
+      if(valid)
+        m_pDriver->GetDebugManager()->GetBufferData(GetResID(bufData.buffer), bufData.offset,
+                                                    bufData.range, data);
+    }
 
     if(offset + byteSize <= data.size())
       memcpy(dst, data.data() + offset, byteSize);
@@ -127,7 +276,6 @@ public:
     return true;
   }
 
-  std::map<rdcpair<uint32_t, uint32_t>, bytebuf> cbuffers;
   std::map<ShaderBuiltin, ShaderVariable> builtin_inputs;
   rdcarray<ShaderVariable> location_inputs;
 
@@ -137,6 +285,72 @@ public:
 private:
   WrappedVulkan *m_pDriver = NULL;
   ShaderDebugData &m_DebugData;
+  VulkanCreationInfo &m_Creation;
+
+  std::map<rdcpair<uint32_t, uint32_t>, bytebuf> cbufferCache;
+  template <typename T>
+  const T &GetDescriptor(const rdcstr &access, BindpointIndex index, bool &valid)
+  {
+    static T dummy = {};
+
+    if(index.bindset == ~0U)
+    {
+      // invalid index, return a dummy data but don't mark as invalid
+      return dummy;
+    }
+
+    if(index.bindset >= m_DescSets.size())
+    {
+      m_pDriver->AddDebugMessage(
+          MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+          StringFormat::Fmt(
+              "Out of bounds access to unbound descriptor set %u (binding %u) when %s",
+              index.bindset, index.bind, access.c_str()));
+      valid = false;
+      return dummy;
+    }
+
+    const DescSetSnapshot &setData = m_DescSets[index.bindset];
+
+    if(index.bind >= setData.bindings.size())
+    {
+      m_pDriver->AddDebugMessage(
+          MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+          StringFormat::Fmt(
+              "Out of bounds access to non-existant descriptor set %u binding %u when %s",
+              index.bindset, index.bind, access.c_str()));
+      valid = false;
+      return dummy;
+    }
+
+    const DescSetBindingSnapshot &bindData = setData.bindings[index.bind];
+
+    const rdcarray<T> &elemData = bindData.get<T>();
+
+    if(elemData.empty())
+    {
+      m_pDriver->AddDebugMessage(
+          MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+          StringFormat::Fmt("descriptor set %u binding %u is not bound, when %s", index.bindset,
+                            index.bind, access.c_str()));
+      valid = false;
+      return dummy;
+    }
+
+    if(index.arrayIndex >= elemData.size())
+    {
+      m_pDriver->AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
+                                 MessageSource::RuntimeWarning,
+                                 StringFormat::Fmt("descriptor set %u binding %u has %zu "
+                                                   "descriptors, index %u is out of bounds when %s",
+                                                   index.bindset, index.bind, elemData.size(),
+                                                   index.arrayIndex, access.c_str()));
+      valid = false;
+      return dummy;
+    }
+
+    return elemData[index.arrayIndex];
+  }
 };
 
 enum StorageMode
@@ -921,7 +1135,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
     return new ShaderDebugTrace;
   }
 
-  const VulkanRenderState &state = m_pDriver->m_RenderState;
+  const VulkanRenderState &state = m_pDriver->GetRenderState();
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
   VkMarkerRegion region(
@@ -941,43 +1155,8 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
       shader.GetReflection(entryPoint, state.graphics.pipeline);
 
   shadRefl.PopulateDisassembly(shader.spirv);
-  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver);
 
-  for(uint32_t set = 0; set < state.graphics.descSets.size(); set++)
-  {
-    const VulkanStatePipeline::DescriptorAndOffsets &src = state.graphics.descSets[set];
-
-    const WrappedVulkan::DescriptorSetInfo &setInfo = m_pDriver->m_DescriptorSetState[src.descSet];
-    ResourceId layoutId = setInfo.layout;
-
-    uint32_t dynOffsetIdx = 0;
-
-    for(uint32_t bind = 0; bind < setInfo.currentBindings.size(); bind++)
-    {
-      DescriptorSetSlot *info = setInfo.currentBindings[bind];
-      const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[bind];
-
-      if(layoutBind.stageFlags == 0)
-        continue;
-
-      uint32_t dynOffset = 0;
-
-      if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
-         layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-        dynOffset = src.offsets[dynOffsetIdx++];
-
-      // TODO handle arrays of bindings
-      const uint32_t arrayIdx = 0;
-
-      if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-         layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-      {
-        const DescriptorSetSlotBufferInfo &bufInfo = info[arrayIdx].bufferInfo;
-        GetDebugManager()->GetBufferData(bufInfo.buffer, bufInfo.offset + dynOffset, bufInfo.range,
-                                         apiWrapper->cbuffers[make_rdcpair(set, bind)]);
-      }
-    }
-  }
+  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_VERTEX_BIT);
 
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
   builtins[ShaderBuiltin::BaseInstance] = ShaderVariable(rdcstr(), draw->instanceOffset, 0U, 0U, 0U);
@@ -1080,7 +1259,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   VkDevice dev = m_pDriver->GetDev();
   VkResult vkr = VK_SUCCESS;
 
-  const VulkanRenderState &state = m_pDriver->m_RenderState;
+  const VulkanRenderState &state = m_pDriver->GetRenderState();
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
   VkMarkerRegion region(StringFormat::Fmt("DebugPixel @ %u of (%u,%u) sample %u primitive %u",
@@ -1100,43 +1279,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
       shader.GetReflection(entryPoint, state.graphics.pipeline);
 
   shadRefl.PopulateDisassembly(shader.spirv);
-  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver);
 
-  for(uint32_t set = 0; set < state.graphics.descSets.size(); set++)
-  {
-    const VulkanStatePipeline::DescriptorAndOffsets &src = state.graphics.descSets[set];
-
-    const WrappedVulkan::DescriptorSetInfo &setInfo = m_pDriver->m_DescriptorSetState[src.descSet];
-    ResourceId layoutId = setInfo.layout;
-
-    uint32_t dynOffsetIdx = 0;
-
-    for(uint32_t bind = 0; bind < setInfo.currentBindings.size(); bind++)
-    {
-      DescriptorSetSlot *info = setInfo.currentBindings[bind];
-      const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[bind];
-
-      if(layoutBind.stageFlags == 0)
-        continue;
-
-      uint32_t dynOffset = 0;
-
-      if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
-         layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-        dynOffset = src.offsets[dynOffsetIdx++];
-
-      // TODO handle arrays of bindings
-      const uint32_t arrayIdx = 0;
-
-      if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-         layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-      {
-        const DescriptorSetSlotBufferInfo &bufInfo = info[arrayIdx].bufferInfo;
-        GetDebugManager()->GetBufferData(bufInfo.buffer, bufInfo.offset + dynOffset, bufInfo.range,
-                                         apiWrapper->cbuffers[make_rdcpair(set, bind)]);
-      }
-    }
-  }
+  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_FRAGMENT_BIT);
 
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
   builtins[ShaderBuiltin::DeviceIndex] = ShaderVariable(rdcstr(), 0U, 0U, 0U, 0U);
@@ -1638,7 +1782,7 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t gro
     return new ShaderDebugTrace;
   }
 
-  const VulkanRenderState &state = m_pDriver->m_RenderState;
+  const VulkanRenderState &state = m_pDriver->GetRenderState();
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
   VkMarkerRegion region(StringFormat::Fmt("DebugThread @ %u of (%u,%u,%u) (%u,%u,%u)", eventId,
@@ -1659,43 +1803,8 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t gro
       shader.GetReflection(entryPoint, state.compute.pipeline);
 
   shadRefl.PopulateDisassembly(shader.spirv);
-  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver);
 
-  for(uint32_t set = 0; set < state.compute.descSets.size(); set++)
-  {
-    const VulkanStatePipeline::DescriptorAndOffsets &src = state.compute.descSets[set];
-
-    const WrappedVulkan::DescriptorSetInfo &setInfo = m_pDriver->m_DescriptorSetState[src.descSet];
-    ResourceId layoutId = setInfo.layout;
-
-    uint32_t dynOffsetIdx = 0;
-
-    for(uint32_t bind = 0; bind < setInfo.currentBindings.size(); bind++)
-    {
-      DescriptorSetSlot *info = setInfo.currentBindings[bind];
-      const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[bind];
-
-      if(layoutBind.stageFlags == 0)
-        continue;
-
-      uint32_t dynOffset = 0;
-
-      if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
-         layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-        dynOffset = src.offsets[dynOffsetIdx++];
-
-      // TODO handle arrays of bindings
-      const uint32_t arrayIdx = 0;
-
-      if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-         layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-      {
-        const DescriptorSetSlotBufferInfo &bufInfo = info[arrayIdx].bufferInfo;
-        GetDebugManager()->GetBufferData(bufInfo.buffer, bufInfo.offset + dynOffset, bufInfo.range,
-                                         apiWrapper->cbuffers[make_rdcpair(set, bind)]);
-      }
-    }
-  }
+  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_COMPUTE_BIT);
 
   uint32_t threadDim[3];
   threadDim[0] = shadRefl.refl.dispatchThreadsDimension[0];
