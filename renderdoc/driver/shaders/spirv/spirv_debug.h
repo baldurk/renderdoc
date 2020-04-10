@@ -44,6 +44,8 @@ enum class GatherChannel : uint8_t
   Alpha = 3,
 };
 
+struct ThreadState;
+
 class DebugAPIWrapper
 {
 public:
@@ -56,7 +58,7 @@ public:
   virtual void FillInputValue(ShaderVariable &var, ShaderBuiltin builtin, uint32_t location,
                               uint32_t component) = 0;
 
-  virtual bool CalculateSampleGather(rdcspv::Op opcode, BindpointIndex imageBind,
+  virtual bool CalculateSampleGather(ThreadState &thread, rdcspv::Op opcode, BindpointIndex imageBind,
                                      BindpointIndex samplerBind, const ShaderVariable &uv,
                                      const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
                                      const ShaderVariable &compare, GatherChannel gatherChannel,
@@ -74,8 +76,6 @@ public:
   virtual DerivativeDeltas GetDerivative(ShaderBuiltin builtin, uint32_t location,
                                          uint32_t component) = 0;
 };
-
-struct ThreadState;
 
 typedef ShaderVariable (*ExtInstImpl)(ThreadState &, const rdcarray<Id> &);
 

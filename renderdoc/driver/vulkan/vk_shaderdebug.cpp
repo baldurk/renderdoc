@@ -114,7 +114,7 @@ public:
     return DerivativeDeltas();
   }
 
-  bool CalculateSampleGather(rdcspv::Op opcode, BindpointIndex imageBind,
+  bool CalculateSampleGather(rdcspv::ThreadState &thread, rdcspv::Op opcode, BindpointIndex imageBind,
                              BindpointIndex samplerBind, const ShaderVariable &uv,
                              const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
                              const ShaderVariable &compare, rdcspv::GatherChannel gatherChannel,

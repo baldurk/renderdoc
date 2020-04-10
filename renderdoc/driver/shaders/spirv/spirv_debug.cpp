@@ -1570,7 +1570,7 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
       result.type = resultType.scalar().Type();
 
-      if(!debugger.GetAPIWrapper()->CalculateSampleGather(opdata.op, img.GetBinding(),
+      if(!debugger.GetAPIWrapper()->CalculateSampleGather(*this, opdata.op, img.GetBinding(),
                                                           sampler.GetBinding(), uv, ddxCalc, ddyCalc,
                                                           compare, gather, operands, result))
       {
