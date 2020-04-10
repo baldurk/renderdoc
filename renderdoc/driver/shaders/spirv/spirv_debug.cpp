@@ -1566,13 +1566,21 @@ void ThreadState::StepNext(ShaderDebugState *state,
       RDCASSERT(sampler.type == VarType::Unknown || sampler.type == VarType::ReadOnlyResource ||
                 sampler.type == VarType::Sampler);
 
+      // at setup time we stored the texture type for easy access here
+      DebugAPIWrapper::TextureType texType =
+          (DebugAPIWrapper::TextureType)img.value.uv[TextureTypeVariableSlot];
+
       ShaderVariable result;
 
       result.type = resultType.scalar().Type();
 
-      if(!debugger.GetAPIWrapper()->CalculateSampleGather(*this, opdata.op, img.GetBinding(),
-                                                          sampler.GetBinding(), uv, ddxCalc, ddyCalc,
-                                                          compare, gather, operands, result))
+      BindpointIndex samplerIndex = BindpointIndex(~0U, ~0U, ~0U);
+      if(sampler.type == VarType::Sampler)
+        samplerIndex = sampler.GetBinding();
+
+      if(!debugger.GetAPIWrapper()->CalculateSampleGather(
+             *this, opdata.op, texType, img.GetBinding(), samplerIndex, uv, ddxCalc, ddyCalc,
+             compare, gather, operands, result))
       {
         // sample failed. Pretend we got 0 columns back
 

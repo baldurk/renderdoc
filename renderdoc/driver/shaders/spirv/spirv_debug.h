@@ -58,10 +58,21 @@ public:
   virtual void FillInputValue(ShaderVariable &var, ShaderBuiltin builtin, uint32_t location,
                               uint32_t component) = 0;
 
-  virtual bool CalculateSampleGather(ThreadState &thread, rdcspv::Op opcode, BindpointIndex imageBind,
-                                     BindpointIndex samplerBind, const ShaderVariable &uv,
-                                     const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
-                                     const ShaderVariable &compare, GatherChannel gatherChannel,
+  enum TextureType
+  {
+    Float_Texture = 0x00,
+
+    UInt_Texture = 0x01,
+    SInt_Texture = 0x02,
+
+    Buffer_Texture = 0x10,
+  };
+
+  virtual bool CalculateSampleGather(ThreadState &lane, rdcspv::Op opcode, TextureType texType,
+                                     BindpointIndex imageBind, BindpointIndex samplerBind,
+                                     const ShaderVariable &uv, const ShaderVariable &ddxCalc,
+                                     const ShaderVariable &ddyCalc, const ShaderVariable &compare,
+                                     GatherChannel gatherChannel,
                                      const ImageOperandsAndParamDatas &operands,
                                      ShaderVariable &output) = 0;
 
@@ -76,6 +87,8 @@ public:
   virtual DerivativeDeltas GetDerivative(ShaderBuiltin builtin, uint32_t location,
                                          uint32_t component) = 0;
 };
+
+static const uint32_t TextureTypeVariableSlot = 8;
 
 typedef ShaderVariable (*ExtInstImpl)(ThreadState &, const rdcarray<Id> &);
 

@@ -406,6 +406,23 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
         var.type = VarType::ReadOnlyResource;
         debugType = DebugVariableType::ReadOnlyResource;
 
+        // store the texture type here, since the image may be copied around and combined with a
+        // sampler, so accessing the original type might be non-trivial at point of access
+        uint32_t texType = DebugAPIWrapper::Float_Texture;
+
+        if(imageTypes[type.InnerType()].dim == Dim::Buffer)
+          texType |= DebugAPIWrapper::Buffer_Texture;
+
+        if(imageTypes[type.InnerType()].retType.type == Op::TypeInt)
+        {
+          if(imageTypes[type.InnerType()].retType.signedness)
+            texType |= DebugAPIWrapper::SInt_Texture;
+          else
+            texType |= DebugAPIWrapper::UInt_Texture;
+        }
+
+        var.value.uv[TextureTypeVariableSlot] = texType;
+
         global.readOnlyResources.push_back(var);
         readOnlyIDs.push_back(v.id);
       }
