@@ -42,7 +42,10 @@ RDOC_DEBUG_CONFIG(bool, Vulkan_Debug_DisableBufferDeviceAddress, false,
 class VulkanAPIWrapper : public rdcspv::DebugAPIWrapper
 {
 public:
-  VulkanAPIWrapper(WrappedVulkan *vk) { m_pDriver = vk; }
+  VulkanAPIWrapper(WrappedVulkan *vk) : m_DebugData(vk->GetReplay()->GetShaderDebugData())
+  {
+    m_pDriver = vk;
+  }
   virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
                                rdcstr d) override
   {
@@ -133,6 +136,7 @@ public:
 
 private:
   WrappedVulkan *m_pDriver = NULL;
+  ShaderDebugData &m_DebugData;
 };
 
 enum StorageMode

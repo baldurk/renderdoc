@@ -215,6 +215,26 @@ enum TexDisplayFlags
   eTexDisplay_RemapSInt = 0x80,
 };
 
+struct ShaderDebugData
+{
+  void Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool);
+  void Destroy(WrappedVulkan *driver);
+
+  VkDescriptorSetLayout DescSetLayout = VK_NULL_HANDLE;
+  VkPipelineLayout PipeLayout = VK_NULL_HANDLE;
+  VkDescriptorSet DescSet = VK_NULL_HANDLE;
+
+  VkImage Image = VK_NULL_HANDLE;
+  VkImageView ImageView = VK_NULL_HANDLE;
+  VkDeviceMemory ImageMemory = VK_NULL_HANDLE;
+  VkFramebuffer Framebuffer = VK_NULL_HANDLE;
+  VkRenderPass RenderPass = VK_NULL_HANDLE;
+
+  VkShaderModule Module[3] = {};
+
+  GPUBuffer ReadbackBuffer;
+};
+
 class VulkanReplay : public IReplayDriver
 {
 public:
@@ -249,6 +269,7 @@ public:
 
   rdcarray<EventUsage> GetUsage(ResourceId id);
 
+  ShaderDebugData &GetShaderDebugData() { return m_ShaderDebugData; }
   FrameRecord &WriteFrameRecord() { return m_FrameRecord; }
   FrameRecord GetFrameRecord() { return m_FrameRecord; }
   rdcarray<DebugMessage> GetDebugMessages();
@@ -670,6 +691,8 @@ private:
 
     std::map<uint32_t, DynamicUsedBinds> Usage;
   } m_BindlessFeedback;
+
+  ShaderDebugData m_ShaderDebugData;
 
   rdcarray<ResourceDescription> m_Resources;
   std::map<ResourceId, size_t> m_ResourceIdx;

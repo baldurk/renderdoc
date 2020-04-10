@@ -1718,6 +1718,10 @@ void VulkanReplay::CreateResources()
 
   m_Histogram.Init(m_pDriver, m_General.DescriptorPool);
 
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.9f);
+
+  m_ShaderDebugData.Init(m_pDriver, m_General.DescriptorPool);
+
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
 
   GPA_vkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()),
@@ -2749,4 +2753,148 @@ void VulkanReplay::PostVS::Destroy(WrappedVulkan *driver)
 void VulkanReplay::Feedback::Destroy(WrappedVulkan *driver)
 {
   FeedbackBuffer.Destroy();
+}
+
+void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool)
+{
+  // should match the enum ShaderDebugBind
+  CREATE_OBJECT(
+      DescSetLayout,
+      {
+          {1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, NULL},
+          {2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, NULL},
+          {3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, NULL},
+          {4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, NULL},
+          {5, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, NULL},
+          {6, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, NULL},
+      });
+
+  CREATE_OBJECT(PipeLayout, DescSetLayout, 0);
+
+  CREATE_OBJECT(DescSet, descriptorPool, DescSetLayout);
+
+  VkResult vkr = VK_SUCCESS;
+
+  VkImageCreateInfo imInfo = {
+      VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+      NULL,
+      0,
+      VK_IMAGE_TYPE_2D,
+      VK_FORMAT_R32G32B32A32_SFLOAT,
+      {1, 1, 1},
+      1,
+      1,
+      VK_SAMPLE_COUNT_1_BIT,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+          VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_SHARING_MODE_EXCLUSIVE,
+      0,
+      NULL,
+      VK_IMAGE_LAYOUT_UNDEFINED,
+  };
+
+  vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &Image);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  VkMemoryRequirements mrq = {0};
+  driver->vkGetImageMemoryRequirements(driver->GetDev(), Image, &mrq);
+
+  // allocate readback memory
+  VkMemoryAllocateInfo allocInfo = {
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+      driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
+  };
+
+  vkr = driver->vkAllocateMemory(driver->GetDev(), &allocInfo, NULL, &ImageMemory);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  vkr = driver->vkBindImageMemory(driver->GetDev(), Image, ImageMemory, 0);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  VkImageViewCreateInfo viewInfo = {
+      VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      NULL,
+      0,
+      Image,
+      VK_IMAGE_VIEW_TYPE_2D,
+      VK_FORMAT_R32G32B32A32_SFLOAT,
+      {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+       VK_COMPONENT_SWIZZLE_IDENTITY},
+      {
+          VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1,
+      },
+  };
+
+  vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &ImageView);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  VkAttachmentDescription attDesc = {
+      0,
+      VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_SAMPLE_COUNT_1_BIT,
+      VK_ATTACHMENT_LOAD_OP_CLEAR,
+      VK_ATTACHMENT_STORE_OP_STORE,
+      VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+      VK_ATTACHMENT_STORE_OP_DONT_CARE,
+      VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_IMAGE_LAYOUT_GENERAL,
+  };
+
+  VkAttachmentReference attRef = {0, VK_IMAGE_LAYOUT_GENERAL};
+
+  VkSubpassDescription sub = {
+      0, VK_PIPELINE_BIND_POINT_GRAPHICS, 0, NULL, 1, &attRef,
+  };
+
+  VkSubpassDependency deps[2] = {
+      {
+          VK_SUBPASS_EXTERNAL, 0, VK_PIPELINE_STAGE_TRANSFER_BIT,
+          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+          VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0,
+      },
+      {
+          0, VK_SUBPASS_EXTERNAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+          VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+          VK_ACCESS_TRANSFER_READ_BIT, 0,
+      },
+  };
+
+  VkRenderPassCreateInfo rpinfo = {
+      VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL, 0, 1, &attDesc, 1, &sub, 2, deps,
+  };
+
+  vkr = driver->vkCreateRenderPass(driver->GetDev(), &rpinfo, NULL, &RenderPass);
+  if(vkr != VK_SUCCESS)
+    RDCERR("Failed to create shader debug render pass: %s", ToStr(vkr).c_str());
+
+  // create framebuffer
+  VkFramebufferCreateInfo fbinfo = {
+      VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL, 0, RenderPass, 1, &ImageView, 1, 1, 1,
+  };
+
+  vkr = driver->vkCreateFramebuffer(driver->GetDev(), &fbinfo, NULL, &Framebuffer);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  // don't need to ring this, as we hard-sync for readback anyway
+  ReadbackBuffer.Create(driver, driver->GetDev(), sizeof(Vec4f), 1, GPUBuffer::eGPUBufferReadback);
+}
+
+void ShaderDebugData::Destroy(WrappedVulkan *driver)
+{
+  ReadbackBuffer.Destroy();
+
+  driver->vkDestroyDescriptorSetLayout(driver->GetDev(), DescSetLayout, NULL);
+  driver->vkDestroyPipelineLayout(driver->GetDev(), PipeLayout, NULL);
+
+  driver->vkDestroyImage(driver->GetDev(), Image, NULL);
+  driver->vkFreeMemory(driver->GetDev(), ImageMemory, NULL);
+  driver->vkDestroyImageView(driver->GetDev(), ImageView, NULL);
+  driver->vkDestroyFramebuffer(driver->GetDev(), Framebuffer, NULL);
+  driver->vkDestroyRenderPass(driver->GetDev(), RenderPass, NULL);
+
+  // one module each for float, uint, sint.
+  driver->vkDestroyShaderModule(driver->GetDev(), Module[0], NULL);
+  driver->vkDestroyShaderModule(driver->GetDev(), Module[1], NULL);
+  driver->vkDestroyShaderModule(driver->GetDev(), Module[2], NULL);
 }
