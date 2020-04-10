@@ -238,6 +238,28 @@ public:
     return AddConstant(Operation(Op::Constant, words));
   }
 
+  template <typename T>
+  Id AddSpecConstantImmediate(T t, uint32_t specId)
+  {
+    Id typeId = DeclareType(scalar<T>());
+    rdcarray<uint32_t> words = {typeId.value(), MakeId().value()};
+
+    words.resize(words.size() + sizeof(T) / 4);
+
+    memcpy(&words[2], &t, sizeof(T));
+
+    rdcspv::Id ret = AddConstant(Operation(Op::SpecConstant, words));
+
+    words.clear();
+    words.push_back(ret.value());
+    words.push_back((uint32_t)rdcspv::Decoration::SpecId);
+    words.push_back(specId);
+
+    AddDecoration(Operation(Op::Decorate, words));
+
+    return ret;
+  }
+
 private:
   using Processor::Parse;
   inline void addWords(size_t offs, size_t num) { addWords(offs, (int32_t)num); }

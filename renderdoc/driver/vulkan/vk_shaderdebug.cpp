@@ -1039,27 +1039,16 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
   rdcspv::Id float4Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4));
   rdcspv::Id float2Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 2));
 
-  rdcspv::Id arrayLength = editor.AddConstant(rdcspv::Operation(
-      rdcspv::Op::SpecConstant, {uint32Type.value(), editor.MakeId().value(), 1U}));
-
-  editor.AddDecoration(rdcspv::OpDecorate(
-      arrayLength,
-      rdcspv::DecorationParam<rdcspv::Decoration::SpecId>((uint32_t)InputSpecConstant::ArrayLength)));
+  rdcspv::Id arrayLength =
+      editor.AddSpecConstantImmediate<uint32_t>(1U, (uint32_t)InputSpecConstant::ArrayLength);
 
   editor.SetName(arrayLength, "arrayLength");
 
-  rdcspv::Id destX = editor.AddConstant(rdcspv::Operation(
-      rdcspv::Op::SpecConstant, {floatType.value(), editor.MakeId().value(), 0U}));
-  rdcspv::Id destY = editor.AddConstant(rdcspv::Operation(
-      rdcspv::Op::SpecConstant, {floatType.value(), editor.MakeId().value(), 0U}));
+  rdcspv::Id destX = editor.AddSpecConstantImmediate<float>(0.0f, (uint32_t)InputSpecConstant::DestX);
+  rdcspv::Id destY = editor.AddSpecConstantImmediate<float>(0.0f, (uint32_t)InputSpecConstant::DestY);
 
   editor.SetName(destX, "destX");
   editor.SetName(destY, "destY");
-
-  editor.AddDecoration(rdcspv::OpDecorate(destX, rdcspv::DecorationParam<rdcspv::Decoration::SpecId>(
-                                                     (uint32_t)InputSpecConstant::DestX)));
-  editor.AddDecoration(rdcspv::OpDecorate(destY, rdcspv::DecorationParam<rdcspv::Decoration::SpecId>(
-                                                     (uint32_t)InputSpecConstant::DestY)));
 
   rdcspv::Id destXY = editor.AddConstant(
       rdcspv::OpSpecConstantComposite(float2Type, editor.MakeId(), {destX, destY}));
@@ -1252,13 +1241,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     // declare the address constant which we will specialise later. There is a chicken-and-egg where
     // this function determines how big the buffer needs to be so instead of hardcoding the address
     // here we let it be allocated later and specialised in.
-    addressConstant = editor.AddConstant(rdcspv::Operation(
-        rdcspv::Op::SpecConstant,
-        {editor.DeclareType(rdcspv::scalar<uint64_t>()).value(), editor.MakeId().value(), 0U, 0U}));
-
-    editor.AddDecoration(rdcspv::OpDecorate(
-        addressConstant,
-        rdcspv::DecorationParam<rdcspv::Decoration::SpecId>((uint32_t)InputSpecConstant::Address)));
+    addressConstant =
+        editor.AddSpecConstantImmediate<uint64_t>(0ULL, (uint32_t)InputSpecConstant::Address);
 
     editor.SetName(addressConstant, "__rd_bufAddress");
 
