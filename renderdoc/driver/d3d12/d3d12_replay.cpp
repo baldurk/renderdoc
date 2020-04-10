@@ -1473,6 +1473,7 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
     /////////////////////////////////////////////////
 
     state.outputMerger.renderTargets.reserve(rs.rts.size());
+    state.outputMerger.renderTargets.clear();
     for(size_t i = 0; i < rs.rts.size(); i++)
     {
       const D3D12Descriptor &desc = rs.rts[i];
