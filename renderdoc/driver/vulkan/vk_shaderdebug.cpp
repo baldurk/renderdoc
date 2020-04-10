@@ -35,7 +35,7 @@
 #undef None
 
 RDOC_DEBUG_CONFIG(rdcstr, Vulkan_Debug_PSDebugDumpDirPath, "",
-                  "Path to dump before and after pixel shader input SPIR-V files.");
+                  "Path to dump pixel shader debugging generated SPIR-V files.");
 RDOC_DEBUG_CONFIG(bool, Vulkan_Debug_DisableBufferDeviceAddress, false,
                   "Disable use of buffer device address for PS Input fetch.");
 
@@ -69,6 +69,35 @@ struct DescSetSnapshot
 {
   rdcarray<DescSetBindingSnapshot> bindings;
 };
+
+// should match the descriptor set layout created in ShaderDebugData::Init()
+enum ShaderDebugBind
+{
+  Tex1D = 1,
+  Tex2D,
+  Tex3D,
+  Tex2DMS,
+  Buffer,
+  Sampler,
+};
+
+struct ShaderDebugParameters
+{
+  uint32_t operation;
+  ShaderDebugBind dim;
+  int texel_uvw[3];
+  int texel_lod;
+  Vec3f uvw;
+  Vec3f ddx;
+  Vec3f ddy;
+  int offset[3];
+  int sampleIdx;
+  float compare;
+  float bias;
+  float lod;
+  rdcspv::GatherChannel gatherChannel;
+};
+
 class VulkanAPIWrapper : public rdcspv::DebugAPIWrapper
 {
   rdcarray<DescSetSnapshot> m_DescSets;
@@ -274,6 +303,168 @@ public:
                              const rdcspv::ImageOperandsAndParamDatas &operands,
                              ShaderVariable &output) override
   {
+    ShaderDebugParameters params = {};
+
+    const bool buffer = (texType & DebugAPIWrapper::Buffer_Texture) != 0;
+    const bool uintTex = (texType & DebugAPIWrapper::UInt_Texture) != 0;
+    const bool sintTex = (texType & DebugAPIWrapper::SInt_Texture) != 0;
+
+    // fetch the right type of descriptor depending on if we're buffer or not
+    BindpointIndex invalidIndex(~0U, ~0U, ~0U);
+    bool valid = true;
+    rdcstr access = StringFormat::Fmt("performing %s operation", ToStr(opcode).c_str());
+    const VkDescriptorImageInfo &imageInfo =
+        buffer ? GetDescriptor<VkDescriptorImageInfo>(access, invalidIndex, valid)
+               : GetDescriptor<VkDescriptorImageInfo>(access, imageBind, valid);
+    const VkBufferView &bufferView = buffer
+                                         ? GetDescriptor<VkBufferView>(access, imageBind, valid)
+                                         : GetDescriptor<VkBufferView>(access, invalidIndex, valid);
+
+    // fetch the sampler (if there's no sampler, this will silently return dummy data without
+    // marking invalid
+    const VkDescriptorImageInfo &samplerInfo =
+        GetDescriptor<VkDescriptorImageInfo>(access, samplerBind, valid);
+
+    // if any descriptor lookup failed, return now
+    if(!valid)
+      return false;
+
+    VkMarkerRegion markerRegion("CalculateSampleGather");
+
+    VkSampler sampler = samplerInfo.sampler;
+    VkImageView view = imageInfo.imageView;
+    VkImageLayout layout = imageInfo.imageLayout;
+
+    const VulkanCreationInfo::Image &imageProps =
+        m_Creation.m_Image[m_Creation.m_ImageView[GetResID(view)].image];
+    VkImageType imageType = imageProps.type;
+    uint32_t samples = (uint32_t)imageProps.samples;
+
+    params.operation = (uint32_t)opcode;
+
+    switch(imageType)
+    {
+      case VK_IMAGE_TYPE_1D: params.dim = ShaderDebugBind::Tex1D; break;
+      case VK_IMAGE_TYPE_2D:
+        params.dim = ShaderDebugBind::Tex2D;
+        if(samples > 1)
+          params.dim = ShaderDebugBind::Tex2DMS;
+        break;
+      case VK_IMAGE_TYPE_3D: params.dim = ShaderDebugBind::Tex3D; break;
+      default:
+      {
+        RDCERR("Unsupported image type %s", ToStr(imageType).c_str());
+        return false;
+      }
+    }
+
+    if(buffer)
+      params.dim = ShaderDebugBind::Buffer;
+
+    switch(opcode)
+    {
+      case rdcspv::Op::ImageFetch:
+      {
+        params.texel_uvw[0] = uv.value.u.x;
+        params.texel_uvw[1] = uv.value.u.y;
+        params.texel_uvw[2] = uv.value.u.z;
+        if(!buffer)
+          params.texel_lod = lane.GetSrc(operands.lod).value.i.x;
+        break;
+      }
+      case rdcspv::Op::ImageSampleExplicitLod: { break;
+      }
+      case rdcspv::Op::ImageSampleImplicitLod: { break;
+      }
+      default:
+      {
+        RDCERR("Unsupported opcode %s", ToStr(opcode).c_str());
+        return false;
+      }
+    }
+
+    VkPipeline pipe = MakePipe(params, uintTex, sintTex);
+
+    VkDescriptorImageInfo samplerWriteInfo = {Unwrap(sampler), VK_NULL_HANDLE,
+                                              VK_IMAGE_LAYOUT_UNDEFINED};
+    VkDescriptorImageInfo imageWriteInfo = {VK_NULL_HANDLE, Unwrap(view), layout};
+
+    VkWriteDescriptorSet writeSets[] = {
+        {
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_DebugData.DescSet),
+            (uint32_t)params.dim, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &imageWriteInfo, NULL, NULL,
+        },
+        {
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_DebugData.DescSet),
+            (uint32_t)ShaderDebugBind::Sampler, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLER, &samplerWriteInfo,
+            NULL, NULL,
+        },
+    };
+
+    if(buffer)
+    {
+      writeSets[0].pTexelBufferView = &bufferView;
+      writeSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+    }
+
+    VkDevice dev = m_pDriver->GetDev();
+
+    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), sampler != VK_NULL_HANDLE ? 2 : 1, writeSets, 0,
+                                       NULL);
+
+    {
+      VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+      VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+      VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      VkClearValue clear = {};
+
+      VkRenderPassBeginInfo rpbegin = {
+          VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+          NULL,
+          Unwrap(m_DebugData.RenderPass),
+          Unwrap(m_DebugData.Framebuffer),
+          {{0, 0}, {1, 1}},
+          1,
+          &clear,
+      };
+      ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+
+      ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
+      ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                          Unwrap(m_DebugData.PipeLayout), 0, 1,
+                                          UnwrapPtr(m_DebugData.DescSet), 0, NULL);
+
+      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+
+      ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
+
+      VkBufferImageCopy region = {
+          0, sizeof(Vec4f), 1, {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0}, {1, 1, 1},
+      };
+      ObjDisp(cmd)->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(m_DebugData.Image),
+                                         VK_IMAGE_LAYOUT_GENERAL,
+                                         Unwrap(m_DebugData.ReadbackBuffer.buf), 1, &region);
+
+      vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      m_pDriver->SubmitCmds();
+      m_pDriver->FlushQ();
+    }
+
+    m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
+
+    Vec4f *ret = (Vec4f *)m_DebugData.ReadbackBuffer.Map(NULL, 0);
+
+    memcpy(output.value.uv, ret, sizeof(Vec4f));
+
+    m_DebugData.ReadbackBuffer.Unmap();
+
     return true;
   }
 
@@ -351,6 +542,218 @@ private:
     }
 
     return elemData[index.arrayIndex];
+  }
+
+  VkPipeline MakePipe(const ShaderDebugParameters &params, bool uintTex, bool sintTex)
+  {
+    VkSpecializationMapEntry specMaps[sizeof(params) / sizeof(uint32_t)];
+    for(size_t i = 0; i < ARRAY_COUNT(specMaps); i++)
+    {
+      specMaps[i].constantID = uint32_t(i + i);
+      specMaps[i].offset = uint32_t(sizeof(uint32_t) * i);
+      specMaps[i].size = sizeof(uint32_t);
+    }
+
+    VkSpecializationInfo specInfo = {};
+    specInfo.dataSize = sizeof(params);
+    specInfo.pData = &params;
+    specInfo.mapEntryCount = ARRAY_COUNT(specMaps);
+    specInfo.pMapEntries = specMaps;
+
+    uint32_t shaderIndex = 0;
+    if(uintTex)
+      shaderIndex = 1;
+    else if(sintTex)
+      shaderIndex = 2;
+
+    if(m_DebugData.Module[shaderIndex] == VK_NULL_HANDLE)
+    {
+      rdcarray<uint32_t> spirv;
+      GenerateShaderModule(spirv, uintTex, sintTex);
+
+      VkShaderModuleCreateInfo moduleCreateInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
+      moduleCreateInfo.pCode = spirv.data();
+      moduleCreateInfo.codeSize = spirv.size() * sizeof(uint32_t);
+
+      VkResult vkr = m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &moduleCreateInfo, NULL,
+                                                     &m_DebugData.Module[shaderIndex]);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      const char *filename[] = {
+          "/debug_psgather_float.spv", "/debug_psgather_uint.spv", "/debug_psgather_sint.spv",
+      };
+
+      if(!Vulkan_Debug_PSDebugDumpDirPath.empty())
+        FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath + filename[shaderIndex], spirv);
+    }
+
+    const VkPipelineShaderStageCreateInfo shaderStages[2] = {
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT,
+         m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::BlitVS), "main", NULL},
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
+         m_DebugData.Module[shaderIndex], "main", &specInfo},
+    };
+
+    const VkPipelineDynamicStateCreateInfo dynamicState = {
+        VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+    };
+
+    const VkPipelineMultisampleStateCreateInfo msaa = {
+        VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, NULL, 0, VK_SAMPLE_COUNT_1_BIT,
+    };
+
+    const VkPipelineDepthStencilStateCreateInfo depthStencil = {
+        VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+    };
+
+    VkPipelineColorBlendAttachmentState colAttach = {};
+    colAttach.colorWriteMask = 0xf;
+
+    const VkPipelineColorBlendStateCreateInfo colorBlend = {
+        VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        NULL,
+        0,
+        false,
+        VK_LOGIC_OP_NO_OP,
+        1,
+        &colAttach,
+    };
+
+    const VkPipelineVertexInputStateCreateInfo vertexInput = {
+        VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+    };
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly = {
+        VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+    };
+
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+
+    VkRect2D s = {};
+    s.extent.width = s.extent.height = 1;
+
+    VkViewport v = {};
+    v.width = v.height = v.maxDepth = 1.0f;
+
+    VkPipelineViewportStateCreateInfo viewScissor = {
+        VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+    };
+    viewScissor.viewportCount = viewScissor.scissorCount = 1;
+    viewScissor.pScissors = &s;
+    viewScissor.pViewports = &v;
+
+    VkPipelineRasterizationStateCreateInfo raster = {
+        VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+    };
+
+    raster.lineWidth = 1.0f;
+
+    const VkGraphicsPipelineCreateInfo graphicsPipeInfo = {
+        VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+        NULL,
+        0,
+        2,
+        shaderStages,
+        &vertexInput,
+        &inputAssembly,
+        NULL,    // tess
+        &viewScissor,
+        &raster,
+        &msaa,
+        &depthStencil,
+        &colorBlend,
+        &dynamicState,
+        m_DebugData.PipeLayout,
+        m_DebugData.RenderPass,
+        0,                 // sub pass
+        VK_NULL_HANDLE,    // base pipeline handle
+        -1,                // base pipeline index
+    };
+
+    VkPipeline pipe = VK_NULL_HANDLE;
+    VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
+                                                        &graphicsPipeInfo, NULL, &pipe);
+    if(vkr != VK_SUCCESS)
+    {
+      RDCERR("Failed creating debug pipeline");
+      return VK_NULL_HANDLE;
+    }
+
+    return pipe;
+  }
+
+  void GenerateShaderModule(rdcarray<uint32_t> &spirv, bool uintTex, bool sintTex)
+  {
+    // this could be done as a glsl shader, but glslang has some bugs compiling the specialisation
+    // constants, so we generate it by hand - which isn't too hard
+
+    rdcspv::Editor editor(spirv);
+
+    // create as SPIR-V 1.0 for best compatibility
+    editor.CreateEmpty(1, 0);
+
+    editor.AddCapability(rdcspv::Capability::Shader);
+
+    rdcspv::Id entryId = editor.MakeId();
+    rdcarray<rdcspv::Id> globals;
+
+    editor.AddOperation(
+        editor.Begin(rdcspv::Section::MemoryModel),
+        rdcspv::OpMemoryModel(rdcspv::AddressingModel::Logical, rdcspv::MemoryModel::GLSL450));
+
+    rdcspv::Id u32 = editor.DeclareType(rdcspv::scalar<uint32_t>());
+    rdcspv::Id i32 = editor.DeclareType(rdcspv::scalar<int32_t>());
+    rdcspv::Id f32 = editor.DeclareType(rdcspv::scalar<float>());
+
+    rdcspv::Scalar base = rdcspv::scalar<float>();
+    if(uintTex)
+      base = rdcspv::scalar<uint32_t>();
+    else if(sintTex)
+      base = rdcspv::scalar<int32_t>();
+
+    // create the output. It's always a 4-wide vector
+    rdcspv::Id outType = editor.DeclareType(rdcspv::Vector(base, 4));
+    rdcspv::Id outPtrType =
+        editor.DeclareType(rdcspv::Pointer(outType, rdcspv::StorageClass::Output));
+
+    rdcspv::Id outVar = editor.AddVariable(
+        rdcspv::OpVariable(outPtrType, editor.MakeId(), rdcspv::StorageClass::Output));
+    editor.AddDecoration(
+        rdcspv::OpDecorate(outVar, rdcspv::DecorationParam<rdcspv::Decoration::Location>(0)));
+
+    globals.push_back(outVar);
+
+    // register the entry point
+    editor.AddOperation(
+        editor.Begin(rdcspv::Section::EntryPoints),
+        rdcspv::OpEntryPoint(rdcspv::ExecutionModel::Fragment, entryId, "main", globals));
+    editor.AddOperation(editor.Begin(rdcspv::Section::ExecutionMode),
+                        rdcspv::OpExecutionMode(entryId, rdcspv::ExecutionMode::OriginUpperLeft));
+
+    rdcspv::Id voidType = editor.DeclareType(rdcspv::scalar<void>());
+    rdcspv::Id funcType = editor.DeclareType(rdcspv::FunctionType(voidType, {}));
+
+    rdcspv::OperationList func;
+    func.add(rdcspv::OpFunction(voidType, entryId, rdcspv::FunctionControl::None, funcType));
+    func.add(rdcspv::OpLabel(editor.MakeId()));
+
+    // first store NULL data in, so the output is always initialised
+    func.add(rdcspv::OpStore(outVar,
+                             editor.AddConstant(rdcspv::OpConstantNull(outType, editor.MakeId()))));
+
+    rdcspv::Id dummyOut = editor.AddConstant(rdcspv::OpConstantComposite(
+        outType, editor.MakeId(),
+        {
+            editor.AddConstantImmediate<float>(1.2f), editor.AddConstantImmediate<float>(3.4f),
+            editor.AddConstantImmediate<float>(5.6f), editor.AddConstantImmediate<float>(7.8f),
+        }));
+
+    func.add(rdcspv::OpStore(outVar, dummyOut));
+
+    func.add(rdcspv::OpReturn());
+    func.add(rdcspv::OpFunctionEnd());
+
+    editor.AddFunction(func);
   }
 };
 
