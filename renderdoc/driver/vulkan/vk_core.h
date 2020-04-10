@@ -975,6 +975,10 @@ public:
   {
     return m_DescriptorSetState[descSet].layout;
   }
+  const rdcarray<DescriptorSetSlot *> &GetCurrentDescSetBindings(ResourceId descSet)
+  {
+    return m_DescriptorSetState[descSet].currentBindings;
+  }
 
   uint32_t GetReadbackMemoryIndex(uint32_t resourceCompatibleBitmask);
   uint32_t GetUploadMemoryIndex(uint32_t resourceCompatibleBitmask);
