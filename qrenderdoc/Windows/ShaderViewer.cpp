@@ -57,9 +57,26 @@ struct VariableTag
 
   DebugVariableReference debugVar;
 };
+
+struct AccessedResourceTag
+{
+  AccessedResourceTag() : type(VarType::Unknown) { bind.bind = -1; }
+  AccessedResourceTag(BindpointIndex bp, VarType t) : bind(bp), type(t) {}
+  AccessedResourceTag(ShaderVariable var)
+  {
+    type = var.type;
+    if(var.type == VarType::ReadOnlyResource || var.type == VarType::ReadWriteResource)
+      bind = var.GetBinding();
+    else
+      bind.bind = -1;
+  }
+  BindpointIndex bind;
+  VarType type;
+};
 };
 
 Q_DECLARE_METATYPE(VariableTag);
+Q_DECLARE_METATYPE(AccessedResourceTag);
 
 ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::ShaderViewer), m_Ctx(ctx)
@@ -67,6 +84,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
   ui->setupUi(this);
 
   ui->constants->setFont(Formatter::PreferredFont());
+  ui->accessedResources->setFont(Formatter::PreferredFont());
   ui->debugVars->setFont(Formatter::PreferredFont());
   ui->sourceVars->setFont(Formatter::PreferredFont());
   ui->watch->setFont(Formatter::PreferredFont());
@@ -228,6 +246,7 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
   ui->watch->hide();
   ui->debugVars->hide();
   ui->constants->hide();
+  ui->resourcesPanel->hide();
   ui->callstack->hide();
   ui->sourceVars->hide();
 
@@ -326,6 +345,12 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
         ui->compilationGroup,
         ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
   }
+}
+
+void ShaderViewer::cacheResources()
+{
+  m_ReadOnlyResources = m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage);
+  m_ReadWriteResources = m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage);
 }
 
 void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
@@ -497,43 +522,55 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
     ui->constants->header()->resizeSection(0, 80);
 
+    ui->accessedResources->setColumns({tr("Register(s)"), tr("Type"), tr("Resource")});
+    ui->accessedResources->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    ui->accessedResources->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    ui->accessedResources->header()->setSectionResizeMode(2, QHeaderView::Interactive);
+
+    ui->accessedResources->header()->resizeSection(0, 80);
+
     ui->debugVars->setTooltipElidedItems(false);
     ui->constants->setTooltipElidedItems(false);
+    ui->accessedResources->setTooltipElidedItems(false);
 
+    ToolWindowManager::ToolWindowProperty windowProps =
+        ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow;
     ui->watch->setWindowTitle(tr("Watch"));
     ui->docking->addToolWindow(
         ui->watch, ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
                                                     ui->docking->areaOf(m_DisassemblyFrame), 0.25f));
-    ui->docking->setToolWindowProperties(
-        ui->watch, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+    ui->docking->setToolWindowProperties(ui->watch, windowProps);
 
     ui->debugVars->setWindowTitle(tr("Variable Values"));
     ui->docking->addToolWindow(
         ui->debugVars,
         ToolWindowManager::AreaReference(ToolWindowManager::AddTo, ui->docking->areaOf(ui->watch)));
-    ui->docking->setToolWindowProperties(
-        ui->debugVars, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+    ui->docking->setToolWindowProperties(ui->debugVars, windowProps);
 
     ui->constants->setWindowTitle(tr("Constants && Resources"));
     ui->docking->addToolWindow(
         ui->constants, ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
                                                         ui->docking->areaOf(ui->debugVars), 0.5f));
-    ui->docking->setToolWindowProperties(
-        ui->constants, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+    ui->docking->setToolWindowProperties(ui->constants, windowProps);
+
+    ui->resourcesPanel->setWindowTitle(tr("Accessed Resources"));
+    ui->docking->addToolWindow(
+        ui->resourcesPanel, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                                             ui->docking->areaOf(ui->constants)));
+    ui->docking->setToolWindowProperties(ui->resourcesPanel, windowProps);
+    ui->docking->raiseToolWindow(ui->constants);
 
     ui->callstack->setWindowTitle(tr("Callstack"));
     ui->docking->addToolWindow(
         ui->callstack, ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
                                                         ui->docking->areaOf(ui->debugVars), 0.2f));
-    ui->docking->setToolWindowProperties(
-        ui->callstack, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+    ui->docking->setToolWindowProperties(ui->callstack, windowProps);
 
     ui->sourceVars->setWindowTitle(tr("High-level Variables"));
     ui->docking->addToolWindow(
         ui->sourceVars, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
                                                          ui->docking->areaOf(ui->debugVars)));
-    ui->docking->setToolWindowProperties(
-        ui->sourceVars, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
+    ui->docking->setToolWindowProperties(ui->sourceVars, windowProps);
 
     m_Line2Insts.resize(m_ShaderDetails->debugInfo.files.count());
 
@@ -609,8 +646,11 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
     // event filter to pick up tooltip events
     ui->constants->installEventFilter(this);
+    ui->accessedResources->installEventFilter(this);
     ui->debugVars->installEventFilter(this);
     ui->watch->installEventFilter(this);
+
+    cacheResources();
 
     m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
       rdcarray<ShaderDebugState> states = r->ContinueDebug(m_Trace->debugger);
@@ -670,6 +710,9 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->sourceVars->setContextMenuPolicy(Qt::CustomContextMenu);
     QObject::connect(ui->sourceVars, &RDTreeWidget::customContextMenuRequested, this,
                      &ShaderViewer::variables_contextMenu);
+    ui->accessedResources->setContextMenuPolicy(Qt::CustomContextMenu);
+    QObject::connect(ui->accessedResources, &RDTreeWidget::customContextMenuRequested, this,
+                     &ShaderViewer::accessedResources_contextMenu);
 
     ui->watch->insertRow(0);
 
@@ -691,6 +734,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->watch->hide();
     ui->debugVars->hide();
     ui->constants->hide();
+    ui->resourcesPanel->hide();
     ui->sourceVars->hide();
     ui->callstack->hide();
 
@@ -1154,6 +1198,33 @@ void ShaderViewer::variables_contextMenu(const QPoint &pos)
   RDDialog::show(&contextMenu, w->viewport()->mapToGlobal(pos));
 }
 
+void ShaderViewer::accessedResources_contextMenu(const QPoint &pos)
+{
+  QAbstractItemView *w = qobject_cast<QAbstractItemView *>(QObject::sender());
+  RDTreeWidget *tree = qobject_cast<RDTreeWidget *>(w);
+  if(tree->selectedItem() == NULL)
+    return;
+
+  QMenu contextMenu(this);
+
+  QAction prevAccess(tr("Run To Previous Access"), this);
+  QAction nextAccess(tr("Run To Next Access"), this);
+
+  contextMenu.addAction(&prevAccess);
+  contextMenu.addAction(&nextAccess);
+
+  QObject::connect(&prevAccess, &QAction::triggered, [this, tree] {
+    const AccessedResourceTag &tag = tree->selectedItem()->tag().value<AccessedResourceTag>();
+    runToResourceAccess(false, tag.type, tag.bind);
+  });
+  QObject::connect(&nextAccess, &QAction::triggered, [this, tree] {
+    const AccessedResourceTag &tag = tree->selectedItem()->tag().value<AccessedResourceTag>();
+    runToResourceAccess(true, tag.type, tag.bind);
+  });
+
+  RDDialog::show(&contextMenu, w->viewport()->mapToGlobal(pos));
+}
+
 void ShaderViewer::disassembly_buttonReleased(QMouseEvent *event)
 {
   if(event->button() == Qt::LeftButton)
@@ -1195,6 +1266,7 @@ void ShaderViewer::disassembly_buttonReleased(QMouseEvent *event)
 
         highlightMatchingVars(ui->debugVars->invisibleRootItem(), text, highlightColor);
         highlightMatchingVars(ui->constants->invisibleRootItem(), text, highlightColor);
+        highlightMatchingVars(ui->accessedResources->invisibleRootItem(), text, highlightColor);
         highlightMatchingVars(ui->sourceVars->invisibleRootItem(), text, highlightColor);
 
         m_DisassemblyView->setIndicatorCurrent(INDICATOR_REGHIGHLIGHT);
@@ -1570,6 +1642,50 @@ void ShaderViewer::runTo(QVector<size_t> runToInstruction, bool forward, ShaderE
   updateDebugState();
 }
 
+void ShaderViewer::runToResourceAccess(bool forward, VarType type, const BindpointIndex &resource)
+{
+  if(!m_Trace || m_States.empty())
+    return;
+
+  // this is effectively infinite as we break out before moving to next/previous state if that would
+  // be first/last
+  while((forward && !IsLastState()) || (!forward && !IsFirstState()))
+  {
+    if(forward)
+    {
+      if(IsLastState())
+        break;
+      applyForwardsChange();
+    }
+    else
+    {
+      if(IsFirstState())
+        break;
+      applyBackwardsChange();
+    }
+
+    // Break if the current state references the specific resource requested
+    bool foundResource = false;
+    for(const ShaderVariableChange &c : GetCurrentState().changes)
+    {
+      if(c.after.type == type && c.after.GetBinding() == resource)
+      {
+        foundResource = true;
+        break;
+      }
+    }
+
+    if(foundResource)
+      break;
+
+    // or breakpoint
+    if(m_Breakpoints.contains((int)GetCurrentState().nextInstruction))
+      break;
+  }
+
+  updateDebugState();
+}
+
 void ShaderViewer::applyBackwardsChange()
 {
   if(!IsFirstState())
@@ -1587,6 +1703,15 @@ void ShaderViewer::applyBackwardsChange()
           if(c.after.name == m_Variables[i].name)
           {
             m_Variables.erase(i);
+            break;
+          }
+        }
+
+        for(size_t i = 0; i < m_AccessedResources.size(); i++)
+        {
+          if(c.after.name == m_AccessedResources[i].name)
+          {
+            m_AccessedResources.erase(i);
             break;
           }
         }
@@ -1623,6 +1748,7 @@ void ShaderViewer::applyForwardsChange()
     m_CurrentStateIdx++;
 
     rdcarray<ShaderVariable> newVariables;
+    rdcarray<ShaderVariable> newAccessedResources;
 
     for(const ShaderVariableChange &c : GetCurrentState().changes)
     {
@@ -1655,10 +1781,27 @@ void ShaderViewer::applyForwardsChange()
           *v = c.after;
         else
           newVariables.push_back(c.after);
+
+        if(c.after.type == VarType::ReadOnlyResource || c.after.type == VarType::ReadWriteResource)
+        {
+          bool found = false;
+          for(size_t i = 0; i < m_AccessedResources.size(); i++)
+          {
+            if(c.after.name == m_AccessedResources[i].name)
+            {
+              found = true;
+              break;
+            }
+          }
+
+          if(!found)
+            newAccessedResources.push_back(c.after);
+        }
       }
     }
 
     m_Variables.insert(0, newVariables);
+    m_AccessedResources.insert(0, newAccessedResources);
   }
 }
 
@@ -1677,9 +1820,9 @@ QString ShaderViewer::stringRep(const ShaderVariable &var, uint32_t row)
     rdcarray<BoundResourceArray> resList;
 
     if(type == VarType::ReadOnlyResource)
-      resList = m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage);
+      resList = m_ReadOnlyResources;
     else if(type == VarType::ReadWriteResource)
-      resList = m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage);
+      resList = m_ReadWriteResources;
     else if(type == VarType::Sampler)
       resList = m_Ctx.CurPipelineState().GetSamplers(m_Stage);
 
@@ -2310,7 +2453,7 @@ void ShaderViewer::updateDebugState()
       }
     }
 
-    rdcarray<BoundResourceArray> roBinds = m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage);
+    rdcarray<BoundResourceArray> &roBinds = m_ReadOnlyResources;
 
     for(int i = 0; i < m_Trace->readOnlyResources.count(); i++)
     {
@@ -2334,7 +2477,7 @@ void ShaderViewer::updateDebugState()
       if(bindIdx < 0)
         continue;
 
-      BoundResourceArray roBind = roBinds[bindIdx];
+      BoundResourceArray &roBind = roBinds[bindIdx];
 
       if(bind.arraySize == 1)
       {
@@ -2361,7 +2504,8 @@ void ShaderViewer::updateDebugState()
         node->setTag(QVariant::fromValue(
             VariableTag(DebugVariableReference(DebugVariableType::ReadOnlyResource, ro.name))));
 
-        for(uint32_t a = 0; a < bind.arraySize; a++)
+        uint32_t count = qMin(bind.arraySize, (uint32_t)roBind.resources.size());
+        for(uint32_t a = 0; a < count; a++)
         {
           QString childName = QFormatStr("%1[%2]").arg(ro.name).arg(a);
           RDTreeWidgetItem *child = new RDTreeWidgetItem({
@@ -2377,7 +2521,7 @@ void ShaderViewer::updateDebugState()
       }
     }
 
-    rdcarray<BoundResourceArray> rwBinds = m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage);
+    rdcarray<BoundResourceArray> &rwBinds = m_ReadWriteResources;
 
     for(int i = 0; i < m_Trace->readWriteResources.count(); i++)
     {
@@ -2401,7 +2545,7 @@ void ShaderViewer::updateDebugState()
       if(bindIdx < 0)
         continue;
 
-      BoundResourceArray rwBind = rwBinds[bindIdx];
+      BoundResourceArray &rwBind = rwBinds[bindIdx];
 
       if(bind.arraySize == 1)
       {
@@ -2428,7 +2572,8 @@ void ShaderViewer::updateDebugState()
         node->setTag(QVariant::fromValue(
             VariableTag(DebugVariableReference(DebugVariableType::ReadWriteResource, rw.name))));
 
-        for(uint32_t a = 0; a < bind.arraySize; a++)
+        uint32_t count = qMin(bind.arraySize, (uint32_t)rwBind.resources.size());
+        for(uint32_t a = 0; a < count; a++)
         {
           QString childName = QFormatStr("%1[%2]").arg(rw.name).arg(a);
           RDTreeWidgetItem *child = new RDTreeWidgetItem({
@@ -2604,6 +2749,31 @@ void ShaderViewer::updateDebugState()
     ui->debugVars->endUpdate();
 
     ui->debugVars->applyExpansion(expansion, 0);
+  }
+
+  {
+    ui->accessedResources->beginUpdate();
+
+    ui->accessedResources->clear();
+
+    for(int i = 0; i < m_AccessedResources.count(); i++)
+    {
+      bool modified = false;
+
+      for(const ShaderVariableChange &c : GetCurrentState().changes)
+      {
+        if(c.before.name == m_AccessedResources[i].name || c.after.name == m_AccessedResources[i].name)
+        {
+          modified = true;
+          break;
+        }
+      }
+
+      ui->accessedResources->addTopLevelItem(
+          makeAccessedResourceNode(m_AccessedResources[i], modified));
+    }
+
+    ui->accessedResources->endUpdate();
   }
 
   updateWatchVariables();
@@ -2915,7 +3085,7 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
         if(bindIdx < 0)
           continue;
 
-        BoundResourceArray res = samplers[bindIdx];
+        BoundResourceArray &res = samplers[bindIdx];
 
         if(bind.arraySize == 1)
         {
@@ -2953,9 +3123,8 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
         regNames = r.name;
         typeName = isReadOnlyResource ? lit("Resource") : lit("RW Resource");
 
-        rdcarray<BoundResourceArray> resList =
-            isReadOnlyResource ? m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage)
-                               : m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage);
+        rdcarray<BoundResourceArray> &resList =
+            isReadOnlyResource ? m_ReadOnlyResources : m_ReadWriteResources;
 
         int32_t idx =
             (isReadOnlyResource ? m_Mapping->readOnlyResources : m_Mapping->readWriteResources)
@@ -2972,8 +3141,7 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
         if(bindIdx < 0)
           continue;
 
-        BoundResourceArray res = resList[bindIdx];
-
+        BoundResourceArray &res = resList[bindIdx];
         if(bind.arraySize == 1)
         {
           value = ToQStr(res.resources[0].resourceId);
@@ -2986,11 +3154,14 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
         }
         else
         {
-          for(uint32_t a = 0; a < bind.arraySize; a++)
+          uint32_t count = qMin(bind.arraySize, (uint32_t)res.resources.size());
+          for(uint32_t a = 0; a < count; a++)
+          {
             children.push_back(new RDTreeWidgetItem({
                 QFormatStr("%1[%2]").arg(localName).arg(a), QFormatStr("%1[%2]").arg(regNames).arg(a),
                 typeName, ToQStr(res.resources[a].resourceId),
             }));
+          }
 
           regNames = QString();
           typeName = QFormatStr("[%1]").arg(bind.arraySize);
@@ -3101,6 +3272,62 @@ RDTreeWidgetItem *ShaderViewer::makeDebugVariableNode(const ShaderVariable &v, r
 
   if(modified)
     node->setForegroundColor(QColor(Qt::red));
+
+  return node;
+}
+
+RDTreeWidgetItem *ShaderViewer::makeAccessedResourceNode(const ShaderVariable &v, bool modified)
+{
+  BindpointIndex bp = v.GetBinding();
+  ResourceId resId;
+  QString typeName;
+  if(v.type == VarType::ReadOnlyResource)
+  {
+    typeName = lit("Resource");
+    int32_t idx = m_Mapping->readOnlyResources.indexOf(Bindpoint(bp));
+    if(idx >= 0)
+    {
+      Bindpoint bind = m_Mapping->readOnlyResources[idx];
+      if(bind.used)
+      {
+        int32_t bindIdx = m_ReadOnlyResources.indexOf(bind);
+        if(bindIdx >= 0)
+        {
+          BoundResourceArray &roBind = m_ReadOnlyResources[bindIdx];
+          if(bp.arrayIndex < roBind.resources.size())
+            resId = roBind.resources[bp.arrayIndex].resourceId;
+        }
+      }
+    }
+  }
+  else if(v.type == VarType::ReadWriteResource)
+  {
+    typeName = lit("RW Resource");
+    int32_t idx = m_Mapping->readWriteResources.indexOf(Bindpoint(bp));
+    if(idx >= 0)
+    {
+      Bindpoint bind = m_Mapping->readWriteResources[idx];
+      if(bind.used)
+      {
+        int32_t bindIdx = m_ReadWriteResources.indexOf(bind);
+        if(bindIdx >= 0)
+        {
+          BoundResourceArray &rwBind = m_ReadWriteResources[bindIdx];
+          if(bp.arrayIndex < rwBind.resources.size())
+            resId = rwBind.resources[bp.arrayIndex].resourceId;
+        }
+      }
+    }
+  }
+
+  RDTreeWidgetItem *node = NULL;
+  if(resId != ResourceId())
+  {
+    node = new RDTreeWidgetItem({v.name, typeName, ToQStr(resId)});
+    node->setTag(QVariant::fromValue(AccessedResourceTag(bp, v.type)));
+    if(modified)
+      node->setForegroundColor(QColor(Qt::red));
+  }
 
   return node;
 }

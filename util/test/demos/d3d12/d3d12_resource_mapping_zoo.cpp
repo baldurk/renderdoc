@@ -39,12 +39,12 @@ Texture2D res2 : register(t2);
 
 cbuffer consts : register(b3)
 {
-  float4 test;
+  uint4 test;
 };
 
 float4 main() : SV_Target0
 {
-  float4 color = test + float4(0.1f, 0.0f, 0.0f, 0.0f);
+  float4 color = (float4)test + float4(0.1f, 0.0f, 0.0f, 0.0f);
 	return color + res1[uint2(0, 0)] + res2[uint2(0, 0)];
 }
 
@@ -59,7 +59,7 @@ Texture2D res2 : register(t7);
 
 cbuffer consts : register(b3)
 {
-  float4 test;
+  uint4 test;
 };
 
 struct Foo
@@ -71,7 +71,7 @@ ConstantBuffer<Foo> bar[4][3] : register(b4);
 float4 main() : SV_Target0
 {
   float4 color = bar[1][2].col;
-  color += test + float4(0.1f, 0.0f, 0.0f, 0.0f);
+  color += (float4)test + float4(0.1f, 0.0f, 0.0f, 0.0f);
   return color + res1[uint2(0, 0)] + res2[uint2(0, 0)];
 }
 
@@ -83,7 +83,7 @@ Texture2DArray<float> resArray[4] : register(t10, space1);
 
 cbuffer consts : register(b3)
 {
-  float4 test;
+  uint4 test;
 };
 
 float4 main(float4 pos : SV_Position) : SV_Target0
@@ -104,7 +104,7 @@ Texture2DArray<float> resArray[] : register(t0);
 
 cbuffer consts : register(b3)
 {
-  float4 test;
+  uint4 test;
 };
 
 float4 main(float4 pos : SV_Position) : SV_Target0
@@ -115,6 +115,40 @@ float4 main(float4 pos : SV_Position) : SV_Target0
   float arrayVal2 = resArray[test.x].Load(uint4(0, 0, indices.y, 0));
   float arrayVal3 = resArray[NonUniformResourceIndex(indices.x)].Load(uint4(0, 0, indices.y, 0));
   return float4(arrayVal1, arrayVal2, arrayVal3, 1.0f);
+}
+
+)EOSHADER";
+
+  std::string pixel_resourceAccess = R"EOSHADER(
+
+// SRVs
+Texture2D<float> srvAccessed : register(t0);
+Texture2D<float> srvNotAccessed : register(t1);
+Texture2D<float> srvArray[] : register(t0, space1);
+
+// UAVs
+RWTexture2D<float> uavAccessed : register(u0);
+RWTexture2D<float> uavNotAccessed : register(u1);
+
+struct Data
+{
+  uint4 data;
+};
+ConstantBuffer<Data> cbvAccessed : register(b0);
+ConstantBuffer<Data> cbvNotAccessed : register(b1);
+ConstantBuffer<Data> cbvArray[8] : register(b0, space1);
+
+float4 main(float4 pos : SV_Position) : SV_Target0
+{
+  float srvVal = srvAccessed.Load(uint3(0, 0, 0));
+  uint cbvVal = cbvAccessed.data.x;
+  float srvArrayVal = srvArray[cbvVal].Load(uint3(0, 0, 0));
+  float3 cbvArrayVal = (float3)cbvArray[cbvVal].data.yzw;
+  float3 ret = cbvArrayVal;
+  uavAccessed[uint2(0, 0)] = srvArrayVal / 100.0f;
+  ret.x += srvVal;
+  ret.y += srvArrayVal;
+  return float4(ret, 1.0f);
 }
 
 )EOSHADER";
@@ -192,11 +226,17 @@ float4 main(float4 pos : SV_Position) : SV_Target0
     ID3DBlobPtr psblob_5_1 = Compile(pixel_5_1, "main", "ps_5_1");
     ID3DBlobPtr psblob_resArray = Compile(pixel_resArray, "main", "ps_5_1");
     ID3DBlobPtr psblob_bindless = Compile(pixel_bindless, "main", "ps_5_1");
+    ID3DBlobPtr psblob_resourceAccess = Compile(pixel_resourceAccess, "main", "ps_5_1");
 
-    Vec4f cbufferdata = Vec4f(3.0f, 50.0f, 75.0f, 100.0f);
+    uint32_t cbufferdata[4] = {3, 50, 75, 100};
 
     ID3D12ResourcePtr vb = MakeBuffer().Data(DefaultTri);
-    ID3D12ResourcePtr cb = MakeBuffer().Data(&cbufferdata);
+    ID3D12ResourcePtr cb = MakeBuffer().Data(cbufferdata);
+
+    // Descriptor table entries:
+    // 0-12: CB array
+    // 30-33: SRV array
+    // 56-57: SRVs containing stepped unorm data
 
     AlignedCB cbufferarray[4][3];
     for(uint32_t x = 0; x < 4; ++x)
@@ -211,7 +251,14 @@ float4 main(float4 pos : SV_Position) : SV_Target0
     MakeSRV(res1).CreateGPU(56);
     ID3D12ResourcePtr res2 =
         MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 2, 2).Mips(1).InitialState(D3D12_RESOURCE_STATE_COPY_DEST);
-    MakeSRV(res2).CreateGPU(57);
+    D3D12ViewCreator srvRes2 = MakeSRV(res2);
+    srvRes2.CreateGPU(57);
+
+    // Create a few unused SRVs so that a bindless descriptor table has a lot of things to report
+    srvRes2.CreateGPU(500);
+    srvRes2.CreateGPU(501);
+    srvRes2.CreateGPU(510);
+    srvRes2.CreateGPU(625);
 
     ID3D12ResourcePtr uploadBuf = MakeBuffer().Size(1024 * 1024).Upload();
 
@@ -258,6 +305,15 @@ float4 main(float4 pos : SV_Position) : SV_Target0
         cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 3),
         tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, UINT_MAX, 30),
     });
+    ID3D12RootSignaturePtr sig_resourceAccess = MakeSig({
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 56),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, 1, 57),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, UINT_MAX, 30),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 1, 56),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 1, 57),
+        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0), cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 8, 0),
+    });
 
     ID3D12PipelineStatePtr pso_5_0 = MakePSO()
                                          .RootSig(sig_5_0)
@@ -283,6 +339,12 @@ float4 main(float4 pos : SV_Position) : SV_Target0
                                               .VS(vsblob)
                                               .PS(psblob_bindless)
                                               .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
+    ID3D12PipelineStatePtr pso_resourceAccess = MakePSO()
+                                                    .RootSig(sig_resourceAccess)
+                                                    .InputLayout()
+                                                    .VS(vsblob)
+                                                    .PS(psblob_resourceAccess)
+                                                    .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
 
     ResourceBarrier(vb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
     ResourceBarrier(cb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
@@ -349,6 +411,20 @@ float4 main(float4 pos : SV_Position) : SV_Target0
       cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
       cmd->SetGraphicsRootConstantBufferView(0, cb->GetGPUVirtualAddress());
       cmd->SetGraphicsRootDescriptorTable(1, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+      cmd->DrawInstanced(3, 1, 0, 0);
+
+      setMarker(cmd, "ResourceAccess");
+      cmd->SetPipelineState(pso_resourceAccess);
+      cmd->SetGraphicsRootSignature(sig_resourceAccess);
+      cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
+      cmd->SetGraphicsRootDescriptorTable(0, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+      cmd->SetGraphicsRootDescriptorTable(1, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+      cmd->SetGraphicsRootDescriptorTable(2, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+      cmd->SetGraphicsRootDescriptorTable(3, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+      cmd->SetGraphicsRootDescriptorTable(4, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+      cmd->SetGraphicsRootConstantBufferView(5, cb->GetGPUVirtualAddress());
+      cmd->SetGraphicsRootConstantBufferView(6, cb->GetGPUVirtualAddress() + sizeof(AlignedCB));
+      cmd->SetGraphicsRootDescriptorTable(7, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
       cmd->DrawInstanced(3, 1, 0, 0);
 
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
