@@ -755,6 +755,11 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
         desc.dimension = (ShaderInputBind::Dimension)res->dimension;
         desc.numSamples = res->sampleCount;
 
+        // Bindless resources report a bind count of 0 from the shader bytecode, but many other
+        // places in this codebase assume ~0U means bindless. Patch it up now.
+        if(h->targetVersion >= 0x501 && desc.bindCount == 0)
+          desc.bindCount = ~0U;
+
         if(desc.numSamples == ~0 && desc.retType != RETURN_TYPE_MIXED &&
            desc.retType != RETURN_TYPE_UNKNOWN && desc.retType != RETURN_TYPE_CONTINUED)
         {

@@ -124,6 +124,7 @@ private slots:
   void editable_keyPressed(QKeyEvent *event);
   void debug_contextMenu(const QPoint &pos);
   void variables_contextMenu(const QPoint &pos);
+  void accessedResources_contextMenu(const QPoint &pos);
   void disassembly_buttonReleased(QMouseEvent *event);
   void disassemble_typeChanged(int index);
   void watch_keyPress(QKeyEvent *event);
@@ -175,6 +176,8 @@ private:
   void hideVariableTooltip();
 
   bool isSourceDebugging();
+
+  void cacheResources();
 
   ShaderEncoding currentEncoding();
 
@@ -235,6 +238,9 @@ private:
   rdcarray<ShaderDebugState> m_States;
   size_t m_CurrentStateIdx = 0;
   rdcarray<ShaderVariable> m_Variables;
+  rdcarray<ShaderVariable> m_AccessedResources;
+  rdcarray<BoundResourceArray> m_ReadOnlyResources;
+  rdcarray<BoundResourceArray> m_ReadWriteResources;
   QList<int> m_Breakpoints;
 
   static const int CURRENT_MARKER = 0;
@@ -276,6 +282,7 @@ private:
   RDTreeWidgetItem *makeSourceVariableNode(const SourceVariableMapping &l, int globalVarIdx,
                                            int localVarIdx);
   RDTreeWidgetItem *makeDebugVariableNode(const ShaderVariable &v, rdcstr prefix, bool modified);
+  RDTreeWidgetItem *makeAccessedResourceNode(const ShaderVariable &v, bool modified);
 
   const ShaderVariable *GetDebugVariable(const DebugVariableReference &r);
 
@@ -285,6 +292,8 @@ private:
 
   void runTo(QVector<size_t> runToInstructions, bool forward,
              ShaderEvents condition = ShaderEvents::NoEvent);
+
+  void runToResourceAccess(bool forward, VarType type, const BindpointIndex &resource);
 
   void applyBackwardsChange();
   void applyForwardsChange();

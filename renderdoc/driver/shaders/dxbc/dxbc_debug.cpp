@@ -1861,6 +1861,71 @@ void FlattenVariables(const rdcstr &cbufferName, const rdcarray<ShaderConstant> 
   }
 }
 
+void ThreadState::MarkResourceAccess(ShaderDebugState *state, DXBCBytecode::OperandType type,
+                                     const BindingSlot &slot)
+{
+  if(state == NULL)
+    return;
+
+  if(type != DXBCBytecode::TYPE_RESOURCE && type != DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
+    return;
+
+  state->changes.push_back(ShaderVariableChange());
+  ShaderVariableChange &change = state->changes.back();
+  change.after.rows = change.after.columns = 1;
+  change.after.type = (type == DXBCBytecode::TYPE_RESOURCE) ? VarType::ReadOnlyResource
+                                                            : VarType::ReadWriteResource;
+
+  uint32_t reg = slot.shaderRegister;
+  uint32_t arrIdx = 0;
+
+  const rdcarray<DXBC::ShaderInputBind> &shaderBinds =
+      (type == DXBCBytecode::TYPE_RESOURCE) ? reflection->SRVs : reflection->UAVs;
+  for(size_t i = 0; i < shaderBinds.size(); ++i)
+  {
+    const DXBC::ShaderInputBind &bind = shaderBinds[i];
+    if(bind.space == slot.registerSpace && bind.reg <= slot.shaderRegister &&
+       (bind.bindCount == ~0U || slot.shaderRegister < bind.reg + bind.bindCount))
+    {
+      reg = bind.reg;
+      arrIdx = slot.shaderRegister - bind.reg;
+
+      char prefix = (type == DXBCBytecode::TYPE_RESOURCE) ? 't' : 'u';
+      if(program->IsShaderModel51())
+        prefix = (char)toupper(prefix);
+
+      uint32_t resIdx = GetLogicalIdentifierForBindingSlot(*program, type, slot);
+
+      if(bind.bindCount == 1)
+        change.after.name = StringFormat::Fmt("%c%u", prefix, resIdx);
+      else
+        change.after.name = StringFormat::Fmt("%c%u[%u]", prefix, resIdx, arrIdx);
+
+      break;
+    }
+  }
+  change.after.SetBinding(slot.registerSpace, reg, arrIdx);
+
+  // Check whether this resource was visited before
+  bool found = false;
+  BindpointIndex bp = change.after.GetBinding();
+  rdcarray<BindpointIndex> &accessed =
+      (type == DXBCBytecode::TYPE_RESOURCE) ? m_accessedSRVs : m_accessedUAVs;
+  for(size_t i = 0; i < accessed.size(); ++i)
+  {
+    if(accessed[i] == bp)
+    {
+      found = true;
+      break;
+    }
+  }
+
+  if(found)
+    change.before = change.after;
+  else
+    accessed.push_back(bp);
+}
+
 void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
                            const rdcarray<ThreadState> &prevWorkgroup)
 {
@@ -2799,6 +2864,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         uav = global.uavs.find(slot);
       }
 
+      MarkResourceAccess(state, TYPE_UNORDERED_ACCESS_VIEW, slot);
+
       uint32_t count = uav->second.hiddenCounter++;
       SetDst(state, op.operands[0], op, ShaderVariable("", count, count, count, count));
       break;
@@ -2818,6 +2885,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         }
         uav = global.uavs.find(slot);
       }
+
+      MarkResourceAccess(state, TYPE_UNORDERED_ACCESS_VIEW, slot);
 
       uint32_t count = --uav->second.hiddenCounter;
       SetDst(state, op.operands[0], op, ShaderVariable("", count, count, count, count));
@@ -2945,6 +3014,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           }
           uav = global.uavs.find(slot);
         }
+
+        MarkResourceAccess(state, TYPE_UNORDERED_ACCESS_VIEW, slot);
 
         offset = uav->second.firstElement;
         numElems = uav->second.numElements;
@@ -3201,6 +3272,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
             srvIter = global.srvs.find(slot);
           }
 
+          MarkResourceAccess(state, TYPE_RESOURCE, slot);
+
           data = srvIter->second.data.data();
           offset = srvIter->second.firstElement;
           numElems = srvIter->second.numElements;
@@ -3218,6 +3291,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
             }
             uavIter = global.uavs.find(slot);
           }
+
+          MarkResourceAccess(state, TYPE_UNORDERED_ACCESS_VIEW, slot);
 
           data = uavIter->second.data.data();
           dataSize = uavIter->second.data.size();
@@ -3429,6 +3504,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       {
         UINT identifier = (UINT)(op.operands[1].indices[0].index & 0xffffffff);
         slot = GetBindingSlotForIdentifier(*program, op.operands[1].type, identifier);
+
+        MarkResourceAccess(state, op.operands[1].type, slot);
       }
       ShaderVariable result =
           apiWrapper->GetSampleInfo(op.operands[1].type, isAbsoluteResource, slot, op.str.c_str());
@@ -3589,6 +3666,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         BindingSlot slot = GetBindingSlotForIdentifier(*program, op.operands[1].type, identifier);
         ShaderVariable result = apiWrapper->GetBufferInfo(op.operands[1].type, slot, op.str.c_str());
 
+        MarkResourceAccess(state, op.operands[1].type, slot);
+
         // apply swizzle
         ShaderVariable swizzled("", 0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -3634,6 +3713,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         UINT identifier = (UINT)(op.operands[2].indices[0].index & 0xffffffff);
         BindingSlot slot = GetBindingSlotForIdentifier(*program, op.operands[2].type, identifier);
         ShaderVariable result = apiWrapper->GetResourceInfo(op.operands[2].type, slot, mipLevel, dim);
+
+        MarkResourceAccess(state, op.operands[2].type, slot);
 
         // need a valid dimension even if the resource was unbound, so
         // search for the declaration
@@ -3820,6 +3901,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
 
           SetDst(state, op.operands[0], op, fetch);
 
+          MarkResourceAccess(state, TYPE_RESOURCE, resourceBinding);
+
           return;
         }
         if(decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.sameResource(op.operands[2]))
@@ -3926,6 +4009,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       samplerData.mode = samplerMode;
       samplerData.binding = samplerBinding;
       samplerData.bias = samplerBias;
+
+      MarkResourceAccess(state, TYPE_RESOURCE, resourceBinding);
 
       ShaderVariable lookupResult("tex", 0.0f, 0.0f, 0.0f, 0.0f);
       if(apiWrapper->CalculateSampleGather(op.operation, resourceData, samplerData, uv, ddxCalc,
@@ -4275,6 +4360,30 @@ void GlobalState::PopulateGroupshared(const DXBCBytecode::Program *pBytecode)
   }
 }
 
+uint32_t GetLogicalIdentifierForBindingSlot(const DXBCBytecode::Program &program,
+                                            OperandType declType, const DXBCDebug::BindingSlot &slot)
+{
+  uint32_t idx = slot.shaderRegister;
+  if(program.IsShaderModel51())
+  {
+    // Need to lookup the logical identifier from the declarations
+    size_t numDeclarations = program.GetNumDeclarations();
+    for(size_t d = 0; d < numDeclarations; ++d)
+    {
+      const DXBCBytecode::Declaration &decl = program.GetDeclaration(d);
+      if(decl.operand.type == declType && decl.space == slot.registerSpace &&
+         decl.operand.indices[1].index <= slot.shaderRegister &&
+         decl.operand.indices[2].index >= slot.shaderRegister)
+      {
+        idx = (uint32_t)decl.operand.indices[0].index;
+        break;
+      }
+    }
+  }
+
+  return idx;
+}
+
 void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &global,
                              rdcarray<SourceVariableMapping> &sourceVars,
                              const ShaderReflection &refl, const ShaderBindpointMapping &mapping,
@@ -4289,29 +4398,14 @@ void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &
        slot.shaderRegister < (uint32_t)(bp.bind + bp.arraySize))
     {
       uint32_t arrayIndex = slot.shaderRegister - bp.bind;
+
       rdcarray<ShaderVariable> &targetVars =
           bp.arraySize > 1 ? global.constantBlocks[i].members[arrayIndex].members
                            : global.constantBlocks[i].members;
       RDCASSERTMSG("Reassigning previously filled cbuffer", targetVars.empty());
 
-      uint32_t cbufferIndex = slot.shaderRegister;
-      if(program.IsShaderModel51())
-      {
-        // Need to lookup the logical identifier from the declarations
-        size_t numDeclarations = program.GetNumDeclarations();
-        for(size_t d = 0; d < numDeclarations; ++d)
-        {
-          const DXBCBytecode::Declaration &decl = program.GetDeclaration(d);
-          if(decl.operand.type == DXBCBytecode::TYPE_CONSTANT_BUFFER &&
-             decl.space == slot.registerSpace &&
-             decl.operand.indices[1].index <= slot.shaderRegister &&
-             decl.operand.indices[2].index >= slot.shaderRegister)
-          {
-            cbufferIndex = (uint32_t)decl.operand.indices[0].index;
-            break;
-          }
-        }
-      }
+      uint32_t cbufferIndex =
+          GetLogicalIdentifierForBindingSlot(program, DXBCBytecode::TYPE_CONSTANT_BUFFER, slot);
 
       global.constantBlocks[i].name =
           program.GetRegisterName(DXBCBytecode::TYPE_CONSTANT_BUFFER, cbufferIndex);

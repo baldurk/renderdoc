@@ -307,6 +307,9 @@ private:
   void SetDst(ShaderDebugState *state, const DXBCBytecode::Operand &dstoper,
               const DXBCBytecode::Operation &op, const ShaderVariable &val);
 
+  void MarkResourceAccess(ShaderDebugState *state, DXBCBytecode::OperandType type,
+                          const BindingSlot &slot);
+
   // retrieves the value of the operand, by looking up
   // in the register file and performing any swizzling and
   // negation/abs functions
@@ -320,6 +323,9 @@ private:
 
   const DXBC::Reflection *reflection;
   const DXBCBytecode::Program *program;
+
+  rdcarray<BindpointIndex> m_accessedSRVs;
+  rdcarray<BindpointIndex> m_accessedUAVs;
 };
 
 struct InterpretDebugger : public ShaderDebugger
@@ -342,6 +348,10 @@ struct InterpretDebugger : public ShaderDebugger
   void CalcActiveMask(rdcarray<bool> &activeMask);
   rdcarray<ShaderDebugState> ContinueDebug(DebugAPIWrapper *apiWrapper);
 };
+
+uint32_t GetLogicalIdentifierForBindingSlot(const DXBCBytecode::Program &program,
+                                            DXBCBytecode::OperandType declType,
+                                            const DXBCDebug::BindingSlot &slot);
 
 void ApplyAllDerivatives(GlobalState &global, rdcarray<ThreadState> &quad, int destIdx,
                          const rdcarray<PSInputElement> &initialValues, float *data);

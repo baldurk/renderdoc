@@ -58,9 +58,9 @@ void HandleResourceArrayIndices(const rdcarray<DXBCBytecode::RegIndex> &indices,
     // Start/end registers are inclusive, so one resource will have the same start/end register
     desc.bindCount = uint32_t(indices[2].index - indices[1].index + 1);
 
-    // If it's an unbounded resource array, mark the bind count as 0
+    // If it's an unbounded resource array, mark the bind count as ~0U
     if(indices[2].index == 0xffffffff)
-      desc.bindCount = 0;
+      desc.bindCount = ~0U;
   }
 }
 

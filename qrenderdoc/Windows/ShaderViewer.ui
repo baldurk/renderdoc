@@ -116,6 +116,57 @@
     <bool>true</bool>
    </property>
   </widget>
+  <widget class="QFrame" name="resourcesPanel">
+    <property name="geometry">
+      <rect>
+        <x>20</x>
+        <y>310</y>
+        <width>256</width>
+        <height>192</height>
+      </rect>
+    </property>
+    <property name="contextMenuPolicy">
+      <enum>Qt::PreventContextMenu</enum>
+    </property>
+    <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout">
+      <property name="spacing">
+        <number>2</number>
+      </property>
+      <property name="leftMargin">
+        <number>0</number>
+      </property>
+      <property name="topMargin">
+        <number>0</number>
+      </property>
+      <property name="rightMargin">
+        <number>0</number>
+      </property>
+      <property name="bottomMargin">
+        <number>0</number>
+      </property>
+      <item>
+        <widget class="RDTreeWidget" name="accessedResources">
+          <property name="geometry">
+            <rect>
+              <x>20</x>
+              <y>310</y>
+              <width>256</width>
+              <height>192</height>
+            </rect>
+          </property>
+          <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
+          </property>
+          <property name="allColumnsShowFocus">
+            <bool>true</bool>
+          </property>
+        </widget>
+      </item>
+    </layout>
+  </widget>
   <widget class="RDTreeWidget" name="debugVars">
    <property name="geometry">
     <rect>
