@@ -998,19 +998,27 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
 {
   HANDLE hChildStdOutput_Rd = NULL, hChildStdError_Rd = NULL;
 
+  rdcstr appPath = app;
+  size_t len = appPath.length();
+  rdcstr ext;
+  if(len > 4)
+    ext = strlower(appPath.substr(len - 4));
+  if(ext != ".exe")
+    appPath += ".exe";
+
   PROCESS_INFORMATION pi =
-      RunProcess(app, workingDir, cmdLine, {}, internal, result ? &hChildStdOutput_Rd : NULL,
-                 result ? &hChildStdError_Rd : NULL);
+      RunProcess(appPath.c_str(), workingDir, cmdLine, {}, internal,
+                 result ? &hChildStdOutput_Rd : NULL, result ? &hChildStdError_Rd : NULL);
 
   if(pi.dwProcessId == 0)
   {
     if(!internal)
-      RDCWARN("Couldn't launch process '%s'", app);
+      RDCWARN("Couldn't launch process '%s'", appPath.c_str());
     return 0;
   }
 
   if(!internal)
-    RDCLOG("Launched process '%s' with '%s'", app, cmdLine);
+    RDCLOG("Launched process '%s' with '%s'", appPath.c_str(), cmdLine);
 
   ResumeThread(pi.hThread);
 
