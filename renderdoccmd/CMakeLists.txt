@@ -22,7 +22,7 @@ elseif(ENABLE_GGP)
     list(APPEND sources renderdoccmd_ggp.cpp)
     find_library(GGP_LIBRARY ggp)
     list(APPEND libraries PRIVATE ${GGP_LIBRARY})
-    set(LINKER_FLAGS "-Wl,--no-as-needed")
+    set(LINKER_FLAGS "-Wl,--no-as-needed -Wl,--hash-style=gnu -Wl,--build-id=sha1")
 elseif(UNIX)
     list(APPEND sources renderdoccmd_linux.cpp)
 

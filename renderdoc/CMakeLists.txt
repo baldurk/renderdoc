@@ -545,6 +545,10 @@ if(UNIX AND NOT ANDROID AND NOT APPLE)
         set(RDOC_LINK_FLAGS "${RDOC_LINK_FLAGS} -Wl,--no-undefined")
     endif()
 
+    if(ENABLE_GGP)
+        set(RDOC_LINK_FLAGS "${RDOC_LINK_FLAGS} -Wl,--hash-style=gnu -Wl,--build-id=sha1")
+    endif()
+
     set_target_properties(renderdoc PROPERTIES LINK_FLAGS "${RDOC_LINK_FLAGS}")
     set_target_properties(renderdoc PROPERTIES SKIP_BUILD_RPATH TRUE)
 endif()
