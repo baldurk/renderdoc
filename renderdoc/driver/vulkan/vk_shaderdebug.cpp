@@ -229,6 +229,8 @@ public:
     VkDevice dev = m_pDriver->GetDev();
     for(auto it = m_SampleViews.begin(); it != m_SampleViews.end(); it++)
       m_pDriver->vkDestroyImageView(dev, it->second, NULL);
+    for(auto it = m_BiasSamplers.begin(); it != m_BiasSamplers.end(); it++)
+      m_pDriver->vkDestroySampler(dev, it->second, NULL);
   }
 
   virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
@@ -427,6 +429,74 @@ public:
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
       m_SampleViews[GetResID(view)] = sampleView;
+    }
+
+    if(operands.flags & rdcspv::ImageOperands::Bias)
+    {
+      float bias = lane.GetSrc(operands.bias).value.f.x;
+      if(bias != 0.0f)
+      {
+        // bias can only be used with implicit lod operations, but we want to do everything with
+        // explicit lod operations. So we instead push the bias into a new sampler, which is
+        // entirely equivalent.
+
+        // first check to see if we have one already, since the bias is probably going to be
+        // coherent.
+        SamplerBiasKey key = {GetResID(sampler), bias};
+
+        auto insertIt = m_BiasSamplers.insert(std::make_pair(key, VkSampler()));
+        if(insertIt.second)
+        {
+          const VulkanCreationInfo::Sampler &samplerProps = m_Creation.m_Sampler[key.first];
+
+          VkSamplerCreateInfo sampInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+          sampInfo.magFilter = samplerProps.magFilter;
+          sampInfo.minFilter = samplerProps.minFilter;
+          sampInfo.mipmapMode = samplerProps.mipmapMode;
+          sampInfo.addressModeU = samplerProps.address[0];
+          sampInfo.addressModeV = samplerProps.address[1];
+          sampInfo.addressModeW = samplerProps.address[2];
+          sampInfo.mipLodBias = samplerProps.mipLodBias;
+          sampInfo.maxAnisotropy = samplerProps.maxAnisotropy;
+          sampInfo.compareEnable = samplerProps.compareEnable;
+          sampInfo.compareOp = samplerProps.compareOp;
+          sampInfo.minLod = samplerProps.minLod;
+          sampInfo.maxLod = samplerProps.maxLod;
+          sampInfo.borderColor = samplerProps.borderColor;
+          sampInfo.unnormalizedCoordinates = samplerProps.unnormalizedCoordinates;
+
+          VkSamplerReductionModeCreateInfo reductionInfo = {
+              VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO};
+          if(samplerProps.reductionMode != VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE)
+          {
+            reductionInfo.reductionMode = samplerProps.reductionMode;
+            reductionInfo.pNext = sampInfo.pNext;
+            sampInfo.pNext = &reductionInfo;
+          }
+
+          VkSamplerYcbcrConversionInfo ycbcrInfo = {VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO};
+          if(samplerProps.ycbcr != ResourceId())
+          {
+            ycbcrInfo.conversion =
+                m_pDriver->GetResourceManager()->GetCurrentHandle<VkSamplerYcbcrConversion>(
+                    viewProps.image);
+            ycbcrInfo.pNext = sampInfo.pNext;
+            sampInfo.pNext = &ycbcrInfo;
+          }
+
+          // now add the shader's bias on
+          sampInfo.mipLodBias += bias;
+
+          VkResult vkr = m_pDriver->vkCreateSampler(dev, &sampInfo, NULL, &sampler);
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+          insertIt.first->second = sampler;
+        }
+        else
+        {
+          sampler = insertIt.first->second;
+        }
+      }
     }
 
     params.operation = (uint32_t)opcode;
@@ -630,6 +700,9 @@ private:
   VulkanCreationInfo &m_Creation;
 
   std::map<ResourceId, VkImageView> m_SampleViews;
+
+  typedef rdcpair<ResourceId, float> SamplerBiasKey;
+  std::map<SamplerBiasKey, VkSampler> m_BiasSamplers;
 
   std::map<rdcpair<uint32_t, uint32_t>, bytebuf> cbufferCache;
   template <typename T>
