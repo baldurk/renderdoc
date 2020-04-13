@@ -371,6 +371,7 @@ void ThreadState::StepNext(ShaderDebugState *state,
       break;
     }
     case Op::AccessChain:
+    case Op::InBoundsAccessChain:
     {
       OpAccessChain chain(it);
 
