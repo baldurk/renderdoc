@@ -91,6 +91,7 @@ struct Vec3i
 struct ShaderDebugParameters
 {
   uint32_t operation;
+  VkBool32 useGrad;
   ShaderDebugBind dim;
   Vec3i texel_uvw;
   int texel_lod;
@@ -100,8 +101,8 @@ struct ShaderDebugParameters
   Vec3i offset;
   int sampleIdx;
   float compare;
-  float bias;
   float lod;
+  float minlod;
   rdcspv::GatherChannel gatherChannel;
 };
 
@@ -392,6 +393,10 @@ public:
         coords = 4;
         gradCoords = 3;
         break;
+      case VK_IMAGE_VIEW_TYPE_RANGE_SIZE:
+      case VK_IMAGE_VIEW_TYPE_MAX_ENUM:
+        RDCERR("Invalid image view type %s", ToStr(viewProps.viewType).c_str());
+        return false;
     }
 
     // create our own view (if we haven't already for this view) so we can promote to array
@@ -460,9 +465,13 @@ public:
         if(!buffer)
           params.texel_lod = lane.GetSrc(operands.lod).value.i.x;
 
+        if(operands.flags & rdcspv::ImageOperands::Sample)
+          params.sampleIdx = lane.GetSrc(operands.sample).value.u.x;
+
         break;
       }
       case rdcspv::Op::ImageSampleExplicitLod:
+      case rdcspv::Op::ImageSampleImplicitLod:
       {
         params.uvw.x = uv.value.f.x;
         if(coords >= 2)
@@ -470,10 +479,33 @@ public:
         if(coords >= 3)
           params.uvw.z = uv.value.f.z;
 
+        if(operands.flags & rdcspv::ImageOperands::MinLod)
+          params.minlod = lane.GetSrc(operands.minLod).value.f.x;
+
         if(operands.flags & rdcspv::ImageOperands::Lod)
+        {
           params.lod = lane.GetSrc(operands.lod).value.f.x;
-        else
-          RDCERR("Grad variant not supported");
+          params.useGrad = VK_FALSE;
+        }
+        else if(operands.flags & rdcspv::ImageOperands::Grad)
+        {
+          ShaderVariable ddx = lane.GetSrc(operands.grad.first);
+          ShaderVariable ddy = lane.GetSrc(operands.grad.second);
+
+          params.useGrad = VK_TRUE;
+
+          params.ddx.x = ddx.value.f.x;
+          if(gradCoords >= 2)
+            params.ddx.y = ddx.value.f.y;
+          if(gradCoords >= 3)
+            params.ddx.z = ddx.value.f.z;
+
+          params.ddy.x = ddy.value.f.x;
+          if(gradCoords >= 2)
+            params.ddy.y = ddy.value.f.y;
+          if(gradCoords >= 3)
+            params.ddy.z = ddy.value.f.z;
+        }
 
         if(operands.flags & rdcspv::ImageOperands::ConstOffset)
         {
@@ -495,8 +527,6 @@ public:
         }
 
         break;
-      }
-      case rdcspv::Op::ImageSampleImplicitLod: { break;
       }
       default:
       {
@@ -818,6 +848,11 @@ private:
     editor.AddCapability(rdcspv::Capability::Sampled1D);
     editor.AddCapability(rdcspv::Capability::SampledBuffer);
 
+    if(m_pDriver->GetDeviceFeatures().shaderResourceMinLod)
+      editor.AddCapability(rdcspv::Capability::MinLod);
+    if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+      editor.AddCapability(rdcspv::Capability::ImageGatherExtended);
+
     rdcspv::Id entryId = editor.MakeId();
 
     editor.AddOperation(
@@ -843,54 +878,75 @@ private:
 
 // add specialisation constants for all the parameters
 #define SPEC_ID(name) uint32_t(offsetof(ShaderDebugParameters, name) / sizeof(uint32_t))
-    rdcspv::Id operation = editor.AddSpecConstantImmediate<uint32_t>(0U, SPEC_ID(operation));
-    rdcspv::Id dim = editor.AddSpecConstantImmediate<uint32_t>(0U, SPEC_ID(dim));
-    rdcspv::Id texel_u = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(texel_uvw.x));
-    rdcspv::Id texel_v = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(texel_uvw.y));
-    rdcspv::Id texel_w = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(texel_uvw.z));
-    rdcspv::Id texel_lod = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(texel_lod));
-    rdcspv::Id u = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(uvw.x));
-    rdcspv::Id v = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(uvw.y));
-    rdcspv::Id w = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(uvw.z));
-    rdcspv::Id dudx = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(ddx.x));
-    rdcspv::Id dvdx = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(ddx.y));
-    rdcspv::Id dwdx = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(ddx.z));
-    rdcspv::Id dudy = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(ddy.x));
-    rdcspv::Id dvdy = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(ddy.y));
-    rdcspv::Id dwdy = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(ddy.z));
-    rdcspv::Id offset_x = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(offset.x));
-    rdcspv::Id offset_y = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(offset.y));
-    rdcspv::Id offset_z = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(offset.z));
-    rdcspv::Id sampleIdx = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(sampleIdx));
-    rdcspv::Id compare = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(compare));
-    rdcspv::Id bias = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(bias));
-    rdcspv::Id lod = editor.AddSpecConstantImmediate<float>(0U, SPEC_ID(lod));
-    rdcspv::Id gatherChannel = editor.AddSpecConstantImmediate<int32_t>(0U, SPEC_ID(gatherChannel));
+
+#define DECL_SPECID(type, name, value)                                         \
+  rdcspv::Id name = editor.AddSpecConstantImmediate<type>(0U, SPEC_ID(value)); \
+  editor.SetName(name, "spec_" #name);
+
+    DECL_SPECID(uint32_t, operation, operation);
+    DECL_SPECID(bool, useGrad, useGrad);
+    DECL_SPECID(uint32_t, dim, dim);
+    DECL_SPECID(int32_t, texel_u, texel_uvw.x);
+    DECL_SPECID(int32_t, texel_v, texel_uvw.y);
+    DECL_SPECID(int32_t, texel_w, texel_uvw.z);
+    DECL_SPECID(int32_t, texel_lod, texel_lod);
+    DECL_SPECID(float, u, uvw.x);
+    DECL_SPECID(float, v, uvw.y);
+    DECL_SPECID(float, w, uvw.z);
+    DECL_SPECID(float, dudx, ddx.x);
+    DECL_SPECID(float, dvdx, ddx.y);
+    DECL_SPECID(float, dwdx, ddx.z);
+    DECL_SPECID(float, dudy, ddy.x);
+    DECL_SPECID(float, dvdy, ddy.y);
+    DECL_SPECID(float, dwdy, ddy.z);
+    DECL_SPECID(int32_t, offset_x, offset.x);
+    DECL_SPECID(int32_t, offset_y, offset.y);
+    DECL_SPECID(int32_t, offset_z, offset.z);
+    DECL_SPECID(int32_t, sampleIdx, sampleIdx);
+    DECL_SPECID(float, compare, compare);
+    DECL_SPECID(float, lod, lod);
+    DECL_SPECID(float, minlod, minlod);
+    DECL_SPECID(int32_t, gatherChannel, gatherChannel);
 
     rdcspv::Id texel_uv = editor.AddConstant(
         rdcspv::OpSpecConstantComposite(v2i32, editor.MakeId(), {texel_u, texel_v}));
     rdcspv::Id texel_uvw = editor.AddConstant(
         rdcspv::OpSpecConstantComposite(v3i32, editor.MakeId(), {texel_u, texel_v, texel_w}));
 
+    editor.SetName(texel_uv, "texel_uv");
+    editor.SetName(texel_uvw, "texel_uvw");
+
     rdcspv::Id uv =
         editor.AddConstant(rdcspv::OpSpecConstantComposite(v2f32, editor.MakeId(), {u, v}));
     rdcspv::Id uvw =
         editor.AddConstant(rdcspv::OpSpecConstantComposite(v3f32, editor.MakeId(), {u, v, w}));
+
+    editor.SetName(uv, "uv");
+    editor.SetName(uvw, "uvw");
 
     rdcspv::Id ddx_uv =
         editor.AddConstant(rdcspv::OpSpecConstantComposite(v2f32, editor.MakeId(), {dudx, dvdx}));
     rdcspv::Id ddx_uvw = editor.AddConstant(
         rdcspv::OpSpecConstantComposite(v3f32, editor.MakeId(), {dudx, dvdx, dwdx}));
 
+    editor.SetName(ddx_uv, "ddx_uv");
+    editor.SetName(ddx_uvw, "ddx_uvw");
+
     rdcspv::Id ddy_uv =
         editor.AddConstant(rdcspv::OpSpecConstantComposite(v2f32, editor.MakeId(), {dudy, dvdy}));
     rdcspv::Id ddy_uvw = editor.AddConstant(
         rdcspv::OpSpecConstantComposite(v3f32, editor.MakeId(), {dudy, dvdy, dwdy}));
 
+    editor.SetName(ddy_uv, "ddy_uv");
+    editor.SetName(ddy_uvw, "ddy_uvw");
+
     rdcspv::Id offset_xy = editor.AddConstant(
         rdcspv::OpSpecConstantComposite(v2i32, editor.MakeId(), {offset_x, offset_y}));
     rdcspv::Id offset_xyz = editor.AddConstant(
         rdcspv::OpSpecConstantComposite(v3i32, editor.MakeId(), {offset_x, offset_y, offset_z}));
+
+    editor.SetName(offset_xy, "offset_xy");
+    editor.SetName(offset_xyz, "offset_xyz");
 
     // create the output. It's always a 4-wide vector
     rdcspv::Id outPtrType =
@@ -900,6 +956,8 @@ private:
         rdcspv::OpVariable(outPtrType, editor.MakeId(), rdcspv::StorageClass::Output));
     editor.AddDecoration(
         rdcspv::OpDecorate(outVar, rdcspv::DecorationParam<rdcspv::Decoration::Location>(0)));
+
+    editor.SetName(outVar, "output");
 
     rdcspv::ImageFormat unk = rdcspv::ImageFormat::Unknown;
 
@@ -937,6 +995,13 @@ private:
       editor.AddDecoration(rdcspv::OpDecorate(
           texSampVars[i], rdcspv::DecorationParam<rdcspv::Decoration::Binding>((uint32_t)i)));
     }
+
+    editor.SetName(texSampVars[(size_t)ShaderDebugBind::Tex1D], "Tex1D");
+    editor.SetName(texSampVars[(size_t)ShaderDebugBind::Tex2D], "Tex2D");
+    editor.SetName(texSampVars[(size_t)ShaderDebugBind::Tex3D], "Tex3D");
+    editor.SetName(texSampVars[(size_t)ShaderDebugBind::Tex2DMS], "Tex2DMS");
+    editor.SetName(texSampVars[(size_t)ShaderDebugBind::Buffer], "Buffer");
+    editor.SetName(texSampVars[(size_t)ShaderDebugBind::Sampler], "Sampler");
 
     rdcspv::Id sampVar = texSampVars[(size_t)ShaderDebugBind::Sampler];
 
@@ -1000,6 +1065,24 @@ private:
         offset_x,      // Buffer - u
     };
 
+    rdcspv::Id ddxs[(uint32_t)ShaderDebugBind::Count] = {
+        rdcspv::Id(),
+        dudx,       // 1D - u
+        ddx_uv,     // 2D - u,v
+        ddx_uvw,    // 3D - u,v,w
+        ddx_uv,     // 2DMS - u,v
+        dudx,       // Buffer - u
+    };
+
+    rdcspv::Id ddys[(uint32_t)ShaderDebugBind::Count] = {
+        rdcspv::Id(),
+        dudy,       // 1D - u
+        ddy_uv,     // 2D - u,v
+        ddy_uvw,    // 3D - u,v,w
+        ddy_uv,     // 2DMS - u,v
+        dudy,       // Buffer - u
+    };
+
     uint32_t sampIdx = (uint32_t)ShaderDebugBind::Sampler;
 
     // for(uint32_t i = (uint32_t)ShaderDebugBind::First; i < (uint32_t)ShaderDebugBind::Count; i++)
@@ -1027,13 +1110,12 @@ private:
 
       {
         op = rdcspv::Op::ImageSampleExplicitLod;
+        op = rdcspv::Op::ImageSampleImplicitLod;
 
         rdcspv::Id label = editor.MakeId();
         targets.push_back({(uint32_t)op * 10 + i, label});
 
         rdcspv::ImageOperandsAndParamDatas imageOperands;
-
-        imageOperands.setLod(lod);
 
         imageOperands.setConstOffset(offsets[i]);
 
@@ -1042,10 +1124,40 @@ private:
             cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), texSampVars[i]));
         rdcspv::Id loadedSampler =
             cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), texSampVars[sampIdx]));
-        rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
-            texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
-        rdcspv::Id sampleResult = cases.add(rdcspv::OpImageSampleExplicitLod(
-            resultType, editor.MakeId(), combined, coord[i], imageOperands));
+
+        rdcspv::Id mergeLabel = editor.MakeId();
+        rdcspv::Id gradCase = editor.MakeId();
+        rdcspv::Id lodCase = editor.MakeId();
+        cases.add(rdcspv::OpSelectionMerge(mergeLabel, rdcspv::SelectionControl::None));
+        cases.add(rdcspv::OpBranchConditional(useGrad, gradCase, lodCase));
+
+        rdcspv::Id lodResult;
+        {
+          cases.add(rdcspv::OpLabel(lodCase));
+          rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+          operands.setLod(lod);
+          rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
+              texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+          lodResult = cases.add(rdcspv::OpImageSampleExplicitLod(resultType, editor.MakeId(),
+                                                                 combined, coord[i], operands));
+          cases.add(rdcspv::OpBranch(mergeLabel));
+        }
+
+        rdcspv::Id gradResult;
+        {
+          cases.add(rdcspv::OpLabel(gradCase));
+          rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+          operands.setGrad(ddxs[i], ddys[i]);
+          rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
+              texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+          gradResult = cases.add(rdcspv::OpImageSampleExplicitLod(resultType, editor.MakeId(),
+                                                                  combined, coord[i], operands));
+          cases.add(rdcspv::OpBranch(mergeLabel));
+        }
+
+        cases.add(rdcspv::OpLabel(mergeLabel));
+        rdcspv::Id sampleResult = cases.add(rdcspv::OpPhi(
+            resultType, editor.MakeId(), {{lodResult, lodCase}, {gradResult, gradCase}}));
         cases.add(rdcspv::OpStore(outVar, sampleResult));
         cases.add(rdcspv::OpBranch(breakLabel));
       }

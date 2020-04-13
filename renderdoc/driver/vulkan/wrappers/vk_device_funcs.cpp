@@ -2493,6 +2493,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           "geometryShader = false, lit mesh rendering will not be available if rendering on this "
           "device.");
 
+    // enable these features for simplicity, since we use them when available in the shader
+    // debugging. We should really check if the capture enabled them though
+    if(availFeatures.shaderImageGatherExtended)
+      enabledFeatures.shaderImageGatherExtended = true;
+    if(availFeatures.shaderResourceMinLod)
+      enabledFeatures.shaderResourceMinLod = true;
+
     bool descIndexingAllowsRBA = true;
 
     if(vulkan12Features.descriptorBindingUniformBufferUpdateAfterBind ||
