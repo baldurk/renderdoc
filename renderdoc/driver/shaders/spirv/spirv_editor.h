@@ -231,7 +231,7 @@ public:
     Id typeId = DeclareType(scalar<T>());
     rdcarray<uint32_t> words = {typeId.value(), MakeId().value()};
 
-    words.resize(words.size() + sizeof(T) / 4);
+    words.resize(words.size() + (sizeof(T) + 3) / 4);
 
     memcpy(&words[2], &t, sizeof(T));
 
@@ -244,7 +244,7 @@ public:
     Id typeId = DeclareType(scalar<T>());
     rdcarray<uint32_t> words = {typeId.value(), MakeId().value()};
 
-    words.resize(words.size() + sizeof(T) / 4);
+    words.resize(words.size() + (sizeof(T) + 3) / 4);
 
     memcpy(&words[2], &t, sizeof(T));
 
@@ -299,21 +299,32 @@ private:
   rdcarray<uint32_t> &m_ExternalSPIRV;
 };
 
-/*
-inline bool operator<(const OpDecorate &a, const OpDecorate &b)
+template <>
+inline Id Editor::AddConstantImmediate(bool b)
 {
-  if(a.target != b.target)
-    return a.target < b.target;
-  if(a.decoration.value != b.decoration.value)
-    return a.decoration.value < b.decoration.value;
+  Id typeId = DeclareType(scalar<bool>());
 
-  return memcmp(&a.decoration, &b.decoration, sizeof(a.decoration)) < 0;
+  rdcarray<uint32_t> words = {typeId.value(), MakeId().value()};
+
+  return AddConstant(Operation(b ? Op::ConstantTrue : Op::ConstantFalse, words));
 }
 
-inline bool operator==(const OpDecorate &a, const OpDecorate &b)
+template <>
+inline Id Editor::AddSpecConstantImmediate(bool b, uint32_t specId)
 {
-  return a.target == b.target && !memcmp(&a.decoration, &b.decoration, sizeof(a.decoration));
+  Id typeId = DeclareType(scalar<bool>());
+  rdcarray<uint32_t> words = {typeId.value(), MakeId().value()};
+
+  rdcspv::Id ret = AddConstant(Operation(b ? Op::SpecConstantTrue : Op::SpecConstantFalse, words));
+
+  words.clear();
+  words.push_back(ret.value());
+  words.push_back((uint32_t)rdcspv::Decoration::SpecId);
+  words.push_back(specId);
+
+  AddDecoration(Operation(Op::Decorate, words));
+
+  return ret;
 }
-*/
 
 };    // namespace rdcspv
