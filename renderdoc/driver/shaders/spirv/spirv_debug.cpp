@@ -711,6 +711,44 @@ void ThreadState::StepNext(ShaderDebugState *state,
 
       break;
     }
+    case Op::VectorExtractDynamic:
+    {
+      OpVectorExtractDynamic extract(it);
+
+      ShaderVariable var = GetSrc(extract.vector);
+      ShaderVariable idx = GetSrc(extract.index);
+
+      uint32_t comp = idx.value.u.x;
+
+      if(VarTypeByteSize(var.type) == 8)
+        var.value.u64v[0] = var.value.u64v[comp];
+      else
+        var.value.uv[0] = var.value.uv[comp];
+
+      // result is now scalar
+      var.columns = 1;
+
+      SetDst(state, extract.result, var);
+      break;
+    }
+    case Op::VectorInsertDynamic:
+    {
+      OpVectorInsertDynamic insert(it);
+
+      ShaderVariable var = GetSrc(insert.vector);
+      ShaderVariable scalar = GetSrc(insert.component);
+      ShaderVariable idx = GetSrc(insert.index);
+
+      uint32_t comp = idx.value.u.x;
+
+      if(VarTypeByteSize(var.type) == 8)
+        var.value.u64v[comp] = scalar.value.u64v[0];
+      else
+        var.value.uv[comp] = scalar.value.uv[0];
+
+      SetDst(state, insert.result, var);
+      break;
+    }
     case Op::Select:
     {
       OpSelect select(it);

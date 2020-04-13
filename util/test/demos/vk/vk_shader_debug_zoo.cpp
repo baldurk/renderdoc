@@ -563,6 +563,8 @@ void main()
                         38 %test_38
                         39 %test_39
                         40 %test_40
+                        41 %test_41
+                        42 %test_42
 
      ; test OpVectorShuffle
      %test_0 = OpLabel
@@ -1085,6 +1087,8 @@ void main()
    %scale_31 = OpFAdd %float %zerof %float_1_234
    %Color_31 = OpVectorTimesScalar %float4 %vec_31 %scale_31
 
+)EOSHADER"
+                          R"EOSHADER(
                OpStore %Color %Color_31
                OpBranch %break
 
@@ -1185,6 +1189,37 @@ void main()
       %cf_40 = OpConvertSToF %float %c_40
    %Color_40 = OpCompositeConstruct %float4 %af_40 %bf_40 %cf_40 %zerof
                OpStore %Color %Color_40
+               OpBranch %break
+
+    %test_41 = OpLabel
+       %a_41 = OpFAdd %float %zerof %float_15
+       %b_41 = OpFAdd %float %zerof %float_4
+       %c_41 = OpFAdd %float %zerof %float_neg4
+       %d_41 = OpFAdd %float %zerof %float_1_234
+       %x_41 = OpFAdd %float %zerof %float_neg15
+
+    %comp_41 = OpIAdd %uint %zerou %uint_3
+
+     %vec_41 = OpCompositeConstruct %float4 %a_41 %b_41 %c_41 %d_41
+%extracted_41 = OpVectorExtractDynamic %float %vec_41 %comp_41
+   %Color_41 = OpCompositeConstruct %float4 %extracted_41 %extracted_41 %extracted_41 %extracted_41
+
+               OpStore %Color %Color_41
+               OpBranch %break
+
+    %test_42 = OpLabel
+       %a_42 = OpFAdd %float %zerof %float_15
+       %b_42 = OpFAdd %float %zerof %float_4
+       %c_42 = OpFAdd %float %zerof %float_neg4
+       %d_42 = OpFAdd %float %zerof %float_1_234
+       %x_42 = OpFAdd %float %zerof %float_neg15
+
+    %comp_42 = OpIAdd %uint %zerou %uint_2
+
+     %vec_42 = OpCompositeConstruct %float4 %a_42 %b_42 %c_42 %d_42
+   %Color_42 = OpVectorInsertDynamic %float4 %vec_42 %x_42 %comp_42
+
+               OpStore %Color %Color_42
                OpBranch %break
 
     %default = OpLabel
