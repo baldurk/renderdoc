@@ -1594,6 +1594,7 @@ void ThreadState::StepNext(ShaderDebugState *state,
           result.value.u.w = 1;
       }
 
+      result.rows = 1;
       result.columns = RDCMAX(1U, resultType.vector().count);
 
       SetDst(state, opdata.result, result);
