@@ -1224,7 +1224,7 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 
     GetResourceManager()->SetInitialContents(id, VkInitialContents(type, tag));
   }
-  else if(type == eResDeviceMemory)
+  else if(type == eResDeviceMemory || type == eResBuffer)
   {
     // ignore, it was probably dirty but not referenced in the frame
   }
