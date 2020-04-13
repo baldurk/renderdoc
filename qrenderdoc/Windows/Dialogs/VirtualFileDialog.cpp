@@ -454,7 +454,6 @@ private:
 
     Renderer.ListFolder(makePath(node), true, [node](const rdcstr &path,
                                                      const rdcarray<PathEntry> &files) {
-
       if(files.count() == 1 && (files[0].flags & PathProperty::ErrorAccessDenied))
       {
         node->file.flags |= PathProperty::ErrorAccessDenied;
@@ -602,6 +601,9 @@ VirtualFileDialog::VirtualFileDialog(ICaptureContext &ctx, QString initialDirect
 
   if(!index.isValid())
     index = m_Model->homeFolder();
+
+  if(index.data(RemoteFileModel::FileIsHiddenRole).toBool())
+    ui->showHidden->setChecked(true);
 
   // switch to home folder and expand it
   changeCurrentDir(index);

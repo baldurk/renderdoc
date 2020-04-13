@@ -548,6 +548,25 @@ struct AndroidRemoteServer : public RemoteServer
         }
       }
 
+      // also fetch the system packages but mark them as hidden folders
+      adbStdout = Android::adbExecCommand(m_deviceID, "shell pm list packages -s").strStdout;
+
+      split(adbStdout, lines, '\n');
+
+      for(const rdcstr &line : lines)
+      {
+        if(!strncmp(line.c_str(), "package:", 8))
+        {
+          PathEntry pkg;
+          pkg.filename = line.substr(8).trimmed();
+          pkg.size = 0;
+          pkg.lastmod = 0;
+          pkg.flags = PathProperty::Directory | PathProperty::Hidden;
+
+          packages.push_back(pkg);
+        }
+      }
+
       adbStdout = Android::adbExecCommand(m_deviceID, "shell dumpsys package").strStdout;
 
       split(adbStdout, lines, '\n');
@@ -859,7 +878,6 @@ struct AndroidController : public IDeviceProtocolHandler
     ReplayStatus status = ReplayStatus::Succeeded;
 
     Invoke([this, &status, URL]() {
-
       rdcstr deviceID = GetDeviceID(URL);
 
       Device &dev = devices[deviceID];
