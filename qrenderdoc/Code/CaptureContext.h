@@ -183,6 +183,8 @@ public:
   void MarkMessagesRead() override { m_UnreadMessageCount = 0; }
   void AddMessages(const rdcarray<DebugMessage> &msgs) override;
 
+  void ConnectToRemoteServer(RemoteHost host) override;
+
   rdcstr GetNotes(const rdcstr &key) override { return m_Notes[key]; }
   void SetNotes(const rdcstr &key, const rdcstr &contents) override;
   rdcarray<EventBookmark> GetBookmarks() override { return m_Bookmarks; }

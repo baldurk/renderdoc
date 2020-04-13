@@ -1204,6 +1204,12 @@ See :meth:`ReplaceResource`.
 )");
   virtual IReplayManager &Replay() = 0;
 
+  DOCUMENT(R"(Connect to a remote server.
+
+:param RemoteHost host: The host to connect to.
+)");
+  virtual void ConnectToRemoteServer(RemoteHost host) = 0;
+
   DOCUMENT(R"(Check whether or not a capture is currently loaded.
 
 :return: ``True`` if a capture is loaded.

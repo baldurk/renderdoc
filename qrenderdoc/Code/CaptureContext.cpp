@@ -1450,6 +1450,24 @@ void CaptureContext::SetEventID(const rdcarray<ICaptureViewer *> &exclude, uint3
   RefreshUIStatus(exclude, updateSelectedEvent, updateEvent);
 }
 
+void CaptureContext::ConnectToRemoteServer(RemoteHost host)
+{
+  rdcarray<RemoteHost> hosts = Config().GetRemoteHosts();
+
+  int hostIdx = -1;
+  for(int32_t i = 0; i < hosts.count(); i++)
+  {
+    if(hosts[i].Hostname() == host.Hostname())
+    {
+      hostIdx = i;
+      break;
+    }
+  }
+
+  if(hostIdx >= 0)
+    m_MainWindow->setRemoteHost(hostIdx);
+}
+
 void CaptureContext::SetRemoteHost(int hostIdx)
 {
   m_MainWindow->setRemoteHost(hostIdx);

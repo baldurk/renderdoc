@@ -173,6 +173,10 @@ struct CaptureContextInvoker : ICaptureContext
     return (m_Ctx.*ptr)(params...);
   }
 
+  virtual void ConnectToRemoteServer(RemoteHost host) override
+  {
+    InvokeVoidFunction(&ICaptureContext::ConnectToRemoteServer, host);
+  }
   virtual WindowingData CreateWindowingData(QWidget *window) override
   {
     return InvokeRetFunction<WindowingData>(&ICaptureContext::CreateWindowingData, window);
