@@ -117,7 +117,7 @@ layout(set = 0, binding = 2) uniform sampler linearSampler;
 
 layout(set = 0, binding = 3) uniform texture2D sampledImage;
 
-//layout(set = 0, binding = 4) uniform sampler2D linearSampledImage;
+layout(set = 0, binding = 4) uniform sampler2D linearSampledImage;
 
 /*
 layout(set = 0, binding = 5, std430) buffer storebuftype
@@ -351,6 +351,11 @@ void main()
       vec2 coord = vec2(zerof + 0.5, zerof + 0.145);
 
       Color = textureLod(sampler2D(sampledImage, linearSampler), coord, 0.0);
+      break;
+    }
+    case 34:
+    {
+      Color = texture(linearSampledImage, inpos);
       break;
     }
     default: break;

@@ -577,6 +577,24 @@ public:
             params.ddy.z = ddy.value.f.z;
         }
 
+        if(opcode == rdcspv::Op::ImageSampleImplicitLod)
+        {
+          // use grad to sub in for the implicit lod
+          params.useGrad = VK_TRUE;
+
+          params.ddx.x = ddxCalc.value.f.x;
+          if(gradCoords >= 2)
+            params.ddx.y = ddxCalc.value.f.y;
+          if(gradCoords >= 3)
+            params.ddx.z = ddxCalc.value.f.z;
+
+          params.ddy.x = ddyCalc.value.f.x;
+          if(gradCoords >= 2)
+            params.ddy.y = ddyCalc.value.f.y;
+          if(gradCoords >= 3)
+            params.ddy.z = ddyCalc.value.f.z;
+        }
+
         if(operands.flags & rdcspv::ImageOperands::ConstOffset)
         {
           ShaderVariable constOffset = lane.GetSrc(operands.constOffset);
@@ -1109,8 +1127,6 @@ private:
 
     rdcspv::OperationList cases;
 
-    rdcspv::Op op;
-
     rdcspv::Id texel_coord[(uint32_t)ShaderDebugBind::Count] = {
         rdcspv::Id(),
         texel_uv,     // 1D - u and array
@@ -1162,7 +1178,7 @@ private:
     uint32_t i = (uint32_t)ShaderDebugBind::Tex2D;
     {
       {
-        op = rdcspv::Op::ImageFetch;
+        rdcspv::Op op = rdcspv::Op::ImageFetch;
 
         rdcspv::Id label = editor.MakeId();
         targets.push_back({(uint32_t)op * 10 + i, label});
@@ -1181,10 +1197,8 @@ private:
         cases.add(rdcspv::OpBranch(breakLabel));
       }
 
+      for(rdcspv::Op op : {rdcspv::Op::ImageSampleExplicitLod, rdcspv::Op::ImageSampleImplicitLod})
       {
-        op = rdcspv::Op::ImageSampleExplicitLod;
-        op = rdcspv::Op::ImageSampleImplicitLod;
-
         rdcspv::Id label = editor.MakeId();
         targets.push_back({(uint32_t)op * 10 + i, label});
 
