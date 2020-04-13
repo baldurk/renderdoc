@@ -360,6 +360,40 @@ public:
 
     VkDevice dev = m_pDriver->GetDev();
 
+    // how many co-ordinates should there be
+    int coords = 0, gradCoords;
+    switch(viewProps.viewType)
+    {
+      case VK_IMAGE_VIEW_TYPE_1D:
+        coords = 1;
+        gradCoords = 1;
+        break;
+      case VK_IMAGE_VIEW_TYPE_2D:
+        coords = 2;
+        gradCoords = 2;
+        break;
+      case VK_IMAGE_VIEW_TYPE_3D:
+        coords = 3;
+        gradCoords = 3;
+        break;
+      case VK_IMAGE_VIEW_TYPE_CUBE:
+        coords = 3;
+        gradCoords = 3;
+        break;
+      case VK_IMAGE_VIEW_TYPE_1D_ARRAY:
+        coords = 2;
+        gradCoords = 1;
+        break;
+      case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
+        coords = 3;
+        gradCoords = 2;
+        break;
+      case VK_IMAGE_VIEW_TYPE_CUBE_ARRAY:
+        coords = 4;
+        gradCoords = 3;
+        break;
+    }
+
     // create our own view (if we haven't already for this view) so we can promote to array
     VkImageView sampleView = m_SampleViews[GetResID(view)];
     if(sampleView == VK_NULL_HANDLE)
@@ -415,31 +449,51 @@ public:
     {
       case rdcspv::Op::ImageFetch:
       {
-        // TODO only upload relevant coords
+        // co-ordinates after the used ones are read as 0s. This allows us to then read an implicit
+        // 0 for array layer when we promote accesses to arrays.
         params.texel_uvw.x = uv.value.u.x;
-        params.texel_uvw.y = uv.value.u.y;
-        params.texel_uvw.z = uv.value.u.z;
+        if(coords >= 2)
+          params.texel_uvw.y = uv.value.u.y;
+        if(coords >= 3)
+          params.texel_uvw.z = uv.value.u.z;
+
         if(!buffer)
           params.texel_lod = lane.GetSrc(operands.lod).value.i.x;
+
         break;
       }
       case rdcspv::Op::ImageSampleExplicitLod:
       {
-        // TODO only upload relevant coords
         params.uvw.x = uv.value.f.x;
-        params.uvw.y = uv.value.f.y;
-        params.uvw.z = uv.value.f.z;
+        if(coords >= 2)
+          params.uvw.y = uv.value.f.y;
+        if(coords >= 3)
+          params.uvw.z = uv.value.f.z;
+
         if(operands.flags & rdcspv::ImageOperands::Lod)
           params.lod = lane.GetSrc(operands.lod).value.f.x;
         else
           RDCERR("Grad variant not supported");
+
         if(operands.flags & rdcspv::ImageOperands::ConstOffset)
         {
           ShaderVariable constOffset = lane.GetSrc(operands.constOffset);
           params.offset.x = constOffset.value.i.x;
-          params.offset.y = constOffset.value.i.y;
-          params.offset.z = constOffset.value.i.z;
+          if(gradCoords >= 2)
+            params.offset.y = constOffset.value.i.y;
+          if(gradCoords >= 3)
+            params.offset.z = constOffset.value.i.z;
         }
+        else if(operands.flags & rdcspv::ImageOperands::Offset)
+        {
+          ShaderVariable offset = lane.GetSrc(operands.offset);
+          params.offset.x = offset.value.i.x;
+          if(gradCoords >= 2)
+            params.offset.y = offset.value.i.y;
+          if(gradCoords >= 3)
+            params.offset.z = offset.value.i.z;
+        }
+
         break;
       }
       case rdcspv::Op::ImageSampleImplicitLod: { break;
