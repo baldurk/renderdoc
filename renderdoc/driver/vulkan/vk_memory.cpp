@@ -252,7 +252,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
         {
           if(mrq.memoryTypeBits > (1U << m))
           {
-            RDCDEBUG("Avoiding memory type %u due to small heap size (%llu)", i,
+            RDCDEBUG("Avoiding memory type %u due to small heap size (%llu)", m,
                      m_PhysicalDeviceData.memProps.memoryHeaps[heap].size);
             mrq.memoryTypeBits &= ~(1U << m);
           }
