@@ -364,7 +364,7 @@ public:
     VkDevice dev = m_pDriver->GetDev();
 
     // how many co-ordinates should there be
-    int coords = 0, gradCoords;
+    int coords = 0, gradCoords = 0;
     switch(viewProps.viewType)
     {
       case VK_IMAGE_VIEW_TYPE_1D:
