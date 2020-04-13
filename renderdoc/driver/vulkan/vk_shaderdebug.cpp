@@ -221,6 +221,15 @@ public:
     }
   }
 
+  ~VulkanAPIWrapper()
+  {
+    m_pDriver->FlushQ();
+
+    VkDevice dev = m_pDriver->GetDev();
+    for(auto it = m_SampleViews.begin(); it != m_SampleViews.end(); it++)
+      m_pDriver->vkDestroyImageView(dev, it->second, NULL);
+  }
+
   virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
                                rdcstr d) override
   {
@@ -344,10 +353,42 @@ public:
 
     // promote view to Array view
 
-    const VulkanCreationInfo::Image &imageProps =
-        m_Creation.m_Image[m_Creation.m_ImageView[GetResID(view)].image];
+    const VulkanCreationInfo::ImageView &viewProps = m_Creation.m_ImageView[GetResID(view)];
+    const VulkanCreationInfo::Image &imageProps = m_Creation.m_Image[viewProps.image];
     VkImageType imageType = imageProps.type;
     uint32_t samples = (uint32_t)imageProps.samples;
+
+    VkDevice dev = m_pDriver->GetDev();
+
+    // create our own view (if we haven't already for this view) so we can promote to array
+    VkImageView sampleView = m_SampleViews[GetResID(view)];
+    if(sampleView == VK_NULL_HANDLE)
+    {
+      VkImageViewCreateInfo viewInfo = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+      viewInfo.image = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(viewProps.image);
+      viewInfo.format = viewProps.format;
+      viewInfo.viewType = viewProps.viewType;
+      if(viewInfo.viewType == VK_IMAGE_VIEW_TYPE_1D)
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+      else if(viewInfo.viewType == VK_IMAGE_VIEW_TYPE_2D)
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+
+      viewInfo.components = viewProps.componentMapping;
+      viewInfo.subresourceRange = viewProps.range;
+
+      // if KHR_maintenance2 is available, ensure we have sampled usage available
+      VkImageViewUsageCreateInfo usageCreateInfo = {VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO};
+      if(m_pDriver->GetExtensions(NULL).ext_KHR_maintenance2)
+      {
+        usageCreateInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+        viewInfo.pNext = &usageCreateInfo;
+      }
+
+      VkResult vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &sampleView);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      m_SampleViews[GetResID(view)] = sampleView;
+    }
 
     params.operation = (uint32_t)opcode;
 
@@ -414,7 +455,7 @@ public:
 
     VkDescriptorImageInfo samplerWriteInfo = {Unwrap(sampler), VK_NULL_HANDLE,
                                               VK_IMAGE_LAYOUT_UNDEFINED};
-    VkDescriptorImageInfo imageWriteInfo = {VK_NULL_HANDLE, Unwrap(view), layout};
+    VkDescriptorImageInfo imageWriteInfo = {VK_NULL_HANDLE, Unwrap(sampleView), layout};
 
     VkWriteDescriptorSet writeSets[] = {
         {
@@ -433,8 +474,6 @@ public:
       writeSets[0].pTexelBufferView = &bufferView;
       writeSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
     }
-
-    VkDevice dev = m_pDriver->GetDev();
 
     ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), sampler != VK_NULL_HANDLE ? 2 : 1, writeSets, 0,
                                        NULL);
@@ -505,6 +544,8 @@ private:
   WrappedVulkan *m_pDriver = NULL;
   ShaderDebugData &m_DebugData;
   VulkanCreationInfo &m_Creation;
+
+  std::map<ResourceId, VkImageView> m_SampleViews;
 
   std::map<rdcpair<uint32_t, uint32_t>, bytebuf> cbufferCache;
   template <typename T>

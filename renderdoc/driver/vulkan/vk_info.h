@@ -499,7 +499,7 @@ struct VulkanCreationInfo
 
     YcbcrConversion ycbcrModel;
     YcbcrRange ycbcrRange;
-    TextureSwizzle swizzle[4];
+    VkComponentMapping componentMapping;
     ChromaSampleLocation xChromaOffset;
     ChromaSampleLocation yChromaOffset;
     FilterMode chromaFilter;
@@ -513,9 +513,10 @@ struct VulkanCreationInfo
               const VkImageViewCreateInfo *pCreateInfo);
 
     ResourceId image;
+    VkImageViewType viewType;
     VkFormat format;
     VkImageSubresourceRange range;
-    TextureSwizzle swizzle[4];
+    VkComponentMapping componentMapping;
   };
   std::map<ResourceId, ImageView> m_ImageView;
 

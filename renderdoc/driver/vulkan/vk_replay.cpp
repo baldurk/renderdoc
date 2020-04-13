@@ -1015,6 +1015,31 @@ void VulkanReplay::SetDriverInformation(const VkPhysicalDeviceProperties &props)
   memcpy(m_DriverInfo.version, versionString.c_str(), versionString.size());
 }
 
+static void Convert(TextureSwizzle dst[4], VkComponentMapping src)
+{
+  VkComponentSwizzle srcComps[4] = {
+      src.r, src.g, src.b, src.a,
+  };
+  for(int i = 0; i < 4; i++)
+  {
+    switch(srcComps[i])
+    {
+      default:
+        RDCWARN("Unexpected component swizzle value %d", (int)srcComps[i]);
+        DELIBERATE_FALLTHROUGH();
+      case VK_COMPONENT_SWIZZLE_IDENTITY: break;
+      case VK_COMPONENT_SWIZZLE_ZERO: dst[i] = TextureSwizzle::Zero; break;
+      case VK_COMPONENT_SWIZZLE_ONE: dst[i] = TextureSwizzle::One; break;
+      case VK_COMPONENT_SWIZZLE_R: dst[i] = TextureSwizzle::Red; break;
+      case VK_COMPONENT_SWIZZLE_G: dst[i] = TextureSwizzle::Green; break;
+      case VK_COMPONENT_SWIZZLE_B: dst[i] = TextureSwizzle::Blue; break;
+      case VK_COMPONENT_SWIZZLE_A: dst[i] = TextureSwizzle::Alpha; break;
+    }
+
+    dst[i] = TextureSwizzle(uint32_t(TextureSwizzle::Red) + i);
+  }
+}
+
 void VulkanReplay::SavePipelineState(uint32_t eventId)
 {
   const VulkanRenderState &state = m_pDriver->m_RenderState;
@@ -1486,8 +1511,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
           m_VulkanPipelineState.currentPass.framebuffer.attachments[i].numSlices =
               c.m_ImageView[viewid].range.layerCount;
 
-          memcpy(m_VulkanPipelineState.currentPass.framebuffer.attachments[i].swizzle,
-                 c.m_ImageView[viewid].swizzle, sizeof(TextureSwizzle) * 4);
+          Convert(m_VulkanPipelineState.currentPass.framebuffer.attachments[i].swizzle,
+                  c.m_ImageView[viewid].componentMapping);
         }
         else
         {
@@ -1737,7 +1762,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
                   el.ycbcrModel = ycbcr.ycbcrModel;
                   el.ycbcrRange = ycbcr.ycbcrRange;
-                  memcpy(el.ycbcrSwizzle, ycbcr.swizzle, sizeof(TextureSwizzle) * 4);
+                  Convert(el.ycbcrSwizzle, ycbcr.componentMapping);
                   el.xChromaOffset = ycbcr.xChromaOffset;
                   el.yChromaOffset = ycbcr.yChromaOffset;
                   el.chromaFilter = ycbcr.chromaFilter;
@@ -1761,8 +1786,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 dst.bindings[b].binds[a].viewFormat =
                     MakeResourceFormat(c.m_ImageView[viewid].format);
 
-                memcpy(dst.bindings[b].binds[a].swizzle, c.m_ImageView[viewid].swizzle,
-                       sizeof(TextureSwizzle) * 4);
+                Convert(dst.bindings[b].binds[a].swizzle, c.m_ImageView[viewid].componentMapping);
                 dst.bindings[b].binds[a].firstMip = c.m_ImageView[viewid].range.baseMipLevel;
                 dst.bindings[b].binds[a].firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
                 dst.bindings[b].binds[a].numMips = c.m_ImageView[viewid].range.levelCount;

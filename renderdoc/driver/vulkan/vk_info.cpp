@@ -979,23 +979,6 @@ void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, Vulka
   }
 }
 
-static TextureSwizzle Convert(VkComponentSwizzle s, int i)
-{
-  switch(s)
-  {
-    default: RDCWARN("Unexpected component swizzle value %d", (int)s); DELIBERATE_FALLTHROUGH();
-    case VK_COMPONENT_SWIZZLE_IDENTITY: break;
-    case VK_COMPONENT_SWIZZLE_ZERO: return TextureSwizzle::Zero;
-    case VK_COMPONENT_SWIZZLE_ONE: return TextureSwizzle::One;
-    case VK_COMPONENT_SWIZZLE_R: return TextureSwizzle::Red;
-    case VK_COMPONENT_SWIZZLE_G: return TextureSwizzle::Green;
-    case VK_COMPONENT_SWIZZLE_B: return TextureSwizzle::Blue;
-    case VK_COMPONENT_SWIZZLE_A: return TextureSwizzle::Alpha;
-  }
-
-  return TextureSwizzle(uint32_t(TextureSwizzle::Red) + i);
-}
-
 void VulkanCreationInfo::YCbCrSampler::Init(VulkanResourceManager *resourceMan,
                                             VulkanCreationInfo &info,
                                             const VkSamplerYcbcrConversionCreateInfo *pCreateInfo)
@@ -1037,10 +1020,7 @@ void VulkanCreationInfo::YCbCrSampler::Init(VulkanResourceManager *resourceMan,
     case VK_CHROMA_LOCATION_RANGE_SIZE: break;
   }
 
-  swizzle[0] = Convert(pCreateInfo->components.r, 0);
-  swizzle[1] = Convert(pCreateInfo->components.g, 1);
-  swizzle[2] = Convert(pCreateInfo->components.b, 2);
-  swizzle[3] = Convert(pCreateInfo->components.a, 3);
+  componentMapping = pCreateInfo->components;
   chromaFilter = MakeFilterMode(pCreateInfo->chromaFilter);
   forceExplicitReconstruction = pCreateInfo->forceExplicitReconstruction != 0;
 }
@@ -1051,6 +1031,7 @@ void VulkanCreationInfo::ImageView::Init(VulkanResourceManager *resourceMan, Vul
   image = GetResID(pCreateInfo->image);
   format = pCreateInfo->format;
   range = pCreateInfo->subresourceRange;
+  viewType = pCreateInfo->viewType;
 
   if(range.levelCount == VK_REMAINING_MIP_LEVELS)
     range.levelCount = info.m_Image[image].mipLevels - range.baseMipLevel;
@@ -1058,10 +1039,7 @@ void VulkanCreationInfo::ImageView::Init(VulkanResourceManager *resourceMan, Vul
   if(range.layerCount == VK_REMAINING_ARRAY_LAYERS)
     range.layerCount = info.m_Image[image].arrayLayers - range.baseArrayLayer;
 
-  swizzle[0] = Convert(pCreateInfo->components.r, 0);
-  swizzle[1] = Convert(pCreateInfo->components.g, 1);
-  swizzle[2] = Convert(pCreateInfo->components.b, 2);
-  swizzle[3] = Convert(pCreateInfo->components.a, 3);
+  componentMapping = pCreateInfo->components;
 }
 
 void VulkanCreationInfo::ShaderModule::Init(VulkanResourceManager *resourceMan,
