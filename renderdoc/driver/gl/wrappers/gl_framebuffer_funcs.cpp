@@ -1749,6 +1749,22 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferData(SerialiserType &s
     if(framebuffer.name == 0)
       framebuffer.name = m_CurrentDefaultFBO;
 
+    GLenum *att = (GLenum *)attachments;
+    for(GLsizei i = 0; i < numAttachments; i++)
+    {
+      // since we are faking the default framebuffer with our own
+      // to see the results, replace back/front/left/right with color attachment 0
+      if(att[i] == eGL_BACK_LEFT || att[i] == eGL_BACK_RIGHT || att[i] == eGL_BACK ||
+         att[i] == eGL_FRONT_LEFT || att[i] == eGL_FRONT_RIGHT || att[i] == eGL_FRONT)
+        att[i] = eGL_COLOR_ATTACHMENT0;
+      if(att[i] == eGL_COLOR)
+        att[i] = eGL_COLOR_ATTACHMENT0;
+      if(att[i] == eGL_DEPTH)
+        att[i] = eGL_DEPTH_ATTACHMENT;
+      if(att[i] == eGL_STENCIL)
+        att[i] = eGL_STENCIL_ATTACHMENT;
+    }
+
     GL.glInvalidateNamedFramebufferData(framebuffer.name, numAttachments, attachments);
   }
 
