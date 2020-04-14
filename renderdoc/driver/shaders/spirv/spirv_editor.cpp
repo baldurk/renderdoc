@@ -143,13 +143,24 @@ void Editor::CreateEmpty(uint32_t major, uint32_t minor)
 
 Editor::~Editor()
 {
-  for(size_t i = FirstRealWord; i < m_SPIRV.size();)
-  {
-    // don't need to update anything as we're destructing!
-    while(i < m_SPIRV.size() && m_SPIRV[i] == OpNopWord)
-      m_SPIRV.erase(i);
+  m_ExternalSPIRV.clear();
+  m_ExternalSPIRV.reserve(m_SPIRV.size());
 
-    uint32_t len = m_SPIRV[i] >> WordCountShift;
+  // copy into m_ExternalSPIRV, but skipping nops
+  auto it = m_SPIRV.begin();
+
+  for(size_t i = 0; i < FirstRealWord; ++i, ++it)
+    m_ExternalSPIRV.push_back(*it);
+
+  while(it != m_SPIRV.end())
+  {
+    if(*it == OpNopWord)
+    {
+      ++it;
+      continue;
+    }
+
+    uint32_t len = *it >> WordCountShift;
 
     if(len == 0)
     {
@@ -157,10 +168,9 @@ Editor::~Editor()
       break;
     }
 
-    i += len;
+    m_ExternalSPIRV.append(it, len);
+    it += len;
   }
-
-  m_ExternalSPIRV.swap(m_SPIRV);
 }
 
 Id Editor::MakeId()
