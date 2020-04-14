@@ -182,7 +182,7 @@ void ThreadState::EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arg
   nextInstruction = debugger.GetInstructionForIter(it);
 }
 
-const ShaderVariable &ThreadState::GetSrc(Id id)
+const ShaderVariable &ThreadState::GetSrc(Id id) const
 {
   return ids[id];
 }
@@ -252,8 +252,7 @@ void ThreadState::JumpToLabel(Id target)
   }
 }
 
-void ThreadState::StepNext(ShaderDebugState *state,
-                           const rdcarray<DenseIdMap<ShaderVariable>> &prevWorkgroup)
+void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> &workgroup)
 {
   Iter it = debugger.GetIterForInstruction(nextInstruction);
   nextInstruction++;
@@ -404,8 +403,8 @@ void ThreadState::StepNext(ShaderDebugState *state,
       OpDPdx deriv(it);
 
       // coarse derivatives are identical across the quad, based on the top-left.
-      ShaderVariable var = prevWorkgroup[0][deriv.p];
-      ShaderVariable other = prevWorkgroup[1][deriv.p];
+      ShaderVariable var = workgroup[0].GetSrc(deriv.p);
+      ShaderVariable other = workgroup[1].GetSrc(deriv.p);
 
       for(uint8_t c = 0; c < var.columns; c++)
         var.value.fv[c] = other.value.fv[c] - var.value.fv[c];
@@ -421,8 +420,8 @@ void ThreadState::StepNext(ShaderDebugState *state,
       OpDPdx deriv(it);
 
       // coarse derivatives are identical across the quad, based on the top-left.
-      ShaderVariable var = prevWorkgroup[0][deriv.p];
-      ShaderVariable other = prevWorkgroup[2][deriv.p];
+      ShaderVariable var = workgroup[0].GetSrc(deriv.p);
+      ShaderVariable other = workgroup[2].GetSrc(deriv.p);
 
       for(uint8_t c = 0; c < var.columns; c++)
         var.value.fv[c] = other.value.fv[c] - var.value.fv[c];
@@ -452,13 +451,13 @@ void ThreadState::StepNext(ShaderDebugState *state,
           // top-left
           if(xdirection)
           {
-            a = prevWorkgroup[0][deriv.p];
-            b = prevWorkgroup[1][deriv.p];
+            a = workgroup[0].GetSrc(deriv.p);
+            b = workgroup[1].GetSrc(deriv.p);
           }
           else
           {
-            a = prevWorkgroup[0][deriv.p];
-            b = prevWorkgroup[2][deriv.p];
+            a = workgroup[0].GetSrc(deriv.p);
+            b = workgroup[2].GetSrc(deriv.p);
           }
         }
         else
@@ -466,13 +465,13 @@ void ThreadState::StepNext(ShaderDebugState *state,
           // bottom-left
           if(xdirection)
           {
-            a = prevWorkgroup[2][deriv.p];
-            b = prevWorkgroup[3][deriv.p];
+            a = workgroup[2].GetSrc(deriv.p);
+            b = workgroup[3].GetSrc(deriv.p);
           }
           else
           {
-            a = prevWorkgroup[0][deriv.p];
-            b = prevWorkgroup[2][deriv.p];
+            a = workgroup[0].GetSrc(deriv.p);
+            b = workgroup[2].GetSrc(deriv.p);
           }
         }
       }
@@ -483,13 +482,13 @@ void ThreadState::StepNext(ShaderDebugState *state,
           // top-right
           if(xdirection)
           {
-            a = prevWorkgroup[0][deriv.p];
-            b = prevWorkgroup[1][deriv.p];
+            a = workgroup[0].GetSrc(deriv.p);
+            b = workgroup[1].GetSrc(deriv.p);
           }
           else
           {
-            a = prevWorkgroup[1][deriv.p];
-            b = prevWorkgroup[3][deriv.p];
+            a = workgroup[1].GetSrc(deriv.p);
+            b = workgroup[3].GetSrc(deriv.p);
           }
         }
         else
@@ -497,13 +496,13 @@ void ThreadState::StepNext(ShaderDebugState *state,
           // bottom-right
           if(xdirection)
           {
-            a = prevWorkgroup[2][deriv.p];
-            b = prevWorkgroup[3][deriv.p];
+            a = workgroup[2].GetSrc(deriv.p);
+            b = workgroup[3].GetSrc(deriv.p);
           }
           else
           {
-            a = prevWorkgroup[1][deriv.p];
-            b = prevWorkgroup[3][deriv.p];
+            a = workgroup[1].GetSrc(deriv.p);
+            b = workgroup[3].GetSrc(deriv.p);
           }
         }
       }
@@ -1577,9 +1576,9 @@ void ThreadState::StepNext(ShaderDebugState *state,
       if(derivId != Id())
       {
         // calculate DDX/DDY in coarse fashion
-        ShaderVariable topleft = prevWorkgroup[0][derivId];
-        ShaderVariable topright = prevWorkgroup[1][derivId];
-        ShaderVariable bottomleft = prevWorkgroup[2][derivId];
+        ShaderVariable topleft = workgroup[0].GetSrc(derivId);
+        ShaderVariable topright = workgroup[1].GetSrc(derivId);
+        ShaderVariable bottomleft = workgroup[2].GetSrc(derivId);
 
         ddxCalc = ddyCalc = topleft;
 

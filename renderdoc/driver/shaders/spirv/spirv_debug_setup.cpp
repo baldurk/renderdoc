@@ -590,10 +590,6 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
   if(active.Finished())
     return ret;
 
-  rdcarray<DenseIdMap<ShaderVariable>> oldworkgroup;
-
-  oldworkgroup.resize(workgroup.size());
-
   rdcarray<bool> activeMask;
 
   // do 100 in a chunk
@@ -601,12 +597,6 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
   {
     if(active.Finished())
       break;
-
-    // set up the old workgroup so that cross-workgroup/cross-quad operations (e.g. DDX/DDY) get
-    // consistent results even when we step the quad out of order. Otherwise if an operation reads
-    // and writes from the same register we'd trash data needed for other workgroup elements.
-    for(size_t i = 0; i < oldworkgroup.size(); i++)
-      oldworkgroup[i] = workgroup[i].ids;
 
     // calculate the current mask of which threads are active
     CalcActiveMask(activeMask);
@@ -653,7 +643,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
             l++;
           }
 
-          thread.StepNext(&state, oldworkgroup);
+          thread.StepNext(&state, workgroup);
           state.stepIndex = steps;
           state.sourceVars = thread.sourceVars;
           thread.FillCallstack(state);
@@ -661,7 +651,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
         }
         else
         {
-          thread.StepNext(NULL, oldworkgroup);
+          thread.StepNext(NULL, workgroup);
         }
       }
     }

@@ -144,7 +144,7 @@ struct ThreadState
   ~ThreadState();
 
   void EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arguments);
-  void StepNext(ShaderDebugState *state, const rdcarray<DenseIdMap<ShaderVariable>> &prevWorkgroup);
+  void StepNext(ShaderDebugState *state, const rdcarray<ThreadState> &workgroup);
 
   void FillCallstack(ShaderDebugState &state);
 
@@ -183,7 +183,7 @@ struct ThreadState
   uint32_t workgroupIndex;
   bool done;
 
-  const ShaderVariable &GetSrc(Id id);
+  const ShaderVariable &GetSrc(Id id) const;
 
 private:
   void SetDst(ShaderDebugState *state, Id id, const ShaderVariable &val);
