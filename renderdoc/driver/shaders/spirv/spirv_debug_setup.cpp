@@ -286,6 +286,17 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
       rdcstr sourceName = GetHumanName(v.id);
 
+      // if we don't have a good human name, generate a better one using the interface information
+      // we have
+      if(sourceName == var.name)
+      {
+        if(decorations[v.id].flags & Decorations::HasBuiltIn)
+          sourceName = StringFormat::Fmt("_%s", ToStr(decorations[v.id].builtIn).c_str());
+        else if(decorations[v.id].flags & Decorations::HasLocation)
+          sourceName =
+              StringFormat::Fmt("_%s%u", isInput ? "input" : "output", decorations[v.id].location);
+      }
+
       size_t oldSize = globalSourceVars.size();
 
       const DataType &type = dataTypes[v.type];
@@ -324,9 +335,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       ShaderVariable var;
       var.name = GetRawName(v.id);
 
-      rdcstr sourceName = strings[v.id];
-      if(sourceName.empty())
-        sourceName = var.name;
+      rdcstr sourceName = GetHumanName(v.id);
 
       const DataType &type = dataTypes[v.type];
 
@@ -341,6 +350,14 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       }
       else if(innertype.type == DataType::StructType)
       {
+        // if we don't have a good human name, generate a better one using the interface information
+        // we have
+        if(sourceName == var.name)
+        {
+          sourceName = StringFormat::Fmt("_cbuffer_set%u_bind%u", decorations[v.id].set,
+                                         decorations[v.id].binding);
+        }
+
         uint32_t offset = 0;
         AllocateVariable(decorations[v.id], decorations[v.id], DebugVariableType::Constant,
                          sourceName, 0, innertype, var);
@@ -371,9 +388,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       var.columns = 1;
       var.name = GetRawName(v.id);
 
-      rdcstr sourceName = strings[v.id];
-      if(sourceName.empty())
-        sourceName = var.name;
+      rdcstr sourceName = GetHumanName(v.id);
 
       const DataType &type = dataTypes[v.type];
 
@@ -381,6 +396,21 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       RDCASSERT(type.type == DataType::PointerType);
 
       const DataType &innertype = dataTypes[type.InnerType()];
+
+      // if we don't have a good human name, generate a better one using the interface information
+      // we have
+      if(sourceName == var.name)
+      {
+        rdcstr innerName;
+        if(innertype.type == DataType::SamplerType)
+          innerName = "sampler";
+        else if(innertype.type == DataType::SampledImageType)
+          innerName = "sampledImage";
+        else if(innertype.type == DataType::ImageType)
+          innerName = "image";
+        sourceName = StringFormat::Fmt("_%s_set%u_bind%u", innerName.c_str(), decorations[v.id].set,
+                                       decorations[v.id].binding);
+      }
 
       DebugVariableType debugType = DebugVariableType::ReadOnlyResource;
 
