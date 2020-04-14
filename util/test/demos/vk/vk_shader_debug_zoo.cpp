@@ -441,6 +441,14 @@ void main()
                    1.0f);
       break;
     }
+    case 45:
+    {
+      Color = vec4(float(abs(zeroi+2)),
+                   float(abs(zeroi)),
+                   float(abs(zeroi-5)),
+                   1.0f);
+      break;
+    }
     default: break;
   }
 }

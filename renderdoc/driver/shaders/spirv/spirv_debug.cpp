@@ -27,10 +27,6 @@
 #include "common/formatting.h"
 #include "spirv_op_helpers.h"
 
-#if defined(_MSC_VER)
-#define finite _finite
-#endif
-
 static bool ContainsNaNInf(const ShaderVariable &val)
 {
   bool ret = false;
@@ -1878,6 +1874,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::PtrCastToGeneric:
     case Op::GenericCastToPtr:
     case Op::GenericCastToPtrExplicit:
+    case Op::SizeOf:
+    case Op::CopyMemorySized:
     case Op::IsFinite:
     case Op::IsNormal:
     case Op::SignBitSet:

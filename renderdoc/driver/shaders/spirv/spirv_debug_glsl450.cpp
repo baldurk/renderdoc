@@ -25,10 +25,6 @@
 #include "spirv_debug.h"
 #include <math.h>
 
-#if defined(_MSC_VER)
-#define finite _finite
-#endif
-
 namespace rdcspv
 {
 namespace glsl
@@ -49,6 +45,18 @@ ShaderVariable FAbs(ThreadState &state, const rdcarray<Id> &params)
 
   for(uint32_t c = 0; c < var.columns; c++)
     var.value.fv[c] = fabsf(var.value.fv[c]);
+
+  return var;
+}
+
+ShaderVariable SAbs(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.iv[c] = abs(var.value.iv[c]);
 
   return var;
 }
@@ -266,6 +274,71 @@ ShaderVariable Cross(ThreadState &state, const rdcarray<Id> &params)
 
   return var;
 }
+
+static float GLSLNMax(float x, float y)
+{
+  const bool xnan = isnan(x);
+  const bool ynan = isnan(y);
+  if(xnan && !ynan)
+    return y;
+  else if(!xnan && ynan)
+    return x;
+  else
+    return x < y ? y : x;
+}
+
+static float GLSLNMin(float x, float y)
+{
+  const bool xnan = isnan(x);
+  const bool ynan = isnan(y);
+  if(xnan && !ynan)
+    return y;
+  else if(!xnan && ynan)
+    return x;
+  else
+    return y < x ? y : x;
+}
+
+ShaderVariable NMin(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(2);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+  ShaderVariable y = state.GetSrc(params[1]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.fv[c] = GLSLNMin(var.value.fv[c], y.value.fv[c]);
+
+  return var;
+}
+
+ShaderVariable NMax(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(2);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+  ShaderVariable y = state.GetSrc(params[1]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.fv[c] = GLSLNMax(var.value.fv[c], y.value.fv[c]);
+
+  return var;
+}
+
+ShaderVariable NClamp(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(3);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+  ShaderVariable minVal = state.GetSrc(params[1]);
+  ShaderVariable maxVal = state.GetSrc(params[2]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.fv[c] = GLSLNMin(GLSLNMax(var.value.fv[c], minVal.value.fv[c]), maxVal.value.fv[c]);
+
+  return var;
+}
+
 };    // namespace glsl
 
 void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
@@ -278,6 +351,7 @@ void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
 
 #define EXT(func) extinst.functions[(uint32_t)GLSLstd450::func] = &glsl::func;
   EXT(FAbs);
+  EXT(SAbs);
   EXT(Floor);
   EXT(Pow);
   EXT(FMin);
@@ -292,5 +366,8 @@ void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
   EXT(FMix);
   EXT(Cross);
   EXT(Normalize);
+  EXT(NMin);
+  EXT(NMax);
+  EXT(NClamp);
 }
 };    // namespace rdcspv
