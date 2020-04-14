@@ -2364,7 +2364,6 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
       },
   };
 
-  VkShaderModule module = VK_NULL_HANDLE;
   VkSpecializationInfo specInfo = {};
   specInfo.dataSize = sizeof(specData);
   specInfo.pData = &specData;
@@ -2373,6 +2372,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   RDCCOMPILE_ASSERT((size_t)InputSpecConstant::Count == ARRAY_COUNT(specMaps),
                     "Spec constants changed");
+
+  rdcarray<VkShaderModule> modules;
 
   for(uint32_t i = 0; i < graphicsInfo.stageCount; i++)
   {
@@ -2384,20 +2385,49 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
       moduleCreateInfo.pCode = fragspv.data();
       moduleCreateInfo.codeSize = fragspv.size() * sizeof(uint32_t);
 
-      vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &module);
+      vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &stage.module);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-      stage.module = module;
 
       stage.pSpecializationInfo = &specInfo;
 
-      break;
+      modules.push_back(stage.module);
     }
-  }
+    else if(storageMode == Binding)
+    {
+      // if we're stealing a binding point, we need to patch all other shaders
+      rdcarray<uint32_t> spirv = c.m_ShaderModule[GetResID(stage.module)].spirv.GetSPIRV();
 
-  if(module == VK_NULL_HANDLE)
-  {
-    RDCERR("Couldn't find fragment shader in pipeline info!");
+      {
+        rdcspv::Editor editor(spirv);
+
+        editor.Prepare();
+
+        // patch all bindings up by 1
+        for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Annotations),
+                         end = editor.End(rdcspv::Section::Annotations);
+            it < end; ++it)
+        {
+          if(it.opcode() == rdcspv::Op::Decorate)
+          {
+            rdcspv::OpDecorate dec(it);
+            if(dec.decoration == rdcspv::Decoration::Binding)
+            {
+              RDCASSERT(dec.decoration.binding != 0xffffffff);
+              dec.decoration.binding += 1;
+              it = dec;
+            }
+          }
+        }
+      }
+
+      moduleCreateInfo.pCode = spirv.data();
+      moduleCreateInfo.codeSize = spirv.size() * sizeof(uint32_t);
+
+      vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &stage.module);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      modules.push_back(stage.module);
+    }
   }
 
   VkPipeline inputsPipe;
@@ -2667,8 +2697,9 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   // delete pipeline
   m_pDriver->vkDestroyPipeline(dev, inputsPipe, NULL);
 
-  // delete shader module
-  m_pDriver->vkDestroyShaderModule(dev, module, NULL);
+  // delete shader modules
+  for(VkShaderModule s : modules)
+    m_pDriver->vkDestroyShaderModule(dev, s, NULL);
 
   return ret;
 }
