@@ -1866,7 +1866,7 @@ void ShaderViewer::combineStructures(RDTreeWidgetItem *root, int skipPrefixLengt
 
   // move all the children back from the temp object into the parameter
   while(temp.childCount() > 0)
-    root->addChild(temp.takeChild(0));
+    root->addChild(temp.takeChild(temp.childCount() - 1));
 }
 
 RDTreeWidgetItem *ShaderViewer::findVarInTree(RDTreeWidgetItem *root, QString name, bool fullmatch,
