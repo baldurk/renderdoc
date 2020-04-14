@@ -1111,6 +1111,36 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       SetDst(state, comp.result, var);
       break;
     }
+    case Op::IsNan:
+    {
+      OpIsNan is(it);
+
+      ShaderVariable var = GetSrc(is.x);
+
+      for(uint8_t c = 0; c < var.columns; c++)
+        var.value.uv[c] = isnan(var.value.fv[c]) ? 1 : 0;
+
+      // TODO we should add a bool type
+      var.type = VarType::UInt;
+
+      SetDst(state, is.result, var);
+      break;
+    }
+    case Op::IsInf:
+    {
+      OpIsNan is(it);
+
+      ShaderVariable var = GetSrc(is.x);
+
+      for(uint8_t c = 0; c < var.columns; c++)
+        var.value.uv[c] = isinf(var.value.fv[c]) ? 1 : 0;
+
+      // TODO we should add a bool type
+      var.type = VarType::UInt;
+
+      SetDst(state, is.result, var);
+      break;
+    }
 
     //////////////////////////////////////////////////////////////////////////////
     //

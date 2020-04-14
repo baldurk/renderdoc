@@ -479,6 +479,26 @@ void main()
       Color = fwidthFine(vec4(inpos, inposIncreased));
       break;
     }
+    case 52:
+    {
+      Color = vec4(isinf(posone) ? 1.0f : 0.0f, isinf(zerof) ? 1.0f : 0.0f, isinf(negone) ? 1.0f : 0.0f, 1.0f);
+      break;
+    }
+    case 53:
+    {
+      Color = vec4(isnan(posone) ? 1.0f : 0.0f, isnan(zerof) ? 1.0f : 0.0f, isnan(negone) ? 1.0f : 0.0f, 1.0f);
+      break;
+    }
+    case 54:
+    {
+      Color = vec4(isinf(posinf) ? 1.0f : 0.0f, isinf(neginf) ? 1.0f : 0.0f, isinf(nan) ? 1.0f : 0.0f, 1.0f);
+      break;
+    }
+    case 55:
+    {
+      Color = vec4(isnan(posinf) ? 1.0f : 0.0f, isnan(neginf) ? 1.0f : 0.0f, isnan(nan) ? 1.0f : 0.0f, 1.0f);
+      break;
+    }
     default: break;
   }
 }
