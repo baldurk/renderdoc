@@ -4334,7 +4334,7 @@ void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &
         // individual elements of the constant buffer. For CB arrays, add an extra source
         // var for the CB array index
         SourceVariableMapping cbArrayMapping;
-        global.constantBlocks[i].members[arrayIndex].name = identifierPrefix;
+        global.constantBlocks[i].members[arrayIndex].name = StringFormat::Fmt("[%u]", arrayIndex);
         cbArrayMapping.name = variablePrefix;
         cbArrayMapping.variables.push_back(
             DebugVariableReference(DebugVariableType::Constant, identifierPrefix));
