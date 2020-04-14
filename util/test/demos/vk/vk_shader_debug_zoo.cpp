@@ -449,6 +449,36 @@ void main()
                    1.0f);
       break;
     }
+    case 46:
+    {
+      Color = fwidth(gl_FragCoord);
+      break;
+    }
+    case 47:
+    {
+      Color = fwidthCoarse(gl_FragCoord);
+      break;
+    }
+    case 48:
+    {
+      Color = fwidthFine(gl_FragCoord);
+      break;
+    }
+    case 49:
+    {
+      Color = fwidth(vec4(inpos, inposIncreased));
+      break;
+    }
+    case 50:
+    {
+      Color = fwidthCoarse(vec4(inpos, inposIncreased));
+      break;
+    }
+    case 51:
+    {
+      Color = fwidthFine(vec4(inpos, inposIncreased));
+      break;
+    }
     default: break;
   }
 }

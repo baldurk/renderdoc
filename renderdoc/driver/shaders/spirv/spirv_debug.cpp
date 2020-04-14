@@ -229,6 +229,100 @@ void ThreadState::ProcessScopeChange(ShaderDebugState &state, const rdcarray<Id>
   }
 }
 
+ShaderVariable ThreadState::CalcDeriv(ThreadState::DerivDir dir, ThreadState::DerivType type,
+                                      const rdcarray<ThreadState> &workgroup, Id val)
+{
+  const bool xdirection = (dir == DDX);
+  if(type == Coarse)
+  {
+    // coarse derivatives are identical across the quad, based on the top-left.
+    ShaderVariable a = workgroup[0].GetSrc(val);
+    ShaderVariable b = workgroup[xdirection ? 1 : 2].GetSrc(val);
+
+    for(uint8_t c = 0; c < a.columns; c++)
+      a.value.fv[c] = b.value.fv[c] - a.value.fv[c];
+
+    return a;
+  }
+  else
+  {
+    ShaderVariable a, b;
+
+    // we need to figure out the exact pair to use
+    int x = workgroupIndex & 1;
+    int y = workgroupIndex / 2;
+
+    if(x == 0)
+    {
+      if(y == 0)
+      {
+        // top-left
+        if(xdirection)
+        {
+          a = workgroup[0].GetSrc(val);
+          b = workgroup[1].GetSrc(val);
+        }
+        else
+        {
+          a = workgroup[0].GetSrc(val);
+          b = workgroup[2].GetSrc(val);
+        }
+      }
+      else
+      {
+        // bottom-left
+        if(xdirection)
+        {
+          a = workgroup[2].GetSrc(val);
+          b = workgroup[3].GetSrc(val);
+        }
+        else
+        {
+          a = workgroup[0].GetSrc(val);
+          b = workgroup[2].GetSrc(val);
+        }
+      }
+    }
+    else
+    {
+      if(y == 0)
+      {
+        // top-right
+        if(xdirection)
+        {
+          a = workgroup[0].GetSrc(val);
+          b = workgroup[1].GetSrc(val);
+        }
+        else
+        {
+          a = workgroup[1].GetSrc(val);
+          b = workgroup[3].GetSrc(val);
+        }
+      }
+      else
+      {
+        // bottom-right
+        if(xdirection)
+        {
+          a = workgroup[2].GetSrc(val);
+          b = workgroup[3].GetSrc(val);
+        }
+        else
+        {
+          a = workgroup[1].GetSrc(val);
+          b = workgroup[3].GetSrc(val);
+        }
+      }
+    }
+
+    // do the subtract
+    for(uint8_t c = 0; c < a.columns; c++)
+      a.value.fv[c] = b.value.fv[c] - a.value.fv[c];
+
+    return a;
+  }
+}
+
 void ThreadState::JumpToLabel(Id target)
 {
   lastBlock = curBlock;
@@ -393,121 +487,45 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     // coarse which seems a reasonable default. In future we could driver-detect the selection in
     // use (assuming it's not dynamic base on circumstances)
     case Op::DPdx:
-    case Op::DPdxCoarse:
-    {
-      // these all share a format
-      OpDPdx deriv(it);
-
-      // coarse derivatives are identical across the quad, based on the top-left.
-      ShaderVariable var = workgroup[0].GetSrc(deriv.p);
-      ShaderVariable other = workgroup[1].GetSrc(deriv.p);
-
-      for(uint8_t c = 0; c < var.columns; c++)
-        var.value.fv[c] = other.value.fv[c] - var.value.fv[c];
-
-      SetDst(state, deriv.result, var);
-
-      break;
-    }
     case Op::DPdy:
+    case Op::DPdxCoarse:
     case Op::DPdyCoarse:
-    {
-      // these all share a format
-      OpDPdx deriv(it);
-
-      // coarse derivatives are identical across the quad, based on the top-left.
-      ShaderVariable var = workgroup[0].GetSrc(deriv.p);
-      ShaderVariable other = workgroup[2].GetSrc(deriv.p);
-
-      for(uint8_t c = 0; c < var.columns; c++)
-        var.value.fv[c] = other.value.fv[c] - var.value.fv[c];
-
-      SetDst(state, deriv.result, var);
-
-      break;
-    }
     case Op::DPdxFine:
     case Op::DPdyFine:
     {
       // these all share a format
-      OpDPdxFine deriv(it);
+      OpDPdx deriv(it);
 
-      const bool xdirection = (opdata.op == Op::DPdxFine);
+      DerivDir dir = DDX;
+      if(opdata.op == Op::DPdy || opdata.op == Op::DPdyCoarse || opdata.op == Op::DPdyFine)
+        dir = DDY;
 
-      ShaderVariable a, b;
+      DerivType type = Coarse;
+      if(opdata.op == Op::DPdxFine || opdata.op == Op::DPdyFine)
+        type = Fine;
 
-      // we need to figure out the exact pair to use
-      int x = workgroupIndex & 1;
-      int y = workgroupIndex / 2;
+      SetDst(state, deriv.result, CalcDeriv(dir, type, workgroup, deriv.p));
 
-      if(x == 0)
-      {
-        if(y == 0)
-        {
-          // top-left
-          if(xdirection)
-          {
-            a = workgroup[0].GetSrc(deriv.p);
-            b = workgroup[1].GetSrc(deriv.p);
-          }
-          else
-          {
-            a = workgroup[0].GetSrc(deriv.p);
-            b = workgroup[2].GetSrc(deriv.p);
-          }
-        }
-        else
-        {
-          // bottom-left
-          if(xdirection)
-          {
-            a = workgroup[2].GetSrc(deriv.p);
-            b = workgroup[3].GetSrc(deriv.p);
-          }
-          else
-          {
-            a = workgroup[0].GetSrc(deriv.p);
-            b = workgroup[2].GetSrc(deriv.p);
-          }
-        }
-      }
-      else
-      {
-        if(y == 0)
-        {
-          // top-right
-          if(xdirection)
-          {
-            a = workgroup[0].GetSrc(deriv.p);
-            b = workgroup[1].GetSrc(deriv.p);
-          }
-          else
-          {
-            a = workgroup[1].GetSrc(deriv.p);
-            b = workgroup[3].GetSrc(deriv.p);
-          }
-        }
-        else
-        {
-          // bottom-right
-          if(xdirection)
-          {
-            a = workgroup[2].GetSrc(deriv.p);
-            b = workgroup[3].GetSrc(deriv.p);
-          }
-          else
-          {
-            a = workgroup[1].GetSrc(deriv.p);
-            b = workgroup[3].GetSrc(deriv.p);
-          }
-        }
-      }
+      break;
+    }
+    case Op::Fwidth:
+    case Op::FwidthCoarse:
+    case Op::FwidthFine:
+    {
+      // these all share a format
+      OpFwidth deriv(it);
 
-      // do the subtract
-      for(uint8_t c = 0; c < a.columns; c++)
-        a.value.fv[c] = b.value.fv[c] - a.value.fv[c];
+      DerivType type = Coarse;
+      if(opdata.op == Op::FwidthFine)
+        type = Fine;
 
-      SetDst(state, deriv.result, a);
+      ShaderVariable var = CalcDeriv(DDX, type, workgroup, deriv.p);
+      ShaderVariable ddy = CalcDeriv(DDY, type, workgroup, deriv.p);
+
+      for(uint32_t c = 0; c < var.columns; c++)
+        var.value.fv[c] = fabsf(var.value.fv[c]) + fabsf(ddy.value.fv[c]);
+
+      SetDst(state, deriv.result, var);
 
       break;
     }
@@ -1572,17 +1590,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       if(derivId != Id())
       {
         // calculate DDX/DDY in coarse fashion
-        ShaderVariable topleft = workgroup[0].GetSrc(derivId);
-        ShaderVariable topright = workgroup[1].GetSrc(derivId);
-        ShaderVariable bottomleft = workgroup[2].GetSrc(derivId);
-
-        ddxCalc = ddyCalc = topleft;
-
-        for(uint8_t c = 0; c < ddxCalc.columns; c++)
-        {
-          ddxCalc.value.fv[c] = topright.value.fv[c] - topleft.value.fv[c];
-          ddyCalc.value.fv[c] = bottomleft.value.fv[c] - topleft.value.fv[c];
-        }
+        ddxCalc = CalcDeriv(DDX, Coarse, workgroup, derivId);
+        ddyCalc = CalcDeriv(DDY, Coarse, workgroup, derivId);
       }
 
       // if we have a dynamically combined image sampler, split it up here

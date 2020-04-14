@@ -146,6 +146,20 @@ struct ThreadState
   void EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arguments);
   void StepNext(ShaderDebugState *state, const rdcarray<ThreadState> &workgroup);
 
+  enum DerivDir
+  {
+    DDX,
+    DDY
+  };
+  enum DerivType
+  {
+    Coarse,
+    Fine
+  };
+
+  ShaderVariable CalcDeriv(DerivDir dir, DerivType type, const rdcarray<ThreadState> &workgroup,
+                           Id val);
+
   void FillCallstack(ShaderDebugState &state);
 
   bool Finished() const;
