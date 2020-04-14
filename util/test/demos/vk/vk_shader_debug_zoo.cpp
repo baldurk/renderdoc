@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "3rdparty/fmt/core.h"
 #include "vk_test.h"
 
 RD_TEST(VK_Shader_Debug_Zoo, VulkanGraphicsTest)
@@ -364,7 +365,701 @@ void main()
 
 )EOSHADER";
 
-  std::string pixel_asm = R"EOSHADER(
+  std::vector<std::string> asm_tests;
+
+  void append_tests(const std::initializer_list<std::string> &tests)
+  {
+    asm_tests.insert(asm_tests.end(), tests.begin(), tests.end());
+  }
+
+  void make_asm_tests()
+  {
+    std::vector<std::string> ret;
+
+    // test binary float maths operations
+    for(const std::string &op : {"OpFAdd", "OpFSub", "OpFMul", "OpFDiv", "OpFMod", "OpFRem"})
+    {
+      bool div = (op == "OpFDiv" || op == "OpFMod" || op == "OpFRem");
+      bool mod = (op == "OpFMod" || op == "OpFRem");
+      for(const std::string &a : {"15_75", "4_5"})
+      {
+        for(const std::string &b : {"15_75", "4_5"})
+        {
+          // don't test A mod A
+          if(mod && a == b)
+            continue;
+
+          // test A op B and B op A, with neg/pos and dyn/const
+          append_tests({
+              fmt::format("%_x = {0} %float %float_{1} %float_{2}\n"
+                          "%_y = {0} %float %float_neg{1} %float_{2}\n"
+                          "%_z = {0} %float %float_{2} %float_{1}\n"
+                          "%_w = {0} %float %float_neg{2} %float_{1}\n"
+                          "%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w\n",
+                          op, a, b),
+              fmt::format("%_x = {0} %float %float_dyn_{1} %float_dyn_{2}\n"
+                          "%_y = {0} %float %float_dyn_neg{1} %float_dyn_{2}\n"
+                          "%_z = {0} %float %float_dyn_{2} %float_dyn_{1}\n"
+                          "%_w = {0} %float %float_dyn_neg{2} %float_dyn_{1}\n"
+                          "%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w\n",
+                          op, a, b),
+          });
+
+          // also test 0 op A/B
+
+          append_tests({
+              fmt::format("%_x = {0} %float %float_0_0 %float_{1}\n"
+                          "%_y = {0} %float %float_0_0 %float_{2}\n"
+                          "%_z = {0} %float %float_0_0 %float_{3}{1}\n"
+                          "%_w = {0} %float %float_0_0 %float_{3}{2}\n"
+                          "%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w\n",
+                          op, a, b, mod ? "" : "neg"),
+              fmt::format("%_x = {0} %float %float_dyn_0_0 %float_dyn_{1}\n"
+                          "%_y = {0} %float %float_dyn_0_0 %float_dyn_{2}\n"
+                          "%_z = {0} %float %float_dyn_0_0 %float_dyn_{3}{1}\n"
+                          "%_w = {0} %float %float_dyn_0_0 %float_dyn_{3}{2}\n"
+                          "%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w\n",
+                          op, a, b, mod ? "" : "neg"),
+          });
+
+          // if this isn't a divide, test A/B op 0
+          if(!div)
+          {
+            append_tests({
+                fmt::format("%_x = {0} %float %float_{1} %float_0_0\n"
+                            "%_y = {0} %float %float_neg{1} %float_0_0\n"
+                            "%_z = {0} %float %float_{2} %float_0_0\n"
+                            "%_w = {0} %float %float_neg{2} %float_0_0\n"
+                            "%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w\n",
+                            op, a, b),
+                fmt::format("%_x = {0} %float %float_dyn_{1} %float_dyn_0_0\n"
+                            "%_y = {0} %float %float_dyn_neg{1} %float_dyn_0_0\n"
+                            "%_z = {0} %float %float_dyn_{2} %float_dyn_0_0\n"
+                            "%_w = {0} %float %float_dyn_neg{2} %float_dyn_0_0\n"
+                            "%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w\n",
+                            op, a, b),
+            });
+          }
+        }
+      }
+    }
+
+    // test binary int maths operations
+    for(const std::string &op :
+        {"OpIAdd", "OpISub", "OpIMul", "OpSDiv", "OpSMod", "OpSRem", "OpUDiv", "OpUMod"})
+    {
+      bool div =
+          (op == "OpSDiv" || op == "OpSMod" || op == "OpSRem" || op == "OpUDiv" || op == "OpUMod");
+      bool mod = (op == "OpSMod" || op == "OpSRem" || op == "OpUMod");
+      bool sign = op.find('U') == std::string::npos;
+      for(uint32_t a : {15, 4})
+      {
+        for(uint32_t b : {15, 4})
+        {
+          // don't test A mod A
+          if(mod && a == b)
+            continue;
+
+          // test A op B for uint and int (positive)
+          append_tests({
+              fmt::format("%_x = {0} %uint %uint_{1} %uint_{2}\n"
+                          "%_y = {0} %uint %uint_dyn_{1} %uint_{2}\n"
+                          "%_z = {0} %uint %uint_{2} %uint_{1}\n"
+                          "%_w = {0} %uint %uint_dyn_{2} %uint_{1}\n"
+                          "%_out_uint4 = OpCompositeConstruct %uint4 %_x %_y %_z %_w\n",
+                          op, a, b),
+              fmt::format("%_x = {0} %uint %uint_0 %uint_{1}\n"
+                          "%_y = {0} %uint %uint_0 %uint_dyn_{1}\n"
+                          "%_z = {0} %uint %uint_0 %uint_{2}\n"
+                          "%_w = {0} %uint %uint_0 %uint_dyn_{2}\n"
+                          "%_out_uint4 = OpCompositeConstruct %uint4 %_x %_y %_z %_w\n",
+                          op, a, b),
+          });
+
+          // if this is a signed op, test negative values too
+          if(sign)
+          {
+            append_tests({
+                fmt::format("%_x = {0} %int %int_{1} %int_{2}\n"
+                            "%_y = {0} %int %int_dyn_{1} %int_{2}\n"
+                            "%_z = {0} %int %int_{2} %int_{1}\n"
+                            "%_w = {0} %int %int_dyn_{2} %int_{1}\n"
+                            "%_out_int4 = OpCompositeConstruct %int4 %_x %_y %_z %_w\n",
+                            op, a, b),
+                fmt::format("%_x = {0} %int %int_0 %int_{1}\n"
+                            "%_y = {0} %int %int_0 %int_dyn_{1}\n"
+                            "%_z = {0} %int %int_0 %int_{2}\n"
+                            "%_w = {0} %int %int_0 %int_dyn_{2}\n"
+                            "%_out_int4 = OpCompositeConstruct %int4 %_x %_y %_z %_w\n",
+                            op, a, b),
+                fmt::format("%_x = {0} %int %int_neg{1} %int_{2}\n"
+                            "%_y = {0} %int %int_dyn_neg{1} %int_{2}\n"
+                            "%_z = {0} %int %int_neg{2} %int_{1}\n"
+                            "%_w = {0} %int %int_dyn_neg{2} %int_{1}\n"
+                            "%_out_int4 = OpCompositeConstruct %int4 %_x %_y %_z %_w\n",
+                            op, a, b),
+                fmt::format("%_x = {0} %int %int_0 %int_neg{1}\n"
+                            "%_y = {0} %int %int_0 %int_dyn_neg{1}\n"
+                            "%_z = {0} %int %int_0 %int_neg{2}\n"
+                            "%_w = {0} %int %int_0 %int_dyn_neg{2}\n"
+                            "%_out_int4 = OpCompositeConstruct %int4 %_x %_y %_z %_w\n",
+                            op, a, b),
+            });
+          }
+
+          // if it's not a divide op, test A/B op 0
+          if(!div)
+          {
+            append_tests({
+                fmt::format("%_x = {0} %uint %uint_{1} %uint_0\n"
+                            "%_y = {0} %uint %uint_{2} %uint_0\n"
+                            "%_z = {0} %uint %uint_dyn_{1} %uint_dyn_0\n"
+                            "%_w = {0} %uint %uint_dyn_{2} %uint_dyn_0\n"
+                            "%_out_uint4 = OpCompositeConstruct %uint4 %_x %_y %_z %_w\n",
+                            op, a, b),
+            });
+
+            // and if it's a signed non-divide op, test -A / -B op 0
+            if(sign)
+            {
+              append_tests({
+                  fmt::format("%_x = {0} %int %int_neg{1} %int_0\n"
+                              "%_y = {0} %int %int_neg{2} %int_0\n"
+                              "%_z = {0} %int %int_dyn_neg{1} %int_dyn_0\n"
+                              "%_w = {0} %int %int_dyn_neg{2} %int_dyn_0\n"
+                              "%_out_int4 = OpCompositeConstruct %int4 %_x %_y %_z %_w\n",
+                              op, a, b),
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // test unary operations
+    append_tests({
+        "%_x = OpFNegate %float %float_10_0\n"
+        "%_y = OpFNegate %float %float_neg10_0\n"
+        "%_z = OpFNegate %float %float_dyn_10_0\n"
+        "%_w = OpFNegate %float %float_dyn_neg10_0\n"
+        "%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w\n",
+
+        "%_x = OpFNegate %float %float_0_0\n"
+        "%_y = OpFNegate %float %float_neg0_0\n"
+        "%_z = OpFNegate %float %float_dyn_0_0\n"
+        "%_w = OpFNegate %float %float_dyn_neg0_0\n"
+        "%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w\n",
+
+        "%_x = OpSNegate %int %int_10\n"
+        "%_y = OpSNegate %int %int_neg10\n"
+        "%_z = OpSNegate %int %int_dyn_10\n"
+        "%_w = OpSNegate %int %int_dyn_neg10\n"
+        "%_out_int4 = OpCompositeConstruct %int4 %_x %_y %_z %_w\n",
+
+        "%_x = OpSNegate %int %int_0\n"
+        "%_y = OpSNegate %int %int_neg0\n"
+        "%_z = OpSNegate %int %int_dyn_0\n"
+        "%_w = OpSNegate %int %int_dyn_neg0\n"
+        "%_out_int4 = OpCompositeConstruct %int4 %_x %_y %_z %_w\n",
+    });
+
+    // test bitwise operations
+    append_tests({
+        "%_x = OpBitwiseOr %uint %uint_0x1234 %uint_0xb9c5\n"
+        "%_y = OpBitwiseXor %uint %uint_0x1234 %uint_0xb9c5\n"
+        "%_z = OpBitwiseAnd %uint %uint_0x1234 %uint_0xb9c5\n"
+        "%_out_uint3 = OpCompositeConstruct %uint3 %_x %_y %_z\n",
+
+        "%_x = OpBitwiseOr %uint %uint_dyn_0x1234 %uint_dyn_0xb9c5\n"
+        "%_y = OpBitwiseXor %uint %uint_dyn_0x1234 %uint_dyn_0xb9c5\n"
+        "%_z = OpBitwiseAnd %uint %uint_dyn_0x1234 %uint_dyn_0xb9c5\n"
+        "%_out_uint3 = OpCompositeConstruct %uint3 %_x %_y %_z\n",
+
+        "%_x = OpBitwiseOr %uint %uint_0x1234 %uint_0\n"
+        "%_y = OpBitwiseXor %uint %uint_0x1234 %uint_0\n"
+        "%_z = OpBitwiseAnd %uint %uint_0x1234 %uint_0\n"
+        "%_out_uint3 = OpCompositeConstruct %uint3 %_x %_y %_z\n",
+
+        "%_x = OpBitwiseOr %uint %uint_0 %uint_0xb9c5\n"
+        "%_y = OpBitwiseXor %uint %uint_0 %uint_0xb9c5\n"
+        "%_z = OpBitwiseAnd %uint %uint_0 %uint_0xb9c5\n"
+        "%_out_uint3 = OpCompositeConstruct %uint3 %_x %_y %_z\n",
+    });
+
+    // test shifts
+    for(const std::string &op :
+        {"OpShiftLeftLogical", "OpShiftRightLogical", "OpShiftRightArithmetic"})
+    {
+      for(const std::string &dyn : {"", "_dyn"})
+      {
+        for(const std::string &intType : {"int", "uint"})
+        {
+          append_tests({
+              fmt::format("%_x = {0} %{1} %{1}{2}_0x1234 %uint_0\n"
+                          "%_y = {0} %{1} %{1}{2}_0x1234 %uint_1\n"
+                          "%_z = {0} %{1} %{1}{2}_0x1234 %uint_2\n"
+                          "%_out_{1}3 = OpCompositeConstruct %{1}3 %_x %_y %_z\n",
+                          op, intType, dyn),
+
+              fmt::format("%_x = {0} %{1} %{1}_0x1234 %uint{2}_0\n"
+                          "%_y = {0} %{1} %{1}_0x1234 %uint{2}_1\n"
+                          "%_z = {0} %{1} %{1}_0x1234 %uint{2}_2\n"
+                          "%_out_{1}3 = OpCompositeConstruct %{1}3 %_x %_y %_z\n",
+                          op, intType, dyn),
+
+              fmt::format("%_x = {0} %{1} %{1}{2}_0x1234 %uint{2}_0\n"
+                          "%_y = {0} %{1} %{1}{2}_0x1234 %uint{2}_1\n"
+                          "%_z = {0} %{1} %{1}{2}_0x1234 %uint{2}_2\n"
+                          "%_out_{1}3 = OpCompositeConstruct %{1}3 %_x %_y %_z\n",
+                          op, intType, dyn),
+          });
+        }
+      }
+    }
+
+    // test square 2x2 matrix multiplies
+    append_tests({
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float2 %randf_0 %randf_1
+       %_colb = OpCompositeConstruct %float2 %randf_2 %randf_3
+        %_mat = OpCompositeConstruct %float2x2 %_cola %_colb
+
+        %_vec = OpCompositeConstruct %float2 %randf_4 %randf_5   
+
+ %_out_float2 = OpMatrixTimesVector %float2 %_mat %_vec
+)EOTEST",
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float2 %randf_0 %randf_1
+       %_colb = OpCompositeConstruct %float2 %randf_2 %randf_3
+        %_mat = OpCompositeConstruct %float2x2 %_cola %_colb
+
+        %_vec = OpCompositeConstruct %float2 %randf_4 %randf_5   
+
+ %_out_float2 = OpVectorTimesMatrix %float2 %_vec %_mat
+)EOTEST",
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float2 %randf_0 %randf_1
+       %_colb = OpCompositeConstruct %float2 %randf_2 %randf_3
+       %_mat1 = OpCompositeConstruct %float2x2 %_cola %_colb
+
+        %_vec = OpCompositeConstruct %float2 %randf_4 %randf_5   
+
+       %_mat2 = OpMatrixTimesScalar %float2x2 %_mat1 %randf_6
+
+ %_out_float2 = OpVectorTimesMatrix %float2 %_vec %_mat2
+)EOTEST",
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float2 %randf_0 %randf_1
+       %_colb = OpCompositeConstruct %float2 %randf_2 %randf_3
+       %_mat1 = OpCompositeConstruct %float2x2 %_cola %_colb
+
+        %_vec = OpCompositeConstruct %float2 %randf_4 %randf_5   
+
+       %_colc = OpCompositeConstruct %float2 %randf_6 %randf_7
+       %_cold = OpCompositeConstruct %float2 %randf_8 %randf_9
+       %_mat2 = OpCompositeConstruct %float2x2 %_colc %_cold
+
+       %_mat3 = OpMatrixTimesMatrix %float2x2 %_mat1 %_mat2
+
+ %_out_float2 = OpVectorTimesMatrix %float2 %_vec %_mat3
+)EOTEST",
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float2 %randf_0 %randf_1
+       %_colb = OpCompositeConstruct %float2 %randf_2 %randf_3
+       %_mat1 = OpCompositeConstruct %float2x2 %_cola %_colb
+
+        %_vec = OpCompositeConstruct %float2 %randf_4 %randf_5   
+
+       %_colc = OpCompositeConstruct %float2 %randf_6 %randf_7
+       %_cold = OpCompositeConstruct %float2 %randf_8 %randf_9
+       %_mat2 = OpCompositeConstruct %float2x2 %_colc %_cold
+
+       %_mat3 = OpMatrixTimesMatrix %float2x2 %_mat2 %_mat1
+
+ %_out_float2 = OpVectorTimesMatrix %float2 %_vec %_mat3
+)EOTEST",
+    });
+
+    // test rectangular 2x4 / 4x2 matrix multiplies
+    append_tests({
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float4 %randf_0 %randf_1 %randf_2 %randf_3
+       %_colb = OpCompositeConstruct %float4 %randf_4 %randf_5 %randf_6 %randf_7
+        %_mat = OpCompositeConstruct %float4x2 %_cola %_colb
+
+        %_vec = OpCompositeConstruct %float4 %randf_16 %randf_17 %randf_18 %randf_19
+
+ %_out_float2 = OpVectorTimesMatrix %float2 %_vec %_mat
+)EOTEST",
+        R"EOTEST(
+       %_colc = OpCompositeConstruct %float2 %randf_8 %randf_9
+       %_cold = OpCompositeConstruct %float2 %randf_10 %randf_11
+       %_cole = OpCompositeConstruct %float2 %randf_12 %randf_13
+       %_colf = OpCompositeConstruct %float2 %randf_14 %randf_15
+        %_mat = OpCompositeConstruct %float2x4 %_colc %_cold %_cole %_colf
+
+        %_vec = OpCompositeConstruct %float4 %randf_16 %randf_17 %randf_18 %randf_19
+
+ %_out_float2 = OpMatrixTimesVector %float2 %_mat %_vec
+)EOTEST",
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float4 %randf_0 %randf_1 %randf_2 %randf_3
+       %_colb = OpCompositeConstruct %float4 %randf_4 %randf_5 %randf_6 %randf_7
+        %_mat = OpCompositeConstruct %float4x2 %_cola %_colb
+
+        %_vec = OpCompositeConstruct %float2 %randf_16 %randf_17
+
+ %_out_float4 = OpMatrixTimesVector %float4 %_mat %_vec
+)EOTEST",
+        R"EOTEST(
+       %_colc = OpCompositeConstruct %float2 %randf_8 %randf_9
+       %_cold = OpCompositeConstruct %float2 %randf_10 %randf_11
+       %_cole = OpCompositeConstruct %float2 %randf_12 %randf_13
+       %_colf = OpCompositeConstruct %float2 %randf_14 %randf_15
+        %_mat = OpCompositeConstruct %float2x4 %_colc %_cold %_cole %_colf
+
+        %_vec = OpCompositeConstruct %float2 %randf_16 %randf_17
+
+ %_out_float4 = OpVectorTimesMatrix %float4 %_vec %_mat
+)EOTEST",
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float4 %randf_0 %randf_1 %randf_2 %randf_3
+       %_colb = OpCompositeConstruct %float4 %randf_4 %randf_5 %randf_6 %randf_7
+       %_mat1 = OpCompositeConstruct %float4x2 %_cola %_colb
+
+       %_colc = OpCompositeConstruct %float2 %randf_8 %randf_9
+       %_cold = OpCompositeConstruct %float2 %randf_10 %randf_11
+       %_cole = OpCompositeConstruct %float2 %randf_12 %randf_13
+       %_colf = OpCompositeConstruct %float2 %randf_14 %randf_15
+       %_mat2 = OpCompositeConstruct %float2x4 %_colc %_cold %_cole %_colf
+
+        %_mat = OpMatrixTimesMatrix %float4x4 %_mat1 %_mat2
+
+        %_vec = OpCompositeConstruct %float4 %randf_16 %randf_17 %randf_18 %randf_19
+
+ %_out_float4 = OpMatrixTimesVector %float4 %_mat %_vec
+)EOTEST",
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float4 %randf_0 %randf_1 %randf_2 %randf_3
+       %_colb = OpCompositeConstruct %float4 %randf_4 %randf_5 %randf_6 %randf_7
+
+        %_mat = OpOuterProduct %float4x4 %_cola %_colb
+
+        %_vec = OpCompositeConstruct %float4 %randf_16 %randf_17 %randf_18 %randf_19
+
+ %_out_float4 = OpMatrixTimesVector %float4 %_mat %_vec
+)EOTEST",
+        R"EOTEST(
+        %_vec = OpCompositeConstruct %float4 %randf_0 %randf_1 %randf_2 %randf_3
+ %_out_float4 = OpVectorTimesScalar %float4 %_vec %randf_4
+)EOTEST",
+    });
+
+    // test OpVectorShuffle
+    append_tests({
+        "%_out_float4 = OpVectorShuffle %float4 %float4_0000 %float4_1234 7 6 0 1",
+        "%_out_float4 = OpVectorShuffle %float4 %float4_0000 %float4_dyn_1234 7 6 0 1",
+        "%_out_float4 = OpVectorShuffle %float4 %float4_dyn_0000 %float4_1234 7 6 0 1",
+        "%_out_float4 = OpVectorShuffle %float4 %float4_dyn_0000 %float4_dyn_1234 7 6 0 1",
+    });
+
+    // test OpVectorExtractDynamic
+    append_tests({
+        "%_x = OpVectorExtractDynamic %float %float4_dyn_1234 %uint_dyn_1\n"
+        "%_y = OpVectorExtractDynamic %float %float4_dyn_1234 %uint_dyn_3\n"
+        "%_z = OpVectorExtractDynamic %float %float4_dyn_1234 %uint_dyn_2\n"
+        "%_w = OpVectorExtractDynamic %float %float4_dyn_0000 %uint_dyn_2\n"
+        "%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w\n",
+    });
+
+    // test OpVectorInsertDynamic
+    append_tests({
+        "%_out_float4 = OpVectorInsertDynamic %float4 %float4_dyn_1234 %float_dyn_8_8 %uint_dyn_1",
+        "%_out_float4 = OpVectorInsertDynamic %float4 %float4_dyn_1234 %float_dyn_8_8 %uint_dyn_2",
+        "%_out_float4 = OpVectorInsertDynamic %float4 %float4_dyn_1234 %float_dyn_8_8 %uint_dyn_0",
+    });
+
+    // test OpCompositeInsert on vectors
+    append_tests({
+        "          %_b = OpCompositeInsert %float4 %float_15_0 %float4_0000 2\n"
+        "          %_c = OpCompositeInsert %float4 %float_8_8 %_b 1\n"
+        "          %_d = OpCompositeInsert %float4 %float_6_1 %_c 3\n"
+        "%_out_float4 = OpCompositeInsert %float4 %float_2_222 %_d 0\n",
+
+        "          %_b = OpCompositeInsert %float4 %float_dyn_15_0 %float4_dyn_0000 2\n"
+        "          %_c = OpCompositeInsert %float4 %float_dyn_8_8 %_b 1\n"
+        "          %_d = OpCompositeInsert %float4 %float_dyn_6_1 %_c 3\n"
+        "%_out_float4 = OpCompositeInsert %float4 %float_dyn_2_222 %_d 0\n",
+    });
+
+    // test OpCompositeInsert on structs
+    asm_tests.push_back(R"EOTEST(
+   %_a = OpCompositeConstruct %float4 %float_dyn_4_2 %float_dyn_1_0 %float_dyn_9_5 %float_dyn_0_01
+   %_b = OpCompositeConstruct %float3 %float_dyn_3_5 %float_dyn_5_3 %float_dyn_6_2
+
+   %_c = OpVectorShuffle %float4 %_a %_a 3 2 0 1
+   %_d = OpVectorShuffle %float4 %_a %_a 0 1 3 2
+   %_e = OpVectorShuffle %float4 %_a %_a 2 0 1 3
+   %_f = OpVectorShuffle %float4 %_a %_a 3 1 2 0
+   %_g = OpVectorShuffle %float4 %_a %_a 1 3 0 2
+
+%_parent1 = OpCompositeInsert %parent %_a %null_parent 0
+
+%_parent2 = OpCompositeInsert %parent %_a %_parent1 1 0
+%_parent3 = OpCompositeInsert %parent %_b %_parent2 1 1
+%_parent4 = OpCompositeInsert %parent %float_dyn_9_9 %_parent3 1 2
+
+%_parent5 = OpCompositeInsert %parent %_c %_parent4 2 0
+%_parent6 = OpCompositeInsert %parent %_d %_parent5 2 1
+%_parent7 = OpCompositeInsert %parent %_e %_parent6 2 2
+%_parent8 = OpCompositeInsert %parent %_g %_parent7 2 3
+
+      %_x = OpCompositeExtract %float %_parent8 0 2
+      %_y = OpCompositeExtract %float %_parent8 2 1 3
+      %_z = OpCompositeExtract %float %_parent8 1 1 1
+      %_w = OpCompositeExtract %float %_parent8 1 0 2
+
+%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w
+
+)EOTEST");
+
+    // test OpBitCast
+    append_tests({
+        "%_a = OpBitcast %uint %float_dyn_15_0\n"
+        "%_neg = OpBitwiseOr %uint %_a %uint_dyn_0x80000000\n"
+        "%_out_float = OpBitcast %float %_neg\n",
+
+        "%_result = OpBitwiseOr %uint %uint_dyn_0x4200004d %uint_dyn_0xa28b00\n"
+        "%_out_float = OpBitcast %float %_result\n",
+    });
+  }
+
+  std::string make_pixel_asm()
+  {
+    std::string switch_str = R"EOSHADER(
+               OpSelectionMerge %break None
+               OpSwitch %test
+                        %default
+)EOSHADER";
+
+    std::set<std::string> null_constants;
+    std::set<float> float_constants = {0.0f, 1.0f, 2.0f, 3.0f, 4.0f};
+    std::set<int32_t> int_constants = {7};
+    std::set<uint32_t> uint_constants;
+
+    std::string cases;
+
+    for(size_t i = 0; i < asm_tests.size(); i++)
+    {
+      std::string &test = asm_tests[i];
+      // append a newline just so that searching for whitespace always finds it even if the last
+      // thing in the test is a %_foo
+      test += "\n";
+
+      // add the test's case
+      switch_str += fmt::format("{0} %test_{0}\n", i);
+      cases += fmt::format("%test_{} = OpLabel\n", i);
+
+      std::string test_suffix = fmt::format("_{}", i);
+
+      // find any identifiers with the prefix %_ in the test, and append _testindex
+      size_t offs = test.find("%_");
+      while(offs != std::string::npos)
+      {
+        offs = test.find_first_of("\n\t ", offs);
+        test.insert(offs, test_suffix);
+
+        offs = test.find("%_", offs);
+      }
+
+      // find any null constants referenced
+      offs = test.find("%null_");
+      while(offs != std::string::npos)
+      {
+        offs += 6;    // past %null_
+        size_t begin = offs;
+        offs = test.find_first_of("\n\t ", offs);
+        null_constants.insert(test.substr(begin, offs - begin));
+
+        offs = test.find("%null_", offs);
+      }
+
+      // find any float constants referenced
+      offs = test.find("%float_");
+      while(offs != std::string::npos)
+      {
+        offs += 7;    // past %float_
+
+        // we generate dynamic and negative versions of all constants, skip to the first digit
+        offs = test.find_first_of("0123456789", offs);
+
+        size_t begin = offs;
+        offs = test.find_first_of("\n\t ", offs);
+
+        std::string val = test.substr(begin, offs - begin);
+
+        // convert any _ to a .
+        for(char &c : val)
+          if(c == '_')
+            c = '.';
+
+        float_constants.insert(std::strtof(val.c_str(), NULL));
+
+        offs = test.find("%float_", offs);
+      }
+
+      // find any int constants referenced
+      offs = test.find("%int_");
+      while(offs != std::string::npos)
+      {
+        offs += 5;    // past %int_
+
+        // we generate dynamic and negative versions of all constants, skip to the first digit
+        offs = test.find_first_of("0123456789", offs);
+
+        // handle hex prefix
+        int base = 10;
+        if(test[offs] == '0' && test[offs + 1] == 'x')
+        {
+          base = 16;
+          offs += 2;
+        }
+
+        int32_t val = std::strtol(&test[offs], NULL, base);
+        int_constants.insert(val);
+
+        // if it's a hex constant we'll name it in decimal, rename
+        if(base == 16)
+        {
+          size_t end = test.find_first_of("\n\t ", offs);
+          test.replace(offs - 2, end - offs + 2, fmt::format("{}", val));
+        }
+
+        offs = test.find("%int_", offs);
+      }
+
+      // find any int constants referenced
+      offs = test.find("%uint_");
+      while(offs != std::string::npos)
+      {
+        offs += 6;    // past %uint_
+
+        // we generate dynamic and negative versions of all constants, skip to the first digit
+        offs = test.find_first_of("0123456789", offs);
+
+        // handle hex prefix
+        int base = 10;
+        if(test[offs] == '0' && test[offs + 1] == 'x')
+        {
+          base = 16;
+          offs += 2;
+        }
+
+        uint32_t val = std::strtoul(&test[offs], NULL, base);
+        uint_constants.insert(val);
+
+        // if it's a hex constant we'll name it in decimal, rename
+        if(base == 16)
+        {
+          size_t end = test.find_first_of("\n\t ", offs);
+          test.replace(offs - 2, end - offs + 2, fmt::format("{}", val));
+        }
+
+        offs = test.find("%uint_", offs);
+      }
+
+      // add the test itself now
+      cases += "\n";
+      cases += test;
+      cases += "\n";
+
+      if(test.find("%_out_float4") != std::string::npos)
+      {
+        // if the test outputted a float4, we can dump it directly
+        cases += fmt::format("OpStore %Color %_out_float4_{}\n", i);
+      }
+      else
+      {
+        // otherwise convert and up-swizzle to float4 as needed
+        if(test.find("%_out_float_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%Color_{0} = OpCompositeConstruct %float4 "
+              " %_out_float_{0} %_out_float_{0} %_out_float_{0} %_out_float_{0}\n",
+              i);
+        }
+        else if(test.find("%_out_float2_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%Color_{0} = OpVectorShuffle %float4 %_out_float2_{0} %_out_float2_{0} 0 1 0 1\n", i);
+        }
+        else if(test.find("%_out_float3_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%Color_{0} = OpVectorShuffle %float4 %_out_float3_{0} %_out_float3_{0} 0 1 2 0\n", i);
+        }
+        else if(test.find("%_out_int_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertSToF %float %_out_int_{0}\n"
+              "%Color_{0} = OpCompositeConstruct %float4 %_f_{0} %_f_{0} %_f_{0} %_f_{0}\n",
+              i);
+        }
+        else if(test.find("%_out_int2_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertSToF %float2 %_out_int2_{0}\n"
+              "%Color_{0} = OpVectorShuffle %float4 %_f_{0} %_f_{0} 0 1 0 1\n",
+              i);
+        }
+        else if(test.find("%_out_int3_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertSToF %float3 %_out_int3_{0}\n"
+              "%Color_{0} = OpVectorShuffle %float4 %_f_{0} %_f_{0} 0 1 2 0\n",
+              i);
+        }
+        else if(test.find("%_out_int4_") != std::string::npos)
+        {
+          cases += fmt::format("%Color_{0} = OpConvertSToF %float4 %_out_int4_{0}\n", i);
+        }
+        else if(test.find("%_out_uint_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertUToF %float %_out_uint_{0}\n"
+              "%Color_{0} = OpCompositeConstruct %float4 %_f_{0} %_f_{0} %_f_{0} %_f_{0}\n",
+              i);
+        }
+        else if(test.find("%_out_uint2_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertUToF %float2 %_out_uint2_{0}\n"
+              "%Color_{0} = OpVectorShuffle %float4 %_f_{0} %_f_{0} 0 1 0 1\n",
+              i);
+        }
+        else if(test.find("%_out_uint3_") != std::string::npos)
+        {
+          cases += fmt::format(
+              "%_f_{0} = OpConvertUToF %float3 %_out_uint3_{0}\n"
+              "%Color_{0} = OpVectorShuffle %float4 %_f_{0} %_f_{0} 0 1 2 0\n",
+              i);
+        }
+        else if(test.find("%_out_uint4_") != std::string::npos)
+        {
+          cases += fmt::format("%Color_{0} = OpConvertUToF %float4 %_out_uint4_{0}\n", i);
+        }
+        else
+        {
+          TEST_FATAL("Test with no recognised output");
+        }
+
+        cases += fmt::format("OpStore %Color %Color_{}\n", i);
+      }
+
+      cases += "OpBranch %break\n";
+    }
+
+    std::string ret = R"EOSHADER(
                OpCapability Shader
     %glsl450 = OpExtInstImport "GLSL.std.450"
                OpMemoryModel Logical GLSL450
@@ -387,6 +1082,14 @@ void main()
      %float3 = OpTypeVector %float 3
      %float4 = OpTypeVector %float 4
 
+     %int2 = OpTypeVector %int 2
+     %int3 = OpTypeVector %int 3
+     %int4 = OpTypeVector %int 4
+
+     %uint2 = OpTypeVector %uint 2
+     %uint3 = OpTypeVector %uint 3
+     %uint4 = OpTypeVector %uint 4
+
    %float2x2 = OpTypeMatrix %float2 2
    %float2x4 = OpTypeMatrix %float2 4
    %float4x2 = OpTypeMatrix %float4 2
@@ -400,19 +1103,19 @@ void main()
       %child = OpTypeStruct %float4 %float3 %float
      %parent = OpTypeStruct %float4 %child %float4x4
 
-    %_ptr_Input_v2f = OpTypePointer Input %v2f
-%_ptr_Input_flatv2f = OpTypePointer Input %flatv2f
-   %_ptr_Input_uint = OpTypePointer Input %uint
-    %_ptr_Input_int = OpTypePointer Input %int
-  %_ptr_Input_float = OpTypePointer Input %float
- %_ptr_Input_float2 = OpTypePointer Input %float2
- %_ptr_Input_float4 = OpTypePointer Input %float4
-%_ptr_Output_float4 = OpTypePointer Output %float4
+    %ptr_Input_v2f = OpTypePointer Input %v2f
+%ptr_Input_flatv2f = OpTypePointer Input %flatv2f
+   %ptr_Input_uint = OpTypePointer Input %uint
+    %ptr_Input_int = OpTypePointer Input %int
+  %ptr_Input_float = OpTypePointer Input %float
+ %ptr_Input_float2 = OpTypePointer Input %float2
+ %ptr_Input_float4 = OpTypePointer Input %float4
+%ptr_Output_float4 = OpTypePointer Output %float4
 
-  %linearData = OpVariable %_ptr_Input_v2f Input
-    %flatData = OpVariable %_ptr_Input_flatv2f Input
-%gl_FragCoord = OpVariable %_ptr_Input_float4 Input
-       %Color = OpVariable %_ptr_Output_float4 Output
+  %linearData = OpVariable %ptr_Input_v2f Input
+    %flatData = OpVariable %ptr_Input_flatv2f Input
+%gl_FragCoord = OpVariable %ptr_Input_float4 Input
+       %Color = OpVariable %ptr_Output_float4 Output
 
        %flatv2f_test_idx = OpConstant %int 0
      %flatv2f_intval_idx = OpConstant %int 1
@@ -424,806 +1127,138 @@ void main()
          %v2f_oneVal_idx = OpConstant %int 4
       %v2f_negoneVal_idx = OpConstant %int 5
 
-     %uint_0 = OpConstant %uint 0
-     %uint_1 = OpConstant %uint 1
-     %uint_2 = OpConstant %uint 2
-     %uint_3 = OpConstant %uint 3
-     %uint_4 = OpConstant %uint 4
-     %uint_15 = OpConstant %uint 15
+)EOSHADER";
 
-%empty_parent = OpConstantNull %parent
+    // now generate all the constants
 
-     %uint_flt_1_234 = OpConstant %uint 0x3f9df3b6
-     %uint_0x1234 = OpConstant %uint 0x1234
-     %uint_0xb9c5 = OpConstant %uint 0xb9c5
+    for(const std::string &n : null_constants)
+      ret += fmt::format("%null_{0} = OpConstantNull %{0}\n", n);
 
-     %int_4 = OpConstant %int 4
-     %int_neg4 = OpConstant %int -4
-     %int_7 = OpConstant %int 7
-     %int_15 = OpConstant %int 15
-     %int_neg15 = OpConstant %int -15
+    ret += "\n";
 
-     %int_0x1234 = OpConstant %int 0x1234
-     %int_neg0x1234 = OpConstant %int -0x1234
+    for(float f : float_constants)
+    {
+      std::string name = fmt::format("{}", f);
+      for(char &c : name)
+        if(c == '.')
+          c = '_';
+      ret += fmt::format("%float_{} = OpConstant %float {}\n", name, f);
+      ret += fmt::format("%float_neg{} = OpConstant %float -{}\n", name, f);
+    }
 
-    %float_0 = OpConstant %float 0
-    %float_1 = OpConstant %float 1
-    %float_2 = OpConstant %float 2
-    %float_3 = OpConstant %float 3
-    %float_4 = OpConstant %float 4
- %float_neg4 = OpConstant %float -4
-   %float_15 = OpConstant %float 15
-%float_neg15 = OpConstant %float -15
-%float_1_234 = OpConstant %float 1.234
+    ret += "\n";
 
- %float_mat0 = OpConstant %float 0.8
- %float_mat1 = OpConstant %float 0.3
- %float_mat2 = OpConstant %float 0.9
- %float_mat3 = OpConstant %float 0.7
- %float_mat4 = OpConstant %float 1.2
- %float_mat5 = OpConstant %float 0.2
- %float_mat6 = OpConstant %float 1.5
- %float_mat7 = OpConstant %float 0.6
- %float_mat8 = OpConstant %float 0.123
- %float_mat9 = OpConstant %float 1.2
-%float_mat10 = OpConstant %float 1.1
-%float_mat11 = OpConstant %float 0.4
-%float_mat12 = OpConstant %float 1.0
-%float_mat13 = OpConstant %float 0.1
-%float_mat14 = OpConstant %float 0.2
-%float_mat15 = OpConstant %float 1.0
+    for(int32_t i : int_constants)
+    {
+      ret += fmt::format("%int_{0} = OpConstant %int {0}\n", i);
+      ret += fmt::format("%int_neg{0} = OpConstant %int -{0}\n", i);
+    }
 
- %float_vec0 = OpConstant %float 0.9
- %float_vec1 = OpConstant %float 0.8
- %float_vec2 = OpConstant %float 0.7
- %float_vec3 = OpConstant %float 0.6
+    ret += "\n";
 
- %float_0000 = OpConstantComposite %float4 %float_0 %float_0 %float_0 %float_0
- %float_1234 = OpConstantComposite %float4 %float_1 %float_2 %float_3 %float_4
+    for(uint32_t u : uint_constants)
+      ret += fmt::format("%uint_{0} = OpConstant %uint {0}\n", u);
 
+    ret += "\n";
+
+    for(size_t i = 0; i < 32; i++)
+      ret += fmt::format("%randf_{} = OpConstant %float {:.3}\n", i, RANDF(0.0f, 1.0f));
+
+    ret += "\n";
+
+    // vector constants here manually, as we can't pull these out easily
+    ret += R"EOSHADER(
+
+ %float4_0000 = OpConstantComposite %float4 %float_0_0 %float_0_0 %float_0_0 %float_0_0
+ %float4_1234 = OpConstantComposite %float4 %float_1_0 %float_2_0 %float_3_0 %float_4_0
+
+)EOSHADER";
+
+    // now generate the entry point, and load the inputs
+    ret += R"EOSHADER(
        %main = OpFunction %void None %mainfunc
  %main_begin = OpLabel
-   %test_ptr = OpAccessChain %_ptr_Input_uint %flatData %flatv2f_test_idx
+   %test_ptr = OpAccessChain %ptr_Input_uint %flatData %flatv2f_test_idx
        %test = OpLoad %uint %test_ptr
 
-%zeroVal_ptr = OpAccessChain %_ptr_Input_float2 %linearData %v2f_zeroVal_idx
+%zeroVal_ptr = OpAccessChain %ptr_Input_float2 %linearData %v2f_zeroVal_idx
     %zeroVal = OpLoad %float2 %zeroVal_ptr
   %zeroVal_x = OpCompositeExtract %float %zeroVal 0
   %zeroVal_y = OpCompositeExtract %float %zeroVal 1
       %zerof = OpCompositeExtract %float %zeroVal 0
 
-  %inpos_ptr = OpAccessChain %_ptr_Input_float2 %linearData %v2f_inpos_idx
+  %inpos_ptr = OpAccessChain %ptr_Input_float2 %linearData %v2f_inpos_idx
       %inpos = OpLoad %float2 %inpos_ptr
 
-  %inposIncreased_ptr = OpAccessChain %_ptr_Input_float2 %linearData %v2f_inposIncreased_idx
+  %inposIncreased_ptr = OpAccessChain %ptr_Input_float2 %linearData %v2f_inposIncreased_idx
       %inposIncreased = OpLoad %float2 %inposIncreased_ptr
 
-  %tinyVal_ptr = OpAccessChain %_ptr_Input_float %linearData %v2f_tinyVal_idx
+  %tinyVal_ptr = OpAccessChain %ptr_Input_float %linearData %v2f_tinyVal_idx
       %tinyVal = OpLoad %float %tinyVal_ptr
 
-  %oneVal_ptr = OpAccessChain %_ptr_Input_float %linearData %v2f_oneVal_idx
+  %oneVal_ptr = OpAccessChain %ptr_Input_float %linearData %v2f_oneVal_idx
       %oneVal = OpLoad %float %oneVal_ptr
 
-  %negoneVal_ptr = OpAccessChain %_ptr_Input_float %linearData %v2f_negoneVal_idx
+  %negoneVal_ptr = OpAccessChain %ptr_Input_float %linearData %v2f_negoneVal_idx
       %negoneVal = OpLoad %float %negoneVal_ptr
 
    %posinf = OpFDiv %float %oneVal %zerof
    %neginf = OpFDiv %float %negoneVal %zerof
       %nan = OpFDiv %float %zerof %zerof
 
-  %intval_ptr = OpAccessChain %_ptr_Input_uint %flatData %flatv2f_intval_idx
-   %intval = OpLoad %uint %intval_ptr
-    %_tmp_7 = OpISub %uint %intval %test
-    %zerou = OpISub %uint %_tmp_7 %int_7
-    %zeroi = OpBitcast %int %zerou
+%intval_ptr = OpAccessChain %ptr_Input_uint %flatData %flatv2f_intval_idx
+    %intval = OpLoad %uint %intval_ptr
+       %tmp = OpISub %uint %intval %test
+     %zerou = OpISub %uint %tmp %int_7
+     %zeroi = OpBitcast %int %zerou
 
-)EOSHADER"
-                          R"EOSHADER(
-               OpSelectionMerge %break None
-               OpSwitch %test
-                        %default
-                         0 %test_0
-                         1 %test_1
-                         2 %test_2
-                         3 %test_3
-                         4 %test_4
-                         5 %test_5
-                         6 %test_6
-                         7 %test_7
-                         8 %test_8
-                         9 %test_9
-                        10 %test_10
-                        11 %test_11
-                        12 %test_12
-                        13 %test_13
-                        14 %test_14
-                        15 %test_15
-                        16 %test_16
-                        17 %test_17
-                        18 %test_18
-                        19 %test_19
-                        20 %test_20
-                        21 %test_21
-                        22 %test_22
-                        23 %test_23
-                        24 %test_24
-                        25 %test_25
-                        26 %test_26
-                        27 %test_27
-                        28 %test_28
-                        29 %test_29
-                        30 %test_30
-                        31 %test_31
-                        32 %test_32
-                        33 %test_33
-                        34 %test_34
-                        35 %test_35
-                        36 %test_36
-                        37 %test_37
-                        38 %test_38
-                        39 %test_39
-                        40 %test_40
-                        41 %test_41
-                        42 %test_42
+)EOSHADER";
 
-     ; test OpVectorShuffle
-     %test_0 = OpLabel
-    %Color_0 = OpVectorShuffle %float4 %float_0000 %float_1234 7 6 0 1
-               OpStore %Color %Color_0
-               OpBranch %break
+    // generate dynamic versions of the constants
+    for(float f : float_constants)
+    {
+      std::string name = fmt::format("{}", f);
+      for(char &c : name)
+        if(c == '.')
+          c = '_';
+      ret += fmt::format("%float_dyn_{0} = OpFAdd %float %zerof %float_{0}\n", name);
+      ret += fmt::format("%float_dyn_neg{0} = OpFAdd %float %zerof %float_neg{0}\n", name);
+    }
 
-     ; test OpFMod
-     %test_1 = OpLabel
-        %a_1 = OpFAdd %float %zerof %float_15
-        %b_1 = OpFAdd %float %zerof %float_4
-         %_1 = OpFMod %float %a_1 %b_1
-    %Color_1 = OpCompositeConstruct %float4 %_1 %_1 %_1 %_1
-               OpStore %Color %Color_1
-               OpBranch %break
+    ret += "\n";
 
-     %test_2 = OpLabel
-        %a_2 = OpFAdd %float %zerof %float_neg15
-        %b_2 = OpFAdd %float %zerof %float_4
-         %_2 = OpFMod %float %a_2 %b_2
-    %Color_2 = OpCompositeConstruct %float4 %_2 %_2 %_2 %_2
-               OpStore %Color %Color_2
-               OpBranch %break
+    for(int32_t i : int_constants)
+    {
+      ret += fmt::format("%int_dyn_{0} = OpIAdd %int %zeroi %int_{0}\n", i);
+      ret += fmt::format("%int_dyn_neg{0} = OpIAdd %int %zeroi %int_neg{0}\n", i);
+    }
 
-     %test_3 = OpLabel
-        %a_3 = OpFAdd %float %zerof %float_15
-        %b_3 = OpFAdd %float %zerof %float_neg4
-         %_3 = OpFMod %float %a_3 %b_3
-    %Color_3 = OpCompositeConstruct %float4 %_3 %_3 %_3 %_3
-               OpStore %Color %Color_3
-               OpBranch %break
+    ret += "\n";
 
-     %test_4 = OpLabel
-        %a_4 = OpFAdd %float %zerof %float_neg15
-        %b_4 = OpFAdd %float %zerof %float_neg4
-         %_4 = OpFMod %float %a_4 %b_4
-    %Color_4 = OpCompositeConstruct %float4 %_4 %_4 %_4 %_4
-               OpStore %Color %Color_4
-               OpBranch %break
+    for(uint32_t u : uint_constants)
+      ret += fmt::format("%uint_dyn_{0} = OpIAdd %uint %zerou %uint_{0}\n", u);
 
-     ; test OpFRem
-     %test_5 = OpLabel
-        %a_5 = OpFAdd %float %zerof %float_15
-        %b_5 = OpFAdd %float %zerof %float_4
-         %_5 = OpFRem %float %a_5 %b_5
-    %Color_5 = OpCompositeConstruct %float4 %_5 %_5 %_5 %_5
-               OpStore %Color %Color_5
-               OpBranch %break
+    ret += "\n";
 
-     %test_6 = OpLabel
-        %a_6 = OpFAdd %float %zerof %float_neg15
-        %b_6 = OpFAdd %float %zerof %float_4
-         %_6 = OpFRem %float %a_6 %b_6
-    %Color_6 = OpCompositeConstruct %float4 %_6 %_6 %_6 %_6
-               OpStore %Color %Color_6
-               OpBranch %break
+    for(size_t i = 0; i < 32; i++)
+      ret += fmt::format("%randf_dyn_{0} = OpFAdd %float %zerof %randf_{0}\n", i);
 
-     %test_7 = OpLabel
-        %a_7 = OpFAdd %float %zerof %float_15
-        %b_7 = OpFAdd %float %zerof %float_neg4
-         %_7 = OpFRem %float %a_7 %b_7
-    %Color_7 = OpCompositeConstruct %float4 %_7 %_7 %_7 %_7
-               OpStore %Color %Color_7
-               OpBranch %break
+    ret += "\n";
 
-     %test_8 = OpLabel
-        %a_8 = OpFAdd %float %zerof %float_neg15
-        %b_8 = OpFAdd %float %zerof %float_neg4
-         %_8 = OpFRem %float %a_8 %b_8
-    %Color_8 = OpCompositeConstruct %float4 %_8 %_8 %_8 %_8
-               OpStore %Color %Color_8
-               OpBranch %break
+    ret += R"EOSHADER(
 
-     ; test OpUMod
-     %test_9 = OpLabel
-        %a_9 = OpIAdd %uint %zerou %uint_15
-        %b_9 = OpIAdd %uint %zerou %uint_4
-      %mod_9 = OpUMod %uint %a_9 %b_9
-         %_9 = OpConvertUToF %float %mod_9
-    %Color_9 = OpCompositeConstruct %float4 %_9 %_9 %_9 %_9
-               OpStore %Color %Color_9
-               OpBranch %break
+ %float4_dyn_0000 = OpCompositeConstruct %float4 %float_dyn_0_0 %float_dyn_0_0 %float_dyn_0_0 %float_dyn_0_0
+ %float4_dyn_1234 = OpCompositeConstruct %float4 %float_dyn_1_0 %float_dyn_2_0 %float_dyn_3_0 %float_dyn_4_0
 
-     ; test OpSRem/OpSMod
-    %test_10 = OpLabel
-       %a_10 = OpIAdd %int %zeroi %int_15
-       %b_10 = OpIAdd %int %zeroi %int_4
-     %rem_10 = OpSRem %int %a_10 %b_10
-     %mod_10 = OpSMod %int %a_10 %b_10
-    %remf_10 = OpConvertSToF %float %rem_10
-    %modf_10 = OpConvertSToF %float %mod_10
-   %Color_10 = OpCompositeConstruct %float4 %remf_10 %remf_10 %modf_10 %modf_10
-               OpStore %Color %Color_10
-               OpBranch %break
+)EOSHADER";
 
-    %test_11 = OpLabel
-       %a_11 = OpBitwiseOr %uint %uint_0x1234 %uint_0xb9c5
-       %b_11 = OpBitwiseXor %uint %uint_0x1234 %uint_0xb9c5
-       %c_11 = OpBitwiseAnd %uint %uint_0x1234 %uint_0xb9c5
-      %af_11 = OpConvertUToF %float %a_11
-      %bf_11 = OpConvertUToF %float %a_11
-      %cf_11 = OpConvertUToF %float %c_11
-   %Color_11 = OpCompositeConstruct %float4 %af_11 %bf_11 %cf_11 %zerof
-               OpStore %Color %Color_11
-               OpBranch %break
+    ret += switch_str;
+    ret += cases;
 
-    %test_12 = OpLabel
-       %a_12 = OpFAdd %float %zerof %float_15
-       %b_12 = OpFAdd %float %zerof %float_4
-       %c_12 = OpFAdd %float %zerof %float_neg4
-       %d_12 = OpFAdd %float %zerof %float_1_234
-    %vec0_12 = OpCompositeConstruct %float4 %zerof %zerof %zerof %zerof
-    %vec1_12 = OpCompositeInsert %float4 %a_12 %vec0_12 2
-    %vec2_12 = OpCompositeInsert %float4 %b_12 %vec1_12 1
-    %vec3_12 = OpCompositeInsert %float4 %c_12 %vec2_12 3
-    %vec4_12 = OpCompositeInsert %float4 %d_12 %vec3_12 0
-               OpStore %Color %vec4_12
-               OpBranch %break
-
-    %test_13 = OpLabel
-       %a_13 = OpFAdd %float %zerof %float_15
-       %b_13 = OpFAdd %float %zerof %float_4
-       %c_13 = OpFAdd %float %zerof %float_neg4
-       %d_13 = OpFAdd %float %zerof %float_1_234
-
-   %vec4a_13 = OpCompositeConstruct %float4 %b_13 %d_13 %a_13 %c_13
-   %vec3a_13 = OpCompositeConstruct %float3 %d_13 %c_13 %a_13
-
-   %vec4b_13 = OpVectorShuffle %float4 %vec4a_13 %vec4a_13 3 2 0 1
-   %vec4c_13 = OpVectorShuffle %float4 %vec4a_13 %vec4a_13 0 1 3 2
-   %vec4d_13 = OpVectorShuffle %float4 %vec4a_13 %vec4a_13 2 0 1 3
-   %vec4e_13 = OpVectorShuffle %float4 %vec4a_13 %vec4a_13 3 1 2 0
-   %vec4f_13 = OpVectorShuffle %float4 %vec4a_13 %vec4a_13 1 3 0 2
-
- %parent1_13 = OpCompositeInsert %parent %vec4a_13 %empty_parent 0
-
- %parent2_13 = OpCompositeInsert %parent %vec4b_13 %parent1_13 1 0
- %parent3_13 = OpCompositeInsert %parent %vec3a_13 %parent2_13 1 1
- %parent4_13 = OpCompositeInsert %parent %d_13 %parent3_13 1 2
-
- %parent5_13 = OpCompositeInsert %parent %vec4c_13 %parent4_13 2 0
- %parent6_13 = OpCompositeInsert %parent %vec4d_13 %parent5_13 2 1
- %parent7_13 = OpCompositeInsert %parent %vec4e_13 %parent6_13 2 2
- %parent8_13 = OpCompositeInsert %parent %vec4f_13 %parent7_13 2 3
-
-       %x_13 = OpCompositeExtract %float %parent8_13 0 2
-       %y_13 = OpCompositeExtract %float %parent8_13 2 1 3
-       %z_13 = OpCompositeExtract %float %parent8_13 1 1 1
-       %w_13 = OpCompositeExtract %float %parent8_13 1 0 2
-
-   %Color_13 = OpCompositeConstruct %float4 %x_13 %y_13 %z_13 %w_13
-               OpStore %Color %Color_13
-               OpBranch %break
-
-     ; test mod/rem with zeros
-    %test_14 = OpLabel
-       %b_14 = OpFAdd %float %zerof %float_4
-        %_14 = OpFMod %float %zerof %b_14
-   %Color_14 = OpCompositeConstruct %float4 %_14 %_14 %_14 %_14
-               OpStore %Color %Color_14
-               OpBranch %break
-
-    %test_15 = OpLabel
-       %b_15 = OpFAdd %float %zerof %float_4
-        %_15 = OpFRem %float %zerof %b_15
-   %Color_15 = OpCompositeConstruct %float4 %_15 %_15 %_15 %_15
-               OpStore %Color %Color_15
-               OpBranch %break
-
-    %test_16 = OpLabel
-       %b_16 = OpIAdd %uint %zerou %uint_4
-     %mod_16 = OpUMod %uint %zerou %b_16
-        %_16 = OpConvertUToF %float %mod_16
-   %Color_16 = OpCompositeConstruct %float4 %_16 %_16 %_16 %_16
-               OpStore %Color %Color_16
-               OpBranch %break
-
-    %test_17 = OpLabel
-       %b_17 = OpIAdd %int %zeroi %int_4
-     %mod_17 = OpSMod %int %zeroi %b_17
-     %rem_17 = OpSRem %int %zeroi %b_17
-    %modf_17 = OpConvertSToF %float %mod_17
-    %remf_17 = OpConvertSToF %float %rem_17
-   %Color_17 = OpCompositeConstruct %float4 %modf_17 %modf_17 %remf_17 %remf_17
-               OpStore %Color %Color_17
-               OpBranch %break
-
-     ; test bitcast
-    %test_18 = OpLabel
-        %_18 = OpBitcast %float %uint_flt_1_234
-   %Color_18 = OpCompositeConstruct %float4 %_18 %_18 %_18 %_18
-               OpStore %Color %Color_18
-               OpBranch %break
-
-     ; test fnegate
-    %test_19 = OpLabel
-       %a_19 = OpFAdd %float %zerof %float_4
-       %b_19 = OpFAdd %float %zerof %float_neg15
-       %c_19 = OpFAdd %float %zerof %zerof
-       %d_19 = OpFAdd %float %zerof %float_3
-       %x_19 = OpFNegate %float %a_19
-       %y_19 = OpFNegate %float %b_19
-       %z_19 = OpFNegate %float %c_19
-       %w_19 = OpFNegate %float %d_19
-   %Color_19 = OpCompositeConstruct %float4 %x_19 %y_19 %z_19 %w_19
-               OpStore %Color %Color_19
-               OpBranch %break
-
-     ; test snegate
-    %test_20 = OpLabel
-       %a_20 = OpIAdd %int %zeroi %int_4
-       %b_20 = OpIAdd %int %zeroi %int_neg15
-       %c_20 = OpIAdd %int %zeroi %zeroi
-       %d_20 = OpIAdd %int %zeroi %int_7
-       %x_20 = OpSNegate %int %a_20
-       %y_20 = OpSNegate %int %b_20
-       %z_20 = OpSNegate %int %c_20
-       %w_20 = OpSNegate %int %d_20
-      %xf_20 = OpConvertSToF %float %x_20
-      %yf_20 = OpConvertSToF %float %y_20
-      %zf_20 = OpConvertSToF %float %z_20
-      %wf_20 = OpConvertSToF %float %w_20
-   %Color_20 = OpCompositeConstruct %float4 %xf_20 %yf_20 %zf_20 %wf_20
-               OpStore %Color %Color_20
-               OpBranch %break
-
-)EOSHADER"
-                          R"EOSHADER(
-     ; test 2x2 matrix multiplies
-    %test_21 = OpLabel
-
-   %mata1_21 = OpFAdd %float %zerof %float_mat0
-   %mata2_21 = OpFAdd %float %zerof %float_mat1
-   %matb1_21 = OpFAdd %float %zerof %float_mat2
-   %matb2_21 = OpFAdd %float %zerof %float_mat3
-
-    %vec0_21 = OpFAdd %float %zerof %float_vec0
-    %vec1_21 = OpFAdd %float %zerof %float_vec1
-
-    %cola_21 = OpCompositeConstruct %float2 %mata1_21 %mata2_21
-    %colb_21 = OpCompositeConstruct %float2 %matb1_21 %matb2_21
-     %mat_21 = OpCompositeConstruct %float2x2 %cola_21 %colb_21
-
-     %vec_21 = OpCompositeConstruct %float2 %vec0_21 %vec1_21   
-
-        %_21 = OpMatrixTimesVector %float2 %mat_21 %vec_21
-
-   %Color_21 = OpVectorShuffle %float4 %_21 %_21 0 1 0 1
-
-               OpStore %Color %Color_21
-               OpBranch %break
-
-    %test_22 = OpLabel
-
-   %mata1_22 = OpFAdd %float %zerof %float_mat0
-   %mata2_22 = OpFAdd %float %zerof %float_mat1
-   %matb1_22 = OpFAdd %float %zerof %float_mat2
-   %matb2_22 = OpFAdd %float %zerof %float_mat3
-
-    %vec0_22 = OpFAdd %float %zerof %float_vec0
-    %vec1_22 = OpFAdd %float %zerof %float_vec1
-
-    %cola_22 = OpCompositeConstruct %float2 %mata1_22 %mata2_22
-    %colb_22 = OpCompositeConstruct %float2 %matb1_22 %matb2_22
-     %mat_22 = OpCompositeConstruct %float2x2 %cola_22 %colb_22
-
-     %vec_22 = OpCompositeConstruct %float2 %vec0_22 %vec1_22   
-
-        %_22 = OpVectorTimesMatrix %float2 %vec_22 %mat_22
-
-   %Color_22 = OpVectorShuffle %float4 %_22 %_22 0 1 0 1
-
-               OpStore %Color %Color_22
-               OpBranch %break
-
-    %test_23 = OpLabel
-
-   %mata1_23 = OpFAdd %float %zerof %float_mat0
-   %mata2_23 = OpFAdd %float %zerof %float_mat1
-   %matb1_23 = OpFAdd %float %zerof %float_mat2
-   %matb2_23 = OpFAdd %float %zerof %float_mat3
-
-    %vec0_23 = OpFAdd %float %zerof %float_vec0
-    %vec1_23 = OpFAdd %float %zerof %float_vec1
-
-    %cola_23 = OpCompositeConstruct %float2 %mata1_23 %mata2_23
-    %colb_23 = OpCompositeConstruct %float2 %matb1_23 %matb2_23
-     %mat_23 = OpCompositeConstruct %float2x2 %cola_23 %colb_23
-
-     %vec_23 = OpCompositeConstruct %float2 %vec0_23 %vec1_23
-
-   %scale_23 = OpFAdd %float %zerof %float_1_234
-    %mat2_23 = OpMatrixTimesScalar %float2x2 %mat_23 %scale_23
-
-        %_23 = OpVectorTimesMatrix %float2 %vec_23 %mat2_23
-
-   %Color_23 = OpVectorShuffle %float4 %_23 %_23 0 1 0 1
-
-               OpStore %Color %Color_23
-               OpBranch %break
-
-    %test_24 = OpLabel
-
-   %mata1_24 = OpFAdd %float %zerof %float_mat0
-   %mata2_24 = OpFAdd %float %zerof %float_mat1
-   %matb1_24 = OpFAdd %float %zerof %float_mat2
-   %matb2_24 = OpFAdd %float %zerof %float_mat3
-
-   %matc1_24 = OpFAdd %float %zerof %float_mat4
-   %matc2_24 = OpFAdd %float %zerof %float_mat5
-   %matd1_24 = OpFAdd %float %zerof %float_mat6
-   %matd2_24 = OpFAdd %float %zerof %float_mat7
-
-    %vec0_24 = OpFAdd %float %zerof %float_vec0
-    %vec1_24 = OpFAdd %float %zerof %float_vec1
-
-    %cola_24 = OpCompositeConstruct %float2 %mata1_24 %mata2_24
-    %colb_24 = OpCompositeConstruct %float2 %matb1_24 %matb2_24
-    %mata_24 = OpCompositeConstruct %float2x2 %cola_24 %colb_24
-
-    %colc_24 = OpCompositeConstruct %float2 %matc1_24 %matc2_24
-    %cold_24 = OpCompositeConstruct %float2 %matd1_24 %matd2_24
-    %matb_24 = OpCompositeConstruct %float2x2 %colc_24 %cold_24
-
-     %vec_24 = OpCompositeConstruct %float2 %vec0_24 %vec1_24
-
-     %mat_24 = OpMatrixTimesMatrix %float2x2 %mata_24 %matb_24
-
-        %_24 = OpVectorTimesMatrix %float2 %vec_24 %mat_24
-
-   %Color_24 = OpVectorShuffle %float4 %_24 %_24 0 1 0 1
-
-               OpStore %Color %Color_24
-               OpBranch %break
-
-   ; test rectangular matrix multiplies
-
-    %test_25 = OpLabel
-
-    %mat0_25 = OpFAdd %float %zerof %float_mat0
-    %mat1_25 = OpFAdd %float %zerof %float_mat1
-    %mat2_25 = OpFAdd %float %zerof %float_mat2
-    %mat3_25 = OpFAdd %float %zerof %float_mat3
-    %mat4_25 = OpFAdd %float %zerof %float_mat4
-    %mat5_25 = OpFAdd %float %zerof %float_mat5
-    %mat6_25 = OpFAdd %float %zerof %float_mat6
-    %mat7_25 = OpFAdd %float %zerof %float_mat7
-    %mat8_25 = OpFAdd %float %zerof %float_mat8
-    %mat9_25 = OpFAdd %float %zerof %float_mat9
-   %mat10_25 = OpFAdd %float %zerof %float_mat10
-   %mat11_25 = OpFAdd %float %zerof %float_mat11
-  
-    %vec0_25 = OpCompositeConstruct %float4 %mat0_25 %mat1_25 %mat2_25 %mat3_25
-    %vec1_25 = OpCompositeConstruct %float4 %mat4_25 %mat5_25 %mat6_25 %mat7_25
-     %mat_25 = OpCompositeConstruct %float4x2 %vec0_25 %vec1_25
-  
-     %vec_25 = OpCompositeConstruct %float4 %mat8_25 %mat9_25 %mat10_25 %mat11_25
-
-        %_25 = OpVectorTimesMatrix %float2 %vec_25 %mat_25
-
-   %Color_25 = OpVectorShuffle %float4 %_25 %_25 0 1 0 1
-
-               OpStore %Color %Color_25
-               OpBranch %break
-
-    %test_26 = OpLabel
-
-    %mat0_26 = OpFAdd %float %zerof %float_mat0
-    %mat1_26 = OpFAdd %float %zerof %float_mat1
-    %mat2_26 = OpFAdd %float %zerof %float_mat2
-    %mat3_26 = OpFAdd %float %zerof %float_mat3
-    %mat4_26 = OpFAdd %float %zerof %float_mat4
-    %mat5_26 = OpFAdd %float %zerof %float_mat5
-    %mat6_26 = OpFAdd %float %zerof %float_mat6
-    %mat7_26 = OpFAdd %float %zerof %float_mat7
-    %mat8_26 = OpFAdd %float %zerof %float_mat8
-    %mat9_26 = OpFAdd %float %zerof %float_mat9
-   %mat10_26 = OpFAdd %float %zerof %float_mat10
-   %mat11_26 = OpFAdd %float %zerof %float_mat11
-  
-    %vec0_26 = OpCompositeConstruct %float2 %mat0_26 %mat1_26
-    %vec1_26 = OpCompositeConstruct %float2 %mat2_26 %mat3_26
-    %vec2_26 = OpCompositeConstruct %float2 %mat4_26 %mat5_26
-    %vec3_26 = OpCompositeConstruct %float2 %mat6_26 %mat7_26
-     %mat_26 = OpCompositeConstruct %float2x4 %vec0_26 %vec1_26 %vec2_26 %vec3_26
-  
-     %vec_26 = OpCompositeConstruct %float4 %mat8_26 %mat9_26 %mat10_26 %mat11_26
-  
-        %_26 = OpMatrixTimesVector %float2 %mat_26 %vec_26
-
-   %Color_26 = OpVectorShuffle %float4 %_26 %_26 0 1 0 1
-
-               OpStore %Color %Color_26
-               OpBranch %break
-
-    %test_27 = OpLabel
-
-    %mat0_27 = OpFAdd %float %zerof %float_mat0
-    %mat1_27 = OpFAdd %float %zerof %float_mat1
-    %mat2_27 = OpFAdd %float %zerof %float_mat2
-    %mat3_27 = OpFAdd %float %zerof %float_mat3
-    %mat4_27 = OpFAdd %float %zerof %float_mat4
-    %mat5_27 = OpFAdd %float %zerof %float_mat5
-    %mat6_27 = OpFAdd %float %zerof %float_mat6
-    %mat7_27 = OpFAdd %float %zerof %float_mat7
-    %mat8_27 = OpFAdd %float %zerof %float_mat8
-    %mat9_27 = OpFAdd %float %zerof %float_mat9
-   %mat10_27 = OpFAdd %float %zerof %float_mat10
-   %mat11_27 = OpFAdd %float %zerof %float_mat11
-  
-    %vec0_27 = OpCompositeConstruct %float4 %mat0_27 %mat1_27 %mat2_27 %mat3_27
-    %vec1_27 = OpCompositeConstruct %float4 %mat4_27 %mat5_27 %mat6_27 %mat7_27
-     %mat_27 = OpCompositeConstruct %float4x2 %vec0_27 %vec1_27
-  
-     %vec_27 = OpCompositeConstruct %float2 %mat8_27 %mat9_27
-
-   %Color_27 = OpMatrixTimesVector %float4 %mat_27 %vec_27
-
-               OpStore %Color %Color_27
-               OpBranch %break
-
-    %test_28 = OpLabel
-
-    %mat0_28 = OpFAdd %float %zerof %float_mat0
-    %mat1_28 = OpFAdd %float %zerof %float_mat1
-    %mat2_28 = OpFAdd %float %zerof %float_mat2
-    %mat3_28 = OpFAdd %float %zerof %float_mat3
-    %mat4_28 = OpFAdd %float %zerof %float_mat4
-    %mat5_28 = OpFAdd %float %zerof %float_mat5
-    %mat6_28 = OpFAdd %float %zerof %float_mat6
-    %mat7_28 = OpFAdd %float %zerof %float_mat7
-    %mat8_28 = OpFAdd %float %zerof %float_mat8
-    %mat9_28 = OpFAdd %float %zerof %float_mat9
-   %mat10_28 = OpFAdd %float %zerof %float_mat10
-   %mat11_28 = OpFAdd %float %zerof %float_mat11
-  
-    %vec0_28 = OpCompositeConstruct %float2 %mat0_28 %mat1_28
-    %vec1_28 = OpCompositeConstruct %float2 %mat2_28 %mat3_28
-    %vec2_28 = OpCompositeConstruct %float2 %mat4_28 %mat5_28
-    %vec3_28 = OpCompositeConstruct %float2 %mat6_28 %mat7_28
-     %mat_28 = OpCompositeConstruct %float2x4 %vec0_28 %vec1_28 %vec2_28 %vec3_28
-  
-     %vec_28 = OpCompositeConstruct %float2 %mat8_28 %mat9_28
-  
-   %Color_28 = OpVectorTimesMatrix %float4 %vec_28 %mat_28
-
-               OpStore %Color %Color_28
-               OpBranch %break
-
-    %test_29 = OpLabel
-
-    %mat0_29 = OpFAdd %float %zerof %float_mat0
-    %mat1_29 = OpFAdd %float %zerof %float_mat1
-    %mat2_29 = OpFAdd %float %zerof %float_mat2
-    %mat3_29 = OpFAdd %float %zerof %float_mat3
-    %mat4_29 = OpFAdd %float %zerof %float_mat4
-    %mat5_29 = OpFAdd %float %zerof %float_mat5
-    %mat6_29 = OpFAdd %float %zerof %float_mat6
-    %mat7_29 = OpFAdd %float %zerof %float_mat7
-    %mat8_29 = OpFAdd %float %zerof %float_mat8
-    %mat9_29 = OpFAdd %float %zerof %float_mat9
-   %mat10_29 = OpFAdd %float %zerof %float_mat10
-   %mat11_29 = OpFAdd %float %zerof %float_mat11
-  
-    %vec0_29 = OpCompositeConstruct %float2 %mat0_29 %mat1_29
-    %vec1_29 = OpCompositeConstruct %float2 %mat2_29 %mat3_29
-    %vec2_29 = OpCompositeConstruct %float2 %mat4_29 %mat5_29
-    %vec3_29 = OpCompositeConstruct %float2 %mat6_29 %mat7_29
-    %mata_29 = OpCompositeConstruct %float2x4 %vec0_29 %vec1_29 %vec2_29 %vec3_29
-  
-    %vec4_29 = OpCompositeConstruct %float4 %mat0_29 %mat1_29 %mat2_29 %mat3_29
-    %vec5_29 = OpCompositeConstruct %float4 %mat4_29 %mat5_29 %mat6_29 %mat7_29
-    %matb_29 = OpCompositeConstruct %float4x2 %vec4_29 %vec5_29
-  
-     %vec_29 = OpCompositeConstruct %float4 %mat8_29 %mat9_29 %mat10_29 %mat11_29
-
-        %_29 = OpMatrixTimesMatrix %float4x4 %matb_29 %mata_29
-
-   %Color_29 = OpMatrixTimesVector %float4 %_29 %vec_29
-
-               OpStore %Color %Color_29
-               OpBranch %break
-
-    %test_30 = OpLabel
-
-    %mat0_30 = OpFAdd %float %zerof %float_mat0
-    %mat1_30 = OpFAdd %float %zerof %float_mat1
-    %mat2_30 = OpFAdd %float %zerof %float_mat2
-    %mat3_30 = OpFAdd %float %zerof %float_mat3
-    %mat4_30 = OpFAdd %float %zerof %float_mat4
-    %mat5_30 = OpFAdd %float %zerof %float_mat5
-    %mat6_30 = OpFAdd %float %zerof %float_mat6
-    %mat7_30 = OpFAdd %float %zerof %float_mat7
-    %mat8_30 = OpFAdd %float %zerof %float_mat8
-    %mat9_30 = OpFAdd %float %zerof %float_mat9
-   %mat10_30 = OpFAdd %float %zerof %float_mat10
-   %mat11_30 = OpFAdd %float %zerof %float_mat11
-  
-    %vec0_30 = OpCompositeConstruct %float4 %mat0_30 %mat1_30 %mat2_30 %mat3_30
-    %vec1_30 = OpCompositeConstruct %float4 %mat4_30 %mat5_30 %mat6_30 %mat7_30
-  
-     %mat_30 = OpOuterProduct %float4x4 %vec0_30 %vec1_30
-  
-     %vec_30 = OpCompositeConstruct %float4 %mat8_30 %mat9_30 %mat10_30 %mat11_30
-
-   %Color_30 = OpMatrixTimesVector %float4 %mat_30 %vec_30
-
-               OpStore %Color %Color_30
-               OpBranch %break
-
-    %test_31 = OpLabel
-
-    %mat0_31 = OpFAdd %float %zerof %float_mat0
-    %mat1_31 = OpFAdd %float %zerof %float_mat1
-    %mat2_31 = OpFAdd %float %zerof %float_mat2
-    %mat3_31 = OpFAdd %float %zerof %float_mat3
-  
-     %vec_31 = OpCompositeConstruct %float4 %mat0_31 %mat1_31 %mat2_31 %mat3_31
-
-   %scale_31 = OpFAdd %float %zerof %float_1_234
-   %Color_31 = OpVectorTimesScalar %float4 %vec_31 %scale_31
-
-)EOSHADER"
-                          R"EOSHADER(
-               OpStore %Color %Color_31
-               OpBranch %break
-
-    %test_32 = OpLabel
-       %a_32 = OpShiftLeftLogical %uint %uint_0x1234 %uint_0
-       %b_32 = OpShiftLeftLogical %uint %uint_0x1234 %uint_1
-       %c_32 = OpShiftLeftLogical %uint %uint_0x1234 %uint_2
-      %af_32 = OpConvertUToF %float %a_32
-      %bf_32 = OpConvertUToF %float %a_32
-      %cf_32 = OpConvertUToF %float %c_32
-   %Color_32 = OpCompositeConstruct %float4 %af_32 %bf_32 %cf_32 %zerof
-               OpStore %Color %Color_32
-               OpBranch %break
-
-    %test_33 = OpLabel
-       %a_33 = OpShiftLeftLogical %int %int_0x1234 %uint_0
-       %b_33 = OpShiftLeftLogical %int %int_0x1234 %uint_1
-       %c_33 = OpShiftLeftLogical %int %int_0x1234 %uint_2
-      %af_33 = OpConvertSToF %float %a_33
-      %bf_33 = OpConvertSToF %float %a_33
-      %cf_33 = OpConvertSToF %float %c_33
-   %Color_33 = OpCompositeConstruct %float4 %af_33 %bf_33 %cf_33 %zerof
-               OpStore %Color %Color_33
-               OpBranch %break
-
-    %test_34 = OpLabel
-       %a_34 = OpShiftLeftLogical %int %int_neg0x1234 %uint_0
-       %b_34 = OpShiftLeftLogical %int %int_neg0x1234 %uint_1
-       %c_34 = OpShiftLeftLogical %int %int_neg0x1234 %uint_2
-      %af_34 = OpConvertSToF %float %a_34
-      %bf_34 = OpConvertSToF %float %a_34
-      %cf_34 = OpConvertSToF %float %c_34
-   %Color_34 = OpCompositeConstruct %float4 %af_34 %bf_34 %cf_34 %zerof
-               OpStore %Color %Color_34
-               OpBranch %break
-
-    %test_35 = OpLabel
-       %a_35 = OpShiftRightLogical %uint %uint_0x1234 %uint_0
-       %b_35 = OpShiftRightLogical %uint %uint_0x1234 %uint_1
-       %c_35 = OpShiftRightLogical %uint %uint_0x1234 %uint_2
-      %af_35 = OpConvertUToF %float %a_35
-      %bf_35 = OpConvertUToF %float %a_35
-      %cf_35 = OpConvertUToF %float %c_35
-   %Color_35 = OpCompositeConstruct %float4 %af_35 %bf_35 %cf_35 %zerof
-               OpStore %Color %Color_35
-               OpBranch %break
-
-    %test_36 = OpLabel
-       %a_36 = OpShiftRightLogical %int %int_0x1234 %uint_0
-       %b_36 = OpShiftRightLogical %int %int_0x1234 %uint_1
-       %c_36 = OpShiftRightLogical %int %int_0x1234 %uint_2
-      %af_36 = OpConvertSToF %float %a_36
-      %bf_36 = OpConvertSToF %float %a_36
-      %cf_36 = OpConvertSToF %float %c_36
-   %Color_36 = OpCompositeConstruct %float4 %af_36 %bf_36 %cf_36 %zerof
-               OpStore %Color %Color_36
-               OpBranch %break
-
-    %test_37 = OpLabel
-       %a_37 = OpShiftRightLogical %int %int_neg0x1234 %uint_0
-       %b_37 = OpShiftRightLogical %int %int_neg0x1234 %uint_1
-       %c_37 = OpShiftRightLogical %int %int_neg0x1234 %uint_2
-      %af_37 = OpConvertSToF %float %a_37
-      %bf_37 = OpConvertSToF %float %a_37
-      %cf_37 = OpConvertSToF %float %c_37
-   %Color_37 = OpCompositeConstruct %float4 %af_37 %bf_37 %cf_37 %zerof
-               OpStore %Color %Color_37
-               OpBranch %break
-
-    %test_38 = OpLabel
-       %a_38 = OpShiftRightArithmetic %uint %uint_0x1234 %uint_0
-       %b_38 = OpShiftRightArithmetic %uint %uint_0x1234 %uint_1
-       %c_38 = OpShiftRightArithmetic %uint %uint_0x1234 %uint_2
-      %af_38 = OpConvertUToF %float %a_38
-      %bf_38 = OpConvertUToF %float %a_38
-      %cf_38 = OpConvertUToF %float %c_38
-   %Color_38 = OpCompositeConstruct %float4 %af_38 %bf_38 %cf_38 %zerof
-               OpStore %Color %Color_38
-               OpBranch %break
-
-    %test_39 = OpLabel
-       %a_39 = OpShiftRightArithmetic %int %int_0x1234 %uint_0
-       %b_39 = OpShiftRightArithmetic %int %int_0x1234 %uint_1
-       %c_39 = OpShiftRightArithmetic %int %int_0x1234 %uint_2
-      %af_39 = OpConvertSToF %float %a_39
-      %bf_39 = OpConvertSToF %float %a_39
-      %cf_39 = OpConvertSToF %float %c_39
-   %Color_39 = OpCompositeConstruct %float4 %af_39 %bf_39 %cf_39 %zerof
-               OpStore %Color %Color_39
-               OpBranch %break
-
-    %test_40 = OpLabel
-       %a_40 = OpShiftRightArithmetic %int %int_neg0x1234 %uint_0
-       %b_40 = OpShiftRightArithmetic %int %int_neg0x1234 %uint_1
-       %c_40 = OpShiftRightArithmetic %int %int_neg0x1234 %uint_2
-      %af_40 = OpConvertSToF %float %a_40
-      %bf_40 = OpConvertSToF %float %a_40
-      %cf_40 = OpConvertSToF %float %c_40
-   %Color_40 = OpCompositeConstruct %float4 %af_40 %bf_40 %cf_40 %zerof
-               OpStore %Color %Color_40
-               OpBranch %break
-
-    %test_41 = OpLabel
-       %a_41 = OpFAdd %float %zerof %float_15
-       %b_41 = OpFAdd %float %zerof %float_4
-       %c_41 = OpFAdd %float %zerof %float_neg4
-       %d_41 = OpFAdd %float %zerof %float_1_234
-       %x_41 = OpFAdd %float %zerof %float_neg15
-
-    %comp_41 = OpIAdd %uint %zerou %uint_3
-
-     %vec_41 = OpCompositeConstruct %float4 %a_41 %b_41 %c_41 %d_41
-%extracted_41 = OpVectorExtractDynamic %float %vec_41 %comp_41
-   %Color_41 = OpCompositeConstruct %float4 %extracted_41 %extracted_41 %extracted_41 %extracted_41
-
-               OpStore %Color %Color_41
-               OpBranch %break
-
-    %test_42 = OpLabel
-       %a_42 = OpFAdd %float %zerof %float_15
-       %b_42 = OpFAdd %float %zerof %float_4
-       %c_42 = OpFAdd %float %zerof %float_neg4
-       %d_42 = OpFAdd %float %zerof %float_1_234
-       %x_42 = OpFAdd %float %zerof %float_neg15
-
-    %comp_42 = OpIAdd %uint %zerou %uint_2
-
-     %vec_42 = OpCompositeConstruct %float4 %a_42 %b_42 %c_42 %d_42
-   %Color_42 = OpVectorInsertDynamic %float4 %vec_42 %x_42 %comp_42
-
-               OpStore %Color %Color_42
-               OpBranch %break
+    ret += R"EOSHADER(
 
     %default = OpLabel
-               OpStore %Color %float_0000
+               OpStore %Color %float4_0000
                OpBranch %break
 
       %break = OpLabel
@@ -1231,21 +1266,23 @@ void main()
                OpFunctionEnd
 )EOSHADER";
 
+    return ret;
+  }
+
   int main()
   {
     // initialise, create window, create context, etc
     if(!Init())
       return 3;
 
+    make_asm_tests();
+
     size_t lastTest = pixel_glsl.rfind("case ");
     lastTest += sizeof("case ") - 1;
 
     const uint32_t numGLSLTests = atoi(pixel_glsl.c_str() + lastTest) + 1;
 
-    lastTest = pixel_asm.rfind("%test_");
-    lastTest += sizeof("%test_") - 1;
-
-    const uint32_t numASMTests = atoi(pixel_asm.c_str() + lastTest) + 1;
+    const uint32_t numASMTests = (uint32_t)asm_tests.size();
 
     VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
         {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
@@ -1262,11 +1299,9 @@ void main()
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
         {setlayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Vec4i))}));
 
-    // calculate number of tests (align to 64)
-    uint32_t texWidth = AlignUp(std::max(numGLSLTests, numASMTests), 64U);
-
-    // wrap around after 256
-    uint32_t texHeight = std::max(1U, texWidth / 256);
+    // calculate number of tests, wrapping each row at 256
+    uint32_t texWidth = AlignUp(std::max(numGLSLTests, numASMTests), 256U);
+    uint32_t texHeight = std::max(1U, texWidth / 256U);
     texWidth /= texHeight;
 
     // 4x4 for each test
@@ -1314,7 +1349,7 @@ void main()
     VkPipeline glslpipe = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.stages[1] =
-        CompileShaderModule(pixel_asm, ShaderLang::spvasm, ShaderStage::frag, "main");
+        CompileShaderModule(make_pixel_asm(), ShaderLang::spvasm, ShaderStage::frag, "main");
 
     VkPipeline asmpipe = createGraphicsPipeline(pipeCreateInfo);
 
