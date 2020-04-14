@@ -4,6 +4,7 @@ set(PROJECT demos)
 
 set(VULKAN_SRC
         3rdparty/volk/volk.c
+        3rdparty/fmt/format.cc
         vk/vk_helpers.cpp
         vk/vk_test.cpp
         vk/vk_adv_cbuffer_zoo.cpp

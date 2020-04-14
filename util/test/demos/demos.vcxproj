@@ -117,6 +117,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="3rdparty\fmt\format.cc" />
     <ClCompile Include="d3d11\d3d11_1_many_uavs.cpp" />
     <ClCompile Include="d3d11\d3d11_array_interpolator.cpp" />
     <ClCompile Include="d3d11\d3d11_binding_hazards.cpp" />
@@ -289,6 +290,9 @@
     <ClCompile Include="win32\win32_window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="3rdparty\fmt\core.h" />
+    <ClInclude Include="3rdparty\fmt\format-inl.h" />
+    <ClInclude Include="3rdparty\fmt\format.h" />
     <ClInclude Include="3rdparty\glad\khrplatform.h" />
     <ClInclude Include="3rdparty\VulkanMemoryAllocator\vk_mem_alloc.h" />
     <ClInclude Include="d3d11\d3d11_helpers.h" />

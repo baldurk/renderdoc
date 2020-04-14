@@ -475,6 +475,9 @@
     <ClCompile Include="vk\vk_shader_debug_zoo.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
+    <ClCompile Include="3rdparty\fmt\format.cc">
+      <Filter>3rdparty\fmt</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">
@@ -536,6 +539,9 @@
     </Filter>
     <Filter Include="Vulkan\official">
       <UniqueIdentifier>{c46e8d15-ce7e-42d4-ae59-1a960527567c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\fmt">
+      <UniqueIdentifier>{47ec0443-2084-47f0-be07-2a633a0c22e4}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -709,5 +715,14 @@
       <Filter>3rdparty\vma</Filter>
     </ClInclude>
     <ClInclude Include="renderdoc_app.h" />
+    <ClInclude Include="3rdparty\fmt\core.h">
+      <Filter>3rdparty\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\fmt\format.h">
+      <Filter>3rdparty\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\fmt\format-inl.h">
+      <Filter>3rdparty\fmt</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
