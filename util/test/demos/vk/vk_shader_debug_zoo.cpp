@@ -839,6 +839,39 @@ void main()
         "%_result = OpBitwiseOr %uint %uint_dyn_0x4200004d %uint_dyn_0xa28b00\n"
         "%_out_float = OpBitcast %float %_result\n",
     });
+
+    // test float <-> int conversions
+    append_tests({
+        "%_x = OpConvertUToF %float %uint_dyn_1234\n"
+        "%_y = OpConvertSToF %float %int_dyn_1234\n"
+        "%_z = OpConvertSToF %float %int_dyn_neg1234\n"
+        "%_w = OpConvertUToF %float %uint_dyn_0\n"
+        "%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w\n",
+
+        "%_x = OpConvertFToU %uint %float_dyn_1_0\n"
+        "%_y = OpConvertFToU %uint %float_dyn_0_0\n"
+        "%_z = OpConvertFToU %uint %float_dyn_neg1_0\n"
+        "%_w = OpConvertFToU %uint %float_dyn_1_3\n"
+        "%_out_uint4 = OpCompositeConstruct %uint4 %_x %_y %_z %_w\n",
+
+        "%_x = OpConvertFToU %uint %float_dyn_1_0\n"
+        "%_y = OpConvertFToU %uint %float_dyn_1_5\n"
+        "%_z = OpConvertFToU %uint %float_dyn_0_5\n"
+        "%_w = OpConvertFToU %uint %float_dyn_neg1_5\n"
+        "%_out_uint4 = OpCompositeConstruct %uint4 %_x %_y %_z %_w\n",
+
+        "%_x = OpConvertFToS %int %float_dyn_1_0\n"
+        "%_y = OpConvertFToS %int %float_dyn_0_0\n"
+        "%_z = OpConvertFToS %int %float_dyn_neg1_0\n"
+        "%_w = OpConvertFToS %int %float_dyn_1_3\n"
+        "%_out_int4 = OpCompositeConstruct %int4 %_x %_y %_z %_w\n",
+
+        "%_x = OpConvertFToS %int %float_dyn_1_0\n"
+        "%_y = OpConvertFToS %int %float_dyn_1_5\n"
+        "%_z = OpConvertFToS %int %float_dyn_0_5\n"
+        "%_w = OpConvertFToS %int %float_dyn_neg1_5\n"
+        "%_out_int4 = OpCompositeConstruct %int4 %_x %_y %_z %_w\n",
+    });
   }
 
   std::string make_pixel_asm()
