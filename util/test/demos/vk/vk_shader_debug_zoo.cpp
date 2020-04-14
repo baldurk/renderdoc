@@ -792,6 +792,13 @@ void main()
         "%_out_float4 = OpCompositeInsert %float4 %float_dyn_2_222 %_d 0\n",
     });
 
+    // test OpCompositeExtract on vectors
+    append_tests({
+        "%_out_float = OpCompositeExtract %float %float4_dyn_1234 0",
+        "%_out_float = OpCompositeExtract %float %float4_dyn_1234 1",
+        "%_out_float = OpCompositeExtract %float %float4_dyn_1234 3",
+    });
+
     // test OpCompositeInsert on structs
     asm_tests.push_back(R"EOTEST(
    %_a = OpCompositeConstruct %float4 %float_dyn_4_2 %float_dyn_1_0 %float_dyn_9_5 %float_dyn_0_01
