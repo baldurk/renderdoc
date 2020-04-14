@@ -78,6 +78,138 @@ ShaderVariable Pow(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
+template <typename T>
+static T GLSLMax(T x, T y)
+{
+  return x < y ? y : x;
+}
+
+template <typename T>
+static T GLSLMin(T x, T y)
+{
+  return y < x ? y : x;
+}
+
+ShaderVariable FMax(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(2);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+  ShaderVariable y = state.GetSrc(params[1]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.fv[c] = GLSLMax(var.value.fv[c], y.value.fv[c]);
+
+  return var;
+}
+
+ShaderVariable UMax(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(2);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+  ShaderVariable y = state.GetSrc(params[1]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.uv[c] = GLSLMax(var.value.uv[c], y.value.uv[c]);
+
+  return var;
+}
+
+ShaderVariable SMax(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(2);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+  ShaderVariable y = state.GetSrc(params[1]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.iv[c] = GLSLMax(var.value.iv[c], y.value.iv[c]);
+
+  return var;
+}
+
+ShaderVariable FMin(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(2);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+  ShaderVariable y = state.GetSrc(params[1]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.fv[c] = GLSLMin(var.value.fv[c], y.value.fv[c]);
+
+  return var;
+}
+
+ShaderVariable UMin(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(2);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+  ShaderVariable y = state.GetSrc(params[1]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.uv[c] = GLSLMin(var.value.uv[c], y.value.uv[c]);
+
+  return var;
+}
+
+ShaderVariable SMin(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(2);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+  ShaderVariable y = state.GetSrc(params[1]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.iv[c] = GLSLMin(var.value.iv[c], y.value.iv[c]);
+
+  return var;
+}
+
+ShaderVariable FClamp(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(3);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+  ShaderVariable minVal = state.GetSrc(params[1]);
+  ShaderVariable maxVal = state.GetSrc(params[2]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.fv[c] = GLSLMin(GLSLMax(var.value.fv[c], minVal.value.fv[c]), maxVal.value.fv[c]);
+
+  return var;
+}
+
+ShaderVariable UClamp(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(3);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+  ShaderVariable minVal = state.GetSrc(params[1]);
+  ShaderVariable maxVal = state.GetSrc(params[2]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.uv[c] = GLSLMin(GLSLMax(var.value.uv[c], minVal.value.uv[c]), maxVal.value.uv[c]);
+
+  return var;
+}
+
+ShaderVariable SClamp(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(3);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+  ShaderVariable minVal = state.GetSrc(params[1]);
+  ShaderVariable maxVal = state.GetSrc(params[2]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.iv[c] = GLSLMin(GLSLMax(var.value.iv[c], minVal.value.iv[c]), maxVal.value.iv[c]);
+
+  return var;
+}
+
 ShaderVariable FMix(ThreadState &state, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(3);
@@ -148,6 +280,15 @@ void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
   EXT(FAbs);
   EXT(Floor);
   EXT(Pow);
+  EXT(FMin);
+  EXT(UMin);
+  EXT(SMin);
+  EXT(FMax);
+  EXT(UMax);
+  EXT(SMax);
+  EXT(FClamp);
+  EXT(UClamp);
+  EXT(SClamp);
   EXT(FMix);
   EXT(Cross);
   EXT(Normalize);

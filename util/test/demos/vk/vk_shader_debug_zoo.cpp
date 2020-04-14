@@ -359,6 +359,88 @@ void main()
       Color = texture(linearSampledImage, inpos);
       break;
     }
+    case 35:
+    {
+      Color = vec4(max(posone*3.3f, posone*4.4f),
+                   max(posone*4.4f, posone*3.3f),
+                   max(posone, posinf),
+                   max(posone, neginf));
+      break;
+    }
+    case 36:
+    {
+      Color = vec4(max(negone*3.3f, negone*4.4f),
+                   max(negone*4.4f, negone*3.3f),
+                   max(negone, posinf),
+                   max(negone, neginf));
+      break;
+    }
+    case 37:
+    {
+      Color = vec4(min(posone*3.3f, posone*4.4f),
+                   min(posone*4.4f, posone*3.3f),
+                   min(posone, posinf),
+                   min(posone, neginf));
+      break;
+    }
+    case 38:
+    {
+      Color = vec4(min(negone*3.3f, negone*4.4f),
+                   min(negone*4.4f, negone*3.3f),
+                   min(negone, posinf),
+                   min(negone, neginf));
+      break;
+    }
+    case 39:
+    {
+      Color = vec4(float(max(zeroi+5, zeroi+8)),
+                   float(max(zeroi+8, zeroi+5)),
+                   float(max(zeroi-8, zeroi-5)),
+                   float(max(zeroi-5, zeroi-8)));
+      break;
+    }
+    case 40:
+    {
+      Color = vec4(float(min(zeroi+5, zeroi+8)),
+                   float(min(zeroi+8, zeroi+5)),
+                   float(min(zeroi-8, zeroi-5)),
+                   float(min(zeroi-5, zeroi-8)));
+      break;
+    }
+    case 41:
+    {
+      Color = vec4(float(max(zerou+5, zerou+8)),
+                   float(max(zerou+8, zerou+5)),
+                   float(min(zerou+8, zerou+5)),
+                   float(min(zerou+5, zerou+8)));
+      break;
+    }
+    case 42:
+    {
+      Color = vec4(clamp(posone*3.3f, posone, posone*5.0f),
+                   clamp(posone*0.3f, posone, posone*5.0f),
+                   clamp(posone*8.3f, posone, posone*5.0f),
+                   1.0f);
+      break;
+    }
+    case 43:
+    {
+      uint x = uint(posone);
+      Color = vec4(float(clamp(x*4, zerou+2, zerou+50)),
+                   float(clamp(x, zerou+2, zerou+50)),
+                   float(clamp(x*400, zerou+2, zerou+50)),
+                   1.0f);
+      break;
+    }
+    case 44:
+    {
+      int x = int(posone);
+      Color = vec4(float(clamp(x*4, zeroi+2, zeroi+50)),
+                   float(clamp(x, zeroi+2, zeroi+50)),
+                   float(clamp(x*400, zeroi+2, zeroi+50)),
+                   1.0f);
+      break;
+    }
     default: break;
   }
 }
