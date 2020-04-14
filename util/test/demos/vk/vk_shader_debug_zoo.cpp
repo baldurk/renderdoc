@@ -568,22 +568,26 @@ void main()
         "%_x = OpBitwiseOr %uint %uint_0x1234 %uint_0xb9c5\n"
         "%_y = OpBitwiseXor %uint %uint_0x1234 %uint_0xb9c5\n"
         "%_z = OpBitwiseAnd %uint %uint_0x1234 %uint_0xb9c5\n"
-        "%_out_uint3 = OpCompositeConstruct %uint3 %_x %_y %_z\n",
+        "%_w = OpNot %uint %uint_0x1234 \n"
+        "%_out_uint4 = OpCompositeConstruct %uint4 %_x %_y %_z %_w\n",
 
         "%_x = OpBitwiseOr %uint %uint_dyn_0x1234 %uint_dyn_0xb9c5\n"
         "%_y = OpBitwiseXor %uint %uint_dyn_0x1234 %uint_dyn_0xb9c5\n"
         "%_z = OpBitwiseAnd %uint %uint_dyn_0x1234 %uint_dyn_0xb9c5\n"
-        "%_out_uint3 = OpCompositeConstruct %uint3 %_x %_y %_z\n",
+        "%_w = OpNot %uint %uint_dyn_0xb9c5\n"
+        "%_out_uint4 = OpCompositeConstruct %uint4 %_x %_y %_z %_w\n",
 
-        "%_x = OpBitwiseOr %uint %uint_0x1234 %uint_0\n"
-        "%_y = OpBitwiseXor %uint %uint_0x1234 %uint_0\n"
-        "%_z = OpBitwiseAnd %uint %uint_0x1234 %uint_0\n"
-        "%_out_uint3 = OpCompositeConstruct %uint3 %_x %_y %_z\n",
+        "%_x = OpBitwiseOr %uint %uint_dyn_0x1234 %uint_0\n"
+        "%_y = OpBitwiseXor %uint %uint_dyn_0x1234 %uint_0\n"
+        "%_z = OpBitwiseAnd %uint %uint_dyn_0x1234 %uint_0\n"
+        "%_w = OpNot %uint %uint_0\n"
+        "%_out_uint4 = OpCompositeConstruct %uint4 %_x %_y %_z %_w\n",
 
-        "%_x = OpBitwiseOr %uint %uint_0 %uint_0xb9c5\n"
-        "%_y = OpBitwiseXor %uint %uint_0 %uint_0xb9c5\n"
-        "%_z = OpBitwiseAnd %uint %uint_0 %uint_0xb9c5\n"
-        "%_out_uint3 = OpCompositeConstruct %uint3 %_x %_y %_z\n",
+        "%_x = OpBitwiseOr %uint %uint_0 %uint_dyn_0xb9c5\n"
+        "%_y = OpBitwiseXor %uint %uint_0 %uint_dyn_0xb9c5\n"
+        "%_z = OpBitwiseAnd %uint %uint_0 %uint_dyn_0xb9c5\n"
+        "%_w = OpNot %uint %uint_dyn_0xb9c5\n"
+        "%_out_uint4 = OpCompositeConstruct %uint4 %_x %_y %_z %_w\n",
     });
 
     // test shifts
