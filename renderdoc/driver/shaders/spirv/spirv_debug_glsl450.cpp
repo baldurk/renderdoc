@@ -38,7 +38,7 @@ namespace glsl
     return ShaderVariable();                                                          \
   }
 
-ShaderVariable RoundEven(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable RoundEven(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
@@ -54,13 +54,13 @@ ShaderVariable RoundEven(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable Round(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable Round(ThreadState &state, uint32_t instruction, const rdcarray<Id> &params)
 {
   // for now do as the spec allows and implement this as RoundEven
-  return RoundEven(state, params);
+  return RoundEven(state, instruction, params);
 }
 
-ShaderVariable Trunc(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable Trunc(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
@@ -72,7 +72,7 @@ ShaderVariable Trunc(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable FAbs(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable FAbs(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
@@ -84,7 +84,7 @@ ShaderVariable FAbs(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable SAbs(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable SAbs(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
@@ -96,7 +96,7 @@ ShaderVariable SAbs(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable FSign(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable FSign(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
@@ -113,7 +113,7 @@ ShaderVariable FSign(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable SSign(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable SSign(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
@@ -131,7 +131,7 @@ ShaderVariable SSign(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable Floor(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable Floor(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
@@ -143,7 +143,7 @@ ShaderVariable Floor(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable Ceil(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable Ceil(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
@@ -155,7 +155,7 @@ ShaderVariable Ceil(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable Fract(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable Fract(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
@@ -170,7 +170,7 @@ ShaderVariable Fract(ThreadState &state, const rdcarray<Id> &params)
 static const float piOver180 = 3.14159265358979323846f / 180.0f;
 static const float piUnder180 = 180.0f / 3.14159265358979323846f;
 
-ShaderVariable Radians(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable Radians(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
@@ -182,7 +182,7 @@ ShaderVariable Radians(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable Degrees(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable Degrees(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
@@ -194,20 +194,7 @@ ShaderVariable Degrees(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable Pow(ThreadState &state, const rdcarray<Id> &params)
-{
-  CHECK_PARAMS(2);
-
-  ShaderVariable var = state.GetSrc(params[0]);
-  ShaderVariable y = state.GetSrc(params[1]);
-
-  for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = powf(var.value.fv[c], y.value.fv[c]);
-
-  return var;
-}
-
-ShaderVariable Determinant(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable Determinant(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
@@ -238,7 +225,7 @@ ShaderVariable Determinant(ThreadState &state, const rdcarray<Id> &params)
   return m;
 }
 
-ShaderVariable MatrixInverse(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable MatrixInverse(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
 
@@ -280,7 +267,7 @@ static T GLSLMin(T x, T y)
   return y < x ? y : x;
 }
 
-ShaderVariable FMax(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable FMax(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
 
@@ -293,7 +280,7 @@ ShaderVariable FMax(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable UMax(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable UMax(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
 
@@ -306,7 +293,7 @@ ShaderVariable UMax(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable SMax(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable SMax(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
 
@@ -319,7 +306,7 @@ ShaderVariable SMax(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable FMin(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable FMin(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
 
@@ -332,7 +319,7 @@ ShaderVariable FMin(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable UMin(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable UMin(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
 
@@ -345,7 +332,7 @@ ShaderVariable UMin(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable SMin(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable SMin(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
 
@@ -358,7 +345,7 @@ ShaderVariable SMin(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable FClamp(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable FClamp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(3);
 
@@ -372,7 +359,7 @@ ShaderVariable FClamp(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable UClamp(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable UClamp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(3);
 
@@ -386,7 +373,7 @@ ShaderVariable UClamp(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable SClamp(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable SClamp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(3);
 
@@ -400,7 +387,7 @@ ShaderVariable SClamp(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable FMix(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable FMix(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(3);
 
@@ -420,26 +407,7 @@ ShaderVariable FMix(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable Normalize(ThreadState &state, const rdcarray<Id> &params)
-{
-  CHECK_PARAMS(1);
-
-  ShaderVariable var = state.GetSrc(params[0]);
-
-  float sqrlength = 0.0f;
-
-  for(uint32_t c = 0; c < var.columns; c++)
-    sqrlength += (var.value.fv[c] * var.value.fv[c]);
-
-  float invlength = 1.0f / sqrtf(sqrlength);
-
-  for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] *= invlength;
-
-  return var;
-}
-
-ShaderVariable Cross(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable Cross(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
 
@@ -481,7 +449,7 @@ static float GLSLNMin(float x, float y)
     return y < x ? y : x;
 }
 
-ShaderVariable NMin(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable NMin(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
 
@@ -494,7 +462,7 @@ ShaderVariable NMin(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable NMax(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable NMax(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
 
@@ -507,7 +475,7 @@ ShaderVariable NMax(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
-ShaderVariable NClamp(ThreadState &state, const rdcarray<Id> &params)
+ShaderVariable NClamp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(3);
 
@@ -519,6 +487,20 @@ ShaderVariable NClamp(ThreadState &state, const rdcarray<Id> &params)
     var.value.fv[c] = GLSLNMin(GLSLNMax(var.value.fv[c], minVal.value.fv[c]), maxVal.value.fv[c]);
 
   return var;
+}
+
+ShaderVariable GPUOp(ThreadState &state, uint32_t instruction, const rdcarray<Id> &params)
+{
+  rdcarray<ShaderVariable> paramVars;
+  for(Id id : params)
+    paramVars.push_back(state.GetSrc(id));
+
+  ShaderVariable ret = paramVars[0];
+
+  if(!state.debugger.GetAPIWrapper()->CalculateMathOp(state, (GLSLstd450)instruction, paramVars, ret))
+    memset(ret.value.u64v, 0, sizeof(ret.value.u64v));
+
+  return ret;
 }
 
 };    // namespace glsl
@@ -547,7 +529,6 @@ void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
   EXT(Fract);
   EXT(Radians);
   EXT(Degrees);
-  EXT(Pow);
   EXT(Determinant);
   EXT(MatrixInverse);
   EXT(FMin);
@@ -561,9 +542,39 @@ void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
   EXT(SClamp);
   EXT(FMix);
   EXT(Cross);
-  EXT(Normalize);
   EXT(NMin);
   EXT(NMax);
   EXT(NClamp);
+
+// transcendentals and other operations that will likely be less accurate on GPU we run on the GPU
+// to be more faithful to the real execution
+#define GPU_EXT(func)                                           \
+  extinst.functions[(uint32_t)GLSLstd450::func] = &glsl::GPUOp; \
+  uint32_t noduplicate##func;                                   \
+  (void)noduplicate##func;
+  GPU_EXT(Sin)
+  GPU_EXT(Cos)
+  GPU_EXT(Tan)
+  GPU_EXT(Asin)
+  GPU_EXT(Acos)
+  GPU_EXT(Atan)
+  GPU_EXT(Sinh)
+  GPU_EXT(Cosh)
+  GPU_EXT(Tanh)
+  GPU_EXT(Asinh)
+  GPU_EXT(Acosh)
+  GPU_EXT(Atanh)
+  GPU_EXT(Atan2)
+  GPU_EXT(Pow)
+  GPU_EXT(Exp)
+  GPU_EXT(Log)
+  GPU_EXT(Exp2)
+  GPU_EXT(Log2)
+  GPU_EXT(Sqrt)
+  GPU_EXT(InverseSqrt)
+  GPU_EXT(Length);
+  GPU_EXT(Distance);
+  GPU_EXT(Normalize);
+  GPU_EXT(Refract);
 }
 };    // namespace rdcspv

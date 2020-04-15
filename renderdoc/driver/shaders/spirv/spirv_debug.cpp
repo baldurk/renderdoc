@@ -943,7 +943,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(size_t i = 5; i < it.size(); i++)
         params.push_back(Id::fromWord(it.word(i)));
 
-      SetDst(state, result, dispatch.functions[instruction](*this, params));
+      SetDst(state, result, dispatch.functions[instruction](*this, instruction, params));
       break;
     }
 

@@ -2769,7 +2769,7 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
           {6, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, NULL},
       });
 
-  CREATE_OBJECT(PipeLayout, DescSetLayout, 0);
+  CREATE_OBJECT(PipeLayout, DescSetLayout, sizeof(Vec4f) * 3 + sizeof(uint32_t));
 
   CREATE_OBJECT(DescSet, descriptorPool, DescSetLayout);
 
@@ -2883,6 +2883,8 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
 void ShaderDebugData::Destroy(WrappedVulkan *driver)
 {
   ReadbackBuffer.Destroy();
+
+  driver->vkDestroyPipeline(driver->GetDev(), MathPipe, NULL);
 
   driver->vkDestroyDescriptorSetLayout(driver->GetDev(), DescSetLayout, NULL);
   driver->vkDestroyPipelineLayout(driver->GetDev(), PipeLayout, NULL);

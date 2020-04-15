@@ -68,13 +68,16 @@ public:
     Buffer_Texture = 0x10,
   };
 
-  virtual bool CalculateSampleGather(ThreadState &lane, rdcspv::Op opcode, TextureType texType,
+  virtual bool CalculateSampleGather(ThreadState &lane, Op opcode, TextureType texType,
                                      BindpointIndex imageBind, BindpointIndex samplerBind,
                                      const ShaderVariable &uv, const ShaderVariable &ddxCalc,
                                      const ShaderVariable &ddyCalc, const ShaderVariable &compare,
                                      GatherChannel gatherChannel,
                                      const ImageOperandsAndParamDatas &operands,
                                      ShaderVariable &output) = 0;
+
+  virtual bool CalculateMathOp(ThreadState &lane, GLSLstd450 op,
+                               const rdcarray<ShaderVariable> &params, ShaderVariable &output) = 0;
 
   struct DerivativeDeltas
   {
@@ -90,7 +93,7 @@ public:
 
 static const uint32_t TextureTypeVariableSlot = 8;
 
-typedef ShaderVariable (*ExtInstImpl)(ThreadState &, const rdcarray<Id> &);
+typedef ShaderVariable (*ExtInstImpl)(ThreadState &, uint32_t, const rdcarray<Id> &);
 
 struct ExtInstDispatcher
 {

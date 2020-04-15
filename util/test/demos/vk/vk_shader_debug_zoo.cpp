@@ -653,6 +653,51 @@ void main()
     {
       discard;
     }
+    case 81:
+    {
+      Color = vec4(sin(posone*2.4f), cos(posone*2.4f), asin(posone*2.4f), acos(posone*2.4f));
+      break;
+    }
+    case 82:
+    {
+      Color = vec4(sinh(posone*2.4f), cosh(posone*2.4f), asinh(posone*2.4f), acosh(posone*2.4f));
+      break;
+    }
+    case 83:
+    {
+      Color = vec4(tan(posone*2.4f), tanh(posone*2.4f), atan(posone*2.4f), atanh(posone*2.4f));
+      break;
+    }
+    case 84:
+    {
+      Color = vec4(atan(posone*2.4f, posone*5.7f), sqrt(posone*2.4f), inversesqrt(posone*2.4f), 1.0f);
+      break;
+    }
+    case 85:
+    {
+      Color = vec4(log(posone*2.4f), log2(posone*2.4f), exp(posone*2.4f), exp2(posone*2.4f));
+      break;
+    }
+    case 86:
+    {
+      vec4 a = vec4(posone*2.4f, posone*2.5f, posone*2.6f, posone*2.7f);
+      vec4 b = vec4(zerof+2.5f, zerof+2.5f, zerof+2.5f, zerof+2.5f);
+      Color = vec4(length(a), length(b), distance(a, b), 1.0f);
+      break;
+    }
+    case 87:
+    {
+      vec4 a = vec4(posone*2.4f, posone*2.5f, posone*2.6f, posone*2.7f);
+      Color = normalize(a);
+      break;
+    }
+    case 88:
+    {
+      vec4 a = vec4(posone*2.4f, posone*2.5f, posone*2.6f, posone*2.7f);
+      vec4 b = vec4(zerof+2.5f, zerof+2.5f, zerof+2.5f, zerof+2.5f);
+      Color = refract(a, b, zerof+3.1f);
+      break;
+    }
     default: break;
   }
 }

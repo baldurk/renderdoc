@@ -224,13 +224,15 @@ struct ShaderDebugData
   VkPipelineLayout PipeLayout = VK_NULL_HANDLE;
   VkDescriptorSet DescSet = VK_NULL_HANDLE;
 
+  VkPipeline MathPipe = VK_NULL_HANDLE;
+
   VkImage Image = VK_NULL_HANDLE;
   VkImageView ImageView = VK_NULL_HANDLE;
   VkDeviceMemory ImageMemory = VK_NULL_HANDLE;
   VkFramebuffer Framebuffer = VK_NULL_HANDLE;
   VkRenderPass RenderPass = VK_NULL_HANDLE;
 
-  VkShaderModule Module[3] = {};
+  VkShaderModule Module[4] = {};
 
   GPUBuffer ReadbackBuffer;
 };

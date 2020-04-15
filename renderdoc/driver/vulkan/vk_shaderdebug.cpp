@@ -725,6 +725,84 @@ public:
     return true;
   }
 
+  virtual bool CalculateMathOp(rdcspv::ThreadState &lane, rdcspv::GLSLstd450 op,
+                               const rdcarray<ShaderVariable> &params, ShaderVariable &output) override
+  {
+    RDCASSERT(params.size() <= 2, params.size());
+
+    if(m_DebugData.MathPipe == VK_NULL_HANDLE)
+    {
+      ShaderDebugParameters pipeParams = {};
+      pipeParams.operation = (uint32_t)rdcspv::Op::ExtInst;
+      m_DebugData.MathPipe = MakePipe(pipeParams, false, false);
+    }
+
+    {
+      VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+      VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+      VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      VkClearValue clear = {};
+
+      VkRenderPassBeginInfo rpbegin = {
+          VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+          NULL,
+          Unwrap(m_DebugData.RenderPass),
+          Unwrap(m_DebugData.Framebuffer),
+          {{0, 0}, {1, 1}},
+          1,
+          &clear,
+      };
+      ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+
+      ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    Unwrap(m_DebugData.MathPipe));
+
+      // push the parameters
+      for(size_t i = 0; i < params.size(); i++)
+        ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DebugData.PipeLayout),
+                                       VK_SHADER_STAGE_ALL, uint32_t(sizeof(Vec4f) * i),
+                                       sizeof(Vec4f), params[i].value.fv);
+
+      // push the operation afterwards
+      ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DebugData.PipeLayout),
+                                     VK_SHADER_STAGE_ALL, sizeof(Vec4f) * 3, sizeof(uint32_t), &op);
+
+      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+
+      ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
+
+      VkBufferImageCopy region = {
+          0, sizeof(Vec4f), 1, {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0}, {1, 1, 1},
+      };
+      ObjDisp(cmd)->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(m_DebugData.Image),
+                                         VK_IMAGE_LAYOUT_GENERAL,
+                                         Unwrap(m_DebugData.ReadbackBuffer.buf), 1, &region);
+
+      vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      m_pDriver->SubmitCmds();
+      m_pDriver->FlushQ();
+    }
+
+    Vec4f *ret = (Vec4f *)m_DebugData.ReadbackBuffer.Map(NULL, 0);
+
+    memcpy(output.value.uv, ret, sizeof(Vec4f));
+
+    m_DebugData.ReadbackBuffer.Unmap();
+
+    // these two operations change the type of the output
+    if(op == rdcspv::GLSLstd450::Length || op == rdcspv::GLSLstd450::Distance)
+      output.columns = 1;
+
+    return true;
+  }
+
   std::map<ShaderBuiltin, ShaderVariable> builtin_inputs;
   rdcarray<ShaderVariable> location_inputs;
 
@@ -830,10 +908,17 @@ private:
     else if(sintTex)
       shaderIndex = 2;
 
+    if(params.operation == (uint32_t)rdcspv::Op::ExtInst)
+      shaderIndex = 3;
+
     if(m_DebugData.Module[shaderIndex] == VK_NULL_HANDLE)
     {
       rdcarray<uint32_t> spirv;
-      GenerateShaderModule(spirv, uintTex, sintTex);
+
+      if(shaderIndex == 3)
+        GenerateMathShaderModule(spirv);
+      else
+        GenerateSamplingShaderModule(spirv, uintTex, sintTex);
 
       VkShaderModuleCreateInfo moduleCreateInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
       moduleCreateInfo.pCode = spirv.data();
@@ -845,6 +930,7 @@ private:
 
       const char *filename[] = {
           "/debug_psgather_float.spv", "/debug_psgather_uint.spv", "/debug_psgather_sint.spv",
+          "/debug_psmath.spv",
       };
 
       if(!Vulkan_Debug_PSDebugDumpDirPath.empty())
@@ -946,7 +1032,202 @@ private:
     return pipe;
   }
 
-  void GenerateShaderModule(rdcarray<uint32_t> &spirv, bool uintTex, bool sintTex)
+  void GenerateMathShaderModule(rdcarray<uint32_t> &spirv)
+  {
+    rdcspv::Editor editor(spirv);
+
+    // create as SPIR-V 1.0 for best compatibility
+    editor.CreateEmpty(1, 0);
+
+    editor.AddCapability(rdcspv::Capability::Shader);
+
+    rdcspv::Id entryId = editor.MakeId();
+
+    editor.AddOperation(
+        editor.Begin(rdcspv::Section::MemoryModel),
+        rdcspv::OpMemoryModel(rdcspv::AddressingModel::Logical, rdcspv::MemoryModel::GLSL450));
+
+    rdcspv::Id glsl450 = editor.ImportExtInst("GLSL.std.450");
+
+    rdcspv::Id u32 = editor.DeclareType(rdcspv::scalar<uint32_t>());
+    rdcspv::Id f32 = editor.DeclareType(rdcspv::scalar<float>());
+    rdcspv::Id v4f32 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4));
+
+    rdcspv::Id pushStructID =
+        editor.AddType(rdcspv::OpTypeStruct(editor.MakeId(), {v4f32, v4f32, v4f32, u32}));
+    editor.AddDecoration(rdcspv::OpDecorate(pushStructID, rdcspv::Decoration::Block));
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        pushStructID, 0, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(0)));
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        pushStructID, 1, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(sizeof(Vec4f))));
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        pushStructID, 2, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(sizeof(Vec4f) * 2)));
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        pushStructID, 3, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(sizeof(Vec4f) * 3)));
+    editor.SetMemberName(pushStructID, 0, "a");
+    editor.SetMemberName(pushStructID, 1, "b");
+    editor.SetMemberName(pushStructID, 2, "c");
+    editor.SetMemberName(pushStructID, 3, "op");
+
+    rdcspv::Id pushPtrType =
+        editor.DeclareType(rdcspv::Pointer(pushStructID, rdcspv::StorageClass::PushConstant));
+    rdcspv::Id pushVar = editor.AddVariable(
+        rdcspv::OpVariable(pushPtrType, editor.MakeId(), rdcspv::StorageClass::PushConstant));
+    editor.SetName(pushVar, "pushData");
+
+    rdcspv::Id pushv4f32Type =
+        editor.DeclareType(rdcspv::Pointer(v4f32, rdcspv::StorageClass::PushConstant));
+    rdcspv::Id pushu32Type =
+        editor.DeclareType(rdcspv::Pointer(u32, rdcspv::StorageClass::PushConstant));
+
+    rdcspv::Id outPtrType = editor.DeclareType(rdcspv::Pointer(v4f32, rdcspv::StorageClass::Output));
+
+    rdcspv::Id outVar = editor.AddVariable(
+        rdcspv::OpVariable(outPtrType, editor.MakeId(), rdcspv::StorageClass::Output));
+    editor.AddDecoration(
+        rdcspv::OpDecorate(outVar, rdcspv::DecorationParam<rdcspv::Decoration::Location>(0)));
+
+    editor.SetName(outVar, "output");
+
+    // register the entry point
+    editor.AddOperation(
+        editor.Begin(rdcspv::Section::EntryPoints),
+        rdcspv::OpEntryPoint(rdcspv::ExecutionModel::Fragment, entryId, "main", {outVar}));
+    editor.AddOperation(editor.Begin(rdcspv::Section::ExecutionMode),
+                        rdcspv::OpExecutionMode(entryId, rdcspv::ExecutionMode::OriginUpperLeft));
+
+    rdcspv::Id voidType = editor.DeclareType(rdcspv::scalar<void>());
+    rdcspv::Id funcType = editor.DeclareType(rdcspv::FunctionType(voidType, {}));
+
+    rdcspv::OperationList func;
+    func.add(rdcspv::OpFunction(voidType, entryId, rdcspv::FunctionControl::None, funcType));
+    func.add(rdcspv::OpLabel(editor.MakeId()));
+
+    rdcspv::Id consts[] = {
+        editor.AddConstantImmediate<uint32_t>(0), editor.AddConstantImmediate<uint32_t>(1),
+        editor.AddConstantImmediate<uint32_t>(2), editor.AddConstantImmediate<uint32_t>(3),
+    };
+
+    // load the parameters and the op
+    rdcspv::Id aPtr =
+        func.add(rdcspv::OpAccessChain(pushv4f32Type, editor.MakeId(), pushVar, {consts[0]}));
+    rdcspv::Id bPtr =
+        func.add(rdcspv::OpAccessChain(pushv4f32Type, editor.MakeId(), pushVar, {consts[1]}));
+    rdcspv::Id cPtr =
+        func.add(rdcspv::OpAccessChain(pushv4f32Type, editor.MakeId(), pushVar, {consts[2]}));
+    rdcspv::Id opPtr =
+        func.add(rdcspv::OpAccessChain(pushu32Type, editor.MakeId(), pushVar, {consts[3]}));
+    rdcspv::Id a = func.add(rdcspv::OpLoad(v4f32, editor.MakeId(), aPtr));
+    rdcspv::Id b = func.add(rdcspv::OpLoad(v4f32, editor.MakeId(), bPtr));
+    rdcspv::Id c = func.add(rdcspv::OpLoad(v4f32, editor.MakeId(), cPtr));
+    rdcspv::Id opParam = func.add(rdcspv::OpLoad(u32, editor.MakeId(), opPtr));
+
+    rdcspv::Id breakLabel = editor.MakeId();
+    rdcspv::Id defaultLabel = editor.MakeId();
+
+    rdcarray<rdcspv::PairLiteralIntegerIdRef> targets;
+
+    rdcspv::OperationList cases;
+
+    // all these operations take one parameter and only operate on floats (possibly vectors)
+    for(rdcspv::GLSLstd450 op : {
+            rdcspv::GLSLstd450::Sin,       rdcspv::GLSLstd450::Cos,
+            rdcspv::GLSLstd450::Tan,       rdcspv::GLSLstd450::Asin,
+            rdcspv::GLSLstd450::Acos,      rdcspv::GLSLstd450::Atan,
+            rdcspv::GLSLstd450::Sinh,      rdcspv::GLSLstd450::Cosh,
+            rdcspv::GLSLstd450::Tanh,      rdcspv::GLSLstd450::Asinh,
+            rdcspv::GLSLstd450::Acosh,     rdcspv::GLSLstd450::Atanh,
+            rdcspv::GLSLstd450::Exp,       rdcspv::GLSLstd450::Log,
+            rdcspv::GLSLstd450::Exp2,      rdcspv::GLSLstd450::Log2,
+            rdcspv::GLSLstd450::Sqrt,      rdcspv::GLSLstd450::InverseSqrt,
+            rdcspv::GLSLstd450::Normalize,
+        })
+    {
+      rdcspv::Id label = editor.MakeId();
+      targets.push_back({(uint32_t)op, label});
+
+      cases.add(rdcspv::OpLabel(label));
+      rdcspv::Id result = cases.add(rdcspv::OpGLSL450(v4f32, editor.MakeId(), glsl450, op, {a}));
+      cases.add(rdcspv::OpStore(outVar, result));
+      cases.add(rdcspv::OpBranch(breakLabel));
+    }
+
+    // these take two parameters, but are otherwise identical
+    for(rdcspv::GLSLstd450 op : {rdcspv::GLSLstd450::Atan2, rdcspv::GLSLstd450::Pow})
+    {
+      rdcspv::Id label = editor.MakeId();
+      targets.push_back({(uint32_t)op, label});
+
+      cases.add(rdcspv::OpLabel(label));
+      rdcspv::Id result = cases.add(rdcspv::OpGLSL450(v4f32, editor.MakeId(), glsl450, op, {a, b}));
+      cases.add(rdcspv::OpStore(outVar, result));
+      cases.add(rdcspv::OpBranch(breakLabel));
+    }
+
+    rdcspv::Id zerof = editor.AddConstantImmediate<float>(0.0f);
+
+    // these ones are special
+    {
+      rdcspv::GLSLstd450 op = rdcspv::GLSLstd450::Length;
+
+      rdcspv::Id label = editor.MakeId();
+      targets.push_back({(uint32_t)op, label});
+
+      cases.add(rdcspv::OpLabel(label));
+      rdcspv::Id result = cases.add(rdcspv::OpGLSL450(f32, editor.MakeId(), glsl450, op, {a}));
+      rdcspv::Id resultvec = cases.add(
+          rdcspv::OpCompositeConstruct(v4f32, editor.MakeId(), {result, zerof, zerof, zerof}));
+      cases.add(rdcspv::OpStore(outVar, resultvec));
+      cases.add(rdcspv::OpBranch(breakLabel));
+    }
+
+    {
+      rdcspv::GLSLstd450 op = rdcspv::GLSLstd450::Distance;
+
+      rdcspv::Id label = editor.MakeId();
+      targets.push_back({(uint32_t)op, label});
+
+      cases.add(rdcspv::OpLabel(label));
+      rdcspv::Id result = cases.add(rdcspv::OpGLSL450(f32, editor.MakeId(), glsl450, op, {a, b}));
+      rdcspv::Id resultvec = cases.add(
+          rdcspv::OpCompositeConstruct(v4f32, editor.MakeId(), {result, zerof, zerof, zerof}));
+      cases.add(rdcspv::OpStore(outVar, resultvec));
+      cases.add(rdcspv::OpBranch(breakLabel));
+    }
+
+    {
+      rdcspv::GLSLstd450 op = rdcspv::GLSLstd450::Refract;
+
+      rdcspv::Id label = editor.MakeId();
+      targets.push_back({(uint32_t)op, label});
+
+      cases.add(rdcspv::OpLabel(label));
+      rdcspv::Id eta = cases.add(rdcspv::OpCompositeExtract(f32, editor.MakeId(), c, {0}));
+      rdcspv::Id result =
+          cases.add(rdcspv::OpGLSL450(v4f32, editor.MakeId(), glsl450, op, {a, b, eta}));
+      cases.add(rdcspv::OpStore(outVar, result));
+      cases.add(rdcspv::OpBranch(breakLabel));
+    }
+
+    func.add(rdcspv::OpSelectionMerge(breakLabel, rdcspv::SelectionControl::None));
+    func.add(rdcspv::OpSwitch(opParam, defaultLabel, targets));
+
+    func.append(cases);
+
+    // default: store NULL data
+    func.add(rdcspv::OpLabel(defaultLabel));
+    func.add(rdcspv::OpStore(outVar,
+                             editor.AddConstant(rdcspv::OpConstantNull(v4f32, editor.MakeId()))));
+    func.add(rdcspv::OpBranch(breakLabel));
+
+    func.add(rdcspv::OpLabel(breakLabel));
+    func.add(rdcspv::OpReturn());
+    func.add(rdcspv::OpFunctionEnd());
+
+    editor.AddFunction(func);
+  }
+
+  void GenerateSamplingShaderModule(rdcarray<uint32_t> &spirv, bool uintTex, bool sintTex)
   {
     // this could be done as a glsl shader, but glslang has some bugs compiling the specialisation
     // constants, so we generate it by hand - which isn't too hard
