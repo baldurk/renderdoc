@@ -134,6 +134,10 @@ layout(set = 0, binding = 5, std430) buffer storebuftype
 //layout(set = 0, binding = 7, rgba32f) uniform coherent samplerBuffer texBuffer;
 //layout(set = 0, binding = 8, rgba32f) uniform coherent imageBuffer storeTexBuffer;
 
+layout(push_constant) uniform PushData {
+  layout(offset = 16) ivec4 data;
+} push;
+
 #define inout_type in
 
 )EOSHADER" + v2f + R"EOSHADER(
@@ -497,6 +501,11 @@ void main()
     case 55:
     {
       Color = vec4(isnan(posinf) ? 1.0f : 0.0f, isnan(neginf) ? 1.0f : 0.0f, isnan(nan) ? 1.0f : 0.0f, 1.0f);
+      break;
+    }
+    case 56:
+    {
+      Color = vec4(push.data);
       break;
     }
     default: break;
@@ -1481,7 +1490,7 @@ void main()
     }));
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
-        {setlayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Vec4i))}));
+        {setlayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i))}));
 
     // calculate number of tests, wrapping each row at 256
     uint32_t texWidth = AlignUp(std::max(numGLSLTests, numASMTests), 256U);
@@ -1763,7 +1772,7 @@ void main()
       Vec4i push = Vec4i(101, 103, 107, 109);
 
       vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
-      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Vec4i), &push);
+      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i), &push);
 
       vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
                                                          {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
@@ -1788,7 +1797,7 @@ void main()
       vkCmdSetViewport(cmd, 0, 1, &v);
 
       vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
-      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Vec4i), &push);
+      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i), &push);
 
       vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
                                                          {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),

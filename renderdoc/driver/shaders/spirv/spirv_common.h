@@ -220,6 +220,9 @@ public:
 
 };    // namespace rdcspv
 
+static const uint32_t SpecializationConstantBindSet = 1234567;
+static const uint32_t PushConstantBindSet = 1234568;
+
 struct SpecConstant
 {
   SpecConstant() = default;

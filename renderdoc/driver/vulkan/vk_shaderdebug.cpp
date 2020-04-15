@@ -128,6 +128,18 @@ public:
         m_Creation.m_Pipeline[compute ? state.compute.pipeline : state.graphics.pipeline];
     const VulkanCreationInfo::PipelineLayout &pipeLayout = m_Creation.m_PipelineLayout[pipe.layout];
 
+    for(const VkPushConstantRange &range : pipeLayout.pushRanges)
+    {
+      if(range.stageFlags & stage)
+      {
+        pushData.resize(RDCMAX((uint32_t)pushData.size(), range.offset + range.size));
+
+        RDCASSERT(range.offset + range.size < sizeof(state.pushconsts));
+
+        memcpy(pushData.data() + range.offset, state.pushconsts + range.offset, range.size);
+      }
+    }
+
     m_DescSets.resize(RDCMIN(descSets.size(), pipeLayout.descSetLayouts.size()));
     for(size_t set = 0; set < m_DescSets.size(); set++)
     {
@@ -247,15 +259,22 @@ public:
     bytebuf &data = insertIt.first->second;
     if(insertIt.second)
     {
-      // TODO handle arrays here
-      BindpointIndex index(set, bind, 0);
+      if(set == PushConstantBindSet)
+      {
+        data = pushData;
+      }
+      else
+      {
+        // TODO handle arrays here
+        BindpointIndex index(set, bind, 0);
 
-      bool valid = true;
-      const VkDescriptorBufferInfo &bufData =
-          GetDescriptor<VkDescriptorBufferInfo>("reading constant buffer value", index, valid);
-      if(valid)
-        m_pDriver->GetDebugManager()->GetBufferData(GetResID(bufData.buffer), bufData.offset,
-                                                    bufData.range, data);
+        bool valid = true;
+        const VkDescriptorBufferInfo &bufData =
+            GetDescriptor<VkDescriptorBufferInfo>("reading constant buffer value", index, valid);
+        if(valid)
+          m_pDriver->GetDebugManager()->GetBufferData(GetResID(bufData.buffer), bufData.offset,
+                                                      bufData.range, data);
+      }
     }
 
     if(offset + byteSize <= data.size())
@@ -721,6 +740,8 @@ private:
 
   typedef rdcpair<ResourceId, float> SamplerBiasKey;
   std::map<SamplerBiasKey, VkSampler> m_BiasSamplers;
+
+  bytebuf pushData;
 
   std::map<rdcpair<uint32_t, uint32_t>, bytebuf> cbufferCache;
   template <typename T>

@@ -328,8 +328,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       }
     }
 
-    // pick up uniform globals, which could be cbuffers
-    else if(v.storage == StorageClass::Uniform &&
+    // pick up uniform globals, which could be cbuffers, and push constants
+    else if((v.storage == StorageClass::Uniform || v.storage == StorageClass::PushConstant) &&
             (decorations[v.id].flags & Decorations::BufferBlock) == 0)
     {
       ShaderVariable var;
@@ -354,13 +354,23 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
         // we have
         if(sourceName == var.name)
         {
-          sourceName = StringFormat::Fmt("_cbuffer_set%u_bind%u", decorations[v.id].set,
-                                         decorations[v.id].binding);
+          if(v.storage == StorageClass::PushConstant)
+            sourceName = "_pushconsts";
+          else
+            sourceName = StringFormat::Fmt("_cbuffer_set%u_bind%u", decorations[v.id].set,
+                                           decorations[v.id].binding);
+        }
+
+        Decorations d = decorations[v.id];
+
+        if(v.storage == StorageClass::PushConstant)
+        {
+          d.set = PushConstantBindSet;
+          d.flags = Decorations::Flags(d.flags | Decorations::HasDescriptorSet);
         }
 
         uint32_t offset = 0;
-        AllocateVariable(decorations[v.id], decorations[v.id], DebugVariableType::Constant,
-                         sourceName, 0, innertype, var);
+        AllocateVariable(d, d, DebugVariableType::Constant, sourceName, 0, innertype, var);
 
         global.constantBlocks.push_back(var);
         cbufferIDs.push_back(v.id);
