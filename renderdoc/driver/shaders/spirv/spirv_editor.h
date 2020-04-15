@@ -34,57 +34,6 @@ namespace rdcspv
 {
 class Editor;
 
-struct IdOrWord
-{
-  constexpr inline IdOrWord() : value(0) {}
-  constexpr inline IdOrWord(uint32_t val) : value(val) {}
-  inline IdOrWord(Id id) : value(id.value()) {}
-  inline operator uint32_t() const { return value; }
-  constexpr inline bool operator==(const IdOrWord o) const { return value == o.value; }
-  constexpr inline bool operator!=(const IdOrWord o) const { return value != o.value; }
-  constexpr inline bool operator<(const IdOrWord o) const { return value < o.value; }
-private:
-  uint32_t value;
-};
-
-// helper in the style of the auto-generated one for GLSL ext insts
-struct OpGLSL450
-{
-  OpGLSL450(IdResultType resultType, IdResult result, Id glsl450, rdcspv::GLSLstd450 inst,
-            const rdcarray<IdOrWord> &params)
-      : op(OpCode), wordCount(MinWordSize + (uint16_t)params.size())
-  {
-    this->resultType = resultType;
-    this->result = result;
-    this->glsl450 = glsl450;
-    this->inst = inst;
-    this->params.resize(params.size());
-    for(size_t i = 0; i < params.size(); i++)
-      this->params[i] = params[i];
-  }
-
-  operator Operation() const
-  {
-    rdcarray<uint32_t> words;
-    words.push_back(resultType.value());
-    words.push_back(result.value());
-    words.push_back(glsl450.value());
-    words.push_back((uint32_t)inst);
-    words.append(params);
-    return Operation(OpCode, words);
-  }
-
-  static constexpr Op OpCode = Op::ExtInst;
-  static constexpr uint16_t MinWordSize = 4U;
-  Op op;
-  uint16_t wordCount;
-  IdResultType resultType;
-  IdResult result;
-  Id glsl450;
-  rdcspv::GLSLstd450 inst;
-  rdcarray<uint32_t> params;
-};
-
 struct OperationList : public rdcarray<Operation>
 {
   // add an operation and return its result id

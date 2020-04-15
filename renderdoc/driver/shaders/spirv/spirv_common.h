@@ -218,6 +218,89 @@ public:
   const T &operator[](Id id) const { return (*this)[id.value()]; }
 };
 
+struct IdOrWord
+{
+  constexpr inline IdOrWord() : value(0) {}
+  constexpr inline IdOrWord(uint32_t val) : value(val) {}
+  inline IdOrWord(Id id) : value(id.value()) {}
+  inline operator uint32_t() const { return value; }
+  constexpr inline bool operator==(const IdOrWord o) const { return value == o.value; }
+  constexpr inline bool operator!=(const IdOrWord o) const { return value != o.value; }
+  constexpr inline bool operator<(const IdOrWord o) const { return value < o.value; }
+private:
+  uint32_t value;
+};
+
+// helper in the style of the auto-generated one for ext insts
+template <typename InstType>
+struct OpExtInstGeneric
+{
+  OpExtInstGeneric(IdResultType resultType, IdResult result, Id set, InstType inst,
+                   const rdcarray<IdOrWord> &params)
+      : op(OpCode), wordCount(MinWordSize + (uint16_t)params.size())
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->set = set;
+    this->inst = inst;
+    this->params.resize(params.size());
+    for(size_t i = 0; i < params.size(); i++)
+      this->params[i] = params[i];
+  }
+  OpExtInstGeneric(const ConstIter &it)
+  {
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    this->set = Id::fromWord(it.word(3));
+    this->inst = InstType(it.word(4));
+    this->params.reserve(it.size() - 5);
+    for(size_t word = 5; word < it.size(); word++)
+      this->params.push_back(it.word(word));
+  }
+
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    words.push_back(set.value());
+    words.push_back((uint32_t)inst);
+    words.append(params);
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::ExtInst;
+  static constexpr uint16_t MinWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id set;
+  InstType inst;
+  rdcarray<uint32_t> params;
+};
+
+struct OpExtInst : public OpExtInstGeneric<uint32_t>
+{
+  OpExtInst(IdResultType resultType, IdResult result, Id set, uint32_t inst,
+            const rdcarray<IdOrWord> &params)
+      : OpExtInstGeneric(resultType, result, set, inst, params)
+  {
+  }
+  OpExtInst(const ConstIter &it) : OpExtInstGeneric(it) {}
+};
+struct OpGLSL450 : public OpExtInstGeneric<rdcspv::GLSLstd450>
+{
+  OpGLSL450(IdResultType resultType, IdResult result, Id set, rdcspv::GLSLstd450 inst,
+            const rdcarray<IdOrWord> &params)
+      : OpExtInstGeneric(resultType, result, set, inst, params)
+  {
+  }
+  OpGLSL450(const ConstIter &it) : OpExtInstGeneric(it) {}
+};
+
 };    // namespace rdcspv
 
 static const uint32_t SpecializationConstantBindSet = 1234567;

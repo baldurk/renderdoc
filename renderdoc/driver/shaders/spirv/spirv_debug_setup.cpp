@@ -1646,6 +1646,21 @@ void Debugger::RegisterOp(Iter it)
     idDeathOffset[id] = RDCMAX(it.offs() + 1, idDeathOffset[id]);
   });
 
+  if(opdata.op == Op::ExtInst)
+  {
+    OpExtInst extinst(it);
+
+    if(extSets[extinst.set] == "GLSL.std.450")
+    {
+      // all parameters to GLSL.std.450 are Ids, extend idDeathOffset appropriately
+      for(const uint32_t param : extinst.params)
+      {
+        Id id = Id::fromWord(param);
+        idDeathOffset[id] = RDCMAX(it.offs() + 1, idDeathOffset[id]);
+      }
+    }
+  }
+
   if(opdata.op == Op::Line || opdata.op == Op::NoLine)
   {
     // ignore OpLine/OpNoLine
