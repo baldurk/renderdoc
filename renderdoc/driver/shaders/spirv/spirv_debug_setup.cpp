@@ -142,24 +142,22 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     {
       case Capability::Matrix:
       case Capability::Shader:
-      // we "support" geometry/tessellation in case the module contains other entry points
+      // we "support" geometry/tessellation in case the module contains other entry points, but
+      // these can't be debugged right now.
       case Capability::Geometry:
       case Capability::Tessellation:
-      case Capability::GeometryPointSize:
       case Capability::TessellationPointSize:
-      case Capability::Float16:
-      case Capability::Float64:
-      case Capability::Int64:
-      case Capability::Int64Atomics:
-      case Capability::AtomicStorage:
-      case Capability::Int16:
-      case Capability::ImageGatherExtended:
-      case Capability::StorageImageMultisample:
+      case Capability::GeometryPointSize:
+      case Capability::UniformBufferArrayDynamicIndexing:
+      case Capability::SampledImageArrayDynamicIndexing:
+      case Capability::StorageBufferArrayDynamicIndexing:
+      case Capability::StorageImageArrayDynamicIndexing:
       case Capability::ClipDistance:
       case Capability::CullDistance:
       case Capability::ImageCubeArray:
-      case Capability::Int8:
-      case Capability::InputAttachment:
+      case Capability::SampleRateShading:
+      case Capability::ImageRect:
+      case Capability::SampledRect:
       case Capability::MinLod:
       case Capability::Sampled1D:
       case Capability::Image1D:
@@ -168,9 +166,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       case Capability::ImageBuffer:
       case Capability::ImageMSArray:
       case Capability::StorageImageExtendedFormats:
-      case Capability::ImageQuery:
       case Capability::DerivativeControl:
-      case Capability::InterpolationFunction:
       case Capability::TransformFeedback:
       case Capability::GeometryStreams:
       case Capability::StorageImageReadWithoutFormat:
@@ -179,6 +175,53 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       case Capability::ShaderLayer:
       case Capability::ShaderViewportIndex:
       case Capability::DrawParameters:
+      case Capability::DeviceGroup:
+      case Capability::MultiView:
+      case Capability::SampleMaskPostDepthCoverage:
+      case Capability::StencilExportEXT:
+      case Capability::ShaderViewportIndexLayerEXT:
+      case Capability::FragmentFullyCoveredEXT:
+      case Capability::FragmentDensityEXT:
+      case Capability::ShaderNonUniform:
+      case Capability::RuntimeDescriptorArray:
+      case Capability::InputAttachmentArrayDynamicIndexing:
+      case Capability::UniformTexelBufferArrayDynamicIndexing:
+      case Capability::StorageTexelBufferArrayDynamicIndexing:
+      case Capability::UniformBufferArrayNonUniformIndexing:
+      case Capability::SampledImageArrayNonUniformIndexing:
+      case Capability::StorageBufferArrayNonUniformIndexing:
+      case Capability::StorageImageArrayNonUniformIndexing:
+      case Capability::InputAttachmentArrayNonUniformIndexing:
+      case Capability::UniformTexelBufferArrayNonUniformIndexing:
+      case Capability::StorageTexelBufferArrayNonUniformIndexing:
+      case Capability::VulkanMemoryModel:
+      case Capability::VulkanMemoryModelDeviceScope:
+      {
+        supported = true;
+        break;
+      }
+
+      // we plan to support these but needs additional testing/proving
+
+      // image queries
+      case Capability::ImageQuery:
+
+      // image gather operations
+      case Capability::ImageGatherExtended:
+
+      // image storage
+      case Capability::StorageImageMultisample:
+
+      // demote to helper
+      case Capability::DemoteToHelperInvocationEXT:
+
+      // all these are related to non-32-bit types
+      case Capability::Float16Buffer:
+      case Capability::Float16:
+      case Capability::Float64:
+      case Capability::Int64:
+      case Capability::Int16:
+      case Capability::Int8:
       case Capability::StorageBuffer16BitAccess:
       case Capability::UniformAndStorageBuffer16BitAccess:
       case Capability::StoragePushConstant16:
@@ -186,11 +229,107 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       case Capability::StorageBuffer8BitAccess:
       case Capability::UniformAndStorageBuffer8BitAccess:
       case Capability::StoragePushConstant8:
+
+      // atomics
+      case Capability::Int64Atomics:
+      case Capability::AtomicStorage:
+      case Capability::AtomicStorageOps:
+
+      // physical pointers
+      case Capability::PhysicalStorageBufferAddresses:
+
+      // MSAA custom interpolation
+      case Capability::InterpolationFunction:
+
+      // variable pointers
+      case Capability::VariablePointersStorageBuffer:
+      case Capability::VariablePointers:
+
+      // float controls
+      case Capability::DenormPreserve:
+      case Capability::DenormFlushToZero:
+      case Capability::SignedZeroInfNanPreserve:
+      case Capability::RoundingModeRTE:
+      case Capability::RoundingModeRTZ:
+
+      // shader clock
+      case Capability::ShaderClockKHR:
+
+      // group instructions
+      case Capability::Groups:
+      case Capability::GroupNonUniform:
+      case Capability::GroupNonUniformVote:
+      case Capability::GroupNonUniformArithmetic:
+      case Capability::GroupNonUniformBallot:
+      case Capability::GroupNonUniformShuffle:
+      case Capability::GroupNonUniformShuffleRelative:
+      case Capability::GroupNonUniformClustered:
+      case Capability::GroupNonUniformQuad:
+      case Capability::SubgroupBallotKHR:
+      case Capability::SubgroupVoteKHR:
       {
-        supported = true;
+        supported = false;
         break;
       }
-      default: break;
+
+      // input attachments
+      case Capability::InputAttachment:
+
+      // sparse operations
+      case Capability::SparseResidency:
+
+      // fragment interlock
+      case Capability::FragmentShaderSampleInterlockEXT:
+      case Capability::FragmentShaderShadingRateInterlockEXT:
+      case Capability::FragmentShaderPixelInterlockEXT:
+
+      // no plans to support these - mostly Kernel/OpenCL related or vendor extensions
+      case Capability::Addresses:
+      case Capability::Linkage:
+      case Capability::Kernel:
+      case Capability::Vector16:
+      case Capability::ImageBasic:
+      case Capability::ImageReadWrite:
+      case Capability::ImageMipmap:
+      case Capability::Pipes:
+      case Capability::DeviceEnqueue:
+      case Capability::LiteralSampler:
+      case Capability::GenericPointer:
+      case Capability::SubgroupDispatch:
+      case Capability::NamedBarrier:
+      case Capability::PipeStorage:
+      case Capability::Float16ImageAMD:
+      case Capability::ImageGatherBiasLodAMD:
+      case Capability::FragmentMaskAMD:
+      case Capability::ImageReadWriteLodAMD:
+      case Capability::SampleMaskOverrideCoverageNV:
+      case Capability::GeometryShaderPassthroughNV:
+      case Capability::ShaderViewportMaskNV:
+      case Capability::ShaderStereoViewNV:
+      case Capability::PerViewAttributesNV:
+      case Capability::MeshShadingNV:
+      case Capability::FragmentBarycentricNV:
+      case Capability::ImageFootprintNV:
+      case Capability::ComputeDerivativeGroupQuadsNV:
+      case Capability::GroupNonUniformPartitionedNV:
+      case Capability::RayTracingNV:
+      case Capability::ComputeDerivativeGroupLinearNV:
+      case Capability::CooperativeMatrixNV:
+      case Capability::ShaderSMBuiltinsNV:
+      case Capability::SubgroupShuffleINTEL:
+      case Capability::SubgroupBufferBlockIOINTEL:
+      case Capability::SubgroupImageBlockIOINTEL:
+      case Capability::SubgroupImageMediaBlockIOINTEL:
+      case Capability::IntegerFunctions2INTEL:
+      case Capability::SubgroupAvcMotionEstimationINTEL:
+      case Capability::SubgroupAvcMotionEstimationIntraINTEL:
+      case Capability::SubgroupAvcMotionEstimationChromaINTEL:
+      case Capability::Max:
+      case Capability::Invalid:
+      {
+        supported = false;
+        break;
+      }
     }
 
     if(!supported)
