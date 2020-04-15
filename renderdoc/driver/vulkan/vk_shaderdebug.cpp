@@ -1359,9 +1359,9 @@ private:
         rdcspv::Id(),
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_1D, 0, 1, 0, 1, unk)),
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_2D, 0, 1, 0, 1, unk)),
-        editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_3D, 0, 1, 0, 1, unk)),
+        editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_3D, 0, 0, 0, 1, unk)),
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_2D, 0, 1, 1, 1, unk)),
-        editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::Buffer, 0, 1, 0, 1, unk)),
+        editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::Buffer, 0, 0, 0, 1, unk)),
         editor.DeclareType(rdcspv::Sampler()),
     };
     rdcspv::Id texSampVars[(uint32_t)ShaderDebugBind::Count];
@@ -1476,9 +1476,11 @@ private:
 
     uint32_t sampIdx = (uint32_t)ShaderDebugBind::Sampler;
 
-    // for(uint32_t i = (uint32_t)ShaderDebugBind::First; i < (uint32_t)ShaderDebugBind::Count; i++)
-    uint32_t i = (uint32_t)ShaderDebugBind::Tex2D;
+    for(uint32_t i = (uint32_t)ShaderDebugBind::First; i < (uint32_t)ShaderDebugBind::Count; i++)
     {
+      if(i == sampIdx)
+        continue;
+
       {
         rdcspv::Op op = rdcspv::Op::ImageFetch;
 
@@ -1487,7 +1489,7 @@ private:
 
         rdcspv::ImageOperandsAndParamDatas imageOperands;
 
-        if(i != (uint32_t)ShaderDebugBind::Buffer)
+        if(i != (uint32_t)ShaderDebugBind::Buffer && i != (uint32_t)ShaderDebugBind::Tex2DMS)
           imageOperands.setLod(texel_lod);
 
         cases.add(rdcspv::OpLabel(label));
@@ -1498,6 +1500,11 @@ private:
         cases.add(rdcspv::OpStore(outVar, sampleResult));
         cases.add(rdcspv::OpBranch(breakLabel));
       }
+
+      // buffers and multisampled images don't support sampling, so skip the other operations at
+      // this point
+      if(i == (uint32_t)ShaderDebugBind::Buffer || i == (uint32_t)ShaderDebugBind::Tex2DMS)
+        continue;
 
       for(rdcspv::Op op : {rdcspv::Op::ImageSampleExplicitLod, rdcspv::Op::ImageSampleImplicitLod})
       {
