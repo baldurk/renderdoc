@@ -1528,7 +1528,13 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
 
       BufferDescription *buf = ctx.GetBuffer(ib.resourceId);
       if(buf)
-        bytesAvailable = buf->length - ib.byteOffset - draw->indexOffset * draw->indexByteWidth;
+      {
+        uint64_t offset = ib.byteOffset - draw->indexOffset * draw->indexByteWidth;
+        if(offset > buf->length)
+          bytesAvailable = 0;
+        else
+          bytesAvailable = buf->length - offset;
+      }
 
       // drawing more than this many indices will read off the end of the index buffer - which while
       // technically not invalid is certainly not intended, so serves as a good 'upper bound'
