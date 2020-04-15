@@ -958,6 +958,23 @@ void main()
         R"EOTEST(
        %_cola = OpCompositeConstruct %float4 %randf_0 %randf_1 %randf_2 %randf_3
        %_colb = OpCompositeConstruct %float4 %randf_4 %randf_5 %randf_6 %randf_7
+       %_mat1 = OpCompositeConstruct %float4x2 %_cola %_colb
+
+       %_colc = OpCompositeConstruct %float4 %randf_8 %randf_9 %randf_10 %randf_11
+       %_cold = OpCompositeConstruct %float4 %randf_12 %randf_13 %randf_14 %randf_15
+       %_mat2 = OpCompositeConstruct %float4x2 %_colc %_cold
+
+      %_mat2t = OpTranspose %float2x4 %_mat2
+
+        %_mat = OpMatrixTimesMatrix %float4x4 %_mat1 %_mat2t
+
+        %_vec = OpCompositeConstruct %float4 %randf_16 %randf_17 %randf_18 %randf_19
+
+ %_out_float4 = OpMatrixTimesVector %float4 %_mat %_vec
+)EOTEST",
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float4 %randf_0 %randf_1 %randf_2 %randf_3
+       %_colb = OpCompositeConstruct %float4 %randf_4 %randf_5 %randf_6 %randf_7
 
         %_mat = OpOuterProduct %float4x4 %_cola %_colb
 
@@ -969,7 +986,74 @@ void main()
         %_vec = OpCompositeConstruct %float4 %randf_0 %randf_1 %randf_2 %randf_3
  %_out_float4 = OpVectorTimesScalar %float4 %_vec %randf_4
 )EOTEST",
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float2 %randf_0 %randf_1
+       %_colb = OpCompositeConstruct %float2 %randf_4 %randf_5
+       %_colc = OpCompositeConstruct %float2 %randf_8 %randf_9
+       %_cold = OpCompositeConstruct %float2 %randf_12 %randf_13
+       %_mat1 = OpCompositeConstruct %float2x2 %_cola %_colb
+
+  %_out_float = OpExtInst %float %glsl450 Determinant %_mat1
+)EOTEST",
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float3 %randf_0 %randf_1 %randf_2
+       %_colb = OpCompositeConstruct %float3 %randf_4 %randf_5 %randf_6
+       %_colc = OpCompositeConstruct %float3 %randf_8 %randf_9 %randf_10
+       %_mat1 = OpCompositeConstruct %float3x3 %_cola %_colb %_colc
+
+  %_out_float = OpExtInst %float %glsl450 Determinant %_mat1
+)EOTEST",
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float4 %randf_0 %randf_1 %randf_2 %randf_3
+       %_colb = OpCompositeConstruct %float4 %randf_4 %randf_5 %randf_6 %randf_7
+       %_colc = OpCompositeConstruct %float4 %randf_8 %randf_9 %randf_10 %randf_11
+       %_cold = OpCompositeConstruct %float4 %randf_12 %randf_13 %randf_14 %randf_15
+       %_mat1 = OpCompositeConstruct %float4x4 %_cola %_colb %_colc %_cold
+
+  %_out_float = OpExtInst %float %glsl450 Determinant %_mat1
+)EOTEST",
     });
+
+    // test matrix inverse, but round the result to avoid needing to lower our global precision
+    // epsilon
+    for(int dim = 2; dim <= 4; dim++)
+    {
+      std::string test = fmt::format(R"EOTEST(
+       %_cola = OpCompositeConstruct %float{0} %randf_0 %randf_1 {1} %randf_2 {2} %randf_3
+       %_colb = OpCompositeConstruct %float{0} %randf_4 %randf_5 {1} %randf_6 {2} %randf_7
+       %_colc = OpCompositeConstruct %float{0} %randf_8 %randf_9 {1} %randf_10 {2} %randf_11
+       %_cold = OpCompositeConstruct %float{0} %randf_12 %randf_13 {1} %randf_14 {2} %randf_15
+
+        %_mat = OpCompositeConstruct %float{0}x{0} %_cola %_colb {1} %_colc {2} %_cold
+
+        %_vec = OpCompositeConstruct %float{0} %randf_16 %randf_17 {1} %randf_18 {2} %randf_19
+
+       %_mat0 = OpExtInst %float{0}x{0} %glsl450 MatrixInverse %_mat
+)EOTEST",
+                                     dim, dim < 3 ? ";" : "", dim < 4 ? ";" : "");
+
+      int i = 0;
+      for(int col = 0; col < dim; col++)
+      {
+        for(int row = 0; row < dim; row++)
+        {
+          test += fmt::format(R"EOTEST(
+     %_mat{0}{1}a = OpCompositeExtract %float %_mat{2} {0} {1}
+     %_mat{0}{1}b = OpFMul %float %_mat{0}{1}a %float_500_0
+     %_mat{0}{1}c = OpExtInst %float %glsl450 RoundEven %_mat{0}{1}b
+     %_mat{0}{1}d = OpFDiv %float %_mat{0}{1}c %float_500_0
+
+         %_mat{3} = OpCompositeInsert %float{4}x{4} %_mat{0}{1}d %_mat{2} {0} {1}
+)EOTEST",
+                              col, row, i, i + 1, dim);
+          i++;
+        }
+      }
+
+      test += fmt::format("%_out_float{0} = OpMatrixTimesVector %float{0} %_mat{1} %_vec\n", dim, i);
+
+      asm_tests.push_back(test);
+    }
 
     // test OpVectorShuffle
     append_tests({
@@ -1347,6 +1431,7 @@ void main()
      %uint4 = OpTypeVector %uint 4
 
    %float2x2 = OpTypeMatrix %float2 2
+   %float3x3 = OpTypeMatrix %float3 3
    %float2x4 = OpTypeMatrix %float2 4
    %float4x2 = OpTypeMatrix %float4 2
    %float4x4 = OpTypeMatrix %float4 4

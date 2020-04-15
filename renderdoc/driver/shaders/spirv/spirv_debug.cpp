@@ -1455,6 +1455,21 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       SetDst(state, mul.result, var);
       break;
     }
+    case Op::Transpose:
+    {
+      OpTranspose transpose(it);
+
+      ShaderVariable matrix = GetSrc(transpose.matrix);
+      ShaderVariable var = matrix;
+      std::swap(var.rows, var.columns);
+
+      for(uint8_t r = 0; r < var.rows; r++)
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.fv[r * var.columns + c] = matrix.value.fv[c * matrix.columns + r];
+
+      SetDst(state, transpose.result, var);
+      break;
+    }
     case Op::MatrixTimesVector:
     {
       OpMatrixTimesVector mul(it);

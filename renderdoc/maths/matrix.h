@@ -65,12 +65,14 @@ public:
   inline float operator[](const size_t i) const { return f[i]; }
   inline float &operator[](const size_t i) { return f[i]; }
   Matrix4f Transpose() const;
+  float Determinant() const;
   Matrix4f Inverse() const;
   Matrix4f Mul(const Matrix4f &o) const;
 
   Vec3f Transform(const Vec3f &v, const float w = 1.0f) const;
 
   const float *Data() const { return &f[0]; }
+  void SetFrom(float data[16]) { memcpy(f, data, sizeof(Matrix4f)); }
   const Vec3f GetPosition() const;
   const Vec3f GetForward() const;
   const Vec3f GetRight() const;
@@ -80,5 +82,47 @@ private:
   Matrix4f(const float *d) { memcpy(f, d, sizeof(Matrix4f)); }
   friend class Quatf;
 
+  constexpr inline size_t matIdx(const size_t x, const size_t y) const { return x + y * 4; }
   float f[16];
+};
+
+class Matrix3f
+{
+public:
+  Matrix3f() {}
+  inline float operator[](const size_t i) const { return f[i]; }
+  inline float &operator[](const size_t i) { return f[i]; }
+  Matrix3f Transpose() const;
+  float Determinant() const;
+  Matrix3f Inverse() const;
+
+  const float *Data() const { return &f[0]; }
+  void SetFrom(float data[9]) { memcpy(f, data, sizeof(Matrix3f)); }
+private:
+  constexpr inline size_t matIdx(const size_t x, const size_t y) const { return x + y * 3; }
+  float f[9];
+};
+
+class Matrix2f
+{
+public:
+  Matrix2f() {}
+  Matrix2f(float a, float b, float c, float d)
+  {
+    f[0] = a;
+    f[1] = b;
+    f[2] = c;
+    f[3] = d;
+  }
+  inline float operator[](const size_t i) const { return f[i]; }
+  inline float &operator[](const size_t i) { return f[i]; }
+  Matrix2f Transpose() const;
+  float Determinant() const;
+  Matrix2f Inverse() const;
+
+  const float *Data() const { return &f[0]; }
+  void SetFrom(float data[4]) { memcpy(f, data, sizeof(Matrix2f)); }
+private:
+  constexpr inline size_t matIdx(const size_t x, const size_t y) const { return x + y * 2; }
+  float f[4];
 };

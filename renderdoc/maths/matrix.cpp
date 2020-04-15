@@ -31,11 +31,6 @@
 #include "quat.h"
 #include "vec.h"
 
-static inline size_t matIdx(const size_t x, const size_t y)
-{
-  return x + y * 4;
-}
-
 Matrix4f Matrix4f::Mul(const Matrix4f &o) const
 {
   Matrix4f m;
@@ -60,6 +55,24 @@ Matrix4f Matrix4f::Transpose() const
       m[matIdx(x, y)] = (*this)[matIdx(y, x)];
 
   return m;
+}
+
+float Matrix4f::Determinant() const
+{
+  float a0 = (*this)[0] * (*this)[5] - (*this)[1] * (*this)[4];
+  float a1 = (*this)[0] * (*this)[6] - (*this)[2] * (*this)[4];
+  float a2 = (*this)[0] * (*this)[7] - (*this)[3] * (*this)[4];
+  float a3 = (*this)[1] * (*this)[6] - (*this)[2] * (*this)[5];
+  float a4 = (*this)[1] * (*this)[7] - (*this)[3] * (*this)[5];
+  float a5 = (*this)[2] * (*this)[7] - (*this)[3] * (*this)[6];
+  float b0 = (*this)[8] * (*this)[13] - (*this)[9] * (*this)[12];
+  float b1 = (*this)[8] * (*this)[14] - (*this)[10] * (*this)[12];
+  float b2 = (*this)[8] * (*this)[15] - (*this)[11] * (*this)[12];
+  float b3 = (*this)[9] * (*this)[14] - (*this)[10] * (*this)[13];
+  float b4 = (*this)[9] * (*this)[15] - (*this)[11] * (*this)[13];
+  float b5 = (*this)[10] * (*this)[15] - (*this)[11] * (*this)[14];
+
+  return a0 * b5 - a1 * b4 + a2 * b3 + a3 * b2 - a4 * b1 + a5 * b0;
 }
 
 Matrix4f Matrix4f::Inverse() const
@@ -120,7 +133,7 @@ Matrix4f Matrix4f::Inverse() const
   }
 
   // no inverse
-  return Matrix4f::Identity();
+  return Matrix4f::Zero();
 }
 
 Vec3f Matrix4f::Transform(const Vec3f &v, const float w) const
@@ -273,4 +286,78 @@ Matrix4f Matrix4f::ReversePerspective(const float degfov, const float N, const f
   };
 
   return Matrix4f(persp);
+}
+
+Matrix3f Matrix3f::Transpose() const
+{
+  Matrix3f m;
+  for(size_t x = 0; x < 3; x++)
+    for(size_t y = 0; y < 3; y++)
+      m[matIdx(x, y)] = (*this)[matIdx(y, x)];
+
+  return m;
+}
+
+float Matrix3f::Determinant() const
+{
+  return f[0] * (f[4] * f[8] - f[5] * f[7]) - f[1] * (f[3] * f[8] - f[5] * f[6]) +
+         f[2] * (f[3] * f[7] - f[4] * f[6]);
+}
+
+Matrix3f Matrix3f::Inverse() const
+{
+  float det = Determinant();
+  Matrix3f m = {};
+  if(fabsf(det) > FLT_EPSILON)
+  {
+    m[0] = Matrix2f(f[matIdx(1, 1)], f[matIdx(2, 1)], f[matIdx(1, 2)], f[matIdx(2, 2)]).Determinant();
+    m[1] = Matrix2f(f[matIdx(1, 0)], f[matIdx(2, 0)], f[matIdx(1, 2)], f[matIdx(2, 2)]).Determinant();
+    m[2] = Matrix2f(f[matIdx(1, 0)], f[matIdx(2, 0)], f[matIdx(1, 1)], f[matIdx(2, 1)]).Determinant();
+
+    m[3] = Matrix2f(f[matIdx(0, 1)], f[matIdx(2, 1)], f[matIdx(0, 2)], f[matIdx(2, 2)]).Determinant();
+    m[4] = Matrix2f(f[matIdx(0, 0)], f[matIdx(2, 0)], f[matIdx(0, 2)], f[matIdx(2, 2)]).Determinant();
+    m[5] = Matrix2f(f[matIdx(0, 0)], f[matIdx(2, 0)], f[matIdx(0, 1)], f[matIdx(2, 1)]).Determinant();
+
+    m[6] = Matrix2f(f[matIdx(0, 1)], f[matIdx(1, 1)], f[matIdx(0, 2)], f[matIdx(1, 2)]).Determinant();
+    m[7] = Matrix2f(f[matIdx(0, 0)], f[matIdx(1, 0)], f[matIdx(0, 2)], f[matIdx(1, 2)]).Determinant();
+    m[8] = Matrix2f(f[matIdx(0, 0)], f[matIdx(1, 0)], f[matIdx(0, 1)], f[matIdx(1, 1)]).Determinant();
+
+    float invdet = 1.0f / Determinant();
+
+    for(size_t i = 0; i < 9; i++)
+    {
+      m[i] *= invdet;
+      if(i & 1)
+        m[i] *= -1.0f;
+    }
+  }
+  return m;
+}
+
+Matrix2f Matrix2f::Transpose() const
+{
+  Matrix2f m = *this;
+  m[1] = f[2];
+  m[2] = f[1];
+  return m;
+}
+
+float Matrix2f::Determinant() const
+{
+  return f[0] * f[3] - f[1] * f[2];
+}
+
+Matrix2f Matrix2f::Inverse() const
+{
+  float det = Determinant();
+  Matrix2f m = {};
+  if(fabsf(det) > FLT_EPSILON)
+  {
+    float invdet = 1.0f / Determinant();
+    m[0] = invdet * f[3];
+    m[1] = invdet * -f[1];
+    m[2] = invdet * -f[2];
+    m[3] = invdet * f[0];
+  }
+  return m;
 }

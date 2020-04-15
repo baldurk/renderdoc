@@ -24,6 +24,7 @@
 
 #include "spirv_debug.h"
 #include <math.h>
+#include "maths/matrix.h"
 
 namespace rdcspv
 {
@@ -177,6 +178,67 @@ ShaderVariable Pow(ThreadState &state, const rdcarray<Id> &params)
     var.value.fv[c] = powf(var.value.fv[c], y.value.fv[c]);
 
   return var;
+}
+
+ShaderVariable Determinant(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable m = state.GetSrc(params[0]);
+
+  RDCASSERTEQUAL(m.rows, m.columns);
+
+  if(m.rows == 4)
+  {
+    Matrix4f mat;
+    mat.SetFrom(m.value.fv);
+    m.value.f.x = mat.Determinant();
+  }
+  else if(m.rows == 3)
+  {
+    Matrix3f mat;
+    mat.SetFrom(m.value.fv);
+    m.value.f.x = mat.Determinant();
+  }
+  else if(m.rows == 2)
+  {
+    Matrix2f mat;
+    mat.SetFrom(m.value.fv);
+    m.value.f.x = mat.Determinant();
+  }
+  m.rows = m.columns = 1;
+
+  return m;
+}
+
+ShaderVariable MatrixInverse(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable m = state.GetSrc(params[0]);
+
+  RDCASSERTEQUAL(m.rows, m.columns);
+
+  if(m.rows == 4)
+  {
+    Matrix4f mat;
+    mat.SetFrom(m.value.fv);
+    memcpy(m.value.fv, mat.Inverse().Data(), sizeof(mat));
+  }
+  else if(m.rows == 3)
+  {
+    Matrix3f mat;
+    mat.SetFrom(m.value.fv);
+    memcpy(m.value.fv, mat.Inverse().Data(), sizeof(mat));
+  }
+  else if(m.rows == 2)
+  {
+    Matrix2f mat;
+    mat.SetFrom(m.value.fv);
+    memcpy(m.value.fv, mat.Inverse().Data(), sizeof(mat));
+  }
+
+  return m;
 }
 
 template <typename T>
@@ -457,6 +519,8 @@ void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
   EXT(Ceil);
   EXT(Fract);
   EXT(Pow);
+  EXT(Determinant);
+  EXT(MatrixInverse);
   EXT(FMin);
   EXT(UMin);
   EXT(SMin);
