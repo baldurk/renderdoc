@@ -951,6 +951,10 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     //
     //////////////////////////////////////////////////////////////////////////////
 
+    case Op::LogicalEqual:
+    case Op::LogicalNotEqual:
+    case Op::LogicalOr:
+    case Op::LogicalAnd:
     case Op::IEqual:
     case Op::INotEqual:
     case Op::UGreaterThan:
@@ -979,15 +983,25 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable var = GetSrc(comp.operand1);
       ShaderVariable b = GetSrc(comp.operand2);
 
-      if(opdata.op == Op::IEqual)
+      if(opdata.op == Op::IEqual || opdata.op == Op::LogicalEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
           var.value.uv[c] = (var.value.uv[c] == b.value.uv[c]) ? 1 : 0;
       }
-      else if(opdata.op == Op::INotEqual)
+      else if(opdata.op == Op::INotEqual || opdata.op == Op::LogicalNotEqual)
       {
         for(uint8_t c = 0; c < var.columns; c++)
           var.value.uv[c] = (var.value.uv[c] != b.value.uv[c]) ? 1 : 0;
+      }
+      else if(opdata.op == Op::LogicalAnd)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = var.value.uv[c] & b.value.uv[c];
+      }
+      else if(opdata.op == Op::LogicalOr)
+      {
+        for(uint8_t c = 0; c < var.columns; c++)
+          var.value.uv[c] = var.value.uv[c] | b.value.uv[c];
       }
       else if(opdata.op == Op::UGreaterThan)
       {
@@ -1109,6 +1123,38 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       var.type = VarType::UInt;
 
       SetDst(state, comp.result, var);
+      break;
+    }
+    case Op::LogicalNot:
+    {
+      OpLogicalNot negate(it);
+
+      ShaderVariable var = GetSrc(negate.operand);
+
+      for(uint8_t c = 0; c < var.columns; c++)
+        var.value.uv[c] = 1U - var.value.uv[c];
+
+      SetDst(state, negate.result, var);
+      break;
+    }
+    case Op::Any:
+    case Op::All:
+    {
+      OpAny any(it);
+
+      ShaderVariable var = GetSrc(any.vector);
+
+      for(uint8_t c = 1; c < var.columns; c++)
+      {
+        if(opdata.op == Op::Any)
+          var.value.uv[0] |= var.value.uv[c];
+        else
+          var.value.uv[0] &= var.value.uv[c];
+      }
+
+      var.columns = 1;
+
+      SetDst(state, any.result, var);
       break;
     }
     case Op::IsNan:

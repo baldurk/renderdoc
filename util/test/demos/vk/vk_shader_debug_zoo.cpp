@@ -581,6 +581,74 @@ void main()
       Color = vec4(radians(negone*164.2f), radians(posone*164.2f), radians(zerof), radians(posone*3456.78f));
       break;
     }
+    case 71:
+    {
+      vec4 a = vec4(posone*2.4f, posone*2.5f, posone*2.6f, posone*2.7f);
+      vec4 b = vec4(zerof+2.5f, zerof+2.5f, zerof+2.5f, zerof+2.5f);
+      Color = vec4(float(a.x < b.x), float(a.x <= b.x), float(a.x > b.x), float(a.x >= b.x));
+      break;
+    }
+    case 72:
+    {
+      vec4 a = vec4(posone*2.4f, posone*2.5f, posone*2.6f, posone*2.7f);
+      vec4 b = vec4(zerof+2.5f, zerof+2.5f, zerof+2.5f, zerof+2.5f);
+      bvec4 c = lessThanEqual(a, b);
+      Color = vec4(float(a.x == b.x), float(a.x != b.x), 0.0f, 1.0f);
+      break;
+    }
+    case 73:
+    {
+      ivec4 a = ivec4(zeroi+2, zeroi+3, zeroi+4, zeroi+5);
+      ivec4 b = ivec4(zeroi+4, zeroi+4, zeroi+4, zeroi+4);
+      Color = vec4(float(a.x < b.x), float(a.x <= b.x), float(a.x > b.x), float(a.x >= b.x));
+      break;
+    }
+    case 74:
+    {
+      ivec4 a = ivec4(zeroi+2, zeroi+3, zeroi+4, zeroi+5);
+      ivec4 b = ivec4(zeroi+4, zeroi+4, zeroi+4, zeroi+4);
+      Color = vec4(float(a.x == b.x), float(a.x != b.x), 0.0f, 1.0f);
+      break;
+    }
+    case 75:
+    {
+      uvec4 a = uvec4(zerou+2, zerou+3, zerou+4, zerou+5);
+      uvec4 b = uvec4(zerou+4, zerou+4, zerou+4, zerou+4);
+      Color = vec4(float(a.x < b.x), float(a.x <= b.x), float(a.x > b.x), float(a.x >= b.x));
+      break;
+    }
+    case 76:
+    {
+      uvec4 a = uvec4(zerou+2, zerou+3, zerou+4, zerou+5);
+      uvec4 b = uvec4(zerou+4, zerou+4, zerou+4, zerou+4);
+      Color = vec4(float(a.x == b.x), float(a.x != b.x), 0.0f, 1.0f);
+      break;
+    }
+    case 77:
+    {
+      vec4 a = vec4(posone*2.4f, posone*2.5f, posone*2.6f, posone*2.7f);
+      vec4 b = vec4(zerof+2.5f, zerof+2.5f, zerof+2.5f, zerof+2.5f);
+      bvec4 c = lessThanEqual(a, b);
+      Color = vec4(float(any(c)), float(all(c)), float(c.x == c.z), float(c.x != c.w));
+      break;
+    }
+    case 78:
+    {
+      vec4 a = vec4(posone*2.4f, posone*2.5f, posone*2.6f, posone*2.7f);
+      vec4 b = vec4(zerof+2.5f, zerof+2.5f, zerof+2.5f, zerof+2.5f);
+      bvec4 c = lessThanEqual(a, b);
+      Color = vec4(float(c.x || c.y), float(c.x && c.y), float(!c.x), 1.0f);
+      break;
+    }
+    case 79:
+    {
+      vec4 a = vec4(posone*2.4f, posone*2.5f, posone*2.6f, posone*2.7f);
+      vec4 b = vec4(zerof+2.5f, zerof+2.5f, zerof+2.5f, zerof+2.5f);
+      bvec4 c = lessThanEqual(a, b);
+      Color = mix(vec4(posone*9.0f, posone*8.0f, posone*7.0f, posone*6.0f),
+                  vec4(posone*1.0f, posone*2.0f, posone*3.0f, posone*4.0f), c);
+      break;
+    }
     default: break;
   }
 }
