@@ -508,6 +508,69 @@ void main()
       Color = vec4(push.data);
       break;
     }
+    case 57:
+    {
+      Color = vec4(roundEven(posone*2.5f), roundEven(posone*3.5f), roundEven(posone*4.5f), roundEven(posone*5.1f));
+      break;
+    }
+    case 58:
+    {
+      Color = vec4(roundEven(negone*2.5f), roundEven(negone*3.5f), roundEven(negone*4.5f), roundEven(negone*5.1f));
+      break;
+    }
+    case 59:
+    {
+      // avoid implementation-defined behaviour at half-way points
+      Color = vec4(round(posone*2.4f), round(posone*3.6f), round(posone*4.6f), round(posone*5.1f));
+      break;
+    }
+    case 60:
+    {
+      Color = vec4(round(negone*2.6f), round(negone*3.6f), round(negone*4.6f), round(posone*5.1f));
+      break;
+    }
+    case 61:
+    {
+      Color = vec4(trunc(posone*2.4f), trunc(posone*2.5f), trunc(posone*2.6f), trunc(posone*5.1f));
+      break;
+    }
+    case 62:
+    {
+      Color = vec4(trunc(negone*2.4f), trunc(negone*2.5f), trunc(negone*2.6f), trunc(negone*3.1f));
+      break;
+    }
+    case 63:
+    {
+      Color = vec4(fract(posone*2.4f), fract(posone*2.5f), fract(posone*2.6f), fract(posone*3.1f));
+      break;
+    }
+    case 64:
+    {
+      Color = vec4(fract(negone*2.4f), fract(negone*2.5f), fract(negone*2.6f), fract(negone*3.1f));
+      break;
+    }
+    case 65:
+    {
+      Color = vec4(ceil(posone*2.4f), ceil(posone*2.5f), ceil(posone*2.6f), ceil(posone*3.1f));
+      break;
+    }
+    case 66:
+    {
+      Color = vec4(ceil(negone*2.4f), ceil(negone*2.5f), ceil(negone*2.6f), ceil(negone*3.1f));
+      break;
+    }
+    case 67:
+    {
+      Color = vec4(sign(negone*2.4f), sign(posone*2.4f), sign(posinf), sign(neginf));
+      break;
+    }
+    case 68:
+    {
+      int onei = zeroi+1;
+      int negi = zeroi-1;
+      Color = vec4(float(sign(onei*2)), float(sign(negi*2)), float(sign(0)), 1.0f);
+      break;
+    }
     default: break;
   }
 }

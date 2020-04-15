@@ -37,6 +37,40 @@ namespace glsl
     return ShaderVariable();                                                          \
   }
 
+ShaderVariable RoundEven(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+  {
+    float x = var.value.fv[c];
+    if(!isinf(x) && !isnan(x))
+      var.value.fv[c] = x - remainderf(x, 1.0f);
+  }
+
+  return var;
+}
+
+ShaderVariable Round(ThreadState &state, const rdcarray<Id> &params)
+{
+  // for now do as the spec allows and implement this as RoundEven
+  return RoundEven(state, params);
+}
+
+ShaderVariable Trunc(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.fv[c] = truncf(var.value.fv[c]);
+
+  return var;
+}
+
 ShaderVariable FAbs(ThreadState &state, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
@@ -61,6 +95,41 @@ ShaderVariable SAbs(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
+ShaderVariable FSign(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+  {
+    if(var.value.fv[c] > 0.0f)
+      var.value.fv[c] = 1.0f;
+    else if(var.value.fv[c] < 0.0f)
+      var.value.fv[c] = -1.0f;
+  }
+
+  return var;
+}
+
+ShaderVariable SSign(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+  {
+    if(var.value.iv[c] > 0)
+      var.value.iv[c] = 1;
+    else if(var.value.iv[c] < 0)
+      var.value.iv[c] = -1;
+    // 0 is left alone
+  }
+
+  return var;
+}
+
 ShaderVariable Floor(ThreadState &state, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(1);
@@ -69,6 +138,30 @@ ShaderVariable Floor(ThreadState &state, const rdcarray<Id> &params)
 
   for(uint32_t c = 0; c < var.columns; c++)
     var.value.fv[c] = floorf(var.value.fv[c]);
+
+  return var;
+}
+
+ShaderVariable Ceil(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.fv[c] = ceilf(var.value.fv[c]);
+
+  return var;
+}
+
+ShaderVariable Fract(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.fv[c] = var.value.fv[c] - floorf(var.value.fv[c]);
 
   return var;
 }
@@ -349,10 +442,20 @@ void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
 
   extinst.functions.resize(extinst.names.size());
 
-#define EXT(func) extinst.functions[(uint32_t)GLSLstd450::func] = &glsl::func;
+#define EXT(func)                                              \
+  extinst.functions[(uint32_t)GLSLstd450::func] = &glsl::func; \
+  uint32_t noduplicate##func;                                  \
+  (void)noduplicate##func;
+  EXT(Round);
+  EXT(RoundEven);
+  EXT(Trunc);
   EXT(FAbs);
   EXT(SAbs);
+  EXT(FSign);
+  EXT(SSign);
   EXT(Floor);
+  EXT(Ceil);
+  EXT(Fract);
   EXT(Pow);
   EXT(FMin);
   EXT(UMin);
