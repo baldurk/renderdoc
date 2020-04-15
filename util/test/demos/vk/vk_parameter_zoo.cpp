@@ -427,6 +427,19 @@ void main()
       CHECK_VKR(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, baked, NULL, &dummy));
       vkDestroyPipeline(device, dummy, NULL);
 
+      VkPipelineViewportStateCreateInfo *viewState =
+          (VkPipelineViewportStateCreateInfo *)&pipeCreateInfo.viewportState;
+
+      baked->pViewportState = viewState;
+
+      // viewport and scissor are already dynamic, so just set viewports and scissors to invalid
+      // pointers
+      viewState->pViewports = (VkViewport *)0x1234;
+      viewState->pScissors = (VkRect2D *)0x1234;
+
+      CHECK_VKR(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, baked, NULL, &dummy));
+      vkDestroyPipeline(device, dummy, NULL);
+
       // if we disable rasterization, tons of things can be NULL/garbage
       pipeCreateInfo.rasterizationState.rasterizerDiscardEnable = VK_TRUE;
 

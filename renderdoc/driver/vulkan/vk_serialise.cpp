@@ -2758,7 +2758,35 @@ void DoSerialise(SerialiserType &ser, VkGraphicsPipelineCreateInfo &el)
 
   if(hasValidRasterization)
   {
-    SERIALISE_MEMBER_OPT(pViewportState);
+    // we have a similar problem with needing pDynamicState to determine if the pViewports/pScissors
+    // members are valid or not.
+    if(ser.IsReading() || el.pViewportState == NULL)
+    {
+      // all the hard work is done while writing. On reading, just serialise (optionally) directly.
+      SERIALISE_MEMBER_OPT(pViewportState);
+    }
+    else
+    {
+      bool dynamicViewport = false, dynamicScissor = false;
+
+      for(uint32_t i = 0; el.pDynamicState && i < el.pDynamicState->dynamicStateCount; i++)
+      {
+        if(el.pDynamicState->pDynamicStates[i] == VK_DYNAMIC_STATE_VIEWPORT)
+          dynamicViewport = true;
+        else if(el.pDynamicState->pDynamicStates[i] == VK_DYNAMIC_STATE_SCISSOR)
+          dynamicScissor = true;
+      }
+
+      VkPipelineViewportStateCreateInfo viewportState = *el.pViewportState;
+      VkPipelineViewportStateCreateInfo *pViewportState = &viewportState;
+
+      if(dynamicScissor)
+        viewportState.pScissors = NULL;
+      if(dynamicViewport)
+        viewportState.pViewports = NULL;
+
+      SERIALISE_ELEMENT_OPT(pViewportState);
+    }
   }
   else
   {
