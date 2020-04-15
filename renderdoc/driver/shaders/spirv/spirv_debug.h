@@ -115,6 +115,8 @@ public:
   rdcarray<ShaderVariable> samplers;
 
   SparseIdMap<ExtInstDispatcher> extInsts;
+
+  uint64_t clock;
 };
 
 struct StackFrame
@@ -195,7 +197,7 @@ struct ThreadState
 
   // index in the pixel quad
   uint32_t workgroupIndex;
-  bool done;
+  bool helperInvocation;
 
   const ShaderVariable &GetSrc(Id id) const;
 

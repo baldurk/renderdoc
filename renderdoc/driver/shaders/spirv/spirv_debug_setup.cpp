@@ -339,6 +339,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     }
   }
 
+  global.clock = uint64_t(time(NULL)) << 32;
+
   for(auto it = extSets.begin(); it != extSets.end(); it++)
   {
     Id id = it->first;
@@ -638,7 +640,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       lane.outputs = active.outputs;
       lane.ids = active.ids;
       // mark as inactive/helper lane
-      lane.done = true;
+      lane.helperInvocation = true;
     }
 
     // now that the globals are allocated and their storage won't move, we can take pointers to them
@@ -774,6 +776,8 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
   // do 100 in a chunk
   for(int cycleCounter = 0; cycleCounter < 100; cycleCounter++)
   {
+    global.clock++;
+
     if(active.Finished())
       break;
 

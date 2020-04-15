@@ -24,6 +24,7 @@
 
 #include "spirv_debug.h"
 #include <math.h>
+#include <time.h>
 #include "common/formatting.h"
 #include "spirv_op_helpers.h"
 
@@ -63,7 +64,7 @@ ThreadState::ThreadState(uint32_t workgroupIdx, Debugger &debug, const GlobalSta
 {
   workgroupIndex = workgroupIdx;
   nextInstruction = 0;
-  done = false;
+  helperInvocation = false;
 }
 
 ThreadState::~ThreadState()
@@ -75,7 +76,7 @@ ThreadState::~ThreadState()
 
 bool ThreadState::Finished() const
 {
-  return done || callstack.empty();
+  return helperInvocation || callstack.empty();
 }
 
 void ThreadState::FillCallstack(ShaderDebugState &state)
@@ -1806,6 +1807,46 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       RDCASSERT(!var.name.empty());
 
       SetDst(state, phi.result, var);
+      break;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //
+    // Misc opcodes
+    //
+    //////////////////////////////////////////////////////////////////////////////
+
+    case Op::ReadClockKHR:
+    {
+      const DataType &resultType = debugger.GetType(opdata.resultType);
+
+      ShaderVariable result;
+
+      result.type = resultType.scalar().Type();
+      result.rows = 1;
+      result.columns = RDCMAX(1U, resultType.vector().count);
+
+      result.value.u64v[0] = global.clock;
+
+      SetDst(state, opdata.result, result);
+      break;
+    }
+    case Op::IsHelperInvocationEXT:
+    {
+      ShaderVariable result;
+
+      result.type = VarType::UInt;
+      result.rows = 1;
+      result.columns = 1;
+
+      result.value.u.x = helperInvocation;
+
+      SetDst(state, opdata.result, result);
+      break;
+    }
+    case Op::DemoteToHelperInvocationEXT:
+    {
+      helperInvocation = true;
       break;
     }
 
