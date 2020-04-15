@@ -82,7 +82,7 @@ private:
   Matrix4f(const float *d) { memcpy(f, d, sizeof(Matrix4f)); }
   friend class Quatf;
 
-  constexpr inline size_t matIdx(const size_t x, const size_t y) const { return x + y * 4; }
+  inline size_t matIdx(const size_t x, const size_t y) const { return x + y * 4; }
   float f[16];
 };
 
@@ -99,7 +99,7 @@ public:
   const float *Data() const { return &f[0]; }
   void SetFrom(float data[9]) { memcpy(f, data, sizeof(Matrix3f)); }
 private:
-  constexpr inline size_t matIdx(const size_t x, const size_t y) const { return x + y * 3; }
+  inline size_t matIdx(const size_t x, const size_t y) const { return x + y * 3; }
   float f[9];
 };
 
@@ -123,6 +123,6 @@ public:
   const float *Data() const { return &f[0]; }
   void SetFrom(float data[4]) { memcpy(f, data, sizeof(Matrix2f)); }
 private:
-  constexpr inline size_t matIdx(const size_t x, const size_t y) const { return x + y * 2; }
+  inline size_t matIdx(const size_t x, const size_t y) const { return x + y * 2; }
   float f[4];
 };
