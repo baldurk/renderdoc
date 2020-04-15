@@ -571,6 +571,16 @@ void main()
       Color = vec4(float(sign(onei*2)), float(sign(negi*2)), float(sign(0)), 1.0f);
       break;
     }
+    case 69:
+    {
+      Color = vec4(degrees(negone*2.4f), degrees(posone*2.4f), degrees(zerof), degrees(posone*34.56f));
+      break;
+    }
+    case 70:
+    {
+      Color = vec4(radians(negone*164.2f), radians(posone*164.2f), radians(zerof), radians(posone*3456.78f));
+      break;
+    }
     default: break;
   }
 }

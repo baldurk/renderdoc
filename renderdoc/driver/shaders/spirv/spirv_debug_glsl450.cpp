@@ -167,6 +167,33 @@ ShaderVariable Fract(ThreadState &state, const rdcarray<Id> &params)
   return var;
 }
 
+static const float piOver180 = 3.14159265358979323846f / 180.0f;
+static const float piUnder180 = 180.0f / 3.14159265358979323846f;
+
+ShaderVariable Radians(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.fv[c] = var.value.fv[c] * piOver180;
+
+  return var;
+}
+
+ShaderVariable Degrees(ThreadState &state, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable var = state.GetSrc(params[0]);
+
+  for(uint32_t c = 0; c < var.columns; c++)
+    var.value.fv[c] = var.value.fv[c] * piUnder180;
+
+  return var;
+}
+
 ShaderVariable Pow(ThreadState &state, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
@@ -518,6 +545,8 @@ void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
   EXT(Floor);
   EXT(Ceil);
   EXT(Fract);
+  EXT(Radians);
+  EXT(Degrees);
   EXT(Pow);
   EXT(Determinant);
   EXT(MatrixInverse);
