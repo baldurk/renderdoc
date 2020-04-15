@@ -1218,6 +1218,23 @@ void main()
         "%_out_float = OpBitcast %float %_result\n",
     });
 
+    // test ExtInst NMin/NMax/NClamp
+    append_tests({
+        "%_x = OpExtInst %float %glsl450 NMin %nan %oneVal\n"
+        "%_y = OpExtInst %float %glsl450 NMin %oneVal %nan\n"
+        "%_z = OpExtInst %float %glsl450 NMin %nan %nan\n"
+        "%_w = OpExtInst %float %glsl450 NMin %nan %neginf\n"
+        "%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w\n",
+
+        "%_x = OpExtInst %float %glsl450 NMax %nan %oneVal\n"
+        "%_y = OpExtInst %float %glsl450 NMax %oneVal %nan\n"
+        "%_z = OpExtInst %float %glsl450 NMax %nan %nan\n"
+        "%_w = OpExtInst %float %glsl450 NMax %nan %neginf\n"
+        "%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w\n",
+
+        "%_out_float = OpExtInst %float %glsl450 NClamp %nan %zerof %oneVal",
+    });
+
     // test float <-> int conversions
     append_tests({
         "%_x = OpConvertUToF %float %uint_dyn_1234\n"
