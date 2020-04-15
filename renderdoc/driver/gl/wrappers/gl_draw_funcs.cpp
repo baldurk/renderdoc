@@ -484,7 +484,7 @@ bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(SerialiserType &ser, GLi
 
     if(IsLoading(m_State))
     {
-      uint32_t groupSizes[3];
+      uint32_t groupSizes[3] = {};
       GL.glGetBufferSubData(eGL_DISPATCH_INDIRECT_BUFFER, (GLintptr)offset, sizeof(uint32_t) * 3,
                             groupSizes);
 
@@ -1191,7 +1191,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(SerialiserType &ser, GLenum m
 
     if(IsLoading(m_State))
     {
-      DrawArraysIndirectCommand params;
+      DrawArraysIndirectCommand params = {};
       GL.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)offset, sizeof(params), &params);
 
       AddEvent();
@@ -1508,7 +1508,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(SerialiserType &ser, GLenum
 
     if(IsLoading(m_State))
     {
-      DrawElementsIndirectCommand params;
+      DrawElementsIndirectCommand params = {};
       GL.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)offset, sizeof(params), &params);
 
       AddEvent();
@@ -2704,7 +2704,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
       {
         m_CurEventID++;
 
-        DrawArraysIndirectCommand params;
+        DrawArraysIndirectCommand params = {};
 
         GL.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, offs, sizeof(params), &params);
 
@@ -2792,7 +2792,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
 
         uint32_t drawidx = (m_LastEventID - baseEventID);
 
-        DrawArraysIndirectCommand params;
+        DrawArraysIndirectCommand params = {};
 
         GLintptr offs = (GLintptr)offset;
         if(stride != 0)
@@ -2928,7 +2928,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
       {
         m_CurEventID++;
 
-        DrawElementsIndirectCommand params;
+        DrawElementsIndirectCommand params = {};
 
         GL.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, offs, sizeof(params), &params);
 
@@ -3019,7 +3019,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
 
         uint32_t drawidx = (m_LastEventID - baseEventID);
 
-        DrawElementsIndirectCommand params;
+        DrawElementsIndirectCommand params = {};
 
         GLintptr offs = (GLintptr)offset;
         if(stride != 0)
@@ -3158,7 +3158,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
       {
         m_CurEventID++;
 
-        DrawArraysIndirectCommand params;
+        DrawArraysIndirectCommand params = {};
 
         GL.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, offs, sizeof(params), &params);
 
@@ -3246,7 +3246,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
 
         uint32_t drawidx = (m_LastEventID - baseEventID);
 
-        DrawArraysIndirectCommand params;
+        DrawArraysIndirectCommand params = {};
 
         GLintptr offs = (GLintptr)offset;
         if(stride != 0)
@@ -3391,7 +3391,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
       {
         m_CurEventID++;
 
-        DrawElementsIndirectCommand params;
+        DrawElementsIndirectCommand params = {};
 
         GL.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, offs, sizeof(params), &params);
 
@@ -3482,7 +3482,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
 
         uint32_t drawidx = (m_LastEventID - baseEventID);
 
-        DrawElementsIndirectCommand params;
+        DrawElementsIndirectCommand params = {};
 
         GLintptr offs = (GLintptr)offset;
         if(stride != 0)

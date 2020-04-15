@@ -389,7 +389,7 @@ void APIENTRY _glGetNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsize
 void *APIENTRY _glMapNamedBufferEXT(GLuint buffer, GLenum access)
 {
   PushPopBuffer(eGL_COPY_READ_BUFFER, buffer);
-  GLint size;
+  GLint size = 0;
   GL.glGetBufferParameteriv(eGL_COPY_READ_BUFFER, eGL_BUFFER_SIZE, &size);
 
   GLbitfield accessBits = eGL_MAP_READ_BIT | eGL_MAP_WRITE_BIT;
