@@ -65,6 +65,7 @@ ThreadState::ThreadState(uint32_t workgroupIdx, Debugger &debug, const GlobalSta
   workgroupIndex = workgroupIdx;
   nextInstruction = 0;
   helperInvocation = false;
+  killed = false;
 }
 
 ThreadState::~ThreadState()
@@ -76,7 +77,7 @@ ThreadState::~ThreadState()
 
 bool ThreadState::Finished() const
 {
-  return helperInvocation || callstack.empty();
+  return helperInvocation || killed || callstack.empty();
 }
 
 void ThreadState::FillCallstack(ShaderDebugState &state)
@@ -1880,6 +1881,18 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       break;
     }
 
+    case Op::Kill:
+    {
+      killed = true;
+
+      // destroy all stack frames
+      for(StackFrame *exitingFrame : callstack)
+        delete exitingFrame;
+
+      callstack.clear();
+
+      break;
+    }
     case Op::Return:
     case Op::ReturnValue:
     {

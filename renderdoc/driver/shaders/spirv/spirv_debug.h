@@ -198,6 +198,7 @@ struct ThreadState
   // index in the pixel quad
   uint32_t workgroupIndex;
   bool helperInvocation;
+  bool killed;
 
   const ShaderVariable &GetSrc(Id id) const;
 

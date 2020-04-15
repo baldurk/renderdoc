@@ -649,6 +649,10 @@ void main()
                   vec4(posone*1.0f, posone*2.0f, posone*3.0f, posone*4.0f), c);
       break;
     }
+    case 80:
+    {
+      discard;
+    }
     default: break;
   }
 }
