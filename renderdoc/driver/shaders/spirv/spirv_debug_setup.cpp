@@ -585,12 +585,17 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
         // sampler, so accessing the original type might be non-trivial at point of access
         uint32_t texType = DebugAPIWrapper::Float_Texture;
 
-        if(imageTypes[type.InnerType()].dim == Dim::Buffer)
+        Id imgid = type.InnerType();
+
+        if(innertype.type == DataType::SampledImageType)
+          imgid = sampledImageTypes[imgid].baseId;
+
+        if(imageTypes[imgid].dim == Dim::Buffer)
           texType |= DebugAPIWrapper::Buffer_Texture;
 
-        if(imageTypes[type.InnerType()].retType.type == Op::TypeInt)
+        if(imageTypes[imgid].retType.type == Op::TypeInt)
         {
-          if(imageTypes[type.InnerType()].retType.signedness)
+          if(imageTypes[imgid].retType.signedness)
             texType |= DebugAPIWrapper::SInt_Texture;
           else
             texType |= DebugAPIWrapper::UInt_Texture;

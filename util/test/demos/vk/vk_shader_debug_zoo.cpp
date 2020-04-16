@@ -131,7 +131,7 @@ layout(set = 0, binding = 5, std430) buffer storebuftype
 
 //layout(set = 0, binding = 6, rgba32f) uniform coherent image2D storeImage;
 
-//layout(set = 0, binding = 7, rgba32f) uniform coherent samplerBuffer texBuffer;
+layout(set = 0, binding = 7) uniform samplerBuffer texBuffer;
 //layout(set = 0, binding = 8, rgba32f) uniform coherent imageBuffer storeTexBuffer;
 
 layout(set = 0, binding = 20) uniform sampler2DArray queryTest;
@@ -907,6 +907,11 @@ void main()
     case 110:
     {
       Color = vec4(vec3(textureSize(queryTestMS)), 1.0f);
+      break;
+    }
+    case 111:
+    {
+      Color = texelFetch(texBuffer, int(zeroi+2));
       break;
     }
     default: break;

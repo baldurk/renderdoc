@@ -485,7 +485,7 @@ public:
 
     // create our own view (if we haven't already for this view) so we can promote to array
     VkImageView sampleView = m_SampleViews[GetResID(view)];
-    if(sampleView == VK_NULL_HANDLE)
+    if(sampleView == VK_NULL_HANDLE && view != VK_NULL_HANDLE)
     {
       VkImageViewCreateInfo viewInfo = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
       viewInfo.image = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(viewProps.image);
@@ -708,7 +708,7 @@ public:
 
     if(buffer)
     {
-      writeSets[0].pTexelBufferView = &bufferView;
+      writeSets[0].pTexelBufferView = UnwrapPtr(bufferView);
       writeSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
     }
 
