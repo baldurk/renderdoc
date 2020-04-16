@@ -26,6 +26,7 @@
 #include <math.h>
 #include <time.h>
 #include "common/formatting.h"
+#include "os/os_specific.h"
 #include "spirv_op_helpers.h"
 
 static bool ContainsNaNInf(const ShaderVariable &val)
@@ -1202,6 +1203,85 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     //
     //////////////////////////////////////////////////////////////////////////////
 
+    case Op::BitCount:
+    {
+      OpBitCount bitwise(it);
+
+      ShaderVariable var = GetSrc(bitwise.base);
+
+      for(uint8_t c = 0; c < var.columns; c++)
+        var.value.uv[c] = Bits::CountOnes(var.value.uv[c]);
+
+      SetDst(bitwise.result, var);
+      break;
+    }
+    case Op::BitReverse:
+    {
+      OpBitReverse bitwise(it);
+
+      ShaderVariable var = GetSrc(bitwise.base);
+
+      for(uint8_t c = 0; c < var.columns; c++)
+      {
+        uint32_t u = var.value.uv[c];
+        var.value.uv[c] = 0;
+        for(uint8_t b = 0; b < 32; b++)
+        {
+          uint32_t bit = u & (1u << b);
+          var.value.uv[c] |= bit << (31 - b);
+        }
+      }
+
+      SetDst(bitwise.result, var);
+      break;
+    }
+    case Op::BitFieldUExtract:
+    case Op::BitFieldSExtract:
+    {
+      OpBitFieldUExtract bitwise(it);
+
+      ShaderVariable var = GetSrc(bitwise.base);
+      ShaderVariable offset = GetSrc(bitwise.offset);
+      ShaderVariable count = GetSrc(bitwise.count);
+
+      for(uint8_t c = 0; c < var.columns; c++)
+      {
+        const uint32_t mask = (1u << count.value.uv[c]) - 1;
+
+        var.value.uv[c] >>= offset.value.uv[c];
+        var.value.uv[c] &= (1u << count.value.uv[c]) - 1;
+
+        if(opdata.op == Op::BitFieldSExtract)
+        {
+          uint32_t topbit = (mask + 1u) >> 1u;
+          if(var.value.uv[c] & topbit)
+            var.value.uv[c] |= (0xffffffffu ^ mask);
+        }
+      }
+
+      SetDst(bitwise.result, var);
+      break;
+    }
+    case Op::BitFieldInsert:
+    {
+      OpBitFieldInsert bitwise(it);
+
+      ShaderVariable var = GetSrc(bitwise.base);
+      ShaderVariable insert = GetSrc(bitwise.insert);
+      ShaderVariable offset = GetSrc(bitwise.offset);
+      ShaderVariable count = GetSrc(bitwise.count);
+
+      for(uint8_t c = 0; c < var.columns; c++)
+      {
+        const uint32_t mask = (1u << count.value.uv[c]) - 1;
+
+        var.value.uv[c] &= ~(mask << offset.value.uv[c]);
+        var.value.uv[c] |= (insert.value.uv[c] & mask) << offset.value.uv[c];
+      }
+
+      SetDst(bitwise.result, var);
+      break;
+    }
     case Op::BitwiseOr:
     case Op::BitwiseAnd:
     case Op::BitwiseXor:

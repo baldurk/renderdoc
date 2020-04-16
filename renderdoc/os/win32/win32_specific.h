@@ -83,4 +83,32 @@ inline uint64_t CountLeadingZeroes(uint64_t value)
   return (result == TRUE) ? (index ^ 63) : 64;
 }
 #endif
+
+inline uint32_t CountTrailingZeroes(uint32_t value)
+{
+  DWORD index;
+  BOOLEAN result = _BitScanForward(&index, value);
+  return (result == TRUE) ? index : 32;
+}
+
+#if ENABLED(RDOC_X64)
+inline uint64_t CountTrailingZeroes(uint64_t value)
+{
+  DWORD index;
+  BOOLEAN result = _BitScanForward64(&index, value);
+  return (result == TRUE) ? index : 64;
+}
+#endif
+
+inline uint32_t CountOnes(uint32_t value)
+{
+  return __popcnt(value);
+}
+
+#if ENABLED(RDOC_X64)
+inline uint64_t CountOnes(uint64_t value)
+{
+  return __popcnt64(value);
+}
+#endif
 };

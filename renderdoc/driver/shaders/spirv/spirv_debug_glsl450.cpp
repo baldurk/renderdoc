@@ -25,6 +25,7 @@
 #include "spirv_debug.h"
 #include <math.h>
 #include "maths/matrix.h"
+#include "os/os_specific.h"
 
 namespace rdcspv
 {
@@ -585,6 +586,51 @@ ShaderVariable Reflect(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   return N;
 }
 
+ShaderVariable FindILsb(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable x = state.GetSrc(params[0]);
+
+  for(uint8_t c = 0; c < x.columns; c++)
+    x.value.iv[c] = x.value.uv[c] == 0 ? -1 : Bits::CountTrailingZeroes(x.value.uv[c]);
+
+  return x;
+}
+
+ShaderVariable FindSMsb(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable x = state.GetSrc(params[0]);
+
+  for(uint8_t c = 0; c < x.columns; c++)
+  {
+    if(x.value.iv[c] == 0 || x.value.iv[c] == -1)
+      x.value.iv[c] = -1;
+    else if(x.value.iv[c] >= 0)
+      x.value.uv[c] = 31 - Bits::CountLeadingZeroes(x.value.uv[c]);
+    else
+      x.value.uv[c] = 31 - Bits::CountLeadingZeroes(~x.value.uv[c]);
+  }
+
+  return x;
+}
+
+ShaderVariable FindUMsb(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable x = state.GetSrc(params[0]);
+
+  for(uint8_t c = 0; c < x.columns; c++)
+  {
+    x.value.iv[c] = x.value.iv[c] == 0 ? -1 : 31 - Bits::CountLeadingZeroes(x.value.uv[c]);
+  }
+
+  return x;
+}
+
 static float GLSLNMax(float x, float y)
 {
   const bool xnan = isnan(x);
@@ -711,6 +757,9 @@ void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
   EXT(Cross);
   EXT(FaceForward);
   EXT(Reflect);
+  EXT(FindILsb);
+  EXT(FindSMsb);
+  EXT(FindUMsb);
   EXT(NMin);
   EXT(NMax);
   EXT(NClamp);

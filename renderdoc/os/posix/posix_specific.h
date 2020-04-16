@@ -120,4 +120,28 @@ inline uint64_t CountLeadingZeroes(uint64_t value)
   return value == 0 ? 64 : __builtin_clzl(value);
 }
 #endif
+
+inline uint32_t CountTrailingZeroes(uint32_t value)
+{
+  return value == 0 ? 32 : __builtin_ctz(value);
+}
+
+#if ENABLED(RDOC_X64)
+inline uint64_t CountTrailingZeroes(uint64_t value)
+{
+  return value == 0 ? 64 : __builtin_ctzl(value);
+}
+#endif
+
+inline uint32_t CountOnes(uint32_t value)
+{
+  return __builtin_popcount(value);
+}
+
+#if ENABLED(RDOC_X64)
+inline uint64_t CountOnes(uint64_t value)
+{
+  return __builtin_popcountl(value);
+}
+#endif
 };

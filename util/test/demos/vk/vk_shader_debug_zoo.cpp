@@ -847,6 +847,40 @@ void main()
     }
 )EOSHADER"
                    R"EOSHADER(
+    case 102:
+    {
+      uint a = zerou + 0x0dadbeef;
+      int b = zeroi + 0x0dadbeef;
+
+      Color = vec4(float(findLSB(a)), float(findLSB(b)), float(findMSB(a)), float(findMSB(b)));
+      break;
+    }
+    case 103:
+    {
+      int a = zeroi - 0x0dadbeef;
+
+      Color = vec4(float(findLSB(a)), float(findLSB(zeroi)), float(findMSB(a)), float(findMSB(zeroi)));
+      break;
+    }
+    case 104:
+    {
+      uint a = zerou + 0x44b82a24;
+      int b = zeroi + 0x44b82a24;
+
+      Color = vec4(float(bitCount(a)), float(bitCount(b)), uintBitsToFloat(bitfieldReverse(a)), intBitsToFloat(bitfieldReverse(b)));
+      break;
+    }
+    case 105:
+    {
+      uint a = zerou + 0x44b82a24;
+      int b = zeroi + 0x44b82a24;
+      uint af = zerou+0xffffffff;
+      int bf = zeroi-1;
+
+      Color = vec4(float(bitfieldExtract(a, 4, 5)), float(bitfieldExtract(b, 4, 5)),
+                   uintBitsToFloat(bitfieldInsert(a, af, 4, 5)), intBitsToFloat(bitfieldInsert(b, bf, 4, 5)));
+      break;
+    }
     default: break;
   }
 }

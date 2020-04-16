@@ -258,6 +258,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 32);
+        CHECK(Bits::CountTrailingZeroes(val) == 32);
+        CHECK(Bits::CountOnes(val) == 0);
       }
 
       val = 1;
@@ -265,6 +267,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 31);
+        CHECK(Bits::CountTrailingZeroes(val) == 0);
+        CHECK(Bits::CountOnes(val) == 1);
       }
 
       val <<= 1;
@@ -272,6 +276,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 30);
+        CHECK(Bits::CountTrailingZeroes(val) == 1);
+        CHECK(Bits::CountOnes(val) == 1);
       }
 
       val <<= 4;
@@ -279,6 +285,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 26);
+        CHECK(Bits::CountTrailingZeroes(val) == 5);
+        CHECK(Bits::CountOnes(val) == 1);
       }
 
       val++;
@@ -286,6 +294,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 26);
+        CHECK(Bits::CountTrailingZeroes(val) == 0);
+        CHECK(Bits::CountOnes(val) == 2);
       }
 
       val += 5;
@@ -293,6 +303,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 26);
+        CHECK(Bits::CountTrailingZeroes(val) == 1);
+        CHECK(Bits::CountOnes(val) == 3);
       }
 
       val += 1000;
@@ -300,6 +312,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 21);
+        CHECK(Bits::CountTrailingZeroes(val) == 1);
+        CHECK(Bits::CountOnes(val) == 4);
       }
 
       val *= 3;
@@ -307,6 +321,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 20);
+        CHECK(Bits::CountTrailingZeroes(val) == 1);
+        CHECK(Bits::CountOnes(val) == 5);
       }
 
       val *= 200000;
@@ -314,6 +330,17 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 2);
+        CHECK(Bits::CountTrailingZeroes(val) == 7);
+        CHECK(Bits::CountOnes(val) == 12);
+      }
+
+      val |= 0xFFFFFFFFu;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 0);
+        CHECK(Bits::CountTrailingZeroes(val) == 0);
+        CHECK(Bits::CountOnes(val) == 32);
       }
     };
 
@@ -325,6 +352,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 64);
+        CHECK(Bits::CountTrailingZeroes(val) == 64);
+        CHECK(Bits::CountOnes(val) == 0);
       }
 
       val = 1;
@@ -332,6 +361,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 63);
+        CHECK(Bits::CountTrailingZeroes(val) == 0);
+        CHECK(Bits::CountOnes(val) == 1);
       }
 
       val <<= 1;
@@ -339,6 +370,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 62);
+        CHECK(Bits::CountTrailingZeroes(val) == 1);
+        CHECK(Bits::CountOnes(val) == 1);
       }
 
       val <<= 4;
@@ -346,6 +379,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 58);
+        CHECK(Bits::CountTrailingZeroes(val) == 5);
+        CHECK(Bits::CountOnes(val) == 1);
       }
 
       val++;
@@ -353,6 +388,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 58);
+        CHECK(Bits::CountTrailingZeroes(val) == 0);
+        CHECK(Bits::CountOnes(val) == 2);
       }
 
       val += 5;
@@ -360,6 +397,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 58);
+        CHECK(Bits::CountTrailingZeroes(val) == 1);
+        CHECK(Bits::CountOnes(val) == 3);
       }
 
       val += 1000;
@@ -367,6 +406,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 53);
+        CHECK(Bits::CountTrailingZeroes(val) == 1);
+        CHECK(Bits::CountOnes(val) == 4);
       }
 
       val *= 3;
@@ -374,6 +415,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 52);
+        CHECK(Bits::CountTrailingZeroes(val) == 1);
+        CHECK(Bits::CountOnes(val) == 5);
       }
 
       val *= 200000;
@@ -381,6 +424,8 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 34);
+        CHECK(Bits::CountTrailingZeroes(val) == 7);
+        CHECK(Bits::CountOnes(val) == 12);
       }
 
       val *= 1000000;
@@ -388,6 +433,17 @@ TEST_CASE("Test OS-specific functions", "[osspecific]")
       {
         INFO("val is " << val);
         CHECK(Bits::CountLeadingZeroes(val) == 14);
+        CHECK(Bits::CountTrailingZeroes(val) == 13);
+        CHECK(Bits::CountOnes(val) == 19);
+      }
+
+      val |= 0xFFFFFFFFFFFFFFFFull;
+
+      {
+        INFO("val is " << val);
+        CHECK(Bits::CountLeadingZeroes(val) == 0);
+        CHECK(Bits::CountTrailingZeroes(val) == 0);
+        CHECK(Bits::CountOnes(val) == 64);
       }
     };
 #endif
