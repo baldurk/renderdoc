@@ -1166,6 +1166,19 @@ private:
 
     rdcspv::Id zerof = editor.AddConstantImmediate<float>(0.0f);
 
+    {
+      rdcspv::GLSLstd450 op = rdcspv::GLSLstd450::Fma;
+
+      rdcspv::Id label = editor.MakeId();
+      targets.push_back({(uint32_t)op, label});
+
+      cases.add(rdcspv::OpLabel(label));
+      rdcspv::Id result =
+          cases.add(rdcspv::OpGLSL450(v4f32, editor.MakeId(), glsl450, op, {a, b, c}));
+      cases.add(rdcspv::OpStore(outVar, result));
+      cases.add(rdcspv::OpBranch(breakLabel));
+    }
+
     // these ones are special
     {
       rdcspv::GLSLstd450 op = rdcspv::GLSLstd450::Length;

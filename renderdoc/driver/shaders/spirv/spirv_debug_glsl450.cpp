@@ -407,6 +407,54 @@ ShaderVariable FMix(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   return var;
 }
 
+ShaderVariable Step(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(2);
+
+  ShaderVariable edge = state.GetSrc(params[0]);
+  ShaderVariable x = state.GetSrc(params[1]);
+
+  for(uint32_t c = 0; c < x.columns; c++)
+    x.value.fv[c] = x.value.fv[c] < edge.value.fv[c] ? 0.0f : 1.0f;
+
+  return x;
+}
+
+ShaderVariable SmoothStep(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(3);
+
+  ShaderVariable edge0 = state.GetSrc(params[0]);
+  ShaderVariable edge1 = state.GetSrc(params[1]);
+  ShaderVariable x = state.GetSrc(params[2]);
+
+  for(uint32_t c = 0; c < x.columns; c++)
+  {
+    const float edge0f = edge0.value.fv[c];
+    const float edge1f = edge1.value.fv[c];
+    const float xf = x.value.fv[c];
+
+    const float t = GLSLMin(GLSLMax((xf - edge0f) / (edge1f - edge0f), 0.0f), 1.0f);
+
+    x.value.fv[c] = t * t * (3 - 2 * t);
+  }
+
+  return x;
+}
+
+ShaderVariable Ldexp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(2);
+
+  ShaderVariable x = state.GetSrc(params[0]);
+  ShaderVariable exp = state.GetSrc(params[1]);
+
+  for(uint8_t c = 0; c < x.columns; c++)
+    x.value.fv[c] = ldexpf(x.value.fv[c], exp.value.iv[c]);
+
+  return x;
+}
+
 ShaderVariable Cross(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
@@ -423,6 +471,44 @@ ShaderVariable Cross(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   var.value.fv[2] = x.value.fv[0] * y.value.fv[1] - y.value.fv[0] * x.value.fv[1];
 
   return var;
+}
+
+ShaderVariable FaceForward(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(3);
+
+  ShaderVariable N = state.GetSrc(params[0]);
+  ShaderVariable I = state.GetSrc(params[1]);
+  ShaderVariable Nref = state.GetSrc(params[1]);
+
+  float dot = 0;
+  for(uint8_t c = 0; c < Nref.columns; c++)
+    dot += Nref.value.fv[c] * I.value.fv[c];
+
+  if(dot >= 0.0f)
+  {
+    for(uint8_t c = 0; c < Nref.columns; c++)
+      N.value.fv[c] = -N.value.fv[c];
+  }
+
+  return N;
+}
+
+ShaderVariable Reflect(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(2);
+
+  ShaderVariable I = state.GetSrc(params[0]);
+  ShaderVariable N = state.GetSrc(params[1]);
+
+  float dot = 0;
+  for(uint8_t c = 0; c < N.columns; c++)
+    dot += N.value.fv[c] * I.value.fv[c];
+
+  for(uint8_t c = 0; c < N.columns; c++)
+    N.value.fv[c] = I.value.fv[c] - 2.0f * dot * N.value.fv[c];
+
+  return N;
 }
 
 static float GLSLNMax(float x, float y)
@@ -541,7 +627,12 @@ void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
   EXT(UClamp);
   EXT(SClamp);
   EXT(FMix);
+  EXT(Step);
+  EXT(SmoothStep);
+  EXT(Ldexp);
   EXT(Cross);
+  EXT(FaceForward);
+  EXT(Reflect);
   EXT(NMin);
   EXT(NMax);
   EXT(NClamp);
@@ -572,6 +663,7 @@ void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
   GPU_EXT(Log2)
   GPU_EXT(Sqrt)
   GPU_EXT(InverseSqrt)
+  GPU_EXT(Fma)
   GPU_EXT(Length);
   GPU_EXT(Distance);
   GPU_EXT(Normalize);

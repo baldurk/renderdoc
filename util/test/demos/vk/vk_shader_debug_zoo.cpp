@@ -478,6 +478,8 @@ void main()
       Color = fwidthCoarse(vec4(inpos, inposIncreased));
       break;
     }
+)EOSHADER"
+                   R"EOSHADER(
     case 51:
     {
       Color = fwidthFine(vec4(inpos, inposIncreased));
@@ -696,6 +698,61 @@ void main()
       vec4 a = vec4(posone*2.4f, posone*2.5f, posone*2.6f, posone*2.7f);
       vec4 b = vec4(zerof+2.5f, zerof+2.5f, zerof+2.5f, zerof+2.5f);
       Color = refract(a, b, zerof+3.1f);
+      break;
+    }
+    case 89:
+    {
+      Color = vec4(fma(zerof+2.4f, posone*0.1f, posone*8.3f),
+                   fma(zerof+2.4f, posone*0.0f, posone*8.3f),
+                   fma(zerof+3.675f, posone*9.703f, posone*1.45f),
+                   ((zerof+3.675f) * (posone*9.703f)) + posone*1.45f);
+      break;
+    }
+    case 90:
+    {
+      Color = vec4(step(posone*2.6f, zerof+2.4f),
+                   step(posone*2.6f, zerof+2.5f),
+                   step(posone*2.6f, zerof+2.6f),
+                   step(posone*2.6f, zerof+2.7f));
+      break;
+    }
+    case 91:
+    {
+      Color = vec4(smoothstep(posone*2.0f, posone*2.6f, zerof+1.9f),
+                   smoothstep(posone*2.0f, posone*2.6f, zerof+2.0f),
+                   smoothstep(posone*2.0f, posone*2.6f, zerof+2.1f),
+                   smoothstep(posone*2.0f, posone*2.6f, zerof+2.3f));
+      break;
+    }
+    case 92:
+    {
+      Color = vec4(smoothstep(posone*2.0f, posone*2.6f, zerof+2.4f),
+                   smoothstep(posone*2.0f, posone*2.6f, zerof+2.5f),
+                   smoothstep(posone*2.0f, posone*2.6f, zerof+2.6f),
+                   smoothstep(posone*2.0f, posone*2.6f, zerof+2.8f));
+      break;
+    }
+    case 93:
+    {
+      vec4 N = vec4(posone*1.4f, posone*2.8f, posone*5.6f, posone*4.4f);
+      vec4 I = vec4(posone*3.7f, posone*2.2f, posone*6.1f, posone*9.5f);
+      vec4 Nref = vec4(posone*6.4f, posone*7.5f, posone*8.3f, posone*0.9f);
+      Color = faceforward(N, I, Nref);
+      break;
+    }
+    case 94:
+    {
+      vec4 N = vec4(posone*1.4f, posone*2.8f, posone*5.6f, posone*4.4f);
+      vec4 I = vec4(posone*3.7f, posone*2.2f, posone*6.1f, posone*9.5f);
+      Color = reflect(N, I);
+      break;
+    }
+    case 95:
+    {
+      Color = vec4(ldexp(posone*1.4f, zeroi-3),
+                   ldexp(posone*2.8f, zeroi+0),
+                   ldexp(posone*5.6f, zeroi+3),
+                   ldexp(posone*4.4f, zeroi+7));
       break;
     }
     default: break;
