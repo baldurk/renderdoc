@@ -177,6 +177,9 @@ struct ThreadState
   // thread-local inputs/outputs. This array does not change over the course of debugging
   rdcarray<ShaderVariable> inputs, outputs;
 
+  // thread-local private variables
+  rdcarray<ShaderVariable> privates;
+
   // every ID's variable, if a pointer it may be pointing at a ShaderVariable stored elsewhere
   DenseIdMap<ShaderVariable> ids;
 

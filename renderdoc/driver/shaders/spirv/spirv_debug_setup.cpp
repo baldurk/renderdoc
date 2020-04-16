@@ -412,7 +412,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
   MakeSignatureNames(patchData.inputs, inputSigNames);
   MakeSignatureNames(patchData.outputs, outputSigNames);
 
-  rdcarray<Id> inputIDs, outputIDs, cbufferIDs, readOnlyIDs, readWriteIDs, samplerIDs;
+  rdcarray<Id> inputIDs, outputIDs, cbufferIDs, readOnlyIDs, readWriteIDs, samplerIDs, privateIDs;
 
   // allocate storage for globals with opaque storage classes, and prepare to set up pointers to
   // them for the global variables themselves
@@ -622,6 +622,26 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
       globalSourceVars.push_back(sourceVar);
     }
+    else if(v.storage == StorageClass::Private)
+    {
+      // private variables are allocated as globals the same as outputs
+      ShaderVariable var;
+      var.name = GetRawName(v.id);
+
+      rdcstr sourceName = GetHumanName(v.id);
+
+      const DataType &type = dataTypes[v.type];
+
+      // global variables should all be pointers into opaque storage
+      RDCASSERT(type.type == DataType::PointerType);
+
+      // fill the interface variable
+      AllocateVariable(decorations[v.id], decorations[v.id], DebugVariableType::Variable,
+                       sourceName, decorations[v.id].location, dataTypes[type.InnerType()], var);
+
+      active.privates.push_back(var);
+      privateIDs.push_back(v.id);
+    }
     else
     {
       RDCERR("Unhandled type of global variable: %s", ToStr(v.storage).c_str());
@@ -629,6 +649,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
   }
 
   std::sort(outputIDs.begin(), outputIDs.end());
+  std::sort(privateIDs.begin(), privateIDs.end());
 
   for(uint32_t i = 0; i < workgroupSize; i++)
   {
@@ -638,6 +659,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       lane.nextInstruction = active.nextInstruction;
       lane.inputs = active.inputs;
       lane.outputs = active.outputs;
+      lane.privates = active.privates;
       lane.ids = active.ids;
       // mark as inactive/helper lane
       lane.helperInvocation = true;
@@ -656,10 +678,13 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       lane.ids[readWriteIDs[i]] = MakePointerVariable(readWriteIDs[i], &global.readWriteResources[i]);
     for(size_t i = 0; i < global.samplers.size(); i++)
       lane.ids[samplerIDs[i]] = MakePointerVariable(samplerIDs[i], &global.samplers[i]);
+    for(size_t i = 0; i < lane.privates.size(); i++)
+      lane.ids[privateIDs[i]] = MakePointerVariable(privateIDs[i], &lane.privates[i]);
   }
 
-  // only outputs are considered mutable
+  // only outputs and privates are considered mutable
   liveGlobals.append(outputIDs);
+  liveGlobals.append(privateIDs);
 
   for(size_t i = 0; i < globalSourceVars.size();)
   {
@@ -680,6 +705,20 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
   for(size_t o = 0; o < outputIDs.size(); o++)
   {
     rdcstr varName = GetRawName(outputIDs[o]);
+
+    for(size_t i = 0; i < globalSourceVars.size(); i++)
+    {
+      if(!globalSourceVars[i].variables.empty() && globalSourceVars[i].variables[0].name == varName)
+      {
+        ret->sourceVars.push_back(globalSourceVars[i]);
+        break;
+      }
+    }
+  }
+
+  for(size_t o = 0; o < privateIDs.size(); o++)
+  {
+    rdcstr varName = GetRawName(privateIDs[o]);
 
     for(size_t i = 0; i < globalSourceVars.size(); i++)
     {
