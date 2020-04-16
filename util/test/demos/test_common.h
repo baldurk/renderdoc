@@ -57,6 +57,7 @@ enum class SPIRVTarget
   opengl,
   vulkan,
   vulkan11,
+  vulkan12,
 };
 enum class ShaderLang
 {

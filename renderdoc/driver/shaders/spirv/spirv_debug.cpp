@@ -469,6 +469,18 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       break;
     }
+    case Op::CopyMemory:
+    {
+      OpCopyMemory copy(it);
+
+      // ignore
+      (void)copy.memoryAccess0;
+      (void)copy.memoryAccess1;
+
+      WritePointerValue(copy.target, debugger.EvaluatePointerVariable(GetSrc(copy.source)));
+
+      break;
+    }
     case Op::AccessChain:
     case Op::InBoundsAccessChain:
     {
@@ -1917,6 +1929,12 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     //
     //////////////////////////////////////////////////////////////////////////////
 
+    case Op::MemoryBarrier:
+    case Op::ControlBarrier:
+    {
+      // do nothing for now
+      break;
+    }
     case Op::Label:
     case Op::SelectionMerge:
     case Op::LoopMerge:
@@ -1991,6 +2009,16 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     //
     //////////////////////////////////////////////////////////////////////////////
 
+    case Op::CopyObject:
+    case Op::CopyLogical:
+    {
+      // for our purposes differences in offset/decoration between types doesn't matter, so we can
+      // implement these two the same.
+      OpCopyObject copy(it);
+
+      SetDst(copy.result, GetSrc(copy.operand));
+      break;
+    }
     case Op::ReadClockKHR:
     {
       const DataType &resultType = debugger.GetType(opdata.resultType);

@@ -1518,6 +1518,26 @@ void main()
         "%_w = OpConvertFToS %int %float_dyn_neg1_5\n"
         "%_out_int4 = OpCompositeConstruct %int4 %_x %_y %_z %_w\n",
     });
+
+    // test copies
+    append_tests({
+        "OpCopyMemory %Color %gl_FragCoord\n"
+        "; no_out\n",
+
+        "%frag = OpLoad %float4 %gl_FragCoord\n"
+        "%_out_float4 = OpCopyObject %float4 %frag\n",
+    });
+
+    // disabled while shaderc has a bug that doesn't respect the target environment
+    /*
+    if(vk_version >= 0x12)
+    {
+      append_tests({
+          "%frag = OpLoad %float4 %gl_FragCoord\n"
+          "%_out_float4 = OpCopyLogical %float4 %frag\n",
+      });
+    }
+    */
   }
 
   std::string make_pixel_asm()
@@ -1659,6 +1679,8 @@ void main()
       cases += test;
       cases += "\n";
 
+      bool store_out = true;
+
       if(test.find("%_out_float4") != std::string::npos)
       {
         // if the test outputted a float4, we can dump it directly
@@ -1734,12 +1756,17 @@ void main()
         {
           cases += fmt::format("%Color_{0} = OpConvertUToF %float4 %_out_uint4_{0}\n", i);
         }
+        else if(test.find("; no_out") != std::string::npos)
+        {
+          store_out = false;
+        }
         else
         {
           TEST_FATAL("Test with no recognised output");
         }
 
-        cases += fmt::format("OpStore %Color %Color_{}\n", i);
+        if(store_out)
+          cases += fmt::format("OpStore %Color %Color_{}\n", i);
       }
 
       cases += "OpBranch %break\n";
@@ -1964,6 +1991,23 @@ void main()
     return ret;
   }
 
+  uint32_t vk_version = 0x10;
+
+  void Prepare(int argc, char **argv)
+  {
+    optDevExts.push_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
+
+    VulkanGraphicsTest::Prepare(argc, argv);
+
+    vk_version = 0x10;
+
+    if(physProperties.apiVersion >= VK_MAKE_VERSION(1, 1, 0))
+      vk_version = 0x11;
+
+    if(physProperties.apiVersion >= VK_MAKE_VERSION(1, 2, 0))
+      vk_version = 0x12;
+  }
+
   int main()
   {
     // initialise, create window, create context, etc
@@ -2043,8 +2087,15 @@ void main()
 
     VkPipeline glslpipe = createGraphicsPipeline(pipeCreateInfo);
 
-    pipeCreateInfo.stages[1] =
-        CompileShaderModule(make_pixel_asm(), ShaderLang::spvasm, ShaderStage::frag, "main");
+    SPIRVTarget target = SPIRVTarget::vulkan;
+
+    if(vk_version >= 0x11)
+      target = SPIRVTarget::vulkan11;
+    if(vk_version >= 0x12)
+      target = SPIRVTarget::vulkan12;
+
+    pipeCreateInfo.stages[1] = CompileShaderModule(make_pixel_asm(), ShaderLang::spvasm,
+                                                   ShaderStage::frag, "main", {}, target);
 
     VkPipeline asmpipe = createGraphicsPipeline(pipeCreateInfo);
 

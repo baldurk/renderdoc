@@ -278,6 +278,9 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
     else if(target == SPIRVTarget::vulkan11)
       shaderc_compile_options_set_target_env(opts, shaderc_target_env_vulkan,
                                              shaderc_env_version_vulkan_1_1);
+    else if(target == SPIRVTarget::vulkan12)
+      shaderc_compile_options_set_target_env(opts, shaderc_target_env_vulkan,
+                                             shaderc_env_version_vulkan_1_2);
 
     for(auto it : macros)
       shaderc_compile_options_add_macro_definition(opts, it.first.c_str(), it.first.length(),
@@ -363,6 +366,8 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
       command_line += " --target-env=opengl";
     else if(target == SPIRVTarget::vulkan11)
       command_line += " --target-env=vulkan1.1";
+    else if(target == SPIRVTarget::vulkan12)
+      command_line += " --target-env=vulkan1.2";
 
     command_line += " -o ";
     command_line += outfile;
@@ -401,6 +406,8 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
       command_line += " -G --target-env opengl";
     else if(target == SPIRVTarget::vulkan11)
       command_line += " -V --target-env vulkan1.1";
+    else if(target == SPIRVTarget::vulkan12)
+      command_line += " -V --target-env vulkan1.2";
     else if(target == SPIRVTarget::vulkan)
       command_line += " -V --target-env vulkan1.0";
 
