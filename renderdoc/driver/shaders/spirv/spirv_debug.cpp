@@ -1414,6 +1414,92 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       SetDst(math.result, var);
       break;
     }
+    // extended math ops
+    case Op::UMulExtended:
+    case Op::SMulExtended:
+    case Op::IAddCarry:
+    case Op::ISubBorrow:
+    {
+      OpUMulExtended math(it);
+
+      ShaderVariable a = GetSrc(math.operand1);
+      ShaderVariable b = GetSrc(math.operand2);
+
+      ShaderVariable lsb = a;
+      ShaderVariable msb = a;
+
+      if(opdata.op == Op::UMulExtended)
+      {
+        // if this is less than 64-bit precision inputs, we can just upcast, do the mul, and then
+        // mask off the bits we care about
+        if(VarTypeByteSize(a.type) < 8)
+        {
+          for(uint8_t c = 0; c < a.columns; c++)
+          {
+            const uint64_t x = a.value.uv[c];
+            const uint64_t y = b.value.uv[c];
+            const uint64_t res = x * y;
+
+            lsb.value.uv[c] = uint32_t(res & 0xFFFFFFFFu);
+            msb.value.uv[c] = uint32_t(res >> 32);
+          }
+        }
+      }
+      else if(opdata.op == Op::SMulExtended)
+      {
+        if(VarTypeByteSize(a.type) < 8)
+        {
+          for(uint8_t c = 0; c < a.columns; c++)
+          {
+            const int64_t x = a.value.iv[c];
+            const int64_t y = b.value.iv[c];
+            const int64_t res = x * y;
+
+            lsb.value.iv[c] = int32_t(res & 0xFFFFFFFFu);
+            msb.value.iv[c] = int32_t(res >> 32);
+          }
+        }
+      }
+      else if(opdata.op == Op::IAddCarry)
+      {
+        for(uint8_t c = 0; c < a.columns; c++)
+        {
+          // unsigned overflow is well-defined to wrap around, giving us the lsb we want.
+          lsb.value.uv[c] = a.value.uv[c] + b.value.uv[c];
+          // if the result is less than one of the operands, we overflowed so set msb
+          msb.value.uv[c] = (lsb.value.uv[c] < b.value.uv[c]) ? 1 : 0;
+        }
+      }
+      else if(opdata.op == Op::ISubBorrow)
+      {
+        for(uint8_t c = 0; c < a.columns; c++)
+        {
+          // if b <= a we don't need to borrow
+          if(b.value.uv[c] <= a.value.uv[c])
+          {
+            msb.value.uv[c] = 0;
+            lsb.value.uv[c] = a.value.uv[c] - b.value.uv[c];
+          }
+          else
+          {
+            // otherwise set borrow bit
+            msb.value.uv[c] = 1;
+            lsb.value.uv[c] = 0xFFFFFFFFu - (b.value.uv[c] - a.value.uv[c] - 1);
+          }
+        }
+      }
+
+      ShaderVariable result;
+      result.rows = 1;
+      result.columns = 1;
+      result.isStruct = true;
+      result.members = {lsb, msb};
+      result.members[0].name = "_child0";
+      result.members[1].name = "_child1";
+
+      SetDst(math.result, result);
+      break;
+    }
     case Op::FNegate:
     case Op::SNegate:
     {

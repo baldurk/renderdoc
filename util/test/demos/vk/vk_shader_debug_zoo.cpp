@@ -755,6 +755,98 @@ void main()
                    ldexp(posone*4.4f, zeroi+7));
       break;
     }
+    case 96:
+    {
+      uint a = zerou + 0xb0b0b0b0;
+      uint b = zerou + 0x12345678;
+
+      // add and sub with no carry/borrow
+      uint y;
+      uint x = uaddCarry(a, b, y);
+      uint w;
+      uint z = usubBorrow(a, b, w);
+
+      Color = vec4(float(x), float(y), float(z), float(w));
+      break;
+    }
+    case 97:
+    {
+      uint a = zerou + 0xb0b0b0b0;
+      uint b = zerou + 0xdeadbeef;
+
+      // add and sub with carry/borrow
+      uint y;
+      uint x = uaddCarry(a, b, y);
+      uint w;
+      uint z = usubBorrow(a, b, w);
+
+      Color = vec4(float(x), float(y), float(z), float(w));
+      break;
+    }
+    case 98:
+    {
+      uint a = zerou + 0xb0b0b0b0;
+      uint b = zerou + 0xdeadbeef;
+
+      // add and sub with carry/borrow
+      uint y;
+      uint x = uaddCarry(a, b, y);
+      uint w;
+      uint z = usubBorrow(a, b, w);
+
+      Color = vec4(float(x), float(y), float(z), float(w));
+      break;
+    }
+    case 99:
+    {
+      uint a = zerou + 0x1234;
+      uint b = zerou + 0x5678;
+      int c = zeroi + 0x1234;
+      int d = zeroi + 0x5678;
+
+      // positive mul with no overflow
+      uint x, y;
+      umulExtended(a, b, y, x);
+      int z, w;
+      imulExtended(c, d, w, z);
+
+      Color = vec4(float(x), float(y), float(z), float(w));
+      break;
+    }
+    case 100:
+    {
+      uint a = zerou + 0x123456;
+      uint b = zerou + 0x78abcd;
+      int c = zeroi + 0x123456;
+      int d = zeroi + 0x78abcd;
+
+      // positive mul with overflow
+      uint x, y;
+      umulExtended(a, b, y, x);
+      int z, w;
+      imulExtended(c, d, w, z);
+
+      Color = vec4(float(x), float(y), float(z), float(w));
+      break;
+    }
+    case 101:
+    {
+      int a = zeroi - 0x1234;
+      int b = zeroi - 0x5678;
+      int c = zeroi - 0x123456;
+      int d = zeroi - 0x78abcd;
+
+      // negative mul with and without overflow
+      int x, y;
+      imulExtended(a, b, y, x);
+      int z, w;
+      imulExtended(c, d, w, z);
+
+      Color = vec4(float(x), float(y), float(z), float(w));
+      break;
+    }
+)EOSHADER"
+                   R"EOSHADER(
     default: break;
   }
 }
