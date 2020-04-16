@@ -86,7 +86,7 @@ void ThreadState::FillCallstack(ShaderDebugState &state)
     state.callstack.push_back(debugger.GetHumanName(frame->function));
 }
 
-void ThreadState::EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arguments)
+void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
 {
   Iter it = debugger.GetIterForInstruction(nextInstruction);
 
@@ -107,8 +107,7 @@ void ThreadState::EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arg
   live = debugger.GetLiveGlobals();
   sourceVars = debugger.GetGlobalSourceVars();
   // process the outgoing scope
-  if(state)
-    ProcessScopeChange(*state, frame->live, live);
+  ProcessScopeChange(frame->live, live);
 
   callstack.push_back(frame);
 
@@ -126,7 +125,7 @@ void ThreadState::EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arg
       // copied in and points to whatever storage that is.
       // That means we don't have to allocate anything here, we just set up the ID and copy the
       // value from the argument
-      SetDst(state, param.result, ids[arguments[arg]]);
+      SetDst(param.result, ids[arguments[arg]]);
     }
     else
     {
@@ -170,7 +169,7 @@ void ThreadState::EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arg
     if(decl.HasInitializer())
       AssignValue(stackvar, ids[decl.initializer]);
 
-    SetDst(state, decl.result, debugger.MakePointerVariable(decl.result, &stackvar));
+    SetDst(decl.result, debugger.MakePointerVariable(decl.result, &stackvar));
 
     it++;
     i++;
@@ -185,10 +184,75 @@ const ShaderVariable &ThreadState::GetSrc(Id id) const
   return ids[id];
 }
 
-void ThreadState::SetDst(ShaderDebugState *state, Id id, const ShaderVariable &val)
+void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
 {
-  if(state && ContainsNaNInf(val))
-    state->flags |= ShaderEvents::GeneratedNanOrInf;
+  RDCASSERT(ids[pointer].type == VarType::GPUPointer);
+
+  // this is the only place we don't use SetDst because it's the only place that "violates" SSA
+  // i.e. changes an existing value. That way SetDst can always unconditionally assign values,
+  // and only here do we write through pointers
+
+  if(!m_State)
+  {
+    debugger.WriteThroughPointer(ids[pointer], val);
+  }
+  else
+  {
+    ShaderVariable &var = ids[pointer];
+
+    if(ContainsNaNInf(val))
+      m_State->flags |= ShaderEvents::GeneratedNanOrInf;
+
+    // if var is a pointer we update the underlying storage and generate at least one change,
+    // plus any additional ones for other pointers.
+    Id ptrid = debugger.GetPointerBaseId(var);
+
+    rdcarray<ShaderVariableChange> changes;
+    ShaderVariableChange basechange;
+    basechange.before = debugger.EvaluatePointerVariable(ids[ptrid]);
+
+    rdcarray<Id> &pointers = pointersForId[ptrid];
+
+    changes.resize(pointers.size());
+
+    // for every other pointer, evaluate its value now before
+    for(size_t i = 0; i < pointers.size(); i++)
+      changes[i].before = debugger.EvaluatePointerVariable(ids[pointers[i]]);
+
+    debugger.WriteThroughPointer(var, val);
+
+    // now evaluate the value after
+    for(size_t i = 0; i < pointers.size(); i++)
+      changes[i].after = debugger.EvaluatePointerVariable(ids[pointers[i]]);
+
+    // if the pointer we're writing is one of the aliased pointers, be sure we add it even if
+    // it's a no-op change
+    int ptrIdx = pointers.indexOf(pointer);
+
+    if(ptrIdx >= 0)
+    {
+      m_State->changes.push_back(changes[ptrIdx]);
+      changes.erase(ptrIdx);
+    }
+
+    // remove any no-op changes. Some pointers might point to the same ID but a child that
+    // wasn't written to. Note that this might not actually mean nothing was changed (if e.g.
+    // we're assigning the same value) but that false negative is not a concern.
+    changes.removeIf([](const ShaderVariableChange &c) { return c.before == c.after; });
+
+    m_State->changes.append(changes);
+
+    // always add a change for the base storage variable written itself, even if that's a no-op.
+    // This one is not included in any of the pointers lists above
+    basechange.after = debugger.EvaluatePointerVariable(ids[ptrid]);
+    m_State->changes.push_back(basechange);
+  }
+}
+
+void ThreadState::SetDst(Id id, const ShaderVariable &val)
+{
+  if(m_State && ContainsNaNInf(val))
+    m_State->flags |= ShaderEvents::GeneratedNanOrInf;
 
   ids[id] = val;
   ids[id].name = debugger.GetRawName(id);
@@ -196,19 +260,22 @@ void ThreadState::SetDst(ShaderDebugState *state, Id id, const ShaderVariable &v
   auto it = std::lower_bound(live.begin(), live.end(), id);
   live.insert(it - live.begin(), id);
 
-  if(state)
+  if(m_State)
   {
     ShaderVariableChange change;
     change.after = debugger.EvaluatePointerVariable(ids[id]);
-    state->changes.push_back(change);
+    m_State->changes.push_back(change);
 
     debugger.AddSourceVars(sourceVars, id);
   }
 }
 
-void ThreadState::ProcessScopeChange(ShaderDebugState &state, const rdcarray<Id> &oldLive,
-                                     const rdcarray<Id> &newLive)
+void ThreadState::ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray<Id> &newLive)
 {
+  // nothing to do if we aren't tracking into a state
+  if(!m_State)
+    return;
+
   // all oldLive (except globals) are going out of scope. all newLive (except globals) are coming
   // into scope
 
@@ -219,7 +286,7 @@ void ThreadState::ProcessScopeChange(ShaderDebugState &state, const rdcarray<Id>
     if(liveGlobals.contains(id))
       continue;
 
-    state.changes.push_back({debugger.EvaluatePointerVariable(ids[id])});
+    m_State->changes.push_back({debugger.EvaluatePointerVariable(ids[id])});
   }
 
   for(const Id id : newLive)
@@ -227,7 +294,7 @@ void ThreadState::ProcessScopeChange(ShaderDebugState &state, const rdcarray<Id>
     if(liveGlobals.contains(id))
       continue;
 
-    state.changes.push_back({ShaderVariable(), debugger.EvaluatePointerVariable(ids[id])});
+    m_State->changes.push_back({ShaderVariable(), debugger.EvaluatePointerVariable(ids[id])});
   }
 }
 
@@ -346,6 +413,8 @@ void ThreadState::JumpToLabel(Id target)
 
 void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> &workgroup)
 {
+  m_State = state;
+
   Iter it = debugger.GetIterForInstruction(nextInstruction);
   nextInstruction++;
 
@@ -384,7 +453,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       (void)load.memoryAccess;
 
       // get the pointer value, evaluate it (i.e. dereference) and store the result
-      SetDst(state, load.result, debugger.EvaluatePointerVariable(GetSrc(load.pointer)));
+      SetDst(load.result, debugger.EvaluatePointerVariable(GetSrc(load.pointer)));
 
       break;
     }
@@ -395,69 +464,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       // ignore
       (void)store.memoryAccess;
 
-      RDCASSERT(ids[store.pointer].type == VarType::GPUPointer);
-
-      // this is the only place we don't use SetDst because it's the only place that "violates" SSA
-      // i.e. changes an existing value. That way SetDst can always unconditionally assign values,
-      // and only here do we write through pointers
-
-      ShaderVariable val = GetSrc(store.object);
-
-      if(!state)
-      {
-        debugger.WriteThroughPointer(ids[store.pointer], val);
-      }
-      else
-      {
-        ShaderVariable &var = ids[store.pointer];
-
-        if(ContainsNaNInf(val))
-          state->flags |= ShaderEvents::GeneratedNanOrInf;
-
-        // if var is a pointer we update the underlying storage and generate at least one change,
-        // plus any additional ones for other pointers.
-        Id ptrid = debugger.GetPointerBaseId(var);
-
-        rdcarray<ShaderVariableChange> changes;
-        ShaderVariableChange basechange;
-        basechange.before = debugger.EvaluatePointerVariable(ids[ptrid]);
-
-        rdcarray<Id> &pointers = pointersForId[ptrid];
-
-        changes.resize(pointers.size());
-
-        // for every other pointer, evaluate its value now before
-        for(size_t i = 0; i < pointers.size(); i++)
-          changes[i].before = debugger.EvaluatePointerVariable(ids[pointers[i]]);
-
-        debugger.WriteThroughPointer(var, val);
-
-        // now evaluate the value after
-        for(size_t i = 0; i < pointers.size(); i++)
-          changes[i].after = debugger.EvaluatePointerVariable(ids[pointers[i]]);
-
-        // if the pointer we're writing is one of the aliased pointers, be sure we add it even if
-        // it's a no-op change
-        int ptrIdx = pointers.indexOf(store.pointer);
-
-        if(ptrIdx >= 0)
-        {
-          state->changes.push_back(changes[ptrIdx]);
-          changes.erase(ptrIdx);
-        }
-
-        // remove any no-op changes. Some pointers might point to the same ID but a child that
-        // wasn't written to. Note that this might not actually mean nothing was changed (if e.g.
-        // we're assigning the same value) but that false negative is not a concern.
-        changes.removeIf([](const ShaderVariableChange &c) { return c.before == c.after; });
-
-        state->changes.append(changes);
-
-        // always add a change for the base storage variable written itself, even if that's a no-op.
-        // This one is not included in any of the pointers lists above
-        basechange.after = debugger.EvaluatePointerVariable(ids[ptrid]);
-        state->changes.push_back(basechange);
-      }
+      WritePointerValue(store.pointer, GetSrc(store.object));
 
       break;
     }
@@ -473,8 +480,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(Id id : chain.indexes)
         indices.push_back(GetSrc(id).value.u.x);
 
-      SetDst(state, chain.result,
-             debugger.MakeCompositePointer(ids[chain.base], chain.base, indices));
+      SetDst(chain.result, debugger.MakeCompositePointer(ids[chain.base], chain.base, indices));
 
       break;
     }
@@ -506,7 +512,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       if(opdata.op == Op::DPdxFine || opdata.op == Op::DPdyFine)
         type = Fine;
 
-      SetDst(state, deriv.result, CalcDeriv(dir, type, workgroup, deriv.p));
+      SetDst(deriv.result, CalcDeriv(dir, type, workgroup, deriv.p));
 
       break;
     }
@@ -527,7 +533,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(uint32_t c = 0; c < var.columns; c++)
         var.value.fv[c] = fabsf(var.value.fv[c]) + fabsf(ddy.value.fv[c]);
 
-      SetDst(state, deriv.result, var);
+      SetDst(deriv.result, var);
 
       break;
     }
@@ -548,7 +554,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
           debugger.MakeCompositePointer(ids[extract.composite], extract.composite, extract.indexes);
 
       // then evaluate it, to get the extracted value
-      SetDst(state, extract.result, debugger.EvaluatePointerVariable(ptr));
+      SetDst(extract.result, debugger.EvaluatePointerVariable(ptr));
 
       break;
     }
@@ -615,7 +621,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       }
 
       // then evaluate it, to get the extracted value
-      SetDst(state, insert.result, var);
+      SetDst(insert.result, var);
 
       break;
     }
@@ -695,7 +701,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         }
       }
 
-      SetDst(state, construct.result, var);
+      SetDst(construct.result, var);
 
       break;
     }
@@ -723,7 +729,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
           var.value.uv[i] = src2.value.uv[c - 4];
       }
 
-      SetDst(state, shuffle.result, var);
+      SetDst(shuffle.result, var);
 
       break;
     }
@@ -744,7 +750,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       // result is now scalar
       var.columns = 1;
 
-      SetDst(state, extract.result, var);
+      SetDst(extract.result, var);
       break;
     }
     case Op::VectorInsertDynamic:
@@ -762,7 +768,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       else
         var.value.uv[comp] = scalar.value.uv[0];
 
-      SetDst(state, insert.result, var);
+      SetDst(insert.result, var);
       break;
     }
     case Op::Select:
@@ -794,7 +800,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         }
       }
 
-      SetDst(state, select.result, var);
+      SetDst(select.result, var);
 
       break;
     }
@@ -839,7 +845,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         var.type = VarType::Float;
       }
 
-      SetDst(state, conv.result, var);
+      SetDst(conv.result, var);
       break;
     }
     case Op::Bitcast:
@@ -896,7 +902,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         }
       }
 
-      SetDst(state, cast.result, var);
+      SetDst(cast.result, var);
       break;
     }
 
@@ -943,7 +949,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(size_t i = 5; i < it.size(); i++)
         params.push_back(Id::fromWord(it.word(i)));
 
-      SetDst(state, result, dispatch.functions[instruction](*this, instruction, params));
+      SetDst(result, dispatch.functions[instruction](*this, instruction, params));
       break;
     }
 
@@ -1124,7 +1130,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       // TODO we should add a bool type
       var.type = VarType::UInt;
 
-      SetDst(state, comp.result, var);
+      SetDst(comp.result, var);
       break;
     }
     case Op::LogicalNot:
@@ -1136,7 +1142,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(uint8_t c = 0; c < var.columns; c++)
         var.value.uv[c] = 1U - var.value.uv[c];
 
-      SetDst(state, negate.result, var);
+      SetDst(negate.result, var);
       break;
     }
     case Op::Any:
@@ -1156,7 +1162,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       var.columns = 1;
 
-      SetDst(state, any.result, var);
+      SetDst(any.result, var);
       break;
     }
     case Op::IsNan:
@@ -1171,7 +1177,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       // TODO we should add a bool type
       var.type = VarType::UInt;
 
-      SetDst(state, is.result, var);
+      SetDst(is.result, var);
       break;
     }
     case Op::IsInf:
@@ -1186,7 +1192,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       // TODO we should add a bool type
       var.type = VarType::UInt;
 
-      SetDst(state, is.result, var);
+      SetDst(is.result, var);
       break;
     }
 
@@ -1239,7 +1245,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
           var.value.uv[c] = var.value.uv[c] >> b.value.uv[c];
       }
 
-      SetDst(state, bitwise.result, var);
+      SetDst(bitwise.result, var);
       break;
     }
     case Op::Not:
@@ -1251,7 +1257,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(uint8_t c = 0; c < var.columns; c++)
         var.value.uv[c] = ~var.value.uv[c];
 
-      SetDst(state, bitwise.result, var);
+      SetDst(bitwise.result, var);
       break;
     }
 
@@ -1341,8 +1347,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
           else
           {
             var.value.uv[c] = ~0U;
-            if(state)
-              state->flags |= ShaderEvents::GeneratedNanOrInf;
+            if(m_State)
+              m_State->flags |= ShaderEvents::GeneratedNanOrInf;
           }
         }
       }
@@ -1357,8 +1363,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
           else
           {
             var.value.uv[c] = ~0U;
-            if(state)
-              state->flags |= ShaderEvents::GeneratedNanOrInf;
+            if(m_State)
+              m_State->flags |= ShaderEvents::GeneratedNanOrInf;
           }
         }
       }
@@ -1373,8 +1379,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
           else
           {
             var.value.uv[c] = ~0U;
-            if(state)
-              state->flags |= ShaderEvents::GeneratedNanOrInf;
+            if(m_State)
+              m_State->flags |= ShaderEvents::GeneratedNanOrInf;
           }
         }
       }
@@ -1389,8 +1395,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
           else
           {
             var.value.uv[c] = ~0U;
-            if(state)
-              state->flags |= ShaderEvents::GeneratedNanOrInf;
+            if(m_State)
+              m_State->flags |= ShaderEvents::GeneratedNanOrInf;
           }
         }
       }
@@ -1405,7 +1411,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
           var.value.uv[c] -= b.value.uv[c];
       }
 
-      SetDst(state, math.result, var);
+      SetDst(math.result, var);
       break;
     }
     case Op::FNegate:
@@ -1426,7 +1432,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
           var.value.iv[c] = -var.value.iv[c];
       }
 
-      SetDst(state, math.result, var);
+      SetDst(math.result, var);
       break;
     }
     case Op::Dot:
@@ -1445,7 +1451,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       var.columns = 1;
       var.value.f.x = ret;
 
-      SetDst(state, dot.result, var);
+      SetDst(dot.result, var);
       break;
     }
     case Op::VectorTimesScalar:
@@ -1458,7 +1464,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(uint8_t c = 0; c < var.columns; c++)
         var.value.fv[c] *= scalar.value.f.x;
 
-      SetDst(state, mul.result, var);
+      SetDst(mul.result, var);
       break;
     }
     case Op::MatrixTimesScalar:
@@ -1471,7 +1477,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(uint8_t c = 0; c < var.rows * var.columns; c++)
         var.value.fv[c] *= scalar.value.f.x;
 
-      SetDst(state, mul.result, var);
+      SetDst(mul.result, var);
       break;
     }
     case Op::VectorTimesMatrix:
@@ -1500,7 +1506,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         }
       }
 
-      SetDst(state, mul.result, var);
+      SetDst(mul.result, var);
       break;
     }
     case Op::Transpose:
@@ -1515,7 +1521,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         for(uint8_t c = 0; c < var.columns; c++)
           var.value.fv[r * var.columns + c] = matrix.value.fv[c * matrix.columns + r];
 
-      SetDst(state, transpose.result, var);
+      SetDst(transpose.result, var);
       break;
     }
     case Op::MatrixTimesVector:
@@ -1544,7 +1550,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         }
       }
 
-      SetDst(state, mul.result, var);
+      SetDst(mul.result, var);
       break;
     }
     case Op::MatrixTimesMatrix:
@@ -1577,7 +1583,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         }
       }
 
-      SetDst(state, mul.result, var);
+      SetDst(mul.result, var);
       break;
     }
     case Op::OuterProduct:
@@ -1599,7 +1605,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         }
       }
 
-      SetDst(state, mul.result, var);
+      SetDst(mul.result, var);
       break;
     }
 
@@ -1620,8 +1626,10 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       result.columns = 1;
       result.isStruct = true;
       result.members = {GetSrc(sampled.image), GetSrc(sampled.sampler)};
+      result.members[0].name = "_child0";
+      result.members[1].name = "_child1";
 
-      SetDst(state, opdata.result, result);
+      SetDst(opdata.result, result);
       break;
     }
     case Op::Image:
@@ -1635,7 +1643,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       if(!var.members.empty())
         var = var.members[0];
 
-      SetDst(state, image.result, var);
+      SetDst(image.result, var);
       break;
     }
     case Op::ImageFetch:
@@ -1733,7 +1741,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       result.rows = 1;
       result.columns = RDCMAX(1U, resultType.vector().count);
 
-      SetDst(state, opdata.result, result);
+      SetDst(opdata.result, result);
       break;
     }
 
@@ -1807,7 +1815,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       // we should have had a matching for the OpPhi of the block we came from
       RDCASSERT(!var.name.empty());
 
-      SetDst(state, phi.result, var);
+      SetDst(phi.result, var);
       break;
     }
 
@@ -1829,7 +1837,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       result.value.u64v[0] = global.clock;
 
-      SetDst(state, opdata.result, result);
+      SetDst(opdata.result, result);
       break;
     }
     case Op::IsHelperInvocationEXT:
@@ -1842,7 +1850,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       result.value.u.x = helperInvocation;
 
-      SetDst(state, opdata.result, result);
+      SetDst(opdata.result, result);
       break;
     }
     case Op::DemoteToHelperInvocationEXT:
@@ -1868,14 +1876,14 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         uint32_t returnInstruction = nextInstruction - 1;
         nextInstruction = debugger.GetInstructionForFunction(call.function);
 
-        EnterFunction(state, call.arguments);
+        EnterFunction(call.arguments);
 
         RDCASSERT(callstack.back()->function == call.function);
         callstack.back()->funcCallInstruction = returnInstruction;
       }
       else
       {
-        SetDst(state, call.result, returnValue);
+        SetDst(call.result, returnValue);
         returnValue.name.clear();
       }
       break;
@@ -1925,8 +1933,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         nextInstruction = exitingFrame->funcCallInstruction;
 
         // process the outgoing and incoming scopes
-        if(state)
-          ProcessScopeChange(*state, live, callstack.back()->live);
+        ProcessScopeChange(live, callstack.back()->live);
 
         // restore the live list from the calling frame
         live = callstack.back()->live;
@@ -1950,7 +1957,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       // in blocks. Just assign the value to itself so that it shows up as a change
       OpUndef undef(it);
 
-      SetDst(state, undef.result, GetSrc(undef.result));
+      SetDst(undef.result, GetSrc(undef.result));
 
       break;
     }
@@ -2127,7 +2134,9 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
   // set the state's next instruction (if we have one) to ours, bounded by how many
   // instructions there are
-  if(state)
-    state->nextInstruction = RDCMIN(nextInstruction, debugger.GetNumInstructions() - 1);
+  if(m_State)
+    m_State->nextInstruction = RDCMIN(nextInstruction, debugger.GetNumInstructions() - 1);
+
+  m_State = NULL;
 }
 };    // namespace rdcspv

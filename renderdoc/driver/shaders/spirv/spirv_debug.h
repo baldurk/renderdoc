@@ -148,7 +148,7 @@ struct ThreadState
   ThreadState(uint32_t workgroupIdx, Debugger &debug, const GlobalState &globalState);
   ~ThreadState();
 
-  void EnterFunction(ShaderDebugState *state, const rdcarray<Id> &arguments);
+  void EnterFunction(const rdcarray<Id> &arguments);
   void StepNext(ShaderDebugState *state, const rdcarray<ThreadState> &workgroup);
 
   enum DerivDir
@@ -204,12 +204,14 @@ struct ThreadState
   bool killed;
 
   const ShaderVariable &GetSrc(Id id) const;
+  void WritePointerValue(Id pointer, const ShaderVariable &val);
 
 private:
-  void SetDst(ShaderDebugState *state, Id id, const ShaderVariable &val);
-  void ProcessScopeChange(ShaderDebugState &state, const rdcarray<Id> &oldLive,
-                          const rdcarray<Id> &newLive);
+  void SetDst(Id id, const ShaderVariable &val);
+  void ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray<Id> &newLive);
   void JumpToLabel(Id target);
+
+  ShaderDebugState *m_State = NULL;
 };
 
 class Debugger : public Processor, public ShaderDebugger

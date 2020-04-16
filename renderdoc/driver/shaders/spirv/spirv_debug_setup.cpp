@@ -747,7 +747,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
     // we should be sitting at the entry point function prologue, step forward into the first block
     // and past any function-local variable declarations
     for(ThreadState &thread : workgroup)
-      thread.EnterFunction(NULL, {});
+      thread.EnterFunction({});
 
     ShaderDebugState initial;
 
