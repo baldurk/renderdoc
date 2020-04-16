@@ -88,10 +88,16 @@ struct Vec3i
   int32_t x, y, z;
 };
 
+struct GatherOffsets
+{
+  int32_t u0, v0, u1, v1, u2, v2, u3, v3;
+};
+
 struct ShaderDebugParameters
 {
   uint32_t operation;
   VkBool32 useGrad;
+  VkBool32 useGatherOffsets;
   ShaderDebugBind dim;
   Vec3i texel_uvw;
   int texel_lod;
@@ -104,6 +110,7 @@ struct ShaderDebugParameters
   float lod;
   float minlod;
   rdcspv::GatherChannel gatherChannel;
+  GatherOffsets gatherOffsets;
 };
 
 class VulkanAPIWrapper : public rdcspv::DebugAPIWrapper
@@ -583,6 +590,36 @@ public:
 
     params.operation = (uint32_t)opcode;
 
+    // proj opcodes have an extra q parameter
+    switch(opcode)
+    {
+      case rdcspv::Op::ImageSampleProjExplicitLod:
+      case rdcspv::Op::ImageSampleProjImplicitLod:
+      case rdcspv::Op::ImageSampleProjDrefExplicitLod:
+      case rdcspv::Op::ImageSampleProjDrefImplicitLod:
+      {
+        coords++;
+        gradCoords++;
+        break;
+      }
+      default: break;
+    }
+
+    bool useCompare = false;
+    switch(opcode)
+    {
+      case rdcspv::Op::ImageDrefGather:
+      case rdcspv::Op::ImageSampleDrefExplicitLod:
+      case rdcspv::Op::ImageSampleDrefImplicitLod:
+      case rdcspv::Op::ImageSampleProjDrefExplicitLod:
+      case rdcspv::Op::ImageSampleProjDrefImplicitLod:
+      {
+        useCompare = true;
+        break;
+      }
+      default: break;
+    }
+
     switch(opcode)
     {
       case rdcspv::Op::ImageFetch:
@@ -605,8 +642,70 @@ public:
 
         break;
       }
+      case rdcspv::Op::ImageGather:
+      case rdcspv::Op::ImageDrefGather:
+      {
+        params.uvw.x = uv.value.f.x;
+        if(coords >= 2)
+          params.uvw.y = uv.value.f.y;
+        if(coords >= 3)
+          params.uvw.z = uv.value.f.z;
+
+        if(useCompare)
+          params.compare = compare.value.f.x;
+
+        params.gatherChannel = gatherChannel;
+
+        if(operands.flags & rdcspv::ImageOperands::ConstOffsets)
+        {
+          ShaderVariable constOffsets = lane.GetSrc(operands.constOffsets);
+
+          params.useGatherOffsets = VK_TRUE;
+
+          // should be an array of ivec2
+          RDCASSERT(constOffsets.members.size() == 4);
+
+          params.gatherOffsets.u0 = constOffsets.members[0].value.i.x;
+          params.gatherOffsets.v0 = constOffsets.members[0].value.i.y;
+          params.gatherOffsets.u1 = constOffsets.members[1].value.i.x;
+          params.gatherOffsets.v1 = constOffsets.members[1].value.i.y;
+          params.gatherOffsets.u2 = constOffsets.members[1].value.i.x;
+          params.gatherOffsets.v2 = constOffsets.members[1].value.i.y;
+          params.gatherOffsets.u3 = constOffsets.members[1].value.i.x;
+          params.gatherOffsets.v3 = constOffsets.members[1].value.i.y;
+        }
+
+        params.useGatherOffsets = VK_FALSE;
+
+        if(operands.flags & rdcspv::ImageOperands::ConstOffset)
+        {
+          ShaderVariable constOffset = lane.GetSrc(operands.constOffset);
+          params.offset.x = constOffset.value.i.x;
+          if(gradCoords >= 2)
+            params.offset.y = constOffset.value.i.y;
+          if(gradCoords >= 3)
+            params.offset.z = constOffset.value.i.z;
+        }
+        else if(operands.flags & rdcspv::ImageOperands::Offset)
+        {
+          ShaderVariable offset = lane.GetSrc(operands.offset);
+          params.offset.x = offset.value.i.x;
+          if(gradCoords >= 2)
+            params.offset.y = offset.value.i.y;
+          if(gradCoords >= 3)
+            params.offset.z = offset.value.i.z;
+        }
+
+        break;
+      }
       case rdcspv::Op::ImageSampleExplicitLod:
       case rdcspv::Op::ImageSampleImplicitLod:
+      case rdcspv::Op::ImageSampleProjExplicitLod:
+      case rdcspv::Op::ImageSampleProjImplicitLod:
+      case rdcspv::Op::ImageSampleDrefExplicitLod:
+      case rdcspv::Op::ImageSampleDrefImplicitLod:
+      case rdcspv::Op::ImageSampleProjDrefExplicitLod:
+      case rdcspv::Op::ImageSampleProjDrefImplicitLod:
       {
         params.uvw.x = uv.value.f.x;
         if(coords >= 2)
@@ -616,6 +715,9 @@ public:
 
         if(operands.flags & rdcspv::ImageOperands::MinLod)
           params.minlod = lane.GetSrc(operands.minLod).value.f.x;
+
+        if(useCompare)
+          params.compare = compare.value.f.x;
 
         if(operands.flags & rdcspv::ImageOperands::Lod)
         {
@@ -642,7 +744,8 @@ public:
             params.ddy.z = ddy.value.f.z;
         }
 
-        if(opcode == rdcspv::Op::ImageSampleImplicitLod)
+        if(opcode == rdcspv::Op::ImageSampleImplicitLod ||
+           opcode == rdcspv::Op::ImageSampleProjImplicitLod)
         {
           // use grad to sub in for the implicit lod
           params.useGrad = VK_TRUE;
@@ -1320,6 +1423,10 @@ private:
     rdcspv::Id v2f32 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 2));
     rdcspv::Id v3f32 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 3));
 
+    // int2[4]
+    rdcspv::Id a4v2i32 = editor.AddType(
+        rdcspv::OpTypeArray(editor.MakeId(), v2i32, editor.AddConstantImmediate<uint32_t>(4)));
+
     rdcspv::Scalar base = rdcspv::scalar<float>();
     if(uintTex)
       base = rdcspv::scalar<uint32_t>();
@@ -1337,6 +1444,7 @@ private:
 
     DECL_SPECID(uint32_t, operation, operation);
     DECL_SPECID(bool, useGrad, useGrad);
+    DECL_SPECID(bool, useGatherOffsets, useGatherOffsets);
     DECL_SPECID(uint32_t, dim, dim);
     DECL_SPECID(int32_t, texel_u, texel_uvw.x);
     DECL_SPECID(int32_t, texel_v, texel_uvw.y);
@@ -1359,6 +1467,14 @@ private:
     DECL_SPECID(float, lod, lod);
     DECL_SPECID(float, minlod, minlod);
     DECL_SPECID(int32_t, gatherChannel, gatherChannel);
+    DECL_SPECID(int32_t, gather_u0, gatherOffsets.u0);
+    DECL_SPECID(int32_t, gather_v0, gatherOffsets.v0);
+    DECL_SPECID(int32_t, gather_u1, gatherOffsets.u1);
+    DECL_SPECID(int32_t, gather_v1, gatherOffsets.v1);
+    DECL_SPECID(int32_t, gather_u2, gatherOffsets.u2);
+    DECL_SPECID(int32_t, gather_v2, gatherOffsets.v2);
+    DECL_SPECID(int32_t, gather_u3, gatherOffsets.u3);
+    DECL_SPECID(int32_t, gather_v3, gatherOffsets.v3);
 
     rdcspv::Id texel_uv = editor.AddConstant(
         rdcspv::OpSpecConstantComposite(v2i32, editor.MakeId(), {texel_u, texel_v}));
@@ -1399,6 +1515,20 @@ private:
 
     editor.SetName(offset_xy, "offset_xy");
     editor.SetName(offset_xyz, "offset_xyz");
+
+    rdcspv::Id gather_0 = editor.AddConstant(
+        rdcspv::OpSpecConstantComposite(v2i32, editor.MakeId(), {gather_u0, gather_v0}));
+    rdcspv::Id gather_1 = editor.AddConstant(
+        rdcspv::OpSpecConstantComposite(v2i32, editor.MakeId(), {gather_u1, gather_v1}));
+    rdcspv::Id gather_2 = editor.AddConstant(
+        rdcspv::OpSpecConstantComposite(v2i32, editor.MakeId(), {gather_u2, gather_v2}));
+    rdcspv::Id gather_3 = editor.AddConstant(
+        rdcspv::OpSpecConstantComposite(v2i32, editor.MakeId(), {gather_u3, gather_v3}));
+
+    rdcspv::Id gatherOffsets = editor.AddConstant(rdcspv::OpSpecConstantComposite(
+        a4v2i32, editor.MakeId(), {gather_0, gather_1, gather_2, gather_3}));
+
+    editor.SetName(gatherOffsets, "gatherOffsets");
 
     // create the output. It's always a 4-wide vector
     rdcspv::Id outPtrType =
@@ -1535,6 +1665,8 @@ private:
 
     uint32_t sampIdx = (uint32_t)ShaderDebugBind::Sampler;
 
+    // TODO handle Proj opcodes, that need non-arrayed texture views, or else a manual divide
+
     for(uint32_t i = (uint32_t)ShaderDebugBind::First; i < (uint32_t)ShaderDebugBind::Count; i++)
     {
       if(i == sampIdx)
@@ -1550,6 +1682,9 @@ private:
 
         if(i != (uint32_t)ShaderDebugBind::Buffer && i != (uint32_t)ShaderDebugBind::Tex2DMS)
           imageOperands.setLod(texel_lod);
+
+        if(i == (uint32_t)ShaderDebugBind::Tex2DMS)
+          imageOperands.setSample(sampleIdx);
 
         cases.add(rdcspv::OpLabel(label));
         rdcspv::Id loaded =
@@ -1593,8 +1728,14 @@ private:
           operands.setLod(lod);
           rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
               texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
-          lodResult = cases.add(rdcspv::OpImageSampleExplicitLod(resultType, editor.MakeId(),
-                                                                 combined, coord[i], operands));
+
+          if(op == rdcspv::Op::ImageSampleExplicitLod || op == rdcspv::Op::ImageSampleImplicitLod)
+            lodResult = cases.add(rdcspv::OpImageSampleExplicitLod(resultType, editor.MakeId(),
+                                                                   combined, coord[i], operands));
+          else
+            lodResult = cases.add(rdcspv::OpImageSampleProjExplicitLod(
+                resultType, editor.MakeId(), combined, coord[i], operands));
+
           cases.add(rdcspv::OpBranch(mergeLabel));
         }
 
@@ -1603,16 +1744,178 @@ private:
           cases.add(rdcspv::OpLabel(gradCase));
           rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
           operands.setGrad(ddxs[i], ddys[i]);
+          if(m_pDriver->GetDeviceFeatures().shaderResourceMinLod)
+            operands.setMinLod(minlod);
           rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
               texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
-          gradResult = cases.add(rdcspv::OpImageSampleExplicitLod(resultType, editor.MakeId(),
-                                                                  combined, coord[i], operands));
+
+          if(op == rdcspv::Op::ImageSampleExplicitLod || op == rdcspv::Op::ImageSampleImplicitLod)
+            gradResult = cases.add(rdcspv::OpImageSampleExplicitLod(resultType, editor.MakeId(),
+                                                                    combined, coord[i], operands));
+          else
+            gradResult = cases.add(rdcspv::OpImageSampleProjExplicitLod(
+                resultType, editor.MakeId(), combined, coord[i], operands));
+
           cases.add(rdcspv::OpBranch(mergeLabel));
         }
 
         cases.add(rdcspv::OpLabel(mergeLabel));
         rdcspv::Id sampleResult = cases.add(rdcspv::OpPhi(
             resultType, editor.MakeId(), {{lodResult, lodCase}, {gradResult, gradCase}}));
+        cases.add(rdcspv::OpStore(outVar, sampleResult));
+        cases.add(rdcspv::OpBranch(breakLabel));
+      }
+
+      for(rdcspv::Op op :
+          {rdcspv::Op::ImageSampleDrefExplicitLod, rdcspv::Op::ImageSampleDrefImplicitLod})
+      {
+        rdcspv::Id label = editor.MakeId();
+        targets.push_back({(uint32_t)op * 10 + i, label});
+
+        rdcspv::ImageOperandsAndParamDatas imageOperands;
+
+        imageOperands.setConstOffset(offsets[i]);
+
+        cases.add(rdcspv::OpLabel(label));
+        rdcspv::Id loadedImage =
+            cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), texSampVars[i]));
+        rdcspv::Id loadedSampler =
+            cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), texSampVars[sampIdx]));
+
+        rdcspv::Id mergeLabel = editor.MakeId();
+        rdcspv::Id gradCase = editor.MakeId();
+        rdcspv::Id lodCase = editor.MakeId();
+        cases.add(rdcspv::OpSelectionMerge(mergeLabel, rdcspv::SelectionControl::None));
+        cases.add(rdcspv::OpBranchConditional(useGrad, gradCase, lodCase));
+
+        rdcspv::Id lodResult;
+        {
+          cases.add(rdcspv::OpLabel(lodCase));
+          rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+          operands.setLod(lod);
+          rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
+              texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+
+          if(op == rdcspv::Op::ImageSampleDrefExplicitLod ||
+             op == rdcspv::Op::ImageSampleDrefImplicitLod)
+            lodResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
+                resultType, editor.MakeId(), combined, compare, coord[i], operands));
+          else
+            lodResult = cases.add(rdcspv::OpImageSampleProjDrefExplicitLod(
+                resultType, editor.MakeId(), combined, compare, coord[i], operands));
+
+          cases.add(rdcspv::OpBranch(mergeLabel));
+        }
+
+        rdcspv::Id gradResult;
+        {
+          cases.add(rdcspv::OpLabel(gradCase));
+          rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+          operands.setGrad(ddxs[i], ddys[i]);
+          if(m_pDriver->GetDeviceFeatures().shaderResourceMinLod)
+            operands.setMinLod(minlod);
+          rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
+              texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+
+          if(op == rdcspv::Op::ImageSampleDrefExplicitLod ||
+             op == rdcspv::Op::ImageSampleDrefImplicitLod)
+            gradResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
+                resultType, editor.MakeId(), combined, compare, coord[i], operands));
+          else
+            gradResult = cases.add(rdcspv::OpImageSampleProjDrefExplicitLod(
+                resultType, editor.MakeId(), combined, compare, coord[i], operands));
+
+          cases.add(rdcspv::OpBranch(mergeLabel));
+        }
+
+        cases.add(rdcspv::OpLabel(mergeLabel));
+        rdcspv::Id sampleResult = cases.add(rdcspv::OpPhi(
+            resultType, editor.MakeId(), {{lodResult, lodCase}, {gradResult, gradCase}}));
+        cases.add(rdcspv::OpStore(outVar, sampleResult));
+        cases.add(rdcspv::OpBranch(breakLabel));
+      }
+
+      // can only gather with 2D textures
+      if(i == (uint32_t)ShaderDebugBind::Tex1D || i == (uint32_t)ShaderDebugBind::Tex3D)
+        continue;
+
+      for(rdcspv::Op op : {rdcspv::Op::ImageGather, rdcspv::Op::ImageDrefGather})
+      {
+        rdcspv::Id label = editor.MakeId();
+        targets.push_back({(uint32_t)op * 10 + i, label});
+
+        rdcspv::ImageOperandsAndParamDatas imageOperands;
+
+        cases.add(rdcspv::OpLabel(label));
+        rdcspv::Id loadedImage =
+            cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), texSampVars[i]));
+        rdcspv::Id loadedSampler =
+            cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), texSampVars[sampIdx]));
+
+        rdcspv::Id sampleResult;
+        if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+        {
+          rdcspv::Id mergeLabel = editor.MakeId();
+          rdcspv::Id constsCase = editor.MakeId();
+          rdcspv::Id baseCase = editor.MakeId();
+          cases.add(rdcspv::OpSelectionMerge(mergeLabel, rdcspv::SelectionControl::None));
+          cases.add(rdcspv::OpBranchConditional(useGatherOffsets, constsCase, baseCase));
+
+          rdcspv::Id baseResult;
+          {
+            cases.add(rdcspv::OpLabel(baseCase));
+            rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+            imageOperands.setConstOffset(offsets[i]);
+            rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
+                texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+
+            if(op == rdcspv::Op::ImageGather)
+              baseResult = cases.add(rdcspv::OpImageGather(resultType, editor.MakeId(), combined,
+                                                           coord[i], gatherChannel, imageOperands));
+            else
+              baseResult = cases.add(rdcspv::OpImageDrefGather(
+                  resultType, editor.MakeId(), combined, coord[i], compare, imageOperands));
+
+            cases.add(rdcspv::OpBranch(mergeLabel));
+          }
+
+          rdcspv::Id constsResult;
+          {
+            cases.add(rdcspv::OpLabel(constsCase));
+            rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+            operands.setConstOffsets(gatherOffsets);
+            rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
+                texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+
+            if(op == rdcspv::Op::ImageGather)
+              constsResult = cases.add(rdcspv::OpImageGather(
+                  resultType, editor.MakeId(), combined, coord[i], gatherChannel, imageOperands));
+            else
+              constsResult = cases.add(rdcspv::OpImageDrefGather(
+                  resultType, editor.MakeId(), combined, coord[i], compare, imageOperands));
+
+            cases.add(rdcspv::OpBranch(mergeLabel));
+          }
+
+          cases.add(rdcspv::OpLabel(mergeLabel));
+          sampleResult = cases.add(rdcspv::OpPhi(
+              resultType, editor.MakeId(), {{baseResult, baseCase}, {constsResult, constsCase}}));
+        }
+        else
+        {
+          imageOperands.setConstOffset(offsets[i]);
+
+          rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
+              texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+
+          if(op == rdcspv::Op::ImageGather)
+            sampleResult = cases.add(rdcspv::OpImageGather(resultType, editor.MakeId(), combined,
+                                                           coord[i], gatherChannel, imageOperands));
+          else
+            sampleResult = cases.add(rdcspv::OpImageDrefGather(
+                resultType, editor.MakeId(), combined, coord[i], compare, imageOperands));
+        }
+
         cases.add(rdcspv::OpStore(outVar, sampleResult));
         cases.add(rdcspv::OpBranch(breakLabel));
       }

@@ -148,6 +148,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       case Capability::Tessellation:
       case Capability::TessellationPointSize:
       case Capability::GeometryPointSize:
+      case Capability::ImageGatherExtended:
       case Capability::UniformBufferArrayDynamicIndexing:
       case Capability::SampledImageArrayDynamicIndexing:
       case Capability::StorageBufferArrayDynamicIndexing:
@@ -207,7 +208,6 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       // we plan to support these but needs additional testing/proving
 
       // image gather operations
-      case Capability::ImageGatherExtended:
 
       // image storage
       case Capability::StorageImageMultisample:

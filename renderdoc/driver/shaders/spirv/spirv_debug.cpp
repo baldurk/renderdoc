@@ -1829,8 +1829,16 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::ImageQuerySize:
     case Op::ImageQuerySizeLod:
     case Op::ImageFetch:
+    case Op::ImageGather:
+    case Op::ImageDrefGather:
     case Op::ImageSampleExplicitLod:
     case Op::ImageSampleImplicitLod:
+    case Op::ImageSampleDrefExplicitLod:
+    case Op::ImageSampleDrefImplicitLod:
+    case Op::ImageSampleProjExplicitLod:
+    case Op::ImageSampleProjImplicitLod:
+    case Op::ImageSampleProjDrefExplicitLod:
+    case Op::ImageSampleProjDrefImplicitLod:
     {
       ShaderVariable img;
       ShaderVariable sampler;
@@ -1851,6 +1859,25 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         uv = GetSrc(image.coordinate);
         operands = image.imageOperands;
       }
+      else if(opdata.op == Op::ImageGather)
+      {
+        OpImageGather image(it);
+
+        sampler = img = GetSrc(image.sampledImage);
+        uv = GetSrc(image.coordinate);
+        gather = GatherChannel(GetSrc(image.component).value.u.x);
+        operands = image.imageOperands;
+      }
+      else if(opdata.op == Op::ImageDrefGather)
+      {
+        OpImageDrefGather image(it);
+
+        sampler = img = GetSrc(image.sampledImage);
+        uv = GetSrc(image.coordinate);
+        operands = image.imageOperands;
+        gather = GatherChannel::Red;
+        compare = GetSrc(image.dref);
+      }
       else if(opdata.op == Op::ImageSampleExplicitLod)
       {
         OpImageSampleExplicitLod image(it);
@@ -1866,6 +1893,64 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         sampler = img = GetSrc(image.sampledImage);
         uv = GetSrc(image.coordinate);
         operands = image.imageOperands;
+
+        derivId = image.coordinate;
+      }
+      else if(opdata.op == Op::ImageSampleDrefExplicitLod)
+      {
+        OpImageSampleDrefExplicitLod image(it);
+
+        sampler = img = GetSrc(image.sampledImage);
+        uv = GetSrc(image.coordinate);
+        operands = image.imageOperands;
+        compare = GetSrc(image.dref);
+      }
+      else if(opdata.op == Op::ImageSampleDrefImplicitLod)
+      {
+        OpImageSampleDrefImplicitLod image(it);
+
+        sampler = img = GetSrc(image.sampledImage);
+        uv = GetSrc(image.coordinate);
+        operands = image.imageOperands;
+        compare = GetSrc(image.dref);
+
+        derivId = image.coordinate;
+      }
+      else if(opdata.op == Op::ImageSampleProjExplicitLod)
+      {
+        OpImageSampleProjExplicitLod image(it);
+
+        sampler = img = GetSrc(image.sampledImage);
+        uv = GetSrc(image.coordinate);
+        operands = image.imageOperands;
+      }
+      else if(opdata.op == Op::ImageSampleProjImplicitLod)
+      {
+        OpImageSampleProjImplicitLod image(it);
+
+        sampler = img = GetSrc(image.sampledImage);
+        uv = GetSrc(image.coordinate);
+        operands = image.imageOperands;
+
+        derivId = image.coordinate;
+      }
+      else if(opdata.op == Op::ImageSampleProjDrefExplicitLod)
+      {
+        OpImageSampleProjDrefExplicitLod image(it);
+
+        sampler = img = GetSrc(image.sampledImage);
+        uv = GetSrc(image.coordinate);
+        operands = image.imageOperands;
+        compare = GetSrc(image.dref);
+      }
+      else if(opdata.op == Op::ImageSampleProjDrefImplicitLod)
+      {
+        OpImageSampleProjDrefImplicitLod image(it);
+
+        sampler = img = GetSrc(image.sampledImage);
+        uv = GetSrc(image.coordinate);
+        operands = image.imageOperands;
+        compare = GetSrc(image.dref);
 
         derivId = image.coordinate;
       }

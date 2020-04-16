@@ -134,6 +134,8 @@ layout(set = 0, binding = 5, std430) buffer storebuftype
 layout(set = 0, binding = 7) uniform samplerBuffer texBuffer;
 //layout(set = 0, binding = 8, rgba32f) uniform coherent imageBuffer storeTexBuffer;
 
+layout(set = 0, binding = 9) uniform sampler shadowSampler;
+
 layout(set = 0, binding = 20) uniform sampler2DArray queryTest;
 layout(set = 0, binding = 21) uniform sampler2DMSArray queryTestMS;
 
@@ -912,6 +914,43 @@ void main()
     case 111:
     {
       Color = texelFetch(texBuffer, int(zeroi+2));
+      break;
+    }
+    case 112:
+    {
+      float x = texture(sampler2DShadow(sampledImage, shadowSampler), vec3(inpos, 0.1f));
+      float y = texture(sampler2DShadow(sampledImage, shadowSampler), vec3(inpos, 0.3f));
+      float z = texture(sampler2DShadow(sampledImage, shadowSampler), vec3(inpos, 0.7f));
+      float w = texture(sampler2DShadow(sampledImage, shadowSampler), vec3(inpos, 0.9f));
+      Color = vec4(x, y, z, w);
+      break;
+    }
+    case 113:
+    {
+      vec2 coord = vec2(zerof + 0.6, zerof + 0.43);
+
+      Color = textureGather(linearSampledImage, coord, 0);
+      break;
+    }
+    case 114:
+    {
+      vec2 coord = vec2(zerof + 0.6, zerof + 0.43);
+
+      Color = textureGather(linearSampledImage, coord, 1);
+      break;
+    }
+    case 115:
+    {
+      vec2 coord = vec2(zerof + 0.6, zerof + 0.43);
+
+      Color = textureGather(linearSampledImage, coord, 2);
+      break;
+    }
+    case 116:
+    {
+      vec2 coord = vec2(zerof + 0.6, zerof + 0.43);
+
+      Color = textureGather(sampler2DShadow(sampledImage, shadowSampler), coord, 0.8f);
       break;
     }
     default: break;
@@ -2066,6 +2105,7 @@ void main()
         {6, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {7, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {8, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {9, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
     }));
@@ -2222,6 +2262,7 @@ void main()
     VkSampler pointsampler = VK_NULL_HANDLE;
     VkSampler linearsampler = VK_NULL_HANDLE;
     VkSampler mipsampler = VK_NULL_HANDLE;
+    VkSampler shadowsampler = VK_NULL_HANDLE;
 
     VkSamplerCreateInfo sampInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
     sampInfo.magFilter = VK_FILTER_NEAREST;
@@ -2237,6 +2278,11 @@ void main()
     sampInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
     vkCreateSampler(device, &sampInfo, NULL, &mipsampler);
+
+    sampInfo.compareEnable = VK_TRUE;
+    sampInfo.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+
+    vkCreateSampler(device, &sampInfo, NULL, &shadowsampler);
 
     VkDescriptorSet descset = allocateDescriptorSet(setlayout);
 
@@ -2321,6 +2367,9 @@ void main()
             vkh::WriteDescriptorSet(descset, 7, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, {bufview}),
             vkh::WriteDescriptorSet(descset, 8, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
                                     {store_bufview}),
+            vkh::WriteDescriptorSet(
+                descset, 9, VK_DESCRIPTOR_TYPE_SAMPLER,
+                {vkh::DescriptorImageInfo(VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, shadowsampler)}),
 
             vkh::WriteDescriptorSet(
                 descset, 20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -2453,6 +2502,7 @@ void main()
     vkDestroySampler(device, pointsampler, NULL);
     vkDestroySampler(device, linearsampler, NULL);
     vkDestroySampler(device, mipsampler, NULL);
+    vkDestroySampler(device, shadowsampler, NULL);
 
     return 0;
   }
