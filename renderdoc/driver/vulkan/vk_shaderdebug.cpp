@@ -551,8 +551,10 @@ public:
         if(coords >= 3)
           params.texel_uvw.z = uv.value.u.z;
 
-        if(!buffer)
+        if(!buffer && operands.flags & rdcspv::ImageOperands::Lod)
           params.texel_lod = lane.GetSrc(operands.lod).value.i.x;
+        else
+          params.texel_lod = 0;
 
         if(operands.flags & rdcspv::ImageOperands::Sample)
           params.sampleIdx = lane.GetSrc(operands.sample).value.u.x;
