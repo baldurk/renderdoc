@@ -1824,6 +1824,10 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       SetDst(image.result, var);
       break;
     }
+    case Op::ImageQueryLevels:
+    case Op::ImageQuerySamples:
+    case Op::ImageQuerySize:
+    case Op::ImageQuerySizeLod:
     case Op::ImageFetch:
     case Op::ImageSampleExplicitLod:
     case Op::ImageSampleImplicitLod:
@@ -1864,6 +1868,21 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         operands = image.imageOperands;
 
         derivId = image.coordinate;
+      }
+      else if(opdata.op == Op::ImageQueryLevels || opdata.op == Op::ImageQuerySamples ||
+              opdata.op == Op::ImageQuerySize)
+      {
+        // these opcodes are all identical, they just query a property of the image
+        OpImageQueryLevels query(it);
+
+        img = GetSrc(query.image);
+      }
+      else if(opdata.op == Op::ImageQuerySizeLod)
+      {
+        OpImageQuerySizeLod query(it);
+
+        img = GetSrc(query.image);
+        operands.setLod(query.levelofDetail);
       }
 
       if(derivId != Id())

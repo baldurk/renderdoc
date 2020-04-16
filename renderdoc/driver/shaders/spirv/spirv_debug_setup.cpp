@@ -166,6 +166,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       case Capability::ImageBuffer:
       case Capability::ImageMSArray:
       case Capability::StorageImageExtendedFormats:
+      case Capability::ImageQuery:
       case Capability::DerivativeControl:
       case Capability::TransformFeedback:
       case Capability::GeometryStreams:
@@ -179,6 +180,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       case Capability::MultiView:
       case Capability::SampleMaskPostDepthCoverage:
       case Capability::StencilExportEXT:
+      case Capability::ShaderClockKHR:
       case Capability::ShaderViewportIndexLayerEXT:
       case Capability::FragmentFullyCoveredEXT:
       case Capability::FragmentDensityEXT:
@@ -196,6 +198,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       case Capability::StorageTexelBufferArrayNonUniformIndexing:
       case Capability::VulkanMemoryModel:
       case Capability::VulkanMemoryModelDeviceScope:
+      case Capability::DemoteToHelperInvocationEXT:
       {
         supported = true;
         break;
@@ -203,17 +206,11 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
       // we plan to support these but needs additional testing/proving
 
-      // image queries
-      case Capability::ImageQuery:
-
       // image gather operations
       case Capability::ImageGatherExtended:
 
       // image storage
       case Capability::StorageImageMultisample:
-
-      // demote to helper
-      case Capability::DemoteToHelperInvocationEXT:
 
       // all these are related to non-32-bit types
       case Capability::Float16Buffer:
@@ -251,9 +248,6 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       case Capability::SignedZeroInfNanPreserve:
       case Capability::RoundingModeRTE:
       case Capability::RoundingModeRTZ:
-
-      // shader clock
-      case Capability::ShaderClockKHR:
 
       // group instructions
       case Capability::Groups:

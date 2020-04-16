@@ -134,6 +134,9 @@ layout(set = 0, binding = 5, std430) buffer storebuftype
 //layout(set = 0, binding = 7, rgba32f) uniform coherent samplerBuffer texBuffer;
 //layout(set = 0, binding = 8, rgba32f) uniform coherent imageBuffer storeTexBuffer;
 
+layout(set = 0, binding = 20) uniform sampler2DArray queryTest;
+layout(set = 0, binding = 21) uniform sampler2DMSArray queryTestMS;
+
 layout(push_constant) uniform PushData {
   layout(offset = 16) ivec4 data;
 } push;
@@ -879,6 +882,31 @@ void main()
 
       Color = vec4(float(bitfieldExtract(a, 4, 5)), float(bitfieldExtract(b, 4, 5)),
                    uintBitsToFloat(bitfieldInsert(a, af, 4, 5)), intBitsToFloat(bitfieldInsert(b, bf, 4, 5)));
+      break;
+    }
+    case 106:
+    {
+      Color = vec4(float(textureQueryLevels(queryTest)), float(textureSamples(queryTestMS)), 0.0f, 1.0f);
+      break;
+    }
+    case 107:
+    {
+      Color = vec4(vec3(textureSize(queryTest, 0)), 1.0f);
+      break;
+    }
+    case 108:
+    {
+      Color = vec4(vec3(textureSize(queryTest, 1)), 1.0f);
+      break;
+    }
+    case 109:
+    {
+      Color = vec4(vec3(textureSize(queryTestMS)), 1.0f);
+      break;
+    }
+    case 110:
+    {
+      Color = vec4(vec3(textureSize(queryTestMS)), 1.0f);
       break;
     }
     default: break;
@@ -2033,6 +2061,8 @@ void main()
         {6, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {7, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {8, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
     }));
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
@@ -2118,6 +2148,21 @@ void main()
     Texture rgba8;
     LoadXPM(SmileyTexture, rgba8);
 
+    AllocatedImage queryTest(this, vkh::ImageCreateInfo(183, 347, 0, VK_FORMAT_R8G8B8A8_UNORM,
+                                                        VK_IMAGE_USAGE_SAMPLED_BIT, 4, 3),
+                             VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    VkImageView queryTestView = createImageView(vkh::ImageViewCreateInfo(
+        queryTest.image, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_FORMAT_R8G8B8A8_UNORM));
+
+    AllocatedImage queryTestMS(
+        this, vkh::ImageCreateInfo(183, 347, 0, VK_FORMAT_R8G8B8A8_UNORM,
+                                   VK_IMAGE_USAGE_SAMPLED_BIT, 1, 5, VK_SAMPLE_COUNT_4_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    VkImageView queryTestMSView = createImageView(vkh::ImageViewCreateInfo(
+        queryTestMS.image, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_FORMAT_R8G8B8A8_UNORM));
+
     AllocatedImage smiley(
         this, vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, VK_FORMAT_R8G8B8A8_UNORM,
                                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT),
@@ -2137,10 +2182,15 @@ void main()
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
 
       vkh::cmdPipelineBarrier(
-          cmd, {
-                   vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, smiley.image),
-               });
+          cmd,
+          {
+              vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, smiley.image),
+              vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, queryTest.image),
+              vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, queryTestMS.image),
+          });
 
       VkBufferImageCopy copy = {};
       copy.imageExtent = {rgba8.width, rgba8.height, 1};
@@ -2166,6 +2216,7 @@ void main()
 
     VkSampler pointsampler = VK_NULL_HANDLE;
     VkSampler linearsampler = VK_NULL_HANDLE;
+    VkSampler mipsampler = VK_NULL_HANDLE;
 
     VkSamplerCreateInfo sampInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
     sampInfo.magFilter = VK_FILTER_NEAREST;
@@ -2177,6 +2228,10 @@ void main()
     sampInfo.minFilter = VK_FILTER_LINEAR;
 
     vkCreateSampler(device, &sampInfo, NULL, &linearsampler);
+
+    sampInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+    vkCreateSampler(device, &sampInfo, NULL, &mipsampler);
 
     VkDescriptorSet descset = allocateDescriptorSet(setlayout);
 
@@ -2225,6 +2280,9 @@ void main()
 
     setName(pointsampler, "pointsampler");
     setName(linearsampler, "linearsampler");
+    setName(mipsampler, "mipsampler");
+    setName(queryTest.image, "queryTest");
+    setName(queryTestMS.image, "queryTestMS");
     setName(smiley.image, "smiley");
     setName(texbuffer.buffer, "texbuffer");
     setName(store_buffer.buffer, "store_buffer");
@@ -2258,6 +2316,13 @@ void main()
             vkh::WriteDescriptorSet(descset, 7, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, {bufview}),
             vkh::WriteDescriptorSet(descset, 8, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
                                     {store_bufview}),
+
+            vkh::WriteDescriptorSet(
+                descset, 20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                {vkh::DescriptorImageInfo(queryTestView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
+            vkh::WriteDescriptorSet(
+                descset, 21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                {vkh::DescriptorImageInfo(queryTestMSView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
         });
 
     while(Running())
@@ -2382,6 +2447,7 @@ void main()
 
     vkDestroySampler(device, pointsampler, NULL);
     vkDestroySampler(device, linearsampler, NULL);
+    vkDestroySampler(device, mipsampler, NULL);
 
     return 0;
   }

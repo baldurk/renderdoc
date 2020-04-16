@@ -420,6 +420,69 @@ public:
         return false;
     }
 
+    switch(imageType)
+    {
+      case VK_IMAGE_TYPE_1D: params.dim = ShaderDebugBind::Tex1D; break;
+      case VK_IMAGE_TYPE_2D:
+        params.dim = ShaderDebugBind::Tex2D;
+        if(samples > 1)
+          params.dim = ShaderDebugBind::Tex2DMS;
+        break;
+      case VK_IMAGE_TYPE_3D: params.dim = ShaderDebugBind::Tex3D; break;
+      default:
+      {
+        RDCERR("Unsupported image type %s", ToStr(imageType).c_str());
+        return false;
+      }
+    }
+
+    if(buffer)
+    {
+      params.dim = ShaderDebugBind::Buffer;
+      coords = gradCoords = 1;
+    }
+
+    // handle query opcodes now
+    switch(opcode)
+    {
+      case rdcspv::Op::ImageQueryLevels:
+      {
+        output.value.u.x = viewProps.range.levelCount;
+        if(viewProps.range.levelCount == VK_REMAINING_MIP_LEVELS)
+          output.value.u.x = imageProps.mipLevels - viewProps.range.baseMipLevel;
+        return true;
+      }
+      case rdcspv::Op::ImageQuerySamples:
+      {
+        output.value.u.x = (uint32_t)imageProps.samples;
+        return true;
+      }
+      case rdcspv::Op::ImageQuerySize:
+      case rdcspv::Op::ImageQuerySizeLod:
+      {
+        uint32_t mip = viewProps.range.baseMipLevel;
+
+        if(opcode == rdcspv::Op::ImageQuerySizeLod)
+          mip += lane.GetSrc(operands.lod).value.u.x;
+
+        int i = 0;
+        output.value.uv[i++] = RDCMAX(1U, imageProps.extent.width >> mip);
+        if(coords >= 2)
+          output.value.uv[i++] = RDCMAX(1U, imageProps.extent.height >> mip);
+        if(viewProps.viewType == VK_IMAGE_VIEW_TYPE_3D)
+          output.value.uv[i++] = RDCMAX(1U, imageProps.extent.depth >> mip);
+
+        if(viewProps.viewType == VK_IMAGE_VIEW_TYPE_1D_ARRAY ||
+           viewProps.viewType == VK_IMAGE_VIEW_TYPE_2D_ARRAY)
+          output.value.uv[i++] = imageProps.arrayLayers;
+        else if(viewProps.viewType == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
+          output.value.uv[i++] = imageProps.arrayLayers / 6;
+
+        return true;
+      }
+      default: break;
+    }
+
     // create our own view (if we haven't already for this view) so we can promote to array
     VkImageView sampleView = m_SampleViews[GetResID(view)];
     if(sampleView == VK_NULL_HANDLE)
@@ -519,25 +582,6 @@ public:
     }
 
     params.operation = (uint32_t)opcode;
-
-    switch(imageType)
-    {
-      case VK_IMAGE_TYPE_1D: params.dim = ShaderDebugBind::Tex1D; break;
-      case VK_IMAGE_TYPE_2D:
-        params.dim = ShaderDebugBind::Tex2D;
-        if(samples > 1)
-          params.dim = ShaderDebugBind::Tex2DMS;
-        break;
-      case VK_IMAGE_TYPE_3D: params.dim = ShaderDebugBind::Tex3D; break;
-      default:
-      {
-        RDCERR("Unsupported image type %s", ToStr(imageType).c_str());
-        return false;
-      }
-    }
-
-    if(buffer)
-      params.dim = ShaderDebugBind::Buffer;
 
     switch(opcode)
     {
