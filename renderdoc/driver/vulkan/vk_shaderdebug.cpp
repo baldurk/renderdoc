@@ -728,7 +728,7 @@ public:
   virtual bool CalculateMathOp(rdcspv::ThreadState &lane, rdcspv::GLSLstd450 op,
                                const rdcarray<ShaderVariable> &params, ShaderVariable &output) override
   {
-    RDCASSERT(params.size() <= 2, params.size());
+    RDCASSERT(params.size() <= 3, params.size());
 
     if(m_DebugData.MathPipe == VK_NULL_HANDLE)
     {
