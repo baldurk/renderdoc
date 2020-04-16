@@ -1341,6 +1341,25 @@ void main()
         "%_out_float = OpExtInst %float %glsl450 NClamp %nan %zerof %oneVal",
     });
 
+    // test ExtInst Modf/ModfStruct and Frexp/FrexpStruct
+    append_tests({
+        "%_x = OpExtInst %float %glsl450 Modf %float_dyn_123_456 %priv_float\n"
+        "%_y = OpLoad %float %priv_float\n"
+        "%_tmp = OpExtInst %f32f32 %glsl450 ModfStruct %float_dyn_789_012\n"
+        "%_z = OpCompositeExtract %float %_tmp 0\n"
+        "%_w = OpCompositeExtract %float %_tmp 1\n"
+        "%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w\n",
+
+        "%_x = OpExtInst %float %glsl450 Frexp %float_dyn_123_456 %priv_int\n"
+        "%_yi = OpLoad %int %priv_int\n"
+        "%_y = OpConvertSToF %float %_yi\n"
+        "%_tmp = OpExtInst %f32i32 %glsl450 FrexpStruct %float_dyn_789_012\n"
+        "%_z = OpCompositeExtract %float %_tmp 0\n"
+        "%_wi = OpCompositeExtract %int %_tmp 1\n"
+        "%_w = OpConvertSToF %float %_wi\n"
+        "%_out_float4 = OpCompositeConstruct %float4 %_x %_y %_z %_w\n",
+    });
+
     // test float <-> int conversions
     append_tests({
         "%_x = OpConvertUToF %float %uint_dyn_1234\n"
@@ -1645,6 +1664,9 @@ void main()
       %child = OpTypeStruct %float4 %float3 %float
      %parent = OpTypeStruct %float4 %child %float4x4
 
+     %f32f32 = OpTypeStruct %float %float
+     %f32i32 = OpTypeStruct %float %int
+
     %ptr_Input_v2f = OpTypePointer Input %v2f
 %ptr_Input_flatv2f = OpTypePointer Input %flatv2f
    %ptr_Input_uint = OpTypePointer Input %uint
@@ -1653,11 +1675,16 @@ void main()
  %ptr_Input_float2 = OpTypePointer Input %float2
  %ptr_Input_float4 = OpTypePointer Input %float4
 %ptr_Output_float4 = OpTypePointer Output %float4
+  %ptr_Private_int = OpTypePointer Private %int
+%ptr_Private_float = OpTypePointer Private %float
 
   %linearData = OpVariable %ptr_Input_v2f Input
     %flatData = OpVariable %ptr_Input_flatv2f Input
 %gl_FragCoord = OpVariable %ptr_Input_float4 Input
        %Color = OpVariable %ptr_Output_float4 Output
+
+    %priv_int = OpVariable %ptr_Private_int Private
+  %priv_float = OpVariable %ptr_Private_float Private
 
        %flatv2f_test_idx = OpConstant %int 0
      %flatv2f_intval_idx = OpConstant %int 1

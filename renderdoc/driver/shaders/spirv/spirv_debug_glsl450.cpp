@@ -255,6 +255,43 @@ ShaderVariable MatrixInverse(ThreadState &state, uint32_t, const rdcarray<Id> &p
   return m;
 }
 
+ShaderVariable Modf(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(2);
+
+  ShaderVariable x = state.GetSrc(params[0]);
+  Id iptr = params[1];
+
+  ShaderVariable whole = x;
+
+  for(uint32_t c = 0; c < x.columns; c++)
+    x.value.fv[c] = modff(x.value.fv[c], &whole.value.fv[c]);
+
+  state.WritePointerValue(iptr, whole);
+
+  return x;
+}
+
+ShaderVariable ModfStruct(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable x = state.GetSrc(params[0]);
+
+  ShaderVariable ret;
+  ret.rows = 1;
+  ret.columns = 1;
+  ret.isStruct = true;
+  ret.members = {x, x};
+  ret.members[0].name = "_child0";
+  ret.members[1].name = "_child1";
+
+  for(uint32_t c = 0; c < x.columns; c++)
+    ret.members[0].value.fv[c] = modff(x.value.fv[c], &ret.members[1].value.fv[c]);
+
+  return ret;
+}
+
 template <typename T>
 static T GLSLMax(T x, T y)
 {
@@ -442,6 +479,43 @@ ShaderVariable SmoothStep(ThreadState &state, uint32_t, const rdcarray<Id> &para
   return x;
 }
 
+ShaderVariable Frexp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(2);
+
+  ShaderVariable x = state.GetSrc(params[0]);
+  Id iptr = params[1];
+
+  ShaderVariable whole = x;
+
+  for(uint32_t c = 0; c < x.columns; c++)
+    x.value.fv[c] = frexpf(x.value.fv[c], &whole.value.iv[c]);
+
+  state.WritePointerValue(iptr, whole);
+
+  return x;
+}
+
+ShaderVariable FrexpStruct(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable x = state.GetSrc(params[0]);
+
+  ShaderVariable ret;
+  ret.rows = 1;
+  ret.columns = 1;
+  ret.isStruct = true;
+  ret.members = {x, x};
+  ret.members[0].name = "_child0";
+  ret.members[1].name = "_child1";
+
+  for(uint32_t c = 0; c < x.columns; c++)
+    ret.members[0].value.fv[c] = frexpf(x.value.fv[c], &ret.members[1].value.iv[c]);
+
+  return ret;
+}
+
 ShaderVariable Ldexp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
@@ -617,6 +691,8 @@ void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
   EXT(Degrees);
   EXT(Determinant);
   EXT(MatrixInverse);
+  EXT(Modf);
+  EXT(ModfStruct);
   EXT(FMin);
   EXT(UMin);
   EXT(SMin);
@@ -629,6 +705,8 @@ void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
   EXT(FMix);
   EXT(Step);
   EXT(SmoothStep);
+  EXT(Frexp);
+  EXT(FrexpStruct);
   EXT(Ldexp);
   EXT(Cross);
   EXT(FaceForward);
