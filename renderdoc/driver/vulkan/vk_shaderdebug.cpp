@@ -3216,11 +3216,11 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   for(uint32_t i = 0; i < numHits; i++)
   {
-    PSHit *hit = (PSHit *)(base + structStride * i);
+    PSHit *hit = (PSHit *)(base + structSize * i);
 
     if(hit->valid != validMagicNumber)
     {
-      RDCWARN("Hit %u doesn't have valid magic number");
+      RDCWARN("Hit %u doesn't have valid magic number", i);
       continue;
     }
 
