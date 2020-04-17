@@ -258,6 +258,12 @@ TEMPLATE_ARRAY_DECLARE(rdcarray);
   %rename("%s") count;
 }
 
+%inline %{
+
+extern "C" PyObject *RENDERDOC_DumpObject(PyObject *obj);
+
+%}
+
 %extend SDObject {
   %feature("docstring") R"(Interprets the object as an integer and returns its value.
 Invalid if the object is not actually an integer.
@@ -393,6 +399,81 @@ PyObject *PassNewObjectToPython(const char *type, void *obj)
     return NULL;
 
   return SWIG_InternalNewPointerObj(obj, t, SWIG_POINTER_OWN);
+}
+
+extern "C" PyObject *RENDERDOC_DumpObject(PyObject *obj)
+{
+  void *resptr = NULL;
+
+  // for basic types, return the repr directly
+  if(obj == (PyObject *)&_Py_TrueStruct ||
+     obj == (PyObject *)&_Py_FalseStruct ||
+     PyObject_IsInstance(obj, (PyObject*)&_PyNone_Type) ||
+     PyObject_IsInstance(obj, (PyObject*)&PyFloat_Type) ||
+     PyObject_IsInstance(obj, (PyObject*)&PyLong_Type) ||
+     PyObject_IsInstance(obj, (PyObject*)&PyBytes_Type) ||
+     PyObject_IsInstance(obj, (PyObject*)&PyUnicode_Type) ||
+     PyObject_IsInstance(obj, (PyObject*)&PyList_Type) ||
+     PyObject_IsInstance(obj, (PyObject*)&PyDict_Type) ||
+     PyObject_IsInstance(obj, (PyObject*)&PyTuple_Type))
+  {
+    return PyObject_Repr(obj);
+  }
+
+  // also for ResourceId
+  if(SWIG_ConvertPtr(obj, &resptr, SWIGTYPE_p_ResourceId, 0))
+  {
+    return PyObject_Repr(obj);
+  }
+
+  PyObject *ret = PyDict_New();
+
+  // otherwise iterate over the dir
+  PyObject *dir = PyObject_Dir(obj);
+
+  Py_ssize_t size = PyList_Size(dir);
+
+  for(Py_ssize_t i = 0; i < size; i++)
+  {
+    PyObject *member = PyList_GetItem(dir, i);
+
+    PyObject *bytes = PyUnicode_AsUTF8String(member);
+
+    if(!bytes)
+      continue;
+
+    char *buf = NULL;
+    Py_ssize_t size = 0;
+
+    if(PyBytes_AsStringAndSize(bytes, &buf, &size) == 0)
+    {
+      rdcstr name;
+      name.assign(buf, size);
+
+      if(name.beginsWith("__") || name == "this" || name == "thisown" || name == "acquire")
+      {
+        // skip this member, it's internal
+      }
+      else
+      {
+        PyObject *child = PyObject_GetAttr(obj, member);
+
+        // don't add callables
+        if(PyCallable_Check(child) == 0)
+        {
+          PyObject *childDump = RENDERDOC_DumpObject(child);
+          PyDict_SetItem(ret, member, childDump);
+          Py_XDECREF(childDump);
+        }
+      }
+    }
+
+    Py_XDECREF(bytes);
+  }
+
+  Py_XDECREF(dir);
+
+  return ret;
 }
 
 %}
