@@ -854,7 +854,16 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         // add one-time submit flag as this partial cmd buffer will only be submitted once
         BeginInfo.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         if(AllocateInfo.level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
+        {
           BeginInfo.flags |= VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+
+          if(BeginInfo.pInheritanceInfo->renderPass != VK_NULL_HANDLE)
+            m_BakedCmdBufferInfo[BakedCommandBuffer].state.renderPass =
+                GetResID(BeginInfo.pInheritanceInfo->renderPass);
+          if(BeginInfo.pInheritanceInfo->framebuffer != VK_NULL_HANDLE)
+            m_BakedCmdBufferInfo[BakedCommandBuffer].state.SetFramebuffer(
+                this, GetResID(BeginInfo.pInheritanceInfo->framebuffer));
+        }
 
         ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &unwrappedBeginInfo);
       }
@@ -1278,6 +1287,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
           renderstate.subpass = 0;
           renderstate.renderPass = GetResID(RenderPassBegin.renderPass);
           renderstate.renderArea = RenderPassBegin.renderArea;
+          renderstate.subpassContents = contents;
 
           const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
               (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
@@ -1656,6 +1666,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
           VulkanRenderState &renderstate = GetCmdRenderState();
           renderstate.renderPass = ResourceId();
           renderstate.SetFramebuffer(ResourceId(), rdcarray<ResourceId>());
+          renderstate.subpassContents = VK_SUBPASS_CONTENTS_MAX_ENUM;
         }
 
         DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::EndPass;
@@ -1787,6 +1798,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
           renderstate.subpass = 0;
           renderstate.renderPass = GetResID(RenderPassBegin.renderPass);
           renderstate.renderArea = RenderPassBegin.renderArea;
+          renderstate.subpassContents = SubpassBegin.contents;
 
           const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
               (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
@@ -2161,6 +2173,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
           VulkanRenderState &renderstate = GetCmdRenderState();
           renderstate.renderPass = ResourceId();
           renderstate.SetFramebuffer(ResourceId(), rdcarray<ResourceId>());
+          renderstate.subpassContents = VK_SUBPASS_CONTENTS_MAX_ENUM;
         }
 
         DrawFlags drawFlags = DrawFlags::PassBoundary | DrawFlags::EndPass;
@@ -3532,6 +3545,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
               parentCmdBufInfo.state.GetFramebuffer(),
               parentCmdBufInfo.state.GetFramebufferAttachments());
           m_BakedCmdBufferInfo[cmd].state.renderArea = parentCmdBufInfo.state.renderArea;
+          m_BakedCmdBufferInfo[cmd].state.subpassContents = parentCmdBufInfo.state.subpassContents;
 
           // 2 extra for the virtual labels around the command buffer
           parentCmdBufInfo.curEventID += 2 + m_BakedCmdBufferInfo[cmd].eventCount;
@@ -3608,9 +3622,47 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
 #endif
 
           if(!rerecordedCmds.empty())
-            ObjDisp(commandBuffer)
-                ->CmdExecuteCommands(Unwrap(commandBuffer), (uint32_t)rerecordedCmds.size(),
-                                     rerecordedCmds.data());
+          {
+            if(m_DrawcallCallback && m_DrawcallCallback->SplitSecondary())
+            {
+              DrawcallUse use(m_CurChunkOffset, 0);
+              auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+              if(it != m_DrawcallUses.end())
+              {
+                uint32_t eventId = it->eventId + 2;
+
+                for(uint32_t i = 0; i < (uint32_t)rerecordedCmds.size(); i++)
+                {
+                  ResourceId cmd = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[i]));
+                  BakedCmdBufferInfo &info = m_BakedCmdBufferInfo[cmd];
+                  if(info.draw && info.draw->children.size() > 0)
+                  {
+                    uint32_t firstEventId = eventId + info.draw->children.front().draw.eventId;
+                    uint32_t lastEventId = eventId + info.draw->children.back().draw.eventId;
+                    m_DrawcallCallback->PreCmdExecute(eventId, firstEventId, lastEventId,
+                                                      commandBuffer);
+                    ObjDisp(commandBuffer)
+                        ->CmdExecuteCommands(Unwrap(commandBuffer), 1, &rerecordedCmds[i]);
+                    m_DrawcallCallback->PostCmdExecute(eventId, firstEventId, lastEventId,
+                                                       commandBuffer);
+                  }
+                  else
+                  {
+                    ObjDisp(commandBuffer)
+                        ->CmdExecuteCommands(Unwrap(commandBuffer), 1, &rerecordedCmds[i]);
+                  }
+
+                  eventId += 2 + m_BakedCmdBufferInfo[cmd].eventCount;
+                }
+              }
+            }
+            else
+            {
+              ObjDisp(commandBuffer)
+                  ->CmdExecuteCommands(Unwrap(commandBuffer), (uint32_t)rerecordedCmds.size(),
+                                       rerecordedCmds.data());
+            }
+          }
         }
       }
     }

@@ -3300,6 +3300,15 @@ struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
     if(m_Events.contains(primary))
       m_pDriver->GetReplay()->AliasPostVSBuffers(primary, alias);
   }
+  bool SplitSecondary() { return false; }
+  void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
+                     VkCommandBuffer cmd)
+  {
+  }
+  void PostCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
+                      VkCommandBuffer cmd)
+  {
+  }
 
   WrappedVulkan *m_pDriver;
   const rdcarray<uint32_t> &m_Events;

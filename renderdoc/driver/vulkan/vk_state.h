@@ -109,6 +109,7 @@ struct VulkanRenderState
 
   ResourceId renderPass;
   uint32_t subpass = 0;
+  VkSubpassContents subpassContents;
 
   // framebuffer accessors - to allow for imageless framebuffers and prevent accidentally changing
   // only the framebuffer without updating the attachments

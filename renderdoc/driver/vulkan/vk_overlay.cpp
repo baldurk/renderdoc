@@ -255,6 +255,15 @@ struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
   {
     // don't care
   }
+  bool SplitSecondary() { return false; }
+  void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
+                     VkCommandBuffer cmd)
+  {
+  }
+  void PostCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
+                      VkCommandBuffer cmd)
+  {
+  }
 
   WrappedVulkan *m_pDriver;
   VkDescriptorSetLayout m_DescSetLayout;
