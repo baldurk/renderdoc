@@ -3241,6 +3241,9 @@ void ShaderViewer::SetCurrentStep(uint32_t step)
 
 void ShaderViewer::ToggleBreakpoint(int instruction)
 {
+  if(!m_Trace || m_States.empty())
+    return;
+
   sptr_t instLine = -1;
 
   if(instruction == -1)
@@ -3286,12 +3289,12 @@ void ShaderViewer::ToggleBreakpoint(int instruction)
     }
   }
 
-  if(instruction < 0 || instruction >= m_DisassemblyView->lineCount())
+  if(instruction < 0 || instruction >= m_Trace->lineInfo.count())
     return;
 
   if(instLine == -1)
   {
-    if(m_Trace && instruction < m_Trace->lineInfo.count())
+    if(instruction < m_Trace->lineInfo.count())
       instLine = m_Trace->lineInfo[instruction].disassemblyLine - 1;
   }
 
