@@ -735,13 +735,13 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
 
       view.type = MakeTextureDim(srv.ViewDimension);
 
-      view.swizzle[0] =
+      view.swizzle.red =
           (TextureSwizzle)D3D12_DECODE_SHADER_4_COMPONENT_MAPPING(0, srv.Shader4ComponentMapping);
-      view.swizzle[1] =
+      view.swizzle.green =
           (TextureSwizzle)D3D12_DECODE_SHADER_4_COMPONENT_MAPPING(1, srv.Shader4ComponentMapping);
-      view.swizzle[2] =
+      view.swizzle.blue =
           (TextureSwizzle)D3D12_DECODE_SHADER_4_COMPONENT_MAPPING(2, srv.Shader4ComponentMapping);
-      view.swizzle[3] =
+      view.swizzle.alpha =
           (TextureSwizzle)D3D12_DECODE_SHADER_4_COMPONENT_MAPPING(3, srv.Shader4ComponentMapping);
 
       if(srv.ViewDimension == D3D12_SRV_DIMENSION_BUFFER)

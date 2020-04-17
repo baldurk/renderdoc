@@ -218,9 +218,7 @@ struct Texture
   bool operator==(const Texture &o) const
   {
     return resourceId == o.resourceId && firstMip == o.firstMip && numMips == o.numMips &&
-           type == o.type && swizzle[0] == o.swizzle[0] && swizzle[1] == o.swizzle[1] &&
-           swizzle[2] == o.swizzle[2] && swizzle[3] == o.swizzle[3] &&
-           depthReadChannel == o.depthReadChannel;
+           type == o.type && swizzle == o.swizzle && depthReadChannel == o.depthReadChannel;
   }
   bool operator<(const Texture &o) const
   {
@@ -232,14 +230,8 @@ struct Texture
       return numMips < o.numMips;
     if(!(type == o.type))
       return type < o.type;
-    if(!(swizzle[0] == o.swizzle[0]))
-      return swizzle[0] < o.swizzle[0];
-    if(!(swizzle[1] == o.swizzle[1]))
-      return swizzle[1] < o.swizzle[1];
-    if(!(swizzle[2] == o.swizzle[2]))
-      return swizzle[2] < o.swizzle[2];
-    if(!(swizzle[3] == o.swizzle[3]))
-      return swizzle[3] < o.swizzle[3];
+    if(!(swizzle == o.swizzle))
+      return swizzle < o.swizzle;
     if(!(depthReadChannel == o.depthReadChannel))
       return depthReadChannel < o.depthReadChannel;
     return false;
@@ -253,9 +245,8 @@ struct Texture
   DOCUMENT("The :class:`TextureType` of the texture.");
   TextureType type = TextureType::Unknown;
 
-  DOCUMENT("Four :class:`TextureSwizzle` elements indicating the swizzle applied to this texture.");
-  TextureSwizzle swizzle[4] = {TextureSwizzle::Red, TextureSwizzle::Green, TextureSwizzle::Blue,
-                               TextureSwizzle::Alpha};
+  DOCUMENT("A :class:`TextureSwizzle4` indicating the swizzle applied to this texture.");
+  TextureSwizzle4 swizzle;
   DOCUMENT(R"(The channel to read from in a depth-stencil texture.
 
 ``-1`` for non depth-stencil textures.
@@ -601,8 +592,7 @@ struct Attachment
   bool operator==(const Attachment &o) const
   {
     return resourceId == o.resourceId && slice == o.slice && mipLevel == o.mipLevel &&
-           swizzle[0] == o.swizzle[0] && swizzle[1] == o.swizzle[1] && swizzle[2] == o.swizzle[2] &&
-           swizzle[3] == o.swizzle[3];
+           swizzle == o.swizzle;
   }
   bool operator<(const Attachment &o) const
   {
@@ -612,14 +602,8 @@ struct Attachment
       return slice < o.slice;
     if(!(mipLevel == o.mipLevel))
       return mipLevel < o.mipLevel;
-    if(!(swizzle[0] == o.swizzle[0]))
-      return swizzle[0] < o.swizzle[0];
-    if(!(swizzle[1] == o.swizzle[1]))
-      return swizzle[1] < o.swizzle[1];
-    if(!(swizzle[2] == o.swizzle[2]))
-      return swizzle[2] < o.swizzle[2];
-    if(!(swizzle[3] == o.swizzle[3]))
-      return swizzle[3] < o.swizzle[3];
+    if(!(swizzle == o.swizzle))
+      return swizzle < o.swizzle;
     return false;
   }
   DOCUMENT("The :class:`ResourceId` of the texture bound to this attachment.");
@@ -628,9 +612,8 @@ struct Attachment
   uint32_t slice = 0;
   DOCUMENT("The mip of the texture that's used in the attachment.");
   uint32_t mipLevel = 0;
-  DOCUMENT("Four :class:`TextureSwizzle` elements indicating the swizzle applied to this texture.");
-  TextureSwizzle swizzle[4] = {TextureSwizzle::Red, TextureSwizzle::Green, TextureSwizzle::Blue,
-                               TextureSwizzle::Alpha};
+  DOCUMENT("A :class:`TextureSwizzle4` indicating the swizzle applied to this texture.");
+  TextureSwizzle4 swizzle;
 };
 
 DOCUMENT("Describes the contents of a framebuffer object.");

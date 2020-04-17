@@ -845,16 +845,16 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
   {
     obj += lit(" ") + ToQStr(descriptor.ycbcrSampler);
 
-    if(descriptor.ycbcrSwizzle[0] != TextureSwizzle::Red ||
-       descriptor.ycbcrSwizzle[1] != TextureSwizzle::Green ||
-       descriptor.ycbcrSwizzle[2] != TextureSwizzle::Blue ||
-       descriptor.ycbcrSwizzle[3] != TextureSwizzle::Alpha)
+    if(descriptor.ycbcrSwizzle.red != TextureSwizzle::Red ||
+       descriptor.ycbcrSwizzle.green != TextureSwizzle::Green ||
+       descriptor.ycbcrSwizzle.blue != TextureSwizzle::Blue ||
+       descriptor.ycbcrSwizzle.alpha != TextureSwizzle::Alpha)
     {
       obj += tr(" swizzle[%1%2%3%4]")
-                 .arg(ToQStr(descriptor.swizzle[0]))
-                 .arg(ToQStr(descriptor.swizzle[1]))
-                 .arg(ToQStr(descriptor.swizzle[2]))
-                 .arg(ToQStr(descriptor.swizzle[3]));
+                 .arg(ToQStr(descriptor.swizzle.red))
+                 .arg(ToQStr(descriptor.swizzle.green))
+                 .arg(ToQStr(descriptor.swizzle.blue))
+                 .arg(ToQStr(descriptor.swizzle.alpha));
     }
 
     filter +=
@@ -1237,16 +1237,16 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
           else
             dim = QFormatStr("%1x%2").arg(w).arg(h);
 
-          if(descriptorBind->swizzle[0] != TextureSwizzle::Red ||
-             descriptorBind->swizzle[1] != TextureSwizzle::Green ||
-             descriptorBind->swizzle[2] != TextureSwizzle::Blue ||
-             descriptorBind->swizzle[3] != TextureSwizzle::Alpha)
+          if(descriptorBind->swizzle.red != TextureSwizzle::Red ||
+             descriptorBind->swizzle.green != TextureSwizzle::Green ||
+             descriptorBind->swizzle.blue != TextureSwizzle::Blue ||
+             descriptorBind->swizzle.alpha != TextureSwizzle::Alpha)
           {
             format += tr(" swizzle[%1%2%3%4]")
-                          .arg(ToQStr(descriptorBind->swizzle[0]))
-                          .arg(ToQStr(descriptorBind->swizzle[1]))
-                          .arg(ToQStr(descriptorBind->swizzle[2]))
-                          .arg(ToQStr(descriptorBind->swizzle[3]));
+                          .arg(ToQStr(descriptorBind->swizzle.red))
+                          .arg(ToQStr(descriptorBind->swizzle.green))
+                          .arg(ToQStr(descriptorBind->swizzle.blue))
+                          .arg(ToQStr(descriptorBind->swizzle.alpha));
           }
 
           if(restype == TextureType::Texture1DArray || restype == TextureType::Texture2DArray ||
@@ -2334,14 +2334,14 @@ void VulkanPipelineStateViewer::setState()
           typeName = ToQStr(tex->type);
         }
 
-        if(p.swizzle[0] != TextureSwizzle::Red || p.swizzle[1] != TextureSwizzle::Green ||
-           p.swizzle[2] != TextureSwizzle::Blue || p.swizzle[3] != TextureSwizzle::Alpha)
+        if(p.swizzle.red != TextureSwizzle::Red || p.swizzle.green != TextureSwizzle::Green ||
+           p.swizzle.blue != TextureSwizzle::Blue || p.swizzle.alpha != TextureSwizzle::Alpha)
         {
           format += tr(" swizzle[%1%2%3%4]")
-                        .arg(ToQStr(p.swizzle[0]))
-                        .arg(ToQStr(p.swizzle[1]))
-                        .arg(ToQStr(p.swizzle[2]))
-                        .arg(ToQStr(p.swizzle[3]));
+                        .arg(ToQStr(p.swizzle.red))
+                        .arg(ToQStr(p.swizzle.green))
+                        .arg(ToQStr(p.swizzle.blue))
+                        .arg(ToQStr(p.swizzle.alpha));
         }
 
         QString slotname;

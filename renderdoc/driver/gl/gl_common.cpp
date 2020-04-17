@@ -1751,6 +1751,20 @@ BlendOperation MakeBlendOp(GLenum op)
   return BlendOperation::Add;
 }
 
+TextureSwizzle MakeSwizzle(GLenum s)
+{
+  switch(s)
+  {
+    default:
+    case GL_ZERO: return TextureSwizzle::Zero;
+    case GL_ONE: return TextureSwizzle::One;
+    case eGL_RED: return TextureSwizzle::Red;
+    case eGL_GREEN: return TextureSwizzle::Green;
+    case eGL_BLUE: return TextureSwizzle::Blue;
+    case eGL_ALPHA: return TextureSwizzle::Alpha;
+  }
+}
+
 ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
 {
   ResourceFormat ret;

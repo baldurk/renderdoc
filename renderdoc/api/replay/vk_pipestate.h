@@ -41,8 +41,7 @@ struct BindingElement
     return dynamicallyUsed == o.dynamicallyUsed && viewResourceId == o.viewResourceId &&
            resourceResourceId == o.resourceResourceId && samplerResourceId == o.samplerResourceId &&
            immutableSampler == o.immutableSampler && viewFormat == o.viewFormat &&
-           swizzle[0] == o.swizzle[0] && swizzle[1] == o.swizzle[1] && swizzle[2] == o.swizzle[2] &&
-           swizzle[3] == o.swizzle[3] && firstMip == o.firstMip && firstSlice == o.firstSlice &&
+           swizzle == o.swizzle && firstMip == o.firstMip && firstSlice == o.firstSlice &&
            numMips == o.numMips && numSlices == o.numSlices && byteOffset == o.byteOffset &&
            byteSize == o.byteSize && filter == o.filter && addressU == o.addressU &&
            addressV == o.addressV && addressW == o.addressW && mipBias == o.mipBias &&
@@ -65,14 +64,8 @@ struct BindingElement
       return immutableSampler < o.immutableSampler;
     if(!(viewFormat == o.viewFormat))
       return viewFormat < o.viewFormat;
-    if(!(swizzle[0] == o.swizzle[0]))
-      return swizzle[0] < o.swizzle[0];
-    if(!(swizzle[1] == o.swizzle[1]))
-      return swizzle[1] < o.swizzle[1];
-    if(!(swizzle[2] == o.swizzle[2]))
-      return swizzle[2] < o.swizzle[2];
-    if(!(swizzle[3] == o.swizzle[3]))
-      return swizzle[3] < o.swizzle[3];
+    if(!(swizzle == o.swizzle))
+      return swizzle < o.swizzle;
     if(!(firstMip == o.firstMip))
       return firstMip < o.firstMip;
     if(!(firstSlice == o.firstSlice))
@@ -136,9 +129,8 @@ since single descriptors may only be dynamically skipped by control flow.
 
   DOCUMENT("The :class:`ResourceFormat` that the view uses.");
   ResourceFormat viewFormat;
-  DOCUMENT("Four :class:`TextureSwizzle` elements indicating the swizzle applied to this texture.");
-  TextureSwizzle swizzle[4] = {TextureSwizzle::Red, TextureSwizzle::Green, TextureSwizzle::Blue,
-                               TextureSwizzle::Alpha};
+  DOCUMENT("A :class:`TextureSwizzle4` indicating the swizzle applied to this texture.");
+  TextureSwizzle4 swizzle;
 
   DOCUMENT("For textures - the first mip level used in the view.");
   uint32_t firstMip = 0;
@@ -187,10 +179,10 @@ this sampler.
   YcbcrConversion ycbcrModel;
   DOCUMENT("For ycbcr samplers - the :class:`YcbcrRange` used for conversion.");
   YcbcrRange ycbcrRange;
-  DOCUMENT(R"(For ycbcr samplers - Four :class:`TextureSwizzle` elements indicating the swizzle
-applied before conversion.
+  DOCUMENT(R"(For ycbcr samplers - A :class:`TextureSwizzle4` indicating the swizzle applied before
+conversion.
 )");
-  TextureSwizzle ycbcrSwizzle[4];
+  TextureSwizzle4 ycbcrSwizzle;
   DOCUMENT("For ycbcr samplers - the :class:`ChromaSampleLocation` X-axis chroma offset.");
   ChromaSampleLocation xChromaOffset;
   DOCUMENT("For ycbcr samplers - the :class:`ChromaSampleLocation` Y-axis chroma offset.");
@@ -887,8 +879,7 @@ struct Attachment
   bool operator==(const Attachment &o) const
   {
     return viewResourceId == o.viewResourceId && imageResourceId == o.imageResourceId &&
-           viewFormat == o.viewFormat && swizzle[0] == o.swizzle[0] && swizzle[1] == o.swizzle[1] &&
-           swizzle[2] == o.swizzle[2] && swizzle[3] == o.swizzle[3] && firstMip == o.firstMip &&
+           viewFormat == o.viewFormat && swizzle == o.swizzle && firstMip == o.firstMip &&
            firstSlice == o.firstSlice && numMips == o.numMips && numSlices == o.numSlices;
   }
   bool operator<(const Attachment &o) const
@@ -899,14 +890,8 @@ struct Attachment
       return imageResourceId < o.imageResourceId;
     if(!(viewFormat == o.viewFormat))
       return viewFormat < o.viewFormat;
-    if(!(swizzle[0] == o.swizzle[0]))
-      return swizzle[0] < o.swizzle[0];
-    if(!(swizzle[1] == o.swizzle[1]))
-      return swizzle[1] < o.swizzle[1];
-    if(!(swizzle[2] == o.swizzle[2]))
-      return swizzle[2] < o.swizzle[2];
-    if(!(swizzle[3] == o.swizzle[3]))
-      return swizzle[3] < o.swizzle[3];
+    if(!(swizzle == o.swizzle))
+      return swizzle < o.swizzle;
     if(!(firstMip == o.firstMip))
       return firstMip < o.firstMip;
     if(!(firstSlice == o.firstSlice))
@@ -924,9 +909,8 @@ struct Attachment
 
   DOCUMENT("The :class:`ResourceFormat` that the view uses.");
   ResourceFormat viewFormat;
-  DOCUMENT("Four :class:`TextureSwizzle` elements indicating the swizzle applied to this texture.");
-  TextureSwizzle swizzle[4] = {TextureSwizzle::Red, TextureSwizzle::Green, TextureSwizzle::Blue,
-                               TextureSwizzle::Alpha};
+  DOCUMENT("A :class:`TextureSwizzle4` indicating the swizzle applied to this texture.");
+  TextureSwizzle4 swizzle;
   DOCUMENT("The first mip level used in the attachment.");
   uint32_t firstMip = 0;
   DOCUMENT("For 3D textures and texture arrays, the first slice used in the attachment.");

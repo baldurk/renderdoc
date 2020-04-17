@@ -194,8 +194,7 @@ struct View
   bool operator==(const View &o) const
   {
     return bind == o.bind && tableIndex == o.tableIndex && resourceId == o.resourceId &&
-           type == o.type && viewFormat == o.viewFormat && swizzle[0] == o.swizzle[0] &&
-           swizzle[1] == o.swizzle[1] && swizzle[2] == o.swizzle[2] && swizzle[3] == o.swizzle[3] &&
+           type == o.type && viewFormat == o.viewFormat && swizzle == o.swizzle &&
            bufferFlags == o.bufferFlags && bufferStructCount == o.bufferStructCount &&
            elementByteSize == o.elementByteSize && firstElement == o.firstElement &&
            numElements == o.numElements && counterResourceId == o.counterResourceId &&
@@ -214,14 +213,8 @@ struct View
       return type < o.type;
     if(!(viewFormat == o.viewFormat))
       return viewFormat < o.viewFormat;
-    if(!(swizzle[0] == o.swizzle[0]))
-      return swizzle[0] < o.swizzle[0];
-    if(!(swizzle[1] == o.swizzle[1]))
-      return swizzle[1] < o.swizzle[1];
-    if(!(swizzle[2] == o.swizzle[2]))
-      return swizzle[2] < o.swizzle[2];
-    if(!(swizzle[3] == o.swizzle[3]))
-      return swizzle[3] < o.swizzle[3];
+    if(!(swizzle == o.swizzle))
+      return swizzle < o.swizzle;
     if(!(bufferFlags == o.bufferFlags))
       return bufferFlags < o.bufferFlags;
     if(!(bufferStructCount == o.bufferStructCount))
@@ -258,9 +251,8 @@ struct View
   DOCUMENT("The :class:`ResourceFormat` that the view uses.");
   ResourceFormat viewFormat;
 
-  DOCUMENT("Four :class:`TextureSwizzle` elements indicating the swizzle applied to this texture.");
-  TextureSwizzle swizzle[4] = {TextureSwizzle::Red, TextureSwizzle::Green, TextureSwizzle::Blue,
-                               TextureSwizzle::Alpha};
+  DOCUMENT("A :class:`TextureSwizzle4` indicating the swizzle applied to this texture.");
+  TextureSwizzle4 swizzle;
   DOCUMENT("The :class:`D3DBufferViewFlags` set for the buffer.");
   D3DBufferViewFlags bufferFlags = D3DBufferViewFlags::NoFlags;
   DOCUMENT("If the view has a hidden counter, this stores the current value of the counter.");

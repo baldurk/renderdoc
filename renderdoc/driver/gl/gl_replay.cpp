@@ -1257,10 +1257,10 @@ void GLReplay::SavePipelineState(uint32_t eventId)
         pipe.textures[unit].numMips = 1;
         pipe.textures[unit].type = TextureType::Unknown;
         pipe.textures[unit].depthReadChannel = -1;
-        pipe.textures[unit].swizzle[0] = TextureSwizzle::Red;
-        pipe.textures[unit].swizzle[1] = TextureSwizzle::Green;
-        pipe.textures[unit].swizzle[2] = TextureSwizzle::Blue;
-        pipe.textures[unit].swizzle[3] = TextureSwizzle::Alpha;
+        pipe.textures[unit].swizzle.red = TextureSwizzle::Red;
+        pipe.textures[unit].swizzle.green = TextureSwizzle::Green;
+        pipe.textures[unit].swizzle.blue = TextureSwizzle::Blue;
+        pipe.textures[unit].swizzle.alpha = TextureSwizzle::Alpha;
 
         RDCEraseEl(pipe.samplers[unit].borderColor);
         pipe.samplers[unit].addressS = AddressMode::Wrap;
@@ -1310,24 +1310,15 @@ void GLReplay::SavePipelineState(uint32_t eventId)
             pipe.textures[unit].depthReadChannel = 1;
         }
 
-        GLint swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
+        GLenum swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
         if(target != eGL_TEXTURE_BUFFER &&
            (HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle]))
-          GetTextureSwizzle(tex, target, (GLenum *)swizzles);
+          GetTextureSwizzle(tex, target, swizzles);
 
-        for(int i = 0; i < 4; i++)
-        {
-          switch(swizzles[i])
-          {
-            default:
-            case GL_ZERO: pipe.textures[unit].swizzle[i] = TextureSwizzle::Zero; break;
-            case GL_ONE: pipe.textures[unit].swizzle[i] = TextureSwizzle::One; break;
-            case eGL_RED: pipe.textures[unit].swizzle[i] = TextureSwizzle::Red; break;
-            case eGL_GREEN: pipe.textures[unit].swizzle[i] = TextureSwizzle::Green; break;
-            case eGL_BLUE: pipe.textures[unit].swizzle[i] = TextureSwizzle::Blue; break;
-            case eGL_ALPHA: pipe.textures[unit].swizzle[i] = TextureSwizzle::Alpha; break;
-          }
-        }
+        pipe.textures[unit].swizzle.red = MakeSwizzle(swizzles[0]);
+        pipe.textures[unit].swizzle.green = MakeSwizzle(swizzles[1]);
+        pipe.textures[unit].swizzle.blue = MakeSwizzle(swizzles[2]);
+        pipe.textures[unit].swizzle.alpha = MakeSwizzle(swizzles[3]);
 
         GLuint samp = 0;
         if(HasExt[ARB_sampler_objects])
@@ -1751,39 +1742,18 @@ void GLReplay::SavePipelineState(uint32_t eventId)
                                   (GLint *)&pipe.framebuffer.drawFBO.colorAttachments[i].mipLevel,
                                   (GLint *)&pipe.framebuffer.drawFBO.colorAttachments[i].slice);
 
-      GLint swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
+      GLenum swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
       if(!rbCol[i] && id != ResourceId() &&
          (HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle]))
       {
         GLenum target = m_pDriver->m_Textures[id].curType;
-        GetTextureSwizzle(curCol[i], target, (GLenum *)swizzles);
+        GetTextureSwizzle(curCol[i], target, swizzles);
       }
 
-      for(int s = 0; s < 4; s++)
-      {
-        switch(swizzles[s])
-        {
-          default:
-          case GL_ZERO:
-            pipe.framebuffer.drawFBO.colorAttachments[i].swizzle[s] = TextureSwizzle::Zero;
-            break;
-          case GL_ONE:
-            pipe.framebuffer.drawFBO.colorAttachments[i].swizzle[s] = TextureSwizzle::One;
-            break;
-          case eGL_RED:
-            pipe.framebuffer.drawFBO.colorAttachments[i].swizzle[s] = TextureSwizzle::Red;
-            break;
-          case eGL_GREEN:
-            pipe.framebuffer.drawFBO.colorAttachments[i].swizzle[s] = TextureSwizzle::Green;
-            break;
-          case eGL_BLUE:
-            pipe.framebuffer.drawFBO.colorAttachments[i].swizzle[s] = TextureSwizzle::Blue;
-            break;
-          case eGL_ALPHA:
-            pipe.framebuffer.drawFBO.colorAttachments[i].swizzle[s] = TextureSwizzle::Alpha;
-            break;
-        }
-      }
+      pipe.framebuffer.drawFBO.colorAttachments[i].swizzle.red = MakeSwizzle(swizzles[0]);
+      pipe.framebuffer.drawFBO.colorAttachments[i].swizzle.green = MakeSwizzle(swizzles[1]);
+      pipe.framebuffer.drawFBO.colorAttachments[i].swizzle.blue = MakeSwizzle(swizzles[2]);
+      pipe.framebuffer.drawFBO.colorAttachments[i].swizzle.alpha = MakeSwizzle(swizzles[3]);
     }
 
     pipe.framebuffer.drawFBO.depthAttachment.resourceId = rm->GetOriginalID(

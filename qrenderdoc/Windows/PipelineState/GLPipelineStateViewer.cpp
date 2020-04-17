@@ -754,14 +754,14 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, RDLabel 
             else if(r.depthReadChannel == 1)
               format += tr(" Stencil-Read");
           }
-          else if(r.swizzle[0] != TextureSwizzle::Red || r.swizzle[1] != TextureSwizzle::Green ||
-                  r.swizzle[2] != TextureSwizzle::Blue || r.swizzle[3] != TextureSwizzle::Alpha)
+          else if(r.swizzle.red != TextureSwizzle::Red || r.swizzle.green != TextureSwizzle::Green ||
+                  r.swizzle.blue != TextureSwizzle::Blue || r.swizzle.alpha != TextureSwizzle::Alpha)
           {
             format += tr(" swizzle[%1%2%3%4]")
-                          .arg(ToQStr(r.swizzle[0]))
-                          .arg(ToQStr(r.swizzle[1]))
-                          .arg(ToQStr(r.swizzle[2]))
-                          .arg(ToQStr(r.swizzle[3]));
+                          .arg(ToQStr(r.swizzle.red))
+                          .arg(ToQStr(r.swizzle.green))
+                          .arg(ToQStr(r.swizzle.blue))
+                          .arg(ToQStr(r.swizzle.alpha));
           }
         }
 
@@ -1838,14 +1838,15 @@ void GLPipelineStateViewer::setState()
             format += lit(" (GL_FRAMEBUFFER_SRGB = 0)");
         }
 
-        if(r && (r->swizzle[0] != TextureSwizzle::Red || r->swizzle[1] != TextureSwizzle::Green ||
-                 r->swizzle[2] != TextureSwizzle::Blue || r->swizzle[3] != TextureSwizzle::Alpha))
+        if(r &&
+           (r->swizzle.red != TextureSwizzle::Red || r->swizzle.green != TextureSwizzle::Green ||
+            r->swizzle.blue != TextureSwizzle::Blue || r->swizzle.alpha != TextureSwizzle::Alpha))
         {
           format += tr(" swizzle[%1%2%3%4]")
-                        .arg(ToQStr(r->swizzle[0]))
-                        .arg(ToQStr(r->swizzle[1]))
-                        .arg(ToQStr(r->swizzle[2]))
-                        .arg(ToQStr(r->swizzle[3]));
+                        .arg(ToQStr(r->swizzle.red))
+                        .arg(ToQStr(r->swizzle.green))
+                        .arg(ToQStr(r->swizzle.blue))
+                        .arg(ToQStr(r->swizzle.alpha));
         }
 
         QString slotname = QString::number(i);
@@ -2658,14 +2659,14 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
             else if(r.depthReadChannel == 1)
               format += tr(" Stencil-Read");
           }
-          else if(r.swizzle[0] != TextureSwizzle::Red || r.swizzle[1] != TextureSwizzle::Green ||
-                  r.swizzle[2] != TextureSwizzle::Blue || r.swizzle[3] != TextureSwizzle::Alpha)
+          else if(r.swizzle.red != TextureSwizzle::Red || r.swizzle.green != TextureSwizzle::Green ||
+                  r.swizzle.blue != TextureSwizzle::Blue || r.swizzle.alpha != TextureSwizzle::Alpha)
           {
             format += QFormatStr(" swizzle[%1%2%3%4]")
-                          .arg(ToQStr(r.swizzle[0]))
-                          .arg(ToQStr(r.swizzle[1]))
-                          .arg(ToQStr(r.swizzle[2]))
-                          .arg(ToQStr(r.swizzle[3]));
+                          .arg(ToQStr(r.swizzle.red))
+                          .arg(ToQStr(r.swizzle.green))
+                          .arg(ToQStr(r.swizzle.blue))
+                          .arg(ToQStr(r.swizzle.alpha));
           }
         }
 

@@ -430,6 +430,17 @@ void DoSerialise(SerialiserType &ser, TextureFilter &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, TextureSwizzle4 &el)
+{
+  SERIALISE_MEMBER(red);
+  SERIALISE_MEMBER(green);
+  SERIALISE_MEMBER(blue);
+  SERIALISE_MEMBER(alpha);
+
+  SIZE_CHECK(16);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ResourceDescription &el)
 {
   SERIALISE_MEMBER(resourceId);

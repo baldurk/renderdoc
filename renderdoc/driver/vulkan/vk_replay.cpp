@@ -1015,29 +1015,29 @@ void VulkanReplay::SetDriverInformation(const VkPhysicalDeviceProperties &props)
   memcpy(m_DriverInfo.version, versionString.c_str(), versionString.size());
 }
 
-static void Convert(TextureSwizzle dst[4], VkComponentMapping src)
+static TextureSwizzle Convert(VkComponentSwizzle src, int i)
 {
-  VkComponentSwizzle srcComps[4] = {
-      src.r, src.g, src.b, src.a,
-  };
-  for(int i = 0; i < 4; i++)
+  switch(src)
   {
-    switch(srcComps[i])
-    {
-      default:
-        RDCWARN("Unexpected component swizzle value %d", (int)srcComps[i]);
-        DELIBERATE_FALLTHROUGH();
-      case VK_COMPONENT_SWIZZLE_IDENTITY: break;
-      case VK_COMPONENT_SWIZZLE_ZERO: dst[i] = TextureSwizzle::Zero; break;
-      case VK_COMPONENT_SWIZZLE_ONE: dst[i] = TextureSwizzle::One; break;
-      case VK_COMPONENT_SWIZZLE_R: dst[i] = TextureSwizzle::Red; break;
-      case VK_COMPONENT_SWIZZLE_G: dst[i] = TextureSwizzle::Green; break;
-      case VK_COMPONENT_SWIZZLE_B: dst[i] = TextureSwizzle::Blue; break;
-      case VK_COMPONENT_SWIZZLE_A: dst[i] = TextureSwizzle::Alpha; break;
-    }
-
-    dst[i] = TextureSwizzle(uint32_t(TextureSwizzle::Red) + i);
+    default: RDCWARN("Unexpected component swizzle value %d", (int)src); DELIBERATE_FALLTHROUGH();
+    case VK_COMPONENT_SWIZZLE_IDENTITY: break;
+    case VK_COMPONENT_SWIZZLE_ZERO: return TextureSwizzle::Zero; break;
+    case VK_COMPONENT_SWIZZLE_ONE: return TextureSwizzle::One; break;
+    case VK_COMPONENT_SWIZZLE_R: return TextureSwizzle::Red; break;
+    case VK_COMPONENT_SWIZZLE_G: return TextureSwizzle::Green; break;
+    case VK_COMPONENT_SWIZZLE_B: return TextureSwizzle::Blue; break;
+    case VK_COMPONENT_SWIZZLE_A: return TextureSwizzle::Alpha; break;
   }
+
+  return TextureSwizzle(uint32_t(TextureSwizzle::Red) + i);
+}
+
+static void Convert(TextureSwizzle4 dst, VkComponentMapping src)
+{
+  dst.red = Convert(src.r, 0);
+  dst.green = Convert(src.g, 1);
+  dst.blue = Convert(src.b, 2);
+  dst.alpha = Convert(src.a, 3);
 }
 
 void VulkanReplay::SavePipelineState(uint32_t eventId)

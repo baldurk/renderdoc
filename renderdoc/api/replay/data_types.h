@@ -424,6 +424,43 @@ struct TextureFilter
 
 DECLARE_REFLECTION_STRUCT(TextureFilter);
 
+DOCUMENT("The four components of a texture swizzle.");
+struct TextureSwizzle4
+{
+  DOCUMENT("");
+  TextureSwizzle4() = default;
+  TextureSwizzle4(const TextureSwizzle4 &) = default;
+  TextureSwizzle4 &operator=(const TextureSwizzle4 &) = default;
+
+  bool operator==(const TextureSwizzle4 &o) const
+  {
+    return red == o.red && green == o.green && blue == o.blue && alpha == o.alpha;
+  }
+  bool operator<(const TextureSwizzle4 &o) const
+  {
+    if(!(red == o.red))
+      return red < o.red;
+    if(!(green == o.green))
+      return green < o.green;
+    if(!(blue == o.blue))
+      return blue < o.blue;
+    if(!(alpha == o.alpha))
+      return alpha < o.alpha;
+    return false;
+  }
+
+  DOCUMENT("The red channel's :class:`TextureSwizzle`.");
+  TextureSwizzle red;
+  DOCUMENT("The green channel's :class:`TextureSwizzle`.");
+  TextureSwizzle green;
+  DOCUMENT("The blue channel's :class:`TextureSwizzle`.");
+  TextureSwizzle blue;
+  DOCUMENT("The alpha channel's :class:`TextureSwizzle`.");
+  TextureSwizzle alpha;
+};
+
+DECLARE_REFLECTION_STRUCT(TextureSwizzle4);
+
 DOCUMENT("A description of any type of resource.");
 struct ResourceDescription
 {

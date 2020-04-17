@@ -708,6 +708,16 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
       format = tex->format.Name();
       typeName = ToQStr(tex->type);
 
+      if(r.swizzle.red != TextureSwizzle::Red || r.swizzle.green != TextureSwizzle::Green ||
+         r.swizzle.blue != TextureSwizzle::Blue || r.swizzle.alpha != TextureSwizzle::Alpha)
+      {
+        format += tr(" swizzle[%1%2%3%4]")
+                      .arg(ToQStr(r.swizzle.red))
+                      .arg(ToQStr(r.swizzle.green))
+                      .arg(ToQStr(r.swizzle.blue))
+                      .arg(ToQStr(r.swizzle.alpha));
+      }
+
       if(tex->type == TextureType::Texture2DMS || tex->type == TextureType::Texture2DMSArray)
       {
         typeName += QFormatStr(" %1x").arg(tex->msSamp);
@@ -2241,14 +2251,14 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
     viewType = ToQStr(view.type);
     typeName = ToQStr(tex->type);
 
-    if(view.swizzle[0] != TextureSwizzle::Red || view.swizzle[1] != TextureSwizzle::Green ||
-       view.swizzle[2] != TextureSwizzle::Blue || view.swizzle[3] != TextureSwizzle::Alpha)
+    if(view.swizzle.red != TextureSwizzle::Red || view.swizzle.green != TextureSwizzle::Green ||
+       view.swizzle.blue != TextureSwizzle::Blue || view.swizzle.alpha != TextureSwizzle::Alpha)
     {
       format += tr(" swizzle[%1%2%3%4]")
-                    .arg(ToQStr(view.swizzle[0]))
-                    .arg(ToQStr(view.swizzle[1]))
-                    .arg(ToQStr(view.swizzle[2]))
-                    .arg(ToQStr(view.swizzle[3]));
+                    .arg(ToQStr(view.swizzle.red))
+                    .arg(ToQStr(view.swizzle.green))
+                    .arg(ToQStr(view.swizzle.blue))
+                    .arg(ToQStr(view.swizzle.alpha));
     }
 
     if(tex->mips > 1)

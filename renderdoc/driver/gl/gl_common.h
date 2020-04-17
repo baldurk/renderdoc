@@ -576,6 +576,7 @@ StencilOperation MakeStencilOp(GLenum op);
 LogicOperation MakeLogicOp(GLenum op);
 BlendMultiplier MakeBlendMultiplier(GLenum blend);
 BlendOperation MakeBlendOp(GLenum op);
+TextureSwizzle MakeSwizzle(GLenum s);
 
 void ClearGLErrors();
 
