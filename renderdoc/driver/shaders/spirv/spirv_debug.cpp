@@ -178,6 +178,8 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
 
   // next instruction is the first actual instruction we'll execute
   nextInstruction = debugger.GetInstructionForIter(it);
+
+  SkipIgnoredInstructions();
 }
 
 const ShaderVariable &ThreadState::GetSrc(Id id) const
@@ -410,6 +412,27 @@ void ThreadState::JumpToLabel(Id target)
       JumpToLabel(OpBranch(it).targetLabel);
     }
   }
+
+  SkipIgnoredInstructions();
+}
+
+void ThreadState::SkipIgnoredInstructions()
+{
+  // skip OpLine/OpNoLine now, so that nextInstruction points to the next real instruction
+  // Also for now we don't care about structured control flow so skip past merge statements so we
+  // process the branch.
+  while(true)
+  {
+    Iter it = debugger.GetIterForInstruction(nextInstruction);
+    rdcspv::Op op = it.opcode();
+    if(op == Op::Line || op == Op::NoLine || op == Op::SelectionMerge || op == Op::LoopMerge)
+    {
+      nextInstruction++;
+      continue;
+    }
+
+    break;
+  }
 }
 
 void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> &workgroup)
@@ -421,22 +444,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
   OpDecoder opdata(it);
 
-  // skip OpLine/OpNoLine
-  while(opdata.op == Op::Line || opdata.op == Op::NoLine)
-  {
-    it++;
-    nextInstruction++;
-    opdata = OpDecoder(it);
-  }
-
-  // for now we don't care about structured control flow so skip past merge statements so we process
-  // the branch. OpLine can't be in between so we can safely advance
-  if(opdata.op == Op::SelectionMerge || opdata.op == Op::LoopMerge)
-  {
-    it++;
-    nextInstruction++;
-    opdata = OpDecoder(it);
-  }
+  // don't skip any instructions here. These should be skipped *after* processing, so that
+  // nextInstruction always points to the next real instruction.
 
   switch(opdata.op)
   {
@@ -2429,6 +2438,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
     break;
   }
+
+  SkipIgnoredInstructions();
 
   // set the state's next instruction (if we have one) to ours, bounded by how many
   // instructions there are

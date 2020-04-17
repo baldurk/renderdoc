@@ -214,6 +214,8 @@ private:
   void ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray<Id> &newLive);
   void JumpToLabel(Id target);
 
+  void SkipIgnoredInstructions();
+
   ShaderDebugState *m_State = NULL;
 };
 
