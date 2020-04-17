@@ -77,7 +77,7 @@ void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkComman
     imagelessAttachments.pAttachments = imagelessViews.data();
   }
 
-  ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+  ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, subpassContents);
 
   BindPipeline(vk, cmd, binding, true);
 

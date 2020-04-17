@@ -9,6 +9,7 @@ def depth_test_failed(x): return x.depthTestFailed
 def stencil_test_failed(x): return x.stencilTestFailed
 def shader_discarded(x): return x.shaderDiscarded
 def shader_out_col(x): return value_selector(x.shaderOut.col)
+def pre_mod_col(x): return value_selector(x.preMod.col)
 def post_mod_col(x): return value_selector(x.postMod.col)
 def primitive_id(x): return x.primitiveID
 
@@ -23,14 +24,16 @@ class VK_Pixel_History(rdtest.TestCase):
             rdtest.log.print("Vulkan pixel history not tested")
             return
 
+        self.primary_test()
+        self.secondary_cmd_test()
+
+    def primary_test(self):
         test_marker: rd.DrawcallDescription = self.find_draw("Test")
         self.controller.SetFrameEvent(test_marker.next.eventId, True)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         rt: rd.BoundResource = pipe.GetOutputTargets()[0]
-
-        vp: rd.Viewport = pipe.GetViewport(0)
 
         tex = rt.resourceId
         tex_details = self.get_texture(tex)
@@ -58,7 +61,7 @@ class VK_Pixel_History(rdtest.TestCase):
             [[event_id, background_eid], [depth_test_failed, True], [post_mod_col, (1.0, 0.0, 0.0, 1.0)]],
             [[event_id, test_eid], [stencil_test_failed, True]],
         ]
-        self.check_events(events, modifs)
+        self.check_events(events, modifs, False)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
 
         x, y = 190, 150
@@ -71,7 +74,7 @@ class VK_Pixel_History(rdtest.TestCase):
             [[event_id, cull_eid], [culled, True]],
             [[event_id, test_eid], [depth_test_failed, True]],
         ]
-        self.check_events(events, modifs)
+        self.check_events(events, modifs, False)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
 
         x, y = 200, 50
@@ -82,7 +85,7 @@ class VK_Pixel_History(rdtest.TestCase):
             [[event_id, background_eid], [passed, True]],
             [[event_id, test_eid], [passed, True], [primitive_id, 7]],
         ]
-        self.check_events(events, modifs)
+        self.check_events(events, modifs, False)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
 
         x, y = 150, 250
@@ -92,13 +95,71 @@ class VK_Pixel_History(rdtest.TestCase):
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, background_eid], [shader_discarded, True]],
         ]
-        self.check_events(events, modifs)
+        self.check_events(events, modifs, False)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
 
-    def check_events(self, events, modifs):
-        self.check(len(modifs) == len(events))
-        # Check for consistency first
-        self.check_modifs_consistent(modifs)
+    def secondary_cmd_test(self):
+        secondary_marker: rd.DrawcallDescription = self.find_draw("Secondary: red and blue")
+        self.controller.SetFrameEvent(secondary_marker.next.eventId, True)
+
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+        rt: rd.BoundResource = pipe.GetOutputTargets()[0]
+        sub = rd.Subresource()
+        tex = rt.resourceId
+        tex_details = self.get_texture(tex)
+        if tex_details.arraysize > 1:
+            sub.slice = rt.firstSlice
+        if tex_details.mips > 1:
+            sub.mip = rt.firstMip
+
+        sec_beg_renderpass_eid = self.find_draw("Begin RenderPass Secondary").next.eventId
+        background_eid = self.find_draw("Secondary: background").next.eventId
+        culled_eid = self.find_draw("Secondary: culled").next.eventId
+        sec_red_and_blue = self.find_draw("Secondary: red and blue").next.eventId
+
+        # Test culling
+        x, y = 70, 40
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, sec_beg_renderpass_eid], [passed, True], [post_mod_col, (0.0, 1.0, 0.0, 1.0)]],
+            [[event_id, background_eid], [passed, True], [pre_mod_col, (0.0, 1.0, 0.0, 1.0)]],
+            [[event_id, culled_eid], [passed, False], [culled, True]],
+        ]
+        self.check_events(events, modifs, True)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+        # Blue triangle
+        x, y = 40, 40
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, sec_beg_renderpass_eid], [passed, True], [post_mod_col, (0.0, 1.0, 0.0, 1.0)]],
+            # This is the first event in the command buffer, should have pre-mod
+            [[event_id, background_eid], [passed, True], [pre_mod_col, (0.0, 1.0, 0.0, 1.0)]],
+            # This is the last event in the command buffer, should have post-mod
+            [[event_id, sec_red_and_blue], [passed, True], [post_mod_col, (0.0, 0.0, 1.0, 1.0)]],
+        ]
+        self.check_events(events, modifs, True)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+        # Didn't get post mod for background_eid
+        self.controller.SetFrameEvent(background_eid, True)
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, sec_beg_renderpass_eid]],
+            # The only event, should have both pre and post mod.
+            [[event_id, background_eid], [passed, True], [pre_mod_col, (0.0, 1.0, 0.0, 1.0)], [post_mod_col, (1.0, 0.0, 1.0, 1.0)]],
+        ]
+        self.check_events(events, modifs, True)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+    def check_events(self, events, modifs, hasSecondary):
+        self.check(len(modifs) == len(events), "Expected {} events, got {}".format(len(events), len(modifs)))
+        # Check for consistency first. For secondary command buffers,
+        # might not have all information, so don't check for consistency
+        if not hasSecondary:
+            self.check_modifs_consistent(modifs)
         for i in range(len(modifs)):
             for c in range(len(events[i])):
                 expected = events[i][c][1]

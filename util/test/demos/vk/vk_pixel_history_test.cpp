@@ -113,9 +113,9 @@ void main()
         {Vec3f(0.0f, 0.0f, 0.9f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
 
         // this triangle is just in the background to contribute to overdraw
-        {Vec3f(-0.9f, 0.9f, 0.95f), Vec4f(0.1f, 0.1f, 0.1f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(0.0f, -0.9f, 0.95f), Vec4f(0.1f, 0.1f, 0.1f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(0.9f, 0.9f, 0.95f), Vec4f(0.1f, 0.1f, 0.1f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.9f, 0.9f, 0.95f), Vec4f(1.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, -0.9f, 0.95f), Vec4f(1.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.9f, 0.9f, 0.95f), Vec4f(1.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
 
         // the draw has a few triangles, main one that is occluded for depth, another that is
         // adding to overdraw complexity, one that is backface culled, then a few more of various
@@ -255,14 +255,13 @@ void main()
 
     pipeCreateInfo.rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
     VkPipeline cullFrontPipe = createGraphicsPipeline(pipeCreateInfo);
+    pipeCreateInfo.rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 
     renderPassCreateInfo.attachments.pop_back();
     renderPassCreateInfo.subpasses[0].pDepthStencilAttachment = NULL;
 
     VkRenderPass subrp = createRenderPass(renderPassCreateInfo);
 
-    pipeCreateInfo.stages[1] =
-        CompileShaderModule(whitepixel, ShaderLang::glsl, ShaderStage::frag, "main");
     pipeCreateInfo.renderPass = subrp;
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
     pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
@@ -358,17 +357,36 @@ void main()
       s.extent.width /= 4;
       s.extent.height /= 4;
 
-      vkCmdSetViewport(cmd, 0, 1, &v);
-      vkCmdSetScissor(cmd, 0, 1, &s);
-
+      setMarker(cmd, "Begin RenderPass Secondary");
       vkCmdBeginRenderPass(
-          cmd, vkh::RenderPassBeginInfo(subrp, subfb, s, {vkh::ClearValue(0.0f, 0.0f, 0.0f, 1.0f)}),
-          VK_SUBPASS_CONTENTS_INLINE);
+          cmd, vkh::RenderPassBeginInfo(subrp, subfb, s, {vkh::ClearValue(0.f, 1.0f, 0.f, 1.0f)}),
+          VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
-      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, whitepipe);
+      std::vector<VkCommandBuffer> secondaries;
+      // Record the first secondary command buffer.
+      {
+        VkCommandBuffer cmd2 = GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY);
+        secondaries.push_back(cmd2);
+        vkBeginCommandBuffer(
+            cmd2, vkh::CommandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
+                                              vkh::CommandBufferInheritanceInfo(subrp, 0, subfb)));
+        vkh::cmdBindVertexBuffers(cmd2, 0, {vb.buffer}, {0});
+        vkCmdBindPipeline(cmd2, VK_PIPELINE_BIND_POINT_GRAPHICS, whitepipe);
+        vkCmdSetViewport(cmd2, 0, 1, &v);
+        vkCmdSetScissor(cmd2, 0, 1, &s);
+        setMarker(cmd2, "Secondary: background");
+        vkCmdDraw(cmd2, 6, 1, 3, 0);
+        setMarker(cmd2, "Secondary: culled");
+        vkCmdDraw(cmd2, 6, 1, 12, 0);
+        setMarker(cmd2, "Secondary: pink");
+        vkCmdDraw(cmd2, 9, 1, 24, 0);
+        setMarker(cmd2, "Secondary: red and blue");
+        vkCmdDraw(cmd2, 6, 1, 0, 0);
+        vkEndCommandBuffer(cmd2);
+      }
 
-      setMarker(cmd, "Subresources");
-      vkCmdDraw(cmd, 24, 1, 9, 0);
+      setMarker(cmd, "Secondary Test");
+      vkCmdExecuteCommands(cmd, (uint32_t)secondaries.size(), secondaries.data());
 
       vkCmdEndRenderPass(cmd);
 

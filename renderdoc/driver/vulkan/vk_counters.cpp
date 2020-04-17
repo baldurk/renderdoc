@@ -400,6 +400,15 @@ struct VulkanAMDDrawCallback : public VulkanDrawcallCallback
   {
     m_AliasEvents.push_back(make_rdcpair(primary, alias));
   }
+  bool SplitSecondary() override { return false; }
+  void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
+                     VkCommandBuffer cmd) override
+  {
+  }
+  void PostCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
+                      VkCommandBuffer cmd) override
+  {
+  }
 
   uint32_t *m_pSampleId;
   WrappedVulkan *m_pDriver;
@@ -555,6 +564,15 @@ struct VulkanKHRCallback : public VulkanDrawcallCallback
   void AliasEvent(uint32_t primary, uint32_t alias) override
   {
     m_AliasEvents.push_back(std::make_pair(primary, alias));
+  }
+  bool SplitSecondary() override { return false; }
+  void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
+                     VkCommandBuffer cmd) override
+  {
+  }
+  void PostCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
+                      VkCommandBuffer cmd) override
+  {
   }
 
   void PreEndCommandBuffer(VkCommandBuffer cmd) override {}
@@ -757,6 +775,15 @@ struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
   void AliasEvent(uint32_t primary, uint32_t alias) override
   {
     m_AliasEvents.push_back(make_rdcpair(primary, alias));
+  }
+  bool SplitSecondary() override { return false; }
+  void PreCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
+                     VkCommandBuffer cmd) override
+  {
+  }
+  void PostCmdExecute(uint32_t baseEid, uint32_t secondaryFirst, uint32_t secondaryLast,
+                      VkCommandBuffer cmd) override
+  {
   }
 
   void PreEndCommandBuffer(VkCommandBuffer cmd) override {}
