@@ -12,6 +12,7 @@ def shader_out_col(x): return value_selector(x.shaderOut.col)
 def pre_mod_col(x): return value_selector(x.preMod.col)
 def post_mod_col(x): return value_selector(x.postMod.col)
 def primitive_id(x): return x.primitiveID
+def unboundPS(x): return x.unboundPS
 
 class VK_Pixel_History(rdtest.TestCase):
     demos_test_name = 'VK_Pixel_History_Test'
@@ -47,6 +48,7 @@ class VK_Pixel_History(rdtest.TestCase):
         begin_renderpass_eid = self.find_draw("Begin RenderPass").next.eventId
         depth_write_eid = self.find_draw("Depth Write").next.eventId
         stencil_write_eid = self.find_draw("Stencil Write").next.eventId
+        unbound_fs_eid = self.find_draw("Unbound Fragment Shader").next.eventId
         background_eid = self.find_draw("Background").next.eventId
         cull_eid = self.find_draw("Cull Front").next.eventId
         test_eid = self.find_draw("Test").next.eventId
@@ -57,6 +59,7 @@ class VK_Pixel_History(rdtest.TestCase):
         modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
+            [[event_id, unbound_fs_eid], [passed, True], [unboundPS, True], [primitive_id, 0]],
             [[event_id, stencil_write_eid], [passed, True]],
             [[event_id, background_eid], [depth_test_failed, True], [post_mod_col, (1.0, 0.0, 0.0, 1.0)]],
             [[event_id, test_eid], [stencil_test_failed, True]],

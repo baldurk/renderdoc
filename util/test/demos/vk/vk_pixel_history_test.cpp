@@ -221,10 +221,12 @@ void main()
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
-    pipeCreateInfo.stages = {
-        CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
-        CompileShaderModule(common + pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
-    };
+    VkPipelineShaderStageCreateInfo vertexShader =
+        CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main");
+    VkPipelineShaderStageCreateInfo fragmentShader =
+        CompileShaderModule(common + pixel, ShaderLang::glsl, ShaderStage::frag, "main");
+
+    pipeCreateInfo.stages = {vertexShader, fragmentShader};
 
     pipeCreateInfo.rasterizationState.depthClampEnable = VK_FALSE;
     pipeCreateInfo.rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
@@ -248,6 +250,10 @@ void main()
 
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
     VkPipeline backgroundPipe = createGraphicsPipeline(pipeCreateInfo);
+
+    pipeCreateInfo.stages = {vertexShader};
+    VkPipeline noFsPipe = createGraphicsPipeline(pipeCreateInfo);
+    pipeCreateInfo.stages = {vertexShader, fragmentShader};
 
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_TRUE;
     pipeCreateInfo.depthStencilState.front.compareOp = VK_COMPARE_OP_GREATER;
@@ -318,6 +324,10 @@ void main()
       setMarker(cmd, "Depth Write");
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, depthWritePipe);
       vkCmdDraw(cmd, 3, 1, 0, 0);
+
+      setMarker(cmd, "Unbound Fragment Shader");
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, noFsPipe);
+      vkCmdDraw(cmd, 3, 1, 3, 0);
 
       setMarker(cmd, "Stencil Write");
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, stencilWritePipe);

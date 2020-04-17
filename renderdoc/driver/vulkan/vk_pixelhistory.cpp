@@ -49,12 +49,13 @@ enum
   TestEnabled_FragmentDiscard = 1 << 6,
 
   Blending_Enabled = 1 << 7,
-  TestMustFail_Culling = 1 << 8,
-  TestMustFail_Scissor = 1 << 9,
-  TestMustPass_Scissor = 1 << 10,
-  TestMustFail_DepthTesting = 1 << 11,
-  TestMustFail_StencilTesting = 1 << 12,
-  TestMustFail_SampleMask = 1 << 13,
+  UnboundFragmentShader = 1 << 8,
+  TestMustFail_Culling = 1 << 9,
+  TestMustFail_Scissor = 1 << 10,
+  TestMustPass_Scissor = 1 << 11,
+  TestMustFail_DepthTesting = 1 << 12,
+  TestMustFail_StencilTesting = 1 << 13,
+  TestMustFail_SampleMask = 1 << 14,
 };
 
 struct CopyPixelParams
@@ -1480,6 +1481,9 @@ private:
       }
     }
 
+    if(p.shaders[StageIndex(VK_SHADER_STAGE_FRAGMENT_BIT)].module == ResourceId())
+      flags |= UnboundFragmentShader;
+
     // Samples
     {
       // TODO: figure out if we always need to check this.
@@ -2139,13 +2143,26 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     }
 
     // Output the primitive ID.
+    VkPipelineShaderStageCreateInfo stageCI = {};
+    stageCI.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stageCI.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    stageCI.module = m_ShaderCache->GetPrimitiveIdShader(framebufferIndex);
+    stageCI.pName = "main";
+    bool fsFound = false;
     for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
     {
       if(stages[i].stage == VK_SHADER_STAGE_FRAGMENT_BIT)
       {
-        stages[i].module = m_ShaderCache->GetPrimitiveIdShader(framebufferIndex);
-        stages[i].pName = "main";
+        stages[i] = stageCI;
+        fsFound = true;
+        break;
       }
+    }
+    if(!fsFound)
+    {
+      stages.push_back(stageCI);
+      pipeCreateInfo.stageCount = (uint32_t)stages.size();
+      pipeCreateInfo.pStages = stages.data();
     }
 
     vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
@@ -2831,6 +2848,8 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
           mod.scissorClipped = true;
         if(flags & TestMustFail_SampleMask)
           mod.sampleMasked = true;
+        if(flags & UnboundFragmentShader)
+          mod.unboundPS = true;
 
         UpdateTestsFailed(tfCb, eventId, flags, mod);
       }
