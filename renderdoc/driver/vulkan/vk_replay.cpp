@@ -1021,18 +1021,18 @@ static TextureSwizzle Convert(VkComponentSwizzle src, int i)
   {
     default: RDCWARN("Unexpected component swizzle value %d", (int)src); DELIBERATE_FALLTHROUGH();
     case VK_COMPONENT_SWIZZLE_IDENTITY: break;
-    case VK_COMPONENT_SWIZZLE_ZERO: return TextureSwizzle::Zero; break;
-    case VK_COMPONENT_SWIZZLE_ONE: return TextureSwizzle::One; break;
-    case VK_COMPONENT_SWIZZLE_R: return TextureSwizzle::Red; break;
-    case VK_COMPONENT_SWIZZLE_G: return TextureSwizzle::Green; break;
-    case VK_COMPONENT_SWIZZLE_B: return TextureSwizzle::Blue; break;
-    case VK_COMPONENT_SWIZZLE_A: return TextureSwizzle::Alpha; break;
+    case VK_COMPONENT_SWIZZLE_ZERO: return TextureSwizzle::Zero;
+    case VK_COMPONENT_SWIZZLE_ONE: return TextureSwizzle::One;
+    case VK_COMPONENT_SWIZZLE_R: return TextureSwizzle::Red;
+    case VK_COMPONENT_SWIZZLE_G: return TextureSwizzle::Green;
+    case VK_COMPONENT_SWIZZLE_B: return TextureSwizzle::Blue;
+    case VK_COMPONENT_SWIZZLE_A: return TextureSwizzle::Alpha;
   }
 
   return TextureSwizzle(uint32_t(TextureSwizzle::Red) + i);
 }
 
-static void Convert(TextureSwizzle4 dst, VkComponentMapping src)
+static void Convert(TextureSwizzle4 &dst, VkComponentMapping src)
 {
   dst.red = Convert(src.r, 0);
   dst.green = Convert(src.g, 1);
