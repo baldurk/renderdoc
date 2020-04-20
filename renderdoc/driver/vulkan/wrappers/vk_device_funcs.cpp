@@ -1436,6 +1436,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     uint32_t physicalDeviceIndex = GetPhysicalDeviceIndexFromHandle(Unwrap(physicalDevice));
     physicalDevice = m_PhysicalDevices[physicalDeviceIndex];
 
+    RDCLOG("Creating replay device from physical device %u", physicalDeviceIndex);
+
     // we must make any modifications locally, so the free of pointers
     // in the serialised VkDeviceCreateInfo don't double-free
     VkDeviceCreateInfo createInfo = CreateInfo;
