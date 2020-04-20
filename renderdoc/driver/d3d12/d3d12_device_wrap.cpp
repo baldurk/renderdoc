@@ -494,22 +494,23 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
         memcpy((void *)wrapped->graphics->StreamOutput.pSODeclaration,
                Descriptor.StreamOutput.pSODeclaration,
                sizeof(D3D12_SO_DECLARATION_ENTRY) * wrapped->graphics->StreamOutput.NumEntries);
+
+        if(wrapped->graphics->StreamOutput.NumStrides)
+        {
+          wrapped->graphics->StreamOutput.pBufferStrides =
+              new UINT[wrapped->graphics->StreamOutput.NumStrides];
+          memcpy((void *)wrapped->graphics->StreamOutput.pBufferStrides,
+                 Descriptor.StreamOutput.pBufferStrides,
+                 sizeof(UINT) * wrapped->graphics->StreamOutput.NumStrides);
+        }
+        else
+        {
+          wrapped->graphics->StreamOutput.pBufferStrides = NULL;
+        }
       }
       else
       {
         wrapped->graphics->StreamOutput.pSODeclaration = NULL;
-      }
-
-      if(wrapped->graphics->StreamOutput.NumStrides)
-      {
-        wrapped->graphics->StreamOutput.pBufferStrides =
-            new UINT[wrapped->graphics->StreamOutput.NumStrides];
-        memcpy((void *)wrapped->graphics->StreamOutput.pBufferStrides,
-               Descriptor.StreamOutput.pBufferStrides,
-               sizeof(UINT) * wrapped->graphics->StreamOutput.NumStrides);
-      }
-      else
-      {
         wrapped->graphics->StreamOutput.pBufferStrides = NULL;
       }
 
