@@ -577,6 +577,13 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
     viewdetails = true;
   }
 
+  if(view.res.minLODClamp != 0.0f)
+  {
+    text += tr("The texture has a ResourceMinLODClamp of %1.\n").arg(view.res.minLODClamp);
+
+    viewdetails = true;
+  }
+
   text = text.trimmed();
 
   node->setToolTip(text);
@@ -2271,7 +2278,7 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
       viewParams += tr("First Slice: %1, Array Size: %2").arg(view.firstSlice).arg(view.numSlices);
     }
 
-    if(view.minLODClamp > 0.0f)
+    if(view.minLODClamp != 0.0f)
     {
       if(!viewParams.isEmpty())
         viewParams += lit(", ");

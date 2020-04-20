@@ -795,6 +795,21 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
         view.numMips = srv.Texture3D.MipLevels;
         view.minLODClamp = srv.Texture3D.ResourceMinLODClamp;
       }
+      else if(srv.ViewDimension == D3D11_SRV_DIMENSION_TEXTURECUBE)
+      {
+        view.numSlices = 6;
+        view.firstMip = srv.TextureCube.MostDetailedMip;
+        view.numMips = srv.TextureCube.MipLevels;
+        view.minLODClamp = srv.TextureCube.ResourceMinLODClamp;
+      }
+      else if(srv.ViewDimension == D3D11_SRV_DIMENSION_TEXTURECUBEARRAY)
+      {
+        view.numSlices = srv.TextureCubeArray.NumCubes * 6;
+        view.firstSlice = srv.TextureCubeArray.First2DArrayFace;
+        view.firstMip = srv.TextureCubeArray.MostDetailedMip;
+        view.numMips = srv.TextureCubeArray.MipLevels;
+        view.minLODClamp = srv.TextureCube.ResourceMinLODClamp;
+      }
     }
     else if(desc->GetType() == D3D12DescriptorType::UAV)
     {
