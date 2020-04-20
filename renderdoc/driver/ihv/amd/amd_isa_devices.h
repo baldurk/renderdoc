@@ -35,7 +35,7 @@ struct asic
   const char *targetName;
 };
 
-const int asicCount = 25;
+const int asicCount = 26;
 extern const asic asicInfo[];
 
 };    // namespace GCNISA

@@ -108,7 +108,8 @@ enum {
 };
 
 enum {
-    NV_NAVI10_P_A0 = 1
+    NV_NAVI10_P_A0 = 1,
+    NV_NAVI14_M_A0 = 20
 };
 
 enum {
