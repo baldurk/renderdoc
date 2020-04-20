@@ -1434,6 +1434,7 @@ private:
       base = rdcspv::scalar<int32_t>();
 
     rdcspv::Id resultType = editor.DeclareType(rdcspv::Vector(base, 4));
+    rdcspv::Id scalarResultType = editor.DeclareType(base);
 
 // add specialisation constants for all the parameters
 #define SPEC_ID(name) uint32_t(offsetof(ShaderDebugParameters, name) / sizeof(uint32_t))
@@ -1667,6 +1668,8 @@ private:
 
     // TODO handle Proj opcodes, that need non-arrayed texture views, or else a manual divide
 
+    rdcspv::Id zerof = editor.AddConstantImmediate<float>(0.0f);
+
     for(uint32_t i = (uint32_t)ShaderDebugBind::First; i < (uint32_t)ShaderDebugBind::Count; i++)
     {
       if(i == sampIdx)
@@ -1799,10 +1802,10 @@ private:
           if(op == rdcspv::Op::ImageSampleDrefExplicitLod ||
              op == rdcspv::Op::ImageSampleDrefImplicitLod)
             lodResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
-                resultType, editor.MakeId(), combined, compare, coord[i], operands));
+                scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
           else
             lodResult = cases.add(rdcspv::OpImageSampleProjDrefExplicitLod(
-                resultType, editor.MakeId(), combined, compare, coord[i], operands));
+                scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
 
           cases.add(rdcspv::OpBranch(mergeLabel));
         }
@@ -1820,17 +1823,19 @@ private:
           if(op == rdcspv::Op::ImageSampleDrefExplicitLod ||
              op == rdcspv::Op::ImageSampleDrefImplicitLod)
             gradResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
-                resultType, editor.MakeId(), combined, compare, coord[i], operands));
+                scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
           else
             gradResult = cases.add(rdcspv::OpImageSampleProjDrefExplicitLod(
-                resultType, editor.MakeId(), combined, compare, coord[i], operands));
+                scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
 
           cases.add(rdcspv::OpBranch(mergeLabel));
         }
 
         cases.add(rdcspv::OpLabel(mergeLabel));
-        rdcspv::Id sampleResult = cases.add(rdcspv::OpPhi(
-            resultType, editor.MakeId(), {{lodResult, lodCase}, {gradResult, gradCase}}));
+        rdcspv::Id scalarSampleResult = cases.add(rdcspv::OpPhi(
+            scalarResultType, editor.MakeId(), {{lodResult, lodCase}, {gradResult, gradCase}}));
+        rdcspv::Id sampleResult = cases.add(rdcspv::OpCompositeConstruct(
+            resultType, editor.MakeId(), {scalarSampleResult, zerof, zerof, zerof}));
         cases.add(rdcspv::OpStore(outVar, sampleResult));
         cases.add(rdcspv::OpBranch(breakLabel));
       }
