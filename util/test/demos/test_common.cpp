@@ -199,7 +199,7 @@ extern "C" __declspec(noalias) void __cdecl __std_reverse_trivially_swappable_8(
 
 // this define toggles on/off using the linked shaderc. This can be useful if e.g. on windows the
 // shaderc in VULKAN_SDK is broken.
-#define USE_LINKED_SHADERC (1 && HAVE_SHADERC)
+#define USE_LINKED_SHADERC (0 && HAVE_SHADERC)
 
 static shaderc_compiler_t shaderc = NULL;
 static std::string externalCompiler;
