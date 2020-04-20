@@ -1140,7 +1140,7 @@ QString D3DSemanticString(const SigParameter &sig)
   if(sig.systemValue == ShaderBuiltin::Undefined)
     return sig.semanticIdxName;
 
-  QString sysValues[arraydim<ShaderBuiltin>()] = {
+  QString sysValues[] = {
       lit("SV_Undefined"),
       lit("SV_Position"),
       lit("Unsupported (PointSize)"),
@@ -1154,6 +1154,7 @@ QString D3DSemanticString(const SigParameter &sig)
       lit("Unsupported (DispatchSize)"),
       lit("SV_DispatchThreadID"),
       lit("SV_GroupID"),
+      lit("Unsupported (GroupSize)"),
       lit("SV_GroupIndex"),
       lit("SV_GroupThreadID"),
       lit("SV_GSInstanceID"),
@@ -1170,7 +1171,29 @@ QString D3DSemanticString(const SigParameter &sig)
       lit("SV_Depth"),
       lit("SV_DepthGreaterEqual"),
       lit("SV_DepthLessEqual"),
+      lit("Unsupported (BaseVertex)"),
+      lit("Unsupported (BaseInstance)"),
+      lit("Unsupported (DrawIndex)"),
+      lit("Unsupported (StencilReference)"),
+      lit("Unsupported (PointCoord)"),
+      lit("Unsupported (IsHelper)"),
+      lit("Unsupported (SubgroupSize)"),
+      lit("Unsupported (NumSubgroups)"),
+      lit("Unsupported (SubgroupIndexInWorkgroup)"),
+      lit("Unsupported (IndexInSubgroup)"),
+      lit("Unsupported (SubgroupEqualMask)"),
+      lit("Unsupported (SubgroupGreaterEqualMask)"),
+      lit("Unsupported (SubgroupGreaterMask)"),
+      lit("Unsupported (SubgroupLessEqualMask)"),
+      lit("Unsupported (SubgroupLessMask)"),
+      lit("Unsupported (DeviceIndex)"),
+      lit("Unsupported (IsFullyCovered)"),
+      lit("Unsupported (FragAreaSize)"),
+      lit("Unsupported (FragInvocationCount)"),
   };
+
+  static_assert(arraydim<ShaderBuiltin>() == ARRAY_COUNT(sysValues),
+                "System values have changed - update HLSL stub generation");
 
   QString ret = sysValues[size_t(sig.systemValue)];
 
