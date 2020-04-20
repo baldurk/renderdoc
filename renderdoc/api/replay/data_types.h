@@ -450,13 +450,13 @@ struct TextureSwizzle4
   }
 
   DOCUMENT("The red channel's :class:`TextureSwizzle`.");
-  TextureSwizzle red;
+  TextureSwizzle red = TextureSwizzle::Red;
   DOCUMENT("The green channel's :class:`TextureSwizzle`.");
-  TextureSwizzle green;
+  TextureSwizzle green = TextureSwizzle::Green;
   DOCUMENT("The blue channel's :class:`TextureSwizzle`.");
-  TextureSwizzle blue;
+  TextureSwizzle blue = TextureSwizzle::Blue;
   DOCUMENT("The alpha channel's :class:`TextureSwizzle`.");
-  TextureSwizzle alpha;
+  TextureSwizzle alpha = TextureSwizzle::Alpha;
 };
 
 DECLARE_REFLECTION_STRUCT(TextureSwizzle4);
