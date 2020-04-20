@@ -5206,7 +5206,7 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
 
       SourceVariableMapping sourcemap;
       sourcemap.name = r.name;
-      sourcemap.type = VarType::Sampler;
+      sourcemap.type = list.varType;
       sourcemap.rows = 1;
       sourcemap.columns = 1;
       sourcemap.offset = 0;
