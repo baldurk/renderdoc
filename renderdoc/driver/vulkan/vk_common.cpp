@@ -886,6 +886,18 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
     m_Patch = (secondary << 8) | tertiary;
   }
 
+#if ENABLED(RDOC_WIN32)
+  // Ditto for Intel on windows
+  //  18  | 14
+  // major|minor
+  if(m_Vendor == GPUVendor::Intel)
+  {
+    m_Major = ((uint32_t)(physProps.driverVersion) >> 14) & 0xffffc;
+    m_Minor = (uint32_t)(physProps.driverVersion) & 0x3fff;
+    m_Patch = 0;
+  }
+#endif
+
   if(m_Vendor == GPUVendor::nVidia)
   {
     // drivers before 372.54 did not handle a glslang bugfix about separated samplers,
