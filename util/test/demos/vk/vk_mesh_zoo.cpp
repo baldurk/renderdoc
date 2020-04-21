@@ -148,6 +148,13 @@ void main()
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
         {},
         {
+            vkh::PushConstantRange(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                                   sizeof(Vec4f) * 2),
+        }));
+
+    VkPipelineLayout layout2 = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
+        {},
+        {
             vkh::PushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Vec4f) * 2),
         }));
 
@@ -181,6 +188,8 @@ void main()
     VkPipeline pointspipe = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {{0, 0, VK_VERTEX_INPUT_RATE_VERTEX}};
+
+    pipeCreateInfo.layout = layout2;
 
     VkPipeline stride0pipe = createGraphicsPipeline(pipeCreateInfo);
 
@@ -222,8 +231,8 @@ void main()
           VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
-      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(cbufferdata),
-                         &cbufferdata);
+      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                         sizeof(cbufferdata), &cbufferdata);
       vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
       vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
@@ -243,6 +252,8 @@ void main()
       setMarker(cmd, "Stride 0");
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, stride0pipe);
+      vkCmdPushConstants(cmd, layout2, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(cbufferdata),
+                         &cbufferdata);
 
       vkCmdDraw(cmd, 1, 1, 0, 0);
 
