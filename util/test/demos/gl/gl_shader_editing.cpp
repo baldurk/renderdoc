@@ -160,6 +160,13 @@ void main()
     glUseProgramStages(pipe, GL_VERTEX_SHADER_BIT, vssepprog);
     glUseProgramStages(pipe, GL_FRAGMENT_SHADER_BIT, fssepprog);
 
+    // force the pipeline to be dirty
+    for(int i = 0; i < 100; i++)
+    {
+      glUseProgramStages(pipe, GL_VERTEX_SHADER_BIT, vssepprog);
+      glUseProgramStages(pipe, GL_FRAGMENT_SHADER_BIT, fssepprog);
+    }
+
     glProgramUniform4f(fssepprog, 9, 0.0f, 1.0f, 0.0f, 1.0f);
 
     // render offscreen to make picked values accurate
