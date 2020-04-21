@@ -918,6 +918,19 @@ ResourceFormat GetInterpretedResourceFormat(const ShaderConstant &elem)
   else
     format.compCount = elem.type.descriptor.rows;
 
+  // packed formats with fixed component counts multiply up the component count
+  switch(format.type)
+  {
+    case ResourceFormatType::R10G10B10A2:
+    case ResourceFormatType::R5G5B5A1:
+    case ResourceFormatType::R4G4B4A4: format.compCount *= 4; break;
+    case ResourceFormatType::R11G11B10:
+    case ResourceFormatType::R9G9B9E5:
+    case ResourceFormatType::R5G6B5: format.compCount *= 3; break;
+    case ResourceFormatType::R4G4: format.compCount *= 2; break;
+    default: break;
+  }
+
   return format;
 }
 
