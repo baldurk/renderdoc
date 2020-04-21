@@ -26,6 +26,7 @@ set(VULKAN_SRC
         vk/vk_multi_thread_windows.cpp
         vk/vk_overlay_test.cpp
         vk/vk_parameter_zoo.cpp
+        vk/vk_query_pool.cpp
         vk/vk_resource_lifetimes.cpp
         vk/vk_sample_locations.cpp
         vk/vk_secondary_cmdbuf.cpp

@@ -481,6 +481,9 @@
     <ClCompile Include="3rdparty\fmt\format.cc">
       <Filter>3rdparty\fmt</Filter>
     </ClCompile>
+    <ClCompile Include="vk\vk_query_pool.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">
