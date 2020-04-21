@@ -203,6 +203,9 @@ UINT GetMipForSubresource(ID3D11Resource *res, int Subresource)
   else
     res->GetType(&dim);
 
+  if(dim == D3D11_RESOURCE_DIMENSION_BUFFER)
+    return 0;
+
   ID3D11Texture1D *tex1 = (dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D) ? (ID3D11Texture1D *)res : NULL;
   ID3D11Texture2D *tex2 = (dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D) ? (ID3D11Texture2D *)res : NULL;
   ID3D11Texture3D *tex3 = (dim == D3D11_RESOURCE_DIMENSION_TEXTURE3D) ? (ID3D11Texture3D *)res : NULL;
@@ -265,6 +268,9 @@ UINT GetSliceForSubresource(ID3D11Resource *res, int Subresource)
     dim = D3D11_RESOURCE_DIMENSION_TEXTURE3D;
   else
     res->GetType(&dim);
+
+  if(dim == D3D11_RESOURCE_DIMENSION_BUFFER)
+    return 0;
 
   ID3D11Texture1D *tex1 = (dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D) ? (ID3D11Texture1D *)res : NULL;
   ID3D11Texture2D *tex2 = (dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D) ? (ID3D11Texture2D *)res : NULL;
