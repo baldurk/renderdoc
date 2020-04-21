@@ -159,6 +159,15 @@ rdcstr DoStringise(const PointerVal &el)
   }
 }
 
+QString GetTruncatedResourceName(ICaptureContext &ctx, ResourceId id)
+{
+  rdcstr name = ctx.GetResourceName(id);
+  if(name.length() > 64)
+    return name.substr(0, 64) + "...";
+
+  return name;
+}
+
 // this is an opaque struct that contains the data to render, hit-test, etc for some text that
 // contains links to resources. It will update and cache the names of the resources.
 struct RichResourceText
@@ -213,7 +222,7 @@ struct RichResourceText
     {
       if(v.userType() == qMetaTypeId<ResourceId>())
       {
-        QString resname = QString(ctx.GetResourceName(v.value<ResourceId>())).toHtmlEscaped();
+        QString resname = GetTruncatedResourceName(ctx, v.value<ResourceId>()).toHtmlEscaped();
         html += lit("<td valign=\"middle\"><b>%1</b></td>"
                     "<td><img width=\"16\" src=':/link%3.png'></td>")
                     .arg(resname)
@@ -458,7 +467,7 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
       valid = (id != ResourceId());
 
       if(ctxptr)
-        name = ctxptr->GetResourceName(id);
+        name = GetTruncatedResourceName(*ctxptr, id);
       else
         name = ToQStr(id);
     }
@@ -474,7 +483,8 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
       {
         if(ptr->base != ResourceId())
         {
-          name = QFormatStr("%1+%2").arg(ptr->ctxptr->GetResourceName(ptr->base)).arg(ptr->offset);
+          name =
+              QFormatStr("%1+%2").arg(GetTruncatedResourceName(*ptr->ctxptr, ptr->base)).arg(ptr->offset);
         }
         else
         {
@@ -608,7 +618,7 @@ int RichResourceTextWidthHint(const QWidget *owner, const QFont &font, const QVa
       ResourceId id = var.value<ResourceId>();
 
       if(ctxptr)
-        name = ctxptr->GetResourceName(id);
+        name = GetTruncatedResourceName(*ctxptr, id);
       else
         name = ToQStr(id);
     }
@@ -619,7 +629,8 @@ int RichResourceTextWidthHint(const QWidget *owner, const QFont &font, const QVa
       ptr->cacheAddress(owner);
 
       if(ptr->val.pointer != 0)
-        name = QFormatStr("%1+%2").arg(ptr->ctxptr->GetResourceName(ptr->base)).arg(ptr->offset);
+        name =
+            QFormatStr("%1+%2").arg(GetTruncatedResourceName(*ptr->ctxptr, ptr->base)).arg(ptr->offset);
       else
         name = lit("NULL");
     }
@@ -685,7 +696,7 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
       ctxptr = getCaptureContext(owner);
 
       if(ctxptr)
-        name = ctxptr->GetResourceName(id);
+        name = GetTruncatedResourceName(*ctxptr, id);
       else
         name = ToQStr(id);
     }
@@ -693,7 +704,8 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
     {
       ctxptr = ptr->ctxptr;
 
-      name = QFormatStr("%1+%2").arg(ptr->ctxptr->GetResourceName(ptr->base)).arg(ptr->offset);
+      name =
+          QFormatStr("%1+%2").arg(GetTruncatedResourceName(*ptr->ctxptr, ptr->base)).arg(ptr->offset);
     }
 
     QRect textRect = QFontMetrics(f).boundingRect(rect, Qt::AlignLeft | Qt::AlignVCenter, name);

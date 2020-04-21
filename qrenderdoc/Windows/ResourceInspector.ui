@@ -165,6 +165,9 @@
       <property name="text">
        <string>Resource Name Here</string>
       </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
      </widget>
     </item>
     <item>
