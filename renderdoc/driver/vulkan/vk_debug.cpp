@@ -748,7 +748,7 @@ VulkanDebugManager::~VulkanDebugManager()
   m_ReadbackWindow.Destroy();
 
   for(auto it = m_CachedMeshPipelines.begin(); it != m_CachedMeshPipelines.end(); ++it)
-    for(uint32_t i = 0; i < MeshDisplayPipelines::ePipe_Count; i++)
+    for(uint32_t i = 0; i < VKMeshDisplayPipelines::ePipe_Count; i++)
       m_pDriver->vkDestroyPipeline(dev, it->second.pipes[i], NULL);
 
   m_pDriver->vkDestroyDescriptorPool(dev, m_ArrayMSDescriptorPool, NULL);

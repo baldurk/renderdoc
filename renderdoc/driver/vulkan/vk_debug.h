@@ -29,7 +29,7 @@
 #include "vk_core.h"
 #include "vk_shader_cache.h"
 
-struct MeshDisplayPipelines
+struct VKMeshDisplayPipelines
 {
   enum
   {
@@ -43,6 +43,9 @@ struct MeshDisplayPipelines
   };
 
   VkPipeline pipes[ePipe_Count] = {};
+
+  uint32_t primaryStridePadding = 0;
+  uint32_t secondaryStridePadding = 0;
 };
 
 struct CopyPixelParams;
@@ -73,9 +76,9 @@ public:
   void CreateCustomShaderTex(uint32_t width, uint32_t height, uint32_t mip);
   void CreateCustomShaderPipeline(ResourceId shader, VkPipelineLayout pipeLayout);
 
-  MeshDisplayPipelines CacheMeshDisplayPipelines(VkPipelineLayout pipeLayout,
-                                                 const MeshFormat &primary,
-                                                 const MeshFormat &secondary);
+  VKMeshDisplayPipelines CacheMeshDisplayPipelines(VkPipelineLayout pipeLayout,
+                                                   const MeshFormat &primary,
+                                                   const MeshFormat &secondary);
 
   void PatchOutputLocation(VkShaderModule &mod, BuiltinShader shaderType, uint32_t framebufferIndex);
   void PatchFixedColShader(VkShaderModule &mod, float col[4]);
@@ -106,7 +109,7 @@ private:
   GPUBuffer m_ReadbackWindow;
 
   // CacheMeshDisplayPipelines
-  std::map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
+  std::map<uint64_t, VKMeshDisplayPipelines> m_CachedMeshPipelines;
 
   // CopyArrayToTex2DMS & CopyTex2DMSToArray
   VkDescriptorPool m_ArrayMSDescriptorPool;
