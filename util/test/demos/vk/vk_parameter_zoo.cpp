@@ -943,6 +943,16 @@ void main()
     AllocatedBuffer xfbBuf(this, vkh::BufferCreateInfo(256, xfbUsage),
                            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
+    if(vkSetDebugUtilsObjectNameEXT)
+    {
+      VkDebugUtilsObjectNameInfoEXT info = {};
+      info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+      info.objectType = VK_OBJECT_TYPE_BUFFER;
+      info.objectHandle = (uint64_t)xfbBuf.buffer;
+      info.pObjectName = NULL;
+      vkSetDebugUtilsObjectNameEXT(device, &info);
+    }
+
     VkFence fence;
     CHECK_VKR(vkCreateFence(device, vkh::FenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT), NULL, &fence));
 
@@ -1108,11 +1118,49 @@ void main()
 
         vkCmdEndRenderPass(cmd);
 
+        if(vkCmdBeginDebugUtilsLabelEXT)
+        {
+          VkDebugUtilsLabelEXT info = {};
+          info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+          info.pLabelName = NULL;
+          vkCmdBeginDebugUtilsLabelEXT(cmd, &info);
+        }
+
+        if(vkCmdInsertDebugUtilsLabelEXT)
+        {
+          VkDebugUtilsLabelEXT info = {};
+          info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+          info.pLabelName = NULL;
+          vkCmdInsertDebugUtilsLabelEXT(cmd, &info);
+        }
+
+        if(vkCmdEndDebugUtilsLabelEXT)
+          vkCmdEndDebugUtilsLabelEXT(cmd);
+
         vkEndCommandBuffer(cmd);
 
         Submit(1, 4, {cmd});
 
         vkDeviceWaitIdle(device);
+
+        if(vkQueueBeginDebugUtilsLabelEXT)
+        {
+          VkDebugUtilsLabelEXT info = {};
+          info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+          info.pLabelName = NULL;
+          vkQueueBeginDebugUtilsLabelEXT(queue, &info);
+        }
+
+        if(vkQueueInsertDebugUtilsLabelEXT)
+        {
+          VkDebugUtilsLabelEXT info = {};
+          info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+          info.pLabelName = NULL;
+          vkQueueInsertDebugUtilsLabelEXT(queue, &info);
+        }
+
+        if(vkQueueEndDebugUtilsLabelEXT)
+          vkQueueEndDebugUtilsLabelEXT(queue);
 
         // scribble over the descriptor contents so that initial contents fetch never gets these
         // resources that way

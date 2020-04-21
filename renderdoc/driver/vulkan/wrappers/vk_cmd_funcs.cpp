@@ -3690,7 +3690,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerBeginEXT(SerialiserType &ser,
         ObjDisp(commandBuffer)->CmdDebugMarkerBeginEXT(Unwrap(commandBuffer), &Marker);
 
       DrawcallDescription draw;
-      draw.name = Marker.pMarkerName;
+      draw.name = Marker.pMarkerName ? Marker.pMarkerName : "";
       draw.flags |= DrawFlags::PushMarker;
 
       draw.markerColor[0] = RDCCLAMP(Marker.color[0], 0.0f, 1.0f);
@@ -3840,7 +3840,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerInsertEXT(SerialiserType &ser,
         ObjDisp(commandBuffer)->CmdDebugMarkerInsertEXT(Unwrap(commandBuffer), &Marker);
 
       DrawcallDescription draw;
-      draw.name = Marker.pMarkerName;
+      draw.name = Marker.pMarkerName ? Marker.pMarkerName : "";
       draw.flags |= DrawFlags::SetMarker;
 
       draw.markerColor[0] = RDCCLAMP(Marker.color[0], 0.0f, 1.0f);
@@ -4592,7 +4592,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginDebugUtilsLabelEXT(SerialiserType &ser,
         ObjDisp(commandBuffer)->CmdBeginDebugUtilsLabelEXT(Unwrap(commandBuffer), &Label);
 
       DrawcallDescription draw;
-      draw.name = Label.pLabelName;
+      draw.name = Label.pLabelName ? Label.pLabelName : "";
       draw.flags |= DrawFlags::PushMarker;
 
       draw.markerColor[0] = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
@@ -4733,7 +4733,7 @@ bool WrappedVulkan::Serialise_vkCmdInsertDebugUtilsLabelEXT(SerialiserType &ser,
         ObjDisp(commandBuffer)->CmdInsertDebugUtilsLabelEXT(Unwrap(commandBuffer), &Label);
 
       DrawcallDescription draw;
-      draw.name = Label.pLabelName;
+      draw.name = Label.pLabelName ? Label.pLabelName : "";
       draw.flags |= DrawFlags::SetMarker;
 
       draw.markerColor[0] = RDCCLAMP(Label.color[0], 0.0f, 1.0f);

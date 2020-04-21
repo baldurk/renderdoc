@@ -1457,7 +1457,7 @@ bool WrappedVulkan::Serialise_vkQueueBeginDebugUtilsLabelEXT(SerialiserType &ser
     if(IsLoading(m_State))
     {
       DrawcallDescription draw;
-      draw.name = Label.pLabelName;
+      draw.name = Label.pLabelName ? Label.pLabelName : "";
       draw.flags |= DrawFlags::PushMarker;
 
       draw.markerColor[0] = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
@@ -1559,7 +1559,7 @@ bool WrappedVulkan::Serialise_vkQueueInsertDebugUtilsLabelEXT(SerialiserType &se
     if(IsLoading(m_State))
     {
       DrawcallDescription draw;
-      draw.name = Label.pLabelName;
+      draw.name = Label.pLabelName ? Label.pLabelName : "";
       draw.flags |= DrawFlags::SetMarker;
 
       draw.markerColor[0] = RDCCLAMP(Label.color[0], 0.0f, 1.0f);
