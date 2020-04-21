@@ -70,15 +70,6 @@ void Init()
 {
 }
 
-bool PlatformHasKeyInput()
-{
-#if ENABLED(RDOC_XCB) || ENABLED(RDOC_XLIB) || ENABLED(RDOC_WAYLAND)
-  return true;
-#else
-  return false;
-#endif
-}
-
 #if ENABLED(RDOC_XLIB)
 
 Display *CurrentXDisplay = NULL;
@@ -89,6 +80,11 @@ void UseXlibDisplay(Display *dpy)
     return;
 
   CurrentXDisplay = XOpenDisplay(XDisplayString(dpy));
+}
+
+bool HasXlibInput()
+{
+  return CurrentXDisplay != NULL;
 }
 
 bool GetXlibKeyState(int key)
@@ -158,6 +154,11 @@ void UseXlibDisplay(Display *dpy)
 {
 }
 
+bool HasXlibInput()
+{
+  return false;
+}
+
 bool GetXlibKeyState(int key)
 {
   return false;
@@ -174,6 +175,11 @@ void UseXcbConnection(xcb_connection_t *conn)
 {
   connection = conn;
   symbols = xcb_key_symbols_alloc(conn);
+}
+
+bool HasXCBInput()
+{
+  return symbols != NULL;
 }
 
 bool GetXCBKeyState(int key)
@@ -255,6 +261,11 @@ void UseXcbConnection(xcb_connection_t *conn)
 }
 
 bool GetXCBKeyState(int key)
+{
+  return false;
+}
+
+bool HasXCBInput()
 {
   return false;
 }
@@ -480,6 +491,12 @@ void RemoveWaylandInputWindow(wl_surface *wnd)
   surfaces.erase(wnd);
 }
 
+bool HasWaylandInput()
+{
+  SCOPED_LOCK(waylandLock);
+  return !displays.empty();
+}
+
 bool GetWaylandKeyState(int key)
 {
   SCOPED_LOCK(waylandLock);
@@ -498,6 +515,11 @@ void AddWaylandInputWindow(wl_surface *wnd)
 
 void RemoveWaylandInputWindow(wl_surface *wnd)
 {
+}
+
+bool HasWaylandInput()
+{
+  return false;
 }
 
 bool GetWaylandKeyState(int key)
@@ -551,6 +573,11 @@ void RemoveInputWindow(WindowingSystem windowSystem, void *wnd)
   {
     RemoveWaylandInputWindow((wl_surface *)wnd);
   }
+}
+
+bool PlatformHasKeyInput()
+{
+  return HasXCBInput() || HasXlibInput() || HasWaylandInput();
 }
 
 bool GetKeyState(int key)
