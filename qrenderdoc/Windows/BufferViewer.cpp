@@ -3029,6 +3029,7 @@ void BufferViewer::UI_CalculateMeshFormats()
       {
         m_PostVSSecondary = m_PostVS;
         m_PostVSSecondary.vertexByteOffset += vsoutConfig.columns[elIdx].byteOffset;
+        m_PostVSSecondary.format = prop.format;
         m_PostVSSecondary.showAlpha = m_ModelVSOut->secondaryAlpha();
       }
     }
