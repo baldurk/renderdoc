@@ -687,6 +687,77 @@ uint32_t CalcIndex(BufferData *data, uint32_t vertID, int32_t baseVertex, uint32
 
 static int columnGroupRole = Qt::UserRole + 10000;
 
+static QString interpretVariant(const QVariant &v, const ShaderConstant &el,
+                                const BufferElementProperties &prop)
+{
+  QString ret;
+
+  QMetaType::Type vt = GetVariantMetatype(v);
+
+  if(vt == QMetaType::Double)
+  {
+    double d = v.toDouble();
+    // pad with space on left if sign is missing, to better align
+    if(d < 0.0)
+      ret = Formatter::Format(d);
+    else if(d > 0.0)
+      ret = lit(" ") + Formatter::Format(d);
+    else if(qIsNaN(d))
+      ret = lit(" NaN");
+    else
+      // force negative and positive 0 together
+      ret = lit(" ") + Formatter::Format(0.0);
+  }
+  else if(vt == QMetaType::Float)
+  {
+    float f = v.toFloat();
+    // pad with space on left if sign is missing, to better align
+    if(f < 0.0)
+      ret = Formatter::Format(f);
+    else if(f > 0.0)
+      ret = lit(" ") + Formatter::Format(f);
+    else if(qIsNaN(f))
+      ret = lit(" NaN");
+    else
+      // force negative and positive 0 together
+      ret = lit(" ") + Formatter::Format(0.0);
+  }
+  else if(vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
+  {
+    uint u = v.toUInt();
+    if(el.type.descriptor.displayAsHex && prop.format.type == ResourceFormatType::Regular)
+      ret = Formatter::HexFormat(u, prop.format.compByteWidth);
+    else
+      ret = Formatter::Format(u, el.type.descriptor.displayAsHex);
+  }
+  else if(vt == QMetaType::Int || vt == QMetaType::Short || vt == QMetaType::SChar)
+  {
+    int i = v.toInt();
+    if(i >= 0)
+      ret = lit(" ") + Formatter::Format(i);
+    else
+      ret = Formatter::Format(i);
+  }
+  else if(vt == QMetaType::ULongLong)
+  {
+    ret = Formatter::Format((uint64_t)v.toULongLong(), el.type.descriptor.displayAsHex);
+  }
+  else if(vt == QMetaType::LongLong)
+  {
+    int64_t i = v.toLongLong();
+    if(i >= 0)
+      ret = lit(" ") + Formatter::Format(i);
+    else
+      ret = Formatter::Format(i);
+  }
+  else
+  {
+    ret = v.toString();
+  }
+
+  return ret;
+}
+
 class BufferItemModel : public QAbstractItemModel
 {
 public:
@@ -1241,77 +1312,6 @@ private:
 
     return outOfBounds();
   }
-
-  QString interpretVariant(const QVariant &v, const ShaderConstant &el,
-                           const BufferElementProperties &prop) const
-  {
-    QString ret;
-
-    QMetaType::Type vt = GetVariantMetatype(v);
-
-    if(vt == QMetaType::Double)
-    {
-      double d = v.toDouble();
-      // pad with space on left if sign is missing, to better align
-      if(d < 0.0)
-        ret = Formatter::Format(d);
-      else if(d > 0.0)
-        ret = lit(" ") + Formatter::Format(d);
-      else if(qIsNaN(d))
-        ret = lit(" NaN");
-      else
-        // force negative and positive 0 together
-        ret = lit(" ") + Formatter::Format(0.0);
-    }
-    else if(vt == QMetaType::Float)
-    {
-      float f = v.toFloat();
-      // pad with space on left if sign is missing, to better align
-      if(f < 0.0)
-        ret = Formatter::Format(f);
-      else if(f > 0.0)
-        ret = lit(" ") + Formatter::Format(f);
-      else if(qIsNaN(f))
-        ret = lit(" NaN");
-      else
-        // force negative and positive 0 together
-        ret = lit(" ") + Formatter::Format(0.0);
-    }
-    else if(vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
-    {
-      uint u = v.toUInt();
-      if(el.type.descriptor.displayAsHex && prop.format.type == ResourceFormatType::Regular)
-        ret = Formatter::HexFormat(u, prop.format.compByteWidth);
-      else
-        ret = Formatter::Format(u, el.type.descriptor.displayAsHex);
-    }
-    else if(vt == QMetaType::Int || vt == QMetaType::Short || vt == QMetaType::SChar)
-    {
-      int i = v.toInt();
-      if(i >= 0)
-        ret = lit(" ") + Formatter::Format(i);
-      else
-        ret = Formatter::Format(i);
-    }
-    else if(vt == QMetaType::ULongLong)
-    {
-      ret = Formatter::Format((uint64_t)v.toULongLong(), el.type.descriptor.displayAsHex);
-    }
-    else if(vt == QMetaType::LongLong)
-    {
-      int64_t i = v.toLongLong();
-      if(i >= 0)
-        ret = lit(" ") + Formatter::Format(i);
-      else
-        ret = Formatter::Format(i);
-    }
-    else
-    {
-      ret = v.toString();
-    }
-
-    return ret;
-  }
 };
 
 struct CachedElData
@@ -1325,6 +1325,8 @@ struct CachedElData
   size_t stride;
   int byteSize;
   uint32_t instIdx = 0;
+
+  int numColumns = 0;
 
   QByteArray nulls;
 };
@@ -1375,6 +1377,7 @@ void CacheDataForIteration(QVector<CachedElData> &cache, const rdcarray<ShaderCo
 
     d.byteSize = prop.format.ElementSize() * el.type.descriptor.rows;
     d.nulls = QByteArray(d.byteSize, '\0');
+    d.numColumns = prop.format.compCount;
 
     if(prop.instancerate > 0)
       d.instIdx = inst / prop.instancerate;
@@ -3867,9 +3870,28 @@ void BufferViewer::exportData(const BufferExport &params)
 
       if(!m_MeshView)
       {
-        // this is the simplest possible case, we just dump the contents of the first buffer, as
-        // it's tightly packed
-        f->write((const char *)config.buffers[0]->data(), int(config.buffers[0]->size()));
+        // this is the simplest possible case, we just dump the contents of the first buffer.
+        if(!m_IsBuffer || config.buffers[0]->size() >= m_ObjectByteSize)
+        {
+          f->write((const char *)config.buffers[0]->data(), int(config.buffers[0]->size()));
+        }
+        else
+        {
+          // For buffers we have to handle reading in pages though as we might not have everything
+          // in memory.
+          ResourceId buff = m_BufferID;
+
+          static const uint64_t chunkSize = 4 * 1024 * 1024;
+          for(uint64_t byteOffset = m_ByteOffset; byteOffset < m_ObjectByteSize;
+              byteOffset += chunkSize)
+          {
+            // it's fine to block invoke, because this is on the export thread
+            m_Ctx.Replay().BlockInvoke([buff, f, byteOffset](IReplayController *r) {
+              bytebuf chunk = r->GetBufferData(buff, byteOffset, chunkSize);
+              f->write((const char *)chunk.data(), (qint64)chunk.size());
+            });
+          }
+        }
       }
       else
       {
@@ -3924,8 +3946,8 @@ void BufferViewer::exportData(const BufferExport &params)
     }
     else if(params.format == BufferExport::CSV)
     {
-      // this works identically no matter whether we're mesh view or what, we just iterate the
-      // elements and call the model's data()
+      // otherwise we need to iterate over all the data ourselves
+      const BufferConfiguration &config = model->getConfig();
 
       QTextStream s(f);
 
@@ -3939,17 +3961,96 @@ void BufferViewer::exportData(const BufferExport &params)
 
       s << "\n";
 
-      for(int row = 0; row < model->rowCount(); row++)
+      if(m_MeshView || !m_IsBuffer || config.buffers[0]->size() >= m_ObjectByteSize)
       {
-        for(int col = 0; col < model->columnCount(); col++)
+        // if there's no pagination to worry about, dump using the model's data()
+        for(int row = 0; row < model->rowCount(); row++)
         {
-          s << model->data(model->index(row, col), Qt::DisplayRole).toString();
+          for(int col = 0; col < model->columnCount(); col++)
+          {
+            s << model->data(model->index(row, col), Qt::DisplayRole).toString();
 
-          if(col + 1 < model->columnCount())
-            s << ", ";
+            if(col + 1 < model->columnCount())
+              s << ", ";
+          }
+
+          s << "\n";
         }
+      }
+      else
+      {
+        // write 64k rows at a time
+        ResourceId buff = m_BufferID;
+        const uint64_t chunkSize = 64 * 1024 * config.buffers[0]->stride;
+        for(uint64_t byteOffset = m_ByteOffset; byteOffset < m_ObjectByteSize; byteOffset += chunkSize)
+        {
+          // it's fine to block invoke, because this is on the export thread
+          m_Ctx.Replay().BlockInvoke([buff, &s, &config, byteOffset, chunkSize](IReplayController *r) {
+            // cache column data for the inner loop
+            QVector<CachedElData> cache;
 
-        s << "\n";
+            BufferData bufferData;
+
+            bufferData.storage = r->GetBufferData(buff, byteOffset, chunkSize);
+            bufferData.stride = config.buffers[0]->stride;
+
+            size_t numRows = (bufferData.storage.size() + bufferData.stride - 1) / bufferData.stride;
+            size_t rowOffset = byteOffset / bufferData.stride;
+
+            CacheDataForIteration(cache, config.columns, config.props, {&bufferData}, 0);
+
+            // go row by row, finding the start of the row and dumping out the elements using their
+            // offset and sizes
+            for(size_t idx = 0; idx < numRows; idx++)
+            {
+              s << (rowOffset + idx) << ", ";
+
+              for(int col = 0; col < cache.count(); col++)
+              {
+                const CachedElData &d = cache[col];
+                const ShaderConstant *el = d.el;
+                const BufferElementProperties *prop = d.prop;
+
+                if(d.data)
+                {
+                  const byte *data = d.data;
+                  const byte *end = d.end;
+
+                  data += d.stride * idx;
+
+                  // only slightly wasteful, we need to fetch all variants together
+                  // since some formats are packed and can't be read individually
+                  QVariantList list = GetVariants(prop->format, el->type.descriptor.rows,
+                                                  el->type.descriptor.matrixByteStride, data, end);
+
+                  for(int v = 0; v < list.count(); v++)
+                  {
+                    s << interpretVariant(list[v], *el, *prop);
+
+                    if(v + 1 < list.count())
+                      s << ", ";
+                  }
+
+                  if(list.empty())
+                  {
+                    for(int v = 0; v < d.numColumns; v++)
+                    {
+                      s << "---";
+
+                      if(v + 1 < d.numColumns)
+                        s << ", ";
+                    }
+                  }
+
+                  if(col + 1 < cache.count())
+                    s << ", ";
+                }
+              }
+
+              s << "\n";
+            }
+          });
+        }
       }
     }
 
