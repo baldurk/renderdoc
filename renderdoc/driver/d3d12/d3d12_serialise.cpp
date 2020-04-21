@@ -514,7 +514,14 @@ void DoSerialise(SerialiserType &ser, D3D12_STREAM_OUTPUT_DESC &el)
 {
   SERIALISE_MEMBER_ARRAY(pSODeclaration, NumEntries);
   SERIALISE_MEMBER(NumEntries);
-  SERIALISE_MEMBER_ARRAY(pBufferStrides, NumStrides);
+  if(el.NumEntries > 0)
+  {
+    SERIALISE_MEMBER_ARRAY(pBufferStrides, NumStrides);
+  }
+  else
+  {
+    SERIALISE_MEMBER_ARRAY_EMPTY(pBufferStrides);
+  }
   SERIALISE_MEMBER(NumStrides);
   SERIALISE_MEMBER(RasterizedStream);
 }

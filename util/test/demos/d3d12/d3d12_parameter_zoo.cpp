@@ -55,9 +55,15 @@ float4 main() : SV_Target0
 
     ID3D12RootSignaturePtr sig = MakeSig({});
 
-    ID3D12PipelineStatePtr pso = MakePSO().RootSig(sig).InputLayout().VS(vsblob).PS(psblob);
-
     ResourceBarrier(vb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+
+    D3D12PSOCreator psoCreator = MakePSO().RootSig(sig).InputLayout().VS(vsblob).PS(psblob);
+    psoCreator.GraphicsDesc.StreamOutput.NumEntries = 0;
+    psoCreator.GraphicsDesc.StreamOutput.pSODeclaration = (D3D12_SO_DECLARATION_ENTRY *)0x3456;
+    psoCreator.GraphicsDesc.StreamOutput.NumStrides = 0xcccccccc;
+    psoCreator.GraphicsDesc.StreamOutput.pBufferStrides = (UINT *)0x1234;
+
+    ID3D12PipelineStatePtr pso = psoCreator;
 
     ID3D12Device4Ptr dev4 = dev;
 
