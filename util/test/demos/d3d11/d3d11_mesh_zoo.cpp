@@ -39,7 +39,8 @@ struct vertin
 struct v2f
 {
 	float4 pos : SV_POSITION;
-	float4 col : COLOR0;
+	float2 col2 : COLOR0;
+	float4 col : COLOR1;
 };
 
 cbuffer consts : register(b0)
@@ -59,8 +60,10 @@ v2f main(vertin IN, uint vid : SV_VertexID, uint inst : SV_InstanceID)
   {
     OUT.pos *= 0.3f;
     OUT.pos.xy += 0.1f;
-    OUT.col.z = 1.0f;
+    OUT.col.x = 1.0f;
   }
+
+  OUT.col2 = OUT.pos.xy;
 
 	return OUT;
 }
@@ -72,12 +75,13 @@ v2f main(vertin IN, uint vid : SV_VertexID, uint inst : SV_InstanceID)
 struct v2f
 {
 	float4 pos : SV_POSITION;
-	float4 col : COLOR0;
+	float2 col2 : COLOR0;
+	float4 col : COLOR1;
 };
 
 float4 main(v2f IN) : SV_Target0
 {
-	return IN.col;
+	return IN.col + 1.0e-20 * IN.col2.xyxy;
 }
 
 )EOSHADER";

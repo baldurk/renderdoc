@@ -45,7 +45,8 @@ layout(push_constant, std140) uniform pushbuf
   vec4 offset;
 };
 
-layout(location = 0) out vec4 vertOutcol;
+layout(location = 0) out vec2 vertOutCol2;
+layout(location = 1) out vec4 vertOutcol;
 
 void main()
 {
@@ -56,8 +57,10 @@ void main()
   {
     pos *= 0.3f;
     pos.xy += vec2(0.1f);
-    vertOutcol.z = 1.0f;
+    vertOutcol.x = 1.0f; 
   }
+
+  vertOutCol2.xy = pos.xy;
 
 	gl_Position = pos * vec4(1, -1, 1, 1);
 #if defined(USE_POINTS)
@@ -69,13 +72,14 @@ void main()
 
   std::string pixel = R"EOSHADER(
 
-layout(location = 0) in vec4 vertIncol;
+layout(location = 0) in vec2 vertInCol2;
+layout(location = 1) in vec4 vertIncol;
 
 layout(location = 0, index = 0) out vec4 Color;
 
 void main()
 {
-	Color = vertIncol;
+	Color = vertIncol + 1.0e-20 * vertInCol2.xyxy;
 }
 
 )EOSHADER";

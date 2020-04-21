@@ -77,6 +77,8 @@ class Mesh_Zoo():
         self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(200, 200),
                                                             rd.ReplayOutputType.Mesh)
 
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
         self.cfg = rd.MeshDisplay()
 
         cam: rd.Camera = rd.InitCamera(rd.CameraType.FPSLook)
@@ -91,9 +93,12 @@ class Mesh_Zoo():
         inst0: rd.MeshFormat = self.controller.GetPostVSData(0, 0, self.cfg.type)
         self.cfg.position = inst0
 
-        # Color is after position, float4 = 16 bytes
+        # after position we have float2 Color2 then float4 Color4
         self.cfg.second = self.cfg.position
         self.cfg.second.vertexByteOffset += 16
+        self.cfg.second.vertexByteOffset += 8
+        if pipe.HasAlignedPostVSData(self.cfg.type):
+            self.cfg.second.vertexByteOffset += 8
 
         # Configure an ortho camera, even though we don't really have a camera
         self.cfg.ortho = True
@@ -126,7 +131,7 @@ class Mesh_Zoo():
 
         isredgreen = lambda col: isred(col) or isgreen(col) or col[2] == 0
 
-        iscyan = lambda col: col[1] == col[2] and col[0] < col[1]
+        isyellow = lambda col: col[0] == col[1] and col[2] < col[1]
 
         self.cache_output()
 
@@ -188,24 +193,59 @@ class Mesh_Zoo():
         rdtest.log.success("Rendering of highlighted vertices is as expected")
 
         self.cfg.highlightVert = rd.MeshDisplay.NoHighlight
+
+        # If we render from the float2 color we shouldn't get any blue
+        self.cfg.second.vertexByteOffset = self.cfg.position.vertexByteOffset = inst0.vertexByteOffset
+        self.cfg.second.vertexByteOffset += 16
+        self.cfg.second.format.compCount = 2
+
+        self.cache_output()
+
+        # If we render from the float2 color we shouldn't get any blue since it's only a two-component value
+        self.check_region((85, 70, 85, 125), lambda x: all([isredgreen(i) for i in x]))
+        self.check_region((65, 100, 105, 100), lambda x: all([isredgreen(i) for i in x]))
+        self.check_region((65, 55, 105, 55), lambda x: x == [])
+        self.check_region((65, 125, 105, 125), lambda x: all([isredgreen(i) for i in x]))
+
+        rdtest.log.success("Rendering of float2 color secondary in instance 0 is as expected")
+
+        self.cfg.highlightVert = rd.MeshDisplay.NoHighlight
         inst1: rd.MeshFormat = self.controller.GetPostVSData(1, 0, self.cfg.type)
 
         self.cfg.curInstance = 1
         self.cfg.second.vertexResourceId = self.cfg.position.vertexResourceId = inst1.vertexResourceId
         self.cfg.second.vertexByteOffset = self.cfg.position.vertexByteOffset = inst1.vertexByteOffset
         self.cfg.second.vertexByteOffset += 16
+        self.cfg.second.vertexByteOffset += 8
+        if pipe.HasAlignedPostVSData(self.cfg.type):
+            self.cfg.second.vertexByteOffset += 8
 
         self.cache_output()
 
-        # The secondary color should be completely cyan
-        self.check_region((85, 70, 85, 125), lambda x: all([iscyan(i) for i in x]))
-        self.check_region((65, 100, 105, 100), lambda x: all([iscyan(i) for i in x]))
+        # The secondary color should be completely yellow
+        self.check_region((85, 70, 85, 125), lambda x: all([isyellow(i) for i in x]))
+        self.check_region((65, 100, 105, 100), lambda x: all([isyellow(i) for i in x]))
         # this line segment isn't in the first instance
-        self.check_region((65, 55, 105, 55), lambda x: all([iscyan(i) for i in x]))
+        self.check_region((65, 55, 105, 55), lambda x: all([isyellow(i) for i in x]))
         # this line segment isn't in the second instance
         self.check_region((65, 125, 105, 125), lambda x: x == [])
 
         rdtest.log.success("Secondary rendering of instance 1 is as expected")
+
+        # If we render from the float2 color we shouldn't get any blue
+        self.cfg.second.vertexByteOffset = self.cfg.position.vertexByteOffset = inst1.vertexByteOffset
+        self.cfg.second.vertexByteOffset += 16
+        self.cfg.second.format.compCount = 2
+
+        self.cache_output()
+
+        # If we render from the float2 color we shouldn't get any blue since it's only a two-component value
+        self.check_region((85, 70, 85, 125), lambda x: all([isredgreen(i) for i in x]))
+        self.check_region((65, 100, 105, 100), lambda x: all([isredgreen(i) for i in x]))
+        self.check_region((65, 55, 105, 55), lambda x: all([isredgreen(i) for i in x]))
+        self.check_region((65, 125, 105, 125), lambda x: x == [])
+
+        rdtest.log.success("Rendering of float2 color secondary in instance 1 is as expected")
 
         self.cfg.solidShadeMode = rd.SolidShade.NoSolid
         self.cfg.showAllInstances = True

@@ -45,7 +45,8 @@ layout(binding = 0, std140) uniform constsbuf
   vec4 offset;
 };
 
-out vec4 col;
+layout(location = 0) out vec2 col2;
+layout(location = 1) out vec4 col;
 
 void main()
 {
@@ -56,9 +57,10 @@ void main()
   {
     pos *= 0.3f;
     pos.xy += vec2(0.1f);
-    col.z = 1.0f;
+    col.x = 1.0f;
   }
 
+  col2 = pos.xy;
 	gl_Position = pos;
 }
 
@@ -67,7 +69,8 @@ void main()
   std::string multivertex = R"EOSHADER(
 #version 460 core
 
-out vec4 col;
+layout(location = 0) out vec2 col2;
+layout(location = 1) out vec4 col;
 flat out uint basevtx;
 flat out uint baseinst;
 flat out uint draw;
@@ -80,7 +83,7 @@ void main()
                                 vec4(0.5, 0.5, 0.0, 1.0));
 
   gl_Position = verts[gl_VertexID%3];
-  col = vec4(1, 1, 0, 1);
+  col = vec4(0, 1, 1, 1);
 
   basevtx = gl_BaseVertex;
   baseinst = gl_BaseInstance;
@@ -93,13 +96,14 @@ void main()
 
   std::string pixel = R"EOSHADER(
 
-in vec4 col;
+layout(location = 0) in vec2 col2;
+layout(location = 1) in vec4 col;
 
 layout(location = 0, index = 0) out vec4 Color;
 
 void main()
 {
-	Color = col;
+	Color = col + 1.0e-20 * col2.xyxy;
 }
 
 )EOSHADER";
@@ -119,7 +123,8 @@ void main()
 layout(points) in;
 layout(triangle_strip, max_vertices = 3) out;
 
-out vec4 col;
+layout(location = 0) out vec2 col2;
+layout(location = 1) out vec4 col;
 
 void main()
 {
@@ -130,6 +135,7 @@ void main()
   {
     gl_Position = verts[i];
     col = vec4(1, 0, 0, 1);
+    col2 = vec2(1, 0);
     EmitVertex();
   }
 
