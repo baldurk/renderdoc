@@ -1071,7 +1071,7 @@ void main()
           });
 
           // if this is a signed op, test negative values too
-          if(sign)
+          if(sign && !mod)
           {
             append_tests({
                 fmt::format("%_x = {0} %int %int_{1} %int_{2}\n"
