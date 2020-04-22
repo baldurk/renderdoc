@@ -26,7 +26,10 @@
 
 #include <map>
 #include "common/common.h"
-#include "os/os_specific.h"
+#include "serialise/streamio.h"
+#include "serialise/zstdio.h"
+
+static const uint32_t ShaderCacheMagic = MAKE_FOURCC('R', 'D', '$', '$');
 
 template <typename ResultType, typename ShaderCallbacks>
 bool LoadShaderCache(const char *filename, const uint32_t magicNumber, const uint32_t versionNumber,
@@ -34,120 +37,52 @@ bool LoadShaderCache(const char *filename, const uint32_t magicNumber, const uin
 {
   rdcstr shadercache = FileIO::GetAppFolderFilename(filename);
 
-  FILE *f = FileIO::fopen(shadercache.c_str(), "rb");
+  StreamReader fileReader(FileIO::fopen(shadercache.c_str(), "rb"));
 
-  if(!f)
+  uint32_t globalMagic = 0, localMagic = 0, version = 0;
+  fileReader.Read(globalMagic);
+  fileReader.Read(localMagic);
+  fileReader.Read(version);
+
+  if(globalMagic != ShaderCacheMagic || localMagic != magicNumber || version != versionNumber)
     return false;
 
-  FileIO::fseek64(f, 0, SEEK_END);
-  uint64_t cachelen = FileIO::ftell64(f);
-  FileIO::fseek64(f, 0, SEEK_SET);
+  uint64_t uncompressedSize = 0;
+  fileReader.Read(uncompressedSize);
+
+  // header has been read. The rest is zstd compressed
+  StreamReader compressedReader(new ZSTDDecompressor(&fileReader, Ownership::Nothing),
+                                uncompressedSize, Ownership::Stream);
+
+  uint32_t numentries = 0;
+  compressedReader.Read(numentries);
 
   bool ret = true;
+  bytebuf data;
 
-  // header: magic number, file version, number of entries
-  if(cachelen < sizeof(uint32_t) * 3)
+  for(uint32_t i = 0; i < numentries; i++)
   {
-    RDCERR("Invalid shader cache");
-    ret = false;
-  }
-  else
-  {
-    byte *cache = new byte[(size_t)cachelen];
-    FileIO::fread(cache, 1, (size_t)cachelen, f);
+    uint32_t hash = 0, length = 0;
+    compressedReader.Read(hash);
+    compressedReader.Read(length);
 
-    uint32_t *header = (uint32_t *)cache;
+    data.resize(length);
+    compressedReader.Read(data.data(), length);
 
-    uint32_t fileMagic = header[0];
-    uint32_t fileVer = header[1];
+    ResultType result;
+    bool created = callbacks.Create(length, data.data(), &result);
 
-    if(fileMagic != magicNumber || fileVer != versionNumber)
+    if(!created)
     {
-      RDCDEBUG("Out of date or invalid shader cache magic: %d version: %d", fileMagic, fileVer);
+      RDCERR("Couldn't create blob of size %u from shadercache", length);
       ret = false;
-    }
-    else
-    {
-      uint32_t numentries = header[2];
-
-      // assume at least 16 bytes for any cache entry. 8 bytes for hash and length, and 8 bytes
-      // data.
-      if(numentries > cachelen / 16LLU)
-      {
-        RDCERR("Invalid shader cache - more entries %u than are feasible in a %llu byte cache",
-               numentries, cachelen);
-        ret = false;
-      }
-      else
-      {
-        byte *ptr = cache + sizeof(uint32_t) * 3;
-
-        int64_t bufsize = (int64_t)cachelen - sizeof(uint32_t) * 3;
-
-        for(uint32_t i = 0; i < numentries; i++)
-        {
-          if((size_t)bufsize < sizeof(uint32_t))
-          {
-            RDCERR("Invalid shader cache - truncated, not enough data for shader hash");
-            ret = false;
-            break;
-          }
-
-          uint32_t hash = *(uint32_t *)ptr;
-          ptr += sizeof(uint32_t);
-          bufsize -= sizeof(uint32_t);
-
-          if((size_t)bufsize < sizeof(uint32_t))
-          {
-            RDCERR("Invalid shader cache - truncated, not enough data for shader length");
-            ret = false;
-            break;
-          }
-
-          uint32_t len = *(uint32_t *)ptr;
-          ptr += sizeof(uint32_t);
-          bufsize -= sizeof(uint32_t);
-
-          if(bufsize < len)
-          {
-            RDCERR("Invalid shader cache - truncated, not enough data for shader buffer");
-            ret = false;
-            break;
-          }
-
-          byte *data = ptr;
-          ptr += len;
-          bufsize -= len;
-
-          ResultType result;
-          bool created = callbacks.Create(len, data, &result);
-
-          if(!created)
-          {
-            RDCERR("Couldn't create blob of size %u from shadercache", len);
-            ret = false;
-            break;
-          }
-
-          resultCache[hash] = result;
-        }
-
-        if(ret == true && bufsize != 0)
-        {
-          RDCERR("Invalid shader cache - trailing data");
-          ret = false;
-        }
-
-        RDCDEBUG("Successfully loaded %d shaders from shader cache", resultCache.size());
-      }
+      break;
     }
 
-    delete[] cache;
+    resultCache[hash] = result;
   }
 
-  FileIO::fclose(f);
-
-  return ret;
+  return ret && !compressedReader.IsErrored() && !fileReader.IsErrored();
 }
 
 template <typename ResultType, typename ShaderCallbacks>
@@ -164,24 +99,42 @@ void SaveShaderCache(const char *filename, uint32_t magicNumber, uint32_t versio
     return;
   }
 
-  FileIO::fwrite(&magicNumber, 1, sizeof(magicNumber), f);
-  FileIO::fwrite(&versionNumber, 1, sizeof(versionNumber), f);
+  StreamWriter fileWriter(f, Ownership::Stream);
+
+  fileWriter.Write(ShaderCacheMagic);
+  fileWriter.Write(magicNumber);
+  fileWriter.Write(versionNumber);
+
   uint32_t numentries = (uint32_t)cache.size();
-  FileIO::fwrite(&numentries, 1, sizeof(numentries), f);
+
+  uint64_t uncompressedSize = sizeof(numentries);    // number of entries
+
+  // hash + length + data for each entry
+  for(auto it = cache.begin(); it != cache.end(); ++it)
+    uncompressedSize += sizeof(uint32_t) * 2 + callbacks.GetSize(it->second);
+
+  fileWriter.Write(uncompressedSize);
+
+  StreamWriter compressedWriter(new ZSTDCompressor(&fileWriter, Ownership::Nothing),
+                                Ownership::Stream);
+
+  compressedWriter.Write(numentries);
 
   for(auto it = cache.begin(); it != cache.end(); ++it)
   {
     uint32_t hash = it->first;
     uint32_t len = callbacks.GetSize(it->second);
     const byte *data = callbacks.GetData(it->second);
-    FileIO::fwrite(&hash, 1, sizeof(hash), f);
-    FileIO::fwrite(&len, 1, sizeof(len), f);
-    FileIO::fwrite(data, 1, len, f);
+
+    compressedWriter.Write(hash);
+    compressedWriter.Write(len);
+    compressedWriter.Write(data, len);
 
     callbacks.Destroy(it->second);
   }
 
-  FileIO::fclose(f);
+  compressedWriter.Finish();
 
-  RDCDEBUG("Successfully wrote %u shaders to shader cache", numentries);
+  RDCDEBUG("Successfully wrote %u entries to cache, compressed from %llu to %llu", numentries,
+           uncompressedSize, fileWriter.GetOffset());
 }
