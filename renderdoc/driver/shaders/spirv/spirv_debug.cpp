@@ -500,7 +500,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       // evaluate the indices
       indices.reserve(chain.indexes.size());
       for(Id id : chain.indexes)
-        indices.push_back(GetSrc(id).value.u.x);
+        indices.push_back(GetSrc(id).value.uv[0]);
 
       SetDst(chain.result, debugger.MakeCompositePointer(ids[chain.base], chain.base, indices));
 
@@ -762,7 +762,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable var = GetSrc(extract.vector);
       ShaderVariable idx = GetSrc(extract.index);
 
-      uint32_t comp = idx.value.u.x;
+      uint32_t comp = idx.value.uv[0];
 
       if(VarTypeByteSize(var.type) == 8)
         var.value.u64v[0] = var.value.u64v[comp];
@@ -783,7 +783,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable scalar = GetSrc(insert.component);
       ShaderVariable idx = GetSrc(insert.index);
 
-      uint32_t comp = idx.value.u.x;
+      uint32_t comp = idx.value.uv[0];
 
       if(VarTypeByteSize(var.type) == 8)
         var.value.u64v[comp] = scalar.value.u64v[0];
@@ -805,7 +805,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable b = GetSrc(select.object2);
       if(cond.columns == 1)
       {
-        if(cond.value.u.x == 0)
+        if(cond.value.uv[0] == 0)
           var = b;
       }
       else
@@ -1678,7 +1678,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         ret += var.value.fv[c] * b.value.fv[c];
 
       var.columns = 1;
-      var.value.f.x = ret;
+      var.value.fv[0] = ret;
 
       SetDst(dot.result, var);
       break;
@@ -1691,7 +1691,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable scalar = GetSrc(mul.scalar);
 
       for(uint8_t c = 0; c < var.columns; c++)
-        var.value.fv[c] *= scalar.value.f.x;
+        var.value.fv[c] *= scalar.value.fv[0];
 
       SetDst(mul.result, var);
       break;
@@ -1704,7 +1704,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable scalar = GetSrc(mul.scalar);
 
       for(uint8_t c = 0; c < var.rows * var.columns; c++)
-        var.value.fv[c] *= scalar.value.f.x;
+        var.value.fv[c] *= scalar.value.fv[0];
 
       SetDst(mul.result, var);
       break;
@@ -1916,7 +1916,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
         sampler = img = GetSrc(image.sampledImage);
         uv = GetSrc(image.coordinate);
-        gather = GatherChannel(GetSrc(image.component).value.u.x);
+        gather = GatherChannel(GetSrc(image.component).value.uv[0]);
         operands = image.imageOperands;
       }
       else if(opdata.op == Op::ImageDrefGather)
@@ -2059,16 +2059,16 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       {
         // sample failed. Pretend we got 0 columns back
 
-        result.value.u.x = 0;
-        result.value.u.y = 0;
-        result.value.u.z = 0;
+        result.value.uv[0] = 0;
+        result.value.uv[1] = 0;
+        result.value.uv[2] = 0;
 
         if(result.type == VarType::Float || result.type == VarType::Half)
-          result.value.f.w = 1.0f;
+          result.value.fv[3] = 1.0f;
         else if(result.type == VarType::Double)
-          result.value.d.w = 1.0;
+          result.value.dv[3] = 1.0;
         else
-          result.value.u.w = 1;
+          result.value.uv[3] = 1;
       }
 
       result.rows = 1;
@@ -2108,7 +2108,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       for(const PairLiteralIntegerIdRef &case_ : switch_.target)
       {
-        if(selector.value.u.x == case_.first)
+        if(selector.value.uv[0] == case_.first)
         {
           targetLabel = case_.second;
           break;
@@ -2129,7 +2129,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       OpBranchConditional branch(it);
 
       Id target = branch.falseLabel;
-      if(GetSrc(branch.condition).value.u.x)
+      if(GetSrc(branch.condition).value.uv[0])
         target = branch.trueLabel;
 
       JumpToLabel(target);
@@ -2197,7 +2197,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       result.rows = 1;
       result.columns = 1;
 
-      result.value.u.x = helperInvocation;
+      result.value.uv[0] = helperInvocation;
 
       SetDst(opdata.result, result);
       break;
