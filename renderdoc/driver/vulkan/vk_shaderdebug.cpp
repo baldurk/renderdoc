@@ -2345,6 +2345,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
   rdcspv::Id bufBase = editor.DeclareStructType({
       // uint hit_count;
       uint32Type,
+      // uint test;
+      uint32Type,
       // <uint3 padding>
 
       //  PSHit hits[];
@@ -2359,8 +2361,12 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     editor.SetMemberName(bufBase, 0, "hit_count");
 
     editor.AddDecoration(rdcspv::OpMemberDecorate(
-        bufBase, 1, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(sizeof(Vec4f))));
-    editor.SetMemberName(bufBase, 1, "hits");
+        bufBase, 1, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(sizeof(uint32_t))));
+    editor.SetMemberName(bufBase, 1, "total_count");
+
+    editor.AddDecoration(rdcspv::OpMemberDecorate(
+        bufBase, 2, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(sizeof(Vec4f))));
+    editor.SetMemberName(bufBase, 2, "hits");
   }
 
   rdcspv::Id bufptrtype;
@@ -2528,9 +2534,17 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       rdcspv::Id hit_count =
           ops.add(rdcspv::OpAccessChain(uintPtr, editor.MakeId(), structPtr, {getUIntConst(0)}));
 
+      // get a pointer to buffer.total_count
+      rdcspv::Id total_count =
+          ops.add(rdcspv::OpAccessChain(uintPtr, editor.MakeId(), structPtr, {getUIntConst(1)}));
+
       rdcspv::Id scope = editor.AddConstantImmediate<uint32_t>((uint32_t)rdcspv::Scope::Device);
       rdcspv::Id semantics =
           editor.AddConstantImmediate<uint32_t>((uint32_t)rdcspv::MemorySemantics::AcquireRelease);
+
+      // increment total_count
+      ops.add(rdcspv::OpAtomicIAdd(uint32Type, editor.MakeId(), total_count, scope, semantics,
+                                   getUIntConst(1)));
 
       // look up the fragcoord
       rdcspv::Id fragCoordLoaded = editor.MakeId();
@@ -2597,7 +2611,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
       // get a pointer to the hit for our slot
       rdcspv::Id hit =
-          ops.add(rdcspv::OpAccessChain(hitptr, editor.MakeId(), structPtr, {getUIntConst(1), slot}));
+          ops.add(rdcspv::OpAccessChain(hitptr, editor.MakeId(), structPtr, {getUIntConst(2), slot}));
 
       // store fixed properties
 
@@ -3185,7 +3199,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   GetBufferData(GetResID(m_BindlessFeedback.FeedbackBuffer.buf), 0, 0, data);
 
   byte *base = data.data();
-  uint32_t numHits = *(uint32_t *)base;
+  uint32_t numHits = ((uint32_t *)base)[0];
+  uint32_t totalHits = ((uint32_t *)base)[1];
 
   if(numHits > overdrawLevels)
   {
@@ -3197,7 +3212,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   PSHit *winner = NULL;
 
-  RDCLOG("Got %u hits", numHits);
+  RDCLOG("Got %u hit candidates out of %u total instances", numHits, totalHits);
 
   // if we encounter multiple hits at our destination pixel co-ord (or any other) we
   // check to see if a specific primitive was requested (via primitive parameter not
