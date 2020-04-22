@@ -140,6 +140,18 @@ struct Vec4i
   int32_t x, y, z, w;
 };
 
+struct Vec4u
+{
+  Vec4u(uint32_t X = 0, uint32_t Y = 0, uint32_t Z = 0, uint32_t W = 0)
+  {
+    x = X;
+    y = Y;
+    z = Z;
+    w = W;
+  }
+  uint32_t x, y, z, w;
+};
+
 struct DefaultA2V
 {
   Vec3f pos;
@@ -293,6 +305,9 @@ inline T AlignUpPtr(T x, A a)
 {
   return (T)AlignUp<uintptr_t>((uintptr_t)x, (uintptr_t)a);
 }
+
+// quick and dirty half conversion, doesn't handle NaN/inf/subnormal/truncation/rounding
+uint16_t MakeHalf(float f);
 
 std::string strlower(const std::string &str);
 std::string strupper(const std::string &str);

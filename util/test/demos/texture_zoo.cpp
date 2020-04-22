@@ -27,30 +27,6 @@
 
 namespace TextureZoo
 {
-// quick and dirty half conversion, doesn't handle NaN/inf/subnormal/truncation/rounding
-uint16_t MakeHalf(float f)
-{
-  bool sign = f < 0.0f;
-  f = sign ? -f : f;
-
-  if(f < 1e-15f)
-    return 0;
-
-  int exp;
-  f = frexpf(f, &exp);
-
-  uint32_t mantissa;
-  memcpy(&mantissa, &f, sizeof(mantissa));
-  mantissa = (mantissa & 0x007fffff) >> 13;
-
-  uint16_t ret = mantissa & 0x3ff;
-  ret |= ((exp + 14) << 10);
-  if(sign)
-    ret |= 0x8000;
-
-  return ret;
-}
-
 void MakePixel(byte *data, const TexConfig &cfg, uint32_t x, uint32_t y, uint32_t z, uint32_t mip,
                uint32_t slice)
 {

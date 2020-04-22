@@ -100,6 +100,29 @@ char tocupper(char c)
   return (char)toupper(c);
 }
 
+uint16_t MakeHalf(float f)
+{
+  bool sign = f < 0.0f;
+  f = sign ? -f : f;
+
+  if(f < 1e-15f)
+    return 0;
+
+  int exp;
+  f = frexpf(f, &exp);
+
+  uint32_t mantissa;
+  memcpy(&mantissa, &f, sizeof(mantissa));
+  mantissa = (mantissa & 0x007fffff) >> 13;
+
+  uint16_t ret = mantissa & 0x3ff;
+  ret |= ((exp + 14) << 10);
+  if(sign)
+    ret |= 0x8000;
+
+  return ret;
+}
+
 std::string strlower(const std::string &str)
 {
   std::string newstr(str);

@@ -110,7 +110,15 @@ layout(set = 0, binding = 0, std140) uniform constsbuf
   vec4 third;
   vec4 pad3;
   vec4 fourth;
-  vec4 pad4;
+  vec4 unorm2PackSource;
+  vec4 snorm2PackSource;
+  vec4 unorm4PackSource;
+  vec4 snorm4PackSource;
+  vec4 halfPackSource;
+  uint unormUnpackSource;
+  uint snormUnpackSource;
+  uint halfUnpackSource;
+  uint pad;
 } cbuf;
 
 layout(set = 0, binding = 1) uniform sampler pointSampler;
@@ -339,7 +347,7 @@ void main()
     case 30:
     {
       Color = cbuf.first + cbuf.second + cbuf.third + cbuf.fourth +
-              cbuf.pad1 + cbuf.pad2 + cbuf.pad3 + cbuf.pad4;
+              cbuf.pad1 + cbuf.pad2 + cbuf.pad3;
       break;
     }
     case 31:
@@ -951,6 +959,91 @@ void main()
       vec2 coord = vec2(zerof + 0.6, zerof + 0.43);
 
       Color = textureGather(sampler2DShadow(sampledImage, shadowSampler), coord, 0.8f);
+      break;
+    }
+    case 117:
+    {
+      uint packed = packHalf2x16(cbuf.halfPackSource.xy);
+
+      Color = vec4(float((packed & 0xff000000) >> 24),
+                   float((packed & 0x00ff0000) >> 16),
+                   float((packed & 0x0000ff00) >>  8),
+                   float((packed & 0x000000ff) >>  0));
+      break;
+    }
+    case 118:
+    {
+      vec2 unpacked = unpackHalf2x16(cbuf.halfUnpackSource);
+
+      Color = unpacked.xyxy;
+      break;
+    }
+    case 119:
+    {
+      uint packed = packUnorm2x16(cbuf.unorm2PackSource.xy);
+
+      Color = vec4(float((packed & 0xff000000) >> 24),
+                   float((packed & 0x00ff0000) >> 16),
+                   float((packed & 0x0000ff00) >>  8),
+                   float((packed & 0x000000ff) >>  0));
+      break;
+    }
+    case 120:
+    {
+      uint packed = packUnorm4x8(cbuf.unorm4PackSource);
+
+      Color = vec4(float((packed & 0xff000000) >> 24),
+                   float((packed & 0x00ff0000) >> 16),
+                   float((packed & 0x0000ff00) >>  8),
+                   float((packed & 0x000000ff) >>  0));
+      break;
+    }
+    case 121:
+    {
+      uint packed = packSnorm2x16(cbuf.snorm2PackSource.xy);
+
+      Color = vec4(float((packed & 0xff000000) >> 24),
+                   float((packed & 0x00ff0000) >> 16),
+                   float((packed & 0x0000ff00) >>  8),
+                   float((packed & 0x000000ff) >>  0));
+      break;
+    }
+    case 122:
+    {
+      uint packed = packSnorm4x8(cbuf.snorm4PackSource);
+
+      Color = vec4(float((packed & 0xff000000) >> 24),
+                   float((packed & 0x00ff0000) >> 16),
+                   float((packed & 0x0000ff00) >>  8),
+                   float((packed & 0x000000ff) >>  0));
+      break;
+    }
+    case 123:
+    {
+      vec2 unpacked = unpackUnorm2x16(cbuf.unormUnpackSource);
+
+      Color = unpacked.xyxy;
+      break;
+    }
+    case 124:
+    {
+      vec4 unpacked = unpackUnorm4x8(cbuf.unormUnpackSource);
+
+      Color = unpacked;
+      break;
+    }
+    case 125:
+    {
+      vec2 unpacked = unpackSnorm2x16(cbuf.snormUnpackSource);
+
+      Color = unpacked.xyxy;
+      break;
+    }
+    case 126:
+    {
+      vec4 unpacked = unpackSnorm4x8(cbuf.snormUnpackSource);
+
+      Color = unpacked;
       break;
     }
     default: break;
@@ -1610,6 +1703,21 @@ void main()
       });
     }
     */
+
+    if(features.shaderFloat64)
+    {
+      // test pack/unpack from double
+      append_tests({
+          "%_ptr = OpAccessChain %ptr_Uniform_uint2 %cbuffer %uint_16\n"
+          "%_double_pack_source = OpLoad %uint2 %_ptr\n"
+          "%_unpacked = OpExtInst %double %glsl450 PackDouble2x32 %_double_pack_source\n"
+          "%_out_float = OpFConvert %float %_unpacked\n",
+
+          "%_ptr = OpAccessChain %ptr_Uniform_double %cbuffer %uint_17\n"
+          "%_double_unpack_source = OpLoad %double %_ptr\n"
+          "%_out_uint2 = OpExtInst %uint2 %glsl450 UnpackDouble2x32 %_double_unpack_source\n",
+      });
+    }
   }
 
   std::string make_pixel_asm()
@@ -1844,19 +1952,16 @@ void main()
       cases += "OpBranch %break\n";
     }
 
-    std::string ret = R"EOSHADER(
-               OpCapability Shader
-    %glsl450 = OpExtInstImport "GLSL.std.450"
-               OpMemoryModel Logical GLSL450
-               OpEntryPoint Fragment %main "main" %flatData %linearData %Color %gl_FragCoord
-               OpExecutionMode %main OriginUpperLeft
+    std::string decorations = R"EOSHADER(
                OpDecorate %flatData Flat
                OpDecorate %flatData Location 1
                OpDecorate %linearData Location 3
                OpDecorate %Color Index 0
                OpDecorate %Color Location 0
                OpDecorate %gl_FragCoord BuiltIn FragCoord
+)EOSHADER";
 
+    std::string typesConstants = R"EOSHADER(
        %void = OpTypeVoid
        %bool = OpTypeBool
       %float = OpTypeFloat 32
@@ -1903,6 +2008,21 @@ void main()
   %ptr_Private_int = OpTypePointer Private %int
 %ptr_Private_float = OpTypePointer Private %float
 
+%ptr_Uniform_float = OpTypePointer Uniform %float
+%ptr_Uniform_float2 = OpTypePointer Uniform %float2
+%ptr_Uniform_float3 = OpTypePointer Uniform %float3
+%ptr_Uniform_float4 = OpTypePointer Uniform %float4
+
+%ptr_Uniform_uint = OpTypePointer Uniform %uint
+%ptr_Uniform_uint2 = OpTypePointer Uniform %uint2
+%ptr_Uniform_uint3 = OpTypePointer Uniform %uint3
+%ptr_Uniform_uint4 = OpTypePointer Uniform %uint4
+
+%ptr_Uniform_int = OpTypePointer Uniform %int
+%ptr_Uniform_int2 = OpTypePointer Uniform %int2
+%ptr_Uniform_int3 = OpTypePointer Uniform %int3
+%ptr_Uniform_int4 = OpTypePointer Uniform %int4
+
   %linearData = OpVariable %ptr_Input_v2f Input
     %flatData = OpVariable %ptr_Input_flatv2f Input
 %gl_FragCoord = OpVariable %ptr_Input_float4 Input
@@ -1923,12 +2043,79 @@ void main()
 
 )EOSHADER";
 
+    std::string capabilities = "OpCapability Shader\n";
+
+    if(features.shaderFloat64)
+    {
+      typesConstants += "%double = OpTypeFloat 64\n";
+      typesConstants += "%ptr_Uniform_double = OpTypePointer Uniform %double\n";
+      capabilities += "OpCapability Float64\n";
+    }
+
+    if(features.shaderInt64)
+    {
+      typesConstants +=
+          "%i64 = OpTypeInt 64 1\n"
+          "%u16 = OpTypeInt 16 0\n";
+      capabilities += "OpCapability Int64\n";
+    }
+
+    if(features.shaderInt16)
+    {
+      typesConstants +=
+          "%i16 = OpTypeInt 16 1\n"
+          "%u16 = OpTypeInt 16 0\n";
+      capabilities += "OpCapability Int16\n";
+    }
+
+    std::string cbuffer =
+        "%cbuffer_struct = OpTypeStruct %float4 %float4 %float4 %float4 %float4 %float4 %float4 "
+        "                               %float4 %float4 %float4 %float4 %float4 %uint %uint %uint "
+        "                               %uint %uint2";
+
+    if(features.shaderFloat64)
+      cbuffer += " %double";
+    else
+      cbuffer += " %uint2";
+
+    cbuffer += "\n";
+
+    typesConstants += cbuffer;
+    decorations += R"EOSHADER(
+
+OpDecorate %cbuffer_struct Block
+OpDecorate %cbuffer DescriptorSet 0
+OpDecorate %cbuffer Binding 0
+OpMemberDecorate %cbuffer_struct 0 Offset 0       ; vec4 first
+OpMemberDecorate %cbuffer_struct 1 Offset 16      ; vec4 pad1
+OpMemberDecorate %cbuffer_struct 2 Offset 32      ; vec4 second
+OpMemberDecorate %cbuffer_struct 3 Offset 48      ; vec4 pad2
+OpMemberDecorate %cbuffer_struct 4 Offset 64      ; vec4 third
+OpMemberDecorate %cbuffer_struct 5 Offset 80      ; vec4 pad3
+OpMemberDecorate %cbuffer_struct 6 Offset 96      ; vec4 fourth
+OpMemberDecorate %cbuffer_struct 7 Offset 112     ; vec4 unorm2PackSource
+OpMemberDecorate %cbuffer_struct 8 Offset 128     ; vec4 snorm2PackSource
+OpMemberDecorate %cbuffer_struct 9 Offset 144     ; vec4 unorm4PackSource
+OpMemberDecorate %cbuffer_struct 10 Offset 160    ; vec4 snorm4PackSource
+OpMemberDecorate %cbuffer_struct 11 Offset 176    ; vec4 halfPackSource
+OpMemberDecorate %cbuffer_struct 12 Offset 192    ; uint unormUnpackSource
+OpMemberDecorate %cbuffer_struct 13 Offset 196    ; uint snormUnpackSource
+OpMemberDecorate %cbuffer_struct 14 Offset 200    ; uint halfUnpackSource
+OpMemberDecorate %cbuffer_struct 15 Offset 204    ; uint pad
+OpMemberDecorate %cbuffer_struct 16 Offset 208    ; uint2 doubleUnpackSource
+OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
+)EOSHADER";
+
+    typesConstants +=
+        "%ptr_Uniform_cbuffer_struct = OpTypePointer Uniform %cbuffer_struct\n"
+        "%cbuffer = OpVariable %ptr_Uniform_cbuffer_struct Uniform\n";
+
     // now generate all the constants
 
     for(const std::string &n : null_constants)
-      ret += fmt::format("%null_{0} = OpConstantNull %{0}\n", n);
+      typesConstants += fmt::format("%null_{0} = OpConstantNull %{0}\n", n);
 
-    ret += "\n";
+    typesConstants += "\n";
 
     for(float f : float_constants)
     {
@@ -1936,40 +2123,48 @@ void main()
       for(char &c : name)
         if(c == '.')
           c = '_';
-      ret += fmt::format("%float_{} = OpConstant %float {}\n", name, f);
-      ret += fmt::format("%float_neg{} = OpConstant %float -{}\n", name, f);
+      typesConstants += fmt::format("%float_{} = OpConstant %float {}\n", name, f);
+      typesConstants += fmt::format("%float_neg{} = OpConstant %float -{}\n", name, f);
     }
 
-    ret += "\n";
+    typesConstants += "\n";
 
     for(int32_t i : int_constants)
     {
-      ret += fmt::format("%int_{0} = OpConstant %int {0}\n", i);
-      ret += fmt::format("%int_neg{0} = OpConstant %int -{0}\n", i);
+      typesConstants += fmt::format("%int_{0} = OpConstant %int {0}\n", i);
+      typesConstants += fmt::format("%int_neg{0} = OpConstant %int -{0}\n", i);
     }
 
-    ret += "\n";
+    typesConstants += "\n";
 
     for(uint32_t u : uint_constants)
-      ret += fmt::format("%uint_{0} = OpConstant %uint {0}\n", u);
+      typesConstants += fmt::format("%uint_{0} = OpConstant %uint {0}\n", u);
 
-    ret += "\n";
+    typesConstants += "\n";
 
     for(size_t i = 0; i < 32; i++)
-      ret += fmt::format("%randf_{} = OpConstant %float {:.3}\n", i, RANDF(0.0f, 1.0f));
+      typesConstants += fmt::format("%randf_{} = OpConstant %float {:.3}\n", i, RANDF(0.0f, 1.0f));
 
-    ret += "\n";
+    typesConstants += "\n";
 
     // vector constants here manually, as we can't pull these out easily
-    ret += R"EOSHADER(
+    typesConstants += R"EOSHADER(
 
  %float4_0000 = OpConstantComposite %float4 %float_0_0 %float_0_0 %float_0_0 %float_0_0
  %float4_1234 = OpConstantComposite %float4 %float_1_0 %float_2_0 %float_3_0 %float_4_0
 
 )EOSHADER";
 
-    // now generate the entry point, and load the inputs
-    ret += R"EOSHADER(
+    std::string ret = capabilities +
+                      R"EOSHADER(
+               OpCapability Shader
+    %glsl450 = OpExtInstImport "GLSL.std.450"
+               OpMemoryModel Logical GLSL450
+               OpEntryPoint Fragment %main "main" %flatData %linearData %Color %gl_FragCoord
+               OpExecutionMode %main OriginUpperLeft
+)EOSHADER" + decorations +
+                      typesConstants +
+                      R"EOSHADER(
        %main = OpFunction %void None %mainfunc
  %main_begin = OpLabel
    %test_ptr = OpAccessChain %ptr_Input_uint %flatData %flatv2f_test_idx
@@ -2078,6 +2273,14 @@ void main()
 
     if(physProperties.apiVersion >= VK_MAKE_VERSION(1, 2, 0))
       vk_version = 0x12;
+
+    // enable features we can optionally test with.
+    VkPhysicalDeviceFeatures supported;
+    vkGetPhysicalDeviceFeatures(phys, &supported);
+
+    // Disabled until we support these in debugging
+    // if(supported.shaderFloat64)
+    // features.shaderFloat64 = VK_TRUE;
   }
 
   int main()
@@ -2297,6 +2500,33 @@ void main()
     cbufferdata[2] = Vec4f(5.5f, 6.6f, 7.7f, 8.8f);
     cbufferdata[4] = Vec4f(9.9f, 9.99f, 9.999f, 9.999f);
     cbufferdata[6] = Vec4f(100.0f, 200.0f, 300.0f, 400.0f);
+
+    // unorm2PackSource
+    cbufferdata[7] = Vec4f(99.0f, 28099.0f / 65535.0f, 0.0f, 0.0f);
+    // snorm2PackSource
+    cbufferdata[8] = Vec4f(99.0f, -28099.0f / 32767.0f, 0.0f, 0.0f);
+    // unorm4PackSource
+    cbufferdata[9] = Vec4f(99.0f, 28.0f / 255.0f, 99.0f / 255.0f, 182.0f / 255.0f);
+    // snorm4PackSource
+    cbufferdata[10] = Vec4f(99.0f, -28.0f / 127.0f, 99.0f / 127.0f, -102.0f / 127.0f);
+    // halfPackSource - we pick exact half values to avoid rounding problems
+    cbufferdata[11] = Vec4f(98.125f, 76.375f, 54.5625f, 32.78125f);
+
+    Vec4u unpack = {};
+
+    // unormUnpackSource
+    unpack.x = 0xf0dd103c;
+    // snormUnpackSource
+    unpack.y = 0xf0dd103c;
+    // halfUnpackSource
+    unpack.z = (uint32_t(MakeHalf(81.5f)) << 16) | MakeHalf(101.03f);
+
+    // unpack sources
+    memcpy(&cbufferdata[12], &unpack, sizeof(unpack));
+
+    double unpackDouble = 3.1415926535;
+    memcpy(&cbufferdata[13].x, &unpackDouble, sizeof(unpackDouble));
+    memcpy(&cbufferdata[14].z, &unpackDouble, sizeof(unpackDouble));
 
     cb.upload(cbufferdata);
 

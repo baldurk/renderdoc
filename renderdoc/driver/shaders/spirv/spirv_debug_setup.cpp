@@ -200,6 +200,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       case Capability::VulkanMemoryModel:
       case Capability::VulkanMemoryModelDeviceScope:
       case Capability::DemoteToHelperInvocationEXT:
+      case Capability::Float64:
       {
         supported = true;
         break;
@@ -213,7 +214,6 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       // all these are related to non-32-bit types
       case Capability::Float16Buffer:
       case Capability::Float16:
-      case Capability::Float64:
       case Capability::Int64:
       case Capability::Int16:
       case Capability::Int8:

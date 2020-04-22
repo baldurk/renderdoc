@@ -24,6 +24,7 @@
 
 #include "spirv_debug.h"
 #include <math.h>
+#include "maths/half_convert.h"
 #include "maths/matrix.h"
 #include "os/os_specific.h"
 
@@ -207,19 +208,19 @@ ShaderVariable Determinant(ThreadState &state, uint32_t, const rdcarray<Id> &par
   {
     Matrix4f mat;
     mat.SetFrom(m.value.fv);
-    m.value.f.x = mat.Determinant();
+    m.value.fv[0] = mat.Determinant();
   }
   else if(m.rows == 3)
   {
     Matrix3f mat;
     mat.SetFrom(m.value.fv);
-    m.value.f.x = mat.Determinant();
+    m.value.fv[0] = mat.Determinant();
   }
   else if(m.rows == 2)
   {
     Matrix2f mat;
     mat.SetFrom(m.value.fv);
-    m.value.f.x = mat.Determinant();
+    m.value.fv[0] = mat.Determinant();
   }
   m.rows = m.columns = 1;
 
@@ -530,6 +531,226 @@ ShaderVariable Ldexp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   return x;
 }
 
+ShaderVariable PackSnorm4x8(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable v = state.GetSrc(params[0]);
+
+  uint32_t packed = 0;
+
+  packed |= (int32_t(RDCCLAMP(v.value.fv[0], -1.0f, 1.0f) * 127.0f) & 0xff) << 0;
+  packed |= (int32_t(RDCCLAMP(v.value.fv[1], -1.0f, 1.0f) * 127.0f) & 0xff) << 8;
+  packed |= (int32_t(RDCCLAMP(v.value.fv[2], -1.0f, 1.0f) * 127.0f) & 0xff) << 16;
+  packed |= (int32_t(RDCCLAMP(v.value.fv[3], -1.0f, 1.0f) * 127.0f) & 0xff) << 24;
+
+  v.value.uv[0] = packed;
+
+  v.type = VarType::UInt;
+  v.columns = 1;
+
+  return v;
+}
+
+ShaderVariable PackUnorm4x8(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable v = state.GetSrc(params[0]);
+
+  uint32_t packed = 0;
+
+  packed |= (uint32_t(RDCCLAMP(v.value.fv[0], 0.0f, 1.0f) * 255.0f) & 0xff) << 0;
+  packed |= (uint32_t(RDCCLAMP(v.value.fv[1], 0.0f, 1.0f) * 255.0f) & 0xff) << 8;
+  packed |= (uint32_t(RDCCLAMP(v.value.fv[2], 0.0f, 1.0f) * 255.0f) & 0xff) << 16;
+  packed |= (uint32_t(RDCCLAMP(v.value.fv[3], 0.0f, 1.0f) * 255.0f) & 0xff) << 24;
+
+  v.value.uv[0] = packed;
+
+  v.type = VarType::UInt;
+  v.columns = 1;
+
+  return v;
+}
+
+ShaderVariable PackSnorm2x16(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable v = state.GetSrc(params[0]);
+
+  uint32_t packed = 0;
+
+  packed |= (int32_t(RDCCLAMP(v.value.fv[0], -1.0f, 1.0f) * 32767.0f) & 0xffff) << 0;
+  packed |= (int32_t(RDCCLAMP(v.value.fv[1], -1.0f, 1.0f) * 32767.0f) & 0xffff) << 16;
+
+  v.value.uv[0] = packed;
+
+  v.type = VarType::UInt;
+  v.columns = 1;
+
+  return v;
+}
+
+ShaderVariable PackUnorm2x16(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable v = state.GetSrc(params[0]);
+
+  uint32_t packed = 0;
+
+  packed |= (uint32_t(RDCCLAMP(v.value.fv[0], 0.0f, 1.0f) * 65535.0f) & 0xffff) << 0;
+  packed |= (uint32_t(RDCCLAMP(v.value.fv[1], 0.0f, 1.0f) * 65535.0f) & 0xffff) << 16;
+
+  v.value.uv[0] = packed;
+
+  v.type = VarType::UInt;
+  v.columns = 1;
+
+  return v;
+}
+
+ShaderVariable PackHalf2x16(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable v = state.GetSrc(params[0]);
+
+  uint32_t packed = 0;
+
+  packed |= ConvertToHalf(v.value.fv[0]) << 0;
+  packed |= ConvertToHalf(v.value.fv[1]) << 16;
+
+  v.value.uv[0] = packed;
+
+  v.type = VarType::UInt;
+  v.columns = 1;
+
+  return v;
+}
+
+ShaderVariable PackDouble2x32(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable v = state.GetSrc(params[0]);
+
+  // u64 is aliased with the double, so we just OR together
+  v.value.u64v[0] = uint64_t(v.value.uv[0]) | (uint64_t(v.value.uv[1]) << 32);
+
+  v.type = VarType::Double;
+  v.columns = 1;
+
+  return v;
+}
+
+ShaderVariable UnpackSnorm4x8(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable v = state.GetSrc(params[0]);
+
+  uint32_t packed = v.value.uv[0];
+
+  v.value.fv[0] = RDCCLAMP(float(int8_t((packed >> 0) & 0xff)) / 127.0f, -1.0f, 1.0f);
+  v.value.fv[1] = RDCCLAMP(float(int8_t((packed >> 8) & 0xff)) / 127.0f, -1.0f, 1.0f);
+  v.value.fv[2] = RDCCLAMP(float(int8_t((packed >> 16) & 0xff)) / 127.0f, -1.0f, 1.0f);
+  v.value.fv[3] = RDCCLAMP(float(int8_t((packed >> 24) & 0xff)) / 127.0f, -1.0f, 1.0f);
+
+  v.type = VarType::Float;
+  v.columns = 4;
+
+  return v;
+}
+
+ShaderVariable UnpackUnorm4x8(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable v = state.GetSrc(params[0]);
+
+  uint32_t packed = v.value.uv[0];
+
+  v.value.fv[0] = float((packed >> 0) & 0xff) / 255.0f;
+  v.value.fv[1] = float((packed >> 8) & 0xff) / 255.0f;
+  v.value.fv[2] = float((packed >> 16) & 0xff) / 255.0f;
+  v.value.fv[3] = float((packed >> 24) & 0xff) / 255.0f;
+
+  v.type = VarType::Float;
+  v.columns = 4;
+
+  return v;
+}
+
+ShaderVariable UnpackSnorm2x16(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable v = state.GetSrc(params[0]);
+
+  uint32_t packed = v.value.uv[0];
+
+  v.value.fv[0] = RDCCLAMP(float(int16_t((packed >> 0) & 0xffff)) / 32767.0f, -1.0f, 1.0f);
+  v.value.fv[1] = RDCCLAMP(float(int16_t((packed >> 16) & 0xffff)) / 32767.0f, -1.0f, 1.0f);
+
+  v.type = VarType::Float;
+  v.columns = 2;
+
+  return v;
+}
+
+ShaderVariable UnpackUnorm2x16(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable v = state.GetSrc(params[0]);
+
+  uint32_t packed = v.value.uv[0];
+
+  v.value.fv[0] = float((packed >> 0) & 0xffff) / 65535.0f;
+  v.value.fv[1] = float((packed >> 16) & 0xffff) / 65535.0f;
+
+  v.type = VarType::Float;
+  v.columns = 2;
+
+  return v;
+}
+
+ShaderVariable UnpackHalf2x16(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable v = state.GetSrc(params[0]);
+
+  uint32_t packed = v.value.uv[0];
+
+  v.value.fv[0] = ConvertFromHalf((packed >> 0) & 0xffff);
+  v.value.fv[1] = ConvertFromHalf((packed >> 16) & 0xffff);
+
+  v.type = VarType::Float;
+  v.columns = 2;
+
+  return v;
+}
+
+ShaderVariable UnpackDouble2x32(ThreadState &state, uint32_t, const rdcarray<Id> &params)
+{
+  CHECK_PARAMS(1);
+
+  ShaderVariable v = state.GetSrc(params[0]);
+
+  // u64 is aliased with the double, so we just OR together
+  uint64_t doubleUint = v.value.u64v[0];
+  v.value.uv[0] = (doubleUint >> 0) & 0xFFFFFFFFU;
+  v.value.uv[1] = (doubleUint >> 32) & 0xFFFFFFFFU;
+
+  v.type = VarType::UInt;
+  v.columns = 2;
+
+  return v;
+}
+
 ShaderVariable Cross(ThreadState &state, uint32_t, const rdcarray<Id> &params)
 {
   CHECK_PARAMS(2);
@@ -754,6 +975,18 @@ void ConfigureGLSLStd450(ExtInstDispatcher &extinst)
   EXT(Frexp);
   EXT(FrexpStruct);
   EXT(Ldexp);
+  EXT(PackSnorm4x8);
+  EXT(PackUnorm4x8);
+  EXT(PackSnorm2x16);
+  EXT(PackUnorm2x16);
+  EXT(PackHalf2x16);
+  EXT(PackDouble2x32);
+  EXT(UnpackSnorm2x16);
+  EXT(UnpackUnorm2x16);
+  EXT(UnpackHalf2x16);
+  EXT(UnpackSnorm4x8);
+  EXT(UnpackUnorm4x8);
+  EXT(UnpackDouble2x32);
   EXT(Cross);
   EXT(FaceForward);
   EXT(Reflect);

@@ -870,6 +870,48 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       SetDst(conv.result, var);
       break;
     }
+    case Op::FConvert:
+    {
+      OpFConvert cast(it);
+
+      const DataType &type = debugger.GetType(cast.resultType);
+
+      ShaderVariable var = GetSrc(cast.floatValue);
+
+      ShaderVariable result = var;
+
+      uint32_t srcWidth = VarTypeByteSize(var.type);
+      uint32_t dstWidth = type.scalar().width / 8;
+
+      for(uint8_t c = 0; c < var.columns; c++)
+      {
+        if(srcWidth == 8)
+        {
+          if(dstWidth == 8)
+          {
+            // nop
+          }
+          else
+          {
+            result.value.fv[c] = (float)var.value.dv[c];
+          }
+        }
+        else if(srcWidth == 4)
+        {
+          if(dstWidth == 8)
+          {
+            result.value.dv[c] = (double)var.value.dv[c];
+          }
+          else
+          {
+            // nop
+          }
+        }
+      }
+
+      SetDst(cast.result, result);
+      break;
+    }
     case Op::Bitcast:
     {
       OpBitcast cast(it);
