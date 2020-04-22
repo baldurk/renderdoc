@@ -38,6 +38,8 @@ RDOC_DEBUG_CONFIG(rdcstr, Vulkan_Debug_PSDebugDumpDirPath, "",
                   "Path to dump pixel shader debugging generated SPIR-V files.");
 RDOC_DEBUG_CONFIG(bool, Vulkan_Debug_DisableBufferDeviceAddress, false,
                   "Disable use of buffer device address for PS Input fetch.");
+RDOC_DEBUG_CONFIG(bool, Vulkan_Debug_ShaderDebugLogging, false,
+                  "Output verbose debug logging messages when debugging shaders.");
 
 struct DescSetBindingSnapshot
 {
@@ -2849,8 +2851,13 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   const VulkanRenderState &state = m_pDriver->GetRenderState();
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
-  VkMarkerRegion region(
-      StringFormat::Fmt("DebugVertex @ %u of (%u,%u,%u)", eventId, vertid, instid, idx));
+  rdcstr regionName =
+      StringFormat::Fmt("DebugVertex @ %u of (%u,%u,%u)", eventId, vertid, instid, idx);
+
+  VkMarkerRegion region(regionName);
+
+  if(Vulkan_Debug_ShaderDebugLogging)
+    RDCLOG("%s", regionName.c_str());
 
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
@@ -2885,6 +2892,9 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
     if(attr.location >= locations.size())
       locations.resize(attr.location + 1);
 
+    if(Vulkan_Debug_ShaderDebugLogging)
+      RDCLOG("Populating location %u", attr.location);
+
     ShaderValue &val = locations[attr.location].value;
 
     bytebuf data;
@@ -2913,9 +2923,25 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
           vertexOffset = idx * bind.bytestride;
         }
 
+        if(Vulkan_Debug_ShaderDebugLogging)
+        {
+          RDCLOG("Fetching from %s at %llu offset %zu bytes", ToStr(vb.buf).c_str(),
+                 vb.offs + attr.byteoffset + vertexOffset, size);
+        }
+
         GetDebugManager()->GetBufferData(vb.buf, vb.offs + attr.byteoffset + vertexOffset, size,
                                          data);
       }
+      else if(Vulkan_Debug_ShaderDebugLogging)
+      {
+        RDCLOG("Vertex binding %u out of bounds from %zu vertex buffers", bind.vbufferBinding,
+               state.vbuffers.size());
+      }
+    }
+    else if(Vulkan_Debug_ShaderDebugLogging)
+    {
+      RDCLOG("Attribute binding %u out of bounds from %zu bindings", attr.binding,
+             pipe.vertexBindings.size());
     }
 
     if(size > data.size())
@@ -2973,8 +2999,13 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   const VulkanRenderState &state = m_pDriver->GetRenderState();
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
-  VkMarkerRegion region(StringFormat::Fmt("DebugPixel @ %u of (%u,%u) sample %u primitive %u",
-                                          eventId, x, y, sample, primitive));
+  rdcstr regionName = StringFormat::Fmt("DebugPixel @ %u of (%u,%u) sample %u primitive %u",
+                                        eventId, x, y, sample, primitive);
+
+  VkMarkerRegion region(regionName);
+
+  if(Vulkan_Debug_ShaderDebugLogging)
+    RDCLOG("%s", regionName.c_str());
 
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
@@ -3012,27 +3043,65 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     {
       if(e.systemValue == ShaderBuiltin::PrimitiveIndex)
       {
+        if(Vulkan_Debug_ShaderDebugLogging)
+        {
+          RDCLOG("Geometry shader exports primitive ID, can use");
+        }
+
         usePrimitiveID = true;
         break;
       }
+    }
+
+    if(Vulkan_Debug_ShaderDebugLogging && !usePrimitiveID)
+    {
+      RDCLOG("Geometry shader doesn't export primitive ID, can't use");
     }
   }
   else
   {
     // no geometry shader - safe to use as long as the geometry shader capability is available
     usePrimitiveID = m_pDriver->GetDeviceFeatures().geometryShader != VK_FALSE;
+
+    if(Vulkan_Debug_ShaderDebugLogging)
+    {
+      RDCLOG("usePrimitiveID is %u because of bare capability", usePrimitiveID);
+    }
   }
 
   bool useSampleID = m_pDriver->GetDeviceFeatures().sampleRateShading != VK_FALSE;
+
+  if(Vulkan_Debug_ShaderDebugLogging)
+  {
+    RDCLOG("useSampleID is %u because of bare capability", useSampleID);
+  }
 
   StorageMode storageMode = Binding;
 
   if(m_pDriver->GetDeviceFeatures().shaderInt64)
   {
     if(m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address)
+    {
       storageMode = KHR_bda;
+
+      if(Vulkan_Debug_ShaderDebugLogging)
+      {
+        RDCLOG("Using KHR_buffer_Device_address");
+      }
+    }
     else if(m_pDriver->GetExtensions(NULL).ext_EXT_buffer_device_address)
+    {
       storageMode = EXT_bda;
+
+      if(Vulkan_Debug_ShaderDebugLogging)
+      {
+        RDCLOG("Using EXT_buffer_Device_address");
+      }
+    }
+  }
+  else if(Vulkan_Debug_ShaderDebugLogging)
+  {
+    RDCLOG("shaderInt64 isn't available, falling back to binding storage mode");
   }
 
   if(Vulkan_Debug_DisableBufferDeviceAddress)
@@ -3059,6 +3128,12 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   uint32_t structSize = sizeof(PSHit) + structStride * 5;
 
   VkDeviceSize feedbackStorageSize = overdrawLevels * structSize + sizeof(Vec4f) + 1024;
+
+  if(Vulkan_Debug_ShaderDebugLogging)
+  {
+    RDCLOG("Output structure is %u sized, output buffer is %llu bytes", structStride,
+           feedbackStorageSize);
+  }
 
   if(feedbackStorageSize > m_BindlessFeedback.FeedbackBuffer.sz)
   {
@@ -3101,6 +3176,11 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
       specData.bufferAddress = m_pDriver->vkGetBufferDeviceAddress(dev, &getAddressInfo);
     else
       specData.bufferAddress = m_pDriver->vkGetBufferDeviceAddressEXT(dev, &getAddressInfo);
+
+    if(Vulkan_Debug_ShaderDebugLogging)
+    {
+      RDCLOG("Got buffer address of %llu", specData.bufferAddress);
+    }
   }
   else
   {
@@ -3528,9 +3608,14 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t gro
   const VulkanRenderState &state = m_pDriver->GetRenderState();
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
-  VkMarkerRegion region(StringFormat::Fmt("DebugThread @ %u of (%u,%u,%u) (%u,%u,%u)", eventId,
-                                          groupid[0], groupid[1], groupid[2], threadid[0],
-                                          threadid[1], threadid[2]));
+  rdcstr regionName =
+      StringFormat::Fmt("DebugThread @ %u of (%u,%u,%u) (%u,%u,%u)", eventId, groupid[0],
+                        groupid[1], groupid[2], threadid[0], threadid[1], threadid[2]);
+
+  VkMarkerRegion region(regionName);
+
+  if(Vulkan_Debug_ShaderDebugLogging)
+    RDCLOG("%s", regionName.c_str());
 
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
