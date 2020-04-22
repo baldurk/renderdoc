@@ -234,6 +234,9 @@ struct ShaderDebugData
 
   VkShaderModule Module[4] = {};
 
+  std::map<uint32_t, VkPipeline> m_Pipelines;
+
+  GPUBuffer ConstantsBuffer;
   GPUBuffer ReadbackBuffer;
 };
 

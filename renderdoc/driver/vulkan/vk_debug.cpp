@@ -2767,6 +2767,7 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
           {4, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT, NULL},
           {5, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, NULL},
           {6, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, NULL},
+          {7, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, NULL},
       });
 
   CREATE_OBJECT(PipeLayout, DescSetLayout, sizeof(Vec4f) * 3 + sizeof(uint32_t));
@@ -2878,10 +2879,12 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
 
   // don't need to ring this, as we hard-sync for readback anyway
   ReadbackBuffer.Create(driver, driver->GetDev(), sizeof(Vec4f), 1, GPUBuffer::eGPUBufferReadback);
+  ConstantsBuffer.Create(driver, driver->GetDev(), 1024, 1, 0);
 }
 
 void ShaderDebugData::Destroy(WrappedVulkan *driver)
 {
+  ConstantsBuffer.Destroy();
   ReadbackBuffer.Destroy();
 
   driver->vkDestroyPipeline(driver->GetDev(), MathPipe, NULL);
@@ -2899,4 +2902,7 @@ void ShaderDebugData::Destroy(WrappedVulkan *driver)
   driver->vkDestroyShaderModule(driver->GetDev(), Module[0], NULL);
   driver->vkDestroyShaderModule(driver->GetDev(), Module[1], NULL);
   driver->vkDestroyShaderModule(driver->GetDev(), Module[2], NULL);
+
+  for(auto it = m_Pipelines.begin(); it != m_Pipelines.end(); it++)
+    driver->vkDestroyPipeline(driver->GetDev(), it->second, NULL);
 }

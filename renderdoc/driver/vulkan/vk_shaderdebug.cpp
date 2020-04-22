@@ -80,6 +80,7 @@ enum class ShaderDebugBind
   Tex2DMS,
   Buffer,
   Sampler,
+  Constants,
   Count,
 };
 
@@ -93,12 +94,36 @@ struct GatherOffsets
   int32_t u0, v0, u1, v1, u2, v2, u3, v3;
 };
 
-struct ShaderDebugParameters
+struct ShaderConstParameters
 {
   uint32_t operation;
-  VkBool32 useGrad;
-  VkBool32 useGatherOffsets;
+  VkBool32 useGradOrGatherOffsets;
   ShaderDebugBind dim;
+  rdcspv::GatherChannel gatherChannel;
+  GatherOffsets gatherOffsets;
+
+  uint32_t hashKey(uint32_t shaderIndex) const
+  {
+    uint32_t hash = 5381;
+    hash = ((hash << 5) + hash) + shaderIndex;
+    hash = ((hash << 5) + hash) + operation;
+    hash = ((hash << 5) + hash) + useGradOrGatherOffsets;
+    hash = ((hash << 5) + hash) + (uint32_t)dim;
+    hash = ((hash << 5) + hash) + (uint32_t)gatherChannel;
+    hash = ((hash << 5) + hash) + gatherOffsets.u0;
+    hash = ((hash << 5) + hash) + gatherOffsets.v0;
+    hash = ((hash << 5) + hash) + gatherOffsets.u1;
+    hash = ((hash << 5) + hash) + gatherOffsets.v1;
+    hash = ((hash << 5) + hash) + gatherOffsets.u2;
+    hash = ((hash << 5) + hash) + gatherOffsets.v2;
+    hash = ((hash << 5) + hash) + gatherOffsets.u3;
+    hash = ((hash << 5) + hash) + gatherOffsets.v3;
+    return hash;
+  }
+};
+
+struct ShaderUniformParameters
+{
   Vec3i texel_uvw;
   int texel_lod;
   Vec3f uvw;
@@ -109,8 +134,6 @@ struct ShaderDebugParameters
   float compare;
   float lod;
   float minlod;
-  rdcspv::GatherChannel gatherChannel;
-  GatherOffsets gatherOffsets;
 };
 
 class VulkanAPIWrapper : public rdcspv::DebugAPIWrapper
@@ -348,7 +371,8 @@ public:
                              const rdcspv::ImageOperandsAndParamDatas &operands,
                              ShaderVariable &output) override
   {
-    ShaderDebugParameters params = {};
+    ShaderConstParameters constParams = {};
+    ShaderUniformParameters uniformParams = {};
 
     const bool buffer = (texType & DebugAPIWrapper::Buffer_Texture) != 0;
     const bool uintTex = (texType & DebugAPIWrapper::UInt_Texture) != 0;
@@ -429,13 +453,13 @@ public:
 
     switch(imageType)
     {
-      case VK_IMAGE_TYPE_1D: params.dim = ShaderDebugBind::Tex1D; break;
+      case VK_IMAGE_TYPE_1D: constParams.dim = ShaderDebugBind::Tex1D; break;
       case VK_IMAGE_TYPE_2D:
-        params.dim = ShaderDebugBind::Tex2D;
+        constParams.dim = ShaderDebugBind::Tex2D;
         if(samples > 1)
-          params.dim = ShaderDebugBind::Tex2DMS;
+          constParams.dim = ShaderDebugBind::Tex2DMS;
         break;
-      case VK_IMAGE_TYPE_3D: params.dim = ShaderDebugBind::Tex3D; break;
+      case VK_IMAGE_TYPE_3D: constParams.dim = ShaderDebugBind::Tex3D; break;
       default:
       {
         RDCERR("Unsupported image type %s", ToStr(imageType).c_str());
@@ -445,7 +469,7 @@ public:
 
     if(buffer)
     {
-      params.dim = ShaderDebugBind::Buffer;
+      constParams.dim = ShaderDebugBind::Buffer;
       coords = gradCoords = 1;
     }
 
@@ -588,7 +612,7 @@ public:
       }
     }
 
-    params.operation = (uint32_t)opcode;
+    constParams.operation = (uint32_t)opcode;
 
     // proj opcodes have an extra q parameter
     switch(opcode)
@@ -626,74 +650,72 @@ public:
       {
         // co-ordinates after the used ones are read as 0s. This allows us to then read an implicit
         // 0 for array layer when we promote accesses to arrays.
-        params.texel_uvw.x = uv.value.u.x;
+        uniformParams.texel_uvw.x = uv.value.u.x;
         if(coords >= 2)
-          params.texel_uvw.y = uv.value.u.y;
+          uniformParams.texel_uvw.y = uv.value.u.y;
         if(coords >= 3)
-          params.texel_uvw.z = uv.value.u.z;
+          uniformParams.texel_uvw.z = uv.value.u.z;
 
         if(!buffer && operands.flags & rdcspv::ImageOperands::Lod)
-          params.texel_lod = lane.GetSrc(operands.lod).value.i.x;
+          uniformParams.texel_lod = lane.GetSrc(operands.lod).value.i.x;
         else
-          params.texel_lod = 0;
+          uniformParams.texel_lod = 0;
 
         if(operands.flags & rdcspv::ImageOperands::Sample)
-          params.sampleIdx = lane.GetSrc(operands.sample).value.u.x;
+          uniformParams.sampleIdx = lane.GetSrc(operands.sample).value.u.x;
 
         break;
       }
       case rdcspv::Op::ImageGather:
       case rdcspv::Op::ImageDrefGather:
       {
-        params.uvw.x = uv.value.f.x;
+        uniformParams.uvw.x = uv.value.f.x;
         if(coords >= 2)
-          params.uvw.y = uv.value.f.y;
+          uniformParams.uvw.y = uv.value.f.y;
         if(coords >= 3)
-          params.uvw.z = uv.value.f.z;
+          uniformParams.uvw.z = uv.value.f.z;
 
         if(useCompare)
-          params.compare = compare.value.f.x;
+          uniformParams.compare = compare.value.f.x;
 
-        params.gatherChannel = gatherChannel;
+        constParams.gatherChannel = gatherChannel;
 
         if(operands.flags & rdcspv::ImageOperands::ConstOffsets)
         {
           ShaderVariable constOffsets = lane.GetSrc(operands.constOffsets);
 
-          params.useGatherOffsets = VK_TRUE;
+          constParams.useGradOrGatherOffsets = VK_TRUE;
 
           // should be an array of ivec2
           RDCASSERT(constOffsets.members.size() == 4);
 
-          params.gatherOffsets.u0 = constOffsets.members[0].value.i.x;
-          params.gatherOffsets.v0 = constOffsets.members[0].value.i.y;
-          params.gatherOffsets.u1 = constOffsets.members[1].value.i.x;
-          params.gatherOffsets.v1 = constOffsets.members[1].value.i.y;
-          params.gatherOffsets.u2 = constOffsets.members[1].value.i.x;
-          params.gatherOffsets.v2 = constOffsets.members[1].value.i.y;
-          params.gatherOffsets.u3 = constOffsets.members[1].value.i.x;
-          params.gatherOffsets.v3 = constOffsets.members[1].value.i.y;
+          constParams.gatherOffsets.u0 = constOffsets.members[0].value.i.x;
+          constParams.gatherOffsets.v0 = constOffsets.members[0].value.i.y;
+          constParams.gatherOffsets.u1 = constOffsets.members[1].value.i.x;
+          constParams.gatherOffsets.v1 = constOffsets.members[1].value.i.y;
+          constParams.gatherOffsets.u2 = constOffsets.members[1].value.i.x;
+          constParams.gatherOffsets.v2 = constOffsets.members[1].value.i.y;
+          constParams.gatherOffsets.u3 = constOffsets.members[1].value.i.x;
+          constParams.gatherOffsets.v3 = constOffsets.members[1].value.i.y;
         }
-
-        params.useGatherOffsets = VK_FALSE;
 
         if(operands.flags & rdcspv::ImageOperands::ConstOffset)
         {
           ShaderVariable constOffset = lane.GetSrc(operands.constOffset);
-          params.offset.x = constOffset.value.i.x;
+          uniformParams.offset.x = constOffset.value.i.x;
           if(gradCoords >= 2)
-            params.offset.y = constOffset.value.i.y;
+            uniformParams.offset.y = constOffset.value.i.y;
           if(gradCoords >= 3)
-            params.offset.z = constOffset.value.i.z;
+            uniformParams.offset.z = constOffset.value.i.z;
         }
         else if(operands.flags & rdcspv::ImageOperands::Offset)
         {
           ShaderVariable offset = lane.GetSrc(operands.offset);
-          params.offset.x = offset.value.i.x;
+          uniformParams.offset.x = offset.value.i.x;
           if(gradCoords >= 2)
-            params.offset.y = offset.value.i.y;
+            uniformParams.offset.y = offset.value.i.y;
           if(gradCoords >= 3)
-            params.offset.z = offset.value.i.z;
+            uniformParams.offset.z = offset.value.i.z;
         }
 
         break;
@@ -707,79 +729,79 @@ public:
       case rdcspv::Op::ImageSampleProjDrefExplicitLod:
       case rdcspv::Op::ImageSampleProjDrefImplicitLod:
       {
-        params.uvw.x = uv.value.f.x;
+        uniformParams.uvw.x = uv.value.f.x;
         if(coords >= 2)
-          params.uvw.y = uv.value.f.y;
+          uniformParams.uvw.y = uv.value.f.y;
         if(coords >= 3)
-          params.uvw.z = uv.value.f.z;
+          uniformParams.uvw.z = uv.value.f.z;
 
         if(operands.flags & rdcspv::ImageOperands::MinLod)
-          params.minlod = lane.GetSrc(operands.minLod).value.f.x;
+          uniformParams.minlod = lane.GetSrc(operands.minLod).value.f.x;
 
         if(useCompare)
-          params.compare = compare.value.f.x;
+          uniformParams.compare = compare.value.f.x;
 
         if(operands.flags & rdcspv::ImageOperands::Lod)
         {
-          params.lod = lane.GetSrc(operands.lod).value.f.x;
-          params.useGrad = VK_FALSE;
+          uniformParams.lod = lane.GetSrc(operands.lod).value.f.x;
+          constParams.useGradOrGatherOffsets = VK_FALSE;
         }
         else if(operands.flags & rdcspv::ImageOperands::Grad)
         {
           ShaderVariable ddx = lane.GetSrc(operands.grad.first);
           ShaderVariable ddy = lane.GetSrc(operands.grad.second);
 
-          params.useGrad = VK_TRUE;
+          constParams.useGradOrGatherOffsets = VK_TRUE;
 
-          params.ddx.x = ddx.value.f.x;
+          uniformParams.ddx.x = ddx.value.f.x;
           if(gradCoords >= 2)
-            params.ddx.y = ddx.value.f.y;
+            uniformParams.ddx.y = ddx.value.f.y;
           if(gradCoords >= 3)
-            params.ddx.z = ddx.value.f.z;
+            uniformParams.ddx.z = ddx.value.f.z;
 
-          params.ddy.x = ddy.value.f.x;
+          uniformParams.ddy.x = ddy.value.f.x;
           if(gradCoords >= 2)
-            params.ddy.y = ddy.value.f.y;
+            uniformParams.ddy.y = ddy.value.f.y;
           if(gradCoords >= 3)
-            params.ddy.z = ddy.value.f.z;
+            uniformParams.ddy.z = ddy.value.f.z;
         }
 
         if(opcode == rdcspv::Op::ImageSampleImplicitLod ||
            opcode == rdcspv::Op::ImageSampleProjImplicitLod)
         {
           // use grad to sub in for the implicit lod
-          params.useGrad = VK_TRUE;
+          constParams.useGradOrGatherOffsets = VK_TRUE;
 
-          params.ddx.x = ddxCalc.value.f.x;
+          uniformParams.ddx.x = ddxCalc.value.f.x;
           if(gradCoords >= 2)
-            params.ddx.y = ddxCalc.value.f.y;
+            uniformParams.ddx.y = ddxCalc.value.f.y;
           if(gradCoords >= 3)
-            params.ddx.z = ddxCalc.value.f.z;
+            uniformParams.ddx.z = ddxCalc.value.f.z;
 
-          params.ddy.x = ddyCalc.value.f.x;
+          uniformParams.ddy.x = ddyCalc.value.f.x;
           if(gradCoords >= 2)
-            params.ddy.y = ddyCalc.value.f.y;
+            uniformParams.ddy.y = ddyCalc.value.f.y;
           if(gradCoords >= 3)
-            params.ddy.z = ddyCalc.value.f.z;
+            uniformParams.ddy.z = ddyCalc.value.f.z;
         }
 
         if(operands.flags & rdcspv::ImageOperands::ConstOffset)
         {
           ShaderVariable constOffset = lane.GetSrc(operands.constOffset);
-          params.offset.x = constOffset.value.i.x;
+          uniformParams.offset.x = constOffset.value.i.x;
           if(gradCoords >= 2)
-            params.offset.y = constOffset.value.i.y;
+            uniformParams.offset.y = constOffset.value.i.y;
           if(gradCoords >= 3)
-            params.offset.z = constOffset.value.i.z;
+            uniformParams.offset.z = constOffset.value.i.z;
         }
         else if(operands.flags & rdcspv::ImageOperands::Offset)
         {
           ShaderVariable offset = lane.GetSrc(operands.offset);
-          params.offset.x = offset.value.i.x;
+          uniformParams.offset.x = offset.value.i.x;
           if(gradCoords >= 2)
-            params.offset.y = offset.value.i.y;
+            uniformParams.offset.y = offset.value.i.y;
           if(gradCoords >= 3)
-            params.offset.z = offset.value.i.z;
+            uniformParams.offset.z = offset.value.i.z;
         }
 
         break;
@@ -791,16 +813,39 @@ public:
       }
     }
 
-    VkPipeline pipe = MakePipe(params, uintTex, sintTex);
+    // we don't support constant offsets, they're always promoted to dynamic offsets to avoid
+    // needing to potentially compile lots of pipelines with different offsets. If we're actually
+    // using them and the device doesn't support the extended gather feature, the result will be
+    // wrong.
+    if(!m_pDriver->GetDeviceFeatures().shaderImageGatherExtended &&
+       (uniformParams.offset.x != 0 || uniformParams.offset.y != 0 || uniformParams.offset.z != 0))
+    {
+      m_pDriver->AddDebugMessage(
+          MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+          StringFormat::Fmt("Use of constant offsets %d/%d/%d is not supported without "
+                            "shaderImageGatherExtended device feature",
+                            uniformParams.offset.x, uniformParams.offset.y, uniformParams.offset.z));
+    }
+
+    VkPipeline pipe = MakePipe(constParams, uintTex, sintTex);
 
     VkDescriptorImageInfo samplerWriteInfo = {Unwrap(sampler), VK_NULL_HANDLE,
                                               VK_IMAGE_LAYOUT_UNDEFINED};
     VkDescriptorImageInfo imageWriteInfo = {VK_NULL_HANDLE, Unwrap(sampleView), layout};
 
+    VkDescriptorBufferInfo uniformWriteInfo = {};
+    m_DebugData.ConstantsBuffer.FillDescriptor(uniformWriteInfo);
+
     VkWriteDescriptorSet writeSets[] = {
         {
             VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_DebugData.DescSet),
-            (uint32_t)params.dim, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &imageWriteInfo, NULL, NULL,
+            (uint32_t)ShaderDebugBind::Constants, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL,
+            &uniformWriteInfo, NULL,
+        },
+        {
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_DebugData.DescSet),
+            (uint32_t)constParams.dim, 0, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &imageWriteInfo,
+            NULL, NULL,
         },
         {
             VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_DebugData.DescSet),
@@ -811,12 +856,18 @@ public:
 
     if(buffer)
     {
-      writeSets[0].pTexelBufferView = UnwrapPtr(bufferView);
-      writeSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+      writeSets[1].pTexelBufferView = UnwrapPtr(bufferView);
+      writeSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
     }
 
-    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), sampler != VK_NULL_HANDLE ? 2 : 1, writeSets, 0,
+    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), sampler != VK_NULL_HANDLE ? 3 : 2, writeSets, 0,
                                        NULL);
+
+    void *constants = m_DebugData.ConstantsBuffer.Map(NULL, 0);
+
+    memcpy(constants, &uniformParams, sizeof(uniformParams));
+
+    m_DebugData.ConstantsBuffer.Unmap();
 
     {
       VkCommandBuffer cmd = m_pDriver->GetNextCmd();
@@ -863,8 +914,6 @@ public:
       m_pDriver->FlushQ();
     }
 
-    m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
-
     Vec4f *ret = (Vec4f *)m_DebugData.ReadbackBuffer.Map(NULL, 0);
 
     memcpy(output.value.uv, ret, sizeof(Vec4f));
@@ -881,7 +930,7 @@ public:
 
     if(m_DebugData.MathPipe == VK_NULL_HANDLE)
     {
-      ShaderDebugParameters pipeParams = {};
+      ShaderConstParameters pipeParams = {};
       pipeParams.operation = (uint32_t)rdcspv::Op::ExtInst;
       m_DebugData.MathPipe = MakePipe(pipeParams, false, false);
     }
@@ -1035,7 +1084,7 @@ private:
     return elemData[index.arrayIndex];
   }
 
-  VkPipeline MakePipe(const ShaderDebugParameters &params, bool uintTex, bool sintTex)
+  VkPipeline MakePipe(const ShaderConstParameters &params, bool uintTex, bool sintTex)
   {
     VkSpecializationMapEntry specMaps[sizeof(params) / sizeof(uint32_t)];
     for(size_t i = 0; i < ARRAY_COUNT(specMaps); i++)
@@ -1085,6 +1134,17 @@ private:
       if(!Vulkan_Debug_PSDebugDumpDirPath.empty())
         FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath + filename[shaderIndex], spirv);
     }
+
+    uint32_t key = params.hashKey(shaderIndex);
+
+    if(m_DebugData.m_Pipelines[key] != VK_NULL_HANDLE)
+      return m_DebugData.m_Pipelines[key];
+
+    RDCLOG(
+        "Making new pipeline for shader type %u, operation %s, dim %u, useGrad/useGatherOffsets %u,"
+        " gather channel %u, gather offsets...",
+        shaderIndex, ToStr((rdcspv::Op)params.operation).c_str(), params.dim,
+        params.useGradOrGatherOffsets, params.gatherChannel);
 
     const VkPipelineShaderStageCreateInfo shaderStages[2] = {
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT,
@@ -1178,6 +1238,8 @@ private:
       RDCERR("Failed creating debug pipeline");
       return VK_NULL_HANDLE;
     }
+
+    m_DebugData.m_Pipelines[key] = pipe;
 
     return pipe;
   }
@@ -1438,36 +1500,16 @@ private:
     rdcspv::Id scalarResultType = editor.DeclareType(base);
 
 // add specialisation constants for all the parameters
-#define SPEC_ID(name) uint32_t(offsetof(ShaderDebugParameters, name) / sizeof(uint32_t))
+#define MEMBER_IDX(struct, name) uint32_t(offsetof(struct, name) / sizeof(uint32_t))
 
-#define DECL_SPECID(type, name, value)                                         \
-  rdcspv::Id name = editor.AddSpecConstantImmediate<type>(0U, SPEC_ID(value)); \
+#define DECL_SPECID(type, name, value)                                                     \
+  rdcspv::Id name =                                                                        \
+      editor.AddSpecConstantImmediate<type>(0U, MEMBER_IDX(ShaderConstParameters, value)); \
   editor.SetName(name, "spec_" #name);
 
     DECL_SPECID(uint32_t, operation, operation);
-    DECL_SPECID(bool, useGrad, useGrad);
-    DECL_SPECID(bool, useGatherOffsets, useGatherOffsets);
+    DECL_SPECID(bool, useGradOrGatherOffsets, useGradOrGatherOffsets);
     DECL_SPECID(uint32_t, dim, dim);
-    DECL_SPECID(int32_t, texel_u, texel_uvw.x);
-    DECL_SPECID(int32_t, texel_v, texel_uvw.y);
-    DECL_SPECID(int32_t, texel_w, texel_uvw.z);
-    DECL_SPECID(int32_t, texel_lod, texel_lod);
-    DECL_SPECID(float, u, uvw.x);
-    DECL_SPECID(float, v, uvw.y);
-    DECL_SPECID(float, w, uvw.z);
-    DECL_SPECID(float, dudx, ddx.x);
-    DECL_SPECID(float, dvdx, ddx.y);
-    DECL_SPECID(float, dwdx, ddx.z);
-    DECL_SPECID(float, dudy, ddy.x);
-    DECL_SPECID(float, dvdy, ddy.y);
-    DECL_SPECID(float, dwdy, ddy.z);
-    DECL_SPECID(int32_t, offset_x, offset.x);
-    DECL_SPECID(int32_t, offset_y, offset.y);
-    DECL_SPECID(int32_t, offset_z, offset.z);
-    DECL_SPECID(int32_t, sampleIdx, sampleIdx);
-    DECL_SPECID(float, compare, compare);
-    DECL_SPECID(float, lod, lod);
-    DECL_SPECID(float, minlod, minlod);
     DECL_SPECID(int32_t, gatherChannel, gatherChannel);
     DECL_SPECID(int32_t, gather_u0, gatherOffsets.u0);
     DECL_SPECID(int32_t, gather_v0, gatherOffsets.v0);
@@ -1478,45 +1520,62 @@ private:
     DECL_SPECID(int32_t, gather_u3, gatherOffsets.u3);
     DECL_SPECID(int32_t, gather_v3, gatherOffsets.v3);
 
-    rdcspv::Id texel_uv = editor.AddConstant(
-        rdcspv::OpSpecConstantComposite(v2i32, editor.MakeId(), {texel_u, texel_v}));
-    rdcspv::Id texel_uvw = editor.AddConstant(
-        rdcspv::OpSpecConstantComposite(v3i32, editor.MakeId(), {texel_u, texel_v, texel_w}));
+    struct StructMember
+    {
+      rdcspv::Id loadedType;
+      rdcspv::Id ptrType;
+      rdcspv::Id loadedId;
+      const char *name;
+      uint32_t memberIndex;
+    };
 
-    editor.SetName(texel_uv, "texel_uv");
-    editor.SetName(texel_uvw, "texel_uvw");
+    rdcarray<rdcspv::Id> memberIds;
+    rdcarray<StructMember> cbufferMembers;
 
-    rdcspv::Id uv =
-        editor.AddConstant(rdcspv::OpSpecConstantComposite(v2f32, editor.MakeId(), {u, v}));
-    rdcspv::Id uvw =
-        editor.AddConstant(rdcspv::OpSpecConstantComposite(v3f32, editor.MakeId(), {u, v, w}));
+    rdcspv::Id type_int32_t = editor.DeclareType(rdcspv::scalar<int32_t>());
+    rdcspv::Id type_float = editor.DeclareType(rdcspv::scalar<float>());
 
-    editor.SetName(uv, "uv");
-    editor.SetName(uvw, "uvw");
+    rdcspv::Id uniformptr_int32_t =
+        editor.DeclareType(rdcspv::Pointer(type_int32_t, rdcspv::StorageClass::Uniform));
+    rdcspv::Id uniformptr_float =
+        editor.DeclareType(rdcspv::Pointer(type_float, rdcspv::StorageClass::Uniform));
 
-    rdcspv::Id ddx_uv =
-        editor.AddConstant(rdcspv::OpSpecConstantComposite(v2f32, editor.MakeId(), {dudx, dvdx}));
-    rdcspv::Id ddx_uvw = editor.AddConstant(
-        rdcspv::OpSpecConstantComposite(v3f32, editor.MakeId(), {dudx, dvdx, dwdx}));
+#define DECL_UNIFORM(type, name, value)                                                  \
+  rdcspv::Id name = editor.MakeId();                                                     \
+  editor.SetName(name, "uniform_" #name);                                                \
+  cbufferMembers.push_back({CONCAT(type_, type), CONCAT(uniformptr_, type), name, #name, \
+                            MEMBER_IDX(ShaderUniformParameters, value)});                \
+  memberIds.push_back(CONCAT(type_, type));
+    DECL_UNIFORM(int32_t, texel_u, texel_uvw.x);
+    DECL_UNIFORM(int32_t, texel_v, texel_uvw.y);
+    DECL_UNIFORM(int32_t, texel_w, texel_uvw.z);
+    DECL_UNIFORM(int32_t, texel_lod, texel_lod);
+    DECL_UNIFORM(float, u, uvw.x);
+    DECL_UNIFORM(float, v, uvw.y);
+    DECL_UNIFORM(float, w, uvw.z);
+    DECL_UNIFORM(float, dudx, ddx.x);
+    DECL_UNIFORM(float, dvdx, ddx.y);
+    DECL_UNIFORM(float, dwdx, ddx.z);
+    DECL_UNIFORM(float, dudy, ddy.x);
+    DECL_UNIFORM(float, dvdy, ddy.y);
+    DECL_UNIFORM(float, dwdy, ddy.z);
+    DECL_UNIFORM(int32_t, offset_x, offset.x);
+    DECL_UNIFORM(int32_t, offset_y, offset.y);
+    DECL_UNIFORM(int32_t, offset_z, offset.z);
+    DECL_UNIFORM(int32_t, sampleIdx, sampleIdx);
+    DECL_UNIFORM(float, compare, compare);
+    DECL_UNIFORM(float, lod, lod);
+    DECL_UNIFORM(float, minlod, minlod);
 
-    editor.SetName(ddx_uv, "ddx_uv");
-    editor.SetName(ddx_uvw, "ddx_uvw");
-
-    rdcspv::Id ddy_uv =
-        editor.AddConstant(rdcspv::OpSpecConstantComposite(v2f32, editor.MakeId(), {dudy, dvdy}));
-    rdcspv::Id ddy_uvw = editor.AddConstant(
-        rdcspv::OpSpecConstantComposite(v3f32, editor.MakeId(), {dudy, dvdy, dwdy}));
-
-    editor.SetName(ddy_uv, "ddy_uv");
-    editor.SetName(ddy_uvw, "ddy_uvw");
-
-    rdcspv::Id offset_xy = editor.AddConstant(
-        rdcspv::OpSpecConstantComposite(v2i32, editor.MakeId(), {offset_x, offset_y}));
-    rdcspv::Id offset_xyz = editor.AddConstant(
-        rdcspv::OpSpecConstantComposite(v3i32, editor.MakeId(), {offset_x, offset_y, offset_z}));
-
-    editor.SetName(offset_xy, "offset_xy");
-    editor.SetName(offset_xyz, "offset_xyz");
+    rdcspv::Id cbufferStructID = editor.AddType(rdcspv::OpTypeStruct(editor.MakeId(), memberIds));
+    editor.AddDecoration(rdcspv::OpDecorate(cbufferStructID, rdcspv::Decoration::Block));
+    for(const StructMember &m : cbufferMembers)
+    {
+      editor.AddDecoration(rdcspv::OpMemberDecorate(
+          cbufferStructID, m.memberIndex,
+          rdcspv::DecorationParam<rdcspv::Decoration::Offset>(m.memberIndex * sizeof(uint32_t))));
+      editor.SetMemberName(cbufferStructID, m.memberIndex, m.name);
+    }
 
     rdcspv::Id gather_0 = editor.AddConstant(
         rdcspv::OpSpecConstantComposite(v2i32, editor.MakeId(), {gather_u0, gather_v0}));
@@ -1554,8 +1613,9 @@ private:
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_2D, 0, 1, 1, 1, unk)),
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::Buffer, 0, 0, 0, 1, unk)),
         editor.DeclareType(rdcspv::Sampler()),
+        cbufferStructID,
     };
-    rdcspv::Id texSampVars[(uint32_t)ShaderDebugBind::Count];
+    rdcspv::Id bindVars[(uint32_t)ShaderDebugBind::Count];
     rdcspv::Id texSampCombinedTypes[(uint32_t)ShaderDebugBind::Count] = {
         rdcspv::Id(),
         editor.DeclareType(rdcspv::SampledImage(texSampTypes[1])),
@@ -1564,30 +1624,33 @@ private:
         editor.DeclareType(rdcspv::SampledImage(texSampTypes[4])),
         editor.DeclareType(rdcspv::SampledImage(texSampTypes[5])),
         rdcspv::Id(),
+        rdcspv::Id(),
     };
 
     for(size_t i = (size_t)ShaderDebugBind::First; i < (size_t)ShaderDebugBind::Count; i++)
     {
-      rdcspv::Id ptrType =
-          editor.DeclareType(rdcspv::Pointer(texSampTypes[i], rdcspv::StorageClass::UniformConstant));
+      rdcspv::StorageClass storageClass = rdcspv::StorageClass::UniformConstant;
 
-      texSampVars[i] = editor.AddVariable(
-          rdcspv::OpVariable(ptrType, editor.MakeId(), rdcspv::StorageClass::UniformConstant));
+      if(i == (size_t)ShaderDebugBind::Constants)
+        storageClass = rdcspv::StorageClass::Uniform;
+
+      rdcspv::Id ptrType = editor.DeclareType(rdcspv::Pointer(texSampTypes[i], storageClass));
+
+      bindVars[i] = editor.AddVariable(rdcspv::OpVariable(ptrType, editor.MakeId(), storageClass));
 
       editor.AddDecoration(rdcspv::OpDecorate(
-          texSampVars[i], rdcspv::DecorationParam<rdcspv::Decoration::DescriptorSet>(0U)));
+          bindVars[i], rdcspv::DecorationParam<rdcspv::Decoration::DescriptorSet>(0U)));
       editor.AddDecoration(rdcspv::OpDecorate(
-          texSampVars[i], rdcspv::DecorationParam<rdcspv::Decoration::Binding>((uint32_t)i)));
+          bindVars[i], rdcspv::DecorationParam<rdcspv::Decoration::Binding>((uint32_t)i)));
     }
 
-    editor.SetName(texSampVars[(size_t)ShaderDebugBind::Tex1D], "Tex1D");
-    editor.SetName(texSampVars[(size_t)ShaderDebugBind::Tex2D], "Tex2D");
-    editor.SetName(texSampVars[(size_t)ShaderDebugBind::Tex3D], "Tex3D");
-    editor.SetName(texSampVars[(size_t)ShaderDebugBind::Tex2DMS], "Tex2DMS");
-    editor.SetName(texSampVars[(size_t)ShaderDebugBind::Buffer], "Buffer");
-    editor.SetName(texSampVars[(size_t)ShaderDebugBind::Sampler], "Sampler");
-
-    rdcspv::Id sampVar = texSampVars[(size_t)ShaderDebugBind::Sampler];
+    editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex1D], "Tex1D");
+    editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex2D], "Tex2D");
+    editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex3D], "Tex3D");
+    editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex2DMS], "Tex2DMS");
+    editor.SetName(bindVars[(size_t)ShaderDebugBind::Buffer], "Buffer");
+    editor.SetName(bindVars[(size_t)ShaderDebugBind::Sampler], "Sampler");
+    editor.SetName(bindVars[(size_t)ShaderDebugBind::Constants], "CBuffer");
 
     // register the entry point
     editor.AddOperation(
@@ -1602,6 +1665,52 @@ private:
     rdcspv::OperationList func;
     func.add(rdcspv::OpFunction(voidType, entryId, rdcspv::FunctionControl::None, funcType));
     func.add(rdcspv::OpLabel(editor.MakeId()));
+
+    // access chain and load all the cbuffer variables
+    for(const StructMember &m : cbufferMembers)
+    {
+      rdcspv::Id ptr = func.add(rdcspv::OpAccessChain(
+          m.ptrType, editor.MakeId(), bindVars[(size_t)ShaderDebugBind::Constants],
+          {editor.AddConstantImmediate<uint32_t>(m.memberIndex)}));
+      func.add(rdcspv::OpLoad(m.loadedType, m.loadedId, ptr));
+    }
+
+    // declare cbuffer composites
+    rdcspv::Id texel_uv =
+        func.add(rdcspv::OpCompositeConstruct(v2i32, editor.MakeId(), {texel_u, texel_v}));
+    rdcspv::Id texel_uvw =
+        func.add(rdcspv::OpCompositeConstruct(v3i32, editor.MakeId(), {texel_u, texel_v, texel_w}));
+
+    editor.SetName(texel_uv, "texel_uv");
+    editor.SetName(texel_uvw, "texel_uvw");
+
+    rdcspv::Id uv = func.add(rdcspv::OpCompositeConstruct(v2f32, editor.MakeId(), {u, v}));
+    rdcspv::Id uvw = func.add(rdcspv::OpCompositeConstruct(v3f32, editor.MakeId(), {u, v, w}));
+
+    editor.SetName(uv, "uv");
+    editor.SetName(uvw, "uvw");
+
+    rdcspv::Id ddx_uv = func.add(rdcspv::OpCompositeConstruct(v2f32, editor.MakeId(), {dudx, dvdx}));
+    rdcspv::Id ddx_uvw =
+        func.add(rdcspv::OpCompositeConstruct(v3f32, editor.MakeId(), {dudx, dvdx, dwdx}));
+
+    editor.SetName(ddx_uv, "ddx_uv");
+    editor.SetName(ddx_uvw, "ddx_uvw");
+
+    rdcspv::Id ddy_uv = func.add(rdcspv::OpCompositeConstruct(v2f32, editor.MakeId(), {dudy, dvdy}));
+    rdcspv::Id ddy_uvw =
+        func.add(rdcspv::OpCompositeConstruct(v3f32, editor.MakeId(), {dudy, dvdy, dwdy}));
+
+    editor.SetName(ddy_uv, "ddy_uv");
+    editor.SetName(ddy_uvw, "ddy_uvw");
+
+    rdcspv::Id offset_xy =
+        func.add(rdcspv::OpCompositeConstruct(v2i32, editor.MakeId(), {offset_x, offset_y}));
+    rdcspv::Id offset_xyz = func.add(
+        rdcspv::OpCompositeConstruct(v3i32, editor.MakeId(), {offset_x, offset_y, offset_z}));
+
+    editor.SetName(offset_xy, "offset_xy");
+    editor.SetName(offset_xyz, "offset_xyz");
 
     // first store NULL data in, so the output is always initialised
 
@@ -1673,7 +1782,7 @@ private:
 
     for(uint32_t i = (uint32_t)ShaderDebugBind::First; i < (uint32_t)ShaderDebugBind::Count; i++)
     {
-      if(i == sampIdx)
+      if(i == sampIdx || i == (uint32_t)ShaderDebugBind::Constants)
         continue;
 
       {
@@ -1691,8 +1800,7 @@ private:
           imageOperands.setSample(sampleIdx);
 
         cases.add(rdcspv::OpLabel(label));
-        rdcspv::Id loaded =
-            cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), texSampVars[i]));
+        rdcspv::Id loaded = cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
         rdcspv::Id sampleResult = cases.add(rdcspv::OpImageFetch(
             resultType, editor.MakeId(), loaded, texel_coord[i], imageOperands));
         cases.add(rdcspv::OpStore(outVar, sampleResult));
@@ -1711,19 +1819,20 @@ private:
 
         rdcspv::ImageOperandsAndParamDatas imageOperands;
 
-        imageOperands.setConstOffset(offsets[i]);
+        if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+          imageOperands.setOffset(offsets[i]);
 
         cases.add(rdcspv::OpLabel(label));
         rdcspv::Id loadedImage =
-            cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), texSampVars[i]));
+            cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
         rdcspv::Id loadedSampler =
-            cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), texSampVars[sampIdx]));
+            cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), bindVars[sampIdx]));
 
         rdcspv::Id mergeLabel = editor.MakeId();
         rdcspv::Id gradCase = editor.MakeId();
         rdcspv::Id lodCase = editor.MakeId();
         cases.add(rdcspv::OpSelectionMerge(mergeLabel, rdcspv::SelectionControl::None));
-        cases.add(rdcspv::OpBranchConditional(useGrad, gradCase, lodCase));
+        cases.add(rdcspv::OpBranchConditional(useGradOrGatherOffsets, gradCase, lodCase));
 
         rdcspv::Id lodResult;
         {
@@ -1778,19 +1887,20 @@ private:
 
         rdcspv::ImageOperandsAndParamDatas imageOperands;
 
-        imageOperands.setConstOffset(offsets[i]);
+        if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+          imageOperands.setOffset(offsets[i]);
 
         cases.add(rdcspv::OpLabel(label));
         rdcspv::Id loadedImage =
-            cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), texSampVars[i]));
+            cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
         rdcspv::Id loadedSampler =
-            cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), texSampVars[sampIdx]));
+            cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), bindVars[sampIdx]));
 
         rdcspv::Id mergeLabel = editor.MakeId();
         rdcspv::Id gradCase = editor.MakeId();
         rdcspv::Id lodCase = editor.MakeId();
         cases.add(rdcspv::OpSelectionMerge(mergeLabel, rdcspv::SelectionControl::None));
-        cases.add(rdcspv::OpBranchConditional(useGrad, gradCase, lodCase));
+        cases.add(rdcspv::OpBranchConditional(useGradOrGatherOffsets, gradCase, lodCase));
 
         rdcspv::Id lodResult;
         {
@@ -1854,9 +1964,9 @@ private:
 
         cases.add(rdcspv::OpLabel(label));
         rdcspv::Id loadedImage =
-            cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), texSampVars[i]));
+            cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
         rdcspv::Id loadedSampler =
-            cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), texSampVars[sampIdx]));
+            cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), bindVars[sampIdx]));
 
         rdcspv::Id sampleResult;
         if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
@@ -1865,13 +1975,16 @@ private:
           rdcspv::Id constsCase = editor.MakeId();
           rdcspv::Id baseCase = editor.MakeId();
           cases.add(rdcspv::OpSelectionMerge(mergeLabel, rdcspv::SelectionControl::None));
-          cases.add(rdcspv::OpBranchConditional(useGatherOffsets, constsCase, baseCase));
+          cases.add(rdcspv::OpBranchConditional(useGradOrGatherOffsets, constsCase, baseCase));
 
           rdcspv::Id baseResult;
           {
             cases.add(rdcspv::OpLabel(baseCase));
             rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
-            imageOperands.setConstOffset(offsets[i]);
+
+            if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+              imageOperands.setOffset(offsets[i]);
+
             rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
                 texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
 
@@ -1889,7 +2002,13 @@ private:
           {
             cases.add(rdcspv::OpLabel(constsCase));
             rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
-            operands.setConstOffsets(gatherOffsets);
+
+            // if this feature isn't available, this path will never be exercised (since we only
+            // come in here when the actual shader used const offsets) so it's fine to drop it in
+            // that case to ensure the module is still legal.
+            if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+              operands.setConstOffsets(gatherOffsets);
+
             rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
                 texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
 
@@ -1909,7 +2028,8 @@ private:
         }
         else
         {
-          imageOperands.setConstOffset(offsets[i]);
+          if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+            imageOperands.setOffset(offsets[i]);
 
           rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
               texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));

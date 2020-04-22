@@ -207,8 +207,6 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
       // we plan to support these but needs additional testing/proving
 
-      // image gather operations
-
       // image storage
       case Capability::StorageImageMultisample:
 
