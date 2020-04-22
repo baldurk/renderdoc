@@ -69,6 +69,7 @@ public:
   void CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent, uint32_t layers,
                           uint32_t samples, VkFormat fmt);
 
+  VkPipelineCache GetPipelineCache() { return m_PipelineCache; }
   VkPipeline GetCustomPipeline() { return m_Custom.TexPipeline; }
   VkImage GetCustomTexture() { return m_Custom.TexImg; }
   VkFramebuffer GetCustomFramebuffer() { return m_Custom.TexFB; }
@@ -131,6 +132,8 @@ private:
   VkPipeline m_DepthMS2ArrayPipe[6] = {VK_NULL_HANDLE};
   // one per depth/stencil output format, per sample count
   VkPipeline m_DepthArray2MSPipe[6][4] = {{VK_NULL_HANDLE}};
+
+  VkPipelineCache m_PipelineCache = VK_NULL_HANDLE;
 
   struct CustomShaderRendering
   {

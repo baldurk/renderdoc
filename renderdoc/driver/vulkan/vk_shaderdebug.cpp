@@ -1170,8 +1170,9 @@ private:
     };
 
     VkPipeline pipe = VK_NULL_HANDLE;
-    VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
-                                                        &graphicsPipeInfo, NULL, &pipe);
+    VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(),
+                                                        m_pDriver->GetShaderCache()->GetPipeCache(),
+                                                        1, &graphicsPipeInfo, NULL, &pipe);
     if(vkr != VK_SUCCESS)
     {
       RDCERR("Failed creating debug pipeline");
@@ -3121,8 +3122,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   }
 
   VkPipeline inputsPipe;
-  vkr =
-      m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &graphicsInfo, NULL, &inputsPipe);
+  vkr = m_pDriver->vkCreateGraphicsPipelines(dev, m_pDriver->GetShaderCache()->GetPipeCache(), 1,
+                                             &graphicsInfo, NULL, &inputsPipe);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   // make copy of state to draw from

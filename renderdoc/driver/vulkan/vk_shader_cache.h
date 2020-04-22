@@ -74,7 +74,7 @@ public:
   {
     return m_BuiltinShaderModules[(size_t)builtin];
   }
-
+  VkPipelineCache GetPipeCache() { return m_PipelineCache; }
   void MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
   void MakeComputePipelineInfo(VkComputePipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
 
@@ -84,8 +84,14 @@ private:
   static const uint32_t m_ShaderCacheMagic = 0xf00d00d5;
   static const uint32_t m_ShaderCacheVersion = 1;
 
+  void GetPipeCacheBlob();
+  void SetPipeCacheBlob(bytebuf &blob);
+
   WrappedVulkan *m_pDriver = NULL;
   VkDevice m_Device = VK_NULL_HANDLE;
+
+  bytebuf m_PipeCacheBlob;
+  VkPipelineCache m_PipelineCache = VK_NULL_HANDLE;
 
   rdcstr m_GlobalDefines;
 

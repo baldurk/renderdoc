@@ -120,6 +120,15 @@ struct VulkanBlobShaderCallbacks
   const byte *GetData(SPIRVBlob blob) const { return (const byte *)blob->data(); }
 } VulkanShaderCacheCallbacks;
 
+struct VkPipeCacheHeader
+{
+  uint32_t length;
+  VkPipelineCacheHeaderVersion version;
+  uint32_t vendorID;
+  uint32_t deviceID;
+  byte uuid[VK_UUID_SIZE];
+};
+
 VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
 {
   // Load shader cache, if present
@@ -224,11 +233,79 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
     }
   }
 
+  {
+    VkPipelineCacheCreateInfo createInfo = {VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
+
+    GetPipeCacheBlob();
+
+    if(!m_PipeCacheBlob.empty())
+    {
+      if(m_PipeCacheBlob.size() < sizeof(VkPipeCacheHeader))
+      {
+        m_PipeCacheBlob.clear();
+      }
+      else
+      {
+        VkPipeCacheHeader *header = (VkPipeCacheHeader *)m_PipeCacheBlob.data();
+
+        // check explicitly for incompatibility
+        if(header->length != sizeof(VkPipeCacheHeader))
+        {
+          m_PipeCacheBlob.clear();
+          RDCLOG("Pipeline cache header length %u is unexpected, not using cache", header->length);
+        }
+        else if(header->version != VK_PIPELINE_CACHE_HEADER_VERSION_ONE)
+        {
+          m_PipeCacheBlob.clear();
+          RDCLOG("Pipeline cache header version %u is unexpected, not using cache", header->version);
+        }
+        else if(header->vendorID != m_pDriver->GetDeviceProps().vendorID)
+        {
+          m_PipeCacheBlob.clear();
+          RDCLOG("Pipeline cache header vendorID %u doesn't match %u", header->vendorID,
+                 m_pDriver->GetDeviceProps().vendorID);
+        }
+        else if(header->deviceID != m_pDriver->GetDeviceProps().deviceID)
+        {
+          m_PipeCacheBlob.clear();
+          RDCLOG("Pipeline cache header deviceID %u doesn't match %u", header->deviceID,
+                 m_pDriver->GetDeviceProps().deviceID);
+        }
+        else if(memcmp(header->uuid, m_pDriver->GetDeviceProps().pipelineCacheUUID, VK_UUID_SIZE) != 0)
+        {
+          m_PipeCacheBlob.clear();
+          RDCLOG("Pipeline cache UUID doesn't match");
+        }
+      }
+    }
+
+    if(!m_PipeCacheBlob.empty())
+    {
+      createInfo.initialDataSize = m_PipeCacheBlob.size();
+      createInfo.pInitialData = m_PipeCacheBlob.data();
+    }
+
+    VkResult vkr = driver->vkCreatePipelineCache(m_Device, &createInfo, NULL, &m_PipelineCache);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
   SetCaching(false);
 }
 
 VulkanShaderCache::~VulkanShaderCache()
 {
+  if(m_PipelineCache != VK_NULL_HANDLE)
+  {
+    bytebuf blob;
+    size_t size = 0;
+    ObjDisp(m_Device)->GetPipelineCacheData(Unwrap(m_Device), Unwrap(m_PipelineCache), &size, NULL);
+    blob.resize(size);
+    ObjDisp(m_Device)->GetPipelineCacheData(Unwrap(m_Device), Unwrap(m_PipelineCache), &size,
+                                            blob.data());
+    SetPipeCacheBlob(blob);
+    m_pDriver->vkDestroyPipelineCache(m_Device, m_PipelineCache, NULL);
+  }
+
   if(m_ShaderCacheDirty)
   {
     SaveShaderCache("vkshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion, m_ShaderCache,
@@ -287,6 +364,56 @@ rdcstr VulkanShaderCache::GetSPIRVBlob(const rdcspv::CompilationSettings &settin
   }
 
   return errors;
+}
+
+void VulkanShaderCache::GetPipeCacheBlob()
+{
+  m_PipeCacheBlob.clear();
+
+  uint32_t hash = strhash(StringFormat::Fmt("PipelineCache%x%x", m_pDriver->GetDeviceProps().vendorID,
+                                            m_pDriver->GetDeviceProps().deviceID)
+                              .c_str());
+
+  auto it = m_ShaderCache.find(hash);
+
+  if(it != m_ShaderCache.end())
+  {
+    SPIRVBlob blob = it->second;
+
+    // first uint32_t is the real byte size, since we rounded up to the nearest uint32 to store in a
+    // SPIRVBlob
+    uint32_t size = blob->at(0);
+    if(size == rdcspv::MagicNumber)
+    {
+      RDCLOG("Hash collision - pipeline cache trampled");
+      return;
+    }
+    m_PipeCacheBlob.resize(size);
+    memcpy(m_PipeCacheBlob.data(), blob->data() + 1, m_PipeCacheBlob.size());
+  }
+}
+
+void VulkanShaderCache::SetPipeCacheBlob(bytebuf &blob)
+{
+  if(m_PipeCacheBlob == blob)
+    return;
+
+  VkPipeCacheHeader *header = (VkPipeCacheHeader *)blob.data();
+
+  uint32_t hash =
+      strhash(StringFormat::Fmt("PipelineCache%x%x", header->vendorID, header->deviceID).c_str());
+
+  rdcarray<uint32_t> *spirvBlob = new rdcarray<uint32_t>();
+
+  // align the size up to the nearest 4, and add one extra for us to store the real byte size
+  spirvBlob->resize(AlignUp4(blob.size()) / 4 + 1);
+
+  // store the size, then the real data after that
+  (*spirvBlob)[0] = (uint32_t)blob.size();
+  memcpy(spirvBlob->data() + 1, blob.data(), blob.size());
+
+  m_ShaderCache[hash] = spirvBlob;
+  m_ShaderCacheDirty = true;
 }
 
 void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo,

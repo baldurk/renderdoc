@@ -170,8 +170,8 @@ static void create(WrappedVulkan *driver, const char *objName, const int line, V
       0,
   };
 
-  VkResult vkr = driver->vkCreateComputePipelines(driver->GetDev(), VK_NULL_HANDLE, 1,
-                                                  &compPipeInfo, NULL, pipe);
+  VkResult vkr = driver->vkCreateComputePipelines(
+      driver->GetDev(), driver->GetShaderCache()->GetPipeCache(), 1, &compPipeInfo, NULL, pipe);
   if(vkr != VK_SUCCESS)
     RDCERR("Failed creating object %s at line %i, vkr was %s", objName, line, ToStr(vkr).c_str());
 }
@@ -213,8 +213,8 @@ static void create(WrappedVulkan *driver, const char *objName, const int line, V
       0,
   };
 
-  vkr = driver->vkCreateComputePipelines(driver->GetDev(), VK_NULL_HANDLE, 1, &compPipeInfo, NULL,
-                                         pipe);
+  vkr = driver->vkCreateComputePipelines(driver->GetDev(), driver->GetShaderCache()->GetPipeCache(),
+                                         1, &compPipeInfo, NULL, pipe);
   if(vkr != VK_SUCCESS)
     RDCERR("Failed creating object %s at line %i, vkr was %s", objName, line, ToStr(vkr).c_str());
 
@@ -389,8 +389,8 @@ static void create(WrappedVulkan *driver, const char *objName, const int line, V
       -1,                // base pipeline index
   };
 
-  VkResult vkr = driver->vkCreateGraphicsPipelines(driver->GetDev(), VK_NULL_HANDLE, 1,
-                                                   &graphicsPipeInfo, NULL, pipe);
+  VkResult vkr = driver->vkCreateGraphicsPipelines(
+      driver->GetDev(), driver->GetShaderCache()->GetPipeCache(), 1, &graphicsPipeInfo, NULL, pipe);
   if(vkr != VK_SUCCESS)
     RDCERR("Failed creating object %s at line %i, vkr was %s", objName, line, ToStr(vkr).c_str());
 }

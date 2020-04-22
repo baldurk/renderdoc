@@ -394,7 +394,7 @@ VkResult WrappedVulkan::vkGetPipelineCacheData(VkDevice device, VkPipelineCache 
 
     uint32_t *ptr = (uint32_t *)pData;
 
-    ptr[0] = (uint32_t)totalSize;
+    ptr[0] = 16 + VK_UUID_SIZE;
     ptr[1] = VK_PIPELINE_CACHE_HEADER_VERSION_ONE;
     // just in case the user expects a valid vendorID/deviceID, write the real one
     // MULTIDEVICE need to get the right physical device for this device
