@@ -77,10 +77,13 @@ uint32_t WrappedVulkan::GetUploadMemoryIndex(uint32_t resourceCompatibleBitmask)
      resourceCompatibleBitmask & (1 << m_PhysicalDeviceData.uploadMemIndex))
     return m_PhysicalDeviceData.uploadMemIndex;
 
-  // for upload, writing directly into device local memory is preferred
+  // for upload, we just need host visible.
+  // In an ideal world we'd put our uploaded data in device-local memory too (since host->device
+  // copies will be slower than device->device copies), however device-local memory is a limited
+  // resource and the capture may be using almost all of it, thus device local allocations should be
+  // reserved for those that really need it.
   return m_PhysicalDeviceData.GetMemoryIndex(resourceCompatibleBitmask,
-                                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+                                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
 }
 
 uint32_t WrappedVulkan::GetGPULocalMemoryIndex(uint32_t resourceCompatibleBitmask)
