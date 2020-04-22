@@ -39,6 +39,9 @@ RDOC_CONFIG(uint32_t, Android_MaxConnectTimeout, 30,
             "Maximum time in seconds to try connecting to the target app before giving up. "
             "Useful primarily for apps that take a very long time to start up.");
 
+RDOC_DEBUG_CONFIG(bool, Android_Debug_ProcessLaunch, false,
+                  "Output verbose debug logging messages when launching android apps.");
+
 namespace Android
 {
 void adbForwardPorts(uint16_t portbase, const rdcstr &deviceID, uint16_t jdwpPort, int pid,
@@ -173,6 +176,11 @@ rdcstr GetProcessNameForActivity(const rdcstr &deviceID, const rdcstr &packageNa
 
 int GetCurrentPID(const rdcstr &deviceID, const rdcstr &processName)
 {
+  if(Android_Debug_ProcessLaunch)
+  {
+    RDCLOG("Getting PID from device %s for process '%s'", deviceID.c_str(), processName.c_str());
+  }
+
   // try 5 times, 200ms apart to find the pid
   for(int i = 0; i < 5; i++)
   {
@@ -184,6 +192,11 @@ int GetCurrentPID(const rdcstr &deviceID, const rdcstr &processName)
     output.trim();
     int space = output.find_first_of("\t ");
 
+    if(Android_Debug_ProcessLaunch)
+    {
+      RDCLOG("Output from ps -A: '%s'", output.c_str());
+    }
+
     // if we didn't get a response, try without the -A as some android devices don't support that
     // parameter
     if(output.empty() || output.find(processName) == -1 || space == -1)
@@ -193,11 +206,26 @@ int GetCurrentPID(const rdcstr &deviceID, const rdcstr &processName)
 
       output.trim();
       space = output.find_first_of("\t ");
+
+      if(Android_Debug_ProcessLaunch)
+      {
+        RDCLOG("Output from ps: '%s'", output.c_str());
+      }
+    }
+
+    if(Android_Debug_ProcessLaunch)
+    {
+      RDCLOG("Final output is '%s' and first space is at char %d", output.c_str(), space);
     }
 
     // if we still didn't get a response, sleep and try again next time
     if(output.empty() || output.find(processName) == -1 || space == -1)
     {
+      if(Android_Debug_ProcessLaunch)
+      {
+        RDCLOG("Didn't get valid PID line, waiting");
+      }
+
       Threading::Sleep(200);
       continue;
     }
@@ -206,13 +234,35 @@ int GetCurrentPID(const rdcstr &deviceID, const rdcstr &processName)
     while(*pid == ' ' || *pid == '\t')
       pid++;
 
+    if(Android_Debug_ProcessLaunch)
+    {
+      RDCLOG("Expecting PID starting at '%s'", pid);
+    }
+
     char *end = pid;
     while(*end >= '0' && *end <= '9')
       end++;
 
     *end = 0;
 
-    return atoi(pid);
+    if(Android_Debug_ProcessLaunch)
+    {
+      RDCLOG("Truncated PID string: '%s'", pid);
+    }
+
+    int pidInt = atoi(pid);
+
+    if(Android_Debug_ProcessLaunch)
+    {
+      RDCLOG("Parsed integer PID: %d", pidInt);
+    }
+
+    return pidInt;
+  }
+
+  if(Android_Debug_ProcessLaunch)
+  {
+    RDCLOG("Failed to get a PID after several retries");
   }
 
   return 0;
@@ -1046,6 +1096,12 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
 
     rdcstr processName = Android::GetProcessNameForActivity(m_deviceID, packageName, activityName);
 
+    if(Android_Debug_ProcessLaunch)
+    {
+      RDCLOG("Launching package '%s' with activity '%s' and process name '%s'", packageName.c_str(),
+             activityName.c_str(), processName.c_str());
+    }
+
     uint16_t jdwpPort = Android::GetJdwpPort();
 
     // remove any previous jdwp port forward on this port
@@ -1116,6 +1172,10 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
                                                             "/lib/*/" RENDERDOC_ANDROID_LIBRARY)
                         .strStdout.trimmed();
 
+    if(Android_Debug_ProcessLaunch)
+    {
+      RDCLOG("Checking for existing library, found '%s'", RDCLib.c_str());
+    }
     // some versions of adb/android return the error message on stdout, so try to detect those and
     // clear the output.
     if(RDCLib.size() < installedPath.size() || RDCLib.substr(0, installedPath.size()) != installedPath)

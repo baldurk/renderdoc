@@ -41,8 +41,8 @@ RDOC_CONFIG(uint32_t, RemoteServer_TimeoutMS, 5000,
             "Timeout in milliseconds for remote server operations.");
 
 RDOC_DEBUG_CONFIG(bool, RemoteServer_DebugLogging, false,
-                  "Where possible (i.e. it is completely unambiguous) replace register names with "
-                  "high-level variable names.");
+                  "Output a verbose logging file in the system's temporary folder containing the "
+                  "traffic to and from the remote server.");
 
 static const uint32_t RemoteServerProtocolVersion =
     uint32_t(RENDERDOC_VERSION_MAJOR * 1000) | RENDERDOC_VERSION_MINOR;
