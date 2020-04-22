@@ -2081,6 +2081,7 @@ enum class InputSpecConstant
   ArrayLength,
   DestX,
   DestY,
+  AddressMSB,
   Count,
 };
 
@@ -2558,8 +2559,23 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     // declare the address constant which we will specialise later. There is a chicken-and-egg where
     // this function determines how big the buffer needs to be so instead of hardcoding the address
     // here we let it be allocated later and specialised in.
-    addressConstant =
-        editor.AddSpecConstantImmediate<uint64_t>(0ULL, (uint32_t)InputSpecConstant::Address);
+    if(storageMode == KHR_bda)
+    {
+      rdcspv::Id addressConstantLSB =
+          editor.AddSpecConstantImmediate<uint32_t>(0U, (uint32_t)InputSpecConstant::Address);
+      rdcspv::Id addressConstantMSB =
+          editor.AddSpecConstantImmediate<uint32_t>(0U, (uint32_t)InputSpecConstant::AddressMSB);
+
+      rdcspv::Id uint2 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 2));
+
+      addressConstant = editor.AddConstant(rdcspv::OpSpecConstantComposite(
+          uint2, editor.MakeId(), {addressConstantLSB, addressConstantMSB}));
+    }
+    else
+    {
+      addressConstant =
+          editor.AddSpecConstantImmediate<uint64_t>(0ULL, (uint32_t)InputSpecConstant::Address);
+    }
 
     editor.SetName(addressConstant, "__rd_bufAddress");
 
@@ -2645,8 +2661,12 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
       if(structPtr == rdcspv::Id())
       {
-        // if we don't have the struct as a bind, we need to cast it from the pointer
-        structPtr = ops.add(rdcspv::OpConvertUToPtr(bufptrtype, editor.MakeId(), addressConstant));
+        // if we don't have the struct as a bind, we need to cast it from the pointer. In
+        // KHR_buffer_device_address we bitcast since we store it as a uint2
+        if(storageMode == KHR_bda)
+          structPtr = ops.add(rdcspv::OpBitcast(bufptrtype, editor.MakeId(), addressConstant));
+        else
+          structPtr = ops.add(rdcspv::OpConvertUToPtr(bufptrtype, editor.MakeId(), addressConstant));
 
         editor.SetName(structPtr, "HitBuffer");
       }
@@ -3078,30 +3098,32 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   StorageMode storageMode = Binding;
 
-  if(m_pDriver->GetDeviceFeatures().shaderInt64)
+  if(m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address)
   {
-    if(m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address)
-    {
-      storageMode = KHR_bda;
+    storageMode = KHR_bda;
 
-      if(Vulkan_Debug_ShaderDebugLogging)
-      {
-        RDCLOG("Using KHR_buffer_Device_address");
-      }
+    if(Vulkan_Debug_ShaderDebugLogging)
+    {
+      RDCLOG("Using KHR_buffer_device_address");
     }
-    else if(m_pDriver->GetExtensions(NULL).ext_EXT_buffer_device_address)
+  }
+  else if(m_pDriver->GetExtensions(NULL).ext_EXT_buffer_device_address)
+  {
+    if(m_pDriver->GetDeviceFeatures().shaderInt64)
     {
       storageMode = EXT_bda;
 
       if(Vulkan_Debug_ShaderDebugLogging)
       {
-        RDCLOG("Using EXT_buffer_Device_address");
+        RDCLOG("Using EXT_buffer_device_address");
       }
     }
-  }
-  else if(Vulkan_Debug_ShaderDebugLogging)
-  {
-    RDCLOG("shaderInt64 isn't available, falling back to binding storage mode");
+    else if(Vulkan_Debug_ShaderDebugLogging)
+    {
+      RDCLOG(
+          "EXT_buffer_device_address is available but shaderInt64 isn't, falling back to binding "
+          "storage mode");
+    }
   }
 
   if(Vulkan_Debug_DisableBufferDeviceAddress)
@@ -3240,8 +3262,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   VkSpecializationMapEntry specMaps[] = {
       {
-          (uint32_t)InputSpecConstant::Address, offsetof(SpecData, bufferAddress),
-          sizeof(SpecData::bufferAddress),
+          (uint32_t)InputSpecConstant::Address, offsetof(SpecData, bufferAddress), sizeof(uint32_t),
       },
       {
           (uint32_t)InputSpecConstant::ArrayLength, offsetof(SpecData, arrayLength),
@@ -3253,6 +3274,10 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
       {
           (uint32_t)InputSpecConstant::DestY, offsetof(SpecData, destY), sizeof(SpecData::destY),
       },
+      {
+          (uint32_t)InputSpecConstant::AddressMSB, offsetof(SpecData, bufferAddress) + 4,
+          sizeof(uint32_t),
+      },
   };
 
   VkSpecializationInfo specInfo = {};
@@ -3263,6 +3288,13 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   RDCCOMPILE_ASSERT((size_t)InputSpecConstant::Count == ARRAY_COUNT(specMaps),
                     "Spec constants changed");
+
+  if(storageMode == EXT_bda)
+  {
+    // don't pass AddressMSB for EXT_buffer_device_address, we pass a uint64
+    specInfo.mapEntryCount--;
+    specMaps[0].size = sizeof(SpecData::bufferAddress);
+  }
 
   rdcarray<VkShaderModule> modules;
 
