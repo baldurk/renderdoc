@@ -287,8 +287,26 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
       createInfo.pInitialData = m_PipeCacheBlob.data();
     }
 
-    VkResult vkr = driver->vkCreatePipelineCache(m_Device, &createInfo, NULL, &m_PipelineCache);
+    // manually wrap the cache so the data is uploaded
+
+    VkResult vkr = ObjDisp(m_Device)->CreatePipelineCache(Unwrap(m_Device), &createInfo, NULL,
+                                                          &m_PipelineCache);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    if(vkr == VK_SUCCESS)
+    {
+      ResourceId id =
+          m_pDriver->GetResourceManager()->WrapResource(Unwrap(m_Device), m_PipelineCache);
+
+      if(IsCaptureMode(m_pDriver->GetState()))
+      {
+        m_pDriver->GetResourceManager()->AddResourceRecord(m_PipelineCache);
+      }
+      else
+      {
+        m_pDriver->GetResourceManager()->AddLiveResource(id, m_PipelineCache);
+      }
+    }
   }
 
   SetCaching(false);
