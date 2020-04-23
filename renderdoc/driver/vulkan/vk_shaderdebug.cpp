@@ -143,10 +143,14 @@ class VulkanAPIWrapper : public rdcspv::DebugAPIWrapper
   rdcarray<DescSetSnapshot> m_DescSets;
 
 public:
-  VulkanAPIWrapper(WrappedVulkan *vk, VulkanCreationInfo &creation, VkShaderStageFlagBits stage)
-      : m_DebugData(vk->GetReplay()->GetShaderDebugData()), m_Creation(creation)
+  VulkanAPIWrapper(WrappedVulkan *vk, VulkanCreationInfo &creation, VkShaderStageFlagBits stage,
+                   uint32_t eid)
+      : m_DebugData(vk->GetReplay()->GetShaderDebugData()), m_Creation(creation), m_EventID(eid)
   {
     m_pDriver = vk;
+
+    // when we're first setting up, the state is pristine and no replay is needed
+    m_ResourcesDirty = false;
 
     const VulkanRenderState &state = m_pDriver->GetRenderState();
 
@@ -277,40 +281,52 @@ public:
       m_pDriver->vkDestroySampler(dev, it->second, NULL);
   }
 
+  void ResetReplay()
+  {
+    // replay the draw to get back to 'normal' state for this event, and mark that we need to replay
+    // back to pristine state next time we need to fetch data.
+    m_pDriver->ReplayLog(0, m_EventID, eReplay_OnlyDraw);
+    m_ResourcesDirty = true;
+  }
+
   virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,
                                rdcstr d) override
   {
     m_pDriver->AddDebugMessage(c, sv, src, d);
   }
 
-  virtual void ReadConstantBufferValue(uint32_t set, uint32_t bind, uint32_t offset,
-                                       uint32_t byteSize, void *dst) override
+  virtual uint64_t GetBufferLength(BindpointIndex bind) override
   {
-    rdcpair<uint32_t, uint32_t> key = make_rdcpair(set, bind);
-    auto insertIt = cbufferCache.insert(std::make_pair(key, bytebuf()));
-    bytebuf &data = insertIt.first->second;
-    if(insertIt.second)
+    bool valid = true;
+    const VkDescriptorBufferInfo &bufData =
+        GetDescriptor<VkDescriptorBufferInfo>("reading buffer length", bind, valid);
+    if(valid)
     {
-      if(set == PushConstantBindSet)
-      {
-        data = pushData;
-      }
-      else
-      {
-        // TODO handle arrays here
-        BindpointIndex index(set, bind, 0);
+      if(bufData.range != VK_WHOLE_SIZE)
+        return bufData.range;
 
-        bool valid = true;
-        const VkDescriptorBufferInfo &bufData =
-            GetDescriptor<VkDescriptorBufferInfo>("reading constant buffer value", index, valid);
-        if(valid)
-          m_pDriver->GetDebugManager()->GetBufferData(GetResID(bufData.buffer), bufData.offset,
-                                                      bufData.range, data);
-      }
+      return m_Creation.m_Buffer[GetResID(bufData.buffer)].size - bufData.offset;
     }
 
+    return 0;
+  }
+
+  virtual void ReadBufferValue(BindpointIndex bind, uint64_t offset, uint64_t byteSize,
+                               void *dst) override
+  {
+    const bytebuf &data = PopulateBuffer(bind);
+
     if(offset + byteSize <= data.size())
-      memcpy(dst, data.data() + offset, byteSize);
+      memcpy(dst, data.data() + (size_t)offset, (size_t)byteSize);
+  }
+
+  virtual void WriteBufferValue(BindpointIndex bind, uint64_t offset, uint64_t byteSize,
+                                const void *src) override
+  {
+    bytebuf &data = PopulateBuffer(bind);
+
+    if(offset + byteSize <= data.size())
+      memcpy(data.data() + (size_t)offset, src, (size_t)byteSize);
   }
 
   virtual void FillInputValue(ShaderVariable &var, ShaderBuiltin builtin, uint32_t location,
@@ -1014,6 +1030,9 @@ private:
   ShaderDebugData &m_DebugData;
   VulkanCreationInfo &m_Creation;
 
+  bool m_ResourcesDirty = false;
+  uint32_t m_EventID;
+
   std::map<ResourceId, VkImageView> m_SampleViews;
 
   typedef rdcpair<ResourceId, float> SamplerBiasKey;
@@ -1021,7 +1040,7 @@ private:
 
   bytebuf pushData;
 
-  std::map<rdcpair<uint32_t, uint32_t>, bytebuf> cbufferCache;
+  std::map<BindpointIndex, bytebuf> bufferCache;
   template <typename T>
   const T &GetDescriptor(const rdcstr &access, BindpointIndex index, bool &valid)
   {
@@ -1084,6 +1103,40 @@ private:
     }
 
     return elemData[index.arrayIndex];
+  }
+
+  bytebuf &PopulateBuffer(BindpointIndex bind)
+  {
+    auto insertIt = bufferCache.insert(std::make_pair(bind, bytebuf()));
+    bytebuf &data = insertIt.first->second;
+    if(insertIt.second)
+    {
+      if(bind.bindset == PushConstantBindSet)
+      {
+        data = pushData;
+      }
+      else
+      {
+        bool valid = true;
+        const VkDescriptorBufferInfo &bufData =
+            GetDescriptor<VkDescriptorBufferInfo>("accessing buffer value", bind, valid);
+        if(valid)
+        {
+          // if the resources might be dirty from side-effects from the draw, replay back to right
+          // before it.
+          if(m_ResourcesDirty)
+          {
+            m_pDriver->ReplayLog(0, m_EventID, eReplay_WithoutDraw);
+            m_ResourcesDirty = false;
+          }
+
+          m_pDriver->GetDebugManager()->GetBufferData(GetResID(bufData.buffer), bufData.offset,
+                                                      bufData.range, data);
+        }
+      }
+    }
+
+    return data;
   }
 
   VkPipeline MakePipe(const ShaderConstParameters &params, bool uintTex, bool sintTex)
@@ -2884,6 +2937,9 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   if(!(draw->flags & DrawFlags::Drawcall))
     return new ShaderDebugTrace();
 
+  // get ourselves in pristine state before this draw (without any side effects it may have had)
+  m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
+
   const VulkanCreationInfo::Pipeline &pipe = c.m_Pipeline[state.graphics.pipeline];
   VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[pipe.shaders[0].module];
   rdcstr entryPoint = pipe.shaders[0].entryPoint;
@@ -2894,7 +2950,8 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 
   shadRefl.PopulateDisassembly(shader.spirv);
 
-  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_VERTEX_BIT);
+  VulkanAPIWrapper *apiWrapper =
+      new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_VERTEX_BIT, eventId);
 
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
   builtins[ShaderBuiltin::BaseInstance] = ShaderVariable(rdcstr(), draw->instanceOffset, 0U, 0U, 0U);
@@ -2994,6 +3051,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   debugger->Parse(shader.spirv.GetSPIRV());
   ShaderDebugTrace *ret = debugger->BeginDebug(apiWrapper, ShaderStage::Vertex, entryPoint, spec,
                                                shadRefl.instructionLines, shadRefl.patchData, 0);
+  apiWrapper->ResetReplay();
 
   return ret;
 }
@@ -3032,6 +3090,9 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   if(!(draw->flags & DrawFlags::Drawcall))
     return new ShaderDebugTrace();
 
+  // get ourselves in pristine state before this draw (without any side effects it may have had)
+  m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
+
   const VulkanCreationInfo::Pipeline &pipe = c.m_Pipeline[state.graphics.pipeline];
   VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[pipe.shaders[4].module];
   rdcstr entryPoint = pipe.shaders[4].entryPoint;
@@ -3042,7 +3103,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   shadRefl.PopulateDisassembly(shader.spirv);
 
-  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_FRAGMENT_BIT);
+  VulkanAPIWrapper *apiWrapper =
+      new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_FRAGMENT_BIT, eventId);
 
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
   builtins[ShaderBuiltin::DeviceIndex] = ShaderVariable(rdcstr(), 0U, 0U, 0U, 0U);
@@ -3594,6 +3656,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
     ret = debugger->BeginDebug(apiWrapper, ShaderStage::Pixel, entryPoint, spec,
                                shadRefl.instructionLines, shadRefl.patchData, destIdx);
+    apiWrapper->ResetReplay();
   }
   else
   {
@@ -3654,6 +3717,9 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t gro
   if(!(draw->flags & DrawFlags::Dispatch))
     return new ShaderDebugTrace();
 
+  // get ourselves in pristine state before this dispatch (without any side effects it may have had)
+  m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
+
   const VulkanCreationInfo::Pipeline &pipe = c.m_Pipeline[state.compute.pipeline];
   VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[pipe.shaders[5].module];
   rdcstr entryPoint = pipe.shaders[5].entryPoint;
@@ -3664,7 +3730,8 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t gro
 
   shadRefl.PopulateDisassembly(shader.spirv);
 
-  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_COMPUTE_BIT);
+  VulkanAPIWrapper *apiWrapper =
+      new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_COMPUTE_BIT, eventId);
 
   uint32_t threadDim[3];
   threadDim[0] = shadRefl.refl.dispatchThreadsDimension[0];
@@ -3693,6 +3760,7 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t gro
   debugger->Parse(shader.spirv.GetSPIRV());
   ShaderDebugTrace *ret = debugger->BeginDebug(apiWrapper, ShaderStage::Compute, entryPoint, spec,
                                                shadRefl.instructionLines, shadRefl.patchData, 0);
+  apiWrapper->ResetReplay();
 
   return ret;
 }
@@ -3706,5 +3774,10 @@ rdcarray<ShaderDebugState> VulkanReplay::ContinueDebug(ShaderDebugger *debugger)
 
   VkMarkerRegion region("ContinueDebug Simulation Loop");
 
-  return spvDebugger->ContinueDebug();
+  rdcarray<ShaderDebugState> ret = spvDebugger->ContinueDebug();
+
+  VulkanAPIWrapper *api = (VulkanAPIWrapper *)spvDebugger->GetAPIWrapper();
+  api->ResetReplay();
+
+  return ret;
 }

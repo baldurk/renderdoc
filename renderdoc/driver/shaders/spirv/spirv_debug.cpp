@@ -210,9 +210,20 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
     // plus any additional ones for other pointers.
     Id ptrid = debugger.GetPointerBaseId(var);
 
-    rdcarray<ShaderVariableChange> changes;
     ShaderVariableChange basechange;
-    basechange.before = debugger.EvaluatePointerVariable(ids[ptrid]);
+
+    if(debugger.IsOpaquePointer(ids[ptrid]))
+    {
+      // if this is a write to a SSBO pointer, don't record any alias changes, just record a no-op
+      // change to this pointer
+      basechange.after = basechange.before = debugger.GetPointerValue(ids[pointer]);
+      m_State->changes.push_back(basechange);
+      debugger.WriteThroughPointer(var, val);
+      return;
+    }
+
+    rdcarray<ShaderVariableChange> changes;
+    basechange.before = debugger.GetPointerValue(ids[ptrid]);
 
     rdcarray<Id> &pointers = pointersForId[ptrid];
 
@@ -220,13 +231,13 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
 
     // for every other pointer, evaluate its value now before
     for(size_t i = 0; i < pointers.size(); i++)
-      changes[i].before = debugger.EvaluatePointerVariable(ids[pointers[i]]);
+      changes[i].before = debugger.GetPointerValue(ids[pointers[i]]);
 
     debugger.WriteThroughPointer(var, val);
 
     // now evaluate the value after
     for(size_t i = 0; i < pointers.size(); i++)
-      changes[i].after = debugger.EvaluatePointerVariable(ids[pointers[i]]);
+      changes[i].after = debugger.GetPointerValue(ids[pointers[i]]);
 
     // if the pointer we're writing is one of the aliased pointers, be sure we add it even if
     // it's a no-op change
@@ -247,7 +258,7 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
 
     // always add a change for the base storage variable written itself, even if that's a no-op.
     // This one is not included in any of the pointers lists above
-    basechange.after = debugger.EvaluatePointerVariable(ids[ptrid]);
+    basechange.after = debugger.GetPointerValue(ids[ptrid]);
     m_State->changes.push_back(basechange);
   }
 }
@@ -266,7 +277,7 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
   if(m_State)
   {
     ShaderVariableChange change;
-    change.after = debugger.EvaluatePointerVariable(ids[id]);
+    change.after = debugger.GetPointerValue(ids[id]);
     m_State->changes.push_back(change);
 
     debugger.AddSourceVars(sourceVars, id);
@@ -289,7 +300,7 @@ void ThreadState::ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray
     if(liveGlobals.contains(id))
       continue;
 
-    m_State->changes.push_back({debugger.EvaluatePointerVariable(ids[id])});
+    m_State->changes.push_back({debugger.GetPointerValue(ids[id])});
   }
 
   for(const Id id : newLive)
@@ -297,7 +308,7 @@ void ThreadState::ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray
     if(liveGlobals.contains(id))
       continue;
 
-    m_State->changes.push_back({ShaderVariable(), debugger.EvaluatePointerVariable(ids[id])});
+    m_State->changes.push_back({ShaderVariable(), debugger.GetPointerValue(ids[id])});
   }
 }
 
@@ -463,7 +474,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       (void)load.memoryAccess;
 
       // get the pointer value, evaluate it (i.e. dereference) and store the result
-      SetDst(load.result, debugger.EvaluatePointerVariable(GetSrc(load.pointer)));
+      SetDst(load.result, debugger.ReadFromPointer(GetSrc(load.pointer)));
 
       break;
     }
@@ -486,7 +497,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       (void)copy.memoryAccess0;
       (void)copy.memoryAccess1;
 
-      WritePointerValue(copy.target, debugger.EvaluatePointerVariable(GetSrc(copy.source)));
+      WritePointerValue(copy.target, debugger.ReadFromPointer(GetSrc(copy.source)));
 
       break;
     }
@@ -503,6 +514,41 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         indices.push_back(GetSrc(id).value.uv[0]);
 
       SetDst(chain.result, debugger.MakeCompositePointer(ids[chain.base], chain.base, indices));
+
+      break;
+    }
+    case Op::ArrayLength:
+    {
+      OpArrayLength len(it);
+
+      ShaderVariable structPointer = GetSrc(len.structure);
+
+      // get the pointer base offset (should be zero for any binding but could be non-zero for a
+      // buffer_device_address pointer)
+      uint64_t offset = structPointer.value.u64v[BufferPointerByteOffsetVariableSlot];
+
+      // add the offset of the member
+      const DataType &pointerType = debugger.GetTypeForId(len.structure);
+      const DataType &structType = debugger.GetType(pointerType.InnerType());
+
+      offset += structType.children[len.arraymember].decorations.offset;
+
+      ShaderVariable result;
+      result.rows = result.columns = 1;
+      result.type = VarType::UInt;
+
+      BindpointIndex bind = debugger.GetPointerValue(structPointer).GetBinding();
+
+      uint64_t byteLen = debugger.GetAPIWrapper()->GetBufferLength(bind) - offset;
+
+      const Decorations &dec = debugger.GetDecorations(structType.children[len.arraymember].type);
+
+      RDCASSERT(dec.flags & Decorations::HasArrayStride);
+      byteLen /= dec.arrayStride;
+
+      result.value.uv[0] = uint32_t(byteLen);
+
+      SetDst(len.result, result);
 
       break;
     }
@@ -576,7 +622,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
           debugger.MakeCompositePointer(ids[extract.composite], extract.composite, extract.indexes);
 
       // then evaluate it, to get the extracted value
-      SetDst(extract.result, debugger.EvaluatePointerVariable(ptr));
+      SetDst(extract.result, debugger.ReadFromPointer(ptr));
 
       break;
     }
@@ -2490,4 +2536,5 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
   m_State = NULL;
 }
+
 };    // namespace rdcspv

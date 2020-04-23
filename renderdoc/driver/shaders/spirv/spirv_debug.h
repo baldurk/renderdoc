@@ -52,9 +52,11 @@ public:
   virtual ~DebugAPIWrapper() {}
   virtual void AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d) = 0;
 
-  // TODO handle arrays of cbuffers
-  virtual void ReadConstantBufferValue(uint32_t set, uint32_t bind, uint32_t offset,
-                                       uint32_t byteSize, void *dst) = 0;
+  virtual uint64_t GetBufferLength(BindpointIndex bind) = 0;
+
+  virtual void ReadBufferValue(BindpointIndex bind, uint64_t offset, uint64_t byteSize, void *dst) = 0;
+  virtual void WriteBufferValue(BindpointIndex bind, uint64_t offset, uint64_t byteSize,
+                                const void *src) = 0;
   virtual void FillInputValue(ShaderVariable &var, ShaderBuiltin builtin, uint32_t location,
                               uint32_t component) = 0;
 
@@ -91,7 +93,11 @@ public:
                                          uint32_t component) = 0;
 };
 
+// this could be cleaner if ShaderVariable wasn't a very public struct, but it's not worth it so
+// we just reserve value slots that we know won't be used in opaque variables
 static const uint32_t TextureTypeVariableSlot = 8;
+static const uint32_t BufferPointerByteOffsetVariableSlot = 8;
+static const uint32_t BufferPointerTypeIdVariableSlot = 9;
 
 typedef ShaderVariable (*ExtInstImpl)(ThreadState &, uint32_t, const rdcarray<Id> &);
 
@@ -237,16 +243,20 @@ public:
   uint32_t GetInstructionForFunction(Id id);
   uint32_t GetInstructionForLabel(Id id);
   const DataType &GetType(Id typeId);
+  const DataType &GetTypeForId(Id ssaId);
+  const Decorations &GetDecorations(Id typeId);
   rdcstr GetRawName(Id id) const;
   rdcstr GetHumanName(Id id);
   void AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, Id id);
   void AllocateVariable(Id id, Id typeId, DebugVariableType sourceVarType, const rdcstr &sourceName,
                         ShaderVariable &outVar);
 
-  ShaderVariable EvaluatePointerVariable(const ShaderVariable &v) const;
+  ShaderVariable ReadFromPointer(const ShaderVariable &v) const;
+  ShaderVariable GetPointerValue(const ShaderVariable &v) const;
   ShaderVariable MakePointerVariable(Id id, const ShaderVariable *v, uint32_t scalar0 = ~0U,
                                      uint32_t scalar1 = ~0U) const;
   Id GetPointerBaseId(const ShaderVariable &v) const;
+  bool IsOpaquePointer(const ShaderVariable &v) const;
   void WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariable &val);
   ShaderVariable MakeCompositePointer(const ShaderVariable &base, Id id, rdcarray<uint32_t> &indices);
 
@@ -256,6 +266,7 @@ public:
   const rdcarray<Id> &GetLiveGlobals() { return liveGlobals; }
   const rdcarray<SourceVariableMapping> &GetGlobalSourceVars() { return globalSourceVars; }
   ThreadState &GetActiveLane() { return workgroup[activeLaneIndex]; }
+  const ThreadState &GetActiveLane() const { return workgroup[activeLaneIndex]; }
 private:
   virtual void PreParse(uint32_t maxId);
   virtual void PostParse();
@@ -266,6 +277,9 @@ private:
                             uint32_t offset, const DataType &inType, ShaderVariable &outVar);
   uint32_t ApplyDerivatives(uint32_t quadIndex, const Decorations &curDecorations,
                             uint32_t location, const DataType &inType, ShaderVariable &outVar);
+
+  void WalkVariable(const DataType &type, uint64_t byteOffset, ShaderVariable &var, bool initialise,
+                    std::function<void(ShaderVariable &, const DataType &, uint64_t)> callback) const;
 
   void AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const DataType &inType,
                      const rdcstr &sourceName, const rdcstr &varName, uint32_t &offset);

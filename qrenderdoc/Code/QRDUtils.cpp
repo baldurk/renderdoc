@@ -488,7 +488,7 @@ void RichResourceTextPaint(const QWidget *owner, QPainter *painter, QRect rect, 
         }
         else
         {
-          name = QFormatStr("Unknown 0x%1").arg(ptr->val.pointer, 16, 16);
+          name = QFormatStr("Unknown 0x%1").arg(ptr->val.pointer, 16, 16, QLatin1Char('0'));
           valid = false;
         }
       }

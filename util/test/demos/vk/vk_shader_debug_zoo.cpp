@@ -96,7 +96,7 @@ void main()
 
 )EOSHADER";
 
-  std::string pixel_glsl = R"EOSHADER(
+  std::string pixel_glsl_header = R"EOSHADER(
 #version 460 core
 
 #extension GL_EXT_samplerless_texture_functions : require
@@ -128,14 +128,18 @@ layout(set = 0, binding = 3) uniform texture2D sampledImage;
 
 layout(set = 0, binding = 4) uniform sampler2D linearSampledImage;
 
-/*
+struct dummy
+{
+  uvec4 val;
+  uvec4 val2;
+};
+
 layout(set = 0, binding = 5, std430) buffer storebuftype
 {
   vec4 x;
-  uvec4 y;
+  dummy y;
   vec4 arr[];
 } storebuf;
-*/
 
 //layout(set = 0, binding = 6, rgba32f) uniform coherent image2D storeImage;
 
@@ -151,12 +155,15 @@ layout(push_constant) uniform PushData {
   layout(offset = 16) ivec4 data;
 } push;
 
+layout(location = 0, index = 0) out vec4 Color;
+
 #define inout_type in
 
 )EOSHADER" + v2f + R"EOSHADER(
 
-layout(location = 0, index = 0) out vec4 Color;
+)EOSHADER";
 
+  std::string pixel_glsl1 = pixel_glsl_header + R"EOSHADER(
 void main()
 {
   float  posinf = linearData.oneVal/linearData.zeroVal.x;
@@ -492,7 +499,7 @@ void main()
       break;
     }
 )EOSHADER"
-                   R"EOSHADER(
+                                                R"EOSHADER(
     case 51:
     {
       Color = fwidthFine(vec4(inpos, inposIncreased));
@@ -859,7 +866,7 @@ void main()
       break;
     }
 )EOSHADER"
-                   R"EOSHADER(
+                                                R"EOSHADER(
     case 102:
     {
       uint a = zerou + 0x0dadbeef;
@@ -1044,6 +1051,54 @@ void main()
       vec4 unpacked = unpackSnorm4x8(cbuf.snormUnpackSource);
 
       Color = unpacked;
+      break;
+    }
+    case 127:
+    {
+      uint len = storebuf.arr.length();
+      Color = vec4(float(len), float(len), float(len), float(len));
+      break;
+    }
+    case 128:
+    {
+      // test storage buffer write here, we'll read from it in GLSL test 2
+      storebuf.x = vec4(3.1f, 4.1f, 5.9f, 2.6f);
+      storebuf.y.val = uvec4(31, 41, 59, 26);
+      storebuf.arr[flatData.intval - flatData.test] = vec4(inpos, inposIncreased);
+
+      Color = storebuf.x;
+      break;
+    }
+    default: break;
+  }
+}
+
+)EOSHADER";
+
+  std::string pixel_glsl2 = pixel_glsl_header + R"EOSHADER(
+void main()
+{
+  uint test = flatData.test;
+
+  Color = vec4(0,0,0,0);
+  switch(test)
+  {
+    case 0:
+    {
+      // test loading from the storage buffer (after a nice big barrier)
+      Color = storebuf.x;
+      break;
+    }
+    case 1:
+    {
+      // test loading from the storage buffer (after a nice big barrier)
+      Color = vec4(storebuf.y.val);
+      break;
+    }
+    case 2:
+    {
+      // test loading from the storage buffer (after a nice big barrier)
+      Color = storebuf.arr[flatData.intval - flatData.test];
       break;
     }
     default: break;
@@ -1689,8 +1744,24 @@ void main()
         "OpCopyMemory %Color %gl_FragCoord\n"
         "; no_out\n",
 
+        "%_src = OpAccessChain %ptr_Uniform_float4 %buffer %uint_0\n"
+        "%_dst = OpAccessChain %ptr_Uniform_float4 %buffer %uint_2 %uint_3\n"
+        "OpCopyMemory %_dst %_src\n"
+        "OpCopyMemory %Color %_src\n"
+        "; no_out\n",
+
         "%frag = OpLoad %float4 %gl_FragCoord\n"
         "%_out_float4 = OpCopyObject %float4 %frag\n",
+    });
+
+    // test SSBO pointers
+    append_tests({
+        "%_y = OpAccessChain %ptr_Uniform_dummy %buffer %uint_1\n"
+        "%_src = OpAccessChain %ptr_Uniform_uint4 %_y %uint_0\n"
+        "%_dst = OpAccessChain %ptr_Uniform_uint4 %_y %uint_1\n"
+        "%_tmp = OpLoad %uint4 %_src\n"
+        "OpStore %_dst %_tmp\n"
+        "%_out_uint4 = OpLoad %uint4 %_dst\n",
     });
 
     // disabled while shaderc has a bug that doesn't respect the target environment
@@ -1959,6 +2030,16 @@ void main()
                OpDecorate %Color Index 0
                OpDecorate %Color Location 0
                OpDecorate %gl_FragCoord BuiltIn FragCoord
+
+               OpDecorate %rtarray_float4 ArrayStride 16
+               OpMemberDecorate %dummy 0 Offset 0
+               OpMemberDecorate %dummy 1 Offset 16
+               OpMemberDecorate %buftype 0 Offset 0
+               OpMemberDecorate %buftype 1 Offset 16
+               OpMemberDecorate %buftype 2 Offset 48
+               OpDecorate %buftype BufferBlock
+               OpDecorate %buffer DescriptorSet 0
+               OpDecorate %buffer Binding 5
 )EOSHADER";
 
     std::string typesConstants = R"EOSHADER(
@@ -1988,6 +2069,8 @@ void main()
 
    %mainfunc = OpTypeFunction %void
 
+%rtarray_float4 = OpTypeRuntimeArray %float4
+
         %v2f = OpTypeStruct %float2 %float2 %float2 %float %float %float
     %flatv2f = OpTypeStruct %uint %uint
 
@@ -1996,6 +2079,9 @@ void main()
 
      %f32f32 = OpTypeStruct %float %float
      %f32i32 = OpTypeStruct %float %int
+
+      %dummy = OpTypeStruct %uint4 %uint4
+    %buftype = OpTypeStruct %float4 %dummy %rtarray_float4
 
     %ptr_Input_v2f = OpTypePointer Input %v2f
 %ptr_Input_flatv2f = OpTypePointer Input %flatv2f
@@ -2023,6 +2109,9 @@ void main()
 %ptr_Uniform_int3 = OpTypePointer Uniform %int3
 %ptr_Uniform_int4 = OpTypePointer Uniform %int4
 
+%ptr_Uniform_dummy = OpTypePointer Uniform %dummy
+%ptr_Uniform_buftype = OpTypePointer Uniform %buftype
+
   %linearData = OpVariable %ptr_Input_v2f Input
     %flatData = OpVariable %ptr_Input_flatv2f Input
 %gl_FragCoord = OpVariable %ptr_Input_float4 Input
@@ -2030,6 +2119,8 @@ void main()
 
     %priv_int = OpVariable %ptr_Private_int Private
   %priv_float = OpVariable %ptr_Private_float Private
+
+      %buffer = OpVariable %ptr_Uniform_buftype Uniform
 
        %flatv2f_test_idx = OpConstant %int 0
      %flatv2f_intval_idx = OpConstant %int 1
@@ -2264,6 +2355,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
   {
     optDevExts.push_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
 
+    // we require this to pixel shader debug anyway, so we might as well require it for all tests.
+    features.fragmentStoresAndAtomics = VK_TRUE;
+
     VulkanGraphicsTest::Prepare(argc, argv);
 
     vk_version = 0x10;
@@ -2291,10 +2385,15 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     make_asm_tests();
 
-    size_t lastTest = pixel_glsl.rfind("case ");
+    size_t lastTest = pixel_glsl1.rfind("case ");
     lastTest += sizeof("case ") - 1;
 
-    const uint32_t numGLSLTests = atoi(pixel_glsl.c_str() + lastTest) + 1;
+    const uint32_t numGLSL1Tests = atoi(pixel_glsl1.c_str() + lastTest) + 1;
+
+    lastTest = pixel_glsl2.rfind("case ");
+    lastTest += sizeof("case ") - 1;
+
+    const uint32_t numGLSL2Tests = atoi(pixel_glsl2.c_str() + lastTest) + 1;
 
     const uint32_t numASMTests = (uint32_t)asm_tests.size();
 
@@ -2317,7 +2416,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
         {setlayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i))}));
 
     // calculate number of tests, wrapping each row at 256
-    uint32_t texWidth = AlignUp(std::max(numGLSLTests, numASMTests), 256U);
+    uint32_t texWidth = AlignUp(std::max(std::max(numGLSL1Tests, numGLSL2Tests), numASMTests), 256U);
     uint32_t texHeight = std::max(1U, texWidth / 256U);
     texWidth /= texHeight;
 
@@ -2360,10 +2459,15 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     pipeCreateInfo.stages = {
         CompileShaderModule(vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
-        CompileShaderModule(pixel_glsl, ShaderLang::glsl, ShaderStage::frag, "main"),
+        CompileShaderModule(pixel_glsl1, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
 
-    VkPipeline glslpipe = createGraphicsPipeline(pipeCreateInfo);
+    VkPipeline glslpipe1 = createGraphicsPipeline(pipeCreateInfo);
+
+    pipeCreateInfo.stages[1] =
+        CompileShaderModule(pixel_glsl2, ShaderLang::glsl, ShaderStage::frag, "main");
+
+    VkPipeline glslpipe2 = createGraphicsPipeline(pipeCreateInfo);
 
     SPIRVTarget target = SPIRVTarget::vulkan;
 
@@ -2639,7 +2743,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       vkCmdClearColorImage(cmd, store_image.image, VK_IMAGE_LAYOUT_GENERAL,
                            vkh::ClearColorValue(6.66f, 6.66f, 6.66f, 6.66f), 1,
                            vkh::ImageSubresourceRange());
-      vkCmdFillBuffer(cmd, store_buffer.buffer, 0, VK_WHOLE_SIZE, 0xcccccccc);
+      vkCmdFillBuffer(cmd, store_buffer.buffer, 0, VK_WHOLE_SIZE, 0x42424242);
       vkCmdFillBuffer(cmd, store_texbuffer.buffer, 0, VK_WHOLE_SIZE, 0);
 
       vkh::cmdPipelineBarrier(
@@ -2666,7 +2770,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       s.extent.width = texWidth;
       s.extent.height = texHeight;
 
-      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, glslpipe);
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, glslpipe1);
       vkCmdSetViewport(cmd, 0, 1, &v);
       vkCmdSetScissor(cmd, 0, 1, &s);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
@@ -2680,8 +2784,8 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
                                                          {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
                            VK_SUBPASS_CONTENTS_INLINE);
 
-      pushMarker(cmd, "GLSL tests");
-      uint32_t numTests = numGLSLTests;
+      pushMarker(cmd, "GLSL1 tests");
+      uint32_t numTests = numGLSL1Tests;
       uint32_t offset = 0;
       // loop drawing 256 tests at a time
       while(numTests > 0)
@@ -2696,10 +2800,6 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       vkCmdEndRenderPass(cmd);
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, asmpipe);
-      vkCmdSetViewport(cmd, 0, 1, &v);
-
-      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
-      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i), &push);
 
       vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
                                                          {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
@@ -2707,6 +2807,45 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
       pushMarker(cmd, "ASM tests");
       numTests = numASMTests;
+      offset = 0;
+      // loop drawing 256 tests at a time
+      while(numTests > 0)
+      {
+        uint32_t num = std::min(numTests, 256U);
+        vkCmdDraw(cmd, 3, num, 0, offset);
+        offset += num;
+        numTests -= num;
+      }
+      popMarker(cmd);
+
+      vkCmdEndRenderPass(cmd);
+
+      // sync all the storage work
+      vkh::cmdPipelineBarrier(
+          cmd,
+          {
+              vkh::ImageMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                      VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
+                                      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL,
+                                      store_image.image),
+          },
+          {
+              vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                       store_buffer.buffer),
+              vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                       store_texbuffer.buffer),
+          });
+
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, glslpipe2);
+
+      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
+                                                         {vkh::ClearValue(0.0f, 0.0f, 0.0f, 0.0f)}),
+                           VK_SUBPASS_CONTENTS_INLINE);
+
+      pushMarker(cmd, "GLSL2 tests");
+      numTests = numGLSL2Tests;
       offset = 0;
       // loop drawing 256 tests at a time
       while(numTests > 0)

@@ -86,6 +86,16 @@ const rdcspv::DataType &Debugger::GetType(Id typeId)
   return dataTypes[typeId];
 }
 
+const rdcspv::DataType &Debugger::GetTypeForId(Id ssaId)
+{
+  return dataTypes[idTypes[ssaId]];
+}
+
+const Decorations &Debugger::GetDecorations(Id typeId)
+{
+  return decorations[typeId];
+}
+
 void Debugger::MakeSignatureNames(const rdcarray<SPIRVInterfaceAccess> &sigList,
                                   rdcarray<rdcstr> &sigNames)
 {
@@ -462,8 +472,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     }
 
     // pick up uniform globals, which could be cbuffers, and push constants
-    else if((v.storage == StorageClass::Uniform || v.storage == StorageClass::PushConstant) &&
-            (decorations[v.id].flags & Decorations::BufferBlock) == 0)
+    else if(v.storage == StorageClass::Uniform || v.storage == StorageClass::StorageBuffer ||
+            v.storage == StorageClass::PushConstant)
     {
       ShaderVariable var;
       var.name = GetRawName(v.id);
@@ -477,6 +487,9 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
       const DataType &innertype = dataTypes[type.InnerType()];
 
+      const bool ssbo = (v.storage == StorageClass::StorageBuffer) ||
+                        (decorations[innertype.id].flags & Decorations::BufferBlock);
+
       if(innertype.type == DataType::ArrayType)
       {
         RDCERR("uniform Arrays not supported yet");
@@ -489,6 +502,9 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
         {
           if(v.storage == StorageClass::PushConstant)
             sourceName = "_pushconsts";
+          else if(ssbo)
+            sourceName = StringFormat::Fmt("_buffer_set%u_bind%u", decorations[v.id].set,
+                                           decorations[v.id].binding);
           else
             sourceName = StringFormat::Fmt("_cbuffer_set%u_bind%u", decorations[v.id].set,
                                            decorations[v.id].binding);
@@ -502,19 +518,47 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
           d.flags = Decorations::Flags(d.flags | Decorations::HasDescriptorSet);
         }
 
-        uint32_t offset = 0;
-        AllocateVariable(d, d, DebugVariableType::Constant, sourceName, 0, innertype, var);
-
-        global.constantBlocks.push_back(var);
-        cbufferIDs.push_back(v.id);
-
         SourceVariableMapping sourceVar;
         sourceVar.name = sourceName;
-        sourceVar.type = VarType::Unknown;
-        sourceVar.rows = 0;
-        sourceVar.columns = 0;
         sourceVar.offset = 0;
-        sourceVar.variables.push_back(DebugVariableReference(DebugVariableType::Constant, var.name));
+
+        if(ssbo)
+        {
+          var.rows = 1;
+          var.columns = 1;
+          var.type = VarType::ReadWriteResource;
+
+          uint32_t set = 0, bind = 0;
+          if(decorations[v.id].flags & Decorations::HasDescriptorSet)
+            set = decorations[v.id].set;
+          if(decorations[v.id].flags & Decorations::HasBinding)
+            bind = decorations[v.id].binding;
+
+          // TODO handle arrays
+          var.SetBinding((int32_t)set, (int32_t)bind, 0U);
+
+          sourceVar.type = VarType::ReadWriteResource;
+          sourceVar.rows = 1;
+          sourceVar.columns = 1;
+          sourceVar.variables.push_back(
+              DebugVariableReference(DebugVariableType::ReadWriteResource, var.name));
+
+          global.readWriteResources.push_back(var);
+          readWriteIDs.push_back(v.id);
+        }
+        else
+        {
+          uint32_t offset = 0;
+          AllocateVariable(d, d, DebugVariableType::Constant, sourceName, 0, innertype, var);
+
+          sourceVar.type = VarType::ConstantBlock;
+          sourceVar.rows = 0;
+          sourceVar.columns = 0;
+          sourceVar.variables.push_back(DebugVariableReference(DebugVariableType::Constant, var.name));
+
+          global.constantBlocks.push_back(var);
+          cbufferIDs.push_back(v.id);
+        }
 
         globalSourceVars.push_back(sourceVar);
       }
@@ -790,7 +834,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
     initial.nextInstruction = active.nextInstruction;
 
     for(const Id &v : active.live)
-      initial.changes.push_back({ShaderVariable(), EvaluatePointerVariable(active.ids[v])});
+      initial.changes.push_back({ShaderVariable(), GetPointerValue(active.ids[v])});
 
     initial.sourceVars = active.sourceVars;
 
@@ -847,7 +891,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
             {
               thread.live.erase(l);
               ShaderVariableChange change;
-              change.before = EvaluatePointerVariable(thread.ids[id]);
+              change.before = GetPointerValue(thread.ids[id]);
               state.changes.push_back(change);
 
               rdcstr name = GetRawName(id);
@@ -909,11 +953,115 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
   if(base.type == VarType::GPUPointer)
     leaf = (const ShaderVariable *)(uintptr_t)base.value.u64v[0];
 
+  if(leaf->type == VarType::ReadWriteResource)
+  {
+    ShaderVariable ret = MakePointerVariable(id, leaf);
+
+    uint64_t byteOffset = base.value.u64v[BufferPointerByteOffsetVariableSlot];
+
+    const DataType *type = &dataTypes[idTypes[id]];
+
+    RDCASSERT(type->type == DataType::PointerType);
+    type = &dataTypes[type->InnerType()];
+
+    // first walk any aggregate types
+    size_t i = 0;
+    while(i < indices.size() &&
+          (type->type == DataType::ArrayType || type->type == DataType::StructType))
+    {
+      if(type->type == DataType::ArrayType)
+      {
+        // look up the array stride
+        const Decorations &dec = decorations[type->id];
+        RDCASSERT(dec.flags & Decorations::HasArrayStride);
+
+        // offset increases by index * arrayStride
+        byteOffset += indices[i] * dec.arrayStride;
+
+        // new type is the inner type
+        type = &dataTypes[type->InnerType()];
+      }
+      else
+      {
+        // otherwise it's a struct member
+        const DataType::Child &child = type->children[indices[i]];
+
+        // offset increases by member offset
+        RDCASSERT(child.decorations.flags & Decorations::HasOffset);
+        byteOffset += child.decorations.offset;
+
+        // new type is the child type
+        type = &dataTypes[child.type];
+      }
+      i++;
+    }
+
+    size_t remaining = indices.size() - i;
+    if(remaining == 2)
+    {
+      // pointer to a scalar in a matrix. indices[i] is column, indices[i + 1] is row
+
+      const Decorations &dec = decorations[type->id];
+      RDCASSERT(dec.flags & Decorations::HasMatrixStride);
+
+      // type is the resulting scalar (first inner does matrix->colun type, second does column
+      // type->scalar type)
+      type = &dataTypes[dataTypes[type->InnerType()].InnerType()];
+
+      if(dec.flags & Decorations::RowMajor)
+      {
+        byteOffset += dec.matrixStride * indices[i + 1] + indices[i] * (type->scalar().width / 8);
+      }
+      else
+      {
+        byteOffset += dec.matrixStride * indices[i] + indices[i + 1] * (type->scalar().width / 8);
+      }
+    }
+    else if(remaining == 1)
+    {
+      if(type->type == DataType::VectorType)
+      {
+        // pointer to a scalar in a vector.
+
+        // type is the resulting scalar (first inner does matrix->colun type, second does column
+        // type->scalar type)
+        type = &dataTypes[dataTypes[type->InnerType()].InnerType()];
+
+        byteOffset += indices[i] * (type->scalar().width / 8);
+      }
+      else
+      {
+        // pointer to a column in a matrix
+
+        const Decorations &dec = decorations[type->id];
+        RDCASSERT(dec.flags & Decorations::HasMatrixStride);
+
+        // type is the resulting vector
+        type = &dataTypes[type->InnerType()];
+
+        if(dec.flags & Decorations::RowMajor)
+        {
+          // TODO need to store dec.matrixStride as the stride between elements for this pointer
+          // when reading
+          byteOffset += indices[i] * (type->scalar().width / 8);
+        }
+        else
+        {
+          byteOffset += dec.matrixStride * indices[i];
+        }
+      }
+    }
+
+    ret.value.u64v[BufferPointerTypeIdVariableSlot] = type->id.value();
+    ret.value.u64v[BufferPointerByteOffsetVariableSlot] = byteOffset;
+
+    return ret;
+  }
+
   // first walk any struct member/array indices
   size_t i = 0;
-  while(!leaf->members.empty())
+  while(i < indices.size() && !leaf->members.empty())
   {
-    RDCASSERT(i < indices.size(), i, indices.size());
     leaf = &leaf->members[indices[i++]];
   }
 
@@ -934,13 +1082,94 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
   return MakePointerVariable(id, leaf, scalar0, scalar1);
 }
 
-ShaderVariable Debugger::EvaluatePointerVariable(const ShaderVariable &ptr) const
+ShaderVariable Debugger::GetPointerValue(const ShaderVariable &ptr) const
+{
+  // opaque pointers display as their inner value
+  if(IsOpaquePointer(ptr))
+  {
+    const ShaderVariable *inner = (const ShaderVariable *)(uintptr_t)ptr.value.u64v[0];
+    ShaderVariable ret = *inner;
+    ret.name = ptr.name;
+    return ret;
+  }
+
+  // every other kind of pointer displays as its contents
+  return ReadFromPointer(ptr);
+}
+
+ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
 {
   if(ptr.type != VarType::GPUPointer)
     return ptr;
 
+  const ShaderVariable *inner = (const ShaderVariable *)(uintptr_t)ptr.value.u64v[0];
+
   ShaderVariable ret;
-  ret = *(const ShaderVariable *)(uintptr_t)ptr.value.u64v[0];
+
+  if(inner->type == VarType::ReadWriteResource)
+  {
+    rdcspv::Id typeId =
+        rdcspv::Id::fromWord(uint32_t(ptr.value.u64v[BufferPointerTypeIdVariableSlot]));
+    uint64_t byteOffset = ptr.value.u64v[BufferPointerByteOffsetVariableSlot];
+
+    BindpointIndex bind = inner->GetBinding();
+
+    WalkVariable(dataTypes[typeId], byteOffset, ret, true, [this, bind](ShaderVariable &var,
+                                                                        const DataType &type,
+                                                                        uint64_t offset) {
+      if(type.type == DataType::MatrixType)
+      {
+        const Decorations &dec = decorations[type.id];
+        RDCASSERT(dec.flags & Decorations::HasMatrixStride);
+
+        if(dec.flags & Decorations::RowMajor)
+        {
+          for(uint8_t r = 0; r < var.rows; r++)
+          {
+            apiWrapper->ReadBufferValue(bind, offset + r * dec.matrixStride,
+                                        VarTypeByteSize(var.type) * var.columns,
+                                        &var.value.uv[r * var.columns]);
+          }
+        }
+        else
+        {
+          ShaderValue tmp = {};
+          // read column-wise
+          for(uint8_t c = 0; c < var.columns; c++)
+          {
+            apiWrapper->ReadBufferValue(bind, offset + c * dec.matrixStride,
+                                        VarTypeByteSize(var.type) * var.rows, &tmp.uv[c * var.rows]);
+          }
+
+          // transpose into our row major storage
+          for(uint8_t r = 0; r < var.rows; r++)
+          {
+            for(uint8_t c = 0; c < var.columns; c++)
+            {
+              if(VarTypeByteSize(var.type) == 8)
+                var.value.u64v[r * var.columns + c] = tmp.u64v[c * var.rows + r];
+              else
+                var.value.uv[r * var.columns + c] = tmp.uv[c * var.rows + r];
+            }
+          }
+        }
+      }
+      else if(type.type == DataType::VectorType)
+      {
+        apiWrapper->ReadBufferValue(bind, offset, VarTypeByteSize(var.type) * var.columns,
+                                    var.value.uv);
+      }
+      else if(type.type == DataType::ScalarType)
+      {
+        apiWrapper->ReadBufferValue(bind, offset, VarTypeByteSize(var.type), var.value.uv);
+      }
+    });
+
+    ret.name = ptr.name;
+    return ret;
+  }
+
+  ret = *inner;
   ret.name = ptr.name;
 
   // we don't support pointers to scalars since our 'unit' of pointer is a ShaderVariable, so check
@@ -1010,9 +1239,84 @@ Id Debugger::GetPointerBaseId(const ShaderVariable &ptr) const
   return Id::fromWord(ptr.value.uv[4]);
 }
 
+bool Debugger::IsOpaquePointer(const ShaderVariable &ptr) const
+{
+  if(ptr.type != VarType::GPUPointer)
+    return false;
+
+  ShaderVariable *inner = (ShaderVariable *)(uintptr_t)ptr.value.u64v[0];
+  return inner->type == VarType::ReadOnlyResource || inner->type == VarType::ReadWriteResource;
+}
+
 void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariable &val)
 {
   ShaderVariable *storage = (ShaderVariable *)(uintptr_t)ptr.value.u64v[0];
+
+  if(storage->type == VarType::ReadWriteResource)
+  {
+    rdcspv::Id typeId =
+        rdcspv::Id::fromWord(uint32_t(ptr.value.u64v[BufferPointerTypeIdVariableSlot]));
+    uint64_t byteOffset = ptr.value.u64v[BufferPointerByteOffsetVariableSlot];
+
+    const DataType &type = dataTypes[typeId];
+
+    BindpointIndex bind = storage->GetBinding();
+
+    WalkVariable(dataTypes[typeId], byteOffset, (ShaderVariable &)val, false,
+                 [this, bind](ShaderVariable &var, const DataType &type, uint64_t offset) {
+                   if(type.type == DataType::MatrixType)
+                   {
+                     const Decorations &dec = decorations[type.id];
+                     RDCASSERT(dec.flags & Decorations::HasMatrixStride);
+
+                     if(dec.flags & Decorations::RowMajor)
+                     {
+                       for(uint8_t r = 0; r < var.rows; r++)
+                       {
+                         apiWrapper->WriteBufferValue(bind, offset + r * dec.matrixStride,
+                                                      VarTypeByteSize(var.type) * var.columns,
+                                                      &var.value.uv[r * var.columns]);
+                       }
+                     }
+                     else
+                     {
+                       ShaderValue tmp = {};
+
+                       // transpose from our row major storage
+                       for(uint8_t r = 0; r < var.rows; r++)
+                       {
+                         for(uint8_t c = 0; c < var.columns; c++)
+                         {
+                           if(VarTypeByteSize(var.type) == 8)
+                             tmp.u64v[c * var.rows + r] = var.value.u64v[r * var.columns + c];
+                           else
+                             tmp.uv[c * var.rows + r] = var.value.uv[r * var.columns + c];
+                         }
+                       }
+
+                       // read column-wise
+                       for(uint8_t c = 0; c < var.columns; c++)
+                       {
+                         apiWrapper->WriteBufferValue(bind, offset + c * dec.matrixStride,
+                                                      VarTypeByteSize(var.type) * var.rows,
+                                                      &tmp.uv[c * var.rows]);
+                       }
+                     }
+                   }
+                   else if(type.type == DataType::VectorType)
+                   {
+                     apiWrapper->WriteBufferValue(
+                         bind, offset, VarTypeByteSize(var.type) * var.columns, var.value.uv);
+                   }
+                   else if(type.type == DataType::ScalarType)
+                   {
+                     apiWrapper->WriteBufferValue(bind, offset, VarTypeByteSize(var.type),
+                                                  var.value.uv);
+                   }
+                 });
+
+    return;
+  }
 
   // we don't support pointers to scalars since our 'unit' of pointer is a ShaderVariable, so check
   // if we have scalar indices to apply:
@@ -1370,16 +1674,17 @@ uint32_t Debugger::AllocateVariable(const Decorations &varDecorations,
   }
   else if(sourceVarType == DebugVariableType::Constant)
   {
-    uint32_t set = 0, bind = 0;
+    BindpointIndex bindpoint;
+    // TODO handle arrays
     if(varDecorations.flags & Decorations::HasDescriptorSet)
-      set = varDecorations.set;
+      bindpoint.bindset = (int32_t)varDecorations.set;
     if(varDecorations.flags & Decorations::HasBinding)
-      bind = varDecorations.binding;
+      bindpoint.bind = (int32_t)varDecorations.binding;
 
     // non-matrix case is simple, just read the size of the variable
     if(sourceVar.rows == 1)
     {
-      apiWrapper->ReadConstantBufferValue(set, bind, offset, VarByteSize(outVar), outVar.value.uv);
+      apiWrapper->ReadBufferValue(bindpoint, offset, VarByteSize(outVar), outVar.value.uv);
     }
     else
     {
@@ -1401,8 +1706,7 @@ uint32_t Debugger::AllocateVariable(const Decorations &varDecorations,
         for(uint32_t c = 0; c < sourceVar.columns; c++)
         {
           // read the column
-          apiWrapper->ReadConstantBufferValue(set, bind, offset + c * matrixStride, colSize,
-                                              &tmp.uv[0]);
+          apiWrapper->ReadBufferValue(bindpoint, offset + c * matrixStride, colSize, &tmp.uv[0]);
 
           // now write it into the appropiate elements in the destination ShaderValue
           for(uint32_t r = 0; r < sourceVar.rows; r++)
@@ -1416,8 +1720,8 @@ uint32_t Debugger::AllocateVariable(const Decorations &varDecorations,
         for(uint32_t r = 0; r < sourceVar.rows; r++)
         {
           // read the column into the destination ShaderValue, which is tightly packed with rows
-          apiWrapper->ReadConstantBufferValue(set, bind, offset + r * matrixStride, rowSize,
-                                              &outVar.value.uv[r * sourceVar.columns]);
+          apiWrapper->ReadBufferValue(bindpoint, offset + r * matrixStride, rowSize,
+                                      &outVar.value.uv[r * sourceVar.columns]);
         }
       }
     }
@@ -1425,6 +1729,90 @@ uint32_t Debugger::AllocateVariable(const Decorations &varDecorations,
 
   // each row consumes a new location
   return outVar.rows;
+}
+
+void Debugger::WalkVariable(
+    const DataType &type, uint64_t byteOffset, ShaderVariable &var, bool initialise,
+    std::function<void(ShaderVariable &, const DataType &, uint64_t)> callback) const
+{
+  switch(type.type)
+  {
+    case DataType::ScalarType:
+    {
+      if(initialise)
+      {
+        var.type = type.scalar().Type();
+        var.rows = 1;
+        var.columns = 1;
+      }
+      break;
+    }
+    case DataType::VectorType:
+    {
+      if(initialise)
+      {
+        var.type = type.scalar().Type();
+        var.rows = 1;
+        var.columns = RDCMAX(1U, type.vector().count);
+      }
+      break;
+    }
+    case DataType::MatrixType:
+    {
+      if(initialise)
+      {
+        var.type = type.scalar().Type();
+        var.columns = RDCMAX(1U, type.matrix().count);
+        var.rows = RDCMAX(1U, type.vector().count);
+      }
+      break;
+    }
+    case DataType::StructType:
+    {
+      for(int32_t i = 0; i < type.children.count(); i++)
+      {
+        if(initialise)
+        {
+          var.members.push_back(ShaderVariable());
+          var.members.back().name = StringFormat::Fmt("_child%d", i);
+        }
+
+        WalkVariable(dataTypes[type.children[i].type],
+                     byteOffset + type.children[i].decorations.offset, var.members.back(),
+                     initialise, callback);
+      }
+      return;
+    }
+    case DataType::ArrayType:
+    {
+      ShaderVariable len = GetActiveLane().ids[type.length];
+      for(uint32_t i = 0; i < len.value.u.x; i++)
+      {
+        if(initialise)
+        {
+          var.members.push_back(ShaderVariable());
+          var.members.back().name = StringFormat::Fmt("[%u]", i);
+        }
+
+        WalkVariable(dataTypes[type.InnerType()], byteOffset, var.members.back(), initialise,
+                     callback);
+
+        byteOffset += decorations[type.id].arrayStride;
+      }
+      return;
+    }
+    case DataType::PointerType:
+    case DataType::ImageType:
+    case DataType::SamplerType:
+    case DataType::SampledImageType:
+    case DataType::UnknownType:
+    {
+      RDCERR("Unexpected variable type %d", type.type);
+      return;
+    }
+  }
+
+  callback(var, type, byteOffset);
 }
 
 uint32_t Debugger::ApplyDerivatives(uint32_t quadIndex, const Decorations &curDecorations,
