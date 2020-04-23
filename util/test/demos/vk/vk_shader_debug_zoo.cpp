@@ -1069,6 +1069,11 @@ void main()
       Color = storebuf.x;
       break;
     }
+    case 129:
+    {
+      Color = textureProj(linearSampledImage, vec3(inpos, 0.5f));
+      break;
+    }
     default: break;
   }
 }

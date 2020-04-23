@@ -632,16 +632,33 @@ public:
 
     constParams.operation = (uint32_t)opcode;
 
-    // proj opcodes have an extra q parameter
+    // proj opcodes have an extra q parameter, but we do the divide ourselves and 'demote' these to
+    // non-proj variants
+    bool proj = false;
     switch(opcode)
     {
       case rdcspv::Op::ImageSampleProjExplicitLod:
+      {
+        constParams.operation = (uint32_t)rdcspv::Op::ImageSampleExplicitLod;
+        proj = true;
+        break;
+      }
       case rdcspv::Op::ImageSampleProjImplicitLod:
+      {
+        constParams.operation = (uint32_t)rdcspv::Op::ImageSampleImplicitLod;
+        proj = true;
+        break;
+      }
       case rdcspv::Op::ImageSampleProjDrefExplicitLod:
+      {
+        constParams.operation = (uint32_t)rdcspv::Op::ImageSampleDrefExplicitLod;
+        proj = true;
+        break;
+      }
       case rdcspv::Op::ImageSampleProjDrefImplicitLod:
       {
-        coords++;
-        gradCoords++;
+        constParams.operation = (uint32_t)rdcspv::Op::ImageSampleDrefImplicitLod;
+        proj = true;
         break;
       }
       default: break;
@@ -752,6 +769,16 @@ public:
           uniformParams.uvw.y = uv.value.f.y;
         if(coords >= 3)
           uniformParams.uvw.z = uv.value.f.z;
+
+        if(proj)
+        {
+          // do the divide ourselves rather than severely complicating the sample shader (as proj
+          // variants need non-arrayed textures)
+          float q = uv.value.fv[coords];
+          uniformParams.uvw.x /= q;
+          uniformParams.uvw.y /= q;
+          uniformParams.uvw.z /= q;
+        }
 
         if(operands.flags & rdcspv::ImageOperands::MinLod)
           uniformParams.minlod = lane.GetSrc(operands.minLod).value.f.x;
@@ -1831,8 +1858,6 @@ private:
 
     uint32_t sampIdx = (uint32_t)ShaderDebugBind::Sampler;
 
-    // TODO handle Proj opcodes, that need non-arrayed texture views, or else a manual divide
-
     rdcspv::Id zerof = editor.AddConstantImmediate<float>(0.0f);
 
     for(uint32_t i = (uint32_t)ShaderDebugBind::First; i < (uint32_t)ShaderDebugBind::Count; i++)
@@ -1897,12 +1922,8 @@ private:
           rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
               texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
 
-          if(op == rdcspv::Op::ImageSampleExplicitLod || op == rdcspv::Op::ImageSampleImplicitLod)
-            lodResult = cases.add(rdcspv::OpImageSampleExplicitLod(resultType, editor.MakeId(),
-                                                                   combined, coord[i], operands));
-          else
-            lodResult = cases.add(rdcspv::OpImageSampleProjExplicitLod(
-                resultType, editor.MakeId(), combined, coord[i], operands));
+          lodResult = cases.add(rdcspv::OpImageSampleExplicitLod(resultType, editor.MakeId(),
+                                                                 combined, coord[i], operands));
 
           cases.add(rdcspv::OpBranch(mergeLabel));
         }
@@ -1917,12 +1938,8 @@ private:
           rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
               texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
 
-          if(op == rdcspv::Op::ImageSampleExplicitLod || op == rdcspv::Op::ImageSampleImplicitLod)
-            gradResult = cases.add(rdcspv::OpImageSampleExplicitLod(resultType, editor.MakeId(),
-                                                                    combined, coord[i], operands));
-          else
-            gradResult = cases.add(rdcspv::OpImageSampleProjExplicitLod(
-                resultType, editor.MakeId(), combined, coord[i], operands));
+          gradResult = cases.add(rdcspv::OpImageSampleExplicitLod(resultType, editor.MakeId(),
+                                                                  combined, coord[i], operands));
 
           cases.add(rdcspv::OpBranch(mergeLabel));
         }
@@ -1965,13 +1982,8 @@ private:
           rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
               texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
 
-          if(op == rdcspv::Op::ImageSampleDrefExplicitLod ||
-             op == rdcspv::Op::ImageSampleDrefImplicitLod)
-            lodResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
-                scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
-          else
-            lodResult = cases.add(rdcspv::OpImageSampleProjDrefExplicitLod(
-                scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
+          lodResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
+              scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
 
           cases.add(rdcspv::OpBranch(mergeLabel));
         }
@@ -1986,13 +1998,8 @@ private:
           rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
               texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
 
-          if(op == rdcspv::Op::ImageSampleDrefExplicitLod ||
-             op == rdcspv::Op::ImageSampleDrefImplicitLod)
-            gradResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
-                scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
-          else
-            gradResult = cases.add(rdcspv::OpImageSampleProjDrefExplicitLod(
-                scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
+          gradResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
+              scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
 
           cases.add(rdcspv::OpBranch(mergeLabel));
         }
