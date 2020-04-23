@@ -952,6 +952,28 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       SetDst(quant.result, var);
       break;
     }
+    case Op::UConvert:
+    {
+      OpUConvert cast(it);
+
+      ShaderVariable var = GetSrc(cast.unsignedValue);
+
+      // TODO - conversion between bit widths once we support it
+
+      SetDst(cast.result, var);
+      break;
+    }
+    case Op::SConvert:
+    {
+      OpSConvert cast(it);
+
+      ShaderVariable var = GetSrc(cast.signedValue);
+
+      // TODO - conversion between bit widths once we support it
+
+      SetDst(cast.result, var);
+      break;
+    }
     case Op::FConvert:
     {
       OpFConvert cast(it);
