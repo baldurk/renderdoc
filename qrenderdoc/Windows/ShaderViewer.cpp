@@ -1574,6 +1574,8 @@ void ShaderViewer::applyBackwardsChange()
 {
   if(!IsFirstState())
   {
+    rdcarray<ShaderVariable> newVariables;
+
     for(const ShaderVariableChange &c : GetCurrentState().changes)
     {
       // if the before name is empty, this is a variable that came into scope/was created
@@ -1604,9 +1606,11 @@ void ShaderViewer::applyBackwardsChange()
         if(v)
           *v = c.before;
         else
-          m_Variables.push_back(c.before);
+          newVariables.push_back(c.before);
       }
     }
+
+    m_Variables.insert(0, newVariables);
 
     m_CurrentStateIdx--;
   }
@@ -1617,6 +1621,8 @@ void ShaderViewer::applyForwardsChange()
   if(!IsLastState())
   {
     m_CurrentStateIdx++;
+
+    rdcarray<ShaderVariable> newVariables;
 
     for(const ShaderVariableChange &c : GetCurrentState().changes)
     {
@@ -1648,9 +1654,11 @@ void ShaderViewer::applyForwardsChange()
         if(v)
           *v = c.after;
         else
-          m_Variables.push_back(c.after);
+          newVariables.push_back(c.after);
       }
     }
+
+    m_Variables.insert(0, newVariables);
   }
 }
 
@@ -1866,7 +1874,7 @@ void ShaderViewer::combineStructures(RDTreeWidgetItem *root, int skipPrefixLengt
 
   // move all the children back from the temp object into the parameter
   while(temp.childCount() > 0)
-    root->addChild(temp.takeChild(temp.childCount() - 1));
+    root->addChild(temp.takeChild(0));
 }
 
 RDTreeWidgetItem *ShaderViewer::findVarInTree(RDTreeWidgetItem *root, QString name, bool fullmatch,
