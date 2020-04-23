@@ -145,6 +145,32 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     return new ShaderDebugTrace;
   }
 
+  if(m_MajorVersion > 1 || m_MinorVersion > 5)
+  {
+    RDCERR("Unsupported SPIR-V version %u.%u", m_MajorVersion, m_MinorVersion);
+    return new ShaderDebugTrace;
+  }
+
+  // whitelist supported extensions
+  for(const rdcstr &ext : extensions)
+  {
+    if(ext == "SPV_KHR_shader_draw_parameters" || ext == "SPV_KHR_device_group" ||
+       ext == "SPV_KHR_multiview" || ext == "SPV_KHR_storage_buffer_storage_class" ||
+       ext == "SPV_KHR_post_depth_coverage" || ext == "SPV_EXT_shader_stencil_export" ||
+       ext == "SPV_EXT_shader_viewport_index_layer" || ext == "SPV_EXT_fragment_fully_covered" ||
+       ext == "SPV_GOOGLE_decorate_string" || ext == "SPV_GOOGLE_hlsl_functionality1" ||
+       ext == "SPV_EXT_descriptor_indexing" || ext == "SPV_KHR_vulkan_memory_model" ||
+       ext == "SPV_EXT_fragment_invocation_density" ||
+       ext == "SPV_KHR_no_integer_wrap_decoration" || ext == "SPV_KHR_float_controls" ||
+       ext == "SPV_KHR_shader_clock")
+    {
+      continue;
+    }
+
+    RDCERR("Unsupported SPIR-V extension %s", ext.c_str());
+    return new ShaderDebugTrace;
+  }
+
   for(Capability c : capabilities)
   {
     bool supported = false;
