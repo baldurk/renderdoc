@@ -26,6 +26,7 @@
 #include <math.h>
 #include <time.h>
 #include "common/formatting.h"
+#include "maths/half_convert.h"
 #include "os/os_specific.h"
 #include "spirv_op_helpers.h"
 
@@ -914,6 +915,18 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       }
 
       SetDst(conv.result, var);
+      break;
+    }
+    case Op::QuantizeToF16:
+    {
+      OpQuantizeToF16 quant(it);
+
+      ShaderVariable var = GetSrc(quant.value);
+
+      for(uint8_t c = 0; c < var.columns; c++)
+        var.value.fv[c] = ConvertFromHalf(ConvertToHalf(var.value.fv[c]));
+
+      SetDst(quant.result, var);
       break;
     }
     case Op::FConvert:
