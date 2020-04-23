@@ -1313,7 +1313,7 @@ private:
         data.bytes.reserve(data.samplePitch * numSamples);
 
         // defaults are fine - no interpretation. Maybe we could use the view's typecast?
-        const GetTextureDataParams params;
+        const GetTextureDataParams params = GetTextureDataParams();
 
         for(uint32_t sample = 0; sample < numSamples; sample++)
         {
