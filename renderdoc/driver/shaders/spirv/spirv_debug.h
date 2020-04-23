@@ -257,6 +257,7 @@ public:
                                      uint32_t scalar1 = ~0U) const;
   Id GetPointerBaseId(const ShaderVariable &v) const;
   bool IsOpaquePointer(const ShaderVariable &v) const;
+  bool ArePointersAndEqual(const ShaderVariable &a, const ShaderVariable &b) const;
   void WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariable &val);
   ShaderVariable MakeCompositePointer(const ShaderVariable &base, Id id, rdcarray<uint32_t> &indices);
 

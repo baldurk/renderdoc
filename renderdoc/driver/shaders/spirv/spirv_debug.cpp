@@ -553,6 +553,29 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       break;
     }
+    case Op::PtrEqual:
+    case Op::PtrNotEqual:
+    {
+      OpPtrEqual equal(it);
+
+      ShaderVariable a = GetSrc(equal.operand1);
+      ShaderVariable b = GetSrc(equal.operand2);
+
+      bool isEqual = debugger.ArePointersAndEqual(a, b);
+
+      ShaderVariable var;
+      var.rows = var.columns = 1;
+      // TODO we should add a bool type
+      var.type = VarType::UInt;
+
+      if(opdata.op == Op::PtrEqual)
+        var.value.uv[0] = isEqual ? 1 : 0;
+      else
+        var.value.uv[0] = isEqual ? 0 : 1;
+
+      SetDst(equal.result, var);
+      break;
+    }
 
     //////////////////////////////////////////////////////////////////////////////
     //

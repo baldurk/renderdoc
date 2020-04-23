@@ -1248,6 +1248,16 @@ bool Debugger::IsOpaquePointer(const ShaderVariable &ptr) const
   return inner->type == VarType::ReadOnlyResource || inner->type == VarType::ReadWriteResource;
 }
 
+bool Debugger::ArePointersAndEqual(const ShaderVariable &a, const ShaderVariable &b) const
+{
+  // we can do a pointer comparison by checking the values, since we store all pointer-related
+  // data in there
+  if(a.type == VarType::GPUPointer && b.type == VarType::GPUPointer)
+    return memcmp(&a.value, &b.value, sizeof(ShaderValue)) == 0;
+
+  return false;
+}
+
 void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariable &val)
 {
   ShaderVariable *storage = (ShaderVariable *)(uintptr_t)ptr.value.u64v[0];
