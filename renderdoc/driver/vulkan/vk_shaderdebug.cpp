@@ -3485,9 +3485,12 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     }
   }
 
+  // we don't use a pipeline cache here because our spec constants will cause failures often and
+  // bloat the cache. Even if we avoided the high-frequency x/y and stored them e.g. in the feedback
+  // buffer, we'd still want to spec-constant the address when possible so we're always going to
+  // have some varying value.
   VkPipeline inputsPipe;
-  vkr = m_pDriver->vkCreateGraphicsPipelines(dev, m_pDriver->GetShaderCache()->GetPipeCache(), 1,
-                                             &graphicsInfo, NULL, &inputsPipe);
+  vkr = m_pDriver->vkCreateGraphicsPipelines(dev, NULL, 1, &graphicsInfo, NULL, &inputsPipe);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   // make copy of state to draw from
