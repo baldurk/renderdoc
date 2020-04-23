@@ -577,6 +577,23 @@ public:
         else if(viewProps.viewType == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
           output.value.uv[i++] = imageProps.arrayLayers / 6;
 
+        if(buffer)
+        {
+          const VulkanCreationInfo::BufferView &bufViewProps =
+              m_Creation.m_BufferView[GetResID(bufferView)];
+
+          VkDeviceSize size = bufViewProps.size;
+
+          if(size == VK_WHOLE_SIZE)
+          {
+            const VulkanCreationInfo::Buffer &bufProps = m_Creation.m_Buffer[bufViewProps.buffer];
+            size = bufProps.size - bufViewProps.offset;
+          }
+
+          output.value.uv[0] = uint32_t(size / GetByteSize(1, 1, 1, bufViewProps.format, 0));
+          output.value.uv[1] = output.value.uv[2] = output.value.uv[3] = 0;
+        }
+
         return true;
       }
       default: break;
