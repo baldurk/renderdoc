@@ -812,6 +812,18 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
   return false;
 }
 
+QString RichResourceTextFormat(ICaptureContext &ctx, QVariant var)
+{
+  RichResourceTextInitialise(var);
+  if(var.userType() == qMetaTypeId<ResourceId>())
+    return GetTruncatedResourceName(ctx, var.value<ResourceId>());
+
+  // either it's something else and wasn't rich resource, in which case just return the string
+  // representation, or it's a fully formatted rich resource document, where the cached text will do
+  // the trick with ResIdTextToString.
+  return var.toString();
+}
+
 RichTextViewDelegate::RichTextViewDelegate(QAbstractItemView *parent)
     : m_widget(parent), ForwardingDelegate(parent)
 {

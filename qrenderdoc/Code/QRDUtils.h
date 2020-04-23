@@ -204,6 +204,10 @@ int RichResourceTextWidthHint(const QWidget *owner, const QFont &font, const QVa
 bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect rect,
                                 const QFont &font, QMouseEvent *event);
 
+// immediately format a variant that may contain rich resource text. For use in places where we
+// can't paint rich resource text but we still want to display the string nicely
+QString RichResourceTextFormat(ICaptureContext &ctx, QVariant var);
+
 // Register runtime conversions for custom Qt metatypes
 void RegisterMetatypeConversions();
 

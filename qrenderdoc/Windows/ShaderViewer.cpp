@@ -3902,11 +3902,21 @@ void ShaderViewer::updateVariableTooltip()
 
   if(var.type != VarType::Unknown)
   {
-    QString tooltip = QFormatStr("<pre>%1: %2\n").arg(var.name).arg(RowString(var, 0));
-    QString spacing = QString(var.name.count(), QLatin1Char(' '));
-    for(int i = 1; i < var.rows; i++)
-      tooltip += QFormatStr("%1  %2\n").arg(spacing).arg(RowString(var, i));
-    tooltip += lit("</pre>");
+    QString tooltip;
+
+    if(var.type == VarType::ReadOnlyResource || var.type == VarType::ReadWriteResource)
+    {
+      tooltip = RichResourceTextFormat(m_Ctx, stringRep(var, 0));
+    }
+    else
+    {
+      tooltip = QFormatStr("<pre>%1: %2\n").arg(var.name).arg(RowString(var, 0));
+      QString spacing = QString(var.name.count(), QLatin1Char(' '));
+      for(int i = 1; i < var.rows; i++)
+        tooltip += QFormatStr("%1  %2\n").arg(spacing).arg(RowString(var, i));
+      tooltip += lit("</pre>");
+    }
+
     QToolTip::showText(m_TooltipPos, tooltip);
     return;
   }
