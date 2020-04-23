@@ -421,7 +421,7 @@ extern "C" PyObject *RENDERDOC_DumpObject(PyObject *obj)
   }
 
   // also for ResourceId
-  if(SWIG_ConvertPtr(obj, &resptr, SWIGTYPE_p_ResourceId, 0))
+  if(SWIG_ConvertPtr(obj, &resptr, SWIGTYPE_p_ResourceId, 0) != -1)
   {
     return PyObject_Repr(obj);
   }
