@@ -1074,6 +1074,12 @@ void main()
       Color = textureProj(linearSampledImage, vec3(inpos, 0.5f));
       break;
     }
+    case 130:
+    {
+      Color.xy = textureQueryLod(linearSampledImage, inpos);
+      Color.zw = textureQueryLod(linearSampledImage, vec2(1.0f, 1.0f)/inpos);
+      break;
+    }
     default: break;
   }
 }

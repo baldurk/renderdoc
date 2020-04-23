@@ -1986,6 +1986,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::ImageFetch:
     case Op::ImageGather:
     case Op::ImageDrefGather:
+    case Op::ImageQueryLod:
     case Op::ImageSampleExplicitLod:
     case Op::ImageSampleImplicitLod:
     case Op::ImageSampleDrefExplicitLod:
@@ -2032,6 +2033,15 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
         operands = image.imageOperands;
         gather = GatherChannel::Red;
         compare = GetSrc(image.dref);
+      }
+      else if(opdata.op == Op::ImageQueryLod)
+      {
+        OpImageQueryLod image(it);
+
+        sampler = img = GetSrc(image.sampledImage);
+        uv = GetSrc(image.coordinate);
+
+        derivId = image.coordinate;
       }
       else if(opdata.op == Op::ImageSampleExplicitLod)
       {
@@ -2417,18 +2427,6 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::Nop:
     {
       // nothing to do
-      break;
-    }
-
-    // TODO image lod query (from implicit lod)
-    case Op::ImageQueryLod:
-    {
-      RDCERR("Image lod query not yet implemented.");
-
-      ShaderVariable var("", 0U, 0U, 0U, 0U);
-      var.columns = 1;
-
-      SetDst(opdata.result, var);
       break;
     }
 

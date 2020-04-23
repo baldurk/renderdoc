@@ -55,6 +55,7 @@ enum class BuiltinShader
   TexRemapUInt,
   TexRemapSInt,
   PixelHistoryPrimIDFS,
+  ShaderDebugSampleVS,
   Count,
 };
 

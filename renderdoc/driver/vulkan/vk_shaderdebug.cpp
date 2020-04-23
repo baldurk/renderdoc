@@ -755,6 +755,7 @@ public:
 
         break;
       }
+      case rdcspv::Op::ImageQueryLod:
       case rdcspv::Op::ImageSampleExplicitLod:
       case rdcspv::Op::ImageSampleImplicitLod:
       case rdcspv::Op::ImageSampleProjExplicitLod:
@@ -812,7 +813,7 @@ public:
         }
 
         if(opcode == rdcspv::Op::ImageSampleImplicitLod ||
-           opcode == rdcspv::Op::ImageSampleProjImplicitLod)
+           opcode == rdcspv::Op::ImageSampleProjImplicitLod || opcode == rdcspv::Op::ImageQueryLod)
         {
           // use grad to sub in for the implicit lod
           constParams.useGradOrGatherOffsets = VK_TRUE;
@@ -940,6 +941,14 @@ public:
       ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                                           Unwrap(m_DebugData.PipeLayout), 0, 1,
                                           UnwrapPtr(m_DebugData.DescSet), 0, NULL);
+
+      // push uvw/ddx/ddy for the vertex shader
+      ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DebugData.PipeLayout), VK_SHADER_STAGE_ALL,
+                                     sizeof(Vec4f) * 0, sizeof(Vec3f), &uniformParams.uvw);
+      ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DebugData.PipeLayout), VK_SHADER_STAGE_ALL,
+                                     sizeof(Vec4f) * 1, sizeof(Vec3f), &uniformParams.ddx);
+      ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DebugData.PipeLayout), VK_SHADER_STAGE_ALL,
+                                     sizeof(Vec4f) * 2, sizeof(Vec3f), &uniformParams.ddy);
 
       ObjDisp(cmd)->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
 
@@ -1230,7 +1239,8 @@ private:
 
     const VkPipelineShaderStageCreateInfo shaderStages[2] = {
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT,
-         m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::BlitVS), "main", NULL},
+         m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::ShaderDebugSampleVS), "main",
+         NULL},
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_FRAGMENT_BIT,
          m_DebugData.Module[shaderIndex], "main", &specInfo},
     };
@@ -1545,6 +1555,7 @@ private:
     editor.CreateEmpty(1, 0);
 
     editor.AddCapability(rdcspv::Capability::Shader);
+    editor.AddCapability(rdcspv::Capability::ImageQuery);
     editor.AddCapability(rdcspv::Capability::Sampled1D);
     editor.AddCapability(rdcspv::Capability::SampledBuffer);
 
@@ -1567,6 +1578,7 @@ private:
     rdcspv::Id v3i32 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<int32_t>(), 3));
     rdcspv::Id v2f32 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 2));
     rdcspv::Id v3f32 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 3));
+    rdcspv::Id v4f32 = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<float>(), 4));
 
     // int2[4]
     rdcspv::Id a4v2i32 = editor.AddType(
@@ -1734,10 +1746,18 @@ private:
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Sampler], "Sampler");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Constants], "CBuffer");
 
+    rdcspv::Id uvw_ptr = editor.DeclareType(rdcspv::Pointer(v3f32, rdcspv::StorageClass::Input));
+    rdcspv::Id input_uvw_var =
+        editor.AddVariable(rdcspv::OpVariable(uvw_ptr, editor.MakeId(), rdcspv::StorageClass::Input));
+    editor.AddDecoration(rdcspv::OpDecorate(
+        input_uvw_var, rdcspv::DecorationParam<rdcspv::Decoration::Location>(0)));
+
+    editor.SetName(input_uvw_var, "uvw");
+
     // register the entry point
-    editor.AddOperation(
-        editor.Begin(rdcspv::Section::EntryPoints),
-        rdcspv::OpEntryPoint(rdcspv::ExecutionModel::Fragment, entryId, "main", {outVar}));
+    editor.AddOperation(editor.Begin(rdcspv::Section::EntryPoints),
+                        rdcspv::OpEntryPoint(rdcspv::ExecutionModel::Fragment, entryId, "main",
+                                             {input_uvw_var, outVar}));
     editor.AddOperation(editor.Begin(rdcspv::Section::ExecutionMode),
                         rdcspv::OpExecutionMode(entryId, rdcspv::ExecutionMode::OriginUpperLeft));
 
@@ -1794,6 +1814,10 @@ private:
     editor.SetName(offset_xy, "offset_xy");
     editor.SetName(offset_xyz, "offset_xyz");
 
+    rdcspv::Id input_uvw = func.add(rdcspv::OpLoad(v3f32, editor.MakeId(), input_uvw_var));
+    rdcspv::Id input_uv =
+        func.add(rdcspv::OpVectorShuffle(v2f32, editor.MakeId(), input_uvw, input_uvw, {0, 1}));
+
     // first store NULL data in, so the output is always initialised
 
     rdcspv::Id breakLabel = editor.MakeId();
@@ -1818,6 +1842,16 @@ private:
         texel_uvw,    // 3D - u,v,w
         texel_uvw,    // 2DMS - u,v and array
         texel_u,      // Buffer - u
+    };
+
+    // only used for QueryLod, so we can ignore MSAA/Buffer
+    rdcspv::Id input_coord[(uint32_t)ShaderDebugBind::Count] = {
+        rdcspv::Id(),
+        input_uv,        // 1D - u and array
+        input_uvw,       // 2D - u,v and array
+        input_uvw,       // 3D - u,v,w
+        rdcspv::Id(),    // 2DMS
+        rdcspv::Id(),    // Buffer
     };
 
     rdcspv::Id coord[(uint32_t)ShaderDebugBind::Count] = {
@@ -1891,6 +1925,35 @@ private:
       // this point
       if(i == (uint32_t)ShaderDebugBind::Buffer || i == (uint32_t)ShaderDebugBind::Tex2DMS)
         continue;
+
+      {
+        rdcspv::Op op = rdcspv::Op::ImageQueryLod;
+
+        rdcspv::Id label = editor.MakeId();
+        targets.push_back({(uint32_t)op * 10 + i, label});
+
+        cases.add(rdcspv::OpLabel(label));
+        rdcspv::Id loadedImage =
+            cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
+        rdcspv::Id loadedSampler =
+            cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), bindVars[sampIdx]));
+
+        rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
+            texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+
+        rdcspv::Id sampleResult =
+            cases.add(rdcspv::OpImageQueryLod(v2f32, editor.MakeId(), combined, input_coord[i]));
+        sampleResult = cases.add(rdcspv::OpVectorShuffle(v4f32, editor.MakeId(), sampleResult,
+                                                         sampleResult, {0, 1, 0, 1}));
+
+        // if we're sampling from an integer texture the output variable will be the same type.
+        // Just bitcast the float bits into it, which will come out the other side the right type.
+        if(uintTex || sintTex)
+          sampleResult = cases.add(rdcspv::OpBitcast(resultType, editor.MakeId(), sampleResult));
+
+        cases.add(rdcspv::OpStore(outVar, sampleResult));
+        cases.add(rdcspv::OpBranch(breakLabel));
+      }
 
       for(rdcspv::Op op : {rdcspv::Op::ImageSampleExplicitLod, rdcspv::Op::ImageSampleImplicitLod})
       {

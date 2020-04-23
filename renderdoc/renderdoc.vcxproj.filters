@@ -1069,6 +1069,9 @@
     <None Include="data\hlsl\texremap.hlsl">
       <Filter>Resources\hlsl</Filter>
     </None>
+    <None Include="data\glsl\shaderdebug_sample.vert">
+      <Filter>Resources\glsl</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

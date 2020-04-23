@@ -386,6 +386,7 @@ set(data
     data/glsl/quadresolve.frag
     data/glsl/quadwrite.frag
     data/glsl/pixelhistory_primid.frag
+    data/glsl/shaderdebug_sample.vert
     data/glsl/texdisplay.frag
     data/glsl/texremap.frag
     data/glsl/gl_texsample.h

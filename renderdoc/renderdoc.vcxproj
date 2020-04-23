@@ -602,6 +602,7 @@
     <None Include="data\glsl\pixelhistory_primid.frag" />
     <None Include="data\glsl\quadresolve.frag" />
     <None Include="data\glsl\quadwrite.frag" />
+    <None Include="data\glsl\shaderdebug_sample.vert" />
     <None Include="data\glsl\texdisplay.frag" />
     <None Include="data\glsl\texremap.frag" />
     <None Include="data\glsl\vktext.frag" />
