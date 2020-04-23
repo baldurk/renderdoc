@@ -227,8 +227,7 @@ struct ShaderVariable
     rows = columns = 0;
     displayAsHex = isStruct = rowMajor = false;
     type = VarType::Unknown;
-    for(int i = 0; i < 16; i++)
-      value.uv[i] = 0;
+    memset(&value, 0, sizeof(value));
   }
   ShaderVariable(const ShaderVariable &) = default;
   ShaderVariable &operator=(const ShaderVariable &) = default;
@@ -238,8 +237,7 @@ struct ShaderVariable
     rows = 1;
     columns = 4;
     displayAsHex = isStruct = rowMajor = false;
-    for(int i = 0; i < 16; i++)
-      value.uv[i] = 0;
+    memset(&value, 0, sizeof(value));
     type = VarType::Float;
     value.f.x = x;
     value.f.y = y;
@@ -252,8 +250,7 @@ struct ShaderVariable
     rows = 1;
     columns = 4;
     displayAsHex = isStruct = rowMajor = false;
-    for(int i = 0; i < 16; i++)
-      value.uv[i] = 0;
+    memset(&value, 0, sizeof(value));
     type = VarType::SInt;
     value.i.x = x;
     value.i.y = y;
@@ -266,8 +263,7 @@ struct ShaderVariable
     rows = 1;
     columns = 4;
     displayAsHex = isStruct = rowMajor = false;
-    for(int i = 0; i < 16; i++)
-      value.uv[i] = 0;
+    memset(&value, 0, sizeof(value));
     type = VarType::UInt;
     value.u.x = x;
     value.u.y = y;
