@@ -2420,6 +2420,356 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       break;
     }
 
+    // TODO image lod query (from implicit lod)
+    case Op::ImageQueryLod:
+    {
+      RDCERR("Image lod query not yet implemented.");
+
+      ShaderVariable var("", 0U, 0U, 0U, 0U);
+      var.columns = 1;
+
+      SetDst(opdata.result, var);
+      break;
+    }
+
+    // TODO image load/store
+    case Op::ImageRead:
+    case Op::ImageWrite:
+    {
+      RDCERR("Image load/store not yet implemented.");
+
+      ShaderVariable var("", 0U, 0U, 0U, 0U);
+      var.columns = 1;
+
+      SetDst(opdata.result, var);
+
+      break;
+    }
+
+    // TODO atomics
+    case Op::ImageTexelPointer:
+    case Op::AtomicLoad:
+    case Op::AtomicStore:
+    case Op::AtomicExchange:
+    case Op::AtomicCompareExchange:
+    case Op::AtomicIIncrement:
+    case Op::AtomicIDecrement:
+    case Op::AtomicIAdd:
+    case Op::AtomicISub:
+    case Op::AtomicSMin:
+    case Op::AtomicUMin:
+    case Op::AtomicSMax:
+    case Op::AtomicUMax:
+    case Op::AtomicAnd:
+    case Op::AtomicOr:
+    case Op::AtomicXor:
+    {
+      RDCERR("Atomic opcodes not yet implemented.");
+
+      ShaderVariable var("", 0U, 0U, 0U, 0U);
+      var.columns = 1;
+
+      SetDst(opdata.result, var);
+
+      break;
+    }
+
+    // TODO sparse sampling
+    case Op::ImageSparseSampleImplicitLod:
+    case Op::ImageSparseSampleExplicitLod:
+    case Op::ImageSparseSampleDrefImplicitLod:
+    case Op::ImageSparseSampleDrefExplicitLod:
+    case Op::ImageSparseSampleProjImplicitLod:
+    case Op::ImageSparseSampleProjExplicitLod:
+    case Op::ImageSparseSampleProjDrefImplicitLod:
+    case Op::ImageSparseSampleProjDrefExplicitLod:
+    case Op::ImageSparseFetch:
+    case Op::ImageSparseGather:
+    case Op::ImageSparseDrefGather:
+    case Op::ImageSparseTexelsResident:
+    case Op::ImageSparseRead:
+    {
+      RDCERR("Sparse opcodes not supported. SPIR-V should have been rejected by capability!");
+
+      ShaderVariable var("", 0U, 0U, 0U, 0U);
+      var.columns = 1;
+
+      SetDst(opdata.result, var);
+
+      break;
+    }
+
+    // TODO group ops
+    case Op::GroupAll:
+    case Op::GroupAny:
+    case Op::GroupBroadcast:
+    case Op::GroupIAdd:
+    case Op::GroupFAdd:
+    case Op::GroupFMin:
+    case Op::GroupUMin:
+    case Op::GroupSMin:
+    case Op::GroupFMax:
+    case Op::GroupUMax:
+    case Op::GroupSMax:
+    case Op::GroupNonUniformElect:
+    case Op::GroupNonUniformAll:
+    case Op::GroupNonUniformAny:
+    case Op::GroupNonUniformAllEqual:
+    case Op::GroupNonUniformBroadcast:
+    case Op::GroupNonUniformBroadcastFirst:
+    case Op::GroupNonUniformBallot:
+    case Op::GroupNonUniformInverseBallot:
+    case Op::GroupNonUniformBallotBitExtract:
+    case Op::GroupNonUniformBallotBitCount:
+    case Op::GroupNonUniformBallotFindLSB:
+    case Op::GroupNonUniformBallotFindMSB:
+    case Op::GroupNonUniformShuffle:
+    case Op::GroupNonUniformShuffleXor:
+    case Op::GroupNonUniformShuffleUp:
+    case Op::GroupNonUniformShuffleDown:
+    case Op::GroupNonUniformIAdd:
+    case Op::GroupNonUniformFAdd:
+    case Op::GroupNonUniformIMul:
+    case Op::GroupNonUniformFMul:
+    case Op::GroupNonUniformSMin:
+    case Op::GroupNonUniformUMin:
+    case Op::GroupNonUniformFMin:
+    case Op::GroupNonUniformSMax:
+    case Op::GroupNonUniformUMax:
+    case Op::GroupNonUniformFMax:
+    case Op::GroupNonUniformBitwiseAnd:
+    case Op::GroupNonUniformBitwiseOr:
+    case Op::GroupNonUniformBitwiseXor:
+    case Op::GroupNonUniformLogicalAnd:
+    case Op::GroupNonUniformLogicalOr:
+    case Op::GroupNonUniformLogicalXor:
+    case Op::GroupNonUniformQuadBroadcast:
+    case Op::GroupNonUniformQuadSwap:
+
+    case Op::SubgroupBallotKHR:
+    case Op::SubgroupFirstInvocationKHR:
+    case Op::SubgroupAllKHR:
+    case Op::SubgroupAnyKHR:
+    case Op::SubgroupAllEqualKHR:
+    case Op::SubgroupReadInvocationKHR:
+    {
+      RDCERR("Group opcodes not supported. SPIR-V should have been rejected by capability!");
+
+      ShaderVariable var("", 0U, 0U, 0U, 0U);
+      var.columns = 1;
+
+      SetDst(opdata.result, var);
+
+      break;
+    }
+
+    // TODO physical storage pointers
+    case Op::ConvertPtrToU:
+    case Op::ConvertUToPtr:
+    case Op::PtrAccessChain:
+    case Op::InBoundsPtrAccessChain:
+    case Op::PtrDiff:
+    {
+      RDCERR(
+          "Physical storage pointers not supported. SPIR-V should have been rejected by "
+          "capability!");
+
+      ShaderVariable var("", 0U, 0U, 0U, 0U);
+      var.columns = 1;
+
+      SetDst(opdata.result, var);
+
+      break;
+    }
+
+    case Op::EmitVertex:
+    case Op::EndPrimitive:
+    case Op::EmitStreamVertex:
+    case Op::EndStreamPrimitive:
+    {
+      // nothing to do for these, even if debugging geometry shaders?
+      break;
+    }
+
+    case Op::GroupIAddNonUniformAMD:
+    case Op::GroupFAddNonUniformAMD:
+    case Op::GroupFMinNonUniformAMD:
+    case Op::GroupUMinNonUniformAMD:
+    case Op::GroupSMinNonUniformAMD:
+    case Op::GroupFMaxNonUniformAMD:
+    case Op::GroupUMaxNonUniformAMD:
+    case Op::GroupSMaxNonUniformAMD:
+    case Op::FragmentMaskFetchAMD:
+    case Op::FragmentFetchAMD:
+    case Op::ImageSampleFootprintNV:
+    case Op::GroupNonUniformPartitionNV:
+    case Op::WritePackedPrimitiveIndices4x8NV:
+    case Op::ReportIntersectionNV:
+    case Op::IgnoreIntersectionNV:
+    case Op::TerminateRayNV:
+    case Op::TraceNV:
+    case Op::TypeAccelerationStructureNV:
+    case Op::ExecuteCallableNV:
+    case Op::TypeCooperativeMatrixNV:
+    case Op::CooperativeMatrixLoadNV:
+    case Op::CooperativeMatrixStoreNV:
+    case Op::CooperativeMatrixMulAddNV:
+    case Op::CooperativeMatrixLengthNV:
+    case Op::BeginInvocationInterlockEXT:
+    case Op::EndInvocationInterlockEXT:
+    case Op::SubgroupShuffleINTEL:
+    case Op::SubgroupShuffleDownINTEL:
+    case Op::SubgroupShuffleUpINTEL:
+    case Op::SubgroupShuffleXorINTEL:
+    case Op::SubgroupBlockReadINTEL:
+    case Op::SubgroupBlockWriteINTEL:
+    case Op::SubgroupImageBlockReadINTEL:
+    case Op::SubgroupImageBlockWriteINTEL:
+    case Op::SubgroupImageMediaBlockReadINTEL:
+    case Op::SubgroupImageMediaBlockWriteINTEL:
+    case Op::UCountLeadingZerosINTEL:
+    case Op::UCountTrailingZerosINTEL:
+    case Op::AbsISubINTEL:
+    case Op::AbsUSubINTEL:
+    case Op::IAddSatINTEL:
+    case Op::UAddSatINTEL:
+    case Op::IAverageINTEL:
+    case Op::UAverageINTEL:
+    case Op::IAverageRoundedINTEL:
+    case Op::UAverageRoundedINTEL:
+    case Op::ISubSatINTEL:
+    case Op::USubSatINTEL:
+    case Op::IMul32x16INTEL:
+    case Op::UMul32x16INTEL:
+    case Op::VmeImageINTEL:
+    case Op::TypeVmeImageINTEL:
+    case Op::TypeAvcImePayloadINTEL:
+    case Op::TypeAvcRefPayloadINTEL:
+    case Op::TypeAvcSicPayloadINTEL:
+    case Op::TypeAvcMcePayloadINTEL:
+    case Op::TypeAvcMceResultINTEL:
+    case Op::TypeAvcImeResultINTEL:
+    case Op::TypeAvcImeResultSingleReferenceStreamoutINTEL:
+    case Op::TypeAvcImeResultDualReferenceStreamoutINTEL:
+    case Op::TypeAvcImeSingleReferenceStreaminINTEL:
+    case Op::TypeAvcImeDualReferenceStreaminINTEL:
+    case Op::TypeAvcRefResultINTEL:
+    case Op::TypeAvcSicResultINTEL:
+    case Op::SubgroupAvcMceGetDefaultInterBaseMultiReferencePenaltyINTEL:
+    case Op::SubgroupAvcMceSetInterBaseMultiReferencePenaltyINTEL:
+    case Op::SubgroupAvcMceGetDefaultInterShapePenaltyINTEL:
+    case Op::SubgroupAvcMceSetInterShapePenaltyINTEL:
+    case Op::SubgroupAvcMceGetDefaultInterDirectionPenaltyINTEL:
+    case Op::SubgroupAvcMceSetInterDirectionPenaltyINTEL:
+    case Op::SubgroupAvcMceGetDefaultIntraLumaShapePenaltyINTEL:
+    case Op::SubgroupAvcMceGetDefaultInterMotionVectorCostTableINTEL:
+    case Op::SubgroupAvcMceGetDefaultHighPenaltyCostTableINTEL:
+    case Op::SubgroupAvcMceGetDefaultMediumPenaltyCostTableINTEL:
+    case Op::SubgroupAvcMceGetDefaultLowPenaltyCostTableINTEL:
+    case Op::SubgroupAvcMceSetMotionVectorCostFunctionINTEL:
+    case Op::SubgroupAvcMceGetDefaultIntraLumaModePenaltyINTEL:
+    case Op::SubgroupAvcMceGetDefaultNonDcLumaIntraPenaltyINTEL:
+    case Op::SubgroupAvcMceGetDefaultIntraChromaModeBasePenaltyINTEL:
+    case Op::SubgroupAvcMceSetAcOnlyHaarINTEL:
+    case Op::SubgroupAvcMceSetSourceInterlacedFieldPolarityINTEL:
+    case Op::SubgroupAvcMceSetSingleReferenceInterlacedFieldPolarityINTEL:
+    case Op::SubgroupAvcMceSetDualReferenceInterlacedFieldPolaritiesINTEL:
+    case Op::SubgroupAvcMceConvertToImePayloadINTEL:
+    case Op::SubgroupAvcMceConvertToImeResultINTEL:
+    case Op::SubgroupAvcMceConvertToRefPayloadINTEL:
+    case Op::SubgroupAvcMceConvertToRefResultINTEL:
+    case Op::SubgroupAvcMceConvertToSicPayloadINTEL:
+    case Op::SubgroupAvcMceConvertToSicResultINTEL:
+    case Op::SubgroupAvcMceGetMotionVectorsINTEL:
+    case Op::SubgroupAvcMceGetInterDistortionsINTEL:
+    case Op::SubgroupAvcMceGetBestInterDistortionsINTEL:
+    case Op::SubgroupAvcMceGetInterMajorShapeINTEL:
+    case Op::SubgroupAvcMceGetInterMinorShapeINTEL:
+    case Op::SubgroupAvcMceGetInterDirectionsINTEL:
+    case Op::SubgroupAvcMceGetInterMotionVectorCountINTEL:
+    case Op::SubgroupAvcMceGetInterReferenceIdsINTEL:
+    case Op::SubgroupAvcMceGetInterReferenceInterlacedFieldPolaritiesINTEL:
+    case Op::SubgroupAvcImeInitializeINTEL:
+    case Op::SubgroupAvcImeSetSingleReferenceINTEL:
+    case Op::SubgroupAvcImeSetDualReferenceINTEL:
+    case Op::SubgroupAvcImeRefWindowSizeINTEL:
+    case Op::SubgroupAvcImeAdjustRefOffsetINTEL:
+    case Op::SubgroupAvcImeConvertToMcePayloadINTEL:
+    case Op::SubgroupAvcImeSetMaxMotionVectorCountINTEL:
+    case Op::SubgroupAvcImeSetUnidirectionalMixDisableINTEL:
+    case Op::SubgroupAvcImeSetEarlySearchTerminationThresholdINTEL:
+    case Op::SubgroupAvcImeSetWeightedSadINTEL:
+    case Op::SubgroupAvcImeEvaluateWithSingleReferenceINTEL:
+    case Op::SubgroupAvcImeEvaluateWithDualReferenceINTEL:
+    case Op::SubgroupAvcImeEvaluateWithSingleReferenceStreaminINTEL:
+    case Op::SubgroupAvcImeEvaluateWithDualReferenceStreaminINTEL:
+    case Op::SubgroupAvcImeEvaluateWithSingleReferenceStreamoutINTEL:
+    case Op::SubgroupAvcImeEvaluateWithDualReferenceStreamoutINTEL:
+    case Op::SubgroupAvcImeEvaluateWithSingleReferenceStreaminoutINTEL:
+    case Op::SubgroupAvcImeEvaluateWithDualReferenceStreaminoutINTEL:
+    case Op::SubgroupAvcImeConvertToMceResultINTEL:
+    case Op::SubgroupAvcImeGetSingleReferenceStreaminINTEL:
+    case Op::SubgroupAvcImeGetDualReferenceStreaminINTEL:
+    case Op::SubgroupAvcImeStripSingleReferenceStreamoutINTEL:
+    case Op::SubgroupAvcImeStripDualReferenceStreamoutINTEL:
+    case Op::SubgroupAvcImeGetStreamoutSingleReferenceMajorShapeMotionVectorsINTEL:
+    case Op::SubgroupAvcImeGetStreamoutSingleReferenceMajorShapeDistortionsINTEL:
+    case Op::SubgroupAvcImeGetStreamoutSingleReferenceMajorShapeReferenceIdsINTEL:
+    case Op::SubgroupAvcImeGetStreamoutDualReferenceMajorShapeMotionVectorsINTEL:
+    case Op::SubgroupAvcImeGetStreamoutDualReferenceMajorShapeDistortionsINTEL:
+    case Op::SubgroupAvcImeGetStreamoutDualReferenceMajorShapeReferenceIdsINTEL:
+    case Op::SubgroupAvcImeGetBorderReachedINTEL:
+    case Op::SubgroupAvcImeGetTruncatedSearchIndicationINTEL:
+    case Op::SubgroupAvcImeGetUnidirectionalEarlySearchTerminationINTEL:
+    case Op::SubgroupAvcImeGetWeightingPatternMinimumMotionVectorINTEL:
+    case Op::SubgroupAvcImeGetWeightingPatternMinimumDistortionINTEL:
+    case Op::SubgroupAvcFmeInitializeINTEL:
+    case Op::SubgroupAvcBmeInitializeINTEL:
+    case Op::SubgroupAvcRefConvertToMcePayloadINTEL:
+    case Op::SubgroupAvcRefSetBidirectionalMixDisableINTEL:
+    case Op::SubgroupAvcRefSetBilinearFilterEnableINTEL:
+    case Op::SubgroupAvcRefEvaluateWithSingleReferenceINTEL:
+    case Op::SubgroupAvcRefEvaluateWithDualReferenceINTEL:
+    case Op::SubgroupAvcRefEvaluateWithMultiReferenceINTEL:
+    case Op::SubgroupAvcRefEvaluateWithMultiReferenceInterlacedINTEL:
+    case Op::SubgroupAvcRefConvertToMceResultINTEL:
+    case Op::SubgroupAvcSicInitializeINTEL:
+    case Op::SubgroupAvcSicConfigureSkcINTEL:
+    case Op::SubgroupAvcSicConfigureIpeLumaINTEL:
+    case Op::SubgroupAvcSicConfigureIpeLumaChromaINTEL:
+    case Op::SubgroupAvcSicGetMotionVectorMaskINTEL:
+    case Op::SubgroupAvcSicConvertToMcePayloadINTEL:
+    case Op::SubgroupAvcSicSetIntraLumaShapePenaltyINTEL:
+    case Op::SubgroupAvcSicSetIntraLumaModeCostFunctionINTEL:
+    case Op::SubgroupAvcSicSetIntraChromaModeCostFunctionINTEL:
+    case Op::SubgroupAvcSicSetBilinearFilterEnableINTEL:
+    case Op::SubgroupAvcSicSetSkcForwardTransformEnableINTEL:
+    case Op::SubgroupAvcSicSetBlockBasedRawSkipSadINTEL:
+    case Op::SubgroupAvcSicEvaluateIpeINTEL:
+    case Op::SubgroupAvcSicEvaluateWithSingleReferenceINTEL:
+    case Op::SubgroupAvcSicEvaluateWithDualReferenceINTEL:
+    case Op::SubgroupAvcSicEvaluateWithMultiReferenceINTEL:
+    case Op::SubgroupAvcSicEvaluateWithMultiReferenceInterlacedINTEL:
+    case Op::SubgroupAvcSicConvertToMceResultINTEL:
+    case Op::SubgroupAvcSicGetIpeLumaShapeINTEL:
+    case Op::SubgroupAvcSicGetBestIpeLumaDistortionINTEL:
+    case Op::SubgroupAvcSicGetBestIpeChromaDistortionINTEL:
+    case Op::SubgroupAvcSicGetPackedIpeLumaModesINTEL:
+    case Op::SubgroupAvcSicGetIpeChromaModeINTEL:
+    case Op::SubgroupAvcSicGetPackedSkcLumaCountThresholdINTEL:
+    case Op::SubgroupAvcSicGetPackedSkcLumaSumThresholdINTEL:
+    case Op::SubgroupAvcSicGetInterRawSadsINTEL:
+    {
+      RDCERR("Unsupported extension opcode used %s", ToStr(opdata.op).c_str());
+
+      ShaderVariable var("", 0U, 0U, 0U, 0U);
+      var.columns = 1;
+
+      SetDst(opdata.result, var);
+
+      break;
+    }
+
     case Op::SourceContinued:
     case Op::Source:
     case Op::SourceExtension:
@@ -2558,8 +2908,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       break;
     }
 
-    case Op::Max:
-    default: RDCWARN("Unhandled SPIR-V operation %s", ToStr(opdata.op).c_str()); break;
+    case Op::Max: RDCWARN("Unhandled SPIR-V operation %s", ToStr(opdata.op).c_str()); break;
   }
 
   // skip over any degenerate branches
