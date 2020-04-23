@@ -2191,6 +2191,65 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       SetDst(opdata.result, result);
       break;
     }
+    case Op::ImageRead:
+    {
+      OpImageRead read(it);
+
+      ShaderVariable img = GetSrc(read.image);
+      ShaderVariable coord = GetSrc(read.coordinate);
+
+      const DataType &resultType = debugger.GetType(opdata.resultType);
+
+      // only the sample operand should be here
+      RDCASSERT((read.imageOperands.flags & ImageOperands::Sample) == read.imageOperands.flags);
+
+      ShaderVariable result;
+      result.type = resultType.scalar().Type();
+
+      if(!debugger.GetAPIWrapper()->ReadTexel(img.GetBinding(), coord,
+                                              read.imageOperands.flags & ImageOperands::Sample
+                                                  ? GetSrc(read.imageOperands.sample).value.uv[0]
+                                                  : 0,
+                                              result))
+      {
+        // sample failed. Pretend we got 0 columns back
+        result.value.uv[0] = 0;
+        result.value.uv[1] = 0;
+        result.value.uv[2] = 0;
+
+        if(result.type == VarType::Float || result.type == VarType::Half)
+          result.value.fv[3] = 1.0f;
+        else if(result.type == VarType::Double)
+          result.value.dv[3] = 1.0;
+        else
+          result.value.uv[3] = 1;
+      }
+
+      result.rows = 1;
+      result.columns = RDCMAX(1U, resultType.vector().count);
+
+      SetDst(read.result, result);
+      break;
+    }
+    case Op::ImageWrite:
+    {
+      OpImageWrite write(it);
+
+      ShaderVariable img = GetSrc(write.image);
+      ShaderVariable coord = GetSrc(write.coordinate);
+      ShaderVariable texel = GetSrc(write.texel);
+
+      // only the sample operand should be here
+      RDCASSERT((write.imageOperands.flags & ImageOperands::Sample) == write.imageOperands.flags);
+
+      debugger.GetAPIWrapper()->WriteTexel(img.GetBinding(), coord,
+                                           write.imageOperands.flags & ImageOperands::Sample
+                                               ? GetSrc(write.imageOperands.sample).value.uv[0]
+                                               : 0,
+                                           texel);
+
+      break;
+    }
 
     //////////////////////////////////////////////////////////////////////////////
     //
@@ -2427,20 +2486,6 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::Nop:
     {
       // nothing to do
-      break;
-    }
-
-    // TODO image load/store
-    case Op::ImageRead:
-    case Op::ImageWrite:
-    {
-      RDCERR("Image load/store not yet implemented.");
-
-      ShaderVariable var("", 0U, 0U, 0U, 0U);
-      var.columns = 1;
-
-      SetDst(opdata.result, var);
-
       break;
     }
 

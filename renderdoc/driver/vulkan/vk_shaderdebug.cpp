@@ -329,6 +329,56 @@ public:
       memcpy(data.data() + (size_t)offset, src, (size_t)byteSize);
   }
 
+  virtual bool ReadTexel(BindpointIndex imageBind, const ShaderVariable &coord, uint32_t sample,
+                         ShaderVariable &output) override
+  {
+    ImageData &data = PopulateImage(imageBind);
+
+    if(data.width == 0)
+      return false;
+
+    if(coord.value.uv[0] > data.width || coord.value.uv[1] > data.height ||
+       coord.value.uv[2] > data.depth)
+    {
+      m_pDriver->AddDebugMessage(
+          MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+          StringFormat::Fmt(
+              "Out of bounds access to image, coord %u,%u,%u outside of dimensions %ux%ux%u",
+              coord.value.uv[0], coord.value.uv[1], coord.value.uv[2], data.width, data.height,
+              data.depth));
+      return false;
+    }
+
+    memcpy(output.value.uv, data.texel(coord.value.uv, sample), data.texelSize);
+
+    return true;
+  }
+
+  virtual bool WriteTexel(BindpointIndex imageBind, const ShaderVariable &coord, uint32_t sample,
+                          const ShaderVariable &value) override
+  {
+    ImageData &data = PopulateImage(imageBind);
+
+    if(data.width == 0)
+      return false;
+
+    if(coord.value.uv[0] > data.width || coord.value.uv[1] > data.height ||
+       coord.value.uv[2] > data.depth)
+    {
+      m_pDriver->AddDebugMessage(
+          MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+          StringFormat::Fmt(
+              "Out of bounds access to image, coord %u,%u,%u outside of dimensions %ux%ux%u",
+              coord.value.uv[0], coord.value.uv[1], coord.value.uv[2], data.width, data.height,
+              data.depth));
+      return false;
+    }
+
+    memcpy(data.texel(coord.value.uv, sample), value.value.uv, data.texelSize);
+
+    return true;
+  }
+
   virtual void FillInputValue(ShaderVariable &var, ShaderBuiltin builtin, uint32_t location,
                               uint32_t component) override
   {
@@ -1077,6 +1127,28 @@ private:
   bytebuf pushData;
 
   std::map<BindpointIndex, bytebuf> bufferCache;
+
+  struct ImageData
+  {
+    uint32_t width = 0, height = 0, depth = 0;
+    uint32_t texelSize = 0, rowPitch = 0, slicePitch = 0, samplePitch = 0;
+    bytebuf bytes;
+
+    byte *texel(const uint32_t *coord, uint32_t sample)
+    {
+      byte *ret = bytes.data();
+
+      ret += samplePitch * sample;
+      ret += slicePitch * coord[2];
+      ret += rowPitch * coord[1];
+      ret += texelSize * coord[0];
+
+      return ret;
+    }
+  };
+
+  std::map<BindpointIndex, ImageData> imageCache;
+
   template <typename T>
   const T &GetDescriptor(const rdcstr &access, BindpointIndex index, bool &valid)
   {
@@ -1168,6 +1240,82 @@ private:
 
           m_pDriver->GetDebugManager()->GetBufferData(GetResID(bufData.buffer), bufData.offset,
                                                       bufData.range, data);
+        }
+      }
+    }
+
+    return data;
+  }
+
+  ImageData &PopulateImage(BindpointIndex bind)
+  {
+    auto insertIt = imageCache.insert(std::make_pair(bind, ImageData()));
+    ImageData &data = insertIt.first->second;
+    if(insertIt.second)
+    {
+      bool valid = true;
+      const VkDescriptorImageInfo &imgData =
+          GetDescriptor<VkDescriptorImageInfo>("performing image load/store", bind, valid);
+      if(valid)
+      {
+        // if the resources might be dirty from side-effects from the draw, replay back to right
+        // before it.
+        if(m_ResourcesDirty)
+        {
+          m_pDriver->ReplayLog(0, m_EventID, eReplay_WithoutDraw);
+          m_ResourcesDirty = false;
+        }
+
+        const VulkanCreationInfo::ImageView &viewProps =
+            m_Creation.m_ImageView[GetResID(imgData.imageView)];
+        const VulkanCreationInfo::Image &imageProps = m_Creation.m_Image[viewProps.image];
+
+        uint32_t mip = viewProps.range.baseMipLevel;
+
+        data.width = RDCMAX(1U, imageProps.extent.width >> mip);
+        data.height = RDCMAX(1U, imageProps.extent.height >> mip);
+        if(imageProps.type == VK_IMAGE_TYPE_3D)
+        {
+          data.depth = RDCMAX(1U, imageProps.extent.depth >> mip);
+        }
+        else
+        {
+          data.depth = viewProps.range.layerCount;
+          if(data.depth == VK_REMAINING_ARRAY_LAYERS)
+            data.depth = imageProps.arrayLayers - viewProps.range.baseArrayLayer;
+        }
+
+        data.texelSize = GetByteSize(1, 1, 1, imageProps.format, 0);
+        data.rowPitch = GetByteSize(data.width, 1, 1, imageProps.format, 0);
+        data.slicePitch = GetByteSize(data.width, data.height, 1, imageProps.format, 0);
+        data.samplePitch = GetByteSize(data.width, data.height, data.depth, imageProps.format, 0);
+
+        const uint32_t numSlices = imageProps.type == VK_IMAGE_TYPE_3D ? 1 : data.depth;
+        const uint32_t numSamples = (uint32_t)imageProps.samples;
+
+        data.bytes.reserve(data.samplePitch * numSamples);
+
+        // defaults are fine - no interpretation. Maybe we could use the view's typecast?
+        const GetTextureDataParams params;
+
+        for(uint32_t sample = 0; sample < numSamples; sample++)
+        {
+          for(uint32_t slice = 0; slice < numSlices; slice++)
+          {
+            bytebuf subBytes;
+            m_pDriver->GetReplay()->GetTextureData(viewProps.image, Subresource(mip, slice, sample),
+                                                   params, subBytes);
+
+            // fast path, swap into output if there's only one slice and one sample (common case)
+            if(numSlices == 1 && numSamples == 1)
+            {
+              subBytes.swap(data.bytes);
+            }
+            else
+            {
+              data.bytes.append(subBytes);
+            }
+          }
         }
       }
     }

@@ -141,10 +141,10 @@ layout(set = 0, binding = 5, std430) buffer storebuftype
   vec4 arr[];
 } storebuf;
 
-//layout(set = 0, binding = 6, rgba32f) uniform coherent image2D storeImage;
+layout(set = 0, binding = 6, rgba32f) uniform coherent image2D storeImage;
 
 layout(set = 0, binding = 7) uniform samplerBuffer texBuffer;
-//layout(set = 0, binding = 8, rgba32f) uniform coherent imageBuffer storeTexBuffer;
+layout(set = 0, binding = 8, rgba32f) uniform coherent imageBuffer storeTexBuffer;
 
 layout(set = 0, binding = 9) uniform sampler shadowSampler;
 
@@ -1080,6 +1080,22 @@ void main()
       Color.zw = textureQueryLod(linearSampledImage, vec2(1.0f, 1.0f)/inpos);
       break;
     }
+    case 131:
+    {
+      Color = vec4(vec2(imageSize(storeImage)), 0.0f, 1.0f);
+      break;
+    }
+    case 132:
+    {
+      Color = vec4(float(imageSize(storeTexBuffer)), 0.0f, 0.0f, 1.0f);
+      break;
+    }
+    case 133:
+    {
+      imageStore(storeImage, ivec2(zeroi+1,zeroi+3), vec4(3.1f, 4.1f, 5.9f, 2.6f));
+      Color = imageLoad(storeImage, ivec2(zeroi+1,zeroi+3));
+      break;
+    }
     default: break;
   }
 }
@@ -1090,6 +1106,9 @@ void main()
 void main()
 {
   uint test = flatData.test;
+  int intval = int(flatData.intval);
+  uint zerou = flatData.intval - flatData.test - 7u;
+  int zeroi = int(zerou);
 
   Color = vec4(0,0,0,0);
   switch(test)
@@ -1110,6 +1129,11 @@ void main()
     {
       // test loading from the storage buffer (after a nice big barrier)
       Color = storebuf.arr[flatData.intval - flatData.test];
+      break;
+    }
+    case 3:
+    {
+      Color = imageLoad(storeImage, ivec2(zeroi+1,zeroi+3));
       break;
     }
     default: break;

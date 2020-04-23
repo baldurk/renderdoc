@@ -57,6 +57,12 @@ public:
   virtual void ReadBufferValue(BindpointIndex bind, uint64_t offset, uint64_t byteSize, void *dst) = 0;
   virtual void WriteBufferValue(BindpointIndex bind, uint64_t offset, uint64_t byteSize,
                                 const void *src) = 0;
+
+  virtual bool ReadTexel(BindpointIndex imageBind, const ShaderVariable &coord, uint32_t sample,
+                         ShaderVariable &output) = 0;
+  virtual bool WriteTexel(BindpointIndex imageBind, const ShaderVariable &coord, uint32_t sample,
+                          const ShaderVariable &value) = 0;
+
   virtual void FillInputValue(ShaderVariable &var, ShaderBuiltin builtin, uint32_t location,
                               uint32_t component) = 0;
 
@@ -98,6 +104,7 @@ public:
 static const uint32_t TextureTypeVariableSlot = 8;
 static const uint32_t BufferPointerByteOffsetVariableSlot = 8;
 static const uint32_t BufferPointerTypeIdVariableSlot = 9;
+static const uint32_t SSBOVariableSlot = 10;
 
 typedef ShaderVariable (*ExtInstImpl)(ThreadState &, uint32_t, const rdcarray<Id> &);
 

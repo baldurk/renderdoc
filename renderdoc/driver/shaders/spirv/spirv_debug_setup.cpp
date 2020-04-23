@@ -185,6 +185,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       case Capability::TessellationPointSize:
       case Capability::GeometryPointSize:
       case Capability::ImageGatherExtended:
+      case Capability::StorageImageMultisample:
       case Capability::UniformBufferArrayDynamicIndexing:
       case Capability::SampledImageArrayDynamicIndexing:
       case Capability::StorageBufferArrayDynamicIndexing:
@@ -243,9 +244,6 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       }
 
       // we plan to support these but needs additional testing/proving
-
-      // image storage
-      case Capability::StorageImageMultisample:
 
       // all these are related to non-32-bit types
       case Capability::Float16Buffer:
@@ -563,6 +561,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
           // TODO handle arrays
           var.SetBinding((int32_t)set, (int32_t)bind, 0U);
 
+          var.value.u64v[SSBOVariableSlot] = 1;
+
           sourceVar.type = VarType::ReadWriteResource;
           sourceVar.rows = 1;
           sourceVar.columns = 1;
@@ -671,8 +671,19 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
         var.value.uv[TextureTypeVariableSlot] = texType;
 
-        global.readOnlyResources.push_back(var);
-        readOnlyIDs.push_back(v.id);
+        if(imageTypes[imgid].sampled == 2)
+        {
+          var.type = VarType::ReadWriteResource;
+          debugType = DebugVariableType::ReadWriteResource;
+
+          global.readWriteResources.push_back(var);
+          readWriteIDs.push_back(v.id);
+        }
+        else
+        {
+          global.readOnlyResources.push_back(var);
+          readOnlyIDs.push_back(v.id);
+        }
       }
       else
       {
@@ -979,7 +990,7 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
   if(base.type == VarType::GPUPointer)
     leaf = (const ShaderVariable *)(uintptr_t)base.value.u64v[0];
 
-  if(leaf->type == VarType::ReadWriteResource)
+  if(leaf->type == VarType::ReadWriteResource && leaf->value.u64v[SSBOVariableSlot])
   {
     ShaderVariable ret = MakePointerVariable(id, leaf);
 
@@ -1132,7 +1143,7 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
 
   ShaderVariable ret;
 
-  if(inner->type == VarType::ReadWriteResource)
+  if(inner->type == VarType::ReadWriteResource && inner->value.u64v[SSBOVariableSlot])
   {
     rdcspv::Id typeId =
         rdcspv::Id::fromWord(uint32_t(ptr.value.u64v[BufferPointerTypeIdVariableSlot]));
