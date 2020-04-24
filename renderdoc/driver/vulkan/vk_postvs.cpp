@@ -165,7 +165,14 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
       {
         editor.Remove(it);
       }
-      else if(decorate.decoration == rdcspv::Decoration::Location)
+      // same with flat/noperspective
+      else if(decorate.decoration == rdcspv::Decoration::Flat ||
+              decorate.decoration == rdcspv::Decoration::NoPerspective)
+      {
+        editor.Remove(it);
+      }
+      else if(decorate.decoration == rdcspv::Decoration::Location ||
+              decorate.decoration == rdcspv::Decoration::Component)
       {
         // we don't have to do anything, the ID mapping is in the rdcspv::PatchData, so just discard
         // the location information
@@ -1025,6 +1032,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
           rdcspv::Id result =
               ops.add(rdcspv::OpImageFetch(ins[i].vec4ID, editor.MakeId(), rawimg, idx));
 
+          uint32_t comp = Bits::CountTrailingZeroes(uint32_t(refl.inputSignature[i].regChannelMask));
+
           if(refl.inputSignature[i].compType == CompType::Double)
           {
             // since doubles are packed into two uints, we now need to fetch more data and do
@@ -1081,8 +1090,8 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             // for one component, extract x
 
             // baseType value = result.x;
-            result =
-                ops.add(rdcspv::OpCompositeExtract(ins[i].basetypeID, editor.MakeId(), result, {0}));
+            result = ops.add(
+                rdcspv::OpCompositeExtract(ins[i].basetypeID, editor.MakeId(), result, {comp}));
           }
           else if(refl.inputSignature[i].compCount != 4)
           {
@@ -1091,7 +1100,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             rdcarray<uint32_t> swizzle;
 
             for(uint32_t c = 0; c < refl.inputSignature[i].compCount; c++)
-              swizzle.push_back(c);
+              swizzle.push_back(c + comp);
 
             // baseTypeN value = result.xyz;
             result = ops.add(rdcspv::OpVectorShuffle(ins[i].basetypeID, editor.MakeId(), result,

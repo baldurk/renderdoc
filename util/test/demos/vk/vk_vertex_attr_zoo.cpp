@@ -48,7 +48,9 @@ RD_TEST(VK_Vertex_Attr_Zoo, VulkanGraphicsTest)
 layout(location = 0) in vec4 InSNorm;
 layout(location = 1) in vec4 InUNorm;
 layout(location = 2) in vec4 InUScaled;
-layout(location = 3) in uvec4 InUInt;
+layout(location = 3) in uvec2 InUInt;
+layout(location = 3, component = 2) in uint InUInt1;
+layout(location = 3, component = 3) in uint InUInt2;
 layout(location = 4) in dvec2 InDouble;
 layout(location = 5) in vec2 InArray[2];
 layout(location = 7) in mat2x2 InMatrix;
@@ -56,7 +58,9 @@ layout(location = 7) in mat2x2 InMatrix;
 layout(location = 0) out vec4 OutSNorm;
 layout(location = 1) out vec4 OutUNorm;
 layout(location = 2) out vec4 OutUScaled;
-layout(location = 3) out uvec4 OutUInt;
+layout(location = 3) flat out uvec2 OutUInt;
+layout(location = 3, component = 2) flat out uint OutUInt1;
+layout(location = 3, component = 3) flat out uint OutUInt2;
 layout(location = 4) out dvec2 OutDouble;
 layout(location = 5) out vec2 OutArray[2];
 layout(location = 7) out mat2x2 OutMatrix;
@@ -72,6 +76,8 @@ void main()
   OutUScaled = InUScaled;
   OutDouble = InDouble;
   OutUInt = InUInt;
+  OutUInt1 = InUInt1;
+  OutUInt2 = InUInt2;
   OutUNorm = InUNorm;
   OutArray = InArray;
   OutMatrix = InMatrix;
@@ -85,7 +91,9 @@ void main()
 layout(location = 0) in vec4 InSNorm;
 layout(location = 1) in vec4 InUNorm;
 layout(location = 2) in vec4 InUScaled;
-layout(location = 3) flat in uvec4 InUInt;
+layout(location = 3) flat in uvec2 InUInt;
+layout(location = 3, component = 2) flat in uint InUInt1;
+layout(location = 3, component = 3) flat in uint InUInt2;
 layout(location = 4) flat in dvec2 InDouble;
 layout(location = 5) in vec2 InArray[2];
 layout(location = 7) in mat2x2 InMatrix;
@@ -111,7 +119,7 @@ void main()
     Color = vec4(0.3f, 0, 0, 1);
 
   // Similar for UInt
-  if(InUInt.x > 65535 || InUInt.y > 65535 || InUInt.z > 65535 || InUInt.w > 65535)
+  if(InUInt.x > 65535 || InUInt.y > 65535 || InUInt1.x > 65535 || InUInt2.x > 65535)
     Color = vec4(0.4f, 0, 0, 1);
 
   // doubles are all in range [-10, 10]
@@ -130,7 +138,9 @@ layout(triangle_strip, max_vertices = 3) out;
 layout(location = 0) in vec4 InSNorm[3];
 layout(location = 1) in vec4 InUNorm[3];
 layout(location = 2) in vec4 InUScaled[3];
-layout(location = 3) in uvec4 InUInt[3];
+layout(location = 3) flat in uvec2 InUInt[3];
+layout(location = 3, component = 2) flat in uint InUInt1[3];
+layout(location = 3, component = 3) flat in uint InUInt2[3];
 layout(location = 4) in dvec2 InDouble[3];
 layout(location = 5) in vec2 InArray[3][2];
 layout(location = 7) in mat2x2 InMatrix[3];
@@ -138,7 +148,9 @@ layout(location = 7) in mat2x2 InMatrix[3];
 layout(location = 0) out vec4 OutSNorm;
 layout(location = 1) out vec4 OutUNorm;
 layout(location = 2) out vec4 OutUScaled;
-layout(location = 3) out uvec4 OutUInt;
+layout(location = 3) flat out uvec2 OutUInt;
+layout(location = 3, component = 2) flat out uint OutUInt1;
+layout(location = 3, component = 3) flat out uint OutUInt2;
 layout(location = 4) out dvec2 OutDouble;
 layout(location = 5) out vec2 OutArray[2];
 layout(location = 7) out mat2x2 OutMatrix;
@@ -153,6 +165,8 @@ void main()
     OutUScaled = InUScaled[i];
     OutDouble = InDouble[i];
     OutUInt = InUInt[i];
+    OutUInt1 = InUInt1[i];
+    OutUInt2 = InUInt2[i];
     OutUNorm = InUNorm[i];
     OutArray = InArray[i];
     OutMatrix = InMatrix[i];

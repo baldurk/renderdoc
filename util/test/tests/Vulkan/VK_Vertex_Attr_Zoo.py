@@ -18,7 +18,9 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
                 'SNorm': [1.0, -1.0, 1.0, -1.0],
                 'UNorm': [12345.0/65535.0, 6789.0/65535.0, 1234.0/65535.0, 567.0/65535.0],
                 'UScaled': [12345.0, 6789.0, 1234.0, 567.0],
-                'UInt': [12345, 6789, 1234, 567],
+                'UInt': [12345, 6789],
+                'UInt1': [1234],
+                'UInt2': [567],
                 'Double': [9.8765432109, -5.6789012345],
                 'Array[0]': [1.0, 2.0],
                 'Array[1]': [3.0, 4.0],
@@ -29,7 +31,9 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
                 'SNorm': [32766.0/32767.0, -32766.0/32767.0, 16000.0/32767.0, -16000.0/32767.0],
                 'UNorm': [56.0/65535.0, 7890.0/65535.0, 123.0/65535.0, 4567.0/65535.0],
                 'UScaled': [56.0, 7890.0, 123.0, 4567.0],
-                'UInt': [56, 7890, 123, 4567],
+                'UInt': [56, 7890],
+                'UInt1': [123],
+                'UInt2': [4567],
                 'Double': [-7.89012345678, 6.54321098765],
                 'Array[0]': [11.0, 12.0],
                 'Array[1]': [13.0, 14.0],
@@ -40,7 +44,9 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
                 'SNorm': [5.0/32767.0, -5.0/32767.0, 0.0, 0.0],
                 'UNorm': [8765.0/65535.0, 43210.0/65535.0, 987.0/65535.0, 65432.0/65535.0],
                 'UScaled': [8765.0, 43210.0, 987.0, 65432.0],
-                'UInt': [8765, 43210, 987, 65432],
+                'UInt': [8765, 43210],
+                'UInt1': [987],
+                'UInt2': [65432],
                 'Double': [0.1234567890123, 4.5678901234],
                 'Array[0]': [21.0, 22.0],
                 'Array[1]': [23.0, 24.0],
@@ -54,7 +60,11 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
         for idx in ref:
             in_ref[idx] = {}
             for key in ref[idx]:
+                if 'UInt' in key:
+                    continue
                 in_ref[idx]['In' + key] = ref[idx][key]
+
+            in_ref[idx]['InUInt2'] = ref[idx]['UInt'] + ref[idx]['UInt1'] + ref[idx]['UInt2']
 
         # Copy the ref values and prepend 'Out'
         out_ref = {}
