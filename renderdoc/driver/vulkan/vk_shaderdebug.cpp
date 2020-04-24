@@ -3471,7 +3471,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     uint32_t arrayLength;
     float destX;
     float destY;
-  } specData;
+  } specData = {};
 
   specData.arrayLength = overdrawLevels;
   specData.destX = float(x) + 0.5f;
