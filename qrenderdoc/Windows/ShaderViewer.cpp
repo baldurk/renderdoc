@@ -2748,7 +2748,8 @@ void ShaderViewer::updateWatchVariables()
                       var.type == VarType::UShort || var.type == VarType::UByte)
                 regcast = QLatin1Char('u');
               else if(var.type == VarType::SLong || var.type == VarType::SInt ||
-                      var.type == VarType::SShort || var.type == VarType::SByte)
+                      var.type == VarType::SShort || var.type == VarType::SByte ||
+                      var.type == VarType::Bool)
                 regcast = QLatin1Char('i');
               else if(var.type == VarType::Unknown)
                 regcast = ui->intView->isChecked() ? QLatin1Char('i') : QLatin1Char('f');
@@ -2858,6 +2859,8 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
     typeName = lit("float");
   else if(l.type == VarType::Double)
     typeName = lit("double");
+  else if(l.type == VarType::Bool)
+    typeName = lit("bool");
 
   QList<RDTreeWidgetItem *> children;
 
@@ -3024,6 +3027,8 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
             value += Formatter::Format(reg->value.uv[r.component]);
           else if(l.type == VarType::SInt)
             value += Formatter::Format(reg->value.iv[r.component]);
+          else if(l.type == VarType::Bool)
+            value += Formatter::Format(reg->value.uv[r.component] ? true : false);
           else if(l.type == VarType::Float)
             value += Formatter::Format(reg->value.fv[r.component]);
           else if(l.type == VarType::Double)

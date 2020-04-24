@@ -272,7 +272,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
 
       if(basetype == lit("bool"))
       {
-        el.type.descriptor.type = VarType::UInt;
+        el.type.descriptor.type = VarType::Bool;
       }
       else if(basetype == lit("byte"))
       {
@@ -849,18 +849,9 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
     }
 
     uint32_t size = lastChild->type.descriptor.rows * lastChild->type.descriptor.columns;
-    if(lastChild->type.descriptor.type == VarType::Double ||
-       lastChild->type.descriptor.type == VarType::ULong ||
-       lastChild->type.descriptor.type == VarType::SLong)
-      size *= 8;
-    else if(lastChild->type.descriptor.type == VarType::Float ||
-            lastChild->type.descriptor.type == VarType::UInt ||
-            lastChild->type.descriptor.type == VarType::SInt)
-      size *= 4;
-    else if(lastChild->type.descriptor.type == VarType::Half ||
-            lastChild->type.descriptor.type == VarType::UShort ||
-            lastChild->type.descriptor.type == VarType::SShort)
-      size *= 2;
+    uint32_t typeSize = VarTypeByteSize(lastChild->type.descriptor.type);
+    if(typeSize > 1)
+      size *= typeSize;
 
     if(lastChild->type.descriptor.elements > 1)
       size *= lastChild->type.descriptor.elements;
@@ -911,6 +902,7 @@ ResourceFormat GetInterpretedResourceFormat(const ShaderConstant &elem)
     case VarType::SShort:
     case VarType::SLong:
     case VarType::SByte: format.compType = CompType::SInt; break;
+    case VarType::Bool:
     case VarType::UInt:
     case VarType::UShort:
     case VarType::ULong:
@@ -991,6 +983,8 @@ static void FillShaderVarData(ShaderVariable &var, const ShaderConstant &elem, c
         var.value.u64v[dst] = o.toULongLong();
       else if(var.type == VarType::SLong)
         var.value.s64v[dst] = o.toLongLong();
+      else if(var.type == VarType::Bool)
+        var.value.uv[dst] = o.toBool() ? 1 : 0;
       else if(var.type == VarType::UInt || var.type == VarType::UShort || var.type == VarType::UByte)
         var.value.uv[dst] = o.toUInt();
       else if(var.type == VarType::SInt || var.type == VarType::SShort || var.type == VarType::SByte)
@@ -1596,6 +1590,12 @@ QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
     return RowValuesToString((int)v.columns, v.displayAsHex, v.value.uv[row * v.columns + 0],
                              v.value.uv[row * v.columns + 1], v.value.uv[row * v.columns + 2],
                              v.value.uv[row * v.columns + 3]);
+  else if(type == VarType::Bool)
+    return RowValuesToString((int)v.columns, v.displayAsHex,
+                             v.value.uv[row * v.columns + 0] ? true : false,
+                             v.value.uv[row * v.columns + 1] ? true : false,
+                             v.value.uv[row * v.columns + 2] ? true : false,
+                             v.value.uv[row * v.columns + 3] ? true : false);
   else
     return RowValuesToString((int)v.columns, v.displayAsHex, v.value.fv[row * v.columns + 0],
                              v.value.fv[row * v.columns + 1], v.value.fv[row * v.columns + 2],

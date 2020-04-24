@@ -2083,6 +2083,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
               case VarType::SInt:
                 GL.glGetUniformiv(prog, location, (int32_t *)uniformData.data());
                 break;
+              case VarType::Bool:
               case VarType::UInt:
                 GL.glGetUniformuiv(prog, location, (uint32_t *)uniformData.data());
                 break;
@@ -2133,6 +2134,7 @@ void GLReplay::OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool b
                 case VarType::SInt:
                   GL.glGetUniformiv(prog, location + a, (int32_t *)uniformData.data());
                   break;
+                case VarType::Bool:
                 case VarType::UInt:
                   GL.glGetUniformuiv(prog, location + a, (uint32_t *)uniformData.data());
                   break;

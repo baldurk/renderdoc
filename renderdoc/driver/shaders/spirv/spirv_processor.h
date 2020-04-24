@@ -86,7 +86,7 @@ struct Scalar
     }
     else if(type == Op::TypeBool)
     {
-      return VarType::UInt;
+      return VarType::Bool;
     }
 
     return VarType::Unknown;

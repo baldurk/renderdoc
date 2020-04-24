@@ -522,6 +522,7 @@ void Processor::RegisterOp(Iter it)
 
     ShaderVariable v("true", 1, 0, 0, 0);
     v.columns = 1;
+    v.type = VarType::Bool;
 
     constants[decoded.result] = {decoded.resultType, decoded.result, v, {}, opdata.op};
     if(opdata.op == Op::SpecConstantTrue)
@@ -533,6 +534,7 @@ void Processor::RegisterOp(Iter it)
 
     ShaderVariable v("true", 0, 0, 0, 0);
     v.columns = 1;
+    v.type = VarType::Bool;
 
     constants[decoded.result] = {decoded.resultType, decoded.result, v, {}, opdata.op};
     if(opdata.op == Op::SpecConstantFalse)

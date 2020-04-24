@@ -412,6 +412,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
             case VarType::SInt:
             case VarType::SShort:
             case VarType::SByte: ret += ToStr(value.i.x); break;
+            case VarType::Bool: ret += value.u.x ? "true" : "false"; break;
             case VarType::UInt:
             case VarType::UShort:
             case VarType::UByte: ret += ToStr(value.u.x); break;
@@ -1571,6 +1572,7 @@ rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
       case VarType::SInt:
       case VarType::SShort:
       case VarType::SByte: return ToStr(value.value.i.x);
+      case VarType::Bool: return value.value.u.x ? "true" : "false";
       case VarType::UInt:
       case VarType::UShort:
       case VarType::UByte: return ToStr(value.value.u.x);
@@ -1601,6 +1603,7 @@ rdcstr Reflector::StringiseConstant(rdcspv::Id id) const
         case VarType::UShort:
         case VarType::UByte: ret += ToStr(value.value.uv[i]); break;
         case VarType::SLong: ret += ToStr(value.value.s64v[i]); break;
+        case VarType::Bool: return value.value.u.x ? "true" : "false";
         case VarType::Unknown:
         case VarType::GPUPointer:
         case VarType::ConstantBlock:

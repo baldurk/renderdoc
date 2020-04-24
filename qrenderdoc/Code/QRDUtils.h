@@ -235,6 +235,7 @@ struct Formatter
   {
     return QFormatStr("%1").arg(u, hex ? 2 : 0, hex ? 16 : 10, QLatin1Char('0')).toUpper();
   }
+  static QString Format(bool b, bool hex = false) { return b ? lit("true") : lit("false"); }
   static QString HexFormat(uint32_t u, uint32_t byteSize)
   {
     if(byteSize == 1)

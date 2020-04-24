@@ -832,8 +832,13 @@ rdcstr DoStringise(const VarType &el)
     STRINGISE_ENUM_CLASS_NAMED(ULong, "ulong");
     STRINGISE_ENUM_CLASS_NAMED(SByte, "byte");
     STRINGISE_ENUM_CLASS_NAMED(UByte, "ubyte");
-    STRINGISE_ENUM_CLASS_NAMED(Unknown, "unknown");
+    STRINGISE_ENUM_CLASS_NAMED(Bool, "bool");
     STRINGISE_ENUM_CLASS_NAMED(GPUPointer, "pointer");
+    STRINGISE_ENUM_CLASS_NAMED(ConstantBlock, "cbuffer");
+    STRINGISE_ENUM_CLASS_NAMED(ReadOnlyResource, "resource");
+    STRINGISE_ENUM_CLASS_NAMED(ReadWriteResource, "rwresource");
+    STRINGISE_ENUM_CLASS_NAMED(Sampler, "sampler");
+    STRINGISE_ENUM_CLASS_NAMED(Unknown, "unknown");
   }
   END_ENUM_STRINGISE();
 }

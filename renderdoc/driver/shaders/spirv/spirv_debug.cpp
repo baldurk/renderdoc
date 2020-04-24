@@ -565,8 +565,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       ShaderVariable var;
       var.rows = var.columns = 1;
-      // TODO we should add a bool type
-      var.type = VarType::UInt;
+      var.type = VarType::Bool;
 
       if(opdata.op == Op::PtrEqual)
         var.value.uv[0] = isEqual ? 1 : 0;
@@ -1295,8 +1294,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
           var.value.uv[c] = (var.value.fv[c] > b.value.fv[c]) ? 0 : 1;
       }
 
-      // TODO we should add a bool type
-      var.type = VarType::UInt;
+      var.type = VarType::Bool;
 
       SetDst(comp.result, var);
       break;
@@ -1309,6 +1307,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       for(uint8_t c = 0; c < var.columns; c++)
         var.value.uv[c] = 1U - var.value.uv[c];
+
+      var.type = VarType::Bool;
 
       SetDst(negate.result, var);
       break;
@@ -1342,8 +1342,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(uint8_t c = 0; c < var.columns; c++)
         var.value.uv[c] = isnan(var.value.fv[c]) ? 1 : 0;
 
-      // TODO we should add a bool type
-      var.type = VarType::UInt;
+      var.type = VarType::Bool;
 
       SetDst(is.result, var);
       break;
@@ -1357,8 +1356,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       for(uint8_t c = 0; c < var.columns; c++)
         var.value.uv[c] = isinf(var.value.fv[c]) ? 1 : 0;
 
-      // TODO we should add a bool type
-      var.type = VarType::UInt;
+      var.type = VarType::Bool;
 
       SetDst(is.result, var);
       break;

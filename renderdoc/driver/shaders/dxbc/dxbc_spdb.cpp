@@ -206,7 +206,7 @@ SPDBChunk::SPDBChunk(void *chunk)
   typeInfo[T_LONG] = {"int32_t", VarType::SInt, 4, 1, 0, 0, LF_NUMERIC, {}};
   typeInfo[T_SHORT] = {"int16_t", VarType::SInt, 2, 1, 0, 0, LF_NUMERIC, {}};
   typeInfo[T_CHAR] = {"char", VarType::SInt, 1, 1, 0, 0, LF_NUMERIC, {}};
-  typeInfo[T_BOOL32FF] = {"bool", VarType::UInt, 4, 1, 0, 0, LF_NUMERIC, {}};
+  typeInfo[T_BOOL32FF] = {"bool", VarType::Bool, 4, 1, 0, 0, LF_NUMERIC, {}};
   typeInfo[T_UINT4] = {"uint32_t", VarType::UInt, 4, 1, 0, 0, LF_NUMERIC, {}};
   typeInfo[T_UINT2] = {"uint16_t", VarType::UInt, 2, 1, 0, 0, LF_NUMERIC, {}};
   typeInfo[T_UINT1] = {"uint8_t", VarType::UInt, 1, 1, 0, 0, LF_NUMERIC, {}};

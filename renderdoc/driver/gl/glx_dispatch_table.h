@@ -26,6 +26,8 @@
 
 #include "gl_common.h"
 
+#define Bool int
+
 // glX functions
 typedef GLXContext (*PFN_glXCreateContext)(Display *dpy, XVisualInfo *vis, GLXContext shareList,
                                            Bool direct);

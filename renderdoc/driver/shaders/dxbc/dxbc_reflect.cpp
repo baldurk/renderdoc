@@ -39,7 +39,7 @@ static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type)
     case DXBC::VARTYPE_MIN12INT:
     case DXBC::VARTYPE_MIN16INT:
     case DXBC::VARTYPE_INT: ret.descriptor.type = VarType::SInt; break;
-    case DXBC::VARTYPE_BOOL:
+    case DXBC::VARTYPE_BOOL: ret.descriptor.type = VarType::Bool; break;
     case DXBC::VARTYPE_MIN16UINT:
     case DXBC::VARTYPE_UINT: ret.descriptor.type = VarType::UInt; break;
     case DXBC::VARTYPE_DOUBLE: ret.descriptor.type = VarType::Double; break;

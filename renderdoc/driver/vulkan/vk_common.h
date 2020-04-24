@@ -62,6 +62,9 @@
 #include "serialise/serialiser.h"
 #include "vk_dispatchtables.h"
 
+#undef Bool
+#undef None
+
 // enable this to cause every internal QueueSubmit to immediately call DeviceWaitIdle(), and to only
 // submit one command buffer at once to narrow down the cause of device lost errors
 #define SINGLE_FLUSH_VALIDATE OPTION_OFF

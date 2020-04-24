@@ -260,6 +260,9 @@ struct GLWindowingData
 #error "Unknown platform"
 #endif
 
+#undef None
+#undef Bool
+
 struct GLPlatform
 {
   // simple wrapper for OS functions to make/delete a context

@@ -195,6 +195,10 @@ DOCUMENT(R"(Represents the base type of a shader variable in debugging or consta
 
   An unsigned 8-bit integer value.
 
+.. data:: Bool
+
+  A boolean value.
+
 .. data:: GPUPointer
 
   A 64-bit pointer into GPU-addressable memory. Variables with this type are stored with opaque
@@ -237,6 +241,7 @@ enum class VarType : uint8_t
   ULong,
   SByte,
   UByte,
+  Bool,
   GPUPointer,
   ConstantBlock,
   ReadOnlyResource,
@@ -260,7 +265,7 @@ constexpr uint32_t VarTypeByteSize(VarType type)
   // clang-format off
   return (type == VarType::UByte  || type == VarType::SByte) ? 1
        : (type == VarType::Half   || type == VarType::UShort || type == VarType::SShort) ? 2
-       : (type == VarType::Float  || type == VarType::UInt   || type == VarType::SInt  ) ? 4
+       : (type == VarType::Float  || type == VarType::UInt   || type == VarType::SInt   || type == VarType::Bool) ? 4
        : (type == VarType::Double || type == VarType::ULong  || type == VarType::SLong ) ? 8
        : 0;
   // clang-format on
