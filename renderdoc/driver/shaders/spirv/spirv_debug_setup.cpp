@@ -1239,9 +1239,9 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
       for(uint32_t row = 0; row < ret.rows; row++)
       {
         if(VarTypeByteSize(ret.type) == 8)
-          val.u64v[0] = ret.value.u64v[row * ret.columns + scalar0];
+          val.u64v[row] = ret.value.u64v[row * ret.columns + scalar0];
         else
-          val.uv[0] = ret.value.uv[row * ret.columns + scalar0];
+          val.uv[row] = ret.value.uv[row * ret.columns + scalar0];
       }
 
       // it's a vector now, even if it was a matrix before
