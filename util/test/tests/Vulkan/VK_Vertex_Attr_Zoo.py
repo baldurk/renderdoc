@@ -22,8 +22,8 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
                 'Double': [9.8765432109, -5.6789012345],
                 'Array[0]': [1.0, 2.0],
                 'Array[1]': [3.0, 4.0],
-                'Matrix:row0': [7.0, 8.0],
-                'Matrix:row1': [9.0, 10.0],
+                'Matrix:col0': [7.0, 8.0],
+                'Matrix:col1': [9.0, 10.0],
             },
             1: {
                 'SNorm': [32766.0/32767.0, -32766.0/32767.0, 16000.0/32767.0, -16000.0/32767.0],
@@ -33,8 +33,8 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
                 'Double': [-7.89012345678, 6.54321098765],
                 'Array[0]': [11.0, 12.0],
                 'Array[1]': [13.0, 14.0],
-                'Matrix:row0': [17.0, 18.0],
-                'Matrix:row1': [19.0, 20.0],
+                'Matrix:col0': [17.0, 18.0],
+                'Matrix:col1': [19.0, 20.0],
             },
             2: {
                 'SNorm': [5.0/32767.0, -5.0/32767.0, 0.0, 0.0],
@@ -44,8 +44,8 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
                 'Double': [0.1234567890123, 4.5678901234],
                 'Array[0]': [21.0, 22.0],
                 'Array[1]': [23.0, 24.0],
-                'Matrix:row0': [27.0, 28.0],
-                'Matrix:row1': [29.0, 30.0],
+                'Matrix:col0': [27.0, 28.0],
+                'Matrix:col1': [29.0, 30.0],
             },
         }
 

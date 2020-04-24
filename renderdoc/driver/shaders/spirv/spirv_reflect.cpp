@@ -1472,7 +1472,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
   if(parentStructID)
     patch.structMemberIndex = patch.accessChain.back();
 
-  const bool rowmajor = !(varDecorations.flags & Decorations::ColMajor);
+  const bool rowmajor = (varDecorations.flags & Decorations::RowMajor) != 0;
 
   sig.regIndex = regIndex;
 
