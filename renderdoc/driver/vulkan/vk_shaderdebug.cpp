@@ -1244,7 +1244,7 @@ private:
 
     const DescSetSnapshot &setData = m_DescSets[index.bindset];
 
-    if(index.bind >= setData.bindings.count())
+    if(index.bind < 0 || index.bind >= setData.bindings.count())
     {
       m_pDriver->AddDebugMessage(
           MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
