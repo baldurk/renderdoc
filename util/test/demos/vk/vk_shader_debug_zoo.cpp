@@ -35,6 +35,7 @@ RD_TEST(VK_Shader_Debug_Zoo, VulkanGraphicsTest)
     float zero;
     float one;
     float negone;
+    Vec2f uv;
   };
 
   std::string v2f =
@@ -154,6 +155,9 @@ layout(set = 0, binding = 21) uniform sampler2DMSArray queryTestMS;
 layout(push_constant) uniform PushData {
   layout(offset = 16) ivec4 data;
 } push;
+)EOSHADER";
+
+  std::string pixel_glsl1 = pixel_glsl_header + R"EOSHADER(
 
 layout(location = 0, index = 0) out vec4 Color;
 
@@ -161,9 +165,6 @@ layout(location = 0, index = 0) out vec4 Color;
 
 )EOSHADER" + v2f + R"EOSHADER(
 
-)EOSHADER";
-
-  std::string pixel_glsl1 = pixel_glsl_header + R"EOSHADER(
 void main()
 {
   float  posinf = linearData.oneVal/linearData.zeroVal.x;
@@ -499,7 +500,7 @@ void main()
       break;
     }
 )EOSHADER"
-                                                R"EOSHADER(
+                   R"EOSHADER(
     case 51:
     {
       Color = fwidthFine(vec4(inpos, inposIncreased));
@@ -866,7 +867,7 @@ void main()
       break;
     }
 )EOSHADER"
-                                                R"EOSHADER(
+                   R"EOSHADER(
     case 102:
     {
       uint a = zerou + 0x0dadbeef;
@@ -1102,14 +1103,100 @@ void main()
 
 )EOSHADER";
 
-  std::string pixel_glsl2 = pixel_glsl_header + R"EOSHADER(
+  std::string vertex2 = R"EOSHADER(
+#version 460 core
+
+layout(location = 0) in vec4 pos;
+layout(location = 1) in float zero;
+layout(location = 2) in float one;
+layout(location = 3) in float negone;
+layout(location = 4) in vec2 texcoord;
+
+layout(location = 0, component = 0) flat out uint test;
+layout(location = 0, component = 1) flat out int zeroi;
+layout(location = 0, component = 2) flat out uint intval;
+
+layout(location = 1, component = 1) out vec3 uv;
+
+struct nested
+{
+  float c; // location 4
+  vec2 d; // location 5
+};
+
+struct iostruct
+{
+  float a; // location 2
+  float b; // location 3
+  nested n;
+};
+
+layout(location = 2) out iostruct str;
+
+layout(location = 6) out mat3 matrix;
+
+layout(location = 9) out vec3 arr[3];
+
 void main()
 {
-  uint test = flatData.test;
-  int intval = int(flatData.intval);
-  uint zerou = flatData.intval - flatData.test - 7u;
-  int zeroi = int(zerou);
+  test = gl_InstanceIndex;
+ 
+  gl_Position = vec4(pos.x + pos.z * float(test % 256), pos.y + pos.w * float(test / 256), 0.0, 1.0);
 
+  zeroi = 0;
+  intval = test + 7u;
+
+  uv = vec3(texcoord.xy, pos.x);
+
+  vec4 test = vec4(uv.x + 1.0f, uv.y + 2.0f, uv.x + 3.0f, uv.y + 4.0f);
+
+  str.a = test.x;
+  str.b = test.y;
+  str.n.c = test.z;
+  str.n.d = vec2(test.w, 3.141592f);
+
+  test *= 1.5f;
+  
+  matrix = mat3((test * 2.0f).xyz, (test * 3.0f).xyz, (test * 4.0f).xyz);
+
+  arr[0] = (test * 5.0f).yzw;
+  arr[1] = (test * 6.0f).yzw;
+  arr[2] = (test * 7.0f).yzw;
+}
+
+)EOSHADER";
+
+  std::string pixel_glsl2 = pixel_glsl_header + R"EOSHADER(
+
+layout(location = 0, component = 0) flat in uint test;
+layout(location = 0, component = 1) flat in int zeroi;
+layout(location = 0, component = 2) flat in uint intval;
+
+layout(location = 1, component = 1) in vec3 uv;
+
+struct nested
+{
+  float c; // location 4
+  vec2 d; // location 5
+};
+
+struct iostruct
+{
+  float a; // location 2
+  float b; // location 3
+  nested n;
+};
+
+layout(location = 2) in iostruct str;
+
+layout(location = 6) in mat3 matrix;
+
+layout(location = 9) in vec3 arr[3];
+
+layout(location = 0) out vec4 Color;
+
+void main()
+{
   Color = vec4(0,0,0,0);
   switch(test)
   {
@@ -1128,12 +1215,57 @@ void main()
     case 2:
     {
       // test loading from the storage buffer (after a nice big barrier)
-      Color = storebuf.arr[flatData.intval - flatData.test];
+      Color = storebuf.arr[intval - test];
       break;
     }
     case 3:
     {
       Color = imageLoad(storeImage, ivec2(zeroi+1,zeroi+3));
+      break;
+    }
+    case 4:
+    {
+      Color = vec4(test, zeroi, intval, 1.0f);
+      break;
+    }
+    case 5:
+    {
+      Color = vec4(uv.xyz, 1.0f);
+      break;
+    }
+    case 6:
+    {
+      Color = vec4(str.a, str.b, str.n.c, length(str.n.d));
+      break;
+    }
+    case 7:
+    {
+      Color = matrix[0].xyzx;
+      break;
+    }
+    case 8:
+    {
+      Color = matrix[1].xyzx;
+      break;
+    }
+    case 9:
+    {
+      Color = matrix[2].xyzx;
+      break;
+    }
+    case 10:
+    {
+      Color = arr[0].xyzx;
+      break;
+    }
+    case 11:
+    {
+      Color = arr[1].xyzx;
+      break;
+    }
+    case 12:
+    {
+      Color = arr[2].xyzx;
       break;
     }
     default: break;
@@ -2490,6 +2622,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
         vkh::vertexAttr(0, 0, ConstsA2V, pos), vkh::vertexAttr(1, 0, ConstsA2V, zero),
         vkh::vertexAttr(2, 0, ConstsA2V, one), vkh::vertexAttr(3, 0, ConstsA2V, negone),
+        vkh::vertexAttr(4, 0, ConstsA2V, uv),
     };
 
     pipeCreateInfo.stages = {
@@ -2499,8 +2632,10 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     VkPipeline glslpipe1 = createGraphicsPipeline(pipeCreateInfo);
 
-    pipeCreateInfo.stages[1] =
-        CompileShaderModule(pixel_glsl2, ShaderLang::glsl, ShaderStage::frag, "main");
+    pipeCreateInfo.stages = {
+        CompileShaderModule(vertex2, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(pixel_glsl2, ShaderLang::glsl, ShaderStage::frag, "main"),
+    };
 
     VkPipeline glslpipe2 = createGraphicsPipeline(pipeCreateInfo);
 
@@ -2511,8 +2646,11 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     if(vk_version >= 0x12)
       target = SPIRVTarget::vulkan12;
 
-    pipeCreateInfo.stages[1] = CompileShaderModule(make_pixel_asm(), ShaderLang::spvasm,
-                                                   ShaderStage::frag, "main", {}, target);
+    pipeCreateInfo.stages = {
+        CompileShaderModule(vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(make_pixel_asm(), ShaderLang::spvasm, ShaderStage::frag, "main", {},
+                            target),
+    };
 
     VkPipeline asmpipe = createGraphicsPipeline(pipeCreateInfo);
 
@@ -2520,9 +2658,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     float triHeight = 8.0f / float(texHeight);
 
     ConstsA2V triangle[] = {
-        {Vec4f(-1.0f, -1.0f, triWidth, triHeight), 0.0f, 1.0f, -1.0f},
-        {Vec4f(-1.0f + triWidth, -1.0f, triWidth, triHeight), 0.0f, 1.0f, -1.0f},
-        {Vec4f(-1.0f, -1.0f + triHeight, triWidth, triHeight), 0.0f, 1.0f, -1.0f},
+        {Vec4f(-1.0f, -1.0f, triWidth, triHeight), 0.0f, 1.0f, -1.0f, Vec2f(0.0f, 0.0f)},
+        {Vec4f(-1.0f + triWidth, -1.0f, triWidth, triHeight), 0.0f, 1.0f, -1.0f, Vec2f(1.0f, 0.0f)},
+        {Vec4f(-1.0f, -1.0f + triHeight, triWidth, triHeight), 0.0f, 1.0f, -1.0f, Vec2f(0.0f, 1.0f)},
     };
 
     AllocatedBuffer vb(this,

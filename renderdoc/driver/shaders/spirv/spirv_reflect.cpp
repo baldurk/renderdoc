@@ -1157,6 +1157,9 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         if(a.regIndex != b.regIndex)
           return a.regIndex < b.regIndex;
 
+        if(a.regChannelMask != b.regChannelMask)
+          return a.regChannelMask < b.regChannelMask;
+
         return a.varName < b.varName;
       }
       if(a.systemValue == ShaderBuiltin::Undefined)
@@ -1595,6 +1598,12 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
   sig.stream = 0;
 
   sig.regChannelMask = sig.channelUsedMask = (1 << sig.compCount) - 1;
+
+  for(const DecorationAndParamData &d : varDecorations.others)
+    if(d.value == Decoration::Component)
+      sig.regChannelMask <<= d.component;
+
+  sig.channelUsedMask = sig.regChannelMask;
 
   for(uint32_t a = 0; a < arraySize; a++)
   {

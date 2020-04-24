@@ -395,12 +395,34 @@ public:
       return;
     }
 
-    // TODO handle components
-    RDCASSERT(component == 0);
-
     if(location < location_inputs.size())
     {
-      var.value = location_inputs[location].value;
+      const uint32_t typeSize = VarTypeByteSize(var.type);
+      if(var.rows == 1)
+      {
+        if(component > 3)
+          RDCERR("Unexpected component %u ", component);
+
+        if(typeSize == 8)
+          memcpy(var.value.u64v, &location_inputs[location].value.u64v[component],
+                 var.rows * var.columns * typeSize);
+        else
+          memcpy(var.value.uv, &location_inputs[location].value.uv[component],
+                 var.rows * var.columns * typeSize);
+      }
+      else
+      {
+        for(uint8_t r = 0; r < var.rows; r++)
+        {
+          for(uint8_t c = 0; c < var.columns; c++)
+          {
+            if(typeSize == 8)
+              var.value.u64v[r * var.columns + c] = location_inputs[location + c].value.u64v[r];
+            else
+              var.value.uv[r * var.columns + c] = location_inputs[location + c].value.uv[r];
+          }
+        }
+      }
       return;
     }
 
@@ -421,11 +443,43 @@ public:
       return DerivativeDeltas();
     }
 
-    // TODO handle components
-    RDCASSERT(component == 0);
-
     if(location < location_derivatives.size())
-      return location_derivatives[location];
+    {
+      const DerivativeDeltas &deriv = location_derivatives[location];
+
+      DerivativeDeltas ret;
+      if(component == 0)
+      {
+        ret = deriv;
+      }
+      else if(component == 1)
+      {
+        memcpy(&ret.ddxcoarse.x, &deriv.ddxcoarse.y, sizeof(Vec3f));
+        memcpy(&ret.ddxfine.x, &deriv.ddxfine.y, sizeof(Vec3f));
+        memcpy(&ret.ddycoarse.x, &deriv.ddycoarse.y, sizeof(Vec3f));
+        memcpy(&ret.ddyfine.x, &deriv.ddyfine.y, sizeof(Vec3f));
+      }
+      else if(component == 2)
+      {
+        memcpy(&ret.ddxcoarse.x, &deriv.ddxcoarse.z, sizeof(Vec2f));
+        memcpy(&ret.ddxfine.x, &deriv.ddxfine.z, sizeof(Vec2f));
+        memcpy(&ret.ddycoarse.x, &deriv.ddycoarse.z, sizeof(Vec2f));
+        memcpy(&ret.ddyfine.x, &deriv.ddyfine.z, sizeof(Vec2f));
+      }
+      else if(component == 3)
+      {
+        ret.ddxcoarse.x = deriv.ddxcoarse.w;
+        ret.ddxfine.x = deriv.ddxfine.w;
+        ret.ddycoarse.x = deriv.ddycoarse.w;
+        ret.ddyfine.x = deriv.ddyfine.w;
+      }
+      else
+      {
+        RDCERR("Unexpected component %u", component);
+      }
+
+      return ret;
+    }
 
     RDCERR("Couldn't get derivative for location=%u, component=%u", location, component);
     return DerivativeDeltas();
@@ -3885,11 +3939,15 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
           builtin ? apiWrapper->builtin_derivatives[param.systemValue]
                   : apiWrapper->location_derivatives[param.regIndex];
 
-      memcpy(&var.value.uv, &value[i], sizeof(Vec4f));
-      memcpy(&deriv.ddxcoarse, &ddxcoarse[i], sizeof(Vec4f));
-      memcpy(&deriv.ddycoarse, &ddycoarse[i], sizeof(Vec4f));
-      memcpy(&deriv.ddxfine, &ddxfine[i], sizeof(Vec4f));
-      memcpy(&deriv.ddyfine, &ddyfine[i], sizeof(Vec4f));
+      uint32_t comp = Bits::CountTrailingZeroes(uint32_t(param.regChannelMask));
+
+      const size_t sz = sizeof(Vec4f) - sizeof(uint32_t) * comp;
+
+      memcpy(((uint32_t *)&var.value.uv) + comp, &value[i], sz);
+      memcpy(((uint32_t *)&deriv.ddxcoarse.x) + comp, &ddxcoarse[i], sz);
+      memcpy(((uint32_t *)&deriv.ddycoarse.x) + comp, &ddycoarse[i], sz);
+      memcpy(((uint32_t *)&deriv.ddxfine.x) + comp, &ddxfine[i], sz);
+      memcpy(((uint32_t *)&deriv.ddyfine.x) + comp, &ddyfine[i], sz);
     }
 
     ret = debugger->BeginDebug(apiWrapper, ShaderStage::Pixel, entryPoint, spec,

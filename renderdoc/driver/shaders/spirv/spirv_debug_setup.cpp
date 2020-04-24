@@ -120,6 +120,11 @@ void Debugger::MakeSignatureNames(const rdcarray<SPIRVInterfaceAccess> &sigList,
         name += StringFormat::Fmt("._child%u", chain);
         type = &dataTypes[type->children[chain].type];
       }
+      else if(type->type == DataType::MatrixType)
+      {
+        name += StringFormat::Fmt(".col%u", chain);
+        type = &dataTypes[type->InnerType()];
+      }
       else
       {
         RDCERR("Got access chain with non-aggregate type in interface.");
@@ -1649,6 +1654,10 @@ uint32_t Debugger::AllocateVariable(const Decorations &varDecorations,
       const Decorations &typeDecorations = decorations[inType.id];
 
       uint32_t location = 0;
+      // if this is a top-level array, don't pass the decorations down and let each child get an
+      // explicit offset, otherwise each child will consume the same location
+      const Decorations &childDecorations =
+          curDecorations.flags & Decorations::HasLocation ? Decorations() : curDecorations;
 
       ShaderVariable len = GetActiveLane().ids[inType.length];
       for(uint32_t i = 0; i < len.value.u.x; i++)
@@ -1656,8 +1665,9 @@ uint32_t Debugger::AllocateVariable(const Decorations &varDecorations,
         rdcstr idx = StringFormat::Fmt("[%u]", i);
         ShaderVariable var;
         var.name = outVar.name + idx;
+
         uint32_t locations =
-            AllocateVariable(varDecorations, curDecorations, sourceVarType, sourceName + idx,
+            AllocateVariable(varDecorations, childDecorations, sourceVarType, sourceName + idx,
                              location + offset, dataTypes[inType.InnerType()], var);
 
         if(genLocations)
