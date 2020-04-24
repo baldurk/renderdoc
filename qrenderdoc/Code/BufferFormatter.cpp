@@ -630,8 +630,13 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
             varTypeName = lit("root_struct");
         }
 
+        QString varName = members[i].name;
+
+        if(varName.isEmpty())
+          varName = QFormatStr("_child%1").arg(i);
+
         format +=
-            QFormatStr("    %1%2 %3%4;\n").arg(comment).arg(varTypeName).arg(members[i].name).arg(arraySize);
+            QFormatStr("    %1%2 %3%4;\n").arg(comment).arg(varTypeName).arg(varName).arg(arraySize);
       }
 
       format += lit("}");
@@ -820,7 +825,12 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
       }
     }
 
-    ret += QFormatStr("    %1 %2%3;\n").arg(varTypeName).arg(members[i].name).arg(arraySize);
+    QString varName = members[i].name;
+
+    if(varName.isEmpty())
+      varName = QFormatStr("_child%1").arg(i);
+
+    ret += QFormatStr("    %1 %2%3;\n").arg(varTypeName).arg(varName).arg(arraySize);
   }
 
   if(requiredByteStride > 0)
