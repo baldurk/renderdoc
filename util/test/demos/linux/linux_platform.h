@@ -26,7 +26,10 @@
 
 #include <dlfcn.h>
 #include <signal.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
+#include <string>
 
 #define DEBUG_BREAK() raise(SIGTRAP)
 
@@ -35,5 +38,7 @@
 #define msleep(time) usleep((time)*1000)
 
 #define EXECUTABLE_SUFFIX ""
+
+#define MakeDir(dir) mkdir(dir, 0755)
 
 std::string GetExecutableName();

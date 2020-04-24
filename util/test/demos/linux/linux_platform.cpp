@@ -51,7 +51,7 @@ std::string GetEnvVar(const char *var)
   return "";
 }
 
-std::string GetExecutableFilename()
+std::string GetExecutableName()
 {
   char path[512] = {0};
   readlink("/proc/self/exe", path, 511);

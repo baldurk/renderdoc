@@ -100,20 +100,22 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="$(Platform)=='x64' and exists('$(VULKAN_SDK)/lib/shaderc_combined.lib')">
+  <ItemDefinitionGroup Condition="$(Platform)=='x64' and exists('3rdparty/shaderc/x64/lib/shaderc_combined.lib')">
     <ClCompile>
+      <AdditionalIncludeDirectories>3rdparty/shaderc/x64/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>HAVE_SHADERC=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(VULKAN_SDK)/lib/shaderc_combined.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>3rdparty/shaderc/x64/lib/shaderc_combined.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="$(Platform)=='x86' and exists('$(VULKAN_SDK)/lib32/shaderc_combined.lib')">
+  <ItemDefinitionGroup Condition="$(Platform)=='x86' and exists('3rdparty/shaderc/x86/lib/shaderc_combined.lib')">
     <ClCompile>
+      <AdditionalIncludeDirectories>3rdparty/shaderc/x86/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>HAVE_SHADERC=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(VULKAN_SDK)/lib32/shaderc_combined.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>3rdparty/shaderc/x86/lib/shaderc_combined.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -48,7 +48,7 @@ std::string GetExecutableName();
 
 #define msleep(time) Sleep(time)
 
-#define mkdir(dir) CreateDirectoryA(dir, NULL)
+#define MakeDir(dir) CreateDirectoryA(dir, NULL)
 
 #define WEXITSTATUS(code) code
 

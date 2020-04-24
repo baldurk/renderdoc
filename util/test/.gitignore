@@ -1,4 +1,5 @@
 .idea/
+demos/3rdparty/shaderc/
 obj/
 ipch/
 tmp/

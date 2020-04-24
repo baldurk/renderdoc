@@ -91,9 +91,18 @@ add_executable(demos ${SRC} ${VULKAN_SRC} ${OPENGL_SRC})
 install(TARGETS demos DESTINATION .)
 
 if("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+    set(SHADERC_DIR "linux64")
     set(BIN_SUFFIX "x64")
 else()
+    set(SHADERC_DIR "linux32")
     set(BIN_SUFFIX "x86")
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/shaderc/${SHADERC_DIR})
+    target_compile_definitions(demos PRIVATE -DHAVE_SHADERC=1)
+    target_include_directories(demos PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/shaderc/${SHADERC_DIR}/include)
+    target_link_libraries(demos PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/shaderc/${SHADERC_DIR}/lib/libshaderc_combined.a)
+    message(STATUS "Linking in shaderc")
 endif()
 
 find_package(Threads REQUIRED)

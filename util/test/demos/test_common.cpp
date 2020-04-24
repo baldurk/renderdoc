@@ -200,29 +200,19 @@ void LoadXPM(const char **XPM, Texture &tex)
   }
 }
 
-#include "3rdparty/shaderc/shaderc.h"
-
 #ifndef HAVE_SHADERC
 #define HAVE_SHADERC 0
 #endif
 
-// on VS2015 define __std_reverse_trivially_swappable_8 so we can link against shaderc_combined.lib
-// built on newer VS
-#if defined(_MSC_VER) && _MSC_VER <= 1900
-extern "C" __declspec(noalias) void __cdecl __std_reverse_trivially_swappable_8(void *a,
-                                                                                void *b) noexcept
-{
-  unsigned long long temp;
-  static_assert(sizeof(temp) == 8, "wrong basic type");
-  memcpy(&temp, a, sizeof(temp));
-  memcpy(a, b, sizeof(temp));
-  memcpy(b, &temp, sizeof(temp));
-}
-#endif
+// this define toggles on/off using the linked shaderc. This can be useful for quick testing without
+// having to remove the built shaderc files
+#define USE_LINKED_SHADERC (1 && HAVE_SHADERC)
 
-// this define toggles on/off using the linked shaderc. This can be useful if e.g. on windows the
-// shaderc in VULKAN_SDK is broken.
-#define USE_LINKED_SHADERC (0 && HAVE_SHADERC)
+#if USE_LINKED_SHADERC
+#include <shaderc/shaderc.h>
+#else
+typedef void *shaderc_compiler_t;
+#endif
 
 static shaderc_compiler_t shaderc = NULL;
 static std::string externalCompiler;
@@ -352,7 +342,7 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
   path.erase(path.find_last_of("/\\"));
   path += "/tmp";
 
-  mkdir(path.c_str());
+  MakeDir(path.c_str());
 
   std::string infile = path + "/input";
   std::string outfile = path + "/output";
