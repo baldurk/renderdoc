@@ -34,6 +34,8 @@
 std::string Wide2UTF8(const std::wstring &s);
 std::wstring UTF82Wide(const std::string &s);
 
+std::string GetExecutableName();
+
 #define DEBUG_BREAK()       \
   do                        \
   {                         \
@@ -44,9 +46,9 @@ std::wstring UTF82Wide(const std::string &s);
 #define popen _popen
 #define pclose _pclose
 
-#define get_tmpnam tmpnam_s
-
 #define msleep(time) Sleep(time)
+
+#define mkdir(dir) CreateDirectoryA(dir, NULL)
 
 #define WEXITSTATUS(code) code
 

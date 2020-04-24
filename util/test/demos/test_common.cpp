@@ -348,10 +348,14 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
 
   std::string command_line;
 
-  char infile[MAX_PATH] = {};
-  char outfile[MAX_PATH] = {};
-  get_tmpnam(infile);
-  get_tmpnam(outfile);
+  std::string path = GetExecutableName();
+  path.erase(path.find_last_of("/\\"));
+  path += "/tmp";
+
+  mkdir(path.c_str());
+
+  std::string infile = path + "/input";
+  std::string outfile = path + "/output";
 
   if(externalCompiler == "glslc")
   {
@@ -382,7 +386,7 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
     }
     else
     {
-      strcat(infile, ".spvasm");
+      infile += ".spvasm";
     }
 
     if(target == SPIRVTarget::opengl)
@@ -440,7 +444,7 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
     command_line += infile;
   }
 
-  FILE *f = fopen(infile, "wb");
+  FILE *f = fopen(infile.c_str(), "wb");
   if(f)
   {
     fwrite(source_text.c_str(), 1, source_text.size(), f);
@@ -465,7 +469,7 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
     return ret;
   }
 
-  f = fopen(outfile, "rb");
+  f = fopen(outfile.c_str(), "rb");
   if(f)
   {
     fseek(f, 0, SEEK_END);
@@ -475,8 +479,8 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
     fclose(f);
   }
 
-  unlink(infile);
-  unlink(outfile);
+  unlink(infile.c_str());
+  unlink(outfile.c_str());
 
   return ret;
 }

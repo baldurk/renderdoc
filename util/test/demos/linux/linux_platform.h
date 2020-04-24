@@ -36,6 +36,4 @@
 
 #define EXECUTABLE_SUFFIX ""
 
-#define get_tmpnam tmpnam_via_mkstemp
-
-void tmpnam_via_mkstemp(char (&buf)[MAX_PATH]);
+std::string GetExecutableName();

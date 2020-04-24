@@ -51,7 +51,10 @@ std::string GetEnvVar(const char *var)
   return "";
 }
 
-void tmpnam_via_mkstemp(char (&buf)[MAX_PATH])
+std::string GetExecutableFilename()
 {
-  snprintf(buf, MAX_PATH - 1, "/tmp/rdoc_tmp_%x", rand());
+  char path[512] = {0};
+  readlink("/proc/self/exe", path, 511);
+
+  return path;
 }

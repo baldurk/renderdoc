@@ -100,3 +100,11 @@ std::string GetEnvVar(const char *var)
 
   return "";
 }
+
+std::string GetExecutableName()
+{
+  wchar_t curFile[512] = {0};
+  GetModuleFileNameW(NULL, curFile, 511);
+
+  return Wide2UTF8(curFile);
+}
