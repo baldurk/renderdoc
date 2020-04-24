@@ -1268,6 +1268,34 @@ void main()
       Color = arr[2].xyzx;
       break;
     }
+    case 13:
+    {
+      Color = vec4(0,0,0,0);
+      uint loopCount = uint(intval - test);
+      loopCount -= (uint(gl_FragCoord.x) % 2u);
+      loopCount -= (uint(gl_FragCoord.y) % 2u) * 2u;
+      vec2 val = uv.xy;
+      for(uint i=0; i < loopCount; i++)
+      {
+        val += vec2(0.01f, 0.01f);
+      }
+      Color = dFdxFine(val).xyxy;
+      break;
+    }
+    case 14:
+    {
+      Color = vec4(0,0,0,0);
+      uint loopCount = uint(intval - test);
+      loopCount += (uint(gl_FragCoord.x) % 2u);
+      loopCount += (uint(gl_FragCoord.y) % 2u) * 2u;
+      vec2 val = uv.xy;
+      for(uint i=0; i < loopCount; i++)
+      {
+        val += vec2(0.01f, 0.01f);
+      }
+      Color = dFdxFine(val).xyxy;
+      break;
+    }
     default: break;
   }
 }

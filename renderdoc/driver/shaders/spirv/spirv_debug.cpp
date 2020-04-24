@@ -79,7 +79,7 @@ ThreadState::~ThreadState()
 
 bool ThreadState::Finished() const
 {
-  return helperInvocation || killed || callstack.empty();
+  return killed || callstack.empty();
 }
 
 void ThreadState::FillCallstack(ShaderDebugState &state)
@@ -418,6 +418,10 @@ void ThreadState::JumpToLabel(Id target)
   Iter it = debugger.GetIterForInstruction(nextInstruction);
   if(it.opcode() == Op::LoopMerge)
   {
+    OpLoopMerge merge(it);
+
+    mergeBlock = merge.mergeBlock;
+
     it++;
     if(it.opcode() == Op::Branch)
     {
@@ -431,14 +435,34 @@ void ThreadState::JumpToLabel(Id target)
 void ThreadState::SkipIgnoredInstructions()
 {
   // skip OpLine/OpNoLine now, so that nextInstruction points to the next real instruction
-  // Also for now we don't care about structured control flow so skip past merge statements so we
-  // process the branch.
+  // Also for structured control flow we just save the merge block in case we need it for converging
+  // in pixel shaders, but otherwise skip them.
   while(true)
   {
     Iter it = debugger.GetIterForInstruction(nextInstruction);
     rdcspv::Op op = it.opcode();
-    if(op == Op::Line || op == Op::NoLine || op == Op::SelectionMerge || op == Op::LoopMerge)
+    if(op == Op::Line || op == Op::NoLine)
     {
+      nextInstruction++;
+      continue;
+    }
+
+    if(op == Op::SelectionMerge)
+    {
+      OpSelectionMerge merge(it);
+
+      mergeBlock = merge.mergeBlock;
+
+      nextInstruction++;
+      continue;
+    }
+
+    if(op == Op::LoopMerge)
+    {
+      OpLoopMerge merge(it);
+
+      mergeBlock = merge.mergeBlock;
+
       nextInstruction++;
       continue;
     }

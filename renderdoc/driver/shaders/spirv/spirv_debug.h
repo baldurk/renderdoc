@@ -206,6 +206,8 @@ struct ThreadState
 
   // the last block we were in and the current block, for OpPhis
   Id lastBlock, curBlock;
+  // the id of the merge block that the last branch targetted
+  Id mergeBlock;
   ShaderVariable returnValue;
   rdcarray<StackFrame *> callstack;
 
@@ -300,6 +302,8 @@ private:
 
   GlobalState global;
   rdcarray<ThreadState> workgroup;
+
+  Id convergeBlock;
 
   uint32_t activeLaneIndex = 0;
   ShaderStage stage;

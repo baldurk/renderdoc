@@ -1561,15 +1561,74 @@ void Debugger::CalcActiveMask(rdcarray<bool> &activeMask)
   // one bool per workgroup thread
   activeMask.resize(workgroup.size());
 
-  // start as active, then if necessary turn off threads that are running diverged
-  for(bool &active : activeMask)
-    active = true;
+  // mark any threads that have finished as inactive, otherwise they're active
+  for(size_t i = 0; i < workgroup.size(); i++)
+    activeMask[i] = !workgroup[i].Finished();
 
   // only pixel shaders automatically converge workgroups, compute shaders need explicit sync
   if(stage != ShaderStage::Pixel)
     return;
 
-  // TODO handle diverging control flow
+  // otherwise we need to make sure that control flow which converges stays in lockstep so that
+  // derivatives etc are still valid. While diverged, we don't have to keep threads in lockstep
+  // since using derivatives is invalid.
+  //
+  // We take advantage of SPIR-V's structured control flow. We only ever diverge at a branch
+  // instruction, and the preceeding OpLoopMerge/OpSelectionMerge.
+  //
+  // So the scheme is as follows:
+  // * If we haven't diverged and all threads have the same nextInstruction, we're still uniform so
+  //   continue in lockstep.
+  // * As soon as they differ, we've diverged. Check the last mergeBlock that was specified - we
+  //   won't be uniform again until all threads reach that block.
+  // * Once we've diverged, any threads which are NOT in the merge block are active, and any threads
+  //   which are in it are inactive. This causes them to pause and wait for others to catch up
+  //   until the point where all threads are in the merge block at which point we've converged and
+  //   can go back to uniformity.
+
+  // if we're waiting on a converge block to be reached, we've diverged previously.
+  bool wasDiverged = convergeBlock != Id();
+
+  // see if we've diverged by starting procesing different next instructions
+  bool diverged = false;
+  for(size_t i = 1; !diverged && i < workgroup.size(); i++)
+    diverged |= (workgroup[0].nextInstruction != workgroup[i].nextInstruction);
+
+  if(!wasDiverged && diverged)
+  {
+    // if we've newly diverged, all workgroups should have the same merge block - the point where we
+    // become uniform again.
+    convergeBlock = workgroup[0].mergeBlock;
+    for(size_t i = 1; !diverged && i < workgroup.size(); i++)
+      RDCASSERT(convergeBlock == workgroup[i].mergeBlock);
+  }
+
+  if(wasDiverged || diverged)
+  {
+    // for every thread, turn it off if it's in the converge block
+    rdcarray<bool> inConverge;
+    inConverge.resize(activeMask.size());
+    for(size_t i = 0; i < workgroup.size(); i++)
+      inConverge[i] = (workgroup[i].curBlock == convergeBlock);
+
+    // is any thread active, but not converged?
+    bool anyActiveNotConverged = false;
+    for(size_t i = 0; i < workgroup.size(); i++)
+      anyActiveNotConverged |= activeMask[i] && !inConverge[i];
+
+    if(anyActiveNotConverged)
+    {
+      // if so, then only non-converged threads are active right now
+      for(size_t i = 0; i < workgroup.size(); i++)
+        activeMask[i] &= !inConverge[i];
+    }
+    else
+    {
+      // otherwise we can leave the active mask as is, forget the convergence point, and allow
+      // everything to run as normal
+      convergeBlock = Id();
+    }
+  }
 }
 
 void Debugger::AllocateVariable(Id id, Id typeId, DebugVariableType sourceVarType,
