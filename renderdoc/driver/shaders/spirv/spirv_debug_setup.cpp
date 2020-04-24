@@ -516,6 +516,9 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
       const DataType &innertype = dataTypes[type.InnerType()];
 
+      if(sourceName == var.name)
+        sourceName = GetHumanName(innertype.id);
+
       const bool ssbo = (v.storage == StorageClass::StorageBuffer) ||
                         (decorations[innertype.id].flags & Decorations::BufferBlock);
 
