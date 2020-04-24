@@ -1104,9 +1104,9 @@ static void AddSigParameter(rdcarray<SigParameter> &sigs, uint32_t &regIndex,
         s.regIndex += r;
 
       if(arrayIdx >= 0)
-        s.varName = StringFormat::Fmt("%s[%d]:row%d", nm, arrayIdx, r);
+        s.varName = StringFormat::Fmt("%s[%d]:col%d", nm, arrayIdx, r);
       else
-        s.varName = StringFormat::Fmt("%s:row%d", nm, r);
+        s.varName = StringFormat::Fmt("%s:col%d", nm, r);
 
       sigs.push_back(s);
     }
@@ -2553,7 +2553,7 @@ void GetBindpointMapping(GLuint curProg, int shadIdx, const ShaderReflection *re
       int32_t matrixRow = 0;
       rdcstr varName = refl->inputSignature[i].varName;
 
-      int32_t offs = varName.find(":row");
+      int32_t offs = varName.find(":col");
       if(offs >= 0)
       {
         matrixRow = varName[offs + 4] - '0';

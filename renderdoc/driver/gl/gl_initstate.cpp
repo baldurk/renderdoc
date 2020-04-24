@@ -1181,8 +1181,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
           {
             rdcstr name = sig.varName;
 
-            // look for :row added to split up matrix variables
-            int32_t colon = name.find(":row");
+            // look for :row or :col added to split up matrix variables
+            int32_t colon = name.find(":");
 
             // remove it, if present
             if(colon >= 0)

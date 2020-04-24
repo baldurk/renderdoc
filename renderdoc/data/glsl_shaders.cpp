@@ -1513,7 +1513,7 @@ void main()
         CHECK(sig.channelUsedMask == 0x7);
       }
 
-      CHECK(refl.outputSignature[4].varName == "outmat:row0");
+      CHECK(refl.outputSignature[4].varName == "outmat:col0");
       {
         const SigParameter &sig = refl.outputSignature[4];
         INFO("signature element: " << sig.varName.c_str());
@@ -1526,7 +1526,7 @@ void main()
         CHECK(sig.channelUsedMask == 0x3);
       }
 
-      CHECK(refl.outputSignature[5].varName == "outmat:row1");
+      CHECK(refl.outputSignature[5].varName == "outmat:col1");
       {
         const SigParameter &sig = refl.outputSignature[5];
         INFO("signature element: " << sig.varName.c_str());
@@ -1539,7 +1539,7 @@ void main()
         CHECK(sig.channelUsedMask == 0x3);
       }
 
-      CHECK(refl.outputSignature[6].varName == "outmatarr[0]:row0");
+      CHECK(refl.outputSignature[6].varName == "outmatarr[0]:col0");
       {
         const SigParameter &sig = refl.outputSignature[6];
         INFO("signature element: " << sig.varName.c_str());
@@ -1552,7 +1552,7 @@ void main()
         CHECK(sig.channelUsedMask == 0x3);
       }
 
-      CHECK(refl.outputSignature[7].varName == "outmatarr[0]:row1");
+      CHECK(refl.outputSignature[7].varName == "outmatarr[0]:col1");
       {
         const SigParameter &sig = refl.outputSignature[7];
         INFO("signature element: " << sig.varName.c_str());
@@ -1565,7 +1565,7 @@ void main()
         CHECK(sig.channelUsedMask == 0x3);
       }
 
-      CHECK(refl.outputSignature[8].varName == "outmatarr[1]:row0");
+      CHECK(refl.outputSignature[8].varName == "outmatarr[1]:col0");
       {
         const SigParameter &sig = refl.outputSignature[8];
         INFO("signature element: " << sig.varName.c_str());
@@ -1578,7 +1578,7 @@ void main()
         CHECK(sig.channelUsedMask == 0x3);
       }
 
-      CHECK(refl.outputSignature[9].varName == "outmatarr[1]:row1");
+      CHECK(refl.outputSignature[9].varName == "outmatarr[1]:col1");
       {
         const SigParameter &sig = refl.outputSignature[9];
         INFO("signature element: " << sig.varName.c_str());
