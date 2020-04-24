@@ -3424,9 +3424,10 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
       }
     }
 
-    if(Vulkan_Debug_ShaderDebugLogging && !usePrimitiveID)
+    if(Vulkan_Debug_ShaderDebugLogging)
     {
-      RDCLOG("Geometry shader doesn't export primitive ID, can't use");
+      if(!usePrimitiveID)
+        RDCLOG("Geometry shader doesn't export primitive ID, can't use");
     }
   }
   else
