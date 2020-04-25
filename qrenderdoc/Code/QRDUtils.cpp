@@ -655,6 +655,10 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
   if(event->type() != QEvent::MouseButtonRelease && event->type() != QEvent::MouseMove)
     return false;
 
+  // only process left button clicks
+  if(event->type() == QEvent::MouseButtonRelease && event->button() != Qt::LeftButton)
+    return false;
+
   // special case handling for ResourceId/GPUAddress on its own
   if(var.userType() == qMetaTypeId<ResourceId>() || var.userType() == qMetaTypeId<GPUAddressPtr>())
   {
