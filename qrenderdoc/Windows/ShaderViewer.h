@@ -188,7 +188,7 @@ private:
 
   Ui::ShaderViewer *ui;
   ICaptureContext &m_Ctx;
-  const ShaderBindpointMapping *m_Mapping = NULL;
+  ShaderBindpointMapping m_Mapping;
   const ShaderReflection *m_ShaderDetails = NULL;
   bool m_CustomShader = false;
   ShaderCompileFlags m_Flags;

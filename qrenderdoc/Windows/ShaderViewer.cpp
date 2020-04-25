@@ -357,7 +357,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
                                ResourceId pipeline, ShaderDebugTrace *trace,
                                const QString &debugContext)
 {
-  m_Mapping = bind;
+  if(bind)
+    m_Mapping = *bind;
   m_ShaderDetails = shader;
   m_Pipeline = pipeline;
   m_Trace = trace;
@@ -370,7 +371,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   // no replacing allowed, stay in find mode
   m_FindReplace->allowUserModeChange(false);
 
-  if(!m_ShaderDetails || !m_Mapping)
+  if(!bind || !m_ShaderDetails)
     m_Trace = NULL;
 
   if(m_ShaderDetails)
@@ -2462,12 +2463,12 @@ void ShaderViewer::updateDebugState()
       if(varsMapped.contains(ro.name))
         continue;
 
-      int32_t idx = m_Mapping->readOnlyResources.indexOf(Bindpoint(ro.GetBinding()));
+      int32_t idx = m_Mapping.readOnlyResources.indexOf(Bindpoint(ro.GetBinding()));
 
       if(idx < 0)
         continue;
 
-      Bindpoint bind = m_Mapping->readOnlyResources[idx];
+      Bindpoint bind = m_Mapping.readOnlyResources[idx];
 
       if(!bind.used)
         continue;
@@ -2530,12 +2531,12 @@ void ShaderViewer::updateDebugState()
       if(varsMapped.contains(rw.name))
         continue;
 
-      int32_t idx = m_Mapping->readWriteResources.indexOf(Bindpoint(rw.GetBinding()));
+      int32_t idx = m_Mapping.readWriteResources.indexOf(Bindpoint(rw.GetBinding()));
 
       if(idx < 0)
         continue;
 
-      Bindpoint bind = m_Mapping->readWriteResources[idx];
+      Bindpoint bind = m_Mapping.readWriteResources[idx];
 
       if(!bind.used)
         continue;
@@ -2598,12 +2599,12 @@ void ShaderViewer::updateDebugState()
       if(varsMapped.contains(s.name))
         continue;
 
-      int32_t idx = m_Mapping->samplers.indexOf(Bindpoint(s.GetBinding()));
+      int32_t idx = m_Mapping.samplers.indexOf(Bindpoint(s.GetBinding()));
 
       if(idx < 0)
         continue;
 
-      Bindpoint bind = m_Mapping->samplers[idx];
+      Bindpoint bind = m_Mapping.samplers[idx];
 
       if(!bind.used)
         continue;
@@ -3073,12 +3074,12 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
 
         rdcarray<BoundResourceArray> samplers = m_Ctx.CurPipelineState().GetSamplers(m_Stage);
 
-        int32_t idx = m_Mapping->samplers.indexOf(Bindpoint(reg->GetBinding()));
+        int32_t idx = m_Mapping.samplers.indexOf(Bindpoint(reg->GetBinding()));
 
         if(idx < 0)
           continue;
 
-        Bindpoint bind = m_Mapping->samplers[idx];
+        Bindpoint bind = m_Mapping.samplers[idx];
 
         int32_t bindIdx = samplers.indexOf(bind);
 
@@ -3127,14 +3128,14 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
             isReadOnlyResource ? m_ReadOnlyResources : m_ReadWriteResources;
 
         int32_t idx =
-            (isReadOnlyResource ? m_Mapping->readOnlyResources : m_Mapping->readWriteResources)
+            (isReadOnlyResource ? m_Mapping.readOnlyResources : m_Mapping.readWriteResources)
                 .indexOf(Bindpoint(reg->GetBinding()));
 
         if(idx < 0)
           continue;
 
-        Bindpoint bind = isReadOnlyResource ? m_Mapping->readOnlyResources[idx]
-                                            : m_Mapping->readWriteResources[idx];
+        Bindpoint bind = isReadOnlyResource ? m_Mapping.readOnlyResources[idx]
+                                            : m_Mapping.readWriteResources[idx];
 
         int32_t bindIdx = resList.indexOf(bind);
 
@@ -3284,10 +3285,10 @@ RDTreeWidgetItem *ShaderViewer::makeAccessedResourceNode(const ShaderVariable &v
   if(v.type == VarType::ReadOnlyResource)
   {
     typeName = lit("Resource");
-    int32_t idx = m_Mapping->readOnlyResources.indexOf(Bindpoint(bp));
+    int32_t idx = m_Mapping.readOnlyResources.indexOf(Bindpoint(bp));
     if(idx >= 0)
     {
-      Bindpoint bind = m_Mapping->readOnlyResources[idx];
+      Bindpoint bind = m_Mapping.readOnlyResources[idx];
       if(bind.used)
       {
         int32_t bindIdx = m_ReadOnlyResources.indexOf(bind);
@@ -3303,10 +3304,10 @@ RDTreeWidgetItem *ShaderViewer::makeAccessedResourceNode(const ShaderVariable &v
   else if(v.type == VarType::ReadWriteResource)
   {
     typeName = lit("RW Resource");
-    int32_t idx = m_Mapping->readWriteResources.indexOf(Bindpoint(bp));
+    int32_t idx = m_Mapping.readWriteResources.indexOf(Bindpoint(bp));
     if(idx >= 0)
     {
-      Bindpoint bind = m_Mapping->readWriteResources[idx];
+      Bindpoint bind = m_Mapping.readWriteResources[idx];
       if(bind.used)
       {
         int32_t bindIdx = m_ReadWriteResources.indexOf(bind);
