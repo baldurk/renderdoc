@@ -826,9 +826,8 @@ public:
         else
         {
           const ShaderConstant &el = elementForColumn(section);
-          const BufferElementProperties &prop = propForColumn(section);
 
-          if(prop.format.compCount == 1 || role == columnGroupRole)
+          if(el.type.descriptor.columns == 1 || role == columnGroupRole)
             return el.name;
 
           QChar comps[] = {QLatin1Char('x'), QLatin1Char('y'), QLatin1Char('z'), QLatin1Char('w')};
@@ -949,8 +948,7 @@ public:
 
             // only slightly wasteful, we need to fetch all variants together
             // since some formats are packed and can't be read individually
-            QVariantList list = GetVariants(prop.format, el.type.descriptor.rows,
-                                            el.type.descriptor.matrixByteStride, data, end);
+            QVariantList list = GetVariants(prop.format, el.type.descriptor, data, end);
 
             if(!list.isEmpty())
             {
@@ -1073,8 +1071,7 @@ public:
 
             // only slightly wasteful, we need to fetch all variants together
             // since some formats are packed and can't be read individually
-            QVariantList list = GetVariants(prop.format, el.type.descriptor.rows,
-                                            el.type.descriptor.matrixByteStride, data, end);
+            QVariantList list = GetVariants(prop.format, el.type.descriptor, data, end);
 
             int comp = componentForIndex(col);
 
@@ -1085,12 +1082,7 @@ public:
 
               if(rowdim == 1)
               {
-                QVariant v;
-
-                if(el.type.descriptor.rowMajorStorage)
-                  v = list[comp];
-                else
-                  v = list[comp * rowdim];
+                QVariant v = list[comp];
 
                 if(el.type.descriptor.pointerTypeID != ~0U)
                 {
@@ -1116,10 +1108,7 @@ public:
                   if(r > 0)
                     ret += lit("\n");
 
-                  if(el.type.descriptor.rowMajorStorage)
-                    ret += interpretVariant(list[comp + r * coldim], el, prop);
-                  else
-                    ret += interpretVariant(list[r + comp * rowdim], el, prop);
+                  ret += interpretVariant(list[r * coldim + comp], el, prop);
                 }
 
                 return ret;
@@ -1277,9 +1266,9 @@ private:
 
     for(int i = 0; i < config.columns.count(); i++)
     {
-      const BufferElementProperties &prop = config.props[i];
+      uint32_t columnCount = config.columns[i].type.descriptor.columns;
 
-      for(uint32_t c = 0; c < prop.format.compCount; c++)
+      for(uint32_t c = 0; c < columnCount; c++)
       {
         columnLookup.push_back(i);
         componentLookup.push_back((int)c);
@@ -1375,9 +1364,9 @@ void CacheDataForIteration(QVector<CachedElData> &cache, const rdcarray<ShaderCo
     d.el = &el;
     d.prop = &prop;
 
-    d.byteSize = prop.format.ElementSize() * el.type.descriptor.rows;
+    d.byteSize = el.type.descriptor.arrayByteStride;
     d.nulls = QByteArray(d.byteSize, '\0');
-    d.numColumns = prop.format.compCount;
+    d.numColumns = el.type.descriptor.columns;
 
     if(prop.instancerate > 0)
       d.instIdx = inst / prop.instancerate;
@@ -1416,6 +1405,7 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
     BufferElementProperties p;
 
     f.name = !sig.varName.isEmpty() ? sig.varName : sig.semanticIdxName;
+    f.type.descriptor.rows = 1;
     f.type.descriptor.columns = sig.compCount;
 
     p.buffer = 0;
@@ -1451,7 +1441,7 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
     BufferElementProperties &prop = props[i];
     ShaderConstant &el = columns[i];
 
-    uint numComps = prop.format.compCount;
+    uint numComps = el.type.descriptor.columns;
     uint elemSize = prop.format.compType == CompType::Double ? 8U : 4U;
 
     if(ctx.CurPipelineState().HasAlignedPostVSData(
@@ -1842,7 +1832,7 @@ static void UnrollConstant(rdcstr prefix, const ShaderConstant &constant,
         c.name = QFormatStr("%1[%2]").arg(baseName).arg(a);
         columns.push_back(c);
         props.push_back(prop);
-        c.byteOffset += prop.format.ElementSize() * constant.type.descriptor.rows;
+        c.byteOffset += constant.type.descriptor.arrayByteStride;
       }
     }
     else
@@ -2229,8 +2219,8 @@ void BufferViewer::meshHeaderMenu(MeshDataStage stage, const QPoint &pos)
   m_CurView = tableForStage(stage);
   m_ContextColumn = modelForStage(stage)->elementIndexForColumn(col);
 
-  m_SelectSecondAlphaColumn->setEnabled(modelForStage(stage)->propForColumn(col).format.compCount ==
-                                        4);
+  m_SelectSecondAlphaColumn->setEnabled(
+      modelForStage(stage)->elementForColumn(col).type.descriptor.columns == 4);
 
   m_HeaderMenu->popup(tableForStage(stage)->horizontalHeader()->mapToGlobal(pos));
 }
@@ -2484,9 +2474,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       // calculate tight stride
       buf->stride = 0;
-      for(int i = 0; i < bufdata->vsinConfig.props.count(); i++)
-        buf->stride += bufdata->vsinConfig.props[i].format.ElementSize() *
-                       bufdata->vsinConfig.columns[i].type.descriptor.rows;
+      for(int i = 0; i < bufdata->vsinConfig.columns.count(); i++)
+        buf->stride += bufdata->vsinConfig.columns[i].type.descriptor.arrayByteStride;
 
       buf->stride = qMax((size_t)1, buf->stride);
 
@@ -2729,11 +2718,11 @@ void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
     {
       FloatVector maxvec(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX);
 
-      if(s.props[i].format.compCount == 1)
+      if(s.columns[i].type.descriptor.columns == 1)
         maxvec.y = maxvec.z = maxvec.w = 0.0;
-      else if(s.props[i].format.compCount == 2)
+      else if(s.columns[i].type.descriptor.columns == 2)
         maxvec.z = maxvec.w = 0.0;
-      else if(s.props[i].format.compCount == 3)
+      else if(s.columns[i].type.descriptor.columns == 3)
         maxvec.w = 0.0;
 
       minOutputList.push_back(maxvec);
@@ -2775,8 +2764,7 @@ void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
           if(!prop->perinstance)
             bytes += d.stride * idx;
 
-          QVariantList list = GetVariants(prop->format, el->type.descriptor.rows,
-                                          el->type.descriptor.matrixByteStride, bytes, d.end);
+          QVariantList list = GetVariants(prop->format, el->type.descriptor, bytes, d.end);
 
           for(int comp = 0; comp < 4 && comp < list.count(); comp++)
           {
@@ -2834,7 +2822,7 @@ void BufferViewer::UI_UpdateBoundingBoxLabels(int compCount)
       int posEl = model->posColumn();
       if(posEl >= 0 && posEl < model->getConfig().columns.count())
       {
-        compCount = model->getConfig().props[posEl].format.compCount;
+        compCount = model->getConfig().columns[posEl].type.descriptor.columns;
       }
     }
   }
@@ -3199,7 +3187,7 @@ void BufferViewer::UpdateCurrentMeshConfig()
       m_Config.maxBounds = bbox.bounds[stage].Max[posEl];
       m_Config.showBBox = !isCurrentRasterOut();
 
-      int compCount = model->getConfig().props[posEl].format.compCount;
+      int compCount = model->getConfig().columns[posEl].type.descriptor.columns;
 
       UI_UpdateBoundingBoxLabels(compCount);
     }
@@ -3590,6 +3578,7 @@ void BufferViewer::CalcColumnWidth(int maxNumRows)
   elem.name = headerText;
   elem.byteOffset = 0;
   elem.type.descriptor.rows = maxNumRows;
+  elem.type.descriptor.columns = 1;
 
   bufconfig.columns.clear();
 
@@ -4027,8 +4016,7 @@ void BufferViewer::exportData(const BufferExport &params)
 
                   // only slightly wasteful, we need to fetch all variants together
                   // since some formats are packed and can't be read individually
-                  QVariantList list = GetVariants(prop->format, el->type.descriptor.rows,
-                                                  el->type.descriptor.matrixByteStride, data, end);
+                  QVariantList list = GetVariants(prop->format, el->type.descriptor, data, end);
 
                   for(int v = 0; v < list.count(); v++)
                   {

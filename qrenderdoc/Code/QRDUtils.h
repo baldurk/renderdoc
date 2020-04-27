@@ -99,7 +99,7 @@ public:
   static QString DeclarePaddingBytes(uint32_t bytes);
 };
 
-QVariantList GetVariants(ResourceFormat rowFormat, uint32_t rowCount, uint32_t rowByteStride,
+QVariantList GetVariants(ResourceFormat format, const ShaderVariableDescriptor &varDesc,
                          const byte *&data, const byte *end);
 ResourceFormat GetInterpretedResourceFormat(const ShaderConstant &elem);
 void SetInterpretedResourceFormat(ShaderConstant &elem, ResourceFormatType interpretType,
