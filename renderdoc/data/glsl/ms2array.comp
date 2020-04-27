@@ -70,9 +70,18 @@ uniform ivec4 mscopy;
 void main()
 {
   ivec3 id = ivec3(gl_GlobalInvocationID);
-
-  int slice = int(id.z / numMultiSamples);
-  int sampleIdx = int(id.z % numMultiSamples);
+  int slice;
+  int sampleIdx;
+  if(numMultiSamples == 0)
+  {
+    slice = currentSlice;
+    sampleIdx = currentSample;
+  }
+  else
+  {
+    slice = int(id.z / numMultiSamples);
+    sampleIdx = int(id.z % numMultiSamples);
+  }
 
   uvec4 data = texelFetch(srcMS, ivec3(int(id.x), int(id.y), slice), sampleIdx);
 

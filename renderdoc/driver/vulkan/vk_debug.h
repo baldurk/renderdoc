@@ -68,6 +68,8 @@ public:
                           uint32_t samples, VkFormat fmt);
   void CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent, uint32_t layers,
                           uint32_t samples, VkFormat fmt);
+  void CopyTex2DMSPixel(VkCommandBuffer cmd, VkDescriptorSet descSet, VkExtent3D extent,
+                        uint32_t sample, VkFormat fmt);
 
   VkPipelineCache GetPipelineCache() { return m_PipelineCache; }
   VkPipeline GetCustomPipeline() { return m_Custom.TexPipeline; }
@@ -86,8 +88,9 @@ public:
   void PatchLineStripIndexBuffer(const DrawcallDescription *draw, GPUBuffer &indexBuffer,
                                  uint32_t &indexCount);
 
-  bool PixelHistorySetupResources(PixelHistoryResources &resources, VkExtent3D extent,
-                                  VkFormat format, uint32_t numEvents);
+  bool PixelHistorySetupResources(PixelHistoryResources &resources, VkImage targetImage,
+                                  VkExtent3D extent, VkFormat format, VkSampleCountFlagBits samples,
+                                  const Subresource &sub, uint32_t numEvents);
   bool PixelHistoryDestroyResources(const PixelHistoryResources &resources);
 
   void PixelHistoryCopyPixel(VkCommandBuffer cmd, CopyPixelParams &p, size_t offset);
@@ -114,13 +117,11 @@ private:
 
   // CopyArrayToTex2DMS & CopyTex2DMSToArray
   VkDescriptorPool m_ArrayMSDescriptorPool;
-
   VkDescriptorSetLayout m_ArrayMSDescSetLayout = VK_NULL_HANDLE;
   VkPipelineLayout m_ArrayMSPipeLayout = VK_NULL_HANDLE;
   VkDescriptorSet m_ArrayMSDescSet = VK_NULL_HANDLE;
   VkPipeline m_Array2MSPipe = VK_NULL_HANDLE;
   VkPipeline m_MS2ArrayPipe = VK_NULL_HANDLE;
-
   VkSampler m_ArrayMSSampler = VK_NULL_HANDLE;
 
   // [0] = non-MSAA, [1] = MSAA

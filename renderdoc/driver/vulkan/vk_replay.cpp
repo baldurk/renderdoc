@@ -2795,6 +2795,13 @@ rdcarray<EventUsage> VulkanReplay::GetUsage(ResourceId id)
   return m_pDriver->GetUsage(id);
 }
 
+void VulkanReplay::CopyPixelForPixelHistory(VkCommandBuffer cmd, VkExtent3D extent, uint32_t sample,
+                                            VkFormat fmt)
+{
+  m_pDriver->GetDebugManager()->CopyTex2DMSPixel(cmd, m_PixelHistory.MSCopyDescSet, extent, sample,
+                                                 fmt);
+}
+
 void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
                                   const GetTextureDataParams &params, bytebuf &data)
 {

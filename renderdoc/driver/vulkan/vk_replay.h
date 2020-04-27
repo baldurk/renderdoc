@@ -319,6 +319,7 @@ public:
                  float *maxval);
   bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
                     float maxval, bool channels[4], rdcarray<uint32_t> &histogram);
+  void UpdatePixelHistoryDescriptor(VkImageView sourceView, VkImageView destView);
 
   void InitPostVSBuffers(uint32_t eventId);
   void InitPostVSBuffers(uint32_t eventId, VulkanRenderState &state);
@@ -410,6 +411,9 @@ public:
   void SetDriverInformation(const VkPhysicalDeviceProperties &props);
 
   AMDCounters *GetAMDCounters() { return m_pAMDCounters; }
+  void CopyPixelForPixelHistory(VkCommandBuffer cmd, VkExtent3D extent, uint32_t sample,
+                                VkFormat fmt);
+
 private:
   void FetchShaderFeedback(uint32_t eventId);
   void ClearFeedbackCache();
@@ -652,6 +656,15 @@ private:
     VkFramebuffer FB = VK_NULL_HANDLE;
     VkRenderPass RP = VK_NULL_HANDLE;
   } m_PixelPick;
+
+  struct PixelHistory
+  {
+    void Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool);
+    void Destroy(WrappedVulkan *driver);
+
+    VkDescriptorSetLayout MSCopyDescSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSet MSCopyDescSet = VK_NULL_HANDLE;
+  } m_PixelHistory;
 
   struct HistogramMinMax
   {

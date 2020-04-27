@@ -1714,6 +1714,10 @@ void VulkanReplay::CreateResources()
 
   m_PixelPick.Init(m_pDriver, m_General.DescriptorPool);
 
+  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.75f);
+
+  m_PixelHistory.Init(m_pDriver, m_General.DescriptorPool);
+
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.8f);
 
   m_Histogram.Init(m_pDriver, m_General.DescriptorPool);
@@ -1765,6 +1769,7 @@ void VulkanReplay::DestroyResources()
   m_Overlay.Destroy(m_pDriver);
   m_VertexPick.Destroy(m_pDriver);
   m_PixelPick.Destroy(m_pDriver);
+  m_PixelHistory.Destroy(m_pDriver);
   m_Histogram.Destroy(m_pDriver);
   m_PostVS.Destroy(m_pDriver);
 
@@ -2592,6 +2597,23 @@ void VulkanReplay::PixelPicking::Destroy(WrappedVulkan *driver)
   ReadbackBuffer.Destroy();
   driver->vkDestroyFramebuffer(driver->GetDev(), FB, NULL);
   driver->vkDestroyRenderPass(driver->GetDev(), RP, NULL);
+}
+
+void VulkanReplay::PixelHistory::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool)
+{
+  CREATE_OBJECT(MSCopyDescSetLayout,
+                {
+                    {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
+                    {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
+                    {2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_ALL, NULL},
+                });
+  CREATE_OBJECT(MSCopyDescSet, descriptorPool, MSCopyDescSetLayout);
+}
+
+void VulkanReplay::PixelHistory::Destroy(WrappedVulkan *driver)
+{
+  if(MSCopyDescSetLayout != VK_NULL_HANDLE)
+    driver->vkDestroyDescriptorSetLayout(driver->GetDev(), MSCopyDescSetLayout, NULL);
 }
 
 void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool)
