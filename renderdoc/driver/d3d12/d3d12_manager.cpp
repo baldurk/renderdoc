@@ -703,26 +703,24 @@ void D3D12ResourceManager::SerialiseResourceStates(SerialiserType &ser,
     {
       for(size_t m = 0; m < States.size(); m++)
       {
-        D3D12_RESOURCE_BARRIER b;
-        b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        b.Transition.pResource = (ID3D12Resource *)GetCurrentResource(liveid);
-        b.Transition.Subresource = (UINT)m;
-        b.Transition.StateBefore = states[liveid][m];
-        b.Transition.StateAfter = States[m];
+        if(states[liveid][m] != States[m])
+        {
+          D3D12_RESOURCE_BARRIER b;
+          b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+          b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+          b.Transition.pResource = (ID3D12Resource *)GetCurrentResource(liveid);
+          b.Transition.Subresource = (UINT)m;
+          b.Transition.StateBefore = states[liveid][m];
+          b.Transition.StateAfter = States[m];
 
-        barriers.push_back(b);
+          barriers.push_back(b);
+        }
       }
     }
 
     if(ser.IsWriting())
       srcit++;
   }
-
-  // erase any do-nothing barriers
-  barriers.removeIf([](const D3D12_RESOURCE_BARRIER &barrier) {
-    return barrier.Transition.StateBefore == barrier.Transition.StateAfter;
-  });
 
   ApplyBarriers(barriers, states);
 }
