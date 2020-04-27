@@ -2474,6 +2474,28 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       }
       it++;
     }
+
+    // same for decorations
+    it = editor.Begin(rdcspv::Section::Annotations);
+    end = editor.End(rdcspv::Section::Annotations);
+    while(it < end)
+    {
+      if(it.opcode() == rdcspv::Op::Decorate)
+      {
+        rdcspv::OpDecorate dec(it);
+
+        if(removedIds.contains(dec.target))
+          editor.Remove(it);
+      }
+      else if(it.opcode() == rdcspv::Op::DecorateId)
+      {
+        rdcspv::OpDecorateId dec(it);
+
+        if(removedIds.contains(dec.target))
+          editor.Remove(it);
+      }
+      it++;
+    }
   }
 
   rdcspv::MemoryAccessAndParamDatas alignedAccess;
