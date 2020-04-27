@@ -1959,6 +1959,8 @@ void main()
         "%_out_float4 = OpVectorShuffle %float4 %float4_0000 %float4_dyn_1234 7 6 0 1",
         "%_out_float4 = OpVectorShuffle %float4 %float4_dyn_0000 %float4_1234 7 6 0 1",
         "%_out_float4 = OpVectorShuffle %float4 %float4_dyn_0000 %float4_dyn_1234 7 6 0 1",
+        "%_out_float3 = OpVectorShuffle %float3 %float3_000 %float3_123 3 4 5",
+        "%_out_float2 = OpVectorShuffle %float2 %float2_00 %float2_12 2 3",
     });
 
     // test OpVectorExtractDynamic
@@ -2612,6 +2614,12 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
  %float4_0000 = OpConstantComposite %float4 %float_0_0 %float_0_0 %float_0_0 %float_0_0
  %float4_1234 = OpConstantComposite %float4 %float_1_0 %float_2_0 %float_3_0 %float_4_0
 
+ %float3_000 = OpConstantComposite %float3 %float_0_0 %float_0_0 %float_0_0
+ %float3_123 = OpConstantComposite %float3 %float_1_0 %float_2_0 %float_3_0
+
+ %float2_00 = OpConstantComposite %float2 %float_0_0 %float_0_0
+ %float2_12 = OpConstantComposite %float2 %float_1_0 %float_2_0
+
 )EOSHADER";
 
     std::string ret = capabilities +
@@ -2697,6 +2705,12 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
  %float4_dyn_0000 = OpCompositeConstruct %float4 %float_dyn_0_0 %float_dyn_0_0 %float_dyn_0_0 %float_dyn_0_0
  %float4_dyn_1234 = OpCompositeConstruct %float4 %float_dyn_1_0 %float_dyn_2_0 %float_dyn_3_0 %float_dyn_4_0
+
+ %float3_dyn_000 = OpCompositeConstruct %float3 %float_dyn_0_0 %float_dyn_0_0 %float_dyn_0_0
+ %float3_dyn_123 = OpCompositeConstruct %float3 %float_dyn_1_0 %float_dyn_2_0 %float_dyn_3_0
+
+ %float2_dyn_00 = OpCompositeConstruct %float2 %float_dyn_0_0 %float_dyn_0_0
+ %float2_dyn_12 = OpCompositeConstruct %float2 %float_dyn_1_0 %float_dyn_2_0
 
 )EOSHADER";
 

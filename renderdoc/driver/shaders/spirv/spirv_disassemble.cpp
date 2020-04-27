@@ -1444,8 +1444,10 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           // it's common to only swizzle from the first vector, detect that case
           bool allFirst = true;
 
+          uint32_t vec1Cols = dataTypes[idTypes[decoded.vector1]].vector().count;
+
           for(uint32_t c : decoded.components)
-            if(c >= 4)
+            if(c >= vec1Cols)
               allFirst = false;
 
           const char comps[] = "xyzw";
@@ -1464,8 +1466,8 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
             {
               uint32_t c = decoded.components[i];
 
-              ret += idName(c < 4 ? decoded.vector1 : decoded.vector2) + ".";
-              ret.push_back(comps[c % 4]);
+              ret += idName(c < vec1Cols ? decoded.vector1 : decoded.vector2) + ".";
+              ret.push_back(comps[c % vec1Cols]);
 
               if(i + 1 < decoded.components.size())
                 ret += ", ";

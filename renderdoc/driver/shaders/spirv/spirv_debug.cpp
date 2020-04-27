@@ -835,13 +835,15 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable src1 = GetSrc(shuffle.vector1);
       ShaderVariable src2 = GetSrc(shuffle.vector2);
 
+      uint32_t vec1Cols = src1.columns;
+
       for(size_t i = 0; i < shuffle.components.size(); i++)
       {
         uint32_t c = shuffle.components[i];
-        if(c <= 3)
+        if(c < vec1Cols)
           var.value.uv[i] = src1.value.uv[c];
         else
-          var.value.uv[i] = src2.value.uv[c - 4];
+          var.value.uv[i] = src2.value.uv[c - vec1Cols];
       }
 
       SetDst(shuffle.result, var);
