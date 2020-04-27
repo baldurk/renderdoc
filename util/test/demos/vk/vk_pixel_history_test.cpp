@@ -74,17 +74,31 @@ void main()
 
 )EOSHADER";
 
-  std::string whitepixel = R"EOSHADER(
+  std::string mspixel = R"EOSHADER(
 #version 420 core
 
 layout(location = 0, index = 0) out vec4 Color;
 
 void main()
 {
-	Color = vec4(1,1,1,1);
+  if (gl_SampleID == 0)
+    Color = vec4(1, 0, 0, 1);
+  else if (gl_SampleID == 1)
+    Color = vec4(0, 0, 1, 1);
+  else if (gl_SampleID == 2)
+    Color = vec4(0, 1, 1, 1);
+  else if (gl_SampleID == 3)
+    Color = vec4(1, 1, 1, 1);
 }
 
 )EOSHADER";
+
+  void Prepare(int argc, char **argv)
+  {
+    features.sampleRateShading = true;
+
+    VulkanGraphicsTest::Prepare(argc, argv);
+  }
 
   int main()
   {
@@ -287,6 +301,30 @@ void main()
         subrp, {subview},
         {mainWindow->scissor.extent.width / 4, mainWindow->scissor.extent.height / 4}));
 
+    renderPassCreateInfo.attachments[0].samples = VK_SAMPLE_COUNT_4_BIT;
+
+    VkRenderPass submsrp = createRenderPass(renderPassCreateInfo);
+
+    pipeCreateInfo.stages[1] =
+        CompileShaderModule(mspixel, ShaderLang::glsl, ShaderStage::frag, "main");
+
+    pipeCreateInfo.renderPass = submsrp;
+    pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+    VkPipeline mspipe = createGraphicsPipeline(pipeCreateInfo);
+
+    AllocatedImage submsimg(
+        this, vkh::ImageCreateInfo(mainWindow->scissor.extent.width,
+                                   mainWindow->scissor.extent.height, 0, mainWindow->format,
+                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, 4, VK_SAMPLE_COUNT_4_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    VkImageView submsview = createImageView(vkh::ImageViewCreateInfo(
+        submsimg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format, {},
+        vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 2, 1)));
+
+    VkFramebuffer submsfb = createFramebuffer(vkh::FramebufferCreateInfo(
+        submsrp, {submsview}, {mainWindow->scissor.extent.width, mainWindow->scissor.extent.height}));
+
     while(Running())
     {
       VkCommandBuffer cmd = GetCommandBuffer();
@@ -349,6 +387,20 @@ void main()
 
       vkCmdEndRenderPass(cmd);
 
+      {
+        setMarker(cmd, "Multisampled: begin renderpass");
+        vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(submsrp, submsfb, mainWindow->scissor,
+                                                           {vkh::ClearValue(0.f, 1.0f, 0.f, 1.0f)}),
+                             VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mspipe);
+
+        setMarker(cmd, "Multisampled: test");
+        vkCmdDraw(cmd, 6, 1, 3, 0);
+
+        vkCmdEndRenderPass(cmd);
+      }
+
       v = mainWindow->viewport;
       v.width /= 4.0f;
       v.height /= 4.0f;
@@ -403,7 +455,6 @@ void main()
       FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
       vkEndCommandBuffer(cmd);
-
       Submit(0, 1, {cmd});
 
       Present();

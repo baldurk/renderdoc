@@ -26,6 +26,7 @@ class VK_Pixel_History(rdtest.TestCase):
             return
 
         self.primary_test()
+        self.multisampled_image_test()
         self.secondary_cmd_test()
 
     def primary_test(self):
@@ -99,6 +100,42 @@ class VK_Pixel_History(rdtest.TestCase):
             [[event_id, background_eid], [shader_discarded, True]],
         ]
         self.check_events(events, modifs, False)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+    def multisampled_image_test(self):
+        test_marker: rd.DrawcallDescription = self.find_draw("Multisampled: test")
+        draw_eid = test_marker.next.eventId
+        self.controller.SetFrameEvent(draw_eid, True)
+
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+        rt: rd.BoundResource = pipe.GetOutputTargets()[0]
+        sub = rd.Subresource()
+        tex = rt.resourceId
+        tex_details = self.get_texture(tex)
+        if tex_details.arraysize > 1:
+            sub.slice = rt.firstSlice
+
+        beg_renderpass_eid = self.find_draw("Multisampled: begin renderpass").next.eventId
+
+        x, y = 100, 200
+        sub.sample = 1
+        rdtest.log.print("Testing pixel {}, {} at sample {}".format(x, y, sub.sample))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, beg_renderpass_eid], [passed, True], [post_mod_col, (0.0, 1.0, 0.0, 1.0)]],
+            [[event_id, draw_eid], [passed, True], [post_mod_col, (0.0, 0.0, 1.0, 1.0)]],
+        ]
+        self.check_events(events, modifs, True)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+        sub.sample = 2
+        rdtest.log.print("Testing pixel {}, {} at sample {}".format(x, y, sub.sample))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, beg_renderpass_eid], [passed, True], [post_mod_col, (0.0, 1.0, 0.0, 1.0)]],
+            [[event_id, draw_eid], [passed, True], [post_mod_col, (0.0, 1.0, 1.0, 1.0)]],
+        ]
+        self.check_events(events, modifs, True)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
 
     def secondary_cmd_test(self):

@@ -146,6 +146,27 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
   ObjDisp(dev)->DestroyImageView(Unwrap(dev), destView, NULL);
 }
 
+void VulkanDebugManager::CopyTex2DMSPixel(VkCommandBuffer cmd, VkDescriptorSet descSet,
+                                          VkExtent3D extent, uint32_t sample, VkFormat fmt)
+{
+  if(!m_pDriver->GetDeviceFeatures().shaderStorageImageWriteWithoutFormat)
+    return;
+
+  if(m_MS2ArrayPipe == VK_NULL_HANDLE)
+    return;
+
+  ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(m_MS2ArrayPipe));
+  ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
+                                      Unwrap(m_ArrayMSPipeLayout), 0, 1, UnwrapPtr(descSet), 0, NULL);
+
+  Vec4u params = {0, sample, 0, 0};
+
+  ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_ArrayMSPipeLayout), VK_SHADER_STAGE_ALL, 0,
+                                 sizeof(Vec4u), &params);
+  // TODO: Specify a single pixel to copy.
+  ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), extent.width, extent.height, 1);
+}
+
 void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent,
                                                  uint32_t layers, uint32_t samples, VkFormat fmt)
 {
