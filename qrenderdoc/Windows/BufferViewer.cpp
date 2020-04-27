@@ -2494,10 +2494,17 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       if(unclampedLen == UINT64_MAX)
         unclampedLen = 0;
       if(unclampedLen == 0)
-        unclampedLen = m_IsBuffer ? m_Ctx.GetBuffer(m_BufferID)->length : 0;
+      {
+        uint64_t bufLen = m_IsBuffer ? m_Ctx.GetBuffer(m_BufferID)->length : 0;
+        uint64_t bufOffs = CurrentByteOffset();
 
-      uint64_t clampedLen =
-          qMin(unclampedLen - CurrentByteOffset(), uint64_t(buf->stride * (MaxVisibleRows + 2)));
+        if(bufOffs >= bufLen)
+          unclampedLen = 0;
+        else
+          unclampedLen = bufLen - bufOffs;
+      }
+
+      uint64_t clampedLen = qMin(unclampedLen, uint64_t(buf->stride * (MaxVisibleRows + 2)));
 
       if(m_IsBuffer)
       {
