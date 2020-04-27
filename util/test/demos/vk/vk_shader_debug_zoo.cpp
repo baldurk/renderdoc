@@ -150,6 +150,8 @@ layout(set = 0, binding = 8, rgba32f) uniform coherent imageBuffer storeTexBuffe
 
 layout(set = 0, binding = 9) uniform sampler shadowSampler;
 
+layout(set = 0, binding = 10) uniform samplerCube cubeSampler;
+
 layout(set = 0, binding = 20) uniform sampler2DArray queryTest;
 layout(set = 0, binding = 21) uniform sampler2DMSArray queryTestMS;
 
@@ -1244,6 +1246,32 @@ void main()
       float z = texture(sampler2DShadow(sampledImages[zeroi+5], shadowSamplers[zeroi+8]), vec3(inpos, 0.7f));
       float w = texture(sampler2DShadow(sampledImages[zeroi+5], shadowSamplers[zeroi+8]), vec3(inpos, 0.9f));
       Color = vec4(x, y, z, w);
+      break;
+    }
+)EOSHADER"
+                   R"EOSHADER(
+    case 153:
+    {
+      vec3 cubeCoord = vec3(1.0f, -0.3f, 0.9f);
+      Color = textureLod(cubeSampler, cubeCoord, 0.0f);
+      break;
+    }
+    case 154:
+    {
+      vec3 cubeCoord = vec3(-1.0f, -0.3f, 0.9f);
+      Color = textureLod(cubeSampler, cubeCoord, 0.0f);
+      break;
+    }
+    case 155:
+    {
+      vec3 cubeCoord = vec3(-1.0f, 0.3f, 0.9f);
+      Color = textureLod(cubeSampler, cubeCoord, 0.0f);
+      break;
+    }
+    case 156:
+    {
+      vec3 cubeCoord = vec3(-1.0f, 0.3f, -0.9f);
+      Color = textureLod(cubeSampler, cubeCoord, 0.0f);
       break;
     }
     default: break;
@@ -2835,6 +2863,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
         {7, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {8, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {9, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
     }));
@@ -2982,6 +3011,27 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     uploadBuf.upload(rgba8.data.data(), rgba8.data.size() * sizeof(uint32_t));
 
+    std::vector<byte> randomData;
+    randomData.resize(128 * 128 * sizeof(Vec4f));
+
+    for(size_t i = 0; i < randomData.size(); i++)
+      randomData[i] = (rand() >> 4) & 0xff;
+
+    AllocatedBuffer randomBuf(
+        this, vkh::BufferCreateInfo(randomData.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    randomBuf.upload(randomData.data(), randomData.size());
+
+    AllocatedImage smileycube(
+        this, vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, VK_FORMAT_R8G8B8A8_UNORM,
+                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 1,
+                                   6, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    VkImageView smileycubeview = createImageView(vkh::ImageViewCreateInfo(
+        smileycube.image, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_R8G8B8A8_UNORM));
+
     {
       VkCommandBuffer cmd = GetCommandBuffer();
 
@@ -2992,6 +3042,8 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
           {
               vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, smiley.image),
+              vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, smileycube.image),
               vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
                                       VK_IMAGE_LAYOUT_GENERAL, queryTest.image),
               vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
@@ -3006,12 +3058,23 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       vkCmdCopyBufferToImage(cmd, uploadBuf.buffer, smiley.image,
                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
 
+      for(uint32_t i = 0; i < 6; i++)
+      {
+        copy.imageSubresource.baseArrayLayer = i;
+        vkCmdCopyBufferToImage(cmd, randomBuf.buffer, smileycube.image,
+                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+      }
+
       vkh::cmdPipelineBarrier(
-          cmd, {
-                   vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, smiley.image),
-               });
+          cmd,
+          {
+              vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, smiley.image),
+              vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, smileycube.image),
+          });
 
       vkEndCommandBuffer(cmd);
 
@@ -3162,6 +3225,10 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
             vkh::WriteDescriptorSet(
                 descset, 9, VK_DESCRIPTOR_TYPE_SAMPLER,
                 {vkh::DescriptorImageInfo(VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, shadowsampler)}),
+            vkh::WriteDescriptorSet(
+                descset, 10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                {vkh::DescriptorImageInfo(smileycubeview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                          linearsampler)}),
 
             vkh::WriteDescriptorSet(
                 descset, 20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,

@@ -77,12 +77,13 @@ enum class ShaderDebugBind
 {
   Tex1D = 1,
   First = Tex1D,
-  Tex2D,
-  Tex3D,
-  Tex2DMS,
-  Buffer,
-  Sampler,
-  Constants,
+  Tex2D = 2,
+  Tex3D = 3,
+  Tex2DMS = 4,
+  TexCube = 5,
+  Buffer = 6,
+  Sampler = 7,
+  Constants = 8,
   Count,
 };
 
@@ -128,7 +129,7 @@ struct ShaderUniformParameters
 {
   Vec3i texel_uvw;
   int texel_lod;
-  Vec3f uvw;
+  Vec4f uvwa;
   Vec3f ddx;
   Vec3f ddy;
   Vec3i offset;
@@ -530,69 +531,63 @@ public:
 
     const VulkanCreationInfo::ImageView &viewProps = m_Creation.m_ImageView[GetResID(view)];
     const VulkanCreationInfo::Image &imageProps = m_Creation.m_Image[viewProps.image];
-    VkImageType imageType = imageProps.type;
-    uint32_t samples = (uint32_t)imageProps.samples;
 
     VkDevice dev = m_pDriver->GetDev();
 
     // how many co-ordinates should there be
     int coords = 0, gradCoords = 0;
-    switch(viewProps.viewType)
-    {
-      case VK_IMAGE_VIEW_TYPE_1D:
-        coords = 1;
-        gradCoords = 1;
-        break;
-      case VK_IMAGE_VIEW_TYPE_2D:
-        coords = 2;
-        gradCoords = 2;
-        break;
-      case VK_IMAGE_VIEW_TYPE_3D:
-        coords = 3;
-        gradCoords = 3;
-        break;
-      case VK_IMAGE_VIEW_TYPE_CUBE:
-        coords = 3;
-        gradCoords = 3;
-        break;
-      case VK_IMAGE_VIEW_TYPE_1D_ARRAY:
-        coords = 2;
-        gradCoords = 1;
-        break;
-      case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
-        coords = 3;
-        gradCoords = 2;
-        break;
-      case VK_IMAGE_VIEW_TYPE_CUBE_ARRAY:
-        coords = 4;
-        gradCoords = 3;
-        break;
-      case VK_IMAGE_VIEW_TYPE_RANGE_SIZE:
-      case VK_IMAGE_VIEW_TYPE_MAX_ENUM:
-        RDCERR("Invalid image view type %s", ToStr(viewProps.viewType).c_str());
-        return false;
-    }
-
-    switch(imageType)
-    {
-      case VK_IMAGE_TYPE_1D: constParams.dim = ShaderDebugBind::Tex1D; break;
-      case VK_IMAGE_TYPE_2D:
-        constParams.dim = ShaderDebugBind::Tex2D;
-        if(samples > 1)
-          constParams.dim = ShaderDebugBind::Tex2DMS;
-        break;
-      case VK_IMAGE_TYPE_3D: constParams.dim = ShaderDebugBind::Tex3D; break;
-      default:
-      {
-        RDCERR("Unsupported image type %s", ToStr(imageType).c_str());
-        return false;
-      }
-    }
-
     if(buffer)
     {
       constParams.dim = ShaderDebugBind::Buffer;
       coords = gradCoords = 1;
+    }
+    else
+    {
+      switch(viewProps.viewType)
+      {
+        case VK_IMAGE_VIEW_TYPE_1D:
+          coords = 1;
+          gradCoords = 1;
+          constParams.dim = ShaderDebugBind::Tex1D;
+          break;
+        case VK_IMAGE_VIEW_TYPE_2D:
+          coords = 2;
+          gradCoords = 2;
+          constParams.dim = ShaderDebugBind::Tex2D;
+          break;
+        case VK_IMAGE_VIEW_TYPE_3D:
+          coords = 3;
+          gradCoords = 3;
+          constParams.dim = ShaderDebugBind::Tex3D;
+          break;
+        case VK_IMAGE_VIEW_TYPE_CUBE:
+          coords = 3;
+          gradCoords = 3;
+          constParams.dim = ShaderDebugBind::TexCube;
+          break;
+        case VK_IMAGE_VIEW_TYPE_1D_ARRAY:
+          coords = 2;
+          gradCoords = 1;
+          constParams.dim = ShaderDebugBind::Tex1D;
+          break;
+        case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
+          coords = 3;
+          gradCoords = 2;
+          constParams.dim = ShaderDebugBind::Tex2D;
+          break;
+        case VK_IMAGE_VIEW_TYPE_CUBE_ARRAY:
+          coords = 4;
+          gradCoords = 3;
+          constParams.dim = ShaderDebugBind::TexCube;
+          break;
+        case VK_IMAGE_VIEW_TYPE_RANGE_SIZE:
+        case VK_IMAGE_VIEW_TYPE_MAX_ENUM:
+          RDCERR("Invalid image view type %s", ToStr(viewProps.viewType).c_str());
+          return false;
+      }
+
+      if(imageProps.samples > 1)
+        constParams.dim = ShaderDebugBind::Tex2DMS;
     }
 
     // handle query opcodes now
@@ -665,6 +660,8 @@ public:
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
       else if(viewInfo.viewType == VK_IMAGE_VIEW_TYPE_2D)
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+      else if(viewInfo.viewType == VK_IMAGE_VIEW_TYPE_CUBE)
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
 
       viewInfo.components = viewProps.componentMapping;
       viewInfo.subresourceRange = viewProps.range;
@@ -825,11 +822,13 @@ public:
       case rdcspv::Op::ImageGather:
       case rdcspv::Op::ImageDrefGather:
       {
-        uniformParams.uvw.x = uv.value.f.x;
+        uniformParams.uvwa.x = uv.value.f.x;
         if(coords >= 2)
-          uniformParams.uvw.y = uv.value.f.y;
+          uniformParams.uvwa.y = uv.value.f.y;
         if(coords >= 3)
-          uniformParams.uvw.z = uv.value.f.z;
+          uniformParams.uvwa.z = uv.value.f.z;
+        if(coords >= 4)
+          uniformParams.uvwa.z = uv.value.f.w;
 
         if(useCompare)
           uniformParams.compare = compare.value.f.x;
@@ -886,20 +885,26 @@ public:
       case rdcspv::Op::ImageSampleProjDrefExplicitLod:
       case rdcspv::Op::ImageSampleProjDrefImplicitLod:
       {
-        uniformParams.uvw.x = uv.value.f.x;
+        uniformParams.uvwa.x = uv.value.f.x;
         if(coords >= 2)
-          uniformParams.uvw.y = uv.value.f.y;
+          uniformParams.uvwa.y = uv.value.f.y;
         if(coords >= 3)
-          uniformParams.uvw.z = uv.value.f.z;
+          uniformParams.uvwa.z = uv.value.f.z;
+        if(coords >= 4)
+          uniformParams.uvwa.z = uv.value.f.w;
 
         if(proj)
         {
+          // coords shouldn't be 4 because that's only valid for cube arrays which can't be
+          // projected
+          RDCASSERT(coords < 4);
+
           // do the divide ourselves rather than severely complicating the sample shader (as proj
           // variants need non-arrayed textures)
           float q = uv.value.fv[coords];
-          uniformParams.uvw.x /= q;
-          uniformParams.uvw.y /= q;
-          uniformParams.uvw.z /= q;
+          uniformParams.uvwa.x /= q;
+          uniformParams.uvwa.y /= q;
+          uniformParams.uvwa.z /= q;
         }
 
         if(operands.flags & rdcspv::ImageOperands::MinLod)
@@ -1065,7 +1070,7 @@ public:
 
       // push uvw/ddx/ddy for the vertex shader
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DebugData.PipeLayout), VK_SHADER_STAGE_ALL,
-                                     sizeof(Vec4f) * 0, sizeof(Vec3f), &uniformParams.uvw);
+                                     sizeof(Vec4f) * 0, sizeof(Vec4f), &uniformParams.uvwa);
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DebugData.PipeLayout), VK_SHADER_STAGE_ALL,
                                      sizeof(Vec4f) * 1, sizeof(Vec3f), &uniformParams.ddx);
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DebugData.PipeLayout), VK_SHADER_STAGE_ALL,
@@ -1863,9 +1868,10 @@ private:
     DECL_UNIFORM(int32_t, texel_v, texel_uvw.y);
     DECL_UNIFORM(int32_t, texel_w, texel_uvw.z);
     DECL_UNIFORM(int32_t, texel_lod, texel_lod);
-    DECL_UNIFORM(float, u, uvw.x);
-    DECL_UNIFORM(float, v, uvw.y);
-    DECL_UNIFORM(float, w, uvw.z);
+    DECL_UNIFORM(float, u, uvwa.x);
+    DECL_UNIFORM(float, v, uvwa.y);
+    DECL_UNIFORM(float, w, uvwa.z);
+    DECL_UNIFORM(float, cube_a, uvwa.w);
     DECL_UNIFORM(float, dudx, ddx.x);
     DECL_UNIFORM(float, dvdx, ddx.y);
     DECL_UNIFORM(float, dwdx, ddx.z);
@@ -1924,6 +1930,7 @@ private:
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_2D, 0, 1, 0, 1, unk)),
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_3D, 0, 0, 0, 1, unk)),
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_2D, 0, 1, 1, 1, unk)),
+        editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::Cube, 0, 1, 0, 1, unk)),
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::Buffer, 0, 0, 0, 1, unk)),
         editor.DeclareType(rdcspv::Sampler()),
         cbufferStructID,
@@ -1936,6 +1943,7 @@ private:
         editor.DeclareType(rdcspv::SampledImage(texSampTypes[3])),
         editor.DeclareType(rdcspv::SampledImage(texSampTypes[4])),
         editor.DeclareType(rdcspv::SampledImage(texSampTypes[5])),
+        editor.DeclareType(rdcspv::SampledImage(texSampTypes[6])),
         rdcspv::Id(),
         rdcspv::Id(),
     };
@@ -1961,22 +1969,23 @@ private:
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex2D], "Tex2D");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex3D], "Tex3D");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Tex2DMS], "Tex2DMS");
+    editor.SetName(bindVars[(size_t)ShaderDebugBind::TexCube], "TexCube");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Buffer], "Buffer");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Sampler], "Sampler");
     editor.SetName(bindVars[(size_t)ShaderDebugBind::Constants], "CBuffer");
 
-    rdcspv::Id uvw_ptr = editor.DeclareType(rdcspv::Pointer(v3f32, rdcspv::StorageClass::Input));
-    rdcspv::Id input_uvw_var =
-        editor.AddVariable(rdcspv::OpVariable(uvw_ptr, editor.MakeId(), rdcspv::StorageClass::Input));
+    rdcspv::Id uvwa_ptr = editor.DeclareType(rdcspv::Pointer(v4f32, rdcspv::StorageClass::Input));
+    rdcspv::Id input_uvwa_var = editor.AddVariable(
+        rdcspv::OpVariable(uvwa_ptr, editor.MakeId(), rdcspv::StorageClass::Input));
     editor.AddDecoration(rdcspv::OpDecorate(
-        input_uvw_var, rdcspv::DecorationParam<rdcspv::Decoration::Location>(0)));
+        input_uvwa_var, rdcspv::DecorationParam<rdcspv::Decoration::Location>(0)));
 
-    editor.SetName(input_uvw_var, "uvw");
+    editor.SetName(input_uvwa_var, "input_uvwa");
 
     // register the entry point
     editor.AddOperation(editor.Begin(rdcspv::Section::EntryPoints),
                         rdcspv::OpEntryPoint(rdcspv::ExecutionModel::Fragment, entryId, "main",
-                                             {input_uvw_var, outVar}));
+                                             {input_uvwa_var, outVar}));
     editor.AddOperation(editor.Begin(rdcspv::Section::ExecutionMode),
                         rdcspv::OpExecutionMode(entryId, rdcspv::ExecutionMode::OriginUpperLeft));
 
@@ -2007,9 +2016,12 @@ private:
 
     rdcspv::Id uv = func.add(rdcspv::OpCompositeConstruct(v2f32, editor.MakeId(), {u, v}));
     rdcspv::Id uvw = func.add(rdcspv::OpCompositeConstruct(v3f32, editor.MakeId(), {u, v, w}));
+    rdcspv::Id uvwa =
+        func.add(rdcspv::OpCompositeConstruct(v4f32, editor.MakeId(), {u, v, w, cube_a}));
 
     editor.SetName(uv, "uv");
     editor.SetName(uvw, "uvw");
+    editor.SetName(uvwa, "uvwa");
 
     rdcspv::Id ddx_uv = func.add(rdcspv::OpCompositeConstruct(v2f32, editor.MakeId(), {dudx, dvdx}));
     rdcspv::Id ddx_uvw =
@@ -2033,7 +2045,9 @@ private:
     editor.SetName(offset_xy, "offset_xy");
     editor.SetName(offset_xyz, "offset_xyz");
 
-    rdcspv::Id input_uvw = func.add(rdcspv::OpLoad(v3f32, editor.MakeId(), input_uvw_var));
+    rdcspv::Id input_uvwa = func.add(rdcspv::OpLoad(v4f32, editor.MakeId(), input_uvwa_var));
+    rdcspv::Id input_uvw =
+        func.add(rdcspv::OpVectorShuffle(v3f32, editor.MakeId(), input_uvwa, input_uvwa, {0, 1, 2}));
     rdcspv::Id input_uv =
         func.add(rdcspv::OpVectorShuffle(v2f32, editor.MakeId(), input_uvw, input_uvw, {0, 1}));
 
@@ -2056,11 +2070,12 @@ private:
 
     rdcspv::Id texel_coord[(uint32_t)ShaderDebugBind::Count] = {
         rdcspv::Id(),
-        texel_uv,     // 1D - u and array
-        texel_uvw,    // 2D - u,v and array
-        texel_uvw,    // 3D - u,v,w
-        texel_uvw,    // 2DMS - u,v and array
-        texel_u,      // Buffer - u
+        texel_uv,        // 1D - u and array
+        texel_uvw,       // 2D - u,v and array
+        texel_uvw,       // 3D - u,v,w
+        texel_uvw,       // 2DMS - u,v and array
+        rdcspv::Id(),    // Cube
+        texel_u,         // Buffer - u
     };
 
     // only used for QueryLod, so we can ignore MSAA/Buffer
@@ -2070,25 +2085,28 @@ private:
         input_uvw,       // 2D - u,v and array
         input_uvw,       // 3D - u,v,w
         rdcspv::Id(),    // 2DMS
+        input_uvwa,      // Cube - u,v,w and array
         rdcspv::Id(),    // Buffer
     };
 
     rdcspv::Id coord[(uint32_t)ShaderDebugBind::Count] = {
         rdcspv::Id(),
-        uv,     // 1D - u and array
-        uvw,    // 2D - u,v and array
-        uvw,    // 3D - u,v,w
-        uvw,    // 2DMS - u,v and array
-        u,      // Buffer - u
+        uv,      // 1D - u and array
+        uvw,     // 2D - u,v and array
+        uvw,     // 3D - u,v,w
+        uvw,     // 2DMS - u,v and array
+        uvwa,    // Cube - u,v,w and array
+        u,       // Buffer - u
     };
 
     rdcspv::Id offsets[(uint32_t)ShaderDebugBind::Count] = {
         rdcspv::Id(),
-        offset_x,      // 1D - u
-        offset_xy,     // 2D - u,v
-        offset_xyz,    // 3D - u,v,w
-        offset_xy,     // 2DMS - u,v
-        offset_x,      // Buffer - u
+        offset_x,        // 1D - u
+        offset_xy,       // 2D - u,v
+        offset_xyz,      // 3D - u,v,w
+        offset_xy,       // 2DMS - u,v
+        rdcspv::Id(),    // Cube - not valid
+        offset_x,        // Buffer - u
     };
 
     rdcspv::Id ddxs[(uint32_t)ShaderDebugBind::Count] = {
@@ -2097,6 +2115,7 @@ private:
         ddx_uv,     // 2D - u,v
         ddx_uvw,    // 3D - u,v,w
         ddx_uv,     // 2DMS - u,v
+        ddx_uvw,    // Cube - u,v,w
         dudx,       // Buffer - u
     };
 
@@ -2106,6 +2125,7 @@ private:
         ddy_uv,     // 2D - u,v
         ddy_uvw,    // 3D - u,v,w
         ddy_uv,     // 2DMS - u,v
+        ddy_uvw,    // Cube - u,v,w
         dudy,       // Buffer - u
     };
 
@@ -2118,6 +2138,8 @@ private:
       if(i == sampIdx || i == (uint32_t)ShaderDebugBind::Constants)
         continue;
 
+      // can't fetch from cubemaps
+      if(i != (uint32_t)ShaderDebugBind::TexCube)
       {
         rdcspv::Op op = rdcspv::Op::ImageFetch;
 
@@ -2181,7 +2203,7 @@ private:
 
         rdcspv::ImageOperandsAndParamDatas imageOperands;
 
-        if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+        if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended && offsets[i] != rdcspv::Id())
           imageOperands.setOffset(offsets[i]);
 
         cases.add(rdcspv::OpLabel(label));
@@ -2241,7 +2263,7 @@ private:
 
         rdcspv::ImageOperandsAndParamDatas imageOperands;
 
-        if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+        if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended && offsets[i] != rdcspv::Id())
           imageOperands.setOffset(offsets[i]);
 
         cases.add(rdcspv::OpLabel(label));
@@ -2295,7 +2317,7 @@ private:
         cases.add(rdcspv::OpBranch(breakLabel));
       }
 
-      // can only gather with 2D textures
+      // can only gather with 2D/Cube textures
       if(i == (uint32_t)ShaderDebugBind::Tex1D || i == (uint32_t)ShaderDebugBind::Tex3D)
         continue;
 
@@ -2326,7 +2348,7 @@ private:
             cases.add(rdcspv::OpLabel(baseCase));
             rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
 
-            if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+            if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended && offsets[i] != rdcspv::Id())
               imageOperands.setOffset(offsets[i]);
 
             rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
@@ -2372,7 +2394,7 @@ private:
         }
         else
         {
-          if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+          if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended && offsets[i] != rdcspv::Id())
             imageOperands.setOffset(offsets[i]);
 
           rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(

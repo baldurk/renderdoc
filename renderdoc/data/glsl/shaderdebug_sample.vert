@@ -22,11 +22,11 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-layout(location = 0) out vec3 uvw;
+layout(location = 0) out vec4 uvwa;
 
 layout(push_constant) uniform PushData
 {
-  vec4 uvw;
+  vec4 uvwa;
   vec4 ddx;
   vec4 ddy;
 }
@@ -38,9 +38,9 @@ void main(void)
                                 vec4(-0.75, 1.25, 0.5, 1.0));
 
   gl_Position = verts[gl_VertexIndex];
-  uvw = push.uvw.xyz;
+  uvwa = push.uvwa;
   if(gl_VertexIndex == 1)
-    uvw += push.ddx.xyz;
+    uvwa.xyz += push.ddx.xyz;
   else if(gl_VertexIndex == 2)
-    uvw += push.ddy.xyz;
+    uvwa.xyz += push.ddy.xyz;
 }
