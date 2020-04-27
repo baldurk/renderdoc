@@ -101,10 +101,11 @@ public:
 
 // this could be cleaner if ShaderVariable wasn't a very public struct, but it's not worth it so
 // we just reserve value slots that we know won't be used in opaque variables
-static const uint32_t TextureTypeVariableSlot = 8;
-static const uint32_t BufferPointerByteOffsetVariableSlot = 8;
-static const uint32_t BufferPointerTypeIdVariableSlot = 9;
-static const uint32_t SSBOVariableSlot = 10;
+static const uint32_t ArrayVariableSlot = 8;
+static const uint32_t TextureTypeVariableSlot = 9;
+static const uint32_t BufferPointerByteOffsetVariableSlot = 9;
+static const uint32_t BufferPointerTypeIdVariableSlot = 10;
+static const uint32_t SSBOVariableSlot = 11;
 
 typedef ShaderVariable (*ExtInstImpl)(ThreadState &, uint32_t, const rdcarray<Id> &);
 

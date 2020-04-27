@@ -406,7 +406,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
   for(const rdcstr &e : extensions)
   {
-    if(e == "SPV_GOOGLE_decorate_string" || e == "SPV_GOOGLE_hlsl_functionality1")
+    if(e == "SPV_GOOGLE_decorate_string" || e == "SPV_GOOGLE_hlsl_functionality1" ||
+       e == "SPV_EXT_descriptor_indexing")
     {
       // supported extensions
     }
@@ -514,19 +515,22 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       // global variables should all be pointers into opaque storage
       RDCASSERT(type.type == DataType::PointerType);
 
-      const DataType &innertype = dataTypes[type.InnerType()];
+      const DataType *innertype = &dataTypes[type.InnerType()];
 
       if(sourceName == var.name)
-        sourceName = GetHumanName(innertype.id);
+        sourceName = GetHumanName(innertype->id);
+
+      bool isArray = false;
+      if(innertype->type == DataType::ArrayType)
+      {
+        isArray = true;
+        innertype = &dataTypes[innertype->InnerType()];
+      }
 
       const bool ssbo = (v.storage == StorageClass::StorageBuffer) ||
-                        (decorations[innertype.id].flags & Decorations::BufferBlock);
+                        (decorations[innertype->id].flags & Decorations::BufferBlock);
 
-      if(innertype.type == DataType::ArrayType)
-      {
-        RDCERR("uniform Arrays not supported yet");
-      }
-      else if(innertype.type == DataType::StructType)
+      if(innertype->type == DataType::StructType)
       {
         // if we don't have a good human name, generate a better one using the interface information
         // we have
@@ -566,10 +570,12 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
           if(decorations[v.id].flags & Decorations::HasBinding)
             bind = decorations[v.id].binding;
 
-          // TODO handle arrays
           var.SetBinding((int32_t)set, (int32_t)bind, 0U);
 
           var.value.u64v[SSBOVariableSlot] = 1;
+
+          if(isArray)
+            var.value.u64v[ArrayVariableSlot] = 1;
 
           sourceVar.type = VarType::ReadWriteResource;
           sourceVar.rows = 1;
@@ -583,7 +589,10 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
         else
         {
           uint32_t offset = 0;
-          AllocateVariable(d, d, DebugVariableType::Constant, sourceName, 0, innertype, var);
+          AllocateVariable(d, d, DebugVariableType::Constant, sourceName, 0, *innertype, var);
+
+          if(isArray)
+            RDCERR("Uniform buffer arrays not supported yet");
 
           sourceVar.type = VarType::ConstantBlock;
           sourceVar.rows = 0;
@@ -598,7 +607,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       }
       else
       {
-        RDCERR("Unhandled type of uniform: %u", innertype.type);
+        RDCERR("Unhandled type of uniform: %u", innertype->type);
       }
     }
     else if(v.storage == StorageClass::UniformConstant)
@@ -616,18 +625,18 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       // global variables should all be pointers into opaque storage
       RDCASSERT(type.type == DataType::PointerType);
 
-      const DataType &innertype = dataTypes[type.InnerType()];
+      const DataType *innertype = &dataTypes[type.InnerType()];
 
       // if we don't have a good human name, generate a better one using the interface information
       // we have
       if(sourceName == var.name)
       {
         rdcstr innerName;
-        if(innertype.type == DataType::SamplerType)
+        if(innertype->type == DataType::SamplerType)
           innerName = "sampler";
-        else if(innertype.type == DataType::SampledImageType)
+        else if(innertype->type == DataType::SampledImageType)
           innerName = "sampledImage";
-        else if(innertype.type == DataType::ImageType)
+        else if(innertype->type == DataType::ImageType)
           innerName = "image";
         sourceName = StringFormat::Fmt("_%s_set%u_bind%u", innerName.c_str(), decorations[v.id].set,
                                        decorations[v.id].binding);
@@ -641,10 +650,15 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       if(decorations[v.id].flags & Decorations::HasBinding)
         bind = decorations[v.id].binding;
 
-      // TODO handle arrays
       var.SetBinding((int32_t)set, (int32_t)bind, 0U);
 
-      if(innertype.type == DataType::SamplerType)
+      if(innertype->type == DataType::ArrayType)
+      {
+        var.value.u64v[ArrayVariableSlot] = 1;
+        innertype = &dataTypes[innertype->InnerType()];
+      }
+
+      if(innertype->type == DataType::SamplerType)
       {
         var.type = VarType::Sampler;
         debugType = DebugVariableType::Sampler;
@@ -652,7 +666,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
         global.samplers.push_back(var);
         samplerIDs.push_back(v.id);
       }
-      else if(innertype.type == DataType::SampledImageType || innertype.type == DataType::ImageType)
+      else if(innertype->type == DataType::SampledImageType || innertype->type == DataType::ImageType)
       {
         var.type = VarType::ReadOnlyResource;
         debugType = DebugVariableType::ReadOnlyResource;
@@ -663,7 +677,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
         Id imgid = type.InnerType();
 
-        if(innertype.type == DataType::SampledImageType)
+        if(innertype->type == DataType::SampledImageType)
           imgid = sampledImageTypes[imgid].baseId;
 
         if(imageTypes[imgid].dim == Dim::Buffer)
@@ -677,7 +691,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
             texType |= DebugAPIWrapper::UInt_Texture;
         }
 
-        var.value.uv[TextureTypeVariableSlot] = texType;
+        var.value.u64v[TextureTypeVariableSlot] = texType;
 
         if(imageTypes[imgid].sampled == 2)
         {
@@ -695,7 +709,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       }
       else
       {
-        RDCERR("Unhandled type of uniform: %u", innertype.type);
+        RDCERR("Unhandled type of uniform: %u", innertype->type);
       }
 
       SourceVariableMapping sourceVar;
@@ -998,6 +1012,15 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
   if(base.type == VarType::GPUPointer)
     leaf = (const ShaderVariable *)(uintptr_t)base.value.u64v[0];
 
+  bool isArray = false;
+
+  if((leaf->type == VarType::ReadWriteResource || leaf->type == VarType::ReadOnlyResource ||
+      leaf->type == VarType::Sampler) &&
+     leaf->value.u64v[ArrayVariableSlot])
+  {
+    isArray = true;
+  }
+
   if(leaf->type == VarType::ReadWriteResource && leaf->value.u64v[SSBOVariableSlot])
   {
     ShaderVariable ret = MakePointerVariable(id, leaf);
@@ -1011,6 +1034,14 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
 
     // first walk any aggregate types
     size_t i = 0;
+
+    // if it's an array, consume the array index first
+    if(isArray)
+    {
+      ret.value.u64v[ArrayVariableSlot] = indices[i++];
+      type = &dataTypes[type->InnerType()];
+    }
+
     while(i < indices.size() &&
           (type->type == DataType::ArrayType || type->type == DataType::StructType))
     {
@@ -1105,6 +1136,8 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
 
   // first walk any struct member/array indices
   size_t i = 0;
+  if(isArray)
+    i++;
   while(i < indices.size() && !leaf->members.empty())
   {
     leaf = &leaf->members[indices[i++]];
@@ -1124,7 +1157,12 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
     scalar0 = indices[i];
   }
 
-  return MakePointerVariable(id, leaf, scalar0, scalar1);
+  ShaderVariable ret = MakePointerVariable(id, leaf, scalar0, scalar1);
+
+  if(isArray)
+    ret.value.u64v[ArrayVariableSlot] = indices[0];
+
+  return ret;
 }
 
 ShaderVariable Debugger::GetPointerValue(const ShaderVariable &ptr) const
@@ -1135,6 +1173,9 @@ ShaderVariable Debugger::GetPointerValue(const ShaderVariable &ptr) const
     const ShaderVariable *inner = (const ShaderVariable *)(uintptr_t)ptr.value.u64v[0];
     ShaderVariable ret = *inner;
     ret.name = ptr.name;
+    // inherit any array index from the pointer
+    BindpointIndex bind = ret.GetBinding();
+    ret.SetBinding(bind.bindset, bind.bind, (uint32_t)ptr.value.u64v[ArrayVariableSlot]);
     return ret;
   }
 
@@ -1158,6 +1199,8 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
     uint64_t byteOffset = ptr.value.u64v[BufferPointerByteOffsetVariableSlot];
 
     BindpointIndex bind = inner->GetBinding();
+
+    bind.arrayIndex = (uint32_t)ptr.value.u64v[ArrayVariableSlot];
 
     WalkVariable(dataTypes[typeId], byteOffset, ret, true, [this, bind](ShaderVariable &var,
                                                                         const DataType &type,
@@ -1216,6 +1259,14 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
 
   ret = *inner;
   ret.name = ptr.name;
+
+  if(inner->type == VarType::ReadOnlyResource || inner->type == VarType::ReadWriteResource ||
+     inner->type == VarType::Sampler)
+  {
+    BindpointIndex bind = ret.GetBinding();
+
+    ret.SetBinding(bind.bindset, bind.bind, (uint32_t)ptr.value.u64v[ArrayVariableSlot]);
+  }
 
   // we don't support pointers to scalars since our 'unit' of pointer is a ShaderVariable, so check
   // if we have scalar indices to apply:
@@ -1290,7 +1341,8 @@ bool Debugger::IsOpaquePointer(const ShaderVariable &ptr) const
     return false;
 
   ShaderVariable *inner = (ShaderVariable *)(uintptr_t)ptr.value.u64v[0];
-  return inner->type == VarType::ReadOnlyResource || inner->type == VarType::ReadWriteResource;
+  return inner->type == VarType::ReadOnlyResource || inner->type == VarType::Sampler ||
+         inner->type == VarType::ReadWriteResource;
 }
 
 bool Debugger::ArePointersAndEqual(const ShaderVariable &a, const ShaderVariable &b) const
@@ -1316,6 +1368,8 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
     const DataType &type = dataTypes[typeId];
 
     BindpointIndex bind = storage->GetBinding();
+
+    bind.arrayIndex = (uint32_t)ptr.value.u64v[ArrayVariableSlot];
 
     WalkVariable(dataTypes[typeId], byteOffset, (ShaderVariable &)val, false,
                  [this, bind](ShaderVariable &var, const DataType &type, uint64_t offset) {

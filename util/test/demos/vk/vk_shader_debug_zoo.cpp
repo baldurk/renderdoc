@@ -101,11 +101,12 @@ void main()
 #version 460 core
 
 #extension GL_EXT_samplerless_texture_functions : require
+#extension GL_EXT_nonuniform_qualifier : require
 
 layout(set = 0, binding = 0, std140) uniform constsbuf
 {
   vec4 first;
-  vec4 pad1;
+  uint uniformIndex;
   vec4 second;
   vec4 pad2;
   vec4 third;
@@ -151,6 +152,30 @@ layout(set = 0, binding = 9) uniform sampler shadowSampler;
 
 layout(set = 0, binding = 20) uniform sampler2DArray queryTest;
 layout(set = 0, binding = 21) uniform sampler2DMSArray queryTestMS;
+
+layout(set = 1, binding = 1) uniform sampler pointSamplers[14];
+layout(set = 1, binding = 2) uniform sampler linearSamplers[14];
+
+layout(set = 1, binding = 3) uniform texture2D sampledImages[14];
+
+layout(set = 1, binding = 4) uniform sampler2D linearSampledImages[14];
+
+layout(set = 1, binding = 5, std430) buffer storebufstype
+{
+  vec4 x;
+  dummy y;
+  vec4 arr[];
+} storebufs[14];
+
+layout(set = 1, binding = 6, rgba32f) uniform coherent image2D storeImages[14];
+
+layout(set = 1, binding = 7) uniform samplerBuffer texBuffers[14];
+layout(set = 1, binding = 8, rgba32f) uniform coherent imageBuffer storeTexBuffers[14];
+
+layout(set = 1, binding = 9) uniform sampler shadowSamplers[14];
+
+layout(set = 1, binding = 20) uniform sampler2DArray queryTests[14];
+layout(set = 1, binding = 21) uniform sampler2DMSArray queryTestsMS[14];
 
 layout(push_constant) uniform PushData {
   layout(offset = 16) ivec4 data;
@@ -355,7 +380,7 @@ void main()
     case 30:
     {
       Color = cbuf.first + cbuf.second + cbuf.third + cbuf.fourth +
-              cbuf.pad1 + cbuf.pad2 + cbuf.pad3;
+              cbuf.pad2 + cbuf.pad3;
       break;
     }
     case 31:
@@ -1097,6 +1122,130 @@ void main()
       Color = imageLoad(storeImage, ivec2(zeroi+1,zeroi+3));
       break;
     }
+    case 134:
+    {
+      ivec2 coord = ivec2(zeroi + 20, zeroi + 20);
+
+      Color = texelFetch(sampledImages[1], coord, 0);
+      break;
+    }
+    case 135:
+    {
+      vec2 coord = vec2(zerof + 0.5, zerof + 0.145);
+
+      Color = textureLod(sampler2D(sampledImages[2], pointSamplers[3]), coord, 0.0);
+      break;
+    }
+    case 136:
+    {
+      vec2 coord = vec2(zerof + 0.5, zerof + 0.145);
+
+      Color = textureLod(sampler2D(sampledImages[2], linearSamplers[3]), coord, 0.0);
+      break;
+    }
+    case 137:
+    {
+      Color = texture(linearSampledImages[4], inpos.xy);
+      break;
+    }
+    case 138:
+    {
+      ivec2 coord = ivec2(zeroi + 20, zeroi + 20);
+
+      Color = texelFetch(sampledImages[cbuf.uniformIndex+1], coord, 0);
+      break;
+    }
+    case 139:
+    {
+      vec2 coord = vec2(zerof + 0.5, zerof + 0.145);
+
+      Color = textureLod(sampler2D(sampledImages[cbuf.uniformIndex+2], pointSamplers[cbuf.uniformIndex+3]), coord, 0.0);
+      break;
+    }
+    case 140:
+    {
+      vec2 coord = vec2(zerof + 0.5, zerof + 0.145);
+
+      Color = textureLod(sampler2D(sampledImages[cbuf.uniformIndex+2], linearSamplers[cbuf.uniformIndex+3]), coord, 0.0);
+      break;
+    }
+    case 141:
+    {
+      Color = texture(linearSampledImages[cbuf.uniformIndex+4], inpos.xy);
+      break;
+    }
+    case 142:
+    {
+      ivec2 coord = ivec2(zeroi + 20, zeroi + 20);
+
+      Color = texelFetch(sampledImages[nonuniformEXT(zeroi)+9], coord, 0);
+      break;
+    }
+    case 143:
+    {
+      vec2 coord = vec2(zerof + 0.5, zerof + 0.145);
+
+      Color = textureLod(sampler2D(sampledImages[nonuniformEXT(zeroi)+10], pointSamplers[nonuniformEXT(zeroi)+11]), coord, 0.0);
+      break;
+    }
+    case 144:
+    {
+      vec2 coord = vec2(zerof + 0.5, zerof + 0.145);
+
+      Color = textureLod(sampler2D(sampledImages[nonuniformEXT(zeroi)+10], linearSamplers[nonuniformEXT(zeroi)+11]), coord, 0.0);
+      break;
+    }
+    case 145:
+    {
+      Color = texture(linearSampledImages[nonuniformEXT(zeroi)+12], inpos.xy);
+      break;
+    }
+    case 146:
+    {
+      Color = vec4(float(textureQueryLevels(queryTests[0])), float(textureSamples(queryTestsMS[0])), 0.0f, 1.0f);
+      break;
+    }
+    case 147:
+    {
+      Color = vec4(float(textureQueryLevels(queryTests[zeroi+3])), float(textureSamples(queryTestsMS[zeroi+3])), 0.0f, 1.0f);
+      break;
+    }
+    case 148:
+    {
+      Color = vec4(float(textureQueryLevels(queryTests[nonuniformEXT(zeroi)+5])), float(textureSamples(queryTestsMS[nonuniformEXT(zeroi)+5])), 0.0f, 1.0f);
+      break;
+    }
+    case 149:
+    {
+      uint len = storebufs[zeroi+7].arr.length();
+      Color = vec4(float(len), float(len), float(len), float(len));
+      break;
+    }
+    case 150:
+    {
+      // test storage buffer write here, we'll read from it in GLSL test 2
+      storebufs[zeroi+7].x = vec4(3.1f, 4.1f, 5.9f, 2.6f);
+      storebufs[zeroi+7].y.val = uvec4(31, 41, 59, 26);
+      storebufs[zeroi+7].arr[flatData.intval - flatData.test] = vec4(inpos, inposIncreased);
+
+      Color = storebufs[zeroi+7].x;
+      break;
+    }
+    case 151:
+    {
+      imageStore(storeImages[zeroi+7], ivec2(zeroi+1,zeroi+3), vec4(3.1f, 4.1f, 5.9f, 2.6f));
+      Color = imageLoad(storeImages[zeroi+7], ivec2(zeroi+1,zeroi+3));
+      break;
+    }
+    case 152:
+    {
+      float x = texture(sampler2DShadow(sampledImages[zeroi+5], shadowSamplers[zeroi+8]), vec3(inpos, 0.1f));
+      float y = texture(sampler2DShadow(sampledImages[zeroi+5], shadowSamplers[zeroi+8]), vec3(inpos, 0.3f));
+      float z = texture(sampler2DShadow(sampledImages[zeroi+5], shadowSamplers[zeroi+8]), vec3(inpos, 0.7f));
+      float w = texture(sampler2DShadow(sampledImages[zeroi+5], shadowSamplers[zeroi+8]), vec3(inpos, 0.9f));
+      Color = vec4(x, y, z, w);
+      break;
+    }
     default: break;
   }
 }
@@ -1197,6 +1346,7 @@ layout(location = 0) out vec4 Color;
 
 void main()
 {
+  float zerof = float(zeroi);
   Color = vec4(0,0,0,0);
   switch(test)
   {
@@ -1294,6 +1444,29 @@ void main()
         val += vec2(0.01f, 0.01f);
       }
       Color = dFdxFine(val).xyxy;
+      break;
+    }
+    case 15:
+    {
+      // test loading from the storage buffer (after a nice big barrier)
+      Color = storebufs[zeroi+7].x;
+      break;
+    }
+    case 16:
+    {
+      // test loading from the storage buffer (after a nice big barrier)
+      Color = vec4(storebufs[zeroi+7].y.val);
+      break;
+    }
+    case 17:
+    {
+      // test loading from the storage buffer (after a nice big barrier)
+      Color = storebufs[zeroi+7].arr[intval - test];
+      break;
+    }
+    case 18:
+    {
+      Color = imageLoad(storeImages[zeroi+7], ivec2(zeroi+1,zeroi+3));
       break;
     }
     default: break;
@@ -2548,7 +2721,11 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
   void Prepare(int argc, char **argv)
   {
-    optDevExts.push_back(VK_KHR_SPIRV_1_4_EXTENSION_NAME);
+    // require descriptor indexing
+    devExts.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+
+    // dependencies of VK_EXT_descriptor_indexing
+    devExts.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
 
     // we require this to pixel shader debug anyway, so we might as well require it for all tests.
     features.fragmentStoresAndAtomics = VK_TRUE;
@@ -2570,6 +2747,47 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     // Disabled until we support these in debugging
     // if(supported.shaderFloat64)
     // features.shaderFloat64 = VK_TRUE;
+
+    static VkPhysicalDeviceDescriptorIndexingFeaturesEXT descIndexing = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT,
+    };
+
+    getPhysFeatures2(&descIndexing);
+
+    // enable descriptor indexing on arrays of all types
+
+    if(!descIndexing.runtimeDescriptorArray)
+      Avail = "Descriptor indexing feature 'runtimeDescriptorArray' not available";
+    else if(!descIndexing.shaderUniformTexelBufferArrayDynamicIndexing)
+      Avail =
+          "Descriptor indexing feature 'shaderUniformTexelBufferArrayDynamicIndexing' not "
+          "available";
+    else if(!descIndexing.shaderStorageTexelBufferArrayDynamicIndexing)
+      Avail =
+          "Descriptor indexing feature 'shaderStorageTexelBufferArrayDynamicIndexing' not "
+          "available";
+    else if(!descIndexing.shaderUniformBufferArrayNonUniformIndexing)
+      Avail =
+          "Descriptor indexing feature 'shaderUniformBufferArrayNonUniformIndexing' not available";
+    else if(!descIndexing.shaderSampledImageArrayNonUniformIndexing)
+      Avail =
+          "Descriptor indexing feature 'shaderSampledImageArrayNonUniformIndexing' not available";
+    else if(!descIndexing.shaderStorageBufferArrayNonUniformIndexing)
+      Avail =
+          "Descriptor indexing feature 'shaderStorageBufferArrayNonUniformIndexing' not available";
+    else if(!descIndexing.shaderStorageImageArrayNonUniformIndexing)
+      Avail =
+          "Descriptor indexing feature 'shaderStorageImageArrayNonUniformIndexing' not available";
+    else if(!descIndexing.shaderUniformTexelBufferArrayNonUniformIndexing)
+      Avail =
+          "Descriptor indexing feature 'shaderUniformTexelBufferArrayNonUniformIndexing' not "
+          "available";
+    else if(!descIndexing.shaderStorageTexelBufferArrayNonUniformIndexing)
+      Avail =
+          "Descriptor indexing feature 'shaderStorageTexelBufferArrayNonUniformIndexing' not "
+          "available";
+
+    devInfoNext = &descIndexing;
   }
 
   int main()
@@ -2607,8 +2825,29 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
         {21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
     }));
 
+    // this set layout has arrays of each type. We'll uniformly, dynamic-uniformly, and
+    // non-uniformly access each of these
+    VkDescriptorSetLayout setlayout2 = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+        {1, VK_DESCRIPTOR_TYPE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {2, VK_DESCRIPTOR_TYPE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {6, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {7, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {8, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {9, VK_DESCRIPTOR_TYPE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+    }));
+
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
-        {setlayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i))}));
+        {
+            setlayout, setlayout2,
+        },
+        {
+            vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i)),
+        }));
 
     // calculate number of tests, wrapping each row at 256
     uint32_t texWidth = AlignUp(std::max(std::max(numGLSL1Tests, numGLSL2Tests), numASMTests), 256U);
@@ -2793,6 +3032,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     vkCreateSampler(device, &sampInfo, NULL, &shadowsampler);
 
     VkDescriptorSet descset = allocateDescriptorSet(setlayout);
+    VkDescriptorSet descset2 = allocateDescriptorSet(setlayout2);
 
     Vec4f cbufferdata[16] = {};
 
@@ -2816,6 +3056,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     cbufferdata[10] = Vec4f(99.0f, -28.0f / 127.0f, 99.0f / 127.0f, -102.0f / 127.0f);
     // halfPackSource - we pick exact half values to avoid rounding problems
     cbufferdata[11] = Vec4f(98.125f, 76.375f, 54.5625f, 32.78125f);
+
+    uint32_t index = 4;
+    memcpy(&cbufferdata[1], &index, sizeof(index));
 
     Vec4u unpack = {};
 
@@ -2914,6 +3157,47 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
                 {vkh::DescriptorImageInfo(queryTestMSView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
         });
 
+    for(uint32_t i = 0; i < 14; i++)
+    {
+      vkh::updateDescriptorSets(
+          device,
+          {
+              vkh::WriteDescriptorSet(descset2, 1, i, VK_DESCRIPTOR_TYPE_SAMPLER,
+                                      {vkh::DescriptorImageInfo(
+                                          VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, pointsampler)}),
+              vkh::WriteDescriptorSet(descset2, 2, i, VK_DESCRIPTOR_TYPE_SAMPLER,
+                                      {vkh::DescriptorImageInfo(
+                                          VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, linearsampler)}),
+              vkh::WriteDescriptorSet(
+                  descset2, 3, i, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                  {vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                            VK_NULL_HANDLE)}),
+              vkh::WriteDescriptorSet(
+                  descset2, 4, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                  {vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                            linearsampler)}),
+              vkh::WriteDescriptorSet(descset2, 5, i, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                      {vkh::DescriptorBufferInfo(store_buffer.buffer)}),
+              vkh::WriteDescriptorSet(
+                  descset2, 6, i, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                  {vkh::DescriptorImageInfo(store_view, VK_IMAGE_LAYOUT_GENERAL, VK_NULL_HANDLE)}),
+              vkh::WriteDescriptorSet(descset2, 7, i, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+                                      {bufview}),
+              vkh::WriteDescriptorSet(descset2, 8, i, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+                                      {store_bufview}),
+              vkh::WriteDescriptorSet(descset2, 9, i, VK_DESCRIPTOR_TYPE_SAMPLER,
+                                      {vkh::DescriptorImageInfo(
+                                          VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, shadowsampler)}),
+
+              vkh::WriteDescriptorSet(
+                  descset2, 20, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                  {vkh::DescriptorImageInfo(queryTestView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
+              vkh::WriteDescriptorSet(
+                  descset2, 21, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                  {vkh::DescriptorImageInfo(queryTestMSView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
+          });
+    }
+
     while(Running())
     {
       VkCommandBuffer cmd = GetCommandBuffer();
@@ -2978,7 +3262,8 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
       Vec4i push = Vec4i(101, 103, 107, 109);
 
-      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
+      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0,
+                                 {descset, descset2}, {});
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i), &push);
 
       vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,

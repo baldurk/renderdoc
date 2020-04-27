@@ -2179,7 +2179,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       // at setup time we stored the texture type for easy access here
       DebugAPIWrapper::TextureType texType =
-          (DebugAPIWrapper::TextureType)img.value.uv[TextureTypeVariableSlot];
+          (DebugAPIWrapper::TextureType)img.value.u64v[TextureTypeVariableSlot];
 
       ShaderVariable result;
 
