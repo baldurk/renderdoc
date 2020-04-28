@@ -65,6 +65,9 @@ struct Following
   bool operator!=(const Following &o);
   static void GetDrawContext(ICaptureContext &ctx, bool &copy, bool &clear, bool &compute);
 
+  void SetResources(const rdcarray<BoundResourceArray> &readOnly,
+                    const rdcarray<BoundResourceArray> &readWrite);
+
   int GetHighestMip(ICaptureContext &ctx);
   int GetFirstArraySlice(ICaptureContext &ctx);
   CompType GetTypeHint(ICaptureContext &ctx);
@@ -89,6 +92,10 @@ struct Following
 
   const ShaderBindpointMapping &GetMapping(ICaptureContext &ctx);
   static const ShaderBindpointMapping &GetMapping(ICaptureContext &ctx, ShaderStage stage);
+
+private:
+  const rdcarray<BoundResourceArray> *readOnlyResources;
+  const rdcarray<BoundResourceArray> *readWriteResources;
 };
 
 struct TexSettings
@@ -329,6 +336,9 @@ private:
   TextureDescription *m_CachedTexture;
   Following m_Following = Following::Default;
   QMap<ResourceId, TexSettings> m_TextureSettings;
+
+  rdcarray<BoundResourceArray> m_ReadOnlyResources[(uint32_t)ShaderStage::Count];
+  rdcarray<BoundResourceArray> m_ReadWriteResources[(uint32_t)ShaderStage::Count];
 
   QTime m_CustomShaderTimer;
   int m_CustomShaderWriteTime = 0;

@@ -71,6 +71,8 @@ Following::Following(FollowType t, ShaderStage s, int i, int a)
   Stage = s;
   index = i;
   arrayEl = a;
+  readOnlyResources = NULL;
+  readWriteResources = NULL;
 }
 
 Following::Following()
@@ -79,6 +81,8 @@ Following::Following()
   Stage = ShaderStage::Pixel;
   index = 0;
   arrayEl = 0;
+  readOnlyResources = NULL;
+  readWriteResources = NULL;
 }
 
 bool Following::operator!=(const Following &o)
@@ -99,6 +103,13 @@ void Following::GetDrawContext(ICaptureContext &ctx, bool &copy, bool &clear, bo
   clear = curDraw != NULL && (curDraw->flags & DrawFlags::Clear);
   compute = curDraw != NULL && (curDraw->flags & DrawFlags::Dispatch) &&
             ctx.CurPipelineState().GetShader(ShaderStage::Compute) != ResourceId();
+}
+
+void Following::SetResources(const rdcarray<BoundResourceArray> &readOnly,
+                             const rdcarray<BoundResourceArray> &readWrite)
+{
+  readOnlyResources = &readOnly;
+  readWriteResources = &readWrite;
 }
 
 int Following::GetHighestMip(ICaptureContext &ctx)
@@ -138,7 +149,8 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
   }
   else if(Type == FollowType::ReadWrite)
   {
-    rdcarray<BoundResourceArray> rw = GetReadWriteResources(ctx);
+    const rdcarray<BoundResourceArray> &rw =
+        (readWriteResources != NULL) ? *readWriteResources : GetReadWriteResources(ctx);
 
     ShaderBindpointMapping mapping = GetMapping(ctx);
 
@@ -153,7 +165,8 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
   }
   else if(Type == FollowType::ReadOnly)
   {
-    rdcarray<BoundResourceArray> ro = GetReadOnlyResources(ctx);
+    const rdcarray<BoundResourceArray> &ro =
+        (readOnlyResources != NULL) ? *readOnlyResources : GetReadOnlyResources(ctx);
 
     ShaderBindpointMapping mapping = GetMapping(ctx);
 
@@ -2300,6 +2313,8 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
       }
 
       Following follow(rw ? FollowType::ReadWrite : FollowType::ReadOnly, stage, idx, arrayIdx);
+      follow.SetResources(m_ReadOnlyResources[(uint32_t)follow.Stage],
+                          m_ReadWriteResources[(uint32_t)follow.Stage]);
       QString slotName = QFormatStr("%1 %2%3")
                              .arg(m_Ctx.CurPipelineState().Abbrev(stage))
                              .arg(rw ? lit("RW ") : lit(""))
@@ -2372,6 +2387,8 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
     ResourcePreview *prev = qobject_cast<ResourcePreview *>(QObject::sender());
 
     Following follow = prev->property("f").value<Following>();
+    follow.SetResources(m_ReadOnlyResources[(uint32_t)follow.Stage],
+                        m_ReadWriteResources[(uint32_t)follow.Stage]);
 
     for(ResourcePreview *p : ui->outputThumbs->thumbs())
       p->setSelected(false);
@@ -2398,6 +2415,8 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
     ResourcePreview *prev = qobject_cast<ResourcePreview *>(QObject::sender());
 
     Following follow = prev->property("f").value<Following>();
+    follow.SetResources(m_ReadOnlyResources[(uint32_t)follow.Stage],
+                        m_ReadWriteResources[(uint32_t)follow.Stage]);
 
     ResourceId id = follow.GetResourceId(m_Ctx);
 
@@ -3000,18 +3019,19 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
   {
     ShaderStage stage = stages[i];
 
-    rdcarray<BoundResourceArray> RWs = Following::GetReadWriteResources(m_Ctx, stage);
-    rdcarray<BoundResourceArray> ROs = Following::GetReadOnlyResources(m_Ctx, stage);
+    m_ReadWriteResources[(uint32_t)stage] = Following::GetReadWriteResources(m_Ctx, stage);
+    m_ReadOnlyResources[(uint32_t)stage] = Following::GetReadOnlyResources(m_Ctx, stage);
 
     const ShaderReflection *details = Following::GetReflection(m_Ctx, stage);
     const ShaderBindpointMapping &mapping = Following::GetMapping(m_Ctx, stage);
 
     InitStageResourcePreviews(stage, details != NULL ? details->readWriteResources : empty,
-                              mapping.readWriteResources, RWs, ui->outputThumbs, outIndex, copy,
-                              true);
+                              mapping.readWriteResources, m_ReadWriteResources[(uint32_t)stage],
+                              ui->outputThumbs, outIndex, copy, true);
 
     InitStageResourcePreviews(stage, details != NULL ? details->readOnlyResources : empty,
-                              mapping.readOnlyResources, ROs, ui->inputThumbs, inIndex, copy, false);
+                              mapping.readOnlyResources, m_ReadOnlyResources[(uint32_t)stage],
+                              ui->inputThumbs, inIndex, copy, false);
   }
 
   // hide others
