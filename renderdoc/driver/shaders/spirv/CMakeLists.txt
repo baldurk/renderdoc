@@ -125,22 +125,9 @@ if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.9)
         APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-implicit-fallthrough")
 endif()
 
-# GCC 9.0 and above needs -Wno-deprecated-copy on glslang files, but also on
-# spirv_compile.cpp since one of the issues is in the non-public header that
-# is used from GlslangToSpv.h
-if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.9)
-    set_property(SOURCE
-        ${glslang_sources}
-        spirv_compile.cpp
-        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-deprecated-copy")
-endif()
-
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set_property(SOURCE "${glslang_sources}"
-        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unknown-warning-option -Wno-inconsistent-missing-override")
-
-    set_property(SOURCE ${glslang_dir}/SPIRV/GlslangToSpv.cpp
-        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-tautological-constant-out-of-range-compare")
+        APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unknown-warning-option")
 
     if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.9)
         set_property(SOURCE ${glslang_dir}/glslang/MachineIndependent/iomapper.cpp
