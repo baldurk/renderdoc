@@ -40,7 +40,7 @@ In the object we pass both the indices (which does not vary per attribute in our
 			meshInput.indexResourceId = rd.ResourceId.Null()
 
 		# The total offset is the attribute offset from the base of the vertex
-		meshInput.vertexByteOffset = attr.byteOffset + vbs[attr.vertexBuffer].byteOffset
+		meshInput.vertexByteOffset = attr.byteOffset + vbs[attr.vertexBuffer].byteOffset + draw.vertexOffset * vbs[attr.vertexBuffer].byteStride
 		meshInput.format = attr.format
 		meshInput.vertexResourceId = vbs[attr.vertexBuffer].resourceId
 		meshInput.vertexByteStride = vbs[attr.vertexBuffer].byteStride
@@ -77,7 +77,7 @@ Next we fetch the index data using :py:meth:`~renderdoc.ReplayController.GetBuff
             return [i + mesh.baseVertex for i in indices]
         else:
             # With no index buffer, just generate a range
-            return tuple(range(vertexOffset, vertexOffset+mesh.numIndices))
+            return tuple(range(mesh.numIndices))
 
 To begin with, we define a helper that will read a given variable out of a ``bytes`` object, using a :py:class:`~renderdoc.ResourceFormat` do define the size and format of the data.
 

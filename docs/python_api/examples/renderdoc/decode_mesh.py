@@ -99,7 +99,7 @@ def getMeshInputs(controller, draw):
 			meshInput.indexResourceId = rd.ResourceId.Null()
 
 		# The total offset is the attribute offset from the base of the vertex
-		meshInput.vertexByteOffset = attr.byteOffset + vbs[attr.vertexBuffer].byteOffset
+		meshInput.vertexByteOffset = attr.byteOffset + vbs[attr.vertexBuffer].byteOffset + draw.vertexOffset * vbs[attr.vertexBuffer].byteStride
 		meshInput.format = attr.format
 		meshInput.vertexResourceId = vbs[attr.vertexBuffer].resourceId
 		meshInput.vertexByteStride = vbs[attr.vertexBuffer].byteStride
@@ -192,7 +192,7 @@ def getIndices(controller, mesh):
 		return [i + mesh.baseVertex for i in indices]
 	else:
 		# With no index buffer, just generate a range
-		return tuple(range(vertexOffset, vertexOffset+mesh.numIndices))
+		return tuple(range(mesh.numIndices))
 
 def printMeshData(controller, meshData):
 	indices = getIndices(controller, meshData[0])
