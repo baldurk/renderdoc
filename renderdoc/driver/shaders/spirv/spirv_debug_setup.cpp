@@ -187,6 +187,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       // these can't be debugged right now.
       case Capability::Geometry:
       case Capability::Tessellation:
+      case Capability::AtomicStorage:
       case Capability::TessellationPointSize:
       case Capability::GeometryPointSize:
       case Capability::ImageGatherExtended:
@@ -221,6 +222,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       case Capability::DrawParameters:
       case Capability::DeviceGroup:
       case Capability::MultiView:
+      case Capability::AtomicStorageOps:
       case Capability::SampleMaskPostDepthCoverage:
       case Capability::StencilExportEXT:
       case Capability::ShaderClockKHR:
@@ -266,8 +268,6 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
       // atomics
       case Capability::Int64Atomics:
-      case Capability::AtomicStorage:
-      case Capability::AtomicStorageOps:
 
       // physical pointers
       case Capability::PhysicalStorageBufferAddresses:

@@ -1042,6 +1042,14 @@ struct ClearColorValue
     float32[3] = a;
   }
 
+  ClearColorValue(uint32_t r, uint32_t g, uint32_t b, uint32_t a)
+  {
+    uint32[0] = r;
+    uint32[1] = g;
+    uint32[2] = b;
+    uint32[3] = a;
+  }
+
   union
   {
     float float32[4];

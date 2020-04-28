@@ -152,6 +152,13 @@ layout(set = 0, binding = 9) uniform sampler shadowSampler;
 
 layout(set = 0, binding = 10) uniform samplerCube cubeSampler;
 
+layout(set = 0, binding = 11, std430) buffer atomicbuftype
+{
+  uvec4 data[];
+} atomicbuf;
+
+layout(set = 0, r32ui, binding = 12) uniform uimage2D atomicimg;
+
 layout(set = 0, binding = 20) uniform sampler2DArray queryTest;
 layout(set = 0, binding = 21) uniform sampler2DMSArray queryTestMS;
 
@@ -178,6 +185,72 @@ layout(set = 1, binding = 9) uniform sampler shadowSamplers[14];
 
 layout(set = 1, binding = 20) uniform sampler2DArray queryTests[14];
 layout(set = 1, binding = 21) uniform sampler2DMSArray queryTestsMS[14];
+
+layout(set = 2, binding = 0) uniform sampler1D zoo_1D;
+layout(set = 2, binding = 1) uniform sampler2D zoo_2D;
+layout(set = 2, binding = 2) uniform sampler3D zoo_3D;
+layout(set = 2, binding = 3) uniform samplerCube zoo_Cube;
+layout(set = 2, binding = 4) uniform sampler1DArray zoo_1DArray;
+layout(set = 2, binding = 5) uniform sampler2DArray zoo_2DArray;
+layout(set = 2, binding = 6) uniform samplerCubeArray zoo_CubeArray;
+layout(set = 2, binding = 7) uniform sampler2DMS zoo_2DMS;
+layout(set = 2, binding = 8) uniform sampler2DMSArray zoo_2DMSArray;
+layout(set = 2, binding = 9) uniform samplerBuffer zoo_Buffer;
+
+layout(set = 2, binding = 10) uniform usampler1D zoo_u1D;
+layout(set = 2, binding = 11) uniform usampler2D zoo_u2D;
+layout(set = 2, binding = 12) uniform usampler3D zoo_u3D;
+layout(set = 2, binding = 13) uniform usamplerCube zoo_uCube;
+layout(set = 2, binding = 14) uniform usampler1DArray zoo_u1DArray;
+layout(set = 2, binding = 15) uniform usampler2DArray zoo_u2DArray;
+layout(set = 2, binding = 16) uniform usamplerCubeArray zoo_uCubeArray;
+layout(set = 2, binding = 17) uniform usampler2DMS zoo_u2DMS;
+layout(set = 2, binding = 18) uniform usampler2DMSArray zoo_u2DMSArray;
+layout(set = 2, binding = 19) uniform usamplerBuffer zoo_uBuffer;
+
+layout(set = 2, binding = 20) uniform isampler1D zoo_i1D;
+layout(set = 2, binding = 21) uniform isampler2D zoo_i2D;
+layout(set = 2, binding = 22) uniform isampler3D zoo_i3D;
+layout(set = 2, binding = 23) uniform isamplerCube zoo_iCube;
+layout(set = 2, binding = 24) uniform isampler1DArray zoo_i1DArray;
+layout(set = 2, binding = 25) uniform isampler2DArray zoo_i2DArray;
+layout(set = 2, binding = 26) uniform isamplerCubeArray zoo_iCubeArray;
+layout(set = 2, binding = 27) uniform isampler2DMS zoo_i2DMS;
+layout(set = 2, binding = 28) uniform isampler2DMSArray zoo_i2DMSArray;
+layout(set = 2, binding = 29) uniform isamplerBuffer zoo_iBuffer;
+
+layout(set = 2, rgba32f, binding = 30) uniform image1D storezoo_1D;
+layout(set = 2, rgba32f, binding = 31) uniform image2D storezoo_2D;
+layout(set = 2, rgba32f, binding = 32) uniform image3D storezoo_3D;
+layout(set = 2, rgba32f, binding = 33) uniform imageCube storezoo_Cube;
+layout(set = 2, rgba32f, binding = 34) uniform image1DArray storezoo_1DArray;
+layout(set = 2, rgba32f, binding = 35) uniform image2DArray storezoo_2DArray;
+layout(set = 2, rgba32f, binding = 36) uniform imageCubeArray storezoo_CubeArray;
+//layout(set = 2, rgba32f, binding = 37) uniform image2DMS storezoo_2DMS;
+//layout(set = 2, rgba32f, binding = 38) uniform image2DMSArray storezoo_2DMSArray;
+layout(set = 2, rgba32f, binding = 39) uniform imageBuffer storezoo_Buffer;
+
+layout(set = 2, rgba32ui, binding = 40) uniform uimage1D storezoo_u1D;
+layout(set = 2, rgba32ui, binding = 41) uniform uimage2D storezoo_u2D;
+layout(set = 2, rgba32ui, binding = 42) uniform uimage3D storezoo_u3D;
+layout(set = 2, rgba32ui, binding = 43) uniform uimageCube storezoo_uCube;
+layout(set = 2, rgba32ui, binding = 44) uniform uimage1DArray storezoo_u1DArray;
+layout(set = 2, rgba32ui, binding = 45) uniform uimage2DArray storezoo_u2DArray;
+layout(set = 2, rgba32ui, binding = 46) uniform uimageCubeArray storezoo_uCubeArray;
+//layout(set = 2, rgba32ui, binding = 47) uniform uimage2DMS storezoo_u2DMS;
+//layout(set = 2, rgba32ui, binding = 48) uniform uimage2DMSArray storezoo_u2DMSArray;
+layout(set = 2, rgba32ui, binding = 49) uniform uimageBuffer storezoo_uBuffer;
+
+layout(set = 2, rgba32i, binding = 50) uniform iimage1D storezoo_i1D;
+layout(set = 2, rgba32i, binding = 51) uniform iimage2D storezoo_i2D;
+layout(set = 2, rgba32i, binding = 52) uniform iimage3D storezoo_i3D;
+layout(set = 2, rgba32i, binding = 53) uniform iimageCube storezoo_iCube;
+layout(set = 2, rgba32i, binding = 54) uniform iimage1DArray storezoo_i1DArray;
+layout(set = 2, rgba32i, binding = 55) uniform iimage2DArray storezoo_i2DArray;
+layout(set = 2, rgba32i, binding = 56) uniform iimageCubeArray storezoo_iCubeArray;
+//layout(set = 2, rgba32i, binding = 57) uniform iimage2DMS storezoo_i2DMS;
+//layout(set = 2, rgba32i, binding = 58) uniform iimage2DMSArray storezoo_i2DMSArray;
+layout(set = 2, rgba32i, binding = 59) uniform iimageBuffer storezoo_iBuffer;
 
 layout(push_constant) uniform PushData {
   layout(offset = 16) ivec4 data;
@@ -211,6 +284,11 @@ void main()
 
   vec2 inpos = linearData.inpos;
   vec2 inposIncreased = linearData.inposIncreased;
+
+  ivec2 localCoord = ivec2(gl_FragCoord) % ivec2(4, 4);
+  int flatLocalCoord = localCoord.x + localCoord.y * 4;
+
+  int flatGlobalCoord = int(gl_FragCoord.x) + int(gl_FragCoord.y) * 1024;
 
   Color = vec4(0,0,0,0);
   switch(test)
@@ -1272,6 +1350,96 @@ void main()
     {
       vec3 cubeCoord = vec3(-1.0f, 0.3f, -0.9f);
       Color = textureLod(cubeSampler, cubeCoord, 0.0f);
+      break;
+    }
+    case 157:
+    {
+      uint old = atomicAdd(atomicbuf.data[flatGlobalCoord].x, flatGlobalCoord);
+      Color = vec4(float(old & 0xfffff), float(atomicbuf.data[flatGlobalCoord].x & 0xfffff), 0.0f, 0.0f);
+      break;
+    }
+    case 158:
+    {
+      uint old = atomicOr(atomicbuf.data[flatGlobalCoord].x, 0x55555555U);
+      Color = vec4(float(old & 0xfffff), float(atomicbuf.data[flatGlobalCoord].x & 0xfffff), 0.0f, 0.0f);
+      break;
+    }
+    case 159:
+    {
+      uint old = atomicXor(atomicbuf.data[flatGlobalCoord].x, 0x55555555U);
+      Color = vec4(float(old & 0xfffff), float(atomicbuf.data[flatGlobalCoord].x & 0xfffff), 0.0f, 0.0f);
+      break;
+    }
+    case 160:
+    {
+      uint old = atomicMax(atomicbuf.data[flatGlobalCoord].x, 0x55555555U);
+      uint old2 = atomicMax(atomicbuf.data[flatGlobalCoord].y, 0x38383838U);
+      Color = vec4(float(old & 0xfffff), float(atomicbuf.data[flatGlobalCoord].x & 0xfffff),
+                   float(old2 & 0xfffff), float(atomicbuf.data[flatGlobalCoord].y & 0xfffff));
+      break;
+    }
+    case 161:
+    {
+      uint old = atomicMin(atomicbuf.data[flatGlobalCoord].x, 0x55555555U);
+      uint old2 = atomicMin(atomicbuf.data[flatGlobalCoord].y, 0x38383838U);
+      Color = vec4(float(old & 0xfffff), float(atomicbuf.data[flatGlobalCoord].x & 0xfffff),
+                   float(old2 & 0xfffff), float(atomicbuf.data[flatGlobalCoord].y & 0xfffff));
+      break;
+    }
+    case 162:
+    {
+      uint old = atomicExchange(atomicbuf.data[flatGlobalCoord].x, 0x12345678U);
+      Color = vec4(float(old & 0xfffff), float(atomicbuf.data[flatGlobalCoord].x & 0xfffff), 0.0f, 0.0f);
+      break;
+    }
+    case 163:
+    {
+      uint old = atomicCompSwap(atomicbuf.data[flatGlobalCoord].x, 0x55555555U, 0x12345678U);
+      uint old2 = atomicCompSwap(atomicbuf.data[flatGlobalCoord].y, 0x42424242U, 0x12345678U);
+      Color = vec4(float(old & 0xfffff), float(atomicbuf.data[flatGlobalCoord].x & 0xfffff),
+                   float(old2 & 0xfffff), float(atomicbuf.data[flatGlobalCoord].y & 0xfffff));
+      break;
+    }
+    case 164:
+    {
+      uint old = imageAtomicAdd(atomicimg, ivec2(gl_FragCoord), flatGlobalCoord);
+      Color = vec4(float(old & 0xfffff), float(imageLoad(atomicimg, ivec2(gl_FragCoord)).x & 0xfffff), 0.0f, 0.0f);
+      break;
+    }
+    case 165:
+    {
+      uint old = imageAtomicOr(atomicimg, ivec2(gl_FragCoord), 0x55555555U);
+      Color = vec4(float(old & 0xfffff), float(imageLoad(atomicimg, ivec2(gl_FragCoord)).x & 0xfffff), 0.0f, 0.0f);
+      break;
+    }
+    case 166:
+    {
+      uint old = imageAtomicXor(atomicimg, ivec2(gl_FragCoord), 0x55555555U);
+      Color = vec4(float(old & 0xfffff), float(imageLoad(atomicimg, ivec2(gl_FragCoord)).x & 0xfffff), 0.0f, 0.0f);
+      break;
+    }
+    case 167:
+    {
+      uint old = imageAtomicMax(atomicimg, ivec2(gl_FragCoord), 0x55555555U);
+      Color = vec4(float(old & 0xfffff), float(imageLoad(atomicimg, ivec2(gl_FragCoord)).x & 0xfffff), 0.0f, 0.0f);
+      break;
+    }
+    case 168:
+    {
+      uint old = imageAtomicMin(atomicimg, ivec2(gl_FragCoord), 0x55555555U);
+      Color = vec4(float(old & 0xfffff), float(imageLoad(atomicimg, ivec2(gl_FragCoord)).x & 0xfffff), 0.0f, 0.0f);
+      break;
+    }
+    case 169:
+    {
+      uint old = imageAtomicExchange(atomicimg, ivec2(gl_FragCoord), 0x12345678U);
+      Color = vec4(float(old & 0xfffff), float(imageLoad(atomicimg, ivec2(gl_FragCoord)).x & 0xfffff), 0.0f, 0.0f);
+      break;
+    }
+    case 170:
+    {
+      uint old = imageAtomicCompSwap(atomicimg, ivec2(gl_FragCoord), 0x55555555U, 0x12345678U);
+      Color = vec4(float(old & 0xfffff), float(imageLoad(atomicimg, ivec2(gl_FragCoord)).x & 0xfffff), 0.0f, 0.0f);
       break;
     }
     default: break;
@@ -2772,6 +2940,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     // we require this to pixel shader debug anyway, so we might as well require it for all tests.
     features.fragmentStoresAndAtomics = VK_TRUE;
 
+    // this is so widely supported just require it without fallback
+    features.imageCubeArray = VK_TRUE;
+
     VulkanGraphicsTest::Prepare(argc, argv);
 
     vk_version = 0x10;
@@ -2781,6 +2952,16 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     if(physProperties.apiVersion >= VK_MAKE_VERSION(1, 2, 0))
       vk_version = 0x12;
+
+#define LIMIT_CHECK(limit, req)                                                     \
+  if(physProperties.limits.limit < req)                                             \
+    Avail = fmt::format("Limit '" #limit "' {} is insufficient (need at least {})", \
+                        physProperties.limits.limit, req);
+
+    LIMIT_CHECK(maxPerStageDescriptorSampledImages, 128);
+    LIMIT_CHECK(maxPerStageDescriptorSamplers, 64);
+    LIMIT_CHECK(maxPerStageDescriptorStorageBuffers, 16);
+    LIMIT_CHECK(maxPerStageDescriptorStorageImages, 64);
 
     // enable features we can optionally test with.
     VkPhysicalDeviceFeatures supported;
@@ -2852,7 +3033,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     const uint32_t numASMTests = (uint32_t)asm_tests.size();
 
-    VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+    VkDescriptorSetLayout setlayout0 = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
         {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {1, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {2, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
@@ -2864,13 +3045,15 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
         {8, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {9, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {11, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {12, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
         {21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
     }));
 
     // this set layout has arrays of each type. We'll uniformly, dynamic-uniformly, and
     // non-uniformly access each of these
-    VkDescriptorSetLayout setlayout2 = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+    VkDescriptorSetLayout setlayout1 = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
         {1, VK_DESCRIPTOR_TYPE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
         {2, VK_DESCRIPTOR_TYPE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
         {3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
@@ -2884,9 +3067,77 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
         {21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
     }));
 
+    VkDescriptorSetLayout setlayout2 = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {8, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {9, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+
+        {10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {14, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {15, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {16, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {17, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {18, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {19, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+
+        {20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {22, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {23, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {24, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {25, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {26, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {27, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {28, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {29, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+
+        {30, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {31, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {32, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {33, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {34, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {35, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {36, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {37, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {38, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {39, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+
+        {40, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {41, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {42, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {43, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {44, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {45, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {46, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {47, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {48, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {49, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+
+        {50, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {51, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {52, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {53, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {54, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {55, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {56, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {57, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {58, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+        {59, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+    }));
+
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
         {
-            setlayout, setlayout2,
+            setlayout0, setlayout1, setlayout2,
         },
         {
             vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i)),
@@ -3011,26 +3262,74 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     uploadBuf.upload(rgba8.data.data(), rgba8.data.size() * sizeof(uint32_t));
 
-    std::vector<byte> randomData;
-    randomData.resize(128 * 128 * sizeof(Vec4f));
+    std::vector<byte> typeData;
+    typeData.resize(sizeof(Vec4f) * 16 * 16 * 32 * 3);
 
-    for(size_t i = 0; i < randomData.size(); i++)
-      randomData[i] = (rand() >> 4) & 0xff;
+    uint32_t typeOffset[] = {
+        // float data
+        sizeof(Vec4f) * 16 * 16 * 32 * 0,
+        // uint data
+        sizeof(Vec4f) * 16 * 16 * 32 * 1,
+        // int data
+        sizeof(Vec4f) * 16 * 16 * 32 * 2,
+    };
 
-    AllocatedBuffer randomBuf(
-        this, vkh::BufferCreateInfo(randomData.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+    for(size_t typeVariant = 0; typeVariant < 3; typeVariant++)
+    {
+      byte *dst = typeData.data() + typeOffset[typeVariant];
+      union
+      {
+        float f[4];
+        int i[4];
+      } rnd;
+
+      for(size_t x = 0; x < 16; x++)
+      {
+        for(size_t y = 0; y < 16; y++)
+        {
+          for(size_t z = 0; z < 32; z++)
+          {
+            if(typeVariant == 0)
+            {
+              rnd.f[0] = RANDF(-10.0f, 10.0f);
+              rnd.f[1] = RANDF(-10.0f, 10.0f);
+              rnd.f[2] = RANDF(-10.0f, 10.0f);
+              rnd.f[3] = RANDF(-10.0f, 10.0f);
+            }
+            else if(typeVariant == 1)
+            {
+              rnd.i[0] = (int32_t)RANDF(100.0f, 500.0f);
+              rnd.i[1] = (int32_t)RANDF(100.0f, 500.0f);
+              rnd.i[2] = (int32_t)RANDF(100.0f, 500.0f);
+              rnd.i[3] = (int32_t)RANDF(100.0f, 500.0f);
+            }
+            else if(typeVariant == 2)
+            {
+              rnd.i[0] = (int32_t)RANDF(-200.0f, 200.0f);
+              rnd.i[1] = (int32_t)RANDF(-200.0f, 200.0f);
+              rnd.i[2] = (int32_t)RANDF(-200.0f, 200.0f);
+              rnd.i[3] = (int32_t)RANDF(-200.0f, 200.0f);
+            }
+            memcpy(dst, &rnd.f, sizeof(Vec4f));
+          }
+        }
+      }
+    }
+
+    AllocatedBuffer typeDataBuf(
+        this, vkh::BufferCreateInfo(typeData.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
-    randomBuf.upload(randomData.data(), randomData.size());
+    typeDataBuf.upload(typeData.data(), typeData.size());
 
-    AllocatedImage smileycube(
+    AllocatedImage randomcube(
         this, vkh::ImageCreateInfo(rgba8.width, rgba8.height, 0, VK_FORMAT_R8G8B8A8_UNORM,
                                    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 1,
                                    6, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
-    VkImageView smileycubeview = createImageView(vkh::ImageViewCreateInfo(
-        smileycube.image, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_R8G8B8A8_UNORM));
+    VkImageView randomcubeview = createImageView(vkh::ImageViewCreateInfo(
+        randomcube.image, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_R8G8B8A8_UNORM));
 
     {
       VkCommandBuffer cmd = GetCommandBuffer();
@@ -3043,7 +3342,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
               vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, smiley.image),
               vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, smileycube.image),
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, randomcube.image),
               vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
                                       VK_IMAGE_LAYOUT_GENERAL, queryTest.image),
               vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
@@ -3061,7 +3360,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       for(uint32_t i = 0; i < 6; i++)
       {
         copy.imageSubresource.baseArrayLayer = i;
-        vkCmdCopyBufferToImage(cmd, randomBuf.buffer, smileycube.image,
+        vkCmdCopyBufferToImage(cmd, typeDataBuf.buffer, randomcube.image,
                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
       }
 
@@ -3073,7 +3372,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, smiley.image),
               vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, smileycube.image),
+                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, randomcube.image),
           });
 
       vkEndCommandBuffer(cmd);
@@ -3108,7 +3407,8 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     vkCreateSampler(device, &sampInfo, NULL, &shadowsampler);
 
-    VkDescriptorSet descset = allocateDescriptorSet(setlayout);
+    VkDescriptorSet descset0 = allocateDescriptorSet(setlayout0);
+    VkDescriptorSet descset1 = allocateDescriptorSet(setlayout1);
     VkDescriptorSet descset2 = allocateDescriptorSet(setlayout2);
 
     Vec4f cbufferdata[16] = {};
@@ -3167,6 +3467,11 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
+    AllocatedBuffer atomic_buffer(this, vkh::BufferCreateInfo(texWidth * texHeight * sizeof(Vec4f),
+                                                              VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                                  VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
     AllocatedBuffer store_texbuffer(
         this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT |
                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
@@ -3178,6 +3483,13 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
     VkImageView store_view = createImageView(vkh::ImageViewCreateInfo(
         store_image.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));
+
+    AllocatedImage atomic_image(
+        this, vkh::ImageCreateInfo(texWidth, texHeight, 0, VK_FORMAT_R32_UINT,
+                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    VkImageView atomic_view = createImageView(
+        vkh::ImageViewCreateInfo(atomic_image.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32_UINT));
 
     VkBufferView bufview =
         createBufferView(vkh::BufferViewCreateInfo(texbuffer.buffer, VK_FORMAT_R32G32B32A32_SFLOAT));
@@ -3192,50 +3504,70 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     setName(smiley.image, "smiley");
     setName(texbuffer.buffer, "texbuffer");
     setName(store_buffer.buffer, "store_buffer");
+    setName(atomic_buffer.buffer, "atomic_buffer");
     setName(store_texbuffer.buffer, "store_texbuffer");
     setName(store_image.image, "store_image");
+    setName(atomic_image.image, "atomic_image");
+
+    AllocatedImage storezoo_u2D(
+        this, vkh::ImageCreateInfo(16, 16, 0, VK_FORMAT_R32G32B32A32_UINT,
+                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    VkImageView storezoo_u2D_view = createImageView(vkh::ImageViewCreateInfo(
+        storezoo_u2D.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_UINT));
+
+    setName(storezoo_u2D.image, "storezoo_u2D");
 
     vkh::updateDescriptorSets(
         device,
         {
-            vkh::WriteDescriptorSet(descset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            vkh::WriteDescriptorSet(descset0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                     {vkh::DescriptorBufferInfo(cb.buffer)}),
             vkh::WriteDescriptorSet(
-                descset, 1, VK_DESCRIPTOR_TYPE_SAMPLER,
+                descset0, 1, VK_DESCRIPTOR_TYPE_SAMPLER,
                 {vkh::DescriptorImageInfo(VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, pointsampler)}),
             vkh::WriteDescriptorSet(
-                descset, 2, VK_DESCRIPTOR_TYPE_SAMPLER,
+                descset0, 2, VK_DESCRIPTOR_TYPE_SAMPLER,
                 {vkh::DescriptorImageInfo(VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, linearsampler)}),
             vkh::WriteDescriptorSet(
-                descset, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                descset0, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                 {vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                           VK_NULL_HANDLE)}),
             vkh::WriteDescriptorSet(
-                descset, 4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                descset0, 4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 {vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                           linearsampler)}),
-            vkh::WriteDescriptorSet(descset, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            vkh::WriteDescriptorSet(descset0, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                     {vkh::DescriptorBufferInfo(store_buffer.buffer)}),
             vkh::WriteDescriptorSet(
-                descset, 6, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                descset0, 6, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                 {vkh::DescriptorImageInfo(store_view, VK_IMAGE_LAYOUT_GENERAL, VK_NULL_HANDLE)}),
-            vkh::WriteDescriptorSet(descset, 7, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, {bufview}),
-            vkh::WriteDescriptorSet(descset, 8, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+            vkh::WriteDescriptorSet(descset0, 7, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, {bufview}),
+            vkh::WriteDescriptorSet(descset0, 8, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
                                     {store_bufview}),
             vkh::WriteDescriptorSet(
-                descset, 9, VK_DESCRIPTOR_TYPE_SAMPLER,
+                descset0, 9, VK_DESCRIPTOR_TYPE_SAMPLER,
                 {vkh::DescriptorImageInfo(VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, shadowsampler)}),
             vkh::WriteDescriptorSet(
-                descset, 10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                {vkh::DescriptorImageInfo(smileycubeview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                descset0, 10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                {vkh::DescriptorImageInfo(randomcubeview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                           linearsampler)}),
+            vkh::WriteDescriptorSet(descset0, 11, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                    {vkh::DescriptorBufferInfo(atomic_buffer.buffer)}),
+            vkh::WriteDescriptorSet(
+                descset0, 12, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                {vkh::DescriptorImageInfo(atomic_view, VK_IMAGE_LAYOUT_GENERAL, VK_NULL_HANDLE)}),
 
             vkh::WriteDescriptorSet(
-                descset, 20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                descset0, 20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 {vkh::DescriptorImageInfo(queryTestView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
             vkh::WriteDescriptorSet(
-                descset, 21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                descset0, 21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 {vkh::DescriptorImageInfo(queryTestMSView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
+
+            vkh::WriteDescriptorSet(descset2, 41, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                    {vkh::DescriptorImageInfo(
+                                        storezoo_u2D_view, VK_IMAGE_LAYOUT_GENERAL, VK_NULL_HANDLE)}),
         });
 
     for(uint32_t i = 0; i < 14; i++)
@@ -3243,38 +3575,38 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       vkh::updateDescriptorSets(
           device,
           {
-              vkh::WriteDescriptorSet(descset2, 1, i, VK_DESCRIPTOR_TYPE_SAMPLER,
+              vkh::WriteDescriptorSet(descset1, 1, i, VK_DESCRIPTOR_TYPE_SAMPLER,
                                       {vkh::DescriptorImageInfo(
                                           VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, pointsampler)}),
-              vkh::WriteDescriptorSet(descset2, 2, i, VK_DESCRIPTOR_TYPE_SAMPLER,
+              vkh::WriteDescriptorSet(descset1, 2, i, VK_DESCRIPTOR_TYPE_SAMPLER,
                                       {vkh::DescriptorImageInfo(
                                           VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, linearsampler)}),
               vkh::WriteDescriptorSet(
-                  descset2, 3, i, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                  descset1, 3, i, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                   {vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                             VK_NULL_HANDLE)}),
               vkh::WriteDescriptorSet(
-                  descset2, 4, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                  descset1, 4, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                   {vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                             linearsampler)}),
-              vkh::WriteDescriptorSet(descset2, 5, i, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+              vkh::WriteDescriptorSet(descset1, 5, i, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                       {vkh::DescriptorBufferInfo(store_buffer.buffer)}),
               vkh::WriteDescriptorSet(
-                  descset2, 6, i, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                  descset1, 6, i, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
                   {vkh::DescriptorImageInfo(store_view, VK_IMAGE_LAYOUT_GENERAL, VK_NULL_HANDLE)}),
-              vkh::WriteDescriptorSet(descset2, 7, i, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+              vkh::WriteDescriptorSet(descset1, 7, i, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
                                       {bufview}),
-              vkh::WriteDescriptorSet(descset2, 8, i, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+              vkh::WriteDescriptorSet(descset1, 8, i, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
                                       {store_bufview}),
-              vkh::WriteDescriptorSet(descset2, 9, i, VK_DESCRIPTOR_TYPE_SAMPLER,
+              vkh::WriteDescriptorSet(descset1, 9, i, VK_DESCRIPTOR_TYPE_SAMPLER,
                                       {vkh::DescriptorImageInfo(
                                           VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, shadowsampler)}),
 
               vkh::WriteDescriptorSet(
-                  descset2, 20, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                  descset1, 20, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                   {vkh::DescriptorImageInfo(queryTestView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
               vkh::WriteDescriptorSet(
-                  descset2, 21, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                  descset1, 21, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                   {vkh::DescriptorImageInfo(queryTestMSView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
           });
     }
@@ -3298,10 +3630,18 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
               vkh::ImageMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
                                       VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
                                       VK_IMAGE_LAYOUT_GENERAL, store_image.image),
+              vkh::ImageMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
+                                      VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, atomic_image.image),
+              vkh::ImageMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
+                                      VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, storezoo_u2D.image),
           },
           {
               vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
                                        VK_ACCESS_TRANSFER_WRITE_BIT, store_buffer.buffer),
+              vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                       VK_ACCESS_TRANSFER_WRITE_BIT, atomic_buffer.buffer),
               vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
                                        VK_ACCESS_TRANSFER_WRITE_BIT, store_texbuffer.buffer),
           });
@@ -3309,7 +3649,13 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       vkCmdClearColorImage(cmd, store_image.image, VK_IMAGE_LAYOUT_GENERAL,
                            vkh::ClearColorValue(6.66f, 6.66f, 6.66f, 6.66f), 1,
                            vkh::ImageSubresourceRange());
+      vkCmdClearColorImage(cmd, atomic_image.image, VK_IMAGE_LAYOUT_GENERAL,
+                           vkh::ClearColorValue(0x42424242U, 0x42424242U, 0x42424242U, 0x42424242U),
+                           1, vkh::ImageSubresourceRange());
+      vkCmdClearColorImage(cmd, storezoo_u2D.image, VK_IMAGE_LAYOUT_GENERAL,
+                           vkh::ClearColorValue(8U, 18U, 28U, 38U), 1, vkh::ImageSubresourceRange());
       vkCmdFillBuffer(cmd, store_buffer.buffer, 0, VK_WHOLE_SIZE, 0x42424242);
+      vkCmdFillBuffer(cmd, atomic_buffer.buffer, 0, VK_WHOLE_SIZE, 0x42424242);
       vkCmdFillBuffer(cmd, store_texbuffer.buffer, 0, VK_WHOLE_SIZE, 0);
 
       vkh::cmdPipelineBarrier(
@@ -3318,11 +3664,20 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
               vkh::ImageMemoryBarrier(
                   VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
                   VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL, store_image.image),
+              vkh::ImageMemoryBarrier(
+                  VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
+                  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL, atomic_image.image),
+              vkh::ImageMemoryBarrier(
+                  VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
+                  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL, storezoo_u2D.image),
           },
           {
               vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
                                        VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
                                        store_buffer.buffer),
+              vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                       atomic_buffer.buffer),
               vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
                                        VK_ACCESS_TRANSFER_WRITE_BIT, store_texbuffer.buffer),
           });
@@ -3344,7 +3699,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       Vec4i push = Vec4i(101, 103, 107, 109);
 
       vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0,
-                                 {descset, descset2}, {});
+                                 {descset0, descset1, descset2}, {});
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i), &push);
 
       vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
@@ -3395,11 +3750,22 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
                                       VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
                                       VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL,
                                       store_image.image),
+              vkh::ImageMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                      VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
+                                      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL,
+                                      atomic_image.image),
+              vkh::ImageMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                      VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT,
+                                      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL,
+                                      storezoo_u2D.image),
           },
           {
               vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
                                        VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
                                        store_buffer.buffer),
+              vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                                       atomic_buffer.buffer),
               vkh::BufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
                                        VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
                                        store_texbuffer.buffer),

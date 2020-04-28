@@ -494,7 +494,6 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     //////////////////////////////////////////////////////////////////////////////
     case Op::Load:
     {
-      // we currently handle pointers as fixed storage, so a load becomes a copy
       OpLoad load(it);
 
       // ignore
@@ -1985,8 +1984,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       result.columns = 1;
       result.isStruct = true;
       result.members = {GetSrc(sampled.image), GetSrc(sampled.sampler)};
-      result.members[0].name = "_child0";
-      result.members[1].name = "_child1";
+      result.members[0].name = "image";
+      result.members[1].name = "sampler";
 
       SetDst(opdata.result, result);
       break;
@@ -2495,6 +2494,298 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
     //////////////////////////////////////////////////////////////////////////////
     //
+    // Atomic opcodes
+    //
+    //////////////////////////////////////////////////////////////////////////////
+
+    case Op::ImageTexelPointer:
+    {
+      // we don't actually process this right now, we just store the parameters for future
+      // read/write texel use.
+      OpImageTexelPointer ptr(it);
+
+      ShaderVariable result;
+      result.rows = 1;
+      result.columns = 1;
+      result.isStruct = true;
+      result.members = {debugger.ReadFromPointer(GetSrc(ptr.image)), GetSrc(ptr.coordinate),
+                        GetSrc(ptr.sample)};
+      result.members[0].name = "image";
+      result.members[1].name = "coord";
+      result.members[2].name = "sample";
+
+      SetDst(opdata.result, result);
+      break;
+    }
+    case Op::AtomicLoad:
+    {
+      OpAtomicLoad load(it);
+
+      // ignore for now
+      (void)load.memory;
+      (void)load.semantics;
+
+      const ShaderVariable &ptr = GetSrc(load.pointer);
+      ShaderVariable result;
+
+      if(ptr.members.empty())
+      {
+        result = debugger.ReadFromPointer(ptr);
+      }
+      else
+      {
+        const DataType &resultType = debugger.GetType(opdata.resultType);
+
+        result.rows = result.columns = 1;
+        result.type = resultType.scalar().Type();
+
+        if(!debugger.GetAPIWrapper()->ReadTexel(ptr.members[0].GetBinding(), ptr.members[1],
+                                                ptr.members[2].value.uv[0], result))
+        {
+          // sample failed. Pretend we got 0 columns back
+          result.value.uv[0] = 0;
+        }
+      }
+
+      SetDst(load.result, result);
+      break;
+    }
+    case Op::AtomicStore:
+    {
+      OpAtomicStore store(it);
+
+      // ignore for now
+      (void)store.memory;
+      (void)store.semantics;
+
+      const ShaderVariable &ptr = GetSrc(store.pointer);
+      const ShaderVariable &value = GetSrc(store.value);
+
+      if(ptr.members.empty())
+      {
+        WritePointerValue(store.pointer, value);
+      }
+      else
+      {
+        debugger.GetAPIWrapper()->WriteTexel(ptr.members[0].GetBinding(), ptr.members[1],
+                                             ptr.members[2].value.uv[0], value);
+      }
+
+      break;
+    }
+    case Op::AtomicExchange:
+    {
+      OpAtomicExchange excg(it);
+
+      // ignore for now
+      (void)excg.memory;
+      (void)excg.semantics;
+
+      ShaderVariable result;
+      const ShaderVariable &ptr = GetSrc(excg.pointer);
+      const ShaderVariable &value = GetSrc(excg.value);
+
+      if(ptr.members.empty())
+      {
+        result = debugger.ReadFromPointer(ptr);
+        WritePointerValue(excg.pointer, value);
+      }
+      else
+      {
+        const DataType &resultType = debugger.GetType(opdata.resultType);
+
+        result.rows = result.columns = 1;
+        result.type = resultType.scalar().Type();
+
+        if(!debugger.GetAPIWrapper()->ReadTexel(ptr.members[0].GetBinding(), ptr.members[1],
+                                                ptr.members[2].value.uv[0], result))
+        {
+          // sample failed. Pretend we got 0 columns back
+          result.value.uv[0] = 0;
+        }
+
+        debugger.GetAPIWrapper()->WriteTexel(ptr.members[0].GetBinding(), ptr.members[1],
+                                             ptr.members[2].value.uv[0], value);
+      }
+
+      SetDst(excg.result, result);
+
+      break;
+    }
+    case Op::AtomicCompareExchange:
+    {
+      OpAtomicCompareExchange cmpexcg(it);
+
+      // ignore for now
+      (void)cmpexcg.memory;
+      (void)cmpexcg.equal;
+      (void)cmpexcg.unequal;
+
+      ShaderVariable result;
+      const ShaderVariable &ptr = GetSrc(cmpexcg.pointer);
+      const ShaderVariable &value = GetSrc(cmpexcg.value);
+
+      if(ptr.members.empty())
+      {
+        result = debugger.ReadFromPointer(ptr);
+      }
+      else
+      {
+        const DataType &resultType = debugger.GetType(opdata.resultType);
+
+        result.rows = result.columns = 1;
+        result.type = resultType.scalar().Type();
+
+        if(!debugger.GetAPIWrapper()->ReadTexel(ptr.members[0].GetBinding(), ptr.members[1],
+                                                ptr.members[2].value.uv[0], result))
+        {
+          // sample failed. Pretend we got 0 columns back
+          result.value.uv[0] = 0;
+        }
+      }
+
+      SetDst(cmpexcg.result, result);
+
+      // write the new value, only if the value is the same as expected
+      if(result.value.u64v[0] == GetSrc(cmpexcg.comparator).value.u64v[0])
+      {
+        if(ptr.members.empty())
+        {
+          WritePointerValue(cmpexcg.pointer, value);
+        }
+        else
+        {
+          debugger.GetAPIWrapper()->WriteTexel(ptr.members[0].GetBinding(), ptr.members[1],
+                                               ptr.members[2].value.uv[0], value);
+        }
+      }
+      break;
+    }
+    case Op::AtomicIIncrement:
+    case Op::AtomicIDecrement:
+    {
+      OpAtomicIIncrement atomic(it);
+
+      // ignore for now
+      (void)atomic.memory;
+      (void)atomic.semantics;
+
+      ShaderVariable result;
+      const ShaderVariable &ptr = GetSrc(atomic.pointer);
+
+      if(ptr.members.empty())
+      {
+        result = debugger.ReadFromPointer(ptr);
+      }
+      else
+      {
+        const DataType &resultType = debugger.GetType(opdata.resultType);
+
+        result.rows = result.columns = 1;
+        result.type = resultType.scalar().Type();
+
+        if(!debugger.GetAPIWrapper()->ReadTexel(ptr.members[0].GetBinding(), ptr.members[1],
+                                                ptr.members[2].value.uv[0], result))
+        {
+          // sample failed. Pretend we got 0 columns back
+          result.value.uv[0] = 0;
+        }
+      }
+
+      SetDst(atomic.result, result);
+
+      if(opdata.op == Op::AtomicIIncrement)
+        result.value.uv[0]++;
+      else
+        result.value.uv[0]--;
+
+      // write the new value
+      if(ptr.members.empty())
+      {
+        WritePointerValue(atomic.pointer, result);
+      }
+      else
+      {
+        debugger.GetAPIWrapper()->WriteTexel(ptr.members[0].GetBinding(), ptr.members[1],
+                                             ptr.members[2].value.uv[0], result);
+      }
+      break;
+    }
+    case Op::AtomicIAdd:
+    case Op::AtomicISub:
+    case Op::AtomicSMin:
+    case Op::AtomicUMin:
+    case Op::AtomicSMax:
+    case Op::AtomicUMax:
+    case Op::AtomicAnd:
+    case Op::AtomicOr:
+    case Op::AtomicXor:
+    {
+      OpAtomicIAdd atomic(it);
+
+      // ignore for now
+      (void)atomic.memory;
+      (void)atomic.semantics;
+
+      ShaderVariable result;
+      const ShaderVariable &ptr = GetSrc(atomic.pointer);
+      const ShaderVariable &value = GetSrc(atomic.value);
+
+      if(ptr.members.empty())
+      {
+        result = debugger.ReadFromPointer(ptr);
+      }
+      else
+      {
+        const DataType &resultType = debugger.GetType(opdata.resultType);
+
+        result.rows = result.columns = 1;
+        result.type = resultType.scalar().Type();
+
+        if(!debugger.GetAPIWrapper()->ReadTexel(ptr.members[0].GetBinding(), ptr.members[1],
+                                                ptr.members[2].value.uv[0], result))
+        {
+          // sample failed. Pretend we got 0 columns back
+          result.value.uv[0] = 0;
+        }
+      }
+
+      SetDst(atomic.result, result);
+
+      if(opdata.op == Op::AtomicIAdd)
+        result.value.uv[0] += value.value.uv[0];
+      else if(opdata.op == Op::AtomicISub)
+        result.value.uv[0] -= value.value.uv[0];
+      else if(opdata.op == Op::AtomicSMin)
+        result.value.iv[0] = RDCMIN(result.value.iv[0], value.value.iv[0]);
+      else if(opdata.op == Op::AtomicUMin)
+        result.value.uv[0] = RDCMIN(result.value.uv[0], value.value.uv[0]);
+      else if(opdata.op == Op::AtomicSMax)
+        result.value.iv[0] = RDCMAX(result.value.iv[0], value.value.iv[0]);
+      else if(opdata.op == Op::AtomicUMax)
+        result.value.uv[0] = RDCMAX(result.value.uv[0], value.value.uv[0]);
+      else if(opdata.op == Op::AtomicAnd)
+        result.value.uv[0] &= value.value.uv[0];
+      else if(opdata.op == Op::AtomicOr)
+        result.value.uv[0] |= value.value.uv[0];
+      else if(opdata.op == Op::AtomicXor)
+        result.value.uv[0] ^= value.value.uv[0];
+
+      // write the new value
+      if(ptr.members.empty())
+      {
+        WritePointerValue(atomic.pointer, result);
+      }
+      else
+      {
+        debugger.GetAPIWrapper()->WriteTexel(ptr.members[0].GetBinding(), ptr.members[1],
+                                             ptr.members[2].value.uv[0], result);
+      }
+      break;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //
     // Misc. opcodes
     //
     //////////////////////////////////////////////////////////////////////////////
@@ -2512,34 +2803,6 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::Nop:
     {
       // nothing to do
-      break;
-    }
-
-    // TODO atomics
-    case Op::ImageTexelPointer:
-    case Op::AtomicLoad:
-    case Op::AtomicStore:
-    case Op::AtomicExchange:
-    case Op::AtomicCompareExchange:
-    case Op::AtomicIIncrement:
-    case Op::AtomicIDecrement:
-    case Op::AtomicIAdd:
-    case Op::AtomicISub:
-    case Op::AtomicSMin:
-    case Op::AtomicUMin:
-    case Op::AtomicSMax:
-    case Op::AtomicUMax:
-    case Op::AtomicAnd:
-    case Op::AtomicOr:
-    case Op::AtomicXor:
-    {
-      RDCERR("Atomic opcodes not yet implemented.");
-
-      ShaderVariable var("", 0U, 0U, 0U, 0U);
-      var.columns = 1;
-
-      SetDst(opdata.result, var);
-
       break;
     }
 
