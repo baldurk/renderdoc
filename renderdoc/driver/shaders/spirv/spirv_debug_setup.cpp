@@ -1101,7 +1101,7 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
 
         // type is the resulting scalar (first inner does matrix->colun type, second does column
         // type->scalar type)
-        type = &dataTypes[dataTypes[type->InnerType()].InnerType()];
+        type = &dataTypes[type->InnerType()];
 
         byteOffset += indices[i] * (type->scalar().width / 8);
       }
