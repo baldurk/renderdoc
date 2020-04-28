@@ -269,7 +269,7 @@ rdcarray<GPUCounter> AMDCounters::GetPublicCounterIds() const
   rdcarray<GPUCounter> ret;
   ret.reserve(m_PublicToInternalCounter.size());
 
-  for(const std::pair<GPUCounter, uint32_t> &entry : m_PublicToInternalCounter)
+  for(const std::pair<const GPUCounter, uint32_t> &entry : m_PublicToInternalCounter)
     ret.push_back(entry.first);
 
   return ret;
