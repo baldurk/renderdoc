@@ -506,15 +506,14 @@ public:
     const bool sintTex = (texType & DebugAPIWrapper::SInt_Texture) != 0;
 
     // fetch the right type of descriptor depending on if we're buffer or not
-    BindpointIndex invalidIndex(-1, -1, ~0U);
     bool valid = true;
     rdcstr access = StringFormat::Fmt("performing %s operation", ToStr(opcode).c_str());
     const VkDescriptorImageInfo &imageInfo =
-        buffer ? GetDescriptor<VkDescriptorImageInfo>(access, invalidIndex, valid)
+        buffer ? GetDescriptor<VkDescriptorImageInfo>(access, invalidBind, valid)
                : GetDescriptor<VkDescriptorImageInfo>(access, imageBind, valid);
     const VkBufferView &bufferView = buffer
                                          ? GetDescriptor<VkBufferView>(access, imageBind, valid)
-                                         : GetDescriptor<VkBufferView>(access, invalidIndex, valid);
+                                         : GetDescriptor<VkBufferView>(access, invalidBind, valid);
 
     // fetch the sampler (if there's no sampler, this will silently return dummy data without
     // marking invalid
@@ -1234,13 +1233,13 @@ private:
   {
     static T dummy = {};
 
-    if(index.bindset < 0)
+    if(index == invalidBind)
     {
       // invalid index, return a dummy data but don't mark as invalid
       return dummy;
     }
 
-    if(index.bindset >= m_DescSets.count())
+    if(index.bindset < 0 || index.bindset >= m_DescSets.count())
     {
       m_pDriver->AddDebugMessage(
           MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,

@@ -61,6 +61,8 @@ static bool ContainsNaNInf(const ShaderVariable &val)
 
 namespace rdcspv
 {
+const BindpointIndex DebugAPIWrapper::invalidBind = BindpointIndex(-12345, -12345, ~0U);
+
 ThreadState::ThreadState(uint32_t workgroupIdx, Debugger &debug, const GlobalState &globalState)
     : debugger(debug), global(globalState)
 {
@@ -2187,7 +2189,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       result.type = resultType.scalar().Type();
 
-      BindpointIndex samplerIndex = BindpointIndex(-1, -1, ~0U);
+      BindpointIndex samplerIndex = DebugAPIWrapper::invalidBind;
       if(sampler.type == VarType::Sampler || sampler.type == VarType::ReadOnlyResource)
         samplerIndex = sampler.GetBinding();
 

@@ -76,6 +76,8 @@ public:
     Buffer_Texture = 0x10,
   };
 
+  static const BindpointIndex invalidBind;
+
   virtual bool CalculateSampleGather(ThreadState &lane, Op opcode, TextureType texType,
                                      BindpointIndex imageBind, BindpointIndex samplerBind,
                                      const ShaderVariable &uv, const ShaderVariable &ddxCalc,
