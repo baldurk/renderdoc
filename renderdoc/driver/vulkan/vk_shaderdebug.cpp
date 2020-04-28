@@ -2457,7 +2457,7 @@ struct PSHit
   uint32_t prim;
   uint32_t sample;
   uint32_t valid;
-  uint32_t padding;
+  float ddxDerivCheck;
   // PSInput base, ddx, ....
 };
 
@@ -2762,8 +2762,8 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       uint32Type,
       // uint valid;
       uint32Type,
-      // uint padding;
-      uint32Type,
+      // float ddxDerivCheck;
+      floatType,
 
       // IN
       PSInput,
@@ -2808,7 +2808,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
     editor.AddDecoration(rdcspv::OpMemberDecorate(
         PSHit, member, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(offs)));
-    editor.SetMemberName(PSHit, member, "padding");
+    editor.SetMemberName(PSHit, member, "ddxDerivCheck");
     offs += sizeof(uint32_t);
     member++;
 
@@ -2976,6 +2976,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
   rdcspv::Id uint32InPtr =
       editor.DeclareType(rdcspv::Pointer(uint32Type, rdcspv::StorageClass::Input));
   rdcspv::Id uint32BufPtr = editor.DeclareType(rdcspv::Pointer(uint32Type, bufferClass));
+  rdcspv::Id floatBufPtr = editor.DeclareType(rdcspv::Pointer(floatType, bufferClass));
 
   rdcspv::Id glsl450 = editor.ImportExtInst("GLSL.std.450");
 
@@ -3089,6 +3090,9 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
         ops.add(rdcspv::OpLoad(float4Type, fragCoordLoaded, posptr));
       }
 
+      rdcspv::Id fragCoord_ddx =
+          ops.add(rdcspv::OpDPdx(float4Type, editor.MakeId(), fragCoordLoaded));
+
       rdcspv::Id bool2Type = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<bool>(), 2));
 
       // grab x and y
@@ -3201,10 +3205,11 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
           ops.add(rdcspv::OpAccessChain(uint32BufPtr, editor.MakeId(), hit, {getUIntConst(3)}));
       ops.add(rdcspv::OpStore(storePtr, editor.AddConstantImmediate(validMagicNumber), alignedAccess));
 
-      // store 0 in the padding
-      storePtr =
-          ops.add(rdcspv::OpAccessChain(uint32BufPtr, editor.MakeId(), hit, {getUIntConst(4)}));
-      ops.add(rdcspv::OpStore(storePtr, getUIntConst(0), alignedAccess));
+      // store ddx(gl_FragCoord.x) to check that derivatives are working
+      storePtr = ops.add(rdcspv::OpAccessChain(floatBufPtr, editor.MakeId(), hit, {getUIntConst(4)}));
+      rdcspv::Id fragCoord_ddx_x =
+          ops.add(rdcspv::OpCompositeExtract(floatType, editor.MakeId(), fragCoord_ddx, {0}));
+      ops.add(rdcspv::OpStore(storePtr, fragCoord_ddx_x, alignedAccess));
 
       {
         rdcspv::Id inputPtrType = editor.DeclareType(rdcspv::Pointer(PSInput, bufferClass));
@@ -3876,6 +3881,12 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
       continue;
     }
 
+    if(hit->ddxDerivCheck != 1.0f)
+    {
+      RDCWARN("Hit %u doesn't have valid derivatives", i);
+      continue;
+    }
+
     // see if this hit is a closer match than the previous winner.
 
     // if there's no previous winner it's clearly better
@@ -4005,6 +4016,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     delete apiWrapper;
 
     ret = new ShaderDebugTrace;
+    ret->stage = ShaderStage::Pixel;
   }
 
   if(descpool != VK_NULL_HANDLE)
