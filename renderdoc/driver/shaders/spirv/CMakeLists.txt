@@ -121,6 +121,7 @@ if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.9)
     set_property(SOURCE
         ${glslang_dir}/glslang/MachineIndependent/reflection.cpp
         ${glslang_dir}/glslang/MachineIndependent/Intermediate.cpp
+        ${glslang_dir}/glslang/MachineIndependent/ParseHelper.cpp
         APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-implicit-fallthrough")
 endif()
 
@@ -140,8 +141,13 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 
     set_property(SOURCE ${glslang_dir}/SPIRV/GlslangToSpv.cpp
         APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-tautological-constant-out-of-range-compare")
+
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.9)
+        set_property(SOURCE ${glslang_dir}/glslang/MachineIndependent/iomapper.cpp
+            APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-deprecated-copy")
+    endif()
 endif()
 
 add_library(rdoc_spirv OBJECT ${sources})
 target_compile_definitions(rdoc_spirv ${RDOC_DEFINITIONS})
-target_include_directories(rdoc_spirv ${RDOC_INCLUDES})
+target_include_directories(rdoc_spirv ${RDOC_INCLUDES} ${glslang_dir})
