@@ -1480,6 +1480,9 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
     ShaderConstant f;
     f.name = a.name;
     f.byteOffset = a.byteOffset;
+    f.type.descriptor.columns = a.format.compCount;
+    f.type.descriptor.rows = 1;
+    f.type.descriptor.arrayByteStride = f.type.descriptor.matrixByteStride = a.format.ElementSize();
 
     BufferElementProperties p;
     p.buffer = a.vertexBuffer;
