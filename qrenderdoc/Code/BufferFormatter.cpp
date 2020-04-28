@@ -459,6 +459,9 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
     if(maxLen > 0 && maxLen < 4)
       el.type.descriptor.type = VarType::UByte;
 
+    el.type.descriptor.arrayByteStride = el.type.descriptor.matrixByteStride =
+        el.type.descriptor.columns * VarTypeByteSize(el.type.descriptor.type);
+
     SetInterpretedResourceFormat(el, ResourceFormatType::Regular, CompType::Typeless);
 
     root.structDef.type.members.push_back(el);
