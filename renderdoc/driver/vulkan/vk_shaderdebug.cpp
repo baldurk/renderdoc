@@ -284,9 +284,13 @@ public:
 
   void ResetReplay()
   {
-    // replay the draw to get back to 'normal' state for this event, and mark that we need to replay
-    // back to pristine state next time we need to fetch data.
-    m_pDriver->ReplayLog(0, m_EventID, eReplay_OnlyDraw);
+    if(!m_ResourcesDirty)
+    {
+      VkMarkerRegion region("ResetReplay");
+      // replay the draw to get back to 'normal' state for this event, and mark that we need to
+      // replay back to pristine state next time we need to fetch data.
+      m_pDriver->ReplayLog(0, m_EventID, eReplay_OnlyDraw);
+    }
     m_ResourcesDirty = true;
   }
 
@@ -1310,6 +1314,7 @@ private:
           // before it.
           if(m_ResourcesDirty)
           {
+            VkMarkerRegion region("un-dirtying resources");
             m_pDriver->ReplayLog(0, m_EventID, eReplay_WithoutDraw);
             m_ResourcesDirty = false;
           }
@@ -1338,6 +1343,7 @@ private:
         // before it.
         if(m_ResourcesDirty)
         {
+          VkMarkerRegion region("un-dirtying resources");
           m_pDriver->ReplayLog(0, m_EventID, eReplay_WithoutDraw);
           m_ResourcesDirty = false;
         }
