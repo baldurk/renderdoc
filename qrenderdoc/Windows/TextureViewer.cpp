@@ -3805,7 +3805,10 @@ void TextureViewer::on_debugPixelContext_clicked()
   // if we couldn't debug the pixel on this event, open up a pixel history
   if(!trace)
   {
-    on_pixelHistory_clicked();
+    if(m_Ctx.APIProps().pixelHistory)
+      on_pixelHistory_clicked();
+    else
+      RDDialog::critical(this, tr("Debug Error"), tr("Error debugging pixel."));
     return;
   }
 
