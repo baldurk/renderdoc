@@ -138,6 +138,8 @@ struct dummy
 
 layout(set = 0, binding = 5, std430) buffer storebuftype
 {
+  layout(row_major) mat4 a;
+  layout(column_major) mat4 b;
   vec4 x;
   dummy y;
   vec4 arr[];
@@ -2310,8 +2312,8 @@ void main()
         "OpCopyMemory %Color %gl_FragCoord\n"
         "; no_out\n",
 
-        "%_src = OpAccessChain %ptr_Uniform_float4 %buffer %uint_0\n"
-        "%_dst = OpAccessChain %ptr_Uniform_float4 %buffer %uint_2 %uint_3\n"
+        "%_src = OpAccessChain %ptr_Uniform_float4 %buffer %uint_2\n"
+        "%_dst = OpAccessChain %ptr_Uniform_float4 %buffer %uint_4 %uint_3\n"
         "OpCopyMemory %_dst %_src\n"
         "OpCopyMemory %Color %_src\n"
         "; no_out\n",
@@ -2322,7 +2324,7 @@ void main()
 
     // test SSBO pointers
     append_tests({
-        "%_y = OpAccessChain %ptr_Uniform_dummy %buffer %uint_1\n"
+        "%_y = OpAccessChain %ptr_Uniform_dummy %buffer %uint_3\n"
         "%_src = OpAccessChain %ptr_Uniform_uint4 %_y %uint_0\n"
         "%_dst = OpAccessChain %ptr_Uniform_uint4 %_y %uint_1\n"
         "%_tmp = OpLoad %uint4 %_src\n"
@@ -2355,6 +2357,79 @@ void main()
           "%_out_uint2 = OpExtInst %uint2 %glsl450 UnpackDouble2x32 %_double_unpack_source\n",
       });
     }
+
+    // test pointers into columns of matrices
+
+    append_tests({
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float4 %randf_0 %randf_1 %randf_2 %randf_3
+       %_colb = OpCompositeConstruct %float4 %randf_4 %randf_5 %randf_6 %randf_7
+       %_colc = OpCompositeConstruct %float4 %randf_8 %randf_9 %randf_10 %randf_11
+       %_cold = OpCompositeConstruct %float4 %randf_12 %randf_13 %randf_14 %randf_15
+
+       %_ptra = OpAccessChain %ptr_Private_float4 %priv_float4x4 %uint_0
+       %_ptrb = OpAccessChain %ptr_Private_float4 %priv_float4x4 %uint_1
+       %_ptrc = OpAccessChain %ptr_Private_float4 %priv_float4x4 %uint_2
+       %_ptrd = OpAccessChain %ptr_Private_float4 %priv_float4x4 %uint_3
+
+                OpStore %_ptra %_cola
+                OpStore %_ptrb %_colb
+                OpStore %_ptrc %_colc
+                OpStore %_ptrd %_cold
+
+        %_vec = OpCompositeConstruct %float4 %randf_16 %randf_17 %randf_18 %randf_19
+
+        %_mat = OpLoad %float4x4 %priv_float4x4
+
+ %_out_float4 = OpMatrixTimesVector %float4 %_mat %_vec
+)EOTEST",
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float4 %randf_0 %randf_1 %randf_2 %randf_3
+       %_colb = OpCompositeConstruct %float4 %randf_4 %randf_5 %randf_6 %randf_7
+       %_colc = OpCompositeConstruct %float4 %randf_8 %randf_9 %randf_10 %randf_11
+       %_cold = OpCompositeConstruct %float4 %randf_12 %randf_13 %randf_14 %randf_15
+
+       %_ptra = OpAccessChain %ptr_Uniform_float4 %buffer %uint_0 %uint_0
+       %_ptrb = OpAccessChain %ptr_Uniform_float4 %buffer %uint_0 %uint_1
+       %_ptrc = OpAccessChain %ptr_Uniform_float4 %buffer %uint_0 %uint_2
+       %_ptrd = OpAccessChain %ptr_Uniform_float4 %buffer %uint_0 %uint_3
+
+                OpStore %_ptra %_cola
+                OpStore %_ptrb %_colb
+                OpStore %_ptrc %_colc
+                OpStore %_ptrd %_cold
+
+        %_vec = OpCompositeConstruct %float4 %randf_16 %randf_17 %randf_18 %randf_19
+
+     %_ptrmat = OpAccessChain %ptr_Uniform_float4x4 %buffer %uint_0
+        %_mat = OpLoad %float4x4 %_ptrmat
+
+ %_out_float4 = OpMatrixTimesVector %float4 %_mat %_vec
+)EOTEST",
+        R"EOTEST(
+       %_cola = OpCompositeConstruct %float4 %randf_0 %randf_1 %randf_2 %randf_3
+       %_colb = OpCompositeConstruct %float4 %randf_4 %randf_5 %randf_6 %randf_7
+       %_colc = OpCompositeConstruct %float4 %randf_8 %randf_9 %randf_10 %randf_11
+       %_cold = OpCompositeConstruct %float4 %randf_12 %randf_13 %randf_14 %randf_15
+
+       %_ptra = OpAccessChain %ptr_Uniform_float4 %buffer %uint_1 %uint_0
+       %_ptrb = OpAccessChain %ptr_Uniform_float4 %buffer %uint_1 %uint_1
+       %_ptrc = OpAccessChain %ptr_Uniform_float4 %buffer %uint_1 %uint_2
+       %_ptrd = OpAccessChain %ptr_Uniform_float4 %buffer %uint_1 %uint_3
+
+                OpStore %_ptra %_cola
+                OpStore %_ptrb %_colb
+                OpStore %_ptrc %_colc
+                OpStore %_ptrd %_cold
+
+        %_vec = OpCompositeConstruct %float4 %randf_16 %randf_17 %randf_18 %randf_19
+
+     %_ptrmat = OpAccessChain %ptr_Uniform_float4x4 %buffer %uint_1
+        %_mat = OpLoad %float4x4 %_ptrmat
+
+ %_out_float4 = OpMatrixTimesVector %float4 %_mat %_vec
+)EOTEST",
+    });
   }
 
   std::string make_pixel_asm()
@@ -2601,8 +2676,17 @@ void main()
                OpMemberDecorate %dummy 0 Offset 0
                OpMemberDecorate %dummy 1 Offset 16
                OpMemberDecorate %buftype 0 Offset 0
-               OpMemberDecorate %buftype 1 Offset 16
-               OpMemberDecorate %buftype 2 Offset 48
+               OpMemberDecorate %buftype 1 Offset 64
+               OpMemberDecorate %buftype 2 Offset 128
+               OpMemberDecorate %buftype 3 Offset 144
+               OpMemberDecorate %buftype 4 Offset 176
+
+               OpMemberDecorate %buftype 0 MatrixStride 16
+               OpMemberDecorate %buftype 0 RowMajor
+
+               OpMemberDecorate %buftype 1 MatrixStride 16
+               OpMemberDecorate %buftype 1 ColMajor
+
                OpDecorate %buftype BufferBlock
                OpDecorate %buffer DescriptorSet 0
                OpDecorate %buffer Binding 5
@@ -2647,7 +2731,7 @@ void main()
      %f32i32 = OpTypeStruct %float %int
 
       %dummy = OpTypeStruct %uint4 %uint4
-    %buftype = OpTypeStruct %float4 %dummy %rtarray_float4
+    %buftype = OpTypeStruct %float4x4 %float4x4 %float4 %dummy %rtarray_float4
 
     %ptr_Input_v2f = OpTypePointer Input %v2f
 %ptr_Input_flatv2f = OpTypePointer Input %flatv2f
@@ -2659,6 +2743,8 @@ void main()
 %ptr_Output_float4 = OpTypePointer Output %float4
   %ptr_Private_int = OpTypePointer Private %int
 %ptr_Private_float = OpTypePointer Private %float
+%ptr_Private_float4 = OpTypePointer Private %float4
+%ptr_Private_float4x4 = OpTypePointer Private %float4x4
 
 %ptr_Uniform_float = OpTypePointer Uniform %float
 %ptr_Uniform_float2 = OpTypePointer Uniform %float2
@@ -2675,6 +2761,8 @@ void main()
 %ptr_Uniform_int3 = OpTypePointer Uniform %int3
 %ptr_Uniform_int4 = OpTypePointer Uniform %int4
 
+%ptr_Uniform_float4x4 = OpTypePointer Uniform %float4x4
+
 %ptr_Uniform_dummy = OpTypePointer Uniform %dummy
 %ptr_Uniform_buftype = OpTypePointer Uniform %buftype
 
@@ -2685,6 +2773,8 @@ void main()
 
     %priv_int = OpVariable %ptr_Private_int Private
   %priv_float = OpVariable %ptr_Private_float Private
+  %priv_float4 = OpVariable %ptr_Private_float4 Private
+  %priv_float4x4 = OpVariable %ptr_Private_float4x4 Private
 
       %buffer = OpVariable %ptr_Uniform_buftype Uniform
 
@@ -3463,8 +3553,8 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     texbuffer.upload(cbufferdata);
 
     AllocatedBuffer store_buffer(
-        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(1024 * sizeof(Vec4f), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     AllocatedBuffer atomic_buffer(this, vkh::BufferCreateInfo(texWidth * texHeight * sizeof(Vec4f),
@@ -3473,8 +3563,8 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
                                   VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     AllocatedBuffer store_texbuffer(
-        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT |
-                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(1024 * sizeof(Vec4f), VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT |
+                                                              VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     AllocatedImage store_image(

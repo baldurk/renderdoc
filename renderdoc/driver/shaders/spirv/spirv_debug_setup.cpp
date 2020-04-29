@@ -1108,14 +1108,10 @@ ShaderVariable Debugger::MakePointerVariable(Id id, const ShaderVariable *v, uin
   var.rows = var.columns = 1;
   var.type = VarType::GPUPointer;
   var.name = GetRawName(id);
-  // encode the pointer into the first u64v
-  var.value.u64v[0] = (uint64_t)(uintptr_t)v;
-
-  // uv[1] overlaps with u64v[0], so start from [2] storing scalar indices
-  var.value.uv[2] = scalar0;
-  var.value.uv[3] = scalar1;
-  // store the base ID of the allocated storage in [4]
-  var.value.uv[4] = id.value();
+  var.value.u64v[PointerVariableSlot] = (uint64_t)(uintptr_t)v;
+  var.value.u64v[Scalar0VariableSlot] = scalar0;
+  var.value.u64v[Scalar1VariableSlot] = scalar1;
+  var.value.u64v[BaseIdVariableSlot] = id.value();
   return var;
 }
 
@@ -1127,7 +1123,7 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
   // if the base is a plain value, we just start walking down the chain. If the base is a pointer
   // though, we want to step down the chain in the underlying storage, so dereference first.
   if(base.type == VarType::GPUPointer)
-    leaf = (const ShaderVariable *)(uintptr_t)base.value.u64v[0];
+    leaf = (const ShaderVariable *)(uintptr_t)base.value.u64v[PointerVariableSlot];
 
   bool isArray = false;
 
@@ -1143,6 +1139,7 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
     ShaderVariable ret = MakePointerVariable(id, leaf);
 
     uint64_t byteOffset = base.value.u64v[BufferPointerByteOffsetVariableSlot];
+    ret.value.u64v[MajorStrideVariableSlot] = base.value.u64v[MajorStrideVariableSlot];
 
     const DataType *type = &dataTypes[idTypes[id]];
 
@@ -1158,6 +1155,8 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
       ret.value.u64v[ArrayVariableSlot] = indices[i++];
       type = &dataTypes[type->InnerType()];
     }
+
+    Decorations curDecorations = decorations[type->id];
 
     while(i < indices.size() &&
           (type->type == DataType::ArrayType || type->type == DataType::StructType))
@@ -1185,29 +1184,36 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
 
         // new type is the child type
         type = &dataTypes[child.type];
+        curDecorations = child.decorations;
       }
       i++;
     }
+
+    if(curDecorations.flags & Decorations::HasMatrixStride)
+      ret.value.u64v[MajorStrideVariableSlot] = curDecorations.matrixStride;
+
+    if(curDecorations.flags & Decorations::RowMajor)
+      ret.value.u64v[MajorStrideVariableSlot] |= 0x80000000U;
 
     size_t remaining = indices.size() - i;
     if(remaining == 2)
     {
       // pointer to a scalar in a matrix. indices[i] is column, indices[i + 1] is row
-
-      const Decorations &dec = decorations[type->id];
-      RDCASSERT(dec.flags & Decorations::HasMatrixStride);
+      RDCASSERT(curDecorations.flags & Decorations::HasMatrixStride);
 
       // type is the resulting scalar (first inner does matrix->colun type, second does column
       // type->scalar type)
       type = &dataTypes[dataTypes[type->InnerType()].InnerType()];
 
-      if(dec.flags & Decorations::RowMajor)
+      if(curDecorations.flags & Decorations::RowMajor)
       {
-        byteOffset += dec.matrixStride * indices[i + 1] + indices[i] * (type->scalar().width / 8);
+        byteOffset +=
+            curDecorations.matrixStride * indices[i + 1] + indices[i] * (type->scalar().width / 8);
       }
       else
       {
-        byteOffset += dec.matrixStride * indices[i] + indices[i + 1] * (type->scalar().width / 8);
+        byteOffset +=
+            curDecorations.matrixStride * indices[i] + indices[i + 1] * (type->scalar().width / 8);
       }
     }
     else if(remaining == 1)
@@ -1225,22 +1231,18 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
       else
       {
         // pointer to a column in a matrix
-
-        const Decorations &dec = decorations[type->id];
-        RDCASSERT(dec.flags & Decorations::HasMatrixStride);
+        RDCASSERT(curDecorations.flags & Decorations::HasMatrixStride);
 
         // type is the resulting vector
         type = &dataTypes[type->InnerType()];
 
-        if(dec.flags & Decorations::RowMajor)
+        if(curDecorations.flags & Decorations::RowMajor)
         {
-          // TODO need to store dec.matrixStride as the stride between elements for this pointer
-          // when reading
           byteOffset += indices[i] * (type->scalar().width / 8);
         }
         else
         {
-          byteOffset += dec.matrixStride * indices[i];
+          byteOffset += curDecorations.matrixStride * indices[i];
         }
       }
     }
@@ -1287,7 +1289,8 @@ ShaderVariable Debugger::GetPointerValue(const ShaderVariable &ptr) const
   // opaque pointers display as their inner value
   if(IsOpaquePointer(ptr))
   {
-    const ShaderVariable *inner = (const ShaderVariable *)(uintptr_t)ptr.value.u64v[0];
+    const ShaderVariable *inner =
+        (const ShaderVariable *)(uintptr_t)ptr.value.u64v[PointerVariableSlot];
     ShaderVariable ret = *inner;
     ret.name = ptr.name;
     // inherit any array index from the pointer
@@ -1305,7 +1308,8 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
   if(ptr.type != VarType::GPUPointer)
     return ptr;
 
-  const ShaderVariable *inner = (const ShaderVariable *)(uintptr_t)ptr.value.u64v[0];
+  const ShaderVariable *inner =
+      (const ShaderVariable *)(uintptr_t)ptr.value.u64v[PointerVariableSlot];
 
   ShaderVariable ret;
 
@@ -1319,8 +1323,13 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
 
     bind.arrayIndex = (uint32_t)ptr.value.u64v[ArrayVariableSlot];
 
-    auto readCallback = [this, bind](ShaderVariable &var, const Decorations &, const DataType &type,
-                                     uint64_t offset, const rdcstr &) {
+    uint32_t matrixStride = (uint32_t)ptr.value.u64v[MajorStrideVariableSlot];
+    bool rowMajor = (matrixStride & 0x80000000U) != 0;
+    matrixStride &= 0xff;
+
+    auto readCallback = [this, bind, matrixStride, rowMajor](
+        ShaderVariable &var, const Decorations &, const DataType &type, uint64_t offset,
+        const rdcstr &) {
 
       // ignore any callbacks we get on the way up for structs/arrays, we don't need it we only read
       // or write at primitive level
@@ -1329,14 +1338,13 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
 
       if(type.type == DataType::MatrixType)
       {
-        const Decorations &dec = decorations[type.id];
-        RDCASSERT(dec.flags & Decorations::HasMatrixStride);
+        RDCASSERT(matrixStride != 0);
 
-        if(dec.flags & Decorations::RowMajor)
+        if(rowMajor)
         {
           for(uint8_t r = 0; r < var.rows; r++)
           {
-            apiWrapper->ReadBufferValue(bind, offset + r * dec.matrixStride,
+            apiWrapper->ReadBufferValue(bind, offset + r * matrixStride,
                                         VarTypeByteSize(var.type) * var.columns,
                                         &var.value.uv[r * var.columns]);
           }
@@ -1347,7 +1355,7 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
           // read column-wise
           for(uint8_t c = 0; c < var.columns; c++)
           {
-            apiWrapper->ReadBufferValue(bind, offset + c * dec.matrixStride,
+            apiWrapper->ReadBufferValue(bind, offset + c * matrixStride,
                                         VarTypeByteSize(var.type) * var.rows, &tmp.uv[c * var.rows]);
           }
 
@@ -1366,8 +1374,24 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
       }
       else if(type.type == DataType::VectorType)
       {
-        apiWrapper->ReadBufferValue(bind, offset, VarTypeByteSize(var.type) * var.columns,
-                                    var.value.uv);
+        if(!rowMajor)
+        {
+          // we can read a vector at a time if the matrix is column major
+          apiWrapper->ReadBufferValue(bind, offset, VarTypeByteSize(var.type) * var.columns,
+                                      var.value.uv);
+        }
+        else
+        {
+          for(uint8_t c = 0; c < var.columns; c++)
+          {
+            if(VarTypeByteSize(var.type) == 8)
+              apiWrapper->ReadBufferValue(bind, offset + c * matrixStride,
+                                          VarTypeByteSize(var.type), &var.value.u64v[c]);
+            else
+              apiWrapper->ReadBufferValue(bind, offset + c * matrixStride,
+                                          VarTypeByteSize(var.type), &var.value.uv[c]);
+          }
+        }
       }
       else if(type.type == DataType::ScalarType)
       {
@@ -1395,8 +1419,8 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
 
   // we don't support pointers to scalars since our 'unit' of pointer is a ShaderVariable, so check
   // if we have scalar indices to apply:
-  uint32_t scalar0 = ptr.value.uv[2];
-  uint32_t scalar1 = ptr.value.uv[3];
+  uint32_t scalar0 = (uint32_t)ptr.value.u64v[Scalar0VariableSlot];
+  uint32_t scalar1 = (uint32_t)ptr.value.u64v[Scalar1VariableSlot];
 
   ShaderValue val;
 
@@ -1456,8 +1480,8 @@ Id Debugger::GetPointerBaseId(const ShaderVariable &ptr) const
 {
   RDCASSERT(ptr.type == VarType::GPUPointer);
 
-  // we stored the base ID in [4] so that it's always available regardless of access chains
-  return Id::fromWord(ptr.value.uv[4]);
+  // we stored the base ID so that it's always available regardless of access chains
+  return Id::fromWord((uint32_t)ptr.value.u64v[BaseIdVariableSlot]);
 }
 
 bool Debugger::IsOpaquePointer(const ShaderVariable &ptr) const
@@ -1465,7 +1489,7 @@ bool Debugger::IsOpaquePointer(const ShaderVariable &ptr) const
   if(ptr.type != VarType::GPUPointer)
     return false;
 
-  ShaderVariable *inner = (ShaderVariable *)(uintptr_t)ptr.value.u64v[0];
+  ShaderVariable *inner = (ShaderVariable *)(uintptr_t)ptr.value.u64v[PointerVariableSlot];
   return inner->type == VarType::ReadOnlyResource || inner->type == VarType::Sampler ||
          inner->type == VarType::ReadWriteResource;
 }
@@ -1482,7 +1506,7 @@ bool Debugger::ArePointersAndEqual(const ShaderVariable &a, const ShaderVariable
 
 void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariable &val)
 {
-  ShaderVariable *storage = (ShaderVariable *)(uintptr_t)ptr.value.u64v[0];
+  ShaderVariable *storage = (ShaderVariable *)(uintptr_t)ptr.value.u64v[PointerVariableSlot];
 
   if(storage->type == VarType::ReadWriteResource)
   {
@@ -1495,22 +1519,25 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
     BindpointIndex bind = storage->GetBinding();
 
     bind.arrayIndex = (uint32_t)ptr.value.u64v[ArrayVariableSlot];
+    uint32_t matrixStride = (uint32_t)ptr.value.u64v[MajorStrideVariableSlot];
+    bool rowMajor = (matrixStride & 0x80000000U) != 0;
+    matrixStride &= 0xff;
 
-    auto writeCallback = [this, bind](const ShaderVariable &var, const Decorations &,
-                                      const DataType &type, uint64_t offset, const rdcstr &) {
+    auto writeCallback = [this, bind, matrixStride, rowMajor](
+        const ShaderVariable &var, const Decorations &, const DataType &type, uint64_t offset,
+        const rdcstr &) {
       if(!var.members.empty())
         return;
 
       if(type.type == DataType::MatrixType)
       {
-        const Decorations &dec = decorations[type.id];
-        RDCASSERT(dec.flags & Decorations::HasMatrixStride);
+        RDCASSERT(matrixStride != 0);
 
-        if(dec.flags & Decorations::RowMajor)
+        if(rowMajor)
         {
           for(uint8_t r = 0; r < var.rows; r++)
           {
-            apiWrapper->WriteBufferValue(bind, offset + r * dec.matrixStride,
+            apiWrapper->WriteBufferValue(bind, offset + r * matrixStride,
                                          VarTypeByteSize(var.type) * var.columns,
                                          &var.value.uv[r * var.columns]);
           }
@@ -1534,15 +1561,31 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
           // read column-wise
           for(uint8_t c = 0; c < var.columns; c++)
           {
-            apiWrapper->WriteBufferValue(bind, offset + c * dec.matrixStride,
+            apiWrapper->WriteBufferValue(bind, offset + c * matrixStride,
                                          VarTypeByteSize(var.type) * var.rows, &tmp.uv[c * var.rows]);
           }
         }
       }
       else if(type.type == DataType::VectorType)
       {
-        apiWrapper->WriteBufferValue(bind, offset, VarTypeByteSize(var.type) * var.columns,
-                                     var.value.uv);
+        if(!rowMajor)
+        {
+          // we can write a vector at a time if the matrix is column major
+          apiWrapper->WriteBufferValue(bind, offset, VarTypeByteSize(var.type) * var.columns,
+                                       var.value.uv);
+        }
+        else
+        {
+          for(uint8_t c = 0; c < var.columns; c++)
+          {
+            if(VarTypeByteSize(var.type) == 8)
+              apiWrapper->WriteBufferValue(bind, offset + c * matrixStride,
+                                           VarTypeByteSize(var.type), &var.value.u64v[c]);
+            else
+              apiWrapper->WriteBufferValue(bind, offset + c * matrixStride,
+                                           VarTypeByteSize(var.type), &var.value.uv[c]);
+          }
+        }
       }
       else if(type.type == DataType::ScalarType)
       {
@@ -1558,8 +1601,8 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
 
   // we don't support pointers to scalars since our 'unit' of pointer is a ShaderVariable, so check
   // if we have scalar indices to apply:
-  uint32_t scalar0 = ptr.value.uv[2];
-  uint32_t scalar1 = ptr.value.uv[3];
+  uint32_t scalar0 = (uint32_t)ptr.value.u64v[Scalar0VariableSlot];
+  uint32_t scalar1 = (uint32_t)ptr.value.u64v[Scalar1VariableSlot];
 
   // in the common case we don't have scalar selectors. In this case just assign the value
   if(scalar0 == ~0U && scalar1 == ~0U)
@@ -1589,9 +1632,9 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
         for(uint32_t row = 0; row < storage->rows; row++)
         {
           if(VarTypeByteSize(storage->type) == 8)
-            storage->value.u64v[row * storage->columns + scalar0] = val.value.u64v[0];
+            storage->value.u64v[row * storage->columns + scalar0] = val.value.u64v[row];
           else
-            storage->value.uv[row * storage->columns + scalar0] = val.value.uv[0];
+            storage->value.uv[row * storage->columns + scalar0] = val.value.uv[row];
         }
       }
     }
