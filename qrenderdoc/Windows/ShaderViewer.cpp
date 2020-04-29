@@ -575,6 +575,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
     m_Line2Insts.resize(m_ShaderDetails->debugInfo.files.count());
 
+    bool hasLineInfo = false;
+
     for(size_t inst = 0; inst < m_Trace->lineInfo.size(); inst++)
     {
       const LineColumnInfo &line = m_Trace->lineInfo[inst];
@@ -594,9 +596,16 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       if(line.fileIndex < 0 || line.fileIndex >= m_Line2Insts.count())
         continue;
 
+      hasLineInfo = true;
+
       for(uint32_t lineNum = line.lineStart; lineNum <= line.lineEnd; lineNum++)
         m_Line2Insts[line.fileIndex][lineNum].push_back(inst);
     }
+
+    // if we don't have line mapping info, assume we also don't have useful high-level variable
+    // info. Show the debug variables first rather than a potentially empty source variables panel.
+    if(!hasLineInfo)
+      ui->docking->raiseToolWindow(ui->debugVars);
 
     QObject::connect(ui->stepBack, &QToolButton::clicked, this, &ShaderViewer::stepBack);
     QObject::connect(ui->stepNext, &QToolButton::clicked, this, &ShaderViewer::stepNext);
