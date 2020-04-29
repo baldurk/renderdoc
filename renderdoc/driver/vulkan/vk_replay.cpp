@@ -2795,11 +2795,32 @@ rdcarray<EventUsage> VulkanReplay::GetUsage(ResourceId id)
   return m_pDriver->GetUsage(id);
 }
 
-void VulkanReplay::CopyPixelForPixelHistory(VkCommandBuffer cmd, VkExtent3D extent, uint32_t sample,
-                                            VkFormat fmt)
+void VulkanReplay::CopyPixelForPixelHistory(VkCommandBuffer cmd, VkOffset2D offset, uint32_t sample,
+                                            uint32_t bufferOffset, bool depthCopy)
 {
-  m_pDriver->GetDebugManager()->CopyTex2DMSPixel(cmd, m_PixelHistory.MSCopyDescSet, extent, sample,
-                                                 fmt);
+  if(m_PixelHistory.MSCopyPipe == VK_NULL_HANDLE)
+    return;
+
+  VkDescriptorSet descSet;
+  if(depthCopy)
+    descSet = m_PixelHistory.MSDepthCopyDescSet;
+  else
+    descSet = m_PixelHistory.MSCopyDescSet;
+  if(!m_pDriver->GetDeviceFeatures().shaderStorageImageWriteWithoutFormat)
+    return;
+
+  ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
+                                Unwrap(m_PixelHistory.MSCopyPipe));
+
+  uint32_t params[8] = {depthCopy, sample, (uint32_t)offset.x, (uint32_t)offset.y, bufferOffset, 0,
+                        0,         0};
+  ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
+                                      Unwrap(m_PixelHistory.MSCopyPipeLayout), 0, 1,
+                                      UnwrapPtr(descSet), 0, NULL);
+
+  ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_PixelHistory.MSCopyPipeLayout),
+                                 VK_SHADER_STAGE_ALL, 0, 8 * 4, params);
+  ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), 1, 1, 1);
 }
 
 void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,

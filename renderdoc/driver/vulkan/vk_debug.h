@@ -68,8 +68,6 @@ public:
                           uint32_t samples, VkFormat fmt);
   void CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent, uint32_t layers,
                           uint32_t samples, VkFormat fmt);
-  void CopyTex2DMSPixel(VkCommandBuffer cmd, VkDescriptorSet descSet, VkExtent3D extent,
-                        uint32_t sample, VkFormat fmt);
 
   VkPipelineCache GetPipelineCache() { return m_PipelineCache; }
   VkPipeline GetCustomPipeline() { return m_Custom.TexPipeline; }

@@ -599,6 +599,7 @@
     <None Include="data\glsl\minmaxresult.comp" />
     <None Include="data\glsl\minmaxtile.comp" />
     <None Include="data\glsl\ms2array.comp" />
+    <None Include="data\glsl\pixelhistory_mscopy.comp" />
     <None Include="data\glsl\pixelhistory_primid.frag" />
     <None Include="data\glsl\quadresolve.frag" />
     <None Include="data\glsl\quadwrite.frag" />

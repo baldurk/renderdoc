@@ -48,8 +48,9 @@
 #define RESOURCE_glsl_gltext_frag              430
 #define RESOURCE_glsl_glsl_globals_h           440
 #define RESOURCE_glsl_texremap_frag            441
-#define RESOURCE_glsl_pixelhistory_primid_frag 442
-#define RESOURCE_glsl_shaderdebug_sample_vert  443
+#define RESOURCE_glsl_pixelhistory_mscopy_comp 442
+#define RESOURCE_glsl_pixelhistory_primid_frag 443
+#define RESOURCE_glsl_shaderdebug_sample_vert  444
 
 // Next default values for new objects
 // 

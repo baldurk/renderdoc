@@ -91,6 +91,8 @@ static const BuiltinShaderConfig builtinShaders[] = {
      rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
     {BuiltinShader::TexRemapSInt, EmbeddedResource(glsl_texremap_frag),
      rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
+    {BuiltinShader::PixelHistoryMSCopyCS, EmbeddedResource(glsl_pixelhistory_mscopy_comp),
+     rdcspv::ShaderStage::Compute, FeatureCheck::NoCheck, true},
     {BuiltinShader::PixelHistoryPrimIDFS, EmbeddedResource(glsl_pixelhistory_primid_frag),
      rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
     {BuiltinShader::ShaderDebugSampleVS, EmbeddedResource(glsl_shaderdebug_sample_vert),
