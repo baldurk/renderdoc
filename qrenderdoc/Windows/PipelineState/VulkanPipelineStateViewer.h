@@ -82,6 +82,8 @@ private slots:
   void ubo_itemActivated(RDTreeWidgetItem *item, int column);
   void vertex_leave(QEvent *e);
 
+  void on_debugThread_clicked();
+
 private:
   Ui::VulkanPipelineStateViewer *ui;
   ICaptureContext &m_Ctx;
