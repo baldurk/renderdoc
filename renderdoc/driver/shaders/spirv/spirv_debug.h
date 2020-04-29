@@ -128,6 +128,9 @@ public:
   // allocated storage for opaque uniform blocks, does not change over the course of debugging
   rdcarray<ShaderVariable> constantBlocks;
 
+  // workgroup private variables
+  rdcarray<ShaderVariable> workgroups;
+
   // resources may be read-write but the variable itself doesn't change
   rdcarray<ShaderVariable> readOnlyResources;
   rdcarray<ShaderVariable> readWriteResources;
