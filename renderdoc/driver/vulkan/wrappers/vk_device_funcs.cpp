@@ -1438,6 +1438,19 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     RDCLOG("Creating replay device from physical device %u", physicalDeviceIndex);
 
+    rdcarray<VkDeviceQueueGlobalPriorityCreateInfoEXT *> queuePriorities;
+
+    for(uint32_t i = 0; i < CreateInfo.queueCreateInfoCount; i++)
+    {
+      VkDeviceQueueGlobalPriorityCreateInfoEXT *queuePrio =
+          (VkDeviceQueueGlobalPriorityCreateInfoEXT *)FindNextStruct(
+              &CreateInfo.pQueueCreateInfos[i],
+              VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_EXT);
+
+      if(queuePrio)
+        queuePriorities.push_back(queuePrio);
+    }
+
     // we must make any modifications locally, so the free of pointers
     // in the serialised VkDeviceCreateInfo don't double-free
     VkDeviceCreateInfo createInfo = CreateInfo;
@@ -2871,6 +2884,21 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     vkr = GetDeviceDispatchTable(NULL)->CreateDevice(Unwrap(physicalDevice), &createInfo, NULL,
                                                      &device);
+
+    if(vkr != VK_SUCCESS && !queuePriorities.empty())
+    {
+      RDCWARN("Failed to create logical device: %s. Reducing queue priorities", ToStr(vkr).c_str());
+
+      for(VkDeviceQueueGlobalPriorityCreateInfoEXT *q : queuePriorities)
+      {
+        // medium is considered the default if no priority is set otherwise
+        if(q->globalPriority > VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_EXT)
+          q->globalPriority = VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_EXT;
+      }
+
+      vkr = GetDeviceDispatchTable(NULL)->CreateDevice(Unwrap(physicalDevice), &createInfo, NULL,
+                                                       &device);
+    }
 
     if(vkr != VK_SUCCESS)
     {
