@@ -27,6 +27,15 @@
 #include "spirv_op_helpers.h"
 #include "spirv_reflect.h"
 
+static ShaderVariable *pointerIfMutable(const ShaderVariable &var)
+{
+  return NULL;
+}
+static ShaderVariable *pointerIfMutable(ShaderVariable &var)
+{
+  return &var;
+}
+
 static uint32_t VarByteSize(const ShaderVariable &var)
 {
   return VarTypeByteSize(var.type) * RDCMAX(1U, (uint32_t)var.rows) *
@@ -117,7 +126,10 @@ void Debugger::MakeSignatureNames(const rdcarray<SPIRVInterfaceAccess> &sigList,
       }
       else if(type->type == DataType::StructType)
       {
-        name += StringFormat::Fmt("._child%u", chain);
+        if(!type->children[chain].name.empty())
+          name += "." + type->children[chain].name;
+        else
+          name += StringFormat::Fmt("._child%u", chain);
         type = &dataTypes[type->children[chain].type];
       }
       else if(type->type == DataType::MatrixType)
@@ -486,6 +498,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       ShaderVariable var;
       var.name = GetRawName(v.id);
 
+      rdcstr rawName = var.name;
       rdcstr sourceName = GetHumanName(v.id);
 
       // if we don't have a good human name, generate a better one using the interface information
@@ -499,21 +512,64 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
               StringFormat::Fmt("_%s%u", isInput ? "input" : "output", decorations[v.id].location);
       }
 
-      size_t oldSize = globalSourceVars.size();
-
       const DataType &type = dataTypes[v.type];
 
       // global variables should all be pointers into opaque storage
       RDCASSERT(type.type == DataType::PointerType);
 
-      // fill the interface variable
-      AllocateVariable(decorations[v.id], decorations[v.id],
-                       isInput ? DebugVariableType::Input : DebugVariableType::Variable, sourceName,
-                       decorations[v.id].location, dataTypes[type.InnerType()], var);
+      const rdcarray<rdcstr> &sigNames = isInput ? inputSigNames : outputSigNames;
 
-      for(size_t i = oldSize; i < globalSourceVars.size(); i++)
-        globalSourceVars[i].signatureIndex =
-            (isInput ? inputSigNames : outputSigNames).indexOf(globalSourceVars[i].variables[0].name);
+      // fill the interface variable
+      auto fillInputCallback = [this, isInput, ret, stage, &sigNames, &rawName, &sourceName](
+          ShaderVariable &var, const Decorations &curDecorations, const DataType &type,
+          uint64_t location, const rdcstr &accessSuffix) {
+
+        if(!var.members.empty())
+          return;
+
+        if(isInput)
+        {
+          uint32_t component = 0;
+          for(const DecorationAndParamData &dec : curDecorations.others)
+          {
+            if(dec.value == Decoration::Component)
+            {
+              component = dec.component;
+              break;
+            }
+          }
+
+          ShaderBuiltin builtin = ShaderBuiltin::Undefined;
+          if(curDecorations.flags & Decorations::HasBuiltIn)
+            builtin = MakeShaderBuiltin(stage, curDecorations.builtIn);
+
+          this->apiWrapper->FillInputValue(var, builtin, (uint32_t)location, component);
+        }
+
+        if(sourceName != rawName)
+        {
+          rdcstr debugVarName = rawName + accessSuffix;
+
+          SourceVariableMapping sourceVar;
+          sourceVar.name = sourceName + accessSuffix;
+          sourceVar.offset = (uint32_t)location;
+          sourceVar.type = var.type;
+          sourceVar.rows = var.rows;
+          sourceVar.columns = var.columns;
+          sourceVar.signatureIndex = sigNames.indexOf(debugVarName);
+
+          for(uint32_t x = 0; x < uint32_t(var.rows) * var.columns; x++)
+            sourceVar.variables.push_back(DebugVariableReference(
+                isInput ? DebugVariableType::Input : DebugVariableType::Variable, debugVarName, x));
+
+          ret->sourceVars.push_back(sourceVar);
+          if(!isInput)
+            globalSourceVars.push_back(sourceVar);
+        }
+      };
+
+      WalkVariable<ShaderVariable, true>(decorations[v.id], dataTypes[type.InnerType()], ~0U, var,
+                                         rdcstr(), fillInputCallback);
 
       if(isInput)
       {
@@ -578,12 +634,17 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
                                            decorations[v.id].binding);
         }
 
-        Decorations d = decorations[v.id];
-
+        uint32_t bindset = 0, bind = 0;
         if(v.storage == StorageClass::PushConstant)
         {
-          d.set = PushConstantBindSet;
-          d.flags = Decorations::Flags(d.flags | Decorations::HasDescriptorSet);
+          bindset = PushConstantBindSet;
+        }
+        else
+        {
+          if(decorations[v.id].flags & Decorations::HasDescriptorSet)
+            bindset = decorations[v.id].set;
+          if(decorations[v.id].flags & Decorations::HasBinding)
+            bind = decorations[v.id].binding;
         }
 
         SourceVariableMapping sourceVar;
@@ -596,13 +657,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
           var.columns = 1;
           var.type = VarType::ReadWriteResource;
 
-          uint32_t set = 0, bind = 0;
-          if(decorations[v.id].flags & Decorations::HasDescriptorSet)
-            set = decorations[v.id].set;
-          if(decorations[v.id].flags & Decorations::HasBinding)
-            bind = decorations[v.id].binding;
-
-          var.SetBinding((int32_t)set, (int32_t)bind, 0U);
+          var.SetBinding((int32_t)bindset, (int32_t)bind, 0U);
 
           var.value.u64v[SSBOVariableSlot] = 1;
 
@@ -620,22 +675,84 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
         }
         else
         {
-          uint32_t offset = 0;
-          AllocateVariable(d, d, DebugVariableType::Constant, sourceName, 0, *innertype, var);
+          BindpointIndex bindpoint;
+
+          // TODO handle arrays
+          bindpoint.bindset = (int32_t)bindset;
+          bindpoint.bind = (int32_t)bind;
+
+          auto cbufferCallback = [this, bindpoint](
+              ShaderVariable &var, const Decorations &curDecorations, const DataType &type,
+              uint64_t offset, const rdcstr &) {
+
+            if(!var.members.empty())
+              return;
+
+            // non-matrix case is simple, just read the size of the variable
+            if(var.rows == 1)
+            {
+              this->apiWrapper->ReadBufferValue(bindpoint, offset, VarByteSize(var), var.value.uv);
+            }
+            else
+            {
+              // matrix case is more complicated. Either read column by column or row by row
+              // depending on
+              // majorness
+              uint32_t matrixStride = curDecorations.matrixStride;
+
+              if(!(curDecorations.flags & Decorations::HasMatrixStride))
+              {
+                RDCWARN("Matrix without matrix stride - assuming legacy vec4 packed");
+                matrixStride = 16;
+              }
+
+              if(curDecorations.flags & Decorations::ColMajor)
+              {
+                ShaderValue tmp;
+
+                uint32_t colSize = VarTypeByteSize(var.type) * var.rows;
+                for(uint32_t c = 0; c < var.columns; c++)
+                {
+                  // read the column
+                  this->apiWrapper->ReadBufferValue(bindpoint, offset + c * matrixStride, colSize,
+                                                    &tmp.uv[0]);
+
+                  // now write it into the appropiate elements in the destination ShaderValue
+                  for(uint32_t r = 0; r < var.rows; r++)
+                    var.value.uv[r * var.columns + c] = tmp.uv[r];
+                }
+              }
+              else
+              {
+                // row major is easier, read row-by-row directly into the output variable
+                uint32_t rowSize = VarTypeByteSize(var.type) * var.columns;
+                for(uint32_t r = 0; r < var.rows; r++)
+                {
+                  // read the column into the destination ShaderValue, which is tightly packed with
+                  // rows
+                  this->apiWrapper->ReadBufferValue(bindpoint, offset + r * matrixStride, rowSize,
+                                                    &var.value.uv[r * var.columns]);
+                }
+              }
+            }
+          };
+
+          WalkVariable<ShaderVariable, true>(decorations[v.id], *innertype, 0U, var, rdcstr(),
+                                             cbufferCallback);
 
           if(isArray)
             RDCERR("Uniform buffer arrays not supported yet");
 
           sourceVar.type = VarType::ConstantBlock;
-          sourceVar.rows = 0;
-          sourceVar.columns = 0;
+          sourceVar.rows = 1;
+          sourceVar.columns = 1;
           sourceVar.variables.push_back(DebugVariableReference(DebugVariableType::Constant, var.name));
 
           global.constantBlocks.push_back(var);
           pointerIDs.push_back(GLOBAL_POINTER(v.id, constantBlocks));
         }
 
-        globalSourceVars.push_back(sourceVar);
+        ret->sourceVars.push_back(sourceVar);
       }
       else
       {
@@ -752,7 +869,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       sourceVar.offset = 0;
       sourceVar.variables.push_back(DebugVariableReference(debugType, var.name));
 
-      globalSourceVars.push_back(sourceVar);
+      ret->sourceVars.push_back(sourceVar);
     }
     else if(v.storage == StorageClass::Private || v.storage == StorageClass::Workgroup)
     {
@@ -767,9 +884,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       // global variables should all be pointers into opaque storage
       RDCASSERT(type.type == DataType::PointerType);
 
-      // fill the interface variable
-      AllocateVariable(decorations[v.id], decorations[v.id], DebugVariableType::Variable,
-                       sourceName, decorations[v.id].location, dataTypes[type.InnerType()], var);
+      WalkVariable<ShaderVariable, true>(decorations[v.id], dataTypes[type.InnerType()], ~0U, var,
+                                         rdcstr(), NULL);
 
       if(v.storage == StorageClass::Private)
       {
@@ -783,6 +899,18 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       }
 
       liveGlobals.push_back(v.id);
+
+      if(sourceName != var.name)
+      {
+        SourceVariableMapping sourceVar;
+        sourceVar.name = sourceName;
+        sourceVar.rows = 1;
+        sourceVar.columns = 1;
+        sourceVar.offset = 0;
+        sourceVar.variables.push_back(DebugVariableReference(DebugVariableType::Variable, var.name));
+
+        globalSourceVars.push_back(sourceVar);
+      }
     }
     else
     {
@@ -809,38 +937,6 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     // now that the globals are allocated and their storage won't move, we can take pointers to them
     for(const PointerId &p : pointerIDs)
       p.Set(*this, global, lane);
-  }
-
-  for(size_t i = 0; i < globalSourceVars.size();)
-  {
-    // move constant data from globalSourceVars to trace level sourceVars
-    if(!globalSourceVars[i].variables.empty() &&
-       (globalSourceVars[i].variables[0].type == DebugVariableType::Input ||
-        globalSourceVars[i].variables[0].type == DebugVariableType::ReadOnlyResource ||
-        globalSourceVars[i].variables[0].type == DebugVariableType::ReadWriteResource ||
-        globalSourceVars[i].variables[0].type == DebugVariableType::Sampler ||
-        globalSourceVars[i].variables[0].type == DebugVariableType::Constant))
-    {
-      ret->sourceVars.push_back(globalSourceVars[i]);
-      globalSourceVars.erase(i);
-      continue;
-    }
-    i++;
-  }
-
-  // duplicate outputs to trace-level sourceVars, as they're mutable but at global scope
-  for(size_t o = 0; o < outputIDs.size(); o++)
-  {
-    rdcstr varName = GetRawName(outputIDs[o]);
-
-    for(size_t i = 0; i < globalSourceVars.size(); i++)
-    {
-      if(!globalSourceVars[i].variables.empty() && globalSourceVars[i].variables[0].name == varName)
-      {
-        ret->sourceVars.push_back(globalSourceVars[i]);
-        break;
-      }
-    }
   }
 
   ret->lineInfo.resize(instructionOffsets.size());
@@ -878,8 +974,16 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
         const DataType &innertype = dataTypes[type.InnerType()];
 
-        ApplyDerivatives(q, decorations[id], decorations[id].location, innertype,
-                         workgroup[q].inputs[i]);
+        auto derivCallback = [this, q](ShaderVariable &var, const Decorations &dec,
+                                       const DataType &type, uint64_t location, const rdcstr &) {
+          if(!var.members.empty())
+            return;
+
+          ApplyDerivatives(q, dec, (uint32_t)location, type, var);
+        };
+
+        WalkVariable<ShaderVariable, false>(decorations[id], innertype, ~0U, workgroup[q].inputs[i],
+                                            rdcstr(), derivCallback);
       }
     }
   }
@@ -1215,9 +1319,14 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
 
     bind.arrayIndex = (uint32_t)ptr.value.u64v[ArrayVariableSlot];
 
-    WalkVariable(dataTypes[typeId], byteOffset, ret, true, [this, bind](ShaderVariable &var,
-                                                                        const DataType &type,
-                                                                        uint64_t offset) {
+    auto readCallback = [this, bind](ShaderVariable &var, const Decorations &, const DataType &type,
+                                     uint64_t offset, const rdcstr &) {
+
+      // ignore any callbacks we get on the way up for structs/arrays, we don't need it we only read
+      // or write at primitive level
+      if(!var.members.empty())
+        return;
+
       if(type.type == DataType::MatrixType)
       {
         const Decorations &dec = decorations[type.id];
@@ -1264,7 +1373,10 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
       {
         apiWrapper->ReadBufferValue(bind, offset, VarTypeByteSize(var.type), var.value.uv);
       }
-    });
+    };
+
+    WalkVariable<ShaderVariable, true>(Decorations(), dataTypes[typeId], byteOffset, ret, rdcstr(),
+                                       readCallback);
 
     ret.name = ptr.name;
     return ret;
@@ -1384,58 +1496,62 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
 
     bind.arrayIndex = (uint32_t)ptr.value.u64v[ArrayVariableSlot];
 
-    WalkVariable(dataTypes[typeId], byteOffset, (ShaderVariable &)val, false,
-                 [this, bind](ShaderVariable &var, const DataType &type, uint64_t offset) {
-                   if(type.type == DataType::MatrixType)
-                   {
-                     const Decorations &dec = decorations[type.id];
-                     RDCASSERT(dec.flags & Decorations::HasMatrixStride);
+    auto writeCallback = [this, bind](const ShaderVariable &var, const Decorations &,
+                                      const DataType &type, uint64_t offset, const rdcstr &) {
+      if(!var.members.empty())
+        return;
 
-                     if(dec.flags & Decorations::RowMajor)
-                     {
-                       for(uint8_t r = 0; r < var.rows; r++)
-                       {
-                         apiWrapper->WriteBufferValue(bind, offset + r * dec.matrixStride,
-                                                      VarTypeByteSize(var.type) * var.columns,
-                                                      &var.value.uv[r * var.columns]);
-                       }
-                     }
-                     else
-                     {
-                       ShaderValue tmp = {};
+      if(type.type == DataType::MatrixType)
+      {
+        const Decorations &dec = decorations[type.id];
+        RDCASSERT(dec.flags & Decorations::HasMatrixStride);
 
-                       // transpose from our row major storage
-                       for(uint8_t r = 0; r < var.rows; r++)
-                       {
-                         for(uint8_t c = 0; c < var.columns; c++)
-                         {
-                           if(VarTypeByteSize(var.type) == 8)
-                             tmp.u64v[c * var.rows + r] = var.value.u64v[r * var.columns + c];
-                           else
-                             tmp.uv[c * var.rows + r] = var.value.uv[r * var.columns + c];
-                         }
-                       }
+        if(dec.flags & Decorations::RowMajor)
+        {
+          for(uint8_t r = 0; r < var.rows; r++)
+          {
+            apiWrapper->WriteBufferValue(bind, offset + r * dec.matrixStride,
+                                         VarTypeByteSize(var.type) * var.columns,
+                                         &var.value.uv[r * var.columns]);
+          }
+        }
+        else
+        {
+          ShaderValue tmp = {};
 
-                       // read column-wise
-                       for(uint8_t c = 0; c < var.columns; c++)
-                       {
-                         apiWrapper->WriteBufferValue(bind, offset + c * dec.matrixStride,
-                                                      VarTypeByteSize(var.type) * var.rows,
-                                                      &tmp.uv[c * var.rows]);
-                       }
-                     }
-                   }
-                   else if(type.type == DataType::VectorType)
-                   {
-                     apiWrapper->WriteBufferValue(
-                         bind, offset, VarTypeByteSize(var.type) * var.columns, var.value.uv);
-                   }
-                   else if(type.type == DataType::ScalarType)
-                   {
-                     apiWrapper->WriteBufferValue(bind, offset, VarTypeByteSize(var.type),
-                                                  var.value.uv);
-                   }
-                 });
+          // transpose from our row major storage
+          for(uint8_t r = 0; r < var.rows; r++)
+          {
+            for(uint8_t c = 0; c < var.columns; c++)
+            {
+              if(VarTypeByteSize(var.type) == 8)
+                tmp.u64v[c * var.rows + r] = var.value.u64v[r * var.columns + c];
+              else
+                tmp.uv[c * var.rows + r] = var.value.uv[r * var.columns + c];
+            }
+          }
+
+          // read column-wise
+          for(uint8_t c = 0; c < var.columns; c++)
+          {
+            apiWrapper->WriteBufferValue(bind, offset + c * dec.matrixStride,
+                                         VarTypeByteSize(var.type) * var.rows, &tmp.uv[c * var.rows]);
+          }
+        }
+      }
+      else if(type.type == DataType::VectorType)
+      {
+        apiWrapper->WriteBufferValue(bind, offset, VarTypeByteSize(var.type) * var.columns,
+                                     var.value.uv);
+      }
+      else if(type.type == DataType::ScalarType)
+      {
+        apiWrapper->WriteBufferValue(bind, offset, VarTypeByteSize(var.type), var.value.uv);
+      }
+    };
+
+    WalkVariable<const ShaderVariable, false>(Decorations(), dataTypes[typeId], byteOffset, val,
+                                              rdcstr(), writeCallback);
 
     return;
   }
@@ -1525,7 +1641,8 @@ rdcstr Debugger::GetHumanName(Id id)
   return name;
 }
 
-void Debugger::AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, Id id)
+void Debugger::AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const ShaderVariable &var,
+                             Id id)
 {
   rdcstr name;
 
@@ -1539,88 +1656,18 @@ void Debugger::AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, Id id)
   {
     Id type = idTypes[id];
 
-    uint32_t offset = 0;
-    AddSourceVars(sourceVars, dataTypes[type], name, GetRawName(id), offset);
+    SourceVariableMapping sourceVar;
+
+    sourceVar.name = name;
+    sourceVar.offset = 0;
+    sourceVar.type = var.type;
+    sourceVar.rows = var.rows;
+    sourceVar.columns = var.columns;
+    for(uint32_t x = 0; x < uint32_t(var.rows) * var.columns; x++)
+      sourceVar.variables.push_back(DebugVariableReference(DebugVariableType::Variable, var.name, x));
+
+    sourceVars.push_back(sourceVar);
   }
-}
-
-void Debugger::AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const DataType &inType,
-                             const rdcstr &sourceName, const rdcstr &varName, uint32_t &offset)
-{
-  SourceVariableMapping sourceVar;
-
-  switch(inType.type)
-  {
-    case DataType::UnknownType:
-    case DataType::ImageType:
-    case DataType::SamplerType:
-    case DataType::SampledImageType: return;
-    case DataType::PointerType:
-    {
-      // step silently into pointers
-      AddSourceVars(sourceVars, dataTypes[inType.InnerType()], sourceName, varName, offset);
-      return;
-    }
-    case DataType::ScalarType:
-    {
-      sourceVar.type = inType.scalar().Type();
-      sourceVar.rows = 1;
-      sourceVar.columns = 1;
-      break;
-    }
-    case DataType::VectorType:
-    {
-      sourceVar.type = inType.scalar().Type();
-      sourceVar.rows = 1;
-      sourceVar.columns = RDCMAX(1U, inType.vector().count);
-      break;
-    }
-    case DataType::MatrixType:
-    {
-      sourceVar.type = inType.scalar().Type();
-      sourceVar.columns = RDCMAX(1U, inType.matrix().count);
-      sourceVar.rows = RDCMAX(1U, inType.vector().count);
-      break;
-    }
-    case DataType::StructType:
-    {
-      for(int32_t i = 0; i < inType.children.count(); i++)
-      {
-        rdcstr childVarName = StringFormat::Fmt("%s._child%d", varName.c_str(), i);
-
-        rdcstr childSourceName;
-        if(inType.children[i].name.empty())
-          childSourceName = StringFormat::Fmt("%s._child%d", sourceName.c_str(), i);
-        else
-          childSourceName = sourceName + "." + inType.children[i].name;
-
-        AddSourceVars(sourceVars, dataTypes[inType.children[i].type], childSourceName, childVarName,
-                      offset);
-      }
-      return;
-    }
-    case DataType::ArrayType:
-    {
-      ShaderVariable len = GetActiveLane().ids[inType.length];
-      for(uint32_t i = 0; i < len.value.u.x; i++)
-      {
-        rdcstr idx = StringFormat::Fmt("[%u]", i);
-
-        AddSourceVars(sourceVars, dataTypes[inType.InnerType()], sourceName + idx, varName + idx,
-                      offset);
-      }
-      return;
-    }
-  }
-
-  sourceVar.name = sourceName;
-  sourceVar.offset = offset;
-  for(uint32_t x = 0; x < sourceVar.rows * sourceVar.columns; x++)
-    sourceVar.variables.push_back(DebugVariableReference(DebugVariableType::Variable, varName, x));
-
-  sourceVars.push_back(sourceVar);
-
-  offset++;
 }
 
 void Debugger::CalcActiveMask(rdcarray<bool> &activeMask)
@@ -1698,294 +1745,137 @@ void Debugger::CalcActiveMask(rdcarray<bool> &activeMask)
   }
 }
 
-void Debugger::AllocateVariable(Id id, Id typeId, DebugVariableType sourceVarType,
-                                const rdcstr &sourceName, ShaderVariable &outVar)
+void Debugger::AllocateVariable(Id id, Id typeId, ShaderVariable &outVar)
 {
   // allocs should always be pointers
   RDCASSERT(dataTypes[typeId].type == DataType::PointerType);
 
-  AllocateVariable(decorations[id], decorations[id], sourceVarType, sourceName, 0,
-                   dataTypes[dataTypes[typeId].InnerType()], outVar);
+  WalkVariable<ShaderVariable, true>(Decorations(), dataTypes[dataTypes[typeId].InnerType()], ~0U,
+                                     outVar, rdcstr(), NULL);
 }
 
-uint32_t Debugger::AllocateVariable(const Decorations &varDecorations,
-                                    const Decorations &curDecorations,
-                                    DebugVariableType sourceVarType, const rdcstr &sourceName,
-                                    uint32_t offset, const DataType &inType, ShaderVariable &outVar)
+template <typename ShaderVarType, bool allocate>
+uint32_t Debugger::WalkVariable(
+    const Decorations &curDecorations, const DataType &type, uint64_t offsetOrLocation,
+    ShaderVarType &var, const rdcstr &accessSuffix,
+    std::function<void(ShaderVarType &, const Decorations &, const DataType &, uint64_t, const rdcstr &)>
+        callback) const
 {
-  const bool genLocations = (varDecorations.flags & Decorations::HasLocation) != 0;
+  // if we're walking a const variable we just want to walk it without modification. So outVar
+  // is NULL. Otherwise outVar points to the variable itself so we modify it before iterating
+  ShaderVariable *outVar = allocate ? pointerIfMutable(var) : NULL;
 
-  switch(inType.type)
-  {
-    case DataType::PointerType:
-    {
-      RDCERR("Pointers not supported in interface variables");
-      return 0;
-    }
-    case DataType::ScalarType:
-    {
-      outVar.type = inType.scalar().Type();
-      outVar.rows = 1;
-      outVar.columns = 1;
-      break;
-    }
-    case DataType::VectorType:
-    {
-      outVar.type = inType.scalar().Type();
-      outVar.rows = 1;
-      outVar.columns = RDCMAX(1U, inType.vector().count);
-      break;
-    }
-    case DataType::MatrixType:
-    {
-      outVar.type = inType.scalar().Type();
-      outVar.columns = RDCMAX(1U, inType.matrix().count);
-      outVar.rows = RDCMAX(1U, inType.vector().count);
-      break;
-    }
-    case DataType::StructType:
-    {
-      uint32_t location = 0;
-      for(int32_t i = 0; i < inType.children.count(); i++)
-      {
-        ShaderVariable var;
-        var.name = StringFormat::Fmt("%s._child%d", outVar.name.c_str(), i);
+  // the Location decoration should either be on the variable itself (in which case we hit this
+  // first thing), or on the first member of a struct. i.e. once we have a location already and
+  // we're auto-assigning from there we shouldn't encounter another location decoration somewhere
+  // further down the struct chain. This also prevents us from using the same location for every
+  // element in an array, since we have the same set of decorations on the array as on the members
+  if((curDecorations.flags & Decorations::HasLocation) && offsetOrLocation == ~0U)
+    offsetOrLocation = curDecorations.location;
 
-        rdcstr childName;
-        if(inType.children[i].name.empty())
-          childName = StringFormat::Fmt("%s._child%d", sourceName.c_str(), i);
-        else
-          childName = sourceName + "." + inType.children[i].name;
+  uint32_t numLocations = 0;
 
-        uint32_t childOffset = offset;
-
-        const Decorations &childDecorations = inType.children[i].decorations;
-
-        if(childDecorations.flags & Decorations::HasOffset)
-          childOffset += childDecorations.offset;
-
-        uint32_t locations =
-            AllocateVariable(varDecorations, childDecorations, sourceVarType, childName,
-                             location + childOffset, dataTypes[inType.children[i].type], var);
-
-        if(genLocations)
-          location += locations;
-
-        var.name = StringFormat::Fmt("_child%d", i);
-
-        outVar.members.push_back(var);
-      }
-      return location;
-    }
-    case DataType::ArrayType:
-    {
-      // array stride is decorated on the type, not the member itself
-      const Decorations &typeDecorations = decorations[inType.id];
-
-      uint32_t location = 0;
-      // if this is a top-level array, don't pass the decorations down and let each child get an
-      // explicit offset, otherwise each child will consume the same location
-      const Decorations &childDecorations =
-          curDecorations.flags & Decorations::HasLocation ? Decorations() : curDecorations;
-
-      ShaderVariable len = GetActiveLane().ids[inType.length];
-      for(uint32_t i = 0; i < len.value.u.x; i++)
-      {
-        rdcstr idx = StringFormat::Fmt("[%u]", i);
-        ShaderVariable var;
-        var.name = outVar.name + idx;
-
-        uint32_t locations =
-            AllocateVariable(varDecorations, childDecorations, sourceVarType, sourceName + idx,
-                             location + offset, dataTypes[inType.InnerType()], var);
-
-        if(genLocations)
-          location += locations;
-
-        var.name = idx;
-
-        if(typeDecorations.flags & Decorations::HasArrayStride)
-          offset += typeDecorations.arrayStride;
-
-        outVar.members.push_back(var);
-      }
-      return location;
-    }
-    case DataType::ImageType:
-    case DataType::SamplerType:
-    case DataType::SampledImageType:
-    case DataType::UnknownType:
-    {
-      RDCERR("Unexpected variable type %d", inType.type);
-      break;
-    }
-  }
-
-  if(sourceVarType == DebugVariableType::Undefined)
-    return 0;
-
-  SourceVariableMapping sourceVar;
-  sourceVar.name = sourceName;
-  sourceVar.offset = offset;
-  sourceVar.type = outVar.type;
-  sourceVar.rows = outVar.rows;
-  sourceVar.columns = outVar.columns;
-  for(uint32_t x = 0; x < uint32_t(outVar.rows) * outVar.columns; x++)
-    sourceVar.variables.push_back(DebugVariableReference(sourceVarType, outVar.name, x));
-
-  ShaderBuiltin builtin = ShaderBuiltin::Undefined;
-  if(curDecorations.flags & Decorations::HasBuiltIn)
-    builtin = MakeShaderBuiltin(stage, curDecorations.builtIn);
-
-  globalSourceVars.push_back(sourceVar);
-
-  if(sourceVarType == DebugVariableType::Input)
-  {
-    uint32_t location = genLocations ? offset : 0;
-
-    uint32_t component = 0;
-    for(const DecorationAndParamData &dec : curDecorations.others)
-    {
-      if(dec.value == Decoration::Component)
-      {
-        component = dec.component;
-        break;
-      }
-    }
-
-    apiWrapper->FillInputValue(
-        outVar, builtin,
-        (curDecorations.flags & Decorations::HasLocation) ? curDecorations.location : location,
-        component);
-  }
-  else if(sourceVarType == DebugVariableType::Constant)
-  {
-    BindpointIndex bindpoint;
-    // TODO handle arrays
-    if(varDecorations.flags & Decorations::HasDescriptorSet)
-      bindpoint.bindset = (int32_t)varDecorations.set;
-    if(varDecorations.flags & Decorations::HasBinding)
-      bindpoint.bind = (int32_t)varDecorations.binding;
-
-    // non-matrix case is simple, just read the size of the variable
-    if(sourceVar.rows == 1)
-    {
-      apiWrapper->ReadBufferValue(bindpoint, offset, VarByteSize(outVar), outVar.value.uv);
-    }
-    else
-    {
-      // matrix case is more complicated. Either read column by column or row by row depending on
-      // majorness
-      uint32_t matrixStride = curDecorations.matrixStride;
-
-      if(!(curDecorations.flags & Decorations::HasMatrixStride))
-      {
-        RDCWARN("Matrix without matrix stride - assuming legacy vec4 packed");
-        matrixStride = 16;
-      }
-
-      if(curDecorations.flags & Decorations::ColMajor)
-      {
-        ShaderValue tmp;
-
-        uint32_t colSize = VarTypeByteSize(sourceVar.type) * sourceVar.rows;
-        for(uint32_t c = 0; c < sourceVar.columns; c++)
-        {
-          // read the column
-          apiWrapper->ReadBufferValue(bindpoint, offset + c * matrixStride, colSize, &tmp.uv[0]);
-
-          // now write it into the appropiate elements in the destination ShaderValue
-          for(uint32_t r = 0; r < sourceVar.rows; r++)
-            outVar.value.uv[r * sourceVar.columns + c] = tmp.uv[r];
-        }
-      }
-      else
-      {
-        // row major is easier, read row-by-row directly into the output variable
-        uint32_t rowSize = VarTypeByteSize(sourceVar.type) * sourceVar.columns;
-        for(uint32_t r = 0; r < sourceVar.rows; r++)
-        {
-          // read the column into the destination ShaderValue, which is tightly packed with rows
-          apiWrapper->ReadBufferValue(bindpoint, offset + r * matrixStride, rowSize,
-                                      &outVar.value.uv[r * sourceVar.columns]);
-        }
-      }
-    }
-  }
-
-  // each row consumes a new location
-  return outVar.rows;
-}
-
-void Debugger::WalkVariable(
-    const DataType &type, uint64_t byteOffset, ShaderVariable &var, bool initialise,
-    std::function<void(ShaderVariable &, const DataType &, uint64_t)> callback) const
-{
   switch(type.type)
   {
     case DataType::ScalarType:
     {
-      if(initialise)
+      if(outVar)
       {
-        var.type = type.scalar().Type();
-        var.rows = 1;
-        var.columns = 1;
+        outVar->type = type.scalar().Type();
+        outVar->rows = 1;
+        outVar->columns = 1;
       }
+      numLocations = 1;
       break;
     }
     case DataType::VectorType:
     {
-      if(initialise)
+      if(outVar)
       {
-        var.type = type.scalar().Type();
-        var.rows = 1;
-        var.columns = RDCMAX(1U, type.vector().count);
+        outVar->type = type.scalar().Type();
+        outVar->rows = 1;
+        outVar->columns = RDCMAX(1U, type.vector().count);
       }
+      numLocations = 1;
       break;
     }
     case DataType::MatrixType:
     {
-      if(initialise)
+      if(outVar)
       {
-        var.type = type.scalar().Type();
-        var.columns = RDCMAX(1U, type.matrix().count);
-        var.rows = RDCMAX(1U, type.vector().count);
+        outVar->type = type.scalar().Type();
+        outVar->columns = RDCMAX(1U, type.matrix().count);
+        outVar->rows = RDCMAX(1U, type.vector().count);
       }
+      numLocations = var.rows;
       break;
     }
     case DataType::StructType:
     {
       for(int32_t i = 0; i < type.children.count(); i++)
       {
-        if(initialise)
+        if(outVar)
         {
-          var.members.push_back(ShaderVariable());
-          var.members.back().name = StringFormat::Fmt("_child%d", i);
+          outVar->members.push_back(ShaderVariable());
+          if(!type.children[i].name.empty())
+            outVar->members.back().name = type.children[i].name;
+          else
+            outVar->members.back().name = StringFormat::Fmt("_child%d", i);
         }
 
-        WalkVariable(dataTypes[type.children[i].type],
-                     byteOffset + type.children[i].decorations.offset, var.members.back(),
-                     initialise, callback);
+        rdcstr childAccess = accessSuffix + "." + var.members.back().name;
+
+        const Decorations &childDecorations = type.children[i].decorations;
+
+        uint64_t childOffsetOrLocation = offsetOrLocation;
+
+        // if the struct is concrete, it must have an offset. Otherwise it's opaque and we're using
+        // locations
+        if(childDecorations.flags & Decorations::HasOffset)
+          childOffsetOrLocation += childDecorations.offset;
+        else if(offsetOrLocation != ~0U)
+          childOffsetOrLocation += numLocations;
+
+        uint32_t childLocations = WalkVariable<ShaderVarType, allocate>(
+            childDecorations, dataTypes[type.children[i].type], childOffsetOrLocation,
+            var.members[i], childAccess, callback);
+
+        numLocations += childLocations;
       }
-      return;
+      break;
     }
     case DataType::ArrayType:
     {
+      // array stride is decorated on the type, not the member itself
+      const Decorations &typeDecorations = decorations[type.id];
+
+      uint32_t childOffset = 0;
+
       ShaderVariable len = GetActiveLane().ids[type.length];
       for(uint32_t i = 0; i < len.value.u.x; i++)
       {
-        if(initialise)
+        if(outVar)
         {
-          var.members.push_back(ShaderVariable());
-          var.members.back().name = StringFormat::Fmt("[%u]", i);
+          outVar->members.push_back(ShaderVariable());
+          outVar->members.back().name = StringFormat::Fmt("[%u]", i);
         }
 
-        WalkVariable(dataTypes[type.InnerType()], byteOffset, var.members.back(), initialise,
-                     callback);
+        rdcstr childAccess = accessSuffix + var.members.back().name;
 
-        byteOffset += decorations[type.id].arrayStride;
+        uint32_t childLocations = WalkVariable<ShaderVarType, allocate>(
+            curDecorations, dataTypes[type.InnerType()], offsetOrLocation + childOffset,
+            var.members[i], childAccess, callback);
+
+        numLocations += childLocations;
+
+        // as above - either the type is concrete and has an array stride, or else we're using
+        // locations
+        if(typeDecorations.flags & Decorations::HasArrayStride)
+          childOffset += decorations[type.id].arrayStride;
+        else if(offsetOrLocation != ~0U)
+          childOffset = numLocations;
       }
-      return;
+      break;
     }
     case DataType::PointerType:
     case DataType::ImageType:
@@ -1994,64 +1884,20 @@ void Debugger::WalkVariable(
     case DataType::UnknownType:
     {
       RDCERR("Unexpected variable type %d", type.type);
-      return;
+      return numLocations;
     }
   }
 
-  callback(var, type, byteOffset);
+  if(callback)
+    callback(var, curDecorations, type, offsetOrLocation, accessSuffix);
+
+  // for auto-assigning locations, we return the number of locations
+  return numLocations;
 }
 
 uint32_t Debugger::ApplyDerivatives(uint32_t quadIndex, const Decorations &curDecorations,
                                     uint32_t location, const DataType &inType, ShaderVariable &outVar)
 {
-  switch(inType.type)
-  {
-    case DataType::PointerType:
-    {
-      RDCERR("Pointers not supported in interface variables");
-      return 0;
-    }
-    case DataType::ScalarType:
-    case DataType::VectorType:
-    case DataType::MatrixType: break;
-    case DataType::StructType:
-    {
-      uint32_t childLocation = 0;
-      for(int32_t i = 0; i < inType.children.count(); i++)
-      {
-        const Decorations &childDecorations = inType.children[i].decorations;
-
-        uint32_t locations = ApplyDerivatives(quadIndex, childDecorations, location + childLocation,
-                                              dataTypes[inType.children[i].type], outVar.members[i]);
-
-        childLocation += locations;
-      }
-      return childLocation;
-    }
-    case DataType::ArrayType:
-    {
-      uint32_t childLocation = 0;
-
-      ShaderVariable len = GetActiveLane().ids[inType.length];
-      for(uint32_t i = 0; i < len.value.u.x; i++)
-      {
-        uint32_t locations = ApplyDerivatives(quadIndex, curDecorations, location + childLocation,
-                                              dataTypes[inType.InnerType()], outVar.members[i]);
-
-        childLocation += locations;
-      }
-      return childLocation;
-    }
-    case DataType::ImageType:
-    case DataType::SamplerType:
-    case DataType::SampledImageType:
-    case DataType::UnknownType:
-    {
-      RDCERR("Unexpected variable type %d", inType.type);
-      return 0;
-    }
-  }
-
   // only floats have derivatives
   if(outVar.type == VarType::Float)
   {

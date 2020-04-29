@@ -262,9 +262,8 @@ public:
   const Decorations &GetDecorations(Id typeId);
   rdcstr GetRawName(Id id) const;
   rdcstr GetHumanName(Id id);
-  void AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, Id id);
-  void AllocateVariable(Id id, Id typeId, DebugVariableType sourceVarType, const rdcstr &sourceName,
-                        ShaderVariable &outVar);
+  void AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const ShaderVariable &var, Id id);
+  void AllocateVariable(Id id, Id typeId, ShaderVariable &outVar);
 
   ShaderVariable ReadFromPointer(const ShaderVariable &v) const;
   ShaderVariable GetPointerValue(const ShaderVariable &v) const;
@@ -288,17 +287,16 @@ private:
   virtual void PostParse();
   virtual void RegisterOp(Iter it);
 
-  uint32_t AllocateVariable(const Decorations &varDecorations, const Decorations &curDecorations,
-                            DebugVariableType sourceVarType, const rdcstr &sourceName,
-                            uint32_t offset, const DataType &inType, ShaderVariable &outVar);
   uint32_t ApplyDerivatives(uint32_t quadIndex, const Decorations &curDecorations,
                             uint32_t location, const DataType &inType, ShaderVariable &outVar);
 
-  void WalkVariable(const DataType &type, uint64_t byteOffset, ShaderVariable &var, bool initialise,
-                    std::function<void(ShaderVariable &, const DataType &, uint64_t)> callback) const;
+  template <typename ShaderVarType, bool allocate>
+  uint32_t WalkVariable(const Decorations &curDecorations, const DataType &type,
+                        uint64_t offsetOrLocation, ShaderVarType &var, const rdcstr &accessSuffix,
+                        std::function<void(ShaderVarType &, const Decorations &, const DataType &,
+                                           uint64_t, const rdcstr &)>
+                            callback) const;
 
-  void AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const DataType &inType,
-                     const rdcstr &sourceName, const rdcstr &varName, uint32_t &offset);
   void MakeSignatureNames(const rdcarray<SPIRVInterfaceAccess> &sigList, rdcarray<rdcstr> &sigNames);
 
   /////////////////////////////////////////////////////////

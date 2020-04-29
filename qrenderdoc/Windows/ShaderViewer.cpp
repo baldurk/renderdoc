@@ -2368,7 +2368,7 @@ void ShaderViewer::updateDebugState()
       if(sourceVar.rows == 0 || sourceVar.columns == 0)
         continue;
 
-      fakeroot.addChild(makeSourceVariableNode(sourceVar, globalVarIdx, -1));
+      fakeroot.addChild(makeSourceVariableNode(sourceVar, globalVarIdx, -1, false));
     }
 
     // recursively combine nodes with the same prefix together
@@ -2704,10 +2704,7 @@ void ShaderViewer::updateDebugState()
         }
       }
 
-      RDTreeWidgetItem *node = makeSourceVariableNode(l, -1, localVarIdx);
-
-      if(modified)
-        node->setForegroundColor(QColor(Qt::red));
+      RDTreeWidgetItem *node = makeSourceVariableNode(l, -1, localVarIdx, modified);
 
       fakeroot.addChild(node);
     }
@@ -3013,8 +3010,48 @@ void ShaderViewer::updateWatchVariables()
   ui->watch->setUpdatesEnabled(true);
 }
 
+RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const ShaderVariable &var,
+                                                       const rdcstr &sourcePath,
+                                                       const rdcstr &debugVarPath, bool modified)
+{
+  QString typeName;
+
+  if(var.type == VarType::UInt)
+    typeName = lit("uint");
+  else if(var.type == VarType::SInt)
+    typeName = lit("int");
+  else if(var.type == VarType::Float)
+    typeName = lit("float");
+  else if(var.type == VarType::Double)
+    typeName = lit("double");
+  else if(var.type == VarType::Bool)
+    typeName = lit("bool");
+
+  if(var.rows > 1)
+    typeName += QFormatStr("%1x%2").arg(var.rows).arg(var.columns);
+  else if(var.columns > 1)
+    typeName += QString::number(var.columns);
+
+  QString value = var.rows == 1 && var.members.empty() ? stringRep(var) : QString();
+
+  rdcstr sep = var.name[0] == '[' ? "" : ".";
+
+  RDTreeWidgetItem *node = new RDTreeWidgetItem(
+      {sourcePath + sep + var.name, debugVarPath + sep + var.name, typeName, value});
+
+  for(const ShaderVariable &child : var.members)
+    node->addChild(makeSourceVariableNode(child, sourcePath + sep + var.name,
+                                          debugVarPath + sep + var.name, modified));
+
+  if(modified)
+    node->setForegroundColor(QColor(Qt::red));
+
+  return node;
+}
+
 RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMapping &l,
-                                                       int globalVarIdx, int localVarIdx)
+                                                       int globalVarIdx, int localVarIdx,
+                                                       bool modified)
 {
   const QString xyzw = lit("xyzw");
 
@@ -3036,17 +3073,10 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
   QList<RDTreeWidgetItem *> children;
 
   {
-    QString childType = typeName;
-
     if(l.rows > 1)
-    {
-      childType += QString::number(l.columns);
       typeName += QFormatStr("%1x%2").arg(l.rows).arg(l.columns);
-    }
-    else
-    {
+    else if(l.columns > 1)
       typeName += QString::number(l.columns);
-    }
 
     for(size_t i = 0; i < l.variables.size(); i++)
     {
@@ -3175,10 +3205,21 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
 
         if(reg)
         {
-          // if the previous register was the same, just append our component
-          if(i > 0 && r.name == l.variables[i - 1].name &&
-             (r.component / reg->columns) == (l.variables[i - 1].component / reg->columns))
+          if(!reg->members.empty())
           {
+            // if the register we were pointed at is a complex type (struct/array/etc), embed it as
+            // a child
+            typeName = QString();
+            value = QString();
+
+            for(const ShaderVariable &child : reg->members)
+              children.push_back(makeSourceVariableNode(child, localName, reg->name, modified));
+            break;
+          }
+          else if(i > 0 && r.name == l.variables[i - 1].name &&
+                  (r.component / reg->columns) == (l.variables[i - 1].component / reg->columns))
+          {
+            // if the previous register was the same, just append our component
             // remove the auto-appended ", " - there must be one because this isn't the first
             // register
             regNames.chop(2);

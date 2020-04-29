@@ -279,8 +279,10 @@ private:
   void updateDebugState();
   void updateWatchVariables();
 
+  RDTreeWidgetItem *makeSourceVariableNode(const ShaderVariable &var, const rdcstr &sourcePath,
+                                           const rdcstr &debugVarPath, bool modified);
   RDTreeWidgetItem *makeSourceVariableNode(const SourceVariableMapping &l, int globalVarIdx,
-                                           int localVarIdx);
+                                           int localVarIdx, bool modified);
   RDTreeWidgetItem *makeDebugVariableNode(const ShaderVariable &v, rdcstr prefix, bool modified);
   RDTreeWidgetItem *makeAccessedResourceNode(const ShaderVariable &v, bool modified);
 

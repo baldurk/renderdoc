@@ -167,8 +167,7 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
     rdcstr sourceName = debugger.GetHumanName(decl.result);
 
     // don't add source vars - SetDst below will do that
-    debugger.AllocateVariable(decl.result, decl.resultType, DebugVariableType::Undefined,
-                              sourceName, stackvar);
+    debugger.AllocateVariable(decl.result, decl.resultType, stackvar);
 
     if(decl.HasInitializer())
       AssignValue(stackvar, ids[decl.initializer]);
@@ -283,7 +282,7 @@ void ThreadState::SetDst(Id id, const ShaderVariable &val)
     change.after = debugger.GetPointerValue(ids[id]);
     m_State->changes.push_back(change);
 
-    debugger.AddSourceVars(sourceVars, id);
+    debugger.AddSourceVars(sourceVars, change.after, id);
   }
 }
 
@@ -751,18 +750,27 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       RDCASSERT(!construct.constituents.empty());
 
-      if(type.type == DataType::ArrayType || type.type == DataType::StructType)
+      if(type.type == DataType::ArrayType)
       {
         var.members.resize(construct.constituents.size());
         for(size_t i = 0; i < construct.constituents.size(); i++)
         {
+          var.members[i] = GetSrc(construct.constituents[i]);
+          var.members[i].name = StringFormat::Fmt("[%zu]", i);
+        }
+      }
+      else if(type.type == DataType::StructType)
+      {
+        RDCASSERTEQUAL(type.children.size(), construct.constituents.size());
+        var.members.resize(construct.constituents.size());
+        for(size_t i = 0; i < construct.constituents.size(); i++)
+        {
           ShaderVariable &mem = var.members[i];
-          mem = GetSrc(construct.constituents[i]);
-
-          if(type.type == DataType::ArrayType)
-            mem.name = StringFormat::Fmt("[%zu]", i);
+          var.members[i] = GetSrc(construct.constituents[i]);
+          if(!type.children[i].name.empty())
+            var.members[i].name = type.children[i].name;
           else
-            mem.name = StringFormat::Fmt("_child%zu", i);
+            var.members[i].name = StringFormat::Fmt("_child%zu", i);
         }
       }
       else if(type.type == DataType::VectorType)
@@ -1766,8 +1774,8 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       result.columns = 1;
       result.isStruct = true;
       result.members = {lsb, msb};
-      result.members[0].name = "_child0";
-      result.members[1].name = "_child1";
+      result.members[0].name = "lsb";
+      result.members[1].name = "msb";
 
       SetDst(math.result, result);
       break;
