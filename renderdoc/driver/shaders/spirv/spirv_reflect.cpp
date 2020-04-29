@@ -624,7 +624,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       reflection.dispatchThreadsDimension[2] =
           EvaluateConstant(e.executionModes.localSizeId.z, specInfo).value.u.x;
     }
-    else if(e.executionModes.localSize.x > 1)
+    else if(e.executionModes.localSize.x > 0)
     {
       reflection.dispatchThreadsDimension[0] = e.executionModes.localSize.x;
       reflection.dispatchThreadsDimension[1] = e.executionModes.localSize.y;
