@@ -139,7 +139,7 @@ private:
 
   void connectionThreadEntry();
   void captureCopied(uint32_t ID, const QString &localPath);
-  void captureAdded(const NewCaptureData &newCapture);
+  void captureAdded(const QString &name, const NewCaptureData &newCapture);
   void connectionClosed();
 
   void selfClose();
@@ -164,10 +164,11 @@ private:
   QSemaphore m_QueueCapture;
   QSemaphore m_CopyCapture;
   QSemaphore m_Disconnect;
+  QSemaphore m_CycleWindow;
   int m_CaptureNumFrames = 1;
   int m_QueueCaptureFrameNum = 0;
   int m_CaptureCounter = 0;
-  ITargetControl *m_Connection = NULL;
+  QSemaphore m_Connected;
 
   uint32_t m_CopyCaptureID = ~0U;
   QString m_CopyCaptureLocalPath;

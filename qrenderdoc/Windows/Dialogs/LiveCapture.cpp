@@ -286,7 +286,7 @@ void LiveCapture::on_triggerImmediateCapture_clicked()
 
 void LiveCapture::on_cycleActiveWindow_clicked()
 {
-  m_Connection->CycleActiveWindow();
+  m_CycleWindow.release();
 }
 
 void LiveCapture::on_triggerDelayedCapture_clicked()
@@ -407,7 +407,7 @@ void LiveCapture::deleteCapture_triggered()
       else
       {
         // if connected, prefer using the live connection
-        if(m_Connection && m_Connection->Connected() && !cap->local)
+        if(m_Connected.available() && !cap->local)
         {
           QMutexLocker l(&m_DeleteCapturesLock);
           m_DeleteCaptures.push_back(cap->remoteID);
@@ -740,8 +740,8 @@ bool LiveCapture::checkAllowClose()
 
     // we either have to save or delete the capture. Make sure that if it's remote that we are able
     // to by having an active connection or replay context on that host.
-    if(suppressRemoteWarning == false && (!m_Connection || !m_Connection->Connected()) &&
-       !cap->local && m_Ctx.Replay().CurrentRemote().Hostname() != rdcstr(m_Hostname))
+    if(suppressRemoteWarning == false && !m_Connected.available() && !cap->local &&
+       m_Ctx.Replay().CurrentRemote().Hostname() != rdcstr(m_Hostname))
     {
       QMessageBox::StandardButton res2 = RDDialog::question(
           this, tr("No active replay context"),
@@ -843,7 +843,7 @@ bool LiveCapture::saveCapture(Capture *cap, QString path)
       return false;
     }
   }
-  else if(m_Connection && m_Connection->Connected())
+  else if(m_Connected.available())
   {
     // if we have a current live connection, prefer using it
     m_CopyCaptureLocalPath = path;
@@ -903,7 +903,7 @@ void LiveCapture::cleanItems()
       else
       {
         // if connected, prefer using the live connection
-        if(m_Connection && m_Connection->Connected() && !cap->local)
+        if(m_Connected.available() && !cap->local)
         {
           QMutexLocker l(&m_DeleteCapturesLock);
           m_DeleteCaptures.push_back(cap->remoteID);
@@ -1036,15 +1036,13 @@ void LiveCapture::captureCopied(uint32_t ID, const QString &localPath)
   }
 }
 
-void LiveCapture::captureAdded(const NewCaptureData &newCapture)
+void LiveCapture::captureAdded(const QString &name, const NewCaptureData &newCapture)
 {
   Capture *cap = new Capture();
 
-  cap->name = QString::fromUtf8(m_Connection->GetTarget());
+  cap->name = name;
 
   cap->api = newCapture.api;
-  if(cap->api.isEmpty())
-    cap->api = QString::fromUtf8(m_Connection->GetAPI());
 
   cap->timestamp =
       QDateTime(QDate(1970, 1, 1), QTime(0, 0, 0), Qt::UTC).addSecs(newCapture.timestamp).toLocalTime();
@@ -1157,11 +1155,15 @@ void LiveCapture::selfClose()
 
 void LiveCapture::connectionThreadEntry()
 {
-  m_Connection = RENDERDOC_CreateTargetControl(m_Hostname.toUtf8().data(), m_RemoteIdent,
-                                               GetSystemUsername().toUtf8().data(), true);
+  ITargetControl *conn = RENDERDOC_CreateTargetControl(m_Hostname.toUtf8().data(), m_RemoteIdent,
+                                                       GetSystemUsername().toUtf8().data(), true);
+  m_Connected.release();
 
-  if(!m_Connection || !m_Connection->Connected())
+  if(!conn || !conn->Connected())
   {
+    if(conn)
+      conn->Shutdown();
+
     GUIInvoke::call(this, [this]() {
       setTitle(tr("Connection failed"));
       ui->connectionStatus->setText(tr("Failed"));
@@ -1170,14 +1172,17 @@ void LiveCapture::connectionThreadEntry()
       connectionClosed();
     });
 
+    m_Connected.acquire();
     return;
   }
 
-  GUIInvoke::call(this, [this]() {
-    if(!m_Connection)
+  uint32_t pid = conn->GetPID();
+  QString target = QString::fromUtf8(conn->GetTarget());
+
+  GUIInvoke::call(this, [this, pid, target]() {
+    if(!m_Connected.available())
       return;
-    uint32_t pid = m_Connection->GetPID();
-    QString target = QString::fromUtf8(m_Connection->GetTarget());
+
     if(pid)
       setTitle(QFormatStr("%1 [PID %2]").arg(target).arg(pid));
     else
@@ -1188,26 +1193,31 @@ void LiveCapture::connectionThreadEntry()
     ui->connectionStatus->setText(tr("Established"));
   });
 
-  while(m_Connection && m_Connection->Connected())
+  while(conn && conn->Connected())
   {
     if(m_TriggerCapture.tryAcquire())
     {
-      m_Connection->TriggerCapture((uint)m_CaptureNumFrames);
+      conn->TriggerCapture((uint)m_CaptureNumFrames);
       m_CaptureNumFrames = 1;
     }
 
     if(m_QueueCapture.tryAcquire())
     {
-      m_Connection->QueueCapture((uint32_t)m_QueueCaptureFrameNum, (uint32_t)m_CaptureNumFrames);
+      conn->QueueCapture((uint32_t)m_QueueCaptureFrameNum, (uint32_t)m_CaptureNumFrames);
       m_QueueCaptureFrameNum = 0;
       m_CaptureNumFrames = 1;
     }
 
     if(m_CopyCapture.tryAcquire())
     {
-      m_Connection->CopyCapture(m_CopyCaptureID, m_CopyCaptureLocalPath.toUtf8().data());
+      conn->CopyCapture(m_CopyCaptureID, m_CopyCaptureLocalPath.toUtf8().data());
       m_CopyCaptureLocalPath = QString();
       m_CopyCaptureID = ~0U;
+    }
+
+    if(m_CycleWindow.tryAcquire())
+    {
+      conn->CycleActiveWindow();
     }
 
     QVector<uint32_t> dels;
@@ -1217,16 +1227,17 @@ void LiveCapture::connectionThreadEntry()
     }
 
     for(uint32_t del : dels)
-      m_Connection->DeleteCapture(del);
+      conn->DeleteCapture(del);
 
     if(!m_Disconnect.available())
     {
-      m_Connection->Shutdown();
-      m_Connection = NULL;
+      conn->Shutdown();
+      conn = NULL;
+      m_Connected.acquire();
       return;
     }
 
-    TargetControlMessage msg = m_Connection->ReceiveMessage([this](float progress) {
+    TargetControlMessage msg = conn->ReceiveMessage([this](float progress) {
       GUIInvoke::call(this, [this, progress]() {
         if(progress >= 0.0f && progress < 1.0f)
         {
@@ -1288,7 +1299,10 @@ void LiveCapture::connectionThreadEntry()
     if(msg.type == TargetControlMessageType::NewCapture)
     {
       NewCaptureData cap = msg.newCapture;
-      GUIInvoke::call(this, [this, cap]() { captureAdded(cap); });
+      if(cap.api.isEmpty())
+        cap.api = conn->GetAPI();
+      QString name = QString::fromUtf8(conn->GetTarget());
+      GUIInvoke::call(this, [this, name, cap]() { captureAdded(name, cap); });
     }
 
     if(msg.type == TargetControlMessageType::CaptureCopied)
@@ -1321,10 +1335,11 @@ void LiveCapture::connectionThreadEntry()
     }
   }
 
-  if(m_Connection)
+  if(conn)
   {
-    m_Connection->Shutdown();
-    m_Connection = NULL;
+    conn->Shutdown();
+    conn = NULL;
+    m_Connected.acquire();
   }
 
   GUIInvoke::call(this, [this]() {
