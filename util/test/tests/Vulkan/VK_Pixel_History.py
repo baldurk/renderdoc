@@ -117,13 +117,14 @@ class VK_Pixel_History(rdtest.TestCase):
 
         beg_renderpass_eid = self.find_draw("Multisampled: begin renderpass").next.eventId
 
-        x, y = 100, 200
+        x, y = 140, 130
         sub.sample = 1
         rdtest.log.print("Testing pixel {}, {} at sample {}".format(x, y, sub.sample))
         modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
         events = [
             [[event_id, beg_renderpass_eid], [passed, True], [post_mod_col, (0.0, 1.0, 0.0, 1.0)]],
-            [[event_id, draw_eid], [passed, True], [post_mod_col, (0.0, 0.0, 1.0, 1.0)]],
+            [[event_id, draw_eid], [passed, True], [primitive_id, 0], [shader_out_col, (1.0, 0.0, 1.0, 1.0)], [post_mod_col, (1.0, 0.0, 1.0, 1.0)]],
+            [[event_id, draw_eid], [passed, True], [primitive_id, 1], [shader_out_col, (0.0, 0.0, 1.0, 1.0)], [post_mod_col, (0.0, 0.0, 1.0, 1.0)]],
         ]
         self.check_events(events, modifs, True)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
@@ -133,7 +134,8 @@ class VK_Pixel_History(rdtest.TestCase):
         modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
         events = [
             [[event_id, beg_renderpass_eid], [passed, True], [post_mod_col, (0.0, 1.0, 0.0, 1.0)]],
-            [[event_id, draw_eid], [passed, True], [post_mod_col, (0.0, 1.0, 1.0, 1.0)]],
+            [[event_id, draw_eid], [passed, True], [primitive_id, 0], [shader_out_col, (1.0, 0.0, 1.0, 1.0)], [post_mod_col, (1.0, 0.0, 1.0, 1.0)]],
+            [[event_id, draw_eid], [passed, True], [primitive_id, 1], [shader_out_col, (0.0, 1.0, 1.0, 1.0)], [post_mod_col, (0.0, 1.0, 1.0, 1.0)]],
         ]
         self.check_events(events, modifs, True)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)

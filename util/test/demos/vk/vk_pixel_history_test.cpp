@@ -81,6 +81,12 @@ layout(location = 0, index = 0) out vec4 Color;
 
 void main()
 {
+  if(gl_PrimitiveID == 0)
+  {
+    Color = vec4(1, 0, 1, 1);
+    return;
+  }
+
   if (gl_SampleID == 0)
     Color = vec4(1, 0, 0, 1);
   else if (gl_SampleID == 1)
