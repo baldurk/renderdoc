@@ -444,8 +444,36 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
   MakeSignatureNames(patchData.inputs, inputSigNames);
   MakeSignatureNames(patchData.outputs, outputSigNames);
 
-  rdcarray<Id> inputIDs, outputIDs, cbufferIDs, readOnlyIDs, readWriteIDs, samplerIDs, privateIDs,
-      workgroupIDs;
+  struct PointerId
+  {
+    PointerId(Id i, rdcarray<ShaderVariable> GlobalState::*th, rdcarray<ShaderVariable> &storage)
+        : id(i), globalStorage(th), index(storage.size() - 1)
+    {
+    }
+    PointerId(Id i, rdcarray<ShaderVariable> ThreadState::*th, rdcarray<ShaderVariable> &storage)
+        : id(i), threadStorage(th), index(storage.size() - 1)
+    {
+    }
+
+    void Set(Debugger &d, const GlobalState &global, ThreadState &lane) const
+    {
+      if(globalStorage)
+        lane.ids[id] = d.MakePointerVariable(id, &(global.*globalStorage)[index]);
+      else
+        lane.ids[id] = d.MakePointerVariable(id, &(lane.*threadStorage)[index]);
+    }
+
+    Id id;
+    rdcarray<ShaderVariable> GlobalState::*globalStorage = NULL;
+    rdcarray<ShaderVariable> ThreadState::*threadStorage = NULL;
+    size_t index;
+  };
+
+#define GLOBAL_POINTER(id, list) PointerId(id, &GlobalState::list, global.list)
+#define THREAD_POINTER(id, list) PointerId(id, &ThreadState::list, active.list)
+
+  rdcarray<Id> inputIDs, outputIDs;
+  rdcarray<PointerId> pointerIDs;
 
   // allocate storage for globals with opaque storage classes, and prepare to set up pointers to
   // them for the global variables themselves
@@ -494,11 +522,14 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
         // then make sure we know which ID to set up for the pointer
         inputIDs.push_back(v.id);
+        pointerIDs.push_back(THREAD_POINTER(v.id, inputs));
       }
       else
       {
         active.outputs.push_back(var);
         outputIDs.push_back(v.id);
+        liveGlobals.push_back(v.id);
+        pointerIDs.push_back(THREAD_POINTER(v.id, outputs));
       }
     }
 
@@ -585,7 +616,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
               DebugVariableReference(DebugVariableType::ReadWriteResource, var.name));
 
           global.readWriteResources.push_back(var);
-          readWriteIDs.push_back(v.id);
+          pointerIDs.push_back(GLOBAL_POINTER(v.id, readWriteResources));
         }
         else
         {
@@ -601,7 +632,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
           sourceVar.variables.push_back(DebugVariableReference(DebugVariableType::Constant, var.name));
 
           global.constantBlocks.push_back(var);
-          cbufferIDs.push_back(v.id);
+          pointerIDs.push_back(GLOBAL_POINTER(v.id, constantBlocks));
         }
 
         globalSourceVars.push_back(sourceVar);
@@ -665,7 +696,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
         debugType = DebugVariableType::Sampler;
 
         global.samplers.push_back(var);
-        samplerIDs.push_back(v.id);
+        pointerIDs.push_back(GLOBAL_POINTER(v.id, samplers));
       }
       else if(innertype->type == DataType::SampledImageType || innertype->type == DataType::ImageType)
       {
@@ -700,12 +731,12 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
           debugType = DebugVariableType::ReadWriteResource;
 
           global.readWriteResources.push_back(var);
-          readWriteIDs.push_back(v.id);
+          pointerIDs.push_back(GLOBAL_POINTER(v.id, readWriteResources));
         }
         else
         {
           global.readOnlyResources.push_back(var);
-          readOnlyIDs.push_back(v.id);
+          pointerIDs.push_back(GLOBAL_POINTER(v.id, readOnlyResources));
         }
       }
       else
@@ -743,13 +774,15 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       if(v.storage == StorageClass::Private)
       {
         active.privates.push_back(var);
-        privateIDs.push_back(v.id);
+        pointerIDs.push_back(THREAD_POINTER(v.id, privates));
       }
       else if(v.storage == StorageClass::Workgroup)
       {
         global.workgroups.push_back(var);
-        workgroupIDs.push_back(v.id);
+        pointerIDs.push_back(GLOBAL_POINTER(v.id, workgroups));
       }
+
+      liveGlobals.push_back(v.id);
     }
     else
     {
@@ -757,9 +790,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     }
   }
 
-  std::sort(outputIDs.begin(), outputIDs.end());
-  std::sort(privateIDs.begin(), privateIDs.end());
-  std::sort(workgroupIDs.begin(), workgroupIDs.end());
+  std::sort(liveGlobals.begin(), liveGlobals.end());
 
   for(uint32_t i = 0; i < workgroupSize; i++)
   {
@@ -776,31 +807,13 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     }
 
     // now that the globals are allocated and their storage won't move, we can take pointers to them
-    for(size_t i = 0; i < lane.inputs.size(); i++)
-      lane.ids[inputIDs[i]] = MakePointerVariable(inputIDs[i], &lane.inputs[i]);
-    for(size_t i = 0; i < lane.outputs.size(); i++)
-      lane.ids[outputIDs[i]] = MakePointerVariable(outputIDs[i], &lane.outputs[i]);
-    for(size_t i = 0; i < global.constantBlocks.size(); i++)
-      lane.ids[cbufferIDs[i]] = MakePointerVariable(cbufferIDs[i], &global.constantBlocks[i]);
-    for(size_t i = 0; i < global.readOnlyResources.size(); i++)
-      lane.ids[readOnlyIDs[i]] = MakePointerVariable(readOnlyIDs[i], &global.readOnlyResources[i]);
-    for(size_t i = 0; i < global.readWriteResources.size(); i++)
-      lane.ids[readWriteIDs[i]] = MakePointerVariable(readWriteIDs[i], &global.readWriteResources[i]);
-    for(size_t i = 0; i < global.samplers.size(); i++)
-      lane.ids[samplerIDs[i]] = MakePointerVariable(samplerIDs[i], &global.samplers[i]);
-    for(size_t i = 0; i < lane.privates.size(); i++)
-      lane.ids[privateIDs[i]] = MakePointerVariable(privateIDs[i], &lane.privates[i]);
-    for(size_t i = 0; i < global.workgroups.size(); i++)
-      lane.ids[workgroupIDs[i]] = MakePointerVariable(workgroupIDs[i], &global.workgroups[i]);
+    for(const PointerId &p : pointerIDs)
+      p.Set(*this, global, lane);
   }
-
-  // only outputs and privates are considered mutable
-  liveGlobals.append(outputIDs);
-  liveGlobals.append(privateIDs);
-  liveGlobals.append(workgroupIDs);
 
   for(size_t i = 0; i < globalSourceVars.size();)
   {
+    // move constant data from globalSourceVars to trace level sourceVars
     if(!globalSourceVars[i].variables.empty() &&
        (globalSourceVars[i].variables[0].type == DebugVariableType::Input ||
         globalSourceVars[i].variables[0].type == DebugVariableType::ReadOnlyResource ||
@@ -815,37 +828,10 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
     i++;
   }
 
+  // duplicate outputs to trace-level sourceVars, as they're mutable but at global scope
   for(size_t o = 0; o < outputIDs.size(); o++)
   {
     rdcstr varName = GetRawName(outputIDs[o]);
-
-    for(size_t i = 0; i < globalSourceVars.size(); i++)
-    {
-      if(!globalSourceVars[i].variables.empty() && globalSourceVars[i].variables[0].name == varName)
-      {
-        ret->sourceVars.push_back(globalSourceVars[i]);
-        break;
-      }
-    }
-  }
-
-  for(size_t o = 0; o < privateIDs.size(); o++)
-  {
-    rdcstr varName = GetRawName(privateIDs[o]);
-
-    for(size_t i = 0; i < globalSourceVars.size(); i++)
-    {
-      if(!globalSourceVars[i].variables.empty() && globalSourceVars[i].variables[0].name == varName)
-      {
-        ret->sourceVars.push_back(globalSourceVars[i]);
-        break;
-      }
-    }
-  }
-
-  for(size_t o = 0; o < workgroupIDs.size(); o++)
-  {
-    rdcstr varName = GetRawName(workgroupIDs[o]);
 
     for(size_t i = 0; i < globalSourceVars.size(); i++)
     {
