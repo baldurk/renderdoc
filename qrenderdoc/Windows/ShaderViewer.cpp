@@ -1797,7 +1797,7 @@ void ShaderViewer::applyForwardsChange()
           bool found = false;
           for(size_t i = 0; i < m_AccessedResources.size(); i++)
           {
-            if(c.after.name == m_AccessedResources[i].name)
+            if(c.after.GetBinding() == m_AccessedResources[i].GetBinding())
             {
               found = true;
               break;
