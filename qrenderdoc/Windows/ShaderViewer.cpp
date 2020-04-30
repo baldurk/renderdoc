@@ -3371,14 +3371,11 @@ RDTreeWidgetItem *ShaderViewer::makeAccessedResourceNode(const ShaderVariable &v
     }
   }
 
-  RDTreeWidgetItem *node = NULL;
+  RDTreeWidgetItem *node = new RDTreeWidgetItem({v.name, typeName, ToQStr(resId)});
   if(resId != ResourceId())
-  {
-    node = new RDTreeWidgetItem({v.name, typeName, ToQStr(resId)});
     node->setTag(QVariant::fromValue(AccessedResourceTag(bp, v.type)));
-    if(modified)
-      node->setForegroundColor(QColor(Qt::red));
-  }
+  if(modified)
+    node->setForegroundColor(QColor(Qt::red));
 
   return node;
 }
