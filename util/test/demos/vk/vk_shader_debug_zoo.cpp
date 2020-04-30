@@ -103,6 +103,8 @@ void main()
 #extension GL_EXT_samplerless_texture_functions : require
 #extension GL_EXT_nonuniform_qualifier : require
 
+#define TEST_DESC_INDEXING  
+
 layout(set = 0, binding = 0, std140) uniform constsbuf
 {
   vec4 first;
@@ -163,6 +165,8 @@ layout(set = 0, r32ui, binding = 12) uniform uimage2D atomicimg;
 
 layout(set = 0, binding = 20) uniform sampler2DArray queryTest;
 layout(set = 0, binding = 21) uniform sampler2DMSArray queryTestMS;
+
+#if TEST_DESC_INDEXING
 
 layout(set = 1, binding = 1) uniform sampler pointSamplers[14];
 layout(set = 1, binding = 2) uniform sampler linearSamplers[14];
@@ -253,6 +257,8 @@ layout(set = 2, rgba32i, binding = 56) uniform iimageCubeArray storezoo_iCubeArr
 //layout(set = 2, rgba32i, binding = 57) uniform iimage2DMS storezoo_i2DMS;
 //layout(set = 2, rgba32i, binding = 58) uniform iimage2DMSArray storezoo_i2DMSArray;
 layout(set = 2, rgba32i, binding = 59) uniform iimageBuffer storezoo_iBuffer;
+
+#endif
 
 layout(push_constant) uniform PushData {
   layout(offset = 16) ivec4 data;
@@ -1204,6 +1210,7 @@ void main()
       Color = imageLoad(storeImage, ivec2(zeroi+1,zeroi+3));
       break;
     }
+#if TEST_DESC_INDEXING
     case 134:
     {
       ivec2 coord = ivec2(zeroi + 20, zeroi + 20);
@@ -1328,6 +1335,7 @@ void main()
       Color = vec4(x, y, z, w);
       break;
     }
+#endif
 )EOSHADER"
                    R"EOSHADER(
     case 153:
@@ -1644,6 +1652,7 @@ void main()
       Color = dFdxFine(val).xyxy;
       break;
     }
+#if TEST_DESC_INDEXING
     case 15:
     {
       // test loading from the storage buffer (after a nice big barrier)
@@ -1667,6 +1676,7 @@ void main()
       Color = imageLoad(storeImages[zeroi+7], ivec2(zeroi+1,zeroi+3));
       break;
     }
+#endif
     default: break;
   }
 }
@@ -3022,10 +3032,10 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
   void Prepare(int argc, char **argv)
   {
     // require descriptor indexing
-    devExts.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
+    optDevExts.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 
     // dependencies of VK_EXT_descriptor_indexing
-    devExts.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
+    optDevExts.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
 
     // we require this to pixel shader debug anyway, so we might as well require it for all tests.
     features.fragmentStoresAndAtomics = VK_TRUE;
@@ -3037,6 +3047,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     if(!Avail.empty())
       return;
+
+    const bool descIndexing = std::find(devExts.begin(), devExts.end(),
+                                        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) != devExts.end();
 
     vk_version = 0x10;
 
@@ -3051,10 +3064,13 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     Avail = fmt::format("Limit '" #limit "' {} is insufficient (need at least {})", \
                         physProperties.limits.limit, req);
 
-    LIMIT_CHECK(maxPerStageDescriptorSampledImages, 128);
-    LIMIT_CHECK(maxPerStageDescriptorSamplers, 64);
-    LIMIT_CHECK(maxPerStageDescriptorStorageBuffers, 16);
-    LIMIT_CHECK(maxPerStageDescriptorStorageImages, 64);
+    if(descIndexing)
+    {
+      LIMIT_CHECK(maxPerStageDescriptorSampledImages, 128);
+      LIMIT_CHECK(maxPerStageDescriptorSamplers, 64);
+      LIMIT_CHECK(maxPerStageDescriptorStorageBuffers, 16);
+      LIMIT_CHECK(maxPerStageDescriptorStorageImages, 64);
+    }
 
     // enable features we can optionally test with.
     VkPhysicalDeviceFeatures supported;
@@ -3064,46 +3080,51 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     // if(supported.shaderFloat64)
     // features.shaderFloat64 = VK_TRUE;
 
-    static VkPhysicalDeviceDescriptorIndexingFeaturesEXT descIndexing = {
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT,
-    };
+    if(descIndexing)
+    {
+      static VkPhysicalDeviceDescriptorIndexingFeaturesEXT descIndexingFeatures = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT,
+      };
 
-    getPhysFeatures2(&descIndexing);
+      getPhysFeatures2(&descIndexingFeatures);
 
-    // enable descriptor indexing on arrays of all types
+      // enable descriptor indexing on arrays of all types
 
-    if(!descIndexing.runtimeDescriptorArray)
-      Avail = "Descriptor indexing feature 'runtimeDescriptorArray' not available";
-    else if(!descIndexing.shaderUniformTexelBufferArrayDynamicIndexing)
-      Avail =
-          "Descriptor indexing feature 'shaderUniformTexelBufferArrayDynamicIndexing' not "
-          "available";
-    else if(!descIndexing.shaderStorageTexelBufferArrayDynamicIndexing)
-      Avail =
-          "Descriptor indexing feature 'shaderStorageTexelBufferArrayDynamicIndexing' not "
-          "available";
-    else if(!descIndexing.shaderUniformBufferArrayNonUniformIndexing)
-      Avail =
-          "Descriptor indexing feature 'shaderUniformBufferArrayNonUniformIndexing' not available";
-    else if(!descIndexing.shaderSampledImageArrayNonUniformIndexing)
-      Avail =
-          "Descriptor indexing feature 'shaderSampledImageArrayNonUniformIndexing' not available";
-    else if(!descIndexing.shaderStorageBufferArrayNonUniformIndexing)
-      Avail =
-          "Descriptor indexing feature 'shaderStorageBufferArrayNonUniformIndexing' not available";
-    else if(!descIndexing.shaderStorageImageArrayNonUniformIndexing)
-      Avail =
-          "Descriptor indexing feature 'shaderStorageImageArrayNonUniformIndexing' not available";
-    else if(!descIndexing.shaderUniformTexelBufferArrayNonUniformIndexing)
-      Avail =
-          "Descriptor indexing feature 'shaderUniformTexelBufferArrayNonUniformIndexing' not "
-          "available";
-    else if(!descIndexing.shaderStorageTexelBufferArrayNonUniformIndexing)
-      Avail =
-          "Descriptor indexing feature 'shaderStorageTexelBufferArrayNonUniformIndexing' not "
-          "available";
+      if(!descIndexingFeatures.runtimeDescriptorArray)
+        Avail = "Descriptor indexing feature 'runtimeDescriptorArray' not available";
+      else if(!descIndexingFeatures.shaderUniformTexelBufferArrayDynamicIndexing)
+        Avail =
+            "Descriptor indexing feature 'shaderUniformTexelBufferArrayDynamicIndexing' not "
+            "available";
+      else if(!descIndexingFeatures.shaderStorageTexelBufferArrayDynamicIndexing)
+        Avail =
+            "Descriptor indexing feature 'shaderStorageTexelBufferArrayDynamicIndexing' not "
+            "available";
+      else if(!descIndexingFeatures.shaderUniformBufferArrayNonUniformIndexing)
+        Avail =
+            "Descriptor indexing feature 'shaderUniformBufferArrayNonUniformIndexing' not "
+            "available";
+      else if(!descIndexingFeatures.shaderSampledImageArrayNonUniformIndexing)
+        Avail =
+            "Descriptor indexing feature 'shaderSampledImageArrayNonUniformIndexing' not available";
+      else if(!descIndexingFeatures.shaderStorageBufferArrayNonUniformIndexing)
+        Avail =
+            "Descriptor indexing feature 'shaderStorageBufferArrayNonUniformIndexing' not "
+            "available";
+      else if(!descIndexingFeatures.shaderStorageImageArrayNonUniformIndexing)
+        Avail =
+            "Descriptor indexing feature 'shaderStorageImageArrayNonUniformIndexing' not available";
+      else if(!descIndexingFeatures.shaderUniformTexelBufferArrayNonUniformIndexing)
+        Avail =
+            "Descriptor indexing feature 'shaderUniformTexelBufferArrayNonUniformIndexing' not "
+            "available";
+      else if(!descIndexingFeatures.shaderStorageTexelBufferArrayNonUniformIndexing)
+        Avail =
+            "Descriptor indexing feature 'shaderStorageTexelBufferArrayNonUniformIndexing' not "
+            "available";
 
-    devInfoNext = &descIndexing;
+      devInfoNext = &descIndexingFeatures;
+    }
   }
 
   int main()
@@ -3113,6 +3134,17 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       return 3;
 
     make_asm_tests();
+
+    const bool descIndexing = std::find(devExts.begin(), devExts.end(),
+                                        VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) != devExts.end();
+
+    pixel_glsl1.replace(pixel_glsl1.find("#define TEST_DESC_INDEXING"),
+                        sizeof("#define TEST_DESC_INDEXING"),
+                        fmt::format("#define TEST_DESC_INDEXING {}", descIndexing ? 1 : 0));
+
+    pixel_glsl2.replace(pixel_glsl2.find("#define TEST_DESC_INDEXING"),
+                        sizeof("#define TEST_DESC_INDEXING"),
+                        fmt::format("#define TEST_DESC_INDEXING {}", descIndexing ? 1 : 0));
 
     size_t lastTest = pixel_glsl1.rfind("case ");
     lastTest += sizeof("case ") - 1;
@@ -3144,97 +3176,105 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
         {21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
     }));
 
+    std::vector<VkDescriptorSetLayout> setLayouts = {setlayout0};
+
     // this set layout has arrays of each type. We'll uniformly, dynamic-uniformly, and
     // non-uniformly access each of these
-    VkDescriptorSetLayout setlayout1 = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
-        {1, VK_DESCRIPTOR_TYPE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {2, VK_DESCRIPTOR_TYPE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {6, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {7, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {8, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {9, VK_DESCRIPTOR_TYPE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
-    }));
+    VkDescriptorSetLayout setlayout1;
+    VkDescriptorSetLayout setlayout2;
 
-    VkDescriptorSetLayout setlayout2 = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {8, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {9, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+    if(descIndexing)
+    {
+      setlayout1 = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+          {1, VK_DESCRIPTOR_TYPE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {2, VK_DESCRIPTOR_TYPE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {6, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {7, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {8, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {9, VK_DESCRIPTOR_TYPE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 14, VK_SHADER_STAGE_FRAGMENT_BIT},
+      }));
 
-        {10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {14, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {15, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {16, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {17, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {18, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {19, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+      setlayout2 = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+          {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {8, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {9, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
 
-        {20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {22, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {23, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {24, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {25, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {26, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {27, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {28, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {29, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {14, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {15, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {16, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {17, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {18, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {19, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
 
-        {30, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {31, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {32, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {33, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {34, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {35, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {36, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {37, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {38, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {39, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {20, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {22, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {23, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {24, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {25, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {26, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {27, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {28, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {29, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
 
-        {40, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {41, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {42, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {43, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {44, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {45, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {46, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {47, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {48, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {49, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {30, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {31, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {32, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {33, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {34, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {35, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {36, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {37, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {38, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {39, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
 
-        {50, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {51, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {52, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {53, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {54, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {55, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {56, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {57, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {58, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-        {59, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-    }));
+          {40, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {41, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {42, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {43, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {44, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {45, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {46, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {47, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {48, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {49, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+
+          {50, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {51, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {52, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {53, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {54, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {55, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {56, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {57, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {58, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+          {59, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+      }));
+
+      setLayouts.push_back(setlayout1);
+      setLayouts.push_back(setlayout2);
+    }
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
-        {
-            setlayout0, setlayout1, setlayout2,
-        },
-        {
-            vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i)),
-        }));
+        setLayouts, {
+                        vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i)),
+                    }));
 
     // calculate number of tests, wrapping each row at 256
     uint32_t texWidth = AlignUp(std::max(std::max(numGLSL1Tests, numGLSL2Tests), numASMTests), 256U);
@@ -3501,8 +3541,14 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     vkCreateSampler(device, &sampInfo, NULL, &shadowsampler);
 
     VkDescriptorSet descset0 = allocateDescriptorSet(setlayout0);
-    VkDescriptorSet descset1 = allocateDescriptorSet(setlayout1);
-    VkDescriptorSet descset2 = allocateDescriptorSet(setlayout2);
+    VkDescriptorSet descset1;
+    VkDescriptorSet descset2;
+
+    if(descIndexing)
+    {
+      descset1 = allocateDescriptorSet(setlayout1);
+      descset2 = allocateDescriptorSet(setlayout2);
+    }
 
     Vec4f cbufferdata[16] = {};
 
@@ -3657,51 +3703,60 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
             vkh::WriteDescriptorSet(
                 descset0, 21, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 {vkh::DescriptorImageInfo(queryTestMSView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
-
-            vkh::WriteDescriptorSet(descset2, 41, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                                    {vkh::DescriptorImageInfo(
-                                        storezoo_u2D_view, VK_IMAGE_LAYOUT_GENERAL, VK_NULL_HANDLE)}),
         });
 
-    for(uint32_t i = 0; i < 14; i++)
+    if(descIndexing)
     {
       vkh::updateDescriptorSets(
-          device,
-          {
-              vkh::WriteDescriptorSet(descset1, 1, i, VK_DESCRIPTOR_TYPE_SAMPLER,
-                                      {vkh::DescriptorImageInfo(
-                                          VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, pointsampler)}),
-              vkh::WriteDescriptorSet(descset1, 2, i, VK_DESCRIPTOR_TYPE_SAMPLER,
-                                      {vkh::DescriptorImageInfo(
-                                          VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, linearsampler)}),
-              vkh::WriteDescriptorSet(
-                  descset1, 3, i, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                  {vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                            VK_NULL_HANDLE)}),
-              vkh::WriteDescriptorSet(
-                  descset1, 4, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                  {vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                            linearsampler)}),
-              vkh::WriteDescriptorSet(descset1, 5, i, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                      {vkh::DescriptorBufferInfo(store_buffer.buffer)}),
-              vkh::WriteDescriptorSet(
-                  descset1, 6, i, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                  {vkh::DescriptorImageInfo(store_view, VK_IMAGE_LAYOUT_GENERAL, VK_NULL_HANDLE)}),
-              vkh::WriteDescriptorSet(descset1, 7, i, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
-                                      {bufview}),
-              vkh::WriteDescriptorSet(descset1, 8, i, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
-                                      {store_bufview}),
-              vkh::WriteDescriptorSet(descset1, 9, i, VK_DESCRIPTOR_TYPE_SAMPLER,
-                                      {vkh::DescriptorImageInfo(
-                                          VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, shadowsampler)}),
+          device, {
+                      vkh::WriteDescriptorSet(
+                          descset2, 41, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                          {vkh::DescriptorImageInfo(storezoo_u2D_view, VK_IMAGE_LAYOUT_GENERAL,
+                                                    VK_NULL_HANDLE)}),
+                  });
 
-              vkh::WriteDescriptorSet(
-                  descset1, 20, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                  {vkh::DescriptorImageInfo(queryTestView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
-              vkh::WriteDescriptorSet(
-                  descset1, 21, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                  {vkh::DescriptorImageInfo(queryTestMSView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
-          });
+      for(uint32_t i = 0; i < 14; i++)
+      {
+        vkh::updateDescriptorSets(
+            device,
+            {
+                vkh::WriteDescriptorSet(descset1, 1, i, VK_DESCRIPTOR_TYPE_SAMPLER,
+                                        {vkh::DescriptorImageInfo(
+                                            VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED, pointsampler)}),
+                vkh::WriteDescriptorSet(
+                    descset1, 2, i, VK_DESCRIPTOR_TYPE_SAMPLER,
+                    {vkh::DescriptorImageInfo(VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED,
+                                              linearsampler)}),
+                vkh::WriteDescriptorSet(
+                    descset1, 3, i, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                    {vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                              VK_NULL_HANDLE)}),
+                vkh::WriteDescriptorSet(
+                    descset1, 4, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    {vkh::DescriptorImageInfo(smileyview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                              linearsampler)}),
+                vkh::WriteDescriptorSet(descset1, 5, i, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                        {vkh::DescriptorBufferInfo(store_buffer.buffer)}),
+                vkh::WriteDescriptorSet(
+                    descset1, 6, i, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                    {vkh::DescriptorImageInfo(store_view, VK_IMAGE_LAYOUT_GENERAL, VK_NULL_HANDLE)}),
+                vkh::WriteDescriptorSet(descset1, 7, i, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+                                        {bufview}),
+                vkh::WriteDescriptorSet(descset1, 8, i, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+                                        {store_bufview}),
+                vkh::WriteDescriptorSet(
+                    descset1, 9, i, VK_DESCRIPTOR_TYPE_SAMPLER,
+                    {vkh::DescriptorImageInfo(VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED,
+                                              shadowsampler)}),
+
+                vkh::WriteDescriptorSet(
+                    descset1, 20, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    {vkh::DescriptorImageInfo(queryTestView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
+                vkh::WriteDescriptorSet(
+                    descset1, 21, i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    {vkh::DescriptorImageInfo(queryTestMSView, VK_IMAGE_LAYOUT_GENERAL, mipsampler)}),
+            });
+      }
     }
 
     while(Running())
@@ -3791,8 +3846,15 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
       Vec4i push = Vec4i(101, 103, 107, 109);
 
-      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0,
-                                 {descset0, descset1, descset2}, {});
+      std::vector<VkDescriptorSet> descSets = {descset0};
+
+      if(descIndexing)
+      {
+        descSets.push_back(descset1);
+        descSets.push_back(descset2);
+      }
+
+      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, descSets, {});
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT, 16, sizeof(Vec4i), &push);
 
       vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, s,
