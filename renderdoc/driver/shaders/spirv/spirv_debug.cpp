@@ -142,7 +142,7 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
 
   // next should be the start of the first function block
   RDCASSERT(OpDecoder(it).op == Op::Label);
-  lastBlock = curBlock = OpLabel(it).result;
+  frame->lastBlock = frame->curBlock = OpLabel(it).result;
   it++;
 
   size_t numVars = 0;
@@ -410,8 +410,10 @@ ShaderVariable ThreadState::CalcDeriv(ThreadState::DerivDir dir, ThreadState::De
 
 void ThreadState::JumpToLabel(Id target)
 {
-  lastBlock = curBlock;
-  curBlock = target;
+  StackFrame *frame = callstack.back();
+
+  frame->lastBlock = frame->curBlock;
+  frame->curBlock = target;
 
   nextInstruction = debugger.GetInstructionForLabel(target) + 1;
 
@@ -2388,9 +2390,11 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       ShaderVariable var;
 
+      StackFrame *frame = callstack.back();
+
       for(const PairIdRefIdRef &parent : phi.parents)
       {
-        if(parent.second == lastBlock)
+        if(parent.second == frame->lastBlock)
         {
           var = GetSrc(parent.first);
           break;

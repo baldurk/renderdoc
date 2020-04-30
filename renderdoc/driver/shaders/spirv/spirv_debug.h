@@ -160,6 +160,9 @@ struct StackFrame
   rdcarray<Id> live;
   rdcarray<SourceVariableMapping> sourceVars;
 
+  // the last block we were in and the current block, for OpPhis
+  Id lastBlock, curBlock;
+
 private:
   // disallow copying to ensure the locals we allocate never move around
   StackFrame(const StackFrame &o) = delete;
@@ -216,8 +219,6 @@ struct ThreadState
   // changes (and vice-versa - a change via any of those pointers must update all other pointers).
   SparseIdMap<rdcarray<Id>> pointersForId;
 
-  // the last block we were in and the current block, for OpPhis
-  Id lastBlock, curBlock;
   // the id of the merge block that the last branch targetted
   Id mergeBlock;
   ShaderVariable returnValue;

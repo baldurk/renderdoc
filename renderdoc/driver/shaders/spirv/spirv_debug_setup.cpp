@@ -1783,7 +1783,7 @@ void Debugger::CalcActiveMask(rdcarray<bool> &activeMask)
     rdcarray<bool> inConverge;
     inConverge.resize(activeMask.size());
     for(size_t i = 0; i < workgroup.size(); i++)
-      inConverge[i] = (workgroup[i].curBlock == convergeBlock);
+      inConverge[i] = (workgroup[i].callstack.back()->curBlock == convergeBlock);
 
     // is any thread active, but not converged?
     bool anyActiveNotConverged = false;
