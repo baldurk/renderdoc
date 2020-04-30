@@ -22,8 +22,8 @@ class GL_Vertex_Attr_Zoo(rdtest.TestCase):
                 'Array[0]': [1.0, 2.0],
                 'Array[1]': [3.0, 4.0],
                 'Array[2]': [5.0, 6.0],
-                'Matrix:row0': [7.0, 8.0],
-                'Matrix:row1': [9.0, 10.0],
+                'Matrix:col0': [7.0, 8.0],
+                'Matrix:col1': [9.0, 10.0],
             },
             1: {
                 'SNorm': [32766.0/32767.0, -32766.0/32767.0, 16000.0/32767.0, -16000.0/32767.0],
@@ -33,8 +33,8 @@ class GL_Vertex_Attr_Zoo(rdtest.TestCase):
                 'Array[0]': [11.0, 12.0],
                 'Array[1]': [13.0, 14.0],
                 'Array[2]': [15.0, 16.0],
-                'Matrix:row0': [17.0, 18.0],
-                'Matrix:row1': [19.0, 20.0],
+                'Matrix:col0': [17.0, 18.0],
+                'Matrix:col1': [19.0, 20.0],
             },
             2: {
                 'SNorm': [5.0/32767.0, -5.0/32767.0, 0.0, 0.0],
@@ -44,8 +44,8 @@ class GL_Vertex_Attr_Zoo(rdtest.TestCase):
                 'Array[0]': [21.0, 22.0],
                 'Array[1]': [23.0, 24.0],
                 'Array[2]': [25.0, 26.0],
-                'Matrix:row0': [27.0, 28.0],
-                'Matrix:row1': [29.0, 30.0],
+                'Matrix:col0': [27.0, 28.0],
+                'Matrix:col1': [29.0, 30.0],
             },
         }
 
