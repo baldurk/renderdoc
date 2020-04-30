@@ -2161,9 +2161,12 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         size_t imType = type;
 
         // the cubemap view re-uses the 2D image
-        if(viewtypes[type] == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
+        bool cube = false;
+        if(viewtypes[type] == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY ||
+           viewtypes[type] == VK_IMAGE_VIEW_TYPE_CUBE)
         {
           imType = 1;
+          cube = true;
         }
 
         VkImageViewCreateInfo viewInfo = {
@@ -2180,12 +2183,15 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
             },
         };
 
+        if(cube)
+          viewInfo.subresourceRange.layerCount = 6;
+
         vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL,
                                         &DummyImageViews[fmt][type]);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
         // the cubemap view we don't create an info for it, and the image is already transitioned
-        if(viewtypes[type] == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
+        if(cube)
           continue;
 
         RDCASSERT((size_t)index < ARRAY_COUNT(DummyInfos), index);
