@@ -2069,6 +2069,7 @@ private:
         func.add(rdcspv::OpVectorShuffle(v3f32, editor.MakeId(), input_uvwa, input_uvwa, {0, 1, 2}));
     rdcspv::Id input_uv =
         func.add(rdcspv::OpVectorShuffle(v2f32, editor.MakeId(), input_uvw, input_uvw, {0, 1}));
+    rdcspv::Id input_u = func.add(rdcspv::OpCompositeExtract(f32, editor.MakeId(), input_uvw, {0}));
 
     // first store NULL data in, so the output is always initialised
 
@@ -2100,12 +2101,12 @@ private:
     // only used for QueryLod, so we can ignore MSAA/Buffer
     rdcspv::Id input_coord[(uint32_t)ShaderDebugBind::Count] = {
         rdcspv::Id(),
-        input_uv,                              // 1D - u and array
-        input_uvw,                             // 2D - u,v and array
-        input_uvw,                             // 3D - u,v,w
-        rdcspv::Id(),                          // 2DMS
-        cubeArray ? input_uvwa : input_uvw,    // Cube - u,v,w and array (if supported)
-        rdcspv::Id(),                          // Buffer
+        input_u,         // 1D - u
+        input_uv,        // 2D - u,v
+        input_uvw,       // 3D - u,v,w
+        rdcspv::Id(),    // 2DMS
+        input_uvw,       // Cube - u,v,w
+        rdcspv::Id(),    // Buffer
     };
 
     rdcspv::Id coord[(uint32_t)ShaderDebugBind::Count] = {
