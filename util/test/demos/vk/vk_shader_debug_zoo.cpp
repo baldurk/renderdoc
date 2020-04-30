@@ -2439,14 +2439,14 @@ void main()
 
         "%_x = OpConvertFToU %uint %float_dyn_1_0\n"
         "%_y = OpConvertFToU %uint %float_dyn_0_0\n"
-        "%_z = OpConvertFToU %uint %float_dyn_neg1_0\n"
+        "%_z = OpConvertFToU %uint %float_dyn_1_1\n"
         "%_w = OpConvertFToU %uint %float_dyn_1_3\n"
         "%_out_uint4 = OpCompositeConstruct %uint4 %_x %_y %_z %_w\n",
 
         "%_x = OpConvertFToU %uint %float_dyn_1_0\n"
         "%_y = OpConvertFToU %uint %float_dyn_1_5\n"
         "%_z = OpConvertFToU %uint %float_dyn_0_5\n"
-        "%_w = OpConvertFToU %uint %float_dyn_neg1_5\n"
+        "%_w = OpConvertFToU %uint %float_dyn_1_7\n"
         "%_out_uint4 = OpCompositeConstruct %uint4 %_x %_y %_z %_w\n",
 
         "%_x = OpConvertFToS %int %float_dyn_1_0\n"
