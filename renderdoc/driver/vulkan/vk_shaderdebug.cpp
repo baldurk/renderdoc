@@ -1037,6 +1037,16 @@ public:
       writeSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
     }
 
+    // reset descriptor sets to dummy state
+    uint32_t resetIndex = 0;
+    if(uintTex)
+      resetIndex = 1;
+    else if(sintTex)
+      resetIndex = 2;
+    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(m_DebugData.DummyWrites[resetIndex]),
+                                       m_DebugData.DummyWrites[resetIndex], 0, NULL);
+
+    // overwrite with our data
     ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), sampler != VK_NULL_HANDLE ? 3 : 2, writeSets, 0,
                                        NULL);
 
@@ -4142,6 +4152,42 @@ rdcarray<ShaderDebugState> VulkanReplay::ContinueDebug(ShaderDebugger *debugger)
     return {};
 
   VkMarkerRegion region("ContinueDebug Simulation Loop");
+
+  for(size_t fmt = 0; fmt < ARRAY_COUNT(m_TexRender.DummyImageViews); fmt++)
+  {
+    for(size_t dim = 0; dim < ARRAY_COUNT(m_TexRender.DummyImageViews[0]); dim++)
+    {
+      m_ShaderDebugData.DummyImageInfos[fmt][dim].imageLayout =
+          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      m_ShaderDebugData.DummyImageInfos[fmt][dim].imageView =
+          Unwrap(m_TexRender.DummyImageViews[fmt][dim]);
+
+      m_ShaderDebugData.DummyWrites[fmt][dim].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      m_ShaderDebugData.DummyWrites[fmt][dim].descriptorCount = 1;
+      m_ShaderDebugData.DummyWrites[fmt][dim].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+      m_ShaderDebugData.DummyWrites[fmt][dim].dstBinding = uint32_t(dim + 1);
+      m_ShaderDebugData.DummyWrites[fmt][dim].dstSet = Unwrap(m_ShaderDebugData.DescSet);
+      m_ShaderDebugData.DummyWrites[fmt][dim].pImageInfo =
+          &m_ShaderDebugData.DummyImageInfos[fmt][dim];
+    }
+
+    m_ShaderDebugData.DummyImageInfos[fmt][5].sampler = Unwrap(m_TexRender.DummySampler);
+
+    m_ShaderDebugData.DummyWrites[fmt][5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    m_ShaderDebugData.DummyWrites[fmt][5].descriptorCount = 1;
+    m_ShaderDebugData.DummyWrites[fmt][5].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    m_ShaderDebugData.DummyWrites[fmt][5].dstBinding = (uint32_t)ShaderDebugBind::Sampler;
+    m_ShaderDebugData.DummyWrites[fmt][5].dstSet = Unwrap(m_ShaderDebugData.DescSet);
+    m_ShaderDebugData.DummyWrites[fmt][5].pImageInfo = &m_ShaderDebugData.DummyImageInfos[fmt][5];
+
+    m_ShaderDebugData.DummyWrites[fmt][6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    m_ShaderDebugData.DummyWrites[fmt][6].descriptorCount = 1;
+    m_ShaderDebugData.DummyWrites[fmt][6].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+    m_ShaderDebugData.DummyWrites[fmt][6].dstBinding = (uint32_t)ShaderDebugBind::Buffer;
+    m_ShaderDebugData.DummyWrites[fmt][6].dstSet = Unwrap(m_ShaderDebugData.DescSet);
+    m_ShaderDebugData.DummyWrites[fmt][6].pTexelBufferView =
+        UnwrapPtr(m_TexRender.DummyBufferView[fmt]);
+  }
 
   rdcarray<ShaderDebugState> ret = spvDebugger->ContinueDebug();
 

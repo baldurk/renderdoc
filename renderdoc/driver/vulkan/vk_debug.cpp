@@ -1969,26 +1969,35 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
 
     int index = 0;
 
-    VkDeviceSize offsets[ARRAY_COUNT(DummyImages)];
-    VkDeviceSize curOffset = 0;
-
     // we pick RGBA8 formats to be guaranteed they will be supported
     VkFormat formats[] = {VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UINT, VK_FORMAT_R8G8B8A8_SINT};
     VkImageType types[] = {VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D, VK_IMAGE_TYPE_2D};
-    VkImageViewType viewtypes[] = {VK_IMAGE_VIEW_TYPE_1D_ARRAY, VK_IMAGE_VIEW_TYPE_2D_ARRAY,
-                                   VK_IMAGE_VIEW_TYPE_3D, VK_IMAGE_VIEW_TYPE_2D_ARRAY};
+    VkImageViewType viewtypes[] = {
+        VK_IMAGE_VIEW_TYPE_1D_ARRAY, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_VIEW_TYPE_3D,
+        VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+        driver->GetDeviceFeatures().imageCubeArray ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
+                                                   : VK_IMAGE_VIEW_TYPE_CUBE,
+    };
     VkSampleCountFlagBits sampleCounts[] = {VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_1_BIT,
                                             VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_4_BIT};
+
+    VkDeviceSize offsets[ARRAY_COUNT(formats)][ARRAY_COUNT(types)];
+    VkDeviceSize curOffset = 0;
 
     // type max is one higher than the last RESTYPE, and RESTYPES are 1-indexed
     RDCCOMPILE_ASSERT(RESTYPE_TEXTYPEMAX - 1 == ARRAY_COUNT(types),
                       "RESTYPE values don't match formats for dummy images");
 
-    RDCCOMPILE_ASSERT(ARRAY_COUNT(DummyImages) == ARRAY_COUNT(DummyImageViews),
+    RDCCOMPILE_ASSERT(sizeof(DummyImages) == sizeof(DummyImageViews),
                       "dummy image arrays mismatched sizes");
-    RDCCOMPILE_ASSERT(ARRAY_COUNT(DummyImages) == ARRAY_COUNT(DummyWrites),
+    RDCCOMPILE_ASSERT(ARRAY_COUNT(DummyImages) == ARRAY_COUNT(formats),
                       "dummy image arrays mismatched sizes");
-    RDCCOMPILE_ASSERT(ARRAY_COUNT(DummyImages) == ARRAY_COUNT(DummyInfos),
+    // types + 1 for cube
+    RDCCOMPILE_ASSERT(ARRAY_COUNT(DummyImages[0]) == ARRAY_COUNT(types) + 1,
+                      "dummy image arrays mismatched sizes");
+    RDCCOMPILE_ASSERT(ARRAY_COUNT(DummyImages[0]) == ARRAY_COUNT(viewtypes),
+                      "dummy image arrays mismatched sizes");
+    RDCCOMPILE_ASSERT(ARRAY_COUNT(DummyWrites) == ARRAY_COUNT(DummyInfos),
                       "dummy image arrays mismatched sizes");
 
     VkMemoryAllocateInfo allocInfo = {
@@ -2020,11 +2029,18 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
             VK_IMAGE_LAYOUT_UNDEFINED,
         };
 
-        vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &DummyImages[index]);
+        // make the 2D image cube-compatible
+        if(type == 1)
+        {
+          imInfo.arrayLayers = 6;
+          imInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+        }
+
+        vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &DummyImages[fmt][type]);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
         VkMemoryRequirements mrq = {0};
-        driver->vkGetImageMemoryRequirements(driver->GetDev(), DummyImages[index], &mrq);
+        driver->vkGetImageMemoryRequirements(driver->GetDev(), DummyImages[fmt][type], &mrq);
 
         uint32_t memIndex = driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits);
 
@@ -2037,7 +2053,7 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
 
         // align to our alignment, then increment curOffset by our size
         curOffset = AlignUp(curOffset, mrq.alignment);
-        offsets[index] = curOffset;
+        offsets[fmt][type] = curOffset;
         curOffset += mrq.size;
 
         // fill out the descriptor set write to the write binding - set will be filled out
@@ -2082,6 +2098,35 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     DummyInfos[index + 1].sampler = Unwrap(DummySampler);
     DummyInfos[index + 1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
+    // align up for the dummy buffer
+    VkDeviceSize bufferOffset = 0;
+    {
+      curOffset = AlignUp(curOffset, driver->GetDeviceProps().limits.bufferImageGranularity);
+
+      VkBufferCreateInfo bufInfo = {
+          VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,     NULL, 0, 16,
+          VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT,
+      };
+
+      vkr = driver->vkCreateBuffer(driver->GetDev(), &bufInfo, NULL, &DummyBuffer);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      VkMemoryRequirements mrq = {0};
+      driver->vkGetBufferMemoryRequirements(driver->GetDev(), DummyBuffer, &mrq);
+
+      if(mrq.memoryTypeBits & (1U << allocInfo.memoryTypeIndex))
+      {
+        curOffset = AlignUp(curOffset, mrq.alignment);
+        bufferOffset = curOffset;
+        curOffset += mrq.size;
+      }
+      else
+      {
+        RDCERR("Can't use memory type %u for dummy buffer!", allocInfo.memoryTypeIndex);
+        driver->vkDestroyBuffer(driver->GetDev(), DummyBuffer, NULL);
+      }
+    }
+
     // align up a bit just to be safe
     allocInfo.allocationSize = AlignUp(curOffset, (VkDeviceSize)1024ULL);
 
@@ -2090,30 +2135,42 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     // bind all the image memory
-    for(index = 0; index < (int)ARRAY_COUNT(DummyImages); index++)
-    {
-      // there are a couple of empty images at the end for YUV textures which re-use the 2D image
-      if(DummyImages[index] == VK_NULL_HANDLE)
-        continue;
-
-      vkr = driver->vkBindImageMemory(driver->GetDev(), DummyImages[index], DummyMemory,
-                                      offsets[index]);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
-    }
-
-    // now that the image memory is bound, we can create the image views and fill the descriptor
-    // set
-    // writes.
-    index = 0;
     for(size_t fmt = 0; fmt < ARRAY_COUNT(formats); fmt++)
     {
       for(size_t type = 0; type < ARRAY_COUNT(types); type++)
       {
+        vkr = driver->vkBindImageMemory(driver->GetDev(), DummyImages[fmt][type], DummyMemory,
+                                        offsets[fmt][type]);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      }
+    }
+
+    if(DummyBuffer != VK_NULL_HANDLE)
+    {
+      vkr = driver->vkBindBufferMemory(driver->GetDev(), DummyBuffer, DummyMemory, bufferOffset);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
+    // now that the image memory is bound, we can create the image views and fill the descriptor
+    // set writes.
+    index = 0;
+    for(size_t fmt = 0; fmt < ARRAY_COUNT(formats); fmt++)
+    {
+      for(size_t type = 0; type < ARRAY_COUNT(viewtypes); type++)
+      {
+        size_t imType = type;
+
+        // the cubemap view re-uses the 2D image
+        if(viewtypes[type] == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
+        {
+          imType = 1;
+        }
+
         VkImageViewCreateInfo viewInfo = {
             VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             NULL,
             0,
-            DummyImages[index],
+            DummyImages[fmt][imType],
             viewtypes[type],
             formats[fmt],
             {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -2123,10 +2180,17 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
             },
         };
 
-        vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &DummyImageViews[index]);
+        vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL,
+                                        &DummyImageViews[fmt][type]);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-        DummyInfos[index].imageView = Unwrap(DummyImageViews[index]);
+        // the cubemap view we don't create an info for it, and the image is already transitioned
+        if(viewtypes[type] == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
+          continue;
+
+        RDCASSERT((size_t)index < ARRAY_COUNT(DummyInfos), index);
+
+        DummyInfos[index].imageView = Unwrap(DummyImageViews[fmt][type]);
 
         // need to update image layout into valid state
         VkImageMemoryBarrier barrier = {
@@ -2138,8 +2202,8 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             VK_QUEUE_FAMILY_IGNORED,
             VK_QUEUE_FAMILY_IGNORED,
-            Unwrap(DummyImages[index]),
-            {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
+            Unwrap(DummyImages[fmt][imType]),
+            {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
         };
 
         DoPipelineBarrier(cmd, 1, &barrier);
@@ -2151,6 +2215,22 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     // duplicate 2D dummy image into YUV
     DummyInfos[index].imageView = DummyInfos[1].imageView;
     DummyInfos[index + 1].imageView = DummyInfos[1].imageView;
+
+    if(DummyBuffer != VK_NULL_HANDLE)
+    {
+      VkFormat bufViewTypes[] = {
+          VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_UINT, VK_FORMAT_R32G32B32A32_SINT,
+      };
+      for(size_t i = 0; i < ARRAY_COUNT(bufViewTypes); i++)
+      {
+        VkBufferViewCreateInfo viewInfo = {
+            VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO, NULL, 0, DummyBuffer, bufViewTypes[i], 0, 16,
+        };
+
+        vkr = driver->vkCreateBufferView(driver->GetDev(), &viewInfo, NULL, &DummyBufferView[i]);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      }
+    }
 
     ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
   }
@@ -2181,11 +2261,18 @@ void VulkanReplay::TextureRendering::Destroy(WrappedVulkan *driver)
   driver->vkDestroySampler(driver->GetDev(), PointSampler, NULL);
   driver->vkDestroySampler(driver->GetDev(), LinearSampler, NULL);
 
-  for(size_t i = 0; i < ARRAY_COUNT(DummyImages); i++)
+  for(size_t fmt = 0; fmt < ARRAY_COUNT(DummyImages); fmt++)
   {
-    driver->vkDestroyImageView(driver->GetDev(), DummyImageViews[i], NULL);
-    driver->vkDestroyImage(driver->GetDev(), DummyImages[i], NULL);
+    for(size_t type = 0; type < ARRAY_COUNT(DummyImages[0]); type++)
+    {
+      driver->vkDestroyImageView(driver->GetDev(), DummyImageViews[fmt][type], NULL);
+      driver->vkDestroyImage(driver->GetDev(), DummyImages[fmt][type], NULL);
+    }
   }
+
+  for(size_t fmt = 0; fmt < ARRAY_COUNT(DummyBufferView); fmt++)
+    driver->vkDestroyBufferView(driver->GetDev(), DummyBufferView[fmt], NULL);
+  driver->vkDestroyBuffer(driver->GetDev(), DummyBuffer, NULL);
 
   driver->vkFreeMemory(driver->GetDev(), DummyMemory, NULL);
 
