@@ -186,6 +186,8 @@ void Editor::DecorateStorageBufferStruct(Id id)
   // set bufferblock if needed
   if(m_StorageBufferClass == rdcspv::StorageClass::Uniform)
     AddDecoration(rdcspv::OpDecorate(id, rdcspv::Decoration::BufferBlock));
+  else
+    AddDecoration(rdcspv::OpDecorate(id, rdcspv::Decoration::Block));
 }
 
 void Editor::SetName(Id id, const rdcstr &name)
