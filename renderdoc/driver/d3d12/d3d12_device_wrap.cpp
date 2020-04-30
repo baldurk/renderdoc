@@ -2341,6 +2341,7 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
 
   bool isRes = ResourceRIID == __uuidof(ID3D12Resource) || ResourceRIID == __uuidof(ID3D12Resource1);
   bool isFence = ResourceRIID == __uuidof(ID3D12Fence) || ResourceRIID == __uuidof(ID3D12Fence1);
+  bool isHeap = ResourceRIID == __uuidof(ID3D12Heap) || ResourceRIID == __uuidof(ID3D12Heap1);
   if(isFence)
   {
     ID3D12Fence *fence = NULL;
@@ -2471,6 +2472,42 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
       }
     }
   }
+  else if(isHeap)
+  {
+    D3D12_HEAP_DESC desc;
+
+    ID3D12Heap *heap = NULL;
+    if(ser.IsWriting())
+    {
+      heap = (ID3D12Heap *)(ID3D12DeviceChild *)*ppvObj;
+      if(ResourceRIID == __uuidof(ID3D12Heap1))
+        heap = (ID3D12Heap1 *)(ID3D12DeviceChild *)*ppvObj;
+      desc = heap->GetDesc();
+    }
+
+    SERIALISE_ELEMENT_LOCAL(resourceId, GetResID(heap));
+    SERIALISE_ELEMENT(desc);
+
+    if(IsReplayingAndReading())
+    {
+      HRESULT hr;
+      ID3D12Heap *ret;
+      hr = m_pDevice->CreateHeap(&desc, __uuidof(ID3D12Heap), (void **)&ret);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed on resource serialise-creation, HRESULT: %s", ToStr(hr).c_str());
+        return false;
+      }
+      else
+      {
+        ret = new WrappedID3D12Heap1(ret, this);
+
+        GetResourceManager()->AddLiveResource(resourceId, ret);
+      }
+
+      AddResource(resourceId, ResourceType::Memory, "Heap");
+    }
+  }
   else
   {
     RDCERR("Unknown type of resource being shared");
@@ -2509,15 +2546,59 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
   bool isDXGIRes = riid == __uuidof(IDXGIResource) || riid == __uuidof(IDXGIResource1);
   bool isRes = riid == __uuidof(ID3D12Resource) || riid == __uuidof(ID3D12Resource1);
   bool isFence = riid == __uuidof(ID3D12Fence) || riid == __uuidof(ID3D12Fence1);
-  if(isDXGIRes || isRes || isFence)
+  bool isHeap = riid == __uuidof(ID3D12Heap) || riid == __uuidof(ID3D12Heap1);
+  bool isDeviceChild = riid == __uuidof(ID3D12DeviceChild);
+
+  IID riid_internal = riid;
+  void *ret = *ppvObj;
+
+  if(isDeviceChild)
   {
-    void *ret = *ppvObj;
+    // In this case we need to find out what the actual underlying type is
+    // Should be one of ID3D12Heap, ID3D12Resource, ID3D12Fence
+    ID3D12DeviceChild *real = (ID3D12DeviceChild *)(*ppvObj);
+
+    ID3D12Resource *d3d12Res = NULL;
+    ID3D12Fence *d3d12Fence = NULL;
+    ID3D12Heap *d3d12Heap = NULL;
+    isRes = SUCCEEDED(real->QueryInterface(__uuidof(ID3D12Resource), (void **)&d3d12Res)) && d3d12Res;
+    isFence =
+        SUCCEEDED(real->QueryInterface(__uuidof(ID3D12Fence), (void **)&d3d12Fence)) && d3d12Fence;
+    isHeap = SUCCEEDED(real->QueryInterface(__uuidof(ID3D12Heap), (void **)&d3d12Heap)) && d3d12Heap;
+    SAFE_RELEASE(real);
+
+    if(isRes)
+    {
+      riid_internal = __uuidof(ID3D12Resource);
+      ret = (void *)d3d12Res;
+    }
+    else if(isFence)
+    {
+      riid_internal = __uuidof(ID3D12Fence);
+      ret = (void *)d3d12Fence;
+    }
+    else if(isHeap)
+    {
+      riid_internal = __uuidof(ID3D12Heap);
+      ret = (void *)d3d12Heap;
+    }
+    else
+    {
+      SAFE_RELEASE(d3d12Res);
+      SAFE_RELEASE(d3d12Fence);
+      SAFE_RELEASE(d3d12Heap);
+      return E_NOINTERFACE;
+    }
+  }
+
+  if(isDXGIRes || isRes || isFence || isHeap)
+  {
     HRESULT hr = S_OK;
 
     if(isDXGIRes)
     {
       IDXGIResource *dxgiRes = (IDXGIResource *)ret;
-      if(riid == __uuidof(IDXGIResource1))
+      if(riid_internal == __uuidof(IDXGIResource1))
         dxgiRes = (IDXGIResource1 *)ret;
 
       ID3D12Resource *d3d12Res = NULL;
@@ -2546,7 +2627,7 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
     if(isFence)
     {
       ID3D12Fence *real = (ID3D12Fence *)ret;
-      if(riid == __uuidof(ID3D12Fence1))
+      if(riid_internal == __uuidof(ID3D12Fence1))
         real = (ID3D12Fence1 *)ret;
 
       WrappedID3D12Fence1 *wrapped = new WrappedID3D12Fence1(real, this);
@@ -2554,7 +2635,7 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
       wrappedDeviceChild = wrapped;
 
       *ppvObj = (ID3D12Fence *)wrapped;
-      if(riid == __uuidof(ID3D12Fence1))
+      if(riid_internal == __uuidof(ID3D12Fence1))
         *ppvObj = (ID3D12Fence1 *)wrapped;
 
       record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
@@ -2565,7 +2646,7 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
     else if(isRes)
     {
       ID3D12Resource *real = (ID3D12Resource *)ret;
-      if(riid == __uuidof(ID3D12Resource1))
+      if(riid_internal == __uuidof(ID3D12Resource1))
         real = (ID3D12Resource1 *)ret;
 
       WrappedID3D12Resource1 *wrapped = new WrappedID3D12Resource1(real, this);
@@ -2574,13 +2655,13 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
 
       if(isDXGIRes)
       {
-        wrapped->QueryInterface(riid, ppvObj);
+        wrapped->QueryInterface(riid_internal, ppvObj);
         wrapped->Release();
       }
       else
       {
         *ppvObj = (ID3D12Resource *)wrapped;
-        if(riid == __uuidof(ID3D12Resource1))
+        if(riid_internal == __uuidof(ID3D12Resource1))
           *ppvObj = (ID3D12Resource1 *)wrapped;
       }
 
@@ -2616,11 +2697,28 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
         }
       }
     }
+    else if(isHeap)
+    {
+      ID3D12Heap *real = (ID3D12Heap *)ret;
+      if(riid_internal == __uuidof(ID3D12Heap1))
+        real = (ID3D12Heap1 *)ret;
+
+      WrappedID3D12Heap1 *wrapped = new WrappedID3D12Heap1(real, this);
+
+      wrappedDeviceChild = wrapped;
+
+      *ppvObj = wrappedDeviceChild;
+
+      record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_Heap;
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+    }
 
     CACHE_THREAD_SERIALISER();
 
     SCOPED_SERIALISE_CHUNK(chunkType);
-    Serialise_OpenSharedHandle(ser, 0, riid, (void **)&wrappedDeviceChild);
+    Serialise_OpenSharedHandle(ser, 0, riid_internal, (void **)&wrappedDeviceChild);
 
     record->AddChunk(scope.Get());
 
