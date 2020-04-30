@@ -376,7 +376,7 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
 
         # bool C;
         # Value True from spec constants
-        var_check.check('C').type(rd.VarType.UInt).rows(1).cols(1).value([1])
+        var_check.check('C').type(rd.VarType.Bool).rows(1).cols(1).value([1])
 
         var_check.done()
 
