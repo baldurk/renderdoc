@@ -1746,7 +1746,8 @@ void main()
    %float4x2 = OpTypeMatrix %float4 2
    %float4x4 = OpTypeMatrix %float4 4
 
-   %mainfunc = OpTypeFunction %void
+     %mainfunc = OpTypeFunction %void
+   %doublerfunc = OpTypeFunction %float %float
 
 %rtarray_float4 = OpTypeRuntimeArray %float4
 
@@ -1817,6 +1818,15 @@ void main()
          %v2f_oneVal_idx = OpConstant %int 4
       %v2f_negoneVal_idx = OpConstant %int 5
 
+)EOSHADER";
+  std::string functions = R"EOSHADER(
+
+       %doubler = OpFunction %float None %doublerfunc
+    %doubler_in = OpFunctionParameter %float
+ %doubler_begin = OpLabel
+   %doubler_ret = OpFMul %float %float_2_0 %doubler_in
+                  OpReturnValue %doubler_ret
+                  OpFunctionEnd
 )EOSHADER";
   std::vector<std::string> asm_tests;
 
@@ -2614,6 +2624,69 @@ void main()
 
     spv_debug +=
         "OpName %C14FA880_4F83_4982_BEAD_CE9103446C76 \"C14FA880_4F83_4982_BEAD_CE9103446C76\"\n";
+
+    // test OpPhi
+    append_tests({
+
+        // basic simple test
+        R"EOTEST(
+OpBranch %_toplabel
+%_toplabel = OpLabel
+
+%_val = OpDot %float %inpos %float2_12
+%_cond = OpFOrdGreaterThan %bool %_val %float_37_0
+
+%_parent1 = OpFMul %float %float_2_0 %float_0_5
+
+OpSelectionMerge %_merge None
+OpBranchConditional %_cond %_merge %_branchlabel
+
+%_branchlabel = OpLabel
+
+%_parent2 = OpFMul %float %float_2_0 %float_0_25
+
+OpBranch %_merge
+
+%_merge = OpLabel
+
+; choose either parent1 or parent2, depending on if we branched
+%_out_float = OpPhi %float %_parent1 %_toplabel %_parent2 %_branchlabel
+
+OpBranch %_bottomlabel
+%_bottomlabel = OpLabel
+
+)EOTEST",
+
+        // test with a function call in each branch to ensure we still track the last block
+        // accurately
+        R"EOTEST(
+OpBranch %_toplabel
+%_toplabel = OpLabel
+
+%_val = OpDot %float %inpos %float2_12
+%_cond = OpFOrdGreaterThan %bool %_val %float_37_0
+
+%_parent1 = OpFunctionCall %float %doubler %float_0_5
+
+OpSelectionMerge %_merge None
+OpBranchConditional %_cond %_merge %_branchlabel
+
+%_branchlabel = OpLabel
+
+%_parent2 = OpFunctionCall %float %doubler %float_0_25
+
+OpBranch %_merge
+
+%_merge = OpLabel
+
+; choose either parent1 or parent2, depending on if we branched
+%_out_float = OpPhi %float %_parent1 %_toplabel %_parent2 %_branchlabel
+
+OpBranch %_bottomlabel
+%_bottomlabel = OpLabel
+
+)EOTEST",
+    });
   }
 
   std::string make_pixel_asm()
@@ -2971,7 +3044,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
                OpMemoryModel Logical GLSL450
                OpEntryPoint Fragment %main "main" %flatData %linearData %Color %gl_FragCoord
 )EOSHADER" + executionmodes +
-                      spv_debug + decorations + typesConstants +
+                      spv_debug + decorations + typesConstants + functions +
                       R"EOSHADER(
        %main = OpFunction %void None %mainfunc
  %main_begin = OpLabel
