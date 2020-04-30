@@ -531,7 +531,7 @@ void Reflector::PostParse()
 
         name = ToStr(img.retType.Type()) + name;
 
-        if(img.sampled == 2)
+        if(img.sampled == 2 && img.dim != Dim::SubpassData)
           name = "Storage" + name;
 
         if(img.ms)
