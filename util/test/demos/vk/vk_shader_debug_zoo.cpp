@@ -3035,6 +3035,9 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     VulkanGraphicsTest::Prepare(argc, argv);
 
+    if(!Avail.empty())
+      return;
+
     vk_version = 0x10;
 
     if(physProperties.apiVersion >= VK_MAKE_VERSION(1, 1, 0))
