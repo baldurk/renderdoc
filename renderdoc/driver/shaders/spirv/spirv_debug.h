@@ -74,6 +74,7 @@ public:
     SInt_Texture = 0x02,
 
     Buffer_Texture = 0x10,
+    Subpass_Texture = 0x20,
   };
 
   static const BindpointIndex invalidBind;

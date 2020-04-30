@@ -214,6 +214,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       case Capability::SampleRateShading:
       case Capability::ImageRect:
       case Capability::SampledRect:
+      case Capability::InputAttachment:
       case Capability::MinLod:
       case Capability::Sampled1D:
       case Capability::Image1D:
@@ -310,13 +311,6 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       case Capability::GroupNonUniformQuad:
       case Capability::SubgroupBallotKHR:
       case Capability::SubgroupVoteKHR:
-      {
-        supported = false;
-        break;
-      }
-
-      // input attachments
-      case Capability::InputAttachment:
 
       // sparse operations
       case Capability::SparseResidency:
@@ -325,6 +319,10 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       case Capability::FragmentShaderSampleInterlockEXT:
       case Capability::FragmentShaderShadingRateInterlockEXT:
       case Capability::FragmentShaderPixelInterlockEXT:
+      {
+        supported = false;
+        break;
+      }
 
       // no plans to support these - mostly Kernel/OpenCL related or vendor extensions
       case Capability::Addresses:
@@ -832,6 +830,9 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
         if(imageTypes[imgid].dim == Dim::Buffer)
           texType |= DebugAPIWrapper::Buffer_Texture;
 
+        if(imageTypes[imgid].dim == Dim::SubpassData)
+          texType |= DebugAPIWrapper::Subpass_Texture;
+
         if(imageTypes[imgid].retType.type == Op::TypeInt)
         {
           if(imageTypes[imgid].retType.signedness)
@@ -842,7 +843,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
         var.value.u64v[TextureTypeVariableSlot] = texType;
 
-        if(imageTypes[imgid].sampled == 2)
+        if(imageTypes[imgid].sampled == 2 && imageTypes[imgid].dim != Dim::SubpassData)
         {
           var.type = VarType::ReadWriteResource;
           debugType = DebugVariableType::ReadWriteResource;

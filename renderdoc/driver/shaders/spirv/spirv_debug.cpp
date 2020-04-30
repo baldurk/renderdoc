@@ -2192,6 +2192,9 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       DebugAPIWrapper::TextureType texType =
           (DebugAPIWrapper::TextureType)img.value.u64v[TextureTypeVariableSlot];
 
+      // should not be sampling or fetching from subpass textures
+      RDCASSERT((texType & DebugAPIWrapper::Subpass_Texture) == 0);
+
       ShaderVariable result;
 
       result.type = resultType.scalar().Type();
@@ -2239,23 +2242,60 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable result;
       result.type = resultType.scalar().Type();
 
-      if(!debugger.GetAPIWrapper()->ReadTexel(img.GetBinding(), coord,
-                                              read.imageOperands.flags & ImageOperands::Sample
-                                                  ? GetSrc(read.imageOperands.sample).value.uv[0]
-                                                  : 0,
-                                              result))
-      {
-        // sample failed. Pretend we got 0 columns back
-        result.value.uv[0] = 0;
-        result.value.uv[1] = 0;
-        result.value.uv[2] = 0;
+      DebugAPIWrapper::TextureType texType =
+          (DebugAPIWrapper::TextureType)img.value.u64v[TextureTypeVariableSlot];
 
-        if(result.type == VarType::Float || result.type == VarType::Half)
-          result.value.fv[3] = 1.0f;
-        else if(result.type == VarType::Double)
-          result.value.dv[3] = 1.0;
-        else
-          result.value.uv[3] = 1;
+      if(texType & DebugAPIWrapper::Subpass_Texture)
+      {
+        // get current position
+        ShaderVariable curCoord;
+        debugger.GetAPIWrapper()->FillInputValue(curCoord, ShaderBuiltin::Position, 0, 0);
+
+        // co-ords are relative to the current position
+        coord.value.uv[0] += curCoord.value.uv[0];
+        coord.value.uv[1] += curCoord.value.uv[1];
+
+        // do it with samplegather as ImageFetch rather than a Read which caches the whole texture
+        // on the CPU for no reason (since we can't write to it)
+
+        if(!debugger.GetAPIWrapper()->CalculateSampleGather(
+               *this, Op::ImageFetch, texType, img.GetBinding(), DebugAPIWrapper::invalidBind,
+               coord, ShaderVariable(), ShaderVariable(), ShaderVariable(), GatherChannel::Red,
+               ImageOperandsAndParamDatas(), result))
+        {
+          // sample failed. Pretend we got 0 columns back
+          result.value.uv[0] = 0;
+          result.value.uv[1] = 0;
+          result.value.uv[2] = 0;
+
+          if(result.type == VarType::Float || result.type == VarType::Half)
+            result.value.fv[3] = 1.0f;
+          else if(result.type == VarType::Double)
+            result.value.dv[3] = 1.0;
+          else
+            result.value.uv[3] = 1;
+        }
+      }
+      else
+      {
+        if(!debugger.GetAPIWrapper()->ReadTexel(img.GetBinding(), coord,
+                                                read.imageOperands.flags & ImageOperands::Sample
+                                                    ? GetSrc(read.imageOperands.sample).value.uv[0]
+                                                    : 0,
+                                                result))
+        {
+          // sample failed. Pretend we got 0 columns back
+          result.value.uv[0] = 0;
+          result.value.uv[1] = 0;
+          result.value.uv[2] = 0;
+
+          if(result.type == VarType::Float || result.type == VarType::Half)
+            result.value.fv[3] = 1.0f;
+          else if(result.type == VarType::Double)
+            result.value.dv[3] = 1.0;
+          else
+            result.value.uv[3] = 1;
+        }
       }
 
       result.rows = 1;
