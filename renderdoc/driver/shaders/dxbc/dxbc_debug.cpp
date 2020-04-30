@@ -4873,8 +4873,10 @@ void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
         if(sig.semanticName == psDxbc.InputSig[j].semanticName &&
            nextIdx == psDxbc.InputSig[j].semanticIndex)
         {
-          int jNumCols = (sig.regChannelMask & 0x1 ? 1 : 0) + (sig.regChannelMask & 0x2 ? 1 : 0) +
-                         (sig.regChannelMask & 0x4 ? 1 : 0) + (sig.regChannelMask & 0x8 ? 1 : 0);
+          int jNumCols = (psDxbc.InputSig[j].regChannelMask & 0x1 ? 1 : 0) +
+                         (psDxbc.InputSig[j].regChannelMask & 0x2 ? 1 : 0) +
+                         (psDxbc.InputSig[j].regChannelMask & 0x4 ? 1 : 0) +
+                         (psDxbc.InputSig[j].regChannelMask & 0x8 ? 1 : 0);
 
           // if it's the same size, and it's at the start of the next register
           if(jNumCols == numCols && psDxbc.InputSig[j].regChannelMask <= 0x3)
