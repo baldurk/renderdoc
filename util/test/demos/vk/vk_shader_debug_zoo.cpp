@@ -2599,6 +2599,21 @@ void main()
  %_out_float4 = OpFAdd %float4 %_x %float4_1234
 )EOTEST",
     });
+
+    // test naming structs. Since we can't easily name auto-generated IDs we use a guid to give the
+    // ID a unique name
+    append_tests({
+        R"EOTEST(
+          %_a = OpCompositeConstruct %float4 %float_dyn_4_2 %float_dyn_1_0 %float_dyn_9_5 %float_dyn_0_01
+
+%C14FA880_4F83_4982_BEAD_CE9103446C76 = OpCompositeInsert %parent %_a %null_parent 0
+
+%_out_float4 = OpCompositeExtract %float4 %C14FA880_4F83_4982_BEAD_CE9103446C76 0
+)EOTEST",
+    });
+
+    spv_debug +=
+        "OpName %C14FA880_4F83_4982_BEAD_CE9103446C76 \"C14FA880_4F83_4982_BEAD_CE9103446C76\"\n";
   }
 
   std::string make_pixel_asm()

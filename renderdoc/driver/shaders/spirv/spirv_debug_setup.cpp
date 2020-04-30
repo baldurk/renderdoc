@@ -1721,9 +1721,9 @@ void Debugger::AddSourceVars(rdcarray<SourceVariableMapping> &sourceVars, const 
     sourceVar.name = name;
     sourceVar.offset = 0;
     sourceVar.type = var.type;
-    sourceVar.rows = var.rows;
-    sourceVar.columns = var.columns;
-    for(uint32_t x = 0; x < uint32_t(var.rows) * var.columns; x++)
+    sourceVar.rows = RDCMAX(1U, (uint32_t)var.rows);
+    sourceVar.columns = RDCMAX(1U, (uint32_t)var.columns);
+    for(uint32_t x = 0; x < sourceVar.rows * sourceVar.columns; x++)
       sourceVar.variables.push_back(DebugVariableReference(DebugVariableType::Variable, var.name, x));
 
     sourceVars.push_back(sourceVar);
