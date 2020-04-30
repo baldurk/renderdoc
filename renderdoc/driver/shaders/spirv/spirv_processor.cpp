@@ -492,7 +492,8 @@ void Processor::RegisterOp(Iter it)
 
     // only register global variables here
     if(decoded.storageClass != rdcspv::StorageClass::Function)
-      globals.push_back(Variable(decoded.resultType, decoded.result, decoded.storageClass));
+      globals.push_back(
+          Variable(decoded.resultType, decoded.result, decoded.storageClass, decoded.initializer));
   }
   else if(opdata.op == Op::ConstantNull)
   {

@@ -543,6 +543,11 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
           this->apiWrapper->FillInputValue(var, builtin, (uint32_t)location, component);
         }
+        else
+        {
+          // make it obvious when uninitialised outputs are written
+          memset(var.value.u64v, 0xcc, sizeof(var.value.u64v));
+        }
 
         if(sourceName != rawName)
         {
@@ -885,8 +890,19 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       // global variables should all be pointers into opaque storage
       RDCASSERT(type.type == DataType::PointerType);
 
+      auto uninitialisedCallback = [this](ShaderVariable &var, const Decorations &,
+                                          const DataType &, uint64_t, const rdcstr &) {
+        if(!var.members.empty())
+          return;
+
+        memset(var.value.u64v, 0xcc, sizeof(var.value.u64v));
+      };
+
       WalkVariable<ShaderVariable, true>(decorations[v.id], dataTypes[type.InnerType()], ~0U, var,
-                                         rdcstr(), NULL);
+                                         rdcstr(), uninitialisedCallback);
+
+      if(v.initializer != Id())
+        AssignValue(var, active.ids[v.initializer]);
 
       if(v.storage == StorageClass::Private)
       {

@@ -2440,6 +2440,30 @@ void main()
  %_out_float4 = OpMatrixTimesVector %float4 %_mat %_vec
 )EOTEST",
     });
+
+    // test variables with initialisers
+    append_tests({
+        R"EOTEST(
+                 ; this has a constant initialiser, so should already be ready
+ %_out_float4 = OpLoad %float4 %priv_float4_init
+)EOTEST",
+        R"EOTEST(
+                 ; this is uninitialised, but unforuntately that means we can't test our debugging
+                 ; against the real thing when it's undefined. But we can at least expose it so that
+                 ; when manually checking we see the uninitialised values
+     %_uninit = OpLoad %float4 %priv_float4
+          %_x = OpVectorTimesScalar %float4 %_uninit %float_0_0
+ %_out_float4 = OpFAdd %float4 %_x %float4_1234
+)EOTEST",
+        R"EOTEST(
+                 ; this is uninitialised, but unforuntately that means we can't test our debugging
+                 ; against the real thing when it's undefined. But we can at least expose it so that
+                 ; when manually checking we see the uninitialised values
+     %_uninit = OpLoad %float4 %Color
+          %_x = OpVectorTimesScalar %float4 %_uninit %float_0_0
+ %_out_float4 = OpFAdd %float4 %_x %float4_1234
+)EOTEST",
+    });
   }
 
   std::string make_pixel_asm()
@@ -2915,6 +2939,8 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
  %float2_00 = OpConstantComposite %float2 %float_0_0 %float_0_0
  %float2_12 = OpConstantComposite %float2 %float_1_0 %float_2_0
+
+  %priv_float4_init = OpVariable %ptr_Private_float4 Private %float4_1234
 
 )EOSHADER";
 
