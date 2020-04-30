@@ -16,13 +16,6 @@ class D3D12_RGP_Capture(rdtest.TestCase):
         
         return super().check_support()
 
-    # Need to enable RGP mode before opening the capture
-    def run(self):
-        obj: rd.SDObject = rd.SetConfigSetting("AMD.RGP.Enable")
-        if obj is not None:
-            obj.data.basic.b = True
-        super().run()
-
     def check_capture(self):
         apiprops: rd.APIProperties = self.controller.GetAPIProperties()
 
