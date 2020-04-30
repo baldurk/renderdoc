@@ -3009,8 +3009,15 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
         rdcspv::Id ptrType =
             editor.DeclareType(rdcspv::Pointer(values[i].valueType, rdcspv::StorageClass::Input));
-        rdcspv::Id ptr =
-            ops.add(rdcspv::OpAccessChain(ptrType, editor.MakeId(), access.ID, accessIndices));
+
+        // if we have no access chain it's a global pointer of the type we want, so just load
+        // straight out of it
+        rdcspv::Id ptr;
+        if(accessIndices.empty())
+          ptr = access.ID;
+        else
+          ptr = ops.add(rdcspv::OpAccessChain(ptrType, editor.MakeId(), access.ID, accessIndices));
+
         rdcspv::Id base = ops.add(rdcspv::OpLoad(values[i].valueType, editor.MakeId(), ptr));
 
         values[i].data[Variant_Base] = base;
