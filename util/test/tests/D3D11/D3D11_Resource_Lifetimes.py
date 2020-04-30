@@ -41,7 +41,7 @@ class D3D11_Resource_Lifetimes(rdtest.TestCase):
             self.check_pixel_value(tex, xoffs+64, 72, [0.09, 0.0, 1.0, 1.0])
 
             # Check the orange face
-            self.check_pixel_value(tex, xoffs+46, 86, [1.0, 0.55, 0.36, 1.0])
+            self.check_pixel_value(tex, xoffs+46, 86, [1.0, 0.545, 0.36, 1.0])
 
             # Check the empty space where we clamped and didn't repeat
             self.check_pixel_value(tex, xoffs+82, 79, [0.72, 1.0, 1.0, 1.0])
@@ -49,7 +49,7 @@ class D3D11_Resource_Lifetimes(rdtest.TestCase):
             self.check_pixel_value(tex, xoffs+88, 92, [0.72, 1.0, 1.0, 1.0])
 
             # Check that the repeated smiley above is there
-            self.check_pixel_value(tex, xoffs+67, 53, [0.91, 0.636, 0.36, 1.0])
+            self.check_pixel_value(tex, xoffs+67, 53, [0.905, 0.635, 0.36, 1.0])
             self.check_pixel_value(tex, xoffs+65, 50, [1.0, 0.0, 0.09, 1.0])
 
         # Check for resource leaks
