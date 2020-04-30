@@ -31,6 +31,7 @@ _data_extra_dir = os.path.realpath('data_extra')
 _temp_dir = os.path.realpath('tmp')
 _test_name = 'Unknown_Test'
 _demos_bin = os.path.realpath('demos_x64')
+_demos_timeout = None
 
 
 def set_root_dir(path: str):
@@ -86,6 +87,11 @@ def set_demos_binary(path: str):
         _demos_bin = os.path.abspath(path)
 
 
+def set_demos_timeout(timeout: int):
+    global _demos_timeout
+    _demos_timeout = timeout
+
+
 def set_current_test(name: str):
     global _test_name
     _test_name = name
@@ -125,6 +131,10 @@ def get_tmp_dir():
 
 def get_demos_binary():
     return _demos_bin
+
+
+def get_demos_timeout():
+    return _demos_timeout
 
 
 def get_tmp_path(name: str):

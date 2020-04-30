@@ -198,7 +198,7 @@ class TestCase:
         """
 
         if self.demos_test_name != '':
-            return capture.run_and_capture(util.get_demos_binary(), self.demos_test_name, self.demos_frame_cap, opts=self.get_capture_options())
+            return capture.run_and_capture(util.get_demos_binary(), self.demos_test_name, self.demos_frame_cap, opts=self.get_capture_options(), timeout=util.get_demos_timeout())
 
         raise NotImplementedError("If run() is not implemented in a test, then"
                                   "get_capture() and check_capture() must be.")

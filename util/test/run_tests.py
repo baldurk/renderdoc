@@ -23,6 +23,8 @@ parser.add_argument('--data', default=os.path.join(script_dir, "data"),
                     help="The folder that reference data is in. Will not be modified.", type=str)
 parser.add_argument('--demos-binary', default="",
                     help="The path to the built demos binary.", type=str)
+parser.add_argument('--demos-timeout', default=None,
+                    help="The timeout to use when expecting the demos to run.", type=int)
 parser.add_argument('--data-extra', default=os.path.join(script_dir, "data_extra"),
                     help="The folder that extra reference data is in (typically very large captures that aren't part "
                          "of the normal repo). Will not be modified.", type=str)
@@ -68,6 +70,7 @@ temp_path = os.path.realpath(args.temp)
 demos_binary = args.demos_binary
 if demos_binary != "":
     demos_binary = os.path.realpath(demos_binary)
+demos_timeout = args.demos_timeout
 
 os.chdir(sys.path[0])
 
@@ -105,6 +108,7 @@ rdtest.set_data_dir(data_path)
 rdtest.set_data_extra_dir(data_extra_path)
 rdtest.set_temp_dir(temp_path)
 rdtest.set_demos_binary(demos_binary)
+rdtest.set_demos_timeout(demos_timeout)
 
 # debugger option implies in-process test running
 if args.debugger:

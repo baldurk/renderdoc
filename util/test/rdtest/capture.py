@@ -13,7 +13,7 @@ def run_until_capture(control):
 
 
 class TargetControl():
-    def __init__(self, ident: int, host="localhost", username="testrunner", force=True, timeout=60, exit_kill=True):
+    def __init__(self, ident: int, host="localhost", username="testrunner", force=True, timeout=None, exit_kill=True):
         """
         Creates a target control manager for a given ident
 
@@ -29,6 +29,8 @@ class TargetControl():
         self._children = []
         self.control = rd.CreateTargetControl(host, ident, username, force)
         self._timeout = timeout
+        if self._timeout is None:
+            self._timeout = 60
         self._exit_kill = exit_kill
 
         if self.control is None:
@@ -148,7 +150,7 @@ def run_executable(exe: str, cmdline: str,
     return res.ident
 
 
-def run_and_capture(exe: str, cmdline: str, frame: int, capture_name=None, opts=rd.GetDefaultCaptureOptions()):
+def run_and_capture(exe: str, cmdline: str, frame: int, capture_name=None, opts=rd.GetDefaultCaptureOptions(), timeout=None):
     """
     Helper function to run an executable with a command line, capture a particular frame, and exit.
 
@@ -166,7 +168,9 @@ def run_and_capture(exe: str, cmdline: str, frame: int, capture_name=None, opts=
     if capture_name is None:
         capture_name = 'capture'
 
-    control = TargetControl(run_executable(exe, cmdline, cappath=util.get_tmp_path(capture_name), opts=opts))
+    control = TargetControl(run_executable(exe, cmdline, cappath=util.get_tmp_path(capture_name), opts=opts), timeout=timeout)
+
+    log.print("Queuing capture of frame {} without timeout of {}".format(frame, "default" if timeout is None else timeout))
 
     # Capture frame
     control.queue_capture(frame)
