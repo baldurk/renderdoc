@@ -2509,11 +2509,16 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           "device.");
 
     // enable these features for simplicity, since we use them when available in the shader
-    // debugging. We should really check if the capture enabled them though
+    // debugging to simplify samples. If minlod isn't used then we omit it, and that's fine because
+    // the application's shaders wouldn't have been using minlod. We use gatherExtended for gather
+    // offsets, which means if it's not supported then we can't debug constant offsets properly
+    // (because we pass offsets as uniforms), but that's not a big deal.
     if(availFeatures.shaderImageGatherExtended)
       enabledFeatures.shaderImageGatherExtended = true;
     if(availFeatures.shaderResourceMinLod)
       enabledFeatures.shaderResourceMinLod = true;
+    if(availFeatures.imageCubeArray)
+      enabledFeatures.imageCubeArray = true;
 
     bool descIndexingAllowsRBA = true;
 

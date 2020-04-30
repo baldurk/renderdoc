@@ -626,7 +626,8 @@ public:
         if(viewProps.viewType == VK_IMAGE_VIEW_TYPE_1D_ARRAY ||
            viewProps.viewType == VK_IMAGE_VIEW_TYPE_2D_ARRAY)
           output.value.uv[i++] = imageProps.arrayLayers;
-        else if(viewProps.viewType == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
+        else if(viewProps.viewType == VK_IMAGE_VIEW_TYPE_CUBE ||
+                viewProps.viewType == VK_IMAGE_VIEW_TYPE_CUBE_ARRAY)
           output.value.uv[i++] = imageProps.arrayLayers / 6;
 
         if(buffer)
@@ -663,7 +664,8 @@ public:
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
       else if(viewInfo.viewType == VK_IMAGE_VIEW_TYPE_2D)
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-      else if(viewInfo.viewType == VK_IMAGE_VIEW_TYPE_CUBE)
+      else if(viewInfo.viewType == VK_IMAGE_VIEW_TYPE_CUBE &&
+              m_pDriver->GetDeviceFeatures().imageCubeArray)
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
 
       viewInfo.components = viewProps.componentMapping;
@@ -1793,6 +1795,8 @@ private:
     if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
       editor.AddCapability(rdcspv::Capability::ImageGatherExtended);
 
+    const bool cubeArray = (m_pDriver->GetDeviceFeatures().imageCubeArray != VK_FALSE);
+
     rdcspv::Id entryId = editor.MakeId();
 
     editor.AddOperation(
@@ -1935,7 +1939,7 @@ private:
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_2D, 0, 1, 0, 1, unk)),
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_3D, 0, 0, 0, 1, unk)),
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::_2D, 0, 1, 1, 1, unk)),
-        editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::Cube, 0, 1, 0, 1, unk)),
+        editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::Cube, 0, cubeArray ? 1 : 0, 0, 1, unk)),
         editor.DeclareType(rdcspv::Image(base, rdcspv::Dim::Buffer, 0, 0, 0, 1, unk)),
         editor.DeclareType(rdcspv::Sampler()),
         cbufferStructID,
@@ -2086,22 +2090,22 @@ private:
     // only used for QueryLod, so we can ignore MSAA/Buffer
     rdcspv::Id input_coord[(uint32_t)ShaderDebugBind::Count] = {
         rdcspv::Id(),
-        input_uv,        // 1D - u and array
-        input_uvw,       // 2D - u,v and array
-        input_uvw,       // 3D - u,v,w
-        rdcspv::Id(),    // 2DMS
-        input_uvwa,      // Cube - u,v,w and array
-        rdcspv::Id(),    // Buffer
+        input_uv,                              // 1D - u and array
+        input_uvw,                             // 2D - u,v and array
+        input_uvw,                             // 3D - u,v,w
+        rdcspv::Id(),                          // 2DMS
+        cubeArray ? input_uvwa : input_uvw,    // Cube - u,v,w and array (if supported)
+        rdcspv::Id(),                          // Buffer
     };
 
     rdcspv::Id coord[(uint32_t)ShaderDebugBind::Count] = {
         rdcspv::Id(),
-        uv,      // 1D - u and array
-        uvw,     // 2D - u,v and array
-        uvw,     // 3D - u,v,w
-        uvw,     // 2DMS - u,v and array
-        uvwa,    // Cube - u,v,w and array
-        u,       // Buffer - u
+        uv,                        // 1D - u and array
+        uvw,                       // 2D - u,v and array
+        uvw,                       // 3D - u,v,w
+        uvw,                       // 2DMS - u,v and array
+        cubeArray ? uvwa : uvw,    // Cube - u,v,w and array (if supported)
+        u,                         // Buffer - u
     };
 
     rdcspv::Id offsets[(uint32_t)ShaderDebugBind::Count] = {
