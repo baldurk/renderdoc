@@ -890,8 +890,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       // global variables should all be pointers into opaque storage
       RDCASSERT(type.type == DataType::PointerType);
 
-      auto uninitialisedCallback = [this](ShaderVariable &var, const Decorations &,
-                                          const DataType &, uint64_t, const rdcstr &) {
+      auto uninitialisedCallback = [](ShaderVariable &var, const Decorations &, const DataType &,
+                                      uint64_t, const rdcstr &) {
         if(!var.members.empty())
           return;
 
