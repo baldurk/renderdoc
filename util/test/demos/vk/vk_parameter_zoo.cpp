@@ -1004,13 +1004,15 @@ void main()
       if(status != VK_EVENT_RESET)
         TEST_WARN("Expected event to be unset");
 
-      uint64_t val = 0;
       if(KHR_timeline_semaphore)
+      {
+        uint64_t val = 0;
         for(size_t i = 0; i < 1000; i++)
           vkGetSemaphoreCounterValueKHR(device, sem, &val);
 
-      if(val != 1234)
-        TEST_WARN("Expected timeline semaphore value to be 1234");
+        if(val != 1234)
+          TEST_WARN("Expected timeline semaphore value to be 1234");
+      }
 
       // reference some resources through different descriptor types to ensure that they are
       // properly included
