@@ -1683,6 +1683,141 @@ void main()
 
 )EOSHADER";
 
+  std::string capabilities = "OpCapability Shader\n";
+  std::string spv_extensions;
+  std::string extinstimport =
+      R"EOSHADER(
+    %glsl450 = OpExtInstImport "GLSL.std.450"
+)EOSHADER";
+  std::string executionmodes =
+      R"EOSHADER(
+               OpExecutionMode %main OriginUpperLeft
+)EOSHADER";
+  std::string spv_debug;
+  std::string decorations = R"EOSHADER(
+               OpDecorate %flatData Flat
+               OpDecorate %flatData Location 1
+               OpDecorate %linearData Location 3
+               OpDecorate %Color Index 0
+               OpDecorate %Color Location 0
+               OpDecorate %gl_FragCoord BuiltIn FragCoord
+
+               OpDecorate %rtarray_float4 ArrayStride 16
+               OpMemberDecorate %dummy 0 Offset 0
+               OpMemberDecorate %dummy 1 Offset 16
+               OpMemberDecorate %buftype 0 Offset 0
+               OpMemberDecorate %buftype 1 Offset 64
+               OpMemberDecorate %buftype 2 Offset 128
+               OpMemberDecorate %buftype 3 Offset 144
+               OpMemberDecorate %buftype 4 Offset 176
+
+               OpMemberDecorate %buftype 0 MatrixStride 16
+               OpMemberDecorate %buftype 0 RowMajor
+
+               OpMemberDecorate %buftype 1 MatrixStride 16
+               OpMemberDecorate %buftype 1 ColMajor
+
+               OpDecorate %buftype BufferBlock
+               OpDecorate %buffer DescriptorSet 0
+               OpDecorate %buffer Binding 5
+)EOSHADER";
+  std::string typesConstants = R"EOSHADER(
+       %void = OpTypeVoid
+       %bool = OpTypeBool
+      %float = OpTypeFloat 32
+       %uint = OpTypeInt 32 0
+        %int = OpTypeInt 32 1
+
+     %float2 = OpTypeVector %float 2
+     %float3 = OpTypeVector %float 3
+     %float4 = OpTypeVector %float 4
+
+     %int2 = OpTypeVector %int 2
+     %int3 = OpTypeVector %int 3
+     %int4 = OpTypeVector %int 4
+
+     %uint2 = OpTypeVector %uint 2
+     %uint3 = OpTypeVector %uint 3
+     %uint4 = OpTypeVector %uint 4
+
+   %float2x2 = OpTypeMatrix %float2 2
+   %float3x3 = OpTypeMatrix %float3 3
+   %float2x4 = OpTypeMatrix %float2 4
+   %float4x2 = OpTypeMatrix %float4 2
+   %float4x4 = OpTypeMatrix %float4 4
+
+   %mainfunc = OpTypeFunction %void
+
+%rtarray_float4 = OpTypeRuntimeArray %float4
+
+        %v2f = OpTypeStruct %float2 %float2 %float2 %float %float %float
+    %flatv2f = OpTypeStruct %uint %uint
+
+      %child = OpTypeStruct %float4 %float3 %float
+     %parent = OpTypeStruct %float4 %child %float4x4
+
+     %f32f32 = OpTypeStruct %float %float
+     %f32i32 = OpTypeStruct %float %int
+
+      %dummy = OpTypeStruct %uint4 %uint4
+    %buftype = OpTypeStruct %float4x4 %float4x4 %float4 %dummy %rtarray_float4
+
+    %ptr_Input_v2f = OpTypePointer Input %v2f
+%ptr_Input_flatv2f = OpTypePointer Input %flatv2f
+   %ptr_Input_uint = OpTypePointer Input %uint
+    %ptr_Input_int = OpTypePointer Input %int
+  %ptr_Input_float = OpTypePointer Input %float
+ %ptr_Input_float2 = OpTypePointer Input %float2
+ %ptr_Input_float4 = OpTypePointer Input %float4
+%ptr_Output_float4 = OpTypePointer Output %float4
+  %ptr_Private_int = OpTypePointer Private %int
+%ptr_Private_float = OpTypePointer Private %float
+%ptr_Private_float4 = OpTypePointer Private %float4
+%ptr_Private_float4x4 = OpTypePointer Private %float4x4
+
+%ptr_Uniform_float = OpTypePointer Uniform %float
+%ptr_Uniform_float2 = OpTypePointer Uniform %float2
+%ptr_Uniform_float3 = OpTypePointer Uniform %float3
+%ptr_Uniform_float4 = OpTypePointer Uniform %float4
+
+%ptr_Uniform_uint = OpTypePointer Uniform %uint
+%ptr_Uniform_uint2 = OpTypePointer Uniform %uint2
+%ptr_Uniform_uint3 = OpTypePointer Uniform %uint3
+%ptr_Uniform_uint4 = OpTypePointer Uniform %uint4
+
+%ptr_Uniform_int = OpTypePointer Uniform %int
+%ptr_Uniform_int2 = OpTypePointer Uniform %int2
+%ptr_Uniform_int3 = OpTypePointer Uniform %int3
+%ptr_Uniform_int4 = OpTypePointer Uniform %int4
+
+%ptr_Uniform_float4x4 = OpTypePointer Uniform %float4x4
+
+%ptr_Uniform_dummy = OpTypePointer Uniform %dummy
+%ptr_Uniform_buftype = OpTypePointer Uniform %buftype
+
+  %linearData = OpVariable %ptr_Input_v2f Input
+    %flatData = OpVariable %ptr_Input_flatv2f Input
+%gl_FragCoord = OpVariable %ptr_Input_float4 Input
+       %Color = OpVariable %ptr_Output_float4 Output
+
+    %priv_int = OpVariable %ptr_Private_int Private
+  %priv_float = OpVariable %ptr_Private_float Private
+  %priv_float4 = OpVariable %ptr_Private_float4 Private
+  %priv_float4x4 = OpVariable %ptr_Private_float4x4 Private
+
+      %buffer = OpVariable %ptr_Uniform_buftype Uniform
+
+       %flatv2f_test_idx = OpConstant %int 0
+     %flatv2f_intval_idx = OpConstant %int 1
+
+        %v2f_zeroVal_idx = OpConstant %int 0
+          %v2f_inpos_idx = OpConstant %int 1
+ %v2f_inposIncreased_idx = OpConstant %int 2
+        %v2f_tinyVal_idx = OpConstant %int 3
+         %v2f_oneVal_idx = OpConstant %int 4
+      %v2f_negoneVal_idx = OpConstant %int 5
+
+)EOSHADER";
   std::vector<std::string> asm_tests;
 
   void append_tests(const std::initializer_list<std::string> &tests)
@@ -2698,134 +2833,6 @@ void main()
       cases += "OpBranch %break\n";
     }
 
-    std::string decorations = R"EOSHADER(
-               OpDecorate %flatData Flat
-               OpDecorate %flatData Location 1
-               OpDecorate %linearData Location 3
-               OpDecorate %Color Index 0
-               OpDecorate %Color Location 0
-               OpDecorate %gl_FragCoord BuiltIn FragCoord
-
-               OpDecorate %rtarray_float4 ArrayStride 16
-               OpMemberDecorate %dummy 0 Offset 0
-               OpMemberDecorate %dummy 1 Offset 16
-               OpMemberDecorate %buftype 0 Offset 0
-               OpMemberDecorate %buftype 1 Offset 64
-               OpMemberDecorate %buftype 2 Offset 128
-               OpMemberDecorate %buftype 3 Offset 144
-               OpMemberDecorate %buftype 4 Offset 176
-
-               OpMemberDecorate %buftype 0 MatrixStride 16
-               OpMemberDecorate %buftype 0 RowMajor
-
-               OpMemberDecorate %buftype 1 MatrixStride 16
-               OpMemberDecorate %buftype 1 ColMajor
-
-               OpDecorate %buftype BufferBlock
-               OpDecorate %buffer DescriptorSet 0
-               OpDecorate %buffer Binding 5
-)EOSHADER";
-
-    std::string typesConstants = R"EOSHADER(
-       %void = OpTypeVoid
-       %bool = OpTypeBool
-      %float = OpTypeFloat 32
-       %uint = OpTypeInt 32 0
-        %int = OpTypeInt 32 1
-
-     %float2 = OpTypeVector %float 2
-     %float3 = OpTypeVector %float 3
-     %float4 = OpTypeVector %float 4
-
-     %int2 = OpTypeVector %int 2
-     %int3 = OpTypeVector %int 3
-     %int4 = OpTypeVector %int 4
-
-     %uint2 = OpTypeVector %uint 2
-     %uint3 = OpTypeVector %uint 3
-     %uint4 = OpTypeVector %uint 4
-
-   %float2x2 = OpTypeMatrix %float2 2
-   %float3x3 = OpTypeMatrix %float3 3
-   %float2x4 = OpTypeMatrix %float2 4
-   %float4x2 = OpTypeMatrix %float4 2
-   %float4x4 = OpTypeMatrix %float4 4
-
-   %mainfunc = OpTypeFunction %void
-
-%rtarray_float4 = OpTypeRuntimeArray %float4
-
-        %v2f = OpTypeStruct %float2 %float2 %float2 %float %float %float
-    %flatv2f = OpTypeStruct %uint %uint
-
-      %child = OpTypeStruct %float4 %float3 %float
-     %parent = OpTypeStruct %float4 %child %float4x4
-
-     %f32f32 = OpTypeStruct %float %float
-     %f32i32 = OpTypeStruct %float %int
-
-      %dummy = OpTypeStruct %uint4 %uint4
-    %buftype = OpTypeStruct %float4x4 %float4x4 %float4 %dummy %rtarray_float4
-
-    %ptr_Input_v2f = OpTypePointer Input %v2f
-%ptr_Input_flatv2f = OpTypePointer Input %flatv2f
-   %ptr_Input_uint = OpTypePointer Input %uint
-    %ptr_Input_int = OpTypePointer Input %int
-  %ptr_Input_float = OpTypePointer Input %float
- %ptr_Input_float2 = OpTypePointer Input %float2
- %ptr_Input_float4 = OpTypePointer Input %float4
-%ptr_Output_float4 = OpTypePointer Output %float4
-  %ptr_Private_int = OpTypePointer Private %int
-%ptr_Private_float = OpTypePointer Private %float
-%ptr_Private_float4 = OpTypePointer Private %float4
-%ptr_Private_float4x4 = OpTypePointer Private %float4x4
-
-%ptr_Uniform_float = OpTypePointer Uniform %float
-%ptr_Uniform_float2 = OpTypePointer Uniform %float2
-%ptr_Uniform_float3 = OpTypePointer Uniform %float3
-%ptr_Uniform_float4 = OpTypePointer Uniform %float4
-
-%ptr_Uniform_uint = OpTypePointer Uniform %uint
-%ptr_Uniform_uint2 = OpTypePointer Uniform %uint2
-%ptr_Uniform_uint3 = OpTypePointer Uniform %uint3
-%ptr_Uniform_uint4 = OpTypePointer Uniform %uint4
-
-%ptr_Uniform_int = OpTypePointer Uniform %int
-%ptr_Uniform_int2 = OpTypePointer Uniform %int2
-%ptr_Uniform_int3 = OpTypePointer Uniform %int3
-%ptr_Uniform_int4 = OpTypePointer Uniform %int4
-
-%ptr_Uniform_float4x4 = OpTypePointer Uniform %float4x4
-
-%ptr_Uniform_dummy = OpTypePointer Uniform %dummy
-%ptr_Uniform_buftype = OpTypePointer Uniform %buftype
-
-  %linearData = OpVariable %ptr_Input_v2f Input
-    %flatData = OpVariable %ptr_Input_flatv2f Input
-%gl_FragCoord = OpVariable %ptr_Input_float4 Input
-       %Color = OpVariable %ptr_Output_float4 Output
-
-    %priv_int = OpVariable %ptr_Private_int Private
-  %priv_float = OpVariable %ptr_Private_float Private
-  %priv_float4 = OpVariable %ptr_Private_float4 Private
-  %priv_float4x4 = OpVariable %ptr_Private_float4x4 Private
-
-      %buffer = OpVariable %ptr_Uniform_buftype Uniform
-
-       %flatv2f_test_idx = OpConstant %int 0
-     %flatv2f_intval_idx = OpConstant %int 1
-
-        %v2f_zeroVal_idx = OpConstant %int 0
-          %v2f_inpos_idx = OpConstant %int 1
- %v2f_inposIncreased_idx = OpConstant %int 2
-        %v2f_tinyVal_idx = OpConstant %int 3
-         %v2f_oneVal_idx = OpConstant %int 4
-      %v2f_negoneVal_idx = OpConstant %int 5
-
-)EOSHADER";
-
-    std::string capabilities = "OpCapability Shader\n";
-
     if(features.shaderFloat64)
     {
       typesConstants += "%double = OpTypeFloat 64\n";
@@ -2944,15 +2951,12 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
 )EOSHADER";
 
-    std::string ret = capabilities +
+    std::string ret = capabilities + spv_extensions + extinstimport +
                       R"EOSHADER(
-               OpCapability Shader
-    %glsl450 = OpExtInstImport "GLSL.std.450"
                OpMemoryModel Logical GLSL450
                OpEntryPoint Fragment %main "main" %flatData %linearData %Color %gl_FragCoord
-               OpExecutionMode %main OriginUpperLeft
-)EOSHADER" + decorations +
-                      typesConstants +
+)EOSHADER" + executionmodes +
+                      spv_debug + decorations + typesConstants +
                       R"EOSHADER(
        %main = OpFunction %void None %mainfunc
  %main_begin = OpLabel
