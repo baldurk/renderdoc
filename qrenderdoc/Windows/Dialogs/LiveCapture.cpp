@@ -712,7 +712,7 @@ bool LiveCapture::checkAllowClose()
 
     QMessageBox::StandardButton res = QMessageBox::No;
 
-    if(!suppressRemoteWarning && !notoall)
+    if(!suppressRemoteWarning && !notoall && !m_Ctx.Config().NeverPromptSaveCapture)
     {
       QString frameName = tr("Frame #%1").arg(cap->frameNumber);
       if(cap->frameNumber == ~0U)

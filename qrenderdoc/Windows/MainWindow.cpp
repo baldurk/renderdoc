@@ -948,6 +948,8 @@ bool MainWindow::PromptCloseCapture()
   if(!m_Ctx.IsCaptureLoaded())
     return true;
 
+  bool neverPrompt = m_Ctx.Config().NeverPromptSaveCapture;
+
   QString deletepath;
   bool caplocal = false;
 
@@ -956,20 +958,23 @@ bool MainWindow::PromptCloseCapture()
     QString temppath = m_Ctx.GetCaptureFilename();
     caplocal = m_Ctx.IsCaptureLocal();
 
-    QMessageBox::StandardButton res =
-        RDDialog::question(this, tr("Unsaved capture"), tr("Save this capture?"),
-                           QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
-
-    if(res == QMessageBox::Cancel)
-      return false;
-
-    if(res == QMessageBox::Yes)
+    QMessageBox::StandardButton res = QMessageBox::No;
+    if (!neverPrompt)
     {
-      bool success = PromptSaveCaptureAs();
+      res = RDDialog::question(this, tr("Unsaved capture"), tr("Save this capture?"),
+                               QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
 
-      if(!success)
-      {
+      if(res == QMessageBox::Cancel)
         return false;
+
+      if(res == QMessageBox::Yes)
+      {
+        bool success = PromptSaveCaptureAs();
+
+        if(!success)
+        {
+          return false;
+        }
       }
     }
 
@@ -977,7 +982,7 @@ bool MainWindow::PromptCloseCapture()
       deletepath = temppath;
     m_OwnTempCapture = false;
   }
-  else if(m_Ctx.GetCaptureModifications() != CaptureModifications::NoModifications)
+  else if(m_Ctx.GetCaptureModifications() != CaptureModifications::NoModifications && !neverPrompt)
   {
     QString text = tr("This capture has the following modifications:\n\n");
 

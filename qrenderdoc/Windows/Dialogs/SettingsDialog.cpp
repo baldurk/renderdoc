@@ -133,6 +133,7 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   ui->TextureViewer_PerTexYFlip->setEnabled(ui->TextureViewer_PerTexSettings->isChecked());
 
   ui->AlwaysReplayLocally->setChecked(m_Ctx.Config().AlwaysReplayLocally);
+  ui->NeverPromptSaveCapture->setChecked(m_Ctx.Config().NeverPromptSaveCapture);
 
   {
     const SDObject *getPaths = RENDERDOC_GetConfigSetting("DXBC.Debug.SearchDirPaths");
@@ -415,6 +416,13 @@ void SettingsDialog::on_Font_PreferMonospaced_toggled(bool checked)
 void SettingsDialog::on_AlwaysReplayLocally_toggled(bool checked)
 {
   m_Ctx.Config().AlwaysReplayLocally = ui->AlwaysReplayLocally->isChecked();
+
+  m_Ctx.Config().Save();
+}
+
+void SettingsDialog::on_NeverPromptSaveCapture_toggled(bool checked)
+{
+  m_Ctx.Config().NeverPromptSaveCapture = ui->NeverPromptSaveCapture->isChecked();
 
   m_Ctx.Config().Save();
 }

@@ -304,6 +304,8 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, AlwaysReplayLocally, false)                       \
                                                                                            \
+  CONFIG_SETTING_VAL(public, bool, bool, NeverPromptSaveCapture, false)                    \
+                                                                                           \
   CONFIG_SETTING_VAL(public, int, int, LocalProxyAPI, -1)                                  \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, BufferFormatter_ShowHelp, true)                   \
