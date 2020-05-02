@@ -3322,6 +3322,7 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
     return S_OK;
   }
 
+  bool isUnknown = ReturnedInterface == __uuidof(IUnknown);
   bool isDXGIRes =
       ReturnedInterface == __uuidof(IDXGIResource) || ReturnedInterface == __uuidof(IDXGIResource1);
   bool isRes = ReturnedInterface == __uuidof(ID3D11Resource);
@@ -3332,32 +3333,34 @@ HRESULT WrappedID3D11Device::OpenSharedResourceInternal(D3D11Chunk chunkType,
   bool isTex3D = ReturnedInterface == __uuidof(ID3D11Texture3D) ||
                  ReturnedInterface == __uuidof(ID3D11Texture3D1);
 
-  if(isDXGIRes || isRes || isBuf || isTex1D || isTex2D || isTex3D)
+  if(isUnknown || isDXGIRes || isRes || isBuf || isTex1D || isTex2D || isTex3D)
   {
     void *res = *ppResource;
     HRESULT hr = S_OK;
 
-    if(isDXGIRes)
+    if(isUnknown || isDXGIRes)
     {
-      IDXGIResource *dxgiRes = (IDXGIResource *)res;
+      IUnknown *unknownRes = (IUnknown *)res;
+
+      if(ReturnedInterface == __uuidof(IDXGIResource))
+        unknownRes = (IDXGIResource *)res;
 
       if(ReturnedInterface == __uuidof(IDXGIResource1))
-        dxgiRes = (IDXGIResource1 *)res;
+        unknownRes = (IDXGIResource1 *)res;
 
       ID3D11Resource *d3d11Res = NULL;
-      hr = dxgiRes->QueryInterface(__uuidof(ID3D11Resource), (void **)&d3d11Res);
+      hr = unknownRes->QueryInterface(__uuidof(ID3D11Resource), (void **)&d3d11Res);
+
+      // release this interface
+      SAFE_RELEASE(unknownRes);
 
       // if we can't get a d3d11Res then we can't properly wrap this resource,
       // whatever it is.
       if(FAILED(hr) || d3d11Res == NULL)
       {
         SAFE_RELEASE(d3d11Res);
-        SAFE_RELEASE(dxgiRes);
         return E_NOINTERFACE;
       }
-
-      // release this interface
-      SAFE_RELEASE(dxgiRes);
 
       // and use this one, so it'll be casted back below
       res = (void *)d3d11Res;
