@@ -137,9 +137,9 @@ struct EventInfo
   PixelHistoryValue premod;
   PixelHistoryValue postmod;
   uint8_t dsWithoutShaderDiscard[8];
-  uint32_t padding[4];
+  uint8_t padding[8];
   uint8_t dsWithShaderDiscard[8];
-  uint32_t padding1[4];
+  uint8_t padding1[8];
 };
 
 struct PerFragmentInfo
@@ -379,7 +379,7 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
     m_pDriver->SetDrawcallCB(this);
   }
 
-  ~VulkanPixelHistoryCallback()
+  virtual ~VulkanPixelHistoryCallback()
   {
     m_pDriver->SetDrawcallCB(NULL);
     for(const VkRenderPass &rp : m_RpsToDestroy)
@@ -433,15 +433,17 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
   }
 
 protected:
-  // MakeAllPassIncrementStencilPipelineCI fills in the provided pipeCreateInfo
+  // MakeIncrementStencilPipelineCI fills in the provided pipeCreateInfo
   // to create a graphics pipeline that is based on the original. The modifications
-  // to the original pipeline: disables all tests except stencil, stencil is set
+  // to the original pipeline: disables depth test and write, stencil is set
   // to always pass and increment, scissor is set to scissor around target pixel,
   // all shaders are replaced with their "clean" versions (attempts to remove side
-  // effects).
-  void MakeAllPassIncrementStencilPipelineCI(uint32_t eid, ResourceId pipe,
-                                             VkGraphicsPipelineCreateInfo &pipeCreateInfo,
-                                             rdcarray<VkPipelineShaderStageCreateInfo> &stages)
+  // effects), all color modifications are disabled.
+  // Optionally disables other tests like culling, depth bounds.
+  void MakeIncrementStencilPipelineCI(uint32_t eid, ResourceId pipe,
+                                      VkGraphicsPipelineCreateInfo &pipeCreateInfo,
+                                      rdcarray<VkPipelineShaderStageCreateInfo> &stages,
+                                      bool disableTests)
   {
     const VulkanCreationInfo::Pipeline &p = m_pDriver->GetDebugManager()->GetPipelineInfo(pipe);
     m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, pipe);
@@ -457,17 +459,22 @@ protected:
 
     VkRect2D newScissors[16];
     memset(newScissors, 0, sizeof(newScissors));
-    // Turn off all tests, except stencil which is set to always pass
-    // and increment.
+
+    // TODO: should leave in the original state.
+    ds->depthTestEnable = VK_FALSE;
+    ds->depthWriteEnable = VK_FALSE;
+
+    if(disableTests)
     {
       rs->cullMode = VK_CULL_MODE_NONE;
       rs->rasterizerDiscardEnable = VK_FALSE;
-      ds->depthTestEnable = VK_FALSE;
-      ds->depthWriteEnable = VK_FALSE;
       ds->depthBoundsTestEnable = VK_FALSE;
       if(m_pDriver->GetDeviceFeatures().depthClamp)
         rs->depthClampEnable = true;
+    }
 
+    // Set up the stencil state.
+    {
       ds->stencilTestEnable = VK_TRUE;
       ds->front.compareOp = VK_COMPARE_OP_ALWAYS;
       ds->front.failOp = VK_STENCIL_OP_INCREMENT_AND_CLAMP;
@@ -477,7 +484,10 @@ protected:
       ds->front.writeMask = 0xff;
       ds->front.reference = 0;
       ds->back = ds->front;
+    }
 
+    // Narrow on the specific pixel and sample.
+    {
       ms->pSampleMask = &m_CallbackInfo.sampleMask;
 
       // Change scissors unless they are set dynamically.
@@ -495,6 +505,16 @@ protected:
         }
         vs->pScissors = newScissors;
       }
+    }
+
+    // Turn off all color modifications.
+    {
+      VkPipelineColorBlendStateCreateInfo *cbs =
+          (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
+      VkPipelineColorBlendAttachmentState *atts =
+          (VkPipelineColorBlendAttachmentState *)cbs->pAttachments;
+      for(uint32_t i = 0; i < cbs->attachmentCount; i++)
+        atts[i].colorWriteMask = 0;
     }
 
     // TODO: this is wrong, should take into account subpass.
@@ -982,17 +1002,8 @@ private:
 
     VkGraphicsPipelineCreateInfo pipeCreateInfo = {};
     rdcarray<VkPipelineShaderStageCreateInfo> stages;
-    MakeAllPassIncrementStencilPipelineCI(eid, pipeline, pipeCreateInfo, stages);
-    {
-      // We just need to determine if something attempted to write to pixel.
-      // Disable actual color modifications.
-      VkPipelineColorBlendStateCreateInfo *cbs =
-          (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
-      VkPipelineColorBlendAttachmentState *atts =
-          (VkPipelineColorBlendAttachmentState *)cbs->pAttachments;
-      for(uint32_t i = 0; i < cbs->attachmentCount; i++)
-        atts[i].colorWriteMask = 0;
-    }
+    MakeIncrementStencilPipelineCI(eid, pipeline, pipeCreateInfo, stages, true);
+
     for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
     {
       if(stages[i].stage == VK_SHADER_STAGE_FRAGMENT_BIT)
@@ -1094,6 +1105,8 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
         for(uint32_t i = 0; i < pipestate.views.size(); i++)
           ScissorToPixel(pipestate.views[i], pipestate.scissors[i]);
 
+      // TODO: should fill depth value from the original DS attachment.
+
       // Replay the draw with a fixed color shader that never discards, and stencil
       // increment to count number of fragments. We will get the number of fragments
       // not accounting for shader discard.
@@ -1111,6 +1124,8 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       // Copy stencil value that indicates the number of fragments ignoring
       // shader discard.
       CopyImagePixel(cmd, params, storeOffset + offsetof(struct EventInfo, dsWithoutShaderDiscard));
+
+      // TODO: in between reset the depth value.
 
       // Replay the draw with the original fragment shader to get the actual number
       // of fragments, accounting for potential shader discard.
@@ -1364,21 +1379,10 @@ private:
 
     VkGraphicsPipelineCreateInfo pipeCreateInfo = {};
     rdcarray<VkPipelineShaderStageCreateInfo> stages;
-    MakeAllPassIncrementStencilPipelineCI(eid, pipeline, pipeCreateInfo, stages);
+    MakeIncrementStencilPipelineCI(eid, pipeline, pipeCreateInfo, stages, false);
     // No need to change depth stencil state, it is already
     // set to always pass, and increment.
     pipeCreateInfo.renderPass = rp;
-
-    {
-      // We just need to determine if something attempted to write to pixel.
-      // Disable actual color modifications.
-      VkPipelineColorBlendStateCreateInfo *cbs =
-          (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
-      VkPipelineColorBlendAttachmentState *atts =
-          (VkPipelineColorBlendAttachmentState *)cbs->pAttachments;
-      for(uint32_t i = 0; i < cbs->attachmentCount; i++)
-        atts[i].colorWriteMask = 0;
-    }
 
     PipelineReplacements replacements = {};
     VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
@@ -2241,23 +2245,6 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
     m_PipesToDestroy.push_back(pipes.postModPipe);
 
-    VkPipelineRasterizationStateCreateInfo *rs =
-        (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
-    // Disable some tests, leave depthTest and depthWriteEnable as is.
-    // If we disable depth test, depth information would not be written.
-    {
-      // TODO: this causes post-modification values to be incorrectly mapped to events
-      // if some fragments failed due to culling. We are disabling culling for reporting
-      // shader output values and events, but if some events failed culling when we
-      // replay to get post-modification values the stencil count will not reach the
-      // expected stencil count, since stencil is not updated if culling failed.
-      rs->cullMode = VK_CULL_MODE_NONE;
-      rs->rasterizerDiscardEnable = VK_FALSE;
-      ds->depthBoundsTestEnable = VK_FALSE;
-      if(ds->depthTestEnable)
-        ds->depthCompareOp = VK_COMPARE_OP_ALWAYS;
-    }
-
     VkPipelineColorBlendStateCreateInfo *cbs =
         (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
     // Turn off blending so that we can get shader output values.
@@ -2425,21 +2412,12 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
   {
     rdcarray<VkPipelineShaderStageCreateInfo> stages;
     VkGraphicsPipelineCreateInfo pipeCreateInfo = {};
-    MakeAllPassIncrementStencilPipelineCI(eid, pipe, pipeCreateInfo, stages);
-
-    VkPipelineDepthStencilStateCreateInfo *ds =
-        (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
-    VkPipelineColorBlendStateCreateInfo *cbs =
-        (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
+    MakeIncrementStencilPipelineCI(eid, pipe, pipeCreateInfo, stages, false);
 
     {
-      // Disable all tests, but stencil.
+      VkPipelineDepthStencilStateCreateInfo *ds =
+          (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
       ds->stencilTestEnable = VK_FALSE;
-
-      VkPipelineColorBlendAttachmentState *atts =
-          (VkPipelineColorBlendAttachmentState *)cbs->pAttachments;
-      for(uint32_t i = 0; i < cbs->attachmentCount; i++)
-        atts[i].colorWriteMask = 0;
     }
 
     VkPipeline newPipe;
@@ -2505,6 +2483,7 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   VkMarkerRegion region(StringFormat::Fmt("PixelHistorySetupResources %ux%ux%u %s %ux MSAA",
                                           extent.width, extent.height, extent.depth,
                                           ToStr(format).c_str(), samples));
+  VulkanCreationInfo::Image targetImageInfo = GetImageInfo(GetResID(targetImage));
 
   VkImage colorImage;
   VkImageView colorImageView;
@@ -2530,8 +2509,8 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   // Create Images
   VkImageCreateInfo imgInfo = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
   imgInfo.imageType = VK_IMAGE_TYPE_2D;
-  imgInfo.mipLevels = 1;
-  imgInfo.arrayLayers = 1;
+  imgInfo.mipLevels = targetImageInfo.mipLevels;
+  imgInfo.arrayLayers = targetImageInfo.arrayLayers;
   imgInfo.samples = samples;
   imgInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
   imgInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -2993,6 +2972,15 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     if(events[ev].view != ResourceId())
     {
       // TODO: Check that the slice and mip matches.
+      VulkanCreationInfo::ImageView viewInfo =
+          m_pDriver->GetDebugManager()->GetImageViewInfo(events[ev].view);
+      uint32_t layerEnd = viewInfo.range.baseArrayLayer + viewInfo.range.layerCount;
+      if(sub.slice < viewInfo.range.baseArrayLayer || sub.slice >= layerEnd)
+      {
+        RDCDEBUG("Usage %d at %u didn't refer to the matching mip/slice (%u/%u)", events[ev].usage,
+                 events[ev].eventId, sub.mip, sub.slice);
+        continue;
+      }
     }
 
     if(directWrite || clear)
@@ -3071,6 +3059,8 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
       history.push_back(mod);
     }
   }
+
+  SAFE_DELETE(tfCb);
 
   // Try to read memory back
 
