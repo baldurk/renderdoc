@@ -2793,6 +2793,22 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         {
           vk12Features.bufferDeviceAddress = VK_TRUE;
 
+          // enable any features that the spec requires
+          if(Extensions.contains(VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME))
+            vk12Features.drawIndirectCount = VK_TRUE;
+
+          if(Extensions.contains(VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME))
+            vk12Features.samplerMirrorClampToEdge = VK_TRUE;
+
+          if(Extensions.contains(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME))
+            vk12Features.descriptorIndexing = VK_TRUE;
+
+          if(Extensions.contains(VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME))
+            vk12Features.samplerFilterMinmax = VK_TRUE;
+
+          if(Extensions.contains(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME))
+            vk12Features.shaderOutputLayer = VK_TRUE;
+
           vk12Features.pNext = (void *)createInfo.pNext;
           createInfo.pNext = &vk12Features;
         }
