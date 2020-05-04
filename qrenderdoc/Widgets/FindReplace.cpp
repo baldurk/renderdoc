@@ -172,12 +172,14 @@ void FindReplace::addHistory(QComboBox *combo)
 
 void FindReplace::on_findPrev_clicked()
 {
+  setDirection(FindReplace::Up);
   addHistory(ui->findText);
   emit performFind();
 }
 
 void FindReplace::on_find_clicked()
 {
+  setDirection(FindReplace::Down);
   addHistory(ui->findText);
   emit performFind();
 }
