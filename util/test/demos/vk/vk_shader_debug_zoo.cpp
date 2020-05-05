@@ -273,6 +273,45 @@ layout(location = 0, index = 0) out vec4 Color;
 
 )EOSHADER" + v2f + R"EOSHADER(
 
+vec4 varscope_test(int coord, vec2 inpos_param, vec2 inpos_incr_param)
+{
+  float never_in_scope;
+
+  if(coord < 0)
+  {
+    never_in_scope = inpos_param.x;
+    never_in_scope *= 2.0f;
+  }
+
+  vec4 ret;
+
+  // for the first pixel ret comes into scope early
+  if(coord == 0)
+  {
+    ret = vec4(0.5, 0.5, 0.5, 0.0);
+  }
+
+  float long_scope;
+
+  {
+    float short_scope;
+    short_scope = inpos_param.y;
+    short_scope = sin(short_scope);
+    long_scope = short_scope * inpos_incr_param.x;
+  }
+
+  if(coord != 0)
+  {
+    ret = vec4(1.0, 1.0, 1.0, 0.0);
+  }
+
+  ret.w += long_scope;
+
+  ret *= 1.5f;
+
+  return ret;
+}
+
 void main()
 {
   float  posinf = linearData.oneVal/linearData.zeroVal.x;
@@ -1496,6 +1535,12 @@ void main()
     case 174:
     {
       Color += vec4(1.0, 1.0, 1.0, 1.0);
+      break;
+    }
+    case 175:
+    {
+      // this isn't really intended as a true test but more a convenience for manual testing.
+      Color = varscope_test(flatLocalCoord, inpos, inposIncreased);
       break;
     }
     default: break;

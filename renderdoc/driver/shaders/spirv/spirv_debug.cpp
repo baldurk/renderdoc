@@ -155,6 +155,10 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
 
   frame->locals.resize(numVars);
 
+  // don't add source vars for variables, we'll add it on the first store
+  ShaderDebugState *state = m_State;
+  m_State = NULL;
+
   size_t i = 0;
   // handle any variable declarations
   while(OpDecoder(it).op == Op::Variable)
@@ -166,7 +170,6 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
 
     rdcstr sourceName = debugger.GetHumanName(decl.result);
 
-    // don't add source vars - SetDst below will do that
     debugger.AllocateVariable(decl.result, decl.resultType, stackvar);
 
     if(decl.HasInitializer())
@@ -177,6 +180,8 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
     it++;
     i++;
   }
+
+  m_State = state;
 
   // next instruction is the first actual instruction we'll execute
   nextInstruction = debugger.GetInstructionForIter(it);
@@ -211,6 +216,8 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
     // if var is a pointer we update the underlying storage and generate at least one change,
     // plus any additional ones for other pointers.
     Id ptrid = debugger.GetPointerBaseId(var);
+
+    ReferencePointer(ptrid);
 
     ShaderVariableChange basechange;
 
@@ -263,6 +270,11 @@ void ThreadState::WritePointerValue(Id pointer, const ShaderVariable &val)
     basechange.after = debugger.GetPointerValue(ids[ptrid]);
     m_State->changes.push_back(basechange);
   }
+}
+
+ShaderVariable ThreadState::ReadPointerValue(Id pointer)
+{
+  return debugger.ReadFromPointer(GetSrc(pointer));
 }
 
 void ThreadState::SetDst(Id id, const ShaderVariable &val)
@@ -435,6 +447,48 @@ void ThreadState::JumpToLabel(Id target)
   SkipIgnoredInstructions();
 }
 
+void ThreadState::ReferencePointer(Id id)
+{
+  if(m_State)
+  {
+    StackFrame *frame = callstack.back();
+
+    rdcstr name = debugger.GetRawName(id);
+
+    // see if this is a local variable which is newly referenced, if so add source vars for it
+    for(size_t i = 0; i < frame->locals.size(); i++)
+    {
+      if(name == frame->locals[i].name)
+      {
+        if(!frame->localsUsed.contains(id))
+        {
+          debugger.AddSourceVars(sourceVars, frame->locals[i], id);
+          frame->localsUsed.push_back(id);
+        }
+
+        break;
+      }
+    }
+
+    // otherwise if we have sourcevars referencing this ID, shuffle them to the back as they are
+    // newly touched.
+    rdcarray<SourceVariableMapping> refs;
+    for(size_t i = 0; i < sourceVars.size();)
+    {
+      if(!sourceVars[i].variables.empty() && sourceVars[i].variables[0].name == name)
+      {
+        refs.push_back(sourceVars[i]);
+        sourceVars.erase(i);
+        continue;
+      }
+
+      i++;
+    }
+
+    sourceVars.append(refs);
+  }
+}
+
 void ThreadState::SkipIgnoredInstructions()
 {
   // skip OpLine/OpNoLine now, so that nextInstruction points to the next real instruction
@@ -510,7 +564,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       (void)load.memoryAccess;
 
       // get the pointer value, evaluate it (i.e. dereference) and store the result
-      SetDst(load.result, debugger.ReadFromPointer(GetSrc(load.pointer)));
+      SetDst(load.result, ReadPointerValue(load.pointer));
 
       break;
     }
@@ -533,7 +587,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       (void)copy.memoryAccess0;
       (void)copy.memoryAccess1;
 
-      WritePointerValue(copy.target, debugger.ReadFromPointer(GetSrc(copy.source)));
+      WritePointerValue(copy.target, ReadPointerValue(copy.source));
 
       break;
     }
@@ -2569,8 +2623,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       result.rows = 1;
       result.columns = 1;
       result.isStruct = true;
-      result.members = {debugger.ReadFromPointer(GetSrc(ptr.image)), GetSrc(ptr.coordinate),
-                        GetSrc(ptr.sample)};
+      result.members = {ReadPointerValue(ptr.image), GetSrc(ptr.coordinate), GetSrc(ptr.sample)};
       result.members[0].name = "image";
       result.members[1].name = "coord";
       result.members[2].name = "sample";
@@ -2591,7 +2644,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       if(ptr.members.empty())
       {
-        result = debugger.ReadFromPointer(ptr);
+        result = ReadPointerValue(load.pointer);
       }
       else
       {
@@ -2648,7 +2701,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       if(ptr.members.empty())
       {
-        result = debugger.ReadFromPointer(ptr);
+        result = ReadPointerValue(excg.pointer);
         WritePointerValue(excg.pointer, value);
       }
       else
@@ -2688,7 +2741,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       if(ptr.members.empty())
       {
-        result = debugger.ReadFromPointer(ptr);
+        result = ReadPointerValue(cmpexcg.pointer);
       }
       else
       {
@@ -2736,7 +2789,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       if(ptr.members.empty())
       {
-        result = debugger.ReadFromPointer(ptr);
+        result = ReadPointerValue(atomic.pointer);
       }
       else
       {
@@ -2794,7 +2847,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
 
       if(ptr.members.empty())
       {
-        result = debugger.ReadFromPointer(ptr);
+        result = ReadPointerValue(atomic.pointer);
       }
       else
       {

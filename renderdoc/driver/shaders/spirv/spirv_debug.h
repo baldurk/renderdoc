@@ -156,6 +156,9 @@ struct StackFrame
   // allocated storage for locals
   rdcarray<ShaderVariable> locals;
 
+  // as a hack for scoping without proper debug info, we track locals from their first use
+  rdcarray<Id> localsUsed;
+
   // the thread's live list before the function was entered
   rdcarray<Id> live;
   rdcarray<SourceVariableMapping> sourceVars;
@@ -236,12 +239,14 @@ struct ThreadState
 
   const ShaderVariable &GetSrc(Id id) const;
   void WritePointerValue(Id pointer, const ShaderVariable &val);
+  ShaderVariable ReadPointerValue(Id pointer);
 
 private:
   void EnterFunction(const rdcarray<Id> &arguments);
   void SetDst(Id id, const ShaderVariable &val);
   void ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray<Id> &newLive);
   void JumpToLabel(Id target);
+  void ReferencePointer(Id id);
 
   void SkipIgnoredInstructions();
 
