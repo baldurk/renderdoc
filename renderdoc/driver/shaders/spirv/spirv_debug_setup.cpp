@@ -921,10 +921,13 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       {
         SourceVariableMapping sourceVar;
         sourceVar.name = sourceName;
-        sourceVar.rows = 1;
-        sourceVar.columns = 1;
+        sourceVar.type = var.type;
+        sourceVar.rows = RDCMAX(1U, (uint32_t)var.rows);
+        sourceVar.columns = RDCMAX(1U, (uint32_t)var.columns);
         sourceVar.offset = 0;
-        sourceVar.variables.push_back(DebugVariableReference(DebugVariableType::Variable, var.name));
+        for(uint32_t x = 0; x < sourceVar.rows * sourceVar.columns; x++)
+          sourceVar.variables.push_back(
+              DebugVariableReference(DebugVariableType::Variable, var.name, x));
 
         globalSourceVars.push_back(sourceVar);
       }
