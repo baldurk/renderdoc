@@ -3287,6 +3287,9 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
   for(RDTreeWidgetItem *c : children)
     node->addChild(c);
 
+  if(modified)
+    node->setForegroundColor(QColor(Qt::red));
+
   node->setTag(QVariant::fromValue(VariableTag(localName, l.offset, globalVarIdx, localVarIdx)));
 
   return node;
