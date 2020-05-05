@@ -267,6 +267,19 @@ public:
             default: RDCERR("Unexpected descriptor type");
           }
         }
+        else
+        {
+          // still need to skip past dynamic offsets for stages that aren't of interest
+
+          switch(bindLayout.descriptorType)
+          {
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+              dynamicOffset += bindLayout.descriptorCount;
+              break;
+            default: break;
+          }
+        }
       }
     }
   }
