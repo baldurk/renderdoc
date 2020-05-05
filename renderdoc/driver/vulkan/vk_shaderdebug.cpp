@@ -1104,7 +1104,7 @@ public:
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DebugData.PipeLayout), VK_SHADER_STAGE_ALL,
                                      sizeof(Vec4f) * 2, sizeof(Vec3f), &uniformParams.ddy);
 
-      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), 3, 1, 0, 0);
 
       ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
 
@@ -1178,7 +1178,7 @@ public:
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DebugData.PipeLayout),
                                      VK_SHADER_STAGE_ALL, sizeof(Vec4f) * 3, sizeof(uint32_t), &op);
 
-      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), 3, 1, 0, 0);
 
       ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
 
