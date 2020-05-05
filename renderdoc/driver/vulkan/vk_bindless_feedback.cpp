@@ -683,6 +683,10 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     PatchReservedDescriptors(pipe, descpool, setLayouts, descSets, VkShaderStageFlagBits(),
                              newBindings, ARRAY_COUNT(newBindings));
 
+    // if the pool failed due to limits, it will be NULL so bail now
+    if(descpool == VK_NULL_HANDLE)
+      return;
+
     // create pipeline layout with new descriptor set layouts
     {
       const rdcarray<VkPushConstantRange> &push =

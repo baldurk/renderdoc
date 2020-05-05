@@ -1675,6 +1675,504 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
   vt->DeviceWaitIdle(Unwrap(dev));
 }
 
+void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
+                                            VkDescriptorPool &descpool,
+                                            rdcarray<VkDescriptorSetLayout> &setLayouts,
+                                            rdcarray<VkDescriptorSet> &descSets,
+                                            VkShaderStageFlagBits patchedBindingStage,
+                                            const VkDescriptorSetLayoutBinding *newBindings,
+                                            size_t newBindingsCount)
+{
+  VkDevice dev = m_Device;
+  VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
+
+  const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[pipe.pipeline];
+
+  VkResult vkr = VK_SUCCESS;
+
+  rdcarray<VkWriteDescriptorSet> descWrites;
+
+  struct AllocedWrites
+  {
+    ~AllocedWrites()
+    {
+      for(VkDescriptorImageInfo *a : imgWrites)
+        delete[] a;
+      for(VkDescriptorBufferInfo *a : bufWrites)
+        delete[] a;
+      for(VkBufferView *a : bufViewWrites)
+        delete[] a;
+    }
+
+    rdcarray<VkDescriptorImageInfo *> imgWrites;
+    rdcarray<VkDescriptorBufferInfo *> bufWrites;
+    rdcarray<VkBufferView *> bufViewWrites;
+  } alloced;
+
+  rdcarray<VkDescriptorImageInfo *> &allocImgWrites = alloced.imgWrites;
+  rdcarray<VkDescriptorBufferInfo *> &allocBufWrites = alloced.bufWrites;
+  rdcarray<VkBufferView *> &allocBufViewWrites = alloced.bufViewWrites;
+
+  // one for each descriptor type. 1 of each to start with, we then increment for each descriptor
+  // we need to allocate
+  VkDescriptorPoolSize poolSizes[11] = {
+      {VK_DESCRIPTOR_TYPE_SAMPLER, 1},
+      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1},
+      {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1},
+      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
+      {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1},
+      {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1},
+      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},
+      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1},
+      {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1},
+  };
+
+  // count up our own
+  for(size_t i = 0; i < newBindingsCount; i++)
+    poolSizes[newBindings[i].descriptorType].descriptorCount += newBindings[i].descriptorCount;
+
+  const rdcarray<ResourceId> &pipeDescSetLayouts =
+      creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts;
+
+  // need to add our added bindings to the first descriptor set
+  rdcarray<VkDescriptorSetLayoutBinding> bindings(newBindings, newBindingsCount);
+
+  // if there are fewer sets bound than were declared in the pipeline layout, only process the
+  // bound sets (as otherwise we'd fail to copy from them). Assume the application knew what it
+  // was doing and the other sets are statically unused.
+  setLayouts.resize(RDCMIN(pipe.descSets.size(), pipeDescSetLayouts.size()));
+
+  size_t boundDescs = setLayouts.size();
+
+  // need at least one set, if the shader isn't using any we'll just make our own
+  if(setLayouts.empty())
+    setLayouts.resize(1);
+
+  // start with the limits as they are, and subtract off them incrementally. When any limit would
+  // drop below 0, we fail.
+  uint32_t maxPerStageDescriptorSamplers[6] = {
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSamplers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSamplers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSamplers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSamplers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSamplers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSamplers,
+  };
+  uint32_t maxPerStageDescriptorUniformBuffers[6] = {
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorUniformBuffers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorUniformBuffers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorUniformBuffers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorUniformBuffers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorUniformBuffers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorUniformBuffers,
+  };
+  uint32_t maxPerStageDescriptorStorageBuffers[6] = {
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageBuffers,
+  };
+  uint32_t maxPerStageDescriptorSampledImages[6] = {
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSampledImages,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSampledImages,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSampledImages,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSampledImages,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSampledImages,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorSampledImages,
+  };
+  uint32_t maxPerStageDescriptorStorageImages[6] = {
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageImages,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageImages,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageImages,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageImages,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageImages,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorStorageImages,
+  };
+  uint32_t maxPerStageDescriptorInputAttachments[6] = {
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorInputAttachments,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorInputAttachments,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorInputAttachments,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorInputAttachments,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorInputAttachments,
+      m_pDriver->GetDeviceProps().limits.maxPerStageDescriptorInputAttachments,
+  };
+  uint32_t maxPerStageResources[6] = {
+      m_pDriver->GetDeviceProps().limits.maxPerStageResources,
+      m_pDriver->GetDeviceProps().limits.maxPerStageResources,
+      m_pDriver->GetDeviceProps().limits.maxPerStageResources,
+      m_pDriver->GetDeviceProps().limits.maxPerStageResources,
+      m_pDriver->GetDeviceProps().limits.maxPerStageResources,
+      m_pDriver->GetDeviceProps().limits.maxPerStageResources,
+  };
+  uint32_t maxDescriptorSetSamplers = m_pDriver->GetDeviceProps().limits.maxDescriptorSetSamplers;
+  uint32_t maxDescriptorSetUniformBuffers =
+      m_pDriver->GetDeviceProps().limits.maxDescriptorSetUniformBuffers;
+  uint32_t maxDescriptorSetUniformBuffersDynamic =
+      m_pDriver->GetDeviceProps().limits.maxDescriptorSetUniformBuffersDynamic;
+  uint32_t maxDescriptorSetStorageBuffers =
+      m_pDriver->GetDeviceProps().limits.maxDescriptorSetStorageBuffers;
+  uint32_t maxDescriptorSetStorageBuffersDynamic =
+      m_pDriver->GetDeviceProps().limits.maxDescriptorSetStorageBuffersDynamic;
+  uint32_t maxDescriptorSetSampledImages =
+      m_pDriver->GetDeviceProps().limits.maxDescriptorSetSampledImages;
+  uint32_t maxDescriptorSetStorageImages =
+      m_pDriver->GetDeviceProps().limits.maxDescriptorSetStorageImages;
+  uint32_t maxDescriptorSetInputAttachments =
+      m_pDriver->GetDeviceProps().limits.maxDescriptorSetInputAttachments;
+
+  bool error = false;
+
+#define UPDATE_AND_CHECK_LIMIT(maxLimit)                                                   \
+  if(!error)                                                                               \
+  {                                                                                        \
+    if(bind.descriptorCount > maxLimit)                                                    \
+    {                                                                                      \
+      error = true;                                                                        \
+      RDCWARN("Limit %s is exceeded. Cannot patch in required descriptor(s).", #maxLimit); \
+    }                                                                                      \
+    else                                                                                   \
+    {                                                                                      \
+      maxLimit -= bind.descriptorCount;                                                    \
+    }                                                                                      \
+  }
+
+#define UPDATE_AND_CHECK_STAGE_LIMIT(maxLimit)                                                 \
+  if(!error)                                                                                   \
+  {                                                                                            \
+    for(uint32_t sbit = 0; sbit < 6; sbit++)                                                   \
+    {                                                                                          \
+      if(newBind.stageFlags & (1U << sbit))                                                    \
+      {                                                                                        \
+        if(bind.descriptorCount > maxLimit[sbit])                                              \
+        {                                                                                      \
+          error = true;                                                                        \
+          RDCWARN("Limit %s is exceeded. Cannot patch in required descriptor(s).", #maxLimit); \
+        }                                                                                      \
+        else                                                                                   \
+        {                                                                                      \
+          maxLimit[sbit] -= bind.descriptorCount;                                              \
+        }                                                                                      \
+      }                                                                                        \
+    }                                                                                          \
+  }
+
+  for(size_t i = 0; !error && i < setLayouts.size(); i++)
+  {
+    bool hasImmutableSamplers = false;
+
+    // except for the first layout we need to start from scratch
+    if(i > 0)
+      bindings.clear();
+
+    // if the shader had no descriptor sets at all, i will be invalid, so just skip and add a set
+    // with only our own bindings.
+    if(i < pipeDescSetLayouts.size() && i < pipe.descSets.size() &&
+       pipe.descSets[i].pipeLayout != ResourceId())
+    {
+      // use the descriptor set layout from when it was bound. If the pipeline layout declared a
+      // descriptor set layout for this set, but it's statically unused, it may be complete
+      // garbage and doesn't match what the shader uses. However the pipeline layout at descriptor
+      // set bind time must have been compatible and valid so we can use it. If this set *is* used
+      // then the pipeline layout at bind time must be compatible with the pipeline's pipeline
+      // layout, so we're fine too.
+      const DescSetLayout &origLayout =
+          creationInfo.m_DescSetLayout[creationInfo.m_PipelineLayout[pipe.descSets[i].pipeLayout]
+                                           .descSetLayouts[i]];
+
+      for(size_t b = 0; !error && b < origLayout.bindings.size(); b++)
+      {
+        const DescSetLayout::Binding &bind = origLayout.bindings[b];
+
+        // skip empty bindings
+        if(bind.descriptorCount == 0 || bind.stageFlags == 0)
+          continue;
+
+        // make room in the pool
+        poolSizes[bind.descriptorType].descriptorCount += bind.descriptorCount;
+
+        VkDescriptorSetLayoutBinding newBind;
+        // offset the binding. We offset all sets to make it easier for patching - don't need to
+        // conditionally patch shader bindings depending on which set they're in.
+        newBind.binding = uint32_t(b + newBindingsCount);
+        newBind.descriptorCount = bind.descriptorCount;
+        newBind.descriptorType = bind.descriptorType;
+
+        // we only need it available for compute, just make all bindings visible otherwise dynamic
+        // buffer offsets could be indexed wrongly. Consider the case where we have binding 0 as a
+        // fragment UBO, and binding 1 as a vertex UBO. Then there are two dynamic offsets, and
+        // the second is the one we want to use with ours. If we only add the compute visibility
+        // bit to the second UBO, then suddenly it's the *first* offset that we must provide.
+        // Instead of trying to remap offsets to match, we simply make every binding compute
+        // visible so the ordering is still the same. Since compute and graphics are disjoint this
+        // is safe.
+        if(patchedBindingStage != 0)
+          newBind.stageFlags = patchedBindingStage;
+        else
+          newBind.stageFlags = bind.stageFlags;
+
+        switch(bind.descriptorType)
+        {
+          case VK_DESCRIPTOR_TYPE_SAMPLER:
+            UPDATE_AND_CHECK_LIMIT(maxDescriptorSetSamplers);
+            UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorSamplers);
+            break;
+          case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+            UPDATE_AND_CHECK_LIMIT(maxDescriptorSetSampledImages);
+            UPDATE_AND_CHECK_LIMIT(maxDescriptorSetSamplers);
+            UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorSamplers);
+            UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorSampledImages);
+            break;
+          case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+            UPDATE_AND_CHECK_LIMIT(maxDescriptorSetSampledImages);
+            UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorSampledImages);
+            break;
+          case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+            UPDATE_AND_CHECK_LIMIT(maxDescriptorSetStorageImages);
+            UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorStorageImages);
+            break;
+          case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+            UPDATE_AND_CHECK_LIMIT(maxDescriptorSetSampledImages);
+            UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorSampledImages);
+            break;
+          case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+            UPDATE_AND_CHECK_LIMIT(maxDescriptorSetStorageImages);
+            UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorStorageImages);
+            break;
+          case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+            UPDATE_AND_CHECK_LIMIT(maxDescriptorSetUniformBuffers);
+            UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorUniformBuffers);
+            break;
+          case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+            UPDATE_AND_CHECK_LIMIT(maxDescriptorSetStorageBuffers);
+            UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorStorageBuffers);
+            break;
+          case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+            UPDATE_AND_CHECK_LIMIT(maxDescriptorSetUniformBuffersDynamic);
+            UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorUniformBuffers);
+            break;
+          case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+            UPDATE_AND_CHECK_LIMIT(maxDescriptorSetStorageBuffersDynamic);
+            UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorStorageBuffers);
+            break;
+          case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+            UPDATE_AND_CHECK_LIMIT(maxDescriptorSetInputAttachments);
+            UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorInputAttachments);
+            break;
+          default: break;
+        }
+
+        UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageResources);
+
+        if(bind.immutableSampler)
+        {
+          hasImmutableSamplers = true;
+          VkSampler *samplers = new VkSampler[bind.descriptorCount];
+          newBind.pImmutableSamplers = samplers;
+          for(uint32_t s = 0; s < bind.descriptorCount; s++)
+            samplers[s] = GetResourceManager()->GetCurrentHandle<VkSampler>(bind.immutableSampler[s]);
+        }
+        else
+        {
+          newBind.pImmutableSamplers = NULL;
+        }
+
+        bindings.push_back(newBind);
+      }
+    }
+
+    VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        NULL,
+        0,
+        (uint32_t)bindings.size(),
+        bindings.data(),
+    };
+
+    if(!error)
+    {
+      // create new offseted descriptor layout
+      vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL, &setLayouts[i]);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
+    if(hasImmutableSamplers)
+    {
+      for(const VkDescriptorSetLayoutBinding &bind : bindings)
+        delete[] bind.pImmutableSamplers;
+    }
+  }
+
+  // if we hit an error, we can't create the descriptor set so bail out now
+  if(error)
+    return;
+
+  VkDescriptorPoolCreateInfo poolCreateInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+  // 1 set for each layout
+  poolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+  poolCreateInfo.maxSets = (uint32_t)setLayouts.size();
+  poolCreateInfo.poolSizeCount = ARRAY_COUNT(poolSizes);
+  poolCreateInfo.pPoolSizes = poolSizes;
+
+  // create descriptor pool with enough space for our descriptors
+  vkr = m_pDriver->vkCreateDescriptorPool(dev, &poolCreateInfo, NULL, &descpool);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  // allocate all the descriptors
+  VkDescriptorSetAllocateInfo descSetAllocInfo = {
+      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+      NULL,
+      descpool,
+      (uint32_t)setLayouts.size(),
+      setLayouts.data(),
+  };
+
+  descSets.resize(setLayouts.size());
+  m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, descSets.data());
+
+  // copy the data across from the real descriptors into our adjusted bindings
+  for(size_t i = 0; i < boundDescs; i++)
+  {
+    if(pipe.descSets[i].descSet == ResourceId())
+      continue;
+
+    // as above we use the pipeline layout that was originally used to bind this descriptor set
+    // and not the pipeline layout from the pipeline, in case the pipeline statically doesn't use
+    // this set and so its descriptor set layout is garbage (doesn't match the actual bound
+    // descriptor set)
+    const DescSetLayout &origLayout =
+        creationInfo.m_DescSetLayout[creationInfo.m_PipelineLayout[pipe.descSets[i].pipeLayout]
+                                         .descSetLayouts[i]];
+
+    WrappedVulkan::DescriptorSetInfo &setInfo =
+        m_pDriver->m_DescriptorSetState[pipe.descSets[i].descSet];
+
+    {
+      // push descriptors don't have a source to copy from, we need to add writes
+      VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+      write.dstSet = descSets[i];
+
+      // Only write bindings that actually exist in the current descriptor
+      // set. If there are bindings that aren't set, assume the app knows
+      // what it's doing and the remaining bindings are unused.
+      for(size_t b = 0; b < setInfo.currentBindings.size(); b++)
+      {
+        const DescSetLayout::Binding &bind = origLayout.bindings[b];
+
+        // skip empty bindings
+        if(bind.descriptorCount == 0 || bind.stageFlags == 0)
+          continue;
+
+        DescriptorSetSlot *slot = setInfo.currentBindings[b];
+
+        write.dstBinding = uint32_t(b + newBindingsCount);
+        write.dstArrayElement = 0;
+        write.descriptorCount = bind.descriptorCount;
+        write.descriptorType = bind.descriptorType;
+
+        switch(write.descriptorType)
+        {
+          case VK_DESCRIPTOR_TYPE_SAMPLER:
+          case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+          case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+          case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+          case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+          {
+            VkDescriptorImageInfo *out = new VkDescriptorImageInfo[write.descriptorCount];
+            for(uint32_t w = 0; w < write.descriptorCount; w++)
+            {
+              const DescriptorSetSlotImageInfo &src = slot[w].imageInfo;
+
+              out[w].imageLayout = src.imageLayout;
+              out[w].sampler = GetResourceManager()->GetCurrentHandle<VkSampler>(src.sampler);
+              out[w].imageView = GetResourceManager()->GetCurrentHandle<VkImageView>(src.imageView);
+            }
+
+            write.pImageInfo = out;
+            allocImgWrites.push_back(out);
+            break;
+          }
+          case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+          case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+          {
+            VkBufferView *out = new VkBufferView[write.descriptorCount];
+            for(uint32_t w = 0; w < write.descriptorCount; w++)
+              out[w] = GetResourceManager()->GetCurrentHandle<VkBufferView>(slot[w].texelBufferView);
+            write.pTexelBufferView = out;
+            allocBufViewWrites.push_back(out);
+            break;
+          }
+          case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+          case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+          case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+          case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+          {
+            VkDescriptorBufferInfo *out = new VkDescriptorBufferInfo[write.descriptorCount];
+            for(uint32_t w = 0; w < write.descriptorCount; w++)
+            {
+              const DescriptorSetSlotBufferInfo &src = slot[w].bufferInfo;
+
+              out[w].offset = src.offset;
+              out[w].range = src.range;
+              out[w].buffer = GetResourceManager()->GetCurrentHandle<VkBuffer>(src.buffer);
+            }
+            write.pBufferInfo = out;
+            allocBufWrites.push_back(out);
+            break;
+          }
+          default: RDCERR("Unexpected descriptor type %d", write.descriptorType);
+        }
+
+        // start with no descriptors
+        write.descriptorCount = 0;
+
+        for(uint32_t w = 0; w < bind.descriptorCount; w++)
+        {
+          // if this write is valid, we increment the descriptor count and continue
+          if(IsValid(write, w - write.dstArrayElement))
+          {
+            write.descriptorCount++;
+          }
+          else
+          {
+            // if this write isn't valid, then we first check to see if we had any previous
+            // pending writes in the array we were going to batch together, if so we add them.
+            if(write.descriptorCount > 0)
+              descWrites.push_back(write);
+
+            // skip past any previous descriptors we just wrote, as well as the current invalid
+            // one
+            if(write.pBufferInfo)
+              write.pBufferInfo += write.descriptorCount + 1;
+            if(write.pImageInfo)
+              write.pImageInfo += write.descriptorCount + 1;
+            if(write.pTexelBufferView)
+              write.pTexelBufferView += write.descriptorCount + 1;
+
+            // now start again from 0 descriptors, at the next array element
+            write.dstArrayElement += write.descriptorCount + 1;
+            write.descriptorCount = 0;
+          }
+        }
+
+        // if there are any left, add them here
+        if(write.descriptorCount > 0)
+          descWrites.push_back(write);
+
+        // don't leak the arrays and cause double deletes, NULL them after each time
+        write.pImageInfo = NULL;
+        write.pBufferInfo = NULL;
+        write.pTexelBufferView = NULL;
+      }
+    }
+  }
+
+  m_pDriver->vkUpdateDescriptorSets(dev, (uint32_t)descWrites.size(), descWrites.data(), 0, NULL);
+}
+
 void VulkanDebugManager::CustomShaderRendering::Destroy(WrappedVulkan *driver)
 {
   driver->vkDestroyRenderPass(driver->GetDev(), TexRP, NULL);

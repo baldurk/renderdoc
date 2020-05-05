@@ -3661,6 +3661,17 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     PatchReservedDescriptors(state.graphics, descpool, setLayouts, descSets,
                              VkShaderStageFlagBits(), newBindings, ARRAY_COUNT(newBindings));
 
+    // if the pool failed due to limits, it will be NULL so bail now
+    if(descpool == VK_NULL_HANDLE)
+    {
+      delete apiWrapper;
+
+      ShaderDebugTrace *ret = new ShaderDebugTrace;
+      ret->stage = ShaderStage::Pixel;
+
+      return ret;
+    }
+
     // create pipeline layout with new descriptor set layouts
     const rdcarray<VkPushConstantRange> &push = c.m_PipelineLayout[pipe.layout].pushRanges;
 
