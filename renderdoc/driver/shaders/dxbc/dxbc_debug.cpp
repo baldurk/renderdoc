@@ -5476,8 +5476,9 @@ rdcarray<ShaderDebugState> InterpretDebugger::ContinueDebug(DXBCDebug::DebugAPIW
 
   rdcarray<bool> activeMask;
 
-  // do 100 in a chunk
-  for(int cycleCounter = 0; cycleCounter < 100; cycleCounter++)
+  // continue stepping until we have 100 target steps completed in a chunk. This may involve doing
+  // more steps if our target thread is inactive
+  for(int stepEnd = steps + 100; steps < stepEnd;)
   {
     if(active.Finished())
       break;
@@ -5504,6 +5505,8 @@ rdcarray<ShaderDebugState> InterpretDebugger::ContinueDebug(DXBCDebug::DebugAPIW
           state.nextInstruction = workgroup[i].nextInstruction;
           dxbc->FillStateInstructionInfo(state);
           ret.push_back(state);
+
+          steps++;
         }
         else
         {
@@ -5511,8 +5514,6 @@ rdcarray<ShaderDebugState> InterpretDebugger::ContinueDebug(DXBCDebug::DebugAPIW
         }
       }
     }
-
-    steps++;
   }
 
   return ret;

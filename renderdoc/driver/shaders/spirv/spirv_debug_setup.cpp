@@ -1056,8 +1056,9 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
 
   rdcarray<bool> activeMask;
 
-  // do 100 in a chunk
-  for(int cycleCounter = 0; cycleCounter < 100; cycleCounter++)
+  // continue stepping until we have 100 target steps completed in a chunk. This may involve doing
+  // more steps if our target thread is inactive
+  for(int stepEnd = steps + 100; steps < stepEnd;)
   {
     global.clock++;
 
@@ -1114,6 +1115,8 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
           state.sourceVars = thread.sourceVars;
           thread.FillCallstack(state);
           ret.push_back(state);
+
+          steps++;
         }
         else
         {
@@ -1121,8 +1124,6 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
         }
       }
     }
-
-    steps++;
   }
 
   return ret;
