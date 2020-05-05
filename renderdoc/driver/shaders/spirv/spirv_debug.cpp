@@ -103,6 +103,8 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
   // if there's a previous stack frame, save its live list
   if(!callstack.empty())
   {
+    // process the outgoing scope
+    ProcessScopeChange(live, {});
     callstack.back()->live = live;
     callstack.back()->sourceVars = sourceVars;
   }
@@ -110,8 +112,6 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
   // start with just globals
   live = debugger.GetLiveGlobals();
   sourceVars = debugger.GetGlobalSourceVars();
-  // process the outgoing scope
-  ProcessScopeChange(frame->live, live);
 
   callstack.push_back(frame);
 
