@@ -1475,7 +1475,8 @@ void CaptureContext::SetRemoteHost(int hostIdx)
 
 void CaptureContext::RegisterReplacement(ResourceId id)
 {
-  m_ReplacedResources.push_back(id);
+  if(!m_ReplacedResources.contains(id))
+    m_ReplacedResources.push_back(id);
 
   CacheResources();
 
