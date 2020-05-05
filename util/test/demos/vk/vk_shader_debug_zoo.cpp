@@ -2597,7 +2597,7 @@ void main()
                  ; against the real thing when it's undefined. But we can at least expose it so that
                  ; when manually checking we see the uninitialised values
      %_uninit = OpLoad %float4 %priv_float4
-          %_x = OpVectorTimesScalar %float4 %_uninit %float_0_0
+          %_x = OpExtInst %float4 %glsl450 NClamp %_uninit %float4_0000 %float4_0000
  %_out_float4 = OpFAdd %float4 %_x %float4_1234
 )EOTEST",
         R"EOTEST(
@@ -2605,7 +2605,7 @@ void main()
                  ; against the real thing when it's undefined. But we can at least expose it so that
                  ; when manually checking we see the uninitialised values
      %_uninit = OpLoad %float4 %Color
-          %_x = OpVectorTimesScalar %float4 %_uninit %float_0_0
+          %_x = OpExtInst %float4 %glsl450 NClamp %_uninit %float4_0000 %float4_0000
  %_out_float4 = OpFAdd %float4 %_x %float4_1234
 )EOTEST",
     });
