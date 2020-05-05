@@ -474,6 +474,15 @@ void ThreadState::SkipIgnoredInstructions()
   }
 }
 
+void ThreadState::EnterEntryPoint(ShaderDebugState *state)
+{
+  m_State = state;
+
+  EnterFunction({});
+
+  m_State = NULL;
+}
+
 void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> &workgroup)
 {
   m_State = state;

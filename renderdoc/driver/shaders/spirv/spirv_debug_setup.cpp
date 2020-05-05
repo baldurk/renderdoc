@@ -1020,23 +1020,30 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
   // initialise the first ShaderDebugState if we haven't stepped yet
   if(steps == 0)
   {
-    // we should be sitting at the entry point function prologue, step forward into the first block
-    // and past any function-local variable declarations
-    for(ThreadState &thread : workgroup)
-      thread.EnterFunction({});
-
     ShaderDebugState initial;
 
-    initial.nextInstruction = active.nextInstruction;
+    // we should be sitting at the entry point function prologue, step forward into the first block
+    // and past any function-local variable declarations
+    for(size_t lane = 0; lane < workgroup.size(); lane++)
+    {
+      ThreadState &thread = workgroup[lane];
 
-    for(const Id &v : active.live)
+      if(lane == activeLaneIndex)
+      {
+        thread.EnterEntryPoint(&initial);
+        thread.FillCallstack(initial);
+        initial.nextInstruction = thread.nextInstruction;
+        initial.sourceVars = thread.sourceVars;
+      }
+      else
+      {
+        thread.EnterEntryPoint(NULL);
+      }
+    }
+
+    // globals won't be filled out by entering the entry point, ensure their change is registered.
+    for(const Id &v : liveGlobals)
       initial.changes.push_back({ShaderVariable(), GetPointerValue(active.ids[v])});
-
-    initial.sourceVars = active.sourceVars;
-
-    initial.stepIndex = steps;
-
-    active.FillCallstack(initial);
 
     ret.push_back(initial);
 
