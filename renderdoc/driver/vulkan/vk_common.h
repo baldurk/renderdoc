@@ -353,6 +353,9 @@ enum class MemoryScope : uint8_t
 {
   InitialContents,
   First = InitialContents,
+  // On replay, initial contents memory is never freed, so any immutable replay memory can be
+  // allocated the same way
+  ImmutableReplayDebug = InitialContents,
   IndirectReadback,
   Count,
 };

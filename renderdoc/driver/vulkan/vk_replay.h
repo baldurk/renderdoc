@@ -570,7 +570,6 @@ private:
     VkImageView DummyImageViews[3][5] = {};
     VkWriteDescriptorSet DummyWrites[14] = {};
     VkDescriptorImageInfo DummyInfos[14] = {};
-    VkDeviceMemory DummyMemory = VK_NULL_HANDLE;
     VkSampler DummySampler = VK_NULL_HANDLE;
     VkBuffer DummyBuffer = VK_NULL_HANDLE;
     VkBufferView DummyBufferView[3] = {};

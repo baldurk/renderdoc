@@ -22,7 +22,11 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "core/settings.h"
 #include "vk_core.h"
+
+RDOC_DEBUG_CONFIG(bool, Vulkan_Debug_MemoryAllocationLogging, false,
+                  "Output verbose debug logging messages when allocating internal memory.");
 
 void WrappedVulkan::ChooseMemoryIndices()
 {
@@ -158,9 +162,12 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
   // invalidate/flush safely. This is at most 256 bytes which is likely already satisfied.
   ret.size = AlignUp(ret.size, nonCoherentAtomSize);
 
-  RDCDEBUG("Allocating 0x%llx (0x%llx requested) with alignment 0x%llx in 0x%x for a %s (%s in %s)",
+  if(Vulkan_Debug_MemoryAllocationLogging)
+  {
+    RDCLOG("Allocating 0x%llx (0x%llx requested) with alignment 0x%llx in 0x%x for a %s (%s in %s)",
            ret.size, mrq.size, mrq.alignment, mrq.memoryTypeBits, buffer ? "buffer" : "image",
            ToStr(type).c_str(), ToStr(scope).c_str());
+  }
 
   rdcarray<MemoryAllocation> &blockList = m_MemoryBlocks[(size_t)scope];
 
@@ -168,17 +175,23 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
   int i = 0;
   for(MemoryAllocation &block : blockList)
   {
-    RDCDEBUG(
-        "Considering block %d: memory type %u and type %s. Total size 0x%llx, current offset "
-        "0x%llx, last alloc was %s",
-        i, block.memoryTypeIndex, ToStr(block.type).c_str(), block.size, block.offs,
-        block.buffer ? "buffer" : "image");
+    if(Vulkan_Debug_MemoryAllocationLogging)
+    {
+      RDCLOG(
+          "Considering block %d: memory type %u and type %s. Total size 0x%llx, current offset "
+          "0x%llx, last alloc was %s",
+          i, block.memoryTypeIndex, ToStr(block.type).c_str(), block.size, block.offs,
+          block.buffer ? "buffer" : "image");
+    }
     i++;
 
     // skip this block if it's not the memory type we want
     if(ret.type != block.type || (mrq.memoryTypeBits & (1 << block.memoryTypeIndex)) == 0)
     {
-      RDCDEBUG("block type %d or memory type %d is incompatible", block.type, block.memoryTypeIndex);
+      if(Vulkan_Debug_MemoryAllocationLogging)
+      {
+        RDCLOG("block type %d or memory type %d is incompatible", block.type, block.memoryTypeIndex);
+      }
       continue;
     }
 
@@ -194,15 +207,21 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
 
     if(offs > block.size)
     {
-      RDCDEBUG("Next offset 0x%llx would be off the end of the memory (size 0x%llx).", offs,
+      if(Vulkan_Debug_MemoryAllocationLogging)
+      {
+        RDCLOG("Next offset 0x%llx would be off the end of the memory (size 0x%llx).", offs,
                block.size);
+      }
       continue;
     }
 
     VkDeviceSize avail = block.size - offs;
 
-    RDCDEBUG("At next offset 0x%llx, there's 0x%llx bytes available for 0x%llx bytes requested",
+    if(Vulkan_Debug_MemoryAllocationLogging)
+    {
+      RDCLOG("At next offset 0x%llx, there's 0x%llx bytes available for 0x%llx bytes requested",
              offs, avail, ret.size);
+    }
 
     // if the allocation will fit, we've found our candidate.
     if(ret.size <= avail)
@@ -215,7 +234,10 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
       ret.offs = offs;
       ret.mem = block.mem;
 
-      RDCDEBUG("Allocating using this block: 0x%llx -> 0x%llx", ret.offs, block.offs);
+      if(Vulkan_Debug_MemoryAllocationLogging)
+      {
+        RDCLOG("Allocating using this block: 0x%llx -> 0x%llx", ret.offs, block.offs);
+      }
 
       // stop searching
       break;
@@ -224,7 +246,10 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
 
   if(ret.mem == VK_NULL_HANDLE)
   {
-    RDCDEBUG("No available block found - allocating new block");
+    if(Vulkan_Debug_MemoryAllocationLogging)
+    {
+      RDCLOG("No available block found - allocating new block");
+    }
 
     VkDeviceSize &allocSize = m_MemoryBlockSize[(size_t)scope];
 
@@ -237,7 +262,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
       case 128:
       case 256: allocSize = 256; break;
       default:
-        RDCDEBUG("Unexpected previous allocation size 0x%llx bytes, allocating 256MB", allocSize);
+        RDCWARN("Unexpected previous allocation size 0x%llx bytes, allocating 256MB", allocSize);
         allocSize = 256;
         break;
     }
@@ -255,8 +280,11 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
         {
           if(mrq.memoryTypeBits > (1U << m))
           {
-            RDCDEBUG("Avoiding memory type %u due to small heap size (%llu)", m,
+            if(Vulkan_Debug_MemoryAllocationLogging)
+            {
+              RDCLOG("Avoiding memory type %u due to small heap size (%llu)", m,
                      m_PhysicalDeviceData.memProps.memoryHeaps[heap].size);
+            }
             mrq.memoryTypeBits &= ~(1U << m);
           }
         }
@@ -288,12 +316,18 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
       // if it's still over-sized, just allocate precisely enough and give it a dedicated allocation
       if(ret.size > info.allocationSize)
       {
-        RDCDEBUG("Over-sized allocation for 0x%llx bytes", ret.size);
+        if(Vulkan_Debug_MemoryAllocationLogging)
+        {
+          RDCLOG("Over-sized allocation for 0x%llx bytes", ret.size);
+        }
         info.allocationSize = ret.size;
       }
     }
 
-    RDCDEBUG("Creating new allocation of 0x%llx bytes", info.allocationSize);
+    if(Vulkan_Debug_MemoryAllocationLogging)
+    {
+      RDCLOG("Creating new allocation of 0x%llx bytes", info.allocationSize);
+    }
 
     MemoryAllocation chunk;
     chunk.buffer = ret.buffer;

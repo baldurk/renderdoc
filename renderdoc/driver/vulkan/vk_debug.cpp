@@ -1981,9 +1981,6 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     VkSampleCountFlagBits sampleCounts[] = {VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_1_BIT,
                                             VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_4_BIT};
 
-    VkDeviceSize offsets[ARRAY_COUNT(formats)][ARRAY_COUNT(types)];
-    VkDeviceSize curOffset = 0;
-
     // type max is one higher than the last RESTYPE, and RESTYPES are 1-indexed
     RDCCOMPILE_ASSERT(RESTYPE_TEXTYPEMAX - 1 == ARRAY_COUNT(types),
                       "RESTYPE values don't match formats for dummy images");
@@ -1999,10 +1996,6 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
                       "dummy image arrays mismatched sizes");
     RDCCOMPILE_ASSERT(ARRAY_COUNT(DummyWrites) == ARRAY_COUNT(DummyInfos),
                       "dummy image arrays mismatched sizes");
-
-    VkMemoryAllocateInfo allocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, 0, ~0U,
-    };
 
     CREATE_OBJECT(DummySampler, VK_FILTER_NEAREST);
 
@@ -2039,22 +2032,12 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
         vkr = driver->vkCreateImage(driver->GetDev(), &imInfo, NULL, &DummyImages[fmt][type]);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-        VkMemoryRequirements mrq = {0};
-        driver->vkGetImageMemoryRequirements(driver->GetDev(), DummyImages[fmt][type], &mrq);
+        MemoryAllocation alloc = driver->AllocateMemoryForResource(
+            DummyImages[fmt][type], MemoryScope::ImmutableReplayDebug, MemoryType::GPULocal);
 
-        uint32_t memIndex = driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits);
-
-        // make sure all images can use the same memory type
-        RDCASSERTMSG("memory type indices don't overlap!",
-                     allocInfo.memoryTypeIndex == ~0U || allocInfo.memoryTypeIndex == memIndex,
-                     allocInfo.memoryTypeIndex, memIndex, fmt, type);
-
-        allocInfo.memoryTypeIndex = memIndex;
-
-        // align to our alignment, then increment curOffset by our size
-        curOffset = AlignUp(curOffset, mrq.alignment);
-        offsets[fmt][type] = curOffset;
-        curOffset += mrq.size;
+        vkr = driver->vkBindImageMemory(driver->GetDev(), DummyImages[fmt][type], alloc.mem,
+                                        alloc.offs);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
         // fill out the descriptor set write to the write binding - set will be filled out
         // on demand when we're actually using these writes.
@@ -2099,10 +2082,7 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     DummyInfos[index + 1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     // align up for the dummy buffer
-    VkDeviceSize bufferOffset = 0;
     {
-      curOffset = AlignUp(curOffset, driver->GetDeviceProps().limits.bufferImageGranularity);
-
       VkBufferCreateInfo bufInfo = {
           VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,     NULL, 0, 16,
           VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT,
@@ -2111,43 +2091,10 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
       vkr = driver->vkCreateBuffer(driver->GetDev(), &bufInfo, NULL, &DummyBuffer);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      VkMemoryRequirements mrq = {0};
-      driver->vkGetBufferMemoryRequirements(driver->GetDev(), DummyBuffer, &mrq);
+      MemoryAllocation alloc = driver->AllocateMemoryForResource(
+          DummyBuffer, MemoryScope::ImmutableReplayDebug, MemoryType::GPULocal);
 
-      if(mrq.memoryTypeBits & (1U << allocInfo.memoryTypeIndex))
-      {
-        curOffset = AlignUp(curOffset, mrq.alignment);
-        bufferOffset = curOffset;
-        curOffset += mrq.size;
-      }
-      else
-      {
-        RDCERR("Can't use memory type %u for dummy buffer!", allocInfo.memoryTypeIndex);
-        driver->vkDestroyBuffer(driver->GetDev(), DummyBuffer, NULL);
-      }
-    }
-
-    // align up a bit just to be safe
-    allocInfo.allocationSize = AlignUp(curOffset, (VkDeviceSize)1024ULL);
-
-    // allocate one big block
-    vkr = driver->vkAllocateMemory(driver->GetDev(), &allocInfo, NULL, &DummyMemory);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    // bind all the image memory
-    for(size_t fmt = 0; fmt < ARRAY_COUNT(formats); fmt++)
-    {
-      for(size_t type = 0; type < ARRAY_COUNT(types); type++)
-      {
-        vkr = driver->vkBindImageMemory(driver->GetDev(), DummyImages[fmt][type], DummyMemory,
-                                        offsets[fmt][type]);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
-      }
-    }
-
-    if(DummyBuffer != VK_NULL_HANDLE)
-    {
-      vkr = driver->vkBindBufferMemory(driver->GetDev(), DummyBuffer, DummyMemory, bufferOffset);
+      vkr = driver->vkBindBufferMemory(driver->GetDev(), DummyBuffer, alloc.mem, alloc.offs);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
     }
 
@@ -2279,8 +2226,6 @@ void VulkanReplay::TextureRendering::Destroy(WrappedVulkan *driver)
   for(size_t fmt = 0; fmt < ARRAY_COUNT(DummyBufferView); fmt++)
     driver->vkDestroyBufferView(driver->GetDev(), DummyBufferView[fmt], NULL);
   driver->vkDestroyBuffer(driver->GetDev(), DummyBuffer, NULL);
-
-  driver->vkFreeMemory(driver->GetDev(), DummyMemory, NULL);
 
   driver->vkDestroySampler(driver->GetDev(), DummySampler, NULL);
 }
