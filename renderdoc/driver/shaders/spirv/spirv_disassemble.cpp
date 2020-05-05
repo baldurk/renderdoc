@@ -992,11 +992,32 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
              cfgStack.back().mergeTarget == decoded.targetLabel)
             continue;
 
-          // if we're in a switch, branches to the merge block are printed as 'break'
-          if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::Switch &&
-             cfgStack.back().mergeTarget == decoded.targetLabel)
+          const StructuredCFG *lastLoopSwitch = NULL;
+
+          // walk stack to get the last switch/loop that we're in
+          for(size_t s = 0; s < cfgStack.size(); s++)
+          {
+            const StructuredCFG &cfg = cfgStack[cfgStack.size() - 1 - s];
+            if(cfg.type == StructuredCFG::Switch || cfg.type == StructuredCFG::Loop)
+            {
+              lastLoopSwitch = &cfg;
+              break;
+            }
+          }
+
+          // if we're in a switch/loop, branches to the merge block are printed as 'break'
+          if(lastLoopSwitch && lastLoopSwitch->mergeTarget == decoded.targetLabel)
           {
             ret += indent + "break;\n";
+            lineNum++;
+            continue;
+          }
+
+          // if we're in a loop, branches to the continue target are printed as 'continue'
+          if(lastLoopSwitch && lastLoopSwitch->type == StructuredCFG::Loop &&
+             lastLoopSwitch->continueTarget == decoded.targetLabel)
+          {
+            ret += indent + "continue;\n";
             lineNum++;
             continue;
           }
@@ -1004,11 +1025,11 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           // if we're in a switch and we're about to print a goto, see if it's a case label and
           // print a 'nicer' goto. Fallthrough to the next case would be handled above as a
           // redundant goto
-          if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::Switch)
+          if(lastLoopSwitch && lastLoopSwitch->type == StructuredCFG::Switch)
           {
             bool printed = false;
 
-            for(const PairLiteralIntegerIdRef &caseTarget : cfgStack.back().caseTargets)
+            for(const PairLiteralIntegerIdRef &caseTarget : lastLoopSwitch->caseTargets)
             {
               if(caseTarget.second == decoded.targetLabel)
               {

@@ -1452,6 +1452,52 @@ void main()
       Color = vec4(float(old & 0xfffff), float(imageLoad(atomicimg, ivec2(gl_FragCoord)).x & 0xfffff), 0.0f, 0.0f);
       break;
     }
+    case 171:
+    {
+      vec4 ret = vec4(0,0,0,0);
+      // test loop continues
+      for(int i=0; i < flatLocalCoord + 5; i++)
+      {
+        ret.x += 0.1f;
+        if(i == 2)
+        {
+          ret.y += 0.2f;
+          continue;
+        }
+        ret.z += 0.1f;
+        if(i == 4)
+        {
+          continue;
+        }
+        ret.w += 0.1f;
+      }
+      Color = ret;
+      break;
+    }
+    case 172:
+    {
+      vec4 ret = vec4(0,0,0,0);
+      // test loop breaks
+      for(int i=0; i < flatLocalCoord + 5; i++)
+      {
+        ret.x += 0.1f;
+        if(i == 2)
+        {
+          break;
+        }
+        ret.y += 0.2f;
+      }
+      Color = ret;
+      break;
+    }
+    // test fall through
+    case 173:
+      Color += vec4(0.5, 0.5, 0.5, 0.5);
+    case 174:
+    {
+      Color += vec4(1.0, 1.0, 1.0, 1.0);
+      break;
+    }
     default: break;
   }
 }
