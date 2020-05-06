@@ -56,6 +56,18 @@ enum class VariableCategory
   ByString,
 };
 
+enum class AccessedResourceView
+{
+  SortByStep,
+  SortByResource,
+};
+
+struct AccessedResourceData
+{
+  ShaderVariable resource;
+  rdcarray<size_t> steps;
+};
+
 class ShaderViewer : public QFrame, public IShaderViewer, public ICaptureViewer
 {
   Q_OBJECT
@@ -116,6 +128,9 @@ private slots:
   void on_intView_clicked();
   void on_floatView_clicked();
   void on_debugToggle_clicked();
+
+  void on_resources_sortByStep_clicked();
+  void on_resources_sortByResource_clicked();
 
   void on_watch_itemChanged(QTableWidgetItem *item);
 
@@ -238,7 +253,10 @@ private:
   rdcarray<ShaderDebugState> m_States;
   size_t m_CurrentStateIdx = 0;
   rdcarray<ShaderVariable> m_Variables;
-  rdcarray<ShaderVariable> m_AccessedResources;
+
+  rdcarray<AccessedResourceData> m_AccessedResources;
+  AccessedResourceView m_AccessedResourceView = AccessedResourceView::SortByResource;
+
   rdcarray<BoundResourceArray> m_ReadOnlyResources;
   rdcarray<BoundResourceArray> m_ReadWriteResources;
   QList<int> m_Breakpoints;
@@ -278,6 +296,7 @@ private:
 
   void updateDebugState();
   void updateWatchVariables();
+  void updateAccessedResources();
 
   RDTreeWidgetItem *makeSourceVariableNode(const ShaderVariable &var, const rdcstr &sourcePath,
                                            const rdcstr &debugVarPath, bool modified);

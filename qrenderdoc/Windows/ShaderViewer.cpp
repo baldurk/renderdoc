@@ -60,11 +60,11 @@ struct VariableTag
 
 struct AccessedResourceTag
 {
-  AccessedResourceTag() : type(VarType::Unknown) { bind.bind = -1; }
-  AccessedResourceTag(BindpointIndex bp, VarType t) : bind(bp), type(t) {}
-  AccessedResourceTag(ShaderVariable var)
+  AccessedResourceTag() : type(VarType::Unknown), step(0) { bind.bind = -1; }
+  AccessedResourceTag(uint32_t s) : type(VarType::Unknown), step(s) { bind.bind = -1; }
+  AccessedResourceTag(BindpointIndex bp, VarType t) : bind(bp), type(t), step(0) {}
+  AccessedResourceTag(ShaderVariable var) : step(0), type(var.type)
   {
-    type = var.type;
     if(var.type == VarType::ReadOnlyResource || var.type == VarType::ReadWriteResource)
       bind = var.GetBinding();
     else
@@ -72,6 +72,7 @@ struct AccessedResourceTag
   }
   BindpointIndex bind;
   VarType type;
+  uint32_t step;
 };
 };
 
@@ -523,7 +524,7 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
     ui->constants->header()->resizeSection(0, 80);
 
-    ui->accessedResources->setColumns({tr("Register(s)"), tr("Type"), tr("Resource")});
+    ui->accessedResources->setColumns({tr("Location"), tr("Type"), tr("Info")});
     ui->accessedResources->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->accessedResources->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     ui->accessedResources->header()->setSectionResizeMode(2, QHeaderView::Interactive);
@@ -1215,24 +1216,41 @@ void ShaderViewer::accessedResources_contextMenu(const QPoint &pos)
   if(tree->selectedItem() == NULL)
     return;
 
-  QMenu contextMenu(this);
+  const AccessedResourceTag &tag = tree->selectedItem()->tag().value<AccessedResourceTag>();
+  if(tag.type == VarType::Unknown)
+  {
+    // Right clicked on an instruction row
+    QMenu contextMenu(this);
 
-  QAction prevAccess(tr("Run To Previous Access"), this);
-  QAction nextAccess(tr("Run To Next Access"), this);
+    QAction gotoInstr(tr("Go to Step"), this);
 
-  contextMenu.addAction(&prevAccess);
-  contextMenu.addAction(&nextAccess);
+    contextMenu.addAction(&gotoInstr);
 
-  QObject::connect(&prevAccess, &QAction::triggered, [this, tree] {
-    const AccessedResourceTag &tag = tree->selectedItem()->tag().value<AccessedResourceTag>();
-    runToResourceAccess(false, tag.type, tag.bind);
-  });
-  QObject::connect(&nextAccess, &QAction::triggered, [this, tree] {
-    const AccessedResourceTag &tag = tree->selectedItem()->tag().value<AccessedResourceTag>();
-    runToResourceAccess(true, tag.type, tag.bind);
-  });
+    QObject::connect(&gotoInstr, &QAction::triggered, [this, tag] {
+      bool forward = (tag.step >= m_CurrentStateIdx);
+      runTo({tag.step}, forward);
+    });
 
-  RDDialog::show(&contextMenu, w->viewport()->mapToGlobal(pos));
+    RDDialog::show(&contextMenu, w->viewport()->mapToGlobal(pos));
+  }
+  else
+  {
+    // Right clicked on a resource row
+    QMenu contextMenu(this);
+
+    QAction prevAccess(tr("Run to Previous Access"), this);
+    QAction nextAccess(tr("Run to Next Access"), this);
+
+    contextMenu.addAction(&prevAccess);
+    contextMenu.addAction(&nextAccess);
+
+    QObject::connect(&prevAccess, &QAction::triggered,
+                     [this, tag] { runToResourceAccess(false, tag.type, tag.bind); });
+    QObject::connect(&nextAccess, &QAction::triggered,
+                     [this, tag] { runToResourceAccess(true, tag.type, tag.bind); });
+
+    RDDialog::show(&contextMenu, w->viewport()->mapToGlobal(pos));
+  }
 }
 
 void ShaderViewer::disassembly_buttonReleased(QMouseEvent *event)
@@ -1716,15 +1734,6 @@ void ShaderViewer::applyBackwardsChange()
             break;
           }
         }
-
-        for(size_t i = 0; i < m_AccessedResources.size(); i++)
-        {
-          if(c.after.name == m_AccessedResources[i].name)
-          {
-            m_AccessedResources.erase(i);
-            break;
-          }
-        }
       }
       else
       {
@@ -1758,7 +1767,7 @@ void ShaderViewer::applyForwardsChange()
     m_CurrentStateIdx++;
 
     rdcarray<ShaderVariable> newVariables;
-    rdcarray<ShaderVariable> newAccessedResources;
+    rdcarray<AccessedResourceData> newAccessedResources;
 
     for(const ShaderVariableChange &c : GetCurrentState().changes)
     {
@@ -1797,15 +1806,17 @@ void ShaderViewer::applyForwardsChange()
           bool found = false;
           for(size_t i = 0; i < m_AccessedResources.size(); i++)
           {
-            if(c.after.GetBinding() == m_AccessedResources[i].GetBinding())
+            if(c.after.GetBinding() == m_AccessedResources[i].resource.GetBinding())
             {
               found = true;
+              if(m_AccessedResources[i].steps.indexOf(m_CurrentStateIdx) < 0)
+                m_AccessedResources[i].steps.push_back(m_CurrentStateIdx);
               break;
             }
           }
 
           if(!found)
-            newAccessedResources.push_back(c.after);
+            newAccessedResources.push_back({c.after, {m_CurrentStateIdx}});
         }
       }
     }
@@ -2243,6 +2254,141 @@ void ShaderViewer::highlightMatchingVars(RDTreeWidgetItem *root, const QString v
 
     highlightMatchingVars(item, varName, highlightColor);
   }
+}
+
+void ShaderViewer::updateAccessedResources()
+{
+  RDTreeViewExpansionState expansion;
+  ui->accessedResources->saveExpansion(expansion, 0);
+
+  ui->accessedResources->beginUpdate();
+
+  ui->accessedResources->clear();
+
+  switch(m_AccessedResourceView)
+  {
+    case AccessedResourceView::SortByResource:
+    {
+      for(size_t i = 0; i < m_AccessedResources.size(); ++i)
+      {
+        // Check if the resource was accessed prior to this step
+        bool accessed = false;
+        for(size_t j = 0; j < m_AccessedResources[i].steps.size(); ++j)
+        {
+          if(m_AccessedResources[i].steps[j] <= m_CurrentStateIdx)
+          {
+            accessed = true;
+            break;
+          }
+        }
+        if(!accessed)
+          continue;
+
+        bool modified = false;
+        for(const ShaderVariableChange &c : GetCurrentState().changes)
+        {
+          if(c.before.name == m_AccessedResources[i].resource.name ||
+             c.after.name == m_AccessedResources[i].resource.name)
+          {
+            modified = true;
+            break;
+          }
+        }
+
+        RDTreeWidgetItem *resourceNode =
+            makeAccessedResourceNode(m_AccessedResources[i].resource, modified);
+        if(resourceNode)
+        {
+          // Add a child for each step that it was accessed
+          for(size_t j = 0; j < m_AccessedResources[i].steps.size(); ++j)
+          {
+            accessed = m_AccessedResources[i].steps[j] <= m_CurrentStateIdx;
+            if(accessed)
+            {
+              RDTreeWidgetItem *stepNode = new RDTreeWidgetItem(
+                  {tr("Step %1").arg(m_AccessedResources[i].steps[j]), lit("Access"), lit("")});
+              stepNode->setTag(QVariant::fromValue(
+                  AccessedResourceTag((uint32_t)m_AccessedResources[i].steps[j])));
+              if(m_CurrentStateIdx == m_AccessedResources[i].steps[j])
+                stepNode->setForegroundColor(QColor(Qt::red));
+              resourceNode->addChild(stepNode);
+            }
+          }
+
+          ui->accessedResources->addTopLevelItem(resourceNode);
+        }
+      }
+
+      break;
+    }
+    case AccessedResourceView::SortByStep:
+    {
+      rdcarray<rdcpair<size_t, RDTreeWidgetItem *>> stepNodes;
+      for(size_t i = 0; i < m_AccessedResources.size(); ++i)
+      {
+        bool modified = false;
+        for(const ShaderVariableChange &c : GetCurrentState().changes)
+        {
+          if(c.before.name == m_AccessedResources[i].resource.name ||
+             c.after.name == m_AccessedResources[i].resource.name)
+          {
+            modified = true;
+            break;
+          }
+        }
+
+        // Add a root node for each instruction, and place the resource node as a child
+        for(size_t j = 0; j < m_AccessedResources[i].steps.size(); ++j)
+        {
+          bool accessed = m_AccessedResources[i].steps[j] <= m_CurrentStateIdx;
+          if(accessed)
+          {
+            int32_t nodeIdx = -1;
+            for(int32_t k = 0; k < stepNodes.count(); ++k)
+            {
+              if(stepNodes[k].first == m_AccessedResources[i].steps[j])
+              {
+                nodeIdx = k;
+                break;
+              }
+            }
+
+            RDTreeWidgetItem *resourceNode =
+                makeAccessedResourceNode(m_AccessedResources[i].resource, modified);
+
+            if(nodeIdx == -1)
+            {
+              RDTreeWidgetItem *stepNode = new RDTreeWidgetItem(
+                  {tr("Step %1").arg(m_AccessedResources[i].steps[j]), lit("Access"), lit("")});
+              stepNode->setTag(QVariant::fromValue(
+                  AccessedResourceTag((uint32_t)m_AccessedResources[i].steps[j])));
+              if(m_CurrentStateIdx == m_AccessedResources[i].steps[j])
+                stepNode->setForegroundColor(QColor(Qt::red));
+              stepNode->addChild(resourceNode);
+              stepNodes.push_back({m_AccessedResources[i].steps[j], stepNode});
+            }
+            else
+            {
+              stepNodes[nodeIdx].second->addChild(resourceNode);
+            }
+          }
+        }
+      }
+
+      std::sort(stepNodes.begin(), stepNodes.end(),
+                [](const rdcpair<size_t, RDTreeWidgetItem *> &a,
+                   const rdcpair<size_t, RDTreeWidgetItem *> &b) { return a.first < b.first; });
+
+      for(size_t i = 0; i < stepNodes.size(); ++i)
+        ui->accessedResources->addTopLevelItem(stepNodes[i].second);
+
+      break;
+    }
+  }
+
+  ui->accessedResources->endUpdate();
+
+  ui->accessedResources->applyExpansion(expansion, 0);
 }
 
 void ShaderViewer::updateDebugState()
@@ -2758,30 +2904,7 @@ void ShaderViewer::updateDebugState()
     ui->debugVars->applyExpansion(expansion, 0);
   }
 
-  {
-    ui->accessedResources->beginUpdate();
-
-    ui->accessedResources->clear();
-
-    for(int i = 0; i < m_AccessedResources.count(); i++)
-    {
-      bool modified = false;
-
-      for(const ShaderVariableChange &c : GetCurrentState().changes)
-      {
-        if(c.before.name == m_AccessedResources[i].name || c.after.name == m_AccessedResources[i].name)
-        {
-          modified = true;
-          break;
-        }
-      }
-
-      ui->accessedResources->addTopLevelItem(
-          makeAccessedResourceNode(m_AccessedResources[i], modified));
-    }
-
-    ui->accessedResources->endUpdate();
-  }
+  updateAccessedResources();
 
   updateWatchVariables();
 
@@ -4563,6 +4686,22 @@ void ShaderViewer::on_debugToggle_clicked()
     gotoSourceDebugging();
 
   updateDebugState();
+}
+
+void ShaderViewer::on_resources_sortByStep_clicked()
+{
+  m_AccessedResourceView = AccessedResourceView::SortByStep;
+  ui->resources_sortByStep->setChecked(true);
+  ui->resources_sortByResource->setChecked(false);
+  updateAccessedResources();
+}
+
+void ShaderViewer::on_resources_sortByResource_clicked()
+{
+  m_AccessedResourceView = AccessedResourceView::SortByResource;
+  ui->resources_sortByResource->setChecked(true);
+  ui->resources_sortByStep->setChecked(false);
+  updateAccessedResources();
 }
 
 ScintillaEdit *ShaderViewer::currentScintilla()
