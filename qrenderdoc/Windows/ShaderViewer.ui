@@ -165,6 +165,87 @@
           </property>
         </widget>
       </item>
+      <item>
+        <widget class="QFrame" name="sortGroup">
+          <property name="contextMenuPolicy">
+            <enum>Qt::PreventContextMenu</enum>
+          </property>
+          <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
+          </property>
+          <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+            </sizepolicy>
+          </property>
+          <layout class="QHBoxLayout" name="horizontalLayout_6">
+            <property name="leftMargin">
+              <number>0</number>
+            </property>
+            <property name="topMargin">
+              <number>0</number>
+            </property>
+            <property name="rightMargin">
+              <number>0</number>
+            </property>
+            <property name="bottomMargin">
+              <number>0</number>
+            </property>
+            <item>
+              <widget class="QToolButton" name="resources_sortByResource">
+                <property name="text">
+                  <string>Sort By Resource</string>
+                </property>
+                <property name="checkable">
+                  <bool>true</bool>
+                </property>
+                <property name="checked">
+                  <bool>true</bool>
+                </property>
+                <property name="autoRaise">
+                  <bool>true</bool>
+                </property>
+                <property name="toolTip">
+                  <string>Sort accessed resource by shader binding</string>
+                </property>
+              </widget>
+            </item>
+            <item>
+              <widget class="QToolButton" name="resources_sortByStep">
+                <property name="text">
+                  <string>Sort By Instruction</string>
+                </property>
+                <property name="checkable">
+                  <bool>true</bool>
+                </property>
+                <property name="checked">
+                  <bool>false</bool>
+                </property>
+                <property name="autoRaise">
+                  <bool>true</bool>
+                </property>
+                <property name="toolTip">
+                  <string>Sort accessed resource by instruction step</string>
+                </property>
+              </widget>
+            </item>
+            <item>
+              <spacer name="resources_horizontalSpacer">
+                <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                  <size>
+                    <width>40</width>
+                    <height>20</height>
+                  </size>
+                </property>
+              </spacer>
+            </item>
+          </layout>
+        </widget>
+      </item>
     </layout>
   </widget>
   <widget class="RDTreeWidget" name="debugVars">
