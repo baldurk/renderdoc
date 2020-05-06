@@ -343,18 +343,21 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       {
         el.type.descriptor.type = VarType::UInt;
         interpretType = ResourceFormatType::R10G10B10A2;
+        el.type.descriptor.columns = 4;
       }
       else if(basetype == lit("unormten"))
       {
         el.type.descriptor.type = VarType::UInt;
         interpretCompType = CompType::UNorm;
         interpretType = ResourceFormatType::R10G10B10A2;
+        el.type.descriptor.columns = 4;
       }
       else if(basetype == lit("floateleven"))
       {
         el.type.descriptor.type = VarType::Float;
         interpretCompType = CompType::Float;
         interpretType = ResourceFormatType::R11G11B10;
+        el.type.descriptor.columns = 3;
       }
       else
       {
