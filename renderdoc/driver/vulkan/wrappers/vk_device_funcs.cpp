@@ -2766,9 +2766,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     VkPhysicalDeviceBufferDeviceAddressFeaturesKHR bufAddrKHRFeatures = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR,
     };
-    VkPhysicalDeviceVulkan12Features vk12Features = {
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-    };
 
     if(physProps.apiVersion >= VK_MAKE_VERSION(1, 2, 0))
     {
@@ -2791,26 +2788,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         }
         else
         {
-          vk12Features.bufferDeviceAddress = VK_TRUE;
+          // don't add a new VkPhysicalDeviceVulkan12Features to the pNext chain because if we do we
+          // have to remove any components etc. Instead just add the individual
+          // VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
+          bufAddrKHRFeatures.bufferDeviceAddress = VK_TRUE;
+          bufAddrKHRFeatures.bufferDeviceAddressMultiDevice = VK_FALSE;
 
-          // enable any features that the spec requires
-          if(Extensions.contains(VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME))
-            vk12Features.drawIndirectCount = VK_TRUE;
-
-          if(Extensions.contains(VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME))
-            vk12Features.samplerMirrorClampToEdge = VK_TRUE;
-
-          if(Extensions.contains(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME))
-            vk12Features.descriptorIndexing = VK_TRUE;
-
-          if(Extensions.contains(VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME))
-            vk12Features.samplerFilterMinmax = VK_TRUE;
-
-          if(Extensions.contains(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME))
-            vk12Features.shaderOutputLayer = VK_TRUE;
-
-          vk12Features.pNext = (void *)createInfo.pNext;
-          createInfo.pNext = &vk12Features;
+          bufAddrKHRFeatures.pNext = (void *)createInfo.pNext;
+          createInfo.pNext = &bufAddrKHRFeatures;
         }
       }
     }
