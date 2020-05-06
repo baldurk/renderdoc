@@ -2502,6 +2502,10 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
                                                     VkFormat format, VkSampleCountFlagBits samples,
                                                     const Subresource &sub, uint32_t numEvents)
 {
+  VkMarkerRegion region(StringFormat::Fmt("PixelHistorySetupResources %ux%ux%u %s %ux MSAA",
+                                          extent.width, extent.height, extent.depth,
+                                          ToStr(format).c_str(), samples));
+
   VkImage colorImage;
   VkImageView colorImageView;
 
@@ -2771,6 +2775,8 @@ bool VulkanDebugManager::PixelHistoryDestroyResources(const PixelHistoryResource
 
 void CreateOcclusionPool(WrappedVulkan *vk, uint32_t poolSize, VkQueryPool *pQueryPool)
 {
+  VkMarkerRegion region(StringFormat::Fmt("CreateOcclusionPool %u", poolSize));
+
   VkDevice dev = vk->GetDev();
   VkQueryPoolCreateInfo occlusionPoolCreateInfo = {VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
   occlusionPoolCreateInfo.queryType = VK_QUERY_TYPE_OCCLUSION;
@@ -2898,7 +2904,6 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     return rdcarray<PixelModification>();
   }
 
-  RDCDEBUG("PixelHistory: pixel: (%u, %u) with %u events", x, y, events.size());
   rdcarray<PixelModification> history;
 
   if(events.empty())
@@ -2907,6 +2912,14 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   const VulkanCreationInfo::Image &imginfo = GetDebugManager()->GetImageInfo(target);
   if(imginfo.format == VK_FORMAT_UNDEFINED)
     return history;
+
+  rdcstr regionName = StringFormat::Fmt(
+      "PixelHistory: pixel: (%u, %u) on %s subresource (%u, %u, %u) cast to %s with %zu events", x, y,
+      ToStr(target).c_str(), sub.mip, sub.slice, sub.sample, ToStr(typeCast).c_str(), events.size());
+
+  RDCDEBUG("%s", regionName.c_str());
+
+  VkMarkerRegion region(regionName);
 
   uint32_t sampleIdx = sub.sample;
 
@@ -2960,10 +2973,13 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   callbackInfo.dstBuffer = resources.dstBuffer;
 
   VulkanOcclusionCallback occlCb(m_pDriver, shaderCache, callbackInfo, occlusionPool, events);
-  m_pDriver->ReplayLog(0, events.back().eventId, eReplay_Full);
-  m_pDriver->SubmitCmds();
-  m_pDriver->FlushQ();
-  occlCb.FetchOcclusionResults();
+  {
+    VkMarkerRegion occlRegion("VulkanOcclusionCallback");
+    m_pDriver->ReplayLog(0, events.back().eventId, eReplay_Full);
+    m_pDriver->SubmitCmds();
+    m_pDriver->FlushQ();
+    occlCb.FetchOcclusionResults();
+  }
 
   // Gather all draw events that could have written to pixel for another replay pass,
   // to determine if these draws failed for some reason (for ex., depth test).
@@ -2986,6 +3002,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     else
     {
       uint64_t occlData = occlCb.GetOcclusionResult((uint32_t)events[ev].eventId);
+      VkMarkerRegion::Set(StringFormat::Fmt("%u has occl %llu", events[ev].eventId, occlData));
       if(occlData > 0)
       {
         drawEvents.push_back(events[ev].eventId);
@@ -2995,15 +3012,19 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   }
 
   VulkanColorAndStencilCallback cb(m_pDriver, shaderCache, callbackInfo, modEvents);
-  m_pDriver->ReplayLog(0, events.back().eventId, eReplay_Full);
-  m_pDriver->SubmitCmds();
-  m_pDriver->FlushQ();
+  {
+    VkMarkerRegion colorStencilRegion("VulkanColorAndStencilCallback");
+    m_pDriver->ReplayLog(0, events.back().eventId, eReplay_Full);
+    m_pDriver->SubmitCmds();
+    m_pDriver->FlushQ();
+  }
 
   // If there are any draw events, do another replay pass, in order to figure out
   // which tests failed for each draw event.
   TestsFailedCallback *tfCb = NULL;
   if(drawEvents.size() > 0)
   {
+    VkMarkerRegion testsRegion("TestsFailedCallback");
     VkQueryPool tfOcclusionPool;
     CreateOcclusionPool(m_pDriver, (uint32_t)drawEvents.size() * 6, &tfOcclusionPool);
 
@@ -3033,6 +3054,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
       {
         RDCASSERT(tfCb != NULL);
         uint32_t flags = tfCb->GetEventFlags(eventId);
+        VkMarkerRegion::Set(StringFormat::Fmt("%u has flags %x", eventId, flags));
         if(flags & TestMustFail_Culling)
           mod.backfaceCulled = true;
         if(flags & TestMustFail_DepthTesting)
@@ -3117,9 +3139,12 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
                                    resources.stencilOnlyImageView, resources.dstBuffer);
     VulkanPixelHistoryPerFragmentCallback perFragmentCB(m_pDriver, shaderCache, callbackInfo,
                                                         eventsWithFrags, eventPremods);
-    m_pDriver->ReplayLog(0, eventsWithFrags.rbegin()->first, eReplay_Full);
-    m_pDriver->SubmitCmds();
-    m_pDriver->FlushQ();
+    {
+      VkMarkerRegion perFragmentRegion("VulkanPixelHistoryPerFragmentCallback");
+      m_pDriver->ReplayLog(0, eventsWithFrags.rbegin()->first, eReplay_Full);
+      m_pDriver->SubmitCmds();
+      m_pDriver->FlushQ();
+    }
 
     PerFragmentInfo *bp = NULL;
     vkr = m_pDriver->vkMapMemory(dev, resources.bufferMemory, 0, VK_WHOLE_SIZE, 0, (void **)&bp);
@@ -3148,6 +3173,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
 
     if(primitivesToCheck > 0)
     {
+      VkMarkerRegion discardedRegion("VulkanPixelHistoryDiscardedFragmentsCallback");
       VkQueryPool occlPool;
       CreateOcclusionPool(m_pDriver, primitivesToCheck, &occlPool);
 
