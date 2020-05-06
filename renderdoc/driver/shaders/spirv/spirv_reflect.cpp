@@ -355,6 +355,23 @@ void Reflector::RegisterOp(Iter it)
 
     memberNames.push_back({memberName.type, memberName.member, memberName.name});
   }
+  else if(opdata.op == Op::Variable)
+  {
+    OpVariable var(it);
+
+    // variables are always pointers
+    Id varType = dataTypes[var.resultType].InnerType();
+
+    // if we don't have a name for this variable but it's a pointer to a struct that is named then
+    // give the variable a name based on the type. This is a common pattern in GLSL for global
+    // blocks, and since the variable is how we access commonly we should give it a recognisable
+    // name.
+    if(strings[var.result].empty() && dataTypes[varType].type == DataType::StructType &&
+       !strings[varType].empty())
+    {
+      strings[var.result] = strings[varType] + "_var";
+    }
+  }
   else if(opdata.op == Op::ModuleProcessed)
   {
     OpModuleProcessed processed(it);
