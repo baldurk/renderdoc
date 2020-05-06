@@ -952,7 +952,7 @@ void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, Vulka
   address[1] = pCreateInfo->addressModeV;
   address[2] = pCreateInfo->addressModeW;
   mipLodBias = pCreateInfo->mipLodBias;
-  maxAnisotropy = pCreateInfo->anisotropyEnable ? pCreateInfo->maxAnisotropy : 1.0f;
+  maxAnisotropy = pCreateInfo->anisotropyEnable ? pCreateInfo->maxAnisotropy : 0.0f;
   compareEnable = pCreateInfo->compareEnable != 0;
   compareOp = pCreateInfo->compareOp;
   minLod = pCreateInfo->minLod;

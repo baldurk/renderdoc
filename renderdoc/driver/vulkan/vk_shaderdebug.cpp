@@ -724,6 +724,7 @@ public:
           sampInfo.addressModeV = samplerProps.address[1];
           sampInfo.addressModeW = samplerProps.address[2];
           sampInfo.mipLodBias = samplerProps.mipLodBias;
+          sampInfo.anisotropyEnable = samplerProps.maxAnisotropy >= 1.0f;
           sampInfo.maxAnisotropy = samplerProps.maxAnisotropy;
           sampInfo.compareEnable = samplerProps.compareEnable;
           sampInfo.compareOp = samplerProps.compareOp;

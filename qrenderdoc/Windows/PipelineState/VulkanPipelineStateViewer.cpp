@@ -829,7 +829,7 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
 
   filter = ToQStr(descriptor.filter);
 
-  if(descriptor.maxAnisotropy > 1.0f)
+  if(descriptor.maxAnisotropy >= 1.0f)
     filter += lit(" Aniso %1x").arg(descriptor.maxAnisotropy);
 
   if(descriptor.filter.filter == FilterFunction::Comparison)
