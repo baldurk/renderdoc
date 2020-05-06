@@ -1260,6 +1260,7 @@ void CaptureContext::CloseCapture()
   m_TextureList.clear();
   m_Resources.clear();
   m_ResourceList.clear();
+  m_ReplacedResources.clear();
 
   m_CustomNames.clear();
   m_Bookmarks.clear();
