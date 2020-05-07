@@ -217,7 +217,13 @@ rdcstr GetJSONPath(bool wow6432)
   if(wow6432)
     jsonPath += "\\x86";
 
-  jsonPath += "\\renderdoc.json";
+  jsonPath += "\\";
+
+  rdcstr module_name;
+  FileIO::GetLibraryFilename(module_name);
+  jsonPath += strip_extension(get_basename(module_name));
+
+  jsonPath += ".json";
 
   return jsonPath;
 }
