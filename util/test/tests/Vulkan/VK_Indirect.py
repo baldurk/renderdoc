@@ -215,9 +215,9 @@ class VK_Indirect(rdtest.TestCase):
             postvs_data = self.get_postvs(rd.MeshDataStage.VSOut)
 
             postvs_ref = {
-                0: {'vtx': 0, 'idx': 0, 'gl_PerVertex.gl_Position': [-0.8, -0.5, 0.0, 1.0]},
-                1: {'vtx': 1, 'idx': 1, 'gl_PerVertex.gl_Position': [-0.7, -0.8, 0.0, 1.0]},
-                2: {'vtx': 2, 'idx': 2, 'gl_PerVertex.gl_Position': [-0.6, -0.5, 0.0, 1.0]},
+                0: {'vtx': 0, 'idx': 0, 'gl_PerVertex_var.gl_Position': [-0.8, -0.5, 0.0, 1.0]},
+                1: {'vtx': 1, 'idx': 1, 'gl_PerVertex_var.gl_Position': [-0.7, -0.8, 0.0, 1.0]},
+                2: {'vtx': 2, 'idx': 2, 'gl_PerVertex_var.gl_Position': [-0.6, -0.5, 0.0, 1.0]},
             }
 
             self.check_mesh_data(postvs_ref, postvs_data)
@@ -242,9 +242,9 @@ class VK_Indirect(rdtest.TestCase):
             # These indices are the *output* indices, which have been rebased/remapped, so are not the same as the input
             # indices
             postvs_ref = {
-                0: {'vtx': 0, 'idx': 0, 'gl_PerVertex.gl_Position': [-0.6, -0.5, 0.0, 1.0]},
-                1: {'vtx': 1, 'idx': 1, 'gl_PerVertex.gl_Position': [-0.5, -0.8, 0.0, 1.0]},
-                2: {'vtx': 2, 'idx': 2, 'gl_PerVertex.gl_Position': [-0.4, -0.5, 0.0, 1.0]},
+                0: {'vtx': 0, 'idx': 0, 'gl_PerVertex_var.gl_Position': [-0.6, -0.5, 0.0, 1.0]},
+                1: {'vtx': 1, 'idx': 1, 'gl_PerVertex_var.gl_Position': [-0.5, -0.8, 0.0, 1.0]},
+                2: {'vtx': 2, 'idx': 2, 'gl_PerVertex_var.gl_Position': [-0.4, -0.5, 0.0, 1.0]},
             }
 
             self.check_mesh_data(postvs_ref, postvs_data)
@@ -265,13 +265,13 @@ class VK_Indirect(rdtest.TestCase):
             postvs_data = self.get_postvs(rd.MeshDataStage.VSOut)
 
             postvs_ref = {
-                0: {'vtx': 0, 'idx': 0, 'gl_PerVertex.gl_Position': [-0.4, -0.5, 0.0, 1.0]},
-                1: {'vtx': 1, 'idx': 1, 'gl_PerVertex.gl_Position': [-0.3, -0.8, 0.0, 1.0]},
-                2: {'vtx': 2, 'idx': 2, 'gl_PerVertex.gl_Position': [-0.2, -0.8, 0.0, 1.0]},
+                0: {'vtx': 0, 'idx': 0, 'gl_PerVertex_var.gl_Position': [-0.4, -0.5, 0.0, 1.0]},
+                1: {'vtx': 1, 'idx': 1, 'gl_PerVertex_var.gl_Position': [-0.3, -0.8, 0.0, 1.0]},
+                2: {'vtx': 2, 'idx': 2, 'gl_PerVertex_var.gl_Position': [-0.2, -0.8, 0.0, 1.0]},
 
-                3: {'vtx': 3, 'idx': 3, 'gl_PerVertex.gl_Position': [-0.1, -0.5, 0.0, 1.0]},
-                4: {'vtx': 4, 'idx': 4, 'gl_PerVertex.gl_Position': [ 0.0, -0.8, 0.0, 1.0]},
-                5: {'vtx': 5, 'idx': 5, 'gl_PerVertex.gl_Position': [ 0.1, -0.8, 0.0, 1.0]},
+                3: {'vtx': 3, 'idx': 3, 'gl_PerVertex_var.gl_Position': [-0.1, -0.5, 0.0, 1.0]},
+                4: {'vtx': 4, 'idx': 4, 'gl_PerVertex_var.gl_Position': [ 0.0, -0.8, 0.0, 1.0]},
+                5: {'vtx': 5, 'idx': 5, 'gl_PerVertex_var.gl_Position': [ 0.1, -0.8, 0.0, 1.0]},
             }
 
             self.check_mesh_data(postvs_ref, postvs_data)
@@ -323,9 +323,9 @@ class VK_Indirect(rdtest.TestCase):
                 # These indices are the *output* indices, which have been rebased/remapped, so are not the same as the input
                 # indices
                 postvs_ref = {
-                    0: {'vtx': 0, 'idx': 0, 'gl_PerVertex.gl_Position': [-0.8, 0.5, 0.0, 1.0]},
-                    1: {'vtx': 1, 'idx': 1, 'gl_PerVertex.gl_Position': [-0.7, 0.2, 0.0, 1.0]},
-                    2: {'vtx': 2, 'idx': 2, 'gl_PerVertex.gl_Position': [-0.6, 0.5, 0.0, 1.0]},
+                    0: {'vtx': 0, 'idx': 0, 'gl_PerVertex_var.gl_Position': [-0.8, 0.5, 0.0, 1.0]},
+                    1: {'vtx': 1, 'idx': 1, 'gl_PerVertex_var.gl_Position': [-0.7, 0.2, 0.0, 1.0]},
+                    2: {'vtx': 2, 'idx': 2, 'gl_PerVertex_var.gl_Position': [-0.6, 0.5, 0.0, 1.0]},
                 }
 
                 self.check_mesh_data(postvs_ref, postvs_data)
@@ -353,9 +353,9 @@ class VK_Indirect(rdtest.TestCase):
                 # These indices are the *output* indices, which have been rebased/remapped, so are not the same as the input
                 # indices
                 postvs_ref = {
-                    0: {'vtx': 0, 'idx': 0, 'gl_PerVertex.gl_Position': [-0.6, 0.5, 0.0, 1.0]},
-                    1: {'vtx': 1, 'idx': 1, 'gl_PerVertex.gl_Position': [-0.5, 0.2, 0.0, 1.0]},
-                    2: {'vtx': 2, 'idx': 2, 'gl_PerVertex.gl_Position': [-0.4, 0.5, 0.0, 1.0]},
+                    0: {'vtx': 0, 'idx': 0, 'gl_PerVertex_var.gl_Position': [-0.6, 0.5, 0.0, 1.0]},
+                    1: {'vtx': 1, 'idx': 1, 'gl_PerVertex_var.gl_Position': [-0.5, 0.2, 0.0, 1.0]},
+                    2: {'vtx': 2, 'idx': 2, 'gl_PerVertex_var.gl_Position': [-0.4, 0.5, 0.0, 1.0]},
                 }
 
                 self.check_mesh_data(postvs_ref, postvs_data)
@@ -393,13 +393,13 @@ class VK_Indirect(rdtest.TestCase):
                 # These indices are the *output* indices, which have been rebased/remapped, so are not the same as the input
                 # indices
                 postvs_ref = {
-                    0: {'vtx': 0, 'idx': 0, 'gl_PerVertex.gl_Position': [-0.4, 0.5, 0.0, 1.0]},
-                    1: {'vtx': 1, 'idx': 1, 'gl_PerVertex.gl_Position': [-0.3, 0.2, 0.0, 1.0]},
-                    2: {'vtx': 2, 'idx': 2, 'gl_PerVertex.gl_Position': [-0.2, 0.2, 0.0, 1.0]},
+                    0: {'vtx': 0, 'idx': 0, 'gl_PerVertex_var.gl_Position': [-0.4, 0.5, 0.0, 1.0]},
+                    1: {'vtx': 1, 'idx': 1, 'gl_PerVertex_var.gl_Position': [-0.3, 0.2, 0.0, 1.0]},
+                    2: {'vtx': 2, 'idx': 2, 'gl_PerVertex_var.gl_Position': [-0.2, 0.2, 0.0, 1.0]},
 
-                    3: {'vtx': 3, 'idx': 3, 'gl_PerVertex.gl_Position': [-0.1, 0.5, 0.0, 1.0]},
-                    4: {'vtx': 4, 'idx': 4, 'gl_PerVertex.gl_Position': [ 0.0, 0.2, 0.0, 1.0]},
-                    5: {'vtx': 5, 'idx': 5, 'gl_PerVertex.gl_Position': [ 0.1, 0.2, 0.0, 1.0]},
+                    3: {'vtx': 3, 'idx': 3, 'gl_PerVertex_var.gl_Position': [-0.1, 0.5, 0.0, 1.0]},
+                    4: {'vtx': 4, 'idx': 4, 'gl_PerVertex_var.gl_Position': [ 0.0, 0.2, 0.0, 1.0]},
+                    5: {'vtx': 5, 'idx': 5, 'gl_PerVertex_var.gl_Position': [ 0.1, 0.2, 0.0, 1.0]},
                 }
 
                 self.check_mesh_data(postvs_ref, postvs_data)
