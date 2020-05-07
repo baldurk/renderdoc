@@ -1530,11 +1530,6 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
     VkBuffer buf = initial.buf;
 
-    VkCommandBuffer cmd = GetNextCmd();
-
-    vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
     VkExtent3D extent = m_CreationInfo.m_Image[id].extent;
 
     VkFormat fmt = m_CreationInfo.m_Image[id].format;
@@ -1577,12 +1572,6 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
         default: break;
       }
     }
-
-    ImageBarrierSequence setupBarriers;
-    state->Transition(m_QueueFamilyIdx, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
-                      VK_ACCESS_TRANSFER_WRITE_BIT, setupBarriers, GetImageTransitionInfo());
-    InlineSetupImageBarriers(cmd, setupBarriers);
-    m_setupImageBarriers.Merge(setupBarriers);
 
     VkDeviceSize bufOffset = 0;
 
@@ -1722,32 +1711,51 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       }
     }
 
-    if(copyRegions.size() > 0)
-      ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), ToUnwrappedHandle<VkImage>(live),
-                                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                         (uint32_t)copyRegions.size(), copyRegions.data());
-
-    if(clearRegions.size() > 0)
+    if(copyRegions.size() + clearRegions.size() > 0)
     {
-      if(IsDepthOrStencilFormat(fmt))
+      VkCommandBuffer cmd = GetNextCmd();
+
+      vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      VkMarkerRegion::Begin(StringFormat::Fmt("Initial state for %s", ToStr(orig).c_str()), cmd);
+
+      ImageBarrierSequence setupBarriers;
+      state->Transition(m_QueueFamilyIdx, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
+                        VK_ACCESS_TRANSFER_WRITE_BIT, setupBarriers, GetImageTransitionInfo());
+      InlineSetupImageBarriers(cmd, setupBarriers);
+      m_setupImageBarriers.Merge(setupBarriers);
+
+      if(copyRegions.size() > 0)
+        ObjDisp(cmd)->CmdCopyBufferToImage(
+            Unwrap(cmd), Unwrap(buf), ToUnwrappedHandle<VkImage>(live),
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (uint32_t)copyRegions.size(), copyRegions.data());
+
+      if(clearRegions.size() > 0)
       {
-        VkClearDepthStencilValue val = {0, 0};
-        ObjDisp(cmd)->CmdClearDepthStencilImage(Unwrap(cmd), ToUnwrappedHandle<VkImage>(live),
-                                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &val,
-                                                (uint32_t)clearRegions.size(), clearRegions.data());
+        if(IsDepthOrStencilFormat(fmt))
+        {
+          VkClearDepthStencilValue val = {0, 0};
+          ObjDisp(cmd)->CmdClearDepthStencilImage(
+              Unwrap(cmd), ToUnwrappedHandle<VkImage>(live), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+              &val, (uint32_t)clearRegions.size(), clearRegions.data());
+        }
+        else
+        {
+          VkClearColorValue val;
+          memset(&val, 0, sizeof(val));
+          ObjDisp(cmd)->CmdClearColorImage(Unwrap(cmd), ToUnwrappedHandle<VkImage>(live),
+                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &val,
+                                           (uint32_t)clearRegions.size(), clearRegions.data());
+        }
       }
-      else
-      {
-        VkClearColorValue val;
-        memset(&val, 0, sizeof(val));
-        ObjDisp(cmd)->CmdClearColorImage(Unwrap(cmd), ToUnwrappedHandle<VkImage>(live),
-                                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &val,
-                                         (uint32_t)clearRegions.size(), clearRegions.data());
-      }
+
+      VkMarkerRegion::End(cmd);
+
+      vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
     }
 
-    vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
     SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
     SubmitCmds();
@@ -1810,6 +1818,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+    VkMarkerRegion::Begin(StringFormat::Fmt("Initial state for %s", ToStr(orig).c_str()), cmd);
+
     rdcarray<VkBufferCopy> regions;
     uint32_t fillCount = 0;
     for(auto it = resetReq.begin(); it != resetReq.end(); it++)
@@ -1836,6 +1846,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     if(regions.size() > 0)
       ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf),
                                   (uint32_t)regions.size(), regions.data());
+
+    VkMarkerRegion::End(cmd);
 
     vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
