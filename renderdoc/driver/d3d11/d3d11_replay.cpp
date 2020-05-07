@@ -3439,6 +3439,12 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
     if(templateTex.cubemap)
       desc.MiscFlags |= D3D11_RESOURCE_MISC_TEXTURECUBE;
 
+    if(IsBlockFormat(desc.Format))
+    {
+      desc.Width = AlignUp4(desc.Width);
+      desc.Height = AlignUp4(desc.Height);
+    }
+
     HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &throwaway);
     if(FAILED(hr))
     {
@@ -3486,7 +3492,7 @@ ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex
 
   m_ProxyResources.push_back(resource);
 
-  m_ProxyTypeCastDefault[ret] = templateTex.format.compType;
+  m_ProxyResourceOrigInfo[ret] = templateTex;
 
   return ret;
 }
@@ -3534,7 +3540,25 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, const Subresource &sub, 
     D3D11_TEXTURE2D_DESC desc;
     tex->GetDesc(&desc);
 
-    uint32_t mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, 1);
+    UINT width = desc.Width;
+    UINT height = desc.Height;
+
+    // for block formats we might have padded up to a multiple of four if the proxy texture wasn't
+    // originally a multiple of 4x4 in the top mip. We need to use the original dimensions for
+    // calculating expected data sizes and pitches
+    auto it = m_ProxyResourceOrigInfo.find(texid);
+    if(it == m_ProxyResourceOrigInfo.end())
+    {
+      RDCERR(
+          "Expected proxy resource original info for texture being set with SetProxyTextureData");
+    }
+    else
+    {
+      width = it->second.width;
+      height = it->second.height;
+    }
+
+    uint32_t mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(width, height, 1);
 
     UINT sampleCount = RDCMAX(1U, desc.SampleDesc.Count);
 
@@ -3544,7 +3568,7 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, const Subresource &sub, 
       return;
     }
 
-    if(dataSize < GetByteSize(desc.Width, desc.Height, 1, desc.Format, sub.mip))
+    if(dataSize < GetByteSize(width, height, 1, desc.Format, sub.mip))
     {
       RDCERR("Insufficient data provided to SetProxyTextureData");
       return;
@@ -3568,8 +3592,8 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, const Subresource &sub, 
       m_pDevice->GetReal()->CreateTexture2D(&uploadDesc, NULL, &uploadTex);
 
       ctx->UpdateSubresource(uploadTex, unpackedSlice, NULL, data,
-                             GetRowPitch(desc.Width, desc.Format, sub.mip),
-                             GetByteSize(desc.Width, desc.Height, 1, desc.Format, sub.mip));
+                             GetRowPitch(width, desc.Format, sub.mip),
+                             GetByteSize(width, desc.Height, 1, desc.Format, sub.mip));
 
       // copy that slice into MSAA sample
       GetDebugManager()->CopyArrayToTex2DMS(tex->GetReal(), uploadTex, unpackedSlice);
@@ -3579,8 +3603,8 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, const Subresource &sub, 
     else
     {
       ctx->UpdateSubresource(tex->GetReal(), sub.slice * mips + sub.mip, NULL, data,
-                             GetRowPitch(desc.Width, desc.Format, sub.mip),
-                             GetByteSize(desc.Width, desc.Height, 1, desc.Format, sub.mip));
+                             GetRowPitch(width, desc.Format, sub.mip),
+                             GetByteSize(width, height, 1, desc.Format, sub.mip));
     }
   }
   else if(WrappedID3D11Texture3D1::m_TextureList.find(texid) !=

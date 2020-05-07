@@ -513,9 +513,9 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
   // to restore that type here.
   if(typeCast == CompType::Typeless)
   {
-    auto it = m_ProxyTypeCastDefault.find(cfg.resourceId);
-    if(it != m_ProxyTypeCastDefault.end())
-      typeCast = it->second;
+    auto it = m_ProxyResourceOrigInfo.find(cfg.resourceId);
+    if(it != m_ProxyResourceOrigInfo.end())
+      typeCast = it->second.format.compType;
   }
 
   TextureShaderDetails details =
