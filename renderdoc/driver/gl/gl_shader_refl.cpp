@@ -1952,7 +1952,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
           case eGL_DOUBLE_MAT3x2:
           case eGL_DOUBLE_MAT2:
           case eGL_DOUBLE_MAT2x3:
-          case eGL_DOUBLE_MAT2x4: sig.compType = CompType::Double; break;
+          case eGL_DOUBLE_MAT2x4: sig.varType = VarType::Double; break;
           case eGL_FLOAT:
           case eGL_FLOAT_VEC2:
           case eGL_FLOAT_VEC3:
@@ -1965,21 +1965,21 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
           case eGL_FLOAT_MAT3x2:
           case eGL_FLOAT_MAT2:
           case eGL_FLOAT_MAT2x3:
-          case eGL_FLOAT_MAT2x4: sig.compType = CompType::Float; break;
+          case eGL_FLOAT_MAT2x4: sig.varType = VarType::Float; break;
           case eGL_INT:
           case eGL_INT_VEC2:
           case eGL_INT_VEC3:
-          case eGL_INT_VEC4: sig.compType = CompType::SInt; break;
+          case eGL_INT_VEC4: sig.varType = VarType::SInt; break;
           case eGL_UNSIGNED_INT:
-          case eGL_BOOL:
           case eGL_UNSIGNED_INT_VEC2:
-          case eGL_BOOL_VEC2:
           case eGL_UNSIGNED_INT_VEC3:
+          case eGL_UNSIGNED_INT_VEC4: sig.varType = VarType::UInt; break;
+          case eGL_BOOL:
+          case eGL_BOOL_VEC2:
           case eGL_BOOL_VEC3:
-          case eGL_UNSIGNED_INT_VEC4:
-          case eGL_BOOL_VEC4: sig.compType = CompType::UInt; break;
+          case eGL_BOOL_VEC4: sig.varType = VarType::Bool; break;
           default:
-            sig.compType = CompType::Float;
+            sig.varType = VarType::Float;
             RDCWARN("Unhandled signature element type %s", ToStr((GLenum)values[1]).c_str());
         }
 

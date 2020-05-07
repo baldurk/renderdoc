@@ -29,6 +29,26 @@
 
 namespace rdcspv
 {
+Scalar scalar(VarType type)
+{
+  switch(type)
+  {
+    case VarType::Float: return scalar<float>();
+    case VarType::Double: return scalar<double>();
+    case VarType::Half: return Scalar(Op::TypeFloat, 16, false);
+    case VarType::SInt: return scalar<int32_t>();
+    case VarType::UInt: return scalar<uint32_t>();
+    case VarType::SShort: return scalar<int16_t>();
+    case VarType::UShort: return scalar<uint16_t>();
+    case VarType::SLong: return scalar<int64_t>();
+    case VarType::ULong: return scalar<uint64_t>();
+    case VarType::SByte: return scalar<int8_t>();
+    case VarType::UByte: return scalar<uint8_t>();
+    case VarType::Bool: return scalar<bool>();
+    default: RDCERR("No scalar type for %s", ToStr(type).c_str()); return scalar<void>();
+  }
+}
+
 void ExecutionModes::Register(const OpExecutionMode &mode)
 {
   if(mode.mode == ExecutionMode::LocalSize)

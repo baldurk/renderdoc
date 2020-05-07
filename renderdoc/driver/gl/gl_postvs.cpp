@@ -94,7 +94,7 @@ static void MakeVaryingsFromShaderReflection(ShaderReflection &refl, rdcarray<co
     if(sig.systemValue == ShaderBuiltin::Position)
       posidx = int32_t(varyings.size()) - 1;
 
-    uint32_t outputComponents = (sig.compType == CompType::Double ? 2 : 1) * sig.compCount;
+    uint32_t outputComponents = (sig.varType == VarType::Double ? 2 : 1) * sig.compCount;
 
     stride += sizeof(float) * outputComponents;
 

@@ -159,7 +159,7 @@ void DoSerialise(SerialiserType &ser, SigParameter &el)
   SERIALISE_MEMBER(semanticIndex);
   SERIALISE_MEMBER(regIndex);
   SERIALISE_MEMBER(systemValue);
-  SERIALISE_MEMBER(compType);
+  SERIALISE_MEMBER(varType);
   SERIALISE_MEMBER(regChannelMask);
   SERIALISE_MEMBER(channelUsedMask);
   SERIALISE_MEMBER(needSemanticIndex);

@@ -175,10 +175,8 @@ void AddXFBAnnotations(const ShaderReflection &refl, const SPIRVPatchData &patch
           outpatch[i].ID, rdcspv::DecorationParam<rdcspv::Decoration::Offset>(xfbStride)));
     }
 
-    uint32_t compByteSize = 4;
-
-    if(outsig[i].compType == CompType::Double)
-      compByteSize = 8;
+    // components always get promoted to at least 32-bit
+    uint32_t compByteSize = RDCMAX(4U, VarTypeByteSize(outsig[i].varType));
 
     xfbStride += outsig[i].compCount * compByteSize;
   }
@@ -1597,19 +1595,7 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
     return;
   }
 
-  switch(varType->scalar().type)
-  {
-    case Op::TypeBool:
-    case Op::TypeInt:
-      sig.compType = varType->scalar().signedness ? CompType::SInt : CompType::UInt;
-      break;
-    case Op::TypeFloat:
-      sig.compType = varType->scalar().width == 64 ? CompType::Double : CompType::Float;
-      break;
-    default:
-      RDCERR("Unexpected base type of input/output signature %u", varType->scalar().type);
-      break;
-  }
+  sig.varType = varType->scalar().Type();
 
   sig.compCount = RDCMAX(1U, varType->vector().count);
   sig.stream = 0;

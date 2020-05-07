@@ -341,7 +341,7 @@ void Program::FetchComputeProperties(DXBC::Reflection *reflection)
 
       SigParameter param;
 
-      param.compType = CompType::UInt;
+      param.varType = VarType::UInt;
       param.regIndex = ~0U;
 
       switch(type)

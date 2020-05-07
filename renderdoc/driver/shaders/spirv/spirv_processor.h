@@ -97,6 +97,8 @@ struct Scalar
 template <typename T>
 inline constexpr Scalar scalar();
 
+Scalar scalar(VarType t);
+
 #define SCALAR_TYPE(ctype, op, width, sign) \
   template <>                               \
   inline constexpr Scalar scalar<ctype>()   \

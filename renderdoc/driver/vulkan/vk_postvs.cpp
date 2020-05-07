@@ -459,16 +459,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
     // base type - either a scalar or a vector, since matrix outputs are decayed to vectors
     {
-      rdcspv::Scalar scalarType = rdcspv::scalar<uint32_t>();
-
-      if(refl.outputSignature[i].compType == CompType::UInt)
-        scalarType = rdcspv::scalar<uint32_t>();
-      else if(refl.outputSignature[i].compType == CompType::SInt)
-        scalarType = rdcspv::scalar<int32_t>();
-      else if(refl.outputSignature[i].compType == CompType::Float)
-        scalarType = rdcspv::scalar<float>();
-      else if(refl.outputSignature[i].compType == CompType::Double)
-        scalarType = rdcspv::scalar<double>();
+      rdcspv::Scalar scalarType = rdcspv::scalar(refl.outputSignature[i].varType);
 
       io.vec4ID = editor.DeclareType(rdcspv::Vector(scalarType, 4));
 
@@ -499,33 +490,30 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
     io.variableID = patchData.inputs[i].ID;
 
-    rdcspv::Scalar scalarType = rdcspv::scalar<uint32_t>();
+    rdcspv::Scalar scalarType = rdcspv::scalar(refl.inputSignature[i].varType);
 
     // base type - either a scalar or a vector, since matrix outputs are decayed to vectors
-    if(refl.inputSignature[i].compType == CompType::UInt)
+    CompType compType = VarTypeCompType(refl.inputSignature[i].varType);
+    if(compType == CompType::UInt)
     {
-      scalarType = rdcspv::scalar<uint32_t>();
       io.tbuffer = tbuffer_uint;
     }
-    else if(refl.inputSignature[i].compType == CompType::SInt)
+    else if(compType == CompType::SInt)
     {
-      scalarType = rdcspv::scalar<int32_t>();
       io.tbuffer = tbuffer_sint;
     }
-    else if(refl.inputSignature[i].compType == CompType::Float)
+    else if(compType == CompType::Float)
     {
-      scalarType = rdcspv::scalar<float>();
       io.tbuffer = tbuffer_float;
     }
-    else if(refl.inputSignature[i].compType == CompType::Double)
+    else if(compType == CompType::Double)
     {
-      scalarType = rdcspv::scalar<double>();
       // doubles are loaded packed from a uint tbuffer
       io.tbuffer = tbuffer_uint;
     }
 
     // doubles are loaded as uvec4 and then packed in pairs, so we need to declare vec4ID as uvec4
-    if(refl.inputSignature[i].compType == CompType::Double)
+    if(compType == CompType::Double)
       io.vec4ID = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 4));
     else
       io.vec4ID = editor.DeclareType(rdcspv::Vector(scalarType, 4));
@@ -667,15 +655,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     uint32_t memberOffset = 0;
     for(uint32_t o = 0; o < numOutputs; o++)
     {
-      uint32_t elemSize = 0;
-      if(refl.outputSignature[o].compType == CompType::Double)
-        elemSize = 8;
-      else if(refl.outputSignature[o].compType == CompType::SInt ||
-              refl.outputSignature[o].compType == CompType::UInt ||
-              refl.outputSignature[o].compType == CompType::Float)
-        elemSize = 4;
-      else
-        RDCERR("Unexpected component type for output signature element");
+      uint32_t elemSize = RDCMAX(4U, VarTypeByteSize(refl.outputSignature[o].varType));
 
       uint32_t numComps = refl.outputSignature[o].compCount;
 
@@ -951,7 +931,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
           if(valueID)
           {
-            if(refl.inputSignature[i].compType == compType)
+            if(VarTypeCompType(refl.inputSignature[i].varType) == compType)
             {
               ops.add(rdcspv::OpStore(ins[i].variableID, valueID));
             }
@@ -1022,7 +1002,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
             }
           }
 
-          if(refl.inputSignature[i].compType == CompType::Double)
+          if(refl.inputSignature[i].varType == VarType::Double)
           {
             // since doubles are packed into two uints, we need to multiply the index by two
             idx = ops.add(rdcspv::OpIMul(uint32ID, editor.MakeId(), idx,
@@ -1034,7 +1014,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
 
           uint32_t comp = Bits::CountTrailingZeroes(uint32_t(refl.inputSignature[i].regChannelMask));
 
-          if(refl.inputSignature[i].compType == CompType::Double)
+          if(refl.inputSignature[i].varType == VarType::Double)
           {
             // since doubles are packed into two uints, we now need to fetch more data and do
             // packing. We can fetch the data unconditionally since it's harmless to read out of the

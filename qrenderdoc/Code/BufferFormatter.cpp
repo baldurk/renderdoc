@@ -899,22 +899,7 @@ ResourceFormat GetInterpretedResourceFormat(const ShaderConstant &elem)
   ResourceFormat format;
   format.type = interpretType;
 
-  switch(elem.type.descriptor.type)
-  {
-    case VarType::Half:
-    case VarType::Float: format.compType = CompType::Float; break;
-    case VarType::Double: format.compType = CompType::Double; break;
-    case VarType::SInt:
-    case VarType::SShort:
-    case VarType::SLong:
-    case VarType::SByte: format.compType = CompType::SInt; break;
-    case VarType::Bool:
-    case VarType::UInt:
-    case VarType::UShort:
-    case VarType::ULong:
-    case VarType::UByte: format.compType = CompType::UInt; break;
-    default: format.compType = CompType::UInt; break;
-  }
+  format.compType = VarTypeCompType(elem.type.descriptor.type);
 
   if(interpretCompType != CompType::Typeless)
     format.compType = interpretCompType;

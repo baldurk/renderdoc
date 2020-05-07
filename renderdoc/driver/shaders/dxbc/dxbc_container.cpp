@@ -1115,11 +1115,11 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
         }
 
         ComponentType compType = (ComponentType)el->componentType;
-        desc.compType = CompType::Float;
+        desc.varType = VarType::Float;
         if(compType == COMPONENT_TYPE_UINT32)
-          desc.compType = CompType::UInt;
+          desc.varType = VarType::UInt;
         else if(compType == COMPONENT_TYPE_SINT32)
-          desc.compType = CompType::SInt;
+          desc.varType = VarType::SInt;
         else if(compType != COMPONENT_TYPE_FLOAT32)
           RDCERR("Unexpected component type in signature");
 

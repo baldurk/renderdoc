@@ -1415,7 +1415,7 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
     p.format.type = ResourceFormatType::Regular;
     p.format.compByteWidth = sizeof(float);
     p.format.compCount = sig.compCount;
-    p.format.compType = sig.compType;
+    p.format.compType = VarTypeCompType(sig.varType);
 
     if(sig.systemValue == ShaderBuiltin::Position)
       posidx = i;

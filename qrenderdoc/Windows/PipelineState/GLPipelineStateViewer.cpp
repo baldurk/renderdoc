@@ -1267,7 +1267,7 @@ void GLPipelineStateViewer::setState()
         {
           name = state.vertexShader.reflection->inputSignature[attrib].varName;
           compCount = state.vertexShader.reflection->inputSignature[attrib].compCount;
-          compType = state.vertexShader.reflection->inputSignature[attrib].compType;
+          compType = VarTypeCompType(state.vertexShader.reflection->inputSignature[attrib].varType);
           usedSlot = true;
         }
       }

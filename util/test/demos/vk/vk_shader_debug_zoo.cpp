@@ -1768,6 +1768,11 @@ void main()
       break;
     }
 #endif
+    case 19:
+    {
+      Color = gl_FrontFacing ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+      default:
+    }
     default: break;
   }
 }

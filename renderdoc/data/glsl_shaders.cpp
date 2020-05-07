@@ -664,7 +664,7 @@ void main() {
 
         CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Position);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 4);
         CHECK(sig.regChannelMask == 0xf);
         CHECK(sig.channelUsedMask == 0xf);
@@ -677,7 +677,7 @@ void main() {
 
         CHECK(sig.regIndex == 3);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 2);
         CHECK(sig.regChannelMask == 0x3);
         CHECK(sig.channelUsedMask == 0x3);
@@ -690,7 +690,7 @@ void main() {
 
         CHECK(sig.regIndex == 6);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::UInt);
+        CHECK(sig.varType == VarType::UInt);
         CHECK(sig.compCount == 3);
         CHECK(sig.regChannelMask == 0x7);
         CHECK(sig.channelUsedMask == 0x7);
@@ -706,7 +706,7 @@ void main() {
 
         CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::ColorOutput);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 4);
         CHECK(sig.regChannelMask == 0xf);
         CHECK(sig.channelUsedMask == 0xf);
@@ -719,7 +719,7 @@ void main() {
 
         CHECK(sig.regIndex == 1);
         CHECK(sig.systemValue == ShaderBuiltin::ColorOutput);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 3);
         CHECK(sig.regChannelMask == 0x7);
         CHECK(sig.channelUsedMask == 0x7);
@@ -732,7 +732,7 @@ void main() {
 
         CHECK(sig.regIndex == 2);
         CHECK(sig.systemValue == ShaderBuiltin::ColorOutput);
-        CHECK(sig.compType == CompType::SInt);
+        CHECK(sig.varType == VarType::SInt);
         CHECK(sig.compCount == 1);
         CHECK(sig.regChannelMask == 0x1);
         CHECK(sig.channelUsedMask == 0x1);
@@ -747,7 +747,7 @@ void main() {
         // the location of outputs, so this will be wrong
         // CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::DepthOutput);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 1);
         CHECK(sig.regChannelMask == 0x1);
         CHECK(sig.channelUsedMask == 0x1);
@@ -1372,7 +1372,7 @@ void main() {
 
         CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Position);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 4);
         CHECK(sig.regChannelMask == 0xf);
         CHECK(sig.channelUsedMask == 0xf);
@@ -1407,7 +1407,7 @@ void main() {
 
         CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Position);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 4);
         CHECK(sig.regChannelMask == 0xf);
         CHECK(sig.channelUsedMask == 0xf);
@@ -1420,7 +1420,7 @@ void main() {
 
         CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::PointSize);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 1);
         CHECK(sig.regChannelMask == 0x1);
         CHECK(sig.channelUsedMask == 0x1);
@@ -1468,7 +1468,7 @@ void main()
 
         CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Position);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 4);
         CHECK(sig.regChannelMask == 0xf);
         CHECK(sig.channelUsedMask == 0xf);
@@ -1481,7 +1481,7 @@ void main()
 
         CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 3);
         CHECK(sig.regChannelMask == 0x7);
         CHECK(sig.channelUsedMask == 0x7);
@@ -1494,7 +1494,7 @@ void main()
 
         CHECK(sig.regIndex == 1);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 3);
         CHECK(sig.regChannelMask == 0x7);
         CHECK(sig.channelUsedMask == 0x7);
@@ -1507,7 +1507,7 @@ void main()
 
         CHECK(sig.regIndex == 2);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 3);
         CHECK(sig.regChannelMask == 0x7);
         CHECK(sig.channelUsedMask == 0x7);
@@ -1520,7 +1520,7 @@ void main()
 
         CHECK(sig.regIndex == 6);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 2);
         CHECK(sig.regChannelMask == 0x3);
         CHECK(sig.channelUsedMask == 0x3);
@@ -1533,7 +1533,7 @@ void main()
 
         CHECK(sig.regIndex == 7);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 2);
         CHECK(sig.regChannelMask == 0x3);
         CHECK(sig.channelUsedMask == 0x3);
@@ -1546,7 +1546,7 @@ void main()
 
         CHECK(sig.regIndex == 9);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 2);
         CHECK(sig.regChannelMask == 0x3);
         CHECK(sig.channelUsedMask == 0x3);
@@ -1559,7 +1559,7 @@ void main()
 
         CHECK(sig.regIndex == 10);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 2);
         CHECK(sig.regChannelMask == 0x3);
         CHECK(sig.channelUsedMask == 0x3);
@@ -1572,7 +1572,7 @@ void main()
 
         CHECK(sig.regIndex == 11);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 2);
         CHECK(sig.regChannelMask == 0x3);
         CHECK(sig.channelUsedMask == 0x3);
@@ -1585,7 +1585,7 @@ void main()
 
         CHECK(sig.regIndex == 12);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 2);
         CHECK(sig.regChannelMask == 0x3);
         CHECK(sig.channelUsedMask == 0x3);
@@ -1653,7 +1653,7 @@ void main()
 
         CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Position);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 4);
         CHECK(sig.regChannelMask == 0xf);
         CHECK(sig.channelUsedMask == 0xf);
@@ -1666,7 +1666,7 @@ void main()
 
         CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 1);
         CHECK(sig.regChannelMask == 0x1);
         CHECK(sig.channelUsedMask == 0x1);
@@ -1679,7 +1679,7 @@ void main()
 
         CHECK(sig.regIndex == 1);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 3);
         CHECK(sig.regChannelMask == 0x7);
         CHECK(sig.channelUsedMask == 0x7);
@@ -1692,7 +1692,7 @@ void main()
 
         CHECK(sig.regIndex == 2);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 1);
         CHECK(sig.regChannelMask == 0x1);
         CHECK(sig.channelUsedMask == 0x1);
@@ -1705,7 +1705,7 @@ void main()
 
         CHECK(sig.regIndex == 3);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 1);
         CHECK(sig.regChannelMask == 0x1);
         CHECK(sig.channelUsedMask == 0x1);
@@ -1718,7 +1718,7 @@ void main()
 
         CHECK(sig.regIndex == 4);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 1);
         CHECK(sig.regChannelMask == 0x1);
         CHECK(sig.channelUsedMask == 0x1);
@@ -1731,7 +1731,7 @@ void main()
 
         CHECK(sig.regIndex == 5);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 1);
         CHECK(sig.regChannelMask == 0x1);
         CHECK(sig.channelUsedMask == 0x1);
@@ -1744,7 +1744,7 @@ void main()
 
         CHECK(sig.regIndex == 6);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 1);
         CHECK(sig.regChannelMask == 0x1);
         CHECK(sig.channelUsedMask == 0x1);
@@ -1757,7 +1757,7 @@ void main()
 
         CHECK(sig.regIndex == 7);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 1);
         CHECK(sig.regChannelMask == 0x1);
         CHECK(sig.channelUsedMask == 0x1);
@@ -1770,7 +1770,7 @@ void main()
 
         CHECK(sig.regIndex == 8);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 1);
         CHECK(sig.regChannelMask == 0x1);
         CHECK(sig.channelUsedMask == 0x1);
@@ -1783,7 +1783,7 @@ void main()
 
         CHECK(sig.regIndex == 9);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 1);
         CHECK(sig.regChannelMask == 0x1);
         CHECK(sig.channelUsedMask == 0x1);
@@ -1853,7 +1853,7 @@ void main()
 
           CHECK(sig.regIndex == 0);
           CHECK(sig.systemValue == ShaderBuiltin::Position);
-          CHECK(sig.compType == CompType::Float);
+          CHECK(sig.varType == VarType::Float);
           CHECK(sig.compCount == 4);
           CHECK(sig.regChannelMask == 0xf);
           CHECK(sig.channelUsedMask == 0xf);
@@ -1874,7 +1874,7 @@ void main()
 
           CHECK(sig.regIndex == a);
           CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-          CHECK(sig.compType == CompType::Float);
+          CHECK(sig.varType == VarType::Float);
           CHECK(sig.compCount == 3);
           CHECK(sig.regChannelMask == 0x7);
           CHECK(sig.channelUsedMask == 0x7);
@@ -1948,7 +1948,7 @@ void main()
 
         CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Position);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 4);
         CHECK(sig.regChannelMask == 0xf);
         CHECK(sig.channelUsedMask == 0xf);
@@ -1961,7 +1961,7 @@ void main()
 
         CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 2);
         CHECK(sig.regChannelMask == 0x3);
         CHECK(sig.channelUsedMask == 0x3);
@@ -1979,7 +1979,7 @@ void main()
 
         CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Position);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 4);
         CHECK(sig.regChannelMask == 0xf);
         CHECK(sig.channelUsedMask == 0xf);
@@ -1992,7 +1992,7 @@ void main()
 
         CHECK(sig.regIndex == 0);
         CHECK(sig.systemValue == ShaderBuiltin::Undefined);
-        CHECK(sig.compType == CompType::Float);
+        CHECK(sig.varType == VarType::Float);
         CHECK(sig.compCount == 2);
         CHECK(sig.regChannelMask == 0x3);
         CHECK(sig.channelUsedMask == 0x3);

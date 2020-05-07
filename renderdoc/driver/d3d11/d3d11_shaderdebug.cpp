@@ -2078,7 +2078,7 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
       if(draw->flags & DrawFlags::Indexed)
         sv_vertid = idx;
 
-      if(dxbc->GetReflection()->InputSig[i].compType == CompType::Float)
+      if(dxbc->GetReflection()->InputSig[i].varType == VarType::Float)
         state.inputs[i].value.f.x = state.inputs[i].value.f.y = state.inputs[i].value.f.z =
             state.inputs[i].value.f.w = (float)sv_vertid;
       else
@@ -2087,7 +2087,7 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     }
     else if(dxbc->GetReflection()->InputSig[i].systemValue == ShaderBuiltin::InstanceIndex)
     {
-      if(dxbc->GetReflection()->InputSig[i].compType == CompType::Float)
+      if(dxbc->GetReflection()->InputSig[i].varType == VarType::Float)
         state.inputs[i].value.f.x = state.inputs[i].value.f.y = state.inputs[i].value.f.z =
             state.inputs[i].value.f.w = (float)instid;
       else

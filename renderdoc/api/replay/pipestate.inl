@@ -789,20 +789,16 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
           if(!attrs[i].enabled)
           {
             uint32_t compCount = m_GL->vertexShader.reflection->inputSignature[attrib].compCount;
-            CompType compType = m_GL->vertexShader.reflection->inputSignature[attrib].compType;
+            VarType varType = m_GL->vertexShader.reflection->inputSignature[attrib].varType;
 
             for(uint32_t c = 0; c < compCount; c++)
             {
-              if(compType == CompType::Float)
+              if(varType == VarType::Float)
                 ret[a].genericValue.floatValue[c] = attrs[i].genericValue.floatValue[c];
-              else if(compType == CompType::UInt)
+              else if(varType == VarType::UInt)
                 ret[a].genericValue.uintValue[c] = attrs[i].genericValue.uintValue[c];
-              else if(compType == CompType::SInt)
+              else if(varType == VarType::SInt)
                 ret[a].genericValue.intValue[c] = attrs[i].genericValue.intValue[c];
-              else if(compType == CompType::UScaled)
-                ret[a].genericValue.floatValue[c] = (float)attrs[i].genericValue.uintValue[c];
-              else if(compType == CompType::SScaled)
-                ret[a].genericValue.floatValue[c] = (float)attrs[i].genericValue.intValue[c];
             }
 
             ret[a].genericEnabled = true;
@@ -811,7 +807,7 @@ rdcarray<VertexInputAttribute> PipeState::GetVertexInputs() const
             ret[a].instanceRate = 0;
             ret[a].format.compByteWidth = 4;
             ret[a].format.compCount = (uint8_t)compCount;
-            ret[a].format.compType = compType;
+            ret[a].format.compType = VarTypeCompType(varType);
             ret[a].format.type = ResourceFormatType::Regular;
           }
         }

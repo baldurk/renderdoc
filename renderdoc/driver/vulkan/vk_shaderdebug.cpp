@@ -2721,27 +2721,28 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     {
       const SigParameter &param = shadRefl.refl.inputSignature[i];
 
-      rdcspv::Scalar base;
-      switch(param.compType)
-      {
-        case CompType::Float: base = rdcspv::scalar<float>(); break;
-        case CompType::UInt: base = rdcspv::scalar<uint32_t>(); break;
-        case CompType::SInt: base = rdcspv::scalar<int32_t>(); break;
-        case CompType::Double: base = rdcspv::scalar<double>(); break;
-        default: RDCERR("Unexpected type %s", ToStr(param.compType).c_str());
-      }
+      rdcspv::Scalar base = rdcspv::scalar(param.varType);
 
       values[i].structIndex = (uint32_t)offsets.size();
 
+      uint32_t width = (base.width / 8);
+
+      // treat bools as uints
+      if(base.type == rdcspv::Op::TypeBool)
+        width = 4;
+
       offsets.push_back(structStride);
-      structStride += param.compCount * (base.width / 8);
+      structStride += param.compCount * width;
 
       if(param.compCount == 1)
         values[i].valueType = editor.DeclareType(base);
       else
         values[i].valueType = editor.DeclareType(rdcspv::Vector(base, param.compCount));
 
-      ids.push_back(values[i].valueType);
+      if(values[i].valueType == boolType)
+        ids.push_back(uint32Type);
+      else
+        ids.push_back(values[i].valueType);
 
       // align offset conservatively, to 16-byte aligned. We do this with explicit uints so we can
       // preview with spirv-cross (and because it doesn't cost anything particularly)
@@ -3036,8 +3037,10 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
         for(uint32_t idx : access.accessChain)
           accessIndices.push_back(getUIntConst(idx));
 
+        rdcspv::Id valueType = values[i].valueType;
+
         rdcspv::Id ptrType =
-            editor.DeclareType(rdcspv::Pointer(values[i].valueType, rdcspv::StorageClass::Input));
+            editor.DeclareType(rdcspv::Pointer(valueType, rdcspv::StorageClass::Input));
 
         // if we have no access chain it's a global pointer of the type we want, so just load
         // straight out of it
@@ -3047,23 +3050,31 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
         else
           ptr = ops.add(rdcspv::OpAccessChain(ptrType, editor.MakeId(), access.ID, accessIndices));
 
-        rdcspv::Id base = ops.add(rdcspv::OpLoad(values[i].valueType, editor.MakeId(), ptr));
+        rdcspv::Id base = ops.add(rdcspv::OpLoad(valueType, editor.MakeId(), ptr));
+
+        if(valueType == boolType)
+        {
+          valueType = uint32Type;
+          // can't store bools directly, need to convert to uint
+          base = ops.add(
+              rdcspv::OpSelect(valueType, editor.MakeId(), base, getUIntConst(1), getUIntConst(0)));
+        }
 
         values[i].data[Variant_Base] = base;
 
         editor.SetName(base, StringFormat::Fmt("__rd_base_%zu_%s", i, param.varName.c_str()));
 
         // only float values have derivatives
-        if(param.compType == CompType::Float)
+        if(VarTypeCompType(param.varType) == CompType::Float)
         {
           values[i].data[Variant_ddxcoarse] =
-              ops.add(rdcspv::OpDPdxCoarse(values[i].valueType, editor.MakeId(), base));
+              ops.add(rdcspv::OpDPdxCoarse(valueType, editor.MakeId(), base));
           values[i].data[Variant_ddycoarse] =
-              ops.add(rdcspv::OpDPdyCoarse(values[i].valueType, editor.MakeId(), base));
+              ops.add(rdcspv::OpDPdyCoarse(valueType, editor.MakeId(), base));
           values[i].data[Variant_ddxfine] =
-              ops.add(rdcspv::OpDPdxFine(values[i].valueType, editor.MakeId(), base));
+              ops.add(rdcspv::OpDPdxFine(valueType, editor.MakeId(), base));
           values[i].data[Variant_ddyfine] =
-              ops.add(rdcspv::OpDPdyFine(values[i].valueType, editor.MakeId(), base));
+              ops.add(rdcspv::OpDPdyFine(valueType, editor.MakeId(), base));
 
           editor.SetName(values[i].data[Variant_ddxcoarse],
                          StringFormat::Fmt("__rd_ddxcoarse_%zu_%s", i, param.varName.c_str()));
@@ -3078,7 +3089,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
         {
           values[i].data[Variant_ddxcoarse] = values[i].data[Variant_ddycoarse] =
               values[i].data[Variant_ddxfine] = values[i].data[Variant_ddyfine] =
-                  editor.AddConstant(rdcspv::OpConstantNull(values[i].valueType, editor.MakeId()));
+                  editor.AddConstant(rdcspv::OpConstantNull(valueType, editor.MakeId()));
 
           editor.SetName(values[i].data[Variant_ddxcoarse],
                          StringFormat::Fmt("__rd_noderiv_%zu_%s", i, param.varName.c_str()));
@@ -3265,7 +3276,10 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
         for(size_t i = 0; i < values.size(); i++)
         {
-          rdcspv::Id ptrType = editor.DeclareType(rdcspv::Pointer(values[i].valueType, bufferClass));
+          rdcspv::Id valueType = values[i].valueType;
+          if(valueType == boolType)
+            valueType = uint32Type;
+          rdcspv::Id ptrType = editor.DeclareType(rdcspv::Pointer(valueType, bufferClass));
 
           for(size_t j = 0; j < Variant_Count; j++)
           {

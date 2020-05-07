@@ -1140,22 +1140,7 @@ QString ToQStr(const AddressMode addr, const GraphicsAPI apitype)
 
 QString TypeString(const SigParameter &sig)
 {
-  QString ret = lit("");
-
-  if(sig.compType == CompType::Float)
-    ret += lit("float");
-  else if(sig.compType == CompType::UInt || sig.compType == CompType::UScaled)
-    ret += lit("uint");
-  else if(sig.compType == CompType::SInt || sig.compType == CompType::SScaled)
-    ret += lit("int");
-  else if(sig.compType == CompType::UNorm || sig.compType == CompType::UNormSRGB)
-    ret += lit("unorm float");
-  else if(sig.compType == CompType::SNorm)
-    ret += lit("snorm float");
-  else if(sig.compType == CompType::Depth)
-    ret += lit("float");
-  else if(sig.compType == CompType::Double)
-    ret += lit("double");
+  QString ret = ToQStr(sig.varType);
 
   if(sig.compCount > 1)
     ret += QString::number(sig.compCount);

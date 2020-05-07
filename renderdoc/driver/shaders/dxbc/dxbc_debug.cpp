@@ -4754,14 +4754,15 @@ void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
         {
           filled = true;
 
-          if(prevStageDxbc.OutputSig[os].compType == CompType::Float)
+          if(prevStageDxbc.OutputSig[os].varType == VarType::Float)
             psInputDefinition += "float";
-          else if(prevStageDxbc.OutputSig[os].compType == CompType::SInt)
+          else if(prevStageDxbc.OutputSig[os].varType == VarType::SInt)
             psInputDefinition += "int";
-          else if(prevStageDxbc.OutputSig[os].compType == CompType::UInt)
+          else if(prevStageDxbc.OutputSig[os].varType == VarType::UInt)
             psInputDefinition += "uint";
           else
-            RDCERR("Unexpected input signature type: %d", prevStageDxbc.OutputSig[os].compType);
+            RDCERR("Unexpected input signature type: %s",
+                   ToStr(prevStageDxbc.OutputSig[os].varType).c_str());
 
           int numCols = (prevStageDxbc.OutputSig[os].regChannelMask & 0x1 ? 1 : 0) +
                         (prevStageDxbc.OutputSig[os].regChannelMask & 0x2 ? 1 : 0) +
@@ -4792,14 +4793,13 @@ void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
 
     nextreg = sig.regIndex + 1;
 
-    if(sig.compType == CompType::Float)
+    if(sig.varType == VarType::Float)
     {
       // if we're packed with ints on either side, we must be nointerpolation
       bool nointerp = false;
       for(size_t j = 0; j < numInputs; j++)
       {
-        if(sig.regIndex == psDxbc.InputSig[j].regIndex &&
-           psDxbc.InputSig[j].compType != CompType::Float)
+        if(sig.regIndex == psDxbc.InputSig[j].regIndex && psDxbc.InputSig[j].varType != VarType::Float)
         {
           nointerp = true;
           break;
@@ -4831,12 +4831,12 @@ void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
 
       psInputDefinition += "float";
     }
-    else if(sig.compType == CompType::SInt)
+    else if(sig.varType == VarType::SInt)
       psInputDefinition += "nointerpolation int";
-    else if(sig.compType == CompType::UInt)
+    else if(sig.varType == VarType::UInt)
       psInputDefinition += "nointerpolation uint";
     else
-      RDCERR("Unexpected input signature type: %d", sig.compType);
+      RDCERR("Unexpected input signature type: %s", ToStr(sig.varType).c_str());
 
     int numCols = (sig.regChannelMask & 0x1 ? 1 : 0) + (sig.regChannelMask & 0x2 ? 1 : 0) +
                   (sig.regChannelMask & 0x4 ? 1 : 0) + (sig.regChannelMask & 0x8 ? 1 : 0);
@@ -4952,7 +4952,7 @@ void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
     if(arrayLength > 0)
       inputVarNames[i] += StringFormat::Fmt("[%d]", RDCMAX(0, arrayIndex));
 
-    if(included && sig.compType == CompType::Float)
+    if(included && sig.varType == VarType::Float)
     {
       if(arrayLength == 0)
       {
@@ -5043,13 +5043,7 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
                                                      : sig.regChannelMask & 0x2
                                                            ? 2
                                                            : sig.regChannelMask & 0x1 ? 1 : 0;
-
-      if(sig.compType == CompType::UInt)
-        v.type = VarType::UInt;
-      else if(sig.compType == CompType::SInt)
-        v.type = VarType::SInt;
-      else
-        v.type = VarType::Float;
+      v.type = sig.varType;
 
       ShaderVariable &dst = state.inputs[sig.regIndex];
 
@@ -5153,13 +5147,7 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
                                                    : sig.regChannelMask & 0x2
                                                          ? 2
                                                          : sig.regChannelMask & 0x1 ? 1 : 0;
-
-    if(sig.compType == CompType::UInt)
-      v.type = VarType::UInt;
-    else if(sig.compType == CompType::SInt)
-      v.type = VarType::SInt;
-    else
-      v.type = VarType::Float;
+    v.type = sig.varType;
 
     ShaderVariable &dst = state.variables[idx];
 

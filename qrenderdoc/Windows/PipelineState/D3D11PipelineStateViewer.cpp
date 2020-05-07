@@ -1260,14 +1260,14 @@ void D3D11PipelineStateViewer::setState()
                                  .arg(VS[i].compCount);
 
         // VS wants different types
-        if(IA[i].compType != VS[i].compType)
+        if(IA[i].varType != VS[i].varType)
           mismatchDetails +=
               tr("IA bytecode semantic %1 (%2) is %4).arg(VS bytecode semantic %1 (%3) is %5\n")
                   .arg(i)
                   .arg(IAname)
                   .arg(VSname)
-                  .arg(ToQStr(IA[i].compType))
-                  .arg(ToQStr(VS[i].compType));
+                  .arg(ToQStr(IA[i].varType))
+                  .arg(ToQStr(VS[i].varType));
       }
     }
 

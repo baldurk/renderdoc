@@ -350,6 +350,31 @@ enum class CompType : uint8_t
 
 DECLARE_REFLECTION_ENUM(CompType);
 
+DOCUMENT(R"(Get the component type of a variable type.
+
+:param VarType type: The variable type
+:return: The base component type of this variable type
+:rtype: CompType
+)");
+constexpr CompType VarTypeCompType(VarType type)
+{
+  // temporarily disable clang-format to make this more readable.
+  // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
+  // clang-format off
+  return (type == VarType::Double) ? CompType::Double
+
+       : (type == VarType::Float  || type == VarType::Half) ? CompType::Float
+
+       : (type == VarType::ULong  || type == VarType::UInt   ||
+          type == VarType::UShort || type == VarType::UByte  || type == VarType::Bool) ? CompType::UInt
+
+       : (type == VarType::SLong  || type == VarType::SInt   ||
+          type == VarType::SShort || type == VarType::SByte) ? CompType::SInt
+
+       : CompType::Typeless;
+  // clang-format on
+}
+
 DOCUMENT(R"(A single source component for a destination texture swizzle.
 
 .. data:: Red

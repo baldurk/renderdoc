@@ -795,7 +795,7 @@ struct SigParameter
   {
     return varName == o.varName && semanticName == o.semanticName &&
            semanticIdxName == o.semanticIdxName && semanticIndex == o.semanticIndex &&
-           regIndex == o.regIndex && systemValue == o.systemValue && compType == o.compType &&
+           regIndex == o.regIndex && systemValue == o.systemValue && varType == o.varType &&
            regChannelMask == o.regChannelMask && channelUsedMask == o.channelUsedMask &&
            needSemanticIndex == o.needSemanticIndex && compCount == o.compCount &&
            stream == o.stream;
@@ -814,8 +814,8 @@ struct SigParameter
       return regIndex < o.regIndex;
     if(!(systemValue == o.systemValue))
       return systemValue < o.systemValue;
-    if(!(compType == o.compType))
-      return compType < o.compType;
+    if(!(varType == o.varType))
+      return varType < o.varType;
     if(!(regChannelMask == o.regChannelMask))
       return regChannelMask < o.regChannelMask;
     if(!(channelUsedMask == o.channelUsedMask))
@@ -847,8 +847,8 @@ stage. See :data:`systemValue`.
   DOCUMENT("The :class:`ShaderBuiltin` value that this element contains.");
   ShaderBuiltin systemValue = ShaderBuiltin::Undefined;
 
-  DOCUMENT("The :class:`component type <CompType>` of data that this element stores.");
-  CompType compType = CompType::Float;
+  DOCUMENT("The :class:`variable type <VarType>` of data that this element stores.");
+  VarType varType = VarType::Float;
 
   DOCUMENT(R"(A bitmask indicating which components in the shader register are stored, for APIs that
 pack signatures together.
