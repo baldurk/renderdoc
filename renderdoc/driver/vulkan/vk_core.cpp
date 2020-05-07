@@ -2386,11 +2386,6 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
 
     ApplyInitialContents();
 
-    SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
-    SubmitCmds();
-    FlushQ();
-    SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
-
     SetDebugMessageSink(sink);
   }
 
@@ -2633,12 +2628,10 @@ void WrappedVulkan::ApplyInitialContents()
   vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if ENABLED(SINGLE_FLUSH_VALIDATE)
   SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
   SubmitCmds();
   FlushQ();
   SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
-#endif
 }
 
 bool WrappedVulkan::ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
@@ -3131,11 +3124,6 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     VkMarkerRegion::Begin("!!!!RenderDoc Internal: ApplyInitialContents");
     ApplyInitialContents();
     VkMarkerRegion::End();
-
-    SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
-    SubmitCmds();
-    FlushQ();
-    SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
   }
 
   m_State = CaptureState::ActiveReplaying;
