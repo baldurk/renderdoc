@@ -1131,7 +1131,7 @@ dds_data load_dds_from_file(StreamReader *reader)
       // pitch/rows are in blocks, not pixels, for block formats.
       if(blockFormat)
       {
-        numRows = RDCMAX(1U, numRows / 4);
+        numRows = RDCMAX(1U, (numRows + 3) / 4);
 
         uint32_t blockSize = (ret.format.type == ResourceFormatType::BC1 ||
                               ret.format.type == ResourceFormatType::BC4)
