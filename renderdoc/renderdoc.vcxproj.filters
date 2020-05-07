@@ -1072,6 +1072,9 @@
     <None Include="data\glsl\shaderdebug_sample.vert">
       <Filter>Resources\glsl</Filter>
     </None>
+    <None Include="data\glsl\pixelhistory_mscopy.comp">
+      <Filter>Resources\glsl</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">
