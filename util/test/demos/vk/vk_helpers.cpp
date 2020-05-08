@@ -199,6 +199,49 @@ GraphicsPipelineCreateInfo::GraphicsPipelineCreateInfo()
   });
 }
 
+const GraphicsPipelineCreateInfo &GraphicsPipelineCreateInfo::operator=(
+    const GraphicsPipelineCreateInfo &other)
+{
+  sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+  pNext = other.pNext;
+  flags = other.flags;
+  layout = other.layout;
+  renderPass = other.renderPass;
+  subpass = other.subpass;
+  basePipelineHandle = other.basePipelineHandle;
+  basePipelineIndex = other.basePipelineIndex;
+
+  stages = other.stages;
+
+  inputAssemblyState = other.inputAssemblyState;
+  tessellationState = other.tessellationState;
+  rasterizationState = other.rasterizationState;
+  multisampleState = other.multisampleState;
+  depthStencilState = other.depthStencilState;
+
+  vertexInputState = other.vertexInputState;
+  inputAssemblyState = other.inputAssemblyState;
+  tessellationState = other.tessellationState;
+  viewportState = other.viewportState;
+  rasterizationState = other.rasterizationState;
+  multisampleState = other.multisampleState;
+  depthStencilState = other.depthStencilState;
+  colorBlendState = other.colorBlendState;
+  dynamicState = other.dynamicState;
+
+  pVertexInputState = &vertexInputState;
+  pInputAssemblyState = &inputAssemblyState;
+  pTessellationState = &tessellationState;
+  pViewportState = &viewportState;
+  pRasterizationState = &rasterizationState;
+  pMultisampleState = &multisampleState;
+  pDepthStencilState = &depthStencilState;
+  pColorBlendState = &colorBlendState;
+  pDynamicState = &dynamicState;
+
+  return *this;
+}
+
 void GraphicsPipelineCreateInfo::bake()
 {
   stageCount = (uint32_t)stages.size();
