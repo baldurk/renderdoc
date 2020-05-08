@@ -477,6 +477,10 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   for(uint32_t i = 0; i < count; i++)
     GetResourceManager()->WrapResource(m_Instance, m_ReplayPhysicalDevices[i]);
 
+#if ENABLED(RDOC_WIN32)
+  LoadLibraryA("nvoglv64.dll");
+#endif
+
   return ReplayStatus::Succeeded;
 }
 
