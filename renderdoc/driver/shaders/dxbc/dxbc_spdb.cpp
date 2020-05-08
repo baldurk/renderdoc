@@ -584,17 +584,18 @@ SPDBChunk::SPDBChunk(void *chunk)
         {
           lfStridedArray *stridedArray = (lfStridedArray *)leaf;
           // documentation isn't clear, but seems like byte size is always a uint16_t
-          uint16_t *bytelength = (uint16_t *)stridedArray->data;
+          uint16_t bytelength = *(uint16_t *)stridedArray->data;
+
+          uint16_t stride = uint16_t(stridedArray->stride);
+
+          if(bytelength == 0)
+          {
+            // busted debug info - don't trust the stride
+            stride = typeInfo[stridedArray->elemtype].byteSize & 0xffff;
+          }
 
           typeInfo[id] = {
-              "",
-              typeInfo[stridedArray->elemtype].baseType,
-              *bytelength,
-              1,
-              uint16_t(stridedArray->stride),
-              0,
-              type,
-              {},
+              "", typeInfo[stridedArray->elemtype].baseType, bytelength, 1, stride, 0, type, {},
           };
 
           break;
@@ -1175,6 +1176,8 @@ SPDBChunk::SPDBChunk(void *chunk)
 
         RDCASSERT(varOffset + varLen <= vartype->byteSize);
 
+        uint32_t varTypeByteSize = vartype->byteSize;
+
         // step through struct members
         while(!vartype->members.empty())
         {
@@ -1182,12 +1185,24 @@ SPDBChunk::SPDBChunk(void *chunk)
 
           // find the child member this register corresponds to. We don't handle overlaps between
           // members
-          for(const TypeMember &mem : vartype->members)
+          for(size_t memIndex = 0; memIndex < vartype->members.size(); memIndex++)
           {
+            const TypeMember &mem = vartype->members[memIndex];
+
             TypeDesc &childType = typeInfo[mem.typeIndex];
 
             uint32_t memberOffset = mem.byteOffset;
             uint32_t memberLen = childType.byteSize;
+
+            if(memberLen == 0)
+            {
+              // if the member length is 0 this is busted debug info from fxc, so assume the member
+              // runs up to the end of the struct or the next member
+              if(memIndex == vartype->members.size() - 1)
+                memberLen = vartype->byteSize - memberOffset;
+              else
+                memberLen = vartype->members[memIndex + 1].byteOffset - memberOffset;
+            }
 
             // if this member is before our variable, continue
             if(memberOffset + memberLen <= varOffset)
@@ -1212,6 +1227,7 @@ SPDBChunk::SPDBChunk(void *chunk)
             varOffset -= memberOffset;
 
             vartype = &childType;
+            varTypeByteSize = memberLen;
 
             found = true;
 
@@ -1237,7 +1253,7 @@ SPDBChunk::SPDBChunk(void *chunk)
         {
           // number of rows is the number of vectors in the matrix's total byte size (each vector is
           // a row)
-          mapping.var.rows = uint8_t(vartype->byteSize / vartype->matArrayStride);
+          mapping.var.rows = uint8_t(varTypeByteSize / vartype->matArrayStride);
 
           // unless this is a column major matrix, in which case each vector is a column so swap the
           // rows/columns (the number of ROWS is the vector size, when each vector is a column)
