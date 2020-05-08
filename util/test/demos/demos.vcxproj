@@ -154,6 +154,7 @@
     <ClCompile Include="d3d11\d3d11_saturate.cpp" />
     <ClCompile Include="d3d11\d3d11_shader_editing.cpp" />
     <ClCompile Include="d3d11\d3d11_shader_isa.cpp" />
+    <ClCompile Include="d3d11\d3d11_shader_linkage_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_simple_dispatch.cpp" />
     <ClCompile Include="d3d11\d3d11_simple_triangle.cpp" />
     <ClCompile Include="d3d11\d3d11_stream_out.cpp" />
