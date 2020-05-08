@@ -448,17 +448,15 @@ protected:
     const VulkanCreationInfo::Pipeline &p = m_pDriver->GetDebugManager()->GetPipelineInfo(pipe);
     m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, pipe);
 
+    // make state we want to control dynamic
+    AddDynamicStates(pipeCreateInfo);
+
     VkPipelineRasterizationStateCreateInfo *rs =
         (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
     VkPipelineDepthStencilStateCreateInfo *ds =
         (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
     VkPipelineMultisampleStateCreateInfo *ms =
         (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
-    VkPipelineViewportStateCreateInfo *vs =
-        (VkPipelineViewportStateCreateInfo *)pipeCreateInfo.pViewportState;
-
-    VkRect2D newScissors[16];
-    memset(newScissors, 0, sizeof(newScissors));
 
     // TODO: should leave in the original state.
     ds->depthTestEnable = VK_FALSE;
@@ -489,22 +487,6 @@ protected:
     // Narrow on the specific pixel and sample.
     {
       ms->pSampleMask = &m_CallbackInfo.sampleMask;
-
-      // Change scissors unless they are set dynamically.
-      if(p.dynamicStates[VkDynamicScissor])
-      {
-        VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
-        for(uint32_t i = 0; i < pipestate.views.size(); i++)
-          ScissorToPixel(pipestate.views[i], pipestate.scissors[i]);
-      }
-      else
-      {
-        for(uint32_t i = 0; i < vs->viewportCount; i++)
-        {
-          ScissorToPixel(vs->pViewports[i], newScissors[i]);
-        }
-        vs->pScissors = newScissors;
-      }
     }
 
     // Turn off all color modifications.
@@ -541,6 +523,34 @@ protected:
         stages[i].module = replacement;
     }
     pipeCreateInfo.pStages = stages.data();
+  }
+
+  // ensures the state we want to control is dynamic, whether or not it was dynamic in the original
+  // pipeline
+  void AddDynamicStates(VkGraphicsPipelineCreateInfo &pipeCreateInfo)
+  {
+    // we need to add it. Check if the dynamic state is already pointing to our internal array (in
+    // the case of adding multiple dynamic states in a row), and otherwise initialise our array from
+    // it and repoint. Then we can add the new state
+    VkPipelineDynamicStateCreateInfo *dynState =
+        (VkPipelineDynamicStateCreateInfo *)pipeCreateInfo.pDynamicState;
+
+    // copy over the original dynamic states
+    m_DynamicStates.assign(dynState->pDynamicStates, dynState->dynamicStateCount);
+
+    // add the ones we want
+    if(!m_DynamicStates.contains(VK_DYNAMIC_STATE_SCISSOR))
+      m_DynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
+    if(!m_DynamicStates.contains(VK_DYNAMIC_STATE_STENCIL_REFERENCE))
+      m_DynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
+    if(!m_DynamicStates.contains(VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK))
+      m_DynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK);
+    if(!m_DynamicStates.contains(VK_DYNAMIC_STATE_STENCIL_WRITE_MASK))
+      m_DynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_WRITE_MASK);
+
+    // now point at our storage for the array
+    dynState->pDynamicStates = m_DynamicStates.data();
+    dynState->dynamicStateCount = (uint32_t)m_DynamicStates.size();
   }
 
   // CreateRenderPass creates a new VkRenderPass based on the original that has a separate
@@ -873,6 +883,7 @@ protected:
   VkQueryPool m_OcclusionPool;
   rdcarray<VkRenderPass> m_RpsToDestroy;
   rdcarray<VkFramebuffer> m_FbsToDestroy;
+  rdcarray<VkDynamicState> m_DynamicStates;
 };
 
 // VulkanOcclusionCallback callback is used to determine which draw events might have
@@ -900,8 +911,6 @@ struct VulkanOcclusionCallback : public VulkanPixelHistoryCallback
       return;
     VulkanRenderState prevState = m_pDriver->GetCmdRenderState();
     VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
-    const VulkanCreationInfo::Pipeline &p =
-        m_pDriver->GetDebugManager()->GetPipelineInfo(pipestate.graphics.pipeline);
 
     uint32_t framebufferIndex = 0;
     const rdcarray<ResourceId> &atts = pipestate.GetFramebufferAttachments();
@@ -915,9 +924,13 @@ struct VulkanOcclusionCallback : public VulkanPixelHistoryCallback
       }
     }
     VkPipeline pipe = GetPixelOcclusionPipeline(eid, prevState.graphics.pipeline, framebufferIndex);
-    if(p.dynamicStates[VkDynamicScissor])
-      for(uint32_t i = 0; i < pipestate.views.size(); i++)
-        ScissorToPixel(pipestate.views[i], pipestate.scissors[i]);
+    // set the scissor
+    for(uint32_t i = 0; i < pipestate.views.size(); i++)
+      ScissorToPixel(pipestate.views[i], pipestate.scissors[i]);
+    // set stencil state (though it's unused here)
+    pipestate.front.compare = pipestate.front.write = 0xff;
+    pipestate.front.ref = 0;
+    pipestate.back = pipestate.front;
     pipestate.graphics.pipeline = GetResID(pipe);
     ReplayDrawWithQuery(cmd, eid);
 
@@ -1099,11 +1112,8 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       PipelineReplacements replacements =
           GetPipelineReplacements(eid, pipestate.graphics.pipeline, newRp, framebufferIndex);
 
-      const VulkanCreationInfo::Pipeline &p =
-          m_pDriver->GetDebugManager()->GetPipelineInfo(pipestate.graphics.pipeline);
-      if(p.dynamicStates[VkDynamicScissor])
-        for(uint32_t i = 0; i < pipestate.views.size(); i++)
-          ScissorToPixel(pipestate.views[i], pipestate.scissors[i]);
+      for(uint32_t i = 0; i < pipestate.views.size(); i++)
+        ScissorToPixel(pipestate.views[i], pipestate.scissors[i]);
 
       // TODO: should fill depth value from the original DS attachment.
 
@@ -1114,6 +1124,9 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       pipestate.renderPass = GetResID(newRp);
       pipestate.subpass = 0;
       pipestate.graphics.pipeline = GetResID(replacements.fixedShaderStencil);
+      pipestate.front.compare = pipestate.front.write = 0xff;
+      pipestate.front.ref = 0;
+      pipestate.back = pipestate.front;
       ReplayDraw(cmd, eid, true);
 
       CopyPixelParams params = {};
@@ -1685,20 +1698,17 @@ private:
             m_ShaderCache->GetShaderWithoutSideEffects(p.shaders[i].module, p.shaders[i].entryPoint);
     }
 
-    bool dynamicScissor = p.dynamicStates[VkDynamicScissor];
     VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
     rdcarray<VkRect2D> prevScissors = pipestate.scissors;
-    if(dynamicScissor)
-      for(uint32_t i = 0; i < pipestate.views.size(); i++)
-        ScissorToPixel(pipestate.views[i], pipestate.scissors[i]);
+    for(uint32_t i = 0; i < pipestate.views.size(); i++)
+      ScissorToPixel(pipestate.views[i], pipestate.scissors[i]);
 
     if(eventFlags & TestEnabled_Culling)
     {
       uint32_t pipeFlags =
           PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_DisableDepthBoundsTest |
           PipelineCreationFlags_DisableStencilTest | PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
-                                       framebufferIndex);
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, framebufferIndex);
       ReplayDraw(cmd, pipe, eid, TestEnabled_Culling);
     }
 
@@ -1712,13 +1722,11 @@ private:
           PipelineCreationFlags_IntersectOriginalScissor | PipelineCreationFlags_DisableDepthTest |
           PipelineCreationFlags_DisableDepthBoundsTest | PipelineCreationFlags_DisableStencilTest |
           PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
-                                       framebufferIndex);
-      // This will change the dynamic scissor state for the later tests, but since those
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, framebufferIndex);
+      // This will change the scissor for the later tests, but since those
       // tests happen later in the pipeline, it does not matter.
-      if(dynamicScissor)
-        for(uint32_t i = 0; i < pipestate.views.size(); i++)
-          IntersectScissors(prevScissors[i], pipestate.scissors[i]);
+      for(uint32_t i = 0; i < pipestate.views.size(); i++)
+        IntersectScissors(prevScissors[i], pipestate.scissors[i]);
       ReplayDraw(cmd, pipe, eid, TestEnabled_Scissor);
     }
 
@@ -1731,8 +1739,7 @@ private:
       uint32_t pipeFlags =
           PipelineCreationFlags_DisableDepthBoundsTest | PipelineCreationFlags_DisableStencilTest |
           PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
-                                       framebufferIndex);
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, framebufferIndex);
       ReplayDraw(cmd, pipe, eid, TestEnabled_SampleMask);
     }
 
@@ -1742,8 +1749,7 @@ private:
       uint32_t pipeFlags = PipelineCreationFlags_DisableStencilTest |
                            PipelineCreationFlags_DisableDepthTest |
                            PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
-                                       framebufferIndex);
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, framebufferIndex);
       ReplayDraw(cmd, pipe, eid, TestEnabled_DepthBounds);
     }
 
@@ -1755,8 +1761,7 @@ private:
     {
       uint32_t pipeFlags =
           PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
-                                       framebufferIndex);
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, framebufferIndex);
       ReplayDraw(cmd, pipe, eid, TestEnabled_StencilTesting);
     }
 
@@ -1771,8 +1776,7 @@ private:
       uint32_t pipeFlags =
           PipelineCreationFlags_DisableStencilTest | PipelineCreationFlags_FixedColorShader;
 
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
-                                       framebufferIndex);
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, framebufferIndex);
       ReplayDraw(cmd, pipe, eid, TestEnabled_DepthTesting);
     }
 
@@ -1785,8 +1789,7 @@ private:
       uint32_t pipeFlags = PipelineCreationFlags_DisableDepthBoundsTest |
                            PipelineCreationFlags_DisableStencilTest |
                            PipelineCreationFlags_DisableDepthTest;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, dynamicScissor, replacementShaders,
-                                       framebufferIndex);
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, framebufferIndex);
       ReplayDraw(cmd, pipe, eid, TestEnabled_FragmentDiscard);
     }
   }
@@ -1794,7 +1797,7 @@ private:
   // Creates a pipeline that is based on the given pipeline and the given
   // pipeline flags. Modifies the base pipeline according to the flags, and
   // leaves the original pipeline behavior if a flag is not set.
-  VkPipeline CreatePipeline(ResourceId basePipeline, uint32_t pipeCreateFlags, bool dynamicScissor,
+  VkPipeline CreatePipeline(ResourceId basePipeline, uint32_t pipeCreateFlags,
                             const rdcarray<VkShaderModule> &replacementShaders,
                             uint32_t framebufferIndex)
   {
@@ -1810,9 +1813,10 @@ private:
         (VkPipelineRasterizationStateCreateInfo *)ci.pRasterizationState;
     VkPipelineDepthStencilStateCreateInfo *ds =
         (VkPipelineDepthStencilStateCreateInfo *)ci.pDepthStencilState;
-    VkPipelineViewportStateCreateInfo *vs = (VkPipelineViewportStateCreateInfo *)ci.pViewportState;
     VkPipelineMultisampleStateCreateInfo *ms =
         (VkPipelineMultisampleStateCreateInfo *)ci.pMultisampleState;
+
+    AddDynamicStates(ci);
 
     // Only interested in a single sample.
     ms->pSampleMask = &m_CallbackInfo.sampleMask;
@@ -1847,17 +1851,6 @@ private:
       }
     }
     ci.pStages = stages.data();
-
-    if(!dynamicScissor)
-    {
-      VkRect2D *pScissors = (VkRect2D *)vs->pScissors;
-      for(uint32_t i = 0; i < vs->viewportCount; i++)
-      {
-        ScissorToPixel(vs->pViewports[i], pScissors[i]);
-        if(pipeCreateFlags & PipelineCreationFlags_IntersectOriginalScissor)
-          IntersectScissors(vs->pScissors[i], pScissors[i]);
-      }
-    }
 
     VkPipeline pipe;
     VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1, &ci,
@@ -1965,7 +1958,10 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       }
     }
 
-    Pipelines pipes = CreatePerFragmentPipelines(curPipeline, newRp, eid, false, 0, framebufferIndex);
+    Pipelines pipes = CreatePerFragmentPipelines(curPipeline, newRp, eid, 0, framebufferIndex);
+
+    for(uint32_t i = 0; i < state.views.size(); i++)
+      ScissorToPixel(state.views[i], state.scissors[i]);
 
     state.renderPass = GetResID(newRp);
     state.SetFramebuffer(m_pDriver, GetResID(newFb));
@@ -2035,6 +2031,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
         // Update stencil reference to the current fragment index, so that we get values
         // for a single fragment only.
+        ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
+        ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
         ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, f);
         const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eid);
         if(drawcall->flags & DrawFlags::Indexed)
@@ -2112,6 +2110,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         ObjDisp(cmd)->CmdClearAttachments(Unwrap(cmd), 2, clearAtts, 1, &rect);
       }
 
+      ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
+      ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
       ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, f);
       const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eid);
       if(drawcall->flags & DrawFlags::Indexed)
@@ -2150,20 +2150,19 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
   void PostRedraw(uint32_t eid, VkCommandBuffer cmd) {}
   // CreatePerFragmentPipelines for getting per fragment information.
   Pipelines CreatePerFragmentPipelines(ResourceId pipe, VkRenderPass rp, uint32_t eid,
-                                       bool dynamicScissor, uint32_t fragmentIndex,
-                                       uint32_t framebufferIndex)
+                                       uint32_t fragmentIndex, uint32_t framebufferIndex)
   {
     const VulkanCreationInfo::Pipeline &p = m_pDriver->GetDebugManager()->GetPipelineInfo(pipe);
     VkGraphicsPipelineCreateInfo pipeCreateInfo = {};
     rdcarray<VkPipelineShaderStageCreateInfo> stages;
     m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, pipe);
 
+    AddDynamicStates(pipeCreateInfo);
+
     VkPipelineDepthStencilStateCreateInfo *ds =
         (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
     VkPipelineMultisampleStateCreateInfo *ms =
         (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
-    VkPipelineViewportStateCreateInfo *vs =
-        (VkPipelineViewportStateCreateInfo *)pipeCreateInfo.pViewportState;
 
     VkRect2D newScissors[16];
     memset(newScissors, 0, sizeof(newScissors));
@@ -2180,22 +2179,6 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       ds->back = ds->front;
 
       ms->pSampleMask = &m_CallbackInfo.sampleMask;
-
-      // Change scissors unless they are set dynamically.
-      if(p.dynamicStates[VkDynamicScissor])
-      {
-        VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
-        for(uint32_t i = 0; i < pipestate.views.size(); i++)
-          ScissorToPixel(pipestate.views[i], pipestate.scissors[i]);
-      }
-      else
-      {
-        for(uint32_t i = 0; i < vs->viewportCount; i++)
-        {
-          ScissorToPixel(vs->pViewports[i], newScissors[i]);
-        }
-        vs->pScissors = newScissors;
-      }
     }
 
     // TODO: this is wrong, should take into account subpass.
@@ -2377,6 +2360,8 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
     VulkanRenderState &state = m_pDriver->GetCmdRenderState();
     // Create a pipeline with a scissor and colorWriteMask = 0, and disable all tests.
     VkPipeline newPipe = CreatePipeline(state.graphics.pipeline, eid);
+    for(uint32_t i = 0; i < state.views.size(); i++)
+      ScissorToPixel(state.views[i], state.scissors[i]);
     state.graphics.pipeline = GetResID(newPipe);
     state.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
     for(uint32_t i = 0; i < primIds.size(); i++)

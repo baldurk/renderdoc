@@ -1,11 +1,13 @@
 import renderdoc as rd
 import rdtest
+from typing import List
 
 def value_selector(x): return x.floatValue
 def passed(x): return x.Passed()
 def event_id(x): return x.eventId
 def culled(x): return x.backfaceCulled
 def depth_test_failed(x): return x.depthTestFailed
+def scissor_clipped(x): return x.scissorClipped
 def stencil_test_failed(x): return x.stencilTestFailed
 def shader_discarded(x): return x.shaderDiscarded
 def shader_out_col(x): return value_selector(x.shaderOut.col)
@@ -53,6 +55,10 @@ class VK_Pixel_History(rdtest.TestCase):
         background_eid = self.find_draw("Background").next.eventId
         cull_eid = self.find_draw("Cull Front").next.eventId
         test_eid = self.find_draw("Test").next.eventId
+        fixed_scissor_fail_eid = self.find_draw("Fixed Scissor Fail").next.eventId
+        fixed_scissor_pass_eid = self.find_draw("Fixed Scissor Pass").next.eventId
+        dynamic_stencil_ref_eid = self.find_draw("Dynamic Stencil Ref").next.eventId
+        dynamic_stencil_mask_eid = self.find_draw("Dynamic Stencil Mask").next.eventId
 
         # For pixel 190, 149 inside the red triangle
         x, y = 190, 149
@@ -98,6 +104,23 @@ class VK_Pixel_History(rdtest.TestCase):
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, background_eid], [shader_discarded, True]],
+        ]
+        self.check_events(events, modifs, False)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+        rdtest.log.print("Testing dynamic state pipelines")
+        self.controller.SetFrameEvent(dynamic_stencil_mask_eid, True)
+
+        x, y = 100, 250
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, begin_renderpass_eid], [passed, True]],
+            [[event_id, background_eid], [passed, True]],
+            [[event_id, fixed_scissor_fail_eid], [scissor_clipped, True]],
+            [[event_id, fixed_scissor_pass_eid], [passed, True], [shader_out_col, (0.0, 1.0, 0.0, 1.0)]],
+            [[event_id, dynamic_stencil_ref_eid], [passed, True], [shader_out_col, (0.0, 0.0, 1.0, 1.0)]],
+            [[event_id, dynamic_stencil_mask_eid], [passed, True], [shader_out_col, (0.0, 1.0, 1.0, 1.0)]],
         ]
         self.check_events(events, modifs, False)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)

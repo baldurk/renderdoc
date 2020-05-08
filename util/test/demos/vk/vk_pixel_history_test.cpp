@@ -178,6 +178,23 @@ void main()
         {Vec3f(0.0f, -0.7f, 0.5f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(0.0f, -0.725f, 0.5f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(0.025f, -0.7f, 0.5f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // dynamic triangles
+        {Vec3f(-0.6f, 0.75f, 0.5f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-0.5f, 0.65f, 0.5f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-0.4f, 0.75f, 0.5f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        {Vec3f(-0.6f, 0.75f, 0.5f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-0.5f, 0.65f, 0.5f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-0.4f, 0.75f, 0.5f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        {Vec3f(-0.6f, 0.75f, 0.5f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-0.5f, 0.65f, 0.5f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-0.4f, 0.75f, 0.5f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        {Vec3f(-0.6f, 0.75f, 0.5f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-0.5f, 0.65f, 0.5f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-0.4f, 0.75f, 0.5f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
     // negate y if we're using negative viewport height
@@ -263,6 +280,40 @@ void main()
 
     pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
     VkPipeline depthWritePipe = createGraphicsPipeline(pipeCreateInfo);
+
+    VkPipeline dynamicScissorPipe, fixedScissorPassPipe, fixedScissorFailPipe,
+        dynamicStencilRefPipe, dynamicStencilMaskPipe;
+    {
+      vkh::GraphicsPipelineCreateInfo dynamicPipe = pipeCreateInfo;
+      dynamicPipe.depthStencilState.depthWriteEnable = VK_FALSE;
+      dynamicPipe.depthStencilState.depthTestEnable = VK_FALSE;
+
+      dynamicScissorPipe = createGraphicsPipeline(dynamicPipe);
+      setName(dynamicScissorPipe, "dynamicScissorPipe");
+
+      dynamicPipe.dynamicState.dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT};
+      dynamicPipe.viewportState.scissors = {{{95, 245}, {10, 10}}};
+
+      fixedScissorPassPipe = createGraphicsPipeline(dynamicPipe);
+      setName(fixedScissorPassPipe, "fixedScissorPassPipe");
+
+      dynamicPipe.viewportState.scissors = {{{95, 245}, {4, 4}}};
+
+      fixedScissorFailPipe = createGraphicsPipeline(dynamicPipe);
+      setName(fixedScissorFailPipe, "fixedScissorFailPipe");
+
+      dynamicPipe.dynamicState.dynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
+      dynamicPipe.dynamicState.dynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
+
+      dynamicStencilRefPipe = createGraphicsPipeline(dynamicPipe);
+      setName(dynamicStencilRefPipe, "dynamicStencilRefPipe");
+
+      dynamicPipe.dynamicState.dynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK);
+      dynamicPipe.dynamicState.dynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_WRITE_MASK);
+
+      dynamicStencilMaskPipe = createGraphicsPipeline(dynamicPipe);
+      setName(dynamicStencilMaskPipe, "dynamicStencilMaskPipe");
+    }
 
     pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_TRUE;
@@ -390,6 +441,26 @@ void main()
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
       vkCmdDraw(cmd, 24, 1, 9, 0);
+
+      setMarker(cmd, "Fixed Scissor Fail");
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, fixedScissorFailPipe);
+      vkCmdDraw(cmd, 3, 1, 33, 0);
+
+      setMarker(cmd, "Fixed Scissor Pass");
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, fixedScissorPassPipe);
+      vkCmdDraw(cmd, 3, 1, 36, 0);
+
+      setMarker(cmd, "Dynamic Stencil Ref");
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, dynamicStencilRefPipe);
+      vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
+      vkCmdSetStencilReference(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, 0x67);
+      vkCmdDraw(cmd, 3, 1, 39, 0);
+
+      setMarker(cmd, "Dynamic Stencil Mask");
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, dynamicStencilMaskPipe);
+      vkCmdSetStencilCompareMask(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, 0);
+      vkCmdSetStencilWriteMask(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, 0);
+      vkCmdDraw(cmd, 3, 1, 42, 0);
 
       vkCmdEndRenderPass(cmd);
 
