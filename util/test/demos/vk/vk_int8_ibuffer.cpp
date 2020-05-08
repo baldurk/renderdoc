@@ -77,6 +77,12 @@ void main()
     devExts.push_back(VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME);
 
     VulkanGraphicsTest::Prepare(argc, argv);
+
+    static VkPhysicalDeviceIndexTypeUint8FeaturesEXT uint8Features = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT};
+    uint8Features.indexTypeUint8 = VK_TRUE;
+
+    devInfoNext = &uint8Features;
   }
 
   int main()
