@@ -61,8 +61,8 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
           "|ubyte|ushort|uint|ulong"              // unsigned ints
           "|xbyte|xshort|xint|xlong"              // hex ints
           "|half|float|double"                    // float types
-          "|vec|uvec|ivec"                        // OpenGL vector types
-          "|mat|umat|imat"                        // OpenGL matrix types
+          "|vec|uvec|ivec|dvec"                   // OpenGL vector types
+          "|mat|umat|imat|dmat"                   // OpenGL matrix types
           ")"                                     // end of the type group
           "([1-9])?"                              // might be a vector
           "(x[1-9])?"                             // or a matrix
@@ -315,7 +315,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
       {
         el.type.descriptor.type = VarType::Float;
       }
-      else if(basetype == lit("double"))
+      else if(basetype == lit("double") || basetype == lit("dvec") || basetype == lit("dmat"))
       {
         el.type.descriptor.type = VarType::Double;
       }
