@@ -135,9 +135,9 @@ def get_postvs_attrs(controller: rd.ReplayController, mesh: rd.MeshFormat, data_
 
         # Construct a resource format for this element
         attr.mesh.format = rd.ResourceFormat()
-        attr.mesh.format.compByteWidth = 8 if sig.compType == rd.CompType.Double else 4
+        attr.mesh.format.compByteWidth = 8 if sig.varType == rd.VarType.Double else 4
         attr.mesh.format.compCount = sig.compCount
-        attr.mesh.format.compType = sig.compType
+        attr.mesh.format.compType = rd.VarTypeCompType(sig.varType)
         attr.mesh.format.type = rd.ResourceFormatType.Regular
 
         attr.name = sig.semanticIdxName if sig.varName == '' else sig.varName
