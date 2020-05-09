@@ -126,7 +126,7 @@ if(CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.9)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set_property(SOURCE "${glslang_sources}"
+    set_property(SOURCE ${glslang_sources}
         APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unknown-warning-option")
 
     if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.9)
