@@ -24,6 +24,7 @@
 
 #include "CustomPaintWidget.h"
 #include <math.h>
+#include <QEvent>
 #include <QPainter>
 #include "Code/Interface/QRDInterface.h"
 
