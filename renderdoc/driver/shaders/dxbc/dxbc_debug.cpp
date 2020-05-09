@@ -4666,6 +4666,47 @@ void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
   }
 }
 
+DXBCBytecode::InterpolationMode GetInterpolationModeForInputParam(const SigParameter &sig,
+                                                                  const DXBC::Reflection &psDxbc,
+                                                                  const DXBCBytecode::Program *program)
+{
+  if(sig.varType == VarType::SInt || sig.varType == VarType::UInt)
+    return DXBCBytecode::InterpolationMode::INTERPOLATION_CONSTANT;
+
+  if(sig.varType == VarType::Float)
+  {
+    // if we're packed with ints on either side, we must be nointerpolation
+    size_t numInputs = psDxbc.InputSig.size();
+    for(size_t j = 0; j < numInputs; j++)
+    {
+      if(sig.regIndex == psDxbc.InputSig[j].regIndex && psDxbc.InputSig[j].varType != VarType::Float)
+        return DXBCBytecode::InterpolationMode::INTERPOLATION_CONSTANT;
+    }
+
+    DXBCBytecode::InterpolationMode interpolation = DXBCBytecode::INTERPOLATION_UNDEFINED;
+
+    if(program)
+    {
+      for(size_t d = 0; d < program->GetNumDeclarations(); d++)
+      {
+        const DXBCBytecode::Declaration &decl = program->GetDeclaration(d);
+
+        if(decl.declaration == DXBCBytecode::OPCODE_DCL_INPUT_PS &&
+           decl.operand.indices[0].absolute && decl.operand.indices[0].index == sig.regIndex)
+        {
+          interpolation = decl.interpolation;
+          break;
+        }
+      }
+    }
+
+    return interpolation;
+  }
+
+  RDCERR("Unexpected input signature type: %s", ToStr(sig.varType).c_str());
+  return DXBCBytecode::InterpolationMode::INTERPOLATION_UNDEFINED;
+}
+
 void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
                                        const DXBC::Reflection &prevStageDxbc,
                                        rdcarray<PSInputElement> &initialValues,
@@ -4793,50 +4834,11 @@ void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
 
     nextreg = sig.regIndex + 1;
 
-    if(sig.varType == VarType::Float)
-    {
-      // if we're packed with ints on either side, we must be nointerpolation
-      bool nointerp = false;
-      for(size_t j = 0; j < numInputs; j++)
-      {
-        if(sig.regIndex == psDxbc.InputSig[j].regIndex && psDxbc.InputSig[j].varType != VarType::Float)
-        {
-          nointerp = true;
-          break;
-        }
-      }
-
-      DXBCBytecode::InterpolationMode interpolation = DXBCBytecode::INTERPOLATION_UNDEFINED;
-
-      if(program)
-      {
-        for(size_t d = 0; d < program->GetNumDeclarations(); d++)
-        {
-          const DXBCBytecode::Declaration &decl = program->GetDeclaration(d);
-
-          if(decl.declaration == DXBCBytecode::OPCODE_DCL_INPUT_PS &&
-             decl.operand.indices[0].absolute && decl.operand.indices[0].index == sig.regIndex)
-          {
-            interpolation = decl.interpolation;
-            break;
-          }
-        }
-      }
-
-      if(nointerp)
-        psInputDefinition += "nointerpolation ";
-      else if(interpolation != DXBCBytecode::INTERPOLATION_UNDEFINED &&
-              interpolation != DXBCBytecode::INTERPOLATION_CONSTANT)
-        psInputDefinition += ToStr(interpolation) + " ";
-
-      psInputDefinition += "float";
-    }
-    else if(sig.varType == VarType::SInt)
-      psInputDefinition += "nointerpolation int";
-    else if(sig.varType == VarType::UInt)
-      psInputDefinition += "nointerpolation uint";
-    else
-      RDCERR("Unexpected input signature type: %s", ToStr(sig.varType).c_str());
+    DXBCBytecode::InterpolationMode interpolation =
+        GetInterpolationModeForInputParam(sig, psDxbc, program);
+    if(interpolation != DXBCBytecode::INTERPOLATION_UNDEFINED)
+      psInputDefinition += ToStr(interpolation) + " ";
+    psInputDefinition += ToStr(sig.varType);
 
     int numCols = (sig.regChannelMask & 0x1 ? 1 : 0) + (sig.regChannelMask & 0x2 ? 1 : 0) +
                   (sig.regChannelMask & 0x4 ? 1 : 0) + (sig.regChannelMask & 0x8 ? 1 : 0);
@@ -4869,17 +4871,22 @@ void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
 
       for(size_t j = i + 1; j < numInputs; j++)
       {
-        // if we've found the 'next' semantic
-        if(sig.semanticName == psDxbc.InputSig[j].semanticName &&
-           nextIdx == psDxbc.InputSig[j].semanticIndex)
-        {
-          int jNumCols = (psDxbc.InputSig[j].regChannelMask & 0x1 ? 1 : 0) +
-                         (psDxbc.InputSig[j].regChannelMask & 0x2 ? 1 : 0) +
-                         (psDxbc.InputSig[j].regChannelMask & 0x4 ? 1 : 0) +
-                         (psDxbc.InputSig[j].regChannelMask & 0x8 ? 1 : 0);
+        const SigParameter &jSig = psDxbc.InputSig[j];
 
-          // if it's the same size, and it's at the start of the next register
-          if(jNumCols == numCols && psDxbc.InputSig[j].regChannelMask <= 0x3)
+        // if we've found the 'next' semantic
+        if(sig.semanticName == jSig.semanticName && nextIdx == jSig.semanticIndex)
+        {
+          int jNumCols = (jSig.regChannelMask & 0x1 ? 1 : 0) + (jSig.regChannelMask & 0x2 ? 1 : 0) +
+                         (jSig.regChannelMask & 0x4 ? 1 : 0) + (jSig.regChannelMask & 0x8 ? 1 : 0);
+
+          DXBCBytecode::InterpolationMode jInterp =
+              GetInterpolationModeForInputParam(jSig, psDxbc, program);
+
+          // if it's the same size, type, and interpolation mode, then it could potentially be
+          // packed into an array. Check if it's using the first channel component to tell whether
+          // it's tightly packed with another semantic.
+          if(jNumCols == numCols && interpolation == jInterp && sig.varType == jSig.varType &&
+             jSig.regChannelMask & 0x1)
           {
             if(arrayLength == 0)
               arrayLength = 2;
@@ -4908,13 +4915,13 @@ void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
     // detected but it WILL be put in its own register (not packed together), so detect this
     // case too.
     // Note we have to search *backwards* because we need to know if this register should have
-    // been packed into the previous register, but wasn't. float/float2 can be packed after an
-    // array just fine.
-    if(included && i > 0 && arrayLength == 0 && numCols <= 2 && sig.regChannelMask <= 0x3)
+    // been packed into the previous register, but wasn't. float/float2/float3 can be packed after
+    // an array just fine, so long as the sum of their components doesn't exceed a register width
+    if(included && i > 0 && arrayLength == 0)
     {
       const SigParameter &prev = psDxbc.InputSig[i - 1];
 
-      if(prev.regIndex != sig.regIndex && prev.compCount <= 2 && prev.regChannelMask <= 0x3)
+      if(prev.regIndex != sig.regIndex && prev.compCount + sig.compCount <= 4)
         arrayLength = 1;
     }
 
