@@ -264,6 +264,11 @@ float4 main(v2f IN) : SV_Target0
                                    {false, VarType::Float, 3, 0, "TEXCOORD1", true},
                                    {false, VarType::Float, 2, 0, "TEXCOORD2", true}}));
 
+    tests.push_back(BuildTestCase({{false, VarType::Float, 2, 1, "TEXCOORD0", true},
+                                   {false, VarType::Float, 2, 1, "TEXCOORD1", true},
+                                   {false, VarType::Float, 3, 2, "TEXCOORD2", true},
+                                   {false, VarType::Float, 2, 0, "TEXCOORD4", true}}));
+
     // Semantics that don't pack together due to being arrays
     tests.push_back(BuildTestCase({{false, VarType::Float, 1, 2, "TEXCOORD0", true}}));
     tests.push_back(BuildTestCase({{false, VarType::Float, 2, 1, "TEXCOORD0", true},
@@ -276,26 +281,25 @@ float4 main(v2f IN) : SV_Target0
     // Tests focusing on different interpolation modes
     tests.push_back(BuildTestCase({{false, VarType::Float, 2, 0, "TEXCOORD0", true},
                                    {true, VarType::Float, 2, 0, "TEXCOORD1", true}}));
-    // The following test is currently broken: the semantics live in v1.x and v1.y, but during
-    // debugging our initial inputs shader places them in an array[2], resulting in v1.x and v2.x
+    // These semantics are placed in v1.x and v1.y since they share interpolation modes and types
+    // (all int semantics are nointerpolation). Test that they don't get placed in v1.x and v2.x
     tests.push_back(BuildTestCase({{false, VarType::UInt, 1, 0, "TEXCOORD0", true},
                                    {true, VarType::UInt, 1, 0, "TEXCOORD1", true}}));
-    // The following test is currently broken: the semantics live in v1.x and v2.x, but during
-    // debugging our initial inputs shader places them in an array[2], resulting in the correct
-    // register placement, but incorrect interpolation modes since uints are always nointerpolation
+    // These semantics are placed in v1.x and v2.x since their interpolation modes differ. Test that
+    // they don't turn into an array[2] which would result in an erroneous interpolation mode for
+    // one semantic or the other
     tests.push_back(BuildTestCase({{false, VarType::Float, 1, 0, "TEXCOORD0", true},
                                    {false, VarType::UInt, 1, 0, "TEXCOORD1", true}}));
-    // The following test is currently broken: the semantics live in v1.x and v1.y, despite having
-    // different types since the interpolation mode is the same. During debugging our initial inputs
-    // shader places them in an array[2], resulting in the wrong register placement
+    // These semantics are placed in v1.x and v1.y despite having different types since the
+    // interpolation mode is the same. Test that they don't turn into an array[2] which would place
+    // them in the wrong registers
     tests.push_back(BuildTestCase({{true, VarType::Float, 1, 0, "TEXCOORD0", true},
                                    {false, VarType::UInt, 1, 0, "TEXCOORD1", true}}));
 
     // Bespoke tests for broken scenarios discovered through bug reports:
 
-    // The following test is currently broken: the semantics live in v1.xy, v2.x, and v3.xyz due
-    // to each being an array. During debugging, out initial input shader defines the last semantic
-    // without an array size, so FXC packs it into v2.yzw
+    // These semantics live in v1.xy, v2.x, and v3.xyz due to each being an array. If any of them
+    // are not treated as an array[1], they will incorrectly pack together with a previous semantic
     tests.push_back(BuildTestCase({{false, VarType::Float, 2, 1, "TEXCOORD0", true},
                                    {false, VarType::Float, 1, 1, "TEXCOORD1", false},
                                    {false, VarType::Float, 3, 1, "TEXCOORD2", true}}));
