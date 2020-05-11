@@ -836,6 +836,14 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
     if(varName.isEmpty())
       varName = QFormatStr("_child%1").arg(i);
 
+    if(members[i].type.descriptor.rows > 1)
+    {
+      if(members[i].type.descriptor.rowMajorStorage)
+      {
+        varTypeName = lit("row_major ") + varTypeName;
+      }
+    }
+
     ret += QFormatStr("    %1 %2%3;\n").arg(varTypeName).arg(varName).arg(arraySize);
   }
 
