@@ -2511,8 +2511,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       bufdata->vsinConfig.pagingOffset = uint32_t(m_PagingByteOffset / buf->stride);
       bufdata->vsinConfig.numRows = uint32_t((bufCount + buf->stride - 1) / buf->stride);
-      bufdata->vsinConfig.unclampedNumRows =
-          uint32_t((unclampedLen - m_ByteOffset + buf->stride - 1) / buf->stride);
+      bufdata->vsinConfig.unclampedNumRows = uint32_t((unclampedLen + buf->stride - 1) / buf->stride);
 
       // ownership passes to model
       bufdata->vsinConfig.buffers.push_back(buf);
