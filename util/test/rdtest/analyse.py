@@ -74,7 +74,7 @@ def fetch_indices(controller: rd.ReplayController, mesh: rd.MeshFormat, index_of
                                           mesh.indexByteStride*num_indices)
 
         # Unpack all the indices
-        indices = struct.unpack(index_fmt, ibdata)
+        indices = struct.unpack_from(index_fmt, ibdata)
 
         # Apply the baseVertex offset
         return [i + mesh.baseVertex for i in indices]
@@ -88,7 +88,7 @@ class MeshAttribute:
     name: str
 
 
-def get_vsin_attrs(controller: rd.ReplayController, index_mesh: rd.MeshFormat):
+def get_vsin_attrs(controller: rd.ReplayController, vertexOffset: int, index_mesh: rd.MeshFormat):
     pipe: rd.PipeState = controller.GetPipelineState()
     inputs: List[rd.VertexInputAttribute] = pipe.GetVertexInputs()
 
@@ -107,7 +107,7 @@ def get_vsin_attrs(controller: rd.ReplayController, index_mesh: rd.MeshFormat):
         attr.mesh.instStepRate = a.instanceRate
         attr.mesh.instanced = a.perInstance
         attr.mesh.vertexResourceId = vbs[a.vertexBuffer].resourceId
-        attr.mesh.vertexByteOffset = vbs[a.vertexBuffer].byteOffset + a.byteOffset
+        attr.mesh.vertexByteOffset = vbs[a.vertexBuffer].byteOffset + a.byteOffset + vertexOffset * attr.mesh.vertexByteStride
 
         attr.mesh.format = a.format
 

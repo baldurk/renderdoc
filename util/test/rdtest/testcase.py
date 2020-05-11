@@ -266,7 +266,12 @@ class TestCase:
         mesh.indexResourceId = ib.resourceId
         mesh.baseVertex = draw.baseVertex
 
-        attrs = analyse.get_vsin_attrs(self.controller, mesh)
+        if not (draw.flags & rd.DrawFlags.Indexed):
+            mesh.indexByteOffset = 0
+            mesh.indexByteStride = 0
+            mesh.indexResourceId = rd.ResourceId.Null()
+
+        attrs = analyse.get_vsin_attrs(self.controller, draw.vertexOffset, mesh)
 
         first_index = min(first_index, draw.numIndices-1)
 
