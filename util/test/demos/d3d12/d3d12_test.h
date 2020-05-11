@@ -146,6 +146,8 @@ struct D3D12GraphicsTest : public GraphicsTest
   void setMarker(ID3D12GraphicsCommandListPtr cmd, const std::string &name);
   void popMarker(ID3D12GraphicsCommandListPtr cmd);
 
+  void blitToSwap(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr src, ID3D12ResourcePtr dst);
+
   void ResourceBarrier(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr res,
                        D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
   void ResourceBarrier(ID3D12ResourcePtr res, D3D12_RESOURCE_STATES before,
@@ -199,6 +201,9 @@ struct D3D12GraphicsTest : public GraphicsTest
 
   ID3D12ResourcePtr bbTex[2];
   uint32_t texIdx = 0;
+
+  ID3D12RootSignaturePtr swapBlitSig;
+  ID3D12PipelineStatePtr swapBlitPso;
 
   bool gpuva = false, m_12On7 = false;
   IDXGIFactory1Ptr m_Factory;

@@ -59,6 +59,8 @@ struct OpenGLGraphicsTest : public GraphicsTest
   void setMarker(const std::string &name);
   void popMarker();
 
+  void blitToSwap(GLuint tex);
+
   bool Running();
   void Present(GraphicsWindow *window);
   void Present() { Present(mainWindow); }
@@ -66,6 +68,8 @@ struct OpenGLGraphicsTest : public GraphicsTest
   int glMinor = 3;
   bool coreProfile = true;
   bool gles = false;
+
+  GLuint swapBlitFBO;
 
   GraphicsWindow *mainWindow = NULL;
   void *mainContext = NULL;

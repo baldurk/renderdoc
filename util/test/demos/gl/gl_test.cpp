@@ -92,11 +92,15 @@ void OpenGLGraphicsTest::PostInit()
 
   TEST_LOG("Running GL test on %s / %s / %s", glGetString(GL_VENDOR), glGetString(GL_RENDERER),
            glGetString(GL_VERSION));
+
+  swapBlitFBO = MakeFBO();
 }
 
 void OpenGLGraphicsTest::Shutdown()
 {
   ActivateContext(mainWindow, mainContext);
+
+  glDeleteFramebuffers(1, &swapBlitFBO);
 
   if(!managedResources.bufs.empty())
     glDeleteBuffers((GLsizei)managedResources.bufs.size(), &managedResources.bufs[0]);
@@ -372,6 +376,24 @@ void OpenGLGraphicsTest::popMarker()
 {
   if(glPopDebugGroup)
     glPopDebugGroup();
+}
+
+void OpenGLGraphicsTest::blitToSwap(GLuint tex)
+{
+  GLint oldRead = 0, oldDraw = 0;
+  glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &oldRead);
+  glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &oldDraw);
+
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, swapBlitFBO);
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+  glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
+
+  glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight,
+                    GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, oldRead);
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, oldDraw);
 }
 
 bool OpenGLGraphicsTest::Running()

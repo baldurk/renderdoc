@@ -332,7 +332,7 @@ bool D3D12GraphicsTest::Init()
 
     m_Sampler->SetName(L"Sampler heap");
 
-    desc.NumDescriptors = 1024;
+    desc.NumDescriptors = 1030;
     desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
     CHECK_HR(dev->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&m_CBVUAVSRV));
@@ -378,6 +378,26 @@ bool D3D12GraphicsTest::Init()
                                           __uuidof(ID3D12Resource), (void **)&m_UploadBuffer));
 
     m_UploadBuffer->SetName(L"Upload buffer");
+  }
+
+  {
+    std::string blitPixel = R"EOSHADER(
+
+Texture2D<float4> tex : register(t0);
+
+float4 main(float4 pos : SV_Position) : SV_Target0
+{
+	return tex.Load(int3(pos.xy, 0));
+}
+
+)EOSHADER";
+
+    ID3DBlobPtr vsblob = Compile(D3DFullscreenQuadVertex, "main", "vs_4_0");
+    ID3DBlobPtr psblob = Compile(blitPixel, "main", "ps_4_0");
+
+    swapBlitSig = MakeSig(
+        {tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1, 0)});
+    swapBlitPso = MakePSO().RootSig(swapBlitSig).VS(vsblob).PS(psblob);
   }
 
   // mute useless messages
@@ -796,6 +816,33 @@ void D3D12GraphicsTest::setMarker(ID3D12GraphicsCommandListPtr cmd, const std::s
 void D3D12GraphicsTest::popMarker(ID3D12GraphicsCommandListPtr cmd)
 {
   cmd->EndEvent();
+}
+
+void D3D12GraphicsTest::blitToSwap(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr src,
+                                   ID3D12ResourcePtr dst)
+{
+  D3D12_CPU_DESCRIPTOR_HANDLE rtv = MakeRTV(dst).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
+
+  cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+  cmd->SetPipelineState(swapBlitPso);
+  cmd->SetGraphicsRootSignature(swapBlitSig);
+
+  static UINT idx = 0;
+  idx++;
+  idx %= 6;
+
+  D3D12_GPU_DESCRIPTOR_HANDLE handle = MakeSRV(src).CreateGPU(1024 + idx);
+
+  cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
+  cmd->SetGraphicsRootDescriptorTable(0, handle);
+
+  RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
+  RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
+
+  OMSetRenderTargets(cmd, {rtv}, {});
+
+  cmd->DrawInstanced(4, 1, 0, 0);
 }
 
 void D3D12GraphicsTest::ResourceBarrier(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr res,

@@ -305,6 +305,20 @@ void D3D11GraphicsTest::PostDeviceCreate()
   ctx4 = ctx;
 
   annot = ctx;
+
+  std::string blitPixel = R"EOSHADER(
+
+Texture2D<float4> tex : register(t0);
+
+float4 main(float4 pos : SV_Position) : SV_Target0
+{
+	return tex.Load(int3(pos.xy, 0));
+}
+
+)EOSHADER";
+
+  swapBlitVS = CreateVS(Compile(D3DFullscreenQuadVertex, "main", "vs_4_0"));
+  swapBlitPS = CreatePS(Compile(blitPixel, "main", "ps_5_0"));
 }
 
 void D3D11GraphicsTest::Shutdown()
@@ -356,6 +370,61 @@ void D3D11GraphicsTest::popMarker()
 {
   if(annot)
     annot->EndEvent();
+}
+
+void D3D11GraphicsTest::blitToSwap(ID3D11Texture2DPtr tex)
+{
+  ID3D11VertexShaderPtr vs;
+  ctx->VSGetShader(&vs, NULL, NULL);
+  ID3D11PixelShaderPtr ps;
+  ctx->PSGetShader(&ps, NULL, NULL);
+
+  ID3D11ShaderResourceViewPtr srv = NULL;
+  ctx->PSGetShaderResources(0, 1, &srv);
+
+  D3D11_PRIMITIVE_TOPOLOGY topo;
+  ctx->IAGetPrimitiveTopology(&topo);
+
+  ID3D11InputLayoutPtr layout;
+  ctx->IAGetInputLayout(&layout);
+
+  ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+  ctx->VSSetShader(swapBlitVS, NULL, 0);
+  ctx->PSSetShader(swapBlitPS, NULL, 0);
+
+  D3D11_RASTERIZER_DESC oldRS = GetRasterState();
+  D3D11_DEPTH_STENCIL_DESC oldDS = GetDepthState();
+
+  ctx->OMSetRenderTargets(1, &bbRTV.GetInterfacePtr(), NULL);
+
+  D3D11_RASTERIZER_DESC rs = oldRS;
+  rs.CullMode = D3D11_CULL_NONE;
+  rs.FillMode = D3D11_FILL_SOLID;
+  rs.ScissorEnable = FALSE;
+  SetRasterState(rs);
+
+  D3D11_DEPTH_STENCIL_DESC ds = oldDS;
+  ds.DepthEnable = FALSE;
+  ds.StencilEnable = FALSE;
+  SetDepthState(ds);
+
+  ID3D11ShaderResourceViewPtr srcSRV = MakeSRV(tex);
+  ctx->PSSetShaderResources(0, 1, &srcSRV.GetInterfacePtr());
+
+  RSSetViewport({0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
+
+  ctx->IASetInputLayout(NULL);
+
+  ctx->Draw(4, 0);
+
+  ctx->IASetInputLayout(layout);
+  ctx->IASetPrimitiveTopology(topo);
+  ctx->VSSetShader(vs, NULL, 0);
+  ctx->PSSetShader(ps, NULL, 0);
+  ctx->PSSetShaderResources(0, 1, &srv.GetInterfacePtr());
+  SetRasterState(oldRS);
+  SetDepthState(oldDS);
 }
 
 std::vector<byte> D3D11GraphicsTest::GetBufferData(ID3D11Buffer *buffer, uint32_t offset, uint32_t len)

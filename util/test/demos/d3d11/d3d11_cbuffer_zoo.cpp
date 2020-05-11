@@ -286,7 +286,7 @@ float4 main() : SV_Target0
     ID3D11BufferPtr cb = MakeBuffer().Constant().Data(cbufferdata);
 
     ID3D11Texture2DPtr fltTex =
-        MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, screenWidth, screenHeight).RTV();
+        MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, screenWidth, screenHeight).RTV().SRV();
     ID3D11RenderTargetViewPtr fltRT = MakeRTV(fltTex);
 
     while(Running())
@@ -307,6 +307,8 @@ float4 main() : SV_Target0
       ctx->OMSetRenderTargets(1, &fltRT.GetInterfacePtr(), NULL);
 
       ctx->Draw(3, 0);
+
+      blitToSwap(fltTex);
 
       Present();
     }

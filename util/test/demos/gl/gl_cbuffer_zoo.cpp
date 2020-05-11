@@ -584,6 +584,8 @@ void main()
 
       glDrawArrays(GL_TRIANGLES, 0, 3);
 
+      blitToSwap(colattach);
+
       Present();
     }
 

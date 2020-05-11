@@ -776,6 +776,24 @@ void VulkanGraphicsTest::popMarker(VkCommandBuffer cmd)
     vkCmdEndDebugUtilsLabelEXT(cmd);
 }
 
+void VulkanGraphicsTest::blitToSwap(VkCommandBuffer cmd, VkImage src, VkImageLayout srcLayout,
+                                    VkImage dst, VkImageLayout dstLayout)
+{
+  VkImageBlit region = {};
+  region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.srcSubresource.layerCount = 1;
+  region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.dstSubresource.layerCount = 1;
+  region.srcOffsets[1].x = mainWindow->scissor.extent.width;
+  region.srcOffsets[1].y = mainWindow->scissor.extent.height;
+  region.srcOffsets[1].z = 1;
+  region.dstOffsets[1].x = mainWindow->scissor.extent.width;
+  region.dstOffsets[1].y = mainWindow->scissor.extent.height;
+  region.dstOffsets[1].z = 1;
+
+  vkCmdBlitImage(cmd, src, srcLayout, dst, dstLayout, 1, &region, VK_FILTER_LINEAR);
+}
+
 void VulkanGraphicsTest::pushMarker(VkQueue q, const std::string &name)
 {
   if(vkQueueBeginDebugUtilsLabelEXT)

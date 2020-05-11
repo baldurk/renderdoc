@@ -206,6 +206,9 @@ struct VulkanGraphicsTest : public GraphicsTest
   void setMarker(VkQueue queue, const std::string &name);
   void popMarker(VkQueue queue);
 
+  void blitToSwap(VkCommandBuffer cmd, VkImage src, VkImageLayout srcLayout, VkImage dst,
+                  VkImageLayout dstLayout);
+
   template <typename T>
   void setName(T obj, const std::string &name);
 

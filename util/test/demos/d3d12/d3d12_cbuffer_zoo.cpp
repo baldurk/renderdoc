@@ -385,6 +385,14 @@ float4 main() : SV_Target0
 
       cmd->DrawInstanced(3, 1, 0, 0);
 
+      ResourceBarrier(cmd, rtvtex, D3D12_RESOURCE_STATE_RENDER_TARGET,
+                      D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+      blitToSwap(cmd, rtvtex, bb);
+
+      ResourceBarrier(cmd, rtvtex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+                      D3D12_RESOURCE_STATE_RENDER_TARGET);
+
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
       cmd->Close();

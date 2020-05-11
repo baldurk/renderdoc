@@ -159,6 +159,8 @@ struct D3D11GraphicsTest : public GraphicsTest
   void setMarker(const std::string &name);
   void popMarker();
 
+  void blitToSwap(ID3D11Texture2DPtr tex);
+
   DXGI_FORMAT backbufferFmt = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
   int backbufferCount = 2;
   int backbufferMSAA = 1;
@@ -167,6 +169,9 @@ struct D3D11GraphicsTest : public GraphicsTest
   UINT createFlags = 0;
 
   DXGI_ADAPTER_DESC adapterDesc = {};
+
+  ID3D11VertexShaderPtr swapBlitVS;
+  ID3D11PixelShaderPtr swapBlitPS;
 
   D3D11_FEATURE_DATA_D3D11_OPTIONS opts;
   D3D11_FEATURE_DATA_D3D11_OPTIONS1 opts1;
