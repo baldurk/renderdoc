@@ -87,6 +87,8 @@ public:
   D3D12PSOCreator &InputLayout(const std::vector<D3D12_INPUT_ELEMENT_DESC> &elements);
   D3D12PSOCreator &InputLayout();
 
+  D3D12PSOCreator &StripRestart(D3D12_INDEX_BUFFER_STRIP_CUT_VALUE stripCut);
+
   D3D12PSOCreator &Topology(D3D12_PRIMITIVE_TOPOLOGY_TYPE topo);
 
   D3D12PSOCreator &RootSig(ID3D12RootSignaturePtr rootSig);
