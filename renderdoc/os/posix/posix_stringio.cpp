@@ -71,9 +71,6 @@ void CreateParentDirectory(const rdcstr &filename)
   // want trailing slash so that we create all directories
   fn.push_back('/');
 
-  if(fn[0] != '/')
-    return;
-
   int offs = fn.find('/', 1);
 
   while(offs >= 0)
