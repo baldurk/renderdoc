@@ -841,6 +841,46 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
       if(members[i].type.descriptor.rowMajorStorage)
       {
         varTypeName = lit("row_major ") + varTypeName;
+
+        uint32_t tightStride =
+            VarTypeByteSize(members[i].type.descriptor.type) * members[i].type.descriptor.columns;
+
+        if(tightStride < members[i].type.descriptor.matrixByteStride)
+        {
+          uint32_t padSize = members[i].type.descriptor.matrixByteStride - tightStride;
+          for(uint32_t r = 0; r < members[i].type.descriptor.rows; r++)
+          {
+            ret += QFormatStr("    %1%2 %3_row%4; %5")
+                       .arg(ToQStr(members[i].type.descriptor.type))
+                       .arg(members[i].type.descriptor.columns)
+                       .arg(varName)
+                       .arg(r)
+                       .arg(DeclarePaddingBytes(padSize));
+          }
+
+          continue;
+        }
+      }
+      else
+      {
+        uint32_t tightStride =
+            VarTypeByteSize(members[i].type.descriptor.type) * members[i].type.descriptor.rows;
+
+        if(tightStride < members[i].type.descriptor.matrixByteStride)
+        {
+          uint32_t padSize = members[i].type.descriptor.matrixByteStride - tightStride;
+          for(uint32_t c = 0; c < members[i].type.descriptor.columns; c++)
+          {
+            ret += QFormatStr("    %1%2 %2_col%4; %5")
+                       .arg(ToQStr(members[i].type.descriptor.type))
+                       .arg(members[i].type.descriptor.rows)
+                       .arg(varName)
+                       .arg(c)
+                       .arg(DeclarePaddingBytes(padSize));
+          }
+
+          continue;
+        }
       }
     }
 
@@ -866,6 +906,14 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
     uint32_t typeSize = VarTypeByteSize(lastChild->type.descriptor.type);
     if(typeSize > 1)
       size *= typeSize;
+
+    if(lastChild->type.descriptor.rows > 1)
+    {
+      if(lastChild->type.descriptor.rowMajorStorage)
+        size = lastChild->type.descriptor.matrixByteStride * lastChild->type.descriptor.columns;
+      else
+        size = lastChild->type.descriptor.matrixByteStride * lastChild->type.descriptor.rows;
+    }
 
     if(lastChild->type.descriptor.elements > 1)
       size *= lastChild->type.descriptor.elements;
