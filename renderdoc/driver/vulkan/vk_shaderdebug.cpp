@@ -3330,6 +3330,13 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   if(!(draw->flags & DrawFlags::Drawcall))
     return new ShaderDebugTrace();
 
+  uint32_t vertOffset = 0, instOffset = 0;
+  if(!(draw->flags & DrawFlags::Indexed))
+    vertOffset = draw->vertexOffset;
+
+  if(draw->flags & DrawFlags::Instanced)
+    instOffset = draw->instanceOffset;
+
   // get ourselves in pristine state before this draw (without any side effects it may have had)
   m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
 
@@ -3353,8 +3360,11 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
       0U);
   builtins[ShaderBuiltin::DeviceIndex] = ShaderVariable(rdcstr(), 0U, 0U, 0U, 0U);
   builtins[ShaderBuiltin::DrawIndex] = ShaderVariable(rdcstr(), draw->drawIndex, 0U, 0U, 0U);
-  builtins[ShaderBuiltin::VertexIndex] = ShaderVariable(rdcstr(), vertid, 0U, 0U, 0U);
-  builtins[ShaderBuiltin::InstanceIndex] = ShaderVariable(rdcstr(), instid, 0U, 0U, 0U);
+  if(draw->flags & DrawFlags::Indexed)
+    builtins[ShaderBuiltin::VertexIndex] = ShaderVariable(rdcstr(), idx, 0U, 0U, 0U);
+  else
+    builtins[ShaderBuiltin::VertexIndex] = ShaderVariable(rdcstr(), vertid + vertOffset, 0U, 0U, 0U);
+  builtins[ShaderBuiltin::InstanceIndex] = ShaderVariable(rdcstr(), instid + instOffset, 0U, 0U, 0U);
 
   rdcarray<ShaderVariable> &locations = apiWrapper->location_inputs;
   for(const VulkanCreationInfo::Pipeline::Attribute &attr : pipe.vertexAttrs)
@@ -3384,13 +3394,13 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
         if(bind.perInstance)
         {
           if(bind.instanceDivisor == 0)
-            vertexOffset = draw->instanceOffset * bind.bytestride;
+            vertexOffset = instOffset * bind.bytestride;
           else
-            vertexOffset = draw->instanceOffset + (instid / bind.instanceDivisor) * bind.bytestride;
+            vertexOffset = (instOffset + (instid / bind.instanceDivisor)) * bind.bytestride;
         }
         else
         {
-          vertexOffset = idx * bind.bytestride;
+          vertexOffset = (idx + vertOffset) * bind.bytestride;
         }
 
         if(Vulkan_Debug_ShaderDebugLogging)
