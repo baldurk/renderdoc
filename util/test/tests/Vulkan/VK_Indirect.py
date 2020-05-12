@@ -186,7 +186,7 @@ class VK_Indirect(rdtest.TestCase):
                 self.controller.SetFrameEvent(draw.eventId, False)
 
                 # Check that we have empty PostVS
-                postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, 1)
+                postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, 1)
                 self.check(len(postvs_data) == 0)
 
                 # No samples should be passing in the empties
@@ -212,7 +212,7 @@ class VK_Indirect(rdtest.TestCase):
             self.check(rd.ResourceUsage.Indirect in buffer_usage[draw.eventId])
 
             # Check that we have PostVS as expected
-            postvs_data = self.get_postvs(rd.MeshDataStage.VSOut)
+            postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut)
 
             postvs_ref = {
                 0: {'vtx': 0, 'idx': 0, 'gl_PerVertex_var.gl_Position': [-0.8, -0.5, 0.0, 1.0]},
@@ -237,7 +237,7 @@ class VK_Indirect(rdtest.TestCase):
             self.controller.SetFrameEvent(draw.eventId, False)
 
             # Check that we have PostVS as expected
-            postvs_data = self.get_postvs(rd.MeshDataStage.VSOut)
+            postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut)
 
             # These indices are the *output* indices, which have been rebased/remapped, so are not the same as the input
             # indices
@@ -262,7 +262,7 @@ class VK_Indirect(rdtest.TestCase):
             self.controller.SetFrameEvent(draw.eventId, False)
 
             # Check that we have PostVS as expected
-            postvs_data = self.get_postvs(rd.MeshDataStage.VSOut)
+            postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut)
 
             postvs_ref = {
                 0: {'vtx': 0, 'idx': 0, 'gl_PerVertex_var.gl_Position': [-0.4, -0.5, 0.0, 1.0]},
@@ -297,7 +297,7 @@ class VK_Indirect(rdtest.TestCase):
                     self.controller.SetFrameEvent(draw.eventId, False)
 
                     # Check that we have empty PostVS
-                    postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, 1)
+                    postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, 1)
                     self.check(len(postvs_data) == 0)
 
                     self.check_overlay([], no_overlay=True)
@@ -318,7 +318,7 @@ class VK_Indirect(rdtest.TestCase):
                 self.controller.SetFrameEvent(draw.eventId, False)
 
                 # Check that we have PostVS as expected
-                postvs_data = self.get_postvs(rd.MeshDataStage.VSOut)
+                postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut)
 
                 # These indices are the *output* indices, which have been rebased/remapped, so are not the same as the input
                 # indices
@@ -348,7 +348,7 @@ class VK_Indirect(rdtest.TestCase):
                 self.controller.SetFrameEvent(draw.eventId, False)
 
                 # Check that we have PostVS as expected
-                postvs_data = self.get_postvs(rd.MeshDataStage.VSOut)
+                postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut)
 
                 # These indices are the *output* indices, which have been rebased/remapped, so are not the same as the input
                 # indices
@@ -372,7 +372,7 @@ class VK_Indirect(rdtest.TestCase):
 
                 self.controller.SetFrameEvent(draw.eventId, False)
 
-                postvs_data = self.get_postvs(rd.MeshDataStage.VSOut)
+                postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut)
 
                 self.check(len(postvs_data) == 0)
 
@@ -388,7 +388,7 @@ class VK_Indirect(rdtest.TestCase):
                 self.controller.SetFrameEvent(draw.eventId, False)
 
                 # Check that we have PostVS as expected
-                postvs_data = self.get_postvs(rd.MeshDataStage.VSOut)
+                postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut)
 
                 # These indices are the *output* indices, which have been rebased/remapped, so are not the same as the input
                 # indices

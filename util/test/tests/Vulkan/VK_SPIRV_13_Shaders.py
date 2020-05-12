@@ -48,7 +48,7 @@ class VK_SPIRV_13_Shaders(rdtest.TestCase):
 
         rdtest.log.success("shader reflection and disassembly as expected")
 
-        postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
 
         postvs_ref = {
             0: {

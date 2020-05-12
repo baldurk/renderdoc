@@ -21,7 +21,7 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
 
         val = 2.0 / 3.0
 

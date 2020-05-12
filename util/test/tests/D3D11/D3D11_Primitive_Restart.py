@@ -14,7 +14,7 @@ class D3D11_Primitive_Restart(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
 
         # Calculate the strip restart index for this index width
         striprestart_index = pipe.GetStripRestartIndex() & ((1 << (draw.indexByteWidth*8)) - 1)
@@ -56,7 +56,7 @@ class D3D11_Primitive_Restart(rdtest.TestCase):
 
         self.controller.SetFrameEvent(draw.eventId, False)
 
-        postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
 
         # Data should be identical
 

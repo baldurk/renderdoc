@@ -88,12 +88,12 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
         self.check_mesh_data(in_ref, self.get_vsin(draw))
         rdtest.log.success("Vertex input data is as expected")
 
-        self.check_mesh_data(vsout_ref, self.get_postvs(rd.MeshDataStage.VSOut))
+        self.check_mesh_data(vsout_ref, self.get_postvs(draw, rd.MeshDataStage.VSOut))
 
         rdtest.log.success("Vertex output data is as expected")
 
         # This is optional to account for drivers without XFB
-        postgs_data = self.get_postvs(rd.MeshDataStage.GSOut)
+        postgs_data = self.get_postvs(draw, rd.MeshDataStage.GSOut)
         if len(postgs_data) > 0:
             self.check_mesh_data(gsout_ref, postgs_data)
 
@@ -126,7 +126,7 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
             },
         }
 
-        self.check_mesh_data(ref, self.get_postvs(rd.MeshDataStage.VSOut))
+        self.check_mesh_data(ref, self.get_postvs(draw, rd.MeshDataStage.VSOut))
 
         rdtest.log.success("Nested vertex output data is as expected")
 
@@ -141,6 +141,6 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
         del ref[0]['outData.outStruct.d[0].foo']
         del ref[0]['outData.outStruct.d[1].foo']
 
-        self.check_mesh_data(ref, self.get_postvs(rd.MeshDataStage.GSOut))
+        self.check_mesh_data(ref, self.get_postvs(draw, rd.MeshDataStage.GSOut))
 
         rdtest.log.success("Nested geometry output data is as expected")

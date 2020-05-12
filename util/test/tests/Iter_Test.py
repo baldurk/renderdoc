@@ -101,7 +101,7 @@ class Iter_Test(rdtest.TestCase):
 
         rdtest.log.print("Debugging vtx %d idx %d (inst %d)" % (vtx, idx, inst))
 
-        postvs = self.get_postvs(rd.MeshDataStage.VSOut, first_index=vtx, num_indices=1, instance=inst)
+        postvs = self.get_postvs(draw, rd.MeshDataStage.VSOut, first_index=vtx, num_indices=1, instance=inst)
 
         trace: rd.ShaderDebugTrace = self.controller.DebugVertex(vtx, inst, idx)
 

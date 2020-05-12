@@ -22,92 +22,67 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "d3d11_test.h"
+#include "gl_test.h"
 
-RD_TEST(D3D11_Draw_Zoo, D3D11GraphicsTest)
+RD_TEST(GL_Draw_Zoo, OpenGLGraphicsTest)
 {
   static constexpr const char *Description =
       "Draws several variants using different vertex/index offsets.";
 
-  std::string common = R"EOSHADER(
-
-struct v2f
-{
-	float4 pos : SV_POSITION;
-	float4 col : COLOR;
-	float4 uv : TEXCOORD;
-
-  float vertidx : VID;
-  float instidx : IID;
-};
-
-)EOSHADER";
-
   std::string vertex = R"EOSHADER(
+#version 420 core
 
-struct DefaultA2V
+layout(location = 0) in vec3 Position;
+layout(location = 1) in vec4 Color;
+layout(location = 2) in vec2 UV;
+
+layout(location = 0) out vec4 COLOR;
+layout(location = 1) out vec4 TEXCOORD;
+layout(location = 2) out float VID;
+layout(location = 3) out float IID;
+
+void main()
 {
-	float3 pos : POSITION;
-	float4 col : COLOR0;
-	float2 uv : TEXCOORD0;
-};
+	gl_Position = vec4(Position.xyz, 1);
+  gl_Position.x += Color.w;
+	COLOR = Color;
+	TEXCOORD = vec4(UV.xy, 0, 1);
 
-v2f main(DefaultA2V IN, uint vid : SV_VertexID, uint instid : SV_InstanceID)
-{
-	v2f OUT = (v2f)0;
-
-	OUT.pos = float4(IN.pos.xyz, 1);
-  OUT.pos.x += IN.col.w;
-	OUT.col = IN.col;
-	OUT.uv = float4(IN.uv, 0, 1);
-
-  OUT.vertidx = float(vid);
-  OUT.instidx = float(instid);
-
-	return OUT;
+  VID = float(gl_VertexID);
+  IID = float(gl_InstanceID);
 }
 
 )EOSHADER";
 
   std::string pixel = R"EOSHADER(
+#version 420 core
 
-float4 main(v2f IN) : SV_Target0
+layout(location = 0) in vec4 COLOR;
+layout(location = 1) in vec4 TEXCOORD;
+layout(location = 2) in float VID;
+layout(location = 3) in float IID;
+
+layout(location = 0, index = 0) out vec4 Color;
+
+void main()
 {
-	return float4(IN.vertidx, IN.instidx, IN.col.w, IN.col.g + IN.uv.x);
+	Color = vec4(0,0,0,0);
+  Color.r = VID;
+  Color.g = IID;
+  Color.b = COLOR.w;
+  Color.a = COLOR.g + TEXCOORD.x;
 }
 
 )EOSHADER";
 
   int main()
   {
-    // initialise, create window, create device, etc
+    // initialise, create window, create context, etc
     if(!Init())
       return 3;
 
-    ID3DBlobPtr vsblob = Compile(common + vertex, "main", "vs_5_0");
-    ID3DBlobPtr psblob = Compile(common + pixel, "main", "ps_5_0");
-
-    D3D11_INPUT_ELEMENT_DESC layoutdesc[] = {
-        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0},
-    };
-
-    ID3D11InputLayoutPtr vertLayout;
-    CHECK_HR(dev->CreateInputLayout(layoutdesc, ARRAY_COUNT(layoutdesc), vsblob->GetBufferPointer(),
-                                    vsblob->GetBufferSize(), &vertLayout));
-
-    layoutdesc[1].AlignedByteOffset = 0;
-    layoutdesc[1].InputSlot = 1;
-    layoutdesc[1].InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
-    layoutdesc[1].InstanceDataStepRate = 1;
-
-    ID3D11InputLayoutPtr instlayout;
-    CHECK_HR(dev->CreateInputLayout(layoutdesc, ARRAY_COUNT(layoutdesc), vsblob->GetBufferPointer(),
-                                    vsblob->GetBufferSize(), &instlayout));
-
-    ID3D11VertexShaderPtr vs = CreateVS(vsblob);
-    ID3D11PixelShaderPtr ps = CreatePS(psblob);
+    GLuint vao = MakeVAO();
+    glBindVertexArray(vao);
 
     DefaultA2V triangle[] = {
         // 0
@@ -211,7 +186,9 @@ float4 main(v2f IN) : SV_Target0
       vbData[i].col.y = float(i) / 200.0f;
     }
 
-    ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(vbData);
+    GLuint vb = MakeBuffer();
+    glBindBuffer(GL_ARRAY_BUFFER, vb);
+    glBufferStorage(GL_ARRAY_BUFFER, vbData.size() * sizeof(DefaultA2V), vbData.data(), 0);
 
     Vec4f instData[16] = {};
     for(int i = 0; i < ARRAY_COUNT(instData); i++)
@@ -228,7 +205,9 @@ float4 main(v2f IN) : SV_Target0
       instData[14] = Vec4f(0.5f, 0.9f, 0.1f, 0.5f);
     }
 
-    ID3D11BufferPtr instvb = MakeBuffer().Vertex().Data(instData);
+    GLuint instvb = MakeBuffer();
+    glBindBuffer(GL_ARRAY_BUFFER, instvb);
+    glBufferStorage(GL_ARRAY_BUFFER, sizeof(instData), instData, 0);
 
     std::vector<uint16_t> idxData;
     idxData.resize(100);
@@ -281,42 +260,73 @@ float4 main(v2f IN) : SV_Target0
       idxData[65] = 141;
     }
 
-    ID3D11BufferPtr ib = MakeBuffer().Index().Data(idxData);
+    GLuint ib = MakeBuffer();
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
+    glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, idxData.size() * sizeof(uint16_t), idxData.data(), 0);
 
-    CD3D11_RASTERIZER_DESC rd = CD3D11_RASTERIZER_DESC(CD3D11_DEFAULT());
-    rd.CullMode = D3D11_CULL_NONE;
+    glVertexArrayVertexAttribFormatEXT(vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+    glVertexArrayVertexAttribFormatEXT(vao, 1, 4, GL_FLOAT, GL_FALSE, sizeof(Vec3f));
+    glVertexArrayVertexAttribFormatEXT(vao, 2, 2, GL_FLOAT, GL_FALSE, sizeof(Vec3f) + sizeof(Vec4f));
 
-    ID3D11RasterizerStatePtr rs;
-    CHECK_HR(dev->CreateRasterizerState(&rd, &rs));
+    glVertexArrayVertexAttribBindingEXT(vao, 0, 0);
+    glVertexArrayVertexAttribBindingEXT(vao, 1, 0);
+    glVertexArrayVertexAttribBindingEXT(vao, 2, 0);
 
-    ID3D11Texture2DPtr fltTex =
-        MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, screenWidth, screenHeight).RTV().SRV();
-    ID3D11RenderTargetViewPtr fltRT = MakeRTV(fltTex);
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+
+    GLuint instvao = MakeVAO();
+    glBindVertexArray(instvao);
+
+    glVertexArrayVertexAttribFormatEXT(instvao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+    glVertexArrayVertexAttribFormatEXT(instvao, 1, 4, GL_FLOAT, GL_FALSE, 0);
+    glVertexArrayVertexAttribDivisorEXT(instvao, 1, 1);
+    glVertexArrayVertexAttribFormatEXT(instvao, 2, 2, GL_FLOAT, GL_FALSE,
+                                       sizeof(Vec3f) + sizeof(Vec4f));
+
+    glVertexArrayVertexAttribBindingEXT(instvao, 0, 0);
+    glVertexArrayVertexAttribBindingEXT(instvao, 1, 1);
+    glVertexArrayVertexAttribBindingEXT(instvao, 2, 0);
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+
+    GLuint program = MakeProgram(vertex, pixel);
+
+    GLuint fbo = MakeFBO();
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    // Color render texture
+    GLuint colattach = MakeTexture();
+
+    glBindTexture(GL_TEXTURE_2D, colattach);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, screenWidth, screenHeight);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colattach, 0);
 
     while(Running())
     {
-      ctx->OMSetRenderTargets(1, &fltRT.GetInterfacePtr(), NULL);
+      glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-      ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
+      float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
+      glClearBufferfv(GL_COLOR, 0, col);
 
-      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+      glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+      glBindVertexBuffer(0, vb, 0, sizeof(DefaultA2V));
+      glBindVertexBuffer(0, instvb, 0, sizeof(Vec4f));
 
-      ctx->VSSetShader(vs, NULL, 0);
-      ctx->PSSetShader(ps, NULL, 0);
+      glClearBufferfv(GL_COLOR, 0, col);
 
-      ctx->RSSetState(rs);
+      glBindVertexArray(vao);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
 
-      ClearRenderTargetView(fltRT, {0.2f, 0.2f, 0.2f, 1.0f});
+      glUseProgram(program);
 
-      D3D11_VIEWPORT view = {0.0f, 0.0f, 48.0f, 48.0f, 0.0f, 1.0f};
+      GLint w = 48, h = 48;
+      GLint x = 0, y = screenHeight - h;
 
-      ctx->RSSetViewports(1, &view);
-
-      ID3D11Buffer *vbs[2] = {vb, instvb};
-      UINT strides[2] = {sizeof(DefaultA2V), sizeof(Vec4f)};
-      UINT offsets[2] = {0, 0};
-
-      ctx->IASetInputLayout(vertLayout);
+      glViewport(x, y, w, h);
 
       setMarker("Test Begin");
 
@@ -324,159 +334,146 @@ float4 main(v2f IN) : SV_Target0
       // non-indexed, non-instanced
 
       // basic test
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->Draw(3, 0);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 0, sizeof(DefaultA2V));
+      glDrawArrays(GL_TRIANGLES, 0, 3);
+      x += w;
 
       // test with vertex offset
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->Draw(3, 5);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 0, sizeof(DefaultA2V));
+      glDrawArrays(GL_TRIANGLES, 5, 3);
+      x += w;
 
       // test with vertex offset and vbuffer offset
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 5 * sizeof(DefaultA2V);
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->Draw(3, 8);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 5 * sizeof(DefaultA2V), sizeof(DefaultA2V));
+      glDrawArrays(GL_TRIANGLES, 8, 3);
+      x += w;
 
       // adjust to next row
-      view.TopLeftX = 0.0f;
-      view.TopLeftY += view.Height;
+      x = 0;
+      y -= h;
 
       ///////////////////////////////////////////////////
       // indexed, non-instanced
 
       // basic test
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexed(3, 0, 0);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 0, sizeof(DefaultA2V));
+      glDrawElementsBaseVertex(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, (void *)(0 * sizeof(uint16_t)), 0);
+      x += w;
 
       // test with first index
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexed(3, 5, 0);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 0, sizeof(DefaultA2V));
+      glDrawElementsBaseVertex(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, (void *)(5 * sizeof(uint16_t)), 0);
+      x += w;
 
       // test with first index and vertex offset
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexed(3, 13, -50);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 0, sizeof(DefaultA2V));
+      glDrawElementsBaseVertex(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, (void *)(13 * sizeof(uint16_t)),
+                               -50);
+      x += w;
 
       // test with first index and vertex offset and vbuffer offset
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 10 * sizeof(DefaultA2V);
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexed(3, 23, -100);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 10 * sizeof(DefaultA2V), sizeof(DefaultA2V));
+      glDrawElementsBaseVertex(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, (void *)(23 * sizeof(uint16_t)),
+                               -100);
+      x += w;
 
+      // GL can't have an ibuffer offset, so first index & ibuffer offset are merged
       // test with first index and vertex offset and vbuffer offset and ibuffer offset
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 19 * sizeof(DefaultA2V);
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 14 * sizeof(uint16_t));
-      ctx->DrawIndexed(3, 23, -100);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 19 * sizeof(DefaultA2V), sizeof(DefaultA2V));
+      glDrawElementsBaseVertex(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT,
+                               (void *)((14 + 23) * sizeof(uint16_t)), -100);
+      x += w;
 
-      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+      glEnable(GL_PRIMITIVE_RESTART);
+      glPrimitiveRestartIndex(0xffff);
 
       // indexed strip with primitive restart
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexed(12, 42, 0);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 0, sizeof(DefaultA2V));
+      glDrawElementsBaseVertex(GL_TRIANGLE_STRIP, 12, GL_UNSIGNED_SHORT,
+                               (void *)(42 * sizeof(uint16_t)), 0);
+      x += w;
 
       // indexed strip with primitive restart and vertex offset
-      ctx->RSSetViewports(1, &view);
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexed(12, 54, -100);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 0, sizeof(DefaultA2V));
+      glDrawElementsBaseVertex(GL_TRIANGLE_STRIP, 12, GL_UNSIGNED_SHORT,
+                               (void *)(54 * sizeof(uint16_t)), -100);
+      x += w;
 
       // adjust to next row
-      view.TopLeftX = 0.0f;
-      view.TopLeftY += view.Height;
+      x = 0;
+      y -= h;
 
-      ctx->IASetInputLayout(instlayout);
-      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+      glDisable(GL_PRIMITIVE_RESTART);
+
+      glBindVertexArray(instvao);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
 
       ///////////////////////////////////////////////////
       // non-indexed, instanced
 
       // basic test
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      offsets[1] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->DrawInstanced(3, 2, 0, 0);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 0, sizeof(DefaultA2V));
+      glBindVertexBuffer(1, instvb, 0, sizeof(Vec4f));
+      glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 3, 2, 0);
+      x += w;
 
       // basic test with first instance
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 5 * sizeof(DefaultA2V);
-      offsets[1] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->DrawInstanced(3, 2, 0, 5);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 5 * sizeof(DefaultA2V), sizeof(DefaultA2V));
+      glBindVertexBuffer(1, instvb, 0, sizeof(Vec4f));
+      glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 3, 2, 5);
+      x += w;
 
       // basic test with first instance and instance buffer offset
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 13 * sizeof(DefaultA2V);
-      offsets[1] = 8 * sizeof(Vec4f);
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->DrawInstanced(3, 2, 0, 5);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 13 * sizeof(DefaultA2V), sizeof(DefaultA2V));
+      glBindVertexBuffer(1, instvb, 8 * sizeof(Vec4f), sizeof(Vec4f));
+      glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 3, 2, 5);
+      x += w;
 
       // adjust to next row
-      view.TopLeftX = 0.0f;
-      view.TopLeftY += view.Height;
+      x = 0;
+      y -= h;
 
       ///////////////////////////////////////////////////
       // indexed, instanced
 
       // basic test
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      offsets[1] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexedInstanced(3, 2, 5, 0, 0);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 0, sizeof(DefaultA2V));
+      glBindVertexBuffer(1, instvb, 0, sizeof(Vec4f));
+      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT,
+                                                    (void *)(5 * sizeof(uint16_t)), 2, 0, 0);
+      x += w;
 
       // basic test with first instance
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      offsets[1] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexedInstanced(3, 2, 13, -50, 5);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 0, sizeof(DefaultA2V));
+      glBindVertexBuffer(1, instvb, 0, sizeof(Vec4f));
+      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT,
+                                                    (void *)(13 * sizeof(uint16_t)), 2, -50, 5);
+      x += w;
 
       // basic test with first instance and instance buffer offset
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      offsets[1] = 8 * sizeof(Vec4f);
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexedInstanced(3, 2, 23, -80, 5);
-      view.TopLeftX += view.Width;
+      glViewport(x, y, w, h);
+      glBindVertexBuffer(0, vb, 0, sizeof(DefaultA2V));
+      glBindVertexBuffer(1, instvb, 8 * sizeof(Vec4f), sizeof(Vec4f));
+      glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT,
+                                                    (void *)(23 * sizeof(uint16_t)), 2, -80, 5);
+      x += w;
 
-      blitToSwap(fltTex);
+      blitToSwap(colattach);
 
       Present();
     }

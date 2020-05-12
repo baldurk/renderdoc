@@ -19,7 +19,7 @@ class GL_VAO_0(rdtest.TestCase):
 
             self.check_triangle(vp=(vp.x, vp.y, vp.width, vp.height))
 
-            postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, draw.numIndices)
+            postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
 
             postvs_ref = {
                 0: {

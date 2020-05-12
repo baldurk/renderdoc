@@ -277,9 +277,10 @@ class TestCase:
 
         indices = analyse.fetch_indices(self.controller, mesh, 0, first_index, num_indices)
 
-        return analyse.decode_mesh_data(self.controller, indices, attrs, 0)
+        return analyse.decode_mesh_data(self.controller, indices, indices, attrs, 0, 0)
 
-    def get_postvs(self, data_stage: rd.MeshDataStage, first_index: int=0, num_indices: int=0, instance: int=0, view: int=0):
+    def get_postvs(self, draw: rd.DrawcallDescription, data_stage: rd.MeshDataStage, first_index: int = 0,
+                   num_indices: int = 0, instance: int = 0, view: int = 0):
         mesh: rd.MeshFormat = self.controller.GetPostVSData(instance, view, data_stage)
 
         if mesh.numIndices == 0:
@@ -292,11 +293,26 @@ class TestCase:
 
         first_index = min(first_index, mesh.numIndices-1)
 
+        ib: rd.BoundVBuffer = self.controller.GetPipelineState().GetIBuffer()
+
+        in_mesh = rd.MeshFormat()
+        in_mesh.numIndices = num_indices
+        in_mesh.indexByteOffset = ib.byteOffset + draw.indexOffset * draw.indexByteWidth
+        in_mesh.indexByteStride = draw.indexByteWidth
+        in_mesh.indexResourceId = ib.resourceId
+        in_mesh.baseVertex = draw.baseVertex
+
+        if not (draw.flags & rd.DrawFlags.Indexed):
+            in_mesh.indexByteOffset = 0
+            in_mesh.indexByteStride = 0
+            in_mesh.indexResourceId = rd.ResourceId.Null()
+
         indices = analyse.fetch_indices(self.controller, mesh, 0, first_index, num_indices)
+        in_indices = analyse.fetch_indices(self.controller, in_mesh, 0, first_index, num_indices)
 
         attrs = analyse.get_postvs_attrs(self.controller, mesh, data_stage)
 
-        return analyse.decode_mesh_data(self.controller, indices, attrs, 0)
+        return analyse.decode_mesh_data(self.controller, indices, in_indices, attrs, 0, mesh.baseVertex)
 
     def check_mesh_data(self, mesh_ref, mesh_data):
         for idx in mesh_ref:
@@ -315,7 +331,7 @@ class TestCase:
 
         log.success("Mesh data is identical to reference")
 
-    def check_pixel_value(self, tex: rd.ResourceId, x, y, value, sub=None, cast=None, eps=util.FLT_EPSILON):
+    def check_pixel_value(self, tex: rd.ResourceId, x, y, value, *, sub=None, cast=None, eps=util.FLT_EPSILON):
         tex_details = self.get_texture(tex)
         res_details = self.get_resource(tex)
 
@@ -523,6 +539,46 @@ class TestCase:
 
         return self.find_source_var(trace.sourceVars, sig_index, rd.DebugVariableType.Variable)
 
+    def get_debug_var(self, debugVars, path: str):
+        # first look for exact match
+        for d in debugVars:
+            if d.name == path:
+                return d
+
+        child = ''
+        remaining = ''
+
+        # Otherwise, take off any child if we haven't started recursing
+        m = re.match("([a-zA-Z0-9_]+)(\[|\..*)", path)
+        if m:
+            child = m.group(1)
+            remaining = m.group(2)
+        else:
+            # array index
+            m = re.match("(\[[0-9]*\])(.*)", path)
+            if m:
+                child = m.group(1)
+                remaining = m.group(2)
+            else:
+                m = re.match("\.([a-zA-Z0-9_]+)(.*)", path)
+                if m:
+                    child = m.group(1)
+                    remaining = m.group(2)
+
+        if child != '':
+            for d in debugVars:
+                d: rd.ShaderVariable
+                if d.name == child:
+                    if remaining == '':
+                        return d
+                    else:
+                        return self.get_debug_var(d.members, remaining)
+
+            raise KeyError("Couldn't find {} in debug vars".format(path))
+
+        raise KeyError("Couldn't parse path {}".format(path))
+
+
     def evaluate_source_var(self, sourceVar: rd.SourceVariableMapping, debugVars):
         debugged = rd.ShaderVariable()
         debugged.name = sourceVar.name
@@ -530,9 +586,10 @@ class TestCase:
         debugged.rows = sourceVar.rows
         debugged.columns = sourceVar.columns
         fv = [0.0] * 16
-        for i, debugVar in enumerate(sourceVar.variables):
-            debugged.rowMajor = debugVars[debugVar.name].rowMajor
-            fv[i] = debugVars[debugVar.name].value.fv[debugVar.component]
+        for i, debugVarPath in enumerate(sourceVar.variables):
+            debugVar = self.get_debug_var(debugVars.values(), debugVarPath.name)
+            debugged.rowMajor = debugVar.rowMajor
+            fv[i] = debugVar.value.fv[debugVarPath.component]
         debugged.value.fv = fv
         return debugged
 

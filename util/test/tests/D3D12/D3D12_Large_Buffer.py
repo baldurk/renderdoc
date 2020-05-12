@@ -36,7 +36,7 @@ class D3D12_Large_Buffer(rdtest.TestCase):
 
         self.check_mesh_data(vsin_ref, self.get_vsin(draw))
 
-        postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
 
         postvs_ref = {
             0: {

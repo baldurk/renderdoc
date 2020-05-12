@@ -62,11 +62,11 @@ class D3D11_Vertex_Attr_Zoo(rdtest.TestCase):
         self.check_mesh_data(in_ref, self.get_vsin(draw))
         rdtest.log.success("Vertex input data is as expected")
 
-        self.check_mesh_data(vsout_ref, self.get_postvs(rd.MeshDataStage.VSOut))
+        self.check_mesh_data(vsout_ref, self.get_postvs(draw, rd.MeshDataStage.VSOut))
 
         rdtest.log.success("Vertex output data is as expected")
 
-        self.check_mesh_data(gsout_ref, self.get_postvs(rd.MeshDataStage.GSOut))
+        self.check_mesh_data(gsout_ref, self.get_postvs(draw, rd.MeshDataStage.GSOut))
 
         rdtest.log.success("Geometry output data is as expected")
 

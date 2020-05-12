@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "d3d11_test.h"
+#include "d3d12_test.h"
 
-RD_TEST(D3D11_Draw_Zoo, D3D11GraphicsTest)
+RD_TEST(D3D12_Draw_Zoo, D3D12GraphicsTest)
 {
   static constexpr const char *Description =
       "Draws several variants using different vertex/index offsets.";
@@ -87,27 +87,35 @@ float4 main(v2f IN) : SV_Target0
     ID3DBlobPtr vsblob = Compile(common + vertex, "main", "vs_5_0");
     ID3DBlobPtr psblob = Compile(common + pixel, "main", "ps_5_0");
 
-    D3D11_INPUT_ELEMENT_DESC layoutdesc[] = {
-        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0},
+    D3D12_INPUT_CLASSIFICATION perVertex = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+
+    std::vector<D3D12_INPUT_ELEMENT_DESC> layoutdesc = {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, perVertex, 0},
+        {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, perVertex, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, perVertex, 0},
     };
 
-    ID3D11InputLayoutPtr vertLayout;
-    CHECK_HR(dev->CreateInputLayout(layoutdesc, ARRAY_COUNT(layoutdesc), vsblob->GetBufferPointer(),
-                                    vsblob->GetBufferSize(), &vertLayout));
+    ID3D12RootSignaturePtr sig = MakeSig({});
+
+    ID3D12PipelineStatePtr pso = MakePSO()
+                                     .RootSig(sig)
+                                     .InputLayout(layoutdesc)
+                                     .StripRestart(D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF)
+                                     .VS(vsblob)
+                                     .PS(psblob)
+                                     .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
 
     layoutdesc[1].AlignedByteOffset = 0;
     layoutdesc[1].InputSlot = 1;
-    layoutdesc[1].InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
+    layoutdesc[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
     layoutdesc[1].InstanceDataStepRate = 1;
 
-    ID3D11InputLayoutPtr instlayout;
-    CHECK_HR(dev->CreateInputLayout(layoutdesc, ARRAY_COUNT(layoutdesc), vsblob->GetBufferPointer(),
-                                    vsblob->GetBufferSize(), &instlayout));
-
-    ID3D11VertexShaderPtr vs = CreateVS(vsblob);
-    ID3D11PixelShaderPtr ps = CreatePS(psblob);
+    ID3D12PipelineStatePtr instpso = MakePSO()
+                                         .RootSig(sig)
+                                         .InputLayout(layoutdesc)
+                                         .VS(vsblob)
+                                         .PS(psblob)
+                                         .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
 
     DefaultA2V triangle[] = {
         // 0
@@ -211,7 +219,8 @@ float4 main(v2f IN) : SV_Target0
       vbData[i].col.y = float(i) / 200.0f;
     }
 
-    ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(vbData);
+    ID3D12ResourcePtr vb =
+        MakeBuffer().Data(vbData).Size(UINT((vbData.size() + 100) * sizeof(DefaultA2V)));
 
     Vec4f instData[16] = {};
     for(int i = 0; i < ARRAY_COUNT(instData); i++)
@@ -228,7 +237,7 @@ float4 main(v2f IN) : SV_Target0
       instData[14] = Vec4f(0.5f, 0.9f, 0.1f, 0.5f);
     }
 
-    ID3D11BufferPtr instvb = MakeBuffer().Vertex().Data(instData);
+    ID3D12ResourcePtr instvb = MakeBuffer().Data(instData).Size(4096);
 
     std::vector<uint16_t> idxData;
     idxData.resize(100);
@@ -281,67 +290,83 @@ float4 main(v2f IN) : SV_Target0
       idxData[65] = 141;
     }
 
-    ID3D11BufferPtr ib = MakeBuffer().Index().Data(idxData);
+    ID3D12ResourcePtr ib = MakeBuffer().Data(idxData).Size(4096);
 
-    CD3D11_RASTERIZER_DESC rd = CD3D11_RASTERIZER_DESC(CD3D11_DEFAULT());
-    rd.CullMode = D3D11_CULL_NONE;
+    ResourceBarrier(vb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+    ResourceBarrier(instvb, D3D12_RESOURCE_STATE_COMMON,
+                    D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+    ResourceBarrier(ib, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_INDEX_BUFFER);
 
-    ID3D11RasterizerStatePtr rs;
-    CHECK_HR(dev->CreateRasterizerState(&rd, &rs));
-
-    ID3D11Texture2DPtr fltTex =
-        MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, screenWidth, screenHeight).RTV().SRV();
-    ID3D11RenderTargetViewPtr fltRT = MakeRTV(fltTex);
+    ID3D12ResourcePtr rtvtex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, screenWidth, screenHeight)
+                                   .RTV()
+                                   .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
 
     while(Running())
     {
-      ctx->OMSetRenderTargets(1, &fltRT.GetInterfacePtr(), NULL);
+      ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
 
-      ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
+      Reset(cmd);
 
-      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+      D3D12_CPU_DESCRIPTOR_HANDLE offrtv = MakeRTV(rtvtex).CreateCPU(1);
 
-      ctx->VSSetShader(vs, NULL, 0);
-      ctx->PSSetShader(ps, NULL, 0);
+      OMSetRenderTargets(cmd, {offrtv}, {});
 
-      ctx->RSSetState(rs);
+      ID3D12ResourcePtr bb = StartUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-      ClearRenderTargetView(fltRT, {0.2f, 0.2f, 0.2f, 1.0f});
+      D3D12_CPU_DESCRIPTOR_HANDLE bbrtv =
+          MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(0);
 
-      D3D11_VIEWPORT view = {0.0f, 0.0f, 48.0f, 48.0f, 0.0f, 1.0f};
+      ClearRenderTargetView(cmd, bbrtv, {0.2f, 0.2f, 0.2f, 1.0f});
 
-      ctx->RSSetViewports(1, &view);
+      ClearRenderTargetView(cmd, offrtv, {0.2f, 0.2f, 0.2f, 1.0f});
 
-      ID3D11Buffer *vbs[2] = {vb, instvb};
-      UINT strides[2] = {sizeof(DefaultA2V), sizeof(Vec4f)};
-      UINT offsets[2] = {0, 0};
+      cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+      cmd->SetGraphicsRootSignature(sig);
 
-      ctx->IASetInputLayout(vertLayout);
+      D3D12_VIEWPORT view = {0.0f, 0.0f, 48.0f, 48.0f, 0.0f, 1.0f};
 
-      setMarker("Test Begin");
+      RSSetViewport(cmd, view);
+      RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
+
+      D3D12_VERTEX_BUFFER_VIEW vbs[2] = {};
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress();
+      vbs[0].SizeInBytes = 4096;
+      vbs[0].StrideInBytes = sizeof(DefaultA2V);
+      vbs[1].BufferLocation = instvb->GetGPUVirtualAddress();
+      vbs[1].StrideInBytes = sizeof(Vec4f);
+      vbs[1].SizeInBytes = 4096;
+
+      D3D12_INDEX_BUFFER_VIEW ibv = {};
+      ibv.BufferLocation = ib->GetGPUVirtualAddress();
+      ibv.Format = DXGI_FORMAT_R16_UINT;
+      ibv.SizeInBytes = 1024;
+
+      cmd->SetPipelineState(pso);
+
+      setMarker(cmd, "Test Begin");
 
       ///////////////////////////////////////////////////
       // non-indexed, non-instanced
 
       // basic test
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->Draw(3, 0);
+      RSSetViewport(cmd, view);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress() + 0;
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->DrawInstanced(3, 1, 0, 0);
       view.TopLeftX += view.Width;
 
       // test with vertex offset
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->Draw(3, 5);
+      RSSetViewport(cmd, view);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress() + 0;
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->DrawInstanced(3, 1, 5, 0);
       view.TopLeftX += view.Width;
 
       // test with vertex offset and vbuffer offset
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 5 * sizeof(DefaultA2V);
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->Draw(3, 8);
+      RSSetViewport(cmd, view);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress() + 5 * sizeof(DefaultA2V);
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->DrawInstanced(3, 1, 8, 0);
       view.TopLeftX += view.Width;
 
       // adjust to next row
@@ -351,95 +376,99 @@ float4 main(v2f IN) : SV_Target0
       ///////////////////////////////////////////////////
       // indexed, non-instanced
 
+      ibv.BufferLocation = ib->GetGPUVirtualAddress();
+
       // basic test
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexed(3, 0, 0);
+      RSSetViewport(cmd, view);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress() + 0;
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->IASetIndexBuffer(&ibv);
+      cmd->DrawIndexedInstanced(3, 1, 0, 0, 0);
       view.TopLeftX += view.Width;
 
       // test with first index
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexed(3, 5, 0);
+      RSSetViewport(cmd, view);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress() + 0;
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->IASetIndexBuffer(&ibv);
+      cmd->DrawIndexedInstanced(3, 1, 5, 0, 0);
       view.TopLeftX += view.Width;
 
       // test with first index and vertex offset
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexed(3, 13, -50);
+      RSSetViewport(cmd, view);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress() + 0;
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->IASetIndexBuffer(&ibv);
+      cmd->DrawIndexedInstanced(3, 1, 13, -50, 0);
       view.TopLeftX += view.Width;
 
       // test with first index and vertex offset and vbuffer offset
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 10 * sizeof(DefaultA2V);
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexed(3, 23, -100);
+      RSSetViewport(cmd, view);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress() + 10 * sizeof(DefaultA2V);
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->IASetIndexBuffer(&ibv);
+      cmd->DrawIndexedInstanced(3, 1, 23, -100, 0);
       view.TopLeftX += view.Width;
 
       // test with first index and vertex offset and vbuffer offset and ibuffer offset
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 19 * sizeof(DefaultA2V);
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 14 * sizeof(uint16_t));
-      ctx->DrawIndexed(3, 23, -100);
+      RSSetViewport(cmd, view);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress() + 19 * sizeof(DefaultA2V);
+      ibv.BufferLocation = ib->GetGPUVirtualAddress() + 14 * sizeof(uint16_t);
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->IASetIndexBuffer(&ibv);
+      cmd->DrawIndexedInstanced(3, 1, 23, -100, 0);
       view.TopLeftX += view.Width;
 
-      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+      cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
       // indexed strip with primitive restart
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexed(12, 42, 0);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress();
+      ibv.BufferLocation = ib->GetGPUVirtualAddress();
+      RSSetViewport(cmd, view);
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->IASetIndexBuffer(&ibv);
+      cmd->DrawIndexedInstanced(12, 1, 42, 0, 0);
       view.TopLeftX += view.Width;
 
       // indexed strip with primitive restart and vertex offset
-      ctx->RSSetViewports(1, &view);
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexed(12, 54, -100);
+      RSSetViewport(cmd, view);
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->IASetIndexBuffer(&ibv);
+      cmd->DrawIndexedInstanced(12, 1, 54, -100, 0);
       view.TopLeftX += view.Width;
 
       // adjust to next row
       view.TopLeftX = 0.0f;
       view.TopLeftY += view.Height;
 
-      ctx->IASetInputLayout(instlayout);
-      ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+      cmd->SetPipelineState(instpso);
+      cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
       ///////////////////////////////////////////////////
       // non-indexed, instanced
 
       // basic test
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      offsets[1] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->DrawInstanced(3, 2, 0, 0);
+      RSSetViewport(cmd, view);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress() + 0;
+      vbs[1].BufferLocation = instvb->GetGPUVirtualAddress() + 0;
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->DrawInstanced(3, 2, 0, 0);
       view.TopLeftX += view.Width;
 
       // basic test with first instance
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 5 * sizeof(DefaultA2V);
-      offsets[1] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->DrawInstanced(3, 2, 0, 5);
+      RSSetViewport(cmd, view);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress() + 5 * sizeof(DefaultA2V);
+      vbs[1].BufferLocation = instvb->GetGPUVirtualAddress() + 0;
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->DrawInstanced(3, 2, 0, 5);
       view.TopLeftX += view.Width;
 
       // basic test with first instance and instance buffer offset
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 13 * sizeof(DefaultA2V);
-      offsets[1] = 8 * sizeof(Vec4f);
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->DrawInstanced(3, 2, 0, 5);
+      RSSetViewport(cmd, view);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress() + 13 * sizeof(DefaultA2V);
+      vbs[1].BufferLocation = instvb->GetGPUVirtualAddress() + 8 * sizeof(Vec4f);
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->DrawInstanced(3, 2, 0, 5);
       view.TopLeftX += view.Width;
 
       // adjust to next row
@@ -449,34 +478,48 @@ float4 main(v2f IN) : SV_Target0
       ///////////////////////////////////////////////////
       // indexed, instanced
 
+      ibv.BufferLocation = ib->GetGPUVirtualAddress();
+
       // basic test
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      offsets[1] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexedInstanced(3, 2, 5, 0, 0);
+      RSSetViewport(cmd, view);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress() + 0;
+      vbs[1].BufferLocation = instvb->GetGPUVirtualAddress() + 0;
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->IASetIndexBuffer(&ibv);
+      cmd->DrawIndexedInstanced(3, 2, 5, 0, 0);
       view.TopLeftX += view.Width;
 
       // basic test with first instance
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      offsets[1] = 0;
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexedInstanced(3, 2, 13, -50, 5);
+      RSSetViewport(cmd, view);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress() + 0;
+      vbs[1].BufferLocation = instvb->GetGPUVirtualAddress() + 0;
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->IASetIndexBuffer(&ibv);
+      cmd->DrawIndexedInstanced(3, 2, 13, -50, 5);
       view.TopLeftX += view.Width;
 
       // basic test with first instance and instance buffer offset
-      ctx->RSSetViewports(1, &view);
-      offsets[0] = 0;
-      offsets[1] = 8 * sizeof(Vec4f);
-      ctx->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-      ctx->IASetIndexBuffer(ib, DXGI_FORMAT_R16_UINT, 0);
-      ctx->DrawIndexedInstanced(3, 2, 23, -80, 5);
+      RSSetViewport(cmd, view);
+      vbs[0].BufferLocation = vb->GetGPUVirtualAddress() + 0;
+      vbs[1].BufferLocation = instvb->GetGPUVirtualAddress() + 8 * sizeof(Vec4f);
+      cmd->IASetVertexBuffers(0, 2, vbs);
+      cmd->IASetIndexBuffer(&ibv);
+      cmd->DrawIndexedInstanced(3, 2, 23, -80, 5);
       view.TopLeftX += view.Width;
 
-      blitToSwap(fltTex);
+      ResourceBarrier(cmd, rtvtex, D3D12_RESOURCE_STATE_RENDER_TARGET,
+                      D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+      blitToSwap(cmd, rtvtex, bb);
+
+      ResourceBarrier(cmd, rtvtex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+                      D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+      FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+      cmd->Close();
+
+      Submit({cmd});
 
       Present();
     }

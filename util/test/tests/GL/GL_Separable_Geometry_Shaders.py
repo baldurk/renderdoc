@@ -10,7 +10,7 @@ class GL_Separable_Geometry_Shaders(rdtest.TestCase):
 
         self.controller.SetFrameEvent(draw.eventId, False)
 
-        postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
 
         postvs_ref = {
             0: {
@@ -38,7 +38,7 @@ class GL_Separable_Geometry_Shaders(rdtest.TestCase):
 
         self.check_mesh_data(postvs_ref, postvs_data)
 
-        postgs_data = self.get_postvs(rd.MeshDataStage.GSOut, 0, draw.numIndices*3)
+        postgs_data = self.get_postvs(draw, rd.MeshDataStage.GSOut, 0, draw.numIndices*3)
 
         postgs_ref = {
             0: {

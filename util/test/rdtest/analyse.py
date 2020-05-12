@@ -63,6 +63,9 @@ def fetch_indices(controller: rd.ReplayController, mesh: rd.MeshFormat, index_of
     elif mesh.indexByteStride == 4:
         index_fmt = 'I'
 
+    pipe = controller.GetPipelineState()
+    restart_idx = pipe.GetStripRestartIndex() & ((1 << (mesh.indexByteStride*8)) - 1)
+
     # Duplicate the format by the number of indices
     index_fmt = '=' + str(num_indices) + index_fmt
 
@@ -77,7 +80,7 @@ def fetch_indices(controller: rd.ReplayController, mesh: rd.MeshFormat, index_of
         indices = struct.unpack_from(index_fmt, ibdata)
 
         # Apply the baseVertex offset
-        return [i + mesh.baseVertex for i in indices]
+        return [i if i == restart_idx else i + mesh.baseVertex for i in indices]
     else:
         # With no index buffer, just generate a range
         return tuple(range(first_index, first_index + num_indices))
@@ -225,7 +228,8 @@ def unpack_data(fmt: rd.ResourceFormat, data: bytes, data_offset: int):
     return value
 
 
-def decode_mesh_data(controller: rd.ReplayController, indices: List[int], attrs: List[MeshAttribute], instance: int=0):
+def decode_mesh_data(controller: rd.ReplayController, indices: List[int], display_indices: List[int],
+                     attrs: List[MeshAttribute], instance: int = 0, indexOffset: int = 0):
     buffer_cache = {}
     ret = []
 
@@ -236,7 +240,7 @@ def decode_mesh_data(controller: rd.ReplayController, indices: List[int], attrs:
                               ((1 << (attrs[0].mesh.indexByteStride*8)) - 1))
 
     for i,idx in enumerate(indices):
-        vertex = {'vtx': i, 'idx': idx}
+        vertex = {'vtx': i, 'idx': display_indices[i]}
 
         if striprestart_index is None or idx != striprestart_index:
             for attr in attrs:
@@ -244,7 +248,7 @@ def decode_mesh_data(controller: rd.ReplayController, indices: List[int], attrs:
 
                 if attr.mesh.instanced:
                     offset = (attr.mesh.vertexByteStride +
-                              attr.mesh.vertexByteStride * (instance / max(attr.mesh.instStepRate, 1)))
+                              attr.mesh.vertexByteStride * int(instance / max(attr.mesh.instStepRate, 1)))
 
                 # This could be more optimal if we figure out the lower/upper bounds of any attribute and only fetch the
                 # data we need.

@@ -53,7 +53,7 @@ class GL_Parameter_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(draw.eventId, False)
 
-        postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
 
         postvs_ref = {
             0: {

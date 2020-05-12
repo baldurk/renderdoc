@@ -1145,7 +1145,7 @@ struct ComputePipelineCreateInfo : public VkComputePipelineCreateInfo
 struct GraphicsPipelineCreateInfo : private VkGraphicsPipelineCreateInfo
 {
   GraphicsPipelineCreateInfo();
-  const GraphicsPipelineCreateInfo(const GraphicsPipelineCreateInfo &other) { *this = other; }
+  GraphicsPipelineCreateInfo(const GraphicsPipelineCreateInfo &other) { *this = other; }
   const GraphicsPipelineCreateInfo &operator=(const GraphicsPipelineCreateInfo &other);
 
   using VkGraphicsPipelineCreateInfo::pNext;

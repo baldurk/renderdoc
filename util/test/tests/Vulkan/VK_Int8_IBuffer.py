@@ -14,7 +14,7 @@ class VK_Int8_IBuffer(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        postvs_data = self.get_postvs(rd.MeshDataStage.VSOut, 0, draw.numIndices)
+        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
 
         # Calculate the strip restart index for this index width
         striprestart_index = pipe.GetStripRestartIndex() & ((1 << (draw.indexByteWidth*8)) - 1)

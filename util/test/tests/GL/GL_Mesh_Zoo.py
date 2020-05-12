@@ -37,7 +37,7 @@ class GL_Mesh_Zoo(rdtest.TestCase):
             },
         }
 
-        self.check_mesh_data(gsout_ref, self.get_postvs(rd.MeshDataStage.GSOut))
+        self.check_mesh_data(gsout_ref, self.get_postvs(draw, rd.MeshDataStage.GSOut))
 
         # Test GL-only thing with geometry shader only and completely no-op vertex shader
         multibase = self.zoo_helper.find_draw("Multi Draw").next.parent
@@ -89,6 +89,6 @@ class GL_Mesh_Zoo(rdtest.TestCase):
                     },
                 }
 
-                self.check_mesh_data(multi_ref, self.get_postvs(rd.MeshDataStage.VSOut, instance=inst))
+                self.check_mesh_data(multi_ref, self.get_postvs(draw, rd.MeshDataStage.VSOut, instance=inst))
 
         rdtest.log.success("Multi-draw pass is as expected")

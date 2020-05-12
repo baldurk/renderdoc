@@ -29,57 +29,58 @@ RD_TEST(VK_Draw_Zoo, VulkanGraphicsTest)
   static constexpr const char *Description =
       "Draws several variants using different vertex/index offsets.";
 
-  std::string common = R"EOSHADER(
-
-#version 420 core
-
-struct v2f
-{
-	vec4 pos;
-	vec4 col;
-	vec4 uv;
-  float vertidx;
-  float instidx;
-};
-
-)EOSHADER";
-
   std::string vertex = R"EOSHADER(
+#version 420 core
 
 layout(location = 0) in vec3 Position;
 layout(location = 1) in vec4 Color;
 layout(location = 2) in vec2 UV;
 
-layout(location = 0) out v2f vertOut;
+layout(location = 0) out vec4 COLOR;
+layout(location = 1) out vec4 TEXCOORD;
+layout(location = 2) out float VID;
+layout(location = 3) out float IID;
 
 void main()
 {
-	vertOut.pos = vec4(Position.xyz, 1);
-  vertOut.pos.x += 0.1f*gl_InstanceIndex - 0.5f;
-	gl_Position = vertOut.pos;
-	vertOut.col = Color;
-	vertOut.uv = vec4(UV.xy, 0, 1);
+	gl_Position = vec4(Position.xyz, 1);
+  gl_Position.x += Color.w;
+	COLOR = Color;
+	TEXCOORD = vec4(UV.xy, 0, 1);
 
-  vertOut.vertidx = float(gl_VertexIndex);
-  vertOut.instidx = float(gl_InstanceIndex);
+  VID = float(gl_VertexIndex);
+  IID = float(gl_InstanceIndex);
 }
 
 )EOSHADER";
 
   std::string pixel = R"EOSHADER(
+#version 420 core
 
-layout(location = 0) in v2f vertIn;
+layout(location = 0) in vec4 COLOR;
+layout(location = 1) in vec4 TEXCOORD;
+layout(location = 2) in float VID;
+layout(location = 3) in float IID;
 
 layout(location = 0, index = 0) out vec4 Color;
 
 void main()
 {
-	Color = vertIn.col;
-  Color.g = vertIn.vertidx/30.0f;
-  Color.b = vertIn.instidx/10.0f;
+	Color = vec4(0,0,0,0);
+  Color.r = VID;
+  Color.g = IID;
+  Color.b = COLOR.w;
+  Color.a = COLOR.g + TEXCOORD.x;
 }
 
 )EOSHADER";
+
+  void Prepare(int argc, char **argv)
+  {
+    devExts.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+
+    VulkanGraphicsTest::Prepare(argc, argv);
+  }
 
   int main()
   {
@@ -89,10 +90,33 @@ void main()
 
     VkPipelineLayout layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo());
 
+    AllocatedImage img(
+        this,
+        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                             VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    VkImageView imgview = createImageView(
+        vkh::ImageViewCreateInfo(img.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT));
+
+    vkh::RenderPassCreator renderPassCreateInfo;
+
+    renderPassCreateInfo.attachments.push_back(
+        vkh::AttachmentDescription(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                   VK_IMAGE_LAYOUT_GENERAL, VK_ATTACHMENT_LOAD_OP_CLEAR));
+
+    renderPassCreateInfo.addSubpass({VkAttachmentReference({0, VK_IMAGE_LAYOUT_GENERAL})});
+
+    VkRenderPass renderPass = createRenderPass(renderPassCreateInfo);
+
+    VkFramebuffer framebuffer = createFramebuffer(
+        vkh::FramebufferCreateInfo(renderPass, {imgview}, mainWindow->scissor.extent));
+
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
     pipeCreateInfo.layout = layout;
-    pipeCreateInfo.renderPass = mainWindow->rp;
+    pipeCreateInfo.renderPass = renderPass;
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {vkh::vertexBind(0, DefaultA2V)};
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {
@@ -101,8 +125,8 @@ void main()
     };
 
     pipeCreateInfo.stages = {
-        CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
-        CompileShaderModule(common + pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
+        CompileShaderModule(vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
 
     VkPipeline noInstPipe = createGraphicsPipeline(pipeCreateInfo);
@@ -124,36 +148,36 @@ void main()
 
     DefaultA2V vertData[] = {
         // 0
-        {Vec3f(-1.0f, -1.0f, -1.0f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(-1.0f, -1.0f)},
+        {Vec3f(-1.0f, -1.0f, -1.0f), Vec4f(1.0f, 1.0f, 1.0f, 0.0f), Vec2f(-1.0f, -1.0f)},
         // 1, 2, 3
-        {Vec3f(-0.5f, 0.5f, 0.0f), Vec4f(1.0f, 0.1f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(0.0f, -0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(0.5f, 0.5f, 0.0f), Vec4f(0.0f, 0.1f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.5f, 0.5f, 0.0f), Vec4f(1.0f, 0.1f, 0.0f, 0.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, -0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 0.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.5f, 0.5f, 0.0f), Vec4f(0.0f, 0.1f, 1.0f, 0.0f), Vec2f(1.0f, 0.0f)},
         // 4, 5, 6
-        {Vec3f(-0.5f, -0.5f, 0.0f), Vec4f(1.0f, 0.1f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(0.0f, 0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(0.5f, -0.5f, 0.0f), Vec4f(0.0f, 0.1f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.5f, -0.5f, 0.0f), Vec4f(1.0f, 0.1f, 0.0f, 0.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, 0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 0.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.5f, -0.5f, 0.0f), Vec4f(0.0f, 0.1f, 1.0f, 0.0f), Vec2f(1.0f, 0.0f)},
         // 7, 8, 9
-        {Vec3f(-0.5f, 0.0f, 0.0f), Vec4f(1.0f, 0.1f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(0.0f, -0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(0.0f, 0.5f, 0.0f), Vec4f(0.0f, 0.1f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.5f, 0.0f, 0.0f), Vec4f(1.0f, 0.1f, 0.0f, 0.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, -0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 0.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.0f, 0.5f, 0.0f), Vec4f(0.0f, 0.1f, 1.0f, 0.0f), Vec2f(1.0f, 0.0f)},
         // 10, 11, 12
-        {Vec3f(0.0f, -0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(0.5f, 0.0f, 0.0f), Vec4f(1.0f, 0.1f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(0.0f, 0.5f, 0.0f), Vec4f(0.0f, 0.1f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(0.0f, -0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 0.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.5f, 0.0f, 0.0f), Vec4f(1.0f, 0.1f, 0.0f, 0.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, 0.5f, 0.0f), Vec4f(0.0f, 0.1f, 1.0f, 0.0f), Vec2f(1.0f, 0.0f)},
         // strips: 13, 14, 15, ...
-        {Vec3f(-0.5f, 0.2f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(-0.5f, 0.0f, 0.0f), Vec4f(0.2f, 0.1f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(-0.3f, 0.2f, 0.0f), Vec4f(0.4f, 0.1f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
-        {Vec3f(-0.3f, 0.0f, 0.0f), Vec4f(0.6f, 0.1f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
-        {Vec3f(-0.1f, 0.2f, 0.0f), Vec4f(0.8f, 0.1f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
-        {Vec3f(-0.1f, 0.0f, 0.0f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
-        {Vec3f(0.1f, 0.2f, 0.0f), Vec4f(0.0f, 0.8f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
-        {Vec3f(0.1f, 0.0f, 0.0f), Vec4f(0.2f, 0.1f, 0.5f, 1.0f), Vec2f(1.0f, 0.0f)},
-        {Vec3f(0.3f, 0.2f, 0.0f), Vec4f(0.4f, 0.3f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
-        {Vec3f(0.3f, 0.0f, 0.0f), Vec4f(0.6f, 0.1f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
-        {Vec3f(0.5f, 0.2f, 0.0f), Vec4f(0.8f, 0.3f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
-        {Vec3f(0.5f, 0.0f, 0.0f), Vec4f(1.0f, 0.1f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.5f, 0.2f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 0.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(-0.5f, 0.0f, 0.0f), Vec4f(0.2f, 0.1f, 0.0f, 0.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-0.3f, 0.2f, 0.0f), Vec4f(0.4f, 0.1f, 1.0f, 0.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.3f, 0.0f, 0.0f), Vec4f(0.6f, 0.1f, 1.0f, 0.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.1f, 0.2f, 0.0f), Vec4f(0.8f, 0.1f, 1.0f, 0.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.1f, 0.0f, 0.0f), Vec4f(1.0f, 0.5f, 1.0f, 0.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(0.1f, 0.2f, 0.0f), Vec4f(0.0f, 0.8f, 1.0f, 0.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(0.1f, 0.0f, 0.0f), Vec4f(0.2f, 0.1f, 0.5f, 0.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(0.3f, 0.2f, 0.0f), Vec4f(0.4f, 0.3f, 1.0f, 0.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(0.3f, 0.0f, 0.0f), Vec4f(0.6f, 0.1f, 1.0f, 0.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(0.5f, 0.2f, 0.0f), Vec4f(0.8f, 0.3f, 1.0f, 0.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(0.5f, 0.0f, 0.0f), Vec4f(1.0f, 0.1f, 1.0f, 0.0f), Vec2f(1.0f, 0.0f)},
     };
 
     AllocatedBuffer vb1(this, vkh::BufferCreateInfo(sizeof(DefaultA2V) * 66000,
@@ -221,30 +245,36 @@ void main()
       memcpy(dst + 40, src + 23, sizeof(DefaultA2V));
       memcpy(dst + 41, src + 24, sizeof(DefaultA2V));
 
+      for(size_t i = 0; i < 660; i++)
+      {
+        dst[i].uv.x = float(i);
+        dst[i].col.y = float(i) / 200.0f;
+      }
+
       vb1.unmap();
     }
 
-    AllocatedBuffer vb2(
-        this, vkh::BufferCreateInfo(sizeof(Vec4f) * 16, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    Vec4f instData[16] = {};
+    for(int i = 0; i < ARRAY_COUNT(instData); i++)
+      instData[i] = Vec4f(-100.0f, -100.0f, -100.0f, -100.0f);
 
     {
-      Vec4f *dst = (Vec4f *)vb2.map();
+      instData[0] = Vec4f(0.0f, 0.4f, 1.0f, 0.0f);
+      instData[1] = Vec4f(0.5f, 0.5f, 0.0f, 0.5f);
 
-      memset(dst, 0, sizeof(Vec4f) * 60);
+      instData[5] = Vec4f(0.0f, 0.6f, 0.5f, 0.0f);
+      instData[6] = Vec4f(0.5f, 0.7f, 1.0f, 0.5f);
 
-      dst[0] = Vec4f(0.0f, 0.5f, 1.0f, 1.0f);
-      dst[1] = Vec4f(1.0f, 0.5f, 0.0f, 1.0f);
-
-      dst[5] = Vec4f(1.0f, 0.5f, 0.5f, 1.0f);
-      dst[6] = Vec4f(0.5f, 0.5f, 1.0f, 1.0f);
-
-      dst[13] = Vec4f(0.1f, 0.8f, 0.3f, 1.0f);
-      dst[14] = Vec4f(0.8f, 0.1f, 0.1f, 1.0f);
-
-      vb2.unmap();
+      instData[13] = Vec4f(0.0f, 0.8f, 0.3f, 0.0f);
+      instData[14] = Vec4f(0.5f, 0.9f, 0.1f, 0.5f);
     }
+
+    AllocatedBuffer vb2(
+        this, vkh::BufferCreateInfo(sizeof(instData), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    vb2.upload(instData);
 
     AllocatedBuffer ib1(
         this, vkh::BufferCreateInfo(sizeof(uint32_t) * 100, VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
@@ -318,17 +348,20 @@ void main()
                            vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
 
-      vkCmdBeginRenderPass(
-          cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
-          VK_SUBPASS_CONTENTS_INLINE);
+      vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(renderPass, framebuffer, mainWindow->scissor,
+                                                         {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f)}),
+                           VK_SUBPASS_CONTENTS_INLINE);
 
       vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
 
       VkViewport vp = mainWindow->viewport;
       vp.width = 48.0f;
-      vp.height = 48.0f;
+      vp.height = -48.0f;
+      vp.y = -vp.height;
 
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, noInstPipe);
+
+      setMarker(cmd, "Test Begin");
 
       ///////////////////////////////////////////////////
       // non-indexed, non-instanced
@@ -353,7 +386,7 @@ void main()
 
       // adjust to next row
       vp.x = 0.0f;
-      vp.y += vp.height;
+      vp.y -= vp.height;
 
       ///////////////////////////////////////////////////
       // indexed, non-instanced
@@ -411,7 +444,7 @@ void main()
 
       // adjust to next row
       vp.x = 0.0f;
-      vp.y += vp.height;
+      vp.y -= vp.height;
 
       ///////////////////////////////////////////////////
       // non-indexed, instanced
@@ -439,7 +472,7 @@ void main()
 
       // adjust to next row
       vp.x = 0.0f;
-      vp.y += vp.height;
+      vp.y -= vp.height;
 
       ///////////////////////////////////////////////////
       // indexed, instanced
@@ -466,6 +499,8 @@ void main()
       vp.x += vp.width;
 
       vkCmdEndRenderPass(cmd);
+
+      blitToSwap(cmd, img.image, VK_IMAGE_LAYOUT_GENERAL, swapimg, VK_IMAGE_LAYOUT_GENERAL);
 
       FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
