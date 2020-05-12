@@ -1730,8 +1730,6 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
 
   const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventId);
 
-  pso->graphics->InputLayout;
-
   rdcarray<D3D12_INPUT_ELEMENT_DESC> inputlayout;
   uint32_t numElements = pso->graphics->InputLayout.NumElements;
   inputlayout.reserve(numElements);
@@ -2024,7 +2022,7 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
       uint32_t sv_vertid = vertid;
 
       if(draw->flags & DrawFlags::Indexed)
-        sv_vertid = idx;
+        sv_vertid = idx - draw->baseVertex;
 
       if(dxbc->GetReflection()->InputSig[i].varType == VarType::Float)
         state.inputs[i].value.f.x = state.inputs[i].value.f.y = state.inputs[i].value.f.z =

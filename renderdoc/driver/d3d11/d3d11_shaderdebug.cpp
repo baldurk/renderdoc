@@ -2076,7 +2076,9 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
       uint32_t sv_vertid = vertid;
 
       if(draw->flags & DrawFlags::Indexed)
-        sv_vertid = idx;
+      {
+        sv_vertid = idx - draw->baseVertex;
+      }
 
       if(dxbc->GetReflection()->InputSig[i].varType == VarType::Float)
         state.inputs[i].value.f.x = state.inputs[i].value.f.y = state.inputs[i].value.f.z =

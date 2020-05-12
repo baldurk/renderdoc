@@ -361,22 +361,10 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
       uint32_t numIndices =
           RDCMIN(uint32_t(index16 ? idxdata.size() / 2 : idxdata.size() / 4), drawcall->numIndices);
 
-      uint32_t idxclamp = 0;
-      if(drawcall->baseVertex < 0)
-        idxclamp = uint32_t(-drawcall->baseVertex);
-
       // grab all unique vertex indices referenced
       for(uint32_t i = 0; i < numIndices; i++)
       {
         uint32_t i32 = index16 ? uint32_t(idx16[i]) : idx32[i];
-
-        // apply baseVertex but clamp to 0 (don't allow index to become negative)
-        if(i32 < idxclamp)
-          i32 = 0;
-        else if(drawcall->baseVertex < 0)
-          i32 -= idxclamp;
-        else if(drawcall->baseVertex > 0)
-          i32 += drawcall->baseVertex;
 
         auto it = std::lower_bound(indices.begin(), indices.end(), i32);
 
@@ -448,9 +436,9 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
 
       if(drawcall->flags & DrawFlags::Instanced)
         m_pImmediateContext->DrawIndexedInstanced((UINT)indices.size(), drawcall->numInstances, 0,
-                                                  0, drawcall->instanceOffset);
+                                                  drawcall->baseVertex, drawcall->instanceOffset);
       else
-        m_pImmediateContext->DrawIndexed((UINT)indices.size(), 0, 0);
+        m_pImmediateContext->DrawIndexed((UINT)indices.size(), 0, drawcall->baseVertex);
 
       m_pImmediateContext->End(m_SOStatsQueries[0]);
 
@@ -463,14 +451,6 @@ void D3D11Replay::InitPostVSBuffers(uint32_t eventId)
         // preserve primitive restart indices
         if(i32 == (index16 ? 0xffff : 0xffffffff))
           continue;
-
-        // apply baseVertex but clamp to 0 (don't allow index to become negative)
-        if(i32 < idxclamp)
-          i32 = 0;
-        else if(drawcall->baseVertex < 0)
-          i32 -= idxclamp;
-        else if(drawcall->baseVertex > 0)
-          i32 += drawcall->baseVertex;
 
         if(index16)
           idx16[i] = uint16_t(indexRemap[i32]);

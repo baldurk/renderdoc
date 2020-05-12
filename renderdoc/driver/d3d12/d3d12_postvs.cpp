@@ -413,22 +413,10 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
       uint32_t numIndices =
           RDCMIN(uint32_t(idxdata.size() / RDCMAX(1, rs.ibuffer.bytewidth)), drawcall->numIndices);
 
-      uint32_t idxclamp = 0;
-      if(drawcall->baseVertex < 0)
-        idxclamp = uint32_t(-drawcall->baseVertex);
-
       // grab all unique vertex indices referenced
       for(uint32_t i = 0; i < numIndices; i++)
       {
         uint32_t i32 = rs.ibuffer.bytewidth == 2 ? uint32_t(idx16[i]) : idx32[i];
-
-        // apply baseVertex but clamp to 0 (don't allow index to become negative)
-        if(i32 < idxclamp)
-          i32 = 0;
-        else if(drawcall->baseVertex < 0)
-          i32 -= idxclamp;
-        else if(drawcall->baseVertex > 0)
-          i32 += drawcall->baseVertex;
 
         auto it = std::lower_bound(indices.begin(), indices.end(), i32);
 
@@ -516,8 +504,8 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
 
       list->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-      list->DrawIndexedInstanced((UINT)indices.size(), drawcall->numInstances, 0, 0,
-                                 drawcall->instanceOffset);
+      list->DrawIndexedInstanced((UINT)indices.size(), drawcall->numInstances, 0,
+                                 drawcall->baseVertex, drawcall->instanceOffset);
 
       uint32_t stripCutValue = 0;
       if(psoDesc.IBStripCutValue == D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF)
@@ -534,14 +522,6 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
         // preserve primitive restart indices
         if(stripCutValue && i32 == stripCutValue)
           continue;
-
-        // apply baseVertex but clamp to 0 (don't allow index to become negative)
-        if(i32 < idxclamp)
-          i32 = 0;
-        else if(drawcall->baseVertex < 0)
-          i32 -= idxclamp;
-        else if(drawcall->baseVertex > 0)
-          i32 += drawcall->baseVertex;
 
         if(rs.ibuffer.bytewidth == 2)
           idx16[i] = uint16_t(indexRemap[i32]);
