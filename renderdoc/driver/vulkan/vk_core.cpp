@@ -3798,7 +3798,20 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
 
   static bool hugeRangeWarned = false;
 
-  for(int shad = 0; shad < 6; shad++)
+  int shaderStart = 0;
+  int shaderEnd = 0;
+  if(d.flags & DrawFlags::Dispatch)
+  {
+    shaderStart = 5;
+    shaderEnd = 6;
+  }
+  else if(d.flags & DrawFlags::Drawcall)
+  {
+    shaderStart = 0;
+    shaderEnd = 5;
+  }
+
+  for(int shad = shaderStart; shad < shaderEnd; shad++)
   {
     bool compute = (shad == 5);
     ResourceId pipe = (compute ? state.compute.pipeline : state.graphics.pipeline);
