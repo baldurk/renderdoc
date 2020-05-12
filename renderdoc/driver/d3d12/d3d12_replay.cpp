@@ -42,9 +42,6 @@
 
 #include "data/hlsl/hlsl_cbuffers.h"
 
-RDOC_CONFIG(bool, D3D12_ShaderDebugging, false,
-            "BETA: Enable experimental shader debugging support.");
-
 RDOC_CONFIG(bool, D3D12_HardwareCounters, true,
             "Enable support for IHV-specific hardware counters on D3D12.");
 
@@ -243,7 +240,7 @@ APIProperties D3D12Replay::GetAPIProperties()
   ret.shadersMutable = false;
   ret.rgpCapture =
       m_DriverInfo.vendor == GPUVendor::AMD && m_RGP != NULL && m_RGP->DriverSupportsInterop();
-  ret.shaderDebugging = D3D12_ShaderDebugging;
+  ret.shaderDebugging = true;
 
   return ret;
 }
