@@ -11,8 +11,10 @@ def scissor_clipped(x): return x.scissorClipped
 def stencil_test_failed(x): return x.stencilTestFailed
 def shader_discarded(x): return x.shaderDiscarded
 def shader_out_col(x): return value_selector(x.shaderOut.col)
+def shader_out_depth(x): return x.shaderOut.depth
 def pre_mod_col(x): return value_selector(x.preMod.col)
 def post_mod_col(x): return value_selector(x.postMod.col)
+def post_mod_depth(x): return x.postMod.depth
 def primitive_id(x): return x.primitiveID
 def unboundPS(x): return x.unboundPS
 
@@ -59,6 +61,7 @@ class VK_Pixel_History(rdtest.TestCase):
         fixed_scissor_pass_eid = self.find_draw("Fixed Scissor Pass").next.eventId
         dynamic_stencil_ref_eid = self.find_draw("Dynamic Stencil Ref").next.eventId
         dynamic_stencil_mask_eid = self.find_draw("Dynamic Stencil Mask").next.eventId
+        depth_test_eid = self.find_draw("Depth Test").next.eventId
 
         # For pixel 190, 149 inside the red triangle
         x, y = 190, 149
@@ -121,6 +124,29 @@ class VK_Pixel_History(rdtest.TestCase):
             [[event_id, fixed_scissor_pass_eid], [passed, True], [shader_out_col, (0.0, 1.0, 0.0, 1.0)]],
             [[event_id, dynamic_stencil_ref_eid], [passed, True], [shader_out_col, (0.0, 0.0, 1.0, 1.0)]],
             [[event_id, dynamic_stencil_mask_eid], [passed, True], [shader_out_col, (0.0, 1.0, 1.0, 1.0)]],
+        ]
+        self.check_events(events, modifs, False)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+        rdtest.log.print("Testing depth test for per fragment reporting")
+        self.controller.SetFrameEvent(depth_test_eid, True)
+
+        x, y = 275, 260
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, begin_renderpass_eid], [passed, True]],
+            [[event_id, background_eid], [passed, True]],
+            [[event_id, depth_test_eid], [primitive_id, 0], [shader_out_col, (1.0, 1.0, 1.0, 1.0)],
+                [shader_out_depth, 0.97], [post_mod_col, (1.0, 0.0, 1.0, 1.0)], [post_mod_depth, 0.95]],
+            [[event_id, depth_test_eid], [primitive_id, 1], [shader_out_col, (1.0, 1.0, 0.0, 1.0)],
+                [shader_out_depth, 0.20], [post_mod_col, (1.0, 1.0, 0.0, 1.0)], [post_mod_depth, 0.20]],
+            [[event_id, depth_test_eid], [primitive_id, 2], [shader_out_col, (1.0, 0.0, 0.0, 1.0)],
+                [shader_out_depth, 0.30], [post_mod_col, (1.0, 1.0, 0.0, 1.0)], [post_mod_depth, 0.20]],
+            [[event_id, depth_test_eid], [primitive_id, 3], [shader_out_col, (0.0, 0.0, 1.0, 1.0)],
+                [shader_out_depth, 0.10], [post_mod_col, (0.0, 0.0, 1.0, 1.0)], [post_mod_depth, 0.10]],
+            [[event_id, depth_test_eid], [primitive_id, 4], [shader_out_col, (1.0, 1.0, 1.0, 1.0)],
+                [shader_out_depth, 0.05], [post_mod_col, (0.0, 0.0, 1.0, 1.0)], [post_mod_depth, 0.10]],
         ]
         self.check_events(events, modifs, False)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
@@ -231,7 +257,7 @@ class VK_Pixel_History(rdtest.TestCase):
                 actual = events[i][c][0](modifs[i])
                 if not rdtest.value_compare(actual, expected):
                     raise rdtest.TestFailureException(
-                        "eventId {}, testing {} expected {}, got {}".format(modifs[i].eventId,
+                        "eventId {}, primitiveID {}: testing {} expected {}, got {}".format(modifs[i].eventId, modifs[i].primitiveID,
                                                                             events[i][c][0].__name__,
                                                                             expected,
                                                                             actual))
@@ -241,9 +267,11 @@ class VK_Pixel_History(rdtest.TestCase):
         for i in range(len(modifs) - 1):
             if value_selector(modifs[i].postMod.col) != value_selector(modifs[i + 1].preMod.col):
                 raise rdtest.TestFailureException(
-                    "postmod at {}: {} doesn't match premod at {}: {}".format(modifs[i].eventId,
+                    "postmod at {} primitive {}: {} doesn't match premod at {} primitive {}: {}".format(modifs[i].eventId,
+                                                                              modifs[i].primitiveID,
                                                                               value_selector(modifs[i].postMod.col),
                                                                               modifs[i + 1].eventId,
+                                                                              modifs[i + 1].primitiveID,
                                                                               value_selector(modifs[i].preMod.col)))
 
         # Check that if the test failed, its postmod is the same as premod
@@ -251,6 +279,7 @@ class VK_Pixel_History(rdtest.TestCase):
             if not modifs[i].Passed():
                 if not rdtest.value_compare(value_selector(modifs[i].preMod.col), value_selector(modifs[i].postMod.col)):
                     raise rdtest.TestFailureException(
-                        "postmod at {}: {} doesn't match premod: {}".format(modifs[i].eventId,
+                        "postmod at {} primitive {}: {} doesn't match premod: {}".format(modifs[i].eventId,
+                                                                            modifs[i].primitiveID,
                                                                             value_selector(modifs[i].postMod.col),
                                                                             value_selector(modifs[i].preMod.col)))

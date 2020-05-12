@@ -461,12 +461,12 @@ protected:
     // TODO: should leave in the original state.
     ds->depthTestEnable = VK_FALSE;
     ds->depthWriteEnable = VK_FALSE;
+    ds->depthBoundsTestEnable = VK_FALSE;
 
     if(disableTests)
     {
       rs->cullMode = VK_CULL_MODE_NONE;
       rs->rasterizerDiscardEnable = VK_FALSE;
-      ds->depthBoundsTestEnable = VK_FALSE;
       if(m_pDriver->GetDeviceFeatures().depthClamp)
         rs->depthClampEnable = true;
     }
@@ -1350,6 +1350,9 @@ private:
     m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(m_pDriver, cmd,
                                                                 VulkanRenderState::BindGraphics);
 
+    ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
+    ObjDisp(cmd)->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
+
     if(clear)
     {
       VkClearAttachment att = {};
@@ -2002,11 +2005,11 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
         DoPipelineBarrier(cmd, 1, &barrier);
 
-        // If depth is enabled, clear out the depth value so that the test always
-        // passes. Depth writes only work if depth test is enabled.
-        // Regardless also need to reset the stencil back to 0.
+        // Reset depth to 0.0f, depth test is set to always pass.
+        // This way we get the value for just that fragment.
+        // Reset stencil to 0.
         VkClearDepthStencilValue dsValue = {};
-        dsValue.depth = 1.0f;
+        dsValue.depth = 0.0f;
         dsValue.stencil = 0;
         VkImageSubresourceRange range = {};
         range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
@@ -2014,6 +2017,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         range.baseMipLevel = 0;
         range.layerCount = 1;
         range.levelCount = 1;
+
         ObjDisp(cmd)->CmdClearDepthStencilImage(Unwrap(cmd), Unwrap(m_CallbackInfo.dsImage),
                                                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &dsValue, 1,
                                                 &range);
@@ -2205,21 +2209,6 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         stages[i].module = replacement;
     }
     pipeCreateInfo.pStages = stages.data();
-
-    VkPipelineDynamicStateCreateInfo *dynState =
-        (VkPipelineDynamicStateCreateInfo *)pipeCreateInfo.pDynamicState;
-
-    rdcarray<VkDynamicState> dynamicStates;
-    RDCASSERT(dynState != NULL);
-    if(!p.dynamicStates[VkDynamicStencilReference])
-    {
-      dynamicStates.resize(dynState->dynamicStateCount);
-      memcpy(dynamicStates.data(), dynState->pDynamicStates, dynamicStates.byteSize());
-      dynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
-      dynState->dynamicStateCount = (uint32_t)dynamicStates.size();
-      dynState->pDynamicStates = dynamicStates.data();
-    }
-
     pipeCreateInfo.renderPass = rp;
 
     Pipelines pipes = {};
@@ -2245,6 +2234,11 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       {
         atts[i].colorWriteMask = 0;
       }
+    }
+
+    {
+      ds->depthBoundsTestEnable = VK_FALSE;
+      ds->depthCompareOp = VK_COMPARE_OP_ALWAYS;
     }
 
     vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
@@ -3014,6 +3008,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     uint32_t eventId = events[ev].eventId;
     bool clear = (events[ev].usage == ResourceUsage::Clear);
     bool directWrite = isDirectWrite(events[ev].usage);
+
     if(drawEvents.contains(events[ev].eventId) || clear || directWrite)
     {
       PixelModification mod;
@@ -3194,6 +3189,12 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
           // Get post-modification value if this is not the last fragment for the event.
           FillInColor(shaderOutFormat, bp[offset].postMod, history[h].postMod);
           history[h].postMod.depth = bp[offset].postMod.depth.fdepth;
+        }
+        // If it is not the first fragment for the event, set the preMod to the
+        // postMod of the previous fragment.
+        if(h > 0 && (history[h].eventId == history[h - 1].eventId))
+        {
+          history[h].preMod = history[h - 1].postMod;
         }
       }
     }
