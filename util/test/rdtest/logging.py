@@ -101,7 +101,10 @@ class TestLogger:
     def failure(self, ex):
         self.failed = True
 
-        self.rawprint("!+ FAILURE in {}: {}".format(self.test_name, ex))
+        if ex is TestFailureException:
+            self.rawprint("!+ FAILURE in {}: {}".format(self.test_name, str(ex)))
+        else:
+            self.rawprint("!+ FAILURE in {}: {} {}".format(self.test_name, type(ex).__name__, str(ex)))
 
         self.rawprint('>> Callstack')
         tb = traceback.extract_tb(sys.exc_info()[2])
