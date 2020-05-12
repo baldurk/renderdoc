@@ -166,6 +166,7 @@ There have been many people who have helped in the creation of RenderDoc. Whethe
 * Benson Joeris
 * Haiyu Zhen
 * Alex Kharlamov
+* Steve Karolewics
 
 Contributors
 ------------
@@ -178,3 +179,4 @@ The following list highlights notable open source contributions. Many other peop
 * Adrian Bucur - Added custom SPIR-V disassembler support.
 * James Fulop - Updated the vertex picking algorithm.
 * Balazs Torok - Implemented the RenderDoc in-application overlay for D3D9.
+* Steve Karolewics - Implemented DXBC shader debugging support for D3D12.
