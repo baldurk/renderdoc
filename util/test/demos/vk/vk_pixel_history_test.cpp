@@ -101,6 +101,8 @@ void main()
 
   void Prepare(int argc, char **argv)
   {
+    features.depthBounds = true;
+    features.geometryShader = true;
     features.sampleRateShading = true;
 
     VulkanGraphicsTest::Prepare(argc, argv);
@@ -195,6 +197,33 @@ void main()
         {Vec3f(-0.6f, 0.75f, 0.5f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(-0.5f, 0.65f, 0.5f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(-0.4f, 0.75f, 0.5f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // Different depth triangles
+        {Vec3f(0.0f, 0.8f, 0.97f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.4f, 0.2f, 0.97f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.8f, 0.8f, 0.97f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        {Vec3f(0.2f, 0.8f, 0.20f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.4f, 0.4f, 0.20f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.6f, 0.8f, 0.20f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        {Vec3f(0.2f, 0.8f, 0.30f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.4f, 0.6f, 0.30f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.6f, 0.8f, 0.30f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        {Vec3f(0.2f, 0.8f, 0.10f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.4f, 0.7f, 0.10f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.6f, 0.8f, 0.10f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // Fails depth bounds test.
+        {Vec3f(0.2f, 0.8f, 0.05f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.4f, 0.7f, 0.05f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.6f, 0.8f, 0.05f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // Should be back face culled.
+        {Vec3f(0.6f, 0.8f, 0.25f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(0.4f, 0.7f, 0.25f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.2f, 0.8f, 0.25f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
     };
 
     // negate y if we're using negative viewport height
@@ -316,6 +345,16 @@ void main()
     }
 
     pipeCreateInfo.depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+
+    VkPipeline depthPipe;
+    {
+      vkh::GraphicsPipelineCreateInfo depthPipeInfo = pipeCreateInfo;
+      depthPipeInfo.dynamicState.dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BOUNDS);
+      depthPipeInfo.depthStencilState.depthBoundsTestEnable = VK_TRUE;
+      depthPipe = createGraphicsPipeline(depthPipeInfo);
+      setName(dynamicStencilMaskPipe, "depthPipe");
+    }
+
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_TRUE;
     VkPipeline stencilWritePipe = createGraphicsPipeline(pipeCreateInfo);
 
@@ -461,6 +500,18 @@ void main()
       vkCmdSetStencilCompareMask(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, 0);
       vkCmdSetStencilWriteMask(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, 0);
       vkCmdDraw(cmd, 3, 1, 42, 0);
+
+      // Six triangles, five fragments reported.
+      // 0: Fails depth test
+      // 1: Passes
+      // 2: Fails depth test compared to 1st fragment
+      // 3: Passes
+      // 4: Fails depth bounds test
+      // 5: Fails backface culling, not reported.
+      setMarker(cmd, "Depth Test");
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, depthPipe);
+      vkCmdSetDepthBounds(cmd, 0.15f, 1.0f);
+      vkCmdDraw(cmd, 6 * 3, 1, 45, 0);
 
       vkCmdEndRenderPass(cmd);
 
