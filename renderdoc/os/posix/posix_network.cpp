@@ -177,7 +177,7 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
       }
       else if(err == EWOULDBLOCK || err == EAGAIN)
       {
-        RDCWARN("Timeout in send");
+        RDCWARN("Timeout of %f seconds exceeded in send", float(timeoutMS) / 1000.0f);
         Shutdown();
         return false;
       }
@@ -309,7 +309,7 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
       }
       else if(err == EWOULDBLOCK || err == EAGAIN)
       {
-        RDCWARN("Timeout in recv");
+        RDCWARN("Timeout of %f seconds exceeded in recv", float(timeoutMS) / 1000.0f);
         Shutdown();
         return false;
       }
