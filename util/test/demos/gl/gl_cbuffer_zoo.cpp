@@ -84,6 +84,12 @@ struct nested_with_padding
                                         // [3]: {24, 25, 26}, <27>
 };
 
+struct misaligned_struct
+{
+  vec4 a;
+  vec2 b;
+};
+
 layout(binding = 0, std140) uniform constsbuf
 {
   // dummy* entries are just to 'reset' packing to avoid pollution between tests
@@ -284,12 +290,21 @@ layout(binding = 0, std140) uniform constsbuf
 
   vec4 dummy13[2];                        // empty structs on D3D
 
-  vec4 test;                              // {520, 521, 522, 523}
+  misaligned_struct ao[2];                // [0] = {
+                                          //   .a = { 520, 521, 522, 523 }
+                                          //   .b = { 524, 525 } <526, 527>
+                                          // }
+                                          // [1] = {
+                                          //   .a = { 528, 529, 530, 531 }
+                                          //   .b = { 532, 533 } <534, 535>
+                                          // }
+
+  vec4 test;                              // {536, 537, 538, 539}
 
   // because GL has worse handling of multidimensional arrays than other APIs, we add an extra test
   // here with more than 2 dimensions
 
-  vec4 multiarray2[4][3][2];              // [0][0][0] = {524, 525, 526, ...}
+  vec4 multiarray2[4][3][2];              // [0][0][0] = {540, 541, 542, ...}
                                           // [0][0][1] = {..., ..., ..., ...}
                                           // [0][1][0] = {..., ..., ..., ...}
                                           // [0][1][1] = {..., ..., ..., ...}

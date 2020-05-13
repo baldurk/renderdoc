@@ -60,6 +60,12 @@ struct nested_with_empty
   float2 c;                              // 4, 5, <6, 7>
 };
 
+struct misaligned_struct
+{
+  float4 a;
+  float2 b;
+};
+
 cbuffer consts : register(b0)
 {
   // dummy* entries are just to 'reset' packing to avoid pollution between tests
@@ -268,7 +274,16 @@ cbuffer consts : register(b0)
 
   nested_with_empty nested_empty;         // empty struct will take up a float4
 
-  float4 test;                            // {520, 521, 522, 523}
+  misaligned_struct ao[2];                // [0] = {
+                                          //   .a = { 520, 521, 522, 523 }
+                                          //   .b = { 524, 525 } <526, 527>
+                                          // }
+                                          // [1] = {
+                                          //   .a = { 528, 529, 530, 531 }
+                                          //   .b = { 532, 533 } <534, 535>
+                                          // }
+
+  float4 test;                            // {536, 537, 538, 539}
 };
 
 float4 main() : SV_Target0

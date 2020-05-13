@@ -83,6 +83,12 @@ struct nested_with_padding
                                         // [3]: {24, 25, 26}, <27>
 };
 
+struct misaligned_struct
+{
+  vec4 a;
+  vec2 b;
+};
+
 layout(set = 0, binding = 0, std140) uniform constsbuf
 {
   // dummy* entries are just to 'reset' packing to avoid pollution between tests
@@ -283,7 +289,16 @@ layout(set = 0, binding = 0, std140) uniform constsbuf
 
   vec4 dummy13[2];                      // empty structs on D3D
 
-  vec4 test;                            // {520, 521, 522, 523}
+  misaligned_struct ao[2];              // [0] = {
+                                        //   .a = { 520, 521, 522, 523 }
+                                        //   .b = { 524, 525 } <526, 527>
+                                        // }
+                                        // [1] = {
+                                        //   .a = { 528, 529, 530, 531 }
+                                        //   .b = { 532, 533 } <534, 535>
+                                        // }
+
+  vec4 test;                            // {536, 537, 538, 539}
 };
 
 layout (constant_id = 0) const int A = 10;
@@ -314,6 +329,12 @@ struct nested_with_padding
                                         // [1]: {16, 17, 18}, <19>
                                         // [2]: {20, 21, 22}, <23>
                                         // [3]: {24, 25, 26}, <27>
+};
+
+struct misaligned_struct
+{
+  float4 a;
+  float2 b;
 };
 
 layout(set = 0, binding = 0) cbuffer consts
@@ -526,7 +547,16 @@ layout(set = 0, binding = 0) cbuffer consts
   
   float4 dummy15[2];                      // empty structs on D3D
 
-  float4 test;                            // {520, 521, 522, 523}
+  misaligned_struct ao[2];                // [0] = {
+                                          //   .a = { 520, 521, 522, 523 }
+                                          //   .b = { 524, 525 } <526, 527>
+                                          // }
+                                          // [1] = {
+                                          //   .a = { 528, 529, 530, 531 }
+                                          //   .b = { 532, 533 } <534, 535>
+                                          // }
+
+  float4 test;                            // {536, 537, 538, 539}
 };
 
 float4 main() : SV_Target0

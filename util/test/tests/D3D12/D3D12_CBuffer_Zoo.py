@@ -110,16 +110,16 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
             debugged = self.evaluate_source_var(output, variables)
 
-            if not rdtest.util.value_compare(debugged.value.fv[0:4], [520.1, 521.0, 522.0, 523.0]):
+            if not rdtest.util.value_compare(debugged.value.fv[0:4], [536.1, 537.0, 538.0, 539.0]):
                 raise rdtest.TestFailureException(
                     "Debugged output {} did not match expected {}".format(
-                        debugged.value.fv[0:4], [520.1, 521.0, 522.0, 523.0]))
+                        debugged.value.fv[0:4], [536.1, 537.0, 538.0, 539.0]))
 
             rdtest.log.success("Debugged output matched as expected")
 
             self.controller.FreeTrace(trace)
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [520.1, 521.0, 522.0, 523.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [536.1, 537.0, 538.0, 539.0])
 
         rdtest.log.success("Picked value is as expected")
 
@@ -467,8 +467,21 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
             'c': lambda y: y.rows(1).cols(2).value([516.0, 517.0]),
         })
 
+        # misaligned_struct ao[2];
+        var_check.check('ao').rows(0).cols(0).arraySize(2).members({
+            # ao[0]
+            0: lambda s: s.rows(0).cols(0).structSize(2).members({
+                'a': lambda y: y.rows(1).cols(4).value([520.0, 521.0, 522.0, 523.0]),
+                'b': lambda y: y.rows(1).cols(2).value([524.0, 525.0]),
+            }),
+            1: lambda s: s.rows(0).cols(0).structSize(2).members({
+                'a': lambda y: y.rows(1).cols(4).value([528.0, 529.0, 530.0, 531.0]),
+                'b': lambda y: y.rows(1).cols(2).value([532.0, 533.0]),
+            }),
+        })
+
         # float4 test;
-        var_check.check('test').rows(1).cols(4).value([520.0, 521.0, 522.0, 523.0])
+        var_check.check('test').rows(1).cols(4).value([536.0, 537.0, 538.0, 539.0])
 
         var_check.done()
 

@@ -66,7 +66,7 @@ static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type)
   {
     uint32_t stride = type.descriptor.bytesize / RDCMAX(1U, type.descriptor.elements);
     RDCASSERTMSG("Stride is too large for uint16_t", stride <= 0xffff);
-    ret.descriptor.arrayByteStride = RDCMIN(stride, 0xffffu) & 0xffff;
+    ret.descriptor.arrayByteStride = AlignUp16(RDCMIN(stride, 0xffffu) & 0xffff);
 
     ret.descriptor.rows = ret.descriptor.columns = 0;
   }

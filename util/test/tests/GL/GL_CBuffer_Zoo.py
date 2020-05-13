@@ -342,11 +342,24 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
         # float4 dummy13[2];
         var_check.check('dummy13')
 
+        # misaligned_struct ao[2];
+        var_check.check('ao').rows(0).cols(0).arraySize(2).members({
+            # ao[0]
+            0: lambda s: s.rows(0).cols(0).structSize(2).members({
+                'a': lambda y: y.rows(1).cols(4).value([520.0, 521.0, 522.0, 523.0]),
+                'b': lambda y: y.rows(1).cols(2).value([524.0, 525.0]),
+            }),
+            1: lambda s: s.rows(0).cols(0).structSize(2).members({
+                'a': lambda y: y.rows(1).cols(4).value([528.0, 529.0, 530.0, 531.0]),
+                'b': lambda y: y.rows(1).cols(2).value([532.0, 533.0]),
+            }),
+        })
+
         # float4 test;
-        var_check.check('test').rows(1).cols(4).value([520.0, 521.0, 522.0, 523.0])
+        var_check.check('test').rows(1).cols(4).value([536.0, 537.0, 538.0, 539.0])
 
         # to save duplicating if this array changes, we calculate out from the start, as the array is tightly packed
-        base = 524.0
+        base = 540.0
 
         exp_vals = lambda wi,yi,xi: [base + wi * 24.0 + yi * 8.0 + xi * 4.0 + c * 1.0 for c in range(0,4)]
 
@@ -414,7 +427,7 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
 
         rdtest.log.success("CBuffer variables are as expected")
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [520.1, 521.0, 522.0, 523.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [536.1, 537.0, 538.0, 539.0])
 
         rdtest.log.success("Picked value is as expected")
 
