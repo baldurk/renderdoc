@@ -71,7 +71,7 @@ AMDRGPControl::AMDRGPControl()
   m_RGPDispatchTable->minorVersion = DEV_DRIVER_API_MINOR_VERSION;
   m_RGPContext = NULL;
 
-  if(!AMD_RGP_Enable)
+  if(!AMD_RGP_Enable())
   {
     RDCLOG("AMD RGP Interop is not enabled");
     return;

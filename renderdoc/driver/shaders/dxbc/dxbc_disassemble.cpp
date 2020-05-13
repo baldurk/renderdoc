@@ -442,7 +442,7 @@ void Program::DisassembleHexDump()
 
   m_Declarations.reserve(numDecls);
 
-  const bool friendly = DXBC_Disassembly_FriendlyNaming;
+  const bool friendly = DXBC_Disassembly_FriendlyNaming();
 
   while(cur < end)
   {

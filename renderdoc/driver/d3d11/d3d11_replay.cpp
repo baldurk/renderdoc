@@ -174,7 +174,7 @@ void D3D11Replay::CreateResources(IDXGIFactory *factory)
 
   m_pDevice->GetShaderCache()->SetCaching(false);
 
-  if(!m_Proxy && D3D11_HardwareCounters)
+  if(!m_Proxy && D3D11_HardwareCounters())
   {
     AMDCounters *countersAMD = NULL;
     NVCounters *countersNV = NULL;

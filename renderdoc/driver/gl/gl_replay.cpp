@@ -231,7 +231,7 @@ void GLReplay::SetReplayData(GLWindowingData data)
   if(!HasDebugContext())
     return;
 
-  if(!m_Proxy && OpenGL_HardwareCounters)
+  if(!m_Proxy && OpenGL_HardwareCounters())
   {
     AMDCounters *countersAMD = NULL;
     IntelGlCounters *countersIntel = NULL;

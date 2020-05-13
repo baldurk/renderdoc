@@ -191,8 +191,8 @@ APIProperties VulkanReplay::GetAPIProperties()
   ret.shadersMutable = false;
   ret.rgpCapture =
       m_DriverInfo.vendor == GPUVendor::AMD && m_RGP != NULL && m_RGP->DriverSupportsInterop();
-  ret.shaderDebugging = Vulkan_ShaderDebugging;
-  ret.pixelHistory = Vulkan_PixelHistory;
+  ret.shaderDebugging = Vulkan_ShaderDebugging();
+  ret.pixelHistory = Vulkan_PixelHistory();
 
   return ret;
 }

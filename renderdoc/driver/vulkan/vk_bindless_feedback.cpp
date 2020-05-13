@@ -538,7 +538,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   if(m_BindlessFeedback.Usage.find(eventId) != m_BindlessFeedback.Usage.end())
     return;
 
-  if(!Vulkan_BindlessFeedback)
+  if(!Vulkan_BindlessFeedback())
     return;
 
   // create it here so we won't re-run any code if the event is re-selected. We'll mark it as valid

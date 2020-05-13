@@ -1477,8 +1477,8 @@ private:
           "/debug_psmath.spv",
       };
 
-      if(!Vulkan_Debug_PSDebugDumpDirPath.empty())
-        FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath + filename[shaderIndex], spirv);
+      if(!Vulkan_Debug_PSDebugDumpDirPath().empty())
+        FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath() + filename[shaderIndex], spirv);
     }
 
     uint32_t key = params.hashKey(shaderIndex);
@@ -3322,7 +3322,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 
   VkMarkerRegion region(regionName);
 
-  if(Vulkan_Debug_ShaderDebugLogging)
+  if(Vulkan_Debug_ShaderDebugLogging())
     RDCLOG("%s", regionName.c_str());
 
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
@@ -3372,7 +3372,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
     if(attr.location >= locations.size())
       locations.resize(attr.location + 1);
 
-    if(Vulkan_Debug_ShaderDebugLogging)
+    if(Vulkan_Debug_ShaderDebugLogging())
       RDCLOG("Populating location %u", attr.location);
 
     ShaderValue &val = locations[attr.location].value;
@@ -3403,7 +3403,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
           vertexOffset = (idx + vertOffset) * bind.bytestride;
         }
 
-        if(Vulkan_Debug_ShaderDebugLogging)
+        if(Vulkan_Debug_ShaderDebugLogging())
         {
           RDCLOG("Fetching from %s at %llu offset %zu bytes", ToStr(vb.buf).c_str(),
                  vb.offs + attr.byteoffset + vertexOffset, size);
@@ -3412,13 +3412,13 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
         GetDebugManager()->GetBufferData(vb.buf, vb.offs + attr.byteoffset + vertexOffset, size,
                                          data);
       }
-      else if(Vulkan_Debug_ShaderDebugLogging)
+      else if(Vulkan_Debug_ShaderDebugLogging())
       {
         RDCLOG("Vertex binding %u out of bounds from %zu vertex buffers", bind.vbufferBinding,
                state.vbuffers.size());
       }
     }
-    else if(Vulkan_Debug_ShaderDebugLogging)
+    else if(Vulkan_Debug_ShaderDebugLogging())
     {
       RDCLOG("Attribute binding %u out of bounds from %zu bindings", attr.binding,
              pipe.vertexBindings.size());
@@ -3485,7 +3485,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   VkMarkerRegion region(regionName);
 
-  if(Vulkan_Debug_ShaderDebugLogging)
+  if(Vulkan_Debug_ShaderDebugLogging())
     RDCLOG("%s", regionName.c_str());
 
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
@@ -3529,7 +3529,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     {
       if(e.systemValue == ShaderBuiltin::PrimitiveIndex)
       {
-        if(Vulkan_Debug_ShaderDebugLogging)
+        if(Vulkan_Debug_ShaderDebugLogging())
         {
           RDCLOG("Geometry shader exports primitive ID, can use");
         }
@@ -3539,7 +3539,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
       }
     }
 
-    if(Vulkan_Debug_ShaderDebugLogging)
+    if(Vulkan_Debug_ShaderDebugLogging())
     {
       if(!usePrimitiveID)
         RDCLOG("Geometry shader doesn't export primitive ID, can't use");
@@ -3550,7 +3550,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     // no geometry shader - safe to use as long as the geometry shader capability is available
     usePrimitiveID = m_pDriver->GetDeviceFeatures().geometryShader != VK_FALSE;
 
-    if(Vulkan_Debug_ShaderDebugLogging)
+    if(Vulkan_Debug_ShaderDebugLogging())
     {
       RDCLOG("usePrimitiveID is %u because of bare capability", usePrimitiveID);
     }
@@ -3558,7 +3558,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   bool useSampleID = m_pDriver->GetDeviceFeatures().sampleRateShading != VK_FALSE;
 
-  if(Vulkan_Debug_ShaderDebugLogging)
+  if(Vulkan_Debug_ShaderDebugLogging())
   {
     RDCLOG("useSampleID is %u because of bare capability", useSampleID);
   }
@@ -3569,7 +3569,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   {
     storageMode = KHR_bda;
 
-    if(Vulkan_Debug_ShaderDebugLogging)
+    if(Vulkan_Debug_ShaderDebugLogging())
     {
       RDCLOG("Using KHR_buffer_device_address");
     }
@@ -3580,12 +3580,12 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     {
       storageMode = EXT_bda;
 
-      if(Vulkan_Debug_ShaderDebugLogging)
+      if(Vulkan_Debug_ShaderDebugLogging())
       {
         RDCLOG("Using EXT_buffer_device_address");
       }
     }
-    else if(Vulkan_Debug_ShaderDebugLogging)
+    else if(Vulkan_Debug_ShaderDebugLogging())
     {
       RDCLOG(
           "EXT_buffer_device_address is available but shaderInt64 isn't, falling back to binding "
@@ -3593,19 +3593,19 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     }
   }
 
-  if(Vulkan_Debug_DisableBufferDeviceAddress)
+  if(Vulkan_Debug_DisableBufferDeviceAddress())
     storageMode = Binding;
 
   rdcarray<uint32_t> fragspv = shader.spirv.GetSPIRV();
 
-  if(!Vulkan_Debug_PSDebugDumpDirPath.empty())
-    FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath + "/debug_psinput_before.spv", fragspv);
+  if(!Vulkan_Debug_PSDebugDumpDirPath().empty())
+    FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath() + "/debug_psinput_before.spv", fragspv);
 
   uint32_t structStride = 0;
   CreatePSInputFetcher(fragspv, structStride, shadRefl, storageMode, usePrimitiveID, useSampleID);
 
-  if(!Vulkan_Debug_PSDebugDumpDirPath.empty())
-    FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath + "/debug_psinput_after.spv", fragspv);
+  if(!Vulkan_Debug_PSDebugDumpDirPath().empty())
+    FileIO::WriteAll(Vulkan_Debug_PSDebugDumpDirPath() + "/debug_psinput_after.spv", fragspv);
 
   uint32_t overdrawLevels = 100;    // maximum number of overdraw levels
 
@@ -3618,7 +3618,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   VkDeviceSize feedbackStorageSize = overdrawLevels * structSize + sizeof(Vec4f) + 1024;
 
-  if(Vulkan_Debug_ShaderDebugLogging)
+  if(Vulkan_Debug_ShaderDebugLogging())
   {
     RDCLOG("Output structure is %u sized, output buffer is %llu bytes", structStride,
            feedbackStorageSize);
@@ -3666,7 +3666,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     else
       specData.bufferAddress = m_pDriver->vkGetBufferDeviceAddressEXT(dev, &getAddressInfo);
 
-    if(Vulkan_Debug_ShaderDebugLogging)
+    if(Vulkan_Debug_ShaderDebugLogging())
     {
       RDCLOG("Got buffer address of %llu", specData.bufferAddress);
     }
@@ -4139,7 +4139,7 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t gro
 
   VkMarkerRegion region(regionName);
 
-  if(Vulkan_Debug_ShaderDebugLogging)
+  if(Vulkan_Debug_ShaderDebugLogging())
     RDCLOG("%s", regionName.c_str());
 
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);

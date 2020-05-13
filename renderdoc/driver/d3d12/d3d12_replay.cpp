@@ -120,7 +120,7 @@ void D3D12Replay::CreateResources()
     m_PixelPick.Init(m_pDevice, m_DebugManager);
     m_Histogram.Init(m_pDevice, m_DebugManager);
 
-    if(!m_Proxy && D3D12_HardwareCounters)
+    if(!m_Proxy && D3D12_HardwareCounters())
     {
       AMDCounters *counters = NULL;
 

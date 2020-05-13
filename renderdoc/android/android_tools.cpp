@@ -187,8 +187,8 @@ rdcstr getToolPath(ToolDir subdir, const rdcstr &toolname, bool checkExist)
   // its client-server setup, so if we run our bundled adb that might be newer than the user's, they
   // will then get fighting back and forth when trying to run their own.
 
-  rdcstr sdk = Android_SDKDirPath;
-  rdcstr jdk = Android_JDKDirPath;
+  rdcstr sdk = Android_SDKDirPath();
+  rdcstr jdk = Android_JDKDirPath();
 
   ToolPathCache &cache = getCache();
 

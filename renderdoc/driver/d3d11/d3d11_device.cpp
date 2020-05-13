@@ -790,9 +790,9 @@ rdcstr WrappedID3D11Device::GetChunkName(uint32_t idx)
   return ToStr((D3D11Chunk)idx);
 }
 
-const rdcarray<rdcstr> *WrappedID3D11Device::GetShaderDebugInfoSearchPaths()
+const rdcarray<rdcstr> &WrappedID3D11Device::GetShaderDebugInfoSearchPaths()
 {
-  return &DXBC_Debug_SearchDirPaths;
+  return DXBC_Debug_SearchDirPaths();
 }
 
 void WrappedID3D11Device::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src,

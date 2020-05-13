@@ -919,7 +919,7 @@ public:
     {
       m_ID = id;
       m_Bytecode.assign(code, codeLen);
-      m_DebugInfoSearchPaths = device->GetShaderDebugInfoSearchPaths();
+      m_DebugInfoSearchPaths = &device->GetShaderDebugInfoSearchPaths();
       m_DXBCFile = NULL;
     }
     ~ShaderEntry()

@@ -217,7 +217,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
   Network::Socket *&client = threadData->socket;
 
-  client->SetTimeout(RemoteServer_TimeoutMS);
+  client->SetTimeout(RemoteServer_TimeoutMS());
 
   uint32_t ip = client->GetRemoteIP();
 
@@ -277,7 +277,7 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
   WriteSerialiser writer(new StreamWriter(client, Ownership::Nothing), Ownership::Stream);
   ReadSerialiser reader(new StreamReader(client, Ownership::Nothing), Ownership::Stream);
 
-  if(RemoteServer_DebugLogging)
+  if(RemoteServer_DebugLogging())
   {
     reader.ConfigureStructuredExport(&GetRemoteServerChunkName, false);
     writer.ConfigureStructuredExport(&GetRemoteServerChunkName, false);
@@ -1178,7 +1178,7 @@ RENDERDOC_CreateRemoteServerConnection(const char *URL, IRemoteServer **rend)
 
   uint32_t version = RemoteServerProtocolVersion;
 
-  sock->SetTimeout(RemoteServer_TimeoutMS);
+  sock->SetTimeout(RemoteServer_TimeoutMS());
 
   {
     WriteSerialiser ser(new StreamWriter(sock, Ownership::Nothing), Ownership::Stream);
@@ -1238,7 +1238,7 @@ RemoteServer::RemoteServer(Network::Socket *sock, const rdcstr &deviceID)
   reader = new ReadSerialiser(new StreamReader(sock, Ownership::Nothing), Ownership::Stream);
   writer = new WriteSerialiser(new StreamWriter(sock, Ownership::Nothing), Ownership::Stream);
 
-  if(RemoteServer_DebugLogging)
+  if(RemoteServer_DebugLogging())
   {
     reader->ConfigureStructuredExport(&GetRemoteServerChunkName, false);
     writer->ConfigureStructuredExport(&GetRemoteServerChunkName, false);

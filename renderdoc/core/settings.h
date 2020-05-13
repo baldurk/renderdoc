@@ -58,8 +58,7 @@ CONFIG_SUPPORT_TYPE(rdcarray<rdcstr>);
 #define RDOC_CONFIG(type, name, defaultValue, description)                                \
   static ConfigVarRegistration<type> CONCAT(config, __LINE__)(                            \
       STRING_LITERAL(STRINGIZE(name)), defaultValue, false, STRING_LITERAL(description)); \
-  static const type &name = CONCAT(config, __LINE__).value();
-
+  static const type &name() { return CONCAT(config, __LINE__).value(); }
 // debug configs get set to constants in official stable builds, they will remain configurable
 // in nightly builds and of course in development builds
 #if RENDERDOC_STABLE_BUILD
@@ -67,13 +66,11 @@ CONFIG_SUPPORT_TYPE(rdcarray<rdcstr>);
 #define RDOC_DEBUG_CONFIG(type, name, defaultValue, description)                         \
   static ConfigVarRegistration<type> CONCAT(config, __LINE__)(                           \
       STRING_LITERAL(STRINGIZE(name)), defaultValue, true, STRING_LITERAL(description)); \
-  static const type name = defaultValue;
-
+  static constexpr type name() { return defaultValue; }
 #else
 
 #define RDOC_DEBUG_CONFIG(type, name, defaultValue, description)                         \
   ConfigVarRegistration<type> CONCAT(config, __LINE__)(                                  \
       STRING_LITERAL(STRINGIZE(name)), defaultValue, true, STRING_LITERAL(description)); \
-  static const type &name = CONCAT(config, __LINE__).value();
-
+  static const type &name() { return CONCAT(config, __LINE__).value(); }
 #endif

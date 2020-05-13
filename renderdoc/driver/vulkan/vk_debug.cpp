@@ -2229,7 +2229,7 @@ void VulkanReplay::CreateResources()
   GPA_vkContextOpenInfo context = {Unwrap(m_pDriver->GetInstance()),
                                    Unwrap(m_pDriver->GetPhysDev()), Unwrap(m_pDriver->GetDev())};
 
-  if(!m_pDriver->GetReplay()->IsRemoteProxy() && Vulkan_HardwareCounters)
+  if(!m_pDriver->GetReplay()->IsRemoteProxy() && Vulkan_HardwareCounters())
   {
     AMDCounters *counters = NULL;
 
