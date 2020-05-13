@@ -557,7 +557,7 @@ void logfile_close(LogFileHandle *logHandle, const char *deleteFilename)
         return;
       }
     }
-    else
+    else if(err)
     {
       RDCWARN("Couldn't release shared lock to '%s': %d", deleteFilename, (int)errno);
       // nothing to do, we won't try again, just exit. The log might lie around, but that's
