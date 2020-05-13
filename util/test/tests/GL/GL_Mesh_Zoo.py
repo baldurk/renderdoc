@@ -13,7 +13,8 @@ class GL_Mesh_Zoo(rdtest.TestCase):
         self.zoo_helper.check_capture(self.capture_filename, self.controller)
 
         # Test GL-only thing with geometry shader only and completely no-op vertex shader
-        self.controller.SetFrameEvent(self.zoo_helper.find_draw("Geom Only").next.eventId, False)
+        draw = self.zoo_helper.find_draw("Geom Only").next
+        self.controller.SetFrameEvent(draw.eventId, False)
 
         pos: rd.MeshFormat = self.controller.GetPostVSData(0, 0, rd.MeshDataStage.VSOut)
 

@@ -48,14 +48,14 @@ class D3D12_Large_Buffer(rdtest.TestCase):
             },
             1: {
                 'vtx': 1,
-                'idx': 1,
+                'idx': 1000000,
                 'SV_POSITION': [0.0, 0.5, 0.0, 1.0],
                 'COLOR': [0.0, 1.0, 0.0, 1.0],
                 'TEXCOORD': [0.0, 1.0],
             },
             2: {
                 'vtx': 2,
-                'idx': 2,
+                'idx': 2345678,
                 'SV_POSITION': [0.5, -0.5, 0.0, 1.0],
                 'COLOR': [0.0, 1.0, 0.0, 1.0],
                 'TEXCOORD': [1.0, 0.0],
