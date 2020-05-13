@@ -272,8 +272,28 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
   RDCFile *rdc = NULL;
   Callstack::StackResolver *resolver = NULL;
 
+  FileIO::LogFileHandle *debugLog = NULL;
+
   WriteSerialiser writer(new StreamWriter(client, Ownership::Nothing), Ownership::Stream);
   ReadSerialiser reader(new StreamReader(client, Ownership::Nothing), Ownership::Stream);
+
+  if(RemoteServer_DebugLogging)
+  {
+    reader.ConfigureStructuredExport(&GetRemoteServerChunkName, false);
+    writer.ConfigureStructuredExport(&GetRemoteServerChunkName, false);
+
+    rdcstr filename = FileIO::GetTempFolderFilename() + "/RenderDoc/RemoteServer_Server.log";
+
+    RDCLOG("Logging remote server work to '%s'", filename.c_str());
+
+    // truncate the log
+    debugLog = FileIO::logfile_open(filename.c_str());
+    FileIO::logfile_close(debugLog, filename.c_str());
+    debugLog = FileIO::logfile_open(filename.c_str());
+
+    reader.EnableDumping(debugLog);
+    writer.EnableDumping(debugLog);
+  }
 
   writer.SetStreamingMode(true);
   reader.SetStreamingMode(true);
@@ -876,6 +896,8 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
     }
   }
 
+  FileIO::logfile_close(debugLog, NULL);
+
   SAFE_DELETE(proxy);
 
   if(remoteDriver)
@@ -1221,7 +1243,9 @@ RemoteServer::RemoteServer(Network::Socket *sock, const rdcstr &deviceID)
     reader->ConfigureStructuredExport(&GetRemoteServerChunkName, false);
     writer->ConfigureStructuredExport(&GetRemoteServerChunkName, false);
 
-    rdcstr filename = FileIO::GetTempFolderFilename() + "/RenderDoc/RemoteServer.log";
+    rdcstr filename = FileIO::GetTempFolderFilename() + "/RenderDoc/RemoteServer_Client.log";
+
+    RDCLOG("Logging remote server work to '%s'", filename.c_str());
 
     // truncate the log
     debugLog = FileIO::logfile_open(filename.c_str());
