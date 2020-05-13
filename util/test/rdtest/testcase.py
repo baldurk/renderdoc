@@ -541,9 +541,9 @@ class TestCase:
 
     def get_debug_var(self, debugVars, path: str):
         # first look for exact match
-        for d in debugVars:
-            if d.name == path:
-                return d
+        for name, var in debugVars.items():
+            if name == path:
+                return var
 
         child = ''
         remaining = ''
@@ -566,13 +566,13 @@ class TestCase:
                     remaining = m.group(2)
 
         if child != '':
-            for d in debugVars:
-                d: rd.ShaderVariable
-                if d.name == child:
+            for name, var in debugVars.items():
+                var: rd.ShaderVariable
+                if name == child:
                     if remaining == '':
-                        return d
+                        return var
                     else:
-                        return self.get_debug_var(d.members, remaining)
+                        return self.get_debug_var({mem.name: mem for mem in var.members}, remaining)
 
             raise KeyError("Couldn't find {} in debug vars".format(path))
 
@@ -587,7 +587,7 @@ class TestCase:
         debugged.columns = sourceVar.columns
         fv = [0.0] * 16
         for i, debugVarPath in enumerate(sourceVar.variables):
-            debugVar = self.get_debug_var(debugVars.values(), debugVarPath.name)
+            debugVar = self.get_debug_var(debugVars, debugVarPath.name)
             debugged.rowMajor = debugVar.rowMajor
             fv[i] = debugVar.value.fv[debugVarPath.component]
         debugged.value.fv = fv
