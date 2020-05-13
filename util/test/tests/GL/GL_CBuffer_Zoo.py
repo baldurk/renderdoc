@@ -339,11 +339,14 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
         # float an;
         var_check.check('an').rows(1).cols(1).value([508.0])
 
+        # float4 dummy13[2];
+        var_check.check('dummy13')
+
         # float4 test;
-        var_check.check('test').rows(1).cols(4).value([512.0, 513.0, 514.0, 515.0])
+        var_check.check('test').rows(1).cols(4).value([520.0, 521.0, 522.0, 523.0])
 
         # to save duplicating if this array changes, we calculate out from the start, as the array is tightly packed
-        base = 516.0
+        base = 524.0
 
         exp_vals = lambda wi,yi,xi: [base + wi * 24.0 + yi * 8.0 + xi * 4.0 + c * 1.0 for c in range(0,4)]
 
@@ -411,7 +414,7 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
 
         rdtest.log.success("CBuffer variables are as expected")
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [512.1, 513.0, 514.0, 515.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [520.1, 521.0, 522.0, 523.0])
 
         rdtest.log.success("Picked value is as expected")
 

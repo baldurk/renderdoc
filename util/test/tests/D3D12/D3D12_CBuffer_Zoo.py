@@ -110,16 +110,16 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
             debugged = self.evaluate_source_var(output, variables)
 
-            if not rdtest.util.value_compare(debugged.value.fv[0:4], [512.1, 513.0, 514.0, 515.0]):
+            if not rdtest.util.value_compare(debugged.value.fv[0:4], [520.1, 521.0, 522.0, 523.0]):
                 raise rdtest.TestFailureException(
                     "Debugged output {} did not match expected {}".format(
-                        debugged.value.fv[0:4], [512.1, 513.0, 514.0, 515.0]))
+                        debugged.value.fv[0:4], [520.1, 521.0, 522.0, 523.0]))
 
             rdtest.log.success("Debugged output matched as expected")
 
             self.controller.FreeTrace(trace)
 
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [512.1, 513.0, 514.0, 515.0])
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [520.1, 521.0, 522.0, 523.0])
 
         rdtest.log.success("Picked value is as expected")
 
@@ -458,8 +458,17 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
         # float4 gldummy4;
         var_check.check('gldummy4')
 
+        # empty_struct empty; - completely omitted
+
+        # nested_with_empty nested_empty;
+        var_check.check('nested_empty').rows(0).cols(0).members({
+            'a': lambda y: y.rows(1).cols(3).value([512.0, 513.0, 514.0]),
+            'b': lambda y: y.rows(0).cols(0),
+            'c': lambda y: y.rows(1).cols(2).value([516.0, 517.0]),
+        })
+
         # float4 test;
-        var_check.check('test').rows(1).cols(4).value([512.0, 513.0, 514.0, 515.0])
+        var_check.check('test').rows(1).cols(4).value([520.0, 521.0, 522.0, 523.0])
 
         var_check.done()
 

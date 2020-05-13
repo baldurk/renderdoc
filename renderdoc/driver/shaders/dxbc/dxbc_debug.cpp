@@ -1821,7 +1821,7 @@ void FlattenVariables(const rdcstr &cbufferName, const rdcarray<ShaderConstant> 
 
     rdcstr basename = prefix + rdcstr(v.name);
 
-    if(!v.members.empty())
+    if((v.rows == 0 && v.columns == 0) || !v.members.empty())
     {
       if(v.isStruct)
       {

@@ -49,6 +49,17 @@ struct nested_with_padding
                                         // [3]: {24, 25, 26}, <27>
 };
 
+struct empty_struct
+{
+};
+
+struct nested_with_empty
+{
+  float3 a;                              // 0, 1, 2, 3
+  empty_struct b;                        // <omitted>
+  float2 c;                              // 4, 5, <6, 7>
+};
+
 cbuffer consts : register(b0)
 {
   // dummy* entries are just to 'reset' packing to avoid pollution between tests
@@ -253,7 +264,11 @@ cbuffer consts : register(b0)
 
   float4 gldummy4;                        // account for an not overlapping in GL/VK
 
-  float4 test;                            // {512, 513, 514, 515}
+  empty_struct empty;                     // completely omitted
+
+  nested_with_empty nested_empty;         // empty struct will take up a float4
+
+  float4 test;                            // {520, 521, 522, 523}
 };
 
 float4 main() : SV_Target0

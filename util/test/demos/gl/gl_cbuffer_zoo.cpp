@@ -282,12 +282,14 @@ layout(binding = 0, std140) uniform constsbuf
   // struct doesn't allow trailing things into padding
   float an;                               // {506}
 
-  vec4 test;                              // {512, 513, 514, 515}
+  vec4 dummy13[2];                        // empty structs on D3D
+
+  vec4 test;                              // {520, 521, 522, 523}
 
   // because GL has worse handling of multidimensional arrays than other APIs, we add an extra test
   // here with more than 2 dimensions
 
-  vec4 multiarray2[4][3][2];              // [0][0][0] = {516, 517, 518, ...}
+  vec4 multiarray2[4][3][2];              // [0][0][0] = {524, 525, 526, ...}
                                           // [0][0][1] = {..., ..., ..., ...}
                                           // [0][1][0] = {..., ..., ..., ...}
                                           // [0][1][1] = {..., ..., ..., ...}

@@ -12,6 +12,8 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(draw.eventId, False)
 
+        props: rd.APIProperties = self.controller.GetAPIProperties()
+
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         stage = rd.ShaderStage.Pixel
@@ -30,6 +32,71 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
                                                        pipe.GetShaderEntryPoint(stage), 0,
                                                        cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
 
+        self.check_glsl_cbuffer(var_check)
+
+        rdtest.log.success("GLSL CBuffer variables are as expected")
+
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [520.1, 521.0, 522.0, 523.0])
+
+        rdtest.log.success("GLSL picked value is as expected")
+
+        # Check the specialization constants
+        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 1, 0)
+
+        var_check = rdtest.ConstantBufferChecker(
+            self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
+                                                       pipe.GetShader(stage),
+                                                       pipe.GetShaderEntryPoint(stage), 1,
+                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+
+        # int A;
+        # Default value 10, untouched
+        var_check.check('A').type(rd.VarType.SInt).rows(1).cols(1).value([10])
+
+        # float B;
+        # Value 20 from spec constants
+        var_check.check('B').type(rd.VarType.Float).rows(1).cols(1).value([20.0])
+
+        # bool C;
+        # Value True from spec constants
+        var_check.check('C').type(rd.VarType.Bool).rows(1).cols(1).value([1])
+
+        var_check.done()
+
+        rdtest.log.success("Specialization constants are as expected")
+
+        # Move to the HLSL draw
+        draw = draw.next
+
+        self.check(draw is not None)
+
+        self.controller.SetFrameEvent(draw.eventId, False)
+
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        # Verify that this is the HLSL draw
+        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
+                                                   '')
+
+        self.check('HLSL' in disasm)
+
+        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 0, 0)
+
+        var_check = rdtest.ConstantBufferChecker(
+            self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
+                                                       pipe.GetShader(stage),
+                                                       pipe.GetShaderEntryPoint(stage), 0,
+                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
+
+        self.check_hlsl_cbuffer(var_check)
+
+        rdtest.log.success("HLSL CBuffer variables are as expected")
+
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [520.1, 521.0, 522.0, 523.0])
+
+        rdtest.log.success("HLSL picked value is as expected")
+
+    def check_glsl_cbuffer(self, var_check):
         # For more detailed reference for the below checks, see the commented definition of the cbuffer
         # in the shader source code in the demo itself
 
@@ -346,65 +413,15 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
         # float an;
         var_check.check('an').rows(1).cols(1).value([508.0])
 
+        # float4 dummy13[2];
+        var_check.check('dummy13')
+
         # float4 test;
-        var_check.check('test').rows(1).cols(4).value([512.0, 513.0, 514.0, 515.0])
+        var_check.check('test').rows(1).cols(4).value([520.0, 521.0, 522.0, 523.0])
 
         var_check.done()
 
-        rdtest.log.success("GLSL CBuffer variables are as expected")
-
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [512.1, 513.0, 514.0, 515.0])
-
-        rdtest.log.success("GLSL picked value is as expected")
-
-        # Check the specialization constants
-        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 1, 0)
-
-        var_check = rdtest.ConstantBufferChecker(
-            self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
-                                                       pipe.GetShader(stage),
-                                                       pipe.GetShaderEntryPoint(stage), 1,
-                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
-
-        # int A;
-        # Default value 10, untouched
-        var_check.check('A').type(rd.VarType.SInt).rows(1).cols(1).value([10])
-
-        # float B;
-        # Value 20 from spec constants
-        var_check.check('B').type(rd.VarType.Float).rows(1).cols(1).value([20.0])
-
-        # bool C;
-        # Value True from spec constants
-        var_check.check('C').type(rd.VarType.Bool).rows(1).cols(1).value([1])
-
-        var_check.done()
-
-        rdtest.log.success("Specialization constants are as expected")
-
-        # Move to the HLSL draw
-        draw = draw.next
-
-        self.check(draw is not None)
-
-        self.controller.SetFrameEvent(draw.eventId, False)
-
-        pipe: rd.PipeState = self.controller.GetPipelineState()
-
-        # Verify that this is the HLSL draw
-        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
-                                                   '')
-
-        self.check('HLSL' in disasm)
-
-        cbuf: rd.BoundCBuffer = pipe.GetConstantBuffer(stage, 0, 0)
-
-        var_check = rdtest.ConstantBufferChecker(
-            self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
-                                                       pipe.GetShader(stage),
-                                                       pipe.GetShaderEntryPoint(stage), 0,
-                                                       cbuf.resourceId, cbuf.byteOffset, cbuf.byteSize))
-
+    def check_hlsl_cbuffer(self, var_check):
         # For more detailed reference for the below checks, see the commented definition of the cbuffer
         # in the shader source code in the demo itself
 
@@ -742,13 +759,11 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
         # float an;
         var_check.check('an').rows(1).cols(1).value([508.0])
 
+        # float4 dummy15[2];
+        var_check.check('dummy15')
+
         # float4 test;
-        var_check.check('test').rows(1).cols(4).value([512.0, 513.0, 514.0, 515.0])
+        var_check.check('test').rows(1).cols(4).value([520.0, 521.0, 522.0, 523.0])
 
         var_check.done()
 
-        rdtest.log.success("HLSL CBuffer variables are as expected")
-
-        self.check_pixel_value(pipe.GetOutputTargets()[0].resourceId, 0.5, 0.5, [512.1, 513.0, 514.0, 515.0])
-
-        rdtest.log.success("HLSL picked value is as expected")

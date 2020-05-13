@@ -281,7 +281,9 @@ layout(set = 0, binding = 0, std140) uniform constsbuf
   // struct doesn't allow trailing things into padding
   float an;                             // {508}
 
-  vec4 test;                            // {512, 513, 514, 515}
+  vec4 dummy13[2];                      // empty structs on D3D
+
+  vec4 test;                            // {520, 521, 522, 523}
 };
 
 layout (constant_id = 0) const int A = 10;
@@ -521,8 +523,10 @@ layout(set = 0, binding = 0) cbuffer consts
 
   // struct doesn't allow trailing things into padding
   float an;                               // {508}
+  
+  float4 dummy15[2];                      // empty structs on D3D
 
-  float4 test;                            // {512, 513, 514, 515}
+  float4 test;                            // {520, 521, 522, 523}
 };
 
 float4 main() : SV_Target0
