@@ -988,11 +988,17 @@ struct AndroidController : public IDeviceProtocolHandler
       Android::adbForwardPorts(dev.portbase, deviceID, 0, 0, false);
       Android::ResetCaptureSettings(deviceID);
 
+      rdcstr package = GetRenderDocPackageForABI(abis.back());
+
+      // push settings file into our folder
+      Android::adbExecCommand(deviceID, "push \"" + FileIO::GetAppFolderFilename("renderdoc.conf") +
+                                            "\" /sdcard/Android/data/" + package + "/files");
+
       // launch the last ABI, as the 64-bit version where possible, or 32-bit version where not.
       // Captures are portable across bitness and in some cases a 64-bit capture can't replay on a
       // 32-bit remote server.
-      Android::adbExecCommand(deviceID, "shell am start -n " + GetRenderDocPackageForABI(abis.back()) +
-                                            "/.Loader -e renderdoccmd remoteserver");
+      Android::adbExecCommand(
+          deviceID, "shell am start -n " + package + "/.Loader -e renderdoccmd remoteserver");
     });
 
     // allow the package to start and begin listening before we return
