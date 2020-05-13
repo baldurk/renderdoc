@@ -2929,8 +2929,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       RDCERR("Unsupported remap format: %u", params.remap);
     }
 
-    if(params.typeCast != CompType::Typeless)
-      imCreateInfo.format = GetViewCastedFormat(imCreateInfo.format, params.typeCast);
+    imCreateInfo.format = GetViewCastedFormat(imCreateInfo.format, BaseRemapType(params.typeCast));
 
     if(IsUIntFormat(imCreateInfo.format))
       renderFlags |= eTexDisplay_RemapUInt;

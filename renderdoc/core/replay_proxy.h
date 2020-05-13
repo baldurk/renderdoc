@@ -576,7 +576,7 @@ public:
   }
 
 private:
-  void EnsureTexCached(ResourceId &texid, CompType typeCast, const Subresource &sub);
+  void EnsureTexCached(ResourceId &texid, CompType &typeCast, const Subresource &sub);
   void RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureDataParams &params);
   void EnsureBufCached(ResourceId bufid);
   IMPLEMENT_FUNCTION_PROXIED(bool, NeedRemapForFetch, const ResourceFormat &format);

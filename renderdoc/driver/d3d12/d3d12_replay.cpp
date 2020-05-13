@@ -3073,17 +3073,19 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   {
     if(params.remap == RemapTexture::RGBA8)
     {
-      copyDesc.Format = GetTypedFormat(DXGI_FORMAT_R8G8B8A8_TYPELESS, params.typeCast);
+      copyDesc.Format = GetTypedFormat(DXGI_FORMAT_R8G8B8A8_TYPELESS, BaseRemapType(params.typeCast));
       if(IsSRGBFormat(copyDesc.Format) && params.typeCast == CompType::Typeless)
         copyDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
     }
     else if(params.remap == RemapTexture::RGBA16)
     {
-      copyDesc.Format = GetTypedFormat(DXGI_FORMAT_R16G16B16A16_TYPELESS, params.typeCast);
+      copyDesc.Format =
+          GetTypedFormat(DXGI_FORMAT_R16G16B16A16_TYPELESS, BaseRemapType(params.typeCast));
     }
     else if(params.remap == RemapTexture::RGBA32)
     {
-      copyDesc.Format = GetTypedFormat(DXGI_FORMAT_R32G32B32A32_TYPELESS, params.typeCast);
+      copyDesc.Format =
+          GetTypedFormat(DXGI_FORMAT_R32G32B32A32_TYPELESS, BaseRemapType(params.typeCast));
     }
 
     // force to 1 mip

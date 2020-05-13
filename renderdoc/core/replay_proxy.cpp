@@ -2293,7 +2293,7 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
   }
 }
 
-void ReplayProxy::EnsureTexCached(ResourceId &texid, CompType typeCast, const Subresource &sub)
+void ReplayProxy::EnsureTexCached(ResourceId &texid, CompType &typeCast, const Subresource &sub)
 {
   if(m_Reader.IsErrored() || m_Writer.IsErrored())
     return;
@@ -2364,6 +2364,9 @@ void ReplayProxy::EnsureTexCached(ResourceId &texid, CompType typeCast, const Su
 
     m_TextureProxyCache.insert(entry);
   }
+
+  if(proxyit->second.params.remap != RemapTexture::NoRemap)
+    typeCast = BaseRemapType(typeCast);
 
   // change texid to the proxy texture's ID for passing to our proxy renderer
   texid = proxyit->second.id;

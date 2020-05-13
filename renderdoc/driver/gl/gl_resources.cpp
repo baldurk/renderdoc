@@ -1455,6 +1455,9 @@ bool IsSRGBFormat(GLenum internalFormat)
 
 GLenum GetViewCastedFormat(GLenum internalFormat, CompType typeCast)
 {
+  if(typeCast == CompType::Typeless)
+    return internalFormat;
+
   switch(internalFormat)
   {
     case eGL_RGBA:

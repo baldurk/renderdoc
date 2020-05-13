@@ -58,6 +58,20 @@ static bool PreviousNextExcludedMarker(DrawcallDescription *draw)
                              DrawFlags::APICalls));
 }
 
+CompType BaseRemapType(CompType typeCast)
+{
+  switch(typeCast)
+  {
+    case CompType::Float:
+    case CompType::UNorm:
+    case CompType::SNorm:
+    case CompType::UNormSRGB: return CompType::Float;
+    case CompType::UInt: return CompType::UInt;
+    case CompType::SInt: return CompType::SInt;
+    default: return typeCast;
+  }
+}
+
 static DrawcallDescription *SetupDrawcallPointers(rdcarray<DrawcallDescription *> &drawcallTable,
                                                   rdcarray<DrawcallDescription> &draws,
                                                   DrawcallDescription *parent,

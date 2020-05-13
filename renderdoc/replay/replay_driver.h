@@ -93,6 +93,8 @@ struct GetTextureDataParams
 
 DECLARE_REFLECTION_STRUCT(GetTextureDataParams);
 
+CompType BaseRemapType(CompType typeCast);
+
 class RDCFile;
 
 class AMDRGPControl;
