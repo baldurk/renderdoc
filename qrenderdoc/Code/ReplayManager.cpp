@@ -311,7 +311,7 @@ void ReplayManager::CloseThread()
 
 ReplayStatus ReplayManager::ConnectToRemoteServer(RemoteHost host)
 {
-  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(host.Hostname().c_str(), &m_Remote);
+  ReplayStatus status = host.Connect(&m_Remote);
 
   if(host.Protocol() && host.Protocol()->GetProtocolName() == "adb")
   {

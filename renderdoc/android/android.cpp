@@ -534,11 +534,7 @@ struct AndroidRemoteServer : public RemoteServer
       m_LogcatThread->Finish();
   }
 
-  virtual void ShutdownConnection() override
-  {
-    ResetAndroidSettings();
-    RemoteServer::ShutdownConnection();
-  }
+  virtual void ShutdownConnection() override;
 
   virtual void ShutdownServerAndConnection() override
   {
@@ -804,6 +800,7 @@ struct AndroidController : public IDeviceProtocolHandler
   {
     std::function<void()> meth;
     int32_t done = 0;
+    bool selfdelete = false;
   };
 
   rdcarray<Command *> cmdqueue;
@@ -829,6 +826,9 @@ struct AndroidController : public IDeviceProtocolHandler
       cmd->meth();
 
       Atomic::Inc32(&cmd->done);
+
+      if(cmd->selfdelete)
+        delete cmd;
     }
   }
 
@@ -844,6 +844,18 @@ struct AndroidController : public IDeviceProtocolHandler
 
     while(Atomic::CmpExch32(&cmd.done, 0, 0) == 0)
       Threading::Sleep(5);
+  }
+
+  void AsyncInvoke(std::function<void()> method)
+  {
+    Command *cmd = new Command;
+    cmd->meth = method;
+    cmd->selfdelete = true;
+
+    {
+      SCOPED_LOCK(lock);
+      cmdqueue.push_back(cmd);
+    }
   }
 
   rdcstr GetProtocolName() override { return "adb"; }
@@ -1064,6 +1076,13 @@ struct AndroidController : public IDeviceProtocolHandler
     return &m_Inst;
   };
 };
+
+void AndroidRemoteServer::ShutdownConnection()
+{
+  rdcstr deviceID = m_deviceID;
+  AndroidController::m_Inst.AsyncInvoke([deviceID]() { Android::ResetCaptureSettings(deviceID); });
+  RemoteServer::ShutdownConnection();
+}
 
 ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w, const char *c,
                                                     const rdcarray<EnvironmentModification> &env,

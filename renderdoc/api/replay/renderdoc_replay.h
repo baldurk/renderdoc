@@ -1735,16 +1735,29 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
 // Remote server
 //////////////////////////////////////////////////////////////////////////
 
-DOCUMENT(R"(Create a connection to a remote server running on given hostname and port.
+DOCUMENT(R"(Create a connection to a remote server running on given hostname.
 
 :param str URL: The hostname to connect to, if blank then localhost is used. If no protocol is
   specified then default TCP enumeration happens.
-:return: The status of opening the capture, whether success or failure, and a :class:`RemoteServer`
+:return: The status of opening the connection, whether success or failure, and a :class:`RemoteServer`
   instance if it were successful
 :rtype: ``pair`` of ReplayStatus and RemoteServer
 )");
 extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
 RENDERDOC_CreateRemoteServerConnection(const char *URL, IRemoteServer **rend);
+
+DOCUMENT(R"(Check the connection to a remote server running on given hostname.
+
+This should be preferred to :func:`CreateRemoteServerConnection` when no connection is desired, as
+the status can be checked without interfering with making connections.
+
+:param str URL: The hostname to connect to, if blank then localhost is used. If no protocol is
+  specified then default TCP enumeration happens.
+:return: The status of the server.
+:rtype: ReplayStatus
+)");
+extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC
+RENDERDOC_CheckRemoteServerConnection(const char *URL);
 
 DOCUMENT(R"(This launches a remote server which will continually run in a loop to server requests
 from external sources.

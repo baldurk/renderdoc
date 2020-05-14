@@ -597,11 +597,22 @@ void RemoteManager::on_connect_clicked()
       }
       else
       {
-        IRemoteServer *server = NULL;
-        ReplayStatus status =
-            RENDERDOC_CreateRemoteServerConnection(host.Hostname().c_str(), &server);
-        if(server)
-          server->ShutdownServerAndConnection();
+        ReplayStatus status = ReplayStatus::Succeeded;
+        LambdaThread *th = new LambdaThread([&host, &status]() {
+          IRemoteServer *server = NULL;
+          status = host.Connect(&server);
+          if(server)
+            server->ShutdownServerAndConnection();
+        });
+        th->start();
+        th->wait(500);
+        if(th->isRunning())
+        {
+          ShowProgressDialog(this, tr("Shutting down server, please wait..."),
+                             [th]() { return !th->isRunning(); });
+        }
+        th->deleteLater();
+
         setRemoteServerLive(node, false, false);
 
         if(status != ReplayStatus::Succeeded)
