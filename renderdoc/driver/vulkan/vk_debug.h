@@ -117,7 +117,8 @@ private:
   VkDescriptorPool m_ArrayMSDescriptorPool;
   VkDescriptorSetLayout m_ArrayMSDescSetLayout = VK_NULL_HANDLE;
   VkPipelineLayout m_ArrayMSPipeLayout = VK_NULL_HANDLE;
-  VkDescriptorSet m_ArrayMSDescSet = VK_NULL_HANDLE;
+  // 8 descriptor sets allows for 4x MSAA with 2 array slices, common for VR targets
+  VkDescriptorSet m_ArrayMSDescSet[8] = {};
   VkPipeline m_Array2MSPipe = VK_NULL_HANDLE;
   VkPipeline m_MS2ArrayPipe = VK_NULL_HANDLE;
   VkSampler m_ArrayMSSampler = VK_NULL_HANDLE;

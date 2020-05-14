@@ -96,54 +96,85 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
   viewInfo.image = destArray;
   viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 
-  vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  const uint32_t batchSize = ARRAY_COUNT(m_ArrayMSDescSet);
 
-  VkDescriptorImageInfo srcdesc = {0};
-  srcdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  srcdesc.imageView = srcView;
-  srcdesc.sampler = Unwrap(m_ArrayMSSampler);    // not used - we use texelFetch
+  rdcarray<VkImageView> views;
 
-  VkDescriptorImageInfo destdesc = {0};
-  destdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-  destdesc.imageView = destView;
-
-  VkWriteDescriptorSet writeSet[] = {
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,
-       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc, NULL, NULL},
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 2, 0, 1,
-       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &destdesc, NULL, NULL},
-  };
-
-  ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
-
-  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+  VkCommandBuffer cmd = VK_NULL_HANDLE;
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
-  ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+  for(uint32_t slice = 0; slice < layers * samples; slice++)
+  {
+    // if we don't have a current cmd buffer, start a new one
+    if(cmd == VK_NULL_HANDLE)
+    {
+      cmd = m_pDriver->GetNextCmd();
 
-  ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(m_MS2ArrayPipe));
-  ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                                      Unwrap(m_ArrayMSPipeLayout), 0, 1,
-                                      UnwrapPtr(m_ArrayMSDescSet), 0, NULL);
+      ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 
-  Vec4u params = {samples, 0, 0, 0};
+      ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
+                                    Unwrap(m_MS2ArrayPipe));
+    }
 
-  ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_ArrayMSPipeLayout), VK_SHADER_STAGE_ALL, 0,
-                                 sizeof(Vec4u), &params);
+    uint32_t batchIndex = slice % batchSize;
 
-  ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), extent.width, extent.height, layers * samples);
+    viewInfo.subresourceRange.baseArrayLayer = slice;
 
-  ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+    vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  // submit cmds and wait for idle so we can readback
-  m_pDriver->SubmitCmds();
-  m_pDriver->FlushQ();
+    views.push_back(destView);
+
+    VkDescriptorImageInfo srcdesc = {0};
+    srcdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    srcdesc.imageView = srcView;
+    srcdesc.sampler = Unwrap(m_ArrayMSSampler);    // not used - we use texelFetch
+
+    VkDescriptorImageInfo destdesc = {0};
+    destdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    destdesc.imageView = destView;
+
+    VkWriteDescriptorSet writeSet[] = {
+        {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet[batchIndex]), 0, 0,
+         1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc, NULL, NULL},
+        {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet[batchIndex]), 2, 0,
+         1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &destdesc, NULL, NULL},
+    };
+
+    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
+
+    ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
+                                        Unwrap(m_ArrayMSPipeLayout), 0, 1,
+                                        UnwrapPtr(m_ArrayMSDescSet[batchIndex]), 0, NULL);
+
+    Vec4u params = {samples, slice / samples, slice % samples, 0};
+
+    ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_ArrayMSPipeLayout), VK_SHADER_STAGE_ALL, 0,
+                                   sizeof(Vec4u), &params);
+
+    ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), extent.width, extent.height, 1);
+
+    // if we're about to end a batch, or we're done entirely, submit and flush
+    if(batchIndex == batchSize - 1 || slice == layers * samples - 1)
+    {
+      ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+
+      cmd = VK_NULL_HANDLE;
+
+      // submit cmds and wait for idle so we can readback
+      m_pDriver->SubmitCmds();
+      m_pDriver->FlushQ();
+    }
+  }
+
+  RDCASSERT(cmd == VK_NULL_HANDLE);
+
+  for(VkImageView view : views)
+    ObjDisp(dev)->DestroyImageView(Unwrap(dev), view, NULL);
 
   ObjDisp(dev)->DestroyImageView(Unwrap(dev), srcView, NULL);
-  ObjDisp(dev)->DestroyImageView(Unwrap(dev), destView, NULL);
 }
 
 void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent,
@@ -251,9 +282,9 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
   }
 
   VkWriteDescriptorSet writeSet[] = {
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet[0]), 0, 0, 1,
        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc[0], NULL, NULL},
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 1, 0, 1,
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet[0]), 1, 0, 1,
        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc[1], NULL, NULL},
   };
 
@@ -345,7 +376,7 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
     ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
     ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         Unwrap(m_ArrayMSPipeLayout), 0, 1,
-                                        UnwrapPtr(m_ArrayMSDescSet), 0, NULL);
+                                        UnwrapPtr(m_ArrayMSDescSet[0]), 0, NULL);
 
     VkViewport viewport = {0.0f, 0.0f, (float)extent.width, (float)extent.height, 0.0f, 1.0f};
     ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
@@ -467,9 +498,9 @@ void VulkanDebugManager::CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, Vk
   destdesc.imageView = destView;
 
   VkWriteDescriptorSet writeSet[] = {
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet[0]), 0, 0, 1,
        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc, NULL, NULL},
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 2, 0, 1,
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet[0]), 2, 0, 1,
        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &destdesc, NULL, NULL},
   };
 
@@ -485,7 +516,7 @@ void VulkanDebugManager::CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, Vk
   ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(m_Array2MSPipe));
   ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
                                       Unwrap(m_ArrayMSPipeLayout), 0, 1,
-                                      UnwrapPtr(m_ArrayMSDescSet), 0, NULL);
+                                      UnwrapPtr(m_ArrayMSDescSet[0]), 0, NULL);
 
   Vec4u params = {samples, 0, 0, 0};
 
@@ -618,9 +649,9 @@ void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArra
   }
 
   VkWriteDescriptorSet writeSet[] = {
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet[0]), 0, 0, 1,
        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc[0], NULL, NULL},
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 1, 0, 1,
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet[0]), 1, 0, 1,
        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc[1], NULL, NULL},
   };
 
@@ -713,7 +744,7 @@ void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArra
     ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
     ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         Unwrap(m_ArrayMSPipeLayout), 0, 1,
-                                        UnwrapPtr(m_ArrayMSDescSet), 0, NULL);
+                                        UnwrapPtr(m_ArrayMSDescSet[0]), 0, NULL);
 
     VkViewport viewport = {0.0f, 0.0f, (float)extent.width, (float)extent.height, 0.0f, 1.0f};
     ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);

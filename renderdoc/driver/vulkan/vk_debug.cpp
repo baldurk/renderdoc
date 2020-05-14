@@ -415,16 +415,16 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
   VulkanShaderCache *shaderCache = driver->GetShaderCache();
 
-  // we need just one descriptor for MS<->Array
   VkDescriptorPoolSize poolTypes[] = {
-      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2}, {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1},
+      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2 * ARRAY_COUNT(m_ArrayMSDescSet)},
+      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 * ARRAY_COUNT(m_ArrayMSDescSet)},
   };
 
   VkDescriptorPoolCreateInfo poolInfo = {
       VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
       NULL,
       0,
-      1,
+      ARRAY_COUNT(m_ArrayMSDescSet),
       ARRAY_COUNT(poolTypes),
       &poolTypes[0],
   };
@@ -638,9 +638,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
     RDCERR("Couldn't find any integer format we could generate a dummy multisampled image with");
   }
 
-  CREATE_OBJECT(m_ArrayMSDescSet, m_ArrayMSDescriptorPool, m_ArrayMSDescSetLayout);
+  for(size_t i = 0; i < ARRAY_COUNT(m_ArrayMSDescSet); i++)
+  {
+    CREATE_OBJECT(m_ArrayMSDescSet[i], m_ArrayMSDescriptorPool, m_ArrayMSDescSetLayout);
 
-  rm->SetInternalResource(GetResID(m_ArrayMSDescSet));
+    rm->SetInternalResource(GetResID(m_ArrayMSDescSet[i]));
+  }
 
   VkFormat formats[] = {
       VK_FORMAT_D16_UNORM,         VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_X8_D24_UNORM_PACK32,

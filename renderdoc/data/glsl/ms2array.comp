@@ -43,16 +43,14 @@ layout(binding = 2) writeonly uniform PRECISION uimage2DArray dstArray;
 layout(push_constant) uniform multisamplePush
 {
   int numMultiSamples;
-  int currentSample;
-  int currentSlice;
-  uint currentStencil;
+  int baseSlice;
+  int baseSample;
 }
 mscopy;
 
 #define numMultiSamples (mscopy.numMultiSamples)
-#define currentSample (mscopy.currentSample)
-#define currentSlice (mscopy.currentSlice)
-#define currentStencil (mscopy.currentStencil)
+#define baseSlice (mscopy.baseSlice)
+#define baseSample (mscopy.baseSample)
 
 #else
 
@@ -61,27 +59,16 @@ layout(rgba32ui, binding = 2) writeonly uniform PRECISION uimage2DArray dstArray
 uniform ivec4 mscopy;
 
 #define numMultiSamples (mscopy.x)
-#define currentSample (mscopy.y)
-#define currentSlice (mscopy.z)
-#define currentStencil (mscopy.w)
+#define baseSlice (mscopy.y)
+#define baseSample (mscopy.z)
 
 #endif
 
 void main()
 {
   ivec3 id = ivec3(gl_GlobalInvocationID);
-  int slice;
-  int sampleIdx;
-  if(numMultiSamples == 0)
-  {
-    slice = currentSlice;
-    sampleIdx = currentSample;
-  }
-  else
-  {
-    slice = int(id.z / numMultiSamples);
-    sampleIdx = int(id.z % numMultiSamples);
-  }
+  int slice = baseSlice + int(id.z / numMultiSamples);
+  int sampleIdx = baseSample + int(id.z % numMultiSamples);
 
   uvec4 data = texelFetch(srcMS, ivec3(int(id.x), int(id.y), slice), sampleIdx);
 
