@@ -2848,6 +2848,10 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
   Subresource s = sub;
 
+  s.slice = RDCMIN(uint32_t(imInfo.arrayLayers - 1), s.slice);
+  s.sample = RDCMIN(uint32_t(imInfo.samples - 1), s.sample);
+  s.mip = RDCMIN(uint32_t(imInfo.mipLevels - 1), s.mip);
+
   VkImageCreateInfo imCreateInfo = {
       VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
       NULL,

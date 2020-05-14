@@ -3022,6 +3022,13 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
   D3D12_RESOURCE_DESC resDesc = resource->GetDesc();
 
+  s.mip = RDCMIN(uint32_t(resDesc.MipLevels - 1), s.mip);
+  s.sample = RDCMIN(resDesc.SampleDesc.Count - 1, s.sample);
+  if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    s.slice = 0;
+  else
+    s.slice = RDCMIN(uint32_t(resDesc.DepthOrArraySize - 1), s.slice);
+
   D3D12_RESOURCE_DESC copyDesc = resDesc;
   copyDesc.Alignment = 0;
   copyDesc.Flags = D3D12_RESOURCE_FLAG_NONE;

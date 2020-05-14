@@ -2258,6 +2258,11 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
   GLenum texType = texDetails.curType;
   GLuint texname = texDetails.resource.name;
+
+  int numMips = GetNumMips(texType, texname, texDetails.width, texDetails.height, texDetails.depth);
+
+  s.mip = RDCMIN(uint32_t(numMips - 1), s.mip);
+
   GLenum intFormat = texDetails.internalFormat;
   GLsizei width = RDCMAX(1, texDetails.width >> s.mip);
   GLsizei height = RDCMAX(1, texDetails.height >> s.mip);
@@ -2300,6 +2305,9 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       arraysize = texDetails.height;
     }
   }
+
+  s.sample = RDCMIN(uint32_t(texDetails.samples - 1), s.sample);
+  s.slice = RDCMIN(uint32_t(arraysize - 1), s.slice);
 
   if(params.remap != RemapTexture::NoRemap)
   {
@@ -3132,6 +3140,18 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
   GLint width = RDCMAX(1, texdetails.width >> sub.mip);
   GLint height = RDCMAX(1, texdetails.height >> sub.mip);
 
+  GLint mip =
+      RDCMIN((GLint)sub.mip,
+             GetNumMips(target, tex, texdetails.width, texdetails.height, texdetails.depth) - 1);
+  GLint slice = (GLint)sub.slice;
+  GLint sample = RDCMIN((GLint)sub.sample, texdetails.samples - 1);
+
+  if(target == eGL_TEXTURE_1D_ARRAY)
+    slice = RDCMIN(slice, texdetails.height);
+  if(target == eGL_TEXTURE_2D_ARRAY || target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ||
+     target == eGL_TEXTURE_CUBE_MAP_ARRAY)
+    slice = RDCMIN(slice, texdetails.depth);
+
   if(target == eGL_TEXTURE_1D_ARRAY)
     height = 1;
 
@@ -3144,28 +3164,27 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
 
     if(target == eGL_TEXTURE_1D)
     {
-      drv.glCompressedTextureSubImage1DEXT(tex, target, (GLint)sub.mip, 0, width, fmt,
-                                           (GLsizei)dataSize, data);
+      drv.glCompressedTextureSubImage1DEXT(tex, target, mip, 0, width, fmt, (GLsizei)dataSize, data);
     }
     else if(target == eGL_TEXTURE_1D_ARRAY)
     {
-      drv.glCompressedTextureSubImage2DEXT(tex, target, (GLint)sub.mip, 0, (GLint)sub.slice, width,
-                                           1, fmt, (GLsizei)dataSize, data);
+      drv.glCompressedTextureSubImage2DEXT(tex, target, mip, 0, slice, width, 1, fmt,
+                                           (GLsizei)dataSize, data);
     }
     else if(target == eGL_TEXTURE_2D)
     {
-      drv.glCompressedTextureSubImage2DEXT(tex, target, (GLint)sub.mip, 0, 0, width, height, fmt,
+      drv.glCompressedTextureSubImage2DEXT(tex, target, mip, 0, 0, width, height, fmt,
                                            (GLsizei)dataSize, data);
     }
     else if(target == eGL_TEXTURE_2D_ARRAY || target == eGL_TEXTURE_CUBE_MAP_ARRAY)
     {
-      drv.glCompressedTextureSubImage3DEXT(tex, target, (GLint)sub.mip, 0, 0, (GLint)sub.slice,
-                                           width, height, 1, fmt, (GLsizei)dataSize, data);
+      drv.glCompressedTextureSubImage3DEXT(tex, target, mip, 0, 0, slice, width, height, 1, fmt,
+                                           (GLsizei)dataSize, data);
     }
     else if(target == eGL_TEXTURE_3D)
     {
-      drv.glCompressedTextureSubImage3DEXT(tex, target, (GLint)sub.mip, 0, 0, 0, width, height,
-                                           depth, fmt, (GLsizei)dataSize, data);
+      drv.glCompressedTextureSubImage3DEXT(tex, target, mip, 0, 0, 0, width, height, depth, fmt,
+                                           (GLsizei)dataSize, data);
     }
     else if(target == eGL_TEXTURE_CUBE_MAP)
     {
@@ -3175,10 +3194,9 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
           eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
       };
 
-      RDCASSERT(sub.slice < ARRAY_COUNT(targets));
-      target = targets[sub.slice];
+      target = targets[RDCMIN(slice, GLint(ARRAY_COUNT(targets) - 1))];
 
-      drv.glCompressedTextureSubImage2DEXT(tex, target, (GLint)sub.mip, 0, 0, width, height, fmt,
+      drv.glCompressedTextureSubImage2DEXT(tex, target, mip, 0, 0, width, height, fmt,
                                            (GLsizei)dataSize, data);
     }
     else if(target == eGL_TEXTURE_2D_MULTISAMPLE || target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
@@ -3226,27 +3244,25 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
 
     if(target == eGL_TEXTURE_1D)
     {
-      drv.glTextureSubImage1DEXT(tex, target, (GLint)sub.mip, 0, width, baseformat, datatype, data);
+      drv.glTextureSubImage1DEXT(tex, target, mip, 0, width, baseformat, datatype, data);
     }
     else if(target == eGL_TEXTURE_1D_ARRAY)
     {
-      drv.glTextureSubImage2DEXT(tex, target, (GLint)sub.mip, 0, (GLint)sub.slice, width, 1,
-                                 baseformat, datatype, data);
+      drv.glTextureSubImage2DEXT(tex, target, mip, 0, slice, width, 1, baseformat, datatype, data);
     }
     else if(target == eGL_TEXTURE_2D)
     {
-      drv.glTextureSubImage2DEXT(tex, target, (GLint)sub.mip, 0, 0, width, height, baseformat,
-                                 datatype, data);
+      drv.glTextureSubImage2DEXT(tex, target, mip, 0, 0, width, height, baseformat, datatype, data);
     }
     else if(target == eGL_TEXTURE_2D_ARRAY || target == eGL_TEXTURE_CUBE_MAP_ARRAY)
     {
-      drv.glTextureSubImage3DEXT(tex, target, (GLint)sub.mip, 0, 0, (GLint)sub.slice, width, height,
-                                 1, baseformat, datatype, data);
+      drv.glTextureSubImage3DEXT(tex, target, mip, 0, 0, slice, width, height, 1, baseformat,
+                                 datatype, data);
     }
     else if(target == eGL_TEXTURE_3D)
     {
-      drv.glTextureSubImage3DEXT(tex, target, (GLint)sub.mip, 0, 0, 0, width, height, depth,
-                                 baseformat, datatype, data);
+      drv.glTextureSubImage3DEXT(tex, target, mip, 0, 0, 0, width, height, depth, baseformat,
+                                 datatype, data);
     }
     else if(target == eGL_TEXTURE_CUBE_MAP)
     {
@@ -3256,11 +3272,9 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
           eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
       };
 
-      RDCASSERT(sub.slice < ARRAY_COUNT(targets));
-      target = targets[sub.slice];
+      target = targets[RDCMIN(slice, GLint(ARRAY_COUNT(targets) - 1))];
 
-      drv.glTextureSubImage2DEXT(tex, target, (GLint)sub.mip, 0, 0, width, height, baseformat,
-                                 datatype, data);
+      drv.glTextureSubImage2DEXT(tex, target, mip, 0, 0, width, height, baseformat, datatype, data);
     }
     else if(target == eGL_TEXTURE_2D_MULTISAMPLE || target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
     {
@@ -3273,7 +3287,7 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
                                 width, height, texdetails.samples * RDCMAX(1, texdetails.depth));
       drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
-      GLint unpackedSlice = sub.slice * texdetails.samples + sub.sample;
+      GLint unpackedSlice = slice * texdetails.samples + sample;
 
       // upload the data to the given slice
       drv.glTextureSubImage3DEXT(uploadTex, eGL_TEXTURE_2D_ARRAY, 0, 0, 0, unpackedSlice, width,

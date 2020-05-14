@@ -1954,6 +1954,8 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   uint32_t subresource = 0;
   uint32_t mips = 0;
 
+  Subresource s = sub;
+
   size_t bytesize = 0;
 
   if(WrappedID3D11Texture1D::m_TextureList.find(tex) != WrappedID3D11Texture1D::m_TextureList.end())
@@ -1973,8 +1975,8 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
     mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, 1, 1);
 
-    if(sub.mip >= mips || sub.slice >= desc.ArraySize)
-      return;
+    s.mip = RDCMIN(mips - 1, s.mip);
+    s.slice = RDCMIN(desc.ArraySize - 1, s.slice);
 
     if(params.remap != RemapTexture::NoRemap)
     {
@@ -1998,7 +2000,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       desc.ArraySize = 1;
     }
 
-    subresource = sub.slice * mips + sub.mip;
+    subresource = s.slice * mips + s.mip;
 
     HRESULT hr = m_pDevice->CreateTexture1D(&desc, NULL, &d);
 
@@ -2010,11 +2012,11 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       return;
     }
 
-    bytesize = GetByteSize(desc.Width, 1, 1, desc.Format, sub.mip);
+    bytesize = GetByteSize(desc.Width, 1, 1, desc.Format, s.mip);
 
     if(params.remap != RemapTexture::NoRemap)
     {
-      subresource = sub.mip;
+      subresource = s.mip;
 
       desc.CPUAccessFlags = 0;
       desc.Usage = D3D11_USAGE_DEFAULT;
@@ -2034,7 +2036,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
       rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE1D;
       rtvDesc.Format = desc.Format;
-      rtvDesc.Texture1D.MipSlice = sub.mip;
+      rtvDesc.Texture1D.MipSlice = s.mip;
 
       ID3D11RenderTargetView *wrappedrtv = NULL;
       hr = m_pDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
@@ -2075,7 +2077,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
         texDisplay.linearDisplayAsGamma = false;
         texDisplay.overlay = DebugOverlay::NoOverlay;
         texDisplay.flipY = false;
-        texDisplay.subresource = sub;
+        texDisplay.subresource = s;
         texDisplay.subresource.sample = 0;
         texDisplay.customShaderId = ResourceId();
         texDisplay.rangeMin = params.blackPoint;
@@ -2088,7 +2090,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
         // we scale our texture rendering by output dimension. To counteract that, add a manual
         // scale here
-        texDisplay.scale = 1.0f / float(1 << sub.mip);
+        texDisplay.scale = 1.0f / float(1 << s.mip);
 
         RenderTextureInternal(texDisplay, flags);
       }
@@ -2134,8 +2136,9 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
     mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, 1);
 
-    if(sub.mip >= mips || sub.slice >= desc.ArraySize)
-      return;
+    s.mip = RDCMIN(mips - 1, s.mip);
+    s.slice = RDCMIN(desc.ArraySize - 1, s.slice);
+    s.sample = RDCMIN(desc.SampleDesc.Count - 1, s.sample);
 
     if(params.remap != RemapTexture::NoRemap)
     {
@@ -2160,7 +2163,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       desc.ArraySize = 1;
     }
 
-    subresource = sub.slice * mips + sub.mip;
+    subresource = s.slice * mips + s.mip;
 
     HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &d);
 
@@ -2172,11 +2175,11 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       return;
     }
 
-    bytesize = GetByteSize(desc.Width, desc.Height, 1, desc.Format, sub.mip);
+    bytesize = GetByteSize(desc.Width, desc.Height, 1, desc.Format, s.mip);
 
     if(params.remap != RemapTexture::NoRemap)
     {
-      subresource = sub.mip;
+      subresource = s.mip;
 
       desc.CPUAccessFlags = 0;
       desc.Usage = D3D11_USAGE_DEFAULT;
@@ -2196,7 +2199,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
       rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
       rtvDesc.Format = desc.Format;
-      rtvDesc.Texture2D.MipSlice = sub.mip;
+      rtvDesc.Texture2D.MipSlice = s.mip;
 
       ID3D11RenderTargetView *wrappedrtv = NULL;
       hr = m_pDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
@@ -2238,9 +2241,9 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
         texDisplay.linearDisplayAsGamma = false;
         texDisplay.overlay = DebugOverlay::NoOverlay;
         texDisplay.flipY = false;
-        texDisplay.subresource.mip = sub.mip;
-        texDisplay.subresource.slice = sub.slice;
-        texDisplay.subresource.sample = params.resolve ? ~0U : sub.sample;
+        texDisplay.subresource.mip = s.mip;
+        texDisplay.subresource.slice = s.slice;
+        texDisplay.subresource.sample = params.resolve ? ~0U : s.sample;
         texDisplay.customShaderId = ResourceId();
         texDisplay.rangeMin = params.blackPoint;
         texDisplay.rangeMax = params.whitePoint;
@@ -2252,7 +2255,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
         // we scale our texture rendering by output dimension. To counteract that, add a manual
         // scale here
-        texDisplay.scale = 1.0f / float(1 << sub.mip);
+        texDisplay.scale = 1.0f / float(1 << s.mip);
 
         RenderTextureInternal(texDisplay, flags);
       }
@@ -2278,7 +2281,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
         return;
       }
 
-      m_pImmediateContext->ResolveSubresource(resolveTex, sub.slice, wrapTex, sub.slice, desc.Format);
+      m_pImmediateContext->ResolveSubresource(resolveTex, s.slice, wrapTex, s.slice, desc.Format);
       m_pImmediateContext->CopyResource(d, resolveTex);
 
       SAFE_RELEASE(resolveTex);
@@ -2287,7 +2290,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     {
       GetDebugManager()->CopyTex2DMSToArray(UNWRAP(WrappedID3D11Texture2D1, d), wrapTex->GetReal());
 
-      subresource = (sub.slice * sampleCount + sub.sample) * mips + sub.mip;
+      subresource = (s.slice * sampleCount + s.sample) * mips + s.mip;
     }
     else
     {
@@ -2312,8 +2315,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
     mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, desc.Depth);
 
-    if(sub.mip >= mips)
-      return;
+    s.mip = RDCMIN(mips - 1, s.mip);
 
     if(params.remap != RemapTexture::NoRemap)
     {
@@ -2335,7 +2337,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       }
     }
 
-    subresource = sub.mip;
+    subresource = s.mip;
 
     HRESULT hr = m_pDevice->CreateTexture3D(&desc, NULL, &d);
 
@@ -2347,11 +2349,11 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       return;
     }
 
-    bytesize = GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, sub.mip);
+    bytesize = GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, s.mip);
 
     if(params.remap != RemapTexture::NoRemap)
     {
-      subresource = sub.mip;
+      subresource = s.mip;
 
       desc.CPUAccessFlags = 0;
       desc.Usage = D3D11_USAGE_DEFAULT;
@@ -2371,7 +2373,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
       rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE3D;
       rtvDesc.Format = desc.Format;
-      rtvDesc.Texture3D.MipSlice = sub.mip;
+      rtvDesc.Texture3D.MipSlice = s.mip;
       rtvDesc.Texture3D.FirstWSlice = 0;
       rtvDesc.Texture3D.WSize = 1;
       ID3D11RenderTargetView *wrappedrtv = NULL;
@@ -2390,7 +2392,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
       else
         flags = eTexDisplay_RemapFloat;
 
-      for(UINT i = 0; i < (desc.Depth >> sub.mip); i++)
+      for(UINT i = 0; i < (desc.Depth >> s.mip); i++)
       {
         rtvDesc.Texture3D.FirstWSlice = i;
         hr = m_pDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
@@ -2418,7 +2420,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
         texDisplay.linearDisplayAsGamma = false;
         texDisplay.overlay = DebugOverlay::NoOverlay;
         texDisplay.flipY = false;
-        texDisplay.subresource.mip = sub.mip;
+        texDisplay.subresource.mip = s.mip;
         texDisplay.subresource.slice = i;
         texDisplay.subresource.sample = 0;
         texDisplay.customShaderId = ResourceId();
@@ -2432,7 +2434,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
         // we scale our texture rendering by output dimension. To counteract that, add a manual
         // scale here
-        texDisplay.scale = 1.0f / float(1 << sub.mip);
+        texDisplay.scale = 1.0f / float(1 << s.mip);
 
         RenderTextureInternal(texDisplay, flags);
 
@@ -2467,10 +2469,10 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
     // for 3D textures if we wanted a particular slice (arrayIdx > 0)
     // copy it into the beginning.
-    if(intercept.numSlices > 1 && sub.slice > 0 && (int)sub.slice < intercept.numSlices)
+    if(intercept.numSlices > 1 && s.slice > 0 && (int)s.slice < intercept.numSlices)
     {
       byte *dst = data.data();
-      byte *src = data.data() + intercept.app.DepthPitch * sub.slice;
+      byte *src = data.data() + intercept.app.DepthPitch * s.slice;
 
       for(int row = 0; row < intercept.numRows; row++)
       {
@@ -3521,21 +3523,18 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, const Subresource &sub, 
 
     uint32_t mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, 1, 1);
 
-    if(sub.mip >= mips || sub.slice >= desc.ArraySize)
-    {
-      RDCERR("arrayIdx %d and mip %d invalid for tex", sub.slice, sub.mip);
-      return;
-    }
+    uint32_t mip = RDCMIN(sub.mip, mips - 1);
+    uint32_t slice = RDCMIN(sub.slice, desc.ArraySize - 1);
 
-    if(dataSize < GetByteSize(desc.Width, 1, 1, desc.Format, sub.mip))
+    if(dataSize < GetByteSize(desc.Width, 1, 1, desc.Format, mip))
     {
       RDCERR("Insufficient data provided to SetProxyTextureData");
       return;
     }
 
-    ctx->UpdateSubresource(tex->GetReal(), sub.slice * mips + sub.mip, NULL, data,
-                           GetRowPitch(desc.Width, desc.Format, sub.mip),
-                           GetByteSize(desc.Width, 1, 1, desc.Format, sub.mip));
+    ctx->UpdateSubresource(tex->GetReal(), slice * mips + mip, NULL, data,
+                           GetRowPitch(desc.Width, desc.Format, mip),
+                           GetByteSize(desc.Width, 1, 1, desc.Format, mip));
   }
   else if(WrappedID3D11Texture2D1::m_TextureList.find(texid) !=
           WrappedID3D11Texture2D1::m_TextureList.end())
@@ -3568,13 +3567,11 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, const Subresource &sub, 
 
     UINT sampleCount = RDCMAX(1U, desc.SampleDesc.Count);
 
-    if(sub.mip >= mips || sub.slice >= desc.ArraySize || sub.sample >= sampleCount)
-    {
-      RDCERR("arrayIdx %d, mip %d, slice %d invalid for tex", sub.slice, sub.mip, sub.sample);
-      return;
-    }
+    uint32_t mip = RDCMIN(sub.mip, mips - 1);
+    uint32_t slice = RDCMIN(sub.slice, desc.ArraySize - 1);
+    uint32_t sample = RDCMIN(sub.sample, sampleCount - 1);
 
-    if(dataSize < GetByteSize(width, height, 1, desc.Format, sub.mip))
+    if(dataSize < GetByteSize(width, height, 1, desc.Format, mip))
     {
       RDCERR("Insufficient data provided to SetProxyTextureData");
       return;
@@ -3591,15 +3588,15 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, const Subresource &sub, 
       uploadDesc.SampleDesc.Quality = 0;
       uploadDesc.ArraySize *= desc.SampleDesc.Count;
 
-      UINT unpackedSlice = sub.slice * desc.SampleDesc.Count + sub.sample;
+      UINT unpackedSlice = slice * desc.SampleDesc.Count + sample;
 
       // create an unwrapped texture to upload the data into a slice of
       ID3D11Texture2D *uploadTex = NULL;
       m_pDevice->GetReal()->CreateTexture2D(&uploadDesc, NULL, &uploadTex);
 
       ctx->UpdateSubresource(uploadTex, unpackedSlice, NULL, data,
-                             GetRowPitch(width, desc.Format, sub.mip),
-                             GetByteSize(width, desc.Height, 1, desc.Format, sub.mip));
+                             GetRowPitch(width, desc.Format, mip),
+                             GetByteSize(width, desc.Height, 1, desc.Format, mip));
 
       // copy that slice into MSAA sample
       GetDebugManager()->CopyArrayToTex2DMS(tex->GetReal(), uploadTex, unpackedSlice);
@@ -3608,9 +3605,9 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, const Subresource &sub, 
     }
     else
     {
-      ctx->UpdateSubresource(tex->GetReal(), sub.slice * mips + sub.mip, NULL, data,
-                             GetRowPitch(width, desc.Format, sub.mip),
-                             GetByteSize(width, height, 1, desc.Format, sub.mip));
+      ctx->UpdateSubresource(tex->GetReal(), slice * mips + mip, NULL, data,
+                             GetRowPitch(width, desc.Format, mip),
+                             GetByteSize(width, height, 1, desc.Format, mip));
     }
   }
   else if(WrappedID3D11Texture3D1::m_TextureList.find(texid) !=
@@ -3625,21 +3622,16 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, const Subresource &sub, 
     uint32_t mips =
         desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, desc.Depth);
 
-    if(sub.mip >= mips)
-    {
-      RDCERR("mip %d invalid for tex", sub.mip);
-      return;
-    }
+    uint32_t mip = RDCMIN(sub.mip, mips - 1);
 
-    if(dataSize < GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, sub.mip))
+    if(dataSize < GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, mip))
     {
       RDCERR("Insufficient data provided to SetProxyTextureData");
       return;
     }
 
-    ctx->UpdateSubresource(tex->GetReal(), sub.mip, NULL, data,
-                           GetRowPitch(desc.Width, desc.Format, sub.mip),
-                           GetByteSize(desc.Width, desc.Height, 1, desc.Format, sub.mip));
+    ctx->UpdateSubresource(tex->GetReal(), mip, NULL, data, GetRowPitch(desc.Width, desc.Format, mip),
+                           GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip));
   }
   else
   {
