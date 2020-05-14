@@ -1573,8 +1573,8 @@ rdcarray<ShaderDebugState> ReplayProxy::Proxied_ContinueDebug(ParamSerialiser &p
                                                               ReturnSerialiser &retser,
                                                               ShaderDebugger *debugger)
 {
-  const ReplayProxyPacket expectedPacket = eReplayProxy_GetDisassemblyTargets;
-  ReplayProxyPacket packet = eReplayProxy_GetDisassemblyTargets;
+  const ReplayProxyPacket expectedPacket = eReplayProxy_ContinueDebug;
+  ReplayProxyPacket packet = eReplayProxy_ContinueDebug;
   rdcarray<ShaderDebugState> ret;
 
   {
