@@ -811,6 +811,15 @@ public:
       case rdcspv::Op::ImageSampleProjDrefImplicitLod:
       {
         useCompare = true;
+
+        if(m_pDriver->GetDriverInfo().QualcommDrefNon2DCompileCrash() &&
+           constParams.dim != ShaderDebugBind::Tex2D)
+        {
+          m_pDriver->AddDebugMessage(
+              MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+              "Dref sample against non-2D texture, this cannot be debugged due to a driver bug");
+        }
+
         break;
       }
       default: break;
@@ -2305,66 +2314,76 @@ private:
         cases.add(rdcspv::OpBranch(breakLabel));
       }
 
-      for(rdcspv::Op op :
-          {rdcspv::Op::ImageSampleDrefExplicitLod, rdcspv::Op::ImageSampleDrefImplicitLod})
+      bool emitDRef = true;
+
+      // on Qualcomm we only emit Dref instructions against 2D textures, otherwise the compiler may
+      // crash.
+      if(m_pDriver->GetDriverInfo().QualcommDrefNon2DCompileCrash())
+        emitDRef = (i == (uint32_t)ShaderDebugBind::Tex2D);
+
+      if(emitDRef)
       {
-        rdcspv::Id label = editor.MakeId();
-        targets.push_back({(uint32_t)op * 10 + i, label});
-
-        rdcspv::ImageOperandsAndParamDatas imageOperands;
-
-        if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended && offsets[i] != rdcspv::Id())
-          imageOperands.setOffset(offsets[i]);
-
-        cases.add(rdcspv::OpLabel(label));
-        rdcspv::Id loadedImage =
-            cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
-        rdcspv::Id loadedSampler =
-            cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), bindVars[sampIdx]));
-
-        rdcspv::Id mergeLabel = editor.MakeId();
-        rdcspv::Id gradCase = editor.MakeId();
-        rdcspv::Id lodCase = editor.MakeId();
-        cases.add(rdcspv::OpSelectionMerge(mergeLabel, rdcspv::SelectionControl::None));
-        cases.add(rdcspv::OpBranchConditional(useGradOrGatherOffsets, gradCase, lodCase));
-
-        rdcspv::Id lodResult;
+        for(rdcspv::Op op :
+            {rdcspv::Op::ImageSampleDrefExplicitLod, rdcspv::Op::ImageSampleDrefImplicitLod})
         {
-          cases.add(rdcspv::OpLabel(lodCase));
-          rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
-          operands.setLod(lod);
-          rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
-              texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+          rdcspv::Id label = editor.MakeId();
+          targets.push_back({(uint32_t)op * 10 + i, label});
 
-          lodResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
-              scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
+          rdcspv::ImageOperandsAndParamDatas imageOperands;
 
-          cases.add(rdcspv::OpBranch(mergeLabel));
+          if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended && offsets[i] != rdcspv::Id())
+            imageOperands.setOffset(offsets[i]);
+
+          cases.add(rdcspv::OpLabel(label));
+          rdcspv::Id loadedImage =
+              cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
+          rdcspv::Id loadedSampler =
+              cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), bindVars[sampIdx]));
+
+          rdcspv::Id mergeLabel = editor.MakeId();
+          rdcspv::Id gradCase = editor.MakeId();
+          rdcspv::Id lodCase = editor.MakeId();
+          cases.add(rdcspv::OpSelectionMerge(mergeLabel, rdcspv::SelectionControl::None));
+          cases.add(rdcspv::OpBranchConditional(useGradOrGatherOffsets, gradCase, lodCase));
+
+          rdcspv::Id lodResult;
+          {
+            cases.add(rdcspv::OpLabel(lodCase));
+            rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+            operands.setLod(lod);
+            rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
+                texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+
+            lodResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
+                scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
+
+            cases.add(rdcspv::OpBranch(mergeLabel));
+          }
+
+          rdcspv::Id gradResult;
+          {
+            cases.add(rdcspv::OpLabel(gradCase));
+            rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+            operands.setGrad(ddxs[i], ddys[i]);
+            if(m_pDriver->GetDeviceFeatures().shaderResourceMinLod)
+              operands.setMinLod(minlod);
+            rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
+                texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+
+            gradResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
+                scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
+
+            cases.add(rdcspv::OpBranch(mergeLabel));
+          }
+
+          cases.add(rdcspv::OpLabel(mergeLabel));
+          rdcspv::Id scalarSampleResult = cases.add(rdcspv::OpPhi(
+              scalarResultType, editor.MakeId(), {{lodResult, lodCase}, {gradResult, gradCase}}));
+          rdcspv::Id sampleResult = cases.add(rdcspv::OpCompositeConstruct(
+              resultType, editor.MakeId(), {scalarSampleResult, zerof, zerof, zerof}));
+          cases.add(rdcspv::OpStore(outVar, sampleResult));
+          cases.add(rdcspv::OpBranch(breakLabel));
         }
-
-        rdcspv::Id gradResult;
-        {
-          cases.add(rdcspv::OpLabel(gradCase));
-          rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
-          operands.setGrad(ddxs[i], ddys[i]);
-          if(m_pDriver->GetDeviceFeatures().shaderResourceMinLod)
-            operands.setMinLod(minlod);
-          rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
-              texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
-
-          gradResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
-              scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
-
-          cases.add(rdcspv::OpBranch(mergeLabel));
-        }
-
-        cases.add(rdcspv::OpLabel(mergeLabel));
-        rdcspv::Id scalarSampleResult = cases.add(rdcspv::OpPhi(
-            scalarResultType, editor.MakeId(), {{lodResult, lodCase}, {gradResult, gradCase}}));
-        rdcspv::Id sampleResult = cases.add(rdcspv::OpCompositeConstruct(
-            resultType, editor.MakeId(), {scalarSampleResult, zerof, zerof, zerof}));
-        cases.add(rdcspv::OpStore(outVar, sampleResult));
-        cases.add(rdcspv::OpBranch(breakLabel));
       }
 
       // can only gather with 2D/Cube textures

@@ -252,6 +252,9 @@ public:
   // On Qualcomm it seems like binding a descriptor set with a dynamic offset will 'leak' and affect
   // rendering on other descriptor sets that don't use offsets at all.
   bool QualcommLeakingUBOOffsets() { return qualcommLeakingUBOOffsets; }
+  // On Qualcomm emitting an image sample operation with DRef and explicit lod will crash on non-2D
+  // textures. Since 2D is the common/expected case, we avoid compiling that case entirely.
+  bool QualcommDrefNon2DCompileCrash() { return qualcommDrefNon2DCompileCrash; }
 private:
   GPUVendor m_Vendor;
 
@@ -262,6 +265,7 @@ private:
   bool unreliableImgMemReqs = false;
   bool amdStorageMSAABrokenDriver = false;
   bool qualcommLeakingUBOOffsets = false;
+  bool qualcommDrefNon2DCompileCrash = false;
 };
 
 enum
