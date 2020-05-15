@@ -74,6 +74,7 @@ struct PixelHistoryResources
   // Used for offscreen rendering for draw call events.
   VkImage colorImage;
   VkImageView colorImageView;
+  VkFormat dsFormat;
   VkImage dsImage;
   VkImageView dsImageView;
   VkDeviceMemory gpuMem;
@@ -112,6 +113,7 @@ struct PixelHistoryCallbackInfo
   VkImageView subImageView;
 
   // Image used to get stencil counts.
+  VkFormat dsFormat;
   VkImage dsImage;
   VkImageView dsImageView;
 
@@ -625,7 +627,7 @@ protected:
     }
 
     VkAttachmentDescription dsAtt = {};
-    dsAtt.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
+    dsAtt.format = m_CallbackInfo.dsFormat;
     dsAtt.samples = m_CallbackInfo.samples;
     dsAtt.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     dsAtt.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -1132,7 +1134,7 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       CopyPixelParams params = {};
       params.srcImage = m_CallbackInfo.dsImage;
       params.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-      params.srcImageFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
+      params.srcImageFormat = m_CallbackInfo.dsFormat;
       params.depthCopy = true;
       // Copy stencil value that indicates the number of fragments ignoring
       // shader discard.
@@ -2064,7 +2066,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
             depthCopyParams.depthCopy = true;
             depthCopyParams.srcImage = m_CallbackInfo.dsImage;
             depthCopyParams.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            depthCopyParams.srcImageFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
+            depthCopyParams.srcImageFormat = m_CallbackInfo.dsFormat;
             CopyImagePixel(cmd, depthCopyParams,
                            storeOffset + offsetof(struct PixelHistoryValue, depth));
           }
@@ -2491,6 +2493,14 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
 
   VkDeviceSize totalMemorySize = 0;
 
+  VkFormat dsFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
+
+  if(!(m_pDriver->GetFormatProperties(dsFormat).optimalTilingFeatures &
+       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT))
+    dsFormat = VK_FORMAT_D24_UNORM_S8_UINT;
+
+  RDCDEBUG("Using depth-stencil format %s", ToStr(dsFormat).c_str());
+
   // Create Images
   VkImageCreateInfo imgInfo = {VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
   imgInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -2520,7 +2530,7 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   m_pDriver->vkGetImageMemoryRequirements(dev, colorImage, &colorImageMrq);
   totalMemorySize = colorImageMrq.size;
 
-  imgInfo.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
+  imgInfo.format = dsFormat;
   imgInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                   VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
@@ -2560,7 +2570,7 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   viewInfo.image = dsImage;
-  viewInfo.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
+  viewInfo.format = dsFormat;
   viewInfo.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1};
 
   vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &dsImageView);
@@ -2598,7 +2608,7 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
     viewInfo.image = dsImage;
-    viewInfo.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
+    viewInfo.format = dsFormat;
     viewInfo.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
     vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &depthOnlyImageView);
 
@@ -2645,6 +2655,7 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
 
   resources.colorImage = colorImage;
   resources.colorImageView = colorImageView;
+  resources.dsFormat = dsFormat;
   resources.dsImage = dsImage;
   resources.dsImageView = dsImageView;
   resources.gpuMem = gpuMem;
@@ -2940,6 +2951,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   callbackInfo.subImage = resources.colorImage;
   callbackInfo.subImageView = resources.colorImageView;
   callbackInfo.dsImage = resources.dsImage;
+  callbackInfo.dsFormat = resources.dsFormat;
   callbackInfo.dsImageView = resources.dsImageView;
   callbackInfo.dstBuffer = resources.dstBuffer;
 
