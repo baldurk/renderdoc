@@ -663,18 +663,42 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
     cacheResources();
 
-    m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
+    m_BackgroundRunning.release();
+
+    QPointer<ShaderViewer> me(this);
+
+    m_Ctx.Replay().AsyncInvoke([this, me](IReplayController *r) {
+      if(!me)
+        return;
+
       rdcarray<ShaderDebugState> states = r->ContinueDebug(m_Trace->debugger);
 
       bool finished = false;
       do
       {
+        if(!me)
+          return;
+
         rdcarray<ShaderDebugState> nextStates = r->ContinueDebug(m_Trace->debugger);
+
+        QThread::msleep(5000);
+
+        if(!me)
+          return;
+
         states.append(nextStates);
         finished = nextStates.empty();
-      } while(!finished);
+      } while(!finished && m_BackgroundRunning.available() == 1);
+
+      if(!me || m_BackgroundRunning.available() != 1)
+        return;
+
+      m_BackgroundRunning.tryAcquire(1);
 
       r->SetFrameEvent(m_Ctx.CurEvent(), true);
+
+      if(!me)
+        return;
 
       GUIInvoke::call(this, [this, states]() {
         m_States = states;
@@ -706,6 +730,18 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
           updateDebugState();
         }
       });
+    });
+
+    GUIInvoke::defer(this, [this, debugContext]() {
+      // wait a short while before displaying the progress dialog (which won't show if we're already
+      // done by the time we reach it)
+      for(int i = 0; m_BackgroundRunning.available() == 1 && i < 100; i++)
+        QThread::msleep(5);
+
+      ShowProgressDialog(this, tr("Debugging %1").arg(debugContext),
+                         [this]() { return m_BackgroundRunning.available() == 0; }, NULL,
+                         [this]() { m_BackgroundRunning.acquire(); });
+
     });
 
     m_CurrentStateIdx = 0;

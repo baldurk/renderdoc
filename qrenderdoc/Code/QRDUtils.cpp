@@ -1953,6 +1953,7 @@ public:
     setLabel(&m_Label);
   }
 
+  void enableCancel() { setCancelButtonText(tr("Cancel")); }
   void setPercentage(float percent) { setValue(int(maxProgress * percent)); }
   void setInfinite(bool infinite)
   {
@@ -2299,12 +2300,15 @@ QStringList ParseArgsList(const QString &args)
 }
 
 void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinishedMethod finished,
-                        ProgressUpdateMethod update)
+                        ProgressUpdateMethod update, ProgressCancelMethod cancel)
 {
   if(finished())
     return;
 
   RDProgressDialog dialog(labelText, window);
+
+  if(cancel)
+    dialog.enableCancel();
 
   // if we don't have an update function, set the progress display to be 'infinite spinner'
   dialog.setInfinite(!update);
@@ -2338,6 +2342,9 @@ void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinis
   // to clean itself up
   tickerSemaphore.tryAcquire();
   progressTickerThread.wait();
+
+  if(cancel && dialog.wasCanceled())
+    cancel();
 }
 
 void UpdateTransferProgress(qint64 xfer, qint64 total, QElapsedTimer *timer,

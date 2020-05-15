@@ -666,6 +666,7 @@ class QElapsedTimer;
 
 typedef std::function<float()> ProgressUpdateMethod;
 typedef std::function<bool()> ProgressFinishedMethod;
+typedef std::function<void()> ProgressCancelMethod;
 
 QStringList ParseArgsList(const QString &args);
 bool IsRunningAsAdmin();
@@ -676,7 +677,8 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
 void RevealFilenameInExternalFileBrowser(const QString &filePath);
 
 void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinishedMethod finished,
-                        ProgressUpdateMethod update = ProgressUpdateMethod());
+                        ProgressUpdateMethod update = ProgressUpdateMethod(),
+                        ProgressCancelMethod cancel = ProgressCancelMethod());
 
 void UpdateTransferProgress(qint64 xfer, qint64 total, QElapsedTimer *timer,
                             QProgressBar *progressBar, QLabel *progressLabel, QString progressText);

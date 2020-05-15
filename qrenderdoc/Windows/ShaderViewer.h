@@ -25,6 +25,7 @@
 #pragma once
 
 #include <QFrame>
+#include <QSemaphore>
 #include "Code/Interface/QRDInterface.h"
 
 namespace Ui
@@ -253,6 +254,8 @@ private:
   rdcarray<ShaderDebugState> m_States;
   size_t m_CurrentStateIdx = 0;
   rdcarray<ShaderVariable> m_Variables;
+
+  QSemaphore m_BackgroundRunning;
 
   rdcarray<AccessedResourceData> m_AccessedResources;
   AccessedResourceView m_AccessedResourceView = AccessedResourceView::SortByResource;
