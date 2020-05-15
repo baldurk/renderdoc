@@ -2765,16 +2765,23 @@ void CreateOcclusionPool(WrappedVulkan *vk, uint32_t poolSize, VkQueryPool *pQue
 VkImageLayout VulkanDebugManager::GetImageLayout(ResourceId image, VkImageAspectFlagBits aspect,
                                                  uint32_t mip, uint32_t slice)
 {
+  VkImageLayout ret = VK_IMAGE_LAYOUT_UNDEFINED;
+
   auto state = m_pDriver->FindConstImageState(image);
   if(!state)
   {
     RDCERR("Could not find image state for %s", ToStr(image).c_str());
-    return VK_IMAGE_LAYOUT_UNDEFINED;
+    return ret;
   }
+
   if(state->GetImageInfo().extent.depth > 1)
-    return state->GetImageLayout(aspect, mip, 0);
+    ret = state->GetImageLayout(aspect, mip, 0);
   else
-    return state->GetImageLayout(aspect, mip, slice);
+    ret = state->GetImageLayout(aspect, mip, slice);
+
+  SanitiseReplayImageLayout(ret);
+
+  return ret;
 }
 
 void UpdateTestsFailed(const TestsFailedCallback *tfCb, uint32_t eventId, uint32_t eventFlags,
