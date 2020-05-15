@@ -21,7 +21,6 @@ RenderDoc has initial support for D3D12, but it contains some caveats. In additi
 * RenderDoc captures may not be portable between different systems, only currently supporting capture and replay on the same or similar enough machines.
 * Reserved resources are not supported.
 * Pixel history is not implemented.
-* Shader debugging is not currently supported.
 
 DXIL support
 ------------

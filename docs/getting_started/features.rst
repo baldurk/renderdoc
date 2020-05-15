@@ -81,6 +81,7 @@ D3D12
 
 * Support for D3D12 up to D3D12.3, Windows 10 only.
 * Debug marker uses the PIXSetMarker macros that go through SetMarker/BeginEvent/EndEvent on the command list
+* Vertex, Pixel and Compute shader debugging.
 
 Vulkan
 ------
