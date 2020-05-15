@@ -34,6 +34,7 @@ enum class FeatureCheck
   FragmentStores = 0x2,
   NonMetalBackend = 0x4,
   FormatlessWrite = 0x8,
+  SampleShading = 0x10,
 };
 
 BITMASK_OPERATORS(FeatureCheck);
@@ -84,7 +85,7 @@ static const BuiltinShaderConfig builtinShaders[] = {
     {BuiltinShader::DepthMS2ArrayFS, EmbeddedResource(glsl_depthms2arr_frag),
      rdcspv::ShaderStage::Fragment, FeatureCheck::NonMetalBackend, true},
     {BuiltinShader::DepthArray2MSFS, EmbeddedResource(glsl_deptharr2ms_frag),
-     rdcspv::ShaderStage::Fragment, FeatureCheck::NonMetalBackend, true},
+     rdcspv::ShaderStage::Fragment, FeatureCheck::SampleShading | FeatureCheck::NonMetalBackend, true},
     {BuiltinShader::TexRemapFloat, EmbeddedResource(glsl_texremap_frag),
      rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
     {BuiltinShader::TexRemapUInt, EmbeddedResource(glsl_texremap_frag),
@@ -178,6 +179,14 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
     if(config.checks & FeatureCheck::FormatlessWrite)
     {
       if(!features.shaderStorageImageWriteWithoutFormat)
+      {
+        continue;
+      }
+    }
+
+    if(config.checks & FeatureCheck::SampleShading)
+    {
+      if(!features.sampleRateShading)
       {
         continue;
       }

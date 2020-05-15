@@ -1041,6 +1041,9 @@ public:
   void SubmitSemaphores();
   void FlushQ();
 
+  bool SelectGraphicsComputeQueue(const rdcarray<VkQueueFamilyProperties> &queueProps,
+                                  VkDeviceCreateInfo &createInfo, uint32_t &queueFamilyIndex);
+
   bool SeparateDepthStencil() const { return m_SeparateDepthStencil; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetDrawcallCB(VulkanDrawcallCallback *cb) { m_DrawcallCallback = cb; }

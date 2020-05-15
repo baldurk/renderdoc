@@ -1412,6 +1412,76 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(VkInstance instance,
   return VK_SUCCESS;
 }
 
+bool WrappedVulkan::SelectGraphicsComputeQueue(const rdcarray<VkQueueFamilyProperties> &queueProps,
+                                               VkDeviceCreateInfo &createInfo,
+                                               uint32_t &queueFamilyIndex)
+{
+  // storage for if we need to change the requested queues
+  static rdcarray<VkDeviceQueueCreateInfo> modQueues;
+
+  bool found = false;
+
+  // we need graphics, and if there is a graphics queue there must be a graphics & compute queue.
+  const VkQueueFlags search = (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
+
+  // for queue priorities, if we need it
+  static const float one = 1.0f;
+
+  for(uint32_t i = 0; i < createInfo.queueCreateInfoCount; i++)
+  {
+    uint32_t idx = createInfo.pQueueCreateInfos[i].queueFamilyIndex;
+    RDCASSERT(idx < queueProps.size());
+
+    // this requested queue is one we can use too
+    if((queueProps[idx].queueFlags & search) == search &&
+       createInfo.pQueueCreateInfos[i].queueCount > 0)
+    {
+      queueFamilyIndex = idx;
+      found = true;
+      break;
+    }
+  }
+
+  // if we didn't find it, search for which queue family we should add a request for
+  if(!found)
+  {
+    RDCDEBUG("App didn't request a queue family we can use - adding our own");
+
+    for(uint32_t i = 0; i < queueProps.size(); i++)
+    {
+      if((queueProps[i].queueFlags & search) == search)
+      {
+        queueFamilyIndex = i;
+        found = true;
+        break;
+      }
+    }
+
+    if(!found)
+    {
+      RDCERR("Can't add a queue with required properties for RenderDoc! Unsupported configuration");
+      return false;
+    }
+
+    // we found the queue family, add it
+    modQueues.resize(createInfo.queueCreateInfoCount + 1);
+    for(uint32_t i = 0; i < createInfo.queueCreateInfoCount; i++)
+      modQueues[i] = createInfo.pQueueCreateInfos[i];
+
+    modQueues[createInfo.queueCreateInfoCount].queueFamilyIndex = queueFamilyIndex;
+    modQueues[createInfo.queueCreateInfoCount].queueCount = 1;
+    modQueues[createInfo.queueCreateInfoCount].pQueuePriorities = &one;
+    modQueues[createInfo.queueCreateInfoCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    modQueues[createInfo.queueCreateInfoCount].pNext = NULL;
+    modQueues[createInfo.queueCreateInfoCount].flags = 0;
+
+    createInfo.pQueueCreateInfos = modQueues.data();
+    createInfo.queueCreateInfoCount++;
+  }
+
+  return true;
+}
+
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevice physicalDevice,
                                              const VkDeviceCreateInfo *pCreateInfo,
@@ -1508,15 +1578,17 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     AddRequiredExtensions(false, Extensions, supportedExtensions);
 
-    // Drop VK_KHR_driver_properties if it's not available
-    for(size_t i = 0; i < Extensions.size(); i++)
+    // Drop VK_KHR_driver_properties if it's not available, but add it if it is
+    bool driverPropsSupported = (supportedExtensions.find(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME) !=
+                                 supportedExtensions.end());
+    if(driverPropsSupported)
     {
-      if(Extensions[i] == VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME &&
-         supportedExtensions.find(Extensions[i]) == supportedExtensions.end())
-      {
-        Extensions.erase(i);
-        break;
-      }
+      if(!Extensions.contains(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME))
+        Extensions.push_back(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME);
+    }
+    else
+    {
+      Extensions.removeOne(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME);
     }
 
     for(size_t i = 0; i < Extensions.size(); i++)
@@ -1640,24 +1712,24 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     VkDevice device;
 
-    uint32_t qCount = 0;
-    ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, NULL);
+    rdcarray<VkQueueFamilyProperties> queueProps;
 
-    if(qCount > 16)
     {
-      RDCERR("Unexpected number of queue families: %u", qCount);
-      qCount = 16;
+      uint32_t qCount = 0;
+      ObjDisp(physicalDevice)
+          ->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, NULL);
+
+      queueProps.resize(qCount);
+      ObjDisp(physicalDevice)
+          ->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount,
+                                                   queueProps.data());
     }
 
-    VkQueueFamilyProperties props[16] = {};
-    ObjDisp(physicalDevice)
-        ->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, props);
-
     // to aid the search algorithm below, we apply implied transfer bit onto the queue properties.
-    for(uint32_t i = 0; i < qCount; i++)
+    for(VkQueueFamilyProperties &q : queueProps)
     {
-      if(props[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
-        props[i].queueFlags |= VK_QUEUE_TRANSFER_BIT;
+      if(q.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
+        q.queueFlags |= VK_QUEUE_TRANSFER_BIT;
     }
 
     PhysicalDeviceData &origData = m_OriginalPhysicalDevices[physicalDeviceIndex];
@@ -1730,22 +1802,23 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         {
           bool found = false;
 
-          for(uint32_t replayQIndex = 0; replayQIndex < qCount; replayQIndex++)
+          for(uint32_t replayQIndex = 0; replayQIndex < queueProps.size(); replayQIndex++)
           {
             // ignore queues that couldn't satisfy the required transfer granularity
             if(!CheckTransferGranularity(needGranularity,
-                                         props[replayQIndex].minImageTransferGranularity))
+                                         queueProps[replayQIndex].minImageTransferGranularity))
               continue;
 
             // ignore queues that don't have sparse binding, if we need that
-            if(needSparse && ((props[replayQIndex].queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) == 0))
+            if(needSparse &&
+               ((queueProps[replayQIndex].queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) == 0))
               continue;
 
             switch(search)
             {
               case SearchType::Failed: break;
               case SearchType::Universal:
-                if((props[replayQIndex].queueFlags & mask) ==
+                if((queueProps[replayQIndex].queueFlags & mask) ==
                    (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT))
                 {
                   destFamily = replayQIndex;
@@ -1753,7 +1826,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
                 }
                 break;
               case SearchType::GraphicsTransfer:
-                if((props[replayQIndex].queueFlags & mask) ==
+                if((queueProps[replayQIndex].queueFlags & mask) ==
                    (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT))
                 {
                   destFamily = replayQIndex;
@@ -1761,7 +1834,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
                 }
                 break;
               case SearchType::ComputeTransfer:
-                if((props[replayQIndex].queueFlags & mask) ==
+                if((queueProps[replayQIndex].queueFlags & mask) ==
                    (VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT))
                 {
                   destFamily = replayQIndex;
@@ -1769,9 +1842,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
                 }
                 break;
               case SearchType::GraphicsOrComputeTransfer:
-                if((props[replayQIndex].queueFlags & mask) ==
+                if((queueProps[replayQIndex].queueFlags & mask) ==
                        (VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT) ||
-                   (props[replayQIndex].queueFlags & mask) ==
+                   (queueProps[replayQIndex].queueFlags & mask) ==
                        (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT))
                 {
                   destFamily = replayQIndex;
@@ -1779,7 +1852,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
                 }
                 break;
               case SearchType::TransferOnly:
-                if((props[replayQIndex].queueFlags & mask) == VK_QUEUE_TRANSFER_BIT)
+                if((queueProps[replayQIndex].queueFlags & mask) == VK_QUEUE_TRANSFER_BIT)
                 {
                   destFamily = replayQIndex;
                   found = true;
@@ -1816,12 +1889,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
 
       RDCLOG("Remapping to queue family %u:", destFamily);
-      RDCLOG("   - %u queues available with %s", props[destFamily].queueCount,
-             ToStr(VkQueueFlagBits(props[destFamily].queueFlags)).c_str());
-      RDCLOG("     %u timestamp bits (%u,%u,%u) granularity", props[destFamily].timestampValidBits,
-             props[destFamily].minImageTransferGranularity.width,
-             props[destFamily].minImageTransferGranularity.height,
-             props[destFamily].minImageTransferGranularity.depth);
+      RDCLOG("   - %u queues available with %s", queueProps[destFamily].queueCount,
+             ToStr(VkQueueFlagBits(queueProps[destFamily].queueFlags)).c_str());
+      RDCLOG("     %u timestamp bits (%u,%u,%u) granularity",
+             queueProps[destFamily].timestampValidBits,
+             queueProps[destFamily].minImageTransferGranularity.width,
+             queueProps[destFamily].minImageTransferGranularity.height,
+             queueProps[destFamily].minImageTransferGranularity.depth);
 
       // loop over the queues, wrapping around if necessary to provide enough queues. The idea being
       // an application is more likely to use early queues than later ones, so if there aren't
@@ -1829,7 +1903,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       // indices
       for(uint32_t q = 0; q < origprops[origQIndex].queueCount; q++)
       {
-        m_QueueRemapping[origQIndex][q] = {destFamily, q % props[destFamily].queueCount};
+        m_QueueRemapping[origQIndex][q] = {destFamily, q % queueProps[destFamily].queueCount};
       }
     }
 
@@ -1844,7 +1918,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       uint32_t queueFamily = queueCreate.queueFamilyIndex;
       queueFamily = m_QueueRemapping[queueFamily][0].family;
       queueCreate.queueFamilyIndex = queueFamily;
-      uint32_t queueCount = RDCMIN(queueCreate.queueCount, props[queueFamily].queueCount);
+      uint32_t queueCount = RDCMIN(queueCreate.queueCount, queueProps[queueFamily].queueCount);
 
       if(queueCount < queueCreate.queueCount)
         RDCWARN("Truncating queue family request from %u queues to %u queues",
@@ -1895,64 +1969,12 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     createInfo.queueCreateInfoCount = (uint32_t)queueInfos.size();
     createInfo.pQueueCreateInfos = queueInfos.data();
 
-    bool found = false;
     uint32_t qFamilyIdx = 0;
 
-    // we need graphics, and if there is a graphics queue there must be a graphics & compute queue.
-    VkQueueFlags search = (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
-
-    // for queue priorities, if we need it
-    float one = 1.0f;
-
-    for(uint32_t i = 0; i < createInfo.queueCreateInfoCount; i++)
+    if(!SelectGraphicsComputeQueue(queueProps, createInfo, qFamilyIdx))
     {
-      uint32_t idx = createInfo.pQueueCreateInfos[i].queueFamilyIndex;
-      RDCASSERT(idx < qCount);
-
-      // this requested queue is one we can use too
-      if((props[idx].queueFlags & search) == search && createInfo.pQueueCreateInfos[i].queueCount > 0)
-      {
-        qFamilyIdx = idx;
-        found = true;
-        break;
-      }
-    }
-
-    // if we didn't find it, search for which queue family we should add a request for
-    if(!found)
-    {
-      RDCDEBUG("App didn't request a queue family we can use - adding our own");
-
-      for(uint32_t i = 0; i < qCount; i++)
-      {
-        if((props[i].queueFlags & search) == search)
-        {
-          qFamilyIdx = i;
-          found = true;
-          break;
-        }
-      }
-
-      if(!found)
-      {
-        RDCERR(
-            "Can't add a queue with required properties for RenderDoc! Unsupported configuration");
-      }
-      else
-      {
-        // we found the queue family, add it
-        VkDeviceQueueCreateInfo newQueue;
-
-        newQueue.queueFamilyIndex = qFamilyIdx;
-        newQueue.queueCount = 1;
-        newQueue.pQueuePriorities = &one;
-
-        queueInfos.push_back(newQueue);
-
-        // reset these in case the vector resized
-        createInfo.queueCreateInfoCount = (uint32_t)queueInfos.size();
-        createInfo.pQueueCreateInfos = queueInfos.data();
-      }
+      RDCERR("Can't add a queue with required properties for RenderDoc! Unsupported configuration");
+      return false;
     }
 
     VkPhysicalDeviceFeatures enabledFeatures = {0};
@@ -2501,10 +2523,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCWARN(
           "depthClamp = false, overlays like highlight drawcall won't show depth-clipped pixels.");
 
+    // we have a fallback for this case, so no warning
     if(availFeatures.fillModeNonSolid)
       enabledFeatures.fillModeNonSolid = true;
 
-    // we have a fallback for this case, so no warning
+    // don't warn if this isn't available, we just won't report the counters
+    if(availFeatures.pipelineStatisticsQuery)
+      enabledFeatures.pipelineStatisticsQuery = true;
 
     if(availFeatures.geometryShader)
       enabledFeatures.geometryShader = true;
@@ -2601,6 +2626,11 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       RDCWARN(
           "shaderStorageImageMultisample = false, accurately replaying 2DMS textures will not be "
           "possible");
+
+    if(availFeatures.occlusionQueryPrecise)
+      enabledFeatures.occlusionQueryPrecise = true;
+    else
+      RDCWARN("occlusionQueryPrecise = false, samples passed counter will not be available");
 
     if(availFeatures.fragmentStoresAndAtomics)
       enabledFeatures.fragmentStoresAndAtomics = true;
@@ -3071,8 +3101,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           ->GetPhysicalDeviceFormatProperties(Unwrap(physicalDevice), VkFormat(i),
                                               &m_PhysicalDeviceData.fmtprops[i]);
 
-    m_PhysicalDeviceData.queueCount = qCount;
-    memcpy(m_PhysicalDeviceData.queueProps, props, qCount * sizeof(VkQueueFamilyProperties));
+    m_PhysicalDeviceData.queueCount = (uint32_t)queueProps.size();
+    for(size_t i = 0; i < queueProps.size(); i++)
+      m_PhysicalDeviceData.queueProps[i] = queueProps[i];
 
     ChooseMemoryIndices();
 
@@ -3143,78 +3174,24 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   createInfo.ppEnabledExtensionNames = Extensions.data();
   createInfo.enabledExtensionCount = (uint32_t)Extensions.size();
 
-  uint32_t qCount = 0;
   VkResult vkr = VK_SUCCESS;
 
-  ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, NULL);
+  rdcarray<VkQueueFamilyProperties> queueProps;
 
-  VkQueueFamilyProperties *props = new VkQueueFamilyProperties[qCount];
-  ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, props);
+  {
+    uint32_t qCount = 0;
+    ObjDisp(physicalDevice)->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, NULL);
+
+    queueProps.resize(qCount);
+    ObjDisp(physicalDevice)
+        ->GetPhysicalDeviceQueueFamilyProperties(Unwrap(physicalDevice), &qCount, queueProps.data());
+  }
 
   // find a queue that supports all capabilities, and if one doesn't exist, add it.
-  bool found = false;
   uint32_t qFamilyIdx = 0;
 
-  // we need graphics, and if there is a graphics queue there must be a graphics & compute queue.
-  VkQueueFlags search = (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
-
-  // for queue priorities, if we need it
-  float one = 1.0f;
-
-  // if we need to change the requested queues, it will point to this
-  VkDeviceQueueCreateInfo *modQueues = NULL;
-
-  for(uint32_t i = 0; i < createInfo.queueCreateInfoCount; i++)
-  {
-    uint32_t idx = createInfo.pQueueCreateInfos[i].queueFamilyIndex;
-    RDCASSERT(idx < qCount);
-
-    // this requested queue is one we can use too
-    if((props[idx].queueFlags & search) == search && createInfo.pQueueCreateInfos[i].queueCount > 0)
-    {
-      qFamilyIdx = idx;
-      found = true;
-      break;
-    }
-  }
-
-  // if we didn't find it, search for which queue family we should add a request for
-  if(!found)
-  {
-    RDCDEBUG("App didn't request a queue family we can use - adding our own");
-
-    for(uint32_t i = 0; i < qCount; i++)
-    {
-      if((props[i].queueFlags & search) == search)
-      {
-        qFamilyIdx = i;
-        found = true;
-        break;
-      }
-    }
-
-    if(!found)
-    {
-      SAFE_DELETE_ARRAY(props);
-      RDCERR("Can't add a queue with required properties for RenderDoc! Unsupported configuration");
-      return VK_ERROR_INITIALIZATION_FAILED;
-    }
-
-    // we found the queue family, add it
-    modQueues = new VkDeviceQueueCreateInfo[createInfo.queueCreateInfoCount + 1];
-    for(uint32_t i = 0; i < createInfo.queueCreateInfoCount; i++)
-      modQueues[i] = createInfo.pQueueCreateInfos[i];
-
-    modQueues[createInfo.queueCreateInfoCount].queueFamilyIndex = qFamilyIdx;
-    modQueues[createInfo.queueCreateInfoCount].queueCount = 1;
-    modQueues[createInfo.queueCreateInfoCount].pQueuePriorities = &one;
-    modQueues[createInfo.queueCreateInfoCount].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    modQueues[createInfo.queueCreateInfoCount].pNext = NULL;
-    modQueues[createInfo.queueCreateInfoCount].flags = 0;
-
-    createInfo.pQueueCreateInfos = modQueues;
-    createInfo.queueCreateInfoCount++;
-  }
+  if(!SelectGraphicsComputeQueue(queueProps, createInfo, qFamilyIdx))
+    return VK_ERROR_INITIALIZATION_FAILED;
 
   m_QueueFamilies.resize(createInfo.queueCreateInfoCount);
   m_QueueFamilyCounts.resize(createInfo.queueCreateInfoCount);
@@ -3247,7 +3224,6 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
   if(layerCreateInfo == NULL)
   {
-    SAFE_DELETE_ARRAY(props);
     RDCERR("Couldn't find loader device create info, which is required. Incompatible loader?");
     return VK_ERROR_INITIALIZATION_FAILED;
   }
@@ -3279,14 +3255,10 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     m_SetDeviceLoaderData = layerCreateInfo->u.pfnSetDeviceLoaderData;
   }
 
-  // patch enabled features
+  // patch enabled features needed at capture time
 
   VkPhysicalDeviceFeatures availFeatures;
-
   ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &availFeatures);
-
-  VkPhysicalDeviceProperties availProps;
-  ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), &availProps);
 
   // default to all off. This is equivalent to createInfo.pEnabledFeatures == NULL
   VkPhysicalDeviceFeatures enabledFeatures = {0};
@@ -3314,42 +3286,23 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   else if(createInfo.pEnabledFeatures)
     enabledFeatures = *createInfo.pEnabledFeatures;
 
+  // enable this feature as it's needed at capture time to save MSAA initial states
   if(availFeatures.shaderStorageImageWriteWithoutFormat)
     enabledFeatures.shaderStorageImageWriteWithoutFormat = true;
   else
     RDCWARN(
-        "shaderStorageImageWriteWithoutFormat = false, save/load from 2DMS textures will not be "
-        "possible");
-
-  if(availFeatures.shaderStorageImageMultisample)
-    enabledFeatures.shaderStorageImageMultisample = true;
-  else
-    RDCWARN(
-        "shaderStorageImageMultisample = false, accurately replaying from 2DMS textures will not "
-        "be possible");
-
-  if(availFeatures.sampleRateShading)
-    enabledFeatures.sampleRateShading = true;
-  else
-    RDCWARN(
-        "sampleRateShading = false, save/load from depth 2DMS textures will not be "
-        "possible");
-
-  if(availFeatures.occlusionQueryPrecise)
-    enabledFeatures.occlusionQueryPrecise = true;
-  else
-    RDCWARN("occlusionQueryPrecise = false, samples passed counter will not be available");
-
-  if(availFeatures.pipelineStatisticsQuery)
-    enabledFeatures.pipelineStatisticsQuery = true;
-  else
-    RDCWARN("pipelineStatisticsQuery = false, pipeline counters will not work");
+        "shaderStorageImageWriteWithoutFormat = false, multisampled textures will have empty "
+        "contents at frame start.");
 
   // patch the enabled features
   if(enabledFeatures2)
     enabledFeatures2->features = enabledFeatures;
   else
     createInfo.pEnabledFeatures = &enabledFeatures;
+
+  // we need to enable non-subsampled images because we're going to remove subsampled bit from
+  // images, and we want to ensure that it's legal! We verified that this is OK before whitelisting
+  // the extension
 
   VkPhysicalDeviceFragmentDensityMapFeaturesEXT *fragmentDensityMapFeatures =
       (VkPhysicalDeviceFragmentDensityMapFeaturesEXT *)FindNextStruct(
@@ -3358,13 +3311,6 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   {
     fragmentDensityMapFeatures->fragmentDensityMapNonSubsampledImages = true;
   }
-
-  VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR *separateDepthStencilFeatures =
-      (VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR *)FindNextStruct(
-          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES_KHR);
-
-  if(separateDepthStencilFeatures)
-    m_SeparateDepthStencil |= (separateDepthStencilFeatures->separateDepthStencilLayouts != VK_FALSE);
 
   VkPhysicalDeviceBufferDeviceAddressFeaturesEXT *bufferAddressFeaturesEXT =
       (VkPhysicalDeviceBufferDeviceAddressFeaturesEXT *)FindNextStruct(
@@ -3384,11 +3330,17 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   if(bufferAddressFeaturesEXT)
     bufferAddressFeaturesEXT->bufferDeviceAddressCaptureReplay = VK_TRUE;
 
+  // check features that we care about at capture time
+
+  const VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR *separateDepthStencilFeatures =
+      (const VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR *)FindNextStruct(
+          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES_KHR);
+
+  if(separateDepthStencilFeatures)
+    m_SeparateDepthStencil |= (separateDepthStencilFeatures->separateDepthStencilLayouts != VK_FALSE);
+
   VkResult ret;
   SERIALISE_TIME_CALL(ret = createFunc(Unwrap(physicalDevice), &createInfo, pAllocator, pDevice));
-
-  // don't serialise out any of the pNext stuff for layer initialisation
-  RemoveNextStruct(&createInfo, VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO);
 
   if(ret == VK_SUCCESS)
   {
@@ -3400,11 +3352,16 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     {
       Chunk *chunk = NULL;
 
+      VkDeviceCreateInfo serialiseCreateInfo = *pCreateInfo;
+
+      // don't serialise out any of the pNext stuff for layer initialisation
+      RemoveNextStruct(&serialiseCreateInfo, VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO);
+
       {
         CACHE_THREAD_SERIALISER();
 
         SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateDevice);
-        Serialise_vkCreateDevice(ser, physicalDevice, &createInfo, NULL, pDevice);
+        Serialise_vkCreateDevice(ser, physicalDevice, &serialiseCreateInfo, NULL, pDevice);
 
         chunk = scope.Get();
       }
@@ -3419,7 +3376,10 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       record->instDevInfo->brokenGetDeviceProcAddr =
           GetRecord(m_Instance)->instDevInfo->brokenGetDeviceProcAddr;
 
-      record->instDevInfo->vulkanVersion = availProps.apiVersion;
+      VkPhysicalDeviceProperties physProps;
+      ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), &physProps);
+
+      record->instDevInfo->vulkanVersion = physProps.apiVersion;
 
 #undef CheckExt
 #define CheckExt(name, ver) \
@@ -3535,8 +3495,9 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
     ChooseMemoryIndices();
 
-    m_PhysicalDeviceData.queueCount = qCount;
-    memcpy(m_PhysicalDeviceData.queueProps, props, qCount * sizeof(VkQueueFamilyProperties));
+    m_PhysicalDeviceData.queueCount = (uint32_t)queueProps.size();
+    for(size_t i = 0; i < queueProps.size(); i++)
+      m_PhysicalDeviceData.queueProps[i] = queueProps[i];
 
     m_ShaderCache = new VulkanShaderCache(this);
 
@@ -3544,9 +3505,6 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
     m_DebugManager = new VulkanDebugManager(this);
   }
-
-  SAFE_DELETE_ARRAY(props);
-  SAFE_DELETE_ARRAY(modQueues);
 
   FirstFrame();
 
