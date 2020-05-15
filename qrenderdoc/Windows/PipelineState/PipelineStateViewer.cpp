@@ -734,7 +734,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderBindpointMapping &bind
       QString cbufName = cbuf.name;
       if(cbufName == lit("$Globals"))
         cbufName = lit("_Globals");
-      cbuffers += lit("cbuffer %1 : register(b%2) {\n").arg(cbufName).arg(cbuf.bindPoint);
+      cbuffers += lit("cbuffer %1 : register(b%2) {\n").arg(cbufName).arg(reg);
       MakeShaderVariablesHLSL(true, cbuf.variables, cbuffers, hlsl);
       cbuffers += lit("};\n\n");
 
