@@ -272,6 +272,7 @@ public:
     return new ShaderDebugTrace();
   }
   rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger) { return {}; }
+  void FreeDebugger(ShaderDebugger *debugger) { delete debugger; }
   void BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
                          rdcstr &errors)

@@ -3476,6 +3476,11 @@ rdcarray<ShaderDebugState> GLReplay::ContinueDebug(ShaderDebugger *debugger)
   return {};
 }
 
+void GLReplay::FreeDebugger(ShaderDebugger *debugger)
+{
+  delete debugger;
+}
+
 void GLReplay::MakeCurrentReplayContext(GLWindowingData *ctx)
 {
   static GLWindowingData *prev = NULL;

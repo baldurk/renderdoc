@@ -2964,3 +2964,8 @@ rdcarray<ShaderDebugState> D3D12Replay::ContinueDebug(ShaderDebugger *debugger)
 
   return interpreter->ContinueDebug(&apiWrapper);
 }
+
+void D3D12Replay::FreeDebugger(ShaderDebugger *debugger)
+{
+  delete debugger;
+}

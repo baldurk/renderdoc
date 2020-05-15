@@ -237,6 +237,7 @@ public:
   ShaderDebugTrace *DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                 const uint32_t threadid[3]);
   rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger);
+  void FreeDebugger(ShaderDebugger *debugger);
 
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
                       uint32_t x, uint32_t y);

@@ -95,6 +95,7 @@ rdcstr DoStringise(const ReplayProxyPacket &el)
     STRINGISE_ENUM_NAMED(eReplayProxy_GetDriverInfo, "GetDriverInfo");
 
     STRINGISE_ENUM_NAMED(eReplayProxy_ContinueDebug, "ContinueDebug");
+    STRINGISE_ENUM_NAMED(eReplayProxy_FreeDebugger, "FreeDebugger");
   }
   END_ENUM_STRINGISE();
 }
@@ -1602,6 +1603,35 @@ rdcarray<ShaderDebugState> ReplayProxy::ContinueDebug(ShaderDebugger *debugger)
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
+void ReplayProxy::Proxied_FreeDebugger(ParamSerialiser &paramser, ReturnSerialiser &retser,
+                                       ShaderDebugger *debugger)
+{
+  const ReplayProxyPacket expectedPacket = eReplayProxy_FreeDebugger;
+  ReplayProxyPacket packet = eReplayProxy_FreeDebugger;
+
+  {
+    BEGIN_PARAMS();
+    uint64_t debugger_ptr = (uint64_t)(uintptr_t)debugger;
+    SERIALISE_ELEMENT(debugger_ptr);
+    debugger = (ShaderDebugger *)(uintptr_t)debugger_ptr;
+    END_PARAMS();
+  }
+
+  {
+    REMOTE_EXECUTION();
+    if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
+      m_Remote->FreeDebugger(debugger);
+  }
+
+  CheckError(packet, expectedPacket);
+}
+
+void ReplayProxy::FreeDebugger(ShaderDebugger *debugger)
+{
+  PROXY_FUNCTION(FreeDebugger, debugger);
+}
+
+template <typename ParamSerialiser, typename ReturnSerialiser>
 void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSerialiser &retser,
                                             uint32_t eventId)
 {
@@ -2790,6 +2820,7 @@ bool ReplayProxy::Tick(int type)
       break;
     }
     case eReplayProxy_ContinueDebug: ContinueDebug(NULL); break;
+    case eReplayProxy_FreeDebugger: FreeDebugger(NULL); break;
     case eReplayProxy_RenderOverlay:
       RenderOverlay(ResourceId(), Subresource(), CompType::Typeless, FloatVector(),
                     DebugOverlay::NoOverlay, 0, rdcarray<uint32_t>());

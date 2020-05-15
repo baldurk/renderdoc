@@ -188,6 +188,7 @@ public:
   virtual ShaderDebugTrace *DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                         const uint32_t threadid[3]) = 0;
   virtual rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger) = 0;
+  virtual void FreeDebugger(ShaderDebugger *debugger) = 0;
 
   virtual ResourceId RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
                                    FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,

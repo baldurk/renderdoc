@@ -4263,3 +4263,8 @@ rdcarray<ShaderDebugState> VulkanReplay::ContinueDebug(ShaderDebugger *debugger)
 
   return ret;
 }
+
+void VulkanReplay::FreeDebugger(ShaderDebugger *debugger)
+{
+  delete debugger;
+}

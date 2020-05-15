@@ -102,6 +102,7 @@ enum ReplayProxyPacket
   eReplayProxy_GetAvailableGPUs,
 
   eReplayProxy_ContinueDebug,
+  eReplayProxy_FreeDebugger,
 };
 
 DECLARE_REFLECTION_ENUM(ReplayProxyPacket);
@@ -529,6 +530,7 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace *, DebugThread, uint32_t eventId,
                              const uint32_t groupid[3], const uint32_t threadid[3]);
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderDebugState>, ContinueDebug, ShaderDebugger *debugger);
+  IMPLEMENT_FUNCTION_PROXIED(void, FreeDebugger, ShaderDebugger *debugger);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderEncoding>, GetTargetShaderEncodings);
   IMPLEMENT_FUNCTION_PROXIED(void, BuildTargetShader, ShaderEncoding sourceEncoding,

@@ -1625,7 +1625,7 @@ void ReplayController::FreeTrace(ShaderDebugTrace *trace)
 
   if(trace)
   {
-    SAFE_DELETE(trace->debugger);
+    m_pDevice->FreeDebugger(trace->debugger);
     delete trace;
   }
 }
