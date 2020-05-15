@@ -341,6 +341,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, DebugVariableReference &el)
 {
   SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(component);
 
   SIZE_CHECK(32);
