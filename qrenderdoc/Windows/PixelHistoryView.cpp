@@ -278,6 +278,9 @@ public:
             {
               QString ret = tr("Primitive %1\n").arg(mod.primitiveID);
 
+              if(mod.primitiveID == ~0U)
+                ret = tr("Unknown primitive\n");
+
               if(mod.shaderDiscarded)
                 ret += failureString(mod);
 

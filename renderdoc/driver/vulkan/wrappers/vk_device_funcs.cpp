@@ -2510,8 +2510,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       enabledFeatures.geometryShader = true;
     else
       RDCWARN(
-          "geometryShader = false, lit mesh rendering will not be available if rendering on this "
-          "device.");
+          "geometryShader = false, pixel history primitive ID and triangle size overlay will not "
+          "be available, and local rendering on this device will not support lit mesh views.");
 
     // enable these features for simplicity, since we use them when available in the shader
     // debugging to simplify samples. If minlod isn't used then we omit it, and that's fine because

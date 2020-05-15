@@ -1991,6 +1991,12 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     {
       for(uint32_t i = 0; i < 2; i++)
       {
+        if(i == 0 && !m_pDriver->GetDeviceFeatures().geometryShader)
+        {
+          // without geometryShader, can't read primitive ID in pixel shader
+          continue;
+        }
+
         VkImageMemoryBarrier barrier = {
             VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             NULL,
@@ -3141,24 +3147,35 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
       }
     }
 
-    if(primitivesToCheck > 0)
+    // without the geometry shader feature we can't get the primitive ID, so we can't establish
+    // discard per-primitive so we assume all shaders don't discard.
+    if(m_pDriver->GetDeviceFeatures().geometryShader)
     {
-      VkMarkerRegion discardedRegion("VulkanPixelHistoryDiscardedFragmentsCallback");
-      VkQueryPool occlPool;
-      CreateOcclusionPool(m_pDriver, primitivesToCheck, &occlPool);
+      if(primitivesToCheck > 0)
+      {
+        VkMarkerRegion discardedRegion("VulkanPixelHistoryDiscardedFragmentsCallback");
+        VkQueryPool occlPool;
+        CreateOcclusionPool(m_pDriver, primitivesToCheck, &occlPool);
 
-      // Replay to see which primitives were discarded.
-      VulkanPixelHistoryDiscardedFragmentsCallback discardedCb(m_pDriver, shaderCache, callbackInfo,
-                                                               discardedPrimsEvents, occlPool);
-      m_pDriver->ReplayLog(0, eventsWithFrags.rbegin()->first, eReplay_Full);
-      m_pDriver->SubmitCmds();
-      m_pDriver->FlushQ();
-      discardedCb.FetchOcclusionResults();
-      ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), occlPool, NULL);
+        // Replay to see which primitives were discarded.
+        VulkanPixelHistoryDiscardedFragmentsCallback discardedCb(
+            m_pDriver, shaderCache, callbackInfo, discardedPrimsEvents, occlPool);
+        m_pDriver->ReplayLog(0, eventsWithFrags.rbegin()->first, eReplay_Full);
+        m_pDriver->SubmitCmds();
+        m_pDriver->FlushQ();
+        discardedCb.FetchOcclusionResults();
+        ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), occlPool, NULL);
 
+        for(size_t h = 0; h < history.size(); h++)
+          history[h].shaderDiscarded =
+              discardedCb.PrimitiveDiscarded(history[h].eventId, history[h].primitiveID);
+      }
+    }
+    else
+    {
+      // mark that we have no primitive IDs
       for(size_t h = 0; h < history.size(); h++)
-        history[h].shaderDiscarded =
-            discardedCb.PrimitiveDiscarded(history[h].eventId, history[h].primitiveID);
+        history[h].primitiveID = ~0U;
     }
 
     uint32_t discardOffset = 0;
