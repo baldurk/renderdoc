@@ -1020,6 +1020,14 @@ public:
 
     VkPipeline pipe = MakePipe(constParams, uintTex, sintTex);
 
+    if(pipe == VK_NULL_HANDLE)
+    {
+      m_pDriver->AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
+                                 MessageSource::RuntimeWarning,
+                                 "Failed to compile graphics pipeline for sampling operation");
+      return false;
+    }
+
     VkDescriptorImageInfo samplerWriteInfo = {Unwrap(sampler), VK_NULL_HANDLE,
                                               VK_IMAGE_LAYOUT_UNDEFINED};
     VkDescriptorImageInfo imageWriteInfo = {VK_NULL_HANDLE, Unwrap(sampleView), layout};
@@ -1142,6 +1150,14 @@ public:
       ShaderConstParameters pipeParams = {};
       pipeParams.operation = (uint32_t)rdcspv::Op::ExtInst;
       m_DebugData.MathPipe = MakePipe(pipeParams, false, false);
+
+      if(m_DebugData.MathPipe == VK_NULL_HANDLE)
+      {
+        m_pDriver->AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
+                                   MessageSource::RuntimeWarning,
+                                   "Failed to compile graphics pipeline for math operation");
+        return false;
+      }
     }
 
     {
@@ -1582,7 +1598,7 @@ private:
                                                         1, &graphicsPipeInfo, NULL, &pipe);
     if(vkr != VK_SUCCESS)
     {
-      RDCERR("Failed creating debug pipeline");
+      RDCERR("Failed creating debug pipeline: %s", ToStr(vkr).c_str());
       return VK_NULL_HANDLE;
     }
 
