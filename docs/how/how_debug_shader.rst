@@ -5,7 +5,7 @@ This page goes into detail about how to set up your captures for debugging shade
 
 .. warning::
 
-   Shader debugging is currently only supported in D3D11. On other APIs the debug options listed below will either be hidden or disabled.
+   Shader debugging is currently only supported in D3D11 and D3D12. On other APIs the debug options listed below will either be hidden or disabled.
 
 Including debug info in shaders
 -------------------------------
