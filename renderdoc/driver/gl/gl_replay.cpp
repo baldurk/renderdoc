@@ -2325,7 +2325,7 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     {
       MakeCurrentReplayContext(m_DebugCtx);
 
-      GLenum finalFormat = IsSRGBFormat(intFormat) ? eGL_SRGB8_ALPHA8 : remapFormat;
+      GLenum finalFormat = remapFormat;
       GLenum newtarget = (texType == eGL_TEXTURE_3D ? eGL_TEXTURE_3D : eGL_TEXTURE_2D);
 
       // create temporary texture of width/height in the new format to render to
