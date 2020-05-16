@@ -38,6 +38,7 @@ class MainWindow;
 }
 
 class RDLabel;
+class RDMenu;
 class LambdaThread;
 class QMimeData;
 class QProgressBar;
@@ -206,7 +207,7 @@ private:
   RDLabel *statusIcon;
   RDLabel *statusText;
   QProgressBar *statusProgress;
-  QMenu *contextChooserMenu;
+  RDMenu *contextChooserMenu;
   QToolButton *contextChooser;
 
   QAction *updateAction = NULL;

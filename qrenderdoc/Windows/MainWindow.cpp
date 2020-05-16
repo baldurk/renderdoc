@@ -26,6 +26,7 @@
 #include <QDesktopServices>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QKeyEvent>
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QNetworkAccessManager>
@@ -39,6 +40,7 @@
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Widgets/Extended/RDLabel.h"
+#include "Widgets/Extended/RDMenu.h"
 #include "Widgets/ReplayOptionsSelector.h"
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
@@ -116,7 +118,7 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   QObject::connect(ui->action_Clear_Capture_Settings_History, &QAction::triggered, this,
                    &MainWindow::ClearRecentCaptureSettings);
 
-  contextChooserMenu = new QMenu(this);
+  contextChooserMenu = new RDMenu(this);
 
   FillRemotesMenu(contextChooserMenu, true);
 
@@ -130,6 +132,21 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   contextChooser->setContextMenuPolicy(Qt::DefaultContextMenu);
   QObject::connect(contextChooserMenu, &QMenu::aboutToShow, this,
                    &MainWindow::contextChooser_menuShowing);
+  QObject::connect(contextChooserMenu, &RDMenu::keyPress, [this](QKeyEvent *ev) {
+    QList<QAction *> actions = contextChooserMenu->actions();
+    if(ev->key() == Qt::Key_L)
+    {
+      actions.last()->trigger();
+      contextChooserMenu->close();
+    }
+    else if(ev->key() >= Qt::Key_1 && ev->key() <= Qt::Key_9)
+    {
+      int idx = ev->key() - Qt::Key_1;
+      if(idx < actions.size())
+        actions[idx]->trigger();
+      contextChooserMenu->close();
+    }
+  });
 
   ui->statusBar->addWidget(contextChooser);
 
@@ -402,6 +419,8 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   ui->extension_dummy_Window->setVisible(false);
   ui->extension_dummy_Tools->setVisible(false);
   ui->extension_dummy_Help->setVisible(false);
+
+  RegisterShortcut("ALT+R", this, [this](QWidget *) { contextChooser->click(); });
 }
 
 MainWindow::~MainWindow()
@@ -1777,6 +1796,8 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
 
   rdcarray<RemoteHost> hosts = m_Ctx.Config().GetRemoteHosts();
 
+  int idx = 1;
+
   for(int i = 0; i < hosts.count(); i++)
   {
     RemoteHost host = hosts[i];
@@ -1799,6 +1820,9 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
       action->setText(tr("%1 (Online)").arg(host.Name()));
     else
       action->setText(tr("%1 (Offline)").arg(host.Name()));
+
+    action->setText(lit("%1: %2").arg(idx++).arg(action->text()));
+
     QObject::connect(action, &QAction::triggered, this, &MainWindow::switchContext);
     action->setData(i);
 
