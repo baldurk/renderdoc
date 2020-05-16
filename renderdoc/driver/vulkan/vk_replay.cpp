@@ -3984,6 +3984,10 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, 
   Process::RegisterEnvironmentModification(
       EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_RTSS_LAYER", "1"));
 
+  // OBS's layer causes crashes, disable it too.
+  Process::RegisterEnvironmentModification(
+      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_VULKAN_OBS_CAPTURE", "1"));
+
   Process::ApplyEnvironmentModification();
 
   void *module = LoadVulkanLibrary();
