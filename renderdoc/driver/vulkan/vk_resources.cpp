@@ -1690,7 +1690,6 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_B5G5R5A1_UNORM_PACK16:
     case VK_FORMAT_A1R5G5B5_UNORM_PACK16: ret.type = ResourceFormatType::R5G5B5A1; break;
     case VK_FORMAT_D16_UNORM_S8_UINT: ret.type = ResourceFormatType::D16S8; break;
-    case VK_FORMAT_X8_D24_UNORM_PACK32:
     case VK_FORMAT_D24_UNORM_S8_UINT: ret.type = ResourceFormatType::D24S8; break;
     case VK_FORMAT_D32_SFLOAT_S8_UINT: ret.type = ResourceFormatType::D32S8; break;
     case VK_FORMAT_BC1_RGB_UNORM_BLOCK:
@@ -3135,6 +3134,13 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
       else
         RDCERR("Unrecognised component type");
     }
+    else if(fmt.compByteWidth == 3)
+    {
+      if(fmt.compType == CompType::Depth)
+        ret = VK_FORMAT_X8_D24_UNORM_PACK32;
+      else
+        RDCERR("Unrecognised component type");
+    }
     else if(fmt.compByteWidth == 2)
     {
       if(fmt.compType == CompType::Float)
@@ -4208,10 +4214,6 @@ TEST_CASE("Vulkan formats", "[format][vulkan]")
       {
         CHECK(reconstructed == VK_FORMAT_R8G8B8A8_SRGB);
       }
-      else if(f == VK_FORMAT_X8_D24_UNORM_PACK32)
-      {
-        CHECK(reconstructed == VK_FORMAT_D24_UNORM_S8_UINT);
-      }
       else
       {
         CHECK(reconstructed == original);
@@ -4273,6 +4275,10 @@ TEST_CASE("Vulkan formats", "[format][vulkan]")
         continue;
 
       INFO("Format is " << ToStr(f));
+
+      // byte size for D24X8 is the same as D24S8!
+      if(fmt.compByteWidth == 3)
+        fmt.compByteWidth = 4;
 
       uint32_t size = fmt.compCount * fmt.compByteWidth * 123 * 456;
 
