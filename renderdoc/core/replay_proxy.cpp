@@ -2261,17 +2261,14 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
       case ResourceFormatType::BC1:
       case ResourceFormatType::BC2:
       case ResourceFormatType::BC3:
-      case ResourceFormatType::BC4:
-      case ResourceFormatType::BC5:
+      case ResourceFormatType::BC7:
         tex.format.compType = CompType::UNorm;
         params.remap = RemapTexture::RGBA8;
         break;
+      case ResourceFormatType::BC4:
+      case ResourceFormatType::BC5:
       case ResourceFormatType::BC6:
         tex.format.compType = CompType::Float;
-        params.remap = RemapTexture::RGBA16;
-        break;
-      case ResourceFormatType::BC7:
-        tex.format.compType = CompType::UNorm;
         params.remap = RemapTexture::RGBA16;
         break;
       case ResourceFormatType::ASTC:
