@@ -2293,11 +2293,23 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
   else
   {
     if(tex.format.compByteWidth == 1)
+    {
       params.remap = RemapTexture::RGBA8;
+
+      if(tex.format.compType == CompType::SNorm || tex.format.compType == CompType::UNormSRGB)
+      {
+        params.remap = RemapTexture::RGBA16;
+        tex.format.compType = CompType::Float;
+      }
+    }
     else if(tex.format.compByteWidth == 2)
+    {
       params.remap = RemapTexture::RGBA16;
+    }
     else
+    {
       params.remap = RemapTexture::RGBA32;
+    }
 
     // always remap depth to RGBA32F, because D16_UNORM will lose precision if remapped to R16_FLOAT
     if(tex.format.compType == CompType::Depth)
