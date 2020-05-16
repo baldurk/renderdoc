@@ -2723,8 +2723,10 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
         drv.glGetTexImage(target, (GLint)s.mip, fmt, type, data.data());
       }
 
-      // packed D24S8 comes out the wrong way around from what we expect, so we re-swizzle it.
-      if(intFormat == eGL_DEPTH24_STENCIL8)
+      // GL puts D24 in the top bits (whether or not there's stencil). We choose to standardise it
+      // to be in the low bits, so swizzle here. for D24 with no stencil, the stencil bits are
+      // undefined so we can move them around and it means nothing.
+      if(intFormat == eGL_DEPTH24_STENCIL8 || intFormat == eGL_DEPTH_COMPONENT24)
       {
         uint32_t *ptr = (uint32_t *)data.data();
 
@@ -3224,8 +3226,11 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
 
     bytebuf swizzled;
 
-    // packed D24S8 is expected the wrong way around from comes in, so we re-swizzle it here
-    if(texdetails.internalFormat == eGL_DEPTH24_STENCIL8)
+    // GL puts D24 in the top bits (whether or not there's stencil). We choose to standardise it
+    // to be in the low bits, so swizzle here. for D24 with no stencil, the stencil bits are
+    // undefined so we can move them around and it means nothing.
+    if(texdetails.internalFormat == eGL_DEPTH24_STENCIL8 ||
+       texdetails.internalFormat == eGL_DEPTH_COMPONENT24)
     {
       const uint32_t *srcptr = (const uint32_t *)data;
       swizzled.resize(dataSize);
