@@ -735,6 +735,12 @@
     <ClCompile Include="Windows\Dialogs\ConfigEditor.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\Extended\RDMenu.cpp">
+      <Filter>Widgets\Extended</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDMenu.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1495,6 +1501,9 @@
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\ConfigEditor.ui">
       <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDMenu.h">
+      <Filter>Widgets\Extended</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

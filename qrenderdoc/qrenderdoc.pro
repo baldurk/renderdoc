@@ -190,6 +190,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Widgets/Extended/RDLineEdit.cpp \
     Widgets/Extended/RDTextEdit.cpp \
     Widgets/Extended/RDLabel.cpp \
+    Widgets/Extended/RDMenu.cpp \
     Widgets/Extended/RDHeaderView.cpp \
     Widgets/Extended/RDToolButton.cpp \
     Widgets/Extended/RDDoubleSpinBox.cpp \
@@ -269,6 +270,7 @@ HEADERS += Code/CaptureContext.h \
     Widgets/Extended/RDLineEdit.h \
     Widgets/Extended/RDTextEdit.h \
     Widgets/Extended/RDLabel.h \
+    Widgets/Extended/RDMenu.h \
     Widgets/Extended/RDHeaderView.h \
     Widgets/Extended/RDToolButton.h \
     Widgets/Extended/RDDoubleSpinBox.h \
