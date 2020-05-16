@@ -217,6 +217,7 @@ static bool HandleHandshakeClient(ActiveClient &activeClient, ClientThread *thre
           RDCLOG("Promoting connection from %u.%u.%u.%u to active.", Network::GetIPOctet(ip, 0),
                  Network::GetIPOctet(ip, 1), Network::GetIPOctet(ip, 2), Network::GetIPOctet(ip, 3));
           activeConnectionEstablished = true;
+          activeClient.active = threadData;
         }
       }
 
