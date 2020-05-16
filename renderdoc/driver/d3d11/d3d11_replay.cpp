@@ -2138,7 +2138,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
     s.mip = RDCMIN(mips - 1, s.mip);
     s.slice = RDCMIN(desc.ArraySize - 1, s.slice);
-    s.sample = RDCMIN(desc.SampleDesc.Count - 1, s.sample);
+    s.sample = RDCMIN(sampleCount - 1, s.sample);
 
     if(params.remap != RemapTexture::NoRemap)
     {
