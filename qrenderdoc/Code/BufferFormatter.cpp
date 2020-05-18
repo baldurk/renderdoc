@@ -571,7 +571,7 @@ QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
     case ResourceFormatType::R5G6B5:
     case ResourceFormatType::R5G5B5A1: baseType = lit("xshort"); break;
     case ResourceFormatType::R9G9B9E5: baseType = lit("xint"); break;
-    case ResourceFormatType::R4G4B4A4: baseType = lit("xbyte2"); break;
+    case ResourceFormatType::R4G4B4A4: baseType = lit("xshort"); break;
     case ResourceFormatType::R4G4: baseType = lit("xbyte"); break;
     case ResourceFormatType::D16S8:
     case ResourceFormatType::D24S8:
