@@ -227,6 +227,7 @@ struct DDS_HEADER_DXT10
 #define DDPF_RGB 0x40
 #define DDPF_YUV 0x200
 #define DDPF_LUMINANCE 0x20000
+#define DDPF_BUMPDUDV 0x80000
 #define DDPF_RGBA (DDPF_RGB | DDPF_ALPHAPIXELS)
 
 ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
@@ -440,12 +441,16 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
       fmt8.compCount = 4;
       return fmt8;
     case DXGI_FORMAT_R8G8B8A8_UNORM: fmt8.compCount = 4; return fmt8;
+    case DXGI_FORMAT_B8G8R8X8_UNORM:
+    case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
     case DXGI_FORMAT_B8G8R8A8_UNORM:
     case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
       fmt8.compCount = 4;
       fmt8.SetBGRAOrder(true);
       fmt8.compType =
-          (format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB) ? CompType::UNormSRGB : CompType::UNorm;
+          (format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB || format == DXGI_FORMAT_B8G8R8X8_UNORM_SRGB)
+              ? CompType::UNormSRGB
+              : CompType::UNorm;
       return fmt8;
 
     case DXGI_FORMAT_R8G8_UINT:
@@ -801,19 +806,52 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
 
   // special case a couple of formats to write out non-DX10 style, for
   // backwards compatibility
-  if(data.format.compByteWidth == 1 && data.format.compCount == 4 &&
+  if(data.format.compByteWidth * data.format.compCount <= 4 &&
      data.format.type == ResourceFormatType::Regular &&
      (data.format.compType == CompType::UNorm || data.format.compType == CompType::UNormSRGB))
   {
-    header.ddspf.dwFlags = DDPF_RGBA;
-    header.ddspf.dwRGBBitCount = 32;
-    header.ddspf.dwRBitMask = 0x000000ff;
-    header.ddspf.dwGBitMask = 0x0000ff00;
-    header.ddspf.dwBBitMask = 0x00ff0000;
-    header.ddspf.dwABitMask = 0xff000000;
+    uint32_t bits = data.format.compByteWidth * 8;
 
-    if(data.format.BGRAOrder())
+    header.ddspf.dwFlags = DDPF_RGBA;
+    header.ddspf.dwRGBBitCount = data.format.compCount * bits;
+
+    header.ddspf.dwRBitMask = (1U << bits) - 1;
+    if(data.format.compCount >= 2)
+      header.ddspf.dwGBitMask = header.ddspf.dwRBitMask << bits;
+    if(data.format.compCount >= 3)
+      header.ddspf.dwBBitMask = header.ddspf.dwGBitMask << bits;
+    if(data.format.compCount >= 4)
+      header.ddspf.dwABitMask = header.ddspf.dwBBitMask << bits;
+
+    if(data.format.BGRAOrder() && data.format.compCount >= 3)
       std::swap(header.ddspf.dwRBitMask, header.ddspf.dwBBitMask);
+  }
+  else if(data.format.type == ResourceFormatType::R4G4B4A4)
+  {
+    header.ddspf.dwFlags = DDPF_RGBA;
+    header.ddspf.dwRGBBitCount = 16;
+    header.ddspf.dwRBitMask = 0x0f00;
+    header.ddspf.dwGBitMask = 0x00f0;
+    header.ddspf.dwBBitMask = 0x000f;
+    header.ddspf.dwABitMask = 0xf000;
+  }
+  else if(data.format.type == ResourceFormatType::R5G5B5A1)
+  {
+    header.ddspf.dwFlags = DDPF_RGBA;
+    header.ddspf.dwRGBBitCount = 16;
+    header.ddspf.dwRBitMask = 0x7c00;
+    header.ddspf.dwGBitMask = 0x03e0;
+    header.ddspf.dwBBitMask = 0x001f;
+    header.ddspf.dwABitMask = 0x8000;
+  }
+  else if(data.format.type == ResourceFormatType::R5G6B5)
+  {
+    header.ddspf.dwFlags = DDPF_RGBA;
+    header.ddspf.dwRGBBitCount = 16;
+    header.ddspf.dwRBitMask = 0xf800;
+    header.ddspf.dwGBitMask = 0x07e0;
+    header.ddspf.dwBBitMask = 0x001f;
+    header.ddspf.dwABitMask = 0x0000;
   }
   else if(data.format.type == ResourceFormatType::BC1)
   {
@@ -1044,13 +1082,56 @@ dds_data load_dds_from_file(StreamReader *reader)
       return error;
     }
 
-    ret.format.compByteWidth = 1;
-    ret.format.compCount = uint8_t(header.ddspf.dwRGBBitCount / 8);
-    ret.format.compType = CompType::UNorm;
-    ret.format.type = ResourceFormatType::Regular;
+    if(header.ddspf.dwABitMask == 0x0000 && header.ddspf.dwRBitMask == 0xf800 &&
+       header.ddspf.dwGBitMask == 0x07e0 && header.ddspf.dwBBitMask == 0x001f)
+    {
+      ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_B5G6R5_UNORM);
+    }
+    else if(header.ddspf.dwABitMask == 0x8000 && header.ddspf.dwRBitMask == 0x7c00 &&
+            header.ddspf.dwGBitMask == 0x03e0 && header.ddspf.dwBBitMask == 0x001f)
+    {
+      ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_B5G5R5A1_UNORM);
+    }
+    else if(header.ddspf.dwABitMask == 0xf000 && header.ddspf.dwRBitMask == 0x0f00 &&
+            header.ddspf.dwGBitMask == 0x00f0 && header.ddspf.dwBBitMask == 0x000f)
+    {
+      ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_B4G4R4A4_UNORM);
+    }
+    else if(header.ddspf.dwABitMask == 0xff && header.ddspf.dwRBitMask == 0x00 &&
+            header.ddspf.dwGBitMask == 0x00 && header.ddspf.dwBBitMask == 0x00)
+    {
+      ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_A8_UNORM);
+    }
+    else
+    {
+      const uint32_t bits[] = {
+          Bits::CountOnes(header.ddspf.dwRBitMask), Bits::CountOnes(header.ddspf.dwGBitMask),
+          Bits::CountOnes(header.ddspf.dwBBitMask), Bits::CountOnes(header.ddspf.dwABitMask),
+      };
+      if((bits[1] != 0 && bits[1] != bits[0]) || (bits[2] != 0 && bits[2] != bits[0]) ||
+         (bits[3] != 0 && bits[3] != bits[0]))
+      {
+        RDCWARN("Unsupported RGBA mask: %08x %08x %08x %08x", header.ddspf.dwRBitMask,
+                header.ddspf.dwGBitMask, header.ddspf.dwBBitMask, header.ddspf.dwABitMask);
+        return error;
+      }
 
-    if(header.ddspf.dwBBitMask < header.ddspf.dwRBitMask)
-      ret.format.SetBGRAOrder(true);
+      uint32_t bitWidth = bits[0];
+      for(size_t i = 1; i < 4; i++)
+        if(bits[i] < bits[0] && bits[i] > 0)
+          bitWidth = bits[i];
+
+      ret.format.compByteWidth = uint8_t(bitWidth / 8);
+      ret.format.compCount = uint8_t(header.ddspf.dwRGBBitCount / bitWidth);
+      ret.format.compType = CompType::UNorm;
+      ret.format.type = ResourceFormatType::Regular;
+
+      if(header.ddspf.dwFlags & DDPF_BUMPDUDV)
+        ret.format.compType = CompType::SNorm;
+
+      if(header.ddspf.dwBBitMask > 0 && header.ddspf.dwBBitMask < header.ddspf.dwRBitMask)
+        ret.format.SetBGRAOrder(true);
+    }
   }
 
   uint32_t bytesPerPixel = 1;
