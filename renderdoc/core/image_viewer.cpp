@@ -24,6 +24,7 @@
 
 #include "common/dds_readwrite.h"
 #include "core/core.h"
+#include "maths/formatpacking.h"
 #include "replay/replay_driver.h"
 #include "serialise/rdcfile.h"
 #include "stb/stb_image.h"
@@ -175,7 +176,20 @@ public:
   void GetTextureData(ResourceId tex, const Subresource &sub, const GetTextureDataParams &params,
                       bytebuf &data)
   {
-    m_Proxy->GetTextureData(m_TextureID, sub, params, data);
+    if(tex != m_TextureID && tex != m_CustomTexID)
+      tex = m_TextureID;
+
+    if(tex == m_TextureID && !m_RealTexData.empty() && params.remap == RemapTexture::NoRemap)
+    {
+      RDCASSERT(sub.sample == 0);
+      uint32_t idx = sub.slice * m_TexDetails.mips + sub.mip;
+      RDCASSERT(idx < m_RealTexData.size(), idx, m_RealTexData.size(), m_TexDetails.mips, sub.slice,
+                sub.mip);
+      data = m_RealTexData[idx];
+      return;
+    }
+
+    m_Proxy->GetTextureData(tex, sub, params, data);
   }
 
   // handle a couple of operations ourselves to return a simple fake log
@@ -319,6 +333,10 @@ private:
   rdcarray<ResourceDescription> m_Resources;
   SDFile m_File;
   TextureDescription m_TexDetails;
+
+  // if we remapped the texture for display, this contains the real data to return from
+  // GetTextureData()
+  rdcarray<bytebuf> m_RealTexData;
 };
 
 ReplayStatus IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
@@ -747,7 +765,78 @@ void ImageViewer::RefreshFile()
   if(m_TextureID == ResourceId())
   {
     if(m_Proxy->IsTextureSupported(texDetails))
+    {
       m_TextureID = m_Proxy->CreateProxyTexture(texDetails);
+    }
+    else
+    {
+      if(dds)
+      {
+        // see if we can convert this format on the CPU for proxying
+        bool convertSupported = false;
+        ConvertComponents(texDetails.format, NULL, &convertSupported);
+
+        if(convertSupported)
+        {
+          uint32_t srcStride = texDetails.format.ElementSize();
+
+          if(texDetails.format.type == ResourceFormatType::D16S8)
+            srcStride = 4;
+          else if(texDetails.format.type == ResourceFormatType::D32S8)
+            srcStride = 8;
+
+          m_RealTexData.resize(texDetails.arraysize * texDetails.mips);
+
+          for(uint32_t i = 0; i < texDetails.arraysize * texDetails.mips; i++)
+          {
+            const uint32_t mip = i % texDetails.mips;
+
+            const uint32_t mipwidth = RDCMAX(1U, texDetails.width >> mip);
+            const uint32_t mipheight = RDCMAX(1U, texDetails.height >> mip);
+            const uint32_t mipdepth = RDCMAX(1U, texDetails.depth >> mip);
+
+            byte *old = read_data.subdata[i];
+            m_RealTexData[i].assign(old, read_data.subsizes[i]);
+
+            read_data.subsizes[i] = sizeof(FloatVector) * mipwidth * mipheight * mipdepth;
+            byte *converted = new byte[read_data.subsizes[i]];
+
+            byte *src = old;
+            FloatVector *dst = (FloatVector *)converted;
+
+            for(uint32_t z = 0; z < mipdepth; z++)
+            {
+              for(uint32_t y = 0; y < mipheight; y++)
+              {
+                for(uint32_t x = 0; x < mipwidth; x++)
+                {
+                  *dst = ConvertComponents(texDetails.format, src);
+                  dst++;
+                  src += srcStride;
+                }
+              }
+            }
+
+            read_data.subdata[i] = converted;
+            delete[] old;
+          }
+
+          TextureDescription remapped = texDetails;
+          remapped.format = rgba32_float;
+          m_TextureID = m_Proxy->CreateProxyTexture(remapped);
+        }
+        else
+        {
+          RDCLOG("Format %s not supported for local display and can't be converted manually.",
+                 texDetails.format.Name().c_str());
+        }
+      }
+      else
+      {
+        RDCERR("Standard format %s expected to be supported for local display but can't.",
+               texDetails.format.Name().c_str());
+      }
+    }
   }
 
   if(m_TextureID == ResourceId())

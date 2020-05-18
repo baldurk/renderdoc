@@ -279,9 +279,17 @@ float ConvertLinearToSRGB(float linear)
   return 1.055f * powf(linear, 1.0f / 2.4f) - 0.055f;
 }
 
-FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
+FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data, bool *success)
 {
   FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
+
+  const uint64_t dummy = 0;
+  if(!data)
+    data = (const byte *)&dummy;
+
+  // assume success, we'll set it to false if we hit an error
+  if(success)
+    *success = true;
 
   if(fmt.type == ResourceFormatType::R10G10B10A2)
   {
@@ -419,6 +427,11 @@ FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
         {
           *comp = float(*i64);
         }
+        else
+        {
+          if(success)
+            *success = false;
+        }
       }
       else if(fmt.compByteWidth == 4)
       {
@@ -436,6 +449,11 @@ FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
         else if(compType == CompType::SInt || compType == CompType::SScaled)
         {
           *comp = float(*i32);
+        }
+        else
+        {
+          if(success)
+            *success = false;
         }
       }
       else if(fmt.compByteWidth == 3 && compType == CompType::Depth)
@@ -483,6 +501,11 @@ FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
 
           *comp = f;
         }
+        else
+        {
+          if(success)
+            *success = false;
+        }
       }
       else if(fmt.compByteWidth == 1)
       {
@@ -516,6 +539,11 @@ FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
 
           *comp = f;
         }
+        else
+        {
+          if(success)
+            *success = false;
+        }
       }
       else
       {
@@ -539,6 +567,11 @@ FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
 
     if(fmt.BGRAOrder())
       std::swap(ret.x, ret.z);
+  }
+  else
+  {
+    if(success)
+      *success = false;
   }
 
   return ret;
