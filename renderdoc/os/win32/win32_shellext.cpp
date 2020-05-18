@@ -429,7 +429,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       thumbwidth = m_ddsData.width;
       thumbheight = m_ddsData.height;
       const ResourceFormatType resourceType = m_ddsData.format.type;
-      const uint32_t decompressedStride = thumbwidth * 4;
+      const uint32_t decompressedStride = AlignUp4(thumbwidth) * 4;
       const uint32_t decompressedBlockWidth = 16;    // in bytes (4 byte/pixel)
       const uint32_t decompressedBlockMaxSize = 64;
       const uint32_t compressedBlockSize = m_ddsData.format.ElementSize();
@@ -463,20 +463,20 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       }
 
       // Decompressed DDS, 3 byte/pixel without alpha
-      thumbpixels = (byte *)malloc(thumbheight * thumbwidth * 3);
+      thumbpixels = (byte *)malloc(AlignUp4(thumbheight) * AlignUp4(thumbwidth) * 3);
 
       if(blockCompressed)
       {
         bytebuf decompressed;    // Decompressed DDS, 4 byte/pixel
-        decompressed.resize(thumbheight * thumbwidth * 4);
+        decompressed.resize(AlignUp4(thumbheight) * AlignUp4(thumbwidth) * 4);
         unsigned char decompressedBlock[decompressedBlockMaxSize];
         unsigned char greenBlock[16];
         uint16_t decompressedBC6[48];
         const byte *compBlockStart = m_Thumb.pixels;
 
-        for(uint32_t blockY = 0; blockY < thumbheight / 4; blockY++)
+        for(uint32_t blockY = 0; blockY < AlignUp4(thumbheight) / 4; blockY++)
         {
-          for(uint32_t blockX = 0; blockX < thumbwidth / 4; blockX++)
+          for(uint32_t blockX = 0; blockX < AlignUp4(thumbwidth) / 4; blockX++)
           {
             uint32_t decompressedBlockStart =
                 blockY * 4 * decompressedStride + blockX * decompressedBlockWidth;
@@ -577,11 +577,13 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
         byte *decompRead = decompressed.data();
         byte *imgWrite = thumbpixels;
         // Iterate over pixels (4byte/pixel in decompressed, 3byte/pixel in thumbpixels)
-        for(uint32_t i = 0; i < thumbwidth * thumbheight; i++)
+        for(uint32_t y = 0; y < thumbheight; y++)
         {
-          memcpy(imgWrite, decompRead, 3);
-          decompRead += 4;
-          imgWrite += 3;
+          for(uint32_t x = 0; x < thumbwidth; x++)
+          {
+            memcpy(imgWrite + (thumbwidth * y + x) * 3, decompRead + decompressedStride * y + x * 4,
+                   3);
+          }
         }
       }
       else
