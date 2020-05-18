@@ -3346,6 +3346,9 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
   {
     InitDeviceTable(*pDevice, gdpa);
 
+    RDCLOG("Created capture device from physical device %d",
+           m_PhysicalDevices.indexOf(physicalDevice));
+
     ResourceId id = GetResourceManager()->WrapResource(*pDevice, *pDevice);
 
     if(IsCaptureMode(m_State))
