@@ -189,7 +189,7 @@ void MakeData(TexData &data, const TexConfig &cfg, Vec4i dimensions, uint32_t mi
       case TextureType::BC7: bc7 = true; break;
       case TextureType::R9G9B9E5: sharedExp = true; break;
       case TextureType::G4R4: nybblePattern = 0x12; break;
-      case TextureType::A4R4G4B4: nybblePattern = 0x1234; break;
+      case TextureType::A4R4G4B4: nybblePattern = 0x3214; break;
       case TextureType::R4G4B4A4: nybblePattern = 0x4321; break;
       case TextureType::R5G6B5:
         rgb5 = true;
@@ -302,15 +302,15 @@ void MakeData(TexData &data, const TexConfig &cfg, Vec4i dimensions, uint32_t mi
 
               if(alphabitPlace == 0)
               {
-                encodedPixel |= uint16_t(rgb[2] * 31) << 0;
+                encodedPixel |= uint16_t(rgb[0] * 31) << 0;
                 encodedPixel |= uint16_t(rgb[1] * 63) << 5;
-                encodedPixel |= uint16_t(rgb[0] * 31) << 11;
+                encodedPixel |= uint16_t(rgb[2] * 31) << 11;
               }
               else
               {
-                encodedPixel |= uint16_t(rgb[2] * 31) << 0;
+                encodedPixel |= uint16_t(rgb[0] * 31) << 0;
                 encodedPixel |= uint16_t(rgb[1] * 31) << 5;
-                encodedPixel |= uint16_t(rgb[0] * 31) << 10;
+                encodedPixel |= uint16_t(rgb[2] * 31) << 10;
 
                 if(alphabitPlace == 1)
                 {

@@ -847,6 +847,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
       GetTextureDataParams params;
       params.forDiskSave = true;
+      params.standardLayout = true;
       params.typeCast = sd.typeCast;
       params.resolve = resolveSamples;
       params.remap = remap;

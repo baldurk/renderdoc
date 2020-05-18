@@ -2389,6 +2389,7 @@ void ReplayProxy::EnsureTexCached(ResourceId &texid, CompType &typeCast, const S
       GetTextureDataParams params = proxy.params;
 
       params.typeCast = typeCast;
+      params.standardLayout = true;
 
 #if ENABLED(TRANSFER_RESOURCE_CONTENTS_DELTAS)
       CacheTextureData(texid, s, params);

@@ -79,20 +79,25 @@ uint32_t ConvertToR11G11B10(Vec3f data);
 
 inline Vec4f ConvertFromB5G5R5A1(uint16_t data)
 {
-  return Vec4f((float)((data >> 0) & 0x1f) / 31.0f, (float)((data >> 5) & 0x1f) / 31.0f,
-               (float)((data >> 10) & 0x1f) / 31.0f, ((data & 0x8000) > 0) ? 1.0f : 0.0f);
+  return Vec4f((float)((data >> 10) & 0x1f) / 31.0f, (float)((data >> 5) & 0x1f) / 31.0f,
+               (float)((data >> 0) & 0x1f) / 31.0f, ((data & 0x8000) > 0) ? 1.0f : 0.0f);
 }
 
 inline Vec3f ConvertFromB5G6R5(uint16_t data)
 {
-  return Vec3f((float)((data >> 0) & 0x1f) / 31.0f, (float)((data >> 5) & 0x3f) / 63.0f,
-               (float)((data >> 11) & 0x1f) / 31.0f);
+  return Vec3f((float)((data >> 11) & 0x1f) / 31.0f, (float)((data >> 5) & 0x3f) / 63.0f,
+               (float)((data >> 0) & 0x1f) / 31.0f);
 }
 
 inline Vec4f ConvertFromB4G4R4A4(uint16_t data)
 {
-  return Vec4f((float)((data >> 0) & 0xf) / 15.0f, (float)((data >> 4) & 0xf) / 15.0f,
-               (float)((data >> 8) & 0xf) / 15.0f, (float)((data >> 12) & 0xf) / 15.0f);
+  return Vec4f((float)((data >> 8) & 0xf) / 15.0f, (float)((data >> 4) & 0xf) / 15.0f,
+               (float)((data >> 0) & 0xf) / 15.0f, (float)((data >> 12) & 0xf) / 15.0f);
+}
+
+inline Vec4f ConvertFromR4G4(uint8_t data)
+{
+  return Vec4f((float)((data >> 0) & 0xf) / 15.0f, (float)((data >> 4) & 0xf) / 15.0f, 0.0f, 0.0f);
 }
 
 Vec3f ConvertFromR9G9B9E5(uint32_t data);

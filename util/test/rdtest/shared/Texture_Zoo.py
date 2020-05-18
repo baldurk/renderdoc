@@ -15,7 +15,9 @@ class Texture_Zoo():
         self.textures = {}
         self.controller: rd.ReplayController
         self.controller = None
+        self.pipeType = rd.GraphicsAPI.D3D11
         self.opengl_mode = False
+        self.d3d_mode = False
 
     def sub(self, mip: int, slice: int, sample: int):
         if self.fake_msaa:
@@ -70,6 +72,9 @@ class Texture_Zoo():
             success: bool = self.controller.SaveTexture(save_data, path)
 
             if not success:
+                if self.d3d_mode:
+                    raise rdtest.TestFailureException("Couldn't save DDS to {} on D3D.".format(self.filename))
+
                 try:
                     os.remove(path)
                 except Exception:
@@ -369,7 +374,9 @@ class Texture_Zoo():
     def check_capture(self, capture_filename: str, controller: rd.ReplayController):
         self.controller = controller
 
+        self.pipeType = self.controller.GetAPIProperties().pipelineType
         self.opengl_mode = (self.controller.GetAPIProperties().pipelineType == rd.GraphicsAPI.OpenGL)
+        self.d3d_mode = rd.IsD3D(self.controller.GetAPIProperties().pipelineType)
 
         failed = False
 
@@ -441,11 +448,6 @@ class Texture_Zoo():
 
             ret: Tuple[rd.ReplayStatus, rd.ReplayController] = cap.OpenCapture(rd.ReplayOptions(), None)
             status, self.controller = ret
-
-            # Some packed formats can't be opened, allow that
-            if status == rd.ReplayStatus.ImageUnsupported and 'dds' in file.name:
-                rdtest.log.print("Couldn't open {} - unsupported".format(file.name))
-                continue
 
             if status != rd.ReplayStatus.Succeeded:
                 rdtest.log.error("Couldn't open {}".format(file.name))

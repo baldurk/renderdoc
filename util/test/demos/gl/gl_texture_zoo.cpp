@@ -848,11 +848,16 @@ void main()
       t.hasData = true;
 
       bool srgb = false;
+      bool bgr = false;
       switch(t.fmt.internalFormat)
       {
         // only need to handle renderable SRGB formats here
         case GL_SRGB8:
         case GL_SRGB8_ALPHA8: srgb = true; break;
+        case GL_BGRA8_EXT:
+        case GL_RGBA4:
+        case GL_RGB5_A1:
+        case GL_RGB565: bgr = true;
         default: break;
       }
 
@@ -862,6 +867,8 @@ void main()
         flags |= 1;
       if(srgb)
         flags |= 2;
+      if(bgr)
+        flags |= 4;
 
       GLuint slices = t.isArray ? texSlices : 1u;
       GLuint mips = t.isMSAA || t.isRect ? 1u : texMips;

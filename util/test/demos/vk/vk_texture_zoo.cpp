@@ -1172,9 +1172,10 @@ void main()
       bool srgb = false, bgra = false;
       switch(t.fmt.viewFmt)
       {
-        case VK_FORMAT_B4G4R4A4_UNORM_PACK16:
-        case VK_FORMAT_B5G6R5_UNORM_PACK16:
-        case VK_FORMAT_B5G5R5A1_UNORM_PACK16:
+        case VK_FORMAT_R4G4B4A4_UNORM_PACK16:
+        case VK_FORMAT_R5G6B5_UNORM_PACK16:
+        case VK_FORMAT_R5G5B5A1_UNORM_PACK16:
+        case VK_FORMAT_A1R5G5B5_UNORM_PACK16:
         case VK_FORMAT_B8G8R8_UNORM:
         case VK_FORMAT_B8G8R8_SNORM:
         case VK_FORMAT_B8G8R8_USCALED:

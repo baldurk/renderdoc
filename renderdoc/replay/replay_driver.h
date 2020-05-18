@@ -83,7 +83,15 @@ DECLARE_REFLECTION_ENUM(RemapTexture);
 
 struct GetTextureDataParams
 {
+  // this data is going to be saved to disk, so prepare it as needed. E.g. on GL flip Y order to
+  // match conventional axis for file formats.
   bool forDiskSave = false;
+  // this data is going to be transferred cross-API e.g. in replay proxying, so standardise bit
+  // layout of any packed formats where API conventions differ (mostly only RGBA4 or other awkward
+  // ones where our resource formats don't enumerate all possible iterations). Saving to disk is
+  // also standardised to ensure the data matches any format description we also write to the
+  // format.
+  bool standardLayout = false;
   CompType typeCast = CompType::Typeless;
   bool resolve = false;
   RemapTexture remap = RemapTexture::NoRemap;

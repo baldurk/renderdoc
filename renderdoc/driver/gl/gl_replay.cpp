@@ -2319,7 +2319,11 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     else if(params.remap == RemapTexture::RGBA32)
       remapFormat = eGL_RGBA32F;
 
-    remapFormat = GetViewCastedFormat(remapFormat, BaseRemapType(params.typeCast));
+    CompType typeCast = params.typeCast;
+    if(typeCast == CompType::Typeless && IsSRGBFormat(intFormat))
+      typeCast = CompType::UNormSRGB;
+
+    remapFormat = GetViewCastedFormat(remapFormat, BaseRemapType(typeCast));
 
     if(intFormat != remapFormat)
     {
@@ -2723,19 +2727,50 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
         drv.glGetTexImage(target, (GLint)s.mip, fmt, type, data.data());
       }
 
-      // GL puts D24 in the top bits (whether or not there's stencil). We choose to standardise it
-      // to be in the low bits, so swizzle here. for D24 with no stencil, the stencil bits are
-      // undefined so we can move them around and it means nothing.
-      if(intFormat == eGL_DEPTH24_STENCIL8 || intFormat == eGL_DEPTH_COMPONENT24)
+      if(params.standardLayout)
       {
-        uint32_t *ptr = (uint32_t *)data.data();
-
-        for(GLsizei y = 0; y < height; y++)
+        // GL puts D24 in the top bits (whether or not there's stencil). We choose to standardise it
+        // to be in the low bits, so swizzle here. for D24 with no stencil, the stencil bits are
+        // undefined so we can move them around and it means nothing.
+        if(intFormat == eGL_DEPTH24_STENCIL8 || intFormat == eGL_DEPTH_COMPONENT24)
         {
-          for(GLsizei x = 0; x < width; x++)
+          uint32_t *ptr = (uint32_t *)data.data();
+
+          for(GLsizei z = 0; z < depth; z++)
           {
-            const uint32_t val = *ptr;
-            *ptr = (val >> 8) | ((val & 0xff) << 24);
+            for(GLsizei y = 0; y < height; y++)
+            {
+              for(GLsizei x = 0; x < width; x++)
+              {
+                const uint32_t val = *ptr;
+                *ptr = (val >> 8) | ((val & 0xff) << 24);
+                ptr++;
+              }
+            }
+          }
+        }
+
+        // GL's RGBA4/RGB5A1 is BGRA order, but it puts alpha in the bottom bits where we expect it
+        // in the top
+        if(intFormat == eGL_RGBA4)
+        {
+          uint16_t *ptr = (uint16_t *)data.data();
+
+          for(size_t i = 0; i < data.size(); i += sizeof(uint16_t))
+          {
+            const uint16_t val = *ptr;
+            *ptr = (val >> 4) | ((val & 0xf) << 12);
+            ptr++;
+          }
+        }
+        else if(intFormat == eGL_RGB5_A1)
+        {
+          uint16_t *ptr = (uint16_t *)data.data();
+
+          for(size_t i = 0; i < data.size(); i += sizeof(uint16_t))
+          {
+            const uint16_t val = *ptr;
+            *ptr = (val >> 1) | ((val & 0x1) << 15);
             ptr++;
           }
         }
@@ -3246,6 +3281,40 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
 
       data = swizzled.data();
     }
+    // GL's RGBA4/RGB5A1 is BGRA order, but it puts alpha in the bottom bits where we expect it
+    // in the top
+    else if(texdetails.internalFormat == eGL_RGBA4)
+    {
+      const uint16_t *srcptr = (const uint16_t *)data;
+      swizzled.resize(dataSize);
+      uint16_t *dstptr = (uint16_t *)swizzled.data();
+
+      for(size_t i = 0; i < dataSize; i += 2)
+      {
+        const uint16_t val = *srcptr;
+        *dstptr = ((val & 0x0fff) << 4) | ((val & 0xf000) >> 12);
+        srcptr++;
+        dstptr++;
+      }
+
+      data = swizzled.data();
+    }
+    else if(texdetails.internalFormat == eGL_RGB5_A1)
+    {
+      const uint16_t *srcptr = (const uint16_t *)data;
+      swizzled.resize(dataSize);
+      uint16_t *dstptr = (uint16_t *)swizzled.data();
+
+      for(size_t i = 0; i < dataSize; i += 2)
+      {
+        const uint16_t val = *srcptr;
+        *dstptr = ((val & 0x7fff) << 1) | ((val & 0x8000) >> 12);
+        srcptr++;
+        dstptr++;
+      }
+
+      data = swizzled.data();
+    }
 
     if(target == eGL_TEXTURE_1D)
     {
@@ -3312,8 +3381,13 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
 
 bool GLReplay::IsTextureSupported(const TextureDescription &tex)
 {
-  // these formats are inconsistently laid out between APIs, always remap if the remote API is
-  // different
+  // GL can't decide if these formats are BGRA or RGBA order.
+  // The bit order in memory for e.g. R4G4B4A4 is:
+  // 15 .. ..  0
+  //   R G B A
+  //
+  // but if you upload bits in that order with GL_RGBA it gets flipped.
+  // It's more reliable to report no support and force a remap
   switch(tex.format.type)
   {
     case ResourceFormatType::R4G4:
@@ -3331,11 +3405,6 @@ bool GLReplay::IsTextureSupported(const TextureDescription &tex)
   // we don't try to replay alpha8 textures, as we stick strictly to core profile GL
   if(tex.format.type == ResourceFormatType::A8)
     return false;
-
-  // BGRA is not accepted as an internal format in case of GL
-  // EXT_texture_format_BGRA8888 is required for creating BGRA proxy textures in case of GLES
-  if(tex.format.BGRAOrder())
-    return IsGLES && HasExt[EXT_texture_format_BGRA8888];
 
   // don't support 1D/3D block compressed textures
   if(tex.dimension != 2 &&
@@ -3355,6 +3424,11 @@ bool GLReplay::IsTextureSupported(const TextureDescription &tex)
   GLenum fmt = MakeGLFormat(tex.format);
 
   if(fmt == eGL_NONE)
+    return false;
+
+  // BGRA is not accepted as an internal format in case of GL
+  // EXT_texture_format_BGRA8888 is required for creating BGRA proxy textures in case of GLES
+  if(fmt == eGL_BGRA8_EXT && (!IsGLES || !HasExt[EXT_texture_format_BGRA8888]))
     return false;
 
   GLenum target = eGL_TEXTURE_2D;

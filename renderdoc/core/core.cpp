@@ -1029,17 +1029,17 @@ void RenderDoc::ResamplePixels(const FramePixels &in, RDCThumb &out)
       {
         uint16_t *src565 = (uint16_t *)src;
         Vec3f unorm = ConvertFromB5G6R5(*src565);
-        dst[0] = (byte)(unorm.z * 255.0f);
+        dst[0] = (byte)(unorm.x * 255.0f);
         dst[1] = (byte)(unorm.y * 255.0f);
-        dst[2] = (byte)(unorm.x * 255.0f);
+        dst[2] = (byte)(unorm.z * 255.0f);
       }
       else if(in.buf5551)
       {
         uint16_t *src5551 = (uint16_t *)src;
         Vec4f unorm = ConvertFromB5G5R5A1(*src5551);
-        dst[0] = (byte)(unorm.z * 255.0f);
+        dst[0] = (byte)(unorm.x * 255.0f);
         dst[1] = (byte)(unorm.y * 255.0f);
-        dst[2] = (byte)(unorm.x * 255.0f);
+        dst[2] = (byte)(unorm.z * 255.0f);
       }
       else if(in.bgra)
       {

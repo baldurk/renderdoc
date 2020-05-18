@@ -301,6 +301,9 @@ FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
     ret.y = v.y;
     ret.z = v.z;
     ret.w = v.w;
+
+    if(fmt.BGRAOrder())
+      std::swap(ret.x, ret.z);
   }
   else if(fmt.type == ResourceFormatType::R11G11B10)
   {
@@ -312,25 +315,46 @@ FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
   else if(fmt.type == ResourceFormatType::R5G5B5A1)
   {
     Vec4f v = ConvertFromB5G5R5A1(*(const uint16_t *)data);
-    ret.x = v.z;
+    ret.x = v.x;
     ret.y = v.y;
-    ret.z = v.x;
+    ret.z = v.z;
     ret.w = v.w;
+
+    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
+    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
+    if(!fmt.BGRAOrder())
+      std::swap(ret.x, ret.z);
   }
   else if(fmt.type == ResourceFormatType::R5G6B5)
   {
     Vec3f v = ConvertFromB5G6R5(*(const uint16_t *)data);
-    ret.x = v.z;
+    ret.x = v.x;
     ret.y = v.y;
-    ret.z = v.x;
+    ret.z = v.z;
+
+    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
+    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
+    if(!fmt.BGRAOrder())
+      std::swap(ret.x, ret.z);
   }
   else if(fmt.type == ResourceFormatType::R4G4B4A4)
   {
     Vec4f v = ConvertFromB4G4R4A4(*(const uint16_t *)data);
-    ret.x = v.z;
+    ret.x = v.x;
     ret.y = v.y;
-    ret.z = v.x;
+    ret.z = v.z;
     ret.w = v.w;
+
+    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
+    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
+    if(!fmt.BGRAOrder())
+      std::swap(ret.x, ret.z);
+  }
+  else if(fmt.type == ResourceFormatType::R4G4)
+  {
+    Vec4f v = ConvertFromR4G4(*(const uint8_t *)data);
+    ret.x = v.x;
+    ret.y = v.y;
   }
   else if(fmt.type == ResourceFormatType::R9G9B9E5)
   {
@@ -338,9 +362,35 @@ FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
     ret.x = v.x;
     ret.y = v.y;
     ret.z = v.z;
-    RDCLOG("%x -> %f,%f,%f", *(const uint32_t *)data, v.x, v.y, v.z);
   }
-  else
+  else if(fmt.type == ResourceFormatType::D16S8)
+  {
+    uint32_t val = *(const uint32_t *)data;
+    ret.x = float(val & 0x00ffff) / 65535.0f;
+    ret.y = float((val & 0xff0000) >> 16) / 255.0f;
+    ret.z = 0.0f;
+  }
+  else if(fmt.type == ResourceFormatType::D24S8)
+  {
+    uint32_t val = *(const uint32_t *)data;
+    ret.x = float(val & 0x00ffffff) / 16777215.0f;
+    ret.y = float((val & 0xff000000) >> 24) / 255.0f;
+    ret.z = 0.0f;
+  }
+  else if(fmt.type == ResourceFormatType::D32S8)
+  {
+    struct ds
+    {
+      float f;
+      uint32_t s;
+    } val;
+    val = *(const ds *)data;
+    ret.x = val.f;
+    ret.y = float(val.s) / 255.0f;
+    ret.z = 0.0f;
+  }
+  else if(fmt.type == ResourceFormatType::Regular || fmt.type == ResourceFormatType::A8 ||
+          fmt.type == ResourceFormatType::S8)
   {
     float *comp = &ret.x;
 
@@ -394,9 +444,9 @@ FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
         const uint8_t *u8 = (const uint8_t *)data;
 
         uint32_t depth = 0;
-        depth |= uint32_t(u8[1]);
-        depth |= uint32_t(u8[2]) << 8;
-        depth |= uint32_t(u8[3]) << 16;
+        depth |= uint32_t(u8[0]);
+        depth |= uint32_t(u8[1]) << 8;
+        depth |= uint32_t(u8[2]) << 16;
 
         *comp = float(depth) / float(16777215.0f);
       }
@@ -474,6 +524,17 @@ FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data)
 
       comp++;
       data += fmt.compByteWidth;
+    }
+
+    if(fmt.type == ResourceFormatType::A8)
+    {
+      ret.w = ret.x;
+      ret.x = 0.0f;
+    }
+    else if(fmt.type == ResourceFormatType::S8)
+    {
+      ret.y = ret.x;
+      ret.x = 0.0f;
     }
 
     if(fmt.BGRAOrder())

@@ -3628,6 +3628,36 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   else
   {
     memcpy(data.data(), pData, dataSize);
+
+    // vulkan's bitpacking of some layouts puts alpha in the low bits, which is not our 'standard'
+    // layout and is not representable in our resource formats
+    if(params.standardLayout)
+    {
+      if(imCreateInfo.format == VK_FORMAT_R4G4B4A4_UNORM_PACK16 ||
+         imCreateInfo.format == VK_FORMAT_B4G4R4A4_UNORM_PACK16)
+      {
+        uint16_t *ptr = (uint16_t *)data.data();
+
+        for(uint32_t i = 0; i < dataSize; i += sizeof(uint16_t))
+        {
+          const uint16_t val = *ptr;
+          *ptr = (val >> 4) | ((val & 0xf) << 12);
+          ptr++;
+        }
+      }
+      else if(imCreateInfo.format == VK_FORMAT_R5G5B5A1_UNORM_PACK16 ||
+              imCreateInfo.format == VK_FORMAT_B5G5R5A1_UNORM_PACK16)
+      {
+        uint16_t *ptr = (uint16_t *)data.data();
+
+        for(uint32_t i = 0; i < dataSize; i += sizeof(uint16_t))
+        {
+          const uint16_t val = *ptr;
+          *ptr = (val >> 1) | ((val & 0x1) << 15);
+          ptr++;
+        }
+      }
+    }
   }
 
   vt->UnmapMemory(Unwrap(dev), readbackMem);

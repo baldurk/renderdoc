@@ -1811,9 +1811,10 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 
   switch(fmt)
   {
-    case VK_FORMAT_B4G4R4A4_UNORM_PACK16:
-    case VK_FORMAT_B5G6R5_UNORM_PACK16:
-    case VK_FORMAT_B5G5R5A1_UNORM_PACK16:
+    case VK_FORMAT_R4G4B4A4_UNORM_PACK16:
+    case VK_FORMAT_R5G6B5_UNORM_PACK16:
+    case VK_FORMAT_R5G5B5A1_UNORM_PACK16:
+    case VK_FORMAT_A1R5G5B5_UNORM_PACK16:
     case VK_FORMAT_B8G8R8A8_UNORM:
     case VK_FORMAT_B8G8R8A8_SNORM:
     case VK_FORMAT_B8G8R8A8_USCALED:
@@ -2710,14 +2711,14 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
         break;
       case ResourceFormatType::R11G11B10: ret = VK_FORMAT_B10G11R11_UFLOAT_PACK32; break;
       case ResourceFormatType::R5G6B5:
-        ret = fmt.BGRAOrder() ? VK_FORMAT_B5G6R5_UNORM_PACK16 : VK_FORMAT_R5G6B5_UNORM_PACK16;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_R5G6B5_UNORM_PACK16 : VK_FORMAT_B5G6R5_UNORM_PACK16;
         break;
       case ResourceFormatType::R5G5B5A1:
-        ret = fmt.BGRAOrder() ? VK_FORMAT_B5G5R5A1_UNORM_PACK16 : VK_FORMAT_R5G5B5A1_UNORM_PACK16;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_R5G5B5A1_UNORM_PACK16 : VK_FORMAT_B5G5R5A1_UNORM_PACK16;
         break;
       case ResourceFormatType::R9G9B9E5: ret = VK_FORMAT_E5B9G9R9_UFLOAT_PACK32; break;
       case ResourceFormatType::R4G4B4A4:
-        ret = fmt.BGRAOrder() ? VK_FORMAT_B4G4R4A4_UNORM_PACK16 : VK_FORMAT_R4G4B4A4_UNORM_PACK16;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_R4G4B4A4_UNORM_PACK16 : VK_FORMAT_B4G4R4A4_UNORM_PACK16;
         break;
       case ResourceFormatType::R4G4: ret = VK_FORMAT_R4G4_UNORM_PACK8; break;
       case ResourceFormatType::D16S8: ret = VK_FORMAT_D16_UNORM_S8_UINT; break;

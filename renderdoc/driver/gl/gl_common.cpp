@@ -2039,11 +2039,13 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
       ret.type = ResourceFormatType::R5G6B5;
       ret.compType = CompType::UNorm;
       ret.compCount = 3;
+      ret.SetBGRAOrder(true);
       break;
     case eGL_RGB5_A1:
       ret.type = ResourceFormatType::R5G5B5A1;
       ret.compType = CompType::UNorm;
       ret.compCount = 4;
+      ret.SetBGRAOrder(true);
       break;
     case eGL_RGB9_E5:
       ret.type = ResourceFormatType::R9G9B9E5;
@@ -2054,6 +2056,7 @@ ResourceFormat MakeResourceFormat(GLenum target, GLenum fmt)
       ret.type = ResourceFormatType::R4G4B4A4;
       ret.compType = CompType::UNorm;
       ret.compCount = 4;
+      ret.SetBGRAOrder(true);
       break;
     case eGL_RGB10_A2:
     case eGL_RGB10_A2UI:
@@ -2268,10 +2271,25 @@ GLenum MakeGLFormat(ResourceFormat fmt)
           ret = eGL_RGB10_A2UI;
         break;
       case ResourceFormatType::R11G11B10: ret = eGL_R11F_G11F_B10F; break;
-      case ResourceFormatType::R5G6B5: ret = eGL_RGB565; break;
-      case ResourceFormatType::R5G5B5A1: ret = eGL_RGB5_A1; break;
+      case ResourceFormatType::R5G6B5:
+        // only support bgra order
+        if(fmt.BGRAOrder())
+          return eGL_RGB565;
+        else
+          return eGL_NONE;
+      case ResourceFormatType::R5G5B5A1:
+        // only support bgra order
+        if(fmt.BGRAOrder())
+          return eGL_RGB5_A1;
+        else
+          return eGL_NONE;
       case ResourceFormatType::R9G9B9E5: ret = eGL_RGB9_E5; break;
-      case ResourceFormatType::R4G4B4A4: ret = eGL_RGBA4; break;
+      case ResourceFormatType::R4G4B4A4:
+        // only support bgra order
+        if(fmt.BGRAOrder())
+          return eGL_RGBA4;
+        else
+          return eGL_NONE;
       case ResourceFormatType::D24S8: ret = eGL_DEPTH24_STENCIL8; break;
       case ResourceFormatType::D32S8: ret = eGL_DEPTH32F_STENCIL8; break;
       case ResourceFormatType::D16S8: return eGL_NONE;
