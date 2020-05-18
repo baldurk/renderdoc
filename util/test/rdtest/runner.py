@@ -77,6 +77,9 @@ def _run_test(testclass, failedcases: list):
     if RUNNER_DEBUG:
         print("Waiting for test runner to complete...")
 
+    out_pending = ""
+    err_pending = ""
+
     while test_run.poll() is None:
         out = err = ""
 
@@ -102,11 +105,39 @@ def _run_test(testclass, failedcases: list):
         except queue.Empty:
             err = None  # No output
 
-        if RUNNER_DEBUG and out is not None:
-            print("Test stdout: {}".format(out))
+        if RUNNER_DEBUG:
+            if out is not None:
+                print("Test stdout: {}".format(out))
 
-        if RUNNER_DEBUG and err is not None:
-            print("Test stderr: {}".format(err))
+            if err is not None:
+                print("Test stderr: {}".format(err))
+        else:
+            if out is not None:
+                out_pending += out
+            if err is not None:
+                err_pending += err
+
+        while True:
+            try:
+                nl = out_pending.index('\n')
+                line = out_pending[0:nl]
+                out_pending = out_pending[nl+1:]
+                line = line.replace('\r', '')
+                sys.stdout.write(line + '\n')
+                sys.stdout.flush()
+            except:
+                break
+
+        while True:
+            try:
+                nl = err_pending.index('\n')
+                line = err_pending[0:nl]
+                err_pending = err_pending[nl+1:]
+                line = line.replace('\r', '')
+                sys.stderr.write(line + '\n')
+                sys.stderr.flush()
+            except:
+                break
 
         if out is None and err is None and test_run.poll() is None:
             log.error('Timed out, no output within {}s elapsed'.format(RUNNER_TIMEOUT))
