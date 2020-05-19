@@ -1004,7 +1004,8 @@ struct AndroidController : public IDeviceProtocolHandler
 
       // push settings file into our folder
       Android::adbExecCommand(deviceID, "push \"" + FileIO::GetAppFolderFilename("renderdoc.conf") +
-                                            "\" /sdcard/Android/data/" + package + "/files");
+                                            "\" /sdcard/Android/data/" + package +
+                                            "/files/renderdoc.conf");
 
       // launch the last ABI, as the 64-bit version where possible, or 32-bit version where not.
       // Captures are portable across bitness and in some cases a 64-bit capture can't replay on a
@@ -1189,7 +1190,8 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
 
     // try to push our settings file into the appdata folder
     Android::adbExecCommand(m_deviceID, "push \"" + FileIO::GetAppFolderFilename("renderdoc.conf") +
-                                            "\" /sdcard/Android/data/" + processName + "/files");
+                                            "\" /sdcard/Android/data/" + processName +
+                                            "/files/renderdoc.conf");
 
     rdcstr installedPath = Android::GetPathForPackage(m_deviceID, packageName);
 
