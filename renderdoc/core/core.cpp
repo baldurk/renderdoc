@@ -932,6 +932,18 @@ rdcstr RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, int fla
 
     overlayText += "Inactive window.";
 
+    size_t activeIdx = 0;
+    for(auto it = m_WindowFrameCapturers.begin(); it != m_WindowFrameCapturers.end();
+        ++it, ++activeIdx)
+      if(it->first == m_ActiveWindow)
+        break;
+
+    if(activeIdx < m_WindowFrameCapturers.size())
+    {
+      overlayText += StringFormat::Fmt(" Active Window: %zu of %zu.", activeIdx + 1,
+                                       m_WindowFrameCapturers.size());
+    }
+
     for(size_t i = 0; i < keys.size(); i++)
     {
       if(i == 0)
