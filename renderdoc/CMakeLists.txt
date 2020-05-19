@@ -538,6 +538,7 @@ target_compile_definitions(renderdoc ${RDOC_DEFINITIONS})
 target_include_directories(renderdoc ${RDOC_INCLUDES})
 target_link_libraries(renderdoc ${RDOC_LIBRARIES})
 
+set_target_properties(renderdoc PROPERTIES LINK_DEPENDS $<TARGET_FILE:renderdoc_libentry>)
 add_dependencies(renderdoc renderdoc_libentry)
 
 if(UNIX AND NOT ANDROID AND NOT APPLE)
