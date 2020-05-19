@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 #include "half_convert.h"
 #include "vec.h"
