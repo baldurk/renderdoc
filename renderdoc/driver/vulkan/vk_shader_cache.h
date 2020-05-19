@@ -80,6 +80,8 @@ public:
   void MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
   void MakeComputePipelineInfo(VkComputePipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
 
+  bool IsMS2ArraySupported() { return m_MS2ArraySupported; }
+  bool IsArray2MSSupported() { return m_Array2MSSupported; }
   rdcstr GetGlobalDefines() { return m_GlobalDefines; }
   void SetCaching(bool enabled) { m_CacheShaders = enabled; }
 private:
@@ -96,6 +98,8 @@ private:
   VkPipelineCache m_PipelineCache = VK_NULL_HANDLE;
 
   rdcstr m_GlobalDefines;
+
+  bool m_MS2ArraySupported = false, m_Array2MSSupported = false;
 
   bool m_ShaderCacheDirty = false, m_CacheShaders = false;
   std::map<uint32_t, SPIRVBlob> m_ShaderCache;

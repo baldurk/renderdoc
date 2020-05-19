@@ -32,7 +32,7 @@
 void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent,
                                             uint32_t layers, uint32_t samples, VkFormat fmt)
 {
-  if(!m_pDriver->GetDeviceFeatures().shaderStorageImageWriteWithoutFormat)
+  if(!m_pDriver->GetDeviceEnabledFeatures().shaderStorageImageWriteWithoutFormat)
     return;
 
   if(m_MS2ArrayPipe == VK_NULL_HANDLE)
@@ -420,8 +420,8 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
 void VulkanDebugManager::CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent,
                                             uint32_t layers, uint32_t samples, VkFormat fmt)
 {
-  if(!m_pDriver->GetDeviceFeatures().shaderStorageImageMultisample ||
-     !m_pDriver->GetDeviceFeatures().shaderStorageImageWriteWithoutFormat)
+  if(!m_pDriver->GetDeviceEnabledFeatures().shaderStorageImageMultisample ||
+     !m_pDriver->GetDeviceEnabledFeatures().shaderStorageImageWriteWithoutFormat)
     return;
 
   if(m_Array2MSPipe == VK_NULL_HANDLE)

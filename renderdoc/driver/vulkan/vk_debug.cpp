@@ -703,7 +703,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
     m_pDriver->vkDestroyRenderPass(dev, depthMS2ArrayRP, NULL);
 
-    if(!m_pDriver->GetDeviceFeatures().sampleRateShading)
+    if(!m_pDriver->GetDeviceEnabledFeatures().sampleRateShading)
     {
       RDCDEBUG("No depth Array -> MSAA copies can be supported without sample rate shading");
       continue;
@@ -2476,8 +2476,8 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     VkImageViewType viewtypes[] = {
         VK_IMAGE_VIEW_TYPE_1D_ARRAY, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_VIEW_TYPE_3D,
         VK_IMAGE_VIEW_TYPE_2D_ARRAY,
-        driver->GetDeviceFeatures().imageCubeArray ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
-                                                   : VK_IMAGE_VIEW_TYPE_CUBE,
+        driver->GetDeviceEnabledFeatures().imageCubeArray ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
+                                                          : VK_IMAGE_VIEW_TYPE_CUBE,
     };
     VkSampleCountFlagBits sampleCounts[] = {VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_1_BIT,
                                             VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_4_BIT};

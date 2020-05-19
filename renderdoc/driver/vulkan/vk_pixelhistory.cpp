@@ -469,7 +469,7 @@ protected:
     {
       rs->cullMode = VK_CULL_MODE_NONE;
       rs->rasterizerDiscardEnable = VK_FALSE;
-      if(m_pDriver->GetDeviceFeatures().depthClamp)
+      if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
         rs->depthClampEnable = true;
     }
 
@@ -1629,7 +1629,7 @@ private:
 
     // Blending
     {
-      if(m_pDriver->GetDeviceFeatures().independentBlend)
+      if(m_pDriver->GetDeviceEnabledFeatures().independentBlend)
       {
         for(size_t i = 0; i < p.attachments.size(); i++)
         {
@@ -1993,7 +1993,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     {
       for(uint32_t i = 0; i < 2; i++)
       {
-        if(i == 0 && !m_pDriver->GetDeviceFeatures().geometryShader)
+        if(i == 0 && !m_pDriver->GetDeviceEnabledFeatures().geometryShader)
         {
           // without geometryShader, can't read primitive ID in pixel shader
           continue;
@@ -3168,7 +3168,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
 
     // without the geometry shader feature we can't get the primitive ID, so we can't establish
     // discard per-primitive so we assume all shaders don't discard.
-    if(m_pDriver->GetDeviceFeatures().geometryShader)
+    if(m_pDriver->GetDeviceEnabledFeatures().geometryShader)
     {
       if(primitivesToCheck > 0)
       {

@@ -678,7 +678,7 @@ public:
       else if(viewInfo.viewType == VK_IMAGE_VIEW_TYPE_2D)
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
       else if(viewInfo.viewType == VK_IMAGE_VIEW_TYPE_CUBE &&
-              m_pDriver->GetDeviceFeatures().imageCubeArray)
+              m_pDriver->GetDeviceEnabledFeatures().imageCubeArray)
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
 
       viewInfo.components = viewProps.componentMapping;
@@ -1017,7 +1017,7 @@ public:
     // needing to potentially compile lots of pipelines with different offsets. If we're actually
     // using them and the device doesn't support the extended gather feature, the result will be
     // wrong.
-    if(!m_pDriver->GetDeviceFeatures().shaderImageGatherExtended &&
+    if(!m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
        (uniformParams.offset.x != 0 || uniformParams.offset.y != 0 || uniformParams.offset.z != 0))
     {
       m_pDriver->AddDebugMessage(
@@ -1839,12 +1839,12 @@ private:
     editor.AddCapability(rdcspv::Capability::Sampled1D);
     editor.AddCapability(rdcspv::Capability::SampledBuffer);
 
-    if(m_pDriver->GetDeviceFeatures().shaderResourceMinLod)
+    if(m_pDriver->GetDeviceEnabledFeatures().shaderResourceMinLod)
       editor.AddCapability(rdcspv::Capability::MinLod);
-    if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+    if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended)
       editor.AddCapability(rdcspv::Capability::ImageGatherExtended);
 
-    const bool cubeArray = (m_pDriver->GetDeviceFeatures().imageCubeArray != VK_FALSE);
+    const bool cubeArray = (m_pDriver->GetDeviceEnabledFeatures().imageCubeArray != VK_FALSE);
 
     rdcspv::Id entryId = editor.MakeId();
 
@@ -2262,7 +2262,8 @@ private:
 
         rdcspv::ImageOperandsAndParamDatas imageOperands;
 
-        if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended && offsets[i] != rdcspv::Id())
+        if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
+           offsets[i] != rdcspv::Id())
           imageOperands.setOffset(offsets[i]);
 
         cases.add(rdcspv::OpLabel(label));
@@ -2296,7 +2297,7 @@ private:
           cases.add(rdcspv::OpLabel(gradCase));
           rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
           operands.setGrad(ddxs[i], ddys[i]);
-          if(m_pDriver->GetDeviceFeatures().shaderResourceMinLod)
+          if(m_pDriver->GetDeviceEnabledFeatures().shaderResourceMinLod)
             operands.setMinLod(minlod);
           rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
               texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
@@ -2331,7 +2332,8 @@ private:
 
           rdcspv::ImageOperandsAndParamDatas imageOperands;
 
-          if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended && offsets[i] != rdcspv::Id())
+          if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
+             offsets[i] != rdcspv::Id())
             imageOperands.setOffset(offsets[i]);
 
           cases.add(rdcspv::OpLabel(label));
@@ -2365,7 +2367,7 @@ private:
             cases.add(rdcspv::OpLabel(gradCase));
             rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
             operands.setGrad(ddxs[i], ddys[i]);
-            if(m_pDriver->GetDeviceFeatures().shaderResourceMinLod)
+            if(m_pDriver->GetDeviceEnabledFeatures().shaderResourceMinLod)
               operands.setMinLod(minlod);
             rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
                 texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
@@ -2404,7 +2406,7 @@ private:
             cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), bindVars[sampIdx]));
 
         rdcspv::Id sampleResult;
-        if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+        if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended)
         {
           rdcspv::Id mergeLabel = editor.MakeId();
           rdcspv::Id constsCase = editor.MakeId();
@@ -2417,7 +2419,8 @@ private:
             cases.add(rdcspv::OpLabel(baseCase));
             rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
 
-            if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended && offsets[i] != rdcspv::Id())
+            if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
+               offsets[i] != rdcspv::Id())
               imageOperands.setOffset(offsets[i]);
 
             rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
@@ -2441,7 +2444,7 @@ private:
             // if this feature isn't available, this path will never be exercised (since we only
             // come in here when the actual shader used const offsets) so it's fine to drop it in
             // that case to ensure the module is still legal.
-            if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+            if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended)
               operands.setConstOffsets(gatherOffsets);
 
             rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
@@ -2463,7 +2466,8 @@ private:
         }
         else
         {
-          if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended && offsets[i] != rdcspv::Id())
+          if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
+             offsets[i] != rdcspv::Id())
             imageOperands.setOffset(offsets[i]);
 
           rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
@@ -3503,7 +3507,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     return new ShaderDebugTrace;
   }
 
-  if(!m_pDriver->GetDeviceFeatures().fragmentStoresAndAtomics)
+  if(!m_pDriver->GetDeviceEnabledFeatures().fragmentStoresAndAtomics)
   {
     RDCWARN("Pixel debugging is not supported without fragment stores");
     return new ShaderDebugTrace;
@@ -3583,7 +3587,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   else
   {
     // no geometry shader - safe to use as long as the geometry shader capability is available
-    usePrimitiveID = m_pDriver->GetDeviceFeatures().geometryShader != VK_FALSE;
+    usePrimitiveID = m_pDriver->GetDeviceEnabledFeatures().geometryShader != VK_FALSE;
 
     if(Vulkan_Debug_ShaderDebugLogging())
     {
@@ -3591,7 +3595,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     }
   }
 
-  bool useSampleID = m_pDriver->GetDeviceFeatures().sampleRateShading != VK_FALSE;
+  bool useSampleID = m_pDriver->GetDeviceEnabledFeatures().sampleRateShading != VK_FALSE;
 
   if(Vulkan_Debug_ShaderDebugLogging())
   {
@@ -3611,7 +3615,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   }
   else if(m_pDriver->GetExtensions(NULL).ext_EXT_buffer_device_address)
   {
-    if(m_pDriver->GetDeviceFeatures().shaderInt64)
+    if(m_pDriver->GetDeviceEnabledFeatures().shaderInt64)
     {
       storageMode = EXT_bda;
 

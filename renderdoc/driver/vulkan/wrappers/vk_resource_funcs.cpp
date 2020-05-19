@@ -1533,7 +1533,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
         // of capability or because we disabled it as a workaround then we don't need this
         // capability (and it might be the bug we're trying to work around by disabling the
         // pipeline)
-        if(GetDebugManager()->IsArray2MSSupported())
+        if(GetShaderCache()->IsArray2MSSupported())
           CreateInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
       }
       else
@@ -1668,7 +1668,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       {
         // need to check the debug manager here since we might be creating this internal image from
         // its constructor
-        if(GetDebugManager() && GetDebugManager()->IsArray2MSSupported())
+        if(GetDebugManager() && GetShaderCache()->IsArray2MSSupported())
           createInfo_adjusted.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
       }
       else

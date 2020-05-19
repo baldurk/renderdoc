@@ -103,6 +103,54 @@ static const BuiltinShaderConfig builtinShaders[] = {
 RDCCOMPILE_ASSERT(ARRAY_COUNT(builtinShaders) == arraydim<BuiltinShader>(),
                   "Missing built-in shader config");
 
+static bool PassesChecks(const BuiltinShaderConfig &config, const VkDriverInfo &driverVersion,
+                         const VkPhysicalDeviceFeatures &features)
+{
+  if(config.checks & FeatureCheck::ShaderMSAAStorage)
+  {
+    if(driverVersion.TexelFetchBrokenDriver() || driverVersion.AMDStorageMSAABrokenDriver() ||
+       !features.shaderStorageImageMultisample)
+    {
+      return false;
+    }
+  }
+
+  if(config.checks & FeatureCheck::FormatlessWrite)
+  {
+    if(!features.shaderStorageImageWriteWithoutFormat)
+    {
+      return false;
+    }
+  }
+
+  if(config.checks & FeatureCheck::SampleShading)
+  {
+    if(!features.sampleRateShading)
+    {
+      return false;
+    }
+  }
+
+  if(config.checks & FeatureCheck::FragmentStores)
+  {
+    if(!features.fragmentStoresAndAtomics)
+      return false;
+  }
+
+  if(config.checks & FeatureCheck::NonMetalBackend)
+  {
+    // for now we don't allow it at all - in future we could check on whether it's been enabled
+    // via a more advanced query
+    if(driverVersion.RunningOnMetal())
+      return false;
+  }
+
+  if(config.stage == rdcspv::ShaderStage::Geometry && !features.geometryShader)
+    return false;
+
+  return true;
+}
+
 struct VulkanBlobShaderCallbacks
 {
   bool Create(uint32_t size, byte *data, SPIRVBlob *ret) const
@@ -149,7 +197,8 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
   SetCaching(true);
 
   VkDriverInfo driverVersion = driver->GetDriverInfo();
-  const VkPhysicalDeviceFeatures &features = driver->GetDeviceFeatures();
+  const VkPhysicalDeviceFeatures &enabledFeatures = driver->GetDeviceEnabledFeatures();
+  const VkPhysicalDeviceFeatures &availFeatures = driver->GetDeviceAvailableFeatures();
 
   m_GlobalDefines = "#define HAS_BIT_CONVERSION 1\n";
   if(driverVersion.TexelFetchBrokenDriver())
@@ -161,52 +210,20 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
   rdcspv::CompilationSettings compileSettings;
   compileSettings.lang = rdcspv::InputLanguage::VulkanGLSL;
 
+  m_MS2ArraySupported =
+      PassesChecks(builtinShaders[(size_t)BuiltinShader::MS2ArrayCS], driverVersion, availFeatures);
+  m_Array2MSSupported =
+      PassesChecks(builtinShaders[(size_t)BuiltinShader::Array2MSCS], driverVersion, availFeatures);
+
   for(auto i : indices<BuiltinShader>())
   {
     const BuiltinShaderConfig &config = builtinShaders[i];
 
     RDCASSERT(config.builtin == (BuiltinShader)i);
 
-    if(config.checks & FeatureCheck::ShaderMSAAStorage)
-    {
-      if(driverVersion.TexelFetchBrokenDriver() || driverVersion.AMDStorageMSAABrokenDriver() ||
-         !features.shaderStorageImageMultisample)
-      {
-        continue;
-      }
-    }
+    bool passesChecks = PassesChecks(config, driverVersion, enabledFeatures);
 
-    if(config.checks & FeatureCheck::FormatlessWrite)
-    {
-      if(!features.shaderStorageImageWriteWithoutFormat)
-      {
-        continue;
-      }
-    }
-
-    if(config.checks & FeatureCheck::SampleShading)
-    {
-      if(!features.sampleRateShading)
-      {
-        continue;
-      }
-    }
-
-    if(config.checks & FeatureCheck::FragmentStores)
-    {
-      if(!features.fragmentStoresAndAtomics)
-        continue;
-    }
-
-    if(config.checks & FeatureCheck::NonMetalBackend)
-    {
-      // for now we don't allow it at all - in future we could check on whether it's been enabled
-      // via a more advanced query
-      if(driverVersion.RunningOnMetal())
-        continue;
-    }
-
-    if(config.stage == rdcspv::ShaderStage::Geometry && !features.geometryShader)
+    if(!passesChecks)
       continue;
 
     rdcstr defines = m_GlobalDefines;

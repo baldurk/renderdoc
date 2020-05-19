@@ -547,7 +547,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   bool useBufferAddress = (m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address ||
                            m_pDriver->GetExtensions(NULL).ext_EXT_buffer_device_address) &&
-                          m_pDriver->GetDeviceFeatures().shaderInt64;
+                          m_pDriver->GetDeviceEnabledFeatures().shaderInt64;
 
   bool useBufferAddressKHR = m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address;
 

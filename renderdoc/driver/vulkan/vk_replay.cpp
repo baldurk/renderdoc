@@ -2806,7 +2806,7 @@ void VulkanReplay::CopyPixelForPixelHistory(VkCommandBuffer cmd, VkOffset2D offs
     descSet = m_PixelHistory.MSDepthCopyDescSet;
   else
     descSet = m_PixelHistory.MSCopyDescSet;
-  if(!m_pDriver->GetDeviceFeatures().shaderStorageImageWriteWithoutFormat)
+  if(!m_pDriver->GetDeviceEnabledFeatures().shaderStorageImageWriteWithoutFormat)
     return;
 
   ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,

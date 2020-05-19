@@ -784,7 +784,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
     RemoveNextStruct(&pipeCreateInfo,
                      VK_STRUCTURE_TYPE_PIPELINE_DISCARD_RECTANGLE_STATE_CREATE_INFO_EXT);
 
-    if(m_pDriver->GetDeviceFeatures().depthClamp)
+    if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
     {
       rs->depthClampEnable = true;
     }
@@ -810,7 +810,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
       {
         // do nothing
       }
-      else if(m_pDriver->GetDeviceFeatures().fillModeNonSolid)
+      else if(m_pDriver->GetDeviceEnabledFeatures().fillModeNonSolid)
       {
         rs->polygonMode = VK_POLYGON_MODE_LINE;
       }
@@ -1174,7 +1174,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
     rs->cullMode = VK_CULL_MODE_NONE;    // first render without any culling
     rs->rasterizerDiscardEnable = false;
 
-    if(m_pDriver->GetDeviceFeatures().depthClamp)
+    if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
       rs->depthClampEnable = true;
 
     VkPipelineColorBlendStateCreateInfo *cb =
@@ -1536,7 +1536,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
     rs->cullMode = VK_CULL_MODE_NONE;
     rs->rasterizerDiscardEnable = false;
 
-    if(m_pDriver->GetDeviceFeatures().depthClamp)
+    if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
       rs->depthClampEnable = true;
 
     vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,

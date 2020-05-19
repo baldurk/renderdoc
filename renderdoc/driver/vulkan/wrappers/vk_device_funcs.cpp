@@ -1017,7 +1017,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(SerialiserType &ser, Vk
 
       m_OriginalPhysicalDevices[PhysicalDeviceIndex].props = physProps;
       m_OriginalPhysicalDevices[PhysicalDeviceIndex].memProps = memProps;
-      m_OriginalPhysicalDevices[PhysicalDeviceIndex].features = physFeatures;
+      m_OriginalPhysicalDevices[PhysicalDeviceIndex].availFeatures = physFeatures;
       m_OriginalPhysicalDevices[PhysicalDeviceIndex].queueCount = queueCount;
       memcpy(m_OriginalPhysicalDevices[PhysicalDeviceIndex].queueProps, queueProps,
              sizeof(queueProps));
@@ -3084,7 +3084,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         ->GetPhysicalDeviceMemoryProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.memProps);
 
     ObjDisp(physicalDevice)
-        ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.features);
+        ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.availFeatures);
+    m_PhysicalDeviceData.enabledFeatures = enabledFeatures;
 
     m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props);
 
@@ -3487,7 +3488,8 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
         ->GetPhysicalDeviceMemoryProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.memProps);
 
     ObjDisp(physicalDevice)
-        ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.features);
+        ->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &m_PhysicalDeviceData.availFeatures);
+    m_PhysicalDeviceData.enabledFeatures = enabledFeatures;
 
     m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props);
 

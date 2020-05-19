@@ -385,7 +385,8 @@ private:
     uint32_t uploadMemIndex = 0;
     uint32_t GPULocalMemIndex = 0;
 
-    VkPhysicalDeviceFeatures features = {};
+    VkPhysicalDeviceFeatures availFeatures = {};
+    VkPhysicalDeviceFeatures enabledFeatures = {};
     VkPhysicalDeviceProperties props = {};
     VkPhysicalDeviceMemoryProperties memProps = {};
     VkFormatProperties fmtprops[VK_FORMAT_RANGE_SIZE] = {};
@@ -1062,7 +1063,14 @@ public:
   static VkResult GetProvidedInstanceExtensionProperties(uint32_t *pPropertyCount,
                                                          VkExtensionProperties *pProperties);
 
-  const VkPhysicalDeviceFeatures &GetDeviceFeatures() { return m_PhysicalDeviceData.features; }
+  const VkPhysicalDeviceFeatures &GetDeviceEnabledFeatures()
+  {
+    return m_PhysicalDeviceData.enabledFeatures;
+  }
+  const VkPhysicalDeviceFeatures &GetDeviceAvailableFeatures()
+  {
+    return m_PhysicalDeviceData.availFeatures;
+  }
   const VkPhysicalDeviceProperties &GetDeviceProps() { return m_PhysicalDeviceData.props; }
   const VkPhysicalDevicePerformanceQueryFeaturesKHR &GetPhysicalDevicePerformanceQueryFeatures()
   {

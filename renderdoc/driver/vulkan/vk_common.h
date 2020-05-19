@@ -234,27 +234,27 @@ public:
   VkDriverInfo(const VkPhysicalDeviceProperties &physProps);
 
   // checks for when we're running on metal and some non-queryable things aren't supported
-  bool RunningOnMetal() { return metalBackend; }
+  bool RunningOnMetal() const { return metalBackend; }
   // A workaround for a couple of bugs, removing texelFetch use from shaders.
   // It means broken functionality but at least no instant crashes
-  bool TexelFetchBrokenDriver() { return texelFetchBrokenDriver; }
+  bool TexelFetchBrokenDriver() const { return texelFetchBrokenDriver; }
   // Older AMD driver versions could sometimes cause image memory requirements to vary randomly
   // between identical images. This means the memory required at capture could be less than at
   // replay. To counteract this, on drivers with this issue we pad out the memory requirements
   // enough to account for the change
-  bool UnreliableImageMemoryRequirements() { return unreliableImgMemReqs; }
+  bool UnreliableImageMemoryRequirements() const { return unreliableImgMemReqs; }
   // another workaround, on some AMD driver versions creating an MSAA image with STORAGE_BIT
   // causes graphical corruption trying to sample from it. We workaround it by preventing the
   // MSAA <-> Array pipelines from creating, which removes the STORAGE_BIT and skips the copies.
   // It means initial contents of MSAA images are missing but that's less important than being
   // able to inspect MSAA images properly.
-  bool AMDStorageMSAABrokenDriver() { return amdStorageMSAABrokenDriver; }
+  bool AMDStorageMSAABrokenDriver() const { return amdStorageMSAABrokenDriver; }
   // On Qualcomm it seems like binding a descriptor set with a dynamic offset will 'leak' and affect
   // rendering on other descriptor sets that don't use offsets at all.
-  bool QualcommLeakingUBOOffsets() { return qualcommLeakingUBOOffsets; }
+  bool QualcommLeakingUBOOffsets() const { return qualcommLeakingUBOOffsets; }
   // On Qualcomm emitting an image sample operation with DRef and explicit lod will crash on non-2D
   // textures. Since 2D is the common/expected case, we avoid compiling that case entirely.
-  bool QualcommDrefNon2DCompileCrash() { return qualcommDrefNon2DCompileCrash; }
+  bool QualcommDrefNon2DCompileCrash() const { return qualcommDrefNon2DCompileCrash; }
 private:
   GPUVendor m_Vendor;
 
