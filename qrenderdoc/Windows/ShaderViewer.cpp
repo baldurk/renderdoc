@@ -681,8 +681,6 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
 
         rdcarray<ShaderDebugState> nextStates = r->ContinueDebug(m_Trace->debugger);
 
-        QThread::msleep(5000);
-
         if(!me)
           return;
 
