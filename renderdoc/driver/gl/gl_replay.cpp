@@ -2319,11 +2319,11 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     else if(params.remap == RemapTexture::RGBA32)
       remapFormat = eGL_RGBA32F;
 
-    CompType typeCast = params.typeCast;
+    CompType typeCast = BaseRemapType(params.typeCast);
     if(typeCast == CompType::Typeless && IsSRGBFormat(intFormat))
       typeCast = CompType::UNormSRGB;
 
-    remapFormat = GetViewCastedFormat(remapFormat, BaseRemapType(typeCast));
+    remapFormat = GetViewCastedFormat(remapFormat, typeCast);
 
     if(intFormat != remapFormat)
     {
