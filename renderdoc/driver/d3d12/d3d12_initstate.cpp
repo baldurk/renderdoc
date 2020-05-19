@@ -817,8 +817,19 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
       heapProps.CreationNodeMask = 1;
       heapProps.VisibleNodeMask = 1;
 
+      bool isDepth = IsDepthFormat(resDesc.Format) ||
+                     (resDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
+
       resDesc.Alignment = 0;
       resDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+      if(resDesc.SampleDesc.Count > 1)
+      {
+        if(isDepth)
+          resDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        else
+          resDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+      }
 
       ID3D12Resource *copy = NULL;
       HRESULT hr = m_Device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &resDesc,
