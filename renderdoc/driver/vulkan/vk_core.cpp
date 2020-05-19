@@ -3480,6 +3480,16 @@ VkBool32 WrappedVulkan::DebugCallback(MessageSeverity severity, MessageCategory 
     if(strstr(pMessageId, "VUID-VkSwapchainCreateInfoKHR-imageExtent"))
       return false;
 
+    // "Missing extension required by the device extension VK_KHR_driver_properties:
+    // VK_KHR_get_physical_device_properties2. The Vulkan spec states: All required extensions for
+    // each extension in the VkDeviceCreateInfo::ppEnabledExtensionNames list must also be present
+    // in that list."
+    // During capture we can't enable instance extensions so it's impossible for us to enable gpdp2,
+    // but we still want to use driver properties and in practice it's safe.
+    if(strstr(pMessage, "VK_KHR_get_physical_device_properties2") &&
+       strstr(pMessage, "VK_KHR_driver_properties"))
+      return false;
+
     RDCWARN("[%s] %s", pMessageId, pMessage);
   }
 
