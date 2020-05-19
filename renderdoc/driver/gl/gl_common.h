@@ -256,6 +256,36 @@ struct GLWindowingData
   EGLConfig egl_cfg;
 };
 
+#elif ENABLED(RDOC_SWITCH)
+
+// force include the eglplatform.h
+#include "official/eglplatform.h"
+
+#include "official/egl.h"
+#include "official/eglext.h"
+
+struct GLWindowingData
+{
+  GLWindowingData()
+  {
+    egl_ctx = NULL;
+    egl_dpy = NULL;
+    wnd = NULL;
+    egl_wnd = NULL;
+    egl_cfg = NULL;
+  }
+
+  union
+  {
+    void *ctx;
+    EGLContext egl_ctx;
+  };
+  EGLSurface egl_wnd;
+  void *wnd;
+  EGLDisplay egl_dpy;
+  EGLConfig egl_cfg;
+};
+
 #else
 #error "Unknown platform"
 #endif
