@@ -107,7 +107,7 @@ void SetDriverForHooks(WrappedOpenGL *driver)
   glhook.driver = driver;
 }
 
-#if ENABLED(RDOC_WIN32) || ENABLED(RDOC_APPLE)
+#if ENABLED(RDOC_WIN32) || ENABLED(RDOC_APPLE) || defined(RENDERDOC_PLATFORM_SWITCH)
 void EnableGLHooks()
 {
   glhook.enabled = true;

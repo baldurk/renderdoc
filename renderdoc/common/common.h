@@ -42,7 +42,12 @@
 #include <signal.h>
 
 #define __PRETTY_FUNCTION_SIGNATURE__ __PRETTY_FUNCTION__
+#if defined(RENDERDOC_PLATFORM_SWITCH)
+#include <stdlib.h>
+#define OS_DEBUG_BREAK() abort()
+#else
 #define OS_DEBUG_BREAK() raise(SIGTRAP)
+#endif
 
 #if defined(__clang__)
 

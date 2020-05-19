@@ -104,6 +104,15 @@
 #define RDOC_POSIX OPTION_ON
 #define RDOC_GGP OPTION_ON
 
+#elif defined(RENDERDOC_PLATFORM_SWITCH)
+
+#define RDOC_WIN32 OPTION_OFF
+#define RDOC_ANDROID OPTION_OFF
+#define RDOC_LINUX OPTION_OFF
+#define RDOC_APPLE OPTION_OFF
+#define RDOC_POSIX OPTION_ON
+#define RDOC_GGP OPTION_OFF
+
 #else
 
 #error "No platform configured in build system"
