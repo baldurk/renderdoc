@@ -1178,7 +1178,7 @@ void D3D12PipelineStateViewer::setShaderState(
               {
                 bind = &bm;
                 shaderCBuf = &res;
-                D3D12CBufTag cbufTag((uint32_t)i);
+                D3D12CBufTag cbufTag((uint32_t)k);
                 cbufTag.arrayIdx = b.bind - bm.bind;
                 tag = QVariant::fromValue(cbufTag);
                 break;
