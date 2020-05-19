@@ -110,4 +110,4 @@ float ConvertLinearToSRGB(float linear);
 typedef uint8_t byte;
 
 struct ResourceFormat;
-FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data, bool *success = NULL);
+FloatVector ConvertComponents(const ResourceFormat &fmt, const byte *data, bool *success = nullptr);
