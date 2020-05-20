@@ -1119,19 +1119,22 @@ void WrappedOpenGL::RestoreClientMemoryArrays(ClientMemoryData *clientMemoryArra
   if(!clientMemoryArrays)
     return;
 
-  // Restore the 0-buffer bindings and attrib pointers.
-  gl_CurChunk = GLChunk::glBindBuffer;
-  glBindBuffer(eGL_ARRAY_BUFFER, 0);
-
-  for(const ClientMemoryData::VertexAttrib &attrib : clientMemoryArrays->attribs)
+  if(!clientMemoryArrays->attribs.empty())
   {
-    gl_CurChunk = GLChunk::glVertexAttribPointer;
-    glVertexAttribPointer(attrib.index, attrib.size, attrib.type, attrib.normalized, attrib.stride,
-                          attrib.pointer);
-  }
+    // Restore the 0-buffer bindings and attrib pointers.
+    gl_CurChunk = GLChunk::glBindBuffer;
+    glBindBuffer(eGL_ARRAY_BUFFER, 0);
 
-  gl_CurChunk = GLChunk::glBindBuffer;
-  glBindBuffer(eGL_ARRAY_BUFFER, clientMemoryArrays->prevArrayBufferBinding);
+    for(const ClientMemoryData::VertexAttrib &attrib : clientMemoryArrays->attribs)
+    {
+      gl_CurChunk = GLChunk::glVertexAttribPointer;
+      glVertexAttribPointer(attrib.index, attrib.size, attrib.type, attrib.normalized,
+                            attrib.stride, attrib.pointer);
+    }
+
+    gl_CurChunk = GLChunk::glBindBuffer;
+    glBindBuffer(eGL_ARRAY_BUFFER, clientMemoryArrays->prevArrayBufferBinding);
+  }
 
   delete clientMemoryArrays;
 }
