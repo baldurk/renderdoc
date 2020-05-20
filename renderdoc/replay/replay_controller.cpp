@@ -353,7 +353,8 @@ void ReplayController::AddFakeMarkers()
     {
       int outCount = 0;
 
-      if(!(draws[j].flags & (DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::Clear)))
+      if(!(draws[j].flags & (DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::Clear |
+                             DrawFlags::PassBoundary | DrawFlags::SetMarker)))
         copyOnly = false;
 
       for(ResourceId o : draws[j].outputs)
