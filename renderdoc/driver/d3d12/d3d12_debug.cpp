@@ -521,7 +521,7 @@ bool D3D12DebugManager::CreateMathIntrinsicsResources()
   D3D12_RESOURCE_DESC rdesc;
   ZeroMemory(&rdesc, sizeof(D3D12_RESOURCE_DESC));
   rdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-  rdesc.Width = sizeof(float) * 8;    // Output buffer is 2x float4
+  rdesc.Width = sizeof(Vec4f) * 2;    // Output buffer is 2x float4
   rdesc.Height = 1;
   rdesc.DepthOrArraySize = 1;
   rdesc.MipLevels = 1;

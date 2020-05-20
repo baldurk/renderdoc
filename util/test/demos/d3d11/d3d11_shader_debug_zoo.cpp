@@ -592,16 +592,10 @@ float4 main(v2f IN) : SV_Target0
   }
   if(IN.tri == 67)
   {
-    int zero_i = int(zero);
-    int posone_i = int(posone);
-    int negone_i = int(negone);
-    return float4(float(zero_i/zero_i), float(posone_i/zero_i), float(negone_i/zero_i), 1.0f);
-  }
-  if(IN.tri == 68)
-  {
-    uint zero_i = uint(zero);
-    uint posone_i = uint(posone);
-    return float4(float(zero_i/zero_i), float(posone_i/zero_i), 0.0f, 1.0f);
+    float val = posone * 1.8631f;
+    float a = 0.0f, b = 0.0f;
+    sincos(val, a, b);
+    return float4(val, a, b, 0.0f);
   }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);

@@ -421,7 +421,7 @@ bool D3D12DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
   uavDesc.Format = DXGI_FORMAT_UNKNOWN;
   uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
   uavDesc.Buffer.NumElements = 2;
-  uavDesc.Buffer.StructureByteStride = sizeof(float) * 4;
+  uavDesc.Buffer.StructureByteStride = sizeof(Vec4f);
 
   ID3D12Resource *pResultBuffer = m_pDevice->GetDebugManager()->GetMathIntrinsicsResultBuffer();
   D3D12_CPU_DESCRIPTOR_HANDLE uav = m_pDevice->GetDebugManager()->GetCPUHandle(SHADER_DEBUG_UAV);
@@ -452,10 +452,10 @@ bool D3D12DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
 
   bytebuf results;
   m_pDevice->GetDebugManager()->GetBufferData(pResultBuffer, 0, 0, results);
-  RDCASSERT(results.size() >= sizeof(uint32_t) * 8);
+  RDCASSERT(results.size() >= sizeof(Vec4f) * 2);
 
-  memcpy(output1.value.uv, results.data(), sizeof(uint32_t) * 4);
-  memcpy(output2.value.uv, results.data() + 4, sizeof(uint32_t) * 4);
+  memcpy(output1.value.uv, results.data(), sizeof(Vec4f));
+  memcpy(output2.value.uv, results.data() + sizeof(Vec4f), sizeof(Vec4f));
 
   return true;
 }
