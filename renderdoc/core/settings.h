@@ -66,7 +66,7 @@ CONFIG_SUPPORT_TYPE(rdcarray<rdcstr>);
 #define RDOC_DEBUG_CONFIG(type, name, defaultValue, description)                         \
   static ConfigVarRegistration<type> CONCAT(config, __LINE__)(                           \
       STRING_LITERAL(STRINGIZE(name)), defaultValue, true, STRING_LITERAL(description)); \
-  static const type name() { return defaultValue; }
+  static type name() { return defaultValue; }
 #else
 
 #define RDOC_DEBUG_CONFIG(type, name, defaultValue, description)                         \
