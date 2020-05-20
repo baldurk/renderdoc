@@ -193,9 +193,9 @@ The position output is also treated specially - it always appears first, regardl
 
 		# Construct a resource format for this element
 		meshOutput.format = rd.ResourceFormat()
-		meshOutput.format.compByteWidth = 8 if attr.compType == rd.CompType.Double else 4
+		meshOutput.format.compByteWidth = rd.VarTypeByteSize(attr.varType)
 		meshOutput.format.compCount = attr.compCount
-		meshOutput.format.compType = attr.compType
+		meshOutput.format.compType = rd.VarTypeCompType(attr.varType)
 		meshOutput.format.type = rd.ResourceFormatType.Regular
 
 		meshOutput.name = attr.semanticIdxName if attr.varName == '' else attr.varName
