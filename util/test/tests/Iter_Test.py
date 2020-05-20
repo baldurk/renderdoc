@@ -134,7 +134,14 @@ class Iter_Test(rdtest.TestCase):
                         "Output {} at EID {} has different size ({} values) to expectation ({} values)"
                             .format(name, draw.eventId, value.columns, len(expect)))
 
-                debugged = value.value.fv[0:value.columns]
+                compType = rd.VarTypeCompType(value.type)
+                if compType == rd.CompType.UInt:
+                    debugged = value.value.uv[0:value.columns]
+                elif compType == rd.CompType.SInt:
+                    debugged = value.value.iv[0:value.columns]
+                else:
+                    debugged = value.value.fv[0:value.columns]
+
                 # Unfortunately we can't ever trust that we should get back a matching results, because some shaders
                 # rely on undefined/inaccurate maths that we don't emulate.
                 # So the best we can do is log an error for manual verification
