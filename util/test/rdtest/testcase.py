@@ -275,7 +275,7 @@ class TestCase:
 
         first_index = min(first_index, draw.numIndices-1)
 
-        indices = analyse.fetch_indices(self.controller, mesh, 0, first_index, num_indices)
+        indices = analyse.fetch_indices(self.controller, draw, mesh, 0, first_index, num_indices)
 
         return analyse.decode_mesh_data(self.controller, indices, indices, attrs, 0, 0)
 
@@ -307,8 +307,8 @@ class TestCase:
             in_mesh.indexByteStride = 0
             in_mesh.indexResourceId = rd.ResourceId.Null()
 
-        indices = analyse.fetch_indices(self.controller, mesh, 0, first_index, num_indices)
-        in_indices = analyse.fetch_indices(self.controller, in_mesh, 0, first_index, num_indices)
+        indices = analyse.fetch_indices(self.controller, draw, mesh, 0, first_index, num_indices)
+        in_indices = analyse.fetch_indices(self.controller, draw, in_mesh, 0, first_index, num_indices)
 
         attrs = analyse.get_postvs_attrs(self.controller, mesh, data_stage)
 

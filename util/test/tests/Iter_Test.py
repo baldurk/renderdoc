@@ -86,7 +86,7 @@ class Iter_Test(rdtest.TestCase):
             mesh.indexByteOffset = ib.byteOffset + draw.indexOffset * draw.indexByteWidth
             mesh.baseVertex = draw.baseVertex
 
-            indices = rdtest.fetch_indices(self.controller, mesh, 0, vtx, 1)
+            indices = rdtest.fetch_indices(self.controller, draw, mesh, 0, vtx, 1)
 
             if len(indices) < 1:
                 rdtest.log.print("No index buffer, skipping")

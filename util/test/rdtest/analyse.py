@@ -55,7 +55,7 @@ def open_capture(filename="", cap: rd.CaptureFile=None, opts: rd.ReplayOptions=N
     return controller
 
 
-def fetch_indices(controller: rd.ReplayController, mesh: rd.MeshFormat, index_offset: int, first_index: int, num_indices: int):
+def fetch_indices(controller: rd.ReplayController, draw: rd.DrawcallDescription, mesh: rd.MeshFormat, index_offset: int, first_index: int, num_indices: int):
     # Get the character for the width of index
     index_fmt = 'B'
     if mesh.indexByteStride == 2:
@@ -65,6 +65,7 @@ def fetch_indices(controller: rd.ReplayController, mesh: rd.MeshFormat, index_of
 
     pipe = controller.GetPipelineState()
     restart_idx = pipe.GetStripRestartIndex() & ((1 << (mesh.indexByteStride*8)) - 1)
+    restart_enabled = pipe.IsStripRestartEnabled() and rd.IsStrip(draw.topology)
 
     # Duplicate the format by the number of indices
     index_fmt = '=' + str(num_indices) + index_fmt
@@ -80,7 +81,7 @@ def fetch_indices(controller: rd.ReplayController, mesh: rd.MeshFormat, index_of
         indices = struct.unpack_from(index_fmt, ibdata)
 
         # Apply the baseVertex offset
-        return [i if i == restart_idx else i + mesh.baseVertex for i in indices]
+        return [i if restart_enabled and i == restart_idx else i + mesh.baseVertex for i in indices]
     else:
         # With no index buffer, just generate a range
         return tuple(range(first_index, first_index + num_indices))
