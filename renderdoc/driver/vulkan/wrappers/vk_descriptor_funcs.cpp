@@ -561,16 +561,19 @@ VkResult WrappedVulkan::vkResetDescriptorPool(VkDevice device, VkDescriptorPool 
   // need to free all child descriptor pools. Application is responsible for
   // ensuring no concurrent use with alloc/free from this pool, the same as
   // for DestroyDescriptorPool.
-  VkResourceRecord *record = GetRecord(descriptorPool);
-
-  // delete all of the children
-  for(auto it = record->pooledChildren.begin(); it != record->pooledChildren.end(); ++it)
+  if(IsCaptureMode(m_State))
   {
-    // unset record->pool so we don't recurse
-    (*it)->pool = NULL;
-    GetResourceManager()->ReleaseWrappedResource((VkDescriptorSet)(uint64_t)(*it)->Resource, true);
+    VkResourceRecord *record = GetRecord(descriptorPool);
+
+    // delete all of the children
+    for(auto it = record->pooledChildren.begin(); it != record->pooledChildren.end(); ++it)
+    {
+      // unset record->pool so we don't recurse
+      (*it)->pool = NULL;
+      GetResourceManager()->ReleaseWrappedResource((VkDescriptorSet)(uint64_t)(*it)->Resource, true);
+    }
+    record->pooledChildren.clear();
   }
-  record->pooledChildren.clear();
 
   return ObjDisp(device)->ResetDescriptorPool(Unwrap(device), Unwrap(descriptorPool), flags);
 }

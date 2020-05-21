@@ -2837,24 +2837,29 @@ rdcarray<EventUsage> VulkanReplay::GetUsage(ResourceId id)
 }
 
 void VulkanReplay::CopyPixelForPixelHistory(VkCommandBuffer cmd, VkOffset2D offset, uint32_t sample,
-                                            uint32_t bufferOffset, bool depthCopy)
+                                            uint32_t bufferOffset, VkFormat format,
+                                            VkDescriptorSet descSet)
 {
-  if(m_PixelHistory.MSCopyPipe == VK_NULL_HANDLE)
-    return;
-
-  VkDescriptorSet descSet;
-  if(depthCopy)
-    descSet = m_PixelHistory.MSDepthCopyDescSet;
+  VkPipeline pipe;
+  if(IsDepthOrStencilFormat(format))
+    pipe = m_PixelHistory.MSCopyDepthPipe;
   else
-    descSet = m_PixelHistory.MSCopyDescSet;
+    pipe = m_PixelHistory.MSCopyPipe;
+  if(pipe == VK_NULL_HANDLE)
+    return;
   if(!m_pDriver->GetDeviceEnabledFeatures().shaderStorageImageWriteWithoutFormat)
     return;
 
-  ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                                Unwrap(m_PixelHistory.MSCopyPipe));
+  ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(pipe));
 
-  uint32_t params[8] = {depthCopy, sample, (uint32_t)offset.x, (uint32_t)offset.y, bufferOffset, 0,
-                        0,         0};
+  int32_t params[8] = {(int32_t)sample,
+                       offset.x,
+                       offset.y,
+                       (int32_t)bufferOffset,
+                       !IsStencilOnlyFormat(format),
+                       IsStencilFormat(format),
+                       0,
+                       0};
   ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
                                       Unwrap(m_PixelHistory.MSCopyPipeLayout), 0, 1,
                                       UnwrapPtr(descSet), 0, NULL);

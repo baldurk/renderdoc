@@ -77,18 +77,6 @@ struct PixelHistoryResources
   VkImage dsImage;
   VkImageView dsImageView;
   VkDeviceMemory gpuMem;
-
-  // Following are only used and created for multi sampled images.
-  // This is an image view for colorImage which uses a UINT format.
-  VkImageView colorImageAliasView;
-  // Image view for target image which uses a UINT format.
-  VkImageView targetImageView;
-  // Image view for dsImage depth stencil image that includes depth
-  // aspect only.
-  VkImageView depthOnlyImageView;
-  // Image view for dsImage depth stencil image that includes stencil
-  // aspect only.
-  VkImageView stencilOnlyImageView;
 };
 
 struct PixelHistoryCallbackInfo
@@ -387,6 +375,9 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
       m_pDriver->vkDestroyRenderPass(m_pDriver->GetDev(), rp, NULL);
     for(const VkFramebuffer &fb : m_FbsToDestroy)
       m_pDriver->vkDestroyFramebuffer(m_pDriver->GetDev(), fb, NULL);
+    for(const VkImageView &imageView : m_ImageViewsToDestroy)
+      m_pDriver->vkDestroyImageView(m_pDriver->GetDev(), imageView, NULL);
+    m_pDriver->GetReplay()->ResetPixelHistoryDescriptorPool();
   }
   // Update the given scissor to just the pixel for which pixel history was requested.
   void ScissorToPixel(const VkViewport &view, VkRect2D &scissor)
@@ -747,6 +738,61 @@ protected:
     return framebuffer;
   }
 
+  VkDescriptorSet GetCopyDescriptor(VkImage image, VkFormat format, uint32_t baseMip,
+                                    uint32_t baseSlice)
+  {
+    auto it = m_CopyDescriptors.find(image);
+    if(it != m_CopyDescriptors.end())
+      return it->second;
+
+    VkImageViewCreateInfo viewInfo = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
+    viewInfo.image = image;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+    viewInfo.format = format;
+    viewInfo.subresourceRange = {0, baseMip, 1, baseSlice, 1};
+
+    if(IsDepthOrStencilFormat(format))
+    {
+      viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    }
+    else
+    {
+      viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      uint32_t bs = GetByteSize(1, 1, 1, format, 0);
+
+      if(bs == 1)
+        viewInfo.format = VK_FORMAT_R8_UINT;
+      else if(bs == 2)
+        viewInfo.format = VK_FORMAT_R16_UINT;
+      else if(bs == 4)
+        viewInfo.format = VK_FORMAT_R32_UINT;
+      else if(bs == 8)
+        viewInfo.format = VK_FORMAT_R32G32_UINT;
+      else if(bs == 16)
+        viewInfo.format = VK_FORMAT_R32G32B32A32_UINT;
+    }
+
+    VkImageView imageView;
+    VkResult vkr = m_pDriver->vkCreateImageView(m_pDriver->GetDev(), &viewInfo, NULL, &imageView);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    m_ImageViewsToDestroy.push_back(imageView);
+
+    VkImageView imageView2 = VK_NULL_HANDLE;
+    if(IsStencilFormat(format))
+    {
+      viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+      vkr = m_pDriver->vkCreateImageView(m_pDriver->GetDev(), &viewInfo, NULL, &imageView2);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      m_ImageViewsToDestroy.push_back(imageView2);
+    }
+
+    VkDescriptorSet descSet = m_pDriver->GetReplay()->GetPixelHistoryDescriptor();
+    m_pDriver->GetReplay()->UpdatePixelHistoryDescriptor(descSet, m_CallbackInfo.dstBuffer,
+                                                         imageView, imageView2);
+    m_CopyDescriptors.insert(std::make_pair(image, descSet));
+    return descSet;
+  }
+
   void CopyImagePixel(VkCommandBuffer cmd, CopyPixelParams &p, size_t offset)
   {
     VkImageAspectFlags aspectFlags = 0;
@@ -786,55 +832,14 @@ protected:
               VK_ACCESS_MEMORY_WRITE_BIT,
           VK_ACCESS_SHADER_READ_BIT, p.srcImageLayout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, Unwrap(p.srcImage), subresource};
-
-      if(depthCopy && p.srcImage != m_CallbackInfo.dsImage)
-      {
-        // This is an original depth image that is used in a draw.
-        // The descriptor for MSAA copy has the dsImage created for pixel history.
-        // So copy the pixel value there first.
-        VkImageCopy region = {};
-        region.srcSubresource = {aspectFlags, baseMip, baseSlice, 1};
-        region.srcOffset = {(int32_t)m_CallbackInfo.x, (int32_t)m_CallbackInfo.y, 0};
-        region.dstSubresource = {aspectFlags, 0, 0, 1};
-        region.dstOffset = {(int32_t)m_CallbackInfo.x, (int32_t)m_CallbackInfo.y, 0};
-        region.extent = {1, 1, 1};
-
-        VkImageMemoryBarrier barriers[2];
-        barriers[0] = barrier;
-        barriers[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        barriers[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        barriers[1] = barriers[0];
-        barriers[1].image = Unwrap(m_CallbackInfo.dsImage);
-        barriers[1].oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        barriers[1].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-
-        DoPipelineBarrier(cmd, 2, barriers);
-
-        ObjDisp(cmd)->CmdCopyImage(
-            Unwrap(cmd), Unwrap(p.srcImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            Unwrap(m_CallbackInfo.dsImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-        // Return src image to its layout.
-        barrier.image = Unwrap(p.srcImage);
-        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        barrier.newLayout = p.srcImageLayout;
-        barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        barrier.dstAccessMask = VK_ACCESS_ALL_WRITE_BITS;
-        DoPipelineBarrier(cmd, 1, &barrier);
-
-        barrier.image = Unwrap(m_CallbackInfo.dsImage);
-        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-      }
+      VkDescriptorSet descSet = GetCopyDescriptor(p.srcImage, p.srcImageFormat, baseMip, baseSlice);
 
       // Transition src image to SHADER_READ_ONLY_OPTIMAL.
       DoPipelineBarrier(cmd, 1, &barrier);
 
       m_pDriver->GetReplay()->CopyPixelForPixelHistory(
           cmd, {(int32_t)m_CallbackInfo.x, (int32_t)m_CallbackInfo.y},
-          m_CallbackInfo.targetSubresource.sample, (uint32_t)offset / 16, depthCopy);
+          m_CallbackInfo.targetSubresource.sample, (uint32_t)offset / 16, p.srcImageFormat, descSet);
 
       // Transition src image back to its layout.
       barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -947,6 +952,8 @@ protected:
   rdcarray<VkRenderPass> m_RpsToDestroy;
   rdcarray<VkFramebuffer> m_FbsToDestroy;
   rdcarray<VkDynamicState> m_DynamicStates;
+  std::map<VkImage, VkDescriptorSet> m_CopyDescriptors;
+  rdcarray<VkImageView> m_ImageViewsToDestroy;
 };
 
 // VulkanOcclusionCallback callback is used to determine which draw events might have
@@ -1400,11 +1407,15 @@ private:
     CopyPixelParams targetCopyParams = {};
     targetCopyParams.srcImage = m_CallbackInfo.targetImage;
     targetCopyParams.srcImageFormat = m_CallbackInfo.targetImageFormat;
-    targetCopyParams.srcImageLayout = m_pDriver->GetDebugManager()->GetImageLayout(
-        GetResID(m_CallbackInfo.targetImage), VK_IMAGE_ASPECT_COLOR_BIT,
-        m_CallbackInfo.targetSubresource.mip, m_CallbackInfo.targetSubresource.slice);
+    VkImageAspectFlagBits aspect = VK_IMAGE_ASPECT_COLOR_BIT;
     if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
+    {
       offset += offsetof(struct PixelHistoryValue, depth);
+      aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+    }
+    targetCopyParams.srcImageLayout = m_pDriver->GetDebugManager()->GetImageLayout(
+        GetResID(m_CallbackInfo.targetImage), aspect, m_CallbackInfo.targetSubresource.mip,
+        m_CallbackInfo.targetSubresource.slice);
     CopyImagePixel(cmd, targetCopyParams, offset);
 
     // If the target image is a depth/stencil attachment, we already
@@ -2242,7 +2253,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         CopyPixelParams depthCopyParams = colourCopyParams;
         depthCopyParams.srcImage = m_CallbackInfo.dsImage;
         depthCopyParams.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        depthCopyParams.srcImageFormat = depthFormat;
+        depthCopyParams.srcImageFormat = m_CallbackInfo.dsFormat;
         CopyImagePixel(cmd, depthCopyParams, (fragsProcessed + f) * sizeof(PerFragmentInfo) +
                                                  offsetof(struct PerFragmentInfo, postMod) +
                                                  offsetof(struct PixelHistoryValue, depth));
@@ -2593,11 +2604,6 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   VkImage dsImage;
   VkImageView dsImageView;
 
-  VkImageView colorImageAliasView = VK_NULL_HANDLE;
-  VkImageView targetImageView = VK_NULL_HANDLE;
-  VkImageView depthOnlyImageView = VK_NULL_HANDLE;
-  VkImageView stencilOnlyImageView = VK_NULL_HANDLE;
-
   VkDeviceMemory gpuMem;
 
   VkBuffer dstBuffer;
@@ -2691,46 +2697,6 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &dsImageView);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  if(samples != VK_SAMPLE_COUNT_1_BIT)
-  {
-    uint32_t bs = GetByteSize(1, 1, 1, format, 0);
-
-    if(bs == 1)
-      viewInfo.format = VK_FORMAT_R8_UINT;
-    else if(bs == 2)
-      viewInfo.format = VK_FORMAT_R16_UINT;
-    else if(bs == 4)
-      viewInfo.format = VK_FORMAT_R32_UINT;
-    else if(bs == 8)
-      viewInfo.format = VK_FORMAT_R32G32_UINT;
-    else if(bs == 16)
-      viewInfo.format = VK_FORMAT_R32G32B32A32_UINT;
-
-    if(viewInfo.format == VK_FORMAT_UNDEFINED)
-    {
-      RDCERR("Can't copy 2D to Array with format %s", ToStr(format).c_str());
-    }
-
-    viewInfo.image = targetImage;
-    viewInfo.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, sub.mip, 1, sub.slice, 1};
-    vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &targetImageView);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    viewInfo.format = VK_FORMAT_R32G32B32A32_UINT;
-    viewInfo.image = colorImage;
-    viewInfo.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-    vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &colorImageAliasView);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    viewInfo.image = dsImage;
-    viewInfo.format = dsFormat;
-    viewInfo.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
-    vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &depthOnlyImageView);
-
-    viewInfo.subresourceRange = {VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1};
-    vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &stencilOnlyImageView);
-  }
-
   VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
   // TODO: the size for memory is calculated to fit pre and post modification values and
   // stencil values. But we might run out of space when getting per fragment data.
@@ -2777,59 +2743,65 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   resources.dsImageView = dsImageView;
   resources.gpuMem = gpuMem;
 
-  resources.colorImageAliasView = colorImageAliasView;
-  resources.targetImageView = targetImageView;
-  resources.depthOnlyImageView = depthOnlyImageView;
-  resources.stencilOnlyImageView = stencilOnlyImageView;
-
   resources.bufferMemory = bufferMemory;
   resources.dstBuffer = dstBuffer;
 
   return true;
 }
 
-void VulkanReplay::UpdatePixelHistoryDescriptor(VkImageView sourceView, VkImageView depthImageView,
-                                                VkImageView stencilImageView, VkBuffer destBuffer)
+VkDescriptorSet VulkanReplay::GetPixelHistoryDescriptor()
+{
+  VkDescriptorSet descSet;
+
+  VkDescriptorSetAllocateInfo descSetAllocInfo = {
+      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+      NULL,
+      m_PixelHistory.MSCopyDescPool,
+      1,
+      &m_PixelHistory.MSCopyDescSetLayout,
+  };
+
+  // don't expect this to fail (or if it does then it should be immediately obvious, not transient).
+  VkResult vkr =
+      m_pDriver->vkAllocateDescriptorSets(m_pDriver->GetDev(), &descSetAllocInfo, &descSet);
+  if(vkr != VK_SUCCESS)
+    RDCERR("Failed creating object");
+  return descSet;
+}
+
+void VulkanReplay::ResetPixelHistoryDescriptorPool()
+{
+  m_pDriver->vkResetDescriptorPool(m_pDriver->GetDev(), m_PixelHistory.MSCopyDescPool, 0);
+}
+
+void VulkanReplay::UpdatePixelHistoryDescriptor(VkDescriptorSet descSet, VkBuffer buffer,
+                                                VkImageView imgView1, VkImageView imgView2)
 {
   VkDescriptorBufferInfo destdesc = {0};
-  destdesc.buffer = Unwrap(destBuffer);
+  destdesc.buffer = Unwrap(buffer);
   destdesc.range = VK_WHOLE_SIZE;
 
   {
     VkDescriptorImageInfo srcdesc = {};
     srcdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    srcdesc.imageView = Unwrap(sourceView);
+    srcdesc.imageView = Unwrap(imgView1);
     srcdesc.sampler = Unwrap(m_General.PointSampler);    // not used - we use texelFetch
 
-    VkWriteDescriptorSet writeSet[] = {
-        {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_PixelHistory.MSCopyDescSet), 0, 0,
-         1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc, NULL, NULL},
-        {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_PixelHistory.MSCopyDescSet), 1, 0,
-         1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc, NULL, NULL},
-        {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_PixelHistory.MSCopyDescSet), 2, 0,
-         1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &destdesc, NULL},
-    };
-
-    ObjDisp(m_pDriver->GetDev())
-        ->UpdateDescriptorSets(Unwrap(m_pDriver->GetDev()), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
-  }
-
-  {
-    VkDescriptorImageInfo srcdesc[2] = {};
-    srcdesc[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    srcdesc[0].imageView = Unwrap(depthImageView);
-    srcdesc[0].sampler = Unwrap(m_General.PointSampler);    // not used - we use texelFetch
-
-    srcdesc[1] = srcdesc[0];
-    srcdesc[1].imageView = Unwrap(stencilImageView);
+    VkDescriptorImageInfo srcdesc2 = {};
+    srcdesc2.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    if(imgView2 != VK_NULL_HANDLE)
+      srcdesc2.imageView = Unwrap(imgView2);
+    else
+      srcdesc2.imageView = Unwrap(imgView1);
+    srcdesc2.sampler = Unwrap(m_General.PointSampler);
 
     VkWriteDescriptorSet writeSet[] = {
-        {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_PixelHistory.MSDepthCopyDescSet), 0,
-         0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc[0], NULL, NULL},
-        {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_PixelHistory.MSDepthCopyDescSet), 1,
-         0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc[1], NULL, NULL},
-        {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_PixelHistory.MSDepthCopyDescSet), 2,
-         0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &destdesc, NULL},
+        {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(descSet), 0, 0, 1,
+         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc, NULL, NULL},
+        {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(descSet), 1, 0, 1,
+         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc2, NULL, NULL},
+        {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(descSet), 2, 0, 1,
+         VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &destdesc, NULL},
     };
 
     ObjDisp(m_pDriver->GetDev())
@@ -2850,14 +2822,6 @@ bool VulkanDebugManager::PixelHistoryDestroyResources(const PixelHistoryResource
     m_pDriver->vkDestroyImage(dev, r.dsImage, NULL);
   if(r.dsImageView != VK_NULL_HANDLE)
     m_pDriver->vkDestroyImageView(dev, r.dsImageView, NULL);
-  if(r.colorImageAliasView != VK_NULL_HANDLE)
-    m_pDriver->vkDestroyImageView(dev, r.colorImageAliasView, NULL);
-  if(r.targetImageView != VK_NULL_HANDLE)
-    m_pDriver->vkDestroyImageView(dev, r.targetImageView, NULL);
-  if(r.depthOnlyImageView != VK_NULL_HANDLE)
-    m_pDriver->vkDestroyImageView(dev, r.depthOnlyImageView, NULL);
-  if(r.stencilOnlyImageView != VK_NULL_HANDLE)
-    m_pDriver->vkDestroyImageView(dev, r.stencilOnlyImageView, NULL);
   if(r.dstBuffer != VK_NULL_HANDLE)
     m_pDriver->vkDestroyBuffer(dev, r.dstBuffer, NULL);
   if(r.bufferMemory != VK_NULL_HANDLE)
@@ -3054,9 +3018,6 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   GetDebugManager()->PixelHistorySetupResources(resources, targetImage, imginfo.extent,
                                                 imginfo.format, imginfo.samples, sub,
                                                 (uint32_t)events.size());
-  if(multisampled)
-    UpdatePixelHistoryDescriptor(resources.targetImageView, resources.depthOnlyImageView,
-                                 resources.stencilOnlyImageView, resources.dstBuffer);
 
   PixelHistoryShaderCache *shaderCache = new PixelHistoryShaderCache(m_pDriver);
 
@@ -3218,10 +3179,18 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     VkFormat depthFormat = cb.GetDepthFormat(mod.eventId);
     if(depthFormat != VK_FORMAT_UNDEFINED)
     {
-      mod.preMod.depth = GetDepthValue(depthFormat, ei.premod);
       mod.preMod.stencil = ei.premod.stencil;
-      mod.postMod.depth = GetDepthValue(depthFormat, ei.postmod);
       mod.postMod.stencil = ei.postmod.stencil;
+      if(multisampled)
+      {
+        mod.preMod.depth = ei.premod.depth.fdepth;
+        mod.postMod.depth = ei.postmod.depth.fdepth;
+      }
+      else
+      {
+        mod.preMod.depth = GetDepthValue(depthFormat, ei.premod);
+        mod.postMod.depth = GetDepthValue(depthFormat, ei.postmod);
+      }
     }
 
     int32_t frags = int32_t(ei.dsWithoutShaderDiscard[4]);
@@ -3256,9 +3225,6 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   {
     // Replay to get shader output value, post modification value and primitive ID for every
     // fragment.
-    if(multisampled)
-      UpdatePixelHistoryDescriptor(resources.colorImageAliasView, resources.depthOnlyImageView,
-                                   resources.stencilOnlyImageView, resources.dstBuffer);
     VulkanPixelHistoryPerFragmentCallback perFragmentCB(m_pDriver, shaderCache, callbackInfo,
                                                         eventsWithFrags, eventPremods);
     {

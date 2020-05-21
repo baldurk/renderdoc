@@ -3224,12 +3224,30 @@ void VulkanReplay::PixelHistory::Init(WrappedVulkan *driver, VkDescriptorPool de
                     {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL},
                     {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL},
                 });
-  CREATE_OBJECT(MSCopyDescSet, descriptorPool, MSCopyDescSetLayout);
-  CREATE_OBJECT(MSDepthCopyDescSet, descriptorPool, MSCopyDescSetLayout);
+
+  VkResult vkr = VK_SUCCESS;
+  VkDescriptorPoolSize descPoolTypes[] = {
+      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 64}, {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 32},
+  };
+
+  VkDescriptorPoolCreateInfo descPoolInfo = {
+      VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+      NULL,
+      0,
+      32,
+      ARRAY_COUNT(descPoolTypes),
+      &descPoolTypes[0],
+  };
+
+  // create descriptor pool
+  vkr = driver->vkCreateDescriptorPool(driver->GetDev(), &descPoolInfo, NULL, &MSCopyDescPool);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   CREATE_OBJECT(MSCopyPipeLayout, MSCopyDescSetLayout, 32);
   CREATE_OBJECT(MSCopyPipe, MSCopyPipeLayout,
                 driver->GetShaderCache()->GetBuiltinModule(BuiltinShader::PixelHistoryMSCopyCS));
+  CREATE_OBJECT(MSCopyDepthPipe, MSCopyPipeLayout,
+                driver->GetShaderCache()->GetBuiltinModule(BuiltinShader::PixelHistoryMSCopyDepthCS));
 }
 
 void VulkanReplay::PixelHistory::Destroy(WrappedVulkan *driver)
@@ -3240,6 +3258,8 @@ void VulkanReplay::PixelHistory::Destroy(WrappedVulkan *driver)
     driver->vkDestroyPipelineLayout(driver->GetDev(), MSCopyPipeLayout, NULL);
   if(MSCopyDescSetLayout != VK_NULL_HANDLE)
     driver->vkDestroyDescriptorSetLayout(driver->GetDev(), MSCopyDescSetLayout, NULL);
+  if(MSCopyDescPool != VK_NULL_HANDLE)
+    driver->vkDestroyDescriptorPool(driver->GetDev(), MSCopyDescPool, NULL);
 }
 
 void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool)

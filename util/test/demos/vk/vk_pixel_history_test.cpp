@@ -240,15 +240,33 @@ void main()
 
     vb.upload(VBData);
 
+    VkFormat depthStencilFormat = VK_FORMAT_UNDEFINED;
+    {
+      std::vector<VkFormat> formats;
+      for(VkFormat fmt :
+          {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT})
+      {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(phys, fmt, &props);
+        if(props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+        {
+          depthStencilFormat = fmt;
+          break;
+        }
+      }
+      TEST_ASSERT(depthStencilFormat != VK_FORMAT_UNDEFINED,
+                  "Couldn't find depth/stencil attachment image format");
+    }
+
     // create depth-stencil image
-    AllocatedImage depthimg(this, vkh::ImageCreateInfo(mainWindow->scissor.extent.width,
-                                                       mainWindow->scissor.extent.height, 0,
-                                                       VK_FORMAT_D32_SFLOAT_S8_UINT,
-                                                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
-                            VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+    AllocatedImage depthimg(
+        this,
+        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                             depthStencilFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
 
     VkImageView dsvview = createImageView(vkh::ImageViewCreateInfo(
-        depthimg.image, VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_D32_SFLOAT_S8_UINT, {},
+        depthimg.image, VK_IMAGE_VIEW_TYPE_2D, depthStencilFormat, {},
         vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)));
 
     // create renderpass using the DS image
@@ -258,7 +276,7 @@ void main()
         mainWindow->format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE));
     renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
-        VK_FORMAT_D32_SFLOAT_S8_UINT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+        depthStencilFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_SAMPLE_COUNT_1_BIT,
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE));
 
@@ -397,7 +415,34 @@ void main()
         subrp, {subview},
         {mainWindow->scissor.extent.width / 4, mainWindow->scissor.extent.height / 4}));
 
+    // Multi sampled
+
+    {
+      std::vector<VkFormat> formats;
+      for(VkFormat fmt :
+          {VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT})
+      {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(phys, fmt, &props);
+        if(props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT &
+           VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)
+        {
+          depthStencilFormat = fmt;
+          break;
+        }
+      }
+      TEST_ASSERT(depthStencilFormat != VK_FORMAT_UNDEFINED,
+                  "Couldn't find depth/stencil attachment image format");
+    }
+
     renderPassCreateInfo.attachments[0].samples = VK_SAMPLE_COUNT_4_BIT;
+    renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
+        depthStencilFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+        VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_SAMPLE_COUNT_4_BIT,
+        VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE));
+    renderPassCreateInfo.subpasses.clear();
+    renderPassCreateInfo.addSubpass({VkAttachmentReference({0, VK_IMAGE_LAYOUT_GENERAL})}, 1,
+                                    VK_IMAGE_LAYOUT_GENERAL);
 
     VkRenderPass submsrp = createRenderPass(renderPassCreateInfo);
 
@@ -406,6 +451,7 @@ void main()
 
     pipeCreateInfo.renderPass = submsrp;
     pipeCreateInfo.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_4_BIT;
+    pipeCreateInfo.depthStencilState.depthWriteEnable = VK_TRUE;
     VkPipeline mspipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedImage submsimg(
@@ -418,8 +464,20 @@ void main()
         submsimg.image, VK_IMAGE_VIEW_TYPE_2D, mainWindow->format, {},
         vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 2, 1)));
 
+    AllocatedImage msimgdepth(
+        this,
+        vkh::ImageCreateInfo(mainWindow->scissor.extent.width, mainWindow->scissor.extent.height, 0,
+                             depthStencilFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 1, 4,
+                             VK_SAMPLE_COUNT_4_BIT),
+        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
+
+    VkImageView msdepthview = createImageView(vkh::ImageViewCreateInfo(
+        msimgdepth.image, VK_IMAGE_VIEW_TYPE_2D, depthStencilFormat, {},
+        vkh::ImageSubresourceRange(VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 2, 1)));
+
     VkFramebuffer submsfb = createFramebuffer(vkh::FramebufferCreateInfo(
-        submsrp, {submsview}, {mainWindow->scissor.extent.width, mainWindow->scissor.extent.height}));
+        submsrp, {submsview, msdepthview},
+        {mainWindow->scissor.extent.width, mainWindow->scissor.extent.height}));
 
     while(Running())
     {
@@ -518,7 +576,8 @@ void main()
       {
         setMarker(cmd, "Multisampled: begin renderpass");
         vkCmdBeginRenderPass(cmd, vkh::RenderPassBeginInfo(submsrp, submsfb, mainWindow->scissor,
-                                                           {vkh::ClearValue(0.f, 1.0f, 0.f, 1.0f)}),
+                                                           {vkh::ClearValue(0.f, 1.0f, 0.f, 1.0f),
+                                                            vkh::ClearValue(0.f, 0)}),
                              VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mspipe);
