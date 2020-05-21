@@ -2515,6 +2515,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         m_SeparateDepthStencil |= (ext->separateDepthStencilLayouts != VK_FALSE);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDevicePerformanceQueryFeaturesKHR,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_FEATURES_KHR);
+      {
+        CHECK_PHYS_EXT_FEATURE(performanceCounterQueryPools);
+        CHECK_PHYS_EXT_FEATURE(performanceCounterMultipleQueryPools);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

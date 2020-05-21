@@ -126,6 +126,7 @@ DECL_VKFLAG(VkSubpassDescription);
 DECL_VKFLAG(VkDescriptorBinding);
 DECL_VKFLAG(VkSemaphoreWait);
 DECL_VKFLAG(VkResolveMode);
+DECL_VKFLAG_EXT(VkAcquireProfilingLock, KHR);
 DECL_VKFLAG_EXT(VkBuildAccelerationStructure, NV);
 DECL_VKFLAG_EXT(VkCompositeAlpha, KHR);
 DECL_VKFLAG_EXT(VkConditionalRendering, EXT);
@@ -143,7 +144,7 @@ DECL_VKFLAG_EXT(VkExternalMemoryFeature, NV);
 DECL_VKFLAG_EXT(VkGeometry, NV);
 DECL_VKFLAG_EXT(VkGeometryInstance, NV);
 DECL_VKFLAG_EXT(VkIndirectCommandsLayoutUsage, NVX);
-DECL_VKFLAG_EXT(VkObjectEntryUsage, NVX);
+DECL_VKFLAG_EXT(VkPerformanceCounterDescription, KHR);
 DECL_VKFLAG_EMPTY_EXT(VkPipelineCoverageModulationStateCreate, NV);
 DECL_VKFLAG_EMPTY_EXT(VkPipelineCoverageToColorStateCreate, NV);
 DECL_VKFLAG_EMPTY_EXT(VkPipelineDiscardRectangleStateCreate, EXT);
@@ -860,6 +861,19 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PROPERTIES,                                 \
                VkPhysicalDeviceMultiviewProperties)                                                    \
                                                                                                        \
+  /* VK_KHR_performance_query */                                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_FEATURES_KHR,                       \
+               VkPhysicalDevicePerformanceQueryFeaturesKHR)                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_PROPERTIES_KHR,                     \
+               VkPhysicalDevicePerformanceQueryPropertiesKHR)                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_QUERY_POOL_PERFORMANCE_CREATE_INFO_KHR,                               \
+               VkQueryPoolPerformanceCreateInfoKHR)                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PERFORMANCE_QUERY_SUBMIT_INFO_KHR, VkPerformanceQuerySubmitInfoKHR)   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ACQUIRE_PROFILING_LOCK_INFO_KHR, VkAcquireProfilingLockInfoKHR)       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PERFORMANCE_COUNTER_KHR, VkPerformanceCounterKHR)                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PERFORMANCE_COUNTER_DESCRIPTION_KHR,                                  \
+               VkPerformanceCounterDescriptionKHR)                                                     \
+                                                                                                       \
   /* VK_KHR_pipeline_executable_properties */                                                          \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_EXECUTABLE_PROPERTIES_FEATURES_KHR,          \
                VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR)                                \
@@ -886,6 +900,14 @@ SERIALISE_VK_HANDLES();
                VkPhysicalDeviceSamplerYcbcrConversionFeatures)                                         \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_IMAGE_FORMAT_PROPERTIES,                     \
                VkSamplerYcbcrConversionImageFormatProperties)                                          \
+                                                                                                       \
+  /* VK_KHR_separate_depth_stencil_layouts */                                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES,              \
+               VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures)                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_STENCIL_LAYOUT,                                  \
+               VkAttachmentReferenceStencilLayout)                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT,                                \
+               VkAttachmentDescriptionStencilLayout)                                                   \
                                                                                                        \
   /* VK_KHR_shader_atomic_int64 */                                                                     \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES,                         \
@@ -963,14 +985,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_FOOTPRINT_FEATURES_NV,                   \
                VkPhysicalDeviceShaderImageFootprintFeaturesNV)                                         \
                                                                                                        \
-  /* VK_KHR_separate_depth_stencil_layouts */                                                          \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES_KHR,          \
-               VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR)                                 \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_STENCIL_LAYOUT_KHR,                              \
-               VkAttachmentReferenceStencilLayoutKHR)                                                  \
-  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR,                            \
-               VkAttachmentDescriptionStencilLayoutKHR)                                                \
-                                                                                                       \
   /* Surface creation structs. These would pull in dependencies on OS-specific includes. */            \
   /* So treat them as unsupported. */                                                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR)                                 \
@@ -1037,15 +1051,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_EXT_texture_compression_astc_hdr */                                                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES_EXT)       \
-                                                                                                       \
-  /* VK_KHR_performance_query */                                                                       \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_FEATURES_KHR)                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_PROPERTIES_KHR)                \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUERY_POOL_PERFORMANCE_CREATE_INFO_KHR)                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PERFORMANCE_QUERY_SUBMIT_INFO_KHR)                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACQUIRE_PROFILING_LOCK_INFO_KHR)                                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PERFORMANCE_COUNTER_KHR)                                         \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PERFORMANCE_COUNTER_DESCRIPTION_KHR)                             \
                                                                                                        \
   /* VK_INTEL_performance_query */                                                                     \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO_INTEL)                                    \
@@ -7919,26 +7924,25 @@ void Deserialise(const VkPhysicalDeviceCoherentMemoryFeaturesAMD &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR &el)
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures &el)
 {
   RDCASSERT(ser.IsReading() ||
-            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES_KHR);
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES);
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER(separateDepthStencilLayouts);
 }
 
 template <>
-void Deserialise(const VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR &el)
+void Deserialise(const VkPhysicalDeviceSeparateDepthStencilLayoutsFeatures &el)
 {
   DeserialiseNext(el.pNext);
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, VkAttachmentDescriptionStencilLayoutKHR &el)
+void DoSerialise(SerialiserType &ser, VkAttachmentDescriptionStencilLayout &el)
 {
-  RDCASSERT(ser.IsReading() ||
-            el.sType == VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR);
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT);
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER(stencilInitialLayout);
@@ -7946,31 +7950,152 @@ void DoSerialise(SerialiserType &ser, VkAttachmentDescriptionStencilLayoutKHR &e
 }
 
 template <>
-void Deserialise(const VkAttachmentDescriptionStencilLayoutKHR &el)
+void Deserialise(const VkAttachmentDescriptionStencilLayout &el)
 {
   DeserialiseNext(el.pNext);
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, VkAttachmentReferenceStencilLayoutKHR &el)
+void DoSerialise(SerialiserType &ser, VkAttachmentReferenceStencilLayout &el)
 {
-  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_STENCIL_LAYOUT_KHR);
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_STENCIL_LAYOUT);
   SerialiseNext(ser, el.sType, el.pNext);
 
   SERIALISE_MEMBER(stencilLayout);
 }
 
 template <>
-void Deserialise(const VkAttachmentReferenceStencilLayoutKHR &el)
+void Deserialise(const VkAttachmentReferenceStencilLayout &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPerformanceCounterKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PERFORMANCE_COUNTER_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(unit);
+  SERIALISE_MEMBER(scope);
+  SERIALISE_MEMBER(storage);
+  SERIALISE_MEMBER(uuid);
+}
+
+template <>
+void Deserialise(const VkPerformanceCounterKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPerformanceCounterDescriptionKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PERFORMANCE_COUNTER_DESCRIPTION_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkPerformanceCounterDescriptionFlagsKHR, flags);
+  SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(category);
+  SERIALISE_MEMBER(description);
+}
+
+template <>
+void Deserialise(const VkPerformanceCounterDescriptionKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDevicePerformanceQueryFeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(performanceCounterQueryPools);
+  SERIALISE_MEMBER(performanceCounterMultipleQueryPools);
+}
+
+template <>
+void Deserialise(const VkPhysicalDevicePerformanceQueryFeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDevicePerformanceQueryPropertiesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PERFORMANCE_QUERY_PROPERTIES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(allowCommandBufferQueryCopies);
+}
+
+template <>
+void Deserialise(const VkPhysicalDevicePerformanceQueryPropertiesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkQueryPoolPerformanceCreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_QUERY_POOL_PERFORMANCE_CREATE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(queueFamilyIndex);
+  SERIALISE_MEMBER(counterIndexCount);
+  SERIALISE_MEMBER_ARRAY(pCounterIndices, counterIndexCount);
+}
+
+template <>
+void Deserialise(const VkQueryPoolPerformanceCreateInfoKHR &el)
+{
+  delete[] el.pCounterIndices;
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAcquireProfilingLockInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_ACQUIRE_PROFILING_LOCK_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkAcquireProfilingLockFlagsKHR, flags);
+  SERIALISE_MEMBER(timeout);
+}
+
+template <>
+void Deserialise(const VkAcquireProfilingLockInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPerformanceQuerySubmitInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PERFORMANCE_QUERY_SUBMIT_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(counterPassIndex);
+}
+
+template <>
+void Deserialise(const VkPerformanceQuerySubmitInfoKHR &el)
 {
   DeserialiseNext(el.pNext);
 }
 
 // pNext structs - always have deserialise for the next chain
 INSTANTIATE_SERIALISE_TYPE(VkAcquireNextImageInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkAcquireProfilingLockInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkApplicationInfo);
 INSTANTIATE_SERIALISE_TYPE(VkAttachmentDescription2);
+INSTANTIATE_SERIALISE_TYPE(VkAttachmentDescriptionStencilLayoutKHR);
 INSTANTIATE_SERIALISE_TYPE(VkAttachmentReference2);
+INSTANTIATE_SERIALISE_TYPE(VkAttachmentReferenceStencilLayoutKHR);
 INSTANTIATE_SERIALISE_TYPE(VkAttachmentSampleLocationsEXT);
 INSTANTIATE_SERIALISE_TYPE(VkBindBufferMemoryDeviceGroupInfo);
 INSTANTIATE_SERIALISE_TYPE(VkBindBufferMemoryInfo);
@@ -8090,11 +8215,14 @@ INSTANTIATE_SERIALISE_TYPE(VkMemoryPriorityAllocateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkMemoryRequirements2);
 INSTANTIATE_SERIALISE_TYPE(VkMultisamplePropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPastPresentationTimingGOOGLE);
+INSTANTIATE_SERIALISE_TYPE(VkPerformanceCounterDescriptionKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPerformanceCounterKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPerformanceQuerySubmitInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice16BitStorageFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevice8BitStorageFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT)
-INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceBufferDeviceAddressFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceBufferDeviceAddressFeatures);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceBufferDeviceAddressFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceCoherentMemoryFeaturesAMD);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceConditionalRenderingFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceConservativeRasterizationPropertiesEXT);
@@ -8130,6 +8258,8 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMemoryProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMultiviewProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePCIBusInfoPropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePerformanceQueryFeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePerformanceQueryPropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePointClippingProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProperties2);
@@ -8140,6 +8270,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSampleLocationsPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSamplerFilterMinmaxProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSamplerYcbcrConversionFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceScalarBlockLayoutFeatures);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderAtomicInt64Features);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderClockFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderCorePropertiesAMD);
@@ -8203,6 +8334,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPresentTimeGOOGLE);
 INSTANTIATE_SERIALISE_TYPE(VkPresentTimesInfoGOOGLE);
 INSTANTIATE_SERIALISE_TYPE(VkProtectedSubmitInfo);
 INSTANTIATE_SERIALISE_TYPE(VkQueryPoolCreateInfo);
+INSTANTIATE_SERIALISE_TYPE(VkQueryPoolPerformanceCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkQueueFamilyProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkRefreshCycleDurationGOOGLE);
 INSTANTIATE_SERIALISE_TYPE(VkRenderPassAttachmentBeginInfo);
@@ -8249,9 +8381,6 @@ INSTANTIATE_SERIALISE_TYPE(VkValidationCacheCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkValidationFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkValidationFlagsEXT);
 INSTANTIATE_SERIALISE_TYPE(VkWriteDescriptorSet);
-INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR);
-INSTANTIATE_SERIALISE_TYPE(VkAttachmentReferenceStencilLayoutKHR);
-INSTANTIATE_SERIALISE_TYPE(VkAttachmentDescriptionStencilLayoutKHR);
 
 // plain structs with no next chain
 INSTANTIATE_SERIALISE_TYPE(VkAllocationCallbacks);
