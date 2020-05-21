@@ -2085,7 +2085,6 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG:
     case VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG: ret.compCount = 4; break;
     case VK_FORMAT_UNDEFINED:
-    case VK_FORMAT_RANGE_SIZE:
     case VK_FORMAT_MAX_ENUM: ret.compCount = 1; break;
   }
 
@@ -2332,7 +2331,6 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_G16_B16R16_2PLANE_422_UNORM:
     case VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM: ret.compType = CompType::UNorm; break;
     case VK_FORMAT_UNDEFINED:
-    case VK_FORMAT_RANGE_SIZE:
     case VK_FORMAT_MAX_ENUM: ret.compType = CompType::Typeless; break;
   }
 
@@ -2579,7 +2577,6 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_G16_B16R16_2PLANE_422_UNORM:
     case VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM: ret.compByteWidth = 2; break;
     case VK_FORMAT_UNDEFINED:
-    case VK_FORMAT_RANGE_SIZE:
     case VK_FORMAT_MAX_ENUM: ret.compByteWidth = 1; break;
   }
 

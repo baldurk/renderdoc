@@ -1176,7 +1176,7 @@ void VulkanWindow::Present(VkQueue queue)
   for(VkFence f : fences)
     fenceStatus[f] = vkGetFenceStatus(m_Test->device, f);
 
-  for(int level = 0; level < VK_COMMAND_BUFFER_LEVEL_RANGE_SIZE; level++)
+  for(int level = 0; level < 2; level++)
   {
     for(auto it = pendingCommandBuffers[level].begin(); it != pendingCommandBuffers[level].end();)
     {

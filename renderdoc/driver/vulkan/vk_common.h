@@ -1432,6 +1432,7 @@ DECLARE_REFLECTION_ENUM(VkPerformanceCounterStorageKHR);
 DECLARE_REFLECTION_ENUM(VkPerformanceCounterUnitKHR);
 DECLARE_REFLECTION_ENUM(VkPhysicalDeviceType);
 DECLARE_REFLECTION_ENUM(VkPipelineBindPoint);
+DECLARE_REFLECTION_ENUM(VkPipelineCacheCreateFlagBits);
 DECLARE_REFLECTION_ENUM(VkPipelineCreateFlagBits);
 DECLARE_REFLECTION_ENUM(VkPipelineCreationFeedbackFlagBitsEXT);
 DECLARE_REFLECTION_ENUM(VkPipelineExecutableStatisticFormatKHR);

@@ -389,7 +389,7 @@ private:
     VkPhysicalDeviceFeatures enabledFeatures = {};
     VkPhysicalDeviceProperties props = {};
     VkPhysicalDeviceMemoryProperties memProps = {};
-    VkFormatProperties fmtprops[VK_FORMAT_RANGE_SIZE] = {};
+    std::map<VkFormat, VkFormatProperties> fmtProps = {};
     VkDriverInfo driverInfo = VkDriverInfo(props);
 
     VkPhysicalDevicePerformanceQueryFeaturesKHR performanceQueryFeatures = {};
@@ -533,10 +533,7 @@ private:
   rdcarray<VkEvent> m_CleanupEvents;
   rdcarray<VkEvent> m_PersistentEvents;
 
-  const VkFormatProperties &GetFormatProperties(VkFormat f)
-  {
-    return m_PhysicalDeviceData.fmtprops[f];
-  }
+  const VkFormatProperties &GetFormatProperties(VkFormat f);
 
   struct BakedCmdBufferInfo
   {

@@ -3105,11 +3105,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
                   m_PhysicalDeviceData.props.limits.maxBoundDescriptorSets >= 0x10000000,
               m_PhysicalDeviceData.props.limits.maxBoundDescriptorSets);
 
-    for(int i = VK_FORMAT_BEGIN_RANGE + 1; i < VK_FORMAT_END_RANGE; i++)
-      ObjDisp(physicalDevice)
-          ->GetPhysicalDeviceFormatProperties(Unwrap(physicalDevice), VkFormat(i),
-                                              &m_PhysicalDeviceData.fmtprops[i]);
-
     m_PhysicalDeviceData.queueCount = (uint32_t)queueProps.size();
     for(size_t i = 0; i < queueProps.size(); i++)
       m_PhysicalDeviceData.queueProps[i] = queueProps[i];
@@ -3500,11 +3495,6 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     m_PhysicalDeviceData.enabledFeatures = enabledFeatures;
 
     m_PhysicalDeviceData.driverInfo = VkDriverInfo(m_PhysicalDeviceData.props);
-
-    for(int i = VK_FORMAT_BEGIN_RANGE + 1; i < VK_FORMAT_END_RANGE; i++)
-      ObjDisp(physicalDevice)
-          ->GetPhysicalDeviceFormatProperties(Unwrap(physicalDevice), VkFormat(i),
-                                              &m_PhysicalDeviceData.fmtprops[i]);
 
     ChooseMemoryIndices();
 

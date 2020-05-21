@@ -56,8 +56,7 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
                               ? VK_FORMAT_UNDEFINED
                               : MakeVkFormat(secondary.format);
 
-  RDCCOMPILE_ASSERT(VK_FORMAT_RANGE_SIZE <= 255,
-                    "Mesh pipeline cache key needs an extra bit for format");
+  RDCASSERT((uint32_t)primaryFmt <= 255 && (uint32_t)secondaryFmt <= 255, primaryFmt, secondaryFmt);
 
   key |= uint64_t((uint32_t)primaryFmt & 0xff) << bit;
   bit += 8;

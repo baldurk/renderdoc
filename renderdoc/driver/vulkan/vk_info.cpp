@@ -76,7 +76,6 @@ VulkanDynamicStateIndex ConvertDynamicState(VkDynamicState state)
       return VkDynamicViewportCoarseSampleOrderNV;
     case VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV: return VkDynamicExclusiveScissorNV;
     case VK_DYNAMIC_STATE_LINE_STIPPLE_EXT: return VkDynamicLineStippleEXT;
-    case VK_DYNAMIC_STATE_RANGE_SIZE:
     case VK_DYNAMIC_STATE_MAX_ENUM: break;
   }
 
@@ -992,32 +991,28 @@ void VulkanCreationInfo::YCbCrSampler::Init(VulkanResourceManager *resourceMan,
     case VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709: ycbcrModel = YcbcrConversion::BT709; break;
     case VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_601: ycbcrModel = YcbcrConversion::BT601; break;
     case VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_2020: ycbcrModel = YcbcrConversion::BT2020; break;
-    case VK_SAMPLER_YCBCR_MODEL_CONVERSION_MAX_ENUM:
-    case VK_SAMPLER_YCBCR_MODEL_CONVERSION_RANGE_SIZE: break;
+    case VK_SAMPLER_YCBCR_MODEL_CONVERSION_MAX_ENUM: break;
   }
 
   switch(pCreateInfo->ycbcrRange)
   {
     case VK_SAMPLER_YCBCR_RANGE_ITU_FULL: ycbcrRange = YcbcrRange::ITUFull; break;
     case VK_SAMPLER_YCBCR_RANGE_ITU_NARROW: ycbcrRange = YcbcrRange::ITUNarrow; break;
-    case VK_SAMPLER_YCBCR_RANGE_MAX_ENUM:
-    case VK_SAMPLER_YCBCR_RANGE_RANGE_SIZE: break;
+    case VK_SAMPLER_YCBCR_RANGE_MAX_ENUM: break;
   }
 
   switch(pCreateInfo->xChromaOffset)
   {
     case VK_CHROMA_LOCATION_COSITED_EVEN: xChromaOffset = ChromaSampleLocation::CositedEven; break;
     case VK_CHROMA_LOCATION_MIDPOINT: xChromaOffset = ChromaSampleLocation::Midpoint; break;
-    case VK_CHROMA_LOCATION_MAX_ENUM:
-    case VK_CHROMA_LOCATION_RANGE_SIZE: break;
+    case VK_CHROMA_LOCATION_MAX_ENUM: break;
   }
 
   switch(pCreateInfo->yChromaOffset)
   {
     case VK_CHROMA_LOCATION_COSITED_EVEN: yChromaOffset = ChromaSampleLocation::CositedEven; break;
     case VK_CHROMA_LOCATION_MIDPOINT: yChromaOffset = ChromaSampleLocation::Midpoint; break;
-    case VK_CHROMA_LOCATION_MAX_ENUM:
-    case VK_CHROMA_LOCATION_RANGE_SIZE: break;
+    case VK_CHROMA_LOCATION_MAX_ENUM: break;
   }
 
   componentMapping = pCreateInfo->components;

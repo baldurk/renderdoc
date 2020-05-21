@@ -2274,7 +2274,7 @@ public:
 
     inline VkImageViewType viewType() const
     {
-      if(packedViewType <= VK_IMAGE_VIEW_TYPE_END_RANGE)
+      if(packedViewType <= InvalidViewType)
         return (VkImageViewType)packedViewType;
       else
         return VK_IMAGE_VIEW_TYPE_MAX_ENUM;
@@ -2282,10 +2282,10 @@ public:
 
     inline void setViewType(VkImageViewType t)
     {
-      if(t <= VK_IMAGE_VIEW_TYPE_END_RANGE)
+      if(t <= (VkImageViewType)InvalidViewType)
         packedViewType = t;
       else
-        packedViewType = 7;
+        packedViewType = InvalidViewType;
     }
 
     inline uint32_t levelCount() const
@@ -2322,6 +2322,8 @@ public:
     // Values <= 6, fits in 3 bits; 7 encodes an unknown/uninitialized view type.
     // Stored as uint32_t instead of VkImageViewType to prevent signed extension.
     uint32_t packedViewType : 3;
+
+    static const uint32_t InvalidViewType = 7;
 
     // need 7 bits for the aspects including planes
     uint32_t aspectMask : 7;

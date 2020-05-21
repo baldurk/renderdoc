@@ -212,9 +212,6 @@ struct VkInstDispatchTable
   PFN_vkCreateViSurfaceNN CreateViSurfaceNN;
 #endif // VK_USE_PLATFORM_VI_NN
 
-  // VK_NVX_device_generated_commands
-  PFN_vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX GetPhysicalDeviceGeneratedCommandsPropertiesNVX;
-
   // VK_EXT_direct_mode_display
   PFN_vkReleaseDisplayEXT ReleaseDisplayEXT;
 
@@ -512,6 +509,32 @@ struct VkDevDispatchTable
   PFN_vkGetBufferMemoryRequirements2KHR GetBufferMemoryRequirements2KHR;
   PFN_vkGetImageSparseMemoryRequirements2KHR GetImageSparseMemoryRequirements2KHR;
 
+  // VK_KHR_ray_tracing
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+  PFN_vkCreateAccelerationStructureKHR CreateAccelerationStructureKHR;
+  PFN_vkDestroyAccelerationStructureKHR DestroyAccelerationStructureKHR;
+  PFN_vkGetAccelerationStructureMemoryRequirementsKHR GetAccelerationStructureMemoryRequirementsKHR;
+  PFN_vkBindAccelerationStructureMemoryKHR BindAccelerationStructureMemoryKHR;
+  PFN_vkCmdBuildAccelerationStructureKHR CmdBuildAccelerationStructureKHR;
+  PFN_vkCmdBuildAccelerationStructureIndirectKHR CmdBuildAccelerationStructureIndirectKHR;
+  PFN_vkBuildAccelerationStructureKHR BuildAccelerationStructureKHR;
+  PFN_vkCopyAccelerationStructureKHR CopyAccelerationStructureKHR;
+  PFN_vkCopyAccelerationStructureToMemoryKHR CopyAccelerationStructureToMemoryKHR;
+  PFN_vkCopyMemoryToAccelerationStructureKHR CopyMemoryToAccelerationStructureKHR;
+  PFN_vkWriteAccelerationStructuresPropertiesKHR WriteAccelerationStructuresPropertiesKHR;
+  PFN_vkCmdCopyAccelerationStructureKHR CmdCopyAccelerationStructureKHR;
+  PFN_vkCmdCopyAccelerationStructureToMemoryKHR CmdCopyAccelerationStructureToMemoryKHR;
+  PFN_vkCmdCopyMemoryToAccelerationStructureKHR CmdCopyMemoryToAccelerationStructureKHR;
+  PFN_vkCmdTraceRaysKHR CmdTraceRaysKHR;
+  PFN_vkCreateRayTracingPipelinesKHR CreateRayTracingPipelinesKHR;
+  PFN_vkGetRayTracingShaderGroupHandlesKHR GetRayTracingShaderGroupHandlesKHR;
+  PFN_vkGetAccelerationStructureDeviceAddressKHR GetAccelerationStructureDeviceAddressKHR;
+  PFN_vkGetRayTracingCaptureReplayShaderGroupHandlesKHR GetRayTracingCaptureReplayShaderGroupHandlesKHR;
+  PFN_vkCmdWriteAccelerationStructuresPropertiesKHR CmdWriteAccelerationStructuresPropertiesKHR;
+  PFN_vkCmdTraceRaysIndirectKHR CmdTraceRaysIndirectKHR;
+  PFN_vkGetDeviceAccelerationStructureCompatibilityKHR GetDeviceAccelerationStructureCompatibilityKHR;
+#endif // VK_ENABLE_BETA_EXTENSIONS
+
   // VK_KHR_sampler_ycbcr_conversion
   PFN_vkCreateSamplerYcbcrConversionKHR CreateSamplerYcbcrConversionKHR;
   PFN_vkDestroySamplerYcbcrConversionKHR DestroySamplerYcbcrConversionKHR;
@@ -537,6 +560,15 @@ struct VkDevDispatchTable
   PFN_vkGetBufferOpaqueCaptureAddressKHR GetBufferOpaqueCaptureAddressKHR;
   PFN_vkGetDeviceMemoryOpaqueCaptureAddressKHR GetDeviceMemoryOpaqueCaptureAddressKHR;
 
+  // VK_KHR_deferred_host_operations
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+  PFN_vkCreateDeferredOperationKHR CreateDeferredOperationKHR;
+  PFN_vkDestroyDeferredOperationKHR DestroyDeferredOperationKHR;
+  PFN_vkGetDeferredOperationMaxConcurrencyKHR GetDeferredOperationMaxConcurrencyKHR;
+  PFN_vkGetDeferredOperationResultKHR GetDeferredOperationResultKHR;
+  PFN_vkDeferredOperationJoinKHR DeferredOperationJoinKHR;
+#endif // VK_ENABLE_BETA_EXTENSIONS
+
   // VK_KHR_pipeline_executable_properties
   PFN_vkGetPipelineExecutablePropertiesKHR GetPipelineExecutablePropertiesKHR;
   PFN_vkGetPipelineExecutableStatisticsKHR GetPipelineExecutableStatisticsKHR;
@@ -559,6 +591,7 @@ struct VkDevDispatchTable
 
   // VK_NVX_image_view_handle
   PFN_vkGetImageViewHandleNVX GetImageViewHandleNVX;
+  PFN_vkGetImageViewAddressNVX GetImageViewAddressNVX;
 
   // VK_AMD_draw_indirect_count
   PFN_vkCmdDrawIndirectCountAMD CmdDrawIndirectCountAMD;
@@ -575,16 +608,6 @@ struct VkDevDispatchTable
   // VK_EXT_conditional_rendering
   PFN_vkCmdBeginConditionalRenderingEXT CmdBeginConditionalRenderingEXT;
   PFN_vkCmdEndConditionalRenderingEXT CmdEndConditionalRenderingEXT;
-
-  // VK_NVX_device_generated_commands
-  PFN_vkCmdProcessCommandsNVX CmdProcessCommandsNVX;
-  PFN_vkCmdReserveSpaceForCommandsNVX CmdReserveSpaceForCommandsNVX;
-  PFN_vkCreateIndirectCommandsLayoutNVX CreateIndirectCommandsLayoutNVX;
-  PFN_vkDestroyIndirectCommandsLayoutNVX DestroyIndirectCommandsLayoutNVX;
-  PFN_vkCreateObjectTableNVX CreateObjectTableNVX;
-  PFN_vkDestroyObjectTableNVX DestroyObjectTableNVX;
-  PFN_vkRegisterObjectsNVX RegisterObjectsNVX;
-  PFN_vkUnregisterObjectsNVX UnregisterObjectsNVX;
 
   // VK_NV_clip_space_w_scaling
   PFN_vkCmdSetViewportWScalingNV CmdSetViewportWScalingNV;
@@ -702,6 +725,20 @@ struct VkDevDispatchTable
 
   // VK_EXT_host_query_reset
   PFN_vkResetQueryPoolEXT ResetQueryPoolEXT;
+
+  // VK_NV_device_generated_commands
+  PFN_vkGetGeneratedCommandsMemoryRequirementsNV GetGeneratedCommandsMemoryRequirementsNV;
+  PFN_vkCmdPreprocessGeneratedCommandsNV CmdPreprocessGeneratedCommandsNV;
+  PFN_vkCmdExecuteGeneratedCommandsNV CmdExecuteGeneratedCommandsNV;
+  PFN_vkCmdBindPipelineShaderGroupNV CmdBindPipelineShaderGroupNV;
+  PFN_vkCreateIndirectCommandsLayoutNV CreateIndirectCommandsLayoutNV;
+  PFN_vkDestroyIndirectCommandsLayoutNV DestroyIndirectCommandsLayoutNV;
+
+  // VK_EXT_private_data
+  PFN_vkCreatePrivateDataSlotEXT CreatePrivateDataSlotEXT;
+  PFN_vkDestroyPrivateDataSlotEXT DestroyPrivateDataSlotEXT;
+  PFN_vkSetPrivateDataEXT SetPrivateDataEXT;
+  PFN_vkGetPrivateDataEXT GetPrivateDataEXT;
 
   // for consistency with macros, we declare the CreateDevice pointer here
   // even though it won't actually ever get used and is on the instance dispatch chain

@@ -3572,6 +3572,17 @@ VkBool32 VKAPI_PTR WrappedVulkan::DebugUtilsCallbackStatic(
       ->DebugCallback(severity, category, messageCode, pMessageId, pCallbackData->pMessage);
 }
 
+const VkFormatProperties &WrappedVulkan::GetFormatProperties(VkFormat f)
+{
+  if(m_PhysicalDeviceData.fmtProps.find(f) == m_PhysicalDeviceData.fmtProps.end())
+  {
+    ObjDisp(m_PhysicalDevice)
+        ->GetPhysicalDeviceFormatProperties(Unwrap(m_PhysicalDevice), f,
+                                            &m_PhysicalDeviceData.fmtProps[f]);
+  }
+  return m_PhysicalDeviceData.fmtProps[f];
+}
+
 bool WrappedVulkan::HasNonMarkerEvents(ResourceId cmdBuffer)
 {
   for(const APIEvent &ev : m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents)

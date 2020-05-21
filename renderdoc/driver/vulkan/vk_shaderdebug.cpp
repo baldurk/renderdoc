@@ -596,7 +596,6 @@ public:
           gradCoords = 3;
           constParams.dim = ShaderDebugBind::TexCube;
           break;
-        case VK_IMAGE_VIEW_TYPE_RANGE_SIZE:
         case VK_IMAGE_VIEW_TYPE_MAX_ENUM:
           RDCERR("Invalid image view type %s", ToStr(viewProps.viewType).c_str());
           return false;

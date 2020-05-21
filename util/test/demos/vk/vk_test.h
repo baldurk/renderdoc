@@ -161,9 +161,8 @@ private:
   VkCommandPool cmdPool;
   std::set<VkFence> fences;
 
-  std::vector<VkCommandBuffer> freeCommandBuffers[VK_COMMAND_BUFFER_LEVEL_RANGE_SIZE];
-  std::vector<std::pair<VkCommandBuffer, VkFence>>
-      pendingCommandBuffers[VK_COMMAND_BUFFER_LEVEL_RANGE_SIZE];
+  std::vector<VkCommandBuffer> freeCommandBuffers[2];
+  std::vector<std::pair<VkCommandBuffer, VkFence>> pendingCommandBuffers[2];
 
   GraphicsWindow *m_Win;
   VulkanGraphicsTest *m_Test;
