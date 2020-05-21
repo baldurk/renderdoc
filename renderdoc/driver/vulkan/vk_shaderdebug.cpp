@@ -3480,12 +3480,42 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
     }
     else
     {
-      FloatVector decoded = ConvertComponents(MakeResourceFormat(attr.format), data.data());
+      ResourceFormat fmt = MakeResourceFormat(attr.format);
 
-      val.f.x = decoded.x;
-      val.f.y = decoded.y;
-      val.f.z = decoded.z;
-      val.f.w = decoded.w;
+      // integer formats need to be read as-is, rather than converted to floats
+      if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt)
+      {
+        if(fmt.type == ResourceFormatType::R10G10B10A2)
+        {
+          // this is the only packed UINT format
+          Vec4u decoded = ConvertFromR10G10B10A2UInt(*(uint32_t *)data.data());
+
+          val.u.x = decoded.x;
+          val.u.y = decoded.y;
+          val.u.z = decoded.z;
+          val.u.w = decoded.w;
+        }
+        else
+        {
+          for(uint32_t i = 0; i < fmt.compCount; i++)
+          {
+            const byte *src = data.data() + i * fmt.compByteWidth;
+            if(fmt.compByteWidth == 8)
+              memcpy(&val.u64v[i], src, fmt.compByteWidth);
+            else
+              memcpy(&val.uv[i], src, fmt.compByteWidth);
+          }
+        }
+      }
+      else
+      {
+        FloatVector decoded = ConvertComponents(fmt, data.data());
+
+        val.f.x = decoded.x;
+        val.f.y = decoded.y;
+        val.f.z = decoded.z;
+        val.f.w = decoded.w;
+      }
     }
   }
 

@@ -36,6 +36,11 @@ inline Vec4f ConvertFromR10G10B10A2(uint32_t data)
                float((data >> 20) & 0x3ff) / 1023.0f, float((data >> 30) & 0x003) / 3.0f);
 }
 
+inline Vec4u ConvertFromR10G10B10A2UInt(uint32_t data)
+{
+  return Vec4u((data >> 0) & 0x3ff, (data >> 10) & 0x3ff, (data >> 20) & 0x3ff, (data >> 30) & 0x003);
+}
+
 inline Vec4f ConvertFromR10G10B10A2SNorm(uint32_t data)
 {
   int r = int(data >> 0) & 0x3ff;
