@@ -26,7 +26,9 @@
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-layout(binding = 0) uniform PRECISION usampler2DMSArray srcMS;
+layout(binding = 0) uniform PRECISION sampler2DMSArray depthMS;
+layout(binding = 1) uniform PRECISION usampler2DMSArray stencilMS;
+
 layout(binding = 2, std140) writeonly buffer pixelhistorydest
 {
   uvec4 result[];
@@ -39,6 +41,8 @@ layout(push_constant) uniform multisamplePush
   int x;
   int y;
   int dstOffset;
+  int hasDepth;
+  int hasStencil;
 }
 mscopy;
 
@@ -46,9 +50,16 @@ mscopy;
 #define x (mscopy.x)
 #define y (mscopy.y)
 #define dstOffset (mscopy.dstOffset)
+#define hasDepth (mscopy.hasDepth)
+#define hasStencil (mscopy.hasStencil)
 
 void main()
 {
-  uvec4 data = texelFetch(srcMS, ivec3(x, y, 0), currentSample);
-  dest.result[dstOffset] = data;
+  float depth = 0.0;
+  if(hasDepth == 1)
+    depth = texelFetch(depthMS, ivec3(x, y, 0), currentSample).r;
+  uint stencil = 0;
+  if(hasStencil == 1)
+    stencil = texelFetch(stencilMS, ivec3(x, y, 0), currentSample).r;
+  dest.result[dstOffset] = uvec4(floatBitsToUint(depth), stencil, 0, 0);
 }

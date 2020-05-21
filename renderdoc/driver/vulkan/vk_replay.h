@@ -322,8 +322,11 @@ public:
                  float *maxval);
   bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
                     float maxval, bool channels[4], rdcarray<uint32_t> &histogram);
-  void UpdatePixelHistoryDescriptor(VkImageView sourceView, VkImageView depthImageView,
-                                    VkImageView stencilImageView, VkBuffer destBuffer);
+
+  VkDescriptorSet GetPixelHistoryDescriptor();
+  void ResetPixelHistoryDescriptorPool();
+  void UpdatePixelHistoryDescriptor(VkDescriptorSet descSet, VkBuffer buffer, VkImageView imgView1,
+                                    VkImageView imgView2);
 
   void InitPostVSBuffers(uint32_t eventId);
   void InitPostVSBuffers(uint32_t eventId, VulkanRenderState &state);
@@ -417,7 +420,7 @@ public:
 
   AMDCounters *GetAMDCounters() { return m_pAMDCounters; }
   void CopyPixelForPixelHistory(VkCommandBuffer cmd, VkOffset2D offset, uint32_t sample,
-                                uint32_t bufferOffset, bool depthCopy);
+                                uint32_t bufferOffset, VkFormat format, VkDescriptorSet descSet);
 
 private:
   void FetchShaderFeedback(uint32_t eventId);
@@ -675,9 +678,9 @@ private:
     void Destroy(WrappedVulkan *driver);
 
     VkDescriptorSetLayout MSCopyDescSetLayout = VK_NULL_HANDLE;
-    VkDescriptorSet MSCopyDescSet = VK_NULL_HANDLE;
-    VkDescriptorSet MSDepthCopyDescSet = VK_NULL_HANDLE;
+    VkDescriptorPool MSCopyDescPool = VK_NULL_HANDLE;
     VkPipeline MSCopyPipe = VK_NULL_HANDLE;
+    VkPipeline MSCopyDepthPipe = VK_NULL_HANDLE;
     VkPipelineLayout MSCopyPipeLayout = VK_NULL_HANDLE;
   } m_PixelHistory;
 
