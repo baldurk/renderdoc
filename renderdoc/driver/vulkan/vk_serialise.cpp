@@ -572,6 +572,16 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT,                        \
                VkPhysicalDeviceIndexTypeUint8FeaturesEXT)                                              \
                                                                                                        \
+  /* VK_EXT_inline_uniform_block */                                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES_EXT,                    \
+               VkPhysicalDeviceInlineUniformBlockFeaturesEXT)                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT,                  \
+               VkPhysicalDeviceInlineUniformBlockPropertiesEXT)                                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT,                        \
+               VkWriteDescriptorSetInlineUniformBlockEXT)                                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO_EXT,                 \
+               VkDescriptorPoolInlineUniformBlockCreateInfoEXT)                                        \
+                                                                                                       \
   /* VK_EXT_line_rasterization */                                                                      \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT,                      \
                VkPhysicalDeviceLineRasterizationFeaturesEXT)                                           \
@@ -1047,12 +1057,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT)                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT)              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT)                        \
-                                                                                                       \
-  /* VK_EXT_inline_uniform_block */                                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES_EXT)               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT)             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT)                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO_EXT)            \
                                                                                                        \
   /* VK_EXT_pipeline_creation_cache_control */                                                         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_CREATION_CACHE_CONTROL_FEATURES_EXT)    \
@@ -4015,6 +4019,7 @@ void DoSerialise(SerialiserType &ser, DescriptorSetSlot &el)
   SERIALISE_MEMBER(bufferInfo).TypedAs("VkDescriptorBufferInfo"_lit);
   SERIALISE_MEMBER(imageInfo).TypedAs("VkDescriptorImageInfo"_lit);
   SERIALISE_MEMBER(texelBufferView).TypedAs("VkBufferView"_lit);
+  SERIALISE_MEMBER(inlineOffset).Named("InlineDataOffset"_lit);
 }
 
 template <typename SerialiserType>
@@ -6905,6 +6910,76 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceIndexTypeUint8FeaturesEXT 
 
 template <>
 void Deserialise(const VkPhysicalDeviceIndexTypeUint8FeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceInlineUniformBlockFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(inlineUniformBlock);
+  SERIALISE_MEMBER(descriptorBindingInlineUniformBlockUpdateAfterBind);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceInlineUniformBlockFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceInlineUniformBlockPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(maxInlineUniformBlockSize);
+  SERIALISE_MEMBER(maxPerStageDescriptorInlineUniformBlocks);
+  SERIALISE_MEMBER(maxPerStageDescriptorUpdateAfterBindInlineUniformBlocks);
+  SERIALISE_MEMBER(maxDescriptorSetInlineUniformBlocks);
+  SERIALISE_MEMBER(maxDescriptorSetUpdateAfterBindInlineUniformBlocks);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceInlineUniformBlockPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkWriteDescriptorSetInlineUniformBlockEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(dataSize);
+  SERIALISE_MEMBER_ARRAY(pData, dataSize);
+}
+
+template <>
+void Deserialise(const VkWriteDescriptorSetInlineUniformBlockEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDescriptorPoolInlineUniformBlockCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(maxInlineUniformBlockBindings);
+}
+
+template <>
+void Deserialise(const VkDescriptorPoolInlineUniformBlockCreateInfoEXT &el)
 {
   DeserialiseNext(el.pNext);
 }

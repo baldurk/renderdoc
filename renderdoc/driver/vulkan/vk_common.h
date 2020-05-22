@@ -441,6 +441,9 @@ struct DescriptorSetSlot
   DescriptorSetSlotImageInfo imageInfo;
 
   ResourceId texelBufferView;
+
+  // inline uniform block
+  uint32_t inlineOffset;
 };
 
 DECLARE_REFLECTION_STRUCT(DescriptorSetSlotBufferInfo);
@@ -694,6 +697,7 @@ DECLARE_REFLECTION_STRUCT(VkDedicatedAllocationBufferCreateInfoNV);
 DECLARE_REFLECTION_STRUCT(VkDedicatedAllocationImageCreateInfoNV);
 DECLARE_REFLECTION_STRUCT(VkDedicatedAllocationMemoryAllocateInfoNV);
 DECLARE_REFLECTION_STRUCT(VkDescriptorPoolCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkDescriptorPoolInlineUniformBlockCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkDescriptorSetAllocateInfo);
 DECLARE_REFLECTION_STRUCT(VkDescriptorSetLayoutBindingFlagsCreateInfo)
 DECLARE_REFLECTION_STRUCT(VkDescriptorSetLayoutCreateInfo);
@@ -810,6 +814,8 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceImageFormatInfo2);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceImagelessFramebufferFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceImageViewImageFormatInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceIndexTypeUint8FeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceInlineUniformBlockFeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceInlineUniformBlockPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceLineRasterizationFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceLineRasterizationPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMaintenance3Properties);
@@ -942,6 +948,7 @@ DECLARE_REFLECTION_STRUCT(VkValidationCacheCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkValidationFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkValidationFlagsEXT);
 DECLARE_REFLECTION_STRUCT(VkWriteDescriptorSet);
+DECLARE_REFLECTION_STRUCT(VkWriteDescriptorSetInlineUniformBlockEXT);
 
 DECLARE_DESERIALISE_TYPE(VkAcquireNextImageInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkAcquireProfilingLockInfoKHR);
@@ -985,6 +992,7 @@ DECLARE_DESERIALISE_TYPE(VkDedicatedAllocationBufferCreateInfoNV);
 DECLARE_DESERIALISE_TYPE(VkDedicatedAllocationImageCreateInfoNV);
 DECLARE_DESERIALISE_TYPE(VkDedicatedAllocationMemoryAllocateInfoNV);
 DECLARE_DESERIALISE_TYPE(VkDescriptorPoolCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkDescriptorPoolInlineUniformBlockCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkDescriptorSetAllocateInfo);
 DECLARE_DESERIALISE_TYPE(VkDescriptorSetLayoutBindingFlagsCreateInfo)
 DECLARE_DESERIALISE_TYPE(VkDescriptorSetLayoutCreateInfo);
@@ -1097,6 +1105,8 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceImageFormatInfo2);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceImagelessFramebufferFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceImageViewImageFormatInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceIndexTypeUint8FeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceInlineUniformBlockFeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceInlineUniformBlockPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceLineRasterizationFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceLineRasterizationPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMaintenance3Properties);
@@ -1226,6 +1236,7 @@ DECLARE_DESERIALISE_TYPE(VkValidationCacheCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkValidationFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkValidationFlagsEXT);
 DECLARE_DESERIALISE_TYPE(VkWriteDescriptorSet);
+DECLARE_DESERIALISE_TYPE(VkWriteDescriptorSetInlineUniformBlockEXT);
 
 // plain structs with no next chain
 DECLARE_REFLECTION_STRUCT(VkAllocationCallbacks);

@@ -321,6 +321,10 @@ bool VkInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
+  // 0x11 -> 0x12 - added inline uniform block support
+  if(ver == 0x11)
+    return true;
+
   // 0x10 -> 0x11 - non-breaking changes to image state serialization
   if(ver == 0x10)
     return true;
@@ -957,6 +961,7 @@ FrameRefType GetRefType(VkDescriptorType descType)
     case VK_DESCRIPTOR_TYPE_SAMPLER:
     case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
     case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+    case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
     case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
     case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
     case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
@@ -973,6 +978,9 @@ FrameRefType GetRefType(VkDescriptorType descType)
 
 bool IsValid(const VkWriteDescriptorSet &write, uint32_t arrayElement)
 {
+  if(write.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    return true;
+
   // this makes assumptions that only hold within the context of Serialise_InitialState below,
   // specifically that if pTexelBufferView/pBufferInfo is set then we are using them. In the general
   // case they can be garbage and we must ignore them based on the descriptorType

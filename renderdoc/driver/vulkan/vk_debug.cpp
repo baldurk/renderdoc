@@ -1705,20 +1705,25 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
         delete[] a;
       for(VkBufferView *a : bufViewWrites)
         delete[] a;
+      for(VkWriteDescriptorSetInlineUniformBlockEXT *a : inlineWrites)
+        delete a;
     }
 
     rdcarray<VkDescriptorImageInfo *> imgWrites;
     rdcarray<VkDescriptorBufferInfo *> bufWrites;
     rdcarray<VkBufferView *> bufViewWrites;
+    rdcarray<VkWriteDescriptorSetInlineUniformBlockEXT *> inlineWrites;
   } alloced;
 
   rdcarray<VkDescriptorImageInfo *> &allocImgWrites = alloced.imgWrites;
   rdcarray<VkDescriptorBufferInfo *> &allocBufWrites = alloced.bufWrites;
   rdcarray<VkBufferView *> &allocBufViewWrites = alloced.bufViewWrites;
 
+  rdcarray<VkWriteDescriptorSetInlineUniformBlockEXT *> &allocInlineWrites = alloced.inlineWrites;
+
   // one for each descriptor type. 1 of each to start with, we then increment for each descriptor
   // we need to allocate
-  VkDescriptorPoolSize poolSizes[11] = {
+  VkDescriptorPoolSize poolSizes[12] = {
       {VK_DESCRIPTOR_TYPE_SAMPLER, 1},
       {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1},
       {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1},
@@ -1730,11 +1735,23 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
       {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1},
       {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1},
       {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1},
+      {VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT, 0},
   };
+
+  VkDescriptorPoolInlineUniformBlockCreateInfoEXT inlineCreateInfo = {
+      VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO_EXT,
+  };
+
+  static const uint32_t InlinePoolIndex = 11;
+
+  uint32_t poolSizeCount = InlinePoolIndex;
 
   // count up our own
   for(size_t i = 0; i < newBindingsCount; i++)
+  {
+    RDCASSERT(newBindings[i].descriptorType < ARRAY_COUNT(poolSizes), newBindings[i].descriptorType);
     poolSizes[newBindings[i].descriptorType].descriptorCount += newBindings[i].descriptorCount;
+  }
 
   const rdcarray<ResourceId> &pipeDescSetLayouts =
       creationInfo.m_PipelineLayout[pipeInfo.layout].descSetLayouts;
@@ -1827,19 +1844,38 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
   uint32_t maxDescriptorSetInputAttachments =
       m_pDriver->GetDeviceProps().limits.maxDescriptorSetInputAttachments;
 
+  uint32_t maxDescriptorSetInlineUniformBlocks = 0;
+  uint32_t maxPerStageDescriptorInlineUniformBlocks[6] = {};
+
+  if(m_pDriver->GetExtensions(NULL).ext_EXT_inline_uniform_block)
+  {
+    VkPhysicalDeviceInlineUniformBlockPropertiesEXT inlineProps = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT,
+    };
+
+    VkPhysicalDeviceProperties2 availBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+    availBase.pNext = &inlineProps;
+    m_pDriver->vkGetPhysicalDeviceProperties2(m_pDriver->GetPhysDev(), &availBase);
+
+    maxDescriptorSetInlineUniformBlocks = inlineProps.maxDescriptorSetInlineUniformBlocks;
+    for(size_t i = 0; i < ARRAY_COUNT(maxPerStageDescriptorInlineUniformBlocks); i++)
+      maxPerStageDescriptorInlineUniformBlocks[i] =
+          inlineProps.maxPerStageDescriptorInlineUniformBlocks;
+  }
+
   bool error = false;
 
 #define UPDATE_AND_CHECK_LIMIT(maxLimit)                                                   \
   if(!error)                                                                               \
   {                                                                                        \
-    if(bind.descriptorCount > maxLimit)                                                    \
+    if(descriptorCount > maxLimit)                                                         \
     {                                                                                      \
       error = true;                                                                        \
       RDCWARN("Limit %s is exceeded. Cannot patch in required descriptor(s).", #maxLimit); \
     }                                                                                      \
     else                                                                                   \
     {                                                                                      \
-      maxLimit -= bind.descriptorCount;                                                    \
+      maxLimit -= descriptorCount;                                                         \
     }                                                                                      \
   }
 
@@ -1850,14 +1886,14 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
     {                                                                                          \
       if(newBind.stageFlags & (1U << sbit))                                                    \
       {                                                                                        \
-        if(bind.descriptorCount > maxLimit[sbit])                                              \
+        if(descriptorCount > maxLimit[sbit])                                                   \
         {                                                                                      \
           error = true;                                                                        \
           RDCWARN("Limit %s is exceeded. Cannot patch in required descriptor(s).", #maxLimit); \
         }                                                                                      \
         else                                                                                   \
         {                                                                                      \
-          maxLimit[sbit] -= bind.descriptorCount;                                              \
+          maxLimit[sbit] -= descriptorCount;                                                   \
         }                                                                                      \
       }                                                                                        \
     }                                                                                          \
@@ -1895,7 +1931,15 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
           continue;
 
         // make room in the pool
-        poolSizes[bind.descriptorType].descriptorCount += bind.descriptorCount;
+        if(bind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        {
+          poolSizes[InlinePoolIndex].descriptorCount += bind.descriptorCount;
+          inlineCreateInfo.maxInlineUniformBlockBindings++;
+        }
+        else
+        {
+          poolSizes[bind.descriptorType].descriptorCount += bind.descriptorCount;
+        }
 
         VkDescriptorSetLayoutBinding newBind;
         // offset the binding. We offset all sets to make it easier for patching - don't need to
@@ -1916,6 +1960,8 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
           newBind.stageFlags = patchedBindingStage;
         else
           newBind.stageFlags = bind.stageFlags;
+
+        uint32_t descriptorCount = bind.descriptorCount;
 
         switch(bind.descriptorType)
         {
@@ -1964,6 +2010,11 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
           case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
             UPDATE_AND_CHECK_LIMIT(maxDescriptorSetInputAttachments);
             UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorInputAttachments);
+            break;
+          case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+            descriptorCount = 1;
+            UPDATE_AND_CHECK_LIMIT(maxDescriptorSetInlineUniformBlocks);
+            UPDATE_AND_CHECK_STAGE_LIMIT(maxPerStageDescriptorInlineUniformBlocks);
             break;
           default: break;
         }
@@ -2017,8 +2068,14 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
   // 1 set for each layout
   poolCreateInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
   poolCreateInfo.maxSets = (uint32_t)setLayouts.size();
-  poolCreateInfo.poolSizeCount = ARRAY_COUNT(poolSizes);
+  poolCreateInfo.poolSizeCount = poolSizeCount;
   poolCreateInfo.pPoolSizes = poolSizes;
+
+  if(inlineCreateInfo.maxInlineUniformBlockBindings > 0)
+  {
+    poolCreateInfo.poolSizeCount++;
+    poolCreateInfo.pNext = &inlineCreateInfo;
+  }
 
   // create descriptor pool with enough space for our descriptors
   vkr = m_pDriver->vkCreateDescriptorPool(dev, &poolCreateInfo, NULL, &descpool);
@@ -2126,7 +2183,27 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
             allocBufWrites.push_back(out);
             break;
           }
+          case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+          {
+            allocInlineWrites.push_back(new VkWriteDescriptorSetInlineUniformBlockEXT);
+            VkWriteDescriptorSetInlineUniformBlockEXT *inlineWrite = allocInlineWrites.back();
+            inlineWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
+            inlineWrite->pNext = NULL;
+            inlineWrite->dataSize = bind.descriptorCount;
+            inlineWrite->pData = setInfo.inlineData.data() + slot->inlineOffset;
+            write.pNext = inlineWrite;
+            break;
+          }
           default: RDCERR("Unexpected descriptor type %d", write.descriptorType);
+        }
+
+        // skip validity check for inline uniform block as the descriptor count means something
+        // different
+        if(write.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        {
+          write.descriptorCount = bind.descriptorCount;
+          descWrites.push_back(write);
+          continue;
         }
 
         // start with no descriptors

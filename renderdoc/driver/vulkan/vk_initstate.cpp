@@ -52,7 +52,12 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     if((layout.flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR) == 0)
     {
       for(size_t i = 0; i < layout.bindings.size(); i++)
-        initialContents.numDescriptors += layout.bindings[i].descriptorCount;
+      {
+        if(layout.bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+          initialContents.numDescriptors++;
+        else
+          initialContents.numDescriptors += layout.bindings[i].descriptorCount;
+      }
 
       initialContents.descriptorSlots = new DescriptorSetSlot[initialContents.numDescriptors];
       RDCEraseMem(initialContents.descriptorSlots,
@@ -61,11 +66,22 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       uint32_t e = 0;
       for(size_t i = 0; i < layout.bindings.size(); i++)
       {
-        for(uint32_t b = 0; b < layout.bindings[i].descriptorCount; b++)
+        if(layout.bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
         {
-          initialContents.descriptorSlots[e++] = record->descInfo->descBindings[i][b];
+          initialContents.descriptorSlots[e++] = record->descInfo->descBindings[i][0];
+        }
+        else
+        {
+          for(uint32_t b = 0; b < layout.bindings[i].descriptorCount; b++)
+          {
+            initialContents.descriptorSlots[e++] = record->descInfo->descBindings[i][b];
+          }
         }
       }
+
+      initialContents.inlineData = AllocAlignedBuffer(record->descInfo->inlineData.size());
+      memcpy(initialContents.inlineData, record->descInfo->inlineData.data(),
+             record->descInfo->inlineData.size());
     }
     else
     {
@@ -548,9 +564,14 @@ uint64_t WrappedVulkan::GetSize_InitialState(ResourceId id, const VkInitialConte
     uint32_t NumBindings = 0;
 
     for(size_t i = 0; i < layout.bindings.size(); i++)
-      NumBindings += layout.bindings[i].descriptorCount;
+    {
+      if(layout.bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        NumBindings++;
+      else
+        NumBindings += layout.bindings[i].descriptorCount;
+    }
 
-    return 32 + NumBindings * sizeof(DescriptorSetSlot);
+    return 32 + NumBindings * sizeof(DescriptorSetSlot) + layout.inlineByteSize;
   }
   else if(initial.type == eResBuffer)
   {
@@ -601,6 +622,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
   {
     DescriptorSetSlot *Bindings = NULL;
     uint32_t NumBindings = 0;
+    bytebuf InlineData;
 
     // while writing, fetching binding information from prepared initial contents
     if(ser.IsWriting())
@@ -611,11 +633,23 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
       Bindings = initial->descriptorSlots;
 
       for(size_t i = 0; i < layout.bindings.size(); i++)
-        NumBindings += layout.bindings[i].descriptorCount;
+      {
+        if(layout.bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+          NumBindings++;
+        else
+          NumBindings += layout.bindings[i].descriptorCount;
+      }
+
+      InlineData.assign(initial->inlineData, layout.inlineByteSize);
     }
 
     SERIALISE_ELEMENT_ARRAY(Bindings, NumBindings);
     SERIALISE_ELEMENT(NumBindings);
+
+    if(ser.VersionAtLeast(0x12))
+    {
+      SERIALISE_ELEMENT(InlineData);
+    }
 
     SERIALISE_CHECK_READ_ERRORS();
 
@@ -638,6 +672,16 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
 
       initialContents.numDescriptors = (uint32_t)layout.bindings.size();
       initialContents.descriptorInfo = new VkDescriptorBufferInfo[NumBindings];
+      initialContents.inlineInfo = NULL;
+
+      if(layout.inlineCount > 0)
+      {
+        initialContents.inlineInfo =
+            new VkWriteDescriptorSetInlineUniformBlockEXT[layout.inlineCount];
+        initialContents.inlineData = AllocAlignedBuffer(InlineData.size());
+        RDCASSERTEQUAL(layout.inlineByteSize, InlineData.size());
+        memcpy(initialContents.inlineData, InlineData.data(), InlineData.size());
+      }
 
       // if we have partially-valid arrays, we need to split up writes. The worst case will never be
       // == number of bindings since that implies all arrays are valid, but it is an upper bound as
@@ -649,7 +693,10 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
 
       VkWriteDescriptorSet *writes = initialContents.descriptorWrites;
       VkDescriptorBufferInfo *dstData = initialContents.descriptorInfo;
+      VkWriteDescriptorSetInlineUniformBlockEXT *dstInline = initialContents.inlineInfo;
       DescriptorSetSlot *srcData = Bindings;
+
+      byte *srcInlineData = initialContents.inlineData;
 
       // validBinds counts up as we make a valid VkWriteDescriptorSet, so can be used to index into
       // writes[] along the way as the 'latest' write.
@@ -661,6 +708,14 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
 
         if(descriptorCount == 0)
           continue;
+
+        uint32_t inlineSize = 0;
+
+        if(layout.bindings[j].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        {
+          inlineSize = descriptorCount;
+          descriptorCount = 1;
+        }
 
         writes[bind].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writes[bind].pNext = NULL;
@@ -686,6 +741,13 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
         VkBufferView *dstTexelBuffer = (VkBufferView *)dstData;
         dstData += descriptorCount;
 
+        RDCCOMPILE_ASSERT(
+            sizeof(VkDescriptorImageInfo) <= sizeof(VkDescriptorBufferInfo),
+            "VkDescriptorBufferInfo should be large enough for all descriptor write types");
+        RDCCOMPILE_ASSERT(
+            sizeof(VkBufferView) <= sizeof(VkDescriptorBufferInfo),
+            "VkDescriptorBufferInfo should be large enough for all descriptor write types");
+
         // the correct one will be set below
         writes[bind].pBufferInfo = NULL;
         writes[bind].pImageInfo = NULL;
@@ -700,10 +762,26 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
         // For the array case we batch up updates as much as possible, iterating along the array and
         // skipping any invalid descriptors.
 
+        if(writes[bind].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        {
+          // handle inline uniform block specially because the descriptorCount doesn't mean what it
+          // normally means in the write.
+
+          dstInline->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
+          dstInline->pNext = NULL;
+          dstInline->pData = srcInlineData + src->inlineOffset;
+          dstInline->dataSize = inlineSize;
+
+          writes[bind].pNext = dstInline;
+          writes[bind].descriptorCount = inlineSize;
+          bind++;
+
+          dstInline++;
+        }
         // quick check for slots that were completely uninitialised and so don't have valid data
-        if(descriptorCount == 1 && src->texelBufferView == ResourceId() &&
-           src->imageInfo.sampler == ResourceId() && src->imageInfo.imageView == ResourceId() &&
-           src->bufferInfo.buffer == ResourceId())
+        else if(descriptorCount == 1 && src->texelBufferView == ResourceId() &&
+                src->imageInfo.sampler == ResourceId() &&
+                src->imageInfo.imageView == ResourceId() && src->bufferInfo.buffer == ResourceId())
         {
           // do nothing - don't increment bind so that the same write descriptor is used next time.
           continue;
@@ -1306,12 +1384,23 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     // need to blat over the current descriptor set contents, so these are available
     // when we want to fetch pipeline state
     rdcarray<DescriptorSetSlot *> &bindings = m_DescriptorSetState[id].currentBindings;
+    bytebuf &inlineData = m_DescriptorSetState[id].inlineData;
 
     for(uint32_t i = 0; i < initial.numDescriptors; i++)
     {
       RDCASSERT(writes[i].dstBinding < bindings.size());
 
       DescriptorSetSlot *bind = bindings[writes[i].dstBinding];
+
+      if(writes[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+      {
+        VkWriteDescriptorSetInlineUniformBlockEXT *inlineWrite =
+            (VkWriteDescriptorSetInlineUniformBlockEXT *)FindNextStruct(
+                &writes[i], VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT);
+        memcpy(inlineData.data() + bind->inlineOffset + writes[i].dstArrayElement,
+               inlineWrite->pData, inlineWrite->dataSize);
+        continue;
+      }
 
       for(uint32_t d = 0; d < writes[i].descriptorCount; d++)
       {

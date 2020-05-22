@@ -727,8 +727,10 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
     {
       for(size_t i = 0; i < ARRAY_COUNT(BakedCmdBufferInfo::pushDescriptorID[p]); i++)
       {
-        m_DescriptorSetState[m_BakedCmdBufferInfo[BakedCommandBuffer].pushDescriptorID[p][i]] =
-            DescriptorSetInfo(true);
+        DescriptorSetInfo &pushDesc =
+            m_DescriptorSetState[m_BakedCmdBufferInfo[BakedCommandBuffer].pushDescriptorID[p][i]];
+        pushDesc.clear();
+        pushDesc.push = true;
       }
     }
 
@@ -3946,15 +3948,16 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
   const DescSetLayout &desclayout = m_CreationInfo.m_DescSetLayout[descSetLayouts[set]];
 
   rdcarray<DescriptorSetSlot *> &bindings = m_DescriptorSetState[setId].currentBindings;
+  bytebuf &inlineData = m_DescriptorSetState[setId].inlineData;
   ResourceId prevLayout = m_DescriptorSetState[setId].layout;
 
   if(prevLayout == ResourceId())
   {
-    desclayout.CreateBindingsArray(bindings);
+    desclayout.CreateBindingsArray(inlineData, bindings);
   }
   else if(prevLayout != descSetLayouts[set])
   {
-    desclayout.UpdateBindingsArray(m_CreationInfo.m_DescSetLayout[prevLayout], bindings);
+    desclayout.UpdateBindingsArray(m_CreationInfo.m_DescSetLayout[prevLayout], inlineData, bindings);
   }
 
   m_DescriptorSetState[setId].layout = descSetLayouts[set];
@@ -4018,6 +4021,14 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
 
         (*bind)[curIdx].imageInfo.SetFrom(writeDesc.pImageInfo[d], sampler, imageView);
       }
+    }
+    else if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    {
+      VkWriteDescriptorSetInlineUniformBlockEXT *inlineWrite =
+          (VkWriteDescriptorSetInlineUniformBlockEXT *)FindNextStruct(
+              &writeDesc, VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT);
+      memcpy(inlineData.data() + (*bind)->inlineOffset + writeDesc.dstArrayElement,
+             inlineWrite->pData, inlineWrite->dataSize);
     }
     else
     {
@@ -4223,6 +4234,10 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
           imInfos[j].imageLayout = pDescriptorWrites[i].pImageInfo[j].imageLayout;
         }
       }
+      else if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+      {
+        // nothing to unwrap, the next chain contains the data which we can leave as-is
+      }
       else
       {
         unwrappedWrites[i].pBufferInfo = bufInfos;
@@ -4284,6 +4299,10 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
              write.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
             record->MarkResourceFrameReferenced(GetResID(write.pImageInfo[d].sampler),
                                                 eFrameRef_Read);
+        }
+        else if(write.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        {
+          // no bindings in this type
         }
         else
         {
@@ -4437,7 +4456,7 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
     DescUpdateTemplate *tempInfo = GetRecord(descriptorUpdateTemplate)->descTemplateInfo;
 
     // allocate the whole blob of memory
-    byte *memory = GetTempMemory(tempInfo->dataByteSize);
+    byte *memory = GetTempMemory(tempInfo->unwrapByteSize);
 
     // iterate the entries, copy the descriptor data and unwrap
     for(const VkDescriptorUpdateTemplateEntry &entry : tempInfo->updates)
@@ -4494,6 +4513,11 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
             info->imageView = Unwrap(info->imageView);
           }
         }
+      }
+      else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+      {
+        // memcpy the data
+        memcpy(dst, src, entry.descriptorCount);
       }
       else
       {

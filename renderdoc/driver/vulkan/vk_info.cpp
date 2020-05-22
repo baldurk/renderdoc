@@ -88,6 +88,8 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
                          const VkDescriptorSetLayoutCreateInfo *pCreateInfo)
 {
   dynamicCount = 0;
+  inlineCount = 0;
+  inlineByteSize = 0;
 
   flags = pCreateInfo->flags;
 
@@ -114,6 +116,12 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
        bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
       dynamicCount++;
 
+    if(bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    {
+      inlineCount++;
+      inlineByteSize = AlignUp4(inlineByteSize + bindings[b].descriptorCount);
+    }
+
     if((bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
         bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
        pCreateInfo->pBindings[i].pImmutableSamplers)
@@ -126,42 +134,70 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
   }
 }
 
-void DescSetLayout::CreateBindingsArray(rdcarray<DescriptorSetSlot *> &descBindings) const
+void DescSetLayout::CreateBindingsArray(bytebuf &inlineData,
+                                        rdcarray<DescriptorSetSlot *> &descBindings) const
 {
+  uint32_t inlineOffset = 0;
   descBindings.resize(bindings.size());
   for(size_t i = 0; i < bindings.size(); i++)
   {
-    descBindings[i] = new DescriptorSetSlot[bindings[i].descriptorCount];
-    memset(descBindings[i], 0, sizeof(DescriptorSetSlot) * bindings[i].descriptorCount);
+    if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    {
+      descBindings[i] = new DescriptorSetSlot[1];
+      memset(descBindings[i], 0, sizeof(DescriptorSetSlot));
+      descBindings[i]->inlineOffset = inlineOffset;
+      inlineOffset = AlignUp4(inlineOffset + bindings[i].descriptorCount);
+    }
+    else
+    {
+      descBindings[i] = new DescriptorSetSlot[bindings[i].descriptorCount];
+      memset(descBindings[i], 0, sizeof(DescriptorSetSlot) * bindings[i].descriptorCount);
+    }
   }
+
+  inlineData.resize(inlineByteSize);
 }
 
-void DescSetLayout::UpdateBindingsArray(const DescSetLayout &prevLayout,
+void DescSetLayout::UpdateBindingsArray(const DescSetLayout &prevLayout, bytebuf &inlineData,
                                         rdcarray<DescriptorSetSlot *> &descBindings) const
 {
   // if we have fewer bindings now, delete the orphaned bindings arrays
   for(size_t i = bindings.size(); i < prevLayout.bindings.size(); i++)
     SAFE_DELETE_ARRAY(descBindings[i]);
 
+  inlineData.resize(inlineByteSize);
+
   // resize to the new number of bindings
   descBindings.resize(bindings.size());
 
+  uint32_t inlineOffset = 0;
   // re-allocate slots and move any previous bindings that overlapped over.
   for(size_t i = 0; i < bindings.size(); i++)
   {
-    // allocate new slot array
-    DescriptorSetSlot *newSlots = new DescriptorSetSlot[bindings[i].descriptorCount];
-    memset(newSlots, 0, sizeof(DescriptorSetSlot) * bindings[i].descriptorCount);
+    if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    {
+      SAFE_DELETE_ARRAY(descBindings[i]);
+      descBindings[i] = new DescriptorSetSlot[1];
+      memset(descBindings[i], 0, sizeof(DescriptorSetSlot));
+      descBindings[i]->inlineOffset = inlineOffset;
+      inlineOffset = AlignUp4(inlineOffset + bindings[i].descriptorCount);
+    }
+    else
+    {
+      // allocate new slot array
+      DescriptorSetSlot *newSlots = new DescriptorSetSlot[bindings[i].descriptorCount];
+      memset(newSlots, 0, sizeof(DescriptorSetSlot) * bindings[i].descriptorCount);
 
-    // copy over any previous bindings that overlapped
-    if(i < prevLayout.bindings.size())
-      memcpy(newSlots, descBindings[i],
-             sizeof(DescriptorSetSlot) *
-                 RDCMIN(prevLayout.bindings[i].descriptorCount, bindings[i].descriptorCount));
+      // copy over any previous bindings that overlapped
+      if(i < prevLayout.bindings.size())
+        memcpy(newSlots, descBindings[i],
+               sizeof(DescriptorSetSlot) *
+                   RDCMIN(prevLayout.bindings[i].descriptorCount, bindings[i].descriptorCount));
 
-    // delete old array, and assign the new one
-    SAFE_DELETE_ARRAY(descBindings[i]);
-    descBindings[i] = newSlots;
+      // delete old array, and assign the new one
+      SAFE_DELETE_ARRAY(descBindings[i]);
+      descBindings[i] = newSlots;
+    }
   }
 }
 
@@ -1118,7 +1154,7 @@ void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreation
 
   bindPoint = pCreateInfo->pipelineBindPoint;
 
-  dataByteSize = 0;
+  unwrapByteSize = 0;
 
   texelBufferViewCount = 0;
   bufferInfoCount = 0;
@@ -1127,6 +1163,8 @@ void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreation
   for(const VkDescriptorUpdateTemplateEntry &entry : updates)
   {
     uint32_t entrySize = 4;
+
+    size_t stride = entry.stride;
 
     if(entry.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
        entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
@@ -1145,6 +1183,19 @@ void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreation
 
       imageInfoCount += entry.descriptorCount;
     }
+    else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    {
+      // a bit of magic handling. The calculation is stride * descriptorCount bytes for the data,
+      // plus the size of the 'base' structure. For inline uniform blocks there's no base structure
+      // and the data is in bytes, so stride 1.
+      stride = 1;
+
+      entrySize = 0;
+
+      inlineInfoCount++;
+      inlineByteSize += entry.descriptorCount;
+      inlineByteSize = AlignUp4(inlineByteSize);
+    }
     else
     {
       entrySize = sizeof(VkDescriptorBufferInfo);
@@ -1152,8 +1203,8 @@ void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreation
       bufferInfoCount += entry.descriptorCount;
     }
 
-    dataByteSize =
-        RDCMAX(dataByteSize, entry.offset + entry.stride * entry.descriptorCount + entrySize);
+    unwrapByteSize =
+        RDCMAX(unwrapByteSize, entry.offset + stride * entry.descriptorCount + entrySize);
   }
 
   if(pCreateInfo->templateType == VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET)
@@ -1188,7 +1239,10 @@ void DescUpdateTemplate::Apply(const void *pData, DescUpdateTemplateApplication 
   application.bufView.reserve(texelBufferViewCount);
   application.bufInfo.reserve(bufferInfoCount);
   application.imgInfo.reserve(imageInfoCount);
+  application.inlineData.resize(inlineByteSize);
+  application.inlineUniform.reserve(inlineInfoCount);
 
+  uint32_t inlineOffset = 0;
   for(const VkDescriptorUpdateTemplateEntry &entry : updates)
   {
     VkWriteDescriptorSet write = {};
@@ -1234,6 +1288,22 @@ void DescUpdateTemplate::Apply(const void *pData, DescUpdateTemplateApplication 
       }
 
       write.pImageInfo = &application.imgInfo[idx];
+    }
+    else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    {
+      application.inlineUniform.push_back({});
+
+      VkWriteDescriptorSetInlineUniformBlockEXT &inlineWrite = application.inlineUniform.back();
+      inlineWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
+      inlineWrite.pNext = NULL;
+      inlineWrite.dataSize = entry.descriptorCount;
+
+      void *dst = application.inlineData.data() + inlineOffset;
+      memcpy(dst, src, inlineWrite.dataSize);
+      inlineWrite.pData = dst;
+
+      write.pNext = &inlineWrite;
+      write.descriptorCount = entry.descriptorCount;
     }
     else
     {

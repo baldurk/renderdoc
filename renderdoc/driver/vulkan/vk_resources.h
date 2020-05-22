@@ -1040,6 +1040,8 @@ struct DescSetLayout;
 struct DescriptorSetData
 {
   DescriptorSetData() : layout(NULL) {}
+  DescriptorSetData(const DescriptorSetData &) = delete;
+  DescriptorSetData &operator=(const DescriptorSetData &) = delete;
   ~DescriptorSetData()
   {
     for(size_t i = 0; i < descBindings.size(); i++)
@@ -1052,6 +1054,7 @@ struct DescriptorSetData
   // descriptor set bindings for this descriptor set. Filled out on
   // create from the layout.
   rdcarray<DescriptorSetSlot *> descBindings;
+  bytebuf inlineData;
 
   // lock protecting bindFrameRefs and bindMemRefs
   Threading::CriticalSection refLock;

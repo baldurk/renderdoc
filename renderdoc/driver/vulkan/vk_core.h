@@ -53,7 +53,7 @@ struct VkInitParams
   uint64_t GetSerialiseSize();
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x11;
+  static const uint64_t CurrentVersion = 0x12;
   static bool IsSupportedVersion(uint64_t ver);
 };
 
@@ -691,11 +691,12 @@ private:
   struct DescriptorSetInfo
   {
     DescriptorSetInfo(bool p = false) : push(p) {}
-    DescriptorSetInfo(const DescriptorSetInfo &) = default;
-    DescriptorSetInfo &operator=(const DescriptorSetInfo &) = default;
+    DescriptorSetInfo(const DescriptorSetInfo &) = delete;
+    DescriptorSetInfo &operator=(const DescriptorSetInfo &) = delete;
     ~DescriptorSetInfo() { clear(); }
     ResourceId layout;
     rdcarray<DescriptorSetSlot *> currentBindings;
+    bytebuf inlineData;
     bool push;
 
     void clear()
@@ -704,6 +705,7 @@ private:
 
       for(size_t i = 0; i < currentBindings.size(); i++)
         delete[] currentBindings[i];
+      inlineData.clear();
       currentBindings.clear();
     }
   };
@@ -998,6 +1000,10 @@ public:
   const rdcarray<DescriptorSetSlot *> &GetCurrentDescSetBindings(ResourceId descSet)
   {
     return m_DescriptorSetState[descSet].currentBindings;
+  }
+  const bytebuf &GetCurrentDescSetInlineData(ResourceId descSet)
+  {
+    return m_DescriptorSetState[descSet].inlineData;
   }
 
   uint32_t GetReadbackMemoryIndex(uint32_t resourceCompatibleBitmask);

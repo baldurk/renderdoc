@@ -40,15 +40,16 @@ struct BindingElement
   {
     return dynamicallyUsed == o.dynamicallyUsed && viewResourceId == o.viewResourceId &&
            resourceResourceId == o.resourceResourceId && samplerResourceId == o.samplerResourceId &&
-           immutableSampler == o.immutableSampler && viewFormat == o.viewFormat &&
-           swizzle == o.swizzle && firstMip == o.firstMip && firstSlice == o.firstSlice &&
-           numMips == o.numMips && numSlices == o.numSlices && byteOffset == o.byteOffset &&
-           byteSize == o.byteSize && filter == o.filter && addressU == o.addressU &&
-           addressV == o.addressV && addressW == o.addressW && mipBias == o.mipBias &&
-           maxAnisotropy == o.maxAnisotropy && compareFunction == o.compareFunction &&
-           minLOD == o.minLOD && maxLOD == o.maxLOD && borderColor[0] == o.borderColor[0] &&
-           borderColor[1] == o.borderColor[1] && borderColor[2] == o.borderColor[2] &&
-           borderColor[3] == o.borderColor[3] && unnormalized == o.unnormalized;
+           immutableSampler == o.immutableSampler && inlineBlock == o.inlineBlock &&
+           viewFormat == o.viewFormat && swizzle == o.swizzle && firstMip == o.firstMip &&
+           firstSlice == o.firstSlice && numMips == o.numMips && numSlices == o.numSlices &&
+           byteOffset == o.byteOffset && byteSize == o.byteSize && filter == o.filter &&
+           addressU == o.addressU && addressV == o.addressV && addressW == o.addressW &&
+           mipBias == o.mipBias && maxAnisotropy == o.maxAnisotropy &&
+           compareFunction == o.compareFunction && minLOD == o.minLOD && maxLOD == o.maxLOD &&
+           borderColor[0] == o.borderColor[0] && borderColor[1] == o.borderColor[1] &&
+           borderColor[2] == o.borderColor[2] && borderColor[3] == o.borderColor[3] &&
+           unnormalized == o.unnormalized;
   }
   bool operator<(const BindingElement &o) const
   {
@@ -62,6 +63,8 @@ struct BindingElement
       return samplerResourceId < o.samplerResourceId;
     if(!(immutableSampler == o.immutableSampler))
       return immutableSampler < o.immutableSampler;
+    if(!(inlineBlock == o.inlineBlock))
+      return inlineBlock < o.inlineBlock;
     if(!(viewFormat == o.viewFormat))
       return viewFormat < o.viewFormat;
     if(!(swizzle == o.swizzle))
@@ -169,6 +172,9 @@ since single descriptors may only be dynamically skipped by control flow.
   float borderColor[4];
   DOCUMENT("For samplers - ``True`` if unnormalized co-ordinates are used in this sampler.");
   bool unnormalized = false;
+
+  DOCUMENT("``True`` if this is an inline uniform block binding.");
+  bool inlineBlock = false;
 
   DOCUMENT(R"(For samplers - the :class:`ResourceId` of the ycbcr conversion object associated with
 this sampler.

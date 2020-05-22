@@ -1668,11 +1668,15 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
             case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
               dst.bindings[b].type = BindType::InputAttachment;
               break;
+            case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+              dst.bindings[b].descriptorCount = 1;
+              dst.bindings[b].type = BindType::ConstantBuffer;
+              break;
             default: dst.bindings[b].type = BindType::Unknown; RDCERR("Unexpected descriptor type");
           }
 
-          dst.bindings[b].binds.resize(layoutBind.descriptorCount);
-          for(uint32_t a = 0; a < layoutBind.descriptorCount; a++)
+          dst.bindings[b].binds.resize(dst.bindings[b].descriptorCount);
+          for(uint32_t a = 0; a < dst.bindings[b].descriptorCount; a++)
           {
             VKPipe::BindingElement &dstel = dst.bindings[b].binds[a];
 
@@ -1680,7 +1684,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
             // if we have a list of used binds, and this is an array descriptor (so would be
             // expected to be in the list), check it for dynamic usage.
-            if(layoutBind.descriptorCount > 1 && hasUsedBinds)
+            if(dst.bindings[b].descriptorCount > 1 && hasUsedBinds)
             {
               // if we exhausted the list, all other elements are unused
               if(usedBindsSize == 0)
@@ -1769,11 +1773,10 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 }
               }
             }
-
-            if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+            else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT ||
+                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
             {
               ResourceId viewid = info[a].imageInfo.imageView;
 
@@ -1804,8 +1807,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 dst.bindings[b].binds[a].numSlices = 1;
               }
             }
-            if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)
+            else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER ||
+                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)
             {
               ResourceId viewid = info[a].texelBufferView;
 
@@ -1842,10 +1845,18 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 dst.bindings[b].binds[a].byteSize = 0;
               }
             }
-            if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+            else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+            {
+              dst.bindings[b].binds[a].viewResourceId = ResourceId();
+              dst.bindings[b].binds[a].resourceResourceId = ResourceId();
+              dst.bindings[b].binds[a].inlineBlock = true;
+              dst.bindings[b].binds[a].byteOffset = 0;
+              dst.bindings[b].binds[a].byteSize = layoutBind.descriptorCount;
+            }
+            else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
+                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
+                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
             {
               dst.bindings[b].binds[a].viewResourceId = ResourceId();
 
@@ -1963,6 +1974,37 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
 
   if(c.bufferBacked)
   {
+    const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descSets =
+        (refl.stage == ShaderStage::Compute) ? m_pDriver->m_RenderState.compute.descSets
+                                             : m_pDriver->m_RenderState.graphics.descSets;
+
+    Bindpoint bind = mapping.constantBlocks[c.bindPoint];
+
+    if(bind.bindset < descSets.count())
+    {
+      ResourceId set = descSets[bind.bindset].descSet;
+
+      const WrappedVulkan::DescriptorSetInfo &setData = m_pDriver->m_DescriptorSetState[set];
+
+      ResourceId layoutId = setData.layout;
+
+      if(bind.bind < m_pDriver->m_CreationInfo.m_DescSetLayout[layoutId].bindings.count())
+      {
+        const DescSetLayout::Binding &layoutBind =
+            m_pDriver->m_CreationInfo.m_DescSetLayout[layoutId].bindings[bind.bind];
+
+        if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        {
+          bytebuf inlineData;
+          inlineData.assign(
+              setData.inlineData.data() + setData.currentBindings[bind.bind]->inlineOffset,
+              layoutBind.descriptorCount);
+          StandardFillCBufferVariables(refl.resourceId, c.variables, outvars, inlineData);
+          return;
+        }
+      }
+    }
+
     StandardFillCBufferVariables(refl.resourceId, c.variables, outvars, data);
   }
   else

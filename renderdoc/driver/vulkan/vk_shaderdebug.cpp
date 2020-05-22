@@ -186,6 +186,7 @@ public:
 
       const rdcarray<DescriptorSetSlot *> &curBinds =
           m_pDriver->GetCurrentDescSetBindings(descSets[set].descSet);
+      const bytebuf &curInline = m_pDriver->GetCurrentDescSetInlineData(descSets[set].descSet);
       const DescSetLayout &setLayout = m_Creation.m_DescSetLayout[pipeLayout.descSetLayouts[set]];
 
       for(size_t bind = 0; bind < setLayout.bindings.size(); bind++)
@@ -246,6 +247,17 @@ public:
                     m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(
                         curSlots[i].bufferInfo.buffer);
               }
+              break;
+            }
+            case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+            {
+              // push directly into the buffer cache from the inline data
+              BindpointIndex idx;
+              idx.bindset = (int32_t)set;
+              idx.bind = (int32_t)bind;
+              idx.arrayIndex = 0;
+              bufferCache[idx].assign(curInline.data() + curSlots->inlineOffset,
+                                      bindLayout.descriptorCount);
               break;
             }
             case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
@@ -315,18 +327,7 @@ public:
 
   virtual uint64_t GetBufferLength(BindpointIndex bind) override
   {
-    bool valid = true;
-    const VkDescriptorBufferInfo &bufData =
-        GetDescriptor<VkDescriptorBufferInfo>("reading buffer length", bind, valid);
-    if(valid)
-    {
-      if(bufData.range != VK_WHOLE_SIZE)
-        return bufData.range;
-
-      return m_Creation.m_Buffer[GetResID(bufData.buffer)].size - bufData.offset;
-    }
-
-    return 0;
+    return PopulateBuffer(bind).size();
   }
 
   virtual void ReadBufferValue(BindpointIndex bind, uint64_t offset, uint64_t byteSize,

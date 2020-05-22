@@ -1868,6 +1868,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::BindingElement &el)
   SERIALISE_MEMBER(maxLOD);
   SERIALISE_MEMBER(borderColor);
   SERIALISE_MEMBER(unnormalized);
+  SERIALISE_MEMBER(inlineBlock);
 
   SERIALISE_MEMBER(ycbcrSampler);
 

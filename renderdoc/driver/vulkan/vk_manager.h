@@ -117,6 +117,8 @@ struct VkInitialContents
     SAFE_DELETE_ARRAY(descriptorSlots);
     SAFE_DELETE_ARRAY(descriptorWrites);
     SAFE_DELETE_ARRAY(descriptorInfo);
+    SAFE_DELETE_ARRAY(inlineInfo);
+    FreeAlignedBuffer(inlineData);
 
     rm->ResourceTypeRelease(GetWrapped(buf));
     rm->ResourceTypeRelease(GetWrapped(img));
@@ -147,6 +149,8 @@ struct VkInitialContents
   DescriptorSetSlot *descriptorSlots;
   VkWriteDescriptorSet *descriptorWrites;
   VkDescriptorBufferInfo *descriptorInfo;
+  VkWriteDescriptorSetInlineUniformBlockEXT *inlineInfo;
+  byte *inlineData;
   uint32_t numDescriptors;
 
   // for plain resources, we store the resource type and memory allocation details of the contents

@@ -391,6 +391,7 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
     rdcarray<VkDescriptorImageInfo *> allocImgWrites;
     rdcarray<VkDescriptorBufferInfo *> allocBufWrites;
     rdcarray<VkBufferView *> allocBufViewWrites;
+    rdcarray<VkWriteDescriptorSetInlineUniformBlockEXT *> allocInlineWrites;
 
     const WrappedVulkan::DescriptorSetInfo &setInfo = vk->GetDebugManager()->GetDescSetInfo(descSet);
 
@@ -444,6 +445,22 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
 
         push.pImageInfo = dst;
         allocImgWrites.push_back(dst);
+      }
+      else if(push.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+      {
+        allocInlineWrites.push_back(new VkWriteDescriptorSetInlineUniformBlockEXT);
+        VkWriteDescriptorSetInlineUniformBlockEXT *inlineWrite = allocInlineWrites.back();
+        inlineWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
+        inlineWrite->pNext = NULL;
+        inlineWrite->dataSize = bind.descriptorCount;
+        inlineWrite->pData = setInfo.inlineData.data() + slots->inlineOffset;
+
+        push.pNext = inlineWrite;
+        push.descriptorCount = bind.descriptorCount;
+        writes.push_back(push);
+
+        // skip validity checks
+        continue;
       }
       else
       {
@@ -514,6 +531,8 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
       delete[] a;
     for(VkBufferView *a : allocBufViewWrites)
       delete[] a;
+    for(VkWriteDescriptorSetInlineUniformBlockEXT *a : allocInlineWrites)
+      delete a;
   }
 }
 

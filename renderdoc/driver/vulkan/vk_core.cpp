@@ -827,6 +827,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME, VK_EXT_INDEX_TYPE_UINT8_SPEC_VERSION,
     },
     {
+        VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME, VK_EXT_INLINE_UNIFORM_BLOCK_SPEC_VERSION,
+    },
+    {
         VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME, VK_EXT_LINE_RASTERIZATION_SPEC_VERSION,
     },
     {
@@ -3920,6 +3923,10 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
 
         // we don't mark samplers with usage
         if(layout.bindings[bind].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
+          continue;
+
+        // no object to mark for usage with inline blocks
+        if(layout.bindings[bind].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
           continue;
 
         ResourceUsage usage = ResourceUsage(uint32_t(types[t].usage) + shad);
