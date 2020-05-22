@@ -1161,6 +1161,13 @@ TEST_CASE("Test string type", "[basictypes][string]")
     CHECK(rdcstr("  Foo\nbar").trimmed() == "Foo\nbar");
     CHECK(rdcstr("FOO BAR  ").trimmed() == "FOO BAR");
     CHECK(rdcstr("FOO BAR  \t\n").trimmed() == "FOO BAR");
+    CHECK(rdcstr("1").trimmed() == "1");
+    CHECK(rdcstr("  1  ").trimmed() == "1");
+    CHECK(rdcstr("  1").trimmed() == "1");
+    CHECK(rdcstr("1  ").trimmed() == "1");
+    CHECK(rdcstr("1\n ").trimmed() == "1");
+    CHECK(rdcstr("\n1\n ").trimmed() == "1");
+    CHECK(rdcstr(" \n\t1\n ").trimmed() == "1");
     CHECK(rdcstr("").trimmed() == "");
     CHECK(rdcstr("  ").trimmed() == "");
     CHECK(rdcstr("  \t  \n ").trimmed() == "");
