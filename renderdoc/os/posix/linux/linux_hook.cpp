@@ -24,9 +24,12 @@
 
 #include <dlfcn.h>
 #include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <algorithm>
 #include <map>
 #include "common/threading.h"
+#include "core/core.h"
 #include "hooks/hooks.h"
 #include "os/os_specific.h"
 #include "plthook/plthook.h"
@@ -41,9 +44,11 @@ static rdcarray<FunctionHook> functionHooks;
 void *intercept_dlopen(const char *filename, int flag, void *ret);
 void plthook_lib(void *handle);
 
+typedef pid_t (*FORKPROC)();
 typedef void *(*DLOPENPROC)(const char *, int);
 typedef void *(*DLSYMPROC)(void *, const char *);
 DLOPENPROC realdlopen = NULL;
+FORKPROC realfork = NULL;
 DLSYMPROC realdlsym = NULL;
 
 static volatile int32_t tlsbusyflag = 0;
@@ -71,6 +76,45 @@ __attribute__((visibility("default"))) void *dlopen(const char *filename, int fl
   {
     SCOPED_LOCK(libLock);
     ret = intercept_dlopen(filename, flag, ret);
+  }
+
+  return ret;
+}
+
+int GetIdentPort(pid_t childPid);
+
+__attribute__((visibility("default"))) pid_t fork()
+{
+  if(!realfork)
+  {
+    FORKPROC passthru = (FORKPROC)dlsym(RTLD_NEXT, "fork");
+
+    return passthru();
+  }
+
+  // fork in a captured application. Need to get the child ident and register it
+
+  pid_t ret = realfork();
+
+  if(ret > 0)
+  {
+    // in parent process, kick off a thread to get the ident
+    Threading::ThreadHandle handle = Threading::CreateThread([ret]() {
+      // don't accept a return value of our own ident, that means we've checked too early and exec
+      // hasn't run yet
+      const uint32_t ownIdent = RenderDoc::Inst().GetTargetControlIdent();
+      uint32_t ident = ownIdent;
+      for(uint32_t i = 0; i < 10 && ident == ownIdent; i++)
+      {
+        ident = (uint32_t)GetIdentPort(ret);
+        if(ident == ownIdent)
+          usleep(1000);
+      }
+
+      RenderDoc::Inst().AddChildProcess((uint32_t)ret, (uint32_t)ident);
+      RenderDoc::Inst().CompleteChildThread((uint32_t)ret);
+    });
+    RenderDoc::Inst().AddChildThread((uint32_t)ret, handle);
   }
 
   return ret;
@@ -223,6 +267,7 @@ void *intercept_dlopen(const char *filename, int flag, void *ret)
 void LibraryHooks::BeginHookRegistration()
 {
   realdlopen = (DLOPENPROC)dlsym(RTLD_NEXT, "dlopen");
+  realfork = (FORKPROC)dlsym(RTLD_NEXT, "fork");
 }
 
 bool LibraryHooks::Detect(const char *identifier)

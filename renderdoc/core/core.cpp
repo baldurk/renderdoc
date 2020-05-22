@@ -825,6 +825,27 @@ void RenderDoc::Tick()
 
   prev_focus = cur_focus;
   prev_cap = cur_cap;
+
+  // check for any child threads that need to be waited on, remove them from the list
+  rdcarray<Threading::ThreadHandle> waitThreads;
+  {
+    SCOPED_LOCK(m_ChildLock);
+    for(rdcpair<uint32_t, Threading::ThreadHandle> &c : m_ChildThreads)
+    {
+      if(c.first == 0)
+        waitThreads.push_back(c.second);
+    }
+
+    m_ChildThreads.removeIf(
+        [](const rdcpair<uint32_t, Threading::ThreadHandle> &c) { return c.first == 0; });
+  }
+
+  // clean up the threads now
+  for(Threading::ThreadHandle t : waitThreads)
+  {
+    Threading::JoinThread(t);
+    Threading::CloseThread(t);
+  }
 }
 
 void RenderDoc::CycleActiveWindow()
@@ -1684,10 +1705,27 @@ void RenderDoc::AddChildProcess(uint32_t pid, uint32_t ident)
   m_Children.push_back(make_rdcpair(pid, ident));
 }
 
-rdcarray<rdcpair<uint32_t, uint32_t> > RenderDoc::GetChildProcesses()
+rdcarray<rdcpair<uint32_t, uint32_t>> RenderDoc::GetChildProcesses()
 {
   SCOPED_LOCK(m_ChildLock);
   return m_Children;
+}
+
+void RenderDoc::CompleteChildThread(uint32_t pid)
+{
+  SCOPED_LOCK(m_ChildLock);
+  // the thread for this PID is done, mark it as ready to wait on by zero-ing out the PID
+  for(rdcpair<uint32_t, Threading::ThreadHandle> &c : m_ChildThreads)
+  {
+    if(c.first == pid)
+      c.first = 0;
+  }
+}
+
+void RenderDoc::AddChildThread(uint32_t pid, Threading::ThreadHandle thread)
+{
+  SCOPED_LOCK(m_ChildLock);
+  m_ChildThreads.push_back(make_rdcpair(pid, thread));
 }
 
 rdcarray<CaptureData> RenderDoc::GetCaptures()
