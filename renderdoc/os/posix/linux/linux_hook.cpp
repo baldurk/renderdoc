@@ -83,6 +83,10 @@ __attribute__((visibility("default"))) void *dlopen(const char *filename, int fl
 
 int GetIdentPort(pid_t childPid);
 
+void StopAtMainInChild();
+bool StopChildAtMain(pid_t childPid);
+void ResumeProcess(pid_t childPid);
+
 __attribute__((visibility("default"))) pid_t fork()
 {
   if(!realfork)
@@ -96,25 +100,59 @@ __attribute__((visibility("default"))) pid_t fork()
 
   pid_t ret = realfork();
 
-  if(ret > 0)
+  if(ret == 0)
   {
-    // in parent process, kick off a thread to get the ident
-    Threading::ThreadHandle handle = Threading::CreateThread([ret]() {
-      // don't accept a return value of our own ident, that means we've checked too early and exec
-      // hasn't run yet
-      const uint32_t ownIdent = RenderDoc::Inst().GetTargetControlIdent();
-      uint32_t ident = ownIdent;
-      for(uint32_t i = 0; i < 10 && ident == ownIdent; i++)
-      {
-        ident = (uint32_t)GetIdentPort(ret);
-        if(ident == ownIdent)
-          usleep(1000);
-      }
+    StopAtMainInChild();
+  }
+  else if(ret > 0)
+  {
+    bool stopped = StopChildAtMain(ret);
 
-      RenderDoc::Inst().AddChildProcess((uint32_t)ret, (uint32_t)ident);
-      RenderDoc::Inst().CompleteChildThread((uint32_t)ret);
-    });
-    RenderDoc::Inst().AddChildThread((uint32_t)ret, handle);
+    if(stopped)
+    {
+      int ident = GetIdentPort(ret);
+
+      ResumeProcess(ret);
+
+      if(ident)
+      {
+        RDCLOG("Identified child process %u with ident %u", ret, ident);
+        RenderDoc::Inst().AddChildProcess((uint32_t)ret, (uint32_t)ident);
+      }
+      else
+      {
+        RDCERR("Couldn't get ident for PID %u after stopping at main", ret);
+      }
+    }
+    else
+    {
+      // resume the process just in case something went wrong. This should be harmless if we're not
+      // actually tracing
+      ResumeProcess(ret);
+
+      // ptrace_scope isn't amenable, or we hit an error. We'll have to spin up a thread to check
+      // the ident on the child process and add it as soon as it's available
+      Threading::ThreadHandle handle = Threading::CreateThread([ret]() {
+        RDCLOG("Starting thread to get ident for PID %u", ret);
+
+        // don't accept a return value of our own ident, that means we've checked too early and exec
+        // hasn't run yet
+        const uint32_t ownIdent = RenderDoc::Inst().GetTargetControlIdent();
+        uint32_t ident = ownIdent;
+        for(uint32_t i = 0; i < 10 && ident == ownIdent; i++)
+        {
+          ident = (uint32_t)GetIdentPort(ret);
+          if(ident == ownIdent)
+            usleep(1000);
+        }
+
+        RDCLOG("PID %u has ident %u", ret, ident);
+
+        RenderDoc::Inst().AddChildProcess((uint32_t)ret, (uint32_t)ident);
+        RenderDoc::Inst().CompleteChildThread((uint32_t)ret);
+      });
+      RenderDoc::Inst().AddChildThread((uint32_t)ret, handle);
+    }
   }
 
   return ret;

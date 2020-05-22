@@ -44,6 +44,12 @@
 char **GetCurrentEnvironment();
 int GetIdentPort(pid_t childPid);
 
+// functions to try and let the child run just far enough to get to main() but no further. This lets
+// us check the ident port and resume.
+void StopAtMainInChild();
+bool StopChildAtMain(pid_t childPid);
+void ResumeProcess(pid_t childPid);
+
 #if ENABLED(RDOC_APPLE)
 
 #define PRELOAD_ENV_VAR "DYLD_INSERT_LIBRARIES"
@@ -572,6 +578,8 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
     childPid = fork();
     if(childPid == 0)
     {
+      StopAtMainInChild();
+
       FileIO::ReleaseFDAfterFork();
       if(stdoutPipe)
       {
@@ -593,22 +601,27 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
       fprintf(stderr, "exec failed\n");
       _exit(1);
     }
-    else if(!stdoutPipe)
+    else
     {
-      // remember this PID so we can wait on it later
-      SCOPED_SPINLOCK(zombieLock);
+      if(!stdoutPipe)
+      {
+        // remember this PID so we can wait on it later
+        SCOPED_SPINLOCK(zombieLock);
 
-      PIDNode *node = NULL;
+        PIDNode *node = NULL;
 
-      // take a child from the free list if available, otherwise allocate a new one
-      if(freeChildren.head)
-        node = freeChildren.pop_front();
-      else
-        node = new PIDNode();
+        // take a child from the free list if available, otherwise allocate a new one
+        if(freeChildren.head)
+          node = freeChildren.pop_front();
+        else
+          node = new PIDNode();
 
-      node->pid = childPid;
+        node->pid = childPid;
 
-      children.append(node);
+        children.append(node);
+      }
+
+      StopChildAtMain(childPid);
     }
   }
 
@@ -650,8 +663,10 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
   }
 
   char **currentEnvironment = GetCurrentEnvironment();
-  uint32_t ret = (uint32_t)RunProcess(app, workingDir, cmdLine, currentEnvironment,
-                                      result ? stdoutPipe : NULL, result ? stderrPipe : NULL);
+  pid_t ret = RunProcess(app, workingDir, cmdLine, currentEnvironment, result ? stdoutPipe : NULL,
+                         result ? stderrPipe : NULL);
+
+  ResumeProcess(ret);
 
   if(result)
   {
@@ -698,7 +713,7 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
     close(stderrPipe[0]);
   }
 
-  return ret;
+  return (uint32_t)ret;
 }
 
 uint32_t Process::LaunchScript(const char *script, const char *workingDir, const char *argList,
@@ -826,16 +841,19 @@ rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
     i++;
   }
 
+  RDCLOG("Running process %s for injection", app);
+
   pid_t childPid = RunProcess(app, workingDir, cmdLine, envp);
 
   int ret = 0;
 
   if(childPid != (pid_t)0)
   {
-    // wait for child to have opened its socket
-    usleep(1000);
-
+    // ideally we stopped at main so we can check the port immediately. Otherwise this will do an
+    // exponential wait to get it as soon as possible
     ret = GetIdentPort(childPid);
+
+    ResumeProcess(ret);
 
     if(waitForExit)
     {
