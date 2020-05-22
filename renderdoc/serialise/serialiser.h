@@ -94,7 +94,7 @@ public:
 #if ENABLED(RDOC_RELEASE)
         sertype == SerialiserMode::Reading &&
 #endif
-        m_ExportStructured && !m_InternalElement;
+        m_ExportStructured && m_InternalElement == 0;
   }
 
   enum ChunkFlags
@@ -244,9 +244,9 @@ public:
       byteSize = 0;
 
     {
-      m_InternalElement = true;
+      m_InternalElement++;
       DoSerialise(*this, byteSize);
-      m_InternalElement = false;
+      m_InternalElement--;
     }
 
     if(IsReading())
@@ -355,9 +355,9 @@ public:
     uint64_t count = (uint64_t)el.size();
 
     {
-      m_InternalElement = true;
+      m_InternalElement++;
       DoSerialise(*this, count);
-      m_InternalElement = false;
+      m_InternalElement--;
     }
 
     if(IsReading())
@@ -471,9 +471,9 @@ public:
     // size
     uint64_t count = N;
     {
-      m_InternalElement = true;
+      m_InternalElement++;
       DoSerialise(*this, count);
-      m_InternalElement = false;
+      m_InternalElement--;
 
       if(count != N)
         RDCWARN("Fixed-size array length %zu serialised with different size %llu", N, count);
@@ -532,11 +532,10 @@ public:
       if(count > N)
       {
         // prevent any trashing of structured data by these
-        bool wasInternal = m_InternalElement;
-        m_InternalElement = true;
+        m_InternalElement++;
         T dummy;
         SerialiseDispatch<Serialiser, T>::Do(*this, dummy);
-        m_InternalElement = wasInternal;
+        m_InternalElement--;
       }
 
       m_StructureStack.pop_back();
@@ -591,9 +590,9 @@ public:
       arrayCount = 0;
 
     {
-      m_InternalElement = true;
+      m_InternalElement++;
       DoSerialise(*this, arrayCount);
-      m_InternalElement = false;
+      m_InternalElement--;
     }
 
     if(IsReading())
@@ -684,9 +683,9 @@ public:
     uint64_t size = (uint64_t)el.size();
 
     {
-      m_InternalElement = true;
+      m_InternalElement++;
       DoSerialise(*this, size);
-      m_InternalElement = false;
+      m_InternalElement--;
     }
 
     if(IsReading())
@@ -837,9 +836,9 @@ public:
     bool present = (el != NULL);
 
     {
-      m_InternalElement = true;
+      m_InternalElement++;
       DoSerialise(*this, present);
-      m_InternalElement = false;
+      m_InternalElement--;
     }
 
     if(ExportStructure())
@@ -926,9 +925,9 @@ public:
     uint64_t totalSize = stream.GetSize();
 
     {
-      m_InternalElement = true;
+      m_InternalElement++;
       DoSerialise(*this, totalSize);
-      m_InternalElement = false;
+      m_InternalElement--;
     }
 
     // ensure byte alignment
@@ -947,9 +946,9 @@ public:
     uint64_t totalSize = 0;
 
     {
-      m_InternalElement = true;
+      m_InternalElement++;
       DoSerialise(*this, totalSize);
-      m_InternalElement = false;
+      m_InternalElement--;
     }
 
     size_t byteSize = (size_t)totalSize;
@@ -1087,6 +1086,10 @@ public:
     return *this;
   }
 
+  // these functions should be used very carefully, they completely disable structured export for
+  // anything serialised while internal is set.
+  void PushInternal() { m_InternalElement++; }
+  void PopInternal() { m_InternalElement--; }
   /////////////////////////////////////////////////////////////////////////////
 
   // for basic/leaf types. Read/written just as byte soup, MUST be plain old data
@@ -1309,7 +1312,7 @@ private:
 
   bool m_ExportStructured = false;
   bool m_ExportBuffers = false;
-  bool m_InternalElement = false;
+  int m_InternalElement = 0;
   SDFile m_StructData;
   SDFile *m_StructuredFile = &m_StructData;
   rdcarray<SDObject *> m_StructureStack;

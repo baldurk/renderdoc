@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "core/settings.h"
 #include "vk_core.h"
 #include "vk_debug.h"
 
@@ -34,6 +35,11 @@
 // nice command buffer reuse (although need to be careful we don't create too large a
 // command buffer that stalls the GPU).
 // See INITSTATEBATCH
+
+RDOC_DEBUG_CONFIG(
+    bool, Vulkan_Debug_HideInitialDescriptors, false,
+    "Hide the initial contents of descriptor sets. "
+    "For extremely large descriptor sets this can drastically reduce memory consumption.");
 
 bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 {
@@ -624,6 +630,11 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
     uint32_t NumBindings = 0;
     bytebuf InlineData;
 
+    const bool hide = Vulkan_Debug_HideInitialDescriptors();
+
+    if(hide)
+      ser.PushInternal();
+
     // while writing, fetching binding information from prepared initial contents
     if(ser.IsWriting())
     {
@@ -650,6 +661,9 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
     {
       SERIALISE_ELEMENT(InlineData);
     }
+
+    if(hide)
+      ser.PopInternal();
 
     SERIALISE_CHECK_READ_ERRORS();
 
