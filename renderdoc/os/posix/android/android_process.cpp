@@ -107,7 +107,7 @@ bool StopChildAtMain(pid_t childPid)
   return false;
 }
 
-void ResumeProcess(pid_t childPid)
+void ResumeProcess(pid_t childPid, uint32_t delay)
 {
 }
 

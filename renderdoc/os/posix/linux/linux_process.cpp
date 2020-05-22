@@ -410,10 +410,70 @@ void StopAtMainInChild()
   raise(SIGSTOP);
 }
 
-void ResumeProcess(pid_t childPid)
+void ResumeProcess(pid_t childPid, uint32_t delaySeconds)
 {
   if(childPid != 0)
   {
+    // if we have a delay, see if the process is paused. If so then detach it but keep it stopped
+    // and wait to see if someone attaches
+    if(delaySeconds > 0)
+    {
+      uint64_t ip = get_child_ip(childPid);
+
+      if(ip != 0)
+      {
+        // detach but stop, to allow a debugger to attach
+        ptrace(PTRACE_DETACH, childPid, NULL, SIGSTOP);
+
+        rdcstr filename = StringFormat::Fmt("/proc/%u/status", childPid);
+
+        uint64_t start_nano = get_nanotime();
+        uint64_t end_nano = 0;
+
+        const uint64_t timeoutNanoseconds = uint64_t(delaySeconds) * 1000 * 1000 * 1000;
+
+        bool connected = false;
+
+        // watch for a tracer to attach
+        do
+        {
+          usleep(10);
+
+          rdcstr status;
+          FileIO::ReadAll(filename, status);
+
+          int32_t offs = status.find("TracerPid:");
+
+          if(offs < 0)
+            break;
+
+          status.erase(0, offs + sizeof("TracerPid:"));
+          status.trim();
+
+          end_nano = get_nanotime();
+
+          if(status[0] != '0')
+          {
+            RDCLOG("Debugger PID %u attached after %f seconds", atoi(status.c_str()),
+                   double(end_nano - start_nano) / 1000000000.0);
+            connected = true;
+            break;
+          }
+        } while(end_nano - start_nano < timeoutNanoseconds);
+
+        if(!connected)
+        {
+          RDCLOG("Timed out waiting for debugger, resuming");
+          kill(childPid, SIGCONT);
+        }
+        return;
+      }
+      else
+      {
+        RDCERR("Can't delay for debugger without ptrace, check ptrace_scope value");
+      }
+    }
+
     // try to detach and resume the process, ignoring any errors if we weren't tracing
     ptrace(PTRACE_DETACH, childPid, NULL, NULL);
   }

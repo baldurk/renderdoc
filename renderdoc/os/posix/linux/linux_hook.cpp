@@ -85,7 +85,7 @@ int GetIdentPort(pid_t childPid);
 
 void StopAtMainInChild();
 bool StopChildAtMain(pid_t childPid);
-void ResumeProcess(pid_t childPid);
+void ResumeProcess(pid_t childPid, uint32_t delay = 0);
 
 __attribute__((visibility("default"))) pid_t fork()
 {

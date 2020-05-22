@@ -48,7 +48,7 @@ int GetIdentPort(pid_t childPid);
 // us check the ident port and resume.
 void StopAtMainInChild();
 bool StopChildAtMain(pid_t childPid);
-void ResumeProcess(pid_t childPid);
+void ResumeProcess(pid_t childPid, uint32_t delay = 0);
 
 #if ENABLED(RDOC_APPLE)
 
@@ -853,7 +853,7 @@ rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
     // exponential wait to get it as soon as possible
     ret = GetIdentPort(childPid);
 
-    ResumeProcess(ret);
+    ResumeProcess(childPid, opts.delayForDebugger);
 
     if(waitForExit)
     {
