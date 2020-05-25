@@ -3509,7 +3509,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
       }
       else
       {
-        FloatVector decoded = ConvertComponents(fmt, data.data());
+        FloatVector decoded = DecodeFormattedComponents(fmt, data.data());
 
         val.f.x = decoded.x;
         val.f.y = decoded.y;

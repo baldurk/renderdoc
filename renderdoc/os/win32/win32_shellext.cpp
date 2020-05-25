@@ -613,7 +613,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
             else if(resourceType == ResourceFormatType::D16S8)
               rgba.x = rgba.y = rgba.z = float(*(uint16_t *)src) / 65535.0f;
             else
-              rgba = ConvertComponents(m_ddsData.format, src);
+              rgba = DecodeFormattedComponents(m_ddsData.format, src);
 
             if(resourceType == ResourceFormatType::A8)
               rgba.y = rgba.z = rgba.x;

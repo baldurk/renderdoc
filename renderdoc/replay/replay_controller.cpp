@@ -1279,7 +1279,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       {
         for(uint32_t x = 0; x < td.width; x++)
         {
-          FloatVector pixel = ConvertComponents(saveFmt, srcData);
+          FloatVector pixel = DecodeFormattedComponents(saveFmt, srcData);
           srcData += pixStride;
 
           // HDR can't represent negative values

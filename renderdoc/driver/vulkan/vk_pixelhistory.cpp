@@ -2989,13 +2989,13 @@ void UpdateTestsFailed(const TestsFailedCallback *tfCb, uint32_t eventId, uint32
 
 void FillInColor(ResourceFormat fmt, const PixelHistoryValue &value, ModificationValue &mod)
 {
-  FloatVector v4 = ConvertComponents(fmt, value.color);
+  FloatVector v4 = DecodeFormattedComponents(fmt, value.color);
   memcpy(mod.col.floatValue, &v4.x, sizeof(v4));
 }
 
 float GetDepthValue(VkFormat depthFormat, const PixelHistoryValue &value)
 {
-  FloatVector v4 = ConvertComponents(MakeResourceFormat(depthFormat), (byte *)&value.depth);
+  FloatVector v4 = DecodeFormattedComponents(MakeResourceFormat(depthFormat), (byte *)&value.depth);
   return v4.x;
 }
 

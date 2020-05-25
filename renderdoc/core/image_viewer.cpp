@@ -774,7 +774,7 @@ void ImageViewer::RefreshFile()
       {
         // see if we can convert this format on the CPU for proxying
         bool convertSupported = false;
-        ConvertComponents(texDetails.format, NULL, &convertSupported);
+        DecodeFormattedComponents(texDetails.format, NULL, &convertSupported);
 
         if(convertSupported)
         {
@@ -810,7 +810,7 @@ void ImageViewer::RefreshFile()
               {
                 for(uint32_t x = 0; x < mipwidth; x++)
                 {
-                  *dst = ConvertComponents(texDetails.format, src);
+                  *dst = DecodeFormattedComponents(texDetails.format, src);
                   dst++;
                   src += srcStride;
                 }

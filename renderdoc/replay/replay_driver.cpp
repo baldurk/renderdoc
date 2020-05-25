@@ -624,7 +624,7 @@ FloatVector HighlightCache::InterpretVertex(const byte *data, uint32_t vert,
     return FloatVector(0.0f, 0.0f, 0.0f, 1.0f);
   }
 
-  return ConvertComponents(fmt, data);
+  return DecodeFormattedComponents(fmt, data);
 }
 
 uint64_t inthash(uint64_t val, uint64_t seed)
