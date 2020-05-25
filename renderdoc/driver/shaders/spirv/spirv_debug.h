@@ -343,6 +343,10 @@ private:
 
   SparseIdMap<size_t> idDeathOffset;
 
+  SparseIdMap<size_t> m_Files;
+  LineColumnInfo m_CurLineCol;
+  std::map<size_t, LineColumnInfo> m_LineColInfo;
+
   SparseIdMap<uint32_t> labelInstruction;
 
   // the live mutable global variables, to initialise a stack frame's live list

@@ -962,11 +962,15 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
   ret->lineInfo.resize(instructionOffsets.size());
   for(size_t i = 0; i < instructionOffsets.size(); i++)
   {
-    auto it = instructionLines.find(instructionOffsets[i]);
-    if(it != instructionLines.end())
-      ret->lineInfo[i].disassemblyLine = it->second;
-    else
-      ret->lineInfo[i].disassemblyLine = 0;
+    ret->lineInfo[i] = m_LineColInfo[instructionOffsets[i]];
+
+    {
+      auto it = instructionLines.find(instructionOffsets[i]);
+      if(it != instructionLines.end())
+        ret->lineInfo[i].disassemblyLine = it->second;
+      else
+        ret->lineInfo[i].disassemblyLine = 0;
+    }
   }
 
   ret->constantBlocks = global.constantBlocks;
@@ -2193,10 +2197,33 @@ void Debugger::RegisterOp(Iter it)
     }
   }
 
-  if(opdata.op == Op::Line || opdata.op == Op::NoLine)
+  if(opdata.op == Op::Source)
   {
-    // ignore OpLine/OpNoLine
+    OpSource source(it);
+
+    if(!source.source.empty())
+    {
+      m_Files[source.file] = m_Files.size();
+    }
   }
+  else if(opdata.op == Op::Line)
+  {
+    OpLine line(it);
+
+    m_CurLineCol.lineStart = line.line;
+    m_CurLineCol.lineEnd = line.line;
+    m_CurLineCol.colStart = line.column;
+    m_CurLineCol.fileIndex = (int32_t)m_Files[line.file];
+  }
+  else if(opdata.op == Op::NoLine)
+  {
+    m_CurLineCol = LineColumnInfo();
+  }
+  else
+  {
+    m_LineColInfo[it.offs()] = m_CurLineCol;
+  }
+
   if(opdata.op == Op::String)
   {
     OpString string(it);
