@@ -4019,7 +4019,15 @@ void DoSerialise(SerialiserType &ser, DescriptorSetSlot &el)
   SERIALISE_MEMBER(bufferInfo).TypedAs("VkDescriptorBufferInfo"_lit);
   SERIALISE_MEMBER(imageInfo).TypedAs("VkDescriptorImageInfo"_lit);
   SERIALISE_MEMBER(texelBufferView).TypedAs("VkBufferView"_lit);
-  SERIALISE_MEMBER(inlineOffset).Named("InlineDataOffset"_lit);
+
+  if(ser.VersionAtLeast(0x12))
+  {
+    SERIALISE_MEMBER(inlineOffset).Named("InlineDataOffset"_lit);
+  }
+  else if(ser.IsReading())
+  {
+    el.inlineOffset = 0;
+  }
 }
 
 template <typename SerialiserType>
