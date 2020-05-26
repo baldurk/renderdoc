@@ -584,7 +584,8 @@ void Reflector::PostParse()
 
 rdcarray<rdcstr> Reflector::EntryPoints() const
 {
-  rdcarray<rdcstr> ret(entries.size());
+  rdcarray<rdcstr> ret;
+  ret.reserve(entries.size());
   for(const EntryPoint &e : entries)
     ret.push_back(e.name);
   return ret;
