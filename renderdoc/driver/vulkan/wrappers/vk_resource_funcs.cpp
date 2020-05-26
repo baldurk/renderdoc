@@ -446,6 +446,11 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
         serialisedInfo.pNext = &memoryDeviceAddress;
 
         memFlags->flags |= VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
+
+        {
+          SCOPED_READLOCK(m_CapTransitionLock);
+          m_DeviceAddressResources.IDs.push_back(record->GetResourceID());
+        }
       }
 
       {
@@ -530,6 +535,20 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
 
   if(IsCaptureMode(m_State))
   {
+    // artificially extend the lifespan of buffer device address memory or buffers, to ensure their
+    // opaque capture address isn't re-used before the capture completes
+    {
+      SCOPED_READLOCK(m_CapTransitionLock);
+      if(IsActiveCapturing(m_State) && m_DeviceAddressResources.IDs.contains(GetResID(memory)))
+      {
+        // we can't hold onto the user callback so we'll be freeing with NULL.
+        RDCASSERT(pAllocator == NULL);
+        m_DeviceAddressResources.DeadMemories.push_back(memory);
+        return;
+      }
+      m_DeviceAddressResources.IDs.removeOne(GetResID(memory));
+    }
+
     // there is an implicit unmap on free, so make sure to tidy up
     if(wrapped->record->memMapState && wrapped->record->memMapState->refData)
     {
@@ -1266,6 +1285,11 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
         // this buffer must be forced to be in any captures, since we can't track when it's used by
         // address
         AddForcedReference(record);
+
+        {
+          SCOPED_READLOCK(m_CapTransitionLock);
+          m_DeviceAddressResources.IDs.push_back(record->GetResourceID());
+        }
       }
 
       {

@@ -132,7 +132,6 @@ VkFramebufferCreateInfo WrappedVulkan::UnwrapInfo(const VkFramebufferCreateInfo 
     ObjDisp(device)->func(Unwrap(device), unwrappedObj, pAllocator);                               \
   }
 
-DESTROY_IMPL(VkBuffer, DestroyBuffer)
 DESTROY_IMPL(VkBufferView, DestroyBufferView)
 DESTROY_IMPL(VkImageView, DestroyImageView)
 DESTROY_IMPL(VkShaderModule, DestroyShaderModule)
@@ -153,6 +152,38 @@ DESTROY_IMPL(VkDescriptorUpdateTemplate, DestroyDescriptorUpdateTemplate)
 DESTROY_IMPL(VkSamplerYcbcrConversion, DestroySamplerYcbcrConversion)
 
 #undef DESTROY_IMPL
+
+void WrappedVulkan::vkDestroyBuffer(VkDevice device, VkBuffer buffer,
+                                    const VkAllocationCallbacks *pAllocator)
+{
+  if(buffer == VK_NULL_HANDLE)
+    return;
+
+  // artificially extend the lifespan of buffer device address memory or buffers, to ensure their
+  // opaque capture address isn't re-used before the capture completes
+  {
+    SCOPED_READLOCK(m_CapTransitionLock);
+    if(IsActiveCapturing(m_State) && m_DeviceAddressResources.IDs.contains(GetResID(buffer)))
+    {
+      // we can't hold onto the user callback so we'll be freeing with NULL.
+      RDCASSERT(pAllocator == NULL);
+      m_DeviceAddressResources.DeadBuffers.push_back(buffer);
+      return;
+    }
+    m_DeviceAddressResources.IDs.removeOne(GetResID(buffer));
+  }
+
+  VkBuffer unwrappedObj = Unwrap(buffer);
+
+  m_ForcedReferences.removeOne(GetRecord(buffer));
+
+  if(IsReplayMode(m_State))
+    m_CreationInfo.erase(GetResID(buffer));
+
+  GetResourceManager()->ReleaseWrappedResource(buffer, true);
+
+  ObjDisp(device)->DestroyBuffer(Unwrap(device), unwrappedObj, pAllocator);
+}
 
 // needs to be separate because it releases internal resources
 void WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj,

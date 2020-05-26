@@ -714,6 +714,15 @@ private:
 
   ResourceId m_LastSwap;
 
+  // hold onto device address resources (buffers and memories) so that if one is destroyed
+  // mid-capture we can hold onto it until the capture is complete.
+  struct
+  {
+    rdcarray<VkDeviceMemory> DeadMemories;
+    rdcarray<VkBuffer> DeadBuffers;
+    rdcarray<ResourceId> IDs;
+  } m_DeviceAddressResources;
+
   // holds the current list of coherent mapped memory. Locked against concurrent use
   rdcarray<VkResourceRecord *> m_CoherentMaps;
   Threading::CriticalSection m_CoherentMapsLock;

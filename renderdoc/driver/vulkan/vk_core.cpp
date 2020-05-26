@@ -1693,6 +1693,9 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     }
   }
 
+  rdcarray<VkDeviceMemory> DeadMemories;
+  rdcarray<VkBuffer> DeadBuffers;
+
   // transition back to IDLE atomically
   {
     SCOPED_WRITELOCK(m_CapTransitionLock);
@@ -1713,7 +1716,16 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
         (*it)->memMapState->needRefData = false;
       }
     }
+
+    DeadMemories.swap(m_DeviceAddressResources.DeadMemories);
+    DeadBuffers.swap(m_DeviceAddressResources.DeadBuffers);
   }
+
+  for(VkDeviceMemory m : DeadMemories)
+    vkFreeMemory(m_Device, m, NULL);
+
+  for(VkBuffer b : DeadBuffers)
+    vkDestroyBuffer(m_Device, b, NULL);
 
   // gather backbuffer screenshot
   const uint32_t maxSize = 2048;
