@@ -1812,7 +1812,7 @@ static int MaxNumRows(const ShaderConstant &c)
   return ret;
 }
 
-static void UnrollConstant(rdcstr prefix, const ShaderConstant &constant,
+static void UnrollConstant(rdcstr prefix, uint32_t baseOffset, const ShaderConstant &constant,
                            rdcarray<ShaderConstant> &columns,
                            rdcarray<BufferElementProperties> &props)
 {
@@ -1829,6 +1829,7 @@ static void UnrollConstant(rdcstr prefix, const ShaderConstant &constant,
     prop.format = GetInterpretedResourceFormat(constant);
 
     ShaderConstant c = constant;
+    c.byteOffset += baseOffset;
 
     if(isArray)
     {
@@ -1855,8 +1856,8 @@ static void UnrollConstant(rdcstr prefix, const ShaderConstant &constant,
   {
     for(const ShaderConstant &child : constant.type.members)
     {
-      UnrollConstant(isArray ? QFormatStr("%1[%2]").arg(baseName).arg(a) : QString(baseName), child,
-                     columns, props);
+      UnrollConstant(isArray ? QFormatStr("%1[%2]").arg(baseName).arg(a) : QString(baseName),
+                     baseOffset + constant.byteOffset, child, columns, props);
     }
   }
 }
@@ -1864,7 +1865,7 @@ static void UnrollConstant(rdcstr prefix, const ShaderConstant &constant,
 static void UnrollConstant(const ShaderConstant &constant, rdcarray<ShaderConstant> &columns,
                            rdcarray<BufferElementProperties> &props)
 {
-  UnrollConstant("", constant, columns, props);
+  UnrollConstant("", 0, constant, columns, props);
 }
 
 BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
