@@ -96,6 +96,8 @@ struct D3D11ResourceRecord : public ResourceRecord
       return;
     }
 
+    SCOPED_READLOCK(DeferredShadowLock);
+
     DeferredShadow[ctx - 1].Alloc(size);
   }
 
@@ -104,12 +106,16 @@ struct D3D11ResourceRecord : public ResourceRecord
     if(ctx == 0)
       return ImmediateShadow.Verify();
 
+    SCOPED_READLOCK(DeferredShadowLock);
+
     return DeferredShadow[ctx - 1].Verify();
   }
 
   void FreeShadowStorage()
   {
     ImmediateShadow.Free();
+
+    SCOPED_READLOCK(DeferredShadowLock);
 
     for(size_t i = 0; i < DeferredShadow.size(); i++)
       DeferredShadow[i].Free();
@@ -120,12 +126,14 @@ struct D3D11ResourceRecord : public ResourceRecord
     if(ctx == 0)
       return ImmediateShadow.ptr[p];
 
+    SCOPED_READLOCK(DeferredShadowLock);
+
     return DeferredShadow[ctx - 1].ptr[p];
   }
 
   size_t GetContextID()
   {
-    SCOPED_LOCK(DeferredShadowLock);
+    SCOPED_WRITELOCK(DeferredShadowLock);
 
     for(size_t i = 0; i < DeferredShadow.size(); i++)
       if(!DeferredShadow[i].used)
@@ -144,7 +152,7 @@ struct D3D11ResourceRecord : public ResourceRecord
       return;
 
     {
-      SCOPED_LOCK(DeferredShadowLock);
+      SCOPED_WRITELOCK(DeferredShadowLock);
       DeferredShadow[ctx - 1].used = false;
     }
   }
@@ -233,7 +241,7 @@ private:
 
   ShadowPointerData ImmediateShadow;
 
-  Threading::CriticalSection DeferredShadowLock;
+  Threading::RWLock DeferredShadowLock;
   rdcarray<ShadowPointerData> DeferredShadow;
 };
 
