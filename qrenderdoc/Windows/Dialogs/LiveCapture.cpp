@@ -1076,6 +1076,9 @@ void LiveCapture::captureAdded(const QString &name, const NewCaptureData &newCap
 
 void LiveCapture::connectionClosed()
 {
+  ui->progressLabel->setVisible(false);
+  ui->progressBar->setVisible(false);
+
   if(m_IgnoreThreadClosed)
     return;
 
