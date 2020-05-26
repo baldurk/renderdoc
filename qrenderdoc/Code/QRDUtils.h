@@ -83,6 +83,8 @@ struct BufferFormatter
   static QString DeclareStruct(QList<QString> &declaredStructs, const QString &name,
                                const rdcarray<ShaderConstant> &members, uint32_t requiredByteStride);
 
+  static uint32_t GetVarSize(const ShaderConstant &var);
+
 public:
   BufferFormatter() = default;
 

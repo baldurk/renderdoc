@@ -755,6 +755,27 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
   return format;
 }
 
+uint32_t BufferFormatter::GetVarSize(const ShaderConstant &var)
+{
+  uint32_t size = var.type.descriptor.rows * var.type.descriptor.columns;
+  uint32_t typeSize = VarTypeByteSize(var.type.descriptor.type);
+  if(typeSize > 1)
+    size *= typeSize;
+
+  if(var.type.descriptor.rows > 1)
+  {
+    if(var.type.descriptor.rowMajorStorage)
+      size = var.type.descriptor.matrixByteStride * var.type.descriptor.columns;
+    else
+      size = var.type.descriptor.matrixByteStride * var.type.descriptor.rows;
+  }
+
+  if(var.type.descriptor.elements > 1)
+    size *= var.type.descriptor.elements;
+
+  return size;
+}
+
 QString BufferFormatter::DeclarePaddingBytes(uint32_t bytes)
 {
   if(bytes == 0)
@@ -789,8 +810,18 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
 
   ret = lit("struct %1\n{\n").arg(name);
 
+  uint32_t offset = 0;
+
   for(int i = 0; i < members.count(); i++)
   {
+    if(offset < members[i].byteOffset)
+      ret += lit("    ") + DeclarePaddingBytes(members[i].byteOffset - offset);
+    else if(offset > members[i].byteOffset)
+      qCritical() << "Unexpected offset overlow at" << QString(members[i].name) << "in"
+                  << QString(name);
+
+    offset = members[i].byteOffset + GetVarSize(members[i]);
+
     QString arraySize;
     if(members[i].type.descriptor.elements > 1)
       arraySize = QFormatStr("[%1]").arg(members[i].type.descriptor.elements);
@@ -889,36 +920,21 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
 
   if(requiredByteStride > 0)
   {
-    uint32_t structStart = 0;
+    uint32_t lastMemberStart = 0;
 
     const ShaderConstant *lastChild = &members.back();
 
-    structStart += lastChild->byteOffset;
+    lastMemberStart += lastChild->byteOffset;
     while(!lastChild->type.members.isEmpty())
     {
-      structStart += (qMax(lastChild->type.descriptor.elements, 1U) - 1) *
-                     lastChild->type.descriptor.arrayByteStride;
+      lastMemberStart += (qMax(lastChild->type.descriptor.elements, 1U) - 1) *
+                         lastChild->type.descriptor.arrayByteStride;
       lastChild = &lastChild->type.members.back();
-      structStart += lastChild->byteOffset;
+      lastMemberStart += lastChild->byteOffset;
     }
 
-    uint32_t size = lastChild->type.descriptor.rows * lastChild->type.descriptor.columns;
-    uint32_t typeSize = VarTypeByteSize(lastChild->type.descriptor.type);
-    if(typeSize > 1)
-      size *= typeSize;
-
-    if(lastChild->type.descriptor.rows > 1)
-    {
-      if(lastChild->type.descriptor.rowMajorStorage)
-        size = lastChild->type.descriptor.matrixByteStride * lastChild->type.descriptor.columns;
-      else
-        size = lastChild->type.descriptor.matrixByteStride * lastChild->type.descriptor.rows;
-    }
-
-    if(lastChild->type.descriptor.elements > 1)
-      size *= lastChild->type.descriptor.elements;
-
-    uint32_t padBytes = requiredByteStride - (structStart + size);
+    const uint32_t size = GetVarSize(*lastChild);
+    uint32_t padBytes = requiredByteStride - (lastMemberStart + size);
 
     if(padBytes > 0)
       ret += lit("    ") + DeclarePaddingBytes(padBytes);
