@@ -3951,6 +3951,9 @@ void VulkanReplay::RefreshDerivedReplacements()
         VkGraphicsPipelineCreateInfo pipeCreateInfo;
         m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, it->first);
 
+        rdcarray<rdcstr> entrynames;
+        entrynames.reserve(pipeCreateInfo.stageCount);
+
         // replace the modules by going via the live ID to pick up any replacements
         for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
         {
@@ -3958,7 +3961,35 @@ void VulkanReplay::RefreshDerivedReplacements()
               (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
 
           ResourceId shadOrigId = rm->GetOriginalID(GetResID(sh.module));
+
           sh.module = rm->GetLiveHandle<VkShaderModule>(shadOrigId);
+
+          if(rm->HasReplacement(shadOrigId))
+          {
+            rdcarray<rdcstr> entries =
+                m_pDriver->m_CreationInfo.m_ShaderModule[GetResID(sh.module)].spirv.EntryPoints();
+            if(entries.size() > 1)
+            {
+              if(entries.contains(sh.pName))
+              {
+                // nothing to do!
+              }
+              else
+              {
+                RDCWARN(
+                    "Multiple entry points in edited shader, none matching original, using first "
+                    "one '%s'",
+                    entries[0].c_str());
+                entrynames.push_back(entries[0]);
+                sh.pName = entrynames.back().c_str();
+              }
+            }
+            else
+            {
+              entrynames.push_back(entries[0]);
+              sh.pName = entrynames.back().c_str();
+            }
+          }
         }
 
         // if we have pipeline executable properties, capture the data
