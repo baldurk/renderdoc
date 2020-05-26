@@ -7145,7 +7145,7 @@ void WrappedID3D11DeviceContext::GetPredication(ID3D11Predicate **ppPredicate, B
 
 D3D11_DEVICE_CONTEXT_TYPE WrappedID3D11DeviceContext::GetType()
 {
-  return m_pRealContext->GetType();
+  return m_Type;
 }
 
 UINT WrappedID3D11DeviceContext::GetContextFlags()
@@ -7609,7 +7609,7 @@ HRESULT WrappedID3D11DeviceContext::Map(ID3D11Resource *pResource, UINT Subresou
     directMap = true;
 
   if((!directMap && MapType == D3D11_MAP_WRITE_NO_OVERWRITE && !IsActiveCapturing(m_State)) ||
-     m_pRealContext->GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
+     GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
   {
     directMap = true;
     m_HighTrafficResources.insert(id);
@@ -7619,8 +7619,8 @@ HRESULT WrappedID3D11DeviceContext::Map(ID3D11Resource *pResource, UINT Subresou
 
   if(directMap && IsBackgroundCapturing(m_State))
   {
-    return m_pRealContext->Map(m_pDevice->GetResourceManager()->UnwrapResource(pResource),
-                               Subresource, MapType, MapFlags, pMappedResource);
+    ID3D11Resource *unwrapped = m_pDevice->GetResourceManager()->UnwrapResource(pResource);
+    return m_pRealContext->Map(unwrapped, Subresource, MapType, MapFlags, pMappedResource);
   }
 
   // can't promise no-overwrite as we're going to blat the whole buffer!

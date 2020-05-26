@@ -90,6 +90,8 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
     NullCBCounts[i] = 4096;
   }
 
+  m_Type = m_pRealContext->GetType();
+
   D3D11_FEATURE_DATA_D3D11_OPTIONS features;
   RDCEraseEl(features);
   HRESULT hr = S_OK;
@@ -176,7 +178,7 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   m_DeferredSavedState = NULL;
   m_DoStateVerify = IsCaptureMode(m_State);
 
-  if(!context || context->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
+  if(!context || GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
   {
     m_CurrentPipelineState->SetImmediatePipeline(m_pDevice);
 
@@ -203,7 +205,7 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
   if(m_ContextRecord)
     m_ContextRecord->Delete(m_pDevice->GetResourceManager());
 
-  if(m_pRealContext && m_pRealContext->GetType() != D3D11_DEVICE_CONTEXT_IMMEDIATE)
+  if(m_pRealContext && GetType() != D3D11_DEVICE_CONTEXT_IMMEDIATE)
     m_pDevice->RemoveDeferredContext(this);
 
   for(auto it = m_StreamOutCounters.begin(); it != m_StreamOutCounters.end(); ++it)
@@ -416,7 +418,7 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
 
 void WrappedID3D11DeviceContext::MarkResourceReferenced(ResourceId id, FrameRefType refType)
 {
-  if(m_pRealContext->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
+  if(GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
   {
     m_pDevice->GetResourceManager()->MarkResourceFrameReferenced(id, refType);
   }
@@ -440,7 +442,7 @@ void WrappedID3D11DeviceContext::MarkResourceReferenced(ResourceId id, FrameRefT
 
 void WrappedID3D11DeviceContext::MarkDirtyResource(ResourceId id)
 {
-  if(m_pRealContext->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
+  if(GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
   {
     m_pDevice->GetResourceManager()->MarkDirtyResource(id);
   }
