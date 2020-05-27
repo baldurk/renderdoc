@@ -558,6 +558,10 @@ if(UNIX AND NOT ANDROID AND NOT APPLE)
         set(RDOC_LINK_FLAGS "${RDOC_LINK_FLAGS} -Wl,--hash-style=gnu -Wl,--build-id=sha1")
     endif()
 
+    if(NOT RELEASE_MODE)
+        configure_file(${CMAKE_CURRENT_SOURCE_DIR}/librenderdoc.so-gdb.py ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/librenderdoc.so-gdb.py)
+    endif()
+
     set_target_properties(renderdoc PROPERTIES LINK_FLAGS "${RDOC_LINK_FLAGS}")
     set_target_properties(renderdoc PROPERTIES SKIP_BUILD_RPATH TRUE)
 endif()
