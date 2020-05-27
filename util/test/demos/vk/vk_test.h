@@ -220,6 +220,7 @@ struct VulkanGraphicsTest : public GraphicsTest
   VkBufferView createBufferView(const VkBufferViewCreateInfo *info);
   VkPipelineLayout createPipelineLayout(const VkPipelineLayoutCreateInfo *info);
   VkDescriptorSetLayout createDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo *info);
+  VkSampler createSampler(const VkSamplerCreateInfo *info);
 
   void getPhysFeatures2(void *nextStruct);
 
@@ -267,6 +268,7 @@ struct VulkanGraphicsTest : public GraphicsTest
   std::vector<VkBufferView> bufferviews;
   std::vector<VkPipelineLayout> pipelayouts;
   std::vector<VkDescriptorSetLayout> setlayouts;
+  std::vector<VkSampler> samplers;
 
   std::map<VkImage, VmaAllocation> imageAllocs;
   std::map<VkBuffer, VmaAllocation> bufferAllocs;

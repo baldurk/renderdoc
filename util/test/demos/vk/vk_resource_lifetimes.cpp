@@ -203,18 +203,10 @@ void main()
 
     badcb.upload(&flags, sizeof(flags));
 
-    VkSampler checkersampler = VK_NULL_HANDLE;
-    VkSampler smileysampler = VK_NULL_HANDLE;
-
-    VkSamplerCreateInfo sampInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-    sampInfo.magFilter = VK_FILTER_NEAREST;
-    sampInfo.minFilter = VK_FILTER_NEAREST;
-
-    vkCreateSampler(device, &sampInfo, NULL, &checkersampler);
-
-    sampInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-
-    vkCreateSampler(device, &sampInfo, NULL, &smileysampler);
+    VkSampler checkersampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_NEAREST));
+    VkSampler smileysampler = createSampler(
+        vkh::SamplerCreateInfo(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_LINEAR,
+                               VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
 
     auto SetupBuffer = [this]() {
       VkBuffer cb = VK_NULL_HANDLE;
@@ -580,8 +572,6 @@ void main()
     TrashDescSet(descset);
 
     vkDestroyDescriptorPool(device, descpool, NULL);
-    vkDestroySampler(device, checkersampler, NULL);
-    vkDestroySampler(device, smileysampler, NULL);
 
     return 0;
   }

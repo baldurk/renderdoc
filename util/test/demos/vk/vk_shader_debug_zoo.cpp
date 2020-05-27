@@ -3730,30 +3730,12 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       vkDeviceWaitIdle(device);
     }
 
-    VkSampler pointsampler = VK_NULL_HANDLE;
-    VkSampler linearsampler = VK_NULL_HANDLE;
-    VkSampler mipsampler = VK_NULL_HANDLE;
-    VkSampler shadowsampler = VK_NULL_HANDLE;
-
-    VkSamplerCreateInfo sampInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-    sampInfo.magFilter = VK_FILTER_NEAREST;
-    sampInfo.minFilter = VK_FILTER_NEAREST;
-
-    vkCreateSampler(device, &sampInfo, NULL, &pointsampler);
-
-    sampInfo.magFilter = VK_FILTER_LINEAR;
-    sampInfo.minFilter = VK_FILTER_LINEAR;
-
-    vkCreateSampler(device, &sampInfo, NULL, &linearsampler);
-
-    sampInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-    vkCreateSampler(device, &sampInfo, NULL, &mipsampler);
-
-    sampInfo.compareEnable = VK_TRUE;
-    sampInfo.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-
-    vkCreateSampler(device, &sampInfo, NULL, &shadowsampler);
+    VkSampler pointsampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_NEAREST));
+    VkSampler linearsampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_LINEAR));
+    VkSampler mipsampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_LINEAR));
+    VkSampler shadowsampler = createSampler(vkh::SamplerCreateInfo(
+        VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, 0.0f,
+        VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK, 0.0f, 0.0f, 0.0f, VK_COMPARE_OP_LESS_OR_EQUAL));
 
     VkDescriptorSet descset0 = allocateDescriptorSet(setlayout0);
     VkDescriptorSet descset1;
@@ -4177,11 +4159,6 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
       Present();
     }
-
-    vkDestroySampler(device, pointsampler, NULL);
-    vkDestroySampler(device, linearsampler, NULL);
-    vkDestroySampler(device, mipsampler, NULL);
-    vkDestroySampler(device, shadowsampler, NULL);
 
     return 0;
   }

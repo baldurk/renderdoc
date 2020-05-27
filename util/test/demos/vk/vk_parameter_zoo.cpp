@@ -291,11 +291,7 @@ void main()
         }));
 
     VkSampler invalidSampler = (VkSampler)0x1234;
-    VkSampler validSampler = VK_NULL_HANDLE;
-    VkSamplerCreateInfo sampInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-    sampInfo.magFilter = VK_FILTER_LINEAR;
-    sampInfo.minFilter = VK_FILTER_LINEAR;
-    vkCreateSampler(device, &sampInfo, NULL, &validSampler);
+    VkSampler validSampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_LINEAR));
 
     VkDescriptorSetLayout immutsetlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
         {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, &validSampler},
@@ -855,10 +851,10 @@ void main()
       // create the specific resources that will only be referenced through descriptor updates
       for(int i = 0; i < 4; i++)
       {
-        vkCreateSampler(device, &sampInfo, NULL, &refsamp[i]);
+        refsamp[i] = createSampler(vkh::SamplerCreateInfo(VK_FILTER_LINEAR));
         setName(refsamp[i], "refsamp" + std::to_string(i));
 
-        vkCreateSampler(device, &sampInfo, NULL, &refcombinedsamp[i]);
+        refcombinedsamp[i] = createSampler(vkh::SamplerCreateInfo(VK_FILTER_LINEAR));
         setName(refcombinedsamp[i], "refcombinedsamp" + std::to_string(i));
 
         VkFormat fmt = VK_FORMAT_R32G32B32A32_SFLOAT;
@@ -1290,8 +1286,6 @@ void main()
     vkDestroyEvent(device, ev, NULL);
     vkDestroyFence(device, fence, NULL);
     vkDestroySemaphore(device, sem, NULL);
-
-    vkDestroySampler(device, validSampler, NULL);
 
     vkDestroyImageView(device, view1, NULL);
     vkDestroyImageView(device, view3, NULL);

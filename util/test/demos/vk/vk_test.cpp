@@ -569,6 +569,9 @@ void VulkanGraphicsTest::Shutdown()
     for(VkDescriptorSetLayout layout : setlayouts)
       vkDestroyDescriptorSetLayout(device, layout, NULL);
 
+    for(VkSampler sampler : samplers)
+      vkDestroySampler(device, sampler, NULL);
+
     for(auto it : imageAllocs)
       vmaDestroyImage(allocator, it.first, it.second);
 
@@ -925,6 +928,14 @@ VkDescriptorSetLayout VulkanGraphicsTest::createDescriptorSetLayout(
   VkDescriptorSetLayout ret;
   CHECK_VKR(vkCreateDescriptorSetLayout(device, info, NULL, &ret));
   setlayouts.push_back(ret);
+  return ret;
+}
+
+VkSampler VulkanGraphicsTest::createSampler(const VkSamplerCreateInfo *info)
+{
+  VkSampler ret;
+  CHECK_VKR(vkCreateSampler(device, info, NULL, &ret));
+  samplers.push_back(ret);
   return ret;
 }
 
