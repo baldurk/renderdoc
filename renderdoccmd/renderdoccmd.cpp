@@ -1378,7 +1378,7 @@ public:
           else
             std::cerr << " (This does not require admin permission)" << std::endl;
           std::cerr << std::endl;
-          std::cerr << " If you want to install system-wide, run 'vulkanlayer --system'."
+          std::cerr << " If you want to install system-wide, run 'vulkanlayer --register --system'."
                     << std::endl;
           std::cerr << "  (This requires admin permission)" << std::endl;
 
