@@ -373,21 +373,6 @@ void GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, byt
   drv.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf);
 }
 
-bool GLReplay::IsRenderOutput(ResourceId id)
-{
-  for(const GLPipe::Attachment &att : m_CurPipelineState.framebuffer.drawFBO.colorAttachments)
-  {
-    if(att.resourceId == id)
-      return true;
-  }
-
-  if(m_CurPipelineState.framebuffer.drawFBO.depthAttachment.resourceId == id ||
-     m_CurPipelineState.framebuffer.drawFBO.stencilAttachment.resourceId == id)
-    return true;
-
-  return false;
-}
-
 void GLReplay::CacheTexture(ResourceId id)
 {
   if(m_CachedTextures.find(id) != m_CachedTextures.end())
@@ -1755,10 +1740,49 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
       pipe.framebuffer.drawFBO.colorAttachments[i].resourceId = rm->GetOriginalID(id);
 
+      GLenum attachment = GLenum(eGL_COLOR_ATTACHMENT0 + i);
+
       if(pipe.framebuffer.drawFBO.colorAttachments[i].resourceId != ResourceId() && !rbCol[i])
-        GetFramebufferMipAndLayer(curDrawFBO, GLenum(eGL_COLOR_ATTACHMENT0 + i),
+        GetFramebufferMipAndLayer(curDrawFBO, attachment,
                                   (GLint *)&pipe.framebuffer.drawFBO.colorAttachments[i].mipLevel,
                                   (GLint *)&pipe.framebuffer.drawFBO.colorAttachments[i].slice);
+
+      pipe.framebuffer.drawFBO.colorAttachments[i].numSlices = 1;
+
+      if(!rbCol[i] && id != ResourceId())
+      {
+        // desktop GL allows layered attachments which attach all slices from 0 to N
+        if(!IsGLES)
+        {
+          GLint layered = 0;
+          GL.glGetNamedFramebufferAttachmentParameterivEXT(
+              curDrawFBO, attachment, eGL_FRAMEBUFFER_ATTACHMENT_LAYERED, &layered);
+
+          if(layered)
+          {
+            pipe.framebuffer.drawFBO.colorAttachments[i].numSlices = m_pDriver->m_Textures[id].depth;
+          }
+        }
+        else
+        {
+          // on GLES there's an OVR extension that allows attaching multiple layers
+          if(HasExt[OVR_multiview])
+          {
+            GLint numViews = 0, startView = 0;
+            GL.glGetNamedFramebufferAttachmentParameterivEXT(
+                curDrawFBO, attachment, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_NUM_VIEWS_OVR, &numViews);
+            GL.glGetNamedFramebufferAttachmentParameterivEXT(
+                curDrawFBO, attachment, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_BASE_VIEW_INDEX_OVR,
+                &startView);
+
+            if(numViews > 1)
+            {
+              pipe.framebuffer.drawFBO.colorAttachments[i].numSlices = numViews;
+              pipe.framebuffer.drawFBO.colorAttachments[i].slice = startView;
+            }
+          }
+        }
+      }
 
       GLenum swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
       if(!rbCol[i] && id != ResourceId() &&
@@ -1788,6 +1812,55 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       GetFramebufferMipAndLayer(curDrawFBO, eGL_STENCIL_ATTACHMENT,
                                 (GLint *)&pipe.framebuffer.drawFBO.stencilAttachment.mipLevel,
                                 (GLint *)&pipe.framebuffer.drawFBO.stencilAttachment.slice);
+
+    pipe.framebuffer.drawFBO.depthAttachment.numSlices = 1;
+    pipe.framebuffer.drawFBO.stencilAttachment.numSlices = 1;
+
+    ResourceId id = pipe.framebuffer.drawFBO.depthAttachment.resourceId;
+    if(!rbDepth && id != ResourceId())
+    {
+      // desktop GL allows layered attachments which attach all slices from 0 to N
+      if(!IsGLES)
+      {
+        GLint layered = 0;
+        GL.glGetNamedFramebufferAttachmentParameterivEXT(
+            curDrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_LAYERED, &layered);
+
+        if(layered)
+        {
+          pipe.framebuffer.drawFBO.depthAttachment.numSlices = m_pDriver->m_Textures[id].depth;
+        }
+      }
+      else
+      {
+        // on GLES there's an OVR extension that allows attaching multiple layers
+        if(HasExt[OVR_multiview])
+        {
+          GLint numViews = 0, startView = 0;
+          GL.glGetNamedFramebufferAttachmentParameterivEXT(
+              curDrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_NUM_VIEWS_OVR,
+              &numViews);
+          GL.glGetNamedFramebufferAttachmentParameterivEXT(
+              curDrawFBO, eGL_DEPTH_ATTACHMENT,
+              eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_BASE_VIEW_INDEX_OVR, &startView);
+
+          if(numViews > 1)
+          {
+            pipe.framebuffer.drawFBO.depthAttachment.numSlices = numViews;
+            pipe.framebuffer.drawFBO.depthAttachment.slice = startView;
+          }
+        }
+      }
+
+      if(pipe.framebuffer.drawFBO.stencilAttachment.resourceId ==
+         pipe.framebuffer.drawFBO.depthAttachment.resourceId)
+      {
+        pipe.framebuffer.drawFBO.stencilAttachment.slice =
+            pipe.framebuffer.drawFBO.depthAttachment.slice;
+        pipe.framebuffer.drawFBO.stencilAttachment.numSlices =
+            pipe.framebuffer.drawFBO.depthAttachment.numSlices;
+      }
+    }
 
     pipe.framebuffer.drawFBO.drawBuffers.resize(numCols);
     for(GLint i = 0; i < numCols; i++)

@@ -506,9 +506,9 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(MeshFormat, GetPostVSBuffers, uint32_t eventId, uint32_t instID,
                              uint32_t viewID, MeshDataStage stage);
 
-  IMPLEMENT_FUNCTION_PROXIED(ResourceId, RenderOverlay, ResourceId texid, const Subresource &sub,
-                             CompType typeCast, FloatVector clearCol, DebugOverlay overlay,
-                             uint32_t eventId, const rdcarray<uint32_t> &passEvents);
+  IMPLEMENT_FUNCTION_PROXIED(ResourceId, RenderOverlay, ResourceId texid, FloatVector clearCol,
+                             DebugOverlay overlay, uint32_t eventId,
+                             const rdcarray<uint32_t> &passEvents);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderEntryPoint>, GetShaderEntryPoints, ResourceId shader);
   IMPLEMENT_FUNCTION_PROXIED(ShaderReflection *, GetShader, ResourceId pipeline, ResourceId,

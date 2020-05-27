@@ -951,17 +951,6 @@ void VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
   GetDebugManager()->GetBufferData(buff, offset, len, retData);
 }
 
-bool VulkanReplay::IsRenderOutput(ResourceId id)
-{
-  for(const VKPipe::Attachment &att : m_VulkanPipelineState.currentPass.framebuffer.attachments)
-  {
-    if(att.viewResourceId == id || att.imageResourceId == id)
-      return true;
-  }
-
-  return false;
-}
-
 void VulkanReplay::FileChanged()
 {
 }

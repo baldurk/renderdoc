@@ -1055,8 +1055,7 @@ MeshFormat ReplayProxy::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 ResourceId ReplayProxy::Proxied_RenderOverlay(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                              ResourceId texid, const Subresource &sub,
-                                              CompType typeCast, FloatVector clearCol,
+                                              ResourceId texid, FloatVector clearCol,
                                               DebugOverlay overlay, uint32_t eventId,
                                               const rdcarray<uint32_t> &passEvents)
 {
@@ -1067,8 +1066,6 @@ ResourceId ReplayProxy::Proxied_RenderOverlay(ParamSerialiser &paramser, ReturnS
   {
     BEGIN_PARAMS();
     SERIALISE_ELEMENT(texid);
-    SERIALISE_ELEMENT(sub);
-    SERIALISE_ELEMENT(typeCast);
     SERIALISE_ELEMENT(overlay);
     SERIALISE_ELEMENT(clearCol);
     SERIALISE_ELEMENT(eventId);
@@ -1079,7 +1076,7 @@ ResourceId ReplayProxy::Proxied_RenderOverlay(ParamSerialiser &paramser, ReturnS
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      ret = m_Remote->RenderOverlay(texid, sub, typeCast, clearCol, overlay, eventId, passEvents);
+      ret = m_Remote->RenderOverlay(texid, clearCol, overlay, eventId, passEvents);
   }
 
   SERIALISE_RETURN(ret);
@@ -1087,11 +1084,10 @@ ResourceId ReplayProxy::Proxied_RenderOverlay(ParamSerialiser &paramser, ReturnS
   return ret;
 }
 
-ResourceId ReplayProxy::RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
-                                      FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
-                                      const rdcarray<uint32_t> &passEvents)
+ResourceId ReplayProxy::RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+                                      uint32_t eventId, const rdcarray<uint32_t> &passEvents)
 {
-  PROXY_FUNCTION(RenderOverlay, texid, sub, typeCast, clearCol, overlay, eventId, passEvents);
+  PROXY_FUNCTION(RenderOverlay, texid, clearCol, overlay, eventId, passEvents);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -2832,8 +2828,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_ContinueDebug: ContinueDebug(NULL); break;
     case eReplayProxy_FreeDebugger: FreeDebugger(NULL); break;
     case eReplayProxy_RenderOverlay:
-      RenderOverlay(ResourceId(), Subresource(), CompType::Typeless, FloatVector(),
-                    DebugOverlay::NoOverlay, 0, rdcarray<uint32_t>());
+      RenderOverlay(ResourceId(), FloatVector(), DebugOverlay::NoOverlay, 0, rdcarray<uint32_t>());
       break;
     case eReplayProxy_PixelHistory:
       PixelHistory(rdcarray<EventUsage>(), ResourceId(), 0, 0, Subresource(), CompType::Typeless);

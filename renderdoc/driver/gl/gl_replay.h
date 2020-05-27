@@ -228,9 +228,11 @@ public:
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
                       uint32_t x, uint32_t y);
 
-  ResourceId RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
-                           FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
-                           const rdcarray<uint32_t> &passEvents);
+  ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+                           uint32_t eventId, const rdcarray<uint32_t> &passEvents);
+
+  void BindFramebufferTexture(RenderOutputSubresource &sub, GLenum texBindingEnum, GLint numSamples);
+
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
                                CompType typeCast);
 
@@ -242,8 +244,8 @@ public:
   ResourceId CreateProxyBuffer(const BufferDescription &templateBuf);
   void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize);
 
-  bool IsRenderOutput(ResourceId id);
-
+  RenderOutputSubresource GetRenderOutputSubresource(ResourceId id);
+  bool IsRenderOutput(ResourceId id) { return GetRenderOutputSubresource(id).mip != ~0U; }
   void FileChanged() {}
   void SetReplayData(GLWindowingData data);
 
@@ -386,7 +388,8 @@ private:
     GLuint overlayTex;
     GLuint overlayFBO;
     GLuint overlayProg;
-    GLint overlayTexWidth, overlayTexHeight, overlayTexSamples, overlayTexMips;
+    GLint overlayTexWidth = 0, overlayTexHeight = 0, overlayTexSamples = 0, overlayTexMips = 0,
+          overlayTexSlices = 0;
 
     GLuint UBOs[3];
 

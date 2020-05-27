@@ -454,11 +454,33 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const DrawcallDescription *dr
   indexCount = (uint32_t)patchedIndices.size();
 }
 
-ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
-                                       FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
-                                       const rdcarray<uint32_t> &passEvents)
+RenderOutputSubresource VulkanReplay::GetRenderOutputSubresource(ResourceId id)
+{
+  id = GetResourceManager()->GetOriginalID(id);
+
+  for(const VKPipe::Attachment &att : m_VulkanPipelineState.currentPass.framebuffer.attachments)
+  {
+    if(att.viewResourceId == id || att.imageResourceId == id)
+    {
+      return RenderOutputSubresource(att.firstMip, att.firstSlice, att.numSlices);
+    }
+  }
+
+  return RenderOutputSubresource(~0U, ~0U, 0);
+}
+
+ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+                                       uint32_t eventId, const rdcarray<uint32_t> &passEvents)
 {
   const VkDevDispatchTable *vt = ObjDisp(m_Device);
+
+  RenderOutputSubresource sub = GetRenderOutputSubresource(texid);
+
+  if(sub.slice == ~0U)
+  {
+    RDCERR("Rendering overlay for %s couldn't find output to get subresource.", ToStr(texid).c_str());
+    sub = RenderOutputSubresource(0, 0, 1);
+  }
 
   VulkanShaderCache *shaderCache = m_pDriver->GetShaderCache();
 
@@ -486,11 +508,21 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
 
   VkMarkerRegion::Begin(StringFormat::Fmt("RenderOverlay %d", overlay), cmd);
 
+  uint32_t multiviewMask = 0;
+  {
+    const VulkanCreationInfo::RenderPass &rp =
+        m_pDriver->m_CreationInfo.m_RenderPass[m_pDriver->m_RenderState.renderPass];
+
+    for(uint32_t v : rp.subpasses[m_pDriver->m_RenderState.subpass].multiviews)
+      multiviewMask |= 1U << v;
+  }
+
   // if the overlay image is the wrong size, free it
   if(m_Overlay.Image != VK_NULL_HANDLE &&
      (iminfo.extent.width != m_Overlay.ImageDim.width ||
       iminfo.extent.height != m_Overlay.ImageDim.height || iminfo.samples != m_Overlay.Samples ||
-      iminfo.mipLevels != m_Overlay.MipLevels))
+      iminfo.mipLevels != m_Overlay.MipLevels || iminfo.arrayLayers != m_Overlay.ArrayLayers ||
+      multiviewMask != m_Overlay.MultiViewMask))
   {
     m_pDriver->vkDestroyRenderPass(m_Device, m_Overlay.NoDepthRP, NULL);
     m_pDriver->vkDestroyFramebuffer(m_Device, m_Overlay.NoDepthFB, NULL);
@@ -503,9 +535,16 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
     m_Overlay.NoDepthFB = VK_NULL_HANDLE;
   }
 
-  VkImageSubresourceRange subRange = {VK_IMAGE_ASPECT_COLOR_BIT, sub.mip, 1, 0, 1};
+  VkImageSubresourceRange subRange = {VK_IMAGE_ASPECT_COLOR_BIT, sub.mip, 1, sub.slice,
+                                      sub.numSlices};
 
   const VkFormat overlayFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
+
+  VkRenderPassMultiviewCreateInfo multiviewRP = {VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO};
+  multiviewRP.correlationMaskCount = 1;
+  multiviewRP.pCorrelationMasks = &multiviewMask;
+  multiviewRP.subpassCount = 1;
+  multiviewRP.pViewMasks = &multiviewMask;
 
   // create the overlay image if we don't have one already
   // we go through the driver's creation functions so creation info
@@ -516,7 +555,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
     m_Overlay.ImageDim.width = iminfo.extent.width;
     m_Overlay.ImageDim.height = iminfo.extent.height;
     m_Overlay.MipLevels = iminfo.mipLevels;
+    m_Overlay.ArrayLayers = iminfo.arrayLayers;
     m_Overlay.Samples = iminfo.samples;
+    m_Overlay.MultiViewMask = multiviewMask;
 
     VkImageCreateInfo imInfo = {
         VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -526,7 +567,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
         overlayFormat,
         {m_Overlay.ImageDim.width, m_Overlay.ImageDim.height, 1},
         (uint32_t)iminfo.mipLevels,
-        1,
+        (uint32_t)iminfo.arrayLayers,
         iminfo.samples,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
@@ -608,16 +649,22 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
         NULL,    // dependencies
     };
 
+    if(multiviewMask > 0)
+      rpinfo.pNext = &multiviewRP;
+
     vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, NULL, &m_Overlay.NoDepthRP);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
-  if(m_Overlay.MipLevel != sub.mip || m_Overlay.ImageView == VK_NULL_HANDLE)
+  if(m_Overlay.ViewMip != sub.mip || m_Overlay.ViewSlice != sub.slice ||
+     m_Overlay.ViewNumSlices != sub.numSlices || m_Overlay.ImageView == VK_NULL_HANDLE)
   {
     m_pDriver->vkDestroyFramebuffer(m_Device, m_Overlay.NoDepthFB, NULL);
     m_pDriver->vkDestroyImageView(m_Device, m_Overlay.ImageView, NULL);
 
-    m_Overlay.MipLevel = sub.mip;
+    m_Overlay.ViewMip = sub.mip;
+    m_Overlay.ViewSlice = sub.slice;
+    m_Overlay.ViewNumSlices = sub.numSlices;
 
     VkImageViewCreateInfo viewInfo = {
         VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -644,7 +691,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
         &m_Overlay.ImageView,
         RDCMAX(1U, m_Overlay.ImageDim.width >> sub.mip),
         RDCMAX(1U, m_Overlay.ImageDim.height >> sub.mip),
-        1,
+        sub.numSlices,
     };
 
     vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &m_Overlay.NoDepthFB);
@@ -652,6 +699,37 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
 
     // can't create a framebuffer or renderpass for overlay image + depth as that
     // needs to match the depth texture type wherever our draw is.
+  }
+
+  {
+    VkImageSubresourceRange fullSubRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS,
+                                            0, VK_REMAINING_ARRAY_LAYERS};
+
+    VkImageMemoryBarrier barrier = {
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        NULL,
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
+        Unwrap(m_Overlay.Image),
+        fullSubRange};
+
+    DoPipelineBarrier(cmd, 1, &barrier);
+
+    float black[4] = {};
+    vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_Overlay.Image), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           (VkClearColorValue *)black, 1, &fullSubRange);
+
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier.dstAccessMask =
+        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    DoPipelineBarrier(cmd, 1, &barrier);
   }
 
   const DrawcallDescription *mainDraw = m_pDriver->GetDrawcall(eventId);
@@ -1386,6 +1464,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
           0,
           NULL,    // dependencies
       };
+
+      if(multiviewMask > 0)
+        rpinfo.pNext = &multiviewRP;
 
       vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, NULL, &depthRP);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -2169,6 +2250,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
             NULL,    // dependencies
         };
 
+        if(multiviewMask > 0)
+          rpinfo.pNext = &multiviewRP;
+
         vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, NULL, &RP);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
@@ -2187,7 +2271,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, const Subresource &sub,
             views,
             RDCMAX(1U, m_Overlay.ImageDim.width >> sub.mip),
             RDCMAX(1U, m_Overlay.ImageDim.height >> sub.mip),
-            1,
+            sub.numSlices,
         };
 
         vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &FB);

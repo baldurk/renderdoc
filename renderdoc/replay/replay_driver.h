@@ -107,6 +107,16 @@ class RDCFile;
 
 class AMDRGPControl;
 
+struct RenderOutputSubresource
+{
+  RenderOutputSubresource(uint32_t mip, uint32_t slice, uint32_t numSlices)
+      : mip(mip), slice(slice), numSlices(numSlices)
+  {
+  }
+
+  uint32_t mip, slice, numSlices;
+};
+
 // these two interfaces define what an API driver implementation must provide
 // to the replay. At minimum it must implement IRemoteDriver which contains
 // all of the functionality that cannot be achieved elsewhere. An IReplayDriver
@@ -198,9 +208,8 @@ public:
   virtual rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger) = 0;
   virtual void FreeDebugger(ShaderDebugger *debugger) = 0;
 
-  virtual ResourceId RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
-                                   FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
-                                   const rdcarray<uint32_t> &passEvents) = 0;
+  virtual ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+                                   uint32_t eventId, const rdcarray<uint32_t> &passEvents) = 0;
 
   virtual bool IsRenderOutput(ResourceId id) = 0;
 

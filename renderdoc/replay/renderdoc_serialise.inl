@@ -1746,10 +1746,11 @@ void DoSerialise(SerialiserType &ser, GLPipe::Attachment &el)
 {
   SERIALISE_MEMBER(resourceId);
   SERIALISE_MEMBER(slice);
+  SERIALISE_MEMBER(numSlices);
   SERIALISE_MEMBER(mipLevel);
   SERIALISE_MEMBER(swizzle);
 
-  SIZE_CHECK(32);
+  SIZE_CHECK(40);
 }
 
 template <typename SerialiserType>
@@ -1762,7 +1763,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::FBO &el)
   SERIALISE_MEMBER(drawBuffers);
   SERIALISE_MEMBER(readBuffer);
 
-  SIZE_CHECK(128);
+  SIZE_CHECK(144);
 }
 
 template <typename SerialiserType>
@@ -1783,7 +1784,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::FrameBuffer &el)
   SERIALISE_MEMBER(readFBO);
   SERIALISE_MEMBER(blendState);
 
-  SIZE_CHECK(304);
+  SIZE_CHECK(336);
 }
 
 template <typename SerialiserType>
@@ -1832,7 +1833,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::State &el)
 
   SERIALISE_MEMBER(hints);
 
-  SIZE_CHECK(1984);
+  SIZE_CHECK(2016);
 }
 
 #pragma endregion OpenGL pipeline state

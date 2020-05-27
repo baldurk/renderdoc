@@ -591,8 +591,8 @@ struct Attachment
 
   bool operator==(const Attachment &o) const
   {
-    return resourceId == o.resourceId && slice == o.slice && mipLevel == o.mipLevel &&
-           swizzle == o.swizzle;
+    return resourceId == o.resourceId && slice == o.slice && numSlices == o.numSlices &&
+           mipLevel == o.mipLevel && swizzle == o.swizzle;
   }
   bool operator<(const Attachment &o) const
   {
@@ -610,6 +610,8 @@ struct Attachment
   ResourceId resourceId;
   DOCUMENT("The slice of the texture that's used in the attachment.");
   uint32_t slice = 0;
+  DOCUMENT("The number of slices of the texture that are used in the attachment.");
+  uint32_t numSlices = 1;
   DOCUMENT("The mip of the texture that's used in the attachment.");
   uint32_t mipLevel = 0;
   DOCUMENT("A :class:`TextureSwizzle4` indicating the swizzle applied to this texture.");

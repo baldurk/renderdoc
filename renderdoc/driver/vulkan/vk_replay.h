@@ -386,9 +386,8 @@ public:
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
                       uint32_t x, uint32_t y);
 
-  ResourceId RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
-                           FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
-                           const rdcarray<uint32_t> &passEvents);
+  ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+                           uint32_t eventId, const rdcarray<uint32_t> &passEvents);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
                                CompType typeCast);
 
@@ -400,8 +399,8 @@ public:
   ResourceId CreateProxyBuffer(const BufferDescription &templateBuf);
   void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize);
 
-  bool IsRenderOutput(ResourceId id);
-
+  RenderOutputSubresource GetRenderOutputSubresource(ResourceId id);
+  bool IsRenderOutput(ResourceId id) { return GetRenderOutputSubresource(id).mip != ~0U; }
   void FileChanged();
 
   void InitCallstackResolver();
@@ -597,12 +596,13 @@ private:
     VkDeviceSize ImageMemSize = 0;
     VkImage Image = VK_NULL_HANDLE;
     VkExtent2D ImageDim = {0, 0};
-    int32_t MipLevels = 0;
+    int32_t MipLevels = 0, ArrayLayers = 0;
+    uint32_t MultiViewMask = 0;
     VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT;
     VkRenderPass NoDepthRP = VK_NULL_HANDLE;
 
     // the view and framebuffer must be recreated if the mip changes, even if the image doesn't
-    uint32_t MipLevel = ~0U;
+    uint32_t ViewMip = ~0U, ViewSlice = ~0U, ViewNumSlices = ~0U;
     VkImageView ImageView = VK_NULL_HANDLE;
     VkFramebuffer NoDepthFB = VK_NULL_HANDLE;
 
