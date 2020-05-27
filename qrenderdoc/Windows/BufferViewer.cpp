@@ -2491,13 +2491,15 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       if(unclampedLen == 0)
       {
         uint64_t bufLen = m_IsBuffer ? m_Ctx.GetBuffer(m_BufferID)->length : 0;
-        uint64_t bufOffs = CurrentByteOffset();
+        uint64_t bufOffs = m_ByteOffset;
 
         if(bufOffs >= bufLen)
           unclampedLen = 0;
         else
           unclampedLen = bufLen - bufOffs;
       }
+
+      unclampedLen -= m_PagingByteOffset;
 
       uint64_t clampedLen = qMin(unclampedLen, uint64_t(buf->stride * (MaxVisibleRows + 2)));
 
@@ -2514,7 +2516,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       bufdata->vsinConfig.pagingOffset = uint32_t(m_PagingByteOffset / buf->stride);
       bufdata->vsinConfig.numRows = uint32_t((bufCount + buf->stride - 1) / buf->stride);
-      bufdata->vsinConfig.unclampedNumRows = uint32_t((unclampedLen + buf->stride - 1) / buf->stride);
+      bufdata->vsinConfig.unclampedNumRows =
+          uint32_t((unclampedLen + m_PagingByteOffset + buf->stride - 1) / buf->stride);
 
       // ownership passes to model
       bufdata->vsinConfig.buffers.push_back(buf);
@@ -2621,7 +2624,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
         }
         else if(prev)
         {
-          ui->vsinData->setIndexWidget(m_ModelVSIn->index(0, 1), MakePreviousPageButton());
+          ui->vsinData->setIndexWidget(m_ModelVSIn->index(0, 0), MakePreviousPageButton());
         }
         else if(next)
         {
