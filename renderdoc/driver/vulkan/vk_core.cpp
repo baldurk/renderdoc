@@ -765,6 +765,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_CONSERVATIVE_RASTERIZATION_SPEC_VERSION,
     },
     {
+        VK_EXT_CUSTOM_BORDER_COLOR_EXTENSION_NAME, VK_EXT_CUSTOM_BORDER_COLOR_SPEC_VERSION,
+    },
+    {
         VK_EXT_DEBUG_MARKER_EXTENSION_NAME, VK_EXT_DEBUG_MARKER_SPEC_VERSION,
     },
     {

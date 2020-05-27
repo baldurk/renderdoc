@@ -738,6 +738,7 @@ public:
           if(samplerProps.reductionMode != VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE)
           {
             reductionInfo.reductionMode = samplerProps.reductionMode;
+
             reductionInfo.pNext = sampInfo.pNext;
             sampInfo.pNext = &reductionInfo;
           }
@@ -748,8 +749,20 @@ public:
             ycbcrInfo.conversion =
                 m_pDriver->GetResourceManager()->GetCurrentHandle<VkSamplerYcbcrConversion>(
                     viewProps.image);
+
             ycbcrInfo.pNext = sampInfo.pNext;
             sampInfo.pNext = &ycbcrInfo;
+          }
+
+          VkSamplerCustomBorderColorCreateInfoEXT borderInfo = {
+              VK_STRUCTURE_TYPE_SAMPLER_CUSTOM_BORDER_COLOR_CREATE_INFO_EXT};
+          if(samplerProps.customBorder)
+          {
+            borderInfo.customBorderColor = samplerProps.customBorderColor;
+            borderInfo.format = samplerProps.customBorderFormat;
+
+            borderInfo.pNext = sampInfo.pNext;
+            sampInfo.pNext = &borderInfo;
           }
 
           // now add the shader's bias on

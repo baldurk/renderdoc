@@ -496,6 +496,9 @@
     <ClCompile Include="gl\gl_draw_zoo.cpp">
       <Filter>OpenGL\demos</Filter>
     </ClCompile>
+    <ClCompile Include="vk\vk_custom_border_color.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">

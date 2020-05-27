@@ -493,9 +493,17 @@ struct VulkanCreationInfo
     float maxLod;
     VkBorderColor borderColor;
     bool unnormalizedCoordinates;
+
+    // VkSamplerReductionModeCreateInfo
     VkSamplerReductionMode reductionMode;
 
+    // VkSamplerYcbcrConversionInfo
     ResourceId ycbcr;
+
+    // VkSamplerCustomBorderColorCreateInfoEXT
+    bool customBorder;
+    VkClearColorValue customBorderColor;
+    VkFormat customBorderFormat;
   };
   std::map<ResourceId, Sampler> m_Sampler;
 

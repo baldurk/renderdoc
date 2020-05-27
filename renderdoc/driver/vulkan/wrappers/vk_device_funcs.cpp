@@ -2531,6 +2531,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(descriptorBindingInlineUniformBlockUpdateAfterBind);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceCustomBorderColorFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CUSTOM_BORDER_COLOR_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(customBorderColors);
+        CHECK_PHYS_EXT_FEATURE(customBorderColorWithoutFormat);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

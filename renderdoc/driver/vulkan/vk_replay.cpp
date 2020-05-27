@@ -1771,6 +1771,19 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                   el.chromaFilter = ycbcr.chromaFilter;
                   el.forceExplicitReconstruction = ycbcr.forceExplicitReconstruction;
                 }
+
+                if(sampl.customBorder)
+                {
+                  if(sampl.borderColor == VK_BORDER_COLOR_INT_CUSTOM_EXT)
+                  {
+                    for(int bord = 0; bord < 4; bord++)
+                      el.borderColor[bord] = float(sampl.customBorderColor.int32[bord]);
+                  }
+                  else
+                  {
+                    memcpy(el.borderColor, sampl.customBorderColor.float32, sizeof(Vec4f));
+                  }
+                }
               }
             }
             else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||

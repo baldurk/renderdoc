@@ -9,6 +9,7 @@ set(VULKAN_SRC
         vk/vk_test.cpp
         vk/vk_adv_cbuffer_zoo.cpp
         vk/vk_cbuffer_zoo.cpp
+        vk/vk_custom_border_color.cpp
         vk/vk_descriptor_index.cpp
         vk/vk_discard_rects.cpp
         vk/vk_draw_zoo.cpp

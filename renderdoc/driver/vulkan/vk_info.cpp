@@ -1012,6 +1012,20 @@ void VulkanCreationInfo::Sampler::Init(VulkanResourceManager *resourceMan, Vulka
   {
     ycbcr = GetResID(ycbcrInfo->conversion);
   }
+
+  customBorder = false;
+  RDCEraseEl(customBorderColor);
+  customBorderFormat = VK_FORMAT_UNDEFINED;
+
+  const VkSamplerCustomBorderColorCreateInfoEXT *border =
+      (const VkSamplerCustomBorderColorCreateInfoEXT *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_SAMPLER_CUSTOM_BORDER_COLOR_CREATE_INFO_EXT);
+  if(border)
+  {
+    customBorder = true;
+    customBorderColor = border->customBorderColor;
+    customBorderFormat = border->format;
+  }
 }
 
 void VulkanCreationInfo::YCbCrSampler::Init(VulkanResourceManager *resourceMan,
