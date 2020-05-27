@@ -213,6 +213,8 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
   rdcspv::Id semantics = editor.AddConstantImmediate<uint32_t>(0U);
   rdcspv::Id uint32shift = editor.AddConstantImmediate<uint32_t>(2U);
 
+  rdcspv::Id glsl450 = editor.ImportExtInst("GLSL.std.450");
+
   std::map<rdcspv::Id, rdcspv::Scalar> intTypeLookup;
 
   for(auto scalarType : editor.GetTypeInfo<rdcspv::Scalar>())
@@ -458,8 +460,6 @@ void AnnotateShader(const SPIRVPatchData &patchData, const char *entryName,
           // clamp the index to the maximum slot. If the user is reading out of bounds, don't write
           // out of bounds.
           {
-            rdcspv::Id glsl450 = editor.ImportExtInst("GLSL.std.450");
-
             rdcspv::Id clampedtype =
                 editor.DeclareType(rdcspv::Scalar(rdcspv::Op::TypeInt, targetIndexWidth, false));
             index = editor.AddOperation(
