@@ -67,6 +67,11 @@ bool IsDispatchableRes(WrappedVkRes *ptr)
           WrappedVkCommandBuffer::IsAlloc(ptr));
 }
 
+bool IsPostponableRes(const WrappedVkRes *ptr)
+{
+  return (WrappedVkDeviceMemory::IsAlloc(ptr) || WrappedVkImage::IsAlloc(ptr));
+}
+
 VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
 {
   if(WrappedVkPhysicalDevice::IsAlloc(ptr))

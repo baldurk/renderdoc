@@ -833,6 +833,7 @@ inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVulkan 
 }
 
 bool IsDispatchableRes(WrappedVkRes *ptr);
+bool IsPostponableRes(const WrappedVkRes *ptr);
 VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr);
 
 #define UNKNOWN_PREV_IMG_LAYOUT ((VkImageLayout)0xffffffff)
