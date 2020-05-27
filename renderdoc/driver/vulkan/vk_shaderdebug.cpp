@@ -3367,7 +3367,10 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
   if(!(draw->flags & DrawFlags::Drawcall))
+  {
+    RDCLOG("No drawcall selected");
     return new ShaderDebugTrace();
+  }
 
   uint32_t vertOffset = 0, instOffset = 0;
   if(!(draw->flags & DrawFlags::Indexed))
@@ -3560,7 +3563,10 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
   if(!(draw->flags & DrawFlags::Drawcall))
+  {
+    RDCLOG("No drawcall selected");
     return new ShaderDebugTrace();
+  }
 
   // get ourselves in pristine state before this draw (without any side effects it may have had)
   m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
@@ -4214,7 +4220,10 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t gro
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
   if(!(draw->flags & DrawFlags::Dispatch))
+  {
+    RDCLOG("No dispatch selected");
     return new ShaderDebugTrace();
+  }
 
   // get ourselves in pristine state before this dispatch (without any side effects it may have had)
   m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
