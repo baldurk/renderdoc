@@ -1721,6 +1721,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
             if(dstel.dynamicallyUsed)
               dst.bindings[b].dynamicallyUsedCount++;
 
+            // first handle the sampler separately because it might be in a combined descriptor
             if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
                layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
             {
@@ -1786,10 +1787,12 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 }
               }
             }
-            else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
-                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
-                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT ||
-                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+
+            // now look at the 'base' type. Sampler is excluded from these ifs
+            if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT ||
+               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
             {
               ResourceId viewid = info[a].imageInfo.imageView;
 
