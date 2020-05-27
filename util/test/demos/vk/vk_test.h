@@ -208,6 +208,9 @@ struct VulkanGraphicsTest : public GraphicsTest
   void blitToSwap(VkCommandBuffer cmd, VkImage src, VkImageLayout srcLayout, VkImage dst,
                   VkImageLayout dstLayout);
 
+  void uploadBufferToImage(VkImage destImage, VkExtent3D destExtent, VkBuffer srcBuffer,
+                           VkImageLayout finalLayout);
+
   template <typename T>
   void setName(T obj, const std::string &name);
 

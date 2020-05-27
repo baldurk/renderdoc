@@ -797,6 +797,39 @@ void VulkanGraphicsTest::blitToSwap(VkCommandBuffer cmd, VkImage src, VkImageLay
   vkCmdBlitImage(cmd, src, srcLayout, dst, dstLayout, 1, &region, VK_FILTER_LINEAR);
 }
 
+void VulkanGraphicsTest::uploadBufferToImage(VkImage destImage, VkExtent3D destExtent,
+                                             VkBuffer srcBuffer, VkImageLayout finalLayout)
+{
+  VkCommandBuffer cmd = GetCommandBuffer();
+
+  vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+
+  vkh::cmdPipelineBarrier(
+      cmd, {
+               vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, destImage),
+           });
+
+  VkBufferImageCopy copy = {};
+  copy.imageExtent = destExtent;
+  copy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  copy.imageSubresource.layerCount = 1;
+
+  vkCmdCopyBufferToImage(cmd, srcBuffer, destImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+
+  vkh::cmdPipelineBarrier(
+      cmd, {
+               vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, finalLayout, destImage),
+           });
+
+  vkEndCommandBuffer(cmd);
+
+  Submit(99, 99, {cmd});
+
+  vkDeviceWaitIdle(device);
+}
+
 void VulkanGraphicsTest::pushMarker(VkQueue q, const std::string &name)
 {
   if(vkQueueBeginDebugUtilsLabelEXT)
