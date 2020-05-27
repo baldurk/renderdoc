@@ -891,6 +891,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
     SCOPED_READLOCK(m_CapTransitionLock);
 
     bool capframe = IsActiveCapturing(m_State);
+    bool backframe = IsBackgroundCapturing(m_State);
 
     std::set<ResourceId> refdIDs;
 
@@ -909,7 +910,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
             it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
         {
           if(GetResourceManager()->HasCurrentResource(*it))
-            GetResourceManager()->MarkDirtyResource(*it);
+            GetResourceManager()->MarkDirtyWithWriteReference(*it);
         }
 
         // with EXT_descriptor_indexing a binding might have been updated after
@@ -930,7 +931,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
                refit->second.second == eFrameRef_ReadBeforeWrite)
             {
               if(GetResourceManager()->HasCurrentResource(refit->first))
-                GetResourceManager()->MarkDirtyResource(refit->first);
+                GetResourceManager()->MarkDirtyWithWriteReference(refit->first);
             }
           }
         }
@@ -1006,6 +1007,22 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
         }
 
         record->cmdInfo->dirtied.clear();
+      }
+    }
+
+    if(backframe)
+    {
+      rdcarray<VkResourceRecord *> maps;
+      {
+        SCOPED_LOCK(m_CoherentMapsLock);
+        maps = m_CoherentMaps;
+      }
+
+      for(auto it = maps.begin(); it != maps.end(); ++it)
+      {
+        VkResourceRecord *record = *it;
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                          eFrameRef_ReadBeforeWrite);
       }
     }
 
@@ -1091,7 +1108,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
               state.mapFlushed = false;
             }
 
-            GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+            GetResourceManager()->MarkDirtyWithWriteReference(record->GetResourceID());
           }
           else
           {

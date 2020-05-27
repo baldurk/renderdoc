@@ -1536,6 +1536,8 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
 
   m_CaptureTimer.Restart();
 
+  GetResourceManager()->ResetCaptureStartTime();
+
   m_AppControlledCapture = true;
 
   m_SubmitCounter = 0;
@@ -2036,6 +2038,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     m_CmdBufferRecords[i]->Delete(GetResourceManager());
 
   m_CmdBufferRecords.clear();
+
+  GetResourceManager()->ResetLastWriteTimes();
 
   GetResourceManager()->MarkUnwrittenResources();
 
