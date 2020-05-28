@@ -976,7 +976,7 @@ FrameRefType GetRefType(VkDescriptorType descType)
   return eFrameRef_Read;
 }
 
-bool IsValid(const VkWriteDescriptorSet &write, uint32_t arrayElement)
+bool IsValid(bool allowNULLDescriptors, const VkWriteDescriptorSet &write, uint32_t arrayElement)
 {
   if(write.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
     return true;
@@ -986,10 +986,10 @@ bool IsValid(const VkWriteDescriptorSet &write, uint32_t arrayElement)
   // case they can be garbage and we must ignore them based on the descriptorType
 
   if(write.pTexelBufferView)
-    return write.pTexelBufferView[arrayElement] != VK_NULL_HANDLE;
+    return allowNULLDescriptors ? true : write.pTexelBufferView[arrayElement] != VK_NULL_HANDLE;
 
   if(write.pBufferInfo)
-    return write.pBufferInfo[arrayElement].buffer != VK_NULL_HANDLE;
+    return allowNULLDescriptors ? true : write.pBufferInfo[arrayElement].buffer != VK_NULL_HANDLE;
 
   if(write.pImageInfo)
   {
@@ -999,6 +999,9 @@ bool IsValid(const VkWriteDescriptorSet &write, uint32_t arrayElement)
 
     // but all types that aren't just a sampler need an image
     bool needImage = (write.descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER);
+
+    if(allowNULLDescriptors)
+      needImage = false;
 
     if(needSampler && write.pImageInfo[arrayElement].sampler == VK_NULL_HANDLE)
       return false;

@@ -2648,8 +2648,10 @@ void WrappedVulkan::vkCmdBindVertexBuffers(VkCommandBuffer commandBuffer, uint32
     record->AddChunk(scope.Get());
     for(uint32_t i = 0; i < bindingCount; i++)
     {
-      record->MarkBufferFrameReferenced(GetRecord(pBuffers[i]), pOffsets[i], VK_WHOLE_SIZE,
-                                        eFrameRef_Read);
+      // binding NULL is legal with robustness2
+      if(pBuffers[i])
+        record->MarkBufferFrameReferenced(GetRecord(pBuffers[i]), pOffsets[i], VK_WHOLE_SIZE,
+                                          eFrameRef_Read);
     }
   }
 }

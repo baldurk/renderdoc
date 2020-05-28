@@ -2212,7 +2212,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
         for(uint32_t w = 0; w < bind.descriptorCount; w++)
         {
           // if this write is valid, we increment the descriptor count and continue
-          if(IsValid(write, w - write.dstArrayElement))
+          if(IsValid(m_pDriver->NULLDescriptorsAllowed(), write, w - write.dstArrayElement))
           {
             write.descriptorCount++;
           }

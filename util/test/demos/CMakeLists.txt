@@ -29,6 +29,7 @@ set(VULKAN_SRC
         vk/vk_parameter_zoo.cpp
         vk/vk_query_pool.cpp
         vk/vk_resource_lifetimes.cpp
+        vk/vk_robustness2.cpp
         vk/vk_sample_locations.cpp
         vk/vk_secondary_cmdbuf.cpp
         vk/vk_separate_depth_stencil_layouts.cpp

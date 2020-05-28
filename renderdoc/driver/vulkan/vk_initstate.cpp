@@ -793,8 +793,8 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
           dstInline++;
         }
         // quick check for slots that were completely uninitialised and so don't have valid data
-        else if(descriptorCount == 1 && src->texelBufferView == ResourceId() &&
-                src->imageInfo.sampler == ResourceId() &&
+        else if(!NULLDescriptorsAllowed() && descriptorCount == 1 &&
+                src->texelBufferView == ResourceId() && src->imageInfo.sampler == ResourceId() &&
                 src->imageInfo.imageView == ResourceId() && src->bufferInfo.buffer == ResourceId())
         {
           // do nothing - don't increment bind so that the same write descriptor is used next time.
@@ -900,7 +900,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
             // is this array element in the write valid? Note that below when we encounter an
             // invalid write, the next one starts from a later point in the array, so we need to
             // check relative to the dstArrayElement
-            if(IsValid(writes[bind], d - writes[bind].dstArrayElement))
+            if(IsValid(NULLDescriptorsAllowed(), writes[bind], d - writes[bind].dstArrayElement))
             {
               // if this descriptor is valid, just increment the number of descriptors. The data
               // and dstArrayElement is pointing to the start of the valid range

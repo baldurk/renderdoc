@@ -1382,8 +1382,11 @@ private:
             m_ResourcesDirty = false;
           }
 
-          m_pDriver->GetDebugManager()->GetBufferData(GetResID(bufData.buffer), bufData.offset,
-                                                      bufData.range, data);
+          if(bufData.buffer != VK_NULL_HANDLE)
+          {
+            m_pDriver->GetDebugManager()->GetBufferData(GetResID(bufData.buffer), bufData.offset,
+                                                        bufData.range, data);
+          }
         }
       }
     }
@@ -1411,54 +1414,57 @@ private:
           m_ResourcesDirty = false;
         }
 
-        const VulkanCreationInfo::ImageView &viewProps =
-            m_Creation.m_ImageView[GetResID(imgData.imageView)];
-        const VulkanCreationInfo::Image &imageProps = m_Creation.m_Image[viewProps.image];
-
-        uint32_t mip = viewProps.range.baseMipLevel;
-
-        data.width = RDCMAX(1U, imageProps.extent.width >> mip);
-        data.height = RDCMAX(1U, imageProps.extent.height >> mip);
-        if(imageProps.type == VK_IMAGE_TYPE_3D)
+        if(imgData.imageView != VK_NULL_HANDLE)
         {
-          data.depth = RDCMAX(1U, imageProps.extent.depth >> mip);
-        }
-        else
-        {
-          data.depth = viewProps.range.layerCount;
-          if(data.depth == VK_REMAINING_ARRAY_LAYERS)
-            data.depth = imageProps.arrayLayers - viewProps.range.baseArrayLayer;
-        }
+          const VulkanCreationInfo::ImageView &viewProps =
+              m_Creation.m_ImageView[GetResID(imgData.imageView)];
+          const VulkanCreationInfo::Image &imageProps = m_Creation.m_Image[viewProps.image];
 
-        data.texelSize = GetByteSize(1, 1, 1, imageProps.format, 0);
-        data.rowPitch = GetByteSize(data.width, 1, 1, imageProps.format, 0);
-        data.slicePitch = GetByteSize(data.width, data.height, 1, imageProps.format, 0);
-        data.samplePitch = GetByteSize(data.width, data.height, data.depth, imageProps.format, 0);
+          uint32_t mip = viewProps.range.baseMipLevel;
 
-        const uint32_t numSlices = imageProps.type == VK_IMAGE_TYPE_3D ? 1 : data.depth;
-        const uint32_t numSamples = (uint32_t)imageProps.samples;
-
-        data.bytes.reserve(data.samplePitch * numSamples);
-
-        // defaults are fine - no interpretation. Maybe we could use the view's typecast?
-        const GetTextureDataParams params = GetTextureDataParams();
-
-        for(uint32_t sample = 0; sample < numSamples; sample++)
-        {
-          for(uint32_t slice = 0; slice < numSlices; slice++)
+          data.width = RDCMAX(1U, imageProps.extent.width >> mip);
+          data.height = RDCMAX(1U, imageProps.extent.height >> mip);
+          if(imageProps.type == VK_IMAGE_TYPE_3D)
           {
-            bytebuf subBytes;
-            m_pDriver->GetReplay()->GetTextureData(viewProps.image, Subresource(mip, slice, sample),
-                                                   params, subBytes);
+            data.depth = RDCMAX(1U, imageProps.extent.depth >> mip);
+          }
+          else
+          {
+            data.depth = viewProps.range.layerCount;
+            if(data.depth == VK_REMAINING_ARRAY_LAYERS)
+              data.depth = imageProps.arrayLayers - viewProps.range.baseArrayLayer;
+          }
 
-            // fast path, swap into output if there's only one slice and one sample (common case)
-            if(numSlices == 1 && numSamples == 1)
+          data.texelSize = GetByteSize(1, 1, 1, imageProps.format, 0);
+          data.rowPitch = GetByteSize(data.width, 1, 1, imageProps.format, 0);
+          data.slicePitch = GetByteSize(data.width, data.height, 1, imageProps.format, 0);
+          data.samplePitch = GetByteSize(data.width, data.height, data.depth, imageProps.format, 0);
+
+          const uint32_t numSlices = imageProps.type == VK_IMAGE_TYPE_3D ? 1 : data.depth;
+          const uint32_t numSamples = (uint32_t)imageProps.samples;
+
+          data.bytes.reserve(data.samplePitch * numSamples);
+
+          // defaults are fine - no interpretation. Maybe we could use the view's typecast?
+          const GetTextureDataParams params = GetTextureDataParams();
+
+          for(uint32_t sample = 0; sample < numSamples; sample++)
+          {
+            for(uint32_t slice = 0; slice < numSlices; slice++)
             {
-              subBytes.swap(data.bytes);
-            }
-            else
-            {
-              data.bytes.append(subBytes);
+              bytebuf subBytes;
+              m_pDriver->GetReplay()->GetTextureData(
+                  viewProps.image, Subresource(mip, slice, sample), params, subBytes);
+
+              // fast path, swap into output if there's only one slice and one sample (common case)
+              if(numSlices == 1 && numSamples == 1)
+              {
+                subBytes.swap(data.bytes);
+              }
+              else
+              {
+                data.bytes.append(subBytes);
+              }
             }
           }
         }
@@ -3444,28 +3450,31 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
       {
         const VulkanRenderState::VertBuffer &vb = state.vbuffers[bind.vbufferBinding];
 
-        uint32_t vertexOffset = 0;
-
-        if(bind.perInstance)
+        if(vb.buf != ResourceId())
         {
-          if(bind.instanceDivisor == 0)
-            vertexOffset = instOffset * bind.bytestride;
+          uint32_t vertexOffset = 0;
+
+          if(bind.perInstance)
+          {
+            if(bind.instanceDivisor == 0)
+              vertexOffset = instOffset * bind.bytestride;
+            else
+              vertexOffset = (instOffset + (instid / bind.instanceDivisor)) * bind.bytestride;
+          }
           else
-            vertexOffset = (instOffset + (instid / bind.instanceDivisor)) * bind.bytestride;
-        }
-        else
-        {
-          vertexOffset = (idx + vertOffset) * bind.bytestride;
-        }
+          {
+            vertexOffset = (idx + vertOffset) * bind.bytestride;
+          }
 
-        if(Vulkan_Debug_ShaderDebugLogging())
-        {
-          RDCLOG("Fetching from %s at %llu offset %zu bytes", ToStr(vb.buf).c_str(),
-                 vb.offs + attr.byteoffset + vertexOffset, size);
-        }
+          if(Vulkan_Debug_ShaderDebugLogging())
+          {
+            RDCLOG("Fetching from %s at %llu offset %zu bytes", ToStr(vb.buf).c_str(),
+                   vb.offs + attr.byteoffset + vertexOffset, size);
+          }
 
-        GetDebugManager()->GetBufferData(vb.buf, vb.offs + attr.byteoffset + vertexOffset, size,
-                                         data);
+          GetDebugManager()->GetBufferData(vb.buf, vb.offs + attr.byteoffset + vertexOffset, size,
+                                           data);
+        }
       }
       else if(Vulkan_Debug_ShaderDebugLogging())
       {

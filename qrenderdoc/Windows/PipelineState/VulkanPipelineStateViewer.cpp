@@ -2020,7 +2020,7 @@ void VulkanPipelineStateViewer::setState()
             vbuff != NULL ? vbuff->resourceId : ResourceId(), vbuff != NULL ? vbuff->byteOffset : 0,
             m_Common.GetVBufferFormatString(i))));
 
-        if(!filledSlot || bind == NULL || vbuff == NULL)
+        if(!filledSlot || bind == NULL || vbuff == NULL || vbuff->resourceId == ResourceId())
         {
           setEmptyRow(node);
           m_EmptyNodes.push_back(node);

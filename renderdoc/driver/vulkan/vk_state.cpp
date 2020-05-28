@@ -233,7 +233,15 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
     for(size_t i = 0; i < vbuffers.size(); i++)
     {
       if(vbuffers[i].buf == ResourceId())
+      {
+        if(vk->NULLDescriptorsAllowed())
+        {
+          VkBuffer empty = VK_NULL_HANDLE;
+          ObjDisp(cmd)->CmdBindVertexBuffers(Unwrap(cmd), (uint32_t)i, 1, &empty, &vbuffers[i].offs);
+        }
+
         continue;
+      }
 
       ObjDisp(cmd)->CmdBindVertexBuffers(
           Unwrap(cmd), (uint32_t)i, 1,
@@ -485,7 +493,7 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
       for(uint32_t w = 0; w < bind.descriptorCount; w++)
       {
         // if this push is valid, we increment the descriptor count and continue
-        if(IsValid(push, w - push.dstArrayElement))
+        if(IsValid(vk->NULLDescriptorsAllowed(), push, w - push.dstArrayElement))
         {
           push.descriptorCount++;
         }

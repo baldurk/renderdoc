@@ -624,7 +624,9 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
         valid &= (writeDesc.pImageInfo[i].sampler != VK_NULL_HANDLE) ||
                  (layoutBinding->immutableSampler &&
                   layoutBinding->immutableSampler[curIdx] != ResourceId());
-        valid &= (writeDesc.pImageInfo[i].imageView != VK_NULL_HANDLE);
+
+        if(!NULLDescriptorsAllowed())
+          valid &= (writeDesc.pImageInfo[i].imageView != VK_NULL_HANDLE);
       }
       break;
     }
@@ -632,14 +634,14 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
     case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
     case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
     {
-      for(uint32_t i = 0; i < writeDesc.descriptorCount; i++)
+      for(uint32_t i = 0; !NULLDescriptorsAllowed() && i < writeDesc.descriptorCount; i++)
         valid &= (writeDesc.pImageInfo[i].imageView != VK_NULL_HANDLE);
       break;
     }
     case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
     case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
     {
-      for(uint32_t i = 0; i < writeDesc.descriptorCount; i++)
+      for(uint32_t i = 0; !NULLDescriptorsAllowed() && i < writeDesc.descriptorCount; i++)
         valid &= (writeDesc.pTexelBufferView[i] != VK_NULL_HANDLE);
       break;
     }
@@ -648,7 +650,7 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
     case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
     case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
     {
-      for(uint32_t i = 0; i < writeDesc.descriptorCount; i++)
+      for(uint32_t i = 0; !NULLDescriptorsAllowed() && i < writeDesc.descriptorCount; i++)
         valid &= (writeDesc.pBufferInfo[i].buffer != VK_NULL_HANDLE);
       break;
     }

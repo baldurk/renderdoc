@@ -2539,6 +2539,17 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(customBorderColorWithoutFormat);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceRobustness2FeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(robustBufferAccess2);
+        CHECK_PHYS_EXT_FEATURE(robustImageAccess2);
+        CHECK_PHYS_EXT_FEATURE(nullDescriptor);
+
+        m_NULLDescriptorsAllowed |= (ext->nullDescriptor != VK_FALSE);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

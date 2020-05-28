@@ -399,6 +399,7 @@ private:
   };
 
   bool m_SeparateDepthStencil = false;
+  bool m_NULLDescriptorsAllowed = false;
 
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
@@ -1058,6 +1059,7 @@ public:
                                   VkDeviceCreateInfo &createInfo, uint32_t &queueFamilyIndex);
 
   bool SeparateDepthStencil() const { return m_SeparateDepthStencil; }
+  bool NULLDescriptorsAllowed() const { return m_NULLDescriptorsAllowed; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetDrawcallCB(VulkanDrawcallCallback *cb) { m_DrawcallCallback = cb; }
   void SetSubmitChain(void *submitChain) { m_SubmitChain = submitChain; }
