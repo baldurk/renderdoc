@@ -1365,7 +1365,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage)
             for(size_t j = 0; j < element.views.size(); ++j)
             {
               const D3D12Pipe::View &view = element.views[j];
-              if(view.bind >= start && view.bind <= end)
+              if(view.bind >= start && view.bind < end)
               {
                 val.push_back(BoundResource());
                 BoundResource &b = val.back();
