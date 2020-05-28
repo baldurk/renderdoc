@@ -2287,4 +2287,20 @@ public:
 
   VkResult vkGetPhysicalDeviceToolPropertiesEXT(VkPhysicalDevice physicalDevice, uint32_t *pToolCount,
                                                 VkPhysicalDeviceToolPropertiesEXT *pToolProperties);
+
+  // VK_EXT_private_data
+
+  VkResult vkCreatePrivateDataSlotEXT(VkDevice device,
+                                      const VkPrivateDataSlotCreateInfoEXT *pCreateInfo,
+                                      const VkAllocationCallbacks *pAllocator,
+                                      VkPrivateDataSlotEXT *pPrivateDataSlot);
+
+  void vkDestroyPrivateDataSlotEXT(VkDevice device, VkPrivateDataSlotEXT privateDataSlot,
+                                   const VkAllocationCallbacks *pAllocator);
+
+  VkResult vkSetPrivateDataEXT(VkDevice device, VkObjectType objectType, uint64_t objectHandle,
+                               VkPrivateDataSlotEXT privateDataSlot, uint64_t data);
+
+  void vkGetPrivateDataEXT(VkDevice device, VkObjectType objectType, uint64_t objectHandle,
+                           VkPrivateDataSlotEXT privateDataSlot, uint64_t *pData);
 };

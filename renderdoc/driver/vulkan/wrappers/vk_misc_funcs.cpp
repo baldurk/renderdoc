@@ -1825,12 +1825,16 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
       break;
     }
 
+    // private data slots are not wrapped
+    case VK_OBJECT_TYPE_PRIVATE_DATA_SLOT_EXT:
+      ret.unwrapped = object;
+      break;
+
     // these objects are not supported
     case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR:
     case VK_OBJECT_TYPE_PERFORMANCE_CONFIGURATION_INTEL:
     case VK_OBJECT_TYPE_DEFERRED_OPERATION_KHR:
     case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NV:
-    case VK_OBJECT_TYPE_PRIVATE_DATA_SLOT_EXT:
     case VK_OBJECT_TYPE_UNKNOWN:
     case VK_OBJECT_TYPE_MAX_ENUM: break;
   }
@@ -2229,4 +2233,40 @@ VkResult WrappedVulkan::vkAcquireProfilingLockKHR(VkDevice device,
 void WrappedVulkan::vkReleaseProfilingLockKHR(VkDevice device)
 {
   ObjDisp(device)->ReleaseProfilingLockKHR(Unwrap(device));
+}
+
+VkResult WrappedVulkan::vkCreatePrivateDataSlotEXT(VkDevice device,
+                                                   const VkPrivateDataSlotCreateInfoEXT *pCreateInfo,
+                                                   const VkAllocationCallbacks *pAllocator,
+                                                   VkPrivateDataSlotEXT *pPrivateDataSlot)
+{
+  // don't even wrap the slot, keep it unwrapped since we don't care about it
+  return ObjDisp(device)->CreatePrivateDataSlotEXT(Unwrap(device), pCreateInfo, pAllocator,
+                                                   pPrivateDataSlot);
+}
+
+void WrappedVulkan::vkDestroyPrivateDataSlotEXT(VkDevice device, VkPrivateDataSlotEXT privateDataSlot,
+                                                const VkAllocationCallbacks *pAllocator)
+{
+  return ObjDisp(device)->DestroyPrivateDataSlotEXT(Unwrap(device), privateDataSlot, pAllocator);
+}
+
+VkResult WrappedVulkan::vkSetPrivateDataEXT(VkDevice device, VkObjectType objectType,
+                                            uint64_t objectHandle,
+                                            VkPrivateDataSlotEXT privateDataSlot, uint64_t data)
+{
+  ObjData objdata = GetObjData(objectType, objectHandle);
+
+  return ObjDisp(device)->SetPrivateDataEXT(Unwrap(device), objectType, objdata.unwrapped,
+                                            privateDataSlot, data);
+}
+
+void WrappedVulkan::vkGetPrivateDataEXT(VkDevice device, VkObjectType objectType,
+                                        uint64_t objectHandle, VkPrivateDataSlotEXT privateDataSlot,
+                                        uint64_t *pData)
+{
+  ObjData objdata = GetObjData(objectType, objectHandle);
+
+  return ObjDisp(device)->GetPrivateDataEXT(Unwrap(device), objectType, objdata.unwrapped,
+                                            privateDataSlot, pData);
 }

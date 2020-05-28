@@ -169,7 +169,7 @@ static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
       return true;
 
     // this is debug only, nothing to capture, so nothing to replay
-    if(ext == "VK_EXT_tooling_info")
+    if(ext == "VK_EXT_tooling_info" || ext == "VK_EXT_private_data")
       return true;
 
     return false;
@@ -1975,6 +1975,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     {
       RDCERR("Can't add a queue with required properties for RenderDoc! Unsupported configuration");
       return false;
+    }
+
+    // remove private data structs to improve capture compatibility, since we don't replay any
+    // private data.
+    if(RemoveNextStruct(&createInfo, VK_STRUCTURE_TYPE_DEVICE_PRIVATE_DATA_CREATE_INFO_EXT) ||
+       RemoveNextStruct(&createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIVATE_DATA_FEATURES_EXT))
+    {
+      RDCLOG("Removed private data structs from vkCreateDevice pNext chain");
     }
 
     VkPhysicalDeviceFeatures enabledFeatures = {0};

@@ -847,6 +847,15 @@ rdcstr DoStringise(const VkAcquireProfilingLockFlagBitsKHR &el)
 }
 
 template <>
+rdcstr DoStringise(const VkPrivateDataSlotCreateFlagBitsEXT &el)
+{
+  BEGIN_BITFIELD_STRINGISE(VkPrivateDataSlotCreateFlagBitsEXT);
+  {
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const VkPerformanceCounterDescriptionFlagBitsKHR &el)
 {
   BEGIN_BITFIELD_STRINGISE(VkPerformanceCounterDescriptionFlagBitsKHR);
