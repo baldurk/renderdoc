@@ -2649,7 +2649,7 @@ void WrappedVulkan::vkCmdBindVertexBuffers(VkCommandBuffer commandBuffer, uint32
     for(uint32_t i = 0; i < bindingCount; i++)
     {
       // binding NULL is legal with robustness2
-      if(pBuffers[i])
+      if(pBuffers[i] != VK_NULL_HANDLE)
         record->MarkBufferFrameReferenced(GetRecord(pBuffers[i]), pOffsets[i], VK_WHOLE_SIZE,
                                           eFrameRef_Read);
     }
