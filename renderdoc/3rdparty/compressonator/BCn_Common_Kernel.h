@@ -1561,7 +1561,7 @@ void cmp_memsetfBCn(CGU_FLOAT ptr[], CGU_FLOAT value, CGU_UINT32 size)
 }
 #endif
 
-#ifdef ASPM_GPU
+#if 0
 void memset(CGU_UINT8 *srcdata, CGU_UINT8 value, CGU_INT size)
 {
   for(CGU_INT i = 0; i < size; i++)
