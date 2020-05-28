@@ -90,14 +90,19 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
     NullCBCounts[i] = 4096;
   }
 
-  m_Type = m_pRealContext->GetType();
-
   D3D11_FEATURE_DATA_D3D11_OPTIONS features;
   RDCEraseEl(features);
   HRESULT hr = S_OK;
 
   if(m_pRealContext)
+  {
     hr = m_pDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &features, sizeof(features));
+    m_Type = m_pRealContext->GetType();
+  }
+  else
+  {
+    m_Type = D3D11_DEVICE_CONTEXT_IMMEDIATE;
+  }
 
   m_SetCBuffer1 = false;
   if(SUCCEEDED(hr))
