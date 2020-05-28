@@ -2221,6 +2221,11 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
 
     WindowingData winData = m_Ctx.CreateWindowingData(prev->thumbWidget());
 
+    prev->setProperty("f", QVariant::fromValue(follow));
+    prev->setSlotName(slotName);
+    prev->setActive(true);
+    prev->setSelected(m_Following == follow);
+
     if(m_Ctx.GetTexture(res.resourceId))
     {
       m_Ctx.Replay().AsyncInvoke([this, winData, res](IReplayController *) {
@@ -2238,11 +2243,6 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
         m_Output->AddThumbnail(winData, ResourceId(), {0, 0, ~0U}, CompType::Typeless);
       });
     }
-
-    prev->setProperty("f", QVariant::fromValue(follow));
-    prev->setSlotName(slotName);
-    prev->setActive(true);
-    prev->setSelected(m_Following == follow);
   }
   else if(m_Following == follow)
   {
