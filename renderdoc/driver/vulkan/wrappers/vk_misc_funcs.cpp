@@ -53,8 +53,28 @@ static void MakeSubpassLoadRP(RPCreateInfo &info, const RPCreateInfo *origInfo, 
   info.subpassCount = 1;
   info.pSubpasses = origInfo->pSubpasses + s;
 
-  // remove any dependencies
+  // remove any non-self dependencies
   info.dependencyCount = 0;
+  for(uint32_t i = 0; i < origInfo->dependencyCount; i++)
+  {
+    // if this dependency is a self-dependency for the target subpass, keep it
+    if(origInfo->pDependencies[i].srcSubpass == origInfo->pDependencies[i].dstSubpass &&
+       origInfo->pDependencies[i].srcSubpass == s)
+    {
+      uint32_t d = info.dependencyCount;
+      info.dependencyCount++;
+
+      // copy the dependency
+      memcpy((void *)&info.pDependencies[d], &origInfo->pDependencies[i],
+             sizeof(origInfo->pDependencies[i]));
+
+      // set the srcSubpass/dstSubpass to 0 since we're rewriting this renderpass to contain one
+      // subpass only
+      RDCEraseEl(info.pDependencies[d].srcSubpass);
+      RDCEraseEl(info.pDependencies[d].dstSubpass);
+      break;
+    }
+  }
 
   // we use decltype here because this is templated to work for regular and create_renderpass2
   // structs
@@ -1013,8 +1033,8 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
 
       VkRenderPassCreateInfo info = *pCreateInfo;
 
-      VkAttachmentDescription atts[16];
-      RDCASSERT(ARRAY_COUNT(atts) >= (size_t)info.attachmentCount);
+      rdcarray<VkAttachmentDescription> atts;
+      atts.resize(info.attachmentCount);
 
       // make a version of the render pass that loads from its attachments,
       // so it can be used for replaying a single draw after a render pass
@@ -1026,7 +1046,13 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
         atts[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
       }
 
-      info.pAttachments = atts;
+      info.pAttachments = atts.data();
+
+      // copy the dependencies so we can mutate them
+      rdcarray<VkSubpassDependency> deps;
+      deps.assign(info.pDependencies, info.dependencyCount);
+
+      info.pDependencies = deps.data();
 
       rpinfo.loadRPs.resize(pCreateInfo->subpassCount);
 
@@ -1263,8 +1289,8 @@ VkResult WrappedVulkan::vkCreateRenderPass2(VkDevice device,
 
       VkRenderPassCreateInfo2 info = *pCreateInfo;
 
-      VkAttachmentDescription2 atts[16];
-      RDCASSERT(ARRAY_COUNT(atts) >= (size_t)info.attachmentCount);
+      rdcarray<VkAttachmentDescription2> atts;
+      atts.resize(info.attachmentCount);
 
       // make a version of the render pass that loads from its attachments,
       // so it can be used for replaying a single draw after a render pass
@@ -1276,7 +1302,13 @@ VkResult WrappedVulkan::vkCreateRenderPass2(VkDevice device,
         atts[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
       }
 
-      info.pAttachments = atts;
+      info.pAttachments = atts.data();
+
+      // copy the dependencies so we can mutate them
+      rdcarray<VkSubpassDependency2> deps;
+      deps.assign(info.pDependencies, info.dependencyCount);
+
+      info.pDependencies = deps.data();
 
       rpinfo.loadRPs.resize(pCreateInfo->subpassCount);
 

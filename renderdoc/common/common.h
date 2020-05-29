@@ -139,7 +139,7 @@ bool DebuggerPresent();
 #define CONCAT(a, b) CONCAT2(a, b)
 
 #define RDCEraseMem(a, b) memset(a, 0, b)
-#define RDCEraseEl(a) memset(&a, 0, sizeof(a))
+#define RDCEraseEl(a) memset((void *)&a, 0, sizeof(a))
 
 template <typename T>
 T RDCCLAMP(const T &val, const T &mn, const T &mx)
