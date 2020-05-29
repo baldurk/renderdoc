@@ -945,7 +945,7 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
         LoadProgress::FrameEventsRead,
         float(m_Cmd.m_CurChunkOffset - startOffset) / float(ser.GetReader()->GetSize()));
 
-    if((SystemChunk)context == SystemChunk::CaptureEnd)
+    if((SystemChunk)context == SystemChunk::CaptureEnd || ser.GetReader()->AtEnd())
       break;
 
     // break out if we were only executing one event

@@ -2492,7 +2492,7 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
         LoadProgress::FrameEventsRead,
         float(m_CurChunkOffset - startOffset) / float(ser.GetReader()->GetSize()));
 
-    if((SystemChunk)chunktype == SystemChunk::CaptureEnd)
+    if((SystemChunk)chunktype == SystemChunk::CaptureEnd || ser.GetReader()->AtEnd())
       break;
 
     // break out if we were only executing one event
