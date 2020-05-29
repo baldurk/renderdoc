@@ -23,6 +23,8 @@
  ******************************************************************************/
 
 #include "RDTreeView.h"
+#include <QApplication>
+#include <QClipboard>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
@@ -30,6 +32,51 @@
 #include <QStylePainter>
 #include <QToolTip>
 #include <QWheelEvent>
+
+static int GetDepth(const QAbstractItemModel *model, const QModelIndex &idx)
+{
+  if(idx == QModelIndex())
+    return 0;
+
+  return 1 + GetDepth(model, model->parent(idx));
+}
+
+static bool CompareModelIndex(const QModelIndex &a, const QModelIndex &b)
+{
+  if(a == b)
+    return false;
+
+  if(a == QModelIndex())
+    return true;
+  else if(b == QModelIndex())
+    return false;
+
+  if(a.model() != b.model())
+    return false;
+
+  QModelIndex ap = a.model()->parent(a);
+  QModelIndex bp = b.model()->parent(b);
+  if(ap == bp)
+  {
+    if(a.row() == b.row())
+      return a.column() < b.column();
+    return a.row() < b.row();
+  }
+
+  if(a == bp)
+    return true;
+  if(b == ap)
+    return false;
+
+  int ad = GetDepth(a.model(), a);
+  int bd = GetDepth(b.model(), b);
+
+  if(ad > bd)
+    return CompareModelIndex(ap, b);
+  else if(ad < bd)
+    return CompareModelIndex(a, bp);
+  return CompareModelIndex(ap, bp);
+}
 
 RDTreeViewDelegate::RDTreeViewDelegate(RDTreeView *view) : ForwardingDelegate(view), m_View(view)
 {
@@ -167,7 +214,14 @@ void RDTreeView::leaveEvent(QEvent *e)
 
 void RDTreeView::keyPressEvent(QKeyEvent *e)
 {
-  QTreeView::keyPressEvent(e);
+  if(e->matches(QKeySequence::Copy))
+  {
+    copySelection();
+  }
+  else
+  {
+    QTreeView::keyPressEvent(e);
+  }
   emit(keyPress(e));
 }
 
@@ -260,6 +314,74 @@ void RDTreeView::applyExpansion(const RDTreeViewExpansionState &state, const Exp
 {
   for(int i = 0; i < model()->rowCount(); i++)
     applyExpansionToRow(state, model()->index(i, 0), 0, keygen);
+}
+
+void RDTreeView::copySelection()
+{
+  QModelIndexList sel = selectionModel()->selectedRows();
+
+  std::sort(sel.begin(), sel.end(), CompareModelIndex);
+
+  QVector<int> widths;
+
+  ICaptureContext *ctx = getCaptureContext(this);
+
+  int minDepth = INT_MAX;
+  int maxDepth = 0;
+
+  // align the copied data so that each column is the same width
+  for(QModelIndex idx : sel)
+  {
+    int colCount = model()->columnCount(idx);
+
+    widths.resize(qMax(widths.size(), colCount));
+
+    for(int i = 0; i < colCount; i++)
+    {
+      QVariant var = model()->data(model()->index(idx.row(), i, idx.parent()));
+      QString text = ctx ? RichResourceTextFormat(*ctx, var) : var.toString();
+      widths[i] = qMax(widths[i], text.count());
+    }
+
+    int depth = GetDepth(model(), idx);
+
+    minDepth = qMin(minDepth, depth);
+    maxDepth = qMax(maxDepth, depth);
+  }
+
+  // add on two characters for every depth, for indent
+  for(int &i : widths)
+    i += 2 * (maxDepth - minDepth - 1);
+
+  // only align up to 50 characters so one really long item doesn't mess up the whole thing
+  for(int &i : widths)
+    i = qMin(50, i);
+
+  QString clipData;
+  for(QModelIndex idx : sel)
+  {
+    int colCount = model()->columnCount(idx);
+
+    int depth = GetDepth(model(), idx);
+
+    for(int i = 0; i < colCount; i++)
+    {
+      QString format = i == 0 ? QFormatStr("%1") : QFormatStr(" %1");
+
+      QVariant var = model()->data(model()->index(idx.row(), i, idx.parent()));
+      QString text = ctx ? RichResourceTextFormat(*ctx, var) : var.toString();
+
+      if(i == 0)
+        text.prepend(QString((depth - minDepth) * 2, QLatin1Char(' ')));
+
+      clipData += format.arg(text, -widths[i]);
+    }
+
+    clipData += lit("\n");
+  }
+
+  QClipboard *clipboard = QApplication::clipboard();
+  clipboard->setText(clipData.trimmed());
 }
 
 void RDTreeView::saveExpansionFromRow(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,

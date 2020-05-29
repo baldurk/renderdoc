@@ -205,7 +205,6 @@ class RDTreeWidget : public RDTreeView
   Q_OBJECT
 
   Q_PROPERTY(bool instantTooltips READ instantTooltips WRITE setInstantTooltips)
-  Q_PROPERTY(bool customCopyPasteHandler READ customCopyPasteHandler WRITE setCustomCopyPasteHandler)
 public:
   explicit RDTreeWidget(QWidget *parent = 0);
   ~RDTreeWidget();
@@ -223,8 +222,6 @@ public:
   void setClearSelectionOnFocusLoss(bool clear) { m_clearSelectionOnFocusLoss = clear; }
   bool instantTooltips() { return m_instantTooltips; }
   void setInstantTooltips(bool instant) { m_instantTooltips = instant; }
-  bool customCopyPasteHandler() { return m_customCopyPaste; }
-  void setCustomCopyPasteHandler(bool custom) { m_customCopyPaste = custom; }
   RDTreeWidgetItem *invisibleRootItem() { return m_root; }
   void addTopLevelItem(RDTreeWidgetItem *item) { m_root->addChild(item); }
   RDTreeWidgetItem *topLevelItem(int index) const { return m_root->child(index); }
@@ -254,8 +251,6 @@ public:
   void collapseAllItems(RDTreeWidgetItem *item);
   void scrollToItem(RDTreeWidgetItem *node);
 
-  void copySelection();
-
   void clear();
 
 signals:
@@ -275,7 +270,6 @@ private:
   void mouseReleaseEvent(QMouseEvent *e) override;
   void leaveEvent(QEvent *e) override;
   void focusOutEvent(QFocusEvent *event) override;
-  void keyPressEvent(QKeyEvent *e) override;
   void drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const override;
 
   void selectionChanged(const QItemSelection &selected, const QItemSelection &deselected) override;
@@ -313,7 +307,6 @@ private:
   QVector<Qt::Alignment> m_alignments;
 
   bool m_instantTooltips = false;
-  bool m_customCopyPaste = false;
   int m_hoverColumn = -1;
   QIcon m_normalHoverIcon;
   QIcon m_activeHoverIcon;

@@ -72,6 +72,8 @@ typedef std::function<uint(QModelIndex, uint)> ExpansionKeyGen;
 class RDTreeView : public QTreeView
 {
   Q_OBJECT
+
+  Q_PROPERTY(bool customCopyPasteHandler READ customCopyPasteHandler WRITE setCustomCopyPasteHandler)
 public:
   explicit RDTreeView(QWidget *parent = 0);
   virtual ~RDTreeView();
@@ -87,6 +89,8 @@ public:
   int verticalItemMargin() { return m_VertMargin; }
   void setIgnoreIconSize(bool ignore) { m_IgnoreIconSize = ignore; }
   bool ignoreIconSize() { return m_IgnoreIconSize; }
+  bool customCopyPasteHandler() { return m_customCopyPaste; }
+  void setCustomCopyPasteHandler(bool custom) { m_customCopyPaste = custom; }
   QModelIndex currentHoverIndex() const { return m_currentHoverIndex; }
   void setItemDelegate(QAbstractItemDelegate *delegate);
   QAbstractItemDelegate *itemDelegate() const;
@@ -121,6 +125,8 @@ public:
   }
   bool hasInternalExpansion(uint expansionID) { return m_Expansions.contains(expansionID); }
   void clearInternalExpansions() { m_Expansions.clear(); }
+  virtual void copySelection();
+
 signals:
   void leave(QEvent *e);
   void keyPress(QKeyEvent *e);
@@ -147,6 +153,7 @@ private:
   bool m_VisibleBranches = true;
   bool m_VisibleGridLines = true;
   bool m_TooltipElidedItems = true;
+  bool m_customCopyPaste = false;
 
   QMap<uint, RDTreeViewExpansionState> m_Expansions;
 
