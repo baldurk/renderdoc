@@ -65,7 +65,6 @@ public slots:
 
   // manual slots
   void resource_doubleClicked(const QModelIndex &index);
-  void initChunks_contextMenu(const QPoint &pos);
 
 private slots:
   void on_viewContents_clicked();

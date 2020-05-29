@@ -57,9 +57,6 @@ private slots:
   // automatic slots
   void on_enabledCounters_activated(const QModelIndex &index);
 
-  // manual slots
-  void counterTree_contextMenu(const QPoint &pos);
-
 private:
   void SetCounters(const QVector<CounterDescription> &descriptions);
   void expandToNode(RDTreeWidgetItem *node);

@@ -25,13 +25,16 @@
 #include "RDTreeView.h"
 #include <QApplication>
 #include <QClipboard>
+#include <QContextMenuEvent>
 #include <QLabel>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QProxyStyle>
 #include <QStylePainter>
 #include <QToolTip>
 #include <QWheelEvent>
+#include "Code/Resources.h"
 
 static int GetDepth(const QAbstractItemModel *model, const QModelIndex &idx)
 {
@@ -223,6 +226,67 @@ void RDTreeView::keyPressEvent(QKeyEvent *e)
     QTreeView::keyPressEvent(e);
   }
   emit(keyPress(e));
+}
+
+void RDTreeView::contextMenuEvent(QContextMenuEvent *event)
+{
+  QPoint pos = event->pos();
+
+  QModelIndex index = indexAt(pos);
+
+  QMenu contextMenu(this);
+
+  QAction expandAllAction(tr("&Expand All"), this);
+  QAction collapseAllAction(tr("&Collapse All"), this);
+  QAction copy(tr("&Copy"), this);
+
+  if(rootIsDecorated())
+  {
+    contextMenu.addAction(&expandAllAction);
+    contextMenu.addAction(&collapseAllAction);
+    contextMenu.addSeparator();
+  }
+  contextMenu.addAction(&copy);
+
+  expandAllAction.setIcon(Icons::arrow_out());
+  collapseAllAction.setIcon(Icons::arrow_in());
+
+  expandAllAction.setEnabled(index.isValid() && model()->rowCount(index) > 0);
+  collapseAllAction.setEnabled(index.isValid() && model()->rowCount(index) > 0);
+
+  QObject::connect(&expandAllAction, &QAction::triggered, [this, index]() { expandAll(index); });
+
+  QObject::connect(&collapseAllAction, &QAction::triggered, [this, index]() { collapseAll(index); });
+
+  QObject::connect(&copy, &QAction::triggered, [this, index, pos]() {
+    bool clearsel = false;
+    if(selectionModel()->selectedRows().empty())
+    {
+      setSelection(QRect(pos, QSize(1, 1)), selectionCommand(index));
+      clearsel = true;
+    }
+    copySelection();
+    if(clearsel)
+      selectionModel()->clear();
+  });
+
+  RDDialog::show(&contextMenu, viewport()->mapToGlobal(pos));
+}
+
+void RDTreeView::expandAll(QModelIndex index)
+{
+  expand(index);
+
+  for(int r = 0, rows = model()->rowCount(index); r < rows; r++)
+    expandAll(model()->index(r, 0, index));
+}
+
+void RDTreeView::collapseAll(QModelIndex index)
+{
+  collapse(index);
+
+  for(int r = 0, rows = model()->rowCount(index); r < rows; r++)
+    collapseAll(model()->index(r, 0, index));
 }
 
 bool RDTreeView::viewportEvent(QEvent *event)

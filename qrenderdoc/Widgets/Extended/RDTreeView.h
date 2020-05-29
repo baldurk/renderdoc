@@ -127,6 +127,11 @@ public:
   void clearInternalExpansions() { m_Expansions.clear(); }
   virtual void copySelection();
 
+  void expandAll(QModelIndex index);
+  void collapseAll(QModelIndex index);
+  using QTreeView::expandAll;
+  using QTreeView::collapseAll;
+
 signals:
   void leave(QEvent *e);
   void keyPress(QKeyEvent *e);
@@ -137,6 +142,7 @@ protected:
   void leaveEvent(QEvent *e) override;
   void keyPressEvent(QKeyEvent *e) override;
   bool viewportEvent(QEvent *event) override;
+  void contextMenuEvent(QContextMenuEvent *event) override;
 
   void drawRow(QPainter *painter, const QStyleOptionViewItem &options,
                const QModelIndex &index) const override;
