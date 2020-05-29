@@ -123,6 +123,7 @@
     <ClCompile Include="d3d11\d3d11_1_many_uavs.cpp" />
     <ClCompile Include="d3d11\d3d11_array_interpolator.cpp" />
     <ClCompile Include="d3d11\d3d11_binding_hazards.cpp" />
+    <ClCompile Include="d3d11\d3d11_buffer_truncation.cpp" />
     <ClCompile Include="d3d11\d3d11_byte_address_buffers.cpp" />
     <ClCompile Include="d3d11\d3d11_cbuffer_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_counter_query_pred.cpp" />
@@ -168,6 +169,7 @@
     <ClCompile Include="d3d11\d3d11_untyped_backbuffer_descriptor.cpp" />
     <ClCompile Include="d3d11\d3d11_vertex_attr_zoo.cpp" />
     <ClCompile Include="d3d11\d3d11_video_textures.cpp" />
+    <ClCompile Include="d3d12\d3d12_buffer_truncation.cpp" />
     <ClCompile Include="d3d12\d3d12_cbuffer_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_draw_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_empty_capture.cpp" />
@@ -205,6 +207,7 @@
     </ClCompile>
     <ClCompile Include="3rdparty\glad\glad_wgl.c" />
     <ClCompile Include="gl\gl_buffer_spam.cpp" />
+    <ClCompile Include="gl\gl_buffer_truncation.cpp" />
     <ClCompile Include="gl\gl_buffer_updates.cpp" />
     <ClCompile Include="gl\gl_callstacks.cpp" />
     <ClCompile Include="gl\gl_cbuffer_zoo.cpp" />
@@ -275,7 +278,7 @@
     <ClCompile Include="vk\vk_spirv_13_shaders.cpp" />
     <ClCompile Include="vk\vk_texture_zoo.cpp" />
     <ClCompile Include="vk\vk_triangle_fan.cpp" />
-    <ClCompile Include="vk\vk_truncated_cbuffer.cpp" />
+    <ClCompile Include="vk\vk_buffer_truncation.cpp" />
     <ClCompile Include="vk\vk_vertex_attr_zoo.cpp" />
     <ClCompile Include="vk\vk_ext_buffer_address.cpp" />
     <ClCompile Include="vk\vk_cbuffer_zoo.cpp" />

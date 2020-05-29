@@ -8,6 +8,7 @@ set(VULKAN_SRC
         vk/vk_helpers.cpp
         vk/vk_test.cpp
         vk/vk_adv_cbuffer_zoo.cpp
+        vk/vk_buffer_truncation.cpp
         vk/vk_cbuffer_zoo.cpp
         vk/vk_custom_border_color.cpp
         vk/vk_descriptor_index.cpp
@@ -51,6 +52,7 @@ set(OPENGL_SRC
         gl/gl_test.cpp
         gl/gl_test_linux.cpp
         gl/gl_buffer_spam.cpp
+        gl/gl_buffer_truncation.cpp
         gl/gl_buffer_updates.cpp
         gl/gl_callstacks.cpp
         gl/gl_cbuffer_zoo.cpp

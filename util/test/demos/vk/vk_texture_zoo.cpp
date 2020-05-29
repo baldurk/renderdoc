@@ -1464,17 +1464,7 @@ void main()
 
       vkCmdEndRenderPass(cmd);
 
-      VkImageBlit region = {};
-      region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-      region.srcSubresource.layerCount = 1;
-      region.dstSubresource = region.srcSubresource;
-      region.srcOffsets[1].x = mainWindow->scissor.extent.width;
-      region.srcOffsets[1].y = mainWindow->scissor.extent.height;
-      region.srcOffsets[1].z = 1;
-      region.dstOffsets[1] = region.srcOffsets[1];
-
-      vkCmdBlitImage(cmd, fltTex.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapimg,
-                     VK_IMAGE_LAYOUT_GENERAL, 1, &region, VK_FILTER_LINEAR);
+      blitToSwap(cmd, fltTex.image, VK_IMAGE_LAYOUT_GENERAL, swapimg, VK_IMAGE_LAYOUT_GENERAL);
 
       FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 

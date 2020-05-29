@@ -259,12 +259,19 @@ class TestCase:
         else:
             num_indices = min(num_indices, draw.numIndices)
 
+        ioffs = draw.indexOffset * draw.indexByteWidth
+
         mesh = rd.MeshFormat()
         mesh.numIndices = num_indices
-        mesh.indexByteOffset = ib.byteOffset + draw.indexOffset * draw.indexByteWidth
+        mesh.indexByteOffset = ib.byteOffset + ioffs
         mesh.indexByteStride = draw.indexByteWidth
         mesh.indexResourceId = ib.resourceId
         mesh.baseVertex = draw.baseVertex
+
+        if ib.byteSize > ioffs:
+            mesh.indexByteSize = ib.byteSize - ioffs
+        else:
+            mesh.indexByteSize = 0
 
         if not (draw.flags & rd.DrawFlags.Indexed):
             mesh.indexByteOffset = 0
@@ -295,12 +302,19 @@ class TestCase:
 
         ib: rd.BoundVBuffer = self.controller.GetPipelineState().GetIBuffer()
 
+        ioffs = draw.indexOffset * draw.indexByteWidth
+
         in_mesh = rd.MeshFormat()
         in_mesh.numIndices = num_indices
-        in_mesh.indexByteOffset = ib.byteOffset + draw.indexOffset * draw.indexByteWidth
+        in_mesh.indexByteOffset = ib.byteOffset + ioffs
         in_mesh.indexByteStride = draw.indexByteWidth
         in_mesh.indexResourceId = ib.resourceId
         in_mesh.baseVertex = draw.baseVertex
+
+        if ib.byteSize > ioffs:
+            in_mesh.indexByteSize = ib.byteSize - ioffs
+        else:
+            in_mesh.indexByteSize = 0
 
         if not (draw.flags & rd.DrawFlags.Indexed):
             in_mesh.indexByteOffset = 0

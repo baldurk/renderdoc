@@ -1680,7 +1680,9 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
                 pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(resId);
             cbufData.clear();
 
-            pDevice->GetDebugManager()->GetBufferData(pCbvResource, byteOffset, 0, cbufData);
+            if(cbv.SizeInBytes > 0)
+              pDevice->GetDebugManager()->GetBufferData(pCbvResource, byteOffset, cbv.SizeInBytes,
+                                                        cbufData);
             AddCBufferToGlobalState(program, global, sourceVars, refl, mapping, slot, cbufData);
 
             desc++;
@@ -1777,18 +1779,22 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     {
       D3D12RenderState::VertBuffer &vb = rs.vbuffers[i];
       ID3D12Resource *buffer = m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(vb.buf);
-      GetDebugManager()->GetBufferData(buffer, vb.offs + vb.stride * (draw->vertexOffset + idx),
-                                       vb.stride, vertData[i]);
+
+      if(vb.stride * (draw->vertexOffset + idx) < vb.size)
+        GetDebugManager()->GetBufferData(buffer, vb.offs + vb.stride * (draw->vertexOffset + idx),
+                                         vb.stride, vertData[i]);
 
       for(UINT isr = 1; isr <= MaxStepRate; isr++)
       {
-        GetDebugManager()->GetBufferData(
-            buffer, vb.offs + vb.stride * (draw->instanceOffset + (instid / isr)), vb.stride,
-            instData[i * MaxStepRate + isr - 1]);
+        if((draw->instanceOffset + (instid / isr)) < vb.size)
+          GetDebugManager()->GetBufferData(
+              buffer, vb.offs + vb.stride * (draw->instanceOffset + (instid / isr)), vb.stride,
+              instData[i * MaxStepRate + isr - 1]);
       }
 
-      GetDebugManager()->GetBufferData(buffer, vb.offs + vb.stride * draw->instanceOffset,
-                                       vb.stride, staticData[i]);
+      if(vb.stride * draw->instanceOffset < vb.size)
+        GetDebugManager()->GetBufferData(buffer, vb.offs + vb.stride * draw->instanceOffset,
+                                         vb.stride, staticData[i]);
     }
   }
 

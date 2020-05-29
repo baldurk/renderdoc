@@ -401,7 +401,10 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   SAFE_DELETE_ARRAY(extscstr);
 
   if(ret != VK_SUCCESS)
+  {
+    RDCLOG("Instance creation returned %s", ToStr(ret).c_str());
     return ReplayStatus::APIHardwareUnsupported;
+  }
 
   RDCASSERTEQUAL(ret, VK_SUCCESS);
 

@@ -466,36 +466,35 @@ ResourceId PipeState::GetShader(ShaderStage stage) const
 
 BoundVBuffer PipeState::GetIBuffer() const
 {
-  ResourceId buf;
-  uint64_t ByteOffset = 0;
+  BoundVBuffer ret;
 
   if(IsCaptureLoaded())
   {
     if(IsCaptureD3D11())
     {
-      buf = m_D3D11->inputAssembly.indexBuffer.resourceId;
-      ByteOffset = m_D3D11->inputAssembly.indexBuffer.byteOffset;
+      ret.resourceId = m_D3D11->inputAssembly.indexBuffer.resourceId;
+      ret.byteOffset = m_D3D11->inputAssembly.indexBuffer.byteOffset;
+      ret.byteSize = ~0ULL;
     }
     else if(IsCaptureD3D12())
     {
-      buf = m_D3D12->inputAssembly.indexBuffer.resourceId;
-      ByteOffset = m_D3D12->inputAssembly.indexBuffer.byteOffset;
+      ret.resourceId = m_D3D12->inputAssembly.indexBuffer.resourceId;
+      ret.byteOffset = m_D3D12->inputAssembly.indexBuffer.byteOffset;
+      ret.byteSize = m_D3D12->inputAssembly.indexBuffer.byteSize;
     }
     else if(IsCaptureGL())
     {
-      buf = m_GL->vertexInput.indexBuffer;
-      ByteOffset = 0;    // GL only has per-draw index offset
+      ret.resourceId = m_GL->vertexInput.indexBuffer;
+      ret.byteOffset = 0;    // GL only has per-draw index offset
+      ret.byteSize = ~0ULL;
     }
     else if(IsCaptureVK())
     {
-      buf = m_Vulkan->inputAssembly.indexBuffer.resourceId;
-      ByteOffset = m_Vulkan->inputAssembly.indexBuffer.byteOffset;
+      ret.resourceId = m_Vulkan->inputAssembly.indexBuffer.resourceId;
+      ret.byteOffset = m_Vulkan->inputAssembly.indexBuffer.byteOffset;
+      ret.byteSize = ~0ULL;
     }
   }
-
-  BoundVBuffer ret;
-  ret.resourceId = buf;
-  ret.byteOffset = ByteOffset;
 
   return ret;
 }
@@ -562,6 +561,7 @@ rdcarray<BoundVBuffer> PipeState::GetVBuffers() const
         ret[i].resourceId = m_D3D11->inputAssembly.vertexBuffers[i].resourceId;
         ret[i].byteOffset = m_D3D11->inputAssembly.vertexBuffers[i].byteOffset;
         ret[i].byteStride = m_D3D11->inputAssembly.vertexBuffers[i].byteStride;
+        ret[i].byteSize = ~0ULL;
       }
     }
     else if(IsCaptureD3D12())
@@ -572,6 +572,7 @@ rdcarray<BoundVBuffer> PipeState::GetVBuffers() const
         ret[i].resourceId = m_D3D12->inputAssembly.vertexBuffers[i].resourceId;
         ret[i].byteOffset = m_D3D12->inputAssembly.vertexBuffers[i].byteOffset;
         ret[i].byteStride = m_D3D12->inputAssembly.vertexBuffers[i].byteStride;
+        ret[i].byteSize = m_D3D12->inputAssembly.vertexBuffers[i].byteSize;
       }
     }
     else if(IsCaptureGL())
@@ -582,6 +583,7 @@ rdcarray<BoundVBuffer> PipeState::GetVBuffers() const
         ret[i].resourceId = m_GL->vertexInput.vertexBuffers[i].resourceId;
         ret[i].byteOffset = m_GL->vertexInput.vertexBuffers[i].byteOffset;
         ret[i].byteStride = m_GL->vertexInput.vertexBuffers[i].byteStride;
+        ret[i].byteSize = ~0ULL;
       }
     }
     else if(IsCaptureVK())
@@ -592,6 +594,7 @@ rdcarray<BoundVBuffer> PipeState::GetVBuffers() const
         ret[i].resourceId = m_Vulkan->vertexInput.vertexBuffers[i].resourceId;
         ret[i].byteOffset = m_Vulkan->vertexInput.vertexBuffers[i].byteOffset;
         ret[i].byteStride = 0;
+        ret[i].byteSize = ~0ULL;
 
         // find the binding that corresponds to this VB to get the stride. Valid use suggests there
         // should be at most 1, so stop at first result. If there are 0 then the stride is just 0
@@ -964,6 +967,9 @@ BoundCBuffer PipeState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, ui
             buf = b.resourceId;
             ByteOffset = b.byteOffset;
             ByteSize = b.byteSize;
+
+            if(ByteSize == 0)
+              ByteSize = ~0ULL;
           }
         }
       }

@@ -752,7 +752,7 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
             formatter = BufferFormatter::DeclareStruct(ptrType.descriptor.name, ptrType.members,
                                                        ptrType.descriptor.arrayByteStride);
 
-          IBufferViewer *view = ctx.ViewBuffer(ptr->offset, 0, ptr->base, formatter);
+          IBufferViewer *view = ctx.ViewBuffer(ptr->offset, ~0ULL, ptr->base, formatter);
 
           ctx.AddDockWindow(view->Widget(), DockReference::MainToolArea, NULL);
         }

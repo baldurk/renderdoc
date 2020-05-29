@@ -46,6 +46,8 @@ struct MeshFormat
   uint64_t indexByteOffset = 0;
   DOCUMENT("The width in bytes of each index. Valid values are 1 (depending on API), 2 or 4.");
   uint32_t indexByteStride = 0;
+  DOCUMENT("The number of bytes to use from the index buffer. Only valid on APIs that allow it.");
+  uint64_t indexByteSize = 0;
   DOCUMENT("For indexed meshes, a value added to each index before using it to read the vertex.");
   int32_t baseVertex = 0;
 
@@ -55,6 +57,8 @@ struct MeshFormat
   uint64_t vertexByteOffset = 0;
   DOCUMENT("The stride in bytes between the start of one vertex and the start of another.");
   uint32_t vertexByteStride = 0;
+  DOCUMENT("The number of bytes to use from the vertex buffer. Only valid on APIs that allow it.");
+  uint64_t vertexByteSize = 0;
 
   DOCUMENT("The :class:`ResourceFormat` describing this mesh component.");
   ResourceFormat format;

@@ -3037,6 +3037,7 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uin
       ret.indexByteStride = 1;
     else
       ret.indexByteStride = 2;
+    ret.indexByteSize = ~0ULL;
   }
   else
   {
@@ -3047,9 +3048,14 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uin
   ret.baseVertex = s.baseVertex;
 
   if(s.buf != VK_NULL_HANDLE)
+  {
     ret.vertexResourceId = GetResID(s.buf);
+    ret.vertexByteSize = ~0ULL;
+  }
   else
+  {
     ret.vertexResourceId = ResourceId();
+  }
 
   ret.vertexByteOffset = s.instStride * (instID + viewID * numInstances);
   ret.vertexByteStride = s.vertStride;

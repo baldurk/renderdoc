@@ -2067,7 +2067,7 @@ void TextureViewer::ViewTexture(ResourceId ID, bool focus)
   BufferDescription *buf = m_Ctx.GetBuffer(ID);
   if(buf)
   {
-    IBufferViewer *viewer = m_Ctx.ViewBuffer(0, 0, ID);
+    IBufferViewer *viewer = m_Ctx.ViewBuffer(0, ~0ULL, ID);
 
     m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
   }

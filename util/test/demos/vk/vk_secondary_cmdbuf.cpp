@@ -215,15 +215,7 @@ void main()
                                            VK_IMAGE_LAYOUT_GENERAL, img.image),
                });
 
-      region.srcOffsets[1].x = size.extent.width;
-      region.srcOffsets[1].y = size.extent.height;
-      region.srcOffsets[1].z = 1;
-      region.dstOffsets[1].x = mainWindow->scissor.extent.width;
-      region.dstOffsets[1].y = mainWindow->scissor.extent.height;
-      region.dstOffsets[1].z = 1;
-
-      vkCmdBlitImage(cmd, img.image, VK_IMAGE_LAYOUT_GENERAL, swapimg, VK_IMAGE_LAYOUT_GENERAL, 1,
-                     &region, VK_FILTER_LINEAR);
+      blitToSwap(cmd, img.image, VK_IMAGE_LAYOUT_GENERAL, swapimg, VK_IMAGE_LAYOUT_GENERAL);
 
       FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 

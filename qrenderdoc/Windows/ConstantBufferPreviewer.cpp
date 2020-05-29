@@ -136,7 +136,9 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventId)
   if(!m_formatOverride.type.members.empty())
   {
     m_Ctx.Replay().AsyncInvoke([this, offset, size, wasEmpty](IReplayController *r) {
-      bytebuf data = r->GetBufferData(m_cbuffer, offset, size);
+      bytebuf data;
+      if(size > 0)
+        data = r->GetBufferData(m_cbuffer, offset, size);
       rdcarray<ShaderVariable> vars = applyFormatOverride(data);
       GUIInvoke::call(this, [this, vars, wasEmpty] {
         RDTreeViewExpansionState state;
@@ -279,7 +281,7 @@ void ConstantBufferPreviewer::processFormat(const QString &format)
   {
     QString errors;
 
-    m_formatOverride = BufferFormatter::ParseFormatString(format, 0, false, errors);
+    m_formatOverride = BufferFormatter::ParseFormatString(format, ~0ULL, false, errors);
     ui->formatSpecifier->setErrors(errors);
   }
 

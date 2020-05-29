@@ -793,10 +793,12 @@ void DoSerialise(SerialiserType &ser, MeshFormat &el)
   SERIALISE_MEMBER(indexResourceId);
   SERIALISE_MEMBER(indexByteOffset);
   SERIALISE_MEMBER(indexByteStride);
+  SERIALISE_MEMBER(indexByteSize);
   SERIALISE_MEMBER(baseVertex);
   SERIALISE_MEMBER(vertexResourceId);
   SERIALISE_MEMBER(vertexByteOffset);
   SERIALISE_MEMBER(vertexByteStride);
+  SERIALISE_MEMBER(vertexByteSize);
   SERIALISE_MEMBER(format);
   SERIALISE_MEMBER(meshColor);
   SERIALISE_MEMBER(topology);
@@ -808,7 +810,7 @@ void DoSerialise(SerialiserType &ser, MeshFormat &el)
   SERIALISE_MEMBER(instanced);
   SERIALISE_MEMBER(showAlpha);
 
-  SIZE_CHECK(96);
+  SIZE_CHECK(128);
 }
 
 template <typename SerialiserType>
