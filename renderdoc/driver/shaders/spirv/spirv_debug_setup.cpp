@@ -36,6 +36,40 @@ static ShaderVariable *pointerIfMutable(ShaderVariable &var)
   return &var;
 }
 
+static void ClampScalars(rdcspv::DebugAPIWrapper *apiWrapper, const ShaderVariable &var,
+                         uint32_t &scalar0)
+{
+  if(scalar0 > var.columns && scalar0 != ~0U)
+  {
+    apiWrapper->AddDebugMessage(
+        MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+        StringFormat::Fmt("Invalid scalar index %u at %u-vector %s. Clamping to %u", scalar0,
+                          var.columns, var.name.c_str(), var.columns - 1));
+    scalar0 = var.columns - 1;
+  }
+}
+
+static void ClampScalars(rdcspv::DebugAPIWrapper *apiWrapper, const ShaderVariable &var,
+                         uint32_t &scalar0, uint32_t &scalar1)
+{
+  if(scalar0 > var.columns && scalar0 != ~0U)
+  {
+    apiWrapper->AddDebugMessage(
+        MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+        StringFormat::Fmt("Invalid scalar index %u at matrix %s with %u columns. Clamping to %u",
+                          scalar0, var.columns, var.name.c_str(), var.columns - 1));
+    scalar0 = var.columns - 1;
+  }
+  if(scalar1 > var.rows && scalar1 != ~0U)
+  {
+    apiWrapper->AddDebugMessage(
+        MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+        StringFormat::Fmt("Invalid scalar index %u at matrix %s with %u rows. Clamping to %u",
+                          scalar0, var.rows, var.name.c_str(), var.rows - 1));
+    scalar1 = var.rows - 1;
+  }
+}
+
 static uint32_t VarByteSize(const ShaderVariable &var)
 {
   return VarTypeByteSize(var.type) * RDCMAX(1U, (uint32_t)var.rows) *
@@ -1291,13 +1325,32 @@ ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
     i++;
   while(i < indices.size() && !leaf->members.empty())
   {
-    leaf = &leaf->members[indices[i++]];
+    uint32_t idx = indices[i++];
+    if(idx > leaf->members.size())
+    {
+      apiWrapper->AddDebugMessage(
+          MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+          StringFormat::Fmt("Index %u invalid at leaf %s. Clamping to %zu", idx, leaf->name.c_str(),
+                            leaf->members.size() - 1));
+      idx = uint32_t(leaf->members.size() - 1);
+    }
+    leaf = &leaf->members[idx];
   }
 
   // apply any remaining scalar selectors
   uint32_t scalar0 = ~0U, scalar1 = ~0U;
 
   size_t remaining = indices.size() - i;
+
+  if(remaining > 2)
+  {
+    apiWrapper->AddDebugMessage(
+        MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+        StringFormat::Fmt("Too many indices left (%zu) at leaf %s. Ignoring all but last two",
+                          remaining, leaf->name.c_str()));
+    i = indices.size() - 2;
+  }
+
   if(remaining == 2)
   {
     scalar0 = indices[i];
@@ -1459,6 +1512,7 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
   if(ret.rows > 1)
   {
     // matrix case
+    ClampScalars(apiWrapper, ptr, scalar0, scalar1);
 
     if(scalar0 != ~0U && scalar1 != ~0U)
     {
@@ -1491,6 +1545,8 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
   }
   else
   {
+    ClampScalars(apiWrapper, ptr, scalar0);
+
     // vector case, selecting a scalar (if anything)
     if(scalar0 != ~0U)
     {
@@ -1648,6 +1704,7 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
     if(storage->rows > 1)
     {
       // matrix case
+      ClampScalars(apiWrapper, *storage, scalar0, scalar1);
 
       if(scalar0 != ~0U && scalar1 != ~0U)
       {
@@ -1672,6 +1729,8 @@ void Debugger::WriteThroughPointer(const ShaderVariable &ptr, const ShaderVariab
     }
     else
     {
+      ClampScalars(apiWrapper, *storage, scalar0);
+
       // vector case, selecting a scalar
       if(VarTypeByteSize(storage->type) == 8)
         storage->value.u64v[scalar0] = val.value.u64v[0];
