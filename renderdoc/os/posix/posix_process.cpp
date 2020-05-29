@@ -419,7 +419,7 @@ static void CleanupStringArray(char **arr, char **invalid)
 }
 
 static pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine, char **envp,
-                        int stdoutPipe[2] = NULL, int stderrPipe[2] = NULL)
+                        bool pauseAtMain, int stdoutPipe[2] = NULL, int stderrPipe[2] = NULL)
 {
   if(!app)
     return (pid_t)0;
@@ -578,7 +578,8 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
     childPid = fork();
     if(childPid == 0)
     {
-      StopAtMainInChild();
+      if(pauseAtMain)
+        StopAtMainInChild();
 
       FileIO::ReleaseFDAfterFork();
       if(stdoutPipe)
@@ -621,7 +622,8 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
         children.append(node);
       }
 
-      StopChildAtMain(childPid);
+      if(pauseAtMain)
+        StopChildAtMain(childPid);
     }
   }
 
@@ -663,10 +665,8 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
   }
 
   char **currentEnvironment = GetCurrentEnvironment();
-  pid_t ret = RunProcess(app, workingDir, cmdLine, currentEnvironment, result ? stdoutPipe : NULL,
-                         result ? stderrPipe : NULL);
-
-  ResumeProcess(ret);
+  pid_t ret = RunProcess(app, workingDir, cmdLine, currentEnvironment, false,
+                         result ? stdoutPipe : NULL, result ? stderrPipe : NULL);
 
   if(result)
   {
@@ -843,7 +843,7 @@ rdcpair<ReplayStatus, uint32_t> Process::LaunchAndInjectIntoProcess(
 
   RDCLOG("Running process %s for injection", app);
 
-  pid_t childPid = RunProcess(app, workingDir, cmdLine, envp);
+  pid_t childPid = RunProcess(app, workingDir, cmdLine, envp, true);
 
   int ret = 0;
 
