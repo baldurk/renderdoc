@@ -225,7 +225,6 @@ enum class TypeRecord : uint32_t
   STRUCT_NAME = 19,
   STRUCT_NAMED = 20,
   FUNCTION = 21,
-  TOKEN = 22,
 };
 
 static rdcstr getName(uint32_t parentBlock, const LLVMBC::BlockOrRecord &block)
@@ -439,7 +438,6 @@ static rdcstr getName(uint32_t parentBlock, const LLVMBC::BlockOrRecord &block)
           STRINGISE_RECORD(STRUCT_NAME);
           STRINGISE_RECORD(STRUCT_NAMED);
           STRINGISE_RECORD(FUNCTION);
-          STRINGISE_RECORD(TOKEN);
           default: break;
         }
         break;
@@ -498,10 +496,13 @@ static rdcstr escapeString(rdcstr str)
   return str;
 }
 
-static void dumpRecord(uint32_t parentBlock, const LLVMBC::BlockOrRecord &record, int indent)
+static void dumpRecord(size_t idx, uint32_t parentBlock, const LLVMBC::BlockOrRecord &record,
+                       int indent)
 {
   rdcstr line;
   line.fill(indent, ' ');
+
+  line += StringFormat::Fmt("[%u] = ", idx);
 
   line += "<" + getName(parentBlock, record);
 
@@ -514,6 +515,19 @@ static void dumpRecord(uint32_t parentBlock, const LLVMBC::BlockOrRecord &record
   }
   else
   {
+    bool allASCII = true;
+    for(size_t i = 0; i < record.ops.size(); i++)
+    {
+      if(record.ops[i] < 0x20 || record.ops[i] > 0x7f)
+      {
+        allASCII = false;
+        break;
+      }
+    }
+
+    if(allASCII && record.ops.size() > 3)
+      line += " record string = '" + escapeString(record.getString()) + "'";
+
     for(size_t i = 0; i < record.ops.size(); i++)
       line += StringFormat::Fmt(" op%u=%llu", (uint32_t)i, record.ops[i]);
   }
@@ -541,12 +555,14 @@ static void dumpBlock(const LLVMBC::BlockOrRecord &block, int indent)
   line += StringFormat::Fmt("<%s NumWords=%u>", getName(0, block).c_str(), block.blockDwordLength);
   RDCLOG("%s", line.c_str());
 
-  for(const LLVMBC::BlockOrRecord &child : block.children)
+  for(size_t i = 0; i < block.children.size(); i++)
   {
+    const LLVMBC::BlockOrRecord &child = block.children[i];
+
     if(child.IsBlock())
       dumpBlock(child, indent + 2);
     else
-      dumpRecord(block.id, child, indent + 2);
+      dumpRecord(i, block.id, child, indent + 2);
   }
 
   line.fill(indent, ' ');
