@@ -455,12 +455,6 @@ public:
 
   bool IsResourceTrackedForPersistency(WrappedVkRes *const &res);
 
-  void MarkDirtyWithWriteReference(ResourceId id)
-  {
-    MarkResourceFrameReferenced(id, eFrameRef_ReadBeforeWrite);
-    MarkDirtyResource(id);
-  }
-
 private:
   bool ResourceTypeRelease(WrappedVkRes *res);
 

@@ -910,7 +910,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
             it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
         {
           if(GetResourceManager()->HasCurrentResource(*it))
-            GetResourceManager()->MarkDirtyWithWriteReference(*it);
+            GetResourceManager()->MarkDirtyResource(*it);
         }
 
         // with EXT_descriptor_indexing a binding might have been updated after
@@ -931,7 +931,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
                refit->second.second == eFrameRef_ReadBeforeWrite)
             {
               if(GetResourceManager()->HasCurrentResource(refit->first))
-                GetResourceManager()->MarkDirtyWithWriteReference(refit->first);
+                GetResourceManager()->MarkDirtyResource(refit->first);
             }
           }
         }
@@ -1119,7 +1119,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
               state.mapFlushed = false;
             }
 
-            GetResourceManager()->MarkDirtyWithWriteReference(record->GetResourceID());
+            GetResourceManager()->MarkDirtyResource(record->GetResourceID());
           }
           else
           {

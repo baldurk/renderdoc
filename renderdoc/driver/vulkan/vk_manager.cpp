@@ -853,6 +853,14 @@ void VulkanResourceManager::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSi
   SCOPED_LOCK(m_Lock);
 
   FrameRefType maxRef = MarkMemoryReferenced(m_MemFrameRefs, mem, offset, size, refType);
+  if(maxRef == eFrameRef_CompleteWrite)
+  {
+    // check and make sure this is really a CompleteWrite
+    VkResourceRecord *record = GetResourceRecord(mem);
+    // if we are not writing the entire memory, degrade it to a partial write
+    if(offset != 0 || size != record->Length)
+      maxRef = eFrameRef_PartialWrite;
+  }
   MarkResourceFrameReferenced(mem, maxRef, ComposeFrameRefsDisjoint);
 }
 
