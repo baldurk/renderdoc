@@ -747,6 +747,154 @@ Program::Program(const byte *bytes, size_t length)
       }
       else if(IS_KNOWN(rootchild.id, KnownBlocks::TYPE_BLOCK))
       {
+        rdcstr structname;
+
+        if(!rootchild.children.empty() && !IS_KNOWN(rootchild.children[0].id, TypeRecord::NUMENTRY))
+        {
+          RDCWARN("No NUMENTRY record, resizing conservatively to number of records");
+          m_Types.resize(rootchild.children.size());
+        }
+
+        size_t typeIndex = 0;
+        for(const LLVMBC::BlockOrRecord &typ : rootchild.children)
+        {
+          if(IS_KNOWN(typ.id, TypeRecord::NUMENTRY))
+          {
+            RDCASSERT(m_Types.size() < (size_t)typ.ops[0], m_Types.size(), typ.ops[0]);
+            m_Types.resize((size_t)typ.ops[0]);
+          }
+          else if(IS_KNOWN(typ.id, TypeRecord::VOID))
+          {
+            m_Types[typeIndex].type = Type::Scalar;
+            m_Types[typeIndex].scalarType = Type::Void;
+
+            typeIndex++;
+          }
+          else if(IS_KNOWN(typ.id, TypeRecord::LABEL))
+          {
+            m_Types[typeIndex].type = Type::Label;
+
+            typeIndex++;
+          }
+          else if(IS_KNOWN(typ.id, TypeRecord::METADATA))
+          {
+            m_Types[typeIndex].type = Type::Metadata;
+
+            typeIndex++;
+          }
+          else if(IS_KNOWN(typ.id, TypeRecord::HALF))
+          {
+            m_Types[typeIndex].type = Type::Scalar;
+            m_Types[typeIndex].scalarType = Type::Float;
+            m_Types[typeIndex].bitWidth = 16;
+
+            typeIndex++;
+          }
+          else if(IS_KNOWN(typ.id, TypeRecord::FLOAT))
+          {
+            m_Types[typeIndex].type = Type::Scalar;
+            m_Types[typeIndex].scalarType = Type::Float;
+            m_Types[typeIndex].bitWidth = 32;
+
+            typeIndex++;
+          }
+          else if(IS_KNOWN(typ.id, TypeRecord::DOUBLE))
+          {
+            m_Types[typeIndex].type = Type::Scalar;
+            m_Types[typeIndex].scalarType = Type::Float;
+            m_Types[typeIndex].bitWidth = 64;
+
+            typeIndex++;
+          }
+          else if(IS_KNOWN(typ.id, TypeRecord::INTEGER))
+          {
+            m_Types[typeIndex].type = Type::Scalar;
+            m_Types[typeIndex].scalarType = Type::Int;
+            m_Types[typeIndex].bitWidth = typ.ops[0] & 0xffffffff;
+
+            typeIndex++;
+          }
+          else if(IS_KNOWN(typ.id, TypeRecord::VECTOR))
+          {
+            m_Types[typeIndex].type = Type::Vector;
+            m_Types[typeIndex].elemCount = typ.ops[0] & 0xffffffff;
+            m_Types[typeIndex].inner = &m_Types[(size_t)typ.ops[1]];
+
+            // copy properties out of the inner for convenience
+            m_Types[typeIndex].scalarType = m_Types[typeIndex].inner->scalarType;
+            m_Types[typeIndex].bitWidth = m_Types[typeIndex].inner->bitWidth;
+
+            typeIndex++;
+          }
+          else if(IS_KNOWN(typ.id, TypeRecord::ARRAY))
+          {
+            m_Types[typeIndex].type = Type::Vector;
+            m_Types[typeIndex].elemCount = typ.ops[0] & 0xffffffff;
+            m_Types[typeIndex].inner = &m_Types[(size_t)typ.ops[1]];
+
+            typeIndex++;
+          }
+          else if(IS_KNOWN(typ.id, TypeRecord::POINTER))
+          {
+            m_Types[typeIndex].type = Type::Pointer;
+            m_Types[typeIndex].inner = &m_Types[(size_t)typ.ops[0]];
+
+            if(typ.ops.size() > 1)
+              RDCWARN("Ignoring address space on pointer type");
+
+            typeIndex++;
+          }
+          else if(IS_KNOWN(typ.id, TypeRecord::OPAQUE))
+          {
+            // pretend opaque types are empty structs
+            m_Types[typeIndex].type = Type::Struct;
+
+            typeIndex++;
+          }
+          else if(IS_KNOWN(typ.id, TypeRecord::STRUCT_NAME))
+          {
+            structname = typ.getString(0);
+          }
+          else if(IS_KNOWN(typ.id, TypeRecord::STRUCT_ANON) ||
+                  IS_KNOWN(typ.id, TypeRecord::STRUCT_NAMED))
+          {
+            m_Types[typeIndex].type = Type::Struct;
+            m_Types[typeIndex].packedStruct = (typ.ops[0] != 0);
+
+            for(size_t o = 1; o < typ.ops.size(); o++)
+              m_Types[typeIndex].members.push_back(&m_Types[(size_t)typ.ops[o]]);
+
+            if(IS_KNOWN(typ.id, TypeRecord::STRUCT_NAMED))
+            {
+              m_Types[typeIndex].name = structname;
+              structname.clear();
+            }
+
+            typeIndex++;
+          }
+          else if(IS_KNOWN(typ.id, TypeRecord::FUNCTION_OLD) ||
+                  IS_KNOWN(typ.id, TypeRecord::FUNCTION))
+          {
+            m_Types[typeIndex].type = Type::Function;
+
+            m_Types[typeIndex].vararg = (typ.ops[0] != 0);
+
+            size_t o = 1;
+
+            // skip attrid
+            if(IS_KNOWN(typ.id, TypeRecord::FUNCTION_OLD))
+              o++;
+
+            // return type
+            m_Types[typeIndex].inner = &m_Types[(size_t)typ.ops[o]];
+            o++;
+
+            for(; o < typ.ops.size(); o++)
+              m_Types[typeIndex].members.push_back(&m_Types[(size_t)typ.ops[o]]);
+
+            typeIndex++;
+          }
+        }
       }
       else if(IS_KNOWN(rootchild.id, KnownBlocks::CONSTANTS_BLOCK))
       {

@@ -33,6 +33,42 @@
 
 namespace DXIL
 {
+struct Type
+{
+  enum TypeKind
+  {
+    None = 0,
+
+    Scalar,
+    Vector,
+    Pointer,
+    Array,
+    Function,
+    Struct,
+
+    Metadata,
+    Label,
+  } type = None;
+
+  enum ScalarKind
+  {
+    Void = 0,
+    Float,
+    Int,
+  } scalarType = Void;
+
+  // for scalars, arrays, vectors
+  uint32_t bitWidth = 0, elemCount = 0;
+
+  // the single inner type for pointers, vectors, or arrays, the return type for functions
+  Type *inner = NULL;
+
+  // struct or function
+  bool packedStruct = false, vararg = false;
+  rdcstr name;
+  rdcarray<Type *> members;    // the members for a struct, the parameters for functions
+};
+
 struct Function
 {
   rdcstr name;
@@ -161,6 +197,8 @@ private:
   rdcarray<Symbol> m_Symbols;
 
   rdcarray<rdcstr> m_Kinds;
+
+  rdcarray<Type> m_Types;
 
   rdcarray<AttributeGroup> m_AttributeGroups;
   rdcarray<rdcarray<AttributeGroup *>> m_Attributes;
