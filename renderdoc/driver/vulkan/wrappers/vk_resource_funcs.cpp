@@ -704,7 +704,10 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
         capframe = IsActiveCapturing(m_State);
 
         if(!capframe)
-          GetResourceManager()->MarkDirtyWithWriteReference(id);
+        {
+          GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_PartialWrite);
+          GetResourceManager()->MarkDirtyResource(id);
+        }
       }
 
       SCOPED_LOCK(state.mrLock);
@@ -861,8 +864,9 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
       }
 
       ResourceId memid = GetResID(pMemRanges[i].memory);
+      VkResourceRecord *record = GetRecord(pMemRanges[i].memory);
 
-      MemMapState *state = GetRecord(pMemRanges[i].memory)->memMapState;
+      MemMapState *state = record->memMapState;
       state->mapFlushed = true;
 
       if(state->mappedPtr == NULL)
@@ -880,12 +884,16 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
         if(size == VK_WHOLE_SIZE)
           size = state->mapOffset + state->mapSize - offs;
 
-        GetResourceManager()->MarkMemoryFrameReferenced(GetResID(pMemRanges[i].memory), offs, size,
-                                                        eFrameRef_CompleteWrite);
+        GetResourceManager()->MarkMemoryFrameReferenced(memid, offs, size, eFrameRef_CompleteWrite);
       }
       else
       {
-        GetResourceManager()->MarkDirtyWithWriteReference(memid);
+        FrameRefType refType = eFrameRef_PartialWrite;
+        if(pMemRanges[i].offset == 0 && pMemRanges[i].size >= record->Length)
+          refType = eFrameRef_CompleteWrite;
+
+        GetResourceManager()->MarkResourceFrameReferenced(memid, refType);
+        GetResourceManager()->MarkDirtyResource(memid);
       }
     }
   }
@@ -989,13 +997,15 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
       chunk = scope.Get();
     }
 
+    ResourceId id = GetResID(memory);
+
     // memory object bindings are immutable and must happen before creation or use,
     // so this can always go into the record, even if a resource is created and bound
     // to memory mid-frame
     record->AddChunk(chunk);
 
     record->AddParent(GetRecord(memory));
-    record->baseResource = GetResID(memory);
+    record->baseResource = id;
     record->memOffset = memoryOffset;
 
     // if the buffer was force-referenced, do the same with the memory
@@ -1005,11 +1015,11 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
       // read-before-write referenced
       GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
                                                         eFrameRef_ReadBeforeWrite);
-      GetResourceManager()->MarkMemoryFrameReferenced(GetResID(memory), memoryOffset,
-                                                      record->memSize, eFrameRef_ReadBeforeWrite);
+      GetResourceManager()->MarkMemoryFrameReferenced(id, memoryOffset, record->memSize,
+                                                      eFrameRef_ReadBeforeWrite);
 
       // the memory is immediately dirty because we have no way of tracking writes to it
-      GetResourceManager()->MarkDirtyWithWriteReference(GetResID(memory));
+      GetResourceManager()->MarkDirtyResource(id);
     }
   }
 
@@ -1314,7 +1324,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
         // buffers are always bound opaquely and in arbitrary divisions, sparse residency
         // only means not all the buffer needs to be bound, which is not that interesting for
         // our purposes. We just need to make sure sparse buffers are dirty.
-        GetResourceManager()->MarkDirtyWithWriteReference(id);
+        GetResourceManager()->MarkDirtyResource(id);
       }
 
       if(isSparse || isExternal)
@@ -1793,7 +1803,8 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       // not be valid to map from/into if the image isn't in GENERAL layout).
       if(isSparse || isExternal || isLinear)
       {
-        GetResourceManager()->MarkDirtyWithWriteReference(id);
+        GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_ReadBeforeWrite);
+        GetResourceManager()->MarkDirtyResource(id);
 
         // for external images, try creating a non-external version and take the worst case of
         // memory requirements, in case the non-external one (as we will replay it) needs more
@@ -2129,7 +2140,7 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
             eFrameRef_ReadBeforeWrite);
 
         // the memory is immediately dirty because we have no way of tracking writes to it
-        GetResourceManager()->MarkDirtyWithWriteReference(GetResID(pBindInfos[i].memory));
+        GetResourceManager()->MarkDirtyResource(GetResID(pBindInfos[i].memory));
       }
     }
   }

@@ -3523,7 +3523,9 @@ bool FramebufferInfo::AttachmentFullyReferenced(size_t attachmentIndex, const Re
   }
   // if view doesn't reference the entire image
   if(att->viewRange.baseArrayLayer != 0 ||
-     att->viewRange.layerCount() != (uint32_t)att->resInfo->imageInfo.layerCount)
+     att->viewRange.layerCount() != (uint32_t)att->resInfo->imageInfo.layerCount ||
+     att->viewRange.baseMipLevel != 0 ||
+     att->viewRange.levelCount() != (uint32_t)att->resInfo->imageInfo.levelCount)
   {
     return false;
   }
