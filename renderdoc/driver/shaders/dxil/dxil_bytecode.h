@@ -32,6 +32,37 @@
 
 namespace DXIL
 {
+struct Function
+{
+  rdcstr name;
+
+  uint32_t funcType;
+  uint32_t linkage;
+};
+
+struct GlobalVar
+{
+  rdcstr name;
+};
+
+struct Alias
+{
+  rdcstr name;
+};
+
+enum class SymbolType
+{
+  Function,
+  GlobalVar,
+  Alias,
+};
+
+struct Symbol
+{
+  SymbolType type;
+  size_t idx;
+};
+
 class Program
 {
 public:
@@ -57,6 +88,13 @@ private:
 
   DXBC::ShaderType m_Type;
   uint32_t m_Major, m_Minor;
+
+  rdcarray<GlobalVar> m_GlobalVars;
+  rdcarray<Function> m_Functions;
+  rdcarray<Alias> m_Aliases;
+  rdcarray<Symbol> m_Symbols;
+
+  rdcarray<rdcstr> m_Kinds;
 
   rdcstr m_Triple, m_Datalayout;
 

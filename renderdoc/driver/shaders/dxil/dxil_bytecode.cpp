@@ -73,7 +73,9 @@ enum class ModuleRecord : uint32_t
   VERSION = 1,
   TRIPLE = 2,
   DATALAYOUT = 3,
+  GLOBALVAR = 7,
   FUNCTION = 8,
+  ALIAS = 14,
 };
 
 enum class ConstantsRecord : uint32_t
@@ -258,7 +260,9 @@ static rdcstr getName(uint32_t parentBlock, const LLVMBC::BlockOrRecord &block)
           STRINGISE_RECORD(VERSION);
           STRINGISE_RECORD(TRIPLE);
           STRINGISE_RECORD(DATALAYOUT);
+          STRINGISE_RECORD(GLOBALVAR);
           STRINGISE_RECORD(FUNCTION);
+          STRINGISE_RECORD(ALIAS);
           default: break;
         }
         break;
@@ -570,194 +574,278 @@ Program::Program(const byte *bytes, size_t length)
 
 #define IS_KNOWN(val, KnownID) (decltype(KnownID)(val) == KnownID)
 
-  for(const LLVMBC::BlockOrRecord &rootblock : root.children)
+  for(const LLVMBC::BlockOrRecord &rootchild : root.children)
   {
-    if(rootblock.IsRecord() && IS_KNOWN(rootblock.id, ModuleRecord::TRIPLE))
+    if(rootchild.IsRecord())
     {
-      m_Triple = rootblock.getString();
-    }
-    else if(rootblock.IsRecord() && IS_KNOWN(rootblock.id, ModuleRecord::DATALAYOUT))
-    {
-      m_Datalayout = rootblock.getString();
-    }
-    else if(rootblock.IsBlock() && IS_KNOWN(rootblock.id, KnownBlocks::VALUE_SYMTAB_BLOCK))
-    {
-      for(const LLVMBC::BlockOrRecord &symtab : rootblock.children)
+      if(IS_KNOWN(rootchild.id, ModuleRecord::VERSION))
       {
-        RDCLOG("function %llu is \"%s\"\n", symtab.ops[0], symtab.getString(1).c_str());
+        if(rootchild.ops[0] != 1)
+        {
+          RDCERR("Unsupported LLVM bitcode version %u", rootchild.ops[0]);
+          break;
+        }
+      }
+      else if(IS_KNOWN(rootchild.id, ModuleRecord::TRIPLE))
+      {
+        m_Triple = rootchild.getString();
+      }
+      else if(IS_KNOWN(rootchild.id, ModuleRecord::DATALAYOUT))
+      {
+        m_Datalayout = rootchild.getString();
+      }
+      else if(IS_KNOWN(rootchild.id, ModuleRecord::GLOBALVAR))
+      {
+        GlobalVar g;
+
+        // symbols refer into any of N types in declaration order
+        m_Symbols.push_back({SymbolType::GlobalVar, m_GlobalVars.size()});
+
+        m_GlobalVars.push_back(g);
+      }
+      else if(IS_KNOWN(rootchild.id, ModuleRecord::FUNCTION))
+      {
+        // [type, callingconv, isproto, linkage, paramattrs, alignment, section, visibility, gc,
+        // unnamed_addr]
+        Function f;
+
+        f.funcType = (uint32_t)rootchild.ops[0];
+        f.linkage = (uint32_t)rootchild.ops[3];
+
+        // symbols refer into any of N types in declaration order
+        m_Symbols.push_back({SymbolType::Function, m_Functions.size()});
+
+        m_Functions.push_back(f);
+      }
+      else if(IS_KNOWN(rootchild.id, ModuleRecord::ALIAS))
+      {
+        // [alias value type, addrspace, aliasee val#, linkage, visibility]
+        Alias a;
+
+        // symbols refer into any of N types in declaration order
+        m_Symbols.push_back({SymbolType::Alias, m_Aliases.size()});
+
+        m_Aliases.push_back(a);
+      }
+      else
+      {
+        RDCWARN("Unknown record ID %u encountered at module scope", rootchild.id);
       }
     }
-    else if(rootblock.IsBlock() && IS_KNOWN(rootblock.id, KnownBlocks::METADATA_BLOCK))
+    else if(rootchild.IsBlock())
     {
-      for(size_t i = 0; i < rootblock.children.size(); i++)
+      if(IS_KNOWN(rootchild.id, KnownBlocks::BLOCKINFO))
       {
-        const LLVMBC::BlockOrRecord &meta = rootblock.children[i];
-        if(IS_KNOWN(meta.id, MetaDataRecord::NAME))
+        // do nothing, this is internal parse data
+      }
+      else if(IS_KNOWN(rootchild.id, KnownBlocks::FUNCTION_BLOCK))
+      {
+      }
+      else if(IS_KNOWN(rootchild.id, KnownBlocks::VALUE_SYMTAB_BLOCK))
+      {
+        for(const LLVMBC::BlockOrRecord &symtab : rootchild.children)
         {
-          rdcstr metaName = meta.getString();
-          i++;
-          const LLVMBC::BlockOrRecord &namedNode = rootblock.children[i];
-          RDCASSERT(IS_KNOWN(namedNode.id, MetaDataRecord::NAMED_NODE));
-
-          rdcstr namedMeta = StringFormat::Fmt("!%s = !{", metaName.c_str());
-
-          bool first = true;
-          for(uint64_t op : namedNode.ops)
+          if(symtab.id != 1)
           {
-            if(!first)
-              namedMeta += ", ";
-            namedMeta += ToStr(op);
-            first = false;
-          }
-          namedMeta += "}";
-
-          RDCLOG("%s", namedMeta.c_str());
-        }
-        else
-        {
-          if(IS_KNOWN(meta.id, MetaDataRecord::KIND))
-          {
-            RDCLOG("Kind[%llu] = %s\n", meta.ops[0], meta.getString(1).c_str());
+            RDCERR("Unexpected symbol table record ID %u", symtab.id);
             continue;
           }
 
-          rdcstr metastr = StringFormat::Fmt("!%u = ", (uint32_t)i);
-
-          auto getMetaString = [&rootblock](uint64_t id) -> rdcstr {
-            return id ? rootblock.children[size_t(id - 1)].getString() : "NULL";
-          };
-
-          if(IS_KNOWN(meta.id, MetaDataRecord::STRING_OLD))
+          size_t s = (size_t)symtab.ops[0];
+          if(s < m_Symbols.size())
           {
-            metastr += "\"" + escapeString(meta.getString()) + "\"";
-          }
-          else if(IS_KNOWN(meta.id, MetaDataRecord::FILE))
-          {
-            if(meta.ops[0])
-              metastr += "distinct ";
-
-            metastr += "!DIFile(";
-            metastr += StringFormat::Fmt("filename: \"%s\"",
-                                         escapeString(getMetaString(meta.ops[1])).c_str());
-            metastr += StringFormat::Fmt(", directory: \"%s\"",
-                                         escapeString(getMetaString(meta.ops[2])).c_str());
-            metastr += ")";
-          }
-          else if(IS_KNOWN(meta.id, MetaDataRecord::NODE) ||
-                  IS_KNOWN(meta.id, MetaDataRecord::DISTINCT_NODE))
-          {
-            if(IS_KNOWN(meta.id, MetaDataRecord::DISTINCT_NODE))
-              metastr += "distinct ";
-
-            metastr += "!{";
-            bool first = true;
-            for(uint64_t op : meta.ops)
+            size_t idx = m_Symbols[s].idx;
+            switch(m_Symbols[s].type)
             {
-              if(!first)
-                metastr += ", ";
-              metastr += ToStr(op - 1);
-              first = false;
+              case SymbolType::GlobalVar: m_GlobalVars[idx].name = symtab.getString(1); break;
+              case SymbolType::Function: m_Functions[idx].name = symtab.getString(1); break;
+              case SymbolType::Alias: m_Aliases[idx].name = symtab.getString(1); break;
             }
-            metastr += "}";
-          }
-          else if(IS_KNOWN(meta.id, MetaDataRecord::BASIC_TYPE))
-          {
-            metastr += "!DIBasicType()";
-          }
-          else if(IS_KNOWN(meta.id, MetaDataRecord::DERIVED_TYPE))
-          {
-            metastr += "!DIDerivedType()";
-          }
-          else if(IS_KNOWN(meta.id, MetaDataRecord::COMPOSITE_TYPE))
-          {
-            metastr += "!DICompositeType()";
-          }
-          else if(IS_KNOWN(meta.id, MetaDataRecord::SUBROUTINE_TYPE))
-          {
-            metastr += "!DISubroutineType()";
-          }
-          else if(IS_KNOWN(meta.id, MetaDataRecord::TEMPLATE_TYPE))
-          {
-            metastr += "!DITemplateTypeParameter()";
-          }
-          else if(IS_KNOWN(meta.id, MetaDataRecord::TEMPLATE_VALUE))
-          {
-            metastr += "!DITemplateValueParameter()";
-          }
-          else if(IS_KNOWN(meta.id, MetaDataRecord::SUBPROGRAM))
-          {
-            metastr += "!DISubprogram()";
-          }
-          else if(IS_KNOWN(meta.id, MetaDataRecord::LOCATION))
-          {
-            metastr += "!DILocation()";
-          }
-          else if(IS_KNOWN(meta.id, MetaDataRecord::LOCAL_VAR))
-          {
-            metastr += "!DILocalVariable()";
-          }
-          else if(IS_KNOWN(meta.id, MetaDataRecord::VALUE))
-          {
-            // need to decode CONSTANTS_BLOCK and TYPE_BLOCK for this
-            metastr += StringFormat::Fmt("!{values[%llu] interpreted as types[%llu]}", meta.ops[1],
-                                         meta.ops[0]);
-          }
-          else if(IS_KNOWN(meta.id, MetaDataRecord::EXPRESSION))
-          {
-            // don't decode this yet
-            metastr += "!DIExpression(";
-            bool first = true;
-            for(uint64_t op : meta.ops)
-            {
-              if(!first)
-                metastr += ", ";
-              metastr += ToStr(op);
-              first = false;
-            }
-            metastr += ")";
-          }
-          else if(IS_KNOWN(meta.id, MetaDataRecord::COMPILE_UNIT))
-          {
-            // should be at least 14 parameters
-            RDCASSERT(meta.ops.size() >= 14);
-
-            // we expect it to be marked as distinct, but we'll always treat it that way
-            if(meta.ops[0])
-              metastr += "distinct ";
-            else
-              metastr += "distinct? ";
-
-            metastr += "!DICompileUnit(";
-            {
-              metastr += StringFormat::Fmt(
-                  "language: %s", meta.ops[1] == 0x4 ? "DW_LANG_C_plus_plus" : "DW_LANG_unknown");
-              metastr += StringFormat::Fmt(", file: !%llu", meta.ops[2] - 1);
-              metastr += StringFormat::Fmt(", producer: \"%s\"",
-                                           escapeString(getMetaString(meta.ops[3])).c_str());
-              metastr += StringFormat::Fmt(", isOptimized: %s", meta.ops[4] ? "true" : "false");
-              metastr += StringFormat::Fmt(", flags: \"%s\"",
-                                           escapeString(getMetaString(meta.ops[5])).c_str());
-              metastr += StringFormat::Fmt(", runtimeVersion: %llu", meta.ops[6]);
-              metastr += StringFormat::Fmt(", splitDebugFilename: \"%s\"",
-                                           escapeString(getMetaString(meta.ops[7])).c_str());
-              metastr += StringFormat::Fmt(", emissionKind: %llu", meta.ops[8]);
-              metastr += StringFormat::Fmt(", enums: !%llu", meta.ops[9] - 1);
-              metastr += StringFormat::Fmt(", retainedTypes: !%llu", meta.ops[10] - 1);
-              metastr += StringFormat::Fmt(", subprograms: !%llu", meta.ops[11] - 1);
-              metastr += StringFormat::Fmt(", globals: !%llu", meta.ops[12] - 1);
-              metastr += StringFormat::Fmt(", imports: !%llu", meta.ops[13] - 1);
-              if(meta.ops.size() >= 15)
-                metastr += StringFormat::Fmt(", dwoId: 0x%llu", meta.ops[14]);
-            }
-            metastr += ")";
           }
           else
           {
-            RDCERR("unhandled metadata type %u", meta.id);
+            RDCERR("Symbol %llu referenced out of bounds", s);
           }
-
-          RDCLOG("%s", metastr.c_str());
         }
+      }
+      else if(IS_KNOWN(rootchild.id, KnownBlocks::METADATA_BLOCK))
+      {
+        for(size_t i = 0; i < rootchild.children.size(); i++)
+        {
+          const LLVMBC::BlockOrRecord &meta = rootchild.children[i];
+          if(IS_KNOWN(meta.id, MetaDataRecord::NAME))
+          {
+            rdcstr metaName = meta.getString();
+            i++;
+            const LLVMBC::BlockOrRecord &namedNode = rootchild.children[i];
+            RDCASSERT(IS_KNOWN(namedNode.id, MetaDataRecord::NAMED_NODE));
+
+            rdcstr namedMeta = StringFormat::Fmt("!%s = !{", metaName.c_str());
+
+            bool first = true;
+            for(uint64_t op : namedNode.ops)
+            {
+              if(!first)
+                namedMeta += ", ";
+              namedMeta += ToStr(op);
+              first = false;
+            }
+            namedMeta += "}";
+
+            RDCLOG("%s", namedMeta.c_str());
+          }
+          else
+          {
+            if(IS_KNOWN(meta.id, MetaDataRecord::KIND))
+            {
+              size_t kind = (size_t)meta.ops[0];
+              m_Kinds.resize(RDCMAX(m_Kinds.size(), kind + 1));
+              m_Kinds[kind] = meta.getString(1);
+              continue;
+            }
+
+            rdcstr metastr = StringFormat::Fmt("!%u = ", (uint32_t)i);
+
+            auto getMetaString = [&rootchild](uint64_t id) -> rdcstr {
+              return id ? rootchild.children[size_t(id - 1)].getString() : "NULL";
+            };
+
+            if(IS_KNOWN(meta.id, MetaDataRecord::STRING_OLD))
+            {
+              metastr += "\"" + escapeString(meta.getString()) + "\"";
+            }
+            else if(IS_KNOWN(meta.id, MetaDataRecord::FILE))
+            {
+              if(meta.ops[0])
+                metastr += "distinct ";
+
+              metastr += "!DIFile(";
+              metastr += StringFormat::Fmt("filename: \"%s\"",
+                                           escapeString(getMetaString(meta.ops[1])).c_str());
+              metastr += StringFormat::Fmt(", directory: \"%s\"",
+                                           escapeString(getMetaString(meta.ops[2])).c_str());
+              metastr += ")";
+            }
+            else if(IS_KNOWN(meta.id, MetaDataRecord::NODE) ||
+                    IS_KNOWN(meta.id, MetaDataRecord::DISTINCT_NODE))
+            {
+              if(IS_KNOWN(meta.id, MetaDataRecord::DISTINCT_NODE))
+                metastr += "distinct ";
+
+              metastr += "!{";
+              bool first = true;
+              for(uint64_t op : meta.ops)
+              {
+                if(!first)
+                  metastr += ", ";
+                metastr += ToStr(op - 1);
+                first = false;
+              }
+              metastr += "}";
+            }
+            else if(IS_KNOWN(meta.id, MetaDataRecord::BASIC_TYPE))
+            {
+              metastr += "!DIBasicType()";
+            }
+            else if(IS_KNOWN(meta.id, MetaDataRecord::DERIVED_TYPE))
+            {
+              metastr += "!DIDerivedType()";
+            }
+            else if(IS_KNOWN(meta.id, MetaDataRecord::COMPOSITE_TYPE))
+            {
+              metastr += "!DICompositeType()";
+            }
+            else if(IS_KNOWN(meta.id, MetaDataRecord::SUBROUTINE_TYPE))
+            {
+              metastr += "!DISubroutineType()";
+            }
+            else if(IS_KNOWN(meta.id, MetaDataRecord::TEMPLATE_TYPE))
+            {
+              metastr += "!DITemplateTypeParameter()";
+            }
+            else if(IS_KNOWN(meta.id, MetaDataRecord::TEMPLATE_VALUE))
+            {
+              metastr += "!DITemplateValueParameter()";
+            }
+            else if(IS_KNOWN(meta.id, MetaDataRecord::SUBPROGRAM))
+            {
+              metastr += "!DISubprogram()";
+            }
+            else if(IS_KNOWN(meta.id, MetaDataRecord::LOCATION))
+            {
+              metastr += "!DILocation()";
+            }
+            else if(IS_KNOWN(meta.id, MetaDataRecord::LOCAL_VAR))
+            {
+              metastr += "!DILocalVariable()";
+            }
+            else if(IS_KNOWN(meta.id, MetaDataRecord::VALUE))
+            {
+              // need to decode CONSTANTS_BLOCK and TYPE_BLOCK for this
+              metastr += StringFormat::Fmt("!{values[%llu] interpreted as types[%llu]}",
+                                           meta.ops[1], meta.ops[0]);
+            }
+            else if(IS_KNOWN(meta.id, MetaDataRecord::EXPRESSION))
+            {
+              // don't decode this yet
+              metastr += "!DIExpression(";
+              bool first = true;
+              for(uint64_t op : meta.ops)
+              {
+                if(!first)
+                  metastr += ", ";
+                metastr += ToStr(op);
+                first = false;
+              }
+              metastr += ")";
+            }
+            else if(IS_KNOWN(meta.id, MetaDataRecord::COMPILE_UNIT))
+            {
+              // should be at least 14 parameters
+              RDCASSERT(meta.ops.size() >= 14);
+
+              // we expect it to be marked as distinct, but we'll always treat it that way
+              if(meta.ops[0])
+                metastr += "distinct ";
+              else
+                metastr += "distinct? ";
+
+              metastr += "!DICompileUnit(";
+              {
+                metastr += StringFormat::Fmt(
+                    "language: %s", meta.ops[1] == 0x4 ? "DW_LANG_C_plus_plus" : "DW_LANG_unknown");
+                metastr += StringFormat::Fmt(", file: !%llu", meta.ops[2] - 1);
+                metastr += StringFormat::Fmt(", producer: \"%s\"",
+                                             escapeString(getMetaString(meta.ops[3])).c_str());
+                metastr += StringFormat::Fmt(", isOptimized: %s", meta.ops[4] ? "true" : "false");
+                metastr += StringFormat::Fmt(", flags: \"%s\"",
+                                             escapeString(getMetaString(meta.ops[5])).c_str());
+                metastr += StringFormat::Fmt(", runtimeVersion: %llu", meta.ops[6]);
+                metastr += StringFormat::Fmt(", splitDebugFilename: \"%s\"",
+                                             escapeString(getMetaString(meta.ops[7])).c_str());
+                metastr += StringFormat::Fmt(", emissionKind: %llu", meta.ops[8]);
+                metastr += StringFormat::Fmt(", enums: !%llu", meta.ops[9] - 1);
+                metastr += StringFormat::Fmt(", retainedTypes: !%llu", meta.ops[10] - 1);
+                metastr += StringFormat::Fmt(", subprograms: !%llu", meta.ops[11] - 1);
+                metastr += StringFormat::Fmt(", globals: !%llu", meta.ops[12] - 1);
+                metastr += StringFormat::Fmt(", imports: !%llu", meta.ops[13] - 1);
+                if(meta.ops.size() >= 15)
+                  metastr += StringFormat::Fmt(", dwoId: 0x%llu", meta.ops[14]);
+              }
+              metastr += ")";
+            }
+            else
+            {
+              RDCERR("unhandled metadata type %u", meta.id);
+            }
+
+            RDCLOG("%s", metastr.c_str());
+          }
+        }
+      }
+      else
+      {
+        RDCWARN("Unknown block ID %u encountered at module scope", rootchild.id);
       }
     }
   }
@@ -775,7 +863,7 @@ void Program::FetchComputeProperties(DXBC::Reflection *reflection)
 
 DXBC::Reflection *Program::GetReflection()
 {
-  RDCERR("Unimplemented DXIL::Program::GetReflection()");
+  RDCWARN("Unimplemented DXIL::Program::GetReflection()");
   return new DXBC::Reflection;
 }
 
@@ -792,7 +880,7 @@ uint32_t Program::GetDisassemblyLine(uint32_t instruction) const
 
 void Program::MakeDisassemblyString()
 {
-  RDCERR("Unimplemented DXIL::Program::MakeDisassemblyString()");
+  RDCWARN("Unimplemented DXIL::Program::MakeDisassemblyString()");
 
   const char *shaderName[] = {
       "Pixel",      "Vertex",  "Geometry",      "Hull",         "Domain",
@@ -800,10 +888,10 @@ void Program::MakeDisassemblyString()
       "ClosestHit", "Miss",    "Callable",      "Mesh",         "Amplification",
   };
 
-  m_Disassembly = StringFormat::Fmt("; %s Shader, compiled under SM%u.%u\n",
+  m_Disassembly = StringFormat::Fmt("; %s Shader, compiled under SM%u.%u\n\n",
                                     shaderName[int(m_Type)], m_Major, m_Minor);
   m_Disassembly += StringFormat::Fmt("target triple = \"%s\"\n", m_Triple.c_str());
-  m_Disassembly += StringFormat::Fmt("target datalayout = \"%s\"\n", m_Datalayout.c_str());
+  m_Disassembly += StringFormat::Fmt("target datalayout = \"%s\"\n\n", m_Datalayout.c_str());
 
   m_Disassembly += "; No disassembly implemented";
 }
