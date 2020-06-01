@@ -143,6 +143,16 @@ enum class FunctionRecord : uint32_t
   INST_CALLBR = 57,
 };
 
+enum class ParamAttrRecord : uint32_t
+{
+  ENTRY = 2,
+};
+
+enum class ParamAttrGroupRecord : uint32_t
+{
+  ENTRY = 3,
+};
+
 enum class ValueSymtabRecord : uint32_t
 {
   ENTRY = 1,
@@ -268,7 +278,7 @@ static rdcstr getName(uint32_t parentBlock, const LLVMBC::BlockOrRecord &block)
         break;
       }
       case KnownBlocks::PARAMATTR_BLOCK:
-      case KnownBlocks::PARAMATTR_GROUP_BLOCK: name = "ENTRY"; break;
+      case KnownBlocks::PARAMATTR_GROUP_BLOCK: return StringFormat::Fmt("ENTRY%u", block.id); break;
       case KnownBlocks::CONSTANTS_BLOCK:
       {
         ConstantsRecord code = ConstantsRecord(block.id);
@@ -638,6 +648,84 @@ Program::Program(const byte *bytes, size_t length)
       {
         // do nothing, this is internal parse data
       }
+      else if(IS_KNOWN(rootchild.id, KnownBlocks::PARAMATTR_GROUP_BLOCK))
+      {
+        for(const LLVMBC::BlockOrRecord &attrgroup : rootchild.children)
+        {
+          if(!IS_KNOWN(attrgroup.id, ParamAttrGroupRecord::ENTRY))
+          {
+            RDCERR("Unexpected attribute group record ID %u", attrgroup.id);
+            continue;
+          }
+
+          AttributeGroup group;
+
+          size_t id = (size_t)attrgroup.ops[0];
+          group.index = attrgroup.ops[1];
+
+          for(size_t i = 2; i < attrgroup.ops.size(); i++)
+          {
+            switch(attrgroup.ops[i])
+            {
+              case 0:
+              {
+                group.params |= Attribute(1U << (attrgroup.ops[i + 1]));
+                i++;
+                break;
+              }
+              case 1:
+              {
+                uint64_t param = attrgroup.ops[i + 2];
+                Attribute attr = Attribute(1U << attrgroup.ops[i + 1]);
+                group.params |= attr;
+                switch(attr)
+                {
+                  case Attribute::Alignment: group.align = param; break;
+                  case Attribute::StackAlignment: group.stackAlign = param; break;
+                  case Attribute::Dereferenceable: group.derefBytes = param; break;
+                  case Attribute::DereferenceableOrNull: group.derefOrNullBytes = param; break;
+                  default: RDCERR("Unexpected attribute %llu with parameter", attr);
+                }
+                i += 2;
+                break;
+              }
+              default:
+              {
+                rdcstr a = attrgroup.getString(i + 1);
+                rdcstr b = attrgroup.getString(i + 1 + a.size() + 1);
+                group.strs.push_back({a, b});
+                break;
+              }
+            }
+          }
+
+          m_AttributeGroups.resize_for_index(id);
+          m_AttributeGroups[id] = group;
+        }
+      }
+      else if(IS_KNOWN(rootchild.id, KnownBlocks::PARAMATTR_BLOCK))
+      {
+        for(const LLVMBC::BlockOrRecord &paramattr : rootchild.children)
+        {
+          if(!IS_KNOWN(paramattr.id, ParamAttrRecord::ENTRY))
+          {
+            RDCERR("Unexpected attribute record ID %u", paramattr.id);
+            continue;
+          }
+
+          rdcarray<AttributeGroup *> groups;
+
+          for(uint64_t g : paramattr.ops)
+          {
+            if(g < m_AttributeGroups.size())
+              groups.push_back(&m_AttributeGroups[(size_t)g]);
+            else
+              RDCERR("Attribute refers to out of bounds group %llu", g);
+          }
+
+          m_Attributes.push_back(groups);
+        }
+      }
       else if(IS_KNOWN(rootchild.id, KnownBlocks::FUNCTION_BLOCK))
       {
       }
@@ -893,6 +981,102 @@ void Program::MakeDisassemblyString()
   m_Disassembly += StringFormat::Fmt("target triple = \"%s\"\n", m_Triple.c_str());
   m_Disassembly += StringFormat::Fmt("target datalayout = \"%s\"\n\n", m_Datalayout.c_str());
 
+  for(size_t i = 0; i < m_Attributes.size(); i++)
+  {
+    m_Disassembly += StringFormat::Fmt("attributes #%zu =", i);
+    for(const AttributeGroup *g : m_Attributes[i])
+    {
+      m_Disassembly += " {";
+      Attribute params = g->params;
+
+      if(params & Attribute::Alignment)
+      {
+        m_Disassembly += StringFormat::Fmt(" Alignment(%llu)", g->align);
+        params &= ~Attribute::Alignment;
+      }
+      if(params & Attribute::StackAlignment)
+      {
+        m_Disassembly += StringFormat::Fmt(" StackAlignment(%llu)", g->stackAlign);
+        params &= ~Attribute::StackAlignment;
+      }
+      if(params & Attribute::Dereferenceable)
+      {
+        m_Disassembly += StringFormat::Fmt(" Dereferenceable(%llu)", g->derefBytes);
+        params &= ~Attribute::Dereferenceable;
+      }
+      if(params & Attribute::DereferenceableOrNull)
+      {
+        m_Disassembly += StringFormat::Fmt(" DereferenceableOrNull(%llu)", g->derefOrNullBytes);
+        params &= ~Attribute::DereferenceableOrNull;
+      }
+
+      if(params != Attribute::None)
+      {
+        m_Disassembly += " " + ToStr(params);
+      }
+      for(const rdcpair<rdcstr, rdcstr> &str : g->strs)
+        m_Disassembly += " " + str.first + "=" + str.second;
+      m_Disassembly += " }";
+    }
+    m_Disassembly += "\n";
+  }
+
   m_Disassembly += "; No disassembly implemented";
 }
 };
+
+template <>
+rdcstr DoStringise(const DXIL::Attribute &el)
+{
+  BEGIN_BITFIELD_STRINGISE(DXIL::Attribute);
+  {
+    STRINGISE_BITFIELD_CLASS_VALUE_NAMED(None, "");
+
+    STRINGISE_BITFIELD_CLASS_BIT(Alignment);
+    STRINGISE_BITFIELD_CLASS_BIT(AlwaysInline);
+    STRINGISE_BITFIELD_CLASS_BIT(ByVal);
+    STRINGISE_BITFIELD_CLASS_BIT(InlineHint);
+    STRINGISE_BITFIELD_CLASS_BIT(InReg);
+    STRINGISE_BITFIELD_CLASS_BIT(MinSize);
+    STRINGISE_BITFIELD_CLASS_BIT(Naked);
+    STRINGISE_BITFIELD_CLASS_BIT(Nest);
+    STRINGISE_BITFIELD_CLASS_BIT(NoAlias);
+    STRINGISE_BITFIELD_CLASS_BIT(NoBuiltin);
+    STRINGISE_BITFIELD_CLASS_BIT(NoCapture);
+    STRINGISE_BITFIELD_CLASS_BIT(NoDuplicate);
+    STRINGISE_BITFIELD_CLASS_BIT(NoImplicitFloat);
+    STRINGISE_BITFIELD_CLASS_BIT(NoInline);
+    STRINGISE_BITFIELD_CLASS_BIT(NonLazyBind);
+    STRINGISE_BITFIELD_CLASS_BIT(NoRedZone);
+    STRINGISE_BITFIELD_CLASS_BIT(NoReturn);
+    STRINGISE_BITFIELD_CLASS_BIT(NoUnwind);
+    STRINGISE_BITFIELD_CLASS_BIT(OptimizeForSize);
+    STRINGISE_BITFIELD_CLASS_BIT(ReadNone);
+    STRINGISE_BITFIELD_CLASS_BIT(ReadOnly);
+    STRINGISE_BITFIELD_CLASS_BIT(Returned);
+    STRINGISE_BITFIELD_CLASS_BIT(ReturnsTwice);
+    STRINGISE_BITFIELD_CLASS_BIT(SExt);
+    STRINGISE_BITFIELD_CLASS_BIT(StackAlignment);
+    STRINGISE_BITFIELD_CLASS_BIT(StackProtect);
+    STRINGISE_BITFIELD_CLASS_BIT(StackProtectReq);
+    STRINGISE_BITFIELD_CLASS_BIT(StackProtectStrong);
+    STRINGISE_BITFIELD_CLASS_BIT(StructRet);
+    STRINGISE_BITFIELD_CLASS_BIT(SanitizeAddress);
+    STRINGISE_BITFIELD_CLASS_BIT(SanitizeThread);
+    STRINGISE_BITFIELD_CLASS_BIT(SanitizeMemory);
+    STRINGISE_BITFIELD_CLASS_BIT(UWTable);
+    STRINGISE_BITFIELD_CLASS_BIT(ZExt);
+    STRINGISE_BITFIELD_CLASS_BIT(Builtin);
+    STRINGISE_BITFIELD_CLASS_BIT(Cold);
+    STRINGISE_BITFIELD_CLASS_BIT(OptimizeNone);
+    STRINGISE_BITFIELD_CLASS_BIT(InAlloca);
+    STRINGISE_BITFIELD_CLASS_BIT(NonNull);
+    STRINGISE_BITFIELD_CLASS_BIT(JumpTable);
+    STRINGISE_BITFIELD_CLASS_BIT(Dereferenceable);
+    STRINGISE_BITFIELD_CLASS_BIT(DereferenceableOrNull);
+    STRINGISE_BITFIELD_CLASS_BIT(Convergent);
+    STRINGISE_BITFIELD_CLASS_BIT(SafeStack);
+    STRINGISE_BITFIELD_CLASS_BIT(ArgMemOnly);
+  }
+  END_BITFIELD_STRINGISE();
+}

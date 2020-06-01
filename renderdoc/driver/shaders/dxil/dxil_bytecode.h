@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 
+#include "api/replay/apidefs.h"
 #include "api/replay/rdcstr.h"
 #include "driver/dx/official/d3dcommon.h"
 #include "driver/shaders/dxbc/dxbc_common.h"
@@ -63,10 +64,75 @@ struct Symbol
   size_t idx;
 };
 
+// this enum is ordered to match the serialised order of these attributes
+enum class Attribute : uint64_t
+{
+  None = 0,
+  // 0 is unused, so no 1ULL << 0
+  Alignment = 1ULL << 1,
+  AlwaysInline = 1ULL << 2,
+  ByVal = 1ULL << 3,
+  InlineHint = 1ULL << 4,
+  InReg = 1ULL << 5,
+  MinSize = 1ULL << 6,
+  Naked = 1ULL << 7,
+  Nest = 1ULL << 8,
+  NoAlias = 1ULL << 9,
+  NoBuiltin = 1ULL << 10,
+  NoCapture = 1ULL << 11,
+  NoDuplicate = 1ULL << 12,
+  NoImplicitFloat = 1ULL << 13,
+  NoInline = 1ULL << 14,
+  NonLazyBind = 1ULL << 15,
+  NoRedZone = 1ULL << 16,
+  NoReturn = 1ULL << 17,
+  NoUnwind = 1ULL << 18,
+  OptimizeForSize = 1ULL << 19,
+  ReadNone = 1ULL << 20,
+  ReadOnly = 1ULL << 21,
+  Returned = 1ULL << 22,
+  ReturnsTwice = 1ULL << 23,
+  SExt = 1ULL << 24,
+  StackAlignment = 1ULL << 25,
+  StackProtect = 1ULL << 26,
+  StackProtectReq = 1ULL << 27,
+  StackProtectStrong = 1ULL << 28,
+  StructRet = 1ULL << 29,
+  SanitizeAddress = 1ULL << 30,
+  SanitizeThread = 1ULL << 31,
+  SanitizeMemory = 1ULL << 32,
+  UWTable = 1ULL << 33,
+  ZExt = 1ULL << 34,
+  Builtin = 1ULL << 35,
+  Cold = 1ULL << 36,
+  OptimizeNone = 1ULL << 37,
+  InAlloca = 1ULL << 38,
+  NonNull = 1ULL << 39,
+  JumpTable = 1ULL << 40,
+  Dereferenceable = 1ULL << 41,
+  DereferenceableOrNull = 1ULL << 42,
+  Convergent = 1ULL << 43,
+  SafeStack = 1ULL << 44,
+  ArgMemOnly = 1ULL << 45,
+};
+
+BITMASK_OPERATORS(Attribute);
+
+struct AttributeGroup
+{
+  uint64_t index = 0;
+
+  Attribute params = Attribute::None;
+  uint64_t align = 0, stackAlign = 0, derefBytes = 0, derefOrNullBytes = 0;
+  rdcarray<rdcpair<rdcstr, rdcstr>> strs;
+};
+
 class Program
 {
 public:
   Program(const byte *bytes, size_t length);
+  Program(const Program &o) = default;
+  Program &operator=(const Program &o) = default;
 
   void FetchComputeProperties(DXBC::Reflection *reflection);
   DXBC::Reflection *GetReflection();
@@ -96,9 +162,14 @@ private:
 
   rdcarray<rdcstr> m_Kinds;
 
+  rdcarray<AttributeGroup> m_AttributeGroups;
+  rdcarray<rdcarray<AttributeGroup *>> m_Attributes;
+
   rdcstr m_Triple, m_Datalayout;
 
   rdcstr m_Disassembly;
 };
 
 };    // namespace DXIL
+
+DECLARE_REFLECTION_ENUM(DXIL::Attribute);
