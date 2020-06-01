@@ -28,6 +28,7 @@
 #include <string>
 #include "common/common.h"
 #include "common/formatting.h"
+#include "maths/half_convert.h"
 #include "os/os_specific.h"
 #include "llvm_decoder.h"
 
@@ -84,7 +85,6 @@ enum class ConstantsRecord : uint32_t
   CONST_NULL = 2,
   UNDEF = 3,
   INTEGER = 4,
-  WIDE_INTEGER = 5,
   FLOAT = 6,
   AGGREGATE = 7,
   STRING = 8,
@@ -286,7 +286,6 @@ static rdcstr getName(uint32_t parentBlock, const LLVMBC::BlockOrRecord &block)
           STRINGISE_RECORD(SETTYPE);
           STRINGISE_RECORD(UNDEF);
           STRINGISE_RECORD(INTEGER);
-          STRINGISE_RECORD(WIDE_INTEGER);
           STRINGISE_RECORD(FLOAT);
           STRINGISE_RECORD(AGGREGATE);
           STRINGISE_RECORD(STRING);
@@ -629,6 +628,10 @@ Program::Program(const byte *bytes, size_t length)
         // symbols refer into any of N types in declaration order
         m_Symbols.push_back({SymbolType::GlobalVar, m_GlobalVars.size()});
 
+        // all global symbols are 'values' in LLVM, we don't need this but need to keep indexing the
+        // same
+        m_Values.push_back(Value());
+
         m_GlobalVars.push_back(g);
       }
       else if(IS_KNOWN(rootchild.id, ModuleRecord::FUNCTION))
@@ -648,6 +651,10 @@ Program::Program(const byte *bytes, size_t length)
         // symbols refer into any of N types in declaration order
         m_Symbols.push_back({SymbolType::Function, m_Functions.size()});
 
+        // all global symbols are 'values' in LLVM, we don't need this but need to keep indexing the
+        // same
+        m_Values.push_back(Value());
+
         if(!f.external)
           functionDecls.push_back(m_Functions.size());
 
@@ -660,6 +667,10 @@ Program::Program(const byte *bytes, size_t length)
 
         // symbols refer into any of N types in declaration order
         m_Symbols.push_back({SymbolType::Alias, m_Aliases.size()});
+
+        // all global symbols are 'values' in LLVM, we don't need this but need to keep indexing the
+        // same
+        m_Values.push_back(Value());
 
         m_Aliases.push_back(a);
       }
@@ -914,10 +925,128 @@ Program::Program(const byte *bytes, size_t length)
 
             typeIndex++;
           }
+          else
+          {
+            RDCERR("Unknown record ID %u encountered in type block", typ.id);
+          }
         }
       }
       else if(IS_KNOWN(rootchild.id, KnownBlocks::CONSTANTS_BLOCK))
       {
+        const Type *t = NULL;
+        for(const LLVMBC::BlockOrRecord &constant : rootchild.children)
+        {
+          if(IS_KNOWN(constant.id, ConstantsRecord::SETTYPE))
+          {
+            t = &m_Types[(size_t)constant.ops[0]];
+          }
+          else if(IS_KNOWN(constant.id, ConstantsRecord::CONST_NULL) ||
+                  IS_KNOWN(constant.id, ConstantsRecord::UNDEF))
+          {
+            Value v;
+            v.type = t;
+            m_Values.push_back(v);
+          }
+          else if(IS_KNOWN(constant.id, ConstantsRecord::INTEGER))
+          {
+            Value v;
+            v.type = t;
+            v.val.value.u64v[0] = constant.ops[0];
+            m_Values.push_back(v);
+          }
+          else if(IS_KNOWN(constant.id, ConstantsRecord::FLOAT))
+          {
+            Value v;
+            v.type = t;
+            if(t->bitWidth == 16)
+              v.val.value.fv[0] = ConvertFromHalf(uint16_t(constant.ops[0] & 0xffff));
+            else if(t->bitWidth == 32)
+              memcpy(&v.val.value.fv[0], &constant.ops[0], sizeof(float));
+            else
+              memcpy(&v.val.value.dv[0], &constant.ops[0], sizeof(float));
+            m_Values.push_back(v);
+          }
+          else if(IS_KNOWN(constant.id, ConstantsRecord::STRING))
+          {
+            Value v;
+            v.type = t;
+            v.str = constant.getString(0);
+            m_Values.push_back(v);
+          }
+          else if(IS_KNOWN(constant.id, ConstantsRecord::AGGREGATE))
+          {
+            Value v;
+            v.type = t;
+            if(v.type->type == Type::Vector)
+            {
+              // inline vectors
+              for(size_t m = 0; m < constant.ops.size(); m++)
+              {
+                size_t idx = (size_t)constant.ops[m];
+                if(idx < m_Values.size())
+                {
+                  if(v.type->bitWidth <= 32)
+                    v.val.value.uv[m] = m_Values[idx].val.value.uv[m];
+                  else
+                    v.val.value.u64v[m] = m_Values[idx].val.value.u64v[m];
+                }
+                else
+                {
+                  RDCERR("Index %zu out of bounds for values array", idx);
+                }
+              }
+            }
+            else
+            {
+              for(uint64_t m : constant.ops)
+              {
+                size_t idx = (size_t)m;
+                if(idx < m_Values.size())
+                {
+                  v.val.members.push_back(m_Values[idx].val);
+                }
+                else
+                {
+                  v.val.members.push_back(ShaderVariable());
+                  RDCERR("Index %zu out of bounds for values array", idx);
+                }
+              }
+            }
+            m_Values.push_back(v);
+          }
+          else if(IS_KNOWN(constant.id, ConstantsRecord::DATA))
+          {
+            Value v;
+            v.type = t;
+            if(v.type->type == Type::Vector)
+            {
+              for(size_t m = 0; m < constant.ops.size(); m++)
+              {
+                if(v.type->bitWidth <= 32)
+                  v.val.value.uv[m] = constant.ops[m] & ((1ULL << v.type->bitWidth) - 1);
+                else
+                  v.val.value.u64v[m] = constant.ops[m];
+              }
+            }
+            else
+            {
+              for(size_t m = 0; m < constant.ops.size(); m++)
+              {
+                ShaderVariable el;
+                if(v.type->bitWidth <= 32)
+                  el.value.uv[0] = constant.ops[m] & ((1ULL << v.type->bitWidth) - 1);
+                else
+                  el.value.u64v[m] = constant.ops[m];
+                v.val.members.push_back(el);
+              }
+            }
+            m_Values.push_back(v);
+          }
+          else
+          {
+            RDCERR("Unknown record ID %u encountered in constants block", constant.id);
+          }
+        }
       }
       else if(IS_KNOWN(rootchild.id, KnownBlocks::VALUE_SYMTAB_BLOCK))
       {

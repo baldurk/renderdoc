@@ -169,6 +169,13 @@ struct Function
   const Attributes *attrs = NULL;
 };
 
+struct Value
+{
+  const Type *type = NULL;
+  ShaderVariable val;
+  rdcstr str;
+};
+
 class Program
 {
 public:
@@ -208,6 +215,8 @@ private:
 
   rdcarray<Attributes> m_AttributeGroups;
   rdcarray<Attributes> m_Attributes;
+
+  rdcarray<Value> m_Values;
 
   rdcstr m_Triple, m_Datalayout;
 
