@@ -476,28 +476,28 @@ TEST_CASE("Test array type", "[basictypes]")
 
     test.resize_for_index(5);
 
-    CHECK(test.size() == 5);
-    CHECK(test.capacity() >= 5);
+    CHECK(test.size() == 6);
+    CHECK(test.capacity() >= 6);
 
     test.resize_for_index(5);
 
-    CHECK(test.size() == 5);
-    CHECK(test.capacity() >= 5);
+    CHECK(test.size() == 6);
+    CHECK(test.capacity() >= 6);
 
     test.resize_for_index(3);
 
-    CHECK(test.size() == 5);
-    CHECK(test.capacity() >= 5);
+    CHECK(test.size() == 6);
+    CHECK(test.capacity() >= 6);
 
     test.resize_for_index(0);
 
-    CHECK(test.size() == 5);
-    CHECK(test.capacity() >= 5);
+    CHECK(test.size() == 6);
+    CHECK(test.capacity() >= 6);
 
     test.resize_for_index(9);
 
-    CHECK(test.size() == 9);
-    CHECK(test.capacity() >= 9);
+    CHECK(test.size() == 10);
+    CHECK(test.capacity() >= 10);
   };
 
   SECTION("Check construction")
