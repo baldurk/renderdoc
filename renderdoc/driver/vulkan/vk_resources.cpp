@@ -3216,6 +3216,326 @@ VkImageAspectFlags FormatImageAspects(VkFormat fmt)
     return VK_IMAGE_ASPECT_COLOR_BIT;
 }
 
+RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo &ci)
+{
+  // *2 in case we need separate barriers for depth and stencil, +1 for the terminating null
+  // attachment info (though separate depth/stencil buffers aren't needed here, we keep the
+  // array size the same)
+  uint32_t arrayCount = ci.attachmentCount * 2 + 1;
+  imageAttachments = new AttachmentInfo[arrayCount];
+  RDCEraseMem(imageAttachments, arrayCount * sizeof(imageAttachments[0]));
+
+  for(uint32_t i = 0; i < ci.attachmentCount; ++i)
+  {
+    imageAttachments[i].record = NULL;
+    imageAttachments[i].barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imageAttachments[i].barrier.oldLayout = ci.pAttachments[i].initialLayout;
+    imageAttachments[i].barrier.newLayout = ci.pAttachments[i].finalLayout;
+  }
+
+  // VK_KHR_multiview
+  const VkRenderPassMultiviewCreateInfo *multiview =
+      (const VkRenderPassMultiviewCreateInfo *)FindNextStruct(
+          &ci, VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO);
+
+  if(multiview && multiview->subpassCount > 0)
+  {
+    multiviewViewMaskTable = new uint32_t[arrayCount];
+    RDCEraseMem(multiviewViewMaskTable, arrayCount * sizeof(multiviewViewMaskTable[0]));
+  }
+  else
+  {
+    multiviewViewMaskTable = NULL;
+  }
+
+  loadOpTable = new VkAttachmentLoadOp[arrayCount];
+
+  // we only care about which attachment doesn't have LOAD specificed, so we
+  // assume all attachments have VK_ATTACHMENT_LOAD_OP_LOAD until proven otherwise
+  for(uint32_t a = 0; a < arrayCount; ++a)
+    loadOpTable[a] = VK_ATTACHMENT_LOAD_OP_LOAD;
+
+  for(uint32_t s = 0; s < ci.subpassCount; ++s)
+  {
+    const VkAttachmentReference *pColorAttachments = ci.pSubpasses[s].pColorAttachments;
+    const VkAttachmentReference *pResolveAttachments = ci.pSubpasses[s].pResolveAttachments;
+    const VkAttachmentReference *pDepthStencilAttachment = ci.pSubpasses[s].pDepthStencilAttachment;
+
+    if(pColorAttachments)
+    {
+      const VkAttachmentReference *pColorRunner = pColorAttachments;
+      const VkAttachmentReference *pColorEnd = pColorRunner + ci.pSubpasses[s].colorAttachmentCount;
+
+      while(pColorRunner != pColorEnd)
+      {
+        uint32_t index = pColorRunner->attachment;
+        if(index < ci.attachmentCount)
+        {
+          loadOpTable[index] = ci.pAttachments[index].loadOp;
+
+          if(multiviewViewMaskTable)
+          {
+            multiviewViewMaskTable[index] |= multiview->pViewMasks[s];
+          }
+        }
+        ++pColorRunner;
+      }
+    }
+    if(pResolveAttachments)
+    {
+      const VkAttachmentReference *pResolveRunner = pResolveAttachments;
+      const VkAttachmentReference *pResolveEnd =
+          pResolveRunner + ci.pSubpasses[s].colorAttachmentCount;
+
+      while(pResolveRunner != pResolveEnd)
+      {
+        uint32_t index = pResolveRunner->attachment;
+        if(index < ci.attachmentCount)
+        {
+          loadOpTable[index] = ci.pAttachments[index].loadOp;
+
+          if(multiviewViewMaskTable)
+          {
+            multiviewViewMaskTable[index] |= multiview->pViewMasks[s];
+          }
+        }
+        ++pResolveRunner;
+      }
+    }
+    if(pDepthStencilAttachment)
+    {
+      uint32_t index = pDepthStencilAttachment->attachment;
+
+      if(index < ci.attachmentCount)
+      {
+        VkAttachmentLoadOp depthStencilLoadOp = ci.pAttachments[index].loadOp;
+
+        // make depthstencil VK_ATTACHMENT_LOAD_OP_LOAD if either depth or stencil is
+        // VK_ATTACHMENT_LOAD_OP_LOAD
+        if(depthStencilLoadOp != VK_ATTACHMENT_LOAD_OP_LOAD &&
+           IsStencilFormat(ci.pAttachments[index].format))
+        {
+          depthStencilLoadOp = ci.pAttachments[index].stencilLoadOp;
+        }
+
+        loadOpTable[index] = depthStencilLoadOp;
+
+        if(multiviewViewMaskTable)
+        {
+          multiviewViewMaskTable[index] |= multiview->pViewMasks[s];
+        }
+      }
+    }
+  }
+}
+
+RenderPassInfo::RenderPassInfo(const VkRenderPassCreateInfo2 &ci)
+{
+  // *2 in case we need separate barriers for depth and stencil, +1 for the terminating null
+  // attachment info
+  uint32_t arrayCount = ci.attachmentCount * 2 + 1;
+  imageAttachments = new AttachmentInfo[arrayCount];
+  RDCEraseMem(imageAttachments, arrayCount * sizeof(imageAttachments[0]));
+
+  // need to keep a table for the index remap, because imageAttachments won't have the same
+  // order as ci.pAttachments
+  rdcarray<uint32_t> indexRemapTable;
+  indexRemapTable.fill(ci.attachmentCount, 0xFFFFFFFF);
+
+  for(uint32_t i = 0, a = 0; i < ci.attachmentCount; i++, a++)
+  {
+    imageAttachments[a].record = NULL;
+    imageAttachments[a].barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imageAttachments[a].barrier.oldLayout = ci.pAttachments[i].initialLayout;
+    imageAttachments[a].barrier.newLayout = ci.pAttachments[i].finalLayout;
+
+    indexRemapTable[i] = a;
+
+    // VK_KHR_separate_depth_stencil_layouts
+    VkAttachmentDescriptionStencilLayoutKHR *separateStencil =
+        (VkAttachmentDescriptionStencilLayoutKHR *)FindNextStruct(
+            &ci.pAttachments[i], VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR);
+
+    if(separateStencil)
+    {
+      imageAttachments[a].barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+      // add a separate barrier for stencil
+      a++;
+
+      imageAttachments[a].barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+      imageAttachments[a].barrier.oldLayout = separateStencil->stencilInitialLayout;
+      imageAttachments[a].barrier.newLayout = separateStencil->stencilFinalLayout;
+      imageAttachments[a].barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+    }
+  }
+
+  // if any subpass' viewMask is non-zero, then multiview is enabled
+  multiviewViewMaskTable = NULL;
+  for(uint32_t s = 0; s < ci.subpassCount; ++s)
+  {
+    if(ci.pSubpasses[s].viewMask)
+    {
+      multiviewViewMaskTable = new uint32_t[arrayCount];
+      RDCEraseMem(multiviewViewMaskTable, arrayCount * sizeof(multiviewViewMaskTable[0]));
+      break;
+    }
+  }
+
+  loadOpTable = new VkAttachmentLoadOp[arrayCount];
+
+  // we only care about which attachment doesn't have LOAD specificed, so we
+  // assume all attachments have VK_ATTACHMENT_LOAD_OP_LOAD until proven otherwise
+  for(uint32_t a = 0; a < arrayCount; ++a)
+    loadOpTable[a] = VK_ATTACHMENT_LOAD_OP_LOAD;
+
+  for(uint32_t s = 0; s < ci.subpassCount; ++s)
+  {
+    const VkAttachmentReference2 *pColorAttachments = ci.pSubpasses[s].pColorAttachments;
+    const VkAttachmentReference2 *pResolveAttachments = ci.pSubpasses[s].pResolveAttachments;
+    const VkAttachmentReference2 *pDepthStencilAttachment = ci.pSubpasses[s].pDepthStencilAttachment;
+
+    if(pColorAttachments)
+    {
+      const VkAttachmentReference2 *pColorRunner = pColorAttachments;
+      const VkAttachmentReference2 *pColorEnd = pColorRunner + ci.pSubpasses[s].colorAttachmentCount;
+
+      while(pColorRunner != pColorEnd)
+      {
+        uint32_t index = pColorRunner->attachment;
+        if(index < ci.attachmentCount)
+        {
+          uint32_t remappedIndex = indexRemapTable[index];
+          RDCASSERT(remappedIndex < arrayCount);
+
+          loadOpTable[remappedIndex] = ci.pAttachments[index].loadOp;
+
+          if(multiviewViewMaskTable)
+          {
+            multiviewViewMaskTable[remappedIndex] |= ci.pSubpasses[s].viewMask;
+          }
+        }
+        ++pColorRunner;
+      }
+    }
+    if(pResolveAttachments)
+    {
+      const VkAttachmentReference2 *pResolveRunner = pResolveAttachments;
+      const VkAttachmentReference2 *pResolveEnd =
+          pResolveRunner + ci.pSubpasses[s].colorAttachmentCount;
+
+      while(pResolveRunner != pResolveEnd)
+      {
+        uint32_t index = pResolveRunner->attachment;
+        if(index < ci.attachmentCount)
+        {
+          uint32_t remappedIndex = indexRemapTable[index];
+          RDCASSERT(remappedIndex < arrayCount);
+
+          loadOpTable[remappedIndex] = ci.pAttachments[index].loadOp;
+
+          if(multiviewViewMaskTable)
+          {
+            multiviewViewMaskTable[remappedIndex] |= ci.pSubpasses[s].viewMask;
+          }
+        }
+        ++pResolveRunner;
+      }
+    }
+    if(pDepthStencilAttachment)
+    {
+      uint32_t index = pDepthStencilAttachment->attachment;
+
+      if(index < ci.attachmentCount)
+      {
+        VkAttachmentLoadOp depthStencilLoadOp = ci.pAttachments[index].loadOp;
+        VkAttachmentLoadOp stencilLoadOp = ci.pAttachments[index].stencilLoadOp;
+
+        uint32_t remappedIndex = indexRemapTable[index];
+        RDCASSERT(remappedIndex < arrayCount);
+
+        if(IsStencilFormat(ci.pAttachments[index].format))
+        {
+          // VK_KHR_separate_depth_stencil_layouts
+          VkAttachmentDescriptionStencilLayoutKHR *separateStencil =
+              (VkAttachmentDescriptionStencilLayoutKHR *)FindNextStruct(
+                  &ci.pAttachments[index],
+                  VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR);
+
+          if(separateStencil)
+          {
+            loadOpTable[remappedIndex + 1] = stencilLoadOp;
+          }
+          else
+          {
+            // make depthstencil VK_ATTACHMENT_LOAD_OP_LOAD if either depth or stencil is
+            // VK_ATTACHMENT_LOAD_OP_LOAD
+            if(depthStencilLoadOp != VK_ATTACHMENT_LOAD_OP_LOAD)
+            {
+              depthStencilLoadOp = stencilLoadOp;
+            }
+          }
+        }
+
+        loadOpTable[remappedIndex] = depthStencilLoadOp;
+
+        if(multiviewViewMaskTable)
+        {
+          multiviewViewMaskTable[remappedIndex] |= ci.pSubpasses[s].viewMask;
+        }
+      }
+    }
+  }
+}
+
+RenderPassInfo::~RenderPassInfo()
+{
+  delete[] imageAttachments;
+  delete[] loadOpTable;
+  delete[] multiviewViewMaskTable;
+}
+
+FramebufferInfo::FramebufferInfo(const VkFramebufferCreateInfo &ci)
+{
+  // *2 in case we need separate barriers for depth and stencil, +1 for the terminating null
+  // attachment info
+  uint32_t arrayCount = ci.attachmentCount * 2 + 1;
+
+  imageAttachments = new AttachmentInfo[arrayCount];
+  RDCEraseMem(imageAttachments, arrayCount * sizeof(imageAttachments[0]));
+
+  width = ci.width;
+  height = ci.height;
+  layers = ci.layers;
+}
+FramebufferInfo::~FramebufferInfo()
+{
+  delete[] imageAttachments;
+}
+
+bool FramebufferInfo::AttachmentFullyReferenced(size_t attachmentIndex, const RenderPassInfo *rpi)
+{
+  VkResourceRecord *att = imageAttachments[attachmentIndex].record;
+  // if framebuffer doesn't reference the entire image
+  if(att->resInfo->imageInfo.extent.width != width || att->resInfo->imageInfo.extent.height != height)
+  {
+    return false;
+  }
+  // if view doesn't reference the entire image
+  if(att->viewRange.baseArrayLayer != 0 ||
+     att->viewRange.layerCount() != (uint32_t)att->resInfo->imageInfo.layerCount)
+  {
+    return false;
+  }
+  if(rpi->multiviewViewMaskTable)
+  {
+    // check and make sure all views are referenced by the renderpass
+    uint32_t renderpass_viewmask = rpi->multiviewViewMaskTable[attachmentIndex];
+    return (int)Bits::CountOnes(renderpass_viewmask) == att->resInfo->imageInfo.layerCount;
+  }
+  return imageAttachments[attachmentIndex].barrier.subresourceRange.layerCount == layers;
+}
+
 int ImgRefs::GetAspectCount() const
 {
   int aspectCount = 0;
@@ -3421,8 +3741,11 @@ VkResourceRecord::~VkResourceRecord()
   if(resType == eResCommandBuffer)
     SAFE_DELETE(cmdInfo);
 
-  if(resType == eResFramebuffer || resType == eResRenderPass)
-    SAFE_DELETE_ARRAY(imageAttachments);
+  if(resType == eResFramebuffer)
+    SAFE_DELETE(framebufferInfo);
+
+  if(resType == eResRenderPass)
+    SAFE_DELETE(renderPassInfo);
 
   // only the descriptor set layout actually owns this pointer, descriptor sets
   // have a pointer to it but don't own it
@@ -3442,8 +3765,8 @@ VkResourceRecord::~VkResourceRecord()
 void VkResourceRecord::MarkImageFrameReferenced(VkResourceRecord *img, const ImageRange &range,
                                                 FrameRefType refType)
 {
-  // mark backing memory as read
-  MarkResourceFrameReferenced(img->baseResource, eFrameRef_Read);
+  // mark backing memory
+  MarkResourceFrameReferenced(img->baseResource, refType);
 
   ResourceId id = img->GetResourceID();
   if(refType != eFrameRef_Read && refType != eFrameRef_None)
@@ -3470,8 +3793,8 @@ void VkResourceRecord::MarkImageViewFrameReferenced(VkResourceRecord *view, cons
   // mark image view as read
   MarkResourceFrameReferenced(view->GetResourceID(), eFrameRef_Read);
 
-  // mark memory backing image as read
-  MarkResourceFrameReferenced(mem, eFrameRef_Read);
+  // mark memory backing image
+  MarkResourceFrameReferenced(mem, refType);
 
   if(refType != eFrameRef_Read && refType != eFrameRef_None)
     cmdInfo->dirtied.insert(img);

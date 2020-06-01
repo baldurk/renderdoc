@@ -1024,6 +1024,17 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
         GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
                                                           eFrameRef_ReadBeforeWrite);
       }
+
+      // pull in frame refs while background capturing too
+      for(uint32_t s = 0; s < submitCount; s++)
+      {
+        for(uint32_t i = 0; i < pSubmits[s].commandBufferCount; i++)
+        {
+          VkResourceRecord *record = GetRecord(pSubmits[s].pCommandBuffers[i]);
+
+          record->bakedCommands->AddResourceReferences(GetResourceManager());
+        }
+      }
     }
 
     if(capframe)
