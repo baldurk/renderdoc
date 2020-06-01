@@ -600,6 +600,8 @@ Program::Program(const byte *bytes, size_t length)
 
 #define IS_KNOWN(val, KnownID) (decltype(KnownID)(val) == KnownID)
 
+  rdcarray<size_t> functionDecls;
+
   for(const LLVMBC::BlockOrRecord &rootchild : root.children)
   {
     if(rootchild.IsRecord())
@@ -635,11 +637,19 @@ Program::Program(const byte *bytes, size_t length)
         // unnamed_addr]
         Function f;
 
-        f.funcType = (uint32_t)rootchild.ops[0];
-        f.linkage = (uint32_t)rootchild.ops[3];
+        f.funcType = &m_Types[(size_t)rootchild.ops[0]];
+        // ignore callingconv
+        f.external = (rootchild.ops[2] != 0);
+        // ignore linkage
+        if(rootchild.ops[4] > 0 && rootchild.ops[4] - 1 < m_Attributes.size())
+          f.attrs = &m_Attributes[(size_t)rootchild.ops[4] - 1];
+        // ignore rest of properties
 
         // symbols refer into any of N types in declaration order
         m_Symbols.push_back({SymbolType::Function, m_Functions.size()});
+
+        if(!f.external)
+          functionDecls.push_back(m_Functions.size());
 
         m_Functions.push_back(f);
       }
@@ -674,7 +684,7 @@ Program::Program(const byte *bytes, size_t length)
             continue;
           }
 
-          AttributeGroup group;
+          Attributes group;
 
           size_t id = (size_t)attrgroup.ops[0];
           group.index = attrgroup.ops[1];
@@ -729,21 +739,29 @@ Program::Program(const byte *bytes, size_t length)
             continue;
           }
 
-          rdcarray<AttributeGroup *> groups;
+          Attributes attrs;
+          attrs.index = m_Attributes.size();
 
           for(uint64_t g : paramattr.ops)
           {
             if(g < m_AttributeGroups.size())
-              groups.push_back(&m_AttributeGroups[(size_t)g]);
+            {
+              Attributes &other = m_AttributeGroups[(size_t)g];
+              attrs.params |= other.params;
+              attrs.align = RDCMAX(attrs.align, other.align);
+              attrs.stackAlign = RDCMAX(attrs.stackAlign, other.stackAlign);
+              attrs.derefBytes = RDCMAX(attrs.derefBytes, other.derefBytes);
+              attrs.derefOrNullBytes = RDCMAX(attrs.derefOrNullBytes, other.derefOrNullBytes);
+              attrs.strs.append(other.strs);
+            }
             else
+            {
               RDCERR("Attribute refers to out of bounds group %llu", g);
+            }
           }
 
-          m_Attributes.push_back(groups);
+          m_Attributes.push_back(attrs);
         }
-      }
-      else if(IS_KNOWN(rootchild.id, KnownBlocks::FUNCTION_BLOCK))
-      {
       }
       else if(IS_KNOWN(rootchild.id, KnownBlocks::TYPE_BLOCK))
       {
@@ -866,6 +884,8 @@ Program::Program(const byte *bytes, size_t length)
 
             if(IS_KNOWN(typ.id, TypeRecord::STRUCT_NAMED))
             {
+              // may we want a reverse map name -> type? probably not, this is only relevant for
+              // disassembly or linking and disassembly we can do just by iterating all types
               m_Types[typeIndex].name = structname;
               structname.clear();
             }
@@ -1101,6 +1121,11 @@ Program::Program(const byte *bytes, size_t length)
           }
         }
       }
+      else if(IS_KNOWN(rootchild.id, KnownBlocks::FUNCTION_BLOCK))
+      {
+        RDCLOG("Skipping function body for %s", m_Functions[functionDecls[0]].name.c_str());
+        functionDecls.erase(0);
+      }
       else
       {
         RDCERR("Unknown block ID %u encountered at module scope", rootchild.id);
@@ -1151,47 +1176,175 @@ void Program::MakeDisassemblyString()
   m_Disassembly += StringFormat::Fmt("target triple = \"%s\"\n", m_Triple.c_str());
   m_Disassembly += StringFormat::Fmt("target datalayout = \"%s\"\n\n", m_Datalayout.c_str());
 
-  for(size_t i = 0; i < m_Attributes.size(); i++)
+  bool typesPrinted = false;
+
+  for(size_t i = 0; i < m_Types.size(); i++)
   {
-    m_Disassembly += StringFormat::Fmt("attributes #%zu =", i);
-    for(const AttributeGroup *g : m_Attributes[i])
+    const Type &typ = m_Types[i];
+
+    if(typ.type == Type::Struct && !typ.name.empty())
     {
-      m_Disassembly += " {";
-      Attribute params = g->params;
-
-      if(params & Attribute::Alignment)
+      rdcstr name = typ.getTypeName();
+      m_Disassembly += StringFormat::Fmt("%s = type {", name.c_str());
+      bool first = true;
+      for(const Type *t : typ.members)
       {
-        m_Disassembly += StringFormat::Fmt(" Alignment(%llu)", g->align);
-        params &= ~Attribute::Alignment;
+        if(!first)
+          m_Disassembly += ", ";
+        first = false;
+        m_Disassembly += StringFormat::Fmt(" %s", t->getTypeName().c_str());
       }
-      if(params & Attribute::StackAlignment)
-      {
-        m_Disassembly += StringFormat::Fmt(" StackAlignment(%llu)", g->stackAlign);
-        params &= ~Attribute::StackAlignment;
-      }
-      if(params & Attribute::Dereferenceable)
-      {
-        m_Disassembly += StringFormat::Fmt(" Dereferenceable(%llu)", g->derefBytes);
-        params &= ~Attribute::Dereferenceable;
-      }
-      if(params & Attribute::DereferenceableOrNull)
-      {
-        m_Disassembly += StringFormat::Fmt(" DereferenceableOrNull(%llu)", g->derefOrNullBytes);
-        params &= ~Attribute::DereferenceableOrNull;
-      }
-
-      if(params != Attribute::None)
-      {
-        m_Disassembly += " " + ToStr(params);
-      }
-      for(const rdcpair<rdcstr, rdcstr> &str : g->strs)
-        m_Disassembly += " " + str.first + "=" + str.second;
-      m_Disassembly += " }";
+      m_Disassembly += " }\n";
+      typesPrinted = true;
     }
-    m_Disassembly += "\n";
   }
 
+  if(typesPrinted)
+    m_Disassembly += "\n";
+
+  for(size_t i = 0; i < m_Functions.size(); i++)
+  {
+    const Function &func = m_Functions[i];
+
+    if(func.attrs)
+      m_Disassembly += StringFormat::Fmt("; Function Attrs: %s\n", func.attrs->toString().c_str());
+
+    m_Disassembly += (func.external ? "declare " : "define ");
+    m_Disassembly += func.funcType->declFunction("@" + func.name);
+
+    if(func.attrs)
+      m_Disassembly += StringFormat::Fmt(" #%u", func.attrs->index);
+
+    if(!func.external)
+    {
+      m_Disassembly += " {\n";
+      m_Disassembly += "  ; ...\n";
+      m_Disassembly += "}\n\n";
+    }
+    else
+    {
+      m_Disassembly += "\n\n";
+    }
+  }
+
+  for(size_t i = 0; i < m_Attributes.size(); i++)
+    m_Disassembly +=
+        StringFormat::Fmt("attributes #%zu = %s\n", i, m_Attributes[i].toString().c_str());
+
   m_Disassembly += "; No disassembly implemented";
+}
+
+rdcstr Type::getTypeName() const
+{
+  if(!name.empty())
+  {
+    // needs escaping
+    if(name.find_first_not_of(
+           "-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$._0123456789") >= 0)
+    {
+      return "%\"" + escapeString(name) + "\"";
+    }
+
+    return "%" + name;
+  }
+
+  switch(type)
+  {
+    case Void: return "void";
+    case Scalar:
+    {
+      switch(scalarType)
+      {
+        case Void: return "void";
+        case Int: return StringFormat::Fmt("i%u", bitWidth);
+        case Float:
+          switch(bitWidth)
+          {
+            case 16: return "half";
+            case 32: return "float";
+            case 64: return "double";
+            default: return StringFormat::Fmt("fp%u", bitWidth);
+          }
+      }
+    }
+    case Vector: return StringFormat::Fmt("<%u x %s>", elemCount, inner->getTypeName().c_str());
+    case Pointer: return StringFormat::Fmt("%s*", inner->getTypeName().c_str());
+    case Array: return StringFormat::Fmt("[%u x %s]", elemCount, inner->getTypeName().c_str());
+    case Function: return declFunction(rdcstr());
+    case Struct:
+    {
+      rdcstr ret;
+      if(packedStruct)
+        ret = "<{";
+      else
+        ret = "{";
+      for(size_t i = 0; i < members.size(); i++)
+      {
+        if(i > 0)
+          ret += ", ";
+        ret += members[i]->getTypeName();
+      }
+      if(packedStruct)
+        ret += "}>";
+      else
+        ret += "}";
+      return ret;
+    }
+
+    case Metadata: return "metadata";
+    case Label: return "label";
+    default: return "unknown_type";
+  }
+}
+
+rdcstr Type::declFunction(rdcstr funcName) const
+{
+  rdcstr ret = inner->getTypeName();
+  ret += " " + funcName + "(";
+  for(size_t i = 0; i < members.size(); i++)
+  {
+    if(i > 0)
+      ret += ", ";
+    ret += members[i]->getTypeName();
+  }
+  ret += ")";
+  return ret;
+}
+
+rdcstr Attributes::toString() const
+{
+  rdcstr ret = "{";
+  Attribute p = params;
+
+  if(p & Attribute::Alignment)
+  {
+    ret += StringFormat::Fmt(" Alignment(%llu)", align);
+    p &= ~Attribute::Alignment;
+  }
+  if(p & Attribute::StackAlignment)
+  {
+    ret += StringFormat::Fmt(" StackAlignment(%llu)", stackAlign);
+    p &= ~Attribute::StackAlignment;
+  }
+  if(p & Attribute::Dereferenceable)
+  {
+    ret += StringFormat::Fmt(" Dereferenceable(%llu)", derefBytes);
+    p &= ~Attribute::Dereferenceable;
+  }
+  if(p & Attribute::DereferenceableOrNull)
+  {
+    ret += StringFormat::Fmt(" DereferenceableOrNull(%llu)", derefOrNullBytes);
+    p &= ~Attribute::DereferenceableOrNull;
+  }
+
+  if(p != Attribute::None)
+    ret += " " + ToStr(p);
+
+  for(const rdcpair<rdcstr, rdcstr> &str : strs)
+    ret += " " + str.first + "=" + str.second;
+  ret += " }";
+
+  return ret;
 }
 };
 

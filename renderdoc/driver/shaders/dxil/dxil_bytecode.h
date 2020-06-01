@@ -57,24 +57,19 @@ struct Type
     Int,
   } scalarType = Void;
 
+  rdcstr getTypeName() const;
+  rdcstr declFunction(rdcstr funcName) const;
+
   // for scalars, arrays, vectors
   uint32_t bitWidth = 0, elemCount = 0;
 
   // the single inner type for pointers, vectors, or arrays, the return type for functions
-  Type *inner = NULL;
+  const Type *inner = NULL;
 
   // struct or function
   bool packedStruct = false, vararg = false;
   rdcstr name;
-  rdcarray<Type *> members;    // the members for a struct, the parameters for functions
-};
-
-struct Function
-{
-  rdcstr name;
-
-  uint32_t funcType;
-  uint32_t linkage;
+  rdcarray<const Type *> members;    // the members for a struct, the parameters for functions
 };
 
 struct GlobalVar
@@ -154,13 +149,24 @@ enum class Attribute : uint64_t
 
 BITMASK_OPERATORS(Attribute);
 
-struct AttributeGroup
+struct Attributes
 {
   uint64_t index = 0;
 
   Attribute params = Attribute::None;
   uint64_t align = 0, stackAlign = 0, derefBytes = 0, derefOrNullBytes = 0;
   rdcarray<rdcpair<rdcstr, rdcstr>> strs;
+
+  rdcstr toString() const;
+};
+
+struct Function
+{
+  rdcstr name;
+
+  const Type *funcType = NULL;
+  bool external = false;
+  const Attributes *attrs = NULL;
 };
 
 class Program
@@ -200,8 +206,8 @@ private:
 
   rdcarray<Type> m_Types;
 
-  rdcarray<AttributeGroup> m_AttributeGroups;
-  rdcarray<rdcarray<AttributeGroup *>> m_Attributes;
+  rdcarray<Attributes> m_AttributeGroups;
+  rdcarray<Attributes> m_Attributes;
 
   rdcstr m_Triple, m_Datalayout;
 
