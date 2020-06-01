@@ -463,6 +463,43 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(vec[1] == 5);
   };
 
+  SECTION("resize_for_index")
+  {
+    rdcarray<int> test;
+
+    CHECK(test.empty());
+
+    test.resize_for_index(0);
+
+    CHECK(test.size() == 1);
+    CHECK(test.capacity() >= 1);
+
+    test.resize_for_index(5);
+
+    CHECK(test.size() == 5);
+    CHECK(test.capacity() >= 5);
+
+    test.resize_for_index(5);
+
+    CHECK(test.size() == 5);
+    CHECK(test.capacity() >= 5);
+
+    test.resize_for_index(3);
+
+    CHECK(test.size() == 5);
+    CHECK(test.capacity() >= 5);
+
+    test.resize_for_index(0);
+
+    CHECK(test.size() == 5);
+    CHECK(test.capacity() >= 5);
+
+    test.resize_for_index(9);
+
+    CHECK(test.size() == 9);
+    CHECK(test.capacity() >= 9);
+  };
+
   SECTION("Check construction")
   {
     rdcarray<ConstructorCounter> test;
