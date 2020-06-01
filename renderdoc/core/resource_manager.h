@@ -120,6 +120,8 @@ const FrameRefType eFrameRef_Maximum = eFrameRef_WriteBeforeRead;
 // Threshold value for resource "age", i.e. how long it wasn't
 // referred with the any write reference.
 const double PERSISTENT_RESOURCE_AGE = 3000;
+// how long it wasn't referred with any read reference.
+const double IRRELEVANT_RESOURCE_AGE = 3000;
 
 DECLARE_REFLECTION_ENUM(FrameRefType);
 
@@ -149,6 +151,7 @@ FrameRefType ComposeFrameRefsFirstKnown(FrameRefType first, FrameRefType second)
 FrameRefType KeepOldFrameRef(FrameRefType first, FrameRefType second);
 
 bool IsDirtyFrameRef(FrameRefType refType);
+bool IsCompleteWriteFrameRef(FrameRefType refType);
 
 // Captures the possible initialization/reset requirements for resources.
 // These requirements are entirely determined by the resource's FrameRefType,
@@ -645,16 +648,21 @@ public:
   WrappedResourceType GetWrapper(RealResourceType real);
   void RemoveWrapper(RealResourceType real);
 
-  void Prepare_ResourceInitialStateIfNeeded(ResourceId id);
-  void Prepare_ResourceIfActivePostponed(ResourceId id);
+  void Prepare_InitialStateIfPostponed(ResourceId id);
+  void SkipOrPostponeOrPrepare_InitialState(ResourceId id, FrameRefType refType);
 
-  void UpdateLastWriteTime(ResourceId id);
+  void UpdateLastWriteTime(ResourceId id, FrameRefType refType);
   void ResetLastWriteTimes();
   void ResetCaptureStartTime();
+  void UpdateLastPartialUseTime(ResourceId id, FrameRefType refType);
+  void ResetLastPartialUseTimes();
 
   bool HasPersistentAge(ResourceId id);
+  bool HasIrrelevantAge(ResourceId id);
   bool IsResourcePostponed(ResourceId id);
-  bool IsResourcePersistent(ResourceId id);
+  bool IsResourceSkipped(ResourceId id);
+  bool ShouldPostpone(ResourceId id);
+  bool ShouldSkip(ResourceId id);
 
   virtual bool IsResourceTrackedForPersistency(const WrappedResourceType &res) { return false; }
 protected:
@@ -741,11 +749,18 @@ protected:
   // During initial resources preparation, persistent resources are
   // postponed until serializing to RDC file.
   std::set<ResourceId> m_PostponedResourceIDs;
+  // During initial resources preparation, resources that are completely written
+  // over are skipped
+  std::set<ResourceId> m_SkippedResourceIDs;
 
   // On marking resource write-referenced in frame, its last write
   // time is reset. The time is used to determine persistent resources,
   // and is checked against the `PERSISTENT_RESOURCE_AGE`.
   std::map<ResourceId, double> m_LastWriteTime;
+  // m_LastPartialUseTime is referring to: eFrameRef_PartialWrite, eFrameRef_Read,
+  // eFrameRef_ReadBeforeWrite, eFrameRef_WriteBeforeRead. The goal is to predict
+  // whether a resource will have a eFrameRef_CompleteWrite reference or not
+  std::map<ResourceId, double> m_LastPartialUseTime;
 
   // Timestamp at the beginning of the frame capture. Used to determine which
   // resources to refresh for their last write time (see `m_LastWriteTime`).
@@ -804,11 +819,18 @@ void ResourceManager<Configuration>::MarkResourceFrameReferenced(ResourceId id,
   if(id == ResourceId())
     return;
 
-  if(IsDirtyFrameRef(refType))
+  if(IsActiveCapturing(m_State))
   {
-    Prepare_ResourceIfActivePostponed(id);
-    UpdateLastWriteTime(id);
+    SkipOrPostponeOrPrepare_InitialState(id, refType);
+
+    if(IsDirtyFrameRef(refType))
+    {
+      Prepare_InitialStateIfPostponed(id);
+    }
   }
+
+  UpdateLastPartialUseTime(id, refType);
+  UpdateLastWriteTime(id, refType);
 
   if(IsBackgroundCapturing(m_State))
     return;
@@ -972,10 +994,11 @@ void ResourceManager<Configuration>::FreeInitialContents()
       m_InitialContents.erase(m_InitialContents.begin());
   }
   m_PostponedResourceIDs.clear();
+  m_SkippedResourceIDs.clear();
 }
 
 template <typename Configuration>
-void ResourceManager<Configuration>::Prepare_ResourceInitialStateIfNeeded(ResourceId id)
+void ResourceManager<Configuration>::Prepare_InitialStateIfPostponed(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -983,28 +1006,58 @@ void ResourceManager<Configuration>::Prepare_ResourceInitialStateIfNeeded(Resour
     return;
 
   WrappedResourceType res = GetCurrentResource(id);
+  RDCDEBUG("Preparing resource %s after it has been postponed.", ToStr(id).c_str());
   Prepare_InitialState(res);
 
   m_PostponedResourceIDs.erase(id);
 }
 
 template <typename Configuration>
-void ResourceManager<Configuration>::Prepare_ResourceIfActivePostponed(ResourceId id)
+void ResourceManager<Configuration>::SkipOrPostponeOrPrepare_InitialState(ResourceId id,
+                                                                          FrameRefType refType)
 {
   SCOPED_LOCK(m_Lock);
 
-  // If the resource was postponed during Active Capture, we need to prepare it
-  // right away, since next Read might be invalid.
-  if(!IsActiveCapturing(m_State) || !IsResourcePostponed(id))
+  if(!IsResourceSkipped(id))
     return;
 
-  RDCDEBUG("Preparing resource %s after it has been postponed.", ToStr(id).c_str());
-  Prepare_ResourceInitialStateIfNeeded(id);
+  // the first time we encounter a skipped resource, we can choose to
+  // skip this resource forever, convert it to be postponed, or prepare
+  // it immediately. We can't retrieve its initial state once it has
+  // been written over.
+  m_SkippedResourceIDs.erase(id);
+
+  // skip this forever if the first encounter is a complete write
+  if(IsCompleteWriteFrameRef(refType))
+  {
+    RDCDEBUG("Resource %s skipped forever on refType of %s)", ToStr(id).c_str(),
+             ToStr(refType).c_str());
+    return;
+  }
+
+  // If this resource is only being read, we might as well try to
+  // postpone it to conserve memory consumption.
+  if(!IsDirtyFrameRef(refType) && IsResourceTrackedForPersistency(GetCurrentResource(id)))
+  {
+    m_PostponedResourceIDs.insert(id);
+    RDCDEBUG("Resource %s converted from skipped to postponed on refType of %s", ToStr(id).c_str(),
+             ToStr(refType).c_str());
+    SetInitialContents(id, InitialContentData());
+  }
+  else
+  {
+    WrappedResourceType res = GetCurrentResource(id);
+    RDCDEBUG("Preparing resource %s after it has been skipped on refType of %s", ToStr(id).c_str(),
+             ToStr(refType).c_str());
+    Prepare_InitialState(res);
+  }
 }
 
 template <typename Configuration>
-inline void ResourceManager<Configuration>::UpdateLastWriteTime(ResourceId id)
+inline void ResourceManager<Configuration>::UpdateLastWriteTime(ResourceId id, FrameRefType refType)
 {
+  if(!IsDirtyFrameRef(refType))
+    return;
   SCOPED_LOCK(m_Lock);
   m_LastWriteTime[id] = m_ResourcesUpdateTimer.GetMilliseconds();
 }
@@ -1032,6 +1085,27 @@ inline void ResourceManager<Configuration>::ResetLastWriteTimes()
 }
 
 template <typename Configuration>
+inline void ResourceManager<Configuration>::UpdateLastPartialUseTime(ResourceId id,
+                                                                     FrameRefType refType)
+{
+  if(IsCompleteWriteFrameRef(refType))
+    return;
+  SCOPED_LOCK(m_Lock);
+  m_LastPartialUseTime[id] = m_ResourcesUpdateTimer.GetMilliseconds();
+}
+
+template <typename Configuration>
+inline void ResourceManager<Configuration>::ResetLastPartialUseTimes()
+{
+  SCOPED_LOCK(m_Lock);
+  for(auto it = m_LastPartialUseTime.begin(); it != m_LastPartialUseTime.end(); ++it)
+  {
+    if(m_captureStartTime - it->second <= IRRELEVANT_RESOURCE_AGE)
+      it->second = m_ResourcesUpdateTimer.GetMilliseconds();
+  }
+}
+
+template <typename Configuration>
 inline bool ResourceManager<Configuration>::HasPersistentAge(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
@@ -1045,6 +1119,19 @@ inline bool ResourceManager<Configuration>::HasPersistentAge(ResourceId id)
 }
 
 template <typename Configuration>
+inline bool ResourceManager<Configuration>::HasIrrelevantAge(ResourceId id)
+{
+  SCOPED_LOCK(m_Lock);
+
+  auto it = m_LastPartialUseTime.find(id);
+
+  if(it == m_LastPartialUseTime.end())
+    return true;
+
+  return m_ResourcesUpdateTimer.GetMilliseconds() - it->second >= IRRELEVANT_RESOURCE_AGE;
+}
+
+template <typename Configuration>
 inline bool ResourceManager<Configuration>::IsResourcePostponed(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
@@ -1052,7 +1139,14 @@ inline bool ResourceManager<Configuration>::IsResourcePostponed(ResourceId id)
 }
 
 template <typename Configuration>
-inline bool ResourceManager<Configuration>::IsResourcePersistent(ResourceId id)
+inline bool ResourceManager<Configuration>::IsResourceSkipped(ResourceId id)
+{
+  SCOPED_LOCK(m_Lock);
+  return m_SkippedResourceIDs.find(id) != m_SkippedResourceIDs.end();
+}
+
+template <typename Configuration>
+inline bool ResourceManager<Configuration>::ShouldPostpone(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -1062,6 +1156,19 @@ inline bool ResourceManager<Configuration>::IsResourcePersistent(ResourceId id)
     return false;
 
   return HasPersistentAge(id);
+}
+
+template <typename Configuration>
+inline bool ResourceManager<Configuration>::ShouldSkip(ResourceId id)
+{
+  SCOPED_LOCK(m_Lock);
+
+  WrappedResourceType res = GetCurrentResource(id);
+
+  if(!IsResourceTrackedForPersistency(res))
+    return false;
+
+  return HasIrrelevantAge(id);
 }
 
 template <typename Configuration>
@@ -1201,6 +1308,7 @@ void ResourceManager<Configuration>::PrepareInitialContents()
   RDCDEBUG("Preparing up to %u potentially dirty resources", (uint32_t)m_DirtyResources.size());
   uint32_t prepared = 0;
   uint32_t postponed = 0;
+  uint32_t skipped = 0;
 
   float num = float(m_DirtyResources.size());
   float idx = 0.0f;
@@ -1225,7 +1333,14 @@ void ResourceManager<Configuration>::PrepareInitialContents()
     if(record == NULL || record->InternalResource)
       continue;
 
-    if(IsResourcePersistent(id))
+    if(ShouldSkip(id))
+    {
+      m_SkippedResourceIDs.insert(id);
+      skipped++;
+      continue;
+    }
+
+    if(ShouldPostpone(id))
     {
       m_PostponedResourceIDs.insert(id);
       // Set empty contents here, it'll be prepared on serialization.
@@ -1243,7 +1358,7 @@ void ResourceManager<Configuration>::PrepareInitialContents()
     Prepare_InitialState(res);
   }
 
-  RDCDEBUG("Prepared %u dirty resources, postponed %u", prepared, postponed);
+  RDCDEBUG("Prepared %u dirty resources, postponed %u, skipped %u", prepared, postponed, skipped);
 }
 
 template <typename Configuration>
@@ -1270,7 +1385,7 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
        !RenderDoc::Inst().GetCaptureOptions().refAllResources)
     {
 #if ENABLED(VERBOSE_DIRTY_RESOURCES)
-      RDCDEBUG("Dirty tesource %s is GPU dirty but not referenced - skipping", ToStr(id).c_str());
+      RDCDEBUG("Dirty resource %s is GPU dirty but not referenced - skipping", ToStr(id).c_str());
 #endif
       skipped++;
       continue;
@@ -1299,7 +1414,7 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
 #endif
 
     // Load postponed resource if needed.
-    Prepare_ResourceInitialStateIfNeeded(id);
+    Prepare_InitialStateIfPostponed(id);
 
     dirty++;
 
@@ -1638,11 +1753,15 @@ void ResourceManager<Configuration>::ReleaseCurrentResource(ResourceId id)
 
   // We potentially need to prepare this resource on Active Capture,
   // if it was postponed, but is about to go away.
-  Prepare_ResourceIfActivePostponed(id);
+  if(IsActiveCapturing(m_State))
+  {
+    Prepare_InitialStateIfPostponed(id);
+  }
 
   m_CurrentResourceMap.erase(id);
   m_DirtyResources.erase(id);
   m_LastWriteTime.erase(id);
+  m_LastPartialUseTime.erase(id);
 }
 
 template <typename Configuration>

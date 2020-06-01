@@ -1493,6 +1493,7 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
     record->MarkResourceFrameReferenced(GetResID(pRenderPassBegin->renderPass), eFrameRef_Read);
 
     VkResourceRecord *fb = GetRecord(pRenderPassBegin->framebuffer);
+    VkResourceRecord *rp = GetRecord(pRenderPassBegin->renderPass);
 
     record->MarkResourceFrameReferenced(fb->GetResourceID(), eFrameRef_Read);
 
@@ -1500,21 +1501,42 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
 
     barriers.clear();
 
-    if(fb->imageAttachments[0].barrier.sType && fb->imageAttachments[0].record)
+    FramebufferInfo *fbInfo = fb->framebufferInfo;
+    RenderPassInfo *rpInfo = rp->renderPassInfo;
+
+    if(fbInfo->imageAttachments[0].barrier.sType && fbInfo->imageAttachments[0].record)
     {
-      for(size_t i = 0; fb->imageAttachments[i].barrier.sType; i++)
+      bool renderArea_covers_entire_framebuffer =
+          pRenderPassBegin->renderArea.offset.x == 0 && pRenderPassBegin->renderArea.offset.y == 0 &&
+          pRenderPassBegin->renderArea.extent.width >= fbInfo->width &&
+          pRenderPassBegin->renderArea.extent.height >= fbInfo->height;
+
+      for(size_t i = 0; fbInfo->imageAttachments[i].barrier.sType; i++)
       {
-        VkResourceRecord *att = fb->imageAttachments[i].record;
+        VkResourceRecord *att = fbInfo->imageAttachments[i].record;
         if(att == NULL)
           break;
 
-        record->MarkImageViewFrameReferenced(att, ImageRange(), eFrameRef_ReadBeforeWrite);
+        bool framebuffer_reference_entire_attachment = fbInfo->AttachmentFullyReferenced(i, rpInfo);
 
-        if(fb->imageAttachments[i].barrier.oldLayout != fb->imageAttachments[i].barrier.newLayout)
-          barriers.push_back(fb->imageAttachments[i].barrier);
+        FrameRefType refType = eFrameRef_ReadBeforeWrite;
+
+        if(renderArea_covers_entire_framebuffer && framebuffer_reference_entire_attachment)
+        {
+          if(rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_LOAD)
+          {
+            refType = eFrameRef_CompleteWrite;
+          }
+        }
+
+        record->MarkImageViewFrameReferenced(att, ImageRange(), refType);
+
+        if(fbInfo->imageAttachments[i].barrier.oldLayout !=
+           fbInfo->imageAttachments[i].barrier.newLayout)
+          barriers.push_back(fbInfo->imageAttachments[i].barrier);
       }
     }
-    else if(fb->imageAttachments[0].barrier.sType)
+    else if(fbInfo->imageAttachments[0].barrier.sType)
     {
       // if we have attachments but the framebuffer doesn't have images, then it's imageless. Look
       // for the image records now
@@ -1528,9 +1550,10 @@ void WrappedVulkan::vkCmdBeginRenderPass(VkCommandBuffer commandBuffer,
         VkResourceRecord *att = GetRecord(attachmentsInfo->pAttachments[i]);
         record->MarkImageViewFrameReferenced(att, ImageRange(), eFrameRef_ReadBeforeWrite);
 
-        if(fb->imageAttachments[i].barrier.oldLayout != fb->imageAttachments[i].barrier.newLayout)
+        if(fbInfo->imageAttachments[i].barrier.oldLayout !=
+           fbInfo->imageAttachments[i].barrier.newLayout)
         {
-          VkImageMemoryBarrier barrier = fb->imageAttachments[i].barrier;
+          VkImageMemoryBarrier barrier = fbInfo->imageAttachments[i].barrier;
 
           barrier.image = GetResourceManager()->GetCurrentHandle<VkImage>(att->baseResource);
           barrier.subresourceRange = att->viewRange;
@@ -1966,6 +1989,7 @@ void WrappedVulkan::vkCmdBeginRenderPass2(VkCommandBuffer commandBuffer,
     record->MarkResourceFrameReferenced(GetResID(pRenderPassBegin->renderPass), eFrameRef_Read);
 
     VkResourceRecord *fb = GetRecord(pRenderPassBegin->framebuffer);
+    VkResourceRecord *rp = GetRecord(pRenderPassBegin->renderPass);
 
     record->MarkResourceFrameReferenced(fb->GetResourceID(), eFrameRef_Read);
 
@@ -1973,18 +1997,39 @@ void WrappedVulkan::vkCmdBeginRenderPass2(VkCommandBuffer commandBuffer,
 
     barriers.clear();
 
-    if(fb->imageAttachments[0].barrier.sType && fb->imageAttachments[0].record)
+    FramebufferInfo *fbInfo = fb->framebufferInfo;
+    RenderPassInfo *rpInfo = rp->renderPassInfo;
+
+    if(fbInfo->imageAttachments[0].barrier.sType && fbInfo->imageAttachments[0].record)
     {
-      for(size_t i = 0; fb->imageAttachments[i].barrier.sType; i++)
+      bool renderArea_covers_entire_framebuffer =
+          pRenderPassBegin->renderArea.offset.x == 0 && pRenderPassBegin->renderArea.offset.y == 0 &&
+          pRenderPassBegin->renderArea.extent.width >= fbInfo->width &&
+          pRenderPassBegin->renderArea.extent.height >= fbInfo->height;
+
+      for(size_t i = 0; fbInfo->imageAttachments[i].barrier.sType; i++)
       {
-        VkResourceRecord *att = fb->imageAttachments[i].record;
+        VkResourceRecord *att = fbInfo->imageAttachments[i].record;
         if(att == NULL)
           break;
 
-        record->MarkImageViewFrameReferenced(att, ImageRange(), eFrameRef_ReadBeforeWrite);
+        bool framebuffer_reference_entire_attachment = fbInfo->AttachmentFullyReferenced(i, rpInfo);
 
-        if(fb->imageAttachments[i].barrier.oldLayout != fb->imageAttachments[i].barrier.newLayout)
-          barriers.push_back(fb->imageAttachments[i].barrier);
+        FrameRefType refType = eFrameRef_ReadBeforeWrite;
+
+        if(renderArea_covers_entire_framebuffer && framebuffer_reference_entire_attachment)
+        {
+          if(rpInfo->loadOpTable[i] != VK_ATTACHMENT_LOAD_OP_LOAD)
+          {
+            refType = eFrameRef_CompleteWrite;
+          }
+        }
+
+        record->MarkImageViewFrameReferenced(att, ImageRange(), refType);
+
+        if(fbInfo->imageAttachments[i].barrier.oldLayout !=
+           fbInfo->imageAttachments[i].barrier.newLayout)
+          barriers.push_back(fbInfo->imageAttachments[i].barrier);
       }
     }
     else
@@ -2001,9 +2046,10 @@ void WrappedVulkan::vkCmdBeginRenderPass2(VkCommandBuffer commandBuffer,
         VkResourceRecord *att = GetRecord(attachmentsInfo->pAttachments[i]);
         record->MarkImageViewFrameReferenced(att, ImageRange(), eFrameRef_ReadBeforeWrite);
 
-        if(fb->imageAttachments[i].barrier.oldLayout != fb->imageAttachments[i].barrier.newLayout)
+        if(fbInfo->imageAttachments[i].barrier.oldLayout !=
+           fbInfo->imageAttachments[i].barrier.newLayout)
         {
-          VkImageMemoryBarrier barrier = fb->imageAttachments[i].barrier;
+          VkImageMemoryBarrier barrier = fbInfo->imageAttachments[i].barrier;
 
           barrier.image = GetResourceManager()->GetCurrentHandle<VkImage>(att->baseResource);
           barrier.subresourceRange = att->viewRange;

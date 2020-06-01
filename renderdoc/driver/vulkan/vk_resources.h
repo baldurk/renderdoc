@@ -1108,6 +1108,36 @@ struct AttachmentInfo
   VkImageMemoryBarrier barrier;
 };
 
+struct RenderPassInfo
+{
+  RenderPassInfo(const VkRenderPassCreateInfo &ci);
+  RenderPassInfo(const VkRenderPassCreateInfo2 &ci);
+
+  ~RenderPassInfo();
+
+  AttachmentInfo *imageAttachments;
+
+  // table of loadOps for each attachment
+  VkAttachmentLoadOp *loadOpTable;
+
+  // table of multiview viewMasks for each attachment
+  uint32_t *multiviewViewMaskTable;
+};
+
+struct FramebufferInfo
+{
+  FramebufferInfo(const VkFramebufferCreateInfo &ci);
+  ~FramebufferInfo();
+
+  bool AttachmentFullyReferenced(size_t attachmentIndex, const RenderPassInfo *rpi);
+
+  AttachmentInfo *imageAttachments;
+
+  uint32_t width;
+  uint32_t height;
+  uint32_t layers;
+};
+
 struct ImageRange
 {
   ImageRange() {}
@@ -2217,7 +2247,8 @@ public:
     SwapchainInfo *swapInfo;                 // only for swapchains
     MemMapState *memMapState;                // only for device memory
     CmdBufferRecordingInfo *cmdInfo;         // only for command buffers
-    AttachmentInfo *imageAttachments;        // only for framebuffers and render passes
+    FramebufferInfo *framebufferInfo;        // only for framebuffers
+    RenderPassInfo *renderPassInfo;          // only for render passes
     PipelineLayoutData *pipeLayoutInfo;      // only for pipeline layouts
     DescriptorSetData *descInfo;             // only for descriptor sets and descriptor set layouts
     DescUpdateTemplate *descTemplateInfo;    // only for descriptor update templates

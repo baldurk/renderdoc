@@ -2054,6 +2054,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
   GetResourceManager()->ResetLastWriteTimes();
 
+  GetResourceManager()->ResetLastPartialUseTimes();
+
   GetResourceManager()->MarkUnwrittenResources();
 
   GetResourceManager()->ClearReferencedMemory();
