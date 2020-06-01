@@ -639,7 +639,7 @@ Program::Program(const byte *bytes, size_t length)
       }
       else
       {
-        RDCWARN("Unknown record ID %u encountered at module scope", rootchild.id);
+        RDCERR("Unknown record ID %u encountered at module scope", rootchild.id);
       }
     }
     else if(rootchild.IsBlock())
@@ -727,6 +727,12 @@ Program::Program(const byte *bytes, size_t length)
         }
       }
       else if(IS_KNOWN(rootchild.id, KnownBlocks::FUNCTION_BLOCK))
+      {
+      }
+      else if(IS_KNOWN(rootchild.id, KnownBlocks::TYPE_BLOCK))
+      {
+      }
+      else if(IS_KNOWN(rootchild.id, KnownBlocks::CONSTANTS_BLOCK))
       {
       }
       else if(IS_KNOWN(rootchild.id, KnownBlocks::VALUE_SYMTAB_BLOCK))
@@ -933,7 +939,7 @@ Program::Program(const byte *bytes, size_t length)
       }
       else
       {
-        RDCWARN("Unknown block ID %u encountered at module scope", rootchild.id);
+        RDCERR("Unknown block ID %u encountered at module scope", rootchild.id);
       }
     }
   }
