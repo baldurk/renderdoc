@@ -87,7 +87,7 @@ rdcstr ToStr(const T &el)
   static const char empty_ret[] = #type "(0)";                   \
   static_assert(std::is_same<const type &, decltype(el)>::value, \
                 "Type in macro doesn't match el");               \
-  uint32_t local = (uint32_t)el;                                 \
+  uint64_t local = (uint64_t)el;                                 \
   (void)(enumType) el;                                           \
   rdcstr ret;
 
@@ -110,43 +110,43 @@ rdcstr ToStr(const T &el)
 #define STRINGISE_BITFIELD_BIT(b) \
   if(el & b)                      \
   {                               \
-    local &= ~uint32_t(b);        \
+    local &= ~uint64_t(b);        \
     ret += " | " #b;              \
   }
 
 #define STRINGISE_BITFIELD_CLASS_BIT(b) \
   if(el & enumType::b)                  \
   {                                     \
-    local &= ~uint32_t(enumType::b);    \
+    local &= ~uint64_t(enumType::b);    \
     ret += " | " #b;                    \
   }
 
 #define STRINGISE_BITFIELD_BIT_NAMED(b, str) \
   if(el & b)                                 \
   {                                          \
-    local &= ~uint32_t(b);                   \
+    local &= ~uint64_t(b);                   \
     ret += " | " str;                        \
   }
 
 #define STRINGISE_BITFIELD_CLASS_BIT_NAMED(b, str) \
   if(el & enumType::b)                             \
   {                                                \
-    local &= ~uint32_t(enumType::b);               \
+    local &= ~uint64_t(enumType::b);               \
     ret += " | " str;                              \
   }
 
-#define END_BITFIELD_STRINGISE()                \
-  if(local)                                     \
-    ret += unknown_prefix + ToStr(local) + ")"; \
-                                                \
-  if(ret.empty())                               \
-  {                                             \
-    ret = empty_ret;                            \
-  }                                             \
-  else                                          \
-  {                                             \
-    ret = ret.substr(3);                        \
-  }                                             \
+#define END_BITFIELD_STRINGISE()                          \
+  if(local)                                               \
+    ret += unknown_prefix + ToStr((uint32_t)local) + ")"; \
+                                                          \
+  if(ret.empty())                                         \
+  {                                                       \
+    ret = empty_ret;                                      \
+  }                                                       \
+  else                                                    \
+  {                                                       \
+    ret = ret.substr(3);                                  \
+  }                                                       \
   return ret;
 
 template <typename T>
