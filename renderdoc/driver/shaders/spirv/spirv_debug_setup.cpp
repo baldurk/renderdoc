@@ -1512,7 +1512,7 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
   if(ret.rows > 1)
   {
     // matrix case
-    ClampScalars(apiWrapper, ptr, scalar0, scalar1);
+    ClampScalars(apiWrapper, ret, scalar0, scalar1);
 
     if(scalar0 != ~0U && scalar1 != ~0U)
     {
@@ -1545,7 +1545,7 @@ ShaderVariable Debugger::ReadFromPointer(const ShaderVariable &ptr) const
   }
   else
   {
-    ClampScalars(apiWrapper, ptr, scalar0);
+    ClampScalars(apiWrapper, ret, scalar0);
 
     // vector case, selecting a scalar (if anything)
     if(scalar0 != ~0U)

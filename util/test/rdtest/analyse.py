@@ -127,12 +127,13 @@ def get_vsin_attrs(controller: rd.ReplayController, vertexOffset: int, index_mes
         attr.name = a.name
         attr.mesh = rd.MeshFormat(index_mesh)
 
-        offs = a.byteOffset + vertexOffset * attr.mesh.vertexByteStride
-
         attr.mesh.vertexByteStride = vbs[a.vertexBuffer].byteStride
         attr.mesh.instStepRate = a.instanceRate
         attr.mesh.instanced = a.perInstance
         attr.mesh.vertexResourceId = vbs[a.vertexBuffer].resourceId
+
+        offs = a.byteOffset + vertexOffset * attr.mesh.vertexByteStride
+
         attr.mesh.vertexByteOffset = vbs[a.vertexBuffer].byteOffset + offs
         attr.mesh.vertexByteSize = max([0, vbs[a.vertexBuffer].byteSize - offs])
 
