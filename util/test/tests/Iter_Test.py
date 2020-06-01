@@ -84,6 +84,7 @@ class Iter_Test(rdtest.TestCase):
             mesh.indexResourceId = ib.resourceId
             mesh.indexByteStride = draw.indexByteWidth
             mesh.indexByteOffset = ib.byteOffset + draw.indexOffset * draw.indexByteWidth
+            mesh.indexByteSize = ib.byteSize
             mesh.baseVertex = draw.baseVertex
 
             indices = rdtest.fetch_indices(self.controller, draw, mesh, 0, vtx, 1)
