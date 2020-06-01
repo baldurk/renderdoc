@@ -179,6 +179,8 @@ private:
   CBufferVariableType ParseRDEFType(RDEFHeader *h, char *chunk, uint32_t offset);
   std::map<uint32_t, CBufferVariableType> m_Variables;
 
+  uint32_t m_Hash[4];
+
   rdcstr m_DebugFileName;
 
   ShaderStatistics m_ShaderStats;

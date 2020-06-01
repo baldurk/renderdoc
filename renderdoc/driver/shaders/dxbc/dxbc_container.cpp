@@ -112,6 +112,17 @@ struct ILDNHeader
   char Name[1];
 };
 
+enum class HASHFlags : uint32_t
+{
+  INCLUDES_SOURCE = 0x1,
+};
+
+struct HASHHeader
+{
+  HASHFlags Flags;
+  uint32_t hashValue[4];
+};
+
 struct RDEFHeader
 {
   //////////////////////////////////////////////////////
@@ -250,6 +261,7 @@ static const uint32_t FOURCC_PRIV = MAKE_FOURCC('P', 'R', 'I', 'V');
 static const uint32_t FOURCC_DXIL = MAKE_FOURCC('D', 'X', 'I', 'L');
 static const uint32_t FOURCC_ILDB = MAKE_FOURCC('I', 'L', 'D', 'B');
 static const uint32_t FOURCC_ILDN = MAKE_FOURCC('I', 'L', 'D', 'N');
+static const uint32_t FOURCC_HASH = MAKE_FOURCC('H', 'A', 'S', 'H');
 
 int TypeByteSize(VariableType t)
 {
@@ -494,16 +506,23 @@ const rdcstr &DXBCContainer::GetDisassembly()
 {
   if(m_Disassembly.empty())
   {
-    uint32_t *hash =
-        (uint32_t *)&m_ShaderBlob[4];    // hash is 4 uints, starting after the FOURCC of 'DXBC'
-
-    m_Disassembly =
-        StringFormat::Fmt("Shader hash %08x-%08x-%08x-%08x\n\n", hash[0], hash[1], hash[2], hash[3]);
-
     if(m_DXBCByteCode)
+    {
+      m_Disassembly = StringFormat::Fmt("Shader hash %08x-%08x-%08x-%08x\n\n", m_Hash[0], m_Hash[1],
+                                        m_Hash[2], m_Hash[3]);
+
       m_Disassembly += m_DXBCByteCode->GetDisassembly();
+    }
     else if(m_DXILByteCode)
+    {
+      m_Disassembly = "; shader hash: ";
+      byte *hashBytes = (byte *)m_Hash;
+      for(size_t i = 0; i < sizeof(m_Hash); i++)
+        m_Disassembly += StringFormat::Fmt("%02x", hashBytes[i]);
+      m_Disassembly += "\n\n";
+
       m_Disassembly += m_DXILByteCode->GetDisassembly();
+    }
   }
 
   return m_Disassembly;
@@ -563,9 +582,36 @@ void DXBCContainer::GetHash(uint32_t hash[4], const void *ByteCode, size_t Bytec
     return;
   }
 
+  const byte *data = (byte *)ByteCode;    // just for convenience
+
   FileHeader *header = (FileHeader *)ByteCode;
 
+  memset(hash, 0, sizeof(hash));
+
+  if(header->fourcc != FOURCC_DXBC)
+    return;
+
+  if(header->fileLength != (uint32_t)BytecodeLength)
+    return;
+
   memcpy(hash, header->hashValue, sizeof(header->hashValue));
+
+  uint32_t *chunkOffsets = (uint32_t *)(header + 1);    // right after the header
+
+  for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
+  {
+    uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
+    uint32_t *chunkSize = (uint32_t *)(fourcc + 1);
+
+    char *chunkContents = (char *)(chunkSize + 1);
+
+    if(*fourcc == FOURCC_HASH)
+    {
+      HASHHeader *hashHeader = (HASHHeader *)chunkContents;
+
+      memcpy(hash, hashHeader->hashValue, sizeof(hashHeader->hashValue));
+    }
+  }
 }
 
 bool DXBCContainer::CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength)
@@ -681,6 +727,8 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
   if(header->fileLength != (uint32_t)ByteCodeLength)
     return;
+
+  memcpy(m_Hash, header->hashValue, sizeof(m_Hash));
 
   // default to vertex shader to support blobs without RDEF chunks (e.g. used with
   // input layouts if they're super stripped down)
@@ -983,6 +1031,12 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
       ILDNHeader *h = (ILDNHeader *)chunkContents;
 
       m_DebugFileName = rdcstr(h->Name, h->NameLength);
+    }
+    else if(*fourcc == FOURCC_HASH)
+    {
+      HASHHeader *h = (HASHHeader *)chunkContents;
+
+      memcpy(m_Hash, h->hashValue, sizeof(h->hashValue));
     }
   }
 
