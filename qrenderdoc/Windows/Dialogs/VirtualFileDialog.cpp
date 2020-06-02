@@ -161,6 +161,12 @@ public:
       FSNode *node = getNode(ret);
       populate(node);
 
+      if(!node)
+      {
+        qCritical() << "Error getting node at" << QString(normPath) << "from" << path;
+        return QModelIndex();
+      }
+
       for(int i = 0; i < node->children.count(); i++)
       {
         if(QString(node->children[i]->file.filename)
