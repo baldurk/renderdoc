@@ -125,15 +125,13 @@ void RemoteHost::CheckStatus()
     return;
   }
 
-  // to avoid doing complex work while holding the remote host lock, we check the status here then
-  // call into the internal function that will propagate that data to the proper storage if needed.
-  IRemoteServer *rend = NULL;
-  ReplayStatus status = RENDERDOC_CreateRemoteServerConnection(m_hostname.c_str(), &rend);
+  UpdateStatus(RENDERDOC_CheckRemoteServerConnection(m_hostname.c_str()));
+}
 
-  if(rend)
-    rend->ShutdownConnection();
-
-  UpdateStatus(status);
+ReplayStatus RemoteHost::Connect(IRemoteServer **server)
+{
+  QMutexLocker autolock(&m_data->mutex);
+  return RENDERDOC_CreateRemoteServerConnection(m_hostname.c_str(), server);
 }
 
 void RemoteHost::SetConnected(bool connected)

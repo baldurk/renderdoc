@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <iterator>
 #include "driver/ihv/amd/amd_counters.h"
+#include "driver/ihv/arm/arm_counters.h"
 #include "driver/ihv/intel/intel_gl_counters.h"
 #include "gl_driver.h"
 #include "gl_replay.h"
@@ -65,6 +66,11 @@ rdcarray<GPUCounter> GLReplay::EnumerateCounters()
     ret.append(m_pIntelCounters->GetPublicCounterIds());
   }
 
+  if(m_pARMCounters)
+  {
+    ret.append(m_pARMCounters->GetPublicCounterIds());
+  }
+
   return ret;
 }
 
@@ -94,6 +100,11 @@ CounterDescription GLReplay::DescribeCounter(GPUCounter counterID)
 
       return desc;
     }
+  }
+
+  if(IsARMCounter(counterID) && m_pARMCounters)
+  {
+    return m_pARMCounters->GetCounterDescription(counterID);
   }
 
   // FFBA5548-FBF8-405D-BA18-F0329DA370A0
@@ -461,6 +472,84 @@ rdcarray<CounterResult> GLReplay::FetchCountersIntel(const rdcarray<GPUCounter> 
   return ret;
 }
 
+void GLReplay::FillTimersARM(uint32_t *eventStartID, uint32_t *sampleIndex,
+                             rdcarray<uint32_t> *eventIDs, const DrawcallDescription &drawnode)
+{
+  if(drawnode.children.empty())
+    return;
+
+  for(size_t i = 0; i < drawnode.children.size(); i++)
+  {
+    const DrawcallDescription &d = drawnode.children[i];
+
+    FillTimersARM(eventStartID, sampleIndex, eventIDs, drawnode.children[i]);
+
+    if(d.events.empty())
+      continue;
+
+    eventIDs->push_back(d.eventId);
+
+    m_pDriver->ReplayLog(*eventStartID, d.eventId, eReplay_WithoutDraw);
+
+    m_pARMCounters->BeginSample(d.eventId);
+
+    m_pDriver->ReplayLog(*eventStartID, d.eventId, eReplay_OnlyDraw);
+
+    // wait for the GPU to process all commands
+    GLsync sync = GL.glFenceSync(eGL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    GL.glClientWaitSync(sync, eGL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
+
+    m_pARMCounters->EndSample();
+
+    GL.glDeleteSync(sync);
+
+    *eventStartID = d.eventId + 1;
+    ++*sampleIndex;
+  }
+}
+
+rdcarray<CounterResult> GLReplay::FetchCountersARM(const rdcarray<GPUCounter> &counters)
+{
+  m_pARMCounters->DisableAllCounters();
+
+  // enable counters it needs
+  for(size_t i = 0; i < counters.size(); i++)
+  {
+    // This function is only called internally, and violating this assertion means our
+    // caller has invoked this method incorrectly
+    RDCASSERT(IsARMCounter(counters[i]));
+    m_pARMCounters->EnableCounter(counters[i]);
+  }
+
+  uint32_t passCount = m_pARMCounters->GetPassCount();
+
+  uint32_t sampleIndex = 0;
+
+  rdcarray<uint32_t> eventIDs;
+
+  m_pDriver->ReplayMarkers(false);
+
+  for(uint32_t p = 0; p < passCount; p++)
+  {
+    m_pARMCounters->BeginPass(p);
+
+    uint32_t eventStartID = 0;
+
+    sampleIndex = 0;
+
+    eventIDs.clear();
+
+    FillTimersARM(&eventStartID, &sampleIndex, &eventIDs, m_pDriver->GetRootDraw());
+
+    m_pARMCounters->EndPass();
+  }
+  m_pDriver->ReplayMarkers(true);
+
+  rdcarray<CounterResult> ret = m_pARMCounters->GetCounterData(eventIDs, counters);
+
+  return ret;
+}
+
 rdcarray<CounterResult> GLReplay::FetchCounters(const rdcarray<GPUCounter> &allCounters)
 {
   rdcarray<CounterResult> ret;
@@ -501,6 +590,16 @@ rdcarray<CounterResult> GLReplay::FetchCounters(const rdcarray<GPUCounter> &allC
     {
       ret = FetchCountersIntel(intelCounters);
     }
+  }
+
+  if(m_pARMCounters)
+  {
+    rdcarray<GPUCounter> armCounters;
+    std::copy_if(allCounters.begin(), allCounters.end(), std::back_inserter(armCounters),
+                 [](const GPUCounter &c) { return IsARMCounter(c); });
+
+    if(!armCounters.empty())
+      ret = FetchCountersARM(armCounters);
   }
 
   if(counters.empty())

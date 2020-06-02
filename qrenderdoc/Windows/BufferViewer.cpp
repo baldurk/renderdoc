@@ -1417,6 +1417,8 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
     p.format.compCount = sig.compCount;
     p.format.compType = VarTypeCompType(sig.varType);
 
+    f.type.descriptor.arrayByteStride = p.format.compByteWidth * p.format.compCount;
+
     if(sig.systemValue == ShaderBuiltin::Position)
       posidx = i;
 
@@ -1520,16 +1522,23 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
 
       BoundVBuffer ib = ctx.CurPipelineState().GetIBuffer();
 
-      uint32_t bytesAvailable = 0;
+      uint32_t bytesAvailable = ib.byteSize;
 
-      BufferDescription *buf = ctx.GetBuffer(ib.resourceId);
-      if(buf)
+      if(bytesAvailable == ~0U)
       {
-        uint64_t offset = ib.byteOffset - draw->indexOffset * draw->indexByteWidth;
-        if(offset > buf->length)
-          bytesAvailable = 0;
+        BufferDescription *buf = ctx.GetBuffer(ib.resourceId);
+        if(buf)
+        {
+          uint64_t offset = ib.byteOffset - draw->indexOffset * draw->indexByteWidth;
+          if(offset > buf->length)
+            bytesAvailable = 0;
+          else
+            bytesAvailable = buf->length - offset;
+        }
         else
-          bytesAvailable = buf->length - offset;
+        {
+          bytesAvailable = 0;
+        }
       }
 
       // drawing more than this many indices will read off the end of the index buffer - which while
@@ -1546,12 +1555,25 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
         if(vb.byteStride == 0)
           continue;
 
-        BufferDescription *buf = ctx.GetBuffer(vb.resourceId);
-        if(buf)
+        uint32_t bytesAvailable = vb.byteSize;
+
+        if(bytesAvailable == ~0U)
         {
-          numRowsUpperBound = qMax(numRowsUpperBound,
-                                   uint32_t(buf->length - vb.byteOffset) / qMax(1U, vb.byteStride));
+          BufferDescription *buf = ctx.GetBuffer(vb.resourceId);
+          if(buf)
+          {
+            if(vb.byteOffset > buf->length)
+              bytesAvailable = 0;
+            else
+              bytesAvailable = buf->length - vb.byteOffset;
+          }
+          else
+          {
+            bytesAvailable = 0;
+          }
         }
+
+        numRowsUpperBound = qMax(numRowsUpperBound, bytesAvailable / qMax(1U, vb.byteStride));
       }
 
       // if there are no vertex buffers we can't clamp.
@@ -1594,8 +1616,18 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
 
   bytebuf idata;
   if(ib.resourceId != ResourceId() && draw && (draw->flags & DrawFlags::Indexed))
-    idata = r->GetBufferData(ib.resourceId, ib.byteOffset + draw->indexOffset * draw->indexByteWidth,
-                             draw->numIndices * draw->indexByteWidth);
+  {
+    uint64_t readBytes = draw->numIndices * draw->indexByteWidth;
+    uint32_t offset = draw->indexOffset * draw->indexByteWidth;
+
+    if(ib.byteSize > offset)
+      readBytes = qMin(ib.byteSize - offset, readBytes);
+    else
+      readBytes = 0;
+
+    if(readBytes > 0)
+      idata = r->GetBufferData(ib.resourceId, ib.byteOffset + offset, readBytes);
+  }
 
   if(data->vsinConfig.indices)
     data->vsinConfig.indices->deref();
@@ -1603,7 +1635,8 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
   data->vsinConfig.indices = new BufferData();
 
   if(draw && draw->indexByteWidth != 0 && !idata.isEmpty())
-    data->vsinConfig.indices->storage.resize(sizeof(uint32_t) * draw->numIndices);
+    data->vsinConfig.indices->storage.resize(
+        sizeof(uint32_t) * qMin(draw->numIndices, ((uint32_t)idata.size() / draw->indexByteWidth)));
   else if(draw && (draw->flags & DrawFlags::Indexed))
     data->vsinConfig.indices->storage.resize(sizeof(uint32_t));
 
@@ -1714,8 +1747,17 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
     BufferData *buf = new BufferData;
     if(used)
     {
-      buf->storage = r->GetBufferData(vb.resourceId, vb.byteOffset + offset * vb.byteStride,
-                                      qMax(maxIdx, maxIdx + 1) * vb.byteStride + maxAttrOffset);
+      uint64_t readBytes = qMax(maxIdx, maxIdx + 1) * vb.byteStride + maxAttrOffset;
+
+      offset *= vb.byteStride;
+
+      if(vb.byteSize > offset)
+        readBytes = qMin(vb.byteSize - offset, readBytes);
+      else
+        readBytes = 0;
+
+      if(readBytes > 0)
+        buf->storage = r->GetBufferData(vb.resourceId, vb.byteOffset + offset, readBytes);
 
       buf->stride = vb.byteStride;
     }
@@ -1810,7 +1852,7 @@ static int MaxNumRows(const ShaderConstant &c)
   return ret;
 }
 
-static void UnrollConstant(rdcstr prefix, const ShaderConstant &constant,
+static void UnrollConstant(rdcstr prefix, uint32_t baseOffset, const ShaderConstant &constant,
                            rdcarray<ShaderConstant> &columns,
                            rdcarray<BufferElementProperties> &props)
 {
@@ -1827,6 +1869,7 @@ static void UnrollConstant(rdcstr prefix, const ShaderConstant &constant,
     prop.format = GetInterpretedResourceFormat(constant);
 
     ShaderConstant c = constant;
+    c.byteOffset += baseOffset;
 
     if(isArray)
     {
@@ -1853,8 +1896,8 @@ static void UnrollConstant(rdcstr prefix, const ShaderConstant &constant,
   {
     for(const ShaderConstant &child : constant.type.members)
     {
-      UnrollConstant(isArray ? QFormatStr("%1[%2]").arg(baseName).arg(a) : QString(baseName), child,
-                     columns, props);
+      UnrollConstant(isArray ? QFormatStr("%1[%2]").arg(baseName).arg(a) : QString(baseName),
+                     baseOffset + constant.byteOffset, child, columns, props);
     }
   }
 }
@@ -1862,7 +1905,7 @@ static void UnrollConstant(rdcstr prefix, const ShaderConstant &constant,
 static void UnrollConstant(const ShaderConstant &constant, rdcarray<ShaderConstant> &columns,
                            rdcarray<BufferElementProperties> &props)
 {
-  UnrollConstant("", constant, columns, props);
+  UnrollConstant("", 0, constant, columns, props);
 }
 
 BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
@@ -2407,12 +2450,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
   }
   else
   {
-    uint64_t len = m_ByteSize;
-    if(len == UINT64_MAX)
-      len = 0;
-
     QString errors;
-    ShaderConstant constant = BufferFormatter::ParseFormatString(m_Format, len, true, errors);
+    ShaderConstant constant = BufferFormatter::ParseFormatString(m_Format, m_ByteSize, true, errors);
 
     UnrollConstant(constant, bufdata->vsinConfig.columns, bufdata->vsinConfig.props);
 
@@ -2484,11 +2523,9 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       uint64_t unclampedLen = m_ByteSize;
       if(unclampedLen == UINT64_MAX)
-        unclampedLen = 0;
-      if(unclampedLen == 0)
       {
         uint64_t bufLen = m_IsBuffer ? m_Ctx.GetBuffer(m_BufferID)->length : 0;
-        uint64_t bufOffs = CurrentByteOffset();
+        uint64_t bufOffs = m_ByteOffset;
 
         if(bufOffs >= bufLen)
           unclampedLen = 0;
@@ -2496,11 +2533,14 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
           unclampedLen = bufLen - bufOffs;
       }
 
+      unclampedLen -= m_PagingByteOffset;
+
       uint64_t clampedLen = qMin(unclampedLen, uint64_t(buf->stride * (MaxVisibleRows + 2)));
 
       if(m_IsBuffer)
       {
-        buf->storage = r->GetBufferData(m_BufferID, CurrentByteOffset(), clampedLen);
+        if(clampedLen > 0)
+          buf->storage = r->GetBufferData(m_BufferID, CurrentByteOffset(), clampedLen);
       }
       else
       {
@@ -2511,7 +2551,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       bufdata->vsinConfig.pagingOffset = uint32_t(m_PagingByteOffset / buf->stride);
       bufdata->vsinConfig.numRows = uint32_t((bufCount + buf->stride - 1) / buf->stride);
-      bufdata->vsinConfig.unclampedNumRows = uint32_t((unclampedLen + buf->stride - 1) / buf->stride);
+      bufdata->vsinConfig.unclampedNumRows =
+          uint32_t((unclampedLen + m_PagingByteOffset + buf->stride - 1) / buf->stride);
 
       // ownership passes to model
       bufdata->vsinConfig.buffers.push_back(buf);
@@ -2618,7 +2659,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
         }
         else if(prev)
         {
-          ui->vsinData->setIndexWidget(m_ModelVSIn->index(0, 1), MakePreviousPageButton());
+          ui->vsinData->setIndexWidget(m_ModelVSIn->index(0, 0), MakePreviousPageButton());
         }
         else if(next)
         {
@@ -2943,6 +2984,7 @@ void BufferViewer::UI_CalculateMeshFormats()
       BoundVBuffer ib = m_Ctx.CurPipelineState().GetIBuffer();
       m_VSInPosition.indexResourceId = ib.resourceId;
       m_VSInPosition.indexByteOffset = ib.byteOffset + draw->indexOffset * draw->indexByteWidth;
+      m_VSInPosition.indexByteSize = ib.byteSize;
 
       if((draw->flags & DrawFlags::Indexed) && m_VSInPosition.indexByteStride == 0)
         m_VSInPosition.indexByteStride = 4U;
@@ -2960,6 +3002,7 @@ void BufferViewer::UI_CalculateMeshFormats()
           m_VSInPosition.vertexByteStride = vbs[prop.buffer].byteStride;
           m_VSInPosition.vertexByteOffset = vbs[prop.buffer].byteOffset + el.byteOffset +
                                             draw->vertexOffset * m_VSInPosition.vertexByteStride;
+          m_VSInPosition.vertexByteSize = vbs[prop.buffer].byteSize;
         }
         else
         {
@@ -2987,6 +3030,7 @@ void BufferViewer::UI_CalculateMeshFormats()
           m_VSInSecondary.vertexByteStride = vbs[prop.buffer].byteStride;
           m_VSInSecondary.vertexByteOffset = vbs[prop.buffer].byteOffset + el.byteOffset +
                                              draw->vertexOffset * m_VSInSecondary.vertexByteStride;
+          m_VSInSecondary.vertexByteSize = vbs[prop.buffer].byteSize;
         }
         else
         {
@@ -3764,11 +3808,7 @@ void BufferViewer::processFormat(const QString &format)
 
   BufferConfiguration bufconfig;
 
-  uint64_t len = m_ByteSize;
-  if(len == UINT64_MAX)
-    len = 0;
-
-  ShaderConstant cols = BufferFormatter::ParseFormatString(format, len, true, errors);
+  ShaderConstant cols = BufferFormatter::ParseFormatString(format, m_ByteSize, true, errors);
 
   CalcColumnWidth(MaxNumRows(cols));
 

@@ -31,6 +31,7 @@
 #include "gl_common.h"
 
 class AMDCounters;
+class ARMCounters;
 class IntelGlCounters;
 class WrappedOpenGL;
 struct GLCounterContext;
@@ -223,12 +224,15 @@ public:
   ShaderDebugTrace *DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                 const uint32_t threadid[3]);
   rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger);
+  void FreeDebugger(ShaderDebugger *debugger);
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
                       uint32_t x, uint32_t y);
 
-  ResourceId RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
-                           FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
-                           const rdcarray<uint32_t> &passEvents);
+  ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+                           uint32_t eventId, const rdcarray<uint32_t> &passEvents);
+
+  void BindFramebufferTexture(RenderOutputSubresource &sub, GLenum texBindingEnum, GLint numSamples);
+
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
                                CompType typeCast);
 
@@ -240,8 +244,8 @@ public:
   ResourceId CreateProxyBuffer(const BufferDescription &templateBuf);
   void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize);
 
-  bool IsRenderOutput(ResourceId id);
-
+  RenderOutputSubresource GetRenderOutputSubresource(ResourceId id);
+  bool IsRenderOutput(ResourceId id) { return GetRenderOutputSubresource(id).mip != ~0U; }
   void FileChanged() {}
   void SetReplayData(GLWindowingData data);
 
@@ -384,7 +388,8 @@ private:
     GLuint overlayTex;
     GLuint overlayFBO;
     GLuint overlayProg;
-    GLint overlayTexWidth, overlayTexHeight, overlayTexSamples, overlayTexMips;
+    GLint overlayTexWidth = 0, overlayTexHeight = 0, overlayTexSamples = 0, overlayTexMips = 0,
+          overlayTexSlices = 0;
 
     GLuint UBOs[3];
 
@@ -464,4 +469,12 @@ private:
                        const DrawcallDescription &drawnode);
 
   rdcarray<CounterResult> FetchCountersIntel(const rdcarray<GPUCounter> &counters);
+
+  // ARM counter instance
+  ARMCounters *m_pARMCounters = NULL;
+
+  void FillTimersARM(uint32_t *eventStartID, uint32_t *sampleIndex, rdcarray<uint32_t> *eventIDs,
+                     const DrawcallDescription &drawnode);
+
+  rdcarray<CounterResult> FetchCountersARM(const rdcarray<GPUCounter> &counters);
 };

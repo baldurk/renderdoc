@@ -619,7 +619,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateInstalledVersionNumbe
   bool done = false;
 
   char guidName[256] = {};
-  for(DWORD idx = 0; ret == ERROR_SUCCESS && !done; idx++)
+  for(DWORD idx = 0; !done; idx++)
   {
     // enumerate all the uninstall keys
     ret = RegEnumKeyA(key, idx, guidName, sizeof(guidName) - 1);

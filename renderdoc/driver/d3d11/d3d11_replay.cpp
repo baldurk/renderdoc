@@ -871,31 +871,41 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
           {
             view.firstMip = desc.Texture1D.MostDetailedMip;
             view.numMips = desc.Texture1D.MipLevels;
+            view.firstSlice = 0;
+            view.numSlices = 1;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE1DARRAY)
           {
-            view.numSlices = desc.Texture1DArray.ArraySize;
-            view.firstSlice = desc.Texture1DArray.FirstArraySlice;
             view.firstMip = desc.Texture1DArray.MostDetailedMip;
             view.numMips = desc.Texture1DArray.MipLevels;
+            view.numSlices = desc.Texture1DArray.ArraySize;
+            view.firstSlice = desc.Texture1DArray.FirstArraySlice;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2D)
           {
             view.firstMip = desc.Texture2D.MostDetailedMip;
             view.numMips = desc.Texture2D.MipLevels;
+            view.firstSlice = 0;
+            view.numSlices = 1;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2DARRAY)
           {
-            view.numSlices = desc.Texture2DArray.ArraySize;
-            view.firstSlice = desc.Texture2DArray.FirstArraySlice;
             view.firstMip = desc.Texture2DArray.MostDetailedMip;
             view.numMips = desc.Texture2DArray.MipLevels;
+            view.firstSlice = desc.Texture2DArray.FirstArraySlice;
+            view.numSlices = desc.Texture2DArray.ArraySize;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2DMS)
           {
+            view.firstMip = 0;
+            view.numMips = 1;
+            view.firstSlice = 0;
+            view.numSlices = 1;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY)
           {
+            view.firstMip = 0;
+            view.numMips = 1;
             view.numSlices = desc.Texture2DMSArray.ArraySize;
             view.firstSlice = desc.Texture2DMSArray.FirstArraySlice;
           }
@@ -903,19 +913,22 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
           {
             view.firstMip = desc.Texture3D.MostDetailedMip;
             view.numMips = desc.Texture3D.MipLevels;
+            view.firstSlice = 0;
+            view.numSlices = 1;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURECUBE)
           {
-            view.numSlices = 6;
             view.firstMip = desc.TextureCube.MostDetailedMip;
             view.numMips = desc.TextureCube.MipLevels;
+            view.firstSlice = 0;
+            view.numSlices = 6;
           }
           else if(desc.ViewDimension == D3D11_SRV_DIMENSION_TEXTURECUBEARRAY)
           {
-            view.numSlices = desc.TextureCubeArray.NumCubes * 6;
-            view.firstSlice = desc.TextureCubeArray.First2DArrayFace;
             view.firstMip = desc.TextureCubeArray.MostDetailedMip;
             view.numMips = desc.TextureCubeArray.MipLevels;
+            view.firstSlice = desc.TextureCubeArray.First2DArrayFace;
+            view.numSlices = desc.TextureCubeArray.NumCubes * 6;
           }
 
           SAFE_RELEASE(res);
@@ -2138,7 +2151,7 @@ void D3D11Replay::GetTextureData(ResourceId tex, const Subresource &sub,
 
     s.mip = RDCMIN(mips - 1, s.mip);
     s.slice = RDCMIN(desc.ArraySize - 1, s.slice);
-    s.sample = RDCMIN(desc.SampleDesc.Count - 1, s.sample);
+    s.sample = RDCMIN(sampleCount - 1, s.sample);
 
     if(params.remap != RemapTexture::NoRemap)
     {
@@ -3369,22 +3382,6 @@ ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid,
   return m_CustomShaderResourceId;
 }
 
-bool D3D11Replay::IsRenderOutput(ResourceId id)
-{
-  for(size_t i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
-  {
-    if(m_CurPipelineState.outputMerger.renderTargets[i].viewResourceId == id ||
-       m_CurPipelineState.outputMerger.renderTargets[i].resourceResourceId == id)
-      return true;
-  }
-
-  if(m_CurPipelineState.outputMerger.depthTarget.viewResourceId == id ||
-     m_CurPipelineState.outputMerger.depthTarget.resourceResourceId == id)
-    return true;
-
-  return false;
-}
-
 ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex)
 {
   ResourceId ret;
@@ -3641,16 +3638,6 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, const Subresource &sub, 
 
 bool D3D11Replay::IsTextureSupported(const TextureDescription &tex)
 {
-  // these formats are inconsistently laid out between APIs, always remap
-  switch(tex.format.type)
-  {
-    case ResourceFormatType::R4G4:
-    case ResourceFormatType::R4G4B4A4:
-    case ResourceFormatType::R5G6B5:
-    case ResourceFormatType::R5G5B5A1: return false;
-    default: break;
-  }
-
   DXGI_FORMAT f = MakeDXGIFormat(tex.format);
 
   if(f == DXGI_FORMAT_UNKNOWN)

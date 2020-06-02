@@ -1200,6 +1200,7 @@ void ResourceManager<Configuration>::PrepareInitialContents()
 
   RDCDEBUG("Preparing up to %u potentially dirty resources", (uint32_t)m_DirtyResources.size());
   uint32_t prepared = 0;
+  uint32_t postponed = 0;
 
   float num = float(m_DirtyResources.size());
   float idx = 0.0f;
@@ -1229,6 +1230,7 @@ void ResourceManager<Configuration>::PrepareInitialContents()
       m_PostponedResourceIDs.insert(id);
       // Set empty contents here, it'll be prepared on serialization.
       SetInitialContents(id, InitialContentData());
+      postponed++;
       continue;
     }
 
@@ -1241,7 +1243,7 @@ void ResourceManager<Configuration>::PrepareInitialContents()
     Prepare_InitialState(res);
   }
 
-  RDCDEBUG("Prepared %u dirty resources", prepared);
+  RDCDEBUG("Prepared %u dirty resources, postponed %u", prepared, postponed);
 }
 
 template <typename Configuration>

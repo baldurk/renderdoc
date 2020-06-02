@@ -67,6 +67,11 @@ bool IsDispatchableRes(WrappedVkRes *ptr)
           WrappedVkCommandBuffer::IsAlloc(ptr));
 }
 
+bool IsPostponableRes(const WrappedVkRes *ptr)
+{
+  return (WrappedVkDeviceMemory::IsAlloc(ptr) || WrappedVkImage::IsAlloc(ptr));
+}
+
 VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
 {
   if(WrappedVkPhysicalDevice::IsAlloc(ptr))
@@ -1690,7 +1695,6 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_B5G5R5A1_UNORM_PACK16:
     case VK_FORMAT_A1R5G5B5_UNORM_PACK16: ret.type = ResourceFormatType::R5G5B5A1; break;
     case VK_FORMAT_D16_UNORM_S8_UINT: ret.type = ResourceFormatType::D16S8; break;
-    case VK_FORMAT_X8_D24_UNORM_PACK32:
     case VK_FORMAT_D24_UNORM_S8_UINT: ret.type = ResourceFormatType::D24S8; break;
     case VK_FORMAT_D32_SFLOAT_S8_UINT: ret.type = ResourceFormatType::D32S8; break;
     case VK_FORMAT_BC1_RGB_UNORM_BLOCK:
@@ -1812,9 +1816,10 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 
   switch(fmt)
   {
-    case VK_FORMAT_B4G4R4A4_UNORM_PACK16:
-    case VK_FORMAT_B5G6R5_UNORM_PACK16:
-    case VK_FORMAT_B5G5R5A1_UNORM_PACK16:
+    case VK_FORMAT_R4G4B4A4_UNORM_PACK16:
+    case VK_FORMAT_R5G6B5_UNORM_PACK16:
+    case VK_FORMAT_R5G5B5A1_UNORM_PACK16:
+    case VK_FORMAT_A1R5G5B5_UNORM_PACK16:
     case VK_FORMAT_B8G8R8A8_UNORM:
     case VK_FORMAT_B8G8R8A8_SNORM:
     case VK_FORMAT_B8G8R8A8_USCALED:
@@ -2085,7 +2090,6 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG:
     case VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG: ret.compCount = 4; break;
     case VK_FORMAT_UNDEFINED:
-    case VK_FORMAT_RANGE_SIZE:
     case VK_FORMAT_MAX_ENUM: ret.compCount = 1; break;
   }
 
@@ -2332,7 +2336,6 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_G16_B16R16_2PLANE_422_UNORM:
     case VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM: ret.compType = CompType::UNorm; break;
     case VK_FORMAT_UNDEFINED:
-    case VK_FORMAT_RANGE_SIZE:
     case VK_FORMAT_MAX_ENUM: ret.compType = CompType::Typeless; break;
   }
 
@@ -2579,7 +2582,6 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_G16_B16R16_2PLANE_422_UNORM:
     case VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM: ret.compByteWidth = 2; break;
     case VK_FORMAT_UNDEFINED:
-    case VK_FORMAT_RANGE_SIZE:
     case VK_FORMAT_MAX_ENUM: ret.compByteWidth = 1; break;
   }
 
@@ -2711,14 +2713,14 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
         break;
       case ResourceFormatType::R11G11B10: ret = VK_FORMAT_B10G11R11_UFLOAT_PACK32; break;
       case ResourceFormatType::R5G6B5:
-        ret = fmt.BGRAOrder() ? VK_FORMAT_B5G6R5_UNORM_PACK16 : VK_FORMAT_R5G6B5_UNORM_PACK16;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_R5G6B5_UNORM_PACK16 : VK_FORMAT_B5G6R5_UNORM_PACK16;
         break;
       case ResourceFormatType::R5G5B5A1:
-        ret = fmt.BGRAOrder() ? VK_FORMAT_B5G5R5A1_UNORM_PACK16 : VK_FORMAT_R5G5B5A1_UNORM_PACK16;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_R5G5B5A1_UNORM_PACK16 : VK_FORMAT_B5G5R5A1_UNORM_PACK16;
         break;
       case ResourceFormatType::R9G9B9E5: ret = VK_FORMAT_E5B9G9R9_UFLOAT_PACK32; break;
       case ResourceFormatType::R4G4B4A4:
-        ret = fmt.BGRAOrder() ? VK_FORMAT_B4G4R4A4_UNORM_PACK16 : VK_FORMAT_R4G4B4A4_UNORM_PACK16;
+        ret = fmt.BGRAOrder() ? VK_FORMAT_R4G4B4A4_UNORM_PACK16 : VK_FORMAT_B4G4R4A4_UNORM_PACK16;
         break;
       case ResourceFormatType::R4G4: ret = VK_FORMAT_R4G4_UNORM_PACK8; break;
       case ResourceFormatType::D16S8: ret = VK_FORMAT_D16_UNORM_S8_UINT; break;
@@ -3132,6 +3134,13 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
         ret = VK_FORMAT_R32_UINT;
       else if(fmt.compType == CompType::Depth)
         ret = VK_FORMAT_D32_SFLOAT;
+      else
+        RDCERR("Unrecognised component type");
+    }
+    else if(fmt.compByteWidth == 3)
+    {
+      if(fmt.compType == CompType::Depth)
+        ret = VK_FORMAT_X8_D24_UNORM_PACK32;
       else
         RDCERR("Unrecognised component type");
     }
@@ -4208,10 +4217,6 @@ TEST_CASE("Vulkan formats", "[format][vulkan]")
       {
         CHECK(reconstructed == VK_FORMAT_R8G8B8A8_SRGB);
       }
-      else if(f == VK_FORMAT_X8_D24_UNORM_PACK32)
-      {
-        CHECK(reconstructed == VK_FORMAT_D24_UNORM_S8_UINT);
-      }
       else
       {
         CHECK(reconstructed == original);
@@ -4273,6 +4278,10 @@ TEST_CASE("Vulkan formats", "[format][vulkan]")
         continue;
 
       INFO("Format is " << ToStr(f));
+
+      // byte size for D24X8 is the same as D24S8!
+      if(fmt.compByteWidth == 3)
+        fmt.compByteWidth = 4;
 
       uint32_t size = fmt.compCount * fmt.compByteWidth * 123 * 456;
 

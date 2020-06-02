@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "core/settings.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
@@ -29,6 +30,11 @@
 #include "d3d12_device.h"
 #include "d3d12_manager.h"
 #include "d3d12_resources.h"
+
+RDOC_DEBUG_CONFIG(
+    bool, D3D12_Debug_HideInitialDescriptors, false,
+    "Hide the initial contents of descriptor heaps. "
+    "For extremely large descriptor heaps this can drastically reduce memory consumption.");
 
 bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 {
@@ -425,8 +431,16 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
     D3D12Descriptor *Descriptors = initial ? initial->descriptors : NULL;
     uint32_t numElems = initial ? initial->numDescriptors : 0;
 
+    const bool hide = D3D12_Debug_HideInitialDescriptors();
+
+    if(hide)
+      ser.PushInternal();
+
     SERIALISE_ELEMENT_ARRAY(Descriptors, numElems);
     SERIALISE_ELEMENT(numElems);
+
+    if(hide)
+      ser.PopInternal();
 
     SERIALISE_CHECK_READ_ERRORS();
 
@@ -817,8 +831,19 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
       heapProps.CreationNodeMask = 1;
       heapProps.VisibleNodeMask = 1;
 
+      bool isDepth = IsDepthFormat(resDesc.Format) ||
+                     (resDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
+
       resDesc.Alignment = 0;
       resDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+      if(resDesc.SampleDesc.Count > 1)
+      {
+        if(isDepth)
+          resDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+        else
+          resDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+      }
 
       ID3D12Resource *copy = NULL;
       HRESULT hr = m_Device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &resDesc,

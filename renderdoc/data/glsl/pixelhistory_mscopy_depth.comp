@@ -1,0 +1,65 @@
+/******************************************************************************
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2020 Baldur Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
+
+#include "glsl_globals.h"
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(binding = 0) uniform PRECISION sampler2DMSArray depthMS;
+layout(binding = 1) uniform PRECISION usampler2DMSArray stencilMS;
+
+layout(binding = 2, std140) writeonly buffer pixelhistorydest
+{
+  uvec4 result[];
+}
+dest;
+
+layout(push_constant) uniform multisamplePush
+{
+  int currentSample;
+  int x;
+  int y;
+  int dstOffset;
+  int hasDepth;
+  int hasStencil;
+}
+mscopy;
+
+#define currentSample (mscopy.currentSample)
+#define x (mscopy.x)
+#define y (mscopy.y)
+#define dstOffset (mscopy.dstOffset)
+#define hasDepth (mscopy.hasDepth)
+#define hasStencil (mscopy.hasStencil)
+
+void main()
+{
+  float depth = 0.0;
+  if(hasDepth == 1)
+    depth = texelFetch(depthMS, ivec3(x, y, 0), currentSample).r;
+  uint stencil = 0;
+  if(hasStencil == 1)
+    stencil = texelFetch(stencilMS, ivec3(x, y, 0), currentSample).r;
+  dest.result[dstOffset] = uvec4(floatBitsToUint(depth), stencil, 0, 0);
+}

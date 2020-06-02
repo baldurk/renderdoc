@@ -200,14 +200,74 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
   D3D12RenderState m_PrevState;
 };
 
-ResourceId D3D12Replay::RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
-                                      FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
-                                      const rdcarray<uint32_t> &passEvents)
+static void SetRTVDesc(D3D12_RENDER_TARGET_VIEW_DESC &rtDesc, const D3D12_RESOURCE_DESC &texDesc,
+                       const RenderOutputSubresource &sub)
+{
+  if(texDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D && texDesc.DepthOrArraySize > 1)
+  {
+    if(texDesc.SampleDesc.Count > 1)
+    {
+      rtDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY;
+      rtDesc.Texture2DMSArray.FirstArraySlice = sub.slice;
+      rtDesc.Texture2DMSArray.ArraySize = sub.numSlices;
+    }
+    else
+    {
+      rtDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+      rtDesc.Texture2DArray.FirstArraySlice = sub.slice;
+      rtDesc.Texture2DArray.ArraySize = sub.numSlices;
+      rtDesc.Texture2DArray.MipSlice = sub.mip;
+    }
+  }
+  else
+  {
+    rtDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+    rtDesc.Texture2D.MipSlice = sub.mip;
+
+    if(texDesc.SampleDesc.Count > 1)
+      rtDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+  }
+}
+
+RenderOutputSubresource D3D12Replay::GetRenderOutputSubresource(ResourceId id)
+{
+  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+
+  D3D12Pipe::View view;
+
+  for(size_t i = 0; i < rs.rts.size(); i++)
+  {
+    if(id == rs.rts[i].GetResResourceId())
+    {
+      FillResourceView(view, &rs.rts[i]);
+      return RenderOutputSubresource(view.firstMip, view.firstSlice, view.numSlices);
+    }
+  }
+
+  if(id == rs.dsv.GetResResourceId())
+  {
+    FillResourceView(view, &rs.dsv);
+    return RenderOutputSubresource(view.firstMip, view.firstSlice, view.numSlices);
+  }
+
+  return RenderOutputSubresource(~0U, ~0U, 0);
+}
+
+ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+                                      uint32_t eventId, const rdcarray<uint32_t> &passEvents)
 {
   ID3D12Resource *resource = m_pDevice->GetResourceList()[texid];
 
   if(resource == NULL)
     return ResourceId();
+
+  RenderOutputSubresource sub = GetRenderOutputSubresource(texid);
+
+  if(sub.slice == ~0U)
+  {
+    RDCERR("Rendering overlay for %s couldn't find output to get subresource.", ToStr(texid).c_str());
+    sub = RenderOutputSubresource(0, 0, 1);
+  }
 
   D3D12MarkerRegion renderoverlay(m_pDevice->GetQueue(),
                                   StringFormat::Fmt("RenderOverlay %d", overlay));
@@ -216,11 +276,13 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, const Subresource &sub, 
 
   rdcarray<D3D12_RESOURCE_BARRIER> barriers;
   int resType = 0;
-  GetDebugManager()->PrepareTextureSampling(resource, typeCast, resType, barriers);
+  GetDebugManager()->PrepareTextureSampling(resource, CompType::Float, resType, barriers);
 
   D3D12_RESOURCE_DESC overlayTexDesc;
   overlayTexDesc.Alignment = 0;
-  overlayTexDesc.DepthOrArraySize = 1;
+  overlayTexDesc.DepthOrArraySize = resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D
+                                        ? resourceDesc.DepthOrArraySize
+                                        : 1;
   overlayTexDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
   overlayTexDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
   overlayTexDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -248,6 +310,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, const Subresource &sub, 
   if(overlayTexDesc.Width != currentOverlayDesc.Width ||
      overlayTexDesc.Height != currentOverlayDesc.Height ||
      overlayTexDesc.Format != currentOverlayDesc.Format ||
+     overlayTexDesc.DepthOrArraySize != currentOverlayDesc.DepthOrArraySize ||
      overlayTexDesc.MipLevels != currentOverlayDesc.MipLevels ||
      overlayTexDesc.SampleDesc.Count != currentOverlayDesc.SampleDesc.Count ||
      overlayTexDesc.SampleDesc.Quality != currentOverlayDesc.SampleDesc.Quality)
@@ -353,23 +416,25 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, const Subresource &sub, 
     list->Close();
   }
 
-  D3D12_RENDER_TARGET_VIEW_DESC rtDesc = {};
-  rtDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-  rtDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-  rtDesc.Texture2D.MipSlice = sub.mip;
-  rtDesc.Texture2D.PlaneSlice = 0;
-
-  if(overlayTexDesc.SampleDesc.Count > 1 || overlayTexDesc.SampleDesc.Quality > 0)
-    rtDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
-
   D3D12_CPU_DESCRIPTOR_HANDLE rtv = GetDebugManager()->GetCPUHandle(OVERLAY_RTV);
-
-  m_pDevice->CreateRenderTargetView(wrappedCustomRenderTex, &rtDesc, rtv);
+  D3D12_RENDER_TARGET_VIEW_DESC rtDesc = {};
+  rtDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
 
-  FLOAT black[] = {0.0f, 0.0f, 0.0f, 0.0f};
-  list->ClearRenderTargetView(rtv, black, 0, NULL);
+  // clear all mips and all slices first
+  for(UINT mip = 0; mip < overlayTexDesc.MipLevels; mip++)
+  {
+    SetRTVDesc(rtDesc, overlayTexDesc,
+               RenderOutputSubresource(mip, 0, overlayTexDesc.DepthOrArraySize));
+
+    m_pDevice->CreateRenderTargetView(wrappedCustomRenderTex, &rtDesc, rtv);
+    FLOAT black[] = {0.0f, 0.0f, 0.0f, 0.0f};
+    list->ClearRenderTargetView(rtv, black, 0, NULL);
+  }
+
+  SetRTVDesc(rtDesc, overlayTexDesc, sub);
+  m_pDevice->CreateRenderTargetView(wrappedCustomRenderTex, &rtDesc, rtv);
 
   D3D12_CPU_DESCRIPTOR_HANDLE dsv = {};
 

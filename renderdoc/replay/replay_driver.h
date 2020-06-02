@@ -83,7 +83,15 @@ DECLARE_REFLECTION_ENUM(RemapTexture);
 
 struct GetTextureDataParams
 {
+  // this data is going to be saved to disk, so prepare it as needed. E.g. on GL flip Y order to
+  // match conventional axis for file formats.
   bool forDiskSave = false;
+  // this data is going to be transferred cross-API e.g. in replay proxying, so standardise bit
+  // layout of any packed formats where API conventions differ (mostly only RGBA4 or other awkward
+  // ones where our resource formats don't enumerate all possible iterations). Saving to disk is
+  // also standardised to ensure the data matches any format description we also write to the
+  // format.
+  bool standardLayout = false;
   CompType typeCast = CompType::Typeless;
   bool resolve = false;
   RemapTexture remap = RemapTexture::NoRemap;
@@ -98,6 +106,16 @@ CompType BaseRemapType(CompType typeCast);
 class RDCFile;
 
 class AMDRGPControl;
+
+struct RenderOutputSubresource
+{
+  RenderOutputSubresource(uint32_t mip, uint32_t slice, uint32_t numSlices)
+      : mip(mip), slice(slice), numSlices(numSlices)
+  {
+  }
+
+  uint32_t mip, slice, numSlices;
+};
 
 // these two interfaces define what an API driver implementation must provide
 // to the replay. At minimum it must implement IRemoteDriver which contains
@@ -188,10 +206,10 @@ public:
   virtual ShaderDebugTrace *DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                         const uint32_t threadid[3]) = 0;
   virtual rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger) = 0;
+  virtual void FreeDebugger(ShaderDebugger *debugger) = 0;
 
-  virtual ResourceId RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
-                                   FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
-                                   const rdcarray<uint32_t> &passEvents) = 0;
+  virtual ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+                                   uint32_t eventId, const rdcarray<uint32_t> &passEvents) = 0;
 
   virtual bool IsRenderOutput(ResourceId id) = 0;
 

@@ -38,15 +38,17 @@
 struct D3D12VBIBTag
 {
   D3D12VBIBTag() { offset = 0; }
-  D3D12VBIBTag(ResourceId i, uint64_t offs, QString f = QString())
+  D3D12VBIBTag(ResourceId i, uint64_t offs, uint64_t sz, QString f = QString())
   {
     id = i;
     offset = offs;
+    size = sz;
     format = f;
   }
 
   ResourceId id;
   uint64_t offset;
+  uint64_t size;
   QString format;
 };
 
@@ -1178,7 +1180,7 @@ void D3D12PipelineStateViewer::setShaderState(
               {
                 bind = &bm;
                 shaderCBuf = &res;
-                D3D12CBufTag cbufTag((uint32_t)i);
+                D3D12CBufTag cbufTag((uint32_t)k);
                 cbufTag.arrayIdx = b.bind - bm.bind;
                 tag = QVariant::fromValue(cbufTag);
                 break;
@@ -1384,12 +1386,9 @@ void D3D12PipelineStateViewer::setState()
   {
     if(ibufferUsed || ui->showUnused->isChecked())
     {
-      uint64_t length = 0;
+      uint64_t length = state.inputAssembly.indexBuffer.byteSize;
 
       BufferDescription *buf = m_Ctx.GetBuffer(state.inputAssembly.indexBuffer.resourceId);
-
-      if(buf)
-        length = buf->length;
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {tr("Index"), state.inputAssembly.indexBuffer.resourceId, draw ? draw->indexByteWidth : 0,
@@ -1408,11 +1407,12 @@ void D3D12PipelineStateViewer::setState()
         iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
       }
 
-      node->setTag(
-          QVariant::fromValue(D3D12VBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                                           state.inputAssembly.indexBuffer.byteOffset +
-                                               (draw ? draw->indexOffset * draw->indexByteWidth : 0),
-                                           iformat)));
+      uint32_t drawOffset = (draw ? draw->indexOffset * draw->indexByteWidth : 0);
+
+      node->setTag(QVariant::fromValue(
+          D3D12VBIBTag(state.inputAssembly.indexBuffer.resourceId,
+                       state.inputAssembly.indexBuffer.byteOffset + drawOffset,
+                       qMin(state.inputAssembly.indexBuffer.byteSize - drawOffset, 0U), iformat)));
 
       for(const D3D12Pipe::ResourceData &res : m_Ctx.CurD3D12PipelineState()->resourceStates)
       {
@@ -1455,11 +1455,12 @@ void D3D12PipelineStateViewer::setState()
         iformat += lit(" indices[%1]").arg(RENDERDOC_NumVerticesPerPrimitive(draw->topology));
       }
 
-      node->setTag(
-          QVariant::fromValue(D3D12VBIBTag(state.inputAssembly.indexBuffer.resourceId,
-                                           state.inputAssembly.indexBuffer.byteOffset +
-                                               (draw ? draw->indexOffset * draw->indexByteWidth : 0),
-                                           iformat)));
+      uint32_t drawOffset = (draw ? draw->indexOffset * draw->indexByteWidth : 0);
+
+      node->setTag(QVariant::fromValue(
+          D3D12VBIBTag(state.inputAssembly.indexBuffer.resourceId,
+                       state.inputAssembly.indexBuffer.byteOffset + drawOffset,
+                       qMin(state.inputAssembly.indexBuffer.byteSize - drawOffset, 0U), iformat)));
 
       for(const D3D12Pipe::ResourceData &res : m_Ctx.CurD3D12PipelineState()->resourceStates)
       {
@@ -1489,7 +1490,7 @@ void D3D12PipelineStateViewer::setState()
       {
         RDTreeWidgetItem *node =
             new RDTreeWidgetItem({i, tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
-        node->setTag(QVariant::fromValue(D3D12VBIBTag(ResourceId(), 0)));
+        node->setTag(QVariant::fromValue(D3D12VBIBTag(ResourceId(), 0, 0)));
 
         setEmptyRow(node);
         m_EmptyNodes.push_back(node);
@@ -1513,11 +1514,9 @@ void D3D12PipelineStateViewer::setState()
 
     if(showNode(usedSlot, filledSlot))
     {
-      qulonglong length = 0;
+      qulonglong length = v.byteSize;
 
       BufferDescription *buf = m_Ctx.GetBuffer(v.resourceId);
-      if(buf)
-        length = buf->length;
 
       RDTreeWidgetItem *node = NULL;
 
@@ -1528,8 +1527,8 @@ void D3D12PipelineStateViewer::setState()
         node =
             new RDTreeWidgetItem({i, tr("No Buffer Set"), lit("-"), lit("-"), lit("-"), QString()});
 
-      node->setTag(QVariant::fromValue(
-          D3D12VBIBTag(v.resourceId, v.byteOffset, m_Common.GetVBufferFormatString(i))));
+      node->setTag(QVariant::fromValue(D3D12VBIBTag(v.resourceId, v.byteOffset, v.byteSize,
+                                                    m_Common.GetVBufferFormatString(i))));
 
       for(const D3D12Pipe::ResourceData &res : m_Ctx.CurD3D12PipelineState()->resourceStates)
       {
@@ -1610,12 +1609,9 @@ void D3D12PipelineStateViewer::setState()
 
     if(showNode(usedSlot, filledSlot))
     {
-      qulonglong length = 0;
+      qulonglong length = s.byteSize;
 
       BufferDescription *buf = m_Ctx.GetBuffer(s.resourceId);
-
-      if(buf)
-        length = buf->length;
 
       RDTreeWidgetItem *node = new RDTreeWidgetItem(
           {i, s.resourceId, (qulonglong)s.byteOffset, length, s.writtenCountResourceId,
@@ -1975,7 +1971,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
         {
           if(buf->resourceId == m_Ctx.CurD3D12PipelineState()->streamOut.outputs[i].resourceId)
           {
-            size -= m_Ctx.CurD3D12PipelineState()->streamOut.outputs[i].byteOffset;
+            size = m_Ctx.CurD3D12PipelineState()->streamOut.outputs[i].byteSize;
             offs += m_Ctx.CurD3D12PipelineState()->streamOut.outputs[i].byteOffset;
             break;
           }
@@ -2068,7 +2064,7 @@ void D3D12PipelineStateViewer::on_iaBuffers_itemActivated(RDTreeWidgetItem *item
 
     if(buf.id != ResourceId())
     {
-      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.offset, UINT64_MAX, buf.id, buf.format);
+      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.offset, buf.size, buf.id, buf.format);
 
       m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
     }

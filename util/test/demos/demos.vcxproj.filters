@@ -403,9 +403,6 @@
     <ClCompile Include="d3d12\d3d12_execute_indirect.cpp">
       <Filter>D3D12\demos</Filter>
     </ClCompile>
-    <ClCompile Include="vk\vk_truncated_cbuffer.cpp">
-      <Filter>Vulkan\demos</Filter>
-    </ClCompile>
     <ClCompile Include="d3d12\d3d12_parameter_zoo.cpp">
       <Filter>D3D12\demos</Filter>
     </ClCompile>
@@ -495,6 +492,24 @@
     </ClCompile>
     <ClCompile Include="gl\gl_draw_zoo.cpp">
       <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_custom_border_color.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_robustness2.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_buffer_truncation.cpp">
+      <Filter>Vulkan\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\gl_buffer_truncation.cpp">
+      <Filter>OpenGL\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12\d3d12_buffer_truncation.cpp">
+      <Filter>D3D12\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11\d3d11_buffer_truncation.cpp">
+      <Filter>D3D11\demos</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

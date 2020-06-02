@@ -148,6 +148,19 @@ int GetIdentPort(pid_t childPid)
   return 0;
 }
 
+void StopAtMainInChild()
+{
+}
+
+bool StopChildAtMain(pid_t childPid)
+{
+  return false;
+}
+
+void ResumeProcess(pid_t childPid, uint32_t delay)
+{
+}
+
 void CacheDebuggerPresent()
 {
 }

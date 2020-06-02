@@ -446,6 +446,11 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
         serialisedInfo.pNext = &memoryDeviceAddress;
 
         memFlags->flags |= VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
+
+        {
+          SCOPED_READLOCK(m_CapTransitionLock);
+          m_DeviceAddressResources.IDs.push_back(record->GetResourceID());
+        }
       }
 
       {
@@ -530,6 +535,20 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
 
   if(IsCaptureMode(m_State))
   {
+    // artificially extend the lifespan of buffer device address memory or buffers, to ensure their
+    // opaque capture address isn't re-used before the capture completes
+    {
+      SCOPED_READLOCK(m_CapTransitionLock);
+      if(IsActiveCapturing(m_State) && m_DeviceAddressResources.IDs.contains(GetResID(memory)))
+      {
+        // we can't hold onto the user callback so we'll be freeing with NULL.
+        RDCASSERT(pAllocator == NULL);
+        m_DeviceAddressResources.DeadMemories.push_back(memory);
+        return;
+      }
+      m_DeviceAddressResources.IDs.removeOne(GetResID(memory));
+    }
+
     // there is an implicit unmap on free, so make sure to tidy up
     if(wrapped->record->memMapState && wrapped->record->memMapState->refData)
     {
@@ -685,7 +704,7 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
         capframe = IsActiveCapturing(m_State);
 
         if(!capframe)
-          GetResourceManager()->MarkDirtyResource(id);
+          GetResourceManager()->MarkDirtyWithWriteReference(id);
       }
 
       SCOPED_LOCK(state.mrLock);
@@ -866,7 +885,7 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
       }
       else
       {
-        GetResourceManager()->MarkDirtyResource(memid);
+        GetResourceManager()->MarkDirtyWithWriteReference(memid);
       }
     }
   }
@@ -990,7 +1009,7 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
                                                       record->memSize, eFrameRef_ReadBeforeWrite);
 
       // the memory is immediately dirty because we have no way of tracking writes to it
-      GetResourceManager()->MarkDirtyResource(GetResID(memory));
+      GetResourceManager()->MarkDirtyWithWriteReference(GetResID(memory));
     }
   }
 
@@ -1266,6 +1285,11 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
         // this buffer must be forced to be in any captures, since we can't track when it's used by
         // address
         AddForcedReference(record);
+
+        {
+          SCOPED_READLOCK(m_CapTransitionLock);
+          m_DeviceAddressResources.IDs.push_back(record->GetResourceID());
+        }
       }
 
       {
@@ -1290,7 +1314,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
         // buffers are always bound opaquely and in arbitrary divisions, sparse residency
         // only means not all the buffer needs to be bound, which is not that interesting for
         // our purposes. We just need to make sure sparse buffers are dirty.
-        GetResourceManager()->MarkDirtyResource(id);
+        GetResourceManager()->MarkDirtyWithWriteReference(id);
       }
 
       if(isSparse || isExternal)
@@ -1533,7 +1557,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
         // of capability or because we disabled it as a workaround then we don't need this
         // capability (and it might be the bug we're trying to work around by disabling the
         // pipeline)
-        if(GetDebugManager()->IsArray2MSSupported())
+        if(GetShaderCache()->IsArray2MSSupported())
           CreateInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
       }
       else
@@ -1668,7 +1692,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       {
         // need to check the debug manager here since we might be creating this internal image from
         // its constructor
-        if(GetDebugManager() && GetDebugManager()->IsArray2MSSupported())
+        if(GetDebugManager() && GetShaderCache()->IsArray2MSSupported())
           createInfo_adjusted.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
       }
       else
@@ -1769,7 +1793,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       // not be valid to map from/into if the image isn't in GENERAL layout).
       if(isSparse || isExternal || isLinear)
       {
-        GetResourceManager()->MarkDirtyResource(id);
+        GetResourceManager()->MarkDirtyWithWriteReference(id);
 
         // for external images, try creating a non-external version and take the worst case of
         // memory requirements, in case the non-external one (as we will replay it) needs more
@@ -2105,7 +2129,7 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
             eFrameRef_ReadBeforeWrite);
 
         // the memory is immediately dirty because we have no way of tracking writes to it
-        GetResourceManager()->MarkDirtyResource(GetResID(pBindInfos[i].memory));
+        GetResourceManager()->MarkDirtyWithWriteReference(GetResID(pBindInfos[i].memory));
       }
     }
   }

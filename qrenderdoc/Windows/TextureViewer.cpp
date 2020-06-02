@@ -1979,13 +1979,22 @@ void TextureViewer::GotoLocation(int x, int y)
   if(tex == NULL)
     return;
 
+  x = qMin(x << m_TexDisplay.subresource.mip, int(tex->width - 1));
+  y = qMin(y << m_TexDisplay.subresource.mip, int(tex->height - 1));
+
   m_PickedPoint = QPoint(x, y);
 
-  uint32_t mipHeight = qMax(1U, tex->height >> (int)m_TexDisplay.subresource.mip);
   if(m_Ctx.APIProps().pipelineType == GraphicsAPI::OpenGL)
-    m_PickedPoint.setY((int)(mipHeight - 1) - m_PickedPoint.y());
+    m_PickedPoint.setY((int)(tex->height - 1) - m_PickedPoint.y());
   if(m_TexDisplay.flipY)
-    m_PickedPoint.setY((int)(mipHeight - 1) - m_PickedPoint.x());
+    m_PickedPoint.setY((int)(tex->height - 1) - m_PickedPoint.x());
+
+  // centre the picked point.
+  QPoint scrollPos;
+  scrollPos.setX(-m_PickedPoint.x() * m_TexDisplay.scale + realRenderWidth() / 2);
+  scrollPos.setY(-m_PickedPoint.y() * m_TexDisplay.scale + realRenderHeight() / 2);
+
+  setScrollPosition(scrollPos);
 
   if(m_Output != NULL)
     INVOKE_MEMFN(RT_PickPixelsAndUpdate);
@@ -2058,7 +2067,7 @@ void TextureViewer::ViewTexture(ResourceId ID, bool focus)
   BufferDescription *buf = m_Ctx.GetBuffer(ID);
   if(buf)
   {
-    IBufferViewer *viewer = m_Ctx.ViewBuffer(0, 0, ID);
+    IBufferViewer *viewer = m_Ctx.ViewBuffer(0, ~0ULL, ID);
 
     m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
   }
@@ -2212,6 +2221,11 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
 
     WindowingData winData = m_Ctx.CreateWindowingData(prev->thumbWidget());
 
+    prev->setProperty("f", QVariant::fromValue(follow));
+    prev->setSlotName(slotName);
+    prev->setActive(true);
+    prev->setSelected(m_Following == follow);
+
     if(m_Ctx.GetTexture(res.resourceId))
     {
       m_Ctx.Replay().AsyncInvoke([this, winData, res](IReplayController *) {
@@ -2229,11 +2243,6 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, BoundResource res
         m_Output->AddThumbnail(winData, ResourceId(), {0, 0, ~0U}, CompType::Typeless);
       });
     }
-
-    prev->setProperty("f", QVariant::fromValue(follow));
-    prev->setSlotName(slotName);
-    prev->setActive(true);
-    prev->setSelected(m_Following == follow);
   }
   else if(m_Following == follow)
   {
@@ -3629,6 +3638,9 @@ void TextureViewer::ShowGotoPopup()
   if(texptr)
   {
     QPoint p = m_PickedPoint;
+
+    p.setX(p.x() >> (int)m_TexDisplay.subresource.mip);
+    p.setY(p.y() >> (int)m_TexDisplay.subresource.mip);
 
     uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.subresource.mip);
 

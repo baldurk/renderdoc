@@ -243,7 +243,7 @@ private:
   static PoolType m_Pool;                                     \
   void *operator new(size_t sz) { return m_Pool.Allocate(); } \
   void operator delete(void *p) { m_Pool.Deallocate(p); }     \
-  static bool IsAlloc(void *p) { return m_Pool.IsAlloc(p); }
+  static bool IsAlloc(const void *p) { return m_Pool.IsAlloc(p); }
 #if ENABLED(INCLUDE_TYPE_NAMES)
 #define DECL_TYPENAME(a)             \
   template <>                        \

@@ -192,6 +192,11 @@ void RemoteHost::CheckStatus()
 {
 }
 
+ReplayStatus RemoteHost::Connect(IRemoteServer **server)
+{
+  return ReplayStatus::Succeeded;
+}
+
 ReplayStatus RemoteHost::Launch()
 {
   return ReplayStatus::Succeeded;

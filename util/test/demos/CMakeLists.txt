@@ -8,7 +8,9 @@ set(VULKAN_SRC
         vk/vk_helpers.cpp
         vk/vk_test.cpp
         vk/vk_adv_cbuffer_zoo.cpp
+        vk/vk_buffer_truncation.cpp
         vk/vk_cbuffer_zoo.cpp
+        vk/vk_custom_border_color.cpp
         vk/vk_descriptor_index.cpp
         vk/vk_discard_rects.cpp
         vk/vk_draw_zoo.cpp
@@ -28,6 +30,7 @@ set(VULKAN_SRC
         vk/vk_parameter_zoo.cpp
         vk/vk_query_pool.cpp
         vk/vk_resource_lifetimes.cpp
+        vk/vk_robustness2.cpp
         vk/vk_sample_locations.cpp
         vk/vk_secondary_cmdbuf.cpp
         vk/vk_separate_depth_stencil_layouts.cpp
@@ -49,6 +52,7 @@ set(OPENGL_SRC
         gl/gl_test.cpp
         gl/gl_test_linux.cpp
         gl/gl_buffer_spam.cpp
+        gl/gl_buffer_truncation.cpp
         gl/gl_buffer_updates.cpp
         gl/gl_callstacks.cpp
         gl/gl_cbuffer_zoo.cpp

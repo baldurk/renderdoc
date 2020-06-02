@@ -115,7 +115,7 @@ rdcarray<GPUCounter> VulkanReplay::EnumerateCounters()
 {
   rdcarray<GPUCounter> ret;
 
-  VkPhysicalDeviceFeatures availableFeatures = m_pDriver->GetDeviceFeatures();
+  VkPhysicalDeviceFeatures availableFeatures = m_pDriver->GetDeviceEnabledFeatures();
 
   ret.push_back(GPUCounter::EventGPUDuration);
   if(availableFeatures.pipelineStatisticsQuery)
@@ -831,7 +831,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
     ret.append(FetchCountersKHR(vkKHRCounters));
   }
 
-  VkPhysicalDeviceFeatures availableFeatures = m_pDriver->GetDeviceFeatures();
+  VkPhysicalDeviceFeatures availableFeatures = m_pDriver->GetDeviceEnabledFeatures();
 
   VkDevice dev = m_pDriver->GetDev();
 

@@ -321,6 +321,10 @@ bool VkInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
+  // 0x11 -> 0x12 - added inline uniform block support
+  if(ver == 0x11)
+    return true;
+
   // 0x10 -> 0x11 - non-breaking changes to image state serialization
   if(ver == 0x10)
     return true;
@@ -864,6 +868,10 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
   if(physProps.vendorID == 0x1AE0 && physProps.deviceID == 0xC0DE)
     m_Vendor = GPUVendor::Software;
 
+  // mesa software
+  if(physProps.vendorID == VK_VENDOR_ID_MESA)
+    m_Vendor = GPUVendor::Software;
+
   m_Major = VK_VERSION_MAJOR(physProps.driverVersion);
   m_Minor = VK_VERSION_MINOR(physProps.driverVersion);
   m_Patch = VK_VERSION_PATCH(physProps.driverVersion);
@@ -942,7 +950,8 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps)
 #endif
 
   // not fixed yet
-  qualcommLeakingUBOOffsets = m_Vendor == GPUVendor::Qualcomm;
+  qualcommLeakingUBOOffsets = (m_Vendor == GPUVendor::Qualcomm);
+  qualcommDrefNon2DCompileCrash = (m_Vendor == GPUVendor::Qualcomm);
 }
 
 FrameRefType GetRefType(VkDescriptorType descType)
@@ -952,6 +961,7 @@ FrameRefType GetRefType(VkDescriptorType descType)
     case VK_DESCRIPTOR_TYPE_SAMPLER:
     case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
     case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+    case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
     case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
     case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
     case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
@@ -966,17 +976,20 @@ FrameRefType GetRefType(VkDescriptorType descType)
   return eFrameRef_Read;
 }
 
-bool IsValid(const VkWriteDescriptorSet &write, uint32_t arrayElement)
+bool IsValid(bool allowNULLDescriptors, const VkWriteDescriptorSet &write, uint32_t arrayElement)
 {
+  if(write.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    return true;
+
   // this makes assumptions that only hold within the context of Serialise_InitialState below,
   // specifically that if pTexelBufferView/pBufferInfo is set then we are using them. In the general
   // case they can be garbage and we must ignore them based on the descriptorType
 
   if(write.pTexelBufferView)
-    return write.pTexelBufferView[arrayElement] != VK_NULL_HANDLE;
+    return allowNULLDescriptors ? true : write.pTexelBufferView[arrayElement] != VK_NULL_HANDLE;
 
   if(write.pBufferInfo)
-    return write.pBufferInfo[arrayElement].buffer != VK_NULL_HANDLE;
+    return allowNULLDescriptors ? true : write.pBufferInfo[arrayElement].buffer != VK_NULL_HANDLE;
 
   if(write.pImageInfo)
   {
@@ -986,6 +999,9 @@ bool IsValid(const VkWriteDescriptorSet &write, uint32_t arrayElement)
 
     // but all types that aren't just a sampler need an image
     bool needImage = (write.descriptorType != VK_DESCRIPTOR_TYPE_SAMPLER);
+
+    if(allowNULLDescriptors)
+      needImage = false;
 
     if(needSampler && write.pImageInfo[arrayElement].sampler == VK_NULL_HANDLE)
       return false;

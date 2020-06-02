@@ -24,45 +24,31 @@
 
 #include "vk_test.h"
 
-RD_TEST(VK_Truncated_CBuffer, VulkanGraphicsTest)
+RD_TEST(VK_Buffer_Truncation, VulkanGraphicsTest)
 {
   static constexpr const char *Description =
-      "Draws using a cbuffer that is truncated by the descriptor range.";
-
-  std::string common = R"EOSHADER(
-
-#version 420 core
-
-struct v2f
-{
-	vec4 pos;
-	vec4 col;
-	vec4 uv;
-};
-
-)EOSHADER";
+      "Tests using a uniform buffer that is truncated by the descriptor range, as well as "
+      "vertex/index buffers truncated by size.";
 
   const std::string vertex = R"EOSHADER(
+#version 460 core
 
-layout(location = 0) in vec3 Position;
-layout(location = 1) in vec4 Color;
-layout(location = 2) in vec2 UV;
+layout(location = 0) in vec3 POSITION;
+layout(location = 1) in vec4 COLOR;
 
-layout(location = 0) out v2f vertOut;
+layout(location = 0) out vec4 OUTPOSITION;
+layout(location = 1) out vec4 OUTCOLOR;
 
 void main()
 {
-	vertOut.pos = vec4(Position.xyz*vec3(1,-1,1), 1);
-	gl_Position = vertOut.pos;
-	vertOut.col = Color;
-	vertOut.uv = vec4(UV.xy, 0, 1);
+	gl_Position = OUTPOSITION = vec4(POSITION.xyz, 1);
+	OUTCOLOR = COLOR;
 }
 
 )EOSHADER";
 
   const std::string pixel = R"EOSHADER(
-
-layout(location = 0) in v2f vertIn;
+#version 460 core
 
 layout(location = 0, index = 0) out vec4 Color;
 
@@ -93,6 +79,23 @@ void main()
     if(!Init())
       return 3;
 
+    const DefaultA2V OffsetTri[] = {
+        {Vec3f(7.7f, 0.0f, 0.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(7.7f, 0.0f, 0.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(7.7f, 0.0f, 0.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+
+        {Vec3f(9.9f, 0.0f, 0.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+
+        {Vec3f(-0.5f, -0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, 0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.5f, -0.5f, 0.0f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        {Vec3f(8.8f, 0.0f, 0.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+    };
+    uint16_t indices[] = {99, 99, 99, 1, 2, 3, 4, 5};
+    Vec4f cbufferdata[64] = {};
+    cbufferdata[32] = Vec4f(1.0f, 2.0f, 3.0f, 4.0f);
+
     VkDescriptorSetLayout setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
         {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
     }));
@@ -111,38 +114,40 @@ void main()
     };
 
     pipeCreateInfo.stages = {
-        CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
-        CompileShaderModule(common + pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
+        CompileShaderModule(vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
 
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
     AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(OffsetTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                           VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
-    vb.upload(DefaultTri);
+    vb.upload(OffsetTri);
 
-    Vec4f data[20];
+    AllocatedBuffer ib(this,
+                       vkh::BufferCreateInfo(sizeof(indices), VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                                                                  VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
-    data[16] = Vec4f(1.0f, 2.0f, 3.0f, 4.0f);
+    ib.upload(indices);
 
     AllocatedBuffer cb(
-        this, vkh::BufferCreateInfo(sizeof(Vec4f) * 20, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        this, vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
-
-    cb.upload(data);
+    cb.upload(cbufferdata);
 
     VkDescriptorSet descset = allocateDescriptorSet(setlayout);
 
     vkh::updateDescriptorSets(
-        device,
-        {
-            vkh::WriteDescriptorSet(descset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                    {vkh::DescriptorBufferInfo(cb.buffer, 0, sizeof(Vec4f) * 16)}),
-        });
+        device, {
+                    vkh::WriteDescriptorSet(descset, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                            {vkh::DescriptorBufferInfo(
+                                                cb.buffer, sizeof(Vec4f) * 16, sizeof(Vec4f) * 16)}),
+                });
 
     while(Running())
     {
@@ -164,9 +169,10 @@ void main()
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
       vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
       vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
-      vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
+      vkCmdBindIndexBuffer(cmd, ib.buffer, sizeof(uint16_t) * 3, VK_INDEX_TYPE_UINT16);
+      vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {sizeof(DefaultA2V) * 3});
       vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
-      vkCmdDraw(cmd, 3, 1, 0, 0);
+      vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
 
       vkCmdEndRenderPass(cmd);
 

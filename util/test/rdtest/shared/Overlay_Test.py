@@ -468,7 +468,7 @@ class Overlay_Test(rdtest.TestCase):
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
             col_tex = pipe.GetOutputTargets()[0].resourceId
-            sub = rd.Subresource(pipe.GetOutputTargets()[0].firstMip, 0, 0)
+            sub = rd.Subresource(pipe.GetOutputTargets()[0].firstMip, pipe.GetOutputTargets()[0].firstSlice, 0)
 
             for overlay in rd.DebugOverlay:
                 if overlay == rd.DebugOverlay.NoOverlay:
@@ -497,9 +497,14 @@ class Overlay_Test(rdtest.TestCase):
                     shift = 1
 
                 # All values in mip 0 should be 0 for all overlays
-                self.check_pixel_value(overlay_id, 200, 150, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(0, 0, 0))
-                self.check_pixel_value(overlay_id, 197, 147, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(0, 0, 0))
-                self.check_pixel_value(overlay_id, 203, 153, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(0, 0, 0))
+                self.check_pixel_value(overlay_id, 200 >> shift, 150 >> shift, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(0, 0, 0))
+                self.check_pixel_value(overlay_id, 197 >> shift, 147 >> shift, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(0, 0, 0))
+                self.check_pixel_value(overlay_id, 203 >> shift, 153 >> shift, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(0, 0, 0))
+
+                # Also for array slice 0 on this mip
+                self.check_pixel_value(overlay_id, 200 >> shift, 150 >> shift, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(mip, 0, 0))
+                self.check_pixel_value(overlay_id, 197 >> shift, 147 >> shift, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(mip, 0, 0))
+                self.check_pixel_value(overlay_id, 203 >> shift, 153 >> shift, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(mip, 0, 0))
 
                 rdtest.log.success("Other mips are empty as expected for overlay {}".format(str(overlay)))
 

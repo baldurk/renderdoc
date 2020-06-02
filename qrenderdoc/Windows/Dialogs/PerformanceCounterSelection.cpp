@@ -51,6 +51,7 @@ enum class CounterFamily
   Intel,
   NVIDIA,
   VulkanExtended,
+  ARM,
 };
 
 CounterFamily GetCounterFamily(GPUCounter counter)
@@ -71,6 +72,10 @@ CounterFamily GetCounterFamily(GPUCounter counter)
   {
     return CounterFamily::VulkanExtended;
   }
+  else if(IsARMCounter(counter))
+  {
+    return CounterFamily::ARM;
+  }
 
   return CounterFamily::Generic;
 }
@@ -84,6 +89,7 @@ QString ToString(CounterFamily family)
     case CounterFamily::Intel: return lit("Intel");
     case CounterFamily::NVIDIA: return lit("NVIDIA");
     case CounterFamily::VulkanExtended: return lit("Vulkan Extended");
+    case CounterFamily::ARM: return lit("ARM");
     case CounterFamily::Unknown: return lit("Unknown");
   }
 
@@ -259,10 +265,6 @@ PerformanceCounterSelection::PerformanceCounterSelection(ICaptureContext &ctx,
       SetSelectedCounters(selectedCounters);
     });
   });
-
-  ui->counterTree->setContextMenuPolicy(Qt::CustomContextMenu);
-  QObject::connect(ui->counterTree, &RDTreeWidget::customContextMenuRequested, this,
-                   &PerformanceCounterSelection::counterTree_contextMenu);
 }
 
 PerformanceCounterSelection::~PerformanceCounterSelection()
@@ -451,32 +453,6 @@ void PerformanceCounterSelection::Load()
     RDDialog::critical(this, tr("Error loading config"),
                        tr("Couldn't open path %1 for reading.").arg(filename));
   }
-}
-void PerformanceCounterSelection::counterTree_contextMenu(const QPoint &pos)
-{
-  RDTreeWidgetItem *item = ui->counterTree->itemAt(pos);
-
-  QMenu contextMenu(this);
-
-  QAction expandAll(tr("&Expand All"), this);
-  QAction collapseAll(tr("&Collapse All"), this);
-
-  contextMenu.addAction(&expandAll);
-  contextMenu.addAction(&collapseAll);
-
-  expandAll.setIcon(Icons::arrow_out());
-  collapseAll.setIcon(Icons::arrow_in());
-
-  expandAll.setEnabled(item && item->childCount() > 0);
-  collapseAll.setEnabled(item && item->childCount() > 0);
-
-  QObject::connect(&expandAll, &QAction::triggered,
-                   [this, item]() { ui->counterTree->expandAllItems(item); });
-
-  QObject::connect(&collapseAll, &QAction::triggered,
-                   [this, item]() { ui->counterTree->collapseAllItems(item); });
-
-  RDDialog::show(&contextMenu, ui->counterTree->viewport()->mapToGlobal(pos));
 }
 
 void PerformanceCounterSelection::on_enabledCounters_activated(const QModelIndex &index)

@@ -203,6 +203,14 @@ struct ResourceFormat
 )");
 
   DOCUMENT(R"(:return: ``True`` if the components are to be read in ``BGRA`` order.
+
+.. note::
+  The convention is that components are in RGBA order. Whether that means first byte to last byte,
+  or in bit-packed formats red in the lowest bits.
+
+  With BGRA order this means blue is in the first byte/lowest bits, but alpha is still always
+  expected in the last byte/uppermost bits.
+
 :rtype: ``bool``
 )");
   bool BGRAOrder() const { return (flags & ResourceFormat_BGRA) != 0; }

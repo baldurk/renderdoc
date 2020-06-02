@@ -1,5 +1,17 @@
 #!/bin/bash
 
+native_path() {
+	if echo "${1}" | grep -q :; then
+		echo "${1}";
+	elif which cygpath >/dev/null 2>&1; then
+		cygpath -w "${1}";
+	elif which wslpath >/dev/null 2>&1; then
+		wslpath -w "${1}";
+	else
+		echo "${1}";
+	fi;
+}
+
 if [ ! -f build_spirv_plugins.sh ]; then
 	echo "Run this script from its folder like './build_spirv_plugins.sh'";
 	exit 1;
@@ -9,10 +21,10 @@ if uname -a | grep -qiE 'win|msys|cygwin|microsoft'; then
 	# Windows build
 
 	echo "Building for win32";
-	./_build.sh win32 $(pwd)/spirv-plugins-win32
+	./_build.sh win32 $(native_path $(pwd))/spirv-plugins-win32
 
 	echo "Building for win64";
-	./_build.sh win64 $(pwd)/spirv-plugins-win64
+	./_build.sh win64 $(native_path $(pwd))/spirv-plugins-win64
 else
 	# Linux build
 

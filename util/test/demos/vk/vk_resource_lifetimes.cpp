@@ -160,6 +160,9 @@ void main()
 
     uploadBuf.upload(rgba8.data.data(), rgba8.data.size() * sizeof(uint32_t));
 
+    uploadBufferToImage(smiley.image, {rgba8.width, rgba8.height, 1}, uploadBuf.buffer,
+                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
     {
       VkCommandBuffer cmd = GetCommandBuffer();
 
@@ -167,23 +170,6 @@ void main()
 
       vkh::cmdPipelineBarrier(
           cmd, {
-                   vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, smiley.image),
-               });
-
-      VkBufferImageCopy copy = {};
-      copy.imageExtent = {rgba8.width, rgba8.height, 1};
-      copy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-      copy.imageSubresource.layerCount = 1;
-
-      vkCmdCopyBufferToImage(cmd, uploadBuf.buffer, smiley.image,
-                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
-
-      vkh::cmdPipelineBarrier(
-          cmd, {
-                   vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, smiley.image),
                    vkh::ImageMemoryBarrier(0, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
                                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, badimg.image),
                });
@@ -191,8 +177,6 @@ void main()
       vkEndCommandBuffer(cmd);
 
       Submit(99, 99, {cmd});
-
-      vkDeviceWaitIdle(device);
     }
 
     Vec4f flags = {};
@@ -203,18 +187,10 @@ void main()
 
     badcb.upload(&flags, sizeof(flags));
 
-    VkSampler checkersampler = VK_NULL_HANDLE;
-    VkSampler smileysampler = VK_NULL_HANDLE;
-
-    VkSamplerCreateInfo sampInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-    sampInfo.magFilter = VK_FILTER_NEAREST;
-    sampInfo.minFilter = VK_FILTER_NEAREST;
-
-    vkCreateSampler(device, &sampInfo, NULL, &checkersampler);
-
-    sampInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-
-    vkCreateSampler(device, &sampInfo, NULL, &smileysampler);
+    VkSampler checkersampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_NEAREST));
+    VkSampler smileysampler = createSampler(
+        vkh::SamplerCreateInfo(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_LINEAR,
+                               VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
 
     auto SetupBuffer = [this]() {
       VkBuffer cb = VK_NULL_HANDLE;
@@ -319,39 +295,7 @@ void main()
 
       uploadBuf.upload(checker);
 
-      {
-        VkCommandBuffer cmd = GetCommandBuffer();
-
-        vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
-
-        vkh::cmdPipelineBarrier(
-            cmd,
-            {
-                vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, img),
-            });
-
-        VkBufferImageCopy copy = {};
-        copy.imageExtent = {4, 4, 1};
-        copy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        copy.imageSubresource.layerCount = 1;
-
-        vkCmdCopyBufferToImage(cmd, uploadBuf.buffer, img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-                               &copy);
-
-        vkh::cmdPipelineBarrier(
-            cmd, {
-                     vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-                                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, img),
-                 });
-
-        vkEndCommandBuffer(cmd);
-
-        Submit(99, 99, {cmd});
-
-        vkDeviceWaitIdle(device);
-      }
+      uploadBufferToImage(img, {4, 4, 1}, uploadBuf.buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
       return mem;
     };
@@ -580,8 +524,6 @@ void main()
     TrashDescSet(descset);
 
     vkDestroyDescriptorPool(device, descpool, NULL);
-    vkDestroySampler(device, checkersampler, NULL);
-    vkDestroySampler(device, smileysampler, NULL);
 
     return 0;
   }

@@ -600,6 +600,7 @@
     <None Include="data\glsl\minmaxtile.comp" />
     <None Include="data\glsl\ms2array.comp" />
     <None Include="data\glsl\pixelhistory_mscopy.comp" />
+    <None Include="data\glsl\pixelhistory_mscopy_depth.comp" />
     <None Include="data\glsl\pixelhistory_primid.frag" />
     <None Include="data\glsl\quadresolve.frag" />
     <None Include="data\glsl\quadwrite.frag" />
@@ -620,6 +621,7 @@
     <None Include="data\hlsl\quadoverdraw.hlsl" />
     <None Include="data\hlsl\texdisplay.hlsl" />
     <None Include="os\win32\comexport.def" />
+    <None Include="librenderdoc.so-gdb.py" />
     <None Include="replay\renderdoc_serialise.inl" />
     <None Include="data\hlsl\texremap.hlsl" />
   </ItemGroup>
@@ -676,6 +678,9 @@
     </ProjectReference>
     <ProjectReference Include="driver\ihv\amd\AMD.vcxproj">
       <Project>{5de5a561-548a-4dd7-90f0-06a2b39eae9a}</Project>
+    </ProjectReference>
+    <ProjectReference Include="driver\ihv\arm\ARM.vcxproj">
+      <Project>{F9CCE6CA-0CA3-4A22-9C7B-881369955E62}</Project>
     </ProjectReference>
     <ProjectReference Include="driver\ihv\intel\Intel.vcxproj">
       <Project>{7fcb5fc5-1dbd-4da6-83a0-6ba4e945bda5}</Project>

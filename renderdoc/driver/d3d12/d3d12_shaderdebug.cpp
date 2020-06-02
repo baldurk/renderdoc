@@ -421,7 +421,7 @@ bool D3D12DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
   uavDesc.Format = DXGI_FORMAT_UNKNOWN;
   uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
   uavDesc.Buffer.NumElements = 2;
-  uavDesc.Buffer.StructureByteStride = sizeof(float) * 4;
+  uavDesc.Buffer.StructureByteStride = sizeof(Vec4f);
 
   ID3D12Resource *pResultBuffer = m_pDevice->GetDebugManager()->GetMathIntrinsicsResultBuffer();
   D3D12_CPU_DESCRIPTOR_HANDLE uav = m_pDevice->GetDebugManager()->GetCPUHandle(SHADER_DEBUG_UAV);
@@ -452,10 +452,10 @@ bool D3D12DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
 
   bytebuf results;
   m_pDevice->GetDebugManager()->GetBufferData(pResultBuffer, 0, 0, results);
-  RDCASSERT(results.size() >= sizeof(uint32_t) * 8);
+  RDCASSERT(results.size() >= sizeof(Vec4f) * 2);
 
-  memcpy(output1.value.uv, results.data(), sizeof(uint32_t) * 4);
-  memcpy(output2.value.uv, results.data() + 4, sizeof(uint32_t) * 4);
+  memcpy(output1.value.uv, results.data(), sizeof(Vec4f));
+  memcpy(output2.value.uv, results.data() + sizeof(Vec4f), sizeof(Vec4f));
 
   return true;
 }
@@ -1680,8 +1680,9 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
                 pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(resId);
             cbufData.clear();
 
-            pDevice->GetDebugManager()->GetBufferData(pCbvResource, element.offset + byteOffset, 0,
-                                                      cbufData);
+            if(cbv.SizeInBytes > 0)
+              pDevice->GetDebugManager()->GetBufferData(pCbvResource, byteOffset, cbv.SizeInBytes,
+                                                        cbufData);
             AddCBufferToGlobalState(program, global, sourceVars, refl, mapping, slot, cbufData);
 
             desc++;
@@ -1778,18 +1779,22 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     {
       D3D12RenderState::VertBuffer &vb = rs.vbuffers[i];
       ID3D12Resource *buffer = m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(vb.buf);
-      GetDebugManager()->GetBufferData(buffer, vb.offs + vb.stride * (draw->vertexOffset + idx),
-                                       vb.stride, vertData[i]);
+
+      if(vb.stride * (draw->vertexOffset + idx) < vb.size)
+        GetDebugManager()->GetBufferData(buffer, vb.offs + vb.stride * (draw->vertexOffset + idx),
+                                         vb.stride, vertData[i]);
 
       for(UINT isr = 1; isr <= MaxStepRate; isr++)
       {
-        GetDebugManager()->GetBufferData(
-            buffer, vb.offs + vb.stride * (draw->instanceOffset + (instid / isr)), vb.stride,
-            instData[i * MaxStepRate + isr - 1]);
+        if((draw->instanceOffset + (instid / isr)) < vb.size)
+          GetDebugManager()->GetBufferData(
+              buffer, vb.offs + vb.stride * (draw->instanceOffset + (instid / isr)), vb.stride,
+              instData[i * MaxStepRate + isr - 1]);
       }
 
-      GetDebugManager()->GetBufferData(buffer, vb.offs + vb.stride * draw->instanceOffset,
-                                       vb.stride, staticData[i]);
+      if(vb.stride * draw->instanceOffset < vb.size)
+        GetDebugManager()->GetBufferData(buffer, vb.offs + vb.stride * draw->instanceOffset,
+                                         vb.stride, staticData[i]);
     }
   }
 
@@ -2963,4 +2968,9 @@ rdcarray<ShaderDebugState> D3D12Replay::ContinueDebug(ShaderDebugger *debugger)
   D3D12MarkerRegion region(m_pDevice->GetQueue()->GetReal(), "ContinueDebug Simulation Loop");
 
   return interpreter->ContinueDebug(&apiWrapper);
+}
+
+void D3D12Replay::FreeDebugger(ShaderDebugger *debugger)
+{
+  delete debugger;
 }

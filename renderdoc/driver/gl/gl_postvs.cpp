@@ -1946,6 +1946,7 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_
   {
     ret.indexResourceId = m_pDriver->GetResourceManager()->GetID(BufferRes(ctx, s.idxBuf));
     ret.indexByteStride = s.idxByteWidth;
+    ret.indexByteSize = ~0ULL;
   }
   else
   {
@@ -1956,9 +1957,14 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_
   ret.baseVertex = 0;
 
   if(s.buf)
+  {
     ret.vertexResourceId = m_pDriver->GetResourceManager()->GetID(BufferRes(ctx, s.buf));
+    ret.vertexByteSize = ~0ULL;
+  }
   else
+  {
     ret.vertexResourceId = ResourceId();
+  }
 
   ret.vertexByteOffset = s.instStride * instID;
   ret.vertexByteStride = s.vertStride;

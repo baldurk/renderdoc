@@ -1076,6 +1076,9 @@ void LiveCapture::captureAdded(const QString &name, const NewCaptureData &newCap
 
 void LiveCapture::connectionClosed()
 {
+  ui->progressLabel->setVisible(false);
+  ui->progressBar->setVisible(false);
+
   if(m_IgnoreThreadClosed)
     return;
 
@@ -1325,6 +1328,10 @@ void LiveCapture::connectionThreadEntry()
           QMutexLocker l(&m_ChildrenLock);
           m_Children.push_back(c);
         }
+
+        // force a child update immediately, don't wait for the tick which is intended for decaying
+        // processes that exit
+        GUIInvoke::call(this, [this]() { childUpdate(); });
       }
     }
 

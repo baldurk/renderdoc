@@ -233,7 +233,15 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
     for(size_t i = 0; i < vbuffers.size(); i++)
     {
       if(vbuffers[i].buf == ResourceId())
+      {
+        if(vk->NULLDescriptorsAllowed())
+        {
+          VkBuffer empty = VK_NULL_HANDLE;
+          ObjDisp(cmd)->CmdBindVertexBuffers(Unwrap(cmd), (uint32_t)i, 1, &empty, &vbuffers[i].offs);
+        }
+
         continue;
+      }
 
       ObjDisp(cmd)->CmdBindVertexBuffers(
           Unwrap(cmd), (uint32_t)i, 1,
@@ -391,6 +399,7 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
     rdcarray<VkDescriptorImageInfo *> allocImgWrites;
     rdcarray<VkDescriptorBufferInfo *> allocBufWrites;
     rdcarray<VkBufferView *> allocBufViewWrites;
+    rdcarray<VkWriteDescriptorSetInlineUniformBlockEXT *> allocInlineWrites;
 
     const WrappedVulkan::DescriptorSetInfo &setInfo = vk->GetDebugManager()->GetDescSetInfo(descSet);
 
@@ -445,6 +454,22 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
         push.pImageInfo = dst;
         allocImgWrites.push_back(dst);
       }
+      else if(push.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+      {
+        allocInlineWrites.push_back(new VkWriteDescriptorSetInlineUniformBlockEXT);
+        VkWriteDescriptorSetInlineUniformBlockEXT *inlineWrite = allocInlineWrites.back();
+        inlineWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
+        inlineWrite->pNext = NULL;
+        inlineWrite->dataSize = bind.descriptorCount;
+        inlineWrite->pData = setInfo.inlineData.data() + slots->inlineOffset;
+
+        push.pNext = inlineWrite;
+        push.descriptorCount = bind.descriptorCount;
+        writes.push_back(push);
+
+        // skip validity checks
+        continue;
+      }
       else
       {
         VkDescriptorBufferInfo *dst = new VkDescriptorBufferInfo[push.descriptorCount];
@@ -468,7 +493,7 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
       for(uint32_t w = 0; w < bind.descriptorCount; w++)
       {
         // if this push is valid, we increment the descriptor count and continue
-        if(IsValid(push, w - push.dstArrayElement))
+        if(IsValid(vk->NULLDescriptorsAllowed(), push, w - push.dstArrayElement))
         {
           push.descriptorCount++;
         }
@@ -514,6 +539,8 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
       delete[] a;
     for(VkBufferView *a : allocBufViewWrites)
       delete[] a;
+    for(VkWriteDescriptorSetInlineUniformBlockEXT *a : allocInlineWrites)
+      delete a;
   }
 }
 

@@ -56,8 +56,7 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
                               ? VK_FORMAT_UNDEFINED
                               : MakeVkFormat(secondary.format);
 
-  RDCCOMPILE_ASSERT(VK_FORMAT_RANGE_SIZE <= 255,
-                    "Mesh pipeline cache key needs an extra bit for format");
+  RDCASSERT((uint32_t)primaryFmt <= 255 && (uint32_t)secondaryFmt <= 255, primaryFmt, secondaryFmt);
 
   key |= uint64_t((uint32_t)primaryFmt & 0xff) << bit;
   bit += 8;
@@ -359,7 +358,7 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
   // if the device doesn't support non-solid fill mode, fall back to fill. We don't try to patch
   // index buffers for mesh render since it's not worth the trouble - mesh rendering happens locally
   // and typically the local machine is capable enough to do line raster.
-  if(!m_pDriver->GetDeviceFeatures().fillModeNonSolid)
+  if(!m_pDriver->GetDeviceEnabledFeatures().fillModeNonSolid)
   {
     RDCWARN("Can't render mesh wireframes without non-solid fill mode support");
     rs.polygonMode = VK_POLYGON_MODE_FILL;

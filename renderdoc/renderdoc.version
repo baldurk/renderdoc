@@ -7,6 +7,7 @@
                 vk_icd*;
                 dlopen;
                 dlsym;
+                fork;
                 _exit;
                 RENDERDOC_*;
                 VK_LAYER_RENDERDOC_*;

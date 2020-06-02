@@ -1413,8 +1413,8 @@ bool GLResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceId i
             GLsizei h = (GLsizei)TextureState.height;
             GLsizei d = (GLsizei)TextureState.depth;
 
-            GLenum baseFormat = GetBaseFormat(TextureState.internalformat);
-            GLenum dataType = GetDataType(TextureState.internalformat);
+            GLenum baseFormat = isCompressed ? eGL_NONE : GetBaseFormat(TextureState.internalformat);
+            GLenum dataType = isCompressed ? eGL_NONE : GetDataType(TextureState.internalformat);
 
             if(details.initFormatHint != eGL_NONE)
               baseFormat = details.initFormatHint;

@@ -1440,7 +1440,8 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   // consider it filled if any array element is filled (or it's push constants)
   bool filledSlot = cblock != NULL && !cblock->bufferBacked;
   for(int idx = 0; slotBinds != NULL && idx < slotBinds->count(); idx++)
-    filledSlot |= (*slotBinds)[idx].resourceResourceId != ResourceId();
+    filledSlot |=
+        (*slotBinds)[idx].resourceResourceId != ResourceId() || (*slotBinds)[idx].inlineBlock;
 
   // if it's masked out by stage bits, act as if it's not filled, so it's marked in red
   if(!stageBitsIncluded)
@@ -1541,6 +1542,12 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       }
       else
       {
+        if(descriptorBind && descriptorBind->inlineBlock)
+        {
+          name = tr("Inline block");
+          vecrange = tr("%1 bytes").arg(length);
+        }
+
         if(length == byteSize)
           sizestr = tr("%1 Variables, %2 bytes").arg(numvars).arg(length);
         else
@@ -2013,7 +2020,7 @@ void VulkanPipelineStateViewer::setState()
             vbuff != NULL ? vbuff->resourceId : ResourceId(), vbuff != NULL ? vbuff->byteOffset : 0,
             m_Common.GetVBufferFormatString(i))));
 
-        if(!filledSlot || bind == NULL || vbuff == NULL)
+        if(!filledSlot || bind == NULL || vbuff == NULL || vbuff->resourceId == ResourceId())
         {
           setEmptyRow(node);
           m_EmptyNodes.push_back(node);

@@ -819,16 +819,16 @@ public:
     while(start < sz && IS_WHITESPACE(str[start]))
       start++;
 
-    size_t end = sz - 1;
-    while(end > start && IS_WHITESPACE(str[end]))
-      end--;
-
     // no non-whitespace characters, become the empty string
-    if(start >= end)
+    if(start == sz)
     {
       clear();
       return;
     }
+
+    size_t end = sz - 1;
+    while(end > start && IS_WHITESPACE(str[end]))
+      end--;
 
     erase(end + 1, ~0U);
     erase(0, start);

@@ -263,6 +263,21 @@ void main()
       VkImage swapimg =
           StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
+      for(int i = 0; i < 2; i++)
+      {
+        VkBuffer midbuf = VK_NULL_HANDLE;
+        vkCreateBuffer(device, bufinfo, NULL, &midbuf);
+
+        VkDeviceMemory midmem = VK_NULL_HANDLE;
+        vkAllocateMemory(device, &memoryAllocateInfo, NULL, &midmem);
+        vkBindBufferMemory(device, midbuf, midmem, 0);
+
+        vkMapMemory(device, midmem, 0, mrq.size, 0, (void **)&cpuptr);
+        vkDestroyBuffer(device, midbuf, NULL);
+        vkUnmapMemory(device, midmem);
+        vkFreeMemory(device, midmem, NULL);
+      }
+
       vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
                            vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                            vkh::ImageSubresourceRange());

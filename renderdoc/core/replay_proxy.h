@@ -102,6 +102,7 @@ enum ReplayProxyPacket
   eReplayProxy_GetAvailableGPUs,
 
   eReplayProxy_ContinueDebug,
+  eReplayProxy_FreeDebugger,
 };
 
 DECLARE_REFLECTION_ENUM(ReplayProxyPacket);
@@ -505,9 +506,9 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(MeshFormat, GetPostVSBuffers, uint32_t eventId, uint32_t instID,
                              uint32_t viewID, MeshDataStage stage);
 
-  IMPLEMENT_FUNCTION_PROXIED(ResourceId, RenderOverlay, ResourceId texid, const Subresource &sub,
-                             CompType typeCast, FloatVector clearCol, DebugOverlay overlay,
-                             uint32_t eventId, const rdcarray<uint32_t> &passEvents);
+  IMPLEMENT_FUNCTION_PROXIED(ResourceId, RenderOverlay, ResourceId texid, FloatVector clearCol,
+                             DebugOverlay overlay, uint32_t eventId,
+                             const rdcarray<uint32_t> &passEvents);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderEntryPoint>, GetShaderEntryPoints, ResourceId shader);
   IMPLEMENT_FUNCTION_PROXIED(ShaderReflection *, GetShader, ResourceId pipeline, ResourceId,
@@ -529,6 +530,7 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(ShaderDebugTrace *, DebugThread, uint32_t eventId,
                              const uint32_t groupid[3], const uint32_t threadid[3]);
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderDebugState>, ContinueDebug, ShaderDebugger *debugger);
+  IMPLEMENT_FUNCTION_PROXIED(void, FreeDebugger, ShaderDebugger *debugger);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ShaderEncoding>, GetTargetShaderEncodings);
   IMPLEMENT_FUNCTION_PROXIED(void, BuildTargetShader, ShaderEncoding sourceEncoding,

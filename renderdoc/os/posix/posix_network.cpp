@@ -113,6 +113,9 @@ Socket *Socket::AcceptClient(uint32_t timeoutMilliseconds)
       int flags = fcntl(s, F_GETFL, 0);
       fcntl(s, F_SETFL, flags | O_NONBLOCK);
 
+      flags = fcntl(s, F_GETFD, 0);
+      fcntl(s, F_SETFD, flags | FD_CLOEXEC);
+
       int nodelay = 1;
       setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (char *)&nodelay, sizeof(nodelay));
 
@@ -383,6 +386,9 @@ Socket *CreateTCPServerSocket(const char *bindaddr, uint16_t port, int queuesize
   int flags = fcntl(s, F_GETFL, 0);
   fcntl(s, F_SETFL, flags | O_NONBLOCK);
 
+  flags = fcntl(s, F_GETFD, 0);
+  fcntl(s, F_SETFD, flags | FD_CLOEXEC);
+
   return new Socket((ptrdiff_t)s);
 }
 
@@ -426,6 +432,9 @@ Socket *CreateAbstractServerSocket(uint16_t port, int queuesize)
   int flags = fcntl(s, F_GETFL, 0);
   fcntl(s, F_SETFL, flags | O_NONBLOCK);
 
+  flags = fcntl(s, F_GETFD, 0);
+  fcntl(s, F_SETFD, flags | FD_CLOEXEC);
+
   return new Socket((ptrdiff_t)s);
 }
 
@@ -456,6 +465,9 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
 
     int flags = fcntl(s, F_GETFL, 0);
     fcntl(s, F_SETFL, flags | O_NONBLOCK);
+
+    flags = fcntl(s, F_GETFD, 0);
+    fcntl(s, F_SETFD, flags | FD_CLOEXEC);
 
     int result = connect(s, ptr->ai_addr, (int)ptr->ai_addrlen);
     if(result == -1)

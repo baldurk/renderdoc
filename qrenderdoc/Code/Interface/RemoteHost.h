@@ -93,6 +93,14 @@ public:
 )");
   void SetLastCapturePath(const rdcstr &path);
 
+  DOCUMENT(R"(Create a connection to the remote server.
+
+:return: The status of opening the capture, whether success or failure, and a :class:`RemoteServer`
+  instance if it were successful
+:rtype: ``pair`` of ReplayStatus and RemoteServer
+)");
+  ReplayStatus Connect(IRemoteServer **server);
+
   DOCUMENT(
       "The :class:`DeviceProtocolController` for this host, or ``None`` if no protocol is in use");
   IDeviceProtocolController *Protocol() const { return m_protocol; }

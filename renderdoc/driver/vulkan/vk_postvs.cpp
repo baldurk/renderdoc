@@ -1671,11 +1671,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
         offs += drawcall->vertexOffset * vi->pVertexBindingDescriptions[vb].stride;
       }
 
+      origVBs.push_back(bytebuf());
       if(state.vbuffers[binding].buf != ResourceId())
-      {
-        origVBs.push_back(bytebuf());
         GetBufferData(state.vbuffers[binding].buf, offs, len, origVBs.back());
-      }
     }
 
     for(uint32_t i = 0; i < vi->vertexAttributeDescriptionCount; i++)
@@ -1712,7 +1710,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
         }
       }
 
-      RDCASSERT(origVBEnd);
+      if(origVBBegin == NULL)
+        continue;
 
       // in some limited cases, provided we added the UNIFORM_TEXEL_BUFFER usage bit, we could use
       // the original buffers here as-is and read out of them. However it is likely that the offset
@@ -3038,6 +3037,7 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uin
       ret.indexByteStride = 1;
     else
       ret.indexByteStride = 2;
+    ret.indexByteSize = ~0ULL;
   }
   else
   {
@@ -3048,9 +3048,14 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uin
   ret.baseVertex = s.baseVertex;
 
   if(s.buf != VK_NULL_HANDLE)
+  {
     ret.vertexResourceId = GetResID(s.buf);
+    ret.vertexByteSize = ~0ULL;
+  }
   else
+  {
     ret.vertexResourceId = ResourceId();
+  }
 
   ret.vertexByteOffset = s.instStride * (instID + viewID * numInstances);
   ret.vertexByteStride = s.vertStride;

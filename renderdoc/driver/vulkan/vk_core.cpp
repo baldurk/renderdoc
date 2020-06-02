@@ -765,6 +765,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_CONSERVATIVE_RASTERIZATION_SPEC_VERSION,
     },
     {
+        VK_EXT_CUSTOM_BORDER_COLOR_EXTENSION_NAME, VK_EXT_CUSTOM_BORDER_COLOR_SPEC_VERSION,
+    },
+    {
         VK_EXT_DEBUG_MARKER_EXTENSION_NAME, VK_EXT_DEBUG_MARKER_SPEC_VERSION,
     },
     {
@@ -827,6 +830,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME, VK_EXT_INDEX_TYPE_UINT8_SPEC_VERSION,
     },
     {
+        VK_EXT_INLINE_UNIFORM_BLOCK_EXTENSION_NAME, VK_EXT_INLINE_UNIFORM_BLOCK_SPEC_VERSION,
+    },
+    {
         VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME, VK_EXT_LINE_RASTERIZATION_SPEC_VERSION,
     },
     {
@@ -844,6 +850,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_PCI_BUS_INFO_EXTENSION_NAME, VK_EXT_PCI_BUS_INFO_SPEC_VERSION,
     },
     {
+        VK_EXT_PIPELINE_CREATION_CACHE_CONTROL_EXTENSION_NAME,
+        VK_EXT_PIPELINE_CREATION_CACHE_CONTROL_SPEC_VERSION,
+    },
+    {
         VK_EXT_PIPELINE_CREATION_FEEDBACK_EXTENSION_NAME,
         VK_EXT_PIPELINE_CREATION_FEEDBACK_SPEC_VERSION,
     },
@@ -851,7 +861,13 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_POST_DEPTH_COVERAGE_EXTENSION_NAME, VK_EXT_POST_DEPTH_COVERAGE_SPEC_VERSION,
     },
     {
+        VK_EXT_PRIVATE_DATA_EXTENSION_NAME, VK_EXT_PRIVATE_DATA_SPEC_VERSION,
+    },
+    {
         VK_EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME, VK_EXT_QUEUE_FAMILY_FOREIGN_SPEC_VERSION,
+    },
+    {
+        VK_EXT_ROBUSTNESS_2_EXTENSION_NAME, VK_EXT_ROBUSTNESS_2_SPEC_VERSION,
     },
     {
         VK_EXT_SAMPLE_LOCATIONS_EXTENSION_NAME, VK_EXT_SAMPLE_LOCATIONS_SPEC_VERSION,
@@ -1533,6 +1549,8 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
 
   m_CaptureTimer.Restart();
 
+  GetResourceManager()->ResetCaptureStartTime();
+
   m_AppControlledCapture = true;
 
   m_SubmitCounter = 0;
@@ -1690,6 +1708,9 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     }
   }
 
+  rdcarray<VkDeviceMemory> DeadMemories;
+  rdcarray<VkBuffer> DeadBuffers;
+
   // transition back to IDLE atomically
   {
     SCOPED_WRITELOCK(m_CapTransitionLock);
@@ -1710,7 +1731,16 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
         (*it)->memMapState->needRefData = false;
       }
     }
+
+    DeadMemories.swap(m_DeviceAddressResources.DeadMemories);
+    DeadBuffers.swap(m_DeviceAddressResources.DeadBuffers);
   }
+
+  for(VkDeviceMemory m : DeadMemories)
+    vkFreeMemory(m_Device, m, NULL);
+
+  for(VkBuffer b : DeadBuffers)
+    vkDestroyBuffer(m_Device, b, NULL);
 
   // gather backbuffer screenshot
   const uint32_t maxSize = 2048;
@@ -2021,6 +2051,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
     m_CmdBufferRecords[i]->Delete(GetResourceManager());
 
   m_CmdBufferRecords.clear();
+
+  GetResourceManager()->ResetLastWriteTimes();
 
   GetResourceManager()->MarkUnwrittenResources();
 
@@ -2460,7 +2492,7 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
         LoadProgress::FrameEventsRead,
         float(m_CurChunkOffset - startOffset) / float(ser.GetReader()->GetSize()));
 
-    if((SystemChunk)chunktype == SystemChunk::CaptureEnd)
+    if((SystemChunk)chunktype == SystemChunk::CaptureEnd || ser.GetReader()->AtEnd())
       break;
 
     // break out if we were only executing one event
@@ -3480,6 +3512,16 @@ VkBool32 WrappedVulkan::DebugCallback(MessageSeverity severity, MessageCategory 
     if(strstr(pMessageId, "VUID-VkSwapchainCreateInfoKHR-imageExtent"))
       return false;
 
+    // "Missing extension required by the device extension VK_KHR_driver_properties:
+    // VK_KHR_get_physical_device_properties2. The Vulkan spec states: All required extensions for
+    // each extension in the VkDeviceCreateInfo::ppEnabledExtensionNames list must also be present
+    // in that list."
+    // During capture we can't enable instance extensions so it's impossible for us to enable gpdp2,
+    // but we still want to use driver properties and in practice it's safe.
+    if(strstr(pMessage, "VK_KHR_get_physical_device_properties2") &&
+       strstr(pMessage, "VK_KHR_driver_properties"))
+      return false;
+
     RDCWARN("[%s] %s", pMessageId, pMessage);
   }
 
@@ -3560,6 +3602,17 @@ VkBool32 VKAPI_PTR WrappedVulkan::DebugUtilsCallbackStatic(
 
   return ((WrappedVulkan *)pUserData)
       ->DebugCallback(severity, category, messageCode, pMessageId, pCallbackData->pMessage);
+}
+
+const VkFormatProperties &WrappedVulkan::GetFormatProperties(VkFormat f)
+{
+  if(m_PhysicalDeviceData.fmtProps.find(f) == m_PhysicalDeviceData.fmtProps.end())
+  {
+    ObjDisp(m_PhysicalDevice)
+        ->GetPhysicalDeviceFormatProperties(Unwrap(m_PhysicalDevice), f,
+                                            &m_PhysicalDeviceData.fmtProps[f]);
+  }
+  return m_PhysicalDeviceData.fmtProps[f];
 }
 
 bool WrappedVulkan::HasNonMarkerEvents(ResourceId cmdBuffer)
@@ -3899,6 +3952,10 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
 
         // we don't mark samplers with usage
         if(layout.bindings[bind].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
+          continue;
+
+        // no object to mark for usage with inline blocks
+        if(layout.bindings[bind].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
           continue;
 
         ResourceUsage usage = ResourceUsage(uint32_t(types[t].usage) + shad);

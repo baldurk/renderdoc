@@ -569,6 +569,9 @@ void VulkanGraphicsTest::Shutdown()
     for(VkDescriptorSetLayout layout : setlayouts)
       vkDestroyDescriptorSetLayout(device, layout, NULL);
 
+    for(VkSampler sampler : samplers)
+      vkDestroySampler(device, sampler, NULL);
+
     for(auto it : imageAllocs)
       vmaDestroyImage(allocator, it.first, it.second);
 
@@ -794,6 +797,39 @@ void VulkanGraphicsTest::blitToSwap(VkCommandBuffer cmd, VkImage src, VkImageLay
   vkCmdBlitImage(cmd, src, srcLayout, dst, dstLayout, 1, &region, VK_FILTER_LINEAR);
 }
 
+void VulkanGraphicsTest::uploadBufferToImage(VkImage destImage, VkExtent3D destExtent,
+                                             VkBuffer srcBuffer, VkImageLayout finalLayout)
+{
+  VkCommandBuffer cmd = GetCommandBuffer();
+
+  vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+
+  vkh::cmdPipelineBarrier(
+      cmd, {
+               vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, destImage),
+           });
+
+  VkBufferImageCopy copy = {};
+  copy.imageExtent = destExtent;
+  copy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  copy.imageSubresource.layerCount = 1;
+
+  vkCmdCopyBufferToImage(cmd, srcBuffer, destImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+
+  vkh::cmdPipelineBarrier(
+      cmd, {
+               vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, finalLayout, destImage),
+           });
+
+  vkEndCommandBuffer(cmd);
+
+  Submit(99, 99, {cmd});
+
+  vkDeviceWaitIdle(device);
+}
+
 void VulkanGraphicsTest::pushMarker(VkQueue q, const std::string &name)
 {
   if(vkQueueBeginDebugUtilsLabelEXT)
@@ -925,6 +961,14 @@ VkDescriptorSetLayout VulkanGraphicsTest::createDescriptorSetLayout(
   VkDescriptorSetLayout ret;
   CHECK_VKR(vkCreateDescriptorSetLayout(device, info, NULL, &ret));
   setlayouts.push_back(ret);
+  return ret;
+}
+
+VkSampler VulkanGraphicsTest::createSampler(const VkSamplerCreateInfo *info)
+{
+  VkSampler ret;
+  CHECK_VKR(vkCreateSampler(device, info, NULL, &ret));
+  samplers.push_back(ret);
   return ret;
 }
 
@@ -1176,7 +1220,7 @@ void VulkanWindow::Present(VkQueue queue)
   for(VkFence f : fences)
     fenceStatus[f] = vkGetFenceStatus(m_Test->device, f);
 
-  for(int level = 0; level < VK_COMMAND_BUFFER_LEVEL_RANGE_SIZE; level++)
+  for(int level = 0; level < 2; level++)
   {
     for(auto it = pendingCommandBuffers[level].begin(); it != pendingCommandBuffers[level].end();)
     {

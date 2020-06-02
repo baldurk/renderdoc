@@ -439,13 +439,7 @@ void main()
           descset));
     }
 
-    VkSampler sampler = VK_NULL_HANDLE;
-
-    VkSamplerCreateInfo sampInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-    sampInfo.magFilter = VK_FILTER_LINEAR;
-    sampInfo.minFilter = VK_FILTER_LINEAR;
-
-    vkCreateSampler(device, &sampInfo, NULL, &sampler);
+    VkSampler sampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_LINEAR));
 
     vkh::DescriptorImageInfo iminfo(badimgview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler);
     vkh::WriteDescriptorSet up(VK_NULL_HANDLE, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -603,7 +597,6 @@ void main()
     vkDeviceWaitIdle(device);
 
     vkDestroyDescriptorPool(device, descpool, NULL);
-    vkDestroySampler(device, sampler, NULL);
 
     return 0;
   }

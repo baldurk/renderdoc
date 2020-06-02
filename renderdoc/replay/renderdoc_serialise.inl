@@ -341,6 +341,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, DebugVariableReference &el)
 {
   SERIALISE_MEMBER(name);
+  SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(component);
 
   SIZE_CHECK(32);
@@ -792,10 +793,12 @@ void DoSerialise(SerialiserType &ser, MeshFormat &el)
   SERIALISE_MEMBER(indexResourceId);
   SERIALISE_MEMBER(indexByteOffset);
   SERIALISE_MEMBER(indexByteStride);
+  SERIALISE_MEMBER(indexByteSize);
   SERIALISE_MEMBER(baseVertex);
   SERIALISE_MEMBER(vertexResourceId);
   SERIALISE_MEMBER(vertexByteOffset);
   SERIALISE_MEMBER(vertexByteStride);
+  SERIALISE_MEMBER(vertexByteSize);
   SERIALISE_MEMBER(format);
   SERIALISE_MEMBER(meshColor);
   SERIALISE_MEMBER(topology);
@@ -807,7 +810,7 @@ void DoSerialise(SerialiserType &ser, MeshFormat &el)
   SERIALISE_MEMBER(instanced);
   SERIALISE_MEMBER(showAlpha);
 
-  SIZE_CHECK(96);
+  SIZE_CHECK(128);
 }
 
 template <typename SerialiserType>
@@ -1745,10 +1748,11 @@ void DoSerialise(SerialiserType &ser, GLPipe::Attachment &el)
 {
   SERIALISE_MEMBER(resourceId);
   SERIALISE_MEMBER(slice);
+  SERIALISE_MEMBER(numSlices);
   SERIALISE_MEMBER(mipLevel);
   SERIALISE_MEMBER(swizzle);
 
-  SIZE_CHECK(32);
+  SIZE_CHECK(40);
 }
 
 template <typename SerialiserType>
@@ -1761,7 +1765,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::FBO &el)
   SERIALISE_MEMBER(drawBuffers);
   SERIALISE_MEMBER(readBuffer);
 
-  SIZE_CHECK(128);
+  SIZE_CHECK(144);
 }
 
 template <typename SerialiserType>
@@ -1782,7 +1786,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::FrameBuffer &el)
   SERIALISE_MEMBER(readFBO);
   SERIALISE_MEMBER(blendState);
 
-  SIZE_CHECK(304);
+  SIZE_CHECK(336);
 }
 
 template <typename SerialiserType>
@@ -1831,7 +1835,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::State &el)
 
   SERIALISE_MEMBER(hints);
 
-  SIZE_CHECK(1984);
+  SIZE_CHECK(2016);
 }
 
 #pragma endregion OpenGL pipeline state
@@ -1867,6 +1871,7 @@ void DoSerialise(SerialiserType &ser, VKPipe::BindingElement &el)
   SERIALISE_MEMBER(maxLOD);
   SERIALISE_MEMBER(borderColor);
   SERIALISE_MEMBER(unnormalized);
+  SERIALISE_MEMBER(inlineBlock);
 
   SERIALISE_MEMBER(ycbcrSampler);
 

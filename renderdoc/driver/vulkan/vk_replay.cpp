@@ -638,7 +638,6 @@ rdcstr VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
             case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_FLOAT64_KHR:
               value = ToStr(stat.value.f64);
               break;
-            case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_RANGE_SIZE_KHR:
             case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_MAX_ENUM_KHR: value = "???"; break;
           }
 
@@ -950,17 +949,6 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 void VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &retData)
 {
   GetDebugManager()->GetBufferData(buff, offset, len, retData);
-}
-
-bool VulkanReplay::IsRenderOutput(ResourceId id)
-{
-  for(const VKPipe::Attachment &att : m_VulkanPipelineState.currentPass.framebuffer.attachments)
-  {
-    if(att.viewResourceId == id || att.imageResourceId == id)
-      return true;
-  }
-
-  return false;
 }
 
 void VulkanReplay::FileChanged()
@@ -1669,11 +1657,15 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
             case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
               dst.bindings[b].type = BindType::InputAttachment;
               break;
+            case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+              dst.bindings[b].descriptorCount = 1;
+              dst.bindings[b].type = BindType::ConstantBuffer;
+              break;
             default: dst.bindings[b].type = BindType::Unknown; RDCERR("Unexpected descriptor type");
           }
 
-          dst.bindings[b].binds.resize(layoutBind.descriptorCount);
-          for(uint32_t a = 0; a < layoutBind.descriptorCount; a++)
+          dst.bindings[b].binds.resize(dst.bindings[b].descriptorCount);
+          for(uint32_t a = 0; a < dst.bindings[b].descriptorCount; a++)
           {
             VKPipe::BindingElement &dstel = dst.bindings[b].binds[a];
 
@@ -1681,7 +1673,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
             // if we have a list of used binds, and this is an array descriptor (so would be
             // expected to be in the list), check it for dynamic usage.
-            if(layoutBind.descriptorCount > 1 && hasUsedBinds)
+            if(dst.bindings[b].descriptorCount > 1 && hasUsedBinds)
             {
               // if we exhausted the list, all other elements are unused
               if(usedBindsSize == 0)
@@ -1718,6 +1710,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
             if(dstel.dynamicallyUsed)
               dst.bindings[b].dynamicallyUsedCount++;
 
+            // first handle the sampler separately because it might be in a combined descriptor
             if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
                layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
             {
@@ -1768,9 +1761,23 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                   el.chromaFilter = ycbcr.chromaFilter;
                   el.forceExplicitReconstruction = ycbcr.forceExplicitReconstruction;
                 }
+
+                if(sampl.customBorder)
+                {
+                  if(sampl.borderColor == VK_BORDER_COLOR_INT_CUSTOM_EXT)
+                  {
+                    for(int bord = 0; bord < 4; bord++)
+                      el.borderColor[bord] = float(sampl.customBorderColor.int32[bord]);
+                  }
+                  else
+                  {
+                    memcpy(el.borderColor, sampl.customBorderColor.float32, sizeof(Vec4f));
+                  }
+                }
               }
             }
 
+            // now look at the 'base' type. Sampler is excluded from these ifs
             if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
                layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
                layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT ||
@@ -1805,8 +1812,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 dst.bindings[b].binds[a].numSlices = 1;
               }
             }
-            if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)
+            else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER ||
+                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)
             {
               ResourceId viewid = info[a].texelBufferView;
 
@@ -1843,10 +1850,18 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 dst.bindings[b].binds[a].byteSize = 0;
               }
             }
-            if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-               layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+            else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+            {
+              dst.bindings[b].binds[a].viewResourceId = ResourceId();
+              dst.bindings[b].binds[a].resourceResourceId = ResourceId();
+              dst.bindings[b].binds[a].inlineBlock = true;
+              dst.bindings[b].binds[a].byteOffset = 0;
+              dst.bindings[b].binds[a].byteSize = layoutBind.descriptorCount;
+            }
+            else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
+                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
+                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+                    layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
             {
               dst.bindings[b].binds[a].viewResourceId = ResourceId();
 
@@ -1964,6 +1979,37 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
 
   if(c.bufferBacked)
   {
+    const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descSets =
+        (refl.stage == ShaderStage::Compute) ? m_pDriver->m_RenderState.compute.descSets
+                                             : m_pDriver->m_RenderState.graphics.descSets;
+
+    Bindpoint bind = mapping.constantBlocks[c.bindPoint];
+
+    if(bind.bindset < descSets.count())
+    {
+      ResourceId set = descSets[bind.bindset].descSet;
+
+      const WrappedVulkan::DescriptorSetInfo &setData = m_pDriver->m_DescriptorSetState[set];
+
+      ResourceId layoutId = setData.layout;
+
+      if(bind.bind < m_pDriver->m_CreationInfo.m_DescSetLayout[layoutId].bindings.count())
+      {
+        const DescSetLayout::Binding &layoutBind =
+            m_pDriver->m_CreationInfo.m_DescSetLayout[layoutId].bindings[bind.bind];
+
+        if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        {
+          bytebuf inlineData;
+          inlineData.assign(
+              setData.inlineData.data() + setData.currentBindings[bind.bind]->inlineOffset,
+              layoutBind.descriptorCount);
+          StandardFillCBufferVariables(refl.resourceId, c.variables, outvars, inlineData);
+          return;
+        }
+      }
+    }
+
     StandardFillCBufferVariables(refl.resourceId, c.variables, outvars, data);
   }
   else
@@ -2796,24 +2842,29 @@ rdcarray<EventUsage> VulkanReplay::GetUsage(ResourceId id)
 }
 
 void VulkanReplay::CopyPixelForPixelHistory(VkCommandBuffer cmd, VkOffset2D offset, uint32_t sample,
-                                            uint32_t bufferOffset, bool depthCopy)
+                                            uint32_t bufferOffset, VkFormat format,
+                                            VkDescriptorSet descSet)
 {
-  if(m_PixelHistory.MSCopyPipe == VK_NULL_HANDLE)
-    return;
-
-  VkDescriptorSet descSet;
-  if(depthCopy)
-    descSet = m_PixelHistory.MSDepthCopyDescSet;
+  VkPipeline pipe;
+  if(IsDepthOrStencilFormat(format))
+    pipe = m_PixelHistory.MSCopyDepthPipe;
   else
-    descSet = m_PixelHistory.MSCopyDescSet;
-  if(!m_pDriver->GetDeviceFeatures().shaderStorageImageWriteWithoutFormat)
+    pipe = m_PixelHistory.MSCopyPipe;
+  if(pipe == VK_NULL_HANDLE)
+    return;
+  if(!m_pDriver->GetDeviceEnabledFeatures().shaderStorageImageWriteWithoutFormat)
     return;
 
-  ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
-                                Unwrap(m_PixelHistory.MSCopyPipe));
+  ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(pipe));
 
-  uint32_t params[8] = {depthCopy, sample, (uint32_t)offset.x, (uint32_t)offset.y, bufferOffset, 0,
-                        0,         0};
+  int32_t params[8] = {(int32_t)sample,
+                       offset.x,
+                       offset.y,
+                       (int32_t)bufferOffset,
+                       !IsStencilOnlyFormat(format),
+                       IsStencilFormat(format),
+                       0,
+                       0};
   ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
                                       Unwrap(m_PixelHistory.MSCopyPipeLayout), 0, 1,
                                       UnwrapPtr(descSet), 0, NULL);
@@ -3628,6 +3679,36 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   else
   {
     memcpy(data.data(), pData, dataSize);
+
+    // vulkan's bitpacking of some layouts puts alpha in the low bits, which is not our 'standard'
+    // layout and is not representable in our resource formats
+    if(params.standardLayout)
+    {
+      if(imCreateInfo.format == VK_FORMAT_R4G4B4A4_UNORM_PACK16 ||
+         imCreateInfo.format == VK_FORMAT_B4G4R4A4_UNORM_PACK16)
+      {
+        uint16_t *ptr = (uint16_t *)data.data();
+
+        for(uint32_t i = 0; i < dataSize; i += sizeof(uint16_t))
+        {
+          const uint16_t val = *ptr;
+          *ptr = (val >> 4) | ((val & 0xf) << 12);
+          ptr++;
+        }
+      }
+      else if(imCreateInfo.format == VK_FORMAT_R5G5B5A1_UNORM_PACK16 ||
+              imCreateInfo.format == VK_FORMAT_B5G5R5A1_UNORM_PACK16)
+      {
+        uint16_t *ptr = (uint16_t *)data.data();
+
+        for(uint32_t i = 0; i < dataSize; i += sizeof(uint16_t))
+        {
+          const uint16_t val = *ptr;
+          *ptr = (val >> 1) | ((val & 0x1) << 15);
+          ptr++;
+        }
+      }
+    }
   }
 
   vt->UnmapMemory(Unwrap(dev), readbackMem);
@@ -3880,6 +3961,9 @@ void VulkanReplay::RefreshDerivedReplacements()
         VkGraphicsPipelineCreateInfo pipeCreateInfo;
         m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, it->first);
 
+        rdcarray<rdcstr> entrynames;
+        entrynames.reserve(pipeCreateInfo.stageCount);
+
         // replace the modules by going via the live ID to pick up any replacements
         for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
         {
@@ -3887,7 +3971,35 @@ void VulkanReplay::RefreshDerivedReplacements()
               (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
 
           ResourceId shadOrigId = rm->GetOriginalID(GetResID(sh.module));
+
           sh.module = rm->GetLiveHandle<VkShaderModule>(shadOrigId);
+
+          if(rm->HasReplacement(shadOrigId))
+          {
+            rdcarray<rdcstr> entries =
+                m_pDriver->m_CreationInfo.m_ShaderModule[GetResID(sh.module)].spirv.EntryPoints();
+            if(entries.size() > 1)
+            {
+              if(entries.contains(sh.pName))
+              {
+                // nothing to do!
+              }
+              else
+              {
+                RDCWARN(
+                    "Multiple entry points in edited shader, none matching original, using first "
+                    "one '%s'",
+                    entries[0].c_str());
+                entrynames.push_back(entries[0]);
+                sh.pName = entrynames.back().c_str();
+              }
+            }
+            else
+            {
+              entrynames.push_back(entries[0]);
+              sh.pName = entrynames.back().c_str();
+            }
+          }
         }
 
         // if we have pipeline executable properties, capture the data
@@ -3983,6 +4095,10 @@ ReplayStatus Vulkan_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, 
   // RTSS layer is buggy, disable it to avoid bug reports that are caused by it
   Process::RegisterEnvironmentModification(
       EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_RTSS_LAYER", "1"));
+
+  // OBS's layer causes crashes, disable it too.
+  Process::RegisterEnvironmentModification(
+      EnvironmentModification(EnvMod::Set, EnvSep::NoSep, "DISABLE_VULKAN_OBS_CAPTURE", "1"));
 
   Process::ApplyEnvironmentModification();
 

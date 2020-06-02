@@ -237,13 +237,13 @@ public:
   ShaderDebugTrace *DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                 const uint32_t threadid[3]);
   rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger);
+  void FreeDebugger(ShaderDebugger *debugger);
 
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
                       uint32_t x, uint32_t y);
 
-  ResourceId RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
-                           FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
-                           const rdcarray<uint32_t> &passEvents);
+  ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+                           uint32_t eventId, const rdcarray<uint32_t> &passEvents);
 
   void BuildCustomShader(ShaderEncoding sourceEncoding, const bytebuf &source, const rdcstr &entry,
                          const ShaderCompileFlags &compileFlags, ShaderStage type, ResourceId &id,
@@ -251,8 +251,8 @@ public:
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
                                CompType typeCast);
 
-  bool IsRenderOutput(ResourceId id);
-
+  RenderOutputSubresource GetRenderOutputSubresource(ResourceId id);
+  bool IsRenderOutput(ResourceId id) { return GetRenderOutputSubresource(id).mip != ~0U; }
   void FileChanged() {}
 private:
   bool m_WARP;

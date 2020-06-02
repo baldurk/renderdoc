@@ -946,3 +946,8 @@ bool VulkanResourceManager::ResourceTypeRelease(WrappedVkRes *res)
 {
   return m_Core->ReleaseResource(res);
 }
+
+bool VulkanResourceManager::IsResourceTrackedForPersistency(WrappedVkRes *const &res)
+{
+  return IsPostponableRes(res);
+}

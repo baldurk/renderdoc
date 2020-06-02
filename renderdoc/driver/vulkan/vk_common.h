@@ -234,24 +234,27 @@ public:
   VkDriverInfo(const VkPhysicalDeviceProperties &physProps);
 
   // checks for when we're running on metal and some non-queryable things aren't supported
-  bool RunningOnMetal() { return metalBackend; }
+  bool RunningOnMetal() const { return metalBackend; }
   // A workaround for a couple of bugs, removing texelFetch use from shaders.
   // It means broken functionality but at least no instant crashes
-  bool TexelFetchBrokenDriver() { return texelFetchBrokenDriver; }
+  bool TexelFetchBrokenDriver() const { return texelFetchBrokenDriver; }
   // Older AMD driver versions could sometimes cause image memory requirements to vary randomly
   // between identical images. This means the memory required at capture could be less than at
   // replay. To counteract this, on drivers with this issue we pad out the memory requirements
   // enough to account for the change
-  bool UnreliableImageMemoryRequirements() { return unreliableImgMemReqs; }
+  bool UnreliableImageMemoryRequirements() const { return unreliableImgMemReqs; }
   // another workaround, on some AMD driver versions creating an MSAA image with STORAGE_BIT
   // causes graphical corruption trying to sample from it. We workaround it by preventing the
   // MSAA <-> Array pipelines from creating, which removes the STORAGE_BIT and skips the copies.
   // It means initial contents of MSAA images are missing but that's less important than being
   // able to inspect MSAA images properly.
-  bool AMDStorageMSAABrokenDriver() { return amdStorageMSAABrokenDriver; }
+  bool AMDStorageMSAABrokenDriver() const { return amdStorageMSAABrokenDriver; }
   // On Qualcomm it seems like binding a descriptor set with a dynamic offset will 'leak' and affect
   // rendering on other descriptor sets that don't use offsets at all.
-  bool QualcommLeakingUBOOffsets() { return qualcommLeakingUBOOffsets; }
+  bool QualcommLeakingUBOOffsets() const { return qualcommLeakingUBOOffsets; }
+  // On Qualcomm emitting an image sample operation with DRef and explicit lod will crash on non-2D
+  // textures. Since 2D is the common/expected case, we avoid compiling that case entirely.
+  bool QualcommDrefNon2DCompileCrash() const { return qualcommDrefNon2DCompileCrash; }
 private:
   GPUVendor m_Vendor;
 
@@ -262,6 +265,7 @@ private:
   bool unreliableImgMemReqs = false;
   bool amdStorageMSAABrokenDriver = false;
   bool qualcommLeakingUBOOffsets = false;
+  bool qualcommDrefNon2DCompileCrash = false;
 };
 
 enum
@@ -437,13 +441,16 @@ struct DescriptorSetSlot
   DescriptorSetSlotImageInfo imageInfo;
 
   ResourceId texelBufferView;
+
+  // inline uniform block
+  uint32_t inlineOffset;
 };
 
 DECLARE_REFLECTION_STRUCT(DescriptorSetSlotBufferInfo);
 DECLARE_REFLECTION_STRUCT(DescriptorSetSlotImageInfo);
 DECLARE_REFLECTION_STRUCT(DescriptorSetSlot);
 
-bool IsValid(const VkWriteDescriptorSet &write, uint32_t arrayElement);
+bool IsValid(bool allowNULLDescriptors, const VkWriteDescriptorSet &write, uint32_t arrayElement);
 
 #define NUM_VK_IMAGE_ASPECTS 4
 #define VK_ACCESS_ALL_READ_BITS                                                        \
@@ -690,6 +697,7 @@ DECLARE_REFLECTION_STRUCT(VkDedicatedAllocationBufferCreateInfoNV);
 DECLARE_REFLECTION_STRUCT(VkDedicatedAllocationImageCreateInfoNV);
 DECLARE_REFLECTION_STRUCT(VkDedicatedAllocationMemoryAllocateInfoNV);
 DECLARE_REFLECTION_STRUCT(VkDescriptorPoolCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkDescriptorPoolInlineUniformBlockCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkDescriptorSetAllocateInfo);
 DECLARE_REFLECTION_STRUCT(VkDescriptorSetLayoutBindingFlagsCreateInfo)
 DECLARE_REFLECTION_STRUCT(VkDescriptorSetLayoutCreateInfo);
@@ -708,6 +716,7 @@ DECLARE_REFLECTION_STRUCT(VkDeviceGroupRenderPassBeginInfo);
 DECLARE_REFLECTION_STRUCT(VkDeviceGroupSubmitInfo);
 DECLARE_REFLECTION_STRUCT(VkDeviceGroupSwapchainCreateInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkDeviceMemoryOpaqueCaptureAddressInfo);
+DECLARE_REFLECTION_STRUCT(VkDevicePrivateDataCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkDeviceQueueCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkDeviceQueueGlobalPriorityCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkDeviceQueueInfo2);
@@ -778,11 +787,13 @@ DECLARE_REFLECTION_STRUCT(VkPerformanceQuerySubmitInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevice16BitStorageFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevice8BitStorageFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceASTCDecodeFeaturesEXT);
-DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceBufferDeviceAddressFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceBufferDeviceAddressFeatures);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceBufferDeviceAddressFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceCoherentMemoryFeaturesAMD);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceConditionalRenderingFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceConservativeRasterizationPropertiesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceCustomBorderColorFeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceCustomBorderColorPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDepthClipEnableFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDepthStencilResolveProperties);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDescriptorIndexingFeatures)
@@ -806,6 +817,8 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceImageFormatInfo2);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceImagelessFramebufferFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceImageViewImageFormatInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceIndexTypeUint8FeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceInlineUniformBlockFeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceInlineUniformBlockPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceLineRasterizationFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceLineRasterizationPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMaintenance3Properties);
@@ -817,12 +830,16 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceMultiviewProperties);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevicePCIBusInfoPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevicePerformanceQueryFeaturesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevicePerformanceQueryPropertiesKHR);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDevicePipelineCreationCacheControlFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevicePointClippingProperties);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDevicePrivateDataFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceProperties2);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceProtectedMemoryFeatures);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceProtectedMemoryProperties);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDevicePushDescriptorPropertiesKHR);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceRobustness2FeaturesEXT);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceRobustness2PropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceSampleLocationsPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceSamplerFilterMinmaxProperties);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceSamplerYcbcrConversionFeatures);
@@ -889,6 +906,7 @@ DECLARE_REFLECTION_STRUCT(VkPresentInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkPresentRegionsKHR);
 DECLARE_REFLECTION_STRUCT(VkPresentTimeGOOGLE);
 DECLARE_REFLECTION_STRUCT(VkPresentTimesInfoGOOGLE);
+DECLARE_REFLECTION_STRUCT(VkPrivateDataSlotCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkProtectedSubmitInfo);
 DECLARE_REFLECTION_STRUCT(VkQueryPoolCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkQueryPoolPerformanceCreateInfoKHR);
@@ -904,6 +922,7 @@ DECLARE_REFLECTION_STRUCT(VkRenderPassMultiviewCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkRenderPassSampleLocationsBeginInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkSampleLocationsInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkSamplerCreateInfo);
+DECLARE_REFLECTION_STRUCT(VkSamplerCustomBorderColorCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkSamplerReductionModeCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkSamplerYcbcrConversionCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkSamplerYcbcrConversionImageFormatProperties);
@@ -938,8 +957,10 @@ DECLARE_REFLECTION_STRUCT(VkValidationCacheCreateInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkValidationFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkValidationFlagsEXT);
 DECLARE_REFLECTION_STRUCT(VkWriteDescriptorSet);
+DECLARE_REFLECTION_STRUCT(VkWriteDescriptorSetInlineUniformBlockEXT);
 
 DECLARE_DESERIALISE_TYPE(VkAcquireNextImageInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkAcquireProfilingLockInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkApplicationInfo);
 DECLARE_DESERIALISE_TYPE(VkAttachmentDescription2);
 DECLARE_DESERIALISE_TYPE(VkAttachmentDescriptionStencilLayout);
@@ -980,6 +1001,7 @@ DECLARE_DESERIALISE_TYPE(VkDedicatedAllocationBufferCreateInfoNV);
 DECLARE_DESERIALISE_TYPE(VkDedicatedAllocationImageCreateInfoNV);
 DECLARE_DESERIALISE_TYPE(VkDedicatedAllocationMemoryAllocateInfoNV);
 DECLARE_DESERIALISE_TYPE(VkDescriptorPoolCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkDescriptorPoolInlineUniformBlockCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkDescriptorSetAllocateInfo);
 DECLARE_DESERIALISE_TYPE(VkDescriptorSetLayoutBindingFlagsCreateInfo)
 DECLARE_DESERIALISE_TYPE(VkDescriptorSetLayoutCreateInfo);
@@ -998,6 +1020,7 @@ DECLARE_DESERIALISE_TYPE(VkDeviceGroupRenderPassBeginInfo);
 DECLARE_DESERIALISE_TYPE(VkDeviceGroupSubmitInfo);
 DECLARE_DESERIALISE_TYPE(VkDeviceGroupSwapchainCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkDeviceMemoryOpaqueCaptureAddressInfo);
+DECLARE_DESERIALISE_TYPE(VkDevicePrivateDataCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkDeviceQueueCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkDeviceQueueGlobalPriorityCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkDeviceQueueInfo2);
@@ -1060,12 +1083,17 @@ DECLARE_DESERIALISE_TYPE(VkMemoryOpaqueCaptureAddressAllocateInfo);
 DECLARE_DESERIALISE_TYPE(VkMemoryPriorityAllocateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkMemoryRequirements2);
 DECLARE_DESERIALISE_TYPE(VkMultisamplePropertiesEXT);
+DECLARE_DESERIALISE_TYPE(VkPerformanceCounterDescriptionKHR);
+DECLARE_DESERIALISE_TYPE(VkPerformanceCounterKHR);
+DECLARE_DESERIALISE_TYPE(VkPerformanceQuerySubmitInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevice16BitStorageFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevice8BitStorageFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceASTCDecodeFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceCoherentMemoryFeaturesAMD);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceConditionalRenderingFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceConservativeRasterizationPropertiesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceCustomBorderColorFeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceCustomBorderColorPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDepthClipEnableFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDepthStencilResolveProperties);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDescriptorIndexingFeatures)
@@ -1089,6 +1117,8 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceImageFormatInfo2);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceImagelessFramebufferFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceImageViewImageFormatInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceIndexTypeUint8FeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceInlineUniformBlockFeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceInlineUniformBlockPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceLineRasterizationFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceLineRasterizationPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMaintenance3Properties);
@@ -1098,12 +1128,18 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMemoryProperties2);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMultiviewFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceMultiviewProperties);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevicePCIBusInfoPropertiesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDevicePerformanceQueryFeaturesKHR);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDevicePerformanceQueryPropertiesKHR);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDevicePipelineCreationCacheControlFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevicePipelineExecutablePropertiesFeaturesKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevicePointClippingProperties);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDevicePrivateDataFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceProperties2);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceProtectedMemoryFeatures);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceProtectedMemoryProperties);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDevicePushDescriptorPropertiesKHR);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceRobustness2FeaturesEXT);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceRobustness2PropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceSampleLocationsPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceSamplerFilterMinmaxProperties);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceSamplerYcbcrConversionFeatures);
@@ -1169,8 +1205,10 @@ DECLARE_DESERIALISE_TYPE(VkPipelineViewportStateCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkPresentInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkPresentRegionsKHR);
 DECLARE_DESERIALISE_TYPE(VkPresentTimesInfoGOOGLE);
+DECLARE_DESERIALISE_TYPE(VkPrivateDataSlotCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkProtectedSubmitInfo);
 DECLARE_DESERIALISE_TYPE(VkQueryPoolCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkQueryPoolPerformanceCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkQueueFamilyProperties2);
 DECLARE_DESERIALISE_TYPE(VkRenderPassAttachmentBeginInfo);
 DECLARE_DESERIALISE_TYPE(VkRenderPassBeginInfo);
@@ -1181,6 +1219,7 @@ DECLARE_DESERIALISE_TYPE(VkRenderPassMultiviewCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkRenderPassSampleLocationsBeginInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkSampleLocationsInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkSamplerCreateInfo);
+DECLARE_DESERIALISE_TYPE(VkSamplerCustomBorderColorCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkSamplerReductionModeCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkSamplerYcbcrConversionCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkSamplerYcbcrConversionImageFormatProperties);
@@ -1215,6 +1254,7 @@ DECLARE_DESERIALISE_TYPE(VkValidationCacheCreateInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkValidationFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkValidationFlagsEXT);
 DECLARE_DESERIALISE_TYPE(VkWriteDescriptorSet);
+DECLARE_DESERIALISE_TYPE(VkWriteDescriptorSetInlineUniformBlockEXT);
 
 // plain structs with no next chain
 DECLARE_REFLECTION_STRUCT(VkAllocationCallbacks);
@@ -1421,6 +1461,7 @@ DECLARE_REFLECTION_ENUM(VkPerformanceCounterStorageKHR);
 DECLARE_REFLECTION_ENUM(VkPerformanceCounterUnitKHR);
 DECLARE_REFLECTION_ENUM(VkPhysicalDeviceType);
 DECLARE_REFLECTION_ENUM(VkPipelineBindPoint);
+DECLARE_REFLECTION_ENUM(VkPipelineCacheCreateFlagBits);
 DECLARE_REFLECTION_ENUM(VkPipelineCreateFlagBits);
 DECLARE_REFLECTION_ENUM(VkPipelineCreationFeedbackFlagBitsEXT);
 DECLARE_REFLECTION_ENUM(VkPipelineExecutableStatisticFormatKHR);
@@ -1430,6 +1471,7 @@ DECLARE_REFLECTION_ENUM(VkPointClippingBehavior);
 DECLARE_REFLECTION_ENUM(VkPolygonMode);
 DECLARE_REFLECTION_ENUM(VkPresentModeKHR);
 DECLARE_REFLECTION_ENUM(VkPrimitiveTopology);
+DECLARE_REFLECTION_ENUM(VkPrivateDataSlotCreateFlagBitsEXT);
 DECLARE_REFLECTION_ENUM(VkQueryControlFlagBits);
 DECLARE_REFLECTION_ENUM(VkQueryPipelineStatisticFlagBits);
 DECLARE_REFLECTION_ENUM(VkQueryResultFlagBits);

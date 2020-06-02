@@ -186,6 +186,7 @@ public:
 
       const rdcarray<DescriptorSetSlot *> &curBinds =
           m_pDriver->GetCurrentDescSetBindings(descSets[set].descSet);
+      const bytebuf &curInline = m_pDriver->GetCurrentDescSetInlineData(descSets[set].descSet);
       const DescSetLayout &setLayout = m_Creation.m_DescSetLayout[pipeLayout.descSetLayouts[set]];
 
       for(size_t bind = 0; bind < setLayout.bindings.size(); bind++)
@@ -246,6 +247,17 @@ public:
                     m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(
                         curSlots[i].bufferInfo.buffer);
               }
+              break;
+            }
+            case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+            {
+              // push directly into the buffer cache from the inline data
+              BindpointIndex idx;
+              idx.bindset = (int32_t)set;
+              idx.bind = (int32_t)bind;
+              idx.arrayIndex = 0;
+              bufferCache[idx].assign(curInline.data() + curSlots->inlineOffset,
+                                      bindLayout.descriptorCount);
               break;
             }
             case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
@@ -315,18 +327,7 @@ public:
 
   virtual uint64_t GetBufferLength(BindpointIndex bind) override
   {
-    bool valid = true;
-    const VkDescriptorBufferInfo &bufData =
-        GetDescriptor<VkDescriptorBufferInfo>("reading buffer length", bind, valid);
-    if(valid)
-    {
-      if(bufData.range != VK_WHOLE_SIZE)
-        return bufData.range;
-
-      return m_Creation.m_Buffer[GetResID(bufData.buffer)].size - bufData.offset;
-    }
-
-    return 0;
+    return PopulateBuffer(bind).size();
   }
 
   virtual void ReadBufferValue(BindpointIndex bind, uint64_t offset, uint64_t byteSize,
@@ -596,7 +597,6 @@ public:
           gradCoords = 3;
           constParams.dim = ShaderDebugBind::TexCube;
           break;
-        case VK_IMAGE_VIEW_TYPE_RANGE_SIZE:
         case VK_IMAGE_VIEW_TYPE_MAX_ENUM:
           RDCERR("Invalid image view type %s", ToStr(viewProps.viewType).c_str());
           return false;
@@ -678,7 +678,7 @@ public:
       else if(viewInfo.viewType == VK_IMAGE_VIEW_TYPE_2D)
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
       else if(viewInfo.viewType == VK_IMAGE_VIEW_TYPE_CUBE &&
-              m_pDriver->GetDeviceFeatures().imageCubeArray)
+              m_pDriver->GetDeviceEnabledFeatures().imageCubeArray)
         viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
 
       viewInfo.components = viewProps.componentMapping;
@@ -738,6 +738,7 @@ public:
           if(samplerProps.reductionMode != VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE)
           {
             reductionInfo.reductionMode = samplerProps.reductionMode;
+
             reductionInfo.pNext = sampInfo.pNext;
             sampInfo.pNext = &reductionInfo;
           }
@@ -748,8 +749,20 @@ public:
             ycbcrInfo.conversion =
                 m_pDriver->GetResourceManager()->GetCurrentHandle<VkSamplerYcbcrConversion>(
                     viewProps.image);
+
             ycbcrInfo.pNext = sampInfo.pNext;
             sampInfo.pNext = &ycbcrInfo;
+          }
+
+          VkSamplerCustomBorderColorCreateInfoEXT borderInfo = {
+              VK_STRUCTURE_TYPE_SAMPLER_CUSTOM_BORDER_COLOR_CREATE_INFO_EXT};
+          if(samplerProps.customBorder)
+          {
+            borderInfo.customBorderColor = samplerProps.customBorderColor;
+            borderInfo.format = samplerProps.customBorderFormat;
+
+            borderInfo.pNext = sampInfo.pNext;
+            sampInfo.pNext = &borderInfo;
           }
 
           // now add the shader's bias on
@@ -811,6 +824,15 @@ public:
       case rdcspv::Op::ImageSampleProjDrefImplicitLod:
       {
         useCompare = true;
+
+        if(m_pDriver->GetDriverInfo().QualcommDrefNon2DCompileCrash() &&
+           constParams.dim != ShaderDebugBind::Tex2D)
+        {
+          m_pDriver->AddDebugMessage(
+              MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+              "Dref sample against non-2D texture, this cannot be debugged due to a driver bug");
+        }
+
         break;
       }
       default: break;
@@ -1008,7 +1030,7 @@ public:
     // needing to potentially compile lots of pipelines with different offsets. If we're actually
     // using them and the device doesn't support the extended gather feature, the result will be
     // wrong.
-    if(!m_pDriver->GetDeviceFeatures().shaderImageGatherExtended &&
+    if(!m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
        (uniformParams.offset.x != 0 || uniformParams.offset.y != 0 || uniformParams.offset.z != 0))
     {
       m_pDriver->AddDebugMessage(
@@ -1019,6 +1041,14 @@ public:
     }
 
     VkPipeline pipe = MakePipe(constParams, uintTex, sintTex);
+
+    if(pipe == VK_NULL_HANDLE)
+    {
+      m_pDriver->AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
+                                 MessageSource::RuntimeWarning,
+                                 "Failed to compile graphics pipeline for sampling operation");
+      return false;
+    }
 
     VkDescriptorImageInfo samplerWriteInfo = {Unwrap(sampler), VK_NULL_HANDLE,
                                               VK_IMAGE_LAYOUT_UNDEFINED};
@@ -1142,6 +1172,14 @@ public:
       ShaderConstParameters pipeParams = {};
       pipeParams.operation = (uint32_t)rdcspv::Op::ExtInst;
       m_DebugData.MathPipe = MakePipe(pipeParams, false, false);
+
+      if(m_DebugData.MathPipe == VK_NULL_HANDLE)
+      {
+        m_pDriver->AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
+                                   MessageSource::RuntimeWarning,
+                                   "Failed to compile graphics pipeline for math operation");
+        return false;
+      }
     }
 
     {
@@ -1344,8 +1382,11 @@ private:
             m_ResourcesDirty = false;
           }
 
-          m_pDriver->GetDebugManager()->GetBufferData(GetResID(bufData.buffer), bufData.offset,
-                                                      bufData.range, data);
+          if(bufData.buffer != VK_NULL_HANDLE)
+          {
+            m_pDriver->GetDebugManager()->GetBufferData(GetResID(bufData.buffer), bufData.offset,
+                                                        bufData.range, data);
+          }
         }
       }
     }
@@ -1373,54 +1414,57 @@ private:
           m_ResourcesDirty = false;
         }
 
-        const VulkanCreationInfo::ImageView &viewProps =
-            m_Creation.m_ImageView[GetResID(imgData.imageView)];
-        const VulkanCreationInfo::Image &imageProps = m_Creation.m_Image[viewProps.image];
-
-        uint32_t mip = viewProps.range.baseMipLevel;
-
-        data.width = RDCMAX(1U, imageProps.extent.width >> mip);
-        data.height = RDCMAX(1U, imageProps.extent.height >> mip);
-        if(imageProps.type == VK_IMAGE_TYPE_3D)
+        if(imgData.imageView != VK_NULL_HANDLE)
         {
-          data.depth = RDCMAX(1U, imageProps.extent.depth >> mip);
-        }
-        else
-        {
-          data.depth = viewProps.range.layerCount;
-          if(data.depth == VK_REMAINING_ARRAY_LAYERS)
-            data.depth = imageProps.arrayLayers - viewProps.range.baseArrayLayer;
-        }
+          const VulkanCreationInfo::ImageView &viewProps =
+              m_Creation.m_ImageView[GetResID(imgData.imageView)];
+          const VulkanCreationInfo::Image &imageProps = m_Creation.m_Image[viewProps.image];
 
-        data.texelSize = GetByteSize(1, 1, 1, imageProps.format, 0);
-        data.rowPitch = GetByteSize(data.width, 1, 1, imageProps.format, 0);
-        data.slicePitch = GetByteSize(data.width, data.height, 1, imageProps.format, 0);
-        data.samplePitch = GetByteSize(data.width, data.height, data.depth, imageProps.format, 0);
+          uint32_t mip = viewProps.range.baseMipLevel;
 
-        const uint32_t numSlices = imageProps.type == VK_IMAGE_TYPE_3D ? 1 : data.depth;
-        const uint32_t numSamples = (uint32_t)imageProps.samples;
-
-        data.bytes.reserve(data.samplePitch * numSamples);
-
-        // defaults are fine - no interpretation. Maybe we could use the view's typecast?
-        const GetTextureDataParams params = GetTextureDataParams();
-
-        for(uint32_t sample = 0; sample < numSamples; sample++)
-        {
-          for(uint32_t slice = 0; slice < numSlices; slice++)
+          data.width = RDCMAX(1U, imageProps.extent.width >> mip);
+          data.height = RDCMAX(1U, imageProps.extent.height >> mip);
+          if(imageProps.type == VK_IMAGE_TYPE_3D)
           {
-            bytebuf subBytes;
-            m_pDriver->GetReplay()->GetTextureData(viewProps.image, Subresource(mip, slice, sample),
-                                                   params, subBytes);
+            data.depth = RDCMAX(1U, imageProps.extent.depth >> mip);
+          }
+          else
+          {
+            data.depth = viewProps.range.layerCount;
+            if(data.depth == VK_REMAINING_ARRAY_LAYERS)
+              data.depth = imageProps.arrayLayers - viewProps.range.baseArrayLayer;
+          }
 
-            // fast path, swap into output if there's only one slice and one sample (common case)
-            if(numSlices == 1 && numSamples == 1)
+          data.texelSize = GetByteSize(1, 1, 1, imageProps.format, 0);
+          data.rowPitch = GetByteSize(data.width, 1, 1, imageProps.format, 0);
+          data.slicePitch = GetByteSize(data.width, data.height, 1, imageProps.format, 0);
+          data.samplePitch = GetByteSize(data.width, data.height, data.depth, imageProps.format, 0);
+
+          const uint32_t numSlices = imageProps.type == VK_IMAGE_TYPE_3D ? 1 : data.depth;
+          const uint32_t numSamples = (uint32_t)imageProps.samples;
+
+          data.bytes.reserve(data.samplePitch * numSamples);
+
+          // defaults are fine - no interpretation. Maybe we could use the view's typecast?
+          const GetTextureDataParams params = GetTextureDataParams();
+
+          for(uint32_t sample = 0; sample < numSamples; sample++)
+          {
+            for(uint32_t slice = 0; slice < numSlices; slice++)
             {
-              subBytes.swap(data.bytes);
-            }
-            else
-            {
-              data.bytes.append(subBytes);
+              bytebuf subBytes;
+              m_pDriver->GetReplay()->GetTextureData(
+                  viewProps.image, Subresource(mip, slice, sample), params, subBytes);
+
+              // fast path, swap into output if there's only one slice and one sample (common case)
+              if(numSlices == 1 && numSamples == 1)
+              {
+                subBytes.swap(data.bytes);
+              }
+              else
+              {
+                data.bytes.append(subBytes);
+              }
             }
           }
         }
@@ -1582,7 +1626,7 @@ private:
                                                         1, &graphicsPipeInfo, NULL, &pipe);
     if(vkr != VK_SUCCESS)
     {
-      RDCERR("Failed creating debug pipeline");
+      RDCERR("Failed creating debug pipeline: %s", ToStr(vkr).c_str());
       return VK_NULL_HANDLE;
     }
 
@@ -1814,12 +1858,12 @@ private:
     editor.AddCapability(rdcspv::Capability::Sampled1D);
     editor.AddCapability(rdcspv::Capability::SampledBuffer);
 
-    if(m_pDriver->GetDeviceFeatures().shaderResourceMinLod)
+    if(m_pDriver->GetDeviceEnabledFeatures().shaderResourceMinLod)
       editor.AddCapability(rdcspv::Capability::MinLod);
-    if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+    if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended)
       editor.AddCapability(rdcspv::Capability::ImageGatherExtended);
 
-    const bool cubeArray = (m_pDriver->GetDeviceFeatures().imageCubeArray != VK_FALSE);
+    const bool cubeArray = (m_pDriver->GetDeviceEnabledFeatures().imageCubeArray != VK_FALSE);
 
     rdcspv::Id entryId = editor.MakeId();
 
@@ -2237,7 +2281,8 @@ private:
 
         rdcspv::ImageOperandsAndParamDatas imageOperands;
 
-        if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended && offsets[i] != rdcspv::Id())
+        if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
+           offsets[i] != rdcspv::Id())
           imageOperands.setOffset(offsets[i]);
 
         cases.add(rdcspv::OpLabel(label));
@@ -2271,7 +2316,7 @@ private:
           cases.add(rdcspv::OpLabel(gradCase));
           rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
           operands.setGrad(ddxs[i], ddys[i]);
-          if(m_pDriver->GetDeviceFeatures().shaderResourceMinLod)
+          if(m_pDriver->GetDeviceEnabledFeatures().shaderResourceMinLod)
             operands.setMinLod(minlod);
           rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
               texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
@@ -2289,66 +2334,77 @@ private:
         cases.add(rdcspv::OpBranch(breakLabel));
       }
 
-      for(rdcspv::Op op :
-          {rdcspv::Op::ImageSampleDrefExplicitLod, rdcspv::Op::ImageSampleDrefImplicitLod})
+      bool emitDRef = true;
+
+      // on Qualcomm we only emit Dref instructions against 2D textures, otherwise the compiler may
+      // crash.
+      if(m_pDriver->GetDriverInfo().QualcommDrefNon2DCompileCrash())
+        emitDRef = (i == (uint32_t)ShaderDebugBind::Tex2D);
+
+      if(emitDRef)
       {
-        rdcspv::Id label = editor.MakeId();
-        targets.push_back({(uint32_t)op * 10 + i, label});
-
-        rdcspv::ImageOperandsAndParamDatas imageOperands;
-
-        if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended && offsets[i] != rdcspv::Id())
-          imageOperands.setOffset(offsets[i]);
-
-        cases.add(rdcspv::OpLabel(label));
-        rdcspv::Id loadedImage =
-            cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
-        rdcspv::Id loadedSampler =
-            cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), bindVars[sampIdx]));
-
-        rdcspv::Id mergeLabel = editor.MakeId();
-        rdcspv::Id gradCase = editor.MakeId();
-        rdcspv::Id lodCase = editor.MakeId();
-        cases.add(rdcspv::OpSelectionMerge(mergeLabel, rdcspv::SelectionControl::None));
-        cases.add(rdcspv::OpBranchConditional(useGradOrGatherOffsets, gradCase, lodCase));
-
-        rdcspv::Id lodResult;
+        for(rdcspv::Op op :
+            {rdcspv::Op::ImageSampleDrefExplicitLod, rdcspv::Op::ImageSampleDrefImplicitLod})
         {
-          cases.add(rdcspv::OpLabel(lodCase));
-          rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
-          operands.setLod(lod);
-          rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
-              texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+          rdcspv::Id label = editor.MakeId();
+          targets.push_back({(uint32_t)op * 10 + i, label});
 
-          lodResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
-              scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
+          rdcspv::ImageOperandsAndParamDatas imageOperands;
 
-          cases.add(rdcspv::OpBranch(mergeLabel));
+          if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
+             offsets[i] != rdcspv::Id())
+            imageOperands.setOffset(offsets[i]);
+
+          cases.add(rdcspv::OpLabel(label));
+          rdcspv::Id loadedImage =
+              cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
+          rdcspv::Id loadedSampler =
+              cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), bindVars[sampIdx]));
+
+          rdcspv::Id mergeLabel = editor.MakeId();
+          rdcspv::Id gradCase = editor.MakeId();
+          rdcspv::Id lodCase = editor.MakeId();
+          cases.add(rdcspv::OpSelectionMerge(mergeLabel, rdcspv::SelectionControl::None));
+          cases.add(rdcspv::OpBranchConditional(useGradOrGatherOffsets, gradCase, lodCase));
+
+          rdcspv::Id lodResult;
+          {
+            cases.add(rdcspv::OpLabel(lodCase));
+            rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+            operands.setLod(lod);
+            rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
+                texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+
+            lodResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
+                scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
+
+            cases.add(rdcspv::OpBranch(mergeLabel));
+          }
+
+          rdcspv::Id gradResult;
+          {
+            cases.add(rdcspv::OpLabel(gradCase));
+            rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
+            operands.setGrad(ddxs[i], ddys[i]);
+            if(m_pDriver->GetDeviceEnabledFeatures().shaderResourceMinLod)
+              operands.setMinLod(minlod);
+            rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
+                texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
+
+            gradResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
+                scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
+
+            cases.add(rdcspv::OpBranch(mergeLabel));
+          }
+
+          cases.add(rdcspv::OpLabel(mergeLabel));
+          rdcspv::Id scalarSampleResult = cases.add(rdcspv::OpPhi(
+              scalarResultType, editor.MakeId(), {{lodResult, lodCase}, {gradResult, gradCase}}));
+          rdcspv::Id sampleResult = cases.add(rdcspv::OpCompositeConstruct(
+              resultType, editor.MakeId(), {scalarSampleResult, zerof, zerof, zerof}));
+          cases.add(rdcspv::OpStore(outVar, sampleResult));
+          cases.add(rdcspv::OpBranch(breakLabel));
         }
-
-        rdcspv::Id gradResult;
-        {
-          cases.add(rdcspv::OpLabel(gradCase));
-          rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
-          operands.setGrad(ddxs[i], ddys[i]);
-          if(m_pDriver->GetDeviceFeatures().shaderResourceMinLod)
-            operands.setMinLod(minlod);
-          rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
-              texSampCombinedTypes[i], editor.MakeId(), loadedImage, loadedSampler));
-
-          gradResult = cases.add(rdcspv::OpImageSampleDrefExplicitLod(
-              scalarResultType, editor.MakeId(), combined, coord[i], compare, operands));
-
-          cases.add(rdcspv::OpBranch(mergeLabel));
-        }
-
-        cases.add(rdcspv::OpLabel(mergeLabel));
-        rdcspv::Id scalarSampleResult = cases.add(rdcspv::OpPhi(
-            scalarResultType, editor.MakeId(), {{lodResult, lodCase}, {gradResult, gradCase}}));
-        rdcspv::Id sampleResult = cases.add(rdcspv::OpCompositeConstruct(
-            resultType, editor.MakeId(), {scalarSampleResult, zerof, zerof, zerof}));
-        cases.add(rdcspv::OpStore(outVar, sampleResult));
-        cases.add(rdcspv::OpBranch(breakLabel));
       }
 
       // can only gather with 2D/Cube textures
@@ -2369,7 +2425,7 @@ private:
             cases.add(rdcspv::OpLoad(texSampTypes[sampIdx], editor.MakeId(), bindVars[sampIdx]));
 
         rdcspv::Id sampleResult;
-        if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+        if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended)
         {
           rdcspv::Id mergeLabel = editor.MakeId();
           rdcspv::Id constsCase = editor.MakeId();
@@ -2382,7 +2438,8 @@ private:
             cases.add(rdcspv::OpLabel(baseCase));
             rdcspv::ImageOperandsAndParamDatas operands = imageOperands;
 
-            if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended && offsets[i] != rdcspv::Id())
+            if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
+               offsets[i] != rdcspv::Id())
               imageOperands.setOffset(offsets[i]);
 
             rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
@@ -2406,7 +2463,7 @@ private:
             // if this feature isn't available, this path will never be exercised (since we only
             // come in here when the actual shader used const offsets) so it's fine to drop it in
             // that case to ensure the module is still legal.
-            if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended)
+            if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended)
               operands.setConstOffsets(gatherOffsets);
 
             rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
@@ -2428,7 +2485,8 @@ private:
         }
         else
         {
-          if(m_pDriver->GetDeviceFeatures().shaderImageGatherExtended && offsets[i] != rdcspv::Id())
+          if(m_pDriver->GetDeviceEnabledFeatures().shaderImageGatherExtended &&
+             offsets[i] != rdcspv::Id())
             imageOperands.setOffset(offsets[i]);
 
           rdcspv::Id combined = cases.add(rdcspv::OpSampledImage(
@@ -3328,7 +3386,10 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
   if(!(draw->flags & DrawFlags::Drawcall))
+  {
+    RDCLOG("No drawcall selected");
     return new ShaderDebugTrace();
+  }
 
   uint32_t vertOffset = 0, instOffset = 0;
   if(!(draw->flags & DrawFlags::Indexed))
@@ -3389,28 +3450,31 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
       {
         const VulkanRenderState::VertBuffer &vb = state.vbuffers[bind.vbufferBinding];
 
-        uint32_t vertexOffset = 0;
-
-        if(bind.perInstance)
+        if(vb.buf != ResourceId())
         {
-          if(bind.instanceDivisor == 0)
-            vertexOffset = instOffset * bind.bytestride;
+          uint32_t vertexOffset = 0;
+
+          if(bind.perInstance)
+          {
+            if(bind.instanceDivisor == 0)
+              vertexOffset = instOffset * bind.bytestride;
+            else
+              vertexOffset = (instOffset + (instid / bind.instanceDivisor)) * bind.bytestride;
+          }
           else
-            vertexOffset = (instOffset + (instid / bind.instanceDivisor)) * bind.bytestride;
-        }
-        else
-        {
-          vertexOffset = (idx + vertOffset) * bind.bytestride;
-        }
+          {
+            vertexOffset = (idx + vertOffset) * bind.bytestride;
+          }
 
-        if(Vulkan_Debug_ShaderDebugLogging())
-        {
-          RDCLOG("Fetching from %s at %llu offset %zu bytes", ToStr(vb.buf).c_str(),
-                 vb.offs + attr.byteoffset + vertexOffset, size);
-        }
+          if(Vulkan_Debug_ShaderDebugLogging())
+          {
+            RDCLOG("Fetching from %s at %llu offset %zu bytes", ToStr(vb.buf).c_str(),
+                   vb.offs + attr.byteoffset + vertexOffset, size);
+          }
 
-        GetDebugManager()->GetBufferData(vb.buf, vb.offs + attr.byteoffset + vertexOffset, size,
-                                         data);
+          GetDebugManager()->GetBufferData(vb.buf, vb.offs + attr.byteoffset + vertexOffset, size,
+                                           data);
+        }
       }
       else if(Vulkan_Debug_ShaderDebugLogging())
       {
@@ -3441,12 +3505,42 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
     }
     else
     {
-      FloatVector decoded = ConvertComponents(MakeResourceFormat(attr.format), data.data());
+      ResourceFormat fmt = MakeResourceFormat(attr.format);
 
-      val.f.x = decoded.x;
-      val.f.y = decoded.y;
-      val.f.z = decoded.z;
-      val.f.w = decoded.w;
+      // integer formats need to be read as-is, rather than converted to floats
+      if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt)
+      {
+        if(fmt.type == ResourceFormatType::R10G10B10A2)
+        {
+          // this is the only packed UINT format
+          Vec4u decoded = ConvertFromR10G10B10A2UInt(*(uint32_t *)data.data());
+
+          val.u.x = decoded.x;
+          val.u.y = decoded.y;
+          val.u.z = decoded.z;
+          val.u.w = decoded.w;
+        }
+        else
+        {
+          for(uint32_t i = 0; i < fmt.compCount; i++)
+          {
+            const byte *src = data.data() + i * fmt.compByteWidth;
+            if(fmt.compByteWidth == 8)
+              memcpy(&val.u64v[i], src, fmt.compByteWidth);
+            else
+              memcpy(&val.uv[i], src, fmt.compByteWidth);
+          }
+        }
+      }
+      else
+      {
+        FloatVector decoded = DecodeFormattedComponents(fmt, data.data());
+
+        val.f.x = decoded.x;
+        val.f.y = decoded.y;
+        val.f.z = decoded.z;
+        val.f.w = decoded.w;
+      }
     }
   }
 
@@ -3468,7 +3562,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     return new ShaderDebugTrace;
   }
 
-  if(!m_pDriver->GetDeviceFeatures().fragmentStoresAndAtomics)
+  if(!m_pDriver->GetDeviceEnabledFeatures().fragmentStoresAndAtomics)
   {
     RDCWARN("Pixel debugging is not supported without fragment stores");
     return new ShaderDebugTrace;
@@ -3491,7 +3585,10 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
   if(!(draw->flags & DrawFlags::Drawcall))
+  {
+    RDCLOG("No drawcall selected");
     return new ShaderDebugTrace();
+  }
 
   // get ourselves in pristine state before this draw (without any side effects it may have had)
   m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
@@ -3548,7 +3645,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   else
   {
     // no geometry shader - safe to use as long as the geometry shader capability is available
-    usePrimitiveID = m_pDriver->GetDeviceFeatures().geometryShader != VK_FALSE;
+    usePrimitiveID = m_pDriver->GetDeviceEnabledFeatures().geometryShader != VK_FALSE;
 
     if(Vulkan_Debug_ShaderDebugLogging())
     {
@@ -3556,7 +3653,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     }
   }
 
-  bool useSampleID = m_pDriver->GetDeviceFeatures().sampleRateShading != VK_FALSE;
+  bool useSampleID = m_pDriver->GetDeviceEnabledFeatures().sampleRateShading != VK_FALSE;
 
   if(Vulkan_Debug_ShaderDebugLogging())
   {
@@ -3576,7 +3673,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   }
   else if(m_pDriver->GetExtensions(NULL).ext_EXT_buffer_device_address)
   {
-    if(m_pDriver->GetDeviceFeatures().shaderInt64)
+    if(m_pDriver->GetDeviceEnabledFeatures().shaderInt64)
     {
       storageMode = EXT_bda;
 
@@ -4145,7 +4242,10 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t gro
   const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventId);
 
   if(!(draw->flags & DrawFlags::Dispatch))
+  {
+    RDCLOG("No dispatch selected");
     return new ShaderDebugTrace();
+  }
 
   // get ourselves in pristine state before this dispatch (without any side effects it may have had)
   m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
@@ -4246,4 +4346,9 @@ rdcarray<ShaderDebugState> VulkanReplay::ContinueDebug(ShaderDebugger *debugger)
   api->ResetReplay();
 
   return ret;
+}
+
+void VulkanReplay::FreeDebugger(ShaderDebugger *debugger)
+{
+  delete debugger;
 }

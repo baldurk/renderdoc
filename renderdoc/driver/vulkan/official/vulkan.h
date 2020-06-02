@@ -89,4 +89,9 @@ typedef unsigned int RROutput;
 #include "vulkan_ggp.h"
 #endif
 
+
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+#include "vulkan_beta.h"
+#endif
+
 #endif // VULKAN_H_

@@ -346,7 +346,8 @@ struct BoundVBuffer
 
   bool operator==(const BoundVBuffer &o) const
   {
-    return resourceId == o.resourceId && byteOffset == o.byteOffset && byteStride == o.byteStride;
+    return resourceId == o.resourceId && byteOffset == o.byteOffset && byteStride == o.byteStride &&
+           byteSize == o.byteSize;
   }
   bool operator<(const BoundVBuffer &o) const
   {
@@ -356,6 +357,8 @@ struct BoundVBuffer
       return byteOffset < o.byteOffset;
     if(byteStride != o.byteStride)
       return byteStride < o.byteStride;
+    if(byteSize != o.byteSize)
+      return byteSize < o.byteSize;
     return false;
   }
   DOCUMENT("A :class:`~renderdoc.ResourceId` identifying the buffer.");
@@ -364,6 +367,8 @@ struct BoundVBuffer
   uint64_t byteOffset = 0;
   DOCUMENT("The stride in bytes between the start of one element and the start of the next.");
   uint32_t byteStride = 0;
+  DOCUMENT("The size of the buffer binding, or 0xFFFFFFFF if the whole buffer is bound.");
+  uint64_t byteSize = 0;
 };
 
 DECLARE_REFLECTION_STRUCT(BoundVBuffer);

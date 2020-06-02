@@ -264,13 +264,15 @@ void main()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
     glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, idxData.size() * sizeof(uint16_t), idxData.data(), 0);
 
-    glVertexArrayVertexAttribFormatEXT(vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
-    glVertexArrayVertexAttribFormatEXT(vao, 1, 4, GL_FLOAT, GL_FALSE, sizeof(Vec3f));
-    glVertexArrayVertexAttribFormatEXT(vao, 2, 2, GL_FLOAT, GL_FALSE, sizeof(Vec3f) + sizeof(Vec4f));
+    glBindVertexArray(vao);
 
-    glVertexArrayVertexAttribBindingEXT(vao, 0, 0);
-    glVertexArrayVertexAttribBindingEXT(vao, 1, 0);
-    glVertexArrayVertexAttribBindingEXT(vao, 2, 0);
+    glVertexAttribFormat(0, 3, GL_FLOAT, GL_FALSE, 0);
+    glVertexAttribFormat(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vec3f));
+    glVertexAttribFormat(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vec3f) + sizeof(Vec4f));
+
+    glVertexAttribBinding(0, 0);
+    glVertexAttribBinding(1, 0);
+    glVertexAttribBinding(2, 0);
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
@@ -279,15 +281,14 @@ void main()
     GLuint instvao = MakeVAO();
     glBindVertexArray(instvao);
 
-    glVertexArrayVertexAttribFormatEXT(instvao, 0, 3, GL_FLOAT, GL_FALSE, 0);
-    glVertexArrayVertexAttribFormatEXT(instvao, 1, 4, GL_FLOAT, GL_FALSE, 0);
-    glVertexArrayVertexAttribDivisorEXT(instvao, 1, 1);
-    glVertexArrayVertexAttribFormatEXT(instvao, 2, 2, GL_FLOAT, GL_FALSE,
-                                       sizeof(Vec3f) + sizeof(Vec4f));
+    glVertexAttribFormat(0, 3, GL_FLOAT, GL_FALSE, 0);
+    glVertexAttribFormat(1, 4, GL_FLOAT, GL_FALSE, 0);
+    glVertexAttribDivisor(1, 1);
+    glVertexAttribFormat(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vec3f) + sizeof(Vec4f));
 
-    glVertexArrayVertexAttribBindingEXT(instvao, 0, 0);
-    glVertexArrayVertexAttribBindingEXT(instvao, 1, 1);
-    glVertexArrayVertexAttribBindingEXT(instvao, 2, 0);
+    glVertexAttribBinding(0, 0);
+    glVertexAttribBinding(1, 1);
+    glVertexAttribBinding(2, 0);
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);

@@ -353,7 +353,8 @@ void ReplayController::AddFakeMarkers()
     {
       int outCount = 0;
 
-      if(!(draws[j].flags & (DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::Clear)))
+      if(!(draws[j].flags & (DrawFlags::Copy | DrawFlags::Resolve | DrawFlags::Clear |
+                             DrawFlags::PassBoundary | DrawFlags::SetMarker)))
         copyOnly = false;
 
       for(ResourceId o : draws[j].outputs)
@@ -847,6 +848,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
 
       GetTextureDataParams params;
       params.forDiskSave = true;
+      params.standardLayout = true;
       params.typeCast = sd.typeCast;
       params.resolve = resolveSamples;
       params.remap = remap;
@@ -1277,7 +1279,7 @@ bool ReplayController::SaveTexture(const TextureSave &saveData, const char *path
       {
         for(uint32_t x = 0; x < td.width; x++)
         {
-          FloatVector pixel = ConvertComponents(saveFmt, srcData);
+          FloatVector pixel = DecodeFormattedComponents(saveFmt, srcData);
           srcData += pixStride;
 
           // HDR can't represent negative values
@@ -1625,7 +1627,7 @@ void ReplayController::FreeTrace(ShaderDebugTrace *trace)
 
   if(trace)
   {
-    SAFE_DELETE(trace->debugger);
+    m_pDevice->FreeDebugger(trace->debugger);
     delete trace;
   }
 }

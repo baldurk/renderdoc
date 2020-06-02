@@ -60,8 +60,8 @@ struct DescSetLayout
   void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
             const VkDescriptorSetLayoutCreateInfo *pCreateInfo);
 
-  void CreateBindingsArray(rdcarray<DescriptorSetSlot *> &descBindings) const;
-  void UpdateBindingsArray(const DescSetLayout &prevLayout,
+  void CreateBindingsArray(bytebuf &inlineData, rdcarray<DescriptorSetSlot *> &descBindings) const;
+  void UpdateBindingsArray(const DescSetLayout &prevLayout, bytebuf &inlineData,
                            rdcarray<DescriptorSetSlot *> &descBindings) const;
 
   struct Binding
@@ -116,6 +116,9 @@ struct DescSetLayout
   uint32_t dynamicCount;
   VkDescriptorSetLayoutCreateFlags flags;
 
+  uint32_t inlineCount;
+  uint32_t inlineByteSize;
+
   bool operator==(const DescSetLayout &other) const;
   bool operator!=(const DescSetLayout &other) const { return !(*this == other); }
 };
@@ -125,6 +128,8 @@ struct DescUpdateTemplateApplication
   rdcarray<VkDescriptorBufferInfo> bufInfo;
   rdcarray<VkDescriptorImageInfo> imgInfo;
   rdcarray<VkBufferView> bufView;
+  rdcarray<VkWriteDescriptorSetInlineUniformBlockEXT> inlineUniform;
+  bytebuf inlineData;
 
   rdcarray<VkWriteDescriptorSet> writes;
 };
@@ -140,11 +145,13 @@ struct DescUpdateTemplate
 
   VkPipelineBindPoint bindPoint;
 
-  size_t dataByteSize;
+  size_t unwrapByteSize;
 
   uint32_t texelBufferViewCount;
   uint32_t bufferInfoCount;
   uint32_t imageInfoCount;
+  uint32_t inlineInfoCount;
+  uint32_t inlineByteSize;
 
   rdcarray<VkDescriptorUpdateTemplateEntry> updates;
 };
@@ -486,9 +493,17 @@ struct VulkanCreationInfo
     float maxLod;
     VkBorderColor borderColor;
     bool unnormalizedCoordinates;
+
+    // VkSamplerReductionModeCreateInfo
     VkSamplerReductionMode reductionMode;
 
+    // VkSamplerYcbcrConversionInfo
     ResourceId ycbcr;
+
+    // VkSamplerCustomBorderColorCreateInfoEXT
+    bool customBorder;
+    VkClearColorValue customBorderColor;
+    VkFormat customBorderFormat;
   };
   std::map<ResourceId, Sampler> m_Sampler;
 

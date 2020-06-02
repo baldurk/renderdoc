@@ -251,6 +251,16 @@ public:
     allocatedCount = s;
   }
 
+  void resize_for_index(size_t s)
+  {
+    // do nothing if we're already big enough
+    if(size() >= s + 1)
+      return;
+
+    // otherwise resize so that [s] is valid
+    resize(s + 1);
+  }
+
   void resize(size_t s)
   {
     // do nothing if we're already this size

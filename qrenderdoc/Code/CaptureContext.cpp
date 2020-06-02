@@ -1250,8 +1250,6 @@ void CaptureContext::CloseCapture()
 
   m_CaptureFile = QString();
 
-  m_Replay.CloseThread();
-
   memset(&m_APIProps, 0, sizeof(m_APIProps));
   memset(&m_FrameInfo, 0, sizeof(m_FrameInfo));
   m_Buffers.clear();
@@ -1289,6 +1287,8 @@ void CaptureContext::CloseCapture()
     if(viewer)
       viewer->OnCaptureClosed();
   }
+
+  m_Replay.CloseThread();
 }
 
 bool CaptureContext::ImportCapture(const CaptureFileFormat &fmt, const rdcstr &importfile,

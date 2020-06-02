@@ -118,7 +118,9 @@
     <ClCompile Include="vk_rendermesh.cpp" />
     <ClCompile Include="vk_rendertext.cpp" />
     <ClCompile Include="vk_rendertexture.cpp" />
-    <ClCompile Include="vk_serialise.cpp" />
+    <ClCompile Include="vk_serialise.cpp">
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <ClCompile Include="vk_shaderdebug.cpp" />
     <ClCompile Include="vk_shader_cache.cpp" />
     <ClCompile Include="vk_sparse_initstate.cpp" />

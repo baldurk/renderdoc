@@ -95,6 +95,7 @@ rdcstr DoStringise(const ReplayProxyPacket &el)
     STRINGISE_ENUM_NAMED(eReplayProxy_GetDriverInfo, "GetDriverInfo");
 
     STRINGISE_ENUM_NAMED(eReplayProxy_ContinueDebug, "ContinueDebug");
+    STRINGISE_ENUM_NAMED(eReplayProxy_FreeDebugger, "FreeDebugger");
   }
   END_ENUM_STRINGISE();
 }
@@ -1054,8 +1055,7 @@ MeshFormat ReplayProxy::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 ResourceId ReplayProxy::Proxied_RenderOverlay(ParamSerialiser &paramser, ReturnSerialiser &retser,
-                                              ResourceId texid, const Subresource &sub,
-                                              CompType typeCast, FloatVector clearCol,
+                                              ResourceId texid, FloatVector clearCol,
                                               DebugOverlay overlay, uint32_t eventId,
                                               const rdcarray<uint32_t> &passEvents)
 {
@@ -1066,8 +1066,6 @@ ResourceId ReplayProxy::Proxied_RenderOverlay(ParamSerialiser &paramser, ReturnS
   {
     BEGIN_PARAMS();
     SERIALISE_ELEMENT(texid);
-    SERIALISE_ELEMENT(sub);
-    SERIALISE_ELEMENT(typeCast);
     SERIALISE_ELEMENT(overlay);
     SERIALISE_ELEMENT(clearCol);
     SERIALISE_ELEMENT(eventId);
@@ -1078,7 +1076,7 @@ ResourceId ReplayProxy::Proxied_RenderOverlay(ParamSerialiser &paramser, ReturnS
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      ret = m_Remote->RenderOverlay(texid, sub, typeCast, clearCol, overlay, eventId, passEvents);
+      ret = m_Remote->RenderOverlay(texid, clearCol, overlay, eventId, passEvents);
   }
 
   SERIALISE_RETURN(ret);
@@ -1086,11 +1084,10 @@ ResourceId ReplayProxy::Proxied_RenderOverlay(ParamSerialiser &paramser, ReturnS
   return ret;
 }
 
-ResourceId ReplayProxy::RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
-                                      FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
-                                      const rdcarray<uint32_t> &passEvents)
+ResourceId ReplayProxy::RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+                                      uint32_t eventId, const rdcarray<uint32_t> &passEvents)
 {
-  PROXY_FUNCTION(RenderOverlay, texid, sub, typeCast, clearCol, overlay, eventId, passEvents);
+  PROXY_FUNCTION(RenderOverlay, texid, clearCol, overlay, eventId, passEvents);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -1573,8 +1570,8 @@ rdcarray<ShaderDebugState> ReplayProxy::Proxied_ContinueDebug(ParamSerialiser &p
                                                               ReturnSerialiser &retser,
                                                               ShaderDebugger *debugger)
 {
-  const ReplayProxyPacket expectedPacket = eReplayProxy_GetDisassemblyTargets;
-  ReplayProxyPacket packet = eReplayProxy_GetDisassemblyTargets;
+  const ReplayProxyPacket expectedPacket = eReplayProxy_ContinueDebug;
+  ReplayProxyPacket packet = eReplayProxy_ContinueDebug;
   rdcarray<ShaderDebugState> ret;
 
   {
@@ -1599,6 +1596,35 @@ rdcarray<ShaderDebugState> ReplayProxy::Proxied_ContinueDebug(ParamSerialiser &p
 rdcarray<ShaderDebugState> ReplayProxy::ContinueDebug(ShaderDebugger *debugger)
 {
   PROXY_FUNCTION(ContinueDebug, debugger);
+}
+
+template <typename ParamSerialiser, typename ReturnSerialiser>
+void ReplayProxy::Proxied_FreeDebugger(ParamSerialiser &paramser, ReturnSerialiser &retser,
+                                       ShaderDebugger *debugger)
+{
+  const ReplayProxyPacket expectedPacket = eReplayProxy_FreeDebugger;
+  ReplayProxyPacket packet = eReplayProxy_FreeDebugger;
+
+  {
+    BEGIN_PARAMS();
+    uint64_t debugger_ptr = (uint64_t)(uintptr_t)debugger;
+    SERIALISE_ELEMENT(debugger_ptr);
+    debugger = (ShaderDebugger *)(uintptr_t)debugger_ptr;
+    END_PARAMS();
+  }
+
+  {
+    REMOTE_EXECUTION();
+    if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
+      m_Remote->FreeDebugger(debugger);
+  }
+
+  CheckError(packet, expectedPacket);
+}
+
+void ReplayProxy::FreeDebugger(ShaderDebugger *debugger)
+{
+  PROXY_FUNCTION(FreeDebugger, debugger);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -2231,17 +2257,14 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
       case ResourceFormatType::BC1:
       case ResourceFormatType::BC2:
       case ResourceFormatType::BC3:
-      case ResourceFormatType::BC4:
-      case ResourceFormatType::BC5:
+      case ResourceFormatType::BC7:
         tex.format.compType = CompType::UNorm;
         params.remap = RemapTexture::RGBA8;
         break;
+      case ResourceFormatType::BC4:
+      case ResourceFormatType::BC5:
       case ResourceFormatType::BC6:
         tex.format.compType = CompType::Float;
-        params.remap = RemapTexture::RGBA16;
-        break;
-      case ResourceFormatType::BC7:
-        tex.format.compType = CompType::UNorm;
         params.remap = RemapTexture::RGBA16;
         break;
       case ResourceFormatType::ASTC:
@@ -2266,11 +2289,23 @@ void ReplayProxy::RemapProxyTextureIfNeeded(TextureDescription &tex, GetTextureD
   else
   {
     if(tex.format.compByteWidth == 1)
+    {
       params.remap = RemapTexture::RGBA8;
+
+      if(tex.format.compType == CompType::SNorm || tex.format.compType == CompType::UNormSRGB)
+      {
+        params.remap = RemapTexture::RGBA16;
+        tex.format.compType = CompType::Float;
+      }
+    }
     else if(tex.format.compByteWidth == 2)
+    {
       params.remap = RemapTexture::RGBA16;
+    }
     else
+    {
       params.remap = RemapTexture::RGBA32;
+    }
 
     // always remap depth to RGBA32F, because D16_UNORM will lose precision if remapped to R16_FLOAT
     if(tex.format.compType == CompType::Depth)
@@ -2350,6 +2385,7 @@ void ReplayProxy::EnsureTexCached(ResourceId &texid, CompType &typeCast, const S
       GetTextureDataParams params = proxy.params;
 
       params.typeCast = typeCast;
+      params.standardLayout = true;
 
 #if ENABLED(TRANSFER_RESOURCE_CONTENTS_DELTAS)
       CacheTextureData(texid, s, params);
@@ -2790,9 +2826,9 @@ bool ReplayProxy::Tick(int type)
       break;
     }
     case eReplayProxy_ContinueDebug: ContinueDebug(NULL); break;
+    case eReplayProxy_FreeDebugger: FreeDebugger(NULL); break;
     case eReplayProxy_RenderOverlay:
-      RenderOverlay(ResourceId(), Subresource(), CompType::Typeless, FloatVector(),
-                    DebugOverlay::NoOverlay, 0, rdcarray<uint32_t>());
+      RenderOverlay(ResourceId(), FloatVector(), DebugOverlay::NoOverlay, 0, rdcarray<uint32_t>());
       break;
     case eReplayProxy_PixelHistory:
       PixelHistory(rdcarray<EventUsage>(), ResourceId(), 0, 0, Subresource(), CompType::Typeless);

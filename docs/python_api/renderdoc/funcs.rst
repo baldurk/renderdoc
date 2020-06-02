@@ -78,3 +78,5 @@ Maths & Utilities
 .. autofunction:: renderdoc.MaskForStage
 .. autofunction:: renderdoc.StartSelfHostCapture
 .. autofunction:: renderdoc.EndSelfHostCapture
+.. autofunction:: renderdoc.VarTypeByteSize
+.. autofunction:: renderdoc.VarTypeCompType

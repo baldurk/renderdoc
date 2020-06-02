@@ -654,28 +654,42 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
       else if(rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE1D)
       {
         view.firstMip = rtv.Texture1D.MipSlice;
+        view.numMips = 1;
+        view.firstSlice = 0;
+        view.numSlices = 1;
       }
       else if(rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE1DARRAY)
       {
+        view.firstMip = rtv.Texture1DArray.MipSlice;
+        view.numMips = 1;
         view.numSlices = rtv.Texture1DArray.ArraySize;
         view.firstSlice = rtv.Texture1DArray.FirstArraySlice;
-        view.firstMip = rtv.Texture1DArray.MipSlice;
       }
       else if(rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE2D)
       {
         view.firstMip = rtv.Texture2D.MipSlice;
+        view.numMips = 1;
+        view.firstSlice = 0;
+        view.numSlices = 1;
       }
       else if(rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE2DARRAY)
       {
         view.numSlices = rtv.Texture2DArray.ArraySize;
         view.firstSlice = rtv.Texture2DArray.FirstArraySlice;
         view.firstMip = rtv.Texture2DArray.MipSlice;
+        view.numMips = 1;
       }
       else if(rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE2DMS)
       {
+        view.firstMip = 0;
+        view.numMips = 1;
+        view.firstSlice = 0;
+        view.numSlices = 1;
       }
       else if(rtv.ViewDimension == D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY)
       {
+        view.firstMip = 0;
+        view.numMips = 1;
         view.numSlices = rtv.Texture2DMSArray.ArraySize;
         view.firstSlice = rtv.Texture2DArray.FirstArraySlice;
       }
@@ -684,6 +698,7 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
         view.numSlices = rtv.Texture3D.WSize;
         view.firstSlice = rtv.Texture3D.FirstWSlice;
         view.firstMip = rtv.Texture3D.MipSlice;
+        view.numMips = 1;
       }
     }
     else if(desc->GetType() == D3D12DescriptorType::DSV)
@@ -2595,22 +2610,6 @@ bool D3D12Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompTyp
   }
 
   return true;
-}
-
-bool D3D12Replay::IsRenderOutput(ResourceId id)
-{
-  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
-
-  id = m_pDevice->GetResourceManager()->GetLiveID(id);
-
-  for(size_t i = 0; i < rs.rts.size(); i++)
-    if(id == rs.rts[i].GetResResourceId())
-      return true;
-
-  if(id == rs.dsv.GetResResourceId())
-    return true;
-
-  return false;
 }
 
 rdcarray<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventId)

@@ -14,6 +14,8 @@ def shader_out_col(x): return value_selector(x.shaderOut.col)
 def shader_out_depth(x): return x.shaderOut.depth
 def pre_mod_col(x): return value_selector(x.preMod.col)
 def post_mod_col(x): return value_selector(x.postMod.col)
+def shader_out_depth(x): return x.shaderOut.depth
+def pre_mod_depth(x): return x.preMod.depth
 def post_mod_depth(x): return x.postMod.depth
 def primitive_id(x): return x.primitiveID
 def unboundPS(x): return x.unboundPS
@@ -32,6 +34,7 @@ class VK_Pixel_History(rdtest.TestCase):
         self.primary_test()
         self.multisampled_image_test()
         self.secondary_cmd_test()
+        self.depth_target_test()
 
     def primary_test(self):
         test_marker: rd.DrawcallDescription = self.find_draw("Test")
@@ -171,9 +174,13 @@ class VK_Pixel_History(rdtest.TestCase):
         rdtest.log.print("Testing pixel {}, {} at sample {}".format(x, y, sub.sample))
         modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
         events = [
-            [[event_id, beg_renderpass_eid], [passed, True], [post_mod_col, (0.0, 1.0, 0.0, 1.0)]],
-            [[event_id, draw_eid], [passed, True], [primitive_id, 0], [shader_out_col, (1.0, 0.0, 1.0, 1.0)], [post_mod_col, (1.0, 0.0, 1.0, 1.0)]],
-            [[event_id, draw_eid], [passed, True], [primitive_id, 1], [shader_out_col, (0.0, 0.0, 1.0, 1.0)], [post_mod_col, (0.0, 0.0, 1.0, 1.0)]],
+            [[event_id, beg_renderpass_eid], [passed, True], [post_mod_col, (0.0, 1.0, 0.0, 1.0)], [post_mod_depth, 0.0]],
+            [[event_id, draw_eid], [passed, True], [primitive_id, 0],
+                [shader_out_col, (1.0, 0.0, 1.0, 1.0)], [post_mod_col, (1.0, 0.0, 1.0, 1.0)],
+                [pre_mod_depth, 0.0], [shader_out_depth, 0.9], [post_mod_depth, 0.9]],
+            [[event_id, draw_eid], [passed, True], [primitive_id, 1],
+                [shader_out_col, (0.0, 0.0, 1.0, 1.0)], [post_mod_col, (0.0, 0.0, 1.0, 1.0)],
+                [shader_out_depth, 0.95], [post_mod_depth, 0.95]],
         ]
         self.check_events(events, modifs, True)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
@@ -183,8 +190,10 @@ class VK_Pixel_History(rdtest.TestCase):
         modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
         events = [
             [[event_id, beg_renderpass_eid], [passed, True], [post_mod_col, (0.0, 1.0, 0.0, 1.0)]],
-            [[event_id, draw_eid], [passed, True], [primitive_id, 0], [shader_out_col, (1.0, 0.0, 1.0, 1.0)], [post_mod_col, (1.0, 0.0, 1.0, 1.0)]],
-            [[event_id, draw_eid], [passed, True], [primitive_id, 1], [shader_out_col, (0.0, 1.0, 1.0, 1.0)], [post_mod_col, (0.0, 1.0, 1.0, 1.0)]],
+            [[event_id, draw_eid], [passed, True], [primitive_id, 0],
+                [shader_out_col, (1.0, 0.0, 1.0, 1.0)], [post_mod_col, (1.0, 0.0, 1.0, 1.0)]],
+            [[event_id, draw_eid], [passed, True], [primitive_id, 1],
+                [shader_out_col, (0.0, 1.0, 1.0, 1.0)], [post_mod_col, (0.0, 1.0, 1.0, 1.0)]],
         ]
         self.check_events(events, modifs, True)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
@@ -244,6 +253,39 @@ class VK_Pixel_History(rdtest.TestCase):
         ]
         self.check_events(events, modifs, True)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+    def depth_target_test(self):
+        test_marker: rd.DrawcallDescription = self.find_draw("Test")
+        self.controller.SetFrameEvent(test_marker.next.eventId, True)
+
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        rt: rd.BoundResource = pipe.GetDepthTarget()
+
+        tex = rt.resourceId
+        tex_details = self.get_texture(tex)
+
+        sub = rd.Subresource()
+        if tex_details.arraysize > 1:
+            sub.slice = rt.firstSlice
+        if tex_details.mips > 1:
+            sub.mip = rt.firstMip
+
+        begin_renderpass_eid = self.find_draw("Begin RenderPass").next.eventId
+        background_eid = self.find_draw("Background").next.eventId
+        test_eid = self.find_draw("Test").next.eventId
+
+        x, y = 200, 190
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, begin_renderpass_eid], [passed, True], [post_mod_depth, 1.0]],
+            [[event_id, background_eid], [passed, True], [primitive_id, 0], [pre_mod_depth, 1.0], [post_mod_depth, 0.95]],
+            [[event_id, test_eid], [passed, True], [primitive_id, 0], [shader_out_depth, 0.5], [post_mod_depth, 0.5]],
+            [[event_id, test_eid], [passed, True], [primitive_id, 1], [shader_out_depth, 0.6], [post_mod_depth, 0.5]],
+        ]
+        self.check_events(events, modifs, False)
+
 
     def check_events(self, events, modifs, hasSecondary):
         self.check(len(modifs) == len(events), "Expected {} events, got {}".format(len(events), len(modifs)))

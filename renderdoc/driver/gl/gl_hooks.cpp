@@ -87,18 +87,24 @@ int ScopedPrinter::depth = 0;
 // This checks that we're not infinite looping by calling our own hooks from ourselves. Mostly
 // useful on android where you can only debug by printf and the stack dumps are often corrupted when
 // the callstack overflows.
-#define SCOPED_GLCALL(funcname)         \
-  SCOPED_LOCK(glLock);                  \
-  gl_CurChunk = GLChunk::funcname;      \
-  glhook.driver->CheckImplicitThread(); \
+#define SCOPED_GLCALL(funcname)           \
+  SCOPED_LOCK(glLock);                    \
+  gl_CurChunk = GLChunk::funcname;        \
+  if(glhook.enabled)                      \
+  {                                       \
+    glhook.driver->CheckImplicitThread(); \
+  }                                       \
   ScopedPrinter CONCAT(scopedprint, __LINE__)(STRINGIZE(funcname));
 
 #else
 
-#define SCOPED_GLCALL(funcname)    \
-  SCOPED_LOCK(glLock);             \
-  gl_CurChunk = GLChunk::funcname; \
-  glhook.driver->CheckImplicitThread();
+#define SCOPED_GLCALL(funcname)           \
+  SCOPED_LOCK(glLock);                    \
+  gl_CurChunk = GLChunk::funcname;        \
+  if(glhook.enabled)                      \
+  {                                       \
+    glhook.driver->CheckImplicitThread(); \
+  }
 
 #endif
 
@@ -107,7 +113,7 @@ void SetDriverForHooks(WrappedOpenGL *driver)
   glhook.driver = driver;
 }
 
-#if ENABLED(RDOC_WIN32) || ENABLED(RDOC_APPLE)
+#if ENABLED(RDOC_WIN32) || ENABLED(RDOC_APPLE) || ENABLED(RDOC_SWITCH)
 void EnableGLHooks()
 {
   glhook.enabled = true;

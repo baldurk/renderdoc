@@ -534,11 +534,7 @@ struct AndroidRemoteServer : public RemoteServer
       m_LogcatThread->Finish();
   }
 
-  virtual void ShutdownConnection() override
-  {
-    ResetAndroidSettings();
-    RemoteServer::ShutdownConnection();
-  }
+  virtual void ShutdownConnection() override;
 
   virtual void ShutdownServerAndConnection() override
   {
@@ -562,9 +558,20 @@ struct AndroidRemoteServer : public RemoteServer
   {
     ResetAndroidSettings();
 
+    // enable profiling to measure hardware counters
+    Android::adbExecCommand(m_deviceID, "shell setprop security.perf_harden 0");
+
     LazilyStartLogcatThread();
 
     return RemoteServer::OpenCapture(proxyid, filename, opts, progress);
+  }
+
+  virtual void CloseCapture(IReplayController *rend) override
+  {
+    // disable profiling
+    Android::adbExecCommand(m_deviceID, "shell setprop security.perf_harden 1");
+
+    RemoteServer::CloseCapture(rend);
   }
 
   virtual rdcstr GetHomeFolder() override { return ""; }
@@ -804,6 +811,7 @@ struct AndroidController : public IDeviceProtocolHandler
   {
     std::function<void()> meth;
     int32_t done = 0;
+    bool selfdelete = false;
   };
 
   rdcarray<Command *> cmdqueue;
@@ -829,6 +837,9 @@ struct AndroidController : public IDeviceProtocolHandler
       cmd->meth();
 
       Atomic::Inc32(&cmd->done);
+
+      if(cmd->selfdelete)
+        delete cmd;
     }
   }
 
@@ -844,6 +855,18 @@ struct AndroidController : public IDeviceProtocolHandler
 
     while(Atomic::CmpExch32(&cmd.done, 0, 0) == 0)
       Threading::Sleep(5);
+  }
+
+  void AsyncInvoke(std::function<void()> method)
+  {
+    Command *cmd = new Command;
+    cmd->meth = method;
+    cmd->selfdelete = true;
+
+    {
+      SCOPED_LOCK(lock);
+      cmdqueue.push_back(cmd);
+    }
   }
 
   rdcstr GetProtocolName() override { return "adb"; }
@@ -992,7 +1015,8 @@ struct AndroidController : public IDeviceProtocolHandler
 
       // push settings file into our folder
       Android::adbExecCommand(deviceID, "push \"" + FileIO::GetAppFolderFilename("renderdoc.conf") +
-                                            "\" /sdcard/Android/data/" + package + "/files");
+                                            "\" /sdcard/Android/data/" + package +
+                                            "/files/renderdoc.conf");
 
       // launch the last ABI, as the 64-bit version where possible, or 32-bit version where not.
       // Captures are portable across bitness and in some cases a 64-bit capture can't replay on a
@@ -1064,6 +1088,13 @@ struct AndroidController : public IDeviceProtocolHandler
     return &m_Inst;
   };
 };
+
+void AndroidRemoteServer::ShutdownConnection()
+{
+  rdcstr deviceID = m_deviceID;
+  AndroidController::m_Inst.AsyncInvoke([deviceID]() { Android::ResetCaptureSettings(deviceID); });
+  RemoteServer::ShutdownConnection();
+}
 
 ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w, const char *c,
                                                     const rdcarray<EnvironmentModification> &env,
@@ -1170,7 +1201,8 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
 
     // try to push our settings file into the appdata folder
     Android::adbExecCommand(m_deviceID, "push \"" + FileIO::GetAppFolderFilename("renderdoc.conf") +
-                                            "\" /sdcard/Android/data/" + processName + "/files");
+                                            "\" /sdcard/Android/data/" + processName +
+                                            "/files/renderdoc.conf");
 
     rdcstr installedPath = Android::GetPathForPackage(m_deviceID, packageName);
 

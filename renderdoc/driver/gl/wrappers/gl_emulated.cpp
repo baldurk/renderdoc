@@ -31,6 +31,8 @@
 #include "../gl_driver.h"
 #include "../gl_resources.h"
 #include "driver/shaders/spirv/glslang_compile.h"
+#include "maths/formatpacking.h"
+#include "maths/half_convert.h"
 
 namespace glEmulate
 {
@@ -2583,7 +2585,8 @@ void APIENTRY _glGetTexLevelParameterfv(GLenum target, GLint level, GLenum pname
   *params = (GLfloat)param;
 }
 
-void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
+void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, const GLenum type,
+                             void *pixels)
 {
   if((format == eGL_DEPTH_COMPONENT && !HasExt[NV_read_depth]) ||
      (format == eGL_STENCIL && !HasExt[NV_read_stencil]) ||
@@ -2609,16 +2612,25 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     default: break;
   }
 
+  GLuint fbo = 0;
+  GL.glGenFramebuffers(1, &fbo);
+
+  PushPopFramebuffer(eGL_FRAMEBUFFER, fbo);
+
   GLint width = 0, height = 0, depth = 0;
   GL.glGetTexLevelParameteriv(target, level, eGL_TEXTURE_WIDTH, &width);
   GL.glGetTexLevelParameteriv(target, level, eGL_TEXTURE_HEIGHT, &height);
   GL.glGetTexLevelParameteriv(target, level, eGL_TEXTURE_DEPTH, &depth);
 
-  GLint fmt = 0;
-  GL.glGetTexLevelParameteriv(target, level, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
+  GLenum origInternalFormat = eGL_NONE;
+  GL.glGetTexLevelParameteriv(target, level, eGL_TEXTURE_INTERNAL_FORMAT,
+                              (GLint *)&origInternalFormat);
 
   GLint boundTexture = 0;
   GL.glGetIntegerv(TextureBinding(target), (GLint *)&boundTexture);
+
+  GLuint readtex = boundTexture;
+  GLuint deltex = 0;
 
   GLenum attachment = eGL_COLOR_ATTACHMENT0;
   if(format == eGL_DEPTH_COMPONENT)
@@ -2628,53 +2640,158 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
   else if(format == eGL_DEPTH_STENCIL)
     attachment = eGL_DEPTH_STENCIL_ATTACHMENT;
 
-  size_t sliceSize = GetByteSize(width, height, 1, format, type);
+  bool readDirectly = true;
 
-  bool fixBGRA = false;
-  if(!HasExt[EXT_read_format_bgra] && format == eGL_BGRA)
+  // we know luminance/alpha formats can't be read directly, so assume failure for them
+  if(format == eGL_LUMINANCE_ALPHA || format == eGL_LUMINANCE || format == eGL_ALPHA)
   {
-    if(type == eGL_UNSIGNED_BYTE)
-      fixBGRA = true;
-    else
-      RDCERR("Can't read back texture without EXT_read_format_bgra extension (data type: %s)",
-             ToStr(type).c_str());
+    readDirectly = false;
   }
 
-  GLuint readtex = boundTexture;
-  GLuint deltex = 0;
-
-  GLuint fbo = 0;
-  GL.glGenFramebuffers(1, &fbo);
-
-  PushPopFramebuffer(eGL_FRAMEBUFFER, fbo);
-
-  bool remappedRGB = false;
-
-  // ALPHA can't be bound to an FBO, so we need to blit to R8 by hand. Same with luminance formats.
-  // Not all devices support RGB framebuffers, so blit that by hand too.
-  // This should be expanded to handle any format that fails framebuffer compatibility
-  if(format == eGL_LUMINANCE_ALPHA || format == eGL_LUMINANCE || format == eGL_ALPHA ||
-     (format == eGL_RGB && type != eGL_UNSIGNED_INT_10F_11F_11F_REV))
+  // similarly for RGB8, pessimistically assume it can't be read from a framebuffer as not all
+  // drivers support it.
+  if(format == eGL_RGB && type == eGL_UNSIGNED_BYTE)
   {
-    RDCDEBUG("Doing manual blit from %s to allow readback", ToStr(format).c_str());
+    readDirectly = false;
+  }
 
-    GLenum remapformat = eGL_RED;
-    GLenum internalformat = eGL_R8;
-    if(format == eGL_LUMINANCE_ALPHA)
+  // if we can't attach the texture to a framebuffer, we can't readpixels it directly
+  if(readDirectly)
+  {
+    switch(target)
     {
-      remapformat = eGL_RG;
-      internalformat = eGL_RG8;
+      case eGL_TEXTURE_3D:
+      case eGL_TEXTURE_2D_ARRAY:
+      case eGL_TEXTURE_CUBE_MAP_ARRAY:
+      case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+        GL.glFramebufferTextureLayer(eGL_FRAMEBUFFER, attachment, readtex, level, 0);
+        break;
+
+      case eGL_TEXTURE_CUBE_MAP:
+      case eGL_TEXTURE_CUBE_MAP_POSITIVE_X:
+      case eGL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+      case eGL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+      case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+      case eGL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+      case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+      case eGL_TEXTURE_2D:
+      case eGL_TEXTURE_2D_MULTISAMPLE:
+      default:
+        GL.glFramebufferTexture2D(eGL_FRAMEBUFFER, attachment, target, readtex, level);
+        break;
     }
-    else if(format == eGL_RGB)
+
+    GLenum status = GL.glCheckFramebufferStatus(eGL_FRAMEBUFFER);
+
+    readDirectly = (status == eGL_FRAMEBUFFER_COMPLETE);
+  }
+
+  GLenum readFormat = format;
+  GLenum readType = type;
+
+  ResourceFormat origFmt = MakeResourceFormat(target, origInternalFormat);
+
+  bool disableSRGBCorrect = false;
+
+  // do a blit to the nearest compatible expanded format if we can't read directly
+  if(!readDirectly)
+  {
+    ResourceFormat remappedFmt = origFmt;
+
+    // special case luminance/alpha
+    if(readFormat == eGL_ALPHA || readFormat == eGL_LUMINANCE ||
+       origFmt.type == ResourceFormatType::A8)
     {
-      remapformat = eGL_RGBA;
-      internalformat = eGL_RGBA8;
+      RDCASSERTEQUAL(origFmt.compType, CompType::UNorm);
+      RDCASSERTEQUAL(origFmt.compCount, 1);
+      RDCASSERTEQUAL(origFmt.compByteWidth, 1);
+      remappedFmt.compType = CompType::UNorm;
+      remappedFmt.compCount = 1;
+      remappedFmt.type = ResourceFormatType::Regular;
+      remappedFmt.compByteWidth = 1;
 
-      if(fmt == eGL_SRGB8)
-        internalformat = eGL_SRGB8_ALPHA8;
-
-      remappedRGB = true;
+      // we can read directly after the remap, because it's still a 1 component unorm texture it's
+      // just now in the right format
+      readDirectly = true;
     }
+    else if(readFormat == eGL_LUMINANCE_ALPHA)
+    {
+      RDCASSERTEQUAL(origFmt.compType, CompType::UNorm);
+      RDCASSERTEQUAL(origFmt.compCount, 2);
+      RDCASSERTEQUAL(origFmt.compByteWidth, 1);
+      remappedFmt.compType = CompType::UNorm;
+      remappedFmt.compCount = 2;
+      remappedFmt.type = ResourceFormatType::Regular;
+      remappedFmt.compByteWidth = 1;
+
+      readDirectly = true;
+    }
+    else
+    {
+      // for most regular formats we just try to remap to the 4-component version assuming that if
+      // the smaller version is supported then the larger version is supported and FBO'able. This
+      // should hold for RGB formats at least.
+      if(origFmt.type == ResourceFormatType::Regular &&
+         (origFmt.compType == CompType::Float || origFmt.compType == CompType::UNorm ||
+          origFmt.compType == CompType::UInt || origFmt.compType == CompType::SInt ||
+          origFmt.compType == CompType::UNormSRGB))
+      {
+        remappedFmt.compCount = 4;
+        remappedFmt.SetBGRAOrder(false);
+      }
+      // for SNorm formats remap to RGBA16F as well and hope it's supported. This loses precision on
+      // RGBA16_SNORM but we accept that.
+      else if(origFmt.compType == CompType::SNorm)
+      {
+        remappedFmt.compType = CompType::Float;
+        remappedFmt.compCount = 4;
+        remappedFmt.type = ResourceFormatType::Regular;
+        remappedFmt.compByteWidth = 2;
+      }
+      // if it's a sub-1-byte unorm format, remap to RGBA8
+      else if(origFmt.type == ResourceFormatType::R4G4 ||
+              origFmt.type == ResourceFormatType::R4G4B4A4 ||
+              origFmt.type == ResourceFormatType::R5G5B5A1 ||
+              origFmt.type == ResourceFormatType::R5G6B5)
+      {
+        remappedFmt.compType = CompType::UNorm;
+        remappedFmt.compCount = 4;
+        remappedFmt.type = ResourceFormatType::Regular;
+        remappedFmt.compByteWidth = 1;
+        remappedFmt.SetBGRAOrder(false);
+      }
+      // similar with sub-16F special formats
+      else if(origFmt.type == ResourceFormatType::R10G10B10A2 && origFmt.compType == CompType::UNorm)
+      {
+        remappedFmt.compType = CompType::UNorm;
+        remappedFmt.compCount = 4;
+        remappedFmt.type = ResourceFormatType::Regular;
+        remappedFmt.compByteWidth = 1;
+      }
+      else if(origFmt.type == ResourceFormatType::R10G10B10A2 && origFmt.compType == CompType::UInt)
+      {
+        remappedFmt.compType = CompType::UInt;
+        remappedFmt.compCount = 4;
+        remappedFmt.type = ResourceFormatType::Regular;
+        remappedFmt.compByteWidth = 1;
+      }
+      else if(origFmt.type == ResourceFormatType::R11G11B10 ||
+              origFmt.type == ResourceFormatType::R9G9B9E5)
+      {
+        remappedFmt.compType = CompType::Float;
+        remappedFmt.compCount = 4;
+        remappedFmt.type = ResourceFormatType::Regular;
+        remappedFmt.compByteWidth = 2;
+      }
+    }
+
+    GLenum internalformat = MakeGLFormat(remappedFmt);
+    GLenum remapformat = GetBaseFormat(internalformat);
+    GLenum remaptype = GetDataType(internalformat);
+
+    RDCDEBUG("Doing manual blit from %s to %s with format %s and type %s to allow readback",
+             ToStr(origInternalFormat).c_str(), ToStr(internalformat).c_str(),
+             ToStr(format).c_str(), ToStr(type).c_str());
 
     GLint baseLevel = 0;
     GLint maxLevel = 0;
@@ -2692,8 +2809,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
 
     // allocate the texture
     GL.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 0);
-    GL.glTexImage2D(target, 0, internalformat, width, height, 0, remapformat, eGL_UNSIGNED_BYTE,
-                    NULL);
+    GL.glTexImage2D(target, 0, internalformat, width, height, 0, remapformat, remaptype, NULL);
 
     // render to it
     GL.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, readtex, 0);
@@ -2701,7 +2817,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     GLenum fbostatus = GL.glCheckFramebufferStatus(eGL_FRAMEBUFFER);
 
     if(fbostatus != eGL_FRAMEBUFFER_COMPLETE)
-      RDCERR("glReadPixels emulation FBO is %s", ToStr(fbostatus).c_str());
+      RDCERR("glReadPixels emulation blit FBO is %s", ToStr(fbostatus).c_str());
 
     // push rendering state
     GLPushPopState textState;
@@ -2715,6 +2831,17 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     GL.glDisable(eGL_CULL_FACE);
     GL.glDisable(eGL_SCISSOR_TEST);
     GL.glViewport(0, 0, width, height);
+
+    bool oldFBOsrgb = false;
+    if(HasExt[EXT_framebuffer_sRGB])
+    {
+      oldFBOsrgb = GL.glIsEnabled(eGL_FRAMEBUFFER_SRGB) == GL_TRUE;
+      GL.glEnable(eGL_FRAMEBUFFER_SRGB);
+    }
+    else if(origFmt.compType == CompType::UNormSRGB)
+    {
+      disableSRGBCorrect = true;
+    }
 
     GL.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
@@ -2757,7 +2884,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
         swizzle[2] = 'a';
         swizzle[3] = 'a';
       }
-      else if(format == eGL_RGB)
+      else
       {
         swizzle[0] = 'r';
         swizzle[1] = 'g';
@@ -2845,6 +2972,9 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     GL.glDeleteBuffers(1, &vb);
     GL.glDeleteProgram(prog);
 
+    if(HasExt[EXT_framebuffer_sRGB] && !oldFBOsrgb)
+      GL.glDisable(eGL_FRAMEBUFFER_SRGB);
+
     // pop rendering state
     textState.Pop(true);
 
@@ -2859,9 +2989,27 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     // read from the blitted texture from level 0, as red
     GL.glBindTexture(target, readtex);
     level = 0;
-    format = remapformat;
+    readFormat = remapformat;
+    readType = remaptype;
 
     RDCDEBUG("Done blit");
+  }
+
+  size_t dstSliceSize = GetByteSize(width, height, 1, format, type);
+
+  bool swizzleBGRA = false;
+
+  // if we can't read BGRA natively, read as RGBA and swizzle manually
+  if(!HasExt[EXT_read_format_bgra] && readFormat == eGL_BGRA)
+  {
+    readFormat = eGL_RGBA;
+    swizzleBGRA = true;
+  }
+
+  if(!readDirectly && readFormat == eGL_RGBA && readType == eGL_UNSIGNED_SHORT_4_4_4_4)
+  {
+    readType = eGL_UNSIGNED_BYTE;
+    swizzleBGRA = true;
   }
 
   for(GLint d = 0; d < depth; ++d)
@@ -2894,20 +3042,77 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     if(status != eGL_FRAMEBUFFER_COMPLETE)
       RDCERR("glReadPixels emulation FBO is %s", ToStr(status).c_str());
 
-    byte *dst = (byte *)pixels + d * sliceSize;
-    GLenum readFormat = fixBGRA ? eGL_RGBA : format;
+    byte *dst = (byte *)pixels + d * dstSliceSize;
 
-    GLenum implFormat = eGL_NONE, implType = eGL_NONE;
+    // pick the read format/type
 
-    GL.glGetIntegerv(eGL_IMPLEMENTATION_COLOR_READ_FORMAT, (GLint *)&implFormat);
-    GL.glGetIntegerv(eGL_IMPLEMENTATION_COLOR_READ_TYPE, (GLint *)&implType);
+    if((readFormat == eGL_RGBA && readType == eGL_UNSIGNED_BYTE) ||
+       (readFormat == eGL_RGBA_INTEGER && readType == eGL_UNSIGNED_INT) ||
+       (readFormat == eGL_RGBA_INTEGER && readType == eGL_INT) ||
+       (readFormat == eGL_RGBA && readType == eGL_UNSIGNED_INT_2_10_10_10_REV))
+    {
+      // if we were already planning to use one of the spec-guaranteed supported combinations,
+      // great! use that
+    }
+    else
+    {
+      // see what format and type the implementation supports
+      GLenum implFormat = eGL_NONE, implType = eGL_NONE;
 
-    // spec says this must be supported
-    bool validReadback = (readFormat == eGL_RGBA && type == eGL_UNSIGNED_BYTE);
+      GL.glGetIntegerv(eGL_IMPLEMENTATION_COLOR_READ_FORMAT, (GLint *)&implFormat);
+      GL.glGetIntegerv(eGL_IMPLEMENTATION_COLOR_READ_TYPE, (GLint *)&implType);
 
-    // the implementation is allowed to support one other format/type pair, it can vary by texture.
-    // Normally this will be the 'natural' readback format/type pair that we are trying
-    validReadback |= (readFormat == implFormat && type == implType);
+      // GL_HALF_FLOAT and GL_HALF_FLOAT_OES have different enum values but are the same otherwise.
+      // we always use the normal enum ourselves, but if the driver wants the _OES version then just
+      // use that so we match and can do a direct readback.
+      if(implType == eGL_HALF_FLOAT_OES && readType == eGL_HALF_FLOAT)
+        readType = eGL_HALF_FLOAT_OES;
+
+      if(implFormat == readFormat && implType == readType)
+      {
+        // great, the implementation supports the format and type we want
+      }
+      else
+      {
+        // need to remap now from what we read to what we need to write.
+        readDirectly = false;
+
+        // if all that's different is the number of components, read as one of the
+        // guaranteed-supported format/type pairs
+        if((readFormat == eGL_RGBA || readFormat == eGL_RGB || readFormat == eGL_RG ||
+            readFormat == eGL_RED) &&
+           (readType == eGL_UNSIGNED_BYTE || readType == eGL_UNSIGNED_SHORT_4_4_4_4))
+        {
+          readFormat = eGL_RGBA;
+          readType = eGL_UNSIGNED_BYTE;
+        }
+        else if((readFormat == eGL_RGBA_INTEGER || readFormat == eGL_RGB_INTEGER ||
+                 readFormat == eGL_RG_INTEGER || readFormat == eGL_RED_INTEGER) &&
+                (readType == eGL_UNSIGNED_BYTE || readType == eGL_UNSIGNED_SHORT ||
+                 readType == eGL_UNSIGNED_INT))
+        {
+          readFormat = eGL_RGBA_INTEGER;
+          readType = eGL_UNSIGNED_INT;
+        }
+        else if((readFormat == eGL_RGBA_INTEGER || readFormat == eGL_RGB_INTEGER ||
+                 readFormat == eGL_RG_INTEGER || readFormat == eGL_RED_INTEGER) &&
+                (readType == eGL_BYTE || readType == eGL_SHORT || readType == eGL_INT))
+        {
+          readFormat = eGL_RGBA_INTEGER;
+          readType = eGL_INT;
+        }
+        else
+        {
+          // TODO maybe fallback to one of the guaranteed ones? or find a way to negotiate a better
+          // one?
+          RDCWARN(
+              "Implementation reported format %s / type %s readback format for %s. Trying with "
+              "desired format %s / type %s pair anyway.",
+              ToStr(implFormat).c_str(), ToStr(implType).c_str(), ToStr(origInternalFormat).c_str(),
+              ToStr(readFormat).c_str(), ToStr(readType).c_str());
+        }
+      }
+    }
 
     PixelUnpackState unpack;
     PixelPackState pack;
@@ -2917,94 +3122,161 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum t
     ResetPixelPackState(false, 1);
     ResetPixelUnpackState(false, 1);
 
-    if(validReadback && !remappedRGB)
+    if(readDirectly)
     {
-      memset(dst, 0, sliceSize);
-      GL.glReadPixels(0, 0, width, height, readFormat, type, (void *)dst);
+      // fast path, we're reading directly in the exact format
+      memset(dst, 0, dstSliceSize);
+      GL.glReadPixels(0, 0, width, height, readFormat, readType, (void *)dst);
     }
     else
     {
-      // unfortunately the readback is not supported directly, we'll need to fudge it.
-      RDCDEBUG("Reading as %s/%s but impl supported pair is %s/%s", ToStr(readFormat).c_str(),
-               ToStr(type).c_str(), ToStr(implFormat).c_str(), ToStr(implType).c_str());
+      RDCDEBUG("Readback with remapping for texture format %s", ToStr(origInternalFormat).c_str());
 
-      bool simpleType = true;
+      // unfortunately the readback is not in the right format directly, we'll need to read back
+      // whatever we got and then convert to the output format.
 
-      // we can't handle RGB(A) skipping for mismatched readFormat/implFormat if it's not a regular
-      // component type.
-      switch(type)
+      size_t sliceSize = GetByteSize(width, height, 1, readFormat, readType);
+      byte *readback = new byte[sliceSize];
+      GL.glReadPixels(0, 0, width, height, readFormat, readType, readback);
+
+      uint32_t readCompCount = 1;
+      if(readFormat == eGL_RGBA || readFormat == eGL_RGBA_INTEGER)
+        readCompCount = 4;
+      else if(readFormat == eGL_RGB || readFormat == eGL_RGB_INTEGER)
+        readCompCount = 3;
+      else if(readFormat == eGL_RG || readFormat == eGL_RG_INTEGER)
+        readCompCount = 2;
+      else if(readFormat == eGL_RED || readFormat == eGL_RED_INTEGER)
+        readCompCount = 1;
+      else
+        RDCERR("Unexpected implementation format %s, assuming one component",
+               ToStr(readFormat).c_str());
+
+      // how big is a component (1/2/4 bytes)
+      size_t readCompSize = GetByteSize(1, 1, 1, eGL_RED, readType);
+
+      // if the type didn't change from what the caller expects, we only changed the number of
+      // components. This is easy to remap
+      if(type == readType && !disableSRGBCorrect &&
+         (origFmt.type == ResourceFormatType::Regular || origFmt.type == ResourceFormatType::A8))
       {
-        case eGL_UNSIGNED_INT_10F_11F_11F_REV:
-        case eGL_UNSIGNED_INT_2_10_10_10_REV:
-        case eGL_UNSIGNED_BYTE_3_3_2:
-        case eGL_UNSIGNED_SHORT_4_4_4_4:
-        case eGL_UNSIGNED_SHORT_5_5_5_1:
-        case eGL_UNSIGNED_SHORT_5_6_5:
-        case eGL_UNSIGNED_INT_10_10_10_2:
-        case eGL_UNSIGNED_INT_5_9_9_9_REV:
-        case eGL_UNSIGNED_INT_24_8:
-        case eGL_FLOAT_32_UNSIGNED_INT_24_8_REV: simpleType = false; break;
-        default: break;
-      }
+        RDCDEBUG("Component number changed only");
 
-      if(readFormat == implFormat && (type == eGL_HALF_FLOAT_OES || type == eGL_HALF_FLOAT) &&
-         (implType == eGL_HALF_FLOAT_OES || implType == eGL_HALF_FLOAT))
-      {
-        // if the format itself is supported and we just have a mismatch between eGL_HALF_FLOAT_OES
-        // and eGL_HALF_FLOAT (different enum values), we can just use the implementation's pair
-        // as-is.
+        uint32_t dstCompCount = origFmt.compCount;
 
-        GL.glReadPixels(0, 0, width, height, readFormat, implType, (void *)dst);
-      }
-      else if(remappedRGB ||
-              (readFormat == eGL_RGB && implFormat == eGL_RGBA && type == implType && simpleType))
-      {
-        // if the only difference is that the implementation wants to read RGBA for an RGB format
-        // (could be understandable if the native storage is RGBA anyway for RGB textures) then we
-        // can readback into a temporary buffer and strip the alpha.
-
-        size_t size = GetByteSize(width, height, 1, implFormat, type);
-        byte *readback = new byte[size];
-        GL.glReadPixels(0, 0, width, height, implFormat, implType, readback);
-
-        // how big is a component (1/2/4 bytes)
-        size_t compSize = GetByteSize(1, 1, 1, eGL_RED, type);
-
-        byte *src = readback;
+        byte *srcPixel = readback;
+        byte *dstPixel = dst;
 
         // for each pixel
         for(GLint i = 0; i < width * height; i++)
         {
           // copy RGB
-          memcpy(dst, src, compSize * 3);
+          memcpy(dstPixel, srcPixel, readCompSize * dstCompCount);
 
           // advance dst by RGB
-          dst += compSize * 3;
+          dstPixel += readCompSize * dstCompCount;
 
           // advance src by RGBA
-          src += compSize * 4;
+          srcPixel += readCompSize * readCompCount;
         }
-
-        delete[] readback;
-
-        fixBGRA = false;
       }
       else
       {
-        RDCERR("Unhandled readback failure");
-        memset(dst, 0, sliceSize);
+        RDCDEBUG("Component format changed");
+
+        ResourceFormat readFmt;
+        readFmt.type = ResourceFormatType::Regular;
+        readFmt.compCount = readCompCount & 0xff;
+        readFmt.compByteWidth = readCompSize & 0xff;
+
+        if(IsSIntFormat(GetSizedFormat(readFormat)))
+        {
+          switch(readType)
+          {
+            case eGL_UNSIGNED_INT:
+            case eGL_UNSIGNED_SHORT:
+            case eGL_UNSIGNED_BYTE: readFmt.compType = CompType::UInt; break;
+            case eGL_INT:
+            case eGL_SHORT:
+            case eGL_BYTE: readFmt.compType = CompType::SInt; break;
+            default:
+              RDCERR("Unexpected readType %s", ToStr(readType).c_str());
+              readFmt.compType = CompType::UInt;
+              break;
+          }
+        }
+        else
+        {
+          switch(readType)
+          {
+            case eGL_UNSIGNED_INT:
+            case eGL_UNSIGNED_SHORT:
+            case eGL_UNSIGNED_BYTE: readFmt.compType = CompType::UNorm; break;
+            case eGL_INT:
+            case eGL_SHORT:
+            case eGL_BYTE: readFmt.compType = CompType::SNorm; break;
+            case eGL_HALF_FLOAT_OES:
+            case eGL_HALF_FLOAT:
+            case eGL_FLOAT: readFmt.compType = CompType::Float; break;
+            case eGL_DOUBLE: readFmt.compType = CompType::Double; break;
+            default:
+              RDCERR("Unexpected readType %s", ToStr(readType).c_str());
+              readFmt.compType = CompType::UNorm;
+              break;
+          }
+
+          // if we couldn't enable FRAMEBUFFER_SRGB to ensure the blit is srgb-preserving, we wrote
+          // out linear data. So we need to under-correct to at least get values approximately right
+          // even if we lost some information by missing a correct. Since we can't control whether a
+          // sRGB texture is read as sRGB.
+          if(!disableSRGBCorrect && origFmt.compType == CompType::UNormSRGB)
+            readFmt.compType = CompType::UNormSRGB;
+        }
+
+        byte *srcPixel = readback;
+        byte *dstPixel = dst;
+
+        // go pixel-by-pixel, reading in the readback format and writing in the dest format
+        for(GLint i = 0; i < width * height; i++)
+        {
+          FloatVector vec = DecodeFormattedComponents(readFmt, srcPixel);
+
+          EncodeFormattedComponents(origFmt, vec, dstPixel);
+
+          // GL expects ABGR order for these formats where our standard encoder writes BGRA, swizzle
+          // here
+          if(origFmt.type == ResourceFormatType::R4G4B4A4)
+          {
+            uint16_t val = 0;
+            memcpy(&val, dstPixel, sizeof(val));
+            val = ((val & 0x0fff) << 4) | ((val & 0xf000) >> 12);
+            memcpy(dstPixel, &val, sizeof(val));
+          }
+          else if(origFmt.type == ResourceFormatType::R5G5B5A1)
+          {
+            uint16_t val = 0;
+            memcpy(&val, dstPixel, sizeof(val));
+            val = ((val & 0x7fff) << 1) | ((val & 0x8000) >> 12);
+            memcpy(dstPixel, &val, sizeof(val));
+          }
+
+          dstPixel += origFmt.ElementSize();
+          srcPixel += readCompSize * readCompCount;
+        }
       }
+
+      delete[] readback;
     }
 
     unpack.Apply(false);
     pack.Apply(false);
 
-    if(fixBGRA)
+    if(swizzleBGRA)
     {
       // since we read back the texture with RGBA format, we have to flip the R and B components
       byte *b = dst;
       for(GLint i = 0, n = width * height; i < n; ++i, b += 4)
-        std::swap(*b, *(b + 2));
+        std::swap(b[0], b[2]);
     }
   }
 

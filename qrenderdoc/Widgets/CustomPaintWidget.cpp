@@ -26,6 +26,7 @@
 #include <math.h>
 #include <QEvent>
 #include <QPainter>
+#include <QPointer>
 #include "Code/Interface/QRDInterface.h"
 
 CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
@@ -92,7 +93,13 @@ void CustomPaintWidget::paintEvent(QPaintEvent *e)
   if(m_Ctx)
   {
     if(m_Output != NULL)
-      m_Ctx->Replay().AsyncInvoke(m_Tag, [this](IReplayController *r) { m_Output->Display(); });
+    {
+      QPointer<CustomPaintWidget> me(this);
+      m_Ctx->Replay().AsyncInvoke(m_Tag, [me](IReplayController *r) {
+        if(me && me->m_Output)
+          me->m_Output->Display();
+      });
+    }
   }
   else if(m_Dark == m_Light)
   {

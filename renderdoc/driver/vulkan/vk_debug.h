@@ -62,8 +62,6 @@ public:
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, bytebuf &ret);
 
-  bool IsMS2ArraySupported() { return m_MS2ArrayPipe != VK_NULL_HANDLE; }
-  bool IsArray2MSSupported() { return m_Array2MSPipe != VK_NULL_HANDLE; }
   void CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent, uint32_t layers,
                           uint32_t samples, VkFormat fmt);
   void CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent, uint32_t layers,

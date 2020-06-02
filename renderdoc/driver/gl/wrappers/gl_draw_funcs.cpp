@@ -245,23 +245,25 @@ bool WrappedOpenGL::Check_SafeDraw(bool indexed)
 
           ret = false;
         }
-
-        GLint size = 0;
-        GL.glGetNamedBufferParameterivEXT(vb, eGL_BUFFER_SIZE, &size);
-
-        if(size == 0)
+        else
         {
-          ResourceId id = GetResourceManager()->GetID(BufferRes(GetCtx(), vb));
-          AddDebugMessage(
-              MessageCategory::Undefined, MessageSeverity::High, MessageSource::IncorrectAPIUse,
-              StringFormat::Fmt("Vertex buffer %s bound to attribute %d: %s (buffer slot %d) at "
-                                "draw is 0-sized!\n"
-                                "Has this buffer been initialised?",
-                                ToStr(GetResourceManager()->GetOriginalID(id)).c_str(), attrib,
-                                shaderDetails.reflection.inputSignature[reflIndex].varName.c_str(),
-                                bufIdx));
+          GLint size = 0;
+          GL.glGetNamedBufferParameterivEXT(vb, eGL_BUFFER_SIZE, &size);
 
-          ret = false;
+          if(size == 0)
+          {
+            ResourceId id = GetResourceManager()->GetID(BufferRes(GetCtx(), vb));
+            AddDebugMessage(
+                MessageCategory::Undefined, MessageSeverity::High, MessageSource::IncorrectAPIUse,
+                StringFormat::Fmt("Vertex buffer %s bound to attribute %d: %s (buffer slot %d) at "
+                                  "draw is 0-sized!\n"
+                                  "Has this buffer been initialised?",
+                                  ToStr(GetResourceManager()->GetOriginalID(id)).c_str(), attrib,
+                                  shaderDetails.reflection.inputSignature[reflIndex].varName.c_str(),
+                                  bufIdx));
+
+            ret = false;
+          }
         }
       }
     }
@@ -1119,19 +1121,22 @@ void WrappedOpenGL::RestoreClientMemoryArrays(ClientMemoryData *clientMemoryArra
   if(!clientMemoryArrays)
     return;
 
-  // Restore the 0-buffer bindings and attrib pointers.
-  gl_CurChunk = GLChunk::glBindBuffer;
-  glBindBuffer(eGL_ARRAY_BUFFER, 0);
-
-  for(const ClientMemoryData::VertexAttrib &attrib : clientMemoryArrays->attribs)
+  if(!clientMemoryArrays->attribs.empty())
   {
-    gl_CurChunk = GLChunk::glVertexAttribPointer;
-    glVertexAttribPointer(attrib.index, attrib.size, attrib.type, attrib.normalized, attrib.stride,
-                          attrib.pointer);
-  }
+    // Restore the 0-buffer bindings and attrib pointers.
+    gl_CurChunk = GLChunk::glBindBuffer;
+    glBindBuffer(eGL_ARRAY_BUFFER, 0);
 
-  gl_CurChunk = GLChunk::glBindBuffer;
-  glBindBuffer(eGL_ARRAY_BUFFER, clientMemoryArrays->prevArrayBufferBinding);
+    for(const ClientMemoryData::VertexAttrib &attrib : clientMemoryArrays->attribs)
+    {
+      gl_CurChunk = GLChunk::glVertexAttribPointer;
+      glVertexAttribPointer(attrib.index, attrib.size, attrib.type, attrib.normalized,
+                            attrib.stride, attrib.pointer);
+    }
+
+    gl_CurChunk = GLChunk::glBindBuffer;
+    glBindBuffer(eGL_ARRAY_BUFFER, clientMemoryArrays->prevArrayBufferBinding);
+  }
 
   delete clientMemoryArrays;
 }

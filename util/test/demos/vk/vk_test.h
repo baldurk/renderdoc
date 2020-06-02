@@ -161,9 +161,8 @@ private:
   VkCommandPool cmdPool;
   std::set<VkFence> fences;
 
-  std::vector<VkCommandBuffer> freeCommandBuffers[VK_COMMAND_BUFFER_LEVEL_RANGE_SIZE];
-  std::vector<std::pair<VkCommandBuffer, VkFence>>
-      pendingCommandBuffers[VK_COMMAND_BUFFER_LEVEL_RANGE_SIZE];
+  std::vector<VkCommandBuffer> freeCommandBuffers[2];
+  std::vector<std::pair<VkCommandBuffer, VkFence>> pendingCommandBuffers[2];
 
   GraphicsWindow *m_Win;
   VulkanGraphicsTest *m_Test;
@@ -209,6 +208,9 @@ struct VulkanGraphicsTest : public GraphicsTest
   void blitToSwap(VkCommandBuffer cmd, VkImage src, VkImageLayout srcLayout, VkImage dst,
                   VkImageLayout dstLayout);
 
+  void uploadBufferToImage(VkImage destImage, VkExtent3D destExtent, VkBuffer srcBuffer,
+                           VkImageLayout finalLayout);
+
   template <typename T>
   void setName(T obj, const std::string &name);
 
@@ -221,6 +223,7 @@ struct VulkanGraphicsTest : public GraphicsTest
   VkBufferView createBufferView(const VkBufferViewCreateInfo *info);
   VkPipelineLayout createPipelineLayout(const VkPipelineLayoutCreateInfo *info);
   VkDescriptorSetLayout createDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo *info);
+  VkSampler createSampler(const VkSamplerCreateInfo *info);
 
   void getPhysFeatures2(void *nextStruct);
 
@@ -268,6 +271,7 @@ struct VulkanGraphicsTest : public GraphicsTest
   std::vector<VkBufferView> bufferviews;
   std::vector<VkPipelineLayout> pipelayouts;
   std::vector<VkDescriptorSetLayout> setlayouts;
+  std::vector<VkSampler> samplers;
 
   std::map<VkImage, VmaAllocation> imageAllocs;
   std::map<VkBuffer, VmaAllocation> bufferAllocs;

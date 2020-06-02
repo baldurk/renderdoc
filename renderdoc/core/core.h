@@ -446,7 +446,10 @@ public:
   void FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber);
 
   void AddChildProcess(uint32_t pid, uint32_t ident);
-  rdcarray<rdcpair<uint32_t, uint32_t> > GetChildProcesses();
+  rdcarray<rdcpair<uint32_t, uint32_t>> GetChildProcesses();
+
+  void CompleteChildThread(uint32_t pid);
+  void AddChildThread(uint32_t pid, Threading::ThreadHandle thread);
 
   rdcarray<CaptureData> GetCaptures();
 
@@ -624,7 +627,8 @@ private:
   rdcarray<CaptureData> m_Captures;
 
   Threading::CriticalSection m_ChildLock;
-  rdcarray<rdcpair<uint32_t, uint32_t> > m_Children;
+  rdcarray<rdcpair<uint32_t, uint32_t>> m_Children;
+  rdcarray<rdcpair<uint32_t, Threading::ThreadHandle>> m_ChildThreads;
 
   std::map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
   std::map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;

@@ -2995,3 +2995,8 @@ rdcarray<ShaderDebugState> D3D11Replay::ContinueDebug(ShaderDebugger *debugger)
 
   return interpreter->ContinueDebug(&apiWrapper);
 }
+
+void D3D11Replay::FreeDebugger(ShaderDebugger *debugger)
+{
+  delete debugger;
+}

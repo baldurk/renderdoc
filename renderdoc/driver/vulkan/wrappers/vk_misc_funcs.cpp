@@ -53,8 +53,28 @@ static void MakeSubpassLoadRP(RPCreateInfo &info, const RPCreateInfo *origInfo, 
   info.subpassCount = 1;
   info.pSubpasses = origInfo->pSubpasses + s;
 
-  // remove any dependencies
+  // remove any non-self dependencies
   info.dependencyCount = 0;
+  for(uint32_t i = 0; i < origInfo->dependencyCount; i++)
+  {
+    // if this dependency is a self-dependency for the target subpass, keep it
+    if(origInfo->pDependencies[i].srcSubpass == origInfo->pDependencies[i].dstSubpass &&
+       origInfo->pDependencies[i].srcSubpass == s)
+    {
+      uint32_t d = info.dependencyCount;
+      info.dependencyCount++;
+
+      // copy the dependency
+      memcpy((void *)&info.pDependencies[d], &origInfo->pDependencies[i],
+             sizeof(origInfo->pDependencies[i]));
+
+      // set the srcSubpass/dstSubpass to 0 since we're rewriting this renderpass to contain one
+      // subpass only
+      RDCEraseEl(info.pDependencies[d].srcSubpass);
+      RDCEraseEl(info.pDependencies[d].dstSubpass);
+      break;
+    }
+  }
 
   // we use decltype here because this is templated to work for regular and create_renderpass2
   // structs
@@ -132,7 +152,6 @@ VkFramebufferCreateInfo WrappedVulkan::UnwrapInfo(const VkFramebufferCreateInfo 
     ObjDisp(device)->func(Unwrap(device), unwrappedObj, pAllocator);                               \
   }
 
-DESTROY_IMPL(VkBuffer, DestroyBuffer)
 DESTROY_IMPL(VkBufferView, DestroyBufferView)
 DESTROY_IMPL(VkImageView, DestroyImageView)
 DESTROY_IMPL(VkShaderModule, DestroyShaderModule)
@@ -153,6 +172,38 @@ DESTROY_IMPL(VkDescriptorUpdateTemplate, DestroyDescriptorUpdateTemplate)
 DESTROY_IMPL(VkSamplerYcbcrConversion, DestroySamplerYcbcrConversion)
 
 #undef DESTROY_IMPL
+
+void WrappedVulkan::vkDestroyBuffer(VkDevice device, VkBuffer buffer,
+                                    const VkAllocationCallbacks *pAllocator)
+{
+  if(buffer == VK_NULL_HANDLE)
+    return;
+
+  // artificially extend the lifespan of buffer device address memory or buffers, to ensure their
+  // opaque capture address isn't re-used before the capture completes
+  {
+    SCOPED_READLOCK(m_CapTransitionLock);
+    if(IsActiveCapturing(m_State) && m_DeviceAddressResources.IDs.contains(GetResID(buffer)))
+    {
+      // we can't hold onto the user callback so we'll be freeing with NULL.
+      RDCASSERT(pAllocator == NULL);
+      m_DeviceAddressResources.DeadBuffers.push_back(buffer);
+      return;
+    }
+    m_DeviceAddressResources.IDs.removeOne(GetResID(buffer));
+  }
+
+  VkBuffer unwrappedObj = Unwrap(buffer);
+
+  m_ForcedReferences.removeOne(GetRecord(buffer));
+
+  if(IsReplayMode(m_State))
+    m_CreationInfo.erase(GetResID(buffer));
+
+  GetResourceManager()->ReleaseWrappedResource(buffer, true);
+
+  ObjDisp(device)->DestroyBuffer(Unwrap(device), unwrappedObj, pAllocator);
+}
 
 // needs to be separate because it releases internal resources
 void WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj,
@@ -982,8 +1033,8 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
 
       VkRenderPassCreateInfo info = *pCreateInfo;
 
-      VkAttachmentDescription atts[16];
-      RDCASSERT(ARRAY_COUNT(atts) >= (size_t)info.attachmentCount);
+      rdcarray<VkAttachmentDescription> atts;
+      atts.resize(info.attachmentCount);
 
       // make a version of the render pass that loads from its attachments,
       // so it can be used for replaying a single draw after a render pass
@@ -995,7 +1046,13 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
         atts[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
       }
 
-      info.pAttachments = atts;
+      info.pAttachments = atts.data();
+
+      // copy the dependencies so we can mutate them
+      rdcarray<VkSubpassDependency> deps;
+      deps.assign(info.pDependencies, info.dependencyCount);
+
+      info.pDependencies = deps.data();
 
       rpinfo.loadRPs.resize(pCreateInfo->subpassCount);
 
@@ -1232,8 +1289,8 @@ VkResult WrappedVulkan::vkCreateRenderPass2(VkDevice device,
 
       VkRenderPassCreateInfo2 info = *pCreateInfo;
 
-      VkAttachmentDescription2 atts[16];
-      RDCASSERT(ARRAY_COUNT(atts) >= (size_t)info.attachmentCount);
+      rdcarray<VkAttachmentDescription2> atts;
+      atts.resize(info.attachmentCount);
 
       // make a version of the render pass that loads from its attachments,
       // so it can be used for replaying a single draw after a render pass
@@ -1245,7 +1302,13 @@ VkResult WrappedVulkan::vkCreateRenderPass2(VkDevice device,
         atts[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
       }
 
-      info.pAttachments = atts;
+      info.pAttachments = atts.data();
+
+      // copy the dependencies so we can mutate them
+      rdcarray<VkSubpassDependency2> deps;
+      deps.assign(info.pDependencies, info.dependencyCount);
+
+      info.pDependencies = deps.data();
 
       rpinfo.loadRPs.resize(pCreateInfo->subpassCount);
 
@@ -1794,18 +1857,19 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
       break;
     }
 
+    // private data slots are not wrapped
+    case VK_OBJECT_TYPE_PRIVATE_DATA_SLOT_EXT:
+      ret.unwrapped = object;
+      break;
+
     // these objects are not supported
-    case VK_OBJECT_TYPE_OBJECT_TABLE_NVX:
-    case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX:
-    case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV:
+    case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR:
     case VK_OBJECT_TYPE_PERFORMANCE_CONFIGURATION_INTEL:
+    case VK_OBJECT_TYPE_DEFERRED_OPERATION_KHR:
+    case VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NV:
     case VK_OBJECT_TYPE_UNKNOWN:
-    case VK_OBJECT_TYPE_RANGE_SIZE:
     case VK_OBJECT_TYPE_MAX_ENUM: break;
   }
-
-  RDCCOMPILE_ASSERT(VK_OBJECT_TYPE_END_RANGE == VK_OBJECT_TYPE_COMMAND_POOL,
-                    "Enum added to object type");
 
   // if we have a record and no unwrapped object, fetch it out of the record
   if(ret.record && ret.unwrapped == 0)
@@ -1854,22 +1918,14 @@ static ObjData GetObjData(VkDebugReportObjectTypeEXT objType, uint64_t object)
     castType = VK_OBJECT_TYPE_DISPLAY_MODE_KHR;
   else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT_EXT)
     castType = VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT;
-  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_OBJECT_TABLE_NVX_EXT)
-    castType = VK_OBJECT_TYPE_OBJECT_TABLE_NVX;
-  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX_EXT)
-    castType = VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NVX;
   else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT_EXT)
     castType = VK_OBJECT_TYPE_VALIDATION_CACHE_EXT;
   else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_EXT)
     castType = VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION;
   else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_EXT)
     castType = VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE;
-  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV_EXT)
-    castType = VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV;
-
-  RDCCOMPILE_ASSERT(VK_DEBUG_REPORT_OBJECT_TYPE_END_RANGE_EXT ==
-                        VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT_EXT,
-                    "Enum added to debug report object type");
+  else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR_EXT)
+    castType = VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR;
 
   return GetObjData((VkObjectType)objType, object);
 }
@@ -2209,4 +2265,40 @@ VkResult WrappedVulkan::vkAcquireProfilingLockKHR(VkDevice device,
 void WrappedVulkan::vkReleaseProfilingLockKHR(VkDevice device)
 {
   ObjDisp(device)->ReleaseProfilingLockKHR(Unwrap(device));
+}
+
+VkResult WrappedVulkan::vkCreatePrivateDataSlotEXT(VkDevice device,
+                                                   const VkPrivateDataSlotCreateInfoEXT *pCreateInfo,
+                                                   const VkAllocationCallbacks *pAllocator,
+                                                   VkPrivateDataSlotEXT *pPrivateDataSlot)
+{
+  // don't even wrap the slot, keep it unwrapped since we don't care about it
+  return ObjDisp(device)->CreatePrivateDataSlotEXT(Unwrap(device), pCreateInfo, pAllocator,
+                                                   pPrivateDataSlot);
+}
+
+void WrappedVulkan::vkDestroyPrivateDataSlotEXT(VkDevice device, VkPrivateDataSlotEXT privateDataSlot,
+                                                const VkAllocationCallbacks *pAllocator)
+{
+  return ObjDisp(device)->DestroyPrivateDataSlotEXT(Unwrap(device), privateDataSlot, pAllocator);
+}
+
+VkResult WrappedVulkan::vkSetPrivateDataEXT(VkDevice device, VkObjectType objectType,
+                                            uint64_t objectHandle,
+                                            VkPrivateDataSlotEXT privateDataSlot, uint64_t data)
+{
+  ObjData objdata = GetObjData(objectType, objectHandle);
+
+  return ObjDisp(device)->SetPrivateDataEXT(Unwrap(device), objectType, objdata.unwrapped,
+                                            privateDataSlot, data);
+}
+
+void WrappedVulkan::vkGetPrivateDataEXT(VkDevice device, VkObjectType objectType,
+                                        uint64_t objectHandle, VkPrivateDataSlotEXT privateDataSlot,
+                                        uint64_t *pData)
+{
+  ObjData objdata = GetObjData(objectType, objectHandle);
+
+  return ObjDisp(device)->GetPrivateDataEXT(Unwrap(device), objectType, objdata.unwrapped,
+                                            privateDataSlot, pData);
 }

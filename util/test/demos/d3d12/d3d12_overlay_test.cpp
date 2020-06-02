@@ -146,6 +146,7 @@ float4 main() : SV_Target0
     creator.GraphicsDesc.DepthStencilState.StencilEnable = FALSE;
     creator.GraphicsDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
     creator.PS(whitepsblob);
+    creator.DSV(DXGI_FORMAT_UNKNOWN);
     ID3D12PipelineStatePtr whitepipe = creator;
 
     ResourceBarrier(vb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);

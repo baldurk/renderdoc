@@ -505,14 +505,24 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(VkDevice device, VkPipelineCac
 {
   VkGraphicsPipelineCreateInfo *unwrapped = UnwrapInfos(pCreateInfos, count);
   VkResult ret;
+
+  // to be extra sure just in case the driver doesn't, set pipelines to VK_NULL_HANDLE first.
+  for(uint32_t i = 0; i < count; i++)
+    pPipelines[i] = VK_NULL_HANDLE;
+
   SERIALISE_TIME_CALL(
       ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache), count,
                                                      unwrapped, pAllocator, pPipelines));
 
-  if(ret == VK_SUCCESS)
+  if(ret == VK_SUCCESS || ret == VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT)
   {
     for(uint32_t i = 0; i < count; i++)
     {
+      // any pipelines that are VK_NULL_HANDLE, silently ignore as they failed but we might have
+      // successfully created some before then.
+      if(pPipelines[i] == VK_NULL_HANDLE)
+        continue;
+
       ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), pPipelines[i]);
 
       if(IsCaptureMode(m_State))

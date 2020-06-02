@@ -1469,6 +1469,7 @@ GLenum GetViewCastedFormat(GLenum internalFormat, CompType typeCast)
     case eGL_SRGB8_ALPHA8:
       switch(typeCast)
       {
+        case CompType::Float:
         case CompType::UNorm: internalFormat = eGL_RGBA8; break;
         case CompType::SNorm: internalFormat = eGL_RGBA8_SNORM; break;
         case CompType::UInt: internalFormat = eGL_RGBA8UI; break;
@@ -1487,6 +1488,7 @@ GLenum GetViewCastedFormat(GLenum internalFormat, CompType typeCast)
     case eGL_SRGB8:
       switch(typeCast)
       {
+        case CompType::Float:
         case CompType::UNorm: internalFormat = eGL_RGB8; break;
         case CompType::SNorm: internalFormat = eGL_RGB8_SNORM; break;
         case CompType::UInt: internalFormat = eGL_RGB8UI; break;
@@ -1503,6 +1505,7 @@ GLenum GetViewCastedFormat(GLenum internalFormat, CompType typeCast)
     case eGL_RG8I:
       switch(typeCast)
       {
+        case CompType::Float:
         case CompType::UNorm: internalFormat = eGL_RG8; break;
         case CompType::SNorm: internalFormat = eGL_RG8_SNORM; break;
         case CompType::UInt: internalFormat = eGL_RG8UI; break;
@@ -1519,6 +1522,7 @@ GLenum GetViewCastedFormat(GLenum internalFormat, CompType typeCast)
     case eGL_R8I:
       switch(typeCast)
       {
+        case CompType::Float:
         case CompType::UNorm: internalFormat = eGL_R8; break;
         case CompType::SNorm: internalFormat = eGL_R8_SNORM; break;
         case CompType::UInt: internalFormat = eGL_R8UI; break;

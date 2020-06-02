@@ -266,7 +266,9 @@ void ReplayOutput::RefreshOverlay()
 
   if(m_Type == ReplayOutputType::Texture && m_RenderData.texDisplay.overlay != DebugOverlay::NoOverlay)
   {
-    if(draw && m_pDevice->IsRenderOutput(m_RenderData.texDisplay.resourceId))
+    ResourceId id = m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId);
+
+    if(draw && m_pDevice->IsRenderOutput(id))
     {
       FloatVector f = m_RenderData.texDisplay.backgroundColor;
 
@@ -274,10 +276,8 @@ void ReplayOutput::RefreshOverlay()
       f.y = ConvertLinearToSRGB(f.y);
       f.z = ConvertLinearToSRGB(f.z);
 
-      m_OverlayResourceId = m_pDevice->RenderOverlay(
-          m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId),
-          m_RenderData.texDisplay.subresource, m_RenderData.texDisplay.typeCast, f,
-          m_RenderData.texDisplay.overlay, m_EventID, passEvents);
+      m_OverlayResourceId =
+          m_pDevice->RenderOverlay(id, f, m_RenderData.texDisplay.overlay, m_EventID, passEvents);
       m_OverlayDirty = false;
     }
     else
@@ -733,9 +733,10 @@ void ReplayOutput::DisplayTex()
 
   m_pDevice->RenderTexture(texDisplay);
 
+  ResourceId id = m_pDevice->GetLiveID(m_RenderData.texDisplay.resourceId);
+
   if(m_RenderData.texDisplay.overlay != DebugOverlay::NoOverlay && draw &&
-     m_pDevice->IsRenderOutput(m_RenderData.texDisplay.resourceId) &&
-     m_RenderData.texDisplay.overlay != DebugOverlay::NaN &&
+     m_pDevice->IsRenderOutput(id) && m_RenderData.texDisplay.overlay != DebugOverlay::NaN &&
      m_RenderData.texDisplay.overlay != DebugOverlay::Clipping && m_OverlayResourceId != ResourceId())
   {
     texDisplay.resourceId = m_pDevice->GetLiveID(m_OverlayResourceId);

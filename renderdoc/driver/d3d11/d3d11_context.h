@@ -145,6 +145,7 @@ private:
 
   WrappedID3D11VideoContext2 m_WrappedVideo;
 
+  D3D11_DEVICE_CONTEXT_TYPE m_Type;
   bool m_NeedUpdateSubWorkaround;
 
   WriteSerialiser m_ScratchSerialiser;

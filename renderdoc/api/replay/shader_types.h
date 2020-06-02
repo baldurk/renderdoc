@@ -995,9 +995,9 @@ struct ShaderConstant
   DOCUMENT("The name of this constant");
   rdcstr name;
   DOCUMENT("The byte offset of this constant relative to the parent structure");
-  uint32_t byteOffset;
+  uint32_t byteOffset = 0;
   DOCUMENT("If this constant is no larger than a 64-bit constant, gives a default value for it.");
-  uint64_t defaultValue;
+  uint64_t defaultValue = 0;
   DOCUMENT(
       "A :class:`ShaderVariableType` giving details of the type information for this constant.");
   ShaderVariableType type;

@@ -53,7 +53,7 @@ struct VkInitParams
   uint64_t GetSerialiseSize();
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x11;
+  static const uint64_t CurrentVersion = 0x12;
   static bool IsSupportedVersion(uint64_t ver);
 };
 
@@ -385,10 +385,11 @@ private:
     uint32_t uploadMemIndex = 0;
     uint32_t GPULocalMemIndex = 0;
 
-    VkPhysicalDeviceFeatures features = {};
+    VkPhysicalDeviceFeatures availFeatures = {};
+    VkPhysicalDeviceFeatures enabledFeatures = {};
     VkPhysicalDeviceProperties props = {};
     VkPhysicalDeviceMemoryProperties memProps = {};
-    VkFormatProperties fmtprops[VK_FORMAT_RANGE_SIZE] = {};
+    std::map<VkFormat, VkFormatProperties> fmtProps = {};
     VkDriverInfo driverInfo = VkDriverInfo(props);
 
     VkPhysicalDevicePerformanceQueryFeaturesKHR performanceQueryFeatures = {};
@@ -398,6 +399,7 @@ private:
   };
 
   bool m_SeparateDepthStencil = false;
+  bool m_NULLDescriptorsAllowed = false;
 
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
@@ -532,10 +534,7 @@ private:
   rdcarray<VkEvent> m_CleanupEvents;
   rdcarray<VkEvent> m_PersistentEvents;
 
-  const VkFormatProperties &GetFormatProperties(VkFormat f)
-  {
-    return m_PhysicalDeviceData.fmtprops[f];
-  }
+  const VkFormatProperties &GetFormatProperties(VkFormat f);
 
   struct BakedCmdBufferInfo
   {
@@ -693,11 +692,12 @@ private:
   struct DescriptorSetInfo
   {
     DescriptorSetInfo(bool p = false) : push(p) {}
-    DescriptorSetInfo(const DescriptorSetInfo &) = default;
-    DescriptorSetInfo &operator=(const DescriptorSetInfo &) = default;
+    DescriptorSetInfo(const DescriptorSetInfo &) = delete;
+    DescriptorSetInfo &operator=(const DescriptorSetInfo &) = delete;
     ~DescriptorSetInfo() { clear(); }
     ResourceId layout;
     rdcarray<DescriptorSetSlot *> currentBindings;
+    bytebuf inlineData;
     bool push;
 
     void clear()
@@ -706,6 +706,7 @@ private:
 
       for(size_t i = 0; i < currentBindings.size(); i++)
         delete[] currentBindings[i];
+      inlineData.clear();
       currentBindings.clear();
     }
   };
@@ -713,6 +714,15 @@ private:
   // capture-side data
 
   ResourceId m_LastSwap;
+
+  // hold onto device address resources (buffers and memories) so that if one is destroyed
+  // mid-capture we can hold onto it until the capture is complete.
+  struct
+  {
+    rdcarray<VkDeviceMemory> DeadMemories;
+    rdcarray<VkBuffer> DeadBuffers;
+    rdcarray<ResourceId> IDs;
+  } m_DeviceAddressResources;
 
   // holds the current list of coherent mapped memory. Locked against concurrent use
   rdcarray<VkResourceRecord *> m_CoherentMaps;
@@ -1001,6 +1011,10 @@ public:
   {
     return m_DescriptorSetState[descSet].currentBindings;
   }
+  const bytebuf &GetCurrentDescSetInlineData(ResourceId descSet)
+  {
+    return m_DescriptorSetState[descSet].inlineData;
+  }
 
   uint32_t GetReadbackMemoryIndex(uint32_t resourceCompatibleBitmask);
   uint32_t GetUploadMemoryIndex(uint32_t resourceCompatibleBitmask);
@@ -1041,7 +1055,11 @@ public:
   void SubmitSemaphores();
   void FlushQ();
 
+  bool SelectGraphicsComputeQueue(const rdcarray<VkQueueFamilyProperties> &queueProps,
+                                  VkDeviceCreateInfo &createInfo, uint32_t &queueFamilyIndex);
+
   bool SeparateDepthStencil() const { return m_SeparateDepthStencil; }
+  bool NULLDescriptorsAllowed() const { return m_NULLDescriptorsAllowed; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetDrawcallCB(VulkanDrawcallCallback *cb) { m_DrawcallCallback = cb; }
   void SetSubmitChain(void *submitChain) { m_SubmitChain = submitChain; }
@@ -1059,7 +1077,14 @@ public:
   static VkResult GetProvidedInstanceExtensionProperties(uint32_t *pPropertyCount,
                                                          VkExtensionProperties *pProperties);
 
-  const VkPhysicalDeviceFeatures &GetDeviceFeatures() { return m_PhysicalDeviceData.features; }
+  const VkPhysicalDeviceFeatures &GetDeviceEnabledFeatures()
+  {
+    return m_PhysicalDeviceData.enabledFeatures;
+  }
+  const VkPhysicalDeviceFeatures &GetDeviceAvailableFeatures()
+  {
+    return m_PhysicalDeviceData.availFeatures;
+  }
   const VkPhysicalDeviceProperties &GetDeviceProps() { return m_PhysicalDeviceData.props; }
   const VkPhysicalDevicePerformanceQueryFeaturesKHR &GetPhysicalDevicePerformanceQueryFeatures()
   {
@@ -2262,4 +2287,20 @@ public:
 
   VkResult vkGetPhysicalDeviceToolPropertiesEXT(VkPhysicalDevice physicalDevice, uint32_t *pToolCount,
                                                 VkPhysicalDeviceToolPropertiesEXT *pToolProperties);
+
+  // VK_EXT_private_data
+
+  VkResult vkCreatePrivateDataSlotEXT(VkDevice device,
+                                      const VkPrivateDataSlotCreateInfoEXT *pCreateInfo,
+                                      const VkAllocationCallbacks *pAllocator,
+                                      VkPrivateDataSlotEXT *pPrivateDataSlot);
+
+  void vkDestroyPrivateDataSlotEXT(VkDevice device, VkPrivateDataSlotEXT privateDataSlot,
+                                   const VkAllocationCallbacks *pAllocator);
+
+  VkResult vkSetPrivateDataEXT(VkDevice device, VkObjectType objectType, uint64_t objectHandle,
+                               VkPrivateDataSlotEXT privateDataSlot, uint64_t data);
+
+  void vkGetPrivateDataEXT(VkDevice device, VkObjectType objectType, uint64_t objectHandle,
+                           VkPrivateDataSlotEXT privateDataSlot, uint64_t *pData);
 };

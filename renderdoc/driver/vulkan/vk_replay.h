@@ -322,8 +322,11 @@ public:
                  float *maxval);
   bool GetHistogram(ResourceId texid, const Subresource &sub, CompType typeCast, float minval,
                     float maxval, bool channels[4], rdcarray<uint32_t> &histogram);
-  void UpdatePixelHistoryDescriptor(VkImageView sourceView, VkImageView depthImageView,
-                                    VkImageView stencilImageView, VkBuffer destBuffer);
+
+  VkDescriptorSet GetPixelHistoryDescriptor();
+  void ResetPixelHistoryDescriptorPool();
+  void UpdatePixelHistoryDescriptor(VkDescriptorSet descSet, VkBuffer buffer, VkImageView imgView1,
+                                    VkImageView imgView2);
 
   void InitPostVSBuffers(uint32_t eventId);
   void InitPostVSBuffers(uint32_t eventId, VulkanRenderState &state);
@@ -378,13 +381,13 @@ public:
   ShaderDebugTrace *DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                 const uint32_t threadid[3]);
   rdcarray<ShaderDebugState> ContinueDebug(ShaderDebugger *debugger);
+  void FreeDebugger(ShaderDebugger *debugger);
 
   uint32_t PickVertex(uint32_t eventId, int32_t width, int32_t height, const MeshDisplay &cfg,
                       uint32_t x, uint32_t y);
 
-  ResourceId RenderOverlay(ResourceId texid, const Subresource &sub, CompType typeCast,
-                           FloatVector clearCol, DebugOverlay overlay, uint32_t eventId,
-                           const rdcarray<uint32_t> &passEvents);
+  ResourceId RenderOverlay(ResourceId texid, FloatVector clearCol, DebugOverlay overlay,
+                           uint32_t eventId, const rdcarray<uint32_t> &passEvents);
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, const Subresource &sub,
                                CompType typeCast);
 
@@ -396,8 +399,8 @@ public:
   ResourceId CreateProxyBuffer(const BufferDescription &templateBuf);
   void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize);
 
-  bool IsRenderOutput(ResourceId id);
-
+  RenderOutputSubresource GetRenderOutputSubresource(ResourceId id);
+  bool IsRenderOutput(ResourceId id) { return GetRenderOutputSubresource(id).mip != ~0U; }
   void FileChanged();
 
   void InitCallstackResolver();
@@ -416,7 +419,7 @@ public:
 
   AMDCounters *GetAMDCounters() { return m_pAMDCounters; }
   void CopyPixelForPixelHistory(VkCommandBuffer cmd, VkOffset2D offset, uint32_t sample,
-                                uint32_t bufferOffset, bool depthCopy);
+                                uint32_t bufferOffset, VkFormat format, VkDescriptorSet descSet);
 
 private:
   void FetchShaderFeedback(uint32_t eventId);
@@ -593,12 +596,13 @@ private:
     VkDeviceSize ImageMemSize = 0;
     VkImage Image = VK_NULL_HANDLE;
     VkExtent2D ImageDim = {0, 0};
-    int32_t MipLevels = 0;
+    int32_t MipLevels = 0, ArrayLayers = 0;
+    uint32_t MultiViewMask = 0;
     VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT;
     VkRenderPass NoDepthRP = VK_NULL_HANDLE;
 
     // the view and framebuffer must be recreated if the mip changes, even if the image doesn't
-    uint32_t MipLevel = ~0U;
+    uint32_t ViewMip = ~0U, ViewSlice = ~0U, ViewNumSlices = ~0U;
     VkImageView ImageView = VK_NULL_HANDLE;
     VkFramebuffer NoDepthFB = VK_NULL_HANDLE;
 
@@ -674,9 +678,9 @@ private:
     void Destroy(WrappedVulkan *driver);
 
     VkDescriptorSetLayout MSCopyDescSetLayout = VK_NULL_HANDLE;
-    VkDescriptorSet MSCopyDescSet = VK_NULL_HANDLE;
-    VkDescriptorSet MSDepthCopyDescSet = VK_NULL_HANDLE;
+    VkDescriptorPool MSCopyDescPool = VK_NULL_HANDLE;
     VkPipeline MSCopyPipe = VK_NULL_HANDLE;
+    VkPipeline MSCopyDepthPipe = VK_NULL_HANDLE;
     VkPipelineLayout MSCopyPipeLayout = VK_NULL_HANDLE;
   } m_PixelHistory;
 

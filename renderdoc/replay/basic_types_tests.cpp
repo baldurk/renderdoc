@@ -463,6 +463,43 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(vec[1] == 5);
   };
 
+  SECTION("resize_for_index")
+  {
+    rdcarray<int> test;
+
+    CHECK(test.empty());
+
+    test.resize_for_index(0);
+
+    CHECK(test.size() == 1);
+    CHECK(test.capacity() >= 1);
+
+    test.resize_for_index(5);
+
+    CHECK(test.size() == 5);
+    CHECK(test.capacity() >= 5);
+
+    test.resize_for_index(5);
+
+    CHECK(test.size() == 5);
+    CHECK(test.capacity() >= 5);
+
+    test.resize_for_index(3);
+
+    CHECK(test.size() == 5);
+    CHECK(test.capacity() >= 5);
+
+    test.resize_for_index(0);
+
+    CHECK(test.size() == 5);
+    CHECK(test.capacity() >= 5);
+
+    test.resize_for_index(9);
+
+    CHECK(test.size() == 9);
+    CHECK(test.capacity() >= 9);
+  };
+
   SECTION("Check construction")
   {
     rdcarray<ConstructorCounter> test;
@@ -1161,6 +1198,13 @@ TEST_CASE("Test string type", "[basictypes][string]")
     CHECK(rdcstr("  Foo\nbar").trimmed() == "Foo\nbar");
     CHECK(rdcstr("FOO BAR  ").trimmed() == "FOO BAR");
     CHECK(rdcstr("FOO BAR  \t\n").trimmed() == "FOO BAR");
+    CHECK(rdcstr("1").trimmed() == "1");
+    CHECK(rdcstr("  1  ").trimmed() == "1");
+    CHECK(rdcstr("  1").trimmed() == "1");
+    CHECK(rdcstr("1  ").trimmed() == "1");
+    CHECK(rdcstr("1\n ").trimmed() == "1");
+    CHECK(rdcstr("\n1\n ").trimmed() == "1");
+    CHECK(rdcstr(" \n\t1\n ").trimmed() == "1");
     CHECK(rdcstr("").trimmed() == "");
     CHECK(rdcstr("  ").trimmed() == "");
     CHECK(rdcstr("  \t  \n ").trimmed() == "");

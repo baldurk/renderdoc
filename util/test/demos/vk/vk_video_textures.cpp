@@ -859,16 +859,10 @@ void main()
 
       for(size_t i = 0; i < ARRAY_COUNT(ycbcr); i++)
       {
-        VkSamplerCreateInfo sampInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
         VkSamplerYcbcrConversionInfo ycbcrChain = {VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO};
 
-        sampInfo.pNext = &ycbcrChain;
-
-        sampInfo.magFilter = VK_FILTER_LINEAR;
-        sampInfo.minFilter = VK_FILTER_LINEAR;
-
         ycbcrChain.conversion = ycbcr[i].conv;
-        vkCreateSampler(device, &sampInfo, NULL, &ycbcr[i].sampler);
+        ycbcr[i].sampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_LINEAR).next(&ycbcrChain));
 
         setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
             {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -986,11 +980,7 @@ void main()
     vkDeviceWaitIdle(device);
 
     for(size_t i = 0; i < ARRAY_COUNT(ycbcr); i++)
-    {
-      vkDestroySampler(device, ycbcr[i].sampler, NULL);
-
       vkDestroySamplerYcbcrConversionKHR(device, ycbcr[i].conv, NULL);
-    }
 
     return 0;
   }

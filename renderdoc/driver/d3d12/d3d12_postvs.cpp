@@ -400,7 +400,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     else    // drawcall is indexed
     {
       bytebuf idxdata;
-      if(rs.ibuffer.buf != ResourceId())
+      if(rs.ibuffer.buf != ResourceId() && rs.ibuffer.size > 0)
         GetBufferData(rs.ibuffer.buf, rs.ibuffer.offs + drawcall->indexOffset * rs.ibuffer.bytewidth,
                       RDCMIN(drawcall->numIndices * rs.ibuffer.bytewidth, rs.ibuffer.size), idxdata);
 
@@ -1361,6 +1361,7 @@ MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint
   {
     ret.indexResourceId = GetResID(s.idxBuf);
     ret.indexByteStride = s.idxFmt == DXGI_FORMAT_R16_UINT ? 2 : 4;
+    ret.indexByteSize = ~0ULL;
   }
   else
   {
@@ -1371,9 +1372,15 @@ MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint
   ret.baseVertex = 0;
 
   if(s.buf != NULL)
+  {
     ret.vertexResourceId = GetResID(s.buf);
+    ret.vertexByteSize = ~0ULL;
+  }
   else
+  {
     ret.vertexResourceId = ResourceId();
+    ret.vertexByteSize = 0;
+  }
 
   ret.vertexByteOffset = s.instStride * instID;
   ret.vertexByteStride = s.vertStride;

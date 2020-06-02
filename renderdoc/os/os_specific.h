@@ -381,17 +381,18 @@ inline bool ReadAll(const rdcstr &filename, rdcstr &str)
   if(f == NULL)
     return false;
 
-  FileIO::fseek64(f, 0, SEEK_END);
-  uint64_t size = ftell64(f);
-  FileIO::fseek64(f, 0, SEEK_SET);
+  char chunk[513];
 
-  str.resize((size_t)size);
-
-  size_t numRead = FileIO::fread(&str[0], 1, str.size(), f);
+  while(!FileIO::feof(f))
+  {
+    memset(chunk, 0, 513);
+    size_t numRead = FileIO::fread(chunk, 1, 512, f);
+    str.append(chunk, numRead);
+  }
 
   FileIO::fclose(f);
 
-  return numRead == str.size();
+  return true;
 }
 };
 

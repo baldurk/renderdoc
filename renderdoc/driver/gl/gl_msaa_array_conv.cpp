@@ -231,45 +231,42 @@ void WrappedOpenGL::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLi
 {
   GLMarkerRegion renderoverlay("CopyDepthTex2DMSToArray");
 
-  WrappedOpenGL &drv = *this;
-
   const ArrayMSPrograms &arrms = GetArrayMS();
 
   GLRenderState rs;
   rs.FetchState(this);
 
   GLuint vao = 0;
-  drv.glGenVertexArrays(1, &vao);
-  drv.glBindVertexArray(vao);
+  GL.glGenVertexArrays(1, &vao);
+  GL.glBindVertexArray(vao);
 
   GLuint texs[3];
-  drv.glGenTextures(3, texs);
-  drv.glTextureView(texs[0], eGL_TEXTURE_2D_ARRAY, destArray, intFormat, 0, 1, 0,
-                    arraySize * samples);
-  drv.glTextureView(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, srcMS, intFormat, 0, 1, 0, arraySize);
-  drv.glTextureView(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, srcMS, intFormat, 0, 1, 0, arraySize);
-  drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-  drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+  GL.glGenTextures(3, texs);
+  GL.glTextureView(texs[0], eGL_TEXTURE_2D_ARRAY, destArray, intFormat, 0, 1, 0, arraySize * samples);
+  GL.glTextureView(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, srcMS, intFormat, 0, 1, 0, arraySize);
+  GL.glTextureView(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, srcMS, intFormat, 0, 1, 0, arraySize);
+  GL.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
+  GL.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
   GLuint fbo = 0;
-  drv.glGenFramebuffers(1, &fbo);
-  drv.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
-  drv.glDrawBuffers(0, NULL);
+  GL.glGenFramebuffers(1, &fbo);
+  GL.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
+  GL.glDrawBuffers(0, NULL);
 
-  drv.glUseProgram(arrms.DepthMS2Array);
-  drv.glViewport(0, 0, width, height);
+  GL.glUseProgram(arrms.DepthMS2Array);
+  GL.glViewport(0, 0, width, height);
 
-  drv.glDisable(eGL_CULL_FACE);
-  drv.glDisable(eGL_BLEND);
-  drv.glDisable(eGL_SCISSOR_TEST);
+  GL.glDisable(eGL_CULL_FACE);
+  GL.glDisable(eGL_BLEND);
+  GL.glDisable(eGL_SCISSOR_TEST);
   if(!IsGLES)
-    drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
-  drv.glEnable(eGL_DEPTH_TEST);
-  drv.glEnable(eGL_STENCIL_TEST);
-  drv.glDepthFunc(eGL_ALWAYS);
-  drv.glDepthMask(GL_TRUE);
-  drv.glStencilOp(eGL_REPLACE, eGL_REPLACE, eGL_REPLACE);
-  drv.glStencilMask(0xff);
+    GL.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+  GL.glEnable(eGL_DEPTH_TEST);
+  GL.glEnable(eGL_STENCIL_TEST);
+  GL.glDepthFunc(eGL_ALWAYS);
+  GL.glDepthMask(GL_TRUE);
+  GL.glStencilOp(eGL_REPLACE, eGL_REPLACE, eGL_REPLACE);
+  GL.glStencilMask(0xff);
 
   uint32_t numStencil = 1;
   GLenum attach = eGL_DEPTH_ATTACHMENT;
@@ -294,59 +291,59 @@ void WrappedOpenGL::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLi
   if(attach == eGL_DEPTH_STENCIL_ATTACHMENT || attach == eGL_DEPTH_ATTACHMENT)
   {
     // depth aspect
-    drv.glActiveTexture(eGL_TEXTURE0);
-    drv.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[1]);
-    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
-    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE,
-                        eGL_DEPTH_COMPONENT);
+    GL.glActiveTexture(eGL_TEXTURE0);
+    GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[1]);
+    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
+    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE,
+                       eGL_DEPTH_COMPONENT);
   }
 
   if(numStencil > 1)
   {
     // stencil aspect
-    drv.glActiveTexture(eGL_TEXTURE1);
-    drv.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[2]);
-    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
-    drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE,
-                        eGL_STENCIL_INDEX);
+    GL.glActiveTexture(eGL_TEXTURE1);
+    GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[2]);
+    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
+    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE,
+                       eGL_STENCIL_INDEX);
   }
 
-  GLint loc = drv.glGetUniformLocation(arrms.DepthMS2Array, "mscopy");
+  GLint loc = GL.glGetUniformLocation(arrms.DepthMS2Array, "mscopy");
   if(loc >= 0)
   {
     for(GLint i = 0; i < arraySize * samples; i++)
     {
-      drv.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, attach, texs[0], 0, i);
+      GL.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, attach, texs[0], 0, i);
 
       for(uint32_t s = 0; s < numStencil; s++)
       {
         uint32_t currentStencil = numStencil == 1 ? 1000 : s;
 
-        drv.glStencilFunc(eGL_ALWAYS, int(s), 0xff);
+        GL.glStencilFunc(eGL_ALWAYS, int(s), 0xff);
 
-        drv.glProgramUniform4i(arrms.DepthMS2Array, loc, samples, i % samples, i / samples,
-                               currentStencil);
+        GL.glProgramUniform4i(arrms.DepthMS2Array, loc, samples, i % samples, i / samples,
+                              currentStencil);
 
-        drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+        GL.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
       }
     }
   }
 
   rs.ApplyState(this);
 
-  drv.glDeleteVertexArrays(1, &vao);
-  drv.glDeleteFramebuffers(1, &fbo);
-  drv.glDeleteTextures(3, texs);
+  GL.glDeleteVertexArrays(1, &vao);
+  GL.glDeleteFramebuffers(1, &fbo);
+  GL.glDeleteTextures(3, texs);
 }
 
 void WrappedOpenGL::CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height,

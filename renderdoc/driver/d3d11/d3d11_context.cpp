@@ -95,7 +95,14 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   HRESULT hr = S_OK;
 
   if(m_pRealContext)
+  {
     hr = m_pDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &features, sizeof(features));
+    m_Type = m_pRealContext->GetType();
+  }
+  else
+  {
+    m_Type = D3D11_DEVICE_CONTEXT_IMMEDIATE;
+  }
 
   m_SetCBuffer1 = false;
   if(SUCCEEDED(hr))
@@ -176,7 +183,7 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   m_DeferredSavedState = NULL;
   m_DoStateVerify = IsCaptureMode(m_State);
 
-  if(!context || context->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
+  if(!context || GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
   {
     m_CurrentPipelineState->SetImmediatePipeline(m_pDevice);
 
@@ -203,7 +210,7 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
   if(m_ContextRecord)
     m_ContextRecord->Delete(m_pDevice->GetResourceManager());
 
-  if(m_pRealContext && m_pRealContext->GetType() != D3D11_DEVICE_CONTEXT_IMMEDIATE)
+  if(m_pRealContext && GetType() != D3D11_DEVICE_CONTEXT_IMMEDIATE)
     m_pDevice->RemoveDeferredContext(this);
 
   for(auto it = m_StreamOutCounters.begin(); it != m_StreamOutCounters.end(); ++it)
@@ -416,7 +423,7 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(SerialiserType &ser
 
 void WrappedID3D11DeviceContext::MarkResourceReferenced(ResourceId id, FrameRefType refType)
 {
-  if(m_pRealContext->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
+  if(GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
   {
     m_pDevice->GetResourceManager()->MarkResourceFrameReferenced(id, refType);
   }
@@ -440,7 +447,7 @@ void WrappedID3D11DeviceContext::MarkResourceReferenced(ResourceId id, FrameRefT
 
 void WrappedID3D11DeviceContext::MarkDirtyResource(ResourceId id)
 {
-  if(m_pRealContext->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
+  if(GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
   {
     m_pDevice->GetResourceManager()->MarkDirtyResource(id);
   }
@@ -1283,7 +1290,7 @@ ReplayStatus WrappedID3D11DeviceContext::ReplayLog(CaptureState readType, uint32
         LoadProgress::FrameEventsRead,
         float(m_CurChunkOffset - startOffset) / float(ser.GetReader()->GetSize()));
 
-    if((SystemChunk)chunktype == SystemChunk::CaptureEnd)
+    if((SystemChunk)chunktype == SystemChunk::CaptureEnd || ser.GetReader()->AtEnd())
       break;
 
     m_LastChunk = chunktype;

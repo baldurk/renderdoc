@@ -714,15 +714,10 @@ void RDTreeWidget::expandItem(RDTreeWidgetItem *item)
 {
   expand(m_model->indexForItem(item, 0));
 }
+
 void RDTreeWidget::expandAllItems(RDTreeWidgetItem *item)
 {
-  expandItem(item);
-
-  for(int c = 0; c < item->childCount(); c++)
-  {
-    RDTreeWidgetItem *child = item->child(c);
-    expandAllItems(child);
-  }
+  expandAll(m_model->indexForItem(item, 0));
 }
 
 void RDTreeWidget::collapseItem(RDTreeWidgetItem *item)
@@ -732,13 +727,7 @@ void RDTreeWidget::collapseItem(RDTreeWidgetItem *item)
 
 void RDTreeWidget::collapseAllItems(RDTreeWidgetItem *item)
 {
-  collapseItem(item);
-
-  for(int c = 0; c < item->childCount(); c++)
-  {
-    RDTreeWidgetItem *child = item->child(c);
-    collapseAllItems(child);
-  }
+  collapseAll(m_model->indexForItem(item, 0));
 }
 
 void RDTreeWidget::scrollToItem(RDTreeWidgetItem *node)
@@ -851,73 +840,6 @@ void RDTreeWidget::focusOutEvent(QFocusEvent *event)
     clearSelection();
 
   RDTreeView::focusOutEvent(event);
-}
-
-void RDTreeWidget::keyPressEvent(QKeyEvent *e)
-{
-  if(!m_customCopyPaste && e->matches(QKeySequence::Copy))
-  {
-    copySelection();
-  }
-  else
-  {
-    RDTreeView::keyPressEvent(e);
-  }
-}
-
-void RDTreeWidget::copySelection()
-{
-  QModelIndexList sel = selectionModel()->selectedRows();
-
-  int stackWidths[16];
-  int *heapWidths = NULL;
-
-  int colCount = m_model->columnCount();
-
-  if(colCount >= 16)
-    heapWidths = new int[colCount];
-
-  int *widths = heapWidths ? heapWidths : stackWidths;
-
-  for(int i = 0; i < colCount; i++)
-    widths[i] = 0;
-
-  // align the copied data so that each column is the same width
-  for(QModelIndex idx : sel)
-  {
-    RDTreeWidgetItem *item = m_model->itemForIndex(idx);
-
-    for(int i = 0; i < qMin(colCount, item->m_text.count()); i++)
-    {
-      QString text = item->m_text[i].toString();
-      widths[i] = qMax(widths[i], text.count());
-    }
-  }
-
-  // only align up to 50 characters so one really long item doesn't mess up the whole thing
-  for(int i = 0; i < colCount; i++)
-    widths[i] = qMin(50, widths[i]);
-
-  QString clipData;
-  for(QModelIndex idx : sel)
-  {
-    RDTreeWidgetItem *item = m_model->itemForIndex(idx);
-
-    for(int i = 0; i < qMin(colCount, item->m_text.count()); i++)
-    {
-      QString format = i == 0 ? QFormatStr("%1") : QFormatStr(" %1");
-      QString text = item->m_text[i].toString();
-
-      clipData += format.arg(text, -widths[i]);
-    }
-
-    clipData += lit("\n");
-  }
-
-  QClipboard *clipboard = QApplication::clipboard();
-  clipboard->setText(clipData.trimmed());
-
-  delete[] heapWidths;
 }
 
 void RDTreeWidget::drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const

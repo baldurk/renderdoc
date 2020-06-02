@@ -513,6 +513,68 @@ struct ImageCreateInfo : public VkImageCreateInfo
   operator const VkImageCreateInfo *() const { return this; }
 };
 
+struct SamplerCreateInfo : public VkSamplerCreateInfo
+{
+  // simplified constructor, filter and address mode identical in all directions
+  SamplerCreateInfo(VkFilter filter,
+                    VkSamplerAddressMode addressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                    float maxAnisotropy = 0.0f,
+                    VkBorderColor borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
+                    float mipLodBias = 0.0f, float minLod = 0.0f, float maxLod = 0.0f,
+                    VkCompareOp compareOp = VK_COMPARE_OP_NEVER,
+                    VkBool32 unnormalizedCoordinates = VK_FALSE, VkSamplerCreateFlags flags = 0)
+      : SamplerCreateInfo(filter, filter,
+                          filter == VK_FILTER_NEAREST ? VK_SAMPLER_MIPMAP_MODE_NEAREST
+                                                      : VK_SAMPLER_MIPMAP_MODE_LINEAR,
+                          addressMode, addressMode, addressMode, maxAnisotropy, borderColor,
+                          mipLodBias, minLod, maxLod, compareOp, unnormalizedCoordinates, flags)
+  {
+  }
+
+  SamplerCreateInfo(VkFilter minFilter, VkFilter magFilter,
+                    VkSamplerMipmapMode mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+                    VkSamplerAddressMode addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                    VkSamplerAddressMode addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                    VkSamplerAddressMode addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                    float maxAnisotropy = 0.0f,
+                    VkBorderColor borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
+                    float mipLodBias = 0.0f, float minLod = 0.0f, float maxLod = 0.0f,
+                    VkCompareOp compareOp = VK_COMPARE_OP_NEVER,
+                    VkBool32 unnormalizedCoordinates = VK_FALSE, VkSamplerCreateFlags flags = 0)
+  {
+    sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    pNext = NULL;
+
+    this->flags = flags;
+    this->magFilter = magFilter;
+    this->minFilter = minFilter;
+    this->mipmapMode = mipmapMode;
+    this->addressModeU = addressModeU;
+    this->addressModeV = addressModeV;
+    this->addressModeW = addressModeW;
+
+    this->mipLodBias = mipLodBias;
+
+    this->anisotropyEnable = (maxAnisotropy > 1.0f);
+    this->maxAnisotropy = maxAnisotropy;
+
+    this->compareEnable = compareOp != VK_COMPARE_OP_NEVER;
+    this->compareOp = compareOp;
+    this->minLod = minLod;
+    this->maxLod = maxLod;
+    this->borderColor = borderColor;
+    this->unnormalizedCoordinates = unnormalizedCoordinates;
+  }
+
+  SamplerCreateInfo &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+
+  operator const VkSamplerCreateInfo *() const { return this; }
+};
+
 struct ImageViewCreateInfo : public VkImageViewCreateInfo
 {
   ImageViewCreateInfo(VkImage image, VkImageViewType viewType, VkFormat format,

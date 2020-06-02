@@ -259,12 +259,19 @@ class TestCase:
         else:
             num_indices = min(num_indices, draw.numIndices)
 
+        ioffs = draw.indexOffset * draw.indexByteWidth
+
         mesh = rd.MeshFormat()
         mesh.numIndices = num_indices
-        mesh.indexByteOffset = ib.byteOffset + draw.indexOffset * draw.indexByteWidth
+        mesh.indexByteOffset = ib.byteOffset + ioffs
         mesh.indexByteStride = draw.indexByteWidth
         mesh.indexResourceId = ib.resourceId
         mesh.baseVertex = draw.baseVertex
+
+        if ib.byteSize > ioffs:
+            mesh.indexByteSize = ib.byteSize - ioffs
+        else:
+            mesh.indexByteSize = 0
 
         if not (draw.flags & rd.DrawFlags.Indexed):
             mesh.indexByteOffset = 0
@@ -275,7 +282,7 @@ class TestCase:
 
         first_index = min(first_index, draw.numIndices-1)
 
-        indices = analyse.fetch_indices(self.controller, mesh, 0, first_index, num_indices)
+        indices = analyse.fetch_indices(self.controller, draw, mesh, 0, first_index, num_indices)
 
         return analyse.decode_mesh_data(self.controller, indices, indices, attrs, 0, 0)
 
@@ -295,20 +302,27 @@ class TestCase:
 
         ib: rd.BoundVBuffer = self.controller.GetPipelineState().GetIBuffer()
 
+        ioffs = draw.indexOffset * draw.indexByteWidth
+
         in_mesh = rd.MeshFormat()
         in_mesh.numIndices = num_indices
-        in_mesh.indexByteOffset = ib.byteOffset + draw.indexOffset * draw.indexByteWidth
+        in_mesh.indexByteOffset = ib.byteOffset + ioffs
         in_mesh.indexByteStride = draw.indexByteWidth
         in_mesh.indexResourceId = ib.resourceId
         in_mesh.baseVertex = draw.baseVertex
+
+        if ib.byteSize > ioffs:
+            in_mesh.indexByteSize = ib.byteSize - ioffs
+        else:
+            in_mesh.indexByteSize = 0
 
         if not (draw.flags & rd.DrawFlags.Indexed):
             in_mesh.indexByteOffset = 0
             in_mesh.indexByteStride = 0
             in_mesh.indexResourceId = rd.ResourceId.Null()
 
-        indices = analyse.fetch_indices(self.controller, mesh, 0, first_index, num_indices)
-        in_indices = analyse.fetch_indices(self.controller, in_mesh, 0, first_index, num_indices)
+        indices = analyse.fetch_indices(self.controller, draw, mesh, 0, first_index, num_indices)
+        in_indices = analyse.fetch_indices(self.controller, draw, in_mesh, 0, first_index, num_indices)
 
         attrs = analyse.get_postvs_attrs(self.controller, mesh, data_stage)
 

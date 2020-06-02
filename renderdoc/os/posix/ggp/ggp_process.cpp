@@ -136,6 +136,19 @@ int GetIdentPort(pid_t childPid)
   return ret;
 }
 
+void StopAtMainInChild()
+{
+}
+
+bool StopChildAtMain(pid_t childPid)
+{
+  return false;
+}
+
+void ResumeProcess(pid_t childPid, uint32_t delay)
+{
+}
+
 // because OSUtility::DebuggerPresent is called often we want it to be
 // cheap. Opening and parsing a file would cause high overhead on each
 // call, so instead we just cache it at startup. This fails in the case
