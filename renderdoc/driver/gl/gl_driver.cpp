@@ -5144,6 +5144,41 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
     }
   }
 
+  if(IsActiveReplaying(m_State))
+  {
+    for(size_t i = 0; i < 8; i++)
+    {
+      GLenum q = QueryEnum(i);
+      if(q == eGL_NONE)
+        break;
+
+      int indices = IsGLES ? 1 : 8;    // GLES does not support indices
+      for(int j = 0; j < indices; j++)
+      {
+        if(m_ActiveQueries[i][j])
+        {
+          if(IsGLES)
+            GL.glEndQuery(q);
+          else
+            GL.glEndQueryIndexed(q, j);
+          m_ActiveQueries[i][j] = false;
+        }
+      }
+    }
+
+    if(m_ActiveConditional)
+    {
+      GL.glEndConditionalRender();
+      m_ActiveConditional = false;
+    }
+
+    if(m_ActiveFeedback)
+    {
+      GL.glEndTransformFeedback();
+      m_ActiveFeedback = false;
+    }
+  }
+
   return ReplayStatus::Succeeded;
 }
 
