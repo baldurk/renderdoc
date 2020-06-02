@@ -63,6 +63,7 @@ struct CopyPixelParams
   VkImage srcImage;
   VkFormat srcImageFormat;
   VkImageLayout srcImageLayout;
+  bool multisampled;
 };
 
 struct PixelHistoryResources
@@ -823,7 +824,7 @@ protected:
 
     // For multi-sampled images can't call vkCmdCopyImageToBuffer directly,
     // copy using a compute shader into a staging image first.
-    if(m_CallbackInfo.samples != VK_SAMPLE_COUNT_1_BIT)
+    if(p.multisampled)
     {
       VkImageMemoryBarrier barrier = {
           VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
@@ -909,8 +910,11 @@ protected:
 
   bool HasMultipleSubpasses()
   {
+    ResourceId rp = m_pDriver->GetCmdRenderState().renderPass;
+    if(rp == ResourceId())
+      return false;
     const VulkanCreationInfo::RenderPass &rpInfo =
-        m_pDriver->GetDebugManager()->GetRenderPassInfo(m_pDriver->GetCmdRenderState().renderPass);
+        m_pDriver->GetDebugManager()->GetRenderPassInfo(rp);
     return (rpInfo.subpasses.size() > 1);
   }
 
@@ -1181,6 +1185,7 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       params.srcImage = m_CallbackInfo.dsImage;
       params.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
       params.srcImageFormat = m_CallbackInfo.dsFormat;
+      params.multisampled = (m_CallbackInfo.samples != VK_SAMPLE_COUNT_1_BIT);
       // Copy stencil value that indicates the number of fragments ignoring
       // shader discard.
       CopyImagePixel(cmd, params, storeOffset + offsetof(struct EventInfo, dsWithoutShaderDiscard));
@@ -1328,7 +1333,6 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
   {
     if(!m_Events.contains(eid))
       return;
-
     size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
     CopyPixel(eid, cmd, storeOffset);
   }
@@ -1336,14 +1340,27 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
   {
     if(!m_Events.contains(eid))
       return false;
-
     size_t storeOffset = m_EventIndices.size() * sizeof(EventInfo);
     CopyPixel(eid, cmd, storeOffset + offsetof(struct EventInfo, postmod));
     m_EventIndices.insert(std::make_pair(eid, m_EventIndices.size()));
     return false;
   }
   void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) {}
-  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd) { PreDispatch(eid, cmd); }
+  void PreMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd)
+  {
+    if(!m_Events.contains(eid))
+      return;
+    if(HasMultipleSubpasses())
+    {
+      if(!multipleSubpassWarningPrinted)
+      {
+        RDCWARN("Multiple subpasses in a render pass are not supported for pixel history.");
+        multipleSubpassWarningPrinted = true;
+      }
+      return;
+    }
+    PreDispatch(eid, cmd);
+  }
   bool PostMisc(uint32_t eid, DrawFlags flags, VkCommandBuffer cmd)
   {
     if(!m_Events.contains(eid))
@@ -1407,6 +1424,7 @@ private:
     CopyPixelParams targetCopyParams = {};
     targetCopyParams.srcImage = m_CallbackInfo.targetImage;
     targetCopyParams.srcImageFormat = m_CallbackInfo.targetImageFormat;
+    targetCopyParams.multisampled = (m_CallbackInfo.samples != VK_SAMPLE_COUNT_1_BIT);
     VkImageAspectFlagBits aspect = VK_IMAGE_ASPECT_COLOR_BIT;
     if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
     {
@@ -1433,6 +1451,7 @@ private:
       depthCopyParams.srcImage = depthImage;
       depthCopyParams.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
       depthCopyParams.srcImageFormat = imginfo.format;
+      depthCopyParams.multisampled = (imginfo.samples != VK_SAMPLE_COUNT_1_BIT);
       CopyImagePixel(cmd, depthCopyParams, offset + offsetof(struct PixelHistoryValue, depth));
       m_DepthFormats.insert(std::make_pair(eid, imginfo.format));
     }
@@ -2081,6 +2100,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     CopyPixelParams colourCopyParams = {};
     colourCopyParams.srcImage = m_CallbackInfo.subImage;
     colourCopyParams.srcImageFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+    colourCopyParams.multisampled = (m_CallbackInfo.samples != VK_SAMPLE_COUNT_1_BIT);
     if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
     {
       colourCopyParams.srcImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
