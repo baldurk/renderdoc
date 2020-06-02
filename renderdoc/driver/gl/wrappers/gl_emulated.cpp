@@ -391,8 +391,8 @@ void APIENTRY _glGetNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsize
 void *APIENTRY _glMapNamedBufferEXT(GLuint buffer, GLenum access)
 {
   PushPopBuffer(eGL_COPY_READ_BUFFER, buffer);
-  GLint size = 0;
-  GL.glGetBufferParameteriv(eGL_COPY_READ_BUFFER, eGL_BUFFER_SIZE, &size);
+  GLuint size = 0;
+  GL.glGetBufferParameteriv(eGL_COPY_READ_BUFFER, eGL_BUFFER_SIZE, (GLint *)&size);
 
   GLbitfield accessBits = eGL_MAP_READ_BIT | eGL_MAP_WRITE_BIT;
 
@@ -1872,8 +1872,8 @@ void APIENTRY _glClearBufferSubData(GLenum target, GLenum internalformat, GLintp
 void APIENTRY _glClearBufferData(GLenum target, GLenum internalformat, GLenum format, GLenum type,
                                  const void *data)
 {
-  GLint size = 0;
-  GL.glGetBufferParameteriv(target, eGL_BUFFER_SIZE, &size);
+  GLuint size = 0;
+  GL.glGetBufferParameteriv(target, eGL_BUFFER_SIZE, (GLint *)&size);
 
   _glClearBufferSubData(target, internalformat, 0, (GLsizeiptr)size, format, type, data);
 }
