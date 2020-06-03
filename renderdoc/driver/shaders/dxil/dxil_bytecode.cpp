@@ -1268,6 +1268,8 @@ void Program::MakeDisassemblyString()
   m_Disassembly += StringFormat::Fmt("target datalayout = \"%s\"\n", m_Datalayout.c_str());
   m_Disassembly += StringFormat::Fmt("target triple = \"%s\"\n\n", m_Triple.c_str());
 
+  int instructionLine = 6;
+
   bool typesPrinted = false;
 
   for(size_t i = 0; i < m_Types.size(); i++)
@@ -1288,11 +1290,16 @@ void Program::MakeDisassemblyString()
       }
       m_Disassembly += " }\n";
       typesPrinted = true;
+
+      instructionLine++;
     }
   }
 
   if(typesPrinted)
+  {
     m_Disassembly += "\n";
+    instructionLine++;
+  }
 
   for(size_t i = 0; i < m_GlobalVars.size(); i++)
   {
@@ -1310,17 +1317,24 @@ void Program::MakeDisassemblyString()
       m_Disassembly += StringFormat::Fmt(", align %u", g.align);
 
     m_Disassembly += "\n";
+    instructionLine++;
   }
 
   if(!m_GlobalVars.empty())
+  {
     m_Disassembly += "\n";
+    instructionLine++;
+  }
 
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
     const Function &func = m_Functions[i];
 
     if(func.attrs)
+    {
       m_Disassembly += StringFormat::Fmt("; Function Attrs: %s\n", func.attrs->toString().c_str());
+      instructionLine++;
+    }
 
     m_Disassembly += (func.external ? "declare " : "define ");
     m_Disassembly += func.funcType->declFunction("@" + func.name);
@@ -1331,12 +1345,16 @@ void Program::MakeDisassemblyString()
     if(!func.external)
     {
       m_Disassembly += " {\n";
+      instructionLine++;
       m_Disassembly += "  ; ...\n";
+      instructionLine++;
       m_Disassembly += "}\n\n";
+      instructionLine += 2;
     }
     else
     {
       m_Disassembly += "\n\n";
+      instructionLine += 2;
     }
   }
 
