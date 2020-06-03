@@ -349,8 +349,7 @@ bool WriteAll(const rdcstr &filename, const rdcarray<T> &buffer)
   return WriteAll(filename, buffer.data(), buffer.size() * sizeof(T));
 }
 
-template <typename T>
-bool WriteAll(const rdcstr &filename, const rdcstr &buffer)
+inline bool WriteAll(const rdcstr &filename, const rdcstr &buffer)
 {
   return WriteAll(filename, buffer.c_str(), buffer.length());
 }
