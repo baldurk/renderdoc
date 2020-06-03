@@ -206,6 +206,7 @@ struct DIBase
     LocalVariable,
     Location,
     Expression,
+    LexicalBlock,
   } type;
 
   DIBase(Type t) : type(t) {}

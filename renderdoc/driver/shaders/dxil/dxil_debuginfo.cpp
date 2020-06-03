@@ -214,18 +214,51 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   }
   else if(id == MetaDataRecord::LOCATION)
   {
-    meta.distinct = (metaRecord.ops[0] & 0x1);
-    // metastr += "!DILocation()";
+    RDCWARN("Unexpected location metadata record, ignoring");
   }
   else if(id == MetaDataRecord::LOCAL_VAR)
   {
     meta.distinct = (metaRecord.ops[0] & 0x1);
-    // metastr += "!DILocalVariable()";
+
+    meta.dwarf = new DILocalVariable(
+        DW_TAG(metaRecord.ops[1]), getMeta(metaRecord.ops[2]), getMetaString(metaRecord.ops[3]),
+        getMeta(metaRecord.ops[4]), metaRecord.ops[5], getMeta(metaRecord.ops[6]),
+        metaRecord.ops[7], DIFlags(metaRecord.ops[8]), metaRecord.ops[8]);
+
+    meta.children = {getMeta(metaRecord.ops[2]), getMeta(metaRecord.ops[4]),
+                     getMeta(metaRecord.ops[6])};
+  }
+  else if(id == MetaDataRecord::LEXICAL_BLOCK)
+  {
+    meta.distinct = (metaRecord.ops[0] & 0x1);
+
+    meta.dwarf = new DILexicalBlock(getMeta(metaRecord.ops[1]), getMeta(metaRecord.ops[2]),
+                                    metaRecord.ops[3], metaRecord.ops[4]);
+
+    meta.children = {getMeta(metaRecord.ops[1]), getMeta(metaRecord.ops[2])};
   }
   else if(id == MetaDataRecord::EXPRESSION)
   {
+    DIExpression *expr = new DIExpression;
+
     meta.distinct = (metaRecord.ops[0] & 0x1);
-    // DIExpression
+
+    expr->op = DW_OP_none;
+
+    if(metaRecord.ops.size() > 1)
+      expr->op = DW_OP(metaRecord.ops[1]);
+
+    if(expr->op == DW_OP_bit_piece && metaRecord.ops.size() == 4)
+    {
+      expr->evaluated.bit_piece.offset = metaRecord.ops[2];
+      expr->evaluated.bit_piece.size = metaRecord.ops[3];
+    }
+    else
+    {
+      expr->expr.assign(metaRecord.ops.data() + 1, metaRecord.ops.size() - 1);
+    }
+
+    meta.dwarf = expr;
   }
   else
   {
@@ -440,6 +473,71 @@ rdcstr DIGlobalVariable::toString() const
   ret += ")";
   return ret;
 }
+
+rdcstr DILocalVariable::toString() const
+{
+  rdcstr ret = StringFormat::Fmt("!DILocalVariable(tag: %s, name: %s", ToStr(tag).c_str(),
+                                 escapeString(name ? *name : rdcstr()).c_str());
+  if(arg)
+    ret += StringFormat::Fmt(", arg: %llu", arg);
+  if(scope)
+    ret += StringFormat::Fmt(", scope: %s", scope->refString().c_str());
+  if(file)
+    ret += StringFormat::Fmt(", file: %s", file->refString().c_str());
+  else
+    ret += ", file: null";
+  if(line)
+    ret += StringFormat::Fmt(", line: %llu", line);
+  if(type)
+    ret += StringFormat::Fmt(", type: %s", type->refString().c_str());
+  if(flags)
+    ret += StringFormat::Fmt(", flags: %s", ToStr(flags).c_str());
+  if(alignInBits)
+    ret += StringFormat::Fmt(", align: %llu", alignInBits);
+  ret += ")";
+  return ret;
+}
+
+rdcstr DIExpression::toString() const
+{
+  if(op == DW_OP_bit_piece)
+    return StringFormat::Fmt("!DIExpression(DW_OP_bit_piece, %llu, %llu)",
+                             evaluated.bit_piece.offset, evaluated.bit_piece.size);
+
+  if(op == DW_OP_none)
+    return "!DIExpression()";
+
+  if(op == DW_OP_deref)
+    return "!DIExpression(DW_OP_deref)";
+
+  rdcstr ret = "!DIExpression(";
+  for(size_t i = 0; i < expr.size(); i++)
+  {
+    if(i > 0)
+      ret += ", ";
+    ret += ToStr(expr[i]);
+  }
+  ret += ")";
+  return ret;
+}
+
+rdcstr DILexicalBlock::toString() const
+{
+  rdcstr ret = "!DILexicalBlock(";
+  if(scope)
+    ret += StringFormat::Fmt(", scope: %s", scope->refString().c_str());
+  else
+    ret += ", scope: null";
+  if(file)
+    ret += StringFormat::Fmt(", file: %s", file->refString().c_str());
+  if(line)
+    ret += StringFormat::Fmt(", line: %llu", line);
+  if(column)
+    ret += StringFormat::Fmt(", column: %llu", column);
+  ret += ")";
+  return ret;
+}
+
 };    // namespace DXIL
 
 template <>
