@@ -65,7 +65,7 @@ static void ClampScalars(rdcspv::DebugAPIWrapper *apiWrapper, const ShaderVariab
     apiWrapper->AddDebugMessage(
         MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
         StringFormat::Fmt("Invalid scalar index %u at matrix %s with %u rows. Clamping to %u",
-                          scalar0, var.rows, var.name.c_str(), var.rows - 1));
+                          scalar1, var.rows, var.name.c_str(), var.rows - 1));
     scalar1 = var.rows - 1;
   }
 }
@@ -1847,7 +1847,7 @@ void Debugger::CalcActiveMask(rdcarray<bool> &activeMask)
     // if we've newly diverged, all workgroups should have the same merge block - the point where we
     // become uniform again.
     convergeBlock = workgroup[0].mergeBlock;
-    for(size_t i = 1; !diverged && i < workgroup.size(); i++)
+    for(size_t i = 1; i < workgroup.size(); i++)
       RDCASSERT(convergeBlock == workgroup[i].mergeBlock);
   }
 

@@ -775,7 +775,7 @@ ShaderVariable FaceForward(ThreadState &state, uint32_t, const rdcarray<Id> &par
 
   ShaderVariable N = state.GetSrc(params[0]);
   ShaderVariable I = state.GetSrc(params[1]);
-  ShaderVariable Nref = state.GetSrc(params[1]);
+  ShaderVariable Nref = state.GetSrc(params[2]);
 
   float dot = 0;
   for(uint8_t c = 0; c < Nref.columns; c++)
