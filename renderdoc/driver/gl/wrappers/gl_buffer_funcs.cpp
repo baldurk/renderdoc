@@ -1628,7 +1628,7 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
     if(r && (target == eGL_TRANSFORM_FEEDBACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
              target == eGL_ATOMIC_COUNTER_BUFFER))
     {
-      if(IsBackgroundCapturing(m_State))
+      if(IsBackgroundCapturing(m_State) && buffers)
       {
         for(int i = 0; i < count; i++)
           GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffers[i]));
