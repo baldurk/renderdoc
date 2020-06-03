@@ -102,6 +102,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dxil_bytecode.cpp" />
+    <ClCompile Include="dxil_debuginfo.cpp" />
     <ClCompile Include="llvm_decoder.cpp" />
     <ClCompile Include="precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
@@ -109,6 +110,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxil_bytecode.h" />
+    <ClInclude Include="dxil_debuginfo.h" />
     <ClInclude Include="llvm_bitreader.h" />
     <ClInclude Include="llvm_decoder.h" />
     <ClInclude Include="precompiled.h" />

@@ -31,6 +31,11 @@
 #include "driver/dx/official/d3dcommon.h"
 #include "driver/shaders/dxbc/dxbc_common.h"
 
+namespace LLVMBC
+{
+struct BlockOrRecord;
+};
+
 namespace DXIL
 {
 struct Type
@@ -57,7 +62,7 @@ struct Type
     Int,
   } scalarType = Void;
 
-  rdcstr getTypeName() const;
+  rdcstr toString() const;
   rdcstr declFunction(rdcstr funcName) const;
 
   // for scalars, arrays, vectors
@@ -75,6 +80,10 @@ struct Type
 struct GlobalVar
 {
   rdcstr name;
+  const Type *type = NULL;
+  bool isconst = false;
+  bool external = false;
+  uint64_t align = 0;
 };
 
 struct Alias
@@ -172,8 +181,64 @@ struct Function
 struct Value
 {
   const Type *type = NULL;
-  ShaderVariable val;
+  ShaderValue val = {};
+  rdcarray<Value> members;
   rdcstr str;
+  bool undef = false, symbol = false;
+
+  rdcstr toString() const;
+};
+
+struct DIBase
+{
+  enum Type
+  {
+    File,
+    CompileUnit,
+    BasicType,
+    DerivedType,
+    CompositeType,
+    TemplateTypeParameter,
+    TemplateValueParameter,
+    Subprogram,
+    SubroutineType,
+    GlobalVariable,
+    LocalVariable,
+    Location,
+    Expression,
+  } type;
+
+  DIBase(Type t) : type(t) {}
+  virtual ~DIBase() = default;
+  virtual rdcstr toString() const = 0;
+
+  template <typename Derived>
+  const Derived As()
+  {
+    RDCASSERT(type == Derived::DIType);
+    return (Derived *)this;
+  }
+};
+
+struct Metadata
+{
+  ~Metadata();
+
+  uint32_t id = ~0U;
+  bool distinct = false, value = false;
+  const Value *val = NULL;
+  const Type *type = NULL;
+  rdcstr str;
+  rdcarray<Metadata *> children;
+  DIBase *dwarf = NULL;
+
+  rdcstr refString() const;
+  rdcstr valString() const;
+};
+
+struct NamedMetadata : public Metadata
+{
+  rdcstr name;
 };
 
 class Program
@@ -203,6 +268,10 @@ public:
 private:
   void MakeDisassemblyString();
 
+  bool ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Metadata &meta);
+
+  uint32_t GetOrAssignMetaID(Metadata *m);
+
   DXBC::ShaderType m_Type;
   uint32_t m_Major, m_Minor;
 
@@ -220,11 +289,13 @@ private:
 
   rdcarray<Value> m_Values;
 
+  rdcarray<Metadata> m_Metadata;
+  rdcarray<NamedMetadata> m_NamedMeta;
+  rdcarray<Metadata *> m_NumberedMeta;
+
   rdcstr m_Triple, m_Datalayout;
 
   rdcstr m_Disassembly;
 };
 
 };    // namespace DXIL
-
-DECLARE_REFLECTION_ENUM(DXIL::Attribute);

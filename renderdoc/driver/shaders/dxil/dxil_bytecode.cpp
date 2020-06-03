@@ -458,39 +458,30 @@ static rdcstr getName(uint32_t parentBlock, const LLVMBC::BlockOrRecord &block)
   }
 }
 
-static rdcstr escapeString(rdcstr str)
+bool needsEscaping(const rdcstr &name)
+{
+  return name.find_first_not_of(
+             "-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$._0123456789") >= 0;
+}
+
+rdcstr escapeString(rdcstr str)
 {
   for(size_t i = 0; i < str.size(); i++)
   {
-    if(str[i] == '\r')
-    {
-      str[i] = 'r';
-      str.insert(i, "\\", 1);
-      i++;
-    }
-    else if(str[i] == '\n')
-    {
-      str[i] = 'n';
-      str.insert(i, "\\", 1);
-      i++;
-    }
-    else if(str[i] == '\t')
-    {
-      str[i] = 't';
-      str.insert(i, "\\", 1);
-      i++;
-    }
-    else if(str[i] == '\'' || str[i] == '\\')
+    if(str[i] == '\'' || str[i] == '\\')
     {
       str.insert(i, "\\", 1);
       i++;
     }
-    else if(!isprint(str[i]))
+    else if(str[i] == '\r' || str[i] == '\n' || str[i] == '\t' || !isprint(str[i]))
     {
-      str.insert(i + 1, StringFormat::Fmt("x%02x", str[i]));
+      str.insert(i + 1, StringFormat::Fmt("%02X", str[i]));
       str[i] = '\\';
     }
   }
+
+  str.push_back('"');
+  str.insert(0, '"');
 
   return str;
 }
@@ -510,7 +501,7 @@ static void dumpRecord(size_t idx, uint32_t parentBlock, const LLVMBC::BlockOrRe
       MetaDataRecord(record.id) == MetaDataRecord::NAME ||
       MetaDataRecord(record.id) == MetaDataRecord::KIND))
   {
-    line += " record string = '" + escapeString(record.getString()) + "'";
+    line += " record string = " + escapeString(record.getString());
   }
   else
   {
@@ -525,7 +516,7 @@ static void dumpRecord(size_t idx, uint32_t parentBlock, const LLVMBC::BlockOrRe
     }
 
     if(allASCII && record.ops.size() > 3)
-      line += " record string = '" + escapeString(record.getString()) + "'";
+      line += " record string = " + escapeString(record.getString());
 
     for(size_t i = 0; i < record.ops.size(); i++)
       line += StringFormat::Fmt(" op%u=%llu", (uint32_t)i, record.ops[i]);
@@ -642,15 +633,47 @@ Program::Program(const byte *bytes, size_t length)
       }
       else if(IS_KNOWN(rootchild.id, ModuleRecord::GLOBALVAR))
       {
+        // [pointer type, isconst, initid, linkage, alignment, section, visibility, threadlocal,
+        // unnamed_addr, externally_initialized, dllstorageclass, comdat]
         GlobalVar g;
+
+        g.type = &m_Types[(size_t)rootchild.ops[0]];
+        g.isconst = (rootchild.ops[1] & 0x1);
+
+        switch(rootchild.ops[3])
+        {
+          case 0:
+          case 5:
+          case 6:
+          case 7:
+          case 15: g.external = true; break;
+          default: g.external = false; break;
+        }
+
+        g.align = (1U << rootchild.ops[4]) >> 1;
 
         // symbols refer into any of N types in declaration order
         m_Symbols.push_back({SymbolType::GlobalVar, m_GlobalVars.size()});
 
         // all global symbols are 'values' in LLVM, we don't need this but need to keep indexing the
         // same
-        m_Values.push_back(Value());
+        Value v;
+        v.type = g.type;
+        v.symbol = true;
 
+        for(size_t ty = 0; ty < m_Types.size(); ty++)
+        {
+          if(m_Types[ty].type == Type::Pointer && m_Types[ty].inner == g.type)
+          {
+            v.type = &m_Types[ty];
+            break;
+          }
+        }
+
+        if(v.type == g.type)
+          RDCERR("Expected to find pointer type for global variable");
+
+        m_Values.push_back(v);
         m_GlobalVars.push_back(g);
       }
       else if(IS_KNOWN(rootchild.id, ModuleRecord::FUNCTION))
@@ -672,7 +695,23 @@ Program::Program(const byte *bytes, size_t length)
 
         // all global symbols are 'values' in LLVM, we don't need this but need to keep indexing the
         // same
-        m_Values.push_back(Value());
+        Value v;
+        v.symbol = true;
+        v.type = f.funcType;
+
+        for(size_t ty = 0; ty < m_Types.size(); ty++)
+        {
+          if(m_Types[ty].type == Type::Pointer && m_Types[ty].inner == f.funcType)
+          {
+            v.type = &m_Types[ty];
+            break;
+          }
+        }
+
+        if(v.type == f.funcType)
+          RDCERR("Expected to find pointer type for function");
+
+        m_Values.push_back(v);
 
         if(!f.external)
           functionDecls.push_back(m_Functions.size());
@@ -689,7 +728,10 @@ Program::Program(const byte *bytes, size_t length)
 
         // all global symbols are 'values' in LLVM, we don't need this but need to keep indexing the
         // same
-        m_Values.push_back(Value());
+        Value v;
+        v.type = &m_Types[(size_t)rootchild.ops[0]];
+        v.symbol = true;
+        m_Values.push_back(v);
 
         m_Aliases.push_back(a);
       }
@@ -876,7 +918,7 @@ Program::Program(const byte *bytes, size_t length)
           }
           else if(IS_KNOWN(typ.id, TypeRecord::ARRAY))
           {
-            m_Types[typeIndex].type = Type::Vector;
+            m_Types[typeIndex].type = Type::Array;
             m_Types[typeIndex].elemCount = typ.ops[0] & 0xffffffff;
             m_Types[typeIndex].inner = &m_Types[(size_t)typ.ops[1]];
 
@@ -887,8 +929,8 @@ Program::Program(const byte *bytes, size_t length)
             m_Types[typeIndex].type = Type::Pointer;
             m_Types[typeIndex].inner = &m_Types[(size_t)typ.ops[0]];
 
-            if(typ.ops.size() > 1)
-              RDCWARN("Ignoring address space on pointer type");
+            if(typ.ops.size() > 1 && typ.ops[1] != 0)
+              RDCERR("Ignoring address space on pointer type");
 
             typeIndex++;
           }
@@ -964,13 +1006,18 @@ Program::Program(const byte *bytes, size_t length)
           {
             Value v;
             v.type = t;
+            v.undef = IS_KNOWN(constant.id, ConstantsRecord::UNDEF);
             m_Values.push_back(v);
           }
           else if(IS_KNOWN(constant.id, ConstantsRecord::INTEGER))
           {
             Value v;
             v.type = t;
-            v.val.value.u64v[0] = constant.ops[0];
+            v.val.u64v[0] = constant.ops[0];
+            if(v.val.u64v[0] & 0x1)
+              v.val.s64v[0] = -int64_t(v.val.u64v[0] >> 1);
+            else
+              v.val.u64v[0] >>= 1;
             m_Values.push_back(v);
           }
           else if(IS_KNOWN(constant.id, ConstantsRecord::FLOAT))
@@ -978,11 +1025,11 @@ Program::Program(const byte *bytes, size_t length)
             Value v;
             v.type = t;
             if(t->bitWidth == 16)
-              v.val.value.fv[0] = ConvertFromHalf(uint16_t(constant.ops[0] & 0xffff));
+              v.val.fv[0] = ConvertFromHalf(uint16_t(constant.ops[0] & 0xffff));
             else if(t->bitWidth == 32)
-              memcpy(&v.val.value.fv[0], &constant.ops[0], sizeof(float));
+              memcpy(&v.val.fv[0], &constant.ops[0], sizeof(float));
             else
-              memcpy(&v.val.value.dv[0], &constant.ops[0], sizeof(float));
+              memcpy(&v.val.dv[0], &constant.ops[0], sizeof(float));
             m_Values.push_back(v);
           }
           else if(IS_KNOWN(constant.id, ConstantsRecord::STRING))
@@ -1005,9 +1052,9 @@ Program::Program(const byte *bytes, size_t length)
                 if(idx < m_Values.size())
                 {
                   if(v.type->bitWidth <= 32)
-                    v.val.value.uv[m] = m_Values[idx].val.value.uv[m];
+                    v.val.uv[m] = m_Values[idx].val.uv[m];
                   else
-                    v.val.value.u64v[m] = m_Values[idx].val.value.u64v[m];
+                    v.val.u64v[m] = m_Values[idx].val.u64v[m];
                 }
                 else
                 {
@@ -1022,11 +1069,11 @@ Program::Program(const byte *bytes, size_t length)
                 size_t idx = (size_t)m;
                 if(idx < m_Values.size())
                 {
-                  v.val.members.push_back(m_Values[idx].val);
+                  v.members.push_back(m_Values[idx]);
                 }
                 else
                 {
-                  v.val.members.push_back(ShaderVariable());
+                  v.members.push_back(Value());
                   RDCERR("Index %zu out of bounds for values array", idx);
                 }
               }
@@ -1042,21 +1089,22 @@ Program::Program(const byte *bytes, size_t length)
               for(size_t m = 0; m < constant.ops.size(); m++)
               {
                 if(v.type->bitWidth <= 32)
-                  v.val.value.uv[m] = constant.ops[m] & ((1ULL << v.type->bitWidth) - 1);
+                  v.val.uv[m] = constant.ops[m] & ((1ULL << v.type->bitWidth) - 1);
                 else
-                  v.val.value.u64v[m] = constant.ops[m];
+                  v.val.u64v[m] = constant.ops[m];
               }
             }
             else
             {
               for(size_t m = 0; m < constant.ops.size(); m++)
               {
-                ShaderVariable el;
-                if(v.type->bitWidth <= 32)
-                  el.value.uv[0] = constant.ops[m] & ((1ULL << v.type->bitWidth) - 1);
+                Value el;
+                el.type = v.type->inner;
+                if(el.type->bitWidth <= 32)
+                  el.val.uv[0] = constant.ops[m] & ((1ULL << el.type->bitWidth) - 1);
                 else
-                  el.value.u64v[m] = constant.ops[m];
-                v.val.members.push_back(el);
+                  el.val.u64v[m] = constant.ops[m];
+                v.members.push_back(el);
               }
             }
             m_Values.push_back(v);
@@ -1083,9 +1131,15 @@ Program::Program(const byte *bytes, size_t length)
             size_t idx = m_Symbols[s].idx;
             switch(m_Symbols[s].type)
             {
-              case SymbolType::GlobalVar: m_GlobalVars[idx].name = symtab.getString(1); break;
-              case SymbolType::Function: m_Functions[idx].name = symtab.getString(1); break;
-              case SymbolType::Alias: m_Aliases[idx].name = symtab.getString(1); break;
+              case SymbolType::GlobalVar:
+                m_Values[s].str = m_GlobalVars[idx].name = symtab.getString(1);
+                break;
+              case SymbolType::Function:
+                m_Values[s].str = m_Functions[idx].name = symtab.getString(1);
+                break;
+              case SymbolType::Alias:
+                m_Values[s].str = m_Aliases[idx].name = symtab.getString(1);
+                break;
             }
           }
           else
@@ -1096,176 +1150,68 @@ Program::Program(const byte *bytes, size_t length)
       }
       else if(IS_KNOWN(rootchild.id, KnownBlocks::METADATA_BLOCK))
       {
+        m_Metadata.resize_for_index(rootchild.children.size() - 1);
         for(size_t i = 0; i < rootchild.children.size(); i++)
         {
-          const LLVMBC::BlockOrRecord &meta = rootchild.children[i];
-          if(IS_KNOWN(meta.id, MetaDataRecord::NAME))
+          const LLVMBC::BlockOrRecord &metaRecord = rootchild.children[i];
+          if(IS_KNOWN(metaRecord.id, MetaDataRecord::NAME))
           {
-            rdcstr metaName = meta.getString();
+            NamedMetadata meta;
+
+            meta.name = metaRecord.getString();
             i++;
             const LLVMBC::BlockOrRecord &namedNode = rootchild.children[i];
             RDCASSERT(IS_KNOWN(namedNode.id, MetaDataRecord::NAMED_NODE));
 
-            rdcstr namedMeta = StringFormat::Fmt("!%s = !{", metaName.c_str());
-
-            bool first = true;
             for(uint64_t op : namedNode.ops)
-            {
-              if(!first)
-                namedMeta += ", ";
-              namedMeta += ToStr(op);
-              first = false;
-            }
-            namedMeta += "}";
+              meta.children.push_back(&m_Metadata[(size_t)op]);
 
-            RDCLOG("%s", namedMeta.c_str());
+            m_NamedMeta.push_back(meta);
+          }
+          else if(IS_KNOWN(metaRecord.id, MetaDataRecord::KIND))
+          {
+            size_t kind = (size_t)metaRecord.ops[0];
+            m_Kinds.resize(RDCMAX(m_Kinds.size(), kind + 1));
+            m_Kinds[kind] = metaRecord.getString(1);
+            continue;
           }
           else
           {
-            if(IS_KNOWN(meta.id, MetaDataRecord::KIND))
-            {
-              size_t kind = (size_t)meta.ops[0];
-              m_Kinds.resize(RDCMAX(m_Kinds.size(), kind + 1));
-              m_Kinds[kind] = meta.getString(1);
-              continue;
-            }
+            Metadata &meta = m_Metadata[i];
 
-            rdcstr metastr = StringFormat::Fmt("!%u = ", (uint32_t)i);
-
-            auto getMetaString = [&rootchild](uint64_t id) -> rdcstr {
-              return id ? rootchild.children[size_t(id - 1)].getString() : "NULL";
+            auto getMeta = [this](uint64_t id) { return id ? &m_Metadata[size_t(id - 1)] : NULL; };
+            auto getMetaString = [this](uint64_t id) {
+              return id ? &m_Metadata[size_t(id - 1)].str : NULL;
             };
 
-            if(IS_KNOWN(meta.id, MetaDataRecord::STRING_OLD))
+            if(IS_KNOWN(metaRecord.id, MetaDataRecord::STRING_OLD))
             {
-              metastr += "\"" + escapeString(meta.getString()) + "\"";
+              meta.value = true;
+              meta.str = metaRecord.getString();
             }
-            else if(IS_KNOWN(meta.id, MetaDataRecord::FILE))
+            else if(IS_KNOWN(metaRecord.id, MetaDataRecord::VALUE))
             {
-              if(meta.ops[0])
-                metastr += "distinct ";
+              meta.value = true;
+              meta.val = &m_Values[(size_t)metaRecord.ops[1]];
+              meta.type = &m_Types[(size_t)metaRecord.ops[0]];
+            }
+            else if(IS_KNOWN(metaRecord.id, MetaDataRecord::NODE) ||
+                    IS_KNOWN(metaRecord.id, MetaDataRecord::DISTINCT_NODE))
+            {
+              if(IS_KNOWN(metaRecord.id, MetaDataRecord::DISTINCT_NODE))
+                meta.distinct = true;
 
-              metastr += "!DIFile(";
-              metastr += StringFormat::Fmt("filename: \"%s\"",
-                                           escapeString(getMetaString(meta.ops[1])).c_str());
-              metastr += StringFormat::Fmt(", directory: \"%s\"",
-                                           escapeString(getMetaString(meta.ops[2])).c_str());
-              metastr += ")";
-            }
-            else if(IS_KNOWN(meta.id, MetaDataRecord::NODE) ||
-                    IS_KNOWN(meta.id, MetaDataRecord::DISTINCT_NODE))
-            {
-              if(IS_KNOWN(meta.id, MetaDataRecord::DISTINCT_NODE))
-                metastr += "distinct ";
-
-              metastr += "!{";
-              bool first = true;
-              for(uint64_t op : meta.ops)
-              {
-                if(!first)
-                  metastr += ", ";
-                metastr += ToStr(op - 1);
-                first = false;
-              }
-              metastr += "}";
-            }
-            else if(IS_KNOWN(meta.id, MetaDataRecord::BASIC_TYPE))
-            {
-              metastr += "!DIBasicType()";
-            }
-            else if(IS_KNOWN(meta.id, MetaDataRecord::DERIVED_TYPE))
-            {
-              metastr += "!DIDerivedType()";
-            }
-            else if(IS_KNOWN(meta.id, MetaDataRecord::COMPOSITE_TYPE))
-            {
-              metastr += "!DICompositeType()";
-            }
-            else if(IS_KNOWN(meta.id, MetaDataRecord::SUBROUTINE_TYPE))
-            {
-              metastr += "!DISubroutineType()";
-            }
-            else if(IS_KNOWN(meta.id, MetaDataRecord::TEMPLATE_TYPE))
-            {
-              metastr += "!DITemplateTypeParameter()";
-            }
-            else if(IS_KNOWN(meta.id, MetaDataRecord::TEMPLATE_VALUE))
-            {
-              metastr += "!DITemplateValueParameter()";
-            }
-            else if(IS_KNOWN(meta.id, MetaDataRecord::SUBPROGRAM))
-            {
-              metastr += "!DISubprogram()";
-            }
-            else if(IS_KNOWN(meta.id, MetaDataRecord::LOCATION))
-            {
-              metastr += "!DILocation()";
-            }
-            else if(IS_KNOWN(meta.id, MetaDataRecord::LOCAL_VAR))
-            {
-              metastr += "!DILocalVariable()";
-            }
-            else if(IS_KNOWN(meta.id, MetaDataRecord::VALUE))
-            {
-              // need to decode CONSTANTS_BLOCK and TYPE_BLOCK for this
-              metastr += StringFormat::Fmt("!{values[%llu] interpreted as types[%llu]}",
-                                           meta.ops[1], meta.ops[0]);
-            }
-            else if(IS_KNOWN(meta.id, MetaDataRecord::EXPRESSION))
-            {
-              // don't decode this yet
-              metastr += "!DIExpression(";
-              bool first = true;
-              for(uint64_t op : meta.ops)
-              {
-                if(!first)
-                  metastr += ", ";
-                metastr += ToStr(op);
-                first = false;
-              }
-              metastr += ")";
-            }
-            else if(IS_KNOWN(meta.id, MetaDataRecord::COMPILE_UNIT))
-            {
-              // should be at least 14 parameters
-              RDCASSERT(meta.ops.size() >= 14);
-
-              // we expect it to be marked as distinct, but we'll always treat it that way
-              if(meta.ops[0])
-                metastr += "distinct ";
-              else
-                metastr += "distinct? ";
-
-              metastr += "!DICompileUnit(";
-              {
-                metastr += StringFormat::Fmt(
-                    "language: %s", meta.ops[1] == 0x4 ? "DW_LANG_C_plus_plus" : "DW_LANG_unknown");
-                metastr += StringFormat::Fmt(", file: !%llu", meta.ops[2] - 1);
-                metastr += StringFormat::Fmt(", producer: \"%s\"",
-                                             escapeString(getMetaString(meta.ops[3])).c_str());
-                metastr += StringFormat::Fmt(", isOptimized: %s", meta.ops[4] ? "true" : "false");
-                metastr += StringFormat::Fmt(", flags: \"%s\"",
-                                             escapeString(getMetaString(meta.ops[5])).c_str());
-                metastr += StringFormat::Fmt(", runtimeVersion: %llu", meta.ops[6]);
-                metastr += StringFormat::Fmt(", splitDebugFilename: \"%s\"",
-                                             escapeString(getMetaString(meta.ops[7])).c_str());
-                metastr += StringFormat::Fmt(", emissionKind: %llu", meta.ops[8]);
-                metastr += StringFormat::Fmt(", enums: !%llu", meta.ops[9] - 1);
-                metastr += StringFormat::Fmt(", retainedTypes: !%llu", meta.ops[10] - 1);
-                metastr += StringFormat::Fmt(", subprograms: !%llu", meta.ops[11] - 1);
-                metastr += StringFormat::Fmt(", globals: !%llu", meta.ops[12] - 1);
-                metastr += StringFormat::Fmt(", imports: !%llu", meta.ops[13] - 1);
-                if(meta.ops.size() >= 15)
-                  metastr += StringFormat::Fmt(", dwoId: 0x%llu", meta.ops[14]);
-              }
-              metastr += ")";
+              for(uint64_t op : metaRecord.ops)
+                meta.children.push_back(getMeta(op));
             }
             else
             {
-              RDCERR("unhandled metadata type %u", meta.id);
+              bool parsed = ParseDebugMetaRecord(metaRecord, meta);
+              if(!parsed)
+              {
+                RDCERR("unhandled metadata type %u", metaRecord.id);
+              }
             }
-
-            RDCLOG("%s", metastr.c_str());
           }
         }
       }
@@ -1281,7 +1227,7 @@ Program::Program(const byte *bytes, size_t length)
     }
   }
 
-  dumpBlock(root, 0);
+  (void)&dumpBlock;
 }
 
 void Program::FetchComputeProperties(DXBC::Reflection *reflection)
@@ -1311,8 +1257,6 @@ uint32_t Program::GetDisassemblyLine(uint32_t instruction) const
 
 void Program::MakeDisassemblyString()
 {
-  RDCWARN("Unimplemented DXIL::Program::MakeDisassemblyString()");
-
   const char *shaderName[] = {
       "Pixel",      "Vertex",  "Geometry",      "Hull",         "Domain",
       "Compute",    "Library", "RayGeneration", "Intersection", "AnyHit",
@@ -1321,8 +1265,8 @@ void Program::MakeDisassemblyString()
 
   m_Disassembly = StringFormat::Fmt("; %s Shader, compiled under SM%u.%u\n\n",
                                     shaderName[int(m_Type)], m_Major, m_Minor);
-  m_Disassembly += StringFormat::Fmt("target triple = \"%s\"\n", m_Triple.c_str());
-  m_Disassembly += StringFormat::Fmt("target datalayout = \"%s\"\n\n", m_Datalayout.c_str());
+  m_Disassembly += StringFormat::Fmt("target datalayout = \"%s\"\n", m_Datalayout.c_str());
+  m_Disassembly += StringFormat::Fmt("target triple = \"%s\"\n\n", m_Triple.c_str());
 
   bool typesPrinted = false;
 
@@ -1332,7 +1276,7 @@ void Program::MakeDisassemblyString()
 
     if(typ.type == Type::Struct && !typ.name.empty())
     {
-      rdcstr name = typ.getTypeName();
+      rdcstr name = typ.toString();
       m_Disassembly += StringFormat::Fmt("%s = type {", name.c_str());
       bool first = true;
       for(const Type *t : typ.members)
@@ -1340,7 +1284,7 @@ void Program::MakeDisassemblyString()
         if(!first)
           m_Disassembly += ", ";
         first = false;
-        m_Disassembly += StringFormat::Fmt(" %s", t->getTypeName().c_str());
+        m_Disassembly += StringFormat::Fmt(" %s", t->toString().c_str());
       }
       m_Disassembly += " }\n";
       typesPrinted = true;
@@ -1348,6 +1292,27 @@ void Program::MakeDisassemblyString()
   }
 
   if(typesPrinted)
+    m_Disassembly += "\n";
+
+  for(size_t i = 0; i < m_GlobalVars.size(); i++)
+  {
+    const GlobalVar &g = m_GlobalVars[i];
+
+    m_Disassembly += StringFormat::Fmt(
+        "@%s = ", needsEscaping(g.name) ? escapeString(g.name).c_str() : g.name.c_str());
+    if(g.external)
+      m_Disassembly += "external ";
+    if(g.isconst)
+      m_Disassembly += "constant ";
+    m_Disassembly += g.type->toString();
+
+    if(g.align > 0)
+      m_Disassembly += StringFormat::Fmt(", align %u", g.align);
+
+    m_Disassembly += "\n";
+  }
+
+  if(!m_GlobalVars.empty())
     m_Disassembly += "\n";
 
   for(size_t i = 0; i < m_Functions.size(); i++)
@@ -1377,21 +1342,65 @@ void Program::MakeDisassemblyString()
 
   for(size_t i = 0; i < m_Attributes.size(); i++)
     m_Disassembly +=
-        StringFormat::Fmt("attributes #%zu = %s\n", i, m_Attributes[i].toString().c_str());
+        StringFormat::Fmt("attributes #%zu = { %s }\n", i, m_Attributes[i].toString().c_str());
 
-  m_Disassembly += "; No disassembly implemented";
+  if(!m_Attributes.empty())
+    m_Disassembly += "\n";
+
+  for(size_t i = 0; i < m_NamedMeta.size(); i++)
+  {
+    m_Disassembly += StringFormat::Fmt("!%s = %s!{", m_NamedMeta[i].name.c_str(),
+                                       m_NamedMeta[i].distinct ? "distinct " : "");
+    for(size_t m = 0; m < m_NamedMeta[i].children.size(); m++)
+    {
+      if(m != 0)
+        m_Disassembly += ", ";
+      if(m_NamedMeta[i].children[m])
+        m_Disassembly += StringFormat::Fmt("!%u", GetOrAssignMetaID(m_NamedMeta[i].children[m]));
+      else
+        m_Disassembly += "null";
+    }
+
+    m_Disassembly += "}\n";
+  }
+
+  m_Disassembly += "\n";
+
+  for(size_t i = 0; i < m_NumberedMeta.size(); i++)
+    m_Disassembly += StringFormat::Fmt("%s = %s%s\n", m_NumberedMeta[i]->refString(),
+                                       m_NumberedMeta[i]->distinct ? "distinct " : "",
+                                       m_NumberedMeta[i]->valString().c_str());
+
+  m_Disassembly += "\n";
 }
 
-rdcstr Type::getTypeName() const
+uint32_t Program::GetOrAssignMetaID(Metadata *m)
+{
+  if(m->id != ~0U)
+    return m->id;
+
+  m->id = (uint32_t)m_NumberedMeta.size();
+  m_NumberedMeta.push_back(m);
+
+  // assign meta IDs to the children now
+  for(Metadata *c : m->children)
+  {
+    if(!c || c->value)
+      continue;
+
+    GetOrAssignMetaID(c);
+  }
+
+  return m->id;
+}
+
+rdcstr Type::toString() const
 {
   if(!name.empty())
   {
     // needs escaping
-    if(name.find_first_not_of(
-           "-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$._0123456789") >= 0)
-    {
-      return "%\"" + escapeString(name) + "\"";
-    }
+    if(needsEscaping(name))
+      return "%" + escapeString(name);
 
     return "%" + name;
   }
@@ -1415,9 +1424,9 @@ rdcstr Type::getTypeName() const
           }
       }
     }
-    case Vector: return StringFormat::Fmt("<%u x %s>", elemCount, inner->getTypeName().c_str());
-    case Pointer: return StringFormat::Fmt("%s*", inner->getTypeName().c_str());
-    case Array: return StringFormat::Fmt("[%u x %s]", elemCount, inner->getTypeName().c_str());
+    case Vector: return StringFormat::Fmt("<%u x %s>", elemCount, inner->toString().c_str());
+    case Pointer: return StringFormat::Fmt("%s*", inner->toString().c_str());
+    case Array: return StringFormat::Fmt("[%u x %s]", elemCount, inner->toString().c_str());
     case Function: return declFunction(rdcstr());
     case Struct:
     {
@@ -1430,7 +1439,7 @@ rdcstr Type::getTypeName() const
       {
         if(i > 0)
           ret += ", ";
-        ret += members[i]->getTypeName();
+        ret += members[i]->toString();
       }
       if(packedStruct)
         ret += "}>";
@@ -1447,13 +1456,13 @@ rdcstr Type::getTypeName() const
 
 rdcstr Type::declFunction(rdcstr funcName) const
 {
-  rdcstr ret = inner->getTypeName();
+  rdcstr ret = inner->toString();
   ret += " " + funcName + "(";
   for(size_t i = 0; i < members.size(); i++)
   {
     if(i > 0)
       ret += ", ";
-    ret += members[i]->getTypeName();
+    ret += members[i]->toString();
   }
   ret += ")";
   return ret;
@@ -1461,40 +1470,188 @@ rdcstr Type::declFunction(rdcstr funcName) const
 
 rdcstr Attributes::toString() const
 {
-  rdcstr ret = "{";
+  rdcstr ret = "";
   Attribute p = params;
 
   if(p & Attribute::Alignment)
   {
-    ret += StringFormat::Fmt(" Alignment(%llu)", align);
+    ret += StringFormat::Fmt(" align=%llu", align);
     p &= ~Attribute::Alignment;
   }
   if(p & Attribute::StackAlignment)
   {
-    ret += StringFormat::Fmt(" StackAlignment(%llu)", stackAlign);
+    ret += StringFormat::Fmt(" alignstack=%llu", stackAlign);
     p &= ~Attribute::StackAlignment;
   }
   if(p & Attribute::Dereferenceable)
   {
-    ret += StringFormat::Fmt(" Dereferenceable(%llu)", derefBytes);
+    ret += StringFormat::Fmt(" dereferenceable=%llu", derefBytes);
     p &= ~Attribute::Dereferenceable;
   }
   if(p & Attribute::DereferenceableOrNull)
   {
-    ret += StringFormat::Fmt(" DereferenceableOrNull(%llu)", derefOrNullBytes);
+    ret += StringFormat::Fmt(" dereferenceable_or_null=%llu", derefOrNullBytes);
     p &= ~Attribute::DereferenceableOrNull;
   }
 
   if(p != Attribute::None)
-    ret += " " + ToStr(p);
+  {
+    ret = ToStr(p) + " " + ret;
+    int offs = ret.indexOf('|');
+    while(offs >= 0)
+    {
+      ret.erase((size_t)offs, 2);
+      offs = ret.indexOf('|');
+    }
+  }
 
   for(const rdcpair<rdcstr, rdcstr> &str : strs)
-    ret += " " + str.first + "=" + str.second;
-  ret += " }";
+    ret += " " + escapeString(str.first) + "=" + escapeString(str.second);
+
+  return ret.trimmed();
+}
+
+Metadata::~Metadata()
+{
+  SAFE_DELETE(dwarf);
+}
+
+rdcstr Metadata::refString() const
+{
+  if(id == ~0U)
+    return valString();
+  return StringFormat::Fmt("!%u", id);
+}
+
+rdcstr Metadata::valString() const
+{
+  if(dwarf)
+  {
+    return dwarf->toString();
+  }
+  else if(value)
+  {
+    if(type == NULL)
+    {
+      return StringFormat::Fmt("!%s", escapeString(str).c_str());
+    }
+    else
+    {
+      if(type != val->type)
+        RDCERR("Type mismatch in metadata");
+      return val->toString();
+    }
+  }
+  else
+  {
+    rdcstr ret = "!{";
+    for(size_t i = 0; i < children.size(); i++)
+    {
+      if(i > 0)
+        ret += ", ";
+      if(!children[i])
+        ret += "null";
+      else if(children[i]->value)
+        ret += children[i]->valString();
+      else
+        ret += StringFormat::Fmt("!%u", children[i]->id);
+    }
+    ret += "}";
+
+    return ret;
+  }
+}
+
+rdcstr Value::toString() const
+{
+  if(type == NULL)
+    return escapeString(str);
+
+  rdcstr ret;
+  ret += type->toString() + " ";
+  if(undef)
+  {
+    ret += "undef";
+  }
+  else if(symbol)
+  {
+    ret += StringFormat::Fmt("@%s", needsEscaping(str) ? escapeString(str).c_str() : str.c_str());
+  }
+  else if(type->type == Type::Scalar)
+  {
+    if(type->scalarType == Type::Float)
+    {
+      // TODO need to know how to determine signedness here
+      if(type->bitWidth > 32)
+        ret += StringFormat::Fmt("%lf", val.dv[0]);
+      else
+        ret += StringFormat::Fmt("%f", val.fv[0]);
+    }
+    else if(type->scalarType == Type::Int)
+    {
+      // TODO need to know how to determine signedness here
+      if(type->bitWidth > 32)
+        ret += StringFormat::Fmt("%llu", val.u64v[0]);
+      else
+        ret += StringFormat::Fmt("%u", val.uv[0]);
+    }
+  }
+  else if(type->type == Type::Vector)
+  {
+    ret += "<";
+    for(uint32_t i = 0; i < type->elemCount; i++)
+    {
+      if(type->scalarType == Type::Float)
+      {
+        // TODO need to know how to determine signedness here
+        if(type->bitWidth > 32)
+          ret += StringFormat::Fmt("%lf", val.dv[i]);
+        else
+          ret += StringFormat::Fmt("%f", val.fv[i]);
+      }
+      else if(type->scalarType == Type::Int)
+      {
+        // TODO need to know how to determine signedness here
+        if(type->bitWidth > 32)
+          ret += StringFormat::Fmt("%llu", val.u64v[i]);
+        else
+          ret += StringFormat::Fmt("%u", val.uv[i]);
+      }
+    }
+    ret += ">";
+  }
+  else if(type->type == Type::Array)
+  {
+    ret += "[";
+    for(size_t i = 0; i < members.size(); i++)
+    {
+      if(i > 0)
+        ret += ", ";
+
+      ret += members[i].toString();
+    }
+    ret += "]";
+  }
+  else if(type->type == Type::Struct)
+  {
+    ret += "{";
+    for(size_t i = 0; i < members.size(); i++)
+    {
+      if(i > 0)
+        ret += ", ";
+
+      ret += members[i].toString();
+    }
+    ret += "}";
+  }
+  else
+  {
+    ret += StringFormat::Fmt("unsupported type %u", type->type);
+  }
 
   return ret;
 }
-};
+};    // namespace DXIL
 
 template <>
 rdcstr DoStringise(const DXIL::Attribute &el)
@@ -1503,51 +1660,51 @@ rdcstr DoStringise(const DXIL::Attribute &el)
   {
     STRINGISE_BITFIELD_CLASS_VALUE_NAMED(None, "");
 
-    STRINGISE_BITFIELD_CLASS_BIT(Alignment);
-    STRINGISE_BITFIELD_CLASS_BIT(AlwaysInline);
-    STRINGISE_BITFIELD_CLASS_BIT(ByVal);
-    STRINGISE_BITFIELD_CLASS_BIT(InlineHint);
-    STRINGISE_BITFIELD_CLASS_BIT(InReg);
-    STRINGISE_BITFIELD_CLASS_BIT(MinSize);
-    STRINGISE_BITFIELD_CLASS_BIT(Naked);
-    STRINGISE_BITFIELD_CLASS_BIT(Nest);
-    STRINGISE_BITFIELD_CLASS_BIT(NoAlias);
-    STRINGISE_BITFIELD_CLASS_BIT(NoBuiltin);
-    STRINGISE_BITFIELD_CLASS_BIT(NoCapture);
-    STRINGISE_BITFIELD_CLASS_BIT(NoDuplicate);
-    STRINGISE_BITFIELD_CLASS_BIT(NoImplicitFloat);
-    STRINGISE_BITFIELD_CLASS_BIT(NoInline);
-    STRINGISE_BITFIELD_CLASS_BIT(NonLazyBind);
-    STRINGISE_BITFIELD_CLASS_BIT(NoRedZone);
-    STRINGISE_BITFIELD_CLASS_BIT(NoReturn);
-    STRINGISE_BITFIELD_CLASS_BIT(NoUnwind);
-    STRINGISE_BITFIELD_CLASS_BIT(OptimizeForSize);
-    STRINGISE_BITFIELD_CLASS_BIT(ReadNone);
-    STRINGISE_BITFIELD_CLASS_BIT(ReadOnly);
-    STRINGISE_BITFIELD_CLASS_BIT(Returned);
-    STRINGISE_BITFIELD_CLASS_BIT(ReturnsTwice);
-    STRINGISE_BITFIELD_CLASS_BIT(SExt);
-    STRINGISE_BITFIELD_CLASS_BIT(StackAlignment);
-    STRINGISE_BITFIELD_CLASS_BIT(StackProtect);
-    STRINGISE_BITFIELD_CLASS_BIT(StackProtectReq);
-    STRINGISE_BITFIELD_CLASS_BIT(StackProtectStrong);
-    STRINGISE_BITFIELD_CLASS_BIT(StructRet);
-    STRINGISE_BITFIELD_CLASS_BIT(SanitizeAddress);
-    STRINGISE_BITFIELD_CLASS_BIT(SanitizeThread);
-    STRINGISE_BITFIELD_CLASS_BIT(SanitizeMemory);
-    STRINGISE_BITFIELD_CLASS_BIT(UWTable);
-    STRINGISE_BITFIELD_CLASS_BIT(ZExt);
-    STRINGISE_BITFIELD_CLASS_BIT(Builtin);
-    STRINGISE_BITFIELD_CLASS_BIT(Cold);
-    STRINGISE_BITFIELD_CLASS_BIT(OptimizeNone);
-    STRINGISE_BITFIELD_CLASS_BIT(InAlloca);
-    STRINGISE_BITFIELD_CLASS_BIT(NonNull);
-    STRINGISE_BITFIELD_CLASS_BIT(JumpTable);
-    STRINGISE_BITFIELD_CLASS_BIT(Dereferenceable);
-    STRINGISE_BITFIELD_CLASS_BIT(DereferenceableOrNull);
-    STRINGISE_BITFIELD_CLASS_BIT(Convergent);
-    STRINGISE_BITFIELD_CLASS_BIT(SafeStack);
-    STRINGISE_BITFIELD_CLASS_BIT(ArgMemOnly);
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Alignment, "align");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(AlwaysInline, "alwaysinline");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(ByVal, "byval");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(InlineHint, "inlinehint");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(InReg, "inreg");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(MinSize, "minsize");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Naked, "naked");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Nest, "nest");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoAlias, "noalias");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoBuiltin, "nobuiltin");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoCapture, "nocapture");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoDuplicate, "noduplicate");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoImplicitFloat, "noimplicitfloat");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoInline, "noinline");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NonLazyBind, "nonlazybind");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoRedZone, "noredzone");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoReturn, "noreturn");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoUnwind, "nounwind");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(OptimizeForSize, "optsize");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(ReadNone, "readnone");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(ReadOnly, "readonly");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Returned, "returned");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(ReturnsTwice, "returns_twice");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(SExt, "signext");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(StackAlignment, "alignstack");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(StackProtect, "ssp");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(StackProtectReq, "sspreq");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(StackProtectStrong, "sspstrong");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(StructRet, "sret");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(SanitizeAddress, "sanitize_address");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(SanitizeThread, "sanitize_thread");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(SanitizeMemory, "sanitize_memory");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(UWTable, "uwtable");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(ZExt, "zeroext");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Builtin, "builtin");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Cold, "cold");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(OptimizeNone, "optnone");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(InAlloca, "inalloca");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NonNull, "nonnull");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(JumpTable, "jumptable");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Dereferenceable, "dereferenceable");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(DereferenceableOrNull, "dereferenceable_or_null");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Convergent, "convergent");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(SafeStack, "safestack");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(ArgMemOnly, "argmemonly");
   }
   END_BITFIELD_STRINGISE();
 }
