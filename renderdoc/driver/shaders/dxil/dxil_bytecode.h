@@ -183,6 +183,8 @@ public:
   Program(const Program &o) = default;
   Program &operator=(const Program &o) = default;
 
+  static bool Valid(const byte *bytes, size_t length);
+
   void FetchComputeProperties(DXBC::Reflection *reflection);
   DXBC::Reflection *GetReflection();
 

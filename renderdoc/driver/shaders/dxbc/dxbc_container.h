@@ -104,6 +104,7 @@ struct ShaderStatistics
     STATS_UNKNOWN = 0,
     STATS_DX10,
     STATS_DX11,
+    STATS_DX12,
   } version;
 };
 
@@ -176,7 +177,7 @@ private:
 
   D3D_PRIMITIVE_TOPOLOGY m_OutputTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
-  CBufferVariableType ParseRDEFType(RDEFHeader *h, char *chunk, uint32_t offset);
+  CBufferVariableType ParseRDEFType(const RDEFHeader *h, const byte *chunk, uint32_t offset);
   std::map<uint32_t, CBufferVariableType> m_Variables;
 
   uint32_t m_Hash[4];

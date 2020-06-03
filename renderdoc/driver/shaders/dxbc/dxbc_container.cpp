@@ -382,13 +382,13 @@ rdcstr TypeName(CBufferVariableType::Descriptor desc)
   return ret;
 }
 
-CBufferVariableType DXBCContainer::ParseRDEFType(RDEFHeader *h, char *chunkContents,
+CBufferVariableType DXBCContainer::ParseRDEFType(const RDEFHeader *h, const byte *chunkContents,
                                                  uint32_t typeOffset)
 {
   if(m_Variables.find(typeOffset) != m_Variables.end())
     return m_Variables[typeOffset];
 
-  RDEFCBufferType *type = (RDEFCBufferType *)(chunkContents + typeOffset);
+  const RDEFCBufferType *type = (const RDEFCBufferType *)(chunkContents + typeOffset);
 
   CBufferVariableType ret;
 
@@ -405,7 +405,7 @@ CBufferVariableType DXBCContainer::ParseRDEFType(RDEFHeader *h, char *chunkConte
   {
     if(h->targetVersion >= 0x500 && type->nameOffset > 0)
     {
-      ret.descriptor.name += " " + rdcstr(chunkContents + type->nameOffset);
+      ret.descriptor.name += " " + rdcstr((const char *)chunkContents + type->nameOffset);
     }
     else
     {
@@ -418,7 +418,7 @@ CBufferVariableType DXBCContainer::ParseRDEFType(RDEFHeader *h, char *chunkConte
   {
     if(h->targetVersion >= 0x500 && type->nameOffset > 0)
     {
-      ret.descriptor.name = chunkContents + type->nameOffset;
+      ret.descriptor.name = (const char *)chunkContents + type->nameOffset;
     }
     else
     {
@@ -428,7 +428,8 @@ CBufferVariableType DXBCContainer::ParseRDEFType(RDEFHeader *h, char *chunkConte
 
   if(type->memberOffset)
   {
-    RDEFCBufferChildType *members = (RDEFCBufferChildType *)(chunkContents + type->memberOffset);
+    const RDEFCBufferChildType *members =
+        (const RDEFCBufferChildType *)(chunkContents + type->memberOffset);
 
     ret.members.reserve(type->numMembers);
 
@@ -438,7 +439,7 @@ CBufferVariableType DXBCContainer::ParseRDEFType(RDEFHeader *h, char *chunkConte
     {
       CBufferVariable v;
 
-      v.name = chunkContents + members[j].nameOffset;
+      v.name = (const char *)(chunkContents + members[j].nameOffset);
       v.type = ParseRDEFType(h, chunkContents, members[j].typeOffset);
       v.descriptor.offset = members[j].memberOffset;
 
@@ -738,14 +739,14 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
   {
-    uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
-    uint32_t *chunkSize = (uint32_t *)(fourcc + 1);
+    const uint32_t *fourcc = (const uint32_t *)(data + chunkOffsets[chunkIdx]);
+    const uint32_t *chunkSize = (const uint32_t *)(fourcc + 1);
 
-    char *chunkContents = (char *)(chunkSize + 1);
+    const byte *chunkContents = (const byte *)(chunkSize + 1);
 
     if(*fourcc == FOURCC_RDEF)
     {
-      RDEFHeader *h = (RDEFHeader *)chunkContents;
+      const RDEFHeader *h = (const RDEFHeader *)chunkContents;
 
       // for target version 0x500, unknown[0] is FOURCC_RD11.
       // for 0x501 it's "\x13\x13\D%"
@@ -793,7 +794,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
         ShaderInputBind desc;
 
-        desc.name = chunkContents + res->nameOffset;
+        desc.name = (const char *)(chunkContents + res->nameOffset);
         desc.type = (ShaderInputBind::InputType)res->type;
         desc.space = h->targetVersion >= 0x501 ? res->space : 0;
         desc.reg = res->bindPoint;
@@ -907,9 +908,9 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
         if(cbuf->nameOffset == 0)
           continue;
 
-        cb.name = chunkContents + cbuf->nameOffset;
+        cb.name = (const char *)(chunkContents + cbuf->nameOffset);
 
-        cb.descriptor.name = chunkContents + cbuf->nameOffset;
+        cb.descriptor.name = (const char *)(chunkContents + cbuf->nameOffset);
         cb.descriptor.byteSize = cbuf->size;
         cb.descriptor.type = (CBuffer::Descriptor::Type)cbuf->type;
         cb.descriptor.flags = cbuf->flags;
@@ -949,7 +950,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
           CBufferVariable v;
 
-          v.name = chunkContents + var->nameOffset;
+          v.name = (const char *)(chunkContents + var->nameOffset);
 
           v.descriptor.defaultValue.resize(var->size);
 
@@ -1007,7 +1008,15 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
     }
     else if(*fourcc == FOURCC_STAT)
     {
-      if(*chunkSize == STATSizeDX10)
+      if(DXIL::Program::Valid(chunkContents, *chunkSize))
+      {
+        RDCEraseEl(m_ShaderStats);
+        m_ShaderStats.version = ShaderStatistics::STATS_DX12;
+        /*
+        DXIL::Program prog(chunkContents, *chunkSize);
+        */
+      }
+      else if(*chunkSize == STATSizeDX10)
       {
         memcpy(&m_ShaderStats, chunkContents, STATSizeDX10);
         m_ShaderStats.version = ShaderStatistics::STATS_DX10;
@@ -1024,19 +1033,34 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
     }
     else if(*fourcc == FOURCC_SHEX || *fourcc == FOURCC_SHDR)
     {
-      m_DXBCByteCode = new DXBCBytecode::Program((const byte *)chunkContents, *chunkSize);
+      m_DXBCByteCode = new DXBCBytecode::Program(chunkContents, *chunkSize);
+    }
+    else if(*fourcc == FOURCC_ILDB || *fourcc == FOURCC_DXIL)
+    {
+      // we avoiding parsing these immediately because you can get both in a dxbc, so we prefer the
+      // debug version.
     }
     else if(*fourcc == FOURCC_ILDN)
     {
-      ILDNHeader *h = (ILDNHeader *)chunkContents;
+      const ILDNHeader *h = (const ILDNHeader *)chunkContents;
 
       m_DebugFileName = rdcstr(h->Name, h->NameLength);
     }
     else if(*fourcc == FOURCC_HASH)
     {
-      HASHHeader *h = (HASHHeader *)chunkContents;
+      const HASHHeader *h = (const HASHHeader *)chunkContents;
 
       memcpy(m_Hash, h->hashValue, sizeof(h->hashValue));
+    }
+    else if(*fourcc == FOURCC_ISGN || *fourcc == FOURCC_OSGN || *fourcc == FOURCC_ISG1 ||
+            *fourcc == FOURCC_OSG1 || *fourcc == FOURCC_OSG5 || *fourcc == FOURCC_PCSG)
+    {
+      // processed later
+    }
+    else
+    {
+      RDCWARN("Unknown chunk %c%c%c%c", ((const char *)fourcc)[0], ((const char *)fourcc)[1],
+              ((const char *)fourcc)[2], ((const char *)fourcc)[3]);
     }
   }
 

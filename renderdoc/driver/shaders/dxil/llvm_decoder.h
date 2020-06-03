@@ -64,6 +64,8 @@ public:
   BlockOrRecord ReadToplevelBlock();
   bool AtEndOfStream();
 
+  static bool Valid(const byte *bitcode, size_t length);
+
 private:
   BitReader b;
 

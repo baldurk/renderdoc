@@ -569,6 +569,25 @@ static void dumpBlock(const LLVMBC::BlockOrRecord &block, int indent)
   RDCLOG("%s", line.c_str());
 }
 
+bool Program::Valid(const byte *bytes, size_t length)
+{
+  if(length < sizeof(ProgramHeader))
+    return false;
+
+  const byte *ptr = bytes;
+  const ProgramHeader *header = (const ProgramHeader *)ptr;
+  if(header->DxilMagic != MAKE_FOURCC('D', 'X', 'I', 'L'))
+    return false;
+
+  size_t expected = offsetof(ProgramHeader, DxilMagic) + header->BitcodeOffset + header->BitcodeSize;
+
+  if(expected != length)
+    return false;
+
+  return LLVMBC::BitcodeReader::Valid(
+      ptr + offsetof(ProgramHeader, DxilMagic) + header->BitcodeOffset, header->BitcodeSize);
+}
+
 Program::Program(const byte *bytes, size_t length)
 {
   const byte *ptr = bytes;
