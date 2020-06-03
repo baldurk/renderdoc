@@ -314,7 +314,8 @@ private:
     if(riid == __uuidof(IDXGraphicsAnalysis))
     {
       dxgihooks.m_RenderDocAnalysis.AddRef();
-      *ppDebug = &dxgihooks.m_RenderDocAnalysis;
+      if(ppDebug)
+        *ppDebug = &dxgihooks.m_RenderDocAnalysis;
       return S_OK;
     }
     if(riid == __uuidof(IDXGIInfoQueue))
@@ -323,7 +324,8 @@ private:
           "Returning a dummy IDXGIInfoQueue that does nothing. RenderDoc takes control of the "
           "debug layer.");
       dxgihooks.m_DummyInfoQueue.AddRef();
-      *ppDebug = &dxgihooks.m_DummyInfoQueue;
+      if(ppDebug)
+        *ppDebug = &dxgihooks.m_DummyInfoQueue;
       return S_OK;
     }
 
@@ -343,7 +345,8 @@ private:
     if(riid == __uuidof(IDXGraphicsAnalysis))
     {
       dxgihooks.m_RenderDocAnalysis.AddRef();
-      *ppDebug = &dxgihooks.m_RenderDocAnalysis;
+      if(ppDebug)
+        *ppDebug = &dxgihooks.m_RenderDocAnalysis;
       return S_OK;
     }
     if(riid == __uuidof(IDXGIInfoQueue))
@@ -352,7 +355,8 @@ private:
           "Returning a dummy IDXGIInfoQueue that does nothing. RenderDoc takes control of the "
           "debug layer.");
       dxgihooks.m_DummyInfoQueue.AddRef();
-      *ppDebug = &dxgihooks.m_DummyInfoQueue;
+      if(ppDebug)
+        *ppDebug = &dxgihooks.m_DummyInfoQueue;
       return S_OK;
     }
 
