@@ -620,7 +620,7 @@ void EncodeFormattedComponents(const ResourceFormat &fmt, FloatVector v, byte *d
     if(fmt.compType == CompType::SNorm)
       u = ConvertToR10G10B10A2SNorm(v);
     else if(fmt.compType == CompType::UInt)
-      u = ConvertToR10G10B10A2(v);
+      u = ConvertToR10G10B10A2(Vec4u(uint32_t(v.x), uint32_t(v.y), uint32_t(v.z), uint32_t(v.w)));
     else
       u = ConvertToR10G10B10A2(v);
     memcpy(data, &u, sizeof(u));
