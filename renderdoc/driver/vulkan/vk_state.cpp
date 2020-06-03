@@ -461,7 +461,7 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
         inlineWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
         inlineWrite->pNext = NULL;
         inlineWrite->dataSize = bind.descriptorCount;
-        inlineWrite->pData = setInfo.inlineData.data() + slots->inlineOffset;
+        inlineWrite->pData = setInfo.inlineData.data() + slots[0].inlineOffset;
 
         push.pNext = inlineWrite;
         push.descriptorCount = bind.descriptorCount;

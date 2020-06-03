@@ -796,8 +796,8 @@ void WrappedVulkan::ReplayDescriptorSetCopy(VkDevice device, const VkCopyDescrip
         bytebuf &dstInlineData = m_DescriptorSetState[dstSetId].inlineData;
         bytebuf &srcInlineData = m_DescriptorSetState[srcSetId].inlineData;
 
-        memcpy(dstInlineData.data() + (*dstbind)->inlineOffset + copyDesc.dstArrayElement,
-               srcInlineData.data() + (*srcbind)->inlineOffset + copyDesc.srcArrayElement,
+        memcpy(dstInlineData.data() + (*dstbind)[0].inlineOffset + copyDesc.dstArrayElement,
+               srcInlineData.data() + (*srcbind)[0].inlineOffset + copyDesc.srcArrayElement,
                copyDesc.descriptorCount);
 
         break;
@@ -1202,9 +1202,9 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
           bytebuf &dstInlineData = dstrecord->descInfo->inlineData;
           bytebuf &srcInlineData = srcrecord->descInfo->inlineData;
 
-          memcpy(dstInlineData.data() + (*dstbinding)->inlineOffset +
+          memcpy(dstInlineData.data() + (*dstbinding)[0].inlineOffset +
                      pDescriptorCopies[i].dstArrayElement,
-                 srcInlineData.data() + (*srcbinding)->inlineOffset +
+                 srcInlineData.data() + (*srcbinding)[0].inlineOffset +
                      pDescriptorCopies[i].srcArrayElement,
                  pDescriptorCopies[i].descriptorCount);
 
