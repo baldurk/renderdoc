@@ -724,7 +724,7 @@ ShaderVariable D3D12DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType typ
                   D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
                   D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = desc->GetSRV();
 
-                  if(srvDesc.ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
+                  if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_BUFFER)
                   {
                     result.value.u.x = result.value.u.y = result.value.u.z = result.value.u.w =
                         (uint32_t)srvDesc.Buffer.NumElements;
@@ -2689,17 +2689,19 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
           pWinnerHit = pHit;
           evalSampleCache = ((float *)evalData.data()) + evalSampleCacheData.size() * 4 * i;
         }
-        else if((depthFunc == D3D11_COMPARISON_ALWAYS || depthFunc == D3D11_COMPARISON_NEVER ||
-                 depthFunc == D3D11_COMPARISON_NOT_EQUAL || depthFunc == D3D11_COMPARISON_EQUAL))
+        else if((depthFunc == D3D12_COMPARISON_FUNC_ALWAYS ||
+                 depthFunc == D3D12_COMPARISON_FUNC_NEVER ||
+                 depthFunc == D3D12_COMPARISON_FUNC_NOT_EQUAL ||
+                 depthFunc == D3D12_COMPARISON_FUNC_EQUAL))
         {
           // For depth functions without an inequality comparison, use the last sample encountered
           pWinnerHit = pHit;
           evalSampleCache = ((float *)evalData.data()) + evalSampleCacheData.size() * 4 * i;
         }
-        else if((depthFunc == D3D11_COMPARISON_LESS && pHit->depth < pWinnerHit->depth) ||
-                (depthFunc == D3D11_COMPARISON_LESS_EQUAL && pHit->depth <= pWinnerHit->depth) ||
-                (depthFunc == D3D11_COMPARISON_GREATER && pHit->depth > pWinnerHit->depth) ||
-                (depthFunc == D3D11_COMPARISON_GREATER_EQUAL && pHit->depth >= pWinnerHit->depth))
+        else if((depthFunc == D3D12_COMPARISON_FUNC_LESS && pHit->depth < pWinnerHit->depth) ||
+                (depthFunc == D3D12_COMPARISON_FUNC_LESS_EQUAL && pHit->depth <= pWinnerHit->depth) ||
+                (depthFunc == D3D12_COMPARISON_FUNC_GREATER && pHit->depth > pWinnerHit->depth) ||
+                (depthFunc == D3D12_COMPARISON_FUNC_GREATER_EQUAL && pHit->depth >= pWinnerHit->depth))
         {
           // For depth functions with an inequality, find the hit that "wins" the most
           pWinnerHit = pHit;
