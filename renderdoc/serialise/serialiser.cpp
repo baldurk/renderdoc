@@ -184,7 +184,7 @@ uint32_t Serialiser<SerialiserMode::Reading>::BeginChunk(uint32_t, uint64_t)
     m_StructuredFile->chunks.push_back(chunk);
     m_StructureStack.push_back(chunk);
 
-    m_InternalElement = false;
+    m_InternalElement = 0;
   }
 
   return chunkID;
@@ -444,7 +444,7 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint6
     m_StructuredFile->chunks.push_back(chunk);
     m_StructureStack.push_back(chunk);
 
-    m_InternalElement = false;
+    m_InternalElement = 0;
   }
 
   return chunkID;
