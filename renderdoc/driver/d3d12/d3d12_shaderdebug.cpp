@@ -1176,8 +1176,6 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
   };
 
   int texcoordType = 0;
-  int ddxType = 0;
-  int ddyType = 0;
   int texdimOffs = 0;
 
   if(opcode == OPCODE_SAMPLE || opcode == OPCODE_SAMPLE_L || opcode == OPCODE_SAMPLE_B ||
@@ -1186,7 +1184,7 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
      opcode == OPCODE_GATHER4_PO_C || opcode == OPCODE_LOD)
   {
     // all floats
-    texcoordType = ddxType = ddyType = 0;
+    texcoordType = 0;
   }
   else if(opcode == OPCODE_LD)
   {
@@ -1211,7 +1209,7 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
 
   for(uint32_t i = 0; i < ddxCalc.columns; i++)
   {
-    if(ddxType == 0 && (_isnan(ddxCalc.value.fv[i]) || !_finite(ddxCalc.value.fv[i])))
+    if(_isnan(ddxCalc.value.fv[i]) || !_finite(ddxCalc.value.fv[i]))
     {
       RDCWARN("NaN or Inf in texlookup");
       ddxCalc.value.fv[i] = 0.0f;
@@ -1222,7 +1220,7 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
                                                    "texture lookup ddx - using 0.0 instead",
                                                    m_instruction, opString));
     }
-    if(ddyType == 0 && (_isnan(ddyCalc.value.fv[i]) || !_finite(ddyCalc.value.fv[i])))
+    if(_isnan(ddyCalc.value.fv[i]) || !_finite(ddyCalc.value.fv[i]))
     {
       RDCWARN("NaN or Inf in texlookup");
       ddyCalc.value.fv[i] = 0.0f;
@@ -1302,23 +1300,11 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
 
   if(opcode == OPCODE_SAMPLE || opcode == OPCODE_SAMPLE_B || opcode == OPCODE_SAMPLE_D)
   {
-    rdcstr ddx;
+    rdcstr ddx = StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][0], ddxCalc.value.f.x,
+                                   ddxCalc.value.f.y, ddxCalc.value.f.z, ddxCalc.value.f.w);
 
-    if(ddxType == 0)
-      ddx = StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][ddxType], ddxCalc.value.f.x,
-                              ddxCalc.value.f.y, ddxCalc.value.f.z, ddxCalc.value.f.w);
-    else
-      ddx = StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][ddxType], ddxCalc.value.i.x,
-                              ddxCalc.value.i.y, ddxCalc.value.i.z, ddxCalc.value.i.w);
-
-    rdcstr ddy;
-
-    if(ddyType == 0)
-      ddy = StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][ddyType], ddyCalc.value.f.x,
-                              ddyCalc.value.f.y, ddyCalc.value.f.z, ddyCalc.value.f.w);
-    else
-      ddy = StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][ddyType], ddyCalc.value.i.x,
-                              ddyCalc.value.i.y, ddyCalc.value.i.z, ddyCalc.value.i.w);
+    rdcstr ddy = StringFormat::Fmt(formats[offsetDim + texdimOffs - 1][0], ddyCalc.value.f.x,
+                                   ddyCalc.value.f.y, ddyCalc.value.f.z, ddyCalc.value.f.w);
 
     sampleProgram = StringFormat::Fmt("%s : register(%s);\n%s : register(%s);\n\n",
                                       textureDecl.c_str(), strResourceBinding.c_str(),
