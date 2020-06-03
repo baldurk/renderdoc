@@ -106,7 +106,7 @@ protected:
     m_pDevice->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
   }
 
-  virtual void Shutdown()
+  void Shutdown()
   {
     m_pDevice->GetResourceManager()->RemoveWrapper(m_pReal);
     m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
@@ -353,7 +353,6 @@ protected:
     RefCounter::SetSelfDeleting(false);
   }
 
-  virtual void Shutdown() { WrappedDeviceChild11::Shutdown(); }
   virtual ~WrappedResource11() {}
 public:
   void ViewAddRef()
@@ -765,15 +764,13 @@ protected:
     ((WrappedID3D11Buffer *)m_pResource)->ViewAddRef();
   }
 
-  virtual void Shutdown()
+  virtual ~WrappedView1()
   {
-    WrappedDeviceChild11::Shutdown();
     // cast is potentially invalid but functions in WrappedResource will be identical across each
     ((WrappedID3D11Buffer *)m_pResource)->ViewRelease();
     m_pResource = NULL;
   }
 
-  virtual ~WrappedView1() {}
 public:
   ResourceId GetResourceResID() { return m_ResourceResID; }
   const ResourceRange &GetResourceRange() { return m_ResourceRange; }

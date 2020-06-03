@@ -82,7 +82,7 @@ protected:
     m_pDevice->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
   }
 
-  virtual void Shutdown()
+  void Shutdown()
   {
     if(m_pReal)
       m_pDevice->GetResourceManager()->RemoveWrapper(m_pReal);
