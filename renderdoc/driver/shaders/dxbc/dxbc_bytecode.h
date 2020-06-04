@@ -962,7 +962,6 @@ public:
       MakeDisassemblyString();
     return m_Disassembly;
   }
-  uint32_t GetDisassemblyLine(uint32_t instruction) const;
   size_t GetNumDeclarations() const { return m_Declarations.size(); }
   const Declaration &GetDeclaration(size_t i) const { return m_Declarations[i]; }
   const Declaration *FindDeclaration(OperandType declType, uint32_t identifier) const;

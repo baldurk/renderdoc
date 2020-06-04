@@ -450,11 +450,6 @@ D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
   return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
-uint32_t Program::GetDisassemblyLine(uint32_t instruction) const
-{
-  return m_Instructions[RDCMIN(m_Instructions.size() - 1, (size_t)instruction)].line;
-}
-
 void Program::SetupRegisterFile(rdcarray<ShaderVariable> &registers) const
 {
   size_t numRegisters = m_NumTemps + m_IndexTempSizes.size() + m_NumOutputs;
