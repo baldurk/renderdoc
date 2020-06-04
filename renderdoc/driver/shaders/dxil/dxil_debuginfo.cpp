@@ -73,9 +73,6 @@ enum class MetaDataRecord : uint32_t
   COMMON_BLOCK = 44,
 };
 
-bool needsEscaping(const rdcstr &name);
-rdcstr escapeString(rdcstr str);
-
 bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Metadata &meta)
 {
   MetaDataRecord id = (MetaDataRecord)metaRecord.id;

@@ -103,6 +103,7 @@
   <ItemGroup>
     <ClCompile Include="dxil_bytecode.cpp" />
     <ClCompile Include="dxil_debuginfo.cpp" />
+    <ClCompile Include="dxil_disassemble.cpp" />
     <ClCompile Include="llvm_decoder.cpp" />
     <ClCompile Include="precompiled.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

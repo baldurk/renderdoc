@@ -384,4 +384,8 @@ private:
   rdcstr m_Disassembly;
 };
 
+bool needsEscaping(const rdcstr &name);
+rdcstr escapeString(rdcstr str);
+rdcstr escapeStringIfNeeded(const rdcstr &name);
+
 };    // namespace DXIL
