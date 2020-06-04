@@ -227,6 +227,8 @@ enum class TypeRecord : uint32_t
   FUNCTION = 21,
 };
 
+#define IS_KNOWN(val, KnownID) (decltype(KnownID)(val) == KnownID)
+
 static rdcstr getName(uint32_t parentBlock, const LLVMBC::BlockOrRecord &block)
 {
   const char *name = NULL;
@@ -486,6 +488,11 @@ rdcstr escapeString(rdcstr str)
   return str;
 }
 
+rdcstr escapeStringIfNeeded(const rdcstr &name)
+{
+  return needsEscaping(name) ? escapeString(name) : name;
+}
+
 static void dumpRecord(size_t idx, uint32_t parentBlock, const LLVMBC::BlockOrRecord &record,
                        int indent)
 {
@@ -560,6 +567,131 @@ static void dumpBlock(const LLVMBC::BlockOrRecord &block, int indent)
   RDCLOG("%s", line.c_str());
 }
 
+void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
+                   std::function<Type *(uint64_t)> getType,
+                   std::function<const Value *(uint64_t)> getValue,
+                   std::function<void(const Value &)> addValue)
+{
+  if(IS_KNOWN(constant.id, ConstantsRecord::SETTYPE))
+  {
+    curType = getType(constant.ops[0]);
+  }
+  else if(IS_KNOWN(constant.id, ConstantsRecord::CONST_NULL) ||
+          IS_KNOWN(constant.id, ConstantsRecord::UNDEF))
+  {
+    Value v;
+    v.type = curType;
+    v.undef = IS_KNOWN(constant.id, ConstantsRecord::UNDEF);
+    addValue(v);
+  }
+  else if(IS_KNOWN(constant.id, ConstantsRecord::INTEGER))
+  {
+    Value v;
+    v.type = curType;
+    v.val.u64v[0] = constant.ops[0];
+    if(v.val.u64v[0] & 0x1)
+      v.val.s64v[0] = -int64_t(v.val.u64v[0] >> 1);
+    else
+      v.val.u64v[0] >>= 1;
+    addValue(v);
+  }
+  else if(IS_KNOWN(constant.id, ConstantsRecord::FLOAT))
+  {
+    Value v;
+    v.type = curType;
+    if(curType->bitWidth == 16)
+      v.val.fv[0] = ConvertFromHalf(uint16_t(constant.ops[0] & 0xffff));
+    else if(curType->bitWidth == 32)
+      memcpy(&v.val.fv[0], &constant.ops[0], sizeof(float));
+    else
+      memcpy(&v.val.dv[0], &constant.ops[0], sizeof(float));
+    addValue(v);
+  }
+  else if(IS_KNOWN(constant.id, ConstantsRecord::STRING))
+  {
+    Value v;
+    v.type = curType;
+    v.str = constant.getString(0);
+    addValue(v);
+  }
+  else if(IS_KNOWN(constant.id, ConstantsRecord::AGGREGATE))
+  {
+    Value v;
+    v.type = curType;
+    if(v.type->type == Type::Vector)
+    {
+      // inline vectors
+      for(size_t m = 0; m < constant.ops.size(); m++)
+      {
+        const Value *member = getValue(constant.ops[m]);
+
+        if(member)
+        {
+          if(v.type->bitWidth <= 32)
+            v.val.uv[m] = member->val.uv[m];
+          else
+            v.val.u64v[m] = member->val.u64v[m];
+        }
+        else
+        {
+          RDCERR("Index %llu out of bounds for values array", constant.ops[m]);
+        }
+      }
+    }
+    else
+    {
+      for(uint64_t m : constant.ops)
+      {
+        const Value *member = getValue(m);
+
+        if(member)
+        {
+          v.members.push_back(*member);
+        }
+        else
+        {
+          v.members.push_back(Value());
+          RDCERR("Index %llu out of bounds for values array", m);
+        }
+      }
+    }
+    addValue(v);
+  }
+  else if(IS_KNOWN(constant.id, ConstantsRecord::DATA))
+  {
+    Value v;
+    v.type = curType;
+    if(v.type->type == Type::Vector)
+    {
+      for(size_t m = 0; m < constant.ops.size(); m++)
+      {
+        if(v.type->bitWidth <= 32)
+          v.val.uv[m] = constant.ops[m] & ((1ULL << v.type->bitWidth) - 1);
+        else
+          v.val.u64v[m] = constant.ops[m];
+      }
+    }
+    else
+    {
+      for(size_t m = 0; m < constant.ops.size(); m++)
+      {
+        Value el;
+        el.type = v.type->inner;
+        if(el.type->bitWidth <= 32)
+          el.val.uv[0] = constant.ops[m] & ((1ULL << el.type->bitWidth) - 1);
+        else
+          el.val.u64v[m] = constant.ops[m];
+        v.members.push_back(el);
+      }
+    }
+    addValue(v);
+  }
+  else
+  {
+    RDCERR("Unknown record ID %u encountered in constants block", constant.id);
+  }
+}
+
 bool Program::Valid(const byte *bytes, size_t length)
 {
   if(length < sizeof(ProgramHeader))
@@ -606,8 +738,6 @@ Program::Program(const byte *bytes, size_t length)
   // Pipeline Runtime Information we have decoded just not implemented here
 
   rdcstr datalayout, triple;
-
-#define IS_KNOWN(val, KnownID) (decltype(KnownID)(val) == KnownID)
 
   rdcarray<size_t> functionDecls;
 
@@ -750,6 +880,12 @@ Program::Program(const byte *bytes, size_t length)
       {
         for(const LLVMBC::BlockOrRecord &attrgroup : rootchild.children)
         {
+          if(attrgroup.IsBlock())
+          {
+            RDCERR("Unexpected subblock in PARAMATTR_GROUP_BLOCK");
+            continue;
+          }
+
           if(!IS_KNOWN(attrgroup.id, ParamAttrGroupRecord::ENTRY))
           {
             RDCERR("Unexpected attribute group record ID %u", attrgroup.id);
@@ -805,6 +941,12 @@ Program::Program(const byte *bytes, size_t length)
       {
         for(const LLVMBC::BlockOrRecord &paramattr : rootchild.children)
         {
+          if(paramattr.IsBlock())
+          {
+            RDCERR("Unexpected subblock in PARAMATTR_BLOCK");
+            continue;
+          }
+
           if(!IS_KNOWN(paramattr.id, ParamAttrRecord::ENTRY))
           {
             RDCERR("Unexpected attribute record ID %u", paramattr.id);
@@ -848,6 +990,12 @@ Program::Program(const byte *bytes, size_t length)
         size_t typeIndex = 0;
         for(const LLVMBC::BlockOrRecord &typ : rootchild.children)
         {
+          if(typ.IsBlock())
+          {
+            RDCERR("Unexpected subblock in TYPE_BLOCK");
+            continue;
+          }
+
           if(IS_KNOWN(typ.id, TypeRecord::NUMENTRY))
           {
             RDCASSERT(m_Types.size() < (size_t)typ.ops[0], m_Types.size(), typ.ops[0]);
@@ -997,128 +1145,33 @@ Program::Program(const byte *bytes, size_t length)
         const Type *t = NULL;
         for(const LLVMBC::BlockOrRecord &constant : rootchild.children)
         {
-          if(IS_KNOWN(constant.id, ConstantsRecord::SETTYPE))
+          if(constant.IsBlock())
           {
-            t = &m_Types[(size_t)constant.ops[0]];
+            RDCERR("Unexpected subblock in CONSTANTS_BLOCK");
+            continue;
           }
-          else if(IS_KNOWN(constant.id, ConstantsRecord::CONST_NULL) ||
-                  IS_KNOWN(constant.id, ConstantsRecord::UNDEF))
-          {
-            Value v;
-            v.type = t;
-            v.undef = IS_KNOWN(constant.id, ConstantsRecord::UNDEF);
-            m_Values.push_back(v);
-          }
-          else if(IS_KNOWN(constant.id, ConstantsRecord::INTEGER))
-          {
-            Value v;
-            v.type = t;
-            v.val.u64v[0] = constant.ops[0];
-            if(v.val.u64v[0] & 0x1)
-              v.val.s64v[0] = -int64_t(v.val.u64v[0] >> 1);
-            else
-              v.val.u64v[0] >>= 1;
-            m_Values.push_back(v);
-          }
-          else if(IS_KNOWN(constant.id, ConstantsRecord::FLOAT))
-          {
-            Value v;
-            v.type = t;
-            if(t->bitWidth == 16)
-              v.val.fv[0] = ConvertFromHalf(uint16_t(constant.ops[0] & 0xffff));
-            else if(t->bitWidth == 32)
-              memcpy(&v.val.fv[0], &constant.ops[0], sizeof(float));
-            else
-              memcpy(&v.val.dv[0], &constant.ops[0], sizeof(float));
-            m_Values.push_back(v);
-          }
-          else if(IS_KNOWN(constant.id, ConstantsRecord::STRING))
-          {
-            Value v;
-            v.type = t;
-            v.str = constant.getString(0);
-            m_Values.push_back(v);
-          }
-          else if(IS_KNOWN(constant.id, ConstantsRecord::AGGREGATE))
-          {
-            Value v;
-            v.type = t;
-            if(v.type->type == Type::Vector)
-            {
-              // inline vectors
-              for(size_t m = 0; m < constant.ops.size(); m++)
-              {
-                size_t idx = (size_t)constant.ops[m];
-                if(idx < m_Values.size())
-                {
-                  if(v.type->bitWidth <= 32)
-                    v.val.uv[m] = m_Values[idx].val.uv[m];
-                  else
-                    v.val.u64v[m] = m_Values[idx].val.u64v[m];
-                }
-                else
-                {
-                  RDCERR("Index %zu out of bounds for values array", idx);
-                }
-              }
-            }
-            else
-            {
-              for(uint64_t m : constant.ops)
-              {
-                size_t idx = (size_t)m;
-                if(idx < m_Values.size())
-                {
-                  v.members.push_back(m_Values[idx]);
-                }
-                else
-                {
-                  v.members.push_back(Value());
-                  RDCERR("Index %zu out of bounds for values array", idx);
-                }
-              }
-            }
-            m_Values.push_back(v);
-          }
-          else if(IS_KNOWN(constant.id, ConstantsRecord::DATA))
-          {
-            Value v;
-            v.type = t;
-            if(v.type->type == Type::Vector)
-            {
-              for(size_t m = 0; m < constant.ops.size(); m++)
-              {
-                if(v.type->bitWidth <= 32)
-                  v.val.uv[m] = constant.ops[m] & ((1ULL << v.type->bitWidth) - 1);
-                else
-                  v.val.u64v[m] = constant.ops[m];
-              }
-            }
-            else
-            {
-              for(size_t m = 0; m < constant.ops.size(); m++)
-              {
-                Value el;
-                el.type = v.type->inner;
-                if(el.type->bitWidth <= 32)
-                  el.val.uv[0] = constant.ops[m] & ((1ULL << el.type->bitWidth) - 1);
-                else
-                  el.val.u64v[m] = constant.ops[m];
-                v.members.push_back(el);
-              }
-            }
-            m_Values.push_back(v);
-          }
-          else
-          {
-            RDCERR("Unknown record ID %u encountered in constants block", constant.id);
-          }
+
+          ParseConstant(constant, t, [this](uint64_t op) { return &m_Types[(size_t)op]; },
+                        [this](uint64_t v) {
+                          size_t idx = (size_t)v;
+                          return idx < m_Values.size() ? &m_Values[idx] : NULL;
+                        },
+                        [this](const Value &v) {
+                          m_Symbols.push_back({SymbolType::Constant, m_Values.size()});
+                          m_Values.push_back(v);
+                        });
         }
       }
       else if(IS_KNOWN(rootchild.id, KnownBlocks::VALUE_SYMTAB_BLOCK))
       {
         for(const LLVMBC::BlockOrRecord &symtab : rootchild.children)
         {
+          if(symtab.IsBlock())
+          {
+            RDCERR("Unexpected subblock in VALUE_SYMTAB_BLOCK");
+            continue;
+          }
+
           if(symtab.id != 1)
           {
             RDCERR("Unexpected symbol table record ID %u", symtab.id);
@@ -1131,6 +1184,14 @@ Program::Program(const byte *bytes, size_t length)
             size_t idx = m_Symbols[s].idx;
             switch(m_Symbols[s].type)
             {
+              case SymbolType::Unknown:
+              case SymbolType::Constant:
+              case SymbolType::Argument:
+              case SymbolType::Instruction:
+              case SymbolType::Metadata:
+              case SymbolType::Literal:
+                RDCERR("Unexpected global symbol referring to %d", m_Symbols[s].type);
+                break;
               case SymbolType::GlobalVar:
                 m_Values[s].str = m_GlobalVars[idx].name = symtab.getString(1);
                 break;
@@ -1150,10 +1211,17 @@ Program::Program(const byte *bytes, size_t length)
       }
       else if(IS_KNOWN(rootchild.id, KnownBlocks::METADATA_BLOCK))
       {
-        m_Metadata.resize_for_index(rootchild.children.size() - 1);
+        m_Metadata.reserve(rootchild.children.size());
         for(size_t i = 0; i < rootchild.children.size(); i++)
         {
           const LLVMBC::BlockOrRecord &metaRecord = rootchild.children[i];
+
+          if(metaRecord.IsBlock())
+          {
+            RDCERR("Unexpected subblock in METADATA_BLOCK");
+            continue;
+          }
+
           if(IS_KNOWN(metaRecord.id, MetaDataRecord::NAME))
           {
             NamedMetadata meta;
@@ -1177,10 +1245,13 @@ Program::Program(const byte *bytes, size_t length)
           }
           else
           {
+            m_Metadata.resize_for_index(i);
             Metadata &meta = m_Metadata[i];
 
-            auto getMeta = [this](uint64_t id) { return id ? &m_Metadata[size_t(id - 1)] : NULL; };
-            auto getMetaString = [this](uint64_t id) {
+            auto getMetaOrNull = [this](uint64_t id) {
+              return id ? &m_Metadata[size_t(id - 1)] : NULL;
+            };
+            auto getMetaStringOrNull = [this](uint64_t id) {
               return id ? &m_Metadata[size_t(id - 1)].str : NULL;
             };
 
@@ -1202,7 +1273,7 @@ Program::Program(const byte *bytes, size_t length)
                 meta.distinct = true;
 
               for(uint64_t op : metaRecord.ops)
-                meta.children.push_back(getMeta(op));
+                meta.children.push_back(getMetaOrNull(op));
             }
             else
             {
@@ -1217,8 +1288,347 @@ Program::Program(const byte *bytes, size_t length)
       }
       else if(IS_KNOWN(rootchild.id, KnownBlocks::FUNCTION_BLOCK))
       {
-        RDCLOG("Skipping function body for %s", m_Functions[functionDecls[0]].name.c_str());
+        Function &f = m_Functions[functionDecls[0]];
         functionDecls.erase(0);
+
+        auto getValue = [this, &f](uint64_t v) { return GetFunctionValue(f, v); };
+        auto getMetaOrNull = [this, &f](uint64_t v) {
+          size_t idx = (size_t)v;
+          return idx == 0 ? NULL : (idx - 1 < m_Metadata.size() ? &m_Metadata[idx - 1]
+                                                                : &f.metadata[idx - 1]);
+        };
+
+        size_t prevNumSymbols = m_Symbols.size();
+        size_t instrSymbolStart = 0;
+
+        for(size_t i = 0; i < f.funcType->members.size(); i++)
+        {
+          Instruction arg;
+          arg.type = f.funcType->members[i];
+          arg.name = StringFormat::Fmt("arg%zu", i);
+          f.args.push_back(arg);
+          m_Symbols.push_back({SymbolType::Argument, i});
+        }
+
+        auto getSymbol = [this](uint64_t id) {
+          id = uint32_t((uint64_t)m_Symbols.size() - id);
+          return id < m_Symbols.size() ? m_Symbols[id] : Symbol(SymbolType::Unknown, id);
+        };
+
+        Block *curBlock = NULL;
+        int32_t debugLocIndex = -1;
+
+        for(const LLVMBC::BlockOrRecord &funcChild : rootchild.children)
+        {
+          if(funcChild.IsBlock())
+          {
+            if(IS_KNOWN(funcChild.id, KnownBlocks::CONSTANTS_BLOCK))
+            {
+              f.values.reserve(funcChild.children.size());
+
+              const Type *t = NULL;
+              for(const LLVMBC::BlockOrRecord &constant : funcChild.children)
+              {
+                if(constant.IsBlock())
+                {
+                  RDCERR("Unexpected subblock in CONSTANTS_BLOCK");
+                  continue;
+                }
+
+                ParseConstant(
+                    constant, t, [this](uint64_t op) { return &m_Types[(size_t)op]; }, getValue,
+                    [this, &f](const Value &v) {
+                      m_Symbols.push_back({SymbolType::Constant, m_Values.size() + f.values.size()});
+                      f.values.push_back(v);
+                    });
+              }
+
+              instrSymbolStart = m_Symbols.size();
+            }
+            else if(IS_KNOWN(funcChild.id, KnownBlocks::METADATA_BLOCK))
+            {
+              f.metadata.resize(funcChild.children.size());
+
+              size_t m = 0;
+
+              for(const LLVMBC::BlockOrRecord &metaRecord : funcChild.children)
+              {
+                if(metaRecord.IsBlock())
+                {
+                  RDCERR("Unexpected subblock in function METADATA_BLOCK");
+                  continue;
+                }
+
+                Metadata &meta = f.metadata[m];
+
+                if(IS_KNOWN(metaRecord.id, MetaDataRecord::VALUE))
+                {
+                  meta.value = true;
+                  size_t idx = metaRecord.ops[1];
+                  if(idx < m_Values.size())
+                  {
+                    // global value reference
+                    meta.val = &m_Values[idx];
+                  }
+                  else
+                  {
+                    idx -= m_Values.size();
+                    if(idx < f.values.size())
+                    {
+                      // function-local value reference
+                      meta.val = &f.values[idx];
+                    }
+                    else
+                    {
+                      // forward reference to instruction
+                      meta.func = &f;
+                      meta.instruction = idx - f.values.size();
+                    }
+                  }
+                  meta.type = &m_Types[(size_t)metaRecord.ops[0]];
+                }
+                else
+                {
+                  RDCERR("Unexpected record %u in function METADATA_BLOCK", metaRecord.id);
+                }
+
+                m++;
+              }
+            }
+            else if(IS_KNOWN(funcChild.id, KnownBlocks::VALUE_SYMTAB_BLOCK))
+            {
+              for(const LLVMBC::BlockOrRecord &symtab : funcChild.children)
+              {
+                if(symtab.IsBlock())
+                {
+                  RDCERR("Unexpected subblock in VALUE_SYMTAB_BLOCK");
+                  continue;
+                }
+
+                if(symtab.id != 1)
+                {
+                  RDCERR("Unexpected symbol table record ID %u", symtab.id);
+                  continue;
+                }
+
+                size_t idx = (size_t)symtab.ops[0];
+
+                if(idx >= m_Symbols.size())
+                {
+                  RDCERR("Out of bounds symbol index %zu (%s) in function symbol table", idx,
+                         symtab.getString(1).c_str());
+                  continue;
+                }
+
+                Symbol s = m_Symbols[idx];
+
+                switch(s.type)
+                {
+                  case SymbolType::Unknown:
+                  case SymbolType::Constant:
+                    if(s.idx < m_Values.size())
+                      RDCERR("Unexpected local symbol referring to global value");
+                    else
+                      f.values[s.idx - m_Values.size()].str = symtab.getString(1);
+                    break;
+                  case SymbolType::Argument: f.args[s.idx].name = symtab.getString(1); break;
+                  case SymbolType::Instruction:
+                    f.instructions[s.idx].name = symtab.getString(1);
+                    break;
+                  case SymbolType::GlobalVar:
+                  case SymbolType::Function:
+                  case SymbolType::Alias:
+                  case SymbolType::Metadata:
+                  case SymbolType::Literal:
+                    RDCERR("Unexpected local symbol referring to %d", s.type);
+                    break;
+                }
+              }
+            }
+            else
+            {
+              RDCERR("Unexpected subblock %u in FUNCTION_BLOCK", funcChild.id);
+              continue;
+            }
+          }
+          else
+          {
+            const LLVMBC::BlockOrRecord &op = funcChild;
+            if(IS_KNOWN(op.id, FunctionRecord::DECLAREBLOCKS))
+            {
+              f.blocks.resize(op.ops[0]);
+
+              curBlock = &f.blocks[0];
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::DEBUG_LOC))
+            {
+              DebugLocation debugLoc;
+              debugLoc.line = op.ops[0];
+              debugLoc.col = op.ops[1];
+              debugLoc.scope = getMetaOrNull(op.ops[2]);
+              debugLoc.inlinedAt = getMetaOrNull(op.ops[3]);
+
+              debugLocIndex = m_DebugLocations.indexOf(debugLoc);
+
+              if(debugLocIndex < 0)
+              {
+                m_DebugLocations.push_back(debugLoc);
+                debugLocIndex = int32_t(m_DebugLocations.size() - 1);
+              }
+
+              f.instructions.back().debugLoc = (uint32_t)debugLocIndex;
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::DEBUG_LOC_AGAIN))
+            {
+              f.instructions.back().debugLoc = (uint32_t)debugLocIndex;
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_CALL))
+            {
+              size_t n = 0;
+              Instruction inst;
+              inst.op = Instruction::Call;
+              inst.paramAttrs = &m_Attributes[op.ops[n++]];
+
+              uint64_t callingFlags = op.ops[n++];
+
+              uint64_t fastMathFlags = 0;
+              if(callingFlags & (1ULL << 17))
+                fastMathFlags = op.ops[n++];
+
+              if(callingFlags & (1ULL << 15))
+                n++;    // funcCallType
+
+              Symbol s = getSymbol(op.ops[n++]);
+
+              if(s.type != SymbolType::Function)
+              {
+                RDCERR("Unexpected symbol type %d called in INST_CALL", s.type);
+                continue;
+              }
+
+              inst.funcCall = &m_Functions[s.idx];
+              inst.type = inst.funcCall->funcType->inner;
+
+              for(size_t i = 0; n < op.ops.size(); n++, i++)
+              {
+                s = getSymbol(op.ops[n]);
+                if(inst.funcCall->funcType->members[i]->type == Type::Metadata)
+                  s.type = SymbolType::Metadata;
+                inst.args.push_back(s);
+              }
+
+              RDCASSERTEQUAL(inst.args.size(), inst.funcCall->funcType->members.size());
+
+              if(!inst.type->isVoid())
+                m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_CAST))
+            {
+              Instruction inst;
+
+              inst.args.push_back(getSymbol(op.ops[0]));
+              inst.type = &m_Types[op.ops[1]];
+
+              switch(op.ops[2])
+              {
+                case 0: inst.op = Instruction::Trunc; break;
+                case 1: inst.op = Instruction::ZExt; break;
+                case 2: inst.op = Instruction::SExt; break;
+                case 3: inst.op = Instruction::FToU; break;
+                case 4: inst.op = Instruction::FToS; break;
+                case 5: inst.op = Instruction::UToF; break;
+                case 6: inst.op = Instruction::SToF; break;
+                case 7: inst.op = Instruction::FPTrunc; break;
+                case 8: inst.op = Instruction::FPExt; break;
+                case 9: inst.op = Instruction::PtrToI; break;
+                case 10: inst.op = Instruction::IToPtr; break;
+                case 11: inst.op = Instruction::Bitcast; break;
+                case 12: inst.op = Instruction::AddrSpaceCast; break;
+                default: RDCERR("Unhandled cast type %d", op.ops[2]);
+              }
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_EXTRACTVAL))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::ExtractVal;
+
+              inst.args.push_back(getSymbol(op.ops[0]));
+              inst.type = GetSymbolType(f, inst.args.back());
+              for(size_t n = 1; n < op.ops.size(); n++)
+              {
+                if(inst.type->type == Type::Array)
+                  inst.type = inst.type->inner;
+                else
+                  inst.type = inst.type->members[op.ops[n]];
+                inst.args.push_back({SymbolType::Literal, op.ops[n]});
+              }
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_RET))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::Ret;
+
+              if(op.ops.empty())
+              {
+                for(size_t i = 0; i < m_Types.size(); i++)
+                {
+                  if(m_Types[i].isVoid())
+                  {
+                    inst.type = &m_Types[i];
+                    break;
+                  }
+                }
+
+                RDCASSERT(inst.type);
+              }
+              else
+              {
+                inst.args.push_back(getSymbol(op.ops[0]));
+                inst.type = GetSymbolType(f, inst.args.back());
+
+                m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+              }
+
+              f.instructions.push_back(inst);
+            }
+            else
+            {
+              RDCERR("Unexpected record in FUNCTION_BLOCK");
+              continue;
+            }
+          }
+        }
+
+        for(size_t i = 0, resultID = 1; i < f.instructions.size(); i++)
+        {
+          if(f.instructions[i].type->isVoid())
+            continue;
+
+          if(!f.instructions[i].name.empty())
+            continue;
+
+          f.instructions[i].resultID = (uint32_t)resultID++;
+        }
+
+        // rebase metadata, we get indices that skip void results, so look up the Symbols directory
+        // to get to a normal instruction index
+        for(Metadata &m : f.metadata)
+          if(m.func)
+            m.instruction = m_Symbols[instrSymbolStart + m.instruction].idx;
+
+        m_Symbols.resize(prevNumSymbols);
       }
       else
       {
@@ -1228,6 +1638,7 @@ Program::Program(const byte *bytes, size_t length)
   }
 
   (void)&dumpBlock;
+  RDCASSERT(functionDecls.empty());
 }
 
 void Program::FetchComputeProperties(DXBC::Reflection *reflection)
@@ -1257,6 +1668,229 @@ void Program::MakeDisassemblyString()
       "Compute",    "Library", "RayGeneration", "Intersection", "AnyHit",
       "ClosestHit", "Miss",    "Callable",      "Mesh",         "Amplification",
   };
+
+  // clang-format off
+  static const char *funcSigs[] = {
+    "TempRegLoad(index)",
+    "TempRegStore(index,value)",
+    "MinPrecXRegLoad(regIndex,index,component)",
+    "MinPrecXRegStore(regIndex,index,component,value)",
+    "LoadInput(inputSigId,rowIndex,colIndex,gsVertexAxis)",
+    "StoreOutput(outputSigId,rowIndex,colIndex,value)",
+    "FAbs(value)",
+    "Saturate(value)",
+    "IsNaN(value)",
+    "IsInf(value)",
+    "IsFinite(value)",
+    "IsNormal(value)",
+    "Cos(value)",
+    "Sin(value)",
+    "Tan(value)",
+    "Acos(value)",
+    "Asin(value)",
+    "Atan(value)",
+    "Hcos(value)",
+    "Hsin(value)",
+    "Htan(value)",
+    "Exp(value)",
+    "Frc(value)",
+    "Log(value)",
+    "Sqrt(value)",
+    "Rsqrt(value)",
+    "Round_ne(value)",
+    "Round_ni(value)",
+    "Round_pi(value)",
+    "Round_z(value)",
+    "Bfrev(value)",
+    "Countbits(value)",
+    "FirstbitLo(value)",
+    "FirstbitHi(value)",
+    "FirstbitSHi(value)",
+    "FMax(a,b)",
+    "FMin(a,b)",
+    "IMax(a,b)",
+    "IMin(a,b)",
+    "UMax(a,b)",
+    "UMin(a,b)",
+    "IMul(a,b)",
+    "UMul(a,b)",
+    "UDiv(a,b)",
+    "UAddc(a,b)",
+    "USubb(a,b)",
+    "FMad(a,b,c)",
+    "Fma(a,b,c)",
+    "IMad(a,b,c)",
+    "UMad(a,b,c)",
+    "Msad(a,b,c)",
+    "Ibfe(a,b,c)",
+    "Ubfe(a,b,c)",
+    "Bfi(width,offset,value,replacedValue)",
+    "Dot2(ax,ay,bx,by)",
+    "Dot3(ax,ay,az,bx,by,bz)",
+    "Dot4(ax,ay,az,aw,bx,by,bz,bw)",
+    "CreateHandle(resourceClass,rangeId,index,nonUniformIndex)",
+    "CBufferLoad(handle,byteOffset,alignment)",
+    "CBufferLoadLegacy(handle,regIndex)",
+    "Sample(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,clamp)",
+    "SampleBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,bias,clamp)",
+    "SampleLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,LOD)",
+    "SampleGrad(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,ddx0,ddx1,ddx2,ddy0,ddy1,ddy2,clamp)",
+    "SampleCmp(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,clamp)",
+    "SampleCmpLevelZero(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue)",
+    "TextureLoad(srv,mipLevelOrSampleCount,coord0,coord1,coord2,offset0,offset1,offset2)",
+    "TextureStore(srv,coord0,coord1,coord2,value0,value1,value2,value3,mask)",
+    "BufferLoad(srv,index,wot)",
+    "BufferStore(uav,coord0,coord1,value0,value1,value2,value3,mask)",
+    "BufferUpdateCounter(uav,inc)",
+    "CheckAccessFullyMapped(status)",
+    "GetDimensions(handle,mipLevel)",
+    "TextureGather(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,channel)",
+    "TextureGatherCmp(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,channel,compareVale)",
+    "Texture2DMSGetSamplePosition(srv,index)",
+    "RenderTargetGetSamplePosition(index)",
+    "RenderTargetGetSampleCount()",
+    "AtomicBinOp(handle,atomicOp,offset0,offset1,offset2,newValue)",
+    "AtomicCompareExchange(handle,offset0,offset1,offset2,compareValue,newValue)",
+    "Barrier(barrierMode)",
+    "CalculateLOD(handle,sampler,coord0,coord1,coord2,clamped)",
+    "Discard(condition)",
+    "DerivCoarseX(value)",
+    "DerivCoarseY(value)",
+    "DerivFineX(value)",
+    "DerivFineY(value)",
+    "EvalSnapped(inputSigId,inputRowIndex,inputColIndex,offsetX,offsetY)",
+    "EvalSampleIndex(inputSigId,inputRowIndex,inputColIndex,sampleIndex)",
+    "EvalCentroid(inputSigId,inputRowIndex,inputColIndex)",
+    "SampleIndex()",
+    "Coverage()",
+    "InnerCoverage()",
+    "ThreadId(component)",
+    "GroupId(component)",
+    "ThreadIdInGroup(component)",
+    "FlattenedThreadIdInGroup()",
+    "EmitStream(streamId)",
+    "CutStream(streamId)",
+    "EmitThenCutStream(streamId)",
+    "GSInstanceID()",
+    "MakeDouble(lo,hi)",
+    "SplitDouble(value)",
+    "LoadOutputControlPoint(inputSigId,row,col,index)",
+    "LoadPatchConstant(inputSigId,row,col)",
+    "DomainLocation(component)",
+    "StorePatchConstant(outputSigID,row,col,value)",
+    "OutputControlPointID()",
+    "PrimitiveID()",
+    "CycleCounterLegacy()",
+    "WaveIsFirstLane()",
+    "WaveGetLaneIndex()",
+    "WaveGetLaneCount()",
+    "WaveAnyTrue(cond)",
+    "WaveAllTrue(cond)",
+    "WaveActiveAllEqual(value)",
+    "WaveActiveBallot(cond)",
+    "WaveReadLaneAt(value,lane)",
+    "WaveReadLaneFirst(value)",
+    "WaveActiveOp(value,op,sop)",
+    "WaveActiveBit(value,op)",
+    "WavePrefixOp(value,op,sop)",
+    "QuadReadLaneAt(value,quadLane)",
+    "QuadOp(value,op)",
+    "BitcastI16toF16(value)",
+    "BitcastF16toI16(value)",
+    "BitcastI32toF32(value)",
+    "BitcastF32toI32(value)",
+    "BitcastI64toF64(value)",
+    "BitcastF64toI64(value)",
+    "LegacyF32ToF16(value)",
+    "LegacyF16ToF32(value)",
+    "LegacyDoubleToFloat(value)",
+    "LegacyDoubleToSInt32(value)",
+    "LegacyDoubleToUInt32(value)",
+    "WaveAllBitCount(value)",
+    "WavePrefixBitCount(value)",
+    "AttributeAtVertex(inputSigId,inputRowIndex,inputColIndex,VertexID)",
+    "ViewID()",
+    "RawBufferLoad(srv,index,elementOffset,mask,alignment)",
+    "RawBufferStore(uav,index,elementOffset,value0,value1,value2,value3,mask,alignment)",
+    "InstanceID()",
+    "InstanceIndex()",
+    "HitKind()",
+    "RayFlags()",
+    "DispatchRaysIndex(col)",
+    "DispatchRaysDimensions(col)",
+    "WorldRayOrigin(col)",
+    "WorldRayDirection(col)",
+    "ObjectRayOrigin(col)",
+    "ObjectRayDirection(col)",
+    "ObjectToWorld(row,col)",
+    "WorldToObject(row,col)",
+    "RayTMin()",
+    "RayTCurrent()",
+    "IgnoreHit()",
+    "AcceptHitAndEndSearch()",
+    "TraceRay(AccelerationStructure,RayFlags,InstanceInclusionMask,RayContributionToHitGroupIndex,MultiplierForGeometryContributionToShaderIndex,MissShaderIndex,Origin_X,Origin_Y,Origin_Z,TMin,Direction_X,Direction_Y,Direction_Z,TMax,payload)",
+    "ReportHit(THit,HitKind,Attributes)",
+    "CallShader(ShaderIndex,Parameter)",
+    "CreateHandleForLib(Resource)",
+    "PrimitiveIndex()",
+    "Dot2AddHalf(acc,ax,ay,bx,by)",
+    "Dot4AddI8Packed(acc,a,b)",
+    "Dot4AddU8Packed(acc,a,b)",
+    "WaveMatch(value)",
+    "WaveMultiPrefixOp(value,mask0,mask1,mask2,mask3,op,sop)",
+    "WaveMultiPrefixBitCount(value,mask0,mask1,mask2,mask3)",
+    "SetMeshOutputCounts(numVertices,numPrimitives)",
+    "EmitIndices(PrimitiveIndex,VertexIndex0,VertexIndex1,VertexIndex2)",
+    "GetMeshPayload()",
+    "StoreVertexOutput(outputSigId,rowIndex,colIndex,value,vertexIndex)",
+    "StorePrimitiveOutput(outputSigId,rowIndex,colIndex,value,primitiveIndex)",
+    "DispatchMesh(threadGroupCountX,threadGroupCountY,threadGroupCountZ,payload)",
+    "WriteSamplerFeedback(feedbackTex,sampledTex,sampler,c0,c1,c2,c3,clamp)",
+    "WriteSamplerFeedbackBias(feedbackTex,sampledTex,sampler,c0,c1,c2,c3,bias,clamp)",
+    "WriteSamplerFeedbackLevel(feedbackTex,sampledTex,sampler,c0,c1,c2,c3,lod)",
+    "WriteSamplerFeedbackGrad(feedbackTex,sampledTex,sampler,c0,c1,c2,c3,ddx0,ddx1,ddx2,ddy0,ddy1,ddy2,clamp)",
+    "AllocateRayQuery(constRayFlags)",
+    "RayQuery_TraceRayInline(rayQueryHandle,accelerationStructure,rayFlags,instanceInclusionMask,origin_X,origin_Y,origin_Z,tMin,direction_X,direction_Y,direction_Z,tMax)",
+    "RayQuery_Proceed(rayQueryHandle)",
+    "RayQuery_Abort(rayQueryHandle)",
+    "RayQuery_CommitNonOpaqueTriangleHit(rayQueryHandle)",
+    "RayQuery_CommitProceduralPrimitiveHit(rayQueryHandle,t)",
+    "RayQuery_CommittedStatus(rayQueryHandle)",
+    "RayQuery_CandidateType(rayQueryHandle)",
+    "RayQuery_CandidateObjectToWorld3x4(rayQueryHandle,row,col)",
+    "RayQuery_CandidateWorldToObject3x4(rayQueryHandle,row,col)",
+    "RayQuery_CommittedObjectToWorld3x4(rayQueryHandle,row,col)",
+    "RayQuery_CommittedWorldToObject3x4(rayQueryHandle,row,col)",
+    "RayQuery_CandidateProceduralPrimitiveNonOpaque(rayQueryHandle)",
+    "RayQuery_CandidateTriangleFrontFace(rayQueryHandle)",
+    "RayQuery_CommittedTriangleFrontFace(rayQueryHandle)",
+    "RayQuery_CandidateTriangleBarycentrics(rayQueryHandle,component)",
+    "RayQuery_CommittedTriangleBarycentrics(rayQueryHandle,component)",
+    "RayQuery_RayFlags(rayQueryHandle)",
+    "RayQuery_WorldRayOrigin(rayQueryHandle,component)",
+    "RayQuery_WorldRayDirection(rayQueryHandle,component)",
+    "RayQuery_RayTMin(rayQueryHandle)",
+    "RayQuery_CandidateTriangleRayT(rayQueryHandle)",
+    "RayQuery_CommittedRayT(rayQueryHandle)",
+    "RayQuery_CandidateInstanceIndex(rayQueryHandle)",
+    "RayQuery_CandidateInstanceID(rayQueryHandle)",
+    "RayQuery_CandidateGeometryIndex(rayQueryHandle)",
+    "RayQuery_CandidatePrimitiveIndex(rayQueryHandle)",
+    "RayQuery_CandidateObjectRayOrigin(rayQueryHandle,component)",
+    "RayQuery_CandidateObjectRayDirection(rayQueryHandle,component)",
+    "RayQuery_CommittedInstanceIndex(rayQueryHandle)",
+    "RayQuery_CommittedInstanceID(rayQueryHandle)",
+    "RayQuery_CommittedGeometryIndex(rayQueryHandle)",
+    "RayQuery_CommittedPrimitiveIndex(rayQueryHandle)",
+    "RayQuery_CommittedObjectRayOrigin(rayQueryHandle,component)",
+    "RayQuery_CommittedObjectRayDirection(rayQueryHandle,component)",
+    "GeometryIndex()",
+    "RayQuery_CandidateInstanceContributionToHitGroupIndex(rayQueryHandle)",
+    "RayQuery_CommittedInstanceContributionToHitGroupIndex(rayQueryHandle)",
+    "CreateHandleFromHeap(index,nonUniformIndex)",
+    "AnnotateHandle(res,resourceClass,resourceKind,props)"
+  };
+  // clang-format on
 
   m_Disassembly = StringFormat::Fmt("; %s Shader, compiled under SM%u.%u\n\n",
                                     shaderName[int(m_Type)], m_Major, m_Minor);
@@ -1300,8 +1934,7 @@ void Program::MakeDisassemblyString()
   {
     const GlobalVar &g = m_GlobalVars[i];
 
-    m_Disassembly += StringFormat::Fmt(
-        "@%s = ", needsEscaping(g.name) ? escapeString(g.name).c_str() : g.name.c_str());
+    m_Disassembly += StringFormat::Fmt("@%s = ", escapeStringIfNeeded(g.name).c_str());
     if(g.external)
       m_Disassembly += "external ";
     if(g.isconst)
@@ -1321,9 +1954,63 @@ void Program::MakeDisassemblyString()
     instructionLine++;
   }
 
+  rdcstr namedMeta;
+
+  // need to disassemble the named metadata here so the IDs are assigned first before any functions
+  // get dibs
+  for(size_t i = 0; i < m_NamedMeta.size(); i++)
+  {
+    namedMeta += StringFormat::Fmt("!%s = %s!{", m_NamedMeta[i].name.c_str(),
+                                   m_NamedMeta[i].distinct ? "distinct " : "");
+    for(size_t m = 0; m < m_NamedMeta[i].children.size(); m++)
+    {
+      if(m != 0)
+        namedMeta += ", ";
+      if(m_NamedMeta[i].children[m])
+        namedMeta += StringFormat::Fmt("!%u", GetOrAssignMetaID(m_NamedMeta[i].children[m]));
+      else
+        namedMeta += "null";
+    }
+
+    namedMeta += "}\n";
+  }
+
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
-    const Function &func = m_Functions[i];
+    Function &func = m_Functions[i];
+
+    auto argToString = [this, &func](Symbol s) {
+      rdcstr ret;
+      switch(s.type)
+      {
+        case SymbolType::Unknown:
+        case SymbolType::Alias:
+        case SymbolType::Literal: ret = "???"; break;
+        case SymbolType::Metadata:
+          if(s.idx < m_Metadata.size())
+            ret += StringFormat::Fmt("metadata !%u", GetOrAssignMetaID(&m_Metadata[s.idx]));
+          else
+            ret = "metadata " + GetFunctionMetadata(func, s.idx)->refString();
+          break;
+        case SymbolType::Function: ret = "@" + escapeStringIfNeeded(m_Functions[s.idx].name); break;
+        case SymbolType::GlobalVar:
+          ret = "@" + escapeStringIfNeeded(m_GlobalVars[s.idx].name);
+          break;
+        case SymbolType::Constant: ret = GetFunctionValue(func, s.idx)->toString(); break;
+        case SymbolType::Argument: ret = "%" + escapeStringIfNeeded(func.args[s.idx].name); break;
+        case SymbolType::Instruction:
+        {
+          const Instruction &refinst = func.instructions[s.idx];
+          if(refinst.name.empty())
+            ret = StringFormat::Fmt("%s %%%u", refinst.type->toString().c_str(), refinst.resultID);
+          else
+            ret = StringFormat::Fmt("%s %%%s", refinst.type->toString().c_str(),
+                                    escapeStringIfNeeded(refinst.name).c_str());
+          break;
+        }
+      }
+      return ret;
+    };
 
     if(func.attrs)
     {
@@ -1332,7 +2019,7 @@ void Program::MakeDisassemblyString()
     }
 
     m_Disassembly += (func.external ? "declare " : "define ");
-    m_Disassembly += func.funcType->declFunction("@" + func.name);
+    m_Disassembly += func.funcType->declFunction("@" + escapeStringIfNeeded(func.name));
 
     if(func.attrs)
       m_Disassembly += StringFormat::Fmt(" #%u", func.attrs->index);
@@ -1341,8 +2028,111 @@ void Program::MakeDisassemblyString()
     {
       m_Disassembly += " {\n";
       instructionLine++;
-      m_Disassembly += "  ; ...\n";
-      instructionLine++;
+
+      for(Instruction &inst : func.instructions)
+      {
+        inst.disassemblyLine = instructionLine;
+        m_Disassembly += "  ";
+        if(!inst.name.empty())
+          m_Disassembly += "%" + escapeStringIfNeeded(inst.name) + " = ";
+        else if(inst.resultID != ~0U)
+          m_Disassembly += StringFormat::Fmt("%%%u = ", inst.resultID);
+
+        bool debugCall = false;
+
+        switch(inst.op)
+        {
+          case Instruction::Unknown: m_Disassembly += "??? "; break;
+          case Instruction::Call:
+          {
+            m_Disassembly += "call " + inst.type->toString();
+            m_Disassembly += " @" + escapeStringIfNeeded(inst.funcCall->name);
+            m_Disassembly += "(";
+            bool first = true;
+            for(Symbol &s : inst.args)
+            {
+              if(!first)
+                m_Disassembly += ", ";
+              first = false;
+
+              m_Disassembly += argToString(s);
+            }
+            m_Disassembly += ")";
+            debugCall = inst.funcCall->name.beginsWith("llvm.dbg.");
+            break;
+          }
+          case Instruction::Trunc: m_Disassembly += "trunc "; break;
+          case Instruction::ZExt: m_Disassembly += "zext "; break;
+          case Instruction::SExt: m_Disassembly += "sext "; break;
+          case Instruction::FToU: m_Disassembly += "fptoui "; break;
+          case Instruction::FToS:
+          {
+            m_Disassembly += "fptosi ";
+            m_Disassembly += argToString(inst.args[0]);
+            m_Disassembly += " to ";
+            m_Disassembly += inst.type->toString();
+            break;
+          }
+          case Instruction::UToF: m_Disassembly += "uitofp "; break;
+          case Instruction::SToF: m_Disassembly += "sitofp "; break;
+          case Instruction::FPTrunc: m_Disassembly += "fptrunc "; break;
+          case Instruction::FPExt: m_Disassembly += "fpext "; break;
+          case Instruction::PtrToI: m_Disassembly += "ptrtoi "; break;
+          case Instruction::IToPtr: m_Disassembly += "itoptr "; break;
+          case Instruction::Bitcast: m_Disassembly += "bitcast "; break;
+          case Instruction::AddrSpaceCast: m_Disassembly += "addrspacecast "; break;
+          case Instruction::ExtractVal:
+          {
+            m_Disassembly += "extractvalue ";
+            m_Disassembly += argToString(inst.args[0]);
+            for(size_t n = 1; n < inst.args.size(); n++)
+              m_Disassembly += StringFormat::Fmt(", %llu", inst.args[n].idx);
+            break;
+          }
+          case Instruction::Ret: m_Disassembly += "ret " + inst.type->toString(); break;
+        }
+
+        if(inst.debugLoc != ~0U)
+        {
+          DebugLocation &debugLoc = m_DebugLocations[inst.debugLoc];
+
+          m_Disassembly += StringFormat::Fmt(", !dbg !%u", GetOrAssignMetaID(debugLoc));
+
+          if(!debugCall && debugLoc.line > 0)
+          {
+            m_Disassembly += StringFormat::Fmt(" ; line:%llu col:%llu", debugLoc.line, debugLoc.col);
+          }
+        }
+
+        if(debugCall)
+        {
+          if(inst.funcCall->name == "llvm.dbg.value" || inst.funcCall->name == "llvm.dbg.declare")
+          {
+            RDCASSERT(inst.args[2].type == SymbolType::Metadata);
+            RDCASSERT(inst.args[3].type == SymbolType::Metadata);
+            m_Disassembly += StringFormat::Fmt(
+                " ; var:%s ",
+                escapeString(GetDebugVarName(GetFunctionMetadata(func, inst.args[2].idx)->dwarf)));
+            m_Disassembly += GetFunctionMetadata(func, inst.args[3].idx)->valString();
+          }
+        }
+
+        if(inst.funcCall && inst.funcCall->name.beginsWith("dx.op."))
+        {
+          if(inst.args[0].type == SymbolType::Constant)
+          {
+            uint32_t opcode = GetFunctionValue(func, inst.args[0].idx)->val.uv[0];
+            if(opcode < ARRAY_COUNT(funcSigs))
+            {
+              m_Disassembly += "  ; ";
+              m_Disassembly += funcSigs[opcode];
+            }
+          }
+        }
+
+        m_Disassembly += "\n";
+        instructionLine++;
+      }
       m_Disassembly += "}\n\n";
       instructionLine += 2;
     }
@@ -1360,29 +2150,38 @@ void Program::MakeDisassemblyString()
   if(!m_Attributes.empty())
     m_Disassembly += "\n";
 
-  for(size_t i = 0; i < m_NamedMeta.size(); i++)
+  m_Disassembly += namedMeta + "\n";
+
+  size_t numIdx = 0;
+  size_t dbgIdx = 0;
+
+  for(uint32_t i = 0; i < m_NextMetaID; i++)
   {
-    m_Disassembly += StringFormat::Fmt("!%s = %s!{", m_NamedMeta[i].name.c_str(),
-                                       m_NamedMeta[i].distinct ? "distinct " : "");
-    for(size_t m = 0; m < m_NamedMeta[i].children.size(); m++)
+    if(numIdx < m_NumberedMeta.size() && m_NumberedMeta[numIdx]->id == i)
     {
-      if(m != 0)
-        m_Disassembly += ", ";
-      if(m_NamedMeta[i].children[m])
-        m_Disassembly += StringFormat::Fmt("!%u", GetOrAssignMetaID(m_NamedMeta[i].children[m]));
-      else
-        m_Disassembly += "null";
+      m_Disassembly +=
+          StringFormat::Fmt("!%u = %s%s\n", i, m_NumberedMeta[numIdx]->distinct ? "distinct " : "",
+                            m_NumberedMeta[numIdx]->valString().c_str());
+      numIdx++;
     }
-
-    m_Disassembly += "}\n";
+    else if(dbgIdx < m_DebugLocations.size() && m_DebugLocations[dbgIdx].id == i)
+    {
+      m_Disassembly += StringFormat::Fmt("!%u = !DILocation(line: %llu, column: %llu, scope: %s", i,
+                                         m_DebugLocations[dbgIdx].line, m_DebugLocations[dbgIdx].col,
+                                         m_DebugLocations[dbgIdx].scope
+                                             ? m_DebugLocations[dbgIdx].scope->refString().c_str()
+                                             : "null");
+      if(m_DebugLocations[dbgIdx].inlinedAt)
+        m_Disassembly +=
+            StringFormat::Fmt(", inlinedAt: %s", m_DebugLocations[dbgIdx].inlinedAt->refString());
+      m_Disassembly += ")\n";
+      dbgIdx++;
+    }
+    else
+    {
+      RDCERR("Couldn't find meta ID %u", i);
+    }
   }
-
-  m_Disassembly += "\n";
-
-  for(size_t i = 0; i < m_NumberedMeta.size(); i++)
-    m_Disassembly += StringFormat::Fmt("%s = %s%s\n", m_NumberedMeta[i]->refString(),
-                                       m_NumberedMeta[i]->distinct ? "distinct " : "",
-                                       m_NumberedMeta[i]->valString().c_str());
 
   m_Disassembly += "\n";
 }
@@ -1392,7 +2191,7 @@ uint32_t Program::GetOrAssignMetaID(Metadata *m)
   if(m->id != ~0U)
     return m->id;
 
-  m->id = (uint32_t)m_NumberedMeta.size();
+  m->id = m_NextMetaID++;
   m_NumberedMeta.push_back(m);
 
   // assign meta IDs to the children now
@@ -1407,15 +2206,56 @@ uint32_t Program::GetOrAssignMetaID(Metadata *m)
   return m->id;
 }
 
+uint32_t Program::GetOrAssignMetaID(DebugLocation &l)
+{
+  if(l.id != ~0U)
+    return l.id;
+
+  l.id = m_NextMetaID++;
+
+  return l.id;
+}
+
+const Type *Program::GetSymbolType(const Function &f, Symbol s)
+{
+  const Type *ret = NULL;
+  switch(s.type)
+  {
+    case SymbolType::Constant:
+      if(s.idx < m_Values.size())
+        ret = m_Values[s.idx].type;
+      else
+        ret = f.values[s.idx - m_Values.size()].type;
+      break;
+    case SymbolType::Argument: ret = f.funcType->members[s.idx]; break;
+    case SymbolType::Instruction: ret = f.instructions[s.idx].type; break;
+    case SymbolType::GlobalVar: ret = m_GlobalVars[s.idx].type; break;
+    case SymbolType::Function: ret = m_Functions[s.idx].funcType; break;
+    case SymbolType::Unknown:
+    case SymbolType::Alias:
+    case SymbolType::Metadata:
+    case SymbolType::Literal: RDCERR("Unexpected symbol to get type for %d", s.type); break;
+  }
+  return ret;
+}
+
+const Value *Program::GetFunctionValue(const Function &f, uint64_t v)
+{
+  size_t idx = (size_t)v;
+  return idx < m_Values.size() ? &m_Values[idx] : &f.values[idx - m_Values.size()];
+}
+
+const Metadata *Program::GetFunctionMetadata(const Function &f, uint64_t v)
+{
+  size_t idx = (size_t)v;
+  return idx < m_Metadata.size() ? &m_Metadata[idx] : &f.metadata[idx - m_Metadata.size()];
+}
+
 rdcstr Type::toString() const
 {
   if(!name.empty())
   {
-    // needs escaping
-    if(needsEscaping(name))
-      return "%" + escapeString(name);
-
-    return "%" + name;
+    return "%" + escapeStringIfNeeded(name);
   }
 
   switch(type)
@@ -1550,9 +2390,29 @@ rdcstr Metadata::valString() const
     }
     else
     {
-      if(type != val->type)
-        RDCERR("Type mismatch in metadata");
-      return val->toString();
+      if(val)
+      {
+        if(type != val->type)
+          RDCERR("Type mismatch in metadata");
+        return val->toString();
+      }
+      else
+      {
+        if(func && instruction < func->instructions.size())
+        {
+          const Instruction &inst = func->instructions[instruction];
+          if(inst.name.empty())
+            return StringFormat::Fmt("%s %%%u", inst.type->toString().c_str(), inst.resultID);
+          else
+            return StringFormat::Fmt("%s %%%s", inst.type->toString().c_str(),
+                                     escapeStringIfNeeded(inst.name).c_str());
+        }
+        else
+        {
+          RDCERR("No instruction symbol for value-less metadata");
+          return "???";
+        }
+      }
     }
   }
   else
@@ -1588,13 +2448,12 @@ rdcstr Value::toString() const
   }
   else if(symbol)
   {
-    ret += StringFormat::Fmt("@%s", needsEscaping(str) ? escapeString(str).c_str() : str.c_str());
+    ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(str).c_str());
   }
   else if(type->type == Type::Scalar)
   {
     if(type->scalarType == Type::Float)
     {
-      // TODO need to know how to determine signedness here
       if(type->bitWidth > 32)
         ret += StringFormat::Fmt("%lf", val.dv[0]);
       else
@@ -1602,11 +2461,13 @@ rdcstr Value::toString() const
     }
     else if(type->scalarType == Type::Int)
     {
-      // TODO need to know how to determine signedness here
+      // LLVM seems to always interpret these as signed? :(
       if(type->bitWidth > 32)
-        ret += StringFormat::Fmt("%llu", val.u64v[0]);
+        ret += StringFormat::Fmt("%lld", val.u64v[0]);
+      else if(type->bitWidth == 1)
+        ret += val.uv[0] ? "true" : "false";
       else
-        ret += StringFormat::Fmt("%u", val.uv[0]);
+        ret += StringFormat::Fmt("%d", val.uv[0]);
     }
   }
   else if(type->type == Type::Vector)

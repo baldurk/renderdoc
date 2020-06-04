@@ -62,6 +62,7 @@ struct Type
     Int,
   } scalarType = Void;
 
+  bool isVoid() const { return type == Scalar && scalarType == Void; }
   rdcstr toString() const;
   rdcstr declFunction(rdcstr funcName) const;
 
@@ -93,15 +94,22 @@ struct Alias
 
 enum class SymbolType
 {
+  Unknown,
   Function,
   GlobalVar,
   Alias,
+  Constant,
+  Argument,
+  Instruction,
+  Metadata,
+  Literal,
 };
 
 struct Symbol
 {
+  Symbol(SymbolType type = SymbolType::Unknown, uint64_t idx = 0) : type(type), idx(idx) {}
   SymbolType type;
-  size_t idx;
+  uint64_t idx;
 };
 
 // this enum is ordered to match the serialised order of these attributes
@@ -169,15 +177,6 @@ struct Attributes
   rdcstr toString() const;
 };
 
-struct Function
-{
-  rdcstr name;
-
-  const Type *funcType = NULL;
-  bool external = false;
-  const Attributes *attrs = NULL;
-};
-
 struct Value
 {
   const Type *type = NULL;
@@ -204,7 +203,6 @@ struct DIBase
     SubroutineType,
     GlobalVariable,
     LocalVariable,
-    Location,
     Expression,
     LexicalBlock,
   } type;
@@ -214,12 +212,14 @@ struct DIBase
   virtual rdcstr toString() const = 0;
 
   template <typename Derived>
-  const Derived As()
+  const Derived *As() const
   {
     RDCASSERT(type == Derived::DIType);
-    return (Derived *)this;
+    return (const Derived *)this;
   }
 };
+
+struct Function;
 
 struct Metadata
 {
@@ -227,7 +227,12 @@ struct Metadata
 
   uint32_t id = ~0U;
   bool distinct = false, value = false;
+
   const Value *val = NULL;
+
+  const Function *func = NULL;
+  size_t instruction = ~0U;
+
   const Type *type = NULL;
   rdcstr str;
   rdcarray<Metadata *> children;
@@ -240,6 +245,79 @@ struct Metadata
 struct NamedMetadata : public Metadata
 {
   rdcstr name;
+};
+
+struct DebugLocation
+{
+  uint32_t id = ~0U;
+
+  uint64_t line = 0;
+  uint64_t col = 0;
+  const Metadata *scope = NULL;
+  const Metadata *inlinedAt = NULL;
+
+  bool operator==(const DebugLocation &o) const
+  {
+    return line == o.line && col == o.col && scope == o.scope && inlinedAt == o.inlinedAt;
+  }
+};
+
+struct Function;
+
+struct Instruction
+{
+  enum
+  {
+    Unknown,
+    Call,
+    Trunc,
+    ZExt,
+    SExt,
+    FToU,
+    FToS,
+    UToF,
+    SToF,
+    FPTrunc,
+    FPExt,
+    PtrToI,
+    IToPtr,
+    Bitcast,
+    AddrSpaceCast,
+    ExtractVal,
+    Ret,
+  } op;
+
+  // common to all instructions
+  rdcstr name;
+  uint32_t disassemblyLine = 0;
+  uint32_t resultID = ~0U;
+  uint32_t debugLoc = ~0U;
+  const Type *type = NULL;
+  rdcarray<Symbol> args;
+
+  // function calls
+  const Attributes *paramAttrs = NULL;
+  const Function *funcCall = NULL;
+};
+
+struct Block
+{
+};
+
+struct Function
+{
+  rdcstr name;
+
+  const Type *funcType = NULL;
+  bool external = false;
+  const Attributes *attrs = NULL;
+
+  rdcarray<Instruction> args;
+  rdcarray<Instruction> instructions;
+
+  rdcarray<Block> blocks;
+  rdcarray<Value> values;
+  rdcarray<Metadata> metadata;
 };
 
 class Program
@@ -269,8 +347,13 @@ private:
   void MakeDisassemblyString();
 
   bool ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Metadata &meta);
+  rdcstr GetDebugVarName(const DIBase *d);
 
   uint32_t GetOrAssignMetaID(Metadata *m);
+  uint32_t GetOrAssignMetaID(DebugLocation &l);
+  const Type *GetSymbolType(const Function &f, Symbol s);
+  const Value *GetFunctionValue(const Function &f, uint64_t v);
+  const Metadata *GetFunctionMetadata(const Function &f, uint64_t v);
 
   DXBC::ShaderType m_Type;
   uint32_t m_Major, m_Minor;
@@ -292,6 +375,9 @@ private:
   rdcarray<Metadata> m_Metadata;
   rdcarray<NamedMetadata> m_NamedMeta;
   rdcarray<Metadata *> m_NumberedMeta;
+  uint32_t m_NextMetaID = 0;
+
+  rdcarray<DebugLocation> m_DebugLocations;
 
   rdcstr m_Triple, m_Datalayout;
 

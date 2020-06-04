@@ -268,6 +268,15 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   return true;
 };
 
+rdcstr Program::GetDebugVarName(const DIBase *d)
+{
+  if(d->type == DIBase::LocalVariable)
+    return *d->As<DILocalVariable>()->name;
+  if(d->type == DIBase::GlobalVariable)
+    return *d->As<DIGlobalVariable>()->name;
+  return "???";
+}
+
 rdcstr getOptMetaString(const Metadata *meta)
 {
   return meta ? escapeString(meta->str).c_str() : "\"\"";
