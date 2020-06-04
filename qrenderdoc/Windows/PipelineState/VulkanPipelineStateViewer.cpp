@@ -2596,6 +2596,13 @@ void VulkanPipelineStateViewer::setState()
   {
     bool xfbActive = !state.transformFeedback.buffers.isEmpty();
 
+    bool raster = true;
+
+    if(state.rasterizer.rasterizerDiscardEnable)
+    {
+      raster = false;
+    }
+
     if(state.geometryShader.resourceId == ResourceId() && xfbActive)
     {
       ui->pipeFlow->setStageName(4, lit("XFB"), tr("Transform Feedback"));
@@ -2605,10 +2612,11 @@ void VulkanPipelineStateViewer::setState()
       ui->pipeFlow->setStageName(4, lit("GS"), tr("Geometry Shader"));
     }
 
-    ui->pipeFlow->setStagesEnabled({true, true, state.tessControlShader.resourceId != ResourceId(),
-                                    state.tessEvalShader.resourceId != ResourceId(),
-                                    state.geometryShader.resourceId != ResourceId() || xfbActive, true,
-                                    state.fragmentShader.resourceId != ResourceId(), true, false});
+    ui->pipeFlow->setStagesEnabled(
+        {true, true, state.tessControlShader.resourceId != ResourceId(),
+         state.tessEvalShader.resourceId != ResourceId(),
+         state.geometryShader.resourceId != ResourceId() || xfbActive, raster,
+         raster && state.fragmentShader.resourceId != ResourceId(), raster, false});
   }
 }
 

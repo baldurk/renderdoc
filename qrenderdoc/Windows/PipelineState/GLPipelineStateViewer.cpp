@@ -2108,11 +2108,10 @@ void GLPipelineStateViewer::setState()
   else
   {
     bool raster = true;
-    bool fbo = true;
 
     if(state.vertexProcessing.discard)
     {
-      raster = fbo = false;
+      raster = false;
     }
 
     if(state.geometryShader.shaderResourceId == ResourceId() && state.transformFeedback.active)
@@ -2128,9 +2127,7 @@ void GLPipelineStateViewer::setState()
         {true, true, state.tessControlShader.shaderResourceId != ResourceId(),
          state.tessEvalShader.shaderResourceId != ResourceId(),
          state.geometryShader.shaderResourceId != ResourceId() || state.transformFeedback.active,
-         raster,
-         !state.vertexProcessing.discard && state.fragmentShader.shaderResourceId != ResourceId(),
-         fbo, false});
+         raster, raster && state.fragmentShader.shaderResourceId != ResourceId(), raster, false});
   }
 }
 
