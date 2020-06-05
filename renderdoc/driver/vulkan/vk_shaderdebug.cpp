@@ -182,22 +182,39 @@ public:
     {
       uint32_t dynamicOffset = 0;
 
+      // skip invalid descriptor set binds, we assume these aren't present because they will not be
+      // accessed statically
+      if(descSets[set].descSet == ResourceId() || descSets[set].pipeLayout == ResourceId())
+        continue;
+
       DescSetSnapshot &dstSet = m_DescSets[set];
 
       const rdcarray<DescriptorSetSlot *> &curBinds =
           m_pDriver->GetCurrentDescSetBindings(descSets[set].descSet);
       const bytebuf &curInline = m_pDriver->GetCurrentDescSetInlineData(descSets[set].descSet);
-      const DescSetLayout &setLayout = m_Creation.m_DescSetLayout[pipeLayout.descSetLayouts[set]];
+
+      // use the descriptor set layout from when it was bound. If the pipeline layout declared a
+      // descriptor set layout for this set, but it's statically unused, it may be complete
+      // garbage and doesn't match what the shader uses. However the pipeline layout at descriptor
+      // set bind time must have been compatible and valid so we can use it. If this set *is* used
+      // then the pipeline layout at bind time must be compatible with the pipeline's pipeline
+      // layout, so we're fine too.
+      const DescSetLayout &setLayout =
+          m_Creation
+              .m_DescSetLayout[m_Creation.m_PipelineLayout[descSets[set].pipeLayout].descSetLayouts[set]];
 
       for(size_t bind = 0; bind < setLayout.bindings.size(); bind++)
       {
         const DescSetLayout::Binding &bindLayout = setLayout.bindings[bind];
 
+        if(bindLayout.descriptorCount == 0)
+          continue;
+
         if(bindLayout.stageFlags & stage)
         {
           DescriptorSetSlot *curSlots = curBinds[bind];
 
-          dstSet.bindings.resize(bind + 1);
+          dstSet.bindings.resize_for_index(bind);
 
           DescSetBindingSnapshot &dstBind = dstSet.bindings[bind];
 
