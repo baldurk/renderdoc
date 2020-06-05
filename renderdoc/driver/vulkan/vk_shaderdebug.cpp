@@ -1226,9 +1226,13 @@ public:
 
       // push the parameters
       for(size_t i = 0; i < params.size(); i++)
+      {
+        float p[4] = {};
+        memcpy(p, params[i].value.fv, sizeof(float) * params[i].columns);
         ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DebugData.PipeLayout),
                                        VK_SHADER_STAGE_ALL, uint32_t(sizeof(Vec4f) * i),
-                                       sizeof(Vec4f), params[i].value.fv);
+                                       sizeof(Vec4f), p);
+      }
 
       // push the operation afterwards
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_DebugData.PipeLayout),
