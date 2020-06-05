@@ -3451,8 +3451,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   rdcarray<ShaderVariable> &locations = apiWrapper->location_inputs;
   for(const VulkanCreationInfo::Pipeline::Attribute &attr : pipe.vertexAttrs)
   {
-    if(attr.location >= locations.size())
-      locations.resize(attr.location + 1);
+    locations.resize_for_index(attr.location);
 
     if(Vulkan_Debug_ShaderDebugLogging())
       RDCLOG("Populating location %u", attr.location);
@@ -3463,9 +3462,12 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 
     size_t size = GetByteSize(1, 1, 1, attr.format, 0);
 
-    if(attr.binding < pipe.vertexBindings.size())
+    bool found = false;
+
+    for(const VulkanCreationInfo::Pipeline::Binding &bind : pipe.vertexBindings)
     {
-      const VulkanCreationInfo::Pipeline::Binding &bind = pipe.vertexBindings[attr.binding];
+      if(bind.vbufferBinding != attr.binding)
+        continue;
 
       if(bind.vbufferBinding < state.vbuffers.size())
       {
@@ -3503,10 +3505,14 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
                state.vbuffers.size());
       }
     }
-    else if(Vulkan_Debug_ShaderDebugLogging())
+
+    if(!found)
     {
-      RDCLOG("Attribute binding %u out of bounds from %zu bindings", attr.binding,
-             pipe.vertexBindings.size());
+      if(Vulkan_Debug_ShaderDebugLogging())
+      {
+        RDCLOG("Attribute binding %u out of bounds from %zu bindings", attr.binding,
+               pipe.vertexBindings.size());
+      }
     }
 
     if(size > data.size())
