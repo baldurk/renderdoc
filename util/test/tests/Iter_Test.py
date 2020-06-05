@@ -109,10 +109,7 @@ class Iter_Test(rdtest.TestCase):
         if trace.debugger is None:
             self.controller.FreeTrace(trace)
 
-            if self.props.shaderDebugging:
-                raise rdtest.TestFailureException("Shader debugging supported but no debug result")
-            else:
-                rdtest.log.print("No debug result")
+            rdtest.log.print("No debug result")
             return
 
         cycles, variables = self.process_trace(trace)
