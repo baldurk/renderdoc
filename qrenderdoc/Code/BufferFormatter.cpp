@@ -933,11 +933,12 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
       lastMemberStart += lastChild->byteOffset;
     }
 
-    const uint32_t size = GetVarSize(*lastChild);
-    uint32_t padBytes = requiredByteStride - (lastMemberStart + size);
+    const uint32_t structEnd = lastMemberStart + GetVarSize(*lastChild);
 
-    if(padBytes > 0)
-      ret += lit("    ") + DeclarePaddingBytes(padBytes);
+    if(requiredByteStride > structEnd)
+      ret += lit("    ") + DeclarePaddingBytes(requiredByteStride - structEnd);
+    else
+      qCritical() << "Unexpected stride overlow at struct" << name;
   }
 
   ret += lit("}\n");
