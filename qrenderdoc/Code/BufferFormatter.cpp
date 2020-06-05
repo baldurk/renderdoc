@@ -765,9 +765,9 @@ uint32_t BufferFormatter::GetVarSize(const ShaderConstant &var)
   if(var.type.descriptor.rows > 1)
   {
     if(var.type.descriptor.rowMajorStorage)
-      size = var.type.descriptor.matrixByteStride * var.type.descriptor.columns;
-    else
       size = var.type.descriptor.matrixByteStride * var.type.descriptor.rows;
+    else
+      size = var.type.descriptor.matrixByteStride * var.type.descriptor.columns;
   }
 
   if(var.type.descriptor.elements > 1)
