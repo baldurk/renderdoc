@@ -769,9 +769,17 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       if(name.empty() && baseType.type == DataType::StructType)
         name = baseType.name;
 
-      // otherwise fall back to naming after the ID
+      // otherwise fall back to naming after the builtin or location
       if(name.empty())
-        name = StringFormat::Fmt("sig%u", global.id.value());
+      {
+        if(decorations[global.id].flags & Decorations::HasBuiltIn)
+          name = StringFormat::Fmt("_%s", ToStr(decorations[global.id].builtIn).c_str());
+        else if(decorations[global.id].flags & Decorations::HasLocation)
+          name = StringFormat::Fmt("_%s%u", isInput ? "input" : "output",
+                                   decorations[global.id].location);
+        else
+          name = StringFormat::Fmt("_sig%u", global.id.value());
+      }
 
       const bool used = usedIds.find(global.id) != usedIds.end();
 

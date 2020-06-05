@@ -542,6 +542,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
         else if(decorations[v.id].flags & Decorations::HasLocation)
           sourceName =
               StringFormat::Fmt("_%s%u", isInput ? "input" : "output", decorations[v.id].location);
+        else
+          sourceName = StringFormat::Fmt("_sig%u", v.id.value());
       }
 
       const DataType &type = dataTypes[v.type];
