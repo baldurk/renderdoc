@@ -25,12 +25,16 @@
 #include <float.h>
 #include <math.h>
 #include <algorithm>
+#include "core/settings.h"
 #include "driver/shaders/spirv/spirv_editor.h"
 #include "driver/shaders/spirv/spirv_op_helpers.h"
 #include "vk_core.h"
 #include "vk_debug.h"
 #include "vk_replay.h"
 #include "vk_shader_cache.h"
+
+RDOC_DEBUG_CONFIG(rdcstr, Vulkan_Debug_PostVSDumpDirPath, "",
+                  "Path to dump gnerated SPIR-V compute shaders for fetching post-vs.");
 
 #undef None
 
@@ -1984,9 +1988,15 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     m_pDriver->vkUpdateDescriptorSets(dev, numWrites, descWrites, 0, NULL);
   }
 
+  if(!Vulkan_Debug_PostVSDumpDirPath().empty())
+    FileIO::WriteAll(Vulkan_Debug_PostVSDumpDirPath() + "/debug_postvs_vert.spv", modSpirv);
+
   ConvertToMeshOutputCompute(*refl, *pipeInfo.shaders[0].patchData,
                              pipeInfo.shaders[0].entryPoint.c_str(), attrInstDivisor, drawcall,
                              numVerts, numViews, modSpirv, bufStride);
+
+  if(!Vulkan_Debug_PostVSDumpDirPath().empty())
+    FileIO::WriteAll(Vulkan_Debug_PostVSDumpDirPath() + "/debug_postvs_comp.spv", modSpirv);
 
   VkComputePipelineCreateInfo compPipeInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
 
