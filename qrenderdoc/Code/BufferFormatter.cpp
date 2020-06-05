@@ -902,7 +902,7 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
           uint32_t padSize = members[i].type.descriptor.matrixByteStride - tightStride;
           for(uint32_t c = 0; c < members[i].type.descriptor.columns; c++)
           {
-            ret += QFormatStr("    %1%2 %2_col%4; %5")
+            ret += QFormatStr("    %1%2 %3_col%4; %5")
                        .arg(ToQStr(members[i].type.descriptor.type))
                        .arg(members[i].type.descriptor.rows)
                        .arg(varName)
