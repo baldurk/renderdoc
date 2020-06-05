@@ -229,7 +229,7 @@ ShaderConstant BufferFormatter::ParseFormatString(const QString &formatString, u
     QString arrayDim = !match.captured(7).isEmpty() ? match.captured(7).trimmed() : lit("[1]");
     arrayDim = arrayDim.mid(1, arrayDim.count() - 2);
 
-    if(!match.captured(5).isEmpty())
+    if(!match.captured(5).isEmpty() && basetype != lit("mat"))
       firstDim.swap(secondDim);
 
     el.type.descriptor.name = match.captured(1) + match.captured(2) + match.captured(3) +

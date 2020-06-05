@@ -522,7 +522,7 @@ void Reflector::PostParse()
         }
         else if(type.type == DataType::MatrixType)
         {
-          type.name += StringFormat::Fmt("%ux%u", type.matrix().count, type.vector().count);
+          type.name += StringFormat::Fmt("%ux%u", type.vector().count, type.matrix().count);
         }
       }
       else if(type.type == DataType::ImageType)
