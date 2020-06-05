@@ -3193,21 +3193,41 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const ShaderVariable &var
   else if(var.type == VarType::Bool)
     typeName = lit("bool");
 
+  QString rowTypeName = typeName;
+
   if(var.rows > 1)
+  {
     typeName += QFormatStr("%1x%2").arg(var.rows).arg(var.columns);
+    if(var.columns > 1)
+      rowTypeName += QString::number(var.columns);
+  }
   else if(var.columns > 1)
+  {
     typeName += QString::number(var.columns);
+  }
 
   QString value = var.rows == 1 && var.members.empty() ? stringRep(var) : QString();
 
   rdcstr sep = var.name[0] == '[' ? "" : ".";
 
-  RDTreeWidgetItem *node = new RDTreeWidgetItem(
-      {sourcePath + sep + var.name, debugVarPath + sep + var.name, typeName, value});
+  rdcstr sourceName = sourcePath + sep + var.name;
+  rdcstr debugName = debugVarPath + sep + var.name;
+
+  RDTreeWidgetItem *node = new RDTreeWidgetItem({sourceName, debugName, typeName, value});
 
   for(const ShaderVariable &child : var.members)
-    node->addChild(makeSourceVariableNode(child, sourcePath + sep + var.name,
-                                          debugVarPath + sep + var.name, modified));
+    node->addChild(makeSourceVariableNode(child, sourceName, debugName, modified));
+
+  // if this is a matrix, even if it has no explicit row members add the rows as children
+  if(var.members.empty() && var.rows > 1)
+  {
+    for(uint32_t row = 0; row < var.rows; row++)
+    {
+      rdcstr rowsuffix = ".row" + ToStr(row);
+      node->addChild(new RDTreeWidgetItem(
+          {sourceName + rowsuffix, debugName + rowsuffix, rowTypeName, stringRep(var, row)}));
+    }
+  }
 
   if(modified)
     node->setForegroundColor(QColor(Qt::red));
