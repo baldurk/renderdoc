@@ -3607,10 +3607,17 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     return new ShaderDebugTrace();
   }
 
+  const VulkanCreationInfo::Pipeline &pipe = c.m_Pipeline[state.graphics.pipeline];
+
+  if(pipe.shaders[4].module == ResourceId())
+  {
+    RDCLOG("No pixel shader bound at draw");
+    return new ShaderDebugTrace();
+  }
+
   // get ourselves in pristine state before this draw (without any side effects it may have had)
   m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
 
-  const VulkanCreationInfo::Pipeline &pipe = c.m_Pipeline[state.graphics.pipeline];
   VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[pipe.shaders[4].module];
   rdcstr entryPoint = pipe.shaders[4].entryPoint;
   const rdcarray<SpecConstant> &spec = pipe.shaders[4].specialization;
