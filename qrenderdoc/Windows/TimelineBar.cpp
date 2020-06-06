@@ -25,6 +25,7 @@
 #include "TimelineBar.h"
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QScrollBar>
 #include <QWheelEvent>
 #include "Code/QRDUtils.h"
