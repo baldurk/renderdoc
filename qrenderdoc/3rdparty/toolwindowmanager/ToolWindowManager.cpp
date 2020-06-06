@@ -32,6 +32,7 @@
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QScreen>
 #include <QSplitter>
 #include <QTabBar>
