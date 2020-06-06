@@ -26,6 +26,7 @@
 #include <QDebug>
 #include <QFontMetrics>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPen>
 #include <QStyleOption>
 

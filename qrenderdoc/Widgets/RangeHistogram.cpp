@@ -27,6 +27,7 @@
 #include <math.h>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 
 RangeHistogram::RangeHistogram(QWidget *parent) : QWidget(parent)
 {
