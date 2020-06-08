@@ -267,7 +267,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
     else if(curType->bitWidth == 32)
       memcpy(&v.val.fv[0], &constant.ops[0], sizeof(float));
     else
-      memcpy(&v.val.dv[0], &constant.ops[0], sizeof(float));
+      memcpy(&v.val.dv[0], &constant.ops[0], sizeof(double));
     addValue(v);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::STRING))

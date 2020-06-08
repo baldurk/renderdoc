@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <math.h>
+#include <stdlib.h>
 #include "common/formatting.h"
 #include "dxil_bytecode.h"
 
@@ -808,20 +810,35 @@ rdcstr Value::toString() const
   {
     if(type->scalarType == Type::Float)
     {
+      double orig;
       if(type->bitWidth > 32)
-        ret += StringFormat::Fmt("%le", val.dv[0]);
+        orig = val.dv[0];
       else
-        ret += StringFormat::Fmt("%e", val.fv[0]);
+        orig = val.fv[0];
+
+      // NaNs/infs are printed as hex to ensure we don't lose bits
+      if(!isnan(orig) && !isinf(orig))
+      {
+        // check we can reparse precisely a float-formatted string. Otherwise we print as hex
+        rdcstr flt = StringFormat::Fmt("%.6le", orig);
+
+        double reparse = strtod(flt.begin(), NULL);
+
+        if(orig == reparse)
+          return ret + flt;
+      }
+
+      ret += StringFormat::Fmt("0x%llX", orig);
     }
     else if(type->scalarType == Type::Int)
     {
       // LLVM seems to always interpret these as signed? :(
       if(type->bitWidth > 32)
-        ret += StringFormat::Fmt("%lld", val.u64v[0]);
+        ret += StringFormat::Fmt("%lld", val.s64v[0]);
       else if(type->bitWidth == 1)
         ret += val.uv[0] ? "true" : "false";
       else
-        ret += StringFormat::Fmt("%d", val.uv[0]);
+        ret += StringFormat::Fmt("%d", val.iv[0]);
     }
   }
   else if(type->type == Type::Vector)
