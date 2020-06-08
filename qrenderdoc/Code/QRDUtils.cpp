@@ -2148,8 +2148,11 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
 
   if(sudo.isEmpty())
   {
-    qCritical() << "Couldn't find graphical or terminal sudo program!\n"
-                << "Please run " << fullExecutablePath << "with args" << params << "manually.";
+    RDDialog::critical(parent, lit("Error running program as root"),
+                       lit("Couldn't find graphical or terminal sudo program!\n"
+                           "Please run '%1' with args '%2' manually.")
+                           .arg(fullExecutablePath)
+                           .arg(params.join(QLatin1Char(' '))));
     return false;
   }
 
@@ -2182,8 +2185,11 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
     return true;
   }
 
-  qCritical() << "Couldn't find graphical or terminal emulator to launch sudo.\n"
-              << "Please run " << fullExecutablePath << "with args" << params << "manually.";
+  RDDialog::critical(parent, lit("Error running program as root"),
+                     lit("Couldn't find graphical or terminal emulator to launch sudo!\n"
+                         "Please manually run: sudo \"%1\" %2")
+                         .arg(fullExecutablePath)
+                         .arg(params.join(QLatin1Char(' '))));
 
   return false;
 #endif
