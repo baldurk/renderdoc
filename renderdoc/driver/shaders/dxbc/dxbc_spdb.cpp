@@ -1253,7 +1253,8 @@ SPDBChunk::SPDBChunk(void *chunk)
         {
           // number of rows is the number of vectors in the matrix's total byte size (each vector is
           // a row)
-          mapping.var.rows = uint8_t(varTypeByteSize / vartype->matArrayStride);
+          mapping.var.rows =
+              uint8_t((varTypeByteSize + vartype->matArrayStride - 1) / vartype->matArrayStride);
 
           // unless this is a column major matrix, in which case each vector is a column so swap the
           // rows/columns (the number of ROWS is the vector size, when each vector is a column)
@@ -1293,7 +1294,7 @@ SPDBChunk::SPDBChunk(void *chunk)
 
             // if this is an array, the index is just the array index. However if we're mapping the
             // whole array, don't add the index as the mapping will do that for us
-            if(varLen < mapping.var.elements * vartype->matArrayStride)
+            if(varLen < varTypeByteSize)
             {
               mapping.var.name += StringFormat::Fmt("[%u]", idx);
 
