@@ -468,26 +468,43 @@ void Program::MakeDisassemblyString()
             debugCall = inst.funcCall->name.beginsWith("llvm.dbg.");
             break;
           }
-          case Instruction::Trunc: m_Disassembly += "trunc "; break;
-          case Instruction::ZExt: m_Disassembly += "zext "; break;
-          case Instruction::SExt: m_Disassembly += "sext "; break;
-          case Instruction::FToU: m_Disassembly += "fptoui "; break;
+          case Instruction::Trunc:
+          case Instruction::ZExt:
+          case Instruction::SExt:
+          case Instruction::FToU:
           case Instruction::FToS:
+          case Instruction::UToF:
+          case Instruction::SToF:
+          case Instruction::FPTrunc:
+          case Instruction::FPExt:
+          case Instruction::PtrToI:
+          case Instruction::IToPtr:
+          case Instruction::Bitcast:
+          case Instruction::AddrSpaceCast:
           {
-            m_Disassembly += "fptosi ";
+            switch(inst.op)
+            {
+              case Instruction::Trunc: m_Disassembly += "trunc "; break;
+              case Instruction::ZExt: m_Disassembly += "zext "; break;
+              case Instruction::SExt: m_Disassembly += "sext "; break;
+              case Instruction::FToU: m_Disassembly += "fptoui "; break;
+              case Instruction::FToS: m_Disassembly += "fptosi "; break;
+              case Instruction::UToF: m_Disassembly += "uitofp "; break;
+              case Instruction::SToF: m_Disassembly += "sitofp "; break;
+              case Instruction::FPTrunc: m_Disassembly += "fptrunc "; break;
+              case Instruction::FPExt: m_Disassembly += "fpext "; break;
+              case Instruction::PtrToI: m_Disassembly += "ptrtoi "; break;
+              case Instruction::IToPtr: m_Disassembly += "itoptr "; break;
+              case Instruction::Bitcast: m_Disassembly += "bitcast "; break;
+              case Instruction::AddrSpaceCast: m_Disassembly += "addrspacecast "; break;
+              default: break;
+            }
+
             m_Disassembly += argToString(inst.args[0]);
             m_Disassembly += " to ";
             m_Disassembly += inst.type->toString();
             break;
           }
-          case Instruction::UToF: m_Disassembly += "uitofp "; break;
-          case Instruction::SToF: m_Disassembly += "sitofp "; break;
-          case Instruction::FPTrunc: m_Disassembly += "fptrunc "; break;
-          case Instruction::FPExt: m_Disassembly += "fpext "; break;
-          case Instruction::PtrToI: m_Disassembly += "ptrtoi "; break;
-          case Instruction::IToPtr: m_Disassembly += "itoptr "; break;
-          case Instruction::Bitcast: m_Disassembly += "bitcast "; break;
-          case Instruction::AddrSpaceCast: m_Disassembly += "addrspacecast "; break;
           case Instruction::ExtractVal:
           {
             m_Disassembly += "extractvalue ";
