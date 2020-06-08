@@ -387,9 +387,17 @@ void Program::MakeDisassemblyString()
         case SymbolType::Literal: ret = "???"; break;
         case SymbolType::Metadata:
           if(s.idx < m_Metadata.size())
-            ret += StringFormat::Fmt("metadata !%u", GetOrAssignMetaID(&m_Metadata[s.idx]));
+          {
+            Metadata &m = m_Metadata[s.idx];
+            if(m.value && m.val && m.val->nullconst)
+              ret += StringFormat::Fmt("metadata %s zeroinitializer", m.val->type->toString());
+            else
+              ret += StringFormat::Fmt("metadata !%u", GetOrAssignMetaID(&m));
+          }
           else
+          {
             ret = "metadata " + GetFunctionMetadata(func, s.idx)->refString();
+          }
           break;
         case SymbolType::Function: ret = "@" + escapeStringIfNeeded(m_Functions[s.idx].name); break;
         case SymbolType::GlobalVar:

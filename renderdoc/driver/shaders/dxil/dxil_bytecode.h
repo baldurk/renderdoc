@@ -183,7 +183,7 @@ struct Value
   ShaderValue val = {};
   rdcarray<Value> members;
   rdcstr str;
-  bool undef = false, symbol = false;
+  bool undef = false, nullconst = true, symbol = false;
 
   rdcstr toString() const;
 };

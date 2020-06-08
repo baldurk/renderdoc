@@ -243,6 +243,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
   {
     Value v;
     v.type = curType;
+    v.nullconst = IS_KNOWN(constant.id, ConstantsRecord::CONST_NULL);
     v.undef = IS_KNOWN(constant.id, ConstantsRecord::UNDEF);
     addValue(v);
   }
