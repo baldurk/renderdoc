@@ -185,7 +185,7 @@ struct Value
   rdcstr str;
   bool undef = false, nullconst = true, symbol = false;
 
-  rdcstr toString() const;
+  rdcstr toString(bool withType = false) const;
 };
 
 struct DIBase
@@ -264,6 +264,27 @@ struct DebugLocation
 
 struct Function;
 
+enum class MathFlags : uint32_t
+{
+  NoFlags = 0,
+
+  // float fastmath flags. These should match LLVMs bits
+  FastMath = (1 << 0),
+  NoNaNs = (1 << 1),
+  NoInfs = (1 << 2),
+  NoSignedZeros = (1 << 3),
+  AllowReciprocal = (1 << 4),
+
+  // integer add/mul/sub/left shift
+  NoUnsignedWrap = (1 << 5),
+  NoSignedWrap = (1 << 6),
+
+  // shifts/divs
+  Exact = (1 << 7),
+};
+
+BITMASK_OPERATORS(MathFlags);
+
 struct Instruction
 {
   enum
@@ -285,7 +306,27 @@ struct Instruction
     AddrSpaceCast,
     ExtractVal,
     Ret,
-  } op;
+    FAdd,
+    FSub,
+    FMul,
+    FDiv,
+    FRem,
+    Add,
+    Sub,
+    Mul,
+    UDiv,
+    SDiv,
+    URem,
+    SRem,
+    ShiftLeft,
+    LogicalShiftRight,
+    ArithShiftRight,
+    And,
+    Or,
+    Xor,
+  } op = Unknown;
+
+  MathFlags opFlags = MathFlags::NoFlags;
 
   // common to all instructions
   rdcstr name;
@@ -389,3 +430,6 @@ rdcstr escapeString(rdcstr str);
 rdcstr escapeStringIfNeeded(const rdcstr &name);
 
 };    // namespace DXIL
+
+DECLARE_REFLECTION_ENUM(DXIL::Attribute);
+DECLARE_STRINGISE_TYPE(DXIL::MathFlags);

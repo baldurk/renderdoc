@@ -697,5 +697,4 @@ struct DILexicalBlock : public DIBase
 
 };    // namespace DXIL
 
-DECLARE_REFLECTION_ENUM(DXIL::Attribute);
 DECLARE_REFLECTION_ENUM(DXIL::DW_LANG);

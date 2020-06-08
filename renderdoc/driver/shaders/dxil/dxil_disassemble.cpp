@@ -380,7 +380,7 @@ void Program::MakeDisassemblyString()
   {
     Function &func = m_Functions[i];
 
-    auto argToString = [this, &func](Symbol s) {
+    auto argToString = [this, &func](Symbol s, bool withTypes) {
       rdcstr ret;
       switch(s.type)
       {
@@ -388,33 +388,36 @@ void Program::MakeDisassemblyString()
         case SymbolType::Alias:
         case SymbolType::Literal: ret = "???"; break;
         case SymbolType::Metadata:
+          if(withTypes)
+            ret += "metadata ";
           if(s.idx < m_Metadata.size())
           {
             Metadata &m = m_Metadata[s.idx];
             if(m.value && m.val && m.val->nullconst)
-              ret += StringFormat::Fmt("metadata %s zeroinitializer", m.val->type->toString());
+              ret += StringFormat::Fmt("%s zeroinitializer", m.val->type->toString());
             else
-              ret += StringFormat::Fmt("metadata !%u", GetOrAssignMetaID(&m));
+              ret += StringFormat::Fmt("!%u", GetOrAssignMetaID(&m));
           }
           else
           {
-            ret = "metadata " + GetFunctionMetadata(func, s.idx)->refString();
+            ret += GetFunctionMetadata(func, s.idx)->refString();
           }
           break;
         case SymbolType::Function: ret = "@" + escapeStringIfNeeded(m_Functions[s.idx].name); break;
         case SymbolType::GlobalVar:
           ret = "@" + escapeStringIfNeeded(m_GlobalVars[s.idx].name);
           break;
-        case SymbolType::Constant: ret = GetFunctionValue(func, s.idx)->toString(); break;
+        case SymbolType::Constant: ret = GetFunctionValue(func, s.idx)->toString(withTypes); break;
         case SymbolType::Argument: ret = "%" + escapeStringIfNeeded(func.args[s.idx].name); break;
         case SymbolType::Instruction:
         {
           const Instruction &refinst = func.instructions[s.idx];
+          if(withTypes)
+            ret = refinst.type->toString() + " ";
           if(refinst.name.empty())
-            ret = StringFormat::Fmt("%s %%%u", refinst.type->toString().c_str(), refinst.resultID);
+            ret += StringFormat::Fmt("%%%u", refinst.resultID);
           else
-            ret = StringFormat::Fmt("%s %%%s", refinst.type->toString().c_str(),
-                                    escapeStringIfNeeded(refinst.name).c_str());
+            ret += StringFormat::Fmt("%%%s", escapeStringIfNeeded(refinst.name).c_str());
           break;
         }
       }
@@ -464,7 +467,7 @@ void Program::MakeDisassemblyString()
                 m_Disassembly += ", ";
               first = false;
 
-              m_Disassembly += argToString(s);
+              m_Disassembly += argToString(s, true);
             }
             m_Disassembly += ")";
             debugCall = inst.funcCall->name.beginsWith("llvm.dbg.");
@@ -502,7 +505,7 @@ void Program::MakeDisassemblyString()
               default: break;
             }
 
-            m_Disassembly += argToString(inst.args[0]);
+            m_Disassembly += argToString(inst.args[0], true);
             m_Disassembly += " to ";
             m_Disassembly += inst.type->toString();
             break;
@@ -510,9 +513,76 @@ void Program::MakeDisassemblyString()
           case Instruction::ExtractVal:
           {
             m_Disassembly += "extractvalue ";
-            m_Disassembly += argToString(inst.args[0]);
+            m_Disassembly += argToString(inst.args[0], true);
             for(size_t n = 1; n < inst.args.size(); n++)
               m_Disassembly += StringFormat::Fmt(", %llu", inst.args[n].idx);
+            break;
+          }
+          case Instruction::FAdd:
+          case Instruction::FSub:
+          case Instruction::FMul:
+          case Instruction::FDiv:
+          case Instruction::FRem:
+          case Instruction::Add:
+          case Instruction::Sub:
+          case Instruction::Mul:
+          case Instruction::UDiv:
+          case Instruction::SDiv:
+          case Instruction::URem:
+          case Instruction::SRem:
+          case Instruction::ShiftLeft:
+          case Instruction::LogicalShiftRight:
+          case Instruction::ArithShiftRight:
+          case Instruction::And:
+          case Instruction::Or:
+          case Instruction::Xor:
+          {
+            switch(inst.op)
+            {
+              case Instruction::FAdd: m_Disassembly += "fadd "; break;
+              case Instruction::FSub: m_Disassembly += "fsub "; break;
+              case Instruction::FMul: m_Disassembly += "fmul "; break;
+              case Instruction::FDiv: m_Disassembly += "fdiv "; break;
+              case Instruction::FRem: m_Disassembly += "frem "; break;
+              case Instruction::Add: m_Disassembly += "add "; break;
+              case Instruction::Sub: m_Disassembly += "sub "; break;
+              case Instruction::Mul: m_Disassembly += "mul "; break;
+              case Instruction::UDiv: m_Disassembly += "udiv "; break;
+              case Instruction::SDiv: m_Disassembly += "sdiv "; break;
+              case Instruction::URem: m_Disassembly += "urem "; break;
+              case Instruction::SRem: m_Disassembly += "srem "; break;
+              case Instruction::ShiftLeft: m_Disassembly += "shl "; break;
+              case Instruction::LogicalShiftRight: m_Disassembly += "lshr "; break;
+              case Instruction::ArithShiftRight: m_Disassembly += "ashr "; break;
+              case Instruction::And: m_Disassembly += "and "; break;
+              case Instruction::Or: m_Disassembly += "or "; break;
+              case Instruction::Xor: m_Disassembly += "xor "; break;
+              default: break;
+            }
+
+            rdcstr opFlagsStr = ToStr(inst.opFlags);
+            {
+              int offs = opFlagsStr.indexOf('|');
+              while(offs >= 0)
+              {
+                opFlagsStr.erase((size_t)offs, 2);
+                offs = opFlagsStr.indexOf('|');
+              }
+            }
+            m_Disassembly += opFlagsStr;
+            if(inst.opFlags != MathFlags::NoFlags)
+              m_Disassembly += " ";
+
+            bool first = true;
+            for(Symbol &s : inst.args)
+            {
+              if(!first)
+                m_Disassembly += ", ";
+
+              m_Disassembly += argToString(s, first);
+              first = false;
+            }
+
             break;
           }
           case Instruction::Ret: m_Disassembly += "ret " + inst.type->toString(); break;
@@ -750,7 +820,7 @@ rdcstr Metadata::valString() const
       {
         if(type != val->type)
           RDCERR("Type mismatch in metadata");
-        return val->toString();
+        return val->toString(true);
       }
       else
       {
@@ -791,13 +861,14 @@ rdcstr Metadata::valString() const
   }
 }
 
-rdcstr Value::toString() const
+rdcstr Value::toString(bool withType) const
 {
   if(type == NULL)
     return escapeString(str);
 
   rdcstr ret;
-  ret += type->toString() + " ";
+  if(withType)
+    ret += type->toString() + " ";
   if(undef)
   {
     ret += "undef";
@@ -873,7 +944,7 @@ rdcstr Value::toString() const
       if(i > 0)
         ret += ", ";
 
-      ret += members[i].toString();
+      ret += members[i].toString(withType);
     }
     ret += "]";
   }
@@ -885,7 +956,7 @@ rdcstr Value::toString() const
       if(i > 0)
         ret += ", ";
 
-      ret += members[i].toString();
+      ret += members[i].toString(withType);
     }
     ret += "}";
   }
@@ -898,6 +969,30 @@ rdcstr Value::toString() const
 }
 
 };    // namespace DXIL
+
+template <>
+rdcstr DoStringise(const DXIL::MathFlags &el)
+{
+  BEGIN_BITFIELD_STRINGISE(DXIL::MathFlags);
+  {
+    STRINGISE_BITFIELD_CLASS_VALUE_NAMED(NoFlags, "");
+
+    // llvm doesn't print all bits if fastmath is set
+    if(el & DXIL::MathFlags::FastMath)
+      return "fast";
+
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoNaNs, "nnan");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoInfs, "ninf");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoSignedZeros, "nsz");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(AllowReciprocal, "arcp");
+
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoUnsignedWrap, "nuw");
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoSignedWrap, "nsw");
+
+    STRINGISE_BITFIELD_CLASS_BIT_NAMED(Exact, "exact");
+  }
+  END_BITFIELD_STRINGISE();
+}
 
 template <>
 rdcstr DoStringise(const DXIL::Attribute &el)

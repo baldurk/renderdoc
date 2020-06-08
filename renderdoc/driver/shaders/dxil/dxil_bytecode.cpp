@@ -1266,6 +1266,63 @@ Program::Program(const byte *bytes, size_t length)
 
               f.instructions.push_back(inst);
             }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_BINOP))
+            {
+              Instruction inst;
+
+              inst.args.push_back(getSymbol(op.ops[0]));
+              inst.type = GetSymbolType(f, inst.args.back());
+              inst.args.push_back(getSymbol(op.ops[1]));
+
+              bool isFloatOp = (inst.type->scalarType == Type::Float);
+
+              switch(op.ops[2])
+              {
+                case 0: inst.op = isFloatOp ? Instruction::FAdd : Instruction::Add; break;
+                case 1: inst.op = isFloatOp ? Instruction::FSub : Instruction::Sub; break;
+                case 2: inst.op = isFloatOp ? Instruction::FMul : Instruction::Mul; break;
+                case 3: inst.op = Instruction::UDiv; break;
+                case 4: inst.op = isFloatOp ? Instruction::FDiv : Instruction::SDiv; break;
+                case 5: inst.op = Instruction::URem; break;
+                case 6: inst.op = isFloatOp ? Instruction::FRem : Instruction::SRem; break;
+                case 7: inst.op = Instruction::ShiftLeft; break;
+                case 8: inst.op = Instruction::LogicalShiftRight; break;
+                case 9: inst.op = Instruction::ArithShiftRight; break;
+                case 10: inst.op = Instruction::And; break;
+                case 11: inst.op = Instruction::Or; break;
+                case 12: inst.op = Instruction::Xor; break;
+                default: RDCERR("Unhandled binop type %d", op.ops[2]);
+              }
+
+              if(op.ops.size() > 3)
+              {
+                uint64_t flags = op.ops[3];
+                if(inst.op == Instruction::Add || inst.op == Instruction::Sub ||
+                   inst.op == Instruction::Mul || inst.op == Instruction::ShiftLeft)
+                {
+                  if(flags & 0x2)
+                    inst.opFlags |= MathFlags::NoSignedWrap;
+                  if(flags & 0x1)
+                    inst.opFlags |= MathFlags::NoUnsignedWrap;
+                }
+                else if(inst.op == Instruction::SDiv || inst.op == Instruction::UDiv ||
+                        inst.op == Instruction::LogicalShiftRight ||
+                        inst.op == Instruction::ArithShiftRight)
+                {
+                  if(flags & 0x1)
+                    inst.opFlags |= MathFlags::Exact;
+                }
+                else if(isFloatOp)
+                {
+                  // fast math flags overlap
+                  inst.opFlags = MathFlags(flags);
+                }
+              }
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
             else
             {
               RDCERR("Unexpected record in FUNCTION_BLOCK");
