@@ -1716,9 +1716,9 @@ private:
       {
         const VkOffset2D &offset = pScissors[i].offset;
         const VkExtent2D &extent = pScissors[i].extent;
-        if((m_CallbackInfo.x >= (uint32_t)offset.x) && (m_CallbackInfo.y >= (uint32_t)offset.y) &&
-           (m_CallbackInfo.x < (offset.x + extent.width)) &&
-           (m_CallbackInfo.y < (offset.y + extent.height)))
+        if(((int32_t)m_CallbackInfo.x >= offset.x) && ((int32_t)m_CallbackInfo.y >= offset.y) &&
+           ((int32_t)m_CallbackInfo.x < ((int64_t)offset.x + (int64_t)extent.width)) &&
+           ((int32_t)m_CallbackInfo.y < ((int64_t)offset.y + (int64_t)extent.height)))
           inRegion = true;
         else
           inAllRegions = false;
