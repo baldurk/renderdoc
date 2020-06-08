@@ -439,7 +439,7 @@ void PrintFloat0(bool e, bool f, FormatterParams formatter, char prepend, char *
   int numwidth = 0;
 
   if(e)
-    numwidth = formatter.Precision + 1 + 5;    // 0 plus precision plus e+000
+    numwidth = formatter.Precision + 1 + 4;    // 0 plus precision plus e+00
   else if(f || formatter.Flags & AlternateForm)
     numwidth = formatter.Precision + 1;    // 0 plus precision
   else
@@ -490,7 +490,7 @@ void PrintFloat0(bool e, bool f, FormatterParams formatter, char prepend, char *
     addchars(output, actualsize, end, size_t(formatter.Precision), '0');
 
     if(e)
-      appendstring(output, actualsize, end, "e+000");
+      appendstring(output, actualsize, end, "e+00");
   }
   else
   {
@@ -693,8 +693,10 @@ void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g,
       numwidth += 2;    // 'e+' or 'e-'
       if(expon >= 1000 || expon <= -1000)
         numwidth += 4;
-      else
+      else if(expon >= 100 || expon <= -100)
         numwidth += 3;
+      else
+        numwidth += 2;
       if(prepend)
         numwidth++;    // +, - or ' '
 
@@ -746,7 +748,8 @@ void PrintFloat(double argd, FormatterParams &formatter, bool e, bool f, bool g,
         addchar(output, actualsize, end, '0' + char(exponaccum / 1000));
       exponaccum %= 1000;
 
-      addchar(output, actualsize, end, '0' + char(exponaccum / 100));
+      if(exponaccum >= 100)
+        addchar(output, actualsize, end, '0' + char(exponaccum / 100));
       exponaccum %= 100;
       addchar(output, actualsize, end, '0' + char(exponaccum / 10));
       exponaccum %= 10;
@@ -1859,20 +1862,22 @@ TEST_CASE("utf8printf printing floats", "[utf8printf]")
 
   SECTION("Basic numbers as %e")
   {
-    CHECK(StringFormat::Fmt("%e", 0.0) == "0.000000e+000");
-    CHECK(StringFormat::Fmt("%e", 1.0) == "1.000000e+000");
-    CHECK(StringFormat::Fmt("%e", 2.0) == "2.000000e+000");
-    CHECK(StringFormat::Fmt("%e", 3.0) == "3.000000e+000");
-    CHECK(StringFormat::Fmt("%e", 5.0) == "5.000000e+000");
-    CHECK(StringFormat::Fmt("%e", 0.1) == "1.000000e-001");
-    CHECK(StringFormat::Fmt("%e", 0.2) == "2.000000e-001");
-    CHECK(StringFormat::Fmt("%e", 0.3) == "3.000000e-001");
-    CHECK(StringFormat::Fmt("%e", 0.5) == "5.000000e-001");
-    CHECK(StringFormat::Fmt("%e", 1.234567890123456) == "1.234568e+000");
-    CHECK(StringFormat::Fmt("%e", 1.234567123456) == "1.234567e+000");
-    CHECK(StringFormat::Fmt("%e", 12345671234.56) == "1.234567e+010");
-    CHECK(StringFormat::Fmt("%e", 12345671234.56e+20) == "1.234567e+030");
-    CHECK(StringFormat::Fmt("%e", 12345671234.56e-20) == "1.234567e-010");
+    CHECK(StringFormat::Fmt("%e", 0.0) == "0.000000e+00");
+    CHECK(StringFormat::Fmt("%e", 1.0) == "1.000000e+00");
+    CHECK(StringFormat::Fmt("%e", 2.0) == "2.000000e+00");
+    CHECK(StringFormat::Fmt("%e", 3.0) == "3.000000e+00");
+    CHECK(StringFormat::Fmt("%e", 5.0) == "5.000000e+00");
+    CHECK(StringFormat::Fmt("%e", 0.1) == "1.000000e-01");
+    CHECK(StringFormat::Fmt("%e", 0.2) == "2.000000e-01");
+    CHECK(StringFormat::Fmt("%e", 0.3) == "3.000000e-01");
+    CHECK(StringFormat::Fmt("%e", 0.5) == "5.000000e-01");
+    CHECK(StringFormat::Fmt("%e", 1.234567890123456) == "1.234568e+00");
+    CHECK(StringFormat::Fmt("%e", 1.234567123456) == "1.234567e+00");
+    CHECK(StringFormat::Fmt("%e", 12345671234.56) == "1.234567e+10");
+    CHECK(StringFormat::Fmt("%e", 12345671234.56e+20) == "1.234567e+30");
+    CHECK(StringFormat::Fmt("%e", 12345671234.56e-20) == "1.234567e-10");
+    CHECK(StringFormat::Fmt("%e", 12345671234.56e+220) == "1.234567e+230");
+    CHECK(StringFormat::Fmt("%e", 12345671234.56e-220) == "1.234567e-210");
   };
 
   SECTION("Basic numbers as %g")
@@ -1888,18 +1893,18 @@ TEST_CASE("utf8printf printing floats", "[utf8printf]")
     CHECK(StringFormat::Fmt("%g", 0.5) == "0.5");
     CHECK(StringFormat::Fmt("%g", 1.234567890123456) == "1.23457");
     CHECK(StringFormat::Fmt("%g", 1.23456123456) == "1.23456");
-    CHECK(StringFormat::Fmt("%g", 12345671234.56) == "1.23457e+010");
-    CHECK(StringFormat::Fmt("%g", 12345671234.56e+20) == "1.23457e+030");
-    CHECK(StringFormat::Fmt("%g", 12345671234.56e-20) == "1.23457e-010");
+    CHECK(StringFormat::Fmt("%g", 12345671234.56) == "1.23457e+10");
+    CHECK(StringFormat::Fmt("%g", 12345671234.56e+20) == "1.23457e+30");
+    CHECK(StringFormat::Fmt("%g", 12345671234.56e-20) == "1.23457e-10");
   };
 
   SECTION("Rounding")
   {
-    CHECK(StringFormat::Fmt("%.4e", 0.12345222) == "1.2345e-001");
+    CHECK(StringFormat::Fmt("%.4e", 0.12345222) == "1.2345e-01");
     CHECK(StringFormat::Fmt("%.5f", 0.12345222) == "0.12345");
     CHECK(StringFormat::Fmt("%.5g", 0.12345222) == "0.12345");
 
-    CHECK(StringFormat::Fmt("%.4e", 0.12345888) == "1.2346e-001");
+    CHECK(StringFormat::Fmt("%.4e", 0.12345888) == "1.2346e-01");
     CHECK(StringFormat::Fmt("%.5f", 0.12345888) == "0.12346");
     CHECK(StringFormat::Fmt("%.5g", 0.12345888) == "0.12346");
 
