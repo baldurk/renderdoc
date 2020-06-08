@@ -133,14 +133,6 @@ enum class FunctionRecord : uint32_t
   INST_STOREATOMIC = 45,
   INST_CMPXCHG = 46,
   INST_LANDINGPAD = 47,
-  INST_CLEANUPRET = 48,
-  INST_CATCHRET = 49,
-  INST_CATCHPAD = 50,
-  INST_CLEANUPPAD = 51,
-  INST_CATCHSWITCH = 52,
-  OPERAND_BUNDLE = 55,
-  INST_UNOP = 56,
-  INST_CALLBR = 57,
 };
 
 enum class ParamAttrRecord : uint32_t
@@ -1322,6 +1314,14 @@ Program::Program(const byte *bytes, size_t length)
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
 
               f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_LANDINGPAD) ||
+                    IS_KNOWN(op.id, FunctionRecord::INST_LANDINGPAD_OLD) ||
+                    IS_KNOWN(op.id, FunctionRecord::INST_VAARG) ||
+                    IS_KNOWN(op.id, FunctionRecord::INST_INVOKE) ||
+                    IS_KNOWN(op.id, FunctionRecord::INST_RESUME))
+            {
+              RDCERR("Unexpected instruction %u in DXIL", op.id);
             }
             else
             {
