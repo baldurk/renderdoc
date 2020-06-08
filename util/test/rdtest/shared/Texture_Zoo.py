@@ -315,6 +315,8 @@ class Texture_Zoo():
                 else:
                     if picked[1] == 0.0:
                         value0[1] = 0.0
+                    if picked[1] > 1.0:
+                        picked[1] /= 255.0
 
             if not rdtest.value_compare(picked, value0, eps):
                 raise rdtest.TestFailureException(
