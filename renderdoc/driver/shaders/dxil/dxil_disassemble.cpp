@@ -312,7 +312,7 @@ void Program::MakeDisassemblyString()
       for(const Type *t : typ.members)
       {
         if(!first)
-          m_Disassembly += ", ";
+          m_Disassembly += ",";
         first = false;
         m_Disassembly += StringFormat::Fmt(" %s", t->toString().c_str());
       }
