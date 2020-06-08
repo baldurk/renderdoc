@@ -809,9 +809,9 @@ rdcstr Value::toString() const
     if(type->scalarType == Type::Float)
     {
       if(type->bitWidth > 32)
-        ret += StringFormat::Fmt("%lf", val.dv[0]);
+        ret += StringFormat::Fmt("%le", val.dv[0]);
       else
-        ret += StringFormat::Fmt("%f", val.fv[0]);
+        ret += StringFormat::Fmt("%e", val.fv[0]);
     }
     else if(type->scalarType == Type::Int)
     {
@@ -833,9 +833,9 @@ rdcstr Value::toString() const
       {
         // TODO need to know how to determine signedness here
         if(type->bitWidth > 32)
-          ret += StringFormat::Fmt("%lf", val.dv[i]);
+          ret += StringFormat::Fmt("%le", val.dv[i]);
         else
-          ret += StringFormat::Fmt("%f", val.fv[i]);
+          ret += StringFormat::Fmt("%e", val.fv[i]);
       }
       else if(type->scalarType == Type::Int)
       {
