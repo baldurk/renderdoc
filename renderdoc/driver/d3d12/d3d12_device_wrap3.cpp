@@ -62,8 +62,11 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromAddress(const void *pAddress, R
           if((heapDesc.Flags & (D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES |
                                 D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES)) == 0)
           {
-            RDCWARN("Adding DENY_RT_DS_TEXTURES to OpenExistingHeap heap for tier 1 compatibility");
-            heapDesc.Flags |= D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES;
+            RDCWARN(
+                "Adding DENY_RT_DS_TEXTURES|DENY_NON_RT_DS_TEXTURES to OpenExistingHeap heap for "
+                "tier 1 compatibility");
+            heapDesc.Flags |=
+                D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES | D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES;
           }
         }
       }
