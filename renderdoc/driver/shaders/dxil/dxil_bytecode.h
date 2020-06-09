@@ -222,7 +222,7 @@ struct DIBase
   DIBase(Type t) : type(t) {}
   virtual ~DIBase() = default;
   virtual rdcstr toString() const = 0;
-
+  virtual void setID(uint32_t ID) {}
   template <typename Derived>
   const Derived *As() const
   {
@@ -232,6 +232,25 @@ struct DIBase
 };
 
 struct Function;
+
+struct Metadata;
+
+struct DebugLocation
+{
+  uint32_t id = ~0U;
+
+  uint64_t line = 0;
+  uint64_t col = 0;
+  Metadata *scope = NULL;
+  Metadata *inlinedAt = NULL;
+
+  bool operator==(const DebugLocation &o) const
+  {
+    return line == o.line && col == o.col && scope == o.scope && inlinedAt == o.inlinedAt;
+  }
+
+  rdcstr toString() const;
+};
 
 struct Metadata
 {
@@ -249,6 +268,7 @@ struct Metadata
   rdcstr str;
   rdcarray<Metadata *> children;
   DIBase *dwarf = NULL;
+  DebugLocation *debugLoc = NULL;
 
   rdcstr refString() const;
   rdcstr valString() const;
@@ -257,21 +277,6 @@ struct Metadata
 struct NamedMetadata : public Metadata
 {
   rdcstr name;
-};
-
-struct DebugLocation
-{
-  uint32_t id = ~0U;
-
-  uint64_t line = 0;
-  uint64_t col = 0;
-  const Metadata *scope = NULL;
-  const Metadata *inlinedAt = NULL;
-
-  bool operator==(const DebugLocation &o) const
-  {
-    return line == o.line && col == o.col && scope == o.scope && inlinedAt == o.inlinedAt;
-  }
 };
 
 struct Function;

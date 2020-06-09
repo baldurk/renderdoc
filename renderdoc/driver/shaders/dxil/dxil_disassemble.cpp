@@ -891,19 +891,14 @@ void Program::MakeDisassemblyString()
       m_Disassembly +=
           StringFormat::Fmt("!%u = %s%s\n", i, m_NumberedMeta[numIdx]->distinct ? "distinct " : "",
                             m_NumberedMeta[numIdx]->valString().c_str());
+      if(m_NumberedMeta[numIdx]->dwarf)
+        m_NumberedMeta[numIdx]->dwarf->setID(i);
       numIdx++;
     }
     else if(dbgIdx < m_DebugLocations.size() && m_DebugLocations[dbgIdx].id == i)
     {
-      m_Disassembly += StringFormat::Fmt("!%u = !DILocation(line: %llu, column: %llu, scope: %s", i,
-                                         m_DebugLocations[dbgIdx].line, m_DebugLocations[dbgIdx].col,
-                                         m_DebugLocations[dbgIdx].scope
-                                             ? m_DebugLocations[dbgIdx].scope->refString().c_str()
-                                             : "null");
-      if(m_DebugLocations[dbgIdx].inlinedAt)
-        m_Disassembly +=
-            StringFormat::Fmt(", inlinedAt: %s", m_DebugLocations[dbgIdx].inlinedAt->refString());
-      m_Disassembly += ")\n";
+      m_Disassembly +=
+          StringFormat::Fmt("!%u = %s\n", i, m_DebugLocations[dbgIdx].toString().c_str());
       dbgIdx++;
     }
     else
@@ -1035,11 +1030,25 @@ rdcstr Metadata::refString() const
   return StringFormat::Fmt("!%u", id);
 }
 
+rdcstr DebugLocation::toString() const
+{
+  rdcstr ret = StringFormat::Fmt("!DILocation(line: %llu, column: %llu, scope: %s", line, col,
+                                 scope ? scope->refString().c_str() : "null");
+  if(inlinedAt)
+    ret += StringFormat::Fmt(", inlinedAt: %s", inlinedAt->refString());
+  ret += ")";
+  return ret;
+}
+
 rdcstr Metadata::valString() const
 {
   if(dwarf)
   {
     return dwarf->toString();
+  }
+  else if(debugLoc)
+  {
+    return debugLoc->toString();
   }
   else if(value)
   {

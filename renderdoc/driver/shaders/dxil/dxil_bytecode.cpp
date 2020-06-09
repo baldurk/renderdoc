@@ -1804,6 +1804,11 @@ uint32_t Program::GetOrAssignMetaID(DebugLocation &l)
 
   l.id = m_NextMetaID++;
 
+  if(l.scope)
+    GetOrAssignMetaID(l.scope);
+  if(l.inlinedAt)
+    GetOrAssignMetaID(l.inlinedAt);
+
   return l.id;
 }
 
@@ -1886,6 +1891,6 @@ const DXIL::Type *Program::GetBoolType()
 Metadata::~Metadata()
 {
   SAFE_DELETE(dwarf);
+  SAFE_DELETE(debugLoc);
 }
-
 };    // namespace DXIL

@@ -540,8 +540,8 @@ struct DISubprogram : public DIBase
                const Metadata *file, uint64_t line, const Metadata *type, bool isLocal,
                bool isDefinition, uint64_t scopeLine, const Metadata *containingType,
                DW_VIRTUALITY virtuality, uint64_t virtualIndex, DIFlags flags, bool isOptimized,
-               const Metadata *function, const Metadata *templateParams,
-               const Metadata *declaration, const Metadata *variables)
+               Metadata *function, const Metadata *templateParams, const Metadata *declaration,
+               const Metadata *variables)
       : DIBase(DIType),
         scope(scope),
         name(name),
@@ -578,10 +578,16 @@ struct DISubprogram : public DIBase
   uint64_t virtualIndex;
   DIFlags flags;
   bool isOptimized;
-  const Metadata *function;
+  Metadata *function;
   const Metadata *templateParams;
   const Metadata *declaration;
   const Metadata *variables;
+
+  virtual void setID(uint32_t ID)
+  {
+    if(function && function->id == ~0U)
+      function->id = ID;
+  }
 
   virtual rdcstr toString() const;
 };

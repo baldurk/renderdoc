@@ -77,6 +77,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
 {
   MetaDataRecord id = (MetaDataRecord)metaRecord.id;
 
+  auto getNonNullMeta = [this](uint64_t id) { return &m_Metadata[size_t(id)]; };
   auto getMeta = [this](uint64_t id) { return id ? &m_Metadata[size_t(id - 1)] : NULL; };
   auto getMetaString = [this](uint64_t id) { return id ? &m_Metadata[size_t(id - 1)].str : NULL; };
 
@@ -211,7 +212,15 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   }
   else if(id == MetaDataRecord::LOCATION)
   {
-    RDCWARN("Unexpected location metadata record, ignoring");
+    meta.distinct = (metaRecord.ops[0] & 0x1);
+
+    meta.debugLoc = new DebugLocation;
+    meta.debugLoc->line = metaRecord.ops[1];
+    meta.debugLoc->col = metaRecord.ops[2];
+    meta.debugLoc->scope = getNonNullMeta(metaRecord.ops[3]);
+    meta.debugLoc->inlinedAt = getMeta(metaRecord.ops[4]);
+
+    meta.children = {getNonNullMeta(metaRecord.ops[3]), getMeta(metaRecord.ops[4])};
   }
   else if(id == MetaDataRecord::LOCAL_VAR)
   {
