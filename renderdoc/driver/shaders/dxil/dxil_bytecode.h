@@ -286,6 +286,8 @@ enum class MathFlags : uint32_t
 
 BITMASK_OPERATORS(MathFlags);
 
+typedef rdcarray<rdcpair<uint64_t, Metadata *>> AttachedMetadata;
+
 struct Instruction
 {
   enum
@@ -336,6 +338,7 @@ struct Instruction
   uint32_t debugLoc = ~0U;
   const Type *type = NULL;
   rdcarray<Symbol> args;
+  AttachedMetadata attachedMeta;
 
   // function calls
   const Attributes *paramAttrs = NULL;
@@ -360,6 +363,8 @@ struct Function
   rdcarray<Block> blocks;
   rdcarray<Value> values;
   rdcarray<Metadata> metadata;
+
+  AttachedMetadata attachedMeta;
 };
 
 class Program

@@ -593,6 +593,21 @@ void Program::MakeDisassemblyString()
           DebugLocation &debugLoc = m_DebugLocations[inst.debugLoc];
 
           m_Disassembly += StringFormat::Fmt(", !dbg !%u", GetOrAssignMetaID(debugLoc));
+        }
+
+        if(!inst.attachedMeta.empty())
+        {
+          for(size_t m = 0; m < inst.attachedMeta.size(); m++)
+          {
+            m_Disassembly +=
+                StringFormat::Fmt(", !%s !%u", m_Kinds[inst.attachedMeta[m].first].c_str(),
+                                  GetOrAssignMetaID(inst.attachedMeta[m].second));
+          }
+        }
+
+        if(inst.debugLoc != ~0U)
+        {
+          DebugLocation &debugLoc = m_DebugLocations[inst.debugLoc];
 
           if(!debugCall && debugLoc.line > 0)
           {
@@ -602,14 +617,26 @@ void Program::MakeDisassemblyString()
 
         if(debugCall)
         {
-          if(inst.funcCall->name == "llvm.dbg.value" || inst.funcCall->name == "llvm.dbg.declare")
+          size_t varIdx = 0, exprIdx = 0;
+          if(inst.funcCall->name == "llvm.dbg.value")
           {
-            RDCASSERT(inst.args[2].type == SymbolType::Metadata);
-            RDCASSERT(inst.args[3].type == SymbolType::Metadata);
+            varIdx = 2;
+            exprIdx = 3;
+          }
+          else if(inst.funcCall->name == "llvm.dbg.declare")
+          {
+            varIdx = 1;
+            exprIdx = 2;
+          }
+
+          if(varIdx > 0)
+          {
+            RDCASSERT(inst.args[varIdx].type == SymbolType::Metadata);
+            RDCASSERT(inst.args[exprIdx].type == SymbolType::Metadata);
             m_Disassembly += StringFormat::Fmt(
-                " ; var:%s ",
-                escapeString(GetDebugVarName(GetFunctionMetadata(func, inst.args[2].idx)->dwarf)));
-            m_Disassembly += GetFunctionMetadata(func, inst.args[3].idx)->valString();
+                " ; var:%s ", escapeString(GetDebugVarName(
+                                  GetFunctionMetadata(func, inst.args[varIdx].idx)->dwarf)));
+            m_Disassembly += GetFunctionMetadata(func, inst.args[exprIdx].idx)->valString();
           }
         }
 

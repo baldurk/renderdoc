@@ -943,6 +943,10 @@ Program::Program(const byte *bytes, size_t length)
         functionDecls.erase(0);
 
         auto getValue = [this, &f](uint64_t v) { return GetFunctionValue(f, v); };
+        auto getMeta = [this, &f](uint64_t v) {
+          size_t idx = (size_t)v;
+          return idx - 1 < m_Metadata.size() ? &m_Metadata[idx] : &f.metadata[idx];
+        };
         auto getMetaOrNull = [this, &f](uint64_t v) {
           size_t idx = (size_t)v;
           return idx == 0 ? NULL : (idx - 1 < m_Metadata.size() ? &m_Metadata[idx - 1]
@@ -1094,6 +1098,38 @@ Program::Program(const byte *bytes, size_t length)
                     RDCERR("Unexpected local symbol referring to %d", s.type);
                     break;
                 }
+              }
+            }
+            else if(IS_KNOWN(funcChild.id, KnownBlocks::METADATA_ATTACHMENT))
+            {
+              for(const LLVMBC::BlockOrRecord &meta : funcChild.children)
+              {
+                if(meta.IsBlock())
+                {
+                  RDCERR("Unexpected subblock in METADATA_ATTACHMENT");
+                  continue;
+                }
+
+                if(!IS_KNOWN(meta.id, MetaDataRecord::ATTACHMENT))
+                {
+                  RDCERR("Unexpected record %u in METADATA_ATTACHMENT", meta.id);
+                  continue;
+                }
+
+                size_t idx = 0;
+
+                rdcarray<rdcpair<uint64_t, Metadata *>> attach;
+
+                if(meta.ops.size() % 2 != 0)
+                  idx++;
+
+                for(; idx < meta.ops.size(); idx += 2)
+                  attach.push_back(make_rdcpair(meta.ops[idx], getMeta(meta.ops[idx + 1])));
+
+                if(meta.ops.size() % 2 == 0)
+                  f.attachedMeta.swap(attach);
+                else
+                  f.instructions[meta.ops[0]].attachedMeta.swap(attach);
               }
             }
             else
