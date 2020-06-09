@@ -1215,9 +1215,15 @@ Program::Program(const byte *bytes, size_t length)
 
               for(size_t i = 0; n < op.ops.size(); n++, i++)
               {
-                s = getSymbol(op.ops[n]);
                 if(inst.funcCall->funcType->members[i]->type == Type::Metadata)
+                {
                   s.type = SymbolType::Metadata;
+                  s.idx = uint32_t((uint64_t)m_Symbols.size() - op.ops[n]);
+                }
+                else
+                {
+                  s = getSymbol(op.ops[n]);
+                }
                 inst.args.push_back(s);
               }
 
