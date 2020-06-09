@@ -855,6 +855,7 @@ Program::Program(const byte *bytes, size_t length)
               case SymbolType::Instruction:
               case SymbolType::Metadata:
               case SymbolType::Literal:
+              case SymbolType::BasicBlock:
                 RDCERR("Unexpected global symbol referring to %d", m_Symbols[s].type);
                 break;
               case SymbolType::GlobalVar:
@@ -970,6 +971,8 @@ Program::Program(const byte *bytes, size_t length)
         size_t prevNumSymbols = m_Symbols.size();
         size_t instrSymbolStart = 0;
 
+        rdcarray<size_t> forwardRefInstructions;
+
         for(size_t i = 0; i < f.funcType->members.size(); i++)
         {
           Instruction arg;
@@ -984,7 +987,7 @@ Program::Program(const byte *bytes, size_t length)
           return id < m_Symbols.size() ? m_Symbols[id] : Symbol(SymbolType::Unknown, id);
         };
 
-        Block *curBlock = NULL;
+        size_t curBlock = 0;
         int32_t debugLocIndex = -1;
 
         for(const LLVMBC::BlockOrRecord &funcChild : rootchild.children)
@@ -1104,6 +1107,7 @@ Program::Program(const byte *bytes, size_t length)
                   case SymbolType::Instruction:
                     f.instructions[s.idx].name = symtab.getString(1);
                     break;
+                  case SymbolType::BasicBlock: f.blocks[s.idx].name = symtab.getString(1); break;
                   case SymbolType::GlobalVar:
                   case SymbolType::Function:
                   case SymbolType::Alias:
@@ -1159,7 +1163,7 @@ Program::Program(const byte *bytes, size_t length)
             {
               f.blocks.resize(op.ops[0]);
 
-              curBlock = &f.blocks[0];
+              curBlock = 0;
             }
             else if(IS_KNOWN(op.id, FunctionRecord::DEBUG_LOC))
             {
@@ -1602,6 +1606,70 @@ Program::Program(const byte *bytes, size_t length)
 
               f.instructions.push_back(inst);
             }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_BR))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::Branch;
+
+              inst.type = GetVoidType();
+
+              // true destination
+              inst.args.push_back(Symbol(SymbolType::BasicBlock, op.ops[0]));
+
+              f.blocks[op.ops[0]].preds.insert(0, &f.blocks[curBlock]);
+
+              if(op.ops.size() > 1)
+              {
+                // false destination
+                inst.args.push_back(Symbol(SymbolType::BasicBlock, op.ops[1]));
+
+                f.blocks[op.ops[1]].preds.insert(0, &f.blocks[curBlock]);
+
+                // predicate
+                inst.args.push_back(getSymbol(op.ops[2]));
+              }
+
+              curBlock++;
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_PHI))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::Phi;
+
+              inst.type = &m_Types[op.ops[0]];
+
+              bool fwdRef = false;
+
+              for(size_t idx = 1; idx < op.ops.size(); idx += 2)
+              {
+                int64_t valSrc = LLVMBC::BitReader::svbr(op.ops[idx]);
+                uint64_t blockSrc = op.ops[idx + 1];
+
+                if(valSrc < 0)
+                {
+                  inst.args.push_back(Symbol(SymbolType::Unknown, m_Symbols.size() - valSrc));
+                  fwdRef = true;
+                }
+                else
+                {
+                  inst.args.push_back(getSymbol((uint64_t)valSrc));
+                }
+                inst.args.push_back(Symbol(SymbolType::BasicBlock, blockSrc));
+              }
+
+              // forward references can't be resolved until we know the symbols lookup (because void
+              // instructions are skipped)
+              if(fwdRef)
+                forwardRefInstructions.push_back(f.instructions.size());
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
             else if(IS_KNOWN(op.id, FunctionRecord::INST_EXTRACTELT))
             {
               // DXIL claims to be scalarised so should this appear?
@@ -1728,8 +1796,20 @@ Program::Program(const byte *bytes, size_t length)
           }
         }
 
+        f.blocks[0].resultID = 0;
+
+        curBlock = 0;
         for(size_t i = 0, resultID = 1; i < f.instructions.size(); i++)
         {
+          if(f.instructions[i].op == Instruction::Branch ||
+             f.instructions[i].op == Instruction::Unreachable)
+          {
+            curBlock++;
+            if(f.blocks[curBlock].name.empty())
+              f.blocks[curBlock].resultID = (uint32_t)resultID++;
+            continue;
+          }
+
           if(f.instructions[i].type->isVoid())
             continue;
 
@@ -1744,6 +1824,18 @@ Program::Program(const byte *bytes, size_t length)
         for(Metadata &m : f.metadata)
           if(m.func)
             m.instruction = m_Symbols[instrSymbolStart + m.instruction].idx;
+
+        for(size_t fwdRefInst : forwardRefInstructions)
+        {
+          for(Symbol &s : f.instructions[fwdRefInst].args)
+          {
+            if(s.type == SymbolType::Unknown)
+            {
+              s = m_Symbols[s.idx];
+              RDCASSERT(s.type == SymbolType::Instruction);
+            }
+          }
+        }
 
         m_Symbols.resize(prevNumSymbols);
       }
@@ -1830,6 +1922,7 @@ const Type *Program::GetSymbolType(const Function &f, Symbol s)
     case SymbolType::Unknown:
     case SymbolType::Alias:
     case SymbolType::Metadata:
+    case SymbolType::BasicBlock:
     case SymbolType::Literal: RDCERR("Unexpected symbol to get type for %d", s.type); break;
   }
   return ret;

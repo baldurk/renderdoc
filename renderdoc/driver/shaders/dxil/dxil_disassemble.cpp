@@ -438,6 +438,16 @@ void Program::MakeDisassemblyString()
             ret += StringFormat::Fmt("%%%s", escapeStringIfNeeded(refinst.name).c_str());
           break;
         }
+        case SymbolType::BasicBlock:
+        {
+          const Block &block = func.blocks[s.idx];
+          if(withTypes)
+            ret = "label ";
+          if(block.name.empty())
+            ret += StringFormat::Fmt("%%%u", block.resultID);
+          else
+            ret += StringFormat::Fmt("%%%s", escapeStringIfNeeded(block.name).c_str());
+        }
       }
       return ret;
     };
@@ -458,6 +468,8 @@ void Program::MakeDisassemblyString()
     {
       m_Disassembly += " {\n";
       instructionLine++;
+
+      size_t curBlock = 0;
 
       for(Instruction &inst : func.instructions)
       {
@@ -792,6 +804,37 @@ void Program::MakeDisassemblyString()
             }
             break;
           }
+          case Instruction::Branch:
+          {
+            m_Disassembly += "br ";
+            if(inst.args.size() > 1)
+            {
+              m_Disassembly += argToString(inst.args[2], true);
+              m_Disassembly += StringFormat::Fmt(", %s", argToString(inst.args[0], true).c_str());
+              m_Disassembly += StringFormat::Fmt(", %s", argToString(inst.args[1], true).c_str());
+            }
+            else
+            {
+              m_Disassembly += argToString(inst.args[0], true);
+            }
+            break;
+          }
+          case Instruction::Phi:
+          {
+            m_Disassembly += "phi ";
+            m_Disassembly += inst.type->toString();
+            for(size_t a = 0; a < inst.args.size(); a += 2)
+            {
+              if(a == 0)
+                m_Disassembly += " ";
+              else
+                m_Disassembly += ", ";
+              m_Disassembly +=
+                  StringFormat::Fmt("[ %s, %s ]", argToString(inst.args[a], false).c_str(),
+                                    argToString(inst.args[a + 1], false).c_str());
+            }
+            break;
+          }
         }
 
         if(inst.debugLoc != ~0U)
@@ -861,6 +904,42 @@ void Program::MakeDisassemblyString()
 
         m_Disassembly += "\n";
         instructionLine++;
+
+        if(inst.op == Instruction::Branch || inst.op == Instruction::Unreachable)
+        {
+          m_Disassembly += "\n";
+          instructionLine++;
+
+          curBlock++;
+
+          rdcstr labelName;
+
+          if(func.blocks[curBlock].name.empty())
+            labelName = StringFormat::Fmt("; <label>:%u", func.blocks[curBlock].resultID);
+          else
+            labelName =
+                StringFormat::Fmt("%s: ", escapeStringIfNeeded(func.blocks[curBlock].name).c_str());
+
+          labelName.reserve(50);
+          while(labelName.size() < 50)
+            labelName.push_back(' ');
+
+          labelName += "; preds = ";
+          bool first = true;
+          for(const Block *pred : func.blocks[curBlock].preds)
+          {
+            if(!first)
+              labelName += ", ";
+            first = false;
+            if(pred->name.empty())
+              labelName += StringFormat::Fmt("%%%u", pred->resultID);
+            else
+              labelName += "%" + escapeStringIfNeeded(pred->name);
+          }
+
+          m_Disassembly += labelName;
+          m_Disassembly += "\n";
+        }
       }
       m_Disassembly += "}\n\n";
       instructionLine += 2;

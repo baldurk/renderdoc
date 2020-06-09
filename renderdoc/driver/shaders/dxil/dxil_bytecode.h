@@ -89,6 +89,7 @@ enum class SymbolType
   Instruction,
   Metadata,
   Literal,
+  BasicBlock,
 };
 
 struct Symbol
@@ -308,6 +309,8 @@ BITMASK_OPERATORS(InstructionFlags);
 
 typedef rdcarray<rdcpair<uint64_t, Metadata *>> AttachedMetadata;
 
+struct Block;
+
 struct Instruction
 {
   enum
@@ -383,6 +386,8 @@ struct Instruction
     InsertElement,
     ShuffleVector,
     InsertValue,
+    Branch,
+    Phi,
   } op = Unknown;
 
   InstructionFlags opFlags = InstructionFlags::NoFlags;
@@ -404,6 +409,9 @@ struct Instruction
 
 struct Block
 {
+  uint32_t resultID = ~0U;
+  rdcstr name;
+  rdcarray<const Block *> preds;
 };
 
 struct Function
