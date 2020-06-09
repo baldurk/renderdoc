@@ -1616,18 +1616,72 @@ Program::Program(const byte *bytes, size_t length)
 
               // true destination
               inst.args.push_back(Symbol(SymbolType::BasicBlock, op.ops[0]));
-
               f.blocks[op.ops[0]].preds.insert(0, &f.blocks[curBlock]);
 
               if(op.ops.size() > 1)
               {
                 // false destination
                 inst.args.push_back(Symbol(SymbolType::BasicBlock, op.ops[1]));
-
                 f.blocks[op.ops[1]].preds.insert(0, &f.blocks[curBlock]);
 
                 // predicate
                 inst.args.push_back(getSymbol(op.ops[2]));
+              }
+
+              curBlock++;
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_SWITCH))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::Switch;
+
+              inst.type = GetVoidType();
+
+              uint64_t typeIdx = op.ops[0];
+
+              static const uint64_t SWITCH_INST_MAGIC = 0x4B5;
+              if((typeIdx >> 16) == SWITCH_INST_MAGIC)
+              {
+                // type of condition
+                const Type *condType = &m_Types[op.ops[1]];
+
+                RDCASSERT(condType->bitWidth <= 64);
+
+                // condition
+                inst.args.push_back(getSymbol(op.ops[2]));
+
+                // default block
+                inst.args.push_back(Symbol(SymbolType::BasicBlock, op.ops[3]));
+                f.blocks[op.ops[3]].preds.insert(0, &f.blocks[curBlock]);
+
+                RDCERR("Unsupported switch instruction version");
+              }
+              else
+              {
+                // type of condition, ignored
+                // op.ops[0]
+
+                // condition
+                inst.args.push_back(getSymbol(op.ops[1]));
+
+                // default block
+                inst.args.push_back(Symbol(SymbolType::BasicBlock, op.ops[2]));
+                f.blocks[op.ops[2]].preds.insert(0, &f.blocks[curBlock]);
+
+                uint64_t numCases = (op.ops.size() - 3) / 2;
+
+                for(uint64_t c = 0; c < numCases; c++)
+                {
+                  // case value, absolute not relative
+                  inst.args.push_back(m_Symbols[op.ops[3 + c * 2 + 0]]);
+
+                  // case block
+                  inst.args.push_back(Symbol(SymbolType::BasicBlock, op.ops[3 + c * 2 + 1]));
+                  f.blocks[op.ops[3 + c * 2 + 1]].preds.insert(0, &f.blocks[curBlock]);
+                }
               }
 
               curBlock++;
@@ -1802,7 +1856,8 @@ Program::Program(const byte *bytes, size_t length)
         for(size_t i = 0, resultID = 1; i < f.instructions.size(); i++)
         {
           if(f.instructions[i].op == Instruction::Branch ||
-             f.instructions[i].op == Instruction::Unreachable)
+             f.instructions[i].op == Instruction::Unreachable ||
+             f.instructions[i].op == Instruction::Switch)
           {
             curBlock++;
             if(f.blocks[curBlock].name.empty())

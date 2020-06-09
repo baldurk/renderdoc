@@ -395,8 +395,12 @@ void Program::MakeDisassemblyString()
       switch(s.type)
       {
         case SymbolType::Unknown:
-        case SymbolType::Alias:
-        case SymbolType::Literal: ret = "???"; break;
+        case SymbolType::Alias: ret = "???"; break;
+        case SymbolType::Literal:
+          if(withTypes)
+            ret += "i32 ";
+          ret += StringFormat::Fmt("%lld", s.idx);
+          break;
         case SymbolType::Metadata:
           if(withTypes)
             ret += "metadata ";
@@ -835,6 +839,25 @@ void Program::MakeDisassemblyString()
             }
             break;
           }
+          case Instruction::Switch:
+          {
+            m_Disassembly += "switch ";
+            m_Disassembly += argToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += argToString(inst.args[1], true);
+            m_Disassembly += " [";
+            m_Disassembly += "\n";
+            instructionLine++;
+            for(size_t a = 2; a < inst.args.size(); a += 2)
+            {
+              m_Disassembly +=
+                  StringFormat::Fmt("    %s, %s\n", argToString(inst.args[a], true).c_str(),
+                                    argToString(inst.args[a + 1], true).c_str());
+              instructionLine++;
+            }
+            m_Disassembly += "  ]";
+            break;
+          }
         }
 
         if(inst.debugLoc != ~0U)
@@ -905,7 +928,8 @@ void Program::MakeDisassemblyString()
         m_Disassembly += "\n";
         instructionLine++;
 
-        if(inst.op == Instruction::Branch || inst.op == Instruction::Unreachable)
+        if(inst.op == Instruction::Branch || inst.op == Instruction::Unreachable ||
+           inst.op == Instruction::Switch)
         {
           m_Disassembly += "\n";
           instructionLine++;
@@ -939,6 +963,7 @@ void Program::MakeDisassemblyString()
 
           m_Disassembly += labelName;
           m_Disassembly += "\n";
+          instructionLine++;
         }
       }
       m_Disassembly += "}\n\n";

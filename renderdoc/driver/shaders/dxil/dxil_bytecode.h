@@ -388,6 +388,7 @@ struct Instruction
     InsertValue,
     Branch,
     Phi,
+    Switch,
   } op = Unknown;
 
   InstructionFlags opFlags = InstructionFlags::NoFlags;
