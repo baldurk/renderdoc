@@ -336,11 +336,21 @@ void Program::MakeDisassemblyString()
     const GlobalVar &g = m_GlobalVars[i];
 
     m_Disassembly += StringFormat::Fmt("@%s = ", escapeStringIfNeeded(g.name).c_str());
-    if(g.external)
+    if(g.flags & GlobalFlags::IsExternal)
       m_Disassembly += "external ";
-    if(g.isconst)
+    else
+      m_Disassembly += "internal ";
+    if(g.flags & GlobalFlags::LocalUnnamedAddr)
+      m_Disassembly += "local_unnamed_addr ";
+    else if(g.flags & GlobalFlags::GlobalUnnamedAddr)
+      m_Disassembly += "unnamed_addr ";
+    if(g.flags & GlobalFlags::IsConst)
       m_Disassembly += "constant ";
-    m_Disassembly += g.type->toString();
+
+    if(g.initialiser.type == SymbolType::Constant)
+      m_Disassembly += m_Values[g.initialiser.idx].toString(true);
+    else
+      m_Disassembly += g.type->inner->toString();
 
     if(g.align > 0)
       m_Disassembly += StringFormat::Fmt(", align %u", g.align);
@@ -395,6 +405,8 @@ void Program::MakeDisassemblyString()
             Metadata &m = m_Metadata[s.idx];
             if(m.value && m.val && m.val->nullconst)
               ret += StringFormat::Fmt("%s zeroinitializer", m.val->type->toString());
+            else if(m.value && m.val && m.val->symbol)
+              ret += m.val->toString(true);
             else
               ret += StringFormat::Fmt("!%u", GetOrAssignMetaID(&m));
           }
@@ -405,10 +417,16 @@ void Program::MakeDisassemblyString()
           break;
         case SymbolType::Function: ret = "@" + escapeStringIfNeeded(m_Functions[s.idx].name); break;
         case SymbolType::GlobalVar:
-          ret = "@" + escapeStringIfNeeded(m_GlobalVars[s.idx].name);
+          if(withTypes)
+            ret = m_GlobalVars[s.idx].type->toString() + " ";
+          ret += "@" + escapeStringIfNeeded(m_GlobalVars[s.idx].name);
           break;
         case SymbolType::Constant: ret = GetFunctionValue(func, s.idx)->toString(withTypes); break;
-        case SymbolType::Argument: ret = "%" + escapeStringIfNeeded(func.args[s.idx].name); break;
+        case SymbolType::Argument:
+          if(withTypes)
+            ret = func.args[s.idx].type->toString() + " ";
+          ret += "%" + escapeStringIfNeeded(func.args[s.idx].name);
+          break;
         case SymbolType::Instruction:
         {
           const Instruction &refinst = func.instructions[s.idx];

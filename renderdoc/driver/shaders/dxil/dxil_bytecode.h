@@ -78,20 +78,6 @@ struct Type
   rdcarray<const Type *> members;    // the members for a struct, the parameters for functions
 };
 
-struct GlobalVar
-{
-  rdcstr name;
-  const Type *type = NULL;
-  bool isconst = false;
-  bool external = false;
-  uint64_t align = 0;
-};
-
-struct Alias
-{
-  rdcstr name;
-};
-
 enum class SymbolType
 {
   Unknown,
@@ -110,6 +96,31 @@ struct Symbol
   Symbol(SymbolType type = SymbolType::Unknown, uint64_t idx = 0) : type(type), idx(idx) {}
   SymbolType type;
   uint64_t idx;
+};
+
+enum class GlobalFlags : uint32_t
+{
+  NoFlags = 0,
+  IsConst = 0x1,
+  IsExternal = 0x2,
+  LocalUnnamedAddr = 0x4,
+  GlobalUnnamedAddr = 0x8,
+};
+
+BITMASK_OPERATORS(GlobalFlags);
+
+struct GlobalVar
+{
+  rdcstr name;
+  const Type *type = NULL;
+  uint64_t align = 0;
+  GlobalFlags flags = GlobalFlags::NoFlags;
+  Symbol initialiser;
+};
+
+struct Alias
+{
+  rdcstr name;
 };
 
 // this enum is ordered to match the serialised order of these attributes
@@ -183,7 +194,7 @@ struct Value
   ShaderValue val = {};
   rdcarray<Value> members;
   rdcstr str;
-  bool undef = false, nullconst = true, symbol = false;
+  bool undef = false, nullconst = false, symbol = false;
 
   rdcstr toString(bool withType = false) const;
 };

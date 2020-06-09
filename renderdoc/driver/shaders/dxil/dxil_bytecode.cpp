@@ -419,7 +419,19 @@ Program::Program(const byte *bytes, size_t length)
         GlobalVar g;
 
         g.type = &m_Types[(size_t)rootchild.ops[0]];
-        g.isconst = (rootchild.ops[1] & 0x1);
+        if(rootchild.ops[1] & 0x1)
+          g.flags |= GlobalFlags::IsConst;
+
+        if(rootchild.ops.size() > 8)
+        {
+          if(rootchild.ops[8] == 1)
+            g.flags |= GlobalFlags::GlobalUnnamedAddr;
+          else if(rootchild.ops[8] == 2)
+            g.flags |= GlobalFlags::LocalUnnamedAddr;
+        }
+
+        if(rootchild.ops[2])
+          g.initialiser = Symbol(SymbolType::Constant, rootchild.ops[2] - 1);
 
         switch(rootchild.ops[3])
         {
@@ -427,8 +439,8 @@ Program::Program(const byte *bytes, size_t length)
           case 5:
           case 6:
           case 7:
-          case 15: g.external = true; break;
-          default: g.external = false; break;
+          case 15: g.flags |= GlobalFlags::IsExternal; break;
+          default: break;
         }
 
         g.align = (1U << rootchild.ops[4]) >> 1;
@@ -453,6 +465,8 @@ Program::Program(const byte *bytes, size_t length)
 
         if(v.type == g.type)
           RDCERR("Expected to find pointer type for global variable");
+
+        g.type = v.type;
 
         m_Values.push_back(v);
         m_GlobalVars.push_back(g);
