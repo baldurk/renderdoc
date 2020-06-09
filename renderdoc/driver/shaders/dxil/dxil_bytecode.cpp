@@ -1499,6 +1499,94 @@ Program::Program(const byte *bytes, size_t length)
 
               f.instructions.push_back(inst);
             }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_CMP) ||
+                    IS_KNOWN(op.id, FunctionRecord::INST_CMP2))
+            {
+              Instruction inst;
+
+              // a
+              inst.args.push_back(getSymbol(op.ops[0]));
+              // b
+              inst.args.push_back(getSymbol(op.ops[1]));
+
+              switch(op.ops[2])
+              {
+                case 0: inst.op = Instruction::FOrdFalse; break;
+                case 1: inst.op = Instruction::FOrdEqual; break;
+                case 2: inst.op = Instruction::FOrdGreater; break;
+                case 3: inst.op = Instruction::FOrdGreaterEqual; break;
+                case 4: inst.op = Instruction::FOrdLess; break;
+                case 5: inst.op = Instruction::FOrdLessEqual; break;
+                case 6: inst.op = Instruction::FOrdNotEqual; break;
+                case 7: inst.op = Instruction::FOrd; break;
+                case 8: inst.op = Instruction::FUnord; break;
+                case 9: inst.op = Instruction::FUnordEqual; break;
+                case 10: inst.op = Instruction::FUnordGreater; break;
+                case 11: inst.op = Instruction::FUnordGreaterEqual; break;
+                case 12: inst.op = Instruction::FUnordLess; break;
+                case 13: inst.op = Instruction::FUnordLessEqual; break;
+                case 14: inst.op = Instruction::FUnordNotEqual; break;
+                case 15: inst.op = Instruction::FOrdTrue; break;
+
+                case 32: inst.op = Instruction::IEqual; break;
+                case 33: inst.op = Instruction::INotEqual; break;
+                case 34: inst.op = Instruction::UGreater; break;
+                case 35: inst.op = Instruction::UGreaterEqual; break;
+                case 36: inst.op = Instruction::ULess; break;
+                case 37: inst.op = Instruction::ULessEqual; break;
+                case 38: inst.op = Instruction::SGreater; break;
+                case 39: inst.op = Instruction::SGreaterEqual; break;
+                case 40: inst.op = Instruction::SLess; break;
+                case 41: inst.op = Instruction::SLessEqual; break;
+              }
+
+              // fast math flags
+              if(op.ops.size() > 3)
+                inst.opFlags = InstructionFlags(op.ops[3]);
+
+              inst.type = GetBoolType();
+
+              // if we're comparing vectors, the return type is an equal sized bool vector
+              const Type *argType = GetSymbolType(f, inst.args[0]);
+              if(argType->type == Type::Vector)
+              {
+                for(const Type &t : m_Types)
+                {
+                  if(t.type == Type::Vector && t.inner == inst.type &&
+                     t.elemCount == argType->elemCount)
+                  {
+                    inst.type = &t;
+                    break;
+                  }
+                }
+              }
+
+              RDCASSERT(inst.type->type == argType->type);
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_SELECT) ||
+                    IS_KNOWN(op.id, FunctionRecord::INST_VSELECT))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::Select;
+
+              // if true
+              inst.args.push_back(getSymbol(op.ops[0]));
+              // if false
+              inst.args.push_back(getSymbol(op.ops[1]));
+              // selector
+              inst.args.push_back(getSymbol(op.ops[2]));
+
+              inst.type = GetSymbolType(f, inst.args[0]);
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
             else if(IS_KNOWN(op.id, FunctionRecord::INST_LANDINGPAD) ||
                     IS_KNOWN(op.id, FunctionRecord::INST_LANDINGPAD_OLD) ||
                     IS_KNOWN(op.id, FunctionRecord::INST_VAARG) ||
@@ -1647,6 +1735,27 @@ const DXIL::Type *Program::GetVoidType()
     RDCERR("Couldn't find void type");
 
   return m_VoidType;
+}
+
+const DXIL::Type *Program::GetBoolType()
+{
+  if(m_BoolType)
+    return m_BoolType;
+
+  for(size_t i = 0; i < m_Types.size(); i++)
+  {
+    if(m_Types[i].type == Type::Scalar && m_Types[i].scalarType == Type::Int &&
+       m_Types[i].bitWidth == 1)
+    {
+      m_BoolType = &m_Types[i];
+      break;
+    }
+  }
+
+  if(!m_BoolType)
+    RDCERR("Couldn't find void type");
+
+  return m_BoolType;
 }
 
 Metadata::~Metadata()

@@ -336,6 +336,33 @@ struct Instruction
     GetElementPtr,
     Load,
     Store,
+    FOrdFalse,
+    FOrdEqual,
+    FOrdGreater,
+    FOrdGreaterEqual,
+    FOrdLess,
+    FOrdLessEqual,
+    FOrdNotEqual,
+    FOrd,
+    FUnord,
+    FUnordEqual,
+    FUnordGreater,
+    FUnordGreaterEqual,
+    FUnordLess,
+    FUnordLessEqual,
+    FUnordNotEqual,
+    FOrdTrue,
+    IEqual,
+    INotEqual,
+    UGreater,
+    UGreaterEqual,
+    ULess,
+    ULessEqual,
+    SGreater,
+    SGreaterEqual,
+    SLess,
+    SLessEqual,
+    Select,
   } op = Unknown;
 
   InstructionFlags opFlags = InstructionFlags::NoFlags;
@@ -412,6 +439,7 @@ private:
   const Value *GetFunctionValue(const Function &f, uint64_t v);
   const Metadata *GetFunctionMetadata(const Function &f, uint64_t v);
   const Type *GetVoidType();
+  const Type *GetBoolType();
 
   DXBC::ShaderType m_Type;
   uint32_t m_Major, m_Minor;
@@ -425,6 +453,7 @@ private:
 
   rdcarray<Type> m_Types;
   const Type *m_VoidType = NULL;
+  const Type *m_BoolType = NULL;
 
   rdcarray<Attributes> m_AttributeGroups;
   rdcarray<Attributes> m_Attributes;

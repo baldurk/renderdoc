@@ -638,6 +638,102 @@ void Program::MakeDisassemblyString()
             m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
             break;
           }
+          case Instruction::FOrdFalse:
+          case Instruction::FOrdEqual:
+          case Instruction::FOrdGreater:
+          case Instruction::FOrdGreaterEqual:
+          case Instruction::FOrdLess:
+          case Instruction::FOrdLessEqual:
+          case Instruction::FOrdNotEqual:
+          case Instruction::FOrd:
+          case Instruction::FUnord:
+          case Instruction::FUnordEqual:
+          case Instruction::FUnordGreater:
+          case Instruction::FUnordGreaterEqual:
+          case Instruction::FUnordLess:
+          case Instruction::FUnordLessEqual:
+          case Instruction::FUnordNotEqual:
+          case Instruction::FOrdTrue:
+          {
+            m_Disassembly += "fcmp ";
+            rdcstr opFlagsStr = ToStr(inst.opFlags);
+            {
+              int offs = opFlagsStr.indexOf('|');
+              while(offs >= 0)
+              {
+                opFlagsStr.erase((size_t)offs, 2);
+                offs = opFlagsStr.indexOf('|');
+              }
+            }
+            m_Disassembly += opFlagsStr;
+            if(inst.opFlags != InstructionFlags::NoFlags)
+              m_Disassembly += " ";
+            switch(inst.op)
+            {
+              case Instruction::FOrdFalse: m_Disassembly += "false "; break;
+              case Instruction::FOrdEqual: m_Disassembly += "oeq "; break;
+              case Instruction::FOrdGreater: m_Disassembly += "ogt "; break;
+              case Instruction::FOrdGreaterEqual: m_Disassembly += "oge "; break;
+              case Instruction::FOrdLess: m_Disassembly += "olt "; break;
+              case Instruction::FOrdLessEqual: m_Disassembly += "ole "; break;
+              case Instruction::FOrdNotEqual: m_Disassembly += "one "; break;
+              case Instruction::FOrd: m_Disassembly += "ord "; break;
+              case Instruction::FUnord: m_Disassembly += "uno "; break;
+              case Instruction::FUnordEqual: m_Disassembly += "ueq "; break;
+              case Instruction::FUnordGreater: m_Disassembly += "ugt "; break;
+              case Instruction::FUnordGreaterEqual: m_Disassembly += "uge "; break;
+              case Instruction::FUnordLess: m_Disassembly += "ult "; break;
+              case Instruction::FUnordLessEqual: m_Disassembly += "ule "; break;
+              case Instruction::FUnordNotEqual: m_Disassembly += "une "; break;
+              case Instruction::FOrdTrue: m_Disassembly += "true "; break;
+              default: break;
+            }
+            m_Disassembly += argToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += argToString(inst.args[1], false);
+            break;
+          }
+          case Instruction::IEqual:
+          case Instruction::INotEqual:
+          case Instruction::UGreater:
+          case Instruction::UGreaterEqual:
+          case Instruction::ULess:
+          case Instruction::ULessEqual:
+          case Instruction::SGreater:
+          case Instruction::SGreaterEqual:
+          case Instruction::SLess:
+          case Instruction::SLessEqual:
+          {
+            m_Disassembly += "icmp ";
+            switch(inst.op)
+            {
+              case Instruction::IEqual: m_Disassembly += "eq "; break;
+              case Instruction::INotEqual: m_Disassembly += "ne "; break;
+              case Instruction::UGreater: m_Disassembly += "ugt "; break;
+              case Instruction::UGreaterEqual: m_Disassembly += "uge "; break;
+              case Instruction::ULess: m_Disassembly += "ult "; break;
+              case Instruction::ULessEqual: m_Disassembly += "ule "; break;
+              case Instruction::SGreater: m_Disassembly += "sgt "; break;
+              case Instruction::SGreaterEqual: m_Disassembly += "sge "; break;
+              case Instruction::SLess: m_Disassembly += "slt "; break;
+              case Instruction::SLessEqual: m_Disassembly += "sle "; break;
+              default: break;
+            }
+            m_Disassembly += argToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += argToString(inst.args[1], false);
+            break;
+          }
+          case Instruction::Select:
+          {
+            m_Disassembly += "select ";
+            m_Disassembly += argToString(inst.args[2], true);
+            m_Disassembly += ", ";
+            m_Disassembly += argToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += argToString(inst.args[1], true);
+            break;
+          }
         }
 
         if(inst.debugLoc != ~0U)
