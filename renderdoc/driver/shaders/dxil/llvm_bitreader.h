@@ -116,22 +116,13 @@ public:
     return T(ret);
   }
 
-  template <typename T>
-  T svbr(size_t groupBitSize)
+  static int64_t svbr(uint64_t var)
   {
-    // the value will fit in a uint64_t because the any negative values with the high bit set, which
-    // would overflow when shifted, no longer have the high bit set after being negated.
-    uint64_t var = vbr<uint64_t>(groupBitSize);
-
     // if the low bit is set, it's negative
     if(var & 0x1)
-    {
-      return T(-int64_t(var >> 1));
-    }
+      return -int64_t(var >> 1);
     else
-    {
-      return T(var >> 1);
-    }
+      return int64_t(var >> 1);
   }
 
   template <typename T>

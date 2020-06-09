@@ -243,11 +243,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
   {
     Value v;
     v.type = curType;
-    v.val.u64v[0] = constant.ops[0];
-    if(v.val.u64v[0] & 0x1)
-      v.val.s64v[0] = -int64_t(v.val.u64v[0] >> 1);
-    else
-      v.val.u64v[0] >>= 1;
+    v.val.s64v[0] = LLVMBC::BitReader::svbr(constant.ops[0]);
     addValue(v);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::FLOAT))

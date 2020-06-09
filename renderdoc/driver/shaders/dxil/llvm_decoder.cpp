@@ -759,34 +759,34 @@ TEST_CASE("Check LLVM bitreader", "[llvm]")
 
       int64_t val;
 
-      val = b.svbr<int64_t>(4);
+      val = LLVMBC::BitReader::svbr(b.vbr<uint64_t>(4));
       CHECK(val == 2);
 
-      val = b.svbr<int64_t>(4);
+      val = LLVMBC::BitReader::svbr(b.vbr<uint64_t>(4));
       CHECK(val == 0);
 
-      val = b.svbr<int64_t>(4);
+      val = LLVMBC::BitReader::svbr(b.vbr<uint64_t>(4));
       CHECK(val == -2);
 
-      val = b.svbr<int64_t>(4);
+      val = LLVMBC::BitReader::svbr(b.vbr<uint64_t>(4));
       CHECK(val == 0);
 
-      val = b.svbr<int64_t>(4);
+      val = LLVMBC::BitReader::svbr(b.vbr<uint64_t>(4));
       CHECK(val == 98765);
 
-      val = b.svbr<int64_t>(4);
+      val = LLVMBC::BitReader::svbr(b.vbr<uint64_t>(4));
       CHECK(val == -98765);
 
-      val = b.svbr<int64_t>(4);
+      val = LLVMBC::BitReader::svbr(b.vbr<uint64_t>(4));
       CHECK(val == INT64_MAX);
 
-      val = b.svbr<int64_t>(4);
+      val = LLVMBC::BitReader::svbr(b.vbr<uint64_t>(4));
       CHECK(val == -INT64_MAX);
 
-      val = b.svbr<int64_t>(4);
+      val = LLVMBC::BitReader::svbr(b.vbr<uint64_t>(4));
       CHECK(val == 3);
 
-      val = b.svbr<int64_t>(4);
+      val = LLVMBC::BitReader::svbr(b.vbr<uint64_t>(4));
       CHECK(val == 0);
 
       // should be exactly at the end of the stream
