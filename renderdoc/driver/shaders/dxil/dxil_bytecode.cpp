@@ -51,6 +51,15 @@ struct ProgramHeader
   uint32_t BitcodeSize;      // Size of LLVM bitcode.
 };
 
+enum class ShaderTag
+{
+  ShaderFlags = 0,
+  Geometry = 1,
+  Domain = 2,
+  Hull = 3,
+  Compute = 4,
+};
+
 enum class KnownBlocks : uint32_t
 {
   BLOCKINFO = 0,
@@ -1910,7 +1919,35 @@ Program::Program(const byte *bytes, size_t length)
 
 void Program::FetchComputeProperties(DXBC::Reflection *reflection)
 {
-  RDCERR("Unimplemented DXIL::Program::FetchComputeProperties()");
+  for(size_t i = 0; i < m_NamedMeta.size(); i++)
+  {
+    if(m_NamedMeta[i].name == "dx.entryPoints")
+    {
+      // expect only one child for this, DX doesn't support multiple entry points for compute
+      // shaders
+      RDCASSERTEQUAL(m_NamedMeta[i].children.size(), 1);
+      Metadata &entry = *m_NamedMeta[i].children[0];
+      RDCASSERTEQUAL(entry.children.size(), 5);
+      Metadata &tags = *entry.children[4];
+
+      for(size_t t = 0; t < tags.children.size(); t += 2)
+      {
+        RDCASSERT(tags.children[t]->value);
+        if(ShaderTag(tags.children[t]->val->val.uv[0]) == ShaderTag::Compute)
+        {
+          Metadata &threadDim = *tags.children[t + 1];
+          RDCASSERTEQUAL(threadDim.children.size(), 3);
+          reflection->DispatchThreadsDimension[0] = threadDim.children[0]->val->val.uv[0];
+          reflection->DispatchThreadsDimension[1] = threadDim.children[1]->val->val.uv[0];
+          reflection->DispatchThreadsDimension[2] = threadDim.children[2]->val->val.uv[0];
+          return;
+        }
+      }
+
+      break;
+    }
+  }
+  RDCERR("Couldn't find thread dimension tag in shader");
   reflection->DispatchThreadsDimension[0] = 1;
   reflection->DispatchThreadsDimension[1] = 1;
   reflection->DispatchThreadsDimension[2] = 1;
