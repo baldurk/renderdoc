@@ -1233,14 +1233,7 @@ Program::Program(const byte *bytes, size_t length)
 
               if(op.ops.empty())
               {
-                for(size_t i = 0; i < m_Types.size(); i++)
-                {
-                  if(m_Types[i].isVoid())
-                  {
-                    inst.type = &m_Types[i];
-                    break;
-                  }
-                }
+                inst.type = GetVoidType();
 
                 RDCASSERT(inst.type);
               }
@@ -1439,6 +1432,26 @@ const Metadata *Program::GetFunctionMetadata(const Function &f, uint64_t v)
 {
   size_t idx = (size_t)v;
   return idx < m_Metadata.size() ? &m_Metadata[idx] : &f.metadata[idx - m_Metadata.size()];
+}
+
+const DXIL::Type *Program::GetVoidType()
+{
+  if(m_VoidType)
+    return m_VoidType;
+
+  for(size_t i = 0; i < m_Types.size(); i++)
+  {
+    if(m_Types[i].isVoid())
+    {
+      m_VoidType = &m_Types[i];
+      break;
+    }
+  }
+
+  if(!m_VoidType)
+    RDCERR("Couldn't find void type");
+
+  return m_VoidType;
 }
 
 Metadata::~Metadata()

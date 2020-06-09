@@ -395,6 +395,7 @@ private:
   const Type *GetSymbolType(const Function &f, Symbol s);
   const Value *GetFunctionValue(const Function &f, uint64_t v);
   const Metadata *GetFunctionMetadata(const Function &f, uint64_t v);
+  const Type *GetVoidType();
 
   DXBC::ShaderType m_Type;
   uint32_t m_Major, m_Minor;
@@ -407,6 +408,7 @@ private:
   rdcarray<rdcstr> m_Kinds;
 
   rdcarray<Type> m_Types;
+  const Type *m_VoidType = NULL;
 
   rdcarray<Attributes> m_AttributeGroups;
   rdcarray<Attributes> m_Attributes;
