@@ -62,12 +62,27 @@ struct Type
     Int,
   } scalarType = Void;
 
+  enum PointerAddrSpace
+  {
+    Default = 0,
+    DeviceMemory = 1,
+    CBuffer = 2,
+    GroupShared = 3,
+    GenericPointer = 4,
+    ImmediateCBuffer = 5,
+  };
+
   bool isVoid() const { return type == Scalar && scalarType == Void; }
   rdcstr toString() const;
   rdcstr declFunction(rdcstr funcName) const;
 
-  // for scalars, arrays, vectors
-  uint32_t bitWidth = 0, elemCount = 0;
+  // for scalars, arrays, vectors, pointers
+  union
+  {
+    uint32_t bitWidth = 0;
+    PointerAddrSpace addrSpace;
+  };
+  uint32_t elemCount = 0;
 
   // the single inner type for pointers, vectors, or arrays, the return type for functions
   const Type *inner = NULL;

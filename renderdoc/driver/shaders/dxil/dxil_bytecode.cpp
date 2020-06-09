@@ -741,9 +741,7 @@ Program::Program(const byte *bytes, size_t length)
           {
             m_Types[typeIndex].type = Type::Pointer;
             m_Types[typeIndex].inner = &m_Types[(size_t)typ.ops[0]];
-
-            if(typ.ops.size() > 1 && typ.ops[1] != 0)
-              RDCERR("Ignoring address space on pointer type");
+            m_Types[typeIndex].addrSpace = Type::PointerAddrSpace(typ.ops[1]);
 
             typeIndex++;
           }

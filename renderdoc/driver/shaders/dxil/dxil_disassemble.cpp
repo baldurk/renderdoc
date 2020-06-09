@@ -340,12 +340,16 @@ void Program::MakeDisassemblyString()
       m_Disassembly += "external ";
     else
       m_Disassembly += "internal ";
+    if(g.type->addrSpace)
+      m_Disassembly += StringFormat::Fmt("addrspace(%d) ", g.type->addrSpace);
     if(g.flags & GlobalFlags::LocalUnnamedAddr)
       m_Disassembly += "local_unnamed_addr ";
     else if(g.flags & GlobalFlags::GlobalUnnamedAddr)
       m_Disassembly += "unnamed_addr ";
     if(g.flags & GlobalFlags::IsConst)
       m_Disassembly += "constant ";
+    else
+      m_Disassembly += "global ";
 
     if(g.initialiser.type == SymbolType::Constant)
       m_Disassembly += m_Values[g.initialiser.idx].toString(true);
@@ -1041,16 +1045,20 @@ rdcstr Type::toString() const
       }
     }
     case Vector: return StringFormat::Fmt("<%u x %s>", elemCount, inner->toString().c_str());
-    case Pointer: return StringFormat::Fmt("%s*", inner->toString().c_str());
+    case Pointer:
+      if(addrSpace == 0)
+        return StringFormat::Fmt("%s*", inner->toString().c_str());
+      else
+        return StringFormat::Fmt("%s addrspace(%d)*", inner->toString().c_str(), addrSpace);
     case Array: return StringFormat::Fmt("[%u x %s]", elemCount, inner->toString().c_str());
     case Function: return declFunction(rdcstr());
     case Struct:
     {
       rdcstr ret;
       if(packedStruct)
-        ret = "<{";
+        ret = "<{ ";
       else
-        ret = "{";
+        ret = "{ ";
       for(size_t i = 0; i < members.size(); i++)
       {
         if(i > 0)
@@ -1058,9 +1066,9 @@ rdcstr Type::toString() const
         ret += members[i]->toString();
       }
       if(packedStruct)
-        ret += "}>";
+        ret += " }>";
       else
-        ret += "}";
+        ret += " }";
       return ret;
     }
 
