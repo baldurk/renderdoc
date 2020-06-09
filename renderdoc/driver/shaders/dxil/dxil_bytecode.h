@@ -265,7 +265,7 @@ struct DebugLocation
 
 struct Function;
 
-enum class MathFlags : uint32_t
+enum class InstructionFlags : uint32_t
 {
   NoFlags = 0,
 
@@ -282,9 +282,13 @@ enum class MathFlags : uint32_t
 
   // shifts/divs
   Exact = (1 << 7),
+
+  // load/store
+  InBounds = (1 << 8),
+  Volatile = (1 << 9),
 };
 
-BITMASK_OPERATORS(MathFlags);
+BITMASK_OPERATORS(InstructionFlags);
 
 typedef rdcarray<rdcpair<uint64_t, Metadata *>> AttachedMetadata;
 
@@ -327,15 +331,21 @@ struct Instruction
     And,
     Or,
     Xor,
+    Unreachable,
+    Alloca,
+    GetElementPtr,
+    Load,
+    Store,
   } op = Unknown;
 
-  MathFlags opFlags = MathFlags::NoFlags;
+  InstructionFlags opFlags = InstructionFlags::NoFlags;
 
   // common to all instructions
   rdcstr name;
   uint32_t disassemblyLine = 0;
   uint32_t resultID = ~0U;
   uint32_t debugLoc = ~0U;
+  uint32_t align = 0;
   const Type *type = NULL;
   rdcarray<Symbol> args;
   AttachedMetadata attachedMeta;
@@ -440,4 +450,4 @@ rdcstr escapeStringIfNeeded(const rdcstr &name);
 };    // namespace DXIL
 
 DECLARE_REFLECTION_ENUM(DXIL::Attribute);
-DECLARE_STRINGISE_TYPE(DXIL::MathFlags);
+DECLARE_STRINGISE_TYPE(DXIL::InstructionFlags);

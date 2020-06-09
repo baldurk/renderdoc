@@ -570,7 +570,7 @@ void Program::MakeDisassemblyString()
               }
             }
             m_Disassembly += opFlagsStr;
-            if(inst.opFlags != MathFlags::NoFlags)
+            if(inst.opFlags != InstructionFlags::NoFlags)
               m_Disassembly += " ";
 
             bool first = true;
@@ -586,6 +586,58 @@ void Program::MakeDisassemblyString()
             break;
           }
           case Instruction::Ret: m_Disassembly += "ret " + inst.type->toString(); break;
+          case Instruction::Unreachable: m_Disassembly += "unreachable"; break;
+          case Instruction::Alloca:
+          {
+            m_Disassembly += "alloca ";
+            m_Disassembly += inst.type->inner->toString();
+            m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
+            break;
+          }
+          case Instruction::GetElementPtr:
+          {
+            m_Disassembly += "getelementptr ";
+            if(inst.opFlags & InstructionFlags::InBounds)
+              m_Disassembly += "inbounds ";
+            m_Disassembly += GetSymbolType(func, inst.args[0])->inner->toString();
+            m_Disassembly += ", ";
+            bool first = true;
+            for(Symbol &s : inst.args)
+            {
+              if(!first)
+                m_Disassembly += ", ";
+
+              m_Disassembly += argToString(s, true);
+              first = false;
+            }
+            break;
+          }
+          case Instruction::Load:
+          {
+            m_Disassembly += "load ";
+            m_Disassembly += inst.type->toString();
+            m_Disassembly += ", ";
+            bool first = true;
+            for(Symbol &s : inst.args)
+            {
+              if(!first)
+                m_Disassembly += ", ";
+
+              m_Disassembly += argToString(s, true);
+              first = false;
+            }
+            m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
+            break;
+          }
+          case Instruction::Store:
+          {
+            m_Disassembly += "store ";
+            m_Disassembly += argToString(inst.args[1], true);
+            m_Disassembly += ", ";
+            m_Disassembly += argToString(inst.args[0], true);
+            m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
+            break;
+          }
         }
 
         if(inst.debugLoc != ~0U)
@@ -998,14 +1050,14 @@ rdcstr Value::toString(bool withType) const
 };    // namespace DXIL
 
 template <>
-rdcstr DoStringise(const DXIL::MathFlags &el)
+rdcstr DoStringise(const DXIL::InstructionFlags &el)
 {
-  BEGIN_BITFIELD_STRINGISE(DXIL::MathFlags);
+  BEGIN_BITFIELD_STRINGISE(DXIL::InstructionFlags);
   {
     STRINGISE_BITFIELD_CLASS_VALUE_NAMED(NoFlags, "");
 
     // llvm doesn't print all bits if fastmath is set
-    if(el & DXIL::MathFlags::FastMath)
+    if(el & DXIL::InstructionFlags::FastMath)
       return "fast";
 
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(NoNaNs, "nnan");

@@ -1178,9 +1178,8 @@ Program::Program(const byte *bytes, size_t length)
 
               uint64_t callingFlags = op.ops[n++];
 
-              uint64_t fastMathFlags = 0;
               if(callingFlags & (1ULL << 17))
-                fastMathFlags = op.ops[n++];
+                inst.opFlags = InstructionFlags(op.ops[n++]);
 
               if(callingFlags & (1ULL << 15))
                 n++;    // funcCallType
@@ -1318,25 +1317,185 @@ Program::Program(const byte *bytes, size_t length)
                    inst.op == Instruction::Mul || inst.op == Instruction::ShiftLeft)
                 {
                   if(flags & 0x2)
-                    inst.opFlags |= MathFlags::NoSignedWrap;
+                    inst.opFlags |= InstructionFlags::NoSignedWrap;
                   if(flags & 0x1)
-                    inst.opFlags |= MathFlags::NoUnsignedWrap;
+                    inst.opFlags |= InstructionFlags::NoUnsignedWrap;
                 }
                 else if(inst.op == Instruction::SDiv || inst.op == Instruction::UDiv ||
                         inst.op == Instruction::LogicalShiftRight ||
                         inst.op == Instruction::ArithShiftRight)
                 {
                   if(flags & 0x1)
-                    inst.opFlags |= MathFlags::Exact;
+                    inst.opFlags |= InstructionFlags::Exact;
                 }
                 else if(isFloatOp)
                 {
                   // fast math flags overlap
-                  inst.opFlags = MathFlags(flags);
+                  inst.opFlags = InstructionFlags(flags);
                 }
               }
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_UNREACHABLE))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::Unreachable;
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_ALLOCA))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::Alloca;
+
+              uint64_t align = op.ops[3];
+
+              inst.type = &m_Types[op.ops[0]];
+
+              if(align & 0x20)
+              {
+                // argument alloca
+              }
+              if((align & 0x40) == 0)
+              {
+                RDCASSERT(inst.type->type == Type::Pointer);
+                inst.type = inst.type->inner;
+              }
+
+              // we now have the inner type, but this instruction returns a pointer to that type so
+              // adjust
+              for(const Type &t : m_Types)
+              {
+                if(t.type == Type::Pointer && t.inner == inst.type)
+                {
+                  inst.type = &t;
+                  break;
+                }
+              }
+
+              RDCASSERT(inst.type->type == Type::Pointer);
+
+              // size
+              inst.args.push_back(m_Symbols[op.ops[2]]);
+              // type of the size - ignored
+              // m_Types[op.ops[1]]
+
+              align &= ~0xE0;
+
+              inst.align = (1U << align) >> 1;
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_INBOUNDS_GEP_OLD) ||
+                    IS_KNOWN(op.id, FunctionRecord::INST_GEP_OLD) ||
+                    IS_KNOWN(op.id, FunctionRecord::INST_GEP))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::GetElementPtr;
+
+              if(IS_KNOWN(op.id, FunctionRecord::INST_INBOUNDS_GEP_OLD))
+                inst.opFlags |= InstructionFlags::InBounds;
+
+              size_t idx = 0;
+              if(IS_KNOWN(op.id, FunctionRecord::INST_GEP))
+              {
+                if(op.ops[idx++])
+                  inst.opFlags |= InstructionFlags::InBounds;
+                inst.type = &m_Types[op.ops[idx++]];
+              }
+
+              for(; idx < op.ops.size(); idx++)
+                inst.args.push_back(getSymbol(op.ops[idx]));
+
+              if(inst.type == NULL)
+                inst.type = GetSymbolType(f, inst.args[0]);
+
+              // walk the type list to get the return type
+              for(idx = 2; idx < inst.args.size(); idx++)
+              {
+                if(inst.type->type == Type::Vector || inst.type->type == Type::Array)
+                {
+                  inst.type = inst.type->inner;
+                }
+                else if(inst.type->type == Type::Struct)
+                {
+                  Symbol s = inst.args[idx];
+                  // if it's a struct the index must be constant
+                  RDCASSERT(s.type == SymbolType::Constant);
+                  inst.type = inst.type->members[GetFunctionValue(f, s.idx)->val.uv[0]];
+                }
+                else
+                {
+                  RDCERR("Unexpected type %d encountered in GEP", inst.type->type);
+                }
+              }
+
+              // get the pointer type
+              for(const Type &t : m_Types)
+              {
+                if(t.type == Type::Pointer && t.inner == inst.type)
+                {
+                  inst.type = &t;
+                  break;
+                }
+              }
+
+              RDCASSERT(inst.type->type == Type::Pointer);
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_LOAD))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::Load;
+
+              inst.args.push_back(getSymbol(op.ops[0]));
+
+              size_t idx = 1;
+
+              if(op.ops.size() == idx + 3)
+              {
+                inst.type = &m_Types[op.ops[idx++]];
+              }
+              else
+              {
+                inst.type = GetSymbolType(f, inst.args[0]);
+                RDCASSERT(inst.type->type == Type::Pointer);
+                inst.type = inst.type->inner;
+              }
+
+              inst.align = (1U << op.ops[idx]) >> 1;
+              inst.opFlags |=
+                  (op.ops[idx + 1] != 0) ? InstructionFlags::Volatile : InstructionFlags::NoFlags;
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_STORE_OLD) ||
+                    IS_KNOWN(op.id, FunctionRecord::INST_STORE))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::Store;
+
+              inst.type = GetVoidType();
+
+              inst.args.push_back(getSymbol(op.ops[0]));
+              inst.args.push_back(getSymbol(op.ops[1]));
+
+              inst.align = (1U << op.ops[2]) >> 1;
+              inst.opFlags |=
+                  (op.ops[3] != 0) ? InstructionFlags::Volatile : InstructionFlags::NoFlags;
 
               f.instructions.push_back(inst);
             }
