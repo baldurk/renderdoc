@@ -546,9 +546,9 @@ rdcstr DILexicalBlock::toString() const
 {
   rdcstr ret = "!DILexicalBlock(";
   if(scope)
-    ret += StringFormat::Fmt(", scope: %s", scope->refString().c_str());
+    ret += StringFormat::Fmt("scope: %s", scope->refString().c_str());
   else
-    ret += ", scope: null";
+    ret += "scope: null";
   if(file)
     ret += StringFormat::Fmt(", file: %s", file->refString().c_str());
   if(line)
