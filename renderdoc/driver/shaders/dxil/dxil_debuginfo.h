@@ -695,6 +695,20 @@ struct DILexicalBlock : public DIBase
   virtual rdcstr toString() const;
 };
 
+struct DISubrange : public DIBase
+{
+  static const DIBase::Type DIType = DIBase::Subrange;
+  DISubrange(uint64_t count, int64_t lowerBound)
+      : DIBase(DIType), count(count), lowerBound(lowerBound)
+  {
+  }
+
+  uint64_t count;
+  int64_t lowerBound;
+
+  virtual rdcstr toString() const;
+};
+
 };    // namespace DXIL
 
 DECLARE_REFLECTION_ENUM(DXIL::DW_LANG);

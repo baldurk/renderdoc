@@ -234,6 +234,12 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
 
     meta.children = {getMeta(metaRecord.ops[1]), getMeta(metaRecord.ops[2])};
   }
+  else if(id == MetaDataRecord::SUBRANGE)
+  {
+    meta.distinct = (metaRecord.ops[0] & 0x1);
+
+    meta.dwarf = new DISubrange(metaRecord.ops[1], LLVMBC::BitReader::svbr(metaRecord.ops[2]));
+  }
   else if(id == MetaDataRecord::EXPRESSION)
   {
     DIExpression *expr = new DIExpression;
@@ -540,6 +546,16 @@ rdcstr DILexicalBlock::toString() const
     ret += StringFormat::Fmt(", line: %llu", line);
   if(column)
     ret += StringFormat::Fmt(", column: %llu", column);
+  ret += ")";
+  return ret;
+}
+
+rdcstr DISubrange::toString() const
+{
+  rdcstr ret = "!DISubrange(";
+  ret += StringFormat::Fmt("count: %llu", count);
+  if(lowerBound)
+    ret += StringFormat::Fmt(", lowerBound: %lld", lowerBound);
   ret += ")";
   return ret;
 }
