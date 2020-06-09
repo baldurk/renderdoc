@@ -1561,7 +1561,8 @@ Program::Program(const byte *bytes, size_t length)
                 }
               }
 
-              RDCASSERT(inst.type->type == argType->type);
+              RDCASSERT(inst.type->type == argType->type &&
+                        inst.type->elemCount == argType->elemCount);
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
 
@@ -1587,13 +1588,123 @@ Program::Program(const byte *bytes, size_t length)
 
               f.instructions.push_back(inst);
             }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_EXTRACTELT))
+            {
+              // DXIL claims to be scalarised so should this appear?
+              RDCWARN("Unexpected vector instruction extractelement in DXIL");
+
+              Instruction inst;
+
+              inst.op = Instruction::ExtractElement;
+
+              // vector
+              inst.args.push_back(getSymbol(op.ops[0]));
+              // index
+              inst.args.push_back(getSymbol(op.ops[1]));
+
+              // result is the scalar type within the vector
+              inst.type = GetSymbolType(f, inst.args[0])->inner;
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_INSERTELT))
+            {
+              // DXIL claims to be scalarised so should this appear?
+              RDCWARN("Unexpected vector instruction insertelement in DXIL");
+
+              Instruction inst;
+
+              inst.op = Instruction::InsertElement;
+
+              // vector
+              inst.args.push_back(getSymbol(op.ops[0]));
+              // replacement element
+              inst.args.push_back(getSymbol(op.ops[1]));
+              // index
+              inst.args.push_back(getSymbol(op.ops[2]));
+
+              // result is the vector type
+              inst.type = GetSymbolType(f, inst.args[0]);
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_SHUFFLEVEC))
+            {
+              // DXIL claims to be scalarised so should this appear?
+              RDCWARN("Unexpected vector instruction shufflevector in DXIL");
+
+              Instruction inst;
+
+              inst.op = Instruction::ShuffleVector;
+
+              // vector 1
+              inst.args.push_back(getSymbol(op.ops[0]));
+              // vector 2
+              inst.args.push_back(getSymbol(op.ops[1]));
+              // indexes
+              inst.args.push_back(getSymbol(op.ops[2]));
+
+              // result is a vector with the inner type of the first two vectors and the element
+              // count of the last vector
+              const Type *vecType = GetSymbolType(f, inst.args[0]);
+              const Type *maskType = GetSymbolType(f, inst.args[2]);
+
+              for(const Type &t : m_Types)
+              {
+                if(t.type == Type::Vector && t.inner == vecType->inner &&
+                   t.elemCount == maskType->elemCount)
+                {
+                  inst.type = &t;
+                  break;
+                }
+              }
+
+              RDCASSERT(inst.type);
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_INSERTVAL))
+            {
+              // DXIL claims to be scalarised so should this appear?
+              RDCWARN("Unexpected aggregate instruction insertvalue in DXIL");
+
+              Instruction inst;
+
+              inst.op = Instruction::InsertValue;
+
+              // aggregate
+              inst.args.push_back(getSymbol(op.ops[0]));
+              // replacement element
+              inst.args.push_back(getSymbol(op.ops[1]));
+              // indices as literals
+              for(size_t a = 2; a < op.ops.size(); a++)
+                inst.args.push_back(Symbol(SymbolType::Literal, op.ops[a]));
+
+              // result is the aggregate type
+              inst.type = GetSymbolType(f, inst.args[0]);
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_VAARG))
+            {
+              // don't expect vararg instructions
+              RDCERR("Unexpected vararg instruction %u in DXIL", op.id);
+            }
             else if(IS_KNOWN(op.id, FunctionRecord::INST_LANDINGPAD) ||
                     IS_KNOWN(op.id, FunctionRecord::INST_LANDINGPAD_OLD) ||
-                    IS_KNOWN(op.id, FunctionRecord::INST_VAARG) ||
                     IS_KNOWN(op.id, FunctionRecord::INST_INVOKE) ||
                     IS_KNOWN(op.id, FunctionRecord::INST_RESUME))
             {
-              RDCERR("Unexpected instruction %u in DXIL", op.id);
+              // don't expect exception handling instructions
+              RDCERR("Unexpected exception handling instruction %u in DXIL", op.id);
             }
             else
             {

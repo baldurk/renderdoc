@@ -734,6 +734,46 @@ void Program::MakeDisassemblyString()
             m_Disassembly += argToString(inst.args[1], true);
             break;
           }
+          case Instruction::ExtractElement:
+          {
+            m_Disassembly += "extractelement ";
+            m_Disassembly += argToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += argToString(inst.args[1], true);
+            break;
+          }
+          case Instruction::InsertElement:
+          {
+            m_Disassembly += "insertelement ";
+            m_Disassembly += argToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += argToString(inst.args[1], true);
+            m_Disassembly += ", ";
+            m_Disassembly += argToString(inst.args[2], true);
+            break;
+          }
+          case Instruction::ShuffleVector:
+          {
+            m_Disassembly += "shufflevector ";
+            m_Disassembly += argToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += argToString(inst.args[1], true);
+            m_Disassembly += ", ";
+            m_Disassembly += argToString(inst.args[2], true);
+            break;
+          }
+          case Instruction::InsertValue:
+          {
+            m_Disassembly += "insertvalue ";
+            m_Disassembly += argToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += argToString(inst.args[1], true);
+            for(size_t a = 2; a < inst.args.size(); a++)
+            {
+              m_Disassembly += ", " + ToStr(inst.args[2].idx);
+            }
+            break;
+          }
         }
 
         if(inst.debugLoc != ~0U)

@@ -363,6 +363,10 @@ struct Instruction
     SLess,
     SLessEqual,
     Select,
+    ExtractElement,
+    InsertElement,
+    ShuffleVector,
+    InsertValue,
   } op = Unknown;
 
   InstructionFlags opFlags = InstructionFlags::NoFlags;
