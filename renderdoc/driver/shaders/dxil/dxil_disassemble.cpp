@@ -24,11 +24,75 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <algorithm>
 #include "common/formatting.h"
 #include "dxil_bytecode.h"
 
 namespace DXIL
 {
+struct TypeOrderer
+{
+  rdcarray<const Type *> types;
+
+  rdcarray<const Type *> visitedTypes = {NULL};
+  rdcarray<const Metadata *> visitedMeta;
+
+  void accumulate(const Type *t)
+  {
+    if(!t || visitedTypes.contains(t))
+      return;
+
+    visitedTypes.push_back(t);
+
+    // LLVM doesn't do quite a depth-first search, so we replicate its search order to ensure types
+    // are printed in the same order
+
+    rdcarray<const Type *> workingSet;
+    workingSet.push_back(t);
+    do
+    {
+      const Type *cur = workingSet.back();
+      workingSet.pop_back();
+
+      types.push_back(cur);
+
+      for(size_t i = 0; i < cur->members.size(); i++)
+      {
+        size_t idx = cur->members.size() - 1 - i;
+        if(!visitedTypes.contains(cur->members[idx]))
+        {
+          visitedTypes.push_back(cur->members[idx]);
+          workingSet.push_back(cur->members[idx]);
+        }
+      }
+
+      if(!visitedTypes.contains(cur->inner))
+      {
+        visitedTypes.push_back(cur->inner);
+        workingSet.push_back(cur->inner);
+      }
+    } while(!workingSet.empty());
+  }
+
+  void accumulate(const Metadata *m)
+  {
+    auto it = std::lower_bound(visitedMeta.begin(), visitedMeta.end(), m);
+    if(it != visitedMeta.end() && *it == m)
+      return;
+    visitedMeta.insert(it - visitedMeta.begin(), m);
+
+    if(m->type)
+      accumulate(m->type);
+
+    if(m->val)
+      accumulate(m->val->type);
+
+    for(const Metadata *c : m->children)
+      if(c)
+        accumulate(c);
+  }
+};
+
 bool needsEscaping(const rdcstr &name)
 {
   return name.find_first_not_of(
@@ -301,18 +365,52 @@ void Program::MakeDisassemblyString()
 
   int instructionLine = 6;
 
-  bool typesPrinted = false;
+  TypeOrderer typeOrderer;
+  rdcarray<const Type *> orderedTypes;
 
-  for(size_t i = 0; i < m_Types.size(); i++)
+  for(size_t i = 0; i < m_GlobalVars.size(); i++)
   {
-    const Type &typ = m_Types[i];
+    const GlobalVar &g = m_GlobalVars[i];
+    typeOrderer.accumulate(g.type);
 
-    if(typ.type == Type::Struct && !typ.name.empty())
+    if(g.initialiser.type == SymbolType::Constant)
+      typeOrderer.accumulate(m_Values[g.initialiser.idx].type);
+  }
+
+  for(size_t i = 0; i < m_Functions.size(); i++)
+  {
+    const Function &func = m_Functions[i];
+
+    // the function type will also accumulate the arguments
+    typeOrderer.accumulate(func.funcType);
+
+    for(const Instruction &inst : func.instructions)
     {
-      rdcstr name = typ.toString();
+      typeOrderer.accumulate(inst.type);
+      for(size_t a = 0; a < inst.args.size(); a++)
+      {
+        if(inst.args[a].type != SymbolType::Literal && inst.args[a].type != SymbolType::BasicBlock)
+          typeOrderer.accumulate(GetSymbolType(func, inst.args[a]));
+      }
+
+      for(size_t m = 0; m < inst.attachedMeta.size(); m++)
+        typeOrderer.accumulate(inst.attachedMeta[m].second);
+    }
+  }
+
+  for(size_t i = 0; i < m_NamedMeta.size(); i++)
+  {
+    typeOrderer.accumulate(&m_NamedMeta[i]);
+  }
+
+  for(const Type *typ : typeOrderer.types)
+  {
+    if(typ->type == Type::Struct && !typ->name.empty())
+    {
+      rdcstr name = typ->toString();
       m_Disassembly += StringFormat::Fmt("%s = type {", name.c_str());
       bool first = true;
-      for(const Type *t : typ.members)
+      for(const Type *t : typ->members)
       {
         if(!first)
           m_Disassembly += ",";
@@ -320,13 +418,12 @@ void Program::MakeDisassemblyString()
         m_Disassembly += StringFormat::Fmt(" %s", t->toString().c_str());
       }
       m_Disassembly += " }\n";
-      typesPrinted = true;
 
       instructionLine++;
     }
   }
 
-  if(typesPrinted)
+  if(!typeOrderer.types.empty())
   {
     m_Disassembly += "\n";
     instructionLine++;

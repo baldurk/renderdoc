@@ -2318,9 +2318,14 @@ const Type *Program::GetSymbolType(const Function &f, Symbol s)
     case SymbolType::Instruction: ret = f.instructions[s.idx].type; break;
     case SymbolType::GlobalVar: ret = m_GlobalVars[s.idx].type; break;
     case SymbolType::Function: ret = m_Functions[s.idx].funcType; break;
+    case SymbolType::Metadata:
+      if(s.idx < m_Metadata.size())
+        ret = m_Metadata[s.idx].type;
+      else
+        ret = f.metadata[s.idx - m_Metadata.size()].type;
+      break;
     case SymbolType::Unknown:
     case SymbolType::Alias:
-    case SymbolType::Metadata:
     case SymbolType::BasicBlock:
     case SymbolType::Literal: RDCERR("Unexpected symbol to get type for %d", s.type); break;
   }
