@@ -1080,48 +1080,54 @@ Program::Program(const byte *bytes, size_t length)
               {
                 if(symtab.IsBlock())
                 {
-                  RDCERR("Unexpected subblock in VALUE_SYMTAB_BLOCK");
+                  RDCERR("Unexpected subblock in function VALUE_SYMTAB_BLOCK");
                   continue;
                 }
 
-                if(symtab.id != 1)
+                if(IS_KNOWN(symtab.id, ValueSymtabRecord::ENTRY))
                 {
-                  RDCERR("Unexpected symbol table record ID %u", symtab.id);
-                  continue;
+                  size_t idx = (size_t)symtab.ops[0];
+
+                  if(idx >= m_Symbols.size())
+                  {
+                    RDCERR("Out of bounds symbol index %zu (%s) in function symbol table", idx,
+                           symtab.getString(1).c_str());
+                    continue;
+                  }
+
+                  Symbol s = m_Symbols[idx];
+
+                  switch(s.type)
+                  {
+                    case SymbolType::Unknown:
+                    case SymbolType::Constant:
+                      if(s.idx < m_Values.size())
+                        RDCERR("Unexpected local symbol referring to global value");
+                      else
+                        f.values[s.idx - m_Values.size()].str = symtab.getString(1);
+                      break;
+                    case SymbolType::Argument: f.args[s.idx].name = symtab.getString(1); break;
+                    case SymbolType::Instruction:
+                      f.instructions[s.idx].name = symtab.getString(1);
+                      break;
+                    case SymbolType::BasicBlock: f.blocks[s.idx].name = symtab.getString(1); break;
+                    case SymbolType::GlobalVar:
+                    case SymbolType::Function:
+                    case SymbolType::Alias:
+                    case SymbolType::Metadata:
+                    case SymbolType::Literal:
+                      RDCERR("Unexpected local symbol referring to %d", s.type);
+                      break;
+                  }
                 }
-
-                size_t idx = (size_t)symtab.ops[0];
-
-                if(idx >= m_Symbols.size())
+                else if(IS_KNOWN(symtab.id, ValueSymtabRecord::BBENTRY))
                 {
-                  RDCERR("Out of bounds symbol index %zu (%s) in function symbol table", idx,
-                         symtab.getString(1).c_str());
-                  continue;
+                  f.blocks[symtab.ops[0]].name = symtab.getString(1);
                 }
-
-                Symbol s = m_Symbols[idx];
-
-                switch(s.type)
+                else
                 {
-                  case SymbolType::Unknown:
-                  case SymbolType::Constant:
-                    if(s.idx < m_Values.size())
-                      RDCERR("Unexpected local symbol referring to global value");
-                    else
-                      f.values[s.idx - m_Values.size()].str = symtab.getString(1);
-                    break;
-                  case SymbolType::Argument: f.args[s.idx].name = symtab.getString(1); break;
-                  case SymbolType::Instruction:
-                    f.instructions[s.idx].name = symtab.getString(1);
-                    break;
-                  case SymbolType::BasicBlock: f.blocks[s.idx].name = symtab.getString(1); break;
-                  case SymbolType::GlobalVar:
-                  case SymbolType::Function:
-                  case SymbolType::Alias:
-                  case SymbolType::Metadata:
-                  case SymbolType::Literal:
-                    RDCERR("Unexpected local symbol referring to %d", s.type);
-                    break;
+                  RDCERR("Unexpected function symbol table record ID %u", symtab.id);
+                  continue;
                 }
               }
             }
@@ -2157,10 +2163,13 @@ Program::Program(const byte *bytes, size_t length)
           }
         }
 
-        f.blocks[0].resultID = 0;
+        size_t resultID = 0;
+
+        if(f.blocks[0].name.empty())
+          f.blocks[0].resultID = (uint32_t)resultID++;
 
         curBlock = 0;
-        for(size_t i = 0, resultID = 1; i < f.instructions.size(); i++)
+        for(size_t i = 0; i < f.instructions.size(); i++)
         {
           if(f.instructions[i].op == Instruction::Branch ||
              f.instructions[i].op == Instruction::Unreachable ||

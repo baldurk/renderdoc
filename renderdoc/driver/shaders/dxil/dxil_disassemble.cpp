@@ -480,6 +480,14 @@ void Program::MakeDisassemblyString()
 
       size_t curBlock = 0;
 
+      // if the first block has a name, use it
+      if(!func.blocks[curBlock].name.empty())
+      {
+        m_Disassembly +=
+            StringFormat::Fmt("%s:\n", escapeStringIfNeeded(func.blocks[curBlock].name).c_str());
+        instructionLine++;
+      }
+
       for(Instruction &inst : func.instructions)
       {
         inst.disassemblyLine = instructionLine;
