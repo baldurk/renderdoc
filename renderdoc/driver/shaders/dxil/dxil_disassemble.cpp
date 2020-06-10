@@ -412,10 +412,13 @@ void Program::MakeDisassemblyString()
           if(s.idx < m_Metadata.size())
           {
             Metadata &m = m_Metadata[s.idx];
-            if(m.value && m.val && m.val->nullconst)
-              ret += StringFormat::Fmt("%s zeroinitializer", m.val->type->toString());
-            else if(m.value && m.val && m.val->symbol)
-              ret += m.val->toString(true);
+            if(m.value && m.val && m.val->symbol)
+              ret += m.val->toString(withTypes);
+            else if(m.value && m.val && m.val->type->type == Type::Scalar)
+              ret += m.val->toString(withTypes);
+            else if(m.value && m.val && m.val->nullconst)
+              ret += withTypes ? StringFormat::Fmt("%s zeroinitializer", m.val->type->toString())
+                               : "zeroinitializer";
             else
               ret += StringFormat::Fmt("!%u", GetOrAssignMetaID(&m));
           }
