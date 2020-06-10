@@ -32,29 +32,30 @@ namespace DXIL
 bool needsEscaping(const rdcstr &name)
 {
   return name.find_first_not_of(
-             "-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$._0123456789") >= 0;
+             "-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ._0123456789") >= 0;
 }
 
-rdcstr escapeString(rdcstr str)
+rdcstr escapeString(const rdcstr &str)
 {
+  rdcstr ret;
+  ret.push_back('"');
+
   for(size_t i = 0; i < str.size(); i++)
   {
-    if(str[i] == '\'' || str[i] == '\\')
+    if(str[i] == '\r' || str[i] == '\n' || str[i] == '\t' || str[i] == '"' || str[i] == '\\' ||
+       !isprint(str[i]))
     {
-      str.insert(i, "\\", 1);
-      i++;
+      ret.push_back('\\');
+      ret.append(StringFormat::Fmt("%02X", (unsigned char)str[i]));
+      continue;
     }
-    else if(str[i] == '\r' || str[i] == '\n' || str[i] == '\t' || !isprint(str[i]))
-    {
-      str.insert(i + 1, StringFormat::Fmt("%02X", str[i]));
-      str[i] = '\\';
-    }
+
+    ret.push_back(str[i]);
   }
 
-  str.push_back('"');
-  str.insert(0, '"');
+  ret.push_back('"');
 
-  return str;
+  return ret;
 }
 
 rdcstr escapeStringIfNeeded(const rdcstr &name)

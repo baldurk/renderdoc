@@ -557,7 +557,7 @@ private:
 };
 
 bool needsEscaping(const rdcstr &name);
-rdcstr escapeString(rdcstr str);
+rdcstr escapeString(const rdcstr &str);
 rdcstr escapeStringIfNeeded(const rdcstr &name);
 
 };    // namespace DXIL
