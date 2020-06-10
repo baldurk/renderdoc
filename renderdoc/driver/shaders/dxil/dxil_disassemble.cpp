@@ -653,6 +653,8 @@ void Program::MakeDisassemblyString()
           case Instruction::Load:
           {
             m_Disassembly += "load ";
+            if(inst.opFlags & InstructionFlags::Volatile)
+              m_Disassembly += "volatile ";
             m_Disassembly += inst.type->toString();
             m_Disassembly += ", ";
             bool first = true;
@@ -670,6 +672,8 @@ void Program::MakeDisassemblyString()
           case Instruction::Store:
           {
             m_Disassembly += "store ";
+            if(inst.opFlags & InstructionFlags::Volatile)
+              m_Disassembly += "volatile ";
             m_Disassembly += argToString(inst.args[1], true);
             m_Disassembly += ", ";
             m_Disassembly += argToString(inst.args[0], true);
@@ -860,6 +864,160 @@ void Program::MakeDisassemblyString()
               instructionLine++;
             }
             m_Disassembly += "  ]";
+            break;
+          }
+          case Instruction::Fence:
+          {
+            m_Disassembly += "fence ";
+            if(inst.opFlags & InstructionFlags::SingleThread)
+              m_Disassembly += "singlethread ";
+            switch((inst.opFlags & InstructionFlags::SuccessOrderMask))
+            {
+              case InstructionFlags::SuccessUnordered: m_Disassembly += "unordered"; break;
+              case InstructionFlags::SuccessMonotonic: m_Disassembly += "monotonic"; break;
+              case InstructionFlags::SuccessAcquire: m_Disassembly += "acquire"; break;
+              case InstructionFlags::SuccessRelease: m_Disassembly += "release"; break;
+              case InstructionFlags::SuccessAcquireRelease: m_Disassembly += "acq_rel"; break;
+              case InstructionFlags::SuccessSequentiallyConsistent:
+                m_Disassembly += "seq_cst";
+                break;
+              default: break;
+            }
+          }
+          case Instruction::LoadAtomic:
+          {
+            m_Disassembly += "load atomic ";
+            if(inst.opFlags & InstructionFlags::Volatile)
+              m_Disassembly += "volatile ";
+            m_Disassembly += inst.type->toString();
+            m_Disassembly += ", ";
+            bool first = true;
+            for(Symbol &s : inst.args)
+            {
+              if(!first)
+                m_Disassembly += ", ";
+
+              m_Disassembly += argToString(s, true);
+              first = false;
+            }
+            m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
+            break;
+          }
+          case Instruction::StoreAtomic:
+          {
+            m_Disassembly += "store atomic ";
+            if(inst.opFlags & InstructionFlags::Volatile)
+              m_Disassembly += "volatile ";
+            m_Disassembly += argToString(inst.args[1], true);
+            m_Disassembly += ", ";
+            m_Disassembly += argToString(inst.args[0], true);
+            m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
+            break;
+          }
+          case Instruction::CompareExchange:
+          {
+            m_Disassembly += "cmpxchg ";
+            if(inst.opFlags & InstructionFlags::Weak)
+              m_Disassembly += "weak ";
+            if(inst.opFlags & InstructionFlags::Volatile)
+              m_Disassembly += "volatile ";
+
+            bool first = true;
+            for(Symbol &s : inst.args)
+            {
+              if(!first)
+                m_Disassembly += ", ";
+
+              m_Disassembly += argToString(s, true);
+              first = false;
+            }
+
+            m_Disassembly += " ";
+            if(inst.opFlags & InstructionFlags::SingleThread)
+              m_Disassembly += "singlethread ";
+            switch((inst.opFlags & InstructionFlags::SuccessOrderMask))
+            {
+              case InstructionFlags::SuccessUnordered: m_Disassembly += "unordered"; break;
+              case InstructionFlags::SuccessMonotonic: m_Disassembly += "monotonic"; break;
+              case InstructionFlags::SuccessAcquire: m_Disassembly += "acquire"; break;
+              case InstructionFlags::SuccessRelease: m_Disassembly += "release"; break;
+              case InstructionFlags::SuccessAcquireRelease: m_Disassembly += "acq_rel"; break;
+              case InstructionFlags::SuccessSequentiallyConsistent:
+                m_Disassembly += "seq_cst";
+                break;
+              default: break;
+            }
+            m_Disassembly += " ";
+            switch((inst.opFlags & InstructionFlags::FailureOrderMask))
+            {
+              case InstructionFlags::FailureUnordered: m_Disassembly += "unordered"; break;
+              case InstructionFlags::FailureMonotonic: m_Disassembly += "monotonic"; break;
+              case InstructionFlags::FailureAcquire: m_Disassembly += "acquire"; break;
+              case InstructionFlags::FailureRelease: m_Disassembly += "release"; break;
+              case InstructionFlags::FailureAcquireRelease: m_Disassembly += "acq_rel"; break;
+              case InstructionFlags::FailureSequentiallyConsistent:
+                m_Disassembly += "seq_cst";
+                break;
+              default: break;
+            }
+            break;
+          }
+          case Instruction::AtomicExchange:
+          case Instruction::AtomicAdd:
+          case Instruction::AtomicSub:
+          case Instruction::AtomicAnd:
+          case Instruction::AtomicNand:
+          case Instruction::AtomicOr:
+          case Instruction::AtomicXor:
+          case Instruction::AtomicMax:
+          case Instruction::AtomicMin:
+          case Instruction::AtomicUMax:
+          case Instruction::AtomicUMin:
+          {
+            m_Disassembly += "atomicrmw ";
+            if(inst.opFlags & InstructionFlags::Volatile)
+              m_Disassembly += "volatile ";
+            switch(inst.op)
+            {
+              case Instruction::AtomicExchange: m_Disassembly += "xchg "; break;
+              case Instruction::AtomicAdd: m_Disassembly += "add "; break;
+              case Instruction::AtomicSub: m_Disassembly += "sub "; break;
+              case Instruction::AtomicAnd: m_Disassembly += "and "; break;
+              case Instruction::AtomicNand: m_Disassembly += "nand "; break;
+              case Instruction::AtomicOr: m_Disassembly += "or "; break;
+              case Instruction::AtomicXor: m_Disassembly += "xor "; break;
+              case Instruction::AtomicMax: m_Disassembly += "max "; break;
+              case Instruction::AtomicMin: m_Disassembly += "min "; break;
+              case Instruction::AtomicUMax: m_Disassembly += "umax "; break;
+              case Instruction::AtomicUMin: m_Disassembly += "umin "; break;
+              default: break;
+            }
+
+            bool first = true;
+            for(Symbol &s : inst.args)
+            {
+              if(!first)
+                m_Disassembly += ", ";
+
+              m_Disassembly += argToString(s, true);
+              first = false;
+            }
+
+            m_Disassembly += " ";
+            if(inst.opFlags & InstructionFlags::SingleThread)
+              m_Disassembly += "singlethread ";
+            switch((inst.opFlags & InstructionFlags::SuccessOrderMask))
+            {
+              case InstructionFlags::SuccessUnordered: m_Disassembly += "unordered"; break;
+              case InstructionFlags::SuccessMonotonic: m_Disassembly += "monotonic"; break;
+              case InstructionFlags::SuccessAcquire: m_Disassembly += "acquire"; break;
+              case InstructionFlags::SuccessRelease: m_Disassembly += "release"; break;
+              case InstructionFlags::SuccessAcquireRelease: m_Disassembly += "acq_rel"; break;
+              case InstructionFlags::SuccessSequentiallyConsistent:
+                m_Disassembly += "seq_cst";
+                break;
+              default: break;
+            }
             break;
           }
         }

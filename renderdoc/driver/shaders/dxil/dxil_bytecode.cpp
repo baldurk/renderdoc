@@ -1263,7 +1263,10 @@ Program::Program(const byte *bytes, size_t length)
                 case 10: inst.op = Instruction::IToPtr; break;
                 case 11: inst.op = Instruction::Bitcast; break;
                 case 12: inst.op = Instruction::AddrSpaceCast; break;
-                default: RDCERR("Unhandled cast type %d", op.ops[2]);
+                default:
+                  inst.op = Instruction::Bitcast;
+                  RDCERR("Unhandled cast type %d", op.ops[2]);
+                  break;
               }
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
@@ -1338,7 +1341,10 @@ Program::Program(const byte *bytes, size_t length)
                 case 10: inst.op = Instruction::And; break;
                 case 11: inst.op = Instruction::Or; break;
                 case 12: inst.op = Instruction::Xor; break;
-                default: RDCERR("Unhandled binop type %d", op.ops[2]);
+                default:
+                  inst.op = Instruction::And;
+                  RDCERR("Unhandled binop type %d", op.ops[2]);
+                  break;
               }
 
               if(op.ops.size() > 3)
@@ -1569,6 +1575,11 @@ Program::Program(const byte *bytes, size_t length)
                 case 39: inst.op = Instruction::SGreaterEqual; break;
                 case 40: inst.op = Instruction::SLess; break;
                 case 41: inst.op = Instruction::SLessEqual; break;
+
+                default:
+                  inst.op = Instruction::FOrdFalse;
+                  RDCERR("Unexpected comparison %llu", op.ops[2]);
+                  break;
               }
 
               // fast math flags
@@ -1734,6 +1745,289 @@ Program::Program(const byte *bytes, size_t length)
                 forwardRefInstructions.push_back(f.instructions.size());
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_LOADATOMIC))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::LoadAtomic;
+
+              inst.args.push_back(getSymbol(op.ops[0]));
+
+              size_t idx = 1;
+
+              if(op.ops.size() == idx + 5)
+              {
+                inst.type = &m_Types[op.ops[idx++]];
+              }
+              else
+              {
+                inst.type = GetSymbolType(f, inst.args[0]);
+                RDCASSERT(inst.type->type == Type::Pointer);
+                inst.type = inst.type->inner;
+              }
+
+              inst.align = (1U << op.ops[idx]) >> 1;
+              inst.opFlags |=
+                  (op.ops[idx + 1] != 0) ? InstructionFlags::Volatile : InstructionFlags::NoFlags;
+
+              // success ordering
+              switch(op.ops[idx + 2])
+              {
+                case 0: break;
+                case 1: inst.opFlags |= InstructionFlags::SuccessUnordered; break;
+                case 2: inst.opFlags |= InstructionFlags::SuccessMonotonic; break;
+                case 3: inst.opFlags |= InstructionFlags::SuccessAcquire; break;
+                case 4: inst.opFlags |= InstructionFlags::SuccessRelease; break;
+                case 5: inst.opFlags |= InstructionFlags::SuccessAcquireRelease; break;
+                case 6: inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent; break;
+                default:
+                  RDCERR("Unexpected success ordering %llu", op.ops[idx + 2]);
+                  inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent;
+                  break;
+              }
+
+              // synchronisation scope
+              switch(op.ops[idx + 3])
+              {
+                case 0: inst.opFlags |= InstructionFlags::SingleThread; break;
+                case 1: break;
+                default: RDCERR("Unexpected synchronisation scope %llu", op.ops[idx + 3]); break;
+              }
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_STOREATOMIC_OLD) ||
+                    IS_KNOWN(op.id, FunctionRecord::INST_STOREATOMIC))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::StoreAtomic;
+
+              inst.type = GetVoidType();
+
+              inst.args.push_back(getSymbol(op.ops[0]));
+              inst.args.push_back(getSymbol(op.ops[1]));
+
+              inst.align = (1U << op.ops[2]) >> 1;
+              inst.opFlags |=
+                  (op.ops[3] != 0) ? InstructionFlags::Volatile : InstructionFlags::NoFlags;
+
+              // success ordering
+              switch(op.ops[4])
+              {
+                case 0: break;
+                case 1: inst.opFlags |= InstructionFlags::SuccessUnordered; break;
+                case 2: inst.opFlags |= InstructionFlags::SuccessMonotonic; break;
+                case 3: inst.opFlags |= InstructionFlags::SuccessAcquire; break;
+                case 4: inst.opFlags |= InstructionFlags::SuccessRelease; break;
+                case 5: inst.opFlags |= InstructionFlags::SuccessAcquireRelease; break;
+                case 6: inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent; break;
+                default:
+                  RDCERR("Unexpected success ordering %llu", op.ops[4]);
+                  inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent;
+                  break;
+              }
+
+              // synchronisation scope
+              switch(op.ops[5])
+              {
+                case 0: inst.opFlags |= InstructionFlags::SingleThread; break;
+                case 1: break;
+                default: RDCERR("Unexpected synchronisation scope %llu", op.ops[5]); break;
+              }
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_ATOMICRMW))
+            {
+              Instruction inst;
+
+              // pointer to atomically modify
+              inst.args.push_back(getSymbol(op.ops[0]));
+
+              // type is the pointee of the first argument
+              inst.type = GetSymbolType(f, inst.args.back());
+              RDCASSERT(inst.type->type == Type::Pointer);
+              inst.type = inst.type->inner;
+
+              // parameter value
+              inst.args.push_back(getSymbol(op.ops[1]));
+
+              switch(op.ops[2])
+              {
+                case 0: inst.op = Instruction::AtomicExchange; break;
+                case 1: inst.op = Instruction::AtomicAdd; break;
+                case 2: inst.op = Instruction::AtomicSub; break;
+                case 3: inst.op = Instruction::AtomicAnd; break;
+                case 4: inst.op = Instruction::AtomicNand; break;
+                case 5: inst.op = Instruction::AtomicOr; break;
+                case 6: inst.op = Instruction::AtomicXor; break;
+                case 7: inst.op = Instruction::AtomicMax; break;
+                case 8: inst.op = Instruction::AtomicMin; break;
+                case 9: inst.op = Instruction::AtomicUMax; break;
+                case 10: inst.op = Instruction::AtomicUMin; break;
+                default:
+                  RDCERR("Unhandled atomicrmw op %llu", op.ops[2]);
+                  inst.op = Instruction::AtomicExchange;
+                  break;
+              }
+
+              if(op.ops[3])
+                inst.opFlags |= InstructionFlags::Volatile;
+
+              // success ordering
+              switch(op.ops[4])
+              {
+                case 0: break;
+                case 1: inst.opFlags |= InstructionFlags::SuccessUnordered; break;
+                case 2: inst.opFlags |= InstructionFlags::SuccessMonotonic; break;
+                case 3: inst.opFlags |= InstructionFlags::SuccessAcquire; break;
+                case 4: inst.opFlags |= InstructionFlags::SuccessRelease; break;
+                case 5: inst.opFlags |= InstructionFlags::SuccessAcquireRelease; break;
+                case 6: inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent; break;
+                default:
+                  RDCERR("Unexpected success ordering %llu", op.ops[4]);
+                  inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent;
+                  break;
+              }
+
+              // synchronisation scope
+              switch(op.ops[5])
+              {
+                case 0: inst.opFlags |= InstructionFlags::SingleThread; break;
+                case 1: break;
+                default: RDCERR("Unexpected synchronisation scope %llu", op.ops[5]); break;
+              }
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_CMPXCHG) ||
+                    IS_KNOWN(op.id, FunctionRecord::INST_CMPXCHG_OLD))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::CompareExchange;
+
+              // pointer to atomically modify
+              inst.args.push_back(getSymbol(op.ops[0]));
+
+              // type is the pointee of the first argument
+              inst.type = GetSymbolType(f, inst.args.back());
+              RDCASSERT(inst.type->type == Type::Pointer);
+              inst.type = inst.type->inner;
+
+              // combined with a bool, search for a struct like that
+              const Type *boolType = GetBoolType();
+
+              for(const Type &t : m_Types)
+              {
+                if(t.type == Type::Struct && t.members.size() == 2 && t.members[0] == inst.type &&
+                   t.members[1] == boolType)
+                {
+                  inst.type = &t;
+                  break;
+                }
+              }
+
+              RDCASSERT(inst.type->type == Type::Struct);
+
+              // expect modern encoding with weak parameters.
+              RDCASSERT(op.ops.size() >= 8);
+
+              // compare value
+              inst.args.push_back(getSymbol(op.ops[1]));
+
+              // new replacement value
+              inst.args.push_back(getSymbol(op.ops[2]));
+
+              if(op.ops[3])
+                inst.opFlags |= InstructionFlags::Volatile;
+
+              // success ordering
+              switch(op.ops[4])
+              {
+                case 0: break;
+                case 1: inst.opFlags |= InstructionFlags::SuccessUnordered; break;
+                case 2: inst.opFlags |= InstructionFlags::SuccessMonotonic; break;
+                case 3: inst.opFlags |= InstructionFlags::SuccessAcquire; break;
+                case 4: inst.opFlags |= InstructionFlags::SuccessRelease; break;
+                case 5: inst.opFlags |= InstructionFlags::SuccessAcquireRelease; break;
+                case 6: inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent; break;
+                default:
+                  RDCERR("Unexpected success ordering %llu", op.ops[4]);
+                  inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent;
+                  break;
+              }
+
+              // synchronisation scope
+              switch(op.ops[5])
+              {
+                case 0: inst.opFlags |= InstructionFlags::SingleThread; break;
+                case 1: break;
+                default: RDCERR("Unexpected synchronisation scope %llu", op.ops[5]); break;
+              }
+
+              // failure ordering
+              switch(op.ops[6])
+              {
+                case 0: break;
+                case 1: inst.opFlags |= InstructionFlags::FailureUnordered; break;
+                case 2: inst.opFlags |= InstructionFlags::FailureMonotonic; break;
+                case 3: inst.opFlags |= InstructionFlags::FailureAcquire; break;
+                case 4: inst.opFlags |= InstructionFlags::FailureRelease; break;
+                case 5: inst.opFlags |= InstructionFlags::FailureAcquireRelease; break;
+                case 6: inst.opFlags |= InstructionFlags::FailureSequentiallyConsistent; break;
+                default:
+                  RDCERR("Unexpected failure ordering %llu", op.ops[6]);
+                  inst.opFlags |= InstructionFlags::FailureSequentiallyConsistent;
+                  break;
+              }
+
+              if(op.ops[7])
+                inst.opFlags |= InstructionFlags::Weak;
+
+              m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
+
+              f.instructions.push_back(inst);
+            }
+            else if(IS_KNOWN(op.id, FunctionRecord::INST_FENCE))
+            {
+              Instruction inst;
+
+              inst.op = Instruction::Fence;
+
+              inst.type = GetVoidType();
+
+              // success ordering
+              switch(op.ops[0])
+              {
+                case 0: break;
+                case 1: inst.opFlags |= InstructionFlags::SuccessUnordered; break;
+                case 2: inst.opFlags |= InstructionFlags::SuccessMonotonic; break;
+                case 3: inst.opFlags |= InstructionFlags::SuccessAcquire; break;
+                case 4: inst.opFlags |= InstructionFlags::SuccessRelease; break;
+                case 5: inst.opFlags |= InstructionFlags::SuccessAcquireRelease; break;
+                case 6: inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent; break;
+                default:
+                  RDCERR("Unexpected success ordering %llu", op.ops[0]);
+                  inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent;
+                  break;
+              }
+
+              // synchronisation scope
+              switch(op.ops[1])
+              {
+                case 0: inst.opFlags |= InstructionFlags::SingleThread; break;
+                case 1: break;
+                default: RDCERR("Unexpected synchronisation scope %llu", op.ops[1]); break;
+              }
 
               f.instructions.push_back(inst);
             }

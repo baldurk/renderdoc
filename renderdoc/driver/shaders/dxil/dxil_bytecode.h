@@ -315,9 +315,34 @@ enum class InstructionFlags : uint32_t
   // shifts/divs
   Exact = (1 << 7),
 
-  // load/store
+  // load/store/atomic
   InBounds = (1 << 8),
   Volatile = (1 << 9),
+
+  // atomics
+  Weak = (1 << 10),
+  SingleThread = (1 << 11),
+  // CrossThread = (0 << 11),
+
+  SuccessOrderMask = (0x7 << 12),
+
+  // SuccessNotAtomic = (0x0 << 12),
+  SuccessUnordered = (0x1 << 12),
+  SuccessMonotonic = (0x2 << 12),
+  SuccessAcquire = (0x3 << 12),
+  SuccessRelease = (0x4 << 12),
+  SuccessAcquireRelease = (0x5 << 12),
+  SuccessSequentiallyConsistent = (0x6 << 12),
+
+  FailureOrderMask = (0x7 << 15),
+
+  // FailureNotAtomic = (0x0 << 15),
+  FailureUnordered = (0x1 << 15),
+  FailureMonotonic = (0x2 << 15),
+  FailureAcquire = (0x3 << 15),
+  FailureRelease = (0x4 << 15),
+  FailureAcquireRelease = (0x5 << 15),
+  FailureSequentiallyConsistent = (0x6 << 15),
 };
 
 BITMASK_OPERATORS(InstructionFlags);
@@ -404,6 +429,21 @@ struct Instruction
     Branch,
     Phi,
     Switch,
+    Fence,
+    CompareExchange,
+    LoadAtomic,
+    StoreAtomic,
+    AtomicExchange,
+    AtomicAdd,
+    AtomicSub,
+    AtomicAnd,
+    AtomicNand,
+    AtomicOr,
+    AtomicXor,
+    AtomicMax,
+    AtomicMin,
+    AtomicUMax,
+    AtomicUMin,
   } op = Unknown;
 
   InstructionFlags opFlags = InstructionFlags::NoFlags;
