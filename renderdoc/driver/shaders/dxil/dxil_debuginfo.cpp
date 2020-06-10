@@ -345,14 +345,13 @@ rdcstr DIBasicType::toString() const
 
 rdcstr DIDerivedType::toString() const
 {
-  rdcstr ret = StringFormat::Fmt("!DIDerivedType(tag: %s, name: %s", ToStr(tag).c_str(),
-                                 escapeString(name ? *name : rdcstr()).c_str());
+  rdcstr ret = StringFormat::Fmt("!DIDerivedType(tag: %s", ToStr(tag).c_str());
+  if(name)
+    ret += StringFormat::Fmt(", name: %s", escapeString(*name).c_str());
   if(scope)
     ret += StringFormat::Fmt(", scope: %s", scope->refString().c_str());
   if(file)
     ret += StringFormat::Fmt(", file: %s", file->refString().c_str());
-  else
-    ret += ", file: null";
   if(line)
     ret += StringFormat::Fmt(", line: %llu", line);
   if(base)
