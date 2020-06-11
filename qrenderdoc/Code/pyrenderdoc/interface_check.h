@@ -43,7 +43,7 @@ enum class NameType
   Member,
 };
 
-inline bool checkname(const char *baseType, rdcstr name, NameType nameType)
+inline bool checkname(rdcstr &log, const char *baseType, rdcstr name, NameType nameType)
 {
   // skip __ prefixed names
   if(name.beginsWith("__"))
@@ -106,9 +106,9 @@ inline bool checkname(const char *baseType, rdcstr name, NameType nameType)
 
     snprintf(convert_error, sizeof(convert_error) - 1,
              "Name of %s '%s.%s' does not match naming scheme.\n"
-             "Should start with %s letter and not contain underscores",
+             "Should start with %s letter and not contain underscores\n",
              nameTypeStr, baseType, name.c_str(), member ? "lowercase" : "uppercase");
-    RENDERDOC_LogMessage(LogType::Error, "QTRD", __FILE__, __LINE__, convert_error);
+    log += convert_error;
 
     return true;
   }
@@ -116,7 +116,7 @@ inline bool checkname(const char *baseType, rdcstr name, NameType nameType)
   return false;
 }
 
-inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
+inline bool check_interface(rdcstr &log, swig_type_info **swig_types, size_t numTypes)
 {
   // track all errors and fatal error at the end, so we see all of the problems at once instead of
   // requiring rebuilds over and over.
@@ -142,13 +142,13 @@ inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
     if(!result.second)
     {
       snprintf(convert_error, sizeof(convert_error) - 1,
-               "Duplicate docstring '%s' found on struct '%s' - are you missing a DOCUMENT()?",
+               "Duplicate docstring '%s' found on struct '%s' - are you missing a DOCUMENT()?\n",
                typedoc.c_str(), typeobj->tp_name);
-      RENDERDOC_LogMessage(LogType::Error, "QTRD", __FILE__, __LINE__, convert_error);
+      log += convert_error;
       errors_found = true;
     }
 
-    errors_found |= checkname("renderdoc", typeobj->tp_name, NameType::Type);
+    errors_found |= checkname(log, "renderdoc", typeobj->tp_name, NameType::Type);
 
     PyObject *dict = typeobj->tp_dict;
 
@@ -179,8 +179,9 @@ inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
             if(str == NULL || len == 0)
             {
               snprintf(convert_error, sizeof(convert_error) - 1,
-                       "Couldn't get member name for %i'th member of '%s'", (int)i, typeobj->tp_name);
-              RENDERDOC_LogMessage(LogType::Error, "QTRD", __FILE__, __LINE__, convert_error);
+                       "Couldn't get member name for %i'th member of '%s'\n", (int)i,
+                       typeobj->tp_name);
+              log += convert_error;
               errors_found = true;
             }
             else
@@ -198,7 +199,7 @@ inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
 
               // if it's a callable it's a method, ignore it
               if(!PyCallable_Check(value) && !PyType_IsSubtype(value->ob_type, &PyStaticMethod_Type))
-                errors_found |= checkname(typeobj->tp_name, name, nameType);
+                errors_found |= checkname(log, typeobj->tp_name, name, nameType);
             }
 
             Py_DecRef(bytes);
@@ -241,9 +242,9 @@ inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
             if(documented.find(*it) == documented.end())
             {
               snprintf(convert_error, sizeof(convert_error) - 1,
-                       "'%s::%s' is not documented in class docstring", typeobj->tp_name,
+                       "'%s::%s' is not documented in class docstring\n", typeobj->tp_name,
                        it->c_str());
-              RENDERDOC_LogMessage(LogType::Error, "QTRD", __FILE__, __LINE__, convert_error);
+              log += convert_error;
               errors_found = true;
             }
           }
@@ -257,7 +258,7 @@ inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
     {
       rdcstr method_doc = method->ml_doc;
 
-      errors_found |= checkname(typeobj->tp_name, method->ml_name, NameType::Method);
+      errors_found |= checkname(log, typeobj->tp_name, method->ml_name, NameType::Method);
 
       int32_t i = 0;
       while(method_doc[i] == '\n')
@@ -278,9 +279,9 @@ inline bool check_interface(swig_type_info **swig_types, size_t numTypes)
         {
           snprintf(
               convert_error, sizeof(convert_error) - 1,
-              "Duplicate docstring '%s' found on method '%s.%s' - are you missing a DOCUMENT()?",
+              "Duplicate docstring '%s' found on method '%s.%s' - are you missing a DOCUMENT()?\n",
               method_doc.c_str(), typeobj->tp_name, method->ml_name);
-          RENDERDOC_LogMessage(LogType::Error, "QTRD", __FILE__, __LINE__, convert_error);
+          log += convert_error;
           errors_found = true;
         }
       }

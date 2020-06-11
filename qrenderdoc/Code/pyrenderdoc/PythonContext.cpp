@@ -69,8 +69,8 @@ PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
 #include "version.h"
 
 // exported by generated files, used to check interface compliance
-bool CheckCoreInterface();
-bool CheckQtInterface();
+bool CheckCoreInterface(rdcstr &log);
+bool CheckQtInterface(rdcstr &log);
 
 // defined in SWIG-generated renderdoc_python.cpp
 extern "C" PyObject *PyInit_renderdoc(void);
@@ -457,13 +457,13 @@ PythonContext::~PythonContext()
   outputTick();
 }
 
-bool PythonContext::CheckInterfaces()
+bool PythonContext::CheckInterfaces(rdcstr &log)
 {
   bool errors = false;
 
   PyGILState_STATE gil = PyGILState_Ensure();
-  errors |= CheckCoreInterface();
-  errors |= CheckQtInterface();
+  errors |= CheckCoreInterface(log);
+  errors |= CheckQtInterface(log);
   PyGILState_Release(gil);
 
   return errors;

@@ -61,7 +61,7 @@ public:
                             rdcarray<rdcpair<rdcstr, PyObject *>> &args);
   static void FreePyArgs(rdcarray<rdcpair<rdcstr, PyObject *>> &args);
 
-  bool CheckInterfaces();
+  bool CheckInterfaces(rdcstr &log);
 
   QString versionString();
 

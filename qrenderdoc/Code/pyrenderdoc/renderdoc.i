@@ -489,7 +489,7 @@ extern "C" PyObject *RENDERDOC_DumpObject(PyObject *obj)
   static swig_type_info **interfaceCheckTypes;
   static size_t interfaceCheckNumTypes = 0;
 
-  bool CheckCoreInterface()
+  bool CheckCoreInterface(rdcstr &log)
   {
 #if defined(RELEASE)
     return false;
@@ -497,7 +497,7 @@ extern "C" PyObject *RENDERDOC_DumpObject(PyObject *obj)
     if(interfaceCheckNumTypes == 0)
       return false;
 
-    return check_interface(interfaceCheckTypes, interfaceCheckNumTypes);
+    return check_interface(log, interfaceCheckTypes, interfaceCheckNumTypes);
 #endif
   }
 %}

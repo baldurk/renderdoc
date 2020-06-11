@@ -120,7 +120,7 @@ TEMPLATE_ARRAY_INSTANTIATE_PTR(rdcarray, ICaptureViewer)
   static swig_type_info **interfaceCheckTypes;
   static size_t interfaceCheckNumTypes = 0;
 
-  bool CheckQtInterface()
+  bool CheckQtInterface(rdcstr &log)
   {
 #if defined(RELEASE)
     return false;
@@ -128,7 +128,7 @@ TEMPLATE_ARRAY_INSTANTIATE_PTR(rdcarray, ICaptureViewer)
     if(interfaceCheckNumTypes == 0)
       return false;
 
-    return check_interface(interfaceCheckTypes, interfaceCheckNumTypes);
+    return check_interface(log, interfaceCheckTypes, interfaceCheckNumTypes);
 #endif
   }
 %}

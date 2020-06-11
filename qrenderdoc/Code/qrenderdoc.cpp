@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <stdio.h>
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QDir>
@@ -104,21 +105,35 @@ int main(int argc, char *argv[])
 
     bool errors = false;
 
-    qInfo() << "Checking python binding consistency.";
+    FILE *logOut = NULL;
+
+    if(argc >= 3)
+      logOut = fopen(argv[2], "w");
+
+    if(logOut == NULL)
+      logOut = stdout;
+
+    fputs("Checking python binding consistency.\n", logOut);
+
+    rdcstr errorLog;
 
     {
       PythonContextHandle py;
-      errors = py.ctx().CheckInterfaces();
+      errors = py.ctx().CheckInterfaces(errorLog);
     }
 
     if(errors)
     {
-      qCritical() << "Found errors in python bindings. Please fix!";
+      RENDERDOC_LogMessage(LogType::Error, "EXTN", __FILE__, __LINE__, errorLog.c_str());
+      fputs("Found errors in python bindings. Please fix!\n", logOut);
+      fputs(errorLog.c_str(), logOut);
       return 1;
     }
-
-    qInfo() << "Python bindings are consistent.";
-    return 0;
+    else
+    {
+      fputs("Python bindings are consistent.\n", logOut);
+      return 0;
+    }
   }
 #endif
 
