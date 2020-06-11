@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>561</width>
-    <height>519</height>
+    <width>564</width>
+    <height>530</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -410,7 +410,7 @@ e.g. 1000 * 10 = 1e4</string>
              <string>A global scale for all fonts in the program. This will only scale text, icons and other UI elements will be scaled according to DPI settings as normal.</string>
             </property>
             <property name="editable">
-              <bool>true</bool>
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -649,6 +649,16 @@ After interop is enabled you will need to reload any capture.</string>
           <string>Texture Viewer</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
+          <item row="4" column="1">
+           <widget class="QPushButton" name="browseCustomShadersPath">
+            <property name="toolTip">
+             <string>Browse for the directory with custom shaders for Texture Viewer</string>
+            </property>
+            <property name="text">
+             <string>Browse</string>
+            </property>
+           </widget>
+          </item>
           <item row="0" column="0">
            <widget class="QLabel" name="label_12">
             <property name="sizePolicy">
@@ -662,22 +672,6 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
             <property name="text">
              <string>Reset Range on changing selection</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QCheckBox" name="TextureViewer_ResetRange">
-            <property name="minimumSize">
-             <size>
-              <width>50</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="toolTip">
-             <string>Reset visible range when changing event or texture</string>
-            </property>
-            <property name="text">
-             <string/>
             </property>
            </widget>
           </item>
@@ -697,6 +691,29 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
            </widget>
           </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_29">
+            <property name="toolTip">
+             <string>Path to the directory with custom shaders for Texture Viewer</string>
+            </property>
+            <property name="text">
+             <string>Custom shaders directory</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <spacer name="verticalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>378</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
           <item row="1" column="1">
            <widget class="QCheckBox" name="TextureViewer_PerTexSettings">
             <property name="minimumSize">
@@ -707,6 +724,22 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
             <property name="toolTip">
              <string>Settings such as visible channels (RGBA) and selected mip/slice are remembered and restored per-texture.</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QCheckBox" name="TextureViewer_ResetRange">
+            <property name="minimumSize">
+             <size>
+              <width>50</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="toolTip">
+             <string>Reset visible range when changing event or texture</string>
             </property>
             <property name="text">
              <string/>
@@ -745,18 +778,22 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
            </widget>
           </item>
-          <item row="3" column="1">
-           <spacer name="verticalSpacer_3">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
+          <item row="4" column="0">
+           <widget class="QLineEdit" name="TextureViewer_CustomShadersPath">
+            <property name="toolTip">
+             <string>Path to the directory with custom shaders for Texture Viewer</string>
             </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>378</height>
-             </size>
+           </widget>
+          </item>
+          <item row="4" column="2">
+           <widget class="QPushButton" name="resetCustomShadersPath">
+            <property name="toolTip">
+             <string>Reset custom shaders directory to default config path</string>
             </property>
-           </spacer>
+            <property name="text">
+             <string>Reset</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
