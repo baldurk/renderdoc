@@ -5,9 +5,9 @@ on:
     branches:
       - v1.x
       - ci-test
-   pull_request:
-     branches:
-       - v1.x
+  pull_request:
+    branches:
+      - v1.x
 
 defaults:
   run:
