@@ -2671,12 +2671,15 @@ void ShaderViewer::updateDebugState()
 
       if(bind.arraySize == 1)
       {
-        RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({m_ShaderDetails->readOnlyResources[i].name, ro.name,
-                                  lit("Resource"), ToQStr(roBind.resources[0].resourceId)});
-        node->setTag(QVariant::fromValue(
-            VariableTag(DebugVariableReference(DebugVariableType::ReadOnlyResource, ro.name))));
-        ui->constants->addTopLevelItem(node);
+        if(!roBind.resources.empty())
+        {
+          RDTreeWidgetItem *node =
+              new RDTreeWidgetItem({m_ShaderDetails->readOnlyResources[i].name, ro.name,
+                                    lit("Resource"), ToQStr(roBind.resources[0].resourceId)});
+          node->setTag(QVariant::fromValue(
+              VariableTag(DebugVariableReference(DebugVariableType::ReadOnlyResource, ro.name))));
+          ui->constants->addTopLevelItem(node);
+        }
       }
       else if(bind.arraySize == ~0U)
       {
@@ -2739,12 +2742,15 @@ void ShaderViewer::updateDebugState()
 
       if(bind.arraySize == 1)
       {
-        RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({m_ShaderDetails->readWriteResources[i].name, rw.name,
-                                  lit("Resource"), ToQStr(rwBind.resources[0].resourceId)});
-        node->setTag(QVariant::fromValue(
-            VariableTag(DebugVariableReference(DebugVariableType::ReadWriteResource, rw.name))));
-        ui->constants->addTopLevelItem(node);
+        if(!rwBind.resources.empty())
+        {
+          RDTreeWidgetItem *node =
+              new RDTreeWidgetItem({m_ShaderDetails->readWriteResources[i].name, rw.name,
+                                    lit("Resource"), ToQStr(rwBind.resources[0].resourceId)});
+          node->setTag(QVariant::fromValue(
+              VariableTag(DebugVariableReference(DebugVariableType::ReadWriteResource, rw.name))));
+          ui->constants->addTopLevelItem(node);
+        }
       }
       else if(bind.arraySize == ~0U)
       {
@@ -2807,12 +2813,15 @@ void ShaderViewer::updateDebugState()
 
       if(bind.arraySize == 1)
       {
-        RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({m_ShaderDetails->samplers[i].name, s.name, lit("Sampler"),
-                                  samplerRep(bind, ~0U, sampBind.resources[0].resourceId)});
-        node->setTag(QVariant::fromValue(
-            VariableTag(DebugVariableReference(DebugVariableType::Sampler, s.name))));
-        ui->constants->addTopLevelItem(node);
+        if(!sampBind.resources.empty())
+        {
+          RDTreeWidgetItem *node =
+              new RDTreeWidgetItem({m_ShaderDetails->samplers[i].name, s.name, lit("Sampler"),
+                                    samplerRep(bind, ~0U, sampBind.resources[0].resourceId)});
+          node->setTag(QVariant::fromValue(
+              VariableTag(DebugVariableReference(DebugVariableType::Sampler, s.name))));
+          ui->constants->addTopLevelItem(node);
+        }
       }
       else if(bind.arraySize == ~0U)
       {
@@ -3306,7 +3315,8 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
 
         if(bind.arraySize == 1)
         {
-          value = samplerRep(bind, ~0U, res.resources[0].resourceId);
+          if(!res.resources.empty())
+            value = samplerRep(bind, ~0U, res.resources[0].resourceId);
         }
         else if(bind.arraySize == ~0U)
         {
@@ -3361,7 +3371,8 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
         BoundResourceArray &res = resList[bindIdx];
         if(bind.arraySize == 1)
         {
-          value = ToQStr(res.resources[0].resourceId);
+          if(!res.resources.empty())
+            value = ToQStr(res.resources[0].resourceId);
         }
         else if(bind.arraySize == ~0U)
         {
