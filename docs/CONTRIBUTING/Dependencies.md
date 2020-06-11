@@ -146,7 +146,7 @@ sudo apt-get install openjdk-8-jdk
 export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 ```
 
-The Android SDK and NDK can be set up with the following steps. They are also mirrored in our Travis-CI [setup script](util/travis/android_setup.sh) for Android.
+The Android SDK and NDK can be set up with the following steps.
 
 SDK links are pulled from [here](https://web.archive.org/web/20171026083141/https://developer.android.com/studio/index.html) (older versions are no longer linked from the android site, but the downloads still work).
 

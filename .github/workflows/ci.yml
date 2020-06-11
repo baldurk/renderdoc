@@ -1,0 +1,304 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - v1.x
+      - ci-test
+   pull_request:
+     branches:
+       - v1.x
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  commit-msg:
+    name: Commit message check
+    runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: true
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 100
+    - name: Check commit messages
+      run: |
+        if git log --oneline | tail -n +2 | head -n 100 | cut -d ' ' -f2- | grep -q '.\{73\}'; then
+          (echo -n "::error::";
+           echo "Some commit message summary lines are too long. See CONTRIBUTING.md for more information.";
+           echo "Invalid commits:";
+           echo;
+           git log --oneline | tail -n +2 | head -n 100 | cut -d ' ' -f2- | grep '.\{73\}';) | tr '\n' '\001' | sed -e 's#\x01#%0A#g';
+          exit 1;
+        fi
+  clang-format:
+    name: Code formatting check
+    runs-on: ubuntu-18.04
+    strategy:
+      fail-fast: true
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 5
+    - name: Add LLVM apt repository
+      run: |
+        wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        sudo add-apt-repository -y 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-3.8 main'
+    - name: Install clang-format-3.8
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq clang-format-3.8 
+    - name: Run clang-format-3.8
+      run: |
+        . ./util/clang_format_all.sh
+        git clean -f
+    - name: Check formatting
+      run: |
+        git diff --quiet || (
+          (echo -n "::error::";
+          echo "clang-format issues were found. See CONTRIBUTING.md for more information.";
+          echo;
+          git diff;) | tr '\n' '\001' | sed -e 's#\x01#%0A#g';
+          exit 1;
+        )
+  windows:
+    name: Windows
+    needs: [commit-msg, clang-format]
+    runs-on: windows-2019
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [ VS2015 x86 Development, VS2015 x64 Development, VS2015 x64 Release, VS2017 x64 Development, VS2019 x64 Development ]
+        include:
+          - name: VS2015 x86 Development
+            compiler: VS2015
+            toolset: v140
+            platform: x86
+            configuration: Development
+          - name: VS2015 x64 Development
+            compiler: VS2015
+            toolset: v140
+            platform: x64
+            configuration: Development
+          - name: VS2015 x64 Release
+            compiler: VS2015
+            toolset: v140
+            platform: x64
+            configuration: Release
+          - name: VS2017 x64 Development
+            compiler: VS2017
+            toolset: v141
+            platform: x64
+            configuration: Development
+          - name: VS2019 x64 Development
+            compiler: VS2019
+            toolset: v142
+            platform: x64
+            configuration: Development
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 5
+    - name: Download optional 3rdparty extras
+      run: |
+        curl https://renderdoc.org/qrenderdoc_3rdparty.zip -O
+        7z x qrenderdoc_3rdparty.zip
+    - name: Set up Visual Studio tools
+      uses: microsoft/setup-msbuild@v1.0.0
+    - name: Building solution
+      run: msbuild.exe renderdoc.sln "/p:Configuration=${{ matrix.configuration }}" "/p:Platform=${{ matrix.platform }}" "/p:PlatformToolset=${{ matrix.toolset }}"
+      shell: powershell
+    - if: matrix.configuration == 'Development'
+      name: Running core unit tests
+      run: |
+        if ! ./*/Development/renderdoccmd.exe test unit -o test.log; then
+          echo "::error::$(cat test.log)" | tr -d '\r' |  tr '\n' '\001' | sed -e 's#\x01#%0D%0A#g';
+          exit 1;
+        fi
+    - if: matrix.configuration == 'Development'
+      name: Running UI unit tests
+      run: |
+        if ! ./*/Development/qrenderdoc.exe --unittest test.log; then
+          echo "::error::$(cat test.log)" | tr -d '\r' |  tr '\n' '\001' | sed -e 's#\x01#%0D%0A#g';
+          exit 1;
+        fi
+  docs:
+    name: Documentation Build
+    needs: [commit-msg, clang-format]
+    runs-on: ubuntu-18.04
+    env:
+      QT_SELECT: qt5
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 5
+    - name: Install compilation dependencies
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qtbase5-dev libxcb-keysyms1-dev
+    - name: Install sphinx dependencies
+      run: sudo pip3 install Sphinx
+    - name: Build cut-down renderdoc for python modules
+      run: |
+        mkdir build
+        pushd build
+        cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_GL=OFF -DENABLE_GLES=OFF -DENABLE_VULKAN=OFF -DENABLE_RENDERDOCCMD=OFF -DENABLE_QRENDERDOC=OFF ..
+        make -j2
+        popd
+    - name: Build documentation
+      run: |
+        cd docs
+        make html SPHINXOPTS=-W
+  linux:
+    name: Linux
+    needs: [commit-msg, clang-format]
+    runs-on: ubuntu-18.04
+    env:
+      QT_SELECT: qt5
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [ GCC 5 Development, Clang 3.8 Development, Clang 3.8 Release, Clang 9 Development ]
+        include:
+          - name: GCC 5 Development
+            cc: gcc-5
+            cxx: g++-5
+            type: Debug
+          - name: Clang 3.8 Development
+            cc: clang-3.8
+            cxx: clang++-3.8
+            type: Debug
+          - name: Clang 3.8 Release
+            cc: clang-3.8
+            cxx: clang++-3.8
+            type: Release
+          - name: Clang 9 Development
+            cc: clang-9
+            cxx: clang++-9
+            type: Debug
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 5
+    - name: Add LLVM apt repository
+      run: |
+        wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        sudo add-apt-repository -y 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-3.8 main'
+    - name: Install compilation dependencies
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq libx11-dev mesa-common-dev libgl1-mesa-dev qtbase5-dev libqt5svg5-dev libqt5x11extras5-dev libxcb-keysyms1-dev clang++-3.8 g++-5
+    - name: Build
+      run: |
+        mkdir build
+        pushd build
+        CC=${{ matrix.cc }} CXX=${{ matrix.cxx }} cmake -DCMAKE_BUILD_TYPE=${{ matrix.type }} ..
+        make -j2
+        popd
+    - if: matrix.type == 'Debug'
+      name: Run core unit tests
+      run: |
+        if ! ./build/bin/renderdoccmd test unit -o test.log; then
+          echo "::error::$(cat test.log)" | tr '\n' '\001' | sed -e 's#\x01#%0A#g';
+          exit 1;
+        fi
+    - if: matrix.type == 'Debug'
+      name: Run UI unit tests
+      run: |
+        if ! ./build/bin/qrenderdoc --unittest test.log; then
+          echo "::error::$(cat test.log)" | tr '\n' '\001' | sed -e 's#\x01#%0A#g';
+          exit 1;
+        fi
+  android:
+    name: Android
+    needs: [commit-msg, clang-format]
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 5
+    - name: Install Android SDK 3859397 and NDK r14b
+      run: |
+        export ARCH=`uname -m`
+        wget -q http://dl.google.com/android/repository/sdk-tools-linux-3859397.zip
+        wget -q http://dl.google.com/android/repository/android-ndk-r14b-linux-${ARCH}.zip
+        unzip -u -q android-ndk-r14b-linux-${ARCH}.zip -d $GITHUB_WORKSPACE
+        unzip -u -q sdk-tools-linux-3859397.zip -d $GITHUB_WORKSPACE
+        echo "::set-env name=ANDROID_NDK::$GITHUB_WORKSPACE/android-ndk-r14b"
+        echo "::set-env name=ANDROID_SDK::$GITHUB_WORKSPACE/"
+        
+        # Answer "yes" to any license acceptance requests
+        pushd $GITHUB_WORKSPACE/tools/bin
+        (yes 2>/dev/null | ./sdkmanager --sdk_root=$GITHUB_WORKSPACE "build-tools;26.0.1" "platforms;android-23") || echo
+        popd
+    - name: Build
+      run: |
+        mkdir build-android-arm32
+        pushd build-android-arm32
+        cmake -DBUILD_ANDROID=On -DANDROID_ABI=armeabi-v7a -DANDROID_NATIVE_API_LEVEL=23 ..
+        make -j2
+        popd
+  macOS:
+    name: Mac
+    needs: [commit-msg, clang-format]
+    runs-on: macos-10.15
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [ Development, Release ]
+        include:
+          - name: Development
+            type: Debug
+          - name: Release
+            type: Release
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 5
+    - name: Install Homebrew dependencies
+      run: |
+        brew update
+        brew install qt5 lftp automake
+        brew link qt5 --force
+    - name: Build
+      run: |
+        mkdir build
+        pushd build
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.type }} ..
+        make -j2
+        popd
+    - if: matrix.type == 'Debug'
+      name: Run core unit tests
+      run: |
+        if ! ./build/bin/renderdoccmd test unit -o test.log; then
+          echo "::error::$(cat test.log)" | tr '\n' '\001' | sed -e $'s#\x01#%0A#g';
+          exit 1;
+        fi
+    - if: matrix.type == 'Debug'
+      name: Run UI unit tests
+      run: |
+        if ! ./build/bin/qrenderdoc.app/Contents/MacOS/qrenderdoc --unittest test.log; then
+          echo "::error::$(cat test.log)" | tr '\n' '\001' | sed -e $'s#\x01#%0A#g';
+          exit 1;
+        fi
+    - if: matrix.type == 'Release' && github.event_name == 'push'
+      name: Preparing for deploy
+      run: ./util/buildscripts/scripts/prepare_deps_macos.sh ./build/bin/qrenderdoc.app/Contents/MacOS/qrenderdoc
+    - if: matrix.type == 'Release' && github.event_name == 'push'
+      name: Packaging artifacts for nightly build
+      run: |
+        FNAME="RenderDoc_macOS_"`git rev-parse HEAD`.zip
+        zip -r "${FNAME}" build/bin
+        ls -lh "${FNAME}"
+        echo "::set-env name=FNAME::$FNAME"
+    - if: matrix.type == 'Release' && github.event_name == 'push'
+      name: Uploading artifacts for nightly build
+      env:
+        UPLOADLOCATION: ${{ secrets.MacUploadLocation }}
+      run: |
+        echo 'renderdoc.org,209.133.211.153 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBObosfTSrCa11pDrmPxJ6zzNltDJls3Vc0AMVrqX0hAGFoFWbGvdDm3wpDBYHpkL9LmG6bJNHqWmO59oUJZYl9E=' >> $HOME/.ssh/known_hosts
+        ls -lR $HOME/.ssh
+        cat $HOME/.ssh/known_hosts
+        lftp sftp://"${UPLOADLOCATION}" -e "cd upload; put ${FNAME}; bye"
