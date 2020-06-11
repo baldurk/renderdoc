@@ -23,8 +23,8 @@
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>qrenderdoc_module</RootNamespace>
     <ProjectName>qrenderdoc_module</ProjectName>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
+  <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>

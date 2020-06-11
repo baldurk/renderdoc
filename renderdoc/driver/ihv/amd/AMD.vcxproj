@@ -22,6 +22,7 @@
     <ProjectGuid>{5DE5A561-548A-4DD7-90F0-06A2B39EAE9A}</ProjectGuid>
     <RootNamespace>AMD</RootNamespace>
   </PropertyGroup>
+  <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>

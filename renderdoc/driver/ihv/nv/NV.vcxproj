@@ -22,6 +22,7 @@
     <ProjectGuid>{40349AD9-5558-4DF4-84E2-11934DE90A11}</ProjectGuid>
     <RootNamespace>NV</RootNamespace>
   </PropertyGroup>
+  <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>

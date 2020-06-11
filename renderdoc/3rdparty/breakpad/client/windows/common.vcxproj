@@ -24,6 +24,7 @@
     <RootNamespace>common</RootNamespace>
     <ProjectName>breakpad_common</ProjectName>
   </PropertyGroup>
+  <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>

@@ -24,6 +24,7 @@
     <RootNamespace>renderdoc_spirv</RootNamespace>
     <ProjectName>spirv</ProjectName>
   </PropertyGroup>
+  <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>

@@ -22,9 +22,9 @@
     <ProjectGuid>{37955C79-D91D-423F-8C6C-8F5BCF4F28D4}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>renderdocui_stub</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
     <ProjectName>renderdocui_stub</ProjectName>
   </PropertyGroup>
+  <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup>
     <ConfigurationType>Application</ConfigurationType>

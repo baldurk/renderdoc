@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+<!-- visual studio doesn't have a way to say "I don't care about the SDK version". Targetting an old version will explicitly fail on new SDKs for some stupid reason. So instead we try to target the latest windows 10 SDK or 8.1 if no windows 10 SDK is installed -->
+
+<!-- Note, in VS2019 this is semi-fixed and you can specify 10.0 to mean 'any windows 10 SDK'. However a) presumably this will break when windows 11 ships. b) it only works if you're using the v142 toolset for no good reason. -->
+<PropertyGroup>
+
+	<RenderDocLatestWin10SDKVersion>$(Registry:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\Windows\v10.0@ProductVersion)</RenderDocLatestWin10SDKVersion>
+	<!-- version needed has extra .0 -->
+	<RenderDocLatestWin10SDKVersion Condition="'$(RenderDocLatestWin10SDKVersion)'!=''">$(RenderDocLatestWin10SDKVersion).0</RenderDocLatestWin10SDKVersion>
+
+	<!-- if we found the SDK version, use it. Otherwise fall back to 8.1. Since we require VS2015 which installed the 8.1 SDK at minimum we don't need to fallback any earlier (though we don't use anything from the 8.1 SDK either) -->
+	<WindowsTargetPlatformVersion Condition="'$(RenderDocLatestWin10SDKVersion)'!=''">$(RenderDocLatestWin10SDKVersion)</WindowsTargetPlatformVersion>
+	<WindowsTargetPlatformVersion Condition="'$(RenderDocLatestWin10SDKVersion)'==''">8.1</WindowsTargetPlatformVersion>
+</PropertyGroup>
+
+</Project>

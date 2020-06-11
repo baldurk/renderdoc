@@ -22,9 +22,9 @@
     <ProjectGuid>{257FD75C-4D17-4A23-A754-23BFD85887A0}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>version</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
     <ProjectName>version</ProjectName>
   </PropertyGroup>
+  <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup>
     <ConfigurationType>StaticLibrary</ConfigurationType>
