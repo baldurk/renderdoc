@@ -350,6 +350,7 @@ private:
 
   bool canCompileCustomShader(ShaderEncoding encoding);
   void reloadCustomShaders(const QString &filter);
+  QDir getCustomShadersDir() const;
 
   TextureDisplay m_TexDisplay;
 };

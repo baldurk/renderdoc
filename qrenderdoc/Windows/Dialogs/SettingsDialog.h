@@ -81,6 +81,8 @@ private slots:
   void on_TextureViewer_PerTexSettings_toggled(bool checked);
   void on_TextureViewer_ResetRange_toggled(bool checked);
   void on_TextureViewer_PerTexYFlip_toggled(bool checked);
+  void on_browseCustomShadersPath_clicked();
+  void on_resetCustomShadersPath_clicked();
 
   // shader viewer
   void on_ShaderViewer_FriendlyNaming_toggled(bool checked);

@@ -4020,8 +4020,7 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
     filters.push_back(lit("*.") + it.key());
   }
 
-  QStringList files =
-      QDir(configFilePath(QString()))
+  QStringList files = getCustomShadersDir()
           .entryList(filters, QDir::Files | QDir::NoDotAndDotDot, QDir::Name | QDir::IgnoreCase);
 
   QStringList watchedFiles = m_Watcher->files();
@@ -4038,11 +4037,12 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
     if(!filter.isEmpty() && filter.toUpper() != key)
       continue;
 
-    m_Watcher->addPath(configFilePath(f));
+    QString filePath = QDir::cleanPath(getCustomShadersDir().absoluteFilePath(f));
+    m_Watcher->addPath(filePath);
 
     if(!m_CustomShaders.contains(key) && !m_CustomShadersBusy.contains(key))
     {
-      QFile fileHandle(configFilePath(f));
+      QFile fileHandle(filePath);
       if(fileHandle.open(QFile::ReadOnly | QFile::Text))
       {
         QTextStream stream(&fileHandle);
@@ -4134,6 +4134,13 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
   }
 }
 
+QDir TextureViewer::getCustomShadersDir() const
+{
+  return m_Ctx.Config().TextureViewer_CustomShadersDirectory.empty()
+                        ? QDir(configFilePath(QString()))
+                        : QDir(m_Ctx.Config().TextureViewer_CustomShadersDirectory);
+}
+
 void TextureViewer::on_customCreate_clicked()
 {
   QString filename = ui->customShader->currentText();
@@ -4177,7 +4184,7 @@ void TextureViewer::on_customCreate_clicked()
     return;
   }
 
-  QString path = configFilePath(filename);
+  QString path = QDir::cleanPath(getCustomShadersDir().absoluteFilePath(filename));
 
   QString src;
 
@@ -4240,7 +4247,7 @@ void TextureViewer::on_customEdit_clicked()
     return;
   }
 
-  QString path = configFilePath(filename);
+  QString path = QDir::cleanPath(getCustomShadersDir().absoluteFilePath(filename));
 
   QString src;
 
@@ -4332,7 +4339,7 @@ void TextureViewer::on_customDelete_clicked()
 
   if(res == QMessageBox::Yes)
   {
-    QString path = configFilePath(shaderName);
+    QString path = QDir::cleanPath(getCustomShadersDir().absoluteFilePath(shaderName));
     if(!QFileInfo::exists(path))
     {
       RDDialog::critical(
