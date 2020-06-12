@@ -12,6 +12,10 @@ I want to ensure that anyone can contribute to RenderDoc with only the next bug 
 
 If you have any queries or concerns in this regard you can get in touch with me [directly over email](mailto:baldurk@baldurk.org).
 
+## Acceptable use of RenderDoc
+
+RenderDoc is a tool that can be used for debugging your own projects and programs, those to which you have true ownership of. Use and abuse of RenderDoc for illegal or unethical uses including but not limited to capturing commercial products for the purposes of extracting and using copyrighted assets will absolutely not be tolerated. Any questions or issues related to any such use will not be answered and no support will be provided.
+
 ## Copyright / Contributor License Agreement
 
 Any code you submit will become part of the repository and be distributed under the [RenderDoc license](../LICENSE.md). By submitting code to the project you agree that the code is your own work and that you have the ability to give it to the project.
