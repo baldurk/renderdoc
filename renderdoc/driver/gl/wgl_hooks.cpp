@@ -563,6 +563,10 @@ static PROC WINAPI wglGetProcAddress_hooked(const char *func)
   if(realFunc == NULL && !FullyImplementedFunction(func))
     return realFunc;
 
+  // otherwise if we plan to return a hook anyway, ensure we don't leak the implementation's
+  // LastError code
+  SetLastError(0);
+
   if(!strcmp(func, "wglCreateContext"))
     return (PROC)&wglCreateContext_hooked;
   if(!strcmp(func, "wglDeleteContext"))
