@@ -1,10 +1,8 @@
 # Filing feature requests
 
-(also applies to general questions)
-
 :warning: **PLEASE NOTE: YOU MUST USE THE PROVIDED ISSUE TEMPLATE!** :warning:
 
-Below is guidance for each section of the issue template.
+When filing a bug please click 'Get started' next to the 'Feature request' entry. Below is guidance for each section of the issue template.
 
 # Description
 
@@ -16,9 +14,7 @@ This can also be a reason why feature requests are turned down. If the problem y
 
 If this happens please be aware that it's not a criticism of your use case, and if your change is small or you feel adventurous you could change RenderDoc's source and recompile it to behave as you'd like.
 
-# Steps to reproduce
-
-You can delete this section in the issue template! It is only required for bugs. However if you want to upload a capture to exhibit exactly what problem you're trying to solve that would be very welcome :).
+If you can upload a capture that exhibits exactly what problem you're trying to solve that would be very welcome :smile:.
 
 # Environment
 

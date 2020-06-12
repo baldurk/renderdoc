@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question
+    url: https://github.com/baldurk/renderdoc/blob/v1.x/docs/CONTRIBUTING/Questions.md
+    about: Github issues are not well suited for general questions. Please read about where to ask questions here.
