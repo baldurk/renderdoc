@@ -649,29 +649,61 @@ After interop is enabled you will need to reload any capture.</string>
           <string>Texture Viewer</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
-          <item row="4" column="1">
-           <widget class="QPushButton" name="browseCustomShadersPath">
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_29">
             <property name="toolTip">
-             <string>Browse for the directory with custom shaders for Texture Viewer</string>
+             <string>List of the directories with custom shaders</string>
             </property>
             <property name="text">
-             <string>Browse</string>
+             <string>Custom shader directories</string>
             </property>
            </widget>
           </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_12">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
+          <item row="0" column="1">
+           <widget class="QCheckBox" name="TextureViewer_ResetRange">
+            <property name="minimumSize">
+             <size>
+              <width>50</width>
+              <height>0</height>
+             </size>
             </property>
             <property name="toolTip">
              <string>Reset visible range when changing event or texture</string>
             </property>
+            <property name="layoutDirection">
+             <enum>Qt::RightToLeft</enum>
+            </property>
             <property name="text">
-             <string>Reset Range on changing selection</string>
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QCheckBox" name="TextureViewer_PerTexSettings">
+            <property name="minimumSize">
+             <size>
+              <width>50</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="toolTip">
+             <string>Settings such as visible channels (RGBA) and selected mip/slice are remembered and restored per-texture.</string>
+            </property>
+            <property name="layoutDirection">
+             <enum>Qt::RightToLeft</enum>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QPushButton" name="TextureViewer_ChooseShaderDirectories">
+            <property name="toolTip">
+             <string>Choose custom shader search directories.</string>
+            </property>
+            <property name="text">
+             <string>Choose directories</string>
             </property>
            </widget>
           </item>
@@ -691,17 +723,42 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
            </widget>
           </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="label_29">
+          <item row="2" column="1">
+           <widget class="QCheckBox" name="TextureViewer_PerTexYFlip">
+            <property name="minimumSize">
+             <size>
+              <width>50</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="toolTip">
-             <string>Path to the directory with custom shaders for Texture Viewer</string>
+             <string>Y-flipping state is remembered and restored per-texture, rather than treated as a global toggle.</string>
+            </property>
+            <property name="layoutDirection">
+             <enum>Qt::RightToLeft</enum>
             </property>
             <property name="text">
-             <string>Custom shaders directory</string>
+             <string/>
             </property>
            </widget>
           </item>
-          <item row="5" column="1">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_12">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="toolTip">
+             <string>Reset visible range when changing event or texture</string>
+            </property>
+            <property name="text">
+             <string>Reset Range on changing selection</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
            <spacer name="verticalSpacer_3">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
@@ -713,38 +770,6 @@ After interop is enabled you will need to reload any capture.</string>
              </size>
             </property>
            </spacer>
-          </item>
-          <item row="1" column="1">
-           <widget class="QCheckBox" name="TextureViewer_PerTexSettings">
-            <property name="minimumSize">
-             <size>
-              <width>50</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="toolTip">
-             <string>Settings such as visible channels (RGBA) and selected mip/slice are remembered and restored per-texture.</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QCheckBox" name="TextureViewer_ResetRange">
-            <property name="minimumSize">
-             <size>
-              <width>50</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="toolTip">
-             <string>Reset visible range when changing event or texture</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="label_26">
@@ -759,39 +784,6 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
             <property name="text">
              <string>Y-flipping state saved per-texture</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QCheckBox" name="TextureViewer_PerTexYFlip">
-            <property name="minimumSize">
-             <size>
-              <width>50</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="toolTip">
-             <string>Y-flipping state is remembered and restored per-texture, rather than treated as a global toggle.</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="0">
-           <widget class="QLineEdit" name="TextureViewer_CustomShadersPath">
-            <property name="toolTip">
-             <string>Path to the directory with custom shaders for Texture Viewer</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="2">
-           <widget class="QPushButton" name="resetCustomShadersPath">
-            <property name="toolTip">
-             <string>Reset custom shaders directory to default config path</string>
-            </property>
-            <property name="text">
-             <string>Reset</string>
             </property>
            </widget>
           </item>

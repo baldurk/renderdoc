@@ -4020,8 +4020,17 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
     filters.push_back(lit("*.") + it.key());
   }
 
-  QStringList files = getCustomShadersDir()
-          .entryList(filters, QDir::Files | QDir::NoDotAndDotDot, QDir::Name | QDir::IgnoreCase);
+  QStringList files;
+  QList<QDir> shaderDirectories = getShaderDirectories();
+  for(const QDir &dir : shaderDirectories)
+  {
+    QStringList currentDirFiles =
+        dir.entryList(filters, QDir::Files | QDir::NoDotAndDotDot, QDir::Name | QDir::IgnoreCase);
+    for(const QString &f : currentDirFiles)
+    {
+      files.append(QDir::cleanPath(dir.absoluteFilePath(f)));
+    }
+  }
 
   QStringList watchedFiles = m_Watcher->files();
   if(!watchedFiles.isEmpty())
@@ -4037,12 +4046,11 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
     if(!filter.isEmpty() && filter.toUpper() != key)
       continue;
 
-    QString filePath = QDir::cleanPath(getCustomShadersDir().absoluteFilePath(f));
-    m_Watcher->addPath(filePath);
+    m_Watcher->addPath(f);
 
     if(!m_CustomShaders.contains(key) && !m_CustomShadersBusy.contains(key))
     {
-      QFile fileHandle(filePath);
+      QFile fileHandle(f);
       if(fileHandle.open(QFile::ReadOnly | QFile::Text))
       {
         QTextStream stream(&fileHandle);
@@ -4134,11 +4142,36 @@ void TextureViewer::reloadCustomShaders(const QString &filter)
   }
 }
 
-QDir TextureViewer::getCustomShadersDir() const
+QList<QDir> TextureViewer::getShaderDirectories() const
 {
-  return m_Ctx.Config().TextureViewer_CustomShadersDirectory.empty()
-                        ? QDir(configFilePath(QString()))
-                        : QDir(m_Ctx.Config().TextureViewer_CustomShadersDirectory);
+  QList<QDir> dirs;
+  dirs.reserve(int(m_Ctx.Config().TextureViewer_ShaderDirs.size() + 1u));
+  dirs.append(QDir(configFilePath(QString())));
+  for(const rdcstr &dir : m_Ctx.Config().TextureViewer_ShaderDirs)
+  {
+    dirs.append(QDir(dir));
+  }
+
+  return dirs;
+}
+
+QString TextureViewer::getShaderPath(const QString &filename) const
+{
+  QString path;
+  QList<QDir> directories = getShaderDirectories();
+  for(const QDir &dir : directories)
+  {
+    QStringList currentDirFiles =
+        dir.entryList(QDir::Files | QDir::NoDotAndDotDot, QDir::Name | QDir::IgnoreCase);
+
+    if(currentDirFiles.contains(filename, Qt::CaseInsensitive))
+    {
+      path = QDir::cleanPath(dir.absoluteFilePath(filename));
+      break;
+    }
+  }
+
+  return path;
 }
 
 void TextureViewer::on_customCreate_clicked()
@@ -4184,8 +4217,6 @@ void TextureViewer::on_customCreate_clicked()
     return;
   }
 
-  QString path = QDir::cleanPath(getCustomShadersDir().absoluteFilePath(filename));
-
   QString src;
 
   if(enc == ShaderEncoding::HLSL)
@@ -4216,6 +4247,7 @@ void TextureViewer::on_customCreate_clicked()
     src = tr("Unknown format - no template available");
   }
 
+  QString path = QDir::cleanPath(QDir(configFilePath(QString())).absoluteFilePath(filename));
   QFile fileHandle(path);
   if(fileHandle.open(QFile::WriteOnly | QIODevice::Truncate | QIODevice::Text))
   {
@@ -4247,8 +4279,7 @@ void TextureViewer::on_customEdit_clicked()
     return;
   }
 
-  QString path = QDir::cleanPath(getCustomShadersDir().absoluteFilePath(filename));
-
+  QString path = getShaderPath(filename);
   QString src;
 
   QFile fileHandle(path);
@@ -4339,7 +4370,8 @@ void TextureViewer::on_customDelete_clicked()
 
   if(res == QMessageBox::Yes)
   {
-    QString path = QDir::cleanPath(getCustomShadersDir().absoluteFilePath(shaderName));
+    QString path = getShaderPath(shaderName);
+
     if(!QFileInfo::exists(path))
     {
       RDDialog::critical(
@@ -4358,6 +4390,7 @@ void TextureViewer::on_customDelete_clicked()
 
     ui->customShader->setCurrentText(QString());
     UI_UpdateChannels();
+    reloadCustomShaders(QString());
   }
 }
 

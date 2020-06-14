@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <QDir>
 #include <QFrame>
 #include <QMenu>
 #include <QMouseEvent>
@@ -350,7 +351,8 @@ private:
 
   bool canCompileCustomShader(ShaderEncoding encoding);
   void reloadCustomShaders(const QString &filter);
-  QDir getCustomShadersDir() const;
+  QList<QDir> getShaderDirectories() const;
+  QString getShaderPath(const QString &filename) const;
 
   TextureDisplay m_TexDisplay;
 };
