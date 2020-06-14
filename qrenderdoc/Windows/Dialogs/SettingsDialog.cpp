@@ -127,7 +127,6 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
   ui->TextureViewer_ResetRange->setChecked(m_Ctx.Config().TextureViewer_ResetRange);
   ui->TextureViewer_PerTexSettings->setChecked(m_Ctx.Config().TextureViewer_PerTexSettings);
   ui->TextureViewer_PerTexYFlip->setChecked(m_Ctx.Config().TextureViewer_PerTexYFlip);
-  ui->TextureViewer_CustomShadersPath->setText(m_Ctx.Config().TextureViewer_CustomShadersDirectory);
   ui->CheckUpdate_AllowChecks->setChecked(m_Ctx.Config().CheckUpdate_AllowChecks);
   ui->Font_PreferMonospaced->setChecked(m_Ctx.Config().Font_PreferMonospaced);
 
@@ -565,26 +564,48 @@ void SettingsDialog::on_TextureViewer_PerTexYFlip_toggled(bool checked)
   m_Ctx.Config().Save();
 }
 
-void SettingsDialog::on_browseCustomShadersPath_clicked()
+void SettingsDialog::on_TextureViewer_ChooseShaderDirectories_clicked()
 {
-  QString dir = RDDialog::getExistingDirectory(this, tr("Choose directory for custom shaders"),
-                                               m_Ctx.Config().TextureViewer_CustomShadersDirectory);
+  QDialog listEditor;
 
-  if(!dir.isEmpty())
+  listEditor.setWindowTitle(tr("Custom shaders search directories"));
+  listEditor.setWindowFlags(listEditor.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+  OrderedListEditor list(tr("Shaders Directory"), BrowseMode::Folder);
+
+  QVBoxLayout layout;
+  QDialogButtonBox okCancel;
+  okCancel.setStandardButtons(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
+  layout.addWidget(&list);
+  layout.addWidget(&okCancel);
+
+  QObject::connect(&okCancel, &QDialogButtonBox::accepted, &listEditor, &QDialog::accept);
+  QObject::connect(&okCancel, &QDialogButtonBox::rejected, &listEditor, &QDialog::reject);
+
+  listEditor.setLayout(&layout);
+
+  QStringList items;
+  for(const rdcstr &dir : m_Ctx.Config().TextureViewer_ShaderDirs)
   {
-    m_Ctx.Config().TextureViewer_CustomShadersDirectory = dir;
-    ui->TextureViewer_CustomShadersPath->setText(dir);
+    items.append(dir);
   }
 
-  m_Ctx.Config().Save();
-}
+  list.setItems(items);
 
-void SettingsDialog::on_resetCustomShadersPath_clicked()
-{
-  m_Ctx.Config().TextureViewer_CustomShadersDirectory = "";
-  ui->TextureViewer_CustomShadersPath->setText(QString());
+  int res = RDDialog::show(&listEditor);
 
-  m_Ctx.Config().Save();
+  if(res)
+  {
+    items = list.getItems();
+
+    rdcarray<rdcstr> newDirs(items.size());
+    for(int i = 0; i < items.size(); i++)
+    {
+      newDirs[i] = items[i];
+    }
+
+    m_Ctx.Config().TextureViewer_ShaderDirs = newDirs;
+  }
 }
 
 void SettingsDialog::on_TextureViewer_ResetRange_toggled(bool checked)

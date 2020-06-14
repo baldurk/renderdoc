@@ -302,7 +302,7 @@ DECLARE_REFLECTION_STRUCT(BugReport);
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_PerTexYFlip, false)                 \
                                                                                            \
-  CONFIG_SETTING_VAL(public, QString, rdcstr, TextureViewer_CustomShadersDirectory, "")    \
+  CONFIG_SETTING(public, QVariantList, rdcarray<rdcstr>, TextureViewer_ShaderDirs)         \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, AlwaysReplayLocally, false)                       \
                                                                                            \
@@ -525,12 +525,9 @@ For more information about some of these settings that are user-facing see
 
   Defaults to ``False``.
 
-.. data:: TextureViewer_CustomShadersDirectory
+.. data:: TextureViewer_ShadersDirs
 
-  Path to the directory containing custom shader files for Texture Viewer. If left empty, config
-  directory is used.
-
-  Defaults to ``""``
+  List of the directories containing custom shader files for the Texture Viewer.
 
 .. data:: AlwaysReplayLocally
 
