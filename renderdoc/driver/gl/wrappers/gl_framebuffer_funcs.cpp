@@ -2027,13 +2027,15 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
             draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
 
             GLint mip = 0, slice = 0;
-            GetFramebufferMipAndLayer(drawFramebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+            if(dsttype == eGL_TEXTURE)
+              GetFramebufferMipAndLayer(drawFramebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
             draw.copyDestinationSubresource.mip = mip;
             draw.copyDestinationSubresource.slice = slice;
 
             mip = 0;
             slice = 0;
-            GetFramebufferMipAndLayer(readFramebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+            if(srctype == eGL_TEXTURE)
+              GetFramebufferMipAndLayer(readFramebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
             draw.copySourceSubresource.mip = mip;
             draw.copySourceSubresource.slice = slice;
           }
@@ -2046,13 +2048,15 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
             draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
 
             GLint mip = 0, slice = 0;
-            GetFramebufferMipAndLayer(drawFramebuffer.name, eGL_DEPTH_ATTACHMENT, &mip, &slice);
+            if(dsttype == eGL_TEXTURE)
+              GetFramebufferMipAndLayer(drawFramebuffer.name, eGL_DEPTH_ATTACHMENT, &mip, &slice);
             draw.copyDestinationSubresource.mip = mip;
             draw.copyDestinationSubresource.slice = slice;
 
             mip = 0;
             slice = 0;
-            GetFramebufferMipAndLayer(readFramebuffer.name, eGL_DEPTH_ATTACHMENT, &mip, &slice);
+            if(srctype == eGL_TEXTURE)
+              GetFramebufferMipAndLayer(readFramebuffer.name, eGL_DEPTH_ATTACHMENT, &mip, &slice);
             draw.copySourceSubresource.mip = mip;
             draw.copySourceSubresource.slice = slice;
           }
