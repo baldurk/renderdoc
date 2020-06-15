@@ -1529,7 +1529,7 @@ static void ConfigureMeshColumns(ICaptureContext &ctx, PopulateBufferData *bufda
         BufferDescription *buf = ctx.GetBuffer(ib.resourceId);
         if(buf)
         {
-          uint64_t offset = ib.byteOffset - draw->indexOffset * draw->indexByteWidth;
+          uint64_t offset = ib.byteOffset + draw->indexOffset * draw->indexByteWidth;
           if(offset > buf->length)
             bytesAvailable = 0;
           else
