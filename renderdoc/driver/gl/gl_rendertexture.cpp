@@ -436,8 +436,8 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
   GLint origDSTexMode = eGL_DEPTH_COMPONENT;
   if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
   {
-    drv.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &origDSTexMode);
-    drv.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
+    drv.glGetTextureParameterivEXT(texname, target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &origDSTexMode);
+    drv.glTextureParameteriEXT(texname, target, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
   }
 
   // defined as arrays mostly for Coverity code analysis to stay calm about passing
@@ -676,7 +676,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags)
   }
 
   if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
-    drv.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
+    drv.glTextureParameteriEXT(texname, target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
 
   if(castTexture)
     drv.glDeleteTextures(1, &castTexture);

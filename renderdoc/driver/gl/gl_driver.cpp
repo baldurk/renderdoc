@@ -786,11 +786,11 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   {
     drv.glTextureImage2DEXT(col, target, 0, colfmt, width, height, 0, GetBaseFormat(colfmt),
                             GetDataType(colfmt), NULL);
-    drv.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 0);
-    drv.glTexParameteri(target, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-    drv.glTexParameteri(target, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-    drv.glTexParameteri(target, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-    drv.glTexParameteri(target, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+    drv.glTextureParameteriEXT(col, target, eGL_TEXTURE_MAX_LEVEL, 0);
+    drv.glTextureParameteriEXT(col, target, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+    drv.glTextureParameteriEXT(col, target, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+    drv.glTextureParameteriEXT(col, target, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+    drv.glTextureParameteriEXT(col, target, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
   }
   drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, col, 0);
 
@@ -842,7 +842,7 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
     }
     else
     {
-      drv.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 0);
+      drv.glTextureParameteriEXT(depth, target, eGL_TEXTURE_MAX_LEVEL, 0);
       drv.glTextureImage2DEXT(depth, target, 0, depthfmt, width, height, 0, GetBaseFormat(depthfmt),
                               GetDataType(depthfmt), NULL);
     }

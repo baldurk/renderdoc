@@ -159,7 +159,7 @@ void WrappedOpenGL::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint wi
     GL.glTextureImage3DEXT(destArray, eGL_TEXTURE_2D_ARRAY, 0, intFormat, width, height,
                            arraySize * samples, 0, GetBaseFormat(intFormat), GetDataType(intFormat),
                            NULL);
-    GL.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+    GL.glTextureParameteriEXT(destArray, eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
     return;
   }
 
@@ -206,8 +206,8 @@ void WrappedOpenGL::CopyTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLint wi
   GL.glBindImageTexture(2, texs[0], 0, GL_TRUE, 0, eGL_WRITE_ONLY, fmt);
   GL.glActiveTexture(eGL_TEXTURE0);
   GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[1]);
-  GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-  GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+  GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
+  GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
   GL.glUseProgram(arrms.MS2Array);
 
@@ -245,8 +245,8 @@ void WrappedOpenGL::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLi
   GL.glTextureView(texs[0], eGL_TEXTURE_2D_ARRAY, destArray, intFormat, 0, 1, 0, arraySize * samples);
   GL.glTextureView(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, srcMS, intFormat, 0, 1, 0, arraySize);
   GL.glTextureView(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, srcMS, intFormat, 0, 1, 0, arraySize);
-  GL.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-  GL.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+  GL.glTextureParameteriEXT(texs[0], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
+  GL.glTextureParameteriEXT(texs[0], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
   GLuint fbo = 0;
   GL.glGenFramebuffers(1, &fbo);
@@ -293,14 +293,18 @@ void WrappedOpenGL::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLi
     // depth aspect
     GL.glActiveTexture(eGL_TEXTURE0);
     GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[1]);
-    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
-    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE,
-                       eGL_DEPTH_COMPONENT);
+    GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER,
+                              eGL_NEAREST);
+    GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER,
+                              eGL_NEAREST);
+    GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S,
+                              eGL_CLAMP_TO_EDGE);
+    GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T,
+                              eGL_CLAMP_TO_EDGE);
+    GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
+    GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+    GL.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY,
+                              eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_DEPTH_COMPONENT);
   }
 
   if(numStencil > 1)
@@ -308,14 +312,18 @@ void WrappedOpenGL::CopyDepthTex2DMSToArray(GLuint &destArray, GLuint srcMS, GLi
     // stencil aspect
     GL.glActiveTexture(eGL_TEXTURE1);
     GL.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[2]);
-    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
-    GL.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE,
-                       eGL_STENCIL_INDEX);
+    GL.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER,
+                              eGL_NEAREST);
+    GL.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER,
+                              eGL_NEAREST);
+    GL.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S,
+                              eGL_CLAMP_TO_EDGE);
+    GL.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T,
+                              eGL_CLAMP_TO_EDGE);
+    GL.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
+    GL.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+    GL.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY,
+                              eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_STENCIL_INDEX);
   }
 
   GLint loc = GL.glGetUniformLocation(arrms.DepthMS2Array, "mscopy");
@@ -424,12 +432,12 @@ void WrappedOpenGL::CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint wid
   drv.glBindImageTexture(2, texs[0], 0, GL_TRUE, 0, eGL_WRITE_ONLY, fmt);
   drv.glActiveTexture(eGL_TEXTURE0);
   drv.glBindTexture(eGL_TEXTURE_2D_ARRAY, texs[1]);
-  drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-  drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-  drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-  drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-  drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-  drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+  drv.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+  drv.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+  drv.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+  drv.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+  drv.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
+  drv.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
   drv.glUseProgram(arrms.Array2MS);
 
@@ -482,8 +490,8 @@ void WrappedOpenGL::CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLin
   drv.glTextureView(texs[0], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, destMS, intFormat, 0, 1, 0, arraySize);
   drv.glTextureView(texs[1], eGL_TEXTURE_2D_ARRAY, srcArray, intFormat, 0, 1, 0, arraySize * samples);
   drv.glTextureView(texs[2], eGL_TEXTURE_2D_ARRAY, srcArray, intFormat, 0, 1, 0, arraySize * samples);
-  drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-  drv.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+  drv.glTextureParameteriEXT(texs[0], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
+  drv.glTextureParameteriEXT(texs[0], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
   GLuint fbo = 0;
   drv.glGenFramebuffers(1, &fbo);
@@ -532,13 +540,14 @@ void WrappedOpenGL::CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLin
     // depth aspect
     drv.glActiveTexture(eGL_TEXTURE0);
     drv.glBindTexture(eGL_TEXTURE_2D_ARRAY, texs[1]);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_DEPTH_COMPONENT);
+    drv.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+    drv.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+    drv.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+    drv.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+    drv.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
+    drv.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+    drv.glTextureParameteriEXT(texs[1], eGL_TEXTURE_2D_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE,
+                               eGL_DEPTH_COMPONENT);
   }
 
   if(numStencil > 1)
@@ -546,13 +555,14 @@ void WrappedOpenGL::CopyDepthArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLin
     // stencil aspect
     drv.glActiveTexture(eGL_TEXTURE1);
     drv.glBindTexture(eGL_TEXTURE_2D_ARRAY, texs[2]);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
-    drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE, eGL_STENCIL_INDEX);
+    drv.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+    drv.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+    drv.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+    drv.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+    drv.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
+    drv.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+    drv.glTextureParameteriEXT(texs[2], eGL_TEXTURE_2D_ARRAY, eGL_DEPTH_STENCIL_TEXTURE_MODE,
+                               eGL_STENCIL_INDEX);
   }
 
   GLint loc = drv.glGetUniformLocation(arrms.DepthArray2MS, "mscopy");

@@ -81,6 +81,30 @@ struct PushPop
     GL.glGetIntegerv(binding, (GLint *)&o);
   }
 
+  PushPop(GLenum target, PFNGLBINDTEXTUREPROC bindFunc, PFNGLACTIVETEXTUREPROC activeFunc,
+          BindingLookupFunc bindingLookup)
+  {
+    GL.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&activeTex);
+    activeFunc(eGL_TEXTURE0);
+
+    other = bindFunc;
+    active = activeFunc;
+    t = target;
+    GL.glGetIntegerv(bindingLookup(target), (GLint *)&o);
+  }
+
+  PushPop(GLenum target, PFNGLBINDTEXTUREPROC bindFunc, PFNGLACTIVETEXTUREPROC activeFunc,
+          GLenum binding)
+  {
+    GL.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&activeTex);
+    activeFunc(eGL_TEXTURE0);
+
+    other = bindFunc;
+    active = activeFunc;
+    t = target;
+    GL.glGetIntegerv(binding, (GLint *)&o);
+  }
+
   PushPop(VAOMode, PFNGLBINDVERTEXARRAYPROC bindFunc)
   {
     vao = bindFunc;
@@ -101,14 +125,20 @@ struct PushPop
       prog(o);
     else if(other)
       other(t, o);
+
+    if(active)
+      active(activeTex);
   }
 
   PFNGLUSEPROGRAMPROC prog = NULL;
   PFNGLBINDVERTEXARRAYPROC vao = NULL;
   PFNGLBINDTEXTUREPROC other = NULL;
+  PFNGLACTIVETEXTUREPROC active = NULL;
 
   GLenum t = eGL_NONE;
   GLuint o = 0;
+
+  GLenum activeTex = eGL_TEXTURE0;
 };
 
 // if specifying the image or etc for a cubemap face, we must bind the cubemap itself.
@@ -128,9 +158,9 @@ GLenum TexBindTarget(GLenum target)
   return target;
 }
 
-#define PushPopTexture(target, obj)                                              \
-  GLenum bindtarget = TexBindTarget(target);                                     \
-  PushPop CONCAT(prev, __LINE__)(bindtarget, GL.glBindTexture, &TextureBinding); \
+#define PushPopTexture(target, obj)                                                                  \
+  GLenum bindtarget = TexBindTarget(target);                                                         \
+  PushPop CONCAT(prev, __LINE__)(bindtarget, GL.glBindTexture, GL.glActiveTexture, &TextureBinding); \
   GL.glBindTexture(bindtarget, obj);
 
 #define PushPopBuffer(target, obj)                                         \

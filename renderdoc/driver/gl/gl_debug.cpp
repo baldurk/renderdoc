@@ -757,11 +757,15 @@ void GLReplay::InitDebugData()
 
   drv.glTextureImage2DEXT(DebugData.pickPixelTex, eGL_TEXTURE_2D, 0, eGL_RGBA32F, 1, 1, 0, eGL_RGBA,
                           eGL_FLOAT, NULL);
-  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
-  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+  drv.glTextureParameteriEXT(DebugData.pickPixelTex, eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+  drv.glTextureParameteriEXT(DebugData.pickPixelTex, eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER,
+                             eGL_NEAREST);
+  drv.glTextureParameteriEXT(DebugData.pickPixelTex, eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER,
+                             eGL_NEAREST);
+  drv.glTextureParameteriEXT(DebugData.pickPixelTex, eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S,
+                             eGL_CLAMP_TO_EDGE);
+  drv.glTextureParameteriEXT(DebugData.pickPixelTex, eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T,
+                             eGL_CLAMP_TO_EDGE);
   drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
                              DebugData.pickPixelTex, 0);
 
@@ -1572,8 +1576,8 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
   GLint origDSTexMode = eGL_DEPTH_COMPONENT;
   if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
   {
-    GL.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &origDSTexMode);
-    GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
+    GL.glGetTextureParameterivEXT(texname, target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &origDSTexMode);
+    GL.glTextureParameteriEXT(texname, target, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
   }
 
   GLint baseLevel[4] = {-1};
@@ -1645,7 +1649,7 @@ bool GLReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType type
   maxval[3] = minmax[1].w;
 
   if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
-    GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
+    GL.glTextureParameteriEXT(texname, target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
 
   return true;
 }
@@ -1852,8 +1856,8 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
   GLint origDSTexMode = eGL_DEPTH_COMPONENT;
   if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
   {
-    GL.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &origDSTexMode);
-    GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
+    GL.glGetTextureParameterivEXT(texname, target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &origDSTexMode);
+    GL.glTextureParameteriEXT(texname, target, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
   }
 
   GLint baseLevel[4] = {-1};
@@ -1913,7 +1917,7 @@ bool GLReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompType t
   RestoreSamplerParams(target, texname, prevSampState);
 
   if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
-    GL.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
+    GL.glTextureParameteriEXT(texname, target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
 
   return true;
 }

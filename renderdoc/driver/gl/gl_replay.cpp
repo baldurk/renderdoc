@@ -1283,8 +1283,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
         if(target != eGL_TEXTURE_BUFFER)
         {
-          drv.glGetTexParameteriv(target, eGL_TEXTURE_BASE_LEVEL, &firstMip);
-          drv.glGetTexParameteriv(target, eGL_TEXTURE_MAX_LEVEL, &numMips);
+          drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_BASE_LEVEL, &firstMip);
+          drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MAX_LEVEL, &numMips);
 
           numMips = numMips - firstMip + 1;
         }
@@ -1305,7 +1305,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
           GLint depthMode = eGL_DEPTH_COMPONENT;
 
           if(HasExt[ARB_stencil_texturing])
-            drv.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &depthMode);
+            drv.glGetTextureParameterivEXT(tex, target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &depthMode);
 
           if(depthMode == eGL_DEPTH_COMPONENT)
             pipe.textures[unit].depthReadChannel = 0;
@@ -1352,29 +1352,29 @@ void GLReplay::SavePipelineState(uint32_t eventId)
             drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_BORDER_COLOR,
                                         &pipe.samplers[unit].borderColor[0]);
           else
-            drv.glGetTexParameterfv(target, eGL_TEXTURE_BORDER_COLOR,
-                                    &pipe.samplers[unit].borderColor[0]);
+            drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_BORDER_COLOR,
+                                           &pipe.samplers[unit].borderColor[0]);
 
           GLint v;
           v = 0;
           if(samp != 0)
             drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_S, &v);
           else
-            drv.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_S, &v);
+            drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_WRAP_S, &v);
           pipe.samplers[unit].addressS = MakeAddressMode((GLenum)v);
 
           v = 0;
           if(samp != 0)
             drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_T, &v);
           else
-            drv.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_T, &v);
+            drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_WRAP_T, &v);
           pipe.samplers[unit].addressT = MakeAddressMode((GLenum)v);
 
           v = 0;
           if(samp != 0)
             drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_R, &v);
           else
-            drv.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_R, &v);
+            drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_WRAP_R, &v);
           pipe.samplers[unit].addressR = MakeAddressMode((GLenum)v);
 
           v = 0;
@@ -1383,7 +1383,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
             if(samp != 0)
               drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
             else
-              drv.glGetTexParameteriv(target, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
+              drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
           }
           pipe.samplers[unit].seamlessCubeMap =
               (v != 0 || rs.Enabled[GLRenderState::eEnabled_TexCubeSeamless]);
@@ -1392,7 +1392,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
           if(samp != 0)
             drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_FUNC, &v);
           else
-            drv.glGetTexParameteriv(target, eGL_TEXTURE_COMPARE_FUNC, &v);
+            drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_COMPARE_FUNC, &v);
           pipe.samplers[unit].compareFunction = MakeCompareFunc((GLenum)v);
 
           GLint minf = 0;
@@ -1400,12 +1400,12 @@ void GLReplay::SavePipelineState(uint32_t eventId)
           if(samp != 0)
             drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_MIN_FILTER, &minf);
           else
-            drv.glGetTexParameteriv(target, eGL_TEXTURE_MIN_FILTER, &minf);
+            drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MIN_FILTER, &minf);
 
           if(samp != 0)
             drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_MAG_FILTER, &magf);
           else
-            drv.glGetTexParameteriv(target, eGL_TEXTURE_MAG_FILTER, &magf);
+            drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MAG_FILTER, &magf);
 
           if(HasExt[ARB_texture_filter_anisotropic])
           {
@@ -1413,8 +1413,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
               drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY,
                                           &pipe.samplers[unit].maxAnisotropy);
             else
-              drv.glGetTexParameterfv(target, eGL_TEXTURE_MAX_ANISOTROPY,
-                                      &pipe.samplers[unit].maxAnisotropy);
+              drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_MAX_ANISOTROPY,
+                                             &pipe.samplers[unit].maxAnisotropy);
           }
           else
           {
@@ -1427,12 +1427,14 @@ void GLReplay::SavePipelineState(uint32_t eventId)
           if(samp != 0)
             drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_LOD, &pipe.samplers[unit].maxLOD);
           else
-            drv.glGetTexParameterfv(target, eGL_TEXTURE_MAX_LOD, &pipe.samplers[unit].maxLOD);
+            drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_MAX_LOD,
+                                           &pipe.samplers[unit].maxLOD);
 
           if(samp != 0)
             drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_MIN_LOD, &pipe.samplers[unit].minLOD);
           else
-            drv.glGetTexParameterfv(target, eGL_TEXTURE_MIN_LOD, &pipe.samplers[unit].minLOD);
+            drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_MIN_LOD,
+                                           &pipe.samplers[unit].minLOD);
 
           if(!IsGLES)
           {
@@ -1440,7 +1442,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
               drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_LOD_BIAS,
                                           &pipe.samplers[unit].mipLODBias);
             else
-              drv.glGetTexParameterfv(target, eGL_TEXTURE_LOD_BIAS, &pipe.samplers[unit].mipLODBias);
+              drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_LOD_BIAS,
+                                             &pipe.samplers[unit].mipLODBias);
           }
           else
           {
@@ -2432,18 +2435,18 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       else
         drv.glTextureImage2DEXT(tempTex, newtarget, 0, finalFormat, width, height, 0,
                                 GetBaseFormat(finalFormat), GetDataType(finalFormat), NULL);
-      drv.glTexParameteri(newtarget, eGL_TEXTURE_MAX_LEVEL, 0);
+      drv.glTextureParameteriEXT(tempTex, newtarget, eGL_TEXTURE_MAX_LEVEL, 0);
 
       // create temp framebuffer
       GLuint fbo = 0;
       drv.glGenFramebuffers(1, &fbo);
       drv.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
 
-      drv.glTexParameteri(newtarget, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-      drv.glTexParameteri(newtarget, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-      drv.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-      drv.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-      drv.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_R, eGL_CLAMP_TO_EDGE);
+      drv.glTextureParameteriEXT(tempTex, newtarget, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+      drv.glTextureParameteriEXT(tempTex, newtarget, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+      drv.glTextureParameteriEXT(tempTex, newtarget, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+      drv.glTextureParameteriEXT(tempTex, newtarget, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+      drv.glTextureParameteriEXT(tempTex, newtarget, eGL_TEXTURE_WRAP_R, eGL_CLAMP_TO_EDGE);
       if(newtarget == eGL_TEXTURE_3D)
         drv.glFramebufferTexture3D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_3D, tempTex,
                                    0, 0);
@@ -2586,7 +2589,7 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     drv.glBindTexture(eGL_TEXTURE_2D, tempTex);
     drv.glTextureImage2DEXT(tempTex, eGL_TEXTURE_2D, 0, intFormat, width, height, 0,
                             GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
-    drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+    drv.glTextureParameteriEXT(tempTex, eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
 
     // create temp framebuffers
     GLuint fbos[2] = {0};
@@ -2996,12 +2999,17 @@ void GLReplay::CreateCustomShaderTex(uint32_t w, uint32_t h)
                                    (GLsizei)RDCMAX(1U, w >> i), (GLsizei)RDCMAX(1U, h >> i), 0,
                                    eGL_RGBA, eGL_FLOAT, NULL);
   }
-  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_BASE_LEVEL, 0);
-  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, mips - 1);
-  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+  m_pDriver->glTextureParameteriEXT(DebugData.customTex, eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER,
+                                    eGL_NEAREST);
+  m_pDriver->glTextureParameteriEXT(DebugData.customTex, eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER,
+                                    eGL_NEAREST);
+  m_pDriver->glTextureParameteriEXT(DebugData.customTex, eGL_TEXTURE_2D, eGL_TEXTURE_BASE_LEVEL, 0);
+  m_pDriver->glTextureParameteriEXT(DebugData.customTex, eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL,
+                                    mips - 1);
+  m_pDriver->glTextureParameteriEXT(DebugData.customTex, eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S,
+                                    eGL_CLAMP_TO_EDGE);
+  m_pDriver->glTextureParameteriEXT(DebugData.customTex, eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T,
+                                    eGL_CLAMP_TO_EDGE);
 
   DebugData.CustomShaderTexID =
       m_pDriver->GetResourceManager()->GetID(TextureRes(m_pDriver->GetCtx(), DebugData.customTex));
@@ -3217,7 +3225,7 @@ ResourceId GLReplay::CreateProxyTexture(const TextureDescription &templateTex)
       }
     }
 
-    drv.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, templateTex.mips - 1);
+    drv.glTextureParameteriEXT(tex, target, eGL_TEXTURE_MAX_LEVEL, templateTex.mips - 1);
   }
 
   // Swizzle R/B channels only for non BGRA textures
@@ -3450,7 +3458,7 @@ void GLReplay::SetProxyTextureData(ResourceId texid, const Subresource &sub, byt
       drv.glBindTexture(eGL_TEXTURE_2D_ARRAY, uploadTex);
       drv.glTextureStorage3DEXT(uploadTex, eGL_TEXTURE_2D_ARRAY, 1, texdetails.internalFormat,
                                 width, height, texdetails.samples * RDCMAX(1, texdetails.depth));
-      drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+      drv.glTextureParameteriEXT(uploadTex, eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
       GLint unpackedSlice = slice * texdetails.samples + sample;
 

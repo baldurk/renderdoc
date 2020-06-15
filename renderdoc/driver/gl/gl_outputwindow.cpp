@@ -46,11 +46,15 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
 
   drv.glTextureImage2DEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, 0, eGL_SRGB8_ALPHA8,
                           outwin.width, outwin.height, 0, eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
-  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
-  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-  drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+  drv.glTextureParameteriEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+  drv.glTextureParameteriEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER,
+                             eGL_NEAREST);
+  drv.glTextureParameteriEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER,
+                             eGL_NEAREST);
+  drv.glTextureParameteriEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S,
+                             eGL_CLAMP_TO_EDGE);
+  drv.glTextureParameteriEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T,
+                             eGL_CLAMP_TO_EDGE);
   drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
                              outwin.BlitData.backbuffer, 0);
 
@@ -62,11 +66,16 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
     drv.glTextureImage2DEXT(outwin.BlitData.depthstencil, eGL_TEXTURE_2D, 0, eGL_DEPTH_COMPONENT24,
                             outwin.width, outwin.height, 0, eGL_DEPTH_COMPONENT, eGL_UNSIGNED_INT,
                             NULL);
-    drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
-    drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-    drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-    drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-    drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+    drv.glTextureParameteriEXT(outwin.BlitData.depthstencil, eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL,
+                               0);
+    drv.glTextureParameteriEXT(outwin.BlitData.depthstencil, eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER,
+                               eGL_NEAREST);
+    drv.glTextureParameteriEXT(outwin.BlitData.depthstencil, eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER,
+                               eGL_NEAREST);
+    drv.glTextureParameteriEXT(outwin.BlitData.depthstencil, eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S,
+                               eGL_CLAMP_TO_EDGE);
+    drv.glTextureParameteriEXT(outwin.BlitData.depthstencil, eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T,
+                               eGL_CLAMP_TO_EDGE);
   }
   else
   {

@@ -556,6 +556,10 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
     GLuint prevTex = 0;
     GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&prevTex);
 
+    GLenum oldActive = eGL_TEXTURE0;
+    GL.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&oldActive);
+    GL.glActiveTexture(eGL_TEXTURE0);
+
     GLuint texs[2];
     GL.glGenTextures(2, texs);
 
@@ -585,6 +589,7 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
     }
 
     GL.glBindTexture(eGL_TEXTURE_2D, prevTex);
+    GL.glActiveTexture(oldActive);
     GL.glDeleteTextures(2, texs);
 
     ClearGLErrors();
@@ -594,6 +599,9 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
 
     GL.glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP, (GLint *)&prevTex);
     GL.glGenTextures(2, texs);
+
+    GL.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&oldActive);
+    GL.glActiveTexture(eGL_TEXTURE0);
 
     const size_t dim = 32;
 
@@ -656,6 +664,7 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
     }
 
     GL.glBindTexture(eGL_TEXTURE_CUBE_MAP, prevTex);
+    GL.glActiveTexture(oldActive);
     GL.glDeleteTextures(2, texs);
 
     ClearGLErrors();

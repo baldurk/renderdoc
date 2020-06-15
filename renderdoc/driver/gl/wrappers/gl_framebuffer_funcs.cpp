@@ -2415,11 +2415,15 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(SerialiserType &ser,
     // create read-from texture for displaying this render buffer
     GL.glGenTextures(1, &texDetails.renderbufferReadTex);
     GL.glBindTexture(eGL_TEXTURE_2D, texDetails.renderbufferReadTex);
-    GL.glTexImage2D(eGL_TEXTURE_2D, 0, internalformat, width, height, 0,
-                    GetBaseFormat(internalformat), GetDataType(internalformat), NULL);
-    GL.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
-    GL.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_LINEAR);
-    GL.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
+    GL.glTextureImage2DEXT(texDetails.renderbufferReadTex, eGL_TEXTURE_2D, 0, internalformat, width,
+                           height, 0, GetBaseFormat(internalformat), GetDataType(internalformat),
+                           NULL);
+    GL.glTextureParameteriEXT(texDetails.renderbufferReadTex, eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL,
+                              0);
+    GL.glTextureParameteriEXT(texDetails.renderbufferReadTex, eGL_TEXTURE_2D,
+                              eGL_TEXTURE_MAG_FILTER, eGL_LINEAR);
+    GL.glTextureParameteriEXT(texDetails.renderbufferReadTex, eGL_TEXTURE_2D,
+                              eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
 
     GL.glGenFramebuffers(2, texDetails.renderbufferFBOs);
     GL.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);

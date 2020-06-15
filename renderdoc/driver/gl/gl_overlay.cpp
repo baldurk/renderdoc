@@ -533,11 +533,16 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
                                   RDCMAX(1, texDetails.height >> i), 0, format, type, NULL);
       }
 
-      drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAX_LEVEL, texMips - 1);
-      drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-      drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-      drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-      drv.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+      drv.glTextureParameteriEXT(DebugData.overlayTex, texBindingEnum, eGL_TEXTURE_MAX_LEVEL,
+                                 texMips - 1);
+      drv.glTextureParameteriEXT(DebugData.overlayTex, texBindingEnum, eGL_TEXTURE_MIN_FILTER,
+                                 eGL_NEAREST);
+      drv.glTextureParameteriEXT(DebugData.overlayTex, texBindingEnum, eGL_TEXTURE_MAG_FILTER,
+                                 eGL_NEAREST);
+      drv.glTextureParameteriEXT(DebugData.overlayTex, texBindingEnum, eGL_TEXTURE_WRAP_S,
+                                 eGL_CLAMP_TO_EDGE);
+      drv.glTextureParameteriEXT(DebugData.overlayTex, texBindingEnum, eGL_TEXTURE_WRAP_T,
+                                 eGL_CLAMP_TO_EDGE);
     }
 
     // clear all mips first
@@ -886,11 +891,13 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
                 depthCopy, copyBindingEnum, i, fmt, RDCMAX(1, DebugData.overlayTexWidth >> i),
                 RDCMAX(1, DebugData.overlayTexHeight >> i), DebugData.overlayTexSlices, 0,
                 GetBaseFormat(fmt), GetDataType(fmt), NULL);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+          drv.glTextureParameteriEXT(depthCopy, copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
+          drv.glTextureParameteriEXT(depthCopy, copyBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+          drv.glTextureParameteriEXT(depthCopy, copyBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+          drv.glTextureParameteriEXT(depthCopy, copyBindingEnum, eGL_TEXTURE_WRAP_S,
+                                     eGL_CLAMP_TO_EDGE);
+          drv.glTextureParameteriEXT(depthCopy, copyBindingEnum, eGL_TEXTURE_WRAP_T,
+                                     eGL_CLAMP_TO_EDGE);
         }
       }
       else
@@ -911,11 +918,13 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
                                     RDCMAX(1, DebugData.overlayTexWidth >> i),
                                     RDCMAX(1, DebugData.overlayTexHeight >> i), 0,
                                     GetBaseFormat(fmt), GetDataType(fmt), NULL);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+          drv.glTextureParameteriEXT(depthCopy, copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
+          drv.glTextureParameteriEXT(depthCopy, copyBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+          drv.glTextureParameteriEXT(depthCopy, copyBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+          drv.glTextureParameteriEXT(depthCopy, copyBindingEnum, eGL_TEXTURE_WRAP_S,
+                                     eGL_CLAMP_TO_EDGE);
+          drv.glTextureParameteriEXT(depthCopy, copyBindingEnum, eGL_TEXTURE_WRAP_T,
+                                     eGL_CLAMP_TO_EDGE);
         }
       }
 
@@ -966,11 +975,15 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
                 stencilCopy, copyBindingEnum, i, fmt, RDCMAX(1, DebugData.overlayTexWidth >> i),
                 RDCMAX(1, DebugData.overlayTexHeight >> i), DebugData.overlayTexSlices, 0,
                 GetBaseFormat(fmt), GetDataType(fmt), NULL);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+          drv.glTextureParameteriEXT(stencilCopy, copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
+          drv.glTextureParameteriEXT(stencilCopy, copyBindingEnum, eGL_TEXTURE_MIN_FILTER,
+                                     eGL_NEAREST);
+          drv.glTextureParameteriEXT(stencilCopy, copyBindingEnum, eGL_TEXTURE_MAG_FILTER,
+                                     eGL_NEAREST);
+          drv.glTextureParameteriEXT(stencilCopy, copyBindingEnum, eGL_TEXTURE_WRAP_S,
+                                     eGL_CLAMP_TO_EDGE);
+          drv.glTextureParameteriEXT(stencilCopy, copyBindingEnum, eGL_TEXTURE_WRAP_T,
+                                     eGL_CLAMP_TO_EDGE);
         }
       }
       else
@@ -991,11 +1004,15 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
                                     RDCMAX(1, DebugData.overlayTexWidth >> i),
                                     RDCMAX(1, DebugData.overlayTexHeight >> i), 0,
                                     GetBaseFormat(fmt), GetDataType(fmt), NULL);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-          drv.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+          drv.glTextureParameteriEXT(stencilCopy, copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
+          drv.glTextureParameteriEXT(stencilCopy, copyBindingEnum, eGL_TEXTURE_MIN_FILTER,
+                                     eGL_NEAREST);
+          drv.glTextureParameteriEXT(stencilCopy, copyBindingEnum, eGL_TEXTURE_MAG_FILTER,
+                                     eGL_NEAREST);
+          drv.glTextureParameteriEXT(stencilCopy, copyBindingEnum, eGL_TEXTURE_WRAP_S,
+                                     eGL_CLAMP_TO_EDGE);
+          drv.glTextureParameteriEXT(stencilCopy, copyBindingEnum, eGL_TEXTURE_WRAP_T,
+                                     eGL_CLAMP_TO_EDGE);
         }
       }
 
@@ -1572,7 +1589,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
         drv.glTextureImage3DEXT(quadtexs[2], eGL_TEXTURE_2D_ARRAY, 0, eGL_R32UI,
                                 RDCMAX(1, outWidth >> 1), RDCMAX(1, outHeight >> 1), 4, 0,
                                 eGL_RED_INTEGER, eGL_UNSIGNED_INT, NULL);
-        drv.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+        drv.glTextureParameteriEXT(quadtexs[2], eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
         // temporarily attach to FBO to clear it
         GLint zero[4] = {0};
@@ -1588,11 +1605,13 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
         drv.glBindTexture(eGL_TEXTURE_2D, quadtexs[0]);
         drv.glTextureImage2DEXT(quadtexs[0], eGL_TEXTURE_2D, 0, eGL_RGBA8, outWidth, outHeight, 0,
                                 eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
-        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
-        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+        drv.glTextureParameteriEXT(quadtexs[0], eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+        drv.glTextureParameteriEXT(quadtexs[0], eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+        drv.glTextureParameteriEXT(quadtexs[0], eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+        drv.glTextureParameteriEXT(quadtexs[0], eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S,
+                                   eGL_CLAMP_TO_EDGE);
+        drv.glTextureParameteriEXT(quadtexs[0], eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T,
+                                   eGL_CLAMP_TO_EDGE);
         drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
                                    quadtexs[0], 0);
 
@@ -1630,11 +1649,13 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
         drv.glBindTexture(eGL_TEXTURE_2D, quadtexs[1]);
         drv.glTextureImage2DEXT(quadtexs[1], eGL_TEXTURE_2D, 0, fmt, outWidth, outHeight, 0,
                                 GetBaseFormat(fmt), GetDataType(fmt), NULL);
-        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
-        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-        drv.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+        drv.glTextureParameteriEXT(quadtexs[1], eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+        drv.glTextureParameteriEXT(quadtexs[1], eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+        drv.glTextureParameteriEXT(quadtexs[1], eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+        drv.glTextureParameteriEXT(quadtexs[1], eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S,
+                                   eGL_CLAMP_TO_EDGE);
+        drv.glTextureParameteriEXT(quadtexs[1], eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T,
+                                   eGL_CLAMP_TO_EDGE);
 
         GLenum dsAttach = eGL_DEPTH_STENCIL_ATTACHMENT;
 
