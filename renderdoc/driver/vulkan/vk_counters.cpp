@@ -154,7 +154,12 @@ rdcarray<GPUCounter> VulkanReplay::EnumerateCounters()
         Unwrap(physDev), 0, &khrCounters, &m_KHRCounters[0], &m_KHRCountersDescriptions[0]);
 
     for(uint32_t c = 0; c < khrCounters; c++)
-      ret.push_back(ToKHRCounter(c));
+    {
+      // Only report counters with command scope. We currently don't
+      // have use for renderpass ones.
+      if(m_KHRCounters[c].scope == VK_PERFORMANCE_COUNTER_SCOPE_COMMAND_KHR)
+        ret.push_back(ToKHRCounter(c));
+    }
   }
 
   if(m_pAMDCounters)
