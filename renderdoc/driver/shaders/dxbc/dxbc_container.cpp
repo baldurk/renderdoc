@@ -262,6 +262,7 @@ static const uint32_t FOURCC_DXIL = MAKE_FOURCC('D', 'X', 'I', 'L');
 static const uint32_t FOURCC_ILDB = MAKE_FOURCC('I', 'L', 'D', 'B');
 static const uint32_t FOURCC_ILDN = MAKE_FOURCC('I', 'L', 'D', 'N');
 static const uint32_t FOURCC_HASH = MAKE_FOURCC('H', 'A', 'S', 'H');
+static const uint32_t FOURCC_SFI0 = MAKE_FOURCC('S', 'F', 'I', '0');
 
 int TypeByteSize(VariableType t)
 {
@@ -507,16 +508,87 @@ const rdcstr &DXBCContainer::GetDisassembly()
 {
   if(m_Disassembly.empty())
   {
+    rdcstr globalFlagsString;
+
+    const rdcstr commentString = m_DXBCByteCode ? "//" : ";";
+
+    if(m_GlobalFlags != GlobalShaderFlags::None)
+    {
+      globalFlagsString += commentString + " Note: shader requires additional functionality:\n";
+
+      if(m_GlobalFlags & GlobalShaderFlags::DoublePrecision)
+        globalFlagsString += commentString + "       Double-precision floating point\n";
+      if(m_GlobalFlags & GlobalShaderFlags::RawStructured)
+        globalFlagsString += commentString + "       Raw and Structured buffers\n";
+      if(m_GlobalFlags & GlobalShaderFlags::UAVsEveryStage)
+        globalFlagsString += commentString + "       UAVs at every shader stage\n";
+      if(m_GlobalFlags & GlobalShaderFlags::UAVCount64)
+        globalFlagsString += commentString + "       64 UAV slots\n";
+      if(m_GlobalFlags & GlobalShaderFlags::MinPrecision)
+        globalFlagsString += commentString + "       Minimum-precision data types\n";
+      if(m_GlobalFlags & GlobalShaderFlags::DoubleExtensions11_1)
+        globalFlagsString += commentString + "       Double-precision extensions for 11.1\n";
+      if(m_GlobalFlags & GlobalShaderFlags::ShaderExtensions11_1)
+        globalFlagsString += commentString + "       Shader extensions for 11.1\n";
+      if(m_GlobalFlags & GlobalShaderFlags::ComparisonFilter)
+        globalFlagsString += commentString + "       Comparison filtering for feature level 9\n";
+      if(m_GlobalFlags & GlobalShaderFlags::TiledResources)
+        globalFlagsString += commentString + "       Tiled resources\n";
+      if(m_GlobalFlags & GlobalShaderFlags::PSOutStencilref)
+        globalFlagsString += commentString + "       PS Output Stencil Ref\n";
+      if(m_GlobalFlags & GlobalShaderFlags::PSInnerCoverage)
+        globalFlagsString += commentString + "       PS Inner Coverage\n";
+      if(m_GlobalFlags & GlobalShaderFlags::TypedUAVAdditional)
+        globalFlagsString += commentString + "       Typed UAV Load Additional Formats\n";
+      if(m_GlobalFlags & GlobalShaderFlags::RasterOrderViews)
+        globalFlagsString += commentString + "       Raster Ordered UAVs\n";
+      if(m_GlobalFlags & GlobalShaderFlags::ArrayIndexFromVert)
+        globalFlagsString += commentString +
+                             "       SV_RenderTargetArrayIndex or SV_ViewportArrayIndex from any "
+                             "shader feeding rasterizer\n";
+      if(m_GlobalFlags & GlobalShaderFlags::WaveOps)
+        globalFlagsString += commentString + "       Wave level operations\n";
+      if(m_GlobalFlags & GlobalShaderFlags::Int64)
+        globalFlagsString += commentString + "       64-Bit integer\n";
+      if(m_GlobalFlags & GlobalShaderFlags::ViewInstancing)
+        globalFlagsString += commentString + "       View Instancing\n";
+      if(m_GlobalFlags & GlobalShaderFlags::Barycentrics)
+        globalFlagsString += commentString + "       Barycentrics\n";
+      if(m_GlobalFlags & GlobalShaderFlags::NativeLowPrecision)
+        globalFlagsString += commentString + "       Use native low precision\n";
+      if(m_GlobalFlags & GlobalShaderFlags::ShadingRate)
+        globalFlagsString += commentString + "       Shading Rate\n";
+      if(m_GlobalFlags & GlobalShaderFlags::Raytracing1_1)
+        globalFlagsString += commentString + "       Raytracing tier 1.1 features\n";
+      if(m_GlobalFlags & GlobalShaderFlags::SamplerFeedback)
+        globalFlagsString += commentString + "       Sampler feedback\n";
+      globalFlagsString += commentString + "\n";
+    }
+
     if(m_DXBCByteCode)
     {
       m_Disassembly = StringFormat::Fmt("Shader hash %08x-%08x-%08x-%08x\n\n", m_Hash[0], m_Hash[1],
                                         m_Hash[2], m_Hash[3]);
 
+      if(m_GlobalFlags != GlobalShaderFlags::None)
+        m_Disassembly += globalFlagsString;
+
+      if(!m_DebugFileName.empty())
+        m_Disassembly += StringFormat::Fmt("// Debug name: %s\n", m_DebugFileName.c_str());
+
       m_Disassembly += m_DXBCByteCode->GetDisassembly();
     }
     else if(m_DXILByteCode)
     {
-      m_Disassembly = "; shader hash: ";
+      m_Disassembly.clear();
+
+      if(m_GlobalFlags != GlobalShaderFlags::None)
+        m_Disassembly += globalFlagsString;
+
+      if(!m_DebugFileName.empty())
+        m_Disassembly += StringFormat::Fmt("; shader debug name: %s\n", m_DebugFileName.c_str());
+
+      m_Disassembly += "; shader hash: ";
       byte *hashBytes = (byte *)m_Hash;
       for(size_t i = 0; i < sizeof(m_Hash); i++)
         m_Disassembly += StringFormat::Fmt("%02x", hashBytes[i]);
@@ -541,9 +613,19 @@ void DXBCContainer::FillTraceLineInfo(ShaderDebugTrace &trace) const
       if(m_DebugInfo)
         m_DebugInfo->GetLineInfo(i, op.offset, trace.lineInfo[i]);
 
-      // we add two lines for the shader hash on top of what the bytecode disassembler did
+      // we add some number of lines for the header we added with shader hash, debug name, etc on
+      // top of what the bytecode disassembler did
+
+      // 2 minimum for the shader hash we always print
+      uint32_t extraLines = 2;
+      if(!m_DebugFileName.empty())
+        extraLines++;
+
+      if(m_GlobalFlags != GlobalShaderFlags::None)
+        extraLines += (uint32_t)Bits::CountOnes((uint64_t)m_GlobalFlags) + 2;
+
       if(op.line > 0)
-        trace.lineInfo[i].disassemblyLine = 2 + op.line;
+        trace.lineInfo[i].disassemblyLine = extraLines + op.line;
     }
   }
 }
@@ -1051,6 +1133,10 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
       const HASHHeader *h = (const HASHHeader *)chunkContents;
 
       memcpy(m_Hash, h->hashValue, sizeof(h->hashValue));
+    }
+    else if(*fourcc == FOURCC_SFI0)
+    {
+      m_GlobalFlags = *(const GlobalShaderFlags *)chunkContents;
     }
     else if(*fourcc == FOURCC_ISGN || *fourcc == FOURCC_OSGN || *fourcc == FOURCC_ISG1 ||
             *fourcc == FOURCC_OSG1 || *fourcc == FOURCC_OSG5 || *fourcc == FOURCC_PCSG)

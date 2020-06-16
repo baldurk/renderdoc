@@ -108,6 +108,35 @@ struct ShaderStatistics
   } version;
 };
 
+enum class GlobalShaderFlags : int64_t
+{
+  None = 0,
+  DoublePrecision = 0x000001,
+  RawStructured = 0x000002,
+  UAVsEveryStage = 0x000004,
+  UAVCount64 = 0x000008,
+  MinPrecision = 0x000010,
+  DoubleExtensions11_1 = 0x000020,
+  ShaderExtensions11_1 = 0x000040,
+  ComparisonFilter = 0x000080,
+  TiledResources = 0x000100,
+  PSOutStencilref = 0x000200,
+  PSInnerCoverage = 0x000400,
+  TypedUAVAdditional = 0x000800,
+  RasterOrderViews = 0x001000,
+  ArrayIndexFromVert = 0x002000,
+  WaveOps = 0x004000,
+  Int64 = 0x008000,
+  ViewInstancing = 0x010000,
+  Barycentrics = 0x020000,
+  NativeLowPrecision = 0x040000,
+  ShadingRate = 0x080000,
+  Raytracing1_1 = 0x100000,
+  SamplerFeedback = 0x200000,
+};
+
+BITMASK_OPERATORS(GlobalShaderFlags);
+
 rdcstr TypeName(CBufferVariableType::Descriptor desc);
 
 struct RDEFHeader;
@@ -183,6 +212,7 @@ private:
   uint32_t m_Hash[4];
 
   rdcstr m_DebugFileName;
+  GlobalShaderFlags m_GlobalFlags = GlobalShaderFlags::None;
 
   ShaderStatistics m_ShaderStats;
   DXBCBytecode::Program *m_DXBCByteCode = NULL;
