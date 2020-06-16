@@ -2569,6 +2569,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(pipelineCreationCacheControl);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceComputeShaderDerivativesFeaturesNV,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COMPUTE_SHADER_DERIVATIVES_FEATURES_NV);
+      {
+        CHECK_PHYS_EXT_FEATURE(computeDerivativeGroupQuads);
+        CHECK_PHYS_EXT_FEATURE(computeDerivativeGroupLinear);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)
