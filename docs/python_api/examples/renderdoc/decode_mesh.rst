@@ -118,7 +118,7 @@ For normalised formats - :py:attr:`~renderdoc.CompType.UNorm` and :py:attr:`~ren
             divisor = float((2 ** (fmt.compByteWidth * 8)) - 1)
             value = tuple(float(i) / divisor for i in value)
         elif fmt.compType == rd.CompType.SNorm:
-            maxNeg = -float((2 ** (fmt.compByteWidth * 8)) - 1) / 2
+            maxNeg = -float(2 ** (fmt.compByteWidth * 8)) / 2
             divisor = float(-(maxNeg-1))
             value = tuple((float(i) if (i == maxNeg) else (float(i) / divisor)) for i in value)
 
