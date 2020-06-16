@@ -263,6 +263,7 @@ static const uint32_t FOURCC_ILDB = MAKE_FOURCC('I', 'L', 'D', 'B');
 static const uint32_t FOURCC_ILDN = MAKE_FOURCC('I', 'L', 'D', 'N');
 static const uint32_t FOURCC_HASH = MAKE_FOURCC('H', 'A', 'S', 'H');
 static const uint32_t FOURCC_SFI0 = MAKE_FOURCC('S', 'F', 'I', '0');
+static const uint32_t FOURCC_PSV0 = MAKE_FOURCC('P', 'S', 'V', '0');
 
 int TypeByteSize(VariableType t)
 {
@@ -1153,6 +1154,11 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
     else if(*fourcc == FOURCC_SFI0)
     {
       m_GlobalFlags = *(const GlobalShaderFlags *)chunkContents;
+    }
+    else if(*fourcc == FOURCC_PSV0)
+    {
+      // this chunk contains some information we could use for reflection but it doesn't contain
+      // enough, and doesn't have anything else interesting so we skip it
     }
     else if(*fourcc == FOURCC_ISGN || *fourcc == FOURCC_OSGN || *fourcc == FOURCC_ISG1 ||
             *fourcc == FOURCC_OSG1 || *fourcc == FOURCC_OSG5 || *fourcc == FOURCC_PCSG)
