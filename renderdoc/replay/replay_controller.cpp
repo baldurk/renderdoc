@@ -1854,6 +1854,9 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildTargetShader(
 {
   CHECK_REPLAY_THREAD();
 
+  if(source.empty())
+    return rdcpair<ResourceId, rdcstr>(ResourceId(), "0-byte shader is not valid");
+
   rdcarray<ShaderEncoding> encodings = m_pDevice->GetTargetShaderEncodings();
 
   if(encodings.indexOf(sourceEncoding) == -1)
@@ -1891,6 +1894,9 @@ rdcpair<ResourceId, rdcstr> ReplayController::BuildCustomShader(
 
   ResourceId id;
   rdcstr errs;
+
+  if(source.empty())
+    return rdcpair<ResourceId, rdcstr>(ResourceId(), "0-byte shader is not valid");
 
   switch(type)
   {
