@@ -768,6 +768,7 @@ rdcstr DXBCContainer::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLe
 
   uint32_t *chunkOffsets = (uint32_t *)(header + 1);    // right after the header
 
+  // prefer RenderDoc's magic value which pre-dated D3D's support
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
   {
     uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
@@ -786,6 +787,18 @@ rdcstr DXBCContainer::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLe
           return debugPath;
         }
       }
+    }
+  }
+
+  for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
+  {
+    uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
+    if(*fourcc == FOURCC_ILDN)
+    {
+      const ILDNHeader *h = (const ILDNHeader *)(fourcc + 2);
+
+      debugPath.append(h->Name, h->NameLength);
+      return debugPath;
     }
   }
 

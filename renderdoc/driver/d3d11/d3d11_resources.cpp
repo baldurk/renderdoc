@@ -99,21 +99,43 @@ void WrappedShader::ShaderEntry::TryReplaceOriginalByteCode()
 
       rdcstr foundPath;
 
-      // while we haven't found a file, keep trying through the search paths. For i==0
-      // check the path on its own, in case it's an absolute path.
-      for(size_t i = 0; originalShaderFile == NULL && i <= numSearchPaths; i++)
+      // keep searching until we've exhausted all possible path options, or we've found a file that
+      // opens
+      while(originalShaderFile == NULL && !originalPath.empty())
       {
-        if(i == 0)
+        // while we haven't found a file, keep trying through the search paths. For i==0
+        // check the path on its own, in case it's an absolute path.
+        for(size_t i = 0; originalShaderFile == NULL && i <= numSearchPaths; i++)
         {
-          originalShaderFile = FileIO::fopen(originalPath.c_str(), "rb");
-          foundPath = originalPath;
-          continue;
+          if(i == 0)
+          {
+            originalShaderFile = FileIO::fopen(originalPath.c_str(), "rb");
+            foundPath = originalPath;
+            continue;
+          }
+          else
+          {
+            const rdcstr &searchPath = (*m_DebugInfoSearchPaths)[i - 1];
+            foundPath = searchPath + "/" + originalPath;
+            originalShaderFile = FileIO::fopen(foundPath.c_str(), "rb");
+          }
         }
-        else
+
+        if(originalShaderFile == NULL)
         {
-          const rdcstr &searchPath = (*m_DebugInfoSearchPaths)[i - 1];
-          foundPath = searchPath + "/" + originalPath;
-          originalShaderFile = FileIO::fopen(foundPath.c_str(), "rb");
+          // the "documented" behaviour for D3D debug info names is that when presented with a
+          // relative path containing subfolders like foo/bar/blah.pdb then we should first try to
+          // append it to all search paths as-is, then strip off the top-level subdirectory to get
+          // bar/blah.pdb and try that in all search directories, and keep going. So if we got here
+          // and didn't open a file, try to strip off the the top directory and continue.
+          int32_t offs = originalPath.find_first_of("\\/");
+
+          // if we couldn't find a directory separator there's nothing to do, stop looking
+          if(offs == -1)
+            break;
+
+          // otherwise strip up to there and keep going
+          originalPath.erase(0, offs + 1);
         }
       }
 
