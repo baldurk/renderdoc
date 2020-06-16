@@ -1364,17 +1364,13 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
     return false;
   }
 
+  D3D11RenderStateTracker tracker(m_pDevice->GetImmediateContext());
+
   ID3D11DeviceContext *context = NULL;
 
   m_pDevice->GetImmediateContext(&context);
 
   // back up SRV/sampler on PS slot 0
-
-  ID3D11ShaderResourceView *prevSRV = NULL;
-  ID3D11SamplerState *prevSamp = NULL;
-
-  context->PSGetShaderResources(0, 1, &prevSRV);
-  context->PSGetSamplers(0, 1, &prevSamp);
 
   ID3D11ShaderResourceView *usedSRV = NULL;
   ID3D11SamplerState *usedSamp = NULL;
@@ -1542,15 +1538,7 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
   SAFE_RELEASE(vs);
   SAFE_RELEASE(ps);
 
-  // restore whatever was on PS slot 0 before we messed with it
-
-  context->PSSetShaderResources(0, 1, &prevSRV);
-  context->PSSetSamplers(0, 1, &prevSamp);
-
   SAFE_RELEASE(context);
-
-  SAFE_RELEASE(prevSRV);
-  SAFE_RELEASE(prevSamp);
 
   SAFE_RELEASE(usedSRV);
   SAFE_RELEASE(usedSamp);
@@ -1584,16 +1572,10 @@ bool D3D11DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
   ID3D11ComputeShader *cs =
       m_pDevice->GetShaderCache()->MakeCShader(csProgram.c_str(), "main", "cs_5_0");
 
+  D3D11RenderStateTracker tracker(m_pDevice->GetImmediateContext());
+
   ID3D11DeviceContext *context = NULL;
   m_pDevice->GetImmediateContext(&context);
-
-  // back up CB/UAV on CS slot 0
-
-  ID3D11Buffer *prevCB = NULL;
-  ID3D11UnorderedAccessView *prevUAV = NULL;
-
-  context->CSGetConstantBuffers(0, 1, &prevCB);
-  context->CSGetUnorderedAccessViews(0, 1, &prevUAV);
 
   ID3D11Buffer *constBuf = NULL;
 
@@ -1700,16 +1682,7 @@ bool D3D11DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
   SAFE_RELEASE(uav);
   SAFE_RELEASE(cs);
 
-  // restore whatever was on CS slot 0 before we messed with it
-
-  UINT append[] = {~0U};
-  context->CSSetConstantBuffers(0, 1, &prevCB);
-  context->CSSetUnorderedAccessViews(0, 1, &prevUAV, append);
-
   SAFE_RELEASE(context);
-
-  SAFE_RELEASE(prevCB);
-  SAFE_RELEASE(prevUAV);
 
   return true;
 }
