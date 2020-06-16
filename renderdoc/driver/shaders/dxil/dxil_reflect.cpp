@@ -66,6 +66,58 @@ enum class ResField
   SamplerTags = 7,
 };
 
+enum class ResShape
+{
+  Unknown = 0,
+  Texture1D,
+  Texture2D,
+  Texture2DMS,
+  Texture3D,
+  TextureCube,
+  Texture1DArray,
+  Texture2DArray,
+  Texture2DMSArray,
+  TextureCubeArray,
+  TypedBuffer,
+  RawBuffer,
+  StructuredBuffer,
+  CBuffer,
+  Sampler,
+  TBuffer,
+  RTAccelerationStructure,
+  FeedbackTexture2D,
+  FeedbackTexture2DArray,
+  StructuredBufferWithCounter,
+  SamplerComparison,
+};
+
+enum class ComponentType
+{
+  Invalid = 0,
+  I1,
+  I16,
+  U16,
+  I32,
+  U32,
+  I64,
+  U64,
+  F16,
+  F32,
+  F64,
+  SNormF16,
+  UNormF16,
+  SNormF32,
+  UNormF32,
+  SNormF64,
+  UNormF64,
+};
+
+enum class SRVUAVTag
+{
+  ElementType = 0,
+  StructStride = 1,
+};
+
 template <typename T>
 T getival(const Metadata *m)
 {
@@ -231,6 +283,167 @@ struct DXMeta
   }
 };
 
+static DXBC::ShaderInputBind MakeResourceBind(const Metadata *r, const bool srv)
+{
+  using namespace DXBC;
+
+  const bool uav = !srv;
+
+  ShaderInputBind bind;
+  bind.name = r->children[(size_t)ResField::Name]->str;
+  bind.type = ShaderInputBind::TYPE_TEXTURE;
+  bind.space = getival<uint32_t>(r->children[(size_t)ResField::Space]);
+  bind.reg = getival<uint32_t>(r->children[(size_t)ResField::RegBase]);
+  bind.bindCount = getival<uint32_t>(r->children[(size_t)ResField::RegCount]);
+
+  bind.retType = RETURN_TYPE_UNKNOWN;
+  bind.numComps = 1;
+
+  const Type *resType = r->children[(size_t)ResField::VarDecl]->type;
+
+  // variable should be a pointer to the underlying type
+  RDCASSERT(resType->type == Type::Pointer);
+  resType = resType->inner;
+
+  // textures are a struct containing the inner type and a mips type
+  if(resType->type == Type::Struct && !resType->members.empty())
+    resType = resType->members[0];
+
+  // if we found a vector go further to get the underlying type
+  if(resType->type == Type::Vector)
+  {
+    bind.numComps = resType->elemCount;
+    resType = resType->inner;
+  }
+
+  if(resType->type == Type::Scalar)
+  {
+    if(resType->scalarType == Type::Float)
+      bind.retType = resType->bitWidth > 32 ? RETURN_TYPE_DOUBLE : RETURN_TYPE_FLOAT;
+    // can't distinguish sign bit here, hope we have metadata to set this exactly
+    else if(resType->scalarType == Type::Int)
+      bind.retType = RETURN_TYPE_SINT;
+  }
+
+  const Metadata *tags =
+      srv ? r->children[(size_t)ResField::SRVTags] : r->children[(size_t)ResField::UAVTags];
+
+  for(size_t t = 0; tags && t < tags->children.size(); t += 2)
+  {
+    RDCASSERT(tags->children[t]->value);
+    if(getival<SRVUAVTag>(tags->children[t]) == SRVUAVTag::ElementType)
+    {
+      switch(getival<ComponentType>(tags->children[t + 1]))
+      {
+        default:
+        case ComponentType::Invalid:
+        case ComponentType::I1: bind.retType = RETURN_TYPE_UNKNOWN; break;
+        case ComponentType::I16:
+        case ComponentType::I32:
+        case ComponentType::I64: bind.retType = RETURN_TYPE_SINT; break;
+        case ComponentType::U16:
+        case ComponentType::U32:
+        case ComponentType::U64: bind.retType = RETURN_TYPE_UINT; break;
+        case ComponentType::F16:
+        case ComponentType::F32: bind.retType = RETURN_TYPE_FLOAT; break;
+        case ComponentType::F64: bind.retType = RETURN_TYPE_DOUBLE; break;
+        case ComponentType::SNormF16:
+        case ComponentType::SNormF32:
+        case ComponentType::SNormF64: bind.retType = RETURN_TYPE_SNORM; break;
+        case ComponentType::UNormF16:
+        case ComponentType::UNormF32:
+        case ComponentType::UNormF64: bind.retType = RETURN_TYPE_UNORM; break;
+      }
+    }
+  }
+
+  ResShape shape = srv ? getival<ResShape>(r->children[(size_t)ResField::SRVShape])
+                       : getival<ResShape>(r->children[(size_t)ResField::UAVShape]);
+
+  switch(shape)
+  {
+    case ResShape::Unknown:
+    case ResShape::SamplerComparison:
+    case ResShape::RTAccelerationStructure:
+    case ResShape::CBuffer:
+    case ResShape::Sampler:
+    case ResShape::FeedbackTexture2D:
+    case ResShape::FeedbackTexture2DArray:
+      RDCERR("Unexpected %s shape %u", srv ? "SRV" : "UAV", shape);
+      break;
+    case ResShape::Texture1D:
+      bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      bind.dimension = ShaderInputBind::DIM_TEXTURE1D;
+      break;
+    case ResShape::Texture2D:
+      bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      bind.dimension = ShaderInputBind::DIM_TEXTURE2D;
+      break;
+    case ResShape::Texture2DMS:
+      bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      bind.dimension = ShaderInputBind::DIM_TEXTURE2DMS;
+      break;
+    case ResShape::Texture3D:
+      bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      bind.dimension = ShaderInputBind::DIM_TEXTURE3D;
+      break;
+    case ResShape::TextureCube:
+      bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      bind.dimension = ShaderInputBind::DIM_TEXTURECUBE;
+      break;
+    case ResShape::Texture1DArray:
+      bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      bind.dimension = ShaderInputBind::DIM_TEXTURE1DARRAY;
+      break;
+    case ResShape::Texture2DArray:
+      bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      bind.dimension = ShaderInputBind::DIM_TEXTURE2DARRAY;
+      break;
+    case ResShape::Texture2DMSArray:
+      bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      bind.dimension = ShaderInputBind::DIM_TEXTURE2DMSARRAY;
+      break;
+    case ResShape::TextureCubeArray:
+      bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      bind.dimension = ShaderInputBind::DIM_TEXTURECUBEARRAY;
+      break;
+    case ResShape::TypedBuffer:
+      bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      bind.dimension = ShaderInputBind::DIM_BUFFER;
+      break;
+    case ResShape::TBuffer:
+      bind.type = ShaderInputBind::TYPE_TBUFFER;
+      bind.dimension = ShaderInputBind::DIM_UNKNOWN;
+      bind.retType = RETURN_TYPE_UNKNOWN;
+      break;
+    case ResShape::RawBuffer:
+      bind.type = ShaderInputBind::TYPE_BYTEADDRESS;
+      bind.type = srv ? ShaderInputBind::TYPE_BYTEADDRESS : ShaderInputBind::TYPE_UAV_RWBYTEADDRESS;
+      bind.dimension = ShaderInputBind::DIM_BUFFER;
+      bind.retType = RETURN_TYPE_MIXED;
+      break;
+    case ResShape::StructuredBuffer:
+      bind.type = srv ? ShaderInputBind::TYPE_STRUCTURED : ShaderInputBind::TYPE_UAV_RWSTRUCTURED;
+      bind.dimension = ShaderInputBind::DIM_BUFFER;
+      bind.retType = RETURN_TYPE_MIXED;
+      break;
+    case ResShape::StructuredBufferWithCounter:
+      bind.type = srv ? ShaderInputBind::TYPE_STRUCTURED
+                      : ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER;
+      bind.dimension = ShaderInputBind::DIM_BUFFER;
+      bind.retType = RETURN_TYPE_MIXED;
+      break;
+  }
+
+  if(bind.type == ShaderInputBind::TYPE_UAV_RWSTRUCTURED)
+  {
+    if(getival<uint32_t>(r->children[(size_t)ResField::UAVHiddenCounter]) != 0)
+      bind.type = ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER;
+  }
+
+  return bind;
+}
+
 DXBC::Reflection *Program::GetReflection()
 {
   using namespace DXBC;
@@ -251,12 +464,7 @@ DXBC::Reflection *Program::GetReflection()
     {
       for(const Metadata *r : SRVs->children)
       {
-        ShaderInputBind bind;
-        bind.name = r->children[(size_t)ResField::Name]->str;
-        bind.space = getival<uint32_t>(r->children[(size_t)ResField::Space]);
-        bind.reg = getival<uint32_t>(r->children[(size_t)ResField::RegBase]);
-        bind.bindCount = getival<uint32_t>(r->children[(size_t)ResField::RegCount]);
-        refl->SRVs.push_back(bind);
+        refl->SRVs.push_back(MakeResourceBind(r, true));
       }
     }
 
@@ -265,12 +473,7 @@ DXBC::Reflection *Program::GetReflection()
     {
       for(const Metadata *r : UAVs->children)
       {
-        ShaderInputBind bind;
-        bind.name = r->children[(size_t)ResField::Name]->str;
-        bind.space = getival<uint32_t>(r->children[(size_t)ResField::Space]);
-        bind.reg = getival<uint32_t>(r->children[(size_t)ResField::RegBase]);
-        bind.bindCount = getival<uint32_t>(r->children[(size_t)ResField::RegCount]);
-        refl->UAVs.push_back(bind);
+        refl->UAVs.push_back(MakeResourceBind(r, false));
       }
     }
 
