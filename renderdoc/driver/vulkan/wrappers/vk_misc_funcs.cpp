@@ -247,10 +247,11 @@ void WrappedVulkan::vkDestroyImage(VkDevice device, VkImage obj,
   if(obj == VK_NULL_HANDLE)
     return;
 
-  EraseImageState(GetResID(obj));
-
   VkImage unwrappedObj = Unwrap(obj);
   GetResourceManager()->ReleaseWrappedResource(obj, true);
+
+  EraseImageState(GetResID(obj));
+
   return ObjDisp(device)->DestroyImage(Unwrap(device), unwrappedObj, pAllocator);
 }
 
