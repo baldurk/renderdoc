@@ -1107,9 +1107,12 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
       {
         RDCEraseEl(m_ShaderStats);
         m_ShaderStats.version = ShaderStatistics::STATS_DX12;
-        /*
-        DXIL::Program prog(chunkContents, *chunkSize);
-        */
+
+        // this stats chunk is a whole program, just with the actual function definition removed
+        // (and any related debug metadata).
+        // Since we parse the bytecode regardless, there's no point in parsing this as well as a
+        // 'faster' way of getting reflection information
+        /* DXIL::Program prog(chunkContents, *chunkSize); */
       }
       else if(*chunkSize == STATSizeDX10)
       {
