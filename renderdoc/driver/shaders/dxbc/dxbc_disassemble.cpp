@@ -1253,6 +1253,8 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
     str = "oDepthGreaterEqual";
   else if(type == TYPE_OUTPUT_COVERAGE_MASK)
     str = "oMask";
+  else if(type == TYPE_OUTPUT_STENCIL_REF)
+    str = "oStencilRef";
   else
   {
     RDCERR("Unsupported system value semantic %d", type);
