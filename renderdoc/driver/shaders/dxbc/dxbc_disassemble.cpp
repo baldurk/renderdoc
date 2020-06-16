@@ -828,7 +828,7 @@ const DXBC::CBufferVariable *FindCBufferVar(const uint32_t minOffset, const uint
   for(const DXBC::CBufferVariable &v : variables)
   {
     // absolute byte offset of this variable in the cbuffer
-    const uint32_t voffs = byteOffset + v.descriptor.offset;
+    const uint32_t voffs = byteOffset + v.offset;
 
     // does minOffset-maxOffset reside in this variable? We don't handle the case where the range
     // crosses a variable (and I don't think FXC emits that anyway).
@@ -1136,7 +1136,7 @@ rdcstr Operand::toString(const DXBC::Reflection *reflection, ToString flags) con
               }
 
               // rebase swizzle if necessary
-              uint32_t vecOffset = (var->descriptor.offset & 0xf);
+              uint32_t vecOffset = (var->offset & 0xf);
               if(vecOffset > 0)
               {
                 for(int i = 0; i < 4; i++)
@@ -1658,6 +1658,12 @@ bool Program::ExtractDecl(uint32_t *&tokenStream, Declaration &retDecl, bool fri
 
     retDecl.str += "_";
     retDecl.str += ToStr(retDecl.dim);
+    if(retDecl.sampleCount > 0)
+    {
+      retDecl.str += "(";
+      retDecl.str += ToStr(retDecl.sampleCount);
+      retDecl.str += ")";
+    }
     retDecl.str += " ";
 
     retDecl.str += "(";

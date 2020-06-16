@@ -397,7 +397,6 @@ CBufferVariableType DXBCContainer::ParseRDEFType(const RDEFHeader *h, const byte
   ret.descriptor.varClass = (VariableClass)type->varClass;
   ret.descriptor.cols = type->cols;
   ret.descriptor.elements = type->numElems;
-  ret.descriptor.members = type->numMembers;
   ret.descriptor.rows = type->rows;
   ret.descriptor.type = (VariableType)type->varType;
 
@@ -443,17 +442,9 @@ CBufferVariableType DXBCContainer::ParseRDEFType(const RDEFHeader *h, const byte
 
       v.name = (const char *)(chunkContents + members[j].nameOffset);
       v.type = ParseRDEFType(h, chunkContents, members[j].typeOffset);
-      v.descriptor.offset = members[j].memberOffset;
+      v.offset = members[j].memberOffset;
 
-      ret.descriptor.bytesize = v.descriptor.offset + v.type.descriptor.bytesize;
-
-      // N/A
-      v.descriptor.flags = 0;
-      v.descriptor.startTexture = 0;
-      v.descriptor.numTextures = 0;
-      v.descriptor.startSampler = 0;
-      v.descriptor.numSamplers = 0;
-      v.descriptor.defaultValue.clear();
+      ret.descriptor.bytesize = v.offset + v.type.descriptor.bytesize;
 
       ret.members.push_back(v);
     }
@@ -895,22 +886,16 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
         desc.space = h->targetVersion >= 0x501 ? res->space : 0;
         desc.reg = res->bindPoint;
         desc.bindCount = res->bindCount;
-        desc.flags = res->flags;
         desc.retType = (DXBC::ResourceRetType)res->retType;
         desc.dimension = (ShaderInputBind::Dimension)res->dimension;
-        desc.numSamples = res->sampleCount;
 
         // Bindless resources report a bind count of 0 from the shader bytecode, but many other
         // places in this codebase assume ~0U means bindless. Patch it up now.
         if(h->targetVersion >= 0x501 && desc.bindCount == 0)
           desc.bindCount = ~0U;
 
-        if(desc.numSamples == ~0 && desc.retType != RETURN_TYPE_MIXED &&
-           desc.retType != RETURN_TYPE_UNKNOWN && desc.retType != RETURN_TYPE_CONTINUED)
-        {
-          // uint, uint2, uint3, uint4 seem to be in these bits of flags.
-          desc.numSamples = 1 + ((desc.flags & 0xC) >> 2);
-        }
+        // component count seem to be in these lower bits of flags.
+        desc.numComps = 1 + ((res->flags & 0xC) >> 2);
 
         // for cbuffers the names can be duplicated, so handle this by assuming
         // the order will match between binding declaration and cbuffer declaration
@@ -1006,11 +991,8 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
         cb.name = (const char *)(chunkContents + cbuf->nameOffset);
 
-        cb.descriptor.name = (const char *)(chunkContents + cbuf->nameOffset);
         cb.descriptor.byteSize = cbuf->size;
         cb.descriptor.type = (CBuffer::Descriptor::Type)cbuf->type;
-        cb.descriptor.flags = cbuf->flags;
-        cb.descriptor.numVars = cbuf->variables.count;
 
         cb.variables.reserve(cbuf->variables.count);
 
@@ -1048,22 +1030,8 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
           v.name = (const char *)(chunkContents + var->nameOffset);
 
-          v.descriptor.defaultValue.resize(var->size);
-
-          if(var->defaultValueOffset && var->defaultValueOffset != ~0U)
-          {
-            memcpy(&v.descriptor.defaultValue[0], chunkContents + var->defaultValueOffset, var->size);
-          }
-
-          v.descriptor.name = v.name;
-          // v.descriptor.bytesize = var->size; // size with cbuffer padding
-          v.descriptor.offset = var->startOffset;
-          v.descriptor.flags = var->flags;
-
-          v.descriptor.startTexture = (uint32_t)-1;
-          v.descriptor.startSampler = (uint32_t)-1;
-          v.descriptor.numSamplers = 0;
-          v.descriptor.numTextures = 0;
+          // var->size; // size with cbuffer padding
+          v.offset = var->startOffset;
 
           v.type = ParseRDEFType(h, chunkContents, var->typeOffset);
 
@@ -1098,7 +1066,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
         else
         {
           RDCDEBUG("Unused information, buffer %d: %s", cb.descriptor.type,
-                   cb.descriptor.name.c_str());
+                   (const char *)(chunkContents + cbuf->nameOffset));
         }
       }
     }
@@ -1416,12 +1384,10 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
   }
 
   // make sure to fetch the dispatch threads dimension from disassembly
-  if(m_Type == DXBC::ShaderType::Compute)
+  if(m_Type == DXBC::ShaderType::Compute && m_DXBCByteCode)
   {
     if(m_DXBCByteCode)
       m_DXBCByteCode->FetchComputeProperties(m_Reflection);
-    else if(m_DXILByteCode)
-      m_DXILByteCode->FetchComputeProperties(m_Reflection);
   }
 
   // initialise debug chunks last

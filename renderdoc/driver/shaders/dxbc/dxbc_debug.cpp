@@ -4648,7 +4648,7 @@ void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
        bind.retType < DXBC::RETURN_TYPE_MIXED && bind.retType != DXBC::RETURN_TYPE_UNKNOWN)
     {
       viewFmt.byteWidth = 4;
-      viewFmt.numComps = bind.numSamples;
+      viewFmt.numComps = bind.numComps;
 
       if(bind.retType == DXBC::RETURN_TYPE_UNORM)
         viewFmt.fmt = CompType::UNorm;

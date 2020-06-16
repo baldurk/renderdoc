@@ -544,7 +544,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
             if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 4 &&
                var.type.descriptor.type == DXBC::VARTYPE_UINT)
             {
-              uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
+              uint32_t *d = (uint32_t *)(byteData + var.offset);
 
               d[0] = (uint32_t)resourceDesc.Width;
               d[1] = resourceDesc.Height;
@@ -563,13 +563,13 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
           }
           else if(var.name == "RENDERDOC_YUVDownsampleRate")
           {
-            Vec4u *d = (Vec4u *)(byteData + var.descriptor.offset);
+            Vec4u *d = (Vec4u *)(byteData + var.offset);
 
             *d = YUVDownsampleRate;
           }
           else if(var.name == "RENDERDOC_YUVAChannels")
           {
-            Vec4u *d = (Vec4u *)(byteData + var.descriptor.offset);
+            Vec4u *d = (Vec4u *)(byteData + var.offset);
 
             *d = YUVAChannels;
           }
@@ -578,7 +578,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
             if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 1 &&
                var.type.descriptor.type == DXBC::VARTYPE_UINT)
             {
-              uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
+              uint32_t *d = (uint32_t *)(byteData + var.offset);
 
               d[0] = cfg.subresource.mip;
             }
@@ -593,7 +593,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
             if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 1 &&
                var.type.descriptor.type == DXBC::VARTYPE_UINT)
             {
-              uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
+              uint32_t *d = (uint32_t *)(byteData + var.offset);
 
               d[0] = cfg.subresource.slice;
             }
@@ -608,7 +608,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
             if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 1 &&
                var.type.descriptor.type == DXBC::VARTYPE_INT)
             {
-              int32_t *d = (int32_t *)(byteData + var.descriptor.offset);
+              int32_t *d = (int32_t *)(byteData + var.offset);
 
               d[0] = cfg.subresource.sample;
             }
@@ -623,7 +623,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
             if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 1 &&
                var.type.descriptor.type == DXBC::VARTYPE_UINT)
             {
-              uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
+              uint32_t *d = (uint32_t *)(byteData + var.offset);
 
               d[0] = resType;
             }

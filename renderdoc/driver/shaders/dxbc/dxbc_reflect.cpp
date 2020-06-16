@@ -96,7 +96,7 @@ static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &va
   ShaderConstant ret;
 
   ret.name = var.name;
-  ret.byteOffset = var.descriptor.offset;
+  ret.byteOffset = var.offset;
   ret.defaultValue = 0;
   ret.type = MakeShaderVariableType(var.type);
 
@@ -150,7 +150,7 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
        r.retType != DXBC::RETURN_TYPE_CONTINUED)
     {
       res.variableType.descriptor.rows = 1;
-      res.variableType.descriptor.columns = (uint8_t)r.numSamples;
+      res.variableType.descriptor.columns = (uint8_t)r.numComps;
       res.variableType.descriptor.elements = 1;
 
       rdcstr name;
@@ -166,8 +166,8 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
         default: name = "unknown"; break;
       }
 
-      if(r.numSamples > 1)
-        name += StringFormat::Fmt("%u", r.numSamples);
+      if(r.numComps > 1)
+        name += StringFormat::Fmt("%u", r.numComps);
 
       res.variableType.descriptor.name = name;
     }
@@ -316,11 +316,10 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
 
   uint32_t numInterfaces = 0;
   for(size_t i = 0; i < dxbc->GetReflection()->Interfaces.variables.size(); i++)
-    numInterfaces =
-        RDCMAX(dxbc->GetReflection()->Interfaces.variables[i].descriptor.offset + 1, numInterfaces);
+    numInterfaces = RDCMAX(dxbc->GetReflection()->Interfaces.variables[i].offset + 1, numInterfaces);
 
   refl->interfaces.resize(numInterfaces);
   for(size_t i = 0; i < dxbc->GetReflection()->Interfaces.variables.size(); i++)
-    refl->interfaces[dxbc->GetReflection()->Interfaces.variables[i].descriptor.offset] =
+    refl->interfaces[dxbc->GetReflection()->Interfaces.variables[i].offset] =
         dxbc->GetReflection()->Interfaces.variables[i].name;
 }

@@ -93,10 +93,9 @@ DXBC::Reflection *Program::GuessReflection()
         desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
-        desc.flags = dcl.samplerMode == SAMPLER_MODE_COMPARISON ? 2 : 0;
         desc.retType = DXBC::RETURN_TYPE_UNKNOWN;
         desc.dimension = DXBC::ShaderInputBind::DIM_UNKNOWN;
-        desc.numSamples = 0;
+        desc.numComps = 0;
 
         HandleResourceArrayIndices(dcl.operand.indices, desc);
 
@@ -119,7 +118,6 @@ DXBC::Reflection *Program::GuessReflection()
         desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
-        desc.flags = 0;
         desc.retType = dcl.resType[0];
 
         switch(dcl.dim)
@@ -154,11 +152,8 @@ DXBC::Reflection *Program::GuessReflection()
             break;
           default: desc.dimension = DXBC::ShaderInputBind::DIM_UNKNOWN; break;
         }
-        desc.numSamples = dcl.sampleCount;
-
         // can't tell, fxc seems to default to 4
-        if(desc.dimension == DXBC::ShaderInputBind::DIM_BUFFER)
-          desc.numSamples = 4;
+        desc.numComps = 4;
 
         RDCASSERT(desc.dimension != DXBC::ShaderInputBind::DIM_UNKNOWN);
 
@@ -188,10 +183,9 @@ DXBC::Reflection *Program::GuessReflection()
         desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
-        desc.flags = 0;
         desc.retType = DXBC::RETURN_TYPE_MIXED;
         desc.dimension = DXBC::ShaderInputBind::DIM_BUFFER;
-        desc.numSamples = 0;
+        desc.numComps = 0;
 
         HandleResourceArrayIndices(dcl.operand.indices, desc);
 
@@ -217,10 +211,9 @@ DXBC::Reflection *Program::GuessReflection()
         desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
-        desc.flags = 0;
         desc.retType = DXBC::RETURN_TYPE_MIXED;
         desc.dimension = DXBC::ShaderInputBind::DIM_BUFFER;
-        desc.numSamples = dcl.stride;
+        desc.numComps = dcl.stride;
 
         HandleResourceArrayIndices(dcl.operand.indices, desc);
 
@@ -248,10 +241,9 @@ DXBC::Reflection *Program::GuessReflection()
         desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
-        desc.flags = 0;
         desc.retType = DXBC::RETURN_TYPE_MIXED;
         desc.dimension = DXBC::ShaderInputBind::DIM_BUFFER;
-        desc.numSamples = dcl.stride;
+        desc.numComps = dcl.stride;
 
         HandleResourceArrayIndices(dcl.operand.indices, desc);
 
@@ -274,7 +266,6 @@ DXBC::Reflection *Program::GuessReflection()
         desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
-        desc.flags = 0;
         desc.retType = dcl.resType[0];
 
         switch(dcl.dim)
@@ -309,7 +300,7 @@ DXBC::Reflection *Program::GuessReflection()
             break;
           default: desc.dimension = DXBC::ShaderInputBind::DIM_UNKNOWN; break;
         }
-        desc.numSamples = (uint32_t)-1;
+        desc.numComps = 4;
 
         HandleResourceArrayIndices(dcl.operand.indices, desc);
 
@@ -339,10 +330,9 @@ DXBC::Reflection *Program::GuessReflection()
         desc.space = dcl.space;
         desc.reg = reg;
         desc.bindCount = 1;
-        desc.flags = 1;
         desc.retType = DXBC::RETURN_TYPE_UNKNOWN;
         desc.dimension = DXBC::ShaderInputBind::DIM_UNKNOWN;
-        desc.numSamples = 0;
+        desc.numComps = 0;
 
         HandleResourceArrayIndices(dcl.operand.indices, desc);
 
@@ -355,11 +345,8 @@ DXBC::Reflection *Program::GuessReflection()
         cb.reg = reg;
         cb.bindCount = desc.bindCount;
 
-        cb.descriptor.name = cb.name;
         cb.descriptor.byteSize = numVecs * 4 * sizeof(float);
         cb.descriptor.type = DXBC::CBuffer::Descriptor::TYPE_CBUFFER;
-        cb.descriptor.flags = 0;
-        cb.descriptor.numVars = numVecs;
 
         bool isArray = desc.bindCount > 1;
         if(isArray)
@@ -369,15 +356,12 @@ DXBC::Reflection *Program::GuessReflection()
           // information is not stripped.
           DXBC::CBufferVariable var;
           var.name = cb.name;
-          var.descriptor.name = cb.name;
-          var.descriptor.offset = 0;
-          var.descriptor.flags = D3D_SVF_USED;
+          var.offset = 0;
           var.type.descriptor.varClass = DXBC::VariableClass::CLASS_STRUCT;
           var.type.descriptor.type = DXBC::VariableType::VARTYPE_VOID;
           var.type.descriptor.rows = 1;
           var.type.descriptor.cols = 4;
           var.type.descriptor.elements = 1;
-          var.type.descriptor.members = 1;
           var.type.descriptor.bytesize = 4 * sizeof(float);
           var.type.descriptor.name = "struct";
           cb.variables.push_back(var);
@@ -392,22 +376,12 @@ DXBC::Reflection *Program::GuessReflection()
 
           var.name = StringFormat::Fmt("cb%u_v%u", cb.identifier, v);
 
-          var.descriptor.defaultValue.resize(4 * sizeof(float));
-
-          var.descriptor.name = var.name;
-          var.descriptor.offset = 4 * sizeof(float) * v;
-          var.descriptor.flags = 0;
-
-          var.descriptor.startTexture = (uint32_t)-1;
-          var.descriptor.startSampler = (uint32_t)-1;
-          var.descriptor.numSamplers = 0;
-          var.descriptor.numTextures = 0;
+          var.offset = 4 * sizeof(float) * v;
 
           var.type.descriptor.bytesize = 4 * sizeof(float);
           var.type.descriptor.rows = 1;
           var.type.descriptor.cols = 4;
           var.type.descriptor.elements = 0;
-          var.type.descriptor.members = 0;
           var.type.descriptor.type = DXBC::VARTYPE_FLOAT;
           var.type.descriptor.varClass = DXBC::CLASS_VECTOR;
           var.type.descriptor.name = TypeName(var.type.descriptor);
