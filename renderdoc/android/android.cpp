@@ -585,6 +585,9 @@ struct AndroidRemoteServer : public RemoteServer
 
       rdcarray<rdcstr> lines;
       split(adbStdout, lines, '\n');
+      for(rdcstr &line : lines)
+        while(!line.empty() && isspace(line.back()))
+          line.pop_back();
 
       rdcarray<PathEntry> packages;
       for(const rdcstr &line : lines)
@@ -609,6 +612,9 @@ struct AndroidRemoteServer : public RemoteServer
       adbStdout = Android::adbExecCommand(m_deviceID, "shell pm list packages -s").strStdout;
 
       split(adbStdout, lines, '\n');
+      for(rdcstr &line : lines)
+        while(!line.empty() && isspace(line.back()))
+          line.pop_back();
 
       for(const rdcstr &line : lines)
       {
@@ -627,26 +633,38 @@ struct AndroidRemoteServer : public RemoteServer
       adbStdout = Android::adbExecCommand(m_deviceID, "shell dumpsys package").strStdout;
 
       split(adbStdout, lines, '\n');
+      for(rdcstr &line : lines)
+        while(!line.empty() && isspace(line.back()))
+          line.pop_back();
 
       // not everything that looks like it's an activity is actually an activity, because of course
       // nothing is ever simple on Android. Watch out for the activity sections and only parse
       // activities found within them.
 
       bool activitySection = false;
+      bool nonDataSection = false;
 
       for(const rdcstr &line : lines)
       {
-        // the activity section ends when we reach a line that starts at column 0, which is the
-        // start of a section. Reset the flag to false
-        if(!isspace(line[0]))
-          activitySection = false;
-
         // if this is the start of the activity section, set the flag to true
         if(line.contains("Activity Resolver Table:"))
           activitySection = true;
 
+        // the activity section ends when we reach a line that starts at column 0, which is the
+        // start of a section. Reset the flag to false
+        else if(!line.empty() && !isspace(line[0]))
+          activitySection = false;
+
+        // if this is the start of the non-data action section, set the flag to true
+        if(line.contains("Non-Data Actions:"))
+          nonDataSection = true;
+
+        // a blank line indicates the end of the non-data action section
+        else if(line.empty())
+          nonDataSection = false;
+
         // if the flag is false, skip
-        if(!activitySection)
+        if(!activitySection || !nonDataSection)
           continue;
 
         // quick check, look for a /
