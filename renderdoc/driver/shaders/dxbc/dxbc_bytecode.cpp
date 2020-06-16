@@ -358,7 +358,7 @@ DXBC::Reflection *Program::GuessReflection()
           var.name = cb.name;
           var.offset = 0;
           var.type.descriptor.varClass = DXBC::VariableClass::CLASS_STRUCT;
-          var.type.descriptor.type = DXBC::VariableType::VARTYPE_VOID;
+          var.type.descriptor.varType = VarType::Unknown;
           var.type.descriptor.rows = 1;
           var.type.descriptor.cols = 4;
           var.type.descriptor.elements = 1;
@@ -382,7 +382,7 @@ DXBC::Reflection *Program::GuessReflection()
           var.type.descriptor.rows = 1;
           var.type.descriptor.cols = 4;
           var.type.descriptor.elements = 0;
-          var.type.descriptor.type = DXBC::VARTYPE_FLOAT;
+          var.type.descriptor.varType = VarType::Float;
           var.type.descriptor.varClass = DXBC::CLASS_VECTOR;
           var.type.descriptor.name = TypeName(var.type.descriptor);
 

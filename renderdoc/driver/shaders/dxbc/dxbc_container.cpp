@@ -265,32 +265,6 @@ static const uint32_t FOURCC_HASH = MAKE_FOURCC('H', 'A', 'S', 'H');
 static const uint32_t FOURCC_SFI0 = MAKE_FOURCC('S', 'F', 'I', '0');
 static const uint32_t FOURCC_PSV0 = MAKE_FOURCC('P', 'S', 'V', '0');
 
-int TypeByteSize(VariableType t)
-{
-  switch(t)
-  {
-    case VARTYPE_UINT8: return 1;
-    case VARTYPE_BOOL:
-    case VARTYPE_INT:
-    case VARTYPE_FLOAT:
-    case VARTYPE_UINT:
-      return 4;
-    // we pretend for our purposes that the 'min' formats round up to 4 bytes. For any external
-    // interfaces they are treated as regular types, only using lower precision internally.
-    case VARTYPE_MIN8FLOAT:
-    case VARTYPE_MIN10FLOAT:
-    case VARTYPE_MIN16FLOAT:
-    case VARTYPE_MIN12INT:
-    case VARTYPE_MIN16INT:
-    case VARTYPE_MIN16UINT: return 4;
-    case VARTYPE_DOUBLE:
-      return 8;
-    // 'virtual' type. Just return 1
-    case VARTYPE_INTERFACE_POINTER: return 1;
-    default: RDCERR("Trying to take size of undefined type %d", t); return 1;
-  }
-}
-
 ShaderBuiltin GetSystemValue(SVSemantic systemValue)
 {
   switch(systemValue)
@@ -333,22 +307,15 @@ rdcstr TypeName(CBufferVariableType::Descriptor desc)
   rdcstr ret;
 
   char *type = "";
-  switch(desc.type)
+  switch(desc.varType)
   {
-    case VARTYPE_BOOL: type = "bool"; break;
-    case VARTYPE_INT: type = "int"; break;
-    case VARTYPE_FLOAT: type = "float"; break;
-    case VARTYPE_DOUBLE: type = "double"; break;
-    case VARTYPE_UINT: type = "uint"; break;
-    case VARTYPE_UINT8: type = "ubyte"; break;
-    case VARTYPE_VOID: type = "void"; break;
-    case VARTYPE_INTERFACE_POINTER: type = "interface"; break;
-    case VARTYPE_MIN8FLOAT: type = "min8float"; break;
-    case VARTYPE_MIN10FLOAT: type = "min10float"; break;
-    case VARTYPE_MIN16FLOAT: type = "min16float"; break;
-    case VARTYPE_MIN12INT: type = "min12int"; break;
-    case VARTYPE_MIN16INT: type = "min16int"; break;
-    case VARTYPE_MIN16UINT: type = "min16uint"; break;
+    case VarType::Bool: type = "bool"; break;
+    case VarType::SInt: type = "int"; break;
+    case VarType::Float: type = "float"; break;
+    case VarType::Double: type = "double"; break;
+    case VarType::UInt: type = "uint"; break;
+    case VarType::UByte: type = "ubyte"; break;
+    case VarType::Unknown: type = "void"; break;
     default: RDCERR("Unexpected type in RDEF variable type %d", type);
   }
 
@@ -398,7 +365,23 @@ CBufferVariableType DXBCContainer::ParseRDEFType(const RDEFHeader *h, const byte
   ret.descriptor.cols = type->cols;
   ret.descriptor.elements = type->numElems;
   ret.descriptor.rows = type->rows;
-  ret.descriptor.type = (VariableType)type->varType;
+
+  switch((VariableType)type->varType)
+  {
+    // DXBC treats all cbuffer variables as 32-bit regardless of declaration
+    case DXBC::VARTYPE_MIN12INT:
+    case DXBC::VARTYPE_MIN16INT:
+    case DXBC::VARTYPE_INT: ret.descriptor.varType = VarType::SInt; break;
+    case DXBC::VARTYPE_BOOL: ret.descriptor.varType = VarType::Bool; break;
+    case DXBC::VARTYPE_MIN16UINT:
+    case DXBC::VARTYPE_UINT: ret.descriptor.varType = VarType::UInt; break;
+    case DXBC::VARTYPE_DOUBLE: ret.descriptor.varType = VarType::Double; break;
+    case DXBC::VARTYPE_FLOAT:
+    case DXBC::VARTYPE_MIN8FLOAT:
+    case DXBC::VARTYPE_MIN10FLOAT:
+    case DXBC::VARTYPE_MIN16FLOAT:
+    default: ret.descriptor.varType = VarType::Float; break;
+  }
 
   ret.descriptor.name = TypeName(ret.descriptor);
 
@@ -457,12 +440,12 @@ CBufferVariableType DXBCContainer::ParseRDEFType(const RDEFHeader *h, const byte
     // the other dimension
     if(ret.descriptor.varClass == CLASS_MATRIX_COLUMNS)
     {
-      ret.descriptor.bytesize = TypeByteSize(ret.descriptor.type) * ret.descriptor.cols * 4 *
+      ret.descriptor.bytesize = VarTypeByteSize(ret.descriptor.varType) * ret.descriptor.cols * 4 *
                                 RDCMAX(1U, ret.descriptor.elements);
     }
     else if(ret.descriptor.varClass == CLASS_MATRIX_ROWS)
     {
-      ret.descriptor.bytesize = TypeByteSize(ret.descriptor.type) * ret.descriptor.rows * 4 *
+      ret.descriptor.bytesize = VarTypeByteSize(ret.descriptor.varType) * ret.descriptor.rows * 4 *
                                 RDCMAX(1U, ret.descriptor.elements);
     }
     else
@@ -470,10 +453,10 @@ CBufferVariableType DXBCContainer::ParseRDEFType(const RDEFHeader *h, const byte
       // arrays also take up a full vector for each element
       if(ret.descriptor.elements > 1)
         ret.descriptor.bytesize =
-            TypeByteSize(ret.descriptor.type) * 4 * RDCMAX(1U, ret.descriptor.elements);
+            VarTypeByteSize(ret.descriptor.varType) * 4 * RDCMAX(1U, ret.descriptor.elements);
       else
         ret.descriptor.bytesize =
-            TypeByteSize(ret.descriptor.type) * ret.descriptor.rows * ret.descriptor.cols;
+            VarTypeByteSize(ret.descriptor.varType) * ret.descriptor.rows * ret.descriptor.cols;
     }
   }
 

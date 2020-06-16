@@ -615,7 +615,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
               if(var.name == "RENDERDOC_TexDim")
               {
                 if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 4 &&
-                   var.type.descriptor.type == DXBC::VARTYPE_UINT)
+                   var.type.descriptor.varType == VarType::UInt)
                 {
                   uint32_t *d = (uint32_t *)(byteData + var.offset);
 
@@ -645,7 +645,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
               else if(var.name == "RENDERDOC_SelectedMip")
               {
                 if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 1 &&
-                   var.type.descriptor.type == DXBC::VARTYPE_UINT)
+                   var.type.descriptor.varType == VarType::UInt)
                 {
                   uint32_t *d = (uint32_t *)(byteData + var.offset);
 
@@ -660,7 +660,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
               else if(var.name == "RENDERDOC_SelectedSliceFace")
               {
                 if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 1 &&
-                   var.type.descriptor.type == DXBC::VARTYPE_UINT)
+                   var.type.descriptor.varType == VarType::UInt)
                 {
                   uint32_t *d = (uint32_t *)(byteData + var.offset);
 
@@ -675,7 +675,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
               else if(var.name == "RENDERDOC_SelectedSample")
               {
                 if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 1 &&
-                   var.type.descriptor.type == DXBC::VARTYPE_INT)
+                   var.type.descriptor.varType == VarType::SInt)
                 {
                   int32_t *d = (int32_t *)(byteData + var.offset);
 
@@ -690,7 +690,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
               else if(var.name == "RENDERDOC_TextureType")
               {
                 if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 1 &&
-                   var.type.descriptor.type == DXBC::VARTYPE_UINT)
+                   var.type.descriptor.varType == VarType::UInt)
                 {
                   uint32_t *d = (uint32_t *)(byteData + var.offset);
 

@@ -279,7 +279,7 @@ struct CBufferVariableType
   struct Descriptor
   {
     VariableClass varClass;
-    VariableType type;
+    VarType varType;
     uint32_t rows;
     uint32_t cols;
     uint32_t elements;
