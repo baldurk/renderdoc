@@ -417,7 +417,10 @@ void Program::MakeDisassemblyString()
         first = false;
         m_Disassembly += StringFormat::Fmt(" %s", t->toString().c_str());
       }
-      m_Disassembly += " }\n";
+      if(typ->members.empty())
+        m_Disassembly += "}\n";
+      else
+        m_Disassembly += " }\n";
 
       instructionLine++;
     }
