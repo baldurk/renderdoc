@@ -3743,18 +3743,18 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   // succeed on subsequent capture loads.
   static bool d3d12on7 = false;
 
-  HMODULE lib = NULL;
-  lib = LoadLibraryA("d3d12.dll");
-  if(lib == NULL)
+  HMODULE d3d12lib = NULL;
+  d3d12lib = LoadLibraryA("d3d12.dll");
+  if(d3d12lib == NULL)
   {
     // if it fails try to find D3D12On7 DLLs
     d3d12on7 = true;
 
     // if it fails, try in the plugin directory
-    lib = (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "d3d12.dll").c_str());
+    d3d12lib = (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "d3d12.dll").c_str());
 
     // if that succeeded, also load dxilconv7.dll from there
-    if(lib)
+    if(d3d12lib)
     {
       HMODULE dxilconv =
           (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxilconv7.dll").c_str());
@@ -3768,9 +3768,9 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
     else
     {
       // if it failed, try one more time in MS's subfolder convention
-      lib = LoadLibraryA("12on7/d3d12.dll");
+      d3d12lib = LoadLibraryA("12on7/d3d12.dll");
 
-      if(lib)
+      if(d3d12lib)
       {
         RDCWARN(
             "Loaded d3d12.dll from 12on7 subfolder."
@@ -3788,10 +3788,10 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
   }
 
   PFN_D3D12_CREATE_DEVICE createDevice =
-      (PFN_D3D12_CREATE_DEVICE)GetProcAddress(lib, "D3D12CreateDevice");
+      (PFN_D3D12_CREATE_DEVICE)GetProcAddress(d3d12lib, "D3D12CreateDevice");
 
-  lib = LoadLibraryA("dxgi.dll");
-  if(lib == NULL)
+  HMODULE dxgilib = LoadLibraryA("dxgi.dll");
+  if(dxgilib == NULL)
   {
     RDCERR("Failed to load dxgi.dll");
     return ReplayStatus::APIInitFailed;
@@ -3850,6 +3850,24 @@ ReplayStatus D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, I
       RDCLOG("Capture was created on %s / %ls",
              ToStr(GPUVendorFromPCIVendor(initParams.AdapterDesc.VendorId)).c_str(),
              initParams.AdapterDesc.Description);
+
+    using PFN_ENABLE_EXPERIMENTAL = decltype(&D3D12EnableExperimentalFeatures);
+
+    PFN_ENABLE_EXPERIMENTAL EnableExperimental =
+        (PFN_ENABLE_EXPERIMENTAL)GetProcAddress(d3d12lib, "D3D12EnableExperimentalFeatures");
+
+    if(EnableExperimental)
+    {
+      HRESULT hr = EnableExperimental(1, &D3D12ExperimentalShaderModels, NULL, NULL);
+      if(SUCCEEDED(hr))
+        RDCLOG("Enabled experimental shaders");
+      else
+        RDCLOG("Couldn't enable experimental shaders");
+    }
+    else
+    {
+      RDCLOG("Couldn't get D3D12EnableExperimentalFeatures");
+    }
   }
 
   if(initParams.MinimumFeatureLevel < D3D_FEATURE_LEVEL_11_0)

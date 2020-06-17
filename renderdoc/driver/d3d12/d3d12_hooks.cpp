@@ -388,10 +388,24 @@ private:
                                                              void *pConfigurationStructs,
                                                              UINT *pConfigurationStructSizes)
   {
-    // in future in theory we could whitelist some features. For now we don't allow any.
+    rdcarray<IID> allowedIIDs;
+
+    // allow enabling unsigned DXIL.
+    for(UINT i = 0; i < NumFeatures; i++)
+    {
+      if(pIIDs[i] == D3D12ExperimentalShaderModels)
+        allowedIIDs.push_back(D3D12ExperimentalShaderModels);
+    }
+
+    // there's no "partially successful" error code, so we just lie to the application and pretend
+    // that any filtered IIDs also succeeded
+    if(!allowedIIDs.empty())
+      return d3d12hooks.EnableExperimentalFeatures()((UINT)allowedIIDs.size(), allowedIIDs.data(),
+                                                     NULL, NULL);
 
     // header says "The call returns E_NOINTERFACE if an unrecognized feature is passed in or
-    // Windows Developer mode is not on." so this is the most appropriate error.
+    // Windows Developer mode is not on." so this is the most appropriate error for if no IIDs are
+    // allowed.
     return E_NOINTERFACE;
   }
 
