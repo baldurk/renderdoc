@@ -278,6 +278,9 @@ struct TypeInfo
 
   TypeInfo(const Metadata *typeAnnotations)
   {
+    if(!typeAnnotations)
+      return;
+
     RDCASSERT(typeAnnotations->children.size() >= 2, typeAnnotations->children.size());
     const Metadata *structAnnotations = typeAnnotations->children[0];
 
@@ -412,20 +415,23 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
 
   auto it = typeInfo.structData.find(t);
 
+  ret.descriptor.name = t->name;
+  ret.descriptor.varType = VarType::Unknown;
+  ret.descriptor.varClass = CLASS_STRUCT;
+
   if(it != typeInfo.structData.end())
   {
     ret.descriptor.bytesize = it->second.byteSize;
-    ret.descriptor.name = t->name;
     if(ret.descriptor.name.beginsWith("struct."))
       ret.descriptor.name.erase(0, 7);
     if(ret.descriptor.name.beginsWith("class."))
       ret.descriptor.name.erase(0, 6);
-    ret.descriptor.varType = VarType::Unknown;
-    ret.descriptor.varClass = CLASS_STRUCT;
   }
   else
   {
-    RDCERR("Don't have struct type annotations for %s", t->name.c_str());
+    // shouldn't get here if we don't have type information at all
+    RDCERR("Couldn't find type information for struct '%s'!", t->name.c_str());
+    return ret;
   }
 
   for(size_t i = 0; i < t->members.size(); i++)
@@ -493,7 +499,6 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
     }
     else
     {
-      // TODO if we have to handle this case, we should try to calculate the offset
       var.name = StringFormat::Fmt("_child%zu", i);
       var.offset = 0;
     }
@@ -550,10 +555,15 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
   const Metadata *tags =
       srv ? r->children[(size_t)ResField::SRVTags] : r->children[(size_t)ResField::UAVTags];
 
+  uint32_t structStride = 0;
   for(size_t t = 0; tags && t < tags->children.size(); t += 2)
   {
     RDCASSERT(tags->children[t]->value);
-    if(getival<SRVUAVTag>(tags->children[t]) == SRVUAVTag::ElementType)
+    if(getival<SRVUAVTag>(tags->children[t]) == SRVUAVTag::StructStride)
+    {
+      structStride = getival<uint32_t>(tags->children[t + 1]);
+    }
+    else if(getival<SRVUAVTag>(tags->children[t]) == SRVUAVTag::ElementType)
     {
       switch(getival<ComponentType>(tags->children[t + 1]))
       {
@@ -582,6 +592,8 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
   ResourceKind shape = srv ? getival<ResourceKind>(r->children[(size_t)ResField::SRVShape])
                            : getival<ResourceKind>(r->children[(size_t)ResField::UAVShape]);
 
+  rdcstr defName;
+
   switch(shape)
   {
     case ResourceKind::Unknown:
@@ -592,66 +604,81 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
     case ResourceKind::FeedbackTexture2D:
     case ResourceKind::FeedbackTexture2DArray:
       RDCERR("Unexpected %s shape %u", srv ? "SRV" : "UAV", shape);
+      defName = srv ? "SRV" : "UAV";
       break;
     case ResourceKind::Texture1D:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      defName = srv ? "Texture1D" : "RWTexture1D";
       bind.dimension = ShaderInputBind::DIM_TEXTURE1D;
       break;
     case ResourceKind::Texture2D:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      defName = srv ? "Texture2D" : "RWTexture2D";
       bind.dimension = ShaderInputBind::DIM_TEXTURE2D;
       break;
     case ResourceKind::Texture2DMS:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      defName = srv ? "Texture2DMS" : "RWTexture2DMS";
       bind.dimension = ShaderInputBind::DIM_TEXTURE2DMS;
       break;
     case ResourceKind::Texture3D:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      defName = srv ? "Texture3D" : "RWTexture3D";
       bind.dimension = ShaderInputBind::DIM_TEXTURE3D;
       break;
     case ResourceKind::TextureCube:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      defName = srv ? "TextureCube" : "RWTextureCube";
       bind.dimension = ShaderInputBind::DIM_TEXTURECUBE;
       break;
     case ResourceKind::Texture1DArray:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      defName = srv ? "Texture1DArray" : "RWTexture1DArray";
       bind.dimension = ShaderInputBind::DIM_TEXTURE1DARRAY;
       break;
     case ResourceKind::Texture2DArray:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      defName = srv ? "Texture2DArray" : "RWTexture2DArray";
       bind.dimension = ShaderInputBind::DIM_TEXTURE2DARRAY;
       break;
     case ResourceKind::Texture2DMSArray:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      defName = srv ? "Texture2DMSArray" : "RWTexture2DMSArray";
       bind.dimension = ShaderInputBind::DIM_TEXTURE2DMSARRAY;
       break;
     case ResourceKind::TextureCubeArray:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      defName = srv ? "TextureCubeArray" : "RWTextureCubeArray";
       bind.dimension = ShaderInputBind::DIM_TEXTURECUBEARRAY;
       break;
     case ResourceKind::TypedBuffer:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
+      defName = srv ? "Buffer" : "RWBuffer";
       bind.dimension = ShaderInputBind::DIM_BUFFER;
       break;
     case ResourceKind::TBuffer:
       bind.type = ShaderInputBind::TYPE_TBUFFER;
+      defName = "TBuffer";
       bind.dimension = ShaderInputBind::DIM_UNKNOWN;
       bind.retType = RETURN_TYPE_UNKNOWN;
       break;
     case ResourceKind::RawBuffer:
       bind.type = ShaderInputBind::TYPE_BYTEADDRESS;
       bind.type = srv ? ShaderInputBind::TYPE_BYTEADDRESS : ShaderInputBind::TYPE_UAV_RWBYTEADDRESS;
+      defName = srv ? "ByteAddressBuffer" : "RWByteAddressBuffer";
       bind.dimension = ShaderInputBind::DIM_BUFFER;
       bind.retType = RETURN_TYPE_MIXED;
       break;
     case ResourceKind::StructuredBuffer:
       bind.type = srv ? ShaderInputBind::TYPE_STRUCTURED : ShaderInputBind::TYPE_UAV_RWSTRUCTURED;
+      defName = srv ? "StructuredBuffer" : "RWStructuredBuffer";
       bind.dimension = ShaderInputBind::DIM_BUFFER;
       bind.retType = RETURN_TYPE_MIXED;
       break;
     case ResourceKind::StructuredBufferWithCounter:
       bind.type = srv ? ShaderInputBind::TYPE_STRUCTURED
                       : ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER;
+      defName = srv ? "StructuredBufferWithCounter" : "RWStructuredBufferWithCounter";
       bind.dimension = ShaderInputBind::DIM_BUFFER;
       bind.retType = RETURN_TYPE_MIXED;
       break;
@@ -663,11 +690,30 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
       bind.type = ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER;
   }
 
+  if(bind.name.empty())
+    bind.name = StringFormat::Fmt("%s%u", defName.c_str(),
+                                  getival<uint32_t>(r->children[(size_t)ResField::ID]));
+
   switch(shape)
   {
     case ResourceKind::StructuredBuffer:
     case ResourceKind::StructuredBufferWithCounter:
-      refl->ResourceBinds[bind.name] = MakeCBufferVariableType(typeInfo, baseType->inner);
+    {
+      if(!typeInfo.structData.empty())
+      {
+        refl->ResourceBinds[bind.name] = MakeCBufferVariableType(typeInfo, baseType->inner);
+      }
+      else
+      {
+        // if we don't have type annotations, create a dummy byte-array struct member
+        refl->ResourceBinds[bind.name].descriptor.bytesize = structStride;
+        refl->ResourceBinds[bind.name].descriptor.cols = 1;
+        refl->ResourceBinds[bind.name].descriptor.rows = 1;
+        refl->ResourceBinds[bind.name].descriptor.elements = structStride;
+        refl->ResourceBinds[bind.name].descriptor.varClass = DXBC::CLASS_SCALAR;
+        refl->ResourceBinds[bind.name].descriptor.varType = VarType::UByte;
+      }
+    }
     default: break;
   }
 
@@ -727,15 +773,49 @@ DXBC::Reflection *Program::GetReflection()
         bind.descriptor.type = CBuffer::Descriptor::TYPE_CBUFFER;
         bind.descriptor.byteSize = getival<uint32_t>(r->children[(size_t)ResField::CBufferByteSize]);
 
+        if(bind.name.empty())
+          bind.name = StringFormat::Fmt("cbuffer%u", bind.identifier);
+
         const Type *cbufType = r->children[(size_t)ResField::VarDecl]->type;
 
         // variable should be a pointer to the cbuffer type
         RDCASSERT(cbufType->type == Type::Pointer);
         cbufType = cbufType->inner;
 
-        CBufferVariableType rootType = MakeCBufferVariableType(typeInfo, cbufType);
+        if(!typeInfo.structData.empty())
+        {
+          CBufferVariableType rootType = MakeCBufferVariableType(typeInfo, cbufType);
 
-        bind.variables.swap(rootType.members);
+          bind.variables.swap(rootType.members);
+        }
+        else
+        {
+          CBufferVariable var;
+
+          var.name = "unknown";
+          var.offset = 0;
+
+          // if we don't have type annotations, create a dummy struct member
+          var.type.descriptor.bytesize = bind.descriptor.byteSize / 16;
+          var.type.descriptor.cols = 4;
+          var.type.descriptor.rows = 1;
+          var.type.descriptor.elements = bind.descriptor.byteSize / 16;
+          var.type.descriptor.varClass = DXBC::CLASS_SCALAR;
+          var.type.descriptor.varType = VarType::UInt;
+
+          bind.variables.push_back(var);
+
+          // add any remaining bytes if the struct isn't a multiple of float4 size
+          var.type.descriptor.cols = 1;
+          var.type.descriptor.bytesize = var.type.descriptor.elements = 1;
+          var.type.descriptor.varType = VarType::UByte;
+
+          for(uint32_t remainingBytes = var.type.descriptor.bytesize * 16;
+              remainingBytes < bind.descriptor.byteSize; remainingBytes++)
+          {
+            bind.variables.push_back(var);
+          }
+        }
 
         refl->CBuffers.push_back(bind);
       }
@@ -754,10 +834,19 @@ DXBC::Reflection *Program::GetReflection()
         bind.type = ShaderInputBind::TYPE_SAMPLER;
         bind.dimension = ShaderInputBind::DIM_UNKNOWN;
         bind.numComps = 0;
+        bind.retType = RETURN_TYPE_UNKNOWN;
+
+        if(bind.name.empty())
+          bind.name =
+              StringFormat::Fmt("sampler%u", getival<uint32_t>(r->children[(size_t)ResField::ID]));
+
         refl->Samplers.push_back(bind);
       }
     }
   }
+
+  RDCEraseEl(refl->Interfaces);
+  RDCEraseEl(refl->DispatchThreadsDimension);
 
   return refl;
 }
