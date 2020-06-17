@@ -27,6 +27,7 @@
 #include <algorithm>
 #include "common/formatting.h"
 #include "dxil_bytecode.h"
+#include "dxil_common.h"
 
 namespace DXIL
 {
@@ -514,11 +515,8 @@ void Program::MakeDisassemblyString()
             Metadata &m = m_Metadata[s.idx];
             if(m.value && m.val && m.val->symbol)
               ret += m.val->toString(withTypes);
-            else if(m.value && m.val && m.val->type->type == Type::Scalar)
+            else if(m.value && m.val && (m.val->type->type == Type::Scalar || m.val->nullconst))
               ret += m.val->toString(withTypes);
-            else if(m.value && m.val && m.val->nullconst)
-              ret += withTypes ? StringFormat::Fmt("%s zeroinitializer", m.val->type->toString())
-                               : "zeroinitializer";
             else
               ret += StringFormat::Fmt("!%u", GetOrAssignMetaID(&m));
           }
@@ -1199,6 +1197,122 @@ void Program::MakeDisassemblyString()
           }
         }
 
+        if(inst.funcCall && inst.funcCall->name.beginsWith("dx.op.annotateHandle"))
+        {
+          if(inst.args[2].type == SymbolType::Constant && inst.args[3].type == SymbolType::Constant)
+          {
+            ResourceClass resClass =
+                (ResourceClass)GetFunctionValue(func, inst.args[2].idx)->val.uv[0];
+            ResourceKind resKind = (ResourceKind)GetFunctionValue(func, inst.args[3].idx)->val.uv[0];
+
+            m_Disassembly += "  resource: ";
+
+            bool srv = (resClass == ResourceClass::SRV);
+
+            uint32_t packedProps[2] = {};
+
+            const Value *props = GetFunctionValue(func, inst.args[4].idx);
+
+            if(props && !props->nullconst)
+            {
+              packedProps[0] = props->members[0].val.uv[0];
+              packedProps[1] = props->members[1].val.uv[0];
+            }
+
+            ComponentType compType = ComponentType(packedProps[0] & 0x1f);
+            bool singleComp = (packedProps[0] & 0x20) != 0;
+            uint32_t sampleCount = (packedProps[0] & 0x1C0) >> 6;
+
+            uint32_t structStride = packedProps[0];
+
+            bool rov = (packedProps[1] & 0x1) != 0;
+            bool globallyCoherent = (packedProps[1] & 0x2) != 0;
+
+            switch(resKind)
+            {
+              case ResourceKind::Unknown: m_Disassembly += "Unknown"; break;
+              case ResourceKind::Texture1D:
+              case ResourceKind::Texture2D:
+              case ResourceKind::Texture3D:
+              case ResourceKind::TextureCube:
+              case ResourceKind::Texture1DArray:
+              case ResourceKind::Texture2DArray:
+              case ResourceKind::TextureCubeArray:
+              case ResourceKind::TypedBuffer:
+                if(globallyCoherent)
+                  m_Disassembly += "globallycoherent ";
+                if(!srv && rov)
+                  m_Disassembly += "ROV";
+                else if(!srv)
+                  m_Disassembly += "RW";
+                switch(resKind)
+                {
+                  case ResourceKind::Texture1D: m_Disassembly += "Texture1D"; break;
+                  case ResourceKind::Texture2D: m_Disassembly += "Texture2D"; break;
+                  case ResourceKind::Texture3D: m_Disassembly += "Texture3D"; break;
+                  case ResourceKind::TextureCube: m_Disassembly += "TextureCube"; break;
+                  case ResourceKind::Texture1DArray: m_Disassembly += "Texture1DArray"; break;
+                  case ResourceKind::Texture2DArray: m_Disassembly += "Texture2DArray"; break;
+                  case ResourceKind::TextureCubeArray: m_Disassembly += "TextureCubeArray"; break;
+                  case ResourceKind::TypedBuffer: m_Disassembly += "TypedBuffer"; break;
+                  default: break;
+                }
+                m_Disassembly += StringFormat::Fmt("<%s%s>", ToStr(compType).c_str(),
+                                                   !srv && !singleComp ? "[vec]" : "");
+                break;
+              case ResourceKind::RTAccelerationStructure:
+                m_Disassembly += "RTAccelerationStructure";
+                break;
+              case ResourceKind::FeedbackTexture2D: m_Disassembly += "FeedbackTexture2D"; break;
+              case ResourceKind::FeedbackTexture2DArray:
+                m_Disassembly += "FeedbackTexture2DArray";
+                break;
+              case ResourceKind::StructuredBuffer:
+                if(globallyCoherent)
+                  m_Disassembly += "globallycoherent ";
+                m_Disassembly += srv ? "StructuredBuffer" : "RWStructuredBuffer";
+                m_Disassembly += StringFormat::Fmt("<stride=%u>", structStride);
+                break;
+              case ResourceKind::StructuredBufferWithCounter:
+                if(globallyCoherent)
+                  m_Disassembly += "globallycoherent ";
+                m_Disassembly +=
+                    srv ? "StructuredBufferWithCounter" : "RWStructuredBufferWithCounter";
+                m_Disassembly += StringFormat::Fmt("<stride=%u>", structStride);
+                break;
+              case ResourceKind::RawBuffer:
+                if(globallyCoherent)
+                  m_Disassembly += "globallycoherent ";
+                m_Disassembly += srv ? "ByteAddressBuffer" : "RWByteAddressBuffer";
+                break;
+              case ResourceKind::Texture2DMS:
+                m_Disassembly += StringFormat::Fmt("Texture2DMS<%s, samples=%u>",
+                                                   ToStr(compType).c_str(), 1 << sampleCount);
+                break;
+              case ResourceKind::Texture2DMSArray:
+                m_Disassembly += StringFormat::Fmt("Texture2DMSArray<%s, samples=%u>",
+                                                   ToStr(compType).c_str(), 1 << sampleCount);
+                break;
+              case ResourceKind::CBuffer:
+                RDCASSERT(resClass == ResourceClass::CBuffer);
+                m_Disassembly += "CBuffer";
+                break;
+              case ResourceKind::Sampler:
+                RDCASSERT(resClass == ResourceClass::Sampler);
+                m_Disassembly += "SamplerState";
+                break;
+              case ResourceKind::TBuffer:
+                RDCASSERT(resClass == ResourceClass::SRV);
+                m_Disassembly += "TBuffer";
+                break;
+              case ResourceKind::SamplerComparison:
+                RDCASSERT(resClass == ResourceClass::Sampler);
+                m_Disassembly += "SamplerComparisonState";
+                break;
+            }
+          }
+        }
+
         m_Disassembly += "\n";
         instructionLine++;
 
@@ -1560,6 +1674,10 @@ rdcstr Value::toString(bool withType) const
     }
     ret += ">";
   }
+  else if(nullconst)
+  {
+    ret += "zeroinitializer";
+  }
   else if(type->type == Type::Array)
   {
     ret += "[";
@@ -1574,7 +1692,7 @@ rdcstr Value::toString(bool withType) const
   }
   else if(type->type == Type::Struct)
   {
-    ret += "{";
+    ret += "{ ";
     for(size_t i = 0; i < members.size(); i++)
     {
       if(i > 0)
@@ -1582,7 +1700,7 @@ rdcstr Value::toString(bool withType) const
 
       ret += members[i].toString(withType);
     }
-    ret += "}";
+    ret += " }";
   }
   else
   {

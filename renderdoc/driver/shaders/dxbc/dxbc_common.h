@@ -86,7 +86,7 @@ enum ResourceRetType
   NUM_RETURN_TYPES,
 };
 
-enum ComponentType
+enum SigCompType
 {
   COMPONENT_TYPE_UNKNOWN = 0,
   COMPONENT_TYPE_UINT32,

@@ -102,6 +102,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dxil_bytecode.cpp" />
+    <ClCompile Include="dxil_common.cpp" />
     <ClCompile Include="dxil_debuginfo.cpp" />
     <ClCompile Include="dxil_disassemble.cpp" />
     <ClCompile Include="dxil_reflect.cpp" />
@@ -112,6 +113,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxil_bytecode.h" />
+    <ClInclude Include="dxil_common.h" />
     <ClInclude Include="dxil_debuginfo.h" />
     <ClInclude Include="llvm_bitreader.h" />
     <ClInclude Include="llvm_decoder.h" />

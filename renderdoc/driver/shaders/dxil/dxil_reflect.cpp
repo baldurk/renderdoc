@@ -24,6 +24,7 @@
 
 #include "common/formatting.h"
 #include "dxil_bytecode.h"
+#include "dxil_common.h"
 
 namespace DXIL
 {
@@ -64,52 +65,6 @@ enum class ResField
   // Sampler
   SamplerType = 6,
   SamplerTags = 7,
-};
-
-enum class ResShape
-{
-  Unknown = 0,
-  Texture1D,
-  Texture2D,
-  Texture2DMS,
-  Texture3D,
-  TextureCube,
-  Texture1DArray,
-  Texture2DArray,
-  Texture2DMSArray,
-  TextureCubeArray,
-  TypedBuffer,
-  RawBuffer,
-  StructuredBuffer,
-  CBuffer,
-  Sampler,
-  TBuffer,
-  RTAccelerationStructure,
-  FeedbackTexture2D,
-  FeedbackTexture2DArray,
-  StructuredBufferWithCounter,
-  SamplerComparison,
-};
-
-enum class ComponentType
-{
-  Invalid = 0,
-  I1,
-  I16,
-  U16,
-  I32,
-  U32,
-  I64,
-  U64,
-  F16,
-  F32,
-  F64,
-  SNormF16,
-  UNormF16,
-  SNormF32,
-  UNormF32,
-  SNormF64,
-  UNormF64,
 };
 
 enum class SRVUAVTag
@@ -624,77 +579,77 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
     }
   }
 
-  ResShape shape = srv ? getival<ResShape>(r->children[(size_t)ResField::SRVShape])
-                       : getival<ResShape>(r->children[(size_t)ResField::UAVShape]);
+  ResourceKind shape = srv ? getival<ResourceKind>(r->children[(size_t)ResField::SRVShape])
+                           : getival<ResourceKind>(r->children[(size_t)ResField::UAVShape]);
 
   switch(shape)
   {
-    case ResShape::Unknown:
-    case ResShape::SamplerComparison:
-    case ResShape::RTAccelerationStructure:
-    case ResShape::CBuffer:
-    case ResShape::Sampler:
-    case ResShape::FeedbackTexture2D:
-    case ResShape::FeedbackTexture2DArray:
+    case ResourceKind::Unknown:
+    case ResourceKind::SamplerComparison:
+    case ResourceKind::RTAccelerationStructure:
+    case ResourceKind::CBuffer:
+    case ResourceKind::Sampler:
+    case ResourceKind::FeedbackTexture2D:
+    case ResourceKind::FeedbackTexture2DArray:
       RDCERR("Unexpected %s shape %u", srv ? "SRV" : "UAV", shape);
       break;
-    case ResShape::Texture1D:
+    case ResourceKind::Texture1D:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
       bind.dimension = ShaderInputBind::DIM_TEXTURE1D;
       break;
-    case ResShape::Texture2D:
+    case ResourceKind::Texture2D:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
       bind.dimension = ShaderInputBind::DIM_TEXTURE2D;
       break;
-    case ResShape::Texture2DMS:
+    case ResourceKind::Texture2DMS:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
       bind.dimension = ShaderInputBind::DIM_TEXTURE2DMS;
       break;
-    case ResShape::Texture3D:
+    case ResourceKind::Texture3D:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
       bind.dimension = ShaderInputBind::DIM_TEXTURE3D;
       break;
-    case ResShape::TextureCube:
+    case ResourceKind::TextureCube:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
       bind.dimension = ShaderInputBind::DIM_TEXTURECUBE;
       break;
-    case ResShape::Texture1DArray:
+    case ResourceKind::Texture1DArray:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
       bind.dimension = ShaderInputBind::DIM_TEXTURE1DARRAY;
       break;
-    case ResShape::Texture2DArray:
+    case ResourceKind::Texture2DArray:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
       bind.dimension = ShaderInputBind::DIM_TEXTURE2DARRAY;
       break;
-    case ResShape::Texture2DMSArray:
+    case ResourceKind::Texture2DMSArray:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
       bind.dimension = ShaderInputBind::DIM_TEXTURE2DMSARRAY;
       break;
-    case ResShape::TextureCubeArray:
+    case ResourceKind::TextureCubeArray:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
       bind.dimension = ShaderInputBind::DIM_TEXTURECUBEARRAY;
       break;
-    case ResShape::TypedBuffer:
+    case ResourceKind::TypedBuffer:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;
       bind.dimension = ShaderInputBind::DIM_BUFFER;
       break;
-    case ResShape::TBuffer:
+    case ResourceKind::TBuffer:
       bind.type = ShaderInputBind::TYPE_TBUFFER;
       bind.dimension = ShaderInputBind::DIM_UNKNOWN;
       bind.retType = RETURN_TYPE_UNKNOWN;
       break;
-    case ResShape::RawBuffer:
+    case ResourceKind::RawBuffer:
       bind.type = ShaderInputBind::TYPE_BYTEADDRESS;
       bind.type = srv ? ShaderInputBind::TYPE_BYTEADDRESS : ShaderInputBind::TYPE_UAV_RWBYTEADDRESS;
       bind.dimension = ShaderInputBind::DIM_BUFFER;
       bind.retType = RETURN_TYPE_MIXED;
       break;
-    case ResShape::StructuredBuffer:
+    case ResourceKind::StructuredBuffer:
       bind.type = srv ? ShaderInputBind::TYPE_STRUCTURED : ShaderInputBind::TYPE_UAV_RWSTRUCTURED;
       bind.dimension = ShaderInputBind::DIM_BUFFER;
       bind.retType = RETURN_TYPE_MIXED;
       break;
-    case ResShape::StructuredBufferWithCounter:
+    case ResourceKind::StructuredBufferWithCounter:
       bind.type = srv ? ShaderInputBind::TYPE_STRUCTURED
                       : ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER;
       bind.dimension = ShaderInputBind::DIM_BUFFER;
@@ -710,8 +665,8 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
 
   switch(shape)
   {
-    case ResShape::StructuredBuffer:
-    case ResShape::StructuredBufferWithCounter:
+    case ResourceKind::StructuredBuffer:
+    case ResourceKind::StructuredBufferWithCounter:
       refl->ResourceBinds[bind.name] = MakeCBufferVariableType(typeInfo, baseType->inner);
     default: break;
   }

@@ -1251,7 +1251,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
           el = &el7->elem;
         }
 
-        ComponentType compType = (ComponentType)el->componentType;
+        SigCompType compType = (SigCompType)el->componentType;
         desc.varType = VarType::Float;
         if(compType == COMPONENT_TYPE_UINT32)
           desc.varType = VarType::UInt;
