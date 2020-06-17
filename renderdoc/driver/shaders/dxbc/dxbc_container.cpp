@@ -690,18 +690,33 @@ bool DXBCContainer::CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLengt
   {
     uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
 
-    if(*fourcc == FOURCC_SDBG)
-    {
+    if(*fourcc == FOURCC_SDBG || *fourcc == FOURCC_SPDB || *fourcc == FOURCC_ILDB)
       return true;
-    }
-    else if(*fourcc == FOURCC_SPDB)
-    {
+  }
+
+  return false;
+}
+
+bool DXBCContainer::CheckForDXIL(const void *ByteCode, size_t ByteCodeLength)
+{
+  FileHeader *header = (FileHeader *)ByteCode;
+
+  char *data = (char *)ByteCode;    // just for convenience
+
+  if(header->fourcc != FOURCC_DXBC)
+    return false;
+
+  if(header->fileLength != (uint32_t)ByteCodeLength)
+    return false;
+
+  uint32_t *chunkOffsets = (uint32_t *)(header + 1);    // right after the header
+
+  for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
+  {
+    uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
+
+    if(*fourcc == FOURCC_ILDB || *fourcc == FOURCC_DXIL)
       return true;
-    }
-    else if(*fourcc == FOURCC_ILDB)
-    {
-      return true;
-    }
   }
 
   return false;
