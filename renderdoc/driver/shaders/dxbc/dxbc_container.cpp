@@ -1061,9 +1061,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
         m_ShaderStats.version = ShaderStatistics::STATS_DX12;
 
         // this stats chunk is a whole program, just with the actual function definition removed
-        // (and any related debug metadata).
-        // Since we parse the bytecode regardless, there's no point in parsing this as well as a
-        // 'faster' way of getting reflection information
+        // (and any related debug metadata). We have to handle this later with the bytecode.
         /* DXIL::Program prog(chunkContents, *chunkSize); */
       }
       else if(*chunkSize == STATSizeDX10)
@@ -1139,7 +1137,9 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
       }
     }
 
-    // if we didn't find it, look for DXIL
+    // if we didn't find ILDB then we have to get the bytecode from DXIL. However we look for the
+    // STAT chunk and if we find it get reflection from there, since it will have better
+    // information. What a mess.
     if(m_DXILByteCode == NULL)
     {
       for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
@@ -1147,11 +1147,21 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
         uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
         uint32_t *chunkSize = (uint32_t *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t));
 
-        char *chunkContents = (char *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t) * 2);
+        const byte *chunkContents =
+            (const byte *)(data + chunkOffsets[chunkIdx] + sizeof(uint32_t) * 2);
 
         if(*fourcc == FOURCC_DXIL)
         {
-          m_DXILByteCode = new DXIL::Program((const byte *)chunkContents, *chunkSize);
+          m_DXILByteCode = new DXIL::Program(chunkContents, *chunkSize);
+        }
+        else if(*fourcc == FOURCC_STAT)
+        {
+          if(DXIL::Program::Valid(chunkContents, *chunkSize))
+          {
+            // unfortunate that we have to parse the whole blob just to get reflection as well as
+            // parsing the DXIL bytecode.
+            m_Reflection = DXIL::Program(chunkContents, *chunkSize).GetReflection();
+          }
         }
       }
     }
@@ -1171,8 +1181,6 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
     m_Type = m_DXILByteCode->GetShaderType();
     m_Version.Major = m_DXILByteCode->GetMajorVersion();
     m_Version.Minor = m_DXILByteCode->GetMinorVersion();
-
-    // m_DXILByteCode->SetReflection(m_Reflection);
   }
 
   // if reflection information was stripped, attempt to reverse engineer basic info from
