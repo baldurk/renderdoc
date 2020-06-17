@@ -115,6 +115,29 @@ RESOURCE_quadoverdraw_hlsl TYPE_EMBED   "hlsl/quadoverdraw.hlsl"
 RESOURCE_texremap_hlsl     TYPE_EMBED   "hlsl/texremap.hlsl"
 RESOURCE_fixedcol_hlsl     TYPE_EMBED   "hlsl/fixedcol.hlsl"
 
+#ifdef RENDERDOC_BAKED_DXC_SHADERS
+
+#if !defined(CONCAT)
+#define CONCAT2(a, b) a##b
+#define CONCAT(a, b) CONCAT2(a, b)
+#endif
+
+RESOURCE_fixedcol_0_dxbc   TYPE_EMBED  CONCAT(RENDERDOC_BAKED_PATH, fixedcol_0.dxbc)
+RESOURCE_fixedcol_1_dxbc   TYPE_EMBED  CONCAT(RENDERDOC_BAKED_PATH, fixedcol_1.dxbc)
+RESOURCE_fixedcol_2_dxbc   TYPE_EMBED  CONCAT(RENDERDOC_BAKED_PATH, fixedcol_2.dxbc)
+RESOURCE_fixedcol_3_dxbc   TYPE_EMBED  CONCAT(RENDERDOC_BAKED_PATH, fixedcol_3.dxbc)
+RESOURCE_quadwrite_dxbc    TYPE_EMBED  CONCAT(RENDERDOC_BAKED_PATH, quadwrite.dxbc)
+
+#else
+
+RESOURCE_fixedcol_0_dxbc   TYPE_EMBED   "hlsl/empty.dxbc"
+RESOURCE_fixedcol_1_dxbc   TYPE_EMBED   "hlsl/empty.dxbc"
+RESOURCE_fixedcol_2_dxbc   TYPE_EMBED   "hlsl/empty.dxbc"
+RESOURCE_fixedcol_3_dxbc   TYPE_EMBED   "hlsl/empty.dxbc"
+RESOURCE_quadwrite_dxbc    TYPE_EMBED   "hlsl/empty.dxbc"
+
+#endif
+
 RESOURCE_sourcecodepro_ttf TYPE_EMBED   "sourcecodepro.ttf"
 
 RESOURCE_glsl_blit_vert                TYPE_EMBED   "glsl/blit.vert"

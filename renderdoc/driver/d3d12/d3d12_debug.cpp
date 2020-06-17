@@ -1296,6 +1296,21 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
 
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &QuadOverdrawWritePS);
+
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_6_0", &QuadOverdrawWriteDXILPS);
+
+    if(QuadOverdrawWriteDXILPS == NULL)
+    {
+      RDCWARN("Couldn't compile DXIL overlay shader at runtime, falling back to baked DXIL shader");
+
+      QuadOverdrawWriteDXILPS = shaderCache->GetQuadShaderDXILBlob();
+
+      if(!QuadOverdrawWriteDXILPS)
+      {
+        RDCWARN("No fallback DXIL shader available!");
+      }
+    }
   }
 
   {
@@ -1372,6 +1387,7 @@ void D3D12Replay::OverlayRendering::Release()
   SAFE_RELEASE(TriangleSizeGS);
   SAFE_RELEASE(TriangleSizePS);
   SAFE_RELEASE(QuadOverdrawWritePS);
+  SAFE_RELEASE(QuadOverdrawWriteDXILPS);
   SAFE_RELEASE(QuadResolveRootSig);
   SAFE_RELEASE(QuadResolvePipe);
 

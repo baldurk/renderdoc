@@ -58,7 +58,8 @@ public:
     HIGHLIGHT = 2,
     WIREFRAME = 3,
   };
-  ID3DBlob *MakeFixedColShader(FixedColVariant variant);
+  ID3DBlob *MakeFixedColShader(FixedColVariant variant, bool dxil = false);
+  ID3DBlob *GetQuadShaderDXILBlob();
 
   void SetCaching(bool enabled) { m_CacheShaders = enabled; }
 private:

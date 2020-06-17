@@ -799,14 +799,37 @@ ID3DBlob *D3D12ShaderCache::MakeRootSig(const D3D12RootSignature &rootsig)
                      rootsig.StaticSamplers.empty() ? NULL : &rootsig.StaticSamplers[0]);
 }
 
-ID3DBlob *D3D12ShaderCache::MakeFixedColShader(FixedColVariant variant)
+ID3DBlob *D3D12ShaderCache::MakeFixedColShader(FixedColVariant variant, bool dxil)
 {
   ID3DBlob *ret = NULL;
   rdcstr hlsl =
       StringFormat::Fmt("#define VARIANT %u\n\n", variant) + GetEmbeddedResource(fixedcol_hlsl);
   bool wasCaching = m_CacheShaders;
   m_CacheShaders = true;
-  GetShaderBlob(hlsl.c_str(), "main", ShaderCompileFlags(), "ps_5_0", &ret);
+  GetShaderBlob(hlsl.c_str(), "main", ShaderCompileFlags(), dxil ? "ps_6_0" : "ps_5_0", &ret);
   m_CacheShaders = wasCaching;
+
+  if(!ret)
+  {
+    const rdcstr embedded[] = {
+        GetEmbeddedResource(fixedcol_0_dxbc), GetEmbeddedResource(fixedcol_1_dxbc),
+        GetEmbeddedResource(fixedcol_2_dxbc), GetEmbeddedResource(fixedcol_3_dxbc),
+    };
+
+    D3D12ShaderCacheCallbacks.Create((uint32_t)embedded[variant].size(), embedded[variant].data(),
+                                     &ret);
+  }
+
+  return ret;
+}
+
+ID3DBlob *D3D12ShaderCache::GetQuadShaderDXILBlob()
+{
+  rdcstr embedded = GetEmbeddedResource(quadwrite_dxbc);
+  if(embedded.empty() || !embedded.beginsWith("DXBC"))
+    return NULL;
+
+  ID3DBlob *ret = NULL;
+  D3D12ShaderCacheCallbacks.Create((uint32_t)embedded.size(), embedded.data(), &ret);
   return ret;
 }

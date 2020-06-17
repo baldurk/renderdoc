@@ -366,6 +366,7 @@ private:
     ID3DBlob *TriangleSizeGS = NULL;
     ID3DBlob *TriangleSizePS = NULL;
     ID3DBlob *QuadOverdrawWritePS = NULL;
+    ID3DBlob *QuadOverdrawWriteDXILPS = NULL;
     ID3D12RootSignature *QuadResolveRootSig = NULL;
     ID3D12PipelineState *QuadResolvePipe = NULL;
 

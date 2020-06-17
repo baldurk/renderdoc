@@ -43,8 +43,13 @@
 struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 {
   D3D12QuadOverdrawCallback(WrappedID3D12Device *dev, D3D12_SHADER_BYTECODE quadWrite,
-                            const rdcarray<uint32_t> &events, PortableHandle uav)
-      : m_pDevice(dev), m_QuadWritePS(quadWrite), m_Events(events), m_UAV(uav)
+                            D3D12_SHADER_BYTECODE quadWriteDXIL, const rdcarray<uint32_t> &events,
+                            PortableHandle uav)
+      : m_pDevice(dev),
+        m_QuadWritePS(quadWrite),
+        m_QuadWriteDXILPS(quadWriteDXIL),
+        m_Events(events),
+        m_UAV(uav)
   {
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
   }
@@ -131,7 +136,23 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
       pipeDesc.DepthStencilState.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
       pipeDesc.DepthStencilState.StencilWriteMask = 0;
 
-      pipeDesc.PS = m_QuadWritePS;
+      bool dxil =
+          DXBC::DXBCContainer::CheckForDXIL(pipeDesc.VS.pShaderBytecode, pipeDesc.VS.BytecodeLength);
+
+      if(dxil)
+      {
+        pipeDesc.PS = m_QuadWriteDXILPS;
+        if(pipeDesc.PS.BytecodeLength == 0)
+        {
+          m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
+                                     MessageSource::UnsupportedConfiguration,
+                                     "No DXIL shader available for overlay");
+        }
+      }
+      else
+      {
+        pipeDesc.PS = m_QuadWritePS;
+      }
 
       pipeDesc.pRootSignature = cache.sig;
 
@@ -185,6 +206,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 
   WrappedID3D12Device *m_pDevice;
   D3D12_SHADER_BYTECODE m_QuadWritePS;
+  D3D12_SHADER_BYTECODE m_QuadWriteDXILPS;
   const rdcarray<uint32_t> &m_Events;
   PortableHandle m_UAV;
 
@@ -475,11 +497,11 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC psoDesc;
       pipe->Fill(psoDesc);
 
-      float overlayConsts[4] = {0.8f, 0.1f, 0.8f, 1.0f};
-      ID3DBlob *ps = m_pDevice->GetShaderCache()->MakeFixedColShader(overlayConsts);
+      bool dxil =
+          DXBC::DXBCContainer::CheckForDXIL(psoDesc.VS.pShaderBytecode, psoDesc.VS.BytecodeLength);
 
-      psoDesc.PS.pShaderBytecode = ps->GetBufferPointer();
-      psoDesc.PS.BytecodeLength = ps->GetBufferSize();
+      ID3DBlob *ps =
+          m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::HIGHLIGHT, dxil);
 
       psoDesc.DepthStencilState.DepthEnable = FALSE;
       psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
@@ -513,6 +535,17 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
       list->Close();
       list = NULL;
+
+      if(!ps)
+      {
+        m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
+                                   MessageSource::UnsupportedConfiguration,
+                                   "No DXIL shader available for overlay");
+        return m_Overlay.resourceId;
+      }
+
+      psoDesc.PS.pShaderBytecode = ps->GetBufferPointer();
+      psoDesc.PS.BytecodeLength = ps->GetBufferSize();
 
       ID3D12PipelineState *pso = NULL;
       HRESULT hr = m_pDevice->CreatePipeState(psoDesc, &pso);
@@ -551,11 +584,12 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       D3D12_CULL_MODE origCull = psoDesc.RasterizerState.CullMode;
       BOOL origFrontCCW = psoDesc.RasterizerState.FrontCounterClockwise;
 
-      float redCol[4] = {1.0f, 0.0f, 0.0f, 1.0f};
-      ID3DBlob *red = m_pDevice->GetShaderCache()->MakeFixedColShader(redCol);
+      bool dxil =
+          DXBC::DXBCContainer::CheckForDXIL(psoDesc.VS.pShaderBytecode, psoDesc.VS.BytecodeLength);
 
-      float greenCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
-      ID3DBlob *green = m_pDevice->GetShaderCache()->MakeFixedColShader(greenCol);
+      ID3DBlob *red = m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::RED, dxil);
+      ID3DBlob *green =
+          m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::GREEN, dxil);
 
       psoDesc.DepthStencilState.DepthEnable = FALSE;
       psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
@@ -583,14 +617,24 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       psoDesc.RasterizerState.MultisampleEnable = FALSE;
       psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
 
-      psoDesc.PS.pShaderBytecode = red->GetBufferPointer();
-      psoDesc.PS.BytecodeLength = red->GetBufferSize();
-
       float clearColour[] = {0.0f, 1.0f, 0.0f, 0.0f};
       list->ClearRenderTargetView(rtv, clearColour, 0, NULL);
 
       list->Close();
       list = NULL;
+
+      if(!red || !green)
+      {
+        SAFE_RELEASE(red);
+        SAFE_RELEASE(green);
+        m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
+                                   MessageSource::UnsupportedConfiguration,
+                                   "No DXIL shader available for overlay");
+        return m_Overlay.resourceId;
+      }
+
+      psoDesc.PS.pShaderBytecode = red->GetBufferPointer();
+      psoDesc.PS.BytecodeLength = red->GetBufferSize();
 
       ID3D12PipelineState *redPSO = NULL;
       HRESULT hr = m_pDevice->CreatePipeState(psoDesc, &redPSO);
@@ -649,11 +693,11 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC psoDesc;
       pipe->Fill(psoDesc);
 
-      float overlayConsts[] = {200.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f, 1.0f};
-      ID3DBlob *ps = m_pDevice->GetShaderCache()->MakeFixedColShader(overlayConsts);
+      bool dxil =
+          DXBC::DXBCContainer::CheckForDXIL(psoDesc.VS.pShaderBytecode, psoDesc.VS.BytecodeLength);
 
-      psoDesc.PS.pShaderBytecode = ps->GetBufferPointer();
-      psoDesc.PS.BytecodeLength = ps->GetBufferSize();
+      ID3DBlob *ps =
+          m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::WIREFRAME, dxil);
 
       psoDesc.DepthStencilState.DepthEnable = FALSE;
       psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
@@ -681,11 +725,22 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       psoDesc.RasterizerState.MultisampleEnable = FALSE;
       psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
 
-      overlayConsts[3] = 0.0f;
-      list->ClearRenderTargetView(rtv, overlayConsts, 0, NULL);
+      float wireClearCol[4] = {200.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f, 0.0f};
+      list->ClearRenderTargetView(rtv, wireClearCol, 0, NULL);
 
       list->Close();
       list = NULL;
+
+      if(!ps)
+      {
+        m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
+                                   MessageSource::UnsupportedConfiguration,
+                                   "No DXIL shader available for overlay");
+        return m_Overlay.resourceId;
+      }
+
+      psoDesc.PS.pShaderBytecode = ps->GetBufferPointer();
+      psoDesc.PS.BytecodeLength = ps->GetBufferSize();
 
       ID3D12PipelineState *pso = NULL;
       HRESULT hr = m_pDevice->CreatePipeState(psoDesc, &pso);
@@ -1133,8 +1188,15 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       quadWrite.BytecodeLength = m_Overlay.QuadOverdrawWritePS->GetBufferSize();
       quadWrite.pShaderBytecode = m_Overlay.QuadOverdrawWritePS->GetBufferPointer();
 
+      D3D12_SHADER_BYTECODE quadWriteDXIL = {};
+      if(m_Overlay.QuadOverdrawWriteDXILPS)
+      {
+        quadWriteDXIL.BytecodeLength = m_Overlay.QuadOverdrawWriteDXILPS->GetBufferSize();
+        quadWriteDXIL.pShaderBytecode = m_Overlay.QuadOverdrawWriteDXILPS->GetBufferPointer();
+      }
+
       // declare callback struct here
-      D3D12QuadOverdrawCallback cb(m_pDevice, quadWrite, events,
+      D3D12QuadOverdrawCallback cb(m_pDevice, quadWrite, quadWriteDXIL, events,
                                    ToPortableHandle(GetDebugManager()->GetCPUHandle(OVERDRAW_UAV)));
 
       m_pDevice->ReplayLog(events.front(), events.back(), eReplay_Full);
@@ -1202,11 +1264,12 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC psoDesc;
       pipe->Fill(psoDesc);
 
-      float redCol[4] = {1.0f, 0.0f, 0.0f, 1.0f};
-      ID3DBlob *red = m_pDevice->GetShaderCache()->MakeFixedColShader(redCol);
+      bool dxil =
+          DXBC::DXBCContainer::CheckForDXIL(psoDesc.VS.pShaderBytecode, psoDesc.VS.BytecodeLength);
 
-      float greenCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
-      ID3DBlob *green = m_pDevice->GetShaderCache()->MakeFixedColShader(greenCol);
+      ID3DBlob *red = m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::RED, dxil);
+      ID3DBlob *green =
+          m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::GREEN, dxil);
 
       // make sure that if a test is disabled, it shows all
       // pixels passing
@@ -1250,14 +1313,24 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       psoDesc.RasterizerState.MultisampleEnable = FALSE;
       psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
 
-      psoDesc.PS.pShaderBytecode = green->GetBufferPointer();
-      psoDesc.PS.BytecodeLength = green->GetBufferSize();
-
       float clearColour[] = {0.0f, 1.0f, 0.0f, 0.0f};
       list->ClearRenderTargetView(rtv, clearColour, 0, NULL);
 
       list->Close();
       list = NULL;
+
+      if(!red || !green)
+      {
+        SAFE_RELEASE(red);
+        SAFE_RELEASE(green);
+        m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
+                                   MessageSource::UnsupportedConfiguration,
+                                   "No DXIL shader available for overlay");
+        return m_Overlay.resourceId;
+      }
+
+      psoDesc.PS.pShaderBytecode = green->GetBufferPointer();
+      psoDesc.PS.BytecodeLength = green->GetBufferSize();
 
       ID3D12PipelineState *greenPSO = NULL;
       HRESULT hr = m_pDevice->CreatePipeState(psoDesc, &greenPSO);

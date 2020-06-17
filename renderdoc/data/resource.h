@@ -18,6 +18,12 @@
 #define RESOURCE_texremap_hlsl      111
 #define RESOURCE_fixedcol_hlsl      112
 
+#define RESOURCE_fixedcol_0_dxbc    113
+#define RESOURCE_fixedcol_1_dxbc    114
+#define RESOURCE_fixedcol_2_dxbc    115
+#define RESOURCE_fixedcol_3_dxbc    116
+#define RESOURCE_quadwrite_dxbc     117
+
 #define RESOURCE_sourcecodepro_ttf  301
 
 #define RESOURCE_glsl_blit_vert                      401
