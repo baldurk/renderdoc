@@ -38,7 +38,9 @@ public:
   D3D12ShaderCache();
   ~D3D12ShaderCache();
 
-  rdcstr GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
+  rdcstr GetShaderBlob(const char *source, const char *entry, uint32_t compileFlags,
+                       const char *profile, ID3DBlob **srcblob);
+  rdcstr GetShaderBlob(const char *source, const char *entry, const ShaderCompileFlags &compileFlags,
                        const char *profile, ID3DBlob **srcblob);
 
   D3D12RootSignature GetRootSig(const void *data, size_t dataSize);

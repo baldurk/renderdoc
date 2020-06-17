@@ -24,11 +24,207 @@
 
 #include "d3d12_shader_cache.h"
 #include "common/shader_cache.h"
+#include "core/plugins.h"
 #include "driver/dx/official/d3dcompiler.h"
+#include "driver/dx/official/dxcapi.h"
 #include "driver/shaders/dxbc/dxbc_container.h"
 #include "strings/string_utils.h"
 
+static HMODULE GetDXC()
+{
+  static bool searched = false;
+  static HMODULE ret = NULL;
+  if(searched)
+    return ret;
+
+  searched = true;
+
+  // we need to load dxil.dll first before dxcompiler.dll, because if dxil.dll can't be loaded when
+  // dxcompiler.dll is loaded then validation is disabled and we might not be able to run
+  // non-validated shaders (blehchh)
+
+  // do two passes. First we try and find dxil.dll and dxcompiler.dll both together.
+  // In the second pass we just look for dxcompiler.dll. Hence a higher priority dxcompiler.dll
+  // without a dxil.dll will be less preferred than a lower priority dxcompiler.dll that does have a
+  // dxil.dll
+  for(int sdkPass = 0; sdkPass < 2; sdkPass++)
+  {
+    HMODULE dxilHandle = NULL;
+
+    // first try normal plugin search path. This will prioritise any one placed locally with
+    // RenderDoc, otherwise it will try just the unadorned dll in case it's in the PATH somewhere.
+    {
+      dxilHandle = (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxil.dll").c_str());
+
+      // don't try to load dxcompiler.dll until we've got dxil.dll successfully, or if we're not
+      // trying to get dxil. Otherwise we could load dxcompiler (to check for its existence) and
+      // then find we can't get dxil and be stuck on pass 0.
+      if(dxilHandle || sdkPass == 1)
+      {
+        HMODULE dxcompiler =
+            (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxcompiler.dll").c_str());
+        if(dxcompiler)
+        {
+          ret = dxcompiler;
+          return ret;
+        }
+      }
+
+      // if we didn't find dxcompiler but did find dxil, somehow, then unload it
+      if(dxilHandle)
+        FreeLibrary(dxilHandle);
+      dxilHandle = NULL;
+    }
+
+    // otherwise search windows SDK folders.
+    // First use the registry to locate the SDK
+    for(int wow64Pass = 0; wow64Pass < 2; wow64Pass++)
+    {
+      rdcstr regpath = "SOFTWARE\\";
+      if(wow64Pass == 1)
+        regpath += "Wow6432Node\\";
+      regpath += "Microsoft\\Microsoft SDKs\\Windows\\v10.0";
+
+      HKEY key = NULL;
+      LSTATUS regret = RegOpenKeyExA(HKEY_LOCAL_MACHINE, regpath.c_str(), 0, KEY_READ, &key);
+
+      if(regret != ERROR_SUCCESS)
+      {
+        if(key)
+          RegCloseKey(key);
+        continue;
+      }
+
+      DWORD dataSize = 0;
+      regret = RegGetValueW(key, NULL, L"InstallationFolder", RRF_RT_ANY, NULL, NULL, &dataSize);
+
+      if(regret == ERROR_SUCCESS)
+      {
+        // this is the size in bytes
+        wchar_t *data = new wchar_t[dataSize / sizeof(wchar_t)];
+        RegGetValueW(key, NULL, L"InstallationFolder", RRF_RT_ANY, NULL, data, &dataSize);
+
+        rdcstr path = StringFormat::Wide2UTF8(data);
+
+        RegCloseKey(key);
+
+        delete[] data;
+
+        if(path.back() != '\\')
+          path.push_back('\\');
+
+        // next search the versioned bin folders, from newest to oldest
+        path += "bin\\";
+
+        // sort by name
+        rdcarray<PathEntry> entries;
+        FileIO::GetFilesInDirectory(path.c_str(), entries);
+        std::sort(entries.begin(), entries.end());
+
+        // do a reverse iteration so we get the latest SDK first
+        for(size_t i = 0; i < entries.size(); i++)
+        {
+          const PathEntry &e = entries[entries.size() - 1 - i];
+
+          // skip any files
+          if(!(e.flags & PathProperty::Directory))
+            continue;
+
+          // we've found an SDK! check to see if it contains dxcompiler.dll
+          if(e.filename.beginsWith("10.0."))
+          {
+            rdcstr dxilPath = path + e.filename + "\\x64\\dxil.dll";
+            rdcstr dxcompilerPath = path + e.filename + "\\x64\\dxcompiler.dll";
+
+            bool dxil = FileIO::exists(dxilPath.c_str());
+            bool dxcompiler = FileIO::exists(dxcompilerPath.c_str());
+
+            // if we have both, or we're on the second pass (given up on dxil.dll) and have
+            // dxcompiler, then load this.
+            if((dxil && dxcompiler) || (sdkPass == 1 && dxcompiler))
+            {
+              if(dxil)
+                dxilHandle = (HMODULE)Process::LoadModule(dxilPath.c_str());
+              ret = (HMODULE)Process::LoadModule(dxcompilerPath.c_str());
+            }
+
+            if(ret)
+              return ret;
+
+            // if we didn't find dxcompiler but did find dxil, somehow, then unload it
+            if(dxilHandle)
+              FreeLibrary(dxilHandle);
+            dxilHandle = NULL;
+          }
+        }
+
+        // try in the Redist folder
+        {
+          rdcstr dxilPath = path + "..\\Redist\\D3D\\x64\\dxil.dll";
+          rdcstr dxcompilerPath = path + "..\\Redist\\D3D\\x64\\dxcompiler.dll";
+
+          bool dxil = FileIO::exists(dxilPath.c_str());
+          bool dxcompiler = FileIO::exists(dxcompilerPath.c_str());
+
+          // if we have both, or we're on the second pass (given up on dxil.dll) and have
+          // dxcompiler, then load this.
+          if((dxil && dxcompiler) || (sdkPass == 1 && dxcompiler))
+          {
+            if(dxil)
+              dxilHandle = (HMODULE)Process::LoadModule(dxilPath.c_str());
+            ret = (HMODULE)Process::LoadModule(dxcompilerPath.c_str());
+          }
+
+          if(ret)
+            return ret;
+
+          // if we didn't find dxcompiler but did find dxil, somehow, then unload it
+          if(dxilHandle)
+            FreeLibrary(dxilHandle);
+          dxilHandle = NULL;
+        }
+
+        // if we've gotten here and haven't returned anything, then try just the base x64 folder
+        {
+          rdcstr dxilPath = path + "x64\\dxil.dll";
+          rdcstr dxcompilerPath = path + "x64\\dxcompiler.dll";
+
+          bool dxil = FileIO::exists(dxilPath.c_str());
+          bool dxcompiler = FileIO::exists(dxcompilerPath.c_str());
+
+          // if we have both, or we're on the second pass (given up on dxil.dll) and have
+          // dxcompiler, then load this.
+          if((dxil && dxcompiler) || (sdkPass == 1 && dxcompiler))
+          {
+            if(dxil)
+              dxilHandle = (HMODULE)Process::LoadModule(dxilPath.c_str());
+            ret = (HMODULE)Process::LoadModule(dxcompilerPath.c_str());
+          }
+
+          if(ret)
+            return ret;
+
+          // if we didn't find dxcompiler but did find dxil, somehow, then unload it
+          if(dxilHandle)
+            FreeLibrary(dxilHandle);
+          dxilHandle = NULL;
+        }
+
+        continue;
+      }
+
+      RegCloseKey(key);
+    }
+  }
+
+  RDCERR("Couldn't find dxcompiler.dll in any path.");
+
+  return ret;
+}
+
 typedef HRESULT(WINAPI *pD3DCreateBlob)(SIZE_T Size, ID3DBlob **ppBlob);
+typedef DXC_API_IMPORT HRESULT(__stdcall *pDxcCreateInstance)(REFCLSID rclsid, REFIID riid,
+                                                              LPVOID *ppv);
 
 struct D3D12BlobShaderCallbacks
 {
@@ -52,7 +248,7 @@ struct D3D12BlobShaderCallbacks
     return blobCreate;
   }
 
-  bool Create(uint32_t size, byte *data, ID3DBlob **ret) const
+  bool Create(uint32_t size, const void *data, ID3DBlob **ret) const
   {
     RDCASSERT(ret);
 
@@ -129,7 +325,7 @@ D3D12ShaderCache::~D3D12ShaderCache()
 }
 
 rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
-                                       const uint32_t compileFlags, const char *profile,
+                                       const ShaderCompileFlags &compileFlags, const char *profile,
                                        ID3DBlob **srcblob)
 {
   EmbeddedD3D12Includer includer;
@@ -139,7 +335,11 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
   hash = strhash(profile, hash);
   hash = strhash(includer.cbuffers.c_str(), hash);
   hash = strhash(includer.texsample.c_str(), hash);
-  hash ^= compileFlags;
+  for(const ShaderCompileFlag &f : compileFlags.flags)
+  {
+    hash = strhash(f.name.c_str(), hash);
+    hash = strhash(f.value.c_str(), hash);
+  }
 
   if(m_ShaderCache.find(hash) != m_ShaderCache.end())
   {
@@ -153,24 +353,129 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
   ID3DBlob *byteBlob = NULL;
   ID3DBlob *errBlob = NULL;
 
-  HMODULE d3dcompiler = GetD3DCompiler();
-
-  if(d3dcompiler == NULL)
+  if(profile[3] >= '6')
   {
-    RDCFATAL("Can't get handle to d3dcompiler_??.dll");
+    // compile as DXIL
+
+    UINT prevErrorMode = GetErrorMode();
+    SetErrorMode(prevErrorMode | SEM_FAILCRITICALERRORS);
+
+    HMODULE dxc = GetDXC();
+
+    SetErrorMode(prevErrorMode);
+
+    if(dxc == NULL)
+    {
+      return "Couldn't locate dxcompiler.dll. Ensure you have a Windows 10 SDK installed or place "
+             "dxcompiler.dll in RenderDoc's plugins/d3d12 folder.";
+    }
+    else
+    {
+      pDxcCreateInstance dxcCreate = (pDxcCreateInstance)GetProcAddress(dxc, "DxcCreateInstance");
+
+      IDxcLibrary *library = NULL;
+      hr = dxcCreate(CLSID_DxcLibrary, __uuidof(IDxcLibrary), (void **)&library);
+
+      if(FAILED(hr))
+      {
+        SAFE_RELEASE(library);
+        return "Couldn't create DXC library";
+      }
+
+      IDxcCompiler *compiler = NULL;
+      hr = dxcCreate(CLSID_DxcCompiler, __uuidof(IDxcCompiler), (void **)&compiler);
+
+      if(FAILED(hr))
+      {
+        SAFE_RELEASE(library);
+        SAFE_RELEASE(compiler);
+        return "Couldn't create DXC compiler";
+      }
+
+      IDxcBlobEncoding *sourceBlob = NULL;
+      hr = library->CreateBlobWithEncodingFromPinned(source, (UINT)strlen(source), CP_UTF8,
+                                                     &sourceBlob);
+
+      if(FAILED(hr))
+      {
+        SAFE_RELEASE(library);
+        SAFE_RELEASE(compiler);
+        SAFE_RELEASE(sourceBlob);
+        return "Couldn't create DXC blob";
+      }
+
+      rdcarray<const wchar_t *> args;
+      rdcarray<rdcwstr> argStorage;
+
+      IDxcOperationResult *result = NULL;
+      hr = compiler->Compile(sourceBlob, StringFormat::UTF82Wide(entry).c_str(),
+                             StringFormat::UTF82Wide(entry).c_str(),
+                             StringFormat::UTF82Wide(profile).c_str(), args.data(),
+                             (UINT)args.size(), NULL, 0, NULL, &result);
+
+      SAFE_RELEASE(sourceBlob);
+
+      if(SUCCEEDED(hr) && result)
+        result->GetStatus(&hr);
+
+      if(SUCCEEDED(hr))
+      {
+        IDxcBlob *code = NULL;
+        result->GetResult(&code);
+
+        D3D12ShaderCacheCallbacks.Create((uint32_t)code->GetBufferSize(), code->GetBufferPointer(),
+                                         &byteBlob);
+
+        SAFE_RELEASE(code);
+      }
+      else
+      {
+        if(result)
+        {
+          IDxcBlobEncoding *dxcErrors = NULL;
+          hr = result->GetErrorBuffer(&dxcErrors);
+          if(SUCCEEDED(hr) && dxcErrors)
+          {
+            D3D12ShaderCacheCallbacks.Create((uint32_t)dxcErrors->GetBufferSize(),
+                                             dxcErrors->GetBufferPointer(), &errBlob);
+          }
+
+          SAFE_RELEASE(dxcErrors);
+        }
+
+        if(!errBlob)
+        {
+          rdcstr err = "No compilation result found from DXC compile";
+          D3D12ShaderCacheCallbacks.Create((uint32_t)err.size(), err.c_str(), &errBlob);
+        }
+      }
+
+      SAFE_RELEASE(library);
+      SAFE_RELEASE(compiler);
+      SAFE_RELEASE(result);
+    }
   }
-
-  pD3DCompile compileFunc = (pD3DCompile)GetProcAddress(d3dcompiler, "D3DCompile");
-
-  if(compileFunc == NULL)
+  else
   {
-    RDCFATAL("Can't get D3DCompile from d3dcompiler_??.dll");
+    HMODULE d3dcompiler = GetD3DCompiler();
+
+    if(d3dcompiler == NULL)
+    {
+      RDCFATAL("Can't get handle to d3dcompiler_??.dll");
+    }
+
+    pD3DCompile compileFunc = (pD3DCompile)GetProcAddress(d3dcompiler, "D3DCompile");
+
+    if(compileFunc == NULL)
+    {
+      RDCFATAL("Can't get D3DCompile from d3dcompiler_??.dll");
+    }
+
+    uint32_t flags = DXBC::DecodeFlags(compileFlags) & ~D3DCOMPILE_NO_PRESHADER;
+
+    hr = compileFunc(source, strlen(source), entry, NULL, &includer, entry, profile, flags, 0,
+                     &byteBlob, &errBlob);
   }
-
-  uint32_t flags = compileFlags & ~D3DCOMPILE_NO_PRESHADER;
-
-  hr = compileFunc(source, strlen(source), entry, NULL, &includer, entry, profile, flags, 0,
-                   &byteBlob, &errBlob);
 
   rdcstr errors = "";
 
@@ -204,6 +509,12 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
 
   *srcblob = byteBlob;
   return errors;
+}
+
+rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry, uint32_t compileFlags,
+                                       const char *profile, ID3DBlob **srcblob)
+{
+  return GetShaderBlob(source, entry, DXBC::EncodeFlags(compileFlags), profile, srcblob);
 }
 
 D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSize)
