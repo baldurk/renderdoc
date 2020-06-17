@@ -195,7 +195,6 @@ public:
   static void GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength);
 
   static bool CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength);
-  static bool CheckForShaderCode(const void *ByteCode, size_t ByteCodeLength);
   static rdcstr GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength);
 
 private:

@@ -447,8 +447,6 @@ private:
 
   bool m_AppControlledCapture = false;
 
-  bool m_InvalidPSO = false;
-
   Threading::RWLock m_CapTransitionLock;
   CaptureState m_State;
 
