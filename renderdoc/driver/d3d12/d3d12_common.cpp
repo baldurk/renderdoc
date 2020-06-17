@@ -614,9 +614,12 @@ ShaderStageMask ConvertVisibility(D3D12_SHADER_VISIBILITY ShaderVisibility)
     case D3D12_SHADER_VISIBILITY_DOMAIN: return ShaderStageMask::Domain;
     case D3D12_SHADER_VISIBILITY_GEOMETRY: return ShaderStageMask::Geometry;
     case D3D12_SHADER_VISIBILITY_PIXEL: return ShaderStageMask::Pixel;
+    case D3D12_SHADER_VISIBILITY_AMPLIFICATION:
+    case D3D12_SHADER_VISIBILITY_MESH:
+    default: RDCERR("Unexpected visibility %u", ShaderVisibility); break;
   }
 
-  return ShaderStageMask::Vertex;
+  return ShaderStageMask::Unknown;
 }
 
 // from PIXEventsCommon.h of winpixeventruntime

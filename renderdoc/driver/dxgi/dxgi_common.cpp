@@ -2401,6 +2401,8 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
     case DXGI_FORMAT_A8P8: ret.compCount = 2; break;
 
     case DXGI_FORMAT_UNKNOWN:
+    case DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE:
+    case DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE:
     case DXGI_FORMAT_FORCE_UINT: ret.compCount = 0; break;
   }
 
@@ -2579,6 +2581,8 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
     case DXGI_FORMAT_BC7_UNORM_SRGB: ret.compType = CompType::UNormSRGB; break;
 
     case DXGI_FORMAT_UNKNOWN:
+    case DXGI_FORMAT_SAMPLER_FEEDBACK_MIN_MIP_OPAQUE:
+    case DXGI_FORMAT_SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE:
     case DXGI_FORMAT_FORCE_UINT: ret.compType = CompType::Typeless; break;
 
     case DXGI_FORMAT_AYUV:

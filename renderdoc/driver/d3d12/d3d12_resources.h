@@ -948,6 +948,15 @@ public:
     return 0;
   }
 
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
+  {
+    if(riid == __uuidof(ID3D12Resource2))
+    {
+      return E_NOINTERFACE;
+    }
+    return WrappedDeviceChild12::QueryInterface(riid, ppvObject);
+  }
+
   //////////////////////////////
   // implement ID3D12Resource
 

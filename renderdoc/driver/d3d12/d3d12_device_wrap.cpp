@@ -2856,7 +2856,7 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
 
     return S_OK;
   }
-  if(Feature == D3D12_FEATURE_PROTECTED_RESOURCE_SESSION_SUPPORT)
+  else if(Feature == D3D12_FEATURE_PROTECTED_RESOURCE_SESSION_SUPPORT)
   {
     D3D12_FEATURE_DATA_PROTECTED_RESOURCE_SESSION_SUPPORT *opts =
         (D3D12_FEATURE_DATA_PROTECTED_RESOURCE_SESSION_SUPPORT *)pFeatureSupportData;
@@ -2867,7 +2867,7 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
 
     return S_OK;
   }
-  if(Feature == D3D12_FEATURE_D3D12_OPTIONS5)
+  else if(Feature == D3D12_FEATURE_D3D12_OPTIONS5)
   {
     HRESULT hr = m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
 
@@ -2886,7 +2886,27 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
 
     return hr;
   }
-  if(Feature == D3D12_FEATURE_D3D12_OPTIONS)
+  else if(Feature == D3D12_FEATURE_D3D12_OPTIONS7)
+  {
+    HRESULT hr = m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
+
+    if(SUCCEEDED(hr))
+    {
+      D3D12_FEATURE_DATA_D3D12_OPTIONS7 *opts =
+          (D3D12_FEATURE_DATA_D3D12_OPTIONS7 *)pFeatureSupportData;
+      if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS7))
+        return E_INVALIDARG;
+
+      // don't support mesh shading or sampler feedback
+      opts->MeshShaderTier = D3D12_MESH_SHADER_TIER_NOT_SUPPORTED;
+      opts->SamplerFeedbackTier = D3D12_SAMPLER_FEEDBACK_TIER_NOT_SUPPORTED;
+
+      return S_OK;
+    }
+
+    return hr;
+  }
+  else if(Feature == D3D12_FEATURE_D3D12_OPTIONS)
   {
     HRESULT hr = m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
 

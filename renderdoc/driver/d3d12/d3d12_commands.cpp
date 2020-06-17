@@ -1249,6 +1249,10 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFII
       return E_NOINTERFACE;
     }
   }
+  else if(riid == __uuidof(ID3D12GraphicsCommandList6))
+  {
+    return E_NOINTERFACE;
+  }
   else if(riid == __uuidof(ID3D12CommandList))
   {
     *ppvObject = (ID3D12CommandList *)this;
