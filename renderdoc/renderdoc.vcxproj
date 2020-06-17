@@ -625,6 +625,7 @@
     <None Include="librenderdoc.so-gdb.py" />
     <None Include="replay\renderdoc_serialise.inl" />
     <None Include="data\hlsl\texremap.hlsl" />
+    <None Include="data\hlsl\fixedcol.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="renderdoc.natvis" />

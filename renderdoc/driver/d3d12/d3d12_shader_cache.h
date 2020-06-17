@@ -49,7 +49,16 @@ public:
                         UINT NumStaticSamplers = 0,
                         const D3D12_STATIC_SAMPLER_DESC *StaticSamplers = NULL);
   ID3DBlob *MakeRootSig(const D3D12RootSignature &rootsig);
-  ID3DBlob *MakeFixedColShader(float overlayConsts[4]);
+
+  // must match the values in fixedcol.hlsl
+  enum FixedColVariant
+  {
+    RED = 0,
+    GREEN = 1,
+    HIGHLIGHT = 2,
+    WIREFRAME = 3,
+  };
+  ID3DBlob *MakeFixedColShader(FixedColVariant variant);
 
   void SetCaching(bool enabled) { m_CacheShaders = enabled; }
 private:

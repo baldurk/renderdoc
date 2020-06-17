@@ -16,6 +16,7 @@
 #define RESOURCE_pixelhistory_hlsl  109
 #define RESOURCE_quadoverdraw_hlsl  110
 #define RESOURCE_texremap_hlsl      111
+#define RESOURCE_fixedcol_hlsl      112
 
 #define RESOURCE_sourcecodepro_ttf  301
 

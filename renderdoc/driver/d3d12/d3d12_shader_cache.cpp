@@ -799,12 +799,14 @@ ID3DBlob *D3D12ShaderCache::MakeRootSig(const D3D12RootSignature &rootsig)
                      rootsig.StaticSamplers.empty() ? NULL : &rootsig.StaticSamplers[0]);
 }
 
-ID3DBlob *D3D12ShaderCache::MakeFixedColShader(float overlayConsts[4])
+ID3DBlob *D3D12ShaderCache::MakeFixedColShader(FixedColVariant variant)
 {
   ID3DBlob *ret = NULL;
   rdcstr hlsl =
-      StringFormat::Fmt("float4 main() : SV_Target0 { return float4(%f, %f, %f, %f); }\n",
-                        overlayConsts[0], overlayConsts[1], overlayConsts[2], overlayConsts[3]);
-  GetShaderBlob(hlsl.c_str(), "main", D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &ret);
+      StringFormat::Fmt("#define VARIANT %u\n\n", variant) + GetEmbeddedResource(fixedcol_hlsl);
+  bool wasCaching = m_CacheShaders;
+  m_CacheShaders = true;
+  GetShaderBlob(hlsl.c_str(), "main", ShaderCompileFlags(), "ps_5_0", &ret);
+  m_CacheShaders = wasCaching;
   return ret;
 }

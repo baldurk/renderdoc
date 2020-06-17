@@ -1060,6 +1060,9 @@
     <None Include="data\hlsl\quadoverdraw.hlsl">
       <Filter>Resources\hlsl</Filter>
     </None>
+    <None Include="data\hlsl\fixedcol.hlsl">
+      <Filter>Resources\hlsl</Filter>
+    </None>
     <None Include="data\hlsl\texdisplay.hlsl">
       <Filter>Resources\hlsl</Filter>
     </None>
