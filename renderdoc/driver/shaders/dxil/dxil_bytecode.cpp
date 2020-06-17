@@ -369,7 +369,7 @@ Program::Program(const byte *bytes, size_t length)
   RDCASSERT(header->DxilMagic == MAKE_FOURCC('D', 'X', 'I', 'L'));
 
   const byte *bitcode = ((const byte *)&header->DxilMagic) + header->BitcodeOffset;
-  RDCASSERT(bitcode + header->BitcodeSize == ptr + length);
+  RDCASSERT(bitcode + header->BitcodeSize <= ptr + length);
 
   LLVMBC::BitcodeReader reader(bitcode, header->BitcodeSize);
 
