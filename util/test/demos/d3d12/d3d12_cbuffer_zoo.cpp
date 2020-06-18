@@ -327,8 +327,11 @@ float4 main() : SV_Target0
     if(!Init())
       return 3;
 
-    ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_5_0");
-    ID3DBlobPtr psblob = Compile(pixel, "main", "ps_5_1");
+    ID3DBlobPtr vs5blob = Compile(D3DDefaultVertex, "main", "vs_5_0");
+    ID3DBlobPtr ps5blob = Compile(pixel, "main", "ps_5_1");
+
+    ID3DBlobPtr vs6blob = m_DXILSupport ? Compile(D3DDefaultVertex, "main", "vs_6_0") : NULL;
+    ID3DBlobPtr ps6blob = m_DXILSupport ? Compile(pixel, "main", "ps_6_0") : NULL;
 
     const size_t bindOffset = 16;
 
@@ -370,8 +373,15 @@ float4 main() : SV_Target0
         cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 999999999, 0),
     });
 
-    ID3D12PipelineStatePtr pso = MakePSO().RootSig(sig).InputLayout().VS(vsblob).PS(psblob).RTVs(
-        {DXGI_FORMAT_R32G32B32A32_FLOAT});
+    ID3D12PipelineStatePtr dxbcpso =
+        MakePSO().RootSig(sig).InputLayout().VS(vs5blob).PS(ps5blob).RTVs(
+            {DXGI_FORMAT_R32G32B32A32_FLOAT});
+
+    ID3D12PipelineStatePtr dxilpso = NULL;
+
+    if(vs6blob && ps6blob)
+      dxilpso = MakePSO().RootSig(sig).InputLayout().VS(vs6blob).PS(ps6blob).RTVs(
+          {DXGI_FORMAT_R32G32B32A32_FLOAT});
 
     ResourceBarrier(vb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
     ResourceBarrier(cb, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
@@ -400,7 +410,7 @@ float4 main() : SV_Target0
       cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
       IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
-      cmd->SetPipelineState(pso);
+      cmd->SetPipelineState(dxbcpso);
       cmd->SetGraphicsRootSignature(sig);
       cmd->SetGraphicsRootConstantBufferView(
           0, cb->GetGPUVirtualAddress() + bindOffset * sizeof(Vec4f));
@@ -413,7 +423,16 @@ float4 main() : SV_Target0
 
       OMSetRenderTargets(cmd, {offrtv}, {});
 
+      setMarker(cmd, "DXBC Draw");
       cmd->DrawInstanced(3, 1, 0, 0);
+
+      if(dxilpso)
+      {
+        cmd->SetPipelineState(dxilpso);
+
+        setMarker(cmd, "DXIL Draw");
+        cmd->DrawInstanced(3, 1, 0, 0);
+      }
 
       ResourceBarrier(cmd, rtvtex, D3D12_RESOURCE_STATE_RENDER_TARGET,
                       D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);

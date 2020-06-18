@@ -121,6 +121,9 @@ class ConstantBufferChecker:
             raise TestFailureException("Too many variables checked, {} has no matching data".format(name))
         return ShaderVariableCheck(self._variables.pop(0), name)
 
+    def next_var(self):
+        return self._variables[0]
+
     def done(self):
         if len(self._variables) != 0:
             raise TestFailureException("Not all variables checked, {} still remain".format(len(self._variables)))

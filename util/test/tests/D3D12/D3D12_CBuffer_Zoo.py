@@ -5,12 +5,47 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
     demos_test_name = 'D3D12_CBuffer_Zoo'
 
     def check_capture(self):
-        draw = self.find_draw("Draw")
+        draw = self.find_draw("DXBC Draw")
 
         self.check(draw is not None)
 
-        self.controller.SetFrameEvent(draw.eventId, False)
+        self.controller.SetFrameEvent(draw.next.eventId, False)
 
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        stage = rd.ShaderStage.Pixel
+
+        # Verify that the DXBC draw is first
+        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
+                                                   '')
+
+        self.check('ps_5_1' in disasm)
+
+        self.check_event()
+
+        rdtest.log.success("DXBC draw is as expected")
+
+        # Move to the DXIL draw
+        draw = self.find_draw("DXIL Draw")
+
+        if draw is None:
+            rdtest.log.print("No DXIL draw to test")
+            return
+
+        self.controller.SetFrameEvent(draw.next.eventId, False)
+
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
+                                                   '')
+
+        self.check('ps_6_0' in disasm)
+
+        self.check_event()
+
+        rdtest.log.success("DXIL draw is as expected")
+
+    def check_event(self):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
         stage = rd.ShaderStage.Pixel
@@ -457,7 +492,9 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
         # float4 gldummy4;
         var_check.check('gldummy4')
 
-        # empty_struct empty; - completely omitted
+        # empty_struct empty; - completely omitted on DXBC but present on DXIL
+        if var_check.next_var().name == 'empty':
+            var_check.check('empty')
 
         # nested_with_empty nested_empty;
         var_check.check('nested_empty').rows(0).cols(0).members({
