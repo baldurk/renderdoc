@@ -29,15 +29,21 @@
 #include "../3rdparty/lz4/lz4.h"
 #include "../renderdoc_app.h"
 #include "../win32/win32_window.h"
+#include "dx/official/dxcapi.h"
 
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY1)(REFIID, void **);
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY2)(UINT, REFIID, void **);
+using PFN_ENABLE_EXPERIMENTAL = decltype(&D3D12EnableExperimentalFeatures);
+
+typedef DXC_API_IMPORT HRESULT(__stdcall *pDxcCreateInstance)(REFCLSID rclsid, REFIID riid,
+                                                              LPVOID *ppv);
 
 namespace
 {
 HMODULE d3d12 = NULL;
 HMODULE dxgi = NULL;
 HMODULE d3dcompiler = NULL;
+HMODULE dxcompiler = NULL;
 IDXGIFactory1Ptr factory;
 std::vector<IDXGIAdapterPtr> adapters;
 bool d3d12on7 = false;
@@ -64,6 +70,7 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
       d3dcompiler = LoadLibraryA("d3dcompiler_44.dll");
     if(!d3dcompiler)
       d3dcompiler = LoadLibraryA("d3dcompiler_43.dll");
+    dxcompiler = LoadLibraryA("dxcompiler.dll");
 
     if(!d3d12)
     {
@@ -77,6 +84,13 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
           (PFN_CREATE_DXGI_FACTORY1)GetProcAddress(dxgi, "CreateDXGIFactory1");
       PFN_CREATE_DXGI_FACTORY2 createFactory2 =
           (PFN_CREATE_DXGI_FACTORY2)GetProcAddress(dxgi, "CreateDXGIFactory2");
+
+      PFN_ENABLE_EXPERIMENTAL enableExperimental =
+          (PFN_ENABLE_EXPERIMENTAL)GetProcAddress(d3d12, "D3D12EnableExperimentalFeatures");
+
+      // try to enable unsigned shaders in case we don't get dxil.dll
+      if(enableExperimental)
+        enableExperimental(1, &D3D12ExperimentalShaderModels, NULL, NULL);
 
       HRESULT hr = E_FAIL;
 
@@ -118,6 +132,8 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
 
   m_12On7 = d3d12on7;
 
+  m_DXILSupport = (dxcompiler != NULL);
+
   for(int i = 0; i < argc; i++)
   {
     if(!strcmp(argv[i], "--gpuva") || !strcmp(argv[i], "--debug-gpu"))
@@ -143,6 +159,7 @@ bool D3D12GraphicsTest::Init()
   dyn_D3DCompile = (pD3DCompile)GetProcAddress(d3dcompiler, "D3DCompile");
   dyn_D3DStripShader = (pD3DStripShader)GetProcAddress(d3dcompiler, "D3DStripShader");
   dyn_D3DSetBlobPart = (pD3DSetBlobPart)GetProcAddress(d3dcompiler, "D3DSetBlobPart");
+  dyn_CreateBlob = (pD3DCreateBlob)GetProcAddress(d3dcompiler, "D3DCreateBlob");
 
   dyn_serializeRootSig = (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)GetProcAddress(
       d3d12, "D3D12SerializeVersionedRootSignature");
@@ -943,47 +960,126 @@ void D3D12GraphicsTest::OMSetRenderTargets(ID3D12GraphicsCommandListPtr cmd,
   cmd->OMSetRenderTargets((UINT)rtvs.size(), rtvs.data(), FALSE, dsv.ptr ? &dsv : NULL);
 }
 
-ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::string profile,
-                                       ID3DBlob **unstripped)
+COM_SMARTPTR(IDxcLibrary);
+COM_SMARTPTR(IDxcCompiler);
+COM_SMARTPTR(IDxcBlobEncoding);
+COM_SMARTPTR(IDxcOperationResult);
+COM_SMARTPTR(IDxcBlob);
+
+ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::string profile)
 {
   ID3DBlobPtr blob = NULL;
-  ID3DBlobPtr error = NULL;
 
-  HRESULT hr = dyn_D3DCompile(
-      src.c_str(), src.length(), "", NULL, NULL, entry.c_str(), profile.c_str(),
-      D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION |
-          D3DCOMPILE_OPTIMIZATION_LEVEL0 | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES,
-      0, &blob, &error);
-
-  if(FAILED(hr))
+  if(profile[3] >= '6')
   {
-    TEST_ERROR("Failed to compile shader, error %x / %s", hr,
-               error ? (char *)error->GetBufferPointer() : "Unknown");
+    if(!m_DXILSupport)
+      TEST_FATAL("Can't compile DXIL shader");
 
-    blob = NULL;
-    error = NULL;
-    return NULL;
+    pDxcCreateInstance dxcCreate =
+        (pDxcCreateInstance)GetProcAddress(dxcompiler, "DxcCreateInstance");
+
+    IDxcLibraryPtr library = NULL;
+    HRESULT hr = dxcCreate(CLSID_DxcLibrary, __uuidof(IDxcLibrary), (void **)&library);
+
+    if(FAILED(hr))
+    {
+      TEST_ERROR("Couldn't create DXC library");
+      return NULL;
+    }
+
+    IDxcCompilerPtr compiler = NULL;
+    hr = dxcCreate(CLSID_DxcCompiler, __uuidof(IDxcCompiler), (void **)&compiler);
+
+    if(FAILED(hr))
+    {
+      TEST_ERROR("Couldn't create DXC compiler");
+      return NULL;
+    }
+
+    IDxcBlobEncodingPtr sourceBlob = NULL;
+    hr = library->CreateBlobWithEncodingFromPinned(src.data(), (UINT)src.size(), CP_UTF8,
+                                                   &sourceBlob);
+
+    if(FAILED(hr))
+    {
+      TEST_ERROR("Couldn't create DXC blob");
+      return NULL;
+    }
+
+    std::vector<const wchar_t *> args;
+    std::vector<std::wstring> argStorage;
+
+    argStorage.push_back(L"-WX");
+    argStorage.push_back(L"-O0");
+    argStorage.push_back(L"-Od");
+    argStorage.push_back(L"-Zi");
+    argStorage.push_back(L"-Qembed_debug");
+
+    for(size_t i = 0; i < argStorage.size(); i++)
+      args.push_back(argStorage[i].c_str());
+
+    IDxcOperationResultPtr result;
+    hr = compiler->Compile(sourceBlob, UTF82Wide(entry).c_str(), UTF82Wide(entry).c_str(),
+                           UTF82Wide(profile).c_str(), args.data(), (UINT)args.size(), NULL, 0,
+                           NULL, &result);
+
+    if(SUCCEEDED(hr))
+    {
+      result->GetStatus(&hr);
+
+      if(SUCCEEDED(hr))
+      {
+        IDxcBlobPtr code = NULL;
+        result->GetResult(&code);
+
+        dyn_CreateBlob((uint32_t)code->GetBufferSize(), &blob);
+
+        memcpy(blob->GetBufferPointer(), code->GetBufferPointer(), code->GetBufferSize());
+      }
+    }
+    else
+    {
+      if(result)
+      {
+        IDxcBlobEncodingPtr dxcErrors = NULL;
+        hr = result->GetErrorBuffer(&dxcErrors);
+        if(SUCCEEDED(hr) && dxcErrors)
+        {
+          TEST_ERROR("Failed to compile DXC shader: %s", hr, dxcErrors->GetBufferPointer());
+        }
+        else
+        {
+          TEST_ERROR("DXC compile failed but couldn't get error: %x", hr);
+        }
+      }
+      else
+      {
+        TEST_ERROR("No compilation result found from DXC compile: %x", hr);
+      }
+    }
   }
-
-  if(unstripped)
+  else
   {
-    blob.AddRef();
-    *unstripped = blob.GetInterfacePtr();
+    ID3DBlobPtr error = NULL;
 
-    ID3DBlobPtr stripped = NULL;
+    HRESULT hr = dyn_D3DCompile(
+        src.c_str(), src.length(), "", NULL, NULL, entry.c_str(), profile.c_str(),
+        D3DCOMPILE_WARNINGS_ARE_ERRORS | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION |
+            D3DCOMPILE_OPTIMIZATION_LEVEL0 | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES,
+        0, &blob, &error);
 
-    dyn_D3DStripShader(blob->GetBufferPointer(), blob->GetBufferSize(),
-                       D3DCOMPILER_STRIP_REFLECTION_DATA | D3DCOMPILER_STRIP_DEBUG_INFO, &stripped);
-
-    blob = NULL;
-
-    return stripped;
+    if(FAILED(hr))
+    {
+      TEST_ERROR("Failed to compile shader, error %x / %s", hr,
+                 error ? (char *)error->GetBufferPointer() : "Unknown");
+      return NULL;
+    }
   }
 
   return blob;
 }
 
-void D3D12GraphicsTest::WriteBlob(std::string name, ID3DBlob *blob, bool compress)
+void D3D12GraphicsTest::WriteBlob(std::string name, ID3DBlobPtr blob, bool compress)
 {
   FILE *f = NULL;
   fopen_s(&f, name.c_str(), "wb");
@@ -1014,7 +1110,7 @@ void D3D12GraphicsTest::WriteBlob(std::string name, ID3DBlob *blob, bool compres
   fclose(f);
 }
 
-ID3DBlobPtr D3D12GraphicsTest::SetBlobPath(std::string name, ID3DBlob *blob)
+void D3D12GraphicsTest::SetBlobPath(std::string name, ID3DBlobPtr &blob)
 {
   ID3DBlobPtr newBlob = NULL;
 
@@ -1031,7 +1127,7 @@ ID3DBlobPtr D3D12GraphicsTest::SetBlobPath(std::string name, ID3DBlob *blob)
   dyn_D3DSetBlobPart(blob->GetBufferPointer(), blob->GetBufferSize(), D3D_BLOB_PRIVATE_DATA, 0,
                      pathData.c_str(), pathData.size() + 1, &newBlob);
 
-  return newBlob;
+  blob = newBlob;
 }
 
 void D3D12GraphicsTest::SetBlobPath(std::string name, ID3D12DeviceChild *shader)

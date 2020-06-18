@@ -372,4 +372,36 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ItemGroup>
+    <Content Include="$(WindowsSdkDir_10)\Redist\D3D\x64\d3dcompiler_47.dll" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x64\d3dcompiler_47.dll') AND '$(Platform)'=='x64'">
+      <Link>d3dcompiler_47.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="$(WindowsSdkDir_10)\Redist\D3D\x86\d3dcompiler_47.dll" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x86\d3dcompiler_47.dll') AND '$(Platform)'=='Win32'">
+      <Link>d3dcompiler_47.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="$(WindowsSdkDir_10)\Redist\D3D\x64\dxcompiler.dll" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x64\dxcompiler.dll') AND '$(Platform)'=='x64'">
+      <Link>dxcompiler.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="$(WindowsSdkDir_10)\Redist\D3D\x86\dxcompiler.dll" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x86\dxcompiler.dll') AND '$(Platform)'=='Win32'">
+      <Link>dxcompiler.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="$(WindowsSdkDir_10)\Redist\D3D\x64\dxil.dll" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x64\dxil.dll') AND '$(Platform)'=='x64'">
+      <Link>dxil.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="$(WindowsSdkDir_10)\Redist\D3D\x86\dxil.dll" Condition="Exists('$(WindowsSdkDir_10)\Redist\D3D\x86\dxil.dll') AND '$(Platform)'=='Win32'">
+      <Link>dxil.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+  </ItemGroup>
 </Project>

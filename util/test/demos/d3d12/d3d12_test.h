@@ -39,6 +39,7 @@ typedef HRESULT(WINAPI *pD3DSetBlobPart)(_In_reads_bytes_(SrcDataSize) LPCVOID p
                                          _In_ SIZE_T SrcDataSize, _In_ D3D_BLOB_PART Part,
                                          _In_ UINT Flags, _In_reads_bytes_(PartSize) LPCVOID pPart,
                                          _In_ SIZE_T PartSize, _Out_ ID3DBlob **ppNewShader);
+typedef HRESULT(WINAPI *pD3DCreateBlob)(SIZE_T Size, ID3DBlob **ppBlob);
 
 struct Win32Window;
 
@@ -71,12 +72,11 @@ struct D3D12GraphicsTest : public GraphicsTest
     BufUAVType = 0xf00,
   };
 
-  ID3DBlobPtr Compile(std::string src, std::string entry, std::string profile,
-                      ID3DBlob **unstripped = NULL);
-  void WriteBlob(std::string name, ID3DBlob *blob, bool compress);
+  ID3DBlobPtr Compile(std::string src, std::string entry, std::string profile);
+  void WriteBlob(std::string name, ID3DBlobPtr blob, bool compress);
 
   const std::vector<D3D12_INPUT_ELEMENT_DESC> &DefaultInputLayout() { return m_DefaultInputLayout; }
-  ID3DBlobPtr SetBlobPath(std::string name, ID3DBlob *blob);
+  void SetBlobPath(std::string name, ID3DBlobPtr &blob);
   void SetBlobPath(std::string name, ID3D12DeviceChild *shader);
 
   ID3D12GraphicsCommandListPtr GetCommandBuffer();
@@ -187,6 +187,7 @@ struct D3D12GraphicsTest : public GraphicsTest
   pD3DCompile dyn_D3DCompile = NULL;
   pD3DStripShader dyn_D3DStripShader = NULL;
   pD3DSetBlobPart dyn_D3DSetBlobPart = NULL;
+  pD3DCreateBlob dyn_CreateBlob = NULL;
 
   PFN_D3D12_CREATE_DEVICE dyn_D3D12CreateDevice = NULL;
 
@@ -205,7 +206,7 @@ struct D3D12GraphicsTest : public GraphicsTest
   ID3D12RootSignaturePtr swapBlitSig;
   ID3D12PipelineStatePtr swapBlitPso;
 
-  bool gpuva = false, m_12On7 = false;
+  bool gpuva = false, m_12On7 = false, m_DXILSupport = false;
   IDXGIFactory1Ptr m_Factory;
 
   ID3D12DebugPtr d3d12Debug;

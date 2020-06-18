@@ -580,8 +580,7 @@ void D3D11GraphicsTest::SetStencilRef(UINT ref)
   ctx->OMSetDepthStencilState(state, ref);
 }
 
-ID3DBlobPtr D3D11GraphicsTest::Compile(std::string src, std::string entry, std::string profile,
-                                       ID3DBlob **unstripped)
+ID3DBlobPtr D3D11GraphicsTest::Compile(std::string src, std::string entry, std::string profile)
 {
   ID3DBlobPtr blob = NULL;
   ID3DBlobPtr error = NULL;
@@ -602,25 +601,20 @@ ID3DBlobPtr D3D11GraphicsTest::Compile(std::string src, std::string entry, std::
     return NULL;
   }
 
-  if(unstripped)
-  {
-    blob.AddRef();
-    *unstripped = blob.GetInterfacePtr();
-
-    ID3DBlobPtr stripped = NULL;
-
-    dyn_D3DStripShader(blob->GetBufferPointer(), blob->GetBufferSize(),
-                       D3DCOMPILER_STRIP_REFLECTION_DATA | D3DCOMPILER_STRIP_DEBUG_INFO, &stripped);
-
-    blob = NULL;
-
-    return stripped;
-  }
-
   return blob;
 }
 
-void D3D11GraphicsTest::WriteBlob(std::string name, ID3DBlob *blob, bool compress)
+void D3D11GraphicsTest::Strip(ID3DBlobPtr &ptr)
+{
+  ID3DBlobPtr stripped = NULL;
+
+  dyn_D3DStripShader(ptr->GetBufferPointer(), ptr->GetBufferSize(),
+                     D3DCOMPILER_STRIP_REFLECTION_DATA | D3DCOMPILER_STRIP_DEBUG_INFO, &stripped);
+
+  ptr = stripped;
+}
+
+void D3D11GraphicsTest::WriteBlob(std::string name, ID3DBlobPtr blob, bool compress)
 {
   FILE *f = NULL;
   fopen_s(&f, name.c_str(), "wb");
@@ -651,7 +645,7 @@ void D3D11GraphicsTest::WriteBlob(std::string name, ID3DBlob *blob, bool compres
   fclose(f);
 }
 
-ID3DBlobPtr D3D11GraphicsTest::SetBlobPath(std::string name, ID3DBlob *blob)
+void D3D11GraphicsTest::SetBlobPath(std::string name, ID3DBlobPtr &blob)
 {
   ID3DBlobPtr newBlob = NULL;
 
@@ -668,7 +662,7 @@ ID3DBlobPtr D3D11GraphicsTest::SetBlobPath(std::string name, ID3DBlob *blob)
   dyn_D3DSetBlobPart(blob->GetBufferPointer(), blob->GetBufferSize(), D3D_BLOB_PRIVATE_DATA, 0,
                      pathData.c_str(), pathData.size() + 1, &newBlob);
 
-  return newBlob;
+  blob = newBlob;
 }
 
 void D3D11GraphicsTest::SetBlobPath(std::string name, ID3D11DeviceChild *shader)

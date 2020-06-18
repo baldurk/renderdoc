@@ -70,9 +70,9 @@ struct D3D11GraphicsTest : public GraphicsTest
     BufUAVType = 0xf00,
   };
 
-  ID3DBlobPtr Compile(std::string src, std::string entry, std::string profile,
-                      ID3DBlob **unstripped = NULL);
-  void WriteBlob(std::string name, ID3DBlob *blob, bool compress);
+  ID3DBlobPtr Compile(std::string src, std::string entry, std::string profile);
+  void Strip(ID3DBlobPtr &ptr);
+  void WriteBlob(std::string name, ID3DBlobPtr blob, bool compress);
 
   ID3D11VertexShaderPtr CreateVS(ID3DBlobPtr blob);
   ID3D11PixelShaderPtr CreatePS(ID3DBlobPtr blob);
@@ -82,7 +82,7 @@ struct D3D11GraphicsTest : public GraphicsTest
                                    const std::vector<D3D11_SO_DECLARATION_ENTRY> &sodecl,
                                    const std::vector<UINT> &strides, UINT rastStream = 0);
 
-  ID3DBlobPtr SetBlobPath(std::string name, ID3DBlob *blob);
+  void SetBlobPath(std::string name, ID3DBlobPtr &blob);
   void SetBlobPath(std::string name, ID3D11DeviceChild *shader);
 
   void CreateDefaultInputLayout(ID3DBlobPtr vsblob);

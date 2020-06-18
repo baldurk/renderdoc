@@ -35,16 +35,16 @@ RD_TEST(D3D11_Stripped_Shaders, D3D11GraphicsTest)
     if(!Init())
       return 3;
 
-    ID3DBlobPtr vsblobUnstripped = NULL;
-    ID3DBlobPtr psblobUnstripped = NULL;
+    ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_5_0");
+    ID3DBlobPtr psblob = Compile(D3DDefaultPixel, "main", "ps_5_0");
 
-    ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_5_0", &vsblobUnstripped);
-    ID3DBlobPtr psblob = Compile(D3DDefaultPixel, "main", "ps_5_0", &psblobUnstripped);
+    WriteBlob(GetCWD() + "/shader_debug.vs", vsblob, false);
+    WriteBlob(GetCWD() + "/shader_debug.ps", psblob, true);
 
-    WriteBlob(GetCWD() + "/shader_debug.vs", vsblobUnstripped, false);
-    WriteBlob(GetCWD() + "/shader_debug.ps", psblobUnstripped, true);
+    Strip(vsblob);
+    Strip(psblob);
 
-    vsblob = SetBlobPath(GetCWD() + "/shader_debug.vs", vsblob);
+    SetBlobPath(GetCWD() + "/shader_debug.vs", vsblob);
 
     CreateDefaultInputLayout(vsblob);
 
