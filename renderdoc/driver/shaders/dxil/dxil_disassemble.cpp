@@ -404,6 +404,8 @@ void Program::MakeDisassemblyString()
     typeOrderer.accumulate(&m_NamedMeta[i]);
   }
 
+  bool printedTypes = false;
+
   for(const Type *typ : typeOrderer.types)
   {
     if(typ->type == Type::Struct && !typ->name.empty())
@@ -424,10 +426,11 @@ void Program::MakeDisassemblyString()
         m_Disassembly += " }\n";
 
       instructionLine++;
+      printedTypes = true;
     }
   }
 
-  if(!typeOrderer.types.empty())
+  if(printedTypes)
   {
     m_Disassembly += "\n";
     instructionLine++;
@@ -739,7 +742,8 @@ void Program::MakeDisassemblyString()
           {
             m_Disassembly += "alloca ";
             m_Disassembly += inst.type->inner->toString();
-            m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
+            if(inst.align > 0)
+              m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
             break;
           }
           case Instruction::GetElementPtr:
@@ -776,7 +780,8 @@ void Program::MakeDisassemblyString()
               m_Disassembly += argToString(s, true);
               first = false;
             }
-            m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
+            if(inst.align > 0)
+              m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
             break;
           }
           case Instruction::Store:
@@ -787,7 +792,8 @@ void Program::MakeDisassemblyString()
             m_Disassembly += argToString(inst.args[1], true);
             m_Disassembly += ", ";
             m_Disassembly += argToString(inst.args[0], true);
-            m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
+            if(inst.align > 0)
+              m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
             break;
           }
           case Instruction::FOrdFalse:
