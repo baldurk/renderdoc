@@ -213,7 +213,7 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
 
     refl->debugInfo.encoding = ShaderEncoding::HLSL;
 
-    refl->debugInfo.compileFlags = DXBC::EncodeFlags(dxbc->GetDebugInfo());
+    refl->debugInfo.compileFlags = dxbc->GetDebugInfo()->GetShaderCompileFlags();
 
     refl->debugInfo.files.resize(dxbc->GetDebugInfo()->Files.size());
     for(size_t i = 0; i < dxbc->GetDebugInfo()->Files.size(); i++)
@@ -228,6 +228,24 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
 
     // assume the debug info put the file with the entry point at the start. SDBG seems to do this
     // by default, and SPDB has an extra sorting step that probably maybe possibly does this.
+  }
+  else
+  {
+    // ensure we at least have shader compiler flags to indicate the right profile
+    rdcstr profile;
+    switch(dxbc->m_Type)
+    {
+      case DXBC::ShaderType::Pixel: profile = "ps"; break;
+      case DXBC::ShaderType::Vertex: profile = "vs"; break;
+      case DXBC::ShaderType::Geometry: profile = "gs"; break;
+      case DXBC::ShaderType::Hull: profile = "hs"; break;
+      case DXBC::ShaderType::Domain: profile = "ds"; break;
+      case DXBC::ShaderType::Compute: profile = "cs"; break;
+      default: profile = "xx"; break;
+    }
+    profile += StringFormat::Fmt("_%u_%u", dxbc->m_Version.Major, dxbc->m_Version.Minor);
+
+    refl->debugInfo.compileFlags = DXBC::EncodeFlags(0, profile);
   }
 
   if(dxbc->GetDXBCByteCode())

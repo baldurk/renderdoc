@@ -619,7 +619,7 @@ void DXBCContainer::FillStateInstructionInfo(ShaderDebugState &state) const
       offset = m_DXBCByteCode->GetInstruction(instruction).offset;
 
     if(m_DebugInfo)
-      m_DebugInfo->GetLocals(m_DXBCByteCode, instruction, offset, state.sourceVars);
+      m_DebugInfo->GetLocals(this, instruction, offset, state.sourceVars);
   }
 
   if(m_DebugInfo)
@@ -1702,7 +1702,39 @@ uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags)
   return ret;
 }
 
-ShaderCompileFlags EncodeFlags(const uint32_t flags)
+rdcstr GetProfile(const ShaderCompileFlags &compileFlags)
+{
+  for(const ShaderCompileFlag flag : compileFlags.flags)
+  {
+    if(flag.name == "@cmdline")
+    {
+      rdcstr cmdline = flag.value;
+
+      // ensure cmdline is surrounded by spaces and all whitespace is spaces. This means we can
+      // search for our flags surrounded by space and ensure we get exact matches.
+      for(char &c : cmdline)
+        if(isspace(c))
+          c = ' ';
+
+      cmdline = " " + cmdline + " ";
+
+      const char *prof = strstr(cmdline.c_str(), " /T ");
+      if(!prof)
+        prof = strstr(cmdline.c_str(), " -T ");
+
+      if(!prof)
+        return "";
+
+      prof += 4;
+
+      return rdcstr(prof, strstr(prof, " ") - prof);
+    }
+  }
+
+  return "";
+}
+
+ShaderCompileFlags EncodeFlags(const uint32_t flags, const rdcstr &profile)
 {
   ShaderCompileFlags ret;
 
@@ -1731,7 +1763,10 @@ ShaderCompileFlags EncodeFlags(const uint32_t flags)
   else if(opt == D3DCOMPILE_OPTIMIZATION_LEVEL3)
     cmdline += " /O3";
 
-  ret.flags = {{"@cmdline", cmdline}};
+  if(!profile.empty())
+    cmdline += " /T " + profile;
+
+  ret.flags = {{"@cmdline", cmdline.trimmed()}};
 
   // If D3DCOMPILE_SKIP_OPTIMIZATION is set, then prefer source-level debugging as it should be
   // accurate enough to work with.
@@ -1739,11 +1774,6 @@ ShaderCompileFlags EncodeFlags(const uint32_t flags)
     ret.flags.push_back({"preferSourceDebug", "1"});
 
   return ret;
-}
-
-ShaderCompileFlags EncodeFlags(const IDebugInfo *dbg)
-{
-  return EncodeFlags(dbg ? dbg->GetShaderCompileFlags() : 0);
 }
 
 };    // namespace DXBC
@@ -1799,17 +1829,17 @@ TEST_CASE("Check DXBC flag encoding/decoding", "[dxbc]")
   {
     uint32_t flags = D3DCOMPILE_PARTIAL_PRECISION | D3DCOMPILE_SKIP_OPTIMIZATION |
                      D3DCOMPILE_ALL_RESOURCES_BOUND | D3DCOMPILE_OPTIMIZATION_LEVEL2;
-    uint32_t flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+    uint32_t flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags, ""));
 
     CHECK(flags == flags2);
 
     flags = 0;
-    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags, ""));
 
     CHECK(flags == flags2);
 
     flags = D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_DEBUG;
-    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags, ""));
 
     CHECK(flags == flags2);
   };
@@ -1817,7 +1847,7 @@ TEST_CASE("Check DXBC flag encoding/decoding", "[dxbc]")
   SECTION("encode/decode discards unrecognised parameters")
   {
     uint32_t flags = D3DCOMPILE_PARTIAL_PRECISION | (1 << 30);
-    uint32_t flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+    uint32_t flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags, ""));
 
     CHECK(flags2 == D3DCOMPILE_PARTIAL_PRECISION);
 
@@ -1831,7 +1861,7 @@ TEST_CASE("Check DXBC flag encoding/decoding", "[dxbc]")
     CHECK(flags2 == (D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS));
 
     flags = ~0U;
-    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags, ""));
 
     uint32_t allflags = 0;
     for(const DXBC::FxcArg &a : DXBC::fxc_flags)
@@ -1845,22 +1875,75 @@ TEST_CASE("Check DXBC flag encoding/decoding", "[dxbc]")
   SECTION("optimisation flags are properly decoded and encoded")
   {
     uint32_t flags = D3DCOMPILE_DEBUG | D3DCOMPILE_OPTIMIZATION_LEVEL0;
-    uint32_t flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+    uint32_t flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags, ""));
 
     CHECK(flags == flags2);
 
     flags = D3DCOMPILE_DEBUG | D3DCOMPILE_OPTIMIZATION_LEVEL1;
-    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags, ""));
 
     CHECK(flags == flags2);
 
     flags = D3DCOMPILE_DEBUG | D3DCOMPILE_OPTIMIZATION_LEVEL2;
-    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags, ""));
 
     CHECK(flags == flags2);
 
     flags = D3DCOMPILE_DEBUG | D3DCOMPILE_OPTIMIZATION_LEVEL3;
-    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags));
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags, ""));
+
+    CHECK(flags == flags2);
+  };
+
+  SECTION("Profile is correctly encoded and decoded")
+  {
+    const uint32_t flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS;
+
+    rdcstr profile = "ps_5_0";
+    rdcstr profile2 = DXBC::GetProfile(DXBC::EncodeFlags(flags, profile));
+
+    CHECK(profile == profile2);
+
+    profile = "ps_4_0";
+    profile2 = DXBC::GetProfile(DXBC::EncodeFlags(flags, profile));
+
+    CHECK(profile == profile2);
+
+    profile = "";
+    profile2 = DXBC::GetProfile(DXBC::EncodeFlags(flags, profile));
+
+    CHECK(profile == profile2);
+
+    profile = "cs_5_0";
+    profile2 = DXBC::GetProfile(DXBC::EncodeFlags(flags, profile));
+
+    CHECK(profile == profile2);
+
+    profile = "??_9_9";
+    profile2 = DXBC::GetProfile(DXBC::EncodeFlags(flags, profile));
+
+    CHECK(profile == profile2);
+  };
+
+  SECTION("Profile does not affect flag encoding")
+  {
+    uint32_t flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS;
+    uint32_t flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags, ""));
+
+    CHECK(flags == flags2);
+
+    flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS;
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags, "ps_5_0"));
+
+    CHECK(flags == flags2);
+
+    flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS;
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags, "ps_4_0"));
+
+    CHECK(flags == flags2);
+
+    flags = D3DCOMPILE_DEBUG | D3DCOMPILE_WARNINGS_ARE_ERRORS;
+    flags2 = DXBC::DecodeFlags(DXBC::EncodeFlags(flags, "??_9_9"));
 
     CHECK(flags == flags2);
   };

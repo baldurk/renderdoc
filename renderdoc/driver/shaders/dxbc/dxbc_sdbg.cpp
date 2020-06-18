@@ -127,7 +127,7 @@ bool SDBGChunk::HasSourceMapping() const
   return false;
 }
 
-void SDBGChunk::GetLocals(DXBCBytecode::Program *program, size_t instruction, uintptr_t offset,
+void SDBGChunk::GetLocals(const DXBC::DXBCContainer *dxbc, size_t instruction, uintptr_t offset,
                           rdcarray<SourceVariableMapping> &locals) const
 {
 }

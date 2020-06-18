@@ -34,16 +34,6 @@
 #include "driver/dx/official/d3dcommon.h"
 #include "dxbc_common.h"
 
-namespace DXBCBytecode
-{
-class Program;
-};
-
-namespace DXIL
-{
-class Program;
-};
-
 namespace DXBC
 {
 class IDebugInfo;
@@ -141,30 +131,9 @@ rdcstr TypeName(CBufferVariableType::Descriptor desc);
 
 struct RDEFHeader;
 
-class IDebugInfo
-{
-public:
-  virtual ~IDebugInfo() {}
-  virtual rdcstr GetCompilerSig() const = 0;
-  virtual rdcstr GetEntryFunction() const = 0;
-  virtual rdcstr GetShaderProfile() const = 0;
-
-  virtual uint32_t GetShaderCompileFlags() const = 0;
-
-  rdcarray<rdcpair<rdcstr, rdcstr>> Files;    // <filename, source>
-
-  virtual void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const = 0;
-  virtual void GetCallstack(size_t instruction, uintptr_t offset,
-                            rdcarray<rdcstr> &callstack) const = 0;
-
-  virtual bool HasSourceMapping() const = 0;
-  virtual void GetLocals(DXBCBytecode::Program *program, size_t instruction, uintptr_t offset,
-                         rdcarray<SourceVariableMapping> &locals) const = 0;
-};
-
 uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags);
-ShaderCompileFlags EncodeFlags(const IDebugInfo *dbg);
-ShaderCompileFlags EncodeFlags(const uint32_t flags);
+rdcstr GetProfile(const ShaderCompileFlags &compileFlags);
+ShaderCompileFlags EncodeFlags(const uint32_t flags, const rdcstr &profile);
 
 // declare one of these and pass in your shader bytecode, then inspect
 // the members that are populated with the shader information.

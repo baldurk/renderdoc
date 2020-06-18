@@ -514,7 +514,7 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
 rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry, uint32_t compileFlags,
                                        const char *profile, ID3DBlob **srcblob)
 {
-  return GetShaderBlob(source, entry, DXBC::EncodeFlags(compileFlags), profile, srcblob);
+  return GetShaderBlob(source, entry, DXBC::EncodeFlags(compileFlags, profile), profile, srcblob);
 }
 
 D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSize)

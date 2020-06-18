@@ -1699,7 +1699,7 @@ bool SPDBChunk::HasSourceMapping() const
   return true;
 }
 
-void SPDBChunk::GetLocals(DXBCBytecode::Program *program, size_t instruction, uintptr_t offset,
+void SPDBChunk::GetLocals(const DXBC::DXBCContainer *dxbc, size_t instruction, uintptr_t offset,
                           rdcarray<SourceVariableMapping> &locals) const
 {
   locals.clear();
@@ -1734,10 +1734,11 @@ void SPDBChunk::GetLocals(DXBCBytecode::Program *program, size_t instruction, ui
     // it's possible to declare coverage input but then not use it. We then get a local that
     // doesn't map to any register because the register declaration is stripped.
     // this doesn't happen on output because outputs don't get stripped in the same way.
-    if(it->regType == DXBCBytecode::TYPE_INPUT_COVERAGE_MASK && !program->HasCoverageInput())
+    if(it->regType == DXBCBytecode::TYPE_INPUT_COVERAGE_MASK &&
+       !dxbc->GetDXBCByteCode()->HasCoverageInput())
       continue;
 
-    range.name = program->GetRegisterName(it->regType, it->regIndex);
+    range.name = dxbc->GetDXBCByteCode()->GetRegisterName(it->regType, it->regIndex);
     range.component = it->regFirstComp;
 
     if(IsInput(it->regType))

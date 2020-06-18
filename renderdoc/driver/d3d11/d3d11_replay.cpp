@@ -2533,21 +2533,23 @@ void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &sour
   if(sourceEncoding == ShaderEncoding::HLSL)
   {
     uint32_t flags = DXBC::DecodeFlags(compileFlags);
+    rdcstr profile = DXBC::GetProfile(compileFlags);
 
-    char *profile = NULL;
-
-    switch(type)
+    if(profile.empty())
     {
-      case ShaderStage::Vertex: profile = "vs_5_0"; break;
-      case ShaderStage::Hull: profile = "hs_5_0"; break;
-      case ShaderStage::Domain: profile = "ds_5_0"; break;
-      case ShaderStage::Geometry: profile = "gs_5_0"; break;
-      case ShaderStage::Pixel: profile = "ps_5_0"; break;
-      case ShaderStage::Compute: profile = "cs_5_0"; break;
-      default:
-        RDCERR("Unexpected type in BuildShader!");
-        id = ResourceId();
-        return;
+      switch(type)
+      {
+        case ShaderStage::Vertex: profile = "vs_5_0"; break;
+        case ShaderStage::Hull: profile = "hs_5_0"; break;
+        case ShaderStage::Domain: profile = "ds_5_0"; break;
+        case ShaderStage::Geometry: profile = "gs_5_0"; break;
+        case ShaderStage::Pixel: profile = "ps_5_0"; break;
+        case ShaderStage::Compute: profile = "cs_5_0"; break;
+        default:
+          RDCERR("Unexpected type in BuildShader!");
+          id = ResourceId();
+          return;
+      }
     }
 
     rdcstr hlsl;
@@ -2555,8 +2557,8 @@ void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &sour
 
     ID3DBlob *blob = NULL;
 
-    errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), flags, profile,
-                                                        &blob);
+    errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), flags,
+                                                        profile.c_str(), &blob);
 
     if(blob == NULL)
     {
@@ -2681,8 +2683,8 @@ void D3D11Replay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf
                                     const rdcstr &entry, const ShaderCompileFlags &compileFlags,
                                     ShaderStage type, ResourceId &id, rdcstr &errors)
 {
-  ShaderCompileFlags debugCompileFlags =
-      DXBC::EncodeFlags(DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG);
+  ShaderCompileFlags debugCompileFlags = DXBC::EncodeFlags(
+      DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG, DXBC::GetProfile(compileFlags));
 
   BuildShader(sourceEncoding, source, entry, debugCompileFlags, type, id, errors);
 }

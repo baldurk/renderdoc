@@ -2801,20 +2801,23 @@ void D3D12Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &sour
 
   if(sourceEncoding == ShaderEncoding::HLSL)
   {
-    rdcstr profile;
+    rdcstr profile = DXBC::GetProfile(compileFlags);
 
-    switch(type)
+    if(profile.empty())
     {
-      case ShaderStage::Vertex: profile = "vs_5_1"; break;
-      case ShaderStage::Hull: profile = "hs_5_1"; break;
-      case ShaderStage::Domain: profile = "ds_5_1"; break;
-      case ShaderStage::Geometry: profile = "gs_5_1"; break;
-      case ShaderStage::Pixel: profile = "ps_5_1"; break;
-      case ShaderStage::Compute: profile = "cs_5_1"; break;
-      default:
-        RDCERR("Unexpected type in BuildShader!");
-        id = ResourceId();
-        return;
+      switch(type)
+      {
+        case ShaderStage::Vertex: profile = "vs_5_1"; break;
+        case ShaderStage::Hull: profile = "hs_5_1"; break;
+        case ShaderStage::Domain: profile = "ds_5_1"; break;
+        case ShaderStage::Geometry: profile = "gs_5_1"; break;
+        case ShaderStage::Pixel: profile = "ps_5_1"; break;
+        case ShaderStage::Compute: profile = "cs_5_1"; break;
+        default:
+          RDCERR("Unexpected type in BuildShader!");
+          id = ResourceId();
+          return;
+      }
     }
 
     rdcstr hlsl;
@@ -2858,8 +2861,8 @@ void D3D12Replay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebuf
                                     const rdcstr &entry, const ShaderCompileFlags &compileFlags,
                                     ShaderStage type, ResourceId &id, rdcstr &errors)
 {
-  ShaderCompileFlags debugCompileFlags =
-      DXBC::EncodeFlags(DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG);
+  ShaderCompileFlags debugCompileFlags = DXBC::EncodeFlags(
+      DXBC::DecodeFlags(compileFlags) | D3DCOMPILE_DEBUG, DXBC::GetProfile(compileFlags));
 
   BuildShader(sourceEncoding, source, entry, debugCompileFlags, type, id, errors);
 }

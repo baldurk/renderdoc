@@ -29,6 +29,16 @@
 #include "api/replay/rdcstr.h"
 #include "api/replay/shader_types.h"
 
+namespace DXBCBytecode
+{
+class Program;
+};
+
+namespace DXIL
+{
+class Program;
+};
+
 namespace DXBC
 {
 struct CountOffset
@@ -345,5 +355,28 @@ struct Reflection
   rdcarray<SigParameter> PatchConstantSig;
 
   uint32_t DispatchThreadsDimension[3];
+};
+
+class DXBCContainer;
+
+class IDebugInfo
+{
+public:
+  virtual ~IDebugInfo() {}
+  virtual rdcstr GetCompilerSig() const = 0;
+  virtual rdcstr GetEntryFunction() const = 0;
+  virtual rdcstr GetShaderProfile() const = 0;
+
+  virtual ShaderCompileFlags GetShaderCompileFlags() const = 0;
+
+  rdcarray<rdcpair<rdcstr, rdcstr>> Files;    // <filename, source>
+
+  virtual void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const = 0;
+  virtual void GetCallstack(size_t instruction, uintptr_t offset,
+                            rdcarray<rdcstr> &callstack) const = 0;
+
+  virtual bool HasSourceMapping() const = 0;
+  virtual void GetLocals(const DXBC::DXBCContainer *dxbc, size_t instruction, uintptr_t offset,
+                         rdcarray<SourceVariableMapping> &locals) const = 0;
 };
 };

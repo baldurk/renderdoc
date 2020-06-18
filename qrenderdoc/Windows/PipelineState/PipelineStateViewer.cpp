@@ -997,7 +997,7 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
             files.push_back(rdcpair<rdcstr, rdcstr>("pseudocode", editeddisasm));
 
             EditShader(shaderId, shaderDetails->stage, shaderDetails->entryPoint,
-                       ShaderCompileFlags(), ShaderEncoding::Unknown, files);
+                       shaderDetails->debugInfo.compileFlags, ShaderEncoding::Unknown, files);
           });
         });
       }
@@ -1009,7 +1009,7 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
         files.push_back(rdcpair<rdcstr, rdcstr>(
             "decompiled_stub.hlsl", GenerateHLSLStub(bindpointMapping, shaderDetails, entry)));
 
-        EditShader(shaderId, shaderDetails->stage, entry, ShaderCompileFlags(),
+        EditShader(shaderId, shaderDetails->stage, entry, shaderDetails->debugInfo.compileFlags,
                    ShaderEncoding::HLSL, files);
       }
 

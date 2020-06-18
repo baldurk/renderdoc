@@ -271,12 +271,12 @@ public:
   rdcstr GetCompilerSig() const { return m_CompilerSig; }
   rdcstr GetEntryFunction() const { return m_Entry; }
   rdcstr GetShaderProfile() const { return m_Profile; }
-  uint32_t GetShaderCompileFlags() const { return m_ShaderFlags; }
+  ShaderCompileFlags GetShaderCompileFlags() const { return EncodeFlags(m_ShaderFlags, m_Profile); }
   void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const;
   void GetCallstack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &callstack) const;
 
   bool HasSourceMapping() const;
-  void GetLocals(DXBCBytecode::Program *program, size_t instruction, uintptr_t offset,
+  void GetLocals(const DXBC::DXBCContainer *dxbc, size_t instruction, uintptr_t offset,
                  rdcarray<SourceVariableMapping> &locals) const;
 
 private:
