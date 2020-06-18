@@ -1533,6 +1533,7 @@ worked around by re-sorting bindings.
   bool SparseResources = false;
   bool MultiGPU = false;
   bool D3D12Bundle = false;
+  bool DXILShaders = false;
 #endif
 };
 

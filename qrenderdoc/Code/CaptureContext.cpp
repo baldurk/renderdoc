@@ -727,6 +727,8 @@ void CaptureContext::LoadCapture(const rdcstr &captureFile, const ReplayOptions 
     ANALYTIC_SET(CaptureFeatures.MultiGPU, true);
   if(m_APIProps.D3D12Bundle)
     ANALYTIC_SET(CaptureFeatures.D3D12Bundle, true);
+  if(m_APIProps.DXILShaders)
+    ANALYTIC_SET(CaptureFeatures.DXILShaders, true);
 
   if(m_APIProps.vendor != GPUVendor::Unknown)
   {

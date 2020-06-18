@@ -3245,7 +3245,7 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
   ReadSerialiser ser(reader, Ownership::Stream);
 
-  m_UsedDXIL = m_InitParams.usedDXIL;
+  APIProps.DXILShaders = m_UsedDXIL = m_InitParams.usedDXIL;
 
   ser.SetStringDatabase(&m_StringDB);
   ser.SetUserData(GetResourceManager());
