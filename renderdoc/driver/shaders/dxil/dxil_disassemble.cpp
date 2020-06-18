@@ -1560,7 +1560,18 @@ rdcstr Metadata::valString() const
   {
     if(type == NULL)
     {
-      return StringFormat::Fmt("!%s", escapeString(str).c_str());
+      // truncate very long strings - most likely these are shader source
+      if(str.length() > 400)
+      {
+        rdcstr trunc = str;
+        trunc.erase(200, str.length() - 400);
+        trunc.insert(200, "...");
+        return StringFormat::Fmt("!%s", escapeString(trunc).c_str());
+      }
+      else
+      {
+        return StringFormat::Fmt("!%s", escapeString(str).c_str());
+      }
     }
     else
     {
