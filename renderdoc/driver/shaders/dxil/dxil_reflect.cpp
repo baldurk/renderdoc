@@ -223,9 +223,13 @@ struct DXMeta
   const Metadata *viewIdState = NULL;
   const Metadata *entryPoints = NULL;
 
+  // technically llvm.ident
+  const Metadata *ident = NULL;
+
   DXMeta(const rdcarray<NamedMetadata> &namedMeta)
   {
     DXMeta &dx = *this;
+    DXMeta &llvm = *this;
 
     for(size_t i = 0; i < namedMeta.size(); i++)
     {
@@ -233,6 +237,7 @@ struct DXMeta
   if(namedMeta[i].name == #metaname) \
     metaname = &namedMeta[i];
 
+      GRAB_META(llvm.ident);
       GRAB_META(dx.source.contents);
       GRAB_META(dx.source.defines);
       GRAB_META(dx.source.mainFileName);
@@ -746,6 +751,114 @@ DXBC::Reflection *Program::GetReflection()
 
   TypeInfo typeInfo(dx.typeAnnotations);
 
+  if(dx.ident && dx.ident->children.size() == 1 && dx.ident->children[0]->children.size() == 1)
+  {
+    m_CompilerSig = "dxc - " + dx.ident->children[0]->children[0]->str;
+  }
+  else
+  {
+    m_CompilerSig = "dxc - unknown version";
+  }
+
+  if(dx.valver && dx.valver->children.size() == 1 && dx.valver->children[0]->children.size() == 2)
+  {
+    m_CompilerSig += StringFormat::Fmt(" (Validation version %s.%s)",
+                                       dx.valver->children[0]->children[0]->constant->toString(),
+                                       dx.valver->children[0]->children[1]->constant->toString());
+  }
+
+  if(dx.entryPoints && dx.entryPoints->children.size() > 0 &&
+     dx.entryPoints->children[0]->children.size() > 2)
+  {
+    m_EntryPoint = dx.entryPoints->children[0]->children[1]->str;
+  }
+  else
+  {
+    RDCERR("Didn't find dx.entryPoints");
+    m_EntryPoint = "main";
+  }
+
+  if(dx.shaderModel && dx.shaderModel->children.size() == 1 &&
+     dx.shaderModel->children[0]->children.size() == 3)
+  {
+    m_Profile = StringFormat::Fmt("%s_%s_%s", dx.shaderModel->children[0]->children[0]->str,
+                                  dx.shaderModel->children[0]->children[1]->constant->toString(),
+                                  dx.shaderModel->children[0]->children[2]->constant->toString());
+  }
+  else
+  {
+    switch(m_Type)
+    {
+      case DXBC::ShaderType::Pixel: m_Profile = "ps"; break;
+      case DXBC::ShaderType::Vertex: m_Profile = "vs"; break;
+      case DXBC::ShaderType::Geometry: m_Profile = "gs"; break;
+      case DXBC::ShaderType::Hull: m_Profile = "hs"; break;
+      case DXBC::ShaderType::Domain: m_Profile = "ds"; break;
+      case DXBC::ShaderType::Compute: m_Profile = "cs"; break;
+      default: m_Profile = "xx"; break;
+    }
+    m_Profile += StringFormat::Fmt("_%u_%u", m_Major, m_Minor);
+  }
+
+  if(dx.source.contents)
+  {
+    for(const Metadata *f : dx.source.contents->children)
+    {
+      if(f->children.size() != 2)
+        continue;
+      Files.push_back({f->children[0]->str, f->children[1]->str});
+    }
+
+    // push the main filename to the front
+    if(dx.source.mainFileName && !dx.source.mainFileName->children.empty())
+    {
+      rdcstr mainFile = dx.source.mainFileName->children[0]->str;
+
+      if(!mainFile.empty())
+      {
+        for(size_t i = 1; i < Files.size(); i++)
+        {
+          if(Files[i].first == mainFile)
+          {
+            std::swap(Files[0], Files[i]);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  if(dx.source.args && dx.source.args->children.size() == 1)
+  {
+    rdcstr cmdline;
+    for(const Metadata *f : dx.source.args->children[0]->children)
+    {
+      rdcstr param = f->str;
+      param.trim();
+      if(param.find_first_of(" \t\r\n") >= 0)
+      {
+        cmdline += " \"";
+        for(char c : param)
+        {
+          if(c == '"')
+            cmdline.push_back('\\');
+          cmdline.push_back(c);
+        }
+        cmdline += "\"";
+      }
+      else
+      {
+        cmdline += " " + param;
+      }
+    }
+
+    m_CompileFlags.flags.push_back({"@cmdline", cmdline});
+  }
+  else
+  {
+    m_CompileFlags.flags.push_back({"@cmdline", "-T " + m_Profile});
+  }
+
   if(dx.resources)
   {
     RDCASSERTEQUAL(dx.resources->children.size(), 1);
@@ -862,6 +975,38 @@ DXBC::Reflection *Program::GetReflection()
   RDCEraseEl(refl->DispatchThreadsDimension);
 
   return refl;
+}
+
+void Program::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const
+{
+  lineInfo = LineColumnInfo();
+
+  for(const Function &f : m_Functions)
+  {
+    if(instruction < f.instructions.size())
+    {
+      lineInfo.disassemblyLine = f.instructions[instruction].disassemblyLine;
+      break;
+    }
+    instruction -= f.instructions.size();
+  }
+}
+
+void Program::GetCallstack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &callstack) const
+{
+  callstack.clear();
+}
+
+bool Program::HasSourceMapping() const
+{
+  // not yet implemented and only relevant for debugging
+  return false;
+}
+
+void Program::GetLocals(const DXBC::DXBCContainer *dxbc, size_t instruction, uintptr_t offset,
+                        rdcarray<SourceVariableMapping> &locals) const
+{
+  locals.clear();
 }
 
 };    // namespace DXIL

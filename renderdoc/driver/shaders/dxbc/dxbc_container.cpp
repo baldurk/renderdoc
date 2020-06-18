@@ -1390,6 +1390,9 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
     }
   }
 
+  if(m_DXILByteCode)
+    m_DebugInfo = m_DXILByteCode;
+
   // we do a mini-preprocess of the files from the debug info to handle #line directives.
   // This means that any lines that our source file declares to be in another filename via a #line
   // get put in the right place for what the debug information hopefully matches.
@@ -1398,7 +1401,8 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
   if(m_DebugInfo)
   {
-    m_DXBCByteCode->SetDebugInfo(m_DebugInfo);
+    if(m_DXBCByteCode)
+      m_DXBCByteCode->SetDebugInfo(m_DebugInfo);
 
     struct SplitFile
     {
@@ -1626,9 +1630,15 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
 
 DXBCContainer::~DXBCContainer()
 {
+  // DXIL bytecode doubles as debug info, don't delete it twice
+  if(m_DXILByteCode)
+    m_DebugInfo = NULL;
+
   SAFE_DELETE(m_DebugInfo);
+
   SAFE_DELETE(m_DXBCByteCode);
   SAFE_DELETE(m_DXILByteCode);
+
   SAFE_DELETE(m_Reflection);
 }
 

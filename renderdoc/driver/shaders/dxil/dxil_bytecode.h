@@ -493,13 +493,13 @@ struct Function
   AttachedMetadata attachedMeta;
 };
 
-class Program
+class Program : public DXBC::IDebugInfo
 {
 public:
   Program(const byte *bytes, size_t length);
   Program(const Program &o) = default;
   Program &operator=(const Program &o) = default;
-
+  virtual ~Program() {}
   static bool Valid(const byte *bytes, size_t length);
 
   void FetchComputeProperties(DXBC::Reflection *reflection);
@@ -515,6 +515,19 @@ public:
       MakeDisassemblyString();
     return m_Disassembly;
   }
+
+  // IDebugInfo interface
+
+  rdcstr GetCompilerSig() const override { return m_CompilerSig; }
+  rdcstr GetEntryFunction() const override { return m_EntryPoint; }
+  rdcstr GetShaderProfile() const override { return m_Profile; }
+  ShaderCompileFlags GetShaderCompileFlags() const override { return m_CompileFlags; }
+  void GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const override;
+  void GetCallstack(size_t instruction, uintptr_t offset, rdcarray<rdcstr> &callstack) const override;
+
+  bool HasSourceMapping() const override;
+  void GetLocals(const DXBC::DXBCContainer *dxbc, size_t instruction, uintptr_t offset,
+                 rdcarray<SourceVariableMapping> &locals) const override;
 
 private:
   void MakeDisassemblyString();
@@ -533,6 +546,9 @@ private:
 
   DXBC::ShaderType m_Type;
   uint32_t m_Major, m_Minor;
+
+  rdcstr m_CompilerSig, m_EntryPoint, m_Profile;
+  ShaderCompileFlags m_CompileFlags;
 
   rdcarray<GlobalVar> m_GlobalVars;
   rdcarray<Function> m_Functions;
