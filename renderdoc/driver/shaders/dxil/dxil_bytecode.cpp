@@ -88,6 +88,8 @@ enum class ConstantsRecord : uint32_t
   FLOAT = 6,
   AGGREGATE = 7,
   STRING = 8,
+  CSTRING = 9,
+  EVAL_GEP = 20,
   DATA = 22,
 };
 
@@ -222,7 +224,8 @@ enum class TypeRecord : uint32_t
 #define IS_KNOWN(val, KnownID) (decltype(KnownID)(val) == KnownID)
 
 void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
-                   std::function<Type *(uint64_t)> getType,
+                   std::function<const Type *(uint64_t)> getType,
+                   std::function<const Type *(const Type *)> getPtrType,
                    std::function<const Value *(uint64_t)> getValue,
                    std::function<void(const Value &)> addValue)
 {
@@ -258,11 +261,56 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
       memcpy(&v.val.dv[0], &constant.ops[0], sizeof(double));
     addValue(v);
   }
-  else if(IS_KNOWN(constant.id, ConstantsRecord::STRING))
+  else if(IS_KNOWN(constant.id, ConstantsRecord::STRING) ||
+          IS_KNOWN(constant.id, ConstantsRecord::CSTRING))
   {
     Value v;
     v.type = curType;
     v.str = constant.getString(0);
+    addValue(v);
+  }
+  else if(IS_KNOWN(constant.id, ConstantsRecord::EVAL_GEP))
+  {
+    Value v;
+
+    v.op = Value::GEP;
+
+    size_t idx = 0;
+    if(constant.ops.size() & 1)
+      v.type = getType(constant.ops[idx++]);
+
+    for(; idx < constant.ops.size(); idx += 2)
+    {
+      const Type *t = getType(constant.ops[idx]);
+      const Value *a = getValue(constant.ops[idx + 1]);
+      RDCASSERT(t == a->type);
+
+      v.members.push_back(*a);
+    }
+
+    if(!v.type)
+      v.type = v.members[0].type;
+
+    // walk the type list to get the return type
+    for(idx = 2; idx < v.members.size(); idx++)
+    {
+      if(v.type->type == Type::Vector || v.type->type == Type::Array)
+      {
+        v.type = v.type->inner;
+      }
+      else if(v.type->type == Type::Struct)
+      {
+        v.type = v.type->members[v.members[idx].val.uv[0]];
+      }
+      else
+      {
+        RDCERR("Unexpected type %d encountered in GEP", v.type->type);
+      }
+    }
+
+    // the result is a pointer to the return type
+    v.type = getPtrType(v.type);
+
     addValue(v);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::AGGREGATE))
@@ -454,14 +502,7 @@ Program::Program(const byte *bytes, size_t length)
         v.type = g.type;
         v.symbol = true;
 
-        for(size_t ty = 0; ty < m_Types.size(); ty++)
-        {
-          if(m_Types[ty].type == Type::Pointer && m_Types[ty].inner == g.type)
-          {
-            v.type = &m_Types[ty];
-            break;
-          }
-        }
+        v.type = GetPointerType(g.type);
 
         if(v.type == g.type)
           RDCERR("Expected to find pointer type for global variable");
@@ -815,6 +856,7 @@ Program::Program(const byte *bytes, size_t length)
           }
 
           ParseConstant(constant, t, [this](uint64_t op) { return &m_Types[(size_t)op]; },
+                        [this](const Type *t) { return GetPointerType(t); },
                         [this](uint64_t v) {
                           size_t idx = (size_t)v;
                           return idx < m_Values.size() ? &m_Values[idx] : NULL;
@@ -1006,7 +1048,8 @@ Program::Program(const byte *bytes, size_t length)
                 }
 
                 ParseConstant(
-                    constant, t, [this](uint64_t op) { return &m_Types[(size_t)op]; }, getValue,
+                    constant, t, [this](uint64_t op) { return &m_Types[(size_t)op]; },
+                    [this](const Type *t) { return GetPointerType(t); }, getValue,
                     [this, &f](const Value &v) {
                       m_Symbols.push_back({SymbolType::Constant, m_Values.size() + f.values.size()});
                       f.values.push_back(v);
@@ -1401,14 +1444,7 @@ Program::Program(const byte *bytes, size_t length)
 
               // we now have the inner type, but this instruction returns a pointer to that type so
               // adjust
-              for(const Type &t : m_Types)
-              {
-                if(t.type == Type::Pointer && t.inner == inst.type)
-                {
-                  inst.type = &t;
-                  break;
-                }
-              }
+              inst.type = GetPointerType(inst.type);
 
               RDCASSERT(inst.type->type == Type::Pointer);
 
@@ -1471,14 +1507,7 @@ Program::Program(const byte *bytes, size_t length)
               }
 
               // get the pointer type
-              for(const Type &t : m_Types)
-              {
-                if(t.type == Type::Pointer && t.inner == inst.type)
-                {
-                  inst.type = &t;
-                  break;
-                }
-              }
+              inst.type = GetPointerType(inst.type);
 
               RDCASSERT(inst.type->type == Type::Pointer);
 
@@ -2326,6 +2355,21 @@ const DXIL::Type *Program::GetBoolType()
     RDCERR("Couldn't find void type");
 
   return m_BoolType;
+}
+
+const Type *Program::GetPointerType(const Type *type)
+{
+  for(const Type &t : m_Types)
+  {
+    if(t.type == Type::Pointer && t.inner == type)
+    {
+      return &t;
+    }
+  }
+
+  RDCERR("Couldn't find pointer type");
+
+  return type;
 }
 
 Metadata::~Metadata()

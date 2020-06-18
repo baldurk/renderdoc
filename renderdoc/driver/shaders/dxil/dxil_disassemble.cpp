@@ -1621,6 +1621,28 @@ rdcstr Value::toString(bool withType) const
   {
     ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(str).c_str());
   }
+  else if(op != Value::NoOp)
+  {
+    switch(op)
+    {
+      case Value::NoOp: break;
+      case Value::GEP:
+      {
+        ret += "getelementptr inbounds (";
+
+        const Type *baseType = members[0].type;
+        RDCASSERT(baseType->type == Type::Pointer);
+        ret += baseType->inner->toString();
+        for(size_t i = 0; i < members.size(); i++)
+        {
+          ret += ", ";
+
+          ret += members[i].toString(withType);
+        }
+        ret += ")";
+      }
+    }
+  }
   else if(type->type == Type::Scalar)
   {
     if(type->scalarType == Type::Float)

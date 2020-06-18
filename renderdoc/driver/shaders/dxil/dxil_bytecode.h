@@ -211,6 +211,11 @@ struct Value
   rdcarray<Value> members;
   rdcstr str;
   bool undef = false, nullconst = false, symbol = false;
+  enum ValueOp : uint8_t
+  {
+    NoOp = 0,
+    GEP,
+  } op = NoOp;
 
   rdcstr toString(bool withType = false) const;
 };
@@ -524,6 +529,7 @@ private:
   const Metadata *GetFunctionMetadata(const Function &f, uint64_t v);
   const Type *GetVoidType();
   const Type *GetBoolType();
+  const Type *GetPointerType(const Type *type);
 
   DXBC::ShaderType m_Type;
   uint32_t m_Major, m_Minor;
