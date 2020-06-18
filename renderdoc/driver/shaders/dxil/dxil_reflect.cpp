@@ -358,6 +358,8 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
 
   CBufferVariableType ret = {};
 
+  ret.descriptor.elements = 1;
+
   if(t->type == Type::Scalar || t->type == Type::Vector)
   {
     ret.descriptor.rows = ret.descriptor.cols = 1;
@@ -389,14 +391,19 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
       else if(t->bitWidth == 1)
         ret.descriptor.varType = VarType::Bool;
     }
+
+    ret.descriptor.name = ToStr(ret.descriptor.varType);
+    if(t->type == Type::Vector)
+      ret.descriptor.name += ToStr(ret.descriptor.cols);
+
     return ret;
   }
   else if(t->type == Type::Array)
   {
     ret = MakeCBufferVariableType(typeInfo, t->inner);
-    ret.descriptor.elements = t->elemCount;
+    ret.descriptor.elements *= t->elemCount;
     // assume normal D3D array packing with each element on float4 boundary
-    ret.descriptor.bytesize += (t->elemCount - 1) * 16;
+    ret.descriptor.bytesize += (t->elemCount - 1) * AlignUp16(ret.descriptor.bytesize);
     return ret;
   }
   else if(t->type == Type::Struct)
@@ -409,23 +416,23 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
     return ret;
   }
 
+  ret.descriptor.name = t->name;
+  ret.descriptor.varType = VarType::Unknown;
+  ret.descriptor.varClass = CLASS_STRUCT;
+  if(ret.descriptor.name.beginsWith("struct."))
+    ret.descriptor.name.erase(0, 7);
+  if(ret.descriptor.name.beginsWith("class."))
+    ret.descriptor.name.erase(0, 6);
+
   // if there are no members, return straight away
   if(t->members.empty())
     return ret;
 
   auto it = typeInfo.structData.find(t);
 
-  ret.descriptor.name = t->name;
-  ret.descriptor.varType = VarType::Unknown;
-  ret.descriptor.varClass = CLASS_STRUCT;
-
   if(it != typeInfo.structData.end())
   {
     ret.descriptor.bytesize = it->second.byteSize;
-    if(ret.descriptor.name.beginsWith("struct."))
-      ret.descriptor.name.erase(0, 7);
-    if(ret.descriptor.name.beginsWith("class."))
-      ret.descriptor.name.erase(0, 6);
   }
   else
   {
@@ -450,6 +457,12 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
         var.type.descriptor.varClass = (it->second.members[i].flags & TypeInfo::MemberData::RowMajor)
                                            ? CLASS_MATRIX_ROWS
                                            : CLASS_MATRIX_COLUMNS;
+
+        // the array was expanded out like float[4][3] would be, so divide by the matrix dimension
+        // to get the real array size
+        var.type.descriptor.elements /= (it->second.members[i].flags & TypeInfo::MemberData::RowMajor)
+                                            ? var.type.descriptor.rows
+                                            : var.type.descriptor.cols;
       }
 
       if(var.type.members.empty() && t->members[i]->type != Type::Struct)
