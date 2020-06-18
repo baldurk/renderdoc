@@ -2081,6 +2081,13 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
     ser.SetUserData(GetResourceManager());
 
+    m_InitParams.usedDXIL = m_UsedDXIL;
+
+    if(m_UsedDXIL)
+    {
+      RDCLOG("Capture used DXIL");
+    }
+
     {
       SCOPED_SERIALISE_CHUNK(SystemChunk::DriverInit, sizeof(D3D12InitParams));
 
@@ -3237,6 +3244,8 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
   }
 
   ReadSerialiser ser(reader, Ownership::Stream);
+
+  m_UsedDXIL = m_InitParams.usedDXIL;
 
   ser.SetStringDatabase(&m_StringDB);
   ser.SetUserData(GetResourceManager());

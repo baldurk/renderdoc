@@ -43,8 +43,10 @@ struct D3D12InitParams
 
   DXGI_ADAPTER_DESC AdapterDesc = {};
 
+  bool usedDXIL = false;
+
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x8;
+  static const uint64_t CurrentVersion = 0x9;
 
   static bool IsSupportedVersion(uint64_t ver);
 };
@@ -454,6 +456,8 @@ private:
 
   uint32_t m_SubmitCounter = 0;
 
+  bool m_UsedDXIL = false;
+
   D3D12InitParams m_InitParams;
   uint64_t m_SectionVersion;
   ReplayOptions m_ReplayOptions;
@@ -571,6 +575,7 @@ public:
   void AddResourceCurChunk(ResourceDescription &descr);
   void AddResourceCurChunk(ResourceId id);
 
+  bool UsedDXIL() { return m_UsedDXIL; }
   const rdcstr &GetResourceName(ResourceId id) { return m_ResourceNames[id]; }
   rdcarray<D3D12_RESOURCE_STATES> &GetSubresourceStates(ResourceId id)
   {

@@ -513,6 +513,14 @@ HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PI
 
   if(SUCCEEDED(ret))
   {
+    for(const D3D12_SHADER_BYTECODE &sh :
+        {unwrappedDesc.VS, unwrappedDesc.HS, unwrappedDesc.DS, unwrappedDesc.GS, unwrappedDesc.PS})
+    {
+      if(sh.BytecodeLength > 0 && sh.pShaderBytecode &&
+         DXBC::DXBCContainer::CheckForDXIL(sh.pShaderBytecode, sh.BytecodeLength))
+        m_UsedDXIL = true;
+    }
+
     WrappedID3D12PipelineState *wrapped = new WrappedID3D12PipelineState(real, this);
 
     if(IsCaptureMode(m_State))
@@ -673,6 +681,10 @@ HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPE
 
   if(SUCCEEDED(ret))
   {
+    if(DXBC::DXBCContainer::CheckForDXIL(unwrappedDesc.CS.pShaderBytecode,
+                                         unwrappedDesc.CS.BytecodeLength))
+      m_UsedDXIL = true;
+
     WrappedID3D12PipelineState *wrapped = new WrappedID3D12PipelineState(real, this);
 
     if(IsCaptureMode(m_State))

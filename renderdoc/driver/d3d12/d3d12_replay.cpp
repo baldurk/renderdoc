@@ -113,6 +113,9 @@ void D3D12Replay::CreateResources()
   {
     CreateSOBuffers();
 
+    if(m_pDevice->UsedDXIL())
+      RDCLOG("Replaying with DXIL enabled");
+
     m_General.Init(m_pDevice, m_DebugManager);
     m_TexRender.Init(m_pDevice, m_DebugManager);
     m_Overlay.Init(m_pDevice, m_DebugManager);

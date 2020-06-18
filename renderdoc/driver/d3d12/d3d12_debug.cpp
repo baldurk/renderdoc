@@ -1297,18 +1297,24 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
     shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &QuadOverdrawWritePS);
 
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_6_0", &QuadOverdrawWriteDXILPS);
-
-    if(QuadOverdrawWriteDXILPS == NULL)
+    // only create DXIL shaders if DXIL was used by the application, since dxc/dxcompiler is really
+    // flakey.
+    if(device->UsedDXIL())
     {
-      RDCWARN("Couldn't compile DXIL overlay shader at runtime, falling back to baked DXIL shader");
+      shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
+                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_6_0", &QuadOverdrawWriteDXILPS);
 
-      QuadOverdrawWriteDXILPS = shaderCache->GetQuadShaderDXILBlob();
-
-      if(!QuadOverdrawWriteDXILPS)
+      if(QuadOverdrawWriteDXILPS == NULL)
       {
-        RDCWARN("No fallback DXIL shader available!");
+        RDCWARN(
+            "Couldn't compile DXIL overlay shader at runtime, falling back to baked DXIL shader");
+
+        QuadOverdrawWriteDXILPS = shaderCache->GetQuadShaderDXILBlob();
+
+        if(!QuadOverdrawWriteDXILPS)
+        {
+          RDCWARN("No fallback DXIL shader available!");
+        }
       }
     }
   }
