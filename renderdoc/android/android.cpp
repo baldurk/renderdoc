@@ -1176,7 +1176,27 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
       // set up environment variables for the package, and point to ourselves for vulkan and GLES
       // layers
       rdcstr installedABI = Android::DetermineInstalledABI(m_deviceID, packageName);
-      rdcstr layerPackage = GetRenderDocPackageForABI(Android::GetABI(installedABI));
+
+      Android::ABI abi = Android::ABI::unknown;
+
+      if(installedABI == "null" || installedABI.empty())
+      {
+        RDCLOG("Can't determine installed ABI, falling back to device preferred ABI");
+
+        // pick the last ABI
+        rdcarray<Android::ABI> abis = Android::GetSupportedABIs(m_deviceID);
+
+        if(abis.empty())
+          RDCWARN("No ABIs listed as supported");
+        else
+          abi = abis.back();
+      }
+      else
+      {
+        abi = Android::GetABI(installedABI);
+      }
+
+      rdcstr layerPackage = GetRenderDocPackageForABI(abi);
       Android::adbExecCommand(m_deviceID, "shell settings put global enable_gpu_debug_layers 1");
       Android::adbExecCommand(m_deviceID, "shell settings put global gpu_debug_app " + packageName);
       Android::adbExecCommand(m_deviceID,
