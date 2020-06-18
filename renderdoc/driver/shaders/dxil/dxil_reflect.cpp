@@ -88,7 +88,7 @@ enum class StructMemberAnnotation
 template <typename T>
 T getival(const Metadata *m)
 {
-  return T(m->val->val.uv[0]);
+  return T(m->constant->val.uv[0]);
 }
 
 void Program::FetchComputeProperties(DXBC::Reflection *reflection)
@@ -146,7 +146,7 @@ void Program::FetchComputeProperties(DXBC::Reflection *reflection)
 
       for(size_t t = 0; t < tags.children.size(); t += 2)
       {
-        RDCASSERT(tags.children[t]->value);
+        RDCASSERT(tags.children[t]->isConstant);
         if(getival<ShaderTag>(tags.children[t]) == ShaderTag::Compute)
         {
           Metadata &threadDim = *tags.children[t + 1];
@@ -187,7 +187,7 @@ D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
 
       for(size_t t = 0; t < tags.children.size(); t += 2)
       {
-        RDCASSERT(tags.children[t]->value);
+        RDCASSERT(tags.children[t]->isConstant);
         if(getival<ShaderTag>(tags.children[t]) == ShaderTag::Geometry)
         {
           Metadata &geomData = *tags.children[t + 1];
@@ -558,7 +558,7 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
   uint32_t structStride = 0;
   for(size_t t = 0; tags && t < tags->children.size(); t += 2)
   {
-    RDCASSERT(tags->children[t]->value);
+    RDCASSERT(tags->children[t]->isConstant);
     if(getival<SRVUAVTag>(tags->children[t]) == SRVUAVTag::StructStride)
     {
       structStride = getival<uint32_t>(tags->children[t + 1]);

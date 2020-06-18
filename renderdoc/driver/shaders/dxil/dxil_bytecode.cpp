@@ -226,8 +226,8 @@ enum class TypeRecord : uint32_t
 void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
                    std::function<const Type *(uint64_t)> getType,
                    std::function<const Type *(const Type *)> getPtrType,
-                   std::function<const Value *(uint64_t)> getValue,
-                   std::function<void(const Value &)> addValue)
+                   std::function<const Constant *(uint64_t)> getConstant,
+                   std::function<void(const Constant &)> addConstant)
 {
   if(IS_KNOWN(constant.id, ConstantsRecord::SETTYPE))
   {
@@ -236,22 +236,22 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
   else if(IS_KNOWN(constant.id, ConstantsRecord::CONST_NULL) ||
           IS_KNOWN(constant.id, ConstantsRecord::UNDEF))
   {
-    Value v;
+    Constant v;
     v.type = curType;
     v.nullconst = IS_KNOWN(constant.id, ConstantsRecord::CONST_NULL);
     v.undef = IS_KNOWN(constant.id, ConstantsRecord::UNDEF);
-    addValue(v);
+    addConstant(v);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::INTEGER))
   {
-    Value v;
+    Constant v;
     v.type = curType;
     v.val.s64v[0] = LLVMBC::BitReader::svbr(constant.ops[0]);
-    addValue(v);
+    addConstant(v);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::FLOAT))
   {
-    Value v;
+    Constant v;
     v.type = curType;
     if(curType->bitWidth == 16)
       v.val.fv[0] = ConvertFromHalf(uint16_t(constant.ops[0] & 0xffff));
@@ -259,21 +259,21 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
       memcpy(&v.val.fv[0], &constant.ops[0], sizeof(float));
     else
       memcpy(&v.val.dv[0], &constant.ops[0], sizeof(double));
-    addValue(v);
+    addConstant(v);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::STRING) ||
           IS_KNOWN(constant.id, ConstantsRecord::CSTRING))
   {
-    Value v;
+    Constant v;
     v.type = curType;
     v.str = constant.getString(0);
-    addValue(v);
+    addConstant(v);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::EVAL_GEP))
   {
-    Value v;
+    Constant v;
 
-    v.op = Value::GEP;
+    v.op = Constant::GEP;
 
     size_t idx = 0;
     if(constant.ops.size() & 1)
@@ -282,7 +282,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
     for(; idx < constant.ops.size(); idx += 2)
     {
       const Type *t = getType(constant.ops[idx]);
-      const Value *a = getValue(constant.ops[idx + 1]);
+      const Constant *a = getConstant(constant.ops[idx + 1]);
       RDCASSERT(t == a->type);
 
       v.members.push_back(*a);
@@ -311,18 +311,18 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
     // the result is a pointer to the return type
     v.type = getPtrType(v.type);
 
-    addValue(v);
+    addConstant(v);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::AGGREGATE))
   {
-    Value v;
+    Constant v;
     v.type = curType;
     if(v.type->type == Type::Vector)
     {
       // inline vectors
       for(size_t m = 0; m < constant.ops.size(); m++)
       {
-        const Value *member = getValue(constant.ops[m]);
+        const Constant *member = getConstant(constant.ops[m]);
 
         if(member)
         {
@@ -333,7 +333,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
         }
         else
         {
-          RDCERR("Index %llu out of bounds for values array", constant.ops[m]);
+          RDCERR("Index %llu out of bounds for constants array", constant.ops[m]);
         }
       }
     }
@@ -341,7 +341,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
     {
       for(uint64_t m : constant.ops)
       {
-        const Value *member = getValue(m);
+        const Constant *member = getConstant(m);
 
         if(member)
         {
@@ -349,16 +349,16 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
         }
         else
         {
-          v.members.push_back(Value());
-          RDCERR("Index %llu out of bounds for values array", m);
+          v.members.push_back(Constant());
+          RDCERR("Index %llu out of bounds for constants array", m);
         }
       }
     }
-    addValue(v);
+    addConstant(v);
   }
   else if(IS_KNOWN(constant.id, ConstantsRecord::DATA))
   {
-    Value v;
+    Constant v;
     v.type = curType;
     if(v.type->type == Type::Vector)
     {
@@ -374,7 +374,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
     {
       for(size_t m = 0; m < constant.ops.size(); m++)
       {
-        Value el;
+        Constant el;
         el.type = v.type->inner;
         if(el.type->bitWidth <= 32)
           el.val.uv[0] = constant.ops[m] & ((1ULL << el.type->bitWidth) - 1);
@@ -383,7 +383,7 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
         v.members.push_back(el);
       }
     }
-    addValue(v);
+    addConstant(v);
   }
   else
   {
@@ -498,7 +498,7 @@ Program::Program(const byte *bytes, size_t length)
 
         // all global symbols are 'values' in LLVM, we don't need this but need to keep indexing the
         // same
-        Value v;
+        Constant v;
         v.type = g.type;
         v.symbol = true;
 
@@ -509,7 +509,7 @@ Program::Program(const byte *bytes, size_t length)
 
         g.type = v.type;
 
-        m_Values.push_back(v);
+        m_Constants.push_back(v);
         m_GlobalVars.push_back(g);
       }
       else if(IS_KNOWN(rootchild.id, ModuleRecord::FUNCTION))
@@ -531,7 +531,7 @@ Program::Program(const byte *bytes, size_t length)
 
         // all global symbols are 'values' in LLVM, we don't need this but need to keep indexing the
         // same
-        Value v;
+        Constant v;
         v.symbol = true;
         v.type = f.funcType;
 
@@ -547,7 +547,7 @@ Program::Program(const byte *bytes, size_t length)
         if(v.type == f.funcType)
           RDCERR("Expected to find pointer type for function");
 
-        m_Values.push_back(v);
+        m_Constants.push_back(v);
 
         if(!f.external)
           functionDecls.push_back(m_Functions.size());
@@ -564,10 +564,10 @@ Program::Program(const byte *bytes, size_t length)
 
         // all global symbols are 'values' in LLVM, we don't need this but need to keep indexing the
         // same
-        Value v;
+        Constant v;
         v.type = &m_Types[(size_t)rootchild.ops[0]];
         v.symbol = true;
-        m_Values.push_back(v);
+        m_Constants.push_back(v);
 
         m_Aliases.push_back(a);
       }
@@ -859,11 +859,11 @@ Program::Program(const byte *bytes, size_t length)
                         [this](const Type *t) { return GetPointerType(t); },
                         [this](uint64_t v) {
                           size_t idx = (size_t)v;
-                          return idx < m_Values.size() ? &m_Values[idx] : NULL;
+                          return idx < m_Constants.size() ? &m_Constants[idx] : NULL;
                         },
-                        [this](const Value &v) {
-                          m_Symbols.push_back({SymbolType::Constant, m_Values.size()});
-                          m_Values.push_back(v);
+                        [this](const Constant &v) {
+                          m_Symbols.push_back({SymbolType::Constant, m_Constants.size()});
+                          m_Constants.push_back(v);
                         });
         }
       }
@@ -899,13 +899,13 @@ Program::Program(const byte *bytes, size_t length)
                 RDCERR("Unexpected global symbol referring to %d", m_Symbols[s].type);
                 break;
               case SymbolType::GlobalVar:
-                m_Values[s].str = m_GlobalVars[idx].name = symtab.getString(1);
+                m_Constants[s].str = m_GlobalVars[idx].name = symtab.getString(1);
                 break;
               case SymbolType::Function:
-                m_Values[s].str = m_Functions[idx].name = symtab.getString(1);
+                m_Constants[s].str = m_Functions[idx].name = symtab.getString(1);
                 break;
               case SymbolType::Alias:
-                m_Values[s].str = m_Aliases[idx].name = symtab.getString(1);
+                m_Constants[s].str = m_Aliases[idx].name = symtab.getString(1);
                 break;
             }
           }
@@ -963,20 +963,20 @@ Program::Program(const byte *bytes, size_t length)
 
             if(IS_KNOWN(metaRecord.id, MetaDataRecord::STRING_OLD))
             {
-              meta.value = true;
+              meta.isConstant = true;
               meta.str = metaRecord.getString();
             }
             else if(IS_KNOWN(metaRecord.id, MetaDataRecord::VALUE))
             {
-              meta.value = true;
-              meta.val = &m_Values[(size_t)metaRecord.ops[1]];
+              meta.isConstant = true;
+              meta.constant = &m_Constants[(size_t)metaRecord.ops[1]];
               meta.type = &m_Types[(size_t)metaRecord.ops[0]];
             }
             else if(IS_KNOWN(metaRecord.id, MetaDataRecord::NODE) ||
                     IS_KNOWN(metaRecord.id, MetaDataRecord::DISTINCT_NODE))
             {
               if(IS_KNOWN(metaRecord.id, MetaDataRecord::DISTINCT_NODE))
-                meta.distinct = true;
+                meta.isDistinct = true;
 
               for(uint64_t op : metaRecord.ops)
                 meta.children.push_back(getMetaOrNull(op));
@@ -997,7 +997,7 @@ Program::Program(const byte *bytes, size_t length)
         Function &f = m_Functions[functionDecls[0]];
         functionDecls.erase(0);
 
-        auto getValue = [this, &f](uint64_t v) { return GetFunctionValue(f, v); };
+        auto getConstant = [this, &f](uint64_t v) { return GetFunctionConstant(f, v); };
         auto getMeta = [this, &f](uint64_t v) {
           size_t idx = (size_t)v;
           return idx - 1 < m_Metadata.size() ? &m_Metadata[idx] : &f.metadata[idx];
@@ -1036,7 +1036,7 @@ Program::Program(const byte *bytes, size_t length)
           {
             if(IS_KNOWN(funcChild.id, KnownBlocks::CONSTANTS_BLOCK))
             {
-              f.values.reserve(funcChild.children.size());
+              f.constants.reserve(funcChild.children.size());
 
               const Type *t = NULL;
               for(const LLVMBC::BlockOrRecord &constant : funcChild.children)
@@ -1047,13 +1047,13 @@ Program::Program(const byte *bytes, size_t length)
                   continue;
                 }
 
-                ParseConstant(
-                    constant, t, [this](uint64_t op) { return &m_Types[(size_t)op]; },
-                    [this](const Type *t) { return GetPointerType(t); }, getValue,
-                    [this, &f](const Value &v) {
-                      m_Symbols.push_back({SymbolType::Constant, m_Values.size() + f.values.size()});
-                      f.values.push_back(v);
-                    });
+                ParseConstant(constant, t, [this](uint64_t op) { return &m_Types[(size_t)op]; },
+                              [this](const Type *t) { return GetPointerType(t); }, getConstant,
+                              [this, &f](const Constant &v) {
+                                m_Symbols.push_back({SymbolType::Constant,
+                                                     m_Constants.size() + f.constants.size()});
+                                f.constants.push_back(v);
+                              });
               }
 
               instrSymbolStart = m_Symbols.size();
@@ -1076,26 +1076,26 @@ Program::Program(const byte *bytes, size_t length)
 
                 if(IS_KNOWN(metaRecord.id, MetaDataRecord::VALUE))
                 {
-                  meta.value = true;
+                  meta.isConstant = true;
                   size_t idx = metaRecord.ops[1];
-                  if(idx < m_Values.size())
+                  if(idx < m_Constants.size())
                   {
-                    // global value reference
-                    meta.val = &m_Values[idx];
+                    // global constant reference
+                    meta.constant = &m_Constants[idx];
                   }
                   else
                   {
-                    idx -= m_Values.size();
-                    if(idx < f.values.size())
+                    idx -= m_Constants.size();
+                    if(idx < f.constants.size())
                     {
-                      // function-local value reference
-                      meta.val = &f.values[idx];
+                      // function-local constant reference
+                      meta.constant = &f.constants[idx];
                     }
                     else
                     {
                       // forward reference to instruction
                       meta.func = &f;
-                      meta.instruction = idx - f.values.size();
+                      meta.instruction = idx - f.constants.size();
                     }
                   }
                   meta.type = &m_Types[(size_t)metaRecord.ops[0]];
@@ -1135,10 +1135,10 @@ Program::Program(const byte *bytes, size_t length)
                   {
                     case SymbolType::Unknown:
                     case SymbolType::Constant:
-                      if(s.idx < m_Values.size())
+                      if(s.idx < m_Constants.size())
                         RDCERR("Unexpected local symbol referring to global value");
                       else
-                        f.values[s.idx - m_Values.size()].str = symtab.getString(1);
+                        f.constants[s.idx - m_Constants.size()].str = symtab.getString(1);
                       break;
                     case SymbolType::Argument: f.args[s.idx].name = symtab.getString(1); break;
                     case SymbolType::Instruction:
@@ -1498,7 +1498,7 @@ Program::Program(const byte *bytes, size_t length)
                   Symbol s = inst.args[idx];
                   // if it's a struct the index must be constant
                   RDCASSERT(s.type == SymbolType::Constant);
-                  inst.type = inst.type->members[GetFunctionValue(f, s.idx)->val.uv[0]];
+                  inst.type = inst.type->members[GetFunctionConstant(f, s.idx)->val.uv[0]];
                 }
                 else
                 {
@@ -2251,7 +2251,7 @@ uint32_t Program::GetOrAssignMetaID(Metadata *m)
   // assign meta IDs to the children now
   for(Metadata *c : m->children)
   {
-    if(!c || c->value)
+    if(!c || c->isConstant)
       continue;
 
     GetOrAssignMetaID(c);
@@ -2281,10 +2281,10 @@ const Type *Program::GetSymbolType(const Function &f, Symbol s)
   switch(s.type)
   {
     case SymbolType::Constant:
-      if(s.idx < m_Values.size())
-        ret = m_Values[s.idx].type;
+      if(s.idx < m_Constants.size())
+        ret = m_Constants[s.idx].type;
       else
-        ret = f.values[s.idx - m_Values.size()].type;
+        ret = f.constants[s.idx - m_Constants.size()].type;
       break;
     case SymbolType::Argument: ret = f.funcType->members[s.idx]; break;
     case SymbolType::Instruction: ret = f.instructions[s.idx].type; break;
@@ -2304,10 +2304,10 @@ const Type *Program::GetSymbolType(const Function &f, Symbol s)
   return ret;
 }
 
-const Value *Program::GetFunctionValue(const Function &f, uint64_t v)
+const Constant *Program::GetFunctionConstant(const Function &f, uint64_t v)
 {
   size_t idx = (size_t)v;
-  return idx < m_Values.size() ? &m_Values[idx] : &f.values[idx - m_Values.size()];
+  return idx < m_Constants.size() ? &m_Constants[idx] : &f.constants[idx - m_Constants.size()];
 }
 
 const Metadata *Program::GetFunctionMetadata(const Function &f, uint64_t v)

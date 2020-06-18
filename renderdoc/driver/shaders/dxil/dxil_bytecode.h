@@ -204,14 +204,14 @@ struct Attributes
   rdcstr toString() const;
 };
 
-struct Value
+struct Constant
 {
   const Type *type = NULL;
   ShaderValue val = {};
-  rdcarray<Value> members;
+  rdcarray<Constant> members;
   rdcstr str;
   bool undef = false, nullconst = false, symbol = false;
-  enum ValueOp : uint8_t
+  enum ConstantOp : uint8_t
   {
     NoOp = 0,
     GEP,
@@ -278,9 +278,9 @@ struct Metadata
   ~Metadata();
 
   uint32_t id = ~0U;
-  bool distinct = false, value = false;
+  bool isDistinct = false, isConstant = false;
 
-  const Value *val = NULL;
+  const Constant *constant = NULL;
 
   const Function *func = NULL;
   size_t instruction = ~0U;
@@ -487,7 +487,7 @@ struct Function
   rdcarray<Instruction> instructions;
 
   rdcarray<Block> blocks;
-  rdcarray<Value> values;
+  rdcarray<Constant> constants;
   rdcarray<Metadata> metadata;
 
   AttachedMetadata attachedMeta;
@@ -525,7 +525,7 @@ private:
   uint32_t GetOrAssignMetaID(Metadata *m);
   uint32_t GetOrAssignMetaID(DebugLocation &l);
   const Type *GetSymbolType(const Function &f, Symbol s);
-  const Value *GetFunctionValue(const Function &f, uint64_t v);
+  const Constant *GetFunctionConstant(const Function &f, uint64_t v);
   const Metadata *GetFunctionMetadata(const Function &f, uint64_t v);
   const Type *GetVoidType();
   const Type *GetBoolType();
@@ -548,7 +548,7 @@ private:
   rdcarray<Attributes> m_AttributeGroups;
   rdcarray<Attributes> m_Attributes;
 
-  rdcarray<Value> m_Values;
+  rdcarray<Constant> m_Constants;
 
   rdcarray<Metadata> m_Metadata;
   rdcarray<NamedMetadata> m_NamedMeta;

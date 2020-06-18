@@ -85,8 +85,8 @@ struct TypeOrderer
     if(m->type)
       accumulate(m->type);
 
-    if(m->val)
-      accumulate(m->val->type);
+    if(m->constant)
+      accumulate(m->constant->type);
 
     for(const Metadata *c : m->children)
       if(c)
@@ -375,7 +375,7 @@ void Program::MakeDisassemblyString()
     typeOrderer.accumulate(g.type);
 
     if(g.initialiser.type == SymbolType::Constant)
-      typeOrderer.accumulate(m_Values[g.initialiser.idx].type);
+      typeOrderer.accumulate(m_Constants[g.initialiser.idx].type);
   }
 
   for(size_t i = 0; i < m_Functions.size(); i++)
@@ -457,7 +457,7 @@ void Program::MakeDisassemblyString()
       m_Disassembly += "global ";
 
     if(g.initialiser.type == SymbolType::Constant)
-      m_Disassembly += m_Values[g.initialiser.idx].toString(true);
+      m_Disassembly += m_Constants[g.initialiser.idx].toString(true);
     else
       m_Disassembly += g.type->inner->toString();
 
@@ -481,7 +481,7 @@ void Program::MakeDisassemblyString()
   for(size_t i = 0; i < m_NamedMeta.size(); i++)
   {
     namedMeta += StringFormat::Fmt("!%s = %s!{", m_NamedMeta[i].name.c_str(),
-                                   m_NamedMeta[i].distinct ? "distinct " : "");
+                                   m_NamedMeta[i].isDistinct ? "distinct " : "");
     for(size_t m = 0; m < m_NamedMeta[i].children.size(); m++)
     {
       if(m != 0)
@@ -516,10 +516,11 @@ void Program::MakeDisassemblyString()
           if(s.idx < m_Metadata.size())
           {
             Metadata &m = m_Metadata[s.idx];
-            if(m.value && m.val && m.val->symbol)
-              ret += m.val->toString(withTypes);
-            else if(m.value && m.val && (m.val->type->type == Type::Scalar || m.val->nullconst))
-              ret += m.val->toString(withTypes);
+            if(m.isConstant && m.constant && m.constant->symbol)
+              ret += m.constant->toString(withTypes);
+            else if(m.isConstant && m.constant &&
+                    (m.constant->type->type == Type::Scalar || m.constant->nullconst))
+              ret += m.constant->toString(withTypes);
             else
               ret += StringFormat::Fmt("!%u", GetOrAssignMetaID(&m));
           }
@@ -534,7 +535,9 @@ void Program::MakeDisassemblyString()
             ret = m_GlobalVars[s.idx].type->toString() + " ";
           ret += "@" + escapeStringIfNeeded(m_GlobalVars[s.idx].name);
           break;
-        case SymbolType::Constant: ret = GetFunctionValue(func, s.idx)->toString(withTypes); break;
+        case SymbolType::Constant:
+          ret = GetFunctionConstant(func, s.idx)->toString(withTypes);
+          break;
         case SymbolType::Argument:
           if(withTypes)
             ret = func.args[s.idx].type->toString() + " ";
@@ -1194,7 +1197,7 @@ void Program::MakeDisassemblyString()
         {
           if(inst.args[0].type == SymbolType::Constant)
           {
-            uint32_t opcode = GetFunctionValue(func, inst.args[0].idx)->val.uv[0];
+            uint32_t opcode = GetFunctionConstant(func, inst.args[0].idx)->val.uv[0];
             if(opcode < ARRAY_COUNT(funcSigs))
             {
               m_Disassembly += "  ; ";
@@ -1208,8 +1211,9 @@ void Program::MakeDisassemblyString()
           if(inst.args[2].type == SymbolType::Constant && inst.args[3].type == SymbolType::Constant)
           {
             ResourceClass resClass =
-                (ResourceClass)GetFunctionValue(func, inst.args[2].idx)->val.uv[0];
-            ResourceKind resKind = (ResourceKind)GetFunctionValue(func, inst.args[3].idx)->val.uv[0];
+                (ResourceClass)GetFunctionConstant(func, inst.args[2].idx)->val.uv[0];
+            ResourceKind resKind =
+                (ResourceKind)GetFunctionConstant(func, inst.args[3].idx)->val.uv[0];
 
             m_Disassembly += "  resource: ";
 
@@ -1217,7 +1221,7 @@ void Program::MakeDisassemblyString()
 
             uint32_t packedProps[2] = {};
 
-            const Value *props = GetFunctionValue(func, inst.args[4].idx);
+            const Constant *props = GetFunctionConstant(func, inst.args[4].idx);
 
             if(props && !props->nullconst)
             {
@@ -1386,9 +1390,9 @@ void Program::MakeDisassemblyString()
   {
     if(numIdx < m_NumberedMeta.size() && m_NumberedMeta[numIdx]->id == i)
     {
-      m_Disassembly +=
-          StringFormat::Fmt("!%u = %s%s\n", i, m_NumberedMeta[numIdx]->distinct ? "distinct " : "",
-                            m_NumberedMeta[numIdx]->valString().c_str());
+      m_Disassembly += StringFormat::Fmt("!%u = %s%s\n", i,
+                                         m_NumberedMeta[numIdx]->isDistinct ? "distinct " : "",
+                                         m_NumberedMeta[numIdx]->valString().c_str());
       if(m_NumberedMeta[numIdx]->dwarf)
         m_NumberedMeta[numIdx]->dwarf->setID(i);
       numIdx++;
@@ -1552,7 +1556,7 @@ rdcstr Metadata::valString() const
   {
     return debugLoc->toString();
   }
-  else if(value)
+  else if(isConstant)
   {
     if(type == NULL)
     {
@@ -1560,11 +1564,11 @@ rdcstr Metadata::valString() const
     }
     else
     {
-      if(val)
+      if(constant)
       {
-        if(type != val->type)
+        if(type != constant->type)
           RDCERR("Type mismatch in metadata");
-        return val->toString(true);
+        return constant->toString(true);
       }
       else
       {
@@ -1594,7 +1598,7 @@ rdcstr Metadata::valString() const
         ret += ", ";
       if(!children[i])
         ret += "null";
-      else if(children[i]->value)
+      else if(children[i]->isConstant)
         ret += children[i]->valString();
       else
         ret += StringFormat::Fmt("!%u", children[i]->id);
@@ -1605,7 +1609,7 @@ rdcstr Metadata::valString() const
   }
 }
 
-rdcstr Value::toString(bool withType) const
+rdcstr Constant::toString(bool withType) const
 {
   if(type == NULL)
     return escapeString(str);
@@ -1621,12 +1625,12 @@ rdcstr Value::toString(bool withType) const
   {
     ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(str).c_str());
   }
-  else if(op != Value::NoOp)
+  else if(op != Constant::NoOp)
   {
     switch(op)
     {
-      case Value::NoOp: break;
-      case Value::GEP:
+      case Constant::NoOp: break;
+      case Constant::GEP:
       {
         ret += "getelementptr inbounds (";
 

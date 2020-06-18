@@ -83,7 +83,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
 
   if(id == MetaDataRecord::FILE)
   {
-    meta.distinct = (metaRecord.ops[0] & 0x1);
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     meta.dwarf = new DIFile(getMeta(metaRecord.ops[1]), getMeta(metaRecord.ops[2]));
     meta.children = {getMeta(metaRecord.ops[1]), getMeta(metaRecord.ops[2])};
@@ -95,7 +95,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
 
     // we expect it to be marked as distinct, but we'll always treat it that way
     RDCASSERT(metaRecord.ops[0] & 0x1);
-    meta.distinct = true;
+    meta.isDistinct = true;
 
     meta.dwarf = new DICompileUnit(
         DW_LANG(metaRecord.ops[1]), getMeta(metaRecord.ops[2]), getMetaString(metaRecord.ops[3]),
@@ -109,7 +109,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   }
   else if(id == MetaDataRecord::BASIC_TYPE)
   {
-    meta.distinct = (metaRecord.ops[0] & 0x1);
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     meta.dwarf =
         new DIBasicType(DW_TAG(metaRecord.ops[1]), getMetaString(metaRecord.ops[2]),
@@ -117,7 +117,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   }
   else if(id == MetaDataRecord::DERIVED_TYPE)
   {
-    meta.distinct = (metaRecord.ops[0] & 0x1);
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     meta.dwarf = new DIDerivedType(DW_TAG(metaRecord.ops[1]), getMetaString(metaRecord.ops[2]),
                                    getMeta(metaRecord.ops[3]), metaRecord.ops[4],
@@ -130,7 +130,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   }
   else if(id == MetaDataRecord::COMPOSITE_TYPE)
   {
-    meta.distinct = (metaRecord.ops[0] & 0x1);
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     // TODO handle forward declarations?
     meta.dwarf = new DICompositeType(
@@ -145,7 +145,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   }
   else if(id == MetaDataRecord::TEMPLATE_TYPE)
   {
-    meta.distinct = (metaRecord.ops[0] & 0x1);
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     meta.dwarf =
         new DITemplateTypeParameter(getMetaString(metaRecord.ops[1]), getMeta(metaRecord.ops[2]));
@@ -154,7 +154,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   }
   else if(id == MetaDataRecord::TEMPLATE_VALUE)
   {
-    meta.distinct = (metaRecord.ops[0] & 0x1);
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     meta.dwarf =
         new DITemplateValueParameter(DW_TAG(metaRecord.ops[1]), getMetaString(metaRecord.ops[2]),
@@ -164,7 +164,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   }
   else if(id == MetaDataRecord::SUBPROGRAM)
   {
-    meta.distinct = (metaRecord.ops[0] & 0x1);
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     meta.dwarf = new DISubprogram(
         getMeta(metaRecord.ops[1]), getMetaString(metaRecord.ops[2]),
@@ -181,7 +181,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   }
   else if(id == MetaDataRecord::SUBROUTINE_TYPE)
   {
-    meta.distinct = (metaRecord.ops[0] & 0x1);
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     meta.dwarf = new DISubroutineType(getMeta(metaRecord.ops[2]));
 
@@ -189,7 +189,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   }
   else if(id == MetaDataRecord::GLOBAL_VAR)
   {
-    meta.distinct = (metaRecord.ops[0] & 0x1);
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     uint64_t version = metaRecord.ops[0] >> 1;
 
@@ -212,7 +212,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   }
   else if(id == MetaDataRecord::LOCATION)
   {
-    meta.distinct = (metaRecord.ops[0] & 0x1);
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     meta.debugLoc = new DebugLocation;
     meta.debugLoc->line = metaRecord.ops[1];
@@ -224,7 +224,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   }
   else if(id == MetaDataRecord::LOCAL_VAR)
   {
-    meta.distinct = (metaRecord.ops[0] & 0x1);
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     meta.dwarf = new DILocalVariable(
         DW_TAG(metaRecord.ops[1]), getMeta(metaRecord.ops[2]), getMetaString(metaRecord.ops[3]),
@@ -236,7 +236,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   }
   else if(id == MetaDataRecord::LEXICAL_BLOCK)
   {
-    meta.distinct = (metaRecord.ops[0] & 0x1);
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     meta.dwarf = new DILexicalBlock(getMeta(metaRecord.ops[1]), getMeta(metaRecord.ops[2]),
                                     metaRecord.ops[3], metaRecord.ops[4]);
@@ -245,7 +245,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   }
   else if(id == MetaDataRecord::SUBRANGE)
   {
-    meta.distinct = (metaRecord.ops[0] & 0x1);
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     meta.dwarf = new DISubrange(metaRecord.ops[1], LLVMBC::BitReader::svbr(metaRecord.ops[2]));
   }
@@ -253,7 +253,7 @@ bool Program::ParseDebugMetaRecord(const LLVMBC::BlockOrRecord &metaRecord, Meta
   {
     DIExpression *expr = new DIExpression;
 
-    meta.distinct = (metaRecord.ops[0] & 0x1);
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
 
     expr->op = DW_OP_none;
 
