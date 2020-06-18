@@ -115,7 +115,7 @@ class Draw_Zoo(rdtest.TestCase):
 
             rdtest.log.success("Checked vertex out data in instance {}".format(inst))
 
-            if self.props.shaderDebugging:
+            if self.props.shaderDebugging and refl.debugInfo.debuggable:
                 for vtx in range(num_verts):
                     if vtx in restarts:
                         continue

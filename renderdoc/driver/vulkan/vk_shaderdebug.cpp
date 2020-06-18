@@ -3430,6 +3430,12 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   VulkanCreationInfo::ShaderModuleReflection &shadRefl =
       shader.GetReflection(entryPoint, state.graphics.pipeline);
 
+  if(!shadRefl.refl.debugInfo.debuggable)
+  {
+    RDCLOG("Shader is not debuggable: %s", shadRefl.refl.debugInfo.debugStatus.c_str());
+    return new ShaderDebugTrace();
+  }
+
   shadRefl.PopulateDisassembly(shader.spirv);
 
   VulkanAPIWrapper *apiWrapper =
@@ -3634,6 +3640,12 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   VulkanCreationInfo::ShaderModuleReflection &shadRefl =
       shader.GetReflection(entryPoint, state.graphics.pipeline);
+
+  if(!shadRefl.refl.debugInfo.debuggable)
+  {
+    RDCLOG("Shader is not debuggable: %s", shadRefl.refl.debugInfo.debugStatus.c_str());
+    return new ShaderDebugTrace();
+  }
 
   shadRefl.PopulateDisassembly(shader.spirv);
 
@@ -4291,6 +4303,12 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId, const uint32_t gro
 
   VulkanCreationInfo::ShaderModuleReflection &shadRefl =
       shader.GetReflection(entryPoint, state.compute.pipeline);
+
+  if(!shadRefl.refl.debugInfo.debuggable)
+  {
+    RDCLOG("Shader is not debuggable: %s", shadRefl.refl.debugInfo.debugStatus.c_str());
+    return new ShaderDebugTrace();
+  }
 
   shadRefl.PopulateDisassembly(shader.spirv);
 

@@ -120,7 +120,8 @@ class Buffer_Truncation(rdtest.TestCase):
         if not rdtest.value_compare(outcol.value.fv[0:4], [0.0, 0.0, 0.0, 0.0]):
             raise rdtest.TestFailureException("expected outcol to be 0s, but got {}".format(outcol.value.fv[0:4]))
 
-        if self.controller.GetAPIProperties().shaderDebugging:
+        if self.controller.GetAPIProperties().shaderDebugging and pipe.GetShaderReflection(
+                rd.ShaderStage.Pixel).debugInfo.debuggable:
             # Debug the shader
             trace: rd.ShaderDebugTrace = self.controller.DebugPixel(int(pipe.GetViewport(0).width/2),
                                                                     int(pipe.GetViewport(0).height/2),

@@ -1682,12 +1682,6 @@ void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Pro
 ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                            uint32_t idx)
 {
-  if(!GetAPIProperties().shaderDebugging)
-  {
-    RDCUNIMPLEMENTED("Vertex debugging not yet implemented for D3D12");
-    return new ShaderDebugTrace;
-  }
-
   using namespace DXBCBytecode;
   using namespace DXBCDebug;
 
@@ -1700,13 +1694,25 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   WrappedID3D12Shader *vs =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(vertexShader.resourceId);
   if(!vs)
+  {
+    RDCERR("Can't debug with no current vertex shader");
     return new ShaderDebugTrace;
+  }
 
   DXBC::DXBCContainer *dxbc = vs->GetDXBC();
   const ShaderReflection &refl = vs->GetDetails();
 
   if(!dxbc)
+  {
+    RDCERR("Vertex shader couldn't be reflected");
     return new ShaderDebugTrace;
+  }
+
+  if(!refl.debugInfo.debuggable)
+  {
+    RDCERR("Vertex shader is not debuggable");
+    return new ShaderDebugTrace;
+  }
 
   dxbc->GetDisassembly();
 
@@ -2050,12 +2056,6 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
 ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y, uint32_t sample,
                                           uint32_t primitive)
 {
-  if(!GetAPIProperties().shaderDebugging)
-  {
-    RDCUNIMPLEMENTED("Pixel debugging not yet implemented for D3D12");
-    return new ShaderDebugTrace();
-  }
-
   using namespace DXBC;
   using namespace DXBCBytecode;
   using namespace DXBCDebug;
@@ -2071,13 +2071,25 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
   WrappedID3D12Shader *ps =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(pixelShader.resourceId);
   if(!ps)
+  {
+    RDCERR("Can't debug with no current pixel shader");
     return new ShaderDebugTrace;
+  }
 
   DXBCContainer *dxbc = ps->GetDXBC();
   const ShaderReflection &refl = ps->GetDetails();
 
   if(!dxbc)
+  {
+    RDCERR("Pixel shader couldn't be reflected");
     return new ShaderDebugTrace;
+  }
+
+  if(!refl.debugInfo.debuggable)
+  {
+    RDCERR("Pixel shader is not debuggable");
+    return new ShaderDebugTrace;
+  }
 
   dxbc->GetDisassembly();
 
@@ -2836,12 +2848,6 @@ void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position,
 ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId, const uint32_t groupid[3],
                                            const uint32_t threadid[3])
 {
-  if(!GetAPIProperties().shaderDebugging)
-  {
-    RDCUNIMPLEMENTED("Compute shader debugging not yet implemented for D3D12");
-    return new ShaderDebugTrace();
-  }
-
   using namespace DXBCBytecode;
   using namespace DXBCDebug;
 
@@ -2855,13 +2861,25 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId, const uint32_t grou
   WrappedID3D12Shader *cs =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(computeShader.resourceId);
   if(!cs)
+  {
+    RDCERR("Can't debug with no current compute shader");
     return new ShaderDebugTrace;
+  }
 
   DXBC::DXBCContainer *dxbc = cs->GetDXBC();
   const ShaderReflection &refl = cs->GetDetails();
 
   if(!dxbc)
+  {
+    RDCERR("Pixel shader couldn't be reflected");
     return new ShaderDebugTrace;
+  }
+
+  if(!refl.debugInfo.debuggable)
+  {
+    RDCERR("Pixel shader is not debuggable");
+    return new ShaderDebugTrace;
+  }
 
   dxbc->GetDisassembly();
 

@@ -98,6 +98,7 @@ private:
   virtual void UnregisterOp(Iter iter);
 
   rdcstr StringiseConstant(rdcspv::Id id) const;
+  void CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const;
 
   void MakeConstantBlockVariables(const DataType &structType, uint32_t arraySize,
                                   uint32_t arrayByteStride, rdcarray<ShaderConstant> &cblock,

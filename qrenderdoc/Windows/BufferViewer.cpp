@@ -2277,8 +2277,34 @@ void BufferViewer::stageRowMenu(MeshDataStage stage, QMenu *menu, const QPoint &
 
   menu->clear();
 
-  if(m_MeshView && stage != MeshDataStage::GSOut && m_Ctx.APIProps().shaderDebugging)
+  menu->setToolTipsVisible(true);
+
+  if(m_MeshView && stage != MeshDataStage::GSOut)
   {
+    const ShaderReflection *shaderDetails =
+        m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Vertex);
+
+    m_DebugVert->setEnabled(false);
+
+    if(!m_Ctx.APIProps().shaderDebugging)
+    {
+      m_DebugVert->setToolTip(tr("This API does not support shader debugging"));
+    }
+    else if(!shaderDetails)
+    {
+      m_DebugVert->setToolTip(tr("No vertex shader bound"));
+    }
+    else if(!shaderDetails->debugInfo.debuggable)
+    {
+      m_DebugVert->setToolTip(
+          tr("This shader doesn't support debugging: %1").arg(shaderDetails->debugInfo.debugStatus));
+    }
+    else
+    {
+      m_DebugVert->setEnabled(true);
+      m_DebugVert->setToolTip(QString());
+    }
+
     menu->addAction(m_DebugVert);
     menu->addSeparator();
   }

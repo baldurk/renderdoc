@@ -230,6 +230,20 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
     // by default, and SPDB has an extra sorting step that probably maybe possibly does this.
   }
 
+  if(dxbc->GetDXBCByteCode())
+  {
+    refl->debugInfo.debuggable = true;
+  }
+  else
+  {
+    refl->debugInfo.debuggable = false;
+
+    if(dxbc->GetDXILByteCode())
+      refl->debugInfo.debugStatus = "Debugging DXIL is not supported";
+    else
+      refl->debugInfo.debugStatus = "Shader contains no recognised bytecode";
+  }
+
   refl->encoding = ShaderEncoding::DXBC;
   refl->rawBytes = dxbc->m_ShaderBlob;
 

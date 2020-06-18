@@ -2539,7 +2539,8 @@ void VulkanPipelineStateViewer::setState()
   ui->stencils->endUpdate();
 
   // set up thread debugging inputs
-  if(m_Ctx.APIProps().shaderDebugging && state.computeShader.reflection && draw &&
+  if(m_Ctx.APIProps().shaderDebugging && state.computeShader.reflection &&
+     state.computeShader.reflection->debugInfo.debuggable && draw &&
      (draw->flags & DrawFlags::Dispatch))
   {
     ui->groupX->setEnabled(true);
@@ -2569,6 +2570,8 @@ void VulkanPipelineStateViewer::setState()
       ui->threadY->setMaximum((int)draw->dispatchThreadsDimension[1] - 1);
       ui->threadZ->setMaximum((int)draw->dispatchThreadsDimension[2] - 1);
     }
+
+    ui->debugThread->setToolTip(QString());
   }
   else
   {
@@ -2581,6 +2584,16 @@ void VulkanPipelineStateViewer::setState()
     ui->threadZ->setEnabled(false);
 
     ui->debugThread->setEnabled(false);
+
+    if(!m_Ctx.APIProps().shaderDebugging)
+      ui->debugThread->setToolTip(tr("This API does not support shader debugging"));
+    else if(!draw || !(draw->flags & DrawFlags::Dispatch))
+      ui->debugThread->setToolTip(tr("No dispatch selected"));
+    else if(!state.computeShader.reflection)
+      ui->debugThread->setToolTip(tr("No compute shader bound"));
+    else if(!state.computeShader.reflection->debugInfo.debuggable)
+      ui->debugThread->setToolTip(tr("This shader doesn't support debugging: %1")
+                                      .arg(state.computeShader.reflection->debugInfo.debugStatus));
   }
 
   // highlight the appropriate stages in the flowchart

@@ -10,6 +10,10 @@ class D3D12_PrimitiveID(rdtest.TestCase):
         self.controller.SetFrameEvent(draw.eventId, True)
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
+        if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
+            rdtest.log.print("Skipping undebuggable shader at {}.".format(draw.name))
+            return
+
         trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, rd.ReplayController.NoPreference, prim)
 
         cycles, variables = self.process_trace(trace)

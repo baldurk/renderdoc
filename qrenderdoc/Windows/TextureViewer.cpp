@@ -500,8 +500,55 @@ void TextureViewer::UI_UpdateCachedTexture()
 
   m_CachedTexture = m_Ctx.GetTexture(id);
 
-  ui->debugPixelContext->setEnabled(m_Ctx.APIProps().shaderDebugging && m_CachedTexture != NULL);
-  ui->pixelHistory->setEnabled(m_Ctx.APIProps().pixelHistory && m_CachedTexture != NULL);
+  if(m_CachedTexture != NULL)
+  {
+    if(m_Ctx.APIProps().shaderDebugging)
+    {
+      const ShaderReflection *shaderDetails =
+          m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
+
+      if(!shaderDetails)
+      {
+        ui->debugPixelContext->setEnabled(false);
+        ui->debugPixelContext->setToolTip(tr("No pixel shader bound"));
+      }
+      else if(!shaderDetails->debugInfo.debuggable)
+      {
+        ui->debugPixelContext->setEnabled(false);
+        ui->debugPixelContext->setToolTip(
+            tr("The current pixel shader does not support debugging: %1")
+                .arg(shaderDetails->debugInfo.debugStatus));
+      }
+      else
+      {
+        ui->debugPixelContext->setEnabled(true);
+        ui->debugPixelContext->setToolTip(QString());
+      }
+    }
+    else
+    {
+      ui->debugPixelContext->setEnabled(false);
+      ui->debugPixelContext->setToolTip(tr("Shader Debugging not supported on this API"));
+    }
+
+    if(m_Ctx.APIProps().pixelHistory)
+    {
+      ui->pixelHistory->setEnabled(true);
+      ui->pixelHistory->setToolTip(QString());
+    }
+    else
+    {
+      ui->pixelHistory->setEnabled(false);
+      ui->pixelHistory->setToolTip(tr("Pixel History not supported on this API"));
+    }
+  }
+  else
+  {
+    ui->debugPixelContext->setEnabled(false);
+    ui->debugPixelContext->setToolTip(tr("No active texture selected"));
+    ui->pixelHistory->setEnabled(false);
+    ui->pixelHistory->setToolTip(tr("No active texture selected"));
+  }
 }
 
 TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
@@ -2797,27 +2844,11 @@ void TextureViewer::OnCaptureLoaded()
   ui->locationGoto->setEnabled(true);
   ui->viewTexBuffer->setEnabled(true);
 
-  if(m_Ctx.APIProps().pixelHistory)
-  {
-    ui->pixelHistory->setEnabled(true);
-    ui->pixelHistory->setToolTip(QString());
-  }
-  else
-  {
-    ui->pixelHistory->setEnabled(false);
-    ui->pixelHistory->setToolTip(tr("Pixel History not implemented on this API"));
-  }
+  ui->pixelHistory->setEnabled(false);
+  ui->pixelHistory->setToolTip(QString());
 
-  if(m_Ctx.APIProps().shaderDebugging)
-  {
-    ui->debugPixelContext->setEnabled(true);
-    ui->debugPixelContext->setToolTip(QString());
-  }
-  else
-  {
-    ui->debugPixelContext->setEnabled(false);
-    ui->debugPixelContext->setToolTip(tr("Shader Debugging not implemented on this API"));
-  }
+  ui->debugPixelContext->setEnabled(false);
+  ui->pixelHistory->setToolTip(QString());
 
   TextureListItemModel *model = (TextureListItemModel *)ui->textureList->model();
 

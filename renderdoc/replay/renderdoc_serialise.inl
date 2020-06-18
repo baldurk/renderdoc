@@ -282,8 +282,10 @@ void DoSerialise(SerialiserType &ser, ShaderDebugInfo &el)
   SERIALISE_MEMBER(compileFlags);
   SERIALISE_MEMBER(files);
   SERIALISE_MEMBER(encoding);
+  SERIALISE_MEMBER(debuggable);
+  SERIALISE_MEMBER(debugStatus);
 
-  SIZE_CHECK(56);
+  SIZE_CHECK(80);
 }
 
 template <typename SerialiserType>
@@ -315,7 +317,7 @@ void DoSerialise(SerialiserType &ser, ShaderReflection &el)
 
   SERIALISE_MEMBER(pointerTypes);
 
-  SIZE_CHECK(336);
+  SIZE_CHECK(360);
 }
 
 template <typename SerialiserType>

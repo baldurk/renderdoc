@@ -27,9 +27,8 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
 
         rdtest.log.success("CBuffer variables are as expected")
 
-        props: rd.APIProperties = self.controller.GetAPIProperties()
-
-        if props.shaderDebugging:
+        if self.controller.GetAPIProperties().shaderDebugging and pipe.GetShaderReflection(
+                rd.ShaderStage.Pixel).debugInfo.debuggable:
             trace: rd.ShaderDebugTrace = self.controller.DebugPixel(int(pipe.GetViewport(0).width / 2.0),
                                                                     int(pipe.GetViewport(0).height / 2.0),
                                                                     rd.ReplayController.NoPreference,

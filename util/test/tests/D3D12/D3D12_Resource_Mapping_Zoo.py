@@ -9,6 +9,10 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
     def test_debug_pixel(self, x, y, test_name):
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
+        if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
+            rdtest.log.print("Skipping undebuggable shader at {}.".format(test_name))
+            return
+
         # Debug the shader
         trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, rd.ReplayController.NoPreference,
                                                                 rd.ReplayController.NoPreference)

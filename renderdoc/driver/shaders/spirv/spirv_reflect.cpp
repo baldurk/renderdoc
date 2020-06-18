@@ -610,6 +610,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
   reflection.encoding = ShaderEncoding::SPIRV;
   reflection.rawBytes.assign((byte *)m_SPIRV.data(), m_SPIRV.size() * sizeof(uint32_t));
 
+  CheckDebuggable(reflection.debugInfo.debuggable, reflection.debugInfo.debugStatus);
+
   const EntryPoint *entry = NULL;
   for(const EntryPoint &e : entries)
   {
@@ -1675,7 +1677,6 @@ void Reflector::AddSignatureParameter(const bool isInput, const ShaderStage stag
     }
   }
 }
-
 };    // namespace rdcspv
 
 #if ENABLED(ENABLE_UNIT_TESTS)

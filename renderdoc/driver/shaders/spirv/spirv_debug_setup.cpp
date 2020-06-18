@@ -182,24 +182,18 @@ void Debugger::MakeSignatureNames(const rdcarray<SPIRVInterfaceAccess> &sigList,
   }
 }
 
-ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const ShaderStage stage,
-                                       const rdcstr &entryPoint,
-                                       const rdcarray<SpecConstant> &specInfo,
-                                       const std::map<size_t, uint32_t> &instructionLines,
-                                       const SPIRVPatchData &patchData, uint32_t activeIndex)
+// this function is implemented here to keep it next to the code we might need to update, even
+// though it's checked at reflection time.
+void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
 {
-  Id entryId = entryLookup[entryPoint];
-
-  if(entryId == Id())
-  {
-    RDCERR("Invalid entry point '%s'", entryPoint.c_str());
-    return new ShaderDebugTrace;
-  }
+  debuggable = true;
+  debugStatus.clear();
 
   if(m_MajorVersion > 1 || m_MinorVersion > 5)
   {
-    RDCERR("Unsupported SPIR-V version %u.%u", m_MajorVersion, m_MinorVersion);
-    return new ShaderDebugTrace;
+    debugStatus +=
+        StringFormat::Fmt("Unsupported SPIR-V version %u.%u\n", m_MajorVersion, m_MinorVersion);
+    debuggable = false;
   }
 
   // whitelist supported extensions
@@ -218,8 +212,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       continue;
     }
 
-    RDCERR("Unsupported SPIR-V extension %s", ext.c_str());
-    return new ShaderDebugTrace;
+    debuggable = false;
+    debugStatus += StringFormat::Fmt("Unsupported SPIR-V extension %s\n", ext.c_str());
   }
 
   for(Capability c : capabilities)
@@ -409,9 +403,38 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
     if(!supported)
     {
-      RDCERR("Unsupported capability '%s'", ToStr(c).c_str());
-      return new ShaderDebugTrace;
+      debuggable = false;
+      debugStatus += StringFormat::Fmt("Unsupported capability '%s'\n", ToStr(c).c_str());
     }
+  }
+
+  for(auto it = extSets.begin(); it != extSets.end(); it++)
+  {
+    Id id = it->first;
+    const rdcstr &setname = it->second;
+
+    if(setname == "GLSL.std.450" || setname.beginsWith("NonSemantic."))
+      continue;
+
+    debuggable = false;
+    debugStatus += StringFormat::Fmt("Unsupported extended instruction set: '%s'\n", setname.c_str());
+  }
+
+  debugStatus.trim();
+}
+
+ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const ShaderStage stage,
+                                       const rdcstr &entryPoint,
+                                       const rdcarray<SpecConstant> &specInfo,
+                                       const std::map<size_t, uint32_t> &instructionLines,
+                                       const SPIRVPatchData &patchData, uint32_t activeIndex)
+{
+  Id entryId = entryLookup[entryPoint];
+
+  if(entryId == Id())
+  {
+    RDCERR("Invalid entry point '%s'", entryPoint.c_str());
+    return new ShaderDebugTrace;
   }
 
   global.clock = uint64_t(time(NULL)) << 32;
@@ -440,25 +463,6 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       extinst.nonsemantic = true;
 
       global.extInsts[id] = extinst;
-    }
-    else
-    {
-      RDCERR("Unsupported extended instruction set: %s", setname.c_str());
-      return new ShaderDebugTrace;
-    }
-  }
-
-  for(const rdcstr &e : extensions)
-  {
-    if(e == "SPV_GOOGLE_decorate_string" || e == "SPV_GOOGLE_hlsl_functionality1" ||
-       e == "SPV_EXT_descriptor_indexing")
-    {
-      // supported extensions
-    }
-    else
-    {
-      RDCERR("Unsupported extension '%s'", e.c_str());
-      return new ShaderDebugTrace;
     }
   }
 

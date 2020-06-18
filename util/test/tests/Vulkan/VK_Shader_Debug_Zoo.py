@@ -21,6 +21,10 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                 self.controller.SetFrameEvent(section.eventId, False)
                 pipe: rd.PipeState = self.controller.GetPipelineState()
 
+                if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
+                    rdtest.log.print("Skipping undebuggable shader at {} in {}.".format(child, test_name))
+                    return
+
                 for test in range(section.numInstances):
                     x = 4 * test + 1
                     y = 4 * child + 1

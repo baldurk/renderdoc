@@ -1269,6 +1269,17 @@ The first entry in the list is always the file where the entry point is.
 
   DOCUMENT("The :class:`ShaderEncoding` of the source. See :data:`files`.");
   ShaderEncoding encoding = ShaderEncoding::Unknown;
+
+  DOCUMENT(R"(Indicates whether this particular shader can be debugged. In some cases even if the
+API can debug shaders in general, specific shaders cannot be debugged because they use unsupported
+functionality
+)");
+  bool debuggable = true;
+
+  DOCUMENT(R"(If :data:`debuggable` is false then this contains a simple explanation of why the
+shader is not supported for debugging
+)");
+  rdcstr debugStatus;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderDebugInfo);

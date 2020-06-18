@@ -22,6 +22,10 @@ class D3D12_Shader_Linkage_Zoo(rdtest.TestCase):
             self.controller.SetFrameEvent(drawcall.eventId, False)
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
+            if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
+                rdtest.log.print("Skipping undebuggable shader at {}.".format(event_name))
+                continue
+
             # Debug the shader
             trace: rd.ShaderDebugTrace = self.controller.DebugPixel(200, 150, rd.ReplayController.NoPreference,
                                                                     rd.ReplayController.NoPreference)
