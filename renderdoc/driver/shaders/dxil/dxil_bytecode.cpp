@@ -1406,6 +1406,8 @@ Program::Program(const byte *bytes, size_t length)
                 m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
               }
 
+              curBlock++;
+
               f.instructions.push_back(inst);
             }
             else if(op.type == FunctionRecord::INST_BINOP)
@@ -2256,6 +2258,8 @@ Program::Program(const byte *bytes, size_t length)
           }
         }
 
+        RDCASSERT(curBlock == f.blocks.size());
+
         size_t resultID = 0;
 
         if(f.blocks[0].name.empty())
@@ -2277,9 +2281,13 @@ Program::Program(const byte *bytes, size_t length)
 
           if(f.instructions[i].op == Instruction::Branch ||
              f.instructions[i].op == Instruction::Unreachable ||
-             f.instructions[i].op == Instruction::Switch)
+             f.instructions[i].op == Instruction::Switch || f.instructions[i].op == Instruction::Ret)
           {
             curBlock++;
+
+            if(i == f.instructions.size() - 1)
+              break;
+
             if(f.blocks[curBlock].name.empty())
               f.blocks[curBlock].resultID = (uint32_t)resultID++;
             continue;

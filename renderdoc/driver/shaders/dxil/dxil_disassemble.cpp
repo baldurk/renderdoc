@@ -595,8 +595,10 @@ void Program::MakeDisassemblyString()
         instructionLine++;
       }
 
-      for(Instruction &inst : func.instructions)
+      for(size_t funcIdx = 0; funcIdx < func.instructions.size(); funcIdx++)
       {
+        Instruction &inst = func.instructions[funcIdx];
+
         inst.disassemblyLine = instructionLine;
         m_Disassembly += "  ";
         if(!inst.name.empty())
@@ -1326,8 +1328,12 @@ void Program::MakeDisassemblyString()
         m_Disassembly += "\n";
         instructionLine++;
 
+        // if this is the last instruction don't print the next block's label
+        if(funcIdx == func.instructions.size() - 1)
+          break;
+
         if(inst.op == Instruction::Branch || inst.op == Instruction::Unreachable ||
-           inst.op == Instruction::Switch)
+           inst.op == Instruction::Switch || inst.op == Instruction::Ret)
         {
           m_Disassembly += "\n";
           instructionLine++;
