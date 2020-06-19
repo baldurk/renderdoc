@@ -89,6 +89,7 @@ enum class ConstantsRecord : uint32_t
   AGGREGATE = 7,
   STRING = 8,
   CSTRING = 9,
+  EVAL_CAST = 11,
   EVAL_GEP = 20,
   DATA = 22,
 };
@@ -223,6 +224,27 @@ enum class TypeRecord : uint32_t
 
 #define IS_KNOWN(val, KnownID) (decltype(KnownID)(val) == KnownID)
 
+static Operation DecodeCast(uint64_t opcode)
+{
+  switch(opcode)
+  {
+    case 0: return Operation::Trunc; break;
+    case 1: return Operation::ZExt; break;
+    case 2: return Operation::SExt; break;
+    case 3: return Operation::FToU; break;
+    case 4: return Operation::FToS; break;
+    case 5: return Operation::UToF; break;
+    case 6: return Operation::SToF; break;
+    case 7: return Operation::FPTrunc; break;
+    case 8: return Operation::FPExt; break;
+    case 9: return Operation::PtrToI; break;
+    case 10: return Operation::IToPtr; break;
+    case 11: return Operation::Bitcast; break;
+    case 12: return Operation::AddrSpaceCast; break;
+    default: RDCERR("Unhandled cast type %llu", opcode); return Operation::Bitcast;
+  }
+}
+
 void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
                    std::function<const Type *(uint64_t)> getType,
                    std::function<const Type *(const Type *)> getPtrType,
@@ -269,11 +291,20 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
     v.str = constant.getString(0);
     addConstant(v);
   }
+  else if(IS_KNOWN(constant.id, ConstantsRecord::EVAL_CAST))
+  {
+    Constant v;
+    v.op = DecodeCast(constant.ops[0]);
+    v.type = curType;
+    // getType(constant.ops[1]); type of the constant, which we ignore
+    v.inner = getConstant(constant.ops[2]);
+    addConstant(v);
+  }
   else if(IS_KNOWN(constant.id, ConstantsRecord::EVAL_GEP))
   {
     Constant v;
 
-    v.op = Constant::GEP;
+    v.op = Operation::GetElementPtr;
 
     size_t idx = 0;
     if(constant.ops.size() & 1)
@@ -1288,7 +1319,7 @@ Program::Program(const byte *bytes, size_t length)
             else if(op.type == FunctionRecord::INST_CALL)
             {
               Instruction inst;
-              inst.op = Instruction::Call;
+              inst.op = Operation::Call;
               inst.paramAttrs = &m_Attributes[op.get<size_t>()];
 
               uint64_t callingFlags = op.get<uint64_t>();
@@ -1339,26 +1370,7 @@ Program::Program(const byte *bytes, size_t length)
               inst.type = op.getType();
 
               uint64_t opcode = op.get<uint64_t>();
-              switch(opcode)
-              {
-                case 0: inst.op = Instruction::Trunc; break;
-                case 1: inst.op = Instruction::ZExt; break;
-                case 2: inst.op = Instruction::SExt; break;
-                case 3: inst.op = Instruction::FToU; break;
-                case 4: inst.op = Instruction::FToS; break;
-                case 5: inst.op = Instruction::UToF; break;
-                case 6: inst.op = Instruction::SToF; break;
-                case 7: inst.op = Instruction::FPTrunc; break;
-                case 8: inst.op = Instruction::FPExt; break;
-                case 9: inst.op = Instruction::PtrToI; break;
-                case 10: inst.op = Instruction::IToPtr; break;
-                case 11: inst.op = Instruction::Bitcast; break;
-                case 12: inst.op = Instruction::AddrSpaceCast; break;
-                default:
-                  inst.op = Instruction::Bitcast;
-                  RDCERR("Unhandled cast type %llu", opcode);
-                  break;
-              }
+              inst.op = DecodeCast(opcode);
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
 
@@ -1368,7 +1380,7 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
 
-              inst.op = Instruction::ExtractVal;
+              inst.op = Operation::ExtractVal;
 
               inst.args.push_back(op.getSymbol());
               inst.type = op.getType(f, inst.args.back());
@@ -1390,7 +1402,7 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
 
-              inst.op = Instruction::Ret;
+              inst.op = Operation::Ret;
 
               if(op.remaining() == 0)
               {
@@ -1423,21 +1435,21 @@ Program::Program(const byte *bytes, size_t length)
               uint64_t opcode = op.get<uint64_t>();
               switch(opcode)
               {
-                case 0: inst.op = isFloatOp ? Instruction::FAdd : Instruction::Add; break;
-                case 1: inst.op = isFloatOp ? Instruction::FSub : Instruction::Sub; break;
-                case 2: inst.op = isFloatOp ? Instruction::FMul : Instruction::Mul; break;
-                case 3: inst.op = Instruction::UDiv; break;
-                case 4: inst.op = isFloatOp ? Instruction::FDiv : Instruction::SDiv; break;
-                case 5: inst.op = Instruction::URem; break;
-                case 6: inst.op = isFloatOp ? Instruction::FRem : Instruction::SRem; break;
-                case 7: inst.op = Instruction::ShiftLeft; break;
-                case 8: inst.op = Instruction::LogicalShiftRight; break;
-                case 9: inst.op = Instruction::ArithShiftRight; break;
-                case 10: inst.op = Instruction::And; break;
-                case 11: inst.op = Instruction::Or; break;
-                case 12: inst.op = Instruction::Xor; break;
+                case 0: inst.op = isFloatOp ? Operation::FAdd : Operation::Add; break;
+                case 1: inst.op = isFloatOp ? Operation::FSub : Operation::Sub; break;
+                case 2: inst.op = isFloatOp ? Operation::FMul : Operation::Mul; break;
+                case 3: inst.op = Operation::UDiv; break;
+                case 4: inst.op = isFloatOp ? Operation::FDiv : Operation::SDiv; break;
+                case 5: inst.op = Operation::URem; break;
+                case 6: inst.op = isFloatOp ? Operation::FRem : Operation::SRem; break;
+                case 7: inst.op = Operation::ShiftLeft; break;
+                case 8: inst.op = Operation::LogicalShiftRight; break;
+                case 9: inst.op = Operation::ArithShiftRight; break;
+                case 10: inst.op = Operation::And; break;
+                case 11: inst.op = Operation::Or; break;
+                case 12: inst.op = Operation::Xor; break;
                 default:
-                  inst.op = Instruction::And;
+                  inst.op = Operation::And;
                   RDCERR("Unhandled binop type %llu", opcode);
                   break;
               }
@@ -1445,17 +1457,17 @@ Program::Program(const byte *bytes, size_t length)
               if(op.remaining() > 0)
               {
                 uint64_t flags = op.get<uint64_t>();
-                if(inst.op == Instruction::Add || inst.op == Instruction::Sub ||
-                   inst.op == Instruction::Mul || inst.op == Instruction::ShiftLeft)
+                if(inst.op == Operation::Add || inst.op == Operation::Sub ||
+                   inst.op == Operation::Mul || inst.op == Operation::ShiftLeft)
                 {
                   if(flags & 0x2)
                     inst.opFlags |= InstructionFlags::NoSignedWrap;
                   if(flags & 0x1)
                     inst.opFlags |= InstructionFlags::NoUnsignedWrap;
                 }
-                else if(inst.op == Instruction::SDiv || inst.op == Instruction::UDiv ||
-                        inst.op == Instruction::LogicalShiftRight ||
-                        inst.op == Instruction::ArithShiftRight)
+                else if(inst.op == Operation::SDiv || inst.op == Operation::UDiv ||
+                        inst.op == Operation::LogicalShiftRight ||
+                        inst.op == Operation::ArithShiftRight)
                 {
                   if(flags & 0x1)
                     inst.opFlags |= InstructionFlags::Exact;
@@ -1475,13 +1487,13 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
 
-              inst.op = Instruction::Unreachable;
+              inst.op = Operation::Unreachable;
             }
             else if(op.type == FunctionRecord::INST_ALLOCA)
             {
               Instruction inst;
 
-              inst.op = Instruction::Alloca;
+              inst.op = Operation::Alloca;
 
               inst.type = op.getType();
 
@@ -1521,7 +1533,7 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
 
-              inst.op = Instruction::GetElementPtr;
+              inst.op = Operation::GetElementPtr;
 
               if(op.type == FunctionRecord::INST_INBOUNDS_GEP_OLD)
                 inst.opFlags |= InstructionFlags::InBounds;
@@ -1574,7 +1586,7 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
 
-              inst.op = Instruction::Load;
+              inst.op = Operation::Load;
 
               inst.args.push_back(op.getSymbol());
 
@@ -1601,7 +1613,7 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
 
-              inst.op = Instruction::Store;
+              inst.op = Operation::Store;
 
               inst.type = GetVoidType();
 
@@ -1633,36 +1645,36 @@ Program::Program(const byte *bytes, size_t length)
               uint64_t opcode = op.get<uint64_t>();
               switch(opcode)
               {
-                case 0: inst.op = Instruction::FOrdFalse; break;
-                case 1: inst.op = Instruction::FOrdEqual; break;
-                case 2: inst.op = Instruction::FOrdGreater; break;
-                case 3: inst.op = Instruction::FOrdGreaterEqual; break;
-                case 4: inst.op = Instruction::FOrdLess; break;
-                case 5: inst.op = Instruction::FOrdLessEqual; break;
-                case 6: inst.op = Instruction::FOrdNotEqual; break;
-                case 7: inst.op = Instruction::FOrd; break;
-                case 8: inst.op = Instruction::FUnord; break;
-                case 9: inst.op = Instruction::FUnordEqual; break;
-                case 10: inst.op = Instruction::FUnordGreater; break;
-                case 11: inst.op = Instruction::FUnordGreaterEqual; break;
-                case 12: inst.op = Instruction::FUnordLess; break;
-                case 13: inst.op = Instruction::FUnordLessEqual; break;
-                case 14: inst.op = Instruction::FUnordNotEqual; break;
-                case 15: inst.op = Instruction::FOrdTrue; break;
+                case 0: inst.op = Operation::FOrdFalse; break;
+                case 1: inst.op = Operation::FOrdEqual; break;
+                case 2: inst.op = Operation::FOrdGreater; break;
+                case 3: inst.op = Operation::FOrdGreaterEqual; break;
+                case 4: inst.op = Operation::FOrdLess; break;
+                case 5: inst.op = Operation::FOrdLessEqual; break;
+                case 6: inst.op = Operation::FOrdNotEqual; break;
+                case 7: inst.op = Operation::FOrd; break;
+                case 8: inst.op = Operation::FUnord; break;
+                case 9: inst.op = Operation::FUnordEqual; break;
+                case 10: inst.op = Operation::FUnordGreater; break;
+                case 11: inst.op = Operation::FUnordGreaterEqual; break;
+                case 12: inst.op = Operation::FUnordLess; break;
+                case 13: inst.op = Operation::FUnordLessEqual; break;
+                case 14: inst.op = Operation::FUnordNotEqual; break;
+                case 15: inst.op = Operation::FOrdTrue; break;
 
-                case 32: inst.op = Instruction::IEqual; break;
-                case 33: inst.op = Instruction::INotEqual; break;
-                case 34: inst.op = Instruction::UGreater; break;
-                case 35: inst.op = Instruction::UGreaterEqual; break;
-                case 36: inst.op = Instruction::ULess; break;
-                case 37: inst.op = Instruction::ULessEqual; break;
-                case 38: inst.op = Instruction::SGreater; break;
-                case 39: inst.op = Instruction::SGreaterEqual; break;
-                case 40: inst.op = Instruction::SLess; break;
-                case 41: inst.op = Instruction::SLessEqual; break;
+                case 32: inst.op = Operation::IEqual; break;
+                case 33: inst.op = Operation::INotEqual; break;
+                case 34: inst.op = Operation::UGreater; break;
+                case 35: inst.op = Operation::UGreaterEqual; break;
+                case 36: inst.op = Operation::ULess; break;
+                case 37: inst.op = Operation::ULessEqual; break;
+                case 38: inst.op = Operation::SGreater; break;
+                case 39: inst.op = Operation::SGreaterEqual; break;
+                case 40: inst.op = Operation::SLess; break;
+                case 41: inst.op = Operation::SLessEqual; break;
 
                 default:
-                  inst.op = Instruction::FOrdFalse;
+                  inst.op = Operation::FOrdFalse;
                   RDCERR("Unexpected comparison %llu", opcode);
                   break;
               }
@@ -1698,7 +1710,7 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
 
-              inst.op = Instruction::Select;
+              inst.op = Operation::Select;
 
               // if true
               inst.args.push_back(op.getSymbol());
@@ -1721,7 +1733,7 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
 
-              inst.op = Instruction::Branch;
+              inst.op = Operation::Branch;
 
               inst.type = GetVoidType();
 
@@ -1749,7 +1761,7 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
 
-              inst.op = Instruction::Switch;
+              inst.op = Operation::Switch;
 
               inst.type = GetVoidType();
 
@@ -1805,7 +1817,7 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
 
-              inst.op = Instruction::Phi;
+              inst.op = Operation::Phi;
 
               inst.type = op.getType();
 
@@ -1833,7 +1845,7 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
 
-              inst.op = Instruction::LoadAtomic;
+              inst.op = Operation::LoadAtomic;
 
               inst.args.push_back(op.getSymbol());
 
@@ -1887,7 +1899,7 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
 
-              inst.op = Instruction::StoreAtomic;
+              inst.op = Operation::StoreAtomic;
 
               inst.type = GetVoidType();
 
@@ -1947,20 +1959,20 @@ Program::Program(const byte *bytes, size_t length)
               uint64_t opcode = op.get<uint64_t>();
               switch(opcode)
               {
-                case 0: inst.op = Instruction::AtomicExchange; break;
-                case 1: inst.op = Instruction::AtomicAdd; break;
-                case 2: inst.op = Instruction::AtomicSub; break;
-                case 3: inst.op = Instruction::AtomicAnd; break;
-                case 4: inst.op = Instruction::AtomicNand; break;
-                case 5: inst.op = Instruction::AtomicOr; break;
-                case 6: inst.op = Instruction::AtomicXor; break;
-                case 7: inst.op = Instruction::AtomicMax; break;
-                case 8: inst.op = Instruction::AtomicMin; break;
-                case 9: inst.op = Instruction::AtomicUMax; break;
-                case 10: inst.op = Instruction::AtomicUMin; break;
+                case 0: inst.op = Operation::AtomicExchange; break;
+                case 1: inst.op = Operation::AtomicAdd; break;
+                case 2: inst.op = Operation::AtomicSub; break;
+                case 3: inst.op = Operation::AtomicAnd; break;
+                case 4: inst.op = Operation::AtomicNand; break;
+                case 5: inst.op = Operation::AtomicOr; break;
+                case 6: inst.op = Operation::AtomicXor; break;
+                case 7: inst.op = Operation::AtomicMax; break;
+                case 8: inst.op = Operation::AtomicMin; break;
+                case 9: inst.op = Operation::AtomicUMax; break;
+                case 10: inst.op = Operation::AtomicUMin; break;
                 default:
                   RDCERR("Unhandled atomicrmw op %llu", opcode);
-                  inst.op = Instruction::AtomicExchange;
+                  inst.op = Operation::AtomicExchange;
                   break;
               }
 
@@ -2002,7 +2014,7 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
 
-              inst.op = Instruction::CompareExchange;
+              inst.op = Operation::CompareExchange;
 
               // pointer to atomically modify
               inst.args.push_back(op.getSymbol());
@@ -2096,7 +2108,7 @@ Program::Program(const byte *bytes, size_t length)
             {
               Instruction inst;
 
-              inst.op = Instruction::Fence;
+              inst.op = Operation::Fence;
 
               inst.type = GetVoidType();
 
@@ -2135,7 +2147,7 @@ Program::Program(const byte *bytes, size_t length)
 
               Instruction inst;
 
-              inst.op = Instruction::ExtractElement;
+              inst.op = Operation::ExtractElement;
 
               // vector
               inst.args.push_back(op.getSymbol());
@@ -2157,7 +2169,7 @@ Program::Program(const byte *bytes, size_t length)
 
               Instruction inst;
 
-              inst.op = Instruction::InsertElement;
+              inst.op = Operation::InsertElement;
 
               // vector
               inst.args.push_back(op.getSymbol());
@@ -2181,7 +2193,7 @@ Program::Program(const byte *bytes, size_t length)
 
               Instruction inst;
 
-              inst.op = Instruction::ShuffleVector;
+              inst.op = Operation::ShuffleVector;
 
               // vector 1
               inst.args.push_back(op.getSymbol());
@@ -2220,7 +2232,7 @@ Program::Program(const byte *bytes, size_t length)
 
               Instruction inst;
 
-              inst.op = Instruction::InsertValue;
+              inst.op = Operation::InsertValue;
 
               // aggregate
               inst.args.push_back(op.getSymbol());
@@ -2279,9 +2291,9 @@ Program::Program(const byte *bytes, size_t length)
             }
           }
 
-          if(f.instructions[i].op == Instruction::Branch ||
-             f.instructions[i].op == Instruction::Unreachable ||
-             f.instructions[i].op == Instruction::Switch || f.instructions[i].op == Instruction::Ret)
+          if(f.instructions[i].op == Operation::Branch ||
+             f.instructions[i].op == Operation::Unreachable ||
+             f.instructions[i].op == Operation::Switch || f.instructions[i].op == Operation::Ret)
           {
             curBlock++;
 

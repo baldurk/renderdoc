@@ -613,8 +613,8 @@ void Program::MakeDisassemblyString()
 
         switch(inst.op)
         {
-          case Instruction::Unknown: m_Disassembly += "??? "; break;
-          case Instruction::Call:
+          case Operation::NoOp: m_Disassembly += "??? "; break;
+          case Operation::Call:
           {
             m_Disassembly += "call " + inst.type->toString();
             m_Disassembly += " @" + escapeStringIfNeeded(inst.funcCall->name);
@@ -632,35 +632,35 @@ void Program::MakeDisassemblyString()
             debugCall = inst.funcCall->name.beginsWith("llvm.dbg.");
             break;
           }
-          case Instruction::Trunc:
-          case Instruction::ZExt:
-          case Instruction::SExt:
-          case Instruction::FToU:
-          case Instruction::FToS:
-          case Instruction::UToF:
-          case Instruction::SToF:
-          case Instruction::FPTrunc:
-          case Instruction::FPExt:
-          case Instruction::PtrToI:
-          case Instruction::IToPtr:
-          case Instruction::Bitcast:
-          case Instruction::AddrSpaceCast:
+          case Operation::Trunc:
+          case Operation::ZExt:
+          case Operation::SExt:
+          case Operation::FToU:
+          case Operation::FToS:
+          case Operation::UToF:
+          case Operation::SToF:
+          case Operation::FPTrunc:
+          case Operation::FPExt:
+          case Operation::PtrToI:
+          case Operation::IToPtr:
+          case Operation::Bitcast:
+          case Operation::AddrSpaceCast:
           {
             switch(inst.op)
             {
-              case Instruction::Trunc: m_Disassembly += "trunc "; break;
-              case Instruction::ZExt: m_Disassembly += "zext "; break;
-              case Instruction::SExt: m_Disassembly += "sext "; break;
-              case Instruction::FToU: m_Disassembly += "fptoui "; break;
-              case Instruction::FToS: m_Disassembly += "fptosi "; break;
-              case Instruction::UToF: m_Disassembly += "uitofp "; break;
-              case Instruction::SToF: m_Disassembly += "sitofp "; break;
-              case Instruction::FPTrunc: m_Disassembly += "fptrunc "; break;
-              case Instruction::FPExt: m_Disassembly += "fpext "; break;
-              case Instruction::PtrToI: m_Disassembly += "ptrtoi "; break;
-              case Instruction::IToPtr: m_Disassembly += "itoptr "; break;
-              case Instruction::Bitcast: m_Disassembly += "bitcast "; break;
-              case Instruction::AddrSpaceCast: m_Disassembly += "addrspacecast "; break;
+              case Operation::Trunc: m_Disassembly += "trunc "; break;
+              case Operation::ZExt: m_Disassembly += "zext "; break;
+              case Operation::SExt: m_Disassembly += "sext "; break;
+              case Operation::FToU: m_Disassembly += "fptoui "; break;
+              case Operation::FToS: m_Disassembly += "fptosi "; break;
+              case Operation::UToF: m_Disassembly += "uitofp "; break;
+              case Operation::SToF: m_Disassembly += "sitofp "; break;
+              case Operation::FPTrunc: m_Disassembly += "fptrunc "; break;
+              case Operation::FPExt: m_Disassembly += "fpext "; break;
+              case Operation::PtrToI: m_Disassembly += "ptrtoi "; break;
+              case Operation::IToPtr: m_Disassembly += "itoptr "; break;
+              case Operation::Bitcast: m_Disassembly += "bitcast "; break;
+              case Operation::AddrSpaceCast: m_Disassembly += "addrspacecast "; break;
               default: break;
             }
 
@@ -669,7 +669,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += inst.type->toString();
             break;
           }
-          case Instruction::ExtractVal:
+          case Operation::ExtractVal:
           {
             m_Disassembly += "extractvalue ";
             m_Disassembly += argToString(inst.args[0], true);
@@ -677,45 +677,45 @@ void Program::MakeDisassemblyString()
               m_Disassembly += StringFormat::Fmt(", %llu", inst.args[n].idx);
             break;
           }
-          case Instruction::FAdd:
-          case Instruction::FSub:
-          case Instruction::FMul:
-          case Instruction::FDiv:
-          case Instruction::FRem:
-          case Instruction::Add:
-          case Instruction::Sub:
-          case Instruction::Mul:
-          case Instruction::UDiv:
-          case Instruction::SDiv:
-          case Instruction::URem:
-          case Instruction::SRem:
-          case Instruction::ShiftLeft:
-          case Instruction::LogicalShiftRight:
-          case Instruction::ArithShiftRight:
-          case Instruction::And:
-          case Instruction::Or:
-          case Instruction::Xor:
+          case Operation::FAdd:
+          case Operation::FSub:
+          case Operation::FMul:
+          case Operation::FDiv:
+          case Operation::FRem:
+          case Operation::Add:
+          case Operation::Sub:
+          case Operation::Mul:
+          case Operation::UDiv:
+          case Operation::SDiv:
+          case Operation::URem:
+          case Operation::SRem:
+          case Operation::ShiftLeft:
+          case Operation::LogicalShiftRight:
+          case Operation::ArithShiftRight:
+          case Operation::And:
+          case Operation::Or:
+          case Operation::Xor:
           {
             switch(inst.op)
             {
-              case Instruction::FAdd: m_Disassembly += "fadd "; break;
-              case Instruction::FSub: m_Disassembly += "fsub "; break;
-              case Instruction::FMul: m_Disassembly += "fmul "; break;
-              case Instruction::FDiv: m_Disassembly += "fdiv "; break;
-              case Instruction::FRem: m_Disassembly += "frem "; break;
-              case Instruction::Add: m_Disassembly += "add "; break;
-              case Instruction::Sub: m_Disassembly += "sub "; break;
-              case Instruction::Mul: m_Disassembly += "mul "; break;
-              case Instruction::UDiv: m_Disassembly += "udiv "; break;
-              case Instruction::SDiv: m_Disassembly += "sdiv "; break;
-              case Instruction::URem: m_Disassembly += "urem "; break;
-              case Instruction::SRem: m_Disassembly += "srem "; break;
-              case Instruction::ShiftLeft: m_Disassembly += "shl "; break;
-              case Instruction::LogicalShiftRight: m_Disassembly += "lshr "; break;
-              case Instruction::ArithShiftRight: m_Disassembly += "ashr "; break;
-              case Instruction::And: m_Disassembly += "and "; break;
-              case Instruction::Or: m_Disassembly += "or "; break;
-              case Instruction::Xor: m_Disassembly += "xor "; break;
+              case Operation::FAdd: m_Disassembly += "fadd "; break;
+              case Operation::FSub: m_Disassembly += "fsub "; break;
+              case Operation::FMul: m_Disassembly += "fmul "; break;
+              case Operation::FDiv: m_Disassembly += "fdiv "; break;
+              case Operation::FRem: m_Disassembly += "frem "; break;
+              case Operation::Add: m_Disassembly += "add "; break;
+              case Operation::Sub: m_Disassembly += "sub "; break;
+              case Operation::Mul: m_Disassembly += "mul "; break;
+              case Operation::UDiv: m_Disassembly += "udiv "; break;
+              case Operation::SDiv: m_Disassembly += "sdiv "; break;
+              case Operation::URem: m_Disassembly += "urem "; break;
+              case Operation::SRem: m_Disassembly += "srem "; break;
+              case Operation::ShiftLeft: m_Disassembly += "shl "; break;
+              case Operation::LogicalShiftRight: m_Disassembly += "lshr "; break;
+              case Operation::ArithShiftRight: m_Disassembly += "ashr "; break;
+              case Operation::And: m_Disassembly += "and "; break;
+              case Operation::Or: m_Disassembly += "or "; break;
+              case Operation::Xor: m_Disassembly += "xor "; break;
               default: break;
             }
 
@@ -744,9 +744,9 @@ void Program::MakeDisassemblyString()
 
             break;
           }
-          case Instruction::Ret: m_Disassembly += "ret " + inst.type->toString(); break;
-          case Instruction::Unreachable: m_Disassembly += "unreachable"; break;
-          case Instruction::Alloca:
+          case Operation::Ret: m_Disassembly += "ret " + inst.type->toString(); break;
+          case Operation::Unreachable: m_Disassembly += "unreachable"; break;
+          case Operation::Alloca:
           {
             m_Disassembly += "alloca ";
             m_Disassembly += inst.type->inner->toString();
@@ -754,7 +754,7 @@ void Program::MakeDisassemblyString()
               m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
             break;
           }
-          case Instruction::GetElementPtr:
+          case Operation::GetElementPtr:
           {
             m_Disassembly += "getelementptr ";
             if(inst.opFlags & InstructionFlags::InBounds)
@@ -772,7 +772,7 @@ void Program::MakeDisassemblyString()
             }
             break;
           }
-          case Instruction::Load:
+          case Operation::Load:
           {
             m_Disassembly += "load ";
             if(inst.opFlags & InstructionFlags::Volatile)
@@ -792,7 +792,7 @@ void Program::MakeDisassemblyString()
               m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
             break;
           }
-          case Instruction::Store:
+          case Operation::Store:
           {
             m_Disassembly += "store ";
             if(inst.opFlags & InstructionFlags::Volatile)
@@ -804,22 +804,22 @@ void Program::MakeDisassemblyString()
               m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
             break;
           }
-          case Instruction::FOrdFalse:
-          case Instruction::FOrdEqual:
-          case Instruction::FOrdGreater:
-          case Instruction::FOrdGreaterEqual:
-          case Instruction::FOrdLess:
-          case Instruction::FOrdLessEqual:
-          case Instruction::FOrdNotEqual:
-          case Instruction::FOrd:
-          case Instruction::FUnord:
-          case Instruction::FUnordEqual:
-          case Instruction::FUnordGreater:
-          case Instruction::FUnordGreaterEqual:
-          case Instruction::FUnordLess:
-          case Instruction::FUnordLessEqual:
-          case Instruction::FUnordNotEqual:
-          case Instruction::FOrdTrue:
+          case Operation::FOrdFalse:
+          case Operation::FOrdEqual:
+          case Operation::FOrdGreater:
+          case Operation::FOrdGreaterEqual:
+          case Operation::FOrdLess:
+          case Operation::FOrdLessEqual:
+          case Operation::FOrdNotEqual:
+          case Operation::FOrd:
+          case Operation::FUnord:
+          case Operation::FUnordEqual:
+          case Operation::FUnordGreater:
+          case Operation::FUnordGreaterEqual:
+          case Operation::FUnordLess:
+          case Operation::FUnordLessEqual:
+          case Operation::FUnordNotEqual:
+          case Operation::FOrdTrue:
           {
             m_Disassembly += "fcmp ";
             rdcstr opFlagsStr = ToStr(inst.opFlags);
@@ -836,22 +836,22 @@ void Program::MakeDisassemblyString()
               m_Disassembly += " ";
             switch(inst.op)
             {
-              case Instruction::FOrdFalse: m_Disassembly += "false "; break;
-              case Instruction::FOrdEqual: m_Disassembly += "oeq "; break;
-              case Instruction::FOrdGreater: m_Disassembly += "ogt "; break;
-              case Instruction::FOrdGreaterEqual: m_Disassembly += "oge "; break;
-              case Instruction::FOrdLess: m_Disassembly += "olt "; break;
-              case Instruction::FOrdLessEqual: m_Disassembly += "ole "; break;
-              case Instruction::FOrdNotEqual: m_Disassembly += "one "; break;
-              case Instruction::FOrd: m_Disassembly += "ord "; break;
-              case Instruction::FUnord: m_Disassembly += "uno "; break;
-              case Instruction::FUnordEqual: m_Disassembly += "ueq "; break;
-              case Instruction::FUnordGreater: m_Disassembly += "ugt "; break;
-              case Instruction::FUnordGreaterEqual: m_Disassembly += "uge "; break;
-              case Instruction::FUnordLess: m_Disassembly += "ult "; break;
-              case Instruction::FUnordLessEqual: m_Disassembly += "ule "; break;
-              case Instruction::FUnordNotEqual: m_Disassembly += "une "; break;
-              case Instruction::FOrdTrue: m_Disassembly += "true "; break;
+              case Operation::FOrdFalse: m_Disassembly += "false "; break;
+              case Operation::FOrdEqual: m_Disassembly += "oeq "; break;
+              case Operation::FOrdGreater: m_Disassembly += "ogt "; break;
+              case Operation::FOrdGreaterEqual: m_Disassembly += "oge "; break;
+              case Operation::FOrdLess: m_Disassembly += "olt "; break;
+              case Operation::FOrdLessEqual: m_Disassembly += "ole "; break;
+              case Operation::FOrdNotEqual: m_Disassembly += "one "; break;
+              case Operation::FOrd: m_Disassembly += "ord "; break;
+              case Operation::FUnord: m_Disassembly += "uno "; break;
+              case Operation::FUnordEqual: m_Disassembly += "ueq "; break;
+              case Operation::FUnordGreater: m_Disassembly += "ugt "; break;
+              case Operation::FUnordGreaterEqual: m_Disassembly += "uge "; break;
+              case Operation::FUnordLess: m_Disassembly += "ult "; break;
+              case Operation::FUnordLessEqual: m_Disassembly += "ule "; break;
+              case Operation::FUnordNotEqual: m_Disassembly += "une "; break;
+              case Operation::FOrdTrue: m_Disassembly += "true "; break;
               default: break;
             }
             m_Disassembly += argToString(inst.args[0], true);
@@ -859,30 +859,30 @@ void Program::MakeDisassemblyString()
             m_Disassembly += argToString(inst.args[1], false);
             break;
           }
-          case Instruction::IEqual:
-          case Instruction::INotEqual:
-          case Instruction::UGreater:
-          case Instruction::UGreaterEqual:
-          case Instruction::ULess:
-          case Instruction::ULessEqual:
-          case Instruction::SGreater:
-          case Instruction::SGreaterEqual:
-          case Instruction::SLess:
-          case Instruction::SLessEqual:
+          case Operation::IEqual:
+          case Operation::INotEqual:
+          case Operation::UGreater:
+          case Operation::UGreaterEqual:
+          case Operation::ULess:
+          case Operation::ULessEqual:
+          case Operation::SGreater:
+          case Operation::SGreaterEqual:
+          case Operation::SLess:
+          case Operation::SLessEqual:
           {
             m_Disassembly += "icmp ";
             switch(inst.op)
             {
-              case Instruction::IEqual: m_Disassembly += "eq "; break;
-              case Instruction::INotEqual: m_Disassembly += "ne "; break;
-              case Instruction::UGreater: m_Disassembly += "ugt "; break;
-              case Instruction::UGreaterEqual: m_Disassembly += "uge "; break;
-              case Instruction::ULess: m_Disassembly += "ult "; break;
-              case Instruction::ULessEqual: m_Disassembly += "ule "; break;
-              case Instruction::SGreater: m_Disassembly += "sgt "; break;
-              case Instruction::SGreaterEqual: m_Disassembly += "sge "; break;
-              case Instruction::SLess: m_Disassembly += "slt "; break;
-              case Instruction::SLessEqual: m_Disassembly += "sle "; break;
+              case Operation::IEqual: m_Disassembly += "eq "; break;
+              case Operation::INotEqual: m_Disassembly += "ne "; break;
+              case Operation::UGreater: m_Disassembly += "ugt "; break;
+              case Operation::UGreaterEqual: m_Disassembly += "uge "; break;
+              case Operation::ULess: m_Disassembly += "ult "; break;
+              case Operation::ULessEqual: m_Disassembly += "ule "; break;
+              case Operation::SGreater: m_Disassembly += "sgt "; break;
+              case Operation::SGreaterEqual: m_Disassembly += "sge "; break;
+              case Operation::SLess: m_Disassembly += "slt "; break;
+              case Operation::SLessEqual: m_Disassembly += "sle "; break;
               default: break;
             }
             m_Disassembly += argToString(inst.args[0], true);
@@ -890,7 +890,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += argToString(inst.args[1], false);
             break;
           }
-          case Instruction::Select:
+          case Operation::Select:
           {
             m_Disassembly += "select ";
             m_Disassembly += argToString(inst.args[2], true);
@@ -900,7 +900,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += argToString(inst.args[1], true);
             break;
           }
-          case Instruction::ExtractElement:
+          case Operation::ExtractElement:
           {
             m_Disassembly += "extractelement ";
             m_Disassembly += argToString(inst.args[0], true);
@@ -908,7 +908,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += argToString(inst.args[1], true);
             break;
           }
-          case Instruction::InsertElement:
+          case Operation::InsertElement:
           {
             m_Disassembly += "insertelement ";
             m_Disassembly += argToString(inst.args[0], true);
@@ -918,7 +918,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += argToString(inst.args[2], true);
             break;
           }
-          case Instruction::ShuffleVector:
+          case Operation::ShuffleVector:
           {
             m_Disassembly += "shufflevector ";
             m_Disassembly += argToString(inst.args[0], true);
@@ -928,7 +928,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += argToString(inst.args[2], true);
             break;
           }
-          case Instruction::InsertValue:
+          case Operation::InsertValue:
           {
             m_Disassembly += "insertvalue ";
             m_Disassembly += argToString(inst.args[0], true);
@@ -940,7 +940,7 @@ void Program::MakeDisassemblyString()
             }
             break;
           }
-          case Instruction::Branch:
+          case Operation::Branch:
           {
             m_Disassembly += "br ";
             if(inst.args.size() > 1)
@@ -955,7 +955,7 @@ void Program::MakeDisassemblyString()
             }
             break;
           }
-          case Instruction::Phi:
+          case Operation::Phi:
           {
             m_Disassembly += "phi ";
             m_Disassembly += inst.type->toString();
@@ -971,7 +971,7 @@ void Program::MakeDisassemblyString()
             }
             break;
           }
-          case Instruction::Switch:
+          case Operation::Switch:
           {
             m_Disassembly += "switch ";
             m_Disassembly += argToString(inst.args[0], true);
@@ -990,7 +990,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += "  ]";
             break;
           }
-          case Instruction::Fence:
+          case Operation::Fence:
           {
             m_Disassembly += "fence ";
             if(inst.opFlags & InstructionFlags::SingleThread)
@@ -1008,7 +1008,7 @@ void Program::MakeDisassemblyString()
               default: break;
             }
           }
-          case Instruction::LoadAtomic:
+          case Operation::LoadAtomic:
           {
             m_Disassembly += "load atomic ";
             if(inst.opFlags & InstructionFlags::Volatile)
@@ -1027,7 +1027,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
             break;
           }
-          case Instruction::StoreAtomic:
+          case Operation::StoreAtomic:
           {
             m_Disassembly += "store atomic ";
             if(inst.opFlags & InstructionFlags::Volatile)
@@ -1038,7 +1038,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += StringFormat::Fmt(", align %u", inst.align);
             break;
           }
-          case Instruction::CompareExchange:
+          case Operation::CompareExchange:
           {
             m_Disassembly += "cmpxchg ";
             if(inst.opFlags & InstructionFlags::Weak)
@@ -1086,34 +1086,34 @@ void Program::MakeDisassemblyString()
             }
             break;
           }
-          case Instruction::AtomicExchange:
-          case Instruction::AtomicAdd:
-          case Instruction::AtomicSub:
-          case Instruction::AtomicAnd:
-          case Instruction::AtomicNand:
-          case Instruction::AtomicOr:
-          case Instruction::AtomicXor:
-          case Instruction::AtomicMax:
-          case Instruction::AtomicMin:
-          case Instruction::AtomicUMax:
-          case Instruction::AtomicUMin:
+          case Operation::AtomicExchange:
+          case Operation::AtomicAdd:
+          case Operation::AtomicSub:
+          case Operation::AtomicAnd:
+          case Operation::AtomicNand:
+          case Operation::AtomicOr:
+          case Operation::AtomicXor:
+          case Operation::AtomicMax:
+          case Operation::AtomicMin:
+          case Operation::AtomicUMax:
+          case Operation::AtomicUMin:
           {
             m_Disassembly += "atomicrmw ";
             if(inst.opFlags & InstructionFlags::Volatile)
               m_Disassembly += "volatile ";
             switch(inst.op)
             {
-              case Instruction::AtomicExchange: m_Disassembly += "xchg "; break;
-              case Instruction::AtomicAdd: m_Disassembly += "add "; break;
-              case Instruction::AtomicSub: m_Disassembly += "sub "; break;
-              case Instruction::AtomicAnd: m_Disassembly += "and "; break;
-              case Instruction::AtomicNand: m_Disassembly += "nand "; break;
-              case Instruction::AtomicOr: m_Disassembly += "or "; break;
-              case Instruction::AtomicXor: m_Disassembly += "xor "; break;
-              case Instruction::AtomicMax: m_Disassembly += "max "; break;
-              case Instruction::AtomicMin: m_Disassembly += "min "; break;
-              case Instruction::AtomicUMax: m_Disassembly += "umax "; break;
-              case Instruction::AtomicUMin: m_Disassembly += "umin "; break;
+              case Operation::AtomicExchange: m_Disassembly += "xchg "; break;
+              case Operation::AtomicAdd: m_Disassembly += "add "; break;
+              case Operation::AtomicSub: m_Disassembly += "sub "; break;
+              case Operation::AtomicAnd: m_Disassembly += "and "; break;
+              case Operation::AtomicNand: m_Disassembly += "nand "; break;
+              case Operation::AtomicOr: m_Disassembly += "or "; break;
+              case Operation::AtomicXor: m_Disassembly += "xor "; break;
+              case Operation::AtomicMax: m_Disassembly += "max "; break;
+              case Operation::AtomicMin: m_Disassembly += "min "; break;
+              case Operation::AtomicUMax: m_Disassembly += "umax "; break;
+              case Operation::AtomicUMin: m_Disassembly += "umin "; break;
               default: break;
             }
 
@@ -1335,8 +1335,8 @@ void Program::MakeDisassemblyString()
         if(funcIdx == func.instructions.size() - 1)
           break;
 
-        if(inst.op == Instruction::Branch || inst.op == Instruction::Unreachable ||
-           inst.op == Instruction::Switch || inst.op == Instruction::Ret)
+        if(inst.op == Operation::Branch || inst.op == Operation::Unreachable ||
+           inst.op == Operation::Switch || inst.op == Operation::Ret)
         {
           m_Disassembly += "\n";
           instructionLine++;
@@ -1645,12 +1645,12 @@ rdcstr Constant::toString(bool withType) const
   {
     ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(str).c_str());
   }
-  else if(op != Constant::NoOp)
+  else if(op != Operation::NoOp)
   {
     switch(op)
     {
-      case Constant::NoOp: break;
-      case Constant::GEP:
+      default: break;
+      case Operation::GetElementPtr:
       {
         ret += "getelementptr inbounds (";
 
@@ -1664,6 +1664,46 @@ rdcstr Constant::toString(bool withType) const
           ret += members[i].toString(withType);
         }
         ret += ")";
+        break;
+      }
+      case Operation::Trunc:
+      case Operation::ZExt:
+      case Operation::SExt:
+      case Operation::FToU:
+      case Operation::FToS:
+      case Operation::UToF:
+      case Operation::SToF:
+      case Operation::FPTrunc:
+      case Operation::FPExt:
+      case Operation::PtrToI:
+      case Operation::IToPtr:
+      case Operation::Bitcast:
+      case Operation::AddrSpaceCast:
+      {
+        switch(op)
+        {
+          case Operation::Trunc: ret += "trunc "; break;
+          case Operation::ZExt: ret += "zext "; break;
+          case Operation::SExt: ret += "sext "; break;
+          case Operation::FToU: ret += "fptoui "; break;
+          case Operation::FToS: ret += "fptosi "; break;
+          case Operation::UToF: ret += "uitofp "; break;
+          case Operation::SToF: ret += "sitofp "; break;
+          case Operation::FPTrunc: ret += "fptrunc "; break;
+          case Operation::FPExt: ret += "fpext "; break;
+          case Operation::PtrToI: ret += "ptrtoi "; break;
+          case Operation::IToPtr: ret += "itoptr "; break;
+          case Operation::Bitcast: ret += "bitcast "; break;
+          case Operation::AddrSpaceCast: ret += "addrspacecast "; break;
+          default: break;
+        }
+
+        ret += "(";
+        ret += inner->toString(withType);
+        ret += " to ";
+        ret += type->toString();
+        ret += ")";
+        break;
       }
     }
   }
