@@ -74,6 +74,7 @@ enum class ModuleRecord : uint32_t
   VERSION = 1,
   TRIPLE = 2,
   DATALAYOUT = 3,
+  SECTIONNAME = 5,
   GLOBALVAR = 7,
   FUNCTION = 8,
   ALIAS = 14,
@@ -576,10 +577,13 @@ Program::Program(const byte *bytes, size_t length)
           case 6:
           case 7:
           case 15: g.flags |= GlobalFlags::IsExternal; break;
+          case 2: g.flags |= GlobalFlags::IsAppending; break;
           default: break;
         }
 
         g.align = (1U << rootchild.ops[4]) >> 1;
+
+        g.section = int32_t(rootchild.ops[5]) - 1;
 
         // symbols refer into any of N types in declaration order
         m_Symbols.push_back({SymbolType::GlobalVar, m_GlobalVars.size()});
@@ -658,6 +662,10 @@ Program::Program(const byte *bytes, size_t length)
         m_Constants.push_back(v);
 
         m_Aliases.push_back(a);
+      }
+      else if(IS_KNOWN(rootchild.id, ModuleRecord::SECTIONNAME))
+      {
+        m_Sections.push_back(rootchild.getString(0));
       }
       else
       {

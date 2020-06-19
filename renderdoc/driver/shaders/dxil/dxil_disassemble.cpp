@@ -448,6 +448,8 @@ void Program::MakeDisassemblyString()
     }
     if(!(g.flags & GlobalFlags::IsExternal))
       m_Disassembly += "internal ";
+    if(g.flags & GlobalFlags::IsAppending)
+      m_Disassembly += "appending ";
     if(g.type->addrSpace)
       m_Disassembly += StringFormat::Fmt("addrspace(%d) ", g.type->addrSpace);
     if(g.flags & GlobalFlags::LocalUnnamedAddr)
@@ -466,6 +468,9 @@ void Program::MakeDisassemblyString()
 
     if(g.align > 0)
       m_Disassembly += StringFormat::Fmt(", align %u", g.align);
+
+    if(g.section >= 0)
+      m_Disassembly += StringFormat::Fmt(", section %s", escapeString(m_Sections[g.section]).c_str());
 
     m_Disassembly += "\n";
     instructionLine++;

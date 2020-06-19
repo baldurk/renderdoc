@@ -121,6 +121,7 @@ enum class GlobalFlags : uint32_t
   IsExternal = 0x2,
   LocalUnnamedAddr = 0x4,
   GlobalUnnamedAddr = 0x8,
+  IsAppending = 0x10,
 };
 
 BITMASK_OPERATORS(GlobalFlags);
@@ -130,6 +131,7 @@ struct GlobalVar
   rdcstr name;
   const Type *type = NULL;
   uint64_t align = 0;
+  int32_t section = -1;
   GlobalFlags flags = GlobalFlags::NoFlags;
   Symbol initialiser;
 };
@@ -552,6 +554,7 @@ private:
   rdcarray<Function> m_Functions;
   rdcarray<Alias> m_Aliases;
   rdcarray<Symbol> m_Symbols;
+  rdcarray<rdcstr> m_Sections;
 
   rdcarray<rdcstr> m_Kinds;
 
