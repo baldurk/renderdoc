@@ -441,9 +441,12 @@ void Program::MakeDisassemblyString()
     const GlobalVar &g = m_GlobalVars[i];
 
     m_Disassembly += StringFormat::Fmt("@%s = ", escapeStringIfNeeded(g.name).c_str());
-    if(g.flags & GlobalFlags::IsExternal)
-      m_Disassembly += "external ";
-    else
+    if(g.initialiser.type != SymbolType::Constant)
+    {
+      if(g.flags & GlobalFlags::IsExternal)
+        m_Disassembly += "external ";
+    }
+    if(!(g.flags & GlobalFlags::IsExternal))
       m_Disassembly += "internal ";
     if(g.type->addrSpace)
       m_Disassembly += StringFormat::Fmt("addrspace(%d) ", g.type->addrSpace);
