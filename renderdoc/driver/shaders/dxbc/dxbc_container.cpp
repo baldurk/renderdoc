@@ -362,9 +362,9 @@ CBufferVariableType DXBCContainer::ParseRDEFType(const RDEFHeader *h, const byte
   CBufferVariableType ret;
 
   ret.descriptor.varClass = (VariableClass)type->varClass;
-  ret.descriptor.cols = type->cols;
-  ret.descriptor.elements = type->numElems;
-  ret.descriptor.rows = type->rows;
+  ret.descriptor.cols = RDCMAX(1U, (uint32_t)type->cols);
+  ret.descriptor.elements = RDCMAX(1U, (uint32_t)type->numElems);
+  ret.descriptor.rows = RDCMAX(1U, (uint32_t)type->rows);
 
   switch((VariableType)type->varType)
   {

@@ -180,6 +180,7 @@
     <ClCompile Include="d3d12\d3d12_overlay_test.cpp" />
     <ClCompile Include="d3d12\d3d12_parameter_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_primitiveid.cpp" />
+    <ClCompile Include="d3d12\d3d12_reflection_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_rendertarget_binds.cpp" />
     <ClCompile Include="d3d12\d3d12_render_pass.cpp" />
     <ClCompile Include="d3d12\d3d12_resource_lifetimes.cpp" />

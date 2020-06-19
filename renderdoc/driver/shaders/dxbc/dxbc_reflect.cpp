@@ -131,8 +131,16 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
         break;
     }
 
-    if(r.retType != DXBC::RETURN_TYPE_UNKNOWN && r.retType != DXBC::RETURN_TYPE_MIXED &&
-       r.retType != DXBC::RETURN_TYPE_CONTINUED)
+    if(r.type == DXBC::ShaderInputBind::TYPE_BYTEADDRESS ||
+       r.type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS)
+    {
+      res.variableType.descriptor.rows = res.variableType.descriptor.columns = 1;
+      res.variableType.descriptor.elements = 1;
+      res.variableType.descriptor.type = VarType::UByte;
+      res.variableType.descriptor.name = "byte";
+    }
+    else if(r.retType != DXBC::RETURN_TYPE_UNKNOWN && r.retType != DXBC::RETURN_TYPE_MIXED &&
+            r.retType != DXBC::RETURN_TYPE_CONTINUED)
     {
       res.variableType.descriptor.rows = 1;
       res.variableType.descriptor.columns = (uint8_t)r.numComps;
@@ -142,12 +150,30 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
 
       switch(r.retType)
       {
-        case DXBC::RETURN_TYPE_UNORM: name = "unorm float"; break;
-        case DXBC::RETURN_TYPE_SNORM: name = "snorm float"; break;
-        case DXBC::RETURN_TYPE_SINT: name = "int"; break;
-        case DXBC::RETURN_TYPE_UINT: name = "uint"; break;
-        case DXBC::RETURN_TYPE_FLOAT: name = "float"; break;
-        case DXBC::RETURN_TYPE_DOUBLE: name = "double"; break;
+        case DXBC::RETURN_TYPE_UNORM:
+          name = "unorm float";
+          res.variableType.descriptor.type = VarType::Float;
+          break;
+        case DXBC::RETURN_TYPE_SNORM:
+          name = "snorm float";
+          res.variableType.descriptor.type = VarType::Float;
+          break;
+        case DXBC::RETURN_TYPE_SINT:
+          name = "int";
+          res.variableType.descriptor.type = VarType::SInt;
+          break;
+        case DXBC::RETURN_TYPE_UINT:
+          name = "uint";
+          res.variableType.descriptor.type = VarType::UInt;
+          break;
+        case DXBC::RETURN_TYPE_FLOAT:
+          name = "float";
+          res.variableType.descriptor.type = VarType::Float;
+          break;
+        case DXBC::RETURN_TYPE_DOUBLE:
+          name = "double";
+          res.variableType.descriptor.type = VarType::Double;
+          break;
         default: name = "unknown"; break;
       }
 
