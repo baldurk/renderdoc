@@ -1197,8 +1197,9 @@ void Program::MakeDisassemblyString()
             RDCASSERT(inst.args[varIdx].type == SymbolType::Metadata);
             RDCASSERT(inst.args[exprIdx].type == SymbolType::Metadata);
             m_Disassembly += StringFormat::Fmt(
-                " ; var:%s ", escapeString(GetDebugVarName(
-                                  GetFunctionMetadata(func, inst.args[varIdx].idx)->dwarf)));
+                " ; var:%s ",
+                escapeString(GetDebugVarName(GetFunctionMetadata(func, inst.args[varIdx].idx)->dwarf))
+                    .c_str());
             m_Disassembly += GetFunctionMetadata(func, inst.args[exprIdx].idx)->valString();
           }
         }
