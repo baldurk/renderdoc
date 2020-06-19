@@ -597,7 +597,7 @@ void DXBCContainer::FillTraceLineInfo(ShaderDebugTrace &trace) const
         extraLines++;
 
       if(m_GlobalFlags != GlobalShaderFlags::None)
-        extraLines += (uint32_t)Bits::CountOnes((uint64_t)m_GlobalFlags) + 2;
+        extraLines += (uint32_t)Bits::CountOnes((uint32_t)m_GlobalFlags) + 2;
 
       if(op.line > 0)
         trace.lineInfo[i].disassemblyLine = extraLines + op.line;

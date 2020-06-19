@@ -375,7 +375,7 @@ void Program::MakeDisassemblyString()
     typeOrderer.accumulate(g.type);
 
     if(g.initialiser.type == SymbolType::Constant)
-      typeOrderer.accumulate(m_Constants[g.initialiser.idx].type);
+      typeOrderer.accumulate(m_Constants[(size_t)g.initialiser.idx].type);
   }
 
   for(size_t i = 0; i < m_Functions.size(); i++)
@@ -462,7 +462,7 @@ void Program::MakeDisassemblyString()
       m_Disassembly += "global ";
 
     if(g.initialiser.type == SymbolType::Constant)
-      m_Disassembly += m_Constants[g.initialiser.idx].toString(true);
+      m_Disassembly += m_Constants[(size_t)g.initialiser.idx].toString(true);
     else
       m_Disassembly += g.type->inner->toString();
 
@@ -523,7 +523,7 @@ void Program::MakeDisassemblyString()
             ret += "metadata ";
           if(s.idx < m_Metadata.size())
           {
-            Metadata &m = m_Metadata[s.idx];
+            Metadata &m = m_Metadata[(size_t)s.idx];
             if(m.isConstant && m.constant && m.constant->symbol)
               ret += m.constant->toString(withTypes);
             else if(m.isConstant && m.constant &&
@@ -537,23 +537,25 @@ void Program::MakeDisassemblyString()
             ret += GetFunctionMetadata(func, s.idx)->refString();
           }
           break;
-        case SymbolType::Function: ret = "@" + escapeStringIfNeeded(m_Functions[s.idx].name); break;
+        case SymbolType::Function:
+          ret = "@" + escapeStringIfNeeded(m_Functions[(size_t)s.idx].name);
+          break;
         case SymbolType::GlobalVar:
           if(withTypes)
-            ret = m_GlobalVars[s.idx].type->toString() + " ";
-          ret += "@" + escapeStringIfNeeded(m_GlobalVars[s.idx].name);
+            ret = m_GlobalVars[(size_t)s.idx].type->toString() + " ";
+          ret += "@" + escapeStringIfNeeded(m_GlobalVars[(size_t)s.idx].name);
           break;
         case SymbolType::Constant:
           ret = GetFunctionConstant(func, s.idx)->toString(withTypes);
           break;
         case SymbolType::Argument:
           if(withTypes)
-            ret = func.args[s.idx].type->toString() + " ";
-          ret += "%" + escapeStringIfNeeded(func.args[s.idx].name);
+            ret = func.args[(size_t)s.idx].type->toString() + " ";
+          ret += "%" + escapeStringIfNeeded(func.args[(size_t)s.idx].name);
           break;
         case SymbolType::Instruction:
         {
-          const Instruction &refinst = func.instructions[s.idx];
+          const Instruction &refinst = func.instructions[(size_t)s.idx];
           if(withTypes)
             ret = refinst.type->toString() + " ";
           if(refinst.name.empty())
@@ -564,7 +566,7 @@ void Program::MakeDisassemblyString()
         }
         case SymbolType::BasicBlock:
         {
-          const Block &block = func.blocks[s.idx];
+          const Block &block = func.blocks[(size_t)s.idx];
           if(withTypes)
             ret = "label ";
           if(block.name.empty())
@@ -1163,7 +1165,7 @@ void Program::MakeDisassemblyString()
           for(size_t m = 0; m < inst.attachedMeta.size(); m++)
           {
             m_Disassembly +=
-                StringFormat::Fmt(", !%s !%u", m_Kinds[inst.attachedMeta[m].first].c_str(),
+                StringFormat::Fmt(", !%s !%u", m_Kinds[(size_t)inst.attachedMeta[m].first].c_str(),
                                   GetOrAssignMetaID(inst.attachedMeta[m].second));
           }
         }

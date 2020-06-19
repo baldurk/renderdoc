@@ -982,7 +982,7 @@ Program::Program(const byte *bytes, size_t length)
           size_t s = (size_t)symtab.ops[0];
           if(s < m_Symbols.size())
           {
-            size_t idx = m_Symbols[s].idx;
+            size_t idx = (size_t)m_Symbols[s].idx;
             switch(m_Symbols[s].type)
             {
               case SymbolType::Unknown:
@@ -1166,7 +1166,7 @@ Program::Program(const byte *bytes, size_t length)
                 if(IS_KNOWN(metaRecord.id, MetaDataRecord::VALUE))
                 {
                   meta.isConstant = true;
-                  size_t idx = metaRecord.ops[1];
+                  size_t idx = (size_t)metaRecord.ops[1];
                   if(idx < m_Constants.size())
                   {
                     // global constant reference
@@ -1227,13 +1227,17 @@ Program::Program(const byte *bytes, size_t length)
                       if(s.idx < m_Constants.size())
                         RDCERR("Unexpected local symbol referring to global value");
                       else
-                        f.constants[s.idx - m_Constants.size()].str = symtab.getString(1);
+                        f.constants[(size_t)s.idx - m_Constants.size()].str = symtab.getString(1);
                       break;
-                    case SymbolType::Argument: f.args[s.idx].name = symtab.getString(1); break;
+                    case SymbolType::Argument:
+                      f.args[(size_t)s.idx].name = symtab.getString(1);
+                      break;
                     case SymbolType::Instruction:
-                      f.instructions[s.idx].name = symtab.getString(1);
+                      f.instructions[(size_t)s.idx].name = symtab.getString(1);
                       break;
-                    case SymbolType::BasicBlock: f.blocks[s.idx].name = symtab.getString(1); break;
+                    case SymbolType::BasicBlock:
+                      f.blocks[(size_t)s.idx].name = symtab.getString(1);
+                      break;
                     case SymbolType::GlobalVar:
                     case SymbolType::Function:
                     case SymbolType::Alias:
@@ -1245,7 +1249,7 @@ Program::Program(const byte *bytes, size_t length)
                 }
                 else if(IS_KNOWN(symtab.id, ValueSymtabRecord::BBENTRY))
                 {
-                  f.blocks[symtab.ops[0]].name = symtab.getString(1);
+                  f.blocks[(size_t)symtab.ops[0]].name = symtab.getString(1);
                 }
                 else
                 {
@@ -1283,7 +1287,7 @@ Program::Program(const byte *bytes, size_t length)
                 if(meta.ops.size() % 2 == 0)
                   f.attachedMeta.swap(attach);
                 else
-                  f.instructions[meta.ops[0]].attachedMeta.swap(attach);
+                  f.instructions[(size_t)meta.ops[0]].attachedMeta.swap(attach);
               }
             }
             else
@@ -1346,7 +1350,7 @@ Program::Program(const byte *bytes, size_t length)
                 continue;
               }
 
-              inst.funcCall = &m_Functions[s.idx];
+              inst.funcCall = &m_Functions[(size_t)s.idx];
               inst.type = inst.funcCall->funcType->inner;
 
               for(size_t i = 0; op.remaining() > 0; i++)
@@ -1398,7 +1402,7 @@ Program::Program(const byte *bytes, size_t length)
                 if(inst.type->type == Type::Array)
                   inst.type = inst.type->inner;
                 else
-                  inst.type = inst.type->members[val];
+                  inst.type = inst.type->members[(size_t)val];
                 inst.args.push_back({SymbolType::Literal, val});
               }
 
@@ -1748,14 +1752,14 @@ Program::Program(const byte *bytes, size_t length)
               // true destination
               uint64_t trueDest = op.get<uint64_t>();
               inst.args.push_back(Symbol(SymbolType::BasicBlock, trueDest));
-              f.blocks[trueDest].preds.insert(0, &f.blocks[curBlock]);
+              f.blocks[(size_t)trueDest].preds.insert(0, &f.blocks[curBlock]);
 
               if(op.remaining() > 0)
               {
                 // false destination
                 uint64_t falseDest = op.get<uint64_t>();
                 inst.args.push_back(Symbol(SymbolType::BasicBlock, falseDest));
-                f.blocks[falseDest].preds.insert(0, &f.blocks[curBlock]);
+                f.blocks[(size_t)falseDest].preds.insert(0, &f.blocks[curBlock]);
 
                 // predicate
                 inst.args.push_back(op.getSymbol(false));
@@ -1789,7 +1793,7 @@ Program::Program(const byte *bytes, size_t length)
                 // default block
                 uint64_t defaultDest = op.get<uint64_t>();
                 inst.args.push_back(Symbol(SymbolType::BasicBlock, defaultDest));
-                f.blocks[defaultDest].preds.insert(0, &f.blocks[curBlock]);
+                f.blocks[(size_t)defaultDest].preds.insert(0, &f.blocks[curBlock]);
 
                 RDCERR("Unsupported switch instruction version");
               }
@@ -1801,7 +1805,7 @@ Program::Program(const byte *bytes, size_t length)
                 // default block
                 uint64_t defaultDest = op.get<uint64_t>();
                 inst.args.push_back(Symbol(SymbolType::BasicBlock, defaultDest));
-                f.blocks[defaultDest].preds.insert(0, &f.blocks[curBlock]);
+                f.blocks[(size_t)defaultDest].preds.insert(0, &f.blocks[curBlock]);
 
                 uint64_t numCases = op.remaining() / 2;
 
@@ -1813,7 +1817,7 @@ Program::Program(const byte *bytes, size_t length)
                   // case block
                   uint64_t caseDest = op.get<uint64_t>();
                   inst.args.push_back(Symbol(SymbolType::BasicBlock, caseDest));
-                  f.blocks[caseDest].preds.insert(0, &f.blocks[curBlock]);
+                  f.blocks[(size_t)caseDest].preds.insert(0, &f.blocks[curBlock]);
                 }
               }
 
@@ -2294,7 +2298,7 @@ Program::Program(const byte *bytes, size_t length)
           {
             if(s.type == SymbolType::Unknown)
             {
-              s = m_Symbols[s.idx];
+              s = m_Symbols[(size_t)s.idx];
               RDCASSERT(s.type == SymbolType::Instruction);
             }
           }
@@ -2326,7 +2330,7 @@ Program::Program(const byte *bytes, size_t length)
         // to get to a normal instruction index
         for(Metadata &m : f.metadata)
           if(m.func)
-            m.instruction = m_Symbols[instrSymbolStart + m.instruction].idx;
+            m.instruction = (size_t)m_Symbols[instrSymbolStart + m.instruction].idx;
 
         m_Symbols.resize(prevNumSymbols);
       }
@@ -2382,19 +2386,19 @@ const Type *Program::GetSymbolType(const Function &f, Symbol s)
   {
     case SymbolType::Constant:
       if(s.idx < m_Constants.size())
-        ret = m_Constants[s.idx].type;
+        ret = m_Constants[(size_t)s.idx].type;
       else
-        ret = f.constants[s.idx - m_Constants.size()].type;
+        ret = f.constants[(size_t)s.idx - m_Constants.size()].type;
       break;
-    case SymbolType::Argument: ret = f.funcType->members[s.idx]; break;
-    case SymbolType::Instruction: ret = f.instructions[s.idx].type; break;
-    case SymbolType::GlobalVar: ret = m_GlobalVars[s.idx].type; break;
-    case SymbolType::Function: ret = m_Functions[s.idx].funcType; break;
+    case SymbolType::Argument: ret = f.funcType->members[(size_t)s.idx]; break;
+    case SymbolType::Instruction: ret = f.instructions[(size_t)s.idx].type; break;
+    case SymbolType::GlobalVar: ret = m_GlobalVars[(size_t)s.idx].type; break;
+    case SymbolType::Function: ret = m_Functions[(size_t)s.idx].funcType; break;
     case SymbolType::Metadata:
       if(s.idx < m_Metadata.size())
-        ret = m_Metadata[s.idx].type;
+        ret = m_Metadata[(size_t)s.idx].type;
       else
-        ret = f.metadata[s.idx - m_Metadata.size()].type;
+        ret = f.metadata[(size_t)s.idx - m_Metadata.size()].type;
       break;
     case SymbolType::Unknown:
     case SymbolType::Alias:
