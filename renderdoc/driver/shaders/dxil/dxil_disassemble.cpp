@@ -1558,7 +1558,7 @@ rdcstr DebugLocation::toString() const
   rdcstr ret = StringFormat::Fmt("!DILocation(line: %llu, column: %llu, scope: %s", line, col,
                                  scope ? scope->refString().c_str() : "null");
   if(inlinedAt)
-    ret += StringFormat::Fmt(", inlinedAt: %s", inlinedAt->refString());
+    ret += StringFormat::Fmt(", inlinedAt: %s", inlinedAt->refString().c_str());
   ret += ")";
   return ret;
 }

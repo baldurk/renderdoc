@@ -802,9 +802,10 @@ DXBC::Reflection *Program::GetReflection()
 
   if(dx.valver && dx.valver->children.size() == 1 && dx.valver->children[0]->children.size() == 2)
   {
-    m_CompilerSig += StringFormat::Fmt(" (Validation version %s.%s)",
-                                       dx.valver->children[0]->children[0]->constant->toString(),
-                                       dx.valver->children[0]->children[1]->constant->toString());
+    m_CompilerSig +=
+        StringFormat::Fmt(" (Validation version %s.%s)",
+                          dx.valver->children[0]->children[0]->constant->toString().c_str(),
+                          dx.valver->children[0]->children[1]->constant->toString().c_str());
   }
 
   if(dx.entryPoints && dx.entryPoints->children.size() > 0 &&
@@ -821,9 +822,10 @@ DXBC::Reflection *Program::GetReflection()
   if(dx.shaderModel && dx.shaderModel->children.size() == 1 &&
      dx.shaderModel->children[0]->children.size() == 3)
   {
-    m_Profile = StringFormat::Fmt("%s_%s_%s", dx.shaderModel->children[0]->children[0]->str,
-                                  dx.shaderModel->children[0]->children[1]->constant->toString(),
-                                  dx.shaderModel->children[0]->children[2]->constant->toString());
+    m_Profile =
+        StringFormat::Fmt("%s_%s_%s", dx.shaderModel->children[0]->children[0]->str.c_str(),
+                          dx.shaderModel->children[0]->children[1]->constant->toString().c_str(),
+                          dx.shaderModel->children[0]->children[2]->constant->toString().c_str());
   }
   else
   {

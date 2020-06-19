@@ -296,14 +296,14 @@ rdcstr getOptMetaString(const Metadata *meta)
 
 rdcstr DIFile::toString() const
 {
-  return StringFormat::Fmt("!DIFile(filename: %s, directory: %s)", getOptMetaString(file),
-                           getOptMetaString(dir));
+  return StringFormat::Fmt("!DIFile(filename: %s, directory: %s)", getOptMetaString(file).c_str(),
+                           getOptMetaString(dir).c_str());
 }
 
 rdcstr DICompileUnit::toString() const
 {
   rdcstr ret = StringFormat::Fmt("!DICompileUnit(language: %s, file: %s", ToStr(lang).c_str(),
-                                 file ? file->refString() : "null");
+                                 file ? file->refString().c_str() : "null");
 
   if(producer)
     ret += ", producer: " + escapeString(*producer);
