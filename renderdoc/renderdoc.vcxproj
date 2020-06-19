@@ -707,6 +707,7 @@ namespace DXCEnumerateAndCheck {
 
     <Message Text="Baking DXIL Shaders with $(DXCExecutable)" Importance="High" />
 
+    <MakeDir Directories="$(DXILBakedDir)"/>
     <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\fixedcol.hlsl&quot; -T ps_6_0 -DVARIANT=0 -E main -Qstrip_reflect -Qstrip_debug -Fo &quot;$(DXILBakedDir)fixedcol_0.dxbc&quot;"/>
     <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\fixedcol.hlsl&quot; -T ps_6_0 -DVARIANT=1 -E main -Qstrip_reflect -Qstrip_debug -Fo &quot;$(DXILBakedDir)fixedcol_1.dxbc&quot;"/>
     <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\fixedcol.hlsl&quot; -T ps_6_0 -DVARIANT=2 -E main -Qstrip_reflect -Qstrip_debug -Fo &quot;$(DXILBakedDir)fixedcol_2.dxbc&quot;"/>
