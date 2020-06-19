@@ -576,6 +576,8 @@ private:
   rdcstr m_Triple, m_Datalayout;
 
   rdcstr m_Disassembly;
+
+  friend struct OpReader;
 };
 
 bool needsEscaping(const rdcstr &name);

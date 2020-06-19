@@ -391,6 +391,63 @@ void ParseConstant(const LLVMBC::BlockOrRecord &constant, const Type *&curType,
   }
 }
 
+// helper struct for reading ops
+struct OpReader
+{
+  OpReader(Program *prog, const LLVMBC::BlockOrRecord &op)
+      : prog(prog), type((FunctionRecord)op.id), values(op.ops), idx(0)
+  {
+  }
+
+  FunctionRecord type;
+
+  size_t remaining() { return values.size() - idx; }
+  Symbol getSymbol(uint64_t val) { return prog->m_Symbols[prog->m_Symbols.size() - (size_t)val]; }
+  Symbol getSymbol(bool withType = true)
+  {
+    // get the value
+    uint64_t val = get<uint64_t>();
+
+    // if it's not a forward reference, resolve the relative-ness and return
+    if(val <= prog->m_Symbols.size())
+    {
+      return getSymbol(val);
+    }
+    else
+    {
+      // sometimes forward references have types, which we store here in case we need the type
+      // later.
+      if(withType)
+        m_LastType = getType();
+
+      // return the forward reference symbol
+      return Symbol(SymbolType::Unknown, prog->m_Symbols.size() - (int32_t)val);
+    }
+  }
+
+  // some symbols are referenced absolute, not relative
+  Symbol getSymbolAbsolute() { return prog->m_Symbols[get<size_t>()]; }
+  const Type *getType() { return &prog->m_Types[get<size_t>()]; }
+  const Type *getType(const Function &f, Symbol s)
+  {
+    if(s.type == SymbolType::Unknown)
+      return m_LastType;
+    return prog->GetSymbolType(f, s);
+  }
+
+  template <typename T>
+  T get()
+  {
+    return (T)values[idx++];
+  }
+
+private:
+  const rdcarray<uint64_t> &values;
+  size_t idx;
+  Program *prog;
+  const Type *m_LastType = NULL;
+};
+
 bool Program::Valid(const byte *bytes, size_t length)
 {
   if(length < sizeof(ProgramHeader))
@@ -1011,8 +1068,6 @@ Program::Program(const byte *bytes, size_t length)
         size_t prevNumSymbols = m_Symbols.size();
         size_t instrSymbolStart = 0;
 
-        rdcarray<size_t> forwardRefInstructions;
-
         for(size_t i = 0; i < f.funcType->members.size(); i++)
         {
           Instruction arg;
@@ -1021,11 +1076,6 @@ Program::Program(const byte *bytes, size_t length)
           f.args.push_back(arg);
           m_Symbols.push_back({SymbolType::Argument, i});
         }
-
-        auto getSymbol = [this](uint64_t id) {
-          id = uint32_t((uint64_t)m_Symbols.size() - id);
-          return id < m_Symbols.size() ? m_Symbols[id] : Symbol(SymbolType::Unknown, id);
-        };
 
         size_t curBlock = 0;
         int32_t debugLocIndex = -1;
@@ -1205,20 +1255,21 @@ Program::Program(const byte *bytes, size_t length)
           }
           else
           {
-            const LLVMBC::BlockOrRecord &op = funcChild;
-            if(IS_KNOWN(op.id, FunctionRecord::DECLAREBLOCKS))
+            OpReader op(this, funcChild);
+
+            if(op.type == FunctionRecord::DECLAREBLOCKS)
             {
-              f.blocks.resize(op.ops[0]);
+              f.blocks.resize(op.get<size_t>());
 
               curBlock = 0;
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::DEBUG_LOC))
+            else if(op.type == FunctionRecord::DEBUG_LOC)
             {
               DebugLocation debugLoc;
-              debugLoc.line = op.ops[0];
-              debugLoc.col = op.ops[1];
-              debugLoc.scope = getMetaOrNull(op.ops[2]);
-              debugLoc.inlinedAt = getMetaOrNull(op.ops[3]);
+              debugLoc.line = op.get<uint64_t>();
+              debugLoc.col = op.get<uint64_t>();
+              debugLoc.scope = getMetaOrNull(op.get<uint64_t>());
+              debugLoc.inlinedAt = getMetaOrNull(op.get<uint64_t>());
 
               debugLocIndex = m_DebugLocations.indexOf(debugLoc);
 
@@ -1230,26 +1281,25 @@ Program::Program(const byte *bytes, size_t length)
 
               f.instructions.back().debugLoc = (uint32_t)debugLocIndex;
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::DEBUG_LOC_AGAIN))
+            else if(op.type == FunctionRecord::DEBUG_LOC_AGAIN)
             {
               f.instructions.back().debugLoc = (uint32_t)debugLocIndex;
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_CALL))
+            else if(op.type == FunctionRecord::INST_CALL)
             {
-              size_t n = 0;
               Instruction inst;
               inst.op = Instruction::Call;
-              inst.paramAttrs = &m_Attributes[op.ops[n++]];
+              inst.paramAttrs = &m_Attributes[op.get<size_t>()];
 
-              uint64_t callingFlags = op.ops[n++];
+              uint64_t callingFlags = op.get<uint64_t>();
 
               if(callingFlags & (1ULL << 17))
-                inst.opFlags = InstructionFlags(op.ops[n++]);
+                inst.opFlags = op.get<InstructionFlags>();
 
               if(callingFlags & (1ULL << 15))
-                n++;    // funcCallType
+                op.get<uint64_t>();    // funcCallType
 
-              Symbol s = getSymbol(op.ops[n++]);
+              Symbol s = op.getSymbol();
 
               if(s.type != SymbolType::Function)
               {
@@ -1260,16 +1310,16 @@ Program::Program(const byte *bytes, size_t length)
               inst.funcCall = &m_Functions[s.idx];
               inst.type = inst.funcCall->funcType->inner;
 
-              for(size_t i = 0; n < op.ops.size(); n++, i++)
+              for(size_t i = 0; op.remaining() > 0; i++)
               {
                 if(inst.funcCall->funcType->members[i]->type == Type::Metadata)
                 {
                   s.type = SymbolType::Metadata;
-                  s.idx = uint32_t((uint64_t)m_Symbols.size() - op.ops[n]);
+                  s.idx = uint32_t((uint64_t)m_Symbols.size() - op.get<uint64_t>());
                 }
                 else
                 {
-                  s = getSymbol(op.ops[n]);
+                  s = op.getSymbol(false);
                 }
                 inst.args.push_back(s);
               }
@@ -1281,14 +1331,15 @@ Program::Program(const byte *bytes, size_t length)
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_CAST))
+            else if(op.type == FunctionRecord::INST_CAST)
             {
               Instruction inst;
 
-              inst.args.push_back(getSymbol(op.ops[0]));
-              inst.type = &m_Types[op.ops[1]];
+              inst.args.push_back(op.getSymbol());
+              inst.type = op.getType();
 
-              switch(op.ops[2])
+              uint64_t opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: inst.op = Instruction::Trunc; break;
                 case 1: inst.op = Instruction::ZExt; break;
@@ -1305,7 +1356,7 @@ Program::Program(const byte *bytes, size_t length)
                 case 12: inst.op = Instruction::AddrSpaceCast; break;
                 default:
                   inst.op = Instruction::Bitcast;
-                  RDCERR("Unhandled cast type %d", op.ops[2]);
+                  RDCERR("Unhandled cast type %llu", opcode);
                   break;
               }
 
@@ -1313,34 +1364,35 @@ Program::Program(const byte *bytes, size_t length)
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_EXTRACTVAL))
+            else if(op.type == FunctionRecord::INST_EXTRACTVAL)
             {
               Instruction inst;
 
               inst.op = Instruction::ExtractVal;
 
-              inst.args.push_back(getSymbol(op.ops[0]));
-              inst.type = GetSymbolType(f, inst.args.back());
-              for(size_t n = 1; n < op.ops.size(); n++)
+              inst.args.push_back(op.getSymbol());
+              inst.type = op.getType(f, inst.args.back());
+              while(op.remaining() > 0)
               {
+                uint64_t val = op.get<uint64_t>();
                 if(inst.type->type == Type::Array)
                   inst.type = inst.type->inner;
                 else
-                  inst.type = inst.type->members[op.ops[n]];
-                inst.args.push_back({SymbolType::Literal, op.ops[n]});
+                  inst.type = inst.type->members[val];
+                inst.args.push_back({SymbolType::Literal, val});
               }
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_RET))
+            else if(op.type == FunctionRecord::INST_RET)
             {
               Instruction inst;
 
               inst.op = Instruction::Ret;
 
-              if(op.ops.empty())
+              if(op.remaining() == 0)
               {
                 inst.type = GetVoidType();
 
@@ -1348,25 +1400,26 @@ Program::Program(const byte *bytes, size_t length)
               }
               else
               {
-                inst.args.push_back(getSymbol(op.ops[0]));
-                inst.type = GetSymbolType(f, inst.args.back());
+                inst.args.push_back(op.getSymbol());
+                inst.type = op.getType(f, inst.args.back());
 
                 m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
               }
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_BINOP))
+            else if(op.type == FunctionRecord::INST_BINOP)
             {
               Instruction inst;
 
-              inst.args.push_back(getSymbol(op.ops[0]));
-              inst.type = GetSymbolType(f, inst.args.back());
-              inst.args.push_back(getSymbol(op.ops[1]));
+              inst.args.push_back(op.getSymbol());
+              inst.type = op.getType(f, inst.args.back());
+              inst.args.push_back(op.getSymbol(false));
 
               bool isFloatOp = (inst.type->scalarType == Type::Float);
 
-              switch(op.ops[2])
+              uint64_t opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: inst.op = isFloatOp ? Instruction::FAdd : Instruction::Add; break;
                 case 1: inst.op = isFloatOp ? Instruction::FSub : Instruction::Sub; break;
@@ -1383,13 +1436,13 @@ Program::Program(const byte *bytes, size_t length)
                 case 12: inst.op = Instruction::Xor; break;
                 default:
                   inst.op = Instruction::And;
-                  RDCERR("Unhandled binop type %d", op.ops[2]);
+                  RDCERR("Unhandled binop type %llu", opcode);
                   break;
               }
 
-              if(op.ops.size() > 3)
+              if(op.remaining() > 0)
               {
-                uint64_t flags = op.ops[3];
+                uint64_t flags = op.get<uint64_t>();
                 if(inst.op == Instruction::Add || inst.op == Instruction::Sub ||
                    inst.op == Instruction::Mul || inst.op == Instruction::ShiftLeft)
                 {
@@ -1416,21 +1469,32 @@ Program::Program(const byte *bytes, size_t length)
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_UNREACHABLE))
+            else if(op.type == FunctionRecord::INST_UNREACHABLE)
             {
               Instruction inst;
 
               inst.op = Instruction::Unreachable;
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_ALLOCA))
+            else if(op.type == FunctionRecord::INST_ALLOCA)
             {
               Instruction inst;
 
               inst.op = Instruction::Alloca;
 
-              uint64_t align = op.ops[3];
+              inst.type = op.getType();
 
-              inst.type = &m_Types[op.ops[0]];
+              // we now have the inner type, but this instruction returns a pointer to that type so
+              // adjust
+              inst.type = GetPointerType(inst.type);
+
+              RDCASSERT(inst.type->type == Type::Pointer);
+
+              // type of the size - ignored
+              (void)op.getType();
+              // size
+              inst.args.push_back(op.getSymbolAbsolute());
+
+              uint64_t align = op.get<uint64_t>();
 
               if(align & 0x20)
               {
@@ -1442,17 +1506,6 @@ Program::Program(const byte *bytes, size_t length)
                 inst.type = inst.type->inner;
               }
 
-              // we now have the inner type, but this instruction returns a pointer to that type so
-              // adjust
-              inst.type = GetPointerType(inst.type);
-
-              RDCASSERT(inst.type->type == Type::Pointer);
-
-              // size
-              inst.args.push_back(m_Symbols[op.ops[2]]);
-              // type of the size - ignored
-              // m_Types[op.ops[1]]
-
               align &= ~0xE0;
 
               inst.align = (1U << align) >> 1;
@@ -1461,33 +1514,33 @@ Program::Program(const byte *bytes, size_t length)
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_INBOUNDS_GEP_OLD) ||
-                    IS_KNOWN(op.id, FunctionRecord::INST_GEP_OLD) ||
-                    IS_KNOWN(op.id, FunctionRecord::INST_GEP))
+            else if(op.type == FunctionRecord::INST_INBOUNDS_GEP_OLD ||
+                    op.type == FunctionRecord::INST_GEP_OLD || op.type == FunctionRecord::INST_GEP)
             {
               Instruction inst;
 
               inst.op = Instruction::GetElementPtr;
 
-              if(IS_KNOWN(op.id, FunctionRecord::INST_INBOUNDS_GEP_OLD))
+              if(op.type == FunctionRecord::INST_INBOUNDS_GEP_OLD)
                 inst.opFlags |= InstructionFlags::InBounds;
 
-              size_t idx = 0;
-              if(IS_KNOWN(op.id, FunctionRecord::INST_GEP))
+              if(op.type == FunctionRecord::INST_GEP)
               {
-                if(op.ops[idx++])
+                if(op.get<uint64_t>())
                   inst.opFlags |= InstructionFlags::InBounds;
-                inst.type = &m_Types[op.ops[idx++]];
+                inst.type = op.getType();
               }
 
-              for(; idx < op.ops.size(); idx++)
-                inst.args.push_back(getSymbol(op.ops[idx]));
+              while(op.remaining() > 0)
+              {
+                inst.args.push_back(op.getSymbol());
 
-              if(inst.type == NULL)
-                inst.type = GetSymbolType(f, inst.args[0]);
+                if(inst.type == NULL && inst.args.size() == 1)
+                  inst.type = op.getType(f, inst.args.back());
+              }
 
               // walk the type list to get the return type
-              for(idx = 2; idx < inst.args.size(); idx++)
+              for(size_t idx = 2; idx < inst.args.size(); idx++)
               {
                 if(inst.type->type == Type::Vector || inst.type->type == Type::Array)
                 {
@@ -1515,37 +1568,34 @@ Program::Program(const byte *bytes, size_t length)
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_LOAD))
+            else if(op.type == FunctionRecord::INST_LOAD)
             {
               Instruction inst;
 
               inst.op = Instruction::Load;
 
-              inst.args.push_back(getSymbol(op.ops[0]));
+              inst.args.push_back(op.getSymbol());
 
-              size_t idx = 1;
-
-              if(op.ops.size() == idx + 3)
+              if(op.remaining() == 3)
               {
-                inst.type = &m_Types[op.ops[idx++]];
+                inst.type = op.getType();
               }
               else
               {
-                inst.type = GetSymbolType(f, inst.args[0]);
+                inst.type = op.getType(f, inst.args.back());
                 RDCASSERT(inst.type->type == Type::Pointer);
                 inst.type = inst.type->inner;
               }
 
-              inst.align = (1U << op.ops[idx]) >> 1;
-              inst.opFlags |=
-                  (op.ops[idx + 1] != 0) ? InstructionFlags::Volatile : InstructionFlags::NoFlags;
+              inst.align = (1U << op.get<uint64_t>()) >> 1;
+              inst.opFlags |= (op.get<uint64_t>() != 0) ? InstructionFlags::Volatile
+                                                        : InstructionFlags::NoFlags;
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_STORE_OLD) ||
-                    IS_KNOWN(op.id, FunctionRecord::INST_STORE))
+            else if(op.type == FunctionRecord::INST_STORE_OLD || op.type == FunctionRecord::INST_STORE)
             {
               Instruction inst;
 
@@ -1553,26 +1603,33 @@ Program::Program(const byte *bytes, size_t length)
 
               inst.type = GetVoidType();
 
-              inst.args.push_back(getSymbol(op.ops[0]));
-              inst.args.push_back(getSymbol(op.ops[1]));
+              inst.args.push_back(op.getSymbol());
+              if(op.type == FunctionRecord::INST_STORE_OLD)
+                inst.args.push_back(op.getSymbol(false));
+              else
+                inst.args.push_back(op.getSymbol());
 
-              inst.align = (1U << op.ops[2]) >> 1;
-              inst.opFlags |=
-                  (op.ops[3] != 0) ? InstructionFlags::Volatile : InstructionFlags::NoFlags;
+              inst.align = (1U << op.get<uint64_t>()) >> 1;
+              inst.opFlags |= (op.get<uint64_t>() != 0) ? InstructionFlags::Volatile
+                                                        : InstructionFlags::NoFlags;
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_CMP) ||
-                    IS_KNOWN(op.id, FunctionRecord::INST_CMP2))
+            else if(op.type == FunctionRecord::INST_CMP ||
+                    IS_KNOWN(op.type, FunctionRecord::INST_CMP2))
             {
               Instruction inst;
 
               // a
-              inst.args.push_back(getSymbol(op.ops[0]));
-              // b
-              inst.args.push_back(getSymbol(op.ops[1]));
+              inst.args.push_back(op.getSymbol());
 
-              switch(op.ops[2])
+              const Type *argType = op.getType(f, inst.args.back());
+
+              // b
+              inst.args.push_back(op.getSymbol(false));
+
+              uint64_t opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: inst.op = Instruction::FOrdFalse; break;
                 case 1: inst.op = Instruction::FOrdEqual; break;
@@ -1604,18 +1661,17 @@ Program::Program(const byte *bytes, size_t length)
 
                 default:
                   inst.op = Instruction::FOrdFalse;
-                  RDCERR("Unexpected comparison %llu", op.ops[2]);
+                  RDCERR("Unexpected comparison %llu", opcode);
                   break;
               }
 
               // fast math flags
-              if(op.ops.size() > 3)
-                inst.opFlags = InstructionFlags(op.ops[3]);
+              if(op.remaining() > 0)
+                inst.opFlags = op.get<InstructionFlags>();
 
               inst.type = GetBoolType();
 
               // if we're comparing vectors, the return type is an equal sized bool vector
-              const Type *argType = GetSymbolType(f, inst.args[0]);
               if(argType->type == Type::Vector)
               {
                 for(const Type &t : m_Types)
@@ -1636,27 +1692,30 @@ Program::Program(const byte *bytes, size_t length)
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_SELECT) ||
-                    IS_KNOWN(op.id, FunctionRecord::INST_VSELECT))
+            else if(op.type == FunctionRecord::INST_SELECT || op.type == FunctionRecord::INST_VSELECT)
             {
               Instruction inst;
 
               inst.op = Instruction::Select;
 
               // if true
-              inst.args.push_back(getSymbol(op.ops[0]));
-              // if false
-              inst.args.push_back(getSymbol(op.ops[1]));
-              // selector
-              inst.args.push_back(getSymbol(op.ops[2]));
+              inst.args.push_back(op.getSymbol());
 
-              inst.type = GetSymbolType(f, inst.args[0]);
+              inst.type = op.getType(f, inst.args.back());
+
+              // if false
+              inst.args.push_back(op.getSymbol(false));
+              // selector
+              if(op.type == FunctionRecord::INST_SELECT)
+                inst.args.push_back(op.getSymbol(false));
+              else
+                inst.args.push_back(op.getSymbol());
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_BR))
+            else if(op.type == FunctionRecord::INST_BR)
             {
               Instruction inst;
 
@@ -1665,24 +1724,26 @@ Program::Program(const byte *bytes, size_t length)
               inst.type = GetVoidType();
 
               // true destination
-              inst.args.push_back(Symbol(SymbolType::BasicBlock, op.ops[0]));
-              f.blocks[op.ops[0]].preds.insert(0, &f.blocks[curBlock]);
+              uint64_t trueDest = op.get<uint64_t>();
+              inst.args.push_back(Symbol(SymbolType::BasicBlock, trueDest));
+              f.blocks[trueDest].preds.insert(0, &f.blocks[curBlock]);
 
-              if(op.ops.size() > 1)
+              if(op.remaining() > 0)
               {
                 // false destination
-                inst.args.push_back(Symbol(SymbolType::BasicBlock, op.ops[1]));
-                f.blocks[op.ops[1]].preds.insert(0, &f.blocks[curBlock]);
+                uint64_t falseDest = op.get<uint64_t>();
+                inst.args.push_back(Symbol(SymbolType::BasicBlock, falseDest));
+                f.blocks[falseDest].preds.insert(0, &f.blocks[curBlock]);
 
                 // predicate
-                inst.args.push_back(getSymbol(op.ops[2]));
+                inst.args.push_back(op.getSymbol(false));
               }
 
               curBlock++;
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_SWITCH))
+            else if(op.type == FunctionRecord::INST_SWITCH)
             {
               Instruction inst;
 
@@ -1690,47 +1751,47 @@ Program::Program(const byte *bytes, size_t length)
 
               inst.type = GetVoidType();
 
-              uint64_t typeIdx = op.ops[0];
+              uint64_t typeIdx = op.get<uint64_t>();
 
               static const uint64_t SWITCH_INST_MAGIC = 0x4B5;
               if((typeIdx >> 16) == SWITCH_INST_MAGIC)
               {
                 // type of condition
-                const Type *condType = &m_Types[op.ops[1]];
+                const Type *condType = op.getType();
 
                 RDCASSERT(condType->bitWidth <= 64);
 
                 // condition
-                inst.args.push_back(getSymbol(op.ops[2]));
+                inst.args.push_back(op.getSymbol(false));
 
                 // default block
-                inst.args.push_back(Symbol(SymbolType::BasicBlock, op.ops[3]));
-                f.blocks[op.ops[3]].preds.insert(0, &f.blocks[curBlock]);
+                uint64_t defaultDest = op.get<uint64_t>();
+                inst.args.push_back(Symbol(SymbolType::BasicBlock, defaultDest));
+                f.blocks[defaultDest].preds.insert(0, &f.blocks[curBlock]);
 
                 RDCERR("Unsupported switch instruction version");
               }
               else
               {
-                // type of condition, ignored
-                // op.ops[0]
-
                 // condition
-                inst.args.push_back(getSymbol(op.ops[1]));
+                inst.args.push_back(op.getSymbol(false));
 
                 // default block
-                inst.args.push_back(Symbol(SymbolType::BasicBlock, op.ops[2]));
-                f.blocks[op.ops[2]].preds.insert(0, &f.blocks[curBlock]);
+                uint64_t defaultDest = op.get<uint64_t>();
+                inst.args.push_back(Symbol(SymbolType::BasicBlock, defaultDest));
+                f.blocks[defaultDest].preds.insert(0, &f.blocks[curBlock]);
 
-                uint64_t numCases = (op.ops.size() - 3) / 2;
+                uint64_t numCases = op.remaining() / 2;
 
                 for(uint64_t c = 0; c < numCases; c++)
                 {
                   // case value, absolute not relative
-                  inst.args.push_back(m_Symbols[op.ops[3 + c * 2 + 0]]);
+                  inst.args.push_back(op.getSymbolAbsolute());
 
                   // case block
-                  inst.args.push_back(Symbol(SymbolType::BasicBlock, op.ops[3 + c * 2 + 1]));
-                  f.blocks[op.ops[3 + c * 2 + 1]].preds.insert(0, &f.blocks[curBlock]);
+                  uint64_t caseDest = op.get<uint64_t>();
+                  inst.args.push_back(Symbol(SymbolType::BasicBlock, caseDest));
+                  f.blocks[caseDest].preds.insert(0, &f.blocks[curBlock]);
                 }
               }
 
@@ -1738,69 +1799,60 @@ Program::Program(const byte *bytes, size_t length)
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_PHI))
+            else if(op.type == FunctionRecord::INST_PHI)
             {
               Instruction inst;
 
               inst.op = Instruction::Phi;
 
-              inst.type = &m_Types[op.ops[0]];
+              inst.type = op.getType();
 
-              bool fwdRef = false;
-
-              for(size_t idx = 1; idx < op.ops.size(); idx += 2)
+              while(op.remaining() > 0)
               {
-                int64_t valSrc = LLVMBC::BitReader::svbr(op.ops[idx]);
-                uint64_t blockSrc = op.ops[idx + 1];
+                int64_t valSrc = LLVMBC::BitReader::svbr(op.get<uint64_t>());
+                uint64_t blockSrc = op.get<uint64_t>();
 
                 if(valSrc < 0)
                 {
                   inst.args.push_back(Symbol(SymbolType::Unknown, m_Symbols.size() - valSrc));
-                  fwdRef = true;
                 }
                 else
                 {
-                  inst.args.push_back(getSymbol((uint64_t)valSrc));
+                  inst.args.push_back(op.getSymbol((uint64_t)valSrc));
                 }
                 inst.args.push_back(Symbol(SymbolType::BasicBlock, blockSrc));
               }
-
-              // forward references can't be resolved until we know the symbols lookup (because void
-              // instructions are skipped)
-              if(fwdRef)
-                forwardRefInstructions.push_back(f.instructions.size());
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_LOADATOMIC))
+            else if(op.type == FunctionRecord::INST_LOADATOMIC)
             {
               Instruction inst;
 
               inst.op = Instruction::LoadAtomic;
 
-              inst.args.push_back(getSymbol(op.ops[0]));
+              inst.args.push_back(op.getSymbol());
 
-              size_t idx = 1;
-
-              if(op.ops.size() == idx + 5)
+              if(op.remaining() == 5)
               {
-                inst.type = &m_Types[op.ops[idx++]];
+                inst.type = op.getType();
               }
               else
               {
-                inst.type = GetSymbolType(f, inst.args[0]);
+                inst.type = op.getType(f, inst.args.back());
                 RDCASSERT(inst.type->type == Type::Pointer);
                 inst.type = inst.type->inner;
               }
 
-              inst.align = (1U << op.ops[idx]) >> 1;
-              inst.opFlags |=
-                  (op.ops[idx + 1] != 0) ? InstructionFlags::Volatile : InstructionFlags::NoFlags;
+              inst.align = (1U << op.get<uint64_t>()) >> 1;
+              inst.opFlags |= (op.get<uint64_t>() != 0) ? InstructionFlags::Volatile
+                                                        : InstructionFlags::NoFlags;
 
               // success ordering
-              switch(op.ops[idx + 2])
+              uint64_t opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: break;
                 case 1: inst.opFlags |= InstructionFlags::SuccessUnordered; break;
@@ -1810,25 +1862,26 @@ Program::Program(const byte *bytes, size_t length)
                 case 5: inst.opFlags |= InstructionFlags::SuccessAcquireRelease; break;
                 case 6: inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent; break;
                 default:
-                  RDCERR("Unexpected success ordering %llu", op.ops[idx + 2]);
+                  RDCERR("Unexpected success ordering %llu", opcode);
                   inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent;
                   break;
               }
 
               // synchronisation scope
-              switch(op.ops[idx + 3])
+              opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: inst.opFlags |= InstructionFlags::SingleThread; break;
                 case 1: break;
-                default: RDCERR("Unexpected synchronisation scope %llu", op.ops[idx + 3]); break;
+                default: RDCERR("Unexpected synchronisation scope %llu", opcode); break;
               }
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_STOREATOMIC_OLD) ||
-                    IS_KNOWN(op.id, FunctionRecord::INST_STOREATOMIC))
+            else if(op.type == FunctionRecord::INST_STOREATOMIC_OLD ||
+                    op.type == FunctionRecord::INST_STOREATOMIC)
             {
               Instruction inst;
 
@@ -1836,15 +1889,19 @@ Program::Program(const byte *bytes, size_t length)
 
               inst.type = GetVoidType();
 
-              inst.args.push_back(getSymbol(op.ops[0]));
-              inst.args.push_back(getSymbol(op.ops[1]));
+              inst.args.push_back(op.getSymbol());
+              if(op.type == FunctionRecord::INST_STOREATOMIC_OLD)
+                inst.args.push_back(op.getSymbol(false));
+              else
+                inst.args.push_back(op.getSymbol());
 
-              inst.align = (1U << op.ops[2]) >> 1;
-              inst.opFlags |=
-                  (op.ops[3] != 0) ? InstructionFlags::Volatile : InstructionFlags::NoFlags;
+              inst.align = (1U << op.get<uint64_t>()) >> 1;
+              inst.opFlags |= (op.get<uint64_t>() != 0) ? InstructionFlags::Volatile
+                                                        : InstructionFlags::NoFlags;
 
               // success ordering
-              switch(op.ops[4])
+              uint64_t opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: break;
                 case 1: inst.opFlags |= InstructionFlags::SuccessUnordered; break;
@@ -1854,37 +1911,39 @@ Program::Program(const byte *bytes, size_t length)
                 case 5: inst.opFlags |= InstructionFlags::SuccessAcquireRelease; break;
                 case 6: inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent; break;
                 default:
-                  RDCERR("Unexpected success ordering %llu", op.ops[4]);
+                  RDCERR("Unexpected success ordering %llu", opcode);
                   inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent;
                   break;
               }
 
               // synchronisation scope
-              switch(op.ops[5])
+              opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: inst.opFlags |= InstructionFlags::SingleThread; break;
                 case 1: break;
-                default: RDCERR("Unexpected synchronisation scope %llu", op.ops[5]); break;
+                default: RDCERR("Unexpected synchronisation scope %llu", opcode); break;
               }
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_ATOMICRMW))
+            else if(op.type == FunctionRecord::INST_ATOMICRMW)
             {
               Instruction inst;
 
               // pointer to atomically modify
-              inst.args.push_back(getSymbol(op.ops[0]));
+              inst.args.push_back(op.getSymbol());
 
               // type is the pointee of the first argument
-              inst.type = GetSymbolType(f, inst.args.back());
+              inst.type = op.getType(f, inst.args.back());
               RDCASSERT(inst.type->type == Type::Pointer);
               inst.type = inst.type->inner;
 
               // parameter value
-              inst.args.push_back(getSymbol(op.ops[1]));
+              inst.args.push_back(op.getSymbol(false));
 
-              switch(op.ops[2])
+              uint64_t opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: inst.op = Instruction::AtomicExchange; break;
                 case 1: inst.op = Instruction::AtomicAdd; break;
@@ -1898,16 +1957,17 @@ Program::Program(const byte *bytes, size_t length)
                 case 9: inst.op = Instruction::AtomicUMax; break;
                 case 10: inst.op = Instruction::AtomicUMin; break;
                 default:
-                  RDCERR("Unhandled atomicrmw op %llu", op.ops[2]);
+                  RDCERR("Unhandled atomicrmw op %llu", opcode);
                   inst.op = Instruction::AtomicExchange;
                   break;
               }
 
-              if(op.ops[3])
+              if(op.get<uint64_t>())
                 inst.opFlags |= InstructionFlags::Volatile;
 
               // success ordering
-              switch(op.ops[4])
+              opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: break;
                 case 1: inst.opFlags |= InstructionFlags::SuccessUnordered; break;
@@ -1917,35 +1977,36 @@ Program::Program(const byte *bytes, size_t length)
                 case 5: inst.opFlags |= InstructionFlags::SuccessAcquireRelease; break;
                 case 6: inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent; break;
                 default:
-                  RDCERR("Unexpected success ordering %llu", op.ops[4]);
+                  RDCERR("Unexpected success ordering %llu", opcode);
                   inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent;
                   break;
               }
 
               // synchronisation scope
-              switch(op.ops[5])
+              opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: inst.opFlags |= InstructionFlags::SingleThread; break;
                 case 1: break;
-                default: RDCERR("Unexpected synchronisation scope %llu", op.ops[5]); break;
+                default: RDCERR("Unexpected synchronisation scope %llu", opcode); break;
               }
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_CMPXCHG) ||
-                    IS_KNOWN(op.id, FunctionRecord::INST_CMPXCHG_OLD))
+            else if(op.type == FunctionRecord::INST_CMPXCHG ||
+                    op.type == FunctionRecord::INST_CMPXCHG_OLD)
             {
               Instruction inst;
 
               inst.op = Instruction::CompareExchange;
 
               // pointer to atomically modify
-              inst.args.push_back(getSymbol(op.ops[0]));
+              inst.args.push_back(op.getSymbol());
 
               // type is the pointee of the first argument
-              inst.type = GetSymbolType(f, inst.args.back());
+              inst.type = op.getType(f, inst.args.back());
               RDCASSERT(inst.type->type == Type::Pointer);
               inst.type = inst.type->inner;
 
@@ -1965,19 +2026,23 @@ Program::Program(const byte *bytes, size_t length)
               RDCASSERT(inst.type->type == Type::Struct);
 
               // expect modern encoding with weak parameters.
-              RDCASSERT(op.ops.size() >= 8);
+              RDCASSERT(funcChild.ops.size() >= 8);
 
               // compare value
-              inst.args.push_back(getSymbol(op.ops[1]));
+              if(op.type == FunctionRecord::INST_CMPXCHG_OLD)
+                inst.args.push_back(op.getSymbol(false));
+              else
+                inst.args.push_back(op.getSymbol());
 
               // new replacement value
-              inst.args.push_back(getSymbol(op.ops[2]));
+              inst.args.push_back(op.getSymbol(false));
 
-              if(op.ops[3])
+              if(op.get<uint64_t>())
                 inst.opFlags |= InstructionFlags::Volatile;
 
               // success ordering
-              switch(op.ops[4])
+              uint64_t opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: break;
                 case 1: inst.opFlags |= InstructionFlags::SuccessUnordered; break;
@@ -1987,21 +2052,23 @@ Program::Program(const byte *bytes, size_t length)
                 case 5: inst.opFlags |= InstructionFlags::SuccessAcquireRelease; break;
                 case 6: inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent; break;
                 default:
-                  RDCERR("Unexpected success ordering %llu", op.ops[4]);
+                  RDCERR("Unexpected success ordering %llu", opcode);
                   inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent;
                   break;
               }
 
               // synchronisation scope
-              switch(op.ops[5])
+              opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: inst.opFlags |= InstructionFlags::SingleThread; break;
                 case 1: break;
-                default: RDCERR("Unexpected synchronisation scope %llu", op.ops[5]); break;
+                default: RDCERR("Unexpected synchronisation scope %llu", opcode); break;
               }
 
               // failure ordering
-              switch(op.ops[6])
+              opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: break;
                 case 1: inst.opFlags |= InstructionFlags::FailureUnordered; break;
@@ -2011,19 +2078,19 @@ Program::Program(const byte *bytes, size_t length)
                 case 5: inst.opFlags |= InstructionFlags::FailureAcquireRelease; break;
                 case 6: inst.opFlags |= InstructionFlags::FailureSequentiallyConsistent; break;
                 default:
-                  RDCERR("Unexpected failure ordering %llu", op.ops[6]);
+                  RDCERR("Unexpected failure ordering %llu", opcode);
                   inst.opFlags |= InstructionFlags::FailureSequentiallyConsistent;
                   break;
               }
 
-              if(op.ops[7])
+              if(op.get<uint64_t>())
                 inst.opFlags |= InstructionFlags::Weak;
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_FENCE))
+            else if(op.type == FunctionRecord::INST_FENCE)
             {
               Instruction inst;
 
@@ -2032,7 +2099,8 @@ Program::Program(const byte *bytes, size_t length)
               inst.type = GetVoidType();
 
               // success ordering
-              switch(op.ops[0])
+              uint64_t opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: break;
                 case 1: inst.opFlags |= InstructionFlags::SuccessUnordered; break;
@@ -2042,22 +2110,23 @@ Program::Program(const byte *bytes, size_t length)
                 case 5: inst.opFlags |= InstructionFlags::SuccessAcquireRelease; break;
                 case 6: inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent; break;
                 default:
-                  RDCERR("Unexpected success ordering %llu", op.ops[0]);
+                  RDCERR("Unexpected success ordering %llu", opcode);
                   inst.opFlags |= InstructionFlags::SuccessSequentiallyConsistent;
                   break;
               }
 
               // synchronisation scope
-              switch(op.ops[1])
+              opcode = op.get<uint64_t>();
+              switch(opcode)
               {
                 case 0: inst.opFlags |= InstructionFlags::SingleThread; break;
                 case 1: break;
-                default: RDCERR("Unexpected synchronisation scope %llu", op.ops[1]); break;
+                default: RDCERR("Unexpected synchronisation scope %llu", opcode); break;
               }
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_EXTRACTELT))
+            else if(op.type == FunctionRecord::INST_EXTRACTELT)
             {
               // DXIL claims to be scalarised so should this appear?
               RDCWARN("Unexpected vector instruction extractelement in DXIL");
@@ -2067,18 +2136,19 @@ Program::Program(const byte *bytes, size_t length)
               inst.op = Instruction::ExtractElement;
 
               // vector
-              inst.args.push_back(getSymbol(op.ops[0]));
-              // index
-              inst.args.push_back(getSymbol(op.ops[1]));
+              inst.args.push_back(op.getSymbol());
 
               // result is the scalar type within the vector
-              inst.type = GetSymbolType(f, inst.args[0])->inner;
+              inst.type = op.getType(f, inst.args.back())->inner;
+
+              // index
+              inst.args.push_back(op.getSymbol());
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_INSERTELT))
+            else if(op.type == FunctionRecord::INST_INSERTELT)
             {
               // DXIL claims to be scalarised so should this appear?
               RDCWARN("Unexpected vector instruction insertelement in DXIL");
@@ -2088,20 +2158,21 @@ Program::Program(const byte *bytes, size_t length)
               inst.op = Instruction::InsertElement;
 
               // vector
-              inst.args.push_back(getSymbol(op.ops[0]));
-              // replacement element
-              inst.args.push_back(getSymbol(op.ops[1]));
-              // index
-              inst.args.push_back(getSymbol(op.ops[2]));
+              inst.args.push_back(op.getSymbol());
 
               // result is the vector type
-              inst.type = GetSymbolType(f, inst.args[0]);
+              inst.type = op.getType(f, inst.args.back());
+
+              // replacement element
+              inst.args.push_back(op.getSymbol(false));
+              // index
+              inst.args.push_back(op.getSymbol());
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_SHUFFLEVEC))
+            else if(op.type == FunctionRecord::INST_SHUFFLEVEC)
             {
               // DXIL claims to be scalarised so should this appear?
               RDCWARN("Unexpected vector instruction shufflevector in DXIL");
@@ -2111,16 +2182,18 @@ Program::Program(const byte *bytes, size_t length)
               inst.op = Instruction::ShuffleVector;
 
               // vector 1
-              inst.args.push_back(getSymbol(op.ops[0]));
+              inst.args.push_back(op.getSymbol());
+
+              const Type *vecType = op.getType(f, inst.args.back());
+
               // vector 2
-              inst.args.push_back(getSymbol(op.ops[1]));
+              inst.args.push_back(op.getSymbol(false));
               // indexes
-              inst.args.push_back(getSymbol(op.ops[2]));
+              inst.args.push_back(op.getSymbol());
 
               // result is a vector with the inner type of the first two vectors and the element
               // count of the last vector
-              const Type *vecType = GetSymbolType(f, inst.args[0]);
-              const Type *maskType = GetSymbolType(f, inst.args[2]);
+              const Type *maskType = op.getType(f, inst.args.back());
 
               for(const Type &t : m_Types)
               {
@@ -2138,7 +2211,7 @@ Program::Program(const byte *bytes, size_t length)
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_INSERTVAL))
+            else if(op.type == FunctionRecord::INST_INSERTVAL)
             {
               // DXIL claims to be scalarised so should this appear?
               RDCWARN("Unexpected aggregate instruction insertvalue in DXIL");
@@ -2148,32 +2221,32 @@ Program::Program(const byte *bytes, size_t length)
               inst.op = Instruction::InsertValue;
 
               // aggregate
-              inst.args.push_back(getSymbol(op.ops[0]));
-              // replacement element
-              inst.args.push_back(getSymbol(op.ops[1]));
-              // indices as literals
-              for(size_t a = 2; a < op.ops.size(); a++)
-                inst.args.push_back(Symbol(SymbolType::Literal, op.ops[a]));
+              inst.args.push_back(op.getSymbol());
 
               // result is the aggregate type
-              inst.type = GetSymbolType(f, inst.args[0]);
+              inst.type = op.getType(f, inst.args.back());
+
+              // replacement element
+              inst.args.push_back(op.getSymbol());
+              // indices as literals
+              while(op.remaining() > 0)
+                inst.args.push_back(Symbol(SymbolType::Literal, op.get<uint64_t>()));
 
               m_Symbols.push_back({SymbolType::Instruction, f.instructions.size()});
 
               f.instructions.push_back(inst);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_VAARG))
+            else if(op.type == FunctionRecord::INST_VAARG)
             {
               // don't expect vararg instructions
-              RDCERR("Unexpected vararg instruction %u in DXIL", op.id);
+              RDCERR("Unexpected vararg instruction %u in DXIL", op.type);
             }
-            else if(IS_KNOWN(op.id, FunctionRecord::INST_LANDINGPAD) ||
-                    IS_KNOWN(op.id, FunctionRecord::INST_LANDINGPAD_OLD) ||
-                    IS_KNOWN(op.id, FunctionRecord::INST_INVOKE) ||
-                    IS_KNOWN(op.id, FunctionRecord::INST_RESUME))
+            else if(op.type == FunctionRecord::INST_LANDINGPAD ||
+                    op.type == FunctionRecord::INST_LANDINGPAD_OLD ||
+                    op.type == FunctionRecord::INST_INVOKE || op.type == FunctionRecord::INST_RESUME)
             {
               // don't expect exception handling instructions
-              RDCERR("Unexpected exception handling instruction %u in DXIL", op.id);
+              RDCERR("Unexpected exception handling instruction %u in DXIL", op.type);
             }
             else
             {
@@ -2191,6 +2264,17 @@ Program::Program(const byte *bytes, size_t length)
         curBlock = 0;
         for(size_t i = 0; i < f.instructions.size(); i++)
         {
+          // fix up forward references here, we couldn't write them up front because we didn't know
+          // how many actual symbols (non-void instructions) existed after the given instruction
+          for(Symbol &s : f.instructions[i].args)
+          {
+            if(s.type == SymbolType::Unknown)
+            {
+              s = m_Symbols[s.idx];
+              RDCASSERT(s.type == SymbolType::Instruction);
+            }
+          }
+
           if(f.instructions[i].op == Instruction::Branch ||
              f.instructions[i].op == Instruction::Unreachable ||
              f.instructions[i].op == Instruction::Switch)
@@ -2215,18 +2299,6 @@ Program::Program(const byte *bytes, size_t length)
         for(Metadata &m : f.metadata)
           if(m.func)
             m.instruction = m_Symbols[instrSymbolStart + m.instruction].idx;
-
-        for(size_t fwdRefInst : forwardRefInstructions)
-        {
-          for(Symbol &s : f.instructions[fwdRefInst].args)
-          {
-            if(s.type == SymbolType::Unknown)
-            {
-              s = m_Symbols[s.idx];
-              RDCASSERT(s.type == SymbolType::Instruction);
-            }
-          }
-        }
 
         m_Symbols.resize(prevNumSymbols);
       }
