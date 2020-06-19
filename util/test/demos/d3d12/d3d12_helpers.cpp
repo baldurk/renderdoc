@@ -170,7 +170,8 @@ D3D12_ROOT_PARAMETER1 constParam(D3D12_SHADER_VISIBILITY vis, UINT space, UINT r
 }
 
 D3D12_ROOT_PARAMETER1 tableParam(D3D12_SHADER_VISIBILITY vis, D3D12_DESCRIPTOR_RANGE_TYPE type,
-                                 UINT space, UINT basereg, UINT numreg, UINT descOffset)
+                                 UINT space, UINT basereg, UINT numreg, UINT descOffset,
+                                 D3D12_DESCRIPTOR_RANGE_FLAGS flags)
 {
   // this is a super hack but avoids the need to be clumsy with allocation of these structs
   static D3D12_DESCRIPTOR_RANGE1 ranges[32] = {};
@@ -193,7 +194,7 @@ D3D12_ROOT_PARAMETER1 tableParam(D3D12_SHADER_VISIBILITY vis, D3D12_DESCRIPTOR_R
   range.BaseShaderRegister = basereg;
   range.NumDescriptors = numreg;
   range.OffsetInDescriptorsFromTableStart = descOffset;
-  range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+  range.Flags = flags;
 
   return ret;
 }
