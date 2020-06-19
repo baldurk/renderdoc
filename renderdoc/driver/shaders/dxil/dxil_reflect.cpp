@@ -433,10 +433,18 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
   ret.descriptor.name = t->name;
   ret.descriptor.varType = VarType::Unknown;
   ret.descriptor.varClass = CLASS_STRUCT;
-  if(ret.descriptor.name.beginsWith("struct."))
-    ret.descriptor.name.erase(0, 7);
-  if(ret.descriptor.name.beginsWith("class."))
-    ret.descriptor.name.erase(0, 6);
+
+  char alignmentPrefix[] = "dx.alignment.legacy.";
+  if(ret.descriptor.name.beginsWith(alignmentPrefix))
+    ret.descriptor.name.erase(0, sizeof(alignmentPrefix) - 1);
+
+  char structPrefix[] = "struct.";
+  if(ret.descriptor.name.beginsWith(structPrefix))
+    ret.descriptor.name.erase(0, sizeof(structPrefix) - 1);
+
+  char classPrefix[] = "class.";
+  if(ret.descriptor.name.beginsWith(classPrefix))
+    ret.descriptor.name.erase(0, sizeof(classPrefix) - 1);
 
   // if there are no members, return straight away
   if(t->members.empty())
@@ -453,6 +461,29 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
     // shouldn't get here if we don't have type information at all
     RDCERR("Couldn't find type information for struct '%s'!", t->name.c_str());
     return ret;
+  }
+
+  if(ret.descriptor.name.contains("StructuredBuffer<"))
+  {
+    // silently go into the inner member that's declared in this type as we only care about
+    // reflecting that actual structure
+    if(t->members.size() == 1 && it->second.members.size() == 1 && it->second.members[0].name == "h")
+      return MakeCBufferVariableType(typeInfo, t->members[0]);
+
+    RDCWARN("Structured buffer declaration found but expected single inner handle");
+
+    // otherwise use it as-is and trim off the name in an attempt to make it look normal
+
+    ret.descriptor.name.trim();
+
+    // remove any outer definition of the type
+    if(ret.descriptor.name.back() == '>')
+      ret.descriptor.name.pop_back();
+    else
+      RDCERR("Expected closing > in StructuredBuffer type name");
+
+    int idx = ret.descriptor.name.indexOf('<');
+    ret.descriptor.name.erase(0, idx + 1);
   }
 
   for(size_t i = 0; i < t->members.size(); i++)
