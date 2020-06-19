@@ -982,6 +982,7 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
     break;                                                                        \
   }
 
+#undef UNWRAP_STRUCT_INNER
 #define UNWRAP_STRUCT_INNER(StructType, StructName, ...)      \
   {                                                           \
     const StructName *in = (const StructName *)nextInput;     \
@@ -1507,6 +1508,189 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
         }
         break;
       }
+#else
+      case VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV:
+      case VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV:
+      case VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR:
+      case VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR:
+      case VK_STRUCTURE_TYPE_MEMORY_WIN32_HANDLE_PROPERTIES_KHR:
+      case VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR:
+      case VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR:
+      case VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR:
+      case VK_STRUCTURE_TYPE_D3D12_FENCE_SUBMIT_INFO_KHR:
+      case VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR:
+      case VK_STRUCTURE_TYPE_EXPORT_FENCE_WIN32_HANDLE_INFO_KHR:
+      case VK_STRUCTURE_TYPE_IMPORT_FENCE_WIN32_HANDLE_INFO_KHR:
+      case VK_STRUCTURE_TYPE_FENCE_GET_WIN32_HANDLE_INFO_KHR:
+      case VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV:
+      case VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_KHR:
+      {
+        RDCERR("Support for win32 external memory extensions not compiled in");
+        nextChainTail->pNext = nextInput;
+        break;
+      }
+#endif
+
+      case VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT:
+      case VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_TAG_INFO_EXT:
+      case VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT:
+      case VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_TAG_INFO_EXT:
+      case VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CALLBACK_DATA_EXT:
+      {
+        // could be implemented but would need extra work or doesn't make sense right now
+        RDCERR("Struct %s not handled in %s pNext chain", ToStr(nextInput->sType).c_str(),
+               structName);
+        nextChainTail->pNext = nextInput;
+        break;
+      }
+
+        UNHANDLED_STRUCTS()
+        {
+          RDCERR("Unhandled struct %s in %s pNext chain", ToStr(nextInput->sType).c_str(),
+                 structName);
+          nextChainTail->pNext = nextInput;
+          break;
+        }
+
+      case VK_STRUCTURE_TYPE_MAX_ENUM:
+      {
+        RDCERR("Invalid value %x in %s pNext chain", nextInput->sType, structName);
+        nextChainTail->pNext = nextInput;
+        break;
+      }
+    }
+
+    nextInput = nextInput->pNext;
+  }
+}
+
+void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInStructure *infoStruct)
+{
+  VkBaseInStructure *nextChainTail = infoStruct;
+  const VkBaseInStructure *nextInput = (const VkBaseInStructure *)infoStruct->pNext;
+
+// simplified version of UnwrapNextChain which just copies everything. Useful for when we need to
+// shallow duplicate a next chain (e.g. because we'll copy and patch one struct)
+
+#undef COPY_STRUCT_CAPTURE_ONLY
+#define COPY_STRUCT_CAPTURE_ONLY(StructType, StructName)                          \
+  case StructType:                                                                \
+    CopyNextChainedStruct(sizeof(StructName), tempMem, nextInput, nextChainTail); \
+    break;
+
+#undef COPY_STRUCT
+#define COPY_STRUCT(StructType, StructName)                                       \
+  case StructType:                                                                \
+    CopyNextChainedStruct(sizeof(StructName), tempMem, nextInput, nextChainTail); \
+    break;
+
+#undef UNWRAP_STRUCT_INNER
+#define UNWRAP_STRUCT_INNER(StructType, StructName, ...)                          \
+  case StructType:                                                                \
+    CopyNextChainedStruct(sizeof(StructName), tempMem, nextInput, nextChainTail); \
+    break;
+
+#undef UNWRAP_STRUCT
+#define UNWRAP_STRUCT(StructType, StructName, ...)                                \
+  case StructType:                                                                \
+    CopyNextChainedStruct(sizeof(StructName), tempMem, nextInput, nextChainTail); \
+    break;
+
+#undef UNWRAP_STRUCT_CAPTURE_ONLY
+#define UNWRAP_STRUCT_CAPTURE_ONLY(StructType, StructName, ...)                   \
+  case StructType:                                                                \
+    CopyNextChainedStruct(sizeof(StructName), tempMem, nextInput, nextChainTail); \
+    break;
+
+  nextChainTail->pNext = NULL;
+  while(nextInput)
+  {
+    switch(nextInput->sType)
+    {
+      PROCESS_SIMPLE_STRUCTS();
+
+      // complex structs to handle - require multiple allocations
+      case VK_STRUCTURE_TYPE_BIND_SPARSE_INFO:
+        CopyNextChainedStruct(sizeof(VkBindSparseInfo), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO:
+        CopyNextChainedStruct(sizeof(VkDescriptorSetAllocateInfo), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO:
+        CopyNextChainedStruct(sizeof(VkDescriptorSetLayoutCreateInfo), tempMem, nextInput,
+                              nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO:
+        CopyNextChainedStruct(sizeof(VkDeviceGroupDeviceCreateInfo), tempMem, nextInput,
+                              nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO:
+        CopyNextChainedStruct(sizeof(VkFramebufferCreateInfo), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO:
+        CopyNextChainedStruct(sizeof(VkGraphicsPipelineCreateInfo), tempMem, nextInput,
+                              nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO:
+        CopyNextChainedStruct(sizeof(VkComputePipelineCreateInfo), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO:
+        CopyNextChainedStruct(sizeof(VkPipelineLayoutCreateInfo), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_PRESENT_INFO_KHR:
+        CopyNextChainedStruct(sizeof(VkPresentInfoKHR), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO:
+        CopyNextChainedStruct(sizeof(VkRenderPassAttachmentBeginInfo), tempMem, nextInput,
+                              nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO:
+        CopyNextChainedStruct(sizeof(VkSemaphoreWaitInfo), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_SUBMIT_INFO:
+        CopyNextChainedStruct(sizeof(VkSubmitInfo), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET:
+        CopyNextChainedStruct(sizeof(VkWriteDescriptorSet), tempMem, nextInput, nextChainTail);
+        break;
+
+// NV win32 external memory extensions
+#if ENABLED(RDOC_WIN32)
+        // Structs that can be copied into place
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV,
+                                 VkImportMemoryWin32HandleInfoNV);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV,
+                                 VkExportMemoryWin32HandleInfoNV);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHR,
+                                 VkImportMemoryWin32HandleInfoKHR);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR,
+                                 VkExportMemoryWin32HandleInfoKHR);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_WIN32_HANDLE_PROPERTIES_KHR,
+                                 VkMemoryWin32HandlePropertiesKHR);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR,
+                                 VkExportSemaphoreWin32HandleInfoKHR);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_D3D12_FENCE_SUBMIT_INFO_KHR,
+                                 VkD3D12FenceSubmitInfoKHR);
+        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXPORT_FENCE_WIN32_HANDLE_INFO_KHR,
+                                 VkExportFenceWin32HandleInfoKHR);
+
+        UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR,
+                                   VkMemoryGetWin32HandleInfoKHR, UnwrapInPlace(out->memory));
+        UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHR,
+                                   VkImportSemaphoreWin32HandleInfoKHR,
+                                   UnwrapInPlace(out->semaphore));
+        UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_SEMAPHORE_GET_WIN32_HANDLE_INFO_KHR,
+                                   VkSemaphoreGetWin32HandleInfoKHR, UnwrapInPlace(out->semaphore));
+        UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_IMPORT_FENCE_WIN32_HANDLE_INFO_KHR,
+                                   VkImportFenceWin32HandleInfoKHR, UnwrapInPlace(out->fence));
+        UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_FENCE_GET_WIN32_HANDLE_INFO_KHR,
+                                   VkFenceGetWin32HandleInfoKHR, UnwrapInPlace(out->fence));
+
+      case VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV:
+      case VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_KHR:
+        CopyNextChainedStruct(sizeof(VkWin32KeyedMutexAcquireReleaseInfoKHR), tempMem, nextInput,
+                              nextChainTail);
+        break;
 #else
       case VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV:
       case VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV:

@@ -286,6 +286,7 @@ enum VkFlagWithNoBits
 size_t GetNextPatchSize(const void *next);
 void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
                      VkBaseInStructure *infoStruct);
+void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInStructure *infoStruct);
 
 template <typename VkStruct>
 const VkBaseInStructure *FindNextStruct(const VkStruct *haystack, VkStructureType needle)

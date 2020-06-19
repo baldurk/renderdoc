@@ -53,6 +53,33 @@ static void MakeSubpassLoadRP(RPCreateInfo &info, const RPCreateInfo *origInfo, 
   info.subpassCount = 1;
   info.pSubpasses = origInfo->pSubpasses + s;
 
+  // VK_KHR_multiview
+  const VkRenderPassMultiviewCreateInfo *multiview =
+      (const VkRenderPassMultiviewCreateInfo *)FindNextStruct(
+          origInfo, VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO);
+
+  static VkRenderPassMultiviewCreateInfo patched;
+
+  if(multiview)
+  {
+    // remove from the chain, the caller ensured we have a mutable chain so we won't be trashing the
+    // pNext chain we'll look up for any subsequent subpasses
+    RemoveNextStruct(&info, VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO);
+    patched = *multiview;
+
+    // keep the view mask for our target subpass
+    patched.subpassCount = 1;
+    patched.pViewMasks = patched.pViewMasks + s;
+
+    // view offsets are not allowed for self-dependencies, and we remove all other dependencies.
+    patched.dependencyCount = 0;
+    patched.pViewOffsets = NULL;
+
+    // add onto the chain
+    patched.pNext = info.pNext;
+    info.pNext = &patched;
+  }
+
   // remove any non-self dependencies
   info.dependencyCount = 0;
   for(uint32_t i = 0; i < origInfo->dependencyCount; i++)
@@ -932,6 +959,11 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
 
         VkRenderPassCreateInfo loadInfo = CreateInfo;
 
+        {
+          byte *tempMem = GetTempMemory(GetNextPatchSize(loadInfo.pNext));
+          CopyNextChainForPatching("VkRenderPassCreateInfo", tempMem, (VkBaseInStructure *)&loadInfo);
+        }
+
         rpinfo.loadRPs.resize(CreateInfo.subpassCount);
 
         // create a render pass for each subpass that maintains attachment layouts
@@ -1036,6 +1068,11 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
       deps.assign(info.pDependencies, info.dependencyCount);
 
       info.pDependencies = deps.data();
+
+      {
+        byte *tempMem = GetTempMemory(GetNextPatchSize(info.pNext));
+        CopyNextChainForPatching("VkRenderPassCreateInfo", tempMem, (VkBaseInStructure *)&info);
+      }
 
       rpinfo.loadRPs.resize(pCreateInfo->subpassCount);
 
@@ -1152,6 +1189,12 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass2(SerialiserType &ser, VkDevice 
 
         VkRenderPassCreateInfo2 loadInfo = CreateInfo;
 
+        {
+          byte *tempMem = GetTempMemory(GetNextPatchSize(loadInfo.pNext));
+          CopyNextChainForPatching("VkRenderPassCreateInfo2", tempMem,
+                                   (VkBaseInStructure *)&loadInfo);
+        }
+
         rpinfo.loadRPs.resize(CreateInfo.subpassCount);
 
         // create a render pass for each subpass that maintains attachment layouts
@@ -1257,6 +1300,11 @@ VkResult WrappedVulkan::vkCreateRenderPass2(VkDevice device,
       deps.assign(info.pDependencies, info.dependencyCount);
 
       info.pDependencies = deps.data();
+
+      {
+        byte *tempMem = GetTempMemory(GetNextPatchSize(info.pNext));
+        CopyNextChainForPatching("VkRenderPassCreateInfo2", tempMem, (VkBaseInStructure *)&info);
+      }
 
       rpinfo.loadRPs.resize(pCreateInfo->subpassCount);
 
