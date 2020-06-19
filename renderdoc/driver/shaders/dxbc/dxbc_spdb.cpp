@@ -1174,7 +1174,9 @@ SPDBChunk::SPDBChunk(void *chunk)
 
         const TypeDesc *vartype = &typeInfo[localType];
 
-        RDCASSERT(varOffset + varLen <= vartype->byteSize);
+        RDCASSERT((varOffset + varLen <= vartype->byteSize) ||
+                      (vartype->byteSize == 0 && vartype->leafType == LF_STRIDED_ARRAY),
+                  varOffset, varLen, vartype->byteSize, (uint32_t)vartype->leafType);
 
         uint32_t varTypeByteSize = vartype->byteSize;
 
