@@ -286,10 +286,19 @@ struct TypeInfo
     if(!typeAnnotations)
       return;
 
-    RDCASSERT(typeAnnotations->children.size() >= 2, typeAnnotations->children.size());
-    const Metadata *structAnnotations = typeAnnotations->children[0];
+    const Metadata *structAnnotations = NULL;
 
-    RDCASSERTEQUAL(getival<uint32_t>(structAnnotations->children[0]), 0);
+    for(size_t i = 0; i < typeAnnotations->children.size(); i++)
+    {
+      if(getival<uint32_t>(typeAnnotations->children[i]->children[0]) == 0)
+      {
+        structAnnotations = typeAnnotations->children[i];
+        break;
+      }
+    }
+
+    if(!structAnnotations)
+      return;
 
     for(size_t c = 1; c < structAnnotations->children.size(); c += 2)
     {
