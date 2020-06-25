@@ -1163,6 +1163,21 @@ public:
                                          VK_IMAGE_LAYOUT_GENERAL,
                                          Unwrap(m_DebugData.ReadbackBuffer.buf), 1, &region);
 
+      VkBufferMemoryBarrier bufBarrier = {
+          VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+          NULL,
+          VK_ACCESS_TRANSFER_WRITE_BIT,
+          VK_ACCESS_HOST_READ_BIT,
+          VK_QUEUE_FAMILY_IGNORED,
+          VK_QUEUE_FAMILY_IGNORED,
+          Unwrap(m_DebugData.ReadbackBuffer.buf),
+          0,
+          VK_WHOLE_SIZE,
+      };
+
+      // wait for copy to finish before reading back to host
+      DoPipelineBarrier(cmd, 1, &bufBarrier);
+
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
@@ -1248,6 +1263,21 @@ public:
       ObjDisp(cmd)->CmdCopyImageToBuffer(Unwrap(cmd), Unwrap(m_DebugData.Image),
                                          VK_IMAGE_LAYOUT_GENERAL,
                                          Unwrap(m_DebugData.ReadbackBuffer.buf), 1, &region);
+
+      VkBufferMemoryBarrier bufBarrier = {
+          VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+          NULL,
+          VK_ACCESS_TRANSFER_WRITE_BIT,
+          VK_ACCESS_HOST_READ_BIT,
+          VK_QUEUE_FAMILY_IGNORED,
+          VK_QUEUE_FAMILY_IGNORED,
+          Unwrap(m_DebugData.ReadbackBuffer.buf),
+          0,
+          VK_WHOLE_SIZE,
+      };
+
+      // wait for copy to finish before reading back to host
+      DoPipelineBarrier(cmd, 1, &bufBarrier);
 
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
