@@ -1006,7 +1006,8 @@ ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::
       return NULL;
     }
 
-    std::vector<const wchar_t *> args;
+    const size_t numAttempts = 2;
+    std::vector<const wchar_t *> args[numAttempts];
     std::vector<std::wstring> argStorage;
 
     argStorage.push_back(L"-WX");
@@ -1016,26 +1017,39 @@ ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::
     argStorage.push_back(L"-Qembed_debug");
 
     for(size_t i = 0; i < argStorage.size(); i++)
-      args.push_back(argStorage[i].c_str());
+      args[0].push_back(argStorage[i].c_str());
+
+    // The second set of args excludes -Qembed_debug, which can fail on older Windows 10 SDKs
+    for(size_t i = 0; i < argStorage.size() - 1; i++)
+      args[1].push_back(argStorage[i].c_str());
 
     IDxcOperationResultPtr result;
-    hr = compiler->Compile(sourceBlob, UTF82Wide(entry).c_str(), UTF82Wide(entry).c_str(),
-                           UTF82Wide(profile).c_str(), args.data(), (UINT)args.size(), NULL, 0,
-                           NULL, &result);
-
-    if(SUCCEEDED(hr))
+    HRESULT hrStatus;
+    for(size_t i = 0; i < numAttempts; ++i)
     {
-      result->GetStatus(&hr);
+      result = NULL;
+      hrStatus = E_NOINTERFACE;
 
-      if(SUCCEEDED(hr))
-      {
-        IDxcBlobPtr code = NULL;
-        result->GetResult(&code);
+      hr = compiler->Compile(sourceBlob, UTF82Wide(entry).c_str(), UTF82Wide(entry).c_str(),
+                             UTF82Wide(profile).c_str(), args[i].data(), (UINT)args[i].size(), NULL,
+                             0, NULL, &result);
 
-        dyn_CreateBlob((uint32_t)code->GetBufferSize(), &blob);
+      if(result)
+        result->GetStatus(&hrStatus);
 
-        memcpy(blob->GetBufferPointer(), code->GetBufferPointer(), code->GetBufferSize());
-      }
+      // Break early if compiling succeeds
+      if(SUCCEEDED(hr) && SUCCEEDED(hrStatus))
+        break;
+    }
+
+    if(SUCCEEDED(hr) && SUCCEEDED(hrStatus))
+    {
+      IDxcBlobPtr code = NULL;
+      result->GetResult(&code);
+
+      dyn_CreateBlob((uint32_t)code->GetBufferSize(), &blob);
+
+      memcpy(blob->GetBufferPointer(), code->GetBufferPointer(), code->GetBufferSize());
     }
     else
     {
@@ -1045,7 +1059,7 @@ ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::
         hr = result->GetErrorBuffer(&dxcErrors);
         if(SUCCEEDED(hr) && dxcErrors)
         {
-          TEST_ERROR("Failed to compile DXC shader: %s", hr, dxcErrors->GetBufferPointer());
+          TEST_ERROR("Failed to compile DXC shader: %s", dxcErrors->GetBufferPointer());
         }
         else
         {
