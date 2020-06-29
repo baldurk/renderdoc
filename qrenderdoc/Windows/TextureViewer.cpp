@@ -507,7 +507,12 @@ void TextureViewer::UI_UpdateCachedTexture()
       const ShaderReflection *shaderDetails =
           m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
 
-      if(!shaderDetails)
+      if(!m_Ctx.CurDrawcall() || !(m_Ctx.CurDrawcall()->flags & DrawFlags::Drawcall))
+      {
+        ui->debugPixelContext->setEnabled(false);
+        ui->debugPixelContext->setToolTip(tr("No draw call selected"));
+      }
+      else if(!shaderDetails)
       {
         ui->debugPixelContext->setEnabled(false);
         ui->debugPixelContext->setToolTip(tr("No pixel shader bound"));

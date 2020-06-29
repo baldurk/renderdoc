@@ -2290,6 +2290,10 @@ void BufferViewer::stageRowMenu(MeshDataStage stage, QMenu *menu, const QPoint &
     {
       m_DebugVert->setToolTip(tr("This API does not support shader debugging"));
     }
+    else if(!m_Ctx.CurDrawcall() || !(m_Ctx.CurDrawcall()->flags & DrawFlags::Drawcall))
+    {
+      m_DebugVert->setToolTip(tr("No draw call selected"));
+    }
     else if(!shaderDetails)
     {
       m_DebugVert->setToolTip(tr("No vertex shader bound"));
