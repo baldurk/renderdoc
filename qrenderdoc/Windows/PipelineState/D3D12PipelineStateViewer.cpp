@@ -2050,9 +2050,12 @@ void D3D12PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int
     const D3D12Pipe::ConstantBuffer &buf =
         m_Ctx.CurD3D12PipelineState()->rootElements[cb.rootElement].constantBuffers[cb.reg];
 
-    IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.byteOffset, buf.byteSize, buf.resourceId);
+    if(buf.resourceId != ResourceId())
+    {
+      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.byteOffset, buf.byteSize, buf.resourceId);
 
-    m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
+      m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
+    }
 
     return;
   }

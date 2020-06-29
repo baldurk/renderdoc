@@ -56,14 +56,21 @@ Q_DECLARE_METATYPE(VulkanVBIBTag);
 
 struct VulkanCBufferTag
 {
-  VulkanCBufferTag() { slotIdx = arrayIdx = 0; }
-  VulkanCBufferTag(uint32_t s, uint32_t i)
+  VulkanCBufferTag() = default;
+  VulkanCBufferTag(uint32_t s) { slotIdx = s; }
+  VulkanCBufferTag(bool g, int s, int b)
   {
-    slotIdx = s;
-    arrayIdx = i;
+    isGraphics = g;
+    descSet = s;
+    descBind = b;
   }
-  uint32_t slotIdx;
-  uint32_t arrayIdx;
+  bool isGraphics = false;
+  int descSet = -1;
+  int descBind = -1;
+
+  uint32_t slotIdx = ~0U;
+
+  uint32_t arrayIdx = 0;
 };
 
 Q_DECLARE_METATYPE(VulkanCBufferTag);
@@ -1392,10 +1399,10 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   const ConstantBlock *cblock = NULL;
   const Bindpoint *bindMap = NULL;
 
-  uint32_t slot = ~0U;
+  VulkanCBufferTag tag(stage.stage != ShaderStage::Compute, bindset, bind);
   if(shaderDetails != NULL)
   {
-    for(slot = 0; slot < (uint)shaderDetails->constantBlocks.count(); slot++)
+    for(uint32_t slot = 0; slot < (uint)shaderDetails->constantBlocks.count(); slot++)
     {
       const ConstantBlock &cb = shaderDetails->constantBlocks[slot];
       if(stage.bindpointMapping.constantBlocks[cb.bindPoint].bindset == bindset &&
@@ -1403,12 +1410,10 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       {
         cblock = &cb;
         bindMap = &stage.bindpointMapping.constantBlocks[cb.bindPoint];
+        tag = VulkanCBufferTag(slot);
         break;
       }
     }
-
-    if(slot >= (uint)shaderDetails->constantBlocks.count())
-      slot = ~0U;
   }
 
   const rdcarray<VKPipe::BindingElement> *slotBinds = NULL;
@@ -1499,6 +1504,8 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
           continue;
       }
 
+      tag.arrayIdx = (uint32_t)idx;
+
       if(arrayLength > 1)
       {
         if(cblock != NULL && !cblock->name.isEmpty())
@@ -1561,7 +1568,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       RDTreeWidgetItem *node =
           new RDTreeWidgetItem({QString(), setname, slotname, name, vecrange, sizestr, QString()});
 
-      node->setTag(QVariant::fromValue(VulkanCBufferTag(slot, (uint)idx)));
+      node->setTag(QVariant::fromValue(tag));
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -1764,7 +1771,7 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
             new RDTreeWidgetItem({QString(), QString(), cblock.name, tr("Push constants"), QString(),
                                   tr("%1 Variables").arg(cblock.variables.count()), QString()});
 
-        node->setTag(QVariant::fromValue(VulkanCBufferTag(cb, 0)));
+        node->setTag(QVariant::fromValue(VulkanCBufferTag(cb)));
 
         ubos->addTopLevelItem(node);
       }
@@ -2733,6 +2740,25 @@ void VulkanPipelineStateViewer::ubo_itemActivated(RDTreeWidgetItem *item, int co
     return;
 
   VulkanCBufferTag cb = tag.value<VulkanCBufferTag>();
+
+  if(cb.slotIdx == ~0U)
+  {
+    // unused cbuffer, open regular buffer viewer
+    const VKPipe::Pipeline &pipe = cb.isGraphics ? m_Ctx.CurVulkanPipelineState()->graphics
+                                                 : m_Ctx.CurVulkanPipelineState()->compute;
+
+    const VKPipe::BindingElement &buf =
+        pipe.descriptorSets[cb.descSet].bindings[cb.descBind].binds[cb.arrayIdx];
+
+    if(!buf.inlineBlock && buf.resourceResourceId != ResourceId())
+    {
+      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.byteOffset, buf.byteSize, buf.resourceResourceId);
+
+      m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
+    }
+
+    return;
+  }
 
   IConstantBufferPreviewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb.slotIdx, cb.arrayIdx);
 
