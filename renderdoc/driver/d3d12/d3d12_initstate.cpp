@@ -659,6 +659,9 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
           bool isDepth = IsDepthFormat(resDesc.Format) ||
                          (resDesc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) != 0;
 
+          if(isDepth)
+            arrayDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
           D3D12_RESOURCE_DESC msaaDesc = resDesc;
           msaaDesc.Alignment = 0;
           msaaDesc.Flags = isDepth ? D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
