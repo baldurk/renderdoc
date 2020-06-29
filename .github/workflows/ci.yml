@@ -227,7 +227,7 @@ jobs:
         unzip -u -q android-ndk-r14b-linux-${ARCH}.zip -d $GITHUB_WORKSPACE
         unzip -u -q sdk-tools-linux-3859397.zip -d $GITHUB_WORKSPACE
         echo "::set-env name=ANDROID_NDK::$GITHUB_WORKSPACE/android-ndk-r14b"
-        echo "::set-env name=ANDROID_SDK::$GITHUB_WORKSPACE/"
+        echo "::set-env name=ANDROID_HOME::$GITHUB_WORKSPACE/"
         
         # Answer "yes" to any license acceptance requests
         pushd $GITHUB_WORKSPACE/tools/bin
