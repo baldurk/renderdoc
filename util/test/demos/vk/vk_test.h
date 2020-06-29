@@ -234,6 +234,9 @@ struct VulkanGraphicsTest : public GraphicsTest
   // device version
   uint32_t devVersion;
 
+  // a custom struct to pass to vkInstanceCreateInfo::pNext
+  const void *instInfoNext = NULL;
+
   // requested features
   VkPhysicalDeviceFeatures features = {};
 

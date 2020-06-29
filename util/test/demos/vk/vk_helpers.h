@@ -202,6 +202,12 @@ struct InstanceCreateInfo : public VkInstanceCreateInfo
     ppEnabledExtensionNames = exts.data();
   }
 
+  InstanceCreateInfo &next(const void *next)
+  {
+    this->pNext = next;
+    return *this;
+  }
+
   operator const VkInstanceCreateInfo *() const { return this; }
 };
 

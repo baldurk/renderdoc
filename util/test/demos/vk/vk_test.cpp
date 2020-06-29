@@ -85,6 +85,8 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
 
     if(volk && spv)
     {
+      enabledInstExts = instExts;
+
       enabledInstExts.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 
 #if defined(WIN32)
@@ -137,6 +139,15 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
       std::vector<VkExtensionProperties> supportedExts;
       CHECK_VKR(vkh::enumerateInstanceExtensionProperties(supportedExts, NULL));
 
+      for(const char *l : enabledLayers)
+      {
+        std::vector<VkExtensionProperties> tmp;
+        CHECK_VKR(vkh::enumerateInstanceExtensionProperties(tmp, l));
+
+        for(const VkExtensionProperties &t : tmp)
+          supportedExts.push_back(t);
+      }
+
       // strip any extensions that are not supported
       for(auto it = enabledInstExts.begin(); it != enabledInstExts.end();)
       {
@@ -186,8 +197,9 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
       TEST_LOG("Initialising Vulkan at VK%u.%u", VK_VERSION_MAJOR(vulkanVersion),
                VK_VERSION_MINOR(vulkanVersion));
 
-      VkResult vkr = vkCreateInstance(vkh::InstanceCreateInfo(app, enabledLayers, enabledInstExts),
-                                      NULL, &inst);
+      VkResult vkr = vkCreateInstance(
+          vkh::InstanceCreateInfo(app, enabledLayers, enabledInstExts).next(instInfoNext), NULL,
+          &inst);
 
       if(vkr == VK_SUCCESS)
       {
