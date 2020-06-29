@@ -27,12 +27,17 @@
 #include <algorithm>
 #include "api/app/renderdoc_app.h"
 #include "common/common.h"
+#include "core/settings.h"
 #include "driver/shaders/dxil/dxil_bytecode.h"
+#include "lz4/lz4.h"
 #include "serialise/serialiser.h"
 #include "strings/string_utils.h"
 #include "dxbc_bytecode.h"
 
 #include "driver/dx/official/d3dcompiler.h"
+
+RDOC_CONFIG(rdcarray<rdcstr>, DXBC_Debug_SearchDirPaths, {},
+            "Paths to search for separated shader debug PDBs.");
 
 namespace DXBC
 {
@@ -774,24 +779,165 @@ rdcstr DXBCContainer::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLe
   return debugPath;
 }
 
-DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
+void DXBCContainer::TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &debugInfoPath)
 {
-  RDCASSERT(ByteCodeLength < UINT32_MAX);
+  if(!CheckForDebugInfo((const void *)&byteCode[0], byteCode.size()))
+  {
+    rdcstr originalPath = debugInfoPath;
 
+    if(originalPath.empty())
+      originalPath = GetDebugBinaryPath((const void *)&byteCode[0], byteCode.size());
+
+    if(!originalPath.empty())
+    {
+      bool lz4 = false;
+
+      if(!strncmp(originalPath.c_str(), "lz4#", 4))
+      {
+        originalPath = originalPath.substr(4);
+        lz4 = true;
+      }
+      // could support more if we're willing to compile in the decompressor
+
+      FILE *originalShaderFile = NULL;
+
+      const rdcarray<rdcstr> &searchPaths = DXBC_Debug_SearchDirPaths();
+
+      size_t numSearchPaths = searchPaths.size();
+
+      rdcstr foundPath;
+
+      // keep searching until we've exhausted all possible path options, or we've found a file that
+      // opens
+      while(originalShaderFile == NULL && !originalPath.empty())
+      {
+        // while we haven't found a file, keep trying through the search paths. For i==0
+        // check the path on its own, in case it's an absolute path.
+        for(size_t i = 0; originalShaderFile == NULL && i <= numSearchPaths; i++)
+        {
+          if(i == 0)
+          {
+            originalShaderFile = FileIO::fopen(originalPath.c_str(), "rb");
+            foundPath = originalPath;
+            continue;
+          }
+          else
+          {
+            const rdcstr &searchPath = searchPaths[i - 1];
+            foundPath = searchPath + "/" + originalPath;
+            originalShaderFile = FileIO::fopen(foundPath.c_str(), "rb");
+          }
+        }
+
+        if(originalShaderFile == NULL)
+        {
+          // the "documented" behaviour for D3D debug info names is that when presented with a
+          // relative path containing subfolders like foo/bar/blah.pdb then we should first try to
+          // append it to all search paths as-is, then strip off the top-level subdirectory to get
+          // bar/blah.pdb and try that in all search directories, and keep going. So if we got here
+          // and didn't open a file, try to strip off the the top directory and continue.
+          int32_t offs = originalPath.find_first_of("\\/");
+
+          // if we couldn't find a directory separator there's nothing to do, stop looking
+          if(offs == -1)
+            break;
+
+          // otherwise strip up to there and keep going
+          originalPath.erase(0, offs + 1);
+        }
+      }
+
+      if(originalShaderFile == NULL)
+        return;
+
+      FileIO::fseek64(originalShaderFile, 0L, SEEK_END);
+      uint64_t originalShaderSize = FileIO::ftell64(originalShaderFile);
+      FileIO::fseek64(originalShaderFile, 0, SEEK_SET);
+
+      if(lz4 || originalShaderSize >= byteCode.size())
+      {
+        bytebuf debugBytecode;
+
+        debugBytecode.resize((size_t)originalShaderSize);
+        FileIO::fread(&debugBytecode[0], sizeof(byte), (size_t)originalShaderSize,
+                      originalShaderFile);
+
+        if(lz4)
+        {
+          rdcarray<byte> decompressed;
+
+          // first try decompressing to 1MB flat
+          decompressed.resize(100 * 1024);
+
+          int ret = LZ4_decompress_safe((const char *)&debugBytecode[0], (char *)&decompressed[0],
+                                        (int)debugBytecode.size(), (int)decompressed.size());
+
+          if(ret < 0)
+          {
+            // if it failed, either source is corrupt or we didn't allocate enough space.
+            // Just allocate 255x compressed size since it can't need any more than that.
+            decompressed.resize(255 * debugBytecode.size());
+
+            ret = LZ4_decompress_safe((const char *)&debugBytecode[0], (char *)&decompressed[0],
+                                      (int)debugBytecode.size(), (int)decompressed.size());
+
+            if(ret < 0)
+            {
+              RDCERR("Failed to decompress LZ4 data from %s", foundPath.c_str());
+              return;
+            }
+          }
+
+          RDCASSERT(ret > 0, ret);
+
+          // we resize and memcpy instead of just doing .swap() because that would
+          // transfer over the over-large pessimistic capacity needed for decompression
+          debugBytecode.resize(ret);
+          memcpy(&debugBytecode[0], &decompressed[0], debugBytecode.size());
+        }
+
+        if(IsPDBFile(&debugBytecode[0], debugBytecode.size()))
+        {
+          UnwrapEmbeddedPDBData(debugBytecode);
+          m_DebugShaderBlob = debugBytecode;
+        }
+        else if(CheckForDebugInfo((const void *)&debugBytecode[0], debugBytecode.size()))
+        {
+          byteCode.swap(debugBytecode);
+        }
+      }
+
+      FileIO::fclose(originalShaderFile);
+    }
+  }
+}
+
+DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath)
+{
   RDCEraseEl(m_ShaderStats);
 
-  m_ShaderBlob.resize(ByteCodeLength);
-  memcpy(&m_ShaderBlob[0], ByteCode, m_ShaderBlob.size());
+  TryFetchSeparateDebugInfo(ByteCode, debugInfoPath);
 
-  char *data = (char *)&m_ShaderBlob[0];    // just for convenience
+  m_ShaderBlob = ByteCode;
 
-  FileHeader *header = (FileHeader *)&m_ShaderBlob[0];
+  // just for convenience
+  char *data = (char *)m_ShaderBlob.data();
+  char *debugData = (char *)m_DebugShaderBlob.data();
+
+  FileHeader *header = (FileHeader *)data;
+  FileHeader *debugHeader = (FileHeader *)debugData;
 
   if(header->fourcc != FOURCC_DXBC)
     return;
 
-  if(header->fileLength != (uint32_t)ByteCodeLength)
+  if(header->fileLength != (uint32_t)ByteCode.size())
     return;
+
+  if(debugHeader && debugHeader->fourcc != FOURCC_DXBC)
+    debugHeader = NULL;
+
+  if(debugHeader && debugHeader->fileLength != m_DebugShaderBlob.size())
+    debugHeader = NULL;
 
   memcpy(m_Hash, header->hashValue, sizeof(m_Hash));
 
@@ -800,6 +946,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
   m_Type = DXBC::ShaderType::Vertex;
 
   uint32_t *chunkOffsets = (uint32_t *)(header + 1);    // right after the header
+  uint32_t *debugChunkOffsets = debugHeader ? (uint32_t *)(debugHeader + 1) : NULL;
 
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
   {
@@ -989,7 +1136,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
             RDEFCBufferVariable *var =
                 (RDEFCBufferVariable *)(chunkContents + cbuf->variables.offset + varStride);
 
-            if(var->nameOffset > ByteCodeLength)
+            if(var->nameOffset > ByteCode.size())
             {
               varStride += extraData;
             }
@@ -1001,7 +1148,7 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
           RDEFCBufferVariable *var =
               (RDEFCBufferVariable *)(chunkContents + cbuf->variables.offset + vi * varStride);
 
-          RDCASSERT(var->nameOffset < ByteCodeLength);
+          RDCASSERT(var->nameOffset < ByteCode.size());
 
           CBufferVariable v;
 
@@ -1129,6 +1276,19 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
       {
         m_DXILByteCode = new DXIL::Program((const byte *)chunkContents, *chunkSize);
       }
+    }
+
+    // next search the debug file if it exists
+    for(uint32_t chunkIdx = 0;
+        debugHeader && m_DXILByteCode == NULL && chunkIdx < debugHeader->numChunks; chunkIdx++)
+    {
+      uint32_t *fourcc = (uint32_t *)(debugData + debugChunkOffsets[chunkIdx]);
+      uint32_t *chunkSize = (uint32_t *)(debugData + debugChunkOffsets[chunkIdx] + sizeof(uint32_t));
+
+      char *chunkContents = (char *)(debugData + debugChunkOffsets[chunkIdx] + sizeof(uint32_t) * 2);
+
+      if(*fourcc == FOURCC_ILDB)
+        m_DXILByteCode = new DXIL::Program((const byte *)chunkContents, *chunkSize);
     }
 
     // if we didn't find ILDB then we have to get the bytecode from DXIL. However we look for the
@@ -1385,6 +1545,18 @@ DXBCContainer::DXBCContainer(const void *ByteCode, size_t ByteCodeLength)
       m_DebugInfo = MakeSDBGChunk(fourcc);
     }
     else if(*fourcc == FOURCC_SPDB)
+    {
+      m_DebugInfo = MakeSPDBChunk(fourcc);
+    }
+  }
+
+  // try to find SPDB in the separate debug info pdb now
+  for(uint32_t chunkIdx = 0;
+      debugHeader && m_DebugInfo == NULL && chunkIdx < debugHeader->numChunks; chunkIdx++)
+  {
+    uint32_t *fourcc = (uint32_t *)(debugData + debugChunkOffsets[chunkIdx]);
+
+    if(*fourcc == FOURCC_SPDB)
     {
       m_DebugInfo = MakeSPDBChunk(fourcc);
     }

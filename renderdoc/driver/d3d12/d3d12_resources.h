@@ -681,7 +681,6 @@ public:
         : WrappedDeviceChild12(NULL, device), m_Key(byteCode)
     {
       m_Bytecode.assign((const byte *)byteCode.pShaderBytecode, byteCode.BytecodeLength);
-      m_DebugInfoSearchPaths = NULL;
       m_DXBCFile = NULL;
 
       device->GetResourceManager()->AddLiveResource(GetResourceID(), this);
@@ -733,12 +732,6 @@ public:
     }
 
     DXBCKey GetKey() { return m_Key; }
-    void SetDebugInfoPath(rdcarray<rdcstr> *searchPaths, const rdcstr &path)
-    {
-      m_DebugInfoSearchPaths = searchPaths;
-      m_DebugInfoPath = path;
-    }
-
     D3D12_SHADER_BYTECODE GetDesc()
     {
       D3D12_SHADER_BYTECODE ret;
@@ -751,8 +744,7 @@ public:
     {
       if(m_DXBCFile == NULL && !m_Bytecode.empty())
       {
-        TryReplaceOriginalByteCode();
-        m_DXBCFile = new DXBC::DXBCContainer((const void *)&m_Bytecode[0], m_Bytecode.size());
+        m_DXBCFile = new DXBC::DXBCContainer(m_Bytecode, rdcstr());
       }
       return m_DXBCFile;
     }
@@ -781,10 +773,7 @@ public:
 
     DXBCKey m_Key;
 
-    rdcstr m_DebugInfoPath;
-    rdcarray<rdcstr> *m_DebugInfoSearchPaths;
-
-    rdcarray<byte> m_Bytecode;
+    bytebuf m_Bytecode;
 
     bool m_Built;
     DXBC::DXBCContainer *m_DXBCFile;

@@ -40,6 +40,8 @@ class IDebugInfo;
 struct Reflection;
 IDebugInfo *MakeSDBGChunk(void *data);
 IDebugInfo *MakeSPDBChunk(void *data);
+bool IsPDBFile(void *data, size_t length);
+void UnwrapEmbeddedPDBData(bytebuf &bytes);
 };
 
 // many thanks to winehq for information of format of RDEF, STAT and SIGN chunks:
@@ -140,7 +142,7 @@ ShaderCompileFlags EncodeFlags(const uint32_t flags, const rdcstr &profile);
 class DXBCContainer
 {
 public:
-  DXBCContainer(const void *ByteCode, size_t ByteCodeLength);
+  DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath);
   ~DXBCContainer();
   DXBC::ShaderType m_Type = DXBC::ShaderType::Max;
   struct
@@ -170,6 +172,10 @@ public:
 private:
   DXBCContainer(const DXBCContainer &o);
   DXBCContainer &operator=(const DXBCContainer &o);
+
+  void TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &debugInfoPath);
+
+  bytebuf m_DebugShaderBlob;
 
   rdcstr m_Disassembly;
 

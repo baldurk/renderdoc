@@ -911,12 +911,11 @@ public:
   class ShaderEntry
   {
   public:
-    ShaderEntry() : m_DebugInfoSearchPaths(NULL), m_DXBCFile(NULL) {}
+    ShaderEntry() : m_DXBCFile(NULL) {}
     ShaderEntry(WrappedID3D11Device *device, ResourceId id, const byte *code, size_t codeLen)
     {
       m_ID = id;
       m_Bytecode.assign(code, codeLen);
-      m_DebugInfoSearchPaths = &device->GetShaderDebugInfoSearchPaths();
       m_DXBCFile = NULL;
     }
     ~ShaderEntry()
@@ -930,8 +929,8 @@ public:
     {
       if(m_DXBCFile == NULL && !m_Bytecode.empty())
       {
-        TryReplaceOriginalByteCode();
-        m_DXBCFile = new DXBC::DXBCContainer((const void *)&m_Bytecode[0], m_Bytecode.size());
+        m_DXBCFile = new DXBC::DXBCContainer(m_Bytecode, m_DebugInfoPath);
+        m_Bytecode.clear();
       }
       return m_DXBCFile;
     }
@@ -962,9 +961,8 @@ public:
     ResourceId m_ID;
 
     rdcstr m_DebugInfoPath;
-    const rdcarray<rdcstr> *m_DebugInfoSearchPaths;
 
-    rdcarray<byte> m_Bytecode;
+    bytebuf m_Bytecode;
 
     bool m_Built = false;
     DXBC::DXBCContainer *m_DXBCFile;

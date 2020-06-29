@@ -454,7 +454,6 @@ public:
     return m_LayoutDescs[layout];
   }
 
-  const rdcarray<rdcstr> &GetShaderDebugInfoSearchPaths();
   template <typename SerialiserType>
   bool Serialise_CaptureScope(SerialiserType &ser);
 
