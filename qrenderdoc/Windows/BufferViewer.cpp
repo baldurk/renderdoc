@@ -3862,8 +3862,8 @@ void BufferViewer::processFormat(const QString &format)
   byteRangeStart->setSingleStep(stride);
   byteRangeLength->setSingleStep(stride);
 
-  byteRangeStart->setMaximum(m_ObjectByteSize);
-  byteRangeLength->setMaximum(m_ObjectByteSize);
+  byteRangeStart->setMaximum((qulonglong)m_ObjectByteSize);
+  byteRangeLength->setMaximum((qulonglong)m_ObjectByteSize);
 
   byteRangeStart->setValue(m_ByteOffset);
   byteRangeLength->setValue(m_ByteSize);
