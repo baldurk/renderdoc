@@ -916,7 +916,7 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
      </widget>
     </item>
     <item>
-     <widget class="QSpinBox" name="byteRangeStart">
+     <widget class="QDoubleSpinBox" name="byteRangeStart">
       <property name="maximum">
        <number>999123456</number>
       </property>
@@ -930,7 +930,7 @@ Enter 0.0 to use automatic/guessed value derived from data.</string>
      </widget>
     </item>
     <item>
-     <widget class="QSpinBox" name="byteRangeLength">
+     <widget class="QDoubleSpinBox" name="byteRangeLength">
       <property name="maximum">
        <number>999123456</number>
       </property>

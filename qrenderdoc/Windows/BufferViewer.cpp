@@ -1913,6 +1913,15 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
 {
   ui->setupUi(this);
 
+  byteRangeStart = (RDSpinBox64 *)ui->byteRangeStart;
+  byteRangeLength = (RDSpinBox64 *)ui->byteRangeLength;
+
+  byteRangeStart->configure();
+  byteRangeLength->configure();
+
+  byteRangeStart->setMinimum(0ULL);
+  byteRangeLength->setMinimum(0ULL);
+
   m_ModelVSIn = new BufferItemModel(ui->vsinData, true, meshview, this);
   m_ModelVSOut = new BufferItemModel(ui->vsoutData, false, meshview, this);
   m_ModelGSOut = new BufferItemModel(ui->gsoutData, false, meshview, this);
@@ -2129,9 +2138,9 @@ void BufferViewer::SetupMeshView()
   // hide buttons we don't want in the toolbar
   ui->byteRangeLine->setVisible(false);
   ui->byteRangeStartLabel->setVisible(false);
-  ui->byteRangeStart->setVisible(false);
+  byteRangeStart->setVisible(false);
   ui->byteRangeLengthLabel->setVisible(false);
-  ui->byteRangeLength->setVisible(false);
+  byteRangeLength->setVisible(false);
 
   ui->resourceDetails->setVisible(false);
   ui->formatSpecifier->setVisible(false);
@@ -3848,34 +3857,34 @@ void BufferViewer::processFormat(const QString &format)
 
   ui->formatSpecifier->setFormat(format);
 
-  uint32_t stride = qMax(1U, cols.type.descriptor.arrayByteStride);
+  qulonglong stride = qMax(1U, cols.type.descriptor.arrayByteStride);
 
-  ui->byteRangeStart->setSingleStep((int)stride);
-  ui->byteRangeLength->setSingleStep((int)stride);
+  byteRangeStart->setSingleStep(stride);
+  byteRangeLength->setSingleStep(stride);
 
-  ui->byteRangeStart->setMaximum((int)m_ObjectByteSize);
-  ui->byteRangeLength->setMaximum((int)m_ObjectByteSize);
+  byteRangeStart->setMaximum(m_ObjectByteSize);
+  byteRangeLength->setMaximum(m_ObjectByteSize);
 
-  ui->byteRangeStart->setValue((int)m_ByteOffset);
-  ui->byteRangeLength->setValue((int)m_ByteSize);
+  byteRangeStart->setValue(m_ByteOffset);
+  byteRangeLength->setValue(m_ByteSize);
 
   ui->formatSpecifier->setErrors(errors);
 
   OnEventChanged(m_Ctx.CurEvent());
 }
 
-void BufferViewer::on_byteRangeStart_valueChanged(int value)
+void BufferViewer::on_byteRangeStart_valueChanged(double value)
 {
-  m_ByteOffset = value;
+  m_ByteOffset = RDSpinBox64::getUValue(value);
 
   m_PagingByteOffset = 0;
 
   processFormat(m_Format);
 }
 
-void BufferViewer::on_byteRangeLength_valueChanged(int value)
+void BufferViewer::on_byteRangeLength_valueChanged(double value)
 {
-  m_ByteSize = value;
+  m_ByteSize = RDSpinBox64::getUValue(value);
 
   m_PagingByteOffset = 0;
 

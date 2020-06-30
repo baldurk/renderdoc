@@ -27,6 +27,7 @@
 #include <QCheckBox>
 #include <QCoreApplication>
 #include <QDebug>
+#include <QDoubleSpinBox>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QProcess>
@@ -573,6 +574,42 @@ public:
 
 private:
   QAbstractItemView *m_widget;
+};
+
+// helper functions for using a double spinbox for 64-bit integers. We do this because it's
+// infeasible in Qt to actually derive and create a real 64-bit integer spinbox because critical
+// functionality depends on deriving QAbstractSpinBoxPrivate which is unavailable. So instead we use
+// a QDoubleSpinBox and restrict ourselves to the 53 bits of mantissa. This struct only has inline
+// helpers so we can cast a QDoubleSpinBox to one of these and use it as-is.
+class RDSpinBox64 : public QDoubleSpinBox
+{
+private:
+  static const qlonglong mask = (1ULL << 53U) - 1;
+
+public:
+  void configure() { QDoubleSpinBox::setDecimals(0); }
+  void setSingleStep(qlonglong val) { QDoubleSpinBox::setSingleStep(makeValue(val)); }
+  void setMinimum(qlonglong min) { QDoubleSpinBox::setMinimum(makeValue(min)); }
+  void setMaximum(qlonglong max) { QDoubleSpinBox::setMaximum(makeValue(max)); }
+  void setRange(qlonglong min, qlonglong max)
+  {
+    RDSpinBox64::setMinimum(min);
+    RDSpinBox64::setMaximum(max);
+  }
+
+  void setSingleStep(qulonglong val) { QDoubleSpinBox::setSingleStep(makeValue(val)); }
+  void setMinimum(qulonglong min) { QDoubleSpinBox::setMinimum(makeValue(min)); }
+  void setMaximum(qulonglong max) { QDoubleSpinBox::setMaximum(makeValue(max)); }
+  void setRange(qulonglong min, qulonglong max)
+  {
+    RDSpinBox64::setMinimum(min);
+    RDSpinBox64::setMaximum(max);
+  }
+
+  static qlonglong getValue(double d) { return qlonglong(d); }
+  static qulonglong getUValue(double d) { return qulonglong(d); }
+  static double makeValue(qlonglong l) { return l < 0 ? -double((-l) & mask) : double(l & mask); }
+  static double makeValue(qulonglong l) { return double(l & mask); }
 };
 
 class QMenu;

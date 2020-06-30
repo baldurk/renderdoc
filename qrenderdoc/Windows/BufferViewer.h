@@ -34,6 +34,7 @@ namespace Ui
 class BufferViewer;
 }
 
+class RDSpinBox64;
 class QItemSelection;
 class QMenu;
 class QPushButton;
@@ -112,8 +113,8 @@ private slots:
   void on_instance_valueChanged(int value);
   void on_viewIndex_valueChanged(int value);
   void on_rowOffset_valueChanged(int value);
-  void on_byteRangeStart_valueChanged(int value);
-  void on_byteRangeLength_valueChanged(int value);
+  void on_byteRangeStart_valueChanged(double value);
+  void on_byteRangeLength_valueChanged(double value);
 
   // manual slots
   void render_mouseMove(QMouseEvent *e);
@@ -225,6 +226,9 @@ private:
   QAction *m_ExportCSV = NULL;
   QAction *m_ExportBytes = NULL;
   QAction *m_DebugVert = NULL;
+
+  RDSpinBox64 *byteRangeStart = NULL;
+  RDSpinBox64 *byteRangeLength = NULL;
 
   RDTableView *tableForStage(MeshDataStage stage);
   BufferItemModel *modelForStage(MeshDataStage stage);
