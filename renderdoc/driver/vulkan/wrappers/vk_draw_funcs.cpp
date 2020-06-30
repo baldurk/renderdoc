@@ -604,7 +604,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       m_IndirectBufferSize = RDCMAX(m_IndirectBufferSize, sizeof(VkDrawIndirectCommand) +
                                                               (count > 0 ? count - 1 : 0) * stride);
 
-      rdcstr name = "vkCmdDrawIndirect";
+      rdcstr name = StringFormat::Fmt("vkCmdDrawIndirect(%u)", count);
 
       if(!IsDrawInRenderPass())
       {
@@ -667,7 +667,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       if(count == 0)
       {
         draw.flags = DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indirect;
-        draw.name = name + "(0)";
       }
 
       AddEvent();
@@ -987,7 +986,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       m_IndirectBufferSize = RDCMAX(m_IndirectBufferSize, sizeof(VkDrawIndexedIndirectCommand) +
                                                               (count > 0 ? count - 1 : 0) * stride);
 
-      rdcstr name = "vkCmdDrawIndexedIndirect";
+      rdcstr name = StringFormat::Fmt("vkCmdDrawIndexedIndirect(%u)", count);
 
       if(!IsDrawInRenderPass())
       {
@@ -1050,7 +1049,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
 
       if(count == 0)
       {
-        draw.name = name + "(0)";
+        draw.name = name;
         draw.flags =
             DrawFlags::Drawcall | DrawFlags::Instanced | DrawFlags::Indexed | DrawFlags::Indirect;
       }
