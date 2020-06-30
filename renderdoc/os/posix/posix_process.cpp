@@ -509,12 +509,6 @@ static rdcarray<rdcstr> ParseCommandLine(const rdcstr &appName, const char *cmdL
     }
   }
 
-  RDCLOG("$ ./a.out %s", cmdLine);
-  for(size_t i = 0; i < argv.size(); i++)
-  {
-    RDCLOG("%d: '%s'", i, argv[i].c_str());
-  }
-
   return argv;
 }
 
