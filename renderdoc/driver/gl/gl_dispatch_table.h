@@ -986,12 +986,8 @@ void SetDriverForHooks(WrappedOpenGL *driver);
 // best we can do.
 // On apple we suppress hooks while entering any CGL function so we don't record internal work that
 // can mess up the replay
-#if ENABLED(RDOC_WIN32) || ENABLED(RDOC_APPLE) || ENABLED(RDOC_SWITCH)
 void EnableGLHooks();
 void DisableGLHooks();
-#else
-#define EnableGLHooks() (void)0
-#endif
 
 #if ENABLED(RDOC_WIN32)
 void DisableWGLHooksForEGL();

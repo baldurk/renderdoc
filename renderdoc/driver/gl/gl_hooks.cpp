@@ -113,7 +113,6 @@ void SetDriverForHooks(WrappedOpenGL *driver)
   glhook.driver = driver;
 }
 
-#if ENABLED(RDOC_WIN32) || ENABLED(RDOC_APPLE) || ENABLED(RDOC_SWITCH)
 void EnableGLHooks()
 {
   glhook.enabled = true;
@@ -124,6 +123,7 @@ void DisableGLHooks()
   glhook.enabled = false;
 }
 
+#if ENABLED(RDOC_WIN32) || ENABLED(RDOC_APPLE) || ENABLED(RDOC_SWITCH)
 template <typename ret_type>
 ret_type default_ret()
 {

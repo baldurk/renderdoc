@@ -128,6 +128,8 @@ HOOK_EXPORT GLXContext glXCreateContext_renderdoc_hooked(Display *dpy, XVisualIn
   data.ctx = ret;
   data.cfg = vis;
 
+  EnableGLHooks();
+
   {
     SCOPED_LOCK(glLock);
     glxhook.driver.CreateContext(data, shareList, init, false, false);
@@ -273,6 +275,8 @@ HOOK_EXPORT GLXContext glXCreateContextAttribsARB_renderdoc_hooked(Display *dpy,
   data.ctx = ret;
   data.cfg = vis;
 
+  EnableGLHooks();
+
   {
     SCOPED_LOCK(glLock);
     glxhook.driver.CreateContext(data, shareList, init, core, true);
@@ -302,6 +306,7 @@ HOOK_EXPORT Bool glXMakeCurrent_renderdoc_hooked(Display *dpy, GLXDrawable drawa
     SCOPED_LOCK(glLock);
 
     SetDriverForHooks(&glxhook.driver);
+    EnableGLHooks();
 
     if(ctx && glxhook.contexts.find(ctx) == glxhook.contexts.end())
     {
@@ -372,6 +377,7 @@ HOOK_EXPORT Bool glXMakeContextCurrent_renderdoc_hooked(Display *dpy, GLXDrawabl
     SCOPED_LOCK(glLock);
 
     SetDriverForHooks(&glxhook.driver);
+    EnableGLHooks();
 
     if(ctx && glxhook.contexts.find(ctx) == glxhook.contexts.end())
     {
