@@ -119,7 +119,7 @@
 #define HookInitExtension_Instance_Metal() \
   HookInitExtension(VK_EXT_metal_surface, CreateMetalSurfaceEXT);
 
-#define HookDefine_PlatformSpecific_Metal()                                                    \
+#define HookDefine_Metal()                                                                     \
   HookDefine4(VkResult, vkCreateMetalSurfaceEXT, VkInstance, instance,                         \
               const VkMetalSurfaceCreateInfoEXT *, pCreateInfo, const VkAllocationCallbacks *, \
               pAllocator, VkSurfaceKHR *, pSurface);
