@@ -24,7 +24,7 @@
 
 #include "vk_test.h"
 
-RD_TEST(VK_Pixel_History_Test, VulkanGraphicsTest)
+RD_TEST(VK_Pixel_History, VulkanGraphicsTest)
 {
   static constexpr const char *Description = "Tests pixel history";
 

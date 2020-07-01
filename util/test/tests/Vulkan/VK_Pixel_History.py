@@ -21,7 +21,7 @@ def primitive_id(x): return x.primitiveID
 def unboundPS(x): return x.unboundPS
 
 class VK_Pixel_History(rdtest.TestCase):
-    demos_test_name = 'VK_Pixel_History_Test'
+    demos_test_name = 'VK_Pixel_History'
     demos_frame_cap = 5
 
     def check_capture(self):

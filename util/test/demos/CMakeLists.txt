@@ -28,6 +28,7 @@ set(VULKAN_SRC
         vk/vk_multi_thread_windows.cpp
         vk/vk_overlay_test.cpp
         vk/vk_parameter_zoo.cpp
+        vk/vk_pixel_history.cpp
         vk/vk_query_pool.cpp
         vk/vk_resource_lifetimes.cpp
         vk/vk_robustness2.cpp
@@ -36,6 +37,7 @@ set(VULKAN_SRC
         vk/vk_separate_depth_stencil_layouts.cpp
         vk/vk_shader_debug_zoo.cpp
         vk/vk_shader_editing.cpp
+        vk/vk_shader_isa.cpp
         vk/vk_simple_triangle.cpp
         vk/vk_spec_constants.cpp
         vk/vk_spirv_13_shaders.cpp

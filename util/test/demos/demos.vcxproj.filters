@@ -169,9 +169,6 @@
     <ClCompile Include="d3d11\d3d11_overlay_test.cpp">
       <Filter>D3D11\demos</Filter>
     </ClCompile>
-    <ClCompile Include="vk\vk_pixel_history_test.cpp">
-      <Filter>Vulkan\demos</Filter>
-    </ClCompile>
     <ClCompile Include="vk\vk_secondary_cmdbuf.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
@@ -513,6 +510,9 @@
     </ClCompile>
     <ClCompile Include="d3d12\d3d12_reflection_zoo.cpp">
       <Filter>D3D12\demos</Filter>
+    </ClCompile>
+    <ClCompile Include="vk\vk_pixel_history.cpp">
+      <Filter>Vulkan\demos</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
