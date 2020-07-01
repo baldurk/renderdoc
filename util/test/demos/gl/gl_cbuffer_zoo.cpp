@@ -56,7 +56,7 @@ void main()
 	vertOut.pos = vec4(Position.xyz, 1);
 	gl_Position = vertOut.pos;
 	vertOut.col = Color;
-	vertOut.uv = vec4(UV.xy, 0, 1);
+	vertOut.uv = vec4(UV.xy, 1e-12f, 1);
 }
 
 )EOSHADER";
@@ -404,13 +404,11 @@ void main()
 
     while(Running())
     {
-      glBindFramebuffer(GL_FRAMEBUFFER, 0);
+      glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+      glBindVertexArray(vao);
 
       float col[] = {0.2f, 0.2f, 0.2f, 1.0f};
       glClearBufferfv(GL_COLOR, 0, col);
-
-      glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-      glBindVertexArray(vao);
 
       glBindBufferRange(GL_UNIFORM_BUFFER, 0, cb, bindOffset * sizeof(Vec4f), 1024 * sizeof(Vec4f));
 

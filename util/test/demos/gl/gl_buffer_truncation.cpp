@@ -50,6 +50,9 @@ void main()
   const std::string pixel = R"EOSHADER(
 #version 460 core
 
+layout(location = 0) in vec4 OUTPOSITION;
+layout(location = 1) in vec4 OUTCOLOR;
+
 layout(location = 0, index = 0) out vec4 Color;
 
 layout(binding = 0, std140) uniform constsbuf
@@ -60,7 +63,7 @@ layout(binding = 0, std140) uniform constsbuf
 
 void main()
 {
-	Color = outcol;
+	Color = outcol + 1e-6f * OUTPOSITION + 1e-6f * OUTCOLOR;
 }
 
 )EOSHADER";
