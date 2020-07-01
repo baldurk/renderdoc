@@ -115,6 +115,7 @@ public:
   Serialiser(const Serialiser &other) = delete;
 
   bool IsErrored() { return IsReading() ? m_Read->IsErrored() : m_Write->IsErrored(); }
+  void SetErrored() { IsReading() ? m_Read->SetErrored() : m_Write->SetErrored(); }
   bool IsDummy() { return m_Dummy; }
   StreamWriter *GetWriter() { return m_Write; }
   StreamReader *GetReader() { return m_Read; }

@@ -92,6 +92,7 @@ public:
   ~StreamReader();
 
   bool IsErrored() { return m_HasError; }
+  void SetErrored() { m_HasError = true; }
   void SetOffset(uint64_t offs);
 
   inline uint64_t GetOffset() { return m_BufferHead - m_BufferBase + m_ReadOffset; }
@@ -129,7 +130,7 @@ public:
     if(numBytes == 0 || m_Dummy)
       return true;
 
-    if(!m_BufferBase)
+    if(!m_BufferBase || m_HasError)
     {
       // read 0s if we're in an error state
       if(data)
@@ -296,6 +297,7 @@ public:
   StreamWriter(Compressor *compressor, Ownership own);
 
   bool IsErrored() { return m_HasError; }
+  void SetErrored() { m_HasError = true; }
   static const int DefaultScratchSize = 32 * 1024;
 
   ~StreamWriter();

@@ -1244,12 +1244,15 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
     // thing user-facing.
     ser.Named("pNextType"_lit).Hidden();
 
+// if we encounter an unsupported struct on read we *cannot* continue since we don't know the
+// members that got serialised after it
 #define PNEXT_UNSUPPORTED(StructType)                                    \
   case StructType:                                                       \
   {                                                                      \
     RDCERR("No support for " #StructType " is available in this build"); \
     pNext = NULL;                                                        \
-    break;                                                               \
+    ser.SetErrored();                                                    \
+    return;                                                              \
   }
 
 // if we come across a struct we should process, then serialise a pointer to it.
@@ -1287,12 +1290,15 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
   }
   else    // ser.IsWriting()
   {
+// if we hit an unsupported struct, error and then just skip it entirely from the chain and move
+// onto the next one in the list
 #undef PNEXT_UNSUPPORTED
 #define PNEXT_UNSUPPORTED(StructType)                                    \
   case StructType:                                                       \
   {                                                                      \
     RDCERR("No support for " #StructType " is available in this build"); \
-    return;                                                              \
+    handled = true;                                                      \
+    break;                                                               \
   }
 
 // if we come across a struct we should process, then serialise a pointer to its type (to tell the
@@ -1326,7 +1332,8 @@ static void SerialiseNext(SerialiserType &ser, VkStructureType &sType, const voi
         case VK_STRUCTURE_TYPE_MAX_ENUM: break;
       }
 
-      RDCERR("Invalid pNext structure sType: %u", next->sType);
+      if(!handled)
+        RDCERR("Invalid pNext structure sType: %u", next->sType);
 
       // walk to the next item if we didn't serialise the current one
       next = (VkBaseInStructure *)next->pNext;
@@ -1351,6 +1358,14 @@ static inline void DeserialiseNext(const void *pNext)
 {
   if(pNext == NULL)
     return;
+
+#undef PNEXT_UNSUPPORTED
+#define PNEXT_UNSUPPORTED(StructType)                                    \
+  case StructType:                                                       \
+  {                                                                      \
+    RDCERR("No support for " #StructType " is available in this build"); \
+    return;                                                              \
+  }
 
 #undef PNEXT_STRUCT
 #define PNEXT_STRUCT(StructType, StructName)            \
