@@ -83,9 +83,7 @@ class VK_Shader_ISA(rdtest.TestCase):
             disasm: str = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, 'AMD_shader_info')
 
             expected = [
-                'asic(',
                 'tbuffer_load_format',
-                'pm4Crc',
                 's_endpgm',
             ]
 
@@ -103,13 +101,7 @@ class VK_Shader_ISA(rdtest.TestCase):
                                                             'KHR_pipeline_executable_properties')
 
             expected = [
-                'Executable handles following Vulkan stages:  VK_SHADER_STAGE_VERTEX_BIT',
-                'il_vs',
-                'dcl_output_position',
-                'end',
-                'asic(',
                 'tbuffer_load_format',
-                'pm4Crc',
                 's_endpgm',
             ]
 
