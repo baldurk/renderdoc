@@ -35,16 +35,16 @@
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 
-#define HookInitInstance_PlatformSpecific()                                              \
+#define HookInitExtension_Instance_Win32()                                               \
   HookInitExtension(VK_KHR_win32_surface, CreateWin32SurfaceKHR);                        \
   HookInitExtension(VK_KHR_win32_surface, GetPhysicalDeviceWin32PresentationSupportKHR); \
   HookInitExtension(VK_EXT_full_screen_exclusive, GetPhysicalDeviceSurfacePresentModes2EXT);
 
-#define HookInitInstance_PlatformSpecific_PhysDev()                                      \
+#define HookInitExtension_PhysDev_Win32()                                                \
   HookInitExtension(VK_KHR_win32_surface, GetPhysicalDeviceWin32PresentationSupportKHR); \
   HookInitExtension(VK_EXT_full_screen_exclusive, GetPhysicalDeviceSurfacePresentModes2EXT);
 
-#define HookInitDevice_PlatformSpecific()                                             \
+#define HookInitExtension_Device_Win32()                                              \
   HookInitExtension(VK_NV_win32_keyed_mutex, GetMemoryWin32HandleNV);                 \
   HookInitExtension(VK_KHR_external_memory_win32, GetMemoryWin32HandleKHR);           \
   HookInitExtension(VK_KHR_external_memory_win32, GetMemoryWin32HandlePropertiesKHR); \
@@ -56,7 +56,7 @@
   HookInitExtension(VK_EXT_full_screen_exclusive, ReleaseFullScreenExclusiveModeEXT); \
   HookInitExtension(VK_EXT_full_screen_exclusive, GetDeviceGroupSurfacePresentModes2EXT);
 
-#define HookDefine_PlatformSpecific()                                                            \
+#define HookDefine_Win32()                                                                       \
   HookDefine4(VkResult, vkCreateWin32SurfaceKHR, VkInstance, instance,                           \
               const VkWin32SurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *,   \
               pAllocator, VkSurfaceKHR *, pSurface);                                             \
@@ -88,90 +88,105 @@
   HookDefine2(VkResult, vkReleaseFullScreenExclusiveModeEXT, VkDevice, device, VkSwapchainKHR,   \
               swapchain);
 
-#elif defined(VK_USE_PLATFORM_MACOS_MVK) || defined(VK_USE_PLATFORM_METAL_EXT)
+#else    // defined(VK_USE_PLATFORM_WIN32_KHR)
+
+#define HookInitExtension_Instance_Win32()
+#define HookInitExtension_PhysDev_Win32()
+#define HookInitExtension_Device_Win32()
+#define HookDefine_Win32()
+
+#endif    // defined(VK_USE_PLATFORM_WIN32_KHR)
 
 #if defined(VK_USE_PLATFORM_MACOS_MVK)
 
-#define HookInitInstance_PlatformSpecific_MVK() \
+#define HookInitExtension_Instance_MVK() \
   HookInitExtension(VK_MVK_macos_surface, CreateMacOSSurfaceMVK);
 
-#define HookDefine_PlatformSpecific_MVK()                                                      \
+#define HookDefine_MVK()                                                                       \
   HookDefine4(VkResult, vkCreateMacOSSurfaceMVK, VkInstance, instance,                         \
               const VkMacOSSurfaceCreateInfoMVK *, pCreateInfo, const VkAllocationCallbacks *, \
               pAllocator, VkSurfaceKHR *, pSurface);
 
-#else
+#else    // defined(VK_USE_PLATFORM_MACOS_MVK)
 
-#define HookInitInstance_PlatformSpecific_MVK()
-#define HookDefine_PlatformSpecific_MVK()
+#define HookInitExtension_Instance_MVK()
+#define HookDefine_MVK()
 
-#endif
+#endif    // defined(VK_USE_PLATFORM_MACOS_MVK)
 
 #if defined(VK_USE_PLATFORM_METAL_EXT)
 
-#define HookInitInstance_PlatformSpecific_EXT() \
+#define HookInitExtension_Instance_Metal() \
   HookInitExtension(VK_EXT_metal_surface, CreateMetalSurfaceEXT);
 
-#define HookDefine_PlatformSpecific_EXT()                                                      \
+#define HookDefine_PlatformSpecific_Metal()                                                    \
   HookDefine4(VkResult, vkCreateMetalSurfaceEXT, VkInstance, instance,                         \
               const VkMetalSurfaceCreateInfoEXT *, pCreateInfo, const VkAllocationCallbacks *, \
               pAllocator, VkSurfaceKHR *, pSurface);
 
-#else
+#else    // defined(VK_USE_PLATFORM_METAL_EXT)
 
-#define HookInitInstance_PlatformSpecific_MVK()
-#define HookDefine_PlatformSpecific_EXT()
+#define HookInitExtension_Instance_Metal()
+#define HookDefine_Metal()
 
-#endif
+#endif    // defined(VK_USE_PLATFORM_METAL_EXT)
 
-#define HookInitInstance_PlatformSpecific() \
-  HookInitInstance_PlatformSpecific_MVK();  \
-  HookInitInstance_PlatformSpecific_EXT();
-#define HookInitInstance_PlatformSpecific_PhysDev()
+#define HookInitExtension_Instance_Mac() \
+  HookInitExtension_Instance_MVK();      \
+  HookInitExtension_Instance_Metal();
+#define HookDefine_Mac() \
+  HookDefine_MVK();      \
+  HookDefine_Metal();
+#define HookInitExtension_PhysDev_Mac()
+#define HookInitExtension_Device_Mac()
 
-#define HookDefine_PlatformSpecific() \
-  HookDefine_PlatformSpecific_MVK();  \
-  HookDefine_PlatformSpecific_EXT();
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
 
-#define HookInitDevice_PlatformSpecific()
-
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
-
-#define HookInitInstance_PlatformSpecific() \
+#define HookInitExtension_Instance_Android() \
   HookInitExtension(VK_KHR_android_surface, CreateAndroidSurfaceKHR);
-#define HookInitInstance_PlatformSpecific_PhysDev()
-
-#define HookInitDevice_PlatformSpecific()
-
-#define HookDefine_PlatformSpecific()                                                            \
+#define HookDefine_Android()                                                                     \
   HookDefine4(VkResult, vkCreateAndroidSurfaceKHR, VkInstance, instance,                         \
               const VkAndroidSurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *, \
               pAllocator, VkSurfaceKHR *, pSurface);
 
-#elif defined(VK_USE_PLATFORM_GGP)
+#else    // defined(VK_USE_PLATFORM_ANDROID_KHR)
 
-#define HookInitInstance_PlatformSpecific() \
+#define HookInitExtension_Instance_Android()
+#define HookDefine_Android()
+
+#endif    // defined(VK_USE_PLATFORM_ANDROID_KHR)
+
+#define HookInitExtension_PhysDev_Android()
+#define HookInitExtension_Device_Android()
+
+#if defined(VK_USE_PLATFORM_GGP)
+
+#define HookInitExtension_Instance_GGP() \
   HookInitExtension(VK_GGP_stream_descriptor_surface, CreateStreamDescriptorSurfaceGGP);
-#define HookInitInstance_PlatformSpecific_PhysDev()
-
-#define HookInitDevice_PlatformSpecific()
-
-#define HookDefine_PlatformSpecific()                                             \
+#define HookDefine_GGP()                                                          \
   HookDefine4(VkResult, vkCreateStreamDescriptorSurfaceGGP, VkInstance, instance, \
               const VkStreamDescriptorSurfaceCreateInfoGGP *, pCreateInfo,        \
               const VkAllocationCallbacks *, pAllocator, VkSurfaceKHR *, pSurface);
 
-#else
+#else    // defined(VK_USE_PLATFORM_GGP)
+
+#define HookInitExtension_Instance_GGP()
+#define HookDefine_GGP()
+
+#endif    // defined(VK_USE_PLATFORM_GGP)
+
+#define HookInitExtension_PhysDev_GGP()
+#define HookInitExtension_Device_GGP()
 
 #if defined(VK_USE_PLATFORM_XCB_KHR)
 
-#define HookInitInstance_PlatformSpecific_Xcb()               \
+#define HookInitExtension_Instance_XCB()                      \
   HookInitExtension(VK_KHR_xcb_surface, CreateXcbSurfaceKHR); \
   HookInitExtension(VK_KHR_xcb_surface, GetPhysicalDeviceXcbPresentationSupportKHR);
-#define HookInitInstance_PlatformSpecific_Xcb_PhysDev() \
+#define HookInitExtension_PhysDev_XCB() \
   HookInitExtension(VK_KHR_xcb_surface, GetPhysicalDeviceXcbPresentationSupportKHR);
 
-#define HookDefine_PlatformSpecific_Xcb()                                                    \
+#define HookDefine_XCB()                                                                     \
   HookDefine4(VkResult, vkCreateXcbSurfaceKHR, VkInstance, instance,                         \
               const VkXcbSurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *, \
               pAllocator, VkSurfaceKHR *, pSurface);                                         \
@@ -179,50 +194,50 @@
               physicalDevice, uint32_t, queueFamilyIndex, xcb_connection_t *, connection,    \
               xcb_visualid_t, visual_id);
 
-#else
+#else    // defined(VK_USE_PLATFORM_XCB_KHR)
 
-#define HookInitInstance_PlatformSpecific_Xcb()
-#define HookInitInstance_PlatformSpecific_Xcb_PhysDev()
-#define HookDefine_PlatformSpecific_Xcb()
+#define HookInitExtension_Instance_XCB()
+#define HookInitExtension_PhysDev_XCB()
+#define HookDefine_XCB()
 
-#endif
+#endif    // defined(VK_USE_PLATFORM_XCB_KHR)
 
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
 
-#define HookInitInstance_PlatformSpecific_Wayland()                   \
+#define HookInitExtension_Instance_Wayland()                          \
   HookInitExtension(VK_KHR_wayland_surface, CreateWaylandSurfaceKHR); \
   HookInitExtension(VK_KHR_wayland_surface, GetPhysicalDeviceWaylandPresentationSupportKHR);
-#define HookInitInstance_PlatformSpecific_Wayland_PhysDev() \
+#define HookInitExtension_PhysDev_Wayland() \
   HookInitExtension(VK_KHR_wayland_surface, GetPhysicalDeviceWaylandPresentationSupportKHR);
 
-#define HookDefine_PlatformSpecific_Wayland()                                                    \
+#define HookDefine_Wayland()                                                                     \
   HookDefine4(VkResult, vkCreateWaylandSurfaceKHR, VkInstance, instance,                         \
               const VkWaylandSurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *, \
               pAllocator, VkSurfaceKHR *, pSurface);                                             \
   HookDefine3(VkBool32, vkGetPhysicalDeviceWaylandPresentationSupportKHR, VkPhysicalDevice,      \
               physicalDevice, uint32_t, queueFamilyIndex, struct wl_display *, display);
 
-#else
+#else    // defined(VK_USE_PLATFORM_WAYLAND_KHR)
 
-#define HookInitInstance_PlatformSpecific_Wayland()
-#define HookInitInstance_PlatformSpecific_Wayland_PhysDev()
-#define HookDefine_PlatformSpecific_Wayland()
+#define HookInitExtension_Instance_Wayland()
+#define HookInitExtension_PhysDev_Wayland()
+#define HookDefine_Wayland()
 
-#endif
+#endif    // defined(VK_USE_PLATFORM_WAYLAND_KHR)
 
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
 
-#define HookInitInstance_PlatformSpecific_Xlib()                                       \
+#define HookInitExtension_Instance_XLib()                                              \
   HookInitExtension(VK_KHR_xlib_surface, CreateXlibSurfaceKHR);                        \
   HookInitExtension(VK_KHR_xlib_surface, GetPhysicalDeviceXlibPresentationSupportKHR); \
   HookInitExtension(VK_EXT_acquire_xlib_display, AcquireXlibDisplayEXT);               \
   HookInitExtension(VK_EXT_acquire_xlib_display, GetRandROutputDisplayEXT);
-#define HookInitInstance_PlatformSpecific_Xlib_PhysDev()                               \
+#define HookInitExtension_PhysDev_XLib()                                               \
   HookInitExtension(VK_KHR_xlib_surface, GetPhysicalDeviceXlibPresentationSupportKHR); \
   HookInitExtension(VK_EXT_acquire_xlib_display, AcquireXlibDisplayEXT);               \
   HookInitExtension(VK_EXT_acquire_xlib_display, GetRandROutputDisplayEXT);
 
-#define HookDefine_PlatformSpecific_Xlib()                                                         \
+#define HookDefine_XLib()                                                                          \
   HookDefine4(VkResult, vkCreateXlibSurfaceKHR, VkInstance, instance,                              \
               const VkXlibSurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *,      \
               pAllocator, VkSurfaceKHR *, pSurface);                                               \
@@ -233,27 +248,28 @@
   HookDefine4(VkResult, vkGetRandROutputDisplayEXT, VkPhysicalDevice, physicalDevice, Display *,   \
               dpy, RROutput, rrOutput, VkDisplayKHR *, pDisplay);
 
-#else
+#else    // defined(VK_USE_PLATFORM_XLIB_KHR)
 
-#define HookInitInstance_PlatformSpecific_Xlib()
-#define HookInitInstance_PlatformSpecific_Xlib_PhysDev()
-#define HookDefine_PlatformSpecific_Xlib()
+#define HookInitExtension_Instance_XLib()
+#define HookInitExtension_PhysDev_XLib()
+#define HookDefine_XLib()
 
-#endif
+#endif    // defined(VK_USE_PLATFORM_XLIB_KHR)
 
-#define HookInitInstance_PlatformSpecific()                                        \
-  HookInitInstance_PlatformSpecific_Xcb() HookInitInstance_PlatformSpecific_Xlib() \
-      HookInitInstance_PlatformSpecific_Wayland()
-#define HookInitInstance_PlatformSpecific_PhysDev()                                                \
-  HookInitInstance_PlatformSpecific_Xcb_PhysDev() HookInitInstance_PlatformSpecific_Xlib_PhysDev() \
-      HookInitInstance_PlatformSpecific_Wayland_PhysDev()
-#define HookInitDevice_PlatformSpecific()
+#define HookInitExtension_Instance_Linux() \
+  HookInitExtension_Instance_XCB();        \
+  HookInitExtension_Instance_XLib();       \
+  HookInitExtension_Instance_Wayland();
+#define HookInitExtension_PhysDev_Linux() \
+  HookInitExtension_PhysDev_XCB();        \
+  HookInitExtension_PhysDev_XLib();       \
+  HookInitExtension_PhysDev_Wayland();
+#define HookInitExtension_Device_Linux()
 
-#define HookDefine_PlatformSpecific()                                  \
-  HookDefine_PlatformSpecific_Xcb() HookDefine_PlatformSpecific_Xlib() \
-      HookDefine_PlatformSpecific_Wayland()
-
-#endif
+#define HookDefine_Linux() \
+  HookDefine_XCB();        \
+  HookDefine_XLib();       \
+  HookDefine_Wayland();
 
 #define HookInitVulkanInstance()                          \
   HookInit(CreateInstance);                               \
@@ -638,7 +654,11 @@
                     EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR);                  \
   HookInitExtension(KHR_performance_query, GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);   \
   HookInitExtension(EXT_tooling_info, GetPhysicalDeviceToolPropertiesEXT);                           \
-  HookInitInstance_PlatformSpecific_PhysDev()
+  HookInitExtension_PhysDev_Win32();                                                                 \
+  HookInitExtension_PhysDev_Linux();                                                                 \
+  HookInitExtension_PhysDev_GGP();                                                                   \
+  HookInitExtension_PhysDev_Android();                                                               \
+  HookInitExtension_PhysDev_Mac();
 
 #define HookInitVulkanInstanceExts()                                                                 \
   HookInitExtension(KHR_surface, DestroySurfaceKHR);                                                 \
@@ -699,7 +719,11 @@
                     EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR);                  \
   HookInitExtension(KHR_performance_query, GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);   \
   HookInitExtension(EXT_tooling_info, GetPhysicalDeviceToolPropertiesEXT);                           \
-  HookInitInstance_PlatformSpecific()
+  HookInitExtension_Instance_Win32();                                                                \
+  HookInitExtension_Instance_Linux();                                                                \
+  HookInitExtension_Instance_GGP();                                                                  \
+  HookInitExtension_Instance_Android();                                                              \
+  HookInitExtension_Instance_Mac();
 
 #define HookInitVulkanDeviceExts()                                                                 \
   HookInitExtension(EXT_debug_marker, DebugMarkerSetObjectTagEXT);                                 \
@@ -800,7 +824,11 @@
   HookInitExtension(EXT_private_data, DestroyPrivateDataSlotEXT);                                  \
   HookInitExtension(EXT_private_data, SetPrivateDataEXT);                                          \
   HookInitExtension(EXT_private_data, GetPrivateDataEXT);                                          \
-  HookInitDevice_PlatformSpecific()
+  HookInitExtension_Device_Win32();                                                                \
+  HookInitExtension_Device_Linux();                                                                \
+  HookInitExtension_Device_GGP();                                                                  \
+  HookInitExtension_Device_Android();                                                              \
+  HookInitExtension_Device_Mac();
 
 #define DefineHooks()                                                                                \
   HookDefine3(VkResult, vkEnumeratePhysicalDevices, VkInstance, instance, uint32_t *,                \
@@ -1427,4 +1455,8 @@
               objectHandle, VkPrivateDataSlotEXT, privateDataSlot, uint64_t, data);                  \
   HookDefine5(void, vkGetPrivateDataEXT, VkDevice, device, VkObjectType, objectType, uint64_t,       \
               objectHandle, VkPrivateDataSlotEXT, privateDataSlot, uint64_t *, pData);               \
-  HookDefine_PlatformSpecific()
+  HookDefine_Win32();                                                                                \
+  HookDefine_Linux();                                                                                \
+  HookDefine_GGP();                                                                                  \
+  HookDefine_Android();                                                                              \
+  HookDefine_Mac();

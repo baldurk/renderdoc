@@ -2840,7 +2840,7 @@ rdcstr DoStringise(const VkPackedVersion &el)
                            VK_VERSION_MINOR(el.version), VK_VERSION_PATCH(el.version));
 }
 
-#if ENABLED(RDOC_WIN32)
+#ifdef VK_USE_PLATFORM_WIN32_KHR
 template <>
 rdcstr DoStringise(const VkFullScreenExclusiveEXT &el)
 {

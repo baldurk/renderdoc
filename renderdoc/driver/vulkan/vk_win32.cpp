@@ -134,40 +134,6 @@ void WrappedVulkan::AddRequiredExtensions(bool instance, rdcarray<rdcstr> &exten
 #error "Win32 KHR platform not defined"
 #endif
 
-VkResult WrappedVulkan::vkCreateWin32SurfaceKHR(VkInstance instance,
-                                                const VkWin32SurfaceCreateInfoKHR *pCreateInfo,
-                                                const VkAllocationCallbacks *pAllocator,
-                                                VkSurfaceKHR *pSurface)
-{
-  // should not come in here at all on replay
-  RDCASSERT(IsCaptureMode(m_State));
-
-  VkResult ret =
-      ObjDisp(instance)->CreateWin32SurfaceKHR(Unwrap(instance), pCreateInfo, pAllocator, pSurface);
-
-  if(ret == VK_SUCCESS)
-  {
-    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
-
-    WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
-
-    // since there's no point in allocating a full resource record and storing the window
-    // handle under there somewhere, we just cast. We won't use the resource record for anything
-    wrapped->record = PackWindowHandleInRecord(WindowingSystem::Win32, (void *)pCreateInfo->hwnd);
-
-    Keyboard::AddInputWindow(WindowingSystem::Win32, (void *)pCreateInfo->hwnd);
-  }
-
-  return ret;
-}
-
-VkBool32 WrappedVulkan::vkGetPhysicalDeviceWin32PresentationSupportKHR(VkPhysicalDevice physicalDevice,
-                                                                       uint32_t queueFamilyIndex)
-{
-  return ObjDisp(physicalDevice)
-      ->GetPhysicalDeviceWin32PresentationSupportKHR(Unwrap(physicalDevice), queueFamilyIndex);
-}
-
 void *LoadVulkanLibrary()
 {
   return Process::LoadModule("vulkan-1.dll");

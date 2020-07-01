@@ -118,6 +118,8 @@ elseif(UNIX)
     if(ENABLE_WAYLAND)
         add_definitions(-DVK_USE_PLATFORM_WAYLAND_KHR)
     endif()
+    
+    add_definitions(-DVK_USE_PLATFORM_WIN32_KHR)
 
     set(VULKAN_LAYER_MODULE_PATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/${LIB_SUBFOLDER_TRAIL_SLASH}librenderdoc.so")
     set(VULKAN_ENABLE_VAR "ENABLE_VULKAN_RENDERDOC_CAPTURE")

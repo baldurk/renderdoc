@@ -54,7 +54,19 @@
 
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
-#include <windows.h>
+
+// RenderDoc modification
+// Want to allow building this on linux
+//#include <windows.h>
+typedef unsigned long DWORD;
+typedef wchar_t WCHAR;
+typedef WCHAR *LPWSTR;
+typedef const WCHAR *LPCWSTR;
+typedef void *HANDLE;
+struct HINSTANCE__; typedef struct HINSTANCE__ *HINSTANCE;
+struct HMONITOR__; typedef struct HMONITOR__ *HMONITOR;
+struct _SECURITY_ATTRIBUTES; typedef struct _SECURITY_ATTRIBUTES SECURITY_ATTRIBUTES;
+
 #include "vulkan_win32.h"
 #endif
 

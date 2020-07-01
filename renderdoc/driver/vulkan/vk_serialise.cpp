@@ -273,7 +273,7 @@ void DoSerialiseViaResourceId(SerialiserType &ser, type &el)
 
 SERIALISE_VK_HANDLES();
 
-#if ENABLED(RDOC_WIN32)
+#ifdef VK_USE_PLATFORM_WIN32_KHR
 
 #define HANDLE_PNEXT_OS()                                                                             \
   /* VK_NV_external_memory_win32 */                                                                   \
@@ -8804,7 +8804,7 @@ INSTANTIATE_SERIALISE_TYPE(ImageSubresourceRange);
 INSTANTIATE_SERIALISE_TYPE(ImageSubresourceStateForRange);
 INSTANTIATE_SERIALISE_TYPE(ImageState);
 
-#if ENABLED(RDOC_WIN32)
+#ifdef VK_USE_PLATFORM_WIN32_KHR
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkImportMemoryWin32HandleInfoNV &el)
 {
