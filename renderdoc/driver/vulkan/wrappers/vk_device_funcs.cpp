@@ -386,11 +386,10 @@ ReplayStatus WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVer
   VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, NULL, &m_Instance);
 
 #undef CheckExt
-#define CheckExt(name, ver)                                       \
-  if(!strcmp(instinfo.ppEnabledExtensionNames[i], "VK_" #name) || \
-     (int)renderdocAppInfo.apiVersion >= ver)                     \
-  {                                                               \
-    m_EnabledExtensions.ext_##name = true;                        \
+#define CheckExt(name, ver)                                                                           \
+  if(!strcmp(instinfo.ppEnabledExtensionNames[i], "VK_" #name) || renderdocAppInfo.apiVersion >= ver) \
+  {                                                                                                   \
+    m_EnabledExtensions.ext_##name = true;                                                            \
   }
 
   for(uint32_t i = 0; i < instinfo.enabledExtensionCount; i++)
@@ -3038,10 +3037,10 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     CheckDeviceExts();
 
 #undef CheckExt
-#define CheckExt(name, ver)                                                                           \
-  if(!strcmp(createInfo.ppEnabledExtensionNames[i], "VK_" #name) || (int)physProps.apiVersion >= ver) \
-  {                                                                                                   \
-    m_EnabledExtensions.ext_##name = true;                                                            \
+#define CheckExt(name, ver)                                                                      \
+  if(!strcmp(createInfo.ppEnabledExtensionNames[i], "VK_" #name) || physProps.apiVersion >= ver) \
+  {                                                                                              \
+    m_EnabledExtensions.ext_##name = true;                                                       \
   }
 
     for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)

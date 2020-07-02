@@ -44,7 +44,7 @@ struct InstanceDeviceInfo
 
   bool brokenGetDeviceProcAddr = false;
 
-  int vulkanVersion = VK_API_VERSION_1_0;
+  uint32_t vulkanVersion = VK_API_VERSION_1_0;
 
   DeclExts();
 };
