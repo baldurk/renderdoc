@@ -297,7 +297,7 @@ class VK_Pixel_History(rdtest.TestCase):
             for c in range(len(events[i])):
                 expected = events[i][c][1]
                 actual = events[i][c][0](modifs[i])
-                if not rdtest.value_compare(actual, expected):
+                if not rdtest.value_compare(actual, expected, eps=1.0/256.0):
                     raise rdtest.TestFailureException(
                         "eventId {}, primitiveID {}: testing {} expected {}, got {}".format(modifs[i].eventId, modifs[i].primitiveID,
                                                                             events[i][c][0].__name__,
