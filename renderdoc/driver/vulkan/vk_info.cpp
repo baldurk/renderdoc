@@ -46,6 +46,19 @@ VkDynamicState ConvertDynamicState(VulkanDynamicStateIndex idx)
       return VK_DYNAMIC_STATE_VIEWPORT_COARSE_SAMPLE_ORDER_NV;
     case VkDynamicExclusiveScissorNV: return VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV;
     case VkDynamicLineStippleEXT: return VK_DYNAMIC_STATE_LINE_STIPPLE_EXT;
+    case VkDynamicCullModeEXT: return VK_DYNAMIC_STATE_CULL_MODE_EXT;
+    case VkDynamicFrontFaceEXT: return VK_DYNAMIC_STATE_FRONT_FACE_EXT;
+    case VkDynamicPrimitiveTopologyEXT: return VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT;
+    case VkDynamicViewportCountEXT: return VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT_EXT;
+    case VkDynamicScissorCountEXT: return VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT_EXT;
+    case VkDynamicVertexInputBindingStrideEXT:
+      return VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE_EXT;
+    case VkDynamicDepthTestEnableEXT: return VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT;
+    case VkDynamicDepthWriteEnableEXT: return VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT;
+    case VkDynamicDepthCompareOpEXT: return VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT;
+    case VkDynamicDepthBoundsTestEnableEXT: return VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT;
+    case VkDynamicStencilTestEnableEXT: return VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT;
+    case VkDynamicStencilOpEXT: return VK_DYNAMIC_STATE_STENCIL_OP_EXT;
     case VkDynamicCount: break;
   }
 
@@ -76,6 +89,19 @@ VulkanDynamicStateIndex ConvertDynamicState(VkDynamicState state)
       return VkDynamicViewportCoarseSampleOrderNV;
     case VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV: return VkDynamicExclusiveScissorNV;
     case VK_DYNAMIC_STATE_LINE_STIPPLE_EXT: return VkDynamicLineStippleEXT;
+    case VK_DYNAMIC_STATE_CULL_MODE_EXT: return VkDynamicCullModeEXT;
+    case VK_DYNAMIC_STATE_FRONT_FACE_EXT: return VkDynamicFrontFaceEXT;
+    case VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT: return VkDynamicPrimitiveTopologyEXT;
+    case VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT_EXT: return VkDynamicViewportCountEXT;
+    case VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT_EXT: return VkDynamicScissorCountEXT;
+    case VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE_EXT:
+      return VkDynamicVertexInputBindingStrideEXT;
+    case VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT: return VkDynamicDepthTestEnableEXT;
+    case VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT: return VkDynamicDepthWriteEnableEXT;
+    case VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT: return VkDynamicDepthCompareOpEXT;
+    case VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT: return VkDynamicDepthBoundsTestEnableEXT;
+    case VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT: return VkDynamicStencilTestEnableEXT;
+    case VK_DYNAMIC_STATE_STENCIL_OP_EXT: return VkDynamicStencilOpEXT;
     case VK_DYNAMIC_STATE_MAX_ENUM: break;
   }
 

@@ -49,6 +49,18 @@ enum VulkanDynamicStateIndex
   VkDynamicViewportCoarseSampleOrderNV,
   VkDynamicExclusiveScissorNV,
   VkDynamicLineStippleEXT,
+  VkDynamicCullModeEXT,
+  VkDynamicFrontFaceEXT,
+  VkDynamicPrimitiveTopologyEXT,
+  VkDynamicViewportCountEXT,
+  VkDynamicScissorCountEXT,
+  VkDynamicVertexInputBindingStrideEXT,
+  VkDynamicDepthTestEnableEXT,
+  VkDynamicDepthWriteEnableEXT,
+  VkDynamicDepthCompareOpEXT,
+  VkDynamicDepthBoundsTestEnableEXT,
+  VkDynamicStencilTestEnableEXT,
+  VkDynamicStencilOpEXT,
   VkDynamicCount,
 };
 
