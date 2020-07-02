@@ -40,7 +40,7 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
                                                    '')
 
-        self.check('ps_6_0' in disasm)
+        self.check('SM6.0' in disasm)
 
         self.check_event()
 
