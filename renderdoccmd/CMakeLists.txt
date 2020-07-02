@@ -188,4 +188,6 @@ if(ANDROID)
                        COMMAND ${BUILD_TOOLS}/apksigner${TOOL_SCRIPT_EXTENSION} sign --ks ${KEYSTORE} --ks-pass pass:android --key-pass pass:android --ks-key-alias rdocandroidkey RenderDocCmd.apk
                        COMMAND ${CMAKE_COMMAND} -E copy RenderDocCmd.apk ${APK_FILE})
 
+    install (FILES ${APK_FILE} DESTINATION share/renderdoc/plugins/android)
+
 endif()
