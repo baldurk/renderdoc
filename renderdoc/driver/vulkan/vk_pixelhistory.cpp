@@ -367,6 +367,9 @@ struct VulkanPixelHistoryCallback : public VulkanDrawcallCallback
         m_OcclusionPool(occlusionPool)
   {
     m_pDriver->SetDrawcallCB(this);
+
+    if(m_pDriver->GetDeviceEnabledFeatures().occlusionQueryPrecise)
+      m_QueryFlags |= VK_QUERY_CONTROL_PRECISE_BIT;
   }
 
   virtual ~VulkanPixelHistoryCallback()
@@ -950,6 +953,7 @@ protected:
   }
 
   WrappedVulkan *m_pDriver;
+  VkQueryControlFlags m_QueryFlags = 0;
   PixelHistoryShaderCache *m_ShaderCache;
   PixelHistoryCallbackInfo m_CallbackInfo;
   VkQueryPool m_OcclusionPool;
@@ -1057,7 +1061,7 @@ private:
                                                 false);
 
     uint32_t occlIndex = (uint32_t)m_OcclusionQueries.size();
-    ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, occlIndex, 0);
+    ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, occlIndex, m_QueryFlags);
 
     if(drawcall->flags & DrawFlags::Indexed)
       ObjDisp(cmd)->CmdDrawIndexed(Unwrap(cmd), drawcall->numIndices, drawcall->numInstances,
@@ -1977,7 +1981,7 @@ private:
       RDCERR("A query already exist for event id %u and test %u", eventId, test);
     m_OcclusionQueries.insert(std::make_pair(rdcpair<uint32_t, uint32_t>(eventId, test), index));
 
-    ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, index, 0);
+    ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, index, m_QueryFlags);
 
     const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventId);
     if(drawcall->flags & DrawFlags::Indexed)
@@ -2515,7 +2519,7 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
     for(uint32_t i = 0; i < primIds.size(); i++)
     {
       uint32_t queryId = (uint32_t)m_OcclusionIndices.size();
-      ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, queryId, 0);
+      ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, queryId, m_QueryFlags);
       const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eid);
       uint32_t primId = primIds[i];
       // TODO once pixel history distinguishes between instances, draw only the instance for
