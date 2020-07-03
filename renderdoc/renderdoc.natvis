@@ -22,7 +22,7 @@
         <DisplayString>Heap-allocated String</DisplayString>
       </Synthetic>
       <Item Name="[size]" ExcludeView="simple" Condition="d.fixed.flags &amp; rdcstr::ALLOC_STATE">d.alloc.size</Item>
-      <Item Name="[capacity]" ExcludeView="simple" Condition="d.fixed.flags &amp; rdcstr::ALLOC_STATE">d.alloc._capacity</Item>
+      <Item Name="[capacity]" ExcludeView="simple" Condition="d.fixed.flags &amp; rdcstr::ALLOC_STATE">d.alloc._capacity &amp; rdcstr::alloc_ptr_rep::CAPACITY_MASK</Item>
       <ArrayItems Condition="d.fixed.flags &amp; rdcstr::ALLOC_STATE">
         <Size>d.alloc.size</Size>
         <ValuePointer>d.alloc.str</ValuePointer>
