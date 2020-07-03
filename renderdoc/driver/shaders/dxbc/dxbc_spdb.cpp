@@ -185,7 +185,7 @@ SPDBChunk::SPDBChunk(void *chunk)
       if(filename[0] == 0)
         filename = "shader";
 
-      Files.push_back({filename, (char *)fileContents.Data()});
+      Files.push_back({filename, rdcstr((const char *)fileContents.Data(), s.byteLength)});
     }
   }
 

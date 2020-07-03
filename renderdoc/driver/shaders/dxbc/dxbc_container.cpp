@@ -1224,6 +1224,10 @@ DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath)
     {
       m_DXBCByteCode = new DXBCBytecode::Program(chunkContents, *chunkSize);
     }
+    else if(*fourcc == FOURCC_SPDB || *fourcc == FOURCC_SDBG)
+    {
+      // debug info is processed afterwards
+    }
     else if(*fourcc == FOURCC_ILDB || *fourcc == FOURCC_DXIL)
     {
       // we avoiding parsing these immediately because you can get both in a dxbc, so we prefer the
