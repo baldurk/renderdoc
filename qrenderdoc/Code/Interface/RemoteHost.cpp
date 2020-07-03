@@ -197,12 +197,7 @@ ReplayStatus RemoteHost::Launch()
     return status;
   }
 
-  rdcstr run;
-
-  {
-    QMutexLocker autolock(&m_data->mutex);
-    run = RunCommand();
-  }
+  rdcstr run = RunCommand();
 
   RDProcess process;
   process.start(run);
