@@ -1117,7 +1117,6 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     m_VulkanPipelineState.vertexInput.bindings.resize(p.vertexBindings.size());
     for(size_t i = 0; i < p.vertexBindings.size(); i++)
     {
-      m_VulkanPipelineState.vertexInput.bindings[i].byteStride = p.vertexBindings[i].bytestride;
       m_VulkanPipelineState.vertexInput.bindings[i].vertexBufferBinding =
           p.vertexBindings[i].vbufferBinding;
       m_VulkanPipelineState.vertexInput.bindings[i].perInstance = p.vertexBindings[i].perInstance;
@@ -1131,6 +1130,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       m_VulkanPipelineState.vertexInput.vertexBuffers[i].resourceId =
           rm->GetOriginalID(state.vbuffers[i].buf);
       m_VulkanPipelineState.vertexInput.vertexBuffers[i].byteOffset = state.vbuffers[i].offs;
+      m_VulkanPipelineState.vertexInput.vertexBuffers[i].byteStride =
+          (uint32_t)state.vbuffers[i].stride;
+      m_VulkanPipelineState.vertexInput.vertexBuffers[i].byteSize = (uint32_t)state.vbuffers[i].size;
     }
 
     // Shader Stages
@@ -1195,7 +1197,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     }
 
     // Viewport/Scissors
-    size_t numViewScissors = p.viewportCount;
+    size_t numViewScissors = state.views.size();
     m_VulkanPipelineState.viewportScissor.viewportScissors.resize(numViewScissors);
     for(size_t i = 0; i < numViewScissors; i++)
     {
@@ -1254,7 +1256,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     m_VulkanPipelineState.rasterizer.depthClampEnable = p.depthClampEnable;
     m_VulkanPipelineState.rasterizer.depthClipEnable = p.depthClipEnable;
     m_VulkanPipelineState.rasterizer.rasterizerDiscardEnable = p.rasterizerDiscardEnable;
-    m_VulkanPipelineState.rasterizer.frontCCW = p.frontFace == VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    m_VulkanPipelineState.rasterizer.frontCCW = state.frontFace == VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     m_VulkanPipelineState.rasterizer.conservativeRasterization = ConservativeRaster::Disabled;
     switch(p.conservativeRasterizationMode)
@@ -1311,7 +1313,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         break;
     }
 
-    switch(p.cullMode)
+    switch(state.cullMode)
     {
       case VK_CULL_MODE_NONE: m_VulkanPipelineState.rasterizer.cullMode = CullMode::NoCull; break;
       case VK_CULL_MODE_FRONT_BIT:
@@ -1323,7 +1325,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         break;
       default:
         m_VulkanPipelineState.rasterizer.cullMode = CullMode::NoCull;
-        RDCERR("Unexpected value for CullMode %x", p.cullMode);
+        RDCERR("Unexpected value for CullMode %x", state.cullMode);
         break;
     }
 
@@ -1388,23 +1390,23 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     memcpy(m_VulkanPipelineState.colorBlend.blendFactor, state.blendConst, sizeof(float) * 4);
 
     // Depth Stencil
-    m_VulkanPipelineState.depthStencil.depthTestEnable = p.depthTestEnable;
-    m_VulkanPipelineState.depthStencil.depthWriteEnable = p.depthWriteEnable;
-    m_VulkanPipelineState.depthStencil.depthBoundsEnable = p.depthBoundsEnable;
-    m_VulkanPipelineState.depthStencil.depthFunction = MakeCompareFunc(p.depthCompareOp);
-    m_VulkanPipelineState.depthStencil.stencilTestEnable = p.stencilTestEnable;
+    m_VulkanPipelineState.depthStencil.depthTestEnable = state.depthTestEnable != VK_FALSE;
+    m_VulkanPipelineState.depthStencil.depthWriteEnable = state.depthWriteEnable != VK_FALSE;
+    m_VulkanPipelineState.depthStencil.depthBoundsEnable = state.depthBoundsTestEnable != VK_FALSE;
+    m_VulkanPipelineState.depthStencil.depthFunction = MakeCompareFunc(state.depthCompareOp);
+    m_VulkanPipelineState.depthStencil.stencilTestEnable = state.stencilTestEnable != VK_FALSE;
 
-    m_VulkanPipelineState.depthStencil.frontFace.passOperation = MakeStencilOp(p.front.passOp);
-    m_VulkanPipelineState.depthStencil.frontFace.failOperation = MakeStencilOp(p.front.failOp);
+    m_VulkanPipelineState.depthStencil.frontFace.passOperation = MakeStencilOp(state.front.passOp);
+    m_VulkanPipelineState.depthStencil.frontFace.failOperation = MakeStencilOp(state.front.failOp);
     m_VulkanPipelineState.depthStencil.frontFace.depthFailOperation =
-        MakeStencilOp(p.front.depthFailOp);
-    m_VulkanPipelineState.depthStencil.frontFace.function = MakeCompareFunc(p.front.compareOp);
+        MakeStencilOp(state.front.depthFailOp);
+    m_VulkanPipelineState.depthStencil.frontFace.function = MakeCompareFunc(state.front.compareOp);
 
-    m_VulkanPipelineState.depthStencil.backFace.passOperation = MakeStencilOp(p.back.passOp);
-    m_VulkanPipelineState.depthStencil.backFace.failOperation = MakeStencilOp(p.back.failOp);
+    m_VulkanPipelineState.depthStencil.backFace.passOperation = MakeStencilOp(state.back.passOp);
+    m_VulkanPipelineState.depthStencil.backFace.failOperation = MakeStencilOp(state.back.failOp);
     m_VulkanPipelineState.depthStencil.backFace.depthFailOperation =
-        MakeStencilOp(p.back.depthFailOp);
-    m_VulkanPipelineState.depthStencil.backFace.function = MakeCompareFunc(p.back.compareOp);
+        MakeStencilOp(state.back.depthFailOp);
+    m_VulkanPipelineState.depthStencil.backFace.function = MakeCompareFunc(state.back.compareOp);
 
     m_VulkanPipelineState.depthStencil.minDepthBounds = state.mindepth;
     m_VulkanPipelineState.depthStencil.maxDepthBounds = state.maxdepth;

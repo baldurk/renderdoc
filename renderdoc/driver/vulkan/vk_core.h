@@ -2303,4 +2303,44 @@ public:
 
   void vkGetPrivateDataEXT(VkDevice device, VkObjectType objectType, uint64_t objectHandle,
                            VkPrivateDataSlotEXT privateDataSlot, uint64_t *pData);
+
+  // VK_EXT_extended_dynamic_state
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetCullModeEXT, VkCommandBuffer commandBuffer,
+                                VkCullModeFlags cullMode);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetFrontFaceEXT, VkCommandBuffer commandBuffer,
+                                VkFrontFace frontFace);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetPrimitiveTopologyEXT, VkCommandBuffer commandBuffer,
+                                VkPrimitiveTopology primitiveTopology);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetViewportWithCountEXT, VkCommandBuffer commandBuffer,
+                                uint32_t viewportCount, const VkViewport *pViewports);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetScissorWithCountEXT, VkCommandBuffer commandBuffer,
+                                uint32_t scissorCount, const VkRect2D *pScissors);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindVertexBuffers2EXT, VkCommandBuffer commandBuffer,
+                                uint32_t firstBinding, uint32_t bindingCount,
+                                const VkBuffer *pBuffers, const VkDeviceSize *pOffsets,
+                                const VkDeviceSize *pSizes, const VkDeviceSize *pStrides);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthTestEnableEXT, VkCommandBuffer commandBuffer,
+                                VkBool32 depthTestEnable);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthWriteEnableEXT, VkCommandBuffer commandBuffer,
+                                VkBool32 depthWriteEnable);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthCompareOpEXT, VkCommandBuffer commandBuffer,
+                                VkCompareOp depthCompareOp);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetDepthBoundsTestEnableEXT,
+                                VkCommandBuffer commandBuffer, VkBool32 depthBoundsTestEnable);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetStencilTestEnableEXT, VkCommandBuffer commandBuffer,
+                                VkBool32 stencilTestEnable);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetStencilOpEXT, VkCommandBuffer commandBuffer,
+                                VkStencilFaceFlags faceMask, VkStencilOp failOp, VkStencilOp passOp,
+                                VkStencilOp depthFailOp, VkCompareOp compareOp);
 };

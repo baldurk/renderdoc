@@ -16,6 +16,7 @@ set(VULKAN_SRC
         vk/vk_draw_zoo.cpp
         vk/vk_empty_capture.cpp
         vk/vk_ext_buffer_address.cpp
+        vk/vk_extended_dyn_state.cpp
         vk/vk_image_layouts.cpp
         vk/vk_imageless_framebuffer.cpp
         vk/vk_indirect.cpp

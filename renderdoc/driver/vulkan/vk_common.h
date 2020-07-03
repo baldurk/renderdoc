@@ -607,6 +607,18 @@ enum class VulkanChunk : uint32_t
   vkWaitSemaphores,
   vkSignalSemaphore,
   vkQueuePresentKHR,
+  vkCmdSetCullModeEXT,
+  vkCmdSetFrontFaceEXT,
+  vkCmdSetPrimitiveTopologyEXT,
+  vkCmdSetViewportWithCountEXT,
+  vkCmdSetScissorWithCountEXT,
+  vkCmdBindVertexBuffers2EXT,
+  vkCmdSetDepthTestEnableEXT,
+  vkCmdSetDepthWriteEnableEXT,
+  vkCmdSetDepthCompareOpEXT,
+  vkCmdSetDepthBoundsTestEnableEXT,
+  vkCmdSetStencilTestEnableEXT,
+  vkCmdSetStencilOpEXT,
   Max,
 };
 
@@ -802,6 +814,7 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDescriptorIndexingFeatures)
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDescriptorIndexingProperties)
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDiscardRectanglePropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDriverProperties);
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExtendedDynamicStateFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExternalBufferInfo);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExternalFenceInfo);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceExternalImageFormatInfo);
@@ -1103,6 +1116,7 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDescriptorIndexingFeatures)
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDescriptorIndexingProperties)
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDiscardRectanglePropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDriverProperties);
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicStateFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExternalBufferInfo);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExternalFenceInfo);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceExternalImageFormatInfo);

@@ -281,6 +281,14 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
   {
     for(uint32_t i = 0; i < pCreateInfo->pDynamicState->dynamicStateCount; i++)
       dynamicStates[ConvertDynamicState(pCreateInfo->pDynamicState->pDynamicStates[i])] = true;
+
+    // if the viewports and counts are dynamic this supersets the viewport only being dynamic. For
+    // ease of code elsewhere, turn off the older one if both are specified so that we don't call
+    // vkCmdSetViewports when the count is also dynamic.
+    if(dynamicStates[VkDynamicViewportCountEXT])
+      dynamicStates[VkDynamicViewport] = false;
+    if(dynamicStates[VkDynamicScissorCountEXT])
+      dynamicStates[VkDynamicScissor] = false;
   }
 
   // VkPipelineShaderStageCreateInfo

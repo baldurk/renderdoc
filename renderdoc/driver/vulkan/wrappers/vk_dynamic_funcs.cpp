@@ -94,6 +94,70 @@ void WrappedVulkan::vkCmdSetViewport(VkCommandBuffer commandBuffer, uint32_t fir
 }
 
 template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetViewportWithCountEXT(SerialiserType &ser,
+                                                           VkCommandBuffer commandBuffer,
+                                                           uint32_t viewportCount,
+                                                           const VkViewport *pViewports)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(viewportCount);
+  SERIALISE_ELEMENT_ARRAY(pViewports, viewportCount);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.views.assign(pViewports, viewportCount);
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)->CmdSetViewportWithCountEXT(Unwrap(commandBuffer), viewportCount, pViewports);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetViewportWithCountEXT(VkCommandBuffer commandBuffer,
+                                                 uint32_t viewportCount, const VkViewport *pViewports)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdSetViewportWithCountEXT(Unwrap(commandBuffer), viewportCount, pViewports));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetViewportWithCountEXT);
+    Serialise_vkCmdSetViewportWithCountEXT(ser, commandBuffer, viewportCount, pViewports);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdSetScissor(SerialiserType &ser, VkCommandBuffer commandBuffer,
                                               uint32_t firstScissor, uint32_t scissorCount,
                                               const VkRect2D *pScissors)
@@ -156,6 +220,69 @@ void WrappedVulkan::vkCmdSetScissor(VkCommandBuffer commandBuffer, uint32_t firs
 
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetScissor);
     Serialise_vkCmdSetScissor(ser, commandBuffer, firstScissor, scissorCount, pScissors);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetScissorWithCountEXT(SerialiserType &ser,
+                                                          VkCommandBuffer commandBuffer,
+                                                          uint32_t scissorCount,
+                                                          const VkRect2D *pScissors)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(scissorCount);
+  SERIALISE_ELEMENT_ARRAY(pScissors, scissorCount);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.scissors.assign(pScissors, scissorCount);
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)->CmdSetScissorWithCountEXT(Unwrap(commandBuffer), scissorCount, pScissors);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetScissorWithCountEXT(VkCommandBuffer commandBuffer,
+                                                uint32_t scissorCount, const VkRect2D *pScissors)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdSetScissorWithCountEXT(Unwrap(commandBuffer), scissorCount, pScissors));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetScissorWithCountEXT);
+    Serialise_vkCmdSetScissorWithCountEXT(ser, commandBuffer, scissorCount, pScissors);
 
     record->AddChunk(scope.Get());
   }
@@ -809,6 +936,572 @@ void WrappedVulkan::vkCmdSetLineStippleEXT(VkCommandBuffer commandBuffer,
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetCullModeEXT(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                                  VkCullModeFlags cullMode)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(cullMode);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.cullMode = cullMode;
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)->CmdSetCullModeEXT(Unwrap(commandBuffer), cullMode);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetCullModeEXT(VkCommandBuffer commandBuffer, VkCullModeFlags cullMode)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdSetCullModeEXT(Unwrap(commandBuffer), cullMode));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetCullModeEXT);
+    Serialise_vkCmdSetCullModeEXT(ser, commandBuffer, cullMode);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetFrontFaceEXT(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                                   VkFrontFace frontFace)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(frontFace);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.frontFace = frontFace;
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)->CmdSetFrontFaceEXT(Unwrap(commandBuffer), frontFace);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetFrontFaceEXT(VkCommandBuffer commandBuffer, VkFrontFace frontFace)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)->CmdSetFrontFaceEXT(Unwrap(commandBuffer), frontFace));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetFrontFaceEXT);
+    Serialise_vkCmdSetFrontFaceEXT(ser, commandBuffer, frontFace);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetPrimitiveTopologyEXT(SerialiserType &ser,
+                                                           VkCommandBuffer commandBuffer,
+                                                           VkPrimitiveTopology primitiveTopology)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(primitiveTopology);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.primitiveTopology = primitiveTopology;
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)->CmdSetPrimitiveTopologyEXT(Unwrap(commandBuffer), primitiveTopology);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetPrimitiveTopologyEXT(VkCommandBuffer commandBuffer,
+                                                 VkPrimitiveTopology primitiveTopology)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdSetPrimitiveTopologyEXT(Unwrap(commandBuffer), primitiveTopology));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetPrimitiveTopologyEXT);
+    Serialise_vkCmdSetPrimitiveTopologyEXT(ser, commandBuffer, primitiveTopology);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetDepthTestEnableEXT(SerialiserType &ser,
+                                                         VkCommandBuffer commandBuffer,
+                                                         VkBool32 depthTestEnable)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(depthTestEnable);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.depthTestEnable = depthTestEnable;
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)->CmdSetDepthTestEnableEXT(Unwrap(commandBuffer), depthTestEnable);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetDepthTestEnableEXT(VkCommandBuffer commandBuffer, VkBool32 depthTestEnable)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdSetDepthTestEnableEXT(Unwrap(commandBuffer), depthTestEnable));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthTestEnableEXT);
+    Serialise_vkCmdSetDepthTestEnableEXT(ser, commandBuffer, depthTestEnable);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetDepthWriteEnableEXT(SerialiserType &ser,
+                                                          VkCommandBuffer commandBuffer,
+                                                          VkBool32 depthWriteEnable)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(depthWriteEnable);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.depthWriteEnable = depthWriteEnable;
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)->CmdSetDepthWriteEnableEXT(Unwrap(commandBuffer), depthWriteEnable);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetDepthWriteEnableEXT(VkCommandBuffer commandBuffer,
+                                                VkBool32 depthWriteEnable)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdSetDepthWriteEnableEXT(Unwrap(commandBuffer), depthWriteEnable));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthWriteEnableEXT);
+    Serialise_vkCmdSetDepthWriteEnableEXT(ser, commandBuffer, depthWriteEnable);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetDepthCompareOpEXT(SerialiserType &ser,
+                                                        VkCommandBuffer commandBuffer,
+                                                        VkCompareOp depthCompareOp)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(depthCompareOp);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.depthCompareOp = depthCompareOp;
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)->CmdSetDepthCompareOpEXT(Unwrap(commandBuffer), depthCompareOp);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetDepthCompareOpEXT(VkCommandBuffer commandBuffer,
+                                              VkCompareOp depthCompareOp)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdSetDepthCompareOpEXT(Unwrap(commandBuffer), depthCompareOp));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthCompareOpEXT);
+    Serialise_vkCmdSetDepthCompareOpEXT(ser, commandBuffer, depthCompareOp);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetDepthBoundsTestEnableEXT(SerialiserType &ser,
+                                                               VkCommandBuffer commandBuffer,
+                                                               VkBool32 depthBoundsTestEnable)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(depthBoundsTestEnable);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.depthBoundsTestEnable = depthBoundsTestEnable;
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)->CmdSetDepthBoundsTestEnableEXT(Unwrap(commandBuffer), depthBoundsTestEnable);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetDepthBoundsTestEnableEXT(VkCommandBuffer commandBuffer,
+                                                     VkBool32 depthBoundsTestEnable)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdSetDepthBoundsTestEnableEXT(Unwrap(commandBuffer), depthBoundsTestEnable));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetDepthBoundsTestEnableEXT);
+    Serialise_vkCmdSetDepthBoundsTestEnableEXT(ser, commandBuffer, depthBoundsTestEnable);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetStencilTestEnableEXT(SerialiserType &ser,
+                                                           VkCommandBuffer commandBuffer,
+                                                           VkBool32 stencilTestEnable)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(stencilTestEnable);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.stencilTestEnable = stencilTestEnable;
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)->CmdSetStencilTestEnableEXT(Unwrap(commandBuffer), stencilTestEnable);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetStencilTestEnableEXT(VkCommandBuffer commandBuffer,
+                                                 VkBool32 stencilTestEnable)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdSetStencilTestEnableEXT(Unwrap(commandBuffer), stencilTestEnable));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetStencilTestEnableEXT);
+    Serialise_vkCmdSetStencilTestEnableEXT(ser, commandBuffer, stencilTestEnable);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetStencilOpEXT(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                                   VkStencilFaceFlags faceMask, VkStencilOp failOp,
+                                                   VkStencilOp passOp, VkStencilOp depthFailOp,
+                                                   VkCompareOp compareOp)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(faceMask);
+  SERIALISE_ELEMENT(failOp);
+  SERIALISE_ELEMENT(passOp);
+  SERIALISE_ELEMENT(depthFailOp);
+  SERIALISE_ELEMENT(compareOp);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          if(faceMask & VK_STENCIL_FACE_FRONT_BIT)
+          {
+            renderstate.front.failOp = failOp;
+            renderstate.front.passOp = passOp;
+            renderstate.front.depthFailOp = depthFailOp;
+            renderstate.front.compareOp = compareOp;
+          }
+          if(faceMask & VK_STENCIL_FACE_BACK_BIT)
+          {
+            renderstate.back.failOp = failOp;
+            renderstate.back.passOp = passOp;
+            renderstate.back.depthFailOp = depthFailOp;
+            renderstate.back.compareOp = compareOp;
+          }
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)
+          ->CmdSetStencilOpEXT(Unwrap(commandBuffer), faceMask, failOp, passOp, depthFailOp,
+                               compareOp);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetStencilOpEXT(VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask,
+                                         VkStencilOp failOp, VkStencilOp passOp,
+                                         VkStencilOp depthFailOp, VkCompareOp compareOp)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdSetStencilOpEXT(Unwrap(commandBuffer), faceMask, failOp, passOp,
+                                               depthFailOp, compareOp));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetStencilOpEXT);
+    Serialise_vkCmdSetStencilOpEXT(ser, commandBuffer, faceMask, failOp, passOp, depthFailOp,
+                                   compareOp);
+
+    record->AddChunk(scope.Get());
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetViewport, VkCommandBuffer commandBuffer,
                                 uint32_t firstViewport, uint32_t viewportCount,
                                 const VkViewport *pViewports);
@@ -848,3 +1541,37 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDiscardRectangleEXT, VkCommandBuff
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetLineStippleEXT, VkCommandBuffer commandBuffer,
                                 uint32_t lineStippleFactor, uint16_t lineStipplePattern);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetCullModeEXT, VkCommandBuffer commandBuffer,
+                                VkCullModeFlags cullMode);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetFrontFaceEXT, VkCommandBuffer commandBuffer,
+                                VkFrontFace frontFace);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetPrimitiveTopologyEXT, VkCommandBuffer commandBuffer,
+                                VkPrimitiveTopology primitiveTopology);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetViewportWithCountEXT, VkCommandBuffer commandBuffer,
+                                uint32_t viewportCount, const VkViewport *pViewports);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetScissorWithCountEXT, VkCommandBuffer commandBuffer,
+                                uint32_t scissorCount, const VkRect2D *pScissors);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDepthTestEnableEXT, VkCommandBuffer commandBuffer,
+                                VkBool32 depthTestEnable);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDepthWriteEnableEXT, VkCommandBuffer commandBuffer,
+                                VkBool32 depthWriteEnable);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDepthCompareOpEXT, VkCommandBuffer commandBuffer,
+                                VkCompareOp depthCompareOp);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetDepthBoundsTestEnableEXT,
+                                VkCommandBuffer commandBuffer, VkBool32 depthBoundsTestEnable);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetStencilTestEnableEXT, VkCommandBuffer commandBuffer,
+                                VkBool32 stencilTestEnable);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetStencilOpEXT, VkCommandBuffer commandBuffer,
+                                VkStencilFaceFlags faceMask, VkStencilOp failOp, VkStencilOp passOp,
+                                VkStencilOp depthFailOp, VkCompareOp compareOp);

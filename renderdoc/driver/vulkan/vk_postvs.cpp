@@ -1220,7 +1220,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   // set defaults so that we don't try to fetch this output again if something goes wrong and the
   // same event is selected again
   {
-    m_PostVS.Data[eventId].vsin.topo = pipeInfo.topology;
+    m_PostVS.Data[eventId].vsin.topo = MakeVkPrimitiveTopology(drawcall->topology);
     m_PostVS.Data[eventId].vsout.buf = VK_NULL_HANDLE;
     m_PostVS.Data[eventId].vsout.bufmem = VK_NULL_HANDLE;
     m_PostVS.Data[eventId].vsout.instStride = 0;
@@ -1233,7 +1233,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     m_PostVS.Data[eventId].vsout.idxbuf = VK_NULL_HANDLE;
     m_PostVS.Data[eventId].vsout.idxbufmem = VK_NULL_HANDLE;
 
-    m_PostVS.Data[eventId].vsout.topo = pipeInfo.topology;
+    m_PostVS.Data[eventId].vsout.topo = MakeVkPrimitiveTopology(drawcall->topology);
   }
 
   // no outputs from this shader? unexpected but theoretically possible (dummy VS before
@@ -1660,20 +1660,23 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       }
 
       VkDeviceSize offs = state.vbuffers[binding].offs;
+      VkDeviceSize stride = state.vbuffers[binding].stride;
       uint64_t len = 0;
 
       if(vi->pVertexBindingDescriptions[vb].inputRate == VK_VERTEX_INPUT_RATE_INSTANCE)
       {
-        len = (uint64_t(maxInstance) + 1) * vi->pVertexBindingDescriptions[vb].stride;
+        len = (uint64_t(maxInstance) + 1) * stride;
 
-        offs += drawcall->instanceOffset * vi->pVertexBindingDescriptions[vb].stride;
+        offs += drawcall->instanceOffset * stride;
       }
       else
       {
-        len = (uint64_t(maxIndex) + 1) * vi->pVertexBindingDescriptions[vb].stride;
+        len = (uint64_t(maxIndex) + 1) * stride;
 
-        offs += drawcall->vertexOffset * vi->pVertexBindingDescriptions[vb].stride;
+        offs += drawcall->vertexOffset * stride;
       }
+
+      len = RDCMIN(len, state.vbuffers[binding].size);
 
       origVBs.push_back(bytebuf());
       if(state.vbuffers[binding].buf != ResourceId())
@@ -1713,6 +1716,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
           break;
         }
       }
+
+      if(attrDesc.binding < state.vbuffers.size())
+        stride = state.vbuffers[attrDesc.binding].stride;
 
       if(origVBBegin == NULL)
         continue;

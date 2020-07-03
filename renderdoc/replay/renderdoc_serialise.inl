@@ -1959,11 +1959,10 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VKPipe::VertexBinding &el)
 {
   SERIALISE_MEMBER(vertexBufferBinding);
-  SERIALISE_MEMBER(byteStride);
   SERIALISE_MEMBER(perInstance);
   SERIALISE_MEMBER(instanceDivisor);
 
-  SIZE_CHECK(16);
+  SIZE_CHECK(12);
 }
 
 template <typename SerialiserType>
@@ -1971,8 +1970,10 @@ void DoSerialise(SerialiserType &ser, VKPipe::VertexBuffer &el)
 {
   SERIALISE_MEMBER(resourceId);
   SERIALISE_MEMBER(byteOffset);
+  SERIALISE_MEMBER(byteStride);
+  SERIALISE_MEMBER(byteSize);
 
-  SIZE_CHECK(16);
+  SIZE_CHECK(24);
 }
 
 template <typename SerialiserType>

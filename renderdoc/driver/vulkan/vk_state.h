@@ -88,6 +88,11 @@ struct VulkanRenderState
     uint32_t compare = 0;
     uint32_t write = 0;
     uint32_t ref = 0;
+
+    // extended dynamic state
+    VkStencilOp failOp = VK_STENCIL_OP_KEEP, passOp = VK_STENCIL_OP_KEEP,
+                depthFailOp = VK_STENCIL_OP_KEEP;
+    VkCompareOp compareOp = VK_COMPARE_OP_ALWAYS;
   } front, back;
 
   struct
@@ -140,6 +145,10 @@ struct VulkanRenderState
   {
     ResourceId buf;
     VkDeviceSize offs = 0;
+
+    // extended dynamic state
+    VkDeviceSize size = VK_WHOLE_SIZE;
+    VkDeviceSize stride = 0;
   };
   rdcarray<VertBuffer> vbuffers;
 
@@ -167,6 +176,19 @@ struct VulkanRenderState
 
     bool forceDisable = false;
   } conditionalRendering;
+
+  // extended dynamic state
+  VkPrimitiveTopology primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+  VkCullModeFlags cullMode = VK_CULL_MODE_NONE;
+  VkFrontFace frontFace = VK_FRONT_FACE_CLOCKWISE;
+
+  VkBool32 depthBoundsTestEnable = VK_FALSE;
+  VkBool32 depthTestEnable = VK_FALSE;
+  VkBool32 depthWriteEnable = VK_FALSE;
+  VkCompareOp depthCompareOp = VK_COMPARE_OP_ALWAYS;
+
+  VkBool32 stencilTestEnable = VK_FALSE;
 
 private:
   ResourceId framebuffer;

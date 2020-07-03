@@ -151,16 +151,25 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
     const rdcarray<VkPushConstantRange> &pushRanges =
         vk->GetDebugManager()->GetPipelineLayoutInfo(pipeLayoutId).pushRanges;
 
-    bool dynamicStates[VkDynamicCount] = {0};
-    memcpy(dynamicStates, pipeinfo.dynamicStates, sizeof(dynamicStates));
-
-    RDCCOMPILE_ASSERT(sizeof(dynamicStates) == sizeof(pipeinfo.dynamicStates),
-                      "Dynamic states array size is out of sync");
+    const bool(&dynamicStates)[VkDynamicCount] = pipeinfo.dynamicStates;
 
     if(!views.empty() && dynamicStates[VkDynamicViewport])
       ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)views.size(), &views[0]);
     if(!scissors.empty() && dynamicStates[VkDynamicScissor])
       ObjDisp(cmd)->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)scissors.size(), &scissors[0]);
+
+    if(dynamicStates[VkDynamicViewportCountEXT])
+      ObjDisp(cmd)->CmdSetViewportWithCountEXT(Unwrap(cmd), (uint32_t)views.size(), views.data());
+    if(dynamicStates[VkDynamicScissorCountEXT])
+      ObjDisp(cmd)->CmdSetScissorWithCountEXT(Unwrap(cmd), (uint32_t)scissors.size(),
+                                              scissors.data());
+
+    if(dynamicStates[VkDynamicCullModeEXT])
+      ObjDisp(cmd)->CmdSetCullModeEXT(Unwrap(cmd), cullMode);
+    if(dynamicStates[VkDynamicFrontFaceEXT])
+      ObjDisp(cmd)->CmdSetFrontFaceEXT(Unwrap(cmd), frontFace);
+    if(dynamicStates[VkDynamicPrimitiveTopologyEXT])
+      ObjDisp(cmd)->CmdSetPrimitiveTopologyEXT(Unwrap(cmd), primitiveTopology);
 
     if(dynamicStates[VkDynamicLineWidth])
       ObjDisp(cmd)->CmdSetLineWidth(Unwrap(cmd), lineWidth);
@@ -171,8 +180,28 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
     if(dynamicStates[VkDynamicBlendConstants])
       ObjDisp(cmd)->CmdSetBlendConstants(Unwrap(cmd), blendConst);
 
+    if(dynamicStates[VkDynamicDepthBoundsTestEnableEXT])
+      ObjDisp(cmd)->CmdSetDepthBoundsTestEnableEXT(Unwrap(cmd), depthBoundsTestEnable);
     if(dynamicStates[VkDynamicDepthBounds])
       ObjDisp(cmd)->CmdSetDepthBounds(Unwrap(cmd), mindepth, maxdepth);
+
+    if(dynamicStates[VkDynamicDepthTestEnableEXT])
+      ObjDisp(cmd)->CmdSetDepthTestEnableEXT(Unwrap(cmd), depthTestEnable);
+    if(dynamicStates[VkDynamicDepthWriteEnableEXT])
+      ObjDisp(cmd)->CmdSetDepthWriteEnableEXT(Unwrap(cmd), depthWriteEnable);
+    if(dynamicStates[VkDynamicDepthCompareOpEXT])
+      ObjDisp(cmd)->CmdSetDepthCompareOpEXT(Unwrap(cmd), depthCompareOp);
+
+    if(dynamicStates[VkDynamicStencilTestEnableEXT])
+      ObjDisp(cmd)->CmdSetStencilTestEnableEXT(Unwrap(cmd), stencilTestEnable);
+
+    if(dynamicStates[VkDynamicStencilOpEXT])
+    {
+      ObjDisp(cmd)->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.failOp,
+                                       front.passOp, front.depthFailOp, front.compareOp);
+      ObjDisp(cmd)->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, front.failOp,
+                                       front.passOp, front.depthFailOp, front.compareOp);
+    }
 
     if(dynamicStates[VkDynamicStencilCompareMask])
     {
@@ -230,6 +259,8 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
           ibuffer.offs, type);
     }
 
+    bool dynamicStride = dynamicStates[VkDynamicVertexInputBindingStrideEXT];
+
     for(size_t i = 0; i < vbuffers.size(); i++)
     {
       if(vbuffers[i].buf == ResourceId())
@@ -237,16 +268,30 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
         if(vk->NULLDescriptorsAllowed())
         {
           VkBuffer empty = VK_NULL_HANDLE;
-          ObjDisp(cmd)->CmdBindVertexBuffers(Unwrap(cmd), (uint32_t)i, 1, &empty, &vbuffers[i].offs);
+
+          if(dynamicStride)
+            ObjDisp(cmd)->CmdBindVertexBuffers2EXT(
+                Unwrap(cmd), (uint32_t)i, 1, &empty, &vbuffers[i].offs,
+                vbuffers[i].size == VK_WHOLE_SIZE ? NULL : &vbuffers[i].size, &vbuffers[i].stride);
+          else
+            ObjDisp(cmd)->CmdBindVertexBuffers(Unwrap(cmd), (uint32_t)i, 1, &empty,
+                                               &vbuffers[i].offs);
         }
 
         continue;
       }
 
-      ObjDisp(cmd)->CmdBindVertexBuffers(
-          Unwrap(cmd), (uint32_t)i, 1,
-          UnwrapPtr(vk->GetResourceManager()->GetCurrentHandle<VkBuffer>(vbuffers[i].buf)),
-          &vbuffers[i].offs);
+      if(dynamicStride)
+        ObjDisp(cmd)->CmdBindVertexBuffers2EXT(
+            Unwrap(cmd), (uint32_t)i, 1,
+            UnwrapPtr(vk->GetResourceManager()->GetCurrentHandle<VkBuffer>(vbuffers[i].buf)),
+            &vbuffers[i].offs, vbuffers[i].size == VK_WHOLE_SIZE ? NULL : &vbuffers[i].size,
+            &vbuffers[i].stride);
+      else
+        ObjDisp(cmd)->CmdBindVertexBuffers(
+            Unwrap(cmd), (uint32_t)i, 1,
+            UnwrapPtr(vk->GetResourceManager()->GetCurrentHandle<VkBuffer>(vbuffers[i].buf)),
+            &vbuffers[i].offs);
     }
 
     for(size_t i = 0; i < xfbbuffers.size(); i++)

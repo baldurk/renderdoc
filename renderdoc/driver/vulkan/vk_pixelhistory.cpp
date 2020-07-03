@@ -1665,36 +1665,40 @@ private:
 
     // Culling
     {
-      if(p.cullMode != VK_CULL_MODE_NONE)
+      if(pipestate.cullMode != VK_CULL_MODE_NONE)
         flags |= TestEnabled_Culling;
 
-      if(p.cullMode == VK_CULL_MODE_FRONT_AND_BACK)
+      if(pipestate.cullMode == VK_CULL_MODE_FRONT_AND_BACK)
         flags |= TestMustFail_Culling;
     }
 
     // Depth and Stencil tests.
     {
-      if(p.depthBoundsEnable)
+      if(pipestate.depthBoundsTestEnable)
         flags |= TestEnabled_DepthBounds;
 
-      if(p.depthTestEnable)
+      if(pipestate.depthTestEnable)
       {
-        if(p.depthCompareOp != VK_COMPARE_OP_ALWAYS)
+        if(pipestate.depthCompareOp != VK_COMPARE_OP_ALWAYS)
           flags |= TestEnabled_DepthTesting;
-        if(p.depthCompareOp == VK_COMPARE_OP_NEVER)
+        if(pipestate.depthCompareOp == VK_COMPARE_OP_NEVER)
           flags |= TestMustFail_DepthTesting;
       }
 
-      if(p.stencilTestEnable)
+      if(pipestate.stencilTestEnable)
       {
-        if(p.front.compareOp != VK_COMPARE_OP_ALWAYS || p.back.compareOp != VK_COMPARE_OP_ALWAYS)
+        if(pipestate.front.compareOp != VK_COMPARE_OP_ALWAYS ||
+           pipestate.back.compareOp != VK_COMPARE_OP_ALWAYS)
           flags |= TestEnabled_StencilTesting;
 
-        if(p.front.compareOp == VK_COMPARE_OP_NEVER && p.back.compareOp == VK_COMPARE_OP_NEVER)
+        if(pipestate.front.compareOp == VK_COMPARE_OP_NEVER &&
+           pipestate.back.compareOp == VK_COMPARE_OP_NEVER)
           flags |= TestMustFail_StencilTesting;
-        else if(p.front.compareOp == VK_COMPARE_OP_NEVER && p.cullMode == VK_CULL_MODE_BACK_BIT)
+        else if(pipestate.front.compareOp == VK_COMPARE_OP_NEVER &&
+                pipestate.cullMode == VK_CULL_MODE_BACK_BIT)
           flags |= TestMustFail_StencilTesting;
-        else if(p.cullMode == VK_CULL_MODE_FRONT_BIT && p.back.compareOp == VK_COMPARE_OP_NEVER)
+        else if(pipestate.cullMode == VK_CULL_MODE_FRONT_BIT &&
+                pipestate.back.compareOp == VK_COMPARE_OP_NEVER)
           flags |= TestMustFail_StencilTesting;
       }
     }
@@ -1704,18 +1708,9 @@ private:
       bool inRegion = false;
       bool inAllRegions = true;
       // Do we even need to know viewerport here?
-      const VkRect2D *pScissors;
-      uint32_t scissorCount;
-      if(p.dynamicStates[VkDynamicScissor])
-      {
-        pScissors = pipestate.scissors.data();
-        scissorCount = (uint32_t)pipestate.scissors.size();
-      }
-      else
-      {
-        pScissors = p.scissors.data();
-        scissorCount = (uint32_t)p.scissors.size();
-      }
+      const VkRect2D *pScissors = pipestate.scissors.data();
+      uint32_t scissorCount = (uint32_t)pipestate.scissors.size();
+
       for(uint32_t i = 0; i < scissorCount; i++)
       {
         const VkOffset2D &offset = pScissors[i].offset;
@@ -2118,9 +2113,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       colourCopyParams.srcImageLayout = srcImageLayout;
     }
 
-    const VulkanCreationInfo::Pipeline &p =
-        m_pDriver->GetDebugManager()->GetPipelineInfo(prevState.graphics.pipeline);
-    bool depthEnabled = p.depthTestEnable;
+    bool depthEnabled = prevState.depthTestEnable != VK_FALSE;
 
     // Get primitive ID and shader output value for each fragment.
     for(uint32_t f = 0; f < numFragmentsInEvent; f++)

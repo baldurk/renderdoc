@@ -3511,18 +3511,18 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 
         if(vb.buf != ResourceId())
         {
-          uint32_t vertexOffset = 0;
+          VkDeviceSize vertexOffset = 0;
 
           if(bind.perInstance)
           {
             if(bind.instanceDivisor == 0)
-              vertexOffset = instOffset * bind.bytestride;
+              vertexOffset = instOffset * vb.stride;
             else
-              vertexOffset = (instOffset + (instid / bind.instanceDivisor)) * bind.bytestride;
+              vertexOffset = (instOffset + (instid / bind.instanceDivisor)) * vb.stride;
           }
           else
           {
-            vertexOffset = (idx + vertOffset) * bind.bytestride;
+            vertexOffset = (idx + vertOffset) * vb.stride;
           }
 
           if(Vulkan_Debug_ShaderDebugLogging())
@@ -3531,8 +3531,9 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
                    vb.offs + attr.byteoffset + vertexOffset, size);
           }
 
-          GetDebugManager()->GetBufferData(vb.buf, vb.offs + attr.byteoffset + vertexOffset, size,
-                                           data);
+          if(attr.byteoffset + vertexOffset < vb.size)
+            GetDebugManager()->GetBufferData(vb.buf, vb.offs + attr.byteoffset + vertexOffset, size,
+                                             data);
         }
       }
       else if(Vulkan_Debug_ShaderDebugLogging())
@@ -4115,10 +4116,10 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   // get the index of our desired pixel
   int destIdx = (x - xTL) + 2 * (y - yTL);
 
-  VkCompareOp depthOp = pipe.depthCompareOp;
+  VkCompareOp depthOp = state.depthCompareOp;
 
   // depth tests disabled acts the same as always compare mode
-  if(!pipe.depthTestEnable)
+  if(!state.depthTestEnable)
     depthOp = VK_COMPARE_OP_ALWAYS;
 
   for(uint32_t i = 0; i < numHits; i++)

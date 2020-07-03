@@ -2337,66 +2337,121 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
           {
             renderstate.graphics.pipeline = liveid;
 
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicViewport])
+            const VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[liveid];
+
+            if(!pipeInfo.dynamicStates[VkDynamicViewport] &&
+               !pipeInfo.dynamicStates[VkDynamicViewportCountEXT])
             {
-              renderstate.views = m_CreationInfo.m_Pipeline[liveid].viewports;
+              renderstate.views = pipeInfo.viewports;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicScissor])
+            if(!pipeInfo.dynamicStates[VkDynamicScissor] &&
+               !pipeInfo.dynamicStates[VkDynamicScissorCountEXT])
             {
-              renderstate.scissors = m_CreationInfo.m_Pipeline[liveid].scissors;
+              renderstate.scissors = pipeInfo.scissors;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicLineWidth])
+
+            if(!pipeInfo.dynamicStates[VkDynamicLineWidth])
             {
-              renderstate.lineWidth = m_CreationInfo.m_Pipeline[liveid].lineWidth;
+              renderstate.lineWidth = pipeInfo.lineWidth;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicDepthBias])
+            if(!pipeInfo.dynamicStates[VkDynamicDepthBias])
             {
-              renderstate.bias.depth = m_CreationInfo.m_Pipeline[liveid].depthBiasConstantFactor;
-              renderstate.bias.biasclamp = m_CreationInfo.m_Pipeline[liveid].depthBiasClamp;
-              renderstate.bias.slope = m_CreationInfo.m_Pipeline[liveid].depthBiasSlopeFactor;
+              renderstate.bias.depth = pipeInfo.depthBiasConstantFactor;
+              renderstate.bias.biasclamp = pipeInfo.depthBiasClamp;
+              renderstate.bias.slope = pipeInfo.depthBiasSlopeFactor;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicBlendConstants])
+            if(!pipeInfo.dynamicStates[VkDynamicBlendConstants])
             {
-              memcpy(renderstate.blendConst, m_CreationInfo.m_Pipeline[liveid].blendConst,
-                     sizeof(float) * 4);
+              memcpy(renderstate.blendConst, pipeInfo.blendConst, sizeof(float) * 4);
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicDepthBounds])
+            if(!pipeInfo.dynamicStates[VkDynamicDepthBounds])
             {
-              renderstate.mindepth = m_CreationInfo.m_Pipeline[liveid].minDepthBounds;
-              renderstate.maxdepth = m_CreationInfo.m_Pipeline[liveid].maxDepthBounds;
+              renderstate.mindepth = pipeInfo.minDepthBounds;
+              renderstate.maxdepth = pipeInfo.maxDepthBounds;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicStencilCompareMask])
+            if(!pipeInfo.dynamicStates[VkDynamicStencilCompareMask])
             {
-              renderstate.front.compare = m_CreationInfo.m_Pipeline[liveid].front.compareMask;
-              renderstate.back.compare = m_CreationInfo.m_Pipeline[liveid].back.compareMask;
+              renderstate.front.compare = pipeInfo.front.compareMask;
+              renderstate.back.compare = pipeInfo.back.compareMask;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicStencilWriteMask])
+            if(!pipeInfo.dynamicStates[VkDynamicStencilWriteMask])
             {
-              renderstate.front.write = m_CreationInfo.m_Pipeline[liveid].front.writeMask;
-              renderstate.back.write = m_CreationInfo.m_Pipeline[liveid].back.writeMask;
+              renderstate.front.write = pipeInfo.front.writeMask;
+              renderstate.back.write = pipeInfo.back.writeMask;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicStencilReference])
+            if(!pipeInfo.dynamicStates[VkDynamicStencilReference])
             {
-              renderstate.front.ref = m_CreationInfo.m_Pipeline[liveid].front.reference;
-              renderstate.back.ref = m_CreationInfo.m_Pipeline[liveid].back.reference;
+              renderstate.front.ref = pipeInfo.front.reference;
+              renderstate.back.ref = pipeInfo.back.reference;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicSampleLocationsEXT])
+            if(!pipeInfo.dynamicStates[VkDynamicSampleLocationsEXT])
             {
-              renderstate.sampleLocations.locations =
-                  m_CreationInfo.m_Pipeline[liveid].sampleLocations.locations;
-              renderstate.sampleLocations.gridSize =
-                  m_CreationInfo.m_Pipeline[liveid].sampleLocations.gridSize;
-              renderstate.sampleLocations.sampleCount =
-                  m_CreationInfo.m_Pipeline[liveid].rasterizationSamples;
+              renderstate.sampleLocations.locations = pipeInfo.sampleLocations.locations;
+              renderstate.sampleLocations.gridSize = pipeInfo.sampleLocations.gridSize;
+              renderstate.sampleLocations.sampleCount = pipeInfo.rasterizationSamples;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicDiscardRectangleEXT])
+            if(!pipeInfo.dynamicStates[VkDynamicDiscardRectangleEXT])
             {
-              renderstate.discardRectangles = m_CreationInfo.m_Pipeline[liveid].discardRectangles;
+              renderstate.discardRectangles = pipeInfo.discardRectangles;
             }
-            if(!m_CreationInfo.m_Pipeline[liveid].dynamicStates[VkDynamicLineStippleEXT])
+            if(!pipeInfo.dynamicStates[VkDynamicLineStippleEXT])
             {
-              renderstate.stippleFactor = m_CreationInfo.m_Pipeline[liveid].stippleFactor;
-              renderstate.stipplePattern = m_CreationInfo.m_Pipeline[liveid].stipplePattern;
+              renderstate.stippleFactor = pipeInfo.stippleFactor;
+              renderstate.stipplePattern = pipeInfo.stipplePattern;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicCullModeEXT])
+            {
+              renderstate.cullMode = pipeInfo.cullMode;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicFrontFaceEXT])
+            {
+              renderstate.frontFace = pipeInfo.frontFace;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicPrimitiveTopologyEXT])
+            {
+              renderstate.primitiveTopology = pipeInfo.topology;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicDepthTestEnableEXT])
+            {
+              renderstate.depthTestEnable = pipeInfo.depthTestEnable;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicDepthWriteEnableEXT])
+            {
+              renderstate.depthWriteEnable = pipeInfo.depthWriteEnable;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicDepthCompareOpEXT])
+            {
+              renderstate.depthCompareOp = pipeInfo.depthCompareOp;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicDepthBoundsTestEnableEXT])
+            {
+              renderstate.depthBoundsTestEnable = pipeInfo.depthBoundsEnable;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicStencilTestEnableEXT])
+            {
+              renderstate.stencilTestEnable = pipeInfo.stencilTestEnable;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicStencilOpEXT])
+            {
+              renderstate.front.passOp = pipeInfo.front.passOp;
+              renderstate.back.passOp = pipeInfo.back.passOp;
+
+              renderstate.front.failOp = pipeInfo.front.failOp;
+              renderstate.back.failOp = pipeInfo.back.failOp;
+
+              renderstate.front.depthFailOp = pipeInfo.front.depthFailOp;
+              renderstate.back.depthFailOp = pipeInfo.back.depthFailOp;
+
+              renderstate.front.compareOp = pipeInfo.front.compareOp;
+              renderstate.back.compareOp = pipeInfo.back.compareOp;
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicVertexInputBindingStrideEXT])
+            {
+              for(const VulkanCreationInfo::Pipeline::Binding &bind : pipeInfo.vertexBindings)
+              {
+                renderstate.vbuffers.resize_for_index(bind.vbufferBinding);
+                renderstate.vbuffers[bind.vbufferBinding].stride = bind.bytestride;
+              }
             }
           }
         }
@@ -2648,6 +2703,7 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(SerialiserType &ser,
           {
             renderstate.vbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
             renderstate.vbuffers[firstBinding + i].offs = pOffsets[i];
+            renderstate.vbuffers[firstBinding + i].size = VK_WHOLE_SIZE;
           }
         }
       }
@@ -2698,6 +2754,110 @@ void WrappedVulkan::vkCmdBindVertexBuffers(VkCommandBuffer commandBuffer, uint32
       if(pBuffers[i] != VK_NULL_HANDLE)
         record->MarkBufferFrameReferenced(GetRecord(pBuffers[i]), pOffsets[i], VK_WHOLE_SIZE,
                                           eFrameRef_Read);
+    }
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers2EXT(
+    SerialiserType &ser, VkCommandBuffer commandBuffer, uint32_t firstBinding,
+    uint32_t bindingCount, const VkBuffer *pBuffers, const VkDeviceSize *pOffsets,
+    const VkDeviceSize *pSizes, const VkDeviceSize *pStrides)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(firstBinding);
+  SERIALISE_ELEMENT(bindingCount);
+  SERIALISE_ELEMENT_ARRAY(pBuffers, bindingCount);
+  SERIALISE_ELEMENT_ARRAY(pOffsets, bindingCount);
+  SERIALISE_ELEMENT_ARRAY(pSizes, bindingCount);
+  SERIALISE_ELEMENT_ARRAY(pStrides, bindingCount);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+        ObjDisp(commandBuffer)
+            ->CmdBindVertexBuffers2EXT(Unwrap(commandBuffer), firstBinding, bindingCount,
+                                       UnwrapArray(pBuffers, bindingCount), pOffsets, pSizes,
+                                       pStrides);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          if(renderstate.vbuffers.size() < firstBinding + bindingCount)
+            renderstate.vbuffers.resize(firstBinding + bindingCount);
+
+          for(uint32_t i = 0; i < bindingCount; i++)
+          {
+            renderstate.vbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
+            renderstate.vbuffers[firstBinding + i].offs = pOffsets[i];
+            renderstate.vbuffers[firstBinding + i].size = pSizes ? pSizes[i] : VK_WHOLE_SIZE;
+
+            // if strides is NULL the pipeline bound must have had no dynamic state for stride and
+            // so stride was filled out then, we leave it as-is.
+            if(pStrides)
+              renderstate.vbuffers[firstBinding + i].stride = pStrides[i];
+          }
+        }
+      }
+    }
+    else
+    {
+      // track while reading, as we need to track resource usage
+      if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers.size() < firstBinding + bindingCount)
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers.resize(firstBinding + bindingCount);
+
+      for(uint32_t i = 0; i < bindingCount; i++)
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers[firstBinding + i].buf =
+            GetResID(pBuffers[i]);
+
+      ObjDisp(commandBuffer)
+          ->CmdBindVertexBuffers2EXT(Unwrap(commandBuffer), firstBinding, bindingCount,
+                                     UnwrapArray(pBuffers, bindingCount), pOffsets, pSizes, pStrides);
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdBindVertexBuffers2EXT(VkCommandBuffer commandBuffer, uint32_t firstBinding,
+                                               uint32_t bindingCount, const VkBuffer *pBuffers,
+                                               const VkDeviceSize *pOffsets,
+                                               const VkDeviceSize *pSizes,
+                                               const VkDeviceSize *pStrides)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdBindVertexBuffers2EXT(
+                              Unwrap(commandBuffer), firstBinding, bindingCount,
+                              UnwrapArray(pBuffers, bindingCount), pOffsets, pSizes, pStrides));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdBindVertexBuffers2EXT);
+    Serialise_vkCmdBindVertexBuffers2EXT(ser, commandBuffer, firstBinding, bindingCount, pBuffers,
+                                         pOffsets, pSizes, pStrides);
+
+    record->AddChunk(scope.Get());
+    for(uint32_t i = 0; i < bindingCount; i++)
+    {
+      // binding NULL is legal with robustness2
+      if(pBuffers[i] != VK_NULL_HANDLE)
+        record->MarkBufferFrameReferenced(GetRecord(pBuffers[i]), pOffsets[i],
+                                          pSizes ? pSizes[i] : VK_WHOLE_SIZE, eFrameRef_Read);
     }
   }
 }
@@ -5618,3 +5778,8 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBeginConditionalRenderingEXT,
                                 VkCommandBuffer commandBuffer,
                                 const VkConditionalRenderingBeginInfoEXT *pConditionalRenderingBegin);
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdEndConditionalRenderingEXT, VkCommandBuffer commandBuffer);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBindVertexBuffers2EXT, VkCommandBuffer commandBuffer,
+                                uint32_t firstBinding, uint32_t bindingCount,
+                                const VkBuffer *pBuffers, const VkDeviceSize *pOffsets,
+                                const VkDeviceSize *pSizes, const VkDeviceSize *pStrides);

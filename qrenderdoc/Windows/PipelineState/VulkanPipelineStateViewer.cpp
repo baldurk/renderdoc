@@ -1996,15 +1996,16 @@ void VulkanPipelineStateViewer::setState()
         if(vbuff != NULL)
         {
           offset = vbuff->byteOffset;
+          stride = vbuff->byteStride;
+          length = vbuff->byteSize;
 
           BufferDescription *buf = m_Ctx.GetBuffer(vbuff->resourceId);
-          if(buf)
+          if(buf && length >= ULONG_MAX)
             length = buf->length;
         }
 
         if(bind != NULL)
         {
-          stride = bind->byteStride;
           rate = bind->perInstance ? tr("Instance") : tr("Vertex");
           if(bind->perInstance)
             divisor = bind->instanceDivisor;
@@ -2979,10 +2980,10 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     QList<QVariantList> rows;
 
     for(const VKPipe::VertexBinding &attr : vi.bindings)
-      rows.push_back({attr.vertexBufferBinding, attr.byteStride,
-                      attr.perInstance ? tr("PER_INSTANCE") : tr("PER_VERTEX")});
+      rows.push_back(
+          {attr.vertexBufferBinding, attr.perInstance ? tr("PER_INSTANCE") : tr("PER_VERTEX")});
 
-    m_Common.exportHTMLTable(xml, {tr("Binding"), tr("Byte Stride"), tr("Step Rate")}, rows);
+    m_Common.exportHTMLTable(xml, {tr("Binding"), tr("Step Rate")}, rows);
   }
 
   {
@@ -2995,7 +2996,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     int i = 0;
     for(const VKPipe::VertexBuffer &vb : vi.vertexBuffers)
     {
-      uint64_t length = 0;
+      uint64_t length = vb.byteSize;
 
       if(vb.resourceId == ResourceId())
       {
@@ -3004,17 +3005,18 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       else
       {
         BufferDescription *buf = m_Ctx.GetBuffer(vb.resourceId);
-        if(buf)
+        if(buf && length >= ULONG_MAX)
           length = buf->length;
       }
 
-      rows.push_back({i, vb.resourceId, (qulonglong)vb.byteOffset, (qulonglong)length});
+      rows.push_back({i, vb.resourceId, (qulonglong)vb.byteOffset, (qulonglong)vb.byteStride,
+                      (qulonglong)length});
 
       i++;
     }
 
-    m_Common.exportHTMLTable(xml, {tr("Binding"), tr("Buffer"), tr("Offset"), tr("Byte Length")},
-                             rows);
+    m_Common.exportHTMLTable(
+        xml, {tr("Binding"), tr("Buffer"), tr("Offset"), tr("Byte Stride"), tr("Byte Length")}, rows);
   }
 }
 

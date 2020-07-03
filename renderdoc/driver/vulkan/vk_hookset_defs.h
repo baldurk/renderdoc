@@ -511,7 +511,8 @@
   DeclExt(EXT_custom_border_color);             \
   DeclExt(EXT_robustness2);                     \
   DeclExt(EXT_pipeline_creation_cache_control); \
-  DeclExt(EXT_private_data);
+  DeclExt(EXT_private_data);                    \
+  DeclExt(EXT_extended_dynamic_state);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -608,7 +609,8 @@
   CheckExt(EXT_custom_border_color, VKXX);             \
   CheckExt(EXT_robustness2, VKXX);                     \
   CheckExt(EXT_pipeline_creation_cache_control, VKXX); \
-  CheckExt(EXT_private_data, VKXX);
+  CheckExt(EXT_private_data, VKXX);                    \
+  CheckExt(EXT_extended_dynamic_state, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -824,6 +826,18 @@
   HookInitExtension(EXT_private_data, DestroyPrivateDataSlotEXT);                                  \
   HookInitExtension(EXT_private_data, SetPrivateDataEXT);                                          \
   HookInitExtension(EXT_private_data, GetPrivateDataEXT);                                          \
+  HookInitExtension(EXT_extended_dynamic_state, CmdSetCullModeEXT);                                \
+  HookInitExtension(EXT_extended_dynamic_state, CmdSetFrontFaceEXT);                               \
+  HookInitExtension(EXT_extended_dynamic_state, CmdSetPrimitiveTopologyEXT);                       \
+  HookInitExtension(EXT_extended_dynamic_state, CmdSetViewportWithCountEXT);                       \
+  HookInitExtension(EXT_extended_dynamic_state, CmdSetScissorWithCountEXT);                        \
+  HookInitExtension(EXT_extended_dynamic_state, CmdBindVertexBuffers2EXT);                         \
+  HookInitExtension(EXT_extended_dynamic_state, CmdSetDepthTestEnableEXT);                         \
+  HookInitExtension(EXT_extended_dynamic_state, CmdSetDepthWriteEnableEXT);                        \
+  HookInitExtension(EXT_extended_dynamic_state, CmdSetDepthCompareOpEXT);                          \
+  HookInitExtension(EXT_extended_dynamic_state, CmdSetDepthBoundsTestEnableEXT);                   \
+  HookInitExtension(EXT_extended_dynamic_state, CmdSetStencilTestEnableEXT);                       \
+  HookInitExtension(EXT_extended_dynamic_state, CmdSetStencilOpEXT);                               \
   HookInitExtension_Device_Win32();                                                                \
   HookInitExtension_Device_Linux();                                                                \
   HookInitExtension_Device_GGP();                                                                  \
@@ -1455,6 +1469,31 @@
               objectHandle, VkPrivateDataSlotEXT, privateDataSlot, uint64_t, data);                  \
   HookDefine5(void, vkGetPrivateDataEXT, VkDevice, device, VkObjectType, objectType, uint64_t,       \
               objectHandle, VkPrivateDataSlotEXT, privateDataSlot, uint64_t *, pData);               \
+  HookDefine2(void, vkCmdSetCullModeEXT, VkCommandBuffer, commandBuffer, VkCullModeFlags, cullMode); \
+  HookDefine2(void, vkCmdSetFrontFaceEXT, VkCommandBuffer, commandBuffer, VkFrontFace, frontFace);   \
+  HookDefine2(void, vkCmdSetPrimitiveTopologyEXT, VkCommandBuffer, commandBuffer,                    \
+              VkPrimitiveTopology, primitiveTopology);                                               \
+  HookDefine3(void, vkCmdSetViewportWithCountEXT, VkCommandBuffer, commandBuffer, uint32_t,          \
+              viewportCount, const VkViewport *, pViewports);                                        \
+  HookDefine3(void, vkCmdSetScissorWithCountEXT, VkCommandBuffer, commandBuffer, uint32_t,           \
+              scissorCount, const VkRect2D *, pScissors);                                            \
+  HookDefine7(void, vkCmdBindVertexBuffers2EXT, VkCommandBuffer, commandBuffer, uint32_t,            \
+              firstBinding, uint32_t, bindingCount, const VkBuffer *, pBuffers,                      \
+              const VkDeviceSize *, pOffsets, const VkDeviceSize *, pSizes, const VkDeviceSize *,    \
+              pStrides);                                                                             \
+  HookDefine2(void, vkCmdSetDepthTestEnableEXT, VkCommandBuffer, commandBuffer, VkBool32,            \
+              depthTestEnable);                                                                      \
+  HookDefine2(void, vkCmdSetDepthWriteEnableEXT, VkCommandBuffer, commandBuffer, VkBool32,           \
+              depthWriteEnable);                                                                     \
+  HookDefine2(void, vkCmdSetDepthCompareOpEXT, VkCommandBuffer, commandBuffer, VkCompareOp,          \
+              depthCompareOp);                                                                       \
+  HookDefine2(void, vkCmdSetDepthBoundsTestEnableEXT, VkCommandBuffer, commandBuffer, VkBool32,      \
+              depthBoundsTestEnable);                                                                \
+  HookDefine2(void, vkCmdSetStencilTestEnableEXT, VkCommandBuffer, commandBuffer, VkBool32,          \
+              stencilTestEnable);                                                                    \
+  HookDefine6(void, vkCmdSetStencilOpEXT, VkCommandBuffer, commandBuffer, VkStencilFaceFlags,        \
+              faceMask, VkStencilOp, failOp, VkStencilOp, passOp, VkStencilOp, depthFailOp,          \
+              VkCompareOp, compareOp);                                                               \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

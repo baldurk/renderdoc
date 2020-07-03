@@ -1776,19 +1776,18 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       if(m_pDriver->m_RenderState.graphics.pipeline != ResourceId() &&
          IsDepthOrStencilFormat(iminfo.format))
       {
-        const VulkanCreationInfo::Pipeline &p =
-            m_pDriver->m_CreationInfo.m_Pipeline[m_pDriver->m_RenderState.graphics.pipeline];
+        VkCompareOp depthCompareOp = m_pDriver->m_RenderState.depthCompareOp;
 
         // If the depth func is equal or not equal, don't clear at all since the output would be
         // altered in an way that would cause replay to produce mostly incorrect results.
         // Similarly, skip if the depth func is always, as we'd have a 50% chance of guessing the
         // wrong clear value.
-        if(p.depthCompareOp != VK_COMPARE_OP_EQUAL && p.depthCompareOp != VK_COMPARE_OP_NOT_EQUAL &&
-           p.depthCompareOp != VK_COMPARE_OP_ALWAYS)
+        if(depthCompareOp != VK_COMPARE_OP_EQUAL && depthCompareOp != VK_COMPARE_OP_NOT_EQUAL &&
+           depthCompareOp != VK_COMPARE_OP_ALWAYS)
         {
           // If the depth func is less or less equal, clear to 1 instead of 0
-          bool depthFuncLess = p.depthCompareOp == VK_COMPARE_OP_LESS ||
-                               p.depthCompareOp == VK_COMPARE_OP_LESS_OR_EQUAL;
+          bool depthFuncLess =
+              depthCompareOp == VK_COMPARE_OP_LESS || depthCompareOp == VK_COMPARE_OP_LESS_OR_EQUAL;
           float depthClear = depthFuncLess ? 1.0f : 0.0f;
 
           VkClearAttachment clearDepthAtt = {
@@ -2285,20 +2284,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       VkPipelineInputAssemblyStateCreateInfo ia = {
           VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
 
-      // most topologies are decomposed into triangle lists on output
-      ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-      if(pipeCreateInfo.pInputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
-        ia.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-      else if(pipeCreateInfo.pInputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_LINE_LIST ||
-              pipeCreateInfo.pInputAssemblyState->topology ==
-                  VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY ||
-              pipeCreateInfo.pInputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_LINE_STRIP ||
-              pipeCreateInfo.pInputAssemblyState->topology ==
-                  VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY)
-        ia.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-      else if(pipeCreateInfo.pInputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN)
-        ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+      // ia.topology will be set below on a per-draw basis
 
       VkVertexInputBindingDescription binds[] = {
           // primary
@@ -2354,6 +2340,33 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       pipeCreateInfo.pInputAssemblyState = &ia;
       pipeCreateInfo.pVertexInputState = &vi;
       pipeCreateInfo.pColorBlendState = &cb;
+
+      uint32_t &dynamicStateCount = (uint32_t &)pipeCreateInfo.pDynamicState->dynamicStateCount;
+      VkDynamicState *dynamicStateList =
+          (VkDynamicState *)pipeCreateInfo.pDynamicState->pDynamicStates;
+
+      // remove any dynamic states we don't want
+      for(uint32_t i = 0; i < dynamicStateCount;)
+      {
+        // we are controlling the vertex binding so we don't need the stride to be dynamic.
+        // Similarly we're controlling the topology so that doesn't need to be dynamic
+        if(dynamicStateList[i] == VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE_EXT ||
+           dynamicStateList[i] == VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT)
+        {
+          // swap with the last item if this isn't the last one
+          if(i != dynamicStateCount - 1)
+            std::swap(dynamicStateList[i], dynamicStateList[dynamicStateCount - 1]);
+
+          // then pop the last item.
+          dynamicStateCount--;
+
+          // process this item again. If we swapped we'll then consider that dynamic state, and if
+          // we didn't then this was the last item and i will be past dynamicStateCount now
+          continue;
+        }
+
+        i++;
+      }
 
       typedef rdcpair<uint32_t, Topology> PipeKey;
 
@@ -2472,6 +2485,62 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
               {
                 vt->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.back.ref);
                 vt->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, state.front.ref);
+              }
+              else if(d == VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT_EXT)
+              {
+                vt->CmdSetViewportWithCountEXT(Unwrap(cmd), (uint32_t)state.views.size(),
+                                               state.views.data());
+              }
+              else if(d == VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT_EXT)
+              {
+                vt->CmdSetScissorWithCountEXT(Unwrap(cmd), (uint32_t)state.scissors.size(),
+                                              state.scissors.data());
+              }
+              else if(d == VK_DYNAMIC_STATE_CULL_MODE_EXT)
+              {
+                vt->CmdSetCullModeEXT(Unwrap(cmd), state.cullMode);
+              }
+              else if(d == VK_DYNAMIC_STATE_FRONT_FACE_EXT)
+              {
+                vt->CmdSetFrontFaceEXT(Unwrap(cmd), state.frontFace);
+              }
+              else if(d == VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT)
+              {
+                RDCERR("Primitive topology dynamic state found, should have been stripped");
+              }
+              else if(d == VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE_EXT)
+              {
+                RDCERR(
+                    "Vertex input binding stride dynamic state found, should have been stripped");
+              }
+              else if(d == VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT)
+              {
+                vt->CmdSetDepthTestEnableEXT(Unwrap(cmd), state.depthTestEnable);
+              }
+              else if(d == VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT)
+              {
+                vt->CmdSetDepthWriteEnableEXT(Unwrap(cmd), state.depthWriteEnable);
+              }
+              else if(d == VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT)
+              {
+                vt->CmdSetDepthCompareOpEXT(Unwrap(cmd), state.depthCompareOp);
+              }
+              else if(d == VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT)
+              {
+                vt->CmdSetDepthBoundsTestEnableEXT(Unwrap(cmd), state.depthBoundsTestEnable);
+              }
+              else if(d == VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT)
+              {
+                vt->CmdSetStencilTestEnableEXT(Unwrap(cmd), state.stencilTestEnable);
+              }
+              else if(d == VK_DYNAMIC_STATE_STENCIL_OP_EXT)
+              {
+                vt->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, state.front.failOp,
+                                       state.front.passOp, state.front.depthFailOp,
+                                       state.front.compareOp);
+                vt->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.front.failOp,
+                                       state.front.passOp, state.front.depthFailOp,
+                                       state.front.compareOp);
               }
             }
 

@@ -393,15 +393,13 @@ struct VertexBinding
 
   bool operator==(const VertexBinding &o) const
   {
-    return vertexBufferBinding == o.vertexBufferBinding && byteStride == o.byteStride &&
-           perInstance == o.perInstance && instanceDivisor == o.instanceDivisor;
+    return vertexBufferBinding == o.vertexBufferBinding && perInstance == o.perInstance &&
+           instanceDivisor == o.instanceDivisor;
   }
   bool operator<(const VertexBinding &o) const
   {
     if(!(vertexBufferBinding == o.vertexBufferBinding))
       return vertexBufferBinding < o.vertexBufferBinding;
-    if(!(byteStride == o.byteStride))
-      return byteStride < o.byteStride;
     if(!(perInstance == o.perInstance))
       return perInstance < o.perInstance;
     if(!(instanceDivisor == o.instanceDivisor))
@@ -410,8 +408,6 @@ struct VertexBinding
   }
   DOCUMENT("The vertex binding where data will be sourced from.");
   uint32_t vertexBufferBinding = 0;
-  DOCUMENT("The byte stride between the start of one set of vertex data and the next.");
-  uint32_t byteStride = 0;
   DOCUMENT("``True`` if the vertex data is instance-rate.");
   bool perInstance = false;
   DOCUMENT(R"(The instance rate divisor.
@@ -434,7 +430,8 @@ struct VertexBuffer
 
   bool operator==(const VertexBuffer &o) const
   {
-    return resourceId == o.resourceId && byteOffset == o.byteOffset;
+    return resourceId == o.resourceId && byteOffset == o.byteOffset && byteStride == o.byteStride &&
+           byteSize == o.byteSize;
   }
   bool operator<(const VertexBuffer &o) const
   {
@@ -442,12 +439,20 @@ struct VertexBuffer
       return resourceId < o.resourceId;
     if(!(byteOffset == o.byteOffset))
       return byteOffset < o.byteOffset;
+    if(!(byteStride == o.byteStride))
+      return byteStride < o.byteStride;
+    if(!(byteSize == o.byteSize))
+      return byteSize < o.byteSize;
     return false;
   }
   DOCUMENT("The :class:`ResourceId` of the buffer bound to this slot.");
   ResourceId resourceId;
   DOCUMENT("The byte offset from the start of the buffer to the beginning of the vertex data.");
   uint64_t byteOffset = 0;
+  DOCUMENT("The byte stride between the start of one set of vertex data and the next.");
+  uint32_t byteStride = 0;
+  DOCUMENT("The size of the vertex buffer.");
+  uint32_t byteSize = 0;
 };
 
 DOCUMENT("Describes the fixed-function vertex input fetch setup.");

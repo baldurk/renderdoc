@@ -593,20 +593,8 @@ rdcarray<BoundVBuffer> PipeState::GetVBuffers() const
       {
         ret[i].resourceId = m_Vulkan->vertexInput.vertexBuffers[i].resourceId;
         ret[i].byteOffset = m_Vulkan->vertexInput.vertexBuffers[i].byteOffset;
-        ret[i].byteStride = 0;
-        ret[i].byteSize = ~0ULL;
-
-        // find the binding that corresponds to this VB to get the stride. Valid use suggests there
-        // should be at most 1, so stop at first result. If there are 0 then the stride is just 0
-        // (this vertex buffer is unused).
-        for(int j = 0; j < m_Vulkan->vertexInput.bindings.count(); j++)
-        {
-          if(m_Vulkan->vertexInput.bindings[j].vertexBufferBinding == (uint32_t)i)
-          {
-            ret[i].byteStride = m_Vulkan->vertexInput.bindings[j].byteStride;
-            break;
-          }
-        }
+        ret[i].byteStride = m_Vulkan->vertexInput.vertexBuffers[i].byteStride;
+        ret[i].byteSize = m_Vulkan->vertexInput.vertexBuffers[i].byteSize;
       }
     }
   }

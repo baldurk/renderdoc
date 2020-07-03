@@ -798,6 +798,9 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_DISPLAY_SURFACE_COUNTER_EXTENSION_NAME, VK_EXT_DISPLAY_SURFACE_COUNTER_SPEC_VERSION,
     },
     {
+        VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME, VK_EXT_EXTENDED_DYNAMIC_STATE_SPEC_VERSION,
+    },
+    {
         VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME, VK_EXT_EXTERNAL_MEMORY_DMA_BUF_SPEC_VERSION,
     },
     {
@@ -3038,6 +3041,34 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkQueuePresentKHR:
       return Serialise_vkQueuePresentKHR(ser, VK_NULL_HANDLE, NULL);
 
+    case VulkanChunk::vkCmdSetCullModeEXT:
+      return Serialise_vkCmdSetCullModeEXT(ser, VK_NULL_HANDLE, VK_CULL_MODE_FLAG_BITS_MAX_ENUM);
+    case VulkanChunk::vkCmdSetFrontFaceEXT:
+      return Serialise_vkCmdSetFrontFaceEXT(ser, VK_NULL_HANDLE, VK_FRONT_FACE_MAX_ENUM);
+    case VulkanChunk::vkCmdSetPrimitiveTopologyEXT:
+      return Serialise_vkCmdSetPrimitiveTopologyEXT(ser, VK_NULL_HANDLE,
+                                                    VK_PRIMITIVE_TOPOLOGY_MAX_ENUM);
+    case VulkanChunk::vkCmdSetViewportWithCountEXT:
+      return Serialise_vkCmdSetViewportWithCountEXT(ser, VK_NULL_HANDLE, 0, NULL);
+    case VulkanChunk::vkCmdSetScissorWithCountEXT:
+      return Serialise_vkCmdSetScissorWithCountEXT(ser, VK_NULL_HANDLE, 0, NULL);
+    case VulkanChunk::vkCmdBindVertexBuffers2EXT:
+      return Serialise_vkCmdBindVertexBuffers2EXT(ser, VK_NULL_HANDLE, 0, 0, NULL, NULL, NULL, NULL);
+    case VulkanChunk::vkCmdSetDepthTestEnableEXT:
+      return Serialise_vkCmdSetDepthTestEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetDepthWriteEnableEXT:
+      return Serialise_vkCmdSetDepthWriteEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetDepthCompareOpEXT:
+      return Serialise_vkCmdSetDepthCompareOpEXT(ser, VK_NULL_HANDLE, VK_COMPARE_OP_MAX_ENUM);
+    case VulkanChunk::vkCmdSetDepthBoundsTestEnableEXT:
+      return Serialise_vkCmdSetDepthBoundsTestEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetStencilTestEnableEXT:
+      return Serialise_vkCmdSetStencilTestEnableEXT(ser, VK_NULL_HANDLE, VK_FALSE);
+    case VulkanChunk::vkCmdSetStencilOpEXT:
+      return Serialise_vkCmdSetStencilOpEXT(ser, VK_NULL_HANDLE, VK_STENCIL_FACE_FLAG_BITS_MAX_ENUM,
+                                            VK_STENCIL_OP_MAX_ENUM, VK_STENCIL_OP_MAX_ENUM,
+                                            VK_STENCIL_OP_MAX_ENUM, VK_COMPARE_OP_MAX_ENUM);
+
     // chunks that are reserved but not yet serialised
     case VulkanChunk::vkResetCommandPool:
     case VulkanChunk::vkCreateDepthTargetView:
@@ -3730,8 +3761,9 @@ void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
   {
     ResourceId pipe = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.pipeline;
     if(pipe != ResourceId())
-      draw.topology = MakePrimitiveTopology(m_CreationInfo.m_Pipeline[pipe].topology,
-                                            m_CreationInfo.m_Pipeline[pipe].patchControlPoints);
+      draw.topology =
+          MakePrimitiveTopology(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.primitiveTopology,
+                                m_CreationInfo.m_Pipeline[pipe].patchControlPoints);
 
     draw.indexByteWidth = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth;
 
