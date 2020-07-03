@@ -1718,7 +1718,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       }
 
       if(attrDesc.binding < state.vbuffers.size())
-        stride = state.vbuffers[attrDesc.binding].stride;
+        stride = (size_t)state.vbuffers[attrDesc.binding].stride;
 
       if(origVBBegin == NULL)
         continue;
