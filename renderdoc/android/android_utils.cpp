@@ -188,6 +188,19 @@ bool IsSupported(rdcstr deviceID)
   return true;
 }
 
+rdcstr GetFolderName(const rdcstr &deviceID)
+{
+  rdcstr api =
+      Android::adbExecCommand(deviceID, "shell getprop ro.build.version.sdk").strStdout.trimmed();
+
+  int apiVersion = atoi(api.c_str());
+
+  if(apiVersion >= 30)
+    return "media/";
+
+  return "data/";
+}
+
 bool SupportsNativeLayers(const rdcstr &deviceID)
 {
   rdcstr api =
