@@ -472,7 +472,7 @@ void VulkanPipelineStateViewer::setEmptyRow(RDTreeWidgetItem *node)
 
 template <typename bindType>
 bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bindType &view,
-                                               TextureDescription *tex,
+                                               TextureDescription *tex, bool stageBitsIncluded,
                                                const QString &hiddenCombinedSampler,
                                                bool includeSampleLocations)
 {
@@ -484,6 +484,11 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
   bool viewdetails = false;
 
   const VKPipe::State &state = *m_Ctx.CurVulkanPipelineState();
+
+  if(!stageBitsIncluded)
+  {
+    text += tr("Descriptor stage mask didn't include this stage.\n\n");
+  }
 
   {
     for(const VKPipe::ImageData &im : state.images)
@@ -562,7 +567,7 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
 
   node->setToolTip(text);
 
-  if(viewdetails)
+  if(viewdetails && stageBitsIncluded)
   {
     node->setBackgroundColor(QColor(127, 255, 212));
     node->setForegroundColor(QColor(0, 0, 0));
@@ -573,12 +578,15 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
 
 template <typename bindType>
 bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bindType &view,
-                                               BufferDescription *buf)
+                                               BufferDescription *buf, bool stageBitsIncluded)
 {
   if(buf == NULL)
     return false;
 
   QString text;
+
+  if(!stageBitsIncluded)
+    text += tr("Descriptor stage mask didn't include this stage.\n\n");
 
   if(view.byteOffset > 0 || view.byteSize < buf->length)
   {
@@ -587,14 +595,18 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
                 .arg(view.byteOffset + view.byteSize)
                 .arg(buf->length);
   }
-  else
+  else if(stageBitsIncluded)
   {
     return false;
   }
 
   node->setToolTip(text);
-  node->setBackgroundColor(QColor(127, 255, 212));
-  node->setForegroundColor(QColor(0, 0, 0));
+
+  if(stageBitsIncluded)
+  {
+    node->setBackgroundColor(QColor(127, 255, 212));
+    node->setForegroundColor(QColor(0, 0, 0));
+  }
 
   return true;
 }
@@ -1051,6 +1063,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       filledSlot |= (*slotBinds)[idx].samplerResourceId != ResourceId();
   }
 
+  bool containsResource = filledSlot;
+
   // if it's masked out by stage bits, act as if it's not filled, so it's marked in red
   if(!stageBitsIncluded)
     filledSlot = false;
@@ -1135,7 +1149,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 
       uint64_t descriptorLen = descriptorBind ? descriptorBind->byteSize : 0;
 
-      if(filledSlot && descriptorBind != NULL)
+      if(containsResource && descriptorBind != NULL)
       {
         format = descriptorBind->viewFormat.Name();
 
@@ -1362,7 +1376,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
                       .arg(m_Ctx.GetResourceName(descriptorBind->samplerResourceId))
                 : QString();
 
-        bool hasViewDetails = setViewDetails(node, *descriptorBind, tex, samplerString);
+        bool hasViewDetails =
+            setViewDetails(node, *descriptorBind, tex, stageBitsIncluded, samplerString);
 
         if(bindType == BindType::ImageSampler && hasViewDetails)
         {
@@ -1380,7 +1395,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       }
       else if(descriptorBind && buf)
       {
-        setViewDetails(node, *descriptorBind, buf);
+        setViewDetails(node, *descriptorBind, buf, stageBitsIncluded);
       }
 
       parentNode->addChild(node);
@@ -1447,6 +1462,8 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   for(int idx = 0; slotBinds != NULL && idx < slotBinds->count(); idx++)
     filledSlot |=
         (*slotBinds)[idx].resourceResourceId != ResourceId() || (*slotBinds)[idx].inlineBlock;
+
+  bool containsResource = filledSlot;
 
   // if it's masked out by stage bits, act as if it's not filled, so it's marked in red
   if(!stageBitsIncluded)
@@ -1520,7 +1537,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
 
       QString vecrange = lit("-");
 
-      if(filledSlot && descriptorBind != NULL)
+      if(containsResource && descriptorBind != NULL)
       {
         length = descriptorBind->byteSize;
 
@@ -2435,7 +2452,7 @@ void VulkanPipelineStateViewer::setState()
           targets[i] = true;
         }
 
-        setViewDetails(node, p, tex, QString(), resIdx < 0);
+        setViewDetails(node, p, tex, true, QString(), resIdx < 0);
 
         ui->fbAttach->addTopLevelItem(node);
       }
