@@ -1379,17 +1379,24 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         bool hasViewDetails =
             setViewDetails(node, *descriptorBind, tex, stageBitsIncluded, samplerString);
 
-        if(bindType == BindType::ImageSampler && hasViewDetails)
+        if(hasViewDetails)
         {
-          RDTreeWidgetItem *combinedSamp = m_CombinedImageSamplers[node];
+          node->setText(4, tr("%1 viewed by %2")
+                               .arg(ToQStr(descriptorBind->resourceResourceId))
+                               .arg(ToQStr(descriptorBind->viewResourceId)));
 
-          if(combinedSamp)
+          if(bindType == BindType::ImageSampler)
           {
-            CombinedSamplerData sampData = combinedSamp->tag().value<CombinedSamplerData>();
-            sampData.images.removeOne(node);
-            combinedSamp->setTag(QVariant::fromValue(sampData));
+            RDTreeWidgetItem *combinedSamp = m_CombinedImageSamplers[node];
 
-            m_CombinedImageSamplers.remove(node);
+            if(combinedSamp)
+            {
+              CombinedSamplerData sampData = combinedSamp->tag().value<CombinedSamplerData>();
+              sampData.images.removeOne(node);
+              combinedSamp->setTag(QVariant::fromValue(sampData));
+
+              m_CombinedImageSamplers.remove(node);
+            }
           }
         }
       }
@@ -2452,7 +2459,11 @@ void VulkanPipelineStateViewer::setState()
           targets[i] = true;
         }
 
-        setViewDetails(node, p, tex, true, QString(), resIdx < 0);
+        bool hasViewDetails = setViewDetails(node, p, tex, true, QString(), resIdx < 0);
+
+        if(hasViewDetails)
+          node->setText(
+              1, tr("%1 viewed by %2").arg(ToQStr(p.imageResourceId)).arg(ToQStr(p.viewResourceId)));
 
         ui->fbAttach->addTopLevelItem(node);
       }
