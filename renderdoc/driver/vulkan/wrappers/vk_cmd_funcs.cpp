@@ -2463,14 +2463,23 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
     }
     else
     {
+      ResourceId liveid = GetResID(pipeline);
+
       // track while reading, as we need to bind current topology & index byte width in AddDrawcall
       if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
       {
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.pipeline = GetResID(pipeline);
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.pipeline = liveid;
       }
       else
       {
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.pipeline = GetResID(pipeline);
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.pipeline = liveid;
+
+        const VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[liveid];
+
+        if(!pipeInfo.dynamicStates[VkDynamicPrimitiveTopologyEXT])
+        {
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.primitiveTopology = pipeInfo.topology;
+        }
       }
     }
 
