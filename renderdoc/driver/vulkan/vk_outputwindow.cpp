@@ -994,6 +994,8 @@ void VulkanReplay::ClearOutputWindowColor(uint64_t id, FloatVector col)
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   const VkDevDispatchTable *vt = ObjDisp(dev);
 
+  VkMarkerRegion::Begin("ClearOutputWindowColor", cmd);
+
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
@@ -1019,6 +1021,8 @@ void VulkanReplay::ClearOutputWindowColor(uint64_t id, FloatVector col)
 
   outw.bbBarrier.srcAccessMask = outw.bbBarrier.dstAccessMask;
   outw.bbBarrier.oldLayout = outw.bbBarrier.newLayout;
+
+  VkMarkerRegion::End(cmd);
 
   vt->EndCommandBuffer(Unwrap(cmd));
 
@@ -1096,6 +1100,8 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
   VkDevice dev = m_pDriver->GetDev();
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   const VkDevDispatchTable *vt = ObjDisp(dev);
+
+  VkMarkerRegion::Begin("FlipOutputWindow", cmd);
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
@@ -1183,6 +1189,8 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 
   outw.colBarrier[outw.curidx].srcAccessMask = 0;
   outw.colBarrier[outw.curidx].dstAccessMask = 0;
+
+  VkMarkerRegion::End(cmd);
 
   vt->EndCommandBuffer(Unwrap(cmd));
 

@@ -484,6 +484,8 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
+  VkMarkerRegion::Begin("RenderTexture", cmd);
+
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
@@ -565,6 +567,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
   }
 
   m_pDriver->InlineCleanupImageBarriers(cmd, cleanupBarriers);
+  VkMarkerRegion::End(cmd);
   vt->EndCommandBuffer(Unwrap(cmd));
   if(!cleanupBarriers.empty())
   {
