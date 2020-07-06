@@ -2703,6 +2703,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
   struct BuiltinAccess
   {
     rdcspv::Id base;
+    rdcspv::Id type;
     uint32_t member = ~0U;
   } fragCoord, primitiveID, sampleIndex;
 
@@ -2714,11 +2715,25 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
     BuiltinAccess *access = NULL;
 
     if(param.systemValue == ShaderBuiltin::Position)
+    {
       access = &fragCoord;
+    }
     else if(param.systemValue == ShaderBuiltin::PrimitiveIndex)
+    {
       access = &primitiveID;
+
+      access->type = VarTypeCompType(param.varType) == CompType::SInt
+                         ? editor.DeclareType(rdcspv::scalar<int32_t>())
+                         : editor.DeclareType(rdcspv::scalar<uint32_t>());
+    }
     else if(param.systemValue == ShaderBuiltin::MSAASampleIndex)
+    {
       access = &sampleIndex;
+
+      access->type = VarTypeCompType(param.varType) == CompType::SInt
+                         ? editor.DeclareType(rdcspv::scalar<int32_t>())
+                         : editor.DeclareType(rdcspv::scalar<uint32_t>());
+    }
 
     if(access)
     {
@@ -2739,6 +2754,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
     fragCoord.base =
         editor.AddVariable(rdcspv::OpVariable(ptrType, editor.MakeId(), rdcspv::StorageClass::Input));
+    fragCoord.type = type;
 
     editor.AddDecoration(rdcspv::OpDecorate(
         fragCoord.base,
@@ -2753,6 +2769,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
     primitiveID.base =
         editor.AddVariable(rdcspv::OpVariable(ptrType, editor.MakeId(), rdcspv::StorageClass::Input));
+    primitiveID.type = type;
 
     editor.AddDecoration(rdcspv::OpDecorate(
         primitiveID.base,
@@ -2770,6 +2787,7 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 
     sampleIndex.base =
         editor.AddVariable(rdcspv::OpVariable(ptrType, editor.MakeId(), rdcspv::StorageClass::Input));
+    sampleIndex.type = type;
 
     editor.AddDecoration(rdcspv::OpDecorate(
         sampleIndex.base,
@@ -3318,15 +3336,23 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       {
         if(primitiveID.member == ~0U)
         {
-          loaded = ops.add(rdcspv::OpLoad(uint32Type, editor.MakeId(), primitiveID.base));
+          loaded = ops.add(rdcspv::OpLoad(primitiveID.type, editor.MakeId(), primitiveID.base));
         }
         else
         {
+          rdcspv::Id inPtrType =
+              editor.DeclareType(rdcspv::Pointer(primitiveID.type, rdcspv::StorageClass::Input));
+
           rdcspv::Id posptr =
-              ops.add(rdcspv::OpAccessChain(uint32InPtr, editor.MakeId(), primitiveID.base,
+              ops.add(rdcspv::OpAccessChain(inPtrType, editor.MakeId(), primitiveID.base,
                                             {editor.AddConstantImmediate(primitiveID.member)}));
-          loaded = ops.add(rdcspv::OpLoad(uint32Type, editor.MakeId(), posptr));
+          loaded = ops.add(rdcspv::OpLoad(primitiveID.type, editor.MakeId(), posptr));
         }
+
+        // if it was loaded as signed int by the shader and not as unsigned by us, bitcast to
+        // unsigned.
+        if(primitiveID.type != uint32Type)
+          loaded = ops.add(rdcspv::OpBitcast(uint32Type, editor.MakeId(), loaded));
       }
       else
       {
@@ -3342,15 +3368,23 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
       {
         if(sampleIndex.member == ~0U)
         {
-          loaded = ops.add(rdcspv::OpLoad(uint32Type, editor.MakeId(), sampleIndex.base));
+          loaded = ops.add(rdcspv::OpLoad(sampleIndex.type, editor.MakeId(), sampleIndex.base));
         }
         else
         {
+          rdcspv::Id inPtrType =
+              editor.DeclareType(rdcspv::Pointer(sampleIndex.type, rdcspv::StorageClass::Input));
+
           rdcspv::Id posptr =
-              ops.add(rdcspv::OpAccessChain(uint32InPtr, editor.MakeId(), sampleIndex.base,
+              ops.add(rdcspv::OpAccessChain(inPtrType, editor.MakeId(), sampleIndex.base,
                                             {editor.AddConstantImmediate(sampleIndex.member)}));
-          loaded = ops.add(rdcspv::OpLoad(uint32Type, editor.MakeId(), posptr));
+          loaded = ops.add(rdcspv::OpLoad(sampleIndex.type, editor.MakeId(), posptr));
         }
+
+        // if it was loaded as signed int by the shader and not as unsigned by us, bitcast to
+        // unsigned.
+        if(sampleIndex.type != uint32Type)
+          loaded = ops.add(rdcspv::OpBitcast(uint32Type, editor.MakeId(), loaded));
       }
       else
       {
