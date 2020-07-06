@@ -1230,6 +1230,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     m_PostVS.Data[eventId].vsout.farPlane = 0.0f;
     m_PostVS.Data[eventId].vsout.useIndices = false;
     m_PostVS.Data[eventId].vsout.hasPosOut = false;
+    m_PostVS.Data[eventId].vsout.flipY = false;
     m_PostVS.Data[eventId].vsout.idxbuf = VK_NULL_HANDLE;
     m_PostVS.Data[eventId].vsout.idxbufmem = VK_NULL_HANDLE;
 
@@ -2346,6 +2347,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
   m_PostVS.Data[eventId].vsout.hasPosOut =
       refl->outputSignature[0].systemValue == ShaderBuiltin::Position;
+  m_PostVS.Data[eventId].vsout.flipY = state.views[0].height < 0.0f;
 
   // delete descriptors. Technically we don't have to free the descriptor sets, but our tracking on
   // replay doesn't handle destroying children of pooled objects so we do it explicitly anyway.
@@ -2386,6 +2388,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     m_PostVS.Data[eventId].gsout.farPlane = 0.0f;
     m_PostVS.Data[eventId].gsout.useIndices = false;
     m_PostVS.Data[eventId].gsout.hasPosOut = false;
+    m_PostVS.Data[eventId].gsout.flipY = false;
     m_PostVS.Data[eventId].gsout.idxbuf = VK_NULL_HANDLE;
     m_PostVS.Data[eventId].gsout.idxbufmem = VK_NULL_HANDLE;
   }
@@ -2447,6 +2450,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     m_PostVS.Data[eventId].gsout.farPlane = 0.0f;
     m_PostVS.Data[eventId].gsout.useIndices = false;
     m_PostVS.Data[eventId].gsout.hasPosOut = false;
+    m_PostVS.Data[eventId].gsout.flipY = false;
     m_PostVS.Data[eventId].gsout.idxbuf = VK_NULL_HANDLE;
     m_PostVS.Data[eventId].gsout.idxbufmem = VK_NULL_HANDLE;
     return;
@@ -2898,6 +2902,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   m_PostVS.Data[eventId].gsout.idxbufmem = VK_NULL_HANDLE;
 
   m_PostVS.Data[eventId].gsout.hasPosOut = true;
+  m_PostVS.Data[eventId].gsout.flipY = state.views[0].height < 0.0f;
 
   // delete framebuffer and renderpass
   m_pDriver->vkDestroyFramebuffer(dev, fb, NULL);
@@ -3089,6 +3094,7 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uin
   ret.unproject = s.hasPosOut;
   ret.nearPlane = s.nearPlane;
   ret.farPlane = s.farPlane;
+  ret.flipY = s.flipY;
 
   if(instID < s.instData.size())
   {

@@ -98,6 +98,11 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
       guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
     }
 
+    if(cfg.position.flipY)
+    {
+      guessProj[5] *= -1.0f;
+    }
+
     guessProjInv = guessProj.Inverse();
 
     ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));

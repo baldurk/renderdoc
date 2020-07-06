@@ -172,6 +172,7 @@ struct VulkanPostVSData
     VkIndexType idxFmt;
 
     bool hasPosOut;
+    bool flipY;
 
     float nearPlane;
     float farPlane;

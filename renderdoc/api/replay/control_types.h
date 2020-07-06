@@ -84,6 +84,9 @@ struct MeshFormat
   DOCUMENT("``True`` if this mesh element contains post-projection positional data.");
   bool unproject = false;
 
+  DOCUMENT("``True`` if there is an implicit Y-flip to account for in the projection.");
+  bool flipY = false;
+
   DOCUMENT("``True`` if this mesh element comes from instanced data. See :data:`instStepRate`.");
   bool instanced = false;
 

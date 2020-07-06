@@ -3811,11 +3811,18 @@ void BufferViewer::camGuess_changed(double value)
   // use estimates from post vs data (calculated from vertex position data) if the user
   // hasn't overridden the values
   m_Config.position.nearPlane = 0.1f;
+  m_Config.position.flipY = false;
 
   if(m_CurStage == MeshDataStage::VSOut)
+  {
     m_Config.position.nearPlane = m_PostVS.nearPlane;
+    m_Config.position.flipY = m_PostVS.flipY;
+  }
   else if(m_CurStage == MeshDataStage::GSOut)
+  {
     m_Config.position.nearPlane = m_PostGS.nearPlane;
+    m_Config.position.flipY = m_PostGS.flipY;
+  }
 
   if(ui->nearGuess->value() > 0.0)
     m_Config.position.nearPlane = ui->nearGuess->value();
