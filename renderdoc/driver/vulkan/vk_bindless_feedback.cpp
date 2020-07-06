@@ -31,6 +31,8 @@
 #include "vk_replay.h"
 #include "vk_shader_cache.h"
 
+RDOC_DEBUG_CONFIG(rdcstr, Vulkan_Debug_FeedbackDumpDirPath, "",
+                  "Path to dump bindless feedback annotation generated SPIR-V files.");
 RDOC_CONFIG(
     bool, Vulkan_BindlessFeedback, true,
     "Enable fetching from GPU which descriptors were dynamically used in descriptor arrays.");
@@ -737,6 +739,11 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   VkShaderModule modules[6] = {};
 
+  const rdcstr filename[6] = {
+      "bindless_vertex.spv",   "bindless_hull.spv",  "bindless_domain.spv",
+      "bindless_geometry.spv", "bindless_pixel.spv", "bindless_compute.spv",
+  };
+
   if(result.compute)
   {
     VkPipelineShaderStageCreateInfo &stage = computeInfo.stage;
@@ -746,8 +753,14 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
     rdcarray<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
+    if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
+      FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/before_" + filename[5], modSpirv);
+
     AnnotateShader(*pipeInfo.shaders[5].patchData, stage.pName, offsetMap, maxSlot, bufferAddress,
                    useBufferAddressKHR, modSpirv);
+
+    if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
+      FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/after_" + filename[5], modSpirv);
 
     moduleCreateInfo.pCode = modSpirv.data();
     moduleCreateInfo.codeSize = modSpirv.size() * sizeof(uint32_t);
@@ -771,8 +784,14 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
       rdcarray<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
+      if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
+        FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/before_" + filename[idx], modSpirv);
+
       AnnotateShader(*pipeInfo.shaders[idx].patchData, stage.pName, offsetMap, maxSlot,
                      bufferAddress, useBufferAddressKHR, modSpirv);
+
+      if(!Vulkan_Debug_FeedbackDumpDirPath().empty())
+        FileIO::WriteAll(Vulkan_Debug_FeedbackDumpDirPath() + "/after_" + filename[idx], modSpirv);
 
       moduleCreateInfo.pCode = modSpirv.data();
       moduleCreateInfo.codeSize = modSpirv.size() * sizeof(uint32_t);
