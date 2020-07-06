@@ -1218,6 +1218,8 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
                               "shell setprop debug.vulkan.layers " RENDERDOC_VULKAN_LAYER_NAME);
     }
 
+    rdcstr folderName = Android::GetFolderName(m_deviceID);
+
     // if in VR mode, enable frame delimiter markers
     Android::adbExecCommand(m_deviceID, "shell setprop debug.vr.profiler 1");
 
@@ -1228,9 +1230,9 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
     // Android/data/<package>
     // has the permissions set correctly, and we don't have a convenient way to get the package name
     // from native code.
-    Android::adbExecCommand(m_deviceID, "shell mkdir -p /sdcard/Android/data/" + processName);
-    Android::adbExecCommand(m_deviceID,
-                            "shell mkdir -p /sdcard/Android/data/" + processName + "/files");
+    Android::adbExecCommand(m_deviceID, "shell mkdir -p /sdcard/Android/" + folderName + processName);
+    Android::adbExecCommand(
+        m_deviceID, "shell mkdir -p /sdcard/Android/" + folderName + processName + "/files");
     // set our property with the capture options encoded, to be picked up by the library on the
     // device
     Android::adbExecCommand(m_deviceID,
@@ -1239,7 +1241,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const char *a, const char *w
 
     // try to push our settings file into the appdata folder
     Android::adbExecCommand(m_deviceID, "push \"" + FileIO::GetAppFolderFilename("renderdoc.conf") +
-                                            "\" /sdcard/Android/data/" + processName +
+                                            "\" /sdcard/Android/" + folderName + processName +
                                             "/files/renderdoc.conf");
 
     rdcstr installedPath = Android::GetPathForPackage(m_deviceID, packageName);

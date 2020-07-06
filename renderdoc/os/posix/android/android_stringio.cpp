@@ -26,6 +26,7 @@
 #include <ctype.h>
 #include <dlfcn.h>
 #include <fcntl.h>
+#include <sys/system_properties.h>
 #include <unistd.h>
 #include "common/common.h"
 #include "common/formatting.h"
@@ -68,7 +69,15 @@ rdcstr GetTempRootPath()
   // This is the same as returned by getExternalFilesDir(). It might possibly change in the future.
   rdcstr package;
   GetExecutableFilename(package);
-  return "/sdcard/Android/data/" + package + "/files";
+
+  char platformVersionChar[PROP_VALUE_MAX];
+  __system_property_get("ro.build.version.sdk", platformVersionChar);
+  int platformVersion = atoi(platformVersionChar);
+
+  if(platformVersion < 30)
+    return "/sdcard/Android/data/" + package + "/files";
+  else
+    return "/sdcard/Android/media/" + package + "/files";
 }
 
 rdcstr GetAppFolderFilename(const rdcstr &filename)
