@@ -595,7 +595,7 @@ void VulkanReplay::FetchShaderFeedback(uint32_t eventId)
         const DescSetLayout::Binding &bindData = layout.bindings[binding];
 
         // skip empty bindings
-        if(bindData.descriptorCount == 0 || bindData.stageFlags == 0)
+        if(bindData.descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
           continue;
 
         // only process array bindings

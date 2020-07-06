@@ -455,7 +455,7 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
       const DescSetLayout::Binding &bind = descLayout.bindings[b];
 
       // skip if this binding isn't used
-      if(bind.descriptorCount == 0 || bind.stageFlags == 0)
+      if(bind.descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
         continue;
 
       // push.dstSet; // unused for push descriptors

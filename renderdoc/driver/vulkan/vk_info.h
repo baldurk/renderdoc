@@ -82,8 +82,8 @@ struct DescSetLayout
     // some elements could be untouched. We set stageFlags to 0 so the UI ignores these
     // elements
     Binding()
-        : descriptorType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER),
-          descriptorCount(1),
+        : descriptorType(VK_DESCRIPTOR_TYPE_MAX_ENUM),
+          descriptorCount(0),
           stageFlags(0),
           immutableSampler(NULL)
     {

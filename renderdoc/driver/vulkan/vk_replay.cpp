@@ -1663,6 +1663,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
               dst.bindings[b].descriptorCount = 1;
               dst.bindings[b].type = BindType::ConstantBuffer;
               break;
+            case VK_DESCRIPTOR_TYPE_MAX_ENUM: dst.bindings[b].type = BindType::Unknown; break;
             default: dst.bindings[b].type = BindType::Unknown; RDCERR("Unexpected descriptor type");
           }
 

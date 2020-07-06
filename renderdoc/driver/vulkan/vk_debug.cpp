@@ -1927,7 +1927,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
         const DescSetLayout::Binding &bind = origLayout.bindings[b];
 
         // skip empty bindings
-        if(bind.descriptorCount == 0 || bind.stageFlags == 0)
+        if(bind.descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
           continue;
 
         // make room in the pool
@@ -2123,7 +2123,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
         const DescSetLayout::Binding &bind = origLayout.bindings[b];
 
         // skip empty bindings
-        if(bind.descriptorCount == 0 || bind.stageFlags == 0)
+        if(bind.descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
           continue;
 
         DescriptorSetSlot *slot = setInfo.currentBindings[b];

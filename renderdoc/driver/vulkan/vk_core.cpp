@@ -4038,6 +4038,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
               if(slot.bufferInfo.buffer != ResourceId())
                 id = slot.bufferInfo.buffer;
               break;
+            case VK_DESCRIPTOR_TYPE_MAX_ENUM: break;
             default: RDCERR("Unexpected type %d", layout.bindings[bind].descriptorType); break;
           }
 
