@@ -92,6 +92,11 @@ document.body.onload = function() {
         html += '<div class="failure"><span class="message">' + htmlEntityEncode(m[2]) + '</span>';
       } else if(m[1] == '!-') {
         html += '</div>';
+        while(indent > 4)
+        {
+          indent -= 4;
+          html += '</div></div>';
+        }
       } else if(m[1] == '!!') {
         html += '<div class="failure message">' + htmlEntityEncode(m[2]) + '</div>';
       } else if(m[1] == '**') {
