@@ -937,7 +937,7 @@ QString BufferFormatter::DeclareStruct(QList<QString> &declaredStructs, const QS
 
     if(requiredByteStride > structEnd)
       ret += lit("    ") + DeclarePaddingBytes(requiredByteStride - structEnd);
-    else
+    else if(requiredByteStride != structEnd)
       qCritical() << "Unexpected stride overlow at struct" << name;
   }
 
