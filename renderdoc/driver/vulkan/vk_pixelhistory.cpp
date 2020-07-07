@@ -22,6 +22,83 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+/*
+ * The general algorithm for pixel history is this:
+ *
+ * we get passed a list of all events that could have touched the target texture
+ * We replay all events (up to and including the last event that could have
+ * touched the target texture) with a number of callbacks:
+ *
+ * - First callback: Occlusion callback (VulkanOcclusionCallback)
+ * This callback performs an occlusion query around each draw event that was
+ * passed in. Execute the draw with a modified pipeline that disables most tests,
+ * and uses a fixed color fragment shader, so that we get a non 0 occlusion
+ * result even if a test failed for the event.
+ *
+ * After this callback we collect all events where occlusion result > 0 and all
+ * other non-draw events (copy, render pass boundaries, resolve). We also filter
+ * out events where the image view used did not overlap in the array layer.
+ * The callbacks below will only deal with these events.
+ *
+ * - Second callback: Color and stencil callback (VulkanColorAndStencilCallback)
+ * This callback retrieves color/depth values before and after each event, and
+ * uses a stencil increment to count the number of fragments for each event.
+ * We have to stop the render pass before and after each event if there is one active,
+ * since we can't run vkCmdCopy* or vkCmdExecuteCommands inside a render pass.
+ * We then copy colour information and associated depth value, and resume a
+ * render pass, if there was one. Before each draw event we also execute the same
+ * draw twice with a stencil increment state: 1) with a fixed color fragment shader
+ * to count the number of fragments not accounting for shader discard, 2) with the
+ * original fragment shader to count the number of fragments accounting for shader
+ * discard.
+ *
+ * - Third callback: Tests failed callback (TestsFailedCallback)
+ * This callback is used to determine which tests (culling, depth, stencil, etc)
+ * failed (if any) for each draw event. This replays each draw event a number of times
+ * with an occlusion query for each test that might have failed (leaves the test
+ * under question in the original state, and disables all tests that come after).
+ *
+ * At this point we retrieve the stencil results that represent the number of fragments,
+ * and duplicate events that have multiple fragments.
+ *
+ * - Fourth callback: Per fragment callback (VulkanPixelHistoryPerFragmentCallback)
+ * This callback is used to get per fragment data for each event and fragment (primitive ID,
+ * shader output value, post event value for each fragment).
+ * For each fragment the draw is replayed 3 times:
+ * 1) with a fragment shader that outputs primitive ID only
+ * 2) with blending OFF, to get shader output value
+ * 3) with blending ON, to get post modification value
+ * For each such replay we set the stencil reference to the fragment number and set the
+ * stencil compare to equal, so it passes for that particular fragment only.
+ *
+ * - Fifth callback: Discarded fragments callback (VulkanPixelHistoryDiscardedFragmentsCallback)
+ * This callback is used to determine which individual fragments were discarded in a fragment
+ * shader.
+ * Only runs for the events where the number of fragments accounting for shader discard is less
+ * that the number of fragments not accounting for shader discard.
+ * This replays the particular fragment (by adjusting parameters in vkCmdDraw* call) with an
+ * occlusion query.
+ *
+ * We slot the per frament data correctly accounting for the fragments that were discarded.
+ *
+ * Current Limitations:
+ *
+ * - Multiple subpasses
+ * Currently if there are multiple subpasses used in a single render pass, pixel history will
+ * return only partial information. This is primarily because current implementation relies
+ * on stopping/resuming render passes. This only afects VulkanColorAndStencilCallback and
+ * VulkanPixelHistoryPerFragmentCallback callbacks, since they rely on copy operations.
+ * To support multiple subpasses we will have to:
+ * Create a mirror render pass for each render pass we need to stop, where the all
+ * loadOps are set to VK_ATTACHMENT_LOAD_OP_LOAD and store ops are set to
+ * VK_ATTACHMENT_STORE_OP_STORE.
+ * When we need to stop a render passs, we will repeatedly call vkCmdNextSubpass until we are
+ * on the last subpass. When we resume the subpass we will call vkCmdNextSubpass until we reach
+ * the original subpass. BeginRenderPassAndApplyState can be extended to provide an option
+ * not to override the used render pass (right now overrides with the load RP that has a single
+ * subpass).
+ */
+
 #include <float.h>
 #include "driver/shaders/spirv/spirv_editor.h"
 #include "driver/shaders/spirv/spirv_op_helpers.h"
@@ -556,6 +633,8 @@ protected:
   {
     const VulkanCreationInfo::RenderPass &rpInfo =
         m_pDriver->GetDebugManager()->GetRenderPassInfo(rp);
+    // TODO: this should retrieve the correct subpass, once multiple subpasses
+    // are supported.
     // Currently only single subpass render passes are supported.
     const VulkanCreationInfo::RenderPass::Subpass &sub = rpInfo.subpasses.front();
 
