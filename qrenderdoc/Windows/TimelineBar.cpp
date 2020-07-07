@@ -817,7 +817,7 @@ void TimelineBar::paintEvent(QPaintEvent *e)
         {
           pipranges[WriteUsage].push(pos, triRadius);
         }
-        else if(use.usage == ResourceUsage::Clear)
+        else if(use.usage == ResourceUsage::Clear || use.usage == ResourceUsage::Discard)
         {
           pipranges[ClearUsage].push(pos, triRadius);
         }

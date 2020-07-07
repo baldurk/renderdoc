@@ -1810,7 +1810,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardResource(SerialiserType &ser,
       AddDrawcall(draw, true);
 
       if(pResource)
-        m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
+        m_ResourceUses[dstLiveID].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
     }
   }
 
@@ -1904,7 +1904,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
         {
           WrappedID3D11RenderTargetView1 *view = (WrappedID3D11RenderTargetView1 *)pResourceView;
           m_ResourceUses[view->GetResourceResID()].push_back(
-              EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+              EventUsage(m_CurEventID, ResourceUsage::Discard, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
           D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
@@ -1916,7 +1916,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
         {
           WrappedID3D11DepthStencilView *view = (WrappedID3D11DepthStencilView *)pResourceView;
           m_ResourceUses[view->GetResourceResID()].push_back(
-              EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+              EventUsage(m_CurEventID, ResourceUsage::Discard, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
           D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc;
@@ -1928,7 +1928,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
         {
           WrappedID3D11ShaderResourceView1 *view = (WrappedID3D11ShaderResourceView1 *)pResourceView;
           m_ResourceUses[view->GetResourceResID()].push_back(
-              EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+              EventUsage(m_CurEventID, ResourceUsage::Discard, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
           D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
@@ -1941,7 +1941,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
           WrappedID3D11UnorderedAccessView1 *view =
               (WrappedID3D11UnorderedAccessView1 *)pResourceView;
           m_ResourceUses[view->GetResourceResID()].push_back(
-              EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+              EventUsage(m_CurEventID, ResourceUsage::Discard, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
           D3D11_UNORDERED_ACCESS_VIEW_DESC viewDesc;
@@ -2087,7 +2087,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
         {
           WrappedID3D11RenderTargetView1 *view = (WrappedID3D11RenderTargetView1 *)pResourceView;
           m_ResourceUses[view->GetResourceResID()].push_back(
-              EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+              EventUsage(m_CurEventID, ResourceUsage::Discard, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
           D3D11_RENDER_TARGET_VIEW_DESC viewDesc;
@@ -2099,7 +2099,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
         {
           WrappedID3D11DepthStencilView *view = (WrappedID3D11DepthStencilView *)pResourceView;
           m_ResourceUses[view->GetResourceResID()].push_back(
-              EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+              EventUsage(m_CurEventID, ResourceUsage::Discard, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
           D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc;
@@ -2111,7 +2111,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
         {
           WrappedID3D11ShaderResourceView1 *view = (WrappedID3D11ShaderResourceView1 *)pResourceView;
           m_ResourceUses[view->GetResourceResID()].push_back(
-              EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+              EventUsage(m_CurEventID, ResourceUsage::Discard, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
           D3D11_SHADER_RESOURCE_VIEW_DESC viewDesc;
@@ -2124,7 +2124,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
           WrappedID3D11UnorderedAccessView1 *view =
               (WrappedID3D11UnorderedAccessView1 *)pResourceView;
           m_ResourceUses[view->GetResourceResID()].push_back(
-              EventUsage(m_CurEventID, ResourceUsage::Clear, view->GetResourceID()));
+              EventUsage(m_CurEventID, ResourceUsage::Discard, view->GetResourceID()));
           draw.copyDestination =
               m_pDevice->GetResourceManager()->GetOriginalID(view->GetResourceResID());
           D3D11_UNORDERED_ACCESS_VIEW_DESC viewDesc;

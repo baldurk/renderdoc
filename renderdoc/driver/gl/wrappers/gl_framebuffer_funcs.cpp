@@ -1766,6 +1766,43 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferData(SerialiserType &s
     }
 
     GL.glInvalidateNamedFramebufferData(framebuffer.name, numAttachments, attachments);
+
+    if(IsLoading(m_State))
+    {
+      AddEvent();
+
+      ResourceId fbid = GetResourceManager()->GetID(framebuffer);
+
+      DrawcallDescription draw;
+      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
+                                    ToStr(GetResourceManager()->GetOriginalID(fbid)).c_str());
+      draw.flags |= DrawFlags::Clear;
+
+      for(GLsizei i = 0; i < numAttachments; i++)
+      {
+        GLuint obj = 0;
+        GLenum objtype = eGL_TEXTURE;
+
+        GL.glGetNamedFramebufferAttachmentParameterivEXT(
+            framebuffer.name, att[i], eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&obj);
+        GL.glGetNamedFramebufferAttachmentParameterivEXT(
+            framebuffer.name, att[i], eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&objtype);
+
+        ResourceId id;
+
+        if(objtype == eGL_TEXTURE)
+          id = GetResourceManager()->GetID(TextureRes(GetCtx(), obj));
+        else
+          id = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), obj));
+
+        if(draw.copyDestination == ResourceId())
+          draw.copyDestination = GetResourceManager()->GetOriginalID(id);
+
+        m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
+      }
+
+      AddDrawcall(draw, true);
+    }
   }
 
   return true;

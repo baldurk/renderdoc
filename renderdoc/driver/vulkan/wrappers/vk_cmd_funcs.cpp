@@ -67,7 +67,27 @@ void WrappedVulkan::AddImplicitResolveResourceUsage(uint32_t subpass)
     ResourceId image = m_CreationInfo.m_ImageView[fbattachments[attIdx]].image;
     m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
         image,
-        EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Resolve)));
+        EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::ResolveDst)));
+
+    attIdx = rpinfo.subpasses[subpass].colorAttachments[i];
+    if(attIdx == VK_ATTACHMENT_UNUSED)
+      continue;
+    image = m_CreationInfo.m_ImageView[fbattachments[attIdx]].image;
+    m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
+        image,
+        EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::ResolveSrc)));
+  }
+
+  // also add any discards
+  for(size_t i = 0; i < rpinfo.attachments.size(); i++)
+  {
+    if(rpinfo.attachments[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
+    {
+      ResourceId image = m_CreationInfo.m_ImageView[fbattachments[i]].image;
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
+          image,
+          EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Discard)));
+    }
   }
 }
 
@@ -1434,12 +1454,15 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
           m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
       for(size_t i = 0; i < rpinfo.attachments.size(); i++)
       {
-        if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+        if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
+           rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
         {
           ResourceId image = m_CreationInfo.m_ImageView[fbattachments[i]].image;
           m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
-              image,
-              EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Clear)));
+              image, EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
+                                rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
+                                    ? ResourceUsage::Clear
+                                    : ResourceUsage::Discard)));
         }
       }
 
@@ -1925,12 +1948,15 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
           m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
       for(size_t i = 0; i < rpinfo.attachments.size(); i++)
       {
-        if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+        if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
+           rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
         {
           ResourceId image = m_CreationInfo.m_ImageView[fbattachments[i]].image;
           m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
-              image,
-              EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID, ResourceUsage::Clear)));
+              image, EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
+                                rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
+                                    ? ResourceUsage::Clear
+                                    : ResourceUsage::Discard)));
         }
       }
 
@@ -3176,6 +3202,19 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
       else
         commandBuffer = VK_NULL_HANDLE;
+    }
+    else
+    {
+      for(uint32_t i = 0; i < imageMemoryBarrierCount; i++)
+      {
+        const VkImageMemoryBarrier &b = pImageMemoryBarriers[i];
+        if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+        {
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
+              GetResID(b.image), EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
+                                            ResourceUsage::Discard)));
+        }
+      }
     }
 
     if(commandBuffer != VK_NULL_HANDLE)

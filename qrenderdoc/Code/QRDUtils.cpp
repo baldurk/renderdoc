@@ -998,6 +998,7 @@ QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
       case ResourceUsage::Indirect: return lit("Indirect argument");
 
       case ResourceUsage::Clear: return lit("Clear");
+      case ResourceUsage::Discard: return lit("Discard");
 
       case ResourceUsage::GenMips: return lit("Generate Mips");
       case ResourceUsage::Resolve: return lit("Resolve");
@@ -1056,6 +1057,7 @@ QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
       case ResourceUsage::Indirect: return lit("Indirect argument");
 
       case ResourceUsage::Clear: return lit("Clear");
+      case ResourceUsage::Discard: return lit("Discard");
 
       case ResourceUsage::GenMips: return lit("Generate Mips");
       case ResourceUsage::Resolve: return vk ? lit("Resolve") : lit("Framebuffer blit");
@@ -1247,7 +1249,6 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
     {
       start = end = u.eventId;
       us = u.usage;
-      continue;
     }
 
     const DrawcallDescription *draw = ctx.GetDrawcall(u.eventId);
@@ -1288,8 +1289,15 @@ void CombineUsageEvents(ICaptureContext &ctx, const rdcarray<EventUsage> &usage,
     if(distinct)
     {
       callback(start, end, us);
-      start = end = u.eventId;
-      us = u.usage;
+      if(end == u.eventId && us == u.usage)
+      {
+        start = 0;
+      }
+      else
+      {
+        start = end = u.eventId;
+        us = u.usage;
+      }
     }
 
     end = u.eventId;

@@ -4878,6 +4878,23 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DiscardResource(SerialiserType 
     {
       Unwrap(pCommandList)->DiscardResource(Unwrap(pResource), pRegion);
       GetCrackedList()->DiscardResource(Unwrap(pResource), pRegion);
+
+      {
+        m_Cmd->AddEvent();
+
+        DrawcallDescription draw;
+        draw.flags |= DrawFlags::Clear;
+        draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(pResource));
+        draw.copyDestinationSubresource = Subresource();
+        draw.name = StringFormat::Fmt("DiscardResource(%s)", ToStr(draw.copyDestination).c_str());
+
+        m_Cmd->AddDrawcall(draw, true);
+
+        D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
+
+        drawNode.resourceUsage.push_back(make_rdcpair(
+            GetResID(pResource), EventUsage(drawNode.draw.eventId, ResourceUsage::Discard)));
+      }
     }
   }
 

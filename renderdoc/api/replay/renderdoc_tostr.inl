@@ -799,6 +799,7 @@ rdcstr DoStringise(const ResourceUsage &el)
     STRINGISE_ENUM_CLASS_NAMED(Indirect, "Indirect parameters");
 
     STRINGISE_ENUM_CLASS_NAMED(Clear, "Clear");
+    STRINGISE_ENUM_CLASS_NAMED(Discard, "Discard");
 
     STRINGISE_ENUM_CLASS_NAMED(GenMips, "Mip Generation");
     STRINGISE_ENUM_CLASS_NAMED(Resolve, "Resolve - Source&Dest");

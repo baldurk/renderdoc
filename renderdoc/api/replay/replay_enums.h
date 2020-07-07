@@ -2393,7 +2393,11 @@ Note that a resource may be used for more than one thing in one event, see :clas
 
 .. data:: Clear
 
-  The resource is being cleared
+  The resource is being cleared.
+
+.. data:: Discard
+
+  The resource contents are discarded explicitly or implicitly.
 
 .. data:: GenMips
 
@@ -2470,6 +2474,7 @@ enum class ResourceUsage : uint32_t
   Indirect,
 
   Clear,
+  Discard,
 
   GenMips,
   Resolve,

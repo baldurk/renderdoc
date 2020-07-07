@@ -838,6 +838,17 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
       // since we cache and replay this command buffer we can't clean up this event just when we're
       // done replaying this section. We have to keep this event until shutdown
       m_PersistentEvents.push_back(ev);
+
+      for(uint32_t i = 0; i < imageMemoryBarrierCount; i++)
+      {
+        const VkImageMemoryBarrier &b = pImageMemoryBarriers[i];
+        if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+        {
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
+              GetResID(b.image), EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
+                                            ResourceUsage::Discard)));
+        }
+      }
     }
 
     ResourceId cmd = GetResID(commandBuffer);

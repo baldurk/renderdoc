@@ -1491,6 +1491,10 @@ rdcarray<PixelModification> ReplayController::PixelHistory(ResourceId target, ui
         // writing but CPU-only, don't include
         continue;
 
+      case ResourceUsage::Discard:
+        // writing but not something pixel history should handle
+        continue;
+
       case ResourceUsage::Unused:
       case ResourceUsage::StreamOut:
       case ResourceUsage::VS_RWResource:
