@@ -356,7 +356,7 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
   switch(type)
   {
     case GPA_DATA_TYPE_FLOAT64:    ///< Result will be a 64-bit float
-      desc.resultType = CompType::Double;
+      desc.resultType = CompType::Float;
       desc.resultByteWidth = sizeof(double);
       break;
     case GPA_DATA_TYPE_UINT64:    ///< Result will be a 64-bit unsigned int
@@ -611,7 +611,7 @@ rdcarray<CounterResult> AMDCounters::GetCounterData(uint32_t sessionID, uint32_t
           ret.push_back(CounterResult(eventIDs[s], counters[c], (uint64_t)value));
         }
         break;
-        case CompType::Double:
+        case CompType::Float:
         {
           double value = 0.0;
           memcpy(&value, (double *)(pSampleResult) + c, sizeof(double));

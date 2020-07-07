@@ -167,7 +167,7 @@ rdcarray<CounterDescription> IntelCounters::EnumerateCounters()
         counterDesc.description = metricParams->LongName;
         counterDesc.category = metricParams->GroupName;
         counterDesc.resultByteWidth = 8;
-        counterDesc.resultType = CompType::Double;
+        counterDesc.resultType = CompType::Float;
         switch(metricParams->ResultType)
         {
           case RESULT_UINT32:

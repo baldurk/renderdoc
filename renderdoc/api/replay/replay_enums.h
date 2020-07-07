@@ -279,8 +279,7 @@ DOCUMENT(R"(Represents the component type of a channel in a texture or element i
 
 .. data:: Float
 
-  A single-precision (32-bit) floating point value. This is an IEEE float with 1 sign bit,
-  8 bits of exponent and 23 bits of mantissa.
+  An IEEE floating point value of 64-bit, 32-bit or 16-bit size.
 
 .. data:: UNorm
 
@@ -321,12 +320,8 @@ DOCUMENT(R"(Represents the component type of a channel in a texture or element i
 
 .. data:: Depth
 
-  An opaque value storing depth information, either :data:`unsigned normalised <UNorm>` or
-  :data:`floating point <float>`.
-
-.. data:: Double
-
-  A double-precision (64-bit) floating point value.
+  An opaque value storing depth information, either :data:`floating point <float>` for 32-bit depth
+  values or else :data:`unsigned normalised <UNorm>` for other bit sizes.
 
 .. data:: UNormSRGB
 
@@ -344,7 +339,6 @@ enum class CompType : uint8_t
   UScaled,
   SScaled,
   Depth,
-  Double,
   UNormSRGB,
 };
 
@@ -361,9 +355,7 @@ constexpr CompType VarTypeCompType(VarType type)
   // temporarily disable clang-format to make this more readable.
   // Ideally we'd use a simple switch() but VS2015 doesn't support that :(.
   // clang-format off
-  return (type == VarType::Double) ? CompType::Double
-
-       : (type == VarType::Float  || type == VarType::Half) ? CompType::Float
+  return (type == VarType::Double || type == VarType::Float  || type == VarType::Half) ? CompType::Float
 
        : (type == VarType::ULong  || type == VarType::UInt   ||
           type == VarType::UShort || type == VarType::UByte  || type == VarType::Bool) ? CompType::UInt

@@ -838,8 +838,7 @@ static rdcstr ResourceFormatName(const ResourceFormat &fmt)
   switch(fmt.compType)
   {
     case CompType::Typeless: return ret + "_TYPELESS";
-    case CompType::Float:
-    case CompType::Double: return ret + "_FLOAT";
+    case CompType::Float: return ret + "_FLOAT";
     case CompType::UNorm: return ret + "_UNORM";
     case CompType::SNorm: return ret + "_SNORM";
     case CompType::UInt: return ret + "_UINT";

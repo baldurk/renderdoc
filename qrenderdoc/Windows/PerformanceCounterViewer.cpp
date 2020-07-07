@@ -52,11 +52,10 @@ struct SortValue
     {
       case CompType::Float:
         type = Float;
-        val.d = result.value.f;
-        break;
-      case CompType::Double:
-        type = Float;
-        val.d = result.value.d;
+        if(description.resultByteWidth == 8)
+          val.d = result.value.d;
+        else
+          val.d = result.value.f;
         break;
 
       case CompType::UInt:
@@ -146,19 +145,19 @@ QTableWidgetItem *PerformanceCounterViewer::MakeCounterResultItem(const CounterR
 
   switch(description.resultType)
   {
-    case CompType::Float: returnValue += Formatter::Format(mul * result.value.f); break;
-
-    case CompType::Double: returnValue += Formatter::Format(mul * result.value.d); break;
+    case CompType::Float:
+      if(description.resultByteWidth == 8)
+        returnValue += Formatter::Format(mul * result.value.d);
+      else
+        returnValue += Formatter::Format(mul * result.value.f);
+      break;
 
     case CompType::UInt:
       if(description.resultByteWidth == 8)
-      {
         returnValue += Formatter::Format(result.value.u64);
-      }
       else
-      {
         returnValue += Formatter::Format(result.value.u32);
-      }
+      break;
 
     default:
       // assert (false)

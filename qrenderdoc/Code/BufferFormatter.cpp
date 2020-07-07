@@ -539,7 +539,7 @@ QString BufferFormatter::GetTextureFormatString(const TextureDescription &tex)
       }
       else
       {
-        if(tex.format.compType == CompType::Float || tex.format.compType == CompType::Double)
+        if(tex.format.compType == CompType::Float)
           baseType = lit("double");
         else if(tex.format.compType == CompType::SInt)
           baseType = lit("long");
@@ -1526,10 +1526,6 @@ QVariantList GetVariants(ResourceFormat format, const ShaderVariableDescriptor &
             float f = (float)readObj<uint16_t>(data, end, ok);
             ret.push_back(f / (float)0x0000ffff);
           }
-        }
-        else if(format.compType == CompType::Double)
-        {
-          ret.push_back(readObj<double>(data, end, ok));
         }
         else
         {

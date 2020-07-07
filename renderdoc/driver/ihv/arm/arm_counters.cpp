@@ -47,10 +47,12 @@ static CounterDescription ARMCreateCounterDescription(GPUCounter index,
   else
     desc.description = lzdDesc.description;
 
+  desc.resultByteWidth = 8;
+
   switch(lzdDesc.result_type)
   {
     case LZD_TYPE_INT: desc.resultType = CompType::UInt; break;
-    case LZD_TYPE_DOUBLE: desc.resultType = CompType::Double; break;
+    case LZD_TYPE_DOUBLE: desc.resultType = CompType::Float; break;
     default: desc.resultType = CompType::UInt; break;
   }
 
@@ -192,7 +194,7 @@ void ARMCounters::EndSample()
     {
       data.u64 = m_Api->ReadCounterInt(m_Ctx, counterId);
     }
-    else if(desc.resultType == CompType::Double)
+    else if(desc.resultType == CompType::Float)
     {
       data.d = m_Api->ReadCounterDouble(m_Ctx, counterId);
     }
@@ -217,7 +219,7 @@ rdcarray<CounterResult> ARMCounters::GetCounterData(const rdcarray<uint32_t> &ev
       {
         result.push_back(CounterResult(eventId, counter, data.u64));
       }
-      else if(desc.resultType == CompType::Double)
+      else if(desc.resultType == CompType::Float)
       {
         result.push_back(CounterResult(eventId, counter, data.d));
       }

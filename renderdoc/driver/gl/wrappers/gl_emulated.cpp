@@ -3247,8 +3247,8 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
             case eGL_BYTE: readFmt.compType = CompType::SNorm; break;
             case eGL_HALF_FLOAT_OES:
             case eGL_HALF_FLOAT:
-            case eGL_FLOAT: readFmt.compType = CompType::Float; break;
-            case eGL_DOUBLE: readFmt.compType = CompType::Double; break;
+            case eGL_FLOAT:
+            case eGL_DOUBLE: readFmt.compType = CompType::Float; break;
             default:
               RDCERR("Unexpected readType %s", ToStr(readType).c_str());
               readFmt.compType = CompType::UNorm;

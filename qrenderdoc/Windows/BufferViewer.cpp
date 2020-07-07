@@ -1444,7 +1444,7 @@ static void ConfigureColumnsForShader(ICaptureContext &ctx, const ShaderReflecti
     ShaderConstant &el = columns[i];
 
     uint numComps = el.type.descriptor.columns;
-    uint elemSize = prop.format.compType == CompType::Double ? 8U : 4U;
+    uint elemSize = prop.format.compByteWidth > 4 ? 8U : 4U;
 
     if(ctx.CurPipelineState().HasAlignedPostVSData(
            shader->stage == ShaderStage::Vertex ? MeshDataStage::VSOut : MeshDataStage::GSOut))

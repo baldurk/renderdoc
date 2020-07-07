@@ -509,15 +509,16 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl, const SPIRV
     else if(compType == CompType::Float)
     {
       io.tbuffer = tbuffer_float;
-    }
-    else if(compType == CompType::Double)
-    {
-      // doubles are loaded packed from a uint tbuffer
-      io.tbuffer = tbuffer_uint;
+
+      if(refl.inputSignature[i].varType == VarType::Double)
+      {
+        // doubles are loaded packed from a uint tbuffer
+        io.tbuffer = tbuffer_uint;
+      }
     }
 
     // doubles are loaded as uvec4 and then packed in pairs, so we need to declare vec4ID as uvec4
-    if(compType == CompType::Double)
+    if(refl.inputSignature[i].varType == VarType::Double)
       io.vec4ID = editor.DeclareType(rdcspv::Vector(rdcspv::scalar<uint32_t>(), 4));
     else
       io.vec4ID = editor.DeclareType(rdcspv::Vector(scalarType, 4));

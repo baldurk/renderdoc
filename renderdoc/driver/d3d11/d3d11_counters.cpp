@@ -116,7 +116,7 @@ CounterDescription D3D11Replay::DescribeCounter(GPUCounter counterID)
       desc.description =
           "Time taken for this event on the GPU, as measured by delta between two GPU timestamps.";
       desc.resultByteWidth = 8;
-      desc.resultType = CompType::Double;
+      desc.resultType = CompType::Float;
       desc.unit = CounterUnit::Seconds;
       break;
     case GPUCounter::InputVerticesRead:

@@ -440,7 +440,7 @@ FloatVector DecodeFormattedComponents(const ResourceFormat &fmt, const byte *dat
         const uint64_t *u64 = (const uint64_t *)data;
         const int64_t *i64 = (const int64_t *)data;
 
-        if(compType == CompType::Double || compType == CompType::Float)
+        if(compType == CompType::Float)
         {
           *comp = float(*(const double *)u64);
         }
@@ -683,7 +683,7 @@ void EncodeFormattedComponents(const ResourceFormat &fmt, FloatVector v, byte *d
         uint64_t *u64 = (uint64_t *)data;
         int64_t *i64 = (int64_t *)data;
 
-        if(compType == CompType::Double || compType == CompType::Float)
+        if(compType == CompType::Float)
         {
           *d = *comp;
         }

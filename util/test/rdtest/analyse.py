@@ -188,7 +188,7 @@ def get_postvs_attrs(controller: rd.ReplayController, mesh: rd.MeshFormat, data_
         # while others will tightly pack
         fmt = attrs[i].mesh.format
 
-        elem_size = (8 if fmt.compType == rd.CompType.Double else 4)
+        elem_size = (8 if fmt.compByteWidth > 4 else 4)
 
         alignment = elem_size
         if fmt.compCount == 2:
@@ -224,7 +224,6 @@ def unpack_data(fmt: rd.ResourceFormat, data: bytes, data_offset: int):
     format_chars[rd.CompType.UScaled] = format_chars[rd.CompType.UInt]
     format_chars[rd.CompType.SNorm] = format_chars[rd.CompType.SInt]
     format_chars[rd.CompType.SScaled] = format_chars[rd.CompType.SInt]
-    format_chars[rd.CompType.Double] = format_chars[rd.CompType.Float]
 
     # We need to fetch compCount components
     vertex_format = '=' + str(fmt.compCount) + format_chars[fmt.compType][fmt.compByteWidth]

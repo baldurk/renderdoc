@@ -67,7 +67,7 @@ static CompType glToRdcCounterType(GLuint glDataType)
     case GL_PERFQUERY_COUNTER_DATA_UINT32_INTEL: return CompType::UInt;
     case GL_PERFQUERY_COUNTER_DATA_UINT64_INTEL: return CompType::UInt;
     case GL_PERFQUERY_COUNTER_DATA_FLOAT_INTEL: return CompType::Float;
-    case GL_PERFQUERY_COUNTER_DATA_DOUBLE_INTEL: return CompType::Double;
+    case GL_PERFQUERY_COUNTER_DATA_DOUBLE_INTEL: return CompType::Float;
     case GL_PERFQUERY_COUNTER_DATA_BOOL32_INTEL: return CompType::UInt;
     default: RDCERR("Wrong counter data type: %u", glDataType);
   }
@@ -291,18 +291,21 @@ rdcarray<CounterResult> IntelGlCounters::GetCounterData(uint32_t maxSampleIndex,
       const IntelGlCounter &counter = m_Counters[GPUCounterToCounterIndex(c)];
       switch(counter.desc.resultType)
       {
-        case CompType::Double:
-        {
-          double r;
-          CopyData(&r, counter, s, maxSampleIndex);
-          ret.push_back(CounterResult(eventIDs[s], counter.desc.counter, r));
-          break;
-        }
         case CompType::Float:
         {
-          float r;
-          CopyData(&r, counter, s, maxSampleIndex);
-          ret.push_back(CounterResult(eventIDs[s], counter.desc.counter, r));
+          if(counter.desc.resultByteWidth == 8)
+          {
+            double r;
+            CopyData(&r, counter, s, maxSampleIndex);
+            ret.push_back(CounterResult(eventIDs[s], counter.desc.counter, r));
+            break;
+          }
+          else
+          {
+            float r;
+            CopyData(&r, counter, s, maxSampleIndex);
+            ret.push_back(CounterResult(eventIDs[s], counter.desc.counter, r));
+          }
           break;
         }
         case CompType::UInt:

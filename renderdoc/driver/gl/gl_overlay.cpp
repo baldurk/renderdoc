@@ -1419,36 +1419,43 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
                       postvs.format.compType == CompType::UNorm ||
                       postvs.format.compType == CompType::SNorm)
               {
-                GLenum fmttype = eGL_UNSIGNED_INT;
+                if(postvs.format.compByteWidth == 8)
+                {
+                  drv.glVertexAttribLFormat(0, postvs.format.compCount, eGL_DOUBLE, 0);
+                }
+                else
+                {
+                  GLenum fmttype = eGL_UNSIGNED_INT;
 
-                if(postvs.format.compByteWidth == 4)
-                {
-                  if(postvs.format.compType == CompType::Float)
-                    fmttype = eGL_FLOAT;
-                  else if(postvs.format.compType == CompType::UNorm)
-                    fmttype = eGL_UNSIGNED_INT;
-                  else if(postvs.format.compType == CompType::SNorm)
-                    fmttype = eGL_INT;
-                }
-                else if(postvs.format.compByteWidth == 2)
-                {
-                  if(postvs.format.compType == CompType::Float)
-                    fmttype = eGL_HALF_FLOAT;
-                  else if(postvs.format.compType == CompType::UNorm)
-                    fmttype = eGL_UNSIGNED_SHORT;
-                  else if(postvs.format.compType == CompType::SNorm)
-                    fmttype = eGL_SHORT;
-                }
-                else if(postvs.format.compByteWidth == 1)
-                {
-                  if(postvs.format.compType == CompType::UNorm)
-                    fmttype = eGL_UNSIGNED_BYTE;
-                  else if(postvs.format.compType == CompType::SNorm)
-                    fmttype = eGL_BYTE;
-                }
+                  if(postvs.format.compByteWidth == 4)
+                  {
+                    if(postvs.format.compType == CompType::Float)
+                      fmttype = eGL_FLOAT;
+                    else if(postvs.format.compType == CompType::UNorm)
+                      fmttype = eGL_UNSIGNED_INT;
+                    else if(postvs.format.compType == CompType::SNorm)
+                      fmttype = eGL_INT;
+                  }
+                  else if(postvs.format.compByteWidth == 2)
+                  {
+                    if(postvs.format.compType == CompType::Float)
+                      fmttype = eGL_HALF_FLOAT;
+                    else if(postvs.format.compType == CompType::UNorm)
+                      fmttype = eGL_UNSIGNED_SHORT;
+                    else if(postvs.format.compType == CompType::SNorm)
+                      fmttype = eGL_SHORT;
+                  }
+                  else if(postvs.format.compByteWidth == 1)
+                  {
+                    if(postvs.format.compType == CompType::UNorm)
+                      fmttype = eGL_UNSIGNED_BYTE;
+                    else if(postvs.format.compType == CompType::SNorm)
+                      fmttype = eGL_BYTE;
+                  }
 
-                drv.glVertexAttribFormat(0, postvs.format.compCount, fmttype,
-                                         postvs.format.compType != CompType::Float, 0);
+                  drv.glVertexAttribFormat(0, postvs.format.compCount, fmttype,
+                                           postvs.format.compType != CompType::Float, 0);
+                }
               }
               else if(postvs.format.compType == CompType::UInt ||
                       postvs.format.compType == CompType::SInt)
@@ -1478,10 +1485,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
                 }
 
                 drv.glVertexAttribIFormat(0, postvs.format.compCount, fmttype, 0);
-              }
-              else if(postvs.format.compType == CompType::Double)
-              {
-                drv.glVertexAttribLFormat(0, postvs.format.compCount, eGL_DOUBLE, 0);
               }
 
               GLuint vb =

@@ -52,7 +52,7 @@ static void GetKHRUnitDescription(const VkPerformanceCounterUnitKHR khrUnit,
                                   const VkPerformanceCounterStorageKHR khrStorage,
                                   CounterUnit &unit, CompType &type, uint32_t &byteWidth)
 {
-  type = isFloatKhrStorage(khrStorage) ? CompType::Double : CompType::UInt;
+  type = isFloatKhrStorage(khrStorage) ? CompType::Float : CompType::UInt;
   byteWidth = 8;
 
   switch(khrUnit)
@@ -209,7 +209,7 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
 
     // Special chase for time units.
     if(khrCounter.unit == VK_PERFORMANCE_COUNTER_UNIT_NANOSECONDS_KHR)
-      rdcDesc.resultType = CompType::Double;
+      rdcDesc.resultType = CompType::Float;
 
     return rdcDesc;
   }
@@ -229,7 +229,7 @@ CounterDescription VulkanReplay::DescribeCounter(GPUCounter counterID)
       desc.description =
           "Time taken for this event on the GPU, as measured by delta between two GPU timestamps.";
       desc.resultByteWidth = 8;
-      desc.resultType = CompType::Double;
+      desc.resultType = CompType::Float;
       desc.unit = CounterUnit::Seconds;
       break;
     case GPUCounter::InputVerticesRead:

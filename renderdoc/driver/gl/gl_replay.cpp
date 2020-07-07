@@ -912,7 +912,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
         break;
       case eGL_DOUBLE:
         fmt.compByteWidth = 8;
-        fmt.compType = CompType::Double;
+        fmt.compType = CompType::Float;
         break;
       case eGL_HALF_FLOAT:
         fmt.compByteWidth = 2;

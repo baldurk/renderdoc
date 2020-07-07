@@ -111,7 +111,7 @@ int NvPmGatherCounters(NVPMCounterID unCounterID, const char *pcCounterName, voi
       // because sometimes they could be `percents` and sometimes 'ratios' (avg. instructions per
       // shader invocation, for example)
       desc.unit = CounterUnit::Ratio;
-      desc.resultType = CompType::Double;
+      desc.resultType = CompType::Float;
       desc.resultByteWidth = sizeof(double);
     }
     else
@@ -132,7 +132,7 @@ int NvPmGatherCounters(NVPMCounterID unCounterID, const char *pcCounterName, voi
     // Same problem as for counters with 'ratio' display type but:
     // don't know for sure if a counter should be displayed as is or annotated with `%` symbol
     desc.unit = CounterUnit::Ratio;
-    desc.resultType = CompType::Double;
+    desc.resultType = CompType::Float;
     desc.resultByteWidth = sizeof(double);
   }
 

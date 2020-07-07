@@ -2289,11 +2289,11 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
     case VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK_EXT:
     case VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK_EXT:
     case VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK_EXT:
-    case VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK_EXT: ret.compType = CompType::Float; break;
+    case VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK_EXT:
     case VK_FORMAT_R64_SFLOAT:
     case VK_FORMAT_R64G64_SFLOAT:
     case VK_FORMAT_R64G64B64_SFLOAT:
-    case VK_FORMAT_R64G64B64A64_SFLOAT: ret.compType = CompType::Double; break;
+    case VK_FORMAT_R64G64B64A64_SFLOAT: ret.compType = CompType::Float; break;
     case VK_FORMAT_S8_UINT:
     case VK_FORMAT_D16_UNORM:
     case VK_FORMAT_X8_D24_UNORM_PACK32:
@@ -2908,7 +2908,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
     }
     else if(fmt.compByteWidth == 8)
     {
-      if(fmt.compType == CompType::Float || fmt.compType == CompType::Double)
+      if(fmt.compType == CompType::Float)
         ret = VK_FORMAT_R64G64B64A64_SFLOAT;
       else if(fmt.compType == CompType::SInt)
         ret = VK_FORMAT_R64G64B64A64_SINT;
@@ -2977,7 +2977,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
     }
     else if(fmt.compByteWidth == 8)
     {
-      if(fmt.compType == CompType::Float || fmt.compType == CompType::Double)
+      if(fmt.compType == CompType::Float)
         ret = VK_FORMAT_R64G64B64_SFLOAT;
       else if(fmt.compType == CompType::SInt)
         ret = VK_FORMAT_R64G64B64_SINT;
@@ -3046,7 +3046,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
     }
     else if(fmt.compByteWidth == 8)
     {
-      if(fmt.compType == CompType::Float || fmt.compType == CompType::Double)
+      if(fmt.compType == CompType::Float)
         ret = VK_FORMAT_R64G64_SFLOAT;
       else if(fmt.compType == CompType::SInt)
         ret = VK_FORMAT_R64G64_SINT;
@@ -3115,7 +3115,7 @@ VkFormat MakeVkFormat(ResourceFormat fmt)
     }
     else if(fmt.compByteWidth == 8)
     {
-      if(fmt.compType == CompType::Float || fmt.compType == CompType::Double)
+      if(fmt.compType == CompType::Float)
         ret = VK_FORMAT_R64_SFLOAT;
       else if(fmt.compType == CompType::SInt)
         ret = VK_FORMAT_R64_SINT;
