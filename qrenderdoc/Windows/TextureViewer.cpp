@@ -2336,13 +2336,10 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
       dynamicallyUsedResCount = ResList[residx].dynamicallyUsedCount;
     }
 
-    const bool collapseArray = dynamicallyUsedResCount > 20;
-
     int arrayLen = resArray != NULL ? resArray->count() : 1;
 
-    // Too many resources to draw can cause a full-OS hang.
-    // For now, limit the number displayed per resource array.
-    arrayLen = qMin(arrayLen, 8);
+    const bool collapseArray =
+        (dynamicallyUsedResCount > 20) || (dynamicallyUsedResCount == 0 && arrayLen > 8);
 
     for(int arrayIdx = 0; arrayIdx < arrayLen; arrayIdx++)
     {
