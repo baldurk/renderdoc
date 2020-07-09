@@ -93,6 +93,9 @@ void IntelGlCounters::addCounter(const IntelGlQuery &query, GLuint counterId)
       (GLuint)counter.desc.description.size(), &counter.desc.description[0], &counter.offset,
       &counter.desc.resultByteWidth, &counter.type, &counter.dataType, NULL);
 
+  counter.desc.name.resize(strlen(&counter.desc.name[0]));
+  counter.desc.description.resize(strlen(&counter.desc.description[0]));
+
   if(m_CounterNames.find(counter.desc.name) != m_CounterNames.end())
     return;
 
@@ -124,6 +127,7 @@ void IntelGlCounters::addQuery(GLuint queryId)
   if(GL.glGetError() != eGL_NONE)
     return;
 
+  query.name.resize(strlen(&query.name[0]));
   if(metricSetBlacklist.contains(query.name))
     return;
 
