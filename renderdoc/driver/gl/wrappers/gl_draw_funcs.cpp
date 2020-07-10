@@ -3636,10 +3636,13 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(SerialiserType &ser,
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
         draw.copyDestination = GetResourceManager()->GetOriginalID(id);
 
-        GLint mip = 0, slice = 0;
-        GetFramebufferMipAndLayer(framebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
-        draw.copyDestinationSubresource.mip = mip;
-        draw.copyDestinationSubresource.slice = slice;
+        if(type == eGL_TEXTURE)
+        {
+          GLint mip = 0, slice = 0;
+          GetFramebufferMipAndLayer(framebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+          draw.copyDestinationSubresource.mip = mip;
+          draw.copyDestinationSubresource.slice = slice;
+        }
       }
 
       AddDrawcall(draw, true);
@@ -3786,10 +3789,13 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(SerialiserType &ser,
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
         draw.copyDestination = GetResourceManager()->GetOriginalID(id);
 
-        GLint mip = 0, slice = 0;
-        GetFramebufferMipAndLayer(framebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
-        draw.copyDestinationSubresource.mip = mip;
-        draw.copyDestinationSubresource.slice = slice;
+        if(type == eGL_TEXTURE)
+        {
+          GLint mip = 0, slice = 0;
+          GetFramebufferMipAndLayer(framebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+          draw.copyDestinationSubresource.mip = mip;
+          draw.copyDestinationSubresource.slice = slice;
+        }
       }
 
       AddDrawcall(draw, true);
@@ -3908,10 +3914,13 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(SerialiserType &ser,
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
         draw.copyDestination = GetResourceManager()->GetOriginalID(id);
 
-        GLint mip = 0, slice = 0;
-        GetFramebufferMipAndLayer(framebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
-        draw.copyDestinationSubresource.mip = mip;
-        draw.copyDestinationSubresource.slice = slice;
+        if(type == eGL_TEXTURE)
+        {
+          GLint mip = 0, slice = 0;
+          GetFramebufferMipAndLayer(framebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+          draw.copyDestinationSubresource.mip = mip;
+          draw.copyDestinationSubresource.slice = slice;
+        }
       }
 
       AddDrawcall(draw, true);
@@ -4029,10 +4038,13 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(SerialiserType &ser, GLu
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
         draw.copyDestination = GetResourceManager()->GetOriginalID(id);
 
-        GLint mip = 0, slice = 0;
-        GetFramebufferMipAndLayer(framebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
-        draw.copyDestinationSubresource.mip = mip;
-        draw.copyDestinationSubresource.slice = slice;
+        if(type == eGL_TEXTURE)
+        {
+          GLint mip = 0, slice = 0;
+          GetFramebufferMipAndLayer(framebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+          draw.copyDestinationSubresource.mip = mip;
+          draw.copyDestinationSubresource.slice = slice;
+        }
       }
 
       AddDrawcall(draw, true);
@@ -4523,14 +4535,17 @@ bool WrappedOpenGL::Serialise_glClear(SerialiserType &ser, GLbitfield mask)
 
         draw.copyDestination = GetResourceManager()->GetOriginalID(dstId);
 
-        GLuint curDrawFBO = 0;
-        GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
-        GLint mip = 0, slice = 0;
-        GetFramebufferMipAndLayer(curDrawFBO, eGL_COLOR_ATTACHMENT0, &mip, &slice);
-        draw.copyDestinationSubresource.mip = mip;
-        draw.copyDestinationSubresource.slice = slice;
+        if(m_Textures[dstId].curType != eGL_RENDERBUFFER)
+        {
+          GLuint curDrawFBO = 0;
+          GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
+          GLint mip = 0, slice = 0;
+          GetFramebufferMipAndLayer(curDrawFBO, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+          draw.copyDestinationSubresource.mip = mip;
+          draw.copyDestinationSubresource.slice = slice;
 
-        AddDrawcall(draw, true);
+          AddDrawcall(draw, true);
+        }
       }
     }
   }
@@ -4619,7 +4634,18 @@ bool WrappedOpenGL::Serialise_glClearTexImage(SerialiserType &ser, GLuint textur
       case eGL_UNSIGNED_INT_8_8_8_8:
       case eGL_UNSIGNED_INT_8_8_8_8_REV: s = 2; break;
       case eGL_UNSIGNED_INT_10_10_10_2:
-      case eGL_UNSIGNED_INT_2_10_10_10_REV: s = 4; break;
+      case eGL_UNSIGNED_INT_2_10_10_10_REV:
+      case eGL_INT_2_10_10_10_REV:
+      case eGL_UNSIGNED_INT_10F_11F_11F_REV:
+      case eGL_UNSIGNED_INT_5_9_9_9_REV: s = 4; break;
+      case eGL_DEPTH_COMPONENT16: s = 2; break;
+      case eGL_DEPTH_COMPONENT24:
+      case eGL_DEPTH_COMPONENT32:
+      case eGL_DEPTH_COMPONENT32F: s = 4; break;
+      case eGL_UNSIGNED_INT_24_8:
+      case eGL_DEPTH24_STENCIL8: s = 4; break;
+      case eGL_DEPTH32F_STENCIL8:
+      case eGL_FLOAT_32_UNSIGNED_INT_24_8_REV: s = 8; break;
     }
     if(dataPtr)
       memcpy(data, dataPtr, s);
@@ -4634,6 +4660,29 @@ bool WrappedOpenGL::Serialise_glClearTexImage(SerialiserType &ser, GLuint textur
   if(IsReplayingAndReading())
   {
     GL.glClearTexImage(texture.name, level, format, type, (const void *)&data[0]);
+
+    if(IsLoading(m_State))
+    {
+      AddEvent();
+
+      ResourceId liveId = GetResourceManager()->GetID(texture);
+      ResourceId id = GetResourceManager()->GetOriginalID(liveId);
+
+      DrawcallDescription draw;
+      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(), ToStr(id).c_str());
+      draw.flags |= DrawFlags::Clear;
+      if(format == eGL_DEPTH_STENCIL || format == eGL_DEPTH_COMPONENT || format == eGL_STENCIL_INDEX)
+        draw.flags |= DrawFlags::ClearDepthStencil;
+      else
+        draw.flags |= DrawFlags::ClearColor;
+
+      draw.copyDestination = id;
+      draw.copyDestinationSubresource.mip = level;
+
+      AddDrawcall(draw, true);
+
+      m_ResourceUses[liveId].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
+    }
   }
 
   return true;
@@ -4733,7 +4782,18 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(SerialiserType &ser, GLuint tex
       case eGL_UNSIGNED_INT_8_8_8_8:
       case eGL_UNSIGNED_INT_8_8_8_8_REV: s = 2; break;
       case eGL_UNSIGNED_INT_10_10_10_2:
-      case eGL_UNSIGNED_INT_2_10_10_10_REV: s = 4; break;
+      case eGL_UNSIGNED_INT_2_10_10_10_REV:
+      case eGL_INT_2_10_10_10_REV:
+      case eGL_UNSIGNED_INT_10F_11F_11F_REV:
+      case eGL_UNSIGNED_INT_5_9_9_9_REV: s = 4; break;
+      case eGL_DEPTH_COMPONENT16: s = 2; break;
+      case eGL_DEPTH_COMPONENT24:
+      case eGL_DEPTH_COMPONENT32:
+      case eGL_DEPTH_COMPONENT32F: s = 4; break;
+      case eGL_UNSIGNED_INT_24_8:
+      case eGL_DEPTH24_STENCIL8: s = 4; break;
+      case eGL_DEPTH32F_STENCIL8:
+      case eGL_FLOAT_32_UNSIGNED_INT_24_8_REV: s = 8; break;
     }
     if(dataPtr)
       memcpy(data, dataPtr, s);
@@ -4749,6 +4809,29 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(SerialiserType &ser, GLuint tex
   {
     GL.glClearTexSubImage(texture.name, level, xoffset, yoffset, zoffset, width, height, depth,
                           format, type, (const void *)&data[0]);
+
+    if(IsLoading(m_State))
+    {
+      AddEvent();
+
+      ResourceId liveId = GetResourceManager()->GetID(texture);
+      ResourceId id = GetResourceManager()->GetOriginalID(liveId);
+
+      DrawcallDescription draw;
+      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(), ToStr(id).c_str());
+      draw.flags |= DrawFlags::Clear;
+      if(format == eGL_DEPTH_STENCIL || format == eGL_DEPTH_COMPONENT || format == eGL_STENCIL_INDEX)
+        draw.flags |= DrawFlags::ClearDepthStencil;
+      else
+        draw.flags |= DrawFlags::ClearColor;
+
+      draw.copyDestination = id;
+      draw.copyDestinationSubresource.mip = level;
+
+      AddDrawcall(draw, true);
+
+      m_ResourceUses[liveId].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
+    }
   }
 
   return true;
