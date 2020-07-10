@@ -3807,7 +3807,7 @@ int CMP_CDECL CreateOptionsBC6(void **options)
 {
     (*options) = new BC6H_Encode;
     if (!options) return CGU_CORE_ERR_NEWMEM;
-    SetDefaultBC6Options((BC6H_Encode *)options);
+    SetDefaultBC6Options((BC6H_Encode *)(*options));
     return CGU_CORE_OK;
 }
 
