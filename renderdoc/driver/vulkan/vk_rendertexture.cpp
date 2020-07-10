@@ -484,12 +484,12 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
-  VkMarkerRegion::Begin("RenderTexture", cmd);
-
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
+  VkMarkerRegion::Begin("RenderTexture", cmd);
 
   ImageBarrierSequence setupBarriers, cleanupBarriers;
   imageState.TempTransition(m_pDriver->GetQueueFamilyIndex(),
