@@ -46,6 +46,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRate(
 
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
+    bool stateUpdate = false;
+
     if(IsActiveReplaying(m_State))
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
@@ -53,15 +55,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRate(
         Unwrap5(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
             ->RSSetShadingRate(baseShadingRate, combiners);
 
-        if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-        {
-          m_Cmd->m_RenderState.shadingRate = baseShadingRate;
-          if(combiners)
-          {
-            m_Cmd->m_RenderState.shadingRateCombiners[0] = combiners[0];
-            m_Cmd->m_RenderState.shadingRateCombiners[1] = combiners[1];
-          }
-        }
+        stateUpdate = true;
+      }
+      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+      {
+        stateUpdate = true;
       }
     }
     else
@@ -69,6 +67,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRate(
       Unwrap5(pCommandList)->RSSetShadingRate(baseShadingRate, combiners);
       GetCrackedList5()->RSSetShadingRate(baseShadingRate, combiners);
 
+      stateUpdate = true;
+    }
+
+    if(stateUpdate)
+    {
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
       state.shadingRate = baseShadingRate;
@@ -118,6 +121,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRateImage(Serialise
 
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
+    bool stateUpdate = false;
+
     if(IsActiveReplaying(m_State))
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
@@ -125,10 +130,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRateImage(Serialise
         Unwrap5(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
             ->RSSetShadingRateImage(Unwrap(shadingRateImage));
 
-        if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-        {
-          m_Cmd->m_RenderState.shadingRateImage = GetResID(shadingRateImage);
-        }
+        stateUpdate = true;
+      }
+      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+      {
+        stateUpdate = true;
       }
     }
     else
@@ -136,6 +142,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRateImage(Serialise
       Unwrap5(pCommandList)->RSSetShadingRateImage(Unwrap(shadingRateImage));
       GetCrackedList5()->RSSetShadingRateImage(Unwrap(shadingRateImage));
 
+      stateUpdate = true;
+    }
+
+    if(stateUpdate)
+    {
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
       state.shadingRateImage = GetResID(shadingRateImage);

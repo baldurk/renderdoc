@@ -288,17 +288,19 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetDepthBounds(SerialiserType
 
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
+    bool stateUpdate = false;
+
     if(IsActiveReplaying(m_State))
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
         Unwrap1(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->OMSetDepthBounds(Min, Max);
 
-        if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-        {
-          m_Cmd->m_RenderState.depthBoundsMin = Min;
-          m_Cmd->m_RenderState.depthBoundsMax = Max;
-        }
+        stateUpdate = true;
+      }
+      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+      {
+        stateUpdate = true;
       }
     }
     else
@@ -306,6 +308,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetDepthBounds(SerialiserType
       Unwrap1(pCommandList)->OMSetDepthBounds(Min, Max);
       GetCrackedList1()->OMSetDepthBounds(Min, Max);
 
+      stateUpdate = true;
+    }
+
+    if(stateUpdate)
+    {
       m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state.depthBoundsMin = Min;
       m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state.depthBoundsMax = Max;
     }
@@ -351,6 +358,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetSamplePositions(
 
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
+    bool stateUpdate = false;
+
     if(IsActiveReplaying(m_State))
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
@@ -358,14 +367,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetSamplePositions(
         Unwrap1(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
             ->SetSamplePositions(NumSamplesPerPixel, NumPixels, pSamplePositions);
 
-        if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-        {
-          D3D12RenderState &state = m_Cmd->m_RenderState;
-
-          state.samplePos.NumSamplesPerPixel = NumSamplesPerPixel;
-          state.samplePos.NumPixels = NumPixels;
-          state.samplePos.Positions.assign(pSamplePositions, NumSamplesPerPixel * NumPixels);
-        }
+        stateUpdate = true;
+      }
+      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+      {
+        stateUpdate = true;
       }
     }
     else
@@ -373,13 +379,16 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetSamplePositions(
       Unwrap1(pCommandList)->SetSamplePositions(NumSamplesPerPixel, NumPixels, pSamplePositions);
       GetCrackedList1()->SetSamplePositions(NumSamplesPerPixel, NumPixels, pSamplePositions);
 
-      {
-        D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
+      stateUpdate = true;
+    }
 
-        state.samplePos.NumSamplesPerPixel = NumSamplesPerPixel;
-        state.samplePos.NumPixels = NumPixels;
-        state.samplePos.Positions.assign(pSamplePositions, NumSamplesPerPixel * NumPixels);
-      }
+    if(stateUpdate)
+    {
+      D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
+
+      state.samplePos.NumSamplesPerPixel = NumSamplesPerPixel;
+      state.samplePos.NumPixels = NumPixels;
+      state.samplePos.Positions.assign(pSamplePositions, NumSamplesPerPixel * NumPixels);
     }
   }
 

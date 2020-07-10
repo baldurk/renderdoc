@@ -96,6 +96,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
         ds->cpuDescriptor = Unwrap(m_pDevice->GetDebugManager()->GetTempDescriptor(DSV));
     }
 
+    bool stateUpdate = false;
+
     if(IsActiveReplaying(m_State))
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
@@ -159,22 +161,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
         if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
         {
           m_Cmd->m_Partial[D3D12CommandData::Primary].renderPassActive = true;
-
-          m_Cmd->m_RenderState.rts = RTVs;
-          m_Cmd->m_RenderState.dsv = DSV;
-          m_Cmd->m_RenderState.renderpass = true;
-
-          m_Cmd->m_RenderState.rpRTs.resize(NumRenderTargets);
-          for(UINT r = 0; r < NumRenderTargets; r++)
-            m_Cmd->m_RenderState.rpRTs[r] = pRenderTargets[r];
-
-          m_Cmd->m_RenderState.rpDSV = {};
-
-          if(pDepthStencil)
-            m_Cmd->m_RenderState.rpDSV = *pDepthStencil;
-
-          m_Cmd->m_RenderState.rpFlags = Flags;
         }
+
+        stateUpdate = true;
+      }
+      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+      {
+        stateUpdate = true;
       }
     }
     else
@@ -232,6 +225,19 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
       // Flags);
       // GetCrackedList4()->BeginRenderPass(NumRenderTargets, pRenderTargets, pDepthStencil, Flags);
 
+      m_Cmd->AddEvent();
+
+      DrawcallDescription draw;
+      draw.name = "BeginRenderPass()";
+      draw.flags |= DrawFlags::BeginPass | DrawFlags::PassBoundary;
+
+      m_Cmd->AddDrawcall(draw, true);
+
+      stateUpdate = true;
+    }
+
+    if(stateUpdate)
+    {
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
       state.rts = RTVs;
@@ -248,14 +254,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
         state.rpDSV = *pDepthStencil;
 
       state.rpFlags = Flags;
-
-      m_Cmd->AddEvent();
-
-      DrawcallDescription draw;
-      draw.name = "BeginRenderPass()";
-      draw.flags |= DrawFlags::BeginPass | DrawFlags::PassBoundary;
-
-      m_Cmd->AddDrawcall(draw, true);
     }
   }
 
@@ -352,6 +350,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndRenderPass(SerialiserType &s
 
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
+    bool stateUpdate = false;
+
     if(IsActiveReplaying(m_State))
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
@@ -361,14 +361,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndRenderPass(SerialiserType &s
         if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
         {
           m_Cmd->m_Partial[D3D12CommandData::Primary].renderPassActive = false;
-
-          m_Cmd->m_RenderState.rts.clear();
-          m_Cmd->m_RenderState.dsv = D3D12Descriptor();
-          m_Cmd->m_RenderState.renderpass = false;
-          m_Cmd->m_RenderState.rpRTs.clear();
-          m_Cmd->m_RenderState.rpDSV = {};
-          m_Cmd->m_RenderState.rpFlags = D3D12_RENDER_PASS_FLAG_NONE;
         }
+
+        stateUpdate = true;
+      }
+      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+      {
+        stateUpdate = true;
       }
     }
     else
@@ -384,6 +383,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndRenderPass(SerialiserType &s
 
       m_Cmd->AddDrawcall(draw, true);
 
+      stateUpdate = true;
+    }
+
+    if(stateUpdate)
+    {
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
       state.rts.clear();
