@@ -2266,7 +2266,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
             }
             else if(details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY ||
                     details.curType == eGL_TEXTURE_1D_ARRAY ||
-                    details.curType == eGL_TEXTURE_2D_ARRAY)
+                    details.curType == eGL_TEXTURE_2D_ARRAY || details.curType == eGL_TEXTURE_3D)
             {
               if(a.numViews > 1)
               {
