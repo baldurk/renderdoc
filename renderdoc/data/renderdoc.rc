@@ -122,11 +122,11 @@ RESOURCE_fixedcol_hlsl     TYPE_EMBED   "hlsl/fixedcol.hlsl"
 #define CONCAT(a, b) CONCAT2(a, b)
 #endif
 
-RESOURCE_fixedcol_0_dxbc   TYPE_EMBED  CONCAT(RENDERDOC_BAKED_PATH, fixedcol_0.dxbc)
-RESOURCE_fixedcol_1_dxbc   TYPE_EMBED  CONCAT(RENDERDOC_BAKED_PATH, fixedcol_1.dxbc)
-RESOURCE_fixedcol_2_dxbc   TYPE_EMBED  CONCAT(RENDERDOC_BAKED_PATH, fixedcol_2.dxbc)
-RESOURCE_fixedcol_3_dxbc   TYPE_EMBED  CONCAT(RENDERDOC_BAKED_PATH, fixedcol_3.dxbc)
-RESOURCE_quadwrite_dxbc    TYPE_EMBED  CONCAT(RENDERDOC_BAKED_PATH, quadwrite.dxbc)
+RESOURCE_fixedcol_0_dxbc   TYPE_EMBED  fixedcol_0.dxbc
+RESOURCE_fixedcol_1_dxbc   TYPE_EMBED  fixedcol_1.dxbc
+RESOURCE_fixedcol_2_dxbc   TYPE_EMBED  fixedcol_2.dxbc
+RESOURCE_fixedcol_3_dxbc   TYPE_EMBED  fixedcol_3.dxbc
+RESOURCE_quadwrite_dxbc    TYPE_EMBED  quadwrite.dxbc
 
 #else
 

@@ -693,7 +693,8 @@ namespace DXCEnumerateAndCheck {
     </PropertyGroup>
     <ItemGroup Condition="$(DXCExecutable.Length) &gt; 0">
       <ResourceCompile>
-        <PreprocessorDefinitions>RENDERDOC_BAKED_DXC_SHADERS=1;RENDERDOC_BAKED_PATH="$(DXILBakedDirParam)";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+        <AdditionalIncludeDirectories>$(DXILBakedDirParam)</AdditionalIncludeDirectories>
+        <PreprocessorDefinitions>RENDERDOC_BAKED_DXC_SHADERS=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       </ResourceCompile>
     </ItemGroup>
   </Target>
