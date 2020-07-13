@@ -1156,7 +1156,7 @@ void  GetProjectedIndex(
     CGV_IMAGE img_diff = image_max-image_min;
 
     if (img_diff == 0.0f) return;
-    if (std::isnan(img_diff)) return;
+    // if (std::isnan(img_diff)) return;
 
     image_s = (clusters-1)/img_diff;
 
