@@ -1250,10 +1250,10 @@ bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t 
     ret.resize(rowPitch * DiscardPatternHeight);
     byte *out = ret.data();
 
-    for(int yi = 0; yi < DiscardPatternHeight; yi++)
+    for(int yi = 0; yi < (int)DiscardPatternHeight; yi++)
     {
       int y = invert ? DiscardPatternHeight - 1 - yi : yi;
-      for(int x = 0; x < DiscardPatternWidth; x++)
+      for(int x = 0; x < (int)DiscardPatternWidth; x++)
       {
         char c = pattern.c_str()[y * DiscardPatternWidth + x];
         for(uint8_t i = 0; i < fmt.compCount; i++)
@@ -1276,10 +1276,10 @@ bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t 
     ret.resize(rowPitch * DiscardPatternHeight);
     uint32_t *out = (uint32_t *)ret.data();
 
-    for(int yi = 0; yi < DiscardPatternHeight; yi++)
+    for(int yi = 0; yi < (int)DiscardPatternHeight; yi++)
     {
       int y = invert ? DiscardPatternHeight - 1 - yi : yi;
-      for(int x = 0; x < DiscardPatternWidth; x++)
+      for(int x = 0; x < (int)DiscardPatternWidth; x++)
       {
         char c = pattern.c_str()[y * DiscardPatternWidth + x];
         *(out++) = (c == '#') ? 0xffffffff : 0x00000000;
@@ -1296,10 +1296,10 @@ bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t 
     ret.resize(rowPitch * DiscardPatternHeight);
     uint16_t *out = (uint16_t *)ret.data();
 
-    for(int yi = 0; yi < DiscardPatternHeight; yi++)
+    for(int yi = 0; yi < (int)DiscardPatternHeight; yi++)
     {
       int y = invert ? DiscardPatternHeight - 1 - yi : yi;
-      for(int x = 0; x < DiscardPatternWidth; x++)
+      for(int x = 0; x < (int)DiscardPatternWidth; x++)
       {
         char c = pattern.c_str()[y * DiscardPatternWidth + x];
         *(out++) = (c == '#') ? 0xffff : 0x0000;
@@ -1315,10 +1315,10 @@ bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t 
     ret.resize(rowPitch * DiscardPatternHeight);
     byte *out = ret.data();
 
-    for(int yi = 0; yi < DiscardPatternHeight; yi++)
+    for(int yi = 0; yi < (int)DiscardPatternHeight; yi++)
     {
       int y = invert ? DiscardPatternHeight - 1 - yi : yi;
-      for(int x = 0; x < DiscardPatternWidth; x++)
+      for(int x = 0; x < (int)DiscardPatternWidth; x++)
       {
         char c = pattern.c_str()[y * DiscardPatternWidth + x];
         *(out++) = (c == '#') ? 0xff : 0x00;
@@ -1337,10 +1337,10 @@ bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t 
     ret.resize(rowPitch * DiscardPatternHeight);
     uint32_t *out = (uint32_t *)ret.data();
 
-    for(int yi = 0; yi < DiscardPatternHeight; yi++)
+    for(int yi = 0; yi < (int)DiscardPatternHeight; yi++)
     {
       int y = invert ? DiscardPatternHeight - 1 - yi : yi;
-      for(int x = 0; x < DiscardPatternWidth; x++)
+      for(int x = 0; x < (int)DiscardPatternWidth; x++)
       {
         char c = pattern.c_str()[y * DiscardPatternWidth + x];
         *(out++) = (c == '#') ? white : black;
@@ -1359,10 +1359,10 @@ bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t 
     ret.resize(rowPitch * DiscardPatternHeight);
     uint32_t *out = (uint32_t *)ret.data();
 
-    for(int yi = 0; yi < DiscardPatternHeight; yi++)
+    for(int yi = 0; yi < (int)DiscardPatternHeight; yi++)
     {
       int y = invert ? DiscardPatternHeight - 1 - yi : yi;
-      for(int x = 0; x < DiscardPatternWidth; x++)
+      for(int x = 0; x < (int)DiscardPatternWidth; x++)
       {
         char c = pattern.c_str()[y * DiscardPatternWidth + x];
         *(out++) = (c == '#') ? white : black;
@@ -1401,10 +1401,10 @@ bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t 
     byte *depthOut = ret.data();
     byte *stencilOut = depthOut + rowPitch * DiscardPatternHeight;
 
-    for(int yi = 0; yi < DiscardPatternHeight; yi++)
+    for(int yi = 0; yi < (int)DiscardPatternHeight; yi++)
     {
       int y = invert ? DiscardPatternHeight - 1 - yi : yi;
-      for(int x = 0; x < DiscardPatternWidth; x++)
+      for(int x = 0; x < (int)DiscardPatternWidth; x++)
       {
         char c = pattern.c_str()[y * DiscardPatternWidth + x];
         if(c == '#')

@@ -333,6 +333,26 @@ elseif(UNIX)
         os/posix/posix_specific.h)
 endif()
 
+if(NOT ANDROID)
+    list(APPEND sources
+        3rdparty/compressonator/BC1_Encode_kernel.cpp
+        3rdparty/compressonator/BC2_Encode_kernel.cpp
+        3rdparty/compressonator/BC3_Encode_kernel.cpp
+        3rdparty/compressonator/BC4_Encode_kernel.cpp
+        3rdparty/compressonator/BC5_Encode_kernel.cpp
+        3rdparty/compressonator/BC6_Encode_kernel.cpp
+        3rdparty/compressonator/BC7_Encode_kernel.cpp)
+
+    set_source_files_properties(3rdparty/compressonator/BC1_Encode_kernel.cpp
+        3rdparty/compressonator/BC2_Encode_kernel.cpp
+        3rdparty/compressonator/BC3_Encode_kernel.cpp
+        3rdparty/compressonator/BC4_Encode_kernel.cpp
+        3rdparty/compressonator/BC5_Encode_kernel.cpp
+        3rdparty/compressonator/BC6_Encode_kernel.cpp
+        3rdparty/compressonator/BC7_Encode_kernel.cpp
+        PROPERTIES COMPILE_FLAGS "-D_LINUX -Wno-newline-eof -Wno-missing-braces -Wno-char-subscripts -Wno-sign-compare -Wno-unused-value")
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX)
     set_source_files_properties(3rdparty/tinyfiledialogs/tinyfiledialogs.c
         PROPERTIES COMPILE_FLAGS "-Wno-format-overflow")

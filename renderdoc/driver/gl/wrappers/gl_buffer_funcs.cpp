@@ -1873,7 +1873,7 @@ bool WrappedOpenGL::Serialise_glInvalidateBufferData(SerialiserType &ser, GLuint
 
     if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
     {
-      GLsizeiptr size = m_Buffers[id].size;
+      GLsizeiptr size = (GLsizeiptr)m_Buffers[id].size;
 
       bytebuf pattern;
       pattern.resize(AlignUp4(size));
@@ -1955,14 +1955,14 @@ bool WrappedOpenGL::Serialise_glInvalidateBufferSubData(SerialiserType &ser, GLu
     if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
     {
       bytebuf pattern;
-      pattern.resize(AlignUp4(length));
+      pattern.resize(AlignUp4((size_t)length));
 
       uint32_t value = 0xD15CAD3D;
 
       for(size_t i = 0; i < pattern.size(); i += 4)
         memcpy(&pattern[i], &value, sizeof(uint32_t));
 
-      GL.glNamedBufferSubDataEXT(buffer.name, offset, length, pattern.data());
+      GL.glNamedBufferSubDataEXT(buffer.name, (GLintptr)offset, (GLsizeiptr)length, pattern.data());
     }
 
     if(IsLoading(m_State))
