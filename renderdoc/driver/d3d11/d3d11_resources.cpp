@@ -81,6 +81,68 @@ void WrappedShader::ShaderEntry::BuildReflection()
   m_Details.resourceId = m_ID;
 }
 
+UINT GetSubresourceCount(ID3D11Resource *res)
+{
+  D3D11_RESOURCE_DIMENSION dim;
+
+  // check for wrapped types first as they will be most common and don't
+  // require a virtual call
+  if(WrappedID3D11Texture1D::IsAlloc(res))
+    dim = D3D11_RESOURCE_DIMENSION_TEXTURE1D;
+  else if(WrappedID3D11Texture2D1::IsAlloc(res))
+    dim = D3D11_RESOURCE_DIMENSION_TEXTURE2D;
+  else if(WrappedID3D11Texture3D1::IsAlloc(res))
+    dim = D3D11_RESOURCE_DIMENSION_TEXTURE3D;
+  else
+    res->GetType(&dim);
+
+  if(dim == D3D11_RESOURCE_DIMENSION_BUFFER)
+    return 1;
+
+  ID3D11Texture1D *tex1 = (dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D) ? (ID3D11Texture1D *)res : NULL;
+  ID3D11Texture2D *tex2 = (dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D) ? (ID3D11Texture2D *)res : NULL;
+  ID3D11Texture3D *tex3 = (dim == D3D11_RESOURCE_DIMENSION_TEXTURE3D) ? (ID3D11Texture3D *)res : NULL;
+
+  if(tex1)
+  {
+    D3D11_TEXTURE1D_DESC desc;
+    tex1->GetDesc(&desc);
+
+    int mipLevels = desc.MipLevels;
+
+    if(mipLevels == 0)
+      mipLevels = CalcNumMips(desc.Width, 1, 1);
+
+    return desc.ArraySize * mipLevels;
+  }
+  else if(tex2)
+  {
+    D3D11_TEXTURE2D_DESC desc;
+    tex2->GetDesc(&desc);
+
+    int mipLevels = desc.MipLevels;
+
+    if(mipLevels == 0)
+      mipLevels = CalcNumMips(desc.Width, desc.Height, 1);
+
+    return desc.ArraySize * mipLevels;
+  }
+  else if(tex3)
+  {
+    D3D11_TEXTURE3D_DESC desc;
+    tex3->GetDesc(&desc);
+
+    int mipLevels = desc.MipLevels;
+
+    if(mipLevels == 0)
+      mipLevels = CalcNumMips(desc.Width, desc.Height, desc.Depth);
+
+    return mipLevels;
+  }
+
+  return 1;
+}
+
 UINT GetMipForSubresource(ID3D11Resource *res, int Subresource)
 {
   D3D11_RESOURCE_DIMENSION dim;
@@ -93,6 +155,8 @@ UINT GetMipForSubresource(ID3D11Resource *res, int Subresource)
     dim = D3D11_RESOURCE_DIMENSION_TEXTURE2D;
   else if(WrappedID3D11Texture3D1::IsAlloc(res))
     dim = D3D11_RESOURCE_DIMENSION_TEXTURE3D;
+  else if(WrappedID3D11Buffer::IsAlloc(res))
+    return 0;
   else
     res->GetType(&dim);
 

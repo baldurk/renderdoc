@@ -251,6 +251,13 @@ public:
 
   bool IsReplayContext(void *ctx) { return m_ReplayCtx.ctx == NULL || ctx == m_ReplayCtx.ctx; }
   bool HasDebugContext() { return m_DebugCtx != NULL; }
+  void FillWithDiscardPattern(DiscardType type, GLuint framebuffer, GLsizei numAttachments,
+                              const GLenum *attachments, GLint x, GLint y, GLsizei width,
+                              GLsizei height);
+  void FillWithDiscardPattern(DiscardType type, ResourceId id, GLuint mip, GLint xoffset = 0,
+                              GLint yoffset = 0, GLint zoffset = 0, GLsizei width = 65536,
+                              GLsizei height = 65536, GLsizei depth = 65536);
+
 private:
   void OpenGLFillCBufferVariables(ResourceId shader, GLuint prog, bool bufferBacked, rdcstr prefix,
                                   const rdcarray<ShaderConstant> &variables,
@@ -384,6 +391,9 @@ private:
     GLuint quadoverdrawFragShaderSPIRV;
     GLuint quadoverdrawResolveProg;
 
+    GLuint discardProg[4];
+    GLuint discardPatternBuffer;
+
     ResourceId overlayTexId;
     GLuint overlayTex;
     GLuint overlayFBO;
@@ -399,6 +409,8 @@ private:
   bool m_Degraded;
 
   HighlightCache m_HighlightCache;
+
+  std::map<GLenum, bytebuf> m_DiscardPatterns;
 
   // eventId -> data
   std::map<uint32_t, GLPostVSData> m_PostVSData;

@@ -28,6 +28,7 @@
 #include "d3d12_device.h"
 #include "d3d12_manager.h"
 
+UINT GetPlaneForSubresource(ID3D12Resource *res, int Subresource);
 UINT GetMipForSubresource(ID3D12Resource *res, int Subresource);
 UINT GetSliceForSubresource(ID3D12Resource *res, int Subresource);
 UINT GetMipForDsv(const D3D12_DEPTH_STENCIL_VIEW_DESC &dsv);

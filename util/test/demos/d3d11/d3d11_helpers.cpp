@@ -184,6 +184,12 @@ D3D11BufferCreator &D3D11BufferCreator::SRV()
   return *this;
 }
 
+D3D11BufferCreator &D3D11BufferCreator::RTV()
+{
+  m_BufDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+  return *this;
+}
+
 D3D11BufferCreator &D3D11BufferCreator::UAV()
 {
   m_BufDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
@@ -210,6 +216,13 @@ D3D11BufferCreator &D3D11BufferCreator::Mappable()
 {
   m_BufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
   m_BufDesc.Usage = D3D11_USAGE_DYNAMIC;
+  return *this;
+}
+
+D3D11BufferCreator &D3D11BufferCreator::Immutable()
+{
+  m_BufDesc.CPUAccessFlags = 0;
+  m_BufDesc.Usage = D3D11_USAGE_IMMUTABLE;
   return *this;
 }
 
@@ -260,7 +273,7 @@ D3D11TextureCreator::D3D11TextureCreator(D3D11GraphicsTest *test, DXGI_FORMAT fo
   Format = format;
   Width = width;
   Height = height;
-  depth = depth;
+  Depth = depth;
 }
 
 D3D11TextureCreator &D3D11TextureCreator::Mips(UINT mips)
@@ -371,7 +384,7 @@ D3D11TextureCreator::operator ID3D11Texture3DPtr() const
 
   texdesc.Width = Width;
   texdesc.Height = Height;
-  texdesc.Depth = Height;
+  texdesc.Depth = Depth;
   texdesc.MipLevels = MipLevels;
   texdesc.MiscFlags = MiscFlags;
   texdesc.CPUAccessFlags = CPUAccessFlags;

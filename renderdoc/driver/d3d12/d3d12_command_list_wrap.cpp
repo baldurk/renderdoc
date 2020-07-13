@@ -4872,6 +4872,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DiscardResource(SerialiserType 
       {
         Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
             ->DiscardResource(Unwrap(pResource), pRegion);
+
+        if(m_pDevice->GetReplayOptions().optimisation != ReplayOptimisationLevel::Fastest)
+        {
+          m_pDevice->GetDebugManager()->FillWithDiscardPattern(
+              m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID),
+              m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state, DiscardType::DiscardCall,
+              pResource, pRegion);
+        }
       }
     }
     else

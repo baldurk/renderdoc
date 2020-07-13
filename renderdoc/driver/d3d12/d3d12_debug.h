@@ -142,6 +142,10 @@ public:
   ID3D12GraphicsCommandListX *ResetDebugList();
   void ResetDebugAlloc();
 
+  void FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd, const D3D12RenderState &state,
+                              DiscardType type, ID3D12Resource *res,
+                              const D3D12_DISCARD_REGION *region);
+
   D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(CBVUAVSRVSlot slot);
   D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(RTVSlot slot);
   D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(DSVSlot slot);
@@ -217,6 +221,15 @@ private:
   // Debug lists
   ID3D12GraphicsCommandListX *m_DebugList = NULL;
   ID3D12CommandAllocator *m_DebugAlloc = NULL;
+
+  // Discard pattern rendering
+  ID3DBlob *m_DiscardPS = NULL;
+  ID3D12Resource *m_DiscardConstants = NULL;
+  ID3D12RootSignature *m_DiscardRootSig = NULL;
+
+  std::map<rdcpair<DXGI_FORMAT, UINT>, ID3D12PipelineState *> m_DiscardPipes;
+  std::map<DXGI_FORMAT, ID3D12Resource *> m_DiscardPatterns;
+  rdcarray<ID3D12Resource *> m_DiscardBuffers;
 };
 
 void MoveRootSignatureElementsToRegisterSpace(D3D12RootSignature &sig, uint32_t registerSpace,

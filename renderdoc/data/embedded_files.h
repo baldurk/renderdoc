@@ -68,5 +68,6 @@ DECLARE_EMBED(glsl_pixelhistory_mscopy_depth_comp);
 DECLARE_EMBED(glsl_pixelhistory_primid_frag);
 DECLARE_EMBED(glsl_shaderdebug_sample_vert);
 DECLARE_EMBED(glsl_texremap_frag);
+DECLARE_EMBED(glsl_discard_frag);
 
 #undef DECLARE_EMBED

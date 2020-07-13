@@ -730,6 +730,7 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
   for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
   {
     Attachment &dst = attachments[i];
+    dst.used = false;
     dst.flags = pCreateInfo->pAttachments[i].flags;
     dst.format = pCreateInfo->pAttachments[i].format;
     dst.samples = pCreateInfo->pAttachments[i].samples;
@@ -775,6 +776,11 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
           src.pResolveAttachments ? src.pResolveAttachments[i].attachment : ~0U;
       dst.colorAttachments[i] = src.pColorAttachments[i].attachment;
       dst.colorLayouts[i] = src.pColorAttachments[i].layout;
+
+      if(dst.resolveAttachments[i] != VK_ATTACHMENT_UNUSED)
+        attachments[dst.resolveAttachments[i]].used = true;
+      if(dst.colorAttachments[i] != VK_ATTACHMENT_UNUSED)
+        attachments[dst.colorAttachments[i]].used = true;
     }
 
     dst.depthstencilAttachment =
@@ -787,6 +793,9 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
                  src.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
              ? src.pDepthStencilAttachment->layout
              : VK_IMAGE_LAYOUT_UNDEFINED);
+
+    if(dst.depthstencilAttachment >= 0)
+      attachments[dst.depthstencilAttachment].used = true;
 
     dst.fragmentDensityAttachment =
         (fragmentDensity &&
@@ -820,6 +829,7 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
   for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
   {
     Attachment &dst = attachments[i];
+    dst.used = false;
     dst.flags = pCreateInfo->pAttachments[i].flags;
     dst.format = pCreateInfo->pAttachments[i].format;
     dst.samples = pCreateInfo->pAttachments[i].samples;
@@ -877,6 +887,11 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
           src.pResolveAttachments ? src.pResolveAttachments[i].attachment : ~0U;
       dst.colorAttachments[i] = src.pColorAttachments[i].attachment;
       dst.colorLayouts[i] = src.pColorAttachments[i].layout;
+
+      if(dst.resolveAttachments[i] != VK_ATTACHMENT_UNUSED)
+        attachments[dst.resolveAttachments[i]].used = true;
+      if(dst.colorAttachments[i] != VK_ATTACHMENT_UNUSED)
+        attachments[dst.colorAttachments[i]].used = true;
     }
 
     dst.depthstencilAttachment =
@@ -889,6 +904,9 @@ void VulkanCreationInfo::RenderPass::Init(VulkanResourceManager *resourceMan,
                  src.pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED
              ? src.pDepthStencilAttachment->layout
              : VK_IMAGE_LAYOUT_UNDEFINED);
+
+    if(dst.depthstencilAttachment >= 0)
+      attachments[dst.depthstencilAttachment].used = true;
 
     // VK_KHR_separate_depth_stencil_layouts
     const VkAttachmentReferenceStencilLayoutKHR *separateStencil =

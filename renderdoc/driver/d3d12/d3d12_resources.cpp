@@ -412,6 +412,25 @@ void WrappedID3D12PipelineState::ShaderEntry::BuildReflection()
   m_Details.resourceId = GetResourceID();
 }
 
+UINT GetPlaneForSubresource(ID3D12Resource *res, int Subresource)
+{
+  D3D12_RESOURCE_DESC desc = res->GetDesc();
+
+  if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    return 0;
+
+  int mipLevels = desc.MipLevels;
+
+  if(mipLevels == 0)
+    mipLevels = CalcNumMips((int)desc.Width, 1, 1);
+
+  UINT arraySlices = desc.DepthOrArraySize;
+  if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    arraySlices = 1;
+
+  return Subresource / (mipLevels * arraySlices);
+}
+
 UINT GetMipForSubresource(ID3D12Resource *res, int Subresource)
 {
   D3D12_RESOURCE_DESC desc = res->GetDesc();

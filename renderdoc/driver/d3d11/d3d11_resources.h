@@ -40,6 +40,8 @@ UINT GetByteSize(ID3D11Texture1D *tex, int SubResource);
 UINT GetByteSize(ID3D11Texture2D *tex, int SubResource);
 UINT GetByteSize(ID3D11Texture3D *tex, int SubResource);
 
+UINT GetSubresourceCount(ID3D11Resource *res);
+
 UINT GetMipForSubresource(ID3D11Resource *res, int Subresource);
 UINT GetSliceForSubresource(ID3D11Resource *res, int Subresource);
 UINT GetMipForDsv(const D3D11_DEPTH_STENCIL_VIEW_DESC &dsv);

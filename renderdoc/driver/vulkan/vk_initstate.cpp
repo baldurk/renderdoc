@@ -1100,7 +1100,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
         {
           // MSAA textures we upload into an array image, then the apply does an array-to-MSAA copy
           // instead of the usual buffer-to-image copies.
-          int numLayers = c.arrayLayers * (int)c.samples;
+          uint32_t numLayers = c.arrayLayers * (uint32_t)c.samples;
 
           VkImageCreateInfo arrayInfo = {
               VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -1109,8 +1109,8 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
               VK_IMAGE_TYPE_2D,
               c.format,
               c.extent,
-              (uint32_t)c.mipLevels,
-              (uint32_t)numLayers,
+              c.mipLevels,
+              numLayers,
               VK_SAMPLE_COUNT_1_BIT,
               VK_IMAGE_TILING_OPTIMAL,
               VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
@@ -1169,17 +1169,17 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
           rdcarray<VkBufferImageCopy> mainCopies, stencilCopies;
 
           // copy each slice/mip individually
-          for(int a = 0; a < numLayers; a++)
+          for(uint32_t a = 0; a < numLayers; a++)
           {
             extent = c.extent;
 
-            for(int m = 0; m < c.mipLevels; m++)
+            for(uint32_t m = 0; m < c.mipLevels; m++)
             {
               VkBufferImageCopy region = {
                   0,
                   0,
                   0,
-                  {aspectFlags, (uint32_t)m, (uint32_t)a, 1},
+                  {aspectFlags, m, a, 1},
                   {
                       0, 0, 0,
                   },
@@ -1612,8 +1612,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
       GetDebugManager()->CopyArrayToTex2DMS(ToUnwrappedHandle<VkImage>(live), Unwrap(arrayIm),
-                                            c.extent, (uint32_t)c.arrayLayers, (uint32_t)c.samples,
-                                            fmt);
+                                            c.extent, c.arrayLayers, (uint32_t)c.samples, fmt);
 
       cmd = GetNextCmd();
 
@@ -1687,17 +1686,17 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     rdcarray<VkImageSubresourceRange> clearRegions;
 
     // copy each slice/mip individually
-    for(int a = 0; a < m_CreationInfo.m_Image[id].arrayLayers; a++)
+    for(uint32_t a = 0; a < m_CreationInfo.m_Image[id].arrayLayers; a++)
     {
       extent = m_CreationInfo.m_Image[id].extent;
 
-      for(int m = 0; m < m_CreationInfo.m_Image[id].mipLevels; m++)
+      for(uint32_t m = 0; m < m_CreationInfo.m_Image[id].mipLevels; m++)
       {
         VkBufferImageCopy region = {
             0,
             0,
             0,
-            {aspectFlags, (uint32_t)m, (uint32_t)a, 1},
+            {aspectFlags, m, a, 1},
             {
                 0, 0, 0,
             },

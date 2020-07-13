@@ -597,7 +597,7 @@ private:
     VkDeviceSize ImageMemSize = 0;
     VkImage Image = VK_NULL_HANDLE;
     VkExtent2D ImageDim = {0, 0};
-    int32_t MipLevels = 0, ArrayLayers = 0;
+    uint32_t MipLevels = 0, ArrayLayers = 0;
     uint32_t MultiViewMask = 0;
     VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT;
     VkRenderPass NoDepthRP = VK_NULL_HANDLE;

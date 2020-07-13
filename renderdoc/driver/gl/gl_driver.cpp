@@ -4648,8 +4648,17 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::eglSwapBuffers:
     case GLChunk::eglPostSubBufferNV:
     case GLChunk::eglSwapBuffersWithDamageEXT:
-    case GLChunk::eglSwapBuffersWithDamageKHR:
-      return Serialise_Present(ser);
+    case GLChunk::eglSwapBuffersWithDamageKHR: return Serialise_Present(ser);
+
+    case GLChunk::glInvalidateNamedFramebufferSubData:
+    case GLChunk::glInvalidateSubFramebuffer:
+      return Serialise_glInvalidateNamedFramebufferSubData(ser, 0, 0, NULL, 0, 0, 0, 0);
+    case GLChunk::glInvalidateTexImage: return Serialise_glInvalidateTexImage(ser, 0, 0);
+    case GLChunk::glInvalidateTexSubImage:
+      return Serialise_glInvalidateTexSubImage(ser, 0, 0, 0, 0, 0, 0, 0, 0);
+    case GLChunk::glInvalidateBufferData: return Serialise_glInvalidateBufferData(ser, 0);
+    case GLChunk::glInvalidateBufferSubData:
+      return Serialise_glInvalidateBufferSubData(ser, 0, 0, 0);
 
     // these functions are not currently serialised - they do nothing on replay and are not
     // serialised for information (it would be harmless and perhaps useful for the user to see
@@ -4934,12 +4943,6 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glProgramBinary:
     case GLChunk::glReleaseShaderCompiler:
     case GLChunk::glFrameTerminatorGREMEDY:
-    case GLChunk::glInvalidateBufferData:
-    case GLChunk::glInvalidateBufferSubData:
-    case GLChunk::glInvalidateNamedFramebufferSubData:
-    case GLChunk::glInvalidateSubFramebuffer:
-    case GLChunk::glInvalidateTexImage:
-    case GLChunk::glInvalidateTexSubImage:
     case GLChunk::glDebugMessageCallback:
     case GLChunk::glDebugMessageCallbackARB:
     case GLChunk::glDebugMessageCallbackKHR:

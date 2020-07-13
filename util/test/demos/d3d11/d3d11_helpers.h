@@ -106,6 +106,7 @@ public:
   D3D11BufferCreator &Constant();
   D3D11BufferCreator &StreamOut();
   D3D11BufferCreator &SRV();
+  D3D11BufferCreator &RTV();
   D3D11BufferCreator &UAV();
 
   D3D11BufferCreator &Structured(UINT structStride);
@@ -113,6 +114,7 @@ public:
   D3D11BufferCreator &Mappable();
   D3D11BufferCreator &Staging();
   D3D11BufferCreator &Shared();
+  D3D11BufferCreator &Immutable();
 
   D3D11BufferCreator &Data(const void *data);
   D3D11BufferCreator &Size(UINT size);

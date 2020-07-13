@@ -344,3 +344,20 @@ struct HighlightCache
 };
 
 extern const Vec4f colorRamp[22];
+
+enum class DiscardType : int
+{
+  RenderPassLoad,         // discarded on renderpass load
+  RenderPassStore,        // discarded after renderpass store
+  UndefinedTransition,    // transition from undefined layout
+  DiscardCall,            // explicit Discard() type API call
+  InvalidateCall,         // explicit Invalidate() type API call
+  Count,
+};
+
+static constexpr uint32_t DiscardPatternWidth = 64;
+static constexpr uint32_t DiscardPatternHeight = 8;
+
+// returns a pattern to fill the texture with
+bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t rowPitch = 1,
+                          bool invert = false);

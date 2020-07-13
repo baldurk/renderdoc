@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "../gl_driver.h"
+#include "../gl_replay.h"
 #include "common/common.h"
 #include "strings/string_utils.h"
 
@@ -1767,6 +1768,12 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferData(SerialiserType &s
 
     GL.glInvalidateNamedFramebufferData(framebuffer.name, numAttachments, attachments);
 
+    if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+    {
+      GetReplay()->FillWithDiscardPattern(DiscardType::InvalidateCall, framebuffer.name,
+                                          numAttachments, attachments, 0, 0, 65536, 65536);
+    }
+
     if(IsLoading(m_State))
     {
       AddEvent();
@@ -1922,13 +1929,99 @@ void WrappedOpenGL::glInvalidateNamedFramebufferData(GLuint framebuffer, GLsizei
   }
 }
 
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferSubData(
+    SerialiserType &ser, GLuint framebufferHandle, GLsizei numAttachments,
+    const GLenum *attachments, GLint x, GLint y, GLsizei width, GLsizei height)
+{
+  SERIALISE_ELEMENT_LOCAL(framebuffer, FramebufferRes(GetCtx(), framebufferHandle));
+  SERIALISE_ELEMENT(numAttachments);
+  SERIALISE_ELEMENT_ARRAY(attachments, numAttachments);
+  SERIALISE_ELEMENT(x);
+  SERIALISE_ELEMENT(y);
+  SERIALISE_ELEMENT(width);
+  SERIALISE_ELEMENT(height);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    if(framebuffer.name == 0)
+      framebuffer.name = m_CurrentDefaultFBO;
+
+    GLenum *att = (GLenum *)attachments;
+    for(GLsizei i = 0; i < numAttachments; i++)
+    {
+      // since we are faking the default framebuffer with our own
+      // to see the results, replace back/front/left/right with color attachment 0
+      if(att[i] == eGL_BACK_LEFT || att[i] == eGL_BACK_RIGHT || att[i] == eGL_BACK ||
+         att[i] == eGL_FRONT_LEFT || att[i] == eGL_FRONT_RIGHT || att[i] == eGL_FRONT)
+        att[i] = eGL_COLOR_ATTACHMENT0;
+      if(att[i] == eGL_COLOR)
+        att[i] = eGL_COLOR_ATTACHMENT0;
+      if(att[i] == eGL_DEPTH)
+        att[i] = eGL_DEPTH_ATTACHMENT;
+      if(att[i] == eGL_STENCIL)
+        att[i] = eGL_STENCIL_ATTACHMENT;
+    }
+
+    GL.glInvalidateNamedFramebufferSubData(framebuffer.name, numAttachments, attachments, x, y,
+                                           width, height);
+
+    if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+    {
+      GetReplay()->FillWithDiscardPattern(DiscardType::InvalidateCall, framebuffer.name,
+                                          numAttachments, attachments, x, y, width, height);
+    }
+
+    if(IsLoading(m_State))
+    {
+      AddEvent();
+
+      ResourceId fbid = GetResourceManager()->GetID(framebuffer);
+
+      DrawcallDescription draw;
+      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
+                                    ToStr(GetResourceManager()->GetOriginalID(fbid)).c_str());
+      draw.flags |= DrawFlags::Clear;
+
+      for(GLsizei i = 0; i < numAttachments; i++)
+      {
+        GLuint obj = 0;
+        GLenum objtype = eGL_TEXTURE;
+
+        GL.glGetNamedFramebufferAttachmentParameterivEXT(
+            framebuffer.name, att[i], eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&obj);
+        GL.glGetNamedFramebufferAttachmentParameterivEXT(
+            framebuffer.name, att[i], eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&objtype);
+
+        ResourceId id;
+
+        if(objtype == eGL_TEXTURE)
+          id = GetResourceManager()->GetID(TextureRes(GetCtx(), obj));
+        else
+          id = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), obj));
+
+        if(draw.copyDestination == ResourceId())
+          draw.copyDestination = GetResourceManager()->GetOriginalID(id);
+
+        m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
+      }
+
+      AddDrawcall(draw, true);
+    }
+  }
+
+  return true;
+}
+
 void WrappedOpenGL::glInvalidateSubFramebuffer(GLenum target, GLsizei numAttachments,
                                                const GLenum *attachments, GLint x, GLint y,
                                                GLsizei width, GLsizei height)
 {
   GL.glInvalidateSubFramebuffer(target, numAttachments, attachments, x, y, width, height);
 
-  if(IsBackgroundCapturing(m_State))
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record = NULL;
 
@@ -1943,7 +2036,22 @@ void WrappedOpenGL::glInvalidateSubFramebuffer(GLenum target, GLsizei numAttachm
         record = GetCtxData().m_ReadFramebufferRecord;
     }
 
-    if(record)
+    if(IsActiveCapturing(m_State))
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      if(record)
+        Serialise_glInvalidateNamedFramebufferSubData(ser, record->Resource.name, numAttachments,
+                                                      attachments, x, y, width, height);
+      else
+        Serialise_glInvalidateNamedFramebufferSubData(ser, 0, numAttachments, attachments, x, y,
+                                                      width, height);
+
+      GetContextRecord()->AddChunk(scope.Get());
+      if(record)
+        GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+    }
+    else if(record)
     {
       record->MarkParentsDirty(GetResourceManager());
     }
@@ -1957,13 +2065,30 @@ void WrappedOpenGL::glInvalidateNamedFramebufferSubData(GLuint framebuffer, GLsi
   GL.glInvalidateNamedFramebufferSubData(framebuffer, numAttachments, attachments, x, y, width,
                                          height);
 
-  if(IsBackgroundCapturing(m_State))
+  if(IsCaptureMode(m_State))
   {
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
 
-    if(record)
+    if(IsActiveCapturing(m_State))
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      if(record)
+        Serialise_glInvalidateNamedFramebufferSubData(ser, record->Resource.name, numAttachments,
+                                                      attachments, x, y, width, height);
+      else
+        Serialise_glInvalidateNamedFramebufferSubData(ser, 0, numAttachments, attachments, x, y,
+                                                      width, height);
+
+      GetContextRecord()->AddChunk(scope.Get());
+      if(record)
+        GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+    }
+    else if(record)
+    {
       record->MarkParentsDirty(GetResourceManager());
+    }
   }
 }
 
@@ -2942,6 +3067,9 @@ INSTANTIATE_FUNCTION_SERIALISED(void, glNamedFramebufferParameteriEXT, GLuint fr
 INSTANTIATE_FUNCTION_SERIALISED(void, glFramebufferReadBufferEXT, GLuint framebufferHandle,
                                 GLenum mode);
 INSTANTIATE_FUNCTION_SERIALISED(void, glBindFramebuffer, GLenum target, GLuint framebufferHandle);
+INSTANTIATE_FUNCTION_SERIALISED(void, glInvalidateNamedFramebufferSubData, GLuint framebufferHandle,
+                                GLsizei numAttachments, const GLenum *attachments, GLint x, GLint y,
+                                GLsizei width, GLsizei height);
 INSTANTIATE_FUNCTION_SERIALISED(void, glInvalidateNamedFramebufferData, GLuint framebufferHandle,
                                 GLsizei numAttachments, const GLenum *attachments);
 INSTANTIATE_FUNCTION_SERIALISED(void, glFramebufferDrawBufferEXT, GLuint framebufferHandle,

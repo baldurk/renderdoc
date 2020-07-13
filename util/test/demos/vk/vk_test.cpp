@@ -1301,6 +1301,7 @@ VkFormat vkh::_FormatFromObj<Vec2f>()
 AllocatedImage::AllocatedImage(VulkanGraphicsTest *test, const VkImageCreateInfo &imgInfo,
                                const VmaAllocationCreateInfo &allocInfo)
 {
+  createInfo = imgInfo;
   this->test = test;
   allocator = test->allocator;
   vmaCreateImage(allocator, &imgInfo, &allocInfo, &image, &alloc, NULL);

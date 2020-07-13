@@ -25,6 +25,7 @@
 #pragma once
 
 #include "core/core.h"
+#include "replay/replay_driver.h"
 #include "vk_common.h"
 #include "vk_core.h"
 #include "vk_shader_cache.h"
@@ -66,6 +67,10 @@ public:
                           uint32_t samples, VkFormat fmt);
   void CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent, uint32_t layers,
                           uint32_t samples, VkFormat fmt);
+
+  void FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType type, VkImage image,
+                              VkImageLayout curLayout, VkImageSubresourceRange discardRange,
+                              VkRect2D discardRect);
 
   VkPipelineCache GetPipelineCache() { return m_PipelineCache; }
   VkPipeline GetCustomPipeline() { return m_Custom.TexPipeline; }
@@ -156,4 +161,25 @@ private:
   WrappedVulkan *m_pDriver = NULL;
 
   VkDevice m_Device = VK_NULL_HANDLE;
+
+  struct DiscardPassData
+  {
+    VkPipeline pso = VK_NULL_HANDLE;
+    VkRenderPass rp = VK_NULL_HANDLE;
+  };
+
+  struct DiscardImgData
+  {
+    rdcarray<VkImageView> views;
+    rdcarray<VkFramebuffer> fbs;
+  };
+
+  std::map<rdcpair<VkFormat, VkSampleCountFlagBits>, DiscardPassData> m_DiscardPipes;
+  std::map<ResourceId, DiscardImgData> m_DiscardImages;
+  VkDescriptorPool m_DiscardPool = VK_NULL_HANDLE;
+  VkPipelineLayout m_DiscardLayout = VK_NULL_HANDLE;
+  VkDescriptorSetLayout m_DiscardSetLayout = VK_NULL_HANDLE;
+  VkDescriptorSet m_DiscardSet[(size_t)DiscardType::Count] = {};
+  GPUBuffer m_DiscardCB[(size_t)DiscardType::Count];
+  std::map<rdcpair<VkFormat, DiscardType>, VkBuffer> m_DiscardPatterns;
 };

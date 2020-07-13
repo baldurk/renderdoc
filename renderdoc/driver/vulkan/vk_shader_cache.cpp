@@ -100,6 +100,8 @@ static const BuiltinShaderConfig builtinShaders[] = {
      rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
     {BuiltinShader::ShaderDebugSampleVS, EmbeddedResource(glsl_shaderdebug_sample_vert),
      rdcspv::ShaderStage::Vertex, FeatureCheck::NoCheck, true},
+    {BuiltinShader::DiscardFS, EmbeddedResource(glsl_discard_frag), rdcspv::ShaderStage::Fragment,
+     FeatureCheck::NoCheck, true},
 };
 
 RDCCOMPILE_ASSERT(ARRAY_COUNT(builtinShaders) == arraydim<BuiltinShader>(),

@@ -81,3 +81,39 @@ float4 RENDERDOC_CheckerboardPS(float4 pos : SV_Position) : SV_Target0
   // otherwise return checker pattern
   return checkerVariant ? PrimaryColor : SecondaryColor;
 }
+
+#define PATTERN_WIDTH 64
+#define PATTERN_HEIGHT 8
+
+cbuffer discarddata : register(b0)
+{
+  float4 pattern[(PATTERN_WIDTH * PATTERN_HEIGHT) / 4];
+};
+
+cbuffer discardopts : register(b1)
+{
+  uint discardPass;
+};
+
+MultipleOutput RENDERDOC_DiscardPS(float4 pos : SV_Position, out float depth : SV_Depth)
+{
+  uint x = uint(pos.x) % PATTERN_WIDTH;
+  uint y = uint(pos.y) % PATTERN_HEIGHT;
+
+  uint idx = ((y * 64) + x);
+
+  float val = pattern[idx / 4][idx % 4];
+
+  if(discardPass == 1 && val >= 0.5f)
+    clip(-1);
+  else if(discardPass == 2 && val < 0.5f)
+    clip(-1);
+
+  depth = saturate(val);
+
+  MultipleOutput OUT = (MultipleOutput)0;
+
+  OUT.col0 = OUT.col1 = OUT.col2 = OUT.col3 = OUT.col4 = OUT.col5 = OUT.col6 = OUT.col7 = val.xxxx;
+
+  return OUT;
+}

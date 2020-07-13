@@ -589,6 +589,7 @@
     <None Include="data\glsl\checkerboard.frag" />
     <None Include="data\glsl\deptharr2ms.frag" />
     <None Include="data\glsl\depthms2arr.frag" />
+    <None Include="data\glsl\discard.frag" />
     <None Include="data\glsl\fixedcol.frag" />
     <None Include="data\glsl\gltext.frag" />
     <None Include="data\glsl\gltext.vert" />

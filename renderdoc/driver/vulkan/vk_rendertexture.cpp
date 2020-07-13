@@ -64,8 +64,8 @@ void VulkanReplay::CreateTexImageView(VkImage liveIm, const VulkanCreationInfo::
       {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
        VK_COMPONENT_SWIZZLE_IDENTITY},
       {
-          VK_IMAGE_ASPECT_COLOR_BIT, 0, RDCMAX(1U, (uint32_t)iminfo.mipLevels), 0,
-          RDCMAX(1U, (uint32_t)iminfo.arrayLayers),
+          VK_IMAGE_ASPECT_COLOR_BIT, 0, RDCMAX(1U, iminfo.mipLevels), 0,
+          RDCMAX(1U, iminfo.arrayLayers),
       },
   };
 

@@ -112,6 +112,11 @@ public:
   bool IsDepthReadOnly() const { return depthReadOnly; }
   bool IsStencilReadOnly() const { return stencilReadOnly; }
   bool IsNull() const { return resource == NULL; }
+  ID3D11Resource *GetResource() const { return resource; }
+  UINT GetMinMip() const { return minMip; }
+  UINT GetMaxMip() const { return maxMip; }
+  UINT GetMinSlice() const { return minSlice; }
+  UINT GetMaxSlice() const { return maxSlice; }
 private:
   ResourceRange();
 
@@ -136,7 +141,7 @@ private:
   static const UINT allMip = 0xf;
   static const UINT allSlice = 0x7ff;
 
-  IUnknown *resource;
+  ID3D11Resource *resource;
   UINT minMip : 4;
   UINT minSlice : 12;
   UINT maxMip : 4;

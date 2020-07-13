@@ -546,6 +546,45 @@ void GLReplay::InitDebugData()
 
   BindUBO(DebugData.checkerProg, "CheckerboardUBOData", 0);
 
+  for(size_t numViews = 0; numViews < ARRAY_COUNT(DebugData.discardProg); numViews++)
+  {
+    rdcstr defines;
+
+    if(numViews > 0 && IsGLES && HasExt[OVR_multiview])
+      defines = StringFormat::Fmt("#define NUM_VIEWS %zu", numViews + 1);
+
+    rdcstr blitvs =
+        GenerateGLSLShader(GetEmbeddedResource(glsl_blit_vert), shaderType, glslBaseVer, defines);
+
+    fs = GenerateGLSLShader(GetEmbeddedResource(glsl_discard_frag), shaderType, glslBaseVer);
+    DebugData.discardProg[numViews] = CreateShaderProgram(blitvs, fs);
+
+    BindUBO(DebugData.discardProg[numViews], "DiscardUBOData", 0);
+
+    if(!IsGLES)
+    {
+      rdcstr name = "col0";
+      for(GLuint i = 0; i < 8; i++)
+      {
+        name[3] = char('0' + i);
+        GL.glBindFragDataLocation(DebugData.discardProg[numViews], i, name.c_str());
+      }
+    }
+  }
+
+  {
+    ResourceFormat fmt;
+    fmt.type = ResourceFormatType::Regular;
+    fmt.compType = CompType::Float;
+    fmt.compByteWidth = 4;
+    fmt.compCount = 1;
+    bytebuf pattern = GetDiscardPattern(DiscardType::InvalidateCall, fmt, 1, true);
+    drv.glGenBuffers(1, &DebugData.discardPatternBuffer);
+    drv.glBindBuffer(eGL_UNIFORM_BUFFER, DebugData.discardPatternBuffer);
+    drv.glNamedBufferDataEXT(DebugData.discardPatternBuffer, pattern.size(), pattern.data(),
+                             eGL_STATIC_DRAW);
+  }
+
   if(HasExt[ARB_geometry_shader4])
   {
     vs = GenerateGLSLShader(GetEmbeddedResource(glsl_mesh_vert), shaderType, glslBaseVer);
@@ -1114,6 +1153,10 @@ void GLReplay::DeleteDebugData()
   if(DebugData.overlayProg)
     drv.glDeleteProgram(DebugData.overlayProg);
 
+  for(size_t i = 0; i < ARRAY_COUNT(DebugData.discardProg); i++)
+    if(DebugData.discardProg[i])
+      drv.glDeleteProgram(DebugData.discardProg[i]);
+
   drv.glDeleteTransformFeedbacks(1, &DebugData.feedbackObj);
   drv.glDeleteBuffers(1, &DebugData.feedbackBuffer);
   drv.glDeleteQueries((GLsizei)DebugData.feedbackQueries.size(), DebugData.feedbackQueries.data());
@@ -1281,6 +1324,222 @@ void GLReplay::RestoreSamplerParams(GLenum target, GLuint texname, TextureSample
   GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MIN_FILTER, (GLint *)&state.minFilter);
   GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAG_FILTER, (GLint *)&state.magFilter);
   GL.glTextureParameterivEXT(texname, target, eGL_TEXTURE_COMPARE_MODE, (GLint *)&state.compareMode);
+}
+
+void GLReplay::FillWithDiscardPattern(DiscardType type, GLuint framebuffer, GLsizei numAttachments,
+                                      const GLenum *attachments, GLint x, GLint y, GLsizei width,
+                                      GLsizei height)
+{
+  RDCASSERT(type == DiscardType::InvalidateCall);
+
+  WrappedOpenGL &drv = *m_pDriver;
+
+  GLMarkerRegion region("FillWithDiscardPattern FBO");
+
+  GLRenderState rs;
+  rs.FetchState(&drv);
+
+  // we use the original framebuffer, and mask off any attachments that shouldn't be discarded
+  drv.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, framebuffer);
+
+  int numviews = 1;
+
+  if(IsGLES && HasExt[OVR_multiview])
+  {
+    GL.glGetNamedFramebufferAttachmentParameterivEXT(
+        framebuffer, eGL_COLOR_ATTACHMENT0, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_NUM_VIEWS_OVR,
+        &numviews);
+    RDCLOG("Discarding with %u views", numviews);
+  }
+
+  GLuint prog = DebugData.discardProg[RDCCLAMP(numviews, 1, 4) - 1];
+
+  drv.glUseProgram(prog);
+  drv.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.discardPatternBuffer);
+
+  drv.glDisable(eGL_BLEND);
+  drv.glDisable(eGL_CULL_FACE);
+  drv.glEnable(eGL_DEPTH_TEST);
+  drv.glEnable(eGL_STENCIL_TEST);
+  drv.glDepthFunc(eGL_ALWAYS);
+  drv.glStencilFunc(eGL_ALWAYS, 0, 0xff);
+  if(!IsGLES)
+    drv.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+
+  // scissor to the rect
+  drv.glEnable(eGL_SCISSOR_TEST);
+  drv.glScissor(x, y, width, height);
+
+  GLint maxview[2] = {2048, 2048};
+  drv.glGetIntegerv(eGL_MAX_VIEWPORT_DIMS, maxview);
+  drv.glViewport(0, 0, maxview[0], maxview[1]);
+
+  // disable all masks at first
+  drv.glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+  drv.glDepthMask(GL_FALSE);
+  drv.glStencilMask(0);
+
+  // enable masks specified by attachments
+  bool stencil = false;
+  for(GLsizei i = 0; i < numAttachments; i++)
+  {
+    if(attachments[i] == eGL_DEPTH_STENCIL_ATTACHMENT)
+    {
+      drv.glDepthMask(GL_TRUE);
+      drv.glStencilMask(0xff);
+      stencil = true;
+    }
+    else if(attachments[i] == eGL_DEPTH_ATTACHMENT)
+    {
+      drv.glDepthMask(GL_TRUE);
+    }
+    else if(attachments[i] == eGL_STENCIL_ATTACHMENT)
+    {
+      drv.glStencilMask(0xff);
+      stencil = true;
+    }
+    else
+    {
+      drv.glColorMaski(attachments[i] - eGL_COLOR_ATTACHMENT0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    }
+  }
+
+  GLint loc = drv.glGetUniformLocation(prog, "flags");
+
+  uint32_t flags = 0U;
+
+  if(height == 1)
+    flags |= 0x10U;
+
+  if(stencil)
+  {
+    drv.glStencilOp(eGL_REPLACE, eGL_REPLACE, eGL_REPLACE);
+
+    drv.glStencilFunc(eGL_ALWAYS, 0, 0xff);
+    drv.glProgramUniform1ui(prog, loc, flags | 1U);
+    drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+
+    drv.glStencilFunc(eGL_ALWAYS, 0xff, 0xff);
+    drv.glProgramUniform1ui(prog, loc, flags | 2U);
+    drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+  }
+  else
+  {
+    drv.glProgramUniform1ui(prog, loc, flags);
+
+    // if we're not writing stencil we can just do one draw
+    drv.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+  }
+
+  rs.ApplyState(&drv);
+}
+
+void GLReplay::FillWithDiscardPattern(DiscardType type, ResourceId id, GLuint mip, GLint xoffset,
+                                      GLint yoffset, GLint zoffset, GLsizei width, GLsizei height,
+                                      GLsizei depth)
+{
+  RDCASSERT(type == DiscardType::InvalidateCall);
+
+  WrappedOpenGL &drv = *m_pDriver;
+
+  GLMarkerRegion region("FillWithDiscardPattern Texture");
+
+  auto &texDetails = drv.m_Textures[id];
+
+  GLenum fmt = texDetails.internalFormat;
+
+  bytebuf &pattern = m_DiscardPatterns[fmt];
+
+  GLenum target = texDetails.curType;
+
+  if(pattern.empty())
+    pattern = GetDiscardPattern(type, MakeResourceFormat(target, fmt), 1, true);
+
+  bool compressed = IsCompressedFormat(fmt);
+
+  if(target == eGL_TEXTURE_CUBE_MAP)
+    depth = RDCMIN(depth, 6);
+  else
+    depth = RDCMIN(texDetails.depth, depth);
+  height = RDCMIN(texDetails.height, height);
+  width = RDCMIN(texDetails.width, width);
+
+  GLint dim = texDetails.dimension;
+
+  GLint oldRowLength = 0;
+  GL.glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &oldRowLength);
+
+  // ensure even if we're uploading a sub-rect that the row length is the same.
+  GL.glPixelStorei(eGL_UNPACK_ROW_LENGTH, DiscardPatternWidth);
+
+  GLuint tex = texDetails.resource.name;
+
+  GLenum format = eGL_NONE;
+  GLenum datatype = eGL_NONE;
+
+  if(!compressed)
+  {
+    format = GetBaseFormat(fmt);
+    datatype = GetDataType(fmt);
+  }
+
+  for(GLsizei zc = 0; zc < depth; zc++)
+  {
+    GLsizei z = zoffset + zc;
+
+    if(texDetails.curType == eGL_TEXTURE_CUBE_MAP)
+    {
+      GLenum targets[] = {
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+      };
+
+      target = targets[z % 6];
+    }
+
+    for(GLsizei yc = 0; yc < height; yc += DiscardPatternHeight)
+    {
+      GLsizei y = yoffset + yc;
+
+      for(GLsizei xc = 0; xc < width; xc += DiscardPatternWidth)
+      {
+        GLsizei x = xoffset + xc;
+
+        GLsizei subwidth = RDCMIN((GLsizei)DiscardPatternWidth, texDetails.width - x);
+        GLsizei subheight = RDCMIN((GLsizei)DiscardPatternHeight, texDetails.height - y);
+
+        if(compressed)
+        {
+          GLsizei dataSize = (GLsizei)GetCompressedByteSize(subwidth, subheight, 1, fmt);
+
+          if(dim == 1)
+            GL.glCompressedTextureSubImage1DEXT(tex, target, mip, x, subwidth, fmt, dataSize,
+                                                pattern.data());
+          else if(dim == 2)
+            GL.glCompressedTextureSubImage2DEXT(tex, target, mip, x, y, subwidth, subheight, fmt,
+                                                dataSize, pattern.data());
+          else if(dim == 3)
+            GL.glCompressedTextureSubImage3DEXT(tex, target, mip, x, y, z, subwidth, subheight, 1,
+                                                fmt, dataSize, pattern.data());
+        }
+        else
+        {
+          if(dim == 1)
+            GL.glTextureSubImage1DEXT(tex, target, mip, x, subwidth, format, datatype,
+                                      pattern.data());
+          else if(dim == 2)
+            GL.glTextureSubImage2DEXT(tex, target, mip, x, y, subwidth, subheight, format, datatype,
+                                      pattern.data());
+          else if(dim == 3)
+            GL.glTextureSubImage3DEXT(tex, target, mip, x, y, z, subwidth, subheight, 1, format,
+                                      datatype, pattern.data());
+        }
+      }
+    }
+  }
+
+  GL.glPixelStorei(eGL_UNPACK_ROW_LENGTH, oldRowLength);
 }
 
 void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Subresource &sub,

@@ -127,6 +127,13 @@ public:
     }
   }
 
+  void FillWithDiscardPattern(DiscardType type, ID3D11Resource *res, UINT slice, UINT mip,
+                              const D3D11_RECT *pRect, UINT NumRects);
+  void FillWithDiscardPattern(DiscardType type, ID3D11Resource *res, UINT subresource,
+                              const D3D11_RECT *pRect, UINT NumRects);
+  void FillWithDiscardPattern(DiscardType type, ID3D11View *view, const D3D11_RECT *pRect,
+                              UINT NumRects);
+
   uint32_t GetStructCount(ID3D11UnorderedAccessView *uav);
   void GetBufferData(ID3D11Buffer *buff, uint64_t offset, uint64_t length, bytebuf &retData);
 
@@ -206,4 +213,26 @@ private:
 
   // RenderForPredicate
   ID3D11DepthStencilView *PredicateDSV = NULL;
+
+  struct DiscardPatternKey
+  {
+    uint32_t dim;
+    DXGI_FORMAT fmt;
+    DXGI_SAMPLE_DESC samp;
+
+    bool operator<(const DiscardPatternKey &o) const
+    {
+      if(dim != o.dim)
+        return dim < o.dim;
+      if(fmt != o.fmt)
+        return fmt < o.fmt;
+      return samp.Count < o.samp.Count;
+    }
+  };
+  std::map<DiscardPatternKey, ID3D11Resource *> m_DiscardPatterns;
+  bytebuf m_DiscardBytes;
+  ID3D11VertexShader *m_DiscardVS = NULL;
+  ID3D11PixelShader *m_DiscardPS = NULL;
+  ID3D11DepthStencilState *m_DiscardDepthState = NULL;
+  ID3D11RasterizerState *m_DiscardRasterState = NULL;
 };

@@ -3533,6 +3533,11 @@ VkBool32 WrappedVulkan::DebugCallback(MessageSeverity severity, MessageCategory 
     if(category == MessageCategory::Performance)
       return false;
 
+    // "fragment shader writes to output location X with no matching attachment"
+    // Not an error, this is defined as with all APIs to drop the output.
+    if(strstr(pMessageId, "UNASSIGNED-CoreValidation-Shader-OutputNotConsumed"))
+      return false;
+
     // "Non-linear image is aliased with linear buffer"
     // Not an error, the validation layers complain at our whole-mem bufs
     if(strstr(pMessageId, "InvalidAliasing") || strstr(pMessage, "InvalidAliasing"))

@@ -59,6 +59,7 @@
 #define RESOURCE_glsl_pixelhistory_mscopy_depth_comp 443
 #define RESOURCE_glsl_pixelhistory_primid_frag       444
 #define RESOURCE_glsl_shaderdebug_sample_vert        445
+#define RESOURCE_glsl_discard_frag                   446
 
 // Next default values for new objects
 // 

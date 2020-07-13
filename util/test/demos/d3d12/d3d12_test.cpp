@@ -928,6 +928,13 @@ void D3D12GraphicsTest::ClearDepthStencilView(ID3D12GraphicsCommandListPtr cmd, 
                              NULL);
 }
 
+void D3D12GraphicsTest::ClearDepthStencilView(ID3D12GraphicsCommandListPtr cmd,
+                                              D3D12_CPU_DESCRIPTOR_HANDLE dsv,
+                                              D3D12_CLEAR_FLAGS flags, float depth, UINT8 stencil)
+{
+  cmd->ClearDepthStencilView(dsv, flags, depth, stencil, 0, NULL);
+}
+
 void D3D12GraphicsTest::RSSetViewport(ID3D12GraphicsCommandListPtr cmd, D3D12_VIEWPORT view)
 {
   cmd->RSSetViewports(1, &view);

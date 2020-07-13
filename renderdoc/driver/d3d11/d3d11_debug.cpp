@@ -273,6 +273,52 @@ void D3D11DebugManager::InitReplayResources()
 
     SAFE_RELEASE(dummyTex);
   }
+
+  {
+    rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
+
+    m_DiscardVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
+    m_DiscardPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DiscardPS", "ps_4_0");
+
+    ResourceFormat fmt;
+    fmt.type = ResourceFormatType::Regular;
+    fmt.compType = CompType::Float;
+    fmt.compByteWidth = 4;
+    fmt.compCount = 1;
+    m_DiscardBytes = GetDiscardPattern(DiscardType::DiscardCall, fmt);
+
+    D3D11_DEPTH_STENCIL_DESC desc;
+
+    desc.BackFace.StencilFailOp = desc.BackFace.StencilPassOp = desc.BackFace.StencilDepthFailOp =
+        D3D11_STENCIL_OP_REPLACE;
+    desc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+    desc.FrontFace.StencilFailOp = desc.FrontFace.StencilPassOp =
+        desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_REPLACE;
+    desc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+    desc.DepthEnable = TRUE;
+    desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+    desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    desc.StencilReadMask = desc.StencilWriteMask = 0xff;
+    desc.StencilEnable = TRUE;
+
+    hr = m_pDevice->CreateDepthStencilState(&desc, &m_DiscardDepthState);
+
+    if(FAILED(hr))
+      RDCERR("Failed to create m_DiscardDepthState HRESULT: %s", ToStr(hr).c_str());
+
+    D3D11_RASTERIZER_DESC rastDesc;
+    RDCEraseEl(rastDesc);
+
+    rastDesc.CullMode = D3D11_CULL_NONE;
+    rastDesc.FillMode = D3D11_FILL_SOLID;
+    rastDesc.DepthClipEnable = FALSE;
+    rastDesc.ScissorEnable = TRUE;
+
+    hr = m_pDevice->CreateRasterizerState(&rastDesc, &m_DiscardRasterState);
+
+    if(FAILED(hr))
+      RDCERR("Failed to create m_DiscardRasterState HRESULT: %s", ToStr(hr).c_str());
+  }
 }
 
 void D3D11DebugManager::ShutdownResources()
@@ -301,11 +347,481 @@ void D3D11DebugManager::ShutdownResources()
   SAFE_RELEASE(MSArrayCopyVS);
   m_pDevice->InternalRelease();
 
+  for(auto it = m_DiscardPatterns.begin(); it != m_DiscardPatterns.end(); it++)
+    if(it->second)
+      it->second->Release();
+
+  SAFE_RELEASE(m_DiscardVS);
+  SAFE_RELEASE(m_DiscardPS);
+  SAFE_RELEASE(m_DiscardDepthState);
+  SAFE_RELEASE(m_DiscardRasterState);
+
   for(int i = 0; i < ARRAY_COUNT(PublicCBuffers); i++)
   {
     SAFE_RELEASE(PublicCBuffers[i]);
     m_pDevice->InternalRelease();
   }
+}
+
+void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11Resource *res, UINT slice,
+                                               UINT mip, const D3D11_RECT *pRect, UINT NumRects)
+{
+  D3D11MarkerRegion region(StringFormat::Fmt("FillWithDiscardPattern %s slice %u mip %u",
+                                             ToStr(GetIDForResource(res)).c_str(), slice, mip));
+
+  D3D11_RECT all = {0, 0, 65536, 65536};
+  if(NumRects == 0)
+  {
+    NumRects = 1;
+    pRect = &all;
+  }
+
+  if(WrappedID3D11Buffer::IsAlloc(res))
+  {
+    D3D11MarkerRegion::Set("Buffer");
+
+    WrappedID3D11Buffer *buf = (WrappedID3D11Buffer *)res;
+
+    D3D11_BUFFER_DESC desc = {};
+    buf->GetDesc(&desc);
+
+    uint32_t value = 0xD15CAD3D;
+
+    for(UINT r = 0; r < NumRects; r++)
+    {
+      UINT size = RDCMIN(UINT(pRect[r].right - pRect[r].left), desc.ByteWidth);
+
+      if(desc.Usage == D3D11_USAGE_DYNAMIC || desc.Usage == D3D11_USAGE_STAGING)
+      {
+        // dynamic buffers can always be mapped
+        // staging buffers can be read-only, at which point we can't write to them
+        if(desc.CPUAccessFlags & D3D11_CPU_ACCESS_WRITE)
+        {
+          D3D11_MAPPED_SUBRESOURCE mapped = {};
+          m_pImmediateContext->Map(res, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+
+          byte *dst = (byte *)mapped.pData;
+          dst += pRect[r].left;
+          for(size_t i = 0; i < size; i++)
+          {
+            memcpy(dst, &value, RDCMIN(sizeof(uint32_t), size - i));
+            dst += sizeof(uint32_t);
+          }
+
+          m_pImmediateContext->Unmap(res, 0);
+        }
+      }
+      else if(desc.Usage == D3D11_USAGE_DEFAULT)
+      {
+        bytebuf pattern;
+        pattern.resize(AlignUp4(size));
+
+        for(size_t i = 0; i < pattern.size(); i += 4)
+          memcpy(&pattern[i], &value, sizeof(uint32_t));
+
+        // default buffers can be updated
+        D3D11_BOX box = {};
+        box.bottom = box.back = 1;
+        box.left = pRect[r].left;
+        box.right = box.left + size;
+        m_pImmediateContext->UpdateSubresource(res, 0, &box, pattern.data(), size, size);
+      }
+      // IMMUTABLE is the other option, which we can't do anything with
+    }
+  }
+  else
+  {
+    DiscardPatternKey key = {};
+    UINT numMips = 1;
+    UINT width = 1, height = 1, depth = 1;
+
+    // for textures we create a template texture with the same format and properties then do
+    // repeated copies
+    if(WrappedID3D11Texture1D::IsAlloc(res))
+    {
+      WrappedID3D11Texture1D *tex = (WrappedID3D11Texture1D *)res;
+
+      D3D11_TEXTURE1D_DESC desc = {};
+      tex->GetDesc(&desc);
+
+      key.dim = 1;
+      key.fmt = desc.Format;
+      numMips = desc.MipLevels;
+      width = desc.Width;
+    }
+    else if(WrappedID3D11Texture2D1::IsAlloc(res))
+    {
+      WrappedID3D11Texture2D1 *tex = (WrappedID3D11Texture2D1 *)res;
+
+      D3D11_TEXTURE2D_DESC desc = {};
+      tex->GetDesc(&desc);
+
+      key.dim = 2;
+      key.fmt = desc.Format;
+      key.samp = desc.SampleDesc;
+      numMips = desc.MipLevels;
+      width = desc.Width;
+      height = desc.Height;
+    }
+    else if(WrappedID3D11Texture3D1::IsAlloc(res))
+    {
+      WrappedID3D11Texture3D1 *tex = (WrappedID3D11Texture3D1 *)res;
+
+      D3D11_TEXTURE3D_DESC desc = {};
+      tex->GetDesc(&desc);
+
+      key.dim = 3;
+      key.fmt = desc.Format;
+      numMips = desc.MipLevels;
+      width = desc.Width;
+      height = desc.Height;
+      depth = desc.Depth;
+    }
+
+    UINT subresource = slice * numMips + mip;
+    if(key.dim == 3)
+      subresource = mip;
+
+    // depth-stencil resources can't be sub-copied, so we need to render to them
+    if(IsDepthFormat(key.fmt) || key.samp.Count > 1)
+    {
+      D3D11MarkerRegion::Set("Depth texture");
+
+      D3D11RenderStateTracker tracker(m_pImmediateContext);
+
+      m_pImmediateContext->ClearState();
+
+      m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+      m_pImmediateContext->OMSetDepthStencilState(m_DiscardDepthState, 0);
+      m_pImmediateContext->VSSetShader(m_DiscardVS, NULL, 0);
+      m_pImmediateContext->PSSetShader(m_DiscardPS, NULL, 0);
+      m_pImmediateContext->RSSetState(m_DiscardRasterState);
+
+      D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
+      rtvDesc.Format = GetFloatTypedFormat(key.fmt);
+
+      D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
+      dsvDesc.Flags = 0;
+      dsvDesc.Format = GetDepthTypedFormat(key.fmt);
+
+      if(key.samp.Count > 1)
+      {
+        dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY;
+        dsvDesc.Texture2DMSArray.ArraySize = 1;
+        dsvDesc.Texture2DMSArray.FirstArraySlice = slice;
+
+        rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY;
+        rtvDesc.Texture2DMSArray.ArraySize = 1;
+        rtvDesc.Texture2DMSArray.FirstArraySlice = slice;
+      }
+      else if(key.dim == 1)
+      {
+        dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE1DARRAY;
+        dsvDesc.Texture1DArray.ArraySize = 1;
+        dsvDesc.Texture1DArray.FirstArraySlice = slice;
+        dsvDesc.Texture1DArray.MipSlice = mip;
+      }
+      else if(key.dim == 2)
+      {
+        dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+        dsvDesc.Texture2DArray.ArraySize = 1;
+        dsvDesc.Texture2DArray.FirstArraySlice = slice;
+        dsvDesc.Texture2DArray.MipSlice = mip;
+      }
+
+      ID3D11RenderTargetView *rtv = NULL;
+      ID3D11DepthStencilView *dsv = NULL;
+      if(IsDepthFormat(key.fmt))
+        m_pDevice->CreateDepthStencilView(res, &dsvDesc, &dsv);
+      else
+        m_pDevice->CreateRenderTargetView(res, &rtvDesc, &rtv);
+
+      m_pImmediateContext->OMSetRenderTargets(1, &rtv, dsv);
+
+      ID3D11Buffer *cbuf = MakeCBuffer(m_DiscardBytes.data(), m_DiscardBytes.size());
+      m_pImmediateContext->PSSetConstantBuffers(0, 1, &cbuf);
+
+      D3D11_VIEWPORT viewport = {0, 0, (float)width, (float)height, 0.0f, 1.0f};
+      m_pImmediateContext->RSSetViewports(1, &viewport);
+
+      for(UINT r = 0; r < NumRects; r++)
+      {
+        m_pImmediateContext->RSSetScissorRects(1, pRect + r);
+
+        if(dsv)
+        {
+          uint32_t pass = 1;
+          cbuf = MakeCBuffer(&pass, sizeof(pass));
+          m_pImmediateContext->PSSetConstantBuffers(1, 1, &cbuf);
+
+          m_pImmediateContext->Draw(3, 0);
+
+          m_pImmediateContext->OMSetDepthStencilState(m_DiscardDepthState, 0xff);
+          pass = 2;
+          cbuf = MakeCBuffer(&pass, sizeof(pass));
+          m_pImmediateContext->PSSetConstantBuffers(1, 1, &cbuf);
+
+          m_pImmediateContext->Draw(3, 0);
+        }
+        else
+        {
+          uint32_t pass = 0;
+          cbuf = MakeCBuffer(&pass, sizeof(pass));
+          m_pImmediateContext->PSSetConstantBuffers(1, 1, &cbuf);
+
+          m_pImmediateContext->Draw(3, 0);
+        }
+      }
+
+      SAFE_RELEASE(rtv);
+      SAFE_RELEASE(dsv);
+    }
+    else
+    {
+      ID3D11Resource *patternRes = m_DiscardPatterns[key];
+
+      if(patternRes == NULL)
+      {
+        bytebuf pattern = GetDiscardPattern(type, MakeResourceFormat(key.fmt));
+
+        if(key.dim == 1)
+        {
+          D3D11_TEXTURE1D_DESC desc;
+
+          desc.ArraySize = 1;
+          desc.Format = key.fmt;
+          desc.Width = DiscardPatternWidth;
+          desc.MipLevels = 1;
+          desc.Usage = D3D11_USAGE_IMMUTABLE;
+          desc.CPUAccessFlags = 0;
+          desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+          desc.MiscFlags = 0;
+
+          D3D11_SUBRESOURCE_DATA data = {};
+          data.pSysMem = pattern.data();
+          data.SysMemSlicePitch = data.SysMemPitch = GetRowPitch(desc.Width, desc.Format, 0);
+
+          ID3D11Texture1D *tex = NULL;
+
+          HRESULT hr = m_pDevice->CreateTexture1D(&desc, &data, &tex);
+          if(FAILED(hr))
+          {
+            RDCERR("Failed to create discard texture for %s HRESULT: %s", ToStr(key.fmt).c_str(),
+                   ToStr(hr).c_str());
+            return;
+          }
+
+          m_DiscardPatterns[key] = patternRes = tex;
+        }
+        else if(key.dim == 2)
+        {
+          D3D11_TEXTURE2D_DESC desc;
+
+          desc.ArraySize = 1;
+          desc.Format = key.fmt;
+          desc.Width = DiscardPatternWidth;
+          desc.Height = DiscardPatternHeight;
+          desc.MipLevels = 1;
+          desc.SampleDesc.Count = 1;
+          desc.SampleDesc.Quality = 0;
+          desc.Usage = D3D11_USAGE_IMMUTABLE;
+          desc.CPUAccessFlags = 0;
+          desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+          desc.MiscFlags = 0;
+
+          D3D11_SUBRESOURCE_DATA data = {};
+          data.pSysMem = pattern.data();
+          data.SysMemPitch = GetRowPitch(desc.Width, desc.Format, 0);
+          data.SysMemSlicePitch = data.SysMemPitch * desc.Height;
+
+          ID3D11Texture2D *tex = NULL;
+
+          HRESULT hr = m_pDevice->CreateTexture2D(&desc, &data, &tex);
+          if(FAILED(hr))
+          {
+            RDCERR("Failed to create discard texture for %s HRESULT: %s", ToStr(key.fmt).c_str(),
+                   ToStr(hr).c_str());
+            return;
+          }
+
+          m_DiscardPatterns[key] = patternRes = tex;
+        }
+        else
+        {
+          D3D11_TEXTURE3D_DESC desc;
+
+          desc.Format = key.fmt;
+          desc.Width = DiscardPatternWidth;
+          desc.Height = DiscardPatternHeight;
+          desc.Depth = 1;
+          desc.MipLevels = 1;
+          desc.Usage = D3D11_USAGE_IMMUTABLE;
+          desc.CPUAccessFlags = 0;
+          desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+          desc.MiscFlags = 0;
+
+          D3D11_SUBRESOURCE_DATA data = {};
+          data.pSysMem = pattern.data();
+          data.SysMemPitch = GetRowPitch(desc.Width, desc.Format, 0);
+          data.SysMemSlicePitch = data.SysMemPitch * desc.Height;
+
+          ID3D11Texture3D *tex = NULL;
+
+          HRESULT hr = m_pDevice->CreateTexture3D(&desc, &data, &tex);
+          if(FAILED(hr))
+          {
+            RDCERR("Failed to create discard texture for %s HRESULT: %s", ToStr(key.fmt).c_str(),
+                   ToStr(hr).c_str());
+            return;
+          }
+
+          m_DiscardPatterns[key] = patternRes = tex;
+        }
+      }
+
+      if(!patternRes)
+        return;
+
+      UINT z = 0;
+      if(key.dim == 3)
+        z = slice;
+
+      for(UINT r = 0; r < NumRects; r++)
+      {
+        D3D11_RECT rect = pRect[r];
+
+        UINT rectWidth = RDCMIN((UINT)rect.right, RDCMAX(1U, width >> mip));
+        UINT rectHeight = RDCMIN((UINT)rect.bottom, RDCMAX(1U, height >> mip));
+
+        for(UINT y = rect.top; y < rectHeight; y += DiscardPatternHeight)
+        {
+          for(UINT x = rect.left; x < rectWidth; x += DiscardPatternWidth)
+          {
+            D3D11_BOX box = {
+                0,
+                0,
+                0,
+                RDCMIN(DiscardPatternWidth, uint32_t(rectWidth - x)),
+                RDCMIN(DiscardPatternHeight, uint32_t(rectHeight - y)),
+                1,
+            };
+            m_pImmediateContext->CopySubresourceRegion(res, subresource, x, y, z, patternRes, 0,
+                                                       &box);
+          }
+        }
+      }
+    }
+  }
+}
+
+void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11Resource *res,
+                                               UINT subresource, const D3D11_RECT *pRect,
+                                               UINT NumRects)
+{
+  if(WrappedID3D11Texture1D::IsAlloc(res))
+  {
+    WrappedID3D11Texture1D *tex = (WrappedID3D11Texture1D *)res;
+
+    D3D11_TEXTURE1D_DESC desc = {};
+    tex->GetDesc(&desc);
+
+    // subresource uniquely identifies a slice and mip
+    FillWithDiscardPattern(type, res, subresource / desc.MipLevels, subresource % desc.MipLevels,
+                           pRect, NumRects);
+  }
+  else if(WrappedID3D11Texture2D1::IsAlloc(res))
+  {
+    WrappedID3D11Texture2D1 *tex = (WrappedID3D11Texture2D1 *)res;
+
+    D3D11_TEXTURE2D_DESC desc = {};
+    tex->GetDesc(&desc);
+
+    // subresource uniquely identifies a slice and mip
+    FillWithDiscardPattern(type, res, subresource / desc.MipLevels, subresource % desc.MipLevels,
+                           pRect, NumRects);
+  }
+  else if(WrappedID3D11Texture3D1::IsAlloc(res))
+  {
+    WrappedID3D11Texture3D1 *tex = (WrappedID3D11Texture3D1 *)res;
+
+    D3D11_TEXTURE3D_DESC desc = {};
+    tex->GetDesc(&desc);
+
+    // fill all slices in this mip
+    for(UINT z = 0; z < RDCMAX(1U, desc.Depth >> subresource); z++)
+      FillWithDiscardPattern(type, res, z, subresource, pRect, NumRects);
+  }
+  else
+  {
+    // buffer
+    FillWithDiscardPattern(type, res, 0, 0, pRect, NumRects);
+  }
+}
+
+void D3D11DebugManager::FillWithDiscardPattern(DiscardType type, ID3D11View *view,
+                                               const D3D11_RECT *pRect, UINT NumRects)
+{
+  D3D11MarkerRegion region(
+      StringFormat::Fmt("FillWithDiscardPattern view %s", ToStr(GetIDForResource(view)).c_str()));
+
+  ResourceRange range = ResourceRange::Null;
+
+  if(WrappedID3D11ShaderResourceView1::IsAlloc(view))
+  {
+    range = ResourceRange((WrappedID3D11ShaderResourceView1 *)view);
+  }
+  else if(WrappedID3D11UnorderedAccessView1::IsAlloc(view))
+  {
+    range = ResourceRange((WrappedID3D11UnorderedAccessView1 *)view);
+  }
+  else if(WrappedID3D11RenderTargetView1::IsAlloc(view))
+  {
+    range = ResourceRange((WrappedID3D11RenderTargetView1 *)view);
+  }
+  else if(WrappedID3D11DepthStencilView::IsAlloc(view))
+  {
+    range = ResourceRange((WrappedID3D11DepthStencilView *)view);
+  }
+
+  ID3D11Resource *res = range.GetResource();
+  UINT numMips = 1;
+  bool tex3D = false;
+
+  // check for wrapped types first as they will be most common and don't
+  // require a virtual call
+  if(WrappedID3D11Texture1D::IsAlloc(res))
+  {
+    D3D11_TEXTURE1D_DESC desc = {};
+    ((WrappedID3D11Texture1D *)res)->GetDesc(&desc);
+    numMips = desc.MipLevels;
+  }
+  else if(WrappedID3D11Texture2D1::IsAlloc(res))
+  {
+    D3D11_TEXTURE2D_DESC desc = {};
+    ((WrappedID3D11Texture2D1 *)res)->GetDesc(&desc);
+    numMips = desc.MipLevels;
+  }
+  else if(WrappedID3D11Texture3D1::IsAlloc(res))
+  {
+    D3D11_TEXTURE3D_DESC desc = {};
+    ((WrappedID3D11Texture3D1 *)res)->GetDesc(&desc);
+    numMips = desc.MipLevels;
+    tex3D = true;
+  }
+
+  rdcarray<D3D11_RECT> rects;
+  rects.assign(pRect, NumRects);
+
+  // DiscardView1 on D3D11 only allows rects to be specified with DSVs and RTVs which should only
+  // target one mip.
+  if(NumRects > 0)
+    RDCASSERTMSG("Rects shouldn't be specified when we have multiple mips",
+                 range.GetMinMip() == range.GetMaxMip(), range.GetMinMip(), range.GetMaxMip(),
+                 NumRects);
+
+  for(UINT slice = range.GetMinSlice(); slice <= range.GetMaxSlice(); slice++)
+    for(UINT mip = range.GetMinMip(); mip <= range.GetMaxMip(); mip++)
+      FillWithDiscardPattern(type, res, slice, mip, pRect, NumRects);
 }
 
 uint32_t D3D11DebugManager::GetStructCount(ID3D11UnorderedAccessView *uav)

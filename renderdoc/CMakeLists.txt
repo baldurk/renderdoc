@@ -404,6 +404,7 @@ set(data
     data/glsl/trisize.geom
     data/glsl/deptharr2ms.frag
     data/glsl/depthms2arr.frag
+    data/glsl/discard.frag
     data/sourcecodepro.ttf
     driver/vulkan/renderdoc.json)
 

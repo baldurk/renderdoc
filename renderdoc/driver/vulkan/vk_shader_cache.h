@@ -58,6 +58,7 @@ enum class BuiltinShader
   PixelHistoryMSCopyDepthCS,
   PixelHistoryPrimIDFS,
   ShaderDebugSampleVS,
+  DiscardFS,
   Count,
 };
 

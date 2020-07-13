@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "../gl_driver.h"
+#include "../gl_replay.h"
 #include "common/common.h"
 #include "strings/string_utils.h"
 
@@ -904,11 +905,277 @@ void WrappedOpenGL::glGenerateMultiTexMipmapEXT(GLenum texunit, GLenum target)
     Common_glGenerateTextureMipmapEXT(GetCtxData().GetTexUnitRecord(target, texunit), target);
 }
 
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glInvalidateTexImage(SerialiserType &ser, GLuint textureHandle,
+                                                   GLint level)
+{
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT(level);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    GL.glInvalidateTexImage(texture.name, level);
+
+    ResourceId liveId = GetResourceManager()->GetID(texture);
+
+    if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+    {
+      GLenum attach = eGL_COLOR_ATTACHMENT0;
+
+      ResourceFormat fmt =
+          MakeResourceFormat(m_Textures[liveId].curType, m_Textures[liveId].internalFormat);
+
+      if(fmt.type != ResourceFormatType::Regular && fmt.type != ResourceFormatType::D16S8 &&
+         fmt.type != ResourceFormatType::D24S8 && fmt.type != ResourceFormatType::D32S8 &&
+         fmt.type != ResourceFormatType::S8 && fmt.type != ResourceFormatType::R10G10B10A2 &&
+         fmt.type != ResourceFormatType::R11G11B10)
+      {
+        // we don't expect to be able to render to this format, so fill it manually
+        GetReplay()->FillWithDiscardPattern(DiscardType::InvalidateCall, liveId, level);
+      }
+      else
+      {
+        GLenum base = GetBaseFormat(m_Textures[liveId].internalFormat);
+        if(base == eGL_DEPTH_STENCIL)
+          attach = eGL_DEPTH_STENCIL_ATTACHMENT;
+        else if(base == eGL_DEPTH_COMPONENT)
+          attach = eGL_DEPTH_ATTACHMENT;
+        else if(base == eGL_STENCIL_INDEX)
+          attach = eGL_STENCIL_ATTACHMENT;
+
+        GLuint oldFB = 0;
+        GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&oldFB);
+
+        GLuint fb = 0;
+        GL.glGenFramebuffers(1, &fb);
+        GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, fb);
+
+        GLenum texTarget = m_Textures[liveId].curType;
+
+        if(texTarget == eGL_TEXTURE_3D)
+        {
+          for(GLsizei z = 0; z < RDCMAX(1, m_Textures[liveId].depth >> level); z++)
+          {
+            GL.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, attach, texture.name, level, z);
+            GetReplay()->FillWithDiscardPattern(DiscardType::InvalidateCall, fb, 1, &attach, 0, 0,
+                                                65536, 65536);
+          }
+        }
+        else if(texTarget == eGL_TEXTURE_2D_ARRAY || texTarget == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ||
+                texTarget == eGL_TEXTURE_CUBE_MAP || texTarget == eGL_TEXTURE_CUBE_MAP_ARRAY)
+        {
+          GLsizei depth = m_Textures[liveId].depth;
+          if(texTarget == eGL_TEXTURE_CUBE_MAP)
+            depth *= 6;
+          for(GLsizei z = 0; z < depth; z++)
+          {
+            GL.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, attach, texture.name, level, z);
+            GetReplay()->FillWithDiscardPattern(DiscardType::InvalidateCall, fb, 1, &attach, 0, 0,
+                                                65536, 65536);
+          }
+        }
+        else if(texTarget == eGL_TEXTURE_2D || texTarget == eGL_TEXTURE_2D_MULTISAMPLE ||
+                texTarget == eGL_TEXTURE_RECTANGLE)
+        {
+          GL.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, attach, texTarget, texture.name, level);
+          GetReplay()->FillWithDiscardPattern(DiscardType::InvalidateCall, fb, 1, &attach, 0, 0,
+                                              65536, 65536);
+        }
+        else if(texTarget == eGL_TEXTURE_1D_ARRAY)
+        {
+          for(GLsizei z = 0; z < m_Textures[liveId].height; z++)
+          {
+            GL.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, attach, texture.name, level, z);
+            GetReplay()->FillWithDiscardPattern(DiscardType::InvalidateCall, fb, 1, &attach, 0, 0,
+                                                65536, 1);
+          }
+        }
+        else if(texTarget == eGL_TEXTURE_1D)
+        {
+          GL.glFramebufferTexture1D(eGL_DRAW_FRAMEBUFFER, attach, texTarget, texture.name, level);
+          GetReplay()->FillWithDiscardPattern(DiscardType::InvalidateCall, fb, 1, &attach, 0, 0,
+                                              65536, 1);
+        }
+
+        GL.glDeleteFramebuffers(1, &fb);
+
+        GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldFB);
+      }
+    }
+
+    if(IsLoading(m_State))
+    {
+      AddEvent();
+
+      DrawcallDescription draw;
+      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
+                                    ToStr(GetResourceManager()->GetOriginalID(liveId)).c_str());
+      draw.flags |= DrawFlags::Clear;
+
+      draw.copyDestination = GetResourceManager()->GetOriginalID(liveId);
+
+      AddDrawcall(draw, true);
+
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::Discard));
+    }
+  }
+
+  return true;
+}
+
 void WrappedOpenGL::glInvalidateTexImage(GLuint texture, GLint level)
 {
   SERIALISE_TIME_CALL(GL.glInvalidateTexImage(texture, level));
 
-  GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
+  if(IsCaptureMode(m_State))
+  {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+
+    if(IsActiveCapturing(m_State))
+    {
+      USE_SCRATCH_SERIALISER();
+      ser.SetDrawChunk();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      Serialise_glInvalidateTexImage(ser, texture, level);
+
+      GetContextRecord()->AddChunk(scope.Get());
+      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                        eFrameRef_ReadBeforeWrite);
+    }
+    else if(IsBackgroundCapturing(m_State))
+    {
+      GetResourceManager()->MarkDirtyResource(record->Resource);
+    }
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glInvalidateTexSubImage(SerialiserType &ser, GLuint textureHandle,
+                                                      GLint level, GLint xoffset, GLint yoffset,
+                                                      GLint zoffset, GLsizei width, GLsizei height,
+                                                      GLsizei depth)
+{
+  SERIALISE_ELEMENT_LOCAL(texture, TextureRes(GetCtx(), textureHandle));
+  SERIALISE_ELEMENT(level);
+  SERIALISE_ELEMENT(xoffset);
+  SERIALISE_ELEMENT(yoffset);
+  SERIALISE_ELEMENT(zoffset);
+  SERIALISE_ELEMENT(width);
+  SERIALISE_ELEMENT(height);
+  SERIALISE_ELEMENT(depth);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    GL.glInvalidateTexSubImage(texture.name, level, xoffset, yoffset, zoffset, width, height, depth);
+
+    ResourceId liveId = GetResourceManager()->GetID(texture);
+
+    if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+    {
+      GLenum attach = eGL_COLOR_ATTACHMENT0;
+
+      ResourceFormat fmt =
+          MakeResourceFormat(m_Textures[liveId].curType, m_Textures[liveId].internalFormat);
+
+      if(fmt.type != ResourceFormatType::Regular && fmt.type != ResourceFormatType::D16S8 &&
+         fmt.type != ResourceFormatType::D24S8 && fmt.type != ResourceFormatType::D32S8 &&
+         fmt.type != ResourceFormatType::S8 && fmt.type != ResourceFormatType::R10G10B10A2 &&
+         fmt.type != ResourceFormatType::R11G11B10)
+      {
+        // we don't expect to be able to render to this format, so fill it manually
+        GetReplay()->FillWithDiscardPattern(DiscardType::InvalidateCall, liveId, level, xoffset,
+                                            yoffset, zoffset, width, height, depth);
+      }
+      else
+      {
+        GLenum base = GetBaseFormat(m_Textures[liveId].internalFormat);
+        if(base == eGL_DEPTH_STENCIL)
+          attach = eGL_DEPTH_STENCIL_ATTACHMENT;
+        else if(base == eGL_DEPTH_COMPONENT)
+          attach = eGL_DEPTH_ATTACHMENT;
+        else if(base == eGL_STENCIL_INDEX)
+          attach = eGL_STENCIL_ATTACHMENT;
+
+        GLuint oldFB = 0;
+        GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&oldFB);
+
+        GLuint fb = 0;
+        GL.glGenFramebuffers(1, &fb);
+        GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, fb);
+
+        GLenum texTarget = m_Textures[liveId].curType;
+
+        if(texTarget == eGL_TEXTURE_3D || texTarget == eGL_TEXTURE_2D_ARRAY ||
+           texTarget == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY || texTarget == eGL_TEXTURE_CUBE_MAP ||
+           texTarget == eGL_TEXTURE_CUBE_MAP_ARRAY)
+        {
+          for(GLsizei z = 0; z < depth; z++)
+          {
+            GL.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, attach, texture.name, level,
+                                         zoffset + z);
+            GetReplay()->FillWithDiscardPattern(DiscardType::InvalidateCall, fb, 1, &attach,
+                                                xoffset, yoffset, width, height);
+          }
+        }
+        else if(texTarget == eGL_TEXTURE_2D || texTarget == eGL_TEXTURE_2D_MULTISAMPLE ||
+                texTarget == eGL_TEXTURE_RECTANGLE)
+        {
+          GL.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, attach, texTarget, texture.name, level);
+          GetReplay()->FillWithDiscardPattern(DiscardType::InvalidateCall, fb, 1, &attach, xoffset,
+                                              yoffset, width, height);
+        }
+        else if(texTarget == eGL_TEXTURE_1D_ARRAY)
+        {
+          for(GLsizei z = 0; z < height; z++)
+          {
+            GL.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, attach, texture.name, level,
+                                         z + yoffset);
+            GetReplay()->FillWithDiscardPattern(DiscardType::InvalidateCall, fb, 1, &attach,
+                                                xoffset, 0, width, 1);
+          }
+        }
+        else if(texTarget == eGL_TEXTURE_1D)
+        {
+          GL.glFramebufferTexture1D(eGL_DRAW_FRAMEBUFFER, attach, texTarget, texture.name, level);
+          GetReplay()->FillWithDiscardPattern(DiscardType::InvalidateCall, fb, 1, &attach, xoffset,
+                                              0, width, 1);
+        }
+
+        GL.glDeleteFramebuffers(1, &fb);
+
+        GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldFB);
+      }
+    }
+
+    if(IsLoading(m_State))
+    {
+      AddEvent();
+
+      DrawcallDescription draw;
+      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
+                                    ToStr(GetResourceManager()->GetOriginalID(liveId)).c_str());
+      draw.flags |= DrawFlags::Clear;
+
+      draw.copyDestination = GetResourceManager()->GetOriginalID(liveId);
+
+      AddDrawcall(draw, true);
+
+      m_ResourceUses[GetResourceManager()->GetID(texture)].push_back(
+          EventUsage(m_CurEventID, ResourceUsage::Discard));
+    }
+  }
+
+  return true;
 }
 
 void WrappedOpenGL::glInvalidateTexSubImage(GLuint texture, GLint level, GLint xoffset,
@@ -918,7 +1185,28 @@ void WrappedOpenGL::glInvalidateTexSubImage(GLuint texture, GLint level, GLint x
   SERIALISE_TIME_CALL(
       GL.glInvalidateTexSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth));
 
-  GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
+  if(IsCaptureMode(m_State))
+  {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+
+    if(IsActiveCapturing(m_State))
+    {
+      USE_SCRATCH_SERIALISER();
+      ser.SetDrawChunk();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      Serialise_glInvalidateTexSubImage(ser, texture, level, xoffset, yoffset, zoffset, width,
+                                        height, depth);
+
+      GetContextRecord()->AddChunk(scope.Get());
+      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                        eFrameRef_ReadBeforeWrite);
+    }
+    else if(IsBackgroundCapturing(m_State))
+    {
+      GetResourceManager()->MarkDirtyResource(record->Resource);
+    }
+  }
 }
 
 template <typename SerialiserType>
@@ -6815,3 +7103,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, glTextureBufferEXT, GLuint texture, GLenum
 INSTANTIATE_FUNCTION_SERIALISED(void, glTextureFoveationParametersQCOM, GLuint texture,
                                 GLuint layer, GLuint focalPoint, GLfloat focalX, GLfloat focalY,
                                 GLfloat gainX, GLfloat gainY, GLfloat foveaArea);
+INSTANTIATE_FUNCTION_SERIALISED(void, glInvalidateTexImage, GLuint texture, GLint level);
+INSTANTIATE_FUNCTION_SERIALISED(void, glInvalidateTexSubImage, GLuint texture, GLint level,
+                                GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width,
+                                GLsizei height, GLsizei depth);

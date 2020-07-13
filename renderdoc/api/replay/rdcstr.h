@@ -48,6 +48,8 @@ class rdcliteral
 public:
   const char *c_str() const { return str; }
   size_t length() const { return len; }
+  const char *begin() const { return str; }
+  const char *end() const { return str + len; }
 };
 
 inline rdcliteral operator"" _lit(const char *str, size_t len)

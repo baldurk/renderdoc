@@ -23,7 +23,9 @@
  ******************************************************************************/
 
 #include "replay_driver.h"
+#include "compressonator/CMP_Core.h"
 #include "maths/formatpacking.h"
+#include "maths/half_convert.h"
 #include "serialise/serialiser.h"
 
 template <>
@@ -1124,3 +1126,457 @@ const Vec4f colorRamp[22] = {
     Vec4f(1.000000f, 0.376471f, 0.752941f, 1.0f), Vec4f(1.000000f, 0.627451f, 1.000000f, 1.0f),
     Vec4f(1.000000f, 0.878431f, 1.000000f, 1.0f), Vec4f(1.000000f, 1.000000f, 1.000000f, 1.0f),
 };
+
+bytebuf GetDiscardPattern(DiscardType type, const ResourceFormat &fmt, uint32_t rowPitch, bool invert)
+{
+  static const rdcliteral patterns[] = {
+      // DiscardType::RenderPassLoad
+      "..#.....##...##..##....##....##..#..#.####..###..##..###..####.."
+      "..#....#..#.#..#.#.#...#.#..#..#.##.#..#...#....#..#.#..#.#....."
+      "..#....#..#.#..#.#..#..#..#.#..#.##.#..#...#....#..#.#..#.###..."
+      "..#....#..#.####.#..#..#..#.#..#.#.##..#...#....####.###..#....."
+      "..#....#..#.#..#.#.#...#.#..#..#.#.##..#...#....#..#.#..#.#....."
+      "..####..##..#..#.##....##....##..#..#..#....###.#..#.#..#.####.."
+      "................................................................"
+      "................................................................"_lit,
+
+      // DiscardType::RenderPassStore
+      "...###.####..##..###...##....##..#..#.####..###..##..###..####.."
+      "..#.....#...#..#.#..#..#.#..#..#.##.#..#...#....#..#.#..#.#....."
+      "...#....#...#..#.#..#..#..#.#..#.##.#..#...#....#..#.#..#.###..."
+      "....#...#...#..#.###...#..#.#..#.#.##..#...#....####.###..#....."
+      ".....#..#...#..#.#..#..#.#..#..#.#.##..#...#....#..#.#..#.#....."
+      "..###...#....##..#..#..##....##..#..#..#....###.#..#.#..#.####.."
+      "................................................................"
+      "................................................................"_lit,
+
+      // DiscardType::UndefinedTransition
+      "..#..#.#..#.##...####.####.####.#..#.####.##....####.#..#..###.."
+      "..#..#.##.#.#.#..#....#.....#...##.#.#....#.#....#...####.#....."
+      "..#..#.##.#.#..#.###..###...#...##.#.###..#..#...#...##.#.#....."
+      "..#..#.#.##.#..#.#....#.....#...#.##.#....#..#...#...#..#.#.##.."
+      "..#..#.#.##.#.#..#....#.....#...#.##.#....#.#....#...#..#.#..#.."
+      "...##..#..#.##...####.#....####.#..#.####.##....####.#..#..##..."
+      "................................................................"
+      "................................................................"_lit,
+
+      // DiscardType::DiscardCall
+      "..##...####..###..###...#...###..##...####.##...####.#..#..###.."
+      "..#.#...#...#....#.....#.#..#..#.#.#..#....#.#...#...####.#....."
+      "..#..#..#....#...#.....#.#..#..#.#..#.###..#..#..#...##.#.#....."
+      "..#..#..#.....#..#....#####.###..#..#.#....#..#..#...#..#.#.##.."
+      "..#.#...#......#.#....#...#.#..#.#.#..#....#.#...#...#..#.#..#.."
+      "..##...####.###...###.#...#.#..#.##...####.##...####.#..#..##..."
+      "................................................................"
+      "................................................................"_lit,
+      // DiscardType::InvalidateCall
+      "...####.#..#.#...#...#...#....####.##.....#...#####.####.##....."
+      "....#...##.#.#...#..#.#..#.....#...#.#...#.#....#...#....#.#...."
+      "....#...##.#.#...#..#.#..#.....#...#..#..#.#....#...###..#..#..."
+      "....#...#.##..#.#..#####.#.....#...#..#.#####...#...#....#..#..."
+      "....#...#.##..#.#..#...#.#.....#...#.#..#...#...#...#....#.#...."
+      "...####.#..#...#...#...#.####.####.##...#...#...#...####.##....."
+      "................................................................"
+      "................................................................"_lit,
+  };
+
+  const rdcliteral &pattern = patterns[(int)type];
+
+  RDCASSERT(pattern.length() == DiscardPatternWidth * DiscardPatternHeight);
+
+  bytebuf ret;
+
+  if(fmt.type == ResourceFormatType::Regular || fmt.type == ResourceFormatType::A8 ||
+     fmt.type == ResourceFormatType::S8)
+  {
+    byte black[8] = {};
+    byte white[8] = {};
+
+    if(fmt.compType == CompType::Float)
+    {
+      if(fmt.compByteWidth == 8)
+      {
+        double b = 0.0;
+        double w = 1000.0;
+        memcpy(black, &b, sizeof(b));
+        memcpy(white, &w, sizeof(w));
+      }
+      else if(fmt.compByteWidth == 4)
+      {
+        float b = 0.0f;
+        float w = 1000.0f;
+        memcpy(black, &b, sizeof(b));
+        memcpy(white, &w, sizeof(w));
+      }
+      else
+      {
+        uint16_t b = ConvertToHalf(0.0f);
+        uint16_t w = ConvertToHalf(1000.0f);
+        memcpy(black, &b, sizeof(b));
+        memcpy(white, &w, sizeof(w));
+      }
+    }
+    else if(fmt.compType == CompType::Depth)
+    {
+      if(fmt.compByteWidth == 4)
+      {
+        float b = 0.0f;
+        float w = 1.0f;
+        memcpy(black, &b, sizeof(b));
+        memcpy(white, &w, sizeof(w));
+      }
+      else
+      {
+        // other depth formats are normalised
+        memset(black, 0, sizeof(black));
+        memset(white, 0xff, sizeof(white));
+      }
+    }
+    else if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt)
+    {
+      // ints we use 0 and 127 so it's the same for every signed type and byte width
+      white[0] = 127;
+    }
+    else
+    {
+      // all other types are normalised, so we just set white to 0xff
+      memset(black, 0, sizeof(black));
+      memset(white, 0xff, sizeof(white));
+    }
+
+    uint32_t tightPitch = DiscardPatternWidth * fmt.compByteWidth * fmt.compCount;
+    rowPitch = RDCMAX(rowPitch, tightPitch);
+
+    ret.resize(rowPitch * DiscardPatternHeight);
+    byte *out = ret.data();
+
+    for(int yi = 0; yi < DiscardPatternHeight; yi++)
+    {
+      int y = invert ? DiscardPatternHeight - 1 - yi : yi;
+      for(int x = 0; x < DiscardPatternWidth; x++)
+      {
+        char c = pattern.c_str()[y * DiscardPatternWidth + x];
+        for(uint8_t i = 0; i < fmt.compCount; i++)
+        {
+          if(c == '#')
+            memcpy(out, white, fmt.compByteWidth);
+          else
+            memcpy(out, black, fmt.compByteWidth);
+          out += fmt.compByteWidth;
+        }
+      }
+      out += (rowPitch - tightPitch);
+    }
+  }
+  else if(fmt.type == ResourceFormatType::R10G10B10A2)
+  {
+    uint32_t tightPitch = DiscardPatternWidth * sizeof(uint32_t);
+    rowPitch = RDCMAX(rowPitch, tightPitch);
+
+    ret.resize(rowPitch * DiscardPatternHeight);
+    uint32_t *out = (uint32_t *)ret.data();
+
+    for(int yi = 0; yi < DiscardPatternHeight; yi++)
+    {
+      int y = invert ? DiscardPatternHeight - 1 - yi : yi;
+      for(int x = 0; x < DiscardPatternWidth; x++)
+      {
+        char c = pattern.c_str()[y * DiscardPatternWidth + x];
+        *(out++) = (c == '#') ? 0xffffffff : 0x00000000;
+      }
+      out += (rowPitch - tightPitch);
+    }
+  }
+  else if(fmt.type == ResourceFormatType::R5G6B5 || fmt.type == ResourceFormatType::R5G5B5A1 ||
+          fmt.type == ResourceFormatType::R4G4B4A4)
+  {
+    uint32_t tightPitch = DiscardPatternWidth * sizeof(uint16_t);
+    rowPitch = RDCMAX(rowPitch, tightPitch);
+
+    ret.resize(rowPitch * DiscardPatternHeight);
+    uint16_t *out = (uint16_t *)ret.data();
+
+    for(int yi = 0; yi < DiscardPatternHeight; yi++)
+    {
+      int y = invert ? DiscardPatternHeight - 1 - yi : yi;
+      for(int x = 0; x < DiscardPatternWidth; x++)
+      {
+        char c = pattern.c_str()[y * DiscardPatternWidth + x];
+        *(out++) = (c == '#') ? 0xffff : 0x0000;
+      }
+      out += (rowPitch - tightPitch);
+    }
+  }
+  else if(fmt.type == ResourceFormatType::R4G4)
+  {
+    uint32_t tightPitch = DiscardPatternWidth * sizeof(uint8_t);
+    rowPitch = RDCMAX(rowPitch, tightPitch);
+
+    ret.resize(rowPitch * DiscardPatternHeight);
+    byte *out = ret.data();
+
+    for(int yi = 0; yi < DiscardPatternHeight; yi++)
+    {
+      int y = invert ? DiscardPatternHeight - 1 - yi : yi;
+      for(int x = 0; x < DiscardPatternWidth; x++)
+      {
+        char c = pattern.c_str()[y * DiscardPatternWidth + x];
+        *(out++) = (c == '#') ? 0xff : 0x00;
+      }
+      out += (rowPitch - tightPitch);
+    }
+  }
+  else if(fmt.type == ResourceFormatType::R11G11B10)
+  {
+    const uint32_t black = ConvertToR11G11B10(Vec3f(0.0f, 0.0f, 0.0f));
+    const uint32_t white = ConvertToR11G11B10(Vec3f(1000.0f, 1000.0f, 1000.0f));
+
+    uint32_t tightPitch = DiscardPatternWidth * sizeof(uint32_t);
+    rowPitch = RDCMAX(rowPitch, tightPitch);
+
+    ret.resize(rowPitch * DiscardPatternHeight);
+    uint32_t *out = (uint32_t *)ret.data();
+
+    for(int yi = 0; yi < DiscardPatternHeight; yi++)
+    {
+      int y = invert ? DiscardPatternHeight - 1 - yi : yi;
+      for(int x = 0; x < DiscardPatternWidth; x++)
+      {
+        char c = pattern.c_str()[y * DiscardPatternWidth + x];
+        *(out++) = (c == '#') ? white : black;
+      }
+      out += (rowPitch - tightPitch);
+    }
+  }
+  else if(fmt.type == ResourceFormatType::R9G9B9E5)
+  {
+    const uint32_t black = ConvertToR9G9B9E5(Vec3f(0.0f, 0.0f, 0.0f));
+    const uint32_t white = ConvertToR9G9B9E5(Vec3f(1000.0f, 1000.0f, 1000.0f));
+
+    uint32_t tightPitch = DiscardPatternWidth * sizeof(uint32_t);
+    rowPitch = RDCMAX(rowPitch, tightPitch);
+
+    ret.resize(rowPitch * DiscardPatternHeight);
+    uint32_t *out = (uint32_t *)ret.data();
+
+    for(int yi = 0; yi < DiscardPatternHeight; yi++)
+    {
+      int y = invert ? DiscardPatternHeight - 1 - yi : yi;
+      for(int x = 0; x < DiscardPatternWidth; x++)
+      {
+        char c = pattern.c_str()[y * DiscardPatternWidth + x];
+        *(out++) = (c == '#') ? white : black;
+      }
+      out += (rowPitch - tightPitch);
+    }
+  }
+  else if(fmt.type == ResourceFormatType::D16S8 || fmt.type == ResourceFormatType::D24S8 ||
+          fmt.type == ResourceFormatType::D32S8)
+  {
+    uint32_t white = 0xffffffff;
+    uint32_t black = 0;
+
+    uint32_t depthStride = 0;
+
+    if(fmt.type == ResourceFormatType::D16S8)
+    {
+      depthStride = 2;
+    }
+    else if(fmt.type == ResourceFormatType::D24S8)
+    {
+      depthStride = 4;
+    }
+    else if(fmt.type == ResourceFormatType::D32S8)
+    {
+      depthStride = 4;
+      float maxDepth = 1.0f;
+      memcpy(&white, &maxDepth, sizeof(float));
+    }
+
+    uint32_t tightPitch = DiscardPatternWidth * depthStride;
+    uint32_t tightStencilPitch = DiscardPatternWidth * sizeof(byte);
+    rowPitch = RDCMAX(rowPitch, RDCMAX(tightPitch, tightStencilPitch));
+
+    ret.resize(rowPitch * DiscardPatternHeight * 2);
+    byte *depthOut = ret.data();
+    byte *stencilOut = depthOut + rowPitch * DiscardPatternHeight;
+
+    for(int yi = 0; yi < DiscardPatternHeight; yi++)
+    {
+      int y = invert ? DiscardPatternHeight - 1 - yi : yi;
+      for(int x = 0; x < DiscardPatternWidth; x++)
+      {
+        char c = pattern.c_str()[y * DiscardPatternWidth + x];
+        if(c == '#')
+        {
+          memcpy(depthOut, &white, depthStride);
+          *(stencilOut++) = 0xff;
+        }
+        else
+        {
+          memcpy(depthOut, &black, depthStride);
+          *(stencilOut++) = 0x00;
+        }
+
+        depthOut += depthStride;
+      }
+
+      depthOut += (rowPitch - tightPitch);
+      stencilOut += (rowPitch - tightStencilPitch);
+    }
+  }
+  else if(fmt.type == ResourceFormatType::BC1 || fmt.type == ResourceFormatType::BC2 ||
+          fmt.type == ResourceFormatType::BC3 || fmt.type == ResourceFormatType::BC4 ||
+          fmt.type == ResourceFormatType::BC5 || fmt.type == ResourceFormatType::BC6 ||
+          fmt.type == ResourceFormatType::BC7)
+  {
+#if ENABLED(RDOC_ANDROID)
+    RDCERR("Format %s not supported on android", fmt.Name().c_str());
+#else
+    const uint16_t whalf = ConvertToHalf(1000.0f);
+
+    byte block[16];
+
+    uint32_t blockSize =
+        fmt.type == ResourceFormatType::BC1 || fmt.type == ResourceFormatType::BC4 ? 8 : 16;
+    uint32_t tightPitch = (DiscardPatternWidth / 4) * blockSize;
+    rowPitch = RDCMAX(rowPitch, tightPitch);
+
+    ret.reserve(rowPitch * (DiscardPatternHeight / 4));
+
+    bytebuf inblock;
+
+    void *bc6opts = NULL;
+
+    CreateOptionsBC6(&bc6opts);
+
+    SetQualityBC6(bc6opts, 0.1f);
+
+    for(uint32_t yi = 0; yi < DiscardPatternHeight; yi += 4)
+    {
+      uint32_t baseY = invert ? DiscardPatternHeight - 1 - yi : yi;
+
+      for(uint32_t baseX = 0; baseX < DiscardPatternWidth; baseX += 4)
+      {
+        inblock.clear();
+
+        // inblock is 4x4 RGBA8_UNORM
+        if(fmt.type == ResourceFormatType::BC1 || fmt.type == ResourceFormatType::BC2 ||
+           fmt.type == ResourceFormatType::BC3 || fmt.type == ResourceFormatType::BC7)
+        {
+          for(uint32_t y = baseY; y < baseY + 4; invert ? y-- : y++)
+          {
+            for(uint32_t x = baseX; x < baseX + 4; x++)
+            {
+              char c = pattern.c_str()[y * DiscardPatternWidth + x];
+
+              inblock.push_back(c == '#' ? 0xff : 0x00);
+              inblock.push_back(c == '#' ? 0xff : 0x00);
+              inblock.push_back(c == '#' ? 0xff : 0x00);
+              inblock.push_back(c == '#' ? 0xff : 0x00);
+            }
+          }
+        }
+        // inblock is 4x4 R8_UNORM
+        else if(fmt.type == ResourceFormatType::BC4 || fmt.type == ResourceFormatType::BC5)
+        {
+          for(uint32_t y = baseY; y < baseY + 4; invert ? y-- : y++)
+          {
+            for(uint32_t x = baseX; x < baseX + 4; x++)
+            {
+              char c = pattern.c_str()[y * DiscardPatternWidth + x];
+
+              inblock.push_back(c == '#' ? 0xff : 0x00);
+            }
+          }
+        }
+        // inblock is 4x4 RGB16_FLOAT
+        else if(fmt.type == ResourceFormatType::BC6)
+        {
+          for(uint32_t y = baseY; y < baseY + 4; invert ? y-- : y++)
+          {
+            for(uint32_t x = baseX; x < baseX + 4; x++)
+            {
+              char c = pattern.c_str()[y * DiscardPatternWidth + x];
+
+              inblock.push_back(c == '#' ? (whalf & 0xff) : 0x00);
+              inblock.push_back(c == '#' ? ((whalf >> 8) & 0xff) : 0x00);
+
+              inblock.push_back(c == '#' ? (whalf & 0xff) : 0x00);
+              inblock.push_back(c == '#' ? ((whalf >> 8) & 0xff) : 0x00);
+
+              inblock.push_back(c == '#' ? (whalf & 0xff) : 0x00);
+              inblock.push_back(c == '#' ? ((whalf >> 8) & 0xff) : 0x00);
+            }
+          }
+        }
+
+        if(fmt.type == ResourceFormatType::BC1)
+          CompressBlockBC1(inblock.data(), 4 * sizeof(uint32_t), block, NULL);
+        else if(fmt.type == ResourceFormatType::BC2)
+          CompressBlockBC2(inblock.data(), 4 * sizeof(uint32_t), block, NULL);
+        else if(fmt.type == ResourceFormatType::BC3)
+          CompressBlockBC3(inblock.data(), 4 * sizeof(uint32_t), block, NULL);
+        else if(fmt.type == ResourceFormatType::BC4)
+          CompressBlockBC4(inblock.data(), 4, block, NULL);
+        else if(fmt.type == ResourceFormatType::BC5)
+          CompressBlockBC5(inblock.data(), 4, inblock.data(), 4, block, NULL);
+        else if(fmt.type == ResourceFormatType::BC6)
+          CompressBlockBC6((uint16_t *)inblock.data(), 4 * 3, block, bc6opts);
+        else if(fmt.type == ResourceFormatType::BC7)
+          CompressBlockBC7(inblock.data(), 4 * sizeof(uint32_t), block, NULL);
+
+        ret.append(block, blockSize);
+      }
+
+      ret.resize(ret.size() + (rowPitch - tightPitch));
+    }
+
+    DestroyOptionsBC6(bc6opts);
+#endif
+  }
+  else if(fmt.type == ResourceFormatType::ETC2 || fmt.type == ResourceFormatType::EAC ||
+          fmt.type == ResourceFormatType::ASTC || fmt.type == ResourceFormatType::PVRTC ||
+          fmt.type == ResourceFormatType::YUV8 || fmt.type == ResourceFormatType::YUV10 ||
+          fmt.type == ResourceFormatType::YUV12 || fmt.type == ResourceFormatType::YUV16)
+  {
+    RDCERR("Format %s not supported for proper discard pattern", fmt.Name().c_str());
+  }
+  else
+  {
+    RDCERR("Unhandled format %s needing discard pattern", fmt.Name().c_str());
+  }
+
+  // if we didn't get a proper pattern, try at least to do some kind of checkerboard (not knowing if
+  // this will align with the format or not)
+  if(ret.empty())
+  {
+    uint32_t tightPitch = DiscardPatternWidth * 16;
+    rowPitch = RDCMAX(rowPitch, tightPitch);
+
+    ret.resize(rowPitch * DiscardPatternHeight);
+
+    byte *out = ret.data();
+    int val = 0;
+    for(uint32_t y = 0; y < DiscardPatternHeight; y++)
+    {
+      byte *rowout = out;
+
+      for(uint32_t i = 0; i < DiscardPatternWidth * DiscardPatternHeight; i++)
+      {
+        memset(rowout, val, 16);
+        rowout += 16;
+
+        // toggle between memset(0) and memset(0xff)
+        if(val)
+          val = 0;
+        else
+          val = 0xff;
+      }
+
+      out += rowPitch;
+    }
+  }
+
+  return ret;
+}

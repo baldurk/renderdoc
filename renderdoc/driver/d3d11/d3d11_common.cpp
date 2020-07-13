@@ -102,7 +102,7 @@ ResourceRange::ResourceRange(ID3D11ShaderResourceView *srv)
   ID3D11Resource *res = NULL;
   srv->GetResource(&res);
   res->Release();
-  resource = (IUnknown *)res;
+  resource = res;
 
   UINT numMips = allMip, numSlices = allSlice;
 
@@ -162,6 +162,8 @@ ResourceRange::ResourceRange(ID3D11ShaderResourceView *srv)
     case D3D11_SRV_DIMENSION_TEXTURE1D:
       minMip = srvd.Texture1D.MostDetailedMip;
       numMips = srvd.Texture1D.MipLevels;
+      minSlice = 0;
+      numSlices = 1;
       break;
     case D3D11_SRV_DIMENSION_TEXTURE1DARRAY:
       minMip = srvd.Texture1DArray.MostDetailedMip;
@@ -172,6 +174,8 @@ ResourceRange::ResourceRange(ID3D11ShaderResourceView *srv)
     case D3D11_SRV_DIMENSION_TEXTURE2D:
       minMip = srvd.Texture2D.MostDetailedMip;
       numMips = srvd.Texture2D.MipLevels;
+      minSlice = 0;
+      numSlices = 1;
       break;
     case D3D11_SRV_DIMENSION_TEXTURE2DARRAY:
       minMip = srvd.Texture2DArray.MostDetailedMip;
@@ -179,18 +183,29 @@ ResourceRange::ResourceRange(ID3D11ShaderResourceView *srv)
       minSlice = srvd.Texture2DArray.FirstArraySlice;
       numSlices = srvd.Texture2DArray.ArraySize;
       break;
-    case D3D11_SRV_DIMENSION_TEXTURE2DMS: break;
+    case D3D11_SRV_DIMENSION_TEXTURE2DMS:
+      minMip = 0;
+      numMips = 1;
+      minSlice = 0;
+      numSlices = 1;
+      break;
     case D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY:
+      minMip = 0;
+      numMips = 1;
       minSlice = srvd.Texture2DMSArray.FirstArraySlice;
       numSlices = srvd.Texture2DMSArray.ArraySize;
       break;
     case D3D11_SRV_DIMENSION_TEXTURE3D:
       minMip = srvd.Texture3D.MostDetailedMip;
       numMips = srvd.Texture3D.MipLevels;
+      minSlice = 0;
+      numSlices = 1;
       break;
     case D3D11_SRV_DIMENSION_TEXTURECUBE:
       minMip = srvd.TextureCube.MostDetailedMip;
       numMips = srvd.TextureCube.MipLevels;
+      minSlice = 0;
+      numSlices = 1;
       break;
     case D3D11_SRV_DIMENSION_TEXTURECUBEARRAY:
       minMip = srvd.TextureCubeArray.MostDetailedMip;
@@ -200,7 +215,10 @@ ResourceRange::ResourceRange(ID3D11ShaderResourceView *srv)
       break;
     case D3D11_SRV_DIMENSION_UNKNOWN:
     case D3D11_SRV_DIMENSION_BUFFER:
-    case D3D11_SRV_DIMENSION_BUFFEREX: break;
+    case D3D11_SRV_DIMENSION_BUFFEREX:
+      minMip = minSlice = 0;
+      numMips = numSlices = 1;
+      break;
   }
 
   SetMaxes(numMips, numSlices);
@@ -228,7 +246,7 @@ ResourceRange::ResourceRange(ID3D11UnorderedAccessView *uav)
   ID3D11Resource *res = NULL;
   uav->GetResource(&res);
   res->Release();
-  resource = (IUnknown *)res;
+  resource = res;
 
   UINT numMips = allMip, numSlices = allSlice;
 
@@ -240,6 +258,8 @@ ResourceRange::ResourceRange(ID3D11UnorderedAccessView *uav)
     case D3D11_UAV_DIMENSION_TEXTURE1D:
       minMip = desc.Texture1D.MipSlice;
       numMips = 1;
+      minSlice = 0;
+      numSlices = 1;
       break;
     case D3D11_UAV_DIMENSION_TEXTURE1DARRAY:
       minMip = desc.Texture1DArray.MipSlice;
@@ -250,6 +270,8 @@ ResourceRange::ResourceRange(ID3D11UnorderedAccessView *uav)
     case D3D11_UAV_DIMENSION_TEXTURE2D:
       minMip = desc.Texture2D.MipSlice;
       numMips = 1;
+      minSlice = 0;
+      numSlices = 1;
       break;
     case D3D11_UAV_DIMENSION_TEXTURE2DARRAY:
       minMip = desc.Texture2DArray.MipSlice;
@@ -264,7 +286,10 @@ ResourceRange::ResourceRange(ID3D11UnorderedAccessView *uav)
       numSlices = desc.Texture3D.WSize;
       break;
     case D3D11_UAV_DIMENSION_UNKNOWN:
-    case D3D11_UAV_DIMENSION_BUFFER: break;
+    case D3D11_UAV_DIMENSION_BUFFER:
+      minMip = minSlice = 0;
+      numMips = numSlices = 1;
+      break;
   }
 
   SetMaxes(numMips, numSlices);
@@ -292,7 +317,7 @@ ResourceRange::ResourceRange(ID3D11RenderTargetView *rtv)
   ID3D11Resource *res = NULL;
   rtv->GetResource(&res);
   res->Release();
-  resource = (IUnknown *)res;
+  resource = res;
 
   UINT numMips = allMip, numSlices = allSlice;
 
@@ -304,6 +329,8 @@ ResourceRange::ResourceRange(ID3D11RenderTargetView *rtv)
     case D3D11_RTV_DIMENSION_TEXTURE1D:
       minMip = desc.Texture1D.MipSlice;
       numMips = 1;
+      minSlice = 0;
+      numSlices = 1;
       break;
     case D3D11_RTV_DIMENSION_TEXTURE1DARRAY:
       minMip = desc.Texture1DArray.MipSlice;
@@ -314,6 +341,8 @@ ResourceRange::ResourceRange(ID3D11RenderTargetView *rtv)
     case D3D11_RTV_DIMENSION_TEXTURE2D:
       minMip = desc.Texture2D.MipSlice;
       numMips = 1;
+      minSlice = 0;
+      numSlices = 1;
       break;
     case D3D11_RTV_DIMENSION_TEXTURE2DARRAY:
       minMip = desc.Texture2DArray.MipSlice;
@@ -321,8 +350,15 @@ ResourceRange::ResourceRange(ID3D11RenderTargetView *rtv)
       minSlice = desc.Texture2DArray.FirstArraySlice;
       numSlices = desc.Texture2DArray.ArraySize;
       break;
-    case D3D11_RTV_DIMENSION_TEXTURE2DMS: break;
+    case D3D11_RTV_DIMENSION_TEXTURE2DMS:
+      minMip = 0;
+      numMips = 1;
+      minSlice = 0;
+      numSlices = 1;
+      break;
     case D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY:
+      minMip = 0;
+      numMips = 1;
       minSlice = desc.Texture2DMSArray.FirstArraySlice;
       numSlices = desc.Texture2DMSArray.ArraySize;
       break;
@@ -333,7 +369,10 @@ ResourceRange::ResourceRange(ID3D11RenderTargetView *rtv)
       numSlices = desc.Texture3D.WSize;
       break;
     case D3D11_RTV_DIMENSION_UNKNOWN:
-    case D3D11_RTV_DIMENSION_BUFFER: break;
+    case D3D11_RTV_DIMENSION_BUFFER:
+      minMip = minSlice = 0;
+      numMips = numSlices = 1;
+      break;
   }
 
   SetMaxes(numMips, numSlices);
@@ -361,7 +400,7 @@ ResourceRange::ResourceRange(ID3D11DepthStencilView *dsv)
   ID3D11Resource *res = NULL;
   dsv->GetResource(&res);
   res->Release();
-  resource = (IUnknown *)res;
+  resource = res;
 
   UINT numMips = allMip, numSlices = allSlice;
 
@@ -378,6 +417,8 @@ ResourceRange::ResourceRange(ID3D11DepthStencilView *dsv)
     case D3D11_DSV_DIMENSION_TEXTURE1D:
       minMip = desc.Texture1D.MipSlice;
       numMips = 1;
+      minSlice = 0;
+      numSlices = 1;
       break;
     case D3D11_DSV_DIMENSION_TEXTURE1DARRAY:
       minMip = desc.Texture1DArray.MipSlice;
@@ -388,6 +429,8 @@ ResourceRange::ResourceRange(ID3D11DepthStencilView *dsv)
     case D3D11_DSV_DIMENSION_TEXTURE2D:
       minMip = desc.Texture2D.MipSlice;
       numMips = 1;
+      minSlice = 0;
+      numSlices = 1;
       break;
     case D3D11_DSV_DIMENSION_TEXTURE2DARRAY:
       minMip = desc.Texture2DArray.MipSlice;
@@ -395,12 +438,22 @@ ResourceRange::ResourceRange(ID3D11DepthStencilView *dsv)
       minSlice = desc.Texture2DArray.FirstArraySlice;
       numSlices = desc.Texture2DArray.ArraySize;
       break;
-    case D3D11_DSV_DIMENSION_TEXTURE2DMS: break;
+    case D3D11_DSV_DIMENSION_TEXTURE2DMS:
+      minMip = 0;
+      numMips = 1;
+      minSlice = 0;
+      numSlices = 1;
+      break;
     case D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY:
+      minMip = 0;
+      numMips = 1;
       minSlice = desc.Texture2DMSArray.FirstArraySlice;
       numSlices = desc.Texture2DMSArray.ArraySize;
       break;
-    case D3D11_DSV_DIMENSION_UNKNOWN: break;
+    case D3D11_DSV_DIMENSION_UNKNOWN:
+      minMip = minSlice = 0;
+      numMips = numSlices = 1;
+      break;
   }
 
   SetMaxes(numMips, numSlices);
@@ -414,8 +467,8 @@ ResourceRange::ResourceRange(ID3D11Buffer *res)
 
   resource = res;
   minMip = minSlice = 0;
-  maxMip = allMip;
-  maxSlice = allSlice;
+  maxMip = 0;
+  maxSlice = 0;
   fullRange = true;
   depthReadOnly = false;
   stencilReadOnly = false;

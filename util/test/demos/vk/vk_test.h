@@ -82,6 +82,7 @@ struct AllocatedImage
   VmaAllocator allocator = NULL;
   VkImage image = VK_NULL_HANDLE;
   VmaAllocation alloc = {};
+  VkImageCreateInfo createInfo;
 
   AllocatedImage() {}
   AllocatedImage(VulkanGraphicsTest *test, const VkImageCreateInfo &imgInfo,

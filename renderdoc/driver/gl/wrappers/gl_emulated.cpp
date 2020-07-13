@@ -365,6 +365,22 @@ void APIENTRY _glInvalidateNamedFramebufferData(GLuint framebuffer, GLsizei numA
   }
 }
 
+void APIENTRY _glInvalidateNamedFramebufferSubData(GLuint framebuffer, GLsizei numAttachments,
+                                                   const GLenum *attachments, GLint x, GLint y,
+                                                   GLsizei width, GLsizei height)
+{
+  if(HasExt[ARB_invalidate_subdata])
+  {
+    PushPopFramebuffer(eGL_DRAW_FRAMEBUFFER, framebuffer);
+    GL.glInvalidateSubFramebuffer(eGL_DRAW_FRAMEBUFFER, numAttachments, attachments, x, y, width,
+                                  height);
+  }
+  else
+  {
+    RDCERR("No support for framebuffer invalidate on GL %d", GLCoreVersion);
+  }
+}
+
 #pragma endregion
 
 #pragma region Renderbuffers
@@ -3714,6 +3730,7 @@ void GLDispatchTable::EmulateRequiredExtensions()
     EMULATE_FUNC(glVertexArrayElementBuffer);
     EMULATE_FUNC(glVertexArrayVertexBuffers)
     EMULATE_FUNC(glInvalidateNamedFramebufferData);
+    EMULATE_FUNC(glInvalidateNamedFramebufferSubData);
   }
 }
 

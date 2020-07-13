@@ -22,7 +22,15 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#if defined(OPENGL_ES) && defined(NUM_VIEWS)
+#extension GL_OVR_multiview2 : require
+#endif
+
 #include "glsl_globals.h"
+
+#if defined(OPENGL_ES) && defined(NUM_VIEWS)
+layout(num_views = NUM_VIEWS) in;
+#endif
 
 IO_LOCATION(0) out vec2 uv;
 

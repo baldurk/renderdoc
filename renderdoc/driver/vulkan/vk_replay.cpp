@@ -2420,7 +2420,7 @@ bool VulkanReplay::GetMinMax(ResourceId texid, const Subresource &sub, CompType 
     data->HistogramSlice =
         (float)RDCCLAMP(sub.slice, 0U, uint32_t(iminfo.extent.depth >> sub.mip) - 1) + 0.001f;
   else
-    data->HistogramSlice = (float)RDCCLAMP(sub.slice, 0U, (uint32_t)iminfo.arrayLayers - 1) + 0.001f;
+    data->HistogramSlice = (float)RDCCLAMP(sub.slice, 0U, iminfo.arrayLayers - 1) + 0.001f;
   data->HistogramMip = (int)sub.mip;
   data->HistogramNumSamples = iminfo.samples;
   data->HistogramSample = (int)RDCCLAMP(sub.sample, 0U, uint32_t(iminfo.samples) - 1);
@@ -2718,7 +2718,7 @@ bool VulkanReplay::GetHistogram(ResourceId texid, const Subresource &sub, CompTy
     data->HistogramSlice =
         (float)RDCCLAMP(sub.slice, 0U, uint32_t(iminfo.extent.depth >> sub.mip) - 1) + 0.001f;
   else
-    data->HistogramSlice = (float)RDCCLAMP(sub.slice, 0U, (uint32_t)iminfo.arrayLayers - 1) + 0.001f;
+    data->HistogramSlice = (float)RDCCLAMP(sub.slice, 0U, iminfo.arrayLayers - 1) + 0.001f;
   data->HistogramMip = (int)sub.mip;
   data->HistogramNumSamples = iminfo.samples;
   data->HistogramSample = (int)RDCCLAMP(sub.sample, 0U, uint32_t(iminfo.samples) - 1);
@@ -2913,8 +2913,8 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       imInfo.type,
       imInfo.format,
       imInfo.extent,
-      (uint32_t)imInfo.mipLevels,
-      (uint32_t)imInfo.arrayLayers,
+      imInfo.mipLevels,
+      imInfo.arrayLayers,
       imInfo.samples,
       VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,

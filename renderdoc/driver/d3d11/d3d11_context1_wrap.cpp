@@ -25,6 +25,7 @@
 
 #include "d3d11_context.h"
 #include "strings/string_utils.h"
+#include "d3d11_debug.h"
 #include "d3d11_renderstate.h"
 #include "d3d11_resources.h"
 #include "d3d11_video.h"
@@ -1783,14 +1784,16 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardResource(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    if(pResource)
+    if(m_pDevice->GetReplayOptions().optimisation != ReplayOptimisationLevel::Fastest)
     {
-      // don't replay the discard, as it effectively does nothing meaningful but hint
-      // to the driver that the contents can be discarded.
-      // Instead we should overwrite the contents with something (during capture too)
-      // to indicate that the discard has happened visually like a clear.
-      // This also means we don't have to require/diverge if a 11.1 context is not
-      // available on replay.
+      UINT numSubs = GetSubresourceCount(pResource);
+      for(UINT sub = 0; sub < numSubs; sub++)
+        m_pDevice->GetDebugManager()->FillWithDiscardPattern(DiscardType::DiscardCall, pResource,
+                                                             sub, NULL, 0);
+    }
+    else if(m_pRealContext1)
+    {
+      m_pRealContext1->DiscardResource(GetResourceManager()->UnwrapResource(pResource));
     }
 
     if(IsLoading(m_State))
@@ -1802,7 +1805,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardResource(SerialiserType &ser,
 
       DrawcallDescription draw;
 
-      draw.name = "DiscardResource()";
+      draw.name = StringFormat::Fmt("DiscardResource(%s)", ToStr(dstOrigID).c_str());
       draw.flags |= DrawFlags::Clear;
       draw.copyDestination = dstOrigID;
       draw.copyDestinationSubresource = Subresource();
@@ -1878,14 +1881,27 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
 
   if(IsReplayingAndReading())
   {
-    if(pResourceView)
+    if(m_pDevice->GetReplayOptions().optimisation != ReplayOptimisationLevel::Fastest)
     {
-      // don't replay the discard, as it effectively does nothing meaningful but hint
-      // to the driver that the contents can be discarded.
-      // Instead we should overwrite the contents with something (during capture too)
-      // to indicate that the discard has happened visually like a clear.
-      // This also means we don't have to require/diverge if a 11.1 context is not
-      // available on replay.
+      m_pDevice->GetDebugManager()->FillWithDiscardPattern(DiscardType::DiscardCall, pResourceView,
+                                                           NULL, 0);
+    }
+    else if(m_pRealContext1)
+    {
+      ID3D11View *real = NULL;
+
+      if(WrappedID3D11RenderTargetView1::IsAlloc(pResourceView))
+        real = UNWRAP(WrappedID3D11RenderTargetView1, pResourceView);
+      else if(WrappedID3D11DepthStencilView::IsAlloc(pResourceView))
+        real = UNWRAP(WrappedID3D11DepthStencilView, pResourceView);
+      else if(WrappedID3D11ShaderResourceView1::IsAlloc(pResourceView))
+        real = UNWRAP(WrappedID3D11ShaderResourceView1, pResourceView);
+      else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pResourceView))
+        real = UNWRAP(WrappedID3D11UnorderedAccessView1, pResourceView);
+
+      RDCASSERT(real);
+
+      m_pRealContext1->DiscardView(real);
     }
 
     if(IsLoading(m_State))
@@ -1893,8 +1909,6 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
       AddEvent();
 
       DrawcallDescription draw;
-
-      draw.name = "DiscardView()";
 
       draw.flags |= DrawFlags::Clear;
       draw.copyDestinationSubresource = Subresource();
@@ -1950,6 +1964,8 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(SerialiserType &ser, ID3D
               Subresource(GetMipForUav(viewDesc), GetSliceForUav(viewDesc));
         }
       }
+
+      draw.name = StringFormat::Fmt("DiscardView(%s)", ToStr(draw.copyDestination).c_str());
 
       AddDrawcall(draw, true);
     }
@@ -2030,6 +2046,7 @@ void WrappedID3D11DeviceContext::DiscardView(ID3D11View *pResourceView)
 
       MarkDirtyResource(GetIDForResource(viewRes));
       MarkResourceReferenced(GetIDForResource(viewRes), eFrameRef_PartialWrite);
+      MarkResourceReferenced(GetIDForResource(pResourceView), eFrameRef_Read);
 
       SAFE_RELEASE(viewRes);
 
@@ -2064,12 +2081,28 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
   {
     if(pResourceView)
     {
-      // don't replay the discard, as it effectively does nothing meaningful but hint
-      // to the driver that the contents can be discarded.
-      // Instead we should overwrite the contents with something (during capture too)
-      // to indicate that the discard has happened visually like a clear.
-      // This also means we don't have to require/diverge if a 11.1 context is not
-      // available on replay.
+      if(m_pDevice->GetReplayOptions().optimisation != ReplayOptimisationLevel::Fastest)
+      {
+        m_pDevice->GetDebugManager()->FillWithDiscardPattern(DiscardType::DiscardCall,
+                                                             pResourceView, pRect, NumRects);
+      }
+      else if(m_pRealContext1)
+      {
+        ID3D11View *real = NULL;
+
+        if(WrappedID3D11RenderTargetView1::IsAlloc(pResourceView))
+          real = UNWRAP(WrappedID3D11RenderTargetView1, pResourceView);
+        else if(WrappedID3D11DepthStencilView::IsAlloc(pResourceView))
+          real = UNWRAP(WrappedID3D11DepthStencilView, pResourceView);
+        else if(WrappedID3D11ShaderResourceView1::IsAlloc(pResourceView))
+          real = UNWRAP(WrappedID3D11ShaderResourceView1, pResourceView);
+        else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pResourceView))
+          real = UNWRAP(WrappedID3D11UnorderedAccessView1, pResourceView);
+
+        RDCASSERT(real);
+
+        m_pRealContext1->DiscardView1(real, pRect, NumRects);
+      }
     }
 
     if(IsLoading(m_State))
@@ -2078,7 +2111,6 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
 
       DrawcallDescription draw;
 
-      draw.name = StringFormat::Fmt("DiscardView1(%u)", NumRects);
       draw.flags |= DrawFlags::Clear;
 
       if(pResourceView)
@@ -2133,6 +2165,8 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(SerialiserType &ser,
               Subresource(GetMipForUav(viewDesc), GetSliceForUav(viewDesc));
         }
       }
+
+      draw.name = StringFormat::Fmt("DiscardView1(%s)", ToStr(draw.copyDestination).c_str());
 
       AddDrawcall(draw, true);
     }
@@ -2214,6 +2248,7 @@ void WrappedID3D11DeviceContext::DiscardView1(ID3D11View *pResourceView, const D
 
       MarkDirtyResource(GetIDForResource(viewRes));
       MarkResourceReferenced(GetIDForResource(viewRes), eFrameRef_PartialWrite);
+      MarkResourceReferenced(GetIDForResource(pResourceView), eFrameRef_Read);
 
       SAFE_RELEASE(viewRes);
 

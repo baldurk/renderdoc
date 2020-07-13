@@ -375,6 +375,7 @@ struct VulkanCreationInfo
 
     struct Attachment
     {
+      bool used;
       VkAttachmentDescriptionFlags flags;
       VkFormat format;
       VkSampleCountFlagBits samples;
@@ -480,7 +481,7 @@ struct VulkanCreationInfo
     VkImageType type;
     VkFormat format;
     VkExtent3D extent;
-    int arrayLayers, mipLevels;
+    uint32_t arrayLayers, mipLevels;
     VkSampleCountFlagBits samples;
 
     bool cube;

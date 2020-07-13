@@ -161,6 +161,8 @@ struct D3D12GraphicsTest : public GraphicsTest
   void ClearRenderTargetView(ID3D12GraphicsCommandListPtr cmd, D3D12_CPU_DESCRIPTOR_HANDLE rt,
                              Vec4f col);
   void ClearRenderTargetView(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr rt, Vec4f col);
+  void ClearDepthStencilView(ID3D12GraphicsCommandListPtr cmd, D3D12_CPU_DESCRIPTOR_HANDLE dsv,
+                             D3D12_CLEAR_FLAGS flags, float depth, UINT8 stencil);
   void ClearDepthStencilView(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr dsv,
                              D3D12_CLEAR_FLAGS flags, float depth, UINT8 stencil);
 

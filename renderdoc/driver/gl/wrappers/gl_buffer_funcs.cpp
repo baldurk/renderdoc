@@ -1855,18 +1855,161 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
   }
 }
 
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glInvalidateBufferData(SerialiserType &ser, GLuint bufferHandle)
+{
+  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    ResourceId id = GetResourceManager()->GetID(buffer);
+
+    if(IsLoading(m_State))
+      m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
+
+    GL.glInvalidateBufferData(buffer.name);
+
+    if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+    {
+      GLsizeiptr size = m_Buffers[id].size;
+
+      bytebuf pattern;
+      pattern.resize(AlignUp4(size));
+
+      uint32_t value = 0xD15CAD3D;
+
+      for(size_t i = 0; i < pattern.size(); i += 4)
+        memcpy(&pattern[i], &value, sizeof(uint32_t));
+
+      GL.glNamedBufferSubDataEXT(buffer.name, 0, size, pattern.data());
+    }
+
+    if(IsLoading(m_State))
+    {
+      AddEvent();
+
+      DrawcallDescription draw;
+      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
+                                    ToStr(GetResourceManager()->GetOriginalID(id)).c_str());
+      draw.flags |= DrawFlags::Clear;
+
+      draw.copyDestination = GetResourceManager()->GetOriginalID(id);
+
+      AddDrawcall(draw, true);
+
+      m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
+    }
+  }
+
+  return true;
+}
+
 void WrappedOpenGL::glInvalidateBufferData(GLuint buffer)
 {
-  GL.glInvalidateBufferData(buffer);
+  if(buffer && IsBackgroundCapturing(m_State))
+  {
+    GetResourceManager()->MarkResourceFrameReferenced(BufferRes(GetCtx(), buffer),
+                                                      eFrameRef_ReadBeforeWrite);
+  }
 
-  GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+  SERIALISE_TIME_CALL(GL.glInvalidateBufferData(buffer));
+
+  if(IsCaptureMode(m_State))
+  {
+    if(IsActiveCapturing(m_State))
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      Serialise_glInvalidateBufferData(ser, buffer);
+
+      GetContextRecord()->AddChunk(scope.Get());
+    }
+    else
+    {
+      GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+    }
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedOpenGL::Serialise_glInvalidateBufferSubData(SerialiserType &ser, GLuint bufferHandle,
+                                                        GLintptr offsetPtr, GLsizeiptr lengthPtr)
+{
+  SERIALISE_ELEMENT_LOCAL(buffer, BufferRes(GetCtx(), bufferHandle));
+  SERIALISE_ELEMENT_LOCAL(offset, (uint64_t)offsetPtr);
+  SERIALISE_ELEMENT_LOCAL(length, (uint64_t)lengthPtr);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    ResourceId id = GetResourceManager()->GetID(buffer);
+
+    if(IsLoading(m_State))
+      m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
+
+    GL.glInvalidateBufferData(buffer.name);
+
+    if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+    {
+      bytebuf pattern;
+      pattern.resize(AlignUp4(length));
+
+      uint32_t value = 0xD15CAD3D;
+
+      for(size_t i = 0; i < pattern.size(); i += 4)
+        memcpy(&pattern[i], &value, sizeof(uint32_t));
+
+      GL.glNamedBufferSubDataEXT(buffer.name, offset, length, pattern.data());
+    }
+
+    if(IsLoading(m_State))
+    {
+      AddEvent();
+
+      DrawcallDescription draw;
+      draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
+                                    ToStr(GetResourceManager()->GetOriginalID(id)).c_str());
+      draw.flags |= DrawFlags::Clear;
+
+      draw.copyDestination = GetResourceManager()->GetOriginalID(id);
+
+      AddDrawcall(draw, true);
+
+      m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Discard));
+    }
+  }
+
+  return true;
 }
 
 void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GLsizeiptr length)
 {
-  GL.glInvalidateBufferSubData(buffer, offset, length);
+  if(buffer && IsBackgroundCapturing(m_State))
+  {
+    GetResourceManager()->MarkResourceFrameReferenced(BufferRes(GetCtx(), buffer),
+                                                      eFrameRef_ReadBeforeWrite);
+  }
 
-  GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+  SERIALISE_TIME_CALL(GL.glInvalidateBufferSubData(buffer, offset, length));
+
+  if(IsCaptureMode(m_State))
+  {
+    if(IsActiveCapturing(m_State))
+    {
+      USE_SCRATCH_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+      Serialise_glInvalidateBufferSubData(ser, buffer, offset, length);
+
+      GetContextRecord()->AddChunk(scope.Get());
+    }
+    else
+    {
+      GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+    }
+  }
 }
 
 #pragma endregion
@@ -5321,3 +5464,6 @@ INSTANTIATE_FUNCTION_SERIALISED(void, glVertexArrayVertexBindingDivisorEXT, GLui
                                 GLuint bindingindex, GLuint divisor);
 INSTANTIATE_FUNCTION_SERIALISED(void, glVertexAttrib, GLuint index, int count, GLenum type,
                                 GLboolean normalized, const void *value, AttribType attribtype);
+INSTANTIATE_FUNCTION_SERIALISED(void, glInvalidateBufferData, GLuint buffer);
+INSTANTIATE_FUNCTION_SERIALISED(void, glInvalidateBufferSubData, GLuint buffer, GLintptr offset,
+                                GLsizeiptr length);

@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "../vk_core.h"
+#include "../vk_debug.h"
 
 /*
  * Events and fences need careful handling.
@@ -870,6 +871,20 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
           ->CmdWaitEvents(Unwrap(commandBuffer), 1, &ev, srcStageMask, dstStageMask,
                           memoryBarrierCount, pMemoryBarriers, (uint32_t)bufBarriers.size(),
                           bufBarriers.data(), (uint32_t)imgBarriers.size(), imgBarriers.data());
+
+      if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+      {
+        for(uint32_t i = 0; i < imageMemoryBarrierCount; i++)
+        {
+          const VkImageMemoryBarrier &b = pImageMemoryBarriers[i];
+          if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+          {
+            GetDebugManager()->FillWithDiscardPattern(
+                commandBuffer, DiscardType::UndefinedTransition, b.image, b.newLayout,
+                b.subresourceRange, {{0, 0}, {~0U, ~0U}});
+          }
+        }
+      }
     }
   }
 

@@ -173,6 +173,7 @@ RESOURCE_glsl_gltext_frag              TYPE_EMBED   "glsl/gltext.frag"
 RESOURCE_glsl_glsl_globals_h           TYPE_EMBED   "glsl/glsl_globals.h"
 RESOURCE_glsl_texremap_frag            TYPE_EMBED   "glsl/texremap.frag"
 RESOURCE_glsl_shaderdebug_sample_vert  TYPE_EMBED   "glsl/shaderdebug_sample.vert"
+RESOURCE_glsl_discard_frag             TYPE_EMBED   "glsl/discard.frag"
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

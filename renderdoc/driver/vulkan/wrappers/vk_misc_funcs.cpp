@@ -892,13 +892,24 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(SerialiserType &ser, VkDevice d
     VkAttachmentDescription *att = (VkAttachmentDescription *)CreateInfo.pAttachments;
     for(uint32_t i = 0; i < CreateInfo.attachmentCount; i++)
     {
-      att[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-      att[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+      if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+      {
+        att[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        att[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-      if(att[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-        att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-      if(att[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-        att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        if(att[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+        {
+          att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+          if(att[i].initialLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+            att[i].initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+        }
+        if(att[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+        {
+          att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+          if(att[i].initialLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+            att[i].initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+        }
+      }
 
       // sanitise the actual layouts used to create the renderpass
       SanitiseOldImageLayout(att[i].initialLayout);

@@ -13,6 +13,7 @@ set(VULKAN_SRC
         vk/vk_custom_border_color.cpp
         vk/vk_descriptor_index.cpp
         vk/vk_discard_rects.cpp
+        vk/vk_discard_zoo.cpp
         vk/vk_draw_zoo.cpp
         vk/vk_empty_capture.cpp
         vk/vk_ext_buffer_address.cpp
@@ -60,6 +61,7 @@ set(OPENGL_SRC
         gl/gl_callstacks.cpp
         gl/gl_cbuffer_zoo.cpp
         gl/gl_depthstencil_fbo.cpp
+        gl/gl_discard_zoo.cpp
         gl/gl_empty_capture.cpp
         gl/gl_entry_points.cpp
         gl/gl_large_bcn_arrays.cpp
