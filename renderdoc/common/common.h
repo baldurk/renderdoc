@@ -165,6 +165,98 @@ T RDCLERP(const T &a, const T &b, const T &step)
   return (1.0f - step) * a + step * b;
 }
 
+inline bool RDCISNAN(float input)
+{
+  union
+  {
+    uint32_t u;
+    float f;
+  } x;
+
+  x.f = input;
+
+  // ignore sign bit (0x80000000)
+  //     check that exponent (0x7f800000) is fully set
+  // AND that mantissa (0x007fffff) is greater than 0 (if it's 0 then this is an inf)
+  return (x.u & 0x7fffffffU) > 0x7f800000U;
+}
+
+inline bool RDCISINF(float input)
+{
+  union
+  {
+    uint32_t u;
+    float f;
+  } x;
+
+  x.f = input;
+
+  // ignore sign bit (0x80000000)
+  //     check that exponent (0x7f800000) is fully set
+  // AND that mantissa (0x007fffff) is exactly than 0 (if it's non-0 then this is an nan)
+  return (x.u & 0x7fffffffU) == 0x7f800000U;
+}
+
+inline bool RDCISFINITE(float input)
+{
+  union
+  {
+    uint32_t u;
+    float f;
+  } x;
+
+  x.f = input;
+
+  // ignore sign bit (0x80000000)
+  //     check that exponent (0x7f800000) is not fully set (if it's fully set then this is a
+  //     nan/inf)
+  return (x.u & 0x7f800000U) != 0x7f800000U;
+}
+
+// double variants
+
+inline bool RDCISNAN(double input)
+{
+  union
+  {
+    uint64_t u;
+    double f;
+  } x;
+
+  x.f = input;
+
+  // ignore sign bit (0x80000000)
+  //     check that exponent (0x7f800000) is fully set
+  // AND that mantissa (0x007fffff) is greater than 0 (if it's 0 then this is an inf)
+  return (x.u & 0x7fffffffffffffffULL) > 0x7ff0000000000000ULL;
+}
+
+inline bool RDCISINF(double input)
+{
+  union
+  {
+    uint64_t u;
+    double f;
+  } x;
+
+  x.f = input;
+
+  return (x.u & 0x7fffffffffffffffULL) == 0x7ff0000000000000ULL;
+}
+
+inline bool RDCISFINITE(double input)
+{
+  union
+  {
+    uint64_t u;
+    double f;
+  } x;
+
+  x.f = input;
+
+  return (x.u & 0x7ff0000000000000ULL) != 0x7ff0000000000000ULL;
+}
+
 template <typename T>
 inline T AlignUp4(T x)
 {

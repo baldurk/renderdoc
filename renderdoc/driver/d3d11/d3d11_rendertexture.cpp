@@ -494,7 +494,7 @@ bool D3D11Replay::RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flag
   pixelData.RangeMinimum = cfg.rangeMin;
   pixelData.InverseRangeSize = 1.0f / (cfg.rangeMax - cfg.rangeMin);
 
-  if(_isnan(pixelData.InverseRangeSize) || !_finite(pixelData.InverseRangeSize))
+  if(!RDCISFINITE(pixelData.InverseRangeSize))
   {
     pixelData.InverseRangeSize = FLT_MAX;
   }

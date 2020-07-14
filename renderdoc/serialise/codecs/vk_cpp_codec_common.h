@@ -75,7 +75,7 @@ inline rdcstr ValueStr(SDObject *ptr)
   }
   else if(ptr->IsFloat())
   {
-    if(isnan(ptr->data.basic.d))
+    if(RDCISNAN(ptr->data.basic.d))
       ptr->data.basic.d = 1.0f;
     result = std::to_string(ptr->AsDouble()) + "f";
   }

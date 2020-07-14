@@ -1149,7 +1149,7 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
 
   for(uint32_t i = 0; i < ddxCalc.columns; i++)
   {
-    if(_isnan(ddxCalc.value.fv[i]) || !_finite(ddxCalc.value.fv[i]))
+    if(!RDCISFINITE(ddxCalc.value.fv[i]))
     {
       RDCWARN("NaN or Inf in texlookup");
       ddxCalc.value.fv[i] = 0.0f;
@@ -1160,7 +1160,7 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
                                                    "texture lookup ddx - using 0.0 instead",
                                                    m_instruction, opString));
     }
-    if(_isnan(ddyCalc.value.fv[i]) || !_finite(ddyCalc.value.fv[i]))
+    if(!RDCISFINITE(ddyCalc.value.fv[i]))
     {
       RDCWARN("NaN or Inf in texlookup");
       ddyCalc.value.fv[i] = 0.0f;
@@ -1175,7 +1175,7 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
 
   for(uint32_t i = 0; i < uv.columns; i++)
   {
-    if(texcoordType == 0 && (_isnan(uv.value.fv[i]) || !_finite(uv.value.fv[i])))
+    if(texcoordType == 0 && (RDCISFINITE(uv.value.fv[i])))
     {
       RDCWARN("NaN or Inf in texlookup");
       uv.value.fv[i] = 0.0f;

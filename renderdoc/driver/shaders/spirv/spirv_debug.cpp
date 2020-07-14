@@ -43,16 +43,16 @@ static bool ContainsNaNInf(const ShaderVariable &val)
   {
     for(int i = 0; i < count; i++)
     {
-      ret |= isinf(val.value.fv[i]);
-      ret |= isnan(val.value.fv[i]) != 0;
+      ret |= RDCISINF(val.value.fv[i]);
+      ret |= RDCISNAN(val.value.fv[i]) != 0;
     }
   }
   else if(val.type == VarType::Double)
   {
     for(int i = 0; i < count; i++)
     {
-      ret |= isinf(val.value.dv[i]);
-      ret |= isnan(val.value.dv[i]) != 0;
+      ret |= RDCISINF(val.value.dv[i]);
+      ret |= RDCISNAN(val.value.dv[i]) != 0;
     }
   }
 
@@ -1440,7 +1440,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable var = GetSrc(is.x);
 
       for(uint8_t c = 0; c < var.columns; c++)
-        var.value.uv[c] = isnan(var.value.fv[c]) ? 1 : 0;
+        var.value.uv[c] = RDCISNAN(var.value.fv[c]) ? 1 : 0;
 
       var.type = VarType::Bool;
 
@@ -1454,7 +1454,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       ShaderVariable var = GetSrc(is.x);
 
       for(uint8_t c = 0; c < var.columns; c++)
-        var.value.uv[c] = isinf(var.value.fv[c]) ? 1 : 0;
+        var.value.uv[c] = RDCISINF(var.value.fv[c]) ? 1 : 0;
 
       var.type = VarType::Bool;
 

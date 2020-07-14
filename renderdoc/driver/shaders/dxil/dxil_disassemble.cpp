@@ -1726,7 +1726,7 @@ rdcstr Constant::toString(bool withType) const
         orig = val.fv[0];
 
       // NaNs/infs are printed as hex to ensure we don't lose bits
-      if(!isnan(orig) && !isinf(orig))
+      if(RDCISFINITE(orig))
       {
         // check we can reparse precisely a float-formatted string. Otherwise we print as hex
         rdcstr flt = StringFormat::Fmt("%.6le", orig);

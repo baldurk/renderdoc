@@ -380,7 +380,7 @@ bool D3D12Replay::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, Texture
   pixelData.RangeMinimum = cfg.rangeMin;
   pixelData.InverseRangeSize = 1.0f / (cfg.rangeMax - cfg.rangeMin);
 
-  if(_isnan(pixelData.InverseRangeSize) || !_finite(pixelData.InverseRangeSize))
+  if(!RDCISFINITE(pixelData.InverseRangeSize))
   {
     pixelData.InverseRangeSize = FLT_MAX;
   }

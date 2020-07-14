@@ -38,7 +38,7 @@ namespace DXBCDebug
 {
 static float round_ne(float x)
 {
-  if(!_finite(x) || _isnan(x))
+  if(!RDCISFINITE(x))
     return x;
 
   float rem = remainderf(x, 1.0f);
@@ -770,10 +770,10 @@ ShaderVariable TypedUAVLoad(GlobalState::ViewFmt &fmt, const byte *d)
 
 float dxbc_min(float a, float b)
 {
-  if(_isnan(a))
+  if(RDCISNAN(a))
     return b;
 
-  if(_isnan(b))
+  if(RDCISNAN(b))
     return a;
 
   return a < b ? a : b;
@@ -781,10 +781,10 @@ float dxbc_min(float a, float b)
 
 double dxbc_min(double a, double b)
 {
-  if(_isnan(a))
+  if(RDCISNAN(a))
     return b;
 
-  if(_isnan(b))
+  if(RDCISNAN(b))
     return a;
 
   return a < b ? a : b;
@@ -792,10 +792,10 @@ double dxbc_min(double a, double b)
 
 float dxbc_max(float a, float b)
 {
-  if(_isnan(a))
+  if(RDCISNAN(a))
     return b;
 
-  if(_isnan(b))
+  if(RDCISNAN(b))
     return a;
 
   return a >= b ? a : b;
@@ -803,10 +803,10 @@ float dxbc_max(float a, float b)
 
 double dxbc_max(double a, double b)
 {
-  if(_isnan(a))
+  if(RDCISNAN(a))
     return b;
 
-  if(_isnan(b))
+  if(RDCISNAN(b))
     return a;
 
   return a >= b ? a : b;
@@ -1143,13 +1143,13 @@ ShaderEvents ThreadState::AssignValue(ShaderVariable &dst, uint32_t dstIndex,
   if(src.type == VarType::Float)
   {
     float ft = src.value.fv[srcIndex];
-    if(!_finite(ft) || _isnan(ft))
+    if(!RDCISFINITE(ft))
       flags |= ShaderEvents::GeneratedNanOrInf;
   }
   else if(src.type == VarType::Double)
   {
     double dt = src.value.dv[srcIndex];
-    if(!_finite(dt) || _isnan(dt))
+    if(!RDCISFINITE(dt))
       flags |= ShaderEvents::GeneratedNanOrInf;
   }
 
@@ -5548,7 +5548,7 @@ TEST_CASE("DXBC debugging helpers", "[program]")
     CHECK(dxbc_min(nan, neginf) == neginf);
     CHECK(dxbc_min(nan, a) == a);
     CHECK(dxbc_min(nan, posinf) == posinf);
-    CHECK(_isnan(dxbc_min(nan, nan)));
+    CHECK(RDCISNAN(dxbc_min(nan, nan)));
   };
 
   SECTION("dxbc_max")
@@ -5568,7 +5568,7 @@ TEST_CASE("DXBC debugging helpers", "[program]")
     CHECK(dxbc_max(nan, neginf) == neginf);
     CHECK(dxbc_max(nan, a) == a);
     CHECK(dxbc_max(nan, posinf) == posinf);
-    CHECK(_isnan(dxbc_max(nan, nan)));
+    CHECK(RDCISNAN(dxbc_max(nan, nan)));
   };
 
   SECTION("sat/abs/neg on NaNs")
@@ -5585,14 +5585,14 @@ TEST_CASE("DXBC debugging helpers", "[program]")
     v2 = neg(v, VarType::Float);
 
     CHECK(v2.value.f.x == -b);
-    CHECK(_isnan(v2.value.f.y));
+    CHECK(RDCISNAN(v2.value.f.y));
     CHECK(v2.value.f.z == posinf);
     CHECK(v2.value.f.w == neginf);
 
     v2 = abs(v, VarType::Float);
 
     CHECK(v2.value.f.x == b);
-    CHECK(_isnan(v2.value.f.y));
+    CHECK(RDCISNAN(v2.value.f.y));
     CHECK(v2.value.f.z == posinf);
     CHECK(v2.value.f.w == posinf);
   };
@@ -5607,7 +5607,7 @@ TEST_CASE("DXBC debugging helpers", "[program]")
     CHECK(flush_denorm(-foo) == -foo);
 
     // check NaN/inf values
-    CHECK(_isnan(flush_denorm(nan)));
+    CHECK(RDCISNAN(flush_denorm(nan)));
     CHECK(flush_denorm(neginf) == neginf);
     CHECK(flush_denorm(posinf) == posinf);
 

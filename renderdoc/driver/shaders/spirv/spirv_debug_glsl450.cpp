@@ -49,7 +49,7 @@ ShaderVariable RoundEven(ThreadState &state, uint32_t, const rdcarray<Id> &param
   for(uint32_t c = 0; c < var.columns; c++)
   {
     float x = var.value.fv[c];
-    if(!isinf(x) && !isnan(x))
+    if(RDCISFINITE(x))
       var.value.fv[c] = x - remainderf(x, 1.0f);
   }
 
@@ -854,8 +854,8 @@ ShaderVariable FindUMsb(ThreadState &state, uint32_t, const rdcarray<Id> &params
 
 static float GLSLNMax(float x, float y)
 {
-  const bool xnan = isnan(x);
-  const bool ynan = isnan(y);
+  const bool xnan = RDCISNAN(x);
+  const bool ynan = RDCISNAN(y);
   if(xnan && !ynan)
     return y;
   else if(!xnan && ynan)
@@ -866,8 +866,8 @@ static float GLSLNMax(float x, float y)
 
 static float GLSLNMin(float x, float y)
 {
-  const bool xnan = isnan(x);
-  const bool ynan = isnan(y);
+  const bool xnan = RDCISNAN(x);
+  const bool ynan = RDCISNAN(y);
   if(xnan && !ynan)
     return y;
   else if(!xnan && ynan)

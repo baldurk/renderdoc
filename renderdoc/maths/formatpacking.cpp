@@ -1244,11 +1244,11 @@ TEST_CASE("Check format conversion", "[format]")
 {
   SECTION("Check half conversion is reflexive")
   {
-    CHECK(std::isnan(ConvertFromHalf(ConvertToHalf(NAN))));
-    CHECK(!std::isnan(ConvertFromHalf(ConvertToHalf(INFINITY))));
-    CHECK(!std::isnan(ConvertFromHalf(ConvertToHalf(-INFINITY))));
-    CHECK(!std::isfinite(ConvertFromHalf(ConvertToHalf(INFINITY))));
-    CHECK(!std::isfinite(ConvertFromHalf(ConvertToHalf(-INFINITY))));
+    CHECK(RDCISNAN(ConvertFromHalf(ConvertToHalf(NAN))));
+    CHECK(!RDCISNAN(ConvertFromHalf(ConvertToHalf(INFINITY))));
+    CHECK(!RDCISNAN(ConvertFromHalf(ConvertToHalf(-INFINITY))));
+    CHECK(!RDCISFINITE(ConvertFromHalf(ConvertToHalf(INFINITY))));
+    CHECK(!RDCISFINITE(ConvertFromHalf(ConvertToHalf(-INFINITY))));
 
     for(uint16_t i = 0;; i++)
     {
@@ -1257,15 +1257,15 @@ TEST_CASE("Check format conversion", "[format]")
 
       // NaNs and infinites get mapped together. Just check that the value we get out is still a
       // nan/inf
-      if(std::isnan(f))
+      if(RDCISNAN(f))
       {
         float f2 = ConvertFromHalf(i2);
-        CHECK(std::isnan(f2));
+        CHECK(RDCISNAN(f2));
       }
-      else if(!std::isfinite(f))
+      else if(!RDCISFINITE(f))
       {
         float f2 = ConvertFromHalf(i2);
-        CHECK(!std::isfinite(f2));
+        CHECK(!RDCISFINITE(f2));
       }
       else if(i == 0x8000)
       {
@@ -1328,15 +1328,15 @@ TEST_CASE("Check format conversion", "[format]")
         Vec3f vec = ConvertFromR11G11B10(input);
         uint32_t output = ConvertToR11G11B10(vec);
 
-        if(std::isnan(vec.x))
+        if(RDCISNAN(vec.x))
         {
           Vec3f vec2 = ConvertFromR11G11B10(output);
-          CHECK(std::isnan(vec2.x));
+          CHECK(RDCISNAN(vec2.x));
         }
-        else if(!std::isfinite(vec.x))
+        else if(!RDCISFINITE(vec.x))
         {
           Vec3f vec2 = ConvertFromR11G11B10(output);
-          CHECK(!std::isfinite(vec2.x));
+          CHECK(!RDCISFINITE(vec2.x));
         }
         else
         {
@@ -1351,15 +1351,15 @@ TEST_CASE("Check format conversion", "[format]")
         Vec3f vec = ConvertFromR11G11B10(input);
         uint32_t output = ConvertToR11G11B10(vec);
 
-        if(std::isnan(vec.z))
+        if(RDCISNAN(vec.z))
         {
           Vec3f vec2 = ConvertFromR11G11B10(output);
-          CHECK(std::isnan(vec2.z));
+          CHECK(RDCISNAN(vec2.z));
         }
-        else if(!std::isfinite(vec.z))
+        else if(!RDCISFINITE(vec.z))
         {
           Vec3f vec2 = ConvertFromR11G11B10(output);
-          CHECK(!std::isfinite(vec2.z));
+          CHECK(!RDCISFINITE(vec2.z));
         }
         else
         {
@@ -1456,21 +1456,21 @@ TEST_CASE("Check format conversion", "[format]")
 
       Vec3f conv = ConvertFromR11G11B10(test.first);
 
-      if(std::isnan(conv.x))
+      if(RDCISNAN(conv.x))
       {
-        CHECK(std::isnan(test.second.x));
+        CHECK(RDCISNAN(test.second.x));
       }
-      else if(!std::isfinite(conv.x))
+      else if(!RDCISFINITE(conv.x))
       {
-        CHECK(!std::isfinite(test.second.x));
+        CHECK(!RDCISFINITE(test.second.x));
       }
-      else if(std::isnan(conv.z))
+      else if(RDCISNAN(conv.z))
       {
-        CHECK(std::isnan(test.second.z));
+        CHECK(RDCISNAN(test.second.z));
       }
-      else if(!std::isfinite(conv.z))
+      else if(!RDCISFINITE(conv.z))
       {
-        CHECK(!std::isfinite(test.second.z));
+        CHECK(!RDCISFINITE(test.second.z));
       }
       else
       {
