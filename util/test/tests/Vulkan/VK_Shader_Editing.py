@@ -72,8 +72,13 @@ class VK_Shader_Editing(rdtest.TestCase):
 
         source: bytes = vsrefl.rawBytes
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader(vsrefl.entryPoint,
-                                                                                 vsrefl.encoding, source,
+        self.check(vsrefl.entryPoint == "main")
+
+        # we search-replace in the SPIR-V expecting that 'main' won't appear anywhere other than in the OpEntryPoint
+        patched_entry_source = source.replace(b'main', b't_st')
+
+        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader('t_st',
+                                                                                 vsrefl.encoding, patched_entry_source,
                                                                                  rd.ShaderCompileFlags(),
                                                                                  rd.ShaderStage.Vertex)
 
