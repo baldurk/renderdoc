@@ -239,6 +239,7 @@
     <ClCompile Include="gl\gl_shader_isa.cpp" />
     <ClCompile Include="gl\gl_simple_triangle.cpp" />
     <ClCompile Include="gl\gl_spirv_shader.cpp" />
+    <ClCompile Include="gl\gl_state_trashing.cpp" />
     <ClCompile Include="gl\gl_structured_buffer_nested.cpp" />
     <ClCompile Include="gl\gl_test.cpp" />
     <ClCompile Include="gl\gl_test_linux.cpp">
