@@ -197,6 +197,8 @@ void main()
       glViewport(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
       glScissor(0, 0, GLsizei(screenWidth), GLsizei(screenHeight));
 
+      glBindBuffersBase(GL_SHADER_STORAGE_BUFFER, 0, 4, NULL);
+
       float col[] = {1.0f, 0.0f, 1.0f, 1.0f};
       glClearBufferfv(GL_COLOR, 0, col);
 
