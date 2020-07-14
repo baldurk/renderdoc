@@ -2317,8 +2317,8 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
 
     drv.glBindBuffer(eGL_COPY_READ_BUFFER, ib);
 
-    GLint bufsize = 0;
-    drv.glGetBufferParameteriv(eGL_COPY_READ_BUFFER, eGL_BUFFER_SIZE, &bufsize);
+    GLuint bufsize = 0;
+    drv.glGetBufferParameteriv(eGL_COPY_READ_BUFFER, eGL_BUFFER_SIZE, (GLint *)&bufsize);
 
     drv.glGetBufferSubData(eGL_COPY_READ_BUFFER, (GLintptr)cfg.position.indexByteOffset,
                            RDCMIN(uint32_t(bufsize) - uint32_t(cfg.position.indexByteOffset),

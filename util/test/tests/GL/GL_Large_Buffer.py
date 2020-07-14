@@ -28,7 +28,7 @@ class GL_Large_Buffer(rdtest.TestCase):
             },
             2: {
                 'vtx': 2,
-                'idx': 2345678,
+                'idx': 61982400,
                 'Position': [0.5, -0.5, 0.0],
                 'Color': [0.0, 1.0, 0.0, 1.0],
                 #'UV': [1.0, 0.0],
@@ -58,7 +58,7 @@ class GL_Large_Buffer(rdtest.TestCase):
             },
             2: {
                 'vtx': 2,
-                'idx': 2345678,
+                'idx': 61982400,
                 'gl_Position': [0.5, -0.5, 0.0, 1.0],
                 'v2f_block.pos': [0.5, -0.5, 0.0, 1.0],
                 'v2f_block.col': [0.0, 1.0, 0.0, 1.0],

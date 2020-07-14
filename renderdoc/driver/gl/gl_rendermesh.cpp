@@ -144,8 +144,8 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
         drv.glBindVertexBuffer(0, vb, (GLintptr)fmt.vertexByteOffset, fmt.vertexByteStride);
 
         {
-          GLint bytesize = 0;
-          drv.glGetNamedBufferParameterivEXT(vb, eGL_BUFFER_SIZE, &bytesize);
+          GLuint bytesize = 0;
+          drv.glGetNamedBufferParameterivEXT(vb, eGL_BUFFER_SIZE, (GLint *)&bytesize);
 
           // skip empty source buffers
           if(bytesize == 0)
@@ -286,8 +286,8 @@ void GLReplay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondar
         m_pDriver->GetResourceManager()->GetCurrentResource(meshData[i]->vertexResourceId).name;
 
     {
-      GLint bytesize = 0;
-      drv.glGetNamedBufferParameterivEXT(vb, eGL_BUFFER_SIZE, &bytesize);
+      GLuint bytesize = 0;
+      drv.glGetNamedBufferParameterivEXT(vb, eGL_BUFFER_SIZE, (GLint *)&bytesize);
 
       // skip empty source buffers
       if(bytesize == 0)

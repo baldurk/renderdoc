@@ -247,8 +247,8 @@ bool WrappedOpenGL::Check_SafeDraw(bool indexed)
         }
         else
         {
-          GLint size = 0;
-          GL.glGetNamedBufferParameterivEXT(vb, eGL_BUFFER_SIZE, &size);
+          GLuint size = 0;
+          GL.glGetNamedBufferParameterivEXT(vb, eGL_BUFFER_SIZE, (GLint *)&size);
 
           if(size == 0)
           {

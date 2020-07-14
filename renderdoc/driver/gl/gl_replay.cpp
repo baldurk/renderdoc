@@ -658,15 +658,15 @@ BufferDescription GLReplay::GetBuffer(ResourceId id)
 
   ret.creationFlags = res.creationFlags;
 
-  GLint size = 0;
+  GLuint size = 0;
   // if the type is NONE it's probably a DSA created buffer
   if(res.curType == eGL_NONE)
   {
-    drv.glGetNamedBufferParameterivEXT(res.resource.name, eGL_BUFFER_SIZE, &size);
+    drv.glGetNamedBufferParameterivEXT(res.resource.name, eGL_BUFFER_SIZE, (GLint *)&size);
   }
   else
   {
-    drv.glGetBufferParameteriv(res.curType, eGL_BUFFER_SIZE, &size);
+    drv.glGetBufferParameteriv(res.curType, eGL_BUFFER_SIZE, (GLint *)&size);
   }
 
   ret.length = size;

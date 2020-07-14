@@ -38,7 +38,7 @@ RD_TEST(GL_Large_Buffer, OpenGLGraphicsTest)
     GLuint vao = MakeVAO();
     glBindVertexArray(vao);
 
-    uint32_t indices[3] = {0, 1000000, 2345678};
+    uint32_t indices[3] = {0, 1000000, 61982400};
 
     GLuint ib = MakeBuffer();
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ib);
@@ -46,7 +46,7 @@ RD_TEST(GL_Large_Buffer, OpenGLGraphicsTest)
 
     GLuint vb = MakeBuffer();
     glBindBuffer(GL_ARRAY_BUFFER, vb);
-    glBufferStorage(GL_ARRAY_BUFFER, 128 * 1024 * 1024, 0, GL_DYNAMIC_STORAGE_BIT);
+    glBufferStorage(GL_ARRAY_BUFFER, 2128ULL * 1024 * 1024, 0, GL_DYNAMIC_STORAGE_BIT);
 
     glBufferSubData(GL_ARRAY_BUFFER, indices[0] * sizeof(DefaultA2V), sizeof(DefaultA2V),
                     &DefaultTri[0]);
