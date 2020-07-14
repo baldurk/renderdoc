@@ -66,7 +66,7 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
     // and substitute our quad calculation fragment shader that writes to a storage image
     // that is bound in a new root signature element.
 
-    D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+    D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState();
     m_PrevState = rs;
 
     // check cache first
@@ -181,10 +181,10 @@ struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
       return false;
 
     // restore the render state and go ahead with the real draw
-    m_pDevice->GetQueue()->GetCommandData()->m_RenderState = m_PrevState;
+    m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState() = m_PrevState;
 
     RDCASSERT(cmd);
-    m_pDevice->GetQueue()->GetCommandData()->m_RenderState.ApplyState(m_pDevice, cmd);
+    m_pDevice->GetQueue()->GetCommandData()->GetCurRenderState().ApplyState(m_pDevice, cmd);
 
     return true;
   }

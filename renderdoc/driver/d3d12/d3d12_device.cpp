@@ -3470,6 +3470,12 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
       cmd.m_RenderState.m_ResourceManager = GetResourceManager();
       cmd.m_RenderState.m_DebugManager = m_Replay->GetDebugManager();
     }
+    else
+    {
+      // Copy the state in case m_RenderState was modified externally for the partial replay.
+      cmd.m_BakedCmdListInfo[cmd.m_Partial[D3D12CommandData::Primary].partialParent].state =
+          cmd.m_RenderState;
+    }
 
     // we'll need our own command list if we're replaying just a subsection
     // of events within a single command list record - always if it's only
@@ -3506,9 +3512,8 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
       cmd.m_OutsideCmdList = NULL;
     }
 
-    if(!partial)
-      cmd.m_RenderState =
-          cmd.m_BakedCmdListInfo[cmd.m_Partial[D3D12CommandData::Primary].partialParent].state;
+    cmd.m_RenderState =
+        cmd.m_BakedCmdListInfo[cmd.m_Partial[D3D12CommandData::Primary].partialParent].state;
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
     FlushLists(true);

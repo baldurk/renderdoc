@@ -362,6 +362,8 @@ class Overlay_Test(rdtest.TestCase):
 
             rdtest.log.success("Picked pixels are as expected for {}".format(str(overlay)))
 
+        rdtest.log.success("All normal overlays are as expected")
+
         # Now check clear-before-X by hand, for colour and for depth
 
         depth_tex: rd.ResourceId = pipe.GetDepthTarget().resourceId
@@ -386,6 +388,8 @@ class Overlay_Test(rdtest.TestCase):
         self.check_pixel_value(depth_tex, 250, 150, [0.5, 85.0/255.0, 0.0, 1.0], eps=eps)
         self.check_pixel_value(depth_tex, 250, 250, [0.95, 0.0/255.0, 0.0, 1.0], eps=eps)
         self.check_pixel_value(depth_tex, 50, 50, [1.0, 0.0/255.0, 0.0, 1.0], eps=eps)
+
+        rdtest.log.success("Colour and depth at end are correct")
 
         # Check clear before pass
         tex.resourceId = col_tex

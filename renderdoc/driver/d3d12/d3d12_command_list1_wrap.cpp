@@ -543,14 +543,19 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetViewInstanceMask(SerialiserT
 
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
+    bool stateUpdate = false;
+
     if(IsActiveReplaying(m_State))
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
         Unwrap1(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->SetViewInstanceMask(Mask);
 
-        if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-          m_Cmd->m_RenderState.viewInstMask = Mask;
+        stateUpdate = true;
+      }
+      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+      {
+        stateUpdate = true;
       }
     }
     else
@@ -558,8 +563,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetViewInstanceMask(SerialiserT
       Unwrap1(pCommandList)->SetViewInstanceMask(Mask);
       GetCrackedList1()->SetViewInstanceMask(Mask);
 
-      m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state.viewInstMask = Mask;
+      stateUpdate = true;
     }
+
+    if(stateUpdate)
+      m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state.viewInstMask = Mask;
   }
 
   return true;

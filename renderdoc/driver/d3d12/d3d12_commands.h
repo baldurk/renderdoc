@@ -241,6 +241,11 @@ struct D3D12CommandData
 
   D3D12RenderState m_RenderState;
 
+  D3D12RenderState &GetCurRenderState()
+  {
+    return m_LastCmdListID == ResourceId() ? m_RenderState
+                                           : m_BakedCmdListInfo[m_LastCmdListID].state;
+  }
   enum PartialReplayIndex
   {
     Primary,
