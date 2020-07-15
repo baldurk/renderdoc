@@ -332,8 +332,16 @@ void ResourceInspector::Inspect(ResourceId id)
   ui->initChunks->setUpdatesEnabled(true);
 
   if(m_Resource != ResourceId())
-    ui->initChunks->applyExpansion(ui->initChunks->getInternalExpansion(qHash(ToQStr(m_Resource))),
-                                   0);
+  {
+    RDTreeViewExpansionState rdtves = ui->initChunks->getInternalExpansion(qHash(ToQStr(m_Resource)));
+    if(!rdtves.isEmpty())
+      ui->initChunks->applyExpansion(rdtves, 0);
+    else if(!ui->initChunks->getDidAutoExpand(m_Resource))    // empty and have not auto-expanded
+    {
+      ui->initChunks->expandAll();
+      ui->initChunks->setDidAutoExpand(m_Resource);
+    }
+  }
 }
 
 void ResourceInspector::OnCaptureLoaded()

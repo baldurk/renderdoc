@@ -132,6 +132,8 @@ public:
   using QTreeView::expandAll;
   using QTreeView::collapseAll;
 
+  bool getDidAutoExpand(ResourceId resourceId) { return m_AutoExpanded[resourceId]; }
+  void setDidAutoExpand(ResourceId resourceId) { m_AutoExpanded[resourceId] = true; }
 signals:
   void leave(QEvent *e);
   void keyPress(QKeyEvent *e);
@@ -162,6 +164,7 @@ private:
   bool m_customCopyPaste = false;
 
   QMap<uint, RDTreeViewExpansionState> m_Expansions;
+  QMap<ResourceId, bool> m_AutoExpanded;
 
   void saveExpansionFromRow(RDTreeViewExpansionState &state, QModelIndex idx, uint seed,
                             const ExpansionKeyGen &keygen);
