@@ -114,7 +114,7 @@ void D3D12DebugAPIWrapper::AddDebugMessage(MessageCategory c, MessageSeverity sv
 
 bool D3D12DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
 {
-  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
   // Get the root signature
@@ -255,7 +255,7 @@ bool D3D12DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
 }
 bool D3D12DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
 {
-  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
   // Get the root signature
@@ -467,7 +467,7 @@ ShaderVariable D3D12DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType typ
 {
   ShaderVariable result("", 0U, 0U, 0U, 0U);
 
-  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
   if(type == DXBCBytecode::TYPE_RASTERIZER)
@@ -597,7 +597,7 @@ ShaderVariable D3D12DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType typ
 {
   ShaderVariable result("", 0U, 0U, 0U, 0U);
 
-  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
   // Get the root signature
@@ -748,7 +748,7 @@ ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
 {
   ShaderVariable result("", 0U, 0U, 0U, 0U);
 
-  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
   // Get the root signature
@@ -1716,7 +1716,7 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
 
   dxbc->GetDisassembly();
 
-  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
   WrappedID3D12PipelineState *pso =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
@@ -1769,7 +1769,7 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     UINT i = *it;
     if(rs.vbuffers.size() > i)
     {
-      D3D12RenderState::VertBuffer &vb = rs.vbuffers[i];
+      const D3D12RenderState::VertBuffer &vb = rs.vbuffers[i];
       ID3D12Resource *buffer = m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(vb.buf);
 
       if(vb.stride * (draw->vertexOffset + idx) < vb.size)
@@ -2883,7 +2883,7 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId, const uint32_t grou
 
   dxbc->GetDisassembly();
 
-  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
   WrappedID3D12PipelineState *pso =
       m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);

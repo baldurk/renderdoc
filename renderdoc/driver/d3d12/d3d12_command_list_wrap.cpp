@@ -287,6 +287,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
 
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
 
+      state = D3D12RenderState();
+      state.m_ResourceManager = GetResourceManager();
+      state.m_DebugManager = m_pDevice->GetDebugManager();
       state.pipe = GetResID(pInitialState);
 
       // whenever a command-building chunk asks for the command list, it
@@ -381,6 +384,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(SerialiserType &ser,
 
         // reset state
         D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[BakedCommandList].state;
+        state = D3D12RenderState();
         state.m_ResourceManager = GetResourceManager();
         state.m_DebugManager = m_pDevice->GetDebugManager();
         state.pipe = GetResID(pInitialState);
