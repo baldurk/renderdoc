@@ -46,6 +46,7 @@ set(VULKAN_SRC
         vk/vk_structured_buffer_nested.cpp
         vk/vk_texture_zoo.cpp
         vk/vk_triangle_fan.cpp
+        vk/vk_validation_use.cpp
         vk/vk_vertex_attr_zoo.cpp
         vk/vk_video_textures.cpp
         vk/vk_vs_max_desc_set.cpp)
@@ -82,6 +83,7 @@ set(OPENGL_SRC
         gl/gl_shader_editing.cpp
         gl/gl_simple_triangle.cpp
         gl/gl_spirv_shader.cpp
+        gl/gl_state_trashing.cpp
         gl/gl_texture_zoo.cpp
         gl/gl_unshared_context.cpp
         gl/gl_unsized_ms_fbo_attachment.cpp

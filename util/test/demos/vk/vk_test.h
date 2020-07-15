@@ -243,6 +243,7 @@ struct VulkanGraphicsTest : public GraphicsTest
 
   // enabled instance extensions
   std::vector<const char *> instExts;
+  std::vector<const char *> instLayers;
 
   // required extensions before Init(), enabled extensions after Init()
   std::vector<const char *> devExts;

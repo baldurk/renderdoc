@@ -119,6 +119,9 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
 
   static bool prepared = false;
 
+  std::vector<VkLayerProperties> availInstLayers;
+  std::vector<VkExtensionProperties> availInstExts;
+
   if(!prepared)
   {
     prepared = true;
@@ -130,6 +133,7 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
     if(volk && spv)
     {
       enabledInstExts = instExts;
+      enabledLayers = instLayers;
 
       enabledInstExts.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 
@@ -149,14 +153,13 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
       // enable debug utils when possible
       optInstExts.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-      std::vector<VkLayerProperties> supportedLayers;
-      CHECK_VKR(vkh::enumerateInstanceLayerProperties(supportedLayers));
+      CHECK_VKR(vkh::enumerateInstanceLayerProperties(availInstLayers));
 
       if(debugDevice)
       {
         bool found = false;
 
-        for(const VkLayerProperties &layer : supportedLayers)
+        for(const VkLayerProperties &layer : availInstLayers)
         {
           if(!strcmp(layer.layerName, "VK_LAYER_KHRONOS_validation"))
           {
@@ -168,7 +171,7 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
 
         if(!found)
         {
-          for(const VkLayerProperties &layer : supportedLayers)
+          for(const VkLayerProperties &layer : availInstLayers)
           {
             if(!strcmp(layer.layerName, "VK_LAYER_LUNARG_standard_validation"))
             {
@@ -180,23 +183,40 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
         }
       }
 
-      std::vector<VkExtensionProperties> supportedExts;
-      CHECK_VKR(vkh::enumerateInstanceExtensionProperties(supportedExts, NULL));
+      CHECK_VKR(vkh::enumerateInstanceExtensionProperties(availInstExts, NULL));
 
       for(const char *l : enabledLayers)
       {
+        bool supported = false;
+        for(const VkLayerProperties &layer : availInstLayers)
+        {
+          if(!strcmp(layer.layerName, l))
+          {
+            supported = true;
+            break;
+          }
+        }
+
+        if(!supported)
+        {
+          Avail = "Vulkan layer '";
+          Avail += l;
+          Avail += "' is not available";
+          return;
+        }
+
         std::vector<VkExtensionProperties> tmp;
         CHECK_VKR(vkh::enumerateInstanceExtensionProperties(tmp, l));
 
         for(const VkExtensionProperties &t : tmp)
-          supportedExts.push_back(t);
+          availInstExts.push_back(t);
       }
 
       // strip any extensions that are not supported
       for(auto it = enabledInstExts.begin(); it != enabledInstExts.end();)
       {
         bool found = false;
-        for(VkExtensionProperties &ext : supportedExts)
+        for(VkExtensionProperties &ext : availInstExts)
         {
           if(!strcmp(ext.extensionName, *it))
           {
@@ -220,7 +240,7 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
       for(const char *search : optInstExts)
       {
         bool found = false;
-        for(VkExtensionProperties &ext : supportedExts)
+        for(VkExtensionProperties &ext : availInstExts)
         {
           if(!strcmp(ext.extensionName, search))
           {
@@ -308,7 +328,6 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
 
   instance = inst;
   phys = selectedPhys;
-  instExts = enabledInstExts;
 
   if(!volk)
     Avail = "volk did not initialise - vulkan library is not available";
@@ -391,6 +410,60 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
   CHECK_FEATURE(sparseResidencyAliased);
   CHECK_FEATURE(variableMultisampleRate);
   CHECK_FEATURE(inheritedQueries);
+
+  CHECK_VKR(vkh::enumerateInstanceLayerProperties(availInstLayers));
+  CHECK_VKR(vkh::enumerateInstanceExtensionProperties(availInstExts, NULL));
+
+  for(const char *l : instLayers)
+  {
+    bool layerSupported = false;
+    for(const VkLayerProperties &layer : availInstLayers)
+    {
+      if(!strcmp(layer.layerName, l))
+      {
+        layerSupported = true;
+        break;
+      }
+    }
+
+    if(!layerSupported)
+    {
+      Avail = "Vulkan layer '";
+      Avail += l;
+      Avail += "' is not available";
+      return;
+    }
+
+    std::vector<VkExtensionProperties> tmp;
+    CHECK_VKR(vkh::enumerateInstanceExtensionProperties(tmp, l));
+
+    for(const VkExtensionProperties &t : tmp)
+      availInstExts.push_back(t);
+  }
+
+  for(const char *search : instExts)
+  {
+    bool extSupported = false;
+    for(const VkExtensionProperties &e : availInstExts)
+    {
+      if(!strcmp(e.extensionName, search))
+      {
+        extSupported = true;
+        break;
+      }
+    }
+
+    if(!extSupported)
+    {
+      Avail = "instance extension '";
+      Avail += search;
+      Avail += "' is not available";
+      return;
+    }
+  }
+
+  instExts = enabledInstExts;
+  instLayers = enabledLayers;
 
   std::vector<VkExtensionProperties> supportedExts;
   CHECK_VKR(vkh::enumerateDeviceExtensionProperties(supportedExts, phys, NULL));
