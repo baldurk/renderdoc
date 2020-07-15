@@ -1854,7 +1854,7 @@ void Debugger::CalcActiveMask(rdcarray<bool> &activeMask)
     // become uniform again.
     convergeBlock = workgroup[0].mergeBlock;
     for(size_t i = 1; i < workgroup.size(); i++)
-      RDCASSERT(convergeBlock == workgroup[i].mergeBlock);
+      RDCASSERT(!activeMask[i] || convergeBlock == workgroup[i].mergeBlock);
   }
 
   if(wasDiverged || diverged)
