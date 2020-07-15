@@ -2509,7 +2509,8 @@ void ReplayProxy::RefreshPreviewWindow()
     int32_t winHeight = 1;
     m_Replay->GetOutputWindowDimensions(m_PreviewOutput, winWidth, winHeight);
 
-    m_Replay->RenderCheckerboard();
+    m_Replay->RenderCheckerboard(RenderDoc::Inst().DarkCheckerboardColor(),
+                                 RenderDoc::Inst().LightCheckerboardColor());
 
     const DrawcallDescription *curDraw = FindDraw(m_FrameRecord.drawcallList, m_EventID);
 

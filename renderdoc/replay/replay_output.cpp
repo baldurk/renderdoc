@@ -492,7 +492,8 @@ void ReplayOutput::ClearBackground(uint64_t outputID, const FloatVector &backgro
      m_RenderData.texDisplay.backgroundColor.y == 0.0f &&
      m_RenderData.texDisplay.backgroundColor.z == 0.0f &&
      m_RenderData.texDisplay.backgroundColor.w == 0.0f)
-    m_pDevice->RenderCheckerboard();
+    m_pDevice->RenderCheckerboard(RenderDoc::Inst().DarkCheckerboardColor(),
+                                  RenderDoc::Inst().LightCheckerboardColor());
   else
     m_pDevice->ClearOutputWindowColor(outputID, m_RenderData.texDisplay.backgroundColor);
 }
@@ -619,14 +620,20 @@ void ReplayOutput::Display()
     {
       m_pDevice->BindOutputWindow(m_Thumbnails[i].outputID, false);
 
-      Vec4f dark = RenderDoc::Inst().DarkCheckerboardColor();
-      Vec4f light = RenderDoc::Inst().LightCheckerboardColor();
+      FloatVector dark = RenderDoc::Inst().DarkCheckerboardColor();
+      FloatVector light = RenderDoc::Inst().LightCheckerboardColor();
 
-      color.x = light.x;
-      color.y = dark.y;
-      color.z = dark.z;
-      color.w = 0.4f;
-      m_pDevice->ClearOutputWindowColor(m_Thumbnails[i].outputID, color);
+      FloatVector dark2;
+      dark2.x = light.x;
+      dark2.y = dark.y;
+      dark2.z = dark.z;
+      dark2.w = 0.4f;
+      FloatVector light2;
+      light2.x = dark.x;
+      light2.y = light.y;
+      light2.z = light.z;
+      light2.w = 0.4f;
+      m_pDevice->RenderCheckerboard(dark2, light2);
 
       m_pDevice->FlipOutputWindow(m_Thumbnails[i].outputID);
       continue;
@@ -770,7 +777,8 @@ void ReplayOutput::DisplayMesh()
     m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
     m_pDevice->ClearOutputWindowColor(m_MainOutput.outputID, color);
     m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
-    m_pDevice->RenderCheckerboard();
+    m_pDevice->RenderCheckerboard(RenderDoc::Inst().DarkCheckerboardColor(),
+                                  RenderDoc::Inst().LightCheckerboardColor());
 
     return;
   }
@@ -785,7 +793,8 @@ void ReplayOutput::DisplayMesh()
   m_pDevice->BindOutputWindow(m_MainOutput.outputID, true);
   m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
 
-  m_pDevice->RenderCheckerboard();
+  m_pDevice->RenderCheckerboard(RenderDoc::Inst().DarkCheckerboardColor(),
+                                RenderDoc::Inst().LightCheckerboardColor());
 
   m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
 

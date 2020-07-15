@@ -270,7 +270,7 @@ public:
                                        CompType typeCast) = 0;
   virtual void FreeCustomShader(ResourceId id) = 0;
 
-  virtual void RenderCheckerboard() = 0;
+  virtual void RenderCheckerboard(FloatVector dark, FloatVector light) = 0;
 
   virtual void RenderHighlightBox(float w, float h, float scale) = 0;
 

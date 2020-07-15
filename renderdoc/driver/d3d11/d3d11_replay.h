@@ -221,7 +221,7 @@ public:
 
   bool RenderTexture(TextureDisplay cfg);
 
-  void RenderCheckerboard();
+  void RenderCheckerboard(FloatVector dark, FloatVector light);
 
   void RenderHighlightBox(float w, float h, float scale);
 

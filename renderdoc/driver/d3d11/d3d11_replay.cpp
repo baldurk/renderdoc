@@ -2701,14 +2701,14 @@ bool D3D11Replay::RenderTexture(TextureDisplay cfg)
   return RenderTextureInternal(cfg, eTexDisplay_BlendAlpha);
 }
 
-void D3D11Replay::RenderCheckerboard()
+void D3D11Replay::RenderCheckerboard(FloatVector dark, FloatVector light)
 {
   D3D11RenderStateTracker tracker(m_pImmediateContext);
 
   CheckerboardCBuffer pixelData = {};
 
-  pixelData.PrimaryColor = ConvertSRGBToLinear(RenderDoc::Inst().DarkCheckerboardColor());
-  pixelData.SecondaryColor = ConvertSRGBToLinear(RenderDoc::Inst().LightCheckerboardColor());
+  pixelData.PrimaryColor = ConvertSRGBToLinear(dark);
+  pixelData.SecondaryColor = ConvertSRGBToLinear(light);
   pixelData.CheckerSquareDimension = 64.0f;
 
   ID3D11Buffer *psBuf = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(pixelData));

@@ -720,7 +720,7 @@ rdcstr VulkanReplay::DisassembleShader(ResourceId pipeline, const ShaderReflecti
   return StringFormat::Fmt("; Invalid disassembly target %s", target.c_str());
 }
 
-void VulkanReplay::RenderCheckerboard()
+void VulkanReplay::RenderCheckerboard(FloatVector dark, FloatVector light)
 {
   auto it = m_OutputWindows.find(m_ActiveWinID);
   if(m_ActiveWinID == 0 || it == m_OutputWindows.end())
@@ -768,8 +768,8 @@ void VulkanReplay::RenderCheckerboard()
     data->CheckerSquareDimension = 64.0f;
     data->InnerColor = Vec4f();
 
-    data->PrimaryColor = ConvertSRGBToLinear(RenderDoc::Inst().DarkCheckerboardColor());
-    data->SecondaryColor = ConvertSRGBToLinear(RenderDoc::Inst().LightCheckerboardColor());
+    data->PrimaryColor = ConvertSRGBToLinear(light);
+    data->SecondaryColor = ConvertSRGBToLinear(dark);
     m_Overlay.m_CheckerUBO.Unmap();
 
     vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -797,13 +797,9 @@ void VulkanReplay::RenderCheckerboard()
     // some mobile chips fail to create the checkerboard pipeline. Use an alternate approach with
     // CmdClearAttachment and many rects.
 
-    Vec4f lightCol = RenderDoc::Inst().LightCheckerboardColor();
-    Vec4f darkCol = RenderDoc::Inst().DarkCheckerboardColor();
-
-    VkClearAttachment light = {
-        VK_IMAGE_ASPECT_COLOR_BIT, 0, {{{lightCol.x, lightCol.y, lightCol.z, lightCol.w}}}};
-    VkClearAttachment dark = {
-        VK_IMAGE_ASPECT_COLOR_BIT, 0, {{{darkCol.x, darkCol.y, darkCol.z, darkCol.w}}}};
+    VkClearAttachment lightCol = {
+        VK_IMAGE_ASPECT_COLOR_BIT, 0, {{{light.x, light.y, light.z, light.w}}}};
+    VkClearAttachment darkCol = {VK_IMAGE_ASPECT_COLOR_BIT, 0, {{{dark.x, dark.y, dark.z, dark.w}}}};
 
     VkClearRect fullRect = {{
                                 {0, 0}, {outw.width, outw.height},
@@ -811,7 +807,7 @@ void VulkanReplay::RenderCheckerboard()
                             0,
                             1};
 
-    vt->CmdClearAttachments(Unwrap(cmd), 1, &light, 1, &fullRect);
+    vt->CmdClearAttachments(Unwrap(cmd), 1, &lightCol, 1, &fullRect);
 
     rdcarray<VkClearRect> squares;
 
@@ -833,7 +829,7 @@ void VulkanReplay::RenderCheckerboard()
       }
     }
 
-    vt->CmdClearAttachments(Unwrap(cmd), 1, &dark, (uint32_t)squares.size(), squares.data());
+    vt->CmdClearAttachments(Unwrap(cmd), 1, &darkCol, (uint32_t)squares.size(), squares.data());
   }
 
   vt->CmdEndRenderPass(Unwrap(cmd));

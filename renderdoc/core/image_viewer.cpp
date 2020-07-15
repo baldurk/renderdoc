@@ -107,7 +107,10 @@ public:
   void BindOutputWindow(uint64_t id, bool depth) { m_Proxy->BindOutputWindow(id, depth); }
   bool IsOutputWindowVisible(uint64_t id) { return m_Proxy->IsOutputWindowVisible(id); }
   void FlipOutputWindow(uint64_t id) { m_Proxy->FlipOutputWindow(id); }
-  void RenderCheckerboard() { m_Proxy->RenderCheckerboard(); }
+  void RenderCheckerboard(FloatVector dark, FloatVector light)
+  {
+    m_Proxy->RenderCheckerboard(dark, light);
+  }
   void RenderHighlightBox(float w, float h, float scale)
   {
     m_Proxy->RenderHighlightBox(w, h, scale);

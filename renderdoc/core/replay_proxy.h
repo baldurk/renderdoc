@@ -236,10 +236,10 @@ public:
       return m_Proxy->FlipOutputWindow(id);
   }
 
-  void RenderCheckerboard()
+  void RenderCheckerboard(FloatVector dark, FloatVector light)
   {
     if(m_Proxy)
-      return m_Proxy->RenderCheckerboard();
+      return m_Proxy->RenderCheckerboard(dark, light);
   }
 
   void RenderHighlightBox(float w, float h, float scale)

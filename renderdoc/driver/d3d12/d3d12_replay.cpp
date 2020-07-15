@@ -1680,12 +1680,12 @@ void D3D12Replay::RenderHighlightBox(float w, float h, float scale)
   }
 }
 
-void D3D12Replay::RenderCheckerboard()
+void D3D12Replay::RenderCheckerboard(FloatVector dark, FloatVector light)
 {
   CheckerboardCBuffer pixelData = {};
 
-  pixelData.PrimaryColor = ConvertSRGBToLinear(RenderDoc::Inst().DarkCheckerboardColor());
-  pixelData.SecondaryColor = ConvertSRGBToLinear(RenderDoc::Inst().LightCheckerboardColor());
+  pixelData.PrimaryColor = ConvertSRGBToLinear(dark);
+  pixelData.SecondaryColor = ConvertSRGBToLinear(light);
   pixelData.CheckerSquareDimension = 64.0f;
 
   D3D12_GPU_VIRTUAL_ADDRESS ps = GetDebugManager()->UploadConstants(&pixelData, sizeof(pixelData));

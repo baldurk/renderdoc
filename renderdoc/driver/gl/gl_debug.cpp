@@ -2634,7 +2634,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
   return ret;
 }
 
-void GLReplay::RenderCheckerboard()
+void GLReplay::RenderCheckerboard(FloatVector dark, FloatVector light)
 {
   MakeCurrentReplayContext(m_DebugCtx);
 
@@ -2659,8 +2659,8 @@ void GLReplay::RenderCheckerboard()
   ubo->CheckerSquareDimension = 64.0f;
   ubo->InnerColor = Vec4f();
 
-  ubo->PrimaryColor = ConvertSRGBToLinear(RenderDoc::Inst().DarkCheckerboardColor());
-  ubo->SecondaryColor = ConvertSRGBToLinear(RenderDoc::Inst().LightCheckerboardColor());
+  ubo->PrimaryColor = ConvertSRGBToLinear(dark);
+  ubo->SecondaryColor = ConvertSRGBToLinear(light);
 
   drv.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 

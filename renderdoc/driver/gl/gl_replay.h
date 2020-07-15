@@ -208,7 +208,7 @@ public:
   bool RenderTexture(TextureDisplay cfg);
   bool RenderTextureInternal(TextureDisplay cfg, TexDisplayFlags flags);
 
-  void RenderCheckerboard();
+  void RenderCheckerboard(FloatVector dark, FloatVector light);
 
   void RenderHighlightBox(float w, float h, float scale);
 
