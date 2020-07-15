@@ -1767,7 +1767,7 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   for(auto it = vertexbuffers.begin(); it != vertexbuffers.end(); ++it)
   {
     UINT i = *it;
-    if(rs.vbuffers.size() >= i)
+    if(rs.vbuffers.size() > i)
     {
       D3D12RenderState::VertBuffer &vb = rs.vbuffers[i];
       ID3D12Resource *buffer = m_pDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(vb.buf);
