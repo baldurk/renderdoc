@@ -329,22 +329,17 @@ void ThreadState::ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray
 ShaderVariable ThreadState::CalcDeriv(ThreadState::DerivDir dir, ThreadState::DerivType type,
                                       const rdcarray<ThreadState> &workgroup, Id val)
 {
+  const ThreadState *a = NULL, *b = NULL;
+
   const bool xdirection = (dir == DDX);
   if(type == Coarse)
   {
     // coarse derivatives are identical across the quad, based on the top-left.
-    ShaderVariable a = workgroup[0].GetSrc(val);
-    ShaderVariable b = workgroup[xdirection ? 1 : 2].GetSrc(val);
-
-    for(uint8_t c = 0; c < a.columns; c++)
-      a.value.fv[c] = b.value.fv[c] - a.value.fv[c];
-
-    return a;
+    a = &workgroup[0];
+    b = &workgroup[xdirection ? 1 : 2];
   }
   else
   {
-    ShaderVariable a, b;
-
     // we need to figure out the exact pair to use
     int x = workgroupIndex & 1;
     int y = workgroupIndex / 2;
@@ -356,13 +351,13 @@ ShaderVariable ThreadState::CalcDeriv(ThreadState::DerivDir dir, ThreadState::De
         // top-left
         if(xdirection)
         {
-          a = workgroup[0].GetSrc(val);
-          b = workgroup[1].GetSrc(val);
+          a = &workgroup[0];
+          b = &workgroup[1];
         }
         else
         {
-          a = workgroup[0].GetSrc(val);
-          b = workgroup[2].GetSrc(val);
+          a = &workgroup[0];
+          b = &workgroup[2];
         }
       }
       else
@@ -370,13 +365,13 @@ ShaderVariable ThreadState::CalcDeriv(ThreadState::DerivDir dir, ThreadState::De
         // bottom-left
         if(xdirection)
         {
-          a = workgroup[2].GetSrc(val);
-          b = workgroup[3].GetSrc(val);
+          a = &workgroup[2];
+          b = &workgroup[3];
         }
         else
         {
-          a = workgroup[0].GetSrc(val);
-          b = workgroup[2].GetSrc(val);
+          a = &workgroup[0];
+          b = &workgroup[2];
         }
       }
     }
@@ -387,13 +382,13 @@ ShaderVariable ThreadState::CalcDeriv(ThreadState::DerivDir dir, ThreadState::De
         // top-right
         if(xdirection)
         {
-          a = workgroup[0].GetSrc(val);
-          b = workgroup[1].GetSrc(val);
+          a = &workgroup[0];
+          b = &workgroup[1];
         }
         else
         {
-          a = workgroup[1].GetSrc(val);
-          b = workgroup[3].GetSrc(val);
+          a = &workgroup[1];
+          b = &workgroup[3];
         }
       }
       else
@@ -401,23 +396,34 @@ ShaderVariable ThreadState::CalcDeriv(ThreadState::DerivDir dir, ThreadState::De
         // bottom-right
         if(xdirection)
         {
-          a = workgroup[2].GetSrc(val);
-          b = workgroup[3].GetSrc(val);
+          a = &workgroup[2];
+          b = &workgroup[3];
         }
         else
         {
-          a = workgroup[1].GetSrc(val);
-          b = workgroup[3].GetSrc(val);
+          a = &workgroup[1];
+          b = &workgroup[3];
         }
       }
     }
-
-    // do the subtract
-    for(uint8_t c = 0; c < a.columns; c++)
-      a.value.fv[c] = b.value.fv[c] - a.value.fv[c];
-
-    return a;
   }
+
+  if(a->Finished() || b->Finished())
+  {
+    debugger.GetAPIWrapper()->AddDebugMessage(
+        MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+        StringFormat::Fmt("Derivative calculation within non-uniform control flow on input %s",
+                          debugger.GetHumanName(val).c_str()));
+    return ShaderVariable("", 0.0f, 0.0f, 0.0f, 0.0f);
+  }
+
+  ShaderVariable aval = a->GetSrc(val);
+  ShaderVariable bval = b->GetSrc(val);
+
+  for(uint8_t c = 0; c < aval.columns; c++)
+    aval.value.fv[c] = bval.value.fv[c] - aval.value.fv[c];
+
+  return aval;
 }
 
 void ThreadState::JumpToLabel(Id target)
