@@ -65,6 +65,100 @@ void main()
 
 )EOSHADER";
 
+  const std::string asm_vertex = R"EOSHADER(
+               OpCapability Shader
+               OpMemoryModel Logical GLSL450
+               OpEntryPoint Vertex %main "main" %idx %pos
+               OpDecorate %idx BuiltIn VertexIndex
+               OpDecorate %pos BuiltIn Position
+       %void = OpTypeVoid
+          %3 = OpTypeFunction %void
+       %uint = OpTypeInt 32 0
+      %float = OpTypeFloat 32
+    %v4float = OpTypeVector %float 4
+    %v2float = OpTypeVector %float 2
+     %uint_4 = OpConstant %uint 4
+%_arr_v2float_uint_4 = OpTypeArray %v2float %uint_4
+%_ptr_Function__arr_v2float_uint_4 = OpTypePointer Function %_arr_v2float_uint_4
+   %float_n1 = OpConstant %float -1
+    %float_1 = OpConstant %float 1
+         %21 = OpConstantComposite %v2float %float_n1 %float_1
+         %22 = OpConstantComposite %v2float %float_1 %float_1
+         %23 = OpConstantComposite %v2float %float_n1 %float_n1
+         %24 = OpConstantComposite %v2float %float_1 %float_n1
+         %25 = OpConstantComposite %_arr_v2float_uint_4 %21 %22 %23 %24
+%_ptr_Function_v2float = OpTypePointer Function %v2float
+    %float_0 = OpConstant %float 0
+%_ptr_Input_uint = OpTypePointer Input %uint
+        %idx = OpVariable %_ptr_Input_uint Input
+%_ptr_Output_v4float = OpTypePointer Output %v4float
+%pos = OpVariable %_ptr_Output_v4float Output
+       %main = OpFunction %void None %3
+          %5 = OpLabel
+         %45 = OpVariable %_ptr_Function__arr_v2float_uint_4 Function
+         %39 = OpLoad %uint %idx
+               OpStore %45 %25
+         %49 = OpAccessChain %_ptr_Function_v2float %45 %39
+         %50 = OpLoad %v2float %49
+         %51 = OpCompositeExtract %float %50 0
+         %52 = OpCompositeExtract %float %50 1
+         %53 = OpCompositeConstruct %v4float %51 %52 %float_0 %float_1
+               OpStore %pos %53
+               OpReturn
+               OpFunctionEnd
+)EOSHADER";
+
+  const std::string asm_pixel = R"EOSHADER(
+               OpCapability Shader
+               OpMemoryModel Logical GLSL450
+               OpEntryPoint Fragment %main "main" %col %coord
+               OpExecutionMode %main OriginUpperLeft
+               OpDecorate %col Location 0
+               OpDecorate %imgs DescriptorSet 0
+               OpDecorate %imgs Binding 10
+               OpMemberDecorate %PushData 0 Offset 0
+               OpDecorate %PushData Block
+               OpDecorate %coord BuiltIn FragCoord
+       %void = OpTypeVoid
+          %3 = OpTypeFunction %void
+      %float = OpTypeFloat 32
+    %v4float = OpTypeVector %float 4
+%_ptr_Output_v4float = OpTypePointer Output %v4float
+        %col = OpVariable %_ptr_Output_v4float Output
+         %10 = OpTypeImage %float 2D 0 0 0 1 Unknown
+       %uint = OpTypeInt 32 0
+     %uint_4 = OpConstant %uint 4
+%_arr_10_uint_4 = OpTypeArray %10 %uint_4
+%_ptr_UniformConstant__arr_10_uint_4 = OpTypePointer UniformConstant %_arr_10_uint_4
+       %imgs = OpVariable %_ptr_UniformConstant__arr_10_uint_4 UniformConstant
+   %PushData = OpTypeStruct %uint
+%_ptr_PushConstant_PushData = OpTypePointer PushConstant %PushData
+       %push = OpVariable %_ptr_PushConstant_PushData PushConstant
+        %int = OpTypeInt 32 1
+      %int_0 = OpConstant %int 0
+%_ptr_PushConstant_uint = OpTypePointer PushConstant %uint
+%_ptr_UniformConstant_10 = OpTypePointer UniformConstant %10
+%_ptr_Input_v4float = OpTypePointer Input %v4float
+      %coord = OpVariable %_ptr_Input_v4float Input
+      %v4int = OpTypeVector %int 4
+      %v2int = OpTypeVector %int 2
+       %main = OpFunction %void None %3
+          %5 = OpLabel
+         %22 = OpAccessChain %_ptr_PushConstant_uint %push %int_0
+         %23 = OpLoad %uint %22
+         %25 = OpAccessChain %_ptr_UniformConstant_10 %imgs %23
+         %26 = OpLoad %10 %25
+         %29 = OpLoad %v4float %coord
+         %31 = OpConvertFToS %v4int %29
+         %33 = OpCompositeExtract %int %31 0
+         %34 = OpCompositeExtract %int %31 1
+         %35 = OpCompositeConstruct %v2int %33 %34
+         %36 = OpImageFetch %v4float %26 %35 Lod %int_0
+               OpStore %col %36
+               OpReturn
+               OpFunctionEnd
+)EOSHADER";
+
   struct refdatastruct
   {
     VkDescriptorImageInfo sampler;
@@ -150,6 +244,7 @@ void main()
        devExts.end())
     {
       timeline.timelineSemaphore = VK_TRUE;
+      timeline.pNext = (void *)devInfoNext;
       devInfoNext = &timeline;
     }
 
@@ -172,6 +267,18 @@ void main()
 
       if(vk12avail.timelineSemaphore)
         vk12.timelineSemaphore = VK_TRUE;
+    }
+
+    static VkPhysicalDeviceTransformFeedbackFeaturesEXT xfbFeats = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT,
+    };
+
+    if(std::find(devExts.begin(), devExts.end(), VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME) !=
+       devExts.end())
+    {
+      xfbFeats.transformFeedback = VK_TRUE;
+      xfbFeats.pNext = (void *)devInfoNext;
+      devInfoNext = &xfbFeats;
     }
   }
 
@@ -308,9 +415,25 @@ void main()
         {1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
     }));
 
+    VkPipelineLayout layout2 = createPipelineLayout(vkh::PipelineLayoutCreateInfo({setlayout2}));
+
     VkDescriptorSet descset2 = allocateDescriptorSet(setlayout2);
 
-    VkPipelineLayout layout2 = createPipelineLayout(vkh::PipelineLayoutCreateInfo({setlayout2}));
+    VkDescriptorSetLayout asm_setlayout =
+        createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
+            {0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, 0},
+            {1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, 0},
+            {2, VK_DESCRIPTOR_TYPE_SAMPLER, 3, 0},
+            {5, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 0},
+            {6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, VK_SHADER_STAGE_VERTEX_BIT},
+            {9, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, VK_SHADER_STAGE_VERTEX_BIT},
+            {10, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 4, VK_SHADER_STAGE_FRAGMENT_BIT},
+        }));
+
+    VkDescriptorSet asm_descset = allocateDescriptorSet(asm_setlayout);
+
+    VkPipelineLayout asm_layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
+        {asm_setlayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4)}));
 
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
@@ -346,6 +469,16 @@ void main()
     pipeCreateInfo.layout = layout2;
 
     VkPipeline pipe2 = createGraphicsPipeline(pipeCreateInfo);
+
+    pipeCreateInfo.stages = {
+        CompileShaderModule(asm_vertex, ShaderLang::spvasm, ShaderStage::vert, "main"),
+        CompileShaderModule(asm_pixel, ShaderLang::spvasm, ShaderStage::frag, "main"),
+    };
+
+    pipeCreateInfo.inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+    pipeCreateInfo.layout = asm_layout;
+
+    VkPipeline asm_pipe = createGraphicsPipeline(pipeCreateInfo);
 
     {
       // invalid handle - should not be used because the flag for derived pipelines is not used
@@ -785,6 +918,19 @@ void main()
                                     {vkh::DescriptorImageInfo(view1, VK_IMAGE_LAYOUT_GENERAL)}),
         });
 
+    vkh::updateDescriptorSets(
+        device,
+        {
+            vkh::WriteDescriptorSet(asm_descset, 10, 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                    {vkh::DescriptorImageInfo(view3, VK_IMAGE_LAYOUT_GENERAL)}),
+            vkh::WriteDescriptorSet(asm_descset, 10, 1, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                    {vkh::DescriptorImageInfo(view3, VK_IMAGE_LAYOUT_GENERAL)}),
+            vkh::WriteDescriptorSet(asm_descset, 10, 2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                    {vkh::DescriptorImageInfo(view3, VK_IMAGE_LAYOUT_GENERAL)}),
+            vkh::WriteDescriptorSet(asm_descset, 10, 3, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                    {vkh::DescriptorImageInfo(view3, VK_IMAGE_LAYOUT_GENERAL)}),
+        });
+
     refdatastruct resetrefdata = {};
     resetrefdata.sampler.sampler = resetrefdata.combined.sampler = validSampler;
     resetrefdata.sampled.imageView = resetrefdata.combined.imageView =
@@ -1201,6 +1347,18 @@ void main()
 
         setMarker(cmd, "Color Draw");
         vkCmdDraw(cmd, 3, 1, 0, 0);
+
+        VkRect2D sc = {100, 100, 10, 10};
+        vkCmdSetScissor(cmd, 0, 1, &sc);
+
+        uint32_t idx = 1;
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, asm_pipe);
+        vkCmdPushConstants(cmd, asm_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4, &idx);
+        vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, asm_layout, 0,
+                                   {asm_descset}, {});
+
+        setMarker(cmd, "ASM Draw");
+        vkCmdDraw(cmd, 4, 1, 0, 0);
 
         if(EXT_transform_feedback)
         {

@@ -123,6 +123,56 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         rdtest.log.success("RenderDoc tool was listed as available")
 
+        draw = self.find_draw("ASM Draw")
+
+        self.check(draw is not None)
+
+        draw = draw.next
+
+        self.controller.SetFrameEvent(draw.eventId, False)
+
+        vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
+
+        desc_set: rd.VKDescriptorSet = vkpipe.graphics.descriptorSets[0]
+
+        self.check(len(desc_set.bindings) == 11)
+
+        binding = desc_set.bindings[10]
+
+        self.check(binding.dynamicallyUsedCount == 1)
+        self.check(len(binding.binds) == 4)
+        self.check(not binding.binds[0].dynamicallyUsed)
+        self.check(binding.binds[1].dynamicallyUsed)
+        self.check(not binding.binds[2].dynamicallyUsed)
+        self.check(not binding.binds[3].dynamicallyUsed)
+
+        postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
+
+        postvs_ref = {
+            0: {
+                'vtx': 0,
+                'idx': 0,
+                '_Position': [-1.0,  1.0, 0.0, 1.0],
+            },
+            1: {
+                'vtx': 1,
+                'idx': 1,
+                '_Position': [ 1.0,  1.0, 0.0, 1.0],
+            },
+            2: {
+                'vtx': 2,
+                'idx': 2,
+                '_Position': [-1.0, -1.0, 0.0, 1.0],
+            },
+            3: {
+                'vtx': 3,
+                'idx': 3,
+                '_Position': [ 1.0, -1.0, 0.0, 1.0],
+            },
+        }
+
+        self.check_mesh_data(postvs_ref, postvs_data)
+
         # Check for resource leaks
         if len(self.controller.GetStructuredFile().chunks) > 500:
             raise rdtest.TestFailureException(
