@@ -1306,10 +1306,6 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
 
       psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
-      psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
-      psoDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
-      psoDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
-      psoDesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
       psoDesc.RasterizerState.MultisampleEnable = FALSE;
       psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
 
