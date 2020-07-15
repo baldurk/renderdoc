@@ -29,40 +29,7 @@ RD_TEST(VK_CBuffer_Zoo, VulkanGraphicsTest)
   static constexpr const char *Description =
       "Tests every kind of constant that can be in a cbuffer to make sure it's decoded correctly.";
 
-  std::string common = R"EOSHADER(
-
-#version 430 core
-
-struct v2f
-{
-	vec4 pos;
-	vec4 col;
-	vec4 uv;
-};
-
-)EOSHADER";
-
-  std::string vertex = R"EOSHADER(
-
-layout(location = 0) in vec3 Position;
-layout(location = 1) in vec4 Color;
-layout(location = 2) in vec2 UV;
-
-layout(location = 0) out v2f vertOut;
-
-void main()
-{
-	vertOut.pos = vec4(Position.xyz, 1);
-	gl_Position = vertOut.pos;
-	vertOut.col = Color;
-	vertOut.uv = vec4(UV.xy, 0, 1);
-}
-
-)EOSHADER";
-
   std::string glslpixel = R"EOSHADER(
-
-layout(location = 0) in v2f vertIn;
 
 layout(location = 0, index = 0) out vec4 Color;
 
@@ -620,8 +587,8 @@ float4 main() : SV_Target0
     };
 
     pipeCreateInfo.stages = {
-        CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
-        CompileShaderModule(common + glslpixel, ShaderLang::glsl, ShaderStage::frag, "main"),
+        CompileShaderModule(VKDefaultVertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(glslpixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
 
     float data[2] = {20.0f, 0.0f};

@@ -34,52 +34,9 @@ RD_TEST(VK_Parameter_Zoo, VulkanGraphicsTest)
       "General tests of parameters known to cause problems - e.g. optional values that should be "
       "ignored, edge cases, special values, etc.";
 
-  std::string common = R"EOSHADER(
-
-#version 420 core
-
-struct v2f
-{
-	vec4 pos;
-	vec4 col;
-	vec4 uv;
-};
-
-)EOSHADER";
-
-  const std::string vertex = R"EOSHADER(
-
-layout(location = 0) in vec3 Position;
-layout(location = 1) in vec4 Color;
-layout(location = 2) in vec2 UV;
-
-layout(location = 0) out v2f vertOut;
-
-void main()
-{
-	vertOut.pos = vec4(Position.xyz*vec3(1,-1,1), 1);
-	gl_Position = vertOut.pos;
-	vertOut.col = Color;
-	vertOut.uv = vec4(UV.xy, 0, 1);
-}
-
-)EOSHADER";
-
-  const std::string pixel = R"EOSHADER(
-
-layout(location = 0) in v2f vertIn;
-
-layout(location = 0, index = 0) out vec4 Color;
-
-void main()
-{
-	Color = vertIn.col;
-}
-
-)EOSHADER";
-
   const std::string pixel2 = R"EOSHADER(
 #version 450 core
+
 #extension GL_EXT_samplerless_texture_functions : enable
 
 layout(location = 0, index = 0) out vec4 Color;
@@ -367,8 +324,8 @@ void main()
     };
 
     pipeCreateInfo.stages = {
-        CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
-        CompileShaderModule(common + pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
+        CompileShaderModule(VKDefaultVertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(VKDefaultPixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
 
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
@@ -382,7 +339,7 @@ void main()
     VkPipeline refpipe = createGraphicsPipeline(pipeCreateInfo);
 
     pipeCreateInfo.stages = {
-        CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(VKDefaultVertex, ShaderLang::glsl, ShaderStage::vert, "main"),
         CompileShaderModule(pixel2, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
 

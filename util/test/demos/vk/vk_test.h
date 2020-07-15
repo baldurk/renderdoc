@@ -290,3 +290,6 @@ private:
 
   GraphicsWindow *MakePlatformWindow(int width, int height, const char *title);
 };
+
+extern std::string VKDefaultVertex;
+extern std::string VKDefaultPixel;

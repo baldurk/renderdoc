@@ -24,6 +24,50 @@
 
 #include "../test_common.h"
 
+static std::string common = R"EOSHADER(
+
+#version 460 core
+
+#define v2f v2f_block \
+{                     \
+	vec4 pos;           \
+	vec4 col;           \
+	vec4 uv;            \
+}
+
+)EOSHADER";
+
+std::string VKDefaultVertex = common + R"EOSHADER(
+
+layout(location = 0) in vec3 Position;
+layout(location = 1) in vec4 Color;
+layout(location = 2) in vec2 UV;
+
+layout(location = 0) out v2f vertOut;
+
+void main()
+{
+	vertOut.pos = vec4(Position.xyz*vec3(1,-1,1), 1);
+	gl_Position = vertOut.pos;
+	vertOut.col = Color;
+	vertOut.uv = vec4(UV.xy, 0, 1);
+}
+
+)EOSHADER";
+
+std::string VKDefaultPixel = common + R"EOSHADER(
+
+layout(location = 0) in v2f vertIn;
+
+layout(location = 0, index = 0) out vec4 Color;
+
+void main()
+{
+	Color = vertIn.col;
+}
+
+)EOSHADER";
+
 #define VMA_IMPLEMENTATION
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 

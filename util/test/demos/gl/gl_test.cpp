@@ -25,7 +25,7 @@
 #include "gl_test.h"
 #include <stdio.h>
 
-std::string common = R"EOSHADER(
+static std::string common = R"EOSHADER(
 
 #version 420 core
 

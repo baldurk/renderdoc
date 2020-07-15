@@ -28,13 +28,8 @@ RD_TEST(VK_Mesh_Zoo, VulkanGraphicsTest)
 {
   static constexpr const char *Description = "Draws some primitives for testing the mesh view.";
 
-  std::string common = R"EOSHADER(
-
-#version 420 core
-
-)EOSHADER";
-
   std::string vertex = R"EOSHADER(
+#version 460 core
 
 layout(location = 0) in vec3 Position;
 layout(location = 1) in vec4 Color;
@@ -71,6 +66,7 @@ void main()
 )EOSHADER";
 
   std::string pixel = R"EOSHADER(
+#version 460 core
 
 layout(location = 0) in vec2 vertInCol2;
 layout(location = 1) in vec4 vertIncol;
@@ -170,8 +166,8 @@ void main()
     };
 
     pipeCreateInfo.stages = {
-        CompileShaderModule(common + vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
-        CompileShaderModule(common + pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
+        CompileShaderModule(vertex, ShaderLang::glsl, ShaderStage::vert, "main"),
+        CompileShaderModule(pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
 
     pipeCreateInfo.depthStencilState.depthTestEnable = VK_TRUE;
@@ -181,7 +177,7 @@ void main()
 
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
-    pipeCreateInfo.stages[0] = CompileShaderModule(common + "\n#define USE_POINTS\n" + vertex,
+    pipeCreateInfo.stages[0] = CompileShaderModule("\n#define USE_POINTS\n" + vertex,
                                                    ShaderLang::glsl, ShaderStage::vert, "main"),
     pipeCreateInfo.inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 
