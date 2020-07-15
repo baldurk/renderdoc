@@ -1571,6 +1571,15 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
       ui->channelBlue->setChecked(true);
       ui->channelAlpha->setChecked(false);
 
+      // for alpha textures, only show the alpha channel
+      if(texptr->format.type == ResourceFormatType::A8)
+      {
+        ui->channelRed->setChecked(false);
+        ui->channelGreen->setChecked(false);
+        ui->channelBlue->setChecked(false);
+        ui->channelAlpha->setChecked(true);
+      }
+
       ui->depthDisplay->setChecked(true);
       ui->stencilDisplay->setChecked(false);
 
