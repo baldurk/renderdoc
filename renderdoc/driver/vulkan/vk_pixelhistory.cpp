@@ -141,6 +141,7 @@ struct CopyPixelParams
   VkFormat srcImageFormat;
   VkImageLayout srcImageLayout;
   bool multisampled;
+  bool multiview;
 };
 
 struct PixelHistoryResources
@@ -628,8 +629,8 @@ protected:
   // a single draw. The new renderpass also replaces the depth stencil attachment, so
   // it can be used to count the number of fragments. Optionally, the new renderpass
   // changes the format for the color image that corresponds to colorIdx attachment.
-  VkRenderPass CreateRenderPass(ResourceId rp, VkFormat newColorFormat = VK_FORMAT_UNDEFINED,
-                                uint32_t colorIdx = 0)
+  VkRenderPass CreateRenderPass(ResourceId rp, bool &multiview,
+                                VkFormat newColorFormat = VK_FORMAT_UNDEFINED, uint32_t colorIdx = 0)
   {
     const VulkanCreationInfo::RenderPass &rpInfo =
         m_pDriver->GetDebugManager()->GetRenderPassInfo(rp);
@@ -761,6 +762,23 @@ protected:
     rpCreateInfo.pAttachments = descs.data();
     rpCreateInfo.dependencyCount = 0;
     rpCreateInfo.pDependencies = NULL;
+
+    uint32_t multiviewMask = 0;
+
+    VkRenderPassMultiviewCreateInfo multiviewRP = {
+        VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO};
+    multiviewRP.correlationMaskCount = 1;
+    multiviewRP.pCorrelationMasks = &multiviewMask;
+    multiviewRP.subpassCount = 1;
+    multiviewRP.pViewMasks = &multiviewMask;
+
+    multiview = false;
+    if(sub.multiviews.size() > 1)
+    {
+      multiviewMask = 1U << m_CallbackInfo.targetSubresource.slice;
+      rpCreateInfo.pNext = &multiviewRP;
+      multiview = true;
+    }
 
     VkRenderPass renderpass;
     VkResult vkr =
@@ -895,8 +913,10 @@ protected:
     uint32_t baseMip = m_CallbackInfo.targetSubresource.mip;
     uint32_t baseSlice = m_CallbackInfo.targetSubresource.slice;
     // The images that are created specifically for evaluating pixel history are
-    // already based on the target mip/slice.
-    if((p.srcImage == m_CallbackInfo.subImage) || (p.srcImage == m_CallbackInfo.dsImage))
+    // already based on the target mip/slice. Unless we're using multiview, in which case the output
+    // is still view-dependent.
+    if(!p.multiview &&
+       ((p.srcImage == m_CallbackInfo.subImage) || (p.srcImage == m_CallbackInfo.dsImage)))
     {
       baseMip = 0;
       baseSlice = 0;
@@ -1241,7 +1261,8 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
     uint32_t prevSubpass = pipestate.subpass;
 
     {
-      VkRenderPass newRp = CreateRenderPass(pipestate.renderPass);
+      bool multiview = false;
+      VkRenderPass newRp = CreateRenderPass(pipestate.renderPass, multiview);
       VkFramebuffer newFb =
           CreateFramebuffer(pipestate.renderPass, newRp, pipestate.GetFramebuffer());
 
@@ -1269,6 +1290,7 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       params.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
       params.srcImageFormat = m_CallbackInfo.dsFormat;
       params.multisampled = (m_CallbackInfo.samples != VK_SAMPLE_COUNT_1_BIT);
+      params.multiview = multiview;
       // Copy stencil value that indicates the number of fragments ignoring
       // shader discard.
       CopyImagePixel(cmd, params, storeOffset + offsetof(struct EventInfo, dsWithoutShaderDiscard));
@@ -1560,7 +1582,7 @@ private:
       rect.rect.extent.width = 1;
       rect.rect.extent.height = 1;
       rect.baseArrayLayer = 0;
-      rect.layerCount = 1;
+      rect.layerCount = m_CallbackInfo.layers;
       ObjDisp(cmd)->CmdClearAttachments(Unwrap(cmd), 1, &att, 1, &rect);
     }
 
@@ -2157,8 +2179,9 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       }
     }
 
-    VkRenderPass newRp =
-        CreateRenderPass(state.renderPass, VK_FORMAT_R32G32B32A32_SFLOAT, framebufferIndex);
+    bool multiview = false;
+    VkRenderPass newRp = CreateRenderPass(state.renderPass, multiview,
+                                          VK_FORMAT_R32G32B32A32_SFLOAT, framebufferIndex);
 
     VkFramebuffer newFb = CreateFramebuffer(state.renderPass, newRp, state.GetFramebuffer(),
                                             m_CallbackInfo.subImageView, framebufferIndex);
@@ -2179,6 +2202,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     colourCopyParams.srcImage = m_CallbackInfo.subImage;
     colourCopyParams.srcImageFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
     colourCopyParams.multisampled = (m_CallbackInfo.samples != VK_SAMPLE_COUNT_1_BIT);
+    colourCopyParams.multiview = multiview;
     if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
     {
       colourCopyParams.srcImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -2205,17 +2229,17 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
           continue;
         }
 
-        VkImageMemoryBarrier barrier = {
-            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            NULL,
-            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-            VK_ACCESS_TRANSFER_WRITE_BIT,
-            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_QUEUE_FAMILY_IGNORED,
-            VK_QUEUE_FAMILY_IGNORED,
-            Unwrap(m_CallbackInfo.dsImage),
-            {VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1}};
+        VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                        NULL,
+                                        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                        VK_ACCESS_TRANSFER_WRITE_BIT,
+                                        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                        VK_QUEUE_FAMILY_IGNORED,
+                                        VK_QUEUE_FAMILY_IGNORED,
+                                        Unwrap(m_CallbackInfo.dsImage),
+                                        {VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0,
+                                         1, 0, m_CallbackInfo.layers}};
 
         DoPipelineBarrier(cmd, 1, &barrier);
 
@@ -2229,7 +2253,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
         range.baseArrayLayer = 0;
         range.baseMipLevel = 0;
-        range.layerCount = 1;
+        range.layerCount = m_CallbackInfo.layers;
         range.levelCount = 1;
 
         ObjDisp(cmd)->CmdClearDepthStencilImage(Unwrap(cmd), Unwrap(m_CallbackInfo.dsImage),
@@ -2778,7 +2802,7 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   viewInfo.image = colorImage;
   viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
   viewInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-  viewInfo.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+  viewInfo.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, imgInfo.arrayLayers};
 
   if(samples != VK_SAMPLE_COUNT_1_BIT)
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
@@ -2788,7 +2812,8 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
 
   viewInfo.image = dsImage;
   viewInfo.format = dsFormat;
-  viewInfo.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1};
+  viewInfo.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0,
+                               imgInfo.arrayLayers};
 
   vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &dsImageView);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
