@@ -2232,7 +2232,13 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     Pipelines pipes = CreatePerFragmentPipelines(curPipeline, newRp, eid, 0, colorOutputIndex);
 
     for(uint32_t i = 0; i < state.views.size(); i++)
+    {
       ScissorToPixel(state.views[i], state.scissors[i]);
+
+      state.scissors[i].offset.x &= ~0x1;
+      state.scissors[i].offset.y &= ~0x1;
+      state.scissors[i].extent = {2, 2};
+    }
 
     state.renderPass = GetResID(newRp);
     state.SetFramebuffer(m_pDriver, GetResID(newFb));
@@ -2470,8 +2476,6 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
     VkPipelineDepthStencilStateCreateInfo *ds =
         (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
-    VkPipelineMultisampleStateCreateInfo *ms =
-        (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
 
     VkRect2D newScissors[16];
     memset(newScissors, 0, sizeof(newScissors));
@@ -2486,8 +2490,6 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       ds->front.writeMask = 0xff;
       ds->front.reference = 0;
       ds->back = ds->front;
-
-      ms->pSampleMask = &m_CallbackInfo.sampleMask;
     }
 
     stages.resize(pipeCreateInfo.stageCount);
