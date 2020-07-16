@@ -1891,8 +1891,19 @@ void Debugger::AllocateVariable(Id id, Id typeId, ShaderVariable &outVar)
   // allocs should always be pointers
   RDCASSERT(dataTypes[typeId].type == DataType::PointerType);
 
+  auto initCallback = [](ShaderVariable &var, const Decorations &, const DataType &, uint64_t,
+                         const rdcstr &) {
+    // ignore any callbacks we get on the way up for structs/arrays, we don't need it we only read
+    // or write at primitive level
+    if(!var.members.empty())
+      return;
+
+    // make it obvious when uninitialised values are used
+    memset(var.value.u64v, 0xcc, sizeof(var.value.u64v));
+  };
+
   WalkVariable<ShaderVariable, true>(Decorations(), dataTypes[dataTypes[typeId].InnerType()], ~0U,
-                                     outVar, rdcstr(), NULL);
+                                     outVar, rdcstr(), initCallback);
 }
 
 template <typename ShaderVarType, bool allocate>
