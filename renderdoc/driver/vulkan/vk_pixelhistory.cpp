@@ -2360,6 +2360,20 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       depthFormat = imginfo.format;
     }
 
+    // use the original renderpass and framebuffer attachment
+    state.renderPass = prevState.renderPass;
+    state.SetFramebuffer(prevState.GetFramebuffer(), prevState.GetFramebufferAttachments());
+
+    colourCopyParams.srcImage = m_CallbackInfo.targetImage;
+    colourCopyParams.srcImageFormat = m_CallbackInfo.targetImageFormat;
+    colourCopyParams.multisampled = (m_CallbackInfo.samples != VK_SAMPLE_COUNT_1_BIT);
+    VkImageAspectFlagBits aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+    if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
+      aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+    colourCopyParams.srcImageLayout = m_pDriver->GetDebugManager()->GetImageLayout(
+        GetResID(m_CallbackInfo.targetImage), aspect, m_CallbackInfo.targetSubresource.mip,
+        m_CallbackInfo.targetSubresource.slice);
+
     const ModificationValue &premod = m_EventPremods[eid];
     // For every fragment except the last one, retrieve post-modification
     // value.
@@ -2396,7 +2410,10 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         clearAtts[1].aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
         clearAtts[1].clearValue.depthStencil.depth = premod.depth;
 
-        ObjDisp(cmd)->CmdClearAttachments(Unwrap(cmd), 2, clearAtts, 1, &rect);
+        if(IsDepthOrStencilFormat(m_CallbackInfo.targetImageFormat))
+          ObjDisp(cmd)->CmdClearAttachments(Unwrap(cmd), 1, clearAtts + 1, 1, &rect);
+        else
+          ObjDisp(cmd)->CmdClearAttachments(Unwrap(cmd), 2, clearAtts, 1, &rect);
       }
 
       ObjDisp(cmd)->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
@@ -2418,9 +2435,9 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       if(depthImage != VK_NULL_HANDLE)
       {
         CopyPixelParams depthCopyParams = colourCopyParams;
-        depthCopyParams.srcImage = m_CallbackInfo.dsImage;
-        depthCopyParams.srcImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        depthCopyParams.srcImageFormat = m_CallbackInfo.dsFormat;
+        depthCopyParams.srcImage = depthImage;
+        depthCopyParams.srcImageLayout = sub.depthLayout;
+        depthCopyParams.srcImageFormat = depthFormat;
         CopyImagePixel(cmd, depthCopyParams, (fragsProcessed + f) * sizeof(PerFragmentInfo) +
                                                  offsetof(struct PerFragmentInfo, postMod) +
                                                  offsetof(struct PixelHistoryValue, depth));
@@ -2490,6 +2507,14 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         stages[i].module = replacement;
     }
     pipeCreateInfo.pStages = stages.data();
+
+    // the postmod pipe is used with the original renderpass and attachment setup
+    Pipelines pipes = {};
+    VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
+                                                        &pipeCreateInfo, NULL, &pipes.postModPipe);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    m_PipesToDestroy.push_back(pipes.postModPipe);
+
     pipeCreateInfo.renderPass = rp;
 
     VkPipelineColorBlendStateCreateInfo *cbs =
@@ -2523,12 +2548,6 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
       atts = newAtts.data();
     }
-
-    Pipelines pipes = {};
-    VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
-                                                        &pipeCreateInfo, NULL, &pipes.postModPipe);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-    m_PipesToDestroy.push_back(pipes.postModPipe);
 
     for(uint32_t i = 0; i < cbs->attachmentCount; i++)
     {
@@ -3488,8 +3507,12 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
         if((h < history.size() - 1) && (history[h].eventId == history[h + 1].eventId))
         {
           // Get post-modification value if this is not the last fragment for the event.
-          FillInColor(shaderOutFormat, bp[offset].postMod, history[h].postMod);
-          history[h].postMod.depth = bp[offset].postMod.depth.fdepth;
+          FillInColor(fmt, bp[offset].postMod, history[h].postMod);
+          // MSAA depth is expanded out to floats in the compute shader
+          if((uint32_t)callbackInfo.samples > 1)
+            history[h].postMod.depth = bp[offset].postMod.depth.fdepth;
+          else
+            history[h].postMod.depth = GetDepthValue(cb.GetDepthFormat(eid), bp[offset].postMod);
         }
         // If it is not the first fragment for the event, set the preMod to the
         // postMod of the previous fragment.
