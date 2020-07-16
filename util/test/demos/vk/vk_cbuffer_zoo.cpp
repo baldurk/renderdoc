@@ -30,6 +30,7 @@ RD_TEST(VK_CBuffer_Zoo, VulkanGraphicsTest)
       "Tests every kind of constant that can be in a cbuffer to make sure it's decoded correctly.";
 
   std::string glslpixel = R"EOSHADER(
+#version 460 core
 
 layout(location = 0, index = 0) out vec4 Color;
 

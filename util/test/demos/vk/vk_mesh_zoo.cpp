@@ -177,8 +177,8 @@ void main()
 
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
-    pipeCreateInfo.stages[0] = CompileShaderModule("\n#define USE_POINTS\n" + vertex,
-                                                   ShaderLang::glsl, ShaderStage::vert, "main"),
+    pipeCreateInfo.stages[0] = CompileShaderModule(vertex, ShaderLang::glsl, ShaderStage::vert,
+                                                   "main", {std::make_pair("USE_POINTS", "1")}),
     pipeCreateInfo.inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 
     VkPipeline pointspipe = createGraphicsPipeline(pipeCreateInfo);
