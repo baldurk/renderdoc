@@ -566,7 +566,7 @@ class TestCase:
         remaining = ''
 
         # Otherwise, take off any child if we haven't started recursing
-        m = re.match("([a-zA-Z0-9_]+)(\[|\..*)", path)
+        m = re.match("([a-zA-Z0-9_]+)(\[.*|\..*)", path)
         if m:
             child = m.group(1)
             remaining = m.group(2)
