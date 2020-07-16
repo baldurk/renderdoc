@@ -696,9 +696,9 @@ rdcstr GetTextureCompleteStatus(GLenum target, GLuint tex, GLuint sampler)
     * The minification filter requires a mipmap (is neither NEAREST nor LINEAR), and the texture is
       not mipmap complete. [RULE_12]
     * Any of
-        – The internal format of the texture is integer (see table 8.12). [RULE_13]
-        – The internal format is STENCIL_INDEX. [RULE_14]
-        – The internal format is DEPTH_STENCIL, and the value of DEPTH_STENCIL_TEXTURE_MODE for the
+        - The internal format of the texture is integer (see table 8.12). [RULE_13]
+        - The internal format is STENCIL_INDEX. [RULE_14]
+        - The internal format is DEPTH_STENCIL, and the value of DEPTH_STENCIL_TEXTURE_MODE for the
           texture is STENCIL_INDEX. [RULE_15]
       and either the magnification filter is not NEAREST, or the minification filter is neither
       NEAREST nor NEAREST_MIPMAP_NEAREST
