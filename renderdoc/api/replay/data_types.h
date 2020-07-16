@@ -1770,6 +1770,15 @@ struct ModificationValue
 
   DOCUMENT("The stencil output, or ``-1`` if not available.");
   int32_t stencil;
+
+  DOCUMENT("Returns whether or not this modification value is valid.");
+  bool IsValid() const { return col.uintValue[0] != 0xdeadbeef || col.uintValue[1] != 0xdeadf00d; }
+  DOCUMENT("Sets this modification value to be invalid.");
+  void SetInvalid()
+  {
+    col.uintValue[0] = 0xdeadbeef;
+    col.uintValue[1] = 0xdeadf00d;
+  }
 };
 
 DECLARE_REFLECTION_STRUCT(ModificationValue);

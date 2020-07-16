@@ -3266,6 +3266,9 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     if(eventIndex == -1)
     {
       // There is no information, skip the event.
+      mod.preMod.SetInvalid();
+      mod.postMod.SetInvalid();
+      mod.shaderOut.SetInvalid();
       h++;
       continue;
     }

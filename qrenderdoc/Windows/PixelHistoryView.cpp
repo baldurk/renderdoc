@@ -476,6 +476,9 @@ private:
 
   QBrush backgroundBrush(const ModificationValue &val) const
   {
+    if(!val.IsValid())
+      return QBrush();
+
     float rangesize = (m_Display.rangeMax - m_Display.rangeMin);
 
     float r = val.col.floatValue[0];
@@ -520,6 +523,9 @@ private:
   QString modString(const ModificationValue &val, int forceComps = 0) const
   {
     QString s;
+
+    if(!val.IsValid())
+      return tr("Unavailable");
 
     int numComps = (int)(m_Tex->format.compCount);
 

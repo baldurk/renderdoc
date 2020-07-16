@@ -218,6 +218,11 @@ class Iter_Test(rdtest.TestCase):
                 lastmod = None
                 continue
 
+            if not mod.shaderOut.IsValid():
+                rdtest.log.print("This hit's shader out is not valid, looking for one that valid....")
+                lastmod = None
+                continue
+
             break
 
         if target == pipe.GetDepthTarget().resourceId:
