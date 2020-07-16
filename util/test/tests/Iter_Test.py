@@ -140,6 +140,11 @@ class Iter_Test(rdtest.TestCase):
                 else:
                     debugged = value.value.fv[0:value.columns]
 
+                # For now, ignore debugged values that are uninitialised. This is an application bug but it causes false reports of problems
+                for idx in range(4):
+                    if value.value.uv[idx] == 0xcccccccc:
+                        debugged[idx] = expect[idx]
+
                 # Unfortunately we can't ever trust that we should get back a matching results, because some shaders
                 # rely on undefined/inaccurate maths that we don't emulate.
                 # So the best we can do is log an error for manual verification
@@ -267,6 +272,11 @@ class Iter_Test(rdtest.TestCase):
                     self.controller.FreeTrace(trace)
 
                     debuggedValue = [debugged.value.f.x, debugged.value.f.y, debugged.value.f.z, debugged.value.f.w]
+
+                    # For now, ignore debugged values that are uninitialised. This is an application bug but it causes false reports of problems
+                    for idx in range(4):
+                        if debugged.value.uv[idx] == 0xcccccccc:
+                            debuggedValue[idx] = lastmod.shaderOut.col.floatValue[idx]
 
                     # Unfortunately we can't ever trust that we should get back a matching results, because some shaders
                     # rely on undefined/inaccurate maths that we don't emulate.
