@@ -31,13 +31,17 @@ class VK_Pixel_History(rdtest.TestCase):
             rdtest.log.print("Vulkan pixel history not tested")
             return
 
+        self.is_depth = False
         self.primary_test()
         self.multisampled_image_test()
         self.secondary_cmd_test()
+
+        self.is_depth = True
         self.depth_target_test()
+        self.multisampled_image_test()
 
     def primary_test(self):
-        test_marker: rd.DrawcallDescription = self.find_draw("Test")
+        test_marker: rd.DrawcallDescription = self.find_draw("Test Begin")
         self.controller.SetFrameEvent(test_marker.next.eventId, True)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
@@ -59,7 +63,7 @@ class VK_Pixel_History(rdtest.TestCase):
         unbound_fs_eid = self.find_draw("Unbound Fragment Shader").next.eventId
         background_eid = self.find_draw("Background").next.eventId
         cull_eid = self.find_draw("Cull Front").next.eventId
-        test_eid = self.find_draw("Test").next.eventId
+        test_eid = self.find_draw("Test Begin").next.eventId
         fixed_scissor_fail_eid = self.find_draw("Fixed Scissor Fail").next.eventId
         fixed_scissor_pass_eid = self.find_draw("Fixed Scissor Pass").next.eventId
         dynamic_stencil_ref_eid = self.find_draw("Dynamic Stencil Ref").next.eventId
@@ -124,9 +128,12 @@ class VK_Pixel_History(rdtest.TestCase):
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, background_eid], [passed, True]],
             [[event_id, fixed_scissor_fail_eid], [scissor_clipped, True]],
-            [[event_id, fixed_scissor_pass_eid], [passed, True], [shader_out_col, (0.0, 1.0, 0.0, 1.0)]],
-            [[event_id, dynamic_stencil_ref_eid], [passed, True], [shader_out_col, (0.0, 0.0, 1.0, 1.0)]],
-            [[event_id, dynamic_stencil_mask_eid], [passed, True], [shader_out_col, (0.0, 1.0, 1.0, 1.0)]],
+            [[event_id, fixed_scissor_pass_eid], [passed, True], [shader_out_col, (0.0, 1.0, 0.0, 2.75)],
+             [post_mod_col, (0.0, 1.0, 0.0, 1.0)]],
+            [[event_id, dynamic_stencil_ref_eid], [passed, True], [shader_out_col, (0.0, 0.0, 1.0, 2.75)],
+             [post_mod_col, (0.0, 0.0, 1.0, 1.0)]],
+            [[event_id, dynamic_stencil_mask_eid], [passed, True], [shader_out_col, (0.0, 1.0, 1.0, 2.75)],
+             [post_mod_col, (0.0, 1.0, 1.0, 1.0)]],
         ]
         self.check_events(events, modifs, False)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
@@ -140,16 +147,21 @@ class VK_Pixel_History(rdtest.TestCase):
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, background_eid], [passed, True]],
-            [[event_id, depth_test_eid], [primitive_id, 0], [shader_out_col, (1.0, 1.0, 1.0, 1.0)],
-                [shader_out_depth, 0.97], [post_mod_col, (1.0, 0.0, 1.0, 1.0)], [post_mod_depth, 0.95]],
-            [[event_id, depth_test_eid], [primitive_id, 1], [shader_out_col, (1.0, 1.0, 0.0, 1.0)],
-                [shader_out_depth, 0.20], [post_mod_col, (1.0, 1.0, 0.0, 1.0)], [post_mod_depth, 0.20]],
-            [[event_id, depth_test_eid], [primitive_id, 2], [shader_out_col, (1.0, 0.0, 0.0, 1.0)],
-                [shader_out_depth, 0.30], [post_mod_col, (1.0, 1.0, 0.0, 1.0)], [post_mod_depth, 0.20]],
-            [[event_id, depth_test_eid], [primitive_id, 3], [shader_out_col, (0.0, 0.0, 1.0, 1.0)],
-                [shader_out_depth, 0.10], [post_mod_col, (0.0, 0.0, 1.0, 1.0)], [post_mod_depth, 0.10]],
-            [[event_id, depth_test_eid], [primitive_id, 4], [shader_out_col, (1.0, 1.0, 1.0, 1.0)],
-                [shader_out_depth, 0.05], [post_mod_col, (0.0, 0.0, 1.0, 1.0)], [post_mod_depth, 0.10]],
+            [[event_id, depth_test_eid], [primitive_id, 0], [depth_test_failed, True],
+             [shader_out_col, (1.0, 1.0, 1.0, 2.75)], [shader_out_depth, 0.97], [post_mod_col, (1.0, 0.0, 1.0, 1.0)],
+             [post_mod_depth, 0.95]],
+            [[event_id, depth_test_eid], [primitive_id, 1], [depth_test_failed, False],
+             [shader_out_col, (1.0, 1.0, 0.0, 2.75)], [shader_out_depth, 0.20], [post_mod_col, (1.0, 1.0, 0.0, 1.0)],
+             [post_mod_depth, 0.20]],
+            [[event_id, depth_test_eid], [primitive_id, 2], [depth_test_failed, True],
+             [shader_out_col, (1.0, 0.0, 0.0, 2.75)], [shader_out_depth, 0.30], [post_mod_col, (1.0, 1.0, 0.0, 1.0)],
+             [post_mod_depth, 0.20]],
+            [[event_id, depth_test_eid], [primitive_id, 3], [depth_test_failed, False],
+             [shader_out_col, (0.0, 0.0, 1.0, 2.75)], [shader_out_depth, 0.10], [post_mod_col, (0.0, 0.0, 1.0, 1.0)],
+             [post_mod_depth, 0.10]],
+            [[event_id, depth_test_eid], [primitive_id, 4], [depth_test_failed, False],
+             [shader_out_col, (1.0, 1.0, 1.0, 2.75)], [shader_out_depth, 0.05], [post_mod_col, (0.0, 0.0, 1.0, 1.0)],
+             [post_mod_depth, 0.10]],
         ]
         self.check_events(events, modifs, False)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
@@ -161,6 +173,10 @@ class VK_Pixel_History(rdtest.TestCase):
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
         rt: rd.BoundResource = pipe.GetOutputTargets()[0]
+
+        if self.is_depth:
+            rt: rd.BoundResource = pipe.GetDepthTarget()
+
         sub = rd.Subresource()
         tex = rt.resourceId
         tex_details = self.get_texture(tex)
@@ -173,30 +189,49 @@ class VK_Pixel_History(rdtest.TestCase):
         sub.sample = 1
         rdtest.log.print("Testing pixel {}, {} at sample {}".format(x, y, sub.sample))
         modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+
         events = [
-            [[event_id, beg_renderpass_eid], [passed, True], [post_mod_col, (0.0, 1.0, 0.0, 1.0)], [post_mod_depth, 0.0]],
-            [[event_id, draw_eid], [passed, True], [primitive_id, 0],
-                [shader_out_col, (1.0, 0.0, 1.0, 1.0)], [post_mod_col, (1.0, 0.0, 1.0, 1.0)],
-                [pre_mod_depth, 0.0], [shader_out_depth, 0.9], [post_mod_depth, 0.9]],
-            [[event_id, draw_eid], [passed, True], [primitive_id, 1],
-                [shader_out_col, (0.0, 0.0, 1.0, 1.0)], [post_mod_col, (0.0, 0.0, 1.0, 1.0)],
-                [shader_out_depth, 0.95], [post_mod_depth, 0.95]],
+            [[event_id, beg_renderpass_eid], [passed, True], [post_mod_depth, 0.0]],
+            [[event_id, draw_eid], [passed, True], [primitive_id, 0], [pre_mod_depth, 0.0], [shader_out_depth, 0.9],
+             [post_mod_depth, 0.9]],
+            [[event_id, draw_eid], [passed, True], [primitive_id, 1], [shader_out_depth, 0.95], [post_mod_depth, 0.95]],
         ]
+
+        if not self.is_depth:
+            events[0] += [[post_mod_col, (0.0, 1.0, 0.0, 1.0)]]
+            events[1] += [[shader_out_col, (1.0, 0.0, 1.0, 2.75)], [post_mod_col, (1.0, 0.0, 1.0, 1.0)]]
+            events[2] += [[shader_out_col, (0.0, 0.0, 1.0, 2.75)], [post_mod_col, (0.0, 0.0, 1.0, 1.0)]]
+
         self.check_events(events, modifs, True)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+        if self.is_depth:
+            self.check_pixel_value(tex, x, y, [modifs[-1].postMod.depth, float(modifs[-1].postMod.stencil)/255.0, 0.0, 1.0], sub=sub, cast=rt.typeCast)
+        else:
+            self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
 
         sub.sample = 2
         rdtest.log.print("Testing pixel {}, {} at sample {}".format(x, y, sub.sample))
         modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
         events = [
-            [[event_id, beg_renderpass_eid], [passed, True], [post_mod_col, (0.0, 1.0, 0.0, 1.0)]],
-            [[event_id, draw_eid], [passed, True], [primitive_id, 0],
-                [shader_out_col, (1.0, 0.0, 1.0, 1.0)], [post_mod_col, (1.0, 0.0, 1.0, 1.0)]],
-            [[event_id, draw_eid], [passed, True], [primitive_id, 1],
-                [shader_out_col, (0.0, 1.0, 1.0, 1.0)], [post_mod_col, (0.0, 1.0, 1.0, 1.0)]],
+            [[event_id, beg_renderpass_eid], [passed, True], [post_mod_depth, 0.0]],
+            [[event_id, draw_eid], [passed, True], [primitive_id, 0], [pre_mod_depth, 0.0], [shader_out_depth, 0.9],
+             [post_mod_depth, 0.9]],
+            [[event_id, draw_eid], [passed, True], [primitive_id, 1], [shader_out_depth, 0.95], [post_mod_depth, 0.95]],
         ]
+
+        if not self.is_depth:
+            events[0] += [[post_mod_col, (0.0, 1.0, 0.0, 1.0)]]
+            events[1] += [[shader_out_col, (1.0, 0.0, 1.0, 2.75)], [post_mod_col, (1.0, 0.0, 1.0, 1.0)]]
+            events[2] += [[shader_out_col, (0.0, 1.0, 1.0, 2.75)], [post_mod_col, (0.0, 1.0, 1.0, 1.0)]]
+
         self.check_events(events, modifs, True)
-        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+        if self.is_depth:
+            self.check_pixel_value(tex, x, y,
+                                   [modifs[-1].postMod.depth, float(modifs[-1].postMod.stencil) / 255.0, 0.0, 1.0],
+                                   sub=sub, cast=rt.typeCast)
+        else:
+            self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
 
     def secondary_cmd_test(self):
         secondary_marker: rd.DrawcallDescription = self.find_draw("Secondary: red and blue")
@@ -255,7 +290,7 @@ class VK_Pixel_History(rdtest.TestCase):
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
 
     def depth_target_test(self):
-        test_marker: rd.DrawcallDescription = self.find_draw("Test")
+        test_marker: rd.DrawcallDescription = self.find_draw("Test Begin")
         self.controller.SetFrameEvent(test_marker.next.eventId, True)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
@@ -273,7 +308,7 @@ class VK_Pixel_History(rdtest.TestCase):
 
         begin_renderpass_eid = self.find_draw("Begin RenderPass").next.eventId
         background_eid = self.find_draw("Background").next.eventId
-        test_eid = self.find_draw("Test").next.eventId
+        test_eid = self.find_draw("Test Begin").next.eventId
 
         x, y = 200, 190
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
@@ -281,8 +316,8 @@ class VK_Pixel_History(rdtest.TestCase):
         events = [
             [[event_id, begin_renderpass_eid], [passed, True], [post_mod_depth, 1.0]],
             [[event_id, background_eid], [passed, True], [primitive_id, 0], [pre_mod_depth, 1.0], [post_mod_depth, 0.95]],
-            [[event_id, test_eid], [passed, True], [primitive_id, 0], [shader_out_depth, 0.5], [post_mod_depth, 0.5]],
-            [[event_id, test_eid], [passed, True], [primitive_id, 1], [shader_out_depth, 0.6], [post_mod_depth, 0.5]],
+            [[event_id, test_eid], [passed, True], [depth_test_failed, False], [primitive_id, 0], [shader_out_depth, 0.5], [post_mod_depth, 0.5]],
+            [[event_id, test_eid], [passed, False], [depth_test_failed, True], [primitive_id, 1], [shader_out_depth, 0.6], [post_mod_depth, 0.5]],
         ]
         self.check_events(events, modifs, False)
 
@@ -307,21 +342,33 @@ class VK_Pixel_History(rdtest.TestCase):
     def check_modifs_consistent(self, modifs):
         # postmod of each should match premod of the next
         for i in range(len(modifs) - 1):
-            if value_selector(modifs[i].postMod.col) != value_selector(modifs[i + 1].preMod.col):
+            a = value_selector(modifs[i].postMod.col)
+            b = value_selector(modifs[i + 1].preMod.col)
+
+            if self.is_depth:
+                a = (modifs[i].postMod.depth, modifs[i].postMod.stencil)
+                b = (modifs[i + 1].preMod.depth, modifs[i + 1].preMod.stencil)
+
+            if a != b:
                 raise rdtest.TestFailureException(
                     "postmod at {} primitive {}: {} doesn't match premod at {} primitive {}: {}".format(modifs[i].eventId,
                                                                               modifs[i].primitiveID,
-                                                                              value_selector(modifs[i].postMod.col),
+                                                                              a,
                                                                               modifs[i + 1].eventId,
                                                                               modifs[i + 1].primitiveID,
-                                                                              value_selector(modifs[i].preMod.col)))
+                                                                              b))
 
         # Check that if the test failed, its postmod is the same as premod
         for i in range(len(modifs)):
             if not modifs[i].Passed():
-                if not rdtest.value_compare(value_selector(modifs[i].preMod.col), value_selector(modifs[i].postMod.col)):
+                a = value_selector(modifs[i].preMod.col)
+                b = value_selector(modifs[i].postMod.col)
+
+                if self.is_depth:
+                    a = (modifs[i].preMod.depth, modifs[i].preMod.stencil)
+                    b = (modifs[i].postMod.depth, modifs[i].postMod.stencil)
+
+                if not rdtest.value_compare(a, b):
                     raise rdtest.TestFailureException(
                         "postmod at {} primitive {}: {} doesn't match premod: {}".format(modifs[i].eventId,
-                                                                            modifs[i].primitiveID,
-                                                                            value_selector(modifs[i].postMod.col),
-                                                                            value_selector(modifs[i].preMod.col)))
+                                                                                         modifs[i].primitiveID, b, a))

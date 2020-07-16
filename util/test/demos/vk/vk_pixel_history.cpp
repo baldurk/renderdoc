@@ -69,7 +69,7 @@ void main()
 {
   if (gl_FragCoord.x < 151 && gl_FragCoord.x > 150)
     discard;
-	Color = vertIn.col;
+	Color = vertIn.col + vec4(0, 0, 0, 1.75);
 }
 
 )EOSHADER";
@@ -83,18 +83,18 @@ void main()
 {
   if(gl_PrimitiveID == 0)
   {
-    Color = vec4(1, 0, 1, 1);
+    Color = vec4(1, 0, 1, 2.75);
     return;
   }
 
   if (gl_SampleID == 0)
-    Color = vec4(1, 0, 0, 1);
+    Color = vec4(1, 0, 0, 2.75);
   else if (gl_SampleID == 1)
-    Color = vec4(0, 0, 1, 1);
+    Color = vec4(0, 0, 1, 2.75);
   else if (gl_SampleID == 2)
-    Color = vec4(0, 1, 1, 1);
+    Color = vec4(0, 1, 1, 2.75);
   else if (gl_SampleID == 3)
-    Color = vec4(1, 1, 1, 1);
+    Color = vec4(1, 1, 1, 2.75);
 }
 
 )EOSHADER";
