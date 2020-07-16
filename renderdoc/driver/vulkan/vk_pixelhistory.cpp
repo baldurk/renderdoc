@@ -945,6 +945,7 @@ protected:
               VK_ACCESS_MEMORY_WRITE_BIT,
           VK_ACCESS_SHADER_READ_BIT, p.srcImageLayout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
           VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, Unwrap(p.srcImage), subresource};
+      SanitiseOldImageLayout(barrier.oldLayout);
       VkDescriptorSet descSet = GetCopyDescriptor(p.srcImage, p.srcImageFormat, baseMip, baseSlice);
 
       // Transition src image to SHADER_READ_ONLY_OPTIMAL.
@@ -959,6 +960,7 @@ protected:
       barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
       barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       barrier.newLayout = p.srcImageLayout;
+      SanitiseNewImageLayout(barrier.newLayout);
 
       DoPipelineBarrier(cmd, 1, &barrier);
     }
@@ -1006,6 +1008,7 @@ protected:
               VK_ACCESS_MEMORY_WRITE_BIT,
           VK_ACCESS_TRANSFER_READ_BIT, p.srcImageLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
           VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, Unwrap(p.srcImage), subresource};
+      SanitiseOldImageLayout(barrier.oldLayout);
       DoPipelineBarrier(cmd, 1, &barrier);
 
       ObjDisp(cmd)->CmdCopyImageToBuffer(
@@ -1016,6 +1019,7 @@ protected:
       barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
       barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
       barrier.newLayout = p.srcImageLayout;
+      SanitiseNewImageLayout(barrier.newLayout);
       DoPipelineBarrier(cmd, 1, &barrier);
     }
   }
