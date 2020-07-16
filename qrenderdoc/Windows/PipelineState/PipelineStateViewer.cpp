@@ -856,7 +856,8 @@ IShaderViewer *PipelineStateViewer::EditShader(ResourceId id, ShaderStage shader
     // remove the replacement on close (we could make this more sophisticated if there
     // was a place to control replaced resources/shaders).
     ctx->Replay().AsyncInvoke([ctx, id](IReplayController *r) {
-      r->RemoveReplacement(id);
+      if(ctx->IsCaptureLoaded())
+        r->RemoveReplacement(id);
       GUIInvoke::call(ctx->GetMainWindow()->Widget(), [ctx, id] { ctx->UnregisterReplacement(id); });
     });
   };
