@@ -307,7 +307,7 @@ static T GLSLMin(T x, T y)
 }
 
 template <>
-static float GLSLMax(float x, float y)
+float GLSLMax(float x, float y)
 {
   const bool xnan = RDCISNAN(x);
   const bool ynan = RDCISNAN(y);
@@ -320,7 +320,7 @@ static float GLSLMax(float x, float y)
 }
 
 template <>
-static float GLSLMin(float x, float y)
+float GLSLMin(float x, float y)
 {
   const bool xnan = RDCISNAN(x);
   const bool ynan = RDCISNAN(y);
@@ -333,7 +333,7 @@ static float GLSLMin(float x, float y)
 }
 
 template <>
-static double GLSLMax(double x, double y)
+double GLSLMax(double x, double y)
 {
   const bool xnan = RDCISNAN(x);
   const bool ynan = RDCISNAN(y);
@@ -346,7 +346,7 @@ static double GLSLMax(double x, double y)
 }
 
 template <>
-static double GLSLMin(double x, double y)
+double GLSLMin(double x, double y)
 {
   const bool xnan = RDCISNAN(x);
   const bool ynan = RDCISNAN(y);
@@ -366,7 +366,12 @@ ShaderVariable FMax(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable y = state.GetSrc(params[1]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = GLSLMax(var.value.fv[c], y.value.fv[c]);
+  {
+    if(var.type == VarType::Double)
+      var.value.dv[c] = GLSLMax(var.value.dv[c], y.value.dv[c]);
+    else
+      var.value.fv[c] = GLSLMax(var.value.fv[c], y.value.fv[c]);
+  }
 
   return var;
 }
@@ -405,7 +410,12 @@ ShaderVariable FMin(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable y = state.GetSrc(params[1]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = GLSLMin(var.value.fv[c], y.value.fv[c]);
+  {
+    if(var.type == VarType::Double)
+      var.value.dv[c] = GLSLMin(var.value.dv[c], y.value.dv[c]);
+    else
+      var.value.fv[c] = GLSLMin(var.value.fv[c], y.value.fv[c]);
+  }
 
   return var;
 }
@@ -445,7 +455,12 @@ ShaderVariable FClamp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable maxVal = state.GetSrc(params[2]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = GLSLMin(GLSLMax(var.value.fv[c], minVal.value.fv[c]), maxVal.value.fv[c]);
+  {
+    if(var.type == VarType::Double)
+      var.value.dv[c] = GLSLMin(GLSLMax(var.value.dv[c], minVal.value.dv[c]), maxVal.value.dv[c]);
+    else
+      var.value.fv[c] = GLSLMin(GLSLMax(var.value.fv[c], minVal.value.fv[c]), maxVal.value.fv[c]);
+  }
 
   return var;
 }
@@ -521,13 +536,26 @@ ShaderVariable SmoothStep(ThreadState &state, uint32_t, const rdcarray<Id> &para
 
   for(uint32_t c = 0; c < x.columns; c++)
   {
-    const float edge0f = edge0.value.fv[c];
-    const float edge1f = edge1.value.fv[c];
-    const float xf = x.value.fv[c];
+    if(x.type == VarType::Double)
+    {
+      const double edge0f = edge0.value.dv[c];
+      const double edge1f = edge1.value.dv[c];
+      const double xf = x.value.dv[c];
 
-    const float t = GLSLMin(GLSLMax((xf - edge0f) / (edge1f - edge0f), 0.0f), 1.0f);
+      const double t = GLSLMin(GLSLMax((xf - edge0f) / (edge1f - edge0f), 0.0), 1.0);
 
-    x.value.fv[c] = t * t * (3 - 2 * t);
+      x.value.dv[c] = t * t * (3 - 2 * t);
+    }
+    else
+    {
+      const float edge0f = edge0.value.fv[c];
+      const float edge1f = edge1.value.fv[c];
+      const float xf = x.value.fv[c];
+
+      const float t = GLSLMin(GLSLMax((xf - edge0f) / (edge1f - edge0f), 0.0f), 1.0f);
+
+      x.value.fv[c] = t * t * (3 - 2 * t);
+    }
   }
 
   return x;
@@ -925,7 +953,12 @@ ShaderVariable NMax(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable y = state.GetSrc(params[1]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = GLSLMax(var.value.fv[c], y.value.fv[c]);
+  {
+    if(var.type == VarType::Double)
+      var.value.dv[c] = GLSLMax(var.value.dv[c], y.value.dv[c]);
+    else
+      var.value.fv[c] = GLSLMax(var.value.fv[c], y.value.fv[c]);
+  }
 
   return var;
 }
@@ -939,7 +972,12 @@ ShaderVariable NClamp(ThreadState &state, uint32_t, const rdcarray<Id> &params)
   ShaderVariable maxVal = state.GetSrc(params[2]);
 
   for(uint32_t c = 0; c < var.columns; c++)
-    var.value.fv[c] = GLSLMin(GLSLMax(var.value.fv[c], minVal.value.fv[c]), maxVal.value.fv[c]);
+  {
+    if(var.type == VarType::Double)
+      var.value.dv[c] = GLSLMin(GLSLMax(var.value.dv[c], minVal.value.dv[c]), maxVal.value.dv[c]);
+    else
+      var.value.fv[c] = GLSLMin(GLSLMax(var.value.fv[c], minVal.value.fv[c]), maxVal.value.fv[c]);
+  }
 
   return var;
 }
