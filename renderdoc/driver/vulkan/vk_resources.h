@@ -1449,27 +1449,38 @@ public:
 
   void FromImgRefs(const ImgRefs &imgRefs);
 
-  inline ImageSubresourceState &SubresourceValue(uint32_t aspectIndex, uint32_t level,
-                                                 uint32_t layer, uint32_t slice)
+  inline ImageSubresourceState &SubresourceIndexValue(uint32_t aspectIndex, uint32_t level,
+                                                      uint32_t layer, uint32_t slice)
   {
     return m_values[SubresourceIndex(aspectIndex, level, layer, slice)];
   }
-  inline ImageSubresourceState &SubresourceValue(VkImageAspectFlagBits aspect, uint32_t level,
-                                                 uint32_t layer, uint32_t slice)
+  inline const ImageSubresourceState &SubresourceIndexValue(uint32_t aspectIndex, uint32_t level,
+                                                            uint32_t layer, uint32_t slice) const
+  {
+    return m_values[SubresourceIndex(aspectIndex, level, layer, slice)];
+  }
+  inline ImageSubresourceState &SubresourceAspectValue(VkImageAspectFlagBits aspect, uint32_t level,
+                                                       uint32_t layer, uint32_t slice)
   {
     uint32_t aspectIndex = 0;
     for(auto it = ImageAspectFlagIter::begin(GetImageInfo().Aspects());
         it != ImageAspectFlagIter::end() && *it != aspect; ++it, ++aspectIndex)
     {
     }
-    return SubresourceValue(aspectIndex, level, layer, slice);
+    return SubresourceIndexValue(aspectIndex, level, layer, slice);
+  }
+  inline const ImageSubresourceState &SubresourceAspectValue(VkImageAspectFlagBits aspect,
+                                                             uint32_t level, uint32_t layer,
+                                                             uint32_t slice) const
+  {
+    uint32_t aspectIndex = 0;
+    for(auto it = ImageAspectFlagIter::begin(GetImageInfo().Aspects());
+        it != ImageAspectFlagIter::end() && *it != aspect; ++it, ++aspectIndex)
+    {
+    }
+    return SubresourceIndexValue(aspectIndex, level, layer, slice);
   }
 
-  inline const ImageSubresourceState &SubresourceValue(uint32_t aspectIndex, uint32_t level,
-                                                       uint32_t layer, uint32_t slice) const
-  {
-    return m_values[SubresourceIndex(aspectIndex, level, layer, slice)];
-  }
   inline void Split(const ImageSubresourceRange &range)
   {
     Split(range.aspectMask != GetImageInfo().Aspects(),

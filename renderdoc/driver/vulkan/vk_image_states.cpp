@@ -710,7 +710,7 @@ template <typename Map, typename Pair>
 Pair *ImageSubresourceMap::SubresourceRangeIterTemplate<Map, Pair>::operator->()
 {
   FixSubRange();
-  m_value.m_state = &m_map->SubresourceValue(m_aspectIndex, m_level, m_layer, m_slice);
+  m_value.m_state = &m_map->SubresourceIndexValue(m_aspectIndex, m_level, m_layer, m_slice);
   return &m_value;
 }
 template ImageSubresourceMap::SubresourcePairRef *ImageSubresourceMap::SubresourceRangeIterTemplate<
@@ -722,7 +722,7 @@ template <typename Map, typename Pair>
 Pair &ImageSubresourceMap::SubresourceRangeIterTemplate<Map, Pair>::operator*()
 {
   FixSubRange();
-  m_value.m_state = &m_map->SubresourceValue(m_aspectIndex, m_level, m_layer, m_slice);
+  m_value.m_state = &m_map->SubresourceIndexValue(m_aspectIndex, m_level, m_layer, m_slice);
   return m_value;
 }
 template ImageSubresourceMap::SubresourcePairRef &ImageSubresourceMap::SubresourceRangeIterTemplate<
@@ -1467,7 +1467,7 @@ InitReqType ImageState::MaxInitReq(const ImageSubresourceRange &range, InitPolic
 VkImageLayout ImageState::GetImageLayout(VkImageAspectFlagBits aspect, uint32_t mipLevel,
                                          uint32_t arrayLayer) const
 {
-  return subresourceStates.SubresourceValue(aspect, mipLevel, arrayLayer, 0).newLayout;
+  return subresourceStates.SubresourceAspectValue(aspect, mipLevel, arrayLayer, 0).newLayout;
 }
 
 void ImageState::BeginCapture()

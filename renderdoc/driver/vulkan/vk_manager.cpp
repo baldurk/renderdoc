@@ -381,7 +381,7 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
                 ++it, ++aspectIndex)
             {
             }
-            auto currentSub = current->subresourceStates.SubresourceValue(
+            auto currentSub = current->subresourceStates.SubresourceIndexValue(
                 aspectIndex, subit->range().baseMipLevel, subit->range().baseArrayLayer,
                 subit->range().baseDepthSlice);
             RDCASSERT(currentSub.refType == subit->state().refType ||
