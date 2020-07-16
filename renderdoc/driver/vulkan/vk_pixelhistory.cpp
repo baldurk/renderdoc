@@ -2956,11 +2956,15 @@ VkDescriptorSet VulkanReplay::GetPixelHistoryDescriptor()
       m_pDriver->vkAllocateDescriptorSets(m_pDriver->GetDev(), &descSetAllocInfo, &descSet);
   if(vkr != VK_SUCCESS)
     RDCERR("Failed creating object");
+  m_PixelHistory.allocedSets.push_back(descSet);
   return descSet;
 }
 
 void VulkanReplay::ResetPixelHistoryDescriptorPool()
 {
+  for(VkDescriptorSet descset : m_PixelHistory.allocedSets)
+    GetResourceManager()->ReleaseWrappedResource(descset, true);
+  m_PixelHistory.allocedSets.clear();
   m_pDriver->vkResetDescriptorPool(m_pDriver->GetDev(), m_PixelHistory.MSCopyDescPool, 0);
 }
 

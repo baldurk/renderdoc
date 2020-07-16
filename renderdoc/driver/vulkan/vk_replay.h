@@ -683,6 +683,8 @@ private:
     VkPipeline MSCopyPipe = VK_NULL_HANDLE;
     VkPipeline MSCopyDepthPipe = VK_NULL_HANDLE;
     VkPipelineLayout MSCopyPipeLayout = VK_NULL_HANDLE;
+
+    rdcarray<VkDescriptorSet> allocedSets;
   } m_PixelHistory;
 
   struct HistogramMinMax
