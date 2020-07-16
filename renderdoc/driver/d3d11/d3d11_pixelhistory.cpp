@@ -2136,6 +2136,9 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
       GetDebugManager()->PixelHistoryCopyPixel(colourCopyParams, postColSlot, 0);
       postColSlot++;
+
+      GetDebugManager()->PixelHistoryCopyPixel(depthCopyParams, depthSlot, 0);
+      depthSlot++;
     }
 
     m_pImmediateContext->OMSetDepthStencilState(m_PixelHistory.StencIncrEqDepthState,
@@ -2251,14 +2254,13 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
         memcpy(&history[h].postMod.col.uintValue[0], data, sizeof(Vec4f));
       }
 
-      // we don't retrieve the correct-precision depth value post-fragment. This is only possible
-      // for D24 and D32 - D16 doesn't have attached stencil, so we wouldn't be able to get correct
-      // depth AND identify each fragment. Instead we just mark this as no data, and the shader
-      // output depth should be sufficient.
+      float *depthdata = (float *)(pixstoreDepthData + sizeof(Vec4f) * pixstoreStride * depthSlot);
+
+      // this is not exactly the right value when the original depth was D16, it will be slightly
+      // higher precision than the actual value but that's better than not having a value at all,
+      // and allows us to identify fragments within a draw which fail the depth test.
       if(history[h].preMod.depth >= 0.0f)
-        history[h].postMod.depth = -2.0f;
-      else
-        history[h].postMod.depth = -1.0f;
+        history[h].postMod.depth = *depthdata;
 
       // we can't retrieve stencil value after each fragment, as we use stencil to identify the
       // fragment
@@ -2271,6 +2273,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       // unbound
 
       postColSlot++;
+      depthSlot++;
     }
 
     // if we're not the first modification in our event, set our preMod to the previous postMod
