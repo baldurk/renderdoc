@@ -1427,8 +1427,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
             {
               VulkanCreationInfo::ImageView viewinfo = m_CreationInfo.m_ImageView[fbattachments[att]];
 
-              VkClearRect rect = {unwrappedInfo.renderArea, viewinfo.range.baseArrayLayer,
-                                  viewinfo.range.layerCount};
+              VkClearRect rect = {unwrappedInfo.renderArea, 0, viewinfo.range.layerCount};
               VkClearAttachment clear = {};
               clear.aspectMask = FormatImageAspects(rpinfo.attachments[att].format);
               clear.colorAttachment = c;
@@ -2038,8 +2037,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
             {
               VulkanCreationInfo::ImageView viewinfo = m_CreationInfo.m_ImageView[fbattachments[att]];
 
-              VkClearRect rect = {unwrappedInfo.renderArea, viewinfo.range.baseArrayLayer,
-                                  viewinfo.range.layerCount};
+              VkClearRect rect = {unwrappedInfo.renderArea, 0, viewinfo.range.layerCount};
               VkClearAttachment clear = {};
               clear.aspectMask = FormatImageAspects(rpinfo.attachments[att].format);
               clear.colorAttachment = c;
