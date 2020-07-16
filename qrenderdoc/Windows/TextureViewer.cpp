@@ -1477,7 +1477,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
     int highestMip = -1;
 
     // only switch to the selected mip for outputs, and when changing drawcall
-    if(!currentTextureIsLocked() && m_Following.Type != FollowType::ReadOnly && newdraw)
+    if(!currentTextureIsLocked() && m_Following.Type != FollowType::ReadOnly && (newdraw || newtex))
       highestMip = m_Following.GetHighestMip(m_Ctx);
 
     // assuming we get a valid mip for the highest mip, only switch to it
@@ -1501,7 +1501,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
   {
     int firstArraySlice = -1;
     // only switch to the selected mip for outputs, and when changing drawcall
-    if(!currentTextureIsLocked() && m_Following.Type != FollowType::ReadOnly && newdraw)
+    if(!currentTextureIsLocked() && m_Following.Type != FollowType::ReadOnly && (newdraw || newtex))
       firstArraySlice = m_Following.GetFirstArraySlice(m_Ctx);
 
     // see above with highestMip and prevHighestMip for the logic behind this
