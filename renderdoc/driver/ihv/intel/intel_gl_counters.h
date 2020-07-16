@@ -79,7 +79,6 @@ private:
     GLuint dataType = 0;
   };
   rdcarray<IntelGlCounter> m_Counters;
-  std::map<rdcstr, IntelGlCounter> m_CounterNames;
 
   struct IntelGlQuery
   {
