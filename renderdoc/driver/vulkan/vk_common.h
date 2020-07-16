@@ -178,6 +178,9 @@ struct VkMarkerRegion
   static WrappedVulkan *vk;
 };
 
+template <typename T>
+void NameVulkanObject(T obj, const rdcstr &name);
+
 struct GPUBuffer
 {
   enum CreateFlags

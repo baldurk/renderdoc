@@ -159,6 +159,25 @@ void VkMarkerRegion::End(VkQueue q)
   ObjDisp(q)->QueueEndDebugUtilsLabelEXT(Unwrap(q));
 }
 
+template <>
+void NameVulkanObject(VkImage obj, const rdcstr &name)
+{
+  if(!VkMarkerRegion::vk)
+    return;
+
+  VkDevice dev = VkMarkerRegion::vk->GetDev();
+
+  if(!ObjDisp(dev)->SetDebugUtilsObjectNameEXT)
+    return;
+
+  VkDebugUtilsObjectNameInfoEXT info = {};
+  info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+  info.objectType = VK_OBJECT_TYPE_IMAGE;
+  info.objectHandle = NON_DISP_TO_UINT64(Unwrap(obj));
+  info.pObjectName = name.c_str();
+  ObjDisp(dev)->SetDebugUtilsObjectNameEXT(Unwrap(dev), &info);
+}
+
 void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, uint32_t ringSize,
                        uint32_t flags)
 {

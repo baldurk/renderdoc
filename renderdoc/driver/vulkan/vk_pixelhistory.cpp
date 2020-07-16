@@ -1948,6 +1948,7 @@ private:
           PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_DisableDepthBoundsTest |
           PipelineCreationFlags_DisableStencilTest | PipelineCreationFlags_FixedColorShader;
       VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      VkMarkerRegion::Set(StringFormat::Fmt("Test culling on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_Culling);
     }
 
@@ -1966,6 +1967,7 @@ private:
       // tests happen later in the pipeline, it does not matter.
       for(uint32_t i = 0; i < pipestate.views.size(); i++)
         IntersectScissors(prevScissors[i], pipestate.scissors[i]);
+      VkMarkerRegion::Set(StringFormat::Fmt("Test scissor on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_Scissor);
     }
 
@@ -1979,6 +1981,7 @@ private:
           PipelineCreationFlags_DisableDepthBoundsTest | PipelineCreationFlags_DisableStencilTest |
           PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_FixedColorShader;
       VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      VkMarkerRegion::Set(StringFormat::Fmt("Test sample mask on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_SampleMask);
     }
 
@@ -1989,6 +1992,7 @@ private:
                            PipelineCreationFlags_DisableDepthTest |
                            PipelineCreationFlags_FixedColorShader;
       VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      VkMarkerRegion::Set(StringFormat::Fmt("Test depth bounds on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_DepthBounds);
     }
 
@@ -2001,6 +2005,7 @@ private:
       uint32_t pipeFlags =
           PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_FixedColorShader;
       VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      VkMarkerRegion::Set(StringFormat::Fmt("Test stencil on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_StencilTesting);
     }
 
@@ -2016,6 +2021,7 @@ private:
           PipelineCreationFlags_DisableStencilTest | PipelineCreationFlags_FixedColorShader;
 
       VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      VkMarkerRegion::Set(StringFormat::Fmt("Test depth on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_DepthTesting);
     }
 
@@ -2029,6 +2035,7 @@ private:
                            PipelineCreationFlags_DisableStencilTest |
                            PipelineCreationFlags_DisableDepthTest;
       VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      VkMarkerRegion::Set(StringFormat::Fmt("Test shader discard on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_FragmentDiscard);
     }
   }
@@ -2250,6 +2257,9 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
     bool depthEnabled = prevState.depthTestEnable != VK_FALSE;
 
+    VkMarkerRegion::Set(StringFormat::Fmt("Event %u has %u fragments", eid, numFragmentsInEvent),
+                        cmd);
+
     // Get primitive ID and shader output value for each fragment.
     for(uint32_t f = 0; f < numFragmentsInEvent; f++)
     {
@@ -2260,6 +2270,9 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
           // without geometryShader, can't read primitive ID in pixel shader
           continue;
         }
+
+        VkMarkerRegion region(cmd, StringFormat::Fmt("Getting %s for %u",
+                                                     i == 0 ? "primitive ID" : "shader output", eid));
 
         VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                                         NULL,
@@ -2352,6 +2365,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     // value.
     for(uint32_t f = 0; f < numFragmentsInEvent - 1; f++)
     {
+      VkMarkerRegion region(cmd, StringFormat::Fmt("Getting postmod for fragment %u in %u", f, eid));
+
       // Get post-modification value, use the original framebuffer attachment.
       state.graphics.pipeline = GetResID(pipes.postModPipe);
       state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics);
@@ -2829,6 +2844,9 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
 
   vkr = m_pDriver->vkBindImageMemory(m_Device, dsImage, gpuMem, offset);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  NameVulkanObject(colorImage, "Pixel History color image");
+  NameVulkanObject(dsImage, "Pixel History depth image");
 
   VkImageViewCreateInfo viewInfo = {VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};
   viewInfo.image = colorImage;
