@@ -281,7 +281,7 @@ public:
               if(mod.primitiveID == ~0U)
                 ret = tr("Unknown primitive\n");
 
-              if(mod.shaderDiscarded)
+              if(!mod.Passed())
                 ret += failureString(mod);
 
               return ret;
@@ -365,7 +365,7 @@ public:
         }
         else
         {
-          if(getMod(index).shaderDiscarded)
+          if(!getMod(index).Passed())
             return QBrush(QColor::fromRgb(255, 235, 235));
         }
       }
@@ -382,7 +382,7 @@ public:
         }
         else
         {
-          if(getMod(index).shaderDiscarded)
+          if(!getMod(index).Passed())
             return QBrush(textColor);
         }
       }

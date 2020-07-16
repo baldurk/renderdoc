@@ -115,7 +115,7 @@ bool isDirectWrite(ResourceUsage usage)
           usage == ResourceUsage::GenMips);
 }
 
-enum
+enum : uint32_t
 {
   TestEnabled_Culling = 1 << 0,
   TestEnabled_Scissor = 1 << 1,
@@ -133,6 +133,16 @@ enum
   TestMustFail_DepthTesting = 1 << 12,
   TestMustFail_StencilTesting = 1 << 13,
   TestMustFail_SampleMask = 1 << 14,
+
+  DepthTest_Shift = 29,
+  DepthTest_Always = 0U << DepthTest_Shift,
+  DepthTest_Never = 1U << DepthTest_Shift,
+  DepthTest_Equal = 2U << DepthTest_Shift,
+  DepthTest_NotEqual = 3U << DepthTest_Shift,
+  DepthTest_Less = 4U << DepthTest_Shift,
+  DepthTest_LessEqual = 5U << DepthTest_Shift,
+  DepthTest_Greater = 6U << DepthTest_Shift,
+  DepthTest_GreaterEqual = 7U << DepthTest_Shift,
 };
 
 struct CopyPixelParams
@@ -1718,6 +1728,7 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
   {
   }
   void PreEndCommandBuffer(VkCommandBuffer cmd) {}
+  bool HasEventFlags(uint32_t eventId) { return m_EventFlags.find(eventId) != m_EventFlags.end(); }
   uint32_t GetEventFlags(uint32_t eventId)
   {
     auto it = m_EventFlags.find(eventId);
@@ -1784,6 +1795,27 @@ private:
           flags |= TestEnabled_DepthTesting;
         if(pipestate.depthCompareOp == VK_COMPARE_OP_NEVER)
           flags |= TestMustFail_DepthTesting;
+
+        if(pipestate.depthCompareOp == VK_COMPARE_OP_NEVER)
+          flags |= DepthTest_Never;
+        if(pipestate.depthCompareOp == VK_COMPARE_OP_LESS)
+          flags |= DepthTest_Less;
+        if(pipestate.depthCompareOp == VK_COMPARE_OP_EQUAL)
+          flags |= DepthTest_Equal;
+        if(pipestate.depthCompareOp == VK_COMPARE_OP_LESS_OR_EQUAL)
+          flags |= DepthTest_LessEqual;
+        if(pipestate.depthCompareOp == VK_COMPARE_OP_GREATER)
+          flags |= DepthTest_Greater;
+        if(pipestate.depthCompareOp == VK_COMPARE_OP_NOT_EQUAL)
+          flags |= DepthTest_NotEqual;
+        if(pipestate.depthCompareOp == VK_COMPARE_OP_GREATER_OR_EQUAL)
+          flags |= DepthTest_GreaterEqual;
+        if(pipestate.depthCompareOp == VK_COMPARE_OP_ALWAYS)
+          flags |= DepthTest_Always;
+      }
+      else
+      {
+        flags |= DepthTest_Always;
       }
 
       if(pipestate.stencilTestEnable)
@@ -3270,8 +3302,6 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     }
   }
 
-  SAFE_DELETE(tfCb);
-
   // Try to read memory back
 
   EventInfo *eventsInfo;
@@ -3450,8 +3480,36 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
           history[h].preMod = history[h - 1].postMod;
         }
       }
+
+      // check the depth value between premod/shaderout against the known test if we have valid
+      // depth values, as we don't have per-fragment depth test information.
+      if(history[h].preMod.depth >= 0.0f && history[h].shaderOut.depth >= 0.0f && tfCb &&
+         tfCb->HasEventFlags(history[h].eventId))
+      {
+        uint32_t flags = tfCb->GetEventFlags(history[h].eventId);
+
+        flags &= 0x7 << DepthTest_Shift;
+
+        bool passed = true;
+        if(flags == DepthTest_Equal)
+          passed = (history[h].shaderOut.depth == history[h].preMod.depth);
+        else if(flags == DepthTest_NotEqual)
+          passed = (history[h].shaderOut.depth != history[h].preMod.depth);
+        else if(flags == DepthTest_Less)
+          passed = (history[h].shaderOut.depth < history[h].preMod.depth);
+        else if(flags == DepthTest_LessEqual)
+          passed = (history[h].shaderOut.depth <= history[h].preMod.depth);
+        else if(flags == DepthTest_Greater)
+          passed = (history[h].shaderOut.depth > history[h].preMod.depth);
+        else if(flags == DepthTest_GreaterEqual)
+          passed = (history[h].shaderOut.depth >= history[h].preMod.depth);
+
+        history[h].depthTestFailed = !passed;
+      }
     }
   }
+
+  SAFE_DELETE(tfCb);
 
   GetDebugManager()->PixelHistoryDestroyResources(resources);
   ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), occlusionPool, NULL);

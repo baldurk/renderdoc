@@ -640,6 +640,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   // while issuing the above queries we can check to see which tests are enabled so we don't
   // bother checking if depth testing failed if the depth test was disabled
   rdcarray<uint32_t> flags(events.size());
+  std::map<uint32_t, D3D11_COMPARISON_FUNC> depthOps;
   enum
   {
     TestEnabled_BackfaceCulling = 1 << 0,
@@ -894,6 +895,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       flags[ev] |= (TestEnabled_BackfaceCulling | TestEnabled_DepthClip);
     }
 
+    D3D11_COMPARISON_FUNC depthOp = D3D11_COMPARISON_LESS;
+
     if(curDS)
     {
       D3D11_DEPTH_STENCIL_DESC dsDesc;
@@ -906,6 +909,12 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
         if(dsDesc.DepthFunc == D3D11_COMPARISON_NEVER)
           flags[ev] |= TestMustFail_DepthTesting;
+
+        depthOp = dsDesc.DepthFunc;
+      }
+      else
+      {
+        depthOp = D3D11_COMPARISON_ALWAYS;
       }
 
       if(dsDesc.StencilEnable)
@@ -932,6 +941,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       // defaults
       flags[ev] |= TestEnabled_DepthTesting;
     }
+
+    depthOps[events[ev].eventId] = depthOp;
 
     if(rsDesc.ScissorEnable)
     {
@@ -2423,6 +2434,27 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
       shadColSlot++;
       depthSlot++;
+    }
+
+    // check the depth value between premod/shaderout against the known test if we have valid depth
+    // values, as we don't have per-fragment depth test information.
+    if(history[h].preMod.depth >= 0.0f && history[h].shaderOut.depth >= 0.0f)
+    {
+      bool passed = true;
+      if(depthOps[history[h].eventId] == D3D11_COMPARISON_EQUAL)
+        passed = (history[h].shaderOut.depth == history[h].preMod.depth);
+      else if(depthOps[history[h].eventId] == D3D11_COMPARISON_NOT_EQUAL)
+        passed = (history[h].shaderOut.depth != history[h].preMod.depth);
+      else if(depthOps[history[h].eventId] == D3D11_COMPARISON_LESS)
+        passed = (history[h].shaderOut.depth < history[h].preMod.depth);
+      else if(depthOps[history[h].eventId] == D3D11_COMPARISON_LESS_EQUAL)
+        passed = (history[h].shaderOut.depth <= history[h].preMod.depth);
+      else if(depthOps[history[h].eventId] == D3D11_COMPARISON_GREATER)
+        passed = (history[h].shaderOut.depth > history[h].preMod.depth);
+      else if(depthOps[history[h].eventId] == D3D11_COMPARISON_GREATER_EQUAL)
+        passed = (history[h].shaderOut.depth >= history[h].preMod.depth);
+
+      history[h].depthTestFailed = !passed;
     }
   }
 
