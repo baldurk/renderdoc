@@ -268,8 +268,10 @@ RD_TEST(GL_Discard_Zoo, OpenGLGraphicsTest)
         glClearTexImage(texcubesub, 0, GL_RGBA, GL_FLOAT, &green.x);
         glClearTexImage(tex3dsub2, 0, GL_RGBA, GL_FLOAT, &green.x);
 
-        glNamedBufferSubDataEXT(buf, 0, 1024, empty);
-        glNamedBufferSubDataEXT(subbuf, 0, 1024, empty);
+        glBindBuffer(GL_ARRAY_BUFFER, buf);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, 1024, empty);
+        glBindBuffer(GL_ARRAY_BUFFER, subbuf);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, 1024, empty);
         popMarker();
       }
 
