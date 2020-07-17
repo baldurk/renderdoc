@@ -442,7 +442,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
   D3D12_RENDER_TARGET_VIEW_DESC rtDesc = {};
   rtDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
-  ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
+  ID3D12GraphicsCommandListX *list = m_pDevice->GetNewList();
 
   // clear all mips and all slices first
   for(UINT mip = 0; mip < overlayTexDesc.MipLevels; mip++)
@@ -562,6 +562,9 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       rs.rts.resize(1);
       rs.rts[0] = *GetWrapped(rtv);
       RDCEraseEl(rs.dsv);
+
+      for(D3D12_RECT &r : rs.scissors)
+        r = {0, 0, 32768, 32768};
 
       m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
@@ -844,12 +847,102 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
   {
     if(pipe && pipe->IsGraphics() && !rs.views.empty())
     {
+      D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC psoDesc;
+      pipe->Fill(psoDesc);
+
+      bool dxil =
+          DXBC::DXBCContainer::CheckForDXIL(psoDesc.VS.pShaderBytecode, psoDesc.VS.BytecodeLength);
+
+      ID3DBlob *red = m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::RED, dxil);
+      ID3DBlob *green =
+          m_pDevice->GetShaderCache()->MakeFixedColShader(D3D12ShaderCache::GREEN, dxil);
+
+      psoDesc.DepthStencilState.DepthEnable = FALSE;
+      psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+      psoDesc.DepthStencilState.StencilEnable = FALSE;
+
+      psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
+      psoDesc.BlendState.IndependentBlendEnable = FALSE;
+      psoDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
+      psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0xf;
+      psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
+      RDCEraseEl(psoDesc.RTVFormats.RTFormats);
+      psoDesc.RTVFormats.RTFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+      psoDesc.RTVFormats.NumRenderTargets = 1;
+      psoDesc.SampleMask = ~0U;
+      psoDesc.SampleDesc.Count = RDCMAX(1U, psoDesc.SampleDesc.Count);
+      psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+
+      psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+      psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+      psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
+      psoDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+      psoDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+      psoDesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+      psoDesc.RasterizerState.DepthClipEnable = FALSE;
+      psoDesc.RasterizerState.MultisampleEnable = FALSE;
+      psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
+
+      psoDesc.PS.pShaderBytecode = red->GetBufferPointer();
+      psoDesc.PS.BytecodeLength = red->GetBufferSize();
+
+      ID3D12PipelineState *redPSO = NULL;
+      HRESULT hr = m_pDevice->CreatePipeState(psoDesc, &redPSO);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create overlay pso HRESULT: %s", ToStr(hr).c_str());
+        SAFE_RELEASE(red);
+        SAFE_RELEASE(redPSO);
+        SAFE_RELEASE(green);
+        return m_Overlay.resourceId;
+      }
+
+      psoDesc.PS.pShaderBytecode = green->GetBufferPointer();
+      psoDesc.PS.BytecodeLength = green->GetBufferSize();
+
+      ID3D12PipelineState *greenPSO = NULL;
+      hr = m_pDevice->CreatePipeState(psoDesc, &greenPSO);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create overlay pso HRESULT: %s", ToStr(hr).c_str());
+        SAFE_RELEASE(red);
+        SAFE_RELEASE(redPSO);
+        SAFE_RELEASE(green);
+        SAFE_RELEASE(greenPSO);
+        return m_Overlay.resourceId;
+      }
+
+      list->Close();
+      list = NULL;
+
+      D3D12_RECT scissor = {0, 0, 16384, 16384};
+
+      D3D12RenderState prev = rs;
+
+      rs.rts = {*GetWrapped(rtv)};
+
+      for(D3D12_RECT &s : rs.scissors)
+        s = scissor;
+
+      rs.pipe = GetResID(redPSO);
+      m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+
+      rs.scissors = prev.scissors;
+
+      rs.pipe = GetResID(greenPSO);
+      m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+
+      rs = prev;
+
+      list = m_pDevice->GetNewList();
+
+      rs.ApplyState(m_pDevice, list);
+
       list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
 
       D3D12_VIEWPORT viewport = rs.views[0];
       list->RSSetViewports(1, &viewport);
 
-      D3D12_RECT scissor = {0, 0, 16384, 16384};
       list->RSSetScissorRects(1, &scissor);
 
       list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -866,7 +959,7 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
       // set primary/secondary to the same to 'disable' checkerboard
       pixelData.PrimaryColor = pixelData.SecondaryColor = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
-      pixelData.InnerColor = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
+      pixelData.InnerColor = Vec4f(0.2f, 0.2f, 0.9f, 0.4f);
 
       // set viewport rect
       pixelData.RectPosition = Vec2f(viewport.TopLeftX, viewport.TopLeftY);
@@ -905,6 +998,17 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       list->SetGraphicsRootConstantBufferView(0, scissorCB);
 
       list->DrawInstanced(3, 1, 0, 0);
+
+      list->Close();
+      list = NULL;
+
+      m_pDevice->ExecuteLists();
+      m_pDevice->FlushLists();
+
+      SAFE_RELEASE(red);
+      SAFE_RELEASE(redPSO);
+      SAFE_RELEASE(green);
+      SAFE_RELEASE(greenPSO);
     }
   }
   else if(overlay == DebugOverlay::TriangleSizeDraw || overlay == DebugOverlay::TriangleSizePass)
@@ -937,8 +1041,6 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         list = NULL;
 
         m_pDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
-
-        list = m_pDevice->GetNewList();
       }
 
       pipe = m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
@@ -996,40 +1098,40 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       vertexData.ModelViewProj = Matrix4f::Identity();
       vertexData.SpriteSize = Vec2f();
 
-      Vec4f viewport;
-
-      if(!rs.views.empty())
-        viewport = Vec4f(rs.views[0].Width, rs.views[0].Height);
-
-      if(rs.dsv.GetResResourceId() != ResourceId())
-      {
-        D3D12_CPU_DESCRIPTOR_HANDLE tmpdsv = GetDebugManager()->GetTempDescriptor(rs.dsv);
-        list->OMSetRenderTargets(1, &rtv, TRUE, &tmpdsv);
-      }
-      else
-      {
-        list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
-      }
-
-      if(!rs.views.empty())
-        list->RSSetViewports(1, &rs.views[0]);
-
-      D3D12_RECT scissor = {0, 0, 16384, 16384};
-      list->RSSetScissorRects(1, &scissor);
-
-      list->OMSetStencilRef(rs.stencilRef);
-      list->OMSetBlendFactor(rs.blendFactor);
-
-      list->SetGraphicsRootSignature(GetDebugManager()->GetMeshRootSig());
-
-      list->SetGraphicsRootConstantBufferView(
-          0, GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData)));
-      list->SetGraphicsRootConstantBufferView(
-          1, GetDebugManager()->UploadConstants(&viewport, sizeof(viewport)));
-      list->SetGraphicsRoot32BitConstants(2, 4, &viewport.x, 0);
+      D3D12RenderState::SignatureElement vertexElem(eRootCBV, ResourceId(), 0);
+      WrappedID3D12Resource1::GetResIDFromAddr(
+          GetDebugManager()->UploadConstants(&vertexData, sizeof(vertexData)), vertexElem.id,
+          vertexElem.offset);
 
       for(size_t i = 0; i < events.size(); i++)
       {
+        D3D12RenderState prevState = rs;
+
+        Vec4f viewport;
+
+        if(!rs.views.empty())
+          viewport = Vec4f(rs.views[0].Width, rs.views[0].Height);
+
+        D3D12RenderState::SignatureElement viewportElem(eRootCBV, ResourceId(), 0);
+        WrappedID3D12Resource1::GetResIDFromAddr(
+            GetDebugManager()->UploadConstants(&viewport, sizeof(viewport)), viewportElem.id,
+            viewportElem.offset);
+
+        D3D12RenderState::SignatureElement viewportConstElem(eRootConst, ResourceId(), 0);
+        viewportConstElem.SetConstants(4, &viewport, 0);
+
+        rs.graphics.rootsig = GetResID(GetDebugManager()->GetMeshRootSig());
+        rs.graphics.sigelems = {
+            vertexElem, viewportElem, viewportConstElem,
+        };
+
+        rs.rts = {*(D3D12Descriptor *)rtv.ptr};
+
+        if(list == NULL)
+          list = m_pDevice->GetNewList();
+
+        rs.ApplyState(m_pDevice, list);
+
         const DrawcallDescription *draw = m_pDevice->GetDrawcall(events[i]);
 
         for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
@@ -1097,10 +1199,20 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
             }
           }
         }
-      }
 
-      list->Close();
-      list = NULL;
+        list->Close();
+        list = NULL;
+
+        rs = prevState;
+
+        if(overlay == DebugOverlay::TriangleSizePass)
+        {
+          m_pDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
+
+          if(i + 1 < events.size())
+            m_pDevice->ReplayLog(events[i], events[i + 1], eReplay_WithoutDraw);
+        }
+      }
 
       m_pDevice->ExecuteLists();
       m_pDevice->FlushLists();
@@ -1220,8 +1332,9 @@ ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
         list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
 
-        if(!rs.views.empty())
-          list->RSSetViewports(1, &rs.views[0]);
+        D3D12_VIEWPORT view = {0.0f, 0.0f, (float)resourceDesc.Width, (float)resourceDesc.Height,
+                               0.0f, 1.0f};
+        list->RSSetViewports(1, &view);
 
         D3D12_RECT scissor = {0, 0, 16384, 16384};
         list->RSSetScissorRects(1, &scissor);

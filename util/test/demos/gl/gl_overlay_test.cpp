@@ -153,6 +153,12 @@ void main()
         {Vec3f(0.0f, 0.7f, 0.0f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(0.0f, 0.725f, 0.0f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(0.025f, 0.7f, 0.0f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // this triangle deliberately goes out of the viewport, it will test viewport & scissor
+        // clipping
+        {Vec3f(-1.3f, -1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, 1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(1.3f, -1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
     GLuint vb = MakeBuffer();
@@ -255,6 +261,14 @@ void main()
       glEnable(GL_STENCIL_TEST);
       glStencilFunc(GL_GREATER, 0x55, 0xff);
       glDrawArrays(GL_TRIANGLES, 9, 24);
+
+      setMarker("Viewport Test");
+      glDisable(GL_STENCIL_TEST);
+      glViewport(10, screenHeight - 90, 80, 80);
+      glScissor(24, screenHeight - 76, 52, 52);
+      glDrawArrays(GL_TRIANGLES, 33, 3);
+
+      glScissor(0, 0, screenWidth, screenHeight);
 
       glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
       glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);

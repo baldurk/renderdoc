@@ -157,6 +157,12 @@ void main()
         {Vec3f(0.0f, -0.7f, 0.5f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(0.0f, -0.725f, 0.5f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(0.025f, -0.7f, 0.5f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // this triangle deliberately goes out of the viewport, it will test viewport & scissor
+        // clipping
+        {Vec3f(-1.3f, 1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, -1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(1.3f, 1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
     // negate y if we're using negative viewport height
@@ -336,6 +342,19 @@ void main()
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
       vkCmdDraw(cmd, 24, 1, 9, 0);
 
+      setMarker(cmd, "Viewport Test");
+      v = {10.0f, 10.0f, 80.0f, 80.0f, 0.0f, 1.0f};
+      if(KHR_maintenance1)
+      {
+        v.y += v.height;
+        v.height = -v.height;
+      }
+      VkRect2D s = {{24, 24}, {52, 52}};
+      vkCmdSetViewport(cmd, 0, 1, &v);
+      vkCmdSetScissor(cmd, 0, 1, &s);
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, backgroundPipe);
+      vkCmdDraw(cmd, 3, 1, 33, 0);
+
       vkCmdEndRenderPass(cmd);
 
       v = mainWindow->viewport;
@@ -352,7 +371,7 @@ void main()
         v.height = -v.height;
       }
 
-      VkRect2D s = mainWindow->scissor;
+      s = mainWindow->scissor;
       s.extent.width /= 4;
       s.extent.height /= 4;
 

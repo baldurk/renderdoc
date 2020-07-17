@@ -110,6 +110,12 @@ float4 main() : SV_Target0
         {Vec3f(0.0f, 0.7f, 0.5f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(0.0f, 0.725f, 0.5f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(0.025f, 0.7f, 0.5f), Vec4f(1.0f, 0.5f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+        // this triangle deliberately goes out of the viewport, it will test viewport & scissor
+        // clipping
+        {Vec3f(-1.3f, -1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.0f, 1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(1.3f, -1.3f, 0.95f), Vec4f(0.1f, 0.1f, 0.5f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
     ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(VBData);
@@ -187,6 +193,11 @@ float4 main() : SV_Target0
       depth.StencilEnable = FALSE;
       depth.DepthFunc = D3D11_COMPARISON_ALWAYS;
       SetDepthState(depth);
+
+      setMarker("Viewport Test");
+      RSSetViewport({10.0f, 10.0f, 80.0f, 80.0f, 0.0f, 1.0f});
+      RSSetScissor({24, 24, 76, 76});
+      ctx->Draw(3, 33);
 
       ctx->PSSetShader(whiteps, NULL, 0);
 

@@ -548,7 +548,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     // clear all mips first
     drv.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     drv.glDisable(eGL_BLEND);
-    drv.glDisable(eGL_SCISSOR_TEST);
     drv.glDepthMask(GL_FALSE);
     drv.glDisable(eGL_CULL_FACE);
     drv.glDisable(eGL_DEPTH_TEST);
@@ -562,6 +561,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
   GLint outHeight = RDCMAX(1, texDetails.height >> sub.mip);
 
   drv.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.overlayFBO);
+
+  drv.glDisable(eGL_SCISSOR_TEST);
 
   // clear the overlay texture to black
   {
@@ -597,7 +598,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
   // the program's state.
   drv.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
   drv.glDisable(eGL_BLEND);
-  drv.glDisable(eGL_SCISSOR_TEST);
   drv.glDepthMask(GL_FALSE);
   drv.glDisable(eGL_CULL_FACE);
   drv.glDisable(eGL_DEPTH_TEST);
@@ -609,6 +609,24 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     drv.glEnable(eGL_DEPTH_CLAMP);
   }
 
+  if(HasExt[ARB_viewport_array])
+  {
+    for(size_t s = 0; s < ARRAY_COUNT(rs.Scissors); s++)
+    {
+      if(rs.Scissors[s].enabled)
+        drv.glEnablei(eGL_SCISSOR_TEST, (GLuint)s);
+      else
+        drv.glDisablei(eGL_SCISSOR_TEST, (GLuint)s);
+    }
+  }
+  else
+  {
+    if(rs.Scissors[0].enabled)
+      drv.glEnable(eGL_SCISSOR_TEST);
+    else
+      drv.glDisable(eGL_SCISSOR_TEST);
+  }
+
   if(overlay == DebugOverlay::NaN || overlay == DebugOverlay::Clipping)
   {
     // just need the basic texture
@@ -617,6 +635,11 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
   }
   else if(overlay == DebugOverlay::Drawcall)
   {
+    if(HasExt[ARB_viewport_array])
+      drv.glDisablei(eGL_SCISSOR_TEST, 0);
+    else
+      drv.glDisable(eGL_SCISSOR_TEST);
+
     float black[] = {0.0f, 0.0f, 0.0f, 0.5f};
     drv.glClearBufferfv(eGL_COLOR, 0, black);
 
@@ -727,6 +750,41 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     float col[] = {0.0f, 0.0f, 0.0f, 0.0f};
     drv.glClearBufferfv(eGL_COLOR, 0, col);
 
+    if(HasExt[ARB_viewport_array])
+      drv.glDisablei(eGL_SCISSOR_TEST, 0);
+    else
+      drv.glDisable(eGL_SCISSOR_TEST);
+
+    col[0] = 1.0f;
+    col[1] = 0.0f;
+    col[3] = 1.0f;
+
+    drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, col);
+
+    ReplayLog(eventId, eReplay_OnlyDraw);
+
+    if(HasExt[ARB_viewport_array])
+    {
+      if(rs.Scissors[0].enabled)
+        drv.glEnablei(eGL_SCISSOR_TEST, 0);
+      else
+        drv.glDisablei(eGL_SCISSOR_TEST, 0);
+    }
+    else
+    {
+      if(rs.Scissors[0].enabled)
+        drv.glEnable(eGL_SCISSOR_TEST);
+      else
+        drv.glDisable(eGL_SCISSOR_TEST);
+    }
+
+    col[0] = 0.0f;
+    col[1] = 1.0f;
+
+    drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, col);
+
+    ReplayLog(eventId, eReplay_OnlyDraw);
+
     // don't need to use the existing program at all!
     drv.glUseProgram(DebugData.checkerProg);
     drv.glBindProgramPipeline(0);
@@ -775,7 +833,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
 
     // set primary/secondary to the same to 'disable' checkerboard
     cdata->PrimaryColor = cdata->SecondaryColor = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
-    cdata->InnerColor = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
+    cdata->InnerColor = Vec4f(0.2f, 0.2f, 0.9f, 0.4f);
 
     // set viewport rect
     cdata->RectPosition = Vec2f(rs.Viewports[0].x, rs.Viewports[0].y);
@@ -820,8 +878,28 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
   }
   else if(overlay == DebugOverlay::Depth || overlay == DebugOverlay::Stencil)
   {
+    if(HasExt[ARB_viewport_array])
+      drv.glDisablei(eGL_SCISSOR_TEST, 0);
+    else
+      drv.glDisable(eGL_SCISSOR_TEST);
+
     float backCol[] = {0.0f, 1.0f, 0.0f, 0.0f};
     drv.glClearBufferfv(eGL_COLOR, 0, backCol);
+
+    if(HasExt[ARB_viewport_array])
+    {
+      if(rs.Scissors[0].enabled)
+        drv.glEnablei(eGL_SCISSOR_TEST, 0);
+      else
+        drv.glDisablei(eGL_SCISSOR_TEST, 0);
+    }
+    else
+    {
+      if(rs.Scissors[0].enabled)
+        drv.glEnable(eGL_SCISSOR_TEST);
+      else
+        drv.glDisable(eGL_SCISSOR_TEST);
+    }
 
     float red[] = {1.0f, 0.0f, 0.0f, 1.0f};
     drv.glProgramUniform4fv(DebugData.overlayProg, overlayFixedColLocation, 1, red);
@@ -1091,8 +1169,28 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
   }
   else if(overlay == DebugOverlay::BackfaceCull)
   {
+    if(HasExt[ARB_viewport_array])
+      drv.glDisablei(eGL_SCISSOR_TEST, 0);
+    else
+      drv.glDisable(eGL_SCISSOR_TEST);
+
     float col[] = {0.0f, 1.0f, 0.0f, 0.0f};
     drv.glClearBufferfv(eGL_COLOR, 0, col);
+
+    if(HasExt[ARB_viewport_array])
+    {
+      if(rs.Scissors[0].enabled)
+        drv.glEnablei(eGL_SCISSOR_TEST, 0);
+      else
+        drv.glDisablei(eGL_SCISSOR_TEST, 0);
+    }
+    else
+    {
+      if(rs.Scissors[0].enabled)
+        drv.glEnable(eGL_SCISSOR_TEST);
+      else
+        drv.glDisable(eGL_SCISSOR_TEST);
+    }
 
     col[0] = 1.0f;
     col[1] = 0.0f;
@@ -1116,8 +1214,31 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
   }
   else if(overlay == DebugOverlay::ClearBeforeDraw || overlay == DebugOverlay::ClearBeforePass)
   {
+    if(HasExt[ARB_viewport_array])
+      drv.glDisablei(eGL_SCISSOR_TEST, 0);
+    else
+      drv.glDisable(eGL_SCISSOR_TEST);
+
     float col[] = {0.0f, 0.0f, 0.0f, 0.0f};
     drv.glClearBufferfv(eGL_COLOR, 0, col);
+
+    if(HasExt[ARB_viewport_array])
+    {
+      for(size_t s = 0; s < ARRAY_COUNT(rs.Scissors); s++)
+      {
+        if(rs.Scissors[s].enabled)
+          drv.glEnablei(eGL_SCISSOR_TEST, (GLuint)s);
+        else
+          drv.glDisablei(eGL_SCISSOR_TEST, (GLuint)s);
+      }
+    }
+    else
+    {
+      if(rs.Scissors[0].enabled)
+        drv.glEnable(eGL_SCISSOR_TEST);
+      else
+        drv.glDisable(eGL_SCISSOR_TEST);
+    }
 
     rdcarray<uint32_t> events = passEvents;
 
@@ -1138,8 +1259,31 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
         rs.ApplyState(&drv);
       }
 
+      GLboolean scissor = HasExt[ARB_viewport_array] ? GL.glIsEnabledi(eGL_SCISSOR_TEST, 0)
+                                                     : GL.glIsEnabled(eGL_SCISSOR_TEST);
+
+      if(HasExt[ARB_viewport_array])
+        drv.glDisablei(eGL_SCISSOR_TEST, 0);
+      else
+        drv.glDisable(eGL_SCISSOR_TEST);
+
       for(int i = 0; i < 8; i++)
         drv.glClearBufferfv(eGL_COLOR, i, &clearCol.x);
+
+      if(HasExt[ARB_viewport_array])
+      {
+        if(scissor == GL_TRUE)
+          drv.glEnablei(eGL_SCISSOR_TEST, 0);
+        else
+          drv.glDisablei(eGL_SCISSOR_TEST, 0);
+      }
+      else
+      {
+        if(scissor == GL_TRUE)
+          drv.glEnable(eGL_SCISSOR_TEST);
+        else
+          drv.glDisable(eGL_SCISSOR_TEST);
+      }
 
       // Try to clear depth as well, to help debug shadow rendering
       if(IsDepthStencilFormat(texDetails.internalFormat))
@@ -1172,8 +1316,31 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
   {
     SCOPED_TIMER("Triangle Size");
 
+    if(HasExt[ARB_viewport_array])
+      drv.glDisablei(eGL_SCISSOR_TEST, 0);
+    else
+      drv.glDisable(eGL_SCISSOR_TEST);
+
     float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
     drv.glClearBufferfv(eGL_COLOR, 0, black);
+
+    if(HasExt[ARB_viewport_array])
+    {
+      for(size_t s = 0; s < ARRAY_COUNT(rs.Scissors); s++)
+      {
+        if(rs.Scissors[s].enabled)
+          drv.glEnablei(eGL_SCISSOR_TEST, (GLuint)s);
+        else
+          drv.glDisablei(eGL_SCISSOR_TEST, (GLuint)s);
+      }
+    }
+    else
+    {
+      if(rs.Scissors[0].enabled)
+        drv.glEnable(eGL_SCISSOR_TEST);
+      else
+        drv.glDisable(eGL_SCISSOR_TEST);
+    }
 
     MeshUBOData uboParams = {};
     uboParams.homogenousInput = 1;
@@ -1567,6 +1734,11 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     if(DebugData.quadoverdrawFragShader)
     {
       SCOPED_TIMER("Quad Overdraw");
+
+      if(HasExt[ARB_viewport_array])
+        drv.glDisablei(eGL_SCISSOR_TEST, 0);
+      else
+        drv.glDisable(eGL_SCISSOR_TEST);
 
       float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
       drv.glClearBufferfv(eGL_COLOR, 0, black);

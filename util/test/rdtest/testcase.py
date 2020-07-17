@@ -382,6 +382,9 @@ class TestCase:
             save_data = rd.TextureSave()
             save_data.resourceId = tex
             save_data.destType = rd.FileType.PNG
+            save_data.slice.sliceIndex = sub.slice
+            save_data.mip = sub.mip
+            save_data.sample.sampleIndex = sub.sample
 
             img_path = util.get_tmp_path('output.png')
 

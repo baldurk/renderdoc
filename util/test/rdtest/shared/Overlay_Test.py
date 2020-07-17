@@ -224,10 +224,14 @@ class Overlay_Test(rdtest.TestCase):
                 self.check_pixel_value(overlay_id, 200, 93, [0.0, 1.0, 0.0, 1.0], eps=eps)
             elif overlay == rd.DebugOverlay.ViewportScissor:
                 # Inside viewport
-                self.check_pixel_value(overlay_id, 50, 50, [0.2*0.7, 0.2*0.7, 0.9*0.7, 0.7*0.7], eps=eps)
-                self.check_pixel_value(overlay_id, 350, 50, [0.2*0.7, 0.2*0.7, 0.9*0.7, 0.7*0.7], eps=eps)
-                self.check_pixel_value(overlay_id, 50, 250, [0.2*0.7, 0.2*0.7, 0.9*0.7, 0.7*0.7], eps=eps)
-                self.check_pixel_value(overlay_id, 350, 250, [0.2*0.7, 0.2*0.7, 0.9*0.7, 0.7*0.7], eps=eps)
+                self.check_pixel_value(overlay_id, 50, 50, [0.2 * 0.4, 0.2 * 0.4, 0.9 * 0.4, 0.4 * 0.4], eps=eps)
+                self.check_pixel_value(overlay_id, 350, 50, [0.2 * 0.4, 0.2 * 0.4, 0.9 * 0.4, 0.4 * 0.4], eps=eps)
+                self.check_pixel_value(overlay_id, 50, 250, [0.2 * 0.4, 0.2 * 0.4, 0.9 * 0.4, 0.4 * 0.4], eps=eps)
+                self.check_pixel_value(overlay_id, 350, 250, [0.2 * 0.4, 0.2 * 0.4, 0.9 * 0.4, 0.4 * 0.4], eps=eps)
+
+                # Passing triangle inside the viewport
+                self.check_pixel_value(overlay_id, 200, 150,
+                                       [0.2 * 0.4, 1.0 * 0.6 + 0.2 * 0.4, 0.9 * 0.4, 1.0 * 0.6 + 0.4 * 0.4], eps=eps)
 
                 # Viewport border
                 self.check_pixel_value(overlay_id, 12, 12, [0.1, 0.1, 0.1, 1.0], eps=eps)
@@ -364,7 +368,116 @@ class Overlay_Test(rdtest.TestCase):
 
         rdtest.log.success("All normal overlays are as expected")
 
+        # Check the viewport overlay especially
+        view_marker: rd.DrawcallDescription = self.find_draw("Viewport Test")
+
+        self.controller.SetFrameEvent(view_marker.next.eventId, True)
+
+        for overlay in rd.DebugOverlay:
+            if overlay == rd.DebugOverlay.NoOverlay:
+                continue
+
+            # These overlays are just displaymodes really, not actually separate overlays
+            if overlay == rd.DebugOverlay.NaN or overlay == rd.DebugOverlay.Clipping:
+                continue
+
+            # We'll test the clear-before-X overlays seperately, for both colour and depth
+            if overlay == rd.DebugOverlay.ClearBeforeDraw or overlay == rd.DebugOverlay.ClearBeforePass:
+                continue
+
+            rdtest.log.print("Checking overlay {} in viewport draw".format(str(overlay)))
+
+            tex.overlay = overlay
+            out.SetTextureDisplay(tex)
+
+            out.Display()
+
+            eps = 1.0 / 256.0
+
+            overlay_id: rd.ResourceId = out.GetDebugOverlayTexID()
+
+            if overlay == rd.DebugOverlay.Drawcall:
+                # The drawcall overlay will show up outside the scissor region
+                self.check_pixel_value(overlay_id, 50, 85, [0.8, 0.1, 0.8, 1.0], eps=eps)
+                self.check_pixel_value(overlay_id, 50, 50, [0.8, 0.1, 0.8, 1.0], eps=eps)
+                self.check_pixel_value(overlay_id, 50, 10, [0.8, 0.1, 0.8, 1.0], eps=eps)
+                self.check_pixel_value(overlay_id, 85, 85, [0.8, 0.1, 0.8, 1.0], eps=eps)
+
+                self.check_pixel_value(overlay_id, 50, 5, [0.0, 0.0, 0.0, 0.5], eps=eps)
+                self.check_pixel_value(overlay_id, 95, 85, [0.0, 0.0, 0.0, 0.5], eps=eps)
+                self.check_pixel_value(overlay_id, 80, 30, [0.0, 0.0, 0.0, 0.5], eps=eps)
+            elif overlay == rd.DebugOverlay.Wireframe:
+                # Wireframe we only test a limited set to avoid hitting implementation variations of line raster
+                # We also have to fudge a little because the lines might land on adjacent pixels
+
+                found = False
+
+                for delta in range(0, 5):
+                    try:
+                        self.check_pixel_value(overlay_id, 30 + delta, 32, [200.0 / 255.0, 1.0, 0.0, 1.0], eps=eps)
+                        found = True
+                        break
+                    except rdtest.TestFailureException:
+                        pass
+
+                if not found:
+                    raise rdtest.TestFailureException("Couldn't find wireframe within scissor")
+
+                found = False
+
+                for delta in range(0, 5):
+                    try:
+                        self.check_pixel_value(overlay_id, 34 + delta, 22, [200.0 / 255.0, 1.0, 0.0, 1.0], eps=eps)
+                        found = True
+                        break
+                    except rdtest.TestFailureException:
+                        pass
+
+                if found:
+                    raise rdtest.TestFailureException("Found wireframe outside of scissor")
+            elif overlay == rd.DebugOverlay.Depth or overlay == rd.DebugOverlay.Stencil or overlay == rd.DebugOverlay.BackfaceCull:
+                self.check_pixel_value(overlay_id, 50, 25, [0.0, 1.0, 0.0, 1.0], eps=eps)
+                self.check_pixel_value(overlay_id, 50, 75, [0.0, 1.0, 0.0, 1.0], eps=eps)
+
+                self.check_pixel_value(overlay_id, 50, 20, [0.0, 1.0, 0.0, 0.0], eps=eps)
+                self.check_pixel_value(overlay_id, 50, 80, [0.0, 1.0, 0.0, 0.0], eps=eps)
+            elif overlay == rd.DebugOverlay.ViewportScissor:
+                # Inside viewport and scissor, passing triangle
+                self.check_pixel_value(overlay_id, 50, 50,
+                                       [0.2 * 0.4, 1.0 * 0.6 + 0.2 * 0.4, 0.9 * 0.4, 1.0 * 0.6 + 0.4 * 0.4], eps=eps)
+
+                # Inside viewport and outside scissor
+                self.check_pixel_value(overlay_id, 50, 80,
+                                       [1.0 * 0.6 + 0.2 * 0.4, 0.2 * 0.4, 0.9 * 0.4, 1.0 * 0.6 + 0.4 * 0.4], eps=eps)
+            elif overlay == rd.DebugOverlay.QuadOverdrawDraw:
+                self.check_pixel_value(overlay_id, 50, 50, [1.0, 1.0, 1.0, 1.0], eps=eps)
+                self.check_pixel_value(overlay_id, 50, 15, [0.0, 0.0, 0.0, 0.0], eps=eps)
+            elif overlay == rd.DebugOverlay.QuadOverdrawPass:
+                self.check_pixel_value(overlay_id, 50, 50, [1.0, 1.0, 1.0, 1.0], eps=eps)
+                self.check_pixel_value(overlay_id, 50, 15, [0.0, 0.0, 0.0, 0.0], eps=eps)
+
+                self.check_pixel_value(overlay_id, 200, 270, [1.0, 1.0, 1.0, 1.0], eps=eps)
+                self.check_pixel_value(overlay_id, 200, 280, [0.0, 0.0, 0.0, 0.0], eps=eps)
+            elif overlay == rd.DebugOverlay.TriangleSizeDraw:
+                eps = 1.0
+
+                self.check_pixel_value(overlay_id, 50, 50, [5408.0, 5408.0, 5408.0, 1.0], eps=eps)
+                self.check_pixel_value(overlay_id, 50, 15, [0.0, 0.0, 0.0, 0.0], eps=eps)
+            elif overlay == rd.DebugOverlay.TriangleSizePass:
+                eps = 1.0
+
+                self.check_pixel_value(overlay_id, 50, 50, [5408.0, 5408.0, 5408.0, 1.0], eps=eps)
+                self.check_pixel_value(overlay_id, 50, 15, [0.0, 0.0, 0.0, 0.0], eps=eps)
+
+                self.check_pixel_value(overlay_id, 200, 270, [43072.0, 43072.0, 43072.0, 1.0], eps=eps)
+                self.check_pixel_value(overlay_id, 200, 280, [0.0, 0.0, 0.0, 0.0], eps=eps)
+
+            rdtest.log.success("Picked pixels are as expected for {}".format(str(overlay)))
+
+        rdtest.log.success("Overlays are as expected around viewport/scissor behaviour")
+
         # Now check clear-before-X by hand, for colour and for depth
+        self.controller.SetFrameEvent(test_marker.next.eventId, True)
 
         depth_tex: rd.ResourceId = pipe.GetDepthTarget().resourceId
 
@@ -535,14 +648,18 @@ class Overlay_Test(rdtest.TestCase):
                     self.check_pixel_value(overlay_id, 70 >> shift, 34 >> shift, [1.0, 0.0, 0.0, 1.0], sub=sub)
                     self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift, [0.0, 1.0, 0.0, 0.0], sub=sub)
                 elif overlay == rd.DebugOverlay.ViewportScissor:
+                    self.check_pixel_value(overlay_id, 20 >> shift, 15 >> shift,
+                                           [0.2 * 0.4, 0.2 * 0.4, 0.9 * 0.4, 0.4 * 0.4], sub=sub, eps=eps)
+                    self.check_pixel_value(overlay_id, 80 >> shift, 15 >> shift,
+                                           [0.2 * 0.4, 0.2 * 0.4, 0.9 * 0.4, 0.4 * 0.4], sub=sub, eps=eps)
+                    self.check_pixel_value(overlay_id, 20 >> shift, 60 >> shift,
+                                           [0.2 * 0.4, 0.2 * 0.4, 0.9 * 0.4, 0.4 * 0.4], sub=sub, eps=eps)
+                    self.check_pixel_value(overlay_id, 80 >> shift, 60 >> shift,
+                                           [0.2 * 0.4, 0.2 * 0.4, 0.9 * 0.4, 0.4 * 0.4], sub=sub, eps=eps)
+
                     self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift,
-                                           [0.2 * 0.7, 0.2 * 0.7, 0.9 * 0.7, 0.7 * 0.7], sub=sub, eps=eps)
-                    self.check_pixel_value(overlay_id, 30 >> shift, 36 >> shift,
-                                           [0.2 * 0.7, 0.2 * 0.7, 0.9 * 0.7, 0.7 * 0.7], sub=sub, eps=eps)
-                    self.check_pixel_value(overlay_id, 70 >> shift, 34 >> shift,
-                                           [0.2 * 0.7, 0.2 * 0.7, 0.9 * 0.7, 0.7 * 0.7], sub=sub, eps=eps)
-                    self.check_pixel_value(overlay_id, 70 >> shift, 20 >> shift,
-                                           [0.2 * 0.7, 0.2 * 0.7, 0.9 * 0.7, 0.7 * 0.7], sub=sub, eps=eps)
+                                           [0.2 * 0.4, 1.0 * 0.6 + 0.2 * 0.4, 0.9 * 0.4, 1.0 * 0.6 + 0.4 * 0.4],
+                                           sub=sub, eps=eps)
 
                     if mip == 2:
                         self.check_pixel_value(overlay_id, 6, 6, [0.1, 0.1, 0.1, 1.0], sub=sub, eps=eps)

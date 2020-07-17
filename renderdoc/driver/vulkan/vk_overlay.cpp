@@ -935,14 +935,17 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       att->colorWriteMask = 0xf;
     }
 
-    // set scissors to max
-    for(size_t i = 0; i < pipeCreateInfo.pViewportState->scissorCount; i++)
+    // set scissors to max for drawcall
+    if(overlay == DebugOverlay::Drawcall)
     {
-      VkRect2D &sc = (VkRect2D &)pipeCreateInfo.pViewportState->pScissors[i];
-      sc.offset.x = 0;
-      sc.offset.y = 0;
-      sc.extent.width = 16384;
-      sc.extent.height = 16384;
+      for(size_t i = 0; i < pipeCreateInfo.pViewportState->scissorCount; i++)
+      {
+        VkRect2D &sc = (VkRect2D &)pipeCreateInfo.pViewportState->pScissors[i];
+        sc.offset.x = 0;
+        sc.offset.y = 0;
+        sc.extent.width = 16384;
+        sc.extent.height = 16384;
+      }
     }
 
     // set our renderpass and shader
@@ -992,12 +995,15 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe);
 
     // set dynamic scissors in case pipeline was using them
-    for(size_t i = 0; i < m_pDriver->m_RenderState.scissors.size(); i++)
+    if(overlay == DebugOverlay::Drawcall)
     {
-      m_pDriver->m_RenderState.scissors[i].offset.x = 0;
-      m_pDriver->m_RenderState.scissors[i].offset.x = 0;
-      m_pDriver->m_RenderState.scissors[i].extent.width = 16384;
-      m_pDriver->m_RenderState.scissors[i].extent.height = 16384;
+      for(size_t i = 0; i < m_pDriver->m_RenderState.scissors.size(); i++)
+      {
+        m_pDriver->m_RenderState.scissors[i].offset.x = 0;
+        m_pDriver->m_RenderState.scissors[i].offset.y = 0;
+        m_pDriver->m_RenderState.scissors[i].extent.width = 16384;
+        m_pDriver->m_RenderState.scissors[i].extent.height = 16384;
+      }
     }
 
     if(overlay == DebugOverlay::Wireframe)
@@ -1051,7 +1057,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   {
     // clear the whole image to opaque black. We'll overwite the render area with transparent black
     // before rendering the viewport/scissors
-    float black[] = {0.0f, 0.0f, 0.0f, 1.0f};
+    float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
 
     VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                                     NULL,
@@ -1077,6 +1083,138 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
     black[3] = 0.0f;
 
+    vkr = vt->EndCommandBuffer(Unwrap(cmd));
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    float highlightCol[] = {1.0f, 0.0f, 0.0f, 1.0f};
+
+    // backup state
+    VulkanRenderState prevstate = m_pDriver->m_RenderState;
+
+    // make patched shader
+    VkShaderModule mod[2] = {0};
+    VkPipeline pipe[2] = {0};
+
+    // first shader, no culling, writes red
+    GetDebugManager()->PatchFixedColShader(mod[0], highlightCol);
+
+    highlightCol[0] = 0.0f;
+    highlightCol[1] = 1.0f;
+
+    // second shader, normal culling, writes green
+    GetDebugManager()->PatchFixedColShader(mod[1], highlightCol);
+
+    // make patched pipeline
+    VkGraphicsPipelineCreateInfo pipeCreateInfo;
+
+    m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo,
+                                                          prevstate.graphics.pipeline);
+
+    // disable all tests possible
+    VkPipelineDepthStencilStateCreateInfo *ds =
+        (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
+    ds->depthTestEnable = false;
+    ds->depthWriteEnable = false;
+    ds->stencilTestEnable = false;
+    ds->depthBoundsTestEnable = false;
+
+    VkPipelineRasterizationStateCreateInfo *rs =
+        (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
+    rs->cullMode = VK_CULL_MODE_NONE;    // first render without any culling
+    rs->rasterizerDiscardEnable = false;
+
+    if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
+      rs->depthClampEnable = true;
+
+    VkPipelineColorBlendStateCreateInfo *cb =
+        (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
+    cb->logicOpEnable = false;
+    cb->attachmentCount = 1;    // only one colour attachment
+    for(uint32_t i = 0; i < cb->attachmentCount; i++)
+    {
+      VkPipelineColorBlendAttachmentState *att =
+          (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
+      att->blendEnable = false;
+      att->colorWriteMask = 0xf;
+    }
+
+    // set our renderpass and shader
+    pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
+    pipeCreateInfo.subpass = 0;
+
+    VkPipelineShaderStageCreateInfo *fragShader = NULL;
+
+    for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
+    {
+      VkPipelineShaderStageCreateInfo &sh =
+          (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
+      if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+      {
+        sh.module = mod[0];
+        sh.pName = "main";
+        fragShader = &sh;
+        break;
+      }
+    }
+
+    if(fragShader == NULL)
+    {
+      // we know this is safe because it's pointing to a static array that's
+      // big enough for all shaders
+
+      VkPipelineShaderStageCreateInfo &sh =
+          (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
+      sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+      sh.pNext = NULL;
+      sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+      sh.module = mod[0];
+      sh.pName = "main";
+      sh.pSpecializationInfo = NULL;
+
+      fragShader = &sh;
+    }
+
+    vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
+                                               &pipe[0]);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    fragShader->module = mod[1];
+
+    vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
+                                               &pipe[1]);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    // modify state
+    m_pDriver->m_RenderState.renderPass = GetResID(m_Overlay.NoDepthRP);
+    m_pDriver->m_RenderState.subpass = 0;
+    m_pDriver->m_RenderState.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
+
+    m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[0]);
+    m_pDriver->m_RenderState.scissors = prevstate.scissors;
+
+    for(VkRect2D &sc : m_pDriver->m_RenderState.scissors)
+    {
+      sc.offset.x = 0;
+      sc.offset.y = 0;
+      sc.extent.width = 16384;
+      sc.extent.height = 16384;
+    }
+
+    m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
+
+    m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[1]);
+    m_pDriver->m_RenderState.scissors = prevstate.scissors;
+
+    m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
+
+    // restore state
+    m_pDriver->m_RenderState = prevstate;
+
+    cmd = m_pDriver->GetNextCmd();
+
+    vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
     {
       VkClearValue clearval = {};
       VkRenderPassBeginInfo rpbegin = {
@@ -1090,23 +1228,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       };
       vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-      VkClearRect rect = {
-          {
-              {
-                  m_pDriver->m_RenderState.renderArea.offset.x,
-                  m_pDriver->m_RenderState.renderArea.offset.y,
-              },
-              {
-                  m_pDriver->m_RenderState.renderArea.extent.width,
-                  m_pDriver->m_RenderState.renderArea.extent.height,
-              },
-          },
-          0,
-          1,
-      };
-      VkClearAttachment blackclear = {VK_IMAGE_ASPECT_COLOR_BIT, 0, {}};
-      vt->CmdClearAttachments(Unwrap(cmd), 1, &blackclear, 1, &rect);
-
       VkViewport viewport = m_pDriver->m_RenderState.views[0];
       vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
 
@@ -1119,7 +1240,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       // set primary/secondary to the same to 'disable' checkerboard
       ubo->PrimaryColor = ubo->SecondaryColor = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
-      ubo->InnerColor = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
+      ubo->InnerColor = Vec4f(0.2f, 0.2f, 0.9f, 0.4f);
 
       // set viewport rect
       ubo->RectPosition = Vec2f(viewport.x, viewport.y);
@@ -1184,6 +1305,24 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       }
 
       vt->CmdEndRenderPass(Unwrap(cmd));
+    }
+
+    vkr = vt->EndCommandBuffer(Unwrap(cmd));
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    // submit & flush so that we don't have to keep pipeline around for a while
+    m_pDriver->SubmitCmds();
+    m_pDriver->FlushQ();
+
+    cmd = m_pDriver->GetNextCmd();
+
+    vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    for(int i = 0; i < 2; i++)
+    {
+      m_pDriver->vkDestroyPipeline(m_Device, pipe[i], NULL);
+      m_pDriver->vkDestroyShaderModule(m_Device, mod[i], NULL);
     }
   }
   else if(overlay == DebugOverlay::BackfaceCull)
@@ -1267,16 +1406,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       att->colorWriteMask = 0xf;
     }
 
-    // set scissors to max
-    for(size_t i = 0; i < pipeCreateInfo.pViewportState->scissorCount; i++)
-    {
-      VkRect2D &sc = (VkRect2D &)pipeCreateInfo.pViewportState->pScissors[i];
-      sc.offset.x = 0;
-      sc.offset.y = 0;
-      sc.extent.width = 16384;
-      sc.extent.height = 16384;
-    }
-
     // set our renderpass and shader
     pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
     pipeCreateInfo.subpass = 0;
@@ -1333,15 +1462,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     m_pDriver->m_RenderState.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[0]);
-
-    // set dynamic scissors in case pipeline was using them
-    for(size_t i = 0; i < m_pDriver->m_RenderState.scissors.size(); i++)
-    {
-      m_pDriver->m_RenderState.scissors[i].offset.x = 0;
-      m_pDriver->m_RenderState.scissors[i].offset.x = 0;
-      m_pDriver->m_RenderState.scissors[i].extent.width = 16384;
-      m_pDriver->m_RenderState.scissors[i].extent.height = 16384;
-    }
 
     m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
@@ -1544,16 +1664,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       att->colorWriteMask = 0xf;
     }
 
-    // set scissors to max
-    for(size_t i = 0; i < pipeCreateInfo.pViewportState->scissorCount; i++)
-    {
-      VkRect2D &sc = (VkRect2D &)pipeCreateInfo.pViewportState->pScissors[i];
-      sc.offset.x = 0;
-      sc.offset.y = 0;
-      sc.extent.width = 16384;
-      sc.extent.height = 16384;
-    }
-
     // subpass 0 in either render pass
     pipeCreateInfo.subpass = 0;
 
@@ -1630,15 +1740,6 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     m_pDriver->m_RenderState.SetFramebuffer(m_pDriver, GetResID(m_Overlay.NoDepthFB));
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(failpipe);
-
-    // set dynamic scissors in case pipeline was using them
-    for(size_t i = 0; i < m_pDriver->m_RenderState.scissors.size(); i++)
-    {
-      m_pDriver->m_RenderState.scissors[i].offset.x = 0;
-      m_pDriver->m_RenderState.scissors[i].offset.x = 0;
-      m_pDriver->m_RenderState.scissors[i].extent.width = 16384;
-      m_pDriver->m_RenderState.scissors[i].extent.height = 16384;
-    }
 
     vkr = vt->EndCommandBuffer(Unwrap(cmd));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -2372,33 +2473,25 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       std::map<PipeKey, VkPipeline> pipes;
 
-      cmd = m_pDriver->GetNextCmd();
-
-      vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-      VkClearValue clearval = {};
-      VkRenderPassBeginInfo rpbegin = {
-          VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-          NULL,
-          Unwrap(RP),
-          Unwrap(FB),
-          {{0, 0}, m_Overlay.ImageDim},
-          1,
-          &clearval,
-      };
-      vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
-
-      VkViewport viewport = {0.0f,
-                             0.0f,
-                             (float)RDCMAX(1U, m_Overlay.ImageDim.width >> sub.mip),
-                             (float)RDCMAX(1U, m_Overlay.ImageDim.height >> sub.mip),
-                             0.0f,
-                             1.0f};
-      vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
-
       for(size_t i = 0; i < events.size(); i++)
       {
+        cmd = m_pDriver->GetNextCmd();
+
+        vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        VkClearValue clearval = {};
+        VkRenderPassBeginInfo rpbegin = {
+            VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+            NULL,
+            Unwrap(RP),
+            Unwrap(FB),
+            {{0, 0}, m_Overlay.ImageDim},
+            1,
+            &clearval,
+        };
+        vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+
         const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[i]);
 
         for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
@@ -2567,12 +2660,20 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
             }
           }
         }
+
+        vt->CmdEndRenderPass(Unwrap(cmd));
+
+        vkr = vt->EndCommandBuffer(Unwrap(cmd));
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        if(overlay == DebugOverlay::TriangleSizePass)
+        {
+          m_pDriver->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
+
+          if(i + 1 < events.size())
+            m_pDriver->ReplayLog(events[i], events[i + 1], eReplay_WithoutDraw);
+        }
       }
-
-      vt->CmdEndRenderPass(Unwrap(cmd));
-
-      vkr = vt->EndCommandBuffer(Unwrap(cmd));
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
       m_pDriver->SubmitCmds();
       m_pDriver->FlushQ();

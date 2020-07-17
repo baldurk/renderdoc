@@ -357,6 +357,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       {
         origdesc.CullMode = D3D11_CULL_BACK;
         origdesc.FrontCounterClockwise = FALSE;
+        origdesc.ScissorEnable = FALSE;
       }
 
       SAFE_RELEASE(rs);
@@ -372,7 +373,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       rdesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
       rdesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
       rdesc.DepthClipEnable = FALSE;
-      rdesc.ScissorEnable = FALSE;
+      rdesc.ScissorEnable = origdesc.ScissorEnable;
       rdesc.MultisampleEnable = FALSE;
       rdesc.AntialiasedLineEnable = FALSE;
 
@@ -422,27 +423,22 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
   }
   else if(overlay == DebugOverlay::ViewportScissor)
   {
-    m_pImmediateContext->VSSetShader(m_Overlay.FullscreenVS, NULL, 0);
-    m_pImmediateContext->HSSetShader(NULL, NULL, 0);
-    m_pImmediateContext->DSSetShader(NULL, NULL, 0);
-    m_pImmediateContext->GSSetShader(NULL, NULL, 0);
-    m_pImmediateContext->PSSetShader(m_General.CheckerboardPS, NULL, 0);
-    m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    m_pImmediateContext->IASetInputLayout(NULL);
+    m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
+    m_pImmediateContext->PSSetShader(m_General.FixedColPS, NULL, 0);
 
-    D3D11_RASTERIZER_DESC origdesc;
+    D3D11_RASTERIZER_DESC origdesc = {};
 
     {
-      ID3D11RasterizerState *rs = NULL;
+      ID3D11RasterizerState *origRS = NULL;
 
-      m_pImmediateContext->RSGetState(&rs);
+      m_pImmediateContext->RSGetState(&origRS);
 
-      if(rs)
-        rs->GetDesc(&origdesc);
+      if(origRS)
+        origRS->GetDesc(&origdesc);
       else
         origdesc.ScissorEnable = FALSE;
 
-      SAFE_RELEASE(rs);
+      SAFE_RELEASE(origRS);
     }
 
     dsDesc.DepthEnable = FALSE;
@@ -456,7 +452,70 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
       return m_Overlay.resourceId;
     }
 
+    ID3D11RasterizerState *rs = NULL;
+    ID3D11RasterizerState *rsScissorOn = NULL;
+    {
+      D3D11_RASTERIZER_DESC rdesc;
+
+      rdesc.FillMode = D3D11_FILL_SOLID;
+      rdesc.CullMode = D3D11_CULL_NONE;
+      rdesc.FrontCounterClockwise = FALSE;
+      rdesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
+      rdesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
+      rdesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+      rdesc.DepthClipEnable = FALSE;
+      rdesc.ScissorEnable = FALSE;
+      rdesc.MultisampleEnable = FALSE;
+      rdesc.AntialiasedLineEnable = FALSE;
+
+      hr = m_pDevice->CreateRasterizerState(&rdesc, &rs);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create drawcall rast state HRESULT: %s", ToStr(hr).c_str());
+        return m_Overlay.resourceId;
+      }
+
+      rdesc.ScissorEnable = TRUE;
+
+      hr = m_pDevice->CreateRasterizerState(&rdesc, &rsScissorOn);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create drawcall rast state HRESULT: %s", ToStr(hr).c_str());
+        return m_Overlay.resourceId;
+      }
+    }
+
+    float clearColour[] = {0.0f, 0.0f, 0.0f, 0.0f};
+    m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
+
+    m_pImmediateContext->RSSetState(rs);
     m_pImmediateContext->OMSetDepthStencilState(os, 0);
+
+    float overlayConsts[] = {1.0f, 0.0f, 0.0f, 1.0f};
+    ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(overlayConsts, sizeof(overlayConsts));
+
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
+
+    m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+
+    overlayConsts[0] = 0.0f;
+    overlayConsts[1] = 1.0f;
+
+    buf = GetDebugManager()->MakeCBuffer(overlayConsts, sizeof(overlayConsts));
+
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
+
+    m_pImmediateContext->RSSetState(rsScissorOn);
+
+    m_pDevice->ReplayLog(0, eventId, eReplay_OnlyDraw);
+
+    m_pImmediateContext->VSSetShader(m_Overlay.FullscreenVS, NULL, 0);
+    m_pImmediateContext->HSSetShader(NULL, NULL, 0);
+    m_pImmediateContext->DSSetShader(NULL, NULL, 0);
+    m_pImmediateContext->GSSetShader(NULL, NULL, 0);
+    m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_pImmediateContext->IASetInputLayout(NULL);
+    m_pImmediateContext->PSSetShader(m_General.CheckerboardPS, NULL, 0);
 
     D3D11_BLEND_DESC blendDesc;
     RDCEraseEl(blendDesc);
@@ -478,32 +537,6 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
     float blendwhite[] = {1.0f, 1.0f, 1.0f, 1.0f};
     m_pImmediateContext->OMSetBlendState(bs, blendwhite, 0xffffffff);
 
-    ID3D11RasterizerState *rs = NULL;
-    {
-      D3D11_RASTERIZER_DESC rdesc;
-
-      rdesc.FillMode = D3D11_FILL_SOLID;
-      rdesc.CullMode = D3D11_CULL_NONE;
-      rdesc.FrontCounterClockwise = FALSE;
-      rdesc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
-      rdesc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
-      rdesc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
-      rdesc.DepthClipEnable = FALSE;
-      rdesc.ScissorEnable = FALSE;
-      rdesc.MultisampleEnable = FALSE;
-      rdesc.AntialiasedLineEnable = FALSE;
-
-      hr = m_pDevice->CreateRasterizerState(&rdesc, &rs);
-      if(FAILED(hr))
-      {
-        RDCERR("Failed to create drawcall rast state HRESULT: %s", ToStr(hr).c_str());
-        return m_Overlay.resourceId;
-      }
-    }
-
-    float clearColour[] = {0.0f, 0.0f, 0.0f, 0.0f};
-    m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
-
     m_pImmediateContext->RSSetState(rs);
 
     CheckerboardCBuffer pixelData = {0};
@@ -517,13 +550,13 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
     // set primary/secondary to the same to 'disable' checkerboard
     pixelData.PrimaryColor = pixelData.SecondaryColor = Vec4f(0.1f, 0.1f, 0.1f, 1.0f);
-    pixelData.InnerColor = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
+    pixelData.InnerColor = Vec4f(0.2f, 0.2f, 0.9f, 0.4f);
 
     // set viewport rect
     pixelData.RectPosition = Vec2f(views[0].TopLeftX, views[0].TopLeftY);
     pixelData.RectSize = Vec2f(views[0].Width, views[0].Height);
 
-    ID3D11Buffer *buf = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(pixelData));
+    buf = GetDebugManager()->MakeCBuffer(&pixelData, sizeof(pixelData));
 
     m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
@@ -565,6 +598,7 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
 
     SAFE_RELEASE(os);
     SAFE_RELEASE(rs);
+    SAFE_RELEASE(rsScissorOn);
     SAFE_RELEASE(bs);
   }
   else if(overlay == DebugOverlay::Wireframe)
@@ -1115,6 +1149,10 @@ ResourceId D3D11Replay::RenderOverlay(ResourceId texid, FloatVector clearCol, De
         m_pImmediateContext->OMSetDepthStencilState(NULL, 0);
         m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
         m_pImmediateContext->RSSetState(m_General.RasterState);
+
+        D3D11_VIEWPORT view = {0.0f, 0.0f, (float)realTexDesc.Width, (float)realTexDesc.Height,
+                               0.0f, 1.0f};
+        m_pImmediateContext->RSSetViewports(1, &view);
 
         float clearColour[] = {0.0f, 0.0f, 0.0f, 0.0f};
         m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
