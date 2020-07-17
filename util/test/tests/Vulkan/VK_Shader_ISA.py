@@ -83,7 +83,7 @@ class VK_Shader_ISA(rdtest.TestCase):
             disasm: str = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, 'AMD_shader_info')
 
             expected = [
-                'tbuffer_load_format',
+                'buffer_load',
                 's_endpgm',
             ]
 
@@ -101,7 +101,7 @@ class VK_Shader_ISA(rdtest.TestCase):
                                                             'KHR_pipeline_executable_properties')
 
             expected = [
-                'tbuffer_load_format',
+                'buffer_load',
                 's_endpgm',
             ]
 
