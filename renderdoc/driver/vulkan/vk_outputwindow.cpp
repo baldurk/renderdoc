@@ -201,12 +201,17 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
   VkResult vkr = VK_SUCCESS;
 
+  uint32_t numImages = 2;
+
   if(m_WindowSystem != WindowingSystem::Headless)
   {
     VkSurfaceCapabilitiesKHR capabilities;
 
     ObjDisp(inst)->GetPhysicalDeviceSurfaceCapabilitiesKHR(Unwrap(phys), Unwrap(surface),
                                                            &capabilities);
+
+    if(capabilities.minImageCount < 8)
+      numImages = RDCMAX(numImages, capabilities.minImageCount);
 
     RDCASSERT(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
     // AMD didn't report this capability for a while. If the assert fires for you, update
@@ -308,7 +313,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
         NULL,
         0,
         Unwrap(surface),
-        2,
+        numImages,
         imformat,
         imcolspace,
         {width, height},
