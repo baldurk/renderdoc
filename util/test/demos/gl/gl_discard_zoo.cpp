@@ -149,13 +149,13 @@ RD_TEST(GL_Discard_Zoo, OpenGLGraphicsTest)
     if(slices == 1)
     {
       glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, ret);
-      glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, fmt, width, height, TRUE);
+      glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, fmt, width, height, GL_TRUE);
     }
     else
     {
       glBindTexture(GL_TEXTURE_2D_MULTISAMPLE_ARRAY, ret);
       glTexStorage3DMultisample(GL_TEXTURE_2D_MULTISAMPLE_ARRAY, samples, fmt, width, height,
-                                slices, TRUE);
+                                slices, GL_TRUE);
     }
     return ret;
   }
