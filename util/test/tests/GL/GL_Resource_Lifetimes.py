@@ -7,6 +7,26 @@ class GL_Resource_Lifetimes(rdtest.TestCase):
     demos_frame_cap = 200
 
     def check_capture(self):
+        draw: rd.DrawcallDescription = self.find_draw("glDraw")
+
+        self.controller.SetFrameEvent(draw.eventId, True)
+
+        mapping: rd.ShaderBindpointMapping = self.controller.GetPipelineState().GetBindpointMapping(rd.ShaderStage.Vertex)
+        self.check(mapping.readWriteResources[0].bind == 3)
+
+        mapping: rd.ShaderBindpointMapping = self.controller.GetPipelineState().GetBindpointMapping(rd.ShaderStage.Pixel)
+        self.check(mapping.readWriteResources[0].bind == 3)
+
+        draw: rd.DrawcallDescription = self.find_draw("glDraw", draw.eventId+1)
+
+        self.controller.SetFrameEvent(draw.eventId, True)
+
+        mapping: rd.ShaderBindpointMapping = self.controller.GetPipelineState().GetBindpointMapping(rd.ShaderStage.Vertex)
+        self.check(mapping.readWriteResources[0].bind == 3)
+
+        mapping: rd.ShaderBindpointMapping = self.controller.GetPipelineState().GetBindpointMapping(rd.ShaderStage.Pixel)
+        self.check(mapping.readWriteResources[0].bind == 3)
+
         last_draw: rd.DrawcallDescription = self.get_last_draw()
 
         self.controller.SetFrameEvent(last_draw.eventId, True)

@@ -1189,6 +1189,11 @@ bool GLInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x20)
     return true;
 
+  // 0x21 -> 0x22 - serialise glUniformBlockBinding and glShaderStorageBlockBinding with the name
+  //                instead of the block index, in case the index changes between capture and replay
+  if(ver == 0x21)
+    return true;
+
   return false;
 }
 

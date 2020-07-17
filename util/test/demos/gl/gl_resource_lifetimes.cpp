@@ -33,7 +33,7 @@ RD_TEST(GL_Resource_Lifetimes, OpenGLGraphicsTest)
 
   std::string common = R"EOSHADER(
 
-#version 420 core
+#version 450 core
 
 #define v2f v2f_block \
 {                     \
@@ -61,10 +61,17 @@ layout(std140) uniform constsbuf
   vec4 flags;
 };
 
+layout(binding = 0, std430) buffer storebuffer
+{
+  vec4 data;
+} sbuf;
+
 uniform vec4 flags2;
 
 void main()
 {
+  sbuf.data = vec4(1,2,3,4);
+
 	vertOut.pos = vec4(Position.xyz, 1);
 	gl_Position = vertOut.pos;
 	vertOut.col = Color;
@@ -97,10 +104,17 @@ layout(std140) uniform constsbuf
   vec4 flags;
 };
 
+layout(binding = 0, std430) buffer storebuffer
+{
+  vec4 data;
+} sbuf;
+
 uniform vec4 flags2;
 
 void main()
 {
+  sbuf.data = vec4(1,2,3,4);
+
   if(flags.x != 1.0f || flags.y != 2.0f || flags.z != 4.0f || flags.w != 8.0f)
   {
     Color = vec4(1.0f, 0.0f, 1.0f, 1.0f);
@@ -215,6 +229,8 @@ void main()
 
       glUniformBlockBinding(prog, glGetUniformBlockIndex(prog, "constsbuf"), 5);
 
+      glShaderStorageBlockBinding(prog, 0, 3);
+
       const Vec4f flags = {1.0f, 2.0f, 4.0f, 8.0f};
 
       glProgramUniform4fv(prog, glGetUniformLocation(prog, "flags2"), 1, &flags.x);
@@ -240,6 +256,8 @@ void main()
 
       glUniformBlockBinding(prog, glGetUniformBlockIndex(prog, "constsbuf"), 5);
 
+      glShaderStorageBlockBinding(prog, 0, 3);
+
       const Vec4f flags = {1.0f, 2.0f, 4.0f, 8.0f};
 
       glProgramUniform4fv(prog, glGetUniformLocation(prog, "flags2"), 1, &flags.x);
@@ -249,6 +267,8 @@ void main()
 
     auto TrashProgram = [](GLuint prog) {
       glUniformBlockBinding(prog, glGetUniformBlockIndex(prog, "constsbuf"), 4);
+
+      glShaderStorageBlockBinding(prog, 0, 2);
 
       const Vec4f empty = {};
       glProgramUniform4fv(prog, glGetUniformLocation(prog, "flags2"), 1, &empty.x);
@@ -361,6 +381,15 @@ void main()
 
       glDeleteBuffers(1, &buf);
     };
+
+    {
+      const Vec4f empty = {};
+      GLuint buf = MakeBuffer();
+      glBindBuffer(GL_SHADER_STORAGE_BUFFER, buf);
+      glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(empty), &empty, GL_STATIC_DRAW);
+
+      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, buf);
+    }
 
     glUseProgram(0);
     glViewport(0, 0, 128, 128);

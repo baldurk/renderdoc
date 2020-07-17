@@ -937,6 +937,34 @@ bool WrappedOpenGL::Serialise_glUniformBlockBinding(SerialiserType &ser, GLuint 
   SERIALISE_ELEMENT(uniformBlockIndex);
   SERIALISE_ELEMENT(uniformBlockBinding);
 
+  if(ser.VersionAtLeast(0x22))
+  {
+    rdcstr blockName;
+
+    if(ser.IsWriting())
+    {
+      GLint length = 1;
+      GL.glGetActiveUniformBlockiv(program.name, uniformBlockIndex, eGL_UNIFORM_BLOCK_NAME_LENGTH,
+                                   &length);
+
+      blockName.resize(length + 1);
+
+      GL.glGetActiveUniformBlockName(program.name, uniformBlockIndex, length, &length,
+                                     blockName.data());
+
+      blockName.resize(strlen(blockName.c_str()));
+    }
+
+    SERIALISE_ELEMENT(blockName).Hidden();
+
+    if(IsReplayingAndReading())
+    {
+      GLuint idx = GL.glGetUniformBlockIndex(program.name, blockName.c_str());
+      if(idx != GL_INVALID_INDEX)
+        uniformBlockIndex = idx;
+    }
+  }
+
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
@@ -976,6 +1004,37 @@ bool WrappedOpenGL::Serialise_glShaderStorageBlockBinding(SerialiserType &ser, G
   SERIALISE_ELEMENT(storageBlockIndex);
   SERIALISE_ELEMENT(storageBlockBinding);
 
+  if(ser.VersionAtLeast(0x22))
+  {
+    rdcstr blockName;
+
+    if(ser.IsWriting())
+    {
+      GLenum prop = eGL_NAME_LENGTH;
+
+      GLint length = 1;
+      GL.glGetProgramResourceiv(program.name, eGL_SHADER_STORAGE_BLOCK, storageBlockIndex, 1, &prop,
+                                1, NULL, &length);
+
+      blockName.resize(length + 1);
+
+      GL.glGetProgramResourceName(program.name, eGL_SHADER_STORAGE_BLOCK, storageBlockIndex, length,
+                                  &length, blockName.data());
+
+      blockName.resize(strlen(blockName.c_str()));
+    }
+
+    SERIALISE_ELEMENT(blockName).Hidden();
+
+    if(IsReplayingAndReading())
+    {
+      GLuint idx =
+          GL.glGetProgramResourceIndex(program.name, eGL_SHADER_STORAGE_BLOCK, blockName.c_str());
+      if(idx != GL_INVALID_INDEX)
+        storageBlockIndex = idx;
+    }
+  }
+
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
@@ -993,19 +1052,15 @@ void WrappedOpenGL::glShaderStorageBlockBinding(GLuint program, GLuint storageBl
 {
   SERIALISE_TIME_CALL(GL.glShaderStorageBlockBinding(program, storageBlockIndex, storageBlockBinding));
 
-  if(IsCaptureMode(m_State))
+  // we should only capture this while active, since the initial states will grab everything at the
+  // start of the frame and we only want to pick up dynamic changes after that.
+  if(IsActiveCapturing(m_State))
   {
-    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
-                 program);
-    if(record)
-    {
-      USE_SCRATCH_SERIALISER();
-      SCOPED_SERIALISE_CHUNK(gl_CurChunk);
-      Serialise_glShaderStorageBlockBinding(ser, program, storageBlockIndex, storageBlockBinding);
+    USE_SCRATCH_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(gl_CurChunk);
+    Serialise_glShaderStorageBlockBinding(ser, program, storageBlockIndex, storageBlockBinding);
 
-      record->AddChunk(scope.Get());
-    }
+    GetContextRecord()->AddChunk(scope.Get());
   }
 }
 
