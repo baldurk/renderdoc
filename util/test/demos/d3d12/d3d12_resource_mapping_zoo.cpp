@@ -55,6 +55,8 @@ float4 main() : SV_Target0
 Texture2D res1 : register(t6);
 Texture2D res2 : register(t7);
 
+RWTexture2D<float> res1uav : register(u0);
+
 // TODO: Add UAV writes and test gaps in those mappings
 
 cbuffer consts : register(b3)
@@ -72,7 +74,8 @@ float4 main() : SV_Target0
 {
   float4 color = bar[1][2].col;
   color += (float4)test + float4(0.1f, 0.0f, 0.0f, 0.0f);
-  return color + res1[uint2(0, 0)] + res2[uint2(0, 0)];
+  float4 uavVal = res1uav[uint2(1, 1)];
+  return color + res1[uint2(0, 0)] + res2[uint2(0, 0)] + uavVal;
 }
 
 )EOSHADER";
@@ -246,13 +249,16 @@ float4 main(float4 pos : SV_Position) : SV_Target0
     for(uint32_t i = 0; i < 12; ++i)
       MakeCBV(cbArray).SizeBytes(256).Offset(i * sizeof(AlignedCB)).CreateGPU(i);
 
-    ID3D12ResourcePtr res1 =
-        MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 2, 2).Mips(1).InitialState(D3D12_RESOURCE_STATE_COPY_DEST);
+    ID3D12ResourcePtr res1 = MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 2, 2)
+                                 .Mips(1)
+                                 .InitialState(D3D12_RESOURCE_STATE_COPY_DEST)
+                                 .UAV();
     MakeSRV(res1).CreateGPU(56);
     ID3D12ResourcePtr res2 =
         MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 2, 2).Mips(1).InitialState(D3D12_RESOURCE_STATE_COPY_DEST);
     D3D12ViewCreator srvRes2 = MakeSRV(res2);
     srvRes2.CreateGPU(57);
+    MakeUAV(res1).CreateGPU(20);
 
     // Create a few unused SRVs so that a bindless descriptor table has a lot of things to report
     srvRes2.CreateGPU(500);
@@ -276,8 +282,8 @@ float4 main(float4 pos : SV_Position) : SV_Target0
       UploadTexture(uploadBuf, resArray[i], (byte *)arrayData, 2 * sizeof(float));
     }
 
-    // In UNORM, 1/10, 2/10, 3/10, 4/10
-    byte res1Data[16] = {26, 51, 77, 102, 26, 51, 77, 102, 26, 51, 77, 102, 26, 51, 77, 102};
+    // In UNORM, 1/10, 2/10, 3/10, 4/10 for the first row, then reverse for the second row
+    byte res1Data[16] = {26, 51, 77, 102, 26, 51, 77, 102, 102, 77, 51, 26, 102, 77, 51, 26};
     UploadTexture(uploadBuf, res1, res1Data, 8);
 
     // In UNORM, 5/10, 6/10, 7/10, 8/10
@@ -295,6 +301,7 @@ float4 main(float4 pos : SV_Position) : SV_Target0
     ID3D12RootSignaturePtr sig_5_1 = MakeSig({
         cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 3),
         tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0, 4, 12, 0),
+        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 1, 20),
         tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, UINT_MAX, 50),
     });
     ID3D12RootSignaturePtr sig_resArray = MakeSig({
@@ -395,6 +402,7 @@ float4 main(float4 pos : SV_Position) : SV_Target0
       cmd->SetGraphicsRootConstantBufferView(0, cb->GetGPUVirtualAddress());
       cmd->SetGraphicsRootDescriptorTable(1, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
       cmd->SetGraphicsRootDescriptorTable(2, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+      cmd->SetGraphicsRootDescriptorTable(3, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
       cmd->DrawInstanced(3, 1, 0, 0);
 
       setMarker(cmd, "ResArray");
