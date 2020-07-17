@@ -385,6 +385,9 @@ bool D3D12DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
                   uavData.tex = true;
                   m_pDevice->GetReplay()->GetTextureData(uavId, Subresource(),
                                                          GetTextureDataParams(), uavData.data);
+
+                  D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+                  uavData.rowPitch = GetByteSize((int)resDesc.Width, 1, 1, uavDesc.Format, 0);
                 }
 
                 return true;
