@@ -627,12 +627,12 @@ void ReplayOutput::Display()
       dark2.x = light.x;
       dark2.y = dark.y;
       dark2.z = dark.z;
-      dark2.w = 0.4f;
+      dark2.w = 1.0f;
       FloatVector light2;
       light2.x = dark.x;
       light2.y = light.y;
       light2.z = light.z;
-      light2.w = 0.4f;
+      light2.w = 1.0f;
       m_pDevice->RenderCheckerboard(dark2, light2);
 
       m_pDevice->FlipOutputWindow(m_Thumbnails[i].outputID);
