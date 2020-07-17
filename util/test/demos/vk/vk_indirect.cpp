@@ -101,15 +101,26 @@ void main()
 
   void Prepare(int argc, char **argv)
   {
+    optDevExts.push_back(VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME);
+
     features.multiDrawIndirect = VK_TRUE;
 
     VulkanGraphicsTest::Prepare(argc, argv);
+
+    if(devVersion >= VK_MAKE_VERSION(1, 2, 0))
+    {
+      static VkPhysicalDeviceVulkan12Features feats = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+      };
+
+      feats.drawIndirectCount = VK_TRUE;
+
+      devInfoNext = &feats;
+    }
   }
 
   int main()
   {
-    optDevExts.push_back(VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME);
-
     // initialise, create window, create context, etc
     if(!Init())
       return 3;
