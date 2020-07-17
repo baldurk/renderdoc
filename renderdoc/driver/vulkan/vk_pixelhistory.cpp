@@ -3541,19 +3541,32 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
 
         flags &= 0x7 << DepthTest_Shift;
 
+        VkFormat dfmt = cb.GetDepthFormat(eid);
+        float shadDepth = history[h].shaderOut.depth;
+
+        // quantise depth to match before comparing
+        if(dfmt == VK_FORMAT_D24_UNORM_S8_UINT || dfmt == VK_FORMAT_X8_D24_UNORM_PACK32)
+        {
+          shadDepth = float(uint32_t(float(shadDepth * 0xffffff))) / float(0xffffff);
+        }
+        else if(dfmt == VK_FORMAT_D16_UNORM || dfmt == VK_FORMAT_D16_UNORM_S8_UINT)
+        {
+          shadDepth = float(uint32_t(float(shadDepth * 0xffff))) / float(0xffff);
+        }
+
         bool passed = true;
         if(flags == DepthTest_Equal)
-          passed = (history[h].shaderOut.depth == history[h].preMod.depth);
+          passed = (shadDepth == history[h].preMod.depth);
         else if(flags == DepthTest_NotEqual)
-          passed = (history[h].shaderOut.depth != history[h].preMod.depth);
+          passed = (shadDepth != history[h].preMod.depth);
         else if(flags == DepthTest_Less)
-          passed = (history[h].shaderOut.depth < history[h].preMod.depth);
+          passed = (shadDepth < history[h].preMod.depth);
         else if(flags == DepthTest_LessEqual)
-          passed = (history[h].shaderOut.depth <= history[h].preMod.depth);
+          passed = (shadDepth <= history[h].preMod.depth);
         else if(flags == DepthTest_Greater)
-          passed = (history[h].shaderOut.depth > history[h].preMod.depth);
+          passed = (shadDepth > history[h].preMod.depth);
         else if(flags == DepthTest_GreaterEqual)
-          passed = (history[h].shaderOut.depth >= history[h].preMod.depth);
+          passed = (shadDepth >= history[h].preMod.depth);
 
         history[h].depthTestFailed = !passed;
       }
