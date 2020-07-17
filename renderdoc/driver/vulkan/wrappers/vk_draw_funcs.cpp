@@ -2344,14 +2344,15 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
         AddEvent();
 
         DrawcallDescription draw;
-        draw.name = StringFormat::Fmt("vkCmdClearDepthStencilImage(%f, %u)", DepthStencil.depth,
-                                      DepthStencil.stencil);
         draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
         draw.copyDestination = GetResourceManager()->GetOriginalID(GetResID(image));
         draw.copyDestinationSubresource = Subresource();
         if(rangeCount > 0)
           draw.copyDestinationSubresource =
               Subresource(pRanges[0].baseMipLevel, pRanges[0].baseArrayLayer);
+        draw.name = StringFormat::Fmt("vkCmdClearDepthStencilImage(%s, %f, %u)",
+                                      ToStr(draw.copyDestination).c_str(), DepthStencil.depth,
+                                      DepthStencil.stencil);
 
         AddDrawcall(draw, true);
 
