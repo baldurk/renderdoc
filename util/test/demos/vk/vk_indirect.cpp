@@ -265,6 +265,17 @@ void main()
                            vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
                            vkh::ImageSubresourceRange());
 
+      vkh::cmdPipelineBarrier(
+          primary, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                                 VK_ACCESS_TRANSFER_WRITE_BIT, ssbo.buffer)});
+
+      // clear the buffer so that we can't read any of the data back from outside the command buffer
+      vkCmdFillBuffer(primary, ssbo.buffer, 0, ssbo_size, 0);
+
+      vkh::cmdPipelineBarrier(
+          primary, {}, {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                                 VK_ACCESS_TRANSFER_WRITE_BIT, ssbo.buffer)});
+
       {
         VkCommandBuffer cmd = primary;
 
