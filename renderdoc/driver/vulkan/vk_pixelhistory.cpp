@@ -117,22 +117,23 @@ bool isDirectWrite(ResourceUsage usage)
 
 enum : uint32_t
 {
-  TestEnabled_Culling = 1 << 0,
-  TestEnabled_Scissor = 1 << 1,
-  TestEnabled_SampleMask = 1 << 2,
-  TestEnabled_DepthBounds = 1 << 3,
-  TestEnabled_StencilTesting = 1 << 4,
-  TestEnabled_DepthTesting = 1 << 5,
-  TestEnabled_FragmentDiscard = 1 << 6,
+  TestEnabled_DepthClipping = 1 << 0,
+  TestEnabled_Culling = 1 << 1,
+  TestEnabled_Scissor = 1 << 2,
+  TestEnabled_SampleMask = 1 << 3,
+  TestEnabled_DepthBounds = 1 << 4,
+  TestEnabled_StencilTesting = 1 << 5,
+  TestEnabled_DepthTesting = 1 << 6,
+  TestEnabled_FragmentDiscard = 1 << 7,
 
-  Blending_Enabled = 1 << 7,
-  UnboundFragmentShader = 1 << 8,
-  TestMustFail_Culling = 1 << 9,
-  TestMustFail_Scissor = 1 << 10,
-  TestMustPass_Scissor = 1 << 11,
-  TestMustFail_DepthTesting = 1 << 12,
-  TestMustFail_StencilTesting = 1 << 13,
-  TestMustFail_SampleMask = 1 << 14,
+  Blending_Enabled = 1 << 8,
+  UnboundFragmentShader = 1 << 9,
+  TestMustFail_Culling = 1 << 10,
+  TestMustFail_Scissor = 1 << 11,
+  TestMustPass_Scissor = 1 << 12,
+  TestMustFail_DepthTesting = 1 << 13,
+  TestMustFail_StencilTesting = 1 << 14,
+  TestMustFail_SampleMask = 1 << 15,
 
   DepthTest_Shift = 29,
   DepthTest_Always = 0U << DepthTest_Shift,
@@ -1781,6 +1782,9 @@ private:
 
     // Culling
     {
+      if(p.depthClipEnable && !p.depthClampEnable)
+        flags |= TestEnabled_DepthClipping;
+
       if(pipestate.cullMode != VK_CULL_MODE_NONE)
         flags |= TestEnabled_Culling;
 
@@ -1912,8 +1916,9 @@ private:
     PipelineCreationFlags_DisableDepthTest = 1 << 1,
     PipelineCreationFlags_DisableStencilTest = 1 << 2,
     PipelineCreationFlags_DisableDepthBoundsTest = 1 << 3,
-    PipelineCreationFlags_FixedColorShader = 1 << 4,
-    PipelineCreationFlags_IntersectOriginalScissor = 1 << 5,
+    PipelineCreationFlags_DisableDepthClipping = 1 << 4,
+    PipelineCreationFlags_FixedColorShader = 1 << 5,
+    PipelineCreationFlags_IntersectOriginalScissor = 1 << 6,
   };
 
   void ReplayDrawWithTests(VkCommandBuffer cmd, uint32_t eid, uint32_t eventFlags,
@@ -1949,11 +1954,22 @@ private:
     if(eventFlags & TestEnabled_Culling)
     {
       uint32_t pipeFlags =
-          PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_DisableDepthBoundsTest |
-          PipelineCreationFlags_DisableStencilTest | PipelineCreationFlags_FixedColorShader;
+          PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_DisableDepthClipping |
+          PipelineCreationFlags_DisableDepthBoundsTest | PipelineCreationFlags_DisableStencilTest |
+          PipelineCreationFlags_FixedColorShader;
       VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
       VkMarkerRegion::Set(StringFormat::Fmt("Test culling on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_Culling);
+    }
+
+    if(eventFlags & TestEnabled_DepthClipping)
+    {
+      uint32_t pipeFlags =
+          PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_DisableDepthBoundsTest |
+          PipelineCreationFlags_DisableStencilTest | PipelineCreationFlags_FixedColorShader;
+      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      VkMarkerRegion::Set(StringFormat::Fmt("Test depth clipping on %u", eid), cmd);
+      ReplayDraw(cmd, pipe, eid, TestEnabled_DepthClipping);
     }
 
     // Scissor
@@ -2081,6 +2097,8 @@ private:
       ds->stencilTestEnable = VK_FALSE;
     if(pipeCreateFlags & PipelineCreationFlags_DisableDepthBoundsTest)
       ds->depthBoundsTestEnable = VK_FALSE;
+    if(pipeCreateFlags & PipelineCreationFlags_DisableDepthClipping)
+      rs->depthClampEnable = VK_TRUE;
 
     rdcarray<VkPipelineShaderStageCreateInfo> stages;
     stages.resize(ci.stageCount);
@@ -3090,6 +3108,15 @@ void UpdateTestsFailed(const TestsFailedCallback *tfCb, uint32_t eventId, uint32
   if(mod.backfaceCulled)
     return;
 
+  if(eventFlags & TestEnabled_DepthClipping)
+  {
+    uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_DepthClipping);
+    mod.depthClipped = (occlData == 0);
+  }
+
+  if(mod.depthClipped)
+    return;
+
   if((eventFlags & (TestEnabled_Scissor | TestMustPass_Scissor | TestMustFail_Scissor)) ==
      TestEnabled_Scissor)
   {
@@ -3121,9 +3148,9 @@ void UpdateTestsFailed(const TestsFailedCallback *tfCb, uint32_t eventId, uint32
   if(eventFlags & TestEnabled_DepthBounds)
   {
     uint64_t occlData = tfCb->GetOcclusionResult(eventId, TestEnabled_DepthBounds);
-    mod.depthClipped = (occlData == 0);
+    mod.depthBoundsFailed = (occlData == 0);
   }
-  if(mod.depthClipped)
+  if(mod.depthBoundsFailed)
     return;
 
   if((eventFlags & (TestEnabled_StencilTesting | TestMustFail_StencilTesting)) ==

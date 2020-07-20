@@ -1797,9 +1797,10 @@ struct PixelModification
            unboundPS == o.unboundPS && fragIndex == o.fragIndex && primitiveID == o.primitiveID &&
            preMod == o.preMod && shaderOut == o.shaderOut && postMod == o.postMod &&
            sampleMasked == o.sampleMasked && backfaceCulled == o.backfaceCulled &&
-           depthClipped == o.depthClipped && viewClipped == o.viewClipped &&
-           scissorClipped == o.scissorClipped && shaderDiscarded == o.shaderDiscarded &&
-           depthTestFailed == o.depthTestFailed && stencilTestFailed == o.stencilTestFailed;
+           depthClipped == o.depthClipped && depthBoundsFailed == o.depthBoundsFailed &&
+           viewClipped == o.viewClipped && scissorClipped == o.scissorClipped &&
+           shaderDiscarded == o.shaderDiscarded && depthTestFailed == o.depthTestFailed &&
+           stencilTestFailed == o.stencilTestFailed;
   }
   bool operator<(const PixelModification &o) const
   {
@@ -1825,6 +1826,8 @@ struct PixelModification
       return backfaceCulled < o.backfaceCulled;
     if(!(depthClipped == o.depthClipped))
       return depthClipped < o.depthClipped;
+    if(!(depthBoundsFailed == o.depthBoundsFailed))
+      return depthBoundsFailed < o.depthBoundsFailed;
     if(!(viewClipped == o.viewClipped))
       return viewClipped < o.viewClipped;
     if(!(scissorClipped == o.scissorClipped))
@@ -1871,6 +1874,8 @@ pixel.
   bool backfaceCulled;
   DOCUMENT("``True`` if depth near/far clipping eliminated this fragment.");
   bool depthClipped;
+  DOCUMENT("``True`` if depth bounds clipping eliminated this fragment.");
+  bool depthBoundsFailed;
   DOCUMENT("``True`` if viewport clipping eliminated this fragment.");
   bool viewClipped;
   DOCUMENT("``True`` if scissor clipping eliminated this fragment.");
@@ -1891,8 +1896,9 @@ pixel.
 )");
   bool Passed() const
   {
-    return !sampleMasked && !backfaceCulled && !depthClipped && !viewClipped && !scissorClipped &&
-           !shaderDiscarded && !depthTestFailed && !stencilTestFailed && !predicationSkipped;
+    return !sampleMasked && !backfaceCulled && !depthClipped && !depthBoundsFailed &&
+           !viewClipped && !scissorClipped && !shaderDiscarded && !depthTestFailed &&
+           !stencilTestFailed && !predicationSkipped;
   }
 };
 

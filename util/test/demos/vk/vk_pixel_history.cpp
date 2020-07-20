@@ -224,6 +224,15 @@ void main()
         {Vec3f(0.6f, 0.8f, 0.25f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
         {Vec3f(0.4f, 0.7f, 0.25f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(0.2f, 0.8f, 0.25f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+
+        // depth bounds prep
+        {Vec3f(0.6f, -0.3f, 0.3f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.7f, -0.5f, 0.5f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.8f, -0.3f, 0.7f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        // depth bounds clip
+        {Vec3f(0.6f, -0.3f, 0.3f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.7f, -0.5f, 0.5f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.8f, -0.3f, 0.7f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
     // negate y if we're using negative viewport height
@@ -370,7 +379,7 @@ void main()
       depthPipeInfo.dynamicState.dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BOUNDS);
       depthPipeInfo.depthStencilState.depthBoundsTestEnable = VK_TRUE;
       depthPipe = createGraphicsPipeline(depthPipeInfo);
-      setName(dynamicStencilMaskPipe, "depthPipe");
+      setName(depthPipe, "depthPipe");
     }
 
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_TRUE;
@@ -386,10 +395,20 @@ void main()
     pipeCreateInfo.depthStencilState.stencilTestEnable = VK_TRUE;
     pipeCreateInfo.depthStencilState.front.compareOp = VK_COMPARE_OP_GREATER;
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
+    pipeCreateInfo.depthStencilState.stencilTestEnable = VK_FALSE;
 
     pipeCreateInfo.rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
     VkPipeline cullFrontPipe = createGraphicsPipeline(pipeCreateInfo);
     pipeCreateInfo.rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+
+    pipeCreateInfo.depthStencilState.depthBoundsTestEnable = VK_TRUE;
+    pipeCreateInfo.depthStencilState.minDepthBounds = 0.0f;
+    pipeCreateInfo.depthStencilState.maxDepthBounds = 1.0f;
+    VkPipeline depthBoundsPipe1 = createGraphicsPipeline(pipeCreateInfo);
+    pipeCreateInfo.depthStencilState.minDepthBounds = 0.4f;
+    pipeCreateInfo.depthStencilState.maxDepthBounds = 0.6f;
+    VkPipeline depthBoundsPipe2 = createGraphicsPipeline(pipeCreateInfo);
+    pipeCreateInfo.depthStencilState.depthBoundsTestEnable = VK_FALSE;
 
     renderPassCreateInfo.attachments.pop_back();
     renderPassCreateInfo.subpasses[0].pDepthStencilAttachment = NULL;
@@ -532,6 +551,13 @@ void main()
       setMarker(cmd, "Cull Front");
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, cullFrontPipe);
       vkCmdDraw(cmd, 3, 1, 0, 0);
+
+      setMarker(cmd, "Depth Bounds Prep");
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, depthBoundsPipe1);
+      vkCmdDraw(cmd, 3, 1, 63, 0);
+      setMarker(cmd, "Depth Bounds Clip");
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, depthBoundsPipe2);
+      vkCmdDraw(cmd, 3, 1, 66, 0);
 
       // add a marker so we can easily locate this draw
       setMarker(cmd, "Test Begin");

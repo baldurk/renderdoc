@@ -896,6 +896,7 @@ void DoSerialise(SerialiserType &ser, PixelModification &el)
   SERIALISE_MEMBER(sampleMasked);
   SERIALISE_MEMBER(backfaceCulled);
   SERIALISE_MEMBER(depthClipped);
+  SERIALISE_MEMBER(depthBoundsFailed);
   SERIALISE_MEMBER(viewClipped);
   SERIALISE_MEMBER(scissorClipped);
   SERIALISE_MEMBER(shaderDiscarded);

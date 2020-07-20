@@ -7,6 +7,8 @@ def passed(x): return x.Passed()
 def event_id(x): return x.eventId
 def culled(x): return x.backfaceCulled
 def depth_test_failed(x): return x.depthTestFailed
+def depth_clipped(x): return x.depthClipped
+def depth_bounds_failed(x): return x.depthBoundsFailed
 def scissor_clipped(x): return x.scissorClipped
 def stencil_test_failed(x): return x.stencilTestFailed
 def shader_discarded(x): return x.shaderDiscarded
@@ -69,6 +71,8 @@ class VK_Pixel_History(rdtest.TestCase):
         dynamic_stencil_ref_eid = self.find_draw("Dynamic Stencil Ref").next.eventId
         dynamic_stencil_mask_eid = self.find_draw("Dynamic Stencil Mask").next.eventId
         depth_test_eid = self.find_draw("Depth Test").next.eventId
+        depth_bounds_prep_eid = self.find_draw("Depth Bounds Prep").next.eventId
+        depth_bounds_clip_eid = self.find_draw("Depth Bounds Clip").next.eventId
 
         # For pixel 190, 149 inside the red triangle
         x, y = 190, 149
@@ -114,6 +118,59 @@ class VK_Pixel_History(rdtest.TestCase):
         events = [
             [[event_id, begin_renderpass_eid], [passed, True]],
             [[event_id, background_eid], [shader_discarded, True]],
+        ]
+        self.check_events(events, modifs, False)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+        x, y = 330, 145
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, begin_renderpass_eid], [passed, True]],
+            [[event_id, test_eid], [passed, True], [primitive_id, 3], [shader_out_col, (0.0, 0.0, 0.0, 2.75)]],
+        ]
+        self.check_events(events, modifs, False)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+        x, y = 340, 145
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, begin_renderpass_eid], [passed, True]],
+            [[event_id, test_eid], [passed, False], [depth_clipped, True]],
+        ]
+        self.check_events(events, modifs, False)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+        x, y = 330, 105
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, begin_renderpass_eid], [passed, True]],
+            [[event_id, depth_bounds_prep_eid], [passed, True], [primitive_id, 0], [shader_out_col, (1.0, 0.0, 0.0, 2.75)]],
+            [[event_id, depth_bounds_clip_eid], [passed, True], [primitive_id, 0], [shader_out_col, (0.0, 1.0, 0.0, 2.75)]],
+        ]
+        self.check_events(events, modifs, False)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+        x, y = 320, 105
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, begin_renderpass_eid], [passed, True]],
+            [[event_id, depth_bounds_prep_eid], [passed, True], [primitive_id, 0], [shader_out_col, (1.0, 0.0, 0.0, 2.75)]],
+            [[event_id, depth_bounds_clip_eid], [passed, False], [depth_bounds_failed, True]],
+        ]
+        self.check_events(events, modifs, False)
+        self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)
+
+        x, y = 345, 105
+        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.typeCast)
+        events = [
+            [[event_id, begin_renderpass_eid], [passed, True]],
+            [[event_id, depth_bounds_prep_eid], [passed, True], [primitive_id, 0], [shader_out_col, (1.0, 0.0, 0.0, 2.75)]],
+            [[event_id, depth_bounds_clip_eid], [passed, False], [depth_bounds_failed, True]],
         ]
         self.check_events(events, modifs, False)
         self.check_pixel_value(tex, x, y, value_selector(modifs[-1].postMod.col), sub=sub, cast=rt.typeCast)

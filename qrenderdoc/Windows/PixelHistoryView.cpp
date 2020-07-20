@@ -580,6 +580,8 @@ private:
       s += tr("\nBackface culled");
     if(mod.depthClipped)
       s += tr("\nDepth Clipped");
+    if(mod.depthBoundsFailed)
+      s += tr("\nDepth bounds test failed");
     if(mod.scissorClipped)
       s += tr("\nScissor Clipped");
     if(mod.shaderDiscarded)
