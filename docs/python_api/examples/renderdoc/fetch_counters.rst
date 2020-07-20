@@ -71,7 +71,7 @@ Sample output:
 
     Counter 1 (GPU Duration):
         Time taken for this event on the GPU, as measured by delta between two GPU timestamps.
-        Returns 8 byte CompType.Double, representing CounterUnit.Seconds
+        Returns 8 byte CompType.Float, representing CounterUnit.Seconds
     Counter 2 (Input Vertices Read):
         Number of vertices read by input assembler.
         Returns 8 byte CompType.UInt, representing CounterUnit.Absolute
