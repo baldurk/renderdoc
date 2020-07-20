@@ -1175,7 +1175,7 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
 
   for(uint32_t i = 0; i < uv.columns; i++)
   {
-    if(texcoordType == 0 && (RDCISFINITE(uv.value.fv[i])))
+    if(texcoordType == 0 && !RDCISFINITE(uv.value.fv[i]))
     {
       RDCWARN("NaN or Inf in texlookup");
       uv.value.fv[i] = 0.0f;
