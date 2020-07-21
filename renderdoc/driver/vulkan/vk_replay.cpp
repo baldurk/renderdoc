@@ -42,9 +42,6 @@
 #define VULKAN 1
 #include "data/glsl/glsl_ubos_cpp.h"
 
-RDOC_CONFIG(bool, Vulkan_ShaderDebugging, false,
-            "BETA: Enable experimental shader debugging support.");
-
 static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
 static const char *AMDShaderInfoTarget = "AMD_shader_info";
 static const char *KHRExecutablePropertiesTarget = "KHR_pipeline_executable_properties";
@@ -190,7 +187,7 @@ APIProperties VulkanReplay::GetAPIProperties()
   ret.shadersMutable = false;
   ret.rgpCapture =
       m_DriverInfo.vendor == GPUVendor::AMD && m_RGP != NULL && m_RGP->DriverSupportsInterop();
-  ret.shaderDebugging = Vulkan_ShaderDebugging();
+  ret.shaderDebugging = true;
   ret.pixelHistory = true;
 
   return ret;
