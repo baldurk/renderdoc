@@ -238,6 +238,68 @@ void RegisterTest(TestMetadata test)
   test_list().push_back(test);
 }
 
+#if defined(_WIN64)
+#pragma warning(disable : 4091)
+
+#include <ImageHlp.h>
+
+LONG exceptionHandler(_EXCEPTION_POINTERS *ExceptionInfo)
+{
+  TEST_ERROR("Unhandled exception, code %08x", ExceptionInfo->ExceptionRecord->ExceptionCode);
+
+  if(HMODULE dbghelp = GetModuleHandleA("dbghelp.dll"))
+  {
+    using PFN_getLine = decltype(&SymGetLineFromAddr64);
+
+    PFN_getLine getLine = (PFN_getLine)GetProcAddress(dbghelp, "SymGetLineFromAddr64");
+
+    if(getLine)
+    {
+      DWORD64 stack[64] = {};
+
+      USHORT num = RtlCaptureStackBackTrace(1, 63, (void **)stack, NULL);
+
+      for(USHORT i = 0; i < num; i++)
+      {
+        DWORD offs = 0;
+        IMAGEHLP_LINE64 line = {};
+        getLine(GetCurrentProcess(), stack[i], &offs, &line);
+
+        if(line.FileName && line.FileName[0])
+        {
+          TEST_LOG("[%u] %s:%u", i, line.FileName, line.LineNumber);
+        }
+        else
+        {
+          HMODULE mod = NULL;
+          GetModuleHandleExA(
+              GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+              (const char *)stack[i], &mod);
+
+          if(mod)
+          {
+            char file[512] = {0};
+            GetModuleFileNameA(mod, file, 511);
+
+            TEST_LOG("[%u] %s+0x%x", i, file, stack[i] - (DWORD64)mod);
+          }
+          else
+          {
+            TEST_LOG("[%u] ??? %p", i, stack[i]);
+          }
+        }
+      }
+
+      return EXCEPTION_EXECUTE_HANDLER;
+    }
+  }
+
+  TEST_LOG("No callstack available");
+
+  return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif
+
 int main(int argc, char **argv)
 {
   std::vector<TestMetadata> &tests = test_list();
@@ -510,11 +572,15 @@ Usage: %s Test_Name [test_options]
   if(testchoice.empty())
     return 0;
 
+#if defined(_WIN64)
+  SetUnhandledExceptionFilter(&exceptionHandler);
+#endif
+
   for(const TestMetadata &test : tests)
   {
     if(testchoice == test.Name)
     {
-      TEST_LOG("\n\n======\nRunning %s\n\n", test.Name);
+      TEST_LOG("Running '%s'", test.Name);
       test.test->Prepare(argc, argv);
       test.test->SetName(test.Name);
 
