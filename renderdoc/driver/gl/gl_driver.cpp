@@ -5020,7 +5020,7 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
   SystemChunk header = ser.ReadChunk<SystemChunk>();
   RDCASSERTEQUAL(header, SystemChunk::CaptureBegin);
 
-  if(IsActiveReplaying(m_State) && !partial)
+  if(IsActiveReplaying(m_State) && !partial && !m_FetchCounters)
   {
     for(size_t i = 0; i < 8; i++)
     {
@@ -5147,7 +5147,7 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
     }
   }
 
-  if(IsActiveReplaying(m_State))
+  if(IsActiveReplaying(m_State) && !m_FetchCounters)
   {
     for(size_t i = 0; i < 8; i++)
     {
