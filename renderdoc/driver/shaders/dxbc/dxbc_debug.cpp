@@ -3208,6 +3208,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           resIndex = (uint32_t)op.operands[2].indices[0].index;
           srv = (op.operands[2].type == TYPE_RESOURCE);
           gsm = (op.operands[2].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+          memcpy(resComps, op.operands[2].comps, sizeof(resComps));
         }
         else
         {
