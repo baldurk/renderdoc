@@ -44,7 +44,6 @@
 
 RDOC_CONFIG(bool, Vulkan_ShaderDebugging, false,
             "BETA: Enable experimental shader debugging support.");
-RDOC_CONFIG(bool, Vulkan_PixelHistory, false, "BETA: Enable experimental pixel history support.");
 
 static const char *SPIRVDisassemblyTarget = "SPIR-V (RenderDoc)";
 static const char *AMDShaderInfoTarget = "AMD_shader_info";
@@ -192,7 +191,7 @@ APIProperties VulkanReplay::GetAPIProperties()
   ret.rgpCapture =
       m_DriverInfo.vendor == GPUVendor::AMD && m_RGP != NULL && m_RGP->DriverSupportsInterop();
   ret.shaderDebugging = Vulkan_ShaderDebugging();
-  ret.pixelHistory = Vulkan_PixelHistory();
+  ret.pixelHistory = true;
 
   return ret;
 }

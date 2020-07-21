@@ -3194,12 +3194,6 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
                                                        ResourceId target, uint32_t x, uint32_t y,
                                                        const Subresource &sub, CompType typeCast)
 {
-  if(!GetAPIProperties().pixelHistory)
-  {
-    VULKANNOTIMP("PixelHistory");
-    return rdcarray<PixelModification>();
-  }
-
   rdcarray<PixelModification> history;
 
   if(events.empty())
