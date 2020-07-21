@@ -166,6 +166,9 @@ document.body.onload = function() {
         if(words[0] == 'Callstack') {
           html += start ? '<div class="expandable callstack"><span class="expandtoggle"></span><div class="title">Callstack</div><div class="contents"><pre>' : '</pre></div></div>';
           instack = start;
+        } else if(words[0] == 'Raw') {
+          html += start ? '<div class="expandable"><span class="expandtoggle"></span><div class="title">' + words.slice(1).join(' ') + '</div><div class="contents"><pre>' : '</pre></div></div>';
+          instack = start;
         } else if(words[0] == 'Test') {
           test_name = words[1];
           html += start ? '<div class="expandable test" id="' + test_name + '"><span class="expandtoggle"></span><div class="title">Test: ' + test_name + '</div><div class="contents">' : '</div></div>';

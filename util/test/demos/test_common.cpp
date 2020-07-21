@@ -152,6 +152,7 @@ std::string trim(const std::string &str)
 }
 
 static char printBuf[4096] = {};
+static FILE *logFile = NULL;
 
 void DebugPrint(const char *fmt, ...)
 {
@@ -164,6 +165,12 @@ void DebugPrint(const char *fmt, ...)
 
   fputs(printBuf, stdout);
   fflush(stdout);
+
+  if(logFile)
+  {
+    fputs(printBuf, logFile);
+    fflush(logFile);
+  }
 
 #if defined(WIN32)
   OutputDebugStringA(printBuf);
@@ -508,6 +515,11 @@ void GraphicsTest::Prepare(int argc, char **argv)
                         !strcmp(argv[i], "--max-frames")))
     {
       maxFrameCount = atoi(argv[i + 1]);
+    }
+
+    if(i + 1 < argc && !strcmp(argv[i], "--log"))
+    {
+      logFile = fopen(argv[i + 1], "w");
     }
 
     if(i + 1 < argc && (!strcmp(argv[i], "--width") || !strcmp(argv[i], "-w")))

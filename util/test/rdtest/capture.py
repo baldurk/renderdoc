@@ -150,7 +150,8 @@ def run_executable(exe: str, cmdline: str,
     return res.ident
 
 
-def run_and_capture(exe: str, cmdline: str, frame: int, capture_name=None, opts=rd.GetDefaultCaptureOptions(), timeout=None):
+def run_and_capture(exe: str, cmdline: str, frame: int, *, capture_name=None, opts=rd.GetDefaultCaptureOptions(),
+                    timeout=None, logfile=None):
     """
     Helper function to run an executable with a command line, capture a particular frame, and exit.
 
@@ -161,6 +162,9 @@ def run_and_capture(exe: str, cmdline: str, frame: int, capture_name=None, opts=
     :param cmdline: The command line to pass.
     :param frame: The frame to capture.
     :param capture_name: The name to use creating the captures
+    :param opts: The capture options to use
+    :param timeout: The timeout to wait before killing the process if no capture has happened.
+    :param logfile: The log file output to include in the test log.
     :return: The path of the generated capture.
     :rtype: str
     """
@@ -170,7 +174,7 @@ def run_and_capture(exe: str, cmdline: str, frame: int, capture_name=None, opts=
 
     control = TargetControl(run_executable(exe, cmdline, cappath=util.get_tmp_path(capture_name), opts=opts), timeout=timeout)
 
-    log.print("Queuing capture of frame {} without timeout of {}".format(frame, "default" if timeout is None else timeout))
+    log.print("Queuing capture of frame {} with timeout of {}".format(frame, "default" if timeout is None else timeout))
 
     # Capture frame
     control.queue_capture(frame)
@@ -179,6 +183,9 @@ def run_and_capture(exe: str, cmdline: str, frame: int, capture_name=None, opts=
     control.run()
 
     captures = control.captures()
+
+    if logfile is not None and os.path.exists(logfile):
+        log.inline_file('Process output', logfile)
 
     if len(captures) == 0:
         raise RuntimeError("No capture made")
