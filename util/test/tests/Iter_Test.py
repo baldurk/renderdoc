@@ -141,9 +141,9 @@ class Iter_Test(rdtest.TestCase):
                     debugged = value.value.fv[0:value.columns]
 
                 # For now, ignore debugged values that are uninitialised. This is an application bug but it causes false reports of problems
-                for idx in range(4):
-                    if value.value.uv[idx] == 0xcccccccc:
-                        debugged[idx] = expect[idx]
+                for comp in range(4):
+                    if value.value.uv[comp] == 0xcccccccc:
+                        debugged[comp] = expect[comp]
 
                 # Unfortunately we can't ever trust that we should get back a matching results, because some shaders
                 # rely on undefined/inaccurate maths that we don't emulate.
