@@ -514,7 +514,8 @@ private:
     rdcarray<VertexAttrib> attribs;
     GLuint prevArrayBufferBinding;
   };
-  ClientMemoryData *CopyClientMemoryArrays(GLint first, GLsizei count, GLenum indexType,
+  ClientMemoryData *CopyClientMemoryArrays(GLint first, GLsizei count, GLint baseinstance,
+                                           GLsizei instancecount, GLenum indexType,
                                            const void *&indices);
   void RestoreClientMemoryArrays(ClientMemoryData *clientMemoryArrays, GLenum indexType);
 

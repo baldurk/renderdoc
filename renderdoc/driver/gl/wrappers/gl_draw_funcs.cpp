@@ -976,6 +976,8 @@ bool WrappedOpenGL::Serialise_glDrawArrays(SerialiserType &ser, GLenum mode, GLi
 }
 
 WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint first, GLsizei count,
+                                                                       GLint baseinstance,
+                                                                       GLsizei instancecount,
                                                                        GLenum indexType,
                                                                        const void *&indices)
 {
@@ -1025,7 +1027,22 @@ WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint fir
     if(buffer != 0)
       continue;
 
-    if(indexType != eGL_NONE && first == -1)
+    GLint divisor = 0;
+    GL.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_DIVISOR, &divisor);
+
+    if(divisor > 0)
+    {
+      if(baseinstance < 0)
+        first = 0;
+      else
+        first = baseinstance / divisor;
+
+      if(instancecount < 0)
+        count = 1;
+      else
+        count = instancecount / divisor;
+    }
+    else if(indexType != eGL_NONE && first == -1)
     {
       bytebuf readbackIndices;
 
@@ -1162,7 +1179,7 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
   if(IsActiveCapturing(m_State))
   {
     const void *indices = NULL;
-    ClientMemoryData *clientMemory = CopyClientMemoryArrays(first, count, eGL_NONE, indices);
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(first, count, -1, -1, eGL_NONE, indices);
 
     USE_SCRATCH_SERIALISER();
 
@@ -1319,7 +1336,8 @@ void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei coun
   if(IsActiveCapturing(m_State))
   {
     const void *indices = NULL;
-    ClientMemoryData *clientMemory = CopyClientMemoryArrays(first, count, eGL_NONE, indices);
+    ClientMemoryData *clientMemory =
+        CopyClientMemoryArrays(first, count, -1, instancecount, eGL_NONE, indices);
 
     USE_SCRATCH_SERIALISER();
 
@@ -1400,7 +1418,8 @@ void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, 
   if(IsActiveCapturing(m_State))
   {
     const void *indices = NULL;
-    ClientMemoryData *clientMemory = CopyClientMemoryArrays(first, count, eGL_NONE, indices);
+    ClientMemoryData *clientMemory =
+        CopyClientMemoryArrays(first, count, baseinstance, instancecount, eGL_NONE, indices);
 
     USE_SCRATCH_SERIALISER();
 
@@ -1478,7 +1497,7 @@ void WrappedOpenGL::glDrawElements(GLenum mode, GLsizei count, GLenum type, cons
 
   if(IsActiveCapturing(m_State))
   {
-    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, -1, -1, type, indices);
 
     USE_SCRATCH_SERIALISER();
 
@@ -1646,7 +1665,7 @@ void WrappedOpenGL::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, G
 
   if(IsActiveCapturing(m_State))
   {
-    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, -1, -1, type, indices);
 
     USE_SCRATCH_SERIALISER();
 
@@ -1733,7 +1752,7 @@ void WrappedOpenGL::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLu
 
   if(IsActiveCapturing(m_State))
   {
-    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, -1, -1, type, indices);
 
     USE_SCRATCH_SERIALISER();
 
@@ -1814,7 +1833,7 @@ void WrappedOpenGL::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum 
 
   if(IsActiveCapturing(m_State))
   {
-    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, -1, -1, type, indices);
 
     USE_SCRATCH_SERIALISER();
 
@@ -1895,7 +1914,8 @@ void WrappedOpenGL::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum t
 
   if(IsActiveCapturing(m_State))
   {
-    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+    ClientMemoryData *clientMemory =
+        CopyClientMemoryArrays(-1, count, -1, instancecount, type, indices);
 
     USE_SCRATCH_SERIALISER();
 
@@ -1982,7 +2002,8 @@ void WrappedOpenGL::glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei cou
 
   if(IsActiveCapturing(m_State))
   {
-    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+    ClientMemoryData *clientMemory =
+        CopyClientMemoryArrays(-1, count, baseinstance, instancecount, type, indices);
 
     USE_SCRATCH_SERIALISER();
 
@@ -2070,7 +2091,8 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count
 
   if(IsActiveCapturing(m_State))
   {
-    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+    ClientMemoryData *clientMemory =
+        CopyClientMemoryArrays(-1, count, -1, instancecount, type, indices);
 
     USE_SCRATCH_SERIALISER();
 
@@ -2159,7 +2181,8 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, G
 
   if(IsActiveCapturing(m_State))
   {
-    ClientMemoryData *clientMemory = CopyClientMemoryArrays(-1, count, type, indices);
+    ClientMemoryData *clientMemory =
+        CopyClientMemoryArrays(-1, count, baseinstance, instancecount, type, indices);
 
     USE_SCRATCH_SERIALISER();
 
