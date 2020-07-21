@@ -1412,7 +1412,10 @@ void D3D12PipelineStateViewer::setState()
       node->setTag(QVariant::fromValue(
           D3D12VBIBTag(state.inputAssembly.indexBuffer.resourceId,
                        state.inputAssembly.indexBuffer.byteOffset + drawOffset,
-                       qMin(state.inputAssembly.indexBuffer.byteSize - drawOffset, 0U), iformat)));
+                       drawOffset > state.inputAssembly.indexBuffer.byteSize
+                           ? 0
+                           : state.inputAssembly.indexBuffer.byteSize - drawOffset,
+                       iformat)));
 
       for(const D3D12Pipe::ResourceData &res : m_Ctx.CurD3D12PipelineState()->resourceStates)
       {
@@ -1460,7 +1463,10 @@ void D3D12PipelineStateViewer::setState()
       node->setTag(QVariant::fromValue(
           D3D12VBIBTag(state.inputAssembly.indexBuffer.resourceId,
                        state.inputAssembly.indexBuffer.byteOffset + drawOffset,
-                       qMin(state.inputAssembly.indexBuffer.byteSize - drawOffset, 0U), iformat)));
+                       drawOffset > state.inputAssembly.indexBuffer.byteSize
+                           ? 0
+                           : state.inputAssembly.indexBuffer.byteSize - drawOffset,
+                       iformat)));
 
       for(const D3D12Pipe::ResourceData &res : m_Ctx.CurD3D12PipelineState()->resourceStates)
       {
