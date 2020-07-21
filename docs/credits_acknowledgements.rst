@@ -180,3 +180,4 @@ The following list highlights notable open source contributions. Many other peop
 * James Fulop - Updated the vertex picking algorithm.
 * Balazs Torok - Implemented the RenderDoc in-application overlay for D3D9.
 * Steve Karolewics - Implemented DXBC shader debugging support for D3D12.
+* Aliya Pazylbekova - Implemented pixel history support for Vulkan.
