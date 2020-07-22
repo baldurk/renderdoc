@@ -743,6 +743,9 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
     return;
   }
 
+  UINT firstSub = region ? region->FirstSubresource : 0;
+  UINT numSubs = region ? region->NumSubresources : GetNumSubresources(m_pDevice, &desc);
+
   if(desc.SampleDesc.Count > 1)
   {
     // we can't do discard patterns for MSAA on compute comand lists
@@ -876,9 +879,9 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
     D3D12_CPU_DESCRIPTOR_HANDLE rtv = GetCPUHandle(MSAA_RTV);
     D3D12_CPU_DESCRIPTOR_HANDLE dsv = GetCPUHandle(MSAA_DSV);
 
-    for(UINT sub = 0; sub < region->NumSubresources; sub++)
+    for(UINT sub = 0; sub < numSubs; sub++)
     {
-      UINT subresource = region->FirstSubresource + sub;
+      UINT subresource = firstSub + sub;
       if(depth)
       {
         dsvDesc.Texture2DMSArray.FirstArraySlice = GetSliceForSubresource(res, subresource);
@@ -948,9 +951,6 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
 
     m_DiscardPatterns[desc.Format] = buf;
   }
-
-  UINT firstSub = region ? region->FirstSubresource : 0;
-  UINT numSubs = region ? region->NumSubresources : GetNumSubresources(m_pDevice, &desc);
 
   for(UINT sub = firstSub; sub < firstSub + numSubs; sub++)
   {
