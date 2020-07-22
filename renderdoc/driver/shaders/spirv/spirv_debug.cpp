@@ -118,8 +118,15 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
   it++;
 
   size_t arg = 0;
-  while(OpDecoder(it).op == Op::FunctionParameter)
+  while(OpDecoder(it).op == Op::FunctionParameter || OpDecoder(it).op == Op::Line ||
+        OpDecoder(it).op == Op::NoLine)
   {
+    if(OpDecoder(it).op == Op::Line || OpDecoder(it).op == Op::NoLine)
+    {
+      it++;
+      continue;
+    }
+
     OpFunctionParameter param(it);
 
     if(arg <= arguments.size())
@@ -140,6 +147,9 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
     it++;
   }
 
+  while(OpDecoder(it).op == Op::Line || OpDecoder(it).op == Op::NoLine)
+    it++;
+
   // next should be the start of the first function block
   RDCASSERT(OpDecoder(it).op == Op::Label);
   frame->lastBlock = frame->curBlock = OpLabel(it).result;
@@ -147,9 +157,13 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
 
   size_t numVars = 0;
   Iter varCounter = it;
-  while(OpDecoder(varCounter).op == Op::Variable)
+  while(OpDecoder(varCounter).op == Op::Variable || OpDecoder(varCounter).op == Op::Line ||
+        OpDecoder(varCounter).op == Op::NoLine)
   {
     varCounter++;
+    if(OpDecoder(varCounter).op == Op::Line || OpDecoder(varCounter).op == Op::NoLine)
+      continue;
+
     numVars++;
   }
 
@@ -161,8 +175,15 @@ void ThreadState::EnterFunction(const rdcarray<Id> &arguments)
 
   size_t i = 0;
   // handle any variable declarations
-  while(OpDecoder(it).op == Op::Variable)
+  while(OpDecoder(it).op == Op::Variable || OpDecoder(it).op == Op::Line ||
+        OpDecoder(it).op == Op::NoLine)
   {
+    if(OpDecoder(it).op == Op::Line || OpDecoder(it).op == Op::NoLine)
+    {
+      it++;
+      continue;
+    }
+
     OpVariable decl(it);
 
     ShaderVariable &stackvar = frame->locals[i];
