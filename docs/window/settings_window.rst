@@ -203,6 +203,12 @@ Settings including which channels are displayed (red, green, blue, alpha or dept
 
 If the above setting is enabled, then also store the y-flip per texture. By default this is treated as a global toggle for all textures. With this setting enabled the flip will default to off for all textures, and then be saved per-texture.
 
+  | :guilabel:`Custom shader directories` Default: ``Empty``
+
+Here you can choose additional locations to search for custom visualisation shaders, and in which order in case of duplicates.
+
+For more information see :doc:`../how/how_custom_visualisation`.
+
 Shader Viewer options
 ---------------------
 
