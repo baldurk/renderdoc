@@ -2348,7 +2348,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
   m_PostVS.Data[eventId].vsout.hasPosOut =
       refl->outputSignature[0].systemValue == ShaderBuiltin::Position;
-  m_PostVS.Data[eventId].vsout.flipY = state.views[0].height < 0.0f;
+  m_PostVS.Data[eventId].vsout.flipY = state.views.empty() ? false : state.views[0].height < 0.0f;
 
   // delete descriptors. Technically we don't have to free the descriptor sets, but our tracking on
   // replay doesn't handle destroying children of pooled objects so we do it explicitly anyway.
@@ -2903,7 +2903,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   m_PostVS.Data[eventId].gsout.idxbufmem = VK_NULL_HANDLE;
 
   m_PostVS.Data[eventId].gsout.hasPosOut = true;
-  m_PostVS.Data[eventId].gsout.flipY = state.views[0].height < 0.0f;
+  m_PostVS.Data[eventId].gsout.flipY = state.views.empty() ? false : state.views[0].height < 0.0f;
 
   // delete framebuffer and renderpass
   m_pDriver->vkDestroyFramebuffer(dev, fb, NULL);
