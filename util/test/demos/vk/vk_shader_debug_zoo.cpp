@@ -1789,7 +1789,10 @@ void main()
       R"EOSHADER(
                OpExecutionMode %main OriginUpperLeft
 )EOSHADER";
-  std::string spv_debug;
+  std::string spv_debug =
+      R"EOSHADER(
+   %filename = OpString "file.foo"
+)EOSHADER";
   std::string decorations = R"EOSHADER(
                OpDecorate %flatData Flat
                OpDecorate %flatData Location 1
@@ -1872,6 +1875,8 @@ void main()
 %ptr_Private_float4 = OpTypePointer Private %float4
 %ptr_Private_float4x4 = OpTypePointer Private %float4x4
 
+%ptr_Function_float = OpTypePointer Function %float
+
 %ptr_Uniform_float = OpTypePointer Uniform %float
 %ptr_Uniform_float2 = OpTypePointer Uniform %float2
 %ptr_Uniform_float3 = OpTypePointer Uniform %float3
@@ -1918,10 +1923,25 @@ void main()
   std::string functions = R"EOSHADER(
 
        %doubler = OpFunction %float None %doublerfunc
+                  OpLine %filename 123 456
+                  OpNoLine
+                  OpLine %filename 111 222
     %doubler_in = OpFunctionParameter %float
+                  OpNoLine
+                  OpLine %filename 99 55
+                  OpLine %filename 199 155
  %doubler_begin = OpLabel
+                  OpLine %filename 299 255
+   %doubler_tmp = OpVariable %ptr_Function_float Function
+                  OpLine %filename 399 355
    %doubler_ret = OpFMul %float %float_2_0 %doubler_in
-                  OpReturnValue %doubler_ret
+                  OpLine %filename 499 455
+                  OpStore %doubler_tmp %doubler_ret
+                  OpLine %filename 599 555
+  %doubler_ret2 = OpLoad %float %doubler_tmp
+                  OpLine %filename 699 655
+                  OpReturnValue %doubler_ret2
+                  OpLine %filename 799 755
                   OpFunctionEnd
 )EOSHADER";
   std::vector<std::string> asm_tests;
