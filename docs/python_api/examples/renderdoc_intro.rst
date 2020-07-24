@@ -12,6 +12,10 @@ Loading the Module
 
 For this section we assume you have built a copy of RenderDoc and have the module (``renderdoc.pyd`` or ``renderdoc.so`` depending on your platform). For information on how to build see the `GitHub repository <https://github.com/baldurk/renderdoc>`_.
 
+.. note::
+
+  You must use exactly the same version of python to load the module as was used to build it. On Windows the version of python that comes with the repository and is used by default is python 3.6.
+
 Once you have the module, either place the module within your python's default library search path, or else insert the location of the python module into the path in your script. You can either set the ``PYTHONPATH`` environment variable or do it at the start of your script:
 
 .. highlight:: python
