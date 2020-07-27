@@ -25,6 +25,7 @@
 #include "QRDUtils.h"
 #include <QAbstractTextDocumentLayout>
 #include <QApplication>
+#include <QCloseEvent>
 #include <QCollator>
 #include <QDesktopServices>
 #include <QElapsedTimer>
@@ -1948,7 +1949,7 @@ public:
     setWindowFlags(Qt::CustomizeWindowHint | Qt::Dialog | Qt::WindowTitleHint);
     setWindowIcon(QIcon());
     setMinimumSize(QSize(250, 0));
-    setMaximumSize(QSize(250, 10000));
+    setMaximumSize(QSize(500, 200));
     setCancelButton(NULL);
     setMinimumDuration(0);
     setWindowModality(Qt::ApplicationModal);
@@ -1994,7 +1995,7 @@ protected:
 
     QProgressDialog::keyPressEvent(e);
   }
-
+  void closeEvent(QCloseEvent *event) override { event->ignore(); }
   QLabel m_Label;
 
   static const int maxProgress = 1000;
