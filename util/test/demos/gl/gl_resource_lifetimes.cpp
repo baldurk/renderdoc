@@ -96,8 +96,9 @@ in v2f vertIn;
 
 layout(location = 0, index = 0) out vec4 Color;
 
-layout(binding = 0) uniform sampler2D checker;
-layout(binding = 1) uniform sampler2D smiley;
+layout(binding = 0) uniform sampler2D smiley;
+layout(binding = 1) uniform sampler2D white;
+layout(binding = 2) uniform sampler2D checker;
 
 layout(std140) uniform constsbuf
 {
@@ -127,7 +128,7 @@ void main()
     return;
   }
 
-  Color = texture(smiley, vertIn.uv.xy * 2.0f) * texture(checker, vertIn.uv.xy * 5.0f);
+  Color = texture(smiley, vertIn.uv.xy * 2.0f) * texture(white, vertIn.uv.xy * 2.0f) * texture(checker, vertIn.uv.xy * 5.0f);
   Color.w = 1.0f;
 }
 
@@ -155,6 +156,7 @@ void main()
     glBindTexture(GL_TEXTURE_2D, offscreen);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 128, 128);
 
+    glActiveTexture(GL_TEXTURE0);
     GLuint smiley = MakeTexture();
     glBindTexture(GL_TEXTURE_2D, smiley);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, rgba8.width, rgba8.height);
@@ -162,9 +164,14 @@ void main()
                     rgba8.data.data());
 
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, smiley);
+    uint32_t whiteData[4 * 4];
+    memset(whiteData, 0xff, sizeof(whiteData));
+    GLuint white = MakeTexture();
+    glBindTexture(GL_TEXTURE_2D, white);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 4, 4);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 4, 4, GL_RGBA, GL_UNSIGNED_BYTE, whiteData);
 
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     std::string vssrc = common + vertex;
@@ -209,7 +216,7 @@ void main()
     auto SetupSampler = []() {
       GLuint sampler = 0;
       glGenSamplers(1, &sampler);
-      glBindSampler(1, sampler);
+      glBindSampler(0, sampler);
 
       glSamplerParameteri(sampler, GL_TEXTURE_WRAP_R, GL_REPEAT);
       glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

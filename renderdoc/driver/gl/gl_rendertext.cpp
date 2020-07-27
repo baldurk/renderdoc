@@ -88,12 +88,12 @@ void WrappedOpenGL::ContextData::CreateDebugData()
       ResetPixelPackState(false, 1);
       ResetPixelUnpackState(false, 1);
 
-      GLuint curtex = 0;
-      GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&curtex);
-
       GLenum oldActive = eGL_TEXTURE0;
       GL.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&oldActive);
       GL.glActiveTexture(eGL_TEXTURE0);
+
+      GLuint curtex = 0;
+      GL.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&curtex);
 
       GLenum texFmt = eGL_R8;
       if(Legacy())
