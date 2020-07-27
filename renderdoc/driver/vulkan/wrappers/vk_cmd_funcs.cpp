@@ -2566,6 +2566,16 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
               renderstate.scissors = pipeInfo.scissors;
             }
 
+            if(!pipeInfo.dynamicStates[VkDynamicViewportCountEXT])
+            {
+              renderstate.views.resize(RDCMIN(renderstate.views.size(), pipeInfo.viewports.size()));
+            }
+            if(!pipeInfo.dynamicStates[VkDynamicScissorCountEXT])
+            {
+              renderstate.scissors.resize(
+                  RDCMIN(renderstate.scissors.size(), pipeInfo.scissors.size()));
+            }
+
             if(!pipeInfo.dynamicStates[VkDynamicLineWidth])
             {
               renderstate.lineWidth = pipeInfo.lineWidth;
