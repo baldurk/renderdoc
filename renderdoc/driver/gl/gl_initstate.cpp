@@ -2145,7 +2145,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialConte
       details.width =
           state.texBufSize / uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt)));
 
-      if(GL.glTextureBufferRangeEXT)
+      if(GL.glTextureBufferRangeEXT && (state.texBufOffs > 0 || state.texBufSize > 0))
       {
         // restore texbuffer only state
         GL.glTextureBufferRangeEXT(live.name, eGL_TEXTURE_BUFFER, details.internalFormat, buffer,
