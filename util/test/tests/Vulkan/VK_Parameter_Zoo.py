@@ -146,6 +146,8 @@ class VK_Parameter_Zoo(rdtest.TestCase):
         self.check(not binding.binds[2].dynamicallyUsed)
         self.check(not binding.binds[3].dynamicallyUsed)
 
+        self.check(len(vkpipe.viewportScissor.viewportScissors) == 0)
+
         postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices)
 
         postvs_ref = {
@@ -172,6 +174,8 @@ class VK_Parameter_Zoo(rdtest.TestCase):
         }
 
         self.check_mesh_data(postvs_ref, postvs_data)
+
+        rdtest.log.success("ASM Draw is as expected")
 
         # Check for resource leaks
         if len(self.controller.GetStructuredFile().chunks) > 500:

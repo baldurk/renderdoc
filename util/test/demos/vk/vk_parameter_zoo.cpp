@@ -478,7 +478,17 @@ void main()
     pipeCreateInfo.inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
     pipeCreateInfo.layout = asm_layout;
 
-    VkPipeline asm_pipe = createGraphicsPipeline(pipeCreateInfo);
+    VkPipeline asm_pipe;
+    {
+      vkh::GraphicsPipelineCreateInfo asm_info = pipeCreateInfo;
+
+      asm_info.viewportState.viewports.clear();
+      asm_info.viewportState.scissors.clear();
+      asm_info.viewportState.viewportCount = 0;
+      asm_info.viewportState.scissorCount = 0;
+
+      asm_pipe = createGraphicsPipeline(asm_info);
+    }
 
     {
       // invalid handle - should not be used because the flag for derived pipelines is not used
@@ -1321,6 +1331,15 @@ void main()
           popMarker(cmd);
         }
 
+        uint32_t idx = 1;
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, asm_pipe);
+        vkCmdPushConstants(cmd, asm_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4, &idx);
+        vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, asm_layout, 0,
+                                   {asm_descset}, {});
+
+        setMarker(cmd, "ASM Draw");
+        vkCmdDraw(cmd, 4, 1, 0, 0);
+
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
         vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
         vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
@@ -1350,15 +1369,6 @@ void main()
 
         VkRect2D sc = {100, 100, 10, 10};
         vkCmdSetScissor(cmd, 0, 1, &sc);
-
-        uint32_t idx = 1;
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, asm_pipe);
-        vkCmdPushConstants(cmd, asm_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4, &idx);
-        vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, asm_layout, 0,
-                                   {asm_descset}, {});
-
-        setMarker(cmd, "ASM Draw");
-        vkCmdDraw(cmd, 4, 1, 0, 0);
 
         if(EXT_transform_feedback)
         {
