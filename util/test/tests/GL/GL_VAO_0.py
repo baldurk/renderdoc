@@ -52,3 +52,24 @@ class GL_VAO_0(rdtest.TestCase):
 
             draw = draw.next
 
+        draw = self.find_draw("Instanced")
+
+        self.check(draw is not None)
+
+        self.controller.SetFrameEvent(draw.eventId, False)
+
+        # Each instance should have color output of 0.5 * instance in blue
+        for i in range(0, draw.numInstances):
+            postvs_data = self.get_postvs(draw, rd.MeshDataStage.VSOut, 0, draw.numIndices, i)
+
+            postvs_ref = {
+                0: {
+                    'vtx': 0,
+                    'idx': 0,
+                    'v2f_block.col': [0.0, 0.0, 0.5*(i+1), 0.0],
+                },
+            }
+
+            self.check_mesh_data(postvs_ref, postvs_data)
+
+            rdtest.log.success('Instance {} is OK'.format(i))
