@@ -597,6 +597,14 @@ float4 main(v2f IN) : SV_Target0
     sincos(val, a, b);
     return float4(val, a, b, 0.0f);
   }
+  if(IN.tri == 68)
+  {
+    // use this to ensure the compiler doesn't know we're using fixed locations
+    uint z = intval - IN.tri - 7;
+
+    // try to force a swizzle on the load
+    return asfloat(byterotest.Load4(z+0).yz).xyxy;
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
