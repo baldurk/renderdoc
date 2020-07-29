@@ -176,6 +176,7 @@
     <ClCompile Include="d3d12\d3d12_draw_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_empty_capture.cpp" />
     <ClCompile Include="d3d12\d3d12_execute_indirect.cpp" />
+    <ClCompile Include="d3d12\d3d12_existing_heap.cpp" />
     <ClCompile Include="d3d12\d3d12_helpers.cpp" />
     <ClCompile Include="d3d12\d3d12_large_buffer.cpp" />
     <ClCompile Include="d3d12\d3d12_mesh_zoo.cpp" />

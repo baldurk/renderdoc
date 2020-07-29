@@ -61,8 +61,8 @@ RD_TEST(D3D12_Sharing, D3D12GraphicsTest)
     if(!d3d11.Init(pDXGIAdapter))
       return 4;
 
-    ID3D12DevicePtr dev2 = CreateDevice({pDXGIAdapter}, D3D_FEATURE_LEVEL_11_0);
-    if(!dev2)
+    ID3D12DevicePtr devB = CreateDevice({pDXGIAdapter}, D3D_FEATURE_LEVEL_11_0);
+    if(!devB)
       return 2;
 
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_4_0");
@@ -86,15 +86,15 @@ RD_TEST(D3D12_Sharing, D3D12GraphicsTest)
 
     ID3D12RootSignaturePtr sig = MakeSig({});
 
-    // swap dev with dev2, to force pso to be created on the 'second' device (should be identical to
+    // swap dev with devB, to force pso to be created on the 'second' device (should be identical to
     // the first). This may be completely redundant as we might have two identical pointers, but
     // that's not guaranteed.
-    std::swap(dev, dev2);
+    std::swap(dev, devB);
 
     ID3D12PipelineStatePtr pso = MakePSO().RootSig(sig).InputLayout().VS(vsblob).PS(psblob);
 
     // set them back
-    std::swap(dev, dev2);
+    std::swap(dev, devB);
 
     ResourceBarrier(d3d12vb, D3D12_RESOURCE_STATE_COMMON,
                     D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
@@ -192,7 +192,7 @@ RD_TEST(D3D12_Sharing, D3D12GraphicsTest)
       Present();
     }
 
-    dev2 = NULL;
+    devB = NULL;
 
     return 0;
   }

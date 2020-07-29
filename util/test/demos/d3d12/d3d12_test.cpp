@@ -426,6 +426,11 @@ float4 main(float4 pos : SV_Position) : SV_Target0
 
   infoqueue = dev;
 
+  dev1 = dev;
+  dev2 = dev;
+  dev3 = dev;
+  dev4 = dev;
+
   if(infoqueue)
   {
     D3D12_INFO_QUEUE_FILTER filter = {};

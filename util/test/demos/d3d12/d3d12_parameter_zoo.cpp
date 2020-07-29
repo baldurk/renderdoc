@@ -65,8 +65,6 @@ float4 main() : SV_Target0
 
     ID3D12PipelineStatePtr pso = psoCreator;
 
-    ID3D12Device4Ptr dev4 = dev;
-
     // if D3D12.4 (??) is available, use different interfaces
     if(dev4)
     {
