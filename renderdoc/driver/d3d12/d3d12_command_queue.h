@@ -178,6 +178,8 @@ public:
     return NULL;
   }
   // the rest forward to the device
+  virtual void *GetFrameCapturerDevice() { return m_pDevice->GetFrameCapturerDevice(); }
+  virtual IFrameCapturer *GetFrameCapturer() { return m_pDevice->GetFrameCapturer(); }
   virtual void FirstFrame(IDXGISwapper *swapper) { m_pDevice->FirstFrame(swapper); }
   virtual void NewSwapchainBuffer(IUnknown *backbuffer)
   {

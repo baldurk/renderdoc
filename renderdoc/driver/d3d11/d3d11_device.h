@@ -465,6 +465,8 @@ public:
   ID3DUserDefinedAnnotation *GetAnnotations() { return m_RealAnnotations; }
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }
+  void *GetFrameCapturerDevice() { return (ID3D11Device *)this; }
+  virtual IFrameCapturer *GetFrameCapturer() { return this; }
   virtual IID GetBackbufferUUID() { return __uuidof(ID3D11Texture2D); }
   virtual bool IsDeviceUUID(REFIID iid)
   {

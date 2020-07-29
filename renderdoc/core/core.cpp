@@ -1845,8 +1845,12 @@ void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
 
     if(it->second.RefCount <= 0)
     {
+      RDCLOG("Removed last refcount");
+
       if(m_ActiveWindow == dw)
       {
+        RDCLOG("Removed active window");
+
         if(m_WindowFrameCapturers.size() == 1)
         {
           m_ActiveWindow = DeviceWnd();

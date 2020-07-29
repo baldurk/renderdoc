@@ -938,6 +938,8 @@ private:
   void SubmitExtQBarriers(uint32_t queueFamilyIndex,
                           const rdcarray<VkImageMemoryBarrier> &queueFamilyBarriers);
 
+  VkResourceRecord *RegisterSurface(WindowingSystem system, void *handle);
+
 public:
   WrappedVulkan();
   virtual ~WrappedVulkan();

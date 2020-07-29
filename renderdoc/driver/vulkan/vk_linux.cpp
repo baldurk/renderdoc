@@ -59,12 +59,9 @@ VkResult WrappedVulkan::vkCreateXcbSurfaceKHR(VkInstance instance,
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
-    wrapped->record =
-        PackWindowHandleInRecord(WindowingSystem::XCB, (void *)(uintptr_t)pCreateInfo->window);
+    wrapped->record = RegisterSurface(WindowingSystem::XCB, (void *)(uintptr_t)pCreateInfo->window);
 
     Keyboard::UseXcbConnection(pCreateInfo->connection);
-
-    Keyboard::AddInputWindow(WindowingSystem::Xlib, (void *)(uintptr_t)pCreateInfo->window);
   }
 
   return ret;
@@ -105,11 +102,9 @@ VkResult WrappedVulkan::vkCreateWaylandSurfaceKHR(VkInstance instance,
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
     wrapped->record =
-        PackWindowHandleInRecord(WindowingSystem::Wayland, (void *)(uintptr_t)pCreateInfo->surface);
+        RegisterSurface(WindowingSystem::Wayland, (void *)(uintptr_t)pCreateInfo->surface);
 
     Keyboard::UseWaylandDisplay(pCreateInfo->display);
-
-    Keyboard::AddInputWindow(WindowingSystem::Wayland, pCreateInfo->surface);
   }
 
   return ret;
@@ -149,12 +144,9 @@ VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(VkInstance instance,
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
-    wrapped->record =
-        PackWindowHandleInRecord(WindowingSystem::Xlib, (void *)(uintptr_t)pCreateInfo->window);
+    wrapped->record = RegisterSurface(WindowingSystem::Xlib, (void *)(uintptr_t)pCreateInfo->window);
 
     Keyboard::UseXlibDisplay(pCreateInfo->dpy);
-
-    Keyboard::AddInputWindow(WindowingSystem::Xlib, (void *)(uintptr_t)pCreateInfo->window);
   }
 
   return ret;

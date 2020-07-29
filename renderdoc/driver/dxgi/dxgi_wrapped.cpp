@@ -230,6 +230,16 @@ WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain *real, HWND wnd, I
 
   WrapBuffersAfterResize();
 
+  wnd = GetHWND();
+
+  if(wnd)
+  {
+    Keyboard::AddInputWindow(WindowingSystem::Win32, wnd);
+
+    RenderDoc::Inst().AddFrameCapturer(m_pDevice->GetFrameCapturerDevice(), wnd,
+                                       m_pDevice->GetFrameCapturer());
+  }
+
   // we do a 'fake' present right at the start, so that we can capture frame 1, by
   // going from this fake present to the first present.
   m_pDevice->FirstFrame(this);
@@ -237,6 +247,15 @@ WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain *real, HWND wnd, I
 
 WrappedIDXGISwapChain4::~WrappedIDXGISwapChain4()
 {
+  HWND wnd = GetHWND();
+
+  if(wnd)
+  {
+    Keyboard::RemoveInputWindow(WindowingSystem::Win32, wnd);
+
+    RenderDoc::Inst().RemoveFrameCapturer(m_pDevice->GetFrameCapturerDevice(), wnd);
+  }
+
   m_pDevice->ReleaseSwapchainResources(this, 0, NULL, NULL);
 
   SAFE_RELEASE(m_pDevice);

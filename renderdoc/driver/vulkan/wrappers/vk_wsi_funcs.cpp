@@ -485,8 +485,6 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
       m_SwapLookup[swapInfo.wndHandle] = *pSwapChain;
     }
 
-    RenderDoc::Inst().AddFrameCapturer(LayerDisp(m_Instance), swapInfo.wndHandle, this);
-
     swapInfo.imageInfo = ImageInfo(*pCreateInfo);
 
     swapInfo.shared = (pCreateInfo->presentMode == VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR ||
@@ -897,6 +895,9 @@ void WrappedVulkan::vkDestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surfac
   {
     PackedWindowHandle *wnd = (PackedWindowHandle *)wrapper->record;
     Keyboard::RemoveInputWindow(wnd->system, wnd->handle);
+
+    RenderDoc::Inst().RemoveFrameCapturer(LayerDisp(m_Instance), wnd->handle);
+
     delete wnd;
   }
 
@@ -1190,9 +1191,7 @@ VkResult WrappedVulkan::vkCreateWin32SurfaceKHR(VkInstance instance,
 
     // since there's no point in allocating a full resource record and storing the window
     // handle under there somewhere, we just cast. We won't use the resource record for anything
-    wrapped->record = PackWindowHandleInRecord(WindowingSystem::Win32, (void *)pCreateInfo->hwnd);
-
-    Keyboard::AddInputWindow(WindowingSystem::Win32, (void *)pCreateInfo->hwnd);
+    wrapped->record = RegisterSurface(WindowingSystem::Win32, (void *)pCreateInfo->hwnd);
   }
 
   return ret;

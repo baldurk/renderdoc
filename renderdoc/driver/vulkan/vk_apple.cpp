@@ -51,8 +51,7 @@ VkResult WrappedVulkan::vkCreateMacOSSurfaceMVK(VkInstance instance,
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
-    wrapped->record =
-        PackWindowHandleInRecord(WindowingSystem::MacOS, (void *)(uintptr_t)pCreateInfo->pView);
+    wrapped->record = RegisterSurface(WindowingSystem::MacOS, (void *)(uintptr_t)pCreateInfo->pView);
   }
 
   return ret;
@@ -79,8 +78,7 @@ VkResult WrappedVulkan::vkCreateMetalSurfaceEXT(VkInstance instance,
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
-    wrapped->record =
-        PackWindowHandleInRecord(WindowingSystem::MacOS, (void *)(uintptr_t)pCreateInfo->pLayer);
+    wrapped->record = RegisterSurface(WindowingSystem::MacOS, (void *)(uintptr_t)pCreateInfo->pLayer);
   }
 
   return ret;

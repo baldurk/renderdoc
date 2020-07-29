@@ -3174,6 +3174,15 @@ void WrappedVulkan::AddFrameTerminator(uint64_t queueMarkerTag)
   SubmitCmds();
 }
 
+VkResourceRecord *WrappedVulkan::RegisterSurface(WindowingSystem system, void *handle)
+{
+  Keyboard::AddInputWindow(system, handle);
+
+  RenderDoc::Inst().AddFrameCapturer(LayerDisp(m_Instance), handle, this);
+
+  return (VkResourceRecord *)new PackedWindowHandle(system, handle);
+}
+
 void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
 {
   bool partial = true;

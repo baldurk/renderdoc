@@ -243,8 +243,6 @@ void WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj,
   {
     SwapchainInfo &info = *GetRecord(obj)->swapInfo;
 
-    RenderDoc::Inst().RemoveFrameCapturer(LayerDisp(m_Instance), info.wndHandle);
-
     VkRenderPass unwrappedRP = Unwrap(info.rp);
     GetResourceManager()->ReleaseWrappedResource(info.rp, true);
     ObjDisp(device)->DestroyRenderPass(Unwrap(device), unwrappedRP, NULL);

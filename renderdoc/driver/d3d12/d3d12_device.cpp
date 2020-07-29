@@ -994,15 +994,6 @@ void WrappedID3D12Device::ReleaseSwapchainResources(IDXGISwapper *swapper, UINT 
     SAFE_RELEASE(wrapped);
   }
 
-  HWND wnd = swapper->GetHWND();
-
-  if(wnd)
-  {
-    Keyboard::RemoveInputWindow(WindowingSystem::Win32, wnd);
-
-    RenderDoc::Inst().RemoveFrameCapturer((ID3D12Device *)this, wnd);
-  }
-
   auto it = m_SwapChains.find(swapper);
   if(it != m_SwapChains.end())
   {
@@ -1168,15 +1159,6 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
     ID3DDevice *swapQ = swapper->GetD3DDevice();
     RDCASSERT(WrappedID3D12CommandQueue::IsAlloc(swapQ));
     m_SwapChains[swapper].queue = (WrappedID3D12CommandQueue *)swapQ;
-  }
-
-  HWND wnd = swapper->GetHWND();
-
-  if(wnd)
-  {
-    Keyboard::AddInputWindow(WindowingSystem::Win32, wnd);
-
-    RenderDoc::Inst().AddFrameCapturer((ID3D12Device *)this, wnd, this);
   }
 
   return pRes;

@@ -690,6 +690,8 @@ public:
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }
+  void *GetFrameCapturerDevice() { return (ID3D12Device *)this; }
+  virtual IFrameCapturer *GetFrameCapturer() { return this; }
   virtual IID GetBackbufferUUID() { return __uuidof(ID3D12Resource); }
   virtual bool IsDeviceUUID(REFIID iid)
   {

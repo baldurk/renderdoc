@@ -41,8 +41,8 @@ VkResult WrappedVulkan::vkCreateStreamDescriptorSurfaceGGP(
 
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
-    wrapped->record = PackWindowHandleInRecord(WindowingSystem::GGP,
-                                               (void *)(uintptr_t)pCreateInfo->streamDescriptor);
+    wrapped->record =
+        RegisterSurface(WindowingSystem::GGP, (void *)(uintptr_t)pCreateInfo->streamDescriptor);
   }
   return ret;
 }

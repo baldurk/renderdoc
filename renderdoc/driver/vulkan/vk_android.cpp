@@ -44,7 +44,7 @@ VkResult WrappedVulkan::vkCreateAndroidSurfaceKHR(VkInstance instance,
     WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
 
     wrapped->record =
-        PackWindowHandleInRecord(WindowingSystem::Android, (void *)(uintptr_t)pCreateInfo->window);
+        RegisterSurface(WindowingSystem::Android, (void *)(uintptr_t)pCreateInfo->window);
   }
 
   return ret;

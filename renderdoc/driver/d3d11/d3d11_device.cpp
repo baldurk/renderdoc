@@ -1470,15 +1470,6 @@ void WrappedID3D11Device::ReleaseSwapchainResources(IDXGISwapper *swapper, UINT 
     wrapped11 = NULL;
   }
 
-  HWND wnd = swapper->GetHWND();
-
-  if(wnd)
-  {
-    Keyboard::RemoveInputWindow(WindowingSystem::Win32, wnd);
-
-    RenderDoc::Inst().RemoveFrameCapturer((ID3D11Device *)this, wnd);
-  }
-
   auto it = m_SwapChains.find(swapper);
   if(it != m_SwapChains.end())
   {
@@ -1605,15 +1596,6 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
       RDCERR("Couldn't create RTV for swapchain tex HRESULT: %s", ToStr(hr).c_str());
 
     m_SwapChains[swapper] = rtv;
-  }
-
-  HWND wnd = swapper->GetHWND();
-
-  if(wnd)
-  {
-    Keyboard::AddInputWindow(WindowingSystem::Win32, wnd);
-
-    RenderDoc::Inst().AddFrameCapturer((ID3D11Device *)this, wnd, this);
   }
 
   return pTex;

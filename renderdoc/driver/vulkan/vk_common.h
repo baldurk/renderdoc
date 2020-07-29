@@ -115,11 +115,6 @@ struct PackedWindowHandle
 
 struct VkResourceRecord;
 
-inline VkResourceRecord *PackWindowHandleInRecord(WindowingSystem system, void *handle)
-{
-  return (VkResourceRecord *)new PackedWindowHandle(system, handle);
-}
-
 class WrappedVulkan;
 
 struct VkPackedVersion
