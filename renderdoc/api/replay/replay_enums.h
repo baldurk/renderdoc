@@ -86,6 +86,12 @@ version of RenderDoc that addes a new section type. They should be considered eq
   lossless.
 
   The name for this section will be "renderdoc/internal/exthumb".
+
+.. data:: EmbeddedLogfile
+
+  This section contains the log file at the time of capture, for debugging.
+
+  The name for this section will be "renderdoc/internal/logfile".
 )");
 enum class SectionType : uint32_t
 {
@@ -98,6 +104,7 @@ enum class SectionType : uint32_t
   ResourceRenames,
   AMDRGPProfile,
   ExtendedThumbnail,
+  EmbeddedLogfile,
   Count,
 };
 

@@ -29,6 +29,7 @@
 #include "api/replay/version.h"
 #include "common/common.h"
 #include "common/threading.h"
+#include "core/settings.h"
 #include "hooks/hooks.h"
 #include "maths/formatpacking.h"
 #include "replay/replay_driver.h"
@@ -43,6 +44,9 @@
 #include "api/replay/pipestate.inl"
 
 #include "replay/renderdoc_serialise.inl"
+
+RDOC_DEBUG_CONFIG(bool, Capture_Debug_SnapshotDiagnosticLog, false,
+                  "Snapshot the diagnostic log at capture time and embed in the capture.");
 
 void LogReplayOptions(const ReplayOptions &opts)
 {
@@ -1675,6 +1679,22 @@ void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
       header.format = thumb.format;
       w->Write(header);
       w->Write(thumb.pixels, thumb.len);
+
+      w->Finish();
+
+      delete w;
+    }
+
+    if(Capture_Debug_SnapshotDiagnosticLog())
+    {
+      rdcstr logcontents = FileIO::logfile_readall(RDCGETLOGFILE());
+
+      SectionProperties props = {};
+      props.type = SectionType::EmbeddedLogfile;
+      props.version = 1;
+      StreamWriter *w = rdc->WriteSection(props);
+
+      w->Write(logcontents.data(), logcontents.size());
 
       w->Finish();
 
