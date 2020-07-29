@@ -488,7 +488,6 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(SerialiserType &ser, VkDevice 
     {
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pool);
       GetResourceManager()->AddLiveResource(CmdPool, pool);
-      InsertCommandQueueFamily(live, CreateInfo.queueFamilyIndex);
     }
 
     AddResource(CmdPool, ResourceType::Pool, "Command Pool");
@@ -583,15 +582,15 @@ bool WrappedVulkan::Serialise_vkAllocateCommandBuffers(SerialiserType &ser, VkDe
     {
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), cmd);
       GetResourceManager()->AddLiveResource(CommandBuffer, cmd);
-      auto cmdQueueFamilyIt = m_commandQueueFamilies.find(GetResID(AllocateInfo.commandPool));
+      ResourceId poolId = GetResourceManager()->GetOriginalID(GetResID(AllocateInfo.commandPool));
+      auto cmdQueueFamilyIt = m_commandQueueFamilies.find(poolId);
       if(cmdQueueFamilyIt == m_commandQueueFamilies.end())
       {
-        RDCERR("Missing queue family for %s", ToStr(GetResID(AllocateInfo.commandPool)).c_str());
+        RDCERR("Missing queue family for %s", ToStr(poolId).c_str());
       }
       else
       {
         InsertCommandQueueFamily(CommandBuffer, cmdQueueFamilyIt->second);
-        InsertCommandQueueFamily(live, cmdQueueFamilyIt->second);
       }
     }
 
@@ -867,12 +866,9 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
         // there's no issue with clashes here.
         m_RerecordCmds[BakedCommandBuffer] = cmd;
         m_RerecordCmds[m_LastCmdBufferID] = cmd;
-        InsertCommandQueueFamily(GetResID(cmd), FindCommandQueueFamily(m_LastCmdBufferID));
+        InsertCommandQueueFamily(BakedCommandBuffer, FindCommandQueueFamily(m_LastCmdBufferID));
 
         m_RerecordCmdList.push_back({AllocateInfo.commandPool, cmd});
-
-        m_BakedCmdBufferInfo[GetResID(cmd)].level = AllocateInfo.level;
-        m_BakedCmdBufferInfo[GetResID(cmd)].beginFlags = BeginInfo.flags;
 
         // add one-time submit flag as this partial cmd buffer will only be submitted once
         BeginInfo.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -971,8 +967,6 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
       }
 
       ObjDisp(device)->BeginCommandBuffer(Unwrap(cmd), &unwrappedBeginInfo);
-      InsertCommandQueueFamily(GetResourceManager()->GetLiveID(BakedCommandBuffer),
-                               FindCommandQueueFamily(BakedCommandBuffer));
     }
   }
 
@@ -1451,13 +1445,12 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
           m_DrawcallCallback->PostRemisc(eventId, drawFlags, commandBuffer);
         }
 
-        ResourceId cmd = GetResID(commandBuffer);
-        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imageStates,
+        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                              FindCommandQueueFamily(m_LastCmdBufferID),
                                              (uint32_t)imgBarriers.size(), imgBarriers.data());
 
         if(m_FirstEventID == m_LastEventID)
-          UpdateImageStates(m_BakedCmdBufferInfo[cmd].imageStates);
+          UpdateImageStates(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates);
       }
     }
     else
@@ -1514,8 +1507,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
-      ResourceId cmd = GetResID(commandBuffer);
-      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imageStates,
+      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                            FindCommandQueueFamily(m_LastCmdBufferID),
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
 
@@ -1676,8 +1668,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
-        ResourceId cmd = GetResID(commandBuffer);
-        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imageStates,
+        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                              FindCommandQueueFamily(m_LastCmdBufferID),
                                              (uint32_t)imgBarriers.size(), imgBarriers.data());
       }
@@ -1693,8 +1684,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
-      ResourceId cmd = GetResID(commandBuffer);
-      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imageStates,
+      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                            FindCommandQueueFamily(m_LastCmdBufferID),
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
 
@@ -1801,8 +1791,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
           }
         }
 
-        ResourceId cmd = GetResID(commandBuffer);
-        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imageStates,
+        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                              FindCommandQueueFamily(m_LastCmdBufferID),
                                              (uint32_t)imgBarriers.size(), imgBarriers.data());
       }
@@ -1820,8 +1809,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
-      ResourceId cmd = GetResID(commandBuffer);
-      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imageStates,
+      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                            FindCommandQueueFamily(m_LastCmdBufferID),
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
 
@@ -2061,13 +2049,12 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
           m_DrawcallCallback->PostRemisc(eventId, drawFlags, commandBuffer);
         }
 
-        ResourceId cmd = GetResID(commandBuffer);
-        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imageStates,
+        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                              FindCommandQueueFamily(m_LastCmdBufferID),
                                              (uint32_t)imgBarriers.size(), imgBarriers.data());
 
         if(m_FirstEventID == m_LastEventID)
-          UpdateImageStates(m_BakedCmdBufferInfo[cmd].imageStates);
+          UpdateImageStates(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates);
       }
     }
     else
@@ -2125,8 +2112,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
-      ResourceId cmd = GetResID(commandBuffer);
-      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imageStates,
+      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                            FindCommandQueueFamily(m_LastCmdBufferID),
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
 
@@ -2304,8 +2290,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2(SerialiserType &ser, VkCommandBu
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
-        ResourceId cmd = GetResID(commandBuffer);
-        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imageStates,
+        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                              FindCommandQueueFamily(m_LastCmdBufferID),
                                              (uint32_t)imgBarriers.size(), imgBarriers.data());
       }
@@ -2322,8 +2307,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2(SerialiserType &ser, VkCommandBu
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
-      ResourceId cmd = GetResID(commandBuffer);
-      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imageStates,
+      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                            FindCommandQueueFamily(m_LastCmdBufferID),
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
 
@@ -2450,8 +2434,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
           }
         }
 
-        ResourceId cmd = GetResID(commandBuffer);
-        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imageStates,
+        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                              FindCommandQueueFamily(m_LastCmdBufferID),
                                              (uint32_t)imgBarriers.size(), imgBarriers.data());
       }
@@ -2462,8 +2445,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
-      ResourceId cmd = GetResID(commandBuffer);
-      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imageStates,
+      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                            FindCommandQueueFamily(m_LastCmdBufferID),
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
 
@@ -3419,8 +3401,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 
     if(commandBuffer != VK_NULL_HANDLE)
     {
-      ResourceId cmd = GetResID(commandBuffer);
-      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imageStates,
+      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                            FindCommandQueueFamily(m_LastCmdBufferID),
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
 
@@ -3853,26 +3834,20 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
           ->CmdExecuteCommands(Unwrap(commandBuffer), commandBufferCount,
                                UnwrapArray(pCommandBuffers, commandBufferCount));
 
-      // merge barriers into parent command buffer
-      for(uint32_t i = 0; i < commandBufferCount; i++)
+      // append deferred indirect copies and merge barriers into parent command buffer
       {
-        ImageState::Merge(m_BakedCmdBufferInfo[GetResID(commandBuffer)].imageStates,
-                          m_BakedCmdBufferInfo[GetResID(pCommandBuffers[i])].imageStates,
-                          GetImageTransitionInfo());
-      }
-
-      // append deferred indirect copies
-      {
-        rdcarray<VkIndirectRecordData> &dstIndirect =
-            m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies;
+        BakedCmdBufferInfo &dst = m_BakedCmdBufferInfo[m_LastCmdBufferID];
 
         for(uint32_t i = 0; i < commandBufferCount; i++)
         {
           // indirectCopies are stored in m_BakedCmdBufferInfo[m_LastCmdBufferID] which is an
           // original ID
-          ResourceId origId = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[i]));
+          ResourceId origSecondId = GetResourceManager()->GetOriginalID(GetResID(pCommandBuffers[i]));
+          BakedCmdBufferInfo &src = m_BakedCmdBufferInfo[origSecondId];
 
-          dstIndirect.append(m_BakedCmdBufferInfo[origId].indirectCopies);
+          dst.indirectCopies.append(src.indirectCopies);
+
+          ImageState::Merge(dst.imageStates, src.imageStates, GetImageTransitionInfo());
         }
       }
 
@@ -4067,15 +4042,15 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
             if(eid <= m_LastEventID || fullRecord)
             {
               VkCommandBuffer cmd = RerecordCmdBuf(cmdid);
-              ResourceId rerecord = GetResID(cmd);
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
+              ResourceId rerecord = GetResID(cmd);
               RDCDEBUG("ExecuteCommands re-recorded replay of %s, using %s (%u -> %u <= %u)",
                        ToStr(cmdid).c_str(), ToStr(rerecord).c_str(), eid, end, m_LastEventID);
 #endif
               rerecordedCmds.push_back(Unwrap(cmd));
 
-              ImageState::Merge(m_BakedCmdBufferInfo[GetResID(commandBuffer)].imageStates,
-                                m_BakedCmdBufferInfo[rerecord].imageStates, GetImageTransitionInfo());
+              ImageState::Merge(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
+                                m_BakedCmdBufferInfo[cmdid].imageStates, GetImageTransitionInfo());
             }
             else
             {

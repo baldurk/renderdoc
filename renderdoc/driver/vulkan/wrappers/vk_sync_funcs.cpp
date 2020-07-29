@@ -852,10 +852,9 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
       }
     }
 
-    ResourceId cmd = GetResID(commandBuffer);
-    GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[cmd].imageStates,
-                                         m_commandQueueFamilies[cmd], (uint32_t)imgBarriers.size(),
-                                         &imgBarriers[0]);
+    GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
+                                         m_commandQueueFamilies[m_LastCmdBufferID],
+                                         (uint32_t)imgBarriers.size(), &imgBarriers[0]);
 
     if(commandBuffer != VK_NULL_HANDLE)
     {

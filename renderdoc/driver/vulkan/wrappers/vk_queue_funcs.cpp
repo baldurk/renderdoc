@@ -263,12 +263,12 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
         for(uint32_t c = 0; c < submitInfo.commandBufferCount; c++)
         {
-          ResourceId liveCmd = GetResID(submitInfo.pCommandBuffers[c]);
-          ResourceId cmd = GetResourceManager()->GetOriginalID(liveCmd);
+          ResourceId cmd =
+              GetResourceManager()->GetOriginalID(GetResID(submitInfo.pCommandBuffers[c]));
 
           BakedCmdBufferInfo &cmdBufInfo = m_BakedCmdBufferInfo[cmd];
 
-          UpdateImageStates(m_BakedCmdBufferInfo[liveCmd].imageStates);
+          UpdateImageStates(m_BakedCmdBufferInfo[cmd].imageStates);
 
           rdcstr name = StringFormat::Fmt("=> %s[%u]: vkBeginCommandBuffer(%s)", basename.c_str(),
                                           c, ToStr(cmd).c_str());
@@ -391,14 +391,14 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
             if(eid <= m_LastEventID)
             {
               VkCommandBuffer cmd = RerecordCmdBuf(cmdId);
-              ResourceId rerecord = GetResID(cmd);
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
+              ResourceId rerecord = GetResID(cmd);
               RDCDEBUG("Queue Submit re-recorded replay of %s, using %s (%u -> %u <= %u)",
                        ToStr(cmdId).c_str(), ToStr(rerecord).c_str(), eid, end, m_LastEventID);
 #endif
               rerecordedCmds.push_back(Unwrap(cmd));
 
-              UpdateImageStates(m_BakedCmdBufferInfo[rerecord].imageStates);
+              UpdateImageStates(m_BakedCmdBufferInfo[cmdId].imageStates);
             }
             else
             {

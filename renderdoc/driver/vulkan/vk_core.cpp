@@ -3687,7 +3687,7 @@ bool WrappedVulkan::InRerecordRange(ResourceId cmdid)
   }
 
   // otherwise just check if we have a re-record command buffer for this, as then we're doing a full
-  // re-record and replay
+  // re-record and replay of the command buffer
   return m_RerecordCmds.find(cmdid) != m_RerecordCmds.end();
 }
 
