@@ -1765,6 +1765,8 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
   if(!IsBackgroundCapturing(m_State))
     return;
 
+  RDCLOG("Starting capture");
+
   m_CaptureTimer.Restart();
 
   m_AppControlledCapture = true;
@@ -1839,8 +1841,6 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
   }
 
   GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Read);
-
-  RDCLOG("Starting capture, frame %u", m_CapturedFrames.back().frameNumber);
 }
 
 bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
@@ -2176,6 +2176,8 @@ bool WrappedID3D12Device::DiscardFrameCapture(void *dev, void *wnd)
 {
   if(!IsActiveCapturing(m_State))
     return true;
+
+  RDCLOG("Discarding frame capture.");
 
   RenderDoc::Inst().FinishCaptureWriting(NULL, m_CapturedFrames.back().frameNumber);
 

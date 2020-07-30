@@ -2156,6 +2156,8 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
   if(!IsBackgroundCapturing(m_State))
     return;
 
+  RDCLOG("Starting capture");
+
   m_CaptureTimer.Restart();
 
   SCOPED_LOCK(glLock);
@@ -2209,8 +2211,6 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 
     m_ActiveContexts[Threading::GetCurrentID()] = existing;
   }
-
-  RDCLOG("Starting capture, frame %u", m_CapturedFrames.back().frameNumber);
 }
 
 bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
@@ -2502,6 +2502,8 @@ bool WrappedOpenGL::DiscardFrameCapture(void *dev, void *wnd)
 {
   if(!IsActiveCapturing(m_State))
     return true;
+
+  RDCLOG("Discarding frame capture.");
 
   SCOPED_LOCK(glLock);
 

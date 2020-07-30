@@ -1550,6 +1550,8 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
   if(!IsBackgroundCapturing(m_State))
     return;
 
+  RDCLOG("Starting capture");
+
   m_CaptureTimer.Restart();
 
   GetResourceManager()->ResetCaptureStartTime();
@@ -1639,8 +1641,6 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
     GetResourceManager()->MarkMemoryFrameReferenced((*it)->baseResource, (*it)->memOffset,
                                                     (*it)->memSize, eFrameRef_ReadBeforeWrite);
   }
-
-  RDCLOG("Starting capture, frame %u", m_CapturedFrames.back().frameNumber);
 }
 
 bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
@@ -2076,6 +2076,8 @@ bool WrappedVulkan::DiscardFrameCapture(void *dev, void *wnd)
 {
   if(!IsActiveCapturing(m_State))
     return true;
+
+  RDCLOG("Discarding frame capture.");
 
   RenderDoc::Inst().FinishCaptureWriting(NULL, m_CapturedFrames.back().frameNumber);
 

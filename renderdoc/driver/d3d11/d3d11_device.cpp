@@ -1652,6 +1652,8 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
   if(!IsBackgroundCapturing(m_State))
     return;
 
+  RDCLOG("Starting capture");
+
   m_CaptureTimer.Restart();
 
   m_State = CaptureState::ActiveCapturing;
@@ -1698,8 +1700,6 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
 
   if(m_pInfoQueue)
     m_pInfoQueue->ClearStoredMessages();
-
-  RDCLOG("Starting capture, frame %u", m_CapturedFrames.back().frameNumber);
 }
 
 bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
@@ -2132,6 +2132,8 @@ bool WrappedID3D11Device::DiscardFrameCapture(void *dev, void *wnd)
 
   if(!IsActiveCapturing(m_State))
     return true;
+
+  RDCLOG("Discarding frame capture.");
 
   RenderDoc::Inst().FinishCaptureWriting(NULL, m_CapturedFrames.back().frameNumber);
 
