@@ -4257,13 +4257,21 @@ bool WrappedVulkan::EraseImageState(ResourceId id)
 
 void WrappedVulkan::UpdateImageStates(const std::map<ResourceId, ImageState> &dstStates)
 {
+  // this function expects the number of updates to be orders of magnitude fewer than the number of
+  // existing images. If there are a small number of images in total then it doesn't matter much,
+  // and if there are a large number of images then it's better to do repeated map lookups rather
+  // than spend time iterating linearly across the map for a sparse set of updates.
   SCOPED_LOCK(m_ImageStatesLock);
-  auto it = m_ImageStates.begin();
   auto dstIt = dstStates.begin();
   ImageTransitionInfo info = GetImageTransitionInfo();
   while(dstIt != dstStates.end())
   {
-    if(it == m_ImageStates.end() || dstIt->first < it->first)
+    // find the entry. This is expected because images are only not in the map if we've never seen
+    // them before, a rare case.
+    auto it = m_ImageStates.find(dstIt->first);
+
+    // insert the initial state if needed.
+    if(it == m_ImageStates.end())
     {
       it = m_ImageStates
                .insert({dstIt->first,
@@ -4272,15 +4280,10 @@ void WrappedVulkan::UpdateImageStates(const std::map<ResourceId, ImageState> &ds
                .first;
       dstIt->second.InitialState(*it->second.LockWrite());
     }
-    else if(it->first < dstIt->first)
-    {
-      ++it;
-      continue;
-    }
 
+    // merge in the info into the entry.
     it->second.LockWrite()->Merge(dstIt->second, info);
     ++dstIt;
-    ++it;
   }
 }
 
