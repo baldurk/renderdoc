@@ -116,6 +116,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used to intercept nvapi calls on D3D11/D3D12.
 
+* `half.hpp <http://half.sourceforge.net/>`_ - Copyright (c) 2012-2019 Christian Rau. Distributed under the MIT License.
+
+  Used to emulate half-precision operations in shader debugging.
+
 Thanks
 ------
 

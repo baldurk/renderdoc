@@ -142,6 +142,9 @@
     <Filter Include="3rdparty\compressonator">
       <UniqueIdentifier>{3d212b9b-bf42-40db-84a3-b94e064fd281}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\half">
+      <UniqueIdentifier>{1b49d2aa-1cfb-4f0a-8fcf-1065af55ea2b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -542,6 +545,9 @@
     </ClInclude>
     <ClInclude Include="3rdparty\compressonator\Common_Def.h">
       <Filter>3rdparty\compressonator</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\half\half.hpp">
+      <Filter>3rdparty\half</Filter>
     </ClInclude>
     <ClInclude Include="api\replay\rdcflatmap.h">
       <Filter>API\Replay</Filter>

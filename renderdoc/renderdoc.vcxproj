@@ -122,6 +122,7 @@
     <ClInclude Include="3rdparty\compressonator\CMP_Core.h" />
     <ClInclude Include="3rdparty\compressonator\cmp_math_vec4.h" />
     <ClInclude Include="3rdparty\compressonator\Common_Def.h" />
+    <ClInclude Include="3rdparty\half\half.hpp" />
     <ClInclude Include="3rdparty\interceptor-lib\lib\AArch64\target_aarch64.h" />
     <ClInclude Include="3rdparty\interceptor-lib\lib\ARM\target_arm.h" />
     <ClInclude Include="3rdparty\interceptor-lib\lib\code_generator.h" />
