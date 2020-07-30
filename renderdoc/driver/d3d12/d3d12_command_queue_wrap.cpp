@@ -496,42 +496,54 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
           continue;
         }
 
+        // prevent this resource from being mapped or unmapped on another thread while we're
+        // checking it. If it's unmapped subsequently we'll maybe redundantly detect the changes
+        // here AND serialise them there, but we'll play it safe.
+        res->LockMaps();
+
         size_t diffStart = 0, diffEnd = 0;
         bool found = true;
 
         byte *ref = res->GetShadow(subres);
         byte *data = res->GetMap(subres);
 
-        if(ref)
-          found = FindDiffRange(data, ref, size, diffStart, diffEnd);
-        else
-          diffEnd = size;
-
-        if(found)
+        // check we actually have map data. It's possible that over the course of the loop iteration
+        // the resource has been unmapped on another thread before we got here.
+        if(data)
         {
-          RDCLOG("Persistent map flush forced for %s (%llu -> %llu)",
-                 ToStr(res->GetResourceID()).c_str(), (uint64_t)diffStart, (uint64_t)diffEnd);
+          if(ref)
+            found = FindDiffRange(data, ref, size, diffStart, diffEnd);
+          else
+            diffEnd = size;
 
-          D3D12_RANGE range = {diffStart, diffEnd};
-
-          m_pDevice->MapDataWrite(res, subres, data, range);
-
-          if(ref == NULL)
+          if(found)
           {
-            res->AllocShadow(subres, size);
+            RDCLOG("Persistent map flush forced for %s (%llu -> %llu)",
+                   ToStr(res->GetResourceID()).c_str(), (uint64_t)diffStart, (uint64_t)diffEnd);
 
-            ref = res->GetShadow(subres);
+            D3D12_RANGE range = {diffStart, diffEnd};
+
+            m_pDevice->MapDataWrite(res, subres, data, range);
+
+            if(ref == NULL)
+            {
+              res->AllocShadow(subres, size);
+
+              ref = res->GetShadow(subres);
+            }
+
+            // update comparison shadow for next time
+            memcpy(ref, data, size);
+
+            GetResourceManager()->MarkDirtyResource(res->GetResourceID());
           }
-
-          // update comparison shadow for next time
-          memcpy(ref, res->GetMap(subres), size);
-
-          GetResourceManager()->MarkDirtyResource(res->GetResourceID());
+          else
+          {
+            RDCDEBUG("Persistent map flush not needed for %s", ToStr(res->GetResourceID()).c_str());
+          }
         }
-        else
-        {
-          RDCDEBUG("Persistent map flush not needed for %s", ToStr(res->GetResourceID()).c_str());
-        }
+
+        res->UnlockMaps();
       }
 
       {

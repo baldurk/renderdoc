@@ -261,6 +261,16 @@ void WrappedID3D12Resource1::FreeShadow()
   }
 }
 
+void WrappedID3D12Resource1::LockMaps()
+{
+  GetResourceRecord()->m_MapLock.Lock();
+}
+
+void WrappedID3D12Resource1::UnlockMaps()
+{
+  GetResourceRecord()->m_MapLock.Unlock();
+}
+
 WriteSerialiser &WrappedID3D12Resource1::GetThreadSerialiser()
 {
   return m_pDevice->GetThreadSerialiser();

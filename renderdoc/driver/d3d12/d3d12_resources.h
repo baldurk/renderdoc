@@ -930,6 +930,8 @@ public:
   byte *GetShadow(UINT Subresource);
   void AllocShadow(UINT Subresource, size_t size);
   void FreeShadow();
+  void LockMaps();
+  void UnlockMaps();
 
   virtual uint64_t GetGPUVirtualAddressIfBuffer()
   {
