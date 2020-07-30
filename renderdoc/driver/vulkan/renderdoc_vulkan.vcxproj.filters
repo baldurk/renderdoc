@@ -151,7 +151,9 @@
     <ClCompile Include="vk_image_states.cpp">
       <Filter>Util</Filter>
     </ClCompile>
-    <ClCompile Include="vk_shaderdebug.cpp" />
+    <ClCompile Include="vk_shaderdebug.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_replay.h">
