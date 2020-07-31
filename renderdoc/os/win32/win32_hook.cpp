@@ -665,6 +665,9 @@ HMODULE WINAPI Hooked_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE fileHandle, D
   if(flags == 0 && GetModuleHandleW(lpLibFileName))
     dohook = false;
 
+  if(flags & (LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE))
+    dohook = false;
+
   SetLastError(S_OK);
 
 #if ENABLED(VERBOSE_DEBUG_HOOK)
