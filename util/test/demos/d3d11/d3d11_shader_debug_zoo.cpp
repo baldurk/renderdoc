@@ -620,6 +620,11 @@ struct v2f
 	float2 uv : TEXCOORD0;
 };
 
+Buffer<float> test : register(t0);
+
+Texture2D<float4> tex : register(t3);
+SamplerState s : register(s0);
+
 float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0 
 {
   float2 uvCentroid = EvaluateAttributeCentroid(IN.uv);
@@ -633,10 +638,24 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
   float w = (uvOffset.x + uvOffset.y) * 0.5f;
 
   // Test sampleinfo with a MSAA rasterizer
-  uint numSamples = GetRenderTargetSampleCount();
-  float2 pos = GetRenderTargetSamplePosition(samp);
+  uint numSamples = 100;
+  float2 pos = float2(99.9f, 99.9f);
 
-  return float4(x + pos.x, y + pos.y, z + (float)numSamples, w);
+  uint width = 3;
+
+  // do a condition that relies on texture samples and math operations so that we can check that
+  // evaluating those has no side-effects
+  if(IN.pos.x + sin(IN.pos.y) + tex.Sample(s, IN.uv).z < 1000.0f)
+  {
+    // RT should still have the same properties
+    numSamples = GetRenderTargetSampleCount();
+    pos = GetRenderTargetSamplePosition(samp);
+
+    // SRV bound at slot 0 should still be the buffer
+    test.GetDimensions(width);
+  }
+
+  return float4(x + pos.x, y + pos.y, z + (float)numSamples + (float)width, w);
 }
 
 )EOSHADER";
@@ -748,6 +767,9 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     ID3DBlobPtr psmsaablob = Compile(msaaPixel, "main", "ps_5_0");
 
     CreateDefaultInputLayout(vsmsaablob);
+
+    ID3D11SamplerStatePtr samp = MakeSampler();
+    ctx->PSSetSamplers(0, 1, &samp.GetInterfacePtr());
 
     ID3D11VertexShaderPtr vsmsaa = CreateVS(vsmsaablob);
     ID3D11PixelShaderPtr psmsaa = CreatePS(psmsaablob);
