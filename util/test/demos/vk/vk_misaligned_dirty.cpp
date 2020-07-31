@@ -58,10 +58,11 @@ RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
 
     const float val = 2.0f / 3.0f;
 
-    const DefaultA2V tri[3] = {
+    const DefaultA2V tri[4] = {
         {Vec3f(-val, -val, val), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(0.0f, val, val), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(val, -val, val), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {},
     };
 
     AllocatedBuffer vb(this, vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
@@ -77,9 +78,27 @@ RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
 
     copy_src.upload(tri);
 
+    float *mapped = (float *)(copy_src.map() + sizeof(DefaultA2V) * 3);
+
+    float counter = 0;
     while(Running())
     {
+      mapped[2] = counter;
+      counter += 1.0f;
+
       VkCommandBuffer cmd = GetCommandBuffer();
+
+      // create a dummy submit which uses the memory. This will serialise the whole memory contents
+      // (we don't create reference data until after this)
+      vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+      vkCmdUpdateBuffer(cmd, copy_src.buffer, sizeof(Vec3f), sizeof(Vec4f), &tri[0].col);
+      vkEndCommandBuffer(cmd);
+      Submit(0, 2, {cmd});
+
+      mapped[2] = counter;
+      counter += 1.0f;
+
+      cmd = GetCommandBuffer();
 
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
 
@@ -112,10 +131,12 @@ RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
 
       vkEndCommandBuffer(cmd);
 
-      Submit(0, 1, {cmd});
+      Submit(1, 2, {cmd});
 
       Present();
     }
+
+    copy_src.unmap();
 
     return 0;
   }

@@ -28,7 +28,7 @@
 template <>
 rdcstr DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1152, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1153, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -184,6 +184,7 @@ rdcstr DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkCmdSetDepthBoundsTestEnableEXT);
     STRINGISE_ENUM_CLASS(vkCmdSetStencilTestEnableEXT);
     STRINGISE_ENUM_CLASS(vkCmdSetStencilOpEXT);
+    STRINGISE_ENUM_CLASS_NAMED(CoherentMapWrite, "Internal: Coherent Mapped Memory Write")
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()

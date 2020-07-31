@@ -2720,6 +2720,7 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkUnmapMemory:
       return Serialise_vkUnmapMemory(ser, VK_NULL_HANDLE, VK_NULL_HANDLE);
     case VulkanChunk::vkFlushMappedMemoryRanges:
+    case VulkanChunk::CoherentMapWrite:
       return Serialise_vkFlushMappedMemoryRanges(ser, VK_NULL_HANDLE, 0, NULL);
     case VulkanChunk::vkCreateCommandPool:
       return Serialise_vkCreateCommandPool(ser, VK_NULL_HANDLE, NULL, NULL, NULL);

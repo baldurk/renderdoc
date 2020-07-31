@@ -617,6 +617,7 @@ enum class VulkanChunk : uint32_t
   vkCmdSetDepthBoundsTestEnableEXT,
   vkCmdSetStencilTestEnableEXT,
   vkCmdSetStencilOpEXT,
+  CoherentMapWrite,
   Max,
 };
 

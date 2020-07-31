@@ -680,6 +680,10 @@ private:
   // All IDs are original IDs, not live.
   VulkanRenderState m_RenderState;
 
+  // an internal structure used to differentiate forced vkFlushMappedMemoryRanges due to coherent
+  // map writes from real calls to vkFlushMappedMemoryRanges
+  VkBaseInStructure internalMemoryFlushMarker = {};
+
   bool InRerecordRange(ResourceId cmdid);
   bool HasRerecordCmdBuf(ResourceId cmdid);
   bool ShouldUpdateRenderState(ResourceId cmdid, bool forcePrimary = false);

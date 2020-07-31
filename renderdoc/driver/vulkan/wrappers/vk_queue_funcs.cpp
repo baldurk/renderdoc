@@ -1137,9 +1137,13 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
             {
               RDCLOG("Persistent map flush forced for %s (%llu -> %llu)",
                      ToStr(record->GetResourceID()).c_str(), (uint64_t)diffStart, (uint64_t)diffEnd);
-              VkMappedMemoryRange range = {VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL,
-                                           (VkDeviceMemory)(uint64_t)record->Resource,
-                                           state.mapOffset + diffStart, diffEnd - diffStart};
+              VkMappedMemoryRange range = {
+                  VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+                  &internalMemoryFlushMarker,
+                  (VkDeviceMemory)(uint64_t)record->Resource,
+                  state.mapOffset + diffStart,
+                  diffEnd - diffStart,
+              };
               vkFlushMappedMemoryRanges(dev, 1, &range);
               state.mapFlushed = false;
             }

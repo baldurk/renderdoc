@@ -840,8 +840,24 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
   }
 
   VkResult ret;
-  SERIALISE_TIME_CALL(
-      ret = ObjDisp(device)->FlushMappedMemoryRanges(Unwrap(device), memRangeCount, unwrapped));
+  bool internalFlush = false;
+
+  // don't call the driver for a fake coherent map flush
+  if(memRangeCount == 1 && pMemRanges->pNext == &internalMemoryFlushMarker)
+  {
+    ret = VK_SUCCESS;
+    internalFlush = true;
+
+    // for simplicity we set the pNext to NULL after we've seen our internal marker. We can safely
+    // modify this because it's a temporary variable in the calling stackframe
+    VkMappedMemoryRange *range = (VkMappedMemoryRange *)pMemRanges;
+    range->pNext = NULL;
+  }
+  else
+  {
+    SERIALISE_TIME_CALL(
+        ret = ObjDisp(device)->FlushMappedMemoryRanges(Unwrap(device), memRangeCount, unwrapped));
+  }
 
   if(IsCaptureMode(m_State))
   {
@@ -857,7 +873,8 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
       {
         CACHE_THREAD_SERIALISER();
 
-        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkFlushMappedMemoryRanges);
+        SCOPED_SERIALISE_CHUNK(internalFlush ? VulkanChunk::CoherentMapWrite
+                                             : VulkanChunk::vkFlushMappedMemoryRanges);
         Serialise_vkFlushMappedMemoryRanges(ser, device, 1, pMemRanges + i);
 
         m_FrameCaptureRecord->AddChunk(scope.Get());

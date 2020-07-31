@@ -5,8 +5,13 @@ import rdtest
 class VK_Misaligned_Dirty(rdtest.TestCase):
     demos_test_name = 'VK_Misaligned_Dirty'
 
+    def get_capture_options(self):
+        opts = rdtest.TestCase.get_capture_options(self)
+        opts.apiValidation = True
+        return opts
+
     def get_replay_options(self):
-        opts = rd.ReplayOptions()
+        opts = rdtest.TestCase.get_replay_options(self)
         # Set a balanced optimisation level to ensure that written ranges are cleared instead of being either restored
         # or ignored
         opts.optimisation = rd.ReplayOptimisationLevel.Balanced
@@ -18,6 +23,11 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
         self.check(draw is not None)
 
         self.controller.SetFrameEvent(draw.eventId, False)
+
+        self.check(len(self.controller.GetFrameInfo().debugMessages) == 0)
+        self.check(len(self.controller.GetDebugMessages()) == 0)
+
+        rdtest.log.success("No debug messages found")
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
