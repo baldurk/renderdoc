@@ -2105,6 +2105,8 @@ void WrappedOpenGL::SwapBuffers(WindowingSystem winSystem, void *windowHandle)
 
   RenderDoc::Inst().AddActiveDriver(GetDriverType(), true);
 
+  GetResourceManager()->CleanBackgroundFrameReferences();
+
   if(!activeWindow)
     return;
 

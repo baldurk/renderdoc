@@ -861,6 +861,8 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
       FlushQ();
     }
+
+    GetResourceManager()->CleanBackgroundFrameReferences();
   }
 
   VkResult vkr;

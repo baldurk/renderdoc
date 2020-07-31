@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <map>
 #include <set>
 #include "api/replay/resourceid.h"
@@ -610,6 +611,7 @@ public:
 
   inline void MarkResourceFrameReferenced(ResourceId id, FrameRefType refType);
   void MarkBackgroundFrameReferenced(const rdcarray<rdcpair<ResourceId, FrameRefType>> &refs);
+  void CleanBackgroundFrameReferences();
 
   ///////////////////////////////////////////
   // Replay-side methods
@@ -652,10 +654,8 @@ public:
   void Prepare_InitialStateIfPostponed(ResourceId id);
   void SkipOrPostponeOrPrepare_InitialState(ResourceId id, FrameRefType refType);
 
-  void UpdateLastWriteTime(ResourceId id, FrameRefType refType);
   void ResetLastWriteTimes();
   void ResetCaptureStartTime();
-  void UpdateLastPartialUseTime(ResourceId id, FrameRefType refType);
   void ResetLastPartialUseTimes();
 
   bool HasPersistentAge(ResourceId id);
@@ -684,6 +684,8 @@ protected:
   virtual void Create_InitialState(ResourceId id, WrappedResourceType live, bool hasData) = 0;
   virtual void Apply_InitialState(WrappedResourceType live, const InitialContentData &initial) = 0;
   virtual rdcarray<ResourceId> InitialContentResources();
+
+  void UpdateLastWriteAndPartialUseTime(ResourceId id, FrameRefType refType);
 
   // very coarse lock, protects EVERYTHING. This could certainly be improved and it may be a
   // bottleneck
@@ -754,17 +756,31 @@ protected:
   // over are skipped
   std::set<ResourceId> m_SkippedResourceIDs;
 
-  // On marking resource write-referenced in frame, its last write
-  // time is reset. The time is used to determine persistent resources,
-  // and is checked against the `PERSISTENT_RESOURCE_AGE`.
-  std::map<ResourceId, double> m_LastWriteTime;
-  // m_LastPartialUseTime is referring to: eFrameRef_PartialWrite, eFrameRef_Read,
-  // eFrameRef_ReadBeforeWrite, eFrameRef_WriteBeforeRead. The goal is to predict
-  // whether a resource will have a eFrameRef_CompleteWrite reference or not
-  std::map<ResourceId, double> m_LastPartialUseTime;
+  struct ResourceRefTimes
+  {
+    ResourceId id;
+
+    // On marking resource write-referenced in frame, its last write time is reset. The time is used
+    // to determine persistent resources, and is checked against the `PERSISTENT_RESOURCE_AGE`.
+    double writeTime;
+
+    // partialUseTime is referring to: eFrameRef_PartialWrite, eFrameRef_Read,
+    // eFrameRef_ReadBeforeWrite, eFrameRef_WriteBeforeRead. The goal is to predict whether a
+    // resource will only ever have a eFrameRef_CompleteWrite reference. If it does, then we don't
+    // need to serialise the initial contents because we know it will always be fully initialised
+    // within the frame.
+    double partialUseTime;
+
+    bool operator<(const ResourceId &o) const { return id < o; }
+  };
+
+  // all resources that are written in some way end up in this list. We then check the last time
+  // they were written, and the last time they were ever partially used (not completely overwritten
+  // in one atomic chunk).
+  rdcarray<ResourceRefTimes> m_ResourceRefTimes;
 
   // Timestamp at the beginning of the frame capture. Used to determine which
-  // resources to refresh for their last write time (see `m_LastWriteTime`).
+  // resources to refresh for their last write or partial use time (see `ResourceRefTimes`).
   double m_captureStartTime;
 
   PerformanceTimer m_ResourcesUpdateTimer;
@@ -822,8 +838,7 @@ void ResourceManager<Configuration>::MarkBackgroundFrameReferenced(
     {
       for(const rdcpair<ResourceId, FrameRefType> &ref : refs)
       {
-        UpdateLastPartialUseTime(ref.first, ref.second);
-        UpdateLastWriteTime(ref.first, ref.second);
+        UpdateLastWriteAndPartialUseTime(ref.first, ref.second);
       }
     }
     else
@@ -837,11 +852,50 @@ void ResourceManager<Configuration>::MarkBackgroundFrameReferenced(
 
         if(it != refs.end() && it->first == res.id)
         {
-          UpdateLastPartialUseTime(it->first, it->second);
-          UpdateLastWriteTime(it->first, it->second);
+          UpdateLastWriteAndPartialUseTime(it->first, it->second);
         }
       }
     }
+  }
+}
+
+template <typename Configuration>
+void ResourceManager<Configuration>::CleanBackgroundFrameReferences()
+{
+  SCOPED_LOCK(m_Lock);
+
+  if(IsBackgroundCapturing(m_State))
+  {
+    double now = m_ResourcesUpdateTimer.GetMilliseconds();
+
+    // retire any old entries, if they were written once they shouldn't be tracked forever.
+    //
+    // walk the array. If we find an item we want to remove we increment src otherwise we copy src
+    // to dst (if they are different). Thus next time dst will point at the item we want to skip, at
+    // each stage copying src to dst (if they are different). If we find an item we want to remove
+    // we increment src and continue (thus it will get copied ove
+    size_t dst = 0, src = 0;
+    for(dst = 0, src = 0; src < m_ResourceRefTimes.size();)
+    {
+      ResourceRefTimes &check = m_ResourceRefTimes[src];
+      if(now - check.writeTime > IRRELEVANT_RESOURCE_AGE)
+      {
+        // skip src, check the next one
+        src++;
+        continue;
+      }
+
+      // we want to keep src. If dst == src we can just continue on to the next iteration, if not
+      // then we need to copy src into dst (where dst is the leftovers from previously remove
+      // entries)
+      if(dst != src)
+        m_ResourceRefTimes[dst] = m_ResourceRefTimes[src];
+
+      dst++;
+      src++;
+    }
+
+    m_ResourceRefTimes.resize(dst);
   }
 }
 
@@ -865,8 +919,7 @@ void ResourceManager<Configuration>::MarkResourceFrameReferenced(ResourceId id,
     }
   }
 
-  UpdateLastPartialUseTime(id, refType);
-  UpdateLastWriteTime(id, refType);
+  UpdateLastWriteAndPartialUseTime(id, refType);
 
   if(IsBackgroundCapturing(m_State))
     return;
@@ -1090,15 +1143,6 @@ void ResourceManager<Configuration>::SkipOrPostponeOrPrepare_InitialState(Resour
 }
 
 template <typename Configuration>
-inline void ResourceManager<Configuration>::UpdateLastWriteTime(ResourceId id, FrameRefType refType)
-{
-  if(!IsDirtyFrameRef(refType))
-    return;
-  SCOPED_LOCK(m_Lock);
-  m_LastWriteTime[id] = m_ResourcesUpdateTimer.GetMilliseconds();
-}
-
-template <typename Configuration>
 inline void ResourceManager<Configuration>::ResetCaptureStartTime()
 {
   SCOPED_LOCK(m_Lock);
@@ -1111,33 +1155,53 @@ template <typename Configuration>
 inline void ResourceManager<Configuration>::ResetLastWriteTimes()
 {
   SCOPED_LOCK(m_Lock);
-  for(auto it = m_LastWriteTime.begin(); it != m_LastWriteTime.end(); ++it)
+  for(auto it = m_ResourceRefTimes.begin(); it != m_ResourceRefTimes.end(); ++it)
   {
     // Reset only those resources which were below the threshold on
     // capture start. Other resource are already above the threshold.
-    if(m_captureStartTime - it->second <= PERSISTENT_RESOURCE_AGE)
-      it->second = m_ResourcesUpdateTimer.GetMilliseconds();
+    if(m_captureStartTime - it->writeTime <= PERSISTENT_RESOURCE_AGE)
+      it->writeTime = m_ResourcesUpdateTimer.GetMilliseconds();
   }
 }
 
 template <typename Configuration>
-inline void ResourceManager<Configuration>::UpdateLastPartialUseTime(ResourceId id,
-                                                                     FrameRefType refType)
+inline void ResourceManager<Configuration>::UpdateLastWriteAndPartialUseTime(ResourceId id,
+                                                                             FrameRefType refType)
 {
-  if(IsCompleteWriteFrameRef(refType))
-    return;
-  SCOPED_LOCK(m_Lock);
-  m_LastPartialUseTime[id] = m_ResourcesUpdateTimer.GetMilliseconds();
+  // parent must hold m_Lock for us
+
+  ResourceRefTimes *it = std::lower_bound(m_ResourceRefTimes.begin(), m_ResourceRefTimes.end(), id);
+
+  if(it == m_ResourceRefTimes.end() || it->id != id)
+  {
+    // don't add resources unless it's a dirty ref. After that, we'll keep updating for read and
+    // write refs to get partialUseTime
+    if(!IsDirtyFrameRef(refType))
+      return;
+
+    // if it's not pointing to the end, figure out where we need to insert it there
+    size_t idx = it - m_ResourceRefTimes.begin();
+    m_ResourceRefTimes.insert(idx, {id, 0.0, 0.0});
+    it = m_ResourceRefTimes.begin() + idx;
+  }
+
+  double now = m_ResourcesUpdateTimer.GetMilliseconds();
+
+  if(IsDirtyFrameRef(refType))
+    it->writeTime = now;
+
+  if(!IsCompleteWriteFrameRef(refType))
+    it->partialUseTime = now;
 }
 
 template <typename Configuration>
 inline void ResourceManager<Configuration>::ResetLastPartialUseTimes()
 {
   SCOPED_LOCK(m_Lock);
-  for(auto it = m_LastPartialUseTime.begin(); it != m_LastPartialUseTime.end(); ++it)
+  for(auto it = m_ResourceRefTimes.begin(); it != m_ResourceRefTimes.end(); ++it)
   {
-    if(m_captureStartTime - it->second <= IRRELEVANT_RESOURCE_AGE)
-      it->second = m_ResourcesUpdateTimer.GetMilliseconds();
+    if(m_captureStartTime - it->partialUseTime <= IRRELEVANT_RESOURCE_AGE)
+      it->partialUseTime = m_ResourcesUpdateTimer.GetMilliseconds();
   }
 }
 
@@ -1146,12 +1210,12 @@ inline bool ResourceManager<Configuration>::HasPersistentAge(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
 
-  auto it = m_LastWriteTime.find(id);
+  ResourceRefTimes *it = std::lower_bound(m_ResourceRefTimes.begin(), m_ResourceRefTimes.end(), id);
 
-  if(it == m_LastWriteTime.end())
+  if(it == m_ResourceRefTimes.end() || it->id != id)
     return true;
 
-  return m_ResourcesUpdateTimer.GetMilliseconds() - it->second >= PERSISTENT_RESOURCE_AGE;
+  return m_ResourcesUpdateTimer.GetMilliseconds() - it->writeTime >= PERSISTENT_RESOURCE_AGE;
 }
 
 template <typename Configuration>
@@ -1159,12 +1223,12 @@ inline bool ResourceManager<Configuration>::HasIrrelevantAge(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
 
-  auto it = m_LastPartialUseTime.find(id);
+  ResourceRefTimes *it = std::lower_bound(m_ResourceRefTimes.begin(), m_ResourceRefTimes.end(), id);
 
-  if(it == m_LastPartialUseTime.end())
-    return true;
+  if(it == m_ResourceRefTimes.end() || it->id != id)
+    return false;
 
-  return m_ResourcesUpdateTimer.GetMilliseconds() - it->second >= IRRELEVANT_RESOURCE_AGE;
+  return m_ResourcesUpdateTimer.GetMilliseconds() - it->partialUseTime >= IRRELEVANT_RESOURCE_AGE;
 }
 
 template <typename Configuration>
@@ -1796,8 +1860,10 @@ void ResourceManager<Configuration>::ReleaseCurrentResource(ResourceId id)
 
   m_CurrentResourceMap.erase(id);
   m_DirtyResources.erase(id);
-  m_LastWriteTime.erase(id);
-  m_LastPartialUseTime.erase(id);
+
+  auto it = std::lower_bound(m_ResourceRefTimes.begin(), m_ResourceRefTimes.end(), id);
+  if(it != m_ResourceRefTimes.end())
+    m_ResourceRefTimes.erase(it - m_ResourceRefTimes.begin());
 }
 
 template <typename Configuration>
