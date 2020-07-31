@@ -1063,9 +1063,14 @@ struct DescriptorSetData
   // the refcount has the high-bit set if this resource has sparse
   // mapping information
   static const uint32_t SPARSE_REF_BIT = 0x80000000;
-  std::map<ResourceId, rdcpair<uint32_t, FrameRefType> > bindFrameRefs;
+  std::map<ResourceId, rdcpair<uint32_t, FrameRefType>> bindFrameRefs;
   std::map<ResourceId, MemRefs> bindMemRefs;
   std::map<ResourceId, ImageState> bindImageStates;
+
+  void UpdateBackgroundRefCache(VulkanResourceManager *resourceManager,
+                                const std::set<ResourceId> &ids);
+
+  rdcarray<rdcpair<ResourceId, FrameRefType>> backgroundFrameRefs;
 };
 
 struct PipelineLayoutData
@@ -1818,7 +1823,7 @@ struct ImgRefs
   }
   InitReqType SubresourceRangeMaxInitReq(VkImageSubresourceRange range, InitPolicy policy,
                                          bool initialized) const;
-  rdcarray<rdcpair<VkImageSubresourceRange, InitReqType> > SubresourceRangeInitReqs(
+  rdcarray<rdcpair<VkImageSubresourceRange, InitReqType>> SubresourceRangeInitReqs(
       VkImageSubresourceRange range, InitPolicy policy, bool initialized) const;
   void Split(bool splitAspects, bool splitLevels, bool splitLayers);
   template <typename Compose>
@@ -2116,13 +2121,15 @@ public:
     cmdInfo->memFrameRefs.swap(bakedCommands->cmdInfo->memFrameRefs);
   }
 
-  void AddBindFrameRef(ResourceId id, FrameRefType ref, bool hasSparse = false)
+  void AddBindFrameRef(std::set<ResourceId> &ids, ResourceId id, FrameRefType ref,
+                       bool hasSparse = false)
   {
     if(id == ResourceId())
     {
       RDCERR("Unexpected NULL resource ID being added as a bind frame ref");
       return;
     }
+    ids.insert(id);
     rdcpair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[id];
     if((p.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
     {
@@ -2138,12 +2145,12 @@ public:
     }
   }
 
-  void AddImgFrameRef(VkResourceRecord *view, FrameRefType refType)
+  void AddImgFrameRef(std::set<ResourceId> &ids, VkResourceRecord *view, FrameRefType refType)
   {
-    AddBindFrameRef(view->GetResourceID(), eFrameRef_Read,
+    AddBindFrameRef(ids, view->GetResourceID(), eFrameRef_Read,
                     view->resInfo && view->resInfo->IsSparse());
     if(view->baseResourceMem != ResourceId())
-      AddBindFrameRef(view->baseResourceMem, eFrameRef_Read, false);
+      AddBindFrameRef(ids, view->baseResourceMem, eFrameRef_Read, false);
 
     rdcpair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[view->baseResource];
     if((p.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
@@ -2167,13 +2174,15 @@ public:
     p.second = ComposeFrameRefsDisjoint(p.second, maxRef);
   }
 
-  void AddMemFrameRef(ResourceId mem, VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
+  void AddMemFrameRef(std::set<ResourceId> &ids, ResourceId mem, VkDeviceSize offset,
+                      VkDeviceSize size, FrameRefType refType)
   {
     if(mem == ResourceId())
     {
       RDCERR("Unexpected NULL resource ID being added as a bind frame ref");
       return;
     }
+    ids.insert(mem);
     rdcpair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[mem];
     if((p.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
     {

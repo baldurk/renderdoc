@@ -1007,19 +1007,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
             SCOPED_LOCK(setrecord->descInfo->refLock);
 
-            for(auto refit = setrecord->descInfo->bindFrameRefs.begin();
-                refit != setrecord->descInfo->bindFrameRefs.end(); ++refit)
-            {
-              GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
-
-              if(refit->second.first & DescriptorSetData::SPARSE_REF_BIT)
-              {
-                VkResourceRecord *sparserecord =
-                    GetResourceManager()->GetResourceRecord(refit->first);
-
-                GetResourceManager()->MarkSparseMapReferenced(sparserecord->resInfo);
-              }
-            }
+            GetResourceManager()->MarkBackgroundFrameReferenced(
+                setrecord->descInfo->backgroundFrameRefs);
           }
 
           record->bakedCommands->AddResourceReferences(GetResourceManager());

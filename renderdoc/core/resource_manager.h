@@ -609,6 +609,7 @@ public:
   void MarkResourceFrameReferenced(ResourceId id, FrameRefType refType, Compose comp);
 
   inline void MarkResourceFrameReferenced(ResourceId id, FrameRefType refType);
+  void MarkBackgroundFrameReferenced(const rdcarray<rdcpair<ResourceId, FrameRefType>> &refs);
 
   ///////////////////////////////////////////
   // Replay-side methods
@@ -807,6 +808,41 @@ ResourceManager<Configuration>::~ResourceManager()
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+}
+
+template <typename Configuration>
+void ResourceManager<Configuration>::MarkBackgroundFrameReferenced(
+    const rdcarray<rdcpair<ResourceId, FrameRefType>> &refs)
+{
+  SCOPED_LOCK(m_Lock);
+
+  if(IsBackgroundCapturing(m_State))
+  {
+    if(refs.size() <= m_ResourceRefTimes.size())
+    {
+      for(const rdcpair<ResourceId, FrameRefType> &ref : refs)
+      {
+        UpdateLastPartialUseTime(ref.first, ref.second);
+        UpdateLastWriteTime(ref.first, ref.second);
+      }
+    }
+    else
+    {
+      for(const ResourceRefTimes &res : m_ResourceRefTimes)
+      {
+        const rdcpair<ResourceId, FrameRefType> *it = std::lower_bound(
+            refs.begin(), refs.end(), make_rdcpair(res.id, eFrameRef_None),
+            [](const rdcpair<ResourceId, FrameRefType> &a,
+               const rdcpair<ResourceId, FrameRefType> &b) { return a.first < b.first; });
+
+        if(it != refs.end() && it->first == res.id)
+        {
+          UpdateLastPartialUseTime(it->first, it->second);
+          UpdateLastWriteTime(it->first, it->second);
+        }
+      }
+    }
+  }
 }
 
 template <typename Configuration>

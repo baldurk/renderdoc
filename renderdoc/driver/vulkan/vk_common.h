@@ -431,7 +431,8 @@ struct DescriptorSetSlotImageInfo
 struct DescriptorSetSlot
 {
   void RemoveBindRefs(VulkanResourceManager *rm, VkResourceRecord *record);
-  void AddBindRefs(VulkanResourceManager *rm, VkResourceRecord *record, FrameRefType ref);
+  void AddBindRefs(std::set<ResourceId> &ids, VulkanResourceManager *rm, VkResourceRecord *record,
+                   FrameRefType ref);
 
   // VkDescriptorBufferInfo
   DescriptorSetSlotBufferInfo bufferInfo;
