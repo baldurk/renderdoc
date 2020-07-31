@@ -478,6 +478,13 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
       }
 
       GetResourceManager()->AddDeviceMemory(id);
+
+      // the memory is immediately dirty because we don't use dirty tracking, it's too expensive to
+      // follow all frame refs in the background and it's pointless because memory almost always
+      // immediately becomes dirty anyway. The one case we might care about non-dirty memory is
+      // memory that has been allocated but not used, but that will be skipped or postponed as
+      // appropriate.
+      GetResourceManager()->MarkDirtyResource(id);
     }
     else
     {
@@ -706,7 +713,6 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
         if(!capframe)
         {
           GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_PartialWrite);
-          GetResourceManager()->MarkDirtyResource(id);
         }
       }
 
@@ -910,7 +916,6 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
           refType = eFrameRef_CompleteWrite;
 
         GetResourceManager()->MarkResourceFrameReferenced(memid, refType);
-        GetResourceManager()->MarkDirtyResource(memid);
       }
     }
   }
@@ -1034,9 +1039,6 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
                                                         eFrameRef_ReadBeforeWrite);
       GetResourceManager()->MarkMemoryFrameReferenced(id, memoryOffset, record->memSize,
                                                       eFrameRef_ReadBeforeWrite);
-
-      // the memory is immediately dirty because we have no way of tracking writes to it
-      GetResourceManager()->MarkDirtyResource(id);
     }
   }
 
@@ -1810,18 +1812,26 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
         next = next->pNext;
       }
 
-      // sparse and external images are considered dirty from creation. For sparse images this is
-      // so that we can serialise the tracked page table, for external images this is so we can be
-      // sure to fetch their contents even if we don't see any writes.
+      // the image is immediately dirty because we don't use dirty tracking, it's too expensive to
+      // follow all frame refs in the background and it's pointless because memory almost always
+      // immediately becomes dirty anyway. The one case we might care about non-dirty memory is
+      // memory that has been allocated but not used, but that will be skipped or postponed as
+      // appropriate.
+      GetResourceManager()->MarkDirtyResource(id);
+      GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_ReadBeforeWrite);
+
+      // sparse and external images should be considered dirty from creation anyway. For sparse
+      // images this is so that we can serialise the tracked page table, for external images this is
+      // so we can be sure to fetch their contents even if we don't see any writes.
       //
-      // We also dirty linear images since we may not get another chance - if they are bound to
-      // host-visible memory they may only be updated via memory maps, and we want to be sure to
-      // correctly copy their initial contents out rather than relying on memory contents (which may
-      // not be valid to map from/into if the image isn't in GENERAL layout).
+      // We also should consider linear images dirty since we may not get another chance - if they
+      // are bound to host-visible memory they may only be updated via memory maps, and we want to
+      // be sure to correctly copy their initial contents out rather than relying on memory contents
+      // (which may not be valid to map from/into if the image isn't in GENERAL layout).
       if(isSparse || isExternal || isLinear)
       {
-        GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_ReadBeforeWrite);
         GetResourceManager()->MarkDirtyResource(id);
+        GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_ReadBeforeWrite);
 
         // for external images, try creating a non-external version and take the worst case of
         // memory requirements, in case the non-external one (as we will replay it) needs more
@@ -2155,9 +2165,6 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
         GetResourceManager()->MarkMemoryFrameReferenced(
             GetResID(pBindInfos[i].memory), pBindInfos[i].memoryOffset, bufrecord->memSize,
             eFrameRef_ReadBeforeWrite);
-
-        // the memory is immediately dirty because we have no way of tracking writes to it
-        GetResourceManager()->MarkDirtyResource(GetResID(pBindInfos[i].memory));
       }
     }
   }

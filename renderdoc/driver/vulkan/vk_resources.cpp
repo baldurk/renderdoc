@@ -3771,8 +3771,6 @@ void VkResourceRecord::MarkImageFrameReferenced(VkResourceRecord *img, const Ima
   MarkResourceFrameReferenced(img->baseResource, refType);
 
   ResourceId id = img->GetResourceID();
-  if(refType != eFrameRef_Read && refType != eFrameRef_None)
-    cmdInfo->dirtied.insert(id);
   if(img->resInfo && img->resInfo->IsSparse())
     cmdInfo->sparse.insert(img->resInfo);
 
@@ -3797,9 +3795,6 @@ void VkResourceRecord::MarkImageViewFrameReferenced(VkResourceRecord *view, cons
 
   // mark memory backing image
   MarkResourceFrameReferenced(mem, refType);
-
-  if(refType != eFrameRef_Read && refType != eFrameRef_None)
-    cmdInfo->dirtied.insert(img);
 
   ImageSubresourceRange imgRange;
   imgRange.aspectMask = view->viewRange.aspectMask;
@@ -3837,8 +3832,6 @@ void VkResourceRecord::MarkImageViewFrameReferenced(VkResourceRecord *view, cons
 void VkResourceRecord::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset,
                                                  VkDeviceSize size, FrameRefType refType)
 {
-  if(refType != eFrameRef_Read && refType != eFrameRef_None)
-    cmdInfo->dirtied.insert(mem);
   FrameRefType maxRef = MarkMemoryReferenced(cmdInfo->memFrameRefs, mem, offset, size, refType);
   MarkResourceFrameReferenced(mem, maxRef, ComposeFrameRefsDisjoint);
 }
@@ -3865,9 +3858,6 @@ void VkResourceRecord::MarkBufferImageCopyFrameReferenced(VkResourceRecord *buf,
                                                           FrameRefType bufRefType,
                                                           FrameRefType imgRefType)
 {
-  if(IsDirtyFrameRef(imgRefType))
-    cmdInfo->dirtied.insert(img->GetResourceID());
-
   // mark buffer just as read
   MarkResourceFrameReferenced(buf->GetResourceID(), eFrameRef_Read);
 

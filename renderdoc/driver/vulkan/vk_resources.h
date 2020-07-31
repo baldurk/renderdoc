@@ -1013,9 +1013,6 @@ struct CmdBufferRecordingInfo
   // need to go through the sparse mapping and reference all memory)
   std::set<ResourceInfo *> sparse;
 
-  // a list of all resources dirtied by this command buffer
-  std::set<ResourceId> dirtied;
-
   // a list of descriptor sets that are bound at any point in this command buffer
   // used to look up all the frame refs per-desc set and apply them on queue
   // submit with latest binding refs.
@@ -2111,7 +2108,6 @@ public:
   {
     RDCASSERT(cmdInfo);
     SwapChunks(bakedCommands);
-    cmdInfo->dirtied.swap(bakedCommands->cmdInfo->dirtied);
     cmdInfo->boundDescSets.swap(bakedCommands->cmdInfo->boundDescSets);
     cmdInfo->subcmds.swap(bakedCommands->cmdInfo->subcmds);
     cmdInfo->sparse.swap(bakedCommands->cmdInfo->sparse);

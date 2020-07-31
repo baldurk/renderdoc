@@ -906,36 +906,6 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
         UpdateImageStates(record->bakedCommands->cmdInfo->imageStates);
 
-        for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
-            it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-        {
-          if(GetResourceManager()->HasCurrentResource(*it))
-            GetResourceManager()->MarkDirtyResource(*it);
-        }
-
-        // with EXT_descriptor_indexing a binding might have been updated after
-        // vkCmdBindDescriptorSets, so we need to track dirtied here at the last second.
-        for(auto it = record->bakedCommands->cmdInfo->boundDescSets.begin();
-            it != record->bakedCommands->cmdInfo->boundDescSets.end(); ++it)
-        {
-          VkResourceRecord *setrecord = GetRecord(*it);
-
-          SCOPED_LOCK(setrecord->descInfo->refLock);
-
-          const std::map<ResourceId, rdcpair<uint32_t, FrameRefType>> &frameRefs =
-              setrecord->descInfo->bindFrameRefs;
-
-          for(auto refit = frameRefs.begin(); refit != frameRefs.end(); ++refit)
-          {
-            if(refit->second.second == eFrameRef_PartialWrite ||
-               refit->second.second == eFrameRef_ReadBeforeWrite)
-            {
-              if(GetResourceManager()->HasCurrentResource(refit->first))
-                GetResourceManager()->MarkDirtyResource(refit->first);
-            }
-          }
-        }
-
         if(capframe)
         {
           // for each bound descriptor set, mark it referenced as well as all resources currently
@@ -1005,8 +975,6 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
           record->bakedCommands->AddRef();
         }
-
-        record->cmdInfo->dirtied.clear();
       }
     }
 
@@ -1147,8 +1115,6 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
               vkFlushMappedMemoryRanges(dev, 1, &range);
               state.mapFlushed = false;
             }
-
-            GetResourceManager()->MarkDirtyResource(record->GetResourceID());
           }
           else
           {

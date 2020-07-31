@@ -1006,7 +1006,7 @@ void ResourceManager<Configuration>::Prepare_InitialStateIfPostponed(ResourceId 
     return;
 
   WrappedResourceType res = GetCurrentResource(id);
-  RDCDEBUG("Preparing resource %s after it has been postponed.", ToStr(id).c_str());
+  RDCLOG("Preparing resource %s after it has been postponed.", ToStr(id).c_str());
   Prepare_InitialState(res);
 
   m_PostponedResourceIDs.erase(id);

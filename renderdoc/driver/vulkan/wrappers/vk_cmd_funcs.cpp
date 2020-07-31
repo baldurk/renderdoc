@@ -4144,8 +4144,6 @@ void WrappedVulkan::vkCmdExecuteCommands(VkCommandBuffer commandBuffer, uint32_t
       VkResourceRecord *execRecord = GetRecord(pCommandBuffers[i]);
       if(execRecord->bakedCommands)
       {
-        record->cmdInfo->dirtied.insert(execRecord->bakedCommands->cmdInfo->dirtied.begin(),
-                                        execRecord->bakedCommands->cmdInfo->dirtied.end());
         record->cmdInfo->boundDescSets.insert(
             execRecord->bakedCommands->cmdInfo->boundDescSets.begin(),
             execRecord->bakedCommands->cmdInfo->boundDescSets.end());
