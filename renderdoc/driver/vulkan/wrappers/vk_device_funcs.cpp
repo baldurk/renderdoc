@@ -173,6 +173,10 @@ static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
        ext == "VK_EXT_validation_features" || ext == "VK_EXT_validation_flags")
       return true;
 
+    // these are debug only and will be added (if supported) as optional
+    if(ext == "VK_EXT_debug_utils" || ext == "VK_EXT_debug_marker")
+      return true;
+
     return false;
   });
 }
