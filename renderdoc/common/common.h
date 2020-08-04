@@ -443,13 +443,13 @@ void rdclog_direct(time_t utcTime, uint32_t pid, LogType type, const char *proje
 const char *rdclog_getfilename();
 void rdclog_filename(const char *filename);
 void rdclog_enableoutput();
-void rdclog_closelog(const char *filename);
+void rdclog_closelog();
 
 #define RDCLOGFILE(fn) rdclog_filename(fn)
 #define RDCGETLOGFILE() rdclog_getfilename()
 
 #define RDCLOGOUTPUT() rdclog_enableoutput()
-#define RDCSTOPLOGGING(filename) rdclog_closelog(filename)
+#define RDCSTOPLOGGING() rdclog_closelog()
 
 #if(ENABLED(RDOC_DEVEL) || ENABLED(FORCE_DEBUG_LOGS)) && DISABLED(STRIP_DEBUG_LOGS)
 #define RDCDEBUG(...) rdclog(LogType::Debug, __VA_ARGS__)

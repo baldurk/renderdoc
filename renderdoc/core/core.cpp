@@ -486,7 +486,7 @@ RenderDoc::~RenderDoc()
     }
   }
 
-  RDCSTOPLOGGING(m_LoggingFilename.c_str());
+  RDCSTOPLOGGING();
 
   if(m_RemoteThread)
   {

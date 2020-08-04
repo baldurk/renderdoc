@@ -292,10 +292,10 @@ void rdclog_enableoutput()
   log_output_enabled = true;
 }
 
-void rdclog_closelog(const char *filename)
+void rdclog_closelog()
 {
   log_output_enabled = false;
-  FileIO::logfile_close(logfileHandle, filename);
+  FileIO::logfile_close(logfileHandle, logfile.c_str());
 }
 
 void rdclog_flush()
