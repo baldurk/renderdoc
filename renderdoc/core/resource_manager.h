@@ -1038,7 +1038,7 @@ void ResourceManager<Configuration>::Serialise_InitialContentsNeeded(WriteSerial
   rdcarray<WrittenRecord> WrittenRecords;
 
   // reasonable estimate, and these records are small
-  WrittenRecords.reserve(m_FrameReferencedResources.size());
+  WrittenRecords.reserve(m_FrameReferencedResources.size() + m_InitialContents.size());
 
   // all resources that were recorded as being modified should be included in the list of those
   // needing initial contents
