@@ -72,6 +72,8 @@ public:
                               VkImageLayout curLayout, VkImageSubresourceRange discardRange,
                               VkRect2D discardRect);
 
+  byte *GetReadbackPtr() { return m_ReadbackPtr; }
+  VkBuffer GetReadbackBuffer() { return m_ReadbackWindow.buf; }
   VkPipelineCache GetPipelineCache() { return m_PipelineCache; }
   VkPipeline GetCustomPipeline() { return m_Custom.TexPipeline; }
   VkImage GetCustomTexture() { return m_Custom.TexImg; }
@@ -112,6 +114,7 @@ public:
 private:
   // GetBufferData
   GPUBuffer m_ReadbackWindow;
+  byte *m_ReadbackPtr = NULL;
 
   // CacheMeshDisplayPipelines
   std::map<uint64_t, VKMeshDisplayPipelines> m_CachedMeshPipelines;

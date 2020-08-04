@@ -202,9 +202,13 @@ void GPUBuffer::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size, u
       VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL, 0, totalsize, 0,
   };
 
-  bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
   bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-  bufInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+  if((flags & eGPUBufferReadback) == 0)
+  {
+    bufInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    bufInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+  }
 
   if(flags & eGPUBufferVBuffer)
     bufInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;

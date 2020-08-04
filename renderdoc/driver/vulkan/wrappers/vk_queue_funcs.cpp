@@ -1053,10 +1053,6 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
           size_t diffStart = 0, diffEnd = 0;
           bool found = true;
 
-// enabled as this is necessary for programs with very large coherent mappings
-// (> 1GB) as otherwise more than a couple of vkQueueSubmit calls leads to vast
-// memory allocation. There might still be bugs lurking in here though
-#if 1
           // this causes vkFlushMappedMemoryRanges call to allocate and copy to refData
           // from serialised buffer. We want to copy *precisely* the serialised data,
           // otherwise there is a gap in time between serialising out a snapshot of
@@ -1076,13 +1072,53 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
           // shouldn't miss anything
           state.needRefData = true;
 
+          if(state.readbackOnGPU)
+          {
+            RDCDEBUG("Reading back %s with GPU for comparison",
+                     ToStr(record->GetResourceID()).c_str());
+
+            // immediately issue a command buffer to copy back the data. We do that on this queue to
+            // avoid complexity with synchronising with another queue, but the transfer queue if
+            // available would be better for this purpose.
+            VkCommandBuffer copycmd = GetNextCmd();
+
+            VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                                  VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+            ObjDisp(copycmd)->BeginCommandBuffer(Unwrap(copycmd), &beginInfo);
+
+            VkBufferCopy region = {state.mapOffset, state.mapOffset, state.mapSize};
+
+            ObjDisp(copycmd)->CmdCopyBuffer(Unwrap(copycmd), Unwrap(state.wholeMemBuf),
+                                            Unwrap(GetDebugManager()->GetReadbackBuffer()), 1,
+                                            &region);
+
+            ObjDisp(copycmd)->EndCommandBuffer(Unwrap(copycmd));
+
+            VkSubmitInfo submit = {
+                VK_STRUCTURE_TYPE_SUBMIT_INFO, NULL, 0, NULL, NULL, 1, UnwrapPtr(copycmd),
+            };
+            VkResult copyret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submit, VK_NULL_HANDLE);
+            RDCASSERTEQUAL(copyret, VK_SUCCESS);
+
+            ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
+
+            RemovePendingCommandBuffer(copycmd);
+            AddFreeCommandBuffer(copycmd);
+
+            state.cpuReadPtr = GetDebugManager()->GetReadbackPtr();
+          }
+          else
+          {
+            state.cpuReadPtr = state.mappedPtr;
+          }
+
           // if we have a previous set of data, compare.
           // otherwise just serialise it all
           if(state.refData)
-            found = FindDiffRange(((byte *)state.mappedPtr) + state.mapOffset, state.refData,
+            found = FindDiffRange(((byte *)state.cpuReadPtr) + state.mapOffset, state.refData,
                                   (size_t)state.mapSize, diffStart, diffEnd);
           else
-#endif
             diffEnd = (size_t)state.mapSize;
 
           if(found)
@@ -1102,7 +1138,6 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
                   diffEnd - diffStart,
               };
               vkFlushMappedMemoryRanges(dev, 1, &range);
-              state.mapFlushed = false;
             }
           }
           else
@@ -1110,6 +1145,9 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
             RDCDEBUG("Persistent map flush not needed for %s",
                      ToStr(record->GetResourceID()).c_str());
           }
+
+          // restore this just in case
+          state.cpuReadPtr = state.mappedPtr;
         }
       }
 

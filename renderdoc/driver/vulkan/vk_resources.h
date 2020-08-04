@@ -1080,14 +1080,20 @@ struct PipelineLayoutData
 
 struct MemMapState
 {
+  VkBuffer wholeMemBuf = VK_NULL_HANDLE;
   VkDeviceSize mapOffset = 0, mapSize = 0;
   bool needRefData = false;
   bool mapFlushed = false;
   bool mapCoherent = false;
+  bool readbackOnGPU = false;
   // pointer to base of memory, may not be valid until after mapOffset bytes
   byte *mappedPtr = NULL;
   // this is map sized, not memory sized, rebased at the map offset.
   byte *refData = NULL;
+  // this is normally set to mappedPtr, but when readbackOnGPU is true then during a coherent map
+  // flush this may point to the readback memory so that we read from that fast copy instead of the
+  // slow actual pointer.
+  byte *cpuReadPtr = NULL;
   Threading::CriticalSection mrLock;
 };
 

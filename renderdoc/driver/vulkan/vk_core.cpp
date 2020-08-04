@@ -246,6 +246,11 @@ void WrappedVulkan::AddPendingCommandBuffer(VkCommandBuffer cmd)
   m_InternalCmds.pendingcmds.push_back(cmd);
 }
 
+void WrappedVulkan::AddFreeCommandBuffer(VkCommandBuffer cmd)
+{
+  m_InternalCmds.freecmds.push_back(cmd);
+}
+
 void WrappedVulkan::SubmitCmds(VkSemaphore *unwrappedWaitSemaphores,
                                VkPipelineStageFlags *waitStageMask, uint32_t waitSemaphoreCount)
 {
@@ -2406,9 +2411,20 @@ ReplayStatus WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t sta
   RDCASSERTEQUAL(header, SystemChunk::CaptureBegin);
 
   if(partial)
+  {
     ser.SkipCurrentChunk();
+  }
   else
+  {
+#if ENABLED(RDOC_RELEASE)
+    if(IsLoading(m_State))
+      Serialise_BeginCaptureFrame(ser);
+    else
+      ser.SkipCurrentChunk();
+#else
     Serialise_BeginCaptureFrame(ser);
+#endif
+  }
 
   ser.EndChunk();
 

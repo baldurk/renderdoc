@@ -796,7 +796,17 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver)
 
   // we only need this during replay, so don't create otherwise.
   if(RenderDoc::Inst().IsReplayApp())
+  {
     m_ReadbackWindow.Create(driver, dev, STAGE_BUFFER_BYTE_SIZE, 1, GPUBuffer::eGPUBufferReadback);
+  }
+  else
+  {
+    m_ReadbackWindow.Create(driver, dev, 256 * 1024 * 1024ULL, 1, GPUBuffer::eGPUBufferReadback);
+
+    vkr = ObjDisp(dev)->MapMemory(Unwrap(dev), Unwrap(m_ReadbackWindow.mem), 0, VK_WHOLE_SIZE, 0,
+                                  (void **)&m_ReadbackPtr);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
 }
 
 VulkanDebugManager::~VulkanDebugManager()

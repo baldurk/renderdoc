@@ -495,21 +495,16 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     // since this happens during capture, we don't want to start serialising extra buffer creates,
     // so we manually create & then just wrap.
-    VkBuffer srcBuf, dstBuf;
+    VkBuffer dstBuf;
 
     bufInfo.size = datasize;
     vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-    bufInfo.size = datasize;
-    vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &srcBuf);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    GetResourceManager()->WrapResource(Unwrap(d), srcBuf);
     GetResourceManager()->WrapResource(Unwrap(d), dstBuf);
 
     MemoryAllocation readbackmem =
-        AllocateMemoryForResource(srcBuf, MemoryScope::InitialContents, MemoryType::Readback);
+        AllocateMemoryForResource(dstBuf, MemoryScope::InitialContents, MemoryType::Readback);
 
     // dummy request to keep the validation layers happy - the buffers are identical so the
     // requirements must be identical
@@ -518,7 +513,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), Unwrap(dstBuf), &mrq);
     }
 
-    vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(srcBuf), datamem, 0);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
     vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(dstBuf), Unwrap(readbackmem.mem),
                                        readbackmem.offs);
@@ -532,7 +526,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     VkBufferCopy region = {0, 0, datasize};
 
-    ObjDisp(d)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), Unwrap(dstBuf), 1, &region);
+    ObjDisp(d)->CmdCopyBuffer(Unwrap(cmd), Unwrap(record->memMapState->wholeMemBuf), Unwrap(dstBuf),
+                              1, &region);
 
     vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -541,9 +536,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     SubmitCmds();
     FlushQ();
 
-    ObjDisp(d)->DestroyBuffer(Unwrap(d), Unwrap(srcBuf), NULL);
     ObjDisp(d)->DestroyBuffer(Unwrap(d), Unwrap(dstBuf), NULL);
-    GetResourceManager()->ReleaseWrappedResource(srcBuf);
     GetResourceManager()->ReleaseWrappedResource(dstBuf);
 
     GetResourceManager()->SetInitialContents(id, VkInitialContents(type, readbackmem));

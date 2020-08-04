@@ -56,10 +56,19 @@ void WrappedVulkan::ChooseMemoryIndices()
     const VkMemoryType &type = m_PhysicalDeviceData.memProps.memoryTypes[i];
     const VkMemoryHeap &heap = m_PhysicalDeviceData.memProps.memoryHeaps[type.heapIndex];
 
-    RDCLOG("  Memory type %u: %s in heap %u (%s) (%.1f GB) [%s]", i,
+    bool giga = true;
+    float div = (1024.0f * 1024.0f * 1024.0f);
+
+    if(heap.size < 1024 * 1024 * 1024ULL)
+    {
+      giga = false;
+      div /= 1024.0f;
+    }
+
+    RDCLOG("  Memory type %u: %s in heap %u (%s) (%.1f %s) [%s]", i,
            ToStr((VkMemoryPropertyFlagBits)type.propertyFlags).c_str(), type.heapIndex,
-           ToStr((VkMemoryHeapFlagBits)heap.flags).c_str(),
-           float(heap.size) / (1024.0f * 1024.0f * 1024.0f), selected.c_str());
+           ToStr((VkMemoryHeapFlagBits)heap.flags).c_str(), float(heap.size) / div,
+           giga ? "GB" : "MB", selected.c_str());
   }
 }
 

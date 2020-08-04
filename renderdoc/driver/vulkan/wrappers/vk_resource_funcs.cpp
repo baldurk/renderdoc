@@ -25,6 +25,11 @@
 #include <algorithm>
 #include "../vk_core.h"
 #include "../vk_debug.h"
+#include "core/settings.h"
+
+RDOC_CONFIG(bool, Vulkan_GPUReadbackDeviceLocal, true,
+            "When reading back mapped device-local memory from discrete GPUs, use a GPU copy "
+            "instead of a CPU side comparison directly to mapped memory.");
 
 /************************************************************************
  *
@@ -412,6 +417,47 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
   {
     ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pMemory);
 
+    // create a buffer with the whole memory range bound, for copying to and from
+    // conveniently (for initial state data)
+    VkBuffer wholeMemBuf = VK_NULL_HANDLE;
+
+    VkBufferCreateInfo bufInfo = {
+        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        NULL,
+        0,
+        info.allocationSize,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+    };
+
+    if(IsCaptureMode(m_State))
+    {
+      // we make the buffer concurrently accessible by all queue families to not invalidate the
+      // contents of the memory we're reading back from.
+      bufInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+      bufInfo.queueFamilyIndexCount = (uint32_t)m_QueueFamilyIndices.size();
+      bufInfo.pQueueFamilyIndices = m_QueueFamilyIndices.data();
+
+      // spec requires that CONCURRENT must specify more than one queue family. If there is only one
+      // queue family, we can safely use exclusive.
+      if(bufInfo.queueFamilyIndexCount == 1)
+        bufInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    }
+
+    ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &wholeMemBuf);
+    RDCASSERTEQUAL(ret, VK_SUCCESS);
+
+    // we already validated above that the memory size is aligned/etc as necessary so we can
+    // create a buffer of the whole size, but just to keep the validation layers happy let's check
+    // the requirements here again.
+    VkMemoryRequirements mrq = {};
+    ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), wholeMemBuf, &mrq);
+
+    RDCASSERTEQUAL(mrq.size, info.allocationSize);
+
+    ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), wholeMemBuf);
+
+    ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(wholeMemBuf), Unwrap(*pMemory), 0);
+
     if(IsCaptureMode(m_State))
     {
       Chunk *chunk = NULL;
@@ -469,12 +515,23 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
       uint32_t memProps =
           m_PhysicalDeviceData.memProps.memoryTypes[info.memoryTypeIndex].propertyFlags;
 
+      record->memMapState = new MemMapState();
+      record->memMapState->wholeMemBuf = wholeMemBuf;
+
       // if memory is not host visible, so not mappable, don't create map state at all
       if((memProps & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
       {
-        record->memMapState = new MemMapState();
         record->memMapState->mapCoherent = (memProps & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
-        record->memMapState->refData = NULL;
+
+        // only mark this memory as needing readback on the GPU if it's device-local on a discrete
+        // GPU. On non-discrete GPUs we assume the CPU can access the memory at a good speed, and on
+        // discrete GPUs where the memory isn't device local it's CPU side so of course it's fast to
+        // access. Only in this case do we want to push the memory from the GPU to the CPU with a
+        // command buffer.
+        if(Vulkan_GPUReadbackDeviceLocal() &&
+           m_PhysicalDeviceData.props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+          record->memMapState->readbackOnGPU =
+              ((memProps & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0);
       }
 
       GetResourceManager()->AddDeviceMemory(id);
@@ -492,37 +549,10 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 
       m_CreationInfo.m_Memory[id].Init(GetResourceManager(), m_CreationInfo, &info);
 
-      // create a buffer with the whole memory range bound, for copying to and from
-      // conveniently (for initial state data)
-      VkBuffer buf = VK_NULL_HANDLE;
-
-      VkBufferCreateInfo bufInfo = {
-          VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-          NULL,
-          0,
-          info.allocationSize,
-          VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-      };
-
-      ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &buf);
-      RDCASSERTEQUAL(ret, VK_SUCCESS);
-
-      // we already validated above that the memory size is aligned/etc as necessary so we can
-      // create a buffer of the whole size, but just to keep the validation layers happy let's check
-      // the requirements here again.
-      VkMemoryRequirements mrq = {};
-      ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), buf, &mrq);
-
-      RDCASSERTEQUAL(mrq.size, info.allocationSize);
-
-      ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), buf);
-
-      ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buf), Unwrap(*pMemory), 0);
-
       // register as a live-only resource, so it is cleaned up properly
-      GetResourceManager()->AddLiveResource(bufid, buf);
+      GetResourceManager()->AddLiveResource(bufid, wholeMemBuf);
 
-      m_CreationInfo.m_Memory[id].wholeMemBuf = buf;
+      m_CreationInfo.m_Memory[id].wholeMemBuf = wholeMemBuf;
     }
   }
 
@@ -556,11 +586,22 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
       m_DeviceAddressResources.IDs.removeOne(GetResID(memory));
     }
 
-    // there is an implicit unmap on free, so make sure to tidy up
-    if(wrapped->record->memMapState && wrapped->record->memMapState->refData)
+    MemMapState *memMapState = wrapped->record->memMapState;
+
+    if(memMapState)
     {
-      FreeAlignedBuffer(wrapped->record->memMapState->refData);
-      wrapped->record->memMapState->refData = NULL;
+      // there is an implicit unmap on free, so make sure to tidy up
+      if(memMapState->refData)
+      {
+        FreeAlignedBuffer(memMapState->refData);
+        memMapState->refData = NULL;
+      }
+
+      // destroy the wholeMemBuf
+      {
+        ObjDisp(device)->DestroyBuffer(Unwrap(device), Unwrap(memMapState->wholeMemBuf), NULL);
+        GetResourceManager()->ReleaseWrappedResource(memMapState->wholeMemBuf);
+      }
     }
 
     {
@@ -614,7 +655,7 @@ VkResult WrappedVulkan::vkMapMemory(VkDevice device, VkDeviceMemory mem, VkDevic
 
       // flush range offsets are relative to the start of the memory so keep mappedPtr at that
       // basis. We'll only access within the mapped range
-      state.mappedPtr = (byte *)realData - (size_t)offset;
+      state.cpuReadPtr = state.mappedPtr = (byte *)realData - (size_t)offset;
       state.refData = NULL;
 
       state.mapOffset = offset;
@@ -661,7 +702,7 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
     MapOffset = state->mapOffset;
     MapSize = state->mapSize;
 
-    MapData = (byte *)state->mappedPtr + MapOffset;
+    MapData = (byte *)state->cpuReadPtr + MapOffset;
   }
 
   SERIALISE_ELEMENT(MapOffset);
@@ -761,7 +802,7 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
         }
       }
 
-      state.mappedPtr = NULL;
+      state.cpuReadPtr = state.mappedPtr = NULL;
     }
 
     FreeAlignedBuffer(state.refData);
@@ -796,7 +837,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
     // don't support any extensions on VkMappedMemoryRange
     RDCASSERT(pMemRanges->pNext == NULL);
 
-    MappedData = state->mappedPtr + (size_t)MemRange.offset;
+    MappedData = state->cpuReadPtr + (size_t)MemRange.offset;
   }
 
   if(IsReplayingAndReading() && MemRange.memory != VK_NULL_HANDLE && MemRange.size > 0)
@@ -887,8 +928,24 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
 
     for(uint32_t i = 0; i < memRangeCount; i++)
     {
+      ResourceId memid = GetResID(pMemRanges[i].memory);
+      VkResourceRecord *record = GetRecord(pMemRanges[i].memory);
+
+      MemMapState *state = record->memMapState;
+
+      if(!internalFlush)
+        state->mapFlushed = true;
+
+      if(state->mappedPtr == NULL)
+      {
+        RDCERR("Flushing memory %s that isn't currently mapped", ToStr(memid).c_str());
+        continue;
+      }
+
       if(capframe)
       {
+        SCOPED_LOCK_OPTIONAL(state->mrLock, !internalFlush);
+
         CACHE_THREAD_SERIALISER();
 
         SCOPED_SERIALISE_CHUNK(internalFlush ? VulkanChunk::CoherentMapWrite
@@ -896,18 +953,6 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(VkDevice device, uint32_t memR
         Serialise_vkFlushMappedMemoryRanges(ser, device, 1, pMemRanges + i);
 
         m_FrameCaptureRecord->AddChunk(scope.Get());
-      }
-
-      ResourceId memid = GetResID(pMemRanges[i].memory);
-      VkResourceRecord *record = GetRecord(pMemRanges[i].memory);
-
-      MemMapState *state = record->memMapState;
-      state->mapFlushed = true;
-
-      if(state->mappedPtr == NULL)
-      {
-        RDCERR("Flushing memory %s that isn't currently mapped", ToStr(memid).c_str());
-        continue;
       }
 
       if(capframe)
