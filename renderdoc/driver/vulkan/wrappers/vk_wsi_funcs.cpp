@@ -583,6 +583,21 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
           state->isMemoryBound = true;
         }
 
+        // take a command buffer and steal it
+        swapImInfo.cmd = GetNextCmd();
+        RemovePendingCommandBuffer(swapImInfo.cmd);
+
+        {
+          VkSemaphoreCreateInfo semInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+
+          vkr = ObjDisp(device)->CreateSemaphore(Unwrap(device), &semInfo, NULL,
+                                                 &swapImInfo.overlaydone);
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+          GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.overlaydone);
+          GetResourceManager()->SetInternalResource(GetResID(swapImInfo.overlaydone));
+        }
+
         {
           VkImageViewCreateInfo info = {
               VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -714,8 +729,8 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
   for(uint32_t i = 0; i < unwrappedInfo.waitSemaphoreCount; i++)
     unwrappedSems.push_back(Unwrap(unwrappedInfo.pWaitSemaphores[i]));
 
-  unwrappedInfo.pSwapchains = unwrappedInfo.swapchainCount ? &unwrappedSwaps[0] : NULL;
-  unwrappedInfo.pWaitSemaphores = unwrappedInfo.waitSemaphoreCount ? &unwrappedSems[0] : NULL;
+  unwrappedInfo.pSwapchains = unwrappedSwaps.data();
+  unwrappedInfo.pWaitSemaphores = unwrappedSems.data();
 
   // Don't support any extensions for present info
   const VkBaseInStructure *next = (const VkBaseInStructure *)pPresentInfo->pNext;
@@ -764,6 +779,8 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       VkRenderPass rp = swapInfo.rp;
       VkImage im = swapInfo.images[pPresentInfo->pImageIndices[0]].im;
       VkFramebuffer fb = swapInfo.images[pPresentInfo->pImageIndices[0]].fb;
+      VkCommandBuffer cmd = swapInfo.images[pPresentInfo->pImageIndices[0]].cmd;
+      VkSemaphore sem = swapInfo.images[pPresentInfo->pImageIndices[0]].overlaydone;
 
       VkResourceRecord *queueRecord = GetRecord(queue);
       uint32_t swapQueueIndex = queueRecord->queueFamilyIndex;
@@ -771,7 +788,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       VkDevDispatchTable *vt = ObjDisp(GetDev());
 
       TextPrintState textstate = {
-          GetNextCmd(),
+          cmd,
           rp,
           fb,
           RDCMAX(1U, swapInfo.imageInfo.extent.width),
@@ -779,10 +796,12 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
           swapInfo.imageInfo.format,
       };
 
+      ObjDisp(cmd)->ResetCommandBuffer(Unwrap(cmd), 0);
+
       VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
-      VkResult vkr = vt->BeginCommandBuffer(Unwrap(textstate.cmd), &beginInfo);
+      VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
       VkImageMemoryBarrier bbBarrier = {
@@ -804,11 +823,35 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       bbBarrier.srcAccessMask = VK_ACCESS_ALL_READ_BITS;
       bbBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-      DoPipelineBarrier(textstate.cmd, 1, &bbBarrier);
+      DoPipelineBarrier(cmd, 1, &bbBarrier);
+
+      rdcarray<VkPipelineStageFlags> waitStage;
+      waitStage.fill(unwrappedSems.size(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
+      uint32_t ringIdx = 0;
+
+      VkSubmitInfo submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
+
+      // wait on the present's semaphores
+      submitInfo.pWaitDstStageMask = waitStage.data();
+      submitInfo.pWaitSemaphores = unwrappedSems.data();
+      submitInfo.waitSemaphoreCount = (uint32_t)unwrappedSems.size();
+
+      // and signal overlaydone
+      submitInfo.pSignalSemaphores = UnwrapPtr(sem);
+      submitInfo.signalSemaphoreCount = 1;
 
       if(swapQueueIndex != m_QueueFamilyIdx)
       {
-        VkCommandBuffer extQCmd = GetExtQueueCmd(swapQueueIndex);
+        ringIdx = m_ExternalQueues[swapQueueIndex].GetNextIdx();
+
+        VkCommandBuffer extQCmd = m_ExternalQueues[swapQueueIndex].ring[ringIdx].acquire;
+        VkFence fence = m_ExternalQueues[swapQueueIndex].ring[ringIdx].fence;
+
+        // wait for this queue ring to be free, but with a reasonably aggressive timeout (50ms). If
+        // this ring has never been used the fence is signalled on creation
+        vkr = vt->WaitForFences(Unwrap(m_Device), 1, UnwrapPtr(fence), VK_TRUE, 50000000);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
         vkr = vt->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -817,7 +860,33 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
         ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
 
-        SubmitAndFlushExtQueue(swapQueueIndex);
+        VkQueue q = m_ExternalQueues[swapQueueIndex].queue;
+
+        // wait on present semaphores as before, but on the proper (external) queue.
+
+        // submit the acquire command buffer (release from the external point of view)
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = UnwrapPtr(extQCmd);
+
+        // signal the semaphore that we'll wait on for our overlay command buffer
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores =
+            UnwrapPtr(m_ExternalQueues[swapQueueIndex].ring[ringIdx].fromext);
+
+        vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, &submitInfo, VK_NULL_HANDLE);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        // next submit needs to wait on fromext
+        unwrappedSems.assign(submitInfo.pSignalSemaphores, 1);
+        waitStage.resize(1);
+
+        submitInfo.pWaitDstStageMask = waitStage.data();
+        submitInfo.pWaitSemaphores = unwrappedSems.data();
+        submitInfo.waitSemaphoreCount = (uint32_t)unwrappedSems.size();
+
+        // and signal toext
+        submitInfo.pSignalSemaphores =
+            UnwrapPtr(m_ExternalQueues[swapQueueIndex].ring[ringIdx].toext);
       }
 
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
@@ -839,15 +908,20 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
       DoPipelineBarrier(textstate.cmd, 1, &bbBarrier);
 
-      ObjDisp(textstate.cmd)->EndCommandBuffer(Unwrap(textstate.cmd));
+      ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 
-      rdcarray<VkPipelineStageFlags> waitStage;
-      waitStage.fill(unwrappedSems.size(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-      SubmitCmds(unwrappedSems.data(), waitStage.data(), (uint32_t)unwrappedSems.size());
+      {
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = UnwrapPtr(cmd);
+
+        vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), 1, &submitInfo, VK_NULL_HANDLE);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      }
 
       if(swapQueueIndex != m_QueueFamilyIdx)
       {
-        VkCommandBuffer extQCmd = GetExtQueueCmd(swapQueueIndex);
+        VkCommandBuffer extQCmd = m_ExternalQueues[swapQueueIndex].ring[ringIdx].release;
+        VkFence fence = m_ExternalQueues[swapQueueIndex].ring[ringIdx].fence;
 
         vkr = vt->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -856,10 +930,33 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
         ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
 
-        SubmitAndFlushExtQueue(swapQueueIndex);
+        VkQueue q = m_ExternalQueues[swapQueueIndex].queue;
+
+        // wait on toext which was signalled above
+        unwrappedSems.assign(submitInfo.pSignalSemaphores, 1);
+        waitStage.resize(1);
+
+        submitInfo.pWaitDstStageMask = waitStage.data();
+        submitInfo.pWaitSemaphores = unwrappedSems.data();
+        submitInfo.waitSemaphoreCount = (uint32_t)unwrappedSems.size();
+
+        // release to the external queue
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = UnwrapPtr(extQCmd);
+
+        // signal the overlaydone semaphore
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = UnwrapPtr(sem);
+
+        // submit and signal the fence when we're done, so we know next time around that this is
+        // safe to re-use
+        vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, &submitInfo, Unwrap(fence));
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
       }
 
-      FlushQ();
+      // the present waits on our new semaphore
+      unwrappedInfo.waitSemaphoreCount = 1;
+      unwrappedInfo.pWaitSemaphores = submitInfo.pSignalSemaphores;
     }
 
     GetResourceManager()->CleanBackgroundFrameReferences();

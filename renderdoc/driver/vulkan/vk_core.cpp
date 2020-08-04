@@ -373,7 +373,7 @@ VkCommandBuffer WrappedVulkan::GetExtQueueCmd(uint32_t queueFamilyIdx) const
     return VK_NULL_HANDLE;
   }
 
-  VkCommandBuffer buf = m_ExternalQueues[queueFamilyIdx].buffer;
+  VkCommandBuffer buf = m_ExternalQueues[queueFamilyIdx].ring[0].acquire;
 
   ObjDisp(buf)->ResetCommandBuffer(Unwrap(buf), 0);
 
@@ -388,7 +388,7 @@ void WrappedVulkan::SubmitAndFlushExtQueue(uint32_t queueFamilyIdx) const
     return;
   }
 
-  VkCommandBuffer buf = Unwrap(m_ExternalQueues[queueFamilyIdx].buffer);
+  VkCommandBuffer buf = Unwrap(m_ExternalQueues[queueFamilyIdx].ring[0].acquire);
 
   VkSubmitInfo submitInfo = {
       VK_STRUCTURE_TYPE_SUBMIT_INFO,

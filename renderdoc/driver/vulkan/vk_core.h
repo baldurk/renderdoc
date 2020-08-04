@@ -450,7 +450,22 @@ private:
   {
     VkQueue queue = VK_NULL_HANDLE;
     VkCommandPool pool = VK_NULL_HANDLE;
-    VkCommandBuffer buffer = VK_NULL_HANDLE;
+
+    struct
+    {
+      VkCommandBuffer acquire = VK_NULL_HANDLE;
+      VkCommandBuffer release = VK_NULL_HANDLE;
+      VkSemaphore fromext = VK_NULL_HANDLE;
+      VkSemaphore toext = VK_NULL_HANDLE;
+      VkFence fence = VK_NULL_HANDLE;
+    } ring[4];
+    uint32_t ringIndex = 0;
+    uint32_t GetNextIdx()
+    {
+      uint32_t ret = ringIndex;
+      ringIndex = (ringIndex + 1) % ARRAY_COUNT(ring);
+      return ret;
+    }
   };
   rdcarray<ExternalQueue> m_ExternalQueues;
 
@@ -938,9 +953,6 @@ private:
                                                       int32_t messageCode, const char *pLayerPrefix,
                                                       const char *pMessage, void *pUserData);
   void AddFrameTerminator(uint64_t queueMarkerTag);
-  void SubmitExtQBarriers(const std::map<uint32_t, rdcarray<VkImageMemoryBarrier>> &extQBarriers);
-  void SubmitExtQBarriers(uint32_t queueFamilyIndex,
-                          const rdcarray<VkImageMemoryBarrier> &queueFamilyBarriers);
 
   VkResourceRecord *RegisterSurface(WindowingSystem system, void *handle);
 

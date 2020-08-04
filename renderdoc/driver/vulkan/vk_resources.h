@@ -961,6 +961,9 @@ struct SwapchainInfo
 
     VkImageView view;
     VkFramebuffer fb;
+
+    VkCommandBuffer cmd;
+    VkSemaphore overlaydone;
   };
   rdcarray<SwapImage> images;
   PresentInfo lastPresent;

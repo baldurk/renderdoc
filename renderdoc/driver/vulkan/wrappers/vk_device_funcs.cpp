@@ -803,6 +803,13 @@ void WrappedVulkan::Shutdown()
   SubmitSemaphores();
   FlushQ();
 
+  // idle the device as well so that external queues are idle.
+  if(m_Device)
+  {
+    VkResult vkr = ObjDisp(m_Device)->DeviceWaitIdle(Unwrap(m_Device));
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
   // destroy any events we created for waiting on
   for(size_t i = 0; i < m_PersistentEvents.size(); i++)
     ObjDisp(GetDev())->DestroyEvent(Unwrap(GetDev()), m_PersistentEvents[i], NULL);
@@ -833,9 +840,25 @@ void WrappedVulkan::Shutdown()
 
   for(size_t i = 0; i < m_ExternalQueues.size(); i++)
   {
-    if(m_ExternalQueues[i].buffer != VK_NULL_HANDLE)
+    if(m_ExternalQueues[i].pool != VK_NULL_HANDLE)
     {
-      GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].buffer);
+      for(size_t x = 0; x < ARRAY_COUNT(m_ExternalQueues[i].ring); x++)
+      {
+        GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].ring[x].acquire);
+        GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].ring[x].release);
+
+        ObjDisp(m_Device)->DestroySemaphore(Unwrap(m_Device),
+                                            Unwrap(m_ExternalQueues[i].ring[x].fromext), NULL);
+        GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].ring[x].fromext);
+
+        ObjDisp(m_Device)->DestroySemaphore(Unwrap(m_Device),
+                                            Unwrap(m_ExternalQueues[i].ring[x].toext), NULL);
+        GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].ring[x].toext);
+
+        ObjDisp(m_Device)->DestroyFence(Unwrap(m_Device), Unwrap(m_ExternalQueues[i].ring[x].fence),
+                                        NULL);
+        GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].ring[x].fence);
+      }
 
       ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_ExternalQueues[i].pool), NULL);
       GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].pool);
@@ -3138,16 +3161,52 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           1,
       };
 
-      vkr = ObjDisp(device)->AllocateCommandBuffers(Unwrap(device), &cmdInfo,
-                                                    &m_ExternalQueues[qidx].buffer);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      VkFenceCreateInfo fenceInfo = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, NULL,
+                                     VK_FENCE_CREATE_SIGNALED_BIT};
+      VkSemaphoreCreateInfo semInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
-      if(m_SetDeviceLoaderData)
-        m_SetDeviceLoaderData(device, m_ExternalQueues[qidx].buffer);
-      else
-        SetDispatchTableOverMagicNumber(device, m_ExternalQueues[qidx].buffer);
+      for(size_t x = 0; x < ARRAY_COUNT(m_ExternalQueues[i].ring); x++)
+      {
+        vkr = ObjDisp(device)->AllocateCommandBuffers(Unwrap(device), &cmdInfo,
+                                                      &m_ExternalQueues[qidx].ring[x].acquire);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].buffer);
+        if(m_SetDeviceLoaderData)
+          m_SetDeviceLoaderData(device, m_ExternalQueues[qidx].ring[x].acquire);
+        else
+          SetDispatchTableOverMagicNumber(device, m_ExternalQueues[qidx].ring[x].acquire);
+
+        GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].ring[x].acquire);
+
+        vkr = ObjDisp(device)->AllocateCommandBuffers(Unwrap(device), &cmdInfo,
+                                                      &m_ExternalQueues[qidx].ring[x].release);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        if(m_SetDeviceLoaderData)
+          m_SetDeviceLoaderData(device, m_ExternalQueues[qidx].ring[x].release);
+        else
+          SetDispatchTableOverMagicNumber(device, m_ExternalQueues[qidx].ring[x].release);
+
+        GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].ring[x].release);
+
+        vkr = ObjDisp(device)->CreateSemaphore(Unwrap(device), &semInfo, NULL,
+                                               &m_ExternalQueues[qidx].ring[x].fromext);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].ring[x].fromext);
+
+        vkr = ObjDisp(device)->CreateSemaphore(Unwrap(device), &semInfo, NULL,
+                                               &m_ExternalQueues[qidx].ring[x].toext);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].ring[x].toext);
+
+        vkr = ObjDisp(device)->CreateFence(Unwrap(device), &fenceInfo, NULL,
+                                           &m_ExternalQueues[qidx].ring[x].fence);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].ring[x].fence);
+      }
     }
 
     ObjDisp(physicalDevice)
@@ -3537,16 +3596,52 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
           1,
       };
 
-      vkr = ObjDisp(device)->AllocateCommandBuffers(Unwrap(device), &cmdInfo,
-                                                    &m_ExternalQueues[qidx].buffer);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      VkFenceCreateInfo fenceInfo = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, NULL,
+                                     VK_FENCE_CREATE_SIGNALED_BIT};
+      VkSemaphoreCreateInfo semInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
-      if(m_SetDeviceLoaderData)
-        m_SetDeviceLoaderData(device, m_ExternalQueues[qidx].buffer);
-      else
-        SetDispatchTableOverMagicNumber(device, m_ExternalQueues[qidx].buffer);
+      for(size_t x = 0; x < ARRAY_COUNT(m_ExternalQueues[i].ring); x++)
+      {
+        vkr = ObjDisp(device)->AllocateCommandBuffers(Unwrap(device), &cmdInfo,
+                                                      &m_ExternalQueues[qidx].ring[x].acquire);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].buffer);
+        if(m_SetDeviceLoaderData)
+          m_SetDeviceLoaderData(device, m_ExternalQueues[qidx].ring[x].acquire);
+        else
+          SetDispatchTableOverMagicNumber(device, m_ExternalQueues[qidx].ring[x].acquire);
+
+        GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].ring[x].acquire);
+
+        vkr = ObjDisp(device)->AllocateCommandBuffers(Unwrap(device), &cmdInfo,
+                                                      &m_ExternalQueues[qidx].ring[x].release);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        if(m_SetDeviceLoaderData)
+          m_SetDeviceLoaderData(device, m_ExternalQueues[qidx].ring[x].release);
+        else
+          SetDispatchTableOverMagicNumber(device, m_ExternalQueues[qidx].ring[x].release);
+
+        GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].ring[x].release);
+
+        vkr = ObjDisp(device)->CreateSemaphore(Unwrap(device), &semInfo, NULL,
+                                               &m_ExternalQueues[qidx].ring[x].fromext);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].ring[x].fromext);
+
+        vkr = ObjDisp(device)->CreateSemaphore(Unwrap(device), &semInfo, NULL,
+                                               &m_ExternalQueues[qidx].ring[x].toext);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].ring[x].toext);
+
+        vkr = ObjDisp(device)->CreateFence(Unwrap(device), &fenceInfo, NULL,
+                                           &m_ExternalQueues[qidx].ring[x].fence);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        GetResourceManager()->WrapResource(Unwrap(device), m_ExternalQueues[qidx].ring[x].fence);
+      }
     }
 
     ObjDisp(physicalDevice)
@@ -3586,6 +3681,10 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks
   SubmitSemaphores();
   FlushQ();
 
+  // idle the device as well so that external queues are idle.
+  VkResult vkr = ObjDisp(m_Device)->DeviceWaitIdle(Unwrap(m_Device));
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
   // MULTIDEVICE this function will need to check if the device is the one we
   // used for debugmanager/cmd pool etc, and only remove child queues and
   // resources (instead of doing full resource manager shutdown).
@@ -3621,9 +3720,25 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks
 
   for(size_t i = 0; i < m_ExternalQueues.size(); i++)
   {
-    if(m_ExternalQueues[i].buffer != VK_NULL_HANDLE)
+    if(m_ExternalQueues[i].pool != VK_NULL_HANDLE)
     {
-      GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].buffer);
+      for(size_t x = 0; x < ARRAY_COUNT(m_ExternalQueues[i].ring); x++)
+      {
+        GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].ring[x].acquire);
+        GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].ring[x].release);
+
+        ObjDisp(m_Device)->DestroySemaphore(Unwrap(m_Device),
+                                            Unwrap(m_ExternalQueues[i].ring[x].fromext), NULL);
+        GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].ring[x].fromext);
+
+        ObjDisp(m_Device)->DestroySemaphore(Unwrap(m_Device),
+                                            Unwrap(m_ExternalQueues[i].ring[x].toext), NULL);
+        GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].ring[x].toext);
+
+        ObjDisp(m_Device)->DestroyFence(Unwrap(m_Device), Unwrap(m_ExternalQueues[i].ring[x].fence),
+                                        NULL);
+        GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].ring[x].fence);
+      }
 
       ObjDisp(m_Device)->DestroyCommandPool(Unwrap(m_Device), Unwrap(m_ExternalQueues[i].pool), NULL);
       GetResourceManager()->ReleaseWrappedResource(m_ExternalQueues[i].pool);

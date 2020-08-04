@@ -1334,42 +1334,6 @@ std::map<uint32_t, rdcarray<VkImageMemoryBarrier> > GetExtQBarriers(
   return extQBarriers;
 }
 
-void WrappedVulkan::SubmitExtQBarriers(uint32_t queueFamilyIndex,
-                                       const rdcarray<VkImageMemoryBarrier> &queueFamilyBarriers)
-{
-  if(queueFamilyBarriers.empty())
-    return;
-
-  if(queueFamilyIndex == ~0U)
-    queueFamilyIndex = queueFamilyBarriers[0].dstQueueFamilyIndex;
-
-  VkCommandBuffer extQCmd = GetExtQueueCmd(queueFamilyIndex);
-
-  VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
-                                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
-  VkResult vkr = ObjDisp(extQCmd)->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-  DoPipelineBarrier(extQCmd, queueFamilyBarriers.size(), queueFamilyBarriers.data());
-  vkr = ObjDisp(extQCmd)->EndCommandBuffer(Unwrap(extQCmd));
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-  SubmitAndFlushExtQueue(queueFamilyIndex);
-}
-
-void WrappedVulkan::SubmitExtQBarriers(
-    const std::map<uint32_t, rdcarray<VkImageMemoryBarrier> > &extQBarriers)
-{
-  for(auto extQBarrierIt = extQBarriers.begin(); extQBarrierIt != extQBarriers.end(); ++extQBarrierIt)
-  {
-    uint32_t queueFamilyIndex = extQBarrierIt->first;
-    const rdcarray<VkImageMemoryBarrier> &queueFamilyBarriers = extQBarrierIt->second;
-
-    SubmitExtQBarriers(queueFamilyIndex, queueFamilyBarriers);
-  }
-}
-
 void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialContents &initial)
 {
   VkResourceType type = initial.type;

@@ -243,6 +243,8 @@ void WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj,
   {
     SwapchainInfo &info = *GetRecord(obj)->swapInfo;
 
+    ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
+
     VkRenderPass unwrappedRP = Unwrap(info.rp);
     GetResourceManager()->ReleaseWrappedResource(info.rp, true);
     ObjDisp(device)->DestroyRenderPass(Unwrap(device), unwrappedRP, NULL);
@@ -251,12 +253,18 @@ void WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj,
     {
       VkFramebuffer unwrappedFB = Unwrap(info.images[i].fb);
       VkImageView unwrappedView = Unwrap(info.images[i].view);
+      VkSemaphore unwrappedSem = Unwrap(info.images[i].overlaydone);
       GetResourceManager()->ReleaseWrappedResource(info.images[i].fb, true);
       // note, image doesn't have to be destroyed, just untracked
       GetResourceManager()->ReleaseWrappedResource(info.images[i].im, true);
       GetResourceManager()->ReleaseWrappedResource(info.images[i].view, true);
+      GetResourceManager()->ReleaseWrappedResource(info.images[i].overlaydone);
       ObjDisp(device)->DestroyFramebuffer(Unwrap(device), unwrappedFB, NULL);
       ObjDisp(device)->DestroyImageView(Unwrap(device), unwrappedView, NULL);
+      ObjDisp(device)->DestroySemaphore(Unwrap(device), unwrappedSem, NULL);
+
+      // return the command buffers to the pool
+      AddFreeCommandBuffer(info.images[i].cmd);
     }
   }
 
