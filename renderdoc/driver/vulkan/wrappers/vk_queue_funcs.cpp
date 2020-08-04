@@ -1079,8 +1079,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
           // if we have a previous set of data, compare.
           // otherwise just serialise it all
           if(state.refData)
-            found = FindDiffRange((byte *)state.mappedPtr, state.refData, (size_t)state.mapSize,
-                                  diffStart, diffEnd);
+            found = FindDiffRange(((byte *)state.mappedPtr) + state.mapOffset, state.refData,
+                                  (size_t)state.mapSize, diffStart, diffEnd);
           else
 #endif
             diffEnd = (size_t)state.mapSize;

@@ -1,4 +1,5 @@
 import renderdoc as rd
+import struct
 import rdtest
 
 
@@ -74,3 +75,37 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
             self.check_pixel_value(tex, coord[0], coord[1], [0.0, 1.0, 0.0, 1.0])
 
         rdtest.log.success("picked values are as expected")
+
+        checkpoint1 = self.find_draw("First Submit")
+        checkpoint2 = self.find_draw("Second Submit")
+
+        self.check(checkpoint1 is not None)
+        self.check(checkpoint2 is not None)
+
+        resources = self.controller.GetResources()
+
+        copy_src = None
+        vb = None
+
+        for r in resources:
+            if r.name == 'copy_src':
+                copy_src = r.resourceId
+            elif r.name == 'vb':
+                vb = r.resourceId
+
+        self.check(copy_src is not None)
+        self.check(vb is not None)
+
+        self.controller.SetFrameEvent(checkpoint1.eventId, False)
+
+        val = struct.unpack('f', self.controller.GetBufferData(copy_src, 116, 4))
+        self.check(val[0] == 10.0)
+
+        self.controller.SetFrameEvent(checkpoint2.eventId, False)
+
+        val = struct.unpack('f', self.controller.GetBufferData(copy_src, 116, 4))
+        self.check(val[0] == 11.0)
+        val = struct.unpack('f', self.controller.GetBufferData(vb, 116, 4))
+        self.check(val[0] == 11.0)
+
+        rdtest.log.success("buffers have correct values in both submits")

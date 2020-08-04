@@ -58,27 +58,39 @@ RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
 
     const float val = 2.0f / 3.0f;
 
-    const DefaultA2V tri[4] = {
+    DefaultA2V tri[4] = {
         {Vec3f(-val, -val, val), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
         {Vec3f(0.0f, val, val), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
         {Vec3f(val, -val, val), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
         {},
     };
 
-    AllocatedBuffer vb(this, vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
-
-    vb.upload(tri);
-
     AllocatedBuffer copy_src(
         this, vkh::BufferCreateInfo(
                   sizeof(tri), VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT),
         VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
+    setName(copy_src.buffer, "copy_src");
+
+    AllocatedBuffer vb(this, vkh::BufferCreateInfo(sizeof(tri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    setName(vb.buffer, "vb");
+
+    vb.upload(tri);
+
+    tri[0].pos = Vec3f(0.0f, 0.0f, 10.0f);
+
     copy_src.upload(tri);
 
-    float *mapped = (float *)(copy_src.map() + sizeof(DefaultA2V) * 3);
+    VmaAllocationInfo alloc_info;
+
+    vmaGetAllocationInfo(copy_src.allocator, copy_src.alloc, &alloc_info);
+
+    float *mapped = NULL;
+    vkMapMemory(device, alloc_info.deviceMemory, alloc_info.offset + sizeof(DefaultA2V) * 3,
+                sizeof(Vec4f), 0, (void **)&mapped);
 
     float counter = 0;
     while(Running())
@@ -91,6 +103,7 @@ RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
       // create a dummy submit which uses the memory. This will serialise the whole memory contents
       // (we don't create reference data until after this)
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+      setMarker(cmd, "First Submit");
       vkCmdUpdateBuffer(cmd, copy_src.buffer, sizeof(Vec3f), sizeof(Vec4f), &tri[0].col);
       vkEndCommandBuffer(cmd);
       Submit(0, 2, {cmd});
@@ -110,9 +123,13 @@ RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
                            vkh::ImageSubresourceRange());
 
       VkBufferCopy region = {};
-      region.srcOffset = 3;
-      region.dstOffset = 3;
+      region.srcOffset = 3 + sizeof(DefaultA2V);
+      region.dstOffset = 3 + sizeof(DefaultA2V);
       region.size = 7;
+      vkCmdCopyBuffer(cmd, copy_src.buffer, vb.buffer, 1, &region);
+      region.srcOffset = sizeof(DefaultA2V) * 3;
+      region.dstOffset = sizeof(DefaultA2V) * 3;
+      region.size = sizeof(DefaultA2V);
       vkCmdCopyBuffer(cmd, copy_src.buffer, vb.buffer, 1, &region);
 
       vkCmdBeginRenderPass(
@@ -123,6 +140,7 @@ RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
       vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
       vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
+      setMarker(cmd, "Second Submit");
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
       vkCmdEndRenderPass(cmd);
@@ -136,7 +154,7 @@ RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
       Present();
     }
 
-    copy_src.unmap();
+    vkUnmapMemory(device, alloc_info.deviceMemory);
 
     return 0;
   }

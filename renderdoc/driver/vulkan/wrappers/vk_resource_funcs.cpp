@@ -581,9 +581,19 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory,
 VkResult WrappedVulkan::vkMapMemory(VkDevice device, VkDeviceMemory mem, VkDeviceSize offset,
                                     VkDeviceSize size, VkMemoryMapFlags flags, void **ppData)
 {
-  void *realData = NULL;
-  VkResult ret =
-      ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), offset, size, flags, &realData);
+  // ensure we always map on a 16-byte boundary. This is for our own purposes so we can
+  // FindDiffRange against the mapped region. We adjust the pointer returned to the user but
+  // otherwise we act as if the mapped region was 16-byte aligned. Fortunately flushed regions in
+  // vkFlushMappedMemoryRanges are relative to the memory base, not the mapped region, so this
+  // offset effectively only modifies the returned pointer and has no other side-effects.
+  VkDeviceSize misalignedOffset = offset & 0xf;
+  offset &= ~0xf;
+  // need to adjust the size so the end-point is still the same!
+  size += misalignedOffset;
+
+  byte *realData = NULL;
+  VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), offset, size, flags,
+                                            (void **)&realData);
 
   if(ret == VK_SUCCESS && realData)
   {
@@ -599,9 +609,11 @@ VkResult WrappedVulkan::vkMapMemory(VkDevice device, VkDeviceMemory mem, VkDevic
       MemMapState &state = *memrecord->memMapState;
 
       // ensure size is valid
-      RDCASSERT(size == VK_WHOLE_SIZE || (size > 0 && size <= memrecord->Length), GetResID(mem),
-                size, memrecord->Length);
+      RDCASSERT(size == VK_WHOLE_SIZE || (size > 0 && offset + size <= memrecord->Length),
+                GetResID(mem), size, memrecord->Length);
 
+      // flush range offsets are relative to the start of the memory so keep mappedPtr at that
+      // basis. We'll only access within the mapped range
       state.mappedPtr = (byte *)realData - (size_t)offset;
       state.refData = NULL;
 
@@ -609,7 +621,7 @@ VkResult WrappedVulkan::vkMapMemory(VkDevice device, VkDeviceMemory mem, VkDevic
       state.mapSize = size == VK_WHOLE_SIZE ? (memrecord->Length - offset) : size;
       state.mapFlushed = false;
 
-      *ppData = realData;
+      *ppData = realData + misalignedOffset;
 
       if(state.mapCoherent)
       {
@@ -619,7 +631,7 @@ VkResult WrappedVulkan::vkMapMemory(VkDevice device, VkDeviceMemory mem, VkDevic
     }
     else
     {
-      *ppData = realData;
+      *ppData = realData + misalignedOffset;
     }
   }
   else
@@ -816,7 +828,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
     if(!state->refData)
     {
       // if we're in this case, the range should be for the whole memory region.
-      RDCASSERT(MemRange.offset == 0 && memRangeSize == state->mapSize);
+      RDCASSERT(MemRange.offset == state->mapOffset && memRangeSize == state->mapSize);
 
       // allocate ref data so we can compare next time to minimise serialised data
       state->refData = AllocAlignedBuffer((size_t)state->mapSize);

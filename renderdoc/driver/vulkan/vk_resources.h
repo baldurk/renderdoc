@@ -1080,22 +1080,14 @@ struct PipelineLayoutData
 
 struct MemMapState
 {
-  MemMapState()
-      : mapOffset(0),
-        mapSize(0),
-        needRefData(false),
-        mapFlushed(false),
-        mapCoherent(false),
-        mappedPtr(NULL),
-        refData(NULL)
-  {
-  }
-  VkDeviceSize mapOffset, mapSize;
-  bool needRefData;
-  bool mapFlushed;
-  bool mapCoherent;
-  byte *mappedPtr;
-  byte *refData;
+  VkDeviceSize mapOffset = 0, mapSize = 0;
+  bool needRefData = false;
+  bool mapFlushed = false;
+  bool mapCoherent = false;
+  // pointer to base of memory, may not be valid until after mapOffset bytes
+  byte *mappedPtr = NULL;
+  // this is map sized, not memory sized, rebased at the map offset.
+  byte *refData = NULL;
   Threading::CriticalSection mrLock;
 };
 
