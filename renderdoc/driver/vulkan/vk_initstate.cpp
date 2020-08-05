@@ -1268,7 +1268,7 @@ template bool WrappedVulkan::Serialise_InitialState(WriteSerialiser &ser, Resour
                                                     VkResourceRecord *record,
                                                     const VkInitialContents *initial);
 
-void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData)
+void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool)
 {
   if(IsStructuredExporting(m_State))
     return;

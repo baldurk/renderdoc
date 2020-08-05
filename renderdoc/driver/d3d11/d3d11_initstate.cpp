@@ -1249,7 +1249,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
         m_ResourceManager->SetInitialContents(id, D3D11InitialContents(type, clearRTV));
       }
     }
-    else if(!hasData && desc.Usage != D3D11_USAGE_IMMUTABLE)
+    else if(desc.Usage != D3D11_USAGE_IMMUTABLE)
     {
       desc.CPUAccessFlags = 0;
       desc.Usage = D3D11_USAGE_DEFAULT;

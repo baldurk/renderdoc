@@ -1844,7 +1844,7 @@ bool GLResourceManager::Serialise_InitialState(WriteSerialiser &ser, ResourceId 
   return Serialise_InitialState<WriteSerialiser>(ser, id, record, initial);
 }
 
-void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool hasData)
+void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool)
 {
   if(IsStructuredExporting(m_State))
     return;

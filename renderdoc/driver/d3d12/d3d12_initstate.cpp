@@ -793,7 +793,7 @@ template bool D3D12ResourceManager::Serialise_InitialState(WriteSerialiser &ser,
                                                            D3D12ResourceRecord *record,
                                                            const D3D12InitialContents *initial);
 
-void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild *live, bool hasData)
+void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild *live, bool)
 {
   D3D12ResourceType type = IdentifyTypeByPtr(live);
 
