@@ -3433,6 +3433,8 @@ void WrappedVulkan::ProcessDebugMessage(DebugMessage &msg)
             }
           }
 
+          bool do_replace = false;
+
           // we now expect a [NAME]. Look for matched set of []s
           if(desc[end] == '[')
           {
@@ -3449,6 +3451,16 @@ void WrappedVulkan::ProcessDebugMessage(DebugMessage &msg)
               end++;
             }
 
+            do_replace = true;
+          }
+          // if we didn't see a trailing [], look for a preceeding handle =
+          else if(offs >= 9 && desc.substr(offs - 9, 9) == "handle = ")
+          {
+            do_replace = true;
+          }
+
+          if(do_replace)
+          {
             // unique objects layer implies this is a unique search so we don't have to worry
             // about type aliases
             ResourceId id = GetResourceManager()->GetFirstIDForHandle(val);
