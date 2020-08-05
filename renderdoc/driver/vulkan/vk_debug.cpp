@@ -2084,6 +2084,20 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
     vt->CmdUpdateBuffer(Unwrap(cmd), Unwrap(buf), 0, pattern.size(), pattern.data());
 
     m_DiscardPatterns[key] = buf;
+
+    VkBufferMemoryBarrier bufBarrier = {
+        VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+        NULL,
+        VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_ACCESS_TRANSFER_READ_BIT,
+        VK_QUEUE_FAMILY_IGNORED,
+        VK_QUEUE_FAMILY_IGNORED,
+        Unwrap(buf),
+        0,
+        VK_WHOLE_SIZE,
+    };
+
+    DoPipelineBarrier(cmd, 1, &bufBarrier);
   }
 
   VkImageAspectFlags aspectFlags = discardRange.aspectMask & FormatImageAspects(imInfo.format);
