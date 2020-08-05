@@ -5,7 +5,7 @@ This page goes into detail about how to set up your captures for debugging shade
 
 .. warning::
 
-   Shader debugging is currently only supported in D3D11 and D3D12. On other APIs the debug options listed below will either be hidden or disabled.
+   Shader debugging is currently only supported on D3D11, D3D12, and Vulkan. On other APIs the debug options listed below will either be hidden or disabled. In addition not all shaders on those APIs can be debugged, e.g. on D3D12 only DXBC shaders can be debugged and on Vulkan only some shader extensions and capabilities are supported. If the shader cannot be debugged the options below will also be disabled.
 
 Including debug info in shaders
 -------------------------------
