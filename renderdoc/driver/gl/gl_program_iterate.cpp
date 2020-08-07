@@ -1339,15 +1339,11 @@ bool CopyProgramFragDataBindings(GLuint progsrc, GLuint progdst, ShaderReflectio
 
       used |= mask;
 
-      if(GL.glBindFragDataLocation)
+      // glBindFragDataLocation is not core GLES. However when it's not available that means the
+      // user must have explicitly specified locations so we don't need to set them.
+      if(!IsGLES && GL.glBindFragDataLocation)
       {
         GL.glBindFragDataLocation(progdst, (GLuint)idx, refl->outputSignature[i].varName.c_str());
-      }
-      else
-      {
-        // glBindFragDataLocation is not core GLES, but it is in GL_EXT_blend_func_extended
-        // TODO what to do if that extension is not supported
-        RDCWARN("glBindFragDataLocation is not supported!");
       }
     }
   }
@@ -1445,15 +1441,11 @@ bool SerialiseProgramBindings(SerialiserType &ser, CaptureState state,
           }
           else
           {
-            if(GL.glBindFragDataLocation)
+            // glBindFragDataLocation is not core GLES. However when it's not available that means
+            // the user must have explicitly specified locations so we don't need to set them.
+            if(!IsGLES && GL.glBindFragDataLocation)
             {
               GL.glBindFragDataLocation(prog, (GLuint)bind.Binding, bind.Name.c_str());
-            }
-            else
-            {
-              // glBindFragDataLocation is not core GLES, but it is in GL_EXT_blend_func_extended
-              // TODO what to do if that extension is not supported
-              RDCWARN("glBindFragDataLocation is not supported!");
             }
           }
         }
