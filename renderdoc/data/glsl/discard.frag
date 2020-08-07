@@ -42,17 +42,6 @@ layout(push_constant) uniform PushData
 
 #else    // !VULKAN
 
-// for GLES compatibility where we must match blit.vert
-in vec2 uv;
-
-uniform DiscardUBOData
-{
-  vec4 pattern[(PATTERN_WIDTH * PATTERN_HEIGHT) / 4];
-}
-Pattern;
-
-uniform uint flags;
-
 #if defined(OPENGL_ES)
 
 // GLES requires shader specification of locations
@@ -68,6 +57,17 @@ precision highp int;
 #define FRAG_OUT(loc)
 
 #endif
+
+// for GLES compatibility where we must match blit.vert
+in vec2 uv;
+
+uniform DiscardUBOData
+{
+  vec4 pattern[(PATTERN_WIDTH * PATTERN_HEIGHT) / 4];
+}
+Pattern;
+
+uniform uint flags;
 
 #endif
 
