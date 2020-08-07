@@ -1739,7 +1739,43 @@ QString RDDialog::getSaveFileName(QWidget *parent, const QString &caption, const
     fd.setDefaultSuffix(defaultSuffixes.first());
   QObject::connect(&fd, &QFileDialog::filterSelected, [&](const QString &filter) {
     int i = fd.nameFilters().indexOf(filter);
-    fd.setDefaultSuffix(defaultSuffixes.value(i));
+    // we expect that this should always be non-negative because only the filters we know about
+    // should get selected
+    if(i >= 0)
+    {
+      fd.setDefaultSuffix(defaultSuffixes.value(i));
+    }
+    else
+    {
+      // GNOME has a bug that passes an empty string to filterSelected, so we ignore it with a
+      // warning.
+      if(filter == QString())
+      {
+        qWarning() << "Empty filter string passed to QFileDialog::filterSelected. "
+                   << "Ignoring this as a likely GNOME bug, default suffix is still: "
+                   << fd.defaultSuffix();
+      }
+      else
+      {
+        // some filter that we don't recognise was selected! Try to figure out the suffix on the
+        // fly
+        QStringList suffixes = getDefaultSuffixesFromFilter(filter);
+
+        if(suffixes.empty())
+        {
+          qWarning() << "Unknown filter " << filter << " selected. "
+                     << "Couldn't determine filename suffix, default suffix is still: "
+                     << fd.defaultSuffix();
+        }
+        else
+        {
+          fd.setDefaultSuffix(suffixes[0]);
+
+          qWarning() << "Unknown filter " << filter << " selected. "
+                     << "Using default suffix: " << fd.defaultSuffix();
+        }
+      }
+    }
   });
   show(&fd);
 
