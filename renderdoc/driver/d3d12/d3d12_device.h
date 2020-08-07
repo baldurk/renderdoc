@@ -472,13 +472,9 @@ private:
   D3D12ResourceRecord *m_DeviceRecord;
 
   Threading::CriticalSection m_DynDescLock;
-  rdcarray<DynamicDescriptorCopy> m_DynamicDescriptorCopies;
-  rdcarray<DynamicDescriptorWrite> m_DynamicDescriptorWrites;
   rdcarray<D3D12Descriptor> m_DynamicDescriptorRefs;
 
   GPUAddressRangeTracker m_GPUAddresses;
-
-  void FlushPendingDescriptorWrites();
 
   // used both on capture and replay side to track resource states. Only locked
   // in capture

@@ -2167,8 +2167,6 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
   GetResourceManager()->FreeInitialContents();
 
-  FlushPendingDescriptorWrites();
-
   return true;
 }
 
@@ -2219,8 +2217,6 @@ bool WrappedID3D12Device::DiscardFrameCapture(void *dev, void *wnd)
   GetResourceManager()->ClearReferencedResources();
 
   GetResourceManager()->FreeInitialContents();
-
-  FlushPendingDescriptorWrites();
 
   return true;
 }
@@ -2454,32 +2450,6 @@ rdcarray<DebugMessage> WrappedID3D12Device::GetDebugMessages()
   m_pInfoQueue->ClearStoredMessages();
 
   return ret;
-}
-
-void WrappedID3D12Device::FlushPendingDescriptorWrites()
-{
-  rdcarray<DynamicDescriptorWrite> writes;
-  rdcarray<DynamicDescriptorCopy> copies;
-
-  {
-    SCOPED_LOCK(m_DynDescLock);
-    writes.swap(m_DynamicDescriptorWrites);
-    copies.swap(m_DynamicDescriptorCopies);
-    m_DynamicDescriptorRefs.clear();
-  }
-
-  for(size_t i = 0; i < writes.size(); i++)
-  {
-    writes[i].dest->CopyFrom(writes[i].desc);
-    writes[i].dest->GetHeap()->Release();
-  }
-
-  for(size_t i = 0; i < copies.size(); i++)
-  {
-    copies[i].dst->CopyFrom(*copies[i].src);
-    copies[i].src->GetHeap()->Release();
-    copies[i].dst->GetHeap()->Release();
-  }
 }
 
 template <typename SerialiserType>
