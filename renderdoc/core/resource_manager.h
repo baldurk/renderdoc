@@ -1035,10 +1035,13 @@ void ResourceManager<Configuration>::Serialise_InitialContentsNeeded(WriteSerial
 
   SCOPED_LOCK(m_Lock);
 
-  rdcarray<WrittenRecord> WrittenRecords;
+  // which resources need initial contents? either those which we didn't have proper initialisation
+  // for (because they were dirty one way or another) or resources that are written mid-frame and so
+  // need to be reset.
+  rdcarray<WrittenRecord> NeededInitials;
 
   // reasonable estimate, and these records are small
-  WrittenRecords.reserve(m_FrameReferencedResources.size() + m_InitialContents.size());
+  NeededInitials.reserve(m_FrameReferencedResources.size() + m_InitialContents.size());
 
   // all resources that were recorded as being modified should be included in the list of those
   // needing initial contents
@@ -1049,27 +1052,34 @@ void ResourceManager<Configuration>::Serialise_InitialContentsNeeded(WriteSerial
     {
       WrittenRecord wr = {it->first, record ? record->DataInSerialiser : true};
 
-      WrittenRecords.push_back(wr);
+      NeededInitials.push_back(wr);
     }
   }
 
-  // any resources that had initial contents generated should also be included
+  // any resources that had initial contents generated should also be included, even if they're only
+  // referenced read-only, as anything not in this list will have its initial contents freed on
+  // replay (see CreateInitialContents). However we only need to keep resources that are referenced
+  // (unless we have ref all resources on)
   for(auto it = m_InitialContents.begin(); it != m_InitialContents.end(); ++it)
   {
+    bool include = RenderDoc::Inst().GetCaptureOptions().refAllResources;
+
     ResourceId id = it->first;
-    auto ref = m_FrameReferencedResources.find(id);
-    if(ref == m_FrameReferencedResources.end() || !IsDirtyFrameRef(ref->second))
+    if(m_FrameReferencedResources.find(id) != m_FrameReferencedResources.end())
+      include = true;
+
+    if(include)
     {
       WrittenRecord wr = {id, true};
 
-      WrittenRecords.push_back(wr);
+      NeededInitials.push_back(wr);
     }
   }
 
-  uint64_t chunkSize = uint64_t(WrittenRecords.size() * sizeof(WrittenRecord) + 16);
+  uint64_t chunkSize = uint64_t(NeededInitials.size() * sizeof(WrittenRecord) + 16);
 
   SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContentsList, chunkSize);
-  SERIALISE_ELEMENT(WrittenRecords);
+  SERIALISE_ELEMENT(NeededInitials);
 }
 
 template <typename Configuration>
@@ -1276,26 +1286,29 @@ void ResourceManager<Configuration>::CreateInitialContents(ReadSerialiser &ser)
 {
   using namespace ResourceManagerInternal;
 
-  std::set<ResourceId> neededInitials;
+  std::set<ResourceId> ids;
 
-  rdcarray<WrittenRecord> WrittenRecords;
-  SERIALISE_ELEMENT(WrittenRecords);
+  rdcarray<WrittenRecord> NeededInitials;
+  SERIALISE_ELEMENT(NeededInitials);
 
-  for(const WrittenRecord &wr : WrittenRecords)
+  for(const WrittenRecord &wr : NeededInitials)
   {
     ResourceId id = wr.id;
 
-    neededInitials.insert(id);
+    ids.insert(id);
 
+    // if this resource exists and we don't have initial contents for it serialised, create some for
+    // reset purposes.
     if(HasLiveResource(id) && m_InitialContents.find(id) == m_InitialContents.end())
       Create_InitialState(id, GetLiveResource(id), wr.written);
   }
 
+  // any initial contents that we ended up with which we don't need can be freed now
   for(auto it = m_InitialContents.begin(); it != m_InitialContents.end();)
   {
     ResourceId id = it->first;
 
-    if(neededInitials.find(id) == neededInitials.end())
+    if(ids.find(id) == ids.end())
     {
       it->second.Free(this);
       ++it;
