@@ -1093,6 +1093,21 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
                                             Unwrap(GetDebugManager()->GetReadbackBuffer()), 1,
                                             &region);
 
+            // wait for transfer to finish before reading on CPU
+            VkBufferMemoryBarrier bufBarrier = {
+                VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+                NULL,
+                VK_ACCESS_TRANSFER_WRITE_BIT,
+                VK_ACCESS_HOST_READ_BIT,
+                VK_QUEUE_FAMILY_IGNORED,
+                VK_QUEUE_FAMILY_IGNORED,
+                Unwrap(GetDebugManager()->GetReadbackBuffer()),
+                0,
+                VK_WHOLE_SIZE,
+            };
+
+            DoPipelineBarrier(copycmd, 1, &bufBarrier);
+
             ObjDisp(copycmd)->EndCommandBuffer(Unwrap(copycmd));
 
             VkSubmitInfo submit = {
@@ -1102,6 +1117,17 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
             RDCASSERTEQUAL(copyret, VK_SUCCESS);
 
             ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
+
+            VkMappedMemoryRange range = {
+                VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+                NULL,
+                Unwrap(GetDebugManager()->GetReadbackMemory()),
+                0,
+                VK_WHOLE_SIZE,
+            };
+
+            copyret = ObjDisp(queue)->InvalidateMappedMemoryRanges(Unwrap(m_Device), 1, &range);
+            RDCASSERTEQUAL(copyret, VK_SUCCESS);
 
             RemovePendingCommandBuffer(copycmd);
             AddFreeCommandBuffer(copycmd);

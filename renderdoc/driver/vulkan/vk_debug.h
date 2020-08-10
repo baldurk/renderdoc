@@ -74,6 +74,7 @@ public:
 
   byte *GetReadbackPtr() { return m_ReadbackPtr; }
   VkBuffer GetReadbackBuffer() { return m_ReadbackWindow.buf; }
+  VkDeviceMemory GetReadbackMemory() { return m_ReadbackWindow.mem; }
   VkPipelineCache GetPipelineCache() { return m_PipelineCache; }
   VkPipeline GetCustomPipeline() { return m_Custom.TexPipeline; }
   VkImage GetCustomTexture() { return m_Custom.TexImg; }
