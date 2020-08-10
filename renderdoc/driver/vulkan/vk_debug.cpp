@@ -2204,6 +2204,19 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
   DoPipelineBarrier(cmd, 1, &dstimBarrier);
 }
 
+void VulkanDebugManager::InitReadbackBuffer()
+{
+  if(m_ReadbackWindow.buf == VK_NULL_HANDLE)
+  {
+    VkDevice dev = m_pDriver->GetDev();
+    m_ReadbackWindow.Create(m_pDriver, dev, 256 * 1024 * 1024ULL, 1, GPUBuffer::eGPUBufferReadback);
+
+    VkResult vkr = ObjDisp(dev)->MapMemory(Unwrap(dev), Unwrap(m_ReadbackWindow.mem), 0,
+                                           VK_WHOLE_SIZE, 0, (void **)&m_ReadbackPtr);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+}
+
 void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
                                             VkDescriptorPool &descpool,
                                             rdcarray<VkDescriptorSetLayout> &setLayouts,

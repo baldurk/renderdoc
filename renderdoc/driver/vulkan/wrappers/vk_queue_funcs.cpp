@@ -1077,6 +1077,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
             RDCDEBUG("Reading back %s with GPU for comparison",
                      ToStr(record->GetResourceID()).c_str());
 
+            GetDebugManager()->InitReadbackBuffer();
+
             // immediately issue a command buffer to copy back the data. We do that on this queue to
             // avoid complexity with synchronising with another queue, but the transfer queue if
             // available would be better for this purpose.

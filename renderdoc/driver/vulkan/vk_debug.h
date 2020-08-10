@@ -72,6 +72,7 @@ public:
                               VkImageLayout curLayout, VkImageSubresourceRange discardRange,
                               VkRect2D discardRect);
 
+  void InitReadbackBuffer();
   byte *GetReadbackPtr() { return m_ReadbackPtr; }
   VkBuffer GetReadbackBuffer() { return m_ReadbackWindow.buf; }
   VkDeviceMemory GetReadbackMemory() { return m_ReadbackWindow.mem; }
