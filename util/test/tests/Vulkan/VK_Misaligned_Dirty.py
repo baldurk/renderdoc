@@ -78,9 +78,11 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
 
         checkpoint1 = self.find_draw("First Submit")
         checkpoint2 = self.find_draw("Second Submit")
+        checkpoint3 = self.find_draw("Third Submit")
 
         self.check(checkpoint1 is not None)
         self.check(checkpoint2 is not None)
+        self.check(checkpoint3 is not None)
 
         resources = self.controller.GetResources()
 
@@ -99,13 +101,18 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
         self.controller.SetFrameEvent(checkpoint1.eventId, False)
 
         val = struct.unpack('f', self.controller.GetBufferData(copy_src, 116, 4))
-        self.check(val[0] == 10.0)
+        self.check(val[0] == 11.0)
 
         self.controller.SetFrameEvent(checkpoint2.eventId, False)
 
         val = struct.unpack('f', self.controller.GetBufferData(copy_src, 116, 4))
-        self.check(val[0] == 11.0)
+        self.check(val[0] == 12.0)
         val = struct.unpack('f', self.controller.GetBufferData(vb, 116, 4))
+        self.check(val[0] == 12.0)
+
+        self.controller.SetFrameEvent(checkpoint3.eventId, False)
+
+        val = struct.unpack('f', self.controller.GetBufferData(copy_src, 116, 4))
         self.check(val[0] == 11.0)
 
         rdtest.log.success("buffers have correct values in both submits")

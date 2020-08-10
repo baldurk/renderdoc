@@ -869,11 +869,15 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
     if(!state->refData)
     {
       // if we're in this case, the range should be for the whole memory region.
-      RDCASSERT(MemRange.offset == state->mapOffset && memRangeSize == state->mapSize);
+      RDCASSERT(MemRange.offset == state->mapOffset && memRangeSize == state->mapSize,
+                MemRange.offset, memRangeSize, state->mapOffset, state->mapSize);
 
       // allocate ref data so we can compare next time to minimise serialised data
       state->refData = AllocAlignedBuffer((size_t)state->mapSize);
     }
+
+    // the memory range offset should always be at least the map offset
+    RDCASSERT(MemRange.offset >= state->mapOffset, MemRange.offset, state->mapOffset);
 
     // it's no longer safe to use state->mappedPtr, we need to save *precisely* what
     // was serialised. We do this by copying out of the serialiser since we know this
@@ -882,7 +886,7 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
 
     const byte *serialisedData = ser.GetWriter()->GetData() + offs;
 
-    memcpy(state->refData, serialisedData, (size_t)memRangeSize);
+    memcpy(state->refData + MemRange.offset - state->mapOffset, serialisedData, (size_t)memRangeSize);
   }
 
   return true;

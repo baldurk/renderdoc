@@ -95,8 +95,8 @@ RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
     float counter = 0;
     while(Running())
     {
-      mapped[2] = counter;
       counter += 1.0f;
+      mapped[2] = counter;
 
       VkCommandBuffer cmd = GetCommandBuffer();
 
@@ -106,10 +106,10 @@ RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
       setMarker(cmd, "First Submit");
       vkCmdUpdateBuffer(cmd, copy_src.buffer, sizeof(Vec3f), sizeof(Vec4f), &tri[0].col);
       vkEndCommandBuffer(cmd);
-      Submit(0, 2, {cmd});
+      Submit(0, 3, {cmd});
 
-      mapped[2] = counter;
       counter += 1.0f;
+      mapped[2] = counter;
 
       cmd = GetCommandBuffer();
 
@@ -149,7 +149,19 @@ RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
 
       vkEndCommandBuffer(cmd);
 
-      Submit(1, 2, {cmd});
+      Submit(1, 3, {cmd});
+
+      mapped[2] = counter - 1.0f;
+
+      cmd = GetCommandBuffer();
+
+      // create a dummy submit which uses the memory. This will serialise the whole memory contents
+      // (we don't create reference data until after this)
+      vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+      setMarker(cmd, "Third Submit");
+      vkCmdUpdateBuffer(cmd, copy_src.buffer, sizeof(Vec3f), sizeof(Vec4f), &tri[0].col);
+      vkEndCommandBuffer(cmd);
+      Submit(2, 3, {cmd});
 
       Present();
     }
