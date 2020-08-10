@@ -877,34 +877,32 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
     fmt.compCount = (uint8_t)compCount;
 
-    bool intComponent = !normalized || integer;
-
     switch(type)
     {
       default:
       case eGL_BYTE:
         fmt.compByteWidth = 1;
-        fmt.compType = intComponent ? CompType::SInt : CompType::SNorm;
+        fmt.compType = CompType::SInt;
         break;
       case eGL_UNSIGNED_BYTE:
         fmt.compByteWidth = 1;
-        fmt.compType = intComponent ? CompType::UInt : CompType::UNorm;
+        fmt.compType = CompType::UInt;
         break;
       case eGL_SHORT:
         fmt.compByteWidth = 2;
-        fmt.compType = intComponent ? CompType::SInt : CompType::SNorm;
+        fmt.compType = CompType::SInt;
         break;
       case eGL_UNSIGNED_SHORT:
         fmt.compByteWidth = 2;
-        fmt.compType = intComponent ? CompType::UInt : CompType::UNorm;
+        fmt.compType = CompType::UInt;
         break;
       case eGL_INT:
         fmt.compByteWidth = 4;
-        fmt.compType = intComponent ? CompType::SInt : CompType::SNorm;
+        fmt.compType = CompType::SInt;
         break;
       case eGL_UNSIGNED_INT:
         fmt.compByteWidth = 4;
-        fmt.compType = intComponent ? CompType::UInt : CompType::UNorm;
+        fmt.compType = CompType::UInt;
         break;
       case eGL_FLOAT:
         fmt.compByteWidth = 4;
@@ -932,6 +930,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
         fmt.type = ResourceFormatType::R11G11B10;
         fmt.compCount = 3;
         fmt.compType = CompType::Float;
+        // spec says this format is never normalized regardless.
+        normalized = 0;
         break;
     }
 
@@ -941,6 +941,9 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       fmt.compCount = 4;
       fmt.SetBGRAOrder(true);
       fmt.compType = CompType::UNorm;
+
+      // spec says BGRA inputs are ALWAYS normalised
+      normalized = 1;
 
       if(type == eGL_UNSIGNED_INT_2_10_10_10_REV || type == eGL_INT_2_10_10_10_REV)
       {
@@ -955,6 +958,24 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     }
 
     pipe.vertexInput.attributes[i].format = fmt;
+
+    // normalized/floatCast flags are irrelevant for float formats
+    if(fmt.compType == CompType::SInt || fmt.compType == CompType::UInt)
+    {
+      // if it wasn't an integer, it's cast to float
+      pipe.vertexInput.attributes[i].floatCast = !integer;
+
+      // if we're casting, also store whether or not it's normalised
+      if(!integer)
+        pipe.vertexInput.attributes[i].normalizedCast = normalized != 0;
+      else
+        pipe.vertexInput.attributes[i].normalizedCast = false;
+    }
+    else
+    {
+      pipe.vertexInput.attributes[i].floatCast = pipe.vertexInput.attributes[i].normalizedCast =
+          false;
+    }
   }
 
   pipe.vertexInput.provokingVertexLast = (rs.ProvokingVertex != eGL_FIRST_VERTEX_CONVENTION);

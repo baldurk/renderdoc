@@ -448,7 +448,7 @@ no VB bound.
 )");
   PixelValue genericValue;
   DOCUMENT("``True`` if this attribute is using :data:`genericValue` for its data.");
-  bool genericEnabled;
+  bool genericEnabled = false;
   DOCUMENT("``True`` if this attribute is enabled and used by the vertex shader.");
   bool used;
 };

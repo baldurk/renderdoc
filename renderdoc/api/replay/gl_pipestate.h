@@ -43,14 +43,18 @@ struct VertexAttribute
 
   bool operator==(const VertexAttribute &o) const
   {
-    return enabled == o.enabled && format == o.format &&
-           !memcmp(&genericValue, &o.genericValue, sizeof(genericValue)) &&
+    return enabled == o.enabled && floatCast == o.floatCast && normalizedCast == o.normalizedCast &&
+           format == o.format && !memcmp(&genericValue, &o.genericValue, sizeof(genericValue)) &&
            vertexBufferSlot == o.vertexBufferSlot && byteOffset == o.byteOffset;
   }
   bool operator<(const VertexAttribute &o) const
   {
     if(!(enabled == o.enabled))
       return enabled < o.enabled;
+    if(!(floatCast == o.floatCast))
+      return floatCast < o.floatCast;
+    if(!(normalizedCast == o.normalizedCast))
+      return normalizedCast < o.normalizedCast;
     if(!(format == o.format))
       return format < o.format;
     if(memcmp(&genericValue, &o.genericValue, sizeof(genericValue)) < 0)
@@ -63,6 +67,20 @@ struct VertexAttribute
   }
   DOCUMENT("``True`` if this vertex attribute is enabled.");
   bool enabled = false;
+
+  DOCUMENT(R"(Only valid for integer formatted attributes, ``True`` if they are cast to float.
+
+This is because they were specified with an integer format but glVertexAttribFormat (not
+glVertexAttribIFormat) so they will be cast. See also :data:`normalisedCast` to see if the integer
+data is normalised to [0,1] or [-1,1] while being cast.
+)");
+  bool floatCast = false;
+
+  DOCUMENT(R"(Only valid for integer formatted attributes, ``True`` if the data is normalised while
+cast to float. See :data:`floatCast` for more information.
+)");
+  bool normalizedCast = false;
+
   DOCUMENT("The :class:`ResourceFormat` of the vertex attribute.");
   ResourceFormat format;
 

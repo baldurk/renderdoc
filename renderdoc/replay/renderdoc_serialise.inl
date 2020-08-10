@@ -1550,12 +1550,14 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, GLPipe::VertexAttribute &el)
 {
   SERIALISE_MEMBER(enabled);
+  SERIALISE_MEMBER(floatCast);
+  SERIALISE_MEMBER(normalizedCast);
   SERIALISE_MEMBER(format);
   SERIALISE_MEMBER(genericValue);
   SERIALISE_MEMBER(vertexBufferSlot);
   SERIALISE_MEMBER(byteOffset);
 
-  SIZE_CHECK(32);
+  SIZE_CHECK(36);
 }
 
 template <typename SerialiserType>

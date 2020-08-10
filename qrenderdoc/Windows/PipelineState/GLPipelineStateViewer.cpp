@@ -1292,11 +1292,26 @@ void GLPipelineStateViewer::setState()
 
       if(showNode(usedSlot, filledSlot))
       {
-        QString genericVal = tr("Generic=") + MakeGenericValueString(compCount, compType, a);
+        QString format = QString(a.format.Name());
+
+        if(!a.enabled)
+        {
+          format = tr("Generic=") + MakeGenericValueString(compCount, compType, a);
+        }
+        else
+        {
+          if(a.floatCast && a.normalizedCast)
+          {
+            format += tr(" Normalised and cast to float");
+          }
+          else if(a.floatCast)
+          {
+            format += tr(" Cast to float");
+          }
+        }
 
         RDTreeWidgetItem *node =
-            new RDTreeWidgetItem({i, a.enabled ? tr("Enabled") : tr("Disabled"), name,
-                                  a.enabled ? QString(a.format.Name()) : genericVal,
+            new RDTreeWidgetItem({i, a.enabled ? tr("Enabled") : tr("Disabled"), name, format,
                                   a.vertexBufferSlot, a.byteOffset, QString()});
 
         node->setTag(i);
