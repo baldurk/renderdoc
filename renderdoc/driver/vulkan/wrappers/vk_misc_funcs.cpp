@@ -1940,7 +1940,7 @@ static ObjData GetObjData(VkDebugReportObjectTypeEXT objType, uint64_t object)
   else if(objType == VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR_EXT)
     castType = VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR;
 
-  return GetObjData((VkObjectType)objType, object);
+  return GetObjData(castType, object);
 }
 
 template <typename SerialiserType>
