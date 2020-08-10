@@ -986,6 +986,41 @@ void VulkanCreationInfo::Memory::Init(VulkanResourceManager *resourceMan, Vulkan
   size = pAllocInfo->allocationSize;
 }
 
+void VulkanCreationInfo::Memory::SimplifyBindings()
+{
+  // after initialisation we're likely to end up with a lot of gaps of 'none' in between tiled or
+  // linear resources. Regions of memory with no bindings are not visible in any meaningful way
+  // (memory can only be read with an image or buffer bound to it) so we perform a pass collapsing
+  // any 'None' intervals into the previous to be able to simplify the set of intervals. This means
+  // we might promote some regions to tiled, but that's fine since as above their contents are
+  // essentially meaningless.
+
+  // if the first entry is None and we have a second entry, then set the first to whatever the
+  // second is
+  if(bindings.size() > 1 && bindings.begin()->value() == VulkanCreationInfo::Memory::None)
+  {
+    auto it = bindings.begin();
+    it++;
+    bindings.begin()->setValue(it->value());
+  }
+
+  for(auto it = bindings.begin(); it != bindings.end(); it++)
+  {
+    // if we're not at the begining and the current range is None, copy whatever was in the previous
+    // range
+    if(it != bindings.begin() && it->value() == VulkanCreationInfo::Memory::None)
+    {
+      auto previt = it;
+      previt--;
+
+      it->setValue(previt->value());
+    }
+
+    // merge left when possible
+    it->mergeLeft();
+  }
+}
+
 void VulkanCreationInfo::Buffer::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
                                       const VkBufferCreateInfo *pCreateInfo)
 {
@@ -1013,6 +1048,8 @@ void VulkanCreationInfo::Image::Init(VulkanResourceManager *resourceMan, VulkanC
   arrayLayers = pCreateInfo->arrayLayers;
   mipLevels = pCreateInfo->mipLevels;
   samples = RDCMAX(VK_SAMPLE_COUNT_1_BIT, pCreateInfo->samples);
+
+  linear = pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR;
 
   creationFlags = TextureCategory::NoFlags;
 

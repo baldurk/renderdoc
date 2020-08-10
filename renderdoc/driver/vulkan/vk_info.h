@@ -447,6 +447,24 @@ struct VulkanCreationInfo
     uint64_t size;
 
     VkBuffer wholeMemBuf;
+
+    enum MemoryBinding
+    {
+      None = 0x0,
+      Linear = 0x1,
+      Tiled = 0x2,
+      LinearAndTiled = 0x3,
+    };
+
+    Intervals<MemoryBinding> bindings;
+
+    void BindMemory(uint64_t offs, uint64_t sz, MemoryBinding b)
+    {
+      bindings.update(offs, offs + sz, b,
+                      [](MemoryBinding a, MemoryBinding b) { return MemoryBinding(a | b); });
+    }
+
+    void SimplifyBindings();
   };
   std::map<ResourceId, Memory> m_Memory;
 
@@ -484,6 +502,7 @@ struct VulkanCreationInfo
     uint32_t arrayLayers, mipLevels;
     VkSampleCountFlagBits samples;
 
+    bool linear;
     bool cube;
     TextureCategory creationFlags;
   };

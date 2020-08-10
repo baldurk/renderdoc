@@ -708,6 +708,8 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
   SERIALISE_ELEMENT(MapOffset);
   SERIALISE_ELEMENT(MapSize);
 
+  bool directStream = true;
+
   if(IsReplayingAndReading() && memory != VK_NULL_HANDLE)
   {
     if(IsLoading(m_State))
@@ -717,11 +719,78 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
                                               (void **)&MapData);
     if(vkr != VK_SUCCESS)
       RDCERR("Error mapping memory on replay: %s", ToStr(vkr).c_str());
+
+    const Intervals<VulkanCreationInfo::Memory::MemoryBinding> &bindings =
+        m_CreationInfo.m_Memory[GetResID(memory)].bindings;
+
+    uint64_t finish = MapOffset + MapSize;
+
+    auto it = bindings.find(MapOffset);
+
+    // iterate the bindings that this map region overlaps, if we overlap with any tiled memory we
+    // need to take the slow path
+    while(it->finish() < finish)
+    {
+      if(it->value() == VulkanCreationInfo::Memory::Tiled)
+      {
+        if(IsLoading(m_State))
+        {
+          AddDebugMessage(MessageCategory::Performance, MessageSeverity::Medium,
+                          MessageSource::GeneralPerformance,
+                          "Unmapped memory overlaps tiled-only memory region. "
+                          "Taking slow path to mask tiled memory writes");
+        }
+        directStream = false;
+        m_MaskedMapData.resize((size_t)MapSize);
+        break;
+      }
+
+      it++;
+    }
   }
 
-  // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
-  // directly into upload memory
-  ser.Serialise("MapData"_lit, MapData, MapSize, SerialiserFlags::NoFlags);
+  if(directStream)
+  {
+    // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
+    // directly into upload memory
+    ser.Serialise("MapData"_lit, MapData, MapSize, SerialiserFlags::NoFlags);
+  }
+  else
+  {
+    // serialise into temp storage
+    byte *tmp = m_MaskedMapData.data();
+    ser.Serialise("MapData"_lit, tmp, MapSize, SerialiserFlags::NoFlags);
+
+    const Intervals<VulkanCreationInfo::Memory::MemoryBinding> &bindings =
+        m_CreationInfo.m_Memory[GetResID(memory)].bindings;
+
+    uint64_t finish = MapOffset + MapSize;
+
+    auto it = bindings.find(MapOffset);
+
+    // iterate the bindings that this map region overlaps, and only memcpy the bits that we overlap
+    // which are linear
+    while(it->finish() < finish)
+    {
+      if(it->value() != VulkanCreationInfo::Memory::Tiled)
+      {
+        // start at the map offset or the region offset, whichever is *later*. E.g. if the region is
+        // larger than the map we only start where the map started, and vice-versa if the map
+        // started earlier than the region.
+        // We also rebase it so that it's relative to the map, so it's the byte offset for the
+        // memcpy
+        size_t offs = size_t(RDCMAX(it->start(), MapOffset) - MapOffset);
+
+        // similarly, only copy up to the end of the region or the end ofthe map whichever is
+        // *sooner*.
+        size_t size = size_t(RDCMIN(it->finish(), finish) - offs);
+
+        memcpy(MapData + offs, m_MaskedMapData.data() + offs, size);
+      }
+
+      it++;
+    }
+  }
 
   if(IsReplayingAndReading() && MapData && memory != VK_NULL_HANDLE)
     ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(memory));
@@ -840,6 +909,8 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
     MappedData = state->cpuReadPtr + (size_t)MemRange.offset;
   }
 
+  bool directStream = true;
+
   if(IsReplayingAndReading() && MemRange.memory != VK_NULL_HANDLE && MemRange.size > 0)
   {
     if(IsLoading(m_State))
@@ -851,11 +922,78 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
                                    MemRange.size, 0, (void **)&MappedData);
     if(ret != VK_SUCCESS)
       RDCERR("Error mapping memory on replay: %s", ToStr(ret).c_str());
+
+    const Intervals<VulkanCreationInfo::Memory::MemoryBinding> &bindings =
+        m_CreationInfo.m_Memory[GetResID(MemRange.memory)].bindings;
+
+    uint64_t finish = MemRange.offset + MemRange.size;
+
+    auto it = bindings.find(MemRange.offset);
+
+    // iterate the bindings that this map region overlaps, if we overlap with any tiled memory we
+    // need to take the slow path
+    while(it->finish() < finish)
+    {
+      if(it->value() == VulkanCreationInfo::Memory::Tiled)
+      {
+        if(IsLoading(m_State))
+        {
+          AddDebugMessage(MessageCategory::Performance, MessageSeverity::Medium,
+                          MessageSource::GeneralPerformance,
+                          "Unmapped memory overlaps tiled-only memory region. "
+                          "Taking slow path to mask tiled memory writes");
+        }
+        directStream = false;
+        m_MaskedMapData.resize((size_t)MemRange.size);
+        break;
+      }
+
+      it++;
+    }
   }
 
-  // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
-  // directly into upload memory
-  ser.Serialise("MappedData"_lit, MappedData, memRangeSize, SerialiserFlags::NoFlags);
+  if(directStream)
+  {
+    // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
+    // directly into upload memory
+    ser.Serialise("MappedData"_lit, MappedData, memRangeSize, SerialiserFlags::NoFlags);
+  }
+  else
+  {
+    // serialise into temp storage
+    byte *tmp = m_MaskedMapData.data();
+    ser.Serialise("MapData"_lit, tmp, MemRange.size, SerialiserFlags::NoFlags);
+
+    const Intervals<VulkanCreationInfo::Memory::MemoryBinding> &bindings =
+        m_CreationInfo.m_Memory[GetResID(MemRange.memory)].bindings;
+
+    uint64_t finish = MemRange.offset + MemRange.size;
+
+    auto it = bindings.find(MemRange.offset);
+
+    // iterate the bindings that this map region overlaps, and only memcpy the bits that we overlap
+    // which are linear
+    while(it->finish() < finish)
+    {
+      if(it->value() != VulkanCreationInfo::Memory::Tiled)
+      {
+        // start at the map offset or the region offset, whichever is *later*. E.g. if the region is
+        // larger than the map we only start where the map started, and vice-versa if the map
+        // started earlier than the region.
+        // We also rebase it so that it's relative to the map, so it's the byte offset for the
+        // memcpy
+        size_t offs = size_t(RDCMAX(it->start(), MemRange.offset) - MemRange.offset);
+
+        // similarly, only copy up to the end of the region or the end ofthe map whichever is
+        // *sooner*.
+        size_t size = size_t(RDCMIN(it->finish(), finish) - offs);
+
+        memcpy(MappedData + offs, m_MaskedMapData.data() + offs, size);
+      }
+
+      it++;
+    }
+  }
 
   if(IsReplayingAndReading() && MappedData && MemRange.memory != VK_NULL_HANDLE && MemRange.size > 0)
     ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(MemRange.memory));
@@ -1053,6 +1191,9 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(SerialiserType &ser, VkDevice d
       else if(GetExtensions(GetRecord(device)).ext_EXT_buffer_device_address)
         bufInfo.gpuAddress = ObjDisp(device)->GetBufferDeviceAddressEXT(Unwrap(device), &getInfo);
     }
+
+    m_CreationInfo.m_Memory[GetResID(memory)].BindMemory(memoryOffset, mrq.size,
+                                                         VulkanCreationInfo::Memory::Linear);
   }
 
   return true;
@@ -1153,6 +1294,11 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
 
     AddResourceCurChunk(memOrigId);
     AddResourceCurChunk(resOrigId);
+
+    VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(image)];
+    m_CreationInfo.m_Memory[GetResID(memory)].BindMemory(
+        memoryOffset, mrq.size,
+        imgInfo.linear ? VulkanCreationInfo::Memory::Linear : VulkanCreationInfo::Memory::Tiled);
   }
 
   return true;
@@ -2170,6 +2316,9 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
         else if(GetExtensions(GetRecord(device)).ext_EXT_buffer_device_address)
           bufInfo.gpuAddress = ObjDisp(device)->GetBufferDeviceAddressEXT(Unwrap(device), &getInfo);
       }
+
+      m_CreationInfo.m_Memory[GetResID(bindInfo.memory)].BindMemory(
+          bindInfo.memoryOffset, mrq.size, VulkanCreationInfo::Memory::Linear);
     }
 
     VkBindBufferMemoryInfo *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);
@@ -2283,6 +2432,11 @@ bool WrappedVulkan::Serialise_vkBindImageMemory2(SerialiserType &ser, VkDevice d
 
       AddResourceCurChunk(memOrigId);
       AddResourceCurChunk(resOrigId);
+
+      VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(bindInfo.image)];
+      m_CreationInfo.m_Memory[GetResID(bindInfo.memory)].BindMemory(
+          bindInfo.memoryOffset, mrq.size,
+          imgInfo.linear ? VulkanCreationInfo::Memory::Linear : VulkanCreationInfo::Memory::Tiled);
     }
 
     VkBindImageMemoryInfo *unwrapped = UnwrapInfos(pBindInfos, bindInfoCount);

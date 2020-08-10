@@ -2382,6 +2382,9 @@ ReplayStatus WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
   FreeAllMemory(MemoryScope::IndirectReadback);
 
+  for(auto it = m_CreationInfo.m_Memory.begin(); it != m_CreationInfo.m_Memory.end(); ++it)
+    it->second.SimplifyBindings();
+
   return ReplayStatus::Succeeded;
 }
 

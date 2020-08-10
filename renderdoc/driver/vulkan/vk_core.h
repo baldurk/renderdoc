@@ -804,6 +804,8 @@ private:
   std::map<ResourceId, rdcarray<EventUsage>> m_ResourceUses;
   std::map<uint32_t, EventFlags> m_EventFlags;
 
+  bytebuf m_MaskedMapData;
+
   // returns thread-local temporary memory
   byte *GetTempMemory(size_t s);
   template <class T>
