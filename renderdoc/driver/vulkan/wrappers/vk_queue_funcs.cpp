@@ -1147,6 +1147,14 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
           else
             diffEnd = (size_t)state.mapSize;
 
+          // sanitise diff start/end. Since the mapped pointer might be written on another thread
+          // (or even the GPU) this could cause a difference to appear and disappear transiently. In
+          // this case FindDiffRange could find the difference when locating the start but not find
+          // it when locating the end. In this case we don't need to write the difference (the
+          // application is responsible for ensuring it's not writing to memory the GPU might need)
+          if(diffEnd <= diffStart)
+            found = false;
+
           if(found)
           {
             // MULTIDEVICE should find the device for this queue.
