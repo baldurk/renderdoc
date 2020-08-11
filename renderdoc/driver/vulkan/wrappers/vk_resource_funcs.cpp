@@ -535,13 +535,6 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
       }
 
       GetResourceManager()->AddDeviceMemory(id);
-
-      // the memory is immediately dirty because we don't use dirty tracking, it's too expensive to
-      // follow all frame refs in the background and it's pointless because memory almost always
-      // immediately becomes dirty anyway. The one case we might care about non-dirty memory is
-      // memory that has been allocated but not used, but that will be skipped or postponed as
-      // appropriate.
-      GetResourceManager()->MarkDirtyResource(id);
     }
     else
     {
@@ -1242,6 +1235,13 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
       GetResourceManager()->MarkMemoryFrameReferenced(id, memoryOffset, record->memSize,
                                                       eFrameRef_ReadBeforeWrite);
     }
+
+    // the memory is immediately dirty because we don't use dirty tracking, it's too expensive to
+    // follow all frame refs in the background and it's pointless because memory almost always
+    // immediately becomes dirty anyway. The one case we might care about non-dirty memory is
+    // memory that has been allocated but not used, but that will be skipped or postponed as
+    // appropriate.
+    GetResourceManager()->MarkDirtyResource(GetResID(memory));
   }
 
   return ret;
@@ -2316,6 +2316,13 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory2(SerialiserType &ser, VkDevice 
         else if(GetExtensions(GetRecord(device)).ext_EXT_buffer_device_address)
           bufInfo.gpuAddress = ObjDisp(device)->GetBufferDeviceAddressEXT(Unwrap(device), &getInfo);
       }
+
+      // the memory is immediately dirty because we don't use dirty tracking, it's too expensive to
+      // follow all frame refs in the background and it's pointless because memory almost always
+      // immediately becomes dirty anyway. The one case we might care about non-dirty memory is
+      // memory that has been allocated but not used, but that will be skipped or postponed as
+      // appropriate.
+      GetResourceManager()->MarkDirtyResource(GetResID(bindInfo.memory));
 
       m_CreationInfo.m_Memory[GetResID(bindInfo.memory)].BindMemory(
           bindInfo.memoryOffset, mrq.size, VulkanCreationInfo::Memory::Linear);
