@@ -742,6 +742,7 @@ protected:
 
   // used during capture - holds resource records by id.
   std::map<ResourceId, RecordType *> m_ResourceRecords;
+  Threading::RWLock m_ResourceRecordLock;
 
   // used during replay - holds current resource replacements
   // replaced -> replacement
@@ -1357,12 +1358,10 @@ rdcarray<ResourceId> ResourceManager<Configuration>::InitialContentResources()
 template <typename Configuration>
 void ResourceManager<Configuration>::MarkUnwrittenResources()
 {
-  SCOPED_LOCK(m_Lock);
+  SCOPED_READLOCK(m_ResourceRecordLock);
 
   for(auto it = m_ResourceRecords.begin(); it != m_ResourceRecords.end(); ++it)
-  {
     it->second->MarkDataUnwritten();
-  }
 }
 
 template <typename Configuration>
@@ -1376,6 +1375,8 @@ void ResourceManager<Configuration>::InsertReferencedChunks(WriteSerialiser &ser
 
   if(RenderDoc::Inst().GetCaptureOptions().refAllResources)
   {
+    SCOPED_READLOCK(m_ResourceRecordLock);
+
     float num = float(m_ResourceRecords.size());
     float idx = 0.0f;
 
@@ -1642,7 +1643,7 @@ void ResourceManager<Configuration>::RemoveReplacement(ResourceId id)
 template <typename Configuration>
 typename Configuration::RecordType *ResourceManager<Configuration>::GetResourceRecord(ResourceId id)
 {
-  SCOPED_LOCK(m_Lock);
+  SCOPED_READLOCK(m_ResourceRecordLock);
 
   auto it = m_ResourceRecords.find(id);
 
@@ -1655,7 +1656,7 @@ typename Configuration::RecordType *ResourceManager<Configuration>::GetResourceR
 template <typename Configuration>
 bool ResourceManager<Configuration>::HasResourceRecord(ResourceId id)
 {
-  SCOPED_LOCK(m_Lock);
+  SCOPED_READLOCK(m_ResourceRecordLock);
 
   auto it = m_ResourceRecords.find(id);
 
@@ -1668,7 +1669,7 @@ bool ResourceManager<Configuration>::HasResourceRecord(ResourceId id)
 template <typename Configuration>
 typename Configuration::RecordType *ResourceManager<Configuration>::AddResourceRecord(ResourceId id)
 {
-  SCOPED_LOCK(m_Lock);
+  SCOPED_WRITELOCK(m_ResourceRecordLock);
 
   RDCASSERT(m_ResourceRecords.find(id) == m_ResourceRecords.end(), id);
 
@@ -1678,7 +1679,7 @@ typename Configuration::RecordType *ResourceManager<Configuration>::AddResourceR
 template <typename Configuration>
 void ResourceManager<Configuration>::RemoveResourceRecord(ResourceId id)
 {
-  SCOPED_LOCK(m_Lock);
+  SCOPED_WRITELOCK(m_ResourceRecordLock);
 
   RDCASSERT(m_ResourceRecords.find(id) != m_ResourceRecords.end(), id);
 
@@ -1831,7 +1832,6 @@ void ResourceManager<Configuration>::AddCurrentResource(ResourceId id, WrappedRe
 {
   SCOPED_LOCK(m_Lock);
 
-  RDCASSERT(m_CurrentResourceMap.find(id) == m_CurrentResourceMap.end(), id);
   m_CurrentResourceMap[id] = res;
 }
 
@@ -1855,7 +1855,6 @@ typename Configuration::WrappedResourceType ResourceManager<Configuration>::GetC
   if(m_Replacements.find(id) != m_Replacements.end())
     return GetCurrentResource(m_Replacements[id]);
 
-  RDCASSERT(m_CurrentResourceMap.find(id) != m_CurrentResourceMap.end(), id);
   return m_CurrentResourceMap[id];
 }
 
@@ -1863,8 +1862,6 @@ template <typename Configuration>
 void ResourceManager<Configuration>::ReleaseCurrentResource(ResourceId id)
 {
   SCOPED_LOCK(m_Lock);
-
-  RDCASSERT(m_CurrentResourceMap.find(id) != m_CurrentResourceMap.end(), id);
 
   // We potentially need to prepare this resource on Active Capture,
   // if it was postponed, but is about to go away.
