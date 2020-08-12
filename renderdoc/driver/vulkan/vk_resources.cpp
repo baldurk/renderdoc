@@ -3760,6 +3760,9 @@ VkResourceRecord::~VkResourceRecord()
   if(resType == eResPipelineLayout)
     SAFE_DELETE(pipeLayoutInfo);
 
+  if(resType == eResDescriptorPool)
+    SAFE_DELETE(descPoolInfo);
+
   if(resType == eResDescUpdateTemplate)
     SAFE_DELETE(descTemplateInfo);
 }
@@ -3777,7 +3780,7 @@ void VkResourceRecord::MarkImageFrameReferenced(VkResourceRecord *img, const Ima
   ImageSubresourceRange range2(range);
 
   FrameRefType maxRef = MarkImageReferenced(cmdInfo->imageStates, id, img->resInfo->imageInfo,
-                                            range2, pool->queueFamilyIndex, refType);
+                                            range2, VK_QUEUE_FAMILY_IGNORED, refType);
 
   // maintain the reference type of the image itself as the maximum reference type of any
   // subresource
@@ -3822,7 +3825,7 @@ void VkResourceRecord::MarkImageViewFrameReferenced(VkResourceRecord *view, cons
   imgRange.Sanitise(view->resInfo->imageInfo);
 
   FrameRefType maxRef = MarkImageReferenced(cmdInfo->imageStates, img, view->resInfo->imageInfo,
-                                            imgRange, pool->queueFamilyIndex, refType);
+                                            imgRange, VK_QUEUE_FAMILY_IGNORED, refType);
 
   // maintain the reference type of the image itself as the maximum reference type of any
   // subresource

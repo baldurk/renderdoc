@@ -450,6 +450,11 @@ struct DescriptorSetSlot
 
 struct BindingStorage
 {
+  BindingStorage() = default;
+  // disallow copy
+  BindingStorage(const BindingStorage &) = delete;
+  BindingStorage &operator=(const BindingStorage &) = delete;
+
   ~BindingStorage() { clear(); }
   bytebuf inlineBytes;
   rdcarray<DescriptorSetSlot *> binds;
@@ -465,6 +470,18 @@ struct BindingStorage
   {
     memset(inlineBytes.data(), 0, inlineBytes.size());
     memset(elems.data(), 0, elems.byteSize());
+  }
+
+  void copy(DescriptorSetSlot *&slots, uint32_t &slotCount, byte *&inlineData, size_t &inlineSize)
+  {
+    slotCount = elems.count();
+
+    slots = new DescriptorSetSlot[slotCount];
+    memcpy(slots, elems.data(), sizeof(DescriptorSetSlot) * slotCount);
+
+    inlineSize = inlineBytes.size();
+    inlineData = AllocAlignedBuffer(inlineSize);
+    memcpy(inlineData, inlineBytes.data(), inlineSize);
   }
 
 private:

@@ -1074,6 +1074,11 @@ struct PipelineLayoutData
   rdcarray<DescSetLayout> layouts;
 };
 
+struct DescPoolInfo
+{
+  rdcarray<VkResourceRecord *> freelist;
+};
+
 struct MemMapState
 {
   VkBuffer wholeMemBuf = VK_NULL_HANDLE;
@@ -2164,7 +2169,7 @@ public:
 
     FrameRefType maxRef =
         MarkImageReferenced(descInfo->bindImageStates, view->baseResource, view->resInfo->imageInfo,
-                            ImageSubresourceRange(imgRange), pool->queueFamilyIndex, refType);
+                            ImageSubresourceRange(imgRange), VK_QUEUE_FAMILY_IGNORED, refType);
 
     p.second = ComposeFrameRefsDisjoint(p.second, maxRef);
   }
@@ -2266,6 +2271,7 @@ public:
     PipelineLayoutData *pipeLayoutInfo;      // only for pipeline layouts
     DescriptorSetData *descInfo;             // only for descriptor sets and descriptor set layouts
     DescUpdateTemplate *descTemplateInfo;    // only for descriptor update templates
+    DescPoolInfo *descPoolInfo;              // only for descriptor pools
     uint32_t queueFamilyIndex;               // only for queues and command pools
   };
 

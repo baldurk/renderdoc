@@ -1557,6 +1557,8 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
 
   RDCLOG("Starting capture");
 
+  Atomic::Dec32(&m_ReuseEnabled);
+
   m_CaptureTimer.Restart();
 
   GetResourceManager()->ResetCaptureStartTime();
@@ -2060,6 +2062,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
   m_CmdBufferRecords.clear();
 
+  Atomic::Inc32(&m_ReuseEnabled);
+
   GetResourceManager()->ResetLastWriteTimes();
 
   GetResourceManager()->ResetLastPartialUseTimes();
@@ -2108,6 +2112,8 @@ bool WrappedVulkan::DiscardFrameCapture(void *dev, void *wnd)
       }
     }
   }
+
+  Atomic::Inc32(&m_ReuseEnabled);
 
   SAFE_DELETE(m_HeaderChunk);
 

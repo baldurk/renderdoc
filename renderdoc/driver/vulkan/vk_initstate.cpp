@@ -57,37 +57,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     if((layout.flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR) == 0)
     {
-      for(size_t i = 0; i < layout.bindings.size(); i++)
-      {
-        if(layout.bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
-          initialContents.numDescriptors++;
-        else
-          initialContents.numDescriptors += layout.bindings[i].descriptorCount;
-      }
-
-      initialContents.descriptorSlots = new DescriptorSetSlot[initialContents.numDescriptors];
-      RDCEraseMem(initialContents.descriptorSlots,
-                  sizeof(DescriptorSetSlot) * initialContents.numDescriptors);
-
-      uint32_t e = 0;
-      for(size_t i = 0; i < layout.bindings.size(); i++)
-      {
-        if(layout.bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
-        {
-          initialContents.descriptorSlots[e++] = record->descInfo->data.binds[i][0];
-        }
-        else
-        {
-          for(uint32_t b = 0; b < layout.bindings[i].descriptorCount; b++)
-          {
-            initialContents.descriptorSlots[e++] = record->descInfo->data.binds[i][b];
-          }
-        }
-      }
-
-      initialContents.inlineData = AllocAlignedBuffer(record->descInfo->data.inlineBytes.size());
-      memcpy(initialContents.inlineData, record->descInfo->data.inlineBytes.data(),
-             record->descInfo->data.inlineBytes.size());
+      record->descInfo->data.copy(initialContents.descriptorSlots, initialContents.numDescriptors,
+                                  initialContents.inlineData, initialContents.inlineByteSize);
     }
     else
     {
@@ -555,22 +526,7 @@ uint64_t WrappedVulkan::GetSize_InitialState(ResourceId id, const VkInitialConte
 {
   if(initial.type == eResDescriptorSet)
   {
-    VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-
-    RDCASSERT(record->descInfo && record->descInfo->layout);
-    const DescSetLayout &layout = *record->descInfo->layout;
-
-    uint32_t NumBindings = 0;
-
-    for(size_t i = 0; i < layout.bindings.size(); i++)
-    {
-      if(layout.bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
-        NumBindings++;
-      else
-        NumBindings += layout.bindings[i].descriptorCount;
-    }
-
-    return 32 + NumBindings * sizeof(DescriptorSetSlot) + layout.inlineByteSize;
+    return 32 + initial.numDescriptors * sizeof(DescriptorSetSlot) + initial.inlineByteSize;
   }
   else if(initial.type == eResBuffer)
   {
@@ -604,8 +560,8 @@ static rdcliteral NameOfType(VkResourceType type)
 }
 
 template <typename SerialiserType>
-bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
-                                           VkResourceRecord *record, const VkInitialContents *initial)
+bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, VkResourceRecord *,
+                                           const VkInitialContents *initial)
 {
   bool ret = true;
 
@@ -631,20 +587,10 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id,
     // while writing, fetching binding information from prepared initial contents
     if(ser.IsWriting())
     {
-      RDCASSERT(record->descInfo && record->descInfo->layout);
-      const DescSetLayout &layout = *record->descInfo->layout;
-
       Bindings = initial->descriptorSlots;
+      NumBindings = initial->numDescriptors;
 
-      for(size_t i = 0; i < layout.bindings.size(); i++)
-      {
-        if(layout.bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
-          NumBindings++;
-        else
-          NumBindings += layout.bindings[i].descriptorCount;
-      }
-
-      InlineData.assign(initial->inlineData, layout.inlineByteSize);
+      InlineData.assign(initial->inlineData, initial->inlineByteSize);
     }
 
     SERIALISE_ELEMENT_ARRAY(Bindings, NumBindings);

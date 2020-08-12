@@ -151,6 +151,7 @@ struct VkInitialContents
   VkDescriptorBufferInfo *descriptorInfo;
   VkWriteDescriptorSetInlineUniformBlockEXT *inlineInfo;
   byte *inlineData;
+  size_t inlineByteSize;
   uint32_t numDescriptors;
 
   // for plain resources, we store the resource type and memory allocation details of the contents
@@ -323,6 +324,20 @@ public:
     obj = realtype((uint64_t)wrapped);
 
     return id;
+  }
+
+  template <typename realtype>
+  ResourceId WrapReusedResource(VkResourceRecord *record, realtype &obj)
+  {
+    RDCASSERT(obj != VK_NULL_HANDLE);
+
+    typename UnwrapHelper<realtype>::Outer *wrapped =
+        (typename UnwrapHelper<realtype>::Outer *)record->Resource;
+    wrapped->real = obj;
+
+    obj = realtype((uint64_t)wrapped);
+
+    return wrapped->id;
   }
 
   template <typename realtype>

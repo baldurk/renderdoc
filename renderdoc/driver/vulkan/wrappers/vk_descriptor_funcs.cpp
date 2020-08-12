@@ -23,6 +23,10 @@
  ******************************************************************************/
 
 #include "../vk_core.h"
+#include "core/settings.h"
+
+RDOC_DEBUG_CONFIG(bool, Vulkan_Debug_AllowDescriptorSetReuse, true,
+                  "Allow the re-use of descriptor sets via vkResetDescriptorPool.");
 
 template <>
 VkDescriptorSetLayoutCreateInfo WrappedVulkan::UnwrapInfo(const VkDescriptorSetLayoutCreateInfo *info)
@@ -243,6 +247,8 @@ VkResult WrappedVulkan::vkCreateDescriptorPool(VkDevice device,
 
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pDescriptorPool);
       record->AddChunk(chunk);
+
+      record->descPoolInfo = new DescPoolInfo;
     }
     else
     {
@@ -477,54 +483,106 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(VkDevice device,
 
   for(uint32_t i = 0; i < pAllocateInfo->descriptorSetCount; i++)
   {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), pDescriptorSets[i]);
+    VkResourceRecord *poolrecord = NULL;
+    VkResourceRecord *layoutRecord = NULL;
+
+    ResourceId id;
+    VkResourceRecord *record = NULL;
+    bool exactReuse = false;
 
     if(IsCaptureMode(m_State))
     {
-      Chunk *chunk = NULL;
+      layoutRecord = GetRecord(pAllocateInfo->pSetLayouts[i]);
+      poolrecord = GetRecord(pAllocateInfo->descriptorPool);
 
+      if(Atomic::CmpExch32(&m_ReuseEnabled, 1, 1) == 1)
       {
-        CACHE_THREAD_SERIALISER();
+        rdcarray<VkResourceRecord *> &freelist = poolrecord->descPoolInfo->freelist;
 
-        VkDescriptorSetAllocateInfo info = *pAllocateInfo;
-        info.descriptorSetCount = 1;
-        info.pSetLayouts += i;
+        if(!freelist.empty())
+        {
+          DescSetLayout *search = layoutRecord->descInfo->layout;
 
-        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkAllocateDescriptorSets);
-        Serialise_vkAllocateDescriptorSets(ser, device, &info, &pDescriptorSets[i]);
+          // try to find an exact layout match, then we don't need to re-initialise the descriptor
+          // set.
+          auto it = std::lower_bound(freelist.begin(), freelist.end(), search,
+                                     [](VkResourceRecord *a, DescSetLayout *search) {
+                                       return a->descInfo->layout < search;
+                                     });
 
-        chunk = scope.Get();
+          if(it != freelist.end() && (*it)->descInfo->layout == layoutRecord->descInfo->layout)
+          {
+            record = freelist.takeAt(it - freelist.begin());
+            exactReuse = true;
+          }
+          else
+          {
+            record = freelist.back();
+            freelist.pop_back();
+          }
+
+          if(!exactReuse)
+            record->DeleteChunks();
+        }
       }
+    }
 
-      VkResourceRecord *record = GetResourceManager()->AddResourceRecord(pDescriptorSets[i]);
-      record->AddChunk(chunk);
+    if(record)
+      id = GetResourceManager()->WrapReusedResource(record, pDescriptorSets[i]);
+    else
+      id = GetResourceManager()->WrapResource(Unwrap(device), pDescriptorSets[i]);
 
-      ResourceId layoutID = GetResID(pAllocateInfo->pSetLayouts[i]);
-      VkResourceRecord *layoutRecord = GetRecord(pAllocateInfo->pSetLayouts[i]);
-
-      VkResourceRecord *poolrecord = GetRecord(pAllocateInfo->descriptorPool);
-
+    if(IsCaptureMode(m_State))
+    {
+      if(record == NULL)
       {
+        record = GetResourceManager()->AddResourceRecord(pDescriptorSets[i]);
+
         poolrecord->LockChunks();
         poolrecord->pooledChildren.push_back(record);
         poolrecord->UnlockChunks();
+
+        record->pool = poolrecord;
+
+        // only mark descriptor set as dirty if it's not a push descriptor layout
+        if((layoutRecord->descInfo->layout->flags &
+            VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR) == 0)
+        {
+          GetResourceManager()->MarkDirtyResource(id);
+        }
+
+        record->descInfo = new DescriptorSetData();
       }
 
-      record->pool = poolrecord;
-
-      record->AddParent(poolrecord);
-      record->AddParent(GetResourceManager()->GetResourceRecord(layoutID));
-
-      // only mark descriptor set as dirty if it's not a push descriptor layout
-      if((layoutRecord->descInfo->layout->flags &
-          VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR) == 0)
+      if(!exactReuse)
       {
-        GetResourceManager()->MarkDirtyResource(id);
-      }
+        Chunk *chunk = NULL;
 
-      record->descInfo = new DescriptorSetData();
-      record->descInfo->layout = layoutRecord->descInfo->layout;
-      record->descInfo->layout->CreateBindingsArray(record->descInfo->data);
+        {
+          CACHE_THREAD_SERIALISER();
+
+          VkDescriptorSetAllocateInfo info = *pAllocateInfo;
+          info.descriptorSetCount = 1;
+          info.pSetLayouts += i;
+
+          SCOPED_SERIALISE_CHUNK(VulkanChunk::vkAllocateDescriptorSets);
+          Serialise_vkAllocateDescriptorSets(ser, device, &info, &pDescriptorSets[i]);
+
+          chunk = scope.Get();
+        }
+        record->AddChunk(chunk);
+
+        record->FreeParents(GetResourceManager());
+        record->AddParent(poolrecord);
+        record->AddParent(layoutRecord);
+
+        record->descInfo->layout = layoutRecord->descInfo->layout;
+        record->descInfo->layout->CreateBindingsArray(record->descInfo->data);
+      }
+      else
+      {
+        record->descInfo->data.reset();
+      }
     }
     else
     {
@@ -562,18 +620,51 @@ VkResult WrappedVulkan::vkResetDescriptorPool(VkDevice device, VkDescriptorPool 
   // need to free all child descriptor pools. Application is responsible for
   // ensuring no concurrent use with alloc/free from this pool, the same as
   // for DestroyDescriptorPool.
-  if(IsCaptureMode(m_State))
   {
-    VkResourceRecord *record = GetRecord(descriptorPool);
+    // don't reset while capture transition lock is held, so that we can't reset and potentially
+    // reuse a record we might be preparing. We do this here rather than in vkAllocateDescriptorSets
+    // where we actually modify the record, since that's much higher frequency
+    SCOPED_READLOCK(m_CapTransitionLock);
 
-    // delete all of the children
-    for(auto it = record->pooledChildren.begin(); it != record->pooledChildren.end(); ++it)
+    if(IsCaptureMode(m_State))
     {
-      // unset record->pool so we don't recurse
-      (*it)->pool = NULL;
-      GetResourceManager()->ReleaseWrappedResource((VkDescriptorSet)(uint64_t)(*it)->Resource, true);
+      VkResourceRecord *record = GetRecord(descriptorPool);
+
+      if(Vulkan_Debug_AllowDescriptorSetReuse())
+      {
+        for(auto it = record->pooledChildren.begin(); it != record->pooledChildren.end(); ++it)
+        {
+          ((WrappedVkNonDispRes *)(*it)->Resource)->real = RealVkRes(0x123456);
+          (*it)->descInfo->data.reset();
+          (*it)->descInfo->bindFrameRefs.clear();
+          (*it)->descInfo->bindMemRefs.clear();
+          (*it)->descInfo->bindImageStates.clear();
+          (*it)->descInfo->backgroundFrameRefs.clear();
+        }
+
+        record->descPoolInfo->freelist.assign(record->pooledChildren);
+
+        // sort by layout
+        std::sort(record->descPoolInfo->freelist.begin(), record->descPoolInfo->freelist.end(),
+                  [](VkResourceRecord *a, VkResourceRecord *b) {
+                    return a->descInfo->layout < b->descInfo->layout;
+                  });
+      }
+      else
+      {
+        // if descriptor set re-use is banned, we can simply free all the sets immediately without
+        // adding them to the free list and that will effectively disallow re-use.
+        for(auto it = record->pooledChildren.begin(); it != record->pooledChildren.end(); ++it)
+        {
+          // unset record->pool so we don't recurse
+          (*it)->pool = NULL;
+          GetResourceManager()->ReleaseWrappedResource((VkDescriptorSet)(uint64_t)(*it)->Resource,
+                                                       true);
+        }
+
+        record->pooledChildren.clear();
+      }
     }
-    record->pooledChildren.clear();
   }
 
   return ObjDisp(device)->ResetDescriptorPool(Unwrap(device), Unwrap(descriptorPool), flags);

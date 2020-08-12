@@ -295,6 +295,8 @@ private:
   CaptureState m_State;
   bool m_AppControlledCapture = false;
 
+  volatile int32_t m_ReuseEnabled = 1;
+
   PerformanceTimer m_CaptureTimer;
 
   bool m_MarkedActive = false;
