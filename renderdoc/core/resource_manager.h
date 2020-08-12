@@ -651,9 +651,6 @@ public:
   WrappedResourceType GetWrapper(RealResourceType real);
   void RemoveWrapper(RealResourceType real);
 
-  void Prepare_InitialStateIfPostponed(ResourceId id);
-  void SkipOrPostponeOrPrepare_InitialState(ResourceId id, FrameRefType refType);
-
   void ResetLastWriteTimes();
   void ResetCaptureStartTime();
   void ResetLastPartialUseTimes();
@@ -686,6 +683,9 @@ protected:
   virtual rdcarray<ResourceId> InitialContentResources();
 
   void UpdateLastWriteAndPartialUseTime(ResourceId id, FrameRefType refType);
+
+  void Prepare_InitialStateIfPostponed(ResourceId id, bool midframe);
+  void SkipOrPostponeOrPrepare_InitialState(ResourceId id, FrameRefType refType);
 
   // very coarse lock, protects EVERYTHING. This could certainly be improved and it may be a
   // bottleneck
@@ -915,7 +915,7 @@ void ResourceManager<Configuration>::MarkResourceFrameReferenced(ResourceId id,
 
     if(IsDirtyFrameRef(refType))
     {
-      Prepare_InitialStateIfPostponed(id);
+      Prepare_InitialStateIfPostponed(id, true);
     }
   }
 
@@ -1097,15 +1097,17 @@ void ResourceManager<Configuration>::FreeInitialContents()
 }
 
 template <typename Configuration>
-void ResourceManager<Configuration>::Prepare_InitialStateIfPostponed(ResourceId id)
+void ResourceManager<Configuration>::Prepare_InitialStateIfPostponed(ResourceId id, bool midframe)
 {
   SCOPED_LOCK(m_Lock);
 
   if(!IsResourcePostponed(id))
     return;
 
+  if(midframe)
+    RDCLOG("Preparing resource %s after it has been postponed.", ToStr(id).c_str());
+
   WrappedResourceType res = GetCurrentResource(id);
-  RDCLOG("Preparing resource %s after it has been postponed.", ToStr(id).c_str());
   Prepare_InitialState(res);
 
   m_PostponedResourceIDs.erase(id);
@@ -1527,7 +1529,7 @@ void ResourceManager<Configuration>::InsertInitialContentsChunks(WriteSerialiser
 #endif
 
     // Load postponed resource if needed.
-    Prepare_InitialStateIfPostponed(id);
+    Prepare_InitialStateIfPostponed(id, false);
 
     dirty++;
 
@@ -1868,7 +1870,7 @@ void ResourceManager<Configuration>::ReleaseCurrentResource(ResourceId id)
   // if it was postponed, but is about to go away.
   if(IsActiveCapturing(m_State))
   {
-    Prepare_InitialStateIfPostponed(id);
+    Prepare_InitialStateIfPostponed(id, true);
   }
 
   m_CurrentResourceMap.erase(id);

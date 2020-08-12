@@ -842,49 +842,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
     tempmemSize += GetNextPatchSize(pSubmits[i].pNext);
   }
 
-  byte *memory = GetTempMemory(tempmemSize);
-
-  VkSubmitInfo *unwrappedSubmits = (VkSubmitInfo *)memory;
-  memory += sizeof(VkSubmitInfo) * submitCount;
-
-  for(uint32_t i = 0; i < submitCount; i++)
-  {
-    RDCASSERT(pSubmits[i].sType == VK_STRUCTURE_TYPE_SUBMIT_INFO);
-    unwrappedSubmits[i] = pSubmits[i];
-
-    VkSemaphore *unwrappedWaitSems = (VkSemaphore *)memory;
-    memory += sizeof(VkSemaphore) * unwrappedSubmits[i].waitSemaphoreCount;
-
-    unwrappedSubmits[i].pWaitSemaphores =
-        unwrappedSubmits[i].waitSemaphoreCount ? unwrappedWaitSems : NULL;
-    for(uint32_t o = 0; o < unwrappedSubmits[i].waitSemaphoreCount; o++)
-      unwrappedWaitSems[o] = Unwrap(pSubmits[i].pWaitSemaphores[o]);
-
-    VkCommandBuffer *unwrappedCommandBuffers = (VkCommandBuffer *)memory;
-    memory += sizeof(VkCommandBuffer) * unwrappedSubmits[i].commandBufferCount;
-
-    unwrappedSubmits[i].pCommandBuffers =
-        unwrappedSubmits[i].commandBufferCount ? unwrappedCommandBuffers : NULL;
-    for(uint32_t o = 0; o < unwrappedSubmits[i].commandBufferCount; o++)
-      unwrappedCommandBuffers[o] = Unwrap(pSubmits[i].pCommandBuffers[o]);
-    unwrappedCommandBuffers += unwrappedSubmits[i].commandBufferCount;
-
-    VkSemaphore *unwrappedSignalSems = (VkSemaphore *)memory;
-    memory += sizeof(VkSemaphore) * unwrappedSubmits[i].signalSemaphoreCount;
-
-    unwrappedSubmits[i].pSignalSemaphores =
-        unwrappedSubmits[i].signalSemaphoreCount ? unwrappedSignalSems : NULL;
-    for(uint32_t o = 0; o < unwrappedSubmits[i].signalSemaphoreCount; o++)
-      unwrappedSignalSems[o] = Unwrap(pSubmits[i].pSignalSemaphores[o]);
-
-    UnwrapNextChain(m_State, "VkSubmitInfo", memory, (VkBaseInStructure *)&unwrappedSubmits[i]);
-    appendChain((VkBaseInStructure *)&unwrappedSubmits[i], m_SubmitChain);
-  }
-
-  VkResult ret;
-  SERIALISE_TIME_CALL(ret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), submitCount,
-                                                        unwrappedSubmits, Unwrap(fence)));
-
+  VkResult ret = VK_SUCCESS;
   bool present = false;
 
   {
@@ -1186,7 +1144,52 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
           state.cpuReadPtr = state.mappedPtr;
         }
       }
+    }
 
+    byte *memory = GetTempMemory(tempmemSize);
+
+    VkSubmitInfo *unwrappedSubmits = (VkSubmitInfo *)memory;
+    memory += sizeof(VkSubmitInfo) * submitCount;
+
+    for(uint32_t i = 0; i < submitCount; i++)
+    {
+      RDCASSERT(pSubmits[i].sType == VK_STRUCTURE_TYPE_SUBMIT_INFO);
+      unwrappedSubmits[i] = pSubmits[i];
+
+      VkSemaphore *unwrappedWaitSems = (VkSemaphore *)memory;
+      memory += sizeof(VkSemaphore) * unwrappedSubmits[i].waitSemaphoreCount;
+
+      unwrappedSubmits[i].pWaitSemaphores =
+          unwrappedSubmits[i].waitSemaphoreCount ? unwrappedWaitSems : NULL;
+      for(uint32_t o = 0; o < unwrappedSubmits[i].waitSemaphoreCount; o++)
+        unwrappedWaitSems[o] = Unwrap(pSubmits[i].pWaitSemaphores[o]);
+
+      VkCommandBuffer *unwrappedCommandBuffers = (VkCommandBuffer *)memory;
+      memory += sizeof(VkCommandBuffer) * unwrappedSubmits[i].commandBufferCount;
+
+      unwrappedSubmits[i].pCommandBuffers =
+          unwrappedSubmits[i].commandBufferCount ? unwrappedCommandBuffers : NULL;
+      for(uint32_t o = 0; o < unwrappedSubmits[i].commandBufferCount; o++)
+        unwrappedCommandBuffers[o] = Unwrap(pSubmits[i].pCommandBuffers[o]);
+      unwrappedCommandBuffers += unwrappedSubmits[i].commandBufferCount;
+
+      VkSemaphore *unwrappedSignalSems = (VkSemaphore *)memory;
+      memory += sizeof(VkSemaphore) * unwrappedSubmits[i].signalSemaphoreCount;
+
+      unwrappedSubmits[i].pSignalSemaphores =
+          unwrappedSubmits[i].signalSemaphoreCount ? unwrappedSignalSems : NULL;
+      for(uint32_t o = 0; o < unwrappedSubmits[i].signalSemaphoreCount; o++)
+        unwrappedSignalSems[o] = Unwrap(pSubmits[i].pSignalSemaphores[o]);
+
+      UnwrapNextChain(m_State, "VkSubmitInfo", memory, (VkBaseInStructure *)&unwrappedSubmits[i]);
+      appendChain((VkBaseInStructure *)&unwrappedSubmits[i], m_SubmitChain);
+    }
+
+    SERIALISE_TIME_CALL(ret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), submitCount,
+                                                          unwrappedSubmits, Unwrap(fence)));
+
+    if(capframe)
+    {
       {
         CACHE_THREAD_SERIALISER();
 
