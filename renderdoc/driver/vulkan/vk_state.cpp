@@ -464,7 +464,7 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
       push.descriptorType = bind.descriptorType;
       push.descriptorCount = bind.descriptorCount;
 
-      DescriptorSetSlot *slots = setInfo.currentBindings[b];
+      const DescriptorSetSlot *slots = setInfo.data.binds[b];
 
       if(push.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
          push.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
@@ -506,7 +506,7 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
         inlineWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
         inlineWrite->pNext = NULL;
         inlineWrite->dataSize = bind.descriptorCount;
-        inlineWrite->pData = setInfo.inlineData.data() + slots[0].inlineOffset;
+        inlineWrite->pData = setInfo.data.inlineBytes.data() + slots[0].inlineOffset;
 
         push.pNext = inlineWrite;
         push.descriptorCount = bind.descriptorCount;

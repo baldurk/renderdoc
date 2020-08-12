@@ -715,18 +715,13 @@ private:
     DescriptorSetInfo &operator=(const DescriptorSetInfo &) = delete;
     ~DescriptorSetInfo() { clear(); }
     ResourceId layout;
-    rdcarray<DescriptorSetSlot *> currentBindings;
-    bytebuf inlineData;
+    BindingStorage data;
     bool push;
 
     void clear()
     {
       layout = ResourceId();
-
-      for(size_t i = 0; i < currentBindings.size(); i++)
-        delete[] currentBindings[i];
-      inlineData.clear();
-      currentBindings.clear();
+      data.clear();
     }
   };
 
@@ -1031,11 +1026,11 @@ public:
   }
   const rdcarray<DescriptorSetSlot *> &GetCurrentDescSetBindings(ResourceId descSet)
   {
-    return m_DescriptorSetState[descSet].currentBindings;
+    return m_DescriptorSetState[descSet].data.binds;
   }
   const bytebuf &GetCurrentDescSetInlineData(ResourceId descSet)
   {
-    return m_DescriptorSetState[descSet].inlineData;
+    return m_DescriptorSetState[descSet].data.inlineBytes;
   }
 
   uint32_t GetReadbackMemoryIndex(uint32_t resourceCompatibleBitmask);

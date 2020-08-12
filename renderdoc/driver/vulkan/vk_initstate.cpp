@@ -74,20 +74,20 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       {
         if(layout.bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
         {
-          initialContents.descriptorSlots[e++] = record->descInfo->descBindings[i][0];
+          initialContents.descriptorSlots[e++] = record->descInfo->data.binds[i][0];
         }
         else
         {
           for(uint32_t b = 0; b < layout.bindings[i].descriptorCount; b++)
           {
-            initialContents.descriptorSlots[e++] = record->descInfo->descBindings[i][b];
+            initialContents.descriptorSlots[e++] = record->descInfo->data.binds[i][b];
           }
         }
       }
 
-      initialContents.inlineData = AllocAlignedBuffer(record->descInfo->inlineData.size());
-      memcpy(initialContents.inlineData, record->descInfo->inlineData.data(),
-             record->descInfo->inlineData.size());
+      initialContents.inlineData = AllocAlignedBuffer(record->descInfo->data.inlineBytes.size());
+      memcpy(initialContents.inlineData, record->descInfo->data.inlineBytes.data(),
+             record->descInfo->data.inlineBytes.size());
     }
     else
     {
@@ -1354,8 +1354,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
 
     // need to blat over the current descriptor set contents, so these are available
     // when we want to fetch pipeline state
-    rdcarray<DescriptorSetSlot *> &bindings = m_DescriptorSetState[id].currentBindings;
-    bytebuf &inlineData = m_DescriptorSetState[id].inlineData;
+    rdcarray<DescriptorSetSlot *> &bindings = m_DescriptorSetState[id].data.binds;
+    bytebuf &inlineData = m_DescriptorSetState[id].data.inlineBytes;
 
     for(uint32_t i = 0; i < initial.numDescriptors; i++)
     {

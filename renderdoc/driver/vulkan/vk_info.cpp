@@ -158,72 +158,119 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
         bindings[b].immutableSampler[s] = GetResID(pCreateInfo->pBindings[i].pImmutableSamplers[s]);
     }
   }
-}
 
-void DescSetLayout::CreateBindingsArray(bytebuf &inlineData,
-                                        rdcarray<DescriptorSetSlot *> &descBindings) const
-{
-  uint32_t inlineOffset = 0;
-  descBindings.resize(bindings.size());
-  for(size_t i = 0; i < bindings.size(); i++)
+  // assign offsets in sorted bindings order, as the bindings we were provided by the application
+  // don't have to appear in bindings order
+  uint32_t elemOffset = 0;
+
+  for(size_t b = 0; b < bindings.size(); b++)
   {
-    if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    bindings[b].elemOffset = elemOffset;
+
+    if(bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
     {
-      descBindings[i] = new DescriptorSetSlot[1];
-      memset(descBindings[i], 0, sizeof(DescriptorSetSlot));
-      descBindings[i]->inlineOffset = inlineOffset;
-      inlineOffset = AlignUp4(inlineOffset + bindings[i].descriptorCount);
+      elemOffset++;
     }
     else
     {
-      descBindings[i] = new DescriptorSetSlot[bindings[i].descriptorCount];
-      memset(descBindings[i], 0, sizeof(DescriptorSetSlot) * bindings[i].descriptorCount);
+      elemOffset += bindings[b].descriptorCount;
     }
   }
 
-  inlineData.resize(inlineByteSize);
+  totalElems = elemOffset;
 }
 
-void DescSetLayout::UpdateBindingsArray(const DescSetLayout &prevLayout, bytebuf &inlineData,
-                                        rdcarray<DescriptorSetSlot *> &descBindings) const
+void DescSetLayout::CreateBindingsArray(BindingStorage &bindingStorage) const
 {
-  // if we have fewer bindings now, delete the orphaned bindings arrays
-  for(size_t i = bindings.size(); i < prevLayout.bindings.size(); i++)
-    SAFE_DELETE_ARRAY(descBindings[i]);
-
-  inlineData.resize(inlineByteSize);
-
-  // resize to the new number of bindings
-  descBindings.resize(bindings.size());
-
-  uint32_t inlineOffset = 0;
-  // re-allocate slots and move any previous bindings that overlapped over.
-  for(size_t i = 0; i < bindings.size(); i++)
+  if(!bindings.empty())
   {
-    if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+    bindingStorage.elems.resize(totalElems);
+    bindingStorage.binds.resize(bindings.size());
+
+    if(inlineByteSize == 0)
     {
-      SAFE_DELETE_ARRAY(descBindings[i]);
-      descBindings[i] = new DescriptorSetSlot[1];
-      memset(descBindings[i], 0, sizeof(DescriptorSetSlot));
-      descBindings[i]->inlineOffset = inlineOffset;
-      inlineOffset = AlignUp4(inlineOffset + bindings[i].descriptorCount);
+      for(size_t i = 0; i < bindings.size(); i++)
+        bindingStorage.binds[i] = bindingStorage.elems.data() + bindings[i].elemOffset;
+
+      bindingStorage.inlineBytes.clear();
     }
     else
     {
-      // allocate new slot array
-      DescriptorSetSlot *newSlots = new DescriptorSetSlot[bindings[i].descriptorCount];
-      memset(newSlots, 0, sizeof(DescriptorSetSlot) * bindings[i].descriptorCount);
+      uint32_t inlineOffset = 0;
+      for(size_t i = 0; i < bindings.size(); i++)
+      {
+        bindingStorage.binds[i] = bindingStorage.elems.data() + bindings[i].elemOffset;
 
-      // copy over any previous bindings that overlapped
-      if(i < prevLayout.bindings.size())
-        memcpy(newSlots, descBindings[i],
-               sizeof(DescriptorSetSlot) *
-                   RDCMIN(prevLayout.bindings[i].descriptorCount, bindings[i].descriptorCount));
+        if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        {
+          bindingStorage.binds[i]->inlineOffset = inlineOffset;
+          inlineOffset = AlignUp4(inlineOffset + bindings[i].descriptorCount);
+        }
+      }
 
-      // delete old array, and assign the new one
-      SAFE_DELETE_ARRAY(descBindings[i]);
-      descBindings[i] = newSlots;
+      bindingStorage.inlineBytes.resize(inlineByteSize);
     }
+  }
+}
+
+void DescSetLayout::UpdateBindingsArray(const DescSetLayout &prevLayout,
+                                        BindingStorage &bindingStorage) const
+{
+  if(bindings.empty())
+  {
+    bindingStorage.clear();
+  }
+  else
+  {
+    rdcarray<DescriptorSetSlot> newElems;
+    newElems.resize(totalElems);
+
+    // resize to the new size, discarding any excess we don't need anymore
+    bindingStorage.binds.resize(bindings.size());
+
+    if(inlineByteSize == 0)
+    {
+      for(size_t i = 0; i < bindings.size(); i++)
+      {
+        DescriptorSetSlot *newSlots = newElems.data() + bindings[i].elemOffset;
+
+        // copy over any previous bindings that overlapped
+        if(i < prevLayout.bindings.size())
+          memcpy(newSlots, bindingStorage.binds[i],
+                 sizeof(DescriptorSetSlot) *
+                     RDCMIN(prevLayout.bindings[i].descriptorCount, bindings[i].descriptorCount));
+
+        bindingStorage.binds[i] = newSlots;
+      }
+    }
+    else
+    {
+      uint32_t inlineOffset = 0;
+      for(size_t i = 0; i < bindings.size(); i++)
+      {
+        DescriptorSetSlot *newSlots = newElems.data() + bindings[i].elemOffset;
+
+        if(bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+        {
+          bindingStorage.binds[i]->inlineOffset = inlineOffset;
+          inlineOffset = AlignUp4(inlineOffset + bindings[i].descriptorCount);
+        }
+        else
+        {
+          // copy over any previous bindings that overlapped
+          if(i < prevLayout.bindings.size())
+            memcpy(newSlots, bindingStorage.binds[i],
+                   sizeof(DescriptorSetSlot) *
+                       RDCMIN(prevLayout.bindings[i].descriptorCount, bindings[i].descriptorCount));
+        }
+
+        bindingStorage.binds[i] = newSlots;
+      }
+
+      bindingStorage.inlineBytes.resize(inlineByteSize);
+    }
+
+    bindingStorage.elems.swap(newElems);
   }
 }
 

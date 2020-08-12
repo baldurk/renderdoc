@@ -1043,19 +1043,12 @@ struct DescriptorSetData
   DescriptorSetData() : layout(NULL) {}
   DescriptorSetData(const DescriptorSetData &) = delete;
   DescriptorSetData &operator=(const DescriptorSetData &) = delete;
-  ~DescriptorSetData()
-  {
-    for(size_t i = 0; i < descBindings.size(); i++)
-      delete[] descBindings[i];
-    descBindings.clear();
-  }
-
+  ~DescriptorSetData() { data.clear(); }
   DescSetLayout *layout;
 
   // descriptor set bindings for this descriptor set. Filled out on
   // create from the layout.
-  rdcarray<DescriptorSetSlot *> descBindings;
-  bytebuf inlineData;
+  BindingStorage data;
 
   // lock protecting bindFrameRefs and bindMemRefs
   Threading::CriticalSection refLock;

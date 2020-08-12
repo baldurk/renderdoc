@@ -2816,7 +2816,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
                 {
                   RDCASSERT(o < dynamicOffsetCount);
                   uint32_t *alias =
-                      (uint32_t *)&m_DescriptorSetState[descId].currentBindings[b][a].imageInfo.imageLayout;
+                      (uint32_t *)&m_DescriptorSetState[descId].data.binds[b][a].imageInfo.imageLayout;
                   *alias = pDynamicOffsets[o++];
                 }
               }
@@ -4391,17 +4391,18 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
 
   const DescSetLayout &desclayout = m_CreationInfo.m_DescSetLayout[descSetLayouts[set]];
 
-  rdcarray<DescriptorSetSlot *> &bindings = m_DescriptorSetState[setId].currentBindings;
-  bytebuf &inlineData = m_DescriptorSetState[setId].inlineData;
+  rdcarray<DescriptorSetSlot *> &bindings = m_DescriptorSetState[setId].data.binds;
+  bytebuf &inlineData = m_DescriptorSetState[setId].data.inlineBytes;
   ResourceId prevLayout = m_DescriptorSetState[setId].layout;
 
   if(prevLayout == ResourceId())
   {
-    desclayout.CreateBindingsArray(inlineData, bindings);
+    desclayout.CreateBindingsArray(m_DescriptorSetState[setId].data);
   }
   else if(prevLayout != descSetLayouts[set])
   {
-    desclayout.UpdateBindingsArray(m_CreationInfo.m_DescSetLayout[prevLayout], inlineData, bindings);
+    desclayout.UpdateBindingsArray(m_CreationInfo.m_DescSetLayout[prevLayout],
+                                   m_DescriptorSetState[setId].data);
   }
 
   m_DescriptorSetState[setId].layout = descSetLayouts[set];

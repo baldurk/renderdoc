@@ -4042,7 +4042,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
 
         ResourceUsage usage = ResourceUsage(uint32_t(types[t].usage) + shad);
 
-        if(bind >= (int32_t)descset.currentBindings.size())
+        if(bind >= (int32_t)descset.data.binds.size())
         {
           msg.description = StringFormat::Fmt(
               "Shader referenced a bind %i in descriptor set %i that does not exist. Mismatched "
@@ -4062,7 +4062,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, rdcarray<DebugMes
 
         for(uint32_t a = 0; a < layout.bindings[bind].descriptorCount; a++)
         {
-          DescriptorSetSlot &slot = descset.currentBindings[bind][a];
+          DescriptorSetSlot &slot = descset.data.binds[bind][a];
 
           ResourceId id;
 

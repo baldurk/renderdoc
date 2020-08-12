@@ -1604,10 +1604,10 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         }
 
         dst.layoutResourceId = rm->GetOriginalID(layoutId);
-        dst.bindings.resize(m_pDriver->m_DescriptorSetState[src].currentBindings.size());
-        for(size_t b = 0; b < m_pDriver->m_DescriptorSetState[src].currentBindings.size(); b++)
+        dst.bindings.resize(m_pDriver->m_DescriptorSetState[src].data.binds.size());
+        for(size_t b = 0; b < m_pDriver->m_DescriptorSetState[src].data.binds.size(); b++)
         {
-          DescriptorSetSlot *info = m_pDriver->m_DescriptorSetState[src].currentBindings[b];
+          DescriptorSetSlot *info = m_pDriver->m_DescriptorSetState[src].data.binds[b];
           const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[b];
 
           curBind.bind = (uint32_t)b;
@@ -1997,7 +1997,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
         {
           bytebuf inlineData;
           inlineData.assign(
-              setData.inlineData.data() + setData.currentBindings[bind.bind]->inlineOffset,
+              setData.data.inlineBytes.data() + setData.data.binds[bind.bind]->inlineOffset,
               layoutBind.descriptorCount);
           StandardFillCBufferVariables(refl.resourceId, c.variables, outvars, inlineData);
           return;

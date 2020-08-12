@@ -2657,7 +2657,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
       // Only write bindings that actually exist in the current descriptor
       // set. If there are bindings that aren't set, assume the app knows
       // what it's doing and the remaining bindings are unused.
-      for(size_t b = 0; b < setInfo.currentBindings.size(); b++)
+      for(size_t b = 0; b < setInfo.data.binds.size(); b++)
       {
         const DescSetLayout::Binding &bind = origLayout.bindings[b];
 
@@ -2665,7 +2665,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
         if(bind.descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
           continue;
 
-        DescriptorSetSlot *slot = setInfo.currentBindings[b];
+        DescriptorSetSlot *slot = setInfo.data.binds[b];
 
         write.dstBinding = uint32_t(b + newBindingsCount);
         write.dstArrayElement = 0;
@@ -2729,7 +2729,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
             inlineWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
             inlineWrite->pNext = NULL;
             inlineWrite->dataSize = bind.descriptorCount;
-            inlineWrite->pData = setInfo.inlineData.data() + slot[0].inlineOffset;
+            inlineWrite->pData = setInfo.data.inlineBytes.data() + slot[0].inlineOffset;
             write.pNext = inlineWrite;
             break;
           }

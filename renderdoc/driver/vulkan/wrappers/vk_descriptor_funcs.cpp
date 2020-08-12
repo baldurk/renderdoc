@@ -451,8 +451,7 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
 
       // this is stored in the resource record on capture, we need to be able to look to up
       m_DescriptorSetState[live].layout = layoutId;
-      m_CreationInfo.m_DescSetLayout[layoutId].CreateBindingsArray(
-          m_DescriptorSetState[live].inlineData, m_DescriptorSetState[live].currentBindings);
+      m_CreationInfo.m_DescSetLayout[layoutId].CreateBindingsArray(m_DescriptorSetState[live].data);
     }
 
     AddResource(DescriptorSet, ResourceType::ShaderBinding, "Descriptor Set");
@@ -525,8 +524,7 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(VkDevice device,
 
       record->descInfo = new DescriptorSetData();
       record->descInfo->layout = layoutRecord->descInfo->layout;
-      record->descInfo->layout->CreateBindingsArray(record->descInfo->inlineData,
-                                                    record->descInfo->descBindings);
+      record->descInfo->layout->CreateBindingsArray(record->descInfo->data);
     }
     else
     {
@@ -668,8 +666,8 @@ void WrappedVulkan::ReplayDescriptorSetWrite(VkDevice device, const VkWriteDescr
 
     // update our local tracking
     rdcarray<DescriptorSetSlot *> &bindings =
-        m_DescriptorSetState[GetResID(writeDesc.dstSet)].currentBindings;
-    bytebuf &inlineData = m_DescriptorSetState[GetResID(writeDesc.dstSet)].inlineData;
+        m_DescriptorSetState[GetResID(writeDesc.dstSet)].data.binds;
+    bytebuf &inlineData = m_DescriptorSetState[GetResID(writeDesc.dstSet)].data.inlineBytes;
 
     {
       RDCASSERT(writeDesc.dstBinding < bindings.size());
@@ -768,8 +766,8 @@ void WrappedVulkan::ReplayDescriptorSetCopy(VkDevice device, const VkCopyDescrip
   ResourceId srcSetId = GetResID(copyDesc.srcSet);
 
   // update our local tracking
-  rdcarray<DescriptorSetSlot *> &dstbindings = m_DescriptorSetState[dstSetId].currentBindings;
-  rdcarray<DescriptorSetSlot *> &srcbindings = m_DescriptorSetState[srcSetId].currentBindings;
+  rdcarray<DescriptorSetSlot *> &dstbindings = m_DescriptorSetState[dstSetId].data.binds;
+  rdcarray<DescriptorSetSlot *> &srcbindings = m_DescriptorSetState[srcSetId].data.binds;
 
   {
     RDCASSERT(copyDesc.dstBinding < dstbindings.size());
@@ -796,8 +794,8 @@ void WrappedVulkan::ReplayDescriptorSetCopy(VkDevice device, const VkCopyDescrip
         // inline uniform blocks are special, the descriptor count is a byte count. The layouts may
         // not match so inline offsets might not match, so we just copy the data and break.
 
-        bytebuf &dstInlineData = m_DescriptorSetState[dstSetId].inlineData;
-        bytebuf &srcInlineData = m_DescriptorSetState[srcSetId].inlineData;
+        bytebuf &dstInlineData = m_DescriptorSetState[dstSetId].data.inlineBytes;
+        bytebuf &srcInlineData = m_DescriptorSetState[srcSetId].data.inlineBytes;
 
         memcpy(dstInlineData.data() + (*dstbind)[0].inlineOffset + copyDesc.dstArrayElement,
                srcInlineData.data() + (*srcbind)[0].inlineOffset + copyDesc.srcArrayElement,
@@ -897,7 +895,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         RDCASSERT(record->descInfo && record->descInfo->layout);
         const DescSetLayout &layout = *record->descInfo->layout;
 
-        RDCASSERT(unwrappedWrites[i].dstBinding < record->descInfo->descBindings.size());
+        RDCASSERT(unwrappedWrites[i].dstBinding < record->descInfo->data.binds.size());
         const DescSetLayout::Binding *layoutBinding = &layout.bindings[unwrappedWrites[i].dstBinding];
 
         hasImmutable = layoutBinding->immutableSampler != NULL;
@@ -1067,10 +1065,10 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
       RDCASSERT(record->descInfo && record->descInfo->layout);
       const DescSetLayout &layout = *record->descInfo->layout;
 
-      RDCASSERT(descWrite.dstBinding < record->descInfo->descBindings.size());
+      RDCASSERT(descWrite.dstBinding < record->descInfo->data.binds.size());
 
-      DescriptorSetSlot **binding = &record->descInfo->descBindings[descWrite.dstBinding];
-      bytebuf &inlineData = record->descInfo->inlineData;
+      DescriptorSetSlot **binding = &record->descInfo->data.binds[descWrite.dstBinding];
+      bytebuf &inlineData = record->descInfo->data.inlineBytes;
 
       const DescSetLayout::Binding *layoutBinding = &layout.bindings[descWrite.dstBinding];
 
@@ -1190,13 +1188,13 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
       RDCASSERT(srcrecord->descInfo && srcrecord->descInfo->layout);
       const DescSetLayout &srclayout = *srcrecord->descInfo->layout;
 
-      RDCASSERT(pDescriptorCopies[i].dstBinding < dstrecord->descInfo->descBindings.size());
-      RDCASSERT(pDescriptorCopies[i].srcBinding < srcrecord->descInfo->descBindings.size());
+      RDCASSERT(pDescriptorCopies[i].dstBinding < dstrecord->descInfo->data.binds.size());
+      RDCASSERT(pDescriptorCopies[i].srcBinding < srcrecord->descInfo->data.binds.size());
 
       DescriptorSetSlot **dstbinding =
-          &dstrecord->descInfo->descBindings[pDescriptorCopies[i].dstBinding];
+          &dstrecord->descInfo->data.binds[pDescriptorCopies[i].dstBinding];
       DescriptorSetSlot **srcbinding =
-          &srcrecord->descInfo->descBindings[pDescriptorCopies[i].srcBinding];
+          &srcrecord->descInfo->data.binds[pDescriptorCopies[i].srcBinding];
 
       const DescSetLayout::Binding *dstlayoutBinding =
           &dstlayout.bindings[pDescriptorCopies[i].dstBinding];
@@ -1219,8 +1217,8 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
           // inline uniform blocks are special, the descriptor count is a byte count. The layouts
           // may not match so inline offsets might not match, so we just copy the data and break.
 
-          bytebuf &dstInlineData = dstrecord->descInfo->inlineData;
-          bytebuf &srcInlineData = srcrecord->descInfo->inlineData;
+          bytebuf &dstInlineData = dstrecord->descInfo->data.inlineBytes;
+          bytebuf &srcInlineData = srcrecord->descInfo->data.inlineBytes;
 
           memcpy(dstInlineData.data() + (*dstbinding)[0].inlineOffset +
                      pDescriptorCopies[i].dstArrayElement,
@@ -1508,10 +1506,10 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
       RDCASSERT(record->descInfo && record->descInfo->layout);
       const DescSetLayout &layout = *record->descInfo->layout;
 
-      RDCASSERT(entry.dstBinding < record->descInfo->descBindings.size());
+      RDCASSERT(entry.dstBinding < record->descInfo->data.binds.size());
 
-      DescriptorSetSlot **binding = &record->descInfo->descBindings[entry.dstBinding];
-      bytebuf &inlineData = record->descInfo->inlineData;
+      DescriptorSetSlot **binding = &record->descInfo->data.binds[entry.dstBinding];
+      bytebuf &inlineData = record->descInfo->data.inlineBytes;
 
       const DescSetLayout::Binding *layoutBinding = &layout.bindings[entry.dstBinding];
 

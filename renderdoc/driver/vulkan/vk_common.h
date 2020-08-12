@@ -448,6 +448,30 @@ struct DescriptorSetSlot
   uint32_t inlineOffset;
 };
 
+struct BindingStorage
+{
+  ~BindingStorage() { clear(); }
+  bytebuf inlineBytes;
+  rdcarray<DescriptorSetSlot *> binds;
+
+  void clear()
+  {
+    inlineBytes.clear();
+    binds.clear();
+    elems.clear();
+  }
+
+  void reset()
+  {
+    memset(inlineBytes.data(), 0, inlineBytes.size());
+    memset(elems.data(), 0, elems.byteSize());
+  }
+
+private:
+  rdcarray<DescriptorSetSlot> elems;
+  friend struct DescSetLayout;
+};
+
 DECLARE_REFLECTION_STRUCT(DescriptorSetSlotBufferInfo);
 DECLARE_REFLECTION_STRUCT(DescriptorSetSlotImageInfo);
 DECLARE_REFLECTION_STRUCT(DescriptorSetSlot);

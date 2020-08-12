@@ -72,9 +72,8 @@ struct DescSetLayout
   void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
             const VkDescriptorSetLayoutCreateInfo *pCreateInfo);
 
-  void CreateBindingsArray(bytebuf &inlineData, rdcarray<DescriptorSetSlot *> &descBindings) const;
-  void UpdateBindingsArray(const DescSetLayout &prevLayout, bytebuf &inlineData,
-                           rdcarray<DescriptorSetSlot *> &descBindings) const;
+  void CreateBindingsArray(BindingStorage &bindingStorage) const;
+  void UpdateBindingsArray(const DescSetLayout &prevLayout, BindingStorage &bindingStorage) const;
 
   struct Binding
   {
@@ -83,6 +82,7 @@ struct DescSetLayout
     // elements
     Binding()
         : descriptorType(VK_DESCRIPTOR_TYPE_MAX_ENUM),
+          elemOffset(0),
           descriptorCount(0),
           stageFlags(0),
           immutableSampler(NULL)
@@ -91,6 +91,7 @@ struct DescSetLayout
     // Copy the immutable sampler
     Binding(const Binding &b)
         : descriptorType(b.descriptorType),
+          elemOffset(b.elemOffset),
           descriptorCount(b.descriptorCount),
           stageFlags(b.stageFlags),
           immutableSampler(NULL)
@@ -107,6 +108,7 @@ struct DescSetLayout
         return *this;
 
       descriptorType = b.descriptorType;
+      elemOffset = b.elemOffset;
       descriptorCount = b.descriptorCount;
       stageFlags = b.stageFlags;
       SAFE_DELETE_ARRAY(immutableSampler);
@@ -119,12 +121,14 @@ struct DescSetLayout
     }
     ~Binding() { SAFE_DELETE_ARRAY(immutableSampler); }
     VkDescriptorType descriptorType;
+    uint32_t elemOffset;
     uint32_t descriptorCount;
     VkShaderStageFlags stageFlags;
     ResourceId *immutableSampler;
   };
   rdcarray<Binding> bindings;
 
+  uint32_t totalElems;
   uint32_t dynamicCount;
   VkDescriptorSetLayoutCreateFlags flags;
 
