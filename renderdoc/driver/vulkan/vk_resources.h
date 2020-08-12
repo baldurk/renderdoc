@@ -2201,7 +2201,7 @@ public:
     p.second = ComposeFrameRefsDisjoint(p.second, maxRef);
   }
 
-  void RemoveBindFrameRef(ResourceId id)
+  void RemoveBindFrameRef(std::set<ResourceId> &ids, ResourceId id)
   {
     // ignore any NULL IDs - probably an object that was
     // deleted since it was bound.
@@ -2220,7 +2220,10 @@ public:
     it->second.first--;
 
     if((it->second.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
+    {
+      ids.insert(id);
       descInfo->bindFrameRefs.erase(it);
+    }
   }
 
   // we have a lot of 'cold' data in the resource record, as it can be accessed

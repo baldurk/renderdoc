@@ -1115,7 +1115,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 
         DescriptorSetSlot &bind = (*binding)[curIdx];
 
-        bind.RemoveBindRefs(GetResourceManager(), record);
+        bind.RemoveBindRefs(ids, GetResourceManager(), record);
 
         if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
            descWrite.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
@@ -1236,7 +1236,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 
         DescriptorSetSlot &bind = (*dstbinding)[curDstIdx];
 
-        bind.RemoveBindRefs(GetResourceManager(), dstrecord);
+        bind.RemoveBindRefs(ids, GetResourceManager(), dstrecord);
         bind = (*srcbinding)[curSrcIdx];
         bind.AddBindRefs(ids, GetResourceManager(), dstrecord, ref);
       }
@@ -1532,7 +1532,7 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
 
         DescriptorSetSlot &bind = (*binding)[curIdx];
 
-        bind.RemoveBindRefs(GetResourceManager(), record);
+        bind.RemoveBindRefs(ids, GetResourceManager(), record);
 
         if(entry.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
            entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)

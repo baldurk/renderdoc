@@ -1057,41 +1057,44 @@ void DescriptorSetSlotImageInfo::SetFrom(const VkDescriptorImageInfo &imInfo, bo
   imageLayout = imInfo.imageLayout;
 }
 
-void DescriptorSetSlot::RemoveBindRefs(VulkanResourceManager *rm, VkResourceRecord *record)
+void DescriptorSetSlot::RemoveBindRefs(std::set<ResourceId> &ids, VulkanResourceManager *rm,
+                                       VkResourceRecord *record)
 {
   SCOPED_LOCK(record->descInfo->refLock);
 
   if(texelBufferView != ResourceId())
   {
-    record->RemoveBindFrameRef(texelBufferView);
+    record->RemoveBindFrameRef(ids, texelBufferView);
 
     VkResourceRecord *viewRecord = rm->GetResourceRecord(texelBufferView);
     if(viewRecord && viewRecord->baseResource != ResourceId())
-      record->RemoveBindFrameRef(viewRecord->baseResource);
+      record->RemoveBindFrameRef(ids, viewRecord->baseResource);
+    if(viewRecord && viewRecord->baseResourceMem != ResourceId())
+      record->RemoveBindFrameRef(ids, viewRecord->baseResourceMem);
   }
   if(imageInfo.imageView != ResourceId())
   {
-    record->RemoveBindFrameRef(imageInfo.imageView);
+    record->RemoveBindFrameRef(ids, imageInfo.imageView);
 
     VkResourceRecord *viewRecord = rm->GetResourceRecord(imageInfo.imageView);
     if(viewRecord)
     {
-      record->RemoveBindFrameRef(viewRecord->baseResource);
+      record->RemoveBindFrameRef(ids, viewRecord->baseResource);
       if(viewRecord->baseResourceMem != ResourceId())
-        record->RemoveBindFrameRef(viewRecord->baseResourceMem);
+        record->RemoveBindFrameRef(ids, viewRecord->baseResourceMem);
     }
   }
   if(imageInfo.sampler != ResourceId())
   {
-    record->RemoveBindFrameRef(imageInfo.sampler);
+    record->RemoveBindFrameRef(ids, imageInfo.sampler);
   }
   if(bufferInfo.buffer != ResourceId())
   {
-    record->RemoveBindFrameRef(bufferInfo.buffer);
+    record->RemoveBindFrameRef(ids, bufferInfo.buffer);
 
     VkResourceRecord *bufRecord = rm->GetResourceRecord(bufferInfo.buffer);
     if(bufRecord && bufRecord->baseResource != ResourceId())
-      record->RemoveBindFrameRef(bufRecord->baseResource);
+      record->RemoveBindFrameRef(ids, bufRecord->baseResource);
   }
 
   // NULL everything out now so that we don't accidentally reference an object
@@ -1146,7 +1149,6 @@ void DescriptorSetData::UpdateBackgroundRefCache(VulkanResourceManager *resource
   for(auto refit = ids.begin(); refit != ids.end(); ++refit)
   {
     ResourceId id = *refit;
-    FrameRefType refType = bindFrameRefs[id].second;
 
     // find the Id we're looking for in the remainder of the cache. This won't skip over any one
     // that we care about because we're iterating in ascending Id order
@@ -1155,6 +1157,18 @@ void DescriptorSetData::UpdateBackgroundRefCache(VulkanResourceManager *resource
         [](const rdcpair<ResourceId, FrameRefType> &a, const rdcpair<ResourceId, FrameRefType> &b) {
           return a.first < b.first;
         });
+
+    auto bindit = bindFrameRefs.find(id);
+
+    // this id is no longer referenced, remove from the cache
+    if(bindit == bindFrameRefs.end())
+    {
+      if(cacheit != backgroundFrameRefs.end())
+        backgroundFrameRefs.erase(cacheit - backgroundFrameRefs.begin());
+      continue;
+    }
+
+    FrameRefType refType = bindit->second.second;
 
     // if we didn't find a match, insert the desired entry here
     if(cacheit == backgroundFrameRefs.end() || cacheit->first != id)
