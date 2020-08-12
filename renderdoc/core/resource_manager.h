@@ -332,10 +332,10 @@ struct ResourceRecord
     if(r == this)
       return;
 
-    if(Parents.find(r) == Parents.end())
+    if(Parents.indexOf(r) < 0)
     {
       r->AddRef();
-      Parents.insert(r);
+      Parents.push_back(r);
     }
   }
 
@@ -503,7 +503,7 @@ protected:
 
   ResourceId ResID;
 
-  std::set<ResourceRecord *> Parents;
+  rdcarray<ResourceRecord *> Parents;
 
   int64_t GetID()
   {
