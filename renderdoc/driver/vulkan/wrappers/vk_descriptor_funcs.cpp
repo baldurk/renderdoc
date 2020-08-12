@@ -1111,6 +1111,8 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
           layoutBinding++;
           binding++;
           curIdx = 0;
+
+          ref = GetRefType(layoutBinding->descriptorType);
         }
 
         DescriptorSetSlot &bind = (*binding)[curIdx];
@@ -1224,6 +1226,8 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
           dstlayoutBinding++;
           dstbinding++;
           curDstIdx = 0;
+
+          ref = GetRefType(dstlayoutBinding->descriptorType);
         }
 
         // dst and src indices must roll-over independently
@@ -1526,6 +1530,8 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
           layoutBinding++;
           binding++;
           curIdx = 0;
+
+          ref = GetRefType(layoutBinding->descriptorType);
         }
 
         const byte *src = (const byte *)pData + entry.offset + entry.stride * d;
