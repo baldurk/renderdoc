@@ -1349,7 +1349,6 @@ void GLReplay::FillWithDiscardPattern(DiscardType type, GLuint framebuffer, GLsi
     GL.glGetNamedFramebufferAttachmentParameterivEXT(
         framebuffer, eGL_COLOR_ATTACHMENT0, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_NUM_VIEWS_OVR,
         &numviews);
-    RDCLOG("Discarding with %u views", numviews);
   }
 
   GLuint prog = DebugData.discardProg[RDCCLAMP(numviews, 1, 4) - 1];
