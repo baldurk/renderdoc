@@ -975,6 +975,12 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
             sub->bakedCommands->AddResourceReferences(GetResourceManager());
         }
       }
+
+      // every 20 submits clean background references, in case the application isn't presenting.
+      if((Atomic::Inc64(&m_QueueCounter) % 20) == 0)
+      {
+        GetResourceManager()->CleanBackgroundFrameReferences();
+      }
     }
 
     if(capframe)

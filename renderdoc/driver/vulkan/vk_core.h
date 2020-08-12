@@ -750,6 +750,8 @@ private:
   rdcarray<VkResourceRecord *> m_ForcedReferences;
   Threading::CriticalSection m_ForcedReferencesLock;
 
+  volatile int64_t m_QueueCounter = 0;
+
   rdcarray<VkResourceRecord *> GetForcedReferences()
   {
     rdcarray<VkResourceRecord *> ret;
