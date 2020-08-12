@@ -2148,6 +2148,7 @@ public:
 
   void AddImgFrameRef(std::set<ResourceId> &ids, VkResourceRecord *view, FrameRefType refType)
   {
+    ids.insert(view->baseResource);
     AddBindFrameRef(ids, view->GetResourceID(), eFrameRef_Read,
                     view->resInfo && view->resInfo->IsSparse());
     if(view->baseResourceMem != ResourceId())
