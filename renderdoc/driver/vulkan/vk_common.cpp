@@ -1105,39 +1105,53 @@ void DescriptorSetSlot::RemoveBindRefs(std::set<ResourceId> &ids, VulkanResource
   imageInfo.sampler = ResourceId();
 }
 
-void DescriptorSetSlot::AddBindRefs(std::set<ResourceId> &ids, VulkanResourceManager *rm,
-                                    VkResourceRecord *record, FrameRefType ref)
+void DescriptorSetSlot::AddBindRefs(std::set<ResourceId> &ids, VkResourceRecord *bufView,
+                                    VkResourceRecord *imgView, VkResourceRecord *buffer,
+                                    VkResourceRecord *descSetRecord, FrameRefType ref)
 {
-  SCOPED_LOCK(record->descInfo->refLock);
+  SCOPED_LOCK(descSetRecord->descInfo->refLock);
 
-  if(texelBufferView != ResourceId())
+  if(bufView)
   {
-    VkResourceRecord *bufView = rm->GetResourceRecord(texelBufferView);
-    record->AddBindFrameRef(ids, bufView->GetResourceID(), eFrameRef_Read,
-                            bufView->resInfo && bufView->resInfo->IsSparse());
+    descSetRecord->AddBindFrameRef(ids, bufView->GetResourceID(), eFrameRef_Read,
+                                   bufView->resInfo && bufView->resInfo->IsSparse());
     if(bufView->baseResource != ResourceId())
-      record->AddBindFrameRef(ids, bufView->baseResource, eFrameRef_Read);
+      descSetRecord->AddBindFrameRef(ids, bufView->baseResource, eFrameRef_Read);
     if(bufView->baseResourceMem != ResourceId())
-      record->AddMemFrameRef(ids, bufView->baseResourceMem, bufView->memOffset, bufView->memSize,
-                             ref);
+      descSetRecord->AddMemFrameRef(ids, bufView->baseResourceMem, bufView->memOffset,
+                                    bufView->memSize, ref);
   }
-  if(imageInfo.imageView != ResourceId())
+  if(imgView)
   {
-    VkResourceRecord *view = rm->GetResourceRecord(imageInfo.imageView);
-    record->AddImgFrameRef(ids, view, ref);
+    descSetRecord->AddImgFrameRef(ids, imgView, ref);
   }
   if(imageInfo.sampler != ResourceId())
   {
-    record->AddBindFrameRef(ids, imageInfo.sampler, eFrameRef_Read);
+    descSetRecord->AddBindFrameRef(ids, imageInfo.sampler, eFrameRef_Read);
   }
-  if(bufferInfo.buffer != ResourceId())
+  if(buffer)
   {
-    VkResourceRecord *buf = rm->GetResourceRecord(bufferInfo.buffer);
-    record->AddBindFrameRef(ids, bufferInfo.buffer, eFrameRef_Read,
-                            buf->resInfo && buf->resInfo->IsSparse());
-    if(buf->baseResource != ResourceId())
-      record->AddMemFrameRef(ids, buf->baseResource, buf->memOffset, buf->memSize, ref);
+    descSetRecord->AddBindFrameRef(ids, bufferInfo.buffer, eFrameRef_Read,
+                                   buffer->resInfo && buffer->resInfo->IsSparse());
+    if(buffer->baseResource != ResourceId())
+      descSetRecord->AddMemFrameRef(ids, buffer->baseResource, buffer->memOffset, buffer->memSize,
+                                    ref);
   }
+}
+
+void DescriptorSetSlot::AddBindRefs(std::set<ResourceId> &ids, VulkanResourceManager *rm,
+                                    VkResourceRecord *descSetRecord, FrameRefType ref)
+{
+  VkResourceRecord *bufView = NULL, *imgView = NULL, *buffer = NULL;
+
+  if(texelBufferView != ResourceId())
+    bufView = rm->GetResourceRecord(texelBufferView);
+  if(imageInfo.imageView != ResourceId())
+    imgView = rm->GetResourceRecord(imageInfo.imageView);
+  if(bufferInfo.buffer != ResourceId())
+    buffer = rm->GetResourceRecord(bufferInfo.buffer);
+
+  AddBindRefs(ids, bufView, imgView, buffer, descSetRecord, ref);
 }
 
 void DescriptorSetData::UpdateBackgroundRefCache(VulkanResourceManager *resourceManager,

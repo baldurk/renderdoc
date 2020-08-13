@@ -1122,10 +1122,13 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 
         bind.RemoveBindRefs(ids, GetResourceManager(), record);
 
+        VkResourceRecord *bufView = NULL, *imgView = NULL, *buffer = NULL;
+
         if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
            descWrite.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
         {
           bind.texelBufferView = GetResID(descWrite.pTexelBufferView[d]);
+          bufView = GetRecord(descWrite.pTexelBufferView[d]);
         }
         else if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
                 descWrite.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
@@ -1146,6 +1149,9 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
             imageView = false;
 
           bind.imageInfo.SetFrom(descWrite.pImageInfo[d], sampler, imageView);
+
+          if(imageView)
+            imgView = GetRecord(descWrite.pImageInfo[d].imageView);
         }
         else if(descWrite.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
         {
@@ -1161,9 +1167,10 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         else
         {
           bind.bufferInfo.SetFrom(descWrite.pBufferInfo[d]);
+          buffer = GetRecord(descWrite.pBufferInfo[d].buffer);
         }
 
-        bind.AddBindRefs(ids, GetResourceManager(), record, ref);
+        bind.AddBindRefs(ids, bufView, imgView, buffer, record, ref);
       }
 
       record->descInfo->UpdateBackgroundRefCache(GetResourceManager(), ids);
