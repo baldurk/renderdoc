@@ -1682,7 +1682,7 @@ static void RT_FetchMeshData(IReplayController *r, ICaptureContext &ctx, Populat
 
       memcpy(indices, idata.data(), qMin(idata.size(), draw->numIndices * sizeof(uint32_t)));
 
-      for(uint32_t i = 0; i < draw->numIndices; i++)
+      for(uint32_t i = 0; i < idata.size() / sizeof(uint32_t) && i < draw->numIndices; i++)
       {
         if(primRestart && indices[i] == primRestart)
           continue;
