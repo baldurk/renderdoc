@@ -29,6 +29,30 @@
 
 namespace rdcspv
 {
+static void ConstructCompositeConstant(ShaderVariable &v, const rdcarray<ShaderVariable> &members)
+{
+  if(v.rows == 0 && v.columns == 0)
+  {
+    v.members.resize(members.size());
+    for(size_t i = 0; i < v.members.size(); i++)
+      v.members[i] = members[i];
+  }
+  else
+  {
+    for(uint32_t c = 0; c < v.columns; c++)
+    {
+      // if this is a vector, v.rows is 1 so r is always 0, meaning that it is irrelevant
+      for(uint32_t r = 0; r < v.rows; r++)
+      {
+        if(VarTypeByteSize(v.type) == 8)
+          v.value.u64v[r * v.columns + c] = members[c].value.u64v[r];
+        else
+          v.value.uv[r * v.columns + c] = members[c].value.uv[r];
+      }
+    }
+  }
+}
+
 Scalar scalar(VarType type)
 {
   switch(type)
@@ -578,17 +602,6 @@ void Processor::RegisterOp(Iter it)
       v.type = type.scalar().Type();
       v.rows = 1;
       v.columns = type.vector().count & 0xf;
-
-      if(type.scalar().width == 64)
-      {
-        for(uint32_t i = 0; i < v.columns; i++)
-          v.value.u64v[i] = constants[decoded.constituents[i]].value.value.u64v[0];
-      }
-      else
-      {
-        for(uint32_t i = 0; i < v.columns; i++)
-          v.value.uv[i] = constants[decoded.constituents[i]].value.value.uv[0];
-      }
     }
     else if(type.type == DataType::MatrixType)
     {
@@ -597,24 +610,14 @@ void Processor::RegisterOp(Iter it)
       v.columns = type.matrix().count & 0xf;
       // always store constants row major
       v.rowMajor = true;
+    }
 
-      for(uint32_t c = 0; c < v.columns; c++)
-      {
-        for(uint32_t r = 0; r < v.rows; r++)
-        {
-          if(type.scalar().width == 64)
-            v.value.u64v[r * v.columns + c] = constants[decoded.constituents[c]].value.value.u64v[r];
-          else
-            v.value.uv[r * v.columns + c] = constants[decoded.constituents[c]].value.value.uv[r];
-        }
-      }
-    }
-    else
-    {
-      v.members.resize(decoded.constituents.size());
-      for(size_t i = 0; i < v.members.size(); i++)
-        v.members[i] = constants[decoded.constituents[i]].value;
-    }
+    rdcarray<ShaderVariable> members;
+
+    for(size_t i = 0; i < decoded.constituents.size(); i++)
+      members.push_back(constants[decoded.constituents[i]].value);
+
+    ConstructCompositeConstant(v, members);
 
     constants[decoded.result] = {decoded.resultType, decoded.result, v, decoded.constituents,
                                  opdata.op};
@@ -1487,6 +1490,23 @@ ShaderVariable Processor::EvaluateConstant(Id constID, const rdcarray<SpecConsta
         return ret;
       }
     }
+  }
+
+  if(c.op == Op::SpecConstantComposite)
+  {
+    ShaderVariable ret = c.value;
+
+    rdcarray<ShaderVariable> children;
+
+    // this is wasteful because we've probably already evaluated these constants, but we don't
+    // expect a huge tree of spec constants so it's cleaner to do it here than expect the caller to
+    // tidy up from its evaluated cache.
+    for(size_t i = 0; i < c.children.size(); i++)
+      children.push_back(EvaluateConstant(c.children[i], specInfo));
+
+    ConstructCompositeConstant(ret, children);
+
+    return ret;
   }
 
   return c.value;
