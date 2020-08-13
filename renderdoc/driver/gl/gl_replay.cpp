@@ -957,25 +957,25 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       }
     }
 
-    pipe.vertexInput.attributes[i].format = fmt;
-
     // normalized/floatCast flags are irrelevant for float formats
     if(fmt.compType == CompType::SInt || fmt.compType == CompType::UInt)
     {
       // if it wasn't an integer, it's cast to float
       pipe.vertexInput.attributes[i].floatCast = !integer;
 
-      // if we're casting, also store whether or not it's normalised
+      // if we're casting, change the component type as appropriate
       if(!integer)
-        pipe.vertexInput.attributes[i].normalizedCast = normalized != 0;
-      else
-        pipe.vertexInput.attributes[i].normalizedCast = false;
+      {
+        if(normalized != 0)
+          fmt.compType = (fmt.compType == CompType::SInt) ? CompType::SNorm : CompType::UNorm;
+      }
     }
     else
     {
-      pipe.vertexInput.attributes[i].floatCast = pipe.vertexInput.attributes[i].normalizedCast =
-          false;
+      pipe.vertexInput.attributes[i].floatCast = false;
     }
+
+    pipe.vertexInput.attributes[i].format = fmt;
   }
 
   pipe.vertexInput.provokingVertexLast = (rs.ProvokingVertex != eGL_FIRST_VERTEX_CONVENTION);
