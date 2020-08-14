@@ -362,6 +362,11 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
     duration = time.time() - start_time
 
+    if len(failedcases) > 0:
+        logfile = rd.GetLogFile()
+        if os.path.exists(logfile):
+            log.inline_file('RenderDoc log', logfile)
+
     hours = int(duration / 3600)
     minutes = int(duration / 60) % 60
     seconds = round(duration % 60)
@@ -426,6 +431,10 @@ def internal_run_test(test_name):
             except Exception as ex:
                 log.failure(ex)
                 suceeded = False
+                
+            logfile = rd.GetLogFile()
+            if os.path.exists(logfile):
+                log.inline_file('RenderDoc log', logfile)
 
             log.end_test(test_name, print_footer=False)
 
