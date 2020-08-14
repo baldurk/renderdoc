@@ -838,6 +838,20 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Present(
     m_pDevice->ReleaseSwapchainResources(this, 0, NULL, NULL);
   }
 
+  if(m_pPresentHWND != hWindow)
+  {
+    if(m_pPresentHWND != NULL)
+    {
+      Keyboard::RemoveInputWindow(WindowingSystem::Win32, m_pPresentHWND);
+      RenderDoc::Inst().RemoveFrameCapturer(m_pDevice->GetFrameCapturerDevice(), m_pPresentHWND);
+    }
+
+    Keyboard::AddInputWindow(WindowingSystem::Win32, hWindow);
+
+    RenderDoc::Inst().AddFrameCapturer(m_pDevice->GetFrameCapturerDevice(), hWindow,
+                                       m_pDevice->GetFrameCapturer());
+  }
+
   m_pPresentSource = pSourceTex2D;
   m_pPresentHWND = hWindow;
 
