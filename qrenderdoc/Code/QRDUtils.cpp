@@ -47,6 +47,7 @@
 #include <QRegularExpressionMatch>
 #include <QStandardPaths>
 #include <QTextBlock>
+#include <QTextBoundaryFinder>
 #include <QTextDocument>
 #include <QtMath>
 #include "Code/Resources.h"
@@ -162,9 +163,17 @@ rdcstr DoStringise(const PointerVal &el)
 
 QString GetTruncatedResourceName(ICaptureContext &ctx, ResourceId id)
 {
-  rdcstr name = ctx.GetResourceName(id);
+  QString name = ctx.GetResourceName(id);
   if(name.length() > 64)
-    return name.substr(0, 64) + "...";
+  {
+    QTextBoundaryFinder boundaries(QTextBoundaryFinder::Grapheme, name.data(), name.length());
+    boundaries.setPosition(64);
+    if(!boundaries.isAtBoundary())
+      boundaries.toPreviousBoundary();
+    int pos = boundaries.position();
+    name.resize(pos);
+    name += lit("...");
+  }
 
   return name;
 }
