@@ -543,6 +543,9 @@
     <ClInclude Include="3rdparty\compressonator\Common_Def.h">
       <Filter>3rdparty\compressonator</Filter>
     </ClInclude>
+    <ClInclude Include="api\replay\rdcflatmap.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">

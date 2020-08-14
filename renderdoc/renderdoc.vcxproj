@@ -181,6 +181,7 @@
     <ClInclude Include="api\replay\gl_pipestate.h" />
     <ClInclude Include="api\replay\pipestate.h" />
     <ClInclude Include="api\replay\rdcarray.h" />
+    <ClInclude Include="api\replay\rdcflatmap.h" />
     <ClInclude Include="api\replay\rdcpair.h" />
     <ClInclude Include="api\replay\rdcstr.h" />
     <ClInclude Include="api\replay\renderdoc_replay.h" />

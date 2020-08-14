@@ -4198,7 +4198,7 @@ void ResourceInfo::Update(uint32_t numBindings, const VkSparseMemoryBind *pBindi
   }
 }
 
-FrameRefType MarkImageReferenced(std::map<ResourceId, ImageState> &imageStates, ResourceId img,
+FrameRefType MarkImageReferenced(rdcflatmap<ResourceId, ImageState> &imageStates, ResourceId img,
                                  const ImageInfo &imageInfo, const ImageSubresourceRange &range,
                                  uint32_t queueFamilyIndex, FrameRefType refType)
 {

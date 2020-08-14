@@ -269,7 +269,7 @@ public:
                      rdcarray<rdcpair<ResourceId, ImageRegionState> > &states,
                      std::map<ResourceId, ImageLayouts> &layouts);
 
-  void RecordBarriers(std::map<ResourceId, ImageState> &states, uint32_t queueFamilyIndex,
+  void RecordBarriers(rdcflatmap<ResourceId, ImageState> &states, uint32_t queueFamilyIndex,
                       uint32_t numBarriers, const VkImageMemoryBarrier *barriers);
 
   template <typename SerialiserType>
@@ -447,7 +447,7 @@ public:
   void AddDeviceMemory(ResourceId mem);
   void RemoveDeviceMemory(ResourceId mem);
 
-  void MergeReferencedMemory(std::map<ResourceId, MemRefs> &memRefs);
+  void MergeReferencedMemory(rdcflatmap<ResourceId, MemRefs> &memRefs);
   void ClearReferencedMemory();
   MemRefs *FindMemRefs(ResourceId mem);
   ImgRefs *FindImgRefs(ResourceId img);
@@ -482,7 +482,7 @@ private:
   rdcarray<ResourceId> InitialContentResources();
 
   WrappedVulkan *m_Core;
-  std::map<ResourceId, MemRefs> m_MemFrameRefs;
+  rdcflatmap<ResourceId, MemRefs> m_MemFrameRefs;
   std::set<ResourceId> m_DeviceMemories;
   InitPolicy m_InitPolicy = eInitPolicy_CopyAll;
 };

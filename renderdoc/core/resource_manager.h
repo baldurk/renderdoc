@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <map>
 #include <set>
+#include "api/replay/rdcflatmap.h"
 #include "api/replay/resourceid.h"
 #include "common/threading.h"
 #include "core/core.h"
@@ -610,7 +611,7 @@ public:
   void MarkResourceFrameReferenced(ResourceId id, FrameRefType refType, Compose comp);
 
   inline void MarkResourceFrameReferenced(ResourceId id, FrameRefType refType);
-  void MarkBackgroundFrameReferenced(const rdcarray<rdcpair<ResourceId, FrameRefType>> &refs);
+  void MarkBackgroundFrameReferenced(const rdcflatmap<ResourceId, FrameRefType> &refs);
   void CleanBackgroundFrameReferences();
 
   ///////////////////////////////////////////
@@ -829,7 +830,7 @@ ResourceManager<Configuration>::~ResourceManager()
 
 template <typename Configuration>
 void ResourceManager<Configuration>::MarkBackgroundFrameReferenced(
-    const rdcarray<rdcpair<ResourceId, FrameRefType>> &refs)
+    const rdcflatmap<ResourceId, FrameRefType> &refs)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -837,24 +838,17 @@ void ResourceManager<Configuration>::MarkBackgroundFrameReferenced(
   {
     if(refs.size() <= m_ResourceRefTimes.size())
     {
-      for(const rdcpair<ResourceId, FrameRefType> &ref : refs)
-      {
-        UpdateLastWriteAndPartialUseTime(ref.first, ref.second);
-      }
+      for(auto it = refs.begin(); it != refs.end(); ++it)
+        UpdateLastWriteAndPartialUseTime(it->first, it->second);
     }
     else
     {
       for(const ResourceRefTimes &res : m_ResourceRefTimes)
       {
-        const rdcpair<ResourceId, FrameRefType> *it = std::lower_bound(
-            refs.begin(), refs.end(), make_rdcpair(res.id, eFrameRef_None),
-            [](const rdcpair<ResourceId, FrameRefType> &a,
-               const rdcpair<ResourceId, FrameRefType> &b) { return a.first < b.first; });
+        auto it = refs.find(res.id);
 
-        if(it != refs.end() && it->first == res.id)
-        {
+        if(it != refs.end())
           UpdateLastWriteAndPartialUseTime(it->first, it->second);
-        }
       }
     }
   }

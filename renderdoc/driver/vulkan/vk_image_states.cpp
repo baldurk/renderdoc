@@ -947,8 +947,8 @@ void ImageState::MergeCaptureBeginState(const ImageState &initialState)
   maxRefType = initialState.maxRefType;
 }
 
-void ImageState::Merge(std::map<ResourceId, ImageState> &states,
-                       const std::map<ResourceId, ImageState> &dstStates, ImageTransitionInfo info)
+void ImageState::Merge(rdcflatmap<ResourceId, ImageState> &states,
+                       const rdcflatmap<ResourceId, ImageState> &dstStates, ImageTransitionInfo info)
 {
   auto it = states.begin();
   auto dstIt = dstStates.begin();

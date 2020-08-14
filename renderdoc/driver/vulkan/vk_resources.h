@@ -1032,9 +1032,9 @@ struct CmdBufferRecordingInfo
 
   rdcarray<VkResourceRecord *> subcmds;
 
-  std::map<ResourceId, ImageState> imageStates;
+  rdcflatmap<ResourceId, ImageState> imageStates;
 
-  std::map<ResourceId, MemRefs> memFrameRefs;
+  rdcflatmap<ResourceId, MemRefs> memFrameRefs;
 
   // AdvanceFrame/Present should be called after this buffer is submitted
   bool present;
@@ -1063,13 +1063,13 @@ struct DescriptorSetData
   // the refcount has the high-bit set if this resource has sparse
   // mapping information
   static const uint32_t SPARSE_REF_BIT = 0x80000000;
-  std::map<ResourceId, rdcpair<uint32_t, FrameRefType>> bindFrameRefs;
-  std::map<ResourceId, MemRefs> bindMemRefs;
-  std::map<ResourceId, ImageState> bindImageStates;
+  rdcflatmap<ResourceId, rdcpair<uint32_t, FrameRefType>> bindFrameRefs;
+  rdcflatmap<ResourceId, MemRefs> bindMemRefs;
+  rdcflatmap<ResourceId, ImageState> bindImageStates;
 
   void UpdateBackgroundRefCache(const rdcarray<ResourceId> &ids);
 
-  rdcarray<rdcpair<ResourceId, FrameRefType>> backgroundFrameRefs;
+  rdcflatmap<ResourceId, FrameRefType> backgroundFrameRefs;
 };
 
 struct PipelineLayoutData
@@ -1675,8 +1675,8 @@ struct ImageState
               FrameRefCompFunc compose);
   void Merge(const ImageState &other, ImageTransitionInfo info);
   void MergeCaptureBeginState(const ImageState &initialState);
-  static void Merge(std::map<ResourceId, ImageState> &states,
-                    const std::map<ResourceId, ImageState> &dstStates, ImageTransitionInfo info);
+  static void Merge(rdcflatmap<ResourceId, ImageState> &states,
+                    const rdcflatmap<ResourceId, ImageState> &dstStates, ImageTransitionInfo info);
   void DiscardContents(const ImageSubresourceRange &range);
   inline void DiscardContents() { DiscardContents(GetImageInfo().FullRange()); }
   inline void RecordUse(const ImageSubresourceRange &range, FrameRefType refType,
@@ -2053,23 +2053,23 @@ FrameRefType MemRefs::Merge(MemRefs &other, Compose comp)
 struct ImageLayouts;
 
 template <typename Compose>
-FrameRefType MarkImageReferenced(std::map<ResourceId, ImgRefs> &imgRefs, ResourceId img,
+FrameRefType MarkImageReferenced(rdcflatmap<ResourceId, ImgRefs> &imgRefs, ResourceId img,
                                  const ImageInfo &imageInfo, const ImageRange &range,
                                  FrameRefType refType, Compose comp);
 
-inline FrameRefType MarkImageReferenced(std::map<ResourceId, ImgRefs> &imgRefs, ResourceId img,
+inline FrameRefType MarkImageReferenced(rdcflatmap<ResourceId, ImgRefs> &imgRefs, ResourceId img,
                                         const ImageInfo &imageInfo, const ImageRange &range,
                                         FrameRefType refType)
 {
   return MarkImageReferenced(imgRefs, img, imageInfo, range, refType, ComposeFrameRefs);
 }
 
-FrameRefType MarkImageReferenced(std::map<ResourceId, ImageState> &imageStates, ResourceId img,
+FrameRefType MarkImageReferenced(rdcflatmap<ResourceId, ImageState> &imageStates, ResourceId img,
                                  const ImageInfo &imageInfo, const ImageSubresourceRange &range,
                                  uint32_t queueFamilyIndex, FrameRefType refType);
 
 template <typename Compose>
-FrameRefType MarkMemoryReferenced(std::map<ResourceId, MemRefs> &memRefs, ResourceId mem,
+FrameRefType MarkMemoryReferenced(rdcflatmap<ResourceId, MemRefs> &memRefs, ResourceId mem,
                                   VkDeviceSize offset, VkDeviceSize size, FrameRefType refType,
                                   Compose comp)
 {
@@ -2078,7 +2078,7 @@ FrameRefType MarkMemoryReferenced(std::map<ResourceId, MemRefs> &memRefs, Resour
   auto refs = memRefs.find(mem);
   if(refs == memRefs.end())
   {
-    memRefs.insert(std::pair<ResourceId, MemRefs>(mem, MemRefs(offset, size, refType)));
+    memRefs[mem] = MemRefs(offset, size, refType);
     return refType;
   }
   else
@@ -2087,7 +2087,7 @@ FrameRefType MarkMemoryReferenced(std::map<ResourceId, MemRefs> &memRefs, Resour
   }
 }
 
-inline FrameRefType MarkMemoryReferenced(std::map<ResourceId, MemRefs> &memRefs, ResourceId mem,
+inline FrameRefType MarkMemoryReferenced(rdcflatmap<ResourceId, MemRefs> &memRefs, ResourceId mem,
                                          VkDeviceSize offset, VkDeviceSize size, FrameRefType refType)
 {
   return MarkMemoryReferenced(memRefs, mem, offset, size, refType, ComposeFrameRefs);
@@ -2452,7 +2452,7 @@ uint32_t GetPlaneByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFor
                           uint32_t mip, uint32_t plane);
 
 template <typename Compose>
-FrameRefType MarkImageReferenced(std::map<ResourceId, ImgRefs> &imgRefs, ResourceId img,
+FrameRefType MarkImageReferenced(rdcflatmap<ResourceId, ImgRefs> &imgRefs, ResourceId img,
                                  const ImageInfo &imageInfo, const ImageRange &range,
                                  FrameRefType refType, Compose comp)
 {
@@ -2461,7 +2461,7 @@ FrameRefType MarkImageReferenced(std::map<ResourceId, ImgRefs> &imgRefs, Resourc
   auto refs = imgRefs.find(img);
   if(refs == imgRefs.end())
   {
-    refs = imgRefs.insert(std::make_pair(img, ImgRefs(imageInfo))).first;
+    refs = imgRefs.insert(make_rdcpair(img, ImgRefs(imageInfo))).first;
   }
   return refs->second.Update(range, refType, comp);
 }

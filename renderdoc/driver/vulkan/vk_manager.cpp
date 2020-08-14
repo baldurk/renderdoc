@@ -425,7 +425,7 @@ bool VulkanResourceManager::Serialise_DeviceMemoryRefs(SerialiserType &ser,
     {
       ResourceId mem = it_data->memory;
 
-      auto res = m_MemFrameRefs.insert(std::pair<ResourceId, MemRefs>(mem, MemRefs()));
+      auto res = m_MemFrameRefs.insert(rdcpair<ResourceId, MemRefs>(mem, MemRefs()));
       RDCASSERTMSG("MemRefIntervals for each memory resource must be contiguous", res.second);
       Intervals<FrameRefType> &rangeRefs = res.first->second.rangeRefs;
 
@@ -784,7 +784,7 @@ void VulkanResourceManager::ApplyBarriers(uint32_t queueFamilyIndex,
   }
 }
 
-void VulkanResourceManager::RecordBarriers(std::map<ResourceId, ImageState> &states,
+void VulkanResourceManager::RecordBarriers(rdcflatmap<ResourceId, ImageState> &states,
                                            uint32_t queueFamilyIndex, uint32_t numBarriers,
                                            const VkImageMemoryBarrier *barriers)
 {
@@ -866,7 +866,7 @@ void VulkanResourceManager::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSi
 
 void VulkanResourceManager::AddMemoryFrameRefs(ResourceId mem)
 {
-  m_MemFrameRefs.insert({mem, MemRefs()});
+  m_MemFrameRefs[mem] = MemRefs();
 }
 
 void VulkanResourceManager::AddDeviceMemory(ResourceId mem)
@@ -883,7 +883,7 @@ void VulkanResourceManager::RemoveDeviceMemory(ResourceId mem)
   m_DeviceMemories.erase(mem);
 }
 
-void VulkanResourceManager::MergeReferencedMemory(std::map<ResourceId, MemRefs> &memRefs)
+void VulkanResourceManager::MergeReferencedMemory(rdcflatmap<ResourceId, MemRefs> &memRefs)
 {
   SCOPED_LOCK(m_Lock);
 
@@ -891,7 +891,7 @@ void VulkanResourceManager::MergeReferencedMemory(std::map<ResourceId, MemRefs> 
   {
     auto i = m_MemFrameRefs.find(j->first);
     if(i == m_MemFrameRefs.end())
-      m_MemFrameRefs.insert(*j);
+      m_MemFrameRefs[j->first] = j->second;
     else
       i->second.Merge(j->second);
   }

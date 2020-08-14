@@ -1161,7 +1161,7 @@ void DescriptorSetData::UpdateBackgroundRefCache(const rdcarray<ResourceId> &ids
   if(backgroundFrameRefs.empty())
   {
     for(auto refit = bindFrameRefs.begin(); refit != bindFrameRefs.end(); ++refit)
-      backgroundFrameRefs.push_back(make_rdcpair(refit->first, refit->second.second));
+      backgroundFrameRefs.insert(make_rdcpair(refit->first, refit->second.second));
     return;
   }
 
@@ -1172,11 +1172,9 @@ void DescriptorSetData::UpdateBackgroundRefCache(const rdcarray<ResourceId> &ids
 
     // find the Id we're looking for in the remainder of the cache. This won't skip over any one
     // that we care about because we're iterating in ascending Id order
-    cacheit = std::lower_bound(
-        cacheit, backgroundFrameRefs.end(), make_rdcpair(id, eFrameRef_None),
-        [](const rdcpair<ResourceId, FrameRefType> &a, const rdcpair<ResourceId, FrameRefType> &b) {
-          return a.first < b.first;
-        });
+    cacheit = std::lower_bound(cacheit, backgroundFrameRefs.end(), id,
+                               [](const rdcpair<ResourceId, FrameRefType> &a,
+                                  const ResourceId &id) { return a.first < id; });
 
     auto bindit = bindFrameRefs.find(id);
 
@@ -1184,7 +1182,7 @@ void DescriptorSetData::UpdateBackgroundRefCache(const rdcarray<ResourceId> &ids
     if(bindit == bindFrameRefs.end())
     {
       if(cacheit != backgroundFrameRefs.end())
-        backgroundFrameRefs.erase(cacheit - backgroundFrameRefs.begin());
+        backgroundFrameRefs.erase(cacheit);
       continue;
     }
 
@@ -1196,7 +1194,7 @@ void DescriptorSetData::UpdateBackgroundRefCache(const rdcarray<ResourceId> &ids
       // calculate the index
       size_t idx = cacheit - backgroundFrameRefs.begin();
       // insert the entry
-      backgroundFrameRefs.insert(idx, {id, refType});
+      backgroundFrameRefs.insert(cacheit, {id, refType});
       // re-initialise our iterator to point here, as the above insert might have invalidated it due
       // to a resize
       cacheit = backgroundFrameRefs.begin() + idx;

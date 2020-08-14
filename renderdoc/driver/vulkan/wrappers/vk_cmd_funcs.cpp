@@ -1094,7 +1094,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(SerialiserType &ser, VkCommandB
           // pretend they never happened, we then reverse their effects so that our layout tracking
           // is accurate and the images end up in the layout they were in during the last active
           // subpass
-          std::map<ResourceId, ImageState> renderPassEndStates;
+          rdcflatmap<ResourceId, ImageState> renderPassEndStates;
 
           for(uint32_t sub = renderstate.subpass + 1; sub < numSubpasses; sub++)
           {

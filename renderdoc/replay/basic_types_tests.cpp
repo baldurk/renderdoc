@@ -27,8 +27,10 @@
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #include "api/replay/rdcarray.h"
+#include "api/replay/rdcflatmap.h"
 #include "api/replay/rdcpair.h"
 #include "api/replay/rdcstr.h"
+#include "common/formatting.h"
 #include "common/globalconfig.h"
 #include "common/timing.h"
 #include "os/os_specific.h"
@@ -1692,6 +1694,203 @@ TEST_CASE("Test string type", "[basictypes][string]")
 
     CHECK(test == "Short literal");
     CHECK(test.size() == test2.size());
+  };
+};
+
+TEST_CASE("Test flatmap type", "[basictypes][flatmap]")
+{
+  SECTION("basic lookup of values before and after sorting")
+  {
+    rdcflatmap<uint32_t, rdcstr, 16> test;
+
+    test[5] = "foo";
+    test[7] = "bar";
+    test[3] = "asdf";
+
+    CHECK(test[5] == "foo");
+    CHECK(test[7] == "bar");
+    CHECK(test[3] == "asdf");
+    CHECK(!test.empty());
+    CHECK(test.size() == 3);
+
+    // order is not guaranteed, but multiplying the keys in any order will give us a unique value
+    // because they're prime
+    uint32_t product = 1;
+    uint32_t count = 0;
+    for(auto it = test.begin(); it != test.end(); ++it)
+    {
+      product *= it->first;
+      count++;
+    }
+
+    CHECK(product == 3 * 5 * 7);
+    CHECK(count == 3);
+
+    // force the map to sort itself
+    for(uint32_t i = 0; i < 24; i++)
+      test[999 + i] = StringFormat::Fmt("test%u", 999 + i);
+
+    // we should still be able to look up the same values
+    CHECK(test[5] == "foo");
+    CHECK(test[7] == "bar");
+    CHECK(test[3] == "asdf");
+    CHECK(!test.empty());
+    CHECK(test.size() == 27);
+
+    CHECK(test.find(5)->second == "foo");
+    CHECK(test.find(6) == test.end());
+    CHECK(test.find(7)->second == "bar");
+    CHECK(test.find(8) == test.end());
+
+    // check clearing
+    test.clear();
+
+    CHECK(test.empty());
+    CHECK(test.size() == 0);
+
+    // this inserts the values as default-initialised, as std::map does
+    CHECK(test[5] == "");
+    CHECK(test[7] == "");
+    CHECK(test[3] == "");
+    CHECK(test.size() == 3);
+  };
+
+  SECTION("swap")
+  {
+    rdcflatmap<uint32_t, rdcstr> test;
+
+    test[5] = "foo";
+    test[7] = "bar";
+    test[3] = "asdf";
+
+    rdcflatmap<uint32_t, rdcstr> swapped;
+
+    test.swap(swapped);
+
+    CHECK(swapped[5] == "foo");
+    CHECK(swapped[7] == "bar");
+    CHECK(swapped[3] == "asdf");
+    CHECK(swapped.size() == 3);
+    CHECK(test.empty());
+  };
+
+  SECTION("insert with no hint")
+  {
+    rdcflatmap<uint32_t, rdcstr> test;
+
+    test[5] = "foo";
+    test[7] = "bar";
+    test[3] = "asdf";
+
+    CHECK(test[5] == "foo");
+    CHECK(test[7] == "bar");
+    CHECK(test[3] == "asdf");
+    CHECK(test.find(15) == test.end());
+
+    test.insert({15, "inserted"});
+    CHECK(test.find(15)->second == "inserted");
+  };
+
+  SECTION("insert with hint")
+  {
+    rdcflatmap<uint32_t, rdcstr> test;
+
+    test[5] = "foo";
+    test[7] = "bar";
+    test[3] = "asdf";
+
+    // insert value with proper hint
+    test.insert(test.begin() + 1, {6, "middle"});
+
+    CHECK(test.find(3)->second == "asdf");
+    CHECK(test.find(5)->second == "foo");
+    CHECK(test.find(6)->second == "middle");
+    CHECK(test.find(7)->second == "bar");
+
+    // insert value with wrong hint
+    test.insert(test.begin(), {100, "highvalue"});
+    CHECK(test.find(100)->second == "highvalue");
+
+    // force the map to sort itself
+    for(uint32_t i = 0; i < 24; i++)
+      test[999 + i] = StringFormat::Fmt("test%u", 999 + i);
+
+    test.insert(test.begin(), {101, "highvalue2"});
+
+    CHECK(test.find(101)->second == "highvalue2");
+  };
+
+  SECTION("erase")
+  {
+    rdcflatmap<uint32_t, rdcstr> test;
+
+    test[5] = "foo";
+    test[7] = "bar";
+    test[3] = "asdf";
+
+    CHECK(test.find(5)->second == "foo");
+
+    test.erase(5);
+
+    CHECK(test.find(5) == test.end());
+
+    test[5] = "foo";
+
+    CHECK(test.find(5)->second == "foo");
+
+    test.erase(3);
+    test.erase(4);
+    test.erase(6);
+    test.erase(7);
+
+    CHECK(test.find(5)->second == "foo");
+  };
+
+  SECTION("upper_bound")
+  {
+    // set SortThreshold to 0 to force sorted semantics always
+    rdcflatmap<uint32_t, rdcstr, 0> test;
+
+    test[5] = "foo";
+    test[7] = "bar";
+    test[3] = "asdf";
+
+    // check that they got sorted
+    auto it = test.begin();
+    CHECK(it->first == 3);
+    CHECK(it->second == "asdf");
+    ++it;
+    CHECK(it->first == 5);
+    CHECK(it->second == "foo");
+    ++it;
+    CHECK(it->first == 7);
+    CHECK(it->second == "bar");
+
+    it = test.upper_bound(2);
+    CHECK(it->first == 3);
+    CHECK(it->second == "asdf");
+
+    it = test.upper_bound(3);
+    CHECK(it->first == 5);
+    CHECK(it->second == "foo");
+
+    it = test.upper_bound(4);
+    CHECK(it->first == 5);
+    CHECK(it->second == "foo");
+
+    it = test.upper_bound(5);
+    CHECK(it->first == 7);
+    CHECK(it->second == "bar");
+
+    it = test.upper_bound(6);
+    CHECK(it->first == 7);
+    CHECK(it->second == "bar");
+
+    it = test.upper_bound(7);
+    CHECK(it == test.end());
+
+    it = test.upper_bound(8);
+    CHECK(it == test.end());
   };
 };
 

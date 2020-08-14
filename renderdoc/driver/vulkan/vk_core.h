@@ -587,7 +587,7 @@ private:
 
     VulkanRenderState state;
 
-    std::map<ResourceId, ImageState> imageStates;
+    rdcflatmap<ResourceId, ImageState> imageStates;
 
     ResourceId pushDescriptorID[2][64];
 
@@ -1118,7 +1118,7 @@ public:
   LockedImageStateRef InsertImageState(VkImage wrappedHandle, ResourceId id, const ImageInfo &info,
                                        FrameRefType refType, bool *inserted = NULL);
   bool EraseImageState(ResourceId id);
-  void UpdateImageStates(const std::map<ResourceId, ImageState> &dstStates);
+  void UpdateImageStates(const rdcflatmap<ResourceId, ImageState> &dstStates);
 
   inline ImageTransitionInfo GetImageTransitionInfo() const
   {

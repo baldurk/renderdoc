@@ -4293,7 +4293,7 @@ bool WrappedVulkan::EraseImageState(ResourceId id)
   return false;
 }
 
-void WrappedVulkan::UpdateImageStates(const std::map<ResourceId, ImageState> &dstStates)
+void WrappedVulkan::UpdateImageStates(const rdcflatmap<ResourceId, ImageState> &dstStates)
 {
   // this function expects the number of updates to be orders of magnitude fewer than the number of
   // existing images. If there are a small number of images in total then it doesn't matter much,
