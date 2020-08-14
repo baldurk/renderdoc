@@ -670,9 +670,6 @@ After interop is enabled you will need to reload any capture.</string>
             <property name="toolTip">
              <string>Reset visible range when changing event or texture</string>
             </property>
-            <property name="layoutDirection">
-             <enum>Qt::RightToLeft</enum>
-            </property>
             <property name="text">
              <string/>
             </property>
@@ -688,9 +685,6 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
             <property name="toolTip">
              <string>Settings such as visible channels (RGBA) and selected mip/slice are remembered and restored per-texture.</string>
-            </property>
-            <property name="layoutDirection">
-             <enum>Qt::RightToLeft</enum>
             </property>
             <property name="text">
              <string/>
@@ -733,9 +727,6 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
             <property name="toolTip">
              <string>Y-flipping state is remembered and restored per-texture, rather than treated as a global toggle.</string>
-            </property>
-            <property name="layoutDirection">
-             <enum>Qt::RightToLeft</enum>
             </property>
             <property name="text">
              <string/>
