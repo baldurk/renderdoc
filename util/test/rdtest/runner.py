@@ -29,7 +29,7 @@ def get_tests():
     return testcases
 
 
-RUNNER_TIMEOUT = 30    # Require output every 30 seconds
+RUNNER_TIMEOUT = 90    # Require output every X seconds
 RUNNER_DEBUG = False   # Debug test runner running by printing messages to track it
 
 
@@ -97,7 +97,10 @@ def _run_test(testclass, failedcases: list):
             out = None  # No output
 
         try:
+            err = None
             while not test_stderr.empty():
+                if err is None:
+                    err = ''
                 err += test_stderr.get_nowait()
 
                 if test_run.poll() is not None:
