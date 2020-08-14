@@ -926,6 +926,9 @@ void WrappedVulkan::Shutdown()
 
 void WrappedVulkan::vkDestroyInstance(VkInstance instance, const VkAllocationCallbacks *pAllocator)
 {
+  if(instance == VK_NULL_HANDLE)
+    return;
+
   RDCASSERT(m_Instance == instance);
 
   if(ObjDisp(m_Instance)->DestroyDebugReportCallbackEXT && m_DbgReportCallback != VK_NULL_HANDLE)
@@ -3676,6 +3679,9 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
 void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks *pAllocator)
 {
+  if(device == VK_NULL_HANDLE)
+    return;
+
   // flush out any pending commands/semaphores
   SubmitCmds();
   SubmitSemaphores();

@@ -1756,6 +1756,9 @@ void WrappedVulkan::vkDestroyDebugReportCallbackEXT(VkInstance instance,
                                                     VkDebugReportCallbackEXT callback,
                                                     const VkAllocationCallbacks *pAllocator)
 {
+  if(callback == VK_NULL_HANDLE)
+    return;
+
   UserDebugReportCallbackData *user =
       (UserDebugReportCallbackData *)(uintptr_t)NON_DISP_TO_UINT64(callback);
 
@@ -2089,6 +2092,9 @@ void WrappedVulkan::vkDestroyDebugUtilsMessengerEXT(VkInstance instance,
                                                     VkDebugUtilsMessengerEXT messenger,
                                                     const VkAllocationCallbacks *pAllocator)
 {
+  if(messenger == VK_NULL_HANDLE)
+    return;
+
   UserDebugUtilsCallbackData *user =
       (UserDebugUtilsCallbackData *)(uintptr_t)NON_DISP_TO_UINT64(messenger);
 

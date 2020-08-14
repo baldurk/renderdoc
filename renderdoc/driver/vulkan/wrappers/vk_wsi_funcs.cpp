@@ -987,6 +987,9 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 void WrappedVulkan::vkDestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surface,
                                         const VkAllocationCallbacks *pAllocator)
 {
+  if(surface == VK_NULL_HANDLE)
+    return;
+
   WrappedVkSurfaceKHR *wrapper = GetWrapped(surface);
 
   // record pointer has window handle packed in

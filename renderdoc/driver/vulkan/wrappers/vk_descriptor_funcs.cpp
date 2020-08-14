@@ -547,7 +547,10 @@ VkResult WrappedVulkan::vkFreeDescriptorSets(VkDevice device, VkDescriptorPool d
     unwrapped[i] = Unwrap(pDescriptorSets[i]);
 
   for(uint32_t i = 0; i < count; i++)
-    GetResourceManager()->ReleaseWrappedResource(pDescriptorSets[i]);
+  {
+    if(pDescriptorSets[i] != VK_NULL_HANDLE)
+      GetResourceManager()->ReleaseWrappedResource(pDescriptorSets[i]);
+  }
 
   VkResult ret =
       ObjDisp(device)->FreeDescriptorSets(Unwrap(device), Unwrap(descriptorPool), count, unwrapped);
