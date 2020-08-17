@@ -8,10 +8,13 @@ apt-get update
 # for add-apt-repository
 apt-get install -y software-properties-common python-software-properties wget
 
+# to allow https apt repositories
+apt-get install -y apt-transport-https ca-certificates
+
 # for newer libstdc++
 add-apt-repository -y ppa:ubuntu-toolchain-r/test
 # for clang
-add-apt-repository 'deb http://apt.llvm.org/precise/ llvm-toolchain-precise-3.8 main'
+add-apt-repository 'deb https://apt.llvm.org/precise/ llvm-toolchain-precise-3.8 main'
 wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 apt-get update
 
