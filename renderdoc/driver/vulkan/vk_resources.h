@@ -1055,7 +1055,7 @@ struct DescriptorSetData
   BindingStorage data;
 
   // lock protecting bindFrameRefs and bindMemRefs
-  Threading::CriticalSection refLock;
+  Threading::SpinLock refLock;
 
   // contains the framerefs (ref counted) for the bound resources
   // in the binding slots. Updated when updating descriptor sets

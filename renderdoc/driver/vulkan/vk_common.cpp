@@ -1060,7 +1060,7 @@ void DescriptorSetSlotImageInfo::SetFrom(const VkDescriptorImageInfo &imInfo, bo
 void DescriptorSetSlot::RemoveBindRefs(std::set<ResourceId> &ids, VulkanResourceManager *rm,
                                        VkResourceRecord *record)
 {
-  SCOPED_LOCK(record->descInfo->refLock);
+  SCOPED_SPINLOCK(record->descInfo->refLock);
 
   if(texelBufferView != ResourceId())
   {
@@ -1109,7 +1109,7 @@ void DescriptorSetSlot::AddBindRefs(std::set<ResourceId> &ids, VkResourceRecord 
                                     VkResourceRecord *imgView, VkResourceRecord *buffer,
                                     VkResourceRecord *descSetRecord, FrameRefType ref)
 {
-  SCOPED_LOCK(descSetRecord->descInfo->refLock);
+  SCOPED_SPINLOCK(descSetRecord->descInfo->refLock);
 
   if(bufView)
   {
@@ -1157,7 +1157,7 @@ void DescriptorSetSlot::AddBindRefs(std::set<ResourceId> &ids, VulkanResourceMan
 void DescriptorSetData::UpdateBackgroundRefCache(VulkanResourceManager *resourceManager,
                                                  const std::set<ResourceId> &ids)
 {
-  SCOPED_LOCK(refLock);
+  SCOPED_SPINLOCK(refLock);
 
   rdcpair<ResourceId, FrameRefType> *cacheit = backgroundFrameRefs.begin();
   for(auto refit = ids.begin(); refit != ids.end(); ++refit)

@@ -119,4 +119,4 @@ private:
 #define SCOPED_READLOCK(rw) Threading::ScopedReadLock CONCAT(scopedlock, __LINE__)(rw);
 #define SCOPED_WRITELOCK(rw) Threading::ScopedWriteLock CONCAT(scopedlock, __LINE__)(rw);
 
-#define SCOPED_SPINLOCK(cs) Threading::SpinLock CONCAT(scopedlock, __LINE__)(cs);
+#define SCOPED_SPINLOCK(cs) Threading::ScopedSpinLock CONCAT(scopedlock, __LINE__)(cs);
