@@ -1397,6 +1397,10 @@ class ImageSubresourceMap
   // `m_values` and the `*Split` flags in `m_flags`.
   rdcarray<ImageSubresourceState> m_values;
 
+  // commonly there will only be one value, in that case we inline it here. This is only valid if
+  // m_values is empty.
+  ImageSubresourceState m_value;
+
   // The bit count of `m_aspectMask`
   uint16_t m_aspectCount = 0;
 
@@ -1443,8 +1447,8 @@ public:
     for(auto it = ImageAspectFlagIter::begin(GetImageInfo().Aspects());
         it != ImageAspectFlagIter::end(); ++it)
       ++m_aspectCount;
-    m_values.push_back(
-        ImageSubresourceState(VK_QUEUE_FAMILY_IGNORED, UNKNOWN_PREV_IMG_LAYOUT, refType));
+
+    m_value = ImageSubresourceState(VK_QUEUE_FAMILY_IGNORED, UNKNOWN_PREV_IMG_LAYOUT, refType);
   }
 
   void ToArray(rdcarray<ImageSubresourceStateForRange> &arr);
@@ -1456,11 +1460,15 @@ public:
   inline ImageSubresourceState &SubresourceIndexValue(uint32_t aspectIndex, uint32_t level,
                                                       uint32_t layer, uint32_t slice)
   {
+    if(m_values.empty())
+      return m_value;
     return m_values[SubresourceIndex(aspectIndex, level, layer, slice)];
   }
   inline const ImageSubresourceState &SubresourceIndexValue(uint32_t aspectIndex, uint32_t level,
                                                             uint32_t layer, uint32_t slice) const
   {
+    if(m_values.empty())
+      return m_value;
     return m_values[SubresourceIndex(aspectIndex, level, layer, slice)];
   }
   inline ImageSubresourceState &SubresourceAspectValue(VkImageAspectFlagBits aspect, uint32_t level,
@@ -1493,12 +1501,6 @@ public:
           range.baseDepthSlice != 0u || range.sliceCount < GetImageInfo().extent.depth);
   }
   void Unsplit();
-  inline void Clear()
-  {
-    m_values.clear();
-    m_values.resize(1);
-    m_flags = 0;
-  }
   FrameRefType Merge(const ImageSubresourceMap &other, FrameRefCompFunc compose);
 
   template <typename Map, typename Pair>
@@ -1588,7 +1590,7 @@ public:
   inline SubresourceRangeConstIter begin() const { return RangeBegin(GetImageInfo().FullRange()); }
   inline SubresourceRangeIter end() { return SubresourceRangeIter(); }
   inline SubresourceRangeConstIter end() const { return SubresourceRangeConstIter(); }
-  inline size_t size() const { return m_values.size(); }
+  inline size_t size() const { return RDCMAX(m_values.size(), (size_t)1); }
 };
 
 template <typename Barrier>

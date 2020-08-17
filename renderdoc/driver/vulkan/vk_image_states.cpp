@@ -169,13 +169,15 @@ void ImageSubresourceMap::Split(bool splitAspects, bool splitLevels, bool splitL
   uint32_t newSplitSliceCount = splitDepth ? GetImageInfo().extent.depth : oldSplitSliceCount;
 
   uint32_t oldSize = (uint32_t)m_values.size();
-  RDCASSERT(oldSize > 0);
 
   uint32_t newSize =
       newSplitAspectCount * newSplitLevelCount * newSplitLayerCount * newSplitSliceCount;
-  RDCASSERT(newSize > oldSize);
+  RDCASSERT(newSize > RDCMAX(oldSize, 1U));
 
   m_values.resize(newSize);
+  // if m_values was empty before, copy the first value from our inline storage
+  if(oldSize == 0)
+    m_values[0] = m_value;
 
   uint32_t newAspectIndex = newSplitAspectCount - 1;
   uint32_t oldAspectIndex = AreAspectsSplit() ? newAspectIndex : 0;
@@ -322,7 +324,7 @@ void ImageSubresourceMap::Unsplit(bool unsplitAspects, bool unsplitLevels, bool 
 
 void ImageSubresourceMap::Unsplit()
 {
-  if(m_values.size() == 1)
+  if(m_values.size() <= 1)
     return;
 
   uint32_t aspectCount = AreAspectsSplit() ? m_aspectCount : 1;
@@ -449,7 +451,7 @@ size_t ImageSubresourceMap::SubresourceIndex(uint32_t aspectIndex, uint32_t leve
 
 void ImageSubresourceMap::ToArray(rdcarray<ImageSubresourceStateForRange> &arr)
 {
-  arr.reserve(arr.size() + m_values.size());
+  arr.reserve(arr.size() + size());
   for(auto src = begin(); src != end(); ++src)
   {
     arr.push_back(*src);
@@ -464,7 +466,7 @@ void ImageSubresourceMap::FromArray(const rdcarray<ImageSubresourceStateForRange
     return;
   }
   Split(arr.front().range);
-  if(m_values.size() != arr.size())
+  if(size() != arr.size())
   {
     RDCERR("Incorrect number of values for ImageSubresourceMap");
     return;
