@@ -203,6 +203,10 @@ void ResourceInspector::Inspect(ResourceId id)
   if(m_Resource == id)
     return;
 
+  // cancel any rename in progress
+  ui->resourceNameEdit->hide();
+  ui->resourceName->show();
+
   if(m_Resource != ResourceId())
     ui->initChunks->saveExpansion(ui->initChunks->getInternalExpansion(qHash(ToQStr(m_Resource))), 0);
 
