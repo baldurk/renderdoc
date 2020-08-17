@@ -85,12 +85,21 @@ struct ItemCopyHelper
     for(size_t i = 0; i < count; i++)
       new(dest + i) T(src[i]);
   }
+  static void moveRange(T *dest, T *src, size_t count)
+  {
+    for(size_t i = 0; i < count; i++)
+      new(dest + i) T(std::move(src[i]));
+  }
 };
 
 template <typename T>
 struct ItemCopyHelper<T, true>
 {
   static void copyRange(T *dest, const T *src, size_t count)
+  {
+    memcpy(dest, src, count * sizeof(T));
+  }
+  static void moveRange(T *dest, const T *src, size_t count)
   {
     memcpy(dest, src, count * sizeof(T));
   }
@@ -235,13 +244,13 @@ public:
     if(elems)
     {
       // copy the elements to new storage
-      ItemCopyHelper<T>::copyRange(newElems, elems, usedCount);
+      ItemCopyHelper<T>::moveRange(newElems, elems, usedCount);
 
       // delete the old elements
       ItemDestroyHelper<T>::destroyRange(elems, usedCount);
     }
 
-    // deallocate tee old storage
+    // deallocate the old storage
     deallocate(elems);
 
     // swap the storage. usedCount doesn't change
@@ -298,7 +307,36 @@ public:
     setUsedCount(usedCount + 1);
   }
 
-  // fill the string with 'count' copies of 'el'
+  void push_back(T &&el)
+  {
+    // if we're pushing from within the array, save the index and move from that index after
+    // potentially resizing
+    if(begin() <= &el && &el < end())
+    {
+      size_t idx = &el - begin();
+      const size_t lastIdx = size();
+      reserve(size() + 1);
+      new(elems + lastIdx) T(std::forward<T>(elems[idx]));
+      setUsedCount(usedCount + 1);
+      return;
+    }
+
+    const size_t lastIdx = size();
+    reserve(size() + 1);
+    new(elems + lastIdx) T(std::forward<T>(el));
+    setUsedCount(usedCount + 1);
+  }
+
+  template <typename... ConstructArgs>
+  void emplace_back(ConstructArgs... args)
+  {
+    const size_t lastIdx = size();
+    reserve(size() + 1);
+    new(elems + lastIdx) T(std::forward<ConstructArgs...>(args...));
+    setUsedCount(usedCount + 1);
+  }
+
+  // fill the array with 'count' copies of 'el'
   void fill(size_t count, const T &el)
   {
     // destruct any old elements
@@ -352,8 +390,8 @@ public:
     else
     {
       // we need to shuffle everything up. Iterate from the back in two stages: first into the
-      // newly-allocated elements that don't need to be destructed. Then one-by-one destructing an
-      // element (which has been moved later), and copy-constructing the new one into place
+      // newly-allocated elements that don't need to be destructed. Then one-by-one
+      // move-constructing the new one into place
       //
       // e.g. an array of 6 elements, inserting 3 more at offset 1
       //
@@ -363,9 +401,9 @@ public:
       //
       // first pass:
       //
-      // [8].copyConstruct([5])
-      // [7].copyConstruct([4])
-      // [6].copyConstruct([3])
+      // [8].moveConstruct([5])
+      // [7].moveConstruct([4])
+      // [6].moveConstruct([3])
       //
       // [0] [1] [2] [3] [4] [5] [6] [7] [8]
       //  A   B   C   D*  E*  F*  D   E   F
@@ -374,9 +412,9 @@ public:
       //
       // second pass:
       // [5].destruct()
-      // [5].copyConstruct([2])
+      // [5].moveConstruct([2])
       // [4].destruct()
-      // [4].copyConstruct([1])
+      // [4].moveConstruct([1])
       //
       // [0] [1] [2] [3] [4] [5] [6] [7] [8]
       //  A   B*  C*  D*  B   C   D   E   F
@@ -395,21 +433,24 @@ public:
       // In the next part we just need to check if the slot was < oldCount to know if we should
       // destruct it before inserting.
 
-      // first pass, copy
-      size_t copyCount = count < oldSize ? count : oldSize;
-      for(size_t i = 0; i < copyCount; i++)
-        new(elems + oldSize + count - 1 - i) T(elems[oldSize - 1 - i]);
+      // first pass, move construct elements in place
+      const size_t moveCount = count < oldSize ? count : oldSize;
+      for(size_t i = 0; i < moveCount; i++)
+      {
+        new(elems + oldSize + count - 1 - i) T(std::move(elems[oldSize - 1 - i]));
+      }
 
-      // second pass, destruct & copy if there was any overlap
+      // second pass, move any overlap. We're moving *into* any elements that got moved *out of*
+      // above
       if(count < oldSize - offs)
       {
         size_t overlap = oldSize - offs - count;
         for(size_t i = 0; i < overlap; i++)
         {
           // destruct old element
-          elems[oldSize - 1 - i].~T();
+          ItemDestroyHelper<T>::destroyRange(elems + oldSize - 1 - i, 1);
           // copy from earlier
-          new(elems + oldSize - 1 - i) T(elems[oldSize - 1 - count - i]);
+          new(elems + oldSize - 1 - i) T(std::move(elems[oldSize - 1 - count - i]));
         }
       }
 
@@ -418,7 +459,7 @@ public:
       {
         // if this was one used previously, destruct it
         if(i < oldSize)
-          elems[offs + i].~T();
+          ItemDestroyHelper<T>::destroyRange(elems + offs + i, 1);
 
         // then copy construct the new value
         new(elems + offs + i) T(el[i]);
@@ -447,6 +488,55 @@ public:
       insert(offs, &copy, 1);
     }
   }
+
+  // insert by moving
+  inline void insert(size_t offs, T &&el)
+  {
+    const size_t oldSize = size();
+
+    // invalid size
+    if(offs > oldSize)
+      return;
+
+    if(begin() <= &el && &el < end())
+    {
+      // if we're inserting from within our range, save the index
+      size_t idx = &el - begin();
+      // do any potentially reallocating resize
+      reserve(oldSize + 1);
+      // then move from the index in wherever elems now points
+      new(elems + offs) T(std::move(elems[idx]));
+      return;
+    }
+
+    // reserve more space if needed
+    reserve(oldSize + 1);
+
+    // fast path where offs == size(), for push_back
+    if(offs == oldSize)
+    {
+      new(elems + offs) T(std::move(el));
+    }
+    else
+    {
+      // we need to shuffle everything up by one
+
+      // first pass, move construct elements and destruct as we go
+      const size_t moveCount = oldSize - offs;
+      for(size_t i = 0; i < moveCount; i++)
+      {
+        new(elems + oldSize - i) T(std::move(elems[oldSize - i - 1]));
+        ItemDestroyHelper<T>::destroyRange(elems + oldSize - i - 1, 1);
+      }
+
+      // then move construct the new value
+      new(elems + offs) T(std::move(el));
+    }
+
+    // update new size
+    setUsedCount(usedCount + 1);
+  }
+
   // helpful shortcut for 'append at end', basically a multi-element push_back
   inline void append(const T *el, size_t count) { insert(size(), el, count); }
   inline void append(const rdcarray<T> &in) { insert(size(), in.data(), in.size()); }
@@ -471,14 +561,13 @@ public:
     // copy-construct into new place
 
     // destruct elements to be removed
-    for(size_t i = 0; i < count; i++)
-      elems[offs + i].~T();
+    ItemDestroyHelper<T>::destroyRange(elems + offs, count);
 
     // move remaining elements into place
     for(size_t i = offs + count; i < sz; i++)
     {
-      new(elems + i - count) T(elems[i]);
-      elems[i].~T();
+      new(elems + i - count) T(std::move(elems[i]));
+      ItemDestroyHelper<T>::destroyRange(elems + i, 1);
     }
 
     // update new size

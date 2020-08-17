@@ -40,6 +40,9 @@ static volatile int32_t moveConstructor = 0;
 static volatile int32_t valueConstructor = 0;
 static volatile int32_t copyConstructor = 0;
 static volatile int32_t destructor = 0;
+static volatile int32_t movedDestructor = 0;
+static volatile int32_t copyAssignment = 0;
+static volatile int32_t moveAssignment = 0;
 
 struct ConstructorCounter
 {
@@ -47,28 +50,49 @@ struct ConstructorCounter
 
   ConstructorCounter()
   {
+    RDCASSERT(value != -9999);
     value = 0;
     Atomic::Inc32(&constructor);
   }
   ConstructorCounter(int v)
   {
+    RDCASSERT(value != -9999);
     value = v;
     Atomic::Inc32(&valueConstructor);
   }
   ConstructorCounter(const ConstructorCounter &other)
   {
+    RDCASSERT(value != -9999);
     value = other.value;
     Atomic::Inc32(&copyConstructor);
   }
   ConstructorCounter(ConstructorCounter &&other)
   {
+    RDCASSERT(value != -9999);
     value = other.value;
     other.value = -9999;
     Atomic::Inc32(&moveConstructor);
   }
-  ConstructorCounter &operator=(const ConstructorCounter &other) = delete;
-  ConstructorCounter &operator=(ConstructorCounter &&other) = delete;
-  ~ConstructorCounter() { Atomic::Inc32(&destructor); }
+  ConstructorCounter &operator=(const ConstructorCounter &other)
+  {
+    value = other.value;
+    Atomic::Inc32(&copyAssignment);
+    return *this;
+  }
+  ConstructorCounter &operator=(ConstructorCounter &&other)
+  {
+    value = other.value;
+    other.value = -9999;
+    Atomic::Inc32(&moveAssignment);
+    return *this;
+  }
+  ~ConstructorCounter()
+  {
+    Atomic::Inc32(&destructor);
+    if(value == -9999)
+      Atomic::Inc32(&movedDestructor);
+    value = -1234;
+  }
   bool operator==(const ConstructorCounter &other) { return value == other.value; }
 };
 
@@ -80,6 +104,7 @@ TEST_CASE("Test array type", "[basictypes]")
   valueConstructor = 0;
   copyConstructor = 0;
   destructor = 0;
+  movedDestructor = 0;
 
   SECTION("Basic test")
   {
@@ -536,6 +561,7 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(constructor == 1);
     CHECK(copyConstructor == 1);
     CHECK(valueConstructor == 0);
+    CHECK(moveConstructor == 0);
 
     test.push_back(ConstructorCounter(10));
 
@@ -545,8 +571,9 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(valueConstructor == 1);
     // for the temporary going out of scope
     CHECK(destructor == 2);
-    // for the temporary being copied into the new element
-    CHECK(copyConstructor == 2);
+    // for the temporary being moved into the new element
+    CHECK(copyConstructor == 1);
+    CHECK(moveConstructor == 1);
 
     // previous value
     CHECK(constructor == 1);
@@ -555,7 +582,8 @@ TEST_CASE("Test array type", "[basictypes]")
 
     // single element in test was moved to new backing storage
     CHECK(destructor == 3);
-    CHECK(copyConstructor == 3);
+    CHECK(copyConstructor == 1);
+    CHECK(moveConstructor == 2);
 
     // previous values
     CHECK(valueConstructor == 1);
@@ -569,7 +597,8 @@ TEST_CASE("Test array type", "[basictypes]")
     // previous values
     CHECK(valueConstructor == 1);
     CHECK(destructor == 3);
-    CHECK(copyConstructor == 3);
+    CHECK(copyConstructor == 1);
+    CHECK(moveConstructor == 2);
 
     test.clear();
 
@@ -579,16 +608,15 @@ TEST_CASE("Test array type", "[basictypes]")
     // previous values
     CHECK(constructor == 50);
     CHECK(valueConstructor == 1);
-    CHECK(copyConstructor == 3);
-
-    // still should have had no moves
-    CHECK(moveConstructor == 0);
+    CHECK(copyConstructor == 1);
+    CHECK(moveConstructor == 2);
 
     // reset counters
     constructor = 0;
     valueConstructor = 0;
     copyConstructor = 0;
     destructor = 0;
+    moveConstructor = 0;
 
     CHECK(constructor == 0);
     CHECK(moveConstructor == 0);
@@ -620,6 +648,10 @@ TEST_CASE("Test array type", "[basictypes]")
 
     // check that the new value arrived
     CHECK(test.back().value == 9);
+
+    // no assignments
+    CHECK(copyAssignment == 0);
+    CHECK(moveAssignment == 0);
   };
 
   SECTION("operations with empty array")
@@ -707,14 +739,17 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(test.capacity() == 100);
     CHECK(test.size() == 6);
 
-    // 5 copies and 5 destructs to shift the array contents up, then another copy for inserting tmp
+    // 5 moves and 5 destructs to shift the array contents up, then a copy for inserting tmp
     CHECK(constructor == 6);
     CHECK(valueConstructor == 0);
-    CHECK(copyConstructor == 5 + 1);
+    CHECK(moveConstructor == 5);
     CHECK(destructor == 5);
+    CHECK(copyConstructor == 1);
 
     CHECK(test[0].value == 999);
     CHECK(test[1].value == 10);
+
+    constructor = valueConstructor = copyConstructor = moveConstructor = destructor = 0;
 
     // this should copy the value, then do an insert
     test.insert(0, test[0]);
@@ -722,16 +757,19 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(test.capacity() == 100);
     CHECK(test.size() == 7);
 
-    // on top of the above, another 6 copies & destructs to shift the array contents, 1 copy for
-    // inserting test[0], and a copy&destruct of the temporary copy
-    CHECK(constructor == 6);
+    // another 6 moves & destructs to shift the array contents, 2 copies for
+    // inserting test[0] (once to a temporary with a destructor of that once into the new storage)
+    CHECK(constructor == 0);
     CHECK(valueConstructor == 0);
-    CHECK(copyConstructor == (5 + 1) + 6 + 1 + 1);
-    CHECK(destructor == (5) + 6 + 1);
+    CHECK(copyConstructor == 2);
+    CHECK(moveConstructor == 6);
+    CHECK(destructor == 6 + 1);
 
     CHECK(test[0].value == 999);
     CHECK(test[1].value == 999);
     CHECK(test[2].value == 10);
+
+    constructor = valueConstructor = copyConstructor = moveConstructor = destructor = 0;
 
     // this should detect the overlapped range, and duplicate the whole object
     test.insert(0, test.data(), 3);
@@ -747,15 +785,15 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(test[4].value == 999);
     CHECK(test[5].value == 10);
 
-    // on top of the above:
     // - 7 copies and destructs for the duplication (copies into the new storage, destructs from the
     // old storage)
-    // - 7 copies and destructs for shifting the array contents
+    // - 7 moves and destructs for shifting the array contents
     // - 3 copies for the inserted items
-    CHECK(constructor == 6);
+    CHECK(constructor == 0);
     CHECK(valueConstructor == 0);
-    CHECK(copyConstructor == (5 + 1 + 6 + 1 + 1) + 7 + 7 + 3);
-    CHECK(destructor == (5 + 6 + 1) + 7 + 7);
+    CHECK(copyConstructor == 7 + 3);
+    CHECK(destructor == 7 + 7);
+    CHECK(moveConstructor == 7);
   };
 
   SECTION("Inserting from array's unused memory into itself")
@@ -784,6 +822,8 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(copyConstructor == 0);
     CHECK(destructor == 4);
 
+    constructor = destructor = 0;
+
     // this should detect the overlapped range, and duplicate the whole object
     test.insert(0, test.data() + 2, 3);
 
@@ -791,20 +831,118 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(test.capacity() == 100);
     CHECK(test.size() == 4);
 
-    CHECK(test[0].value == 30);
-    CHECK(test[1].value == 40);
-    CHECK(test[2].value == 50);
+    CHECK(test[0].value == -1234);
+    CHECK(test[1].value == -1234);
+    CHECK(test[2].value == -1234);
     CHECK(test[3].value == 10);
 
     // on top of the above:
     // - 1 copy and destruct for the duplication (copy into the new storage, destruct from
     // the old storage)
-    // - 1 copy and destruct for shifting the array contents
+    // - 1 move and destruct for shifting the array contents
     // - 3 copies for the inserted items
-    CHECK(constructor == 5);
+    CHECK(constructor == 0);
     CHECK(valueConstructor == 0);
-    CHECK(copyConstructor == 1 + 1 + 3);
-    CHECK(destructor == 4 + 1 + 1);
+    CHECK(copyConstructor == 1 + 3);
+    CHECK(destructor == 1 + 1);
+    CHECK(moveConstructor == 1);
+  };
+
+  SECTION("Check move constructor is used when possible")
+  {
+    rdcarray<ConstructorCounter> test;
+
+    // don't test moves due to resizes in this test
+    test.reserve(100);
+
+    CHECK(constructor == 0);
+    CHECK(moveConstructor == 0);
+    CHECK(valueConstructor == 0);
+    CHECK(copyConstructor == 0);
+    CHECK(destructor == 0);
+
+    ConstructorCounter tmp;
+    tmp.value = 9;
+
+    // 1 for the temporary
+    CHECK(constructor == 1);
+
+    test.push_back(tmp);
+
+    // element should have been copied, not moved
+    CHECK(copyConstructor == 1);
+    CHECK(moveConstructor == 0);
+    CHECK(destructor == 0);
+
+    test.push_back(ConstructorCounter(5));
+
+    // one more temporary as a value
+    CHECK(valueConstructor == 1);
+    // temporary should have been moved, not copied
+    CHECK(copyConstructor == 1);
+    CHECK(moveConstructor == 1);
+    // the temporary should have been destroyed, but after it was moved
+    CHECK(destructor == 1);
+    CHECK(movedDestructor == 1);
+
+    test.emplace_back(15);
+
+    // should be constructed in place
+    CHECK(valueConstructor == 2);
+    // no other move/copy/destruct
+    CHECK(copyConstructor == 1);
+    CHECK(moveConstructor == 1);
+    CHECK(destructor == 1);
+    CHECK(movedDestructor == 1);
+
+    test.emplace_back(25);
+    test.emplace_back(35);
+
+    CHECK(valueConstructor == 4);
+    CHECK(copyConstructor == 1);
+    CHECK(moveConstructor == 1);
+    CHECK(destructor == 1);
+    CHECK(movedDestructor == 1);
+
+    CHECK(test.size() == 5);
+
+    // insert a new element at 0, without allowing move of the new element
+    test.insert(0, &tmp, 1);
+
+    CHECK(test.size() == 6);
+    CHECK(valueConstructor == 4);
+    // the element will be copied into place
+    CHECK(copyConstructor == 2);
+    // all the internal shifts for the resize should have happened via move constructor
+    CHECK(moveConstructor == 6);
+    CHECK(destructor == 6);
+    CHECK(movedDestructor == 6);
+    CHECK(copyAssignment == 0);
+    CHECK(moveAssignment == 0);
+
+    // insert an element at 0, allowing it to move
+    test.insert(4, ConstructorCounter(55));
+
+    CHECK(test.size() == 7);
+    CHECK(valueConstructor == 5);
+    CHECK(copyConstructor == 2);
+    CHECK(moveConstructor == 9);
+    CHECK(destructor == 9);
+    CHECK(movedDestructor == 9);
+    CHECK(copyAssignment == 0);
+    CHECK(moveAssignment == 0);
+
+    // erase the element at 3
+    test.erase(3);
+
+    CHECK(test.size() == 6);
+    CHECK(valueConstructor == 5);
+    CHECK(copyConstructor == 2);
+    CHECK(moveConstructor == 12);
+    CHECK(destructor == 13);
+    CHECK(movedDestructor == 12);
+    CHECK(copyAssignment == 0);
+    CHECK(moveAssignment == 0);
   };
 };
 

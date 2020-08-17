@@ -25,6 +25,9 @@
 
 #pragma once
 
+#include <type_traits>
+#include <utility>
+
 template <typename A, typename B>
 struct rdcpair
 {
@@ -34,7 +37,11 @@ struct rdcpair
   rdcpair(const A &a, const B &b) : first(a), second(b) {}
   rdcpair() = default;
   rdcpair(const rdcpair<A, B> &o) = default;
-  rdcpair(rdcpair<A, B> &&o) = default;
+  rdcpair(rdcpair<A, B> &&o) : first(std::move(o.first)), second(std::move(o.second)) {}
+  rdcpair(typename std::decay<A>::type &&a, typename std::decay<B>::type &&b)
+      : first(std::move(a)), second(std::move(b))
+  {
+  }
   ~rdcpair() = default;
   inline void swap(rdcpair<A, B> &o)
   {
@@ -55,6 +62,21 @@ struct rdcpair
   {
     first = o.first;
     second = o.second;
+    return *this;
+  }
+
+  template <typename A_, typename B_>
+  rdcpair<A, B> &operator=(rdcpair<A_, B_> &&o)
+  {
+    first = std::move(o.first);
+    second = std::move(o.second);
+    return *this;
+  }
+
+  rdcpair<A, B> &operator=(rdcpair<A, B> &&o)
+  {
+    first = std::move(o.first);
+    second = std::move(o.second);
     return *this;
   }
 
