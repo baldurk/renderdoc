@@ -29,6 +29,13 @@ HRESULT WrappedID3D12Device::CreatePipelineLibrary(_In_reads_(BlobLength) const 
                                                    SIZE_T BlobLength, REFIID riid,
                                                    _COM_Outptr_ void **ppPipelineLibrary)
 {
+  // CreatePipelineLibrary supports doing a dry run if ppPipelineLibrary receives
+  // nullptr. That feature is optional and not supported in every driver, since
+  // we are not supporting pipeline libraries anyway, returns the unsupported
+  // driver case.
+  if(ppPipelineLibrary == NULL)
+    return DXGI_ERROR_UNSUPPORTED;
+
 // we don't want to ever use pipeline libraries since then we can't get the
 // bytecode and pipeline config. So instead we always return that a blob is
 // non-matching and return a dummy interface that does nothing when stored.
