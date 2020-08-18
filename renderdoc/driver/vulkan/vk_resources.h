@@ -878,6 +878,7 @@ struct ImageInfo
   VkFormat format = VK_FORMAT_UNDEFINED;
   VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   VkSharingMode sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  VkImageAspectFlags aspects = 0;
   ImageInfo() {}
   ImageInfo(VkFormat format, VkExtent3D extent, int levelCount, int layerCount, int sampleCount,
             VkImageLayout initialLayout, VkSharingMode sharingMode)
@@ -889,6 +890,7 @@ struct ImageInfo
         initialLayout(initialLayout),
         sharingMode(sharingMode)
   {
+    aspects = FormatImageAspects(format);
   }
   ImageInfo(const VkImageCreateInfo &ci)
       : layerCount(ci.arrayLayers),
@@ -912,6 +914,7 @@ struct ImageInfo
     {
       extent.depth = 1;
     }
+    aspects = FormatImageAspects(format);
   }
   ImageInfo(const VkSwapchainCreateInfoKHR &ci)
       : layerCount(ci.imageArrayLayers),
@@ -923,8 +926,9 @@ struct ImageInfo
     extent.width = ci.imageExtent.width;
     extent.height = ci.imageExtent.height;
     extent.depth = 1;
+    aspects = FormatImageAspects(format);
   }
-  VkImageAspectFlags Aspects() const { return FormatImageAspects(format); }
+  VkImageAspectFlags Aspects() const { return aspects; }
   ImageSubresourceRange FullRange() const;
   inline bool operator==(const ImageInfo &other) const
   {

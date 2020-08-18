@@ -4153,6 +4153,11 @@ void DoSerialise(SerialiserType &ser, ImageInfo &el)
     SERIALISE_MEMBER(initialLayout);
     SERIALISE_MEMBER(sharingMode);
   }
+
+  if(ser.IsReading())
+  {
+    el.aspects = FormatImageAspects(el.format);
+  }
 }
 
 template <typename SerialiserType>
