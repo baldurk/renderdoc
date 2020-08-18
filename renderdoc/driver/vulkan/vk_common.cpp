@@ -1057,7 +1057,7 @@ void DescriptorSetSlotImageInfo::SetFrom(const VkDescriptorImageInfo &imInfo, bo
   imageLayout = imInfo.imageLayout;
 }
 
-void DescriptorSetSlot::RemoveBindRefs(std::set<ResourceId> &ids, VulkanResourceManager *rm,
+void DescriptorSetSlot::RemoveBindRefs(rdcarray<ResourceId> &ids, VulkanResourceManager *rm,
                                        VkResourceRecord *record)
 {
   SCOPED_SPINLOCK(record->descInfo->refLock);
@@ -1105,7 +1105,7 @@ void DescriptorSetSlot::RemoveBindRefs(std::set<ResourceId> &ids, VulkanResource
   imageInfo.sampler = ResourceId();
 }
 
-void DescriptorSetSlot::AddBindRefs(std::set<ResourceId> &ids, VkResourceRecord *bufView,
+void DescriptorSetSlot::AddBindRefs(rdcarray<ResourceId> &ids, VkResourceRecord *bufView,
                                     VkResourceRecord *imgView, VkResourceRecord *buffer,
                                     VkResourceRecord *descSetRecord, FrameRefType ref)
 {
@@ -1139,7 +1139,7 @@ void DescriptorSetSlot::AddBindRefs(std::set<ResourceId> &ids, VkResourceRecord 
   }
 }
 
-void DescriptorSetSlot::AddBindRefs(std::set<ResourceId> &ids, VulkanResourceManager *rm,
+void DescriptorSetSlot::AddBindRefs(rdcarray<ResourceId> &ids, VulkanResourceManager *rm,
                                     VkResourceRecord *descSetRecord, FrameRefType ref)
 {
   VkResourceRecord *bufView = NULL, *imgView = NULL, *buffer = NULL;
@@ -1154,10 +1154,16 @@ void DescriptorSetSlot::AddBindRefs(std::set<ResourceId> &ids, VulkanResourceMan
   AddBindRefs(ids, bufView, imgView, buffer, descSetRecord, ref);
 }
 
-void DescriptorSetData::UpdateBackgroundRefCache(VulkanResourceManager *resourceManager,
-                                                 const std::set<ResourceId> &ids)
+void DescriptorSetData::UpdateBackgroundRefCache(const rdcarray<ResourceId> &ids)
 {
   SCOPED_SPINLOCK(refLock);
+
+  if(backgroundFrameRefs.empty())
+  {
+    for(auto refit = bindFrameRefs.begin(); refit != bindFrameRefs.end(); ++refit)
+      backgroundFrameRefs.push_back(make_rdcpair(refit->first, refit->second.second));
+    return;
+  }
 
   rdcpair<ResourceId, FrameRefType> *cacheit = backgroundFrameRefs.begin();
   for(auto refit = ids.begin(); refit != ids.end(); ++refit)

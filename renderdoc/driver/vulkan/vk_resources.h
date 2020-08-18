@@ -1067,8 +1067,7 @@ struct DescriptorSetData
   std::map<ResourceId, MemRefs> bindMemRefs;
   std::map<ResourceId, ImageState> bindImageStates;
 
-  void UpdateBackgroundRefCache(VulkanResourceManager *resourceManager,
-                                const std::set<ResourceId> &ids);
+  void UpdateBackgroundRefCache(const rdcarray<ResourceId> &ids);
 
   rdcarray<rdcpair<ResourceId, FrameRefType>> backgroundFrameRefs;
 };
@@ -2124,7 +2123,7 @@ public:
     cmdInfo->memFrameRefs.swap(bakedCommands->cmdInfo->memFrameRefs);
   }
 
-  void AddBindFrameRef(std::set<ResourceId> &ids, ResourceId id, FrameRefType ref,
+  void AddBindFrameRef(rdcarray<ResourceId> &ids, ResourceId id, FrameRefType ref,
                        bool hasSparse = false)
   {
     if(id == ResourceId())
@@ -2132,7 +2131,8 @@ public:
       RDCERR("Unexpected NULL resource ID being added as a bind frame ref");
       return;
     }
-    ids.insert(id);
+    if(!ids.contains(id))
+      ids.push_back(id);
     rdcpair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[id];
     if((p.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
     {
@@ -2148,9 +2148,10 @@ public:
     }
   }
 
-  void AddImgFrameRef(std::set<ResourceId> &ids, VkResourceRecord *view, FrameRefType refType)
+  void AddImgFrameRef(rdcarray<ResourceId> &ids, VkResourceRecord *view, FrameRefType refType)
   {
-    ids.insert(view->baseResource);
+    if(!ids.contains(view->baseResource))
+      ids.push_back(view->baseResource);
     AddBindFrameRef(ids, view->GetResourceID(), eFrameRef_Read,
                     view->resInfo && view->resInfo->IsSparse());
     if(view->baseResourceMem != ResourceId())
@@ -2178,7 +2179,7 @@ public:
     p.second = ComposeFrameRefsDisjoint(p.second, maxRef);
   }
 
-  void AddMemFrameRef(std::set<ResourceId> &ids, ResourceId mem, VkDeviceSize offset,
+  void AddMemFrameRef(rdcarray<ResourceId> &ids, ResourceId mem, VkDeviceSize offset,
                       VkDeviceSize size, FrameRefType refType)
   {
     if(mem == ResourceId())
@@ -2186,7 +2187,8 @@ public:
       RDCERR("Unexpected NULL resource ID being added as a bind frame ref");
       return;
     }
-    ids.insert(mem);
+    if(!ids.contains(mem))
+      ids.push_back(mem);
     rdcpair<uint32_t, FrameRefType> &p = descInfo->bindFrameRefs[mem];
     if((p.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
     {
@@ -2203,7 +2205,7 @@ public:
     p.second = ComposeFrameRefsDisjoint(p.second, maxRef);
   }
 
-  void RemoveBindFrameRef(std::set<ResourceId> &ids, ResourceId id)
+  void RemoveBindFrameRef(rdcarray<ResourceId> &ids, ResourceId id)
   {
     // ignore any NULL IDs - probably an object that was
     // deleted since it was bound.
@@ -2223,7 +2225,8 @@ public:
 
     if((it->second.first & ~DescriptorSetData::SPARSE_REF_BIT) == 0)
     {
-      ids.insert(id);
+      if(!ids.contains(id))
+        ids.push_back(id);
       descInfo->bindFrameRefs.erase(it);
     }
   }

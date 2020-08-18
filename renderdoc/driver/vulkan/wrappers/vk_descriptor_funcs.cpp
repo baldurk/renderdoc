@@ -1146,7 +1146,10 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
   // need to track descriptor set contents whether capframing or idle
   if(IsCaptureMode(m_State))
   {
-    std::set<ResourceId> ids;
+    rdcarray<ResourceId> ids;
+    VkResourceRecord *setrecord = NULL;
+
+    ids.reserve(128);
 
     for(uint32_t i = 0; i < writeCount; i++)
     {
@@ -1155,6 +1158,17 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
       VkResourceRecord *record = GetRecord(descWrite.dstSet);
       RDCASSERT(record->descInfo && record->descInfo->layout);
       const DescSetLayout &layout = *record->descInfo->layout;
+
+      if(setrecord && setrecord != record)
+      {
+        std::sort(ids.begin(), ids.end());
+
+        setrecord->descInfo->UpdateBackgroundRefCache(ids);
+
+        ids.clear();
+      }
+
+      setrecord = record;
 
       RDCASSERT(descWrite.dstBinding < record->descInfo->data.binds.size());
 
@@ -1182,8 +1196,6 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 
       // start at the dstArrayElement
       uint32_t curIdx = descWrite.dstArrayElement;
-
-      ids.clear();
 
       for(uint32_t d = 0; d < descWrite.descriptorCount; d++, curIdx++)
       {
@@ -1261,9 +1273,15 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 
         bind.AddBindRefs(ids, bufView, imgView, buffer, record, ref);
       }
-
-      record->descInfo->UpdateBackgroundRefCache(GetResourceManager(), ids);
     }
+
+    if(setrecord)
+    {
+      std::sort(ids.begin(), ids.end());
+
+      setrecord->descInfo->UpdateBackgroundRefCache(ids);
+    }
+    setrecord = NULL;
 
     // this is almost identical to the above loop, except that instead of sourcing the descriptors
     // from the writedescriptor struct, we source it from our stored bindings on the source
@@ -1344,7 +1362,9 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         bind.AddBindRefs(ids, GetResourceManager(), dstrecord, ref);
       }
 
-      dstrecord->descInfo->UpdateBackgroundRefCache(GetResourceManager(), ids);
+      std::sort(ids.begin(), ids.end());
+
+      dstrecord->descInfo->UpdateBackgroundRefCache(ids);
     }
   }
 }
@@ -1588,11 +1608,25 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
   // need to track descriptor set contents whether capframing or idle
   if(IsCaptureMode(m_State))
   {
-    std::set<ResourceId> ids;
+    rdcarray<ResourceId> ids;
+    VkResourceRecord *setrecord = NULL;
+
+    ids.reserve(128);
 
     for(const VkDescriptorUpdateTemplateEntry &entry : tempInfo->updates)
     {
       VkResourceRecord *record = GetRecord(descriptorSet);
+
+      if(setrecord && setrecord != record)
+      {
+        std::sort(ids.begin(), ids.end());
+
+        setrecord->descInfo->UpdateBackgroundRefCache(ids);
+
+        ids.clear();
+      }
+
+      setrecord = record;
 
       RDCASSERT(record->descInfo && record->descInfo->layout);
       const DescSetLayout &layout = *record->descInfo->layout;
@@ -1608,8 +1642,6 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
 
       // start at the dstArrayElement
       uint32_t curIdx = entry.dstArrayElement;
-
-      ids.clear();
 
       for(uint32_t d = 0; d < entry.descriptorCount; d++, curIdx++)
       {
@@ -1681,8 +1713,13 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
 
         bind.AddBindRefs(ids, GetResourceManager(), record, ref);
       }
+    }
 
-      record->descInfo->UpdateBackgroundRefCache(GetResourceManager(), ids);
+    if(setrecord)
+    {
+      std::sort(ids.begin(), ids.end());
+
+      setrecord->descInfo->UpdateBackgroundRefCache(ids);
     }
   }
 }
