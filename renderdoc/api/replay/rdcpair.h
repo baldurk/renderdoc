@@ -37,7 +37,10 @@ struct rdcpair
   rdcpair(const A &a, const B &b) : first(a), second(b) {}
   rdcpair() = default;
   rdcpair(const rdcpair<A, B> &o) = default;
-  rdcpair(rdcpair<A, B> &&o) : first(std::move(o.first)), second(std::move(o.second)) {}
+  rdcpair(rdcpair<typename std::decay<A>::type, typename std::decay<B>::type> &&o)
+      : first(std::move(o.first)), second(std::move(o.second))
+  {
+  }
   rdcpair(typename std::decay<A>::type &&a, typename std::decay<B>::type &&b)
       : first(std::move(a)), second(std::move(b))
   {

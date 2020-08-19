@@ -1,6 +1,9 @@
 #pragma once
 
+#include <algorithm>
+#include "apidefs.h"
 #include "rdcarray.h"
+#include "rdcpair.h"
 
 // this is a container with a key-value interface but no strong ordering guarantee.
 // The storage is an array of K,V pairs, which are unsorted below a given threshold. As a result

@@ -333,7 +333,7 @@ public:
 
     typename UnwrapHelper<realtype>::Outer *wrapped =
         (typename UnwrapHelper<realtype>::Outer *)record->Resource;
-    wrapped->real = obj;
+    wrapped->real = ToTypedHandle(obj).real;
 
     obj = realtype((uint64_t)wrapped);
 

@@ -52,25 +52,21 @@ struct ConstructorCounter
 
   ConstructorCounter()
   {
-    RDCASSERT(value != -9999);
     value = 0;
     Atomic::Inc32(&constructor);
   }
   ConstructorCounter(int v)
   {
-    RDCASSERT(value != -9999);
     value = v;
     Atomic::Inc32(&valueConstructor);
   }
   ConstructorCounter(const ConstructorCounter &other)
   {
-    RDCASSERT(value != -9999);
     value = other.value;
     Atomic::Inc32(&copyConstructor);
   }
   ConstructorCounter(ConstructorCounter &&other)
   {
-    RDCASSERT(value != -9999);
     value = other.value;
     other.value = -9999;
     Atomic::Inc32(&moveConstructor);
