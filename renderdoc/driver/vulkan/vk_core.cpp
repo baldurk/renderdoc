@@ -449,7 +449,7 @@ void WrappedVulkan::SubmitAndFlushImageStateBarriers(ImageBarrierSequence &barri
       };
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
-      for(auto it = queueBatch.begin(); it != queueBatch.end(); ++it)
+      for(auto it = batch.begin(); it != batch.end(); ++it)
       {
         vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
