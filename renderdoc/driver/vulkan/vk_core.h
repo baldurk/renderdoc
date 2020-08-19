@@ -551,6 +551,19 @@ private:
   rdcarray<VkEvent> m_CleanupEvents;
   rdcarray<VkEvent> m_PersistentEvents;
 
+  // reset queries must be restored to a valid state on next replay to ensure any query pool
+  // results copies that refer to previous frames have valid data. We initialised all of the
+  // query pool at creation time, but any queries that are reset might not be recorded within
+  // the frame - certainly not if we're doing partial replays. So we record all queries that are
+  // reset to re-initialise them.
+  struct ResetQuery
+  {
+    VkQueryPool pool;
+    uint32_t firstQuery;
+    uint32_t queryCount;
+  };
+  rdcarray<ResetQuery> m_ResetQueries;
+
   const VkFormatProperties &GetFormatProperties(VkFormat f);
 
   struct BakedCmdBufferInfo

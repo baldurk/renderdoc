@@ -1375,6 +1375,8 @@ bool WrappedVulkan::Serialise_vkCreateQueryPool(SerialiserType &ser, VkDevice de
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pool);
       GetResourceManager()->AddLiveResource(QueryPool, pool);
 
+      m_CreationInfo.m_QueryPool[live].Init(GetResourceManager(), m_CreationInfo, &CreateInfo);
+
       // We fill the query pool with valid but empty data, just so that future copies of query
       // results don't read from invalid data.
 

@@ -2696,6 +2696,65 @@ void WrappedVulkan::ApplyInitialContents()
   SubmitCmds();
   FlushQ();
   SubmitAndFlushImageStateBarriers(m_cleanupImageBarriers);
+
+  // reset any queries to a valid copy-able state if they need to be copied.
+  if(!m_ResetQueries.empty())
+  {
+    // sort all pools together
+    std::sort(m_ResetQueries.begin(), m_ResetQueries.end(),
+              [](const ResetQuery &a, const ResetQuery &b) { return a.pool < b.pool; });
+
+    cmd = GetNextCmd();
+
+    vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    uint32_t i = 0;
+    for(const ResetQuery &r : m_ResetQueries)
+    {
+      ObjDisp(cmd)->CmdResetQueryPool(Unwrap(cmd), Unwrap(r.pool), r.firstQuery, r.queryCount);
+
+      for(uint32_t q = 0; q < r.queryCount; q++)
+      {
+        // Timestamps are easy - we can do these without needing to render
+        if(m_CreationInfo.m_QueryPool[GetResID(r.pool)].queryType == VK_QUERY_TYPE_TIMESTAMP)
+        {
+          ObjDisp(cmd)->CmdWriteTimestamp(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                          Unwrap(r.pool), r.firstQuery + q);
+        }
+        else
+        {
+          ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), Unwrap(r.pool), r.firstQuery + q, 0);
+          ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), Unwrap(r.pool), r.firstQuery + q);
+        }
+
+        i++;
+
+        // split the command buffer and flush if the number of queries is massive
+        if(i > 0 && (i % (128 * 1024)) == 0)
+        {
+          vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+          SubmitCmds();
+          FlushQ();
+
+          cmd = GetNextCmd();
+
+          vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        }
+      }
+    }
+
+    vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    m_ResetQueries.clear();
+
+    SubmitCmds();
+    FlushQ();
+  }
 }
 
 bool WrappedVulkan::ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)

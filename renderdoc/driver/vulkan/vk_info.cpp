@@ -1264,6 +1264,14 @@ void VulkanCreationInfo::ShaderModuleReflection::PopulateDisassembly(const rdcsp
     disassembly = spirv.Disassemble(refl.entryPoint.c_str(), instructionLines);
 }
 
+void VulkanCreationInfo::QueryPool::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+                                         const VkQueryPoolCreateInfo *pCreateInfo)
+{
+  queryType = pCreateInfo->queryType;
+  queryCount = pCreateInfo->queryCount;
+  pipelineStatistics = pCreateInfo->pipelineStatistics;
+}
+
 void VulkanCreationInfo::DescSetPool::Init(VulkanResourceManager *resourceMan,
                                            VulkanCreationInfo &info,
                                            const VkDescriptorPoolCreateInfo *pCreateInfo)

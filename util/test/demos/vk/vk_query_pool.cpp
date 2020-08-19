@@ -61,10 +61,9 @@ RD_TEST(VK_Query_Pool, VulkanGraphicsTest)
 
     VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
 
-    AllocatedBuffer vb(
-        this, vkh::BufferCreateInfo(sizeof(DefaultTri), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+    AllocatedBuffer vb(this, vkh::BufferCreateInfo(4096, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                       VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
 
     vb.upload(DefaultTri);
 
@@ -78,11 +77,43 @@ RD_TEST(VK_Query_Pool, VulkanGraphicsTest)
     VkQueryPool pool;
     vkCreateQueryPool(device, &poolInfo, NULL, &pool);
 
+    // populate the query we'll read the first frame
+    {
+      VkCommandBuffer cmd = GetCommandBuffer();
+
+      vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+
+      vkCmdResetQueryPool(cmd, pool, 100, 4);
+
+      vkCmdBeginQuery(cmd, pool, 100, 0);
+      vkCmdEndQuery(cmd, pool, 100);
+
+      vkEndCommandBuffer(cmd);
+
+      Submit(99, 99, {cmd});
+
+      vkQueueWaitIdle(queue);
+    }
+
     while(Running())
     {
       VkCommandBuffer cmd = GetCommandBuffer();
 
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
+
+      // use a query from a previous frame then immediately reset it
+      uint32_t prevQueryIdx = (curFrame % 4);
+
+      vkCmdCopyQueryPoolResults(cmd, pool, 100 + prevQueryIdx, 1, vb.buffer,
+                                1024 + sizeof(uint64_t) * prevQueryIdx, sizeof(uint64_t),
+                                VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+      vkCmdResetQueryPool(cmd, pool, 100 + prevQueryIdx, 1);
+
+      uint32_t curQueryIdx = ((curFrame + 1) % 4);
+
+      // fill the next query
+      vkCmdBeginQuery(cmd, pool, 100 + curQueryIdx, 0);
+      vkCmdEndQuery(cmd, pool, 100 + curQueryIdx);
 
       vkCmdResetQueryPool(cmd, pool, 123456, 1);
 

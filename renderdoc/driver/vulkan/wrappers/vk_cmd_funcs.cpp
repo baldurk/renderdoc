@@ -3781,6 +3781,8 @@ bool WrappedVulkan::Serialise_vkCmdResetQueryPool(SerialiserType &ser, VkCommand
     {
       ObjDisp(commandBuffer)
           ->CmdResetQueryPool(Unwrap(commandBuffer), Unwrap(queryPool), firstQuery, queryCount);
+
+      m_ResetQueries.push_back({queryPool, firstQuery, queryCount});
     }
   }
 

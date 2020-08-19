@@ -609,6 +609,17 @@ struct VulkanCreationInfo
   };
   std::map<ResourceId, DescSetPool> m_DescSetPool;
 
+  struct QueryPool
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
+              const VkQueryPoolCreateInfo *pCreateInfo);
+
+    VkQueryType queryType;
+    uint32_t queryCount;
+    VkQueryPipelineStatisticFlags pipelineStatistics;
+  };
+  std::map<ResourceId, QueryPool> m_QueryPool;
+
   std::map<ResourceId, rdcstr> m_Names;
   std::map<ResourceId, SwapchainInfo> m_SwapChain;
   std::map<ResourceId, DescSetLayout> m_DescSetLayout;
@@ -619,6 +630,7 @@ struct VulkanCreationInfo
 
   void erase(ResourceId id)
   {
+    m_QueryPool.erase(id);
     m_Pipeline.erase(id);
     m_PipelineLayout.erase(id);
     m_RenderPass.erase(id);
