@@ -878,7 +878,7 @@ Win32CallstackResolver::Win32CallstackResolver(bool interactive, byte *moduleDB,
 
     if(pdbIgnores.contains(m.name))
     {
-      RDCWARN("Not attempting to get symbols for %ls", m.name.c_str());
+      RDCWARN("Not attempting to get symbols for %s", m.name.c_str());
 
       modules.push_back(m);
       continue;
