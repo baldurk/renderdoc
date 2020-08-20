@@ -649,7 +649,7 @@ void DXBCContainer::GetHash(uint32_t hash[4], const void *ByteCode, size_t Bytec
 
   FileHeader *header = (FileHeader *)ByteCode;
 
-  memset(hash, 0, sizeof(hash));
+  memset(hash, 0, sizeof(uint32_t) * 4);
 
   if(header->fourcc != FOURCC_DXBC)
     return;
