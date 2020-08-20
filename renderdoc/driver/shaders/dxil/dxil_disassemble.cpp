@@ -1438,7 +1438,6 @@ rdcstr Type::toString() const
 
   switch(type)
   {
-    case Void: return "void";
     case Scalar:
     {
       switch(scalarType)

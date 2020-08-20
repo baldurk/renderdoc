@@ -1534,10 +1534,7 @@ DXBCContainer::DXBCContainer(bytebuf &ByteCode, const rdcstr &debugInfoPath)
 
   // make sure to fetch the dispatch threads dimension from disassembly
   if(m_Type == DXBC::ShaderType::Compute && m_DXBCByteCode)
-  {
-    if(m_DXBCByteCode)
-      m_DXBCByteCode->FetchComputeProperties(m_Reflection);
-  }
+    m_DXBCByteCode->FetchComputeProperties(m_Reflection);
 
   // initialise debug chunks last
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)

@@ -1378,10 +1378,6 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
     D3D12_SHADER_BYTECODE *srcArr[] = {&pipe->graphics->VS, &pipe->graphics->HS, &pipe->graphics->DS,
                                        &pipe->graphics->GS, &pipe->graphics->PS};
 
-    D3D12_SHADER_VISIBILITY visibility[] = {
-        D3D12_SHADER_VISIBILITY_VERTEX, D3D12_SHADER_VISIBILITY_HULL, D3D12_SHADER_VISIBILITY_DOMAIN,
-        D3D12_SHADER_VISIBILITY_GEOMETRY, D3D12_SHADER_VISIBILITY_PIXEL};
-
     for(size_t stage = 0; stage < 5; stage++)
     {
       D3D12Pipe::Shader &dst = *dstArr[stage];

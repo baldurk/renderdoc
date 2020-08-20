@@ -271,8 +271,6 @@ void VulkanResourceManager::SerialiseImageStates(SerialiserType &ser,
 
   auto srcit = states.begin();
 
-  std::set<ResourceId> updatedState;
-
   for(uint32_t i = 0; i < NumImages; i++)
   {
     SERIALISE_ELEMENT_LOCAL(Image, (ResourceId)(srcit->first)).TypedAs("VkImage"_lit);

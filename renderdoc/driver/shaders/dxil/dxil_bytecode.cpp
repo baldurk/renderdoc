@@ -591,7 +591,6 @@ Program::Program(const byte *bytes, size_t length)
         // all global symbols are 'values' in LLVM, we don't need this but need to keep indexing the
         // same
         Constant v;
-        v.type = g.type;
         v.symbol = true;
 
         v.type = GetPointerType(g.type);

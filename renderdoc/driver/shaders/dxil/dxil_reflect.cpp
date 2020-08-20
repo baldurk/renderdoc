@@ -721,7 +721,6 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
       bind.retType = RETURN_TYPE_UNKNOWN;
       break;
     case ResourceKind::RawBuffer:
-      bind.type = ShaderInputBind::TYPE_BYTEADDRESS;
       bind.type = srv ? ShaderInputBind::TYPE_BYTEADDRESS : ShaderInputBind::TYPE_UAV_RWBYTEADDRESS;
       defName = srv ? "ByteAddressBuffer" : "RWByteAddressBuffer";
       bind.dimension = ShaderInputBind::DIM_BUFFER;

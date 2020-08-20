@@ -747,8 +747,6 @@ void D3D11Replay::SavePipelineState(uint32_t eventId)
     const D3D11RenderState::Shader *srcArr[] = {&rs->VS, &rs->HS, &rs->DS,
                                                 &rs->GS, &rs->PS, &rs->CS};
 
-    const char *stageNames[] = {"Vertex", "Hull", "Domain", "Geometry", "Pixel", "Compute"};
-
     for(size_t stage = 0; stage < 6; stage++)
     {
       D3D11Pipe::Shader &dst = *dstArr[stage];

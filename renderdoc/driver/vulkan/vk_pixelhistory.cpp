@@ -2495,8 +2495,6 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     VkPipelineDepthStencilStateCreateInfo *ds =
         (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
 
-    VkRect2D newScissors[16];
-    memset(newScissors, 0, sizeof(newScissors));
     // Modify the stencil state, so that only one fragment passes.
     {
       ds->stencilTestEnable = VK_TRUE;

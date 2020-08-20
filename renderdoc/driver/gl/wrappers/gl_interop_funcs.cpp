@@ -129,10 +129,6 @@ HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLui
     uint32_t width = 0, height = 0, depth = 0, mips = 0, layers = 0, samples = 0;
     GetDXTextureProperties(dxObject, fmt, width, height, depth, mips, layers, samples);
 
-    // defined as arrays mostly for Coverity code analysis to stay calm about passing
-    // them to the *TexParameter* functions
-    GLint maxlevel[4] = {GLint(mips - 1), 0, 0, 0};
-
     GL.glTextureParameteriEXT(wrapped->res.name, type, eGL_TEXTURE_MAX_LEVEL, GLint(mips - 1));
 
     ResourceId texId = record->GetResourceID();
