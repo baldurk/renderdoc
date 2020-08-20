@@ -1976,6 +1976,13 @@ This will be in the form "MAJOR.MINOR"
 )");
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetVersionString();
 
+DOCUMENT(R"(Determines if this is a release build of RenderDoc or not.
+
+:return: ``True`` if the replay is running on a release build.
+:rtype: ``bool``
+)");
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_IsReleaseBuild();
+
 DOCUMENT(R"(Retrieves the commit hash used to build.
 
 This will be in the form "0123456789abcdef0123456789abcdef01234567"

@@ -3415,8 +3415,8 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
 
     // this set layout has arrays of each type. We'll uniformly, dynamic-uniformly, and
     // non-uniformly access each of these
-    VkDescriptorSetLayout setlayout1;
-    VkDescriptorSetLayout setlayout2;
+    VkDescriptorSetLayout setlayout1 = VK_NULL_HANDLE;
+    VkDescriptorSetLayout setlayout2 = VK_NULL_HANDLE;
 
     if(descIndexing)
     {
@@ -3650,6 +3650,7 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
         float f[4];
         int i[4];
       } rnd;
+      memset(&rnd, 0, sizeof(rnd));
 
       for(size_t x = 0; x < 16; x++)
       {
@@ -3758,8 +3759,8 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
         VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK, 0.0f, 0.0f, 0.0f, VK_COMPARE_OP_LESS_OR_EQUAL));
 
     VkDescriptorSet descset0 = allocateDescriptorSet(setlayout0);
-    VkDescriptorSet descset1;
-    VkDescriptorSet descset2;
+    VkDescriptorSet descset1 = VK_NULL_HANDLE;
+    VkDescriptorSet descset2 = VK_NULL_HANDLE;
 
     if(descIndexing)
     {

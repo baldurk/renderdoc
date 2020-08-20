@@ -263,6 +263,7 @@
     <ClCompile Include="test_common.cpp" />
     <ClCompile Include="texture_zoo.cpp" />
     <ClCompile Include="vk\vk_custom_border_color.cpp" />
+    <ClCompile Include="vk\vk_descriptor_reuse.cpp" />
     <ClCompile Include="vk\vk_discard_zoo.cpp" />
     <ClCompile Include="vk\vk_empty_capture.cpp" />
     <ClCompile Include="vk\vk_extended_dyn_state.cpp" />

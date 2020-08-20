@@ -177,6 +177,15 @@ extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetVersionString()
   return MAJOR_MINOR_VERSION_STRING;
 }
 
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_IsReleaseBuild()
+{
+#if ENABLED(RDOC_RELEASE)
+  return true;
+#else
+  return false;
+#endif
+}
+
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetCommitHash()
 {
   return GitVersionHash;
