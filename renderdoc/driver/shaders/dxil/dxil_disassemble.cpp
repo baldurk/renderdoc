@@ -1180,7 +1180,7 @@ void Program::MakeDisassemblyString()
           }
         }
 
-        if(debugCall)
+        if(debugCall && inst.funcCall)
         {
           size_t varIdx = 0, exprIdx = 0;
           if(inst.funcCall->name == "llvm.dbg.value")

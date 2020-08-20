@@ -1910,7 +1910,7 @@ rdcstr GetProfile(const ShaderCompileFlags &compileFlags)
 
       prof += 4;
 
-      return rdcstr(prof, strstr(prof, " ") - prof);
+      return rdcstr(prof, strchr(prof, ' ') - prof);
     }
   }
 

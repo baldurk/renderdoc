@@ -945,7 +945,7 @@ void TimelineBar::paintMarkers(QPainter &p, const QVector<Marker> &markers,
 
     // if everything was elided, just omit the title entirely
     if(elided == tooshort)
-      elided = QString();
+      elided.clear();
 
     r.setLeft(qRound(r.left() + margin));
 

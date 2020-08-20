@@ -1189,7 +1189,7 @@ dds_data load_dds_from_file(StreamReader *reader)
   }
 
   if(uint64_t(ret.slices) > fileSize || uint64_t(ret.mips) > fileSize ||
-     uint64_t(ret.slices * ret.mips) > fileSize)
+     uint64_t(ret.slices) * ret.mips > fileSize)
   {
     RDCERR("Invalid slice count %u or mip count %u", ret.slices, ret.mips);
     return ret;

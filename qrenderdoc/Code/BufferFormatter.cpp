@@ -625,7 +625,8 @@ QString BufferFormatter::GetBufferFormatString(const ShaderResource &res,
 
         if(i + 1 == members.count())
         {
-          comment = arraySize = QString();
+          comment.clear();
+          arraySize.clear();
 
           if(members.count() > 1)
             format +=

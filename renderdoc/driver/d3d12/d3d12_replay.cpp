@@ -3425,6 +3425,8 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     readbackDesc.Width += subSize;
   }
 
+  UINT rowcount = rowcounts[0];
+
   D3D12_HEAP_PROPERTIES heapProps;
   heapProps.Type = D3D12_HEAP_TYPE_READBACK;
   heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -3521,9 +3523,9 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     {
       for(UINT z = 0; z < layouts[0].Footprint.Depth; z++)
       {
-        for(UINT y = 0; y < rowcounts[0]; y++)
+        for(UINT y = 0; y < rowcount; y++)
         {
-          UINT row = y + z * rowcounts[0];
+          UINT row = y + z * rowcount;
 
           // we can copy the depth from D24 as a 32-bit integer, since the remaining bits are
           // garbage
@@ -3554,9 +3556,9 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     // copy row by row
     for(UINT z = 0; z < layouts[0].Footprint.Depth; z++)
     {
-      for(UINT y = 0; y < rowcounts[0]; y++)
+      for(UINT y = 0; y < rowcount; y++)
       {
-        UINT row = y + z * rowcounts[0];
+        UINT row = y + z * rowcount;
 
         byte *src = pData + layouts[0].Footprint.RowPitch * row;
         byte *dst = data.data() + dstRowPitch * row;
@@ -3569,9 +3571,9 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
     if(layouts[0].Footprint.Depth > 1 && slice3DCopy > 0 &&
        (int)slice3DCopy < layouts[0].Footprint.Depth)
     {
-      for(UINT y = 0; y < rowcounts[0]; y++)
+      for(UINT y = 0; y < rowcount; y++)
       {
-        UINT srcrow = y + slice3DCopy * rowcounts[0];
+        UINT srcrow = y + slice3DCopy * rowcount;
         UINT dstrow = y;
 
         byte *src = pData + layouts[0].Footprint.RowPitch * srcrow;

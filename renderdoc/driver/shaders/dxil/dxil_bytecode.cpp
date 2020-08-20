@@ -581,7 +581,7 @@ Program::Program(const byte *bytes, size_t length)
           default: break;
         }
 
-        g.align = (1U << rootchild.ops[4]) >> 1;
+        g.align = (1ULL << rootchild.ops[4]) >> 1;
 
         g.section = int32_t(rootchild.ops[5]) - 1;
 
@@ -704,14 +704,14 @@ Program::Program(const byte *bytes, size_t length)
             {
               case 0:
               {
-                group.params |= Attribute(1U << (attrgroup.ops[i + 1]));
+                group.params |= Attribute(1ULL << (attrgroup.ops[i + 1]));
                 i++;
                 break;
               }
               case 1:
               {
                 uint64_t param = attrgroup.ops[i + 2];
-                Attribute attr = Attribute(1U << attrgroup.ops[i + 1]);
+                Attribute attr = Attribute(1ULL << attrgroup.ops[i + 1]);
                 group.params |= attr;
                 switch(attr)
                 {
