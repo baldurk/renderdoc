@@ -68,16 +68,33 @@ void main()
   const std::string asm_vertex = R"EOSHADER(
                OpCapability Shader
                OpMemoryModel Logical GLSL450
-               OpEntryPoint Vertex %main "main" %idx %pos
+               OpEntryPoint Vertex %main "main" %idx %pos %imgres
                OpDecorate %idx BuiltIn VertexIndex
                OpDecorate %pos BuiltIn Position
+               OpDecorate %imgres Location 0
+               OpDecorate %imgs DescriptorSet 0
+               OpDecorate %imgs Binding 10
+               OpMemberDecorate %PushData 0 Offset 0
+               OpDecorate %PushData Block
        %void = OpTypeVoid
           %3 = OpTypeFunction %void
        %uint = OpTypeInt 32 0
+        %int = OpTypeInt 32 1
       %float = OpTypeFloat 32
+      %int_0 = OpConstant %int 0
+         %10 = OpTypeImage %float 2D 0 0 0 1 Unknown
+     %uint_4 = OpConstant %uint 4
+%_arr_10_uint_4 = OpTypeArray %10 %uint_4
+%_ptr_UniformConstant__arr_10_uint_4 = OpTypePointer UniformConstant %_arr_10_uint_4
+%_ptr_UniformConstant_10 = OpTypePointer UniformConstant %10
+       %imgs = OpVariable %_ptr_UniformConstant__arr_10_uint_4 UniformConstant
+   %PushData = OpTypeStruct %uint
+%_ptr_PushConstant_PushData = OpTypePointer PushConstant %PushData
+%_ptr_PushConstant_uint = OpTypePointer PushConstant %uint
+       %push = OpVariable %_ptr_PushConstant_PushData PushConstant
+      %v2int = OpTypeVector %int 2
     %v4float = OpTypeVector %float 4
     %v2float = OpTypeVector %float 2
-     %uint_4 = OpConstant %uint 4
 %_arr_v2float_uint_4 = OpTypeArray %v2float %uint_4
 %_ptr_Function__arr_v2float_uint_4 = OpTypePointer Function %_arr_v2float_uint_4
    %float_n1 = OpConstant %float -1
@@ -93,6 +110,7 @@ void main()
         %idx = OpVariable %_ptr_Input_uint Input
 %_ptr_Output_v4float = OpTypePointer Output %v4float
 %pos = OpVariable %_ptr_Output_v4float Output
+%imgres = OpVariable %_ptr_Output_v4float Output
        %main = OpFunction %void None %3
           %5 = OpLabel
          %45 = OpVariable %_ptr_Function__arr_v2float_uint_4 Function
@@ -103,58 +121,18 @@ void main()
          %51 = OpCompositeExtract %float %50 0
          %52 = OpCompositeExtract %float %50 1
          %53 = OpCompositeConstruct %v4float %51 %52 %float_0 %float_1
-               OpStore %pos %53
-               OpReturn
-               OpFunctionEnd
-)EOSHADER";
 
-  const std::string asm_pixel = R"EOSHADER(
-               OpCapability Shader
-               OpMemoryModel Logical GLSL450
-               OpEntryPoint Fragment %main "main" %col %coord
-               OpExecutionMode %main OriginUpperLeft
-               OpDecorate %col Location 0
-               OpDecorate %imgs DescriptorSet 0
-               OpDecorate %imgs Binding 10
-               OpMemberDecorate %PushData 0 Offset 0
-               OpDecorate %PushData Block
-               OpDecorate %coord BuiltIn FragCoord
-       %void = OpTypeVoid
-          %3 = OpTypeFunction %void
-      %float = OpTypeFloat 32
-    %v4float = OpTypeVector %float 4
-%_ptr_Output_v4float = OpTypePointer Output %v4float
-        %col = OpVariable %_ptr_Output_v4float Output
-         %10 = OpTypeImage %float 2D 0 0 0 1 Unknown
-       %uint = OpTypeInt 32 0
-     %uint_4 = OpConstant %uint 4
-%_arr_10_uint_4 = OpTypeArray %10 %uint_4
-%_ptr_UniformConstant__arr_10_uint_4 = OpTypePointer UniformConstant %_arr_10_uint_4
-       %imgs = OpVariable %_ptr_UniformConstant__arr_10_uint_4 UniformConstant
-   %PushData = OpTypeStruct %uint
-%_ptr_PushConstant_PushData = OpTypePointer PushConstant %PushData
-       %push = OpVariable %_ptr_PushConstant_PushData PushConstant
-        %int = OpTypeInt 32 1
-      %int_0 = OpConstant %int 0
-%_ptr_PushConstant_uint = OpTypePointer PushConstant %uint
-%_ptr_UniformConstant_10 = OpTypePointer UniformConstant %10
-%_ptr_Input_v4float = OpTypePointer Input %v4float
-      %coord = OpVariable %_ptr_Input_v4float Input
-      %v4int = OpTypeVector %int 4
-      %v2int = OpTypeVector %int 2
-       %main = OpFunction %void None %3
-          %5 = OpLabel
-         %22 = OpAccessChain %_ptr_PushConstant_uint %push %int_0
-         %23 = OpLoad %uint %22
-         %25 = OpAccessChain %_ptr_UniformConstant_10 %imgs %23
-         %26 = OpLoad %10 %25
-         %29 = OpLoad %v4float %coord
-         %31 = OpConvertFToS %v4int %29
-         %33 = OpCompositeExtract %int %31 0
-         %34 = OpCompositeExtract %int %31 1
-         %35 = OpCompositeConstruct %v2int %33 %34
-         %36 = OpImageFetch %v4float %26 %35 Lod %int_0
-               OpStore %col %36
+               OpStore %pos %53
+
+         %54 = OpAccessChain %_ptr_PushConstant_uint %push %int_0
+         %55 = OpLoad %uint %54
+         %56 = OpAccessChain %_ptr_UniformConstant_10 %imgs %55
+         %57 = OpLoad %10 %56
+         %58 = OpCompositeConstruct %v2int %int_0 %int_0
+         %59 = OpImageFetch %v4float %57 %58 Lod %int_0
+
+               OpStore %imgres %59
+
                OpReturn
                OpFunctionEnd
 )EOSHADER";
@@ -427,13 +405,13 @@ void main()
             {5, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 0},
             {6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, VK_SHADER_STAGE_VERTEX_BIT},
             {9, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, VK_SHADER_STAGE_VERTEX_BIT},
-            {10, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 4, VK_SHADER_STAGE_FRAGMENT_BIT},
+            {10, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 4, VK_SHADER_STAGE_VERTEX_BIT},
         }));
 
     VkDescriptorSet asm_descset = allocateDescriptorSet(asm_setlayout);
 
     VkPipelineLayout asm_layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
-        {asm_setlayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4)}));
+        {asm_setlayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, 0, 4)}));
 
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
@@ -472,7 +450,6 @@ void main()
 
     pipeCreateInfo.stages = {
         CompileShaderModule(asm_vertex, ShaderLang::spvasm, ShaderStage::vert, "main"),
-        CompileShaderModule(asm_pixel, ShaderLang::spvasm, ShaderStage::frag, "main"),
     };
 
     pipeCreateInfo.inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
@@ -486,6 +463,7 @@ void main()
       asm_info.viewportState.scissors.clear();
       asm_info.viewportState.viewportCount = 0;
       asm_info.viewportState.scissorCount = 0;
+      asm_info.rasterizationState.rasterizerDiscardEnable = VK_TRUE;
 
       asm_pipe = createGraphicsPipeline(asm_info);
     }
@@ -1079,6 +1057,54 @@ void main()
       CHECK_VKR(vkCreateSemaphore(device, vkh::SemaphoreCreateInfo().next(&semType), NULL, &sem));
     }
 
+    // check destroying NULL objects
+    vkDestroyBuffer(device, NULL, NULL);
+    vkDestroyBufferView(device, NULL, NULL);
+    vkDestroyCommandPool(device, NULL, NULL);
+    vkDestroyDescriptorPool(device, NULL, NULL);
+    vkDestroyDescriptorSetLayout(device, NULL, NULL);
+    vkDestroyDevice(NULL, NULL);
+    vkDestroyEvent(device, NULL, NULL);
+    vkDestroyFence(device, NULL, NULL);
+    vkDestroyFramebuffer(device, NULL, NULL);
+    vkDestroyImage(device, NULL, NULL);
+    vkDestroyImageView(device, NULL, NULL);
+    vkDestroyInstance(NULL, NULL);
+    vkDestroyPipeline(device, NULL, NULL);
+    vkDestroyPipelineCache(device, NULL, NULL);
+    vkDestroyPipelineLayout(device, NULL, NULL);
+    vkDestroyQueryPool(device, NULL, NULL);
+    vkDestroyRenderPass(device, NULL, NULL);
+    vkDestroySampler(device, NULL, NULL);
+    vkDestroySemaphore(device, NULL, NULL);
+    vkDestroyShaderModule(device, NULL, NULL);
+    vkDestroySurfaceKHR(instance, NULL, NULL);
+    vkDestroySwapchainKHR(device, NULL, NULL);
+    if(KHR_descriptor_update_template)
+    {
+      vkDestroyDescriptorUpdateTemplateKHR(device, NULL, NULL);
+    }
+
+    VkCommandPool cmdPool;
+    CHECK_VKR(vkCreateCommandPool(device, vkh::CommandPoolCreateInfo(), NULL, &cmdPool));
+    VkDescriptorPool descPool;
+    CHECK_VKR(vkCreateDescriptorPool(
+        device, vkh::DescriptorPoolCreateInfo(128,
+                                              {
+                                                  {VK_DESCRIPTOR_TYPE_SAMPLER, 1024},
+                                              },
+                                              VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
+        NULL, &descPool));
+
+    VkCommandBuffer emptyCmd = VK_NULL_HANDLE;
+    vkFreeCommandBuffers(device, cmdPool, 1, &emptyCmd);
+    VkDescriptorSet emptyDesc = VK_NULL_HANDLE;
+    vkFreeDescriptorSets(device, descPool, 1, &emptyDesc);
+    vkFreeMemory(device, VK_NULL_HANDLE, NULL);
+
+    vkDestroyCommandPool(device, cmdPool, NULL);
+    vkDestroyDescriptorPool(device, descPool, NULL);
+
     while(Running())
     {
       // acquire and clear the backbuffer
@@ -1229,49 +1255,11 @@ void main()
 
         vkCmdEndRenderPass(cmd);
 
-        if(vkCmdBeginDebugUtilsLabelEXT)
-        {
-          VkDebugUtilsLabelEXT info = {};
-          info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-          info.pLabelName = NULL;
-          vkCmdBeginDebugUtilsLabelEXT(cmd, &info);
-        }
-
-        if(vkCmdInsertDebugUtilsLabelEXT)
-        {
-          VkDebugUtilsLabelEXT info = {};
-          info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-          info.pLabelName = NULL;
-          vkCmdInsertDebugUtilsLabelEXT(cmd, &info);
-        }
-
-        if(vkCmdEndDebugUtilsLabelEXT)
-          vkCmdEndDebugUtilsLabelEXT(cmd);
-
         vkEndCommandBuffer(cmd);
 
         Submit(1, 4, {cmd});
 
         vkDeviceWaitIdle(device);
-
-        if(vkQueueBeginDebugUtilsLabelEXT)
-        {
-          VkDebugUtilsLabelEXT info = {};
-          info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-          info.pLabelName = NULL;
-          vkQueueBeginDebugUtilsLabelEXT(queue, &info);
-        }
-
-        if(vkQueueInsertDebugUtilsLabelEXT)
-        {
-          VkDebugUtilsLabelEXT info = {};
-          info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-          info.pLabelName = NULL;
-          vkQueueInsertDebugUtilsLabelEXT(queue, &info);
-        }
-
-        if(vkQueueEndDebugUtilsLabelEXT)
-          vkQueueEndDebugUtilsLabelEXT(queue);
 
         // scribble over the descriptor contents so that initial contents fetch never gets these
         // resources that way
@@ -1332,8 +1320,9 @@ void main()
         }
 
         uint32_t idx = 1;
+        vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, asm_pipe);
-        vkCmdPushConstants(cmd, asm_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4, &idx);
+        vkCmdPushConstants(cmd, asm_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, 4, &idx);
         vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, asm_layout, 0,
                                    {asm_descset}, {});
 
@@ -1343,7 +1332,6 @@ void main()
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
         vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
         vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
-        vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
         vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset},
                                    {0, 0});
         if(KHR_push_descriptor)
