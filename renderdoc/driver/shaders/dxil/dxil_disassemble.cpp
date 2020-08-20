@@ -943,7 +943,7 @@ void Program::MakeDisassemblyString()
             m_Disassembly += argToString(inst.args[1], true);
             for(size_t a = 2; a < inst.args.size(); a++)
             {
-              m_Disassembly += ", " + ToStr(inst.args[2].idx);
+              m_Disassembly += ", " + ToStr(inst.args[a].idx);
             }
             break;
           }
