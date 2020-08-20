@@ -110,6 +110,10 @@ float4 main() : SV_Target0
       SetBufferData(ib, D3D12_RESOURCE_STATE_COMMON, (const byte *)indices, sizeof(indices));
     }
 
+    ID3D12ResourcePtr rtvtex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 4, 4)
+                                   .RTV()
+                                   .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
+
     while(Running())
     {
       ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
@@ -142,7 +146,22 @@ float4 main() : SV_Target0
       RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
       RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
 
-      OMSetRenderTargets(cmd, {rtv}, {});
+      // trash slots 3 and 4
+      D3D12_CPU_DESCRIPTOR_HANDLE rtv3 = MakeRTV(rtvtex).CreateCPU(3);
+      D3D12_CPU_DESCRIPTOR_HANDLE rtv4 = MakeRTV(rtvtex).CreateCPU(4);
+
+      // write the proper RTV to slot 3
+      MakeRTV(bb).CreateCPU(3);
+
+      // copy to slot 4
+      dev->CopyDescriptorsSimple(1, rtv4, rtv3, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+      // bind from slot 4
+      cmd->OMSetRenderTargets(1, &rtv4, FALSE, NULL);
+
+      // trash RTV slots 3 and 4 again
+      MakeRTV(rtvtex).CreateCPU(3);
+      MakeRTV(rtvtex).CreateCPU(4);
 
       setMarker(cmd, "Color Draw");
 
