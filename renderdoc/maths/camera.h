@@ -34,7 +34,10 @@ class Matrix4f;
 class Camera : public ICamera
 {
 public:
-  Camera(CameraType t) : type(t), dirty(true), pos(), dist(0.0f), angles() { ResetArcball(); }
+  Camera(CameraType t) : type(t), dirty(true), pos(), dist(0.0f), angles()
+  {
+    Camera::ResetArcball();
+  }
   virtual ~Camera() {}
   void Shutdown() { delete this; }
   void SetPosition(float x, float y, float z)

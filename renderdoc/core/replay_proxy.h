@@ -130,8 +130,8 @@ public:
         m_Replay(NULL),
         m_RemoteServer(false)
   {
-    GetAPIProperties();
-    FetchStructuredFile();
+    ReplayProxy::GetAPIProperties();
+    ReplayProxy::FetchStructuredFile();
   }
 
   ReplayProxy(ReadSerialiser &reader, WriteSerialiser &writer, IRemoteDriver *remoteDriver,
