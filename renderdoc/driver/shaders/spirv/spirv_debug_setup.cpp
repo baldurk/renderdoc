@@ -423,7 +423,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
   debugStatus.trim();
 }
 
-ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const ShaderStage stage,
+ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage shaderStage,
                                        const rdcstr &entryPoint,
                                        const rdcarray<SpecConstant> &specInfo,
                                        const std::map<size_t, uint32_t> &instructionLines,
@@ -468,12 +468,12 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
 
   ShaderDebugTrace *ret = new ShaderDebugTrace;
   ret->debugger = this;
-  ret->stage = stage;
-  this->activeLaneIndex = activeIndex;
-  this->stage = stage;
-  this->apiWrapper = apiWrapper;
+  ret->stage = shaderStage;
+  activeLaneIndex = activeIndex;
+  stage = shaderStage;
+  apiWrapper = api;
 
-  uint32_t workgroupSize = stage == ShaderStage::Pixel ? 4 : 1;
+  uint32_t workgroupSize = shaderStage == ShaderStage::Pixel ? 4 : 1;
   for(uint32_t i = 0; i < workgroupSize; i++)
     workgroup.push_back(ThreadState(i, *this, global));
 
@@ -558,7 +558,7 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, const Shader
       const rdcarray<rdcstr> &sigNames = isInput ? inputSigNames : outputSigNames;
 
       // fill the interface variable
-      auto fillInputCallback = [this, isInput, ret, stage, &sigNames, &rawName, &sourceName](
+      auto fillInputCallback = [this, isInput, ret, &sigNames, &rawName, &sourceName](
           ShaderVariable &var, const Decorations &curDecorations, const DataType &type,
           uint64_t location, const rdcstr &accessSuffix) {
 

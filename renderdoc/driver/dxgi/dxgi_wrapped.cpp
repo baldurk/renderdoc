@@ -211,8 +211,8 @@ HRESULT RefCountDXGIObject::WrapQueryInterface(IUnknown *real, REFIID riid, void
   return ret;
 }
 
-WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain *real, HWND wnd, ID3DDevice *device)
-    : RefCountDXGIObject(real), m_pReal(real), m_pDevice(device), m_Wnd(wnd)
+WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain *real, HWND w, ID3DDevice *device)
+    : RefCountDXGIObject(real), m_pReal(real), m_pDevice(device), m_Wnd(w)
 {
   DXGI_SWAP_CHAIN_DESC desc;
   real->GetDesc(&desc);
@@ -230,7 +230,7 @@ WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain *real, HWND wnd, I
 
   WrapBuffersAfterResize();
 
-  wnd = GetHWND();
+  HWND wnd = GetHWND();
 
   if(wnd)
   {
