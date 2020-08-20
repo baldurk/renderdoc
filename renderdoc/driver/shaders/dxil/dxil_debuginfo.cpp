@@ -364,7 +364,7 @@ rdcstr DIDerivedType::toString() const
     ret += StringFormat::Fmt(", align: %llu", alignInBits);
   if(offsetInBits)
     ret += StringFormat::Fmt(", offset: %llu", offsetInBits);
-  if(flags)
+  if(flags != DIFlagNone)
     ret += StringFormat::Fmt(", flags: %s", ToStr(flags).c_str());
   if(extra)
     ret += StringFormat::Fmt(", extraData: %s", extra->refString().c_str());
@@ -391,7 +391,7 @@ rdcstr DICompositeType::toString() const
     ret += StringFormat::Fmt(", align: %llu", alignInBits);
   if(offsetInBits)
     ret += StringFormat::Fmt(", offset: %llu", offsetInBits);
-  if(flags)
+  if(flags != DIFlagNone)
     ret += StringFormat::Fmt(", flags: %s", ToStr(flags).c_str());
   if(elements)
     ret += StringFormat::Fmt(", elements: %s", elements->refString().c_str());
@@ -446,7 +446,7 @@ rdcstr DISubprogram::toString() const
       ret += StringFormat::Fmt(", virtualIndex: %llu", virtualIndex);
   }
 
-  if(flags)
+  if(flags != DIFlagNone)
     ret += StringFormat::Fmt(", flags: %s", ToStr(flags).c_str());
 
   ret += StringFormat::Fmt(", isOptimized: %s", isOptimized ? "true" : "false");
@@ -510,7 +510,7 @@ rdcstr DILocalVariable::toString() const
     ret += StringFormat::Fmt(", line: %llu", line);
   if(type)
     ret += StringFormat::Fmt(", type: %s", type->refString().c_str());
-  if(flags)
+  if(flags != DIFlagNone)
     ret += StringFormat::Fmt(", flags: %s", ToStr(flags).c_str());
   if(alignInBits)
     ret += StringFormat::Fmt(", align: %llu", alignInBits);

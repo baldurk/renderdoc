@@ -337,6 +337,7 @@ enum DW_OP
 
 enum DIFlags
 {
+  DIFlagNone = 0,
   DIFlagPrivate = 1,
   DIFlagProtected = 2,
   DIFlagPublic = 3,
