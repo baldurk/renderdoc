@@ -27,6 +27,11 @@
 
 #include <stdint.h>
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4201)
+#endif
+
 struct Vec2f
 {
   Vec2f(float X = 0.0f, float Y = 0.0f)
@@ -34,8 +39,15 @@ struct Vec2f
     x = X;
     y = Y;
   }
-  float x;
-  float y;
+
+  union
+  {
+    struct
+    {
+      float x, y;
+    };
+    float fv[2];
+  };
 };
 
 class Vec3f
@@ -57,7 +69,14 @@ public:
     z /= l;
   }
 
-  float x, y, z;
+  union
+  {
+    struct
+    {
+      float x, y, z;
+    };
+    float fv[3];
+  };
 };
 
 struct FloatVector;
@@ -74,7 +93,14 @@ struct Vec4f
   Vec4f(const FloatVector &v);
   operator Vec3f() const { return Vec3f(x, y, z); }
   operator FloatVector() const;
-  float x, y, z, w;
+  union
+  {
+    struct
+    {
+      float x, y, z, w;
+    };
+    float fv[4];
+  };
 };
 
 inline Vec3f operator*(const Vec3f &a, const float b)
@@ -150,5 +176,16 @@ struct Vec4u
     z = Z;
     w = W;
   }
-  uint32_t x, y, z, w;
+  union
+  {
+    struct
+    {
+      uint32_t x, y, z, w;
+    };
+    uint32_t uv[4];
+  };
 };
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

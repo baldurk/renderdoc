@@ -484,34 +484,17 @@ public:
       const DerivativeDeltas &deriv = location_derivatives[location];
 
       DerivativeDeltas ret;
-      if(component == 0)
+
+      RDCASSERT(component < 4, component);
+
+      // rebase from component into [0]..
+
+      for(uint32_t src = component, dst = 0; src < 4; src++, dst++)
       {
-        ret = deriv;
-      }
-      else if(component == 1)
-      {
-        memcpy(&ret.ddxcoarse.x, &deriv.ddxcoarse.y, sizeof(Vec3f));
-        memcpy(&ret.ddxfine.x, &deriv.ddxfine.y, sizeof(Vec3f));
-        memcpy(&ret.ddycoarse.x, &deriv.ddycoarse.y, sizeof(Vec3f));
-        memcpy(&ret.ddyfine.x, &deriv.ddyfine.y, sizeof(Vec3f));
-      }
-      else if(component == 2)
-      {
-        memcpy(&ret.ddxcoarse.x, &deriv.ddxcoarse.z, sizeof(Vec2f));
-        memcpy(&ret.ddxfine.x, &deriv.ddxfine.z, sizeof(Vec2f));
-        memcpy(&ret.ddycoarse.x, &deriv.ddycoarse.z, sizeof(Vec2f));
-        memcpy(&ret.ddyfine.x, &deriv.ddyfine.z, sizeof(Vec2f));
-      }
-      else if(component == 3)
-      {
-        ret.ddxcoarse.x = deriv.ddxcoarse.w;
-        ret.ddxfine.x = deriv.ddxfine.w;
-        ret.ddycoarse.x = deriv.ddycoarse.w;
-        ret.ddyfine.x = deriv.ddyfine.w;
-      }
-      else
-      {
-        RDCERR("Unexpected component %u", component);
+        ret.ddxcoarse.fv[dst] = deriv.ddxcoarse.fv[src];
+        ret.ddxfine.fv[dst] = deriv.ddxfine.fv[src];
+        ret.ddycoarse.fv[dst] = deriv.ddycoarse.fv[src];
+        ret.ddyfine.fv[dst] = deriv.ddyfine.fv[src];
       }
 
       return ret;
@@ -4284,11 +4267,11 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
       const size_t sz = sizeof(Vec4f) - sizeof(uint32_t) * comp;
 
-      memcpy(((uint32_t *)&var.value.uv) + comp, &value[i], sz);
-      memcpy(((uint32_t *)&deriv.ddxcoarse.x) + comp, &ddxcoarse[i], sz);
-      memcpy(((uint32_t *)&deriv.ddycoarse.x) + comp, &ddycoarse[i], sz);
-      memcpy(((uint32_t *)&deriv.ddxfine.x) + comp, &ddxfine[i], sz);
-      memcpy(((uint32_t *)&deriv.ddyfine.x) + comp, &ddyfine[i], sz);
+      memcpy(&var.value.uv[comp], &value[i], sz);
+      memcpy(&deriv.ddxcoarse.fv[comp], &ddxcoarse[i], sz);
+      memcpy(&deriv.ddycoarse.fv[comp], &ddycoarse[i], sz);
+      memcpy(&deriv.ddxfine.fv[comp], &ddxfine[i], sz);
+      memcpy(&deriv.ddyfine.fv[comp], &ddyfine[i], sz);
     }
 
     ret = debugger->BeginDebug(apiWrapper, ShaderStage::Pixel, entryPoint, spec,
