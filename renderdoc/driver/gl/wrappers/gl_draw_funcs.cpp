@@ -2264,7 +2264,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
 
       uint32_t baseEventID = m_Events[i].eventId;
 
-      if(m_LastEventID < baseEventID)
+      if(m_LastEventID <= baseEventID)
       {
         // To add the multidraw, we made an event N that is the 'parent' marker, then
         // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
@@ -2277,7 +2277,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
         // by just reducing the drawcount parameter to however many we want to replay. This only
         // works if we're replaying from the first multidraw to the nth (n less than drawcount)
         GL.glMultiDrawArrays(mode, first, count,
-                             RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID + 1));
+                             RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID));
       }
       else
       {
@@ -2290,7 +2290,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(SerialiserType &ser, GLenum mode
         // for all previous draws.
         RDCASSERT(m_LastEventID == m_FirstEventID);
 
-        uint32_t drawidx = (m_LastEventID - baseEventID);
+        uint32_t drawidx = (m_LastEventID - baseEventID - 1);
 
         // zero out the count for all previous draws. This won't be used again so we can safely
         // write over the serialised array.
@@ -2430,7 +2430,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
 
       uint32_t baseEventID = m_Events[i].eventId;
 
-      if(m_LastEventID < baseEventID)
+      if(m_LastEventID <= baseEventID)
       {
         // To add the multidraw, we made an event N that is the 'parent' marker, then
         // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
@@ -2444,7 +2444,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
         // works if we're replaying from the first multidraw to the nth (n less than Count)
         if(Check_SafeDraw(true))
           GL.glMultiDrawElements(mode, count, type, inds.data(),
-                                 RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID + 1));
+                                 RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID));
       }
       else
       {
@@ -2457,7 +2457,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(SerialiserType &ser, GLenum mo
         // for all previous draws.
         RDCASSERT(m_LastEventID == m_FirstEventID);
 
-        uint32_t drawidx = (m_LastEventID - baseEventID);
+        uint32_t drawidx = (m_LastEventID - baseEventID - 1);
 
         // zero out the count for all previous draws. This won't be used again so we can safely
         // write over the serialised array.
@@ -2601,7 +2601,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
 
       uint32_t baseEventID = m_Events[i].eventId;
 
-      if(m_LastEventID < baseEventID)
+      if(m_LastEventID <= baseEventID)
       {
         // To add the multidraw, we made an event N that is the 'parent' marker, then
         // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
@@ -2614,9 +2614,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
         // by just reducing the Count parameter to however many we want to replay. This only
         // works if we're replaying from the first multidraw to the nth (n less than Count)
         if(Check_SafeDraw(true))
-          GL.glMultiDrawElementsBaseVertex(
-              mode, count, type, inds.data(),
-              RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID + 1), basevertex);
+          GL.glMultiDrawElementsBaseVertex(mode, count, type, inds.data(),
+                                           RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID),
+                                           basevertex);
       }
       else
       {
@@ -2629,7 +2629,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(SerialiserType &ser,
         // for all previous draws.
         RDCASSERT(m_LastEventID == m_FirstEventID);
 
-        uint32_t drawidx = (m_LastEventID - baseEventID);
+        uint32_t drawidx = (m_LastEventID - baseEventID - 1);
 
         // zero out the count for all previous draws. This won't be used again so we can safely
         // write over the serialised array.
@@ -2790,7 +2790,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
 
       uint32_t baseEventID = m_Events[i].eventId;
 
-      if(m_LastEventID < baseEventID)
+      if(m_LastEventID <= baseEventID)
       {
         // To add the multidraw, we made an event N that is the 'parent' marker, then
         // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
@@ -2804,7 +2804,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
         // works if we're replaying from the first multidraw to the nth (n less than Count)
         if(Check_SafeDraw(false))
           GL.glMultiDrawArraysIndirect(mode, (const void *)offset,
-                                       RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID + 1),
+                                       RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID),
                                        stride);
       }
       else
@@ -2818,7 +2818,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
         // for all previous draws.
         RDCASSERT(m_LastEventID == m_FirstEventID);
 
-        uint32_t drawidx = (m_LastEventID - baseEventID);
+        uint32_t drawidx = (m_LastEventID - baseEventID - 1);
 
         DrawArraysIndirectCommand params = {};
 
@@ -3017,7 +3017,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
 
       uint32_t baseEventID = m_Events[i].eventId;
 
-      if(m_LastEventID < baseEventID)
+      if(m_LastEventID <= baseEventID)
       {
         // To add the multidraw, we made an event N that is the 'parent' marker, then
         // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
@@ -3030,9 +3030,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         // by just reducing the Count parameter to however many we want to replay. This only
         // works if we're replaying from the first multidraw to the nth (n less than Count)
         if(Check_SafeDraw(true))
-          GL.glMultiDrawElementsIndirect(
-              mode, type, (const void *)offset,
-              RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID + 1), stride);
+          GL.glMultiDrawElementsIndirect(mode, type, (const void *)offset,
+                                         RDCMIN((uint32_t)drawcount, m_LastEventID - baseEventID),
+                                         stride);
       }
       else
       {
@@ -3045,7 +3045,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         // for all previous draws.
         RDCASSERT(m_LastEventID == m_FirstEventID);
 
-        uint32_t drawidx = (m_LastEventID - baseEventID);
+        uint32_t drawidx = (m_LastEventID - baseEventID - 1);
 
         DrawElementsIndirectCommand params = {};
 
@@ -3244,7 +3244,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
 
       uint32_t baseEventID = m_Events[i].eventId;
 
-      if(m_LastEventID < baseEventID)
+      if(m_LastEventID <= baseEventID)
       {
         // To add the multidraw, we made an event N that is the 'parent' marker, then
         // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
@@ -3257,9 +3257,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
         // by just reducing the Count parameter to however many we want to replay. This only
         // works if we're replaying from the first multidraw to the nth (n less than Count)
         if(Check_SafeDraw(false))
-          GL.glMultiDrawArraysIndirect(
-              mode, (const void *)offset,
-              RDCMIN((uint32_t)realdrawcount, m_LastEventID - baseEventID + 1), stride);
+          GL.glMultiDrawArraysIndirect(mode, (const void *)offset,
+                                       RDCMIN((uint32_t)realdrawcount, m_LastEventID - baseEventID),
+                                       stride);
       }
       else
       {
@@ -3272,7 +3272,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
         // for all previous draws.
         RDCASSERT(m_LastEventID == m_FirstEventID);
 
-        uint32_t drawidx = (m_LastEventID - baseEventID);
+        uint32_t drawidx = (m_LastEventID - baseEventID - 1);
 
         DrawArraysIndirectCommand params = {};
 
@@ -3480,7 +3480,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
 
       uint32_t baseEventID = m_Events[i].eventId;
 
-      if(m_LastEventID < baseEventID)
+      if(m_LastEventID <= baseEventID)
       {
         // To add the multidraw, we made an event N that is the 'parent' marker, then
         // N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
@@ -3495,7 +3495,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
         if(Check_SafeDraw(true))
           GL.glMultiDrawElementsIndirect(
               mode, type, (const void *)offset,
-              RDCMIN((uint32_t)realdrawcount, m_LastEventID - baseEventID + 1), stride);
+              RDCMIN((uint32_t)realdrawcount, m_LastEventID - baseEventID), stride);
       }
       else
       {
@@ -3508,7 +3508,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
         // for all previous draws.
         RDCASSERT(m_LastEventID == m_FirstEventID);
 
-        uint32_t drawidx = (m_LastEventID - baseEventID);
+        uint32_t drawidx = (m_LastEventID - baseEventID - 1);
 
         DrawElementsIndirectCommand params = {};
 
