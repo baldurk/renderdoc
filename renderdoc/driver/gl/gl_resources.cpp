@@ -567,6 +567,10 @@ int GetNumMips(GLenum target, GLuint tex, GLuint w, GLuint h, GLuint d)
 {
   int mips = 1;
 
+  // renderbuffers don't have mips
+  if(target == eGL_RENDERBUFFER)
+    return 1;
+
   GLint immut = 0;
   GL.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
 
