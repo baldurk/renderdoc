@@ -853,7 +853,7 @@ void D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint64_t offset, uin
     return;
 
   RDCASSERT(offset < 0xffffffff);
-  RDCASSERT(length <= 0xffffffff);
+  RDCASSERT(length <= 0xffffffff || length == ~0ULL);
 
   uint32_t offs = (uint32_t)offset;
   uint32_t len = (uint32_t)length;
