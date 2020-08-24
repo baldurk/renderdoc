@@ -3628,7 +3628,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(SerialiserType &ser,
       else
         name = StringFormat::Fmt("%s(%s, %i, %f, %f, %f, %f)", ToStr(gl_CurChunk).c_str(),
                                  ToStr(buffer).c_str(), drawbuffer, value[0], value[1], value[2],
-                                 value[2]);
+                                 value[3]);
 
       DrawcallDescription draw;
       draw.name = name;
