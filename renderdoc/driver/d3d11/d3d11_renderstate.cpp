@@ -601,6 +601,38 @@ void D3D11RenderState::ReleaseRef(ID3D11DeviceChild *p)
   }
 }
 
+// these are overloads that take a buffer to skip the view IsAlloc checks
+
+void D3D11RenderState::TakeRef(ID3D11Buffer *p)
+{
+  if(p)
+  {
+    p->AddRef();
+    if(m_ImmediatePipeline)
+    {
+      m_pDevice->InternalRef();
+
+      // see above
+      ((WrappedDeviceChild11<ID3D11Buffer> *)p)->PipelineAddRef();
+    }
+  }
+}
+
+void D3D11RenderState::ReleaseRef(ID3D11Buffer *p)
+{
+  if(p)
+  {
+    p->Release();
+    if(m_ImmediatePipeline)
+    {
+      m_pDevice->InternalRelease();
+
+      // see above
+      ((WrappedDeviceChild11<ID3D11Buffer> *)p)->PipelineRelease();
+    }
+  }
+}
+
 bool D3D11RenderState::IsRangeBoundForWrite(const ResourceRange &range)
 {
   for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)

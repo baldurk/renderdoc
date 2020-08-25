@@ -97,6 +97,9 @@ struct D3D11RenderState
   void TakeRef(ID3D11DeviceChild *p);
   void ReleaseRef(ID3D11DeviceChild *p);
 
+  void TakeRef(ID3D11Buffer *p);
+  void ReleaseRef(ID3D11Buffer *p);
+
   template <typename T>
   void ChangeRefRead(T *&stateItem, T *newItem)
   {
