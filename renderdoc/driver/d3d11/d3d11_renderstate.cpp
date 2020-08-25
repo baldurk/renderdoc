@@ -1292,6 +1292,9 @@ bool D3D11RenderState::IsBoundForWrite(ID3D11Buffer *buffer)
   if(buffer == NULL)
     return false;
 
+  if(((WrappedID3D11Buffer *)buffer)->ReadOnly())
+    return false;
+
   return IsRangeBoundForWrite(ResourceRange(buffer));
 }
 

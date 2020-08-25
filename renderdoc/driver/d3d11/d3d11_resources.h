@@ -440,6 +440,8 @@ public:
 
 class WrappedID3D11Buffer : public WrappedResource11<ID3D11Buffer, D3D11_BUFFER_DESC>
 {
+  bool m_ReadOnly = false;
+
 public:
   struct BufferEntry
   {
@@ -464,6 +466,15 @@ public:
       RDCASSERT(m_BufferList.find(GetResourceID()) == m_BufferList.end());
       m_BufferList[GetResourceID()] = BufferEntry(this, byteLength);
     }
+
+    if(real)
+    {
+      D3D11_BUFFER_DESC desc = {};
+      real->GetDesc(&desc);
+
+      m_ReadOnly = ((desc.BindFlags & (D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_STREAM_OUTPUT |
+                                       D3D11_BIND_RENDER_TARGET | D3D11_BIND_DEPTH_STENCIL)) == 0);
+    }
   }
 
   virtual ~WrappedID3D11Buffer()
@@ -484,6 +495,8 @@ public:
     if(pResourceDimension)
       *pResourceDimension = D3D11_RESOURCE_DIMENSION_BUFFER;
   }
+
+  bool ReadOnly() { return m_ReadOnly; }
 };
 
 template <typename NestedType, typename DescType, typename NestedType1>
