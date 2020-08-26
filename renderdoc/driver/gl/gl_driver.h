@@ -100,6 +100,7 @@ class WrappedOpenGL : public IFrameCapturer
 {
 private:
   friend class GLReplay;
+  friend struct GLRenderState;
   friend class GLResourceManager;
 
   GLPlatform &m_Platform;
@@ -451,6 +452,10 @@ private:
     GLint m_TextureUnit;
     GLuint m_ProgramPipeline;
     GLuint m_Program;
+
+    GLint m_MaxImgBind = 0;
+    GLint m_MaxAtomicBind = 0;
+    GLint m_MaxSSBOBind = 0;
 
     GLResourceRecord *GetActiveTexRecord(GLenum target)
     {

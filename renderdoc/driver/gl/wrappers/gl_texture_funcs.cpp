@@ -589,6 +589,8 @@ void WrappedOpenGL::glBindImageTexture(GLuint unit, GLuint texture, GLint level,
   {
     GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
                                                       eFrameRef_ReadBeforeWrite);
+
+    GetCtxData().m_MaxImgBind = RDCMAX((GLint)unit + 1, GetCtxData().m_MaxImgBind);
   }
 
   SERIALISE_TIME_CALL(GL.glBindImageTexture(unit, texture, level, layered, layer, access, format));
@@ -658,6 +660,8 @@ void WrappedOpenGL::glBindImageTextures(GLuint first, GLsizei count, const GLuin
       if(textures != NULL && textures[i] != 0)
         GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), textures[i]),
                                                           eFrameRef_ReadBeforeWrite);
+
+    GetCtxData().m_MaxImgBind = RDCMAX((GLint)first + count, GetCtxData().m_MaxImgBind);
   }
 
   SERIALISE_TIME_CALL(GL.glBindImageTextures(first, count, textures));

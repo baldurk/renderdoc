@@ -1266,6 +1266,11 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
       r = cd.m_BufferRecord[idx] =
           GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 
+    if(target == eGL_ATOMIC_COUNTER_BUFFER)
+      cd.m_MaxAtomicBind = RDCMAX((GLint)index + 1, cd.m_MaxAtomicBind);
+    else if(target == eGL_SHADER_STORAGE_BUFFER)
+      cd.m_MaxSSBOBind = RDCMAX((GLint)index + 1, cd.m_MaxSSBOBind);
+
     if(IsActiveCapturing(m_State))
     {
       if(buffer)
@@ -1394,6 +1399,11 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
     else
       r = cd.m_BufferRecord[idx] =
           GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+
+    if(target == eGL_ATOMIC_COUNTER_BUFFER)
+      cd.m_MaxAtomicBind = RDCMAX((GLint)index + 1, cd.m_MaxAtomicBind);
+    else if(target == eGL_SHADER_STORAGE_BUFFER)
+      cd.m_MaxSSBOBind = RDCMAX((GLint)index + 1, cd.m_MaxSSBOBind);
 
     if(IsActiveCapturing(m_State))
     {
@@ -1539,6 +1549,11 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
     else
       r = cd.m_BufferRecord[idx] =
           GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[0]));
+
+    if(target == eGL_ATOMIC_COUNTER_BUFFER)
+      cd.m_MaxAtomicBind = RDCMAX((GLint)first + count, cd.m_MaxAtomicBind);
+    else if(target == eGL_SHADER_STORAGE_BUFFER)
+      cd.m_MaxSSBOBind = RDCMAX((GLint)first + count, cd.m_MaxSSBOBind);
 
     if(IsActiveCapturing(m_State))
     {
@@ -1747,6 +1762,11 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
     else
       cd.m_BufferRecord[idx] =
           GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[0]));
+
+    if(target == eGL_ATOMIC_COUNTER_BUFFER)
+      cd.m_MaxAtomicBind = RDCMAX((GLint)first + count, cd.m_MaxAtomicBind);
+    else if(target == eGL_SHADER_STORAGE_BUFFER)
+      cd.m_MaxSSBOBind = RDCMAX((GLint)first + count, cd.m_MaxSSBOBind);
 
     if(IsActiveCapturing(m_State))
     {

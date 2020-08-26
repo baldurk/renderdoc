@@ -537,15 +537,19 @@ void GLRenderState::MarkDirty(WrappedOpenGL *driver)
   GLResourceManager *manager = driver->GetResourceManager();
 
   ContextPair &ctx = driver->GetCtx();
+  const WrappedOpenGL::ContextData &ctxData = driver->GetCtxData();
 
-  GLint maxCount = 0;
   GLuint name = 0;
 
-  if(HasExt[ARB_transform_feedback2])
+  // we can skip this if no transform feedback object is bound
+  if(HasExt[ARB_transform_feedback2] && ctxData.m_FeedbackRecord)
   {
-    GL.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
+    // cache this count, we don't expect it to change between contexts if the extension is available
+    static GLint xfbCount = 0;
+    if(xfbCount == 0)
+      GL.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &xfbCount);
 
-    for(GLint i = 0; i < maxCount; i++)
+    for(GLint i = 0; i < xfbCount; i++)
     {
       name = 0;
       GL.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint *)&name);
@@ -557,9 +561,13 @@ void GLRenderState::MarkDirty(WrappedOpenGL *driver)
 
   if(HasExt[ARB_shader_image_load_store])
   {
-    GL.glGetIntegerv(eGL_MAX_IMAGE_UNITS, &maxCount);
+    static GLint imgCount = 0;
+    if(imgCount == 0)
+      GL.glGetIntegerv(eGL_MAX_IMAGE_UNITS, &imgCount);
 
-    for(GLint i = 0; i < maxCount; i++)
+    // small optimisation, store the high water mark of which image unit is used and only iterate up
+    // to there
+    for(GLint i = 0; i < RDCMIN(imgCount, ctxData.m_MaxImgBind); i++)
     {
       name = 0;
       GL.glGetIntegeri_v(eGL_IMAGE_BINDING_NAME, i, (GLint *)&name);
@@ -571,9 +579,11 @@ void GLRenderState::MarkDirty(WrappedOpenGL *driver)
 
   if(HasExt[ARB_shader_atomic_counters])
   {
-    GL.glGetIntegerv(eGL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &maxCount);
+    static GLint atomicCount = 0;
+    if(atomicCount == 0)
+      GL.glGetIntegerv(eGL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &atomicCount);
 
-    for(GLint i = 0; i < maxCount; i++)
+    for(GLint i = 0; i < RDCMIN(atomicCount, ctxData.m_MaxAtomicBind); i++)
     {
       name = 0;
       GL.glGetIntegeri_v(eGL_ATOMIC_COUNTER_BUFFER_BINDING, i, (GLint *)&name);
@@ -585,9 +595,11 @@ void GLRenderState::MarkDirty(WrappedOpenGL *driver)
 
   if(HasExt[ARB_shader_storage_buffer_object])
   {
-    GL.glGetIntegerv(eGL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxCount);
+    static GLint ssboCount = 0;
+    if(ssboCount == 0)
+      GL.glGetIntegerv(eGL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &ssboCount);
 
-    for(GLint i = 0; i < maxCount; i++)
+    for(GLint i = 0; i < RDCMIN(ssboCount, ctxData.m_MaxSSBOBind); i++)
     {
       name = 0;
       GL.glGetIntegeri_v(eGL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint *)&name);
@@ -597,24 +609,27 @@ void GLRenderState::MarkDirty(WrappedOpenGL *driver)
     }
   }
 
-  GL.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &maxCount);
-
-  GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&name);
-
-  if(name)
+  if(ctxData.m_DrawFramebufferRecord)
   {
+    name = ctxData.m_DrawFramebufferRecord->Resource.name;
+
+    static GLint fboCount = 0;
+    if(fboCount == 0)
+      GL.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &fboCount);
+
     GLenum type = eGL_TEXTURE;
-    for(GLint i = 0; i < maxCount; i++)
+    for(GLint i = 0; i < fboCount; i++)
     {
       GL.glGetFramebufferAttachmentParameteriv(
           eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
           eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&name);
-      GL.glGetFramebufferAttachmentParameteriv(
-          eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
-          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
 
       if(name)
       {
+        GL.glGetFramebufferAttachmentParameteriv(
+            eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
+            eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+
         if(type == eGL_RENDERBUFFER)
           manager->MarkDirtyResource(RenderbufferRes(ctx, name));
         else
@@ -624,28 +639,35 @@ void GLRenderState::MarkDirty(WrappedOpenGL *driver)
 
     GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
                                              eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&name);
-    GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
 
     if(name)
     {
+      GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                               eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                               (GLint *)&type);
+
       if(type == eGL_RENDERBUFFER)
         manager->MarkDirtyResource(RenderbufferRes(ctx, name));
       else
         manager->MarkDirtyWithWriteReference(TextureRes(ctx, name));
     }
 
+    GLuint stencilName = 0;
     GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&name);
-    GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                             (GLint *)&stencilName);
 
-    if(name)
+    // almost always this will be the same as the depth, so we can skip it if so
+    if(stencilName && stencilName != name)
     {
+      GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                               eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                               (GLint *)&type);
+
       if(type == eGL_RENDERBUFFER)
-        manager->MarkDirtyResource(RenderbufferRes(ctx, name));
+        manager->MarkDirtyResource(RenderbufferRes(ctx, stencilName));
       else
-        manager->MarkDirtyWithWriteReference(TextureRes(ctx, name));
+        manager->MarkDirtyWithWriteReference(TextureRes(ctx, stencilName));
     }
   }
 }
