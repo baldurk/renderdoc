@@ -404,6 +404,8 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
   {
     bool firstTime = false;
 
+    m_ListRecord->DisableChunkLocking();
+
     // reset for new recording
     m_ListRecord->DeleteChunks();
     m_ListRecord->ContainsExecuteIndirect = false;
@@ -422,6 +424,7 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
 
     m_ListRecord->bakedCommands =
         GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
+    m_ListRecord->bakedCommands->DisableChunkLocking();
     m_ListRecord->bakedCommands->type = Resource_GraphicsCommandList;
     m_ListRecord->bakedCommands->InternalResource = true;
     m_ListRecord->bakedCommands->cmdInfo = new CmdListRecordingInfo();

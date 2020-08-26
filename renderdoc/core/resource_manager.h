@@ -327,6 +327,7 @@ struct ResourceRecord
       m_ChunkLock = new Threading::CriticalSection();
   }
 
+  void DisableChunkLocking() { SAFE_DELETE(m_ChunkLock); }
   ~ResourceRecord() { SAFE_DELETE(m_ChunkLock); }
   void AddParent(ResourceRecord *r)
   {

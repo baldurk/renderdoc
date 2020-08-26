@@ -633,6 +633,8 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,
       {
         VkResourceRecord *record = GetResourceManager()->AddResourceRecord(pCommandBuffers[i]);
 
+        record->DisableChunkLocking();
+
         Chunk *chunk = NULL;
 
         {
@@ -1009,6 +1011,7 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
       record->bakedCommands->Delete(GetResourceManager());
 
     record->bakedCommands = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
+    record->bakedCommands->DisableChunkLocking();
     record->bakedCommands->InternalResource = true;
     record->bakedCommands->Resource = (WrappedVkRes *)commandBuffer;
     record->bakedCommands->cmdInfo = new CmdBufferRecordingInfo();
