@@ -333,8 +333,7 @@ void WrappedOpenGL::glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, 
 
   if(IsCaptureMode(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -444,8 +443,7 @@ void WrappedOpenGL::glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint nu
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -520,8 +518,7 @@ void WrappedOpenGL::glDispatchComputeIndirect(GLintptr indirect)
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -689,8 +686,7 @@ void WrappedOpenGL::glDrawTransformFeedback(GLenum mode, GLuint id)
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -762,8 +758,7 @@ void WrappedOpenGL::glDrawTransformFeedbackInstanced(GLenum mode, GLuint id, GLs
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -834,8 +829,7 @@ void WrappedOpenGL::glDrawTransformFeedbackStream(GLenum mode, GLuint id, GLuint
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -911,8 +905,7 @@ void WrappedOpenGL::glDrawTransformFeedbackStreamInstanced(GLenum mode, GLuint i
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -1164,8 +1157,7 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -1249,8 +1241,7 @@ void WrappedOpenGL::glDrawArraysIndirect(GLenum mode, const void *indirect)
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -1321,8 +1312,7 @@ void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei coun
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -1402,8 +1392,7 @@ void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, 
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -1483,8 +1472,7 @@ void WrappedOpenGL::glDrawElements(GLenum mode, GLsizei count, GLenum type, cons
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -1573,8 +1561,7 @@ void WrappedOpenGL::glDrawElementsIndirect(GLenum mode, GLenum type, const void 
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -1651,8 +1638,7 @@ void WrappedOpenGL::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, G
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -1737,8 +1723,7 @@ void WrappedOpenGL::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLu
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -1819,8 +1804,7 @@ void WrappedOpenGL::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum 
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -1900,8 +1884,7 @@ void WrappedOpenGL::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum t
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -1987,8 +1970,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei cou
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -2076,8 +2058,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -2166,8 +2147,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, G
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -2315,8 +2295,7 @@ void WrappedOpenGL::glMultiDrawArrays(GLenum mode, const GLint *first, const GLs
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -2483,8 +2462,7 @@ void WrappedOpenGL::glMultiDrawElements(GLenum mode, const GLsizei *count, GLenu
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -2656,8 +2634,7 @@ void WrappedOpenGL::glMultiDrawElementsBaseVertex(GLenum mode, const GLsizei *co
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -2874,8 +2851,7 @@ void WrappedOpenGL::glMultiDrawArraysIndirect(GLenum mode, const void *indirect,
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -3101,8 +3077,7 @@ void WrappedOpenGL::glMultiDrawElementsIndirect(GLenum mode, GLenum type, const 
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -3329,8 +3304,7 @@ void WrappedOpenGL::glMultiDrawArraysIndirectCount(GLenum mode, const void *indi
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -3565,8 +3539,7 @@ void WrappedOpenGL::glMultiDrawElementsIndirectCount(GLenum mode, GLenum type, c
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -3682,8 +3655,7 @@ void WrappedOpenGL::glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer,
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
                                             eFrameRef_ReadBeforeWrite);
   }
@@ -3716,8 +3688,7 @@ void WrappedOpenGL::glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLflo
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -3853,8 +3824,7 @@ void WrappedOpenGL::glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -3978,8 +3948,7 @@ void WrappedOpenGL::glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLui
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -4121,8 +4090,7 @@ void WrappedOpenGL::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat dep
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {
@@ -4261,8 +4229,7 @@ void WrappedOpenGL::glClearBufferData(GLenum target, GLenum internalformat, GLen
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLRenderState state;
-    state.MarkDirty(this);
+    GLRenderState::MarkDirty(this);
   }
   else if(IsActiveCapturing(m_State))
   {

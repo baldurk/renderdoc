@@ -532,7 +532,7 @@ void GLRenderState::MarkReferenced(WrappedOpenGL *driver, bool initial) const
   MarkDirty(driver);
 }
 
-void GLRenderState::MarkDirty(WrappedOpenGL *driver) const
+void GLRenderState::MarkDirty(WrappedOpenGL *driver)
 {
   GLResourceManager *manager = driver->GetResourceManager();
 

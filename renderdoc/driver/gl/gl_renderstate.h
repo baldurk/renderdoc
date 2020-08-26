@@ -78,7 +78,7 @@ struct GLRenderState
   void Clear();
 
   void MarkReferenced(WrappedOpenGL *driver, bool initial) const;
-  void MarkDirty(WrappedOpenGL *driver) const;
+  static void MarkDirty(WrappedOpenGL *driver);
 
   enum
   {
