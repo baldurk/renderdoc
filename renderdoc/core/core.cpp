@@ -1039,11 +1039,10 @@ void RenderDoc::ResamplePixels(const FramePixels &in, RDCThumb &out)
   out.width = (uint16_t)RDCMIN(in.max_width, in.width);
   out.width &= ~(in.pitch_requirement - 1);    // align down to multiple of in.
   out.height = uint16_t(out.width * in.height / in.width);
-  out.len = 3 * out.width * out.height;
-  out.pixels = new byte[out.len];
+  out.pixels.resize(3 * out.width * out.height);
   out.format = FileType::Raw;
 
-  byte *dst = (byte *)out.pixels;
+  byte *dst = (byte *)out.pixels.data();
   byte *source = (byte *)in.data;
 
   for(uint32_t y = 0; y < out.height; y++)
@@ -1113,7 +1112,7 @@ void RenderDoc::ResamplePixels(const FramePixels &in, RDCThumb &out)
       uint16_t flipY = (out.height - 1 - y);
       for(uint16_t x = 0; x < out.width; x++)
       {
-        byte *src = (byte *)out.pixels;
+        byte *src = (byte *)out.pixels.data();
         byte save[3];
         save[0] = src[(y * out.width + x) * 3 + 0];
         save[1] = src[(y * out.width + x) * 3 + 1];
@@ -1152,12 +1151,10 @@ void RenderDoc::EncodePixelsPNG(const RDCThumb &in, RDCThumb &out)
 
   WriteCallbackData callbackData;
   stbi_write_png_to_func(&WriteCallbackData::writeData, &callbackData, in.width, in.height, 3,
-                         in.pixels, 0);
+                         in.pixels.data(), 0);
   out.width = in.width;
   out.height = in.height;
-  out.pixels = new byte[callbackData.buffer.size()];
-  memcpy((void *)out.pixels, callbackData.buffer.data(), callbackData.buffer.size());
-  out.len = (uint32_t)callbackData.buffer.size();
+  out.pixels.swap(callbackData.buffer);
   out.format = FileType::PNG;
 }
 
@@ -1205,9 +1202,6 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePi
     RDCERR("Error creating RDC at '%s'", m_CurrentLogFile.c_str());
     SAFE_DELETE(ret);
   }
-
-  SAFE_DELETE_ARRAY(outRaw.pixels);
-  SAFE_DELETE_ARRAY(outPng.pixels);
 
   return ret;
 }
@@ -1675,10 +1669,9 @@ void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
       ExtThumbnailHeader header;
       header.width = thumb.width;
       header.height = thumb.height;
-      header.len = thumb.len;
       header.format = thumb.format;
       w->Write(header);
-      w->Write(thumb.pixels, thumb.len);
+      w->Write(thumb.pixels.data(), thumb.pixels.size());
 
       w->Finish();
 

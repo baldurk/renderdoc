@@ -296,7 +296,7 @@ static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, ui
     pugi::xml_node xThumbnail = xHeader.append_child("thumbnail");
 
     const RDCThumb &th = file.GetThumbnail();
-    if(th.pixels && th.len > 0 && th.width > 0 && th.height > 0)
+    if(!th.pixels.empty() && th.width > 0 && th.height > 0)
     {
       xThumbnail.append_attribute("width") = th.width;
       xThumbnail.append_attribute("height") = th.height;
@@ -604,8 +604,7 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
 
     if(th.width > 0 && th.height > 0 && !thumb.data.empty())
     {
-      th.pixels = thumb.data.data();
-      th.len = (uint32_t)thumb.data.size();
+      th.pixels = thumb.data;
       rdcthumb = &th;
     }
 
@@ -814,14 +813,17 @@ static ReplayStatus Buffers2ZIP(const rdcstr &filename, const RDCFile &file,
   }
 
   const RDCThumb &th = file.GetThumbnail();
-  if(th.pixels && th.len > 0 && th.width > 0 && th.height > 0)
+  if(!th.pixels.empty() && th.width > 0 && th.height > 0)
   {
     if(th.format == FileType::JPG)
-      mz_zip_writer_add_mem(&zip, "thumb.jpg", th.pixels, th.len, MZ_BEST_COMPRESSION);
+      mz_zip_writer_add_mem(&zip, "thumb.jpg", th.pixels.data(), th.pixels.size(),
+                            MZ_BEST_COMPRESSION);
     else if(th.format == FileType::PNG)
-      mz_zip_writer_add_mem(&zip, "thumb.png", th.pixels, th.len, MZ_BEST_COMPRESSION);
+      mz_zip_writer_add_mem(&zip, "thumb.png", th.pixels.data(), th.pixels.size(),
+                            MZ_BEST_COMPRESSION);
     else if(th.format == FileType::Raw)
-      mz_zip_writer_add_mem(&zip, "thumb.raw", th.pixels, th.len, MZ_BEST_COMPRESSION);
+      mz_zip_writer_add_mem(&zip, "thumb.raw", th.pixels.data(), th.pixels.size(),
+                            MZ_BEST_COMPRESSION);
     else
       RDCERR("Unexpected thumbnail format %s", ToStr(th.format).c_str());
   }

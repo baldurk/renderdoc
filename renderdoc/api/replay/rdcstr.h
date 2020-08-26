@@ -812,7 +812,7 @@ public:
     if(empty())
       return;
 
-#define IS_WHITESPACE(c) ((c) == ' ' || (c) == '\t' || (c) == '\r' || (c) == '\n')
+#define IS_WHITESPACE(c) ((c) == ' ' || (c) == '\t' || (c) == '\r' || (c) == '\n' || (c) == '\0')
 
     const char *str = c_str();
     size_t sz = size();

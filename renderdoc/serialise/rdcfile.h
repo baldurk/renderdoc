@@ -40,8 +40,7 @@ extern const char *SectionTypeNames[];
 
 struct RDCThumb
 {
-  const byte *pixels = NULL;
-  uint32_t len = 0;
+  bytebuf pixels;
   uint16_t width = 0;
   uint16_t height = 0;
   FileType format = FileType::JPG;

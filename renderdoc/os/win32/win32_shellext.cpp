@@ -56,11 +56,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
   dds_data m_ddsData;
 
   RDCThumbnailProvider() : m_iRefcount(1), m_Inited(false) { InterlockedIncrement(&numProviders); }
-  virtual ~RDCThumbnailProvider()
-  {
-    delete[] m_Thumb.pixels;
-    InterlockedDecrement(&numProviders);
-  }
+  virtual ~RDCThumbnailProvider() { InterlockedDecrement(&numProviders); }
   ULONG STDMETHODCALLTYPE AddRef()
   {
     InterlockedIncrement(&m_iRefcount);
@@ -152,10 +148,9 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       // bitmap.
       m_Thumb.height = (uint16_t)m_ddsData.height;
       m_Thumb.width = (uint16_t)m_ddsData.width;
-      m_Thumb.len = m_ddsData.subsizes[0];    // size of slice 0
-      buf = new byte[m_Thumb.len];
-      m_Thumb.pixels = buf;
-      memcpy(buf, m_ddsData.subdata[0], m_Thumb.len);    // slice 0
+      size_t len = m_ddsData.subsizes[0];    // size of slice 0
+      m_Thumb.pixels.resize(len);
+      memcpy(m_Thumb.pixels.data(), m_ddsData.subdata[0], len);    // slice 0
       m_Thumb.format = FileType::DDS;
 
       // We don't need any other data
@@ -175,14 +170,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 
       // we don't care about the error code (which would come from the truncated file), we just care
       // if we got the thumbnail
-      if(m_Thumb.len > 0 && m_Thumb.width > 0 && m_Thumb.height > 0 && m_Thumb.pixels)
-      {
-        buf = new byte[m_Thumb.len];
-        memcpy(buf, m_Thumb.pixels, m_Thumb.len);
-        m_Thumb.pixels = buf;
-        m_Thumb.format = FileType::JPG;
-      }
-      else
+      if(m_Thumb.pixels.empty() || m_Thumb.width == 0 || m_Thumb.height == 0)
       {
         ReadLegacyCaptureThumb(captureHeader);
       }
@@ -378,13 +366,11 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
     {
       RDCDEBUG("Got %ux%u thumbnail, %u pixels", thumbWidth, thumbHeight, thumbLen);
 
-      byte *pixels = new byte[thumbLen];
-      memcpy(pixels, readPtr, thumbLen);
+      m_Thumb.pixels.resize(thumbLen);
+      memcpy(m_Thumb.pixels.data(), readPtr, thumbLen);
 
       m_Thumb.width = (uint16_t)thumbWidth;
       m_Thumb.height = (uint16_t)thumbHeight;
-      m_Thumb.len = thumbLen;
-      m_Thumb.pixels = pixels;
     }
     else
     {
@@ -403,26 +389,22 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       return E_NOTIMPL;
     }
 
-    if(m_Thumb.len == 0)
+    if(m_Thumb.pixels.empty())
     {
       RDCERR("Problem opening file");
       return E_NOTIMPL;
     }
 
-    size_t thumblen = m_Thumb.len;
     uint32_t thumbwidth = m_Thumb.width, thumbheight = m_Thumb.height;
     byte *thumbpixels = NULL;
 
     if(m_Thumb.format == FileType::JPG)
     {
-      const byte *jpgbuf = m_Thumb.pixels;
-      if(jpgbuf == NULL)
-        return E_NOTIMPL;
-
       int w = thumbwidth;
       int h = thumbheight;
       int comp = 3;
-      thumbpixels = jpgd::decompress_jpeg_image_from_memory(jpgbuf, (int)thumblen, &w, &h, &comp, 3);
+      thumbpixels = jpgd::decompress_jpeg_image_from_memory(
+          m_Thumb.pixels.data(), (int)m_Thumb.pixels.size(), &w, &h, &comp, 3);
     }
     else
     {
@@ -472,7 +454,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
         unsigned char decompressedBlock[decompressedBlockMaxSize];
         unsigned char greenBlock[16];
         uint16_t decompressedBC6[48];
-        const byte *compBlockStart = m_Thumb.pixels;
+        const byte *compBlockStart = m_Thumb.pixels.data();
 
         for(uint32_t blockY = 0; blockY < AlignUp4(thumbheight) / 4; blockY++)
         {
@@ -589,7 +571,7 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
       else
       {
         // read data as non-compressed
-        const byte *src = m_Thumb.pixels;
+        const byte *src = m_Thumb.pixels.data();
         byte *dst = thumbpixels;
 
         uint32_t texelSize = m_ddsData.format.ElementSize();

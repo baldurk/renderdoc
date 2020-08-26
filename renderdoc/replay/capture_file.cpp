@@ -32,7 +32,7 @@
 #include "stb/stb_image_resize.h"
 #include "stb/stb_image_write.h"
 
-static void writeToByteVector(void *context, void *data, int size)
+static void writeToBytebuf(void *context, void *data, int size)
 {
   bytebuf *buf = (bytebuf *)context;
   buf->append((byte *)data, size);
@@ -64,12 +64,7 @@ static RDCThumb convertThumb(FileType thumbType, uint32_t thumbWidth, uint32_t t
 
   if(thumbType == FileType::JPG)
   {
-    // just need to copy
-    byte *pixels = (byte *)malloc(thumbData.size());
-    memcpy(pixels, thumbData.data(), thumbData.size());
-
-    ret.pixels = pixels;
-    ret.len = (uint32_t)thumbData.size();
+    ret.pixels = thumbData;
   }
   else
   {
@@ -87,15 +82,14 @@ static RDCThumb convertThumb(FileType thumbType, uint32_t thumbWidth, uint32_t t
   if(decoded)
   {
     int len = ret.width * ret.height * 3;
-    byte *pixels = (byte *)malloc(len);
+    ret.pixels.resize(len);
 
     jpge::params p;
     p.m_quality = 90;
-    jpge::compress_image_to_jpeg_file_in_memory(pixels, len, (int)ret.width, (int)ret.height, 3,
-                                                decoded, p);
+    jpge::compress_image_to_jpeg_file_in_memory(ret.pixels.data(), len, (int)ret.width,
+                                                (int)ret.height, 3, decoded, p);
 
-    ret.pixels = pixels;
-    ret.len = (uint32_t)len;
+    ret.pixels.resize(len);
 
     free(decoded);
   }
@@ -402,8 +396,6 @@ void CaptureFile::SetMetadata(const char *driverName, uint64_t machineIdent, Fil
 
   m_RDC = new RDCFile;
   m_RDC->SetData(driver, driverName, machineIdent, thumb);
-
-  free((void *)th.pixels);
 }
 
 ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, const SDFile *file,
@@ -551,11 +543,9 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
 
   const RDCThumb &thumb = m_RDC->GetThumbnail();
 
-  const byte *thumbbuf = thumb.pixels;
-  size_t thumblen = thumb.len;
   uint32_t thumbwidth = thumb.width, thumbheight = thumb.height;
 
-  if(thumbbuf == NULL)
+  if(thumb.pixels.empty())
     return ret;
 
   bytebuf buf;
@@ -564,7 +554,7 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
   // already satisfied, return the data directly
   if(type == thumb.format && (maxsize == 0 || (maxsize > thumbwidth && maxsize > thumbheight)))
   {
-    buf.assign(thumbbuf, thumblen);
+    buf = thumb.pixels;
   }
   else
   {
@@ -578,15 +568,16 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
     switch(thumb.format)
     {
       case FileType::JPG:
-        allocatedBuffer =
-            jpgd::decompress_jpeg_image_from_memory(thumbbuf, (int)thumblen, &w, &h, &comp, 3);
+        allocatedBuffer = jpgd::decompress_jpeg_image_from_memory(
+            thumb.pixels.data(), (int)thumb.pixels.size(), &w, &h, &comp, 3);
         thumbpixels = allocatedBuffer;
         break;
 
-      case FileType::Raw: thumbpixels = thumbbuf; break;
+      case FileType::Raw: thumbpixels = thumb.pixels.data(); break;
 
       default:
-        allocatedBuffer = stbi_load_from_memory(thumbbuf, (int)thumblen, &w, &h, &comp, 3);
+        allocatedBuffer =
+            stbi_load_from_memory(thumb.pixels.data(), (int)thumb.pixels.size(), &w, &h, &comp, 3);
         if(allocatedBuffer == NULL)
         {
           RDCERR("Couldn't decode provided thumbnail");
@@ -626,42 +617,40 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
       }
     }
 
-    bytebuf encodedBytes;
-
     switch(type)
     {
       case FileType::Raw:
       {
-        encodedBytes.assign(thumbpixels, thumbwidth * thumbheight * 3);
+        buf.assign(thumbpixels, thumbwidth * thumbheight * 3);
         break;
       }
       case FileType::JPG:
       {
         int len = thumbwidth * thumbheight * 3;
-        encodedBytes.resize(len);
+        buf.resize(len);
         jpge::params p;
         p.m_quality = 90;
-        jpge::compress_image_to_jpeg_file_in_memory(&encodedBytes[0], len, (int)thumbwidth,
+        jpge::compress_image_to_jpeg_file_in_memory(buf.data(), len, (int)thumbwidth,
                                                     (int)thumbheight, 3, thumbpixels, p);
-        encodedBytes.resize(len);
+        buf.resize(len);
         break;
       }
       case FileType::PNG:
       {
-        stbi_write_png_to_func(&writeToByteVector, &encodedBytes, (int)thumbwidth, (int)thumbheight,
-                               3, thumbpixels, 0);
+        stbi_write_png_to_func(&writeToBytebuf, &buf, (int)thumbwidth, (int)thumbheight, 3,
+                               thumbpixels, 0);
         break;
       }
       case FileType::TGA:
       {
-        stbi_write_tga_to_func(&writeToByteVector, &encodedBytes, (int)thumbwidth, (int)thumbheight,
-                               3, thumbpixels);
+        stbi_write_tga_to_func(&writeToBytebuf, &buf, (int)thumbwidth, (int)thumbheight, 3,
+                               thumbpixels);
         break;
       }
       case FileType::BMP:
       {
-        stbi_write_bmp_to_func(&writeToByteVector, &encodedBytes, (int)thumbwidth, (int)thumbheight,
-                               3, thumbpixels);
+        stbi_write_bmp_to_func(&writeToBytebuf, &buf, (int)thumbwidth, (int)thumbheight, 3,
+                               thumbpixels);
         break;
       }
       default:
@@ -673,8 +662,6 @@ Thumbnail CaptureFile::GetThumbnail(FileType type, uint32_t maxsize)
         return ret;
       }
     }
-
-    buf = encodedBytes;
 
     free(allocatedBuffer);
   }
