@@ -766,7 +766,7 @@ public:
 
   void FillReflectionArray(GLResource program, PerStageReflections &stages)
   {
-    FillReflectionArray(GetResourceManager()->GetID(program), stages);
+    FillReflectionArray(GetResourceManager()->GetResID(program), stages);
   }
 
   ResourceId ExtractFBOAttachment(GLenum target, GLenum attachment);

@@ -287,7 +287,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     }
     else
     {
-      ResourceId id = rm->GetID(rs.Pipeline);
+      ResourceId id = rm->GetResID(rs.Pipeline);
       auto &pipeDetails = m_pDriver->m_Pipelines[id];
 
       for(int i = 0; i < 4; i++)
@@ -346,7 +346,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   }
   else
   {
-    auto &progDetails = m_pDriver->m_Programs[rm->GetID(rs.Program)];
+    auto &progDetails = m_pDriver->m_Programs[rm->GetResID(rs.Program)];
 
     for(int i = 0; i < 4; i++)
     {
@@ -799,7 +799,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
     }
     else    // drawcall is indexed
     {
-      ResourceId idxId = rm->GetID(BufferRes(drv.GetCtx(), elArrayBuffer));
+      ResourceId idxId = rm->GetResID(BufferRes(drv.GetCtx(), elArrayBuffer));
 
       bytebuf idxdata;
       GetBufferData(idxId, drawcall->indexOffset * drawcall->indexByteWidth,
@@ -1944,7 +1944,7 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_
 
   if(s.useIndices && s.idxBuf)
   {
-    ret.indexResourceId = m_pDriver->GetResourceManager()->GetID(BufferRes(ctx, s.idxBuf));
+    ret.indexResourceId = m_pDriver->GetResourceManager()->GetResID(BufferRes(ctx, s.idxBuf));
     ret.indexByteStride = s.idxByteWidth;
     ret.indexByteSize = ~0ULL;
   }
@@ -1958,7 +1958,7 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint32_
 
   if(s.buf)
   {
-    ret.vertexResourceId = m_pDriver->GetResourceManager()->GetID(BufferRes(ctx, s.buf));
+    ret.vertexResourceId = m_pDriver->GetResourceManager()->GetResID(BufferRes(ctx, s.buf));
     ret.vertexByteSize = ~0ULL;
   }
   else

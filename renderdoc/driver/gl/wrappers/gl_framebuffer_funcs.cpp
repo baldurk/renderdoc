@@ -49,7 +49,7 @@ ResourceId WrappedOpenGL::ExtractFBOAttachment(GLenum target, GLenum attachment)
     res = RenderbufferRes(GetCtx(), name);
   }
 
-  return GetResourceManager()->GetID(res);
+  return GetResourceManager()->GetResID(res);
 }
 
 template <typename SerialiserType>
@@ -57,7 +57,7 @@ bool WrappedOpenGL::Serialise_glGenFramebuffers(SerialiserType &ser, GLsizei n, 
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(framebuffer,
-                          GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)))
+                          GetResourceManager()->GetResID(FramebufferRes(GetCtx(), *framebuffers)))
       .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -119,7 +119,7 @@ bool WrappedOpenGL::Serialise_glCreateFramebuffers(SerialiserType &ser, GLsizei 
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(framebuffer,
-                          GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)))
+                          GetResourceManager()->GetResID(FramebufferRes(GetCtx(), *framebuffers)))
       .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -195,7 +195,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTextureEXT(SerialiserType &ser,
 
     if(IsLoading(m_State) && texture.name)
     {
-      m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
+      m_Textures[GetResourceManager()->GetResID(texture)].creationFlags |=
+          TextureCategory::ColorTarget;
     }
 
     AddResourceInitChunk(framebuffer);
@@ -331,7 +332,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture1DEXT(SerialiserType &ser
 
     if(IsLoading(m_State) && texture.name)
     {
-      m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
+      m_Textures[GetResourceManager()->GetResID(texture)].creationFlags |=
+          TextureCategory::ColorTarget;
     }
 
     AddResourceInitChunk(framebuffer);
@@ -471,7 +473,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture2DEXT(SerialiserType &ser
 
     if(IsLoading(m_State) && texture.name)
     {
-      m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
+      m_Textures[GetResourceManager()->GetResID(texture)].creationFlags |=
+          TextureCategory::ColorTarget;
     }
 
     AddResourceInitChunk(framebuffer);
@@ -624,7 +627,8 @@ bool WrappedOpenGL::Serialise_glFramebufferTexture2DMultisampleEXT(
 
     if(IsLoading(m_State) && texture.name)
     {
-      m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
+      m_Textures[GetResourceManager()->GetResID(texture)].creationFlags |=
+          TextureCategory::ColorTarget;
     }
 
     AddResourceInitChunk(framebuffer);
@@ -722,7 +726,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture3DEXT(SerialiserType &ser
 
     if(IsLoading(m_State) && texture.name)
     {
-      m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
+      m_Textures[GetResourceManager()->GetResID(texture)].creationFlags |=
+          TextureCategory::ColorTarget;
     }
 
     AddResourceInitChunk(framebuffer);
@@ -866,7 +871,7 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferRenderbufferEXT(SerialiserType &
 
     if(IsLoading(m_State) && renderbuffer.name)
     {
-      m_Textures[GetResourceManager()->GetID(renderbuffer)].creationFlags |=
+      m_Textures[GetResourceManager()->GetResID(renderbuffer)].creationFlags |=
           TextureCategory::ColorTarget;
     }
 
@@ -1000,7 +1005,8 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTextureLayerEXT(SerialiserType &
 
     if(IsLoading(m_State) && texture.name)
     {
-      m_Textures[GetResourceManager()->GetID(texture)].creationFlags |= TextureCategory::ColorTarget;
+      m_Textures[GetResourceManager()->GetResID(texture)].creationFlags |=
+          TextureCategory::ColorTarget;
     }
 
     AddResourceInitChunk(framebuffer);
@@ -1142,10 +1148,10 @@ bool WrappedOpenGL::Serialise_glFramebufferTextureMultiviewOVR(SerialiserType &s
     if(IsLoading(m_State) && texture.name)
     {
       if(attachment == eGL_DEPTH_ATTACHMENT || attachment == eGL_DEPTH_STENCIL_ATTACHMENT)
-        m_Textures[GetResourceManager()->GetID(texture)].creationFlags |=
+        m_Textures[GetResourceManager()->GetResID(texture)].creationFlags |=
             TextureCategory::DepthTarget;
       else
-        m_Textures[GetResourceManager()->GetID(texture)].creationFlags |=
+        m_Textures[GetResourceManager()->GetResID(texture)].creationFlags |=
             TextureCategory::ColorTarget;
     }
 
@@ -1257,10 +1263,10 @@ bool WrappedOpenGL::Serialise_glFramebufferTextureMultisampleMultiviewOVR(
     if(IsLoading(m_State) && texture.name)
     {
       if(attachment == eGL_DEPTH_ATTACHMENT || attachment == eGL_DEPTH_STENCIL_ATTACHMENT)
-        m_Textures[GetResourceManager()->GetID(texture)].creationFlags |=
+        m_Textures[GetResourceManager()->GetResID(texture)].creationFlags |=
             TextureCategory::DepthTarget;
       else
-        m_Textures[GetResourceManager()->GetID(texture)].creationFlags |=
+        m_Textures[GetResourceManager()->GetResID(texture)].creationFlags |=
             TextureCategory::ColorTarget;
     }
 
@@ -1778,7 +1784,7 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferData(SerialiserType &s
     {
       AddEvent();
 
-      ResourceId fbid = GetResourceManager()->GetID(framebuffer);
+      ResourceId fbid = GetResourceManager()->GetResID(framebuffer);
 
       DrawcallDescription draw;
       draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
@@ -1798,9 +1804,9 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferData(SerialiserType &s
         ResourceId id;
 
         if(objtype == eGL_TEXTURE)
-          id = GetResourceManager()->GetID(TextureRes(GetCtx(), obj));
+          id = GetResourceManager()->GetResID(TextureRes(GetCtx(), obj));
         else
-          id = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), obj));
+          id = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), obj));
 
         if(draw.copyDestination == ResourceId())
           draw.copyDestination = GetResourceManager()->GetOriginalID(id);
@@ -1978,7 +1984,7 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferSubData(
     {
       AddEvent();
 
-      ResourceId fbid = GetResourceManager()->GetID(framebuffer);
+      ResourceId fbid = GetResourceManager()->GetResID(framebuffer);
 
       DrawcallDescription draw;
       draw.name = StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(),
@@ -1998,9 +2004,9 @@ bool WrappedOpenGL::Serialise_glInvalidateNamedFramebufferSubData(
         ResourceId id;
 
         if(objtype == eGL_TEXTURE)
-          id = GetResourceManager()->GetID(TextureRes(GetCtx(), obj));
+          id = GetResourceManager()->GetResID(TextureRes(GetCtx(), obj));
         else
-          id = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), obj));
+          id = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), obj));
 
         if(draw.copyDestination == ResourceId())
           draw.copyDestination = GetResourceManager()->GetOriginalID(id);
@@ -2132,8 +2138,8 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
     {
       AddEvent();
 
-      ResourceId readId = GetResourceManager()->GetID(readFramebuffer);
-      ResourceId drawId = GetResourceManager()->GetID(drawFramebuffer);
+      ResourceId readId = GetResourceManager()->GetResID(readFramebuffer);
+      ResourceId drawId = GetResourceManager()->GetResID(drawFramebuffer);
 
       DrawcallDescription draw;
       draw.name = StringFormat::Fmt("%s(%s, %s)", ToStr(gl_CurChunk).c_str(),
@@ -2172,14 +2178,14 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(SerialiserType &ser,
         ResourceId srcid, dstid;
 
         if(srctype == eGL_TEXTURE)
-          srcid = GetResourceManager()->GetID(TextureRes(GetCtx(), srcattachment));
+          srcid = GetResourceManager()->GetResID(TextureRes(GetCtx(), srcattachment));
         else
-          srcid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), srcattachment));
+          srcid = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), srcattachment));
 
         if(dsttype == eGL_TEXTURE)
-          dstid = GetResourceManager()->GetID(TextureRes(GetCtx(), dstattachment));
+          dstid = GetResourceManager()->GetResID(TextureRes(GetCtx(), dstattachment));
         else
-          dstid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), dstattachment));
+          dstid = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), dstattachment));
 
         if(mask & GL_COLOR_BUFFER_BIT)
         {
@@ -2344,7 +2350,7 @@ bool WrappedOpenGL::Serialise_glGenRenderbuffers(SerialiserType &ser, GLsizei n,
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(renderbuffer,
-                          GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)))
+                          GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), *renderbuffers)))
       .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -2408,7 +2414,7 @@ bool WrappedOpenGL::Serialise_glCreateRenderbuffers(SerialiserType &ser, GLsizei
 {
   SERIALISE_ELEMENT(n);
   SERIALISE_ELEMENT_LOCAL(renderbuffer,
-                          GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)))
+                          GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), *renderbuffers)))
       .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -2471,7 +2477,8 @@ void WrappedOpenGL::glBindRenderbuffer(GLenum target, GLuint renderbuffer)
   // don't need to serialise this, as the GL_RENDERBUFFER target does nothing
   // aside from create names (after glGen), and provide as a selector for glRenderbufferStorage*
   // which we do ourselves. We just need to know the current renderbuffer ID
-  GetCtxData().m_Renderbuffer = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer));
+  GetCtxData().m_Renderbuffer =
+      GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), renderbuffer));
 
   GL.glBindRenderbuffer(target, renderbuffer);
 }
@@ -2507,7 +2514,7 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    ResourceId liveId = GetResourceManager()->GetID(renderbuffer);
+    ResourceId liveId = GetResourceManager()->GetResID(renderbuffer);
     TextureData &texDetails = m_Textures[liveId];
 
     GLenum fmt = GetBaseFormat(internalformat);
@@ -2614,7 +2621,7 @@ void WrappedOpenGL::glNamedRenderbufferStorageEXT(GLuint renderbuffer, GLenum in
 {
   SERIALISE_TIME_CALL(GL.glNamedRenderbufferStorageEXT(renderbuffer, internalformat, width, height));
 
-  ResourceId rb = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer));
+  ResourceId rb = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), renderbuffer));
 
   if(IsCaptureMode(m_State))
   {
@@ -2701,7 +2708,7 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(Serialise
     // present
     CheckReplayFunctionPresent(glRenderbufferStorageMultisample);
 
-    ResourceId liveId = GetResourceManager()->GetID(renderbuffer);
+    ResourceId liveId = GetResourceManager()->GetResID(renderbuffer);
     TextureData &texDetails = m_Textures[liveId];
 
     GLenum fmt = GetBaseFormat(internalformat);
@@ -2804,7 +2811,7 @@ void WrappedOpenGL::glNamedRenderbufferStorageMultisampleEXT(GLuint renderbuffer
   SERIALISE_TIME_CALL(GL.glNamedRenderbufferStorageMultisampleEXT(renderbuffer, samples,
                                                                   internalformat, width, height));
 
-  ResourceId rb = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer));
+  ResourceId rb = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), renderbuffer));
 
   if(IsCaptureMode(m_State))
   {
@@ -2896,7 +2903,7 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisampleEXT(SerialiserType
   {
     CheckReplayFunctionPresent(glRenderbufferStorageMultisampleEXT);
 
-    ResourceId liveId = GetResourceManager()->GetID(renderbuffer);
+    ResourceId liveId = GetResourceManager()->GetResID(renderbuffer);
     TextureData &texDetails = m_Textures[liveId];
 
     GLenum fmt = GetBaseFormat(internalformat);

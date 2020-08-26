@@ -203,7 +203,7 @@ template <typename SerialiserType>
 bool WrappedOpenGL::Serialise_glGenQueries(SerialiserType &ser, GLsizei n, GLuint *ids)
 {
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(query, GetResourceManager()->GetID(QueryRes(GetCtx(), *ids)))
+  SERIALISE_ELEMENT_LOCAL(query, GetResourceManager()->GetResID(QueryRes(GetCtx(), *ids)))
       .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();
@@ -263,7 +263,7 @@ bool WrappedOpenGL::Serialise_glCreateQueries(SerialiserType &ser, GLenum target
 {
   SERIALISE_ELEMENT(target);
   SERIALISE_ELEMENT(n);
-  SERIALISE_ELEMENT_LOCAL(query, GetResourceManager()->GetID(QueryRes(GetCtx(), *ids)))
+  SERIALISE_ELEMENT_LOCAL(query, GetResourceManager()->GetResID(QueryRes(GetCtx(), *ids)))
       .TypedAs("GLResource"_lit);
 
   SERIALISE_CHECK_READ_ERRORS();

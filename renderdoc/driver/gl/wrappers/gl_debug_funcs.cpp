@@ -136,7 +136,7 @@ bool WrappedOpenGL::Serialise_glObjectLabel(SerialiserType &ser, GLenum identifi
 
   if(IsReplayingAndReading() && Resource.name)
   {
-    ResourceId origId = GetResourceManager()->GetOriginalID(GetResourceManager()->GetID(Resource));
+    ResourceId origId = GetResourceManager()->GetOriginalID(GetResourceManager()->GetResID(Resource));
 
     GetResourceManager()->SetName(origId, Label);
 

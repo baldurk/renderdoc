@@ -2434,7 +2434,7 @@ static glslang::TProgram *GetGlslangProgram(GLuint program, bool *hasRealProgram
     return NULL;
   }
 
-  ResourceId id = driver->GetResourceManager()->GetID(ProgramRes(driver->GetCtx(), program));
+  ResourceId id = driver->GetResourceManager()->GetResID(ProgramRes(driver->GetCtx(), program));
 
   if(!driver->m_Programs[id].glslangProgram)
   {
@@ -2600,7 +2600,7 @@ void APIENTRY _glGetTexLevelParameteriv(GLenum target, GLint level, GLenum pname
   GLint boundTexture = 0;
   GL.glGetIntegerv(TextureBinding(target), (GLint *)&boundTexture);
 
-  ResourceId id = driver->GetResourceManager()->GetID(TextureRes(driver->GetCtx(), boundTexture));
+  ResourceId id = driver->GetResourceManager()->GetResID(TextureRes(driver->GetCtx(), boundTexture));
 
   WrappedOpenGL::TextureData &details = driver->m_Textures[id];
 

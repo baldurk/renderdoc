@@ -172,7 +172,7 @@ public:
     }
   }
 
-  ResourceId GetID(GLResource res)
+  ResourceId GetResID(GLResource res)
   {
     auto it = m_CurrentResourceIds.find(res);
     if(it != m_CurrentResourceIds.end())
@@ -281,6 +281,8 @@ public:
   void SetInternalResource(GLResource res);
 
 private:
+  // forward this on. We de-alias it so that uses of GetID() within the GL driver aren't virtual
+  ResourceId GetID(GLResource res) { return GetResID(res); }
   bool ResourceTypeRelease(GLResource res);
   bool Prepare_InitialState(GLResource res);
   uint64_t GetSize_InitialState(ResourceId resid, const GLInitialContents &initial);

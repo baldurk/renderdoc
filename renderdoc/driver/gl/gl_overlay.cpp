@@ -71,7 +71,7 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
     }
     else
     {
-      ResourceId id = m_pDriver->GetResourceManager()->GetID(ProgramPipeRes(ctx, Pipeline));
+      ResourceId id = m_pDriver->GetResourceManager()->GetResID(ProgramPipeRes(ctx, Pipeline));
       const WrappedOpenGL::PipelineData &pipeDetails = m_pDriver->m_Pipelines[id];
 
       // fetch the corresponding shaders and programs for each stage
@@ -130,7 +130,7 @@ bool GLReplay::CreateOverlayProgram(GLuint Program, GLuint Pipeline, GLuint frag
   else
   {
     const WrappedOpenGL::ProgramData &progDetails =
-        m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(ctx, Program))];
+        m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetResID(ProgramRes(ctx, Program))];
 
     // fetch any and all non-fragment shader shaders
     for(size_t i = 0; i < 4; i++)
@@ -352,9 +352,11 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
     ResourceId vs;
 
     if(rs.Program.name)
-      vs = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(rs.Program)].stageShaders[0];
+      vs =
+          m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetResID(rs.Program)].stageShaders[0];
     else
-      vs = m_pDriver->m_Pipelines[m_pDriver->GetResourceManager()->GetID(rs.Pipeline)].stageShaders[0];
+      vs = m_pDriver->m_Pipelines[m_pDriver->GetResourceManager()->GetResID(rs.Pipeline)]
+               .stageShaders[0];
 
     if(vs != ResourceId())
     {
@@ -931,12 +933,12 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
 
       if(type != eGL_RENDERBUFFER)
       {
-        ResourceId id = m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, curDepth));
+        ResourceId id = m_pDriver->GetResourceManager()->GetResID(TextureRes(ctx, curDepth));
         fmt = m_pDriver->m_Textures[id].internalFormat;
       }
       else
       {
-        ResourceId id = m_pDriver->GetResourceManager()->GetID(RenderbufferRes(ctx, curDepth));
+        ResourceId id = m_pDriver->GetResourceManager()->GetResID(RenderbufferRes(ctx, curDepth));
         fmt = m_pDriver->m_Textures[id].internalFormat;
       }
 
@@ -1020,12 +1022,12 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
 
       if(type != eGL_RENDERBUFFER)
       {
-        ResourceId id = m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, curDepth));
+        ResourceId id = m_pDriver->GetResourceManager()->GetResID(TextureRes(ctx, curDepth));
         fmt = m_pDriver->m_Textures[id].internalFormat;
       }
       else
       {
-        ResourceId id = m_pDriver->GetResourceManager()->GetID(RenderbufferRes(ctx, curDepth));
+        ResourceId id = m_pDriver->GetResourceManager()->GetResID(RenderbufferRes(ctx, curDepth));
         fmt = m_pDriver->m_Textures[id].internalFormat;
       }
 
@@ -1462,7 +1464,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
             drv.glGetNamedFramebufferAttachmentParameterivEXT(
                 drawFBO, att, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, &layer);
 
-          ResourceId id = m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, depthObj));
+          ResourceId id = m_pDriver->GetResourceManager()->GetResID(TextureRes(ctx, depthObj));
           WrappedOpenGL::TextureData &details = m_pDriver->m_Textures[id];
 
           if(details.curType == eGL_TEXTURE_CUBE_MAP)
@@ -1500,7 +1502,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
               // is completely messed up and broken
 
               // if obj is a cubemap use face-specific targets
-              ResourceId id = m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, depthObj));
+              ResourceId id = m_pDriver->GetResourceManager()->GetResID(TextureRes(ctx, depthObj));
               WrappedOpenGL::TextureData &details = m_pDriver->m_Textures[id];
 
               if(details.curType == eGL_TEXTURE_CUBE_MAP)
@@ -2007,7 +2009,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
   rs.ApplyState(m_pDriver);
 
   DebugData.overlayTexId =
-      m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, DebugData.overlayTex));
+      m_pDriver->GetResourceManager()->GetResID(TextureRes(ctx, DebugData.overlayTex));
 
   return DebugData.overlayTexId;
 }

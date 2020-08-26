@@ -114,7 +114,7 @@ bool WrappedOpenGL::Serialise_glProgramUniformVector(SerialiserType &ser, GLuint
 
   if(IsReplayingAndReading() && Program.name)
   {
-    ResourceId liveProgId = GetResourceManager()->GetID(Program);
+    ResourceId liveProgId = GetResourceManager()->GetResID(Program);
     GLuint live = Program.name;
 
     std::map<GLint, GLint> &translate = m_Programs[liveProgId].locationTranslate;
@@ -235,7 +235,7 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(SerialiserType &ser, GLuint
 
   if(IsReplayingAndReading() && Program.name)
   {
-    ResourceId liveProgId = GetResourceManager()->GetID(Program);
+    ResourceId liveProgId = GetResourceManager()->GetResID(Program);
     GLuint live = Program.name;
 
     std::map<GLint, GLint> &translate = m_Programs[liveProgId].locationTranslate;

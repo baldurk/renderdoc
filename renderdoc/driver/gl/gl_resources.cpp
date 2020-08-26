@@ -60,7 +60,7 @@ void DoSerialise(SerialiserType &ser, GLResource &el)
   ResourceId id;
 
   if(ser.IsWriting() && rm)
-    id = rm->GetID(el);
+    id = rm->GetResID(el);
 
   DoSerialise(ser, id);
 

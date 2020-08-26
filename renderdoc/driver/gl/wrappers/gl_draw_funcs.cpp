@@ -173,14 +173,14 @@ bool WrappedOpenGL::Check_SafeDraw(bool indexed)
   // find the current vertex shader
   if(prog)
   {
-    ResourceId id = GetResourceManager()->GetID(ProgramRes(GetCtx(), prog));
+    ResourceId id = GetResourceManager()->GetResID(ProgramRes(GetCtx(), prog));
     const ProgramData &progDetails = m_Programs[id];
 
     vs = progDetails.stageShaders[0];
   }
   else if(pipe)
   {
-    ResourceId id = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipe));
+    ResourceId id = GetResourceManager()->GetResID(ProgramPipeRes(GetCtx(), pipe));
     const PipelineData &pipeDetails = m_Pipelines[id];
 
     GL.glGetProgramPipelineiv(pipe, eGL_VERTEX_SHADER, (GLint *)&prog);
@@ -252,7 +252,7 @@ bool WrappedOpenGL::Check_SafeDraw(bool indexed)
 
           if(size == 0)
           {
-            ResourceId id = GetResourceManager()->GetID(BufferRes(GetCtx(), vb));
+            ResourceId id = GetResourceManager()->GetResID(BufferRes(GetCtx(), vb));
             AddDebugMessage(
                 MessageCategory::Undefined, MessageSeverity::High, MessageSource::IncorrectAPIUse,
                 StringFormat::Fmt("Vertex buffer %s bound to attribute %d: %s (buffer slot %d) at "
@@ -504,7 +504,7 @@ bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(SerialiserType &ser, GLi
       GLuint buf = 0;
       GL.glGetIntegerv(eGL_DISPATCH_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
 
-      m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+      m_ResourceUses[GetResourceManager()->GetResID(BufferRes(GetCtx(), buf))].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Indirect));
     }
   }
@@ -1227,7 +1227,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(SerialiserType &ser, GLenum m
       GLuint buf = 0;
       GL.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
 
-      m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+      m_ResourceUses[GetResourceManager()->GetResID(BufferRes(GetCtx(), buf))].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Indirect));
     }
   }
@@ -1547,7 +1547,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(SerialiserType &ser, GLenum
       GLuint buf = 0;
       GL.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
 
-      m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+      m_ResourceUses[GetResourceManager()->GetResID(BufferRes(GetCtx(), buf))].push_back(
           EventUsage(m_CurEventID, ResourceUsage::Indirect));
     }
   }
@@ -2697,7 +2697,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(SerialiserType &ser, GLe
         GLuint buf = 0;
         GL.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
 
-        m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+        m_ResourceUses[GetResourceManager()->GetResID(BufferRes(GetCtx(), buf))].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Indirect));
       }
 
@@ -2920,7 +2920,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(SerialiserType &ser, G
         GLuint buf = 0;
         GL.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
 
-        m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+        m_ResourceUses[GetResourceManager()->GetResID(BufferRes(GetCtx(), buf))].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Indirect));
       }
 
@@ -3149,7 +3149,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
         GLuint buf = 0;
         GL.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
 
-        m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+        m_ResourceUses[GetResourceManager()->GetResID(BufferRes(GetCtx(), buf))].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Indirect));
       }
 
@@ -3381,7 +3381,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
         GLuint buf = 0;
         GL.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
 
-        m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+        m_ResourceUses[GetResourceManager()->GetResID(BufferRes(GetCtx(), buf))].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Indirect));
       }
 
@@ -3625,9 +3625,9 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(SerialiserType &ser,
         ResourceId id;
 
         if(type == eGL_TEXTURE)
-          id = GetResourceManager()->GetID(TextureRes(GetCtx(), attachment));
+          id = GetResourceManager()->GetResID(TextureRes(GetCtx(), attachment));
         else
-          id = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment));
+          id = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), attachment));
 
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
         draw.copyDestination = GetResourceManager()->GetOriginalID(id);
@@ -3776,9 +3776,9 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(SerialiserType &ser,
         ResourceId id;
 
         if(type == eGL_TEXTURE)
-          id = GetResourceManager()->GetID(TextureRes(GetCtx(), attachment));
+          id = GetResourceManager()->GetResID(TextureRes(GetCtx(), attachment));
         else
-          id = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment));
+          id = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), attachment));
 
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
         draw.copyDestination = GetResourceManager()->GetOriginalID(id);
@@ -3900,9 +3900,9 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(SerialiserType &ser,
         ResourceId id;
 
         if(type == eGL_TEXTURE)
-          id = GetResourceManager()->GetID(TextureRes(GetCtx(), attachment));
+          id = GetResourceManager()->GetResID(TextureRes(GetCtx(), attachment));
         else
-          id = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment));
+          id = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), attachment));
 
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
         draw.copyDestination = GetResourceManager()->GetOriginalID(id);
@@ -4023,9 +4023,9 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(SerialiserType &ser, GLu
         ResourceId id;
 
         if(type == eGL_TEXTURE)
-          id = GetResourceManager()->GetID(TextureRes(GetCtx(), attachment));
+          id = GetResourceManager()->GetResID(TextureRes(GetCtx(), attachment));
         else
-          id = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment));
+          id = GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), attachment));
 
         m_ResourceUses[id].push_back(EventUsage(m_CurEventID, ResourceUsage::Clear));
         draw.copyDestination = GetResourceManager()->GetOriginalID(id);
@@ -4053,10 +4053,10 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(SerialiserType &ser, GLu
       if(attachment)
       {
         if(type == eGL_TEXTURE)
-          m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
+          m_ResourceUses[GetResourceManager()->GetResID(TextureRes(GetCtx(), attachment))].push_back(
               EventUsage(m_CurEventID, ResourceUsage::Clear));
         else
-          m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
+          m_ResourceUses[GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), attachment))].push_back(
               EventUsage(m_CurEventID, ResourceUsage::Clear));
       }
     }
@@ -4655,7 +4655,7 @@ bool WrappedOpenGL::Serialise_glClearTexImage(SerialiserType &ser, GLuint textur
     {
       AddEvent();
 
-      ResourceId liveId = GetResourceManager()->GetID(texture);
+      ResourceId liveId = GetResourceManager()->GetResID(texture);
       ResourceId id = GetResourceManager()->GetOriginalID(liveId);
 
       DrawcallDescription draw;
@@ -4804,7 +4804,7 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(SerialiserType &ser, GLuint tex
     {
       AddEvent();
 
-      ResourceId liveId = GetResourceManager()->GetID(texture);
+      ResourceId liveId = GetResourceManager()->GetResID(texture);
       ResourceId id = GetResourceManager()->GetOriginalID(liveId);
 
       DrawcallDescription draw;

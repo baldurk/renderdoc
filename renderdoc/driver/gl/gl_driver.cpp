@@ -771,7 +771,7 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   drv.glGenTextures(1, &col);
   drv.glBindTexture(target, col);
 
-  m_Textures[GetResourceManager()->GetID(TextureRes(GetCtx(), col))].creationFlags |=
+  m_Textures[GetResourceManager()->GetResID(TextureRes(GetCtx(), col))].creationFlags |=
       TextureCategory::SwapBuffer;
 
   uint32_t width = RDCMAX(1U, params.width);
@@ -832,7 +832,7 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
     else
       RDCERR("Unexpected # stencil bits: %d", params.stencilBits);
 
-    m_Textures[GetResourceManager()->GetID(TextureRes(GetCtx(), depth))].creationFlags |=
+    m_Textures[GetResourceManager()->GetResID(TextureRes(GetCtx(), depth))].creationFlags |=
         TextureCategory::SwapBuffer;
 
     if(params.multiSamples > 1)
@@ -866,7 +866,7 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   AddResource(fboOrigId, ResourceType::SwapchainImage, "");
   GetReplay()->GetResourceDesc(fboOrigId).SetCustomName(bbname + " FBO");
 
-  ResourceId colorId = GetResourceManager()->GetID(TextureRes(GetCtx(), col));
+  ResourceId colorId = GetResourceManager()->GetResID(TextureRes(GetCtx(), col));
   rdcstr name = bbname + " Color";
 
   GetResourceManager()->SetName(colorId, name);
@@ -880,7 +880,7 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
 
   if(depth)
   {
-    ResourceId depthId = GetResourceManager()->GetID(TextureRes(GetCtx(), depth));
+    ResourceId depthId = GetResourceManager()->GetResID(TextureRes(GetCtx(), depth));
     name = bbname + (params.stencilBits > 0 ? " Depth-stencil" : " Depth");
 
     GetResourceManager()->SetName(depthId, name);
@@ -903,7 +903,7 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
 
     if(depth)
     {
-      ResourceId depthId = GetResourceManager()->GetID(TextureRes(GetCtx(), depth));
+      ResourceId depthId = GetResourceManager()->GetResID(TextureRes(GetCtx(), depth));
 
       GetReplay()->GetResourceDesc(depthId).initialisationChunks.clear();
       GetReplay()->GetResourceDesc(depthId).initialisationChunks.push_back(m_InitChunkIndex);
@@ -1642,7 +1642,7 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
       // its ID to create a glCreateShaderProgramv. This avoids the awkward problem where we have
       // two replacements (program and shader) for one resource.
 
-      ResourceId targetId = GetResourceManager()->GetID(toresource);
+      ResourceId targetId = GetResourceManager()->GetResID(toresource);
 
       // copy the shader data
       ShaderData shaddata = m_Shaders[targetId];
@@ -1691,7 +1691,7 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
 
         std::map<GLint, GLint> translate;
 
-        ResourceId progsrcid = GetResourceManager()->GetID(fromresource);
+        ResourceId progsrcid = GetResourceManager()->GetResID(fromresource);
 
         PerStageReflections stages;
         FillReflectionArray(progsrcid, stages);
@@ -1810,7 +1810,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
       // make a new program
       GLuint progdst = glCreateProgram();
 
-      ResourceId progdstid = GetResourceManager()->GetID(ProgramRes(GetCtx(), progdst));
+      ResourceId progdstid = GetResourceManager()->GetResID(ProgramRes(GetCtx(), progdst));
 
       // attach shaders, going via the original ID to pick up replacements
       for(int i = 0; i < 6; i++)
@@ -1938,7 +1938,7 @@ void WrappedOpenGL::RefreshDerivedReplacements()
       GLuint pipedst = 0;
       glGenProgramPipelines(1, &pipedst);
 
-      ResourceId pipedstid = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipedst));
+      ResourceId pipedstid = GetResourceManager()->GetResID(ProgramPipeRes(GetCtx(), pipedst));
 
       // attach programs, going via the original ID to pick up replacements
       for(int i = 0; i < 6; i++)
@@ -2630,8 +2630,8 @@ bool WrappedOpenGL::Serialise_Present(SerialiserType &ser)
                                                      eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
                                                      (GLint *)&col);
 
-    draw.copyDestination =
-        GetResourceManager()->GetOriginalID(GetResourceManager()->GetID(TextureRes(GetCtx(), col)));
+    draw.copyDestination = GetResourceManager()->GetOriginalID(
+        GetResourceManager()->GetResID(TextureRes(GetCtx(), col)));
 
     draw.name =
         StringFormat::Fmt("%s(%s)", ToStr(gl_CurChunk).c_str(), ToStr(draw.copyDestination).c_str());
@@ -2671,7 +2671,7 @@ bool WrappedOpenGL::Serialise_ContextInit(ReadSerialiser &ser)
     // register the ID of a framebuffer on another context, so it can be redirected to a single
     // global FBO0. But now each context's FBO0 is unique. So if this is present, we also have the
     // global FBO0 to redirect to.
-    ResourceId global_fbo0 = GetResourceManager()->GetID(FramebufferRes(GetCtx(), m_Global_FBO0));
+    ResourceId global_fbo0 = GetResourceManager()->GetResID(FramebufferRes(GetCtx(), m_Global_FBO0));
 
     GetReplay()->GetResourceDesc(global_fbo0).SetCustomName("Backbuffer FBO");
 
@@ -3194,7 +3194,7 @@ void WrappedOpenGL::AddResource(ResourceId id, ResourceType type, const char *de
 
 void WrappedOpenGL::DerivedResource(GLResource parent, ResourceId child)
 {
-  ResourceId parentId = GetResourceManager()->GetOriginalID(GetResourceManager()->GetID(parent));
+  ResourceId parentId = GetResourceManager()->GetOriginalID(GetResourceManager()->GetResID(parent));
 
   GetReplay()->GetResourceDesc(parentId).derivedResources.push_back(child);
   GetReplay()->GetResourceDesc(child).parentResources.push_back(parentId);
@@ -3216,7 +3216,7 @@ void WrappedOpenGL::AddResourceInitChunk(GLResource res)
   if(m_CurEventID == 0)
   {
     GLResourceManager *rm = GetResourceManager();
-    AddResourceCurChunk(rm->GetOriginalID(rm->GetID(res)));
+    AddResourceCurChunk(rm->GetOriginalID(rm->GetResID(res)));
   }
 }
 
@@ -3450,7 +3450,7 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
                                                          (GLint *)&col);
 
         draw.copyDestination = GetResourceManager()->GetOriginalID(
-            GetResourceManager()->GetID(TextureRes(GetCtx(), col)));
+            GetResourceManager()->GetResID(TextureRes(GetCtx(), col)));
 
         AddDrawcall(draw, true);
       }
@@ -5259,7 +5259,7 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
     GL.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&ibuffer);
 
     if(ibuffer)
-      m_ResourceUses[rm->GetID(BufferRes(ctx, ibuffer))].push_back(
+      m_ResourceUses[rm->GetResID(BufferRes(ctx, ibuffer))].push_back(
           EventUsage(e, ResourceUsage::IndexBuffer));
   }
 
@@ -5271,7 +5271,7 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
     GLuint buffer = GetBoundVertexBuffer(i);
 
     if(buffer)
-      m_ResourceUses[rm->GetID(BufferRes(ctx, buffer))].push_back(
+      m_ResourceUses[rm->GetResID(BufferRes(ctx, buffer))].push_back(
           EventUsage(e, ResourceUsage::VertexBuffer));
   }
 
@@ -5298,7 +5298,7 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
       }
       else
       {
-        auto &pipeDetails = m_Pipelines[rm->GetID(ProgramPipeRes(ctx, curProg))];
+        auto &pipeDetails = m_Pipelines[rm->GetResID(ProgramPipeRes(ctx, curProg))];
 
         for(size_t i = 0; i < ARRAY_COUNT(pipeDetails.stageShaders); i++)
         {
@@ -5314,7 +5314,7 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
     }
     else
     {
-      auto &progDetails = m_Programs[rm->GetID(ProgramRes(ctx, curProg))];
+      auto &progDetails = m_Programs[rm->GetResID(ProgramRes(ctx, curProg))];
 
       for(size_t i = 0; i < ARRAY_COUNT(progDetails.stageShaders); i++)
       {
@@ -5344,7 +5344,7 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
           int32_t bind = mapping[i].constantBlocks[cblock.bindPoint].bind;
 
           if(rs.UniformBinding[bind].res.name)
-            m_ResourceUses[rm->GetID(rs.UniformBinding[bind].res)].push_back(cb);
+            m_ResourceUses[rm->GetResID(rs.UniformBinding[bind].res)].push_back(cb);
         }
 
         for(const ShaderResource &res : refl[i]->readWriteResources)
@@ -5354,7 +5354,7 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
           if(res.isTexture)
           {
             if(rs.Images[bind].res.name)
-              m_ResourceUses[rm->GetID(rs.Images[bind].res)].push_back(rw);
+              m_ResourceUses[rm->GetResID(rs.Images[bind].res)].push_back(rw);
           }
           else
           {
@@ -5362,12 +5362,12 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
                res.variableType.descriptor.type == VarType::UInt)
             {
               if(rs.AtomicCounter[bind].res.name)
-                m_ResourceUses[rm->GetID(rs.AtomicCounter[bind].res)].push_back(rw);
+                m_ResourceUses[rm->GetResID(rs.AtomicCounter[bind].res)].push_back(rw);
             }
             else
             {
               if(rs.ShaderStorage[bind].res.name)
-                m_ResourceUses[rm->GetID(rs.ShaderStorage[bind].res)].push_back(rw);
+                m_ResourceUses[rm->GetResID(rs.ShaderStorage[bind].res)].push_back(rw);
             }
           }
         }
@@ -5398,7 +5398,7 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
           }
 
           if(texList != NULL && bind >= 0 && bind < listSize && texList[bind].name != 0)
-            m_ResourceUses[rm->GetID(texList[bind])].push_back(ro);
+            m_ResourceUses[rm->GetResID(texList[bind])].push_back(ro);
         }
       }
     }
@@ -5416,7 +5416,7 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
     GL.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint *)&buffer);
 
     if(buffer)
-      m_ResourceUses[rm->GetID(BufferRes(ctx, buffer))].push_back(
+      m_ResourceUses[rm->GetResID(BufferRes(ctx, buffer))].push_back(
           EventUsage(e, ResourceUsage::StreamOut));
   }
 
@@ -5441,10 +5441,10 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
     if(attachment)
     {
       if(type == eGL_TEXTURE)
-        m_ResourceUses[rm->GetID(TextureRes(ctx, attachment))].push_back(
+        m_ResourceUses[rm->GetResID(TextureRes(ctx, attachment))].push_back(
             EventUsage(e, ResourceUsage::ColorTarget));
       else
-        m_ResourceUses[rm->GetID(RenderbufferRes(ctx, attachment))].push_back(
+        m_ResourceUses[rm->GetResID(RenderbufferRes(ctx, attachment))].push_back(
             EventUsage(e, ResourceUsage::ColorTarget));
     }
   }
@@ -5458,10 +5458,10 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
   if(attachment)
   {
     if(type == eGL_TEXTURE)
-      m_ResourceUses[rm->GetID(TextureRes(ctx, attachment))].push_back(
+      m_ResourceUses[rm->GetResID(TextureRes(ctx, attachment))].push_back(
           EventUsage(e, ResourceUsage::DepthStencilTarget));
     else
-      m_ResourceUses[rm->GetID(RenderbufferRes(ctx, attachment))].push_back(
+      m_ResourceUses[rm->GetResID(RenderbufferRes(ctx, attachment))].push_back(
           EventUsage(e, ResourceUsage::DepthStencilTarget));
   }
 
@@ -5474,10 +5474,10 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
   if(attachment)
   {
     if(type == eGL_TEXTURE)
-      m_ResourceUses[rm->GetID(TextureRes(ctx, attachment))].push_back(
+      m_ResourceUses[rm->GetResID(TextureRes(ctx, attachment))].push_back(
           EventUsage(e, ResourceUsage::DepthStencilTarget));
     else
-      m_ResourceUses[rm->GetID(RenderbufferRes(ctx, attachment))].push_back(
+      m_ResourceUses[rm->GetResID(RenderbufferRes(ctx, attachment))].push_back(
           EventUsage(e, ResourceUsage::DepthStencilTarget));
   }
 }
@@ -5515,10 +5515,10 @@ void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
 
       if(type == eGL_TEXTURE)
         draw.outputs[i] = GetResourceManager()->GetOriginalID(
-            GetResourceManager()->GetID(TextureRes(GetCtx(), curCol[i])));
+            GetResourceManager()->GetResID(TextureRes(GetCtx(), curCol[i])));
       else
         draw.outputs[i] = GetResourceManager()->GetOriginalID(
-            GetResourceManager()->GetID(RenderbufferRes(GetCtx(), curCol[i])));
+            GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), curCol[i])));
     }
 
     type = eGL_TEXTURE;
@@ -5530,10 +5530,10 @@ void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
                                              eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
     if(type == eGL_TEXTURE)
       draw.depthOut = GetResourceManager()->GetOriginalID(
-          GetResourceManager()->GetID(TextureRes(GetCtx(), curDepth)));
+          GetResourceManager()->GetResID(TextureRes(GetCtx(), curDepth)));
     else
       draw.depthOut = GetResourceManager()->GetOriginalID(
-          GetResourceManager()->GetID(RenderbufferRes(GetCtx(), curDepth)));
+          GetResourceManager()->GetResID(RenderbufferRes(GetCtx(), curDepth)));
   }
 
   // markers don't increment drawcall ID
