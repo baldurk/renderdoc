@@ -966,6 +966,7 @@ struct SwapchainInfo
     VkImageView view;
     VkFramebuffer fb;
 
+    VkFence fence;
     VkCommandBuffer cmd;
     VkSemaphore overlaydone;
   };

@@ -590,6 +590,17 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
         RemovePendingCommandBuffer(swapImInfo.cmd);
 
         {
+          VkFenceCreateInfo fenceInfo = {VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, NULL,
+                                         VK_FENCE_CREATE_SIGNALED_BIT};
+
+          vkr = ObjDisp(device)->CreateFence(Unwrap(device), &fenceInfo, NULL, &swapImInfo.fence);
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+          GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.fence);
+          GetResourceManager()->SetInternalResource(GetResID(swapImInfo.fence));
+        }
+
+        {
           VkSemaphoreCreateInfo semInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
           vkr = ObjDisp(device)->CreateSemaphore(Unwrap(device), &semInfo, NULL,
@@ -782,6 +793,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       VkImage im = swapInfo.images[pPresentInfo->pImageIndices[0]].im;
       VkFramebuffer fb = swapInfo.images[pPresentInfo->pImageIndices[0]].fb;
       VkCommandBuffer cmd = swapInfo.images[pPresentInfo->pImageIndices[0]].cmd;
+      VkFence imfence = swapInfo.images[pPresentInfo->pImageIndices[0]].fence;
       VkSemaphore sem = swapInfo.images[pPresentInfo->pImageIndices[0]].overlaydone;
 
       VkResourceRecord *queueRecord = GetRecord(queue);
@@ -798,12 +810,20 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
           swapInfo.imageInfo.format,
       };
 
+      // wait for this command buffer to be free
+      // If this ring has never been used the fence is signalled on creation.
+      // this should generally be a no-op because we only get here when we've acquired the image
+      VkResult vkr = vt->WaitForFences(Unwrap(m_Device), 1, UnwrapPtr(imfence), VK_TRUE, 50000000);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      vkr = vt->ResetFences(Unwrap(m_Device), 1, UnwrapPtr(imfence));
+
       ObjDisp(cmd)->ResetCommandBuffer(Unwrap(cmd), 0);
 
       VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
-      VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
       VkImageMemoryBarrier bbBarrier = {
@@ -857,6 +877,8 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
         // this ring has never been used the fence is signalled on creation
         vkr = vt->WaitForFences(Unwrap(m_Device), 1, UnwrapPtr(fence), VK_TRUE, 50000000);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        vkr = vt->ResetFences(Unwrap(m_Device), 1, UnwrapPtr(fence));
 
         vkr = vt->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
@@ -919,7 +941,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = UnwrapPtr(cmd);
 
-        vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), 1, &submitInfo, VK_NULL_HANDLE);
+        vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), 1, &submitInfo, Unwrap(imfence));
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
       }
 

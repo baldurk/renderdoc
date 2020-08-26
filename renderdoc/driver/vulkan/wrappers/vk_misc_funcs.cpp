@@ -254,14 +254,17 @@ void WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj,
       VkFramebuffer unwrappedFB = Unwrap(info.images[i].fb);
       VkImageView unwrappedView = Unwrap(info.images[i].view);
       VkSemaphore unwrappedSem = Unwrap(info.images[i].overlaydone);
+      VkFence unwrappedFence = Unwrap(info.images[i].fence);
       GetResourceManager()->ReleaseWrappedResource(info.images[i].fb, true);
       // note, image doesn't have to be destroyed, just untracked
       GetResourceManager()->ReleaseWrappedResource(info.images[i].im, true);
       GetResourceManager()->ReleaseWrappedResource(info.images[i].view, true);
       GetResourceManager()->ReleaseWrappedResource(info.images[i].overlaydone);
+      GetResourceManager()->ReleaseWrappedResource(info.images[i].fence);
       ObjDisp(device)->DestroyFramebuffer(Unwrap(device), unwrappedFB, NULL);
       ObjDisp(device)->DestroyImageView(Unwrap(device), unwrappedView, NULL);
       ObjDisp(device)->DestroySemaphore(Unwrap(device), unwrappedSem, NULL);
+      ObjDisp(device)->DestroyFence(Unwrap(device), unwrappedFence, NULL);
 
       // return the command buffers to the pool
       AddFreeCommandBuffer(info.images[i].cmd);
