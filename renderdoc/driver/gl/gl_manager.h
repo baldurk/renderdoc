@@ -170,6 +170,13 @@ public:
         EraseLiveResource(it->second.first);
       ReleaseCurrentResource(it->second.first);
       m_CurrentResources.erase(res);
+
+      auto fboit = m_FBOAttachmentsCache.find(it->second.first);
+      if(fboit != m_FBOAttachmentsCache.end())
+      {
+        delete fboit->second;
+        m_FBOAttachmentsCache.erase(fboit);
+      }
     }
   }
 
@@ -295,6 +302,7 @@ public:
   // this would be handled by record parenting, but that would be a nightmare to track.
   void MarkVAOReferenced(GLResource res, FrameRefType ref, bool allowFake0 = false);
   void MarkFBOReferenced(GLResource res, FrameRefType ref);
+  void MarkFBODirtyWithWriteReference(GLResourceRecord *record);
 
   bool IsResourceTrackedForPersistency(const GLResource &res);
 
@@ -320,6 +328,9 @@ private:
   void Create_InitialState(ResourceId id, GLResource live, bool hasData);
   void Apply_InitialState(GLResource live, const GLInitialContents &initial);
 
+  void MarkFBOAttachmentsReferenced(ResourceId id, GLResourceRecord *record, FrameRefType ref,
+                                    bool markDirty);
+
   // unfortunately not all resources have a record even at capture time (certain special resources
   // do not) so we store a pair to ensure we can always lookup the resource ID
   rdcflatmap<GLResource, rdcpair<ResourceId, GLResourceRecord *>> m_CurrentResources;
@@ -330,6 +341,14 @@ private:
   std::map<GLuint, GLsync> m_CurrentSyncs;
   std::map<ResourceId, rdcstr> m_Names;
   volatile int64_t m_SyncName;
+
+  struct FBOCache
+  {
+    uint32_t age = 0;
+    rdcarray<ResourceId> attachments;
+  };
+
+  rdcflatmap<ResourceId, FBOCache *> m_FBOAttachmentsCache;
 
   WrappedOpenGL *m_Driver;
 };

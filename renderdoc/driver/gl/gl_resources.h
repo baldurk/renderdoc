@@ -258,7 +258,11 @@ struct GLResourceRecord : public ResourceRecord
   }
 
   bool AlreadyDataType(GLenum target) { return datatype == TextureBinding(target); }
-  GLenum datatype;
+  union
+  {
+    GLenum datatype;
+    uint32_t age;
+  };
   GLenum usage;
 
   // for texture buffers, this points from the texture to the real buffer, for texture views this

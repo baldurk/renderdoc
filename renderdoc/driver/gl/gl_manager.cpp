@@ -67,55 +67,118 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
   if(res.name == 0)
     return;
 
-  MarkResourceFrameReferenced(res, ref);
+  rdcpair<ResourceId, GLResourceRecord *> &it = m_CurrentResources[res];
 
-  ContextPair &ctx = m_Driver->GetCtx();
+  MarkResourceFrameReferenced(it.first, ref);
 
-  GLint numCols = 8;
-  GL.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+  MarkFBOAttachmentsReferenced(it.first, it.second, ref, false);
+}
 
-  GLenum type = eGL_TEXTURE;
-  GLuint name = 0;
+void GLResourceManager::MarkFBODirtyWithWriteReference(GLResourceRecord *record)
+{
+  MarkFBOAttachmentsReferenced(record->GetResourceID(), record, eFrameRef_ReadBeforeWrite, true);
+}
 
-  for(int c = 0; c < numCols; c++)
+void GLResourceManager::MarkFBOAttachmentsReferenced(ResourceId fboid, GLResourceRecord *record,
+                                                     FrameRefType ref, bool markDirty)
+{
+  FBOCache *cache = m_FBOAttachmentsCache[fboid];
+
+  if(!cache)
   {
-    GL.glGetNamedFramebufferAttachmentParameterivEXT(res.name, GLenum(eGL_COLOR_ATTACHMENT0 + c),
-                                                     eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                                     (GLint *)&name);
-    GL.glGetNamedFramebufferAttachmentParameterivEXT(res.name, GLenum(eGL_COLOR_ATTACHMENT0 + c),
-                                                     eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
-                                                     (GLint *)&type);
-
-    if(type == eGL_RENDERBUFFER)
-      MarkResourceFrameReferenced(RenderbufferRes(ctx, name), ref);
-    else
-      MarkResourceFrameReferenced(TextureRes(ctx, name), ref);
+    cache = m_FBOAttachmentsCache[fboid] = new FBOCache;
+    // ensure the starting age is wrong, for whatever age we have
+    cache->age = (record->age ^ 1);
   }
 
-  GL.glGetNamedFramebufferAttachmentParameterivEXT(
-      res.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&name);
-  GL.glGetNamedFramebufferAttachmentParameterivEXT(
-      res.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
-
-  if(name)
+  if(cache->age != record->age)
   {
-    if(type == eGL_RENDERBUFFER)
-      MarkResourceFrameReferenced(RenderbufferRes(ctx, name), ref);
-    else
-      MarkResourceFrameReferenced(TextureRes(ctx, name), ref);
+    cache->age = record->age;
+    cache->attachments.clear();
+
+    GLuint fbo = record->Resource.name;
+
+    ContextPair &ctx = m_Driver->GetCtx();
+
+    GLint numCols = 8;
+    GL.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+
+    GLenum type = eGL_TEXTURE;
+    GLuint name = 0;
+
+    ResourceId id;
+
+    for(int c = 0; c < numCols; c++)
+    {
+      GL.glGetNamedFramebufferAttachmentParameterivEXT(fbo, GLenum(eGL_COLOR_ATTACHMENT0 + c),
+                                                       eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                       (GLint *)&name);
+
+      if(name)
+      {
+        GL.glGetNamedFramebufferAttachmentParameterivEXT(fbo, GLenum(eGL_COLOR_ATTACHMENT0 + c),
+                                                         eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                         (GLint *)&type);
+
+        if(type == eGL_RENDERBUFFER)
+          id = GetResID(RenderbufferRes(ctx, name));
+        else
+          id = GetResID(TextureRes(ctx, name));
+
+        cache->attachments.push_back(id);
+        GLResourceRecord *r = GetResourceRecord(id);
+        if(r && r->viewSource != ResourceId())
+          cache->attachments.push_back(r->viewSource);
+      }
+    }
+
+    GL.glGetNamedFramebufferAttachmentParameterivEXT(
+        fbo, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&name);
+
+    if(name)
+    {
+      GL.glGetNamedFramebufferAttachmentParameterivEXT(
+          fbo, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+
+      if(type == eGL_RENDERBUFFER)
+        id = GetResID(RenderbufferRes(ctx, name));
+      else
+        id = GetResID(TextureRes(ctx, name));
+
+      cache->attachments.push_back(id);
+      GLResourceRecord *r = GetResourceRecord(id);
+      if(r && r->viewSource != ResourceId())
+        cache->attachments.push_back(r->viewSource);
+    }
+
+    GLuint stencilName = 0;
+
+    GL.glGetNamedFramebufferAttachmentParameterivEXT(
+        fbo, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&stencilName);
+
+    if(stencilName && stencilName != name)
+    {
+      GL.glGetNamedFramebufferAttachmentParameterivEXT(
+          fbo, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+
+      if(type == eGL_RENDERBUFFER)
+        id = GetResID(RenderbufferRes(ctx, stencilName));
+      else
+        id = GetResID(TextureRes(ctx, stencilName));
+
+      cache->attachments.push_back(id);
+      GLResourceRecord *r = GetResourceRecord(id);
+      if(r && r->viewSource != ResourceId())
+        cache->attachments.push_back(r->viewSource);
+    }
   }
 
-  GL.glGetNamedFramebufferAttachmentParameterivEXT(
-      res.name, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&name);
-  GL.glGetNamedFramebufferAttachmentParameterivEXT(
-      res.name, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
-
-  if(name)
+  // we took care of viewSource above so we can directly call the real thing
+  for(ResourceId id : cache->attachments)
   {
-    if(type == eGL_RENDERBUFFER)
-      MarkResourceFrameReferenced(RenderbufferRes(ctx, name), ref);
-    else
-      MarkResourceFrameReferenced(TextureRes(ctx, name), ref);
+    ResourceManager::MarkResourceFrameReferenced(id, ref);
+    if(markDirty)
+      ResourceManager::MarkDirtyResource(id);
   }
 }
 

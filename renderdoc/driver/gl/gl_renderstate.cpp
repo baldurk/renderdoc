@@ -611,64 +611,7 @@ void GLRenderState::MarkDirty(WrappedOpenGL *driver)
 
   if(ctxData.m_DrawFramebufferRecord)
   {
-    name = ctxData.m_DrawFramebufferRecord->Resource.name;
-
-    static GLint fboCount = 0;
-    if(fboCount == 0)
-      GL.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &fboCount);
-
-    GLenum type = eGL_TEXTURE;
-    for(GLint i = 0; i < fboCount; i++)
-    {
-      GL.glGetFramebufferAttachmentParameteriv(
-          eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
-          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&name);
-
-      if(name)
-      {
-        GL.glGetFramebufferAttachmentParameteriv(
-            eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
-            eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
-
-        if(type == eGL_RENDERBUFFER)
-          manager->MarkDirtyResource(RenderbufferRes(ctx, name));
-        else
-          manager->MarkDirtyWithWriteReference(TextureRes(ctx, name));
-      }
-    }
-
-    GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&name);
-
-    if(name)
-    {
-      GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
-                                               (GLint *)&type);
-
-      if(type == eGL_RENDERBUFFER)
-        manager->MarkDirtyResource(RenderbufferRes(ctx, name));
-      else
-        manager->MarkDirtyWithWriteReference(TextureRes(ctx, name));
-    }
-
-    GLuint stencilName = 0;
-    GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-                                             (GLint *)&stencilName);
-
-    // almost always this will be the same as the depth, so we can skip it if so
-    if(stencilName && stencilName != name)
-    {
-      GL.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
-                                               (GLint *)&type);
-
-      if(type == eGL_RENDERBUFFER)
-        manager->MarkDirtyResource(RenderbufferRes(ctx, stencilName));
-      else
-        manager->MarkDirtyWithWriteReference(TextureRes(ctx, stencilName));
-    }
+    manager->MarkFBODirtyWithWriteReference(ctxData.m_DrawFramebufferRecord);
   }
 }
 

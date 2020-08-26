@@ -215,6 +215,8 @@ void WrappedOpenGL::glNamedFramebufferTextureEXT(GLuint framebuffer, GLenum atta
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
 
+    record->age++;
+
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
       GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
@@ -268,6 +270,8 @@ void WrappedOpenGL::glFramebufferTexture(GLenum target, GLenum attachment, GLuin
       if(GetCtxData().m_ReadFramebufferRecord)
         record = GetCtxData().m_ReadFramebufferRecord;
     }
+
+    record->age++;
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
@@ -353,6 +357,8 @@ void WrappedOpenGL::glNamedFramebufferTexture1DEXT(GLuint framebuffer, GLenum at
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
 
+    record->age++;
+
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
       GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
@@ -408,6 +414,8 @@ void WrappedOpenGL::glFramebufferTexture1D(GLenum target, GLenum attachment, GLe
       if(GetCtxData().m_ReadFramebufferRecord)
         record = GetCtxData().m_ReadFramebufferRecord;
     }
+
+    record->age++;
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
@@ -494,6 +502,8 @@ void WrappedOpenGL::glNamedFramebufferTexture2DEXT(GLuint framebuffer, GLenum at
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
 
+    record->age++;
+
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
       GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
@@ -549,6 +559,8 @@ void WrappedOpenGL::glFramebufferTexture2D(GLenum target, GLenum attachment, GLe
       if(GetCtxData().m_ReadFramebufferRecord)
         record = GetCtxData().m_ReadFramebufferRecord;
     }
+
+    record->age++;
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
@@ -659,6 +671,8 @@ void WrappedOpenGL::glFramebufferTexture2DMultisampleEXT(GLenum target, GLenum a
         record = GetCtxData().m_ReadFramebufferRecord;
     }
 
+    record->age++;
+
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
       GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
@@ -748,6 +762,8 @@ void WrappedOpenGL::glNamedFramebufferTexture3DEXT(GLuint framebuffer, GLenum at
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
 
+    record->age++;
+
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
       GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
@@ -805,6 +821,8 @@ void WrappedOpenGL::glFramebufferTexture3D(GLenum target, GLenum attachment, GLe
       if(GetCtxData().m_ReadFramebufferRecord)
         record = GetCtxData().m_ReadFramebufferRecord;
     }
+
+    record->age++;
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
@@ -892,6 +910,8 @@ void WrappedOpenGL::glNamedFramebufferRenderbufferEXT(GLuint framebuffer, GLenum
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
 
+    record->age++;
+
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
        IsBackgroundCapturing(m_State))
       return;
@@ -944,6 +964,8 @@ void WrappedOpenGL::glFramebufferRenderbuffer(GLenum target, GLenum attachment,
       if(GetCtxData().m_ReadFramebufferRecord)
         record = GetCtxData().m_ReadFramebufferRecord;
     }
+
+    record->age++;
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
        IsBackgroundCapturing(m_State))
@@ -1026,6 +1048,8 @@ void WrappedOpenGL::glNamedFramebufferTextureLayerEXT(GLuint framebuffer, GLenum
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
 
+    record->age++;
+
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
       GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
@@ -1081,6 +1105,8 @@ void WrappedOpenGL::glFramebufferTextureLayer(GLenum target, GLenum attachment, 
       if(GetCtxData().m_ReadFramebufferRecord)
         record = GetCtxData().m_ReadFramebufferRecord;
     }
+
+    record->age++;
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
@@ -1186,6 +1212,8 @@ void WrappedOpenGL::glFramebufferTextureMultiviewOVR(GLenum target, GLenum attac
       if(GetCtxData().m_ReadFramebufferRecord)
         record = GetCtxData().m_ReadFramebufferRecord;
     }
+
+    record->age++;
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
@@ -1302,6 +1330,8 @@ void WrappedOpenGL::glFramebufferTextureMultisampleMultiviewOVR(GLenum target, G
       if(GetCtxData().m_ReadFramebufferRecord)
         record = GetCtxData().m_ReadFramebufferRecord;
     }
+
+    record->age++;
 
     if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
     {
