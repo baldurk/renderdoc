@@ -325,7 +325,7 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
         if(end->GetChunkType<GLChunk>() == GLChunk::glBindBuffer ||
            end->GetChunkType<GLChunk>() == GLChunk::glBindBufferARB)
         {
-          SAFE_DELETE(end);
+          end->Delete();
 
           r->PopChunk();
 
@@ -662,21 +662,21 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
       while(record->NumChunks() > 2)
       {
         Chunk *c = record->GetLastChunk();
-        SAFE_DELETE(c);
+        c->Delete();
         record->PopChunk();
       }
 
       int64_t id2 = record->GetLastChunkID();
       {
         Chunk *c = record->GetLastChunk();
-        SAFE_DELETE(c);
+        c->Delete();
         record->PopChunk();
       }
 
       int64_t id1 = record->GetLastChunkID();
       {
         Chunk *c = record->GetLastChunk();
-        SAFE_DELETE(c);
+        c->Delete();
         record->PopChunk();
       }
 
@@ -814,21 +814,21 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
       while(record->NumChunks() > 2)
       {
         Chunk *c = record->GetLastChunk();
-        SAFE_DELETE(c);
+        c->Delete();
         record->PopChunk();
       }
 
       int64_t id2 = record->GetLastChunkID();
       {
         Chunk *c = record->GetLastChunk();
-        SAFE_DELETE(c);
+        c->Delete();
         record->PopChunk();
       }
 
       int64_t id1 = record->GetLastChunkID();
       {
         Chunk *c = record->GetLastChunk();
-        SAFE_DELETE(c);
+        c->Delete();
         record->PopChunk();
       }
 

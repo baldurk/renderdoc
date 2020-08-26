@@ -77,7 +77,7 @@ void WrappedID3D12GraphicsCommandList::WriteBufferImmediate(
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_WriteBufferImmediate);
     Serialise_WriteBufferImmediate(ser, Count, pParams, pModes);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     for(UINT i = 0; i < Count; i++)
       m_ListRecord->MarkResourceFrameReferenced(
           WrappedID3D12Resource1::GetResIDFromAddr(pParams[i].Dest), eFrameRef_PartialWrite);

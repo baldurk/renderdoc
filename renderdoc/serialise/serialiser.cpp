@@ -947,3 +947,97 @@ rdcstr DoStringise(const bool &el)
 
   return "False";
 }
+
+Chunk::Chunk(Serialiser<SerialiserMode::Writing> &ser, uint16_t chunkType, ChunkAllocator *allocator)
+{
+  RDCCOMPILE_ASSERT(sizeof(Chunk) <= 16, "Chunk should be no more than 16 bytes");
+
+  m_Length = (uint32_t)ser.GetWriter()->GetOffset();
+
+  RDCASSERT(ser.GetWriter()->GetOffset() < 0xffffffff);
+
+  m_ChunkType = chunkType;
+
+  m_Data = NULL;
+  if(allocator)
+  {
+    m_ChunkAlloced = false;
+    m_Data = allocator->AllocAlignedBuffer(m_Length);
+    if(m_Data)
+      m_DataAlloced = false;
+  }
+  else
+  {
+    m_ChunkAlloced = true;
+  }
+
+  if(m_Data == NULL)
+  {
+    m_Data = AllocAlignedBuffer(m_Length);
+    m_DataAlloced = true;
+  }
+
+  memcpy(m_Data, ser.GetWriter()->GetData(), (size_t)m_Length);
+
+  ser.GetWriter()->Rewind();
+
+#if ENABLED(RDOC_DEVEL)
+  Atomic::Inc64(&m_LiveChunks);
+  Atomic::ExchAdd64(&m_TotalMem, int64_t(m_Length));
+#endif
+}
+
+byte *ChunkAllocator::AllocAlignedBuffer(uint64_t size)
+{
+  // always allocate 64-bytes at a time even if the size is smaller
+  return AllocateFromPages(freeBufferPages, fullBufferPages, AlignUp(size, (size_t)64));
+}
+
+byte *ChunkAllocator::AllocChunk()
+{
+  RDCCOMPILE_ASSERT(sizeof(ChunkAllocator) <= 128, "foo");
+  return AllocateFromPages(freeChunkPages, fullChunkPages, sizeof(Chunk));
+}
+
+void ChunkAllocator::Reset()
+{
+  freeBufferPages.append(fullBufferPages);
+  freeChunkPages.append(fullChunkPages);
+  fullBufferPages.clear();
+  fullChunkPages.clear();
+
+  for(Page &p : freeBufferPages)
+    p.head = p.base;
+  for(Page &p : freeChunkPages)
+    p.head = p.base;
+}
+
+byte *ChunkAllocator::AllocateFromPages(rdcarray<Page> &freeList, rdcarray<Page> &fullList,
+                                        size_t size)
+{
+  // if the size can't be satisfied in a page, return NULL and we'll force a full allocation which
+  // will be freed on its own
+  if(size > PageSize)
+    return NULL;
+
+  // if the last free page can't satisfy this allocation, retire it to the full list
+  if(!freeList.empty() && GetRemainingBytes(freeList.back()) < size)
+  {
+    fullList.push_back(freeList.back());
+    freeList.pop_back();
+  }
+
+  // if there are no free pages, allocate a new one
+  if(freeList.empty())
+  {
+    byte *buf = ::AllocAlignedBuffer(PageSize);
+    freeList.push_back({buf, buf});
+  }
+
+  Page &p = freeList.back();
+
+  byte *ret = p.head;
+  p.head += size;
+
+  return ret;
+}

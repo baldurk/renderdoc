@@ -3765,6 +3765,9 @@ VkResourceRecord::~VkResourceRecord()
 
   if(resType == eResDescUpdateTemplate)
     SAFE_DELETE(descTemplateInfo);
+
+  if(resType == eResCommandPool)
+    SAFE_DELETE(cmdPoolInfo);
 }
 
 void VkResourceRecord::MarkImageFrameReferenced(VkResourceRecord *img, const ImageRange &range,

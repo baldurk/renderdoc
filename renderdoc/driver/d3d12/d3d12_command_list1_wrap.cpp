@@ -134,7 +134,7 @@ void WrappedID3D12GraphicsCommandList::AtomicCopyBufferUINT(
     Serialise_AtomicCopyBufferUINT(ser, pDstBuffer, DstOffset, pSrcBuffer, SrcOffset, Dependencies,
                                    ppDependentResources, pDependentSubresourceRanges);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstBuffer), eFrameRef_PartialWrite);
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pSrcBuffer), eFrameRef_Read);
 
@@ -252,7 +252,7 @@ void WrappedID3D12GraphicsCommandList::AtomicCopyBufferUINT64(
     Serialise_AtomicCopyBufferUINT64(ser, pDstBuffer, DstOffset, pSrcBuffer, SrcOffset, Dependencies,
                                      ppDependentResources, pDependentSubresourceRanges);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstBuffer), eFrameRef_PartialWrite);
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pSrcBuffer), eFrameRef_Read);
 
@@ -331,7 +331,7 @@ void WrappedID3D12GraphicsCommandList::OMSetDepthBounds(FLOAT Min, FLOAT Max)
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_OMSetDepthBounds);
     Serialise_OMSetDepthBounds(ser, Min, Max);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -406,7 +406,7 @@ void WrappedID3D12GraphicsCommandList::SetSamplePositions(UINT NumSamplesPerPixe
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_SetSamplePositions);
     Serialise_SetSamplePositions(ser, NumSamplesPerPixel, NumPixels, pSamplePositions);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -512,7 +512,7 @@ void WrappedID3D12GraphicsCommandList::ResolveSubresourceRegion(
     Serialise_ResolveSubresourceRegion(ser, pDstResource, DstSubresource, DstX, DstY, pSrcResource,
                                        SrcSubresource, pSrcRect, Format, ResolveMode);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstResource), eFrameRef_PartialWrite);
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pSrcResource), eFrameRef_Read);
   }
@@ -583,7 +583,7 @@ void WrappedID3D12GraphicsCommandList::SetViewInstanceMask(UINT Mask)
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_SetViewInstanceMask);
     Serialise_SetViewInstanceMask(ser, Mask);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 

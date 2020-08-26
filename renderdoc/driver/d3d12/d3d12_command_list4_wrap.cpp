@@ -289,7 +289,7 @@ void WrappedID3D12GraphicsCommandList::BeginRenderPass(
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_BeginRenderPass);
     Serialise_BeginRenderPass(ser, NumRenderTargets, pRenderTargets, pDepthStencil, Flags);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     for(UINT i = 0; i < NumRenderTargets; i++)
     {
       D3D12Descriptor *desc = GetWrapped(pRenderTargets[i].cpuDescriptor);
@@ -412,7 +412,7 @@ void WrappedID3D12GraphicsCommandList::EndRenderPass()
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_EndRenderPass);
     Serialise_EndRenderPass(ser);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 

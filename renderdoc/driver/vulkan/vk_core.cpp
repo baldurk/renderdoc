@@ -2052,7 +2052,8 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
 
   RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
 
-  SAFE_DELETE(m_HeaderChunk);
+  m_HeaderChunk->Delete();
+  m_HeaderChunk = NULL;
 
   m_State = CaptureState::BackgroundCapturing;
 
@@ -2115,7 +2116,8 @@ bool WrappedVulkan::DiscardFrameCapture(void *dev, void *wnd)
 
   Atomic::Inc32(&m_ReuseEnabled);
 
-  SAFE_DELETE(m_HeaderChunk);
+  m_HeaderChunk->Delete();
+  m_HeaderChunk = NULL;
 
   // delete cmd buffers now - had to keep them alive until after serialiser flush.
   for(size_t i = 0; i < m_CmdBufferRecords.size(); i++)

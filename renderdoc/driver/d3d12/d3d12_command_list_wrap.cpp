@@ -171,7 +171,7 @@ HRESULT WrappedID3D12GraphicsCommandList::Close()
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_Close);
       Serialise_Close(ser);
 
-      m_ListRecord->AddChunk(scope.Get());
+      m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     }
 
     m_ListRecord->Bake();
@@ -426,12 +426,14 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
     m_ListRecord->bakedCommands->InternalResource = true;
     m_ListRecord->bakedCommands->cmdInfo = new CmdListRecordingInfo();
 
+    m_ListRecord->cmdInfo->alloc = &((WrappedID3D12CommandAllocator *)pAllocator)->alloc;
+
     {
       CACHE_THREAD_SERIALISER();
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_Reset);
       Serialise_Reset(ser, pAllocator, pInitialState);
 
-      m_ListRecord->AddChunk(scope.Get());
+      m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     }
 
     // add allocator and initial state (if there is one) as frame refs. We can't add
@@ -597,7 +599,7 @@ void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_ResourceBarrier);
     Serialise_ResourceBarrier(ser, NumBarriers, pBarriers);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
 
     m_ListRecord->cmdInfo->barriers.append(pBarriers, NumBarriers);
   }
@@ -666,7 +668,7 @@ void WrappedID3D12GraphicsCommandList::ClearState(ID3D12PipelineState *pPipeline
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_ClearState);
     Serialise_ClearState(ser, pPipelineState);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pPipelineState), eFrameRef_Read);
   }
 }
@@ -729,7 +731,7 @@ void WrappedID3D12GraphicsCommandList::IASetPrimitiveTopology(D3D12_PRIMITIVE_TO
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_IASetPrimitiveTopology);
     Serialise_IASetPrimitiveTopology(ser, PrimitiveTopology);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -798,7 +800,7 @@ void WrappedID3D12GraphicsCommandList::RSSetViewports(UINT NumViewports,
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_RSSetViewports);
     Serialise_RSSetViewports(ser, NumViewports, pViewports);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -865,7 +867,7 @@ void WrappedID3D12GraphicsCommandList::RSSetScissorRects(UINT NumRects, const D3
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_RSSetScissorRects);
     Serialise_RSSetScissorRects(ser, NumRects, pRects);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -924,7 +926,7 @@ void WrappedID3D12GraphicsCommandList::OMSetBlendFactor(const FLOAT BlendFactor[
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_OMSetBlendFactor);
     Serialise_OMSetBlendFactor(ser, BlendFactor);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -981,7 +983,7 @@ void WrappedID3D12GraphicsCommandList::OMSetStencilRef(UINT StencilRef)
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_OMSetStencilRef);
     Serialise_OMSetStencilRef(ser, StencilRef);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -1060,7 +1062,7 @@ void WrappedID3D12GraphicsCommandList::SetDescriptorHeaps(UINT NumDescriptorHeap
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_SetDescriptorHeaps);
     Serialise_SetDescriptorHeaps(ser, NumDescriptorHeaps, ppDescriptorHeaps);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     for(UINT i = 0; i < NumDescriptorHeaps; i++)
       m_ListRecord->MarkResourceFrameReferenced(GetResID(ppDescriptorHeaps[i]), eFrameRef_Read);
   }
@@ -1138,7 +1140,7 @@ void WrappedID3D12GraphicsCommandList::IASetIndexBuffer(const D3D12_INDEX_BUFFER
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_IASetIndexBuffer);
     Serialise_IASetIndexBuffer(ser, pView);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     if(pView)
       m_ListRecord->MarkResourceFrameReferenced(
           WrappedID3D12Resource1::GetResIDFromAddr(pView->BufferLocation), eFrameRef_Read);
@@ -1218,7 +1220,7 @@ void WrappedID3D12GraphicsCommandList::IASetVertexBuffers(UINT StartSlot, UINT N
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_IASetVertexBuffers);
     Serialise_IASetVertexBuffers(ser, StartSlot, NumViews, pViews);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     for(UINT i = 0; pViews && i < NumViews; i++)
       m_ListRecord->MarkResourceFrameReferenced(
           WrappedID3D12Resource1::GetResIDFromAddr(pViews[i].BufferLocation), eFrameRef_Read);
@@ -1300,7 +1302,7 @@ void WrappedID3D12GraphicsCommandList::SOSetTargets(UINT StartSlot, UINT NumView
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_SOSetTargets);
     Serialise_SOSetTargets(ser, StartSlot, NumViews, pViews);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     for(UINT i = 0; pViews && i < NumViews; i++)
       m_ListRecord->MarkResourceFrameReferenced(
           WrappedID3D12Resource1::GetResIDFromAddr(pViews[i].BufferLocation), eFrameRef_Read);
@@ -1361,7 +1363,7 @@ void WrappedID3D12GraphicsCommandList::SetPipelineState(ID3D12PipelineState *pPi
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_SetPipelineState);
     Serialise_SetPipelineState(ser, pPipelineState);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pPipelineState), eFrameRef_Read);
   }
 }
@@ -1546,7 +1548,7 @@ void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
     Serialise_OMSetRenderTargets(ser, num, pRenderTargetDescriptors,
                                  RTsSingleHandleToDescriptorRange, pDepthStencilDescriptor);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     if(RTsSingleHandleToDescriptorRange)
     {
       D3D12Descriptor *desc =
@@ -1648,7 +1650,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootSignature(ID3D12RootSignatu
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_SetComputeRootSignature);
     Serialise_SetComputeRootSignature(ser, pRootSignature);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pRootSignature), eFrameRef_Read);
 
     // store this so we can look up how many descriptors a given slot references, etc
@@ -1721,7 +1723,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_SetComputeRootDescriptorTable);
     Serialise_SetComputeRootDescriptorTable(ser, RootParameterIndex, BaseDescriptor);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetWrapped(BaseDescriptor)->GetHeapResourceId(),
                                               eFrameRef_Read);
 
@@ -1830,7 +1832,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstant(UINT RootPara
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_SetComputeRoot32BitConstant);
     Serialise_SetComputeRoot32BitConstant(ser, RootParameterIndex, SrcData, DestOffsetIn32BitValues);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -1909,7 +1911,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstants(UINT RootPar
     Serialise_SetComputeRoot32BitConstants(ser, RootParameterIndex, Num32BitValuesToSet, pSrcData,
                                            DestOffsetIn32BitValues);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -1988,7 +1990,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootConstantBufferView(
     UINT64 offs = 0;
     WrappedID3D12Resource1::GetResIDFromAddr(BufferLocation, id, offs);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(id, eFrameRef_Read);
   }
 }
@@ -2068,7 +2070,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootShaderResourceView(
     UINT64 offs = 0;
     WrappedID3D12Resource1::GetResIDFromAddr(BufferLocation, id, offs);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(id, eFrameRef_Read);
   }
 }
@@ -2148,7 +2150,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootUnorderedAccessView(
     UINT64 offs = 0;
     WrappedID3D12Resource1::GetResIDFromAddr(BufferLocation, id, offs);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(id, eFrameRef_Read);
   }
 }
@@ -2224,7 +2226,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootSignature(ID3D12RootSignat
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_SetGraphicsRootSignature);
     Serialise_SetGraphicsRootSignature(ser, pRootSignature);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pRootSignature), eFrameRef_Read);
 
     // store this so we can look up how many descriptors a given slot references, etc
@@ -2297,7 +2299,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_SetGraphicsRootDescriptorTable);
     Serialise_SetGraphicsRootDescriptorTable(ser, RootParameterIndex, BaseDescriptor);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetWrapped(BaseDescriptor)->GetHeapResourceId(),
                                               eFrameRef_Read);
 
@@ -2406,7 +2408,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstant(UINT RootPar
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_SetGraphicsRoot32BitConstant);
     Serialise_SetGraphicsRoot32BitConstant(ser, RootParameterIndex, SrcData, DestOffsetIn32BitValues);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -2485,7 +2487,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstants(UINT RootPa
     Serialise_SetGraphicsRoot32BitConstants(ser, RootParameterIndex, Num32BitValuesToSet, pSrcData,
                                             DestOffsetIn32BitValues);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -2564,7 +2566,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView(
     UINT64 offs = 0;
     WrappedID3D12Resource1::GetResIDFromAddr(BufferLocation, id, offs);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(id, eFrameRef_Read);
   }
 }
@@ -2644,7 +2646,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootShaderResourceView(
     UINT64 offs = 0;
     WrappedID3D12Resource1::GetResIDFromAddr(BufferLocation, id, offs);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(id, eFrameRef_Read);
   }
 }
@@ -2724,7 +2726,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootUnorderedAccessView(
     UINT64 offs = 0;
     WrappedID3D12Resource1::GetResIDFromAddr(BufferLocation, id, offs);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(id, eFrameRef_Read);
   }
 }
@@ -2775,7 +2777,7 @@ void WrappedID3D12GraphicsCommandList::BeginQuery(ID3D12QueryHeap *pQueryHeap,
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_BeginQuery);
     Serialise_BeginQuery(ser, pQueryHeap, Type, Index);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
 
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pQueryHeap), eFrameRef_Read);
   }
@@ -2824,7 +2826,7 @@ void WrappedID3D12GraphicsCommandList::EndQuery(ID3D12QueryHeap *pQueryHeap, D3D
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_EndQuery);
     Serialise_EndQuery(ser, pQueryHeap, Type, Index);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
 
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pQueryHeap), eFrameRef_Read);
   }
@@ -2881,7 +2883,7 @@ void WrappedID3D12GraphicsCommandList::ResolveQueryData(ID3D12QueryHeap *pQueryH
     Serialise_ResolveQueryData(ser, pQueryHeap, Type, StartIndex, NumQueries, pDestinationBuffer,
                                AlignedDestinationBufferOffset);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
 
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pQueryHeap), eFrameRef_Read);
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pDestinationBuffer), eFrameRef_PartialWrite);
@@ -2924,7 +2926,7 @@ void WrappedID3D12GraphicsCommandList::SetPredication(ID3D12Resource *pBuffer,
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_SetPredication);
     Serialise_SetPredication(ser, pBuffer, AlignedBufferOffset, Operation);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pBuffer), eFrameRef_Read);
   }
 }
@@ -2988,7 +2990,7 @@ void WrappedID3D12GraphicsCommandList::SetMarker(UINT Metadata, const void *pDat
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::SetMarker);
     Serialise_SetMarker(ser, Metadata, pData, Size);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -3053,7 +3055,7 @@ void WrappedID3D12GraphicsCommandList::BeginEvent(UINT Metadata, const void *pDa
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::PushMarker);
     Serialise_BeginEvent(ser, Metadata, pData, Size);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -3123,7 +3125,7 @@ void WrappedID3D12GraphicsCommandList::EndEvent()
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::PopMarker);
     Serialise_EndEvent(ser);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -3212,7 +3214,7 @@ void WrappedID3D12GraphicsCommandList::DrawInstanced(UINT VertexCountPerInstance
     Serialise_DrawInstanced(ser, VertexCountPerInstance, InstanceCount, StartVertexLocation,
                             StartInstanceLocation);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -3300,7 +3302,7 @@ void WrappedID3D12GraphicsCommandList::DrawIndexedInstanced(UINT IndexCountPerIn
     Serialise_DrawIndexedInstanced(ser, IndexCountPerInstance, InstanceCount, StartIndexLocation,
                                    BaseVertexLocation, StartInstanceLocation);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -3373,7 +3375,7 @@ void WrappedID3D12GraphicsCommandList::Dispatch(UINT ThreadGroupCountX, UINT Thr
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_Dispatch);
     Serialise_Dispatch(ser, ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -3441,7 +3443,7 @@ void WrappedID3D12GraphicsCommandList::ExecuteBundle(ID3D12GraphicsCommandList *
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_ExecuteBundle);
     Serialise_ExecuteBundle(ser, pCommandList);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
 
     D3D12ResourceRecord *record = GetRecord(pCommandList);
 
@@ -4438,7 +4440,7 @@ void WrappedID3D12GraphicsCommandList::ExecuteIndirect(ID3D12CommandSignature *p
     Serialise_ExecuteIndirect(ser, pCommandSignature, MaxCommandCount, pArgumentBuffer,
                               ArgumentBufferOffset, pCountBuffer, CountBufferOffset);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
 
     m_ListRecord->ContainsExecuteIndirect = true;
 
@@ -4540,7 +4542,7 @@ void WrappedID3D12GraphicsCommandList::ClearDepthStencilView(
     Serialise_ClearDepthStencilView(ser, DepthStencilView, ClearFlags, Depth, Stencil, NumRects,
                                     pRects);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
 
     {
       D3D12Descriptor *desc = GetWrapped(DepthStencilView);
@@ -4632,7 +4634,7 @@ void WrappedID3D12GraphicsCommandList::ClearRenderTargetView(
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_ClearRenderTargetView);
     Serialise_ClearRenderTargetView(ser, RenderTargetView, ColorRGBA, NumRects, pRects);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
 
     {
       D3D12Descriptor *desc = GetWrapped(RenderTargetView);
@@ -4732,7 +4734,7 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewUint(
     Serialise_ClearUnorderedAccessViewUint(ser, ViewGPUHandleInCurrentHeap, ViewCPUHandle,
                                            pResource, Values, NumRects, pRects);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
 
     {
       D3D12Descriptor *desc = GetWrapped(ViewGPUHandleInCurrentHeap);
@@ -4838,7 +4840,7 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat(
     Serialise_ClearUnorderedAccessViewFloat(ser, ViewGPUHandleInCurrentHeap, ViewCPUHandle,
                                             pResource, Values, NumRects, pRects);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
 
     {
       D3D12Descriptor *desc = GetWrapped(ViewGPUHandleInCurrentHeap);
@@ -4924,7 +4926,7 @@ void WrappedID3D12GraphicsCommandList::DiscardResource(ID3D12Resource *pResource
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_DiscardResource);
     Serialise_DiscardResource(ser, pResource, pRegion);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_PartialWrite);
   }
 }
@@ -5020,7 +5022,7 @@ void WrappedID3D12GraphicsCommandList::CopyBufferRegion(ID3D12Resource *pDstBuff
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_CopyBufferRegion);
     Serialise_CopyBufferRegion(ser, pDstBuffer, DstOffset, pSrcBuffer, SrcOffset, NumBytes);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstBuffer), eFrameRef_PartialWrite);
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pSrcBuffer), eFrameRef_Read);
   }
@@ -5139,7 +5141,7 @@ void WrappedID3D12GraphicsCommandList::CopyTextureRegion(const D3D12_TEXTURE_COP
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_CopyTextureRegion);
     Serialise_CopyTextureRegion(ser, pDst, DstX, DstY, DstZ, pSrc, pSrcBox);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pDst->pResource), eFrameRef_PartialWrite);
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pSrc->pResource), eFrameRef_Read);
   }
@@ -5222,7 +5224,7 @@ void WrappedID3D12GraphicsCommandList::CopyResource(ID3D12Resource *pDstResource
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_CopyResource);
     Serialise_CopyResource(ser, pDstResource, pSrcResource);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstResource), eFrameRef_PartialWrite);
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pSrcResource), eFrameRef_Read);
   }
@@ -5322,7 +5324,7 @@ void WrappedID3D12GraphicsCommandList::ResolveSubresource(ID3D12Resource *pDstRe
     Serialise_ResolveSubresource(ser, pDstResource, DstSubresource, pSrcResource, SrcSubresource,
                                  Format);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstResource), eFrameRef_PartialWrite);
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pSrcResource), eFrameRef_Read);
   }

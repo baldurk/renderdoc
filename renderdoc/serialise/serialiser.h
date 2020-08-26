@@ -1446,19 +1446,62 @@ DECLARE_STRINGISE_TYPE(SDObject *);
 
 class ScopedChunk;
 
+class ChunkAllocator
+{
+public:
+  ChunkAllocator(size_t PageSize) : PageSize(PageSize) {}
+  ChunkAllocator(const ChunkAllocator &) = delete;
+  ChunkAllocator(ChunkAllocator &&) = delete;
+  ChunkAllocator &operator=(const ChunkAllocator &) = delete;
+  byte *AllocAlignedBuffer(uint64_t size);
+  byte *AllocChunk();
+  // reset all pages to free
+  void Reset();
+
+private:
+  size_t PageSize;
+
+  struct Page
+  {
+    // base of the buffer
+    byte *base;
+    // head of the buffer
+    byte *head;
+  };
+
+  // we allocate at two granularities, chunks are 16 bytes, buffers are multiples of 64-bytes
+  rdcarray<Page> freeBufferPages;
+  rdcarray<Page> freeChunkPages;
+
+  rdcarray<Page> fullBufferPages;
+  rdcarray<Page> fullChunkPages;
+
+  size_t GetRemainingBytes(const Page &p) { return PageSize - (p.head - p.base); }
+  byte *AllocateFromPages(rdcarray<Page> &freeList, rdcarray<Page> &fullList, size_t size);
+};
+
 // holds the memory, length and type for a given chunk, so that it can be
 // passed around and moved between owners before being serialised out
 class Chunk
 {
-public:
   ~Chunk()
   {
-    FreeAlignedBuffer(m_Data);
+    if(m_DataAlloced)
+      FreeAlignedBuffer(m_Data);
 
 #if ENABLED(RDOC_DEVEL)
     Atomic::Dec64(&m_LiveChunks);
     Atomic::ExchAdd64(&m_TotalMem, -int64_t(m_Length));
 #endif
+  }
+
+public:
+  void Delete()
+  {
+    if(m_ChunkAlloced)
+      delete this;
+    else
+      this->~Chunk();
   }
 
   template <typename ChunkType>
@@ -1475,34 +1518,19 @@ public:
 #endif
 
   // grab current contents of the serialiser into this chunk
-  Chunk(Serialiser<SerialiserMode::Writing> &ser, uint32_t chunkType)
-  {
-    m_Length = (uint32_t)ser.GetWriter()->GetOffset();
-
-    RDCASSERT(ser.GetWriter()->GetOffset() < 0xffffffff);
-
-    m_ChunkType = chunkType;
-
-    m_Data = AllocAlignedBuffer(m_Length);
-
-    memcpy(m_Data, ser.GetWriter()->GetData(), (size_t)m_Length);
-
-    ser.GetWriter()->Rewind();
-
-#if ENABLED(RDOC_DEVEL)
-    Atomic::Inc64(&m_LiveChunks);
-    Atomic::ExchAdd64(&m_TotalMem, int64_t(m_Length));
-#endif
-  }
+  Chunk(Serialiser<SerialiserMode::Writing> &ser, uint16_t chunkType,
+        ChunkAllocator *allocator = NULL);
 
   byte *GetData() const { return m_Data; }
   Chunk *Duplicate()
   {
     Chunk *ret = new Chunk();
+    ret->m_ChunkAlloced = true;
     ret->m_Length = m_Length;
     ret->m_ChunkType = m_ChunkType;
 
     ret->m_Data = AllocAlignedBuffer(m_Length);
+    ret->m_DataAlloced = true;
 
     memcpy(ret->m_Data, m_Data, (size_t)m_Length);
 
@@ -1526,7 +1554,10 @@ private:
 
   friend class ScopedChunk;
 
-  uint32_t m_ChunkType;
+  uint16_t m_ChunkType;
+
+  bool m_ChunkAlloced = true;
+  bool m_DataAlloced = true;
 
   uint32_t m_Length;
   byte *m_Data;
@@ -1542,7 +1573,7 @@ class ScopedChunk
 public:
   template <typename ChunkType>
   ScopedChunk(WriteSerialiser &s, ChunkType i, uint64_t byteLength = 0)
-      : m_Idx(uint32_t(i)), m_Ser(s), m_Ended(false)
+      : m_Idx(uint16_t(i)), m_Ser(s), m_Ended(false)
   {
     m_Ser.WriteChunk(m_Idx, byteLength);
   }
@@ -1552,15 +1583,18 @@ public:
       End();
   }
 
-  Chunk *Get()
+  Chunk *Get(ChunkAllocator *allocator = NULL)
   {
     End();
-    return new Chunk(m_Ser, m_Idx);
+    if(allocator)
+      return new(allocator->AllocChunk()) Chunk(m_Ser, m_Idx, allocator);
+    else
+      return new Chunk(m_Ser, m_Idx);
   }
 
 private:
   WriteSerialiser &m_Ser;
-  uint32_t m_Idx;
+  uint16_t m_Idx;
   bool m_Ended;
 
   void End()

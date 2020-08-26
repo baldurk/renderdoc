@@ -25,6 +25,7 @@
 #pragma once
 
 #include "driver/shaders/dxbc/dxbc_container.h"
+#include "serialise/serialiser.h"
 #include "d3d12_device.h"
 #include "d3d12_manager.h"
 
@@ -350,7 +351,11 @@ public:
 class WrappedID3D12CommandAllocator : public WrappedDeviceChild12<ID3D12CommandAllocator>
 {
 public:
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandAllocator);
+  static const int AllocPoolCount = 8192;
+  static const int AllocMaxByteSize = 192 * 8192;
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandAllocator, AllocPoolCount, AllocMaxByteSize);
+
+  ChunkAllocator alloc;
 
   enum
   {
@@ -358,14 +363,18 @@ public:
   };
 
   WrappedID3D12CommandAllocator(ID3D12CommandAllocator *real, WrappedID3D12Device *device)
-      : WrappedDeviceChild12(real, device)
+      : WrappedDeviceChild12(real, device), alloc(32 * 1024)
   {
   }
   virtual ~WrappedID3D12CommandAllocator() { Shutdown(); }
   //////////////////////////////
   // implement ID3D12CommandAllocator
 
-  virtual HRESULT STDMETHODCALLTYPE Reset() { return m_pReal->Reset(); }
+  virtual HRESULT STDMETHODCALLTYPE Reset()
+  {
+    alloc.Reset();
+    return m_pReal->Reset();
+  }
 };
 
 class WrappedID3D12CommandSignature : public WrappedDeviceChild12<ID3D12CommandSignature>

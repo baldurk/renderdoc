@@ -387,13 +387,6 @@ struct ResourceRecord
   void Delete(ResourceRecordHandler *mgr);
 
   ResourceId GetResourceID() const { return ResID; }
-  void RemoveChunk(Chunk *chunk)
-  {
-    LockChunks();
-    m_Chunks.removeOneIf([chunk](const rdcpair<int64_t, Chunk *> &c) { return c.second == chunk; });
-    UnlockChunks();
-  }
-
   void AddChunk(Chunk *chunk, int64_t ID = 0)
   {
     if(ID == 0)
@@ -445,7 +438,7 @@ struct ResourceRecord
   {
     LockChunks();
     for(auto it = m_Chunks.begin(); it != m_Chunks.end(); ++it)
-      SAFE_DELETE(it->second);
+      it->second->Delete();
     m_Chunks.clear();
     UnlockChunks();
   }
@@ -720,7 +713,7 @@ protected:
     {
       if(chunk)
       {
-        delete chunk;
+        chunk->Delete();
         chunk = NULL;
       }
 
@@ -984,7 +977,7 @@ void ResourceManager<Configuration>::SetInitialChunk(ResourceId id, Chunk *chunk
   InitialContentDataOrChunk &data = m_InitialContents[id];
 
   if(data.chunk)
-    delete data.chunk;
+    data.chunk->Delete();
 
   data.chunk = chunk;
 }

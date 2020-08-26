@@ -497,25 +497,35 @@ TEST_CASE("Read/writing large buffers", "[serialiser]")
     ser.Serialise("dummy"_lit, dummy1);
     ser.EndChunk();
 
-    Chunk(ser, 1).Write(fileser);
+    Chunk *c;
+
+    c = new Chunk(ser, 1);
+    c->Write(fileser);
+    c->Delete();
 
     ser.WriteChunk(2);
     ser.Serialise("buffer"_lit, buffer);
     ser.EndChunk();
 
-    Chunk(ser, 1).Write(fileser);
+    c = new Chunk(ser, 1);
+    c->Write(fileser);
+    c->Delete();
 
     ser.WriteChunk(3);
     ser.Serialise("buffer"_lit, buffer);
     ser.EndChunk();
 
-    Chunk(ser, 1).Write(fileser);
+    c = new Chunk(ser, 1);
+    c->Write(fileser);
+    c->Delete();
 
     ser.WriteChunk(4);
     ser.Serialise("dummy"_lit, dummy2);
     ser.EndChunk();
 
-    Chunk(ser, 1).Write(fileser);
+    c = new Chunk(ser, 1);
+    c->Write(fileser);
+    c->Delete();
   }
 
   for(size_t pass = 0; pass < 2; pass++)
@@ -751,7 +761,7 @@ TEST_CASE("Verify multiple chunks can be merged", "[serialiser][chunks]")
   }
 
   for(Chunk *c : chunks)
-    delete c;
+    c->Delete();
 
   // now read the data "dynamically" and ensure it's all correct
   {

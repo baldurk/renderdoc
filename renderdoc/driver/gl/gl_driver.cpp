@@ -2707,7 +2707,7 @@ void WrappedOpenGL::CleanupResourceRecord(GLResourceRecord *record, bool freePar
     {
       Chunk *chunk = record->GetLastChunk();
 
-      SAFE_DELETE(chunk);
+      chunk->Delete();
       record->PopChunk();
     }
     record->UnlockChunks();

@@ -2561,7 +2561,7 @@ void WrappedID3D11Device::SetResourceName(ID3D11DeviceChild *pResource, const ch
 
         if(end->GetChunkType<D3D11Chunk>() == D3D11Chunk::SetResourceName)
         {
-          SAFE_DELETE(end);
+          end->Delete();
           record->PopChunk();
           continue;
         }

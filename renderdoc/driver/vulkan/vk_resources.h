@@ -1014,6 +1014,8 @@ struct CmdBufferRecordingInfo
   VkDevice device;
   VkCommandBufferAllocateInfo allocInfo;
 
+  ChunkAllocator *alloc = NULL;
+
   VkResourceRecord *framebuffer = NULL;
   VkResourceRecord *allocRecord = NULL;
 
@@ -1081,6 +1083,13 @@ struct PipelineLayoutData
 struct DescPoolInfo
 {
   rdcarray<VkResourceRecord *> freelist;
+};
+
+struct CmdPoolInfo
+{
+  CmdPoolInfo() : alloc(32 * 1024) {}
+  uint32_t queueFamilyIndex;
+  ChunkAllocator alloc;
 };
 
 struct MemMapState
@@ -2284,7 +2293,8 @@ public:
     DescriptorSetData *descInfo;             // only for descriptor sets and descriptor set layouts
     DescUpdateTemplate *descTemplateInfo;    // only for descriptor update templates
     DescPoolInfo *descPoolInfo;              // only for descriptor pools
-    uint32_t queueFamilyIndex;               // only for queues and command pools
+    CmdPoolInfo *cmdPoolInfo;                // only for command pools
+    uint32_t queueFamilyIndex;               // only for queues
   };
 
   VkResourceRecord *bakedCommands;

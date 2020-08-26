@@ -418,6 +418,8 @@ struct D3D12ResourceRecord;
 
 struct CmdListRecordingInfo
 {
+  ChunkAllocator *alloc;
+
   rdcarray<D3D12_RESOURCE_BARRIER> barriers;
 
   // a list of all resources dirtied by this command list

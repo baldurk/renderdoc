@@ -97,7 +97,7 @@ void STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::RSSetShadingRate(
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_RSSetShadingRate);
     Serialise_RSSetShadingRate(ser, baseShadingRate, combiners);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
   }
 }
 
@@ -167,7 +167,7 @@ WrappedID3D12GraphicsCommandList::RSSetShadingRateImage(ID3D12Resource *shadingR
     SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_RSSetShadingRateImage);
     Serialise_RSSetShadingRateImage(ser, shadingRateImage);
 
-    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(shadingRateImage), eFrameRef_Read);
   }
 }

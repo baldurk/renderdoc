@@ -2149,7 +2149,8 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
   RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
 
-  SAFE_DELETE(m_HeaderChunk);
+  m_HeaderChunk->Delete();
+  m_HeaderChunk = NULL;
 
   for(auto it = queues.begin(); it != queues.end(); ++it)
     (*it)->ClearAfterCapture();
@@ -2200,7 +2201,8 @@ bool WrappedID3D12Device::DiscardFrameCapture(void *dev, void *wnd)
     queues = m_Queues;
   }
 
-  SAFE_DELETE(m_HeaderChunk);
+  m_HeaderChunk->Delete();
+  m_HeaderChunk = NULL;
 
   for(auto it = queues.begin(); it != queues.end(); ++it)
     (*it)->ClearAfterCapture();
@@ -2551,7 +2553,7 @@ void WrappedID3D12Device::SetName(ID3D12DeviceChild *pResource, const char *Name
 
         if(end->GetChunkType<D3D12Chunk>() == D3D12Chunk::SetName)
         {
-          SAFE_DELETE(end);
+          end->Delete();
           record->PopChunk();
           continue;
         }

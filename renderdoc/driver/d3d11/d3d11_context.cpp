@@ -522,7 +522,7 @@ void WrappedID3D11DeviceContext::AttemptCapture()
     {
       Chunk *chunk = m_ContextRecord->GetLastChunk();
 
-      SAFE_DELETE(chunk);
+      chunk->Delete();
       m_ContextRecord->PopChunk();
     }
     m_ContextRecord->UnlockChunks();
@@ -646,7 +646,7 @@ void WrappedID3D11DeviceContext::CleanupCapture()
   {
     Chunk *chunk = m_ContextRecord->GetLastChunk();
 
-    SAFE_DELETE(chunk);
+    chunk->Delete();
     m_ContextRecord->PopChunk();
   }
   m_ContextRecord->UnlockChunks();
