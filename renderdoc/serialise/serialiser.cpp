@@ -1002,7 +1002,7 @@ Chunk::Chunk(Serialiser<SerialiserMode::Writing> &ser, uint16_t chunkType, Chunk
 byte *ChunkAllocator::AllocAlignedBuffer(uint64_t size)
 {
   // always allocate 64-bytes at a time even if the size is smaller
-  return AllocateFromPages(freeBufferPages, fullBufferPages, AlignUp(size, (size_t)64));
+  return AllocateFromPages(freeBufferPages, fullBufferPages, (size_t)AlignUp(size, 64ULL));
 }
 
 byte *ChunkAllocator::AllocChunk()
