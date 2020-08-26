@@ -268,9 +268,6 @@ void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
 {
   SERIALISE_TIME_CALL(GL.glBindTexture(target, texture));
 
-  if(texture != 0 && GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
-    return;
-
   if(IsActiveCapturing(m_State))
   {
     Chunk *chunk = NULL;
@@ -285,11 +282,6 @@ void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
 
     GetContextRecord()->AddChunk(chunk);
     GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    m_Textures[GetResourceManager()->GetID(TextureRes(GetCtx(), texture))].curType =
-        TextureTarget(target);
   }
 
   ContextData &cd = GetCtxData();
@@ -323,6 +315,7 @@ void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
       }
 
       r->datatype = TextureBinding(target);
+      m_Textures[r->GetResourceID()].curType = TextureTarget(target);
 
       r->AddChunk(chunk);
     }
@@ -440,9 +433,6 @@ void WrappedOpenGL::glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint 
 {
   SERIALISE_TIME_CALL(GL.glBindMultiTextureEXT(texunit, target, texture));
 
-  if(texture != 0 && GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
-    return;
-
   if(IsActiveCapturing(m_State))
   {
     Chunk *chunk = NULL;
@@ -457,11 +447,6 @@ void WrappedOpenGL::glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint 
 
     GetContextRecord()->AddChunk(chunk);
     GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
-  }
-  else if(IsBackgroundCapturing(m_State))
-  {
-    m_Textures[GetResourceManager()->GetID(TextureRes(GetCtx(), texture))].curType =
-        TextureTarget(target);
   }
 
   ContextData &cd = GetCtxData();
@@ -496,6 +481,7 @@ void WrappedOpenGL::glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint 
       }
 
       r->datatype = TextureBinding(target);
+      m_Textures[r->GetResourceID()].curType = TextureTarget(target);
 
       r->AddChunk(chunk);
     }
@@ -522,9 +508,6 @@ bool WrappedOpenGL::Serialise_glBindTextureUnit(SerialiserType &ser, GLuint texu
 void WrappedOpenGL::glBindTextureUnit(GLuint unit, GLuint texture)
 {
   SERIALISE_TIME_CALL(GL.glBindTextureUnit(unit, texture));
-
-  if(texture != 0 && GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
-    return;
 
   if(IsActiveCapturing(m_State))
   {

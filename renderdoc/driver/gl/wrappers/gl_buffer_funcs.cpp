@@ -612,10 +612,8 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 
   if(IsBackgroundCapturing(m_State))
   {
-    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-    if(record)
-      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
-                                                        eFrameRef_PartialWrite);
+    GetResourceManager()->MarkResourceFrameReferenced(BufferRes(GetCtx(), buffer),
+                                                      eFrameRef_PartialWrite);
   }
 
   SERIALISE_TIME_CALL(GL.glNamedBufferDataEXT(buffer, size, data, usage));
@@ -764,8 +762,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
   {
     GLResourceRecord *record = GetCtxData().m_BufferRecord[idx];
     if(record)
-      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
-                                                        eFrameRef_PartialWrite);
+      GetResourceManager()->MarkResourceFrameReferenced(record, eFrameRef_PartialWrite);
   }
 
   SERIALISE_TIME_CALL(GL.glBufferData(target, size, data, usage));
@@ -932,8 +929,7 @@ void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsi
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
     if(record)
-      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
-                                                        eFrameRef_ReadBeforeWrite);
+      GetResourceManager()->MarkResourceFrameReferenced(record, eFrameRef_ReadBeforeWrite);
   }
 
   SERIALISE_TIME_CALL(GL.glNamedBufferSubDataEXT(buffer, offset, size, data));
@@ -990,8 +986,7 @@ void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr s
   {
     GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
     if(record)
-      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
-                                                        eFrameRef_ReadBeforeWrite);
+      GetResourceManager()->MarkResourceFrameReferenced(record, eFrameRef_ReadBeforeWrite);
   }
 
   SERIALISE_TIME_CALL(GL.glBufferSubData(target, offset, size, data));
@@ -2600,8 +2595,7 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
       GetResourceManager()->MarkDirtyResource(record->GetResourceID());
     }
 
-    GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
-                                                      eFrameRef_ReadBeforeWrite);
+    GetResourceManager()->MarkResourceFrameReferenced(record, eFrameRef_ReadBeforeWrite);
 
     GLboolean ret = GL_TRUE;
 
@@ -2789,8 +2783,7 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
 
   if(IsBackgroundCapturing(m_State))
   {
-    GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
-                                                      eFrameRef_ReadBeforeWrite);
+    GetResourceManager()->MarkResourceFrameReferenced(record, eFrameRef_ReadBeforeWrite);
   }
 
   // only need to pay attention to flushes when in capframe. Otherwise (see above) we
@@ -4726,15 +4719,16 @@ void WrappedOpenGL::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLint
   if(IsCaptureMode(m_State))
   {
     GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
-    GLResourceRecord *bufrecord =
-        GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-
     GLResourceRecord *r = IsActiveCapturing(m_State) ? GetContextRecord() : varecord;
 
     if(r)
     {
       if(IsBackgroundCapturing(m_State) && !RecordUpdateCheck(varecord))
         return;
+
+      GLResourceRecord *bufrecord =
+          GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+
       if(IsActiveCapturing(m_State) && varecord)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
       if(IsActiveCapturing(m_State) && bufrecord)

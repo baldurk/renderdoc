@@ -217,6 +217,14 @@ public:
     ResourceManager::MarkResourceFrameReferenced(id, refType);
   }
 
+  void MarkResourceFrameReferenced(GLResourceRecord *record, FrameRefType refType)
+  {
+    if(record && record->viewSource != ResourceId())
+      ResourceManager::MarkResourceFrameReferenced(record->viewSource, refType);
+
+    ResourceManager::MarkResourceFrameReferenced(record->GetResourceID(), refType);
+  }
+
   void MarkResourceFrameReferenced(GLResource res, FrameRefType refType)
   {
     // we allow VAO 0 as a special case
