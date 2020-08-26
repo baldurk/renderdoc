@@ -630,6 +630,8 @@ void WrappedID3D11DeviceContext::CleanupCapture()
       }
     }
 
+    m_MapResourceRecordAllocs.clear();
+
     if(RenderDoc::Inst().GetCaptureOptions().captureAllCmdLists)
       return;
   }

@@ -136,8 +136,13 @@ struct D3D11ResourceRecord : public ResourceRecord
     SCOPED_WRITELOCK(DeferredShadowLock);
 
     for(size_t i = 0; i < DeferredShadow.size(); i++)
+    {
       if(!DeferredShadow[i].used)
+      {
+        DeferredShadow[i].used = true;
         return i + 1;
+      }
+    }
 
     ShadowPointerData data = {};
     data.used = true;
