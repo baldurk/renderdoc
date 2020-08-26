@@ -953,7 +953,7 @@ struct SwapchainInfo
 {
   ImageInfo imageInfo;
 
-  bool shared;
+  bool shared, concurrent;
 
   VkRenderPass rp;
 

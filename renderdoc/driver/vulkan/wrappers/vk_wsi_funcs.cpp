@@ -358,6 +358,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(SerialiserType &ser, VkDevice
 
     swapinfo.imageInfo = ImageInfo(CreateInfo);
 
+    swapinfo.concurrent = (CreateInfo.imageSharingMode == VK_SHARING_MODE_CONCURRENT);
     swapinfo.shared = (CreateInfo.presentMode == VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR ||
                        CreateInfo.presentMode == VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR);
 
@@ -487,6 +488,7 @@ void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
 
     swapInfo.imageInfo = ImageInfo(*pCreateInfo);
 
+    swapInfo.concurrent = (pCreateInfo->imageSharingMode == VK_SHARING_MODE_CONCURRENT);
     swapInfo.shared = (pCreateInfo->presentMode == VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR ||
                        pCreateInfo->presentMode == VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR);
 
@@ -820,6 +822,9 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       if(swapInfo.shared)
         bbBarrier.oldLayout = VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR;
 
+      if(swapInfo.concurrent)
+        bbBarrier.srcQueueFamilyIndex = bbBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
       bbBarrier.srcAccessMask = VK_ACCESS_ALL_READ_BITS;
       bbBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
@@ -841,7 +846,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
       submitInfo.pSignalSemaphores = UnwrapPtr(sem);
       submitInfo.signalSemaphoreCount = 1;
 
-      if(swapQueueIndex != m_QueueFamilyIdx)
+      if(swapQueueIndex != m_QueueFamilyIdx && !swapInfo.concurrent)
       {
         ringIdx = m_ExternalQueues[swapQueueIndex].GetNextIdx();
 
@@ -918,7 +923,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
       }
 
-      if(swapQueueIndex != m_QueueFamilyIdx)
+      if(swapQueueIndex != m_QueueFamilyIdx && !swapInfo.concurrent)
       {
         VkCommandBuffer extQCmd = m_ExternalQueues[swapQueueIndex].ring[ringIdx].release;
         VkFence fence = m_ExternalQueues[swapQueueIndex].ring[ringIdx].fence;
