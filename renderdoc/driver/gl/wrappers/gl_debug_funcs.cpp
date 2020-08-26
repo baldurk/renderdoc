@@ -407,6 +407,11 @@ void WrappedOpenGL::glInsertEventMarkerEXT(GLsizei length, const GLchar *marker)
 
 void WrappedOpenGL::glFrameTerminatorGREMEDY()
 {
+  PUSH_CURRENT_CHUNK;
+
+  // don't serialise this present as a separate chunk
+  gl_CurChunk = GLChunk::Max;
+
   SwapBuffers(WindowingSystem::Headless, (void *)m_ActiveContexts[Threading::GetCurrentID()].wnd);
 }
 
