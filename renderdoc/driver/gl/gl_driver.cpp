@@ -509,6 +509,7 @@ void WrappedOpenGL::BuildGLESExtensions()
   m_GLESExtensions.push_back("GL_OES_rgb8_rgba8");
   m_GLESExtensions.push_back("GL_OES_sample_shading");
   m_GLESExtensions.push_back("GL_OES_standard_derivatives");
+  m_GLESExtensions.push_back("GL_OES_surfaceless_context");
   m_GLESExtensions.push_back("GL_OES_tessellation_shader");
   m_GLESExtensions.push_back("GL_OES_texture_3D");
   m_GLESExtensions.push_back("GL_OES_texture_border_clamp");
@@ -598,7 +599,6 @@ void WrappedOpenGL::BuildGLESExtensions()
   * GL_OES_stencil1
   * GL_OES_stencil4
   * GL_OES_stencil8
-  * GL_OES_surfaceless_context
   * GL_OES_texture_env_crossbar
   * GL_OES_vertex_type_10_10_10_2
 
