@@ -186,13 +186,12 @@ struct VulkanDrawcallTreeNode
   }
 };
 
-#define SERIALISE_TIME_CALL(...)                                                          \
-  {                                                                                       \
-    WriteSerialiser &ser = GetThreadSerialiser();                                         \
-    ser.ChunkMetadata().timestampMicro = RenderDoc::Inst().GetMicrosecondTimestamp();     \
-    __VA_ARGS__;                                                                          \
-    ser.ChunkMetadata().durationMicro =                                                   \
-        RenderDoc::Inst().GetMicrosecondTimestamp() - ser.ChunkMetadata().timestampMicro; \
+#define SERIALISE_TIME_CALL(...)                                                                \
+  {                                                                                             \
+    WriteSerialiser &ser = GetThreadSerialiser();                                               \
+    ser.ChunkMetadata().timestampMicro = Timing::GetTick();                                     \
+    __VA_ARGS__;                                                                                \
+    ser.ChunkMetadata().durationMicro = Timing::GetTick() - ser.ChunkMetadata().timestampMicro; \
   }
 
 // must be at the start of any function that serialises

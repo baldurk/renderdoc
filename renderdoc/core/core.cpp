@@ -352,8 +352,14 @@ void RenderDoc::Initialise()
   m_RemoteIdent = 0;
   m_RemoteThread = 0;
 
+  m_TimeBase = 0;
+  m_TimeFrequency = 1.0;
+
   if(!IsReplayApp())
   {
+    m_TimeBase = Timing::GetTick();
+    m_TimeFrequency = Timing::GetTickFrequency() / 1000.0;
+
     Process::ApplyEnvironmentModification();
 
     uint32_t port = RenderDoc_FirstTargetControlPort;

@@ -97,6 +97,8 @@ Serialiser<SerialiserMode::Reading>::Serialiser(StreamReader *reader, Ownership 
 
   if(rootStructuredObj)
     m_StructureStack.push_back(rootStructuredObj);
+
+  RenderDoc::Inst().GetGlobalTimestampParameters(m_TimerBase, m_TimerFrequency);
 }
 
 template <>
@@ -152,10 +154,20 @@ uint32_t Serialiser<SerialiserMode::Reading>::BeginChunk(uint32_t, uint64_t)
       m_Read->Read(m_ChunkMetadata.threadID);
 
     if(c & ChunkDuration)
+    {
       m_Read->Read(m_ChunkMetadata.durationMicro);
+      if(m_TimerFrequency != 1.0)
+        m_ChunkMetadata.durationMicro =
+            int64_t(double(m_ChunkMetadata.durationMicro) / m_TimerFrequency);
+    }
 
     if(c & ChunkTimestamp)
+    {
       m_Read->Read(m_ChunkMetadata.timestampMicro);
+      if(m_TimerFrequency != 1.0 || m_TimerBase != 0)
+        m_ChunkMetadata.durationMicro =
+            int64_t(double(m_ChunkMetadata.timestampMicro - m_TimerBase) / m_TimerFrequency);
+    }
 
     if(c & Chunk64BitSize)
     {
@@ -398,7 +410,7 @@ uint32_t Serialiser<SerialiserMode::Writing>::BeginChunk(uint32_t chunkID, uint6
       if(c & ChunkTimestamp)
       {
         if(m_ChunkMetadata.timestampMicro == 0)
-          m_ChunkMetadata.timestampMicro = RenderDoc::Inst().GetMicrosecondTimestamp();
+          m_ChunkMetadata.timestampMicro = Timing::GetTick();
 
         m_Write->Write(m_ChunkMetadata.timestampMicro);
       }

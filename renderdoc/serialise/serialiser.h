@@ -121,6 +121,11 @@ public:
   StreamReader *GetReader() { return m_Read; }
   uint32_t GetChunkMetadataRecording() { return m_ChunkFlags; }
   void SetChunkMetadataRecording(uint32_t flags);
+  void SetChunkTimestampBasis(uint64_t base, double freq)
+  {
+    m_TimerBase = base;
+    m_TimerFrequency = freq;
+  }
 
   // debug-only option to dump out (roughly) the data going through the serialiser as it happens
   void EnableDumping(FileIO::LogFileHandle *debugLog) { m_DebugDumpLog = debugLog; }
@@ -1320,6 +1325,8 @@ private:
 
   uint32_t m_ChunkFlags = 0;
   SDChunkMetaData m_ChunkMetadata;
+  double m_TimerFrequency = 1.0;
+  uint64_t m_TimerBase = 0;
 
   // a database of strings read from the file, useful when serialised structures
   // expect a char* to return and point to static memory

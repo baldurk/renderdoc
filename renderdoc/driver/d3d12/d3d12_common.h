@@ -354,13 +354,12 @@ struct D3D12CommandSignature
 
 #define CACHE_THREAD_SERIALISER() WriteSerialiser &ser = GetThreadSerialiser();
 
-#define SERIALISE_TIME_CALL(...)                                                          \
-  {                                                                                       \
-    WriteSerialiser &ser = GetThreadSerialiser();                                         \
-    ser.ChunkMetadata().timestampMicro = RenderDoc::Inst().GetMicrosecondTimestamp();     \
-    __VA_ARGS__;                                                                          \
-    ser.ChunkMetadata().durationMicro =                                                   \
-        RenderDoc::Inst().GetMicrosecondTimestamp() - ser.ChunkMetadata().timestampMicro; \
+#define SERIALISE_TIME_CALL(...)                                                                \
+  {                                                                                             \
+    WriteSerialiser &ser = GetThreadSerialiser();                                               \
+    ser.ChunkMetadata().timestampMicro = Timing::GetTick();                                     \
+    __VA_ARGS__;                                                                                \
+    ser.ChunkMetadata().durationMicro = Timing::GetTick() - ser.ChunkMetadata().timestampMicro; \
   }
 
 // A handy macros to say "is the serialiser reading and we're doing replay-mode stuff?"

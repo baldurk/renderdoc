@@ -410,7 +410,25 @@ public:
   void Initialise();
   void RemoveHooks();
 
-  uint64_t GetMicrosecondTimestamp() { return uint64_t(m_Timer.GetMicroseconds()); }
+  // these timestamp parameters are set while capturing to the base tick-count and tick frequency of
+  // the global timer, which will be saved with any new capture to convert timestamps and durations
+  // in ticks into microseconds. Older captures serialised timestamps and durations as microseconds
+  // directly. On replay these are set when the capture is first loaded and used to convert any
+  // serialised timestamps and durations. If an old capture is serialised, they will be set to base
+  // = 0 and frequency = 1.0 to ensure no conversion happens.
+  void SetGlobalTimestampParameters(uint64_t base, double frequency)
+  {
+    if(IsReplayApp())
+    {
+      m_TimeBase = base;
+      m_TimeFrequency = frequency;
+    }
+  }
+  void GetGlobalTimestampParameters(uint64_t &base, double &frequency)
+  {
+    base = m_TimeBase;
+    frequency = m_TimeFrequency;
+  }
   const GlobalEnvironment &GetGlobalEnvironment() { return m_GlobalEnv; }
   void InitialiseReplay(GlobalEnvironment env, const rdcarray<rdcstr> &args);
   void ShutdownReplay();
@@ -699,7 +717,8 @@ private:
   Threading::CriticalSection m_SingleClientLock;
   rdcstr m_SingleClientName;
 
-  PerformanceTimer m_Timer;
+  uint64_t m_TimeBase;
+  double m_TimeFrequency;
 
   static void TargetControlServerThread(Network::Socket *sock);
   static void TargetControlClientThread(uint32_t version, Network::Socket *client);

@@ -50,9 +50,9 @@ bool is_exr_file(FILE *f)
 /*
 
  -----------------------------
- File format for version 0x100:
+ File format for version 0x100 and up:
 
- RDCHeader
+ FileHeader
  {
    uint64_t MAGIC_HEADER;
 
@@ -60,13 +60,19 @@ bool is_exr_file(FILE *f)
    uint32_t headerLength; // length of this header, from the start of the file. Allows adding new
                           // fields without breaking compatibilty
    char progVersion[16]; // string "v0.34" or similar with 0s after the string
+ }
 
+ BinaryThumbnail
+ {
    // thumbnail
    uint16_t thumbWidth;
    uint16_t thumbHeight; // thumbnail width and height. If 0x0, no thumbnail data
    uint32_t thumbLength; // number of bytes in thumbnail array below
    byte thumbData[ thumbLength ]; // JPG compressed thumbnail
+ }
 
+ CaptureMetaData
+ {
    // where was the capture created
    uint64_t machineIdent;
 
@@ -74,6 +80,13 @@ bool is_exr_file(FILE *f)
    uint8_t driverNameLength; // length in bytes of the driver name including null terminator
    char driverName[ driverNameLength ]; // the driver name in ASCII. Useful if the current
                                         // implementation doesn't recognise the driver ID above
+ }
+
+ if FileHeader.version >= 0x102 // new fields in 1.2
+ CaptureTimeBase
+ {
+   uint64_t timeBase; // base tick count for capture timers
+   double timeFreq;   // divisor for converting ticks to microseconds
  }
 
  1 or more sections:
@@ -181,6 +194,14 @@ struct CaptureMetaData
   // the driver name in ASCII. Useful if the current implementation doesn't recognise the driver
   // ID above
   char driverName[1] = {0};
+};
+
+struct CaptureTimeBase
+{
+  // the base tick count for all timers in the capture
+  uint64_t timeBase = 0;
+  // the frequency conversion such that microseconds = ticks / frequency
+  double timeFreq = 1.0;
 };
 
 struct BinarySectionHeader
@@ -320,7 +341,9 @@ void RDCFile::Init(StreamReader &reader)
 
   m_SerVer = header.version;
 
-  if(m_SerVer != SERIALISE_VERSION && m_SerVer != V1_0_VERSION)
+  // in v1.1 we changed chunk flags such that we could support 64-bit length. This is a backwards
+  // compatible change
+  if(m_SerVer != SERIALISE_VERSION && m_SerVer != V1_0_VERSION && m_SerVer != V1_1_VERSION)
   {
     if(header.version < V1_0_VERSION)
     {
@@ -382,6 +405,23 @@ void RDCFile::Init(StreamReader &reader)
     RETURNERROR(ContainerError::FileIO, "I/O error reading driver name");
   }
 
+  // this initialises to a default 'no conversion' timebase, with base of 0 and frequency of 1.0
+  // which means old captures without a timebase won't see anything change
+  CaptureTimeBase timeBase;
+
+  if(m_SerVer >= V1_2_VERSION)
+  {
+    reader.Read(&timeBase, sizeof(CaptureTimeBase));
+
+    if(reader.IsErrored())
+    {
+      RETURNERROR(ContainerError::FileIO, "I/O error reading capture timebase");
+    }
+  }
+
+  // explicitly set this, so if we load an old capture with no timebase it gets reset back to a good
+  // default state even if we previously opened a capture with a timebase
+  RenderDoc::Inst().SetGlobalTimestampParameters(timeBase.timeBase, timeBase.timeFreq);
 
   m_Driver = meta.driverID;
   m_DriverName = driverName;
@@ -707,7 +747,11 @@ void RDCFile::Create(const char *filename)
   meta.driverNameLength = uint8_t(m_DriverName.size() + 1);
 
   header.headerLength = sizeof(FileHeader) + offsetof(BinaryThumbnail, data) + thumbHeader.length +
-                        offsetof(CaptureMetaData, driverName) + meta.driverNameLength;
+                        offsetof(CaptureMetaData, driverName) + meta.driverNameLength +
+                        sizeof(CaptureTimeBase);
+
+  CaptureTimeBase timeBase;
+  RenderDoc::Inst().GetGlobalTimestampParameters(timeBase.timeBase, timeBase.timeFreq);
 
   {
     StreamWriter writer(m_File, Ownership::Nothing);
@@ -721,6 +765,8 @@ void RDCFile::Create(const char *filename)
     writer.Write(&meta, offsetof(CaptureMetaData, driverName));
 
     writer.Write(m_DriverName.c_str(), meta.driverNameLength);
+
+    writer.Write(timeBase);
 
     if(writer.IsErrored())
     {
