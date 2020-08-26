@@ -3756,6 +3756,11 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks
   m_QueueFamilyIdx = ~0U;
   m_PrevQueue = m_Queue = VK_NULL_HANDLE;
 
+  m_QueueFamilies.clear();
+  m_QueueFamilyCounts.clear();
+  m_QueueFamilyIndices.clear();
+  m_ExternalQueues.clear();
+
   // destroy the API device immediately. There should be no more
   // resources left in the resource manager device/physical device/instance.
   // Anything we created should be gone and anything the application created
