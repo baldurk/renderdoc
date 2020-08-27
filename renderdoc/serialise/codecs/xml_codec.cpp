@@ -359,6 +359,14 @@ static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, ui
       delete reader;
       continue;
     }
+    else if(props.type == SectionType::EmbeddedLogfile)
+    {
+      pugi::xml_node xLogfile = xRoot.append_child("diagnostic_log");
+      xLogfile.text() = "diagnostic.log";
+
+      delete reader;
+      continue;
+    }
 
     pugi::xml_node xSection = xRoot.append_child("section");
 
@@ -551,7 +559,7 @@ static SDObject *XML2Obj(pugi::xml_node &obj)
 }
 
 static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thumb,
-                                   const ThumbTypeAndData &extThumb,
+                                   const ThumbTypeAndData &extThumb, const bytebuf &logfile,
                                    const StructuredBufferList &buffers, RDCFile *rdc,
                                    uint64_t &version, StructuredChunkList &chunks,
                                    RENDERDOC_ProgressCallback progress)
@@ -640,7 +648,8 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
   // push in other sections
   pugi::xml_node xSection = xHeader.next_sibling();
 
-  while(!strcmp(xSection.name(), "section") || !strcmp(xSection.name(), "extended_thumbnail"))
+  while(!strcmp(xSection.name(), "section") || !strcmp(xSection.name(), "extended_thumbnail") ||
+        !strcmp(xSection.name(), "diagnostic_log"))
   {
     if(!strcmp(xSection.name(), "extended_thumbnail"))
     {
@@ -657,6 +666,22 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
       w->Write(header);
       w->Write(extThumb.data.data(), extThumb.data.size());
 
+      w->Finish();
+
+      delete w;
+
+      xSection = xSection.next_sibling();
+      continue;
+    }
+    else if(!strcmp(xSection.name(), "diagnostic_log"))
+    {
+      SectionProperties props = {};
+      props.type = SectionType::EmbeddedLogfile;
+      props.version = 1;
+      props.flags = SectionFlags::LZ4Compressed;
+
+      StreamWriter *w = rdc->WriteSection(props);
+      w->Write(logfile.data(), logfile.size());
       w->Finish();
 
       delete w;
@@ -884,7 +909,20 @@ static ReplayStatus Buffers2ZIP(const rdcstr &filename, const RDCFile &file,
       }
 
       delete reader;
-      break;
+      continue;
+    }
+    else if(props.type == SectionType::EmbeddedLogfile)
+    {
+      StreamReader *reader = file.ReadSection(i);
+
+      bytebuf log;
+      log.resize(reader->GetSize());
+      reader->Read(log.data(), log.size());
+
+      mz_zip_writer_add_mem(&zip, "diagnostic.log", log.data(), log.size(), MZ_BEST_SPEED);
+
+      delete reader;
+      continue;
     }
   }
 
@@ -895,7 +933,8 @@ static ReplayStatus Buffers2ZIP(const rdcstr &filename, const RDCFile &file,
 }
 
 static bool ZIP2Buffers(const rdcstr &filename, ThumbTypeAndData &thumb, ThumbTypeAndData &extThumb,
-                        StructuredBufferList &buffers, RENDERDOC_ProgressCallback progress)
+                        bytebuf &logfile, StructuredBufferList &buffers,
+                        RENDERDOC_ProgressCallback progress)
 {
   rdcstr zipFile = strip_extension(filename);
 
@@ -945,6 +984,11 @@ static bool ZIP2Buffers(const rdcstr &filename, ThumbTypeAndData &thumb, ThumbTy
           thumb.data.assign(buf, sz);
         }
       }
+      else if(strstr(zstat.m_filename, "diagnostic.log"))
+      {
+        // same for logfile
+        logfile.assign(buf, sz);
+      }
       else
       {
         int bufname = atoi(zstat.m_filename);
@@ -970,9 +1014,10 @@ ReplayStatus importXMLZ(const char *filename, StreamReader &reader, RDCFile *rdc
                         SDFile &structData, RENDERDOC_ProgressCallback progress)
 {
   ThumbTypeAndData thumb, extThumb;
+  bytebuf logfile;
   if(filename)
   {
-    bool success = ZIP2Buffers(filename, thumb, extThumb, structData.buffers, progress);
+    bool success = ZIP2Buffers(filename, thumb, extThumb, logfile, structData.buffers, progress);
     if(!success)
     {
       RDCERR("Couldn't load zip to go with %s", filename);
@@ -984,8 +1029,8 @@ ReplayStatus importXMLZ(const char *filename, StreamReader &reader, RDCFile *rdc
   buf.resize((size_t)reader.GetSize());
   reader.Read(buf.data(), buf.size());
 
-  return XML2Structured(buf.c_str(), thumb, extThumb, structData.buffers, rdc, structData.version,
-                        structData.chunks, progress);
+  return XML2Structured(buf.c_str(), thumb, extThumb, logfile, structData.buffers, rdc,
+                        structData.version, structData.chunks, progress);
 }
 
 ReplayStatus exportXMLZ(const char *filename, const RDCFile &rdc, const SDFile &structData,
