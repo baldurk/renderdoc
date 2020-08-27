@@ -296,7 +296,7 @@ bool StopChildAtMain(pid_t childPid)
   }
 
   rdcstr exepath;
-  long basePointer = 0;
+  long baseVirtualPointer = 0;
   uint32_t sectionOffset = 0;
 
   rdcstr mapsName = StringFormat::Fmt("/proc/%u/maps", childPid);
@@ -318,8 +318,8 @@ bool StopChildAtMain(pid_t childPid)
       {
         RDCCOMPILE_ASSERT(sizeof(long) == sizeof(void *), "Expected long to be pointer sized");
         int pathOffset = 0;
-        int num = sscanf(line, "%lx-%*x r-xp %x %*x:%*x %*u %n", &basePointer, &sectionOffset,
-                         &pathOffset);
+        int num = sscanf(line, "%lx-%*x r-xp %x %*x:%*x %*u %n", &baseVirtualPointer,
+                         &sectionOffset, &pathOffset);
 
         if(num != 2 || pathOffset == 0)
         {
@@ -334,7 +334,7 @@ bool StopChildAtMain(pid_t childPid)
     }
   }
 
-  if(basePointer == 0)
+  if(baseVirtualPointer == 0)
   {
     RDCERR("Couldn't find executable mapping in maps file");
     return false;
@@ -352,20 +352,59 @@ bool StopChildAtMain(pid_t childPid)
 
   Elf64_Ehdr elf_header;
   size_t read = FileIO::fread(&elf_header, sizeof(elf_header), 1, elf);
-  FileIO::fclose(elf);
 
   if(read != 1)
   {
+    FileIO::fclose(elf);
     RDCERR("Couldn't read ELF header from %s", exepath.c_str());
     return false;
   }
 
-  void *entry = (void *)(basePointer + elf_header.e_entry - sectionOffset);
+  size_t entryVirtual = (size_t)elf_header.e_entry;
+  // if the section doesn't shift between file offset and virtual address this will be the same
+  size_t entryFileOffset = entryVirtual;
 
-  long origEntryWord = ptrace(PTRACE_PEEKTEXT, childPid, entry, 0);
+  if(elf_header.e_shoff)
+  {
 
-  long breakpointWord = (origEntryWord & 0xffffff00) | 0xcc;
-  ptraceRet = ptrace(PTRACE_POKETEXT, childPid, entry, breakpointWord);
+    FileIO::fseek64(elf, elf_header.e_shoff, SEEK_SET);
+
+    RDCASSERTEQUAL(elf_header.e_shentsize, sizeof(Elf64_Shdr));
+
+    for(Elf64_Half s = 0; s < elf_header.e_shnum; s++)
+    {
+      Elf64_Shdr section_header;
+      size_t read = FileIO::fread(&section_header, sizeof(section_header), 1, elf);
+
+      if(read != 1)
+      {
+        FileIO::fclose(elf);
+        RDCERR("Couldn't read section header from %s", exepath.c_str());
+        return false;
+      }
+
+      if(section_header.sh_addr <= entryVirtual &&
+         entryVirtual < section_header.sh_addr + section_header.sh_size)
+      {
+        entryFileOffset =
+            (entryVirtual - (size_t)section_header.sh_addr) + (size_t)section_header.sh_offset;
+
+        break;
+      }
+    }
+  }
+
+  FileIO::fclose(elf);
+
+  void *entry = (void *)(baseVirtualPointer + entryFileOffset - sectionOffset);
+
+
+  // this reads a 'word' and returns as long, upcast (if needed) to uint64_t
+  uint64_t origEntryWord = (uint64_t)ptrace(PTRACE_PEEKTEXT, childPid, entry, 0);
+
+  uint64_t breakpointWord = (origEntryWord & 0xffffffffffffff00ULL) | 0xccULL;
+  // downcast back to long, if that means truncating
+  ptraceRet = ptrace(PTRACE_POKETEXT, childPid, entry, (long)breakpointWord);
   RDCASSERTEQUAL(ptraceRet, 0);
 
   // continue
