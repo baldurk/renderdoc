@@ -408,6 +408,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
       {
         // for single draws, it's pretty simple
 
+        // account for the fake indirect subcommand before checking if we're in re-record range
+        if(count > 0)
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+
         if(InRerecordRange(m_LastCmdBufferID) && IsDrawInRenderPass())
         {
           commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
@@ -424,10 +428,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
             m_DrawcallCallback->PostRedraw(eventId, commandBuffer);
           }
         }
-
-        // account for the fake indirect subcommand
-        if(count > 0)
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
       }
       else
       {
@@ -785,6 +785,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
       {
         // for single draws, it's pretty simple
 
+        // account for the fake indirect subcommand before checking if we're in re-record range
+        if(count > 0)
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
+
         if(InRerecordRange(m_LastCmdBufferID) && IsDrawInRenderPass())
         {
           commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
@@ -802,10 +806,6 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
             m_DrawcallCallback->PostRedraw(eventId, commandBuffer);
           }
         }
-
-        // account for the fake indirect subcommand
-        if(count > 0)
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
       }
       else
       {
