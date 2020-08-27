@@ -381,6 +381,8 @@ private:
   CaptureFailReason m_FailedReason;
   uint32_t m_Failures = 0;
 
+  uint64_t m_TimeBase = 0;
+  double m_TimeFrequency = 1.0f;
   SDFile *m_StructuredFile = NULL;
   SDFile m_StoredStructuredData;
 
@@ -444,6 +446,8 @@ public:
   void UnlockForChunkRemoval();
 
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
+  uint64_t GetTimeBase() { return m_TimeBase; }
+  double GetTimeFrequency() { return m_TimeFrequency; }
   void FirstFrame(IDXGISwapper *swapper);
 
   rdcarray<DebugMessage> GetDebugMessages();

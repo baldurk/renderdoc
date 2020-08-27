@@ -1455,6 +1455,22 @@ replay support.
 )");
   virtual const char *RecordedMachineIdent() = 0;
 
+  DOCUMENT(R"(Retrieves the timestamp basis that all timestamps in the capture are relative to. May
+be 0 if all timestamps are already absolute.
+
+:return: The timestamp base value
+:rtype: ``int``
+)");
+  virtual uint64_t TimestampBase() = 0;
+
+  DOCUMENT(R"(Retrieves frequency for timestamps and durations to be divided by to convert to
+microseconds. May be 1.0 if all timestamps and durations are already in microseconds.
+
+:return: The timestamp frequency
+:rtype: ``float``
+)");
+  virtual double TimestampFrequency() = 0;
+
   DOCUMENT(R"(Sets the matadata for this capture handle.
 
 This function may only be called if the handle is 'empty' - i.e. no file has been opened with
@@ -1475,9 +1491,15 @@ This function may only be called if the handle is 'empty' - i.e. no file has bee
 :param int thumbHeight: The height of the thumbnail. Ignored if :paramref:`SetMetadata.thumbData` is
   empty.
 :param bytes thumbData: The raw data of the thumbnail. If empty, no thumbnail is set.
+:param int timeBase: The base value for timestamps in the capture. Can be set to 0 to indicate that
+  timestamps are already capture relative.
+:param float timeFreq: The frequency for timestamps and durations to be divided by to convert to
+  microseconds. Can be set to 1.0 to indicate that timestamps and durations are already in
+  microseconds.
 )");
   virtual void SetMetadata(const char *driverName, uint64_t machineIdent, FileType thumbType,
-                           uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData) = 0;
+                           uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData,
+                           uint64_t timeBase, double timeFreq) = 0;
 
   DOCUMENT(R"(Opens a capture for replay locally and returns a handle to the capture. Only supported
 for handles opened with a native ``rdc`` capture, otherwise this will fail.

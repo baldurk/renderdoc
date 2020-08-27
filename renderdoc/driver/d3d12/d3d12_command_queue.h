@@ -126,6 +126,8 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
 
   StreamReader *m_FrameReader = NULL;
 
+  uint64_t m_TimeBase = 0;
+  double m_TimeFrequency = 1.0f;
   SDFile *m_StructuredFile = NULL;
 
   // command recording/replay data shared between queues and lists

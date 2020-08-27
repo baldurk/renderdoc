@@ -204,6 +204,8 @@ private:
   rdcarray<Annotation> m_AnnotationQueue;
   Threading::CriticalSection m_AnnotLock;
 
+  uint64_t m_TimeBase = 0;
+  double m_TimeFrequency = 1.0f;
   SDFile *m_StructuredFile = NULL;
 
   uint64_t m_CurChunkOffset;

@@ -1197,7 +1197,8 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePi
     EncodePixelsPNG(outRaw, outPng);
   }
 
-  ret->SetData(driver, ToStr(driver).c_str(), OSUtility::GetMachineIdent(), &outPng);
+  ret->SetData(driver, ToStr(driver).c_str(), OSUtility::GetMachineIdent(), &outPng, m_TimeBase,
+               m_TimeFrequency);
 
   FileIO::CreateParentDirectory(m_CurrentLogFile);
 

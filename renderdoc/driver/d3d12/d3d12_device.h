@@ -438,6 +438,8 @@ private:
 
   rdcarray<DebugMessage> m_DebugMessages;
 
+  uint64_t m_TimeBase = 0;
+  double m_TimeFrequency = 1.0f;
   SDFile *m_StructuredFile = NULL;
   SDFile m_StoredStructuredData;
 
@@ -684,6 +686,8 @@ public:
     m_State = CaptureState::StructuredExport;
   }
   SDFile &GetStructuredFile() { return *m_StructuredFile; }
+  uint64_t GetTimeBase() { return m_TimeBase; }
+  double GetTimeFrequency() { return m_TimeFrequency; }
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }
   void *GetFrameCapturerDevice() { return (ID3D12Device *)this; }

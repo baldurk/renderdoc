@@ -163,11 +163,14 @@ public:
   //////////////////////////////////////////
   // Public serialisation interface
 
-  void ConfigureStructuredExport(ChunkLookup lookup, bool includeBuffers)
+  void ConfigureStructuredExport(ChunkLookup lookup, bool includeBuffers, uint64_t timeBase,
+                                 double timeFreq)
   {
     m_ChunkLookup = lookup;
     m_ExportBuffers = includeBuffers;
     m_ExportStructured = (lookup != NULL);
+    m_TimerBase = timeBase;
+    m_TimerFrequency = timeFreq;
   }
 
   uint32_t BeginChunk(uint32_t chunkID, uint64_t byteLength);
@@ -1377,7 +1380,7 @@ public:
   StructuredSerialiser(SDObject *obj, ChunkLookup lookup)
       : Serialiser(new StreamReader(StreamReader::DummyStream), Ownership::Stream, obj)
   {
-    ConfigureStructuredExport(lookup, false);
+    ConfigureStructuredExport(lookup, false, 0, 1.0);
     SetStreamingMode(true);
     SetDummy(true);
   }

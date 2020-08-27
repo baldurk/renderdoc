@@ -841,7 +841,8 @@ ReplayStatus WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_
 
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
   {
-    ser.ConfigureStructuredExport(&GetChunkName, IsStructuredExporting(m_State));
+    ser.ConfigureStructuredExport(&GetChunkName, IsStructuredExporting(m_State),
+                                  m_pDevice->GetTimeBase(), m_pDevice->GetTimeFrequency());
 
     ser.GetStructuredFile().Swap(m_pDevice->GetStructuredFile());
 

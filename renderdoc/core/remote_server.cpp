@@ -270,8 +270,8 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
 
   if(RemoteServer_DebugLogging())
   {
-    reader.ConfigureStructuredExport(&GetRemoteServerChunkName, false);
-    writer.ConfigureStructuredExport(&GetRemoteServerChunkName, false);
+    reader.ConfigureStructuredExport(&GetRemoteServerChunkName, false, 0, 1.0);
+    writer.ConfigureStructuredExport(&GetRemoteServerChunkName, false, 0, 1.0);
 
     rdcstr filename = FileIO::GetTempFolderFilename() + "/RenderDoc/RemoteServer_Server.log";
 
@@ -1228,8 +1228,8 @@ RemoteServer::RemoteServer(Network::Socket *sock, const rdcstr &deviceID)
 
   if(RemoteServer_DebugLogging())
   {
-    reader->ConfigureStructuredExport(&GetRemoteServerChunkName, false);
-    writer->ConfigureStructuredExport(&GetRemoteServerChunkName, false);
+    reader->ConfigureStructuredExport(&GetRemoteServerChunkName, false, 0, 1.0);
+    writer->ConfigureStructuredExport(&GetRemoteServerChunkName, false, 0, 1.0);
 
     rdcstr filename = FileIO::GetTempFolderFilename() + "/RenderDoc/RemoteServer_Client.log";
 

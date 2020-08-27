@@ -3243,6 +3243,18 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
 
   StreamReader *reader = rdc->ReadSection(sectionIdx);
 
+  if(IsStructuredExporting(m_State))
+  {
+    // when structured exporting don't do any timebase conversion
+    m_TimeBase = 0;
+    m_TimeFrequency = 1.0;
+  }
+  else
+  {
+    m_TimeBase = rdc->GetTimestampBase();
+    m_TimeFrequency = rdc->GetTimestampFrequency();
+  }
+
   if(reader->IsErrored())
   {
     delete reader;
@@ -3254,7 +3266,7 @@ ReplayStatus WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStruct
   ser.SetStringDatabase(&m_StringDB);
   ser.SetUserData(GetResourceManager());
 
-  ser.ConfigureStructuredExport(&GetChunkName, storeStructuredBuffers);
+  ser.ConfigureStructuredExport(&GetChunkName, storeStructuredBuffers, m_TimeBase, m_TimeFrequency);
 
   m_StructuredFile = &ser.GetStructuredFile();
 
@@ -5014,7 +5026,8 @@ ReplayStatus WrappedOpenGL::ContextReplayLog(CaptureState readType, uint32_t sta
 
   if(IsLoading(m_State) || IsStructuredExporting(m_State))
   {
-    ser.ConfigureStructuredExport(&GetChunkName, IsStructuredExporting(m_State));
+    ser.ConfigureStructuredExport(&GetChunkName, IsStructuredExporting(m_State), m_TimeBase,
+                                  m_TimeFrequency);
 
     ser.GetStructuredFile().Swap(*m_StructuredFile);
 

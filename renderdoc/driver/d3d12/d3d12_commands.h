@@ -346,6 +346,8 @@ struct D3D12CommandData
 
   ResourceId m_LastPresentedImage;
 
+  uint64_t m_TimeBase = 0;
+  double m_TimeFrequency = 1.0f;
   SDFile *m_StructuredFile;
 
   std::map<ResourceId, rdcarray<EventUsage> > m_ResourceUses;

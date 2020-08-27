@@ -209,6 +209,8 @@ private:
 
   GLResourceManager *m_ResourceManager;
 
+  uint64_t m_TimeBase = 0;
+  double m_TimeFrequency = 1.0f;
   SDFile *m_StructuredFile;
   SDFile m_StoredStructuredData;
 

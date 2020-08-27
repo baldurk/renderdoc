@@ -3193,6 +3193,18 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
 
   StreamReader *reader = rdc->ReadSection(sectionIdx);
 
+  if(IsStructuredExporting(m_State))
+  {
+    // when structured exporting don't do any timebase conversion
+    m_TimeBase = 0;
+    m_TimeFrequency = 1.0;
+  }
+  else
+  {
+    m_TimeBase = rdc->GetTimestampBase();
+    m_TimeFrequency = rdc->GetTimestampFrequency();
+  }
+
   if(reader->IsErrored())
   {
     delete reader;
@@ -3206,7 +3218,7 @@ ReplayStatus WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool store
   ser.SetStringDatabase(&m_StringDB);
   ser.SetUserData(GetResourceManager());
 
-  ser.ConfigureStructuredExport(&GetChunkName, storeStructuredBuffers);
+  ser.ConfigureStructuredExport(&GetChunkName, storeStructuredBuffers, m_TimeBase, m_TimeFrequency);
 
   m_StructuredFile = &ser.GetStructuredFile();
 

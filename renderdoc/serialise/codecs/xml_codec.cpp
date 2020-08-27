@@ -310,6 +310,11 @@ static ReplayStatus Structured2XML(const char *filename, const RDCFile &file, ui
       else
         RDCERR("Unexpected thumbnail format %s", ToStr(th.format).c_str());
     }
+
+    pugi::xml_node xTimebase = xHeader.append_child("timebase");
+
+    xTimebase.append_attribute("base") = file.GetTimestampBase();
+    xTimebase.append_attribute("frequency") = file.GetTimestampFrequency();
   }
 
   if(progress)
@@ -595,6 +600,24 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
       return ReplayStatus::FileCorrupted;
     }
 
+    pugi::xml_node xTimebase = xThumbnail.next_sibling();
+
+    uint64_t timeBase = 0;
+    double timeFreq = 1.0;
+
+    // newer XML documents have the timebase here, allow conversion without it
+    if(xTimebase)
+    {
+      if(strcmp(xTimebase.name(), "timebase") != 0)
+      {
+        RDCERR("Malformed document, expected driver node");
+        return ReplayStatus::FileCorrupted;
+      }
+
+      timeBase = xTimebase.attribute("base").as_ullong();
+      timeFreq = xTimebase.attribute("frequency").as_double();
+    }
+
     RDCThumb th;
     th.format = thumb.format;
     th.width = (uint16_t)xThumbnail.attribute("width").as_uint();
@@ -608,7 +631,7 @@ static ReplayStatus XML2Structured(const char *xml, const ThumbTypeAndData &thum
       rdcthumb = &th;
     }
 
-    rdc->SetData(driver, driverName.c_str(), machineIdent, rdcthumb);
+    rdc->SetData(driver, driverName.c_str(), machineIdent, rdcthumb, timeBase, timeFreq);
   }
 
   if(progress)

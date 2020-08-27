@@ -97,8 +97,6 @@ Serialiser<SerialiserMode::Reading>::Serialiser(StreamReader *reader, Ownership 
 
   if(rootStructuredObj)
     m_StructureStack.push_back(rootStructuredObj);
-
-  RenderDoc::Inst().GetGlobalTimestampParameters(m_TimerBase, m_TimerFrequency);
 }
 
 template <>

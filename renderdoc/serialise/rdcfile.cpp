@@ -297,6 +297,8 @@ void RDCFile::Open(const char *path)
       m_Driver = RDCDriver::Image;
       m_DriverName = "Image";
       m_MachineIdent = 0;
+      m_TimeBase = 0;
+      m_TimeFrequency = 1.0;
       return;
     }
   }
@@ -419,9 +421,8 @@ void RDCFile::Init(StreamReader &reader)
     }
   }
 
-  // explicitly set this, so if we load an old capture with no timebase it gets reset back to a good
-  // default state even if we previously opened a capture with a timebase
-  RenderDoc::Inst().SetGlobalTimestampParameters(timeBase.timeBase, timeBase.timeFreq);
+  m_TimeBase = timeBase.timeBase;
+  m_TimeFrequency = timeBase.timeFreq;
 
   m_Driver = meta.driverID;
   m_DriverName = driverName;
@@ -664,7 +665,7 @@ bool RDCFile::CopyFileTo(const char *filename)
 }
 
 void RDCFile::SetData(RDCDriver driver, const char *driverName, uint64_t machineIdent,
-                      const RDCThumb *thumb)
+                      const RDCThumb *thumb, uint64_t timeBase, double timeFreq)
 {
   m_Driver = driver;
   m_DriverName = driverName;
@@ -673,6 +674,8 @@ void RDCFile::SetData(RDCDriver driver, const char *driverName, uint64_t machine
   {
     m_Thumb = *thumb;
   }
+  m_TimeBase = timeBase;
+  m_TimeFrequency = timeFreq;
 }
 
 void RDCFile::Create(const char *filename)
@@ -751,7 +754,8 @@ void RDCFile::Create(const char *filename)
                         sizeof(CaptureTimeBase);
 
   CaptureTimeBase timeBase;
-  RenderDoc::Inst().GetGlobalTimestampParameters(timeBase.timeBase, timeBase.timeFreq);
+  timeBase.timeBase = m_TimeBase;
+  timeBase.timeFreq = m_TimeFrequency;
 
   {
     StreamWriter writer(m_File, Ownership::Nothing);

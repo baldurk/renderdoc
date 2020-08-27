@@ -113,11 +113,14 @@ public:
   ReplaySupport LocalReplaySupport() { return m_Support; }
   rdcstr DriverName() { return m_DriverName; }
   const char *RecordedMachineIdent() { return m_Ident.c_str(); }
+  uint64_t TimestampBase() { return m_RDC ? m_RDC->GetTimestampBase() : 0; }
+  double TimestampFrequency() { return m_RDC ? m_RDC->GetTimestampFrequency() : 1.0; }
   rdcpair<ReplayStatus, IReplayController *> OpenCapture(const ReplayOptions &opts,
                                                          RENDERDOC_ProgressCallback progress);
 
   void SetMetadata(const char *driverName, uint64_t machineIdent, FileType thumbType,
-                   uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData);
+                   uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData,
+                   uint64_t timeBase, double timeFreq);
 
   ReplayStatus Convert(const char *filename, const char *filetype, const SDFile *file,
                        RENDERDOC_ProgressCallback progress);
@@ -369,7 +372,8 @@ rdcpair<ReplayStatus, IReplayController *> CaptureFile::OpenCapture(const Replay
 }
 
 void CaptureFile::SetMetadata(const char *driverName, uint64_t machineIdent, FileType thumbType,
-                              uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData)
+                              uint32_t thumbWidth, uint32_t thumbHeight, const bytebuf &thumbData,
+                              uint64_t timeBase, double timeFreq)
 {
   if(m_RDC)
   {
@@ -395,7 +399,7 @@ void CaptureFile::SetMetadata(const char *driverName, uint64_t machineIdent, Fil
   }
 
   m_RDC = new RDCFile;
-  m_RDC->SetData(driver, driverName, machineIdent, thumb);
+  m_RDC->SetData(driver, driverName, machineIdent, thumb, timeBase, timeFreq);
 }
 
 ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, const SDFile *file,
@@ -438,7 +442,7 @@ ReplayStatus CaptureFile::Convert(const char *filename, const char *filetype, co
   RDCFile output;
 
   output.SetData(m_RDC->GetDriver(), m_RDC->GetDriverName().c_str(), m_RDC->GetMachineIdent(),
-                 &m_RDC->GetThumbnail());
+                 &m_RDC->GetThumbnail(), m_RDC->GetTimestampBase(), m_RDC->GetTimestampFrequency());
 
   output.Create(filename);
 

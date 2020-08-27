@@ -78,7 +78,7 @@ public:
 
   // Sets the parameters of an RDCFile in memory.
   void SetData(RDCDriver driver, const char *driverName, uint64_t machineIdent,
-               const RDCThumb *thumb);
+               const RDCThumb *thumb, uint64_t timeBase, double timeFreq);
 
   // creates a new file with current properties, file will be overwritten if it already exists
   void Create(const char *filename);
@@ -88,6 +88,8 @@ public:
   RDCDriver GetDriver() const { return m_Driver; }
   const rdcstr &GetDriverName() const { return m_DriverName; }
   uint64_t GetMachineIdent() const { return m_MachineIdent; }
+  uint64_t GetTimestampBase() const { return m_TimeBase; }
+  double GetTimestampFrequency() const { return m_TimeFrequency; }
   const RDCThumb &GetThumbnail() const { return m_Thumb; }
   int SectionIndex(SectionType type) const;
   int SectionIndex(const char *name) const;
@@ -114,6 +116,8 @@ private:
   RDCDriver m_Driver = RDCDriver::Unknown;
   rdcstr m_DriverName;
   uint64_t m_MachineIdent = 0;
+  uint64_t m_TimeBase = 0;
+  double m_TimeFrequency = 1.0;
   RDCThumb m_Thumb;
 
   ContainerError m_Error = ContainerError::NoError;
