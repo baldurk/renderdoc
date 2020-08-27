@@ -1693,6 +1693,7 @@ void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
       SectionProperties props = {};
       props.type = SectionType::EmbeddedLogfile;
       props.version = 1;
+      props.flags = SectionFlags::LZ4Compressed;
       StreamWriter *w = rdc->WriteSection(props);
 
       w->Write(logcontents.data(), logcontents.size());
