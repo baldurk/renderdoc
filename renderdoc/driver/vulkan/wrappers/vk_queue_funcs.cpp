@@ -737,13 +737,14 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
           n.draw.numIndices /= n.indirectPatch.stride;
         }
 
+        // if the actual draw count was greater than 1, display this as an indirect count
+        const char *countString = (n.indirectPatch.count > 1 ? "<1>" : "1");
+
         if(valid)
-          n.draw.name =
-              StringFormat::Fmt("%s(%u) => <%u, %u>", n.draw.name.c_str(), n.indirectPatch.count,
-                                n.draw.numIndices, n.draw.numInstances);
+          n.draw.name = StringFormat::Fmt("%s(%s) => <%u, %u>", n.draw.name.c_str(), countString,
+                                          n.draw.numIndices, n.draw.numInstances);
         else
-          n.draw.name =
-              StringFormat::Fmt("%s(%u) => <?, ?>", n.draw.name.c_str(), n.indirectPatch.count);
+          n.draw.name = StringFormat::Fmt("%s(%s) => <?, ?>", n.draw.name.c_str(), countString);
       }
       else
       {
@@ -751,11 +752,12 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
         RDCASSERT(i + indirectCount < cmdBufNodes.size(), i, indirectCount, n.indirectPatch.count,
                   cmdBufNodes.size());
 
-        // if there was a count, patch that onto the root drawcall name
+        // patch the count onto the root drawcall name. The root is otherwise un-suffixed to allow
+        // for collapsing non-multidraws and making everything generally simpler
         if(hasCount)
-        {
           n.draw.name = StringFormat::Fmt("%s(<%u>)", n.draw.name.c_str(), indirectCount);
-        }
+        else
+          n.draw.name = StringFormat::Fmt("%s(%u)", n.draw.name.c_str(), n.indirectPatch.count);
 
         for(size_t j = 0; j < (size_t)indirectCount && i + j + 1 < cmdBufNodes.size(); j++)
         {
