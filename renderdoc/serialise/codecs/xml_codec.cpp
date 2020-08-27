@@ -916,7 +916,7 @@ static ReplayStatus Buffers2ZIP(const rdcstr &filename, const RDCFile &file,
       StreamReader *reader = file.ReadSection(i);
 
       bytebuf log;
-      log.resize(reader->GetSize());
+      log.resize((size_t)reader->GetSize());
       reader->Read(log.data(), log.size());
 
       mz_zip_writer_add_mem(&zip, "diagnostic.log", log.data(), log.size(), MZ_BEST_SPEED);
