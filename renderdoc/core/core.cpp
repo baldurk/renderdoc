@@ -1676,6 +1676,7 @@ void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
       header.width = thumb.width;
       header.height = thumb.height;
       header.format = thumb.format;
+      header.len = (uint32_t)thumb.pixels.size();
       w->Write(header);
       w->Write(thumb.pixels.data(), thumb.pixels.size());
 
