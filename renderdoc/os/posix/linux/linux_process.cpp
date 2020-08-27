@@ -40,6 +40,8 @@
 RDOC_CONFIG(bool, Linux_PtraceChildProcesses, true,
             "Use ptrace(2) to trace child processes at startup to ensure connection is made as "
             "early as possible.");
+RDOC_DEBUG_CONFIG(bool, Linux_Debug_PtraceLogging, false,
+                  "Enable verbose debug logging of ptrace usage.");
 
 extern char **environ;
 
@@ -253,6 +255,9 @@ bool StopChildAtMain(pid_t childPid)
   if(!ptrace_scope_ok())
     return false;
 
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("Stopping child PID %u at main", childPid);
+
   int childStatus = 0;
 
   // we have a low timeout for this stop since it should happen almost immediately (right after the
@@ -270,11 +275,17 @@ bool StopChildAtMain(pid_t childPid)
     return false;
   }
 
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("Child PID %u is stopped in StopAtMainInChild()", childPid);
+
   long ptraceRet = 0;
 
   // continue until exec
   ptraceRet = ptrace(PTRACE_SETOPTIONS, childPid, NULL, PTRACE_O_TRACEEXEC);
   RDCASSERTEQUAL(ptraceRet, 0);
+
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("Child PID %u configured to trace exec(). Continuing child", childPid);
 
   // continue
   ptraceRet = ptrace(PTRACE_CONT, childPid, NULL, NULL);
@@ -294,6 +305,9 @@ bool StopChildAtMain(pid_t childPid)
            (childStatus >> 8), (SIGTRAP | (PTRACE_EVENT_EXEC << 8)));
     return false;
   }
+
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("Child PID %u is stopped at execve()", childPid);
 
   rdcstr exepath;
   long baseVirtualPointer = 0;
@@ -340,6 +354,10 @@ bool StopChildAtMain(pid_t childPid)
     return false;
   }
 
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("Child PID %u has exepath %s basePointer 0x%llx and sectionOffset 0x%x", childPid,
+           exepath.c_str(), (uint64_t)baseVirtualPointer, (uint32_t)sectionOffset);
+
   FileIO::fclose(maps);
 
   FILE *elf = FileIO::fopen(exepath.c_str(), "r");
@@ -366,6 +384,8 @@ bool StopChildAtMain(pid_t childPid)
 
   if(elf_header.e_shoff)
   {
+    if(Linux_Debug_PtraceLogging())
+      RDCLOG("exepath %s contains sections, rebasing to correct section", exepath.c_str());
 
     FileIO::fseek64(elf, elf_header.e_shoff, SEEK_SET);
 
@@ -386,6 +406,13 @@ bool StopChildAtMain(pid_t childPid)
       if(section_header.sh_addr <= entryVirtual &&
          entryVirtual < section_header.sh_addr + section_header.sh_size)
       {
+        if(Linux_Debug_PtraceLogging())
+          RDCLOG(
+              "Found section in %s from 0x%llx - 0x%llx at offset 0x%llx containing entry 0x%llx.",
+              exepath.c_str(), (uint64_t)section_header.sh_addr,
+              uint64_t(section_header.sh_addr + section_header.sh_size),
+              (uint64_t)section_header.sh_offset, (uint64_t)entryVirtual);
+
         entryFileOffset =
             (entryVirtual - (size_t)section_header.sh_addr) + (size_t)section_header.sh_offset;
 
@@ -398,14 +425,26 @@ bool StopChildAtMain(pid_t childPid)
 
   void *entry = (void *)(baseVirtualPointer + entryFileOffset - sectionOffset);
 
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("child process %u executable %s has entry %p at 0x%llx + (0x%llx - 0x%x)", childPid,
+           exepath.c_str(), entry, (uint64_t)baseVirtualPointer, (uint64_t)entryFileOffset,
+           (uint32_t)sectionOffset);
 
   // this reads a 'word' and returns as long, upcast (if needed) to uint64_t
   uint64_t origEntryWord = (uint64_t)ptrace(PTRACE_PEEKTEXT, childPid, entry, 0);
+
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("Read word %llx from %p in child process %u running executable %s",
+           (uint64_t)origEntryWord, entry, childPid, exepath.c_str());
 
   uint64_t breakpointWord = (origEntryWord & 0xffffffffffffff00ULL) | 0xccULL;
   // downcast back to long, if that means truncating
   ptraceRet = ptrace(PTRACE_POKETEXT, childPid, entry, (long)breakpointWord);
   RDCASSERTEQUAL(ptraceRet, 0);
+
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("Changed word to %llx and re-poked in process %u. Continuing child",
+           (uint64_t)breakpointWord, childPid);
 
   // continue
   ptraceRet = ptrace(PTRACE_CONT, childPid, NULL, NULL);
@@ -418,12 +457,19 @@ bool StopChildAtMain(pid_t childPid)
     return false;
   }
 
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("Process %u hit entry point", childPid);
+
   // we're now at main! now just need to clean up after ourselves
 
   user_regs_struct regs = {};
 
   ptraceRet = ptrace(PTRACE_GETREGS, childPid, NULL, &regs);
   RDCASSERTEQUAL(ptraceRet, 0);
+
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("Process %u instruction pointer is at %llx, for entry point %p", childPid,
+           (uint64_t)(regs.INST_PTR_REG), entry);
 
   // step back past the byte we inserted the breakpoint on
   regs.INST_PTR_REG--;
@@ -433,6 +479,9 @@ bool StopChildAtMain(pid_t childPid)
   // restore the function
   ptraceRet = ptrace(PTRACE_POKETEXT, childPid, entry, origEntryWord);
   RDCASSERTEQUAL(ptraceRet, 0);
+
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("Process %u instruction pointer adjusted and breakpoint removed.", childPid);
 
   // we'll resume after reading the ident port in the calling function
   return true;
@@ -444,9 +493,19 @@ void StopAtMainInChild()
   if(!ptrace_scope_ok())
     return;
 
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("Stopping in main at child for ptracing");
+
   // allow parent tracing, and immediately stop so the parent process can attach
   ptrace(PTRACE_TRACEME, 0, 0, 0);
+
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("Done PTRACE_TRACEME, raising SIGSTOP");
+
   raise(SIGSTOP);
+
+  if(Linux_Debug_PtraceLogging())
+    RDCLOG("Resumed after SIGSTOP");
 }
 
 void ResumeProcess(pid_t childPid, uint32_t delaySeconds)
