@@ -64,6 +64,7 @@ public:
   RDStyle(ColorScheme scheme);
   ~RDStyle();
 
+  void polish(QApplication *app) override;
   void polish(QPalette &pal) override { polishPalette(pal); }
   void polish(QWidget *widget) override;
   void unpolish(QWidget *widget) override;

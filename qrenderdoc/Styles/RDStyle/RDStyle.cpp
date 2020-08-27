@@ -24,6 +24,7 @@
 
 #include "RDStyle.h"
 #include <QAbstractItemView>
+#include <QApplication>
 #include <QComboBox>
 #include <QCommonStyle>
 #include <QDebug>
@@ -269,6 +270,11 @@ void RDStyle::polish(QWidget *widget)
     tabwidget->setDocumentMode(false);
     tabwidget->tabBar()->setDrawBase(true);
   }
+}
+
+void RDStyle::polish(QApplication *app)
+{
+  app->setPalette(standardPalette());
 }
 
 void RDStyle::unpolish(QWidget *widget)
