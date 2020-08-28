@@ -2952,7 +2952,7 @@ QVariantMap MainWindow::saveState()
 {
   QVariantMap state = ui->toolWindowManager->saveState();
 
-  state[lit("mainWindowGeometry")] = saveGeometry().toBase64();
+  state[lit("mainWindowGeometry")] = QString::fromLatin1(saveGeometry().toBase64());
 
   return state;
 }

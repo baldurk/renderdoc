@@ -1397,13 +1397,51 @@ void addStructuredObjects(RDTreeWidgetItem *parent, const StructuredObjectList &
   }
 }
 
+static void validateForJSON(const QVariant &data, QString path = QString())
+{
+  switch((QMetaType::Type)data.type())
+  {
+    case QMetaType::QVariantList:
+    {
+      QVariantList list = data.toList();
+      int i = 0;
+      for(QVariant &v : list)
+        validateForJSON(v, path + QFormatStr("[%1]").arg(i++));
+      break;
+    }
+    case QMetaType::QVariantMap:
+    {
+      QVariantMap map = data.toMap();
+      for(const QString &str : map.keys())
+        validateForJSON(map[str], path + lit(".") + str);
+      break;
+    }
+    case QMetaType::QByteArray:
+    {
+      qCritical() << "Qt can't reliably serialise QByteArray to JSON.\n"
+                  << "Older versions write it as a byte string, new versions base64 encode it.\n"
+                  << "Manually encode if needed and add value as string." << path;
+    }
+    default:
+      // all other types we assume are fine
+      break;
+  }
+}
+
+static QJsonDocument validateAndMakeJSON(const QVariantMap &data)
+{
+  validateForJSON(data);
+
+  return QJsonDocument::fromVariant(data);
+}
+
 bool SaveToJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, uint32_t magicVersion)
 {
   // marker that this data is valid
   if(magicIdentifier)
     data[QString::fromLatin1(magicIdentifier)] = magicVersion;
 
-  QJsonDocument doc = QJsonDocument::fromVariant(data);
+  QJsonDocument doc = validateAndMakeJSON(data);
 
   if(doc.isEmpty() || doc.isNull())
   {
@@ -1463,7 +1501,7 @@ bool LoadFromJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, 
 
 QString VariantToJSON(const QVariantMap &data)
 {
-  return QString::fromUtf8(QJsonDocument::fromVariant(data).toJson(QJsonDocument::Indented));
+  return QString::fromUtf8(validateAndMakeJSON(data).toJson(QJsonDocument::Indented));
 }
 
 QVariantMap JSONToVariant(const QString &json)
