@@ -26,6 +26,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
+#include <thread>
 #include "3rdparty/fmt/core.h"
 #include "vk_test.h"
 
@@ -260,19 +261,23 @@ void main()
 
       std::mutex lock;
       std::condition_variable cv;
-      std::atomic_bool kill = false, run = false;
+      std::atomic_bool kill, run;
     };
 
     ThreadData threadData[threadCount];
-    std::atomic_int threadsDone = 0;
+    std::atomic_int threadsDone;
     std::mutex doneLock;
     std::condition_variable doneCV;
+
+    threadsDone = 0;
 
     for(size_t t = 0; t < threadCount; t++)
     {
       CHECK_VKR(vkCreateCommandPool(
           device, vkh::CommandPoolCreateInfo(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT), NULL,
           &threadData[t].cmdPool));
+
+      threadData[t].kill = threadData[t].run = false;
 
       for(size_t r = 0; r < ringSize; r++)
       {
