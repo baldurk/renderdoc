@@ -1000,6 +1000,8 @@ static bool ZIP2Buffers(const rdcstr &filename, ThumbTypeAndData &thumb, ThumbTy
         }
       }
 
+      free(buf);
+
       if(progress)
         progress(BufferProgress(float(i) / float(numfiles)));
     }

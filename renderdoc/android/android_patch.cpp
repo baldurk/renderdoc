@@ -105,6 +105,7 @@ bool ExtractAndRemoveManifest(const rdcstr &apk, bytebuf &manifest)
         RDCLOG("Got manifest of %zu bytes", sz);
 
         manifest = bytebuf(buf, sz);
+        free(buf);
         break;
       }
     }
