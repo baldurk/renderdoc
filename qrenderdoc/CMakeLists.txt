@@ -131,6 +131,7 @@ ExternalProject_Add(custom_swig
 # Lastly find PySide 2, optionally, for Qt5 Python bindings
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
+find_package(Shiboken2)
 find_package(PySide2)
 
 set(PYTHON_LINK "${PYTHON_LIBRARY}")
@@ -214,19 +215,31 @@ if(NOT BUILD_VERSION_DIST_CONTACT STREQUAL "")
          "DEFINES+=DISTRIBUTION_CONTACT='\\\\\"${BUILD_VERSION_DIST_CONTACT}\\\\\"'\n")
 endif()
 
-if(PYSIDE2_FOUND)
+if(PySide2_FOUND)
+    message(STATUS "Building with PySide2 ${PySide2_VERSION} from ${PySide2_DIR}")
+
+    get_target_property(SHIBOKEN2_INCLUDE_DIRS Shiboken2::libshiboken INTERFACE_INCLUDE_DIRECTORIES)
+    get_target_property(PYSIDE2_INCLUDE_DIRS PySide2::pyside2 INTERFACE_INCLUDE_DIRECTORIES)
+
+    # append each include dir
+    foreach(DIR ${SHIBOKEN2_INCLUDE_DIRS})
+        file(APPEND
+             ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+             "INCLUDEPATH+=${DIR}\n")
+    endforeach()
+
+    foreach(DIR ${PYSIDE2_INCLUDE_DIRS})
+        file(APPEND
+             ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+             "INCLUDEPATH+=${DIR}\n")
+    endforeach()
+
     # Add configuration for PySide2
     file(APPEND
          ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
          "DEFINES+=PYSIDE2_ENABLED=1\n"
-         "DEFINES+=PYSIDE2_SYS_PATH=${PYSIDE2_PYTHON_PATH}\n"
-         "INCLUDEPATH+=${PYSIDE2_INCLUDE_DIR}/PySide2\n"
-         "INCLUDEPATH+=${PYSIDE2_INCLUDE_DIR}/PySide2/QtCore\n"
-         "INCLUDEPATH+=${PYSIDE2_INCLUDE_DIR}/PySide2/QtGui\n"
-         "INCLUDEPATH+=${PYSIDE2_INCLUDE_DIR}/PySide2/QtWidgets\n"
-         "INCLUDEPATH+=${PYSIDE2_INCLUDE_DIR}/shiboken2\n"
-         "LIBS+=-L${PYSIDE2_LIBRARY_DIR}\n"
-         "LIBS+=-lshiboken2\n")
+         "DEFINES+=PYSIDE2_SYS_PATH=${PYSIDE_PYTHONPATH}\n"
+         "LIBS+=-lshiboken2${SHIBOKEN_PYTHON_SHARED_LIBRARY_SUFFIX}\n")
 else()
     message(STATUS "PySide2 not found - Qt will not be accessible in python scripting. See https://github.com/baldurk/renderdoc/wiki/PySide2")
 

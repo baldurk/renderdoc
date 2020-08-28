@@ -40,7 +40,6 @@
 // warning C4522: 'Shiboken::AutoDecRef': multiple assignment operators specified
 #pragma warning(disable : 4522)
 #include <pyside.h>
-#include <pyside2_qtwidgets_python.h>
 #include <shiboken.h>
 
 PyTypeObject **SbkPySide2_QtCoreTypes = NULL;
