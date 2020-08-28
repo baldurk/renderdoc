@@ -56,6 +56,11 @@ PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
 
 #endif
 
+#ifdef _MSC_VER
+// for the LoadLibrary call on 32-bit windows
+#include <windows.h>
+#endif
+
 #include <QApplication>
 #include <QDebug>
 #include <QDir>
@@ -342,6 +347,14 @@ void PythonContext::GlobalInit()
 // set up PySide
 #if PYSIDE2_ENABLED
   {
+// hack for win32 builds, where our pyside2 accidentally depends on Qt5Qml.dll for no good
+// reason and we ship a stub to allow the dll to load instead of rebuilding the whole of pyside2
+// :S
+#if defined(_MSC_VER) && !defined(_M_X64)
+    QString Qt5QmlStub = QApplication::applicationDirPath() + lit("/PySide2/Qt5Qml.dll");
+    LoadLibraryA(Qt5QmlStub.toUtf8().data());
+#endif
+
     Shiboken::AutoDecRef core(Shiboken::Module::import("PySide2.QtCore"));
     if(!core.isNull())
       SbkPySide2_QtCoreTypes = Shiboken::Module::getTypes(core);
