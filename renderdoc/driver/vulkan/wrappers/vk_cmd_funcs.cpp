@@ -523,8 +523,14 @@ VkResult WrappedVulkan::vkCreateCommandPool(VkDevice device,
         chunk = scope.Get();
       }
 
+      bool allowReset = (pCreateInfo->flags & VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) != 0;
+
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pCmdPool);
-      record->cmdPoolInfo = new CmdPoolInfo;
+      // if we can reset command buffers we need to allocate smaller pages because command buffers
+      // may be reset, so each page can only be allocated by at most one command buffer.
+      // if not, we allocate bigger pages on the assumption that the application won't waste memory
+      // by allocating lots of command pools that barely get used.
+      record->cmdPoolInfo = new CmdPoolInfo(allowReset ? 4 * 1024 : 128 * 1024, allowReset);
       record->cmdPoolInfo->queueFamilyIndex = pCreateInfo->queueFamilyIndex;
       record->AddChunk(chunk);
     }
@@ -540,12 +546,16 @@ VkResult WrappedVulkan::vkCreateCommandPool(VkDevice device,
 VkResult WrappedVulkan::vkResetCommandPool(VkDevice device, VkCommandPool cmdPool,
                                            VkCommandPoolResetFlags flags)
 {
+  GetRecord(cmdPool)->cmdPoolInfo->alloc.Reset();
+
   return ObjDisp(device)->ResetCommandPool(Unwrap(device), Unwrap(cmdPool), flags);
 }
 
 void WrappedVulkan::vkTrimCommandPool(VkDevice device, VkCommandPool commandPool,
                                       VkCommandPoolTrimFlags flags)
 {
+  GetRecord(commandPool)->cmdPoolInfo->alloc.Trim();
+
   return ObjDisp(device)->TrimCommandPool(Unwrap(device), Unwrap(commandPool), flags);
 }
 
@@ -683,7 +693,7 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,
         record->cmdInfo->allocInfo.commandBufferCount = 1;
         record->cmdInfo->allocRecord = allocRecord;
         record->cmdInfo->present = false;
-        // record->cmdInfo->alloc = &record->pool->cmdPoolInfo->alloc;
+        record->cmdInfo->alloc = &record->pool->cmdPoolInfo->alloc;
       }
       else
       {
@@ -1010,6 +1020,8 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
     if(record->bakedCommands)
       record->bakedCommands->Delete(GetResourceManager());
 
+    record->cmdInfo->alloc->ResetPageSet(record->cmdInfo->pageSet);
+
     record->bakedCommands = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
     record->bakedCommands->DisableChunkLocking();
     record->bakedCommands->InternalResource = true;
@@ -1228,6 +1240,10 @@ VkResult WrappedVulkan::vkEndCommandBuffer(VkCommandBuffer commandBuffer)
       record->AddChunk(scope.Get(record->cmdInfo->alloc));
     }
 
+    // if we can't reset command buffers there's no need to claim a set of pages
+    if(record->pool->cmdPoolInfo->allowCmdBufReset)
+      record->cmdInfo->pageSet = record->cmdInfo->alloc->GetPageSet();
+
     record->Bake();
   }
 
@@ -1255,6 +1271,8 @@ VkResult WrappedVulkan::vkResetCommandBuffer(VkCommandBuffer commandBuffer,
     // we don't need to record or replay when a ResetCommandBuffer happens
     if(record->bakedCommands)
       record->bakedCommands->Delete(GetResourceManager());
+
+    record->cmdInfo->alloc->ResetPageSet(record->cmdInfo->pageSet);
 
     record->bakedCommands = NULL;
   }

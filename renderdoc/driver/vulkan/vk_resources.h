@@ -1015,6 +1015,7 @@ struct CmdBufferRecordingInfo
   VkCommandBufferAllocateInfo allocInfo;
 
   ChunkAllocator *alloc = NULL;
+  rdcarray<uint32_t> pageSet;
 
   VkResourceRecord *framebuffer = NULL;
   VkResourceRecord *allocRecord = NULL;
@@ -1087,8 +1088,12 @@ struct DescPoolInfo
 
 struct CmdPoolInfo
 {
-  CmdPoolInfo() : alloc(32 * 1024) {}
+  CmdPoolInfo(uint32_t allocPageSize, bool allowReset)
+      : alloc(allocPageSize), allowCmdBufReset(allowReset)
+  {
+  }
   uint32_t queueFamilyIndex;
+  bool allowCmdBufReset;
   ChunkAllocator alloc;
 };
 

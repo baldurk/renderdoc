@@ -1459,35 +1459,75 @@ class ScopedChunk;
 class ChunkAllocator
 {
 public:
-  ChunkAllocator(size_t PageSize) : PageSize(PageSize) {}
+  ChunkAllocator(size_t PageSize) : BufferPageSize(PageSize), ChunkPageSize(PageSize / 4) {}
   ChunkAllocator(const ChunkAllocator &) = delete;
   ChunkAllocator(ChunkAllocator &&) = delete;
   ChunkAllocator &operator=(const ChunkAllocator &) = delete;
+  ~ChunkAllocator();
   byte *AllocAlignedBuffer(uint64_t size);
   byte *AllocChunk();
+
+  // really free any unused pages
+  void Trim();
+
   // reset all pages to free
   void Reset();
 
+  // reset a page set, other pages will remain in use
+  void ResetPageSet(const rdcarray<uint32_t> &pages);
+
+  // get the pages that have been used since the last reset, or call to GetPageSet.
+  // these can then be freed later without affecting any other pages.
+  // note that not all pages will be full (e.g. even if only one 64-bit chunk is used in the last
+  // page it will be marked as full so it can be freed without another allocation overlapping).
+  rdcarray<uint32_t> GetPageSet();
+
 private:
-  size_t PageSize;
+  size_t BufferPageSize;
+  size_t ChunkPageSize;
 
   struct Page
   {
+    // this is an ID we can use to find this page in a pageset
+    uint32_t ID;
+
+    // we allocate at two granularities, chunks are 16 bytes, buffers are multiples of 64-bytes
+    // to keep things simple we allocate the chunk memory as 16/64 = a quarter the size of the
+    // buffer memory. This will waste a bit of memory because we expect buffers to be on average
+    // larger than 64 bytes.
+
     // base of the buffer
-    byte *base;
+    byte *bufferBase;
     // head of the buffer
-    byte *head;
+    byte *bufferHead;
+
+    byte *chunkBase;
+    byte *chunkHead;
   };
 
-  // we allocate at two granularities, chunks are 16 bytes, buffers are multiples of 64-bytes
-  rdcarray<Page> freeBufferPages;
-  rdcarray<Page> freeChunkPages;
+  // a page is in precisely ONE of these arrays at any time, either it's free (and the last free
+  // page may be partially used) or it's "full".
+  // Reset() will move all full pages back to free pages and reclaim all that memory
+  // ResetPageSet() will move any referenced pages from fullPages back to freePages
+  rdcarray<Page> freePages;
+  rdcarray<Page> fullPages;
 
-  rdcarray<Page> fullBufferPages;
-  rdcarray<Page> fullChunkPages;
+  // as we're recording each new page we start gets added here. If the user calls GetPageSet we
+  // return this and the user can then free it later without freeing all pages.
+  // note, the *current* page (freePages.back) isn't in this list, we only append to this list when
+  // we retire a full page. That means GetPageSet checks if the last page has been used at all and
+  // includes it there
+  rdcarray<uint32_t> usedPages;
 
-  size_t GetRemainingBytes(const Page &p) { return PageSize - (p.head - p.base); }
-  byte *AllocateFromPages(rdcarray<Page> &freeList, rdcarray<Page> &fullList, size_t size);
+  size_t GetRemainingBufferBytes(const Page &p)
+  {
+    return BufferPageSize - (p.bufferHead - p.bufferBase);
+  }
+  size_t GetRemainingChunkBytes(const Page &p)
+  {
+    return ChunkPageSize - (p.chunkHead - p.chunkBase);
+  }
+  byte *AllocateFromPages(bool chunkAlloc, size_t size);
 };
 
 // holds the memory, length and type for a given chunk, so that it can be

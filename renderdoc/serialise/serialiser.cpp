@@ -997,57 +997,141 @@ Chunk::Chunk(Serialiser<SerialiserMode::Writing> &ser, uint16_t chunkType, Chunk
 #endif
 }
 
+ChunkAllocator::~ChunkAllocator()
+{
+  for(Page &p : freePages)
+  {
+    FreeAlignedBuffer(p.chunkBase);
+    FreeAlignedBuffer(p.bufferBase);
+  }
+
+  for(Page &p : fullPages)
+  {
+    FreeAlignedBuffer(p.chunkBase);
+    FreeAlignedBuffer(p.bufferBase);
+  }
+}
+
 byte *ChunkAllocator::AllocAlignedBuffer(uint64_t size)
 {
   // always allocate 64-bytes at a time even if the size is smaller
-  return AllocateFromPages(freeBufferPages, fullBufferPages, AlignUp((size_t)size, (size_t)64));
+  return AllocateFromPages(false, AlignUp((size_t)size, (size_t)64));
 }
 
 byte *ChunkAllocator::AllocChunk()
 {
   RDCCOMPILE_ASSERT(sizeof(ChunkAllocator) <= 128, "foo");
-  return AllocateFromPages(freeChunkPages, fullChunkPages, sizeof(Chunk));
+  return AllocateFromPages(true, sizeof(Chunk));
+}
+
+void ChunkAllocator::Trim()
+{
+  for(Page &p : freePages)
+  {
+    FreeAlignedBuffer(p.chunkBase);
+    FreeAlignedBuffer(p.bufferBase);
+  }
+
+  freePages.clear();
 }
 
 void ChunkAllocator::Reset()
 {
-  freeBufferPages.append(fullBufferPages);
-  freeChunkPages.append(fullChunkPages);
-  fullBufferPages.clear();
-  fullChunkPages.clear();
+  freePages.append(fullPages);
+  fullPages.clear();
 
-  for(Page &p : freeBufferPages)
-    p.head = p.base;
-  for(Page &p : freeChunkPages)
-    p.head = p.base;
+  for(Page &p : freePages)
+  {
+    p.bufferHead = p.bufferBase;
+    p.chunkHead = p.chunkBase;
+  }
 }
 
-byte *ChunkAllocator::AllocateFromPages(rdcarray<Page> &freeList, rdcarray<Page> &fullList,
-                                        size_t size)
+void ChunkAllocator::ResetPageSet(const rdcarray<uint32_t> &pages)
+{
+  // any full pages in this set go back into the free pages list
+  for(size_t i = 0; i < fullPages.size();)
+  {
+    Page &p = fullPages[i];
+    if(pages.contains(p.ID))
+    {
+      p.bufferHead = p.bufferBase;
+      p.chunkHead = p.chunkBase;
+      freePages.push_back(p);
+      fullPages.erase(i);
+      continue;
+    }
+    i++;
+  }
+}
+
+rdcarray<uint32_t> ChunkAllocator::GetPageSet()
+{
+  // see if the last free page has been partially used
+  if(!freePages.empty())
+  {
+    Page &p = freePages.back();
+
+    if(p.bufferBase != p.bufferHead || p.chunkBase != p.chunkHead)
+    {
+      usedPages.push_back(freePages.back().ID);
+
+      fullPages.push_back(freePages.back());
+      freePages.pop_back();
+    }
+  }
+
+  rdcarray<uint32_t> ret;
+  ret.swap(usedPages);
+  return ret;
+}
+
+byte *ChunkAllocator::AllocateFromPages(bool chunkAlloc, size_t size)
 {
   // if the size can't be satisfied in a page, return NULL and we'll force a full allocation which
   // will be freed on its own
-  if(size > PageSize)
+  if(size > BufferPageSize)
     return NULL;
 
-  // if the last free page can't satisfy this allocation, retire it to the full list
-  if(!freeList.empty() && GetRemainingBytes(freeList.back()) < size)
+  if(!freePages.empty())
   {
-    fullList.push_back(freeList.back());
-    freeList.pop_back();
+    // if the last free page can't satisfy this allocation, retire it to the full list
+    if((chunkAlloc && GetRemainingChunkBytes(freePages.back()) < size) ||
+       (!chunkAlloc && GetRemainingBufferBytes(freePages.back()) < size))
+    {
+      // mark this page as used in the current set
+      usedPages.push_back(freePages.back().ID);
+
+      fullPages.push_back(freePages.back());
+      freePages.pop_back();
+    }
   }
 
   // if there are no free pages, allocate a new one
-  if(freeList.empty())
+  if(freePages.empty())
   {
-    byte *buf = ::AllocAlignedBuffer(PageSize);
-    freeList.push_back({buf, buf});
+    // the first free ID is the sum of the free and full lists, because all pages are in one or the
+    // other
+    uint32_t ID = uint32_t(freePages.size() + fullPages.size());
+    byte *buffers = ::AllocAlignedBuffer(BufferPageSize);
+    byte *chunks = ::AllocAlignedBuffer(ChunkPageSize);
+    freePages.push_back({ID, buffers, buffers, chunks, chunks});
   }
 
-  Page &p = freeList.back();
+  Page &p = freePages.back();
 
-  byte *ret = p.head;
-  p.head += size;
+  byte *ret = NULL;
+
+  if(chunkAlloc)
+  {
+    ret = p.chunkHead;
+    p.chunkHead += size;
+  }
+  else
+  {
+    ret = p.bufferHead;
+    p.bufferHead += size;
+  }
 
   return ret;
 }
