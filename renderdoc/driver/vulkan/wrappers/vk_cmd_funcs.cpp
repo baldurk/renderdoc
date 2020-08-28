@@ -683,7 +683,7 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,
         record->cmdInfo->allocInfo.commandBufferCount = 1;
         record->cmdInfo->allocRecord = allocRecord;
         record->cmdInfo->present = false;
-        record->cmdInfo->alloc = &record->pool->cmdPoolInfo->alloc;
+        // record->cmdInfo->alloc = &record->pool->cmdPoolInfo->alloc;
       }
       else
       {
