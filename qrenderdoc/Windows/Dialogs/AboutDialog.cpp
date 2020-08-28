@@ -38,16 +38,17 @@ AboutDialog::AboutDialog(QWidget *parent) : QDialog(parent), ui(new Ui::AboutDia
 
   if(hash[0] == QLatin1Char('N') && hash[1] == QLatin1Char('O'))
   {
-    ui->version->setText(
-        QFormatStr("Version %1 (built from unknown source)").arg(lit(FULL_VERSION_STRING)));
+    ui->version->setText(tr("Version %1 (built from unknown source)").arg(lit(FULL_VERSION_STRING)));
   }
   else
   {
-    ui->version->setText(QFormatStr("Version %1 (built from <a href='%2'>%3</a>)")
+    ui->version->setText(tr("Version %1 (built from <a href='%2'>%3</a>)")
                              .arg(lit(FULL_VERSION_STRING))
                              .arg(lit("https://github.com/baldurk/renderdoc/commit/%1").arg(hash))
                              .arg(hash.left(8)));
   }
+
+  ui->version->setText(tr("%1 (Qt version %2)").arg(ui->version->text()).arg(lit(QT_VERSION_STR)));
 
 #if defined(DISTRIBUTION_VERSION)
   ui->owner->setText(QFormatStr("Baldur Karlsson - Packaged for %1").arg(lit(DISTRIBUTION_NAME)));
