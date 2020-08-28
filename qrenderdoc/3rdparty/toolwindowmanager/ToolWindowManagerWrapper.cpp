@@ -456,7 +456,7 @@ QVariantMap ToolWindowManagerWrapper::saveState()
     return QVariantMap();
   }
   QVariantMap result;
-  result[QStringLiteral("geometry")] = saveGeometry().toBase64();
+  result[QStringLiteral("geometry")] = QString::fromLatin1(saveGeometry().toBase64());
   QSplitter *splitter = findChild<QSplitter *>(QString(), Qt::FindDirectChildrenOnly);
   if(splitter)
   {
