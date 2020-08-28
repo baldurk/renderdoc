@@ -4406,7 +4406,8 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
 
   if(prevLayout == ResourceId())
   {
-    desclayout.CreateBindingsArray(m_DescriptorSetState[setId].data);
+    // push descriptors can't have variable count, so just pass 0
+    desclayout.CreateBindingsArray(m_DescriptorSetState[setId].data, 0);
   }
   else if(prevLayout != descSetLayouts[set])
   {

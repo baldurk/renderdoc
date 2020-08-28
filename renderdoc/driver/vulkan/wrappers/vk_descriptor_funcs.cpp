@@ -457,7 +457,29 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
 
       // this is stored in the resource record on capture, we need to be able to look to up
       m_DescriptorSetState[live].layout = layoutId;
-      m_CreationInfo.m_DescSetLayout[layoutId].CreateBindingsArray(m_DescriptorSetState[live].data);
+
+      // If descriptorSetCount is zero or this structure is not included in the pNext chain,
+      // then the variable lengths are considered to be zero.
+      uint32_t variableDescriptorAlloc = 0;
+
+      if(!m_CreationInfo.m_DescSetLayout[layoutId].bindings.empty() &&
+         m_CreationInfo.m_DescSetLayout[layoutId].bindings.back().variableSize)
+      {
+        VkDescriptorSetVariableDescriptorCountAllocateInfo *variableAlloc =
+            (VkDescriptorSetVariableDescriptorCountAllocateInfo *)FindNextStruct(
+                &AllocateInfo,
+                VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO);
+
+        if(variableAlloc)
+        {
+          // this struct will have been patched similar to VkDescriptorSetAllocateInfo so we look up
+          // the [0]th element
+          variableDescriptorAlloc = variableAlloc->pDescriptorCounts[0];
+        }
+      }
+
+      m_CreationInfo.m_DescSetLayout[layoutId].CreateBindingsArray(m_DescriptorSetState[live].data,
+                                                                   variableDescriptorAlloc);
     }
 
     AddResource(DescriptorSet, ResourceType::ShaderBinding, "Descriptor Set");
@@ -481,6 +503,22 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(VkDevice device,
   if(ret != VK_SUCCESS)
     return ret;
 
+  VkDescriptorSetVariableDescriptorCountAllocateInfo *variableAlloc =
+      (VkDescriptorSetVariableDescriptorCountAllocateInfo *)FindNextStruct(
+          pAllocateInfo, VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO);
+
+  VkDescriptorSetAllocateInfo mutableInfo = *pAllocateInfo;
+
+  {
+    byte *tempMem = GetTempMemory(GetNextPatchSize(mutableInfo.pNext));
+    CopyNextChainForPatching("VkDescriptorSetAllocateInfo", tempMem,
+                             (VkBaseInStructure *)&mutableInfo);
+  }
+
+  VkDescriptorSetVariableDescriptorCountAllocateInfo *mutableVariableInfo =
+      (VkDescriptorSetVariableDescriptorCountAllocateInfo *)FindNextStruct(
+          &mutableInfo, VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO);
+
   for(uint32_t i = 0; i < pAllocateInfo->descriptorSetCount; i++)
   {
     VkResourceRecord *poolrecord = NULL;
@@ -489,11 +527,18 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(VkDevice device,
     ResourceId id;
     VkResourceRecord *record = NULL;
     bool exactReuse = false;
+    uint32_t variableDescriptorAlloc = 0;
 
     if(IsCaptureMode(m_State))
     {
       layoutRecord = GetRecord(pAllocateInfo->pSetLayouts[i]);
       poolrecord = GetRecord(pAllocateInfo->descriptorPool);
+
+      if(!layoutRecord->descInfo->layout->bindings.empty() &&
+         layoutRecord->descInfo->layout->bindings.back().variableSize && variableAlloc)
+      {
+        variableDescriptorAlloc = variableAlloc->pDescriptorCounts[i];
+      }
 
       if(Atomic::CmpExch32(&m_ReuseEnabled, 1, 1) == 1)
       {
@@ -510,7 +555,8 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(VkDevice device,
                                        return a->descInfo->layout < search;
                                      });
 
-          if(it != freelist.end() && (*it)->descInfo->layout == layoutRecord->descInfo->layout)
+          if(it != freelist.end() && (*it)->descInfo->layout == layoutRecord->descInfo->layout &&
+             (*it)->descInfo->data.variableDescriptorCount == variableDescriptorAlloc)
           {
             record = freelist.takeAt(it - freelist.begin());
             exactReuse = true;
@@ -561,9 +607,15 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(VkDevice device,
         {
           CACHE_THREAD_SERIALISER();
 
-          VkDescriptorSetAllocateInfo info = *pAllocateInfo;
+          VkDescriptorSetAllocateInfo info = mutableInfo;
           info.descriptorSetCount = 1;
-          info.pSetLayouts += i;
+          info.pSetLayouts = mutableInfo.pSetLayouts + i;
+
+          if(mutableVariableInfo)
+          {
+            mutableVariableInfo->descriptorSetCount = 1;
+            mutableVariableInfo->pDescriptorCounts = variableAlloc->pDescriptorCounts + i;
+          }
 
           SCOPED_SERIALISE_CHUNK(VulkanChunk::vkAllocateDescriptorSets);
           Serialise_vkAllocateDescriptorSets(ser, device, &info, &pDescriptorSets[i]);
@@ -577,7 +629,8 @@ VkResult WrappedVulkan::vkAllocateDescriptorSets(VkDevice device,
         record->AddParent(layoutRecord);
 
         record->descInfo->layout = layoutRecord->descInfo->layout;
-        record->descInfo->layout->CreateBindingsArray(record->descInfo->data);
+        record->descInfo->layout->CreateBindingsArray(record->descInfo->data,
+                                                      variableDescriptorAlloc);
       }
       else
       {
@@ -1209,6 +1262,9 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         // descriptors. All consecutive bindings updated via a single VkWriteDescriptorSet structure
         // must have identical descriptorType and stageFlags, and must all either use immutable
         // samplers or must all not use immutable samplers.
+        //
+        // Note we don't have to worry about this interacting with variable descriptor counts
+        // because the variable descriptor must be the last one, so there's no more overlap.
 
         if(curIdx >= layoutBinding->descriptorCount)
         {
@@ -1655,6 +1711,9 @@ void WrappedVulkan::vkUpdateDescriptorSetWithTemplate(
         // descriptors. All consecutive bindings updated via a single VkWriteDescriptorSet structure
         // must have identical descriptorType and stageFlags, and must all either use immutable
         // samplers or must all not use immutable samplers.
+        //
+        // Note we don't have to worry about this interacting with variable descriptor counts
+        // because the variable descriptor must be the last one, so there's no more overlap.
 
         if(curIdx >= layoutBinding->descriptorCount)
         {

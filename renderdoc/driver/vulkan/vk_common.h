@@ -458,12 +458,14 @@ struct BindingStorage
   ~BindingStorage() { clear(); }
   bytebuf inlineBytes;
   rdcarray<DescriptorSetSlot *> binds;
+  uint32_t variableDescriptorCount;
 
   void clear()
   {
     inlineBytes.clear();
     binds.clear();
     elems.clear();
+    variableDescriptorCount = 0;
   }
 
   void reset()

@@ -1040,13 +1040,9 @@ public:
   {
     return m_DescriptorSetState[descSet].layout;
   }
-  const rdcarray<DescriptorSetSlot *> &GetCurrentDescSetBindings(ResourceId descSet)
+  const BindingStorage &GetCurrentDescSetBindingStorage(ResourceId descSet)
   {
-    return m_DescriptorSetState[descSet].data.binds;
-  }
-  const bytebuf &GetCurrentDescSetInlineData(ResourceId descSet)
-  {
-    return m_DescriptorSetState[descSet].data.inlineBytes;
+    return m_DescriptorSetState[descSet].data;
   }
 
   uint32_t GetReadbackMemoryIndex(uint32_t resourceCompatibleBitmask);

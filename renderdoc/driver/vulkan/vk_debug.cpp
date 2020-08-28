@@ -2461,6 +2461,9 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
           creationInfo.m_DescSetLayout[creationInfo.m_PipelineLayout[pipe.descSets[i].pipeLayout]
                                            .descSetLayouts[i]];
 
+      WrappedVulkan::DescriptorSetInfo &setInfo =
+          m_pDriver->m_DescriptorSetState[pipe.descSets[i].descSet];
+
       for(size_t b = 0; !error && b < origLayout.bindings.size(); b++)
       {
         const DescSetLayout::Binding &bind = origLayout.bindings[b];
@@ -2469,22 +2472,27 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
         if(bind.descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
           continue;
 
+        uint32_t descriptorCount = bind.descriptorCount;
+
+        if(bind.variableSize)
+          descriptorCount = setInfo.data.variableDescriptorCount;
+
         // make room in the pool
         if(bind.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
         {
-          poolSizes[InlinePoolIndex].descriptorCount += bind.descriptorCount;
+          poolSizes[InlinePoolIndex].descriptorCount += descriptorCount;
           inlineCreateInfo.maxInlineUniformBlockBindings++;
         }
         else
         {
-          poolSizes[bind.descriptorType].descriptorCount += bind.descriptorCount;
+          poolSizes[bind.descriptorType].descriptorCount += descriptorCount;
         }
 
         VkDescriptorSetLayoutBinding newBind;
         // offset the binding. We offset all sets to make it easier for patching - don't need to
         // conditionally patch shader bindings depending on which set they're in.
         newBind.binding = uint32_t(b + newBindingsCount);
-        newBind.descriptorCount = bind.descriptorCount;
+        newBind.descriptorCount = descriptorCount;
         newBind.descriptorType = bind.descriptorType;
 
         // we only need it available for compute, just make all bindings visible otherwise dynamic
@@ -2499,8 +2507,6 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
           newBind.stageFlags = patchedBindingStage;
         else
           newBind.stageFlags = bind.stageFlags;
-
-        uint32_t descriptorCount = bind.descriptorCount;
 
         switch(bind.descriptorType)
         {
@@ -2665,11 +2671,16 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
         if(bind.descriptorType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
           continue;
 
+        uint32_t descriptorCount = bind.descriptorCount;
+
+        if(bind.variableSize)
+          descriptorCount = setInfo.data.variableDescriptorCount;
+
         DescriptorSetSlot *slot = setInfo.data.binds[b];
 
         write.dstBinding = uint32_t(b + newBindingsCount);
         write.dstArrayElement = 0;
-        write.descriptorCount = bind.descriptorCount;
+        write.descriptorCount = descriptorCount;
         write.descriptorType = bind.descriptorType;
 
         switch(write.descriptorType)
@@ -2728,7 +2739,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
             VkWriteDescriptorSetInlineUniformBlockEXT *inlineWrite = allocInlineWrites.back();
             inlineWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT;
             inlineWrite->pNext = NULL;
-            inlineWrite->dataSize = bind.descriptorCount;
+            inlineWrite->dataSize = descriptorCount;
             inlineWrite->pData = setInfo.data.inlineBytes.data() + slot[0].inlineOffset;
             write.pNext = inlineWrite;
             break;
@@ -2740,7 +2751,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
         // different
         if(write.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
         {
-          write.descriptorCount = bind.descriptorCount;
+          write.descriptorCount = descriptorCount;
           descWrites.push_back(write);
           continue;
         }
@@ -2748,7 +2759,7 @@ void VulkanReplay::PatchReservedDescriptors(const VulkanStatePipeline &pipe,
         // start with no descriptors
         write.descriptorCount = 0;
 
-        for(uint32_t w = 0; w < bind.descriptorCount; w++)
+        for(uint32_t w = 0; w < descriptorCount; w++)
         {
           // if this write is valid, we increment the descriptor count and continue
           if(IsValid(m_pDriver->NULLDescriptorsAllowed(), write, w - write.dstArrayElement))

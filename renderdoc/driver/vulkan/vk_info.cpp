@@ -119,6 +119,10 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
 
   flags = pCreateInfo->flags;
 
+  VkDescriptorSetLayoutBindingFlagsCreateInfo *bindingFlags =
+      (VkDescriptorSetLayoutBindingFlagsCreateInfo *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO);
+
   // descriptor set layouts can be sparse, such that only three bindings exist
   // but they are at 0, 5 and 10.
   // We assume here that while the layouts may be sparse that's mostly to allow
@@ -157,6 +161,12 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
       for(uint32_t s = 0; s < bindings[b].descriptorCount; s++)
         bindings[b].immutableSampler[s] = GetResID(pCreateInfo->pBindings[i].pImmutableSamplers[s]);
     }
+
+    if(bindingFlags &&
+       (bindingFlags->pBindingFlags[i] & VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT))
+      bindings[b].variableSize = 1;
+    else
+      bindings[b].variableSize = 0;
   }
 
   // assign offsets in sorted bindings order, as the bindings we were provided by the application
@@ -166,6 +176,11 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
   for(size_t b = 0; b < bindings.size(); b++)
   {
     bindings[b].elemOffset = elemOffset;
+
+    // don't count the descriptors in the variable size array. We'll add on the allocated size after
+    // this
+    if(bindings[b].variableSize)
+      break;
 
     if(bindings[b].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
     {
@@ -180,11 +195,13 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
   totalElems = elemOffset;
 }
 
-void DescSetLayout::CreateBindingsArray(BindingStorage &bindingStorage) const
+void DescSetLayout::CreateBindingsArray(BindingStorage &bindingStorage, uint32_t variableAllocSize) const
 {
+  bindingStorage.variableDescriptorCount = variableAllocSize;
+
   if(!bindings.empty())
   {
-    bindingStorage.elems.resize(totalElems);
+    bindingStorage.elems.resize(totalElems + variableAllocSize);
     bindingStorage.binds.resize(bindings.size());
 
     if(inlineByteSize == 0)

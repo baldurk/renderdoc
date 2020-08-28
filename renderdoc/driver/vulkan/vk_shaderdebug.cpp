@@ -189,9 +189,10 @@ public:
 
       DescSetSnapshot &dstSet = m_DescSets[set];
 
-      const rdcarray<DescriptorSetSlot *> &curBinds =
-          m_pDriver->GetCurrentDescSetBindings(descSets[set].descSet);
-      const bytebuf &curInline = m_pDriver->GetCurrentDescSetInlineData(descSets[set].descSet);
+      const BindingStorage &bindStorage =
+          m_pDriver->GetCurrentDescSetBindingStorage(descSets[set].descSet);
+      const rdcarray<DescriptorSetSlot *> &curBinds = bindStorage.binds;
+      const bytebuf &curInline = bindStorage.inlineBytes;
 
       // use the descriptor set layout from when it was bound. If the pipeline layout declared a
       // descriptor set layout for this set, but it's statically unused, it may be complete
@@ -207,7 +208,12 @@ public:
       {
         const DescSetLayout::Binding &bindLayout = setLayout.bindings[bind];
 
-        if(bindLayout.descriptorCount == 0)
+        uint32_t descriptorCount = bindLayout.descriptorCount;
+
+        if(bindLayout.variableSize)
+          descriptorCount = bindStorage.variableDescriptorCount;
+
+        if(descriptorCount == 0)
           continue;
 
         if(bindLayout.stageFlags & stage)
@@ -226,8 +232,8 @@ public:
             case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
             case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
             {
-              dstBind.imageInfos.resize(bindLayout.descriptorCount);
-              for(uint32_t i = 0; i < bindLayout.descriptorCount; i++)
+              dstBind.imageInfos.resize(descriptorCount);
+              for(uint32_t i = 0; i < descriptorCount; i++)
               {
                 dstBind.imageInfos[i].imageLayout = curSlots[i].imageInfo.imageLayout;
                 dstBind.imageInfos[i].imageView =
@@ -243,8 +249,8 @@ public:
             case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
             case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
             {
-              dstBind.texelBuffers.resize(bindLayout.descriptorCount);
-              for(uint32_t i = 0; i < bindLayout.descriptorCount; i++)
+              dstBind.texelBuffers.resize(descriptorCount);
+              for(uint32_t i = 0; i < descriptorCount; i++)
               {
                 dstBind.texelBuffers[i] =
                     m_pDriver->GetResourceManager()->GetCurrentHandle<VkBufferView>(
@@ -255,8 +261,8 @@ public:
             case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
             case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
             {
-              dstBind.buffers.resize(bindLayout.descriptorCount);
-              for(uint32_t i = 0; i < bindLayout.descriptorCount; i++)
+              dstBind.buffers.resize(descriptorCount);
+              for(uint32_t i = 0; i < descriptorCount; i++)
               {
                 dstBind.buffers[i].offset = curSlots[i].bufferInfo.offset;
                 dstBind.buffers[i].range = curSlots[i].bufferInfo.range;
@@ -273,15 +279,14 @@ public:
               idx.bindset = (int32_t)set;
               idx.bind = (int32_t)bind;
               idx.arrayIndex = 0;
-              bufferCache[idx].assign(curInline.data() + curSlots->inlineOffset,
-                                      bindLayout.descriptorCount);
+              bufferCache[idx].assign(curInline.data() + curSlots->inlineOffset, descriptorCount);
               break;
             }
             case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
             case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
             {
-              dstBind.buffers.resize(bindLayout.descriptorCount);
-              for(uint32_t i = 0; i < bindLayout.descriptorCount; i++)
+              dstBind.buffers.resize(descriptorCount);
+              for(uint32_t i = 0; i < descriptorCount; i++)
               {
                 dstBind.buffers[i].offset = curSlots[i].bufferInfo.offset;
                 dstBind.buffers[i].range = curSlots[i].bufferInfo.range;
@@ -303,9 +308,7 @@ public:
           switch(bindLayout.descriptorType)
           {
             case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-              dynamicOffset += bindLayout.descriptorCount;
-              break;
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: dynamicOffset += descriptorCount; break;
             default: break;
           }
         }

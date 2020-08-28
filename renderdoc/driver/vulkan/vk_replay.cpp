@@ -1614,7 +1614,13 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
           bool dynamicOffset = false;
 
-          dst.bindings[b].descriptorCount = layoutBind.descriptorCount;
+          uint32_t descriptorCount = layoutBind.descriptorCount;
+
+          if(layoutBind.variableSize)
+            descriptorCount = m_pDriver->m_DescriptorSetState[src].data.variableDescriptorCount;
+
+          dst.bindings[b].descriptorCount = descriptorCount;
+
           dst.bindings[b].stageFlags = (ShaderStageMask)layoutBind.stageFlags;
           switch(layoutBind.descriptorType)
           {
@@ -1851,7 +1857,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
               dst.bindings[b].binds[a].resourceResourceId = ResourceId();
               dst.bindings[b].binds[a].inlineBlock = true;
               dst.bindings[b].binds[a].byteOffset = 0;
-              dst.bindings[b].binds[a].byteSize = layoutBind.descriptorCount;
+              dst.bindings[b].binds[a].byteSize = descriptorCount;
             }
             else if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
                     layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
@@ -1998,7 +2004,8 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
           bytebuf inlineData;
           inlineData.assign(
               setData.data.inlineBytes.data() + setData.data.binds[bind.bind]->inlineOffset,
-              layoutBind.descriptorCount);
+              layoutBind.variableSize ? setData.data.variableDescriptorCount
+                                      : layoutBind.descriptorCount);
           StandardFillCBufferVariables(refl.resourceId, c.variables, outvars, inlineData);
           return;
         }

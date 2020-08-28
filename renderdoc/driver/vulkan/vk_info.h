@@ -72,7 +72,7 @@ struct DescSetLayout
   void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
             const VkDescriptorSetLayoutCreateInfo *pCreateInfo);
 
-  void CreateBindingsArray(BindingStorage &bindingStorage) const;
+  void CreateBindingsArray(BindingStorage &bindingStorage, uint32_t variableAllocSize) const;
   void UpdateBindingsArray(const DescSetLayout &prevLayout, BindingStorage &bindingStorage) const;
 
   struct Binding
@@ -85,8 +85,20 @@ struct DescSetLayout
           elemOffset(0),
           descriptorCount(0),
           stageFlags(0),
+          variableSize(0),
           immutableSampler(NULL)
     {
+    }
+    // move the immutable sampler
+    Binding(Binding &&b)
+        : descriptorType(b.descriptorType),
+          elemOffset(b.elemOffset),
+          descriptorCount(b.descriptorCount),
+          stageFlags(b.stageFlags),
+          variableSize(b.variableSize),
+          immutableSampler(b.immutableSampler)
+    {
+      b.immutableSampler = NULL;
     }
     // Copy the immutable sampler
     Binding(const Binding &b)
@@ -94,6 +106,7 @@ struct DescSetLayout
           elemOffset(b.elemOffset),
           descriptorCount(b.descriptorCount),
           stageFlags(b.stageFlags),
+          variableSize(b.variableSize),
           immutableSampler(NULL)
     {
       if(b.immutableSampler)
@@ -111,6 +124,7 @@ struct DescSetLayout
       elemOffset = b.elemOffset;
       descriptorCount = b.descriptorCount;
       stageFlags = b.stageFlags;
+      variableSize = b.variableSize;
       SAFE_DELETE_ARRAY(immutableSampler);
       if(b.immutableSampler)
       {
@@ -123,7 +137,8 @@ struct DescSetLayout
     VkDescriptorType descriptorType;
     uint32_t elemOffset;
     uint32_t descriptorCount;
-    VkShaderStageFlags stageFlags;
+    VkShaderStageFlags stageFlags : 31;
+    uint32_t variableSize : 1;
     ResourceId *immutableSampler;
   };
   rdcarray<Binding> bindings;

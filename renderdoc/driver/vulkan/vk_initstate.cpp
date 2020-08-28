@@ -659,6 +659,9 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
       {
         uint32_t descriptorCount = layout.bindings[j].descriptorCount;
 
+        if(layout.bindings[j].variableSize)
+          descriptorCount = m_DescriptorSetState[liveid].data.variableDescriptorCount;
+
         if(descriptorCount == 0)
           continue;
 
