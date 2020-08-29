@@ -88,10 +88,11 @@ void IntelGlCounters::addCounter(const IntelGlQuery &query, GLuint counterId)
   GL.glGetIntegerv(eGL_PERFQUERY_COUNTER_DESC_LENGTH_MAX_INTEL, &len);
   counter.desc.description.resize(len);
 
+  GLuint64 rawCounterMaxValue = 0;
   GL.glGetPerfCounterInfoINTEL(
       query.queryId, counterId, (GLuint)counter.desc.name.size(), &counter.desc.name[0],
       (GLuint)counter.desc.description.size(), &counter.desc.description[0], &counter.offset,
-      &counter.desc.resultByteWidth, &counter.type, &counter.dataType, NULL);
+      &counter.desc.resultByteWidth, &counter.type, &counter.dataType, &rawCounterMaxValue);
 
   counter.desc.name.resize(strlen(&counter.desc.name[0]));
   counter.desc.description.resize(strlen(&counter.desc.description[0]));
@@ -116,8 +117,10 @@ void IntelGlCounters::addQuery(GLuint queryId)
   GL.glGetIntegerv(eGL_PERFQUERY_QUERY_NAME_LENGTH_MAX_INTEL, &len);
   query.name.resize(len);
   GLuint nCounters = 0;
+  GLuint nInstances = 0;
+  GLuint capsMask = 0;
   GL.glGetPerfQueryInfoINTEL(queryId, (GLuint)query.name.size(), &query.name[0], &query.size,
-                             &nCounters, NULL, NULL);
+                             &nCounters, &nInstances, &capsMask);
   // Some drivers raise an error when we query some of its IDs because those
   // are used to plumb external library with raw counter data.
   if(GL.glGetError() != eGL_NONE)
