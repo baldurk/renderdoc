@@ -257,7 +257,7 @@ void main()
           device, vkh::DescriptorPoolCreateInfo(numDescriptorSets,
                                                 {
                                                     {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                                     numDescriptorSets * numDescriptorsPerSet},
+                                                     numDescriptorSets * numDescriptorsPerSet + 100},
                                                 }),
           NULL, &descpool));
 
