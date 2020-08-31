@@ -44,11 +44,15 @@ args = parser.parse_args()
 
 if args.renderdoc is not None:
     if os.path.isfile(args.renderdoc):
-        os.environ["PATH"] += os.pathsep + os.path.abspath(os.path.dirname(args.renderdoc))
+        renderdoc_dirpath = os.path.abspath(os.path.dirname(args.renderdoc))
     elif os.path.isdir(args.renderdoc):
-        os.environ["PATH"] += os.pathsep + os.path.abspath(args.renderdoc)
+        renderdoc_dirpath = os.path.abspath(args.renderdoc)
     else:
         raise RuntimeError("'{}' is not a valid path to the renderdoc library".format(args.renderdoc))
+    os.environ["PATH"] += os.pathsep + renderdoc_dirpath
+    # Python 3.8 doesn't search PATH so add it to the DLL search path
+    if sys.platform == 'win32' and sys.version_info[1] >= 8:
+        os.add_dll_directory(renderdoc_dirpath)
 
 custom_pyrenderdoc = None
 

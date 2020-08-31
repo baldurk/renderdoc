@@ -14,7 +14,7 @@ For this section we assume you have built a copy of RenderDoc and have the modul
 
 .. note::
 
-  You must use exactly the same version of python to load the module as was used to build it. On Windows the version of python that comes with the repository and is used by default is python 3.6.
+  You must use exactly the same version of python to load the module as was used to build it. On Windows the version of python that comes with the repository and is used by default is python 3.6. This can be overridden at build time by setting the environment variable `RENDERDOC_PYTHON_PREFIX32` or `RENDERDOC_PYTHON_PREFIX64` to the path of a compatible python install. NOTE that the embedded zip distribution doesn't come with python38.lib which is necessary, so you must regenerate it or get it from the installed python. The installed python folder doesn't come with a python38.zip standard library bundle which you'd need to create or get from the embedded zip distribution.
 
 Once you have the module, either place the module within your python's default library search path, or else insert the location of the python module into the path in your script. You can either set the ``PYTHONPATH`` environment variable or do it at the start of your script:
 
@@ -25,14 +25,16 @@ Once you have the module, either place the module within your python's default l
 
     sys.path.append('/path/to/renderdoc/module')
 
-Additionally, the renderdoc python module needs to be able to load the main renderdoc library - the module library it self just contains stubs and python wrappers for the C++ interfaces. You can either place the renderdoc library in the system library paths, or solve it in a platform specific way. For example on windows you can either place ``renderdoc.dll`` in the same directory as the python module, or append to ``PATH``:
+Additionally, the renderdoc python module needs to be able to load the main renderdoc library - the module library it self just contains stubs and python wrappers for the C++ interfaces. You can either place the renderdoc library in the system library paths, or solve it in a platform specific way. For example on windows you can either place ``renderdoc.dll`` in the same directory as the python module, or append to ``PATH``. On Python 3.8 and above ``PATH`` is no longer searched by default so you need to explicitly add the DLL folder:
 
 .. highlight:: python
 .. code:: python
 
-    import os
+    import os, sys
 
     os.environ["PATH"] += os.pathsep + os.path.abspath('/path/to/renderdoc/native/library')
+    if sys.platform == 'win32' and sys.version_info[1] >= 8:
+        os.add_dll_directory("/path/to/renderdoc/native/library")
 
 On linux you'd perform a similar modification to ``LD_LIBRARY_PATH``.
 

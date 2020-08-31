@@ -26,6 +26,7 @@
   </PropertyGroup>
   <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(SolutionDir)\qrenderdoc\Code\pyrenderdoc\python.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -75,15 +76,14 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/wd4100 /wd4512 /wd4127</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\;..\..\3rdparty\python\include;$(SolutionDir)\renderdoc\api\replay</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\;$(PythonIncludeDir);$(SolutionDir)\renderdoc\api\replay</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4714;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-      <AdditionalLibraryDirectories>..\..\3rdparty\python\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>python36.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(PythonImportLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>

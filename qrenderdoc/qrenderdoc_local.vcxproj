@@ -34,6 +34,7 @@
   </PropertyGroup>
   <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(SolutionDir)\qrenderdoc\Code\pyrenderdoc\python.props" />
   <PropertyGroup>
     <PlatformToolSet>v140</PlatformToolSet>
     <OutputDirectory>$(SolutionDir)$(Platform)\$(Configuration)\</OutputDirectory>
@@ -103,7 +104,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
-      <AdditionalIncludeDirectories>$(ProjectDir);3rdparty;$(IntDir)generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\python\include;3rdparty\pyside\include\PySide2;3rdparty\pyside\include\shiboken2;$(QtIncludeDir);$(QtIncludeDir)\QtWidgets;$(QtIncludeDir)\QtGui;$(QtIncludeDir)\QtCore;$(QtIncludeDir)\QtSvg;$(QtIncludeDir)\QtNetwork;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);3rdparty;$(IntDir)generated\;$(SolutionDir)\renderdoc\api\replay;$(PythonIncludeDir);3rdparty\pyside\include\PySide2;3rdparty\pyside\include\shiboken2;$(QtIncludeDir);$(QtIncludeDir)\QtWidgets;$(QtIncludeDir)\QtGui;$(QtIncludeDir)\QtCore;$(QtIncludeDir)\QtSvg;$(QtIncludeDir)\QtNetwork;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:strictStrings /Zc:throwingNew %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;WIN64;RENDERDOC_PLATFORM_WIN32;SCINTILLA_QT=1;MAKING_LIBRARY=1;SCI_LEXER=1;QT_NO_CAST_FROM_ASCII;QT_NO_CAST_TO_ASCII;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;QT_SVG_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level4</WarningLevel>
@@ -116,8 +117,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>user32.lib;python36.lib;qtmain.lib;Qt5Widgets.lib;Qt5Gui.lib;Qt5Core.lib;Qt5Svg.lib;Qt5Network.lib;shell32.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>3rdparty\pyside\$(Platform);3rdparty\python\$(Platform);$(QtLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>user32.lib;$(PythonImportLib);qtmain.lib;Qt5Widgets.lib;Qt5Gui.lib;Qt5Core.lib;Qt5Svg.lib;Qt5Network.lib;shell32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>3rdparty\pyside\$(Platform);$(QtLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <DataExecutionPrevention>true</DataExecutionPrevention>
       <IgnoreImportLibrary>true</IgnoreImportLibrary>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -146,7 +147,7 @@
       <AdditionalDependencies>user32.lib;python36.lib;qtmaind.lib;Qt5Widgetsd.lib;Qt5Guid.lib;Qt5Cored.lib;Qt5Svgd.lib;Qt5Networkd.lib;shell32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="Exists('$(SolutionDir)\qrenderdoc\3rdparty\pyside\include\PySide2\pyside.h')">
+  <ItemDefinitionGroup Condition="Exists('$(SolutionDir)\qrenderdoc\3rdparty\pyside\include\PySide2\pyside.h') AND '$(CustomPythonUsed)'=='0'">
     <ClCompile>
       <PreprocessorDefinitions>PYSIDE2_ENABLED=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
@@ -154,7 +155,7 @@
       <AdditionalDependencies>shiboken2.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="!Exists('$(SolutionDir)\qrenderdoc\3rdparty\pyside\include\PySide2\pyside.h')">
+  <ItemDefinitionGroup Condition="!Exists('$(SolutionDir)\qrenderdoc\3rdparty\pyside\include\PySide2\pyside.h') OR '$(CustomPythonUsed)'!='0'">
     <ClCompile>
       <PreprocessorDefinitions>PYSIDE2_ENABLED=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
@@ -1702,18 +1703,18 @@ IF %ERRORLEVEL% NEQ 0 (echo ====================================================
     <None Include="Resources\README.md" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="3rdparty\python\python36.zip">
-      <Link>python36.zip</Link>
+    <Content Include="$(PythonStandardLibraryZip)">
+      <Link>python$(PythonMajorMinor).zip</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\python\$(Platform)\_ctypes.pyd">
+    <Content Include="$(PythonDLLsDir)\_ctypes.pyd">
       <Link>_ctypes.pyd</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\python\$(Platform)\python36.dll">
-      <Link>python36.dll</Link>
+    <Content Include="$(PythonInterpDLL)">
+      <Link>python$(PythonMajorMinor).dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+<PropertyGroup>
+  <PythonBase>$(SolutionDir)\qrenderdoc\3rdparty\python</PythonBase>
+
+  <CustomPythonUsed>0</CustomPythonUsed>
+
+  <!-- output file of python36.dll, python36.zip, python36.lib etc -->
+	<PythonMajorMinor>36</PythonMajorMinor>
+
+	<PythonIncludeDir>$(PythonBase)\include</PythonIncludeDir>
+	<PythonImportLib>$(PythonBase)\$(Platform)\python$(PythonMajorMinor).lib</PythonImportLib>
+	<PythonStandardLibraryZip>$(PythonBase)\python$(PythonMajorMinor).zip</PythonStandardLibraryZip>
+	<PythonDLLsDir>$(PythonBase)\$(Platform)</PythonDLLsDir>
+	<PythonInterpDLL>$(PythonBase)\$(Platform)\python$(PythonMajorMinor).dll</PythonInterpDLL>
+</PropertyGroup>
+
+<!-- either we have the 'embeddable zip' which has everything in the same folder,
+     or we have an install which has things under libs/, include/ and DLLs/
+     We also just naively check every PythonMajorMinor.
+     NOTE: pythonXY.lib isn't included in the embed zip currently, so you'd have
+     to regenerate it from the pythonXY.dll. You also need to include the include/
+     folder manually from the python source distribution.
+     ALSO: pythonXY.zip isn't included in the installed distribution (it instead
+     uses the Lib/ folder with all the loose uncompiled library source).
+     It will need to be generated manually or obtained from the embeddable zip.
+     As a result we use the existance of the .lib, .h and .zip as a key to
+     ensure we only use -->
+
+<!-- MSBuild doesn't implement a simple loop so just do this by hand by
+     taking advantage of MSBuild evaluating these in-order.
+     First we set the number we're testing, then see if we find the files. If
+     we find the files we set CustomPythonUsed which prevents all subsequent checks
+     and then at the end we'll pick it up to set all the derived properties.
+     To add a new version to check for, copy paste both lines and update the number.
+     -->
+
+<!-- first define the override prefix we're searching against -->
+<PropertyGroup>
+	<PythonOverride Condition="'$(Platform)'=='Win32'">$(RENDERDOC_PYTHON_PREFIX32)</PythonOverride>
+	<PythonOverride Condition="'$(Platform)'=='x64'">$(RENDERDOC_PYTHON_PREFIX64)</PythonOverride>
+</PropertyGroup>
+
+<PropertyGroup><PythonMajorMinorTest>38</PythonMajorMinorTest></PropertyGroup>
+<PropertyGroup Condition="'$(CustomPythonUsed)'=='0' AND Exists('$(PythonOverride)\include\Python.h') AND Exists('$(PythonOverride)\python$(PythonMajorMinorTest).zip') AND (Exists('$(PythonOverride)\python$(PythonMajorMinorTest).lib') OR Exists('$(PythonOverride)\libs\python$(PythonMajorMinorTest).lib'))"><CustomPythonUsed>$(PythonMajorMinorTest)</CustomPythonUsed></PropertyGroup>
+
+<PropertyGroup><PythonMajorMinorTest>37</PythonMajorMinorTest></PropertyGroup>
+<PropertyGroup Condition="'$(CustomPythonUsed)'=='0' AND Exists('$(PythonOverride)\include\Python.h') AND Exists('$(PythonOverride)\python$(PythonMajorMinorTest).zip') AND (Exists('$(PythonOverride)\python$(PythonMajorMinorTest).lib') OR Exists('$(PythonOverride)\libs\python$(PythonMajorMinorTest).lib'))"><CustomPythonUsed>$(PythonMajorMinorTest)</CustomPythonUsed></PropertyGroup>
+
+<PropertyGroup><PythonMajorMinorTest>36</PythonMajorMinorTest></PropertyGroup>
+<PropertyGroup Condition="'$(CustomPythonUsed)'=='0' AND Exists('$(PythonOverride)\include\Python.h') AND Exists('$(PythonOverride)\python$(PythonMajorMinorTest).zip') AND (Exists('$(PythonOverride)\python$(PythonMajorMinorTest).lib') OR Exists('$(PythonOverride)\libs\python$(PythonMajorMinorTest).lib'))"><CustomPythonUsed>$(PythonMajorMinorTest)</CustomPythonUsed></PropertyGroup>
+
+<PropertyGroup><PythonMajorMinorTest>35</PythonMajorMinorTest></PropertyGroup>
+<PropertyGroup Condition="'$(CustomPythonUsed)'=='0' AND Exists('$(PythonOverride)\include\Python.h') AND Exists('$(PythonOverride)\python$(PythonMajorMinorTest).zip') AND (Exists('$(PythonOverride)\python$(PythonMajorMinorTest).lib') OR Exists('$(PythonOverride)\libs\python$(PythonMajorMinorTest).lib'))"><CustomPythonUsed>$(PythonMajorMinorTest)</CustomPythonUsed></PropertyGroup>
+
+<PropertyGroup><PythonMajorMinorTest>34</PythonMajorMinorTest></PropertyGroup>
+<PropertyGroup Condition="'$(CustomPythonUsed)'=='0' AND Exists('$(PythonOverride)\include\Python.h') AND Exists('$(PythonOverride)\python$(PythonMajorMinorTest).zip') AND (Exists('$(PythonOverride)\python$(PythonMajorMinorTest).lib') OR Exists('$(PythonOverride)\libs\python$(PythonMajorMinorTest).lib'))"><CustomPythonUsed>$(PythonMajorMinorTest)</CustomPythonUsed></PropertyGroup>
+
+<PropertyGroup Condition="'$(CustomPythonUsed)'!='0'">
+  <PythonBase>$(PythonOverride)</PythonBase>
+
+	<PythonMajorMinor>$(CustomPythonUsed)</PythonMajorMinor>
+
+  <!-- these are always in the root, regardless of the installation type -->
+	<PythonIncludeDir>$(PythonBase)\include</PythonIncludeDir>
+	<PythonStandardLibraryZip>$(PythonBase)\python$(PythonMajorMinor).zip</PythonStandardLibraryZip>
+	<PythonInterpDLL>$(PythonBase)\python$(PythonMajorMinor).dll</PythonInterpDLL>
+
+  <!-- for embeddable zip, find these in the root. Otherwise find these in subfolders -->
+	<PythonDLLsDir Condition="Exists('$(PythonOverride)\_ctypes.pyd')">$(PythonBase)</PythonDLLsDir>
+	<PythonDLLsDir Condition="Exists('$(PythonOverride)\DLLs\_ctypes.pyd')">$(PythonBase)\DLLs</PythonDLLsDir>
+	<PythonImportLib Condition="Exists('$(PythonOverride)\python$(PythonMajorMinor).lib')">$(PythonBase)\python$(PythonMajorMinor).lib</PythonImportLib>
+	<PythonImportLib Condition="Exists('$(PythonOverride)\libs\python$(PythonMajorMinor).lib')">$(PythonBase)\libs\python$(PythonMajorMinor).lib</PythonImportLib>
+</PropertyGroup>
+
+<Target Name="PythonOverridden" AfterTargets="Build" Condition="'$(CustomPythonUsed)'!='0'">
+	<Message Importance="high" Text="Built against python from $(PythonOverride)" />
+</Target>
+
+</Project>
