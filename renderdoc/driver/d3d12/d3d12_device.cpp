@@ -195,6 +195,89 @@ ULONG STDMETHODCALLTYPE WrappedDREDSettings::Release()
   return m_pDevice.Release();
 }
 
+HRESULT STDMETHODCALLTYPE WrappedCompatibilityDevice::QueryInterface(REFIID riid, void **ppvObject)
+{
+  return m_pDevice.QueryInterface(riid, ppvObject);
+}
+
+ULONG STDMETHODCALLTYPE WrappedCompatibilityDevice::AddRef()
+{
+  return m_pDevice.AddRef();
+}
+
+ULONG STDMETHODCALLTYPE WrappedCompatibilityDevice::Release()
+{
+  return m_pDevice.Release();
+}
+
+WriteSerialiser &WrappedCompatibilityDevice::GetThreadSerialiser()
+{
+  return m_pDevice.GetThreadSerialiser();
+}
+
+HRESULT STDMETHODCALLTYPE WrappedCompatibilityDevice::CreateSharedResource(
+    _In_ const D3D12_HEAP_PROPERTIES *pHeapProperties, D3D12_HEAP_FLAGS HeapFlags,
+    _In_ const D3D12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES InitialResourceState,
+    _In_opt_ const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+    _In_opt_ const D3D11_RESOURCE_FLAGS *pFlags11,
+    D3D12_COMPATIBILITY_SHARED_FLAGS CompatibilityFlags,
+    _In_opt_ ID3D12LifetimeTracker *pLifetimeTracker,
+    _In_opt_ ID3D12SwapChainAssistant *pOwningSwapchain, REFIID riid,
+    _COM_Outptr_opt_ void **ppResource)
+{
+  if(ppResource == NULL)
+    return E_INVALIDARG;
+
+  HRESULT hr;
+
+  // not exactly sure what to do with these...
+  RDCASSERT(pLifetimeTracker == NULL);
+  RDCASSERT(pOwningSwapchain == NULL);
+
+  SERIALISE_TIME_CALL(
+      hr = m_pReal->CreateSharedResource(pHeapProperties, HeapFlags, pDesc, InitialResourceState,
+                                         pOptimizedClearValue, pFlags11, CompatibilityFlags,
+                                         pLifetimeTracker, pOwningSwapchain, riid, ppResource));
+
+  if(FAILED(hr))
+  {
+    IUnknown *unk = (IUnknown *)*ppResource;
+    SAFE_RELEASE(unk);
+    return hr;
+  }
+
+  return m_pDevice.OpenSharedHandleInternal(D3D12Chunk::CompatDevice_CreateSharedResource, riid,
+                                            ppResource);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedCompatibilityDevice::CreateSharedHeap(
+    _In_ const D3D12_HEAP_DESC *pHeapDesc, D3D12_COMPATIBILITY_SHARED_FLAGS CompatibilityFlags,
+    REFIID riid, _COM_Outptr_opt_ void **ppHeap)
+{
+  if(ppHeap == NULL)
+    return E_INVALIDARG;
+
+  HRESULT hr;
+
+  SERIALISE_TIME_CALL(hr = m_pReal->CreateSharedHeap(pHeapDesc, CompatibilityFlags, riid, ppHeap));
+
+  if(FAILED(hr))
+  {
+    IUnknown *unk = (IUnknown *)*ppHeap;
+    SAFE_RELEASE(unk);
+    return hr;
+  }
+
+  return m_pDevice.OpenSharedHandleInternal(D3D12Chunk::CompatDevice_CreateSharedHeap, riid, ppHeap);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedCompatibilityDevice::ReflectSharedProperties(
+    _In_ ID3D12Object *pHeapOrResource, D3D12_REFLECT_SHARED_PROPERTY ReflectType,
+    _Out_writes_bytes_(DataSize) void *pData, UINT DataSize)
+{
+  return m_pReal->ReflectSharedProperties(Unwrap(pHeapOrResource), ReflectType, pData, DataSize);
+}
+
 WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitParams params,
                                          bool enabledDebugLayer)
     : m_RefCounter(realDevice, false),
@@ -203,7 +286,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
       m_debugLayerEnabled(enabledDebugLayer),
       m_WrappedDownlevel(*this),
       m_DRED(*this),
-      m_DREDSettings(*this)
+      m_DREDSettings(*this),
+      m_CompatDevice(*this)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedID3D12Device));
@@ -238,6 +322,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings),
                               (void **)&m_DREDSettings.m_pReal);
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceDownlevel), (void **)&m_pDownlevel);
+    m_pDevice->QueryInterface(__uuidof(ID3D12CompatibilityDevice), (void **)&m_CompatDevice.m_pReal);
 
     for(size_t i = 0; i < ARRAY_COUNT(m_DescriptorIncrements); i++)
       m_DescriptorIncrements[i] =
@@ -513,6 +598,7 @@ WrappedID3D12Device::~WrappedID3D12Device()
 
   SAFE_RELEASE(m_DRED.m_pReal);
   SAFE_RELEASE(m_DREDSettings.m_pReal);
+  SAFE_RELEASE(m_CompatDevice.m_pReal);
   SAFE_RELEASE(m_pDownlevel);
   SAFE_RELEASE(m_pDevice6);
   SAFE_RELEASE(m_pDevice5);
@@ -564,18 +650,12 @@ WrappedID3D12Device *WrappedID3D12Device::Create(ID3D12Device *realDevice, D3D12
 
 HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
 {
-  // DEFINE_GUID(IID_IDirect3DDevice9, 0xd0223b96, 0xbf7a, 0x43fd, 0x92, 0xbd, 0xa4, 0x3b, 0xd,
-  // 0x82, 0xb9, 0xeb);
-  static const GUID IDirect3DDevice9_uuid = {
-      0xd0223b96, 0xbf7a, 0x43fd, {0x92, 0xbd, 0xa4, 0x3b, 0xd, 0x82, 0xb9, 0xeb}};
-
-  // ID3D10Device UUID {9B7E4C0F-342C-4106-A19F-4F2704F689F0}
-  static const GUID ID3D10Device_uuid = {
-      0x9b7e4c0f, 0x342c, 0x4106, {0xa1, 0x9f, 0x4f, 0x27, 0x04, 0xf6, 0x89, 0xf0}};
-
   // RenderDoc UUID {A7AA6116-9C8D-4BBA-9083-B4D816B71B78}
   static const GUID IRenderDoc_uuid = {
       0xa7aa6116, 0x9c8d, 0x4bba, {0x90, 0x83, 0xb4, 0xd8, 0x16, 0xb7, 0x1b, 0x78}};
+
+  static const GUID ID3D12CompatibilityDevice_uuid = {
+      0x8f1c0e3c, 0xfae3, 0x4a82, {0xb0, 0x98, 0xbf, 0xe1, 0x70, 0x82, 0x07, 0xff}};
 
   HRESULT hr = S_OK;
 
@@ -855,6 +935,19 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
     AddRef();
     *ppvObject = (IUnknown *)this;
     return S_OK;
+  }
+  else if(riid == __uuidof(ID3D12CompatibilityDevice))
+  {
+    if(m_CompatDevice.m_pReal)
+    {
+      AddRef();
+      *ppvObject = (ID3D12CompatibilityDevice *)&m_CompatDevice;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
   }
   else
   {
@@ -3005,6 +3098,9 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
                                                 D3D12_RESOURCE_STATE_COMMON, NULL, NULL, IID(), NULL);
     case D3D12Chunk::Device_CreateHeap1: return Serialise_CreateHeap1(ser, NULL, NULL, IID(), NULL);
     case D3D12Chunk::Device_ExternalDXGIResource:
+      return Serialise_OpenSharedHandle(ser, NULL, IID(), NULL);
+    case D3D12Chunk::CompatDevice_CreateSharedResource:
+    case D3D12Chunk::CompatDevice_CreateSharedHeap:
       return Serialise_OpenSharedHandle(ser, NULL, IID(), NULL);
 
     // in order to get a warning if we miss a case, we explicitly handle the list/queue chunks here.

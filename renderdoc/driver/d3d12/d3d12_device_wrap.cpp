@@ -2316,6 +2316,10 @@ bool WrappedID3D12Device::Serialise_OpenSharedHandle(SerialiserType &ser, HANDLE
       // always allow SRVs on replay so we can inspect resources
       desc.Flags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
 
+      // the runtime doesn't like us telling it what DENY heap flags will be set, remove them
+      heapFlags &= ~(D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES |
+                     D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES);
+
       HRESULT hr;
       ID3D12Resource *ret;
       hr = m_pDevice->CreateCommittedResource(&heapProperties, heapFlags, &desc,
@@ -2454,15 +2458,40 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
   bool isFence = riid == __uuidof(ID3D12Fence) || riid == __uuidof(ID3D12Fence1);
   bool isHeap = riid == __uuidof(ID3D12Heap) || riid == __uuidof(ID3D12Heap1);
   bool isDeviceChild = riid == __uuidof(ID3D12DeviceChild);
+  bool isIUnknown = riid == __uuidof(IUnknown);
 
   IID riid_internal = riid;
   void *ret = *ppvObj;
+
+  if(isIUnknown)
+  {
+    // same as device child but we're even more in the dark. Hope against hope it's a
+    // ID3D12DeviceChild
+    IUnknown *real = (IUnknown *)ret;
+
+    ID3D12DeviceChild *d3d12child = NULL;
+    isDeviceChild =
+        SUCCEEDED(real->QueryInterface(__uuidof(ID3D12DeviceChild), (void **)&d3d12child)) &&
+        d3d12child;
+    SAFE_RELEASE(real);
+
+    if(isDeviceChild)
+    {
+      riid_internal = __uuidof(ID3D12DeviceChild);
+      ret = (void *)d3d12child;
+    }
+    else
+    {
+      SAFE_RELEASE(d3d12child);
+      return E_NOINTERFACE;
+    }
+  }
 
   if(isDeviceChild)
   {
     // In this case we need to find out what the actual underlying type is
     // Should be one of ID3D12Heap, ID3D12Resource, ID3D12Fence
-    ID3D12DeviceChild *real = (ID3D12DeviceChild *)(*ppvObj);
+    ID3D12DeviceChild *real = (ID3D12DeviceChild *)ret;
 
     ID3D12Resource *d3d12Res = NULL;
     ID3D12Fence *d3d12Fence = NULL;
@@ -2540,10 +2569,6 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
 
       wrappedDeviceChild = wrapped;
 
-      *ppvObj = (ID3D12Fence *)wrapped;
-      if(riid_internal == __uuidof(ID3D12Fence1))
-        *ppvObj = (ID3D12Fence1 *)wrapped;
-
       record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
       record->type = Resource_Fence;
       record->Length = 0;
@@ -2558,18 +2583,6 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
       WrappedID3D12Resource1 *wrapped = new WrappedID3D12Resource1(real, this);
 
       wrappedDeviceChild = wrapped;
-
-      if(isDXGIRes)
-      {
-        wrapped->QueryInterface(riid_internal, ppvObj);
-        wrapped->Release();
-      }
-      else
-      {
-        *ppvObj = (ID3D12Resource *)wrapped;
-        if(riid_internal == __uuidof(ID3D12Resource1))
-          *ppvObj = (ID3D12Resource1 *)wrapped;
-      }
 
       D3D12_RESOURCE_DESC desc = wrapped->GetDesc();
       D3D12_RESOURCE_STATES InitialResourceState = D3D12_RESOURCE_STATE_COMMON;
@@ -2613,13 +2626,15 @@ HRESULT WrappedID3D12Device::OpenSharedHandleInternal(D3D12Chunk chunkType, REFI
 
       wrappedDeviceChild = wrapped;
 
-      *ppvObj = wrappedDeviceChild;
-
       record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
       record->type = Resource_Heap;
       record->Length = 0;
       wrapped->SetResourceRecord(record);
     }
+
+    // use queryinterface to get the right interface into ppvObj, then release the reference
+    wrappedDeviceChild->QueryInterface(riid, ppvObj);
+    wrappedDeviceChild->Release();
 
     CACHE_THREAD_SERIALISER();
 

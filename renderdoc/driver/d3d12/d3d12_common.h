@@ -854,5 +854,7 @@ enum class D3D12Chunk : uint32_t
   Device_ExternalDXGIResource,
   Swapchain_Present,
   List_ClearState,
+  CompatDevice_CreateSharedResource,
+  CompatDevice_CreateSharedHeap,
   Max,
 };
