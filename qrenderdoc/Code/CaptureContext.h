@@ -58,10 +58,10 @@ class CaptureContext : public ICaptureContext, IExtensionManager
   Q_DECLARE_TR_FUNCTIONS(CaptureContext);
 
 public:
-  CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp,
-                 PersistantConfig &cfg);
+  CaptureContext(PersistantConfig &cfg);
   ~CaptureContext();
 
+  void Begin(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp);
   bool isRunning();
 
   rdcstr TempCaptureFilename(const rdcstr &appname) override;
