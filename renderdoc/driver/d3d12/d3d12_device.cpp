@@ -2680,20 +2680,23 @@ void WrappedID3D12Device::FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle)
 
 void WrappedID3D12Device::CreateInternalResources()
 {
-  // Initialise AMD extension, if possible
-  HMODULE mod = GetModuleHandleA("amdxc64.dll");
-
-  m_pAMDExtObject = NULL;
-
-  if(mod)
+  if(IsReplayMode(m_State))
   {
-    PFNAmdExtD3DCreateInterface pAmdExtD3dCreateFunc =
-        (PFNAmdExtD3DCreateInterface)GetProcAddress(mod, "AmdExtD3DCreateInterface");
+    // Initialise AMD extension, if possible
+    HMODULE mod = GetModuleHandleA("amdxc64.dll");
 
-    if(pAmdExtD3dCreateFunc != NULL)
+    m_pAMDExtObject = NULL;
+
+    if(mod)
     {
-      // Initialize extension object
-      pAmdExtD3dCreateFunc(m_pDevice, __uuidof(IAmdExtD3DFactory), (void **)&m_pAMDExtObject);
+      PFNAmdExtD3DCreateInterface pAmdExtD3dCreateFunc =
+          (PFNAmdExtD3DCreateInterface)GetProcAddress(mod, "AmdExtD3DCreateInterface");
+
+      if(pAmdExtD3dCreateFunc != NULL)
+      {
+        // Initialize extension object
+        pAmdExtD3dCreateFunc(m_pDevice, __uuidof(IAmdExtD3DFactory), (void **)&m_pAMDExtObject);
+      }
     }
   }
 
