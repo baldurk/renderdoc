@@ -748,6 +748,12 @@ static const VkExtensionProperties supportedExtensions[] = {
     {
         VK_AMD_TEXTURE_GATHER_BIAS_LOD_EXTENSION_NAME, VK_AMD_TEXTURE_GATHER_BIAS_LOD_SPEC_VERSION,
     },
+#ifdef VK_ANDROID_external_memory_android_hardware_buffer
+    {
+        VK_ANDROID_EXTERNAL_MEMORY_ANDROID_HARDWARE_BUFFER_EXTENSION_NAME,
+        VK_ANDROID_EXTERNAL_MEMORY_ANDROID_HARDWARE_BUFFER_SPEC_VERSION,
+    },
+#endif
 #ifdef VK_EXT_acquire_xlib_display
     {
         VK_EXT_ACQUIRE_XLIB_DISPLAY_EXTENSION_NAME, VK_EXT_ACQUIRE_XLIB_DISPLAY_SPEC_VERSION,
