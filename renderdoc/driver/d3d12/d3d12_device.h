@@ -569,8 +569,6 @@ private:
 
   std::set<ResourceId> m_Cubemaps;
 
-  std::map<ResourceId, rdcstr> m_ResourceNames;
-
   // only valid on replay
   std::map<ResourceId, WrappedID3D12Resource1 *> *m_ResourceList = NULL;
   rdcarray<WrappedID3D12PipelineState *> *m_PipelineList = NULL;
@@ -658,7 +656,6 @@ public:
   void AddResourceCurChunk(ResourceId id);
 
   bool UsedDXIL() { return m_UsedDXIL; }
-  const rdcstr &GetResourceName(ResourceId id) { return m_ResourceNames[id]; }
   rdcarray<D3D12_RESOURCE_STATES> &GetSubresourceStates(ResourceId id)
   {
     return m_ResourceStates[id];

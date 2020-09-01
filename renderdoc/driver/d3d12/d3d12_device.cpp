@@ -1157,7 +1157,6 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(SerialiserType &ser, IDX
       WrappedID3D12Resource1 *wrapped = new WrappedID3D12Resource1(fakeBB, this);
       fakeBB = wrapped;
 
-      m_ResourceNames[SwapbufferID] = "Swap Chain Buffer";
       fakeBB->SetName(L"Swap Chain Buffer");
 
       GetResourceManager()->AddLiveResource(SwapbufferID, fakeBB);
@@ -2607,13 +2606,14 @@ bool WrappedID3D12Device::Serialise_SetName(SerialiserType &ser, ID3D12DeviceChi
   if(IsReplayingAndReading() && pResource)
   {
     ResourceId origId = GetResourceManager()->GetOriginalID(GetResID(pResource));
-    m_ResourceNames[origId] = Name ? Name : "";
 
     ResourceDescription &descr = GetReplay()->GetResourceDesc(origId);
-    descr.SetCustomName(Name ? Name : "");
+    if(Name && Name[0])
+    {
+      descr.SetCustomName(Name);
+      pResource->SetName(StringFormat::UTF82Wide(Name).c_str());
+    }
     AddResourceCurChunk(descr);
-
-    pResource->SetName(StringFormat::UTF82Wide(Name ? Name : "").c_str());
   }
 
   return true;

@@ -2531,7 +2531,8 @@ bool WrappedID3D11Device::Serialise_SetResourceName(SerialiserType &ser,
   {
     ResourceDescription &descr = GetReplay()->GetResourceDesc(
         GetResourceManager()->GetOriginalID(GetIDForResource(pResource)));
-    descr.SetCustomName(Name ? Name : "");
+    if(Name && Name[0])
+      descr.SetCustomName(Name);
     AddResourceCurChunk(descr);
 
     SetDebugName(pResource, Name);

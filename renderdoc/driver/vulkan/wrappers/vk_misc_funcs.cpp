@@ -2028,7 +2028,8 @@ bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(
     ResourceDescription &descr = GetResourceDesc(Object);
 
     AddResourceCurChunk(descr);
-    descr.SetCustomName(ObjectName);
+    if(ObjectName[0])
+      descr.SetCustomName(ObjectName);
   }
 
   return true;
@@ -2144,7 +2145,8 @@ bool WrappedVulkan::Serialise_vkSetDebugUtilsObjectNameEXT(
     ResourceDescription &descr = GetResourceDesc(Object);
 
     AddResourceCurChunk(descr);
-    descr.SetCustomName(ObjectName);
+    if(ObjectName[0])
+      descr.SetCustomName(ObjectName);
   }
 
   return true;
