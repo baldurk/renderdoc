@@ -340,7 +340,16 @@ void ReplayManager::DisconnectFromRemoteServer()
   if(m_Remote)
   {
     QMutexLocker autolock(&m_RemoteLock);
-    m_Remote->ShutdownConnection();
+    // give the remote to the thread to shut down since the lifetime is tied to the replay
+    // controller it has.
+    if(m_Thread->isRunning())
+    {
+      m_OrphanedRemote = m_Remote;
+    }
+    else
+    {
+      m_Remote->ShutdownConnection();
+    }
   }
 
   m_RemoteHost = RemoteHost();
@@ -515,11 +524,22 @@ void ReplayManager::run(int proxyRenderer, const QString &capturefile, const Rep
     }
   }
 
-  // close the core renderer
-  if(m_Remote)
-    m_Remote->CloseCapture(m_Renderer);
+  // if the remote has been orphaned due to disconnection during replay, close the capture using it
+  // and then shut it down.
+  if(m_OrphanedRemote)
+  {
+    m_OrphanedRemote->CloseCapture(m_Renderer);
+    m_OrphanedRemote->ShutdownConnection();
+    m_OrphanedRemote = NULL;
+  }
   else
-    m_Renderer->Shutdown();
+  {
+    // close the core renderer
+    if(m_Remote)
+      m_Remote->CloseCapture(m_Renderer);
+    else
+      m_Renderer->Shutdown();
+  }
 
   m_Renderer = NULL;
 

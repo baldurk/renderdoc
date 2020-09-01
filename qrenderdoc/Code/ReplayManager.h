@@ -132,6 +132,7 @@ private:
   QMutex m_RemoteLock;
   RemoteHost m_RemoteHost;
   IRemoteServer *m_Remote = NULL;
+  IRemoteServer *m_OrphanedRemote = NULL;
 
   volatile bool m_Running;
   LambdaThread *m_Thread;
