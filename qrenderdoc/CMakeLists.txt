@@ -215,8 +215,16 @@ if(NOT BUILD_VERSION_DIST_CONTACT STREQUAL "")
          "DEFINES+=DISTRIBUTION_CONTACT='\\\\\"${BUILD_VERSION_DIST_CONTACT}\\\\\"'\n")
 endif()
 
-if(PySide2_FOUND AND Shiboken2_FOUND)
+option(QRENDERDOC_ENABLE_PYSIDE2 "Enable PySide2 if found" ON)
+
+if(NOT QRENDERDOC_ENABLE_PYSIDE2)
+    message(STATUS "PySide2 integration disabled")
+elseif(PySide2_FOUND AND Shiboken2_FOUND)
     message(STATUS "Building with PySide2 ${PySide2_VERSION} from ${PySide2_DIR}")
+
+    if(NOT PYTHONLIBS_VERSION_STRING MATCHES "${SHIBOKEN_PYTHON_VERSION_MAJOR}.${SHIBOKEN_PYTHON_VERSION_MINOR}")
+        message(FATAL_ERROR "Shiboken2 that we found was linked against python ${SHIBOKEN_PYTHON_VERSION_MAJOR}.${SHIBOKEN_PYTHON_VERSION_MINOR} but the python library we're linking against is ${PYTHONLIBS_VERSION_STRING}. Ensure these versions are identical or disable PySide2 compilation with QRENDERDOC_ENABLE_PYSIDE2.")
+    endif()
 
     get_target_property(SHIBOKEN2_INCLUDE_DIRS Shiboken2::libshiboken INTERFACE_INCLUDE_DIRECTORIES)
     get_target_property(PYSIDE2_INCLUDE_DIRS PySide2::pyside2 INTERFACE_INCLUDE_DIRECTORIES)
