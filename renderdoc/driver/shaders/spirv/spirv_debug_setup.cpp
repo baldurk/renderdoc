@@ -45,7 +45,7 @@ static void ClampScalars(rdcspv::DebugAPIWrapper *apiWrapper, const ShaderVariab
         MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
         StringFormat::Fmt("Invalid scalar index %u at %u-vector %s. Clamping to %u", scalar0,
                           var.columns, var.name.c_str(), var.columns - 1));
-    scalar0 = var.columns - 1;
+    scalar0 = RDCMIN(0U, uint32_t(var.columns - 1));
   }
 }
 
@@ -58,7 +58,7 @@ static void ClampScalars(rdcspv::DebugAPIWrapper *apiWrapper, const ShaderVariab
         MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
         StringFormat::Fmt("Invalid scalar index %u at matrix %s with %u columns. Clamping to %u",
                           scalar0, var.columns, var.name.c_str(), var.columns - 1));
-    scalar0 = var.columns - 1;
+    scalar0 = RDCMIN(0U, uint32_t(var.columns - 1));
   }
   if(scalar1 > var.rows && scalar1 != ~0U)
   {
@@ -66,7 +66,7 @@ static void ClampScalars(rdcspv::DebugAPIWrapper *apiWrapper, const ShaderVariab
         MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
         StringFormat::Fmt("Invalid scalar index %u at matrix %s with %u rows. Clamping to %u",
                           scalar1, var.rows, var.name.c_str(), var.rows - 1));
-    scalar1 = var.rows - 1;
+    scalar1 = RDCMIN(0U, uint32_t(var.rows - 1));
   }
 }
 
