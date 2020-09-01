@@ -1776,6 +1776,16 @@ public:
   VkResult vkCreateAndroidSurfaceKHR(VkInstance instance,
                                      const VkAndroidSurfaceCreateInfoKHR *pCreateInfo,
                                      const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface);
+
+  // VK_ANDROID_external_memory_android_hardware_buffer
+  VkResult vkGetAndroidHardwareBufferPropertiesANDROID(
+      VkDevice device, const struct AHardwareBuffer *buffer,
+      VkAndroidHardwareBufferPropertiesANDROID *pProperties);
+
+  // VK_ANDROID_external_memory_android_hardware_buffer
+  VkResult vkGetMemoryAndroidHardwareBufferANDROID(
+      VkDevice device, const VkMemoryGetAndroidHardwareBufferInfoANDROID *pInfo,
+      struct AHardwareBuffer **pBuffer);
 #endif
 
 #if defined(VK_USE_PLATFORM_MACOS_MVK)

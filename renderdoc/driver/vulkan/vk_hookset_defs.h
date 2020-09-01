@@ -144,20 +144,33 @@
 
 #define HookInitExtension_Instance_Android() \
   HookInitExtension(VK_KHR_android_surface, CreateAndroidSurfaceKHR);
-#define HookDefine_Android()                                                                     \
-  HookDefine4(VkResult, vkCreateAndroidSurfaceKHR, VkInstance, instance,                         \
-              const VkAndroidSurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *, \
-              pAllocator, VkSurfaceKHR *, pSurface);
+
+#define HookInitExtension_Device_Android()                              \
+  HookInitExtension(VK_ANDROID_external_memory_android_hardware_buffer, \
+                    GetMemoryAndroidHardwareBufferANDROID);             \
+  HookInitExtension(VK_ANDROID_external_memory_android_hardware_buffer, \
+                    GetAndroidHardwareBufferPropertiesANDROID);
+
+#define HookDefine_Android()                                                                      \
+  HookDefine4(VkResult, vkCreateAndroidSurfaceKHR, VkInstance, instance,                          \
+              const VkAndroidSurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *,  \
+              pAllocator, VkSurfaceKHR *, pSurface);                                              \
+  HookDefine3(VkResult, vkGetAndroidHardwareBufferPropertiesANDROID, VkDevice, device,            \
+              const struct AHardwareBuffer *, buffer, VkAndroidHardwareBufferPropertiesANDROID *, \
+              pProperties);                                                                       \
+  HookDefine3(VkResult, vkGetMemoryAndroidHardwareBufferANDROID, VkDevice, device,                \
+              const VkMemoryGetAndroidHardwareBufferInfoANDROID *, pInfo,                         \
+              struct AHardwareBuffer **, pBuffer);
 
 #else    // defined(VK_USE_PLATFORM_ANDROID_KHR)
 
 #define HookInitExtension_Instance_Android()
+#define HookInitExtension_Device_Android()
 #define HookDefine_Android()
 
 #endif    // defined(VK_USE_PLATFORM_ANDROID_KHR)
 
 #define HookInitExtension_PhysDev_Android()
-#define HookInitExtension_Device_Android()
 
 #if defined(VK_USE_PLATFORM_GGP)
 
