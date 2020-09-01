@@ -215,7 +215,7 @@ if(NOT BUILD_VERSION_DIST_CONTACT STREQUAL "")
          "DEFINES+=DISTRIBUTION_CONTACT='\\\\\"${BUILD_VERSION_DIST_CONTACT}\\\\\"'\n")
 endif()
 
-if(PySide2_FOUND)
+if(PySide2_FOUND AND Shiboken2_FOUND)
     message(STATUS "Building with PySide2 ${PySide2_VERSION} from ${PySide2_DIR}")
 
     get_target_property(SHIBOKEN2_INCLUDE_DIRS Shiboken2::libshiboken INTERFACE_INCLUDE_DIRECTORIES)
