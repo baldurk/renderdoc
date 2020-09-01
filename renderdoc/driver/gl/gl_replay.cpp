@@ -2421,6 +2421,10 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       height = 1;
       arraysize = texDetails.height;
     }
+    if(texType == eGL_TEXTURE_CUBE_MAP)
+    {
+      arraysize = 6;
+    }
   }
 
   s.sample = RDCMIN(uint32_t(texDetails.samples - 1), s.sample);
@@ -2738,6 +2742,10 @@ void GLReplay::GetTextureData(ResourceId tex, const Subresource &sub,
 
       RDCASSERT(s.slice < ARRAY_COUNT(targets));
       target = targets[s.slice];
+
+      // we've "used" the slice, it's not actually a real slice anymore...
+      s.slice = 0;
+      arraysize = 1;
     }
 
     size_t dataSize = 0;
