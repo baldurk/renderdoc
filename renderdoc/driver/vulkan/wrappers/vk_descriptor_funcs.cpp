@@ -1373,7 +1373,16 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
       uint32_t curSrcIdx = pDescriptorCopies[i].srcArrayElement;
       uint32_t curDstIdx = pDescriptorCopies[i].dstArrayElement;
 
-      ids.clear();
+      if(setrecord && setrecord != dstrecord)
+      {
+        std::sort(ids.begin(), ids.end());
+
+        setrecord->descInfo->UpdateBackgroundRefCache(ids);
+
+        ids.clear();
+      }
+
+      setrecord = dstrecord;
 
       for(uint32_t d = 0; d < pDescriptorCopies[i].descriptorCount; d++, curSrcIdx++, curDstIdx++)
       {
@@ -1417,10 +1426,15 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         bind = (*srcbinding)[curSrcIdx];
         bind.AddBindRefs(ids, GetResourceManager(), dstrecord, ref);
       }
+    }
 
+    if(setrecord)
+    {
       std::sort(ids.begin(), ids.end());
 
-      dstrecord->descInfo->UpdateBackgroundRefCache(ids);
+      setrecord->descInfo->UpdateBackgroundRefCache(ids);
+      setrecord = NULL;
+      ids.clear();
     }
   }
 }
