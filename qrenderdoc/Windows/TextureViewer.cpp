@@ -1985,9 +1985,6 @@ void TextureViewer::textureTab_Closing(int index)
     for(ResourceId id : ids)
       m_LockedTabs.remove(id);
 
-    textureTabs->setCurrentIndex(index - 1);
-    textureTabs->widget(index - 1)->show();
-
     return;
   }
 
@@ -1995,8 +1992,8 @@ void TextureViewer::textureTab_Closing(int index)
   qCritical() << "Somehow closing dynamic tab?";
   if(textureTabs->count() > 1)
   {
-    textureTabs->setCurrentIndex(1);
-    textureTabs->widget(1)->show();
+    textureTabs->setCurrentIndex(0);
+    textureTabs->widget(0)->show();
   }
 }
 
