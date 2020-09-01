@@ -129,7 +129,7 @@ public:
   rdcarray<ShaderEntryPoint> GetShaderEntryPoints(ResourceId shader);
   ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader, ShaderEntryPoint entry);
 
-  rdcarray<rdcstr> GetDisassemblyTargets();
+  rdcarray<rdcstr> GetDisassemblyTargets(bool withPipeline);
   rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const rdcstr &target);
 
   rdcarray<DebugMessage> GetDebugMessages();

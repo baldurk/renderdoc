@@ -385,7 +385,18 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
       if(!me)
         return;
 
-      rdcarray<rdcstr> targets = r->GetDisassemblyTargets();
+      rdcarray<rdcstr> targets = r->GetDisassemblyTargets(m_Pipeline != ResourceId());
+
+      if(m_Pipeline == ResourceId())
+      {
+        rdcarray<rdcstr> pipelineTargets = r->GetDisassemblyTargets(true);
+
+        if(pipelineTargets.size() > targets.size())
+        {
+          m_PipelineTargets = pipelineTargets;
+          m_PipelineTargets.removeIf([&targets](const rdcstr &t) { return targets.contains(t); });
+        }
+      }
 
       rdcstr disasm = r->DisassembleShader(m_Pipeline, m_ShaderDetails, "");
 
@@ -409,6 +420,9 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
             }
           }
         }
+
+        if(!m_PipelineTargets.empty())
+          targetNames << tr("More disassembly formats...");
 
         m_DisassemblyType->clear();
         m_DisassemblyType->addItems(targetNames);
@@ -1383,6 +1397,26 @@ void ShaderViewer::disassemble_typeChanged(int index)
       m_DisassemblyView->emptyUndoBuffer();
       return;
     }
+  }
+
+  if(targetStr == tr("More disassembly formats..."))
+  {
+    QString text;
+
+    text =
+        tr("; More disassembly formats are available with a pipeline. This shader view is not\n"
+           "; associated with any specific pipeline and shows only the shader itself.\n\n"
+           "; Viewing the shader from the pipeline state view with a pipeline bound will expose\n"
+           "; these other formats:\n\n");
+
+    for(const rdcstr &t : m_PipelineTargets)
+      text += QFormatStr("%1\n").arg(QString(t));
+
+    m_DisassemblyView->setReadOnly(false);
+    SetTextAndUpdateMargin0(m_DisassemblyView, text);
+    m_DisassemblyView->setReadOnly(true);
+    m_DisassemblyView->emptyUndoBuffer();
+    return;
   }
 
   QPointer<ShaderViewer> me(this);

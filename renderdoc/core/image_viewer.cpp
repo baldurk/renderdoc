@@ -262,7 +262,7 @@ public:
   {
     return NULL;
   }
-  rdcarray<rdcstr> GetDisassemblyTargets() { return {"N/A"}; }
+  rdcarray<rdcstr> GetDisassemblyTargets(bool withPipeline) { return {"N/A"}; }
   rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const rdcstr &target)
   {
     return "";

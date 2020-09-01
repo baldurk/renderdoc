@@ -148,7 +148,7 @@ public:
   virtual ShaderReflection *GetShader(ResourceId pipeline, ResourceId shader,
                                       ShaderEntryPoint entry) = 0;
 
-  virtual rdcarray<rdcstr> GetDisassemblyTargets() = 0;
+  virtual rdcarray<rdcstr> GetDisassemblyTargets(bool withPipeline) = 0;
   virtual rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl,
                                    const rdcstr &target) = 0;
 

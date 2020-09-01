@@ -520,10 +520,11 @@ values are implementation dependent but will always include a default target fir
 native disassembly of the shader. Further options may be available for additional diassembly views
 or hardware-specific ISA formats.
 
+:param bool withPipeline: More disassembly may be available when a pipeline is specified.
 :return: The list of disassembly targets available.
 :rtype: ``list`` of ``str``
 )");
-  virtual rdcarray<rdcstr> GetDisassemblyTargets() = 0;
+  virtual rdcarray<rdcstr> GetDisassemblyTargets(bool withPipeline) = 0;
 
   DOCUMENT(R"(Retrieve the disassembly for a given shader, for the given disassembly target.
 

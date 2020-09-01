@@ -3968,7 +3968,8 @@ void VulkanPipelineStateViewer::on_debugThread_clicked()
 
   // viewer takes ownership of the trace
   IShaderViewer *s =
-      m_Ctx.DebugShader(&bindMapping, shaderDetails, ResourceId(), trace, debugContext);
+      m_Ctx.DebugShader(&bindMapping, shaderDetails,
+                        m_Ctx.CurPipelineState().GetComputePipelineObject(), trace, debugContext);
 
   m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
 }

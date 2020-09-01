@@ -766,7 +766,7 @@ ShaderReflection *GLReplay::GetShader(ResourceId pipeline, ResourceId shader, Sh
   return &shaderDetails.reflection;
 }
 
-rdcarray<rdcstr> GLReplay::GetDisassemblyTargets()
+rdcarray<rdcstr> GLReplay::GetDisassemblyTargets(bool withPipeline)
 {
   return {SPIRVDisassemblyTarget};
 }

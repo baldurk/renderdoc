@@ -443,14 +443,14 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId pipeline, ResourceId shader
   return &shad->second.GetReflection(entry.name, pipeline).refl;
 }
 
-rdcarray<rdcstr> VulkanReplay::GetDisassemblyTargets()
+rdcarray<rdcstr> VulkanReplay::GetDisassemblyTargets(bool withPipeline)
 {
   rdcarray<rdcstr> ret;
 
-  if(m_pDriver->GetExtensions(NULL).ext_AMD_shader_info)
+  if(withPipeline && m_pDriver->GetExtensions(NULL).ext_AMD_shader_info)
     ret.push_back(AMDShaderInfoTarget);
 
-  if(m_pDriver->GetExtensions(NULL).ext_KHR_pipeline_executable_properties)
+  if(withPipeline && m_pDriver->GetExtensions(NULL).ext_KHR_pipeline_executable_properties)
     ret.push_back(KHRExecutablePropertiesTarget);
 
   // default is always first

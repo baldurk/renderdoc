@@ -142,13 +142,13 @@ const PipeState &ReplayController::GetPipelineState()
   return m_PipeState;
 }
 
-rdcarray<rdcstr> ReplayController::GetDisassemblyTargets()
+rdcarray<rdcstr> ReplayController::GetDisassemblyTargets(bool withPipeline)
 {
   CHECK_REPLAY_THREAD();
 
   rdcarray<rdcstr> ret;
 
-  rdcarray<rdcstr> targets = m_pDevice->GetDisassemblyTargets();
+  rdcarray<rdcstr> targets = m_pDevice->GetDisassemblyTargets(withPipeline);
 
   ret.reserve(targets.size());
   for(const rdcstr &t : targets)

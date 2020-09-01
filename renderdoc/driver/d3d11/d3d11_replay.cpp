@@ -284,7 +284,7 @@ ShaderReflection *D3D11Replay::GetShader(ResourceId pipeline, ResourceId shader,
   return &ret;
 }
 
-rdcarray<rdcstr> D3D11Replay::GetDisassemblyTargets()
+rdcarray<rdcstr> D3D11Replay::GetDisassemblyTargets(bool withPipeline)
 {
   return {DXBCDisassemblyTarget};
 }

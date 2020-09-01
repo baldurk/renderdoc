@@ -434,7 +434,7 @@ ShaderReflection *D3D12Replay::GetShader(ResourceId pipeline, ResourceId shader,
   return NULL;
 }
 
-rdcarray<rdcstr> D3D12Replay::GetDisassemblyTargets()
+rdcarray<rdcstr> D3D12Replay::GetDisassemblyTargets(bool withPipeline)
 {
   rdcarray<rdcstr> ret;
 

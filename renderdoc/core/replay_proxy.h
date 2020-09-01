@@ -514,7 +514,7 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(ShaderReflection *, GetShader, ResourceId pipeline, ResourceId,
                              ShaderEntryPoint entry);
 
-  IMPLEMENT_FUNCTION_PROXIED(rdcarray<rdcstr>, GetDisassemblyTargets);
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<rdcstr>, GetDisassemblyTargets, bool withPipeline);
   IMPLEMENT_FUNCTION_PROXIED(rdcstr, DisassembleShader, ResourceId pipeline,
                              const ShaderReflection *refl, const rdcstr &target);
 

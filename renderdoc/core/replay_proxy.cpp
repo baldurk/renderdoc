@@ -1223,7 +1223,8 @@ rdcstr ReplayProxy::DisassembleShader(ResourceId pipeline, const ShaderReflectio
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
 rdcarray<rdcstr> ReplayProxy::Proxied_GetDisassemblyTargets(ParamSerialiser &paramser,
-                                                            ReturnSerialiser &retser)
+                                                            ReturnSerialiser &retser,
+                                                            bool withPipeline)
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_GetDisassemblyTargets;
   ReplayProxyPacket packet = eReplayProxy_GetDisassemblyTargets;
@@ -1231,13 +1232,14 @@ rdcarray<rdcstr> ReplayProxy::Proxied_GetDisassemblyTargets(ParamSerialiser &par
 
   {
     BEGIN_PARAMS();
+    SERIALISE_ELEMENT(withPipeline);
     END_PARAMS();
   }
 
   {
     REMOTE_EXECUTION();
     if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
-      ret = m_Remote->GetDisassemblyTargets();
+      ret = m_Remote->GetDisassemblyTargets(withPipeline);
   }
 
   SERIALISE_RETURN(ret);
@@ -1245,9 +1247,9 @@ rdcarray<rdcstr> ReplayProxy::Proxied_GetDisassemblyTargets(ParamSerialiser &par
   return ret;
 }
 
-rdcarray<rdcstr> ReplayProxy::GetDisassemblyTargets()
+rdcarray<rdcstr> ReplayProxy::GetDisassemblyTargets(bool withPipeline)
 {
-  PROXY_FUNCTION(GetDisassemblyTargets);
+  PROXY_FUNCTION(GetDisassemblyTargets, withPipeline);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -2835,7 +2837,7 @@ bool ReplayProxy::Tick(int type)
       PixelHistory(rdcarray<EventUsage>(), ResourceId(), 0, 0, Subresource(), CompType::Typeless);
       break;
     case eReplayProxy_DisassembleShader: DisassembleShader(ResourceId(), NULL, ""); break;
-    case eReplayProxy_GetDisassemblyTargets: GetDisassemblyTargets(); break;
+    case eReplayProxy_GetDisassemblyTargets: GetDisassemblyTargets(false); break;
     case eReplayProxy_GetTargetShaderEncodings: GetTargetShaderEncodings(); break;
     case eReplayProxy_GetDriverInfo: GetDriverInfo(); break;
     case eReplayProxy_GetAvailableGPUs: GetAvailableGPUs(); break;

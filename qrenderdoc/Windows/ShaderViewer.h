@@ -212,6 +212,7 @@ private:
   ShaderStage m_Stage;
   QString m_DebugContext;
   ResourceId m_Pipeline;
+  rdcarray<rdcstr> m_PipelineTargets;
   ScintillaEdit *m_DisassemblyView = NULL;
   QFrame *m_DisassemblyToolbar = NULL;
   QWidget *m_DisassemblyFrame = NULL;

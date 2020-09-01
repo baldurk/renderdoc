@@ -143,7 +143,7 @@ public:
   const VKPipe::State *GetVulkanPipelineState();
   const PipeState &GetPipelineState();
 
-  rdcarray<rdcstr> GetDisassemblyTargets();
+  rdcarray<rdcstr> GetDisassemblyTargets(bool withPipeline);
   rdcstr DisassembleShader(ResourceId pipeline, const ShaderReflection *refl, const char *target);
 
   rdcpair<ResourceId, rdcstr> BuildCustomShader(const char *entry, ShaderEncoding sourceEncoding,
