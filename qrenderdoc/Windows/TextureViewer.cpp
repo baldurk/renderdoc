@@ -3013,6 +3013,9 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
   int outIndex = 0;
   int inIndex = 0;
 
+  ui->outputThumbs->setUpdatesEnabled(false);
+  ui->inputThumbs->setUpdatesEnabled(false);
+
   bool copy = false, clear = false, compute = false;
   Following::GetDrawContext(m_Ctx, copy, clear, compute);
 

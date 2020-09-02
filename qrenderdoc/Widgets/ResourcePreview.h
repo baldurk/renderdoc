@@ -58,10 +58,8 @@ public:
   void setActive(bool b)
   {
     m_Active = b;
-    if(b)
-      show();
-    else
-      hide();
+    // we unconditionally hide the preview, the thumbnail strip will show it
+    hide();
   }
   bool isActive() { return m_Active; }
   void setSize(QSize s);
