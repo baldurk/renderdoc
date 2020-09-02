@@ -877,7 +877,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
 
             VkResourceRecord *setrecord = GetRecord(*it);
 
-            SCOPED_SPINLOCK(setrecord->descInfo->refLock);
+            SCOPED_LOCK(setrecord->descInfo->refLock);
 
             for(auto refit = setrecord->descInfo->bindFrameRefs.begin();
                 refit != setrecord->descInfo->bindFrameRefs.end(); ++refit)
@@ -965,7 +965,7 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
           {
             VkResourceRecord *setrecord = GetRecord(*it);
 
-            SCOPED_SPINLOCK(setrecord->descInfo->refLock);
+            SCOPED_LOCK(setrecord->descInfo->refLock);
 
             GetResourceManager()->MarkBackgroundFrameReferenced(
                 setrecord->descInfo->backgroundFrameRefs);

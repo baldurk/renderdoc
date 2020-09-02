@@ -1178,7 +1178,7 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
 
         VkResourceRecord *setrecord = GetRecord(pDescriptorCopies[i].srcSet);
 
-        SCOPED_SPINLOCK(setrecord->descInfo->refLock);
+        SCOPED_LOCK(setrecord->descInfo->refLock);
 
         for(auto refit = setrecord->descInfo->bindFrameRefs.begin();
             refit != setrecord->descInfo->bindFrameRefs.end(); ++refit)
