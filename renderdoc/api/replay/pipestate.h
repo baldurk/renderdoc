@@ -305,10 +305,12 @@ For some APIs that don't distinguish by entry point, this may be empty.
   DOCUMENT(R"(Retrieves the read-only resources bound to a particular shader stage.
 
 :param ShaderStage stage: The shader stage to fetch from.
+:param bool onlyUsed: Return only a subset of resources containing those actually used by the
+  shader.
 :return: The currently bound read-only resources.
 :rtype: ``list`` of :class:`BoundResourceArray` entries
 )");
-  rdcarray<BoundResourceArray> GetReadOnlyResources(ShaderStage stage) const;
+  rdcarray<BoundResourceArray> GetReadOnlyResources(ShaderStage stage, bool onlyUsed = false) const;
 
   DOCUMENT(R"(Retrieves the samplers bound to a particular shader stage.
 
@@ -321,10 +323,12 @@ For some APIs that don't distinguish by entry point, this may be empty.
   DOCUMENT(R"(Retrieves the read/write resources bound to a particular shader stage.
 
 :param ShaderStage stage: The shader stage to fetch from.
+:param bool onlyUsed: Return only a subset of resources containing those actually used by the
+  shader.
 :return: The currently bound read/write resources.
 :rtype: ``list`` of :class:`BoundResourceArray` entries
 )");
-  rdcarray<BoundResourceArray> GetReadWriteResources(ShaderStage stage) const;
+  rdcarray<BoundResourceArray> GetReadWriteResources(ShaderStage stage, bool onlyUsed = false) const;
 
   DOCUMENT(R"(Retrieves the read/write resources bound to the depth-stencil output.
 

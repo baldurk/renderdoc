@@ -122,6 +122,9 @@ private:
 
   bool showNode(bool usedSlot, bool filledSlot);
 
+  bool m_ShowUnused = false;
+  bool m_ShowEmpty = false;
+
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::VertexInput &vi);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::InputAssembly &ia);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::Shader &sh);

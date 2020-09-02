@@ -1896,12 +1896,14 @@ void DoSerialise(SerialiserType &ser, VKPipe::DescriptorBinding &el)
 {
   SERIALISE_MEMBER(descriptorCount);
   SERIALISE_MEMBER(dynamicallyUsedCount);
+  SERIALISE_MEMBER(firstUsedIndex);
+  SERIALISE_MEMBER(lastUsedIndex);
   SERIALISE_MEMBER(type);
   SERIALISE_MEMBER(stageFlags);
 
   SERIALISE_MEMBER(binds);
 
-  SIZE_CHECK(40);
+  SIZE_CHECK(48);
 }
 
 template <typename SerialiserType>

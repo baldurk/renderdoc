@@ -1036,7 +1036,20 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
   VkMarkerRegion::End();
 
-  m_VulkanPipelineState = VKPipe::State();
+  {
+    // reset the pipeline state, but keep the descriptor set arrays. This prevents needless
+    // reallocations, we'll ensure that descriptors are fully overwritten below.
+    rdcarray<VKPipe::DescriptorSet> graphicsDescriptors;
+    rdcarray<VKPipe::DescriptorSet> computeDescriptors;
+
+    m_VulkanPipelineState.graphics.descriptorSets.swap(graphicsDescriptors);
+    m_VulkanPipelineState.compute.descriptorSets.swap(computeDescriptors);
+
+    m_VulkanPipelineState = VKPipe::State();
+
+    m_VulkanPipelineState.graphics.descriptorSets.swap(graphicsDescriptors);
+    m_VulkanPipelineState.compute.descriptorSets.swap(computeDescriptors);
+  }
 
   m_VulkanPipelineState.pushconsts.resize(state.pushConstSize);
   memcpy(m_VulkanPipelineState.pushconsts.data(), state.pushconsts, state.pushConstSize);
@@ -1668,10 +1681,17 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
             default: dst.bindings[b].type = BindType::Unknown; RDCERR("Unexpected descriptor type");
           }
 
+          dst.bindings[b].firstUsedIndex = -1;
+          dst.bindings[b].lastUsedIndex = -1;
+          dst.bindings[b].dynamicallyUsedCount = 0;
+
           dst.bindings[b].binds.resize(dst.bindings[b].descriptorCount);
           for(uint32_t a = 0; a < dst.bindings[b].descriptorCount; a++)
           {
             VKPipe::BindingElement &dstel = dst.bindings[b].binds[a];
+
+            // clear it so we don't have to manually reset all elements back to normal
+            memset(&dstel, 0, sizeof(dstel));
 
             curBind.arrayIndex = a;
 
@@ -1697,22 +1717,34 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 }
 
                 // the next used bind is equal to this one. Mark it as dynamically used, and consume
-                if(curBind == *usedBindsData)
+                if(usedBindsSize > 0 && curBind == *usedBindsData)
                 {
                   dstel.dynamicallyUsed = true;
                   usedBindsData++;
                   usedBindsSize--;
                 }
                 // the next used bind is after the current one, this is not used.
-                else if(curBind < *usedBindsData)
+                else if(usedBindsSize > 0 && curBind < *usedBindsData)
                 {
                   dstel.dynamicallyUsed = false;
                 }
               }
             }
+            else
+            {
+              dstel.dynamicallyUsed = true;
+            }
 
             if(dstel.dynamicallyUsed)
+            {
               dst.bindings[b].dynamicallyUsedCount++;
+              // we iterate in forward order, so we can unconditinoally set the last bind to the
+              // current one, and only set the first bind if we haven't encountered one before
+              dst.bindings[b].lastUsedIndex = a;
+
+              if(dst.bindings[b].firstUsedIndex < 0)
+                dst.bindings[b].firstUsedIndex = a;
+            }
 
             // first handle the sampler separately because it might be in a combined descriptor
             if(layoutBind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
@@ -1892,6 +1924,13 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
               dst.bindings[b].binds[a].byteSize = info[a].bufferInfo.range;
             }
+          }
+
+          // if no bindings were set these will still be negative. Set them to something sensible.
+          if(dst.bindings[b].firstUsedIndex < 0)
+          {
+            dst.bindings[b].firstUsedIndex = 0;
+            dst.bindings[b].lastUsedIndex = 0x7fffffff;
           }
         }
       }

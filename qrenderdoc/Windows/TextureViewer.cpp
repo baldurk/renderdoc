@@ -166,7 +166,12 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
 
       int residx = rw.indexOf(key);
       if(residx >= 0)
-        ret = rw[residx].resources[arrayIdx];
+      {
+        const BoundResourceArray &resArray = rw[residx];
+        if(arrayIdx >= resArray.firstIndex &&
+           arrayIdx - resArray.firstIndex < resArray.resources.count())
+          ret = resArray.resources[arrayIdx - resArray.firstIndex];
+      }
     }
   }
   else if(Type == FollowType::ReadOnly)
@@ -181,7 +186,12 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
 
       int residx = ro.indexOf(key);
       if(residx >= 0)
-        ret = ro[residx].resources[arrayIdx];
+      {
+        const BoundResourceArray &resArray = ro[residx];
+        if(arrayIdx >= resArray.firstIndex &&
+           arrayIdx - resArray.firstIndex < resArray.resources.count())
+          ret = resArray.resources[arrayIdx - resArray.firstIndex];
+      }
     }
   }
 
@@ -233,7 +243,8 @@ BoundResource Following::GetDepthTarget(ICaptureContext &ctx)
     return ctx.CurPipelineState().GetDepthTarget();
 }
 
-rdcarray<BoundResourceArray> Following::GetReadWriteResources(ICaptureContext &ctx, ShaderStage stage)
+rdcarray<BoundResourceArray> Following::GetReadWriteResources(ICaptureContext &ctx,
+                                                              ShaderStage stage, bool onlyUsed)
 {
   bool copy = false, clear = false, compute = false;
   GetDrawContext(ctx, copy, clear, compute);
@@ -246,22 +257,18 @@ rdcarray<BoundResourceArray> Following::GetReadWriteResources(ICaptureContext &c
   {
     // only return compute resources for one stage
     if(stage == ShaderStage::Pixel || stage == ShaderStage::Compute)
-      return ctx.CurPipelineState().GetReadWriteResources(ShaderStage::Compute);
+      return ctx.CurPipelineState().GetReadWriteResources(ShaderStage::Compute, onlyUsed);
     else
       return rdcarray<BoundResourceArray>();
   }
   else
   {
-    return ctx.CurPipelineState().GetReadWriteResources(stage);
+    return ctx.CurPipelineState().GetReadWriteResources(stage, onlyUsed);
   }
 }
 
-rdcarray<BoundResourceArray> Following::GetReadWriteResources(ICaptureContext &ctx)
-{
-  return GetReadWriteResources(ctx, Stage);
-}
-
-rdcarray<BoundResourceArray> Following::GetReadOnlyResources(ICaptureContext &ctx, ShaderStage stage)
+rdcarray<BoundResourceArray> Following::GetReadOnlyResources(ICaptureContext &ctx,
+                                                             ShaderStage stage, bool onlyUsed)
 {
   const DrawcallDescription *curDraw = ctx.CurDrawcall();
   bool copy = false, clear = false, compute = false;
@@ -282,19 +289,14 @@ rdcarray<BoundResourceArray> Following::GetReadOnlyResources(ICaptureContext &ct
   {
     // only return compute resources for one stage
     if(stage == ShaderStage::Pixel || stage == ShaderStage::Compute)
-      return ctx.CurPipelineState().GetReadOnlyResources(ShaderStage::Compute);
+      return ctx.CurPipelineState().GetReadOnlyResources(ShaderStage::Compute, onlyUsed);
     else
       return rdcarray<BoundResourceArray>();
   }
   else
   {
-    return ctx.CurPipelineState().GetReadOnlyResources(stage);
+    return ctx.CurPipelineState().GetReadOnlyResources(stage, onlyUsed);
   }
-}
-
-rdcarray<BoundResourceArray> Following::GetReadOnlyResources(ICaptureContext &ctx)
-{
-  return GetReadOnlyResources(ctx, Stage);
 }
 
 const ShaderReflection *Following::GetReflection(ICaptureContext &ctx, ShaderStage stage)
@@ -2342,65 +2344,40 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
 
     const rdcarray<BoundResource> *resArray = NULL;
     uint32_t dynamicallyUsedResCount = 1;
+    int32_t firstIndex = 0;
 
     int residx = ResList.indexOf(key);
     if(residx >= 0)
     {
       resArray = &ResList[residx].resources;
       dynamicallyUsedResCount = ResList[residx].dynamicallyUsedCount;
+      firstIndex = ResList[residx].firstIndex;
     }
 
     int arrayLen = resArray != NULL ? resArray->count() : 1;
 
-    const bool collapseArray =
-        (dynamicallyUsedResCount > 20) || (dynamicallyUsedResCount == 0 && arrayLen > 8);
+    const bool collapseArray = arrayLen > 8 && (dynamicallyUsedResCount > 20 || m_ShowUnused);
 
-    for(int arrayIdx = 0; arrayIdx < arrayLen; arrayIdx++)
+    for(int i = 0; i < arrayLen; i++)
     {
-      if(resArray && !resArray->at(arrayIdx).dynamicallyUsed)
+      int arrayIdx = firstIndex + i;
+
+      if(resArray && i >= resArray->count())
+        break;
+
+      if(resArray && !resArray->at(i).dynamicallyUsed)
         continue;
 
       BoundResource res = {};
 
       if(resArray)
-        res = resArray->at(arrayIdx);
-
-      bool used = key.used;
-
-      QString bindName;
-
-      for(const ShaderResource &bind : resourceDetails)
-      {
-        if(bind.bindPoint == idx)
-        {
-          bindName = bind.name;
-          break;
-        }
-      }
-
-      if(copy)
-      {
-        used = true;
-        bindName = tr("Source");
-      }
+        res = resArray->at(i);
 
       Following follow(*this, rw ? FollowType::ReadWrite : FollowType::ReadOnly, stage, idx,
                        arrayIdx);
-      QString slotName = QFormatStr("%1 %2%3")
-                             .arg(m_Ctx.CurPipelineState().Abbrev(stage))
-                             .arg(rw ? lit("RW ") : lit(""))
-                             .arg(idx);
-
-      if(collapseArray)
-        slotName += QFormatStr(" Arr[%1]").arg(arrayLen);
-      else
-        slotName += QFormatStr("[%1]").arg(arrayIdx);
-
-      if(copy)
-        slotName = tr("SRC");
 
       // show if it's referenced by the shader - regardless of empty or not
-      bool show = used;
+      bool show = key.used || copy;
 
       // it's bound, but not referenced, and we have "show disabled"
       show = show || (m_ShowUnused && res.resourceId != ResourceId());
@@ -2431,6 +2408,33 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
       }
 
       prevIndex++;
+
+      QString slotName = QFormatStr("%1 %2%3")
+                             .arg(m_Ctx.CurPipelineState().Abbrev(stage))
+                             .arg(rw ? lit("RW ") : lit(""))
+                             .arg(idx);
+
+      if(collapseArray)
+        slotName += QFormatStr(" Arr[%1]").arg(arrayLen);
+      else
+        slotName += QFormatStr("[%1]").arg(arrayIdx);
+
+      if(copy)
+        slotName = tr("SRC");
+
+      QString bindName;
+
+      for(const ShaderResource &bind : resourceDetails)
+      {
+        if(bind.bindPoint == idx)
+        {
+          bindName = bind.name;
+          break;
+        }
+      }
+
+      if(copy)
+        bindName = tr("Source");
 
       InitResourcePreview(prev, show ? res : BoundResource(), show, follow, bindName, slotName);
 
@@ -3073,8 +3077,10 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
   {
     ShaderStage stage = stages[i];
 
-    m_ReadWriteResources[(uint32_t)stage] = Following::GetReadWriteResources(m_Ctx, stage);
-    m_ReadOnlyResources[(uint32_t)stage] = Following::GetReadOnlyResources(m_Ctx, stage);
+    m_ReadWriteResources[(uint32_t)stage] =
+        Following::GetReadWriteResources(m_Ctx, stage, !m_ShowUnused);
+    m_ReadOnlyResources[(uint32_t)stage] =
+        Following::GetReadOnlyResources(m_Ctx, stage, !m_ShowUnused);
 
     const ShaderReflection *details = Following::GetReflection(m_Ctx, stage);
     const ShaderBindpointMapping &mapping = Following::GetMapping(m_Ctx, stage);

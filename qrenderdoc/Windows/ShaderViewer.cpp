@@ -350,8 +350,8 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
 
 void ShaderViewer::cacheResources()
 {
-  m_ReadOnlyResources = m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage);
-  m_ReadWriteResources = m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage);
+  m_ReadOnlyResources = m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage, false);
+  m_ReadWriteResources = m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage, false);
 }
 
 void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,

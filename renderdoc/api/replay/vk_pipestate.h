@@ -246,7 +246,23 @@ redundant iteration to determine whether any bindings are present.
 
 For more information see :data:`VKBindingElement.dynamicallyUsed`.
 )");
-  uint32_t dynamicallyUsedCount = 0;
+  uint32_t dynamicallyUsedCount = ~0U;
+  DOCUMENT(R"(Gives the index of the first binding in :data:`binds` that is dynamically used. Useful
+to avoid redundant iteration in very large descriptor arrays with a small subset that are used.
+
+For more information see :data:`VKBindingElement.dynamicallyUsed`.
+)");
+  int32_t firstUsedIndex = 0;
+  DOCUMENT(R"(Gives the index of the first binding in :data:`binds` that is dynamically used. Useful
+to avoid redundant iteration in very large descriptor arrays with a small subset that are used.
+
+.. note::
+  This may be set to a higher value than the number of bindings, if no dynamic use information is
+  available. Ensure that this is an additional check on the bind and the count is still respected.
+
+For more information see :data:`VKBindingElement.dynamicallyUsed`.
+)");
+  int32_t lastUsedIndex = 0x7fffffff;
   DOCUMENT("The :class:`BindType` of this binding.");
   BindType type = BindType::Unknown;
   DOCUMENT("The :class:`ShaderStageMask` where this binding is visible.");

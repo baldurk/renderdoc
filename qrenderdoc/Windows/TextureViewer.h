@@ -79,14 +79,10 @@ struct Following
   static rdcarray<BoundResource> GetOutputTargets(ICaptureContext &ctx);
 
   static BoundResource GetDepthTarget(ICaptureContext &ctx);
-
-  rdcarray<BoundResourceArray> GetReadWriteResources(ICaptureContext &ctx);
-
-  static rdcarray<BoundResourceArray> GetReadWriteResources(ICaptureContext &ctx, ShaderStage stage);
-
-  rdcarray<BoundResourceArray> GetReadOnlyResources(ICaptureContext &ctx);
-
-  static rdcarray<BoundResourceArray> GetReadOnlyResources(ICaptureContext &ctx, ShaderStage stage);
+  static rdcarray<BoundResourceArray> GetReadWriteResources(ICaptureContext &ctx, ShaderStage stage,
+                                                            bool onlyUsed);
+  static rdcarray<BoundResourceArray> GetReadOnlyResources(ICaptureContext &ctx, ShaderStage stage,
+                                                           bool onlyUsed);
 
   const ShaderReflection *GetReflection(ICaptureContext &ctx);
   static const ShaderReflection *GetReflection(ICaptureContext &ctx, ShaderStage stage);

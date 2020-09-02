@@ -1132,7 +1132,7 @@ rdcarray<BoundResourceArray> PipeState::GetSamplers(ShaderStage stage) const
   return ret;
 }
 
-rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) const
+rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage, bool onlyUsed) const
 {
   rdcarray<BoundResourceArray> ret;
 
@@ -1251,18 +1251,33 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) 
             ret.push_back(BoundResourceArray());
             ret.back().bindPoint = Bindpoint(set, slot);
 
-            rdcarray<BoundResource> &val = ret.back().resources;
-            val.resize(bind.descriptorCount);
+            uint32_t count = bind.descriptorCount;
+            uint32_t firstIdx = 0;
 
+            if(onlyUsed)
+            {
+              firstIdx = (uint32_t)bind.firstUsedIndex;
+              if(bind.dynamicallyUsedCount < count)
+                count = bind.dynamicallyUsedCount;
+              if((uint32_t)bind.lastUsedIndex < count)
+                count = uint32_t(bind.lastUsedIndex - bind.firstUsedIndex + 1);
+            }
+
+            rdcarray<BoundResource> &val = ret.back().resources;
+            val.reserve(count);
+
+            ret.back().firstIndex = (int32_t)firstIdx;
             ret.back().dynamicallyUsedCount = bind.dynamicallyUsedCount;
 
-            for(uint32_t i = 0; i < bind.descriptorCount; i++)
+            BoundResource res;
+            for(uint32_t i = firstIdx; i < firstIdx + count; i++)
             {
-              val[i].resourceId = bind.binds[i].resourceResourceId;
-              val[i].dynamicallyUsed = bind.binds[i].dynamicallyUsed;
-              val[i].firstMip = (int)bind.binds[i].firstMip;
-              val[i].firstSlice = (int)bind.binds[i].firstSlice;
-              val[i].typeCast = bind.binds[i].viewFormat.compType;
+              res.resourceId = bind.binds[i].resourceResourceId;
+              res.dynamicallyUsed = bind.binds[i].dynamicallyUsed;
+              res.firstMip = (int)bind.binds[i].firstMip;
+              res.firstSlice = (int)bind.binds[i].firstSlice;
+              res.typeCast = bind.binds[i].viewFormat.compType;
+              val.push_back(res);
             }
           }
         }
@@ -1275,7 +1290,7 @@ rdcarray<BoundResourceArray> PipeState::GetReadOnlyResources(ShaderStage stage) 
   return ret;
 }
 
-rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage) const
+rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage, bool onlyUsed) const
 {
   rdcarray<BoundResourceArray> ret;
 
@@ -1417,18 +1432,33 @@ rdcarray<BoundResourceArray> PipeState::GetReadWriteResources(ShaderStage stage)
             ret.push_back(BoundResourceArray());
             ret.back().bindPoint = Bindpoint(set, slot);
 
-            rdcarray<BoundResource> &val = ret.back().resources;
-            val.resize(bind.descriptorCount);
+            uint32_t count = bind.descriptorCount;
+            uint32_t firstIdx = 0;
 
+            if(onlyUsed)
+            {
+              firstIdx = (uint32_t)bind.firstUsedIndex;
+              if(bind.dynamicallyUsedCount < count)
+                count = bind.dynamicallyUsedCount;
+              if((uint32_t)bind.lastUsedIndex < count)
+                count = uint32_t(bind.lastUsedIndex - bind.firstUsedIndex + 1);
+            }
+
+            rdcarray<BoundResource> &val = ret.back().resources;
+            val.reserve(count);
+
+            ret.back().firstIndex = (int32_t)firstIdx;
             ret.back().dynamicallyUsedCount = bind.dynamicallyUsedCount;
 
-            for(uint32_t i = 0; i < bind.descriptorCount; i++)
+            BoundResource res;
+            for(uint32_t i = firstIdx; i < firstIdx + count; i++)
             {
-              val[i].resourceId = bind.binds[i].resourceResourceId;
-              val[i].dynamicallyUsed = bind.binds[i].dynamicallyUsed;
-              val[i].firstMip = (int)bind.binds[i].firstMip;
-              val[i].firstSlice = (int)bind.binds[i].firstSlice;
-              val[i].typeCast = bind.binds[i].viewFormat.compType;
+              res.resourceId = bind.binds[i].resourceResourceId;
+              res.dynamicallyUsed = bind.binds[i].dynamicallyUsed;
+              res.firstMip = (int)bind.binds[i].firstMip;
+              res.firstSlice = (int)bind.binds[i].firstSlice;
+              res.typeCast = bind.binds[i].viewFormat.compType;
+              val.push_back(res);
             }
           }
         }

@@ -613,19 +613,16 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
 
 bool VulkanPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
 {
-  const bool showUnused = ui->showUnused->isChecked();
-  const bool showEmpty = ui->showEmpty->isChecked();
-
   // show if it's referenced by the shader - regardless of empty or not
   if(usedSlot)
     return true;
 
   // it's not referenced, but if it's bound and we have "show unused" then show it
-  if(showUnused && filledSlot)
+  if(m_ShowUnused && filledSlot)
     return true;
 
   // it's empty, and we have "show empty"
-  if(showEmpty && !filledSlot)
+  if(m_ShowEmpty && !filledSlot)
     return true;
 
   return false;
@@ -1019,16 +1016,20 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
   }
 
   const rdcarray<VKPipe::BindingElement> *slotBinds = NULL;
+  int32_t firstUsedBind = 0;
+  int32_t lastUsedBind = 0;
   BindType bindType = BindType::Unknown;
   ShaderStageMask stageBits = ShaderStageMask::Unknown;
   bool pushDescriptor = false;
-  uint32_t dynamicallyUsedCount = 1;
+  uint32_t dynamicallyUsedCount = ~0U;
 
   if(bindset < pipe.descriptorSets.count() && bind < pipe.descriptorSets[bindset].bindings.count())
   {
     pushDescriptor = pipe.descriptorSets[bindset].pushDescriptor;
     dynamicallyUsedCount = pipe.descriptorSets[bindset].bindings[bind].dynamicallyUsedCount;
     slotBinds = &pipe.descriptorSets[bindset].bindings[bind].binds;
+    firstUsedBind = pipe.descriptorSets[bindset].bindings[bind].firstUsedIndex;
+    lastUsedBind = pipe.descriptorSets[bindset].bindings[bind].lastUsedIndex;
     bindType = pipe.descriptorSets[bindset].bindings[bind].type;
     stageBits = pipe.descriptorSets[bindset].bindings[bind].stageFlags;
   }
@@ -1040,6 +1041,12 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       bindType = isrw ? BindType::ReadWriteBuffer : BindType::ReadOnlyBuffer;
     else
       bindType = isrw ? BindType::ReadWriteImage : BindType::ReadOnlyImage;
+  }
+
+  if(m_ShowUnused)
+  {
+    firstUsedBind = 0;
+    lastUsedBind = INT_MAX;
   }
 
   bool usedSlot = bindMap != NULL && bindMap->used && dynamicallyUsedCount > 0;
@@ -1056,7 +1063,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 
   // consider it filled if any array element is filled
   bool filledSlot = false;
-  for(int idx = 0; slotBinds != NULL && idx < slotBinds->count(); idx++)
+  for(int32_t idx = firstUsedBind;
+      slotBinds != NULL && !filledSlot && idx <= lastUsedBind && idx < slotBinds->count(); idx++)
   {
     filledSlot |= (*slotBinds)[idx].resourceResourceId != ResourceId();
     if(bindType == BindType::Sampler || bindType == BindType::ImageSampler)
@@ -1114,7 +1122,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       parentNode = node;
     }
 
-    for(int idx = 0; idx < arrayLength; idx++)
+    for(int idx = firstUsedBind; idx <= lastUsedBind && idx < arrayLength; idx++)
     {
       const VKPipe::BindingElement *descriptorBind = NULL;
       if(slotBinds != NULL)
@@ -1441,7 +1449,9 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   const rdcarray<VKPipe::BindingElement> *slotBinds = NULL;
   BindType bindType = BindType::ConstantBuffer;
   ShaderStageMask stageBits = ShaderStageMask::Unknown;
-  uint32_t dynamicallyUsedCount = 1;
+  uint32_t dynamicallyUsedCount = ~0U;
+  int32_t firstUsedBind = 0;
+  int32_t lastUsedBind = 0;
 
   bool pushDescriptor = false;
 
@@ -1450,8 +1460,16 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
     pushDescriptor = pipe.descriptorSets[bindset].pushDescriptor;
     dynamicallyUsedCount = pipe.descriptorSets[bindset].bindings[bind].dynamicallyUsedCount;
     slotBinds = &pipe.descriptorSets[bindset].bindings[bind].binds;
+    firstUsedBind = pipe.descriptorSets[bindset].bindings[bind].firstUsedIndex;
+    lastUsedBind = pipe.descriptorSets[bindset].bindings[bind].lastUsedIndex;
     bindType = pipe.descriptorSets[bindset].bindings[bind].type;
     stageBits = pipe.descriptorSets[bindset].bindings[bind].stageFlags;
+  }
+
+  if(m_ShowUnused)
+  {
+    firstUsedBind = 0;
+    lastUsedBind = INT_MAX;
   }
 
   bool usedSlot = bindMap != NULL && bindMap->used && dynamicallyUsedCount > 0;
@@ -1466,9 +1484,12 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
 
   // consider it filled if any array element is filled (or it's push constants)
   bool filledSlot = cblock != NULL && !cblock->bufferBacked;
-  for(int idx = 0; slotBinds != NULL && idx < slotBinds->count(); idx++)
+  for(int32_t idx = firstUsedBind;
+      slotBinds != NULL && !filledSlot && idx <= lastUsedBind && idx < slotBinds->count(); idx++)
+  {
     filledSlot |=
         (*slotBinds)[idx].resourceResourceId != ResourceId() || (*slotBinds)[idx].inlineBlock;
+  }
 
   bool containsResource = filledSlot;
 
@@ -1517,7 +1538,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       ubos->showColumn(0);
     }
 
-    for(int idx = 0; idx < arrayLength; idx++)
+    for(int32_t idx = firstUsedBind; idx <= lastUsedBind && idx < arrayLength; idx++)
     {
       const VKPipe::BindingElement *descriptorBind = NULL;
       if(slotBinds != NULL)
@@ -1815,6 +1836,10 @@ void VulkanPipelineStateViewer::setState()
     clearState();
     return;
   }
+
+  // cache latest state of these checkboxes
+  m_ShowUnused = ui->showUnused->isChecked();
+  m_ShowEmpty = ui->showEmpty->isChecked();
 
   m_CombinedImageSamplers.clear();
 
