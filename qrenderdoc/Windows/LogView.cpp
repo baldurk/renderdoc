@@ -48,10 +48,11 @@ class LogItemModel : public QAbstractItemModel
 {
 public:
   LogItemModel(LogView *view) : QAbstractItemModel(view), m_Viewer(view) {}
-  void refresh()
+  void addRows(int numLines)
   {
-    emit beginResetModel();
-    emit endResetModel();
+    int count = rowCount();
+    emit beginInsertRows(QModelIndex(), count - numLines, count - 1);
+    emit endInsertRows();
   }
 
   QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override
@@ -157,17 +158,21 @@ public:
   void refresh()
   {
     emit beginResetModel();
-
-    int numRows = sourceModel()->rowCount();
-
-    m_VisibleRows.clear();
-    m_VisibleRows.reserve(numRows);
-
-    for(int i = 0; i < numRows; i++)
-      if(isVisibleRow(i))
-        m_VisibleRows.push_back(i);
-
     emit endResetModel();
+  }
+
+  void addRows(int addedRows)
+  {
+    int numRows = sourceModel()->rowCount();
+    emit beginInsertRows(QModelIndex(), numRows - addedRows, numRows - 1);
+
+    m_VisibleRows.reserve(m_VisibleRows.count() + addedRows);
+
+    for(int i = 0; i < addedRows; i++)
+      if(isVisibleRow(numRows - addedRows + i))
+        m_VisibleRows.push_back(numRows - addedRows + i);
+
+    emit endInsertRows();
   }
 
   virtual QModelIndex mapFromSource(const QModelIndex &sourceIndex) const override
@@ -188,7 +193,7 @@ public:
     if(proxyIndex.row() >= 0 && proxyIndex.row() < m_VisibleRows.count())
       row = m_VisibleRows[proxyIndex.row()];
 
-    return sourceModel()->index(row, proxyIndex.column(), proxyIndex.parent());
+    return sourceModel()->index(row, proxyIndex.column());
   }
 
   virtual int rowCount(const QModelIndex &parent = QModelIndex()) const override
@@ -330,7 +335,6 @@ LogView::~LogView()
   m_Ctx.BuiltinWindowClosed(this);
 
   m_Messages.clear();
-  m_ItemModel->refresh();
 
   delete ui;
 }
@@ -362,7 +366,7 @@ void LogView::on_save_clicked()
   }
 
   rdcstr contents;
-  RENDERDOC_GetLogFileContents(contents);
+  RENDERDOC_GetLogFileContents(0, contents);
 
   f->write(QByteArray(contents.c_str(), contents.count()));
 
@@ -480,14 +484,14 @@ void LogView::pidFilter_changed(QStandardItem *item)
 void LogView::messages_refresh()
 {
   rdcstr contents;
-  RENDERDOC_GetLogFileContents(contents);
+  RENDERDOC_GetLogFileContents(prevOffset, contents);
 
-  if(prevOffset == contents.size())
+  if(contents.empty())
     return;
 
   // look at all new lines since the last one we saw
-  QStringList lines = QString(contents.substr(prevOffset)).split(QRegularExpression(lit("[\r\n]")));
-  prevOffset = contents.size();
+  QStringList lines = QString(contents).split(QRegularExpression(lit("[\r\n]")));
+  prevOffset += contents.size();
 
   QString r =
       lit("^"                                                // start of the line
@@ -538,8 +542,8 @@ void LogView::messages_refresh()
 
   if(!lines.isEmpty())
   {
-    m_ItemModel->refresh();
-    m_FilterModel->refresh();
+    m_ItemModel->addRows(m_Messages.count() - prevCount);
+    m_FilterModel->addRows(m_Messages.count() - prevCount);
   }
 
   if(ui->followNew->isChecked())

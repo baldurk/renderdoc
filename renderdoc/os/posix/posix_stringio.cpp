@@ -466,7 +466,7 @@ void ReleaseFDAfterFork()
     close(log);
 }
 
-rdcstr logfile_readall(const char *filename)
+rdcstr logfile_readall(uint64_t offset, const char *filename)
 {
   FILE *f = FileIO::fopen(filename, "r");
 
@@ -477,11 +477,16 @@ rdcstr logfile_readall(const char *filename)
 
   FileIO::fseek64(f, 0, SEEK_END);
   uint64_t size = FileIO::ftell64(f);
-  FileIO::fseek64(f, 0, SEEK_SET);
 
-  ret.resize((size_t)size);
+  if(size > offset)
+  {
+    FileIO::fseek64(f, offset, SEEK_SET);
 
-  FileIO::fread(&ret[0], 1, ret.size(), f);
+    ret.resize(size_t(size - offset));
+
+    size_t numRead = FileIO::fread(ret.data(), 1, ret.size(), f);
+    ret.resize(numRead);
+  }
 
   FileIO::fclose(f);
 

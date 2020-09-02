@@ -661,7 +661,7 @@ LogFileHandle *logfile_open(const char *filename)
                                       FILE_ATTRIBUTE_NORMAL, NULL);
 }
 
-static rdcstr logfile_readall_fallback(const wchar_t *filename)
+static rdcstr logfile_readall_fallback(uint64_t offset, const wchar_t *filename)
 {
   // if CreateFile/ReadFile failed, fall back and try regular stdio
   FILE *f = NULL;
@@ -670,14 +670,15 @@ static rdcstr logfile_readall_fallback(const wchar_t *filename)
   {
     ::_fseeki64(f, 0, SEEK_END);
     uint64_t filesize = ::_ftelli64(f);
-    ::_fseeki64(f, 0, SEEK_SET);
 
-    if(filesize > 10)
+    if(filesize > 10 && filesize > offset)
     {
-      rdcstr ret;
-      ret.resize((size_t)filesize);
+      ::_fseeki64(f, offset, SEEK_SET);
 
-      size_t numRead = ::fread(&ret[0], 1, (size_t)filesize, f);
+      rdcstr ret;
+      ret.resize(size_t(filesize - offset));
+
+      size_t numRead = ::fread(&ret[0], 1, ret.size(), f);
       ret.resize(numRead);
 
       ::fclose(f);
@@ -691,11 +692,8 @@ static rdcstr logfile_readall_fallback(const wchar_t *filename)
   return "";
 }
 
-rdcstr logfile_readall(const char *filename)
+rdcstr logfile_readall(uint64_t offset, const char *filename)
 {
-  if(!exists(filename))
-    return StringFormat::Fmt("Logfile '%s' doesn't exist", filename);
-
   rdcwstr wfn = StringFormat::UTF82Wide(filename);
   HANDLE h = CreateFileW(wfn.c_str(), FILE_READ_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -706,27 +704,41 @@ rdcstr logfile_readall(const char *filename)
   {
     DWORD err = GetLastError();
 
-    ret = logfile_readall_fallback(wfn.c_str());
+    if(err == ERROR_FILE_NOT_FOUND)
+      return StringFormat::Fmt("Logfile '%s' doesn't exist", filename);
+
+    ret = logfile_readall_fallback(offset, wfn.c_str());
     ret += StringFormat::Fmt("\n\nCouldn't open logfile, CreateFile() threw %u\n\n", err);
   }
   else
   {
-    DWORD len = ::GetFileSize(h, NULL);
+    DWORD highlen = 0;
+    DWORD len = ::GetFileSize(h, &highlen);
 
     if(len == INVALID_FILE_SIZE)
     {
       DWORD err = GetLastError();
 
-      ret = logfile_readall_fallback(wfn.c_str());
+      ret = logfile_readall_fallback(offset, wfn.c_str());
       ret += StringFormat::Fmt("\n\nFailed to read logfile, GetFileSize() threw %u", err);
     }
     else
     {
-      ret.resize(len);
+      uint64_t length = uint64_t(highlen) << 32 | len;
 
-      DWORD dummy = len;
+      if(offset < length)
+      {
+        LARGE_INTEGER offs;
+        offs.LowPart = (offset & 0xFFFFFFFFU);
+        offs.HighPart = ((offset >> 32) & 0xFFFFFFFFU);
+        ::SetFilePointerEx(h, offs, NULL, FILE_BEGIN);
 
-      ReadFile(h, &ret[0], len, &dummy, NULL);
+        ret.resize(size_t(length - offset));
+
+        DWORD dummy = ret.count();
+
+        ReadFile(h, ret.data(), ret.count(), &dummy, NULL);
+      }
     }
 
     CloseHandle(h);

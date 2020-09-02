@@ -81,7 +81,7 @@ private:
   Ui::LogView *ui;
   ICaptureContext &m_Ctx;
 
-  size_t prevOffset = 0;
+  uint64_t prevOffset = 0;
 
   QVector<LogMessage> m_Messages;
 

@@ -278,9 +278,10 @@ extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetLogFile()
   return RDCGETLOGFILE();
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetLogFileContents(rdcstr &logfile)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetLogFileContents(uint64_t offset,
+                                                                        rdcstr &logfile)
 {
-  logfile = FileIO::logfile_readall(RDCGETLOGFILE());
+  logfile = FileIO::logfile_readall(offset, RDCGETLOGFILE());
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitialiseReplay(GlobalEnvironment env,
@@ -335,7 +336,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_CreateBugReport(const char 
 
   if(logfile && logfile[0])
   {
-    rdcstr contents = FileIO::logfile_readall(logfile);
+    rdcstr contents = FileIO::logfile_readall(0, logfile);
     mz_zip_writer_add_mem(&zip, "error.log", contents.data(), contents.length(), MZ_BEST_COMPRESSION);
   }
 

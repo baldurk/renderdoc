@@ -1688,7 +1688,7 @@ void RenderDoc::FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber)
 
     if(Capture_Debug_SnapshotDiagnosticLog())
     {
-      rdcstr logcontents = FileIO::logfile_readall(RDCGETLOGFILE());
+      rdcstr logcontents = FileIO::logfile_readall(0, RDCGETLOGFILE());
 
       SectionProperties props = {};
       props.type = SectionType::EmbeddedLogfile;
