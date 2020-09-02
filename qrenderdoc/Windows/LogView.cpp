@@ -310,12 +310,10 @@ LogView::LogView(ICaptureContext &ctx, QWidget *parent)
 
   ui->pidFilter->setModel(m_PIDModel);
 
-  {
-    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
-    ui->messages->setHeader(header);
+  ui->messages->header()->setSectionResizeMode(QHeaderView::Fixed);
 
-    header->setColumnStretchHints({-1, -1, -1, -1, -1, 1});
-  }
+  for(int c = 0; c < m_ItemModel->columnCount(); c++)
+    ui->messages->resizeColumnToContents(c);
 
   messages_refresh();
 
@@ -504,6 +502,8 @@ void LogView::messages_refresh()
 
   QRegularExpression logRegex(r);
 
+  int prevCount = m_Messages.count();
+
   for(const QString &line : lines)
   {
     QRegularExpressionMatch match = logRegex.match(line);
@@ -544,6 +544,20 @@ void LogView::messages_refresh()
   {
     m_ItemModel->addRows(m_Messages.count() - prevCount);
     m_FilterModel->addRows(m_Messages.count() - prevCount);
+  }
+
+  // go through each new message and size up columns to fit
+  for(int i = prevCount; i < m_Messages.count(); i++)
+  {
+    for(int c = 0; c < ui->messages->model()->columnCount(); c++)
+    {
+      QSize s = ui->messages->sizeHintForIndex(ui->messages->model()->index(i, c));
+
+      int w = ui->messages->header()->sectionSize(c);
+
+      if(s.width() > w)
+        ui->messages->header()->resizeSection(c, s.width());
+    }
   }
 
   if(ui->followNew->isChecked())
