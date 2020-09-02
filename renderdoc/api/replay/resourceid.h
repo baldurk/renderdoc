@@ -73,6 +73,7 @@ private:
 
 #ifdef RENDERDOC_EXPORTS
   friend ResourceId ResourceIDGen::GetNewUniqueID();
+  friend struct std::hash<ResourceId>;
 #endif
 };
 
@@ -83,3 +84,15 @@ Q_DECLARE_METATYPE(ResourceId);
 #endif
 
 DECLARE_REFLECTION_STRUCT(ResourceId);
+
+// add a std::hash overload so ResourceId can be used in hashmaps
+#ifdef RENDERDOC_EXPORTS
+namespace std
+{
+template <>
+struct hash<ResourceId>
+{
+  std::size_t operator()(const ResourceId &id) const { return std::hash<uint64_t>()(id.id); }
+};
+}
+#endif
