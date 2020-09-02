@@ -848,7 +848,7 @@ ResourceId VulkanResourceManager::GetFirstIDForHandle(uint64_t handle)
 void VulkanResourceManager::MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset,
                                                       VkDeviceSize size, FrameRefType refType)
 {
-  SCOPED_LOCK(m_Lock);
+  SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
   FrameRefType maxRef = MarkMemoryReferenced(m_MemFrameRefs, mem, offset, size, refType);
   if(maxRef == eFrameRef_CompleteWrite)
@@ -869,21 +869,21 @@ void VulkanResourceManager::AddMemoryFrameRefs(ResourceId mem)
 
 void VulkanResourceManager::AddDeviceMemory(ResourceId mem)
 {
-  SCOPED_LOCK(m_Lock);
+  SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
   m_DeviceMemories.insert(mem);
 }
 
 void VulkanResourceManager::RemoveDeviceMemory(ResourceId mem)
 {
-  SCOPED_LOCK(m_Lock);
+  SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
   m_DeviceMemories.erase(mem);
 }
 
 void VulkanResourceManager::MergeReferencedMemory(rdcflatmap<ResourceId, MemRefs> &memRefs)
 {
-  SCOPED_LOCK(m_Lock);
+  SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
   for(auto j = memRefs.begin(); j != memRefs.end(); j++)
   {
@@ -897,7 +897,7 @@ void VulkanResourceManager::MergeReferencedMemory(rdcflatmap<ResourceId, MemRefs
 
 void VulkanResourceManager::ClearReferencedMemory()
 {
-  SCOPED_LOCK(m_Lock);
+  SCOPED_LOCK_OPTIONAL(m_Lock, m_Capturing);
 
   m_MemFrameRefs.clear();
 }
