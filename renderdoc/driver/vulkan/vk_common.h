@@ -1445,6 +1445,23 @@ DECLARE_DESERIALISE_TYPE(VkWin32KeyedMutexAcquireReleaseInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkWin32KeyedMutexAcquireReleaseInfoNV);
 #endif
 
+// android only structs
+#ifdef VK_USE_PLATFORM_ANDROID_KHR
+DECLARE_REFLECTION_STRUCT(VkAndroidHardwareBufferUsageANDROID);
+DECLARE_REFLECTION_STRUCT(VkAndroidHardwareBufferPropertiesANDROID);
+DECLARE_REFLECTION_STRUCT(VkAndroidHardwareBufferFormatPropertiesANDROID);
+DECLARE_REFLECTION_STRUCT(VkImportAndroidHardwareBufferInfoANDROID);
+DECLARE_REFLECTION_STRUCT(VkMemoryGetAndroidHardwareBufferInfoANDROID);
+DECLARE_REFLECTION_STRUCT(VkExternalFormatANDROID);
+
+DECLARE_DESERIALISE_TYPE(VkAndroidHardwareBufferUsageANDROID);
+DECLARE_DESERIALISE_TYPE(VkAndroidHardwareBufferPropertiesANDROID);
+DECLARE_DESERIALISE_TYPE(VkAndroidHardwareBufferFormatPropertiesANDROID);
+DECLARE_DESERIALISE_TYPE(VkImportAndroidHardwareBufferInfoANDROID);
+DECLARE_DESERIALISE_TYPE(VkMemoryGetAndroidHardwareBufferInfoANDROID);
+DECLARE_DESERIALISE_TYPE(VkExternalFormatANDROID);
+#endif
+
 // enums
 
 DECLARE_REFLECTION_ENUM(VkAccessFlagBits);

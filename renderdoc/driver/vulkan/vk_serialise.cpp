@@ -275,7 +275,7 @@ SERIALISE_VK_HANDLES();
 
 #ifdef VK_USE_PLATFORM_WIN32_KHR
 
-#define HANDLE_PNEXT_OS()                                                                             \
+#define HANDLE_PNEXT_OS_WIN32()                                                                       \
   /* VK_NV_external_memory_win32 */                                                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV, VkImportMemoryWin32HandleInfoNV) \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV, VkExportMemoryWin32HandleInfoNV) \
@@ -321,7 +321,7 @@ SERIALISE_VK_HANDLES();
 
 #else
 
-#define HANDLE_PNEXT_OS()                                                             \
+#define HANDLE_PNEXT_OS_WIN32()                                                       \
   /* VK_NV_external_memory_win32 */                                                   \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV)             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV)             \
@@ -356,10 +356,38 @@ SERIALISE_VK_HANDLES();
 
 #endif
 
+#ifdef VK_USE_PLATFORM_ANDROID_KHR
+
+#define HANDLE_PNEXT_OS_ANDROID()                                                   \
+  /* VK_ANDROID_external_memory_android_hardware_buffer */                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID,             \
+               VkAndroidHardwareBufferUsageANDROID)                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID,        \
+               VkAndroidHardwareBufferPropertiesANDROID)                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID, \
+               VkAndroidHardwareBufferFormatPropertiesANDROID)                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID,       \
+               VkImportAndroidHardwareBufferInfoANDROID)                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID,   \
+               VkMemoryGetAndroidHardwareBufferInfoANDROID)                         \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID, VkExternalFormatANDROID)
+#else
+
+#define HANDLE_PNEXT_OS_ANDROID()                                                        \
+  /* VK_ANDROID_external_memory_android_hardware_buffer */                               \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID)             \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID)        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID) \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID)       \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID)   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID)
+#endif
+
 // pNext structure type dispatch
 #define HANDLE_PNEXT()                                                                                 \
   /* OS-specific extensions */                                                                         \
-  HANDLE_PNEXT_OS()                                                                                    \
+  HANDLE_PNEXT_OS_WIN32()                                                                              \
+  HANDLE_PNEXT_OS_ANDROID()                                                                            \
                                                                                                        \
   /* Core 1.0 structs. Should never be serialised in a pNext chain */                                  \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_APPLICATION_INFO, VkApplicationInfo)                                  \
@@ -1057,14 +1085,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_AMD_shader_core_properties2 */                                                                 \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_PROPERTIES_2_AMD)                    \
-                                                                                                       \
-  /* VK_ANDROID_external_memory_android_hardware_buffer */                                             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID)                           \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID)                      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID)               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID)                     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID)                 \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID)                                         \
                                                                                                        \
   /* VK_EXT_blend_operation_advanced */                                                                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_FEATURES_EXT)           \
@@ -9318,4 +9338,115 @@ INSTANTIATE_SERIALISE_TYPE(VkFenceGetWin32HandleInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceCapabilitiesFullScreenExclusiveEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceFullScreenExclusiveInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceFullScreenExclusiveWin32InfoEXT);
+#endif
+
+#ifdef VK_USE_PLATFORM_ANDROID_KHR
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAndroidHardwareBufferPropertiesANDROID &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(allocationSize);
+  SERIALISE_MEMBER_TYPED(uint32_t, memoryTypeBits);
+}
+
+template <>
+void Deserialise(const VkAndroidHardwareBufferPropertiesANDROID &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkMemoryGetAndroidHardwareBufferInfoANDROID &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_MEMORY_GET_ANDROID_HARDWARE_BUFFER_INFO_ANDROID);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(memory);
+}
+
+template <>
+void Deserialise(const VkMemoryGetAndroidHardwareBufferInfoANDROID &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAndroidHardwareBufferFormatPropertiesANDROID &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(format);
+  SERIALISE_MEMBER(externalFormat);
+  SERIALISE_MEMBER_VKFLAGS(VkFormatFeatureFlags, formatFeatures);
+  SERIALISE_MEMBER(samplerYcbcrConversionComponents);
+  SERIALISE_MEMBER(suggestedYcbcrModel);
+  SERIALISE_MEMBER(suggestedYcbcrRange);
+  SERIALISE_MEMBER(suggestedXChromaOffset);
+  SERIALISE_MEMBER(suggestedYChromaOffset);
+}
+
+template <>
+void Deserialise(const VkAndroidHardwareBufferFormatPropertiesANDROID &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkExternalFormatANDROID &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(externalFormat);
+}
+
+template <>
+void Deserialise(const VkExternalFormatANDROID &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkAndroidHardwareBufferUsageANDROID &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(androidHardwareBufferUsage);
+}
+
+template <>
+void Deserialise(const VkAndroidHardwareBufferUsageANDROID &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImportAndroidHardwareBufferInfoANDROID &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  // SERIALISE_MEMBER(buffer);
+}
+
+template <>
+void Deserialise(const VkImportAndroidHardwareBufferInfoANDROID &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+INSTANTIATE_SERIALISE_TYPE(VkAndroidHardwareBufferUsageANDROID);
+INSTANTIATE_SERIALISE_TYPE(VkAndroidHardwareBufferPropertiesANDROID);
+INSTANTIATE_SERIALISE_TYPE(VkAndroidHardwareBufferFormatPropertiesANDROID);
+INSTANTIATE_SERIALISE_TYPE(VkImportAndroidHardwareBufferInfoANDROID);
+INSTANTIATE_SERIALISE_TYPE(VkMemoryGetAndroidHardwareBufferInfoANDROID);
+INSTANTIATE_SERIALISE_TYPE(VkExternalFormatANDROID);
 #endif
