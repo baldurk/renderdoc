@@ -63,26 +63,40 @@ static QMap<QString, ShaderEncoding> encodingExtensions = {
 
 Q_DECLARE_METATYPE(Following);
 
-const Following Following::Default = Following();
-
-Following::Following(FollowType t, ShaderStage s, int i, int a)
+Following::Following(const TextureViewer &tex, FollowType t, ShaderStage s, int i, int a) : tex(tex)
 {
   Type = t;
   Stage = s;
   index = i;
   arrayEl = a;
-  readOnlyResources = NULL;
-  readWriteResources = NULL;
 }
 
-Following::Following()
+Following::Following(const Following &other) : tex(other.tex)
 {
-  Type = FollowType::OutputColour;
-  Stage = ShaderStage::Pixel;
-  index = 0;
-  arrayEl = 0;
-  readOnlyResources = NULL;
-  readWriteResources = NULL;
+  Type = other.Type;
+  Stage = other.Stage;
+  index = other.index;
+  arrayEl = other.arrayEl;
+}
+
+namespace FollowingInternal
+{
+TextureViewer *invalid = NULL;
+};
+
+Following::Following() : tex(*FollowingInternal::invalid)
+{
+  // we need a default constructor for QVariant but we don't want it to be valid, we always
+  // initialise Following() with a TextureViewer reference.
+}
+
+Following &Following::operator=(const Following &other)
+{
+  Type = other.Type;
+  Stage = other.Stage;
+  index = other.index;
+  arrayEl = other.arrayEl;
+  return *this;
 }
 
 bool Following::operator!=(const Following &o)
@@ -103,13 +117,6 @@ void Following::GetDrawContext(ICaptureContext &ctx, bool &copy, bool &clear, bo
   clear = curDraw != NULL && (curDraw->flags & DrawFlags::Clear);
   compute = curDraw != NULL && (curDraw->flags & DrawFlags::Dispatch) &&
             ctx.CurPipelineState().GetShader(ShaderStage::Compute) != ResourceId();
-}
-
-void Following::SetResources(const rdcarray<BoundResourceArray> &readOnly,
-                             const rdcarray<BoundResourceArray> &readWrite)
-{
-  readOnlyResources = &readOnly;
-  readWriteResources = &readWrite;
 }
 
 int Following::GetHighestMip(ICaptureContext &ctx)
@@ -149,8 +156,7 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
   }
   else if(Type == FollowType::ReadWrite)
   {
-    const rdcarray<BoundResourceArray> &rw =
-        (readWriteResources != NULL) ? *readWriteResources : GetReadWriteResources(ctx);
+    const rdcarray<BoundResourceArray> &rw = tex.m_ReadWriteResources[(int)Stage];
 
     ShaderBindpointMapping mapping = GetMapping(ctx);
 
@@ -165,8 +171,7 @@ BoundResource Following::GetBoundResource(ICaptureContext &ctx, int arrayIdx)
   }
   else if(Type == FollowType::ReadOnly)
   {
-    const rdcarray<BoundResourceArray> &ro =
-        (readOnlyResources != NULL) ? *readOnlyResources : GetReadOnlyResources(ctx);
+    const rdcarray<BoundResourceArray> &ro = tex.m_ReadOnlyResources[(int)Stage];
 
     ShaderBindpointMapping mapping = GetMapping(ctx);
 
@@ -557,7 +562,10 @@ void TextureViewer::UI_UpdateCachedTexture()
 }
 
 TextureViewer::TextureViewer(ICaptureContext &ctx, QWidget *parent)
-    : QFrame(parent), ui(new Ui::TextureViewer), m_Ctx(ctx)
+    : QFrame(parent),
+      ui(new Ui::TextureViewer),
+      m_Ctx(ctx),
+      m_Following(*this, FollowType::OutputColour, ShaderStage::Pixel, 0, 0)
 {
   ui->setupUi(this);
 
@@ -2376,9 +2384,8 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
         bindName = tr("Source");
       }
 
-      Following follow(rw ? FollowType::ReadWrite : FollowType::ReadOnly, stage, idx, arrayIdx);
-      follow.SetResources(m_ReadOnlyResources[(uint32_t)follow.Stage],
-                          m_ReadWriteResources[(uint32_t)follow.Stage]);
+      Following follow(*this, rw ? FollowType::ReadWrite : FollowType::ReadOnly, stage, idx,
+                       arrayIdx);
       QString slotName = QFormatStr("%1 %2%3")
                              .arg(m_Ctx.CurPipelineState().Abbrev(stage))
                              .arg(rw ? lit("RW ") : lit(""))
@@ -2451,8 +2458,6 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
     ResourcePreview *prev = qobject_cast<ResourcePreview *>(QObject::sender());
 
     Following follow = prev->property("f").value<Following>();
-    follow.SetResources(m_ReadOnlyResources[(uint32_t)follow.Stage],
-                        m_ReadWriteResources[(uint32_t)follow.Stage]);
 
     for(ResourcePreview *p : ui->outputThumbs->thumbs())
       p->setSelected(false);
@@ -2460,7 +2465,7 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
     for(ResourcePreview *p : ui->inputThumbs->thumbs())
       p->setSelected(false);
 
-    m_Following = follow;
+    m_Following = Following(follow);
     prev->setSelected(true);
 
     UI_UpdateCachedTexture();
@@ -2479,8 +2484,6 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
     ResourcePreview *prev = qobject_cast<ResourcePreview *>(QObject::sender());
 
     Following follow = prev->property("f").value<Following>();
-    follow.SetResources(m_ReadOnlyResources[(uint32_t)follow.Stage],
-                        m_ReadWriteResources[(uint32_t)follow.Stage]);
 
     ResourceId id = follow.GetResourceId(m_Ctx);
 
@@ -3024,7 +3027,7 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
 
     outIndex++;
 
-    Following follow(FollowType::OutputColour, ShaderStage::Pixel, rt, 0);
+    Following follow(*this, FollowType::OutputColour, ShaderStage::Pixel, rt, 0);
     QString bindName = (copy || clear) ? tr("Destination") : QString();
     QString slotName = (copy || clear)
                            ? tr("DST")
@@ -3044,7 +3047,7 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
 
     outIndex++;
 
-    Following follow(FollowType::OutputDepth, ShaderStage::Pixel, 0, 0);
+    Following follow(*this, FollowType::OutputDepth, ShaderStage::Pixel, 0, 0);
 
     InitResourcePreview(prev, Depth, false, follow, QString(), tr("DS"));
   }
