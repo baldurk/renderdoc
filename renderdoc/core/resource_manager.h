@@ -28,6 +28,8 @@
 #include <algorithm>
 #include <map>
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 #include "api/replay/rdcflatmap.h"
 #include "api/replay/resourceid.h"
 #include "common/threading.h"
@@ -727,30 +729,30 @@ protected:
 
   // used during capture or replay - map of resources currently alive with their real IDs, used in
   // capture and replay.
-  std::map<ResourceId, WrappedResourceType> m_CurrentResourceMap;
+  std::unordered_map<ResourceId, WrappedResourceType> m_CurrentResourceMap;
 
   // used during replay - maps back and forth from original id to live id and vice-versa
-  std::map<ResourceId, ResourceId> m_OriginalIDs, m_LiveIDs;
+  std::unordered_map<ResourceId, ResourceId> m_OriginalIDs, m_LiveIDs;
 
   // used during replay - holds resources allocated and the original id that they represent
-  std::map<ResourceId, WrappedResourceType> m_LiveResourceMap;
+  std::unordered_map<ResourceId, WrappedResourceType> m_LiveResourceMap;
 
   // used during capture - holds resource records by id.
-  std::map<ResourceId, RecordType *> m_ResourceRecords;
+  std::unordered_map<ResourceId, RecordType *> m_ResourceRecords;
   Threading::RWLock m_ResourceRecordLock;
 
   // used during replay - holds current resource replacements
   // replaced -> replacement
-  std::map<ResourceId, ResourceId> m_Replacements;
+  std::unordered_map<ResourceId, ResourceId> m_Replacements;
   // replacement -> replaced (for looking up original IDs)
-  std::map<ResourceId, ResourceId> m_Replaced;
+  std::unordered_map<ResourceId, ResourceId> m_Replaced;
 
   // During initial resources preparation, persistent resources are
   // postponed until serializing to RDC file.
-  std::set<ResourceId> m_PostponedResourceIDs;
+  std::unordered_set<ResourceId> m_PostponedResourceIDs;
   // During initial resources preparation, resources that are completely written
   // over are skipped
-  std::set<ResourceId> m_SkippedResourceIDs;
+  std::unordered_set<ResourceId> m_SkippedResourceIDs;
 
   struct ResourceRefTimes
   {

@@ -325,6 +325,9 @@ rdcarray<BufferDescription> VulkanReplay::GetBuffers()
     bufs.push_back(GetBuffer(it->first));
   }
 
+  // sort the buffers by ID
+  std::sort(bufs.begin(), bufs.end());
+
   return bufs;
 }
 

@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <unordered_map>
 #include "driver/shaders/spirv/spirv_reflect.h"
 #include "vk_common.h"
 #include "vk_manager.h"
@@ -373,7 +374,7 @@ struct VulkanCreationInfo
     rdcarray<VkRect2D> discardRectangles;
     VkDiscardRectangleModeEXT discardMode;
   };
-  std::map<ResourceId, Pipeline> m_Pipeline;
+  std::unordered_map<ResourceId, Pipeline> m_Pipeline;
 
   struct PipelineLayout
   {
@@ -383,7 +384,7 @@ struct VulkanCreationInfo
     rdcarray<VkPushConstantRange> pushRanges;
     rdcarray<ResourceId> descSetLayouts;
   };
-  std::map<ResourceId, PipelineLayout> m_PipelineLayout;
+  std::unordered_map<ResourceId, PipelineLayout> m_PipelineLayout;
 
   struct RenderPass
   {
@@ -435,7 +436,7 @@ struct VulkanCreationInfo
     // in the layout that the subpass uses
     rdcarray<VkRenderPass> loadRPs;
   };
-  std::map<ResourceId, RenderPass> m_RenderPass;
+  std::unordered_map<ResourceId, RenderPass> m_RenderPass;
 
   struct Framebuffer
   {
@@ -455,7 +456,7 @@ struct VulkanCreationInfo
     // See above in loadRPs - we need to duplicate and make framebuffer equivalents for each
     rdcarray<VkFramebuffer> loadFBs;
   };
-  std::map<ResourceId, Framebuffer> m_Framebuffer;
+  std::unordered_map<ResourceId, Framebuffer> m_Framebuffer;
 
   struct Memory
   {
@@ -485,7 +486,7 @@ struct VulkanCreationInfo
 
     void SimplifyBindings();
   };
-  std::map<ResourceId, Memory> m_Memory;
+  std::unordered_map<ResourceId, Memory> m_Memory;
 
   struct Buffer
   {
@@ -496,7 +497,7 @@ struct VulkanCreationInfo
     uint64_t size;
     uint64_t gpuAddress;
   };
-  std::map<ResourceId, Buffer> m_Buffer;
+  std::unordered_map<ResourceId, Buffer> m_Buffer;
 
   struct BufferView
   {
@@ -508,7 +509,7 @@ struct VulkanCreationInfo
     uint64_t offset;
     uint64_t size;
   };
-  std::map<ResourceId, BufferView> m_BufferView;
+  std::unordered_map<ResourceId, BufferView> m_BufferView;
 
   struct Image
   {
@@ -525,7 +526,7 @@ struct VulkanCreationInfo
     bool cube;
     TextureCategory creationFlags;
   };
-  std::map<ResourceId, Image> m_Image;
+  std::unordered_map<ResourceId, Image> m_Image;
 
   struct Sampler
   {
@@ -556,7 +557,7 @@ struct VulkanCreationInfo
     VkClearColorValue customBorderColor;
     VkFormat customBorderFormat;
   };
-  std::map<ResourceId, Sampler> m_Sampler;
+  std::unordered_map<ResourceId, Sampler> m_Sampler;
 
   struct YCbCrSampler
   {
@@ -571,7 +572,7 @@ struct VulkanCreationInfo
     FilterMode chromaFilter;
     bool forceExplicitReconstruction;
   };
-  std::map<ResourceId, YCbCrSampler> m_YCbCrSampler;
+  std::unordered_map<ResourceId, YCbCrSampler> m_YCbCrSampler;
 
   struct ImageView
   {
@@ -584,7 +585,7 @@ struct VulkanCreationInfo
     VkImageSubresourceRange range;
     VkComponentMapping componentMapping;
   };
-  std::map<ResourceId, ImageView> m_ImageView;
+  std::unordered_map<ResourceId, ImageView> m_ImageView;
 
   struct ShaderModule
   {
@@ -608,7 +609,7 @@ struct VulkanCreationInfo
 
     std::map<ShaderModuleReflectionKey, ShaderModuleReflection> m_Reflections;
   };
-  std::map<ResourceId, ShaderModule> m_ShaderModule;
+  std::unordered_map<ResourceId, ShaderModule> m_ShaderModule;
 
   struct DescSetPool
   {
@@ -622,7 +623,7 @@ struct VulkanCreationInfo
 
     rdcarray<VkDescriptorPool> overflow;
   };
-  std::map<ResourceId, DescSetPool> m_DescSetPool;
+  std::unordered_map<ResourceId, DescSetPool> m_DescSetPool;
 
   struct QueryPool
   {
@@ -633,15 +634,15 @@ struct VulkanCreationInfo
     uint32_t queryCount;
     VkQueryPipelineStatisticFlags pipelineStatistics;
   };
-  std::map<ResourceId, QueryPool> m_QueryPool;
+  std::unordered_map<ResourceId, QueryPool> m_QueryPool;
 
-  std::map<ResourceId, rdcstr> m_Names;
-  std::map<ResourceId, SwapchainInfo> m_SwapChain;
-  std::map<ResourceId, DescSetLayout> m_DescSetLayout;
-  std::map<ResourceId, DescUpdateTemplate> m_DescUpdateTemplate;
+  std::unordered_map<ResourceId, rdcstr> m_Names;
+  std::unordered_map<ResourceId, SwapchainInfo> m_SwapChain;
+  std::unordered_map<ResourceId, DescSetLayout> m_DescSetLayout;
+  std::unordered_map<ResourceId, DescUpdateTemplate> m_DescUpdateTemplate;
 
   // just contains the queueFamilyIndex (after remapping)
-  std::map<ResourceId, uint32_t> m_Queue;
+  std::unordered_map<ResourceId, uint32_t> m_Queue;
 
   void erase(ResourceId id)
   {
