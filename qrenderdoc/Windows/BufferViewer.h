@@ -208,6 +208,7 @@ private:
   RDTableView *m_CurView = NULL;
   int m_ContextColumn = -1;
 
+  int m_ColumnWidthRowCount = -1;
   int m_IdxColWidth;
   int m_DataColWidth;
   int m_DataRowHeight;

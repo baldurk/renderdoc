@@ -3641,6 +3641,14 @@ void BufferViewer::ClearModels()
 
 void BufferViewer::CalcColumnWidth(int maxNumRows)
 {
+  // while the calculated column widths aren't actually isn't quite based on maxNumRows, it can only
+  // be affected by a style change so that is good enough for us to cache it and save time
+  // recalculating this repeatedly.
+  if(m_ColumnWidthRowCount == maxNumRows)
+    return;
+
+  m_ColumnWidthRowCount = maxNumRows;
+
   ResourceFormat floatFmt;
   floatFmt.compByteWidth = 4;
   floatFmt.compType = CompType::Float;
