@@ -120,6 +120,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used to emulate half-precision operations in shader debugging.
 
+* `Superluminal <https://superluminal.eu/>`_ - Copyright (c) 2019-2020 Superluminal. Distributed under the BSD License.
+
+  Used to emit profiling events in development builds.
+
 Thanks
 ------
 

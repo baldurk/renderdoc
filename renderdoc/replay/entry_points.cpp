@@ -34,6 +34,7 @@
 #include "miniz/miniz.h"
 #include "replay/replay_driver.h"
 #include "strings/string_utils.h"
+#include "superluminal/superluminal.h"
 
 // these entry points are for the replay/analysis side - not for the application.
 
@@ -983,4 +984,14 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pytho
     wideArgStrings[i] = wideArgs[i].data();
 
   return mainFunc((int)wideArgStrings.size(), wideArgStrings.data());
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BeginProfileRegion(const rdcstr &name)
+{
+  Superluminal::BeginProfileRange(name);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndProfileRegion()
+{
+  Superluminal::EndProfileRange();
 }

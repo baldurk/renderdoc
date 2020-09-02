@@ -2175,3 +2175,37 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunUnitTests(const rdcstr &c
 DOCUMENT("Internal function that runs functional tests.");
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(int pythonMinorVersion,
                                                                        const rdcarray<rdcstr> &args);
+
+#if !defined(SWIG)
+#include "version.h"
+
+DOCUMENT("Internal function that begins a profile region.");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BeginProfileRegion(const rdcstr &name);
+
+DOCUMENT("Internal function that ends a profile region.");
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndProfileRegion();
+
+// don't define profile regions in stable builds
+#if RENDERDOC_STABLE_BUILD
+
+#define RENDERDOC_PROFILEREGION(name)
+
+#else
+
+struct RENDERDOC_ProfileRegion
+{
+  RENDERDOC_ProfileRegion(const rdcstr &name) { RENDERDOC_BeginProfileRegion(name); }
+  ~RENDERDOC_ProfileRegion() { RENDERDOC_EndProfileRegion(); }
+};
+
+#define RENDERDOC_PROFILEREGION(name) RENDERDOC_ProfileRegion profile##__LINE__(name);
+
+#endif
+
+#if defined(RENDERDOC_PLATFORM_WIN32)
+#define RENDERDOC_PROFILEFUNCTION() RENDERDOC_PROFILEREGION(__FUNCSIG__);
+#else
+#define RENDERDOC_PROFILEFUNCTION() RENDERDOC_PROFILEREGION(__PRETTY_FUNCTION__);
+#endif
+
+#endif

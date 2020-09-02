@@ -37,6 +37,7 @@
 #include "serialise/serialiser.h"
 #include "stb/stb_image_write.h"
 #include "strings/string_utils.h"
+#include "superluminal/superluminal.h"
 #include "crash_handler.h"
 
 #include "api/replay/renderdoc_tostr.inl"
@@ -352,6 +353,10 @@ void RenderDoc::Initialise()
   Network::Init();
 
   Threading::Init();
+
+#if !RENDERDOC_STABLE_BUILD
+  Superluminal::Init();
+#endif
 
   m_RemoteIdent = 0;
   m_RemoteThread = 0;

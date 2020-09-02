@@ -143,6 +143,8 @@
     <ClInclude Include="3rdparty\stb\stb_image_resize.h" />
     <ClInclude Include="3rdparty\stb\stb_image_write.h" />
     <ClInclude Include="3rdparty\stb\stb_truetype.h" />
+    <ClInclude Include="3rdparty\superluminal\PerformanceAPI_capi.h" />
+    <ClInclude Include="3rdparty\superluminal\superluminal.h" />
     <ClInclude Include="3rdparty\tinyexr\tinyexr.h" />
     <ClInclude Include="3rdparty\tinyfiledialogs\tinyfiledialogs.h" />
     <ClInclude Include="3rdparty\zstd\bitstream.h" />
@@ -351,6 +353,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
+    <ClCompile Include="3rdparty\superluminal\superluminal.cpp" />
     <ClCompile Include="3rdparty\tinyexr\tinyexr.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ForcedIncludeFiles>

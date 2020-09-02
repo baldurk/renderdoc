@@ -142,6 +142,9 @@
     <Filter Include="3rdparty\compressonator">
       <UniqueIdentifier>{3d212b9b-bf42-40db-84a3-b94e064fd281}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\superluminal">
+      <UniqueIdentifier>{11053d6b-5b03-44ff-80f3-088d34c66b0a}</UniqueIdentifier>
+    </Filter>
     <Filter Include="3rdparty\half">
       <UniqueIdentifier>{1b49d2aa-1cfb-4f0a-8fcf-1065af55ea2b}</UniqueIdentifier>
     </Filter>
@@ -552,6 +555,12 @@
     <ClInclude Include="api\replay\rdcflatmap.h">
       <Filter>API\Replay</Filter>
     </ClInclude>
+    <ClInclude Include="3rdparty\superluminal\superluminal.h">
+      <Filter>3rdparty\superluminal</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\superluminal\PerformanceAPI_capi.h">
+      <Filter>3rdparty\superluminal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -958,6 +967,9 @@
     </ClCompile>
     <ClCompile Include="3rdparty\compressonator\BC7_Encode_Kernel.cpp">
       <Filter>3rdparty\compressonator</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\superluminal\superluminal.cpp">
+      <Filter>3rdparty\superluminal</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
