@@ -1011,6 +1011,12 @@ struct ImageState;
 
 struct CmdBufferRecordingInfo
 {
+  ~CmdBufferRecordingInfo()
+  {
+    if(alloc)
+      alloc->ResetPageSet(pageSet);
+  }
+
   VkDevice device;
   VkCommandBufferAllocateInfo allocInfo;
 

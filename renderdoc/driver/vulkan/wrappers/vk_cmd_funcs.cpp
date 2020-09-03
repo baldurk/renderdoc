@@ -1020,8 +1020,6 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
     if(record->bakedCommands)
       record->bakedCommands->Delete(GetResourceManager());
 
-    record->cmdInfo->alloc->ResetPageSet(record->cmdInfo->pageSet);
-
     record->bakedCommands = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
     record->bakedCommands->DisableChunkLocking();
     record->bakedCommands->InternalResource = true;
@@ -1242,7 +1240,7 @@ VkResult WrappedVulkan::vkEndCommandBuffer(VkCommandBuffer commandBuffer)
 
     // if we can't reset command buffers there's no need to claim a set of pages
     if(record->pool->cmdPoolInfo->allowCmdBufReset)
-      record->cmdInfo->pageSet = record->cmdInfo->alloc->GetPageSet();
+      record->bakedCommands->cmdInfo->pageSet = record->cmdInfo->alloc->GetPageSet();
 
     record->Bake();
   }
@@ -1271,8 +1269,6 @@ VkResult WrappedVulkan::vkResetCommandBuffer(VkCommandBuffer commandBuffer,
     // we don't need to record or replay when a ResetCommandBuffer happens
     if(record->bakedCommands)
       record->bakedCommands->Delete(GetResourceManager());
-
-    record->cmdInfo->alloc->ResetPageSet(record->cmdInfo->pageSet);
 
     record->bakedCommands = NULL;
   }
