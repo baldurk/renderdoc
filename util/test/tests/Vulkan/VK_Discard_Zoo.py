@@ -32,6 +32,8 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
                 self.check_pixel_value(rpcol.resourceId, x, y, [0.0, 1.0, 0.0, 1.0])
                 self.check_pixel_value(rpdepth.resourceId, x, y, [0.4, float(0x40)/float(255), 0.0, 1.0])
 
+        rdtest.log.success("Values are correct before the renderpass")
+
         draw = self.find_draw("TestMiddle")
 
         self.controller.SetFrameEvent(draw.next.eventId, True)
@@ -62,6 +64,8 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
         middle_col_bytes = self.controller.GetTextureData(rpcol.resourceId, rd.Subresource())
         middle_depth_bytes = self.controller.GetTextureData(rpdepth.resourceId, rd.Subresource())
 
+        rdtest.log.success("Values are correct in the middle of the renderpass")
+
         draw = self.find_draw("TestEnd")
 
         self.controller.SetFrameEvent(draw.next.eventId, True)
@@ -88,6 +92,8 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
                 else:
                     self.check_pixel_value(rpcol.resourceId, x, y, [0.0, 1.0, 0.0, 1.0])
                     self.check_pixel_value(rpdepth.resourceId, x, y, [0.4, float(0x40)/float(255), 0.0, 1.0])
+
+        rdtest.log.success("Values are correct after the renderpass")
 
         end_col_bytes = self.controller.GetTextureData(rpcol.resourceId, rd.Subresource())
         end_depth_bytes = self.controller.GetTextureData(rpdepth.resourceId, rd.Subresource())
