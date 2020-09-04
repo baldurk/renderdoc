@@ -1084,6 +1084,10 @@ bool WrappedVulkan::Serialise_vkCmdSetPrimitiveTopologyEXT(SerialiserType &ser,
         commandBuffer = VK_NULL_HANDLE;
       }
     }
+    else
+    {
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.primitiveTopology = primitiveTopology;
+    }
 
     if(commandBuffer != VK_NULL_HANDLE)
       ObjDisp(commandBuffer)->CmdSetPrimitiveTopologyEXT(Unwrap(commandBuffer), primitiveTopology);

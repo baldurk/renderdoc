@@ -2312,8 +2312,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   }
 
   // fill out m_PostVS.Data
-  m_PostVS.Data[eventId].vsin.topo = pipeCreateInfo.pInputAssemblyState->topology;
-  m_PostVS.Data[eventId].vsout.topo = pipeCreateInfo.pInputAssemblyState->topology;
+  m_PostVS.Data[eventId].vsin.topo = state.primitiveTopology;
+  m_PostVS.Data[eventId].vsout.topo = state.primitiveTopology;
   m_PostVS.Data[eventId].vsout.buf = meshBuffer;
   m_PostVS.Data[eventId].vsout.bufmem = meshMem;
 
