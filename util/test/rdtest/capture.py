@@ -185,7 +185,7 @@ def run_and_capture(exe: str, cmdline: str, frame: int, *, capture_name=None, op
     captures = control.captures()
 
     if logfile is not None and os.path.exists(logfile):
-        log.inline_file('Process output', logfile)
+        log.inline_file('Process output', logfile, with_stdout=True)
 
     if len(captures) == 0:
         raise RuntimeError("No capture made")

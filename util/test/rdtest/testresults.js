@@ -11,13 +11,17 @@ document.body.onload = function() {
 
   function linkTests(str) {
   	var ret = str;
-  	console.log("Linking tests in '" + str + "'");
   	for(var i=0; i < test_list.length; i++)	{
-  		console.log("Checking against " + test_list[i]);
   		ret = ret.replace(new RegExp('([^#">])\\b' + test_list[i] + '\\b', "g"), '$1<a href="#' + test_list[i] + '">' + test_list[i] + '</a>');
 		}
-		console.log("Got ret: " + ret)
 		return ret;
+	}
+
+	window.onhashchange = function() {
+		test = window.location.hash.substr(1)
+		if(test_list.indexOf(test) >= 0) {
+			document.getElementById(test).classList.add('expanded');
+		}
 	}
 
   function formatDiff(diff) {
