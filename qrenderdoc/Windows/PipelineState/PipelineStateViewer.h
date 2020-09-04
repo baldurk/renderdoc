@@ -86,6 +86,8 @@ public slots:
   void shaderEdit_clicked();
 
 private:
+  void showEvent(QShowEvent *event) override;
+
   Ui::PipelineStateViewer *ui;
   ICaptureContext &m_Ctx;
 

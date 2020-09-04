@@ -94,8 +94,6 @@ PipelineStateViewer::PipelineStateViewer(ICaptureContext &ctx, QWidget *parent)
   for(size_t i = 0; i < ARRAY_COUNT(editMenus); i++)
     editMenus[i] = new QMenu(this);
 
-  setToD3D11();
-
   m_Ctx.AddCaptureViewer(this);
 }
 
@@ -645,6 +643,16 @@ void PipelineStateViewer::MakeShaderVariablesHLSL(bool cbufferContents,
       struct_contents += lit(";");
 
     struct_contents += lit("\n");
+  }
+}
+
+void PipelineStateViewer::showEvent(QShowEvent *event)
+{
+  // we didn't set any default pipeline state in case it would be overridden by the persist data.
+  // But if we don't have any persist data and we're about to show, default to D3D11.
+  if(m_Current == NULL)
+  {
+    setToD3D11();
   }
 }
 
