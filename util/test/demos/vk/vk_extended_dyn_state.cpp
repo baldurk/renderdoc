@@ -47,6 +47,8 @@ RD_TEST(VK_Extended_Dynamic_State, VulkanGraphicsTest)
     if(!extFeatures.extendedDynamicState)
       Avail = "feature 'extendedDynamicState' not available";
 
+    features.depthBounds = VK_TRUE;
+
     devInfoNext = &extFeatures;
   }
 
@@ -104,13 +106,13 @@ RD_TEST(VK_Extended_Dynamic_State, VulkanGraphicsTest)
     pipeCreateInfo.depthStencilState.back = pipeCreateInfo.depthStencilState.front;
 
     const DefaultA2V tris[6] = {
-        {Vec3f(-0.75f, 0.5f, 0.4f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(-0.25f, -0.5f, 0.4f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(0.25f, 0.5f, 0.4f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.75f, -0.5f, 0.4f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(-0.25f, 0.5f, 0.4f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.25f, -0.5f, 0.4f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
 
-        {Vec3f(-0.25f, 0.5f, 0.6f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-        {Vec3f(0.25f, -0.5f, 0.6f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-        {Vec3f(0.75f, 0.5f, 0.6f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+        {Vec3f(-0.25f, -0.5f, 0.6f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+        {Vec3f(0.25f, 0.5f, 0.6f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+        {Vec3f(0.75f, -0.5f, 0.6f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
     };
 
     AllocatedBuffer vb(this,
