@@ -72,6 +72,7 @@ void main()
     struct ctxdata
     {
       void *ctx;
+      GraphicsWindow *win;
 
       std::atomic_bool rendering;
 
@@ -114,8 +115,12 @@ void main()
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    A.ctx = MakeContext(mainWindow, mainContext);
-    B.ctx = MakeContext(mainWindow, mainContext);
+    A.win = MakeWindow(32, 32, NULL);
+    B.win = MakeWindow(32, 32, NULL);
+    A.ctx = MakeContext(A.win, mainContext);
+    B.ctx = MakeContext(B.win, mainContext);
+
+    ActivateContext(mainWindow, mainContext);
 
     std::atomic_bool quit;
     quit = false;
@@ -123,7 +128,7 @@ void main()
     auto windowThread = [&](int idx) {
       ctxdata &ctx = (idx == 0 ? A : B);
 
-      ActivateContext(mainWindow, ctx.ctx);
+      ActivateContext(ctx.win, ctx.ctx);
 
       glGenVertexArrays(1, &ctx.VAO);
       glBindVertexArray(ctx.VAO);
@@ -175,7 +180,7 @@ void main()
       glDeleteFramebuffers(1, &ctx.FBO);
       glDeleteVertexArrays(1, &ctx.VAO);
 
-      ActivateContext(mainWindow, NULL);
+      ActivateContext(ctx.win, NULL);
     };
 
     std::thread thread_A(windowThread, 0);
@@ -217,6 +222,8 @@ void main()
 
     DestroyContext(A.ctx);
     DestroyContext(B.ctx);
+    delete A.win;
+    delete B.win;
 
     return 0;
   }

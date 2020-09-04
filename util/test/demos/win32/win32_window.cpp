@@ -97,6 +97,7 @@ Win32Window::Win32Window(int width, int height, const char *title)
 Win32Window::~Win32Window()
 {
   DestroyWindow(wnd);
+  wnd = NULL;
 }
 
 void Win32Window::Resize(int width, int height)
