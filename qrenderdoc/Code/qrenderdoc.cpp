@@ -189,11 +189,7 @@ int main(int argc, char *argv[])
   bool parsedCommands = parser.parse(application.arguments());
 
   if(!parsedCommands)
-  {
-    QString error = parser.errorText();
-    printf("%s\n", error.toUtf8().data());
-    return 1;
-  }
+    qCritical() << parser.errorText();
 
   if(parser.isSet(helpOption))
   {
