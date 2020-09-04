@@ -1,4 +1,6 @@
 document.body.onload = function() {
+  var test_list = [];
+
   function htmlEntityEncode(str) {
     return str.replace(/&/g, '&amp;')
               .replace(/"/g, '&quot;')
@@ -6,6 +8,17 @@ document.body.onload = function() {
               .replace(/</g, '&lt;')
               .replace(/>/g, '&gt;')
   }
+
+  function linkTests(str) {
+  	var ret = str;
+  	console.log("Linking tests in '" + str + "'");
+  	for(var i=0; i < test_list.length; i++)	{
+  		console.log("Checking against " + test_list[i]);
+  		ret = ret.replace(new RegExp('([^#">])\\b' + test_list[i] + '\\b', "g"), '$1<a href="#' + test_list[i] + '">' + test_list[i] + '</a>');
+		}
+		console.log("Got ret: " + ret)
+		return ret;
+	}
 
   function formatDiff(diff) {
     var difflines = diff.split('\n')
@@ -87,7 +100,11 @@ document.body.onload = function() {
       } else if(m[1] == '//') {
       	// comments, skip
       } else if(m[1] == '..') {
-        html += '<div class="message">' + htmlEntityEncode(m[2]) + '</div>';
+        var str = htmlEntityEncode(m[2]);
+        if(indent == 0)
+          str = linkTests(str);
+
+        html += '<div class="message">' + str + '</div>';
       } else if(m[1] == '!+') {
         html += '<div class="failure"><span class="message">' + htmlEntityEncode(m[2]) + '</span>';
       } else if(m[1] == '!-') {
@@ -171,6 +188,7 @@ document.body.onload = function() {
           instack = start;
         } else if(words[0] == 'Test') {
           test_name = words[1];
+          test_list.push(test_name)
           html += start ? '<div class="expandable test" id="' + test_name + '"><span class="expandtoggle"></span><div class="title">Test: ' + test_name + '</div><div class="contents">' : '</div></div>';
 
           if(start)
@@ -206,7 +224,6 @@ document.body.onload = function() {
 
   for(var i=0; i < failed_tests.length; i++) {
     var test = document.getElementById(failed_tests[i]);
-    test.classList.add('expanded');
     test.classList.add('failed');
   }
 
