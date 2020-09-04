@@ -215,6 +215,9 @@ bool D3D12DebugAPIWrapper::FetchSRV(const DXBCDebug::BindingSlot &slot)
                 ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
 
                 D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = desc->GetSRV();
+                if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
+                  srvDesc = MakeSRVDesc(pResource->GetDesc());
+
                 if(srvDesc.Format != DXGI_FORMAT_UNKNOWN)
                 {
                   DXBCDebug::FillViewFmt(srvDesc.Format, srvData.format);
@@ -358,6 +361,10 @@ bool D3D12DebugAPIWrapper::FetchUAV(const DXBCDebug::BindingSlot &slot)
                 // TODO: Need to fetch counter resource if applicable
 
                 D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = desc->GetUAV();
+
+                if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_UNKNOWN)
+                  uavDesc = MakeUAVDesc(pResource->GetDesc());
+
                 if(uavDesc.Format != DXGI_FORMAT_UNKNOWN)
                 {
                   DXBCDebug::FillViewFmt(uavDesc.Format, uavData.format);
@@ -569,6 +576,9 @@ ShaderVariable D3D12DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType typ
                   ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
                   D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
                   D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = desc->GetSRV();
+                  if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
+                    srvDesc = MakeSRVDesc(resDesc);
+
                   if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMS ||
                      srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY)
                   {
@@ -712,6 +722,9 @@ ShaderVariable D3D12DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType typ
                   D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
                   D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = desc->GetUAV();
 
+                  if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_UNKNOWN)
+                    uavDesc = MakeUAVDesc(resDesc);
+
                   if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
                   {
                     result.value.u.x = result.value.u.y = result.value.u.z = result.value.u.w =
@@ -726,6 +739,8 @@ ShaderVariable D3D12DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType typ
                   ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
                   D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
                   D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = desc->GetSRV();
+                  if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
+                    srvDesc = MakeSRVDesc(resDesc);
 
                   if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_BUFFER)
                   {
@@ -832,6 +847,9 @@ ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
                   D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
                   D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = desc->GetUAV();
 
+                  if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_UNKNOWN)
+                    uavDesc = MakeUAVDesc(resDesc);
+
                   switch(uavDesc.ViewDimension)
                   {
                     case D3D12_UAV_DIMENSION_UNKNOWN:
@@ -907,6 +925,8 @@ ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
                   ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
                   D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
                   D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = desc->GetSRV();
+                  if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
+                    srvDesc = MakeSRVDesc(resDesc);
                   switch(srvDesc.ViewDimension)
                   {
                     case D3D12_SRV_DIMENSION_UNKNOWN:

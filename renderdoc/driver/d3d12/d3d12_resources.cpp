@@ -516,3 +516,105 @@ UINT GetSliceForRtv(const D3D12_RENDER_TARGET_VIEW_DESC &view)
     default: return 0;
   }
 }
+
+D3D12_SHADER_RESOURCE_VIEW_DESC MakeSRVDesc(const D3D12_RESOURCE_DESC &desc)
+{
+  D3D12_SHADER_RESOURCE_VIEW_DESC ret = {};
+
+  ret.Format = desc.Format;
+  ret.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+  bool arrayed = desc.DepthOrArraySize > 1;
+
+  if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+  {
+    // I don't think it's possible to create a SRV/SRV of a buffer with a NULL desc, but the docs
+    // and debug layer are quite hard to be sure. Put in something sensible.
+
+    ret.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+    ret.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+    ret.Buffer.StructureByteStride = 0;
+    ret.Buffer.FirstElement = 0;
+    ret.Buffer.NumElements = (UINT)desc.Width;
+  }
+  else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D)
+  {
+    ret.ViewDimension = arrayed ? D3D12_SRV_DIMENSION_TEXTURE1DARRAY : D3D12_SRV_DIMENSION_TEXTURE1D;
+
+    // shared between arrayed and not
+    ret.Texture1D.MipLevels = desc.MipLevels;
+
+    if(arrayed)
+      ret.Texture1DArray.ArraySize = desc.DepthOrArraySize;
+  }
+  else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+  {
+    if(desc.SampleDesc.Count > 1)
+    {
+      ret.ViewDimension =
+          arrayed ? D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY : D3D12_SRV_DIMENSION_TEXTURE2DMS;
+
+      if(arrayed)
+        ret.Texture2DMSArray.ArraySize = desc.DepthOrArraySize;
+    }
+    else
+    {
+      ret.ViewDimension =
+          arrayed ? D3D12_SRV_DIMENSION_TEXTURE2DARRAY : D3D12_SRV_DIMENSION_TEXTURE2D;
+
+      // shared between arrayed and not
+      ret.Texture2D.MipLevels = desc.MipLevels;
+
+      if(arrayed)
+        ret.Texture2DArray.ArraySize = desc.DepthOrArraySize;
+    }
+  }
+  else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+  {
+    ret.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+
+    ret.Texture3D.MipLevels = desc.MipLevels;
+  }
+
+  return ret;
+}
+
+D3D12_UNORDERED_ACCESS_VIEW_DESC MakeUAVDesc(const D3D12_RESOURCE_DESC &desc)
+{
+  D3D12_UNORDERED_ACCESS_VIEW_DESC ret = {};
+
+  ret.Format = desc.Format;
+
+  bool arrayed = desc.DepthOrArraySize > 1;
+
+  if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+  {
+    // I don't think it's possible to create a UAV/SRV of a buffer with a NULL desc, but the docs
+    // and debug layer are quite hard to be sure. Put in something sensible.
+
+    ret.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+    ret.Buffer.NumElements = (UINT)desc.Width;
+  }
+  else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D)
+  {
+    ret.ViewDimension = arrayed ? D3D12_UAV_DIMENSION_TEXTURE1DARRAY : D3D12_UAV_DIMENSION_TEXTURE1D;
+
+    if(arrayed)
+      ret.Texture1DArray.ArraySize = desc.DepthOrArraySize;
+  }
+  else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+  {
+    ret.ViewDimension = arrayed ? D3D12_UAV_DIMENSION_TEXTURE2DARRAY : D3D12_UAV_DIMENSION_TEXTURE2D;
+
+    if(arrayed)
+      ret.Texture2DArray.ArraySize = desc.DepthOrArraySize;
+  }
+  else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+  {
+    ret.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+
+    ret.Texture3D.WSize = desc.DepthOrArraySize;
+  }
+
+  return ret;
+}

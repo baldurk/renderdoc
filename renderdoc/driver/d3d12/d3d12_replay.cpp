@@ -746,6 +746,9 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
     {
       D3D12_SHADER_RESOURCE_VIEW_DESC srv = desc->GetSRV();
 
+      if(srv.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
+        srv = MakeSRVDesc(res);
+
       fmt = srv.Format;
 
       view.type = MakeTextureDim(srv.ViewDimension);
@@ -829,6 +832,9 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
     else if(desc->GetType() == D3D12DescriptorType::UAV)
     {
       D3D12_UNORDERED_ACCESS_VIEW_DESC uav = desc->GetUAV();
+
+      if(uav.ViewDimension == D3D12_UAV_DIMENSION_UNKNOWN)
+        uav = MakeUAVDesc(res);
 
       fmt = uav.Format;
 
