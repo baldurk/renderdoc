@@ -45,7 +45,7 @@ rdcstr pluginPath = "amd/isa";
 // in amd_isa_<plat>.cpp
 rdcstr DisassembleDXBC(const bytebuf &shaderBytes, const rdcstr &target);
 
-static bool IsSupported(ShaderEncoding encoding)
+static bool CheckForSupport(ShaderEncoding encoding)
 {
   if(encoding == ShaderEncoding::GLSL)
   {
@@ -87,12 +87,8 @@ static bool IsSupported(ShaderEncoding encoding)
   return false;
 }
 
-void GetTargets(GraphicsAPI api, rdcarray<rdcstr> &targets)
+static void GetEncodings(GraphicsAPI api, ShaderEncoding &primary, ShaderEncoding &secondary)
 {
-  targets.reserve(asicCount + 1);
-
-  ShaderEncoding primary = ShaderEncoding::SPIRV, secondary = ShaderEncoding::SPIRV;
-
   if(IsD3D(api))
   {
     primary = ShaderEncoding::DXBC;
@@ -108,6 +104,59 @@ void GetTargets(GraphicsAPI api, rdcarray<rdcstr> &targets)
     primary = ShaderEncoding::SPIRV;
     secondary = ShaderEncoding::SPIRV;
   }
+}
+
+bool encodingCached[arraydim<ShaderEncoding>()] = {};
+bool encodingSupported[arraydim<ShaderEncoding>()] = {};
+
+Threading::ThreadHandle supportCheckThread = 0;
+
+static void CacheSupport(ShaderEncoding primary, ShaderEncoding secondary = ShaderEncoding::Unknown)
+{
+  // if there's a thread running, sync it now.
+  if(supportCheckThread)
+  {
+    Threading::JoinThread(supportCheckThread);
+    Threading::CloseThread(supportCheckThread);
+    supportCheckThread = 0;
+  }
+
+  // if we have these encodings cached now, return
+  if(encodingCached[(size_t)primary] &&
+     (secondary == ShaderEncoding::Unknown || encodingCached[(size_t)secondary]))
+    return;
+
+  // kick off a thread to cache these encodings' support
+  Threading::CreateThread([primary, secondary]() {
+    encodingSupported[(size_t)primary] = CheckForSupport(primary);
+    encodingSupported[(size_t)secondary] = CheckForSupport(secondary);
+
+    encodingCached[(size_t)primary] = true;
+    encodingCached[(size_t)secondary] = true;
+  });
+}
+
+static bool IsSupported(ShaderEncoding encoding)
+{
+  CacheSupport(encoding);
+
+  return encodingSupported[(size_t)encoding];
+}
+
+void CacheSupport(GraphicsAPI api)
+{
+  ShaderEncoding primary = ShaderEncoding::SPIRV, secondary = ShaderEncoding::SPIRV;
+  GetEncodings(api, primary, secondary);
+
+  CacheSupport(primary, secondary);
+}
+
+void GetTargets(GraphicsAPI api, rdcarray<rdcstr> &targets)
+{
+  targets.reserve(asicCount + 1);
+
+  ShaderEncoding primary = ShaderEncoding::SPIRV, secondary = ShaderEncoding::SPIRV;
+  GetEncodings(api, primary, secondary);
 
   if(IsSupported(primary) || IsSupported(secondary))
   {

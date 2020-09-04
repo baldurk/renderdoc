@@ -2009,15 +2009,16 @@ ReplayStatus ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rd
 
   m_pDevice = device;
 
+  m_APIProps = m_pDevice->GetAPIProperties();
+
+  GCNISA::CacheSupport(m_APIProps.pipelineType);
+
   ReplayStatus status = m_pDevice->ReadLogInitialisation(rdc, false);
+
+  GCNISA::GetTargets(m_APIProps.pipelineType, m_GCNTargets);
 
   if(status != ReplayStatus::Succeeded)
     return status;
-
-  m_APIProps = m_pDevice->GetAPIProperties();
-
-  // fetch GCN ISA targets
-  GCNISA::GetTargets(m_APIProps.pipelineType, m_GCNTargets);
 
   m_Buffers = m_pDevice->GetBuffers();
   m_Textures = m_pDevice->GetTextures();

@@ -30,6 +30,7 @@
 
 namespace GCNISA
 {
+void CacheSupport(GraphicsAPI api);
 void GetTargets(GraphicsAPI api, rdcarray<rdcstr> &targets);
 
 rdcstr Disassemble(ShaderEncoding api, ShaderStage stage, const bytebuf &shaderBytes,
