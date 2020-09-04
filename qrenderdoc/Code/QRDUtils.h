@@ -338,7 +338,6 @@ public slots:
       windowsSetName();
     m_func();
     m_Thread->quit();
-    m_Thread = NULL;
     if(m_SelfDelete)
       deleteLater();
     completed.acquire();
@@ -353,9 +352,9 @@ public:
     m_func = f;
     moveToThread(m_Thread);
     QObject::connect(m_Thread, &QThread::started, this, &LambdaThread::process);
-    QObject::connect(m_Thread, &QThread::finished, m_Thread, &QThread::deleteLater);
   }
 
+  ~LambdaThread() { m_Thread->deleteLater(); }
   void setName(QString name)
   {
     m_Name = name;

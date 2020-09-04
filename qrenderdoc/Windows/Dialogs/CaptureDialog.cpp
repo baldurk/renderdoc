@@ -589,8 +589,8 @@ void CaptureDialog::CheckAndroidSetup(QString &filename)
   });
 
   scan->setName(lit("CheckAndroidSetup"));
+  scan->selfDelete(true);
   scan->start();
-  scan->deleteLater();
 }
 
 void CaptureDialog::androidWarn_mouseClick()
