@@ -62,6 +62,53 @@
 extern "C" void *__stdcall GetModuleHandleA(const char *);
 #endif
 
+NetworkWorker::NetworkWorker() : QObject(NULL)
+{
+}
+
+NetworkWorker::~NetworkWorker()
+{
+}
+
+void NetworkWorker::get(QUrl url)
+{
+  if(manager == NULL)
+    manager = new QNetworkAccessManager(this);
+
+  // create the request
+  QNetworkReply *req = manager->get(QNetworkRequest(url));
+
+  // connect up error and finished slots on *this* thread, and in the lambda emit signals to
+  // cross-thread back onto the UI thread.
+  QObject::connect(req, OverloadedSlot<QNetworkReply::NetworkError>::of(&QNetworkReply::error),
+                   [this, req](QNetworkReply::NetworkError) {
+                     emit requestFailed(req->url(), req->errorString());
+                   });
+
+  QObject::connect(req, &QNetworkReply::finished, [this, req]() {
+    if(req->error() != QNetworkReply::NoError)
+    {
+      emit requestFailed(req->url(), req->errorString());
+      return;
+    }
+
+    QByteArray replyData = req->readAll();
+
+    emit requestCompleted(req->url(), replyData);
+  });
+}
+
+void MainWindow::MakeNetworkRequest(QUrl url, std::function<void(QByteArray)> success,
+                                    std::function<void(QString)> failure)
+{
+  m_NetworkCompleteCallbacks[url] = success;
+  if(failure)
+    m_NetworkFailCallbacks[url] = failure;
+
+  // fire over onto the network thread
+  emit networkRequestGet(url);
+}
+
 MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::MainWindow), m_Ctx(ctx)
 {
   ui->setupUi(this);
@@ -209,7 +256,22 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
   ui->action_Send_Error_Report->setEnabled(false);
 #endif
 
-  m_NetManager = new QNetworkAccessManager(this);
+  m_NetWorker = new NetworkWorker;
+  m_NetManagerThread = new LambdaThread([this]() {
+    QEventLoop loop;
+    loop.exec();
+  });
+  m_NetManagerThread->thread()->setPriority(QThread::LowPriority);
+  m_NetManagerThread->moveObjectToThread(m_NetWorker);
+  m_NetManagerThread->start();
+
+  // set up cross-thread signal/slot connections
+  QObject::connect(this, &MainWindow::networkRequestGet, m_NetWorker, &NetworkWorker::get,
+                   Qt::QueuedConnection);
+  QObject::connect(m_NetWorker, &NetworkWorker::requestFailed, this,
+                   &MainWindow::networkRequestFailed, Qt::QueuedConnection);
+  QObject::connect(m_NetWorker, &NetworkWorker::requestCompleted, this,
+                   &MainWindow::networkRequestCompleted, Qt::QueuedConnection);
 
   updateAction = new QAction(this);
   updateAction->setText(tr("Update Available!"));
@@ -270,11 +332,8 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
           m_Ctx.Config().Save();
 
           // call out to the status-check to see when the bug report was last updated
-          QNetworkReply *reply =
-              m_NetManager->get(QNetworkRequest(QUrl(QString(b.URL()) + lit("/check"))));
-
-          QObject::connect(reply, &QNetworkReply::finished, [this, reply, b]() {
-            QString response = QString::fromUtf8(reply->readAll());
+          MakeNetworkRequest(QUrl(QString(b.URL()) + lit("/check")), [this, b](QByteArray replyData) {
+            QString response = QString::fromUtf8(replyData);
 
             if(response.isEmpty())
               return;
@@ -425,6 +484,10 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
 
 MainWindow::~MainWindow()
 {
+  // close the network manager thread
+  m_NetManagerThread->thread()->quit();
+  m_NetManagerThread->deleteLater();
+
   // explicitly delete our children here, so that the MainWindow is still alive while they are
   // closing.
 
@@ -1192,6 +1255,24 @@ void MainWindow::ClearRecentCaptureSettings()
   PopulateRecentCaptureSettings();
 }
 
+void MainWindow::networkRequestFailed(QUrl url, QString error)
+{
+  if(m_NetworkFailCallbacks.contains(url))
+  {
+    m_NetworkFailCallbacks[url](error);
+    m_NetworkFailCallbacks.remove(url);
+  }
+}
+
+void MainWindow::networkRequestCompleted(QUrl url, QByteArray replyData)
+{
+  if(m_NetworkCompleteCallbacks.contains(url))
+  {
+    m_NetworkCompleteCallbacks[url](replyData);
+    m_NetworkCompleteCallbacks.remove(url);
+  }
+}
+
 void MainWindow::PopulateRecentCaptureSettings()
 {
   ui->menu_Recent_Capture_Settings->clear();
@@ -1364,44 +1445,44 @@ void MainWindow::CheckUpdates(bool forceCheck, UpdateResultMethod callback)
   statusProgress->setMaximum(0);
 
   // call out to the status-check to see when the bug report was last updated
-  QNetworkReply *req = m_NetManager->get(QNetworkRequest(QUrl(
-      lit("https://renderdoc.org/getupdateurl/%1/%2?htmlnotes=1").arg(bitness).arg(versionCheck))));
+  MakeNetworkRequest(
+      QUrl(lit("https://renderdoc.org/getupdateurl/%1/%2?htmlnotes=1").arg(bitness).arg(versionCheck)),
 
-  QObject::connect(req, OverloadedSlot<QNetworkReply::NetworkError>::of(&QNetworkReply::error),
-                   [this, req](QNetworkReply::NetworkError) {
-                     qCritical() << "Network error:" << req->errorString();
-                   });
+      // on success
+      [this, callback](QByteArray replyData) {
+        statusText->setText(QString());
+        statusProgress->setVisible(false);
 
-  QObject::connect(req, &QNetworkReply::finished, [this, req, callback]() {
-    statusText->setText(QString());
-    statusProgress->setVisible(false);
+        QString response = QString::fromUtf8(replyData);
 
-    if(req->error() != QNetworkReply::NoError)
-      return;
+        if(response.isEmpty())
+        {
+          m_Ctx.Config().CheckUpdate_UpdateAvailable = false;
+          m_Ctx.Config().CheckUpdate_UpdateResponse = "";
+          m_Ctx.Config().CheckUpdate_CurrentVersion = lit(MAJOR_MINOR_VERSION_STRING);
+          m_Ctx.Config().Save();
+          SetNoUpdate();
 
-    QString response = QString::fromUtf8(req->readAll());
+          if(callback)
+            callback(UpdateResult::Latest);
 
-    if(response.isEmpty())
-    {
-      m_Ctx.Config().CheckUpdate_UpdateAvailable = false;
-      m_Ctx.Config().CheckUpdate_UpdateResponse = "";
-      m_Ctx.Config().CheckUpdate_CurrentVersion = lit(MAJOR_MINOR_VERSION_STRING);
-      m_Ctx.Config().Save();
-      SetNoUpdate();
+          return;
+        }
 
-      if(callback)
-        callback(UpdateResult::Latest);
+        m_Ctx.Config().CheckUpdate_UpdateAvailable = true;
+        m_Ctx.Config().CheckUpdate_UpdateResponse = response;
+        m_Ctx.Config().CheckUpdate_CurrentVersion = lit(MAJOR_MINOR_VERSION_STRING);
+        m_Ctx.Config().Save();
+        SetUpdateAvailable();
+        UpdatePopup();
+      },
 
-      return;
-    }
-
-    m_Ctx.Config().CheckUpdate_UpdateAvailable = true;
-    m_Ctx.Config().CheckUpdate_UpdateResponse = response;
-    m_Ctx.Config().CheckUpdate_CurrentVersion = lit(MAJOR_MINOR_VERSION_STRING);
-    m_Ctx.Config().Save();
-    SetUpdateAvailable();
-    UpdatePopup();
-  });
+      // on error
+      [this](QString error) {
+        statusText->setText(QString());
+        statusProgress->setVisible(false);
+        qCritical() << "Network error checking for updates:" << error;
+      });
 #else    //! RENDERDOC_OFFICIAL_BUILD
   {
     if(callback)
