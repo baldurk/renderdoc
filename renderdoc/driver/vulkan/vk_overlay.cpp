@@ -858,6 +858,14 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     rs->cullMode = VK_CULL_MODE_NONE;
     rs->rasterizerDiscardEnable = false;
 
+    // disable tests in dynamic state too
+    m_pDriver->m_RenderState.depthTestEnable = VK_FALSE;
+    m_pDriver->m_RenderState.depthWriteEnable = VK_FALSE;
+    m_pDriver->m_RenderState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+    m_pDriver->m_RenderState.stencilTestEnable = VK_FALSE;
+    m_pDriver->m_RenderState.depthBoundsTestEnable = VK_FALSE;
+    m_pDriver->m_RenderState.cullMode = VK_CULL_MODE_NONE;
+
     // disable all discard rectangles
     RemoveNextStruct(&pipeCreateInfo,
                      VK_STRUCTURE_TYPE_PIPELINE_DISCARD_RECTANGLE_STATE_CREATE_INFO_EXT);
@@ -1123,6 +1131,14 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     rs->cullMode = VK_CULL_MODE_NONE;    // first render without any culling
     rs->rasterizerDiscardEnable = false;
 
+    // disable tests in dynamic state too
+    m_pDriver->m_RenderState.depthTestEnable = VK_FALSE;
+    m_pDriver->m_RenderState.depthWriteEnable = VK_FALSE;
+    m_pDriver->m_RenderState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+    m_pDriver->m_RenderState.stencilTestEnable = VK_FALSE;
+    m_pDriver->m_RenderState.depthBoundsTestEnable = VK_FALSE;
+    m_pDriver->m_RenderState.cullMode = VK_CULL_MODE_NONE;
+
     if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
       rs->depthClampEnable = true;
 
@@ -1387,12 +1403,20 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
     VkPipelineRasterizationStateCreateInfo *rs =
         (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
-    VkCullModeFlags origCullMode = rs->cullMode;
+    VkCullModeFlags origCullMode = prevstate.cullMode;
     rs->cullMode = VK_CULL_MODE_NONE;    // first render without any culling
     rs->rasterizerDiscardEnable = false;
 
     if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
       rs->depthClampEnable = true;
+
+    // disable tests in dynamic state too
+    m_pDriver->m_RenderState.depthTestEnable = VK_FALSE;
+    m_pDriver->m_RenderState.depthWriteEnable = VK_FALSE;
+    m_pDriver->m_RenderState.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+    m_pDriver->m_RenderState.stencilTestEnable = VK_FALSE;
+    m_pDriver->m_RenderState.depthBoundsTestEnable = VK_FALSE;
+    m_pDriver->m_RenderState.cullMode = VK_CULL_MODE_NONE;
 
     VkPipelineColorBlendStateCreateInfo *cb =
         (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
@@ -1466,6 +1490,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(pipe[1]);
+    m_pDriver->m_RenderState.cullMode = origCullMode;
 
     m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
@@ -1645,10 +1670,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     // disable all tests possible
     VkPipelineDepthStencilStateCreateInfo *ds =
         (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
-    VkBool32 origDepthTest = ds->depthTestEnable;
+    VkBool32 origDepthTest = prevstate.depthTestEnable;
     ds->depthTestEnable = false;
     ds->depthWriteEnable = false;
-    VkBool32 origStencilTest = ds->stencilTestEnable;
+    VkBool32 origStencilTest = prevstate.stencilTestEnable;
     ds->stencilTestEnable = false;
     ds->depthBoundsTestEnable = false;
 
@@ -1741,6 +1766,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
     m_pDriver->m_RenderState.graphics.pipeline = GetResID(failpipe);
 
+    // disable tests in dynamic state too
+    m_pDriver->m_RenderState.depthTestEnable = VK_FALSE;
+    m_pDriver->m_RenderState.depthWriteEnable = VK_FALSE;
+    m_pDriver->m_RenderState.stencilTestEnable = VK_FALSE;
+    m_pDriver->m_RenderState.depthBoundsTestEnable = VK_FALSE;
+    m_pDriver->m_RenderState.cullMode = VK_CULL_MODE_NONE;
+
     vkr = vt->EndCommandBuffer(Unwrap(cmd));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
@@ -1752,6 +1784,11 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       m_pDriver->m_RenderState.renderPass = GetResID(depthRP);
       m_pDriver->m_RenderState.SetFramebuffer(m_pDriver, GetResID(depthFB));
     }
+
+    if(overlay == DebugOverlay::Depth)
+      m_pDriver->m_RenderState.depthTestEnable = origDepthTest;
+    else
+      m_pDriver->m_RenderState.stencilTestEnable = origStencilTest;
 
     m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
