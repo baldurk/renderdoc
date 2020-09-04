@@ -30,6 +30,7 @@
 #include <QSemaphore>
 #include <QThread>
 #include <QTimer>
+#include <QUrl>
 #include "Code/Interface/QRDInterface.h"
 #include "toolwindowmanager/ToolWindowManager.h"
 
