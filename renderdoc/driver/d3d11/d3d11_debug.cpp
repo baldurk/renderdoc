@@ -1558,8 +1558,7 @@ void D3D11Replay::HistogramMinMax::Init(WrappedID3D11Device *device)
     for(int i = 0; i < 3; i++)
     {
       rdcstr hlsl = rdcstr("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-      hlsl += rdcstr("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-      hlsl += rdcstr("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+      hlsl += rdcstr("#define SHADER_BASETYPE ") + ToStr(i) + "\n";
       hlsl += histogramhlsl;
 
       TileMinMaxCS[t][i] =

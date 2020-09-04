@@ -174,3 +174,29 @@ vec3 CalcCubeCoord(vec2 uv, int face)
 #define MESH_TRIANGLE_FAN 3u
 #define MESH_TRIANGLE_LIST_ADJ 4u
 #define MESH_TRIANGLE_STRIP_ADJ 5u
+
+#if defined(SHADER_BASETYPE) && SHADER_BASETYPE == 0
+
+#define FLOAT_TEX 1
+#define UINT_TEX 0
+#define SINT_TEX 0
+
+#elif defined(SHADER_BASETYPE) && SHADER_BASETYPE == 1
+
+#define FLOAT_TEX 0
+#define UINT_TEX 1
+#define SINT_TEX 0
+
+#elif defined(SHADER_BASETYPE) && SHADER_BASETYPE == 2
+
+#define FLOAT_TEX 0
+#define UINT_TEX 0
+#define SINT_TEX 1
+
+#else
+
+#define FLOAT_TEX 1
+#define UINT_TEX 0
+#define SINT_TEX 0
+
+#endif

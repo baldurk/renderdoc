@@ -39,69 +39,98 @@ enum class FeatureCheck
 
 BITMASK_OPERATORS(FeatureCheck);
 
+enum class BuiltinShaderFlags
+{
+  None = 0x0,
+  BaseTypeParameterised = 0x1,
+  TextureTypeParameterised = 0x2,
+};
+
+BITMASK_OPERATORS(BuiltinShaderFlags);
+
 struct BuiltinShaderConfig
 {
+  BuiltinShaderConfig(BuiltinShader builtin, EmbeddedResourceType resource,
+                      rdcspv::ShaderStage stage, FeatureCheck checks = FeatureCheck::NoCheck,
+                      BuiltinShaderFlags flags = BuiltinShaderFlags::None)
+      : builtin(builtin), resource(resource), stage(stage), checks(checks), flags(flags)
+  {
+  }
   BuiltinShader builtin;
   EmbeddedResourceType resource;
   rdcspv::ShaderStage stage;
   FeatureCheck checks;
-  bool uniforms;
+  BuiltinShaderFlags flags;
 };
 
 static const BuiltinShaderConfig builtinShaders[] = {
-    {BuiltinShader::BlitVS, EmbeddedResource(glsl_blit_vert), rdcspv::ShaderStage::Vertex,
-     FeatureCheck::NoCheck, true},
-    {BuiltinShader::CheckerboardFS, EmbeddedResource(glsl_checkerboard_frag),
-     rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
-    {BuiltinShader::TexDisplayFS, EmbeddedResource(glsl_texdisplay_frag),
-     rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
-    {BuiltinShader::FixedColFS, EmbeddedResource(glsl_fixedcol_frag), rdcspv::ShaderStage::Fragment,
-     FeatureCheck::NoCheck, false},
-    {BuiltinShader::TextVS, EmbeddedResource(glsl_vktext_vert), rdcspv::ShaderStage::Vertex,
-     FeatureCheck::NoCheck, true},
-    {BuiltinShader::TextFS, EmbeddedResource(glsl_vktext_frag), rdcspv::ShaderStage::Fragment,
-     FeatureCheck::NoCheck, true},
-    {BuiltinShader::MeshVS, EmbeddedResource(glsl_mesh_vert), rdcspv::ShaderStage::Vertex,
-     FeatureCheck::NoCheck, true},
-    {BuiltinShader::MeshGS, EmbeddedResource(glsl_mesh_geom), rdcspv::ShaderStage::Geometry,
-     FeatureCheck::NoCheck, true},
-    {BuiltinShader::MeshFS, EmbeddedResource(glsl_mesh_frag), rdcspv::ShaderStage::Fragment,
-     FeatureCheck::NoCheck, true},
-    {BuiltinShader::MeshCS, EmbeddedResource(glsl_mesh_comp), rdcspv::ShaderStage::Compute,
-     FeatureCheck::NoCheck, true},
-    {BuiltinShader::QuadResolveFS, EmbeddedResource(glsl_quadresolve_frag),
-     rdcspv::ShaderStage::Fragment, FeatureCheck::FragmentStores, true},
-    {BuiltinShader::QuadWriteFS, EmbeddedResource(glsl_quadwrite_frag), rdcspv::ShaderStage::Fragment,
-     FeatureCheck::FragmentStores | FeatureCheck::NonMetalBackend, false},
-    {BuiltinShader::TrisizeGS, EmbeddedResource(glsl_trisize_geom), rdcspv::ShaderStage::Geometry,
-     FeatureCheck::NoCheck, true},
-    {BuiltinShader::TrisizeFS, EmbeddedResource(glsl_trisize_frag), rdcspv::ShaderStage::Fragment,
-     FeatureCheck::NoCheck, true},
-    {BuiltinShader::MS2ArrayCS, EmbeddedResource(glsl_ms2array_comp), rdcspv::ShaderStage::Compute,
-     FeatureCheck::FormatlessWrite | FeatureCheck::NonMetalBackend, true},
-    {BuiltinShader::Array2MSCS, EmbeddedResource(glsl_array2ms_comp), rdcspv::ShaderStage::Compute,
-     FeatureCheck::ShaderMSAAStorage | FeatureCheck::FormatlessWrite | FeatureCheck::NonMetalBackend,
-     true},
-    {BuiltinShader::DepthMS2ArrayFS, EmbeddedResource(glsl_depthms2arr_frag),
-     rdcspv::ShaderStage::Fragment, FeatureCheck::NonMetalBackend, true},
-    {BuiltinShader::DepthArray2MSFS, EmbeddedResource(glsl_deptharr2ms_frag),
-     rdcspv::ShaderStage::Fragment, FeatureCheck::SampleShading | FeatureCheck::NonMetalBackend, true},
-    {BuiltinShader::TexRemapFloat, EmbeddedResource(glsl_texremap_frag),
-     rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
-    {BuiltinShader::TexRemapUInt, EmbeddedResource(glsl_texremap_frag),
-     rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
-    {BuiltinShader::TexRemapSInt, EmbeddedResource(glsl_texremap_frag),
-     rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
-    {BuiltinShader::PixelHistoryMSCopyCS, EmbeddedResource(glsl_pixelhistory_mscopy_comp),
-     rdcspv::ShaderStage::Compute, FeatureCheck::NoCheck, true},
-    {BuiltinShader::PixelHistoryMSCopyDepthCS, EmbeddedResource(glsl_pixelhistory_mscopy_depth_comp),
-     rdcspv::ShaderStage::Compute, FeatureCheck::NoCheck, true},
-    {BuiltinShader::PixelHistoryPrimIDFS, EmbeddedResource(glsl_pixelhistory_primid_frag),
-     rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck, true},
-    {BuiltinShader::ShaderDebugSampleVS, EmbeddedResource(glsl_shaderdebug_sample_vert),
-     rdcspv::ShaderStage::Vertex, FeatureCheck::NoCheck, true},
-    {BuiltinShader::DiscardFS, EmbeddedResource(glsl_discard_frag), rdcspv::ShaderStage::Fragment,
-     FeatureCheck::NoCheck, true},
+    BuiltinShaderConfig(BuiltinShader::BlitVS, EmbeddedResource(glsl_blit_vert),
+                        rdcspv::ShaderStage::Vertex),
+    BuiltinShaderConfig(BuiltinShader::CheckerboardFS, EmbeddedResource(glsl_checkerboard_frag),
+                        rdcspv::ShaderStage::Fragment),
+    BuiltinShaderConfig(BuiltinShader::TexDisplayFS, EmbeddedResource(glsl_texdisplay_frag),
+                        rdcspv::ShaderStage::Fragment),
+    BuiltinShaderConfig(BuiltinShader::FixedColFS, EmbeddedResource(glsl_fixedcol_frag),
+                        rdcspv::ShaderStage::Fragment),
+    BuiltinShaderConfig(BuiltinShader::TextVS, EmbeddedResource(glsl_vktext_vert),
+                        rdcspv::ShaderStage::Vertex),
+    BuiltinShaderConfig(BuiltinShader::TextFS, EmbeddedResource(glsl_vktext_frag),
+                        rdcspv::ShaderStage::Fragment),
+    BuiltinShaderConfig(BuiltinShader::MeshVS, EmbeddedResource(glsl_mesh_vert),
+                        rdcspv::ShaderStage::Vertex),
+    BuiltinShaderConfig(BuiltinShader::MeshGS, EmbeddedResource(glsl_mesh_geom),
+                        rdcspv::ShaderStage::Geometry),
+    BuiltinShaderConfig(BuiltinShader::MeshFS, EmbeddedResource(glsl_mesh_frag),
+                        rdcspv::ShaderStage::Fragment),
+    BuiltinShaderConfig(BuiltinShader::MeshCS, EmbeddedResource(glsl_mesh_comp),
+                        rdcspv::ShaderStage::Compute),
+    BuiltinShaderConfig(BuiltinShader::QuadResolveFS, EmbeddedResource(glsl_quadresolve_frag),
+                        rdcspv::ShaderStage::Fragment, FeatureCheck::FragmentStores),
+    BuiltinShaderConfig(BuiltinShader::QuadWriteFS, EmbeddedResource(glsl_quadwrite_frag),
+                        rdcspv::ShaderStage::Fragment,
+                        FeatureCheck::FragmentStores | FeatureCheck::NonMetalBackend),
+    BuiltinShaderConfig(BuiltinShader::TrisizeGS, EmbeddedResource(glsl_trisize_geom),
+                        rdcspv::ShaderStage::Geometry),
+    BuiltinShaderConfig(BuiltinShader::TrisizeFS, EmbeddedResource(glsl_trisize_frag),
+                        rdcspv::ShaderStage::Fragment),
+    BuiltinShaderConfig(BuiltinShader::MS2ArrayCS, EmbeddedResource(glsl_ms2array_comp),
+                        rdcspv::ShaderStage::Compute,
+                        FeatureCheck::FormatlessWrite | FeatureCheck::NonMetalBackend),
+    BuiltinShaderConfig(BuiltinShader::Array2MSCS, EmbeddedResource(glsl_array2ms_comp),
+                        rdcspv::ShaderStage::Compute,
+                        FeatureCheck::ShaderMSAAStorage | FeatureCheck::FormatlessWrite |
+                            FeatureCheck::NonMetalBackend),
+    BuiltinShaderConfig(BuiltinShader::DepthMS2ArrayFS, EmbeddedResource(glsl_depthms2arr_frag),
+                        rdcspv::ShaderStage::Fragment, FeatureCheck::NonMetalBackend),
+    BuiltinShaderConfig(BuiltinShader::DepthArray2MSFS, EmbeddedResource(glsl_deptharr2ms_frag),
+                        rdcspv::ShaderStage::Fragment,
+                        FeatureCheck::SampleShading | FeatureCheck::NonMetalBackend),
+    BuiltinShaderConfig(BuiltinShader::TexRemap, EmbeddedResource(glsl_texremap_frag),
+                        rdcspv::ShaderStage::Fragment, FeatureCheck::NoCheck,
+                        BuiltinShaderFlags::BaseTypeParameterised),
+    BuiltinShaderConfig(BuiltinShader::PixelHistoryMSCopyCS,
+                        EmbeddedResource(glsl_pixelhistory_mscopy_comp), rdcspv::ShaderStage::Compute),
+    BuiltinShaderConfig(BuiltinShader::PixelHistoryMSCopyDepthCS,
+                        EmbeddedResource(glsl_pixelhistory_mscopy_depth_comp),
+                        rdcspv::ShaderStage::Compute),
+    BuiltinShaderConfig(BuiltinShader::PixelHistoryPrimIDFS,
+                        EmbeddedResource(glsl_pixelhistory_primid_frag),
+                        rdcspv::ShaderStage::Fragment),
+    BuiltinShaderConfig(BuiltinShader::ShaderDebugSampleVS,
+                        EmbeddedResource(glsl_shaderdebug_sample_vert), rdcspv::ShaderStage::Vertex),
+    BuiltinShaderConfig(BuiltinShader::DiscardFS, EmbeddedResource(glsl_discard_frag),
+                        rdcspv::ShaderStage::Fragment),
+    BuiltinShaderConfig(
+        BuiltinShader::HistogramCS, EmbeddedResource(glsl_histogram_comp),
+        rdcspv::ShaderStage::Compute, FeatureCheck::NoCheck,
+        BuiltinShaderFlags::BaseTypeParameterised | BuiltinShaderFlags::TextureTypeParameterised),
+    BuiltinShaderConfig(
+        BuiltinShader::MinMaxTileCS, EmbeddedResource(glsl_minmaxtile_comp),
+        rdcspv::ShaderStage::Compute, FeatureCheck::NoCheck,
+        BuiltinShaderFlags::BaseTypeParameterised | BuiltinShaderFlags::TextureTypeParameterised),
+    BuiltinShaderConfig(BuiltinShader::MinMaxResultCS, EmbeddedResource(glsl_minmaxresult_comp),
+                        rdcspv::ShaderStage::Compute, FeatureCheck::NoCheck,
+                        BuiltinShaderFlags::BaseTypeParameterised),
 };
 
 RDCCOMPILE_ASSERT(ARRAY_COUNT(builtinShaders) == arraydim<BuiltinShader>(),
@@ -204,11 +233,11 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
   const VkPhysicalDeviceFeatures &enabledFeatures = driver->GetDeviceEnabledFeatures();
   const VkPhysicalDeviceFeatures &availFeatures = driver->GetDeviceAvailableFeatures();
 
-  m_GlobalDefines = "#define HAS_BIT_CONVERSION 1\n";
+  rdcstr globalDefines = "#define HAS_BIT_CONVERSION 1\n";
   if(driverVersion.TexelFetchBrokenDriver())
-    m_GlobalDefines += "#define NO_TEXEL_FETCH\n";
+    globalDefines += "#define NO_TEXEL_FETCH\n";
   if(driverVersion.RunningOnMetal())
-    m_GlobalDefines += "#define METAL_BACKEND\n";
+    globalDefines += "#define METAL_BACKEND\n";
 
   rdcstr src;
   rdcspv::CompilationSettings compileSettings;
@@ -230,40 +259,56 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
     if(!passesChecks)
       continue;
 
-    rdcstr defines = m_GlobalDefines;
+    size_t baseTypeCount = size_t(BuiltinShaderBaseType::First) + 1,
+           textureTypeCount = size_t(BuiltinShaderTextureType::First) + 1;
 
-    if(config.builtin == BuiltinShader::TexRemapFloat)
-      defines += rdcstr("#define UINT_TEX 0\n#define SINT_TEX 0\n");
-    else if(config.builtin == BuiltinShader::TexRemapUInt)
-      defines += rdcstr("#define UINT_TEX 1\n#define SINT_TEX 0\n");
-    else if(config.builtin == BuiltinShader::TexRemapSInt)
-      defines += rdcstr("#define UINT_TEX 0\n#define SINT_TEX 1\n");
+    if(config.flags & BuiltinShaderFlags::BaseTypeParameterised)
+      baseTypeCount = (size_t)BuiltinShaderBaseType::Count;
+    if(config.flags & BuiltinShaderFlags::TextureTypeParameterised)
+      textureTypeCount = (size_t)BuiltinShaderTextureType::Count;
 
-    src = GenerateGLSLShader(GetDynamicEmbeddedResource(config.resource), ShaderType::Vulkan, 430,
-                             defines);
-
-    compileSettings.stage = config.stage;
-    rdcstr err = GetSPIRVBlob(compileSettings, src, m_BuiltinShaderBlobs[i]);
-
-    if(!err.empty() || m_BuiltinShaderBlobs[i] == VK_NULL_HANDLE)
+    // for shaders that aren't parameterised these loops will be a no-op that only iterates once,
+    // and fills in [First][First] entry.
+    for(size_t baseType = (size_t)BuiltinShaderBaseType::First; baseType < baseTypeCount; baseType++)
     {
-      RDCERR("Error compiling builtin %u: %s", (uint32_t)i, err.c_str());
-    }
-    else
-    {
-      VkShaderModuleCreateInfo modinfo = {
-          VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-          NULL,
-          0,
-          m_BuiltinShaderBlobs[i]->size() * sizeof(uint32_t),
-          m_BuiltinShaderBlobs[i]->data(),
-      };
+      for(size_t textureType = (size_t)BuiltinShaderTextureType::First;
+          textureType < textureTypeCount; textureType++)
+      {
+        rdcstr defines = globalDefines;
 
-      VkResult vkr =
-          driver->vkCreateShaderModule(m_Device, &modinfo, NULL, &m_BuiltinShaderModules[i]);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+        defines += rdcstr("#define SHADER_RESTYPE ") + ToStr(textureType) + "\n";
+        defines += rdcstr("#define SHADER_BASETYPE ") + ToStr(baseType) + "\n";
 
-      driver->GetResourceManager()->SetInternalResource(GetResID(m_BuiltinShaderModules[i]));
+        src = GenerateGLSLShader(GetDynamicEmbeddedResource(config.resource), ShaderType::Vulkan,
+                                 430, defines);
+
+        compileSettings.stage = config.stage;
+        rdcstr err =
+            GetSPIRVBlob(compileSettings, src, m_BuiltinShaderBlobs[i][baseType][textureType]);
+
+        if(!err.empty() || m_BuiltinShaderBlobs[i][baseType][textureType] == VK_NULL_HANDLE)
+        {
+          RDCERR("Error compiling builtin %u (baseType %zu textureType %zu): %s", (uint32_t)i,
+                 baseType, textureType, err.c_str());
+        }
+        else
+        {
+          VkShaderModuleCreateInfo modinfo = {
+              VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+              NULL,
+              0,
+              m_BuiltinShaderBlobs[i][baseType][textureType]->size() * sizeof(uint32_t),
+              m_BuiltinShaderBlobs[i][baseType][textureType]->data(),
+          };
+
+          VkResult vkr = driver->vkCreateShaderModule(
+              m_Device, &modinfo, NULL, &m_BuiltinShaderModules[i][baseType][textureType]);
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+          driver->GetResourceManager()->SetInternalResource(
+              GetResID(m_BuiltinShaderModules[i][baseType][textureType]));
+        }
+      }
     }
   }
 
@@ -370,7 +415,9 @@ VulkanShaderCache::~VulkanShaderCache()
   }
 
   for(size_t i = 0; i < ARRAY_COUNT(m_BuiltinShaderModules); i++)
-    m_pDriver->vkDestroyShaderModule(m_Device, m_BuiltinShaderModules[i], NULL);
+    for(size_t b = 0; b < ARRAY_COUNT(m_BuiltinShaderModules[0]); b++)
+      for(size_t t = 0; t < ARRAY_COUNT(m_BuiltinShaderModules[0][0]); t++)
+        m_pDriver->vkDestroyShaderModule(m_Device, m_BuiltinShaderModules[i][b][t], NULL);
 }
 
 rdcstr VulkanShaderCache::GetSPIRVBlob(const rdcspv::CompilationSettings &settings,

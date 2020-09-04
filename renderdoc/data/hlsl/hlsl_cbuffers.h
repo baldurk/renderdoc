@@ -218,3 +218,29 @@ cbuffer HistogramCBufferData REG(b0)
 #define MESH_TRIANGLE_STRIP 2
 #define MESH_TRIANGLE_LIST_ADJ 3
 #define MESH_TRIANGLE_STRIP_ADJ 4
+
+#if defined(SHADER_BASETYPE) && SHADER_BASETYPE == 0
+
+#define FLOAT_TEX 1
+#define UINT_TEX 0
+#define SINT_TEX 0
+
+#elif defined(SHADER_BASETYPE) && SHADER_BASETYPE == 1
+
+#define FLOAT_TEX 0
+#define UINT_TEX 1
+#define SINT_TEX 0
+
+#elif defined(SHADER_BASETYPE) && SHADER_BASETYPE == 2
+
+#define FLOAT_TEX 0
+#define UINT_TEX 0
+#define SINT_TEX 1
+
+#else
+
+#define FLOAT_TEX 1
+#define UINT_TEX 0
+#define SINT_TEX 0
+
+#endif

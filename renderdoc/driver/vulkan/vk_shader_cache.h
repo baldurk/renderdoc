@@ -51,18 +51,42 @@ enum class BuiltinShader
   Array2MSCS,
   DepthMS2ArrayFS,
   DepthArray2MSFS,
-  TexRemapFloat,
-  TexRemapUInt,
-  TexRemapSInt,
+  TexRemap,
   PixelHistoryMSCopyCS,
   PixelHistoryMSCopyDepthCS,
   PixelHistoryPrimIDFS,
   ShaderDebugSampleVS,
   DiscardFS,
+  HistogramCS,
+  MinMaxTileCS,
+  MinMaxResultCS,
   Count,
 };
 
 ITERABLE_OPERATORS(BuiltinShader);
+
+enum class BuiltinShaderBaseType
+{
+  Float = 0,
+  First = Float,
+  UInt,
+  SInt,
+  Count,
+};
+
+ITERABLE_OPERATORS(BuiltinShaderBaseType);
+
+enum class BuiltinShaderTextureType
+{
+  Tex1D = 1,
+  First = Tex1D,
+  Tex2D,
+  Tex3D,
+  Tex2DMS,
+  Count,
+};
+
+ITERABLE_OPERATORS(BuiltinShaderTextureType);
 
 class VulkanShaderCache
 {
@@ -73,10 +97,16 @@ public:
   rdcstr GetSPIRVBlob(const rdcspv::CompilationSettings &settings, const rdcstr &src,
                       SPIRVBlob &outBlob);
 
-  SPIRVBlob GetBuiltinBlob(BuiltinShader builtin) { return m_BuiltinShaderBlobs[(size_t)builtin]; }
-  VkShaderModule GetBuiltinModule(BuiltinShader builtin)
+  SPIRVBlob GetBuiltinBlob(BuiltinShader builtin)
   {
-    return m_BuiltinShaderModules[(size_t)builtin];
+    return m_BuiltinShaderBlobs[(size_t)builtin][(size_t)BuiltinShaderBaseType::First]
+                               [(size_t)BuiltinShaderTextureType::First];
+  }
+  VkShaderModule GetBuiltinModule(BuiltinShader builtin,
+                                  BuiltinShaderBaseType baseType = BuiltinShaderBaseType::First,
+                                  BuiltinShaderTextureType texType = BuiltinShaderTextureType::First)
+  {
+    return m_BuiltinShaderModules[(size_t)builtin][(size_t)baseType][(size_t)texType];
   }
   VkPipelineCache GetPipeCache() { return m_PipelineCache; }
   void MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
@@ -84,7 +114,6 @@ public:
 
   bool IsMS2ArraySupported() { return m_MS2ArraySupported; }
   bool IsArray2MSSupported() { return m_Array2MSSupported; }
-  rdcstr GetGlobalDefines() { return m_GlobalDefines; }
   void SetCaching(bool enabled) { m_CacheShaders = enabled; }
 private:
   static const uint32_t m_ShaderCacheMagic = 0xf00d00d5;
@@ -99,13 +128,13 @@ private:
   bytebuf m_PipeCacheBlob;
   VkPipelineCache m_PipelineCache = VK_NULL_HANDLE;
 
-  rdcstr m_GlobalDefines;
-
   bool m_MS2ArraySupported = false, m_Array2MSSupported = false;
 
   bool m_ShaderCacheDirty = false, m_CacheShaders = false;
   std::map<uint32_t, SPIRVBlob> m_ShaderCache;
 
-  SPIRVBlob m_BuiltinShaderBlobs[arraydim<BuiltinShader>()] = {NULL};
-  VkShaderModule m_BuiltinShaderModules[arraydim<BuiltinShader>()] = {VK_NULL_HANDLE};
+  SPIRVBlob m_BuiltinShaderBlobs[arraydim<BuiltinShader>()][arraydim<BuiltinShaderBaseType>()]
+                                [arraydim<BuiltinShaderTextureType>()] = {};
+  VkShaderModule m_BuiltinShaderModules[arraydim<BuiltinShader>()][arraydim<BuiltinShaderBaseType>()]
+                                       [arraydim<BuiltinShaderTextureType>()] = {};
 };

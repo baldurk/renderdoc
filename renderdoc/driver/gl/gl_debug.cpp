@@ -458,8 +458,7 @@ void GLReplay::InitDebugData()
 
   for(int i = 0; i < 3; i++)
   {
-    rdcstr defines = rdcstr("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-    defines += rdcstr("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+    rdcstr defines = rdcstr("#define SHADER_BASETYPE ") + ToStr(i) + "\n";
 
     fs = GenerateGLSLShader(GetEmbeddedResource(glsl_texdisplay_frag), shaderType, glslBaseVer,
                             defines + texSampleDefines);
@@ -840,8 +839,7 @@ void GLReplay::InitDebugData()
           {
             rdcstr defines;
             defines += rdcstr("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-            defines += rdcstr("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-            defines += rdcstr("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+            defines += rdcstr("#define SHADER_BASETYPE ") + ToStr(i) + "\n";
             defines += texSampleDefines;
 
             cs = GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxtile_comp), shaderType,
@@ -856,8 +854,7 @@ void GLReplay::InitDebugData()
           {
             rdcstr defines;
             defines += rdcstr("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-            defines += rdcstr("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-            defines += rdcstr("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+            defines += rdcstr("#define SHADER_BASETYPE ") + ToStr(i) + "\n";
             defines += texSampleDefines;
 
             cs = GenerateGLSLShader(GetEmbeddedResource(glsl_histogram_comp), shaderType, glslCSVer,
@@ -873,8 +870,7 @@ void GLReplay::InitDebugData()
           {
             rdcstr defines;
             defines += rdcstr("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-            defines += rdcstr("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
-            defines += rdcstr("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+            defines += rdcstr("#define SHADER_BASETYPE ") + ToStr(i) + "\n";
 
             cs = GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxresult_comp), shaderType,
                                     glslCSVer, defines);

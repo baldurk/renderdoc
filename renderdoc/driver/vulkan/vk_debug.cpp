@@ -176,51 +176,6 @@ static void create(WrappedVulkan *driver, const char *objName, const int line, V
     RDCERR("Failed creating object %s at line %i, vkr was %s", objName, line, ToStr(vkr).c_str());
 }
 
-// Create a compute pipeline with a SPIRV Blob (creates a temporary shader module)
-static void create(WrappedVulkan *driver, const char *objName, const int line, VkPipeline *pipe,
-                   VkPipelineLayout pipeLayout, SPIRVBlob computeModule)
-{
-  *pipe = VK_NULL_HANDLE;
-
-  // if the module didn't compile, this pipeline is not be supported. Silently don't create it, code
-  // later should handle the missing pipeline as indicating lack of support
-  if(computeModule == NULL)
-    return;
-
-  VkShaderModule module = VK_NULL_HANDLE;
-
-  VkShaderModuleCreateInfo moduleInfo = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
-
-  moduleInfo.codeSize = computeModule->size() * sizeof(uint32_t);
-  moduleInfo.pCode = computeModule->data();
-
-  VkResult vkr = driver->vkCreateShaderModule(driver->GetDev(), &moduleInfo, NULL, &module);
-  if(vkr != VK_SUCCESS)
-  {
-    RDCERR("Failed creating temporary shader for object  %s at line %i, vkr was %s", objName, line,
-           ToStr(vkr).c_str());
-    return;
-  }
-
-  VkComputePipelineCreateInfo compPipeInfo = {
-      VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-      NULL,
-      0,
-      {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_COMPUTE_BIT,
-       module, "main", NULL},
-      pipeLayout,
-      VK_NULL_HANDLE,
-      0,
-  };
-
-  vkr = driver->vkCreateComputePipelines(driver->GetDev(), driver->GetShaderCache()->GetPipeCache(),
-                                         1, &compPipeInfo, NULL, pipe);
-  if(vkr != VK_SUCCESS)
-    RDCERR("Failed creating object %s at line %i, vkr was %s", objName, line, ToStr(vkr).c_str());
-
-  driver->vkDestroyShaderModule(driver->GetDev(), module, NULL);
-}
-
 static void create(WrappedVulkan *driver, const char *objName, const int line,
                    VkDescriptorSet *descSet, VkDescriptorPool pool, VkDescriptorSetLayout setLayout)
 {
@@ -3035,14 +2990,13 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     VkFormat formats[3] = {VK_FORMAT_R8G8B8A8_UINT, VK_FORMAT_R16G16B16A16_UINT,
                            VK_FORMAT_R32G32B32A32_UINT};
     CompType cast[3] = {CompType::Float, CompType::UInt, CompType::SInt};
-    BuiltinShader shaders[3] = {BuiltinShader::TexRemapFloat, BuiltinShader::TexRemapUInt,
-                                BuiltinShader::TexRemapSInt};
 
     for(int f = 0; f < 3; f++)
     {
       for(int i = 0; i < 3; i++)
       {
-        texRemapInfo.fragment = shaderCache->GetBuiltinModule(shaders[i]);
+        texRemapInfo.fragment =
+            shaderCache->GetBuiltinModule(BuiltinShader::TexRemap, BuiltinShaderBaseType(i));
 
         CREATE_OBJECT(texRemapInfo.renderPass, GetViewCastedFormat(formats[f], cast[i]));
 
@@ -3059,7 +3013,8 @@ void VulkanReplay::TextureRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
     {
       for(int i = 0; i < 3; i++)
       {
-        texRemapInfo.fragment = shaderCache->GetBuiltinModule(shaders[i]);
+        texRemapInfo.fragment =
+            shaderCache->GetBuiltinModule(BuiltinShader::TexRemap, BuiltinShaderBaseType(i));
 
         CREATE_OBJECT(texRemapInfo.renderPass, GetViewCastedFormat(formats[f], cast[i]));
 
@@ -3853,60 +3808,25 @@ void VulkanReplay::HistogramMinMax::Init(WrappedVulkan *driver, VkDescriptorPool
   RDCCOMPILE_ASSERT(RESTYPE_TEXTYPEMAX == ARRAY_COUNT(m_MinMaxTilePipe),
                     "RESTYPE values don't match formats for dummy images");
 
-  for(size_t t = 1; t < ARRAY_COUNT(m_MinMaxTilePipe); t++)
+  RDCCOMPILE_ASSERT(ARRAY_COUNT(m_MinMaxTilePipe) == arraydim<BuiltinShaderTextureType>(),
+                    "Array size doesn't match parameter enum");
+  RDCCOMPILE_ASSERT(ARRAY_COUNT(m_MinMaxTilePipe[0]) == arraydim<BuiltinShaderBaseType>(),
+                    "Array size doesn't match parameter enum");
+
+  for(BuiltinShaderTextureType t = BuiltinShaderTextureType::First;
+      t < BuiltinShaderTextureType::Count; ++t)
   {
-    for(size_t f = 0; f < ARRAY_COUNT(m_MinMaxTilePipe[0]); f++)
+    for(BuiltinShaderBaseType f = BuiltinShaderBaseType::First; f < BuiltinShaderBaseType::Count; ++f)
     {
-      SPIRVBlob minmaxtile = NULL;
-      SPIRVBlob minmaxresult = NULL;
-      SPIRVBlob histogram = NULL;
-      rdcstr err;
+      CREATE_OBJECT(m_HistogramPipe[(size_t)t][(size_t)f], m_HistogramPipeLayout,
+                    shaderCache->GetBuiltinModule(BuiltinShader::HistogramCS, f, t));
+      CREATE_OBJECT(m_MinMaxTilePipe[(size_t)t][(size_t)f], m_HistogramPipeLayout,
+                    shaderCache->GetBuiltinModule(BuiltinShader::MinMaxTileCS, f, t));
 
-      rdcstr defines = shaderCache->GetGlobalDefines();
-
-      defines += rdcstr("#define SHADER_RESTYPE ") + ToStr(t) + "\n";
-      defines += rdcstr("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
-      defines += rdcstr("#define SINT_TEX ") + (f == 2 ? "1" : "0") + "\n";
-
-      glsl = GenerateGLSLShader(GetEmbeddedResource(glsl_histogram_comp), ShaderType::Vulkan, 430,
-                                defines);
-
-      err = shaderCache->GetSPIRVBlob(compileSettings, glsl, histogram);
-      if(!err.empty())
+      if(t == BuiltinShaderTextureType::First)
       {
-        RDCERR("Error compiling histogram shader: %s. Defines are:\n%s", err.c_str(),
-               defines.c_str());
-        histogram = NULL;
-      }
-
-      glsl = GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxtile_comp), ShaderType::Vulkan, 430,
-                                defines);
-
-      err = shaderCache->GetSPIRVBlob(compileSettings, glsl, minmaxtile);
-      if(!err.empty())
-      {
-        RDCERR("Error compiling min/max tile shader: %s. Defines are:\n%s", err.c_str(),
-               defines.c_str());
-        minmaxtile = NULL;
-      }
-
-      CREATE_OBJECT(m_MinMaxTilePipe[t][f], m_HistogramPipeLayout, minmaxtile);
-      CREATE_OBJECT(m_HistogramPipe[t][f], m_HistogramPipeLayout, histogram);
-
-      if(t == 1)
-      {
-        glsl = GenerateGLSLShader(GetEmbeddedResource(glsl_minmaxresult_comp), ShaderType::Vulkan,
-                                  430, defines);
-
-        err = shaderCache->GetSPIRVBlob(compileSettings, glsl, minmaxresult);
-        if(!err.empty())
-        {
-          RDCERR("Error compiling min/max result shader: %s. Defines are:\n%s", err.c_str(),
-                 defines.c_str());
-          minmaxresult = NULL;
-        }
-
-        CREATE_OBJECT(m_MinMaxResultPipe[f], m_HistogramPipeLayout, minmaxresult);
+        CREATE_OBJECT(m_MinMaxResultPipe[(size_t)f], m_HistogramPipeLayout,
+                      shaderCache->GetBuiltinModule(BuiltinShader::MinMaxResultCS, f));
       }
     }
   }
