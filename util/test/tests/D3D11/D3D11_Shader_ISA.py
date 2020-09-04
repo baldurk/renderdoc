@@ -19,7 +19,7 @@ class D3D11_Shader_ISA(rdtest.TestCase):
 
         refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
-        isas: List[str] = self.controller.GetDisassemblyTargets()
+        isas: List[str] = self.controller.GetDisassemblyTargets(True)
 
         if isas == []:
             raise rdtest.TestFailureException("Expected some disassembly targets, got none!")
