@@ -89,6 +89,8 @@ CaptureContext::CaptureContext(PersistantConfig &cfg) : m_Config(cfg)
 
   m_MainWindow = new MainWindow(*this);
 
+  m_MainWindow->LoadInitialLayout();
+
   {
     QDir dir(configFilePath("extensions"));
 

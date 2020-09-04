@@ -1534,7 +1534,7 @@ ToolWindowManager::AreaReference MainWindow::leftToolArea()
   return ToolWindowManager::AreaReference(ToolWindowManager::LastUsedArea);
 }
 
-void MainWindow::show()
+void MainWindow::LoadInitialLayout()
 {
   bool loaded = LoadLayout(0);
 
@@ -1584,8 +1584,6 @@ void MainWindow::show()
         ToolWindowManager::AreaReference(ToolWindowManager::TopWindowSide,
                                          ui->toolWindowManager->areaOf(textureViewer), 0.2f));
   }
-
-  QMainWindow::show();
 }
 
 void MainWindow::RemoveRecentCapture(const QString &filename)

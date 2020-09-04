@@ -71,7 +71,7 @@ public:
   ToolWindowManager::AreaReference mainToolArea();
   ToolWindowManager::AreaReference leftToolArea();
 
-  void show();
+  void LoadInitialLayout();
 
   void setProgress(float val);
   void setRemoteHost(int hostIdx);
