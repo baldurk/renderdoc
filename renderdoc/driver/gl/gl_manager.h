@@ -89,13 +89,19 @@ public:
 
     while(!m_CurrentResources.empty())
     {
-      auto it = m_CurrentResources.begin();
+      auto it = m_CurrentResources.end();
+      --it;
       ResourceId id = it->second.first;
       if(it->second.second)
         it->second.second->Delete(this);
 
-      if(!m_CurrentResources.empty() && m_CurrentResources.begin()->second.first == id)
-        m_CurrentResources.erase(m_CurrentResources.begin());
+      if(!m_CurrentResources.empty())
+      {
+        auto last = m_CurrentResources.end();
+        last--;
+        if(last->second.first == id)
+          m_CurrentResources.erase(last);
+      }
     }
 
     m_CurrentResources.clear();
