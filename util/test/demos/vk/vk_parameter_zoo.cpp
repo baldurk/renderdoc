@@ -280,6 +280,33 @@ void main()
         TEST_LOG("  - %s", tool.name);
     }
 
+    {
+      VkPhysicalDeviceProperties2KHR props2 = vkh::PhysicalDeviceProperties2KHR();
+
+      PFN_vkGetPhysicalDeviceProperties2KHR instfn =
+          (PFN_vkGetPhysicalDeviceProperties2KHR)vkGetInstanceProcAddr(
+              instance, "vkGetPhysicalDeviceProperties2KHR");
+      PFN_vkGetPhysicalDeviceProperties2KHR devfn =
+          (PFN_vkGetPhysicalDeviceProperties2KHR)vkGetDeviceProcAddr(
+              device, "vkGetPhysicalDeviceProperties2KHR");
+
+      instfn(phys, &props2);
+
+      TEST_LOG("Got physical device %s", props2.properties.deviceName);
+
+      props2 = vkh::PhysicalDeviceProperties2KHR();
+
+      if(devfn != NULL)
+      {
+        TEST_ERROR("Unexpected non-NULL return from vkGetDeviceProcAddr for physdev function");
+
+        // we expect this to crash
+        devfn(phys, &props2);
+
+        return 5;
+      }
+    }
+
     bool KHR_descriptor_update_template =
         std::find(devExts.begin(), devExts.end(),
                   VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME) != devExts.end();
