@@ -997,13 +997,13 @@ void WrappedOpenGL::CheckImplicitThread()
 {
   if(IsActiveCapturing(m_State) && m_LastCtx != GetCtx().ctx)
   {
+    m_LastCtx = GetCtx().ctx;
+
     USE_SCRATCH_SERIALISER();
     SCOPED_SERIALISE_CHUNK(GLChunk::ImplicitThreadSwitch);
     Serialise_ContextConfiguration(ser, m_LastCtx);
     Serialise_BeginCaptureFrame(ser);
     GetContextRecord()->AddChunk(scope.Get());
-
-    m_LastCtx = GetCtx().ctx;
   }
 }
 
