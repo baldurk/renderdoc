@@ -359,6 +359,7 @@ public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandAllocator, AllocPoolCount, AllocMaxByteSize);
 
   ChunkAllocator alloc;
+  bool m_Internal = false;
 
   enum
   {
@@ -370,12 +371,18 @@ public:
   {
   }
   virtual ~WrappedID3D12CommandAllocator() { Shutdown(); }
+  void SetInternal(bool internalAlloc) { m_Internal = internalAlloc; }
   //////////////////////////////
   // implement ID3D12CommandAllocator
 
   virtual HRESULT STDMETHODCALLTYPE Reset()
   {
-    alloc.Reset();
+    if(!m_Internal)
+      m_pDevice->GetCapTransitionLock().ReadLock();
+    if(IsBackgroundCapturing(m_pDevice->GetState()))
+      alloc.Reset();
+    if(!m_Internal)
+      m_pDevice->GetCapTransitionLock().ReadUnlock();
     return m_pReal->Reset();
   }
 };

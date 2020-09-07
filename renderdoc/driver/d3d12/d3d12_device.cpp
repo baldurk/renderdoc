@@ -2798,6 +2798,7 @@ void WrappedID3D12Device::CreateInternalResources()
 
   CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator),
                          (void **)&m_Alloc);
+  ((WrappedID3D12CommandAllocator *)m_Alloc)->SetInternal(true);
   InternalRef();
   CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&m_GPUSyncFence);
   InternalRef();
@@ -2808,6 +2809,7 @@ void WrappedID3D12Device::CreateInternalResources()
 
   CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator),
                          (void **)&m_DataUploadAlloc);
+  ((WrappedID3D12CommandAllocator *)m_DataUploadAlloc)->SetInternal(true);
   InternalRef();
 
   GetResourceManager()->SetInternalResource(m_DataUploadAlloc);

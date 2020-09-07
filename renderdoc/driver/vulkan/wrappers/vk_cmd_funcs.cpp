@@ -546,7 +546,11 @@ VkResult WrappedVulkan::vkCreateCommandPool(VkDevice device,
 VkResult WrappedVulkan::vkResetCommandPool(VkDevice device, VkCommandPool cmdPool,
                                            VkCommandPoolResetFlags flags)
 {
-  GetRecord(cmdPool)->cmdPoolInfo->alloc.Reset();
+  {
+    SCOPED_READLOCK(m_CapTransitionLock);
+    if(IsBackgroundCapturing(m_State))
+      GetRecord(cmdPool)->cmdPoolInfo->alloc.Reset();
+  }
 
   return ObjDisp(device)->ResetCommandPool(Unwrap(device), Unwrap(cmdPool), flags);
 }
