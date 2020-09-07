@@ -735,7 +735,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   drv.glUseProgram(feedbackProg);
   drv.glBindProgramPipeline(0);
 
-  drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
+  if(HasExt[ARB_transform_feedback2])
+    drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
 
   GLuint idxBuf = 0;
 
@@ -1021,7 +1022,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       drv.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array].name);
       drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
 
-      drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
+      if(HasExt[ARB_transform_feedback2])
+        drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
 
       if(!rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard])
         drv.glDisable(eGL_RASTERIZER_DISCARD);
@@ -1406,7 +1408,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
       drv.glUseProgram(feedbackProg);
       drv.glBindProgramPipeline(0);
 
-      drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
+      if(HasExt[ARB_transform_feedback2])
+        drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
 
       // need to rebind this here because of an AMD bug that seems to ignore the buffer
       // bindings in the feedback object - or at least it errors if the default feedback
@@ -1741,7 +1744,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
         drv.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array].name);
         drv.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
 
-        drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
+        if(HasExt[ARB_transform_feedback2])
+          drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
 
         if(!rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard])
           drv.glDisable(eGL_RASTERIZER_DISCARD);
@@ -1886,7 +1890,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventId)
   if(HasExt[ARB_query_buffer_object])
     drv.glBindBuffer(eGL_QUERY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Query].name);
 
-  drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
+  if(HasExt[ARB_transform_feedback2])
+    drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj.name);
 
   if(!rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard])
     drv.glDisable(eGL_RASTERIZER_DISCARD);

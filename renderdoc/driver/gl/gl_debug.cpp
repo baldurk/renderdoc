@@ -1084,17 +1084,20 @@ void GLReplay::InitDebugData()
   // these below need to be made on the replay context, as they are context-specific (not shared)
   // and will be used on the replay context.
 
-  drv.glGenTransformFeedbacks(1, &DebugData.feedbackObj);
+  if(HasExt[ARB_transform_feedback2])
+    drv.glGenTransformFeedbacks(1, &DebugData.feedbackObj);
   drv.glGenBuffers(1, &DebugData.feedbackBuffer);
   DebugData.feedbackQueries.push_back(0);
   drv.glGenQueries(1, &DebugData.feedbackQueries[0]);
 
-  drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
+  if(HasExt[ARB_transform_feedback2])
+    drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
   drv.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBuffer);
   drv.glNamedBufferDataEXT(DebugData.feedbackBuffer, (GLsizeiptr)DebugData.feedbackBufferSize, NULL,
                            eGL_DYNAMIC_READ);
   drv.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
-  drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, 0);
+  if(HasExt[ARB_transform_feedback2])
+    drv.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, 0);
 
   RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
 
@@ -1153,7 +1156,8 @@ void GLReplay::DeleteDebugData()
     if(DebugData.discardProg[i])
       drv.glDeleteProgram(DebugData.discardProg[i]);
 
-  drv.glDeleteTransformFeedbacks(1, &DebugData.feedbackObj);
+  if(HasExt[ARB_transform_feedback2])
+    drv.glDeleteTransformFeedbacks(1, &DebugData.feedbackObj);
   drv.glDeleteBuffers(1, &DebugData.feedbackBuffer);
   drv.glDeleteQueries((GLsizei)DebugData.feedbackQueries.size(), DebugData.feedbackQueries.data());
 
