@@ -637,10 +637,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
             cmdBufNodes[j].draw.drawcallId += eidShift;
 
             for(APIEvent &ev : cmdBufNodes[j].draw.events)
-            {
               ev.eventId += eidShift;
-              ev.chunkIndex += eidShift;
-            }
 
             for(rdcpair<ResourceId, EventUsage> &use : cmdBufNodes[j].resourceUsage)
               use.second.eventId += eidShift;
@@ -683,9 +680,6 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
           if(indirectCount == 0)
           {
             // i is the pushmarker, which we leave. i+1 is the subdraw
-
-            m_StructuredFile->chunks.erase(chunkIndex);
-
             cmdBufNodes.erase(i + 1);
           }
           else
@@ -693,8 +687,9 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
             // duplicate the fake structured data chunk N times
             SDChunk *chunk = m_StructuredFile->chunks[chunkIndex];
 
+            uint32_t baseAddedChunk = (uint32_t)m_StructuredFile->chunks.size();
             for(int32_t e = 0; e < eidShift; e++)
-              m_StructuredFile->chunks.insert(chunkIndex, chunk->Duplicate());
+              m_StructuredFile->chunks.push_back(chunk->Duplicate());
 
             // now copy the subdraw so we're not inserting into the array from itself
             VulkanDrawcallTreeNode node = cmdBufNodes[i + 1];
@@ -708,7 +703,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
               for(APIEvent &ev : node.draw.events)
               {
                 ev.eventId++;
-                ev.chunkIndex++;
+                ev.chunkIndex = baseAddedChunk + e;
               }
 
               for(rdcpair<ResourceId, EventUsage> &use : node.resourceUsage)
