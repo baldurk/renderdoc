@@ -127,7 +127,7 @@ static void CacheSupport(ShaderEncoding primary, ShaderEncoding secondary = Shad
     return;
 
   // kick off a thread to cache these encodings' support
-  Threading::CreateThread([primary, secondary]() {
+  supportCheckThread = Threading::CreateThread([primary, secondary]() {
     encodingSupported[(size_t)primary] = CheckForSupport(primary);
     encodingSupported[(size_t)secondary] = CheckForSupport(secondary);
 
