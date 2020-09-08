@@ -158,6 +158,10 @@ public:
   void refresh()
   {
     emit beginResetModel();
+    m_VisibleRows.clear();
+    for(int i = 0; i < sourceModel()->rowCount(); i++)
+      if(isVisibleRow(i))
+        m_VisibleRows.push_back(i);
     emit endResetModel();
   }
 
