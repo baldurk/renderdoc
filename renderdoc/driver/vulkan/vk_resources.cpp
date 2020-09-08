@@ -3721,8 +3721,6 @@ void ImgRefs::Split(bool splitAspects, bool splitLevels, bool splitLayers)
 
 VkResourceRecord::~VkResourceRecord()
 {
-  VkResourceType resType = Resource != NULL ? IdentifyTypeByPtr(Resource) : eResUnknown;
-
   // bufferviews and imageviews have non-owning pointers to the sparseinfo struct
   if(resType == eResBuffer || resType == eResImage)
     SAFE_DELETE(resInfo);

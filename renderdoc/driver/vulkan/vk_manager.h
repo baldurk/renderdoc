@@ -225,10 +225,12 @@ public:
   template <typename realtype>
   VkResourceRecord *AddResourceRecord(realtype &obj)
   {
-    typename UnwrapHelper<realtype>::Outer *wrapped = GetWrapped(obj);
+    using WrappedType = typename UnwrapHelper<realtype>::Outer;
+    WrappedType *wrapped = GetWrapped(obj);
     VkResourceRecord *ret = wrapped->record = ResourceManager::AddResourceRecord(wrapped->id);
 
     ret->Resource = (WrappedVkRes *)wrapped;
+    ret->resType = (VkResourceType)WrappedType::TypeEnum;
 
     return ret;
   }

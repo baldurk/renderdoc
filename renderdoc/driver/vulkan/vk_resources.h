@@ -2114,7 +2114,12 @@ public:
   static byte markerValue[32];
 
   VkResourceRecord(ResourceId id)
-      : ResourceRecord(id, true), Resource(NULL), bakedCommands(NULL), pool(NULL), ptrunion(NULL)
+      : ResourceRecord(id, true),
+        Resource(NULL),
+        resType(eResUnknown),
+        bakedCommands(NULL),
+        pool(NULL),
+        ptrunion(NULL)
   {
   }
 
@@ -2259,6 +2264,7 @@ public:
 
   VkDeviceSize memOffset;
   VkDeviceSize memSize;
+  VkResourceType resType;
 
   void MarkMemoryFrameReferenced(ResourceId mem, VkDeviceSize offset, VkDeviceSize size,
                                  FrameRefType refType);
