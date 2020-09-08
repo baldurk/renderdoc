@@ -288,48 +288,66 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
 
       m_CreationInfo.m_Memory[live].Init(GetResourceManager(), m_CreationInfo, &AllocateInfo);
 
-      // create a buffer with the whole memory range bound, for copying to and from
-      // conveniently (for initial state data)
-      VkBuffer buf = VK_NULL_HANDLE;
+      VkMemoryDedicatedAllocateInfo *dedicated = (VkMemoryDedicatedAllocateInfo *)FindNextStruct(
+          &AllocateInfo, VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO);
+      VkDedicatedAllocationMemoryAllocateInfoNV *dedicatedNV =
+          (VkDedicatedAllocationMemoryAllocateInfoNV *)FindNextStruct(
+              &AllocateInfo, VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV);
 
-      VkBufferCreateInfo bufInfo = {
-          VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-          NULL,
-          0,
-          AllocateInfo.allocationSize,
-          VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-      };
-
-      ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &buf);
-      RDCASSERTEQUAL(ret, VK_SUCCESS);
-
-      // we already validated at replay time that the memory size is aligned/etc as necessary so we
-      // can create a buffer of the whole size, but just to keep the validation layers happy let's
-      // check the requirements here again.
-      VkMemoryRequirements mrq = {};
-      ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), buf, &mrq);
-
-      // check that this allocation type can actually be bound to a buffer. Allocations that can't
-      // be used with buffers we can just skip and leave wholeMemBuf as NULL.
-      if((1 << AllocateInfo.memoryTypeIndex) & mrq.memoryTypeBits)
+      if(dedicated)
       {
-        RDCASSERT(mrq.size <= AllocateInfo.allocationSize, mrq.size, AllocateInfo.allocationSize);
-
-        ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), buf);
-
-        ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buf), Unwrap(mem), 0);
-
-        // register as a live-only resource, so it is cleaned up properly
-        GetResourceManager()->AddLiveResource(bufid, buf);
-
-        m_CreationInfo.m_Memory[live].wholeMemBuf = buf;
+        // either set the buffer that's dedicated, or if this is dedicated image memory set NULL
+        m_CreationInfo.m_Memory[live].wholeMemBuf = dedicated->buffer;
+      }
+      else if(dedicatedNV)
+      {
+        m_CreationInfo.m_Memory[live].wholeMemBuf = dedicatedNV->buffer;
       }
       else
       {
-        RDCWARN("Can't create buffer covering memory allocation %s", ToStr(Memory).c_str());
-        ObjDisp(device)->DestroyBuffer(Unwrap(device), buf, NULL);
+        // create a buffer with the whole memory range bound, for copying to and from
+        // conveniently (for initial state data)
+        VkBuffer buf = VK_NULL_HANDLE;
 
-        m_CreationInfo.m_Memory[live].wholeMemBuf = VK_NULL_HANDLE;
+        VkBufferCreateInfo bufInfo = {
+            VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            NULL,
+            0,
+            AllocateInfo.allocationSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        };
+
+        ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &buf);
+        RDCASSERTEQUAL(ret, VK_SUCCESS);
+
+        // we already validated at replay time that the memory size is aligned/etc as necessary so
+        // we can create a buffer of the whole size, but just to keep the validation layers happy
+        // let's check the requirements here again.
+        VkMemoryRequirements mrq = {};
+        ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), buf, &mrq);
+
+        // check that this allocation type can actually be bound to a buffer. Allocations that can't
+        // be used with buffers we can just skip and leave wholeMemBuf as NULL.
+        if((1 << AllocateInfo.memoryTypeIndex) & mrq.memoryTypeBits)
+        {
+          RDCASSERT(mrq.size <= AllocateInfo.allocationSize, mrq.size, AllocateInfo.allocationSize);
+
+          ResourceId bufid = GetResourceManager()->WrapResource(Unwrap(device), buf);
+
+          ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buf), Unwrap(mem), 0);
+
+          // register as a live-only resource, so it is cleaned up properly
+          GetResourceManager()->AddLiveResource(bufid, buf);
+
+          m_CreationInfo.m_Memory[live].wholeMemBuf = buf;
+        }
+        else
+        {
+          RDCWARN("Can't create buffer covering memory allocation %s", ToStr(Memory).c_str());
+          ObjDisp(device)->DestroyBuffer(Unwrap(device), buf, NULL);
+
+          m_CreationInfo.m_Memory[live].wholeMemBuf = VK_NULL_HANDLE;
+        }
       }
     }
 
@@ -1392,6 +1410,11 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
     // ensure we can always readback from buffers
     CreateInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
+    // we only need to add TRANSFER_DST_BIT for dedicated buffers, but there's not a reliable way to
+    // know if a buffer will be dedicated-allocation or not. We assume that TRANSFER_DST is
+    // effectively free as a usage bit for all sensible implementations so we just add it here.
+    CreateInfo.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
     // remap the queue family indices
     if(CreateInfo.sharingMode == VK_SHARING_MODE_EXCLUSIVE)
     {
@@ -1444,6 +1467,11 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
   // TEMP HACK: Until we define a portable fake hardware, need to match the requirements for usage
   // on replay, so that the memory requirements are the same
   adjusted_info.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+  // we only need to add TRANSFER_DST_BIT for dedicated buffers, but there's not a reliable way to
+  // know if a buffer will be dedicated-allocation or not. We assume that TRANSFER_DST is
+  // effectively free as a usage bit for all sensible implementations so we just add it here.
+  adjusted_info.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
   // If we're using this buffer for device addresses, ensure we force on capture replay bit.
   // We ensured the physical device can support this feature before whitelisting the extension.

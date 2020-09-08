@@ -1608,6 +1608,14 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
   {
     srcBuf = m_pDriver->m_CreationInfo.m_Memory[buff].wholeMemBuf;
     bufsize = m_pDriver->m_CreationInfo.m_Memory[buff].size;
+
+    if(srcBuf == VK_NULL_HANDLE)
+    {
+      RDCLOG(
+          "Memory doesn't have wholeMemBuf, either non-buffer accessible (non-linear) or dedicated "
+          "image memory");
+      return;
+    }
   }
   else
   {
