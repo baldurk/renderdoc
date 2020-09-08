@@ -1113,6 +1113,11 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
           bufInfos[j].buffer = Unwrap(pDescriptorWrites[i].pBufferInfo[j].buffer);
           bufInfos[j].offset = pDescriptorWrites[i].pBufferInfo[j].offset;
           bufInfos[j].range = pDescriptorWrites[i].pBufferInfo[j].range;
+          if(bufInfos[j].buffer == VK_NULL_HANDLE)
+          {
+            bufInfos[j].offset = 0;
+            bufInfos[j].range = VK_WHOLE_SIZE;
+          }
         }
       }
     }
