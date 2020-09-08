@@ -261,9 +261,9 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
     QEventLoop loop;
     loop.exec();
   });
-  m_NetManagerThread->thread()->setPriority(QThread::LowPriority);
   m_NetManagerThread->moveObjectToThread(m_NetWorker);
   m_NetManagerThread->start();
+  m_NetManagerThread->thread()->setPriority(QThread::LowPriority);
 
   // set up cross-thread signal/slot connections
   QObject::connect(this, &MainWindow::networkRequestGet, m_NetWorker, &NetworkWorker::get,
