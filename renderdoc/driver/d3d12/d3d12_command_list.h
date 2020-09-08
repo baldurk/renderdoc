@@ -164,9 +164,7 @@ private:
   static rdcstr GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_pDevice->GetResourceManager(); }
 public:
-  static const int AllocPoolCount = 8192;
-  static const int AllocMaxByteSize = 2 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12GraphicsCommandList, AllocPoolCount, AllocMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12GraphicsCommandList);
 
   WrappedID3D12GraphicsCommandList(ID3D12GraphicsCommandList *real, WrappedID3D12Device *device,
                                    CaptureState &state);

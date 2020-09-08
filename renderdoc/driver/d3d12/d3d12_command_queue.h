@@ -140,8 +140,7 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   static rdcstr GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_pDevice->GetResourceManager(); }
 public:
-  static const int AllocPoolCount = 16;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandQueue, AllocPoolCount);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandQueue);
 
   WrappedID3D12CommandQueue(ID3D12CommandQueue *real, WrappedID3D12Device *device,
                             CaptureState &state);

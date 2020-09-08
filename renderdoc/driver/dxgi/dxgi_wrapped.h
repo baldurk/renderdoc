@@ -1336,8 +1336,7 @@ public:
   WrappedIDXGIDevice4(IDXGIDevice *real, ID3DDevice *d3d);
   virtual ~WrappedIDXGIDevice4();
 
-  static const int AllocPoolCount = 4;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedIDXGIDevice4, AllocPoolCount);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedIDXGIDevice4);
 
   IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);

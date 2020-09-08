@@ -294,9 +294,7 @@ struct WrappedVkCommandBuffer : WrappedVkDispRes
 {
   WrappedVkCommandBuffer(VkCommandBuffer obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
   typedef VkCommandBuffer InnerType;
-  static const int AllocPoolCount = 32 * 1024;
-  static const int AllocPoolMaxByteSize = 2 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCommandBuffer, AllocPoolCount, AllocPoolMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCommandBuffer);
   typedef VkDevDispatchTable DispatchTableType;
   enum
   {
@@ -321,9 +319,7 @@ struct WrappedVkDeviceMemory : WrappedVkNonDispRes
 {
   WrappedVkDeviceMemory(VkDeviceMemory obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
   typedef VkDeviceMemory InnerType;
-  static const int AllocPoolCount = 128 * 1024;
-  static const int AllocPoolMaxByteSize = 3 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDeviceMemory, AllocPoolCount, AllocPoolMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDeviceMemory);
   enum
   {
     TypeEnum = eResDeviceMemory,
@@ -333,9 +329,7 @@ struct WrappedVkBuffer : WrappedVkNonDispRes
 {
   WrappedVkBuffer(VkBuffer obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
   typedef VkBuffer InnerType;
-  static const int AllocPoolCount = 128 * 1024;
-  static const int AllocPoolMaxByteSize = 3 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBuffer, AllocPoolCount, AllocPoolMaxByteSize, false);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBuffer, false);
   enum
   {
     TypeEnum = eResBuffer,
@@ -345,9 +339,7 @@ struct WrappedVkImage : WrappedVkNonDispRes
 {
   WrappedVkImage(VkImage obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
   typedef VkImage InnerType;
-  static const int AllocPoolCount = 128 * 1024;
-  static const int AllocPoolMaxByteSize = 3 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImage, AllocPoolCount, AllocPoolMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImage);
   enum
   {
     TypeEnum = eResImage,
@@ -387,9 +379,7 @@ struct WrappedVkBufferView : WrappedVkNonDispRes
 {
   WrappedVkBufferView(VkBufferView obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
   typedef VkBufferView InnerType;
-  static const int AllocPoolCount = 128 * 1024;
-  static const int AllocPoolMaxByteSize = 3 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBufferView, AllocPoolCount, AllocPoolMaxByteSize, false);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBufferView, false);
   enum
   {
     TypeEnum = eResBufferView,
@@ -399,9 +389,7 @@ struct WrappedVkImageView : WrappedVkNonDispRes
 {
   WrappedVkImageView(VkImageView obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
   typedef VkImageView InnerType;
-  static const int AllocPoolCount = 128 * 1024;
-  static const int AllocPoolMaxByteSize = 3 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImageView, AllocPoolCount, AllocPoolMaxByteSize, false);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImageView, false);
   enum
   {
     TypeEnum = eResImageView,
@@ -411,8 +399,7 @@ struct WrappedVkShaderModule : WrappedVkNonDispRes
 {
   WrappedVkShaderModule(VkShaderModule obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
   typedef VkShaderModule InnerType;
-  static const int AllocPoolCount = 32 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkShaderModule, AllocPoolCount);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkShaderModule);
   enum
   {
     TypeEnum = eResShaderModule,
@@ -434,8 +421,7 @@ struct WrappedVkPipelineLayout : WrappedVkNonDispRes
   {
   }
   typedef VkPipelineLayout InnerType;
-  static const int AllocPoolCount = 32 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipelineLayout, AllocPoolCount);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipelineLayout);
   enum
   {
     TypeEnum = eResPipelineLayout,
@@ -455,8 +441,7 @@ struct WrappedVkPipeline : WrappedVkNonDispRes
 {
   WrappedVkPipeline(VkPipeline obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
   typedef VkPipeline InnerType;
-  static const int AllocPoolCount = 32 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipeline, AllocPoolCount);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipeline);
   enum
   {
     TypeEnum = eResPipeline,
@@ -469,8 +454,7 @@ struct WrappedVkDescriptorSetLayout : WrappedVkNonDispRes
   {
   }
   typedef VkDescriptorSetLayout InnerType;
-  static const int AllocPoolCount = 32 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSetLayout, AllocPoolCount);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSetLayout);
   enum
   {
     TypeEnum = eResDescriptorSetLayout,
@@ -479,10 +463,8 @@ struct WrappedVkDescriptorSetLayout : WrappedVkNonDispRes
 struct WrappedVkSampler : WrappedVkNonDispRes
 {
   WrappedVkSampler(VkSampler obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
-  static const int AllocPoolCount = 8192;
-  static const int AllocPoolMaxByteSize = 1024 * 1024;
   typedef VkSampler InnerType;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSampler, AllocPoolCount, AllocPoolMaxByteSize, false);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSampler, false);
   enum
   {
     TypeEnum = eResSampler,
@@ -504,9 +486,7 @@ struct WrappedVkDescriptorSet : WrappedVkNonDispRes
 {
   WrappedVkDescriptorSet(VkDescriptorSet obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
   typedef VkDescriptorSet InnerType;
-  static const int AllocPoolCount = 256 * 1024;
-  static const int AllocPoolMaxByteSize = 6 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSet, AllocPoolCount, AllocPoolMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSet);
   enum
   {
     TypeEnum = eResDescriptorSet,

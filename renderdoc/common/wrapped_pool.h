@@ -27,19 +27,9 @@
 
 #include <stdint.h>
 #include <string.h>
+#include "api/replay/stringise.h"
 #include "common.h"
 #include "threading.h"
-
-#define INCLUDE_TYPE_NAMES RDOC_DEVEL
-
-#if ENABLED(INCLUDE_TYPE_NAMES)
-template <class T>
-class GetTypeName
-{
-public:
-  static const char *Name();
-};
-#endif
 
 template <class C>
 class FriendMaker
@@ -49,7 +39,7 @@ public:
 };
 
 // allocate each class in its own pool so we can identify the type by the pointer
-template <typename WrapType, int PoolCount = 8192, int MaxPoolByteSize = 1024 * 1024, bool DebugClear = true>
+template <typename WrapType, bool DebugClear = true>
 class WrappingPool
 {
 public:
@@ -70,21 +60,8 @@ public:
         return ret;
     }
 
-// warn when we need to allocate an additional pool
-#if ENABLED(INCLUDE_TYPE_NAMES)
-    RDCWARN("Ran out of free slots in %s pool!", GetTypeName<WrapType>::Name());
-#else
-    RDCWARN("Ran out of free slots in pool 0x%p!", &m_ImmediatePool.items[0]);
-#endif
-
     // allocate a new additional pool and use that to allocate from
-    m_AdditionalPools.push_back(new ItemPool());
-
-#if ENABLED(INCLUDE_TYPE_NAMES)
-    RDCDEBUG("WrappingPool[%d]<%s>: %p -> %p", (uint32_t)m_AdditionalPools.size() - 1,
-             GetTypeName<WrapType>::Name(), &m_AdditionalPools.back()->items[0],
-             &m_AdditionalPools.back()->items[AllocCount - 1]);
-#endif
+    m_AdditionalPools.push_back(new ItemPool(m_AdditionalPools.size() + 1));
 
     return m_AdditionalPools.back()->Allocate();
   }
@@ -135,31 +112,14 @@ public:
       }
     }
 
-// this is an error - deleting an object that we don't recognise
-#if ENABLED(INCLUDE_TYPE_NAMES)
-    RDCERR("Resource being deleted through wrong pool - 0x%p not a member of %s", p,
-           GetTypeName<WrapType>::Name());
-#else
-    RDCERR("Resource being deleted through wrong pool - 0x%p not a member of 0x%p", p,
-           &m_ImmediatePool.items[0]);
-#endif
+    // this is an error - deleting an object that we don't recognise
+    RDCERR("Resource being deleted through wrong pool - 0x%p not a member of this pool", p);
   }
 
-  static const size_t AllocCount = PoolCount;
-  static const size_t AllocMaxByteSize = MaxPoolByteSize;
   static const size_t AllocByteSize;
 
 private:
-  WrappingPool()
-  {
-#if ENABLED(INCLUDE_TYPE_NAMES)
-    // hack - print in kB because float printing relies on statics that might not be initialised
-    // yet in loading order. Ugly :(
-    RDCDEBUG("WrappingPool<%s> %d in %dkB: %p -> %p", GetTypeName<WrapType>::Name(), PoolCount,
-             (PoolCount * AllocByteSize) / 1024, &m_ImmediatePool.items[0],
-             &m_ImmediatePool.items[AllocCount - 1]);
-#endif
-  }
+  WrappingPool() : m_ImmediatePool(0) {}
   ~WrappingPool()
   {
     for(size_t i = 0; i < m_AdditionalPools.size(); i++)
@@ -172,15 +132,38 @@ private:
 
   struct ItemPool
   {
-    ItemPool()
+    ItemPool(size_t poolIndex)
     {
-      items = (WrapType *)(new uint8_t[AllocCount * AllocByteSize]);
-      freeStack = new int[AllocCount];
-      for(int i = 0; i < (int)AllocCount; ++i)
+      const size_t itemSize = sizeof(WrapType);
+
+      size_t size;
+      // first immediate pool is small - 1kB or enough for 4 objects (for every large objects like
+      // devices/queues where we don't expect many)
+      if(poolIndex == 0)
+      {
+        size = RDCMAX(itemSize * 4, (size_t)1024);
+      }
+      else if(poolIndex == 1)
+      {
+        // second pool is larger at 16kB, but still could be spillover from a very small immediate
+        // pool.
+        size = 16 * 1024;
+      }
+      else
+      {
+        // after that we jump up but don't get too crazy, allocate 512kB at a time
+        size = 512 * 1024;
+      }
+
+      count = size / itemSize;
+
+      items = (WrapType *)(new uint8_t[count * itemSize]);
+      freeStack = new int[count];
+      for(int i = 0; i < (int)count; ++i)
       {
         freeStack[i] = i;
       }
-      freeStackHead = AllocCount;
+      freeStackHead = count;
     }
     ~ItemPool()
     {
@@ -189,6 +172,8 @@ private:
     }
     void *Allocate()
     {
+      const size_t itemSize = sizeof(WrapType);
+
       if(freeStackHead == 0)
       {
         return NULL;
@@ -197,7 +182,7 @@ private:
       void *ret = items + freeStack[freeStackHead];
 
 #if ENABLED(RDOC_DEVEL)
-      memset(ret, 0xb0, AllocByteSize);
+      memset(ret, 0xb0, itemSize);
 #endif
 
       return ret;
@@ -205,15 +190,7 @@ private:
 
     void Deallocate(void *p)
     {
-      RDCASSERT(IsAlloc(p));
-
-#if ENABLED(RDOC_DEVEL)
-      if(!IsAlloc(p))
-      {
-        RDCERR("Resource being deleted through wrong pool - 0x%p not a memory of 0x%p", p, &items[0]);
-        return;
-      }
-#endif
+      const size_t itemSize = sizeof(WrapType);
 
       int idx = (int)((WrapType *)p - &items[0]);
 
@@ -222,14 +199,15 @@ private:
 
 #if ENABLED(RDOC_DEVEL)
       if(DebugClear)
-        memset(p, 0xfe, AllocByteSize);
+        memset(p, 0xfe, itemSize);
 #endif
     }
 
-    bool IsAlloc(const void *p) const { return p >= &items[0] && p < &items[PoolCount]; }
+    bool IsAlloc(const void *p) const { return p >= &items[0] && p < &items[count]; }
     WrapType *items;
+    size_t count;
     int *freeStack;
-    int freeStackHead;
+    size_t freeStackHead;
   };
 
   ItemPool m_ImmediatePool;
@@ -244,23 +222,6 @@ private:
   void *operator new(size_t sz) { return m_Pool.Allocate(); } \
   void operator delete(void *p) { m_Pool.Deallocate(p); }     \
   static bool IsAlloc(const void *p) { return m_Pool.IsAlloc(p); }
-#if ENABLED(INCLUDE_TYPE_NAMES)
-#define DECL_TYPENAME(a)             \
-  template <>                        \
-  const char *GetTypeName<a>::Name() \
-  {                                  \
-    return #a;                       \
-  }
-#else
-#define DECL_TYPENAME(a)
-#endif
-
-#define WRAPPED_POOL_INST(a)                                                              \
-  a::PoolType a::m_Pool;                                                                  \
-  template <>                                                                             \
-  const size_t a::PoolType::AllocByteSize = sizeof(a);                                    \
-  RDCCOMPILE_ASSERT(a::PoolType::AllocCount * sizeof(a) <= a::PoolType::AllocMaxByteSize, \
-                    "Pool is bigger than max pool size cap for " STRINGIZE(a));           \
-  RDCCOMPILE_ASSERT(a::PoolType::AllocCount > 2,                                          \
-                    "Pool isn't greater than 2 in size. Bad parameters?");                \
-  DECL_TYPENAME(a);
+#define WRAPPED_POOL_INST(a) \
+  a::PoolType a::m_Pool;     \
+  DECLARE_STRINGISE_TYPE(a);

@@ -267,9 +267,7 @@ private:
   SERIALISED_ID3D11CONTEXT_MARKER_FUNCTIONS();
 
 public:
-  static const int AllocPoolCount = 1024;
-  static const int AllocPoolMaxByteSize = 3 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11DeviceContext, AllocPoolCount, AllocPoolMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11DeviceContext);
 
   WrappedID3D11DeviceContext(WrappedID3D11Device *realDevice, ID3D11DeviceContext *context);
   virtual ~WrappedID3D11DeviceContext();

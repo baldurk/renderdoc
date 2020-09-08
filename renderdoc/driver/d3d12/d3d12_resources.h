@@ -329,9 +329,7 @@ public:
 class WrappedID3D12CommandAllocator : public WrappedDeviceChild12<ID3D12CommandAllocator>
 {
 public:
-  static const int AllocPoolCount = 8192;
-  static const int AllocMaxByteSize = 192 * 8192;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandAllocator, AllocPoolCount, AllocMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandAllocator);
 
   ChunkAllocator alloc;
   bool m_Internal = false;
@@ -594,9 +592,7 @@ public:
 class WrappedID3D12PipelineState : public WrappedDeviceChild12<ID3D12PipelineState>
 {
 public:
-  static const int AllocPoolCount = 65536;
-  static const int AllocMaxByteSize = 5 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12PipelineState, AllocPoolCount, AllocMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12PipelineState);
 
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC *graphics = NULL;
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC *compute = NULL;
@@ -660,9 +656,7 @@ public:
   class ShaderEntry : public WrappedDeviceChild12<ID3D12DeviceChild>
   {
   public:
-    static const int AllocPoolCount = 16384;
-    static const int AllocMaxByteSize = 10 * 1024 * 1024;
-    ALLOCATE_WITH_WRAPPED_POOL(ShaderEntry, AllocPoolCount, AllocMaxByteSize);
+    ALLOCATE_WITH_WRAPPED_POOL(ShaderEntry);
 
     static bool m_InternalResources;
 
@@ -859,9 +853,7 @@ class WrappedID3D12Resource1 : public WrappedDeviceChild12<ID3D12Resource, ID3D1
   WriteSerialiser &GetThreadSerialiser();
 
 public:
-  static const int AllocPoolCount = 16384;
-  static const int AllocMaxByteSize = 1536 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Resource1, AllocPoolCount, AllocMaxByteSize, false);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Resource1, false);
 
   static void RefBuffers(D3D12ResourceManager *rm);
 
@@ -999,9 +991,7 @@ public:
 class WrappedID3D12RootSignature : public WrappedDeviceChild12<ID3D12RootSignature>
 {
 public:
-  static const int AllocPoolCount = 8192;
-  static const int AllocMaxByteSize = 2 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12RootSignature, AllocPoolCount, AllocMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12RootSignature);
 
   D3D12RootSignature sig;
 

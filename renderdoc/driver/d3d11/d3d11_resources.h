@@ -452,9 +452,7 @@ public:
 
   static std::map<ResourceId, BufferEntry> m_BufferList;
 
-  static const int AllocPoolCount = 128 * 1024;
-  static const int AllocPoolMaxByteSize = 13 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Buffer, AllocPoolCount, AllocPoolMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Buffer);
 
   WrappedID3D11Buffer(ID3D11Buffer *real, uint32_t byteLength, WrappedID3D11Device *device)
       : WrappedResource11(real, device)
@@ -567,9 +565,7 @@ class WrappedID3D11Texture2D1
     : public WrappedTexture<ID3D11Texture2D, D3D11_TEXTURE2D_DESC, ID3D11Texture2D1>
 {
 public:
-  static const int AllocPoolCount = 32768;
-  static const int AllocPoolMaxByteSize = 4 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Texture2D1, AllocPoolCount, AllocPoolMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Texture2D1);
 
   WrappedID3D11Texture2D1(ID3D11Texture2D *real, WrappedID3D11Device *device,
                           TextureDisplayType type = TEXDISPLAY_SRV_COMPATIBLE)
@@ -612,9 +608,7 @@ class WrappedID3D11Texture3D1
     : public WrappedTexture<ID3D11Texture3D, D3D11_TEXTURE3D_DESC, ID3D11Texture3D1>
 {
 public:
-  static const int AllocPoolCount = 16384;
-  static const int AllocPoolMaxByteSize = 2 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Texture3D1, AllocPoolCount, AllocPoolMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Texture3D1);
 
   WrappedID3D11Texture3D1(ID3D11Texture3D *real, WrappedID3D11Device *device,
                           TextureDisplayType type = TEXDISPLAY_SRV_COMPATIBLE)
@@ -855,9 +849,7 @@ class WrappedID3D11ShaderResourceView1
     : public WrappedView1<ID3D11ShaderResourceView, D3D11_SHADER_RESOURCE_VIEW_DESC, ID3D11ShaderResourceView1>
 {
 public:
-  static const int AllocPoolCount = 65535;
-  static const int AllocPoolMaxByteSize = 6 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11ShaderResourceView1, AllocPoolCount, AllocPoolMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11ShaderResourceView1);
 
   WrappedID3D11ShaderResourceView1(ID3D11ShaderResourceView *real, ID3D11Resource *res,
                                    WrappedID3D11Device *device)
@@ -1034,10 +1026,7 @@ template <class RealShaderType>
 class WrappedID3D11Shader : public WrappedDeviceChild11<RealShaderType>, public WrappedShader
 {
 public:
-  static const int AllocPoolCount = 32 * 1024;
-  static const int AllocPoolMaxByteSize = 3 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Shader<RealShaderType>, AllocPoolCount,
-                             AllocPoolMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Shader<RealShaderType>);
 
   WrappedID3D11Shader(RealShaderType *real, ResourceId origId, const byte *code, size_t codeLen,
                       WrappedID3D11Device *device)
@@ -1083,9 +1072,7 @@ public:
 class WrappedID3D11Query1 : public WrappedDeviceChild11<ID3D11Query, ID3D11Query1>
 {
 public:
-  static const int AllocPoolCount = 16 * 1024;
-  static const int AllocPoolMaxByteSize = 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Query1, AllocPoolCount, AllocPoolMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Query1);
 
   WrappedID3D11Query1(ID3D11Query *real, WrappedID3D11Device *device)
       : WrappedDeviceChild11(real, device)
