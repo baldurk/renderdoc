@@ -1419,6 +1419,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
     // handle any 'created' initial states, without an actual image with contents
     if(initial.tag != VkInitialContents::BufferCopy)
     {
+      // ignore images with no memory bound
+      if(boundMemory == ResourceId())
+        return;
+
       if(initial.tag == VkInitialContents::ClearColorImage)
       {
         VkFormat format = imageInfo.format;
